@@ -1746,5 +1746,8 @@ nsresult
 nsWaveDecoder::GetBuffered(nsTimeRanges* aBuffered)
 {
   NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
-  return mPlaybackStateMachine->GetBuffered(aBuffered);
+  if (mPlaybackStateMachine) {
+    return mPlaybackStateMachine->GetBuffered(aBuffered);
+  }
+  return NS_ERROR_FAILURE;
 }
