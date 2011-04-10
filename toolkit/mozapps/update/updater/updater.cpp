@@ -1719,7 +1719,7 @@ int NS_main(int argc, NS_tchar **argv)
                  sizeof(callbackBackupPath)/sizeof(callbackBackupPath[0]),
                  NS_T("%s" CALLBACK_BACKUP_EXT), argv[callbackIndex]);
     NS_tremove(callbackBackupPath);
-    CopyFileW(argv[callbackIndex], callbackBackupPath, FALSE);
+    CopyFileW(argv[callbackIndex], callbackBackupPath, false);
 
     // Since the process may be signaled as exited by WaitForSingleObject before
     // the release of the executable image try to lock the main executable file
@@ -1734,7 +1734,7 @@ int NS_main(int argc, NS_tchar **argv)
                                  FILE_SHARE_READ | FILE_SHARE_WRITE,
 #else
                                  DELETE | GENERIC_WRITE,
-                                 0, // no sharing!
+                                 FILE_SHARE_DELETE, // allows delete and rename
 #endif
                                  NULL, OPEN_EXISTING, 0, NULL);
       if (callbackFile != INVALID_HANDLE_VALUE)
@@ -1760,7 +1760,7 @@ int NS_main(int argc, NS_tchar **argv)
 
 #if defined(XP_WIN) && !defined(WINCE)
   // The directory to move files that are in use to on Windows. This directory
-  // will be deleted after the update is finished or on on OS reboot using
+  // will be deleted after the update is finished or on OS reboot using
   // MoveFileEx if it contains files that are in use.
   if (NS_taccess(DELETE_DIR, F_OK)) {
     NS_tmkdir(DELETE_DIR, 0755);
@@ -1779,9 +1779,40 @@ int NS_main(int argc, NS_tchar **argv)
 #ifdef XP_WIN
   if (argc > callbackIndex) {
     CloseHandle(callbackFile);
-    // CopyFile will preserve the case of the destination file if it already
-    // exists.
-    if (CopyFileW(callbackBackupPath, argv[callbackIndex], FALSE) != 0) {
+
+    if (gSucceeded) {
+      // Rename the callback file to get it out of the way and rename
+      // the updated callback file to the callback file's original name.
+      int rv = WRITE_ERROR;
+      NS_tchar callbackPath[MAXPATHLEN];
+      // GetLongPathNameW will return the case sensitive file name which is
+      // needed to rename the updated callback file back to the original name.
+      DWORD len = GetLongPathNameW(argv[callbackIndex], callbackPath, MAXPATHLEN);
+      if (len != 0 && len <= MAXPATHLEN) {
+        // Move the original callback file out of the way.
+        rv = backup_create(callbackPath);
+        if (rv == OK) {
+          rv = rename_file(callbackBackupPath, callbackPath);
+          // If the rename operation succeeded the call to backup_finish will
+          // remove the back up of the original callback file. If it failed the
+          // call to backup_finish will restore the back up of the original
+          // callback file and try to copy the updated callback file over the
+          // original using CopyFileW as a last resort.
+          backup_finish(callbackPath, rv);
+        }
+      }
+
+      if (rv != OK && !NS_taccess(callbackBackupPath, F_OK)) {
+        // CopyFile will preserve the case of the destination file if it already
+        // exists.
+        if (CopyFileW(callbackBackupPath, argv[callbackIndex], false)) {
+          NS_tremove(callbackBackupPath);
+        } else {
+          LOG(("NS_main: CopyFileW failed to rename: " LOG_S "... giving up\n",
+               callbackBackupPath));
+        }
+      }
+    } else {
       NS_tremove(callbackBackupPath);
     }
   }
