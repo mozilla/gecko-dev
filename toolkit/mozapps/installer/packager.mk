@@ -450,8 +450,6 @@ PLATFORM_EXCLUDE_LIST = ! -name "*.stub" ! -name "$(MOZ_PKG_APPNAME)-bin"
 endif
 ifeq ($(OS_ARCH),OS2)
 STRIP		= $(MOZILLA_DIR)/toolkit/mozapps/installer/os2/strip.cmd
-STRIP_FLAGS	=
-PLATFORM_EXCLUDE_LIST = ! -name "*.ico" ! -name "$(MOZ_PKG_APPNAME).exe"
 endif
 
 ifneq (,$(filter WINNT WINCE OS2,$(OS_ARCH)))
@@ -552,31 +550,37 @@ ifneq (,$(filter %86 x86_64 arm,$(OS_TEST)))
 endif
 endif
 ifndef PKG_SKIP_STRIP
-	@echo "Stripping package directory..."
-	@cd $(DIST)/$(STAGEPATH)$(MOZ_PKG_DIR); find . ! -type d \
-			! -name "*.js" \
-			! -name "*.xpt" \
-			! -name "*.gif" \
-			! -name "*.jpg" \
-			! -name "*.png" \
-			! -name "*.xpm" \
-			! -name "*.txt" \
-			! -name "*.rdf" \
-			! -name "*.sh" \
-			! -name "*.properties" \
-			! -name "*.dtd" \
-			! -name "*.html" \
-			! -name "*.xul" \
-			! -name "*.css" \
-			! -name "*.xml" \
-			! -name "*.jar" \
-			! -name "*.dat" \
-			! -name "*.tbl" \
-			! -name "*.src" \
-			! -name "*.reg" \
-			$(PLATFORM_EXCLUDE_LIST) \
-			-exec $(STRIP) $(STRIP_FLAGS) {} >/dev/null 2>&1 \;
-	$(SIGN_NSS)
+  ifeq ($(OS_ARCH),OS2)
+		@echo "Stripping package directory..."
+		@cd $(DIST)/$(STAGEPATH)$(MOZ_PKG_DIR) && $(STRIP)
+		$(SIGN_NSS)
+  else
+		@echo "Stripping package directory..."
+		@cd $(DIST)/$(STAGEPATH)$(MOZ_PKG_DIR); find . ! -type d \
+				! -name "*.js" \
+				! -name "*.xpt" \
+				! -name "*.gif" \
+				! -name "*.jpg" \
+				! -name "*.png" \
+				! -name "*.xpm" \
+				! -name "*.txt" \
+				! -name "*.rdf" \
+				! -name "*.sh" \
+				! -name "*.properties" \
+				! -name "*.dtd" \
+				! -name "*.html" \
+				! -name "*.xul" \
+				! -name "*.css" \
+				! -name "*.xml" \
+				! -name "*.jar" \
+				! -name "*.dat" \
+				! -name "*.tbl" \
+				! -name "*.src" \
+				! -name "*.reg" \
+				$(PLATFORM_EXCLUDE_LIST) \
+				-exec $(STRIP) $(STRIP_FLAGS) {} >/dev/null 2>&1 \;
+		$(SIGN_NSS)
+  endif
 else
 ifdef UNIVERSAL_BINARY
 # universal binaries will have had their .chk files removed prior to the unify
