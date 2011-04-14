@@ -40,7 +40,6 @@
 
 #include "nsXULListboxAccessible.h"
 
-#include "States.h"
 #include "nsAccessibilityService.h"
 #include "nsAccUtils.h"
 
@@ -64,10 +63,26 @@ nsXULColumnsAccessible::NativeRole()
   return nsIAccessibleRole::ROLE_LIST;
 }
 
-PRUint64
-nsXULColumnsAccessible::NativeState()
+nsresult
+nsXULColumnsAccessible::GetStateInternal(PRUint32 *aState,
+                                         PRUint32 *aExtraState)
 {
-  return IsDefunct() ? states::DEFUNCT : states::READONLY;
+  NS_ENSURE_ARG_POINTER(aState);
+  *aState = 0;
+
+  if (IsDefunct()) {
+    if (aExtraState)
+      *aExtraState = nsIAccessibleStates::EXT_STATE_DEFUNCT;
+
+    return NS_OK_DEFUNCT_OBJECT;
+  }
+
+  *aState = nsIAccessibleStates::STATE_READONLY;
+
+  if (aExtraState)
+    *aExtraState = 0;
+
+  return NS_OK;
 }
 
 
@@ -87,10 +102,24 @@ nsXULColumnItemAccessible::NativeRole()
   return nsIAccessibleRole::ROLE_COLUMNHEADER;
 }
 
-PRUint64
-nsXULColumnItemAccessible::NativeState()
+nsresult
+nsXULColumnItemAccessible::GetStateInternal(PRUint32 *aState,
+                                            PRUint32 *aExtraState)
 {
-  return IsDefunct() ? states::DEFUNCT : states::READONLY;
+  NS_ENSURE_ARG_POINTER(aState);
+
+  if (IsDefunct()) {
+    if (aExtraState)
+      *aExtraState = nsIAccessibleStates::EXT_STATE_DEFUNCT;
+
+    return NS_OK_DEFUNCT_OBJECT;
+  }
+
+  *aState = nsIAccessibleStates::STATE_READONLY;
+  if (aExtraState)
+    *aExtraState = 0;
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -165,23 +194,28 @@ nsXULListboxAccessible::IsMulticolumn()
 ////////////////////////////////////////////////////////////////////////////////
 // nsXULListboxAccessible. nsIAccessible
 
-PRUint64
-nsXULListboxAccessible::NativeState()
+nsresult
+nsXULListboxAccessible::GetStateInternal(PRUint32 *aState,
+                                         PRUint32 *aExtraState)
 {
   // As a nsXULListboxAccessible we can have the following states:
-  //   FOCUSED, READONLY, FOCUSABLE
+  //   STATE_FOCUSED
+  //   STATE_READONLY
+  //   STATE_FOCUSABLE
 
   // Get focus status from base class
-  PRUint64 states = nsAccessible::NativeState();
+  nsresult rv = nsAccessible::GetStateInternal(aState, aExtraState);
+  NS_ENSURE_A11Y_SUCCESS(rv, rv);
 
   // see if we are multiple select if so set ourselves as such
 
   if (mContent->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::seltype,
                             nsAccessibilityAtoms::multiple, eCaseMatters)) {
-      states |= states::MULTISELECTABLE | states::EXTSELECTABLE;
+      *aState |= nsIAccessibleStates::STATE_MULTISELECTABLE |
+                 nsIAccessibleStates::STATE_EXTSELECTABLE;
   }
 
-  return states;
+  return NS_OK;
 }
 
 /**
@@ -903,17 +937,28 @@ nsXULListitemAccessible::NativeRole()
   return nsIAccessibleRole::ROLE_RICH_OPTION;
 }
 
-PRUint64
-nsXULListitemAccessible::NativeState()
+nsresult
+nsXULListitemAccessible::GetStateInternal(PRUint32 *aState,
+                                          PRUint32 *aExtraState)
 {
   if (mIsCheckbox) {
-    return nsXULMenuitemAccessible::NativeState();
+    return nsXULMenuitemAccessible::GetStateInternal(aState, aExtraState);
   }
 
-  if (IsDefunct())
-    return states::DEFUNCT;
+  *aState = 0;
 
-  PRUint64 states = states::FOCUSABLE | states::SELECTABLE;
+  if (IsDefunct()) {
+    if (aExtraState)
+      *aExtraState = nsIAccessibleStates::EXT_STATE_DEFUNCT;
+
+    return NS_OK_DEFUNCT_OBJECT;
+  }
+
+  if (aExtraState)
+    *aExtraState = 0;
+
+  *aState = nsIAccessibleStates::STATE_FOCUSABLE |
+            nsIAccessibleStates::STATE_SELECTABLE;
 
   nsCOMPtr<nsIDOMXULSelectControlItemElement> listItem =
     do_QueryInterface(mContent);
@@ -922,23 +967,25 @@ nsXULListitemAccessible::NativeState()
     PRBool isSelected;
     listItem->GetSelected(&isSelected);
     if (isSelected)
-      states |= states::SELECTED;
+      *aState |= nsIAccessibleStates::STATE_SELECTED;
 
     if (gLastFocusedNode == mContent)
-      states |= states::FOCUSED;
+      *aState |= nsIAccessibleStates::STATE_FOCUSED;
 
   }
 
-  return states;
+  return NS_OK;
 }
 
 NS_IMETHODIMP nsXULListitemAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
 {
   if (aIndex == eAction_Click && mIsCheckbox) {
     // check or uncheck
-    PRUint64 states = NativeState();
+    PRUint32 state;
+    nsresult rv = GetStateInternal(&state, nsnull);
+    NS_ENSURE_SUCCESS(rv, rv);
 
-    if (states & states::CHECKED)
+    if (state & nsIAccessibleStates::STATE_CHECKED)
       aName.AssignLiteral("uncheck");
     else
       aName.AssignLiteral("check");

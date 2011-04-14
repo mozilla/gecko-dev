@@ -39,7 +39,6 @@
 
 #include "nsBaseWidgetAccessible.h"
 
-#include "States.h"
 #include "nsAccessibilityAtoms.h"
 #include "nsAccessibilityService.h"
 #include "nsAccUtils.h"
@@ -114,18 +113,20 @@ nsLinkableAccessible::TakeFocus()
   return nsAccessibleWrap::TakeFocus();
 }
 
-PRUint64
-nsLinkableAccessible::NativeState()
+nsresult
+nsLinkableAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
 {
-  PRUint64 states = nsAccessibleWrap::NativeState();
+  nsresult rv = nsAccessibleWrap::GetStateInternal(aState, aExtraState);
+  NS_ENSURE_A11Y_SUCCESS(rv, rv);
+
   if (mIsLink) {
-    states |= states::LINKED;
-    nsAccessible* actionAcc = GetActionAccessible();
-    if (actionAcc->State() & states::TRAVERSED)
-      states |= states::TRAVERSED;
+    *aState |= nsIAccessibleStates::STATE_LINKED;
+    nsAccessible *actionAcc = GetActionAccessible();
+    if (nsAccUtils::State(actionAcc) & nsIAccessibleStates::STATE_TRAVERSED)
+      *aState |= nsIAccessibleStates::STATE_TRAVERSED;
   }
 
-  return states;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -259,7 +260,7 @@ nsLinkableAccessible::BindToParent(nsAccessible* aParent,
       GetAccService()->GetAccessibleInWeakShell(walkUpContent, mWeakShell);
 
     if (walkUpAcc && walkUpAcc->Role() == nsIAccessibleRole::ROLE_LINK &&
-        walkUpAcc->State() & states::LINKED) {
+        nsAccUtils::State(walkUpAcc) & nsIAccessibleStates::STATE_LINKED) {
       mIsLink = PR_TRUE;
       mActionContent = walkUpContent;
       return;

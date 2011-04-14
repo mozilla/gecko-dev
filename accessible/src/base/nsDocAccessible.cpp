@@ -36,7 +36,6 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-#include "States.h"
 #include "nsAccCache.h"
 #include "nsAccessibilityAtoms.h"
 #include "nsAccessibilityService.h"
@@ -84,7 +83,7 @@ namespace dom = mozilla::dom;
 ////////////////////////////////////////////////////////////////////////////////
 // Static member initialization
 
-PRUint64 nsDocAccessible::gLastFocusedAccessiblesState = 0;
+PRUint32 nsDocAccessible::gLastFocusedAccessiblesState = 0;
 
 static nsIAtom** kRelationAttrs[] =
 {
@@ -291,17 +290,24 @@ nsDocAccessible::GetDescription(nsAString& aDescription)
 }
 
 // nsAccessible public method
-PRUint64
-nsDocAccessible::NativeState()
+nsresult
+nsDocAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
 {
+  *aState = 0;
 
-  if (IsDefunct())
-    return states::DEFUNCT;
+  if (IsDefunct()) {
+    if (aExtraState)
+      *aExtraState = nsIAccessibleStates::EXT_STATE_DEFUNCT;
 
-  // The root content of the document might be removed so that mContent is
-  // out of date.
-  PRUint64 state = (mContent->GetCurrentDoc() == mDocument) ?
-    0 : states::STALE;
+    return NS_OK_DEFUNCT_OBJECT;
+  }
+
+  if (aExtraState) {
+    // The root content of the document might be removed so that mContent is
+    // out of date.
+    *aExtraState = (mContent->GetCurrentDoc() == mDocument) ?
+      0 : nsIAccessibleStates::EXT_STATE_STALE;
+  }
 
 #ifdef MOZ_XUL
   nsCOMPtr<nsIXULDocument> xulDoc(do_QueryInterface(mDocument));
@@ -311,14 +317,17 @@ nsDocAccessible::NativeState()
     // XXX Need to invent better check to see if doc is focusable,
     // which it should be if it is scrollable. A XUL document could be focusable.
     // See bug 376803.
-    state |= states::FOCUSABLE;
+    *aState |= nsIAccessibleStates::STATE_FOCUSABLE;
     if (gLastFocusedNode == mDocument)
-      state |= states::FOCUSED;
+      *aState |= nsIAccessibleStates::STATE_FOCUSED;
   }
 
   // Expose state busy until the document is loaded or tree is constructed.
   if (!mIsLoaded || !mNotificationController->IsTreeConstructed()) {
-    state |= states::BUSY | states::STALE;
+    *aState |= nsIAccessibleStates::STATE_BUSY;
+    if (aExtraState) {
+      *aExtraState |= nsIAccessibleStates::EXT_STATE_STALE;
+    }
   }
  
   nsIFrame* frame = GetFrame();
@@ -328,28 +337,35 @@ nsDocAccessible::NativeState()
  
   if (frame == nsnull ||
       !CheckVisibilityInParentChain(mDocument, frame->GetViewExternal())) {
-    state |= states::INVISIBLE | states::OFFSCREEN;
+    *aState |= nsIAccessibleStates::STATE_INVISIBLE |
+               nsIAccessibleStates::STATE_OFFSCREEN;
   }
 
   nsCOMPtr<nsIEditor> editor;
   GetAssociatedEditor(getter_AddRefs(editor));
-  state |= editor ? states::EDITABLE : states::READONLY;
+  if (!editor) {
+    *aState |= nsIAccessibleStates::STATE_READONLY;
+  }
+  else if (aExtraState) {
+    *aExtraState |= nsIAccessibleStates::EXT_STATE_EDITABLE;
+  }
 
-  return state;
+  return NS_OK;
 }
 
 // nsAccessible public method
-void
-nsDocAccessible::ApplyARIAState(PRUint64* aState)
+nsresult
+nsDocAccessible::GetARIAState(PRUint32 *aState, PRUint32 *aExtraState)
 {
   // Combine with states from outer doc
-  // 
-  nsAccessible::ApplyARIAState(aState);
+  NS_ENSURE_ARG_POINTER(aState);
+  nsresult rv = nsAccessible::GetARIAState(aState, aExtraState);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  // Allow iframe/frame etc. to have final state override via ARIA
-  if (mParent)
-    mParent->ApplyARIAState(aState);
+  if (mParent)  // Allow iframe/frame etc. to have final state override via ARIA
+    return mParent->GetARIAState(aState, aExtraState);
 
+  return rv;
 }
 
 NS_IMETHODIMP
@@ -381,8 +397,9 @@ NS_IMETHODIMP nsDocAccessible::TakeFocus()
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
-  PRUint64 state = NativeState();
-  if (0 == (state & states::FOCUSABLE)) {
+  PRUint32 state;
+  GetStateInternal(&state, nsnull);
+  if (0 == (state & nsIAccessibleStates::STATE_FOCUSABLE)) {
     return NS_ERROR_FAILURE; // Not focusable
   }
 
@@ -898,7 +915,8 @@ NS_IMETHODIMP nsDocAccessible::Observe(nsISupports *aSubject, const char *aTopic
     // accessible object. See the AccStateChangeEvent constructor for details
     // about this exceptional case.
     nsRefPtr<AccEvent> event =
-      new AccStateChangeEvent(this, states::EDITABLE, PR_TRUE);
+      new AccStateChangeEvent(this, nsIAccessibleStates::EXT_STATE_EDITABLE,
+                              PR_TRUE, PR_TRUE);
     FireDelayedAccessibleEvent(event);
   }
 
@@ -979,7 +997,7 @@ nsDocAccessible::AttributeChanged(nsIDocument *aDocument,
 
   // If it was the focused node, cache the new state.
   if (aElement == gLastFocusedNode)
-    gLastFocusedAccessiblesState = accessible->State();
+    gLastFocusedAccessiblesState = nsAccUtils::State(accessible);
 }
 
 // nsDocAccessible protected member
@@ -1015,12 +1033,16 @@ nsDocAccessible::AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID
     // ARIA's aria-disabled does not affect the disabled state bit.
 
     nsRefPtr<AccEvent> enabledChangeEvent =
-      new AccStateChangeEvent(aContent, states::ENABLED);
+      new AccStateChangeEvent(aContent,
+                              nsIAccessibleStates::EXT_STATE_ENABLED,
+                              PR_TRUE);
 
     FireDelayedAccessibleEvent(enabledChangeEvent);
 
     nsRefPtr<AccEvent> sensitiveChangeEvent =
-      new AccStateChangeEvent(aContent, states::SENSITIVE);
+      new AccStateChangeEvent(aContent,
+                              nsIAccessibleStates::EXT_STATE_SENSITIVE,
+                              PR_TRUE);
 
     FireDelayedAccessibleEvent(sensitiveChangeEvent);
     return;
@@ -1078,7 +1100,9 @@ nsDocAccessible::AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID
 
   if (aAttribute == nsAccessibilityAtoms::contenteditable) {
     nsRefPtr<AccEvent> editableChangeEvent =
-      new AccStateChangeEvent(aContent, states::EDITABLE);
+      new AccStateChangeEvent(aContent,
+                              nsIAccessibleStates::EXT_STATE_EDITABLE,
+                              PR_TRUE);
     FireDelayedAccessibleEvent(editableChangeEvent);
     return;
   }
@@ -1093,14 +1117,16 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
 
   if (aAttribute == nsAccessibilityAtoms::aria_required) {
     nsRefPtr<AccEvent> event =
-      new AccStateChangeEvent(aContent, states::REQUIRED);
+      new AccStateChangeEvent(aContent, nsIAccessibleStates::STATE_REQUIRED,
+                              PR_FALSE);
     FireDelayedAccessibleEvent(event);
     return;
   }
 
   if (aAttribute == nsAccessibilityAtoms::aria_invalid) {
     nsRefPtr<AccEvent> event =
-      new AccStateChangeEvent(aContent, states::INVALID);
+      new AccStateChangeEvent(aContent, nsIAccessibleStates::STATE_INVALID,
+                              PR_FALSE);
     FireDelayedAccessibleEvent(event);
     return;
   }
@@ -1131,7 +1157,8 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
   // We treat aria-expanded as a global ARIA state for historical reasons
   if (aAttribute == nsAccessibilityAtoms::aria_expanded) {
     nsRefPtr<AccEvent> event =
-      new AccStateChangeEvent(aContent, states::EXPANDED);
+      new AccStateChangeEvent(aContent, nsIAccessibleStates::STATE_EXPANDED,
+                              PR_FALSE);
     FireDelayedAccessibleEvent(event);
     return;
   }
@@ -1148,9 +1175,10 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
   if (aAttribute == nsAccessibilityAtoms::aria_checked ||
       aAttribute == nsAccessibilityAtoms::aria_pressed) {
     const PRUint32 kState = (aAttribute == nsAccessibilityAtoms::aria_checked) ?
-                            states::CHECKED : states::PRESSED;
+                            nsIAccessibleStates::STATE_CHECKED : 
+                            nsIAccessibleStates::STATE_PRESSED;
     nsRefPtr<AccEvent> event =
-      new AccStateChangeEvent(aContent, kState);
+      new AccStateChangeEvent(aContent, kState, PR_FALSE);
     FireDelayedAccessibleEvent(event);
     if (aContent == gLastFocusedNode) {
       // State changes for MIXED state currently only supported for focused item, because
@@ -1159,12 +1187,13 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
       // without caching that info.
       nsAccessible *accessible = event->GetAccessible();
       if (accessible) {
-        PRBool wasMixed = (gLastFocusedAccessiblesState & states::MIXED) != 0;
+        PRBool wasMixed = (gLastFocusedAccessiblesState & nsIAccessibleStates::STATE_MIXED) != 0;
         PRBool isMixed  =
-          (accessible->State() & states::MIXED) != 0;
+          (nsAccUtils::State(accessible) & nsIAccessibleStates::STATE_MIXED) != 0;
         if (wasMixed != isMixed) {
           nsRefPtr<AccEvent> event =
-            new AccStateChangeEvent(aContent, states::MIXED, isMixed);
+            new AccStateChangeEvent(aContent, nsIAccessibleStates::STATE_MIXED,
+                                    PR_FALSE, isMixed);
           FireDelayedAccessibleEvent(event);
         }
       }
@@ -1174,7 +1203,8 @@ nsDocAccessible::ARIAAttributeChanged(nsIContent* aContent, nsIAtom* aAttribute)
 
   if (aAttribute == nsAccessibilityAtoms::aria_readonly) {
     nsRefPtr<AccEvent> event =
-      new AccStateChangeEvent(aContent, states::READONLY);
+      new AccStateChangeEvent(aContent, nsIAccessibleStates::STATE_READONLY,
+                              PR_FALSE);
     FireDelayedAccessibleEvent(event);
     return;
   }
@@ -1211,7 +1241,8 @@ void nsDocAccessible::ContentStateChanged(nsIDocument* aDocument,
 
   if (aStateMask.HasState(NS_EVENT_STATE_INVALID)) {
     nsRefPtr<AccEvent> event =
-      new AccStateChangeEvent(aContent, states::INVALID, PR_TRUE);
+      new AccStateChangeEvent(aContent, nsIAccessibleStates::STATE_INVALID,
+                              PR_FALSE, PR_TRUE);
     FireDelayedAccessibleEvent(event);
    }
 }

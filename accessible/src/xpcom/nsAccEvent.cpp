@@ -37,7 +37,6 @@
  * ***** END LICENSE BLOCK ***** */
 
 #include "nsAccEvent.h"
-#include "nsAccUtils.h"
 #include "nsDocAccessible.h"
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -104,12 +103,7 @@ NS_IMETHODIMP
 nsAccStateChangeEvent::GetState(PRUint32* aState)
 {
   NS_ENSURE_ARG_POINTER(aState);
-
-  PRUint32 state1 = 0, state2 = 0;
-  PRUint64 state = static_cast<AccStateChangeEvent*>(mEvent.get())->GetState();
-  nsAccUtils::To32States(state, &state1, &state2);
-
-  *aState = state1 | state2; // only one state is not 0
+  *aState = static_cast<AccStateChangeEvent*>(mEvent.get())->GetState();
   return NS_OK;
 }
 
@@ -117,12 +111,7 @@ NS_IMETHODIMP
 nsAccStateChangeEvent::IsExtraState(PRBool* aIsExtraState)
 {
   NS_ENSURE_ARG_POINTER(aIsExtraState);
-
-  PRUint32 state1 = 0, state2 = 0;
-  PRUint64 state = static_cast<AccStateChangeEvent*>(mEvent.get())->GetState();
-  nsAccUtils::To32States(state, &state1, &state2);
-
-  *aIsExtraState = (state2 != 0);
+  *aIsExtraState = static_cast<AccStateChangeEvent*>(mEvent.get())->IsExtraState();
   return NS_OK;
 }
 

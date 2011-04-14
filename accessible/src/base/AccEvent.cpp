@@ -221,30 +221,39 @@ AccEvent::CaptureIsFromUserInput(EIsFromUserInput aIsFromUserInput)
 // support correct state change coalescence (XXX Bug 569356). Also we need to
 // decide how to coalesce events created via accessible (instead of node).
 AccStateChangeEvent::
-  AccStateChangeEvent(nsAccessible* aAccessible, PRUint64 aState,
+  AccStateChangeEvent(nsAccessible* aAccessible,
+                      PRUint32 aState, PRBool aIsExtraState,
                       PRBool aIsEnabled, EIsFromUserInput aIsFromUserInput):
   AccEvent(nsIAccessibleEvent::EVENT_STATE_CHANGE, aAccessible,
            aIsFromUserInput, eAllowDupes),
-  mState(aState), mIsEnabled(aIsEnabled)
+  mState(aState), mIsExtraState(aIsExtraState), mIsEnabled(aIsEnabled)
 {
 }
 
 AccStateChangeEvent::
-  AccStateChangeEvent(nsINode* aNode, PRUint64 aState, PRBool aIsEnabled):
+  AccStateChangeEvent(nsINode* aNode, PRUint32 aState, PRBool aIsExtraState,
+                      PRBool aIsEnabled):
   AccEvent(::nsIAccessibleEvent::EVENT_STATE_CHANGE, aNode),
-  mState(aState), mIsEnabled(aIsEnabled)
+  mState(aState), mIsExtraState(aIsExtraState), mIsEnabled(aIsEnabled)
 {
 }
 
 AccStateChangeEvent::
-  AccStateChangeEvent(nsINode* aNode, PRUint64 aState) :
-  AccEvent(::nsIAccessibleEvent::EVENT_STATE_CHANGE, aNode), mState(aState)
+  AccStateChangeEvent(nsINode* aNode, PRUint32 aState, PRBool aIsExtraState) :
+  AccEvent(::nsIAccessibleEvent::EVENT_STATE_CHANGE, aNode),
+  mState(aState), mIsExtraState(aIsExtraState)
 {
   // Use GetAccessibleForNode() because we do not want to store an accessible
   // since it leads to problems with delayed events in the case when
   // an accessible gets reorder event before delayed event is processed.
   nsAccessible *accessible = GetAccessibleForNode();
-  mIsEnabled = accessible && ((accessible->State() & mState) != 0);
+  if (accessible) {
+    PRUint32 state = 0, extraState = 0;
+    accessible->GetState(&state, mIsExtraState ? &extraState : nsnull);
+    mIsEnabled = ((mIsExtraState ? extraState : state) & mState) != 0;
+  } else {
+    mIsEnabled = PR_FALSE;
+  }
 }
 
 already_AddRefed<nsAccEvent>

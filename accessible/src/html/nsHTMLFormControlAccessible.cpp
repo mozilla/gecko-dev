@@ -38,7 +38,6 @@
 
 #include "nsHTMLFormControlAccessible.h"
 
-#include "States.h"
 #include "nsAccessibilityAtoms.h"
 #include "nsAccUtils.h"
 #include "nsRelUtils.h"
@@ -86,11 +85,13 @@ NS_IMETHODIMP nsHTMLCheckboxAccessible::GetActionName(PRUint8 aIndex, nsAString&
 {
   if (aIndex == eAction_Click) {    // 0 is the magic value for default action
     // cycle, check or uncheck
-    PRUint64 state = NativeState();
+    PRUint32 state;
+    nsresult rv = GetStateInternal(&state, nsnull);
+    NS_ENSURE_SUCCESS(rv, rv);
 
-    if (state & states::CHECKED)
+    if (state & nsIAccessibleStates::STATE_CHECKED)
       aName.AssignLiteral("uncheck"); 
-    else if (state & states::MIXED)
+    else if (state & nsIAccessibleStates::STATE_MIXED)
       aName.AssignLiteral("cycle"); 
     else
       aName.AssignLiteral("check"); 
@@ -110,30 +111,33 @@ nsHTMLCheckboxAccessible::DoAction(PRUint8 aIndex)
   return NS_OK;
 }
 
-PRUint64
-nsHTMLCheckboxAccessible::NativeState()
+nsresult
+nsHTMLCheckboxAccessible::GetStateInternal(PRUint32 *aState,
+                                           PRUint32 *aExtraState)
 {
-  PRUint64 state = nsFormControlAccessible::NativeState();
+  nsresult rv = nsFormControlAccessible::GetStateInternal(aState, aExtraState);
+  NS_ENSURE_A11Y_SUCCESS(rv, rv);
 
-  state |= states::CHECKABLE;
-  PRBool checkState = PR_FALSE;   // Radio buttons and check boxes can be checked or mixed
+  *aState |= nsIAccessibleStates::STATE_CHECKABLE;
+
+  PRBool state = PR_FALSE;   // Radio buttons and check boxes can be checked or mixed
 
   nsCOMPtr<nsIDOMHTMLInputElement> htmlCheckboxElement =
     do_QueryInterface(mContent);
            
   if (htmlCheckboxElement) {
-    htmlCheckboxElement->GetIndeterminate(&checkState);
+    htmlCheckboxElement->GetIndeterminate(&state);
 
-    if (checkState) {
-      state |= states::MIXED;
+    if (state) {
+      *aState |= nsIAccessibleStates::STATE_MIXED;
     } else {   // indeterminate can't be checked at the same time.
-      htmlCheckboxElement->GetChecked(&checkState);
+      htmlCheckboxElement->GetChecked(&state);
     
-      if (checkState)
-        state |= states::CHECKED;
+      if (state)
+        *aState |= nsIAccessibleStates::STATE_CHECKED;
     }
   }
-  return state;
+  return NS_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -146,12 +150,14 @@ nsHTMLRadioButtonAccessible::
 {
 }
 
-PRUint64
-nsHTMLRadioButtonAccessible::NativeState()
+nsresult
+nsHTMLRadioButtonAccessible::GetStateInternal(PRUint32 *aState,
+                                              PRUint32 *aExtraState)
 {
-  PRUint64 state = nsAccessibleWrap::NativeState();
+  nsresult rv = nsAccessibleWrap::GetStateInternal(aState, aExtraState);
+  NS_ENSURE_A11Y_SUCCESS(rv, rv);
 
-  state |= states::CHECKABLE;
+  *aState |= nsIAccessibleStates::STATE_CHECKABLE;
   
   PRBool checked = PR_FALSE;   // Radio buttons and check boxes can be checked
 
@@ -161,9 +167,9 @@ nsHTMLRadioButtonAccessible::NativeState()
     htmlRadioElement->GetChecked(&checked);
 
   if (checked)
-    state |= states::CHECKED;
+    *aState |= nsIAccessibleStates::STATE_CHECKED;
 
-  return state;
+  return NS_OK;
 }
 
 void
@@ -260,16 +266,19 @@ nsHTMLButtonAccessible::DoAction(PRUint8 aIndex)
   return NS_OK;
 }
 
-PRUint64
-nsHTMLButtonAccessible::NativeState()
+nsresult
+nsHTMLButtonAccessible::GetStateInternal(PRUint32 *aState,
+                                         PRUint32 *aExtraState)
 {
-  PRUint64 state = nsHyperTextAccessibleWrap::NativeState();
+  nsresult rv = nsHyperTextAccessibleWrap::GetStateInternal(aState,
+                                                            aExtraState);
+  NS_ENSURE_A11Y_SUCCESS(rv, rv);
 
   if (mContent->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::type,
                             nsAccessibilityAtoms::submit, eIgnoreCase))
-    state |= states::DEFAULT;
+    *aState |= nsIAccessibleStates::STATE_DEFAULT;
 
-  return state;
+  return NS_OK;
 }
 
 PRUint32
@@ -354,18 +363,21 @@ nsHTML4ButtonAccessible::NativeRole()
   return nsIAccessibleRole::ROLE_PUSHBUTTON;
 }
 
-PRUint64
-nsHTML4ButtonAccessible::NativeState()
+nsresult
+nsHTML4ButtonAccessible::GetStateInternal(PRUint32 *aState,
+                                          PRUint32 *aExtraState)
 {
-  PRUint64 state = nsHyperTextAccessibleWrap::NativeState();
+  nsresult rv = nsHyperTextAccessibleWrap::GetStateInternal(aState,
+                                                            aExtraState);
+  NS_ENSURE_A11Y_SUCCESS(rv, rv);
 
-  state |= states::FOCUSABLE;
+  *aState |= nsIAccessibleStates::STATE_FOCUSABLE;
 
   if (mContent->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::type,
                             nsAccessibilityAtoms::submit, eIgnoreCase))
-    state |= states::DEFAULT;
+    *aState |= nsIAccessibleStates::STATE_DEFAULT;
 
-  return state;
+  return NS_OK;
 }
 
 
@@ -422,7 +434,11 @@ nsHTMLTextFieldAccessible::GetNameInternal(nsAString& aName)
 
 NS_IMETHODIMP nsHTMLTextFieldAccessible::GetValue(nsAString& _retval)
 {
-  if (NativeState() & states::PROTECTED)    // Don't return password text!
+  PRUint32 state;
+  nsresult rv = GetStateInternal(&state, nsnull);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (state & nsIAccessibleStates::STATE_PROTECTED)    // Don't return password text!
     return NS_ERROR_FAILURE;
 
   nsCOMPtr<nsIDOMHTMLTextAreaElement> textArea(do_QueryInterface(mContent));
@@ -438,37 +454,43 @@ NS_IMETHODIMP nsHTMLTextFieldAccessible::GetValue(nsAString& _retval)
   return NS_ERROR_FAILURE;
 }
 
-PRUint64
-nsHTMLTextFieldAccessible::NativeState()
+nsresult
+nsHTMLTextFieldAccessible::GetStateInternal(PRUint32 *aState,
+                                            PRUint32 *aExtraState)
 {
-  PRUint64 state = nsHyperTextAccessibleWrap::NativeState();
+  nsresult rv = nsHyperTextAccessibleWrap::GetStateInternal(aState,
+                                                            aExtraState);
+  NS_ENSURE_A11Y_SUCCESS(rv, rv);
 
   // can be focusable, focused, protected. readonly, unavailable, selected
   if (mContent->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::type,
                             nsAccessibilityAtoms::password, eIgnoreCase)) {
-    state |= states::PROTECTED;
+    *aState |= nsIAccessibleStates::STATE_PROTECTED;
   }
   else {
     nsAccessible* parent = GetParent();
     if (parent && parent->Role() == nsIAccessibleRole::ROLE_AUTOCOMPLETE)
-      state |= states::HASPOPUP;
+      *aState |= nsIAccessibleStates::STATE_HASPOPUP;
   }
 
   if (mContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::readonly)) {
-    state |= states::READONLY;
+    *aState |= nsIAccessibleStates::STATE_READONLY;
   }
+
+  if (!aExtraState)
+    return NS_OK;
 
   nsCOMPtr<nsIDOMHTMLInputElement> htmlInput(do_QueryInterface(mContent));
   // Is it an <input> or a <textarea> ?
   if (htmlInput) {
-    state |= states::SINGLE_LINE;
+    *aExtraState |= nsIAccessibleStates::EXT_STATE_SINGLE_LINE;
   }
   else {
-    state |= states::MULTI_LINE;
+    *aExtraState |= nsIAccessibleStates::EXT_STATE_MULTI_LINE;
   }
 
-  if (!(state & states::EDITABLE))
-    return state;
+  if (!(*aExtraState & nsIAccessibleStates::EXT_STATE_EDITABLE))
+    return NS_OK;
 
   nsCOMPtr<nsIContent> bindingContent = mContent->GetBindingParent();
   if (bindingContent &&
@@ -479,9 +501,10 @@ nsHTMLTextFieldAccessible::NativeState()
                                      eIgnoreCase)) {
        // If parent is XUL textbox and value of @type attribute is "autocomplete",
        // then this accessible supports autocompletion.
-       state |= states::SUPPORTS_AUTOCOMPLETION;
+       *aExtraState |= nsIAccessibleStates::EXT_STATE_SUPPORTS_AUTOCOMPLETION;
      }
-  } else if (gIsFormFillEnabled && htmlInput && !(state & states::PROTECTED)) {
+  } else if (gIsFormFillEnabled && htmlInput &&
+             !(*aState & nsIAccessibleStates::STATE_PROTECTED)) {
     // Check to see if autocompletion is allowed on this input. We don't expose
     // it for password fields even though the entire password can be remembered
     // for a page if the user asks it to be. However, the kind of autocomplete
@@ -501,11 +524,11 @@ nsHTMLTextFieldAccessible::NativeState()
       }
 
       if (!formContent || !autocomplete.LowerCaseEqualsLiteral("off"))
-        state |= states::SUPPORTS_AUTOCOMPLETION;
+        *aExtraState |= nsIAccessibleStates::EXT_STATE_SUPPORTS_AUTOCOMPLETION;
     }
   }
 
-  return state;
+  return NS_OK;
 }
 
 NS_IMETHODIMP nsHTMLTextFieldAccessible::GetNumActions(PRUint8 *_retval)

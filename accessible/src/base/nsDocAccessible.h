@@ -115,8 +115,8 @@ public:
 
   // nsAccessible
   virtual PRUint32 NativeRole();
-  virtual PRUint64 NativeState();
-  virtual void ApplyARIAState(PRUint64* aState);
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
+  virtual nsresult GetARIAState(PRUint32 *aState, PRUint32 *aExtraState);
 
   virtual void SetRoleMapEntry(nsRoleMapEntry* aRoleMapEntry);
 
@@ -501,7 +501,7 @@ protected:
    */
   PRPackedBool mIsLoaded;
 
-  static PRUint64 gLastFocusedAccessiblesState;
+    static PRUint32 gLastFocusedAccessiblesState;
 
   nsTArray<nsRefPtr<nsDocAccessible> > mChildDocuments;
 

@@ -46,7 +46,6 @@
 #include "nsCoreUtils.h"
 #include "nsRelUtils.h"
 #include "nsTextEquivUtils.h"
-#include "States.h"
 
 #include "nsIDOMXULDescriptionElement.h"
 #include "nsINameSpaceManager.h"
@@ -78,12 +77,17 @@ nsXULTextAccessible::NativeRole()
   return nsIAccessibleRole::ROLE_LABEL;
 }
 
-PRUint64
-nsXULTextAccessible::NativeState()
+nsresult
+nsXULTextAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
 {
+  nsresult rv = nsHyperTextAccessibleWrap::GetStateInternal(aState,
+                                                            aExtraState);
+  NS_ENSURE_A11Y_SUCCESS(rv, rv);
+
   // Labels and description have read only state
   // They are not focusable or selectable
-  return nsHyperTextAccessibleWrap::NativeState() | states::READONLY;
+  *aState |= nsIAccessibleStates::STATE_READONLY;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -118,14 +122,16 @@ nsXULTooltipAccessible::
 {
 }
 
-PRUint64
-nsXULTooltipAccessible::NativeState()
+nsresult
+nsXULTooltipAccessible::GetStateInternal(PRUint32 *aState,
+                                         PRUint32 *aExtraState)
 {
-  PRUint64 states = nsLeafAccessible::NativeState();
+  nsresult rv = nsLeafAccessible::GetStateInternal(aState, aExtraState);
+  NS_ENSURE_A11Y_SUCCESS(rv, rv);
 
-  states &= ~states::FOCUSABLE;
-  states |= states::READONLY;
-  return states;
+  *aState &= ~nsIAccessibleStates::STATE_FOCUSABLE;
+  *aState |= nsIAccessibleStates::STATE_READONLY;
+  return NS_OK;
 }
 
 PRUint32
@@ -181,10 +187,15 @@ nsXULLinkAccessible::NativeRole()
 }
 
 
-PRUint64
-nsXULLinkAccessible::NativeState()
+nsresult
+nsXULLinkAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
 {
-  return nsHyperTextAccessible::NativeState() | states::LINKED;
+  nsresult rv = nsHyperTextAccessibleWrap::GetStateInternal(aState,
+                                                            aExtraState);
+  NS_ENSURE_A11Y_SUCCESS(rv, rv);
+
+  *aState |= nsIAccessibleStates::STATE_LINKED;
+  return NS_OK;
 }
 
 NS_IMETHODIMP

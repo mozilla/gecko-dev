@@ -52,7 +52,6 @@
 #include "nsRoleMap.h"
 #include "nsRelUtils.h"
 #include "nsStateMap.h"
-#include "States.h"
 
 #include "nsMaiInterfaceComponent.h"
 #include "nsMaiInterfaceAction.h"
@@ -797,15 +796,17 @@ ConvertToAtkAttributeSet(nsIPersistentProperties* aAttributes)
     return objAttributeSet;
 }
 
-AtkAttributeSet*
-GetAttributeSet(nsAccessible* aAccessible)
+AtkAttributeSet *
+GetAttributeSet(nsIAccessible* aAccessible)
 {
     nsCOMPtr<nsIPersistentProperties> attributes;
     aAccessible->GetAttributes(getter_AddRefs(attributes));
 
     if (attributes) {
         // Deal with attributes that we only need to expose in ATK
-        if (aAccessible->State() & states::HASPOPUP) {
+        PRUint32 state;
+        aAccessible->GetState(&state, nsnull);
+        if (state & nsIAccessibleStates::STATE_HASPOPUP) {
           // There is no ATK state for haspopup, must use object attribute to expose the same info
           nsAutoString oldValueUnused;
           attributes->SetStringProperty(NS_LITERAL_CSTRING("haspopup"), NS_LITERAL_STRING("true"),
@@ -904,23 +905,25 @@ getIndexInParentCB(AtkObject *aAtkObj)
     return parent->GetIndexOfEmbeddedChild(accWrap);
 }
 
-static void
-TranslateStates(PRUint64 aState, AtkStateSet* aStateSet)
+static void TranslateStates(PRUint32 aState, const AtkStateMap *aStateMap,
+                            AtkStateSet *aStateSet)
 {
+  NS_ASSERTION(aStateSet, "Can't pass in null state set");
 
   // Convert every state to an entry in AtkStateMap
   PRUint32 stateIndex = 0;
-  PRUint64 bitMask = 1;
-  while (gAtkStateMap[stateIndex].stateMapEntryType != kNoSuchState) {
-    if (gAtkStateMap[stateIndex].atkState) { // There's potentially an ATK state for this
+  PRUint32 bitMask = 1;
+  while (aStateMap[stateIndex].stateMapEntryType != kNoSuchState) {
+    if (aStateMap[stateIndex].atkState) {    // There's potentially an ATK state for this
       PRBool isStateOn = (aState & bitMask) != 0;
-      if (gAtkStateMap[stateIndex].stateMapEntryType == kMapOpposite) {
+      if (aStateMap[stateIndex].stateMapEntryType == kMapOpposite) {
         isStateOn = !isStateOn;
       }
       if (isStateOn) {
-        atk_state_set_add_state(aStateSet, gAtkStateMap[stateIndex].atkState);
+        atk_state_set_add_state(aStateSet, aStateMap[stateIndex].atkState);
       }
     }
+    // Map extended state
     bitMask <<= 1;
     ++ stateIndex;
   }
@@ -934,12 +937,18 @@ refStateSetCB(AtkObject *aAtkObj)
 
     nsAccessibleWrap *accWrap = GetAccessibleWrap(aAtkObj);
     if (!accWrap) {
-        TranslateStates(states::DEFUNCT, state_set);
+        TranslateStates(nsIAccessibleStates::EXT_STATE_DEFUNCT,
+                        gAtkStateMapExt, state_set);
         return state_set;
     }
 
     // Map states
-    TranslateStates(accWrap->State(), state_set);
+    PRUint32 accState = 0, accExtState = 0;
+    nsresult rv = accWrap->GetState(&accState, &accExtState);
+    NS_ENSURE_SUCCESS(rv, state_set);
+
+    TranslateStates(accState, gAtkStateMap, state_set);
+    TranslateStates(accExtState, gAtkStateMapExt, state_set);
 
     return state_set;
 }
@@ -1077,7 +1086,9 @@ nsAccessibleWrap::FirePlatformEvent(AccEvent* aEvent)
             atk_focus_tracker_notify(atkObj);
             // Fire state change event for focus
             nsRefPtr<AccEvent> stateChangeEvent =
-              new AccStateChangeEvent(accessible, states::FOCUSED, PR_TRUE);
+              new AccStateChangeEvent(accessible,
+                                      nsIAccessibleStates::STATE_FOCUSED,
+                                      PR_FALSE, PR_TRUE);
             return FireAtkStateChangeEvent(stateChangeEvent, atkObj);
         }
       } break;
@@ -1326,22 +1337,26 @@ nsAccessibleWrap::FireAtkStateChangeEvent(AccEvent* aEvent,
     AccStateChangeEvent* event = downcast_accEvent(aEvent);
     NS_ENSURE_TRUE(event, NS_ERROR_FAILURE);
 
+    PRUint32 state = event->GetState();
+    PRBool isExtra = event->IsExtraState();
     PRBool isEnabled = event->IsStateEnabled();
-    PRInt32 stateIndex = AtkStateMap::GetStateIndexFor(event->GetState());
+
+    PRInt32 stateIndex = AtkStateMap::GetStateIndexFor(state);
     if (stateIndex >= 0) {
-        NS_ASSERTION(gAtkStateMap[stateIndex].stateMapEntryType != kNoSuchState,
+        const AtkStateMap *atkStateMap = isExtra ? gAtkStateMapExt : gAtkStateMap;
+        NS_ASSERTION(atkStateMap[stateIndex].stateMapEntryType != kNoSuchState,
                      "No such state");
 
-        if (gAtkStateMap[stateIndex].atkState != kNone) {
-            NS_ASSERTION(gAtkStateMap[stateIndex].stateMapEntryType != kNoStateChange,
+        if (atkStateMap[stateIndex].atkState != kNone) {
+            NS_ASSERTION(atkStateMap[stateIndex].stateMapEntryType != kNoStateChange,
                          "State changes should not fired for this state");
 
-            if (gAtkStateMap[stateIndex].stateMapEntryType == kMapOpposite)
+            if (atkStateMap[stateIndex].stateMapEntryType == kMapOpposite)
                 isEnabled = !isEnabled;
 
             // Fire state change for first state if there is one to map
             atk_object_notify_state_change(aObject,
-                                           gAtkStateMap[stateIndex].atkState,
+                                           atkStateMap[stateIndex].atkState,
                                            isEnabled);
         }
     }

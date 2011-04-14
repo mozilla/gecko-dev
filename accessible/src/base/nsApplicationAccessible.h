@@ -94,6 +94,7 @@ public:
   NS_IMETHOD GetValue(nsAString &aValue);
   NS_IMETHOD GetDescription(nsAString &aDescription);
   NS_IMETHOD GetKeyboardShortcut(nsAString &aKeyboardShortcut);
+  NS_IMETHOD GetState(PRUint32 *aState , PRUint32 *aExtraState );
   NS_IMETHOD GetAttributes(nsIPersistentProperties **aAttributes);
   NS_IMETHOD GroupPosition(PRInt32 *aGroupLevel, PRInt32 *aSimilarItemsInGroup,
                            PRInt32 *aPositionInGroup);
@@ -122,10 +123,9 @@ public:
   virtual bool IsPrimaryForNode() const;
 
   // nsAccessible
-  virtual void ApplyARIAState(PRUint64* aState);
+  virtual nsresult GetARIAState(PRUint32 *aState, PRUint32 *aExtraState);
   virtual PRUint32 NativeRole();
-  virtual PRUint64 State();
-  virtual PRUint64 NativeState();
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
   virtual nsAccessible* GetChildAtPoint(PRInt32 aX, PRInt32 aY,
                                         EWhichChildAtPoint aWhichChild);
 

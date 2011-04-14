@@ -43,7 +43,6 @@
 #include "nsAccUtils.h"
 #include "nsDocAccessible.h"
 #include "nsEventShell.h"
-#include "States.h"
 
 #include "nsITreeSelection.h"
 
@@ -1162,15 +1161,24 @@ nsXULTreeGridCellAccessible::NativeRole()
   return nsIAccessibleRole::ROLE_GRID_CELL;
 }
 
-PRUint64
-nsXULTreeGridCellAccessible::NativeState()
+nsresult
+nsXULTreeGridCellAccessible::GetStateInternal(PRUint32 *aStates,
+                                              PRUint32 *aExtraStates)
 {
+  NS_ENSURE_ARG_POINTER(aStates);
 
-  if (IsDefunct())
-    return states::DEFUNCT;
+  *aStates = 0;
+  if (aExtraStates)
+    *aExtraStates = 0;
+
+  if (IsDefunct()) {
+    if (aExtraStates)
+      *aExtraStates = nsIAccessibleStates::EXT_STATE_DEFUNCT;
+    return NS_OK_DEFUNCT_OBJECT;
+  }
 
   // selectable/selected state
-  PRUint64 states = states::SELECTABLE;
+  *aStates |= nsIAccessibleStates::STATE_SELECTABLE;
 
   nsCOMPtr<nsITreeSelection> selection;
   mTreeView->GetSelection(getter_AddRefs(selection));
@@ -1178,21 +1186,21 @@ nsXULTreeGridCellAccessible::NativeState()
     PRBool isSelected = PR_FALSE;
     selection->IsSelected(mRow, &isSelected);
     if (isSelected)
-      states |= states::SELECTED;
+      *aStates |= nsIAccessibleStates::STATE_SELECTED;
   }
 
   // checked state
   PRInt16 type;
   mColumn->GetType(&type);
   if (type == nsITreeColumn::TYPE_CHECKBOX) {
-    states |= states::CHECKABLE;
+    *aStates |= nsIAccessibleStates::STATE_CHECKABLE;
     nsAutoString checked;
     mTreeView->GetCellValue(mRow, mColumn, checked);
     if (checked.EqualsIgnoreCase("true"))
-      states |= states::CHECKED;
+      *aStates |= nsIAccessibleStates::STATE_CHECKED;
   }
 
-  return states;
+  return NS_OK;
 }
 
 PRInt32
@@ -1227,7 +1235,8 @@ nsXULTreeGridCellAccessible::CellInvalidated()
     if (mCachedTextEquiv != textEquiv) {
       PRBool isEnabled = textEquiv.EqualsLiteral("true");
       nsRefPtr<AccEvent> accEvent =
-        new AccStateChangeEvent(this, states::CHECKED, isEnabled);
+        new AccStateChangeEvent(this, nsIAccessibleStates::STATE_CHECKED,
+                                PR_FALSE, isEnabled);
       nsEventShell::FireEvent(accEvent);
 
       mCachedTextEquiv = textEquiv;

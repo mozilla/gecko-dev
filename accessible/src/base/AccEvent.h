@@ -168,13 +168,15 @@ protected:
 class AccStateChangeEvent: public AccEvent
 {
 public:
-  AccStateChangeEvent(nsAccessible* aAccessible, PRUint64 aState,
+  AccStateChangeEvent(nsAccessible* aAccessible,
+                      PRUint32 aState, PRBool aIsExtraState,
                       PRBool aIsEnabled,
                       EIsFromUserInput aIsFromUserInput = eAutoDetect);
 
-  AccStateChangeEvent(nsINode* aNode, PRUint64 aState, PRBool aIsEnabled);
+  AccStateChangeEvent(nsINode* aNode, PRUint32 aState, PRBool aIsExtraState,
+                      PRBool aIsEnabled);
 
-  AccStateChangeEvent(nsINode* aNode, PRUint64 aState);
+  AccStateChangeEvent(nsINode* aNode, PRUint32 aState, PRBool aIsExtraState);
 
   // AccEvent
   virtual already_AddRefed<nsAccEvent> CreateXPCOMObject();
@@ -186,11 +188,13 @@ public:
   }
 
   // AccStateChangeEvent
-  PRUint64 GetState() const { return mState; }
+  PRUint32 GetState() const { return mState; }
+  PRBool IsExtraState() const { return mIsExtraState; }
   PRBool IsStateEnabled() const { return mIsEnabled; }
 
 private:
-  PRUint64 mState;
+  PRUint32 mState;
+  PRBool mIsExtraState;
   PRBool mIsEnabled;
 };
 

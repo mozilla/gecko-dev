@@ -71,7 +71,7 @@ public:
 
   // nsAccessible
   virtual PRUint32 NativeRole();
-  virtual PRUint64 NativeState();
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 
 protected:
 
@@ -99,7 +99,7 @@ public:
 
   // nsAccessible
   virtual PRUint32 NativeRole();
-  virtual PRUint64 NativeState();
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
 /**
@@ -118,7 +118,7 @@ public:
 
   // nsAccessible
   virtual PRUint32 NativeRole();
-  virtual PRUint64 NativeState();
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 
 private:
   PRBool DropmarkerOpen(PRBool aToggleOpen);
@@ -167,9 +167,9 @@ public:
   nsXULRadioButtonAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   // nsAccessible
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
   virtual void GetPositionAndSizeInternal(PRInt32 *aPosInSet,
                                           PRInt32 *aSetSize);
-  virtual PRUint64 NativeState();
 };
 
 /**
@@ -182,7 +182,7 @@ public:
 
   // nsAccessible
   virtual PRUint32 NativeRole();
-  virtual PRUint64 NativeState();
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
 /**
@@ -237,7 +237,7 @@ public:
 
   // nsAccessible
   virtual PRUint32 NativeRole();
-  virtual PRUint64 NativeState();
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
 /**
@@ -262,9 +262,9 @@ public:
   NS_IMETHOD GetAssociatedEditor(nsIEditor **aEditor);
 
   // nsAccessible
-  virtual void ApplyARIAState(PRUint64* aState);
+  virtual nsresult GetARIAState(PRUint32 *aState, PRUint32 *aExtraState);
   virtual PRUint32 NativeRole();
-  virtual PRUint64 NativeState();
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
   virtual PRBool GetAllowsAnonChildAccessibles();
 
 protected:
