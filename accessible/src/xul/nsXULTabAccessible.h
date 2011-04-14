@@ -64,7 +64,7 @@ public:
   virtual void GetPositionAndSizeInternal(PRInt32 *aPosInSet,
                                           PRInt32 *aSetSize);
   virtual PRUint32 NativeRole();
-  virtual PRUint64 NativeState();
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
 

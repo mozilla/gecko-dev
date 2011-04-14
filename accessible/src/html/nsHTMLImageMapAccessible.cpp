@@ -233,17 +233,17 @@ nsHTMLAreaAccessible::GetBounds(PRInt32 *aX, PRInt32 *aY,
 ////////////////////////////////////////////////////////////////////////////////
 // nsHTMLAreaAccessible: nsAccessible public
 
-PRUint64
-nsHTMLAreaAccessible::NativeState()
+nsresult
+nsHTMLAreaAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
 {
   // Bypass the link states specialization for non links.
   if (mRoleMapEntry &&
       mRoleMapEntry->role != nsIAccessibleRole::ROLE_NOTHING &&
       mRoleMapEntry->role != nsIAccessibleRole::ROLE_LINK) {
-    return nsAccessible::NativeState();
+    return nsAccessible::GetStateInternal(aState,aExtraState);
   }
 
-  return nsHTMLLinkAccessible::NativeState();
+  return nsHTMLLinkAccessible::GetStateInternal(aState, aExtraState);
 }
 
 nsAccessible*

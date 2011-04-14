@@ -85,7 +85,7 @@ public:
 
   // nsAccessible
   virtual PRUint32 NativeRole();
-  virtual PRUint64 NativeState();
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 
   // nsRootAccessible
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ROOTACCESSIBLE_IMPL_CID)

@@ -43,7 +43,6 @@
 #include "nsAccUtils.h"
 #include "nsRelUtils.h"
 #include "nsTextEquivUtils.h"
-#include "States.h"
 
 #include "nsIFrame.h"
 #include "nsPresContext.h"
@@ -85,20 +84,22 @@ nsHTMLTextAccessible::NativeRole()
   return nsTextAccessible::NativeRole();
 }
 
-PRUint64
-nsHTMLTextAccessible::NativeState()
+nsresult
+nsHTMLTextAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
 {
-  PRUint64 state = nsTextAccessible::NativeState();
+  nsresult rv = nsTextAccessible::GetStateInternal(aState, aExtraState);
+  NS_ENSURE_A11Y_SUCCESS(rv, rv);
 
   nsDocAccessible *docAccessible = GetDocAccessible();
   if (docAccessible) {
-     PRUint64 docState = docAccessible->State();
-     if (0 == (docState & states::EDITABLE)) {
-       state |= states::READONLY; // Links not focusable in editor
+     PRUint32 state, extState;
+     docAccessible->GetState(&state, &extState);
+     if (0 == (extState & nsIAccessibleStates::EXT_STATE_EDITABLE)) {
+       *aState |= nsIAccessibleStates::STATE_READONLY; // Links not focusable in editor
      }
   }
 
-  return state;
+  return NS_OK;
 }
 
 nsresult
@@ -147,10 +148,23 @@ nsHTMLBRAccessible::NativeRole()
   return nsIAccessibleRole::ROLE_WHITESPACE;
 }
 
-PRUint64
-nsHTMLBRAccessible::NativeState()
+nsresult
+nsHTMLBRAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
 {
-  return IsDefunct() ? states::DEFUNCT : states::READONLY;
+  *aState = 0;
+
+  if (IsDefunct()) {
+    if (aExtraState)
+      *aExtraState = nsIAccessibleStates::EXT_STATE_DEFUNCT;
+
+    return NS_OK_DEFUNCT_OBJECT;
+  }
+
+  *aState = nsIAccessibleStates::STATE_READONLY;
+  if (aExtraState)
+    *aExtraState = 0;
+
+  return NS_OK;
 }
 
 nsresult
@@ -268,10 +282,15 @@ nsHTMLLIAccessible::NativeRole()
   return nsIAccessibleRole::ROLE_LISTITEM;
 }
 
-PRUint64
-nsHTMLLIAccessible::NativeState()
+nsresult
+nsHTMLLIAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
 {
-  return nsHyperTextAccessibleWrap::NativeState() | states::READONLY;
+  nsresult rv = nsHyperTextAccessibleWrap::GetStateInternal(aState,
+                                                            aExtraState);
+  NS_ENSURE_A11Y_SUCCESS(rv, rv);
+
+  *aState |= nsIAccessibleStates::STATE_READONLY;
+  return NS_OK;
 }
 
 NS_IMETHODIMP nsHTMLLIAccessible::GetBounds(PRInt32 *x, PRInt32 *y, PRInt32 *width, PRInt32 *height)
@@ -378,14 +397,15 @@ nsHTMLListBulletAccessible::NativeRole()
   return nsIAccessibleRole::ROLE_STATICTEXT;
 }
 
-PRUint64
-nsHTMLListBulletAccessible::NativeState()
+nsresult
+nsHTMLListBulletAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
 {
-  PRUint64 state = nsLeafAccessible::NativeState();
+  nsresult rv = nsLeafAccessible::GetStateInternal(aState, aExtraState);
+  NS_ENSURE_A11Y_SUCCESS(rv, rv);
 
-  state &= ~states::FOCUSABLE;
-  state |= states::READONLY;
-  return state;
+  *aState &= ~nsIAccessibleStates::STATE_FOCUSABLE;
+  *aState |= nsIAccessibleStates::STATE_READONLY;
+  return NS_OK;
 }
 
 void
@@ -419,9 +439,14 @@ nsHTMLListAccessible::NativeRole()
   return nsIAccessibleRole::ROLE_LIST;
 }
 
-PRUint64
-nsHTMLListAccessible::NativeState()
+nsresult
+nsHTMLListAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
 {
-  return nsHyperTextAccessibleWrap::NativeState() | states::READONLY;
+  nsresult rv = nsHyperTextAccessibleWrap::GetStateInternal(aState,
+                                                            aExtraState);
+  NS_ENSURE_A11Y_SUCCESS(rv, rv);
+
+  *aState |= nsIAccessibleStates::STATE_READONLY;
+  return NS_OK;
 }
 

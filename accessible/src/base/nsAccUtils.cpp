@@ -39,7 +39,7 @@
 #include "nsCoreUtils.h"
 #include "nsAccUtils.h"
 
-#include "States.h"
+#include "nsIAccessibleStates.h"
 #include "nsIAccessibleTypes.h"
 
 #include "nsAccessibilityService.h"
@@ -162,7 +162,8 @@ nsAccUtils::GetPositionAndSizeForXULSelectControlItem(nsIContent *aContent,
 
     nsAccessible* itemAcc = GetAccService()->GetAccessible(currNode);
 
-    if (!itemAcc || itemAcc->State() & states::INVISIBLE) {
+    if (!itemAcc ||
+        State(itemAcc) & nsIAccessibleStates::STATE_INVISIBLE) {
       (*aSetSize)--;
       if (index < static_cast<PRUint32>(indexOf))
         (*aPosInSet)--;
@@ -208,7 +209,8 @@ nsAccUtils::GetPositionAndSizeForXULContainerItem(nsIContent *aContent,
       if (itemRole == nsIAccessibleRole::ROLE_SEPARATOR)
         break; // We reached the beginning of our group.
 
-      if (!(itemAcc->State() & states::INVISIBLE)) {
+      PRUint32 itemState = State(itemAcc);
+      if (!(itemState & nsIAccessibleStates::STATE_INVISIBLE)) {
         (*aSetSize)++;
         (*aPosInSet)++;
       }
@@ -228,7 +230,8 @@ nsAccUtils::GetPositionAndSizeForXULContainerItem(nsIContent *aContent,
       if (itemRole == nsIAccessibleRole::ROLE_SEPARATOR)
         break; // We reached the end of our group.
 
-      if (!(itemAcc->State() & states::INVISIBLE))
+      PRUint32 itemState = State(itemAcc);
+      if (!(itemState & nsIAccessibleStates::STATE_INVISIBLE))
         (*aSetSize)++;
     }
   }
@@ -346,13 +349,13 @@ nsAccUtils::GetAncestorWithRole(nsAccessible *aDescendant, PRUint32 aRole)
   return nsnull;
 }
 
-nsAccessible*
-nsAccUtils::GetSelectableContainer(nsAccessible* aAccessible, PRUint64 aState)
+nsAccessible *
+nsAccUtils::GetSelectableContainer(nsAccessible *aAccessible, PRUint32 aState)
 {
   if (!aAccessible)
     return nsnull;
 
-  if (!(aState & states::SELECTABLE))
+  if (!(aState & nsIAccessibleStates::STATE_SELECTABLE))
     return nsnull;
 
   nsAccessible* parent = aAccessible;
@@ -363,17 +366,15 @@ nsAccUtils::GetSelectableContainer(nsAccessible* aAccessible, PRUint64 aState)
   return parent;
 }
 
-nsAccessible*
-nsAccUtils::GetMultiSelectableContainer(nsINode* aNode)
+nsAccessible *
+nsAccUtils::GetMultiSelectableContainer(nsINode *aNode)
 {
-  nsAccessible* accessible = GetAccService()->GetAccessible(aNode);
-  if (accessible) {
-    nsAccessible* container = GetSelectableContainer(accessible,
-                                                     accessible->State());
-    if (container && container->State() & states::MULTISELECTABLE)
-      return container;
-  }
+  nsAccessible *accessible = GetAccService()->GetAccessible(aNode);
+  nsAccessible *container = GetSelectableContainer(accessible,
+                                                   State(accessible));
 
+  if (State(container) & nsIAccessibleStates::STATE_MULTISELECTABLE)
+    return container;
   return nsnull;
 }
 

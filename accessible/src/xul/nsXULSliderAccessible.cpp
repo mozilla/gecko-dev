@@ -39,7 +39,6 @@
 #include "nsXULSliderAccessible.h"
 
 #include "nsAccessibilityAtoms.h"
-#include "States.h"
 
 #include "nsIDOMDocument.h"
 #include "nsIDOMDocumentXBL.h"
@@ -69,22 +68,24 @@ nsXULSliderAccessible::NativeRole()
   return nsIAccessibleRole::ROLE_SLIDER;
 }
 
-PRUint64
-nsXULSliderAccessible::NativeState()
+nsresult
+nsXULSliderAccessible::GetStateInternal(PRUint32 *aState,
+                                        PRUint32 *aExtraState)
 {
-  PRUint64 states = nsAccessibleWrap::NativeState();
+  nsresult rv = nsAccessibleWrap::GetStateInternal(aState, aExtraState);
+  NS_ENSURE_A11Y_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIContent> sliderContent(GetSliderNode());
   NS_ENSURE_STATE(sliderContent);
 
   nsIFrame *frame = sliderContent->GetPrimaryFrame();
   if (frame && frame->IsFocusable())
-    states |= states::FOCUSABLE;
+    *aState |= nsIAccessibleStates::STATE_FOCUSABLE;
 
   if (gLastFocusedNode == mContent)
-    states |= states::FOCUSED;
+    *aState |= nsIAccessibleStates::STATE_FOCUSED;
 
-  return states;
+  return NS_OK;
 }
 
 // nsIAccessible

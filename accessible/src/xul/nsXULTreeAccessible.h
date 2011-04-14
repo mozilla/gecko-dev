@@ -85,7 +85,7 @@ public:
 
   // nsAccessible
   virtual PRUint32 NativeRole();
-  virtual PRUint64 NativeState();
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
   virtual nsAccessible* GetChildAtPoint(PRInt32 aX, PRInt32 aY,
                                         EWhichChildAtPoint aWhichChild);
 
@@ -206,7 +206,7 @@ public:
   virtual bool IsPrimaryForNode() const;
 
   // nsAccessible
-  virtual PRUint64 NativeState();
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
   virtual PRInt32 GetIndexInParent() const;
 
   // nsXULTreeItemAccessibleBase

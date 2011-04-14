@@ -52,7 +52,6 @@
 #include "nsAccTreeWalker.h"
 #include "nsRelUtils.h"
 #include "nsTextEquivUtils.h"
-#include "States.h"
 
 #include "nsIDOMElement.h"
 #include "nsIDOMDocument.h"
@@ -613,13 +612,12 @@ nsresult nsAccessible::GetFullKeyName(const nsAString& aModifierName, const nsAS
   return NS_OK;
 }
 
-PRBool
-nsAccessible::IsVisible(PRBool* aIsOffscreen)
+PRBool nsAccessible::IsVisible(PRBool *aIsOffscreen) 
 {
-  // We need to know if at least a kMinPixels around the object is visible,
-  // otherwise it will be marked states::OFFSCREEN. The states::INVISIBLE flag
-  // is for elements which are programmatically hidden.
-
+  // We need to know if at least a kMinPixels around the object is visible
+  // Otherwise it will be marked nsIAccessibleStates::STATE_OFFSCREEN
+  // The STATE_INVISIBLE flag is for elements which are programmatically hidden
+  
   *aIsOffscreen = PR_TRUE;
   if (IsDefunct())
     return PR_FALSE;
@@ -692,20 +690,28 @@ nsAccessible::IsVisible(PRBool* aIsOffscreen)
   return isVisible;
 }
 
-PRUint64
-nsAccessible::NativeState()
+nsresult
+nsAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
 {
-  if (IsDefunct())
-    return states::DEFUNCT;
+  *aState = 0;
 
-  PRUint64 state = 0;
+  if (IsDefunct()) {
+    if (aExtraState)
+      *aExtraState = nsIAccessibleStates::EXT_STATE_DEFUNCT;
+
+    return NS_OK_DEFUNCT_OBJECT;
+  }
+
+  if (aExtraState)
+    *aExtraState = 0;
+
   nsEventStates intrinsicState = mContent->IntrinsicState();
 
   if (intrinsicState.HasState(NS_EVENT_STATE_INVALID))
-    state |= states::INVALID;
+    *aState |= nsIAccessibleStates::STATE_INVALID;
 
   if (intrinsicState.HasState(NS_EVENT_STATE_REQUIRED))
-    state |= states::REQUIRED;
+    *aState |= nsIAccessibleStates::STATE_REQUIRED;
 
   PRBool disabled = mContent->IsHTML() ? 
     (intrinsicState.HasState(NS_EVENT_STATE_DISABLED)) :
@@ -716,43 +722,43 @@ nsAccessible::NativeState()
 
   // Set unavailable state based on disabled state, otherwise set focus states
   if (disabled) {
-    state |= states::UNAVAILABLE;
+    *aState |= nsIAccessibleStates::STATE_UNAVAILABLE;
   }
   else if (mContent->IsElement()) {
     nsIFrame *frame = GetFrame();
     if (frame && frame->IsFocusable()) {
-      state |= states::FOCUSABLE;
+      *aState |= nsIAccessibleStates::STATE_FOCUSABLE;
     }
 
     if (gLastFocusedNode == mContent) {
-      state |= states::FOCUSED;
+      *aState |= nsIAccessibleStates::STATE_FOCUSED;
     }
   }
 
-  // Check if states::INVISIBLE and
-  // states::OFFSCREEN flags should be turned on for this object.
+  // Check if nsIAccessibleStates::STATE_INVISIBLE and
+  // STATE_OFFSCREEN flags should be turned on for this object.
   PRBool isOffscreen;
   if (!IsVisible(&isOffscreen)) {
-    state |= states::INVISIBLE;
+    *aState |= nsIAccessibleStates::STATE_INVISIBLE;
   }
   if (isOffscreen) {
-    state |= states::OFFSCREEN;
+    *aState |= nsIAccessibleStates::STATE_OFFSCREEN;
   }
 
   nsIFrame *frame = GetFrame();
   if (frame && (frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW))
-    state |= states::FLOATING;
+    *aState |= nsIAccessibleStates::STATE_FLOATING;
 
   // Check if a XUL element has the popup attribute (an attached popup menu).
   if (mContent->IsXUL())
     if (mContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::popup))
-      state |= states::HASPOPUP;
+      *aState |= nsIAccessibleStates::STATE_HASPOPUP;
 
   // Add 'linked' state for simple xlink.
   if (nsCoreUtils::IsXLink(mContent))
-    state |= states::LINKED;
+    *aState |= nsIAccessibleStates::STATE_LINKED;
 
-  return state;
+  return NS_OK;
 }
 
   /* readonly attribute boolean focusedChild; */
@@ -837,7 +843,7 @@ nsAccessible::GetChildAtPoint(PRInt32 aX, PRInt32 aY,
       child->GetBounds(&childX, &childY, &childWidth, &childHeight);
       if (aX >= childX && aX < childX + childWidth &&
           aY >= childY && aY < childY + childHeight &&
-          (child->State() & states::INVISIBLE) == 0) {
+          (nsAccUtils::State(child) & nsIAccessibleStates::STATE_INVISIBLE) == 0) {
 
         if (aWhichChild == eDeepestChild)
           return child->GetChildAtPoint(aX, aY, eDeepestChild);
@@ -1047,7 +1053,8 @@ NS_IMETHODIMP nsAccessible::SetSelected(PRBool aSelect)
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
-  if (State() & states::SELECTABLE) {
+  PRUint32 state = nsAccUtils::State(this);
+  if (state & nsIAccessibleStates::STATE_SELECTABLE) {
     nsCOMPtr<nsIAccessible> multiSelect =
       nsAccUtils::GetMultiSelectableContainer(mContent);
     if (!multiSelect) {
@@ -1075,7 +1082,8 @@ NS_IMETHODIMP nsAccessible::TakeSelection()
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
-  if (State() & states::SELECTABLE) {
+  PRUint32 state = nsAccUtils::State(this);
+  if (state & nsIAccessibleStates::STATE_SELECTABLE) {
     nsCOMPtr<nsIAccessible> multiSelect =
       nsAccUtils::GetMultiSelectableContainer(mContent);
     if (multiSelect) {
@@ -1323,7 +1331,7 @@ nsAccessible::GetAttributes(nsIPersistentProperties **aAttributes)
   }
 
   // Expose checkable object attribute if the accessible has checkable state
-  if (State() & states::CHECKABLE)
+  if (nsAccUtils::State(this) & nsIAccessibleStates::STATE_CHECKABLE)
     nsAccUtils::SetAccAttr(attributes, nsAccessibilityAtoms::checkable, NS_LITERAL_STRING("true"));
 
   // Group attributes (level/setsize/posinset)
@@ -1489,7 +1497,7 @@ nsAccessible::GroupPosition(PRInt32 *aGroupLevel,
 
   // If ARIA is missed and the accessible is visible then calculate group
   // position from hierarchy.
-  if (State() & states::INVISIBLE)
+  if (nsAccUtils::State(this) & nsIAccessibleStates::STATE_INVISIBLE)
     return NS_OK;
 
   // Calculate group level if ARIA is missed.
@@ -1516,27 +1524,19 @@ nsAccessible::GroupPosition(PRInt32 *aGroupLevel,
 }
 
 NS_IMETHODIMP
-nsAccessible::GetState(PRUint32* aState, PRUint32* aExtraState)
+nsAccessible::GetState(PRUint32 *aState, PRUint32 *aExtraState)
 {
   NS_ENSURE_ARG_POINTER(aState);
 
-  nsAccUtils::To32States(State(), aState, aExtraState);
-  return NS_OK;
-}
-
-PRUint64
-nsAccessible::State()
-{
-  PRUint64 state = NativeState();
-  if (state & states::DEFUNCT)
-    return state;
+  nsresult rv = GetStateInternal(aState, aExtraState);
+  NS_ENSURE_A11Y_SUCCESS(rv, rv);
 
   // Apply ARIA states to be sure accessible states will be overriden.
-  ApplyARIAState(&state);
+  GetARIAState(aState, aExtraState);
 
   if (mRoleMapEntry && mRoleMapEntry->role == nsIAccessibleRole::ROLE_PAGETAB) {
-    if (state & states::FOCUSED) {
-      state |= states::SELECTED;
+    if (*aState & nsIAccessibleStates::STATE_FOCUSED) {
+      *aState |= nsIAccessibleStates::STATE_SELECTED;
     } else {
       // Expose 'selected' state on ARIA tab if the focus is on internal element
       // of related tabpanel.
@@ -1547,27 +1547,34 @@ nsAccessible::State()
         nsRefPtr<nsAccessible> tabPanelAcc(do_QueryObject(tabPanel));
         nsINode *tabPanelNode = tabPanelAcc->GetNode();
         if (nsCoreUtils::IsAncestorOf(tabPanelNode, gLastFocusedNode))
-          state |= states::SELECTED;
+          *aState |= nsIAccessibleStates::STATE_SELECTED;
       }
     }
   }
 
-  const PRUint32 kExpandCollapseStates = states::COLLAPSED | states::EXPANDED;
-  if ((state & kExpandCollapseStates) == kExpandCollapseStates) {
+  const PRUint32 kExpandCollapseStates =
+    nsIAccessibleStates::STATE_COLLAPSED | nsIAccessibleStates::STATE_EXPANDED;
+  if ((*aState & kExpandCollapseStates) == kExpandCollapseStates) {
     // Cannot be both expanded and collapsed -- this happens in ARIA expanded
     // combobox because of limitation of nsARIAMap.
     // XXX: Perhaps we will be able to make this less hacky if we support
     // extended states in nsARIAMap, e.g. derive COLLAPSED from
     // EXPANDABLE && !EXPANDED.
-    state &= ~states::COLLAPSED;
+    *aState &= ~nsIAccessibleStates::STATE_COLLAPSED;
   }
 
-  if (!(state & states::UNAVAILABLE)) {
-    state |= states::ENABLED | states::SENSITIVE;
+  // Set additional states which presence depends on another states.
+  if (!aExtraState)
+    return NS_OK;
+
+  if (!(*aState & nsIAccessibleStates::STATE_UNAVAILABLE)) {
+    *aExtraState |= nsIAccessibleStates::EXT_STATE_ENABLED |
+                    nsIAccessibleStates::EXT_STATE_SENSITIVE;
   }
 
-  if ((state & states::COLLAPSED) || (state & states::EXPANDED))
-    state |= states::EXPANDABLE;
+  if ((*aState & nsIAccessibleStates::STATE_COLLAPSED) ||
+      (*aState & nsIAccessibleStates::STATE_EXPANDED))
+    *aExtraState |= nsIAccessibleStates::EXT_STATE_EXPANDABLE;
 
   if (mRoleMapEntry) {
     // If an object has an ancestor with the activedescendant property
@@ -1581,7 +1588,7 @@ nsAccessible::State()
       while ((ancestorContent = ancestorContent->GetParent()) != nsnull) {
         if (ancestorContent->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_activedescendant, activeID)) {
           if (id == activeID) {
-            state |= states::ACTIVE;
+            *aExtraState |= nsIAccessibleStates::EXT_STATE_ACTIVE;
           }
           break;
         }
@@ -1593,38 +1600,38 @@ nsAccessible::State()
   // as invisible.
   nsIFrame *frame = GetFrame();
   if (!frame)
-    return state;
+    return NS_OK;
 
   const nsStyleDisplay* display = frame->GetStyleDisplay();
   if (display && display->mOpacity == 1.0f &&
-      !(state & states::INVISIBLE)) {
-    state |= states::OPAQUE1;
+      !(*aState & nsIAccessibleStates::STATE_INVISIBLE)) {
+    *aExtraState |= nsIAccessibleStates::EXT_STATE_OPAQUE;
   }
 
   const nsStyleXUL *xulStyle = frame->GetStyleXUL();
   if (xulStyle) {
     // In XUL all boxes are either vertical or horizontal
     if (xulStyle->mBoxOrient == NS_STYLE_BOX_ORIENT_VERTICAL) {
-      state |= states::VERTICAL;
+      *aExtraState |= nsIAccessibleStates::EXT_STATE_VERTICAL;
     }
     else {
-      state |= states::HORIZONTAL;
+      *aExtraState |= nsIAccessibleStates::EXT_STATE_HORIZONTAL;
     }
   }
   
   // If we are editable, force readonly bit off
-  if (state & states::EDITABLE)
-    state &= ~states::READONLY;
+  if (*aExtraState & nsIAccessibleStates::EXT_STATE_EDITABLE)
+    *aState &= ~nsIAccessibleStates::STATE_READONLY;
  
-  return state;
+  return NS_OK;
 }
 
-void
-nsAccessible::ApplyARIAState(PRUint64* aState)
+nsresult
+nsAccessible::GetARIAState(PRUint32 *aState, PRUint32 *aExtraState)
 {
   // Test for universal states first
   PRUint32 index = 0;
-  while (nsStateMapEntry::MapToStates(mContent, aState,
+  while (nsStateMapEntry::MapToStates(mContent, aState, aExtraState,
                                       nsARIAMap::gWAIUnivStateMap[index])) {
     ++ index;
   }
@@ -1635,7 +1642,7 @@ nsAccessible::ApplyARIAState(PRUint64* aState)
     // role. This preserves the ability for screen readers to use readonly
     // (primarily on the document) as the hint for creating a virtual buffer.
     if (mRoleMapEntry->role != nsIAccessibleRole::ROLE_NOTHING)
-      *aState &= ~states::READONLY;
+      *aState &= ~nsIAccessibleStates::STATE_READONLY;
 
     if (mContent->HasAttr(kNameSpaceID_None, mContent->GetIDAttributeName())) {
       // If has a role & ID and aria-activedescendant on the container, assume focusable
@@ -1643,39 +1650,40 @@ nsAccessible::ApplyARIAState(PRUint64* aState)
       while ((ancestorContent = ancestorContent->GetParent()) != nsnull) {
         if (ancestorContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::aria_activedescendant)) {
             // ancestor has activedescendant property, this content could be active
-          *aState |= states::FOCUSABLE;
+          *aState |= nsIAccessibleStates::STATE_FOCUSABLE;
           break;
         }
       }
     }
   }
 
-  if (*aState & states::FOCUSABLE) {
+  if (*aState & nsIAccessibleStates::STATE_FOCUSABLE) {
     // Special case: aria-disabled propagates from ancestors down to any focusable descendant
     nsIContent *ancestorContent = mContent;
     while ((ancestorContent = ancestorContent->GetParent()) != nsnull) {
       if (ancestorContent->AttrValueIs(kNameSpaceID_None, nsAccessibilityAtoms::aria_disabled,
                                        nsAccessibilityAtoms::_true, eCaseMatters)) {
           // ancestor has aria-disabled property, this is disabled
-        *aState |= states::UNAVAILABLE;
+        *aState |= nsIAccessibleStates::STATE_UNAVAILABLE;
         break;
       }
     }    
   }
 
   if (!mRoleMapEntry)
-    return;
+    return NS_OK;
 
   // Note: the readonly bitflag will be overridden later if content is editable
   *aState |= mRoleMapEntry->state;
-  if (nsStateMapEntry::MapToStates(mContent, aState,
+  if (nsStateMapEntry::MapToStates(mContent, aState, aExtraState,
                                    mRoleMapEntry->attributeMap1) &&
-      nsStateMapEntry::MapToStates(mContent, aState,
+      nsStateMapEntry::MapToStates(mContent, aState, aExtraState,
                                    mRoleMapEntry->attributeMap2)) {
-    nsStateMapEntry::MapToStates(mContent, aState,
+    nsStateMapEntry::MapToStates(mContent, aState, aExtraState,
                                  mRoleMapEntry->attributeMap3);
   }
 
+  return NS_OK;
 }
 
 // Not implemented by this class
@@ -1754,9 +1762,10 @@ nsAccessible::SetCurrentValue(double aValue)
   if (!mRoleMapEntry || mRoleMapEntry->valueRule == eNoValue)
     return NS_OK_NO_ARIA_VALUE;
 
-  const PRUint32 kValueCannotChange = states::READONLY | states::UNAVAILABLE;
+  const PRUint32 kValueCannotChange = nsIAccessibleStates::STATE_READONLY |
+                                      nsIAccessibleStates::STATE_UNAVAILABLE;
 
-  if (State() & kValueCannotChange)
+  if (nsAccUtils::State(this) & kValueCannotChange)
     return NS_ERROR_FAILURE;
 
   double minValue = 0;
@@ -1870,7 +1879,7 @@ nsAccessible::GetNumActions(PRUint8 *aNumActions)
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
-  PRUint32 actionRule = GetActionRule(State());
+  PRUint32 actionRule = GetActionRule(nsAccUtils::State(this));
   if (actionRule == eNoAction)
     return NS_OK;
 
@@ -1890,7 +1899,7 @@ nsAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
-  PRUint64 states = State();
+  PRUint32 states = nsAccUtils::State(this);
   PRUint32 actionRule = GetActionRule(states);
 
  switch (actionRule) {
@@ -1903,9 +1912,9 @@ nsAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
      return NS_OK;
 
    case eCheckUncheckAction:
-     if (states & states::CHECKED)
+     if (states & nsIAccessibleStates::STATE_CHECKED)
        aName.AssignLiteral("uncheck");
-     else if (states & states::MIXED)
+     else if (states & nsIAccessibleStates::STATE_MIXED)
        aName.AssignLiteral("cycle");
      else
        aName.AssignLiteral("check");
@@ -1916,7 +1925,7 @@ nsAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
      return NS_OK;
 
    case eOpenCloseAction:
-     if (states & states::COLLAPSED)
+     if (states & nsIAccessibleStates::STATE_COLLAPSED)
        aName.AssignLiteral("open");
      else
        aName.AssignLiteral("close");
@@ -1935,7 +1944,7 @@ nsAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
      return NS_OK;
    
    case eExpandAction:
-     if (states & states::COLLAPSED)
+     if (states & nsIAccessibleStates::STATE_COLLAPSED)
        aName.AssignLiteral("expand");
      else
        aName.AssignLiteral("collapse");
@@ -1967,7 +1976,7 @@ nsAccessible::DoAction(PRUint8 aIndex)
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
-  if (GetActionRule(State()) != eNoAction) {
+  if (GetActionRule(nsAccUtils::State(this)) != eNoAction) {
     DoCommand();
     return NS_OK;
   }
@@ -2793,10 +2802,10 @@ nsAccessible::RemoveChild(nsAccessible* aChild)
   if (!aChild)
     return PR_FALSE;
 
-  if (aChild->mParent != this || aChild->mIndexInParent == -1)
+  PRInt32 index = aChild->mIndexInParent;
+  if (aChild->mParent != this || index == -1)
     return PR_FALSE;
 
-  PRUint32 index = static_cast<PRUint32>(aChild->mIndexInParent);
   if (index >= mChildren.Length() || mChildren[index] != aChild) {
     NS_ERROR("Child is bound to parent but parent hasn't this child at its index!");
     aChild->UnbindFromParent();
@@ -2921,7 +2930,8 @@ nsAccessible::IsValid()
 {
   NS_PRECONDITION(IsHyperLink(), "IsValid is called on not hyper link!");
 
-  return (0 == (State() & states::INVALID));
+  PRUint32 state = nsAccUtils::State(this);
+  return (0 == (state & nsIAccessibleStates::STATE_INVALID));
   // XXX In order to implement this we would need to follow every link
   // Perhaps we can get information about invalid links from the cache
   // In the mean time authors can use role="link" aria-invalid="true"
@@ -3044,7 +3054,7 @@ nsAccessible::IsItemSelected(PRUint32 aIndex)
     index++;
 
   return selected &&
-    selected->State() & states::SELECTED;
+    nsAccUtils::State(selected) & nsIAccessibleStates::STATE_SELECTED;
 }
 
 bool
@@ -3311,9 +3321,9 @@ nsAccessible::GetAttrValue(nsIAtom *aProperty, double *aValue)
 }
 
 PRUint32
-nsAccessible::GetActionRule(PRUint64 aStates)
+nsAccessible::GetActionRule(PRUint32 aStates)
 {
-  if (aStates & states::UNAVAILABLE)
+  if (aStates & nsIAccessibleStates::STATE_UNAVAILABLE)
     return eNoAction;
   
   // Check if it's simple xlink.

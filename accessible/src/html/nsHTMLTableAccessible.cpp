@@ -39,7 +39,6 @@
 
 #include "nsHTMLTableAccessible.h"
 
-#include "States.h"
 #include "nsAccessibilityService.h"
 #include "nsAccTreeWalker.h"
 #include "nsAccUtils.h"
@@ -93,23 +92,25 @@ nsHTMLTableCellAccessible::NativeRole()
   return nsIAccessibleRole::ROLE_CELL;
 }
 
-PRUint64
-nsHTMLTableCellAccessible::NativeState()
+nsresult
+nsHTMLTableCellAccessible::GetStateInternal(PRUint32 *aState,
+                                            PRUint32 *aExtraState)
 {
-  PRUint64 state = nsHyperTextAccessibleWrap::NativeState();
+  nsresult rv= nsHyperTextAccessibleWrap::GetStateInternal(aState, aExtraState);
+  NS_ENSURE_A11Y_SUCCESS(rv, rv);
 
   nsIFrame *frame = mContent->GetPrimaryFrame();
   NS_ASSERTION(frame, "No frame for valid cell accessible!");
 
   if (frame) {
-    state |= states::SELECTABLE;
+    *aState |= nsIAccessibleStates::STATE_SELECTABLE;
     PRBool isSelected = PR_FALSE;
     frame->GetSelected(&isSelected);
     if (isSelected)
-      state |= states::SELECTED;
+      *aState |= nsIAccessibleStates::STATE_SELECTED;
   }
 
-  return state;
+  return NS_OK;
 }
 
 nsresult
@@ -455,10 +456,14 @@ nsHTMLTableAccessible::NativeRole()
   return nsIAccessibleRole::ROLE_TABLE;
 }
 
-PRUint64
-nsHTMLTableAccessible::NativeState()
+nsresult
+nsHTMLTableAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
 {
-  return nsAccessible::NativeState() | states::READONLY;
+  nsresult rv= nsAccessible::GetStateInternal(aState, aExtraState);
+  NS_ENSURE_A11Y_SUCCESS(rv, rv);
+
+  *aState |= nsIAccessibleStates::STATE_READONLY;
+  return NS_OK;
 }
 
 nsresult
@@ -1362,8 +1367,9 @@ nsHTMLTableAccessible::IsProbablyForLayout(PRBool *aIsProbablyForLayout)
 
   nsDocAccessible *docAccessible = GetDocAccessible();
   if (docAccessible) {
-    PRUint64 docState = docAccessible->State();
-    if (docState & states::EDITABLE) {  // Need to see all elements while document is being edited
+    PRUint32 state, extState;
+    docAccessible->GetState(&state, &extState);
+    if (extState & nsIAccessibleStates::EXT_STATE_EDITABLE) {  // Need to see all elements while document is being edited
       RETURN_LAYOUT_ANSWER(PR_FALSE, "In editable document");
     }
   }

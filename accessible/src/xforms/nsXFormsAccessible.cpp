@@ -38,7 +38,6 @@
 
 #include "nsXFormsAccessible.h"
 
-#include "States.h"
 #include "nsAccessibilityService.h"
 #include "nsAccUtils.h"
 #include "nsTextEquivUtils.h"
@@ -150,48 +149,58 @@ nsXFormsAccessible::GetValue(nsAString& aValue)
   return sXFormsService->GetValue(DOMNode, aValue);
 }
 
-PRUint64
-nsXFormsAccessible::NativeState()
+nsresult
+nsXFormsAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
 {
+  NS_ENSURE_ARG_POINTER(aState);
+  *aState = 0;
 
-  if (IsDefunct())
-    return states::DEFUNCT;
+  if (IsDefunct()) {
+    if (aExtraState)
+      *aExtraState = nsIAccessibleStates::EXT_STATE_DEFUNCT;
 
-  NS_ENSURE_TRUE(sXFormsService, 0);
+    return NS_OK_DEFUNCT_OBJECT;
+  }
+
+  if (aExtraState)
+    *aExtraState = 0;
+
+  NS_ENSURE_TRUE(sXFormsService, NS_ERROR_FAILURE);
 
   nsCOMPtr<nsIDOMNode> DOMNode(do_QueryInterface(mContent));
 
   PRBool isRelevant = PR_FALSE;
   nsresult rv = sXFormsService->IsRelevant(DOMNode, &isRelevant);
-  NS_ENSURE_SUCCESS(rv, 0);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   PRBool isReadonly = PR_FALSE;
   rv = sXFormsService->IsReadonly(DOMNode, &isReadonly);
-  NS_ENSURE_SUCCESS(rv, 0);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   PRBool isRequired = PR_FALSE;
   rv = sXFormsService->IsRequired(DOMNode, &isRequired);
-  NS_ENSURE_SUCCESS(rv, 0);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   PRBool isValid = PR_FALSE;
   rv = sXFormsService->IsValid(DOMNode, &isValid);
-  NS_ENSURE_SUCCESS(rv, 0);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  PRUint64 states = nsHyperTextAccessibleWrap::NativeState();
+  rv = nsHyperTextAccessibleWrap::GetStateInternal(aState, aExtraState);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   if (!isRelevant)
-    states |= states::UNAVAILABLE;
+    *aState |= nsIAccessibleStates::STATE_UNAVAILABLE;
 
   if (isReadonly)
-    states |= states::READONLY;
+    *aState |= nsIAccessibleStates::STATE_READONLY;
 
   if (isRequired)
-    states |= states::REQUIRED;
+    *aState |= nsIAccessibleStates::STATE_REQUIRED;
 
   if (!isValid)
-    states |= states::INVALID;
+    *aState |= nsIAccessibleStates::STATE_INVALID;
 
-  return states;
+  return NS_OK;
 }
 
 nsresult
@@ -258,37 +267,45 @@ nsXFormsEditableAccessible::
 {
 }
 
-PRUint64
-nsXFormsEditableAccessible::NativeState()
+nsresult
+nsXFormsEditableAccessible::GetStateInternal(PRUint32 *aState,
+                                             PRUint32 *aExtraState)
 {
-  PRUint64 state = nsXFormsAccessible::NativeState();
+  NS_ENSURE_ARG_POINTER(aState);
+
+  nsresult rv = nsXFormsAccessible::GetStateInternal(aState, aExtraState);
+  NS_ENSURE_A11Y_SUCCESS(rv, rv);
+
+  if (!aExtraState)
+    return NS_OK;
 
   nsCOMPtr<nsIDOMNode> DOMNode(do_QueryInterface(mContent));
 
   PRBool isReadonly = PR_FALSE;
-  nsresult rv = sXFormsService->IsReadonly(DOMNode, &isReadonly);
-  NS_ENSURE_SUCCESS(rv, state);
+  rv = sXFormsService->IsReadonly(DOMNode, &isReadonly);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   if (!isReadonly) {
     PRBool isRelevant = PR_FALSE;
     rv = sXFormsService->IsRelevant(DOMNode, &isRelevant);
-    NS_ENSURE_SUCCESS(rv, state);
+    NS_ENSURE_SUCCESS(rv, rv);
     if (isRelevant) {
-      state |= states::EDITABLE | states::SELECTABLE_TEXT;
+      *aExtraState |= nsIAccessibleStates::EXT_STATE_EDITABLE |
+                      nsIAccessibleStates::EXT_STATE_SELECTABLE_TEXT;
     }
   }
 
   nsCOMPtr<nsIEditor> editor;
   GetAssociatedEditor(getter_AddRefs(editor));
-  NS_ENSURE_TRUE(editor, state);
+  NS_ENSURE_TRUE(editor, NS_ERROR_FAILURE);
   PRUint32 flags;
   editor->GetFlags(&flags);
   if (flags & nsIPlaintextEditor::eEditorSingleLineMask)
-    state |= states::SINGLE_LINE;
+    *aExtraState |= nsIAccessibleStates::EXT_STATE_SINGLE_LINE;
   else
-    state |= states::MULTI_LINE;
+    *aExtraState |= nsIAccessibleStates::EXT_STATE_MULTI_LINE;
 
-  return state;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -418,6 +435,7 @@ nsXFormsSelectableAccessible::RemoveItemFromSelection(PRUint32 aIndex)
   if (!itemDOMNode)
     return false;
 
+  nsresult rv;
   nsCOMPtr<nsIDOMNode> DOMNode(do_QueryInterface(mContent));
   if (mIsSelect1Element) {
     nsCOMPtr<nsIDOMNode> selItemDOMNode;
@@ -472,6 +490,7 @@ nsXFormsSelectableAccessible::IsItemSelected(PRUint32 aIndex)
   if (!itemDOMNode)
     return false;
 
+  nsresult rv;
   nsCOMPtr<nsIDOMNode> DOMNode(do_QueryInterface(mContent));
   if (mIsSelect1Element) {
     nsCOMPtr<nsIDOMNode> selItemDOMNode;

@@ -59,7 +59,7 @@ public:
   // nsAccessible
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual PRUint32 NativeRole();
-  virtual PRUint64 NativeState();
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
 /**
@@ -73,7 +73,7 @@ public:
 
   // nsAccessible
   virtual PRUint32 NativeRole();
-  virtual PRUint64 NativeState();
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
 class nsXULLinkAccessible : public nsHyperTextAccessibleWrap
@@ -94,7 +94,7 @@ public:
   // nsAccessible
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual PRUint32 NativeRole();
-  virtual PRUint64 NativeState();
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 
   // HyperLinkAccessible
   virtual bool IsHyperLink();

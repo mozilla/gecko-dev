@@ -60,7 +60,7 @@ public:
 
   // nsAccessible
   virtual PRUint32 NativeRole();
-  virtual PRUint64 NativeState();
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
 
@@ -74,7 +74,7 @@ public:
   nsHTMLRadioButtonAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   // nsAccessible
-  virtual PRUint64 NativeState();
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
   virtual void GetPositionAndSizeInternal(PRInt32 *aPosInSet,
                                           PRInt32 *aSetSize);
 };
@@ -100,7 +100,7 @@ public:
   // nsAccessible
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual PRUint32 NativeRole();
-  virtual PRUint64 NativeState();
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
 
@@ -122,7 +122,7 @@ public:
 
   // nsAccessible
   virtual PRUint32 NativeRole();
-  virtual PRUint64 NativeState();
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
 
@@ -151,7 +151,7 @@ public:
   // nsAccessible
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual PRUint32 NativeRole();
-  virtual PRUint64 NativeState();
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 };
 
 

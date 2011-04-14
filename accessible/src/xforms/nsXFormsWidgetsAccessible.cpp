@@ -38,8 +38,6 @@
 
 #include "nsXFormsWidgetsAccessible.h"
 
-#include "States.h"
-
 ////////////////////////////////////////////////////////////////////////////////
 // nsXFormsDropmarkerWidgetAccessible
 ////////////////////////////////////////////////////////////////////////////////
@@ -57,19 +55,32 @@ nsXFormsDropmarkerWidgetAccessible::NativeRole()
   return nsIAccessibleRole::ROLE_PUSHBUTTON;
 }
 
-PRUint64
-nsXFormsDropmarkerWidgetAccessible::NativeState()
+nsresult
+nsXFormsDropmarkerWidgetAccessible::GetStateInternal(PRUint32 *aState,
+                                                     PRUint32 *aExtraState)
 {
+  NS_ENSURE_ARG_POINTER(aState);
+  *aState = 0;
 
-  if (IsDefunct())
-    return states::DEFUNCT;
+  if (IsDefunct()) {
+    if (aExtraState)
+      *aExtraState = nsIAccessibleStates::EXT_STATE_DEFUNCT;
+
+    return NS_OK_DEFUNCT_OBJECT;
+  }
+
+  if (aExtraState)
+    *aExtraState = 0;
 
   PRBool isOpen = PR_FALSE;
   nsCOMPtr<nsIDOMNode> DOMNode(do_QueryInterface(mContent));
   nsresult rv = sXFormsService->IsDropmarkerOpen(DOMNode, &isOpen);
-  NS_ENSURE_SUCCESS(rv, 0);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  return isOpen ? states::PRESSED: 0;
+  if (isOpen)
+    *aState = nsIAccessibleStates::STATE_PRESSED;
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -146,24 +157,28 @@ nsXFormsComboboxPopupWidgetAccessible::NativeRole()
   return nsIAccessibleRole::ROLE_LIST;
 }
 
-PRUint64
-nsXFormsComboboxPopupWidgetAccessible::NativeState()
+nsresult
+nsXFormsComboboxPopupWidgetAccessible::GetStateInternal(PRUint32 *aState,
+                                                        PRUint32 *aExtraState)
 {
-  PRUint64 state = nsXFormsAccessible::NativeState();
+  NS_ENSURE_ARG_POINTER(aState);
+
+  nsresult rv = nsXFormsAccessible::GetStateInternal(aState, aExtraState);
+  NS_ENSURE_A11Y_SUCCESS(rv, rv);
 
   PRBool isOpen = PR_FALSE;
   nsCOMPtr<nsIDOMNode> DOMNode(do_QueryInterface(mContent));
-  nsresult rv = sXFormsService->IsDropmarkerOpen(DOMNode, &isOpen);
-  NS_ENSURE_SUCCESS(rv, state);
+  rv = sXFormsService->IsDropmarkerOpen(DOMNode, &isOpen);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  state |= states::FOCUSABLE;
+  *aState |= nsIAccessibleStates::STATE_FOCUSABLE;
 
   if (isOpen)
-    state = states::FLOATING;
+    *aState = nsIAccessibleStates::STATE_FLOATING;
   else
-    state = states::INVISIBLE;
+    *aState = nsIAccessibleStates::STATE_INVISIBLE;
 
-  return state;
+  return NS_OK;
 }
 
 NS_IMETHODIMP

@@ -39,18 +39,17 @@
 
 #include "nsAccessible.h"
 #include "nsAccUtils.h"
-#include "States.h"
 
 bool
 filters::GetSelected(nsAccessible* aAccessible)
 {
-  return aAccessible->State() & states::SELECTED;
+  return nsAccUtils::State(aAccessible) & nsIAccessibleStates::STATE_SELECTED;
 }
 
 bool
 filters::GetSelectable(nsAccessible* aAccessible)
 {
-  return aAccessible->State() & states::SELECTABLE;
+  return nsAccUtils::State(aAccessible) & nsIAccessibleStates::STATE_SELECTABLE;
 }
 
 bool

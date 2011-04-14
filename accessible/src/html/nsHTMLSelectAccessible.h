@@ -74,7 +74,7 @@ public:
 
   // nsAccessible
   virtual PRUint32 NativeRole();
-  virtual PRUint64 NativeState();
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 
   // SelectAccessible
   virtual bool IsSelect();
@@ -114,7 +114,7 @@ public:
   // nsAccessible
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual PRUint32 NativeRole();
-  virtual PRUint64 NativeState();
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 
   virtual PRInt32 GetLevelInternal();
   virtual void GetPositionAndSizeInternal(PRInt32 *aPosInSet,
@@ -136,9 +136,10 @@ private:
   /**
    * Get Select element's accessible state
    * @param aState, Select element state
+   * @param aExtraState, Select element extra state
    * @return Select element content, returns null if not avaliable
    */ 
-  nsIContent* GetSelectState(PRUint64* aState);
+  nsIContent* GetSelectState(PRUint32* aState, PRUint32* aExtraState = nsnull);
 };
 
 /*
@@ -158,7 +159,7 @@ public:
 
   // nsAccessible
   virtual PRUint32 NativeRole();
-  virtual PRUint64 NativeState();
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
 
 protected:
   // nsAccessible
@@ -194,7 +195,7 @@ public:
 
   // nsAccessible
   virtual PRUint32 NativeRole();
-  virtual PRUint64 NativeState();
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
   virtual void InvalidateChildren();
 
 protected:
@@ -231,7 +232,7 @@ public:
   virtual bool IsPrimaryForNode() const;
 
   // nsAccessible
-  virtual PRUint64 NativeState();
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
   virtual void GetBoundsRect(nsRect& aBounds, nsIFrame** aBoundingFrame);
 };
 

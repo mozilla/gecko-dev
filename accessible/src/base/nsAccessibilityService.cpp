@@ -55,7 +55,6 @@
 #include "nsHyperTextAccessibleWrap.h"
 #include "nsIAccessibilityService.h"
 #include "nsIAccessibleProvider.h"
-#include "States.h"
 
 #include "nsIDOMDocument.h"
 #include "nsIDOMHTMLAreaElement.h"
@@ -631,114 +630,113 @@ nsAccessibilityService::GetStringRole(PRUint32 aRole, nsAString& aString)
 }
 
 NS_IMETHODIMP
-nsAccessibilityService::GetStringStates(PRUint32 aState, PRUint32 aExtraState,
+nsAccessibilityService::GetStringStates(PRUint32 aStates, PRUint32 aExtraStates,
                                         nsIDOMDOMStringList **aStringStates)
 {
   nsAccessibleDOMStringList *stringStates = new nsAccessibleDOMStringList();
   NS_ENSURE_TRUE(stringStates, NS_ERROR_OUT_OF_MEMORY);
 
-  PRUint64 state = nsAccUtils::To64State(aState, aExtraState);
-
-  // states
-  if (state & states::UNAVAILABLE)
+  //states
+  if (aStates & nsIAccessibleStates::STATE_UNAVAILABLE)
     stringStates->Add(NS_LITERAL_STRING("unavailable"));
-  if (state & states::SELECTED)
+  if (aStates & nsIAccessibleStates::STATE_SELECTED)
     stringStates->Add(NS_LITERAL_STRING("selected"));
-  if (state & states::FOCUSED)
+  if (aStates & nsIAccessibleStates::STATE_FOCUSED)
     stringStates->Add(NS_LITERAL_STRING("focused"));
-  if (state & states::PRESSED)
+  if (aStates & nsIAccessibleStates::STATE_PRESSED)
     stringStates->Add(NS_LITERAL_STRING("pressed"));
-  if (state & states::CHECKED)
+  if (aStates & nsIAccessibleStates::STATE_CHECKED)
     stringStates->Add(NS_LITERAL_STRING("checked"));
-  if (state & states::MIXED)
+  if (aStates & nsIAccessibleStates::STATE_MIXED)
     stringStates->Add(NS_LITERAL_STRING("mixed"));
-  if (state & states::READONLY)
+  if (aStates & nsIAccessibleStates::STATE_READONLY)
     stringStates->Add(NS_LITERAL_STRING("readonly"));
-  if (state & states::HOTTRACKED)
+  if (aStates & nsIAccessibleStates::STATE_HOTTRACKED)
     stringStates->Add(NS_LITERAL_STRING("hottracked"));
-  if (state & states::DEFAULT)
+  if (aStates & nsIAccessibleStates::STATE_DEFAULT)
     stringStates->Add(NS_LITERAL_STRING("default"));
-  if (state & states::EXPANDED)
+  if (aStates & nsIAccessibleStates::STATE_EXPANDED)
     stringStates->Add(NS_LITERAL_STRING("expanded"));
-  if (state & states::COLLAPSED)
+  if (aStates & nsIAccessibleStates::STATE_COLLAPSED)
     stringStates->Add(NS_LITERAL_STRING("collapsed"));
-  if (state & states::BUSY)
+  if (aStates & nsIAccessibleStates::STATE_BUSY)
     stringStates->Add(NS_LITERAL_STRING("busy"));
-  if (state & states::FLOATING)
+  if (aStates & nsIAccessibleStates::STATE_FLOATING)
     stringStates->Add(NS_LITERAL_STRING("floating"));
-  if (state & states::ANIMATED)
+  if (aStates & nsIAccessibleStates::STATE_ANIMATED)
     stringStates->Add(NS_LITERAL_STRING("animated"));
-  if (state & states::INVISIBLE)
+  if (aStates & nsIAccessibleStates::STATE_INVISIBLE)
     stringStates->Add(NS_LITERAL_STRING("invisible"));
-  if (state & states::OFFSCREEN)
+  if (aStates & nsIAccessibleStates::STATE_OFFSCREEN)
     stringStates->Add(NS_LITERAL_STRING("offscreen"));
-  if (state & states::SIZEABLE)
+  if (aStates & nsIAccessibleStates::STATE_SIZEABLE)
     stringStates->Add(NS_LITERAL_STRING("sizeable"));
-  if (state & states::MOVEABLE)
+  if (aStates & nsIAccessibleStates::STATE_MOVEABLE)
     stringStates->Add(NS_LITERAL_STRING("moveable"));
-  if (state & states::SELFVOICING)
+  if (aStates & nsIAccessibleStates::STATE_SELFVOICING)
     stringStates->Add(NS_LITERAL_STRING("selfvoicing"));
-  if (state & states::FOCUSABLE)
+  if (aStates & nsIAccessibleStates::STATE_FOCUSABLE)
     stringStates->Add(NS_LITERAL_STRING("focusable"));
-  if (state & states::SELECTABLE)
+  if (aStates & nsIAccessibleStates::STATE_SELECTABLE)
     stringStates->Add(NS_LITERAL_STRING("selectable"));
-  if (state & states::LINKED)
+  if (aStates & nsIAccessibleStates::STATE_LINKED)
     stringStates->Add(NS_LITERAL_STRING("linked"));
-  if (state & states::TRAVERSED)
+  if (aStates & nsIAccessibleStates::STATE_TRAVERSED)
     stringStates->Add(NS_LITERAL_STRING("traversed"));
-  if (state & states::MULTISELECTABLE)
+  if (aStates & nsIAccessibleStates::STATE_MULTISELECTABLE)
     stringStates->Add(NS_LITERAL_STRING("multiselectable"));
-  if (state & states::EXTSELECTABLE)
+  if (aStates & nsIAccessibleStates::STATE_EXTSELECTABLE)
     stringStates->Add(NS_LITERAL_STRING("extselectable"));
-  if (state & states::PROTECTED)
+  if (aStates & nsIAccessibleStates::STATE_PROTECTED)
     stringStates->Add(NS_LITERAL_STRING("protected"));
-  if (state & states::HASPOPUP)
+  if (aStates & nsIAccessibleStates::STATE_HASPOPUP)
     stringStates->Add(NS_LITERAL_STRING("haspopup"));
-  if (state & states::REQUIRED)
+  if (aStates & nsIAccessibleStates::STATE_REQUIRED)
     stringStates->Add(NS_LITERAL_STRING("required"));
-  if (state & states::ALERT)
-    stringStates->Add(NS_LITERAL_STRING("alert"));
-  if (state & states::INVALID)
+  if (aStates & nsIAccessibleStates::STATE_IMPORTANT)
+    stringStates->Add(NS_LITERAL_STRING("important"));
+  if (aStates & nsIAccessibleStates::STATE_INVALID)
     stringStates->Add(NS_LITERAL_STRING("invalid"));
-  if (state & states::CHECKABLE)
+  if (aStates & nsIAccessibleStates::STATE_CHECKABLE)
     stringStates->Add(NS_LITERAL_STRING("checkable"));
 
-  // extraStates
-  if (state & states::SUPPORTS_AUTOCOMPLETION)
+  //extraStates
+  if (aExtraStates & nsIAccessibleStates::EXT_STATE_SUPPORTS_AUTOCOMPLETION)
     stringStates->Add(NS_LITERAL_STRING("autocompletion"));
-  if (state & states::DEFUNCT)
+  if (aExtraStates & nsIAccessibleStates::EXT_STATE_DEFUNCT)
     stringStates->Add(NS_LITERAL_STRING("defunct"));
-  if (state & states::SELECTABLE_TEXT)
+  if (aExtraStates & nsIAccessibleStates::EXT_STATE_SELECTABLE_TEXT)
     stringStates->Add(NS_LITERAL_STRING("selectable text"));
-  if (state & states::EDITABLE)
+  if (aExtraStates & nsIAccessibleStates::EXT_STATE_EDITABLE)
     stringStates->Add(NS_LITERAL_STRING("editable"));
-  if (state & states::ACTIVE)
+  if (aExtraStates & nsIAccessibleStates::EXT_STATE_ACTIVE)
     stringStates->Add(NS_LITERAL_STRING("active"));
-  if (state & states::MODAL)
+  if (aExtraStates & nsIAccessibleStates::EXT_STATE_MODAL)
     stringStates->Add(NS_LITERAL_STRING("modal"));
-  if (state & states::MULTI_LINE)
+  if (aExtraStates & nsIAccessibleStates::EXT_STATE_MULTI_LINE)
     stringStates->Add(NS_LITERAL_STRING("multi line"));
-  if (state & states::HORIZONTAL)
+  if (aExtraStates & nsIAccessibleStates::EXT_STATE_HORIZONTAL)
     stringStates->Add(NS_LITERAL_STRING("horizontal"));
-  if (state & states::OPAQUE1)
+  if (aExtraStates & nsIAccessibleStates::EXT_STATE_OPAQUE)
     stringStates->Add(NS_LITERAL_STRING("opaque"));
-  if (state & states::SINGLE_LINE)
+  if (aExtraStates & nsIAccessibleStates::EXT_STATE_SINGLE_LINE)
     stringStates->Add(NS_LITERAL_STRING("single line"));
-  if (state & states::TRANSIENT)
+  if (aExtraStates & nsIAccessibleStates::EXT_STATE_TRANSIENT)
     stringStates->Add(NS_LITERAL_STRING("transient"));
-  if (state & states::VERTICAL)
+  if (aExtraStates & nsIAccessibleStates::EXT_STATE_VERTICAL)
     stringStates->Add(NS_LITERAL_STRING("vertical"));
-  if (state & states::STALE)
+  if (aExtraStates & nsIAccessibleStates::EXT_STATE_STALE)
     stringStates->Add(NS_LITERAL_STRING("stale"));
-  if (state & states::ENABLED)
+  if (aExtraStates & nsIAccessibleStates::EXT_STATE_ENABLED)
     stringStates->Add(NS_LITERAL_STRING("enabled"));
-  if (state & states::SENSITIVE)
+  if (aExtraStates & nsIAccessibleStates::EXT_STATE_SENSITIVE)
     stringStates->Add(NS_LITERAL_STRING("sensitive"));
-  if (state & states::EXPANDABLE)
+  if (aExtraStates & nsIAccessibleStates::EXT_STATE_EXPANDABLE)
     stringStates->Add(NS_LITERAL_STRING("expandable"));
 
   //unknown states
   PRUint32 stringStatesLength = 0;
+
   stringStates->GetLength(&stringStatesLength);
   if (!stringStatesLength)
     stringStates->Add(NS_LITERAL_STRING("unknown"));

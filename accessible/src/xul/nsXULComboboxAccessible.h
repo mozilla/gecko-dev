@@ -65,7 +65,7 @@ public:
 
   // nsAccessible
   virtual PRUint32 NativeRole();
-  virtual PRUint64 NativeState();
+  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
   virtual PRBool GetAllowsAnonChildAccessibles();
 };
 
