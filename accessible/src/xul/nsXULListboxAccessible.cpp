@@ -67,7 +67,7 @@ nsXULColumnsAccessible::NativeRole()
 PRUint64
 nsXULColumnsAccessible::NativeState()
 {
-  return states::READONLY;
+  return IsDefunct() ? states::DEFUNCT : states::READONLY;
 }
 
 
@@ -90,7 +90,7 @@ nsXULColumnItemAccessible::NativeRole()
 PRUint64
 nsXULColumnItemAccessible::NativeState()
 {
-  return states::READONLY;
+  return IsDefunct() ? states::DEFUNCT : states::READONLY;
 }
 
 NS_IMETHODIMP
@@ -906,8 +906,12 @@ nsXULListitemAccessible::NativeRole()
 PRUint64
 nsXULListitemAccessible::NativeState()
 {
-  if (mIsCheckbox)
+  if (mIsCheckbox) {
     return nsXULMenuitemAccessible::NativeState();
+  }
+
+  if (IsDefunct())
+    return states::DEFUNCT;
 
   PRUint64 states = states::FOCUSABLE | states::SELECTABLE;
 
