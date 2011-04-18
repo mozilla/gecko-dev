@@ -309,8 +309,6 @@ private:
   nsIDOMCSSValue* DoGetLineHeight();
   nsIDOMCSSValue* DoGetTextAlign();
   nsIDOMCSSValue* DoGetTextDecoration();
-  nsIDOMCSSValue* DoGetMozTextDecorationColor();
-  nsIDOMCSSValue* DoGetMozTextDecorationStyle();
   nsIDOMCSSValue* DoGetTextIndent();
   nsIDOMCSSValue* DoGetTextTransform();
   nsIDOMCSSValue* DoGetTextShadow();

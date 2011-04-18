@@ -42,7 +42,6 @@
 #include <gtk/gtk.h>
 
 #include "gtkdrawing.h"
-#include "nsStyleConsts.h"
 
 #ifdef MOZ_PLATFORM_MAEMO
 #include "nsIServiceManager.h"
@@ -554,14 +553,14 @@ NS_IMETHODIMP nsLookAndFeel::GetMetric(const nsMetricID aID, PRInt32 & aMetric)
         break;
     case eMetric_IMERawInputUnderlineStyle:
     case eMetric_IMEConvertedTextUnderlineStyle:
-        aMetric = NS_STYLE_TEXT_DECORATION_STYLE_SOLID;
+        aMetric = NS_UNDERLINE_STYLE_SOLID;
         break;
     case eMetric_IMESelectedRawTextUnderlineStyle:
     case eMetric_IMESelectedConvertedTextUnderline:
-        aMetric = NS_STYLE_TEXT_DECORATION_STYLE_NONE;
+        aMetric = NS_UNDERLINE_STYLE_NONE;
         break;
     case eMetric_SpellCheckerUnderlineStyle:
-        aMetric = NS_STYLE_TEXT_DECORATION_STYLE_WAVY;
+        aMetric = NS_UNDERLINE_STYLE_WAVY;
         break;
     case eMetric_ImagesInMenus:
         aMetric = moz_gtk_images_in_menus();

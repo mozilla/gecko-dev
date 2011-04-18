@@ -409,7 +409,6 @@ public:
   static const PRInt32 kTableLayoutKTable[];
   static const PRInt32 kTextAlignKTable[];
   static const PRInt32 kTextDecorationKTable[];
-  static const PRInt32 kTextDecorationStyleKTable[];
   static const PRInt32 kTextTransformKTable[];
   static const PRInt32 kTransitionTimingFunctionKTable[];
   static const PRInt32 kUnicodeBidiKTable[];

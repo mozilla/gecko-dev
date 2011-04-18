@@ -566,22 +566,6 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
     }
 
     // NB: Calling Peek on |this|, not |thisVis| (see above).
-    if (!change && PeekStyleTextReset()) {
-      const nsStyleTextReset *thisVisTextReset = thisVis->GetStyleTextReset();
-      const nsStyleTextReset *otherVisTextReset = otherVis->GetStyleTextReset();
-      nscolor thisVisDecColor, otherVisDecColor;
-      PRBool thisVisDecColorIsFG, otherVisDecColorIsFG;
-      thisVisTextReset->GetDecorationColor(thisVisDecColor,
-                                           thisVisDecColorIsFG);
-      otherVisTextReset->GetDecorationColor(otherVisDecColor,
-                                            otherVisDecColorIsFG);
-      if (thisVisDecColorIsFG != otherVisDecColorIsFG ||
-          (!thisVisDecColorIsFG && thisVisDecColor != otherVisDecColor)) {
-        change = PR_TRUE;
-      }
-    }
-
-    // NB: Calling Peek on |this|, not |thisVis| (see above).
     if (!change && PeekStyleSVG()) {
       const nsStyleSVG *thisVisSVG = thisVis->GetStyleSVG();
       const nsStyleSVG *otherVisSVG = otherVis->GetStyleSVG();
@@ -742,7 +726,6 @@ nsStyleContext::GetVisitedDependentColor(nsCSSProperty aProperty)
                aProperty == eCSSProperty_border_left_color_value ||
                aProperty == eCSSProperty_outline_color ||
                aProperty == eCSSProperty__moz_column_rule_color ||
-               aProperty == eCSSProperty_text_decoration_color ||
                aProperty == eCSSProperty_fill ||
                aProperty == eCSSProperty_stroke,
                "we need to add to nsStyleContext::CalcStyleDifference");

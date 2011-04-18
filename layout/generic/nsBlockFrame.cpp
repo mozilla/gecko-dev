@@ -6076,7 +6076,6 @@ nsBlockFrame::PaintTextDecorationLine(gfxContext* aCtx,
                                       const nsPoint& aPt,
                                       nsLineBox* aLine,
                                       nscolor aColor, 
-                                      PRUint8 aStyle,
                                       gfxFloat aOffset, 
                                       gfxFloat aAscent, 
                                       gfxFloat aSize,
@@ -6097,7 +6096,7 @@ nsBlockFrame::PaintTextDecorationLine(gfxContext* aCtx,
     nsCSSRendering::PaintDecorationLine(
       aCtx, aColor, pt, size,
       PresContext()->AppUnitsToGfxUnits(aLine->GetAscent()),
-      aOffset, aDecoration, aStyle);
+      aOffset, aDecoration, nsCSSRendering::DECORATION_STYLE_SOLID);
   }
 }
 

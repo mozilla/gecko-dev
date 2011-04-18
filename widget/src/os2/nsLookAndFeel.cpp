@@ -43,8 +43,7 @@
 #include "nsLookAndFeel.h"
 #include "nsFont.h"
 #include "nsSize.h"
-#include "nsStyleConsts.h"
-
+ 
 nsLookAndFeel::nsLookAndFeel() : nsXPLookAndFeel()
 {
 }
@@ -337,14 +336,14 @@ NS_IMETHODIMP nsLookAndFeel::GetMetric(const nsMetricID aID, PRInt32 & aMetric)
         break;
     case eMetric_IMERawInputUnderlineStyle:
     case eMetric_IMEConvertedTextUnderlineStyle:
-        aMetric = NS_STYLE_TEXT_DECORATION_STYLE_SOLID;
+        aMetric = NS_UNDERLINE_STYLE_SOLID;
         break;
     case eMetric_IMESelectedRawTextUnderlineStyle:
     case eMetric_IMESelectedConvertedTextUnderline:
-        aMetric = NS_STYLE_TEXT_DECORATION_STYLE_NONE;
+        aMetric = NS_UNDERLINE_STYLE_NONE;
         break;
     case eMetric_SpellCheckerUnderlineStyle:
-        aMetric = NS_STYLE_TEXT_DECORATION_STYLE_WAVY;
+        aMetric = NS_UNDERLINE_STYLE_WAVY;
         break;
 
     default:

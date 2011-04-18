@@ -37,7 +37,6 @@
  * ***** END LICENSE BLOCK ***** */
 
 #include "nsLookAndFeel.h"
-#include "nsStyleConsts.h"
 
 nsLookAndFeel::nsLookAndFeel()
     : nsXPLookAndFeel()
@@ -375,7 +374,7 @@ nsLookAndFeel::GetMetric(const nsMetricID aID, PRInt32 &aMetric)
             break;
 
         case eMetric_SpellCheckerUnderlineStyle:
-            aMetric = NS_STYLE_TEXT_DECORATION_STYLE_WAVY;
+            aMetric = NS_UNDERLINE_STYLE_WAVY;
             break;
 
         default:
