@@ -1629,6 +1629,10 @@ nsDocument::~nsDocument()
     mStyleSheetSetList->Disconnect();
   }
 
+  if (mAnimationController) {
+    mAnimationController->Disconnect();
+  }
+
   mParentDocument = nsnull;
 
   // Kill the subdocument map, doing this will release its strong
