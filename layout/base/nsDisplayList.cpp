@@ -137,20 +137,22 @@ static PRBool IsFixedFrame(nsIFrame* aFrame)
   return aFrame && aFrame->GetParent() && !aFrame->GetParent()->GetParent();
 }
 
-static PRBool IsFixedItem(nsDisplayItem *aItem, nsDisplayListBuilder* aBuilder)
+static PRBool IsFixedItem(nsDisplayItem *aItem, nsDisplayListBuilder* aBuilder,
+                          PRBool* aIsBackgroundFixed)
 {
   nsIFrame* activeScrolledRoot =
-    nsLayoutUtils::GetActiveScrolledRootFor(aItem, aBuilder);
+    nsLayoutUtils::GetActiveScrolledRootFor(aItem, aBuilder, aIsBackgroundFixed);
   return activeScrolledRoot &&
          !nsLayoutUtils::ScrolledByViewportScrolling(activeScrolledRoot,
                                                      aBuilder);
 }
 
 static PRBool ForceVisiblityForFixedItem(nsDisplayListBuilder* aBuilder,
-                                         nsDisplayItem* aItem)
+                                         nsDisplayItem* aItem,
+                                         PRBool* aIsBackgroundFixed)
 {
-  return aBuilder->GetHasDisplayPort() && aBuilder->GetHasFixedItems() &&
-         IsFixedItem(aItem, aBuilder);
+  return aBuilder->GetDisplayPort() && aBuilder->GetHasFixedItems() &&
+         IsFixedItem(aItem, aBuilder, aIsBackgroundFixed);
 }
 
 void nsDisplayListBuilder::MarkOutOfFlowFrameForDisplay(nsIFrame* aDirtyFrame,
@@ -433,6 +435,26 @@ TreatAsOpaque(nsDisplayItem* aItem, nsDisplayListBuilder* aBuilder,
   return opaque;
 }
 
+static nsRect GetDisplayPortBounds(nsDisplayListBuilder* aBuilder,
+                                   nsDisplayItem* aItem,
+                                   PRBool aIgnoreTransform)
+{
+  nsIFrame* frame = aItem->GetUnderlyingFrame();
+  nscoord auPerDevPixel = frame->PresContext()->AppUnitsPerDevPixel();
+  gfxMatrix transform;
+
+  if (!aIgnoreTransform) {
+    transform = nsLayoutUtils::GetTransformToAncestor(frame,
+                  aBuilder->ReferenceFrame());
+    transform.Invert();
+  }
+
+  const nsRect* displayport = aBuilder->GetDisplayPort();
+  return nsLayoutUtils::MatrixTransformRect(
+           nsRect(0, 0, displayport->width, displayport->height),
+           transform, auPerDevPixel);
+}
+
 PRBool
 nsDisplayList::ComputeVisibilityForSublist(nsDisplayListBuilder* aBuilder,
                                            nsRegion* aVisibleRegion,
@@ -466,12 +488,13 @@ nsDisplayList::ComputeVisibilityForSublist(nsDisplayListBuilder* aBuilder,
     nsRect bounds = item->GetBounds(aBuilder);
 
     nsRegion itemVisible;
-    itemVisible.And(*aVisibleRegion, bounds);
-    item->mVisibleRect = itemVisible.GetBounds();
-
-    if (ForceVisiblityForFixedItem(aBuilder, item)) {
-      item->mVisibleRect = bounds;
+    PRBool shouldFixToViewport;
+    if (ForceVisiblityForFixedItem(aBuilder, item, &shouldFixToViewport)) {
+      itemVisible.And(GetDisplayPortBounds(aBuilder, item, shouldFixToViewport), bounds);
+    } else {
+      itemVisible.And(*aVisibleRegion, bounds);
     }
+    item->mVisibleRect = itemVisible.GetBounds();
 
     PRBool containsRootContentDocBG = PR_FALSE;
     if (item->ComputeVisibility(aBuilder, aVisibleRegion, aAllowVisibleRegionExpansion,
@@ -797,12 +820,13 @@ PRBool nsDisplayItem::RecomputeVisibility(nsDisplayListBuilder* aBuilder,
   nsRect bounds = GetBounds(aBuilder);
 
   nsRegion itemVisible;
-  itemVisible.And(*aVisibleRegion, bounds);
-  mVisibleRect = itemVisible.GetBounds();
-
-  if (ForceVisiblityForFixedItem(aBuilder, this)) {
-    mVisibleRect = bounds;
+  PRBool shouldFixToViewport;
+  if (ForceVisiblityForFixedItem(aBuilder, this, &shouldFixToViewport)) {
+    itemVisible.And(GetDisplayPortBounds(aBuilder, this, shouldFixToViewport), bounds);
+  } else {
+    itemVisible.And(*aVisibleRegion, bounds);
   }
+  mVisibleRect = itemVisible.GetBounds();
 
   // When we recompute visibility within layers we don't need to
   // expand the visible region for content behind plugins (the plugin
