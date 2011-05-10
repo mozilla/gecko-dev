@@ -112,24 +112,6 @@ typedef struct JSXDROps {
 typedef js::Vector<JSAtom *, 1, js::SystemAllocPolicy> XDRAtoms;
 typedef js::HashMap<JSAtom *, uint32, js::DefaultHasher<JSAtom *>, js::SystemAllocPolicy> XDRAtomsHashMap;
 
-struct JSXDRState;
-
-namespace js {
-
-class XDRScriptState {
-public:
-    XDRScriptState(JSXDRState *x);
-    ~XDRScriptState();
-
-    JSXDRState      *xdr;
-    const char      *filename;
-    bool             filenameSaved;
-    XDRAtoms         atoms;
-    XDRAtomsHashMap  atomsMap;
-};
-
-} /* namespace JS */
-
 struct JSXDRState {
     JSXDRMode   mode;
     JSXDROps    *ops;
@@ -140,7 +122,8 @@ struct JSXDRState {
     void        *reghash;
     void        *userdata;
     JSScript    *script;
-    js::XDRScriptState *state;
+    XDRAtoms    *atoms;
+    XDRAtomsHashMap *atomsMap;
 };
 
 extern JS_PUBLIC_API(void)
@@ -231,7 +214,7 @@ JS_XDRFindClassById(JSXDRState *xdr, uint32 id);
  * before deserialization of bytecode.  If the saved version does not match
  * the current version, abort deserialization and invalidate the file.
  */
-#define JSXDR_BYTECODE_VERSION      (0xb973c0de - 85)
+#define JSXDR_BYTECODE_VERSION      (0xb973c0de - 86)
 
 /*
  * Library-private functions.
