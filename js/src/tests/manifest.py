@@ -10,7 +10,7 @@ from tests import TestCase
 
 def split_path_into_dirs(path):
     dirs = []
-    while path != "/":
+    while path != os.path.dirname(path):
         path = os.path.dirname(path)
         dirs.append(path)
     return dirs

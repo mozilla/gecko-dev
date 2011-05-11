@@ -224,7 +224,8 @@ struct JSStackFrame
     /* Used for eval. */
     inline void initEvalFrame(JSContext *cx, JSScript *script, JSStackFrame *prev,
                               uint32 flags);
-    inline void initGlobalFrame(JSScript *script, JSObject &chain, uint32 flags);
+    inline void initGlobalFrame(JSScript *script, JSObject &chain, JSStackFrame *prev,
+                                uint32 flags);
 
     /* Used when activating generators. */
     inline void stealFrameAndSlots(js::Value *vp, JSStackFrame *otherfp,
@@ -690,8 +691,8 @@ struct JSStackFrame
         return !!(flags_ & JSFRAME_DEBUGGER);
     }
 
-    bool isEvalOrDebuggerFrame() const {
-        return !!(flags_ & (JSFRAME_EVAL | JSFRAME_DEBUGGER));
+    bool isDirectEvalOrDebuggerFrame() const {
+        return (flags_ & (JSFRAME_EVAL | JSFRAME_DEBUGGER)) && !(flags_ & JSFRAME_GLOBAL);
     }
 
     bool hasOverriddenArgs() const {
