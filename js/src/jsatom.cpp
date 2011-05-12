@@ -455,11 +455,14 @@ js_SweepAtomState(JSContext *cx)
 }
 
 /*
- * This call takes ownership of 'chars' if ATOM_NOCOPY is set.
+ * Callers passing ATOM_NOCOPY have freshly allocated *pchars and thus this
+ * memory can be used as a new JSAtom's buffer without copying. When this flag
+ * is set, the contract is that callers will free *pchars iff *pchars == NULL.
  */
 static JSAtom *
-Atomize(JSContext *cx, const jschar *chars, size_t length, uintN flags)
+Atomize(JSContext *cx, const jschar **pchars, size_t length, uintN flags)
 {
+    const jschar *chars = *pchars;
     JS_ASSERT(!(flags & ~(ATOM_PINNED|ATOM_INTERNED|ATOM_NOCOPY)));
 
     if (JSAtom *s = JSAtom::lookupStatic(chars, length))
@@ -479,10 +482,9 @@ Atomize(JSContext *cx, const jschar *chars, size_t length, uintN flags)
         JSFixedString *key;
         if (flags & ATOM_NOCOPY) {
             key = js_NewString(cx, const_cast<jschar *>(chars), length);
-            if (!key) {
-                cx->free_(const_cast<jschar *>(chars));
+            if (!key)
                 return NULL;
-            }
+            *pchars = NULL;  /* Caller should not free *pchars. */
         } else {
             key = js_NewStringCopyN(cx, chars, length);
             if (!key)
@@ -520,7 +522,7 @@ js_AtomizeString(JSContext *cx, JSString *str, uintN flags)
         return NULL;
 
     JS_ASSERT(length <= JSString::MAX_LENGTH);
-    return Atomize(cx, chars, length, flags);
+    return Atomize(cx, &chars, length, flags);
 }
 
 JSAtom *
@@ -556,7 +558,10 @@ js_Atomize(JSContext *cx, const char *bytes, size_t length, uintN flags)
         flags |= ATOM_NOCOPY;
     }
 
-    return Atomize(cx, chars, inflatedLength, flags);
+    JSAtom *atom = Atomize(cx, &chars, inflatedLength, flags);
+    if ((flags & ATOM_NOCOPY) && chars)
+        cx->free_((void *)chars);
+    return atom;
 }
 
 JSAtom *
@@ -568,7 +573,7 @@ js_AtomizeChars(JSContext *cx, const jschar *chars, size_t length, uintN flags)
     if (!CheckStringLength(cx, length))
         return NULL;
 
-    return Atomize(cx, chars, length, flags);
+    return Atomize(cx, &chars, length, flags);
 }
 
 JSAtom *
