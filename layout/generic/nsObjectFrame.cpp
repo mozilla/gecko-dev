@@ -921,6 +921,7 @@ nsObjectFrame::CreateWidget(nscoord aWidth,
   } else {
 #ifndef XP_MACOSX
     rpc->RegisterPluginForGeometryUpdates(this);
+    rpc->RequestUpdatePluginGeometry(this);
 #endif
   }
 
