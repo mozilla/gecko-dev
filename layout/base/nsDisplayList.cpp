@@ -138,10 +138,10 @@ static PRBool IsFixedFrame(nsIFrame* aFrame)
 }
 
 static PRBool IsFixedItem(nsDisplayItem *aItem, nsDisplayListBuilder* aBuilder,
-                          PRBool* aIsBackgroundFixed)
+                          PRBool* aIsFixedBackground)
 {
   nsIFrame* activeScrolledRoot =
-    nsLayoutUtils::GetActiveScrolledRootFor(aItem, aBuilder, aIsBackgroundFixed);
+    nsLayoutUtils::GetActiveScrolledRootFor(aItem, aBuilder, aIsFixedBackground);
   return activeScrolledRoot &&
          !nsLayoutUtils::ScrolledByViewportScrolling(activeScrolledRoot,
                                                      aBuilder);
@@ -149,10 +149,10 @@ static PRBool IsFixedItem(nsDisplayItem *aItem, nsDisplayListBuilder* aBuilder,
 
 static PRBool ForceVisiblityForFixedItem(nsDisplayListBuilder* aBuilder,
                                          nsDisplayItem* aItem,
-                                         PRBool* aIsBackgroundFixed)
+                                         PRBool* aIsFixedBackground)
 {
   return aBuilder->GetDisplayPort() && aBuilder->GetHasFixedItems() &&
-         IsFixedItem(aItem, aBuilder, aIsBackgroundFixed);
+         IsFixedItem(aItem, aBuilder, aIsFixedBackground);
 }
 
 void nsDisplayListBuilder::MarkOutOfFlowFrameForDisplay(nsIFrame* aDirtyFrame,
@@ -488,9 +488,9 @@ nsDisplayList::ComputeVisibilityForSublist(nsDisplayListBuilder* aBuilder,
     nsRect bounds = item->GetBounds(aBuilder);
 
     nsRegion itemVisible;
-    PRBool shouldFixToViewport;
-    if (ForceVisiblityForFixedItem(aBuilder, item, &shouldFixToViewport)) {
-      itemVisible.And(GetDisplayPortBounds(aBuilder, item, shouldFixToViewport), bounds);
+    PRBool isFixedBackground;
+    if (ForceVisiblityForFixedItem(aBuilder, item, &isFixedBackground)) {
+      itemVisible.And(GetDisplayPortBounds(aBuilder, item, isFixedBackground), bounds);
     } else {
       itemVisible.And(*aVisibleRegion, bounds);
     }
@@ -820,9 +820,9 @@ PRBool nsDisplayItem::RecomputeVisibility(nsDisplayListBuilder* aBuilder,
   nsRect bounds = GetBounds(aBuilder);
 
   nsRegion itemVisible;
-  PRBool shouldFixToViewport;
-  if (ForceVisiblityForFixedItem(aBuilder, this, &shouldFixToViewport)) {
-    itemVisible.And(GetDisplayPortBounds(aBuilder, this, shouldFixToViewport), bounds);
+  PRBool isFixedBackground;
+  if (ForceVisiblityForFixedItem(aBuilder, this, &isFixedBackground)) {
+    itemVisible.And(GetDisplayPortBounds(aBuilder, this, isFixedBackground), bounds);
   } else {
     itemVisible.And(*aVisibleRegion, bounds);
   }

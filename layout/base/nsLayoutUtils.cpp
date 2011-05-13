@@ -1110,8 +1110,10 @@ gfxMatrix nsLayoutUtils::GetTransformToAncestor(nsIFrame *aFrame,
    * we stop at root. We get the CTM by simply accumulating all of these
    * matrices together.
    */
-  while (aFrame && aFrame != aStopAtAncestor)
+  while (aFrame && aFrame != aStopAtAncestor) {
     ctm *= aFrame->GetTransformMatrix(&aFrame);
+  }
+  NS_ASSERTION(aFrame == aStopAtAncestor, "How did we manage to miss the ancestor?");
   return ctm;
 }
 
