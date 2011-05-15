@@ -91,4 +91,5 @@ fails-if(!browserIsRemote) == test-displayport.html test-displayport-ref.html # 
 skip-if(!browserIsRemote) != test-displayport-2.html test-displayport-ref.html # bug 593168
 
 # IPC Position-fixed frames/layers test
-== test-pos-fixed.html test-pos-fixed-ref.html
+# Fixed layers are temporarily disabled (bug 656167).
+#== test-pos-fixed.html test-pos-fixed-ref.html
