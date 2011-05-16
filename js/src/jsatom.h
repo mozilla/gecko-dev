@@ -586,7 +586,7 @@ extern JSAtom *
 js_AtomizeString(JSContext *cx, JSString *str, uintN flags);
 
 extern JSAtom *
-js_Atomize(JSContext *cx, const char *bytes, size_t length, uintN flags, bool useCESU8 = false);
+js_Atomize(JSContext *cx, const char *bytes, size_t length, uintN flags);
 
 extern JSAtom *
 js_AtomizeChars(JSContext *cx, const jschar *chars, size_t length, uintN flags);

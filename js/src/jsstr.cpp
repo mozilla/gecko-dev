@@ -4068,7 +4068,7 @@ js_strchr_limit(const jschar *s, jschar c, const jschar *limit)
 }
 
 jschar *
-js_InflateString(JSContext *cx, const char *bytes, size_t *lengthp, bool useCESU8)
+js_InflateString(JSContext *cx, const char *bytes, size_t *lengthp)
 {
     size_t nbytes, nchars, i;
     jschar *chars;
@@ -4077,9 +4077,8 @@ js_InflateString(JSContext *cx, const char *bytes, size_t *lengthp, bool useCESU
 #endif
 
     nbytes = *lengthp;
-    if (js_CStringsAreUTF8 || useCESU8) {
-        if (!js_InflateUTF8StringToBuffer(cx, bytes, nbytes, NULL, &nchars,
-                                          useCESU8))
+    if (js_CStringsAreUTF8) {
+        if (!js_InflateStringToBuffer(cx, bytes, nbytes, NULL, &nchars))
             goto bad;
         chars = (jschar *) cx->malloc_((nchars + 1) * sizeof (jschar));
         if (!chars)
@@ -4087,8 +4086,7 @@ js_InflateString(JSContext *cx, const char *bytes, size_t *lengthp, bool useCESU
 #ifdef DEBUG
         ok =
 #endif
-            js_InflateUTF8StringToBuffer(cx, bytes, nbytes, chars, &nchars,
-                                         useCESU8);
+            js_InflateStringToBuffer(cx, bytes, nbytes, chars, &nchars);
         JS_ASSERT(ok);
     } else {
         nchars = nbytes;
@@ -4160,8 +4158,7 @@ js_GetDeflatedStringLength(JSContext *cx, const jschar *chars, size_t nchars)
  * May be called with null cx through public API, see below.
  */
 size_t
-js_GetDeflatedUTF8StringLength(JSContext *cx, const jschar *chars,
-                               size_t nchars, bool useCESU8)
+js_GetDeflatedUTF8StringLength(JSContext *cx, const jschar *chars, size_t nchars)
 {
     size_t nbytes;
     const jschar *end;
@@ -4173,7 +4170,7 @@ js_GetDeflatedUTF8StringLength(JSContext *cx, const jschar *chars,
         c = *chars;
         if (c < 0x80)
             continue;
-        if (0xD800 <= c && c <= 0xDFFF && !useCESU8) {
+        if (0xD800 <= c && c <= 0xDFFF) {
             /* Surrogate pair. */
             chars++;
 
@@ -4232,7 +4229,7 @@ js_DeflateStringToBuffer(JSContext *cx, const jschar *src, size_t srclen,
 
 JSBool
 js_DeflateStringToUTF8Buffer(JSContext *cx, const jschar *src, size_t srclen,
-                             char *dst, size_t *dstlenp, bool useCESU8)
+                             char *dst, size_t *dstlenp)
 {
     size_t dstlen, i, origDstlen, utf8Len;
     jschar c, c2;
@@ -4244,9 +4241,9 @@ js_DeflateStringToUTF8Buffer(JSContext *cx, const jschar *src, size_t srclen,
     while (srclen) {
         c = *src++;
         srclen--;
-        if ((c >= 0xDC00) && (c <= 0xDFFF) && !useCESU8)
+        if ((c >= 0xDC00) && (c <= 0xDFFF))
             goto badSurrogate;
-        if (c < 0xD800 || c > 0xDBFF || useCESU8) {
+        if (c < 0xD800 || c > 0xDBFF) {
             v = c;
         } else {
             if (srclen < 1)
@@ -4322,7 +4319,7 @@ js_InflateStringToBuffer(JSContext *cx, const char *src, size_t srclen,
 
 JSBool
 js_InflateUTF8StringToBuffer(JSContext *cx, const char *src, size_t srclen,
-                             jschar *dst, size_t *dstlenp, bool useCESU8)
+                             jschar *dst, size_t *dstlenp)
 {
     size_t dstlen, origDstlen, offset, j, n;
     uint32 v;
@@ -4346,7 +4343,7 @@ js_InflateUTF8StringToBuffer(JSContext *cx, const char *src, size_t srclen,
                     goto badCharacter;
             }
             v = Utf8ToOneUcs4Char((uint8 *)src, n);
-            if (v >= 0x10000 && !useCESU8) {
+            if (v >= 0x10000) {
                 v -= 0x10000;
                 if (v > 0xFFFFF || dstlen < 2) {
                     *dstlenp = (origDstlen - dstlen);

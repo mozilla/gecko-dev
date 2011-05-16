@@ -524,7 +524,7 @@ js_AtomizeString(JSContext *cx, JSString *str, uintN flags)
 }
 
 JSAtom *
-js_Atomize(JSContext *cx, const char *bytes, size_t length, uintN flags, bool useCESU8)
+js_Atomize(JSContext *cx, const char *bytes, size_t length, uintN flags)
 {
     JS_ASSERT(!(flags & ATOM_NOCOPY));
     CHECK_REQUEST(cx);
@@ -545,15 +545,12 @@ js_Atomize(JSContext *cx, const char *bytes, size_t length, uintN flags, bool us
 
     const jschar *chars;
     if (length < ATOMIZE_BUF_MAX) {
-        if (useCESU8)
-            js_InflateUTF8StringToBuffer(cx, bytes, length, inflated, &inflatedLength, true);
-        else
-            js_InflateStringToBuffer(cx, bytes, length, inflated, &inflatedLength);
+        js_InflateStringToBuffer(cx, bytes, length, inflated, &inflatedLength);
         inflated[inflatedLength] = 0;
         chars = inflated;
     } else {
         inflatedLength = length;
-        chars = js_InflateString(cx, bytes, &inflatedLength, useCESU8);
+        chars = js_InflateString(cx, bytes, &inflatedLength);
         if (!chars)
             return NULL;
         flags |= ATOM_NOCOPY;
