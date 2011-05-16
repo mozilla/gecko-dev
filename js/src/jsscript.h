@@ -790,9 +790,6 @@ js_CloneScript(JSContext *cx, JSScript *script);
 extern JSBool
 js_XDRScript(JSXDRState *xdr, JSScript **scriptp);
 
-extern JSBool
-js_XDRScriptAndSubscripts(JSXDRState *xdr, JSScript **scriptp);
-
 inline bool
 JSObject::isScript() const
 {
