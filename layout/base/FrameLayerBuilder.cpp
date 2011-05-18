@@ -438,10 +438,11 @@ FrameLayerBuilder::Init(nsDisplayListBuilder* aBuilder)
 }
 
 PRBool
-FrameLayerBuilder::DisplayItemDataEntry::HasContainerLayer()
+FrameLayerBuilder::DisplayItemDataEntry::HasNonEmptyContainerLayer()
 {
   for (PRUint32 i = 0; i < mData.Length(); ++i) {
-    if (mData[i].mLayer->GetType() == Layer::TYPE_CONTAINER)
+    if (mData[i].mLayer->GetType() == Layer::TYPE_CONTAINER &&
+        mData[i].mLayerState != LAYER_ACTIVE_EMPTY)
       return PR_TRUE;
   }
   return PR_FALSE;
@@ -608,7 +609,7 @@ FrameLayerBuilder::UpdateDisplayItemDataForFrame(nsPtrHashKey<nsIFrame>* aEntry,
     return PL_DHASH_REMOVE;
   }
 
-  if (newDisplayItems->HasContainerLayer()) {
+  if (newDisplayItems->HasNonEmptyContainerLayer()) {
     // Reset or create the invalid region now so we can start collecting
     // new dirty areas.
     // Note that the NS_FRAME_HAS_CONTAINER_LAYER bit is set in
@@ -1306,8 +1307,7 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
     }
     mBounds.UnionRect(mBounds, itemContent);
     nsIntRect itemDrawRect = itemContent.ToOutsidePixels(appUnitsPerDevPixel);
-    nsDisplayItem::LayerState layerState =
-      item->GetLayerState(mBuilder, mManager);
+    LayerState layerState = item->GetLayerState(mBuilder, mManager);
 
     nsIFrame* activeScrolledRoot =
       nsLayoutUtils::GetActiveScrolledRootFor(item, mBuilder);
@@ -1376,7 +1376,7 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
       InvalidateForLayerChange(item, ownLayer);
 
       mNewChildLayers.AppendElement(ownLayer);
-      mBuilder->LayerBuilder()->AddLayerDisplayItem(ownLayer, item);
+      mBuilder->LayerBuilder()->AddLayerDisplayItem(ownLayer, item, layerState);
     } else {
       nsRefPtr<ThebesLayer> thebesLayer =
         FindThebesLayerFor(item, itemVisibleRect, itemDrawRect, aClip,
@@ -1466,7 +1466,8 @@ FrameLayerBuilder::AddThebesDisplayItem(ThebesLayer* aLayer,
 
 void
 FrameLayerBuilder::AddLayerDisplayItem(Layer* aLayer,
-                                       nsDisplayItem* aItem)
+                                       nsDisplayItem* aItem,
+                                       LayerState aLayerState)
 {
   if (aLayer->Manager() != mRetainingManager)
     return;
@@ -1474,7 +1475,8 @@ FrameLayerBuilder::AddLayerDisplayItem(Layer* aLayer,
   nsIFrame* f = aItem->GetUnderlyingFrame();
   DisplayItemDataEntry* entry = mNewDisplayItemData.PutEntry(f);
   if (entry) {
-    entry->mData.AppendElement(DisplayItemData(aLayer, aItem->GetPerFrameKey()));
+    entry->mData.AppendElement(
+      DisplayItemData(aLayer, aItem->GetPerFrameKey(), aLayerState));
   }
 }
 
@@ -1606,6 +1608,16 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
       return nsnull;
   }
 
+  if (aContainerItem &&
+      aContainerItem->GetLayerState(aBuilder, aManager) == LAYER_ACTIVE_EMPTY) {
+    // Empty layers only have metadata and should never have display items. We
+    // early exit because later, invalidation will walk up the frame tree to
+    // determine which thebes layer gets invalidated. Since an empty layer
+    // should never have anything to paint, it should never be invalidated.
+    NS_ASSERTION(aChildren.IsEmpty(), "Should have no children");
+    return containerLayer.forget();
+  }
+
   ContainerState state(aBuilder, aManager, aContainerFrame, containerLayer);
   nscoord appUnitsPerDevPixel = aContainerFrame->PresContext()->AppUnitsPerDevPixel();
 
@@ -1613,7 +1625,7 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
     DisplayItemDataEntry* entry = mNewDisplayItemData.PutEntry(aContainerFrame);
     if (entry) {
       entry->mData.AppendElement(
-          DisplayItemData(containerLayer, containerDisplayItemKey));
+          DisplayItemData(containerLayer, containerDisplayItemKey, LAYER_ACTIVE));
     }
 
     nsPoint* offsetAtLastPaint = static_cast<nsPoint*>
