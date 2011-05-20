@@ -39,11 +39,8 @@
 let TabView = {
   _deck: null,
   _window: null,
+  _firstUseExperienced: false,
   _browserKeyHandlerInitialized: false,
-  PREF_BRANCH: "browser.panorama.",
-  PREF_FIRST_RUN: "browser.panorama.experienced_first_run",
-  PREF_STARTUP_PAGE: "browser.startup.page",
-  PREF_RESTORE_ENABLED_ONCE: "browser.panorama.session_restore_enabled_once",
   VISIBILITY_IDENTIFIER: "tabview-visibility",
 
   // ----------
@@ -57,35 +54,24 @@ let TabView = {
 
   // ----------
   get firstUseExperienced() {
-    let pref = this.PREF_FIRST_RUN;
-    if (Services.prefs.prefHasUserValue(pref))
-      return Services.prefs.getBoolPref(pref);
-
-    return false;
+    return this._firstUseExperienced;
   },
 
   // ----------
   set firstUseExperienced(val) {
-    Services.prefs.setBoolPref(this.PREF_FIRST_RUN, val);
-  },
-
-  // ----------
-  get sessionRestoreEnabledOnce() {
-    let pref = this.PREF_RESTORE_ENABLED_ONCE;
-    if (Services.prefs.prefHasUserValue(pref))
-      return Services.prefs.getBoolPref(pref);
-
-    return false;
-  },
-
-  // ----------
-  set sessionRestoreEnabledOnce(val) {
-    Services.prefs.setBoolPref(this.PREF_RESTORE_ENABLED_ONCE, val);
+    if (val != this._firstUseExperienced)
+      Services.prefs.setBoolPref("browser.panorama.experienced_first_run", val);
   },
 
   // ----------
   init: function TabView_init() {
-    if (this.firstUseExperienced) {
+    if (!Services.prefs.prefHasUserValue("browser.panorama.experienced_first_run") ||
+        !Services.prefs.getBoolPref("browser.panorama.experienced_first_run")) {
+      Services.prefs.addObserver(
+        "browser.panorama.experienced_first_run", this, false);
+    } else {
+      this._firstUseExperienced = true;
+
       if ((gBrowser.tabs.length - gBrowser.visibleTabs.length) > 0)
         this._setBrowserKeyHandlers();
 
