@@ -97,24 +97,26 @@ let TabView = {
           "TabShow", this._tabShowEventListener, true);
       }
     }
-
-    Services.prefs.addObserver(this.PREF_BRANCH, this, false);
   },
 
   // ----------
   // Observes topic changes.
   observe: function TabView_observe(subject, topic, data) {
-    if (data == this.PREF_FIRST_RUN && this.firstUseExperienced) {
+    if (topic == "nsPref:changed") {
+      Services.prefs.removeObserver(
+        "browser.panorama.experienced_first_run", this);
+      this._firstUseExperienced = true;
       this._addToolbarButton();
-      this.enableSessionRestore();
     }
   },
 
   // ----------
   // Uninitializes TabView.
   uninit: function TabView_uninit() {
-    Services.prefs.removeObserver(this.PREF_BRANCH, this);
-
+    if (!this._firstUseExperienced) {
+      Services.prefs.removeObserver(
+        "browser.panorama.experienced_first_run", this);
+    }
     if (this._tabShowEventListener) {
       gBrowser.tabContainer.removeEventListener(
         "TabShow", this._tabShowEventListener, true);
@@ -346,23 +348,5 @@ let TabView = {
     toolbar.currentSet = currentSet;
     toolbar.setAttribute("currentset", currentSet);
     document.persist(toolbar.id, "currentset");
-  },
-
-  // ----------
-  // Function: enableSessionRestore
-  // Enables automatic session restore when the browser is started. Does
-  // nothing if we already did that once in the past.
-  enableSessionRestore: function UI_enableSessionRestore() {
-    if (!this._window || !this.firstUseExperienced)
-      return;
-
-    // do nothing if we already enabled session restore once
-    if (this.sessionRestoreEnabledOnce)
-      return;
-
-    this.sessionRestoreEnabledOnce = true;
-
-    // enable session restore
-    Services.prefs.setIntPref(this.PREF_STARTUP_PAGE, 3);
   }
 };

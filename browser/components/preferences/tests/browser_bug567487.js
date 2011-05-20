@@ -1,6 +1,5 @@
 function test() {
   waitForExplicitFinish();
-  resetPreferences();
 
   function observer(win, topic, data) {
     if (topic != "main-pane-loaded")
@@ -58,13 +57,11 @@ function runTest(win) {
   is(menu.selectedItem, option, "The correct value should be restored");
 
   // cleanup
-  resetPreferences();
+  [pbAutoStartPref, startupPref].forEach(function (pref) {
+    if (pref.hasUserValue)
+      pref.reset();
+  });
 
   win.close();
   finish();
-}
-
-function resetPreferences() {
-  Services.prefs.clearUserPref("browser.startup.page");
-  Services.prefs.clearUserPref("browser.privatebrowsing.autostart");
 }
