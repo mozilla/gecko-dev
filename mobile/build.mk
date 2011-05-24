@@ -68,7 +68,6 @@ installer:
 	@$(MAKE) -C mobile/installer installer
 
 package:
-	rm -rf dist/fennec*
 ifeq ($(OS_ARCH),WINCE)
 	@$(MAKE) -C mobile/installer installer
 else
