@@ -575,7 +575,8 @@ appUpdater.prototype =
 #endif
 
 var gChannelSelector = {
-  validChannels: { release: 1, beta: 1, aurora: 1 },
+  // Disable this UI entirely for now by not including any valid channels
+  validChannels: {},
   
   init: function() {
     try {
