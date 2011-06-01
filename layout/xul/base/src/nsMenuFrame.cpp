@@ -400,7 +400,7 @@ nsMenuFrame::GetAdditionalChildListName(PRInt32 aIndex) const
   if (NS_MENU_POPUP_LIST_INDEX == aIndex) {
     return nsGkAtoms::popupList;
   }
-  return nsBoxFrame::GetAdditionalChildListName(aIndex);
+  return nsnull;
 }
 
 void
