@@ -4019,8 +4019,6 @@ nsINode::ReplaceOrInsertBefore(PRBool aReplace, nsINode* aNewChild,
   nsresult res = NS_OK;
   PRInt32 insPos;
 
-  mozAutoDocConditionalContentUpdateBatch batch(GetCurrentDoc(), PR_TRUE);
-
   // Figure out which index to insert at
   if (aRefChild) {
     insPos = IndexOf(aRefChild);
@@ -4079,6 +4077,8 @@ nsINode::ReplaceOrInsertBefore(PRBool aReplace, nsINode* aNewChild,
       return NS_ERROR_DOM_HIERARCHY_REQUEST_ERR;
     }
   }
+
+  mozAutoDocConditionalContentUpdateBatch batch(GetCurrentDoc(), PR_TRUE);
 
   // If we're replacing
   if (aReplace) {
