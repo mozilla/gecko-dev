@@ -421,10 +421,7 @@ XrayWrapper<Base>::resolveOwnProperty(JSContext *cx, JSObject *wrapper, jsid id,
 {
     JSPropertyDescriptor *desc = Jsvalify(desc_in);
 
-    // Partially transparent wrappers (which used to be known as XOWs) don't
-    // have a .wrappedJSObject property.
-    if (!WrapperFactory::IsPartiallyTransparent(wrapper) &&
-        id == nsXPConnect::GetRuntimeInstance()->GetStringID(XPCJSRuntime::IDX_WRAPPED_JSOBJECT)) {
+    if (id == nsXPConnect::GetRuntimeInstance()->GetStringID(XPCJSRuntime::IDX_WRAPPED_JSOBJECT)) {
         bool status;
         JSWrapper::Action action = set ? JSWrapper::SET : JSWrapper::GET;
         desc->obj = NULL; // default value
