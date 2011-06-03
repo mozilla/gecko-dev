@@ -1345,8 +1345,23 @@ nsJSURI::Write(nsIObjectOutputStream* aStream)
 NS_IMETHODIMP
 nsJSURI::Clone(nsIURI** aClone)
 {
+    return CloneInternal(eHonorRef, aClone);
+}
+
+NS_IMETHODIMP
+nsJSURI::CloneIgnoringRef(nsIURI** aClone)
+{
+    return CloneInternal(eIgnoreRef, aClone);
+}
+
+nsresult
+nsJSURI::CloneInternal(nsJSURI::RefHandlingEnum aRefHandlingMode,
+                       nsIURI** aClone)
+{
     nsCOMPtr<nsIURI> simpleClone;
-    nsresult rv = mSimpleURI->Clone(getter_AddRefs(simpleClone));
+    nsresult rv = (aRefHandlingMode == eHonorRef ? 
+                   mSimpleURI->Clone(getter_AddRefs(simpleClone)) :
+                   mSimpleURI->CloneIgnoringRef(getter_AddRefs(simpleClone)));
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<nsIURI> baseClone;
@@ -1365,6 +1380,20 @@ nsJSURI::Clone(nsIURI** aClone)
 NS_IMETHODIMP
 nsJSURI::Equals(nsIURI* aOther, PRBool *aResult)
 {
+    return EqualsInternal(aOther, eHonorRef, aResult);
+}
+
+NS_IMETHODIMP
+nsJSURI::EqualsExceptRef(nsIURI* other, PRBool *result)
+{
+    return EqualsInternal(other, eIgnoreRef, result);
+}
+
+nsresult
+nsJSURI::EqualsInternal(nsIURI* aOther,
+                        nsJSURI::RefHandlingEnum aRefHandlingMode,
+                        PRBool *aResult)
+{
     if (!aOther) {
         *aResult = PR_FALSE;
         return NS_OK;
@@ -1377,7 +1406,9 @@ nsJSURI::Equals(nsIURI* aOther, PRBool *aResult)
         return NS_OK;
     }
 
-    return mSimpleURI->Equals(otherJSUri->mSimpleURI, aResult);
+    return (aRefHandlingMode == eHonorRef ? 
+            mSimpleURI->Equals(otherJSUri->mSimpleURI, aResult) :
+            mSimpleURI->EqualsExceptRef(otherJSUri->mSimpleURI, aResult));
 }
 
 // nsIClassInfo methods:

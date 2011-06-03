@@ -134,13 +134,27 @@ public:
 
     // Override Clone() and Equals()
     NS_IMETHOD Clone(nsIURI** aClone);
+    NS_IMETHOD CloneIgnoringRef(nsIURI** aClone);
     NS_IMETHOD Equals(nsIURI* aOther, PRBool *aResult);
+    NS_IMETHOD EqualsExceptRef(nsIURI* aOther, PRBool *aResult);
 
     nsIURI* GetBaseURI() const {
         return mBaseURI;
     }
 
 private:
+    // enum used in a few places to specify how .ref attribute should be handled
+    enum RefHandlingEnum {
+        eIgnoreRef,
+        eHonorRef
+    };
+
+    nsresult EqualsInternal(nsIURI* aOther,
+                            RefHandlingEnum aRefHandlingMode,
+                            PRBool* aResult);
+    nsresult CloneInternal(RefHandlingEnum aRefHandlingMode,
+                           nsIURI** aClone);
+
     nsCOMPtr<nsIURI> mBaseURI;
 };
     
