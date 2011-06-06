@@ -1014,19 +1014,30 @@ WeaveSvc.prototype = {
     }))(),
 
   startOver: function() {
-    // Clear client-specific data from the server, including disabled engines.
-    for each (let engine in [Clients].concat(Engines.getAll())) {
-      try {
-        engine.removeClientData();
-      } catch(ex) {
-        this._log.warn("Deleting client data for " + engine.name + " failed:"
-                       + Utils.exceptionStr(ex));
-      }
-    }
+    Svc.Obs.notify("weave:engine:stop-tracking");
 
-    // Set a username error so the status message shows "set up..."
-    Status.login = LOGIN_FAILED_NO_USERNAME;
+    // We want let UI consumers of the following notification know as soon as
+    // possible, so let's fake for the CLIENT_NOT_CONFIGURED status for now
+    // by emptying the passphrase (we still need the password).
+    Service.passphrase = "";
+    Status.login = LOGIN_FAILED_NO_PASSPHRASE;
     this.logout();
+    Svc.Obs.notify("weave:service:start-over");
+
+    // Deletion doesn't make sense if we aren't set up yet!
+    if (this.clusterURL != "") {
+      // Clear client-specific data from the server, including disabled engines.
+      for each (let engine in [Clients].concat(Engines.getAll())) {
+        try {
+          engine.removeClientData();
+        } catch(ex) {
+          this._log.warn("Deleting client data for " + engine.name + " failed:"
+                         + Utils.exceptionStr(ex));
+        }
+      }
+    } else {
+      this._log.debug("Skipping client data removal: no cluster URL.");
+    }
     
     // Reset all engines and clear keys.
     this.resetClient();
@@ -1044,8 +1055,6 @@ WeaveSvc.prototype = {
     Svc.Login.findLogins({}, PWDMGR_HOST, "", "").map(function(login) {
       Svc.Login.removeLogin(login);
     });
-    Svc.Obs.notify("weave:service:start-over");
-    Svc.Obs.notify("weave:engine:stop-tracking");
   },
 
   delayedAutoConnect: function delayedAutoConnect(delay) {
