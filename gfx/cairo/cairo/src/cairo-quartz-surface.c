@@ -1647,6 +1647,18 @@ _cairo_quartz_setup_state (cairo_quartz_surface_t *surface,
         return state;
     }
 
+    if (op == CAIRO_OPERATOR_CLEAR) {
+        /* Quartz seems to have a broken "fast path" for CLEAR used with an
+           image source; if the image is entirely outside the clip rect, it
+           does nothing. Since the source isn't supposed to matter, we can
+           just use a solid color fill instead. This is more efficient to
+           set up anyway. */
+        CGContextSetRGBStrokeColor(context, 0, 0, 0, 1.0);
+        CGContextSetRGBFillColor(context, 0, 0, 0, 1.0);
+        state.action = DO_SOLID;
+        return state;
+    }
+
     if (!bounded_op) {
         state.unboundedDestination = context;
 
