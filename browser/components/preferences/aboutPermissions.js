@@ -409,6 +409,7 @@ let AboutPermissions = {
 
     gSitesStmt.finalize();
     gVisitStmt.finalize();
+    gPlacesDatabase.asyncClose(null);
   },
 
   observe: function (aSubject, aTopic, aData) {
