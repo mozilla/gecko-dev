@@ -3376,8 +3376,6 @@ nsCanvasRenderingContext2D::DrawImage(nsIDOMElement *imgElt, float a1,
         gfxContextMatrixAutoSaveRestore autoMatrixSR(mThebes);
 
         mThebes->Translate(gfxPoint(dx, dy));
-        mThebes->SetPattern(pattern);
-        DirtyAllStyles();
 
         gfxRect clip(0, 0, dw, dh);
 
@@ -3389,6 +3387,7 @@ nsCanvasRenderingContext2D::DrawImage(nsIDOMElement *imgElt, float a1,
 
             if (ctx) {
                 CopyContext(ctx, mThebes);
+                ctx->SetPattern(pattern);
                 ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
                 ctx->Clip(clip);
                 ctx->Paint();
@@ -3396,6 +3395,9 @@ nsCanvasRenderingContext2D::DrawImage(nsIDOMElement *imgElt, float a1,
                 ShadowFinalize(blur);
             }
         }
+
+        mThebes->SetPattern(pattern);
+        DirtyAllStyles();
 
         PRBool doUseIntermediateSurface = NeedToUseIntermediateSurface();
         if (doUseIntermediateSurface) {
