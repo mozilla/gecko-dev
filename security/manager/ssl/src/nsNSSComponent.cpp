@@ -1640,15 +1640,6 @@ nsNSSComponent::InitializeNSS(PRBool showWarningBox)
       }
     }
 
-    {
-      nsCOMPtr<nsICertOverrideService> icos =
-        do_GetService("@mozilla.org/security/certoverride;1", &rv);
-      if (NS_FAILED(rv)) {
-        nsPSMInitPanic::SetPanic();
-        return rv;
-      }
-    }
-
     hashTableCerts = PL_NewHashTable( 0, certHashtable_keyHash, certHashtable_keyCompare,
       certHashtable_valueCompare, 0, 0 );
 
@@ -2370,7 +2361,7 @@ void nsNSSComponent::ShowAlert(AlertIdentifier ai)
 
 nsresult nsNSSComponent::LogoutAuthenticatedPK11()
 {
-  nsCOMPtr<nsICertOverrideService> icos =
+  nsCOMPtr<nsICertOverrideService> icos = 
     do_GetService("@mozilla.org/security/certoverride;1");
   if (icos) {
     icos->ClearValidityOverride(
