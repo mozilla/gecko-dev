@@ -1185,11 +1185,11 @@ var ContextHelper = {
     let label = document.getElementById("context-hint");
     label.value = this.popupState.label || "";
 
+    this.sizeToContent();
     this._panel.hidden = false;
     window.addEventListener("resize", this, true);
     window.addEventListener("keypress", this, true);
 
-    this.sizeToContent();
     BrowserUI.pushPopup(this, [this._popup]);
 
     let event = document.createEvent("Events");
@@ -1211,7 +1211,8 @@ var ContextHelper = {
   },
 
   sizeToContent: function sizeToContent() {
-    this._popup.maxWidth = window.innerWidth * 0.75;
+    let style = document.defaultView.getComputedStyle(this._panel, null);
+    this._popup.width = window.innerWidth - (parseInt(style.paddingLeft) + parseInt(style.paddingRight));
   },
 
   handleEvent: function handleEvent(aEvent) {
