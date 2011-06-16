@@ -137,7 +137,7 @@ abstract public class GeckoApp
                         mLibLoadThread.join();
                 } catch (InterruptedException ie) {}
                 surfaceView.mSplashStatusMsg =
-                    getResources().getString(R.string.splash_screen_label);
+                    getResources().getString(R.string.splash_screen_loading);
                 surfaceView.drawSplashScreen();
                 // unpack files in the components directory
                 try {
@@ -238,10 +238,10 @@ abstract public class GeckoApp
              new File(getApplication().getPackageResourcePath()).lastModified()
              >= libxulFile.lastModified()))
             surfaceView.mSplashStatusMsg =
-                getResources().getString(R.string.splash_screen_installing);
+                getResources().getString(R.string.splash_screen_installing_libs);
         else
             surfaceView.mSplashStatusMsg =
-                getResources().getString(R.string.splash_screen_label);
+                getResources().getString(R.string.splash_screen_loading);
         mLibLoadThread.start();
         if (IsNewInstall() && IsUnsupportedDevice()) {
             new AlertDialog.Builder(this)
