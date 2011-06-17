@@ -46,6 +46,7 @@
 #include "nsICharsetAlias.h"
 #include "nsICharsetDetector.h"
 #include "nsICharsetConverterManager.h"
+#include "nsIConsoleService.h"
 #include "nsIConverterInputStream.h"
 #include "nsIDocument.h"
 #include "nsIDOMDocument.h"
@@ -54,6 +55,7 @@
 #include "nsIIPCSerializable.h"
 #include "nsIMIMEService.h"
 #include "nsIPlatformCharset.h"
+#include "nsIScriptError.h"
 #include "nsISeekableStream.h"
 #include "nsIUnicharInputStream.h"
 #include "nsIUnicodeDecoder.h"
@@ -64,6 +66,7 @@
 #include "nsStringStream.h"
 #include "CheckedInt.h"
 #include "nsJSUtils.h"
+#include "nsPrintfCString.h"
 
 #include "plbase64.h"
 #include "prmem.h"
@@ -175,12 +178,14 @@ nsDOMFile::NewFile(nsISupports* *aNewObject)
 NS_IMETHODIMP
 nsDOMFile::GetFileName(nsAString &aFileName)
 {
+  WarnDeprecated(NS_LITERAL_CSTRING("fileName"));
   return GetName(aFileName);
 }
 
 NS_IMETHODIMP
 nsDOMFile::GetFileSize(PRUint64 *aFileSize)
 {
+  WarnDeprecated(NS_LITERAL_CSTRING("fileSize"));
   return GetSize(aFileSize);
 }
 
@@ -360,6 +365,8 @@ nsDOMFile::GetInternalUrl(nsIPrincipal* aPrincipal, nsAString& aURL)
 NS_IMETHODIMP
 nsDOMFile::GetAsText(const nsAString &aCharset, nsAString &aResult)
 {
+  WarnDeprecated(NS_LITERAL_CSTRING("getAsText"));
+
   aResult.Truncate();
 
   nsCOMPtr<nsIInputStream> stream;
@@ -393,6 +400,8 @@ nsDOMFile::GetAsText(const nsAString &aCharset, nsAString &aResult)
 NS_IMETHODIMP
 nsDOMFile::GetAsDataURL(nsAString &aResult)
 {
+  WarnDeprecated(NS_LITERAL_CSTRING("getAsDataURL"));
+
   aResult.AssignLiteral("data:");
 
   nsresult rv;
@@ -462,6 +471,8 @@ nsDOMFile::GetAsDataURL(nsAString &aResult)
 NS_IMETHODIMP
 nsDOMFile::GetAsBinary(nsAString &aResult)
 {
+  WarnDeprecated(NS_LITERAL_CSTRING("getAsBinary"));
+
   aResult.Truncate();
 
   nsCOMPtr<nsIInputStream> stream;
@@ -671,6 +682,51 @@ nsDOMFile::Initialize(nsISupports* aOwner,
 
   mFile = file;
   return NS_OK;
+}
+
+/* static */ void
+nsDOMFile::WarnDeprecated(nsCString aAPI)
+{
+  nsPIDOMWindow* piWindow = nsContentUtils::GetWindowFromCaller();
+
+  if (!piWindow)
+    return;
+
+  nsCOMPtr<nsIDocument> doc = do_QueryInterface(piWindow->GetExtantDocument());
+  if (!doc)
+    return;
+
+  nsIURI* uri = doc->GetDocumentURI();
+  PRUint64 windowID = doc->OuterWindowID();
+
+  nsCAutoString spec;
+  if (uri)
+    uri->GetSpec(spec);
+
+  // This is hardcoded here in English since we're past string freeze.
+  
+  nsPrintfCString warningText
+  (500,
+   "Use of File.%s is deprecated. To upgrade your code, use standard properties or use the DOM FileReader object. For more help, see https://developer.mozilla.org/en/DOM/FileReader",
+   aAPI);
+
+  NS_ConvertASCIItoUTF16 utf16WarningText(warningText);
+
+  nsCOMPtr<nsIScriptError2> warning =
+    do_CreateInstance(NS_SCRIPTERROR_CONTRACTID);
+  nsresult rv = warning->InitWithWindowID(utf16WarningText.get(),
+                                          NS_ConvertUTF8toUTF16(spec).get(),
+                                          nsnull, 0, 0,
+                                          nsIScriptError::warningFlag,
+                                          "DOM File API", windowID);
+  NS_ENSURE_SUCCESS(rv, /* */);
+
+  nsCOMPtr<nsIConsoleService> consoleSvc =
+    do_GetService(NS_CONSOLESERVICE_CONTRACTID);
+
+  nsCOMPtr<nsIConsoleMessage> logWarning = do_QueryInterface(warning);
+  if (consoleSvc)
+    consoleSvc->LogMessage(logWarning);
 }
 
 nsresult
