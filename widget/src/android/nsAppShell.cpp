@@ -51,7 +51,7 @@
 #include "prenv.h"
 
 #include "AndroidBridge.h"
-#include "nsAccelerometerSystem.h"
+#include "nsDeviceMotionSystem.h"
 #include <android/log.h>
 #include <pthread.h>
 #include "nsIPrefBranch2.h"
@@ -74,7 +74,7 @@ using namespace mozilla;
 PRLogModuleInfo *gWidgetLog = nsnull;
 #endif
 
-nsAccelerometerSystem *gAccel = nsnull;
+nsDeviceMotionSystem *gDeviceMotionSystem = nsnull;
 nsIGeolocationUpdate *gLocationCallback = nsnull;
 
 nsAppShell *nsAppShell::gAppShell = nsnull;
@@ -314,8 +314,18 @@ nsAppShell::ProcessNextNativeEvent(PRBool mayWait)
         NativeEventCallback();
         break;
 
-    case AndroidGeckoEvent::SENSOR_EVENT:
-        gAccel->AccelerationChanged(-curEvent->Alpha(), curEvent->Beta(), curEvent->Gamma());
+    case AndroidGeckoEvent::ACCELERATION_EVENT:
+        gDeviceMotionSystem->DeviceMotionChanged(nsIDeviceMotionData::TYPE_ACCELERATION,
+                                                 -curEvent->X(),
+                                                 curEvent->Y(),
+                                                 curEvent->Z());
+        break;
+
+    case AndroidGeckoEvent::ORIENTATION_EVENT:
+        gDeviceMotionSystem->DeviceMotionChanged(nsIDeviceMotionData::TYPE_ORIENTATION,
+                                                 -curEvent->Alpha(),
+                                                 curEvent->Beta(),
+                                                 curEvent->Gamma());
         break;
 
     case AndroidGeckoEvent::LOCATION_EVENT: {

@@ -291,7 +291,7 @@ static void Shutdown();
     defined(_WINDOWS)   || \
     defined(machintosh) || \
     defined(android)
-#include "nsAccelerometerSystem.h"
+#include "nsDeviceMotionSystem.h"
 #endif
 #include "nsCSPService.h"
 
@@ -324,7 +324,7 @@ NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(IndexedDatabaseManager,
     defined(_WINDOWS)   || \
     defined(machintosh) || \
     defined(android)
-NS_GENERIC_FACTORY_CONSTRUCTOR(nsAccelerometerSystem)
+NS_GENERIC_FACTORY_CONSTRUCTOR(nsDeviceMotionSystem)
 #endif
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(ThirdPartyUtil, Init)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsWorkerFactory)
@@ -880,7 +880,7 @@ NS_DEFINE_NAMED_CID(NS_STRUCTUREDCLONECONTAINER_CID);
     defined(_WINDOWS)   || \
     defined(machintosh) || \
     defined(android)
-NS_DEFINE_NAMED_CID(NS_ACCELEROMETER_CID);
+NS_DEFINE_NAMED_CID(NS_DEVICE_MOTION_CID);
 #endif
 #if defined(ANDROID) || defined(MOZ_PLATFORM_MAEMO)
 NS_DEFINE_NAMED_CID(NS_HAPTICFEEDBACK_CID);
@@ -1024,7 +1024,7 @@ static const mozilla::Module::CIDEntry kLayoutCIDs[] = {
     defined(_WINDOWS)   || \
     defined(machintosh) || \
     defined(android)
-  { &kNS_ACCELEROMETER_CID, false, NULL, nsAccelerometerSystemConstructor },
+  { &kNS_DEVICE_MOTION_CID, false, NULL, nsDeviceMotionSystemConstructor },
 #endif
 #if defined(ANDROID) || defined(MOZ_PLATFORM_MAEMO)
   { &kNS_HAPTICFEEDBACK_CID, false, NULL, nsHapticFeedbackConstructor },
@@ -1168,7 +1168,7 @@ static const mozilla::Module::ContractIDEntry kLayoutContracts[] = {
     defined(_WINDOWS)   || \
     defined(machintosh) || \
     defined(android)
-  { NS_ACCELEROMETER_CONTRACTID, &kNS_ACCELEROMETER_CID },
+  { NS_DEVICE_MOTION_CONTRACTID, &kNS_DEVICE_MOTION_CID },
 #endif
 #if defined(ANDROID) || defined(MOZ_PLATFORM_MAEMO)
   { "@mozilla.org/widget/hapticfeedback;1", &kNS_HAPTICFEEDBACK_CID },
