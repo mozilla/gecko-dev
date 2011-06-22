@@ -157,7 +157,7 @@ function test() {
       let winData = windowsToOpen.shift();
       let settings = "chrome,dialog=no," +
                      (winData.isPopup ? "all=no" : "all");
-      let url = "http://window" + windowsToOpen.length + ".example.com";
+      let url = "http://example.com/?window=" + windowsToOpen.length;
       let win = openDialog(location, "", settings, url);
       win.addEventListener("load", function(aEvent) {
         win.gBrowser.selectedBrowser.addEventListener("DOMContentLoaded", function(aEvent) {
