@@ -2118,12 +2118,6 @@ ArrayCompPushImpl(JSContext *cx, JSObject *obj, const Value &v)
     JS_ASSERT(length <= obj->getDenseArrayCapacity());
 
     if (length == obj->getDenseArrayCapacity()) {
-        if (length > JS_ARGS_LENGTH_MAX) {
-            JS_ReportErrorNumberUC(cx, js_GetErrorMessage, NULL,
-                                   JSMSG_ARRAY_INIT_TOO_BIG);
-            return false;
-        }
-
         /*
          * An array comprehension cannot add holes to the array. So we can use
          * ensureSlots instead of ensureDenseArrayElements.
