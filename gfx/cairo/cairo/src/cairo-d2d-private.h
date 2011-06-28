@@ -83,6 +83,7 @@ struct _cairo_d2d_surface {
     _cairo_d2d_surface() : d2d_clip(NULL), clipping(false), isDrawing(false),
 	textRenderingInit(false)
     {
+        _cairo_clip_init (&this->clip);
         cairo_list_init(&this->dependent_surfaces);
     }
     
