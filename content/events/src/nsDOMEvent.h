@@ -191,7 +191,9 @@ public:
     eDOMEvents_MozTouchMove,
     eDOMEvents_MozTouchUp,
     eDOMEvents_MozScrolledAreaChanged,
-    eDOMEvents_transitionend
+    eDOMEvents_transitionend,
+    eDOMEvents_devicemotion,
+    eDOMEvents_deviceorientation
 #ifdef MOZ_CSS_ANIMATIONS
     ,
     eDOMEvents_animationstart,
