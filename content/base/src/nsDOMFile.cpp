@@ -685,7 +685,7 @@ nsDOMFile::Initialize(nsISupports* aOwner,
 }
 
 /* static */ void
-nsDOMFile::WarnDeprecated(nsCString& aAPI)
+nsDOMFile::WarnDeprecated(const nsCString& aAPI)
 {
   nsPIDOMWindow* piWindow = nsContentUtils::GetWindowFromCaller();
 
