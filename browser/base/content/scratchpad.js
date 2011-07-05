@@ -628,6 +628,10 @@ var Scratchpad = {
       errorConsoleCommand.removeAttribute("disabled");
       chromeContextCommand.removeAttribute("disabled");
     }
+
+    // Force LTR direction (otherwise the textbox inherits the locale direction)
+    this.textbox.style.direction = "ltr";
+
     this.insertIntro();
   },
 };
