@@ -178,14 +178,14 @@ nsDOMFile::NewFile(nsISupports* *aNewObject)
 NS_IMETHODIMP
 nsDOMFile::GetFileName(nsAString &aFileName)
 {
-  WarnDeprecated(NS_LITERAL_CSTRING("fileName"));
+  WarnDeprecated(NS_LITERAL_CSTRING("fileName").get());
   return GetName(aFileName);
 }
 
 NS_IMETHODIMP
 nsDOMFile::GetFileSize(PRUint64 *aFileSize)
 {
-  WarnDeprecated(NS_LITERAL_CSTRING("fileSize"));
+  WarnDeprecated(NS_LITERAL_CSTRING("fileSize").get());
   return GetSize(aFileSize);
 }
 
@@ -365,7 +365,7 @@ nsDOMFile::GetInternalUrl(nsIPrincipal* aPrincipal, nsAString& aURL)
 NS_IMETHODIMP
 nsDOMFile::GetAsText(const nsAString &aCharset, nsAString &aResult)
 {
-  WarnDeprecated(NS_LITERAL_CSTRING("getAsText"));
+  WarnDeprecated(NS_LITERAL_CSTRING("getAsText").get());
 
   aResult.Truncate();
 
@@ -400,7 +400,7 @@ nsDOMFile::GetAsText(const nsAString &aCharset, nsAString &aResult)
 NS_IMETHODIMP
 nsDOMFile::GetAsDataURL(nsAString &aResult)
 {
-  WarnDeprecated(NS_LITERAL_CSTRING("getAsDataURL"));
+  WarnDeprecated(NS_LITERAL_CSTRING("getAsDataURL").get());
 
   aResult.AssignLiteral("data:");
 
@@ -471,7 +471,7 @@ nsDOMFile::GetAsDataURL(nsAString &aResult)
 NS_IMETHODIMP
 nsDOMFile::GetAsBinary(nsAString &aResult)
 {
-  WarnDeprecated(NS_LITERAL_CSTRING("getAsBinary"));
+  WarnDeprecated(NS_LITERAL_CSTRING("getAsBinary").get());
 
   aResult.Truncate();
 
@@ -685,7 +685,7 @@ nsDOMFile::Initialize(nsISupports* aOwner,
 }
 
 /* static */ void
-nsDOMFile::WarnDeprecated(const nsCString& aAPI)
+nsDOMFile::WarnDeprecated(const char* aAPI)
 {
   nsPIDOMWindow* piWindow = nsContentUtils::GetWindowFromCaller();
 

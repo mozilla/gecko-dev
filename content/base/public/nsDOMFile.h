@@ -118,7 +118,7 @@ public:
   NewFile(nsISupports* *aNewObject);
 
   static void
-  WarnDeprecated(const nsCString& aAPI);
+  WarnDeprecated(const char* aAPI);
 protected:
   nsCOMPtr<nsIFile> mFile;
   nsCOMPtr<nsISupports> mCacheToken;
