@@ -43,10 +43,12 @@
  * 21. see bug 572975 - same as test 17, but delete strong event listeners when
  *     receiving the message event;
  * 22. server takes too long to establish the ws connection;
+ * 23. see bug 664692 - feature detection should detect MozWebSocket but not
+ *     WebSocket on window object;
  */
 
 var first_test = 1;
-var last_test = 22;
+var last_test = 23;
 
 var current_test = first_test;
 
@@ -625,6 +627,13 @@ function test22()
     shouldCloseNotCleanly(e);
     doTest(23);
   };
+}
+
+function test23()
+{
+  is(false, "WebSocket" in window, "WebSocket shouldn't be available on window object");
+  is(true, "MozWebSocket" in window, "MozWebSocket should be available on window object");
+  doTest(24);
 }
 
 function finishWSTest()

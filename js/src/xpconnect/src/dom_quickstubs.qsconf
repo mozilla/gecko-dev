@@ -439,7 +439,7 @@ members = [
     '-nsIXMLHttpRequest.upload',
 
     # WebSocket
-    'nsIWebSocket.*',
+    'nsIMozWebSocket.*',
 
     # webgl
     'nsIDOMWebGLRenderingContext.*',

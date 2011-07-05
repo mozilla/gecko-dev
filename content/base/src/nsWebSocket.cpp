@@ -369,17 +369,17 @@ nsWebSocketEstablishedConnection::Close()
   // reference until the end of the method
   nsRefPtr<nsWebSocketEstablishedConnection> kungfuDeathGrip = this;
 
-  if (mOwner->mReadyState == nsIWebSocket::CONNECTING) {
-    mOwner->SetReadyState(nsIWebSocket::CLOSING);
-    mOwner->SetReadyState(nsIWebSocket::CLOSED);
+  if (mOwner->mReadyState == nsIMozWebSocket::CONNECTING) {
+    mOwner->SetReadyState(nsIMozWebSocket::CLOSING);
+    mOwner->SetReadyState(nsIMozWebSocket::CLOSED);
     Disconnect();
     return NS_OK;
   }
 
-  mOwner->SetReadyState(nsIWebSocket::CLOSING);
+  mOwner->SetReadyState(nsIMozWebSocket::CLOSING);
 
   if (mStatus == CONN_CLOSED) {
-    mOwner->SetReadyState(nsIWebSocket::CLOSED);
+    mOwner->SetReadyState(nsIMozWebSocket::CLOSED);
     Disconnect();
     return NS_OK;
   }
@@ -501,7 +501,7 @@ nsWebSocketEstablishedConnection::OnStart(nsISupports *aContext)
     mWebSocketProtocol->GetProtocol(mOwner->mProtocol);
 
   mStatus = CONN_CONNECTED_AND_READY;
-  mOwner->SetReadyState(nsIWebSocket::OPEN);
+  mOwner->SetReadyState(nsIMozWebSocket::OPEN);
   return NS_OK;
 }
 
@@ -516,14 +516,14 @@ nsWebSocketEstablishedConnection::OnStop(nsISupports *aContext,
   mClosedCleanly = NS_SUCCEEDED(aStatusCode);
 
   if (aStatusCode == NS_BASE_STREAM_CLOSED && 
-      mOwner->mReadyState >= nsIWebSocket::CLOSING) {
+      mOwner->mReadyState >= nsIMozWebSocket::CLOSING) {
     // don't generate an error event just because of an unclean close
     aStatusCode = NS_OK;
   }
 
   if (NS_FAILED(aStatusCode)) {
     ConsoleError();
-    if (mOwner && mOwner->mReadyState != nsIWebSocket::CONNECTING) {
+    if (mOwner && mOwner->mReadyState != nsIMozWebSocket::CONNECTING) {
       nsresult rv =
         mOwner->CreateAndDispatchSimpleEvent(NS_LITERAL_STRING("error"));
       if (NS_FAILED(rv))
@@ -533,7 +533,7 @@ nsWebSocketEstablishedConnection::OnStop(nsISupports *aContext,
 
   mStatus = CONN_CLOSED;
   if (mOwner) {
-    mOwner->SetReadyState(nsIWebSocket::CLOSED);
+    mOwner->SetReadyState(nsIMozWebSocket::CLOSED);
     Disconnect();
   }
   return NS_OK;
@@ -600,7 +600,7 @@ nsWebSocketEstablishedConnection::GetInterface(const nsIID &aIID,
 nsWebSocket::nsWebSocket() : mKeepingAlive(PR_FALSE),
                              mCheckMustKeepAlive(PR_TRUE),
                              mTriggeredCloseEvent(PR_FALSE),
-                             mReadyState(nsIWebSocket::CONNECTING),
+                             mReadyState(nsIMozWebSocket::CONNECTING),
                              mOutgoingBufferedAmount(0),
                              mScriptLine(0),
                              mWindowID(0)
@@ -652,7 +652,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 DOMCI_DATA(MozWebSocket, nsWebSocket)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(nsWebSocket)
-  NS_INTERFACE_MAP_ENTRY(nsIWebSocket)
+  NS_INTERFACE_MAP_ENTRY(nsIMozWebSocket)
   NS_INTERFACE_MAP_ENTRY(nsIJSNativeInitializer)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(MozWebSocket)
 NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetWrapperCache)
@@ -915,13 +915,13 @@ nsWebSocket::SetReadyState(PRUint16 aNewReadyState)
     return;
   }
 
-  NS_ABORT_IF_FALSE((aNewReadyState == nsIWebSocket::OPEN)    ||
-                    (aNewReadyState == nsIWebSocket::CLOSING) ||
-                    (aNewReadyState == nsIWebSocket::CLOSED),
+  NS_ABORT_IF_FALSE((aNewReadyState == nsIMozWebSocket::OPEN)    ||
+                    (aNewReadyState == nsIMozWebSocket::CLOSING) ||
+                    (aNewReadyState == nsIMozWebSocket::CLOSED),
                     "unexpected readyState");
 
-  if (aNewReadyState == nsIWebSocket::OPEN) {
-    NS_ABORT_IF_FALSE(mReadyState == nsIWebSocket::CONNECTING,
+  if (aNewReadyState == nsIMozWebSocket::OPEN) {
+    NS_ABORT_IF_FALSE(mReadyState == nsIMozWebSocket::CONNECTING,
                       "unexpected readyState transition");
     mReadyState = aNewReadyState;
 
@@ -933,15 +933,15 @@ nsWebSocket::SetReadyState(PRUint16 aNewReadyState)
     return;
   }
 
-  if (aNewReadyState == nsIWebSocket::CLOSING) {
-    NS_ABORT_IF_FALSE((mReadyState == nsIWebSocket::CONNECTING) ||
-                      (mReadyState == nsIWebSocket::OPEN),
+  if (aNewReadyState == nsIMozWebSocket::CLOSING) {
+    NS_ABORT_IF_FALSE((mReadyState == nsIMozWebSocket::CONNECTING) ||
+                      (mReadyState == nsIMozWebSocket::OPEN),
                       "unexpected readyState transition");
     mReadyState = aNewReadyState;
     return;
   }
 
-  if (aNewReadyState == nsIWebSocket::CLOSED) {
+  if (aNewReadyState == nsIMozWebSocket::CLOSED) {
     mReadyState = aNewReadyState;
 
     if (mConnection) {
@@ -1086,7 +1086,7 @@ nsWebSocket::UpdateMustKeepAlive()
   if (mListenerManager) {
     switch (mReadyState)
     {
-      case nsIWebSocket::CONNECTING:
+      case nsIMozWebSocket::CONNECTING:
       {
         if (mListenerManager->HasListenersFor(NS_LITERAL_STRING("open")) ||
             mListenerManager->HasListenersFor(NS_LITERAL_STRING("message")) ||
@@ -1096,8 +1096,8 @@ nsWebSocket::UpdateMustKeepAlive()
       }
       break;
 
-      case nsIWebSocket::OPEN:
-      case nsIWebSocket::CLOSING:
+      case nsIMozWebSocket::OPEN:
+      case nsIMozWebSocket::CLOSING:
       {
         if (mListenerManager->HasListenersFor(NS_LITERAL_STRING("message")) ||
             mListenerManager->HasListenersFor(NS_LITERAL_STRING("close")) ||
@@ -1107,7 +1107,7 @@ nsWebSocket::UpdateMustKeepAlive()
       }
       break;
 
-      case nsIWebSocket::CLOSED:
+      case nsIMozWebSocket::CLOSED:
       {
         shouldKeepAlive =
           (!mTriggeredCloseEvent &&
@@ -1186,7 +1186,7 @@ nsWebSocket::AddEventListener(const nsAString& aType,
 }
 
 //-----------------------------------------------------------------------------
-// nsWebSocket::nsIWebSocket methods:
+// nsWebSocket::nsIMozWebSocket methods:
 //-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
@@ -1246,7 +1246,7 @@ nsWebSocket::Send(const nsAString& aData, PRBool *aRet)
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
   *aRet = PR_FALSE;
 
-  if (mReadyState == nsIWebSocket::CONNECTING) {
+  if (mReadyState == nsIMozWebSocket::CONNECTING) {
     return NS_ERROR_DOM_INVALID_STATE_ERR;
   }
 
@@ -1265,8 +1265,8 @@ nsWebSocket::Send(const nsAString& aData, PRBool *aRet)
     }
   }
 
-  if (mReadyState == nsIWebSocket::CLOSING ||
-      mReadyState == nsIWebSocket::CLOSED) {
+  if (mReadyState == nsIMozWebSocket::CLOSING ||
+      mReadyState == nsIMozWebSocket::CLOSED) {
     mOutgoingBufferedAmount += NS_ConvertUTF16toUTF8(aData).Length();
     return NS_OK;
   }
@@ -1281,12 +1281,12 @@ NS_IMETHODIMP
 nsWebSocket::Close()
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
-  if (mReadyState == nsIWebSocket::CLOSING ||
-      mReadyState == nsIWebSocket::CLOSED) {
+  if (mReadyState == nsIMozWebSocket::CLOSING ||
+      mReadyState == nsIMozWebSocket::CLOSED) {
     return NS_OK;
   }
 
-  if (mReadyState == nsIWebSocket::CONNECTING) {
+  if (mReadyState == nsIMozWebSocket::CONNECTING) {
     // FailConnection() can release the object, so we keep a reference
     // before calling it
     nsRefPtr<nsWebSocket> kungfuDeathGrip = this;
@@ -1297,7 +1297,7 @@ nsWebSocket::Close()
     return NS_OK;
   }
 
-  // mReadyState == nsIWebSocket::OPEN
+  // mReadyState == nsIMozWebSocket::OPEN
   mConnection->Close();
 
   return NS_OK;
