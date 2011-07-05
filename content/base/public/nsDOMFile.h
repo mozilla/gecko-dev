@@ -117,6 +117,8 @@ public:
   static nsresult
   NewFile(nsISupports* *aNewObject);
 
+  static void
+  WarnDeprecated(nsCString& aAPI);
 protected:
   nsCOMPtr<nsIFile> mFile;
   nsCOMPtr<nsISupports> mCacheToken;
