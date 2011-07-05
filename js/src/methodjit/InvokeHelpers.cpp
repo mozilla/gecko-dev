@@ -309,7 +309,7 @@ stubs::CompileFunction(VMFrame &f, uint32 nactual)
     }
 
     /* Finish frame initialization. */
-    fp->initCallFrameLatePrologue();
+    fp->initCallFrameLatePrologue(cx, f.entryfp, &f.stackLimit);
 
     /* These would have been initialized by the prologue. */
     f.regs.prepareToRun(fp, script);

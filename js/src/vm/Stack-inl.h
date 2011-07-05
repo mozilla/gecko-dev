@@ -379,8 +379,8 @@ StackFrame::initCallFrameCallerHalf(JSContext *cx, uint32 flagsArg,
 }
 
 /*
- * The "early prologue" refers to the members that are stored for the benefit
- * of slow paths before initializing the rest of the members.
+ * The "early prologue" refers to either the fast path or arity check path up
+ * to the "late prologue".
  */
 inline void
 StackFrame::initCallFrameEarlyPrologue(JSFunction *fun, uint32 nactual)
@@ -391,13 +391,25 @@ StackFrame::initCallFrameEarlyPrologue(JSFunction *fun, uint32 nactual)
 }
 
 /*
- * The "late prologue" refers to the members that are stored after having
- * checked for stack overflow and formal/actual arg mismatch.
+ * The "late prologue" (in generatePrologue) extends from the join point of the
+ * fast path and arity check to where the call object is (possibly) created.
  */
-inline void
-StackFrame::initCallFrameLatePrologue()
+inline bool
+StackFrame::initCallFrameLatePrologue(JSContext *cx, StackFrame *fp, Value **limit)
 {
+    uintN nvals = script()->nslots + VALUES_PER_STACK_FRAME;
+    Value *required = (Value *)this + nvals;
+    if (required >= *limit) {
+        ContextStack &stack = cx->stack;
+        if (!stack.space().bumpLimit(NULL, fp, slots(), nvals, limit)) {
+            stack.popFrameAfterOverflow();
+            js_ReportOverRecursed(cx);
+            return false;
+        }
+    }
+
     SetValueRangeToUndefined(slots(), script()->nfixed);
+    return true;
 }
 
 inline void
@@ -926,6 +938,13 @@ ContextStack::popInlineFrame()
 
     newsp[-1] = fp->returnValue();
     regs_->popFrame(newsp);
+}
+
+inline void
+ContextStack::popFrameAfterOverflow()
+{
+    /* Restore the regs to what they were on entry to JSOP_CALL. */
+    regs_->popFrame(regs_->fp()->actualArgsEnd());
 }
 
 JS_ALWAYS_INLINE bool

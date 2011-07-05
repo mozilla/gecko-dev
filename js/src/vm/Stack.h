@@ -305,7 +305,7 @@ class StackFrame
     /* Called by method-jit stubs and serve as a specification for jit-code. */
     inline void initCallFrameCallerHalf(JSContext *cx, uint32 flags, void *ncode);
     inline void initCallFrameEarlyPrologue(JSFunction *fun, uint32 nactual);
-    inline void initCallFrameLatePrologue();
+    bool initCallFrameLatePrologue(JSContext *cx, StackFrame *fp, Value **limit);
 
     /* Used for eval. */
     inline void initEvalFrame(JSContext *cx, JSScript *script, StackFrame *prev,
@@ -1325,6 +1325,9 @@ class ContextStack
                               StackFrame *base, Value **limit) const;
     inline void pushInlineFrame(JSScript *script, StackFrame *fp, FrameRegs &regs);
     inline void popInlineFrame();
+
+    /* Pop a partially-pushed frame after hitting the limit before throwing. */
+    void popFrameAfterOverflow();
 
     /* For jit use: */
     static size_t offsetOfRegs() { return offsetof(ContextStack, regs_); }
