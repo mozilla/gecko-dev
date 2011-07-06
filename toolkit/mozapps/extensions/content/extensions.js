@@ -50,7 +50,7 @@ Cu.import("resource://gre/modules/AddonRepository.jsm");
 
 const PREF_DISCOVERURL = "extensions.webservice.discoverURL";
 const PREF_MAXRESULTS = "extensions.getAddons.maxResults";
-const PREF_CHECK_COMPATIBILITY_BASE = "extensions.checkCompatibility";
+const PREF_CHECK_COMPATIBILITY = "extensions.checkCompatibility";
 const PREF_CHECK_UPDATE_SECURITY = "extensions.checkUpdateSecurity";
 const PREF_AUTOUPDATE_DEFAULT = "extensions.update.autoUpdateDefault";
 const PREF_GETADDONS_CACHE_ENABLED = "extensions.getAddons.cache.enabled";
@@ -59,14 +59,6 @@ const PREF_UI_TYPE_HIDDEN = "extensions.ui.%TYPE%.hidden";
 const PREF_UI_LASTCATEGORY = "extensions.ui.lastCategory";
 
 const BRANCH_REGEXP = /^([^\.]+\.[0-9]+[a-z]*).*/gi;
-
-#ifdef MOZ_COMPATABILITY_NIGHTLY
-const PREF_CHECK_COMPATIBILITY = PREF_CHECK_COMPATIBILITY_BASE +
-                                 ".nightly";
-#else
-const PREF_CHECK_COMPATIBILITY = PREF_CHECK_COMPATIBILITY_BASE + "." +
-                                 Services.appinfo.version.replace(BRANCH_REGEXP, "$1");
-#endif
 
 const LOADING_MSG_DELAY = 100;
 
@@ -314,6 +306,7 @@ else {
 var gEventManager = {
   _listeners: {},
   _installListeners: [],
+  checkCompatibilityPref: "",
 
   initialize: function() {
     var self = this;
@@ -336,8 +329,11 @@ var gEventManager = {
     });
     AddonManager.addInstallListener(this);
     AddonManager.addAddonListener(this);
+    
+    var version = Services.appinfo.version.replace(BRANCH_REGEXP, "$1");
+    this.checkCompatibilityPref = PREF_CHECK_COMPATIBILITY + "." + version;
 
-    Services.prefs.addObserver(PREF_CHECK_COMPATIBILITY, this, false);
+    Services.prefs.addObserver(this.checkCompatibilityPref, this, false);
     Services.prefs.addObserver(PREF_CHECK_UPDATE_SECURITY, this, false);
     Services.prefs.addObserver(PREF_AUTOUPDATE_DEFAULT, this, false);
 
@@ -365,7 +361,7 @@ var gEventManager = {
   },
 
   shutdown: function() {
-    Services.prefs.removeObserver(PREF_CHECK_COMPATIBILITY, this);
+    Services.prefs.removeObserver(this.checkCompatibilityPref, this);
     Services.prefs.removeObserver(PREF_CHECK_UPDATE_SECURITY, this);
     Services.prefs.removeObserver(PREF_AUTOUPDATE_DEFAULT, this, false);
 
@@ -466,7 +462,7 @@ var gEventManager = {
 
     var checkCompatibility = true;
     try {
-      checkCompatibility = Services.prefs.getBoolPref(PREF_CHECK_COMPATIBILITY);
+      checkCompatibility = Services.prefs.getBoolPref(this.checkCompatibilityPref);
     } catch(e) { }
     if (!checkCompatibility) {
       page.setAttribute("warning", "checkcompatibility");
@@ -489,7 +485,7 @@ var gEventManager = {
   
   observe: function(aSubject, aTopic, aData) {
     switch (aData) {
-    case PREF_CHECK_COMPATIBILITY:
+    case this.checkCompatibilityPref:
     case PREF_CHECK_UPDATE_SECURITY:
       this.refreshGlobalWarning();
       break;
@@ -724,7 +720,7 @@ var gViewController = {
     cmd_enableCheckCompatibility: {
       isEnabled: function() true,
       doCommand: function() {
-        Services.prefs.clearUserPref(PREF_CHECK_COMPATIBILITY);
+        Services.prefs.clearUserPref(gEventManager.checkCompatibilityPref);
       }
     },
 

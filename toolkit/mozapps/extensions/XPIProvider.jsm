@@ -60,7 +60,7 @@ const PREF_EM_DSS_ENABLED             = "extensions.dss.enabled";
 const PREF_DSS_SWITCHPENDING          = "extensions.dss.switchPending";
 const PREF_DSS_SKIN_TO_SELECT         = "extensions.lastSelectedSkin";
 const PREF_GENERAL_SKINS_SELECTEDSKIN = "general.skins.selectedSkin";
-const PREF_EM_CHECK_COMPATIBILITY_BASE = "extensions.checkCompatibility";
+const PREF_EM_CHECK_COMPATIBILITY     = "extensions.checkCompatibility";
 const PREF_EM_CHECK_UPDATE_SECURITY   = "extensions.checkUpdateSecurity";
 const PREF_EM_UPDATE_URL              = "extensions.update.url";
 const PREF_EM_ENABLED_ADDONS          = "extensions.enabledAddons";
@@ -120,14 +120,6 @@ const BRANCH_REGEXP                   = /^([^\.]+\.[0-9]+[a-z]*).*/gi;
 
 const DB_SCHEMA                       = 5;
 const REQ_VERSION                     = 2;
-
-#ifdef MOZ_COMPATABILITY_NIGHTLY
-const PREF_EM_CHECK_COMPATIBILITY = PREF_EM_CHECK_COMPATIBILITY_BASE +
-                                    ".nightly";
-#else
-const PREF_EM_CHECK_COMPATIBILITY = PREF_EM_CHECK_COMPATIBILITY_BASE + "." +
-                                    Services.appinfo.version.replace(BRANCH_REGEXP, "$1");
-#endif
 
 // Properties that exist in the install manifest
 const PROP_METADATA      = ["id", "version", "type", "internalName", "updateURL",
@@ -1437,6 +1429,9 @@ var XPIProvider = {
   // will be the same as currentSkin when it is the skin to be used when the
   // application is restarted
   selectedSkin: null,
+  // The name of the checkCompatibility preference for the current application
+  // version
+  checkCompatibilityPref: null,
   // The value of the checkCompatibility preference
   checkCompatibility: true,
   // The value of the checkUpdateSecurity preference
@@ -1562,13 +1557,15 @@ var XPIProvider = {
     this.selectedSkin = this.currentSkin;
     this.applyThemeChange();
 
-    this.checkCompatibility = Prefs.getBoolPref(PREF_EM_CHECK_COMPATIBILITY,
+    var version = Services.appinfo.version.replace(BRANCH_REGEXP, "$1");
+    this.checkCompatibilityPref = PREF_EM_CHECK_COMPATIBILITY + "." + version;
+    this.checkCompatibility = Prefs.getBoolPref(this.checkCompatibilityPref,
                                                 true)
     this.checkUpdateSecurity = Prefs.getBoolPref(PREF_EM_CHECK_UPDATE_SECURITY,
                                                  true)
     this.enabledAddons = [];
 
-    Services.prefs.addObserver(PREF_EM_CHECK_COMPATIBILITY, this, false);
+    Services.prefs.addObserver(this.checkCompatibilityPref, this, false);
     Services.prefs.addObserver(PREF_EM_CHECK_UPDATE_SECURITY, this, false);
 
     let flushCaches = this.checkForChanges(aAppChanged, aOldAppVersion,
@@ -1644,7 +1641,7 @@ var XPIProvider = {
   shutdown: function XPI_shutdown() {
     LOG("shutdown");
 
-    Services.prefs.removeObserver(PREF_EM_CHECK_COMPATIBILITY, this);
+    Services.prefs.removeObserver(this.checkCompatibilityPref, this);
     Services.prefs.removeObserver(PREF_EM_CHECK_UPDATE_SECURITY, this);
 
     this.bootstrappedAddons = {};
@@ -3253,9 +3250,9 @@ var XPIProvider = {
    */
   observe: function XPI_observe(aSubject, aTopic, aData) {
     switch (aData) {
-    case PREF_EM_CHECK_COMPATIBILITY:
+    case this.checkCompatibilityPref:
     case PREF_EM_CHECK_UPDATE_SECURITY:
-      this.checkCompatibility = Prefs.getBoolPref(PREF_EM_CHECK_COMPATIBILITY,
+      this.checkCompatibility = Prefs.getBoolPref(this.checkCompatibilityPref,
                                                   true);
       this.checkUpdateSecurity = Prefs.getBoolPref(PREF_EM_CHECK_UPDATE_SECURITY,
                                                    true);
