@@ -333,6 +333,7 @@ StackFrame::resetInvokeCallFrame()
     /* Undo changes to frame made during execution; see initCallFrame */
 
     putActivationObjects();
+    markActivationObjectsAsPut();
 
     JS_ASSERT(!(flags_ & ~(FUNCTION |
                            OVERFLOW_ARGS |
