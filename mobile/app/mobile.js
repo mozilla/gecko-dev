@@ -124,6 +124,9 @@ pref("network.autodial-helper.enabled", true);
 pref("network.buffer.cache.count", 24);
 pref("network.buffer.cache.size",  16384);
 
+// Cross-process websockets are not implemented
+pref("network.websocket.enabled", false);
+
 /* history max results display */
 pref("browser.display.history.maxresults", 100);
 
