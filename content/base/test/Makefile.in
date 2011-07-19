@@ -476,6 +476,7 @@ _TEST_FILES2 = \
 		test_bug604592.html \
 		test_bug628938.html \
 		test_bug626262.html \
+		test_bug666604.html \
 		test_plugin_freezing.html \
 		test_bug638112.html \
 		bug638112-response.txt \
