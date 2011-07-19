@@ -184,7 +184,7 @@ class nsDocShell : public nsDocLoader,
                    public nsIObserver,
                    public nsILoadContext,
                    public nsIWebShellServices,
-                   public nsILinkHandler,
+                   public nsILinkHandler_5_0,
                    public nsIClipboardCommands
 {
     friend class nsDSURIContentListener;
@@ -247,6 +247,13 @@ public:
         nsIURI* aURI,
         const PRUnichar* aTargetSpec);
     NS_IMETHOD OnLeaveLink();
+    // nsILinkHandler_5_0
+    NS_IMETHOD OnLinkClick(nsIContent* aContent,
+        nsIURI* aURI,
+        const PRUnichar* aTargetSpec,
+        nsIInputStream* aPostDataStream,
+        nsIInputStream* aHeadersDataStream,
+        PRBool aIsTrusted);
 
     nsDocShellInfoLoadType ConvertLoadTypeToDocShellLoadInfo(PRUint32 aLoadType);
     PRUint32 ConvertDocShellLoadInfoToLoadType(nsDocShellInfoLoadType aDocShellLoadType);

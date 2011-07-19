@@ -5257,7 +5257,10 @@ nsGenericElement::CheckHandleEventForLinksPrecondition(nsEventChainVisitor& aVis
                                                        nsIURI** aURI) const
 {
   if (aVisitor.mEventStatus == nsEventStatus_eConsumeNoDefault ||
-      !NS_IS_TRUSTED_EVENT(aVisitor.mEvent) ||
+      (!NS_IS_TRUSTED_EVENT(aVisitor.mEvent) &&
+       (aVisitor.mEvent->message != NS_MOUSE_CLICK) &&
+       (aVisitor.mEvent->message != NS_KEY_PRESS) &&
+       (aVisitor.mEvent->message != NS_UI_ACTIVATE)) ||
       !aVisitor.mPresContext ||
       (aVisitor.mEvent->flags & NS_EVENT_FLAG_PREVENT_ANCHOR_ACTIONS)) {
     return PR_FALSE;
@@ -5303,7 +5306,7 @@ nsGenericElement::PreHandleEventForLinks(nsEventChainPreVisitor& aVisitor)
       nsAutoString target;
       GetLinkTarget(target);
       nsContentUtils::TriggerLink(this, aVisitor.mPresContext, absURI, target,
-                                  PR_FALSE, PR_TRUE);
+                                  PR_FALSE, PR_TRUE, PR_TRUE);
       // Make sure any ancestor links don't also TriggerLink
       aVisitor.mEvent->flags |= NS_EVENT_FLAG_PREVENT_ANCHOR_ACTIONS;
     }
@@ -5406,7 +5409,7 @@ nsGenericElement::PostHandleEventForLinks(nsEventChainPostVisitor& aVisitor)
         nsAutoString target;
         GetLinkTarget(target);
         nsContentUtils::TriggerLink(this, aVisitor.mPresContext, absURI, target,
-                                    PR_TRUE, PR_TRUE);
+                                    PR_TRUE, PR_TRUE, NS_IS_TRUSTED_EVENT(aVisitor.mEvent));
         aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
       }
     }
