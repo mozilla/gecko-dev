@@ -1282,7 +1282,6 @@ var SelectionHelper = {
     messageManager.addMessageListener("Browser:SelectionRange", this);
     messageManager.addMessageListener("Browser:SelectionCopied", this);
 
-    Services.prefs.setBoolPref("accessibility.browsewithcaret", true);
     this.popupState.target.messageManager.sendAsyncMessage("Browser:SelectionStart", { x: this.popupState.x, y: this.popupState.y });
 
     BrowserUI.pushPopup(this, [this._start, this._end]);
@@ -1312,7 +1311,6 @@ var SelectionHelper = {
     }
 
     this.popupState = null;
-    Services.prefs.setBoolPref("accessibility.browsewithcaret", false);
 
     this._start.hidden = true;
     this._end.hidden = true;
