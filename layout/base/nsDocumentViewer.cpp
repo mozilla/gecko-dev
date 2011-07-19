@@ -3674,6 +3674,7 @@ DocumentViewerImpl::Print(nsIPrintSettings*       aPrintSettings,
     return pDoc->Print();
 
   if (!mPrintEngine) {
+    NS_ENSURE_STATE(mDeviceContext);
     mPrintEngine = new nsPrintEngine();
     NS_ENSURE_TRUE(mPrintEngine, NS_ERROR_OUT_OF_MEMORY);
 
