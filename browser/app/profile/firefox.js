@@ -1003,8 +1003,8 @@ pref("services.sync.prefs.sync.xpinstall.whitelist.required", true);
 // Disable the error console
 pref("devtools.errorconsole.enabled", false);
 
-// Enable the Inspector
-pref("devtools.inspector.enabled", true);
+// Disable the Inspector
+pref("devtools.inspector.enabled", false);
 
 // Enable the Scratchpad tool.
 pref("devtools.scratchpad.enabled", true);
