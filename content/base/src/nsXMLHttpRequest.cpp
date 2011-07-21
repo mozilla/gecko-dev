@@ -1635,10 +1635,6 @@ nsXMLHttpRequest::OnDataAvailable(nsIRequest *request, nsISupports *ctxt, nsIInp
 
   NS_ABORT_IF_FALSE(mContext.get() == ctxt,"start context different from OnDataAvailable context");
 
-  if (mResponseType == XML_HTTP_RESPONSE_TYPE_BLOB && !mResponseBlob) {
-    CreateResponseBlob(request);
-  }
-
   PRUint32 totalRead;
   return inStr->ReadSegments(nsXMLHttpRequest::StreamReaderFunc, (void*)this, count, &totalRead);
 }
@@ -1878,9 +1874,6 @@ nsXMLHttpRequest::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult
   NS_ENSURE_TRUE(channel, NS_ERROR_UNEXPECTED);
 
   if (NS_SUCCEEDED(status) && mResponseType == XML_HTTP_RESPONSE_TYPE_BLOB) {
-    if (!mResponseBlob) {
-      CreateResponseBlob(request);
-    }
     if (!mResponseBlob) {
       // Smaller files may be written in cache map instead of separate files.
       // Also, no-store response cannot be written in persistent cache.
