@@ -494,10 +494,6 @@ PlanarYCbCrImage::CopyData(Data& aDest, gfxIntSize& aDestSize,
 {
   aDest = aData;
 
-  /* We always have a multiple of 16 width so we can force the stride */
-  aDest.mYStride = aDest.mYSize.width;
-  aDest.mCbCrStride = aDest.mCbCrSize.width;
-
   // update buffer size
   aDestBufferSize = aDest.mCbCrStride * aDest.mCbCrSize.height * 2 +
                     aDest.mYStride * aDest.mYSize.height;
