@@ -1345,7 +1345,7 @@ nsBidiPresUtils::GetFrameToRightOf(const nsIFrame*  aFrame,
   Reorder(isReordered, hasRTLFrames);
   PRInt32 count = mVisualFrames.Length();
 
-  if (aFrame == nsnull)
+  if (aFrame == nsnull && count)
     return mVisualFrames[0];
   
   for (PRInt32 i = 0; i < count - 1; i++) {
@@ -1369,7 +1369,7 @@ nsBidiPresUtils::GetFrameToLeftOf(const nsIFrame*  aFrame,
   Reorder(isReordered, hasRTLFrames);
   PRInt32 count = mVisualFrames.Length();
   
-  if (aFrame == nsnull)
+  if (aFrame == nsnull && count)
     return mVisualFrames[count-1];
   
   for (PRInt32 i = 1; i < count; i++) {
