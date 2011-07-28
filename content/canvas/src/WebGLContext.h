@@ -468,6 +468,8 @@ protected:
     PRBool ValidateDrawModeEnum(WebGLenum mode, const char *info);
     PRBool ValidateAttribIndex(WebGLuint index, const char *info);
     PRBool ValidateStencilParamsForDrawCall();
+    
+    bool  ValidateGLSLIdentifier(const nsAString& name, const char *info);
 
     void Invalidate();
     void DestroyResourcesAndContext();
