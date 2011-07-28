@@ -437,6 +437,17 @@ PRBool WebGLContext::ValidateStencilParamsForDrawCall()
   return PR_TRUE;
 }
 
+bool WebGLContext::ValidateGLSLIdentifier(const nsAString& name, const char *info)
+{
+    const PRUint32 maxSize = 4095;
+    if (name.Length() > maxSize) {
+        ErrorInvalidValue("%s: identifier is %d characters long, exceeds the maximum allowed length of %d characters",
+                          info, name.Length(), maxSize);
+        return false;
+    }
+    return true;
+}
+
 PRBool
 WebGLContext::InitAndValidateGL()
 {
