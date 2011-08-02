@@ -1004,6 +1004,8 @@ StackIter::StackIter(JSContext *cx, SavedOption savedOption)
   : cx_(cx),
     savedOption_(savedOption)
 {
+    LeaveTrace(cx);
+
     if (StackSegment *seg = cx->stack.seg_) {
         startOnSegment(seg);
         settleOnNewState();
