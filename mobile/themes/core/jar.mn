@@ -124,7 +124,7 @@ chrome.jar:
 
 #ifdef ANDROID
 chrome.jar:
-% skin browser classic/1.0 %skin/gingerbread/ os=Android osversion=2.3 osversion=2.3.3 osversion=2.3.4
+% skin browser classic/1.0 %skin/gingerbread/ os=Android osversion=2.3 osversion=2.3.3 osversion=2.3.4 osversion=2.3.5 osversion=2.3.6 osversion=2.3.7
   skin/gingerbread/aboutCertError.css                   (aboutCertError.css)
   skin/gingerbread/aboutPage.css                        (aboutPage.css)
   skin/gingerbread/about.css                            (about.css)
