@@ -1864,6 +1864,8 @@ nsNavBookmarks::FetchItemInfo(PRInt64 aItemId,
     _bookmark.grandParentId = -1;
   }
 
+#if 0
+  // The cache is temporarily disabled due to bug 675416.
   if (!aInvalidateCache) {
     // Make space for the new entry.
     ExpireNonrecentBookmarks(&mRecentBookmarksCache);
@@ -1873,6 +1875,8 @@ nsNavBookmarks::FetchItemInfo(PRInt64 aItemId,
       key->bookmark = _bookmark;
     }
   }
+#endif
+
   return NS_OK;
 }
 
