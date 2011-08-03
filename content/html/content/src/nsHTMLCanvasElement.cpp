@@ -571,18 +571,21 @@ nsHTMLCanvasElement::UpdateContext(nsIPropertyBag *aNewContextOptions)
   rv = mCurrentContext->SetIsOpaque(GetIsOpaque());
   if (NS_FAILED(rv)) {
     mCurrentContext = nsnull;
+    mCurrentContextId.AssignLiteral("");
     return rv;
   }
 
   rv = mCurrentContext->SetContextOptions(aNewContextOptions);
   if (NS_FAILED(rv)) {
     mCurrentContext = nsnull;
+    mCurrentContextId.AssignLiteral("");
     return rv;
   }
 
   rv = mCurrentContext->SetDimensions(sz.width, sz.height);
   if (NS_FAILED(rv)) {
     mCurrentContext = nsnull;
+    mCurrentContextId.AssignLiteral("");
     return rv;
   }
 
