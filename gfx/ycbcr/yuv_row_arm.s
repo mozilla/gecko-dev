@@ -219,12 +219,12 @@ s42xbily_neon_loop:
     VDUP.I32    Q9, r9         @ Q9 = source_uv_xoffs_q16 x 4
     ADD         r14,r2, r12
     VADD.I32    Q10,Q0, Q9
-    VLD1.64     {D8, D9, D10,D11},[r14,:128]   @ Load Cb
+    VLD1.64     {D8, D9, D10,D11},[r14]        @ Load Cb
     PLD         [r14,#64]
     VADD.I32    Q11,Q1, Q9
     ADD         r14,r3, r12
     VADD.I32    Q12,Q2, Q9
-    VLD1.64     {D12,D13,D14,D15},[r14,:128]   @ Load Cr
+    VLD1.64     {D12,D13,D14,D15},[r14]        @ Load Cr
     PLD         [r14,#64]
     VADD.I32    Q13,Q3, Q9
     VRSHRN.S32  D20,Q10,#9     @ Q10 = <xEwExCwCxAwAx8w8x6w6x4w4x2w2x0w0>
