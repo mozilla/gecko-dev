@@ -51,6 +51,7 @@
  ******/
 
 HTTP_ATOM(Accept,                    "Accept")
+HTTP_ATOM(Accept_Charset,            "Accept-Charset")
 HTTP_ATOM(Accept_Encoding,           "Accept-Encoding")
 HTTP_ATOM(Accept_Language,           "Accept-Language")
 HTTP_ATOM(Accept_Ranges,             "Accept-Ranges")
