@@ -388,11 +388,8 @@ nsEventListenerManager::AddEventListener(nsIDOMEventListener *aListener,
                                          const EventTypeData* aTypeData,
                                          PRInt32 aFlags)
 {
+  NS_ENSURE_TRUE(aListener, NS_ERROR_FAILURE);
   NS_ENSURE_TRUE(aType || aTypeData, NS_ERROR_FAILURE);
-
-  if (!aListener) {
-    return NS_OK;
-  }
 
   nsRefPtr<nsIDOMEventListener> kungFuDeathGrip = aListener;
 
