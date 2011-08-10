@@ -677,8 +677,11 @@ SessionStore.prototype = {
 
         let window = Services.wm.getMostRecentWindow("navigator:browser");
     
-        let selected = data.windows[0].selected;
         let tabs = data.windows[0].tabs;
+        let selected = data.windows[0].selected;
+        if (selected > tabs.length)
+          selected = 1;
+
         for (let i=0; i<tabs.length; i++) {
           let tabData = tabs[i];
     
