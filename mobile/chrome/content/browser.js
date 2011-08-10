@@ -353,8 +353,12 @@ var Browser = {
         let dummyCleanup = {
           observe: function() {
             Services.obs.removeObserver(dummyCleanup, "sessionstore-windows-restored");
-            dummy.chromeTab.ignoreUndo = true;
-            Browser.closeTab(dummy, { forceClose: true });
+            if (Browser.tabs.length > 1) {
+              dummy.chromeTab.ignoreUndo = true;
+              Browser.closeTab(dummy, { forceClose: true });
+            } else {
+              Browser.selectedTab = dummy;
+            }
           }
         };
         Services.obs.addObserver(dummyCleanup, "sessionstore-windows-restored", false);
