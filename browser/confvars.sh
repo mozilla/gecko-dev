@@ -49,5 +49,5 @@ MOZ_EXTENSIONS_DEFAULT=" gnomevfs"
 # MOZ_APP_DISPLAYNAME will be set by branding/configure.sh
 # Changing either of these values requires a clobber to ensure correct results,
 # because branding dependencies are broken.
-MOZ_BRANDING_DIRECTORY=browser/branding/nightly
+MOZ_BRANDING_DIRECTORY=browser/branding/aurora
 MOZ_OFFICIAL_BRANDING_DIRECTORY=browser/branding/official
