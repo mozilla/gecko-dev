@@ -38,7 +38,7 @@
 MOZ_APP_NAME=fennec
 MOZ_APP_UA_NAME=Fennec
 
-MOZ_APP_VERSION=7.0a2
+MOZ_APP_VERSION=7.0
 
 MOZ_BRANDING_DIRECTORY=mobile/branding/unofficial
 MOZ_OFFICIAL_BRANDING_DIRECTORY=mobile/branding/official
