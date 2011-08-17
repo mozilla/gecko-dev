@@ -127,6 +127,7 @@ extern nsISupportsArray *gDraggedTransferables;
 ChildView* ChildViewMouseTracker::sLastMouseEventView = nil;
 NSEvent* ChildViewMouseTracker::sLastMouseMoveEvent = nil;
 NSWindow* ChildViewMouseTracker::sWindowUnderMouse = nil;
+NSPoint ChildViewMouseTracker::sLastScrollEventScreenLocation = NSZeroPoint;
 
 #ifdef INVALIDATE_DEBUGGING
 static void blinkRect(Rect* r);
@@ -3566,8 +3567,7 @@ NSEvent* gLastDragMouseDownEvent = nil;
     // No sense in firing off a Gecko event.
      return;
 
-  BOOL isMomentumScroll = [theEvent respondsToSelector:@selector(_scrollPhase)] &&
-                          [theEvent _scrollPhase] != 0;
+  BOOL isMomentumScroll = nsCocoaUtils::IsMomentumScrollEvent(theEvent);
 
   if (scrollDelta != 0) {
     // Send the line scroll event.
@@ -3678,14 +3678,11 @@ NSEvent* gLastDragMouseDownEvent = nil;
 
 -(void)scrollWheel:(NSEvent*)theEvent
 {
-  NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
-
   nsAutoRetainCocoaObject kungFuDeathGrip(self);
 
-  if ([self maybeRollup:theEvent])
-    return;
+  ChildViewMouseTracker::MouseScrolled(theEvent);
 
-  if (!mGeckoChild)
+  if ([self maybeRollup:theEvent])
     return;
 
   // It's possible for a single NSScrollWheel event to carry both useful
@@ -3693,11 +3690,7 @@ NSEvent* gLastDragMouseDownEvent = nil;
   // NSMouseScrollEvent can only carry one axis at a time, so the system
   // event will be split into two Gecko events if necessary.
   [self scrollWheel:theEvent forAxis:nsMouseScrollEvent::kIsVertical];
-  if (!mGeckoChild)
-    return;
   [self scrollWheel:theEvent forAxis:nsMouseScrollEvent::kIsHorizontal];
-
-  NS_OBJC_END_TRY_ABORT_BLOCK;
 }
 
 -(NSMenu*)menuForEvent:(NSEvent*)theEvent
@@ -4828,6 +4821,15 @@ ChildViewMouseTracker::MouseMoved(NSEvent* aEvent)
   if (sLastMouseMoveEvent != aEvent) {
     [sLastMouseMoveEvent release];
     sLastMouseMoveEvent = [aEvent retain];
+  }
+}
+
+void
+ChildViewMouseTracker::MouseScrolled(NSEvent* aEvent)
+{
+  if (!nsCocoaUtils::IsMomentumScrollEvent(aEvent)) {
+    // Store the position so we can pin future momentum scroll events.
+    sLastScrollEventScreenLocation = nsCocoaUtils::ScreenLocationForEvent(aEvent);
   }
 }
 
