@@ -681,15 +681,6 @@ interface nsIDOMCSS2Properties : nsISupports
            attribute DOMString        MozTransformOrigin;
                                         // raises(DOMException) on setting 
 
-           attribute DOMString        MozPerspective;
-                                        // raises(DOMException) on setting
-
-           attribute DOMString        MozPerspectiveOrigin;
-                                        // raises(DOMException) on setting
-
-           attribute DOMString        MozBackfaceVisibility;
-                                        // raises(DOMException) on setting 
-
            attribute DOMString        MozWindowShadow;
                                         // raises(DOMException) on setting
 
