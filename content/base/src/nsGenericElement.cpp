@@ -2187,9 +2187,6 @@ nsGenericElement::~nsGenericElement()
 {
   NS_PRECONDITION(!IsInDoc(),
                   "Please remove this from the document properly");
-  if (GetParent()) {
-    NS_RELEASE(mParent);
-  }
 }
 
 NS_IMETHODIMP
@@ -2812,9 +2809,6 @@ nsGenericElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 
   // Now set the parent and set the "Force attach xbl" flag if needed.
   if (aParent) {
-    if (!GetParent()) {
-      NS_ADDREF(aParent);
-    }
     mParent = aParent;
 
     if (aParent->HasFlag(NODE_FORCE_XBL_BINDINGS)) {
@@ -2923,11 +2917,7 @@ nsGenericElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
     HasFlag(NODE_FORCE_XBL_BINDINGS) ? GetOwnerDoc() : GetCurrentDoc();
 
   if (aNullParent) {
-    if (GetParent()) {
-      NS_RELEASE(mParent);
-    } else {
-      mParent = nsnull;
-    }
+    mParent = nsnull;
     SetParentIsContent(false);
   }
   ClearInDocument();
@@ -4245,9 +4235,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(nsGenericElement)
       cb.NoteXPCOMChild(
         static_cast<nsIDOMNodeList*>(slots->mChildrenList.get()));
     }
-    NS_IMPL_CYCLE_COLLECTION_TRAVERSE_RAWPTR(GetParent())
   }
-  
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 
