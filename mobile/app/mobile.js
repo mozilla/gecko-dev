@@ -382,6 +382,9 @@ pref("content.sink.pending_event_mode", 0);
 pref("content.sink.perf_deflect_count", 1000000);
 pref("content.sink.perf_parse_time", 50000000);
 
+// Disable methodjit in chrome to save memory
+pref("javascript.options.methodjit.chrome",  false);
+
 pref("javascript.options.mem.high_water_mark", 32);
 
 pref("dom.max_chrome_script_run_time", 0); // disable slow script dialog for chrome
