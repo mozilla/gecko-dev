@@ -2222,30 +2222,35 @@ SessionStoreService.prototype = {
       if (!aWindow._hosts)
         return;
       for (var [host, isPinned] in Iterator(aWindow._hosts)) {
-        var list = CookieSvc.getCookiesFromHost(host);
-        while (list.hasMoreElements()) {
-          var cookie = list.getNext().QueryInterface(Ci.nsICookie2);
-          // aWindow._hosts will only have hosts with the right privacy rules,
-          // so there is no need to do anything special with this call to
-          // _checkPrivacyLevel.
-          if (cookie.isSession && _this._checkPrivacyLevel(cookie.isSecure, isPinned)) {
-            // use the cookie's host, path, and name as keys into a hash,
-            // to make sure we serialize each cookie only once
-            if (!(cookie.host in jscookies &&
-                  cookie.path in jscookies[cookie.host] &&
-                  cookie.name in jscookies[cookie.host][cookie.path])) {
-              var jscookie = { "host": cookie.host, "value": cookie.value };
-              // only add attributes with non-default values (saving a few bits)
-              if (cookie.path) jscookie.path = cookie.path;
-              if (cookie.name) jscookie.name = cookie.name;
-              if (cookie.isSecure) jscookie.secure = true;
-              if (cookie.isHttpOnly) jscookie.httponly = true;
-              if (cookie.expiry < MAX_EXPIRY) jscookie.expiry = cookie.expiry;
+        try {
+          var list = CookieSvc.getCookiesFromHost(host);
+          while (list.hasMoreElements()) {
+            var cookie = list.getNext().QueryInterface(Ci.nsICookie2);
+            // aWindow._hosts will only have hosts with the right privacy rules,
+            // so there is no need to do anything special with this call to
+            // _checkPrivacyLevel.
+            if (cookie.isSession && _this._checkPrivacyLevel(cookie.isSecure, isPinned)) {
+              // use the cookie's host, path, and name as keys into a hash,
+              // to make sure we serialize each cookie only once
+              if (!(cookie.host in jscookies &&
+                    cookie.path in jscookies[cookie.host] &&
+                    cookie.name in jscookies[cookie.host][cookie.path])) {
+                var jscookie = { "host": cookie.host, "value": cookie.value };
+                // only add attributes with non-default values (saving a few bits)
+                if (cookie.path) jscookie.path = cookie.path;
+                if (cookie.name) jscookie.name = cookie.name;
+                if (cookie.isSecure) jscookie.secure = true;
+                if (cookie.isHttpOnly) jscookie.httponly = true;
+                if (cookie.expiry < MAX_EXPIRY) jscookie.expiry = cookie.expiry;
 
-              addCookieToHash(jscookies, cookie.host, cookie.path, cookie.name, jscookie);
+                addCookieToHash(jscookies, cookie.host, cookie.path, cookie.name, jscookie);
+              }
+              aWindow.cookies.push(jscookies[cookie.host][cookie.path][cookie.name]);
             }
-            aWindow.cookies.push(jscookies[cookie.host][cookie.path][cookie.name]);
           }
+        }
+        catch (ex) {
+          debug("getCookiesFromHost failed. Host: " + host);
         }
       }
     });
