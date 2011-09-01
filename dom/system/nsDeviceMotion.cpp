@@ -39,6 +39,7 @@
 #include "nsAutoPtr.h"
 #include "nsIDOMEvent.h"
 #include "nsIDOMWindow.h"
+#include "nsPIDOMWindow.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMEventTarget.h"
 #include "nsIServiceManager.h"
@@ -232,6 +233,12 @@ nsDeviceMotion::DeviceMotionChanged(PRUint32 type, double x, double y, double z)
 
   for (PRUint32 i = mWindowListeners.Count(); i > 0 ; ) {
     --i;
+
+    // check to see if this window is in the background.  if
+    // it is, don't send any device motion to it.
+    nsCOMPtr<nsPIDOMWindow> pwindow = do_QueryInterface(mWindowListeners[i]);
+    if (!pwindow || pwindow->GetOuterWindow()->IsBackground())
+      continue;
 
     nsCOMPtr<nsIDOMDocument> domdoc;
     mWindowListeners[i]->GetDocument(getter_AddRefs(domdoc));
