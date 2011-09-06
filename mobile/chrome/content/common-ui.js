@@ -174,7 +174,6 @@ var PageActions = {
 #endif
     this.register("pageaction-share", this.updateShare, this);
     this.register("pageaction-search", BrowserSearch.updatePageSearchEngines, BrowserSearch);
-    this.register("pageaction-webapps-install", WebappsUI.updateWebappsInstall, WebappsUI);
   },
 
   handleEvent: function handleEvent(aEvent) {
