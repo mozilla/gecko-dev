@@ -334,6 +334,9 @@ Chunk::init(JSRuntime *rt)
     info.numFree = ArenasPerChunk;
     for (size_t i = 0; i != JS_ARRAY_LENGTH(markingDelay); ++i)
         markingDelay[i].init();
+    /* We clear the bitmap to guard against xpc_IsGrayGCThing being called on
+       uninitialized data, which would happen before the first GC cycle. */
+    bitmap.clear();
 }
 
 bool
