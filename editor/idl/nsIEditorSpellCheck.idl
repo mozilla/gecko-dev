@@ -41,7 +41,7 @@
 interface nsIEditor;
 interface nsITextServicesFilter;
 
-[scriptable, uuid(3da0ce96-7d3a-48d0-80b7-2d90dab09747)]
+[scriptable, uuid(90c93610-c116-44ab-9793-62dccb9f43ce)]
 interface nsIEditorSpellCheck : nsISupports
 {
 
@@ -143,12 +143,12 @@ interface nsIEditorSpellCheck : nsISupports
   /**
    * @see nsISpellChecker::GetCurrentDictionary
    */
-  AString       GetCurrentDictionary();
+  wstring       GetCurrentDictionary();
 
   /**
    * @see nsISpellChecker::SetCurrentDictionary
    */
-  void          SetCurrentDictionary(in AString dictionary);
+  void          SetCurrentDictionary(in wstring dictionary);
 
   /**
    * Call to save the currently selected dictionary as the default. The
@@ -187,11 +187,5 @@ interface nsIEditorSpellCheck : nsISupports
    * invalid.
    */
   boolean       CheckCurrentWordNoSuggest(in wstring suggestedWord);
-
-  /**
-   * Update the dictionary in use to be sure it corresponds to what the editor
-   * needs.
-   */
-  void          UpdateCurrentDictionary(in nsIEditor editor);
 
 };

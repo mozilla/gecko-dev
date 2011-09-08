@@ -53,7 +53,6 @@ _TEST_FILES = \
 
 _CHROME_TEST_FILES = \
 		test_bug434998.xul \
-		test_bug338427.html \
 		$(NULL)
 
 libs:: $(_TEST_FILES)

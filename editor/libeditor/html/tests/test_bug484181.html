@@ -45,6 +45,7 @@ function append(str) {
   netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
 
   var edit = document.getElementById("edit");
+  edit.focus();
   var editor = getEditor();
   var sel = editor.selection;
   sel.selectAllChildren(edit);
@@ -57,19 +58,16 @@ function append(str) {
 
 function runTest() {
   gMisspeltWords = ["haz", "cheezburger"];
+  is(isSpellingCheckOk(), true, "All misspellings before editing are accounted for.");
+
   var edit = document.getElementById("edit");
-  edit.focus();
+  append(" becaz I'm a lolcat!");
   SimpleTest.executeSoon(function() {
-      is(isSpellingCheckOk(), true, "All misspellings before editing are accounted for.");
+  gMisspeltWords.push("becaz");
+  gMisspeltWords.push("lolcat");
+  is(isSpellingCheckOk(), true, "All misspellings after typing are accounted for.");
 
-      append(" becaz I'm a lolcat!");
-      SimpleTest.executeSoon(function() {
-      gMisspeltWords.push("becaz");
-      gMisspeltWords.push("lolcat");
-      is(isSpellingCheckOk(), true, "All misspellings after typing are accounted for.");
-
-      SimpleTest.finish();
-      });
+  SimpleTest.finish();
   });
 }
 
