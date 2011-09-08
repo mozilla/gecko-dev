@@ -347,8 +347,7 @@ protected:
 
   nsresult SetTextInternal(PRUint32 aOffset, PRUint32 aCount,
                            const PRUnichar* aBuffer, PRUint32 aLength,
-                           PRBool aNotify,
-                           CharacterDataChangeInfo::Details* aDetails = nsnull);
+                           PRBool aNotify);
 
   /**
    * Method to clone this node. This needs to be overriden by all derived

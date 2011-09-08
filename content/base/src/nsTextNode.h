@@ -83,9 +83,6 @@ public:
 
   virtual nsXPCClassInfo* GetClassInfo();
 
-  nsresult AppendTextForNormalize(const PRUnichar* aBuffer, PRUint32 aLength,
-                                  PRBool aNotify, nsIContent* aNextSibling);
-
 #ifdef DEBUG
   virtual void List(FILE* out, PRInt32 aIndent) const;
   virtual void DumpContent(FILE* out, PRInt32 aIndent, PRBool aDumpAll) const;

@@ -130,7 +130,6 @@
 #include "nsCSSRuleProcessor.h"
 #include "nsRuleProcessorData.h"
 #include "nsPLDOMEvent.h"
-#include "nsTextNode.h"
 
 #ifdef MOZ_XUL
 #include "nsIXULDocument.h"
@@ -607,14 +606,13 @@ nsINode::Normalize()
                    "mutation events messed us up");
       if (!hasRemoveListeners ||
           (target && target->NodeType() == nsIDOMNode::TEXT_NODE)) {
-        nsTextNode* t = static_cast<nsTextNode*>(target);
         if (text->Is2b()) {
-          t->AppendTextForNormalize(text->Get2b(), text->GetLength(), PR_TRUE, node);
+          target->AppendText(text->Get2b(), text->GetLength(), PR_TRUE);
         }
         else {
           tmpStr.Truncate();
           text->AppendTo(tmpStr);
-          t->AppendTextForNormalize(tmpStr.get(), tmpStr.Length(), PR_TRUE, node);
+          target->AppendText(tmpStr.get(), tmpStr.Length(), PR_TRUE);
         }
       }
     }
