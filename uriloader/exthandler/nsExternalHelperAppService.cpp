@@ -1460,8 +1460,7 @@ nsresult nsExternalAppHandler::SetUpTempFile(nsIChannel * aChannel)
     tempLeafName.Append(ext);
   }
 
-#ifdef XP_WIN
-  // On windows, we need to temporarily create a dummy file with the correct
+  // We need to temporarily create a dummy file with the correct
   // file extension to determine the executable-ness, so do this before adding
   // the extra .part extension.
   nsCOMPtr<nsIFile> dummyFile;
@@ -1477,7 +1476,6 @@ nsresult nsExternalAppHandler::SetUpTempFile(nsIChannel * aChannel)
   // Store executable-ness then delete
   dummyFile->IsExecutable(&mTempFileIsExecutable);
   dummyFile->Remove(PR_FALSE);
-#endif
 
   // Add an additional .part to prevent the OS from running this file in the
   // default application.
@@ -1488,12 +1486,6 @@ nsresult nsExternalAppHandler::SetUpTempFile(nsIChannel * aChannel)
   NS_ENSURE_SUCCESS(rv, rv);
   rv = mTempFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
   NS_ENSURE_SUCCESS(rv, rv);
-
-#ifndef XP_WIN
-  // On other platforms, the file permission bits are used, so we can just call
-  // IsExecutable
-  mTempFile->IsExecutable(&mTempFileIsExecutable);
-#endif
 
   nsCOMPtr<nsIOutputStream> outputStream;
   rv = NS_NewLocalFileOutputStream(getter_AddRefs(outputStream), mTempFile,
