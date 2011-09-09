@@ -154,3 +154,5 @@ include $(topsrcdir)/config/rules.mk
 EXTRA_DSO_LDOPTS = "$(MOZ_DIRECTX_SDK_PATH)/lib/x86/d3d9.lib" \
                    "$(MOZ_DIRECTX_SDK_PATH)/lib/x86/d3dx9.lib" \
 		   "$(MOZ_DIRECTX_SDK_PATH)/lib/x86/D3DCompiler.lib"
+
+EXTRA_DSO_LDOPTS += $(MOZALLOC_LIB)

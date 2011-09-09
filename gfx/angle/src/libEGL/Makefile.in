@@ -145,3 +145,5 @@ EXTRA_DSO_LDOPTS = "$(MOZ_DIRECTX_SDK_PATH)/lib/x86/d3d9.lib" \
 		   dwmapi.lib \
 		   delayimp.lib \
 		   /delayload:dwmapi.dll
+
+EXTRA_DSO_LDOPTS += $(MOZALLOC_LIB)
