@@ -110,6 +110,7 @@
         <parameter name="aAddon"/>
         <parameter name="aInstall"/>
         <parameter name="aWasActive"/>
+        <parameter name="aDistroInstalled"/>
         <body><![CDATA[
           this._addon = aAddon;
           this._install = aInstall;
@@ -120,14 +121,24 @@
 
           // User and application installed add-ons default to staying enabled,
           // others default to disabled.
-          switch (aAddon.scope) {
+          let scope = aAddon.scope;
+          if (aDistroInstalled)
+            scope = AddonManager.SCOPE_APPLICATION;
+
+          switch (scope) {
+            case AddonManager.SCOPE_APPLICATION:
+#ifdef MOZ_SUITE
+              // Suite uses brandShortName on this branch due to a string freeze
+              this.setAttribute("source", this._appStrings.getString("brandShortName"));
+#else
+              // Pretend that anything installed by the app was User installed.
+              this.setAttribute("source", this._strings.getString("source.profile"));
+#endif
+              this._keep.checked = !aAddon.userDisabled;
+              break;
             case AddonManager.SCOPE_PROFILE:
               this._keep.checked = !aAddon.userDisabled;
               this.setAttribute("source", this._strings.getString("source.profile"));
-              break;
-            case AddonManager.SCOPE_APPLICATION:
-              this._keep.checked = !aAddon.userDisabled;
-              this.setAttribute("source", this._appStrings.getString("brandShortName"));
               break;
             default:
               this._keep.checked = false;
