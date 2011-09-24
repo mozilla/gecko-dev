@@ -7195,7 +7195,10 @@ var gPluginHandler = {
       let link = notification.ownerDocument.createElementNS(XULNS, "label");
       link.className = "text-link";
       link.setAttribute("value", gNavigatorBundle.getString("crashedpluginsMessage.learnMore"));
-      link.href = gPluginHandler.crashReportHelpURL;
+      let crashurl = formatURL("app.support.baseURL", true);
+      crashurl += "plugin-crashed-notificationbar";
+      link.href = crashurl;
+
       let description = notification.ownerDocument.getAnonymousElementByAttribute(notification, "anonid", "messageText");
       description.appendChild(link);
 
