@@ -327,7 +327,6 @@ var Browser = {
 #if MOZ_PLATFORM_MAEMO == 6
     os.addObserver(ViewableAreaObserver, "softkb-change", false);
 #endif
-   messageManager.addMessageListener("Content:IsKeyboardOpened", ViewableAreaObserver);
 
     window.QueryInterface(Ci.nsIDOMChromeWindow).browserDOMWindow = new nsBrowserAccess();
 
@@ -3145,10 +3144,6 @@ var ViewableAreaObserver = {
     }
     this.update();
 #endif
-  },
-
-  receiveMessage: function receiveMessage(aMessage) {
-    return this.isKeyboardOpened;
   },
 
   update: function va_update() {

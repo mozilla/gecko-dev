@@ -8,6 +8,8 @@ Cu.import("resource://gre/modules/Services.jsm");
 dump("!! remote browser loaded\n");
 
 let WebProgressListener = {
+  _lastLocation: null,
+
   init: function() {
     let flags = Ci.nsIWebProgress.NOTIFY_LOCATION |
                 Ci.nsIWebProgress.NOTIFY_SECURITY |
@@ -52,6 +54,10 @@ let WebProgressListener = {
     };
 
     sendAsyncMessage("Content:LocationChange", json);
+
+    // Keep track of hash changes
+    this.hashChanged = (location == this._lastLocation);
+    this._lastLocation = location;
 
     // When a new page is loaded fire a message for the first paint
     addEventListener("MozAfterPaint", function(aEvent) {
@@ -438,6 +444,15 @@ let DOMEvents =  {
           windowId: util.outerWindowID,
           persisted: aEvent.persisted
         };
+
+        // Clear onload focus to prevent the VKB to be shown unexpectingly
+        // but only if the location has really changed and not only the
+        // fragment identifier
+        let contentWindowID = content.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils).currentInnerWindowID;
+        if (!WebProgressListener.hashChanged && contentWindowID == util.currentInnerWindowID) {
+          let focusManager = Cc["@mozilla.org/focus-manager;1"].getService(Ci.nsIFocusManager);
+          focusManager.clearFocus(content);
+        }
 
         sendAsyncMessage(aEvent.type, json);
         break;
