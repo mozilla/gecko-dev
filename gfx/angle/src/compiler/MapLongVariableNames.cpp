@@ -10,20 +10,20 @@ namespace {
 
 TString mapLongName(int id, const TString& name, bool isVarying)
 {
-    ASSERT(name.size() > MAX_IDENTIFIER_NAME_SIZE);
+    ASSERT(name.size() > MAX_SHORTENED_IDENTIFIER_SIZE);
     TStringStream stream;
     stream << "webgl_";
     if (isVarying)
         stream << "v";
     stream << id << "_";
-    stream << name.substr(0, MAX_IDENTIFIER_NAME_SIZE - stream.str().size());
+    stream << name.substr(0, MAX_SHORTENED_IDENTIFIER_SIZE - stream.str().size());
     return stream.str();
 }
 
 }  // anonymous namespace
 
 MapLongVariableNames::MapLongVariableNames(
-    TMap<TString, TString>& varyingLongNameMap)
+    std::map<std::string, std::string>& varyingLongNameMap)
     : mVaryingLongNameMap(varyingLongNameMap)
 {
 }
@@ -31,7 +31,7 @@ MapLongVariableNames::MapLongVariableNames(
 void MapLongVariableNames::visitSymbol(TIntermSymbol* symbol)
 {
     ASSERT(symbol != NULL);
-    if (symbol->getSymbol().size() > MAX_IDENTIFIER_NAME_SIZE) {
+    if (symbol->getSymbol().size() > MAX_SHORTENED_IDENTIFIER_SIZE) {
         switch (symbol->getQualifier()) {
           case EvqVaryingIn:
           case EvqVaryingOut:
@@ -57,13 +57,13 @@ bool MapLongVariableNames::visitLoop(Visit, TIntermLoop* node)
 
 TString MapLongVariableNames::mapVaryingLongName(const TString& name)
 {
-    TMap<TString, TString>::const_iterator it = mVaryingLongNameMap.find(name);
+    std::map<std::string, std::string>::const_iterator it = mVaryingLongNameMap.find(name.c_str());
     if (it != mVaryingLongNameMap.end())
-        return (*it).second;
+        return (*it).second.c_str();
 
     int id = mVaryingLongNameMap.size();
     TString mappedName = mapLongName(id, name, true);
     mVaryingLongNameMap.insert(
-        TMap<TString, TString>::value_type(name, mappedName));
+        std::map<std::string, std::string>::value_type(name.c_str(), mappedName.c_str()));
     return mappedName;
 }

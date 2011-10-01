@@ -228,12 +228,24 @@ class VertexDeclarationCache
     VertexDeclarationCache();
     ~VertexDeclarationCache();
 
-    GLenum applyDeclaration(TranslatedAttribute attributes[], Program *program);
+    GLenum applyDeclaration(IDirect3DDevice9 *device, TranslatedAttribute attributes[], Program *program);
+
+    void markStateDirty();
 
   private:
     UINT mMaxLru;
 
     enum { NUM_VERTEX_DECL_CACHE_ENTRIES = 16 };
+
+    struct VBData
+    {
+        unsigned int serial;
+        unsigned int stride;
+        unsigned int offset;
+    };
+
+    VBData mAppliedVBs[MAX_VERTEX_ATTRIBS];
+    IDirect3DVertexDeclaration9 *mLastSetVDecl;
 
     struct VertexDeclCacheEntry
     {
@@ -409,8 +421,7 @@ class Context
     void clear(GLbitfield mask);
     void drawArrays(GLenum mode, GLint first, GLsizei count);
     void drawElements(GLenum mode, GLsizei count, GLenum type, const void *indices);
-    void finish();
-    void flush();
+    void sync(bool block);   // flush/finish
 
 	// Draw the last segment of a line loop
     void drawClosingLine(unsigned int first, unsigned int last);
@@ -485,6 +496,8 @@ class Context
     void initRendererString();
 
     const egl::Config *const mConfig;
+    egl::Display *mDisplay;
+    IDirect3DDevice9 *mDevice;
 
     State mState;
 
@@ -526,7 +539,15 @@ class Context
     unsigned int mAppliedRenderTargetSerial;
     unsigned int mAppliedDepthbufferSerial;
     unsigned int mAppliedStencilbufferSerial;
+    unsigned int mAppliedIBSerial;
     bool mDepthStencilInitialized;
+    bool mViewportInitialized;
+    D3DVIEWPORT9 mSetViewport;
+    bool mRenderTargetDescInitialized;
+    D3DSURFACE_DESC mRenderTargetDesc;
+    bool mDxUniformsDirty;
+    Program *mCachedCurrentProgram;
+    Framebuffer *mBoundDrawFramebuffer;
 
     bool mSupportsShaderModel3;
     bool mSupportsVertexTexture;
