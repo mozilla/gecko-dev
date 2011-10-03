@@ -788,7 +788,7 @@ protected:
                                nsNavHistoryQueryOptions* aOptions,
                                PRInt32 aQueryIndex,
                                nsCString* aClause);
-  nsresult BindQueryClauseParameters(mozIStorageStatement* statement,
+  nsresult BindQueryClauseParameters(mozIStorageBaseStatement* statement,
                                      PRInt32 aQueryIndex,
                                      nsNavHistoryQuery* aQuery,
                                      nsNavHistoryQueryOptions* aOptions);

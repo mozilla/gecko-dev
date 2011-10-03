@@ -5369,8 +5369,8 @@ nsNavHistory::AsyncExecuteLegacyQueries(nsINavHistoryQuery** aQueries,
                                      paramsPresent, addParams);
   NS_ENSURE_SUCCESS(rv,rv);
 
-  nsCOMPtr<mozIStorageStatement> statement;
-  rv = mDBConn->CreateStatement(queryString, getter_AddRefs(statement));
+  nsCOMPtr<mozIStorageAsyncStatement> statement;
+  rv = mDBConn->CreateAsyncStatement(queryString, getter_AddRefs(statement));
 #ifdef DEBUG
   if (NS_FAILED(rv)) {
     nsCAutoString lastErrorString;
@@ -5833,7 +5833,7 @@ nsNavHistory::QueryToSelectClause(nsNavHistoryQuery* aQuery, // const
 //    THE BEHAVIOR SHOULD BE IN SYNC WITH QueryToSelectClause
 
 nsresult
-nsNavHistory::BindQueryClauseParameters(mozIStorageStatement* statement,
+nsNavHistory::BindQueryClauseParameters(mozIStorageBaseStatement* statement,
                                         PRInt32 aQueryIndex,
                                         nsNavHistoryQuery* aQuery, // const
                                         nsNavHistoryQueryOptions* aOptions)
@@ -7039,8 +7039,8 @@ nsNavHistory::FixInvalidFrecencies()
   // Note, we are not limiting ourselves to places with visits because we may
   // not have any if the place is a bookmark and we expired or deleted all the
   // visits.
-  nsCOMPtr<mozIStorageStatement> fixInvalidFrecenciesStmt;
-  nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+  nsCOMPtr<mozIStorageAsyncStatement> fixInvalidFrecenciesStmt;
+  nsresult rv = mDBConn->CreateAsyncStatement(NS_LITERAL_CSTRING(
       "UPDATE moz_places "
       "SET frecency = CALCULATE_FRECENCY(id) "
       "WHERE frecency < 0"),
