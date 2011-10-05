@@ -1309,6 +1309,8 @@ var AddonDatabase = {
 
     try {
       this.connection = Services.storage.openUnsharedDatabase(dbfile);
+      if (this.connection.schemaVersion > DB_SCHEMA)
+        throw "Unknown database schema";
     } catch (e) {
       this.initialized = false;
       ERROR("Failed to open database", e);
