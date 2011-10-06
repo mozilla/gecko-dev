@@ -117,7 +117,6 @@ let SyncScheduler = {
       case "weave:service:sync:start":
         // Clear out any potentially pending syncs now that we're syncing
         this.clearSyncTriggers();
-        this.nextSync = 0;
 
         // reset backoff info, if the server tells us to continue backing off,
         // we'll handle that later
@@ -126,6 +125,7 @@ let SyncScheduler = {
         this.globalScore = 0;
         break;
       case "weave:service:sync:finish":
+        this.nextSync = 0;
         this.adjustSyncInterval();
 
         let sync_interval;
@@ -164,6 +164,7 @@ let SyncScheduler = {
         // should still be updated so that the next sync has a correct interval.
         this.updateClientMode();
         this.adjustSyncInterval();
+        this.nextSync = 0;
         this.handleSyncError();
         break;
       case "weave:service:backoff:interval":
@@ -215,7 +216,7 @@ let SyncScheduler = {
           this._log.trace("Genuine return from idle. Syncing.");
           // Trigger a sync if we have multiple clients.
           if (this.numClients > 1) {
-            Utils.nextTick(Weave.Service.sync, Weave.Service);
+            this.scheduleNextSync(0);
           }
         }, IDLE_OBSERVER_BACK_DELAY, this, "idleDebouncerTimer");
         break;
@@ -327,14 +328,23 @@ let SyncScheduler = {
    * Set a timer for the next sync
    */
   scheduleNextSync: function scheduleNextSync(interval) {
-    // Figure out when to sync next if not given a interval to wait
-    if (interval == null || interval == undefined) {
-      // Check if we had a pending sync from last time
-      if (this.nextSync != 0)
-        interval = Math.min(this.syncInterval, (this.nextSync - Date.now()));
-      // Use the bigger of default sync interval and backoff
-      else
-        interval = Math.max(this.syncInterval, Status.backoffInterval);
+    // If no interval was specified, use the current sync interval.
+    if (interval == null) {
+      interval = this.syncInterval;
+    }
+
+    // Ensure the interval is set to no less than the backoff.
+    if (Status.backoffInterval && interval < Status.backoffInterval) {
+      interval = Status.backoffInterval;
+    }
+
+    if (this.nextSync != 0) {
+      // There's already a sync scheduled. Don't reschedule if that's already
+      // going to happen sooner than requested.
+      let currentInterval = this.nextSync - Date.now();
+      if (currentInterval < interval) {
+        return;
+      }
     }
 
     // Start the sync right away if we're already late
