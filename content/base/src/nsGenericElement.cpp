@@ -4424,8 +4424,7 @@ nsGenericElement::AddScriptEventListener(nsIAtom* aEventName,
 
   NS_PRECONDITION(aEventName, "Must have event name!");
   PRBool defer = PR_TRUE;
-  nsEventListenerManager* manager = GetEventListenerManagerForAttr(aEventName,
-                                                                   &defer);
+  nsEventListenerManager* manager = GetEventListenerManagerForAttr(&defer);
   if (!manager) {
     return NS_OK;
   }
@@ -4702,8 +4701,7 @@ nsGenericElement::SetMappedAttribute(nsIDocument* aDocument,
 }
 
 nsEventListenerManager*
-nsGenericElement::GetEventListenerManagerForAttr(nsIAtom* aAttrName,
-                                                 PRBool* aDefer)
+nsGenericElement::GetEventListenerManagerForAttr(PRBool* aDefer)
 {
   *aDefer = PR_TRUE;
   return GetListenerManager(PR_TRUE);

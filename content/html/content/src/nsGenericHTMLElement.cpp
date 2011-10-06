@@ -1235,24 +1235,11 @@ nsGenericHTMLElement::AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
 }
 
 nsEventListenerManager*
-nsGenericHTMLElement::GetEventListenerManagerForAttr(nsIAtom* aAttrName,
-                                                     PRBool* aDefer)
+nsGenericHTMLElement::GetEventListenerManagerForAttr(PRBool* aDefer)
 {
   // Attributes on the body and frameset tags get set on the global object
-  if ((mNodeInfo->Equals(nsGkAtoms::body) ||
-       mNodeInfo->Equals(nsGkAtoms::frameset)) &&
-      // We only forward some event attributes from body/frameset to window
-      (0
-#define EVENT(name_, id_, type_, struct_) /* nothing */
-#define FORWARDED_EVENT(name_, id_, type_, struct_) \
-       || nsGkAtoms::on##name_ == aAttrName
-#define WINDOW_EVENT FORWARDED_EVENT
-#include "nsEventNameList.h"
-#undef WINDOW_EVENT
-#undef FORWARDED_EVENT
-#undef EVENT
-       )
-      ) {
+  if (mNodeInfo->Equals(nsGkAtoms::body) ||
+      mNodeInfo->Equals(nsGkAtoms::frameset)) {
     nsPIDOMWindow *win;
 
     // If we have a document, and it has a window, add the event
@@ -1278,8 +1265,7 @@ nsGenericHTMLElement::GetEventListenerManagerForAttr(nsIAtom* aAttrName,
     return nsnull;
   }
 
-  return nsGenericHTMLElementBase::GetEventListenerManagerForAttr(aAttrName,
-                                                                  aDefer);
+  return nsGenericHTMLElementBase::GetEventListenerManagerForAttr(aDefer);
 }
 
 nsresult

@@ -607,7 +607,7 @@ protected:
                                 const nsAString* aValue, PRBool aNotify);
 
   virtual nsEventListenerManager*
-    GetEventListenerManagerForAttr(nsIAtom* aAttrName, PRBool* aDefer);
+    GetEventListenerManagerForAttr(PRBool* aDefer);
 
   virtual const nsAttrName* InternalGetExistingAttrNameFromQName(const nsAString& aStr) const;
 
