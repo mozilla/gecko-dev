@@ -368,6 +368,7 @@ case "$target" in
     AR="$android_toolchain"/bin/"$android_tool_prefix"-ar
     RANLIB="$android_toolchain"/bin/"$android_tool_prefix"-ranlib
     STRIP="$android_toolchain"/bin/"$android_tool_prefix"-strip
+    OBJCOPY="$android_toolchain"/bin/"$android_tool_prefix"-objcopy
 
     if test -n "$MOZ_ANDROID_LIBSTDCXX" ; then
        if test ! -e "$android_ndk/sources/cxx-stl/gnu-libstdc++/libs/armeabi-v7a/libstdc++.a" ; then
@@ -431,6 +432,9 @@ case "$target" in
     MOZ_CHROME_FILE_FORMAT=omni
     ZLIB_DIR=yes
     ;;
+*-linux*)
+    AC_PATH_PROG(OBJCOPY,objcopy)
+    ;;
 esac
 
 AC_SUBST(ANDROID_NDK)
@@ -439,6 +443,7 @@ AC_SUBST(ANDROID_PLATFORM)
 AC_SUBST(ANDROID_SDK)
 AC_SUBST(ANDROID_PLATFORM_TOOLS)
 AC_SUBST(ANDROID_PACKAGE_NAME)
+AC_SUBST(OBJCOPY)
 
 dnl ========================================================
 dnl Checks for compilers.
