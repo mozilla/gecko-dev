@@ -637,7 +637,7 @@ protected:
                                   nsAttrValue& aResult);
 
     virtual nsEventListenerManager*
-      GetEventListenerManagerForAttr(nsIAtom* aAttrName, PRBool* aDefer);
+      GetEventListenerManagerForAttr(PRBool* aDefer);
   
     /**
      * Return our prototype's attribute, if one exists.
