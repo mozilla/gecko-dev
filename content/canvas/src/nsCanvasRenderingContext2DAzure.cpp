@@ -3692,8 +3692,7 @@ nsCanvasRenderingContext2DAzure::DrawImage(nsIDOMElement *imgElt, float a1,
         if (srcSurf && mCanvasElement) {
           // Do security check here.
           CanvasUtils::DoDrawImageSecurityCheck(HTMLCanvasElement(),
-                                                content->NodePrincipal(), canvas->IsWriteOnly(),
-                                                false);
+                                                content->NodePrincipal(), canvas->IsWriteOnly());
 
           imgSize = gfxIntSize(srcSurf->GetSize().width, srcSurf->GetSize().height);
         }
