@@ -262,8 +262,6 @@ class nsHashKey;
 #define NS_MOUSE_ENTER_SYNTH            (NS_MOUSE_MESSAGE_START + 31)
 #define NS_MOUSE_EXIT_SYNTH             (NS_MOUSE_MESSAGE_START + 32)
 #define NS_MOUSE_MOZHITTEST             (NS_MOUSE_MESSAGE_START + 33)
-#define NS_MOUSEENTER                   (NS_MOUSE_MESSAGE_START + 34)
-#define NS_MOUSELEAVE                   (NS_MOUSE_MESSAGE_START + 35)
 
 #define NS_CONTEXTMENU_MESSAGE_START    500
 #define NS_CONTEXTMENU                  (NS_CONTEXTMENU_MESSAGE_START)
@@ -881,16 +879,8 @@ protected:
       acceptActivation(PR_FALSE), ignoreRootScrollFrame(PR_FALSE),
       reason(aReason), context(eNormal), exit(eChild), clickCount(0)
   {
-    switch (msg) {
-      case NS_MOUSE_MOVE:
-        flags |= NS_EVENT_FLAG_CANT_CANCEL;
-        break;
-      case NS_MOUSEENTER:
-      case NS_MOUSELEAVE:
-        flags |= (NS_EVENT_FLAG_CANT_CANCEL & NS_EVENT_FLAG_CANT_BUBBLE);
-        break;
-      default:
-        break;
+    if (msg == NS_MOUSE_MOVE) {
+      flags |= NS_EVENT_FLAG_CANT_CANCEL;
     }
   }
 
@@ -902,22 +892,12 @@ public:
       acceptActivation(PR_FALSE), ignoreRootScrollFrame(PR_FALSE),
       reason(aReason), context(aContext), exit(eChild), clickCount(0)
   {
-    switch (msg) {
-      case NS_MOUSE_MOVE:
-        flags |= NS_EVENT_FLAG_CANT_CANCEL;
-        break;
-      case NS_MOUSEENTER:
-      case NS_MOUSELEAVE:
-        flags |= (NS_EVENT_FLAG_CANT_CANCEL | NS_EVENT_FLAG_CANT_BUBBLE);
-        break;
-      case NS_CONTEXTMENU:
-        button = (context == eNormal) ? eRightButton : eLeftButton;
-        break;
-      default:
-        break;
+    if (msg == NS_MOUSE_MOVE) {
+      flags |= NS_EVENT_FLAG_CANT_CANCEL;
+    } else if (msg == NS_CONTEXTMENU) {
+      button = (context == eNormal) ? eRightButton : eLeftButton;
     }
   }
-
 #ifdef NS_DEBUG
   ~nsMouseEvent() {
     NS_WARN_IF_FALSE(message != NS_CONTEXTMENU ||

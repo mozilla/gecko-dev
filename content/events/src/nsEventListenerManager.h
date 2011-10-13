@@ -232,8 +232,6 @@ public:
    */
   PRBool MayHaveTouchEventListener() { return mMayHaveTouchEventListener; }
 
-  PRBool MayHaveMouseEnterLeaveEventListener() { return mMayHaveMouseEnterLeaveEventListener; }
-
   PRInt64 SizeOf() const;
 protected:
   nsresult HandleEventSubType(nsListenerStruct* aListenerStruct,
@@ -304,8 +302,7 @@ protected:
   PRUint32 mMayHaveSystemGroupListeners : 1;
   PRUint32 mMayHaveAudioAvailableEventListener : 1;
   PRUint32 mMayHaveTouchEventListener : 1;
-  PRUint32 mMayHaveMouseEnterLeaveEventListener : 1;
-  PRUint32 mNoListenerForEvent : 25;
+  PRUint32 mNoListenerForEvent : 26;
 
   nsAutoTObserverArray<nsListenerStruct, 2> mListeners;
   nsISupports*                              mTarget;  //WEAK
