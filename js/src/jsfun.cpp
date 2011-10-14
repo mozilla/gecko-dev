@@ -1306,7 +1306,7 @@ fun_getProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp)
     if (!fp)
         return true;
 
-    while (!fp->isFunctionFrame() || fp->fun() != fun) {
+    while (!fp->isFunctionFrame() || fp->fun() != fun || fp->isEvalFrame()) {
         fp = fp->prev();
         if (!fp)
             return true;
