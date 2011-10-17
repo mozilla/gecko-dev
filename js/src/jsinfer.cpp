@@ -808,6 +808,10 @@ void ScriptAnalysis::breakTypeBarriers(JSContext *cx, uint32 offset, bool all)
 {
     pruneTypeBarriers(cx, offset);
 
+    bool resetResolving = !cx->compartment->types.resolving;
+    if (resetResolving)
+        cx->compartment->types.resolving = true;
+
     TypeBarrier **pbarrier = &getCode(offset).typeBarriers;
     while (*pbarrier) {
         TypeBarrier *barrier = *pbarrier;
@@ -832,6 +836,11 @@ void ScriptAnalysis::breakTypeBarriers(JSContext *cx, uint32 offset, bool all)
         } else {
             pbarrier = &barrier->next;
         }
+    }
+
+    if (resetResolving) {
+        cx->compartment->types.resolving = false;
+        cx->compartment->types.resolvePending(cx);
     }
 }
 
