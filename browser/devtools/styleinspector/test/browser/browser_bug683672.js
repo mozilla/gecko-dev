@@ -21,7 +21,6 @@ function test()
 function tabLoaded()
 {
   ok(window.StyleInspector, "StyleInspector exists");
-  ok(StyleInspector.isEnabled, "style inspector preference is enabled");
   stylePanel = StyleInspector.createPanel();
   Services.obs.addObserver(runTests, "StyleInspector-opened", false);
   stylePanel.openPopup();
