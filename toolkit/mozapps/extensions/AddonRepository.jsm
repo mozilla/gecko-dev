@@ -1320,7 +1320,7 @@ var AddonDatabase = {
       LOG("Deleting database, and attempting openConnection again");
       dbfile.remove(false);
       return this.openConnection(true);
-    }).bind(this);
+    }
 
     this.connection.executeSimpleSQL("PRAGMA locking_mode = EXCLUSIVE");
     if (dbMissing || this.connection.schemaVersion == 0)
