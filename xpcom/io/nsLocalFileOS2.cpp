@@ -1557,6 +1557,8 @@ nsLocalFile::CopyMove(nsIFile *aParentDir, const nsACString &newName, PRBool mov
 
             nsCOMPtr<nsISimpleEnumerator> targetIterator;
             rv = target->GetDirectoryEntries(getter_AddRefs(targetIterator));
+            if (NS_FAILED(rv))
+                return rv;
 
             PRBool more;
             targetIterator->HasMoreElements(&more);
