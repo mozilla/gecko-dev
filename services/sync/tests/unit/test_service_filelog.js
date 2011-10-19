@@ -10,10 +10,15 @@ const LOG_PREFIX_SUCCESS = "success-";
 const LOG_PREFIX_ERROR   = "error-";
 
 function run_test() {
+  initTestLogging("Trace");
+  Log4Moz.repository.getLogger("Sync.Service").level = Log4Moz.Level.Trace;
   run_next_test();
 }
 
 add_test(function test_noOutput() {
+  // Ensure that the log appender won't print anything.
+  Service._logAppender.level = Log4Moz.Level.Fatal + 1;
+
   // Clear log output from startup.
   Svc.Prefs.set("log.appender.file.logOnSuccess", false);
   Svc.Obs.notify("weave:service:sync:finish");
@@ -43,6 +48,7 @@ add_test(function test_logOnSuccess_false() {
     // No log file was written.
     do_check_false(logsdir.directoryEntries.hasMoreElements());
 
+    Service._logAppender.level = Log4Moz.Level.Trace;
     Svc.Prefs.resetBranch("");
     run_next_test();
   });
