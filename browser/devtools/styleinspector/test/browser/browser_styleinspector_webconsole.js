@@ -39,12 +39,21 @@
 
 const TEST_URI = "http://example.com/browser/browser/devtools/styleinspector/test/browser/browser_styleinspector_webconsole.htm";
 
+Cu.import("resource://gre/modules/Services.jsm");
+
 let doc;
 let jsterm;
 let hudBox;
 let stylePanels = [];
 
 function test() {
+  // This tests functionality that is disabled when the pref is not
+  // set.
+  if (!Services.prefs.getBoolPref("devtools.styleinspector.enabled")) {
+    finishTest();
+    return;
+  }
+
   addTab(TEST_URI);
   browser.addEventListener("DOMContentLoaded", prepConsole, false);
 }

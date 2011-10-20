@@ -994,10 +994,10 @@ pref("services.sync.prefs.sync.xpinstall.whitelist.required", true);
 pref("devtools.errorconsole.enabled", false);
 
 // Enable the Inspector
-pref("devtools.inspector.enabled", true);
+pref("devtools.inspector.enabled", false);
 
 // Enable the style inspector
-pref("devtools.styleinspector.enabled", true);
+pref("devtools.styleinspector.enabled", false);
 
 // Enable the Scratchpad tool.
 pref("devtools.scratchpad.enabled", true);
