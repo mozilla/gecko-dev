@@ -15,6 +15,7 @@ function createDocument()
     '</div>';
   doc.title = "Style Inspector Default Styles Test";
   ok(window.StyleInspector, "StyleInspector exists");
+  ok(StyleInspector.isEnabled, "style inspector preference is enabled");
   stylePanel = StyleInspector.createPanel();
   Services.obs.addObserver(runStyleInspectorTests, "StyleInspector-opened", false);
   stylePanel.openPopup(gBrowser.selectedBrowser, "end_before", 0, 0, false, false);
