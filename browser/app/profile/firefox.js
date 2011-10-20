@@ -1038,7 +1038,7 @@ pref("devtools.editor.expandtab", true);
 //   provides programmer-specific editor features such as syntax highlighting,
 //   indenting and bracket recognition. It may not be appropriate for all
 //   locales (esp. RTL) or a11y situations.
-pref("devtools.editor.component", "orion");
+pref("devtools.editor.component", "textarea");
 
 // Whether the character encoding menu is under the main Firefox button. This
 // preference is a string so that localizers can alter it.
