@@ -1618,6 +1618,9 @@ static void AdjustViews(nsIFrame* aFrame)
 static PRBool
 CanScrollWithBlitting(nsIFrame* aFrame)
 {
+  if (aFrame->GetStateBits() & NS_SCROLLFRAME_INVALIDATE_CONTENTS_ON_SCROLL)
+    return PR_FALSE;
+
   for (nsIFrame* f = aFrame; f;
        f = nsLayoutUtils::GetCrossDocParentFrame(f)) {
     if (nsSVGIntegrationUtils::UsingEffectsForFrame(f) ||
@@ -1731,6 +1734,7 @@ void nsGfxScrollFrameInner::ScrollVisual()
   // to be consistent with the frame hierarchy.
   PRUint32 flags = nsIFrame::INVALIDATE_REASON_SCROLL_REPAINT;
   PRBool canScrollWithBlitting = CanScrollWithBlitting(mOuter);
+  mOuter->RemoveStateBits(NS_SCROLLFRAME_INVALIDATE_CONTENTS_ON_SCROLL);
   if (IsScrollingActive()) {
     if (!canScrollWithBlitting) {
       MarkInactive();

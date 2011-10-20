@@ -49,6 +49,7 @@
 #include "nsRect.h"
 #include "nsRenderingContext.h"
 #include "nsTextFrame.h"
+#include "nsGfxScrollFrame.h"
 
 namespace mozilla {
 namespace css {
@@ -293,15 +294,10 @@ TextOverflow::DidProcessLines()
 {
   nsIScrollableFrame* scroll = nsLayoutUtils::GetScrollableFrameFor(mBlock);
   if (scroll) {
-    // Create a dummy item covering the entire area, it doesn't paint
-    // but reports true for IsVaryingRelativeToMovingFrame().
     nsIFrame* scrollFrame = do_QueryFrame(scroll);
-    nsDisplayItem* marker = new (mBuilder)
-      nsDisplayForcePaintOnScroll(mBuilder, scrollFrame);
-    if (marker) {
-      mMarkerList->AppendNewToBottom(marker);
-      mBlock->PresContext()->SetHasFixedBackgroundFrame();
-    }
+    // Make sure that the next time this scrollframe is scrolled, we invalidate
+    // its entire contents.
+    scrollFrame->AddStateBits(NS_SCROLLFRAME_INVALIDATE_CONTENTS_ON_SCROLL);
   }
 }
 
