@@ -40,6 +40,7 @@ let WeaveGlue = {
   setupData: null,
   jpake: null,
   _bundle: null,
+  _loginError: false,
 
   init: function init() {
     if (this._bundle)
@@ -253,7 +254,7 @@ let WeaveGlue = {
 
   tryConnect: function login() {
     // If Sync is not configured, simply show the setup dialog
-    if (Weave.Status.checkSetup() == Weave.CLIENT_NOT_CONFIGURED) {
+    if (this._loginError || Weave.Status.checkSetup() == Weave.CLIENT_NOT_CONFIGURED) {
       this.open();
       return;
     }
@@ -343,6 +344,7 @@ let WeaveGlue = {
       "weave:service:sync:start", "weave:service:sync:finish",
       "weave:service:sync:error", "weave:service:login:start",
       "weave:service:login:finish", "weave:service:login:error",
+      "weave:ui:login:error",
       "weave:service:logout:finish"];
 
     // For each topic, add WeaveGlue the observer
@@ -440,6 +442,11 @@ let WeaveGlue = {
       let dateStr = this._bundle.formatStringFromName("lastSync2.label", [syncDate], 1);
       sync.setAttribute("title", dateStr);
     }
+
+    if (aTopic == "weave:ui:login:error")
+      this._loginError = true;
+    else if (aTopic == "weave:service:login:finish")
+      this._loginError = false;
 
     // Show what went wrong with login if necessary
     if (aTopic == "weave:service:login:error") {
