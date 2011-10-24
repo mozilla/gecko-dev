@@ -220,6 +220,11 @@ function observeConsoleTest() {
   expect("log", "2, a, %l", 3);
   win.console.log("%d, %s, %l", 2, "a", 3);
 
+  // Bug #696288 handle object as first argument.
+  let obj = { a: 1 };
+  expect("log", obj, "a");
+  win.console.log(obj, "a");
+
   expect("dir", win.toString());
   win.console.dir(win);
 
