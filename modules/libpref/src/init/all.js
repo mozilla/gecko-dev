@@ -714,7 +714,12 @@ pref("network.http.keep-alive.timeout", 115);
 // Note: the socket transport service will clamp the number below 256 if the OS
 // cannot allocate that many FDs, and it also always tries to reserve up to 250
 // file descriptors for things other than sockets.   
+// -- windows using lower limit until bug 692260 resolved
+#ifdef XP_WIN
+pref("network.http.max-connections", 48);
+#else
 pref("network.http.max-connections", 256);
+#endif
 
 // limit the absolute number of http connections that can be established per
 // host.  if a http proxy server is enabled, then the "server" is the proxy
