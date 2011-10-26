@@ -236,6 +236,7 @@ nsDefaultURIFixup::CreateFixupURI(const nsACString& aStringURI, PRUint32 aFixupF
     PRBool bAsciiURI = IsASCII(uriString);
     PRBool bUseNonDefaultCharsetForURI =
                         !bAsciiURI &&
+                        !(aFixupFlags & FIXUP_FLAG_USE_UTF8) &&
                         (scheme.IsEmpty() ||
                          scheme.LowerCaseEqualsLiteral("http") ||
                          scheme.LowerCaseEqualsLiteral("https") ||
@@ -322,7 +323,7 @@ nsDefaultURIFixup::CreateFixupURI(const nsACString& aStringURI, PRUint32 aFixupF
             uriString.Assign(NS_LITERAL_CSTRING("http://") + uriString);
 
         // For ftp & http, we want to use system charset.
-        if (!bAsciiURI)
+        if (!bAsciiURI && !(aFixupFlags & FIXUP_FLAG_USE_UTF8))
           bUseNonDefaultCharsetForURI = PR_TRUE;
     } // end if checkprotocol
 
