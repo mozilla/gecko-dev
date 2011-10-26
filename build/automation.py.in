@@ -938,7 +938,7 @@ user_pref("camino.use_system_proxy_settings", false); // Camino-only, harmless t
       self.log.info("INFO | automation.py | Cannot install extension, invalid profileDir at: %s", profileDir)
       return
 
-    extnsdir = os.path.join(profileDir, "extensions")
+    extnsdir = os.path.join(profileDir, "extensions", "staged")
 
     if os.path.isfile(extensionSource):
       # Copy extension xpi directly.
