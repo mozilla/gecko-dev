@@ -120,26 +120,20 @@
           this.setAttribute("name", aAddon.name);
           this.setAttribute("type", aAddon.type);
 
-          // User and application installed add-ons default to staying enabled,
+          // User and bundled add-ons default to staying enabled,
           // others default to disabled.
-          let scope = aAddon.scope;
-          if (aDistroInstalled)
-            scope = AddonManager.SCOPE_APPLICATION;
-
-          switch (scope) {
-            case AddonManager.SCOPE_APPLICATION:
-#ifdef MOZ_SUITE
-              // Suite uses brandShortName on this branch due to a string freeze
-              this.setAttribute("source", this._appStrings.getString("brandShortName"));
-#else
-              // Pretend that anything installed by the app was User installed.
-              this.setAttribute("source", this._strings.getString("source.profile"));
-#endif
-              this._keep.checked = !aAddon.userDisabled;
-              break;
+          switch (aAddon.scope) {
             case AddonManager.SCOPE_PROFILE:
               this._keep.checked = !aAddon.userDisabled;
+#ifdef MOZ_SUITE
+              // Suite uses brandShortName on this branch due to a string freeze
+              if (aDistroInstalled)
+                this.setAttribute("source", this._appStrings.getString("brandShortName"));
+              else
+                this.setAttribute("source", this._strings.getString("source.profile"));
+#else
               this.setAttribute("source", this._strings.getString("source.profile"));
+#endif
               break;
             default:
               this._keep.checked = false;
