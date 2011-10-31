@@ -999,6 +999,9 @@ nsDOMEvent::GetEventPopupControlState(nsEvent *aEvent)
         if (::PopupAllowedForEvent("change"))
           abuse = openControlled;
         break;
+      case NS_XUL_COMMAND:
+        abuse = openControlled;
+        break;
       }
     }
     break;
