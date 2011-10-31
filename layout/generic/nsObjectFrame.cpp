@@ -751,7 +751,11 @@ nsObjectFrame::FixupWindow(const nsSize& aSize)
   NS_ENSURE_TRUE(window, /**/);
 
 #ifdef XP_MACOSX
+  nsWeakFrame weakFrame(this);
   mInstanceOwner->FixUpPluginWindow(nsPluginInstanceOwner::ePluginPaintDisable);
+  if (!weakFrame.IsAlive()) {
+    return;
+  }
 #endif
 
   PRBool windowless = (window->type == NPWindowTypeDrawable);
@@ -795,7 +799,11 @@ nsObjectFrame::CallSetWindow(PRBool aCheckIsHidden)
 
   nsPluginNativeWindow *window = (nsPluginNativeWindow *)win;
 #ifdef XP_MACOSX
+  nsWeakFrame weakFrame(this);
   mInstanceOwner->FixUpPluginWindow(nsPluginInstanceOwner::ePluginPaintDisable);
+  if (!weakFrame.IsAlive()) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
 #endif
 
   if (aCheckIsHidden && IsHidden())
