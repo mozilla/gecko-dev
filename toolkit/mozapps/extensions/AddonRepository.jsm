@@ -1309,6 +1309,10 @@ var AddonDatabase = {
 
     try {
       this.connection = Services.storage.openUnsharedDatabase(dbfile);
+      if (this.connection.schemaVersion > DB_SCHEMA) {
+        this.connection.close();
+        throw "Unknown database schema";
+      }
     } catch (e) {
       this.initialized = false;
       ERROR("Failed to open database", e);
@@ -1408,7 +1412,7 @@ var AddonDatabase = {
     try {
       return this.statementCache[aKey] = this.connection.createStatement(sql);
     } catch (e) {
-      ERROR("Error creating statement " + aKey + " (" + aSql + ")");
+      ERROR("Error creating statement " + aKey + " (" + sql + ")");
       throw e;
     }
   },
