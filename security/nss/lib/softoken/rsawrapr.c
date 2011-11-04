@@ -23,6 +23,7 @@
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ *   Hanno Boeck <hanno@hboeck.de>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -37,7 +38,7 @@
  * the terms of any one of the MPL, the GPL or the LGPL.
  *
  * ***** END LICENSE BLOCK ***** */
-/* $Id: rsawrapr.c,v 1.17 2010/08/07 18:10:35 wtc%google.com Exp $ */
+/* $Id: rsawrapr.c,v 1.19 2011/10/22 14:35:43 wtc%google.com Exp $ */
 
 #include "blapi.h"
 #include "softoken.h"
@@ -945,6 +946,53 @@ failure:
 }
 
 /*
+ * Mask generation function MGF1 as defined in PKCS #1 v2.1 / RFC 3447.
+ */
+static SECStatus
+MGF1(HASH_HashType hashAlg, unsigned char *mask, unsigned int maskLen,
+     const unsigned char *mgfSeed, unsigned int mgfSeedLen)
+{
+    unsigned int digestLen;
+    PRUint32 counter, rounds;
+    unsigned char *tempHash, *temp;
+    const SECHashObject *hash;
+    void *hashContext;
+    unsigned char C[4];
+
+    hash = HASH_GetRawHashObject(hashAlg);
+    if (hash == NULL)
+        return SECFailure;
+
+    hashContext = (*hash->create)();
+    rounds = (maskLen + hash->length - 1) / hash->length;
+    for (counter = 0; counter < rounds; counter++) {
+        C[0] = (unsigned char)((counter >> 24) & 0xff);
+        C[1] = (unsigned char)((counter >> 16) & 0xff);
+        C[2] = (unsigned char)((counter >> 8) & 0xff);
+        C[3] = (unsigned char)(counter & 0xff);
+
+        /* This could be optimized when the clone functions in
+         * rawhash.c are implemented. */
+        (*hash->begin)(hashContext);
+        (*hash->update)(hashContext, mgfSeed, mgfSeedLen); 
+        (*hash->update)(hashContext, C, sizeof C);
+
+        tempHash = mask + counter * hash->length;
+        if (counter != (rounds-1)) {
+            (*hash->end)(hashContext, tempHash, &digestLen, hash->length);
+        } else { /* we're in the last round and need to cut the hash */
+            temp = PORT_Alloc(hash->length);
+            (*hash->end)(hashContext, temp, &digestLen, hash->length);
+            PORT_Memcpy(tempHash, temp, maskLen - counter * hash->length);
+            PORT_Free(temp);
+        }
+    }
+    (*hash->destroy)(hashContext, PR_TRUE);
+
+    return SECSuccess;
+}
+
+/*
  * Encode a RSA-PSS signature.
  * Described in RFC 3447, section 9.1.1.
  * We use mHash instead of M as input.
@@ -1121,11 +1169,13 @@ emsa_pss_verify(const unsigned char *mHash,
 static HASH_HashType
 GetHashTypeFromMechanism(CK_MECHANISM_TYPE mech)
 {
-    /* TODO(wtc): add SHA-224. */
     switch (mech) {
         case CKM_SHA_1:
         case CKG_MGF1_SHA1:
 	    return HASH_AlgSHA1;
+        case CKM_SHA224:
+        case CKG_MGF1_SHA224:
+	    return HASH_AlgSHA224;
         case CKM_SHA256:
         case CKG_MGF1_SHA256:
 	    return HASH_AlgSHA256;

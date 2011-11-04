@@ -3679,8 +3679,8 @@ SECU_displayVerifyLog(FILE *outfile, CERTVerifyLog *log,
 		    }
 		}
 	    }
-	    fprintf(outfile,"  ERROR %ld: %s\n", node->error,
-						SECU_Strerror(node->error));
+	    fprintf(outfile, "  ERROR %ld: %s\n", node->error,
+			    SECU_Strerror(node->error));
 	    errstr = NULL;
 	    switch (node->error) {
 	    case SEC_ERROR_INADEQUATE_KEY_USAGE:
@@ -3763,6 +3763,8 @@ SECU_StringToSignatureAlgTag(const char *alg)
 	    hashAlgTag = SEC_OID_MD5;
 	} else if (!PL_strcmp(alg, "SHA1")) {
 	    hashAlgTag = SEC_OID_SHA1;
+	} else if (!PL_strcmp(alg, "SHA224")) {
+	    hashAlgTag = SEC_OID_SHA224;
 	} else if (!PL_strcmp(alg, "SHA256")) {
 	    hashAlgTag = SEC_OID_SHA256;
 	} else if (!PL_strcmp(alg, "SHA384")) {
