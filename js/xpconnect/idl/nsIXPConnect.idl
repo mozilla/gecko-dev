@@ -797,3 +797,12 @@ interface nsIXPConnect : nsISupports
      */
     [noscript] void setDebugModeWhenPossible(in boolean mode);
 };
+
+[uuid(44bf9047-914a-4f47-a1ec-e417927bacd1)]
+interface nsIXPConnect_MOZILLA_10_BRANCH : nsISupports
+{
+    // A 2-argument form of setDebugModeWhenPossible that allows
+    // controlling whether sync disable of debug mode is allowed.
+    [noscript] void setDebugModeWhenPossible(in boolean mode,
+                                             in boolean allowSyncDisable);
+};

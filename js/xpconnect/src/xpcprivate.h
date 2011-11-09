@@ -473,7 +473,8 @@ class nsXPConnect : public nsIXPConnect,
                     public nsCycleCollectionParticipant,
                     public nsIJSRuntimeService,
                     public nsIThreadJSContextStack,
-                    public nsIJSEngineTelemetryStats
+                    public nsIJSEngineTelemetryStats,
+                    public nsIXPConnect_MOZILLA_10_BRANCH
 {
 public:
     // all the interface method declarations...
@@ -484,6 +485,7 @@ public:
     NS_DECL_NSIJSCONTEXTSTACK
     NS_DECL_NSITHREADJSCONTEXTSTACK
     NS_DECL_NSIJSENGINETELEMETRYSTATS
+    NS_DECL_NSIXPCONNECT_MOZILLA_10_BRANCH
 
     // non-interface implementation
 public:

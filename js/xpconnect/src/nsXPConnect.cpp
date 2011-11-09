@@ -69,14 +69,15 @@
 #include "dombindings.h"
 #include "nsWrapperCacheInlines.h"
 
-NS_IMPL_THREADSAFE_ISUPPORTS7(nsXPConnect,
+NS_IMPL_THREADSAFE_ISUPPORTS8(nsXPConnect,
                               nsIXPConnect,
                               nsISupportsWeakReference,
                               nsIThreadObserver,
                               nsIJSRuntimeService,
                               nsIJSContextStack,
                               nsIThreadJSContextStack,
-                              nsIJSEngineTelemetryStats)
+                              nsIJSEngineTelemetryStats,
+                              nsIXPConnect_MOZILLA_10_BRANCH)
 
 nsXPConnect* nsXPConnect::gSelf = nsnull;
 JSBool       nsXPConnect::gOnceAliveNowDead = JS_FALSE;
@@ -2864,8 +2865,14 @@ nsXPConnect::Base64Decode(JSContext *cx, jsval val, jsval *out)
 NS_IMETHODIMP
 nsXPConnect::SetDebugModeWhenPossible(bool mode)
 {
+    return SetDebugModeWhenPossible(mode, false);
+}
+
+NS_IMETHODIMP
+nsXPConnect::SetDebugModeWhenPossible(bool mode, bool allowSyncDisable)
+{
     gDesiredDebugMode = mode;
-    if (!mode)
+    if (!mode && allowSyncDisable)
         CheckForDebugMode(mRuntime->GetJSRuntime());
     return NS_OK;
 }
