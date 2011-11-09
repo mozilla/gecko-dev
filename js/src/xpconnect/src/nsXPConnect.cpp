@@ -67,14 +67,15 @@
 
 #include "xpcquickstubs.h"
 
-NS_IMPL_THREADSAFE_ISUPPORTS7(nsXPConnect,
+NS_IMPL_THREADSAFE_ISUPPORTS8(nsXPConnect,
                               nsIXPConnect,
                               nsISupportsWeakReference,
                               nsIThreadObserver,
                               nsIJSRuntimeService,
                               nsIJSContextStack,
                               nsIThreadJSContextStack,
-                              nsIJSEngineTelemetryStats)
+                              nsIJSEngineTelemetryStats,
+                              nsIXPConnect_MOZILLA_10_BRANCH)
 
 nsXPConnect* nsXPConnect::gSelf = nsnull;
 JSBool       nsXPConnect::gOnceAliveNowDead = JS_FALSE;
@@ -2885,8 +2886,14 @@ nsXPConnect::Base64Decode(JSContext *cx, jsval val, jsval *out)
 NS_IMETHODIMP
 nsXPConnect::SetDebugModeWhenPossible(PRBool mode)
 {
+    return SetDebugModeWhenPossible(mode, PR_FALSE);
+}
+
+NS_IMETHODIMP
+nsXPConnect::SetDebugModeWhenPossible(PRBool mode, PRBool allowSyncDisable)
+{
     gDesiredDebugMode = mode;
-    if (!mode)
+    if (!mode && allowSyncDisable)
         CheckForDebugMode(mRuntime->GetJSRuntime());
     return NS_OK;
 }
