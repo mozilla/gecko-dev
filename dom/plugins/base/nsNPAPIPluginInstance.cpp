@@ -95,6 +95,7 @@ nsNPAPIPluginInstance::nsNPAPIPluginInstance(nsNPAPIPlugin* plugin)
     mWindowless(PR_FALSE),
     mWindowlessLocal(PR_FALSE),
     mTransparent(PR_FALSE),
+    mCached(PR_FALSE),
     mUsesDOMForCursor(PR_FALSE),
     mInPluginInitCall(PR_FALSE),
     mPlugin(plugin),
@@ -140,6 +141,12 @@ nsNPAPIPluginInstance::Destroy()
 {
   Stop();
   mPlugin = nsnull;
+}
+
+TimeStamp
+nsNPAPIPluginInstance::StopTime()
+{
+  return mStopTime;
 }
 
 nsresult nsNPAPIPluginInstance::Initialize(nsIPluginInstanceOwner* aOwner, const char* aMIMEType)
@@ -200,6 +207,7 @@ nsresult nsNPAPIPluginInstance::Stop()
   {
     AsyncCallbackAutoLock lock;
     mRunning = DESTROYING;
+    mStopTime = TimeStamp::Now();
   }
 
   OnPluginDestroy(&mNPP);
@@ -871,6 +879,19 @@ nsNPAPIPluginInstance::DefineJavaProperties()
     return NS_ERROR_FAILURE;
 
   return NS_OK;
+}
+
+nsresult
+nsNPAPIPluginInstance::SetCached(PRBool aCache)
+{
+  mCached = aCache;
+  return NS_OK;
+}
+
+PRBool
+nsNPAPIPluginInstance::ShouldCache()
+{
+  return mCached;
 }
 
 nsresult
