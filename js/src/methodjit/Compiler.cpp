@@ -6520,9 +6520,9 @@ mjit::Compiler::jsop_regexp()
         return;
     }
 
-    RegExpObject *reobj = obj->asRegExp();
+    RegExpPrivate *regexp = static_cast<RegExpObject *>(obj)->getPrivate();
 
-    DebugOnly<uint32> origFlags = reobj->getFlags();
+    DebugOnly<uint32> origFlags = regexp->getFlags();
     DebugOnly<uint32> staticsFlags = res->getFlags();
     JS_ASSERT((origFlags & staticsFlags) == staticsFlags);
 
@@ -6573,6 +6573,10 @@ mjit::Compiler::jsop_regexp()
 
     stubcc.masm.move(ImmPtr(obj), Registers::ArgReg1);
     OOL_STUBCALL(stubs::RegExp, REJOIN_FALLTHROUGH);
+
+    /* Bump the refcount on the wrapped RegExp. */
+    size_t *refcount = regexp->addressOfRefCount();
+    masm.add32(Imm32(1), AbsoluteAddress(refcount));
 
     frame.pushTypedPayload(JSVAL_TYPE_OBJECT, result);
 

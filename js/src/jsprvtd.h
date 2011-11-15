@@ -122,10 +122,8 @@ namespace js {
 struct ArgumentsData;
 struct Class;
 
-class RegExpObject;
 class RegExpPrivate;
 class RegExpStatics;
-class MatchPairs;
 
 enum RegExpFlag
 {
@@ -136,12 +134,6 @@ enum RegExpFlag
 
     NoFlags         = 0x00,
     AllFlags        = 0x0f
-};
-
-enum RegExpExecType
-{
-    RegExpExec,
-    RegExpTest
 };
 
 class AutoStringRooter;

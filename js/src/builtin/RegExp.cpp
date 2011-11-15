@@ -48,170 +48,56 @@
 using namespace js;
 using namespace js::types;
 
-class RegExpMatchBuilder
-{
-    JSContext   * const cx;
-    JSObject    * const array;
-
-    bool setProperty(JSAtom *name, Value v) {
-        return !!js_DefineProperty(cx, array, ATOM_TO_JSID(name), &v,
-                                   JS_PropertyStub, JS_StrictPropertyStub, JSPROP_ENUMERATE);
-    }
-
-  public:
-    RegExpMatchBuilder(JSContext *cx, JSObject *array) : cx(cx), array(array) {}
-
-    bool append(uint32 index, Value v) {
-        JS_ASSERT(!array->getOps()->getElement);
-        return !!js_DefineElement(cx, array, index, &v, JS_PropertyStub, JS_StrictPropertyStub,
-                                  JSPROP_ENUMERATE);
-    }
-
-    bool setIndex(int index) {
-        return setProperty(cx->runtime->atomState.indexAtom, Int32Value(index));
-    }
-
-    bool setInput(JSString *str) {
-        JS_ASSERT(str);
-        return setProperty(cx->runtime->atomState.inputAtom, StringValue(str));
-    }
-};
-
-static bool
-CreateRegExpMatchResult(JSContext *cx, JSString *input, const jschar *chars, size_t length,
-                        MatchPairs *matchPairs, Value *rval)
-{
-    /*
-     * Create the (slow) result array for a match.
-     *
-     * Array contents:
-     *  0:              matched string
-     *  1..pairCount-1: paren matches
-     *  input:          input string
-     *  index:          start index for the match
-     */
-    JSObject *array = NewSlowEmptyArray(cx);
-    if (!array)
-        return false;
-
-    if (!input) {
-        input = js_NewStringCopyN(cx, chars, length);
-        if (!input)
-            return false;
-    }
-
-    RegExpMatchBuilder builder(cx, array);
-
-    for (size_t i = 0; i < matchPairs->pairCount(); ++i) {
-        MatchPair pair = matchPairs->pair(i);
-
-        JSString *captured;
-        if (pair.isUndefined()) {
-            JS_ASSERT(i != 0); /* Since we had a match, first pair must be present. */
-            if (!builder.append(i, UndefinedValue()))
-                return false;
-        } else {
-            captured = js_NewDependentString(cx, input, pair.start, pair.length());
-            if (!captured || !builder.append(i, StringValue(captured)))
-                return false;
-        }
-    }
-
-    if (!builder.setIndex(matchPairs->pair(0).start) || !builder.setInput(input))
-        return false;
-
-    *rval = ObjectValue(*array);
-    return true;
-}
-
-template <class T>
-bool
-ExecuteRegExpImpl(JSContext *cx, RegExpStatics *res, T *re, JSLinearString *input,
-                  const jschar *chars, size_t length,
-                  size_t *lastIndex, RegExpExecType type, Value *rval)
-{
-    LifoAllocScope allocScope(&cx->tempLifoAlloc());
-    MatchPairs *matchPairs = NULL;
-    RegExpRunStatus status = re->execute(cx, chars, length, lastIndex, allocScope, &matchPairs);
-
-    switch (status) {
-      case RegExpRunStatus_Error:
-        return false;
-      case RegExpRunStatus_Success_NotFound:
-        *rval = NullValue();
-        return true;
-      default:
-        JS_ASSERT(status == RegExpRunStatus_Success);
-        JS_ASSERT(matchPairs);
-    }
-
-    if (res)
-        res->updateFromMatchPairs(cx, input, matchPairs);
-
-    *lastIndex = matchPairs->pair(0).limit;
-
-    if (type == RegExpTest) {
-        *rval = BooleanValue(true);
-        return true;
-    }
-
-    return CreateRegExpMatchResult(cx, input, chars, length, matchPairs, rval);
-}
-
-bool
-js::ExecuteRegExp(JSContext *cx, RegExpStatics *res, RegExpPrivate *rep, JSLinearString *input,
-                  const jschar *chars, size_t length,
-                  size_t *lastIndex, RegExpExecType type, Value *rval)
-{
-    return ExecuteRegExpImpl(cx, res, rep, input, chars, length, lastIndex, type, rval);
-}
-
-bool
-js::ExecuteRegExp(JSContext *cx, RegExpStatics *res, RegExpObject *reobj, JSLinearString *input,
-                  const jschar *chars, size_t length,
-                  size_t *lastIndex, RegExpExecType type, Value *rval)
-{
-    return ExecuteRegExpImpl(cx, res, reobj, input, chars, length, lastIndex, type, rval);
-}
-
-/* Note: returns the original if no escaping need be performed. */
-static JSLinearString *
-EscapeNakedForwardSlashes(JSContext *cx, JSLinearString *unescaped)
+/*
+ * Return:
+ * - The original if no escaping need be performed.
+ * - A new string if escaping need be performed.
+ * - NULL on error.
+ */
+static JSString *
+EscapeNakedForwardSlashes(JSContext *cx, JSString *unescaped)
 {
     size_t oldLen = unescaped->length();
-    const jschar *oldChars = unescaped->chars();
-
+    const jschar *oldChars = unescaped->getChars(cx);
+    if (!oldChars)
+        return NULL;
     JS::Anchor<JSString *> anchor(unescaped);
 
-    /* We may never need to use |sb|. Start using it lazily. */
-    StringBuffer sb(cx);
-
+    js::Vector<jschar, 128> newChars(cx);
     for (const jschar *it = oldChars; it < oldChars + oldLen; ++it) {
         if (*it == '/' && (it == oldChars || it[-1] != '\\')) {
-            /* There's a forward slash that needs escaping. */
-            if (sb.empty()) {
-                /* This is the first one we've seen, copy everything up to this point. */
-                if (!sb.reserve(oldLen + 1))
+            if (!newChars.length()) {
+                if (!newChars.reserve(oldLen + 1))
                     return NULL;
-                sb.infallibleAppend(oldChars, size_t(it - oldChars));
+                newChars.infallibleAppend(oldChars, size_t(it - oldChars));
             }
-            if (!sb.append('\\'))
+            if (!newChars.append('\\'))
                 return NULL;
         }
 
-        if (!sb.empty() && !sb.append(*it))
+        if (!newChars.empty() && !newChars.append(*it))
             return NULL;
     }
 
-    return sb.empty() ? unescaped : sb.finishString();
+    if (newChars.empty())
+        return unescaped;
+
+    size_t len = newChars.length();
+    if (!newChars.append('\0'))
+        return NULL;
+    jschar *chars = newChars.extractRawBuffer();
+    JSString *escaped = js_NewString(cx, chars, len);
+    if (!escaped)
+        cx->free_(chars);
+    return escaped;
 }
 
 static bool
 ResetRegExpObjectWithStatics(JSContext *cx, RegExpObject *reobj,
-                             JSLinearString *str, RegExpFlag flags = RegExpFlag(0))
+                             JSString *str, RegExpFlag flags = RegExpFlag(0))
 {
     flags = RegExpFlag(flags | cx->regExpStatics()->getFlags());
-    return reobj->reset(cx, str, flags);
+    return ResetRegExpObject(cx, reobj, str, flags);
 }
 
 /*
@@ -239,7 +125,7 @@ CompileRegExpObject(JSContext *cx, RegExpObject *obj, uintN argc, Value *argv, V
     if (ValueIsRegExp(sourceValue)) {
         /*
          * If we get passed in a |RegExpObject| source we return a new
-         * object with the same source/flags.
+         * object with the same |RegExpPrivate|.
          *
          * Note: the regexp static flags are not taken into consideration here.
          */
@@ -249,21 +135,23 @@ CompileRegExpObject(JSContext *cx, RegExpObject *obj, uintN argc, Value *argv, V
             return false;
         }
 
-        if (!obj->reset(cx, sourceObj.asRegExp()))
+        RegExpPrivate *rep = sourceObj.asRegExp()->getPrivate();
+        if (!rep)
+            return false;
+
+        rep->incref(cx);
+        if (!ResetRegExpObject(cx, obj, AlreadyIncRefed<RegExpPrivate>(rep)))
             return false;
         *rval = ObjectValue(*obj);
         return true;
     }
 
-    JSLinearString *sourceStr;
+    JSString *sourceStr;
     if (sourceValue.isUndefined()) {
         sourceStr = cx->runtime->emptyString;
     } else {
         /* Coerce to string and compile. */
-        JSString *str = js_ValueToString(cx, sourceValue);
-        if (!str)
-            return false;
-        sourceStr = str->ensureLinear(cx);
+        sourceStr = js_ValueToString(cx, sourceValue);
         if (!sourceStr)
             return false;
     }
@@ -278,11 +166,8 @@ CompileRegExpObject(JSContext *cx, RegExpObject *obj, uintN argc, Value *argv, V
             return false;
     }
 
-    JSLinearString *escapedSourceStr = EscapeNakedForwardSlashes(cx, sourceStr);
+    JSString *escapedSourceStr = EscapeNakedForwardSlashes(cx, sourceStr);
     if (!escapedSourceStr)
-        return false;
-
-    if (!RegExpPrivateCode::checkSyntax(cx, NULL, escapedSourceStr))
         return false;
 
     if (!ResetRegExpObjectWithStatics(cx, obj, escapedSourceStr, flags))
@@ -302,7 +187,9 @@ regexp_compile(JSContext *cx, uintN argc, Value *vp)
         return ok;
 
     RegExpObject *reobj = obj->asRegExp();
-    return CompileRegExpObject(cx, reobj, args.length(), args.array(), &args.rval());
+    ok = CompileRegExpObject(cx, reobj, args.length(), args.array(), &args.rval());
+    JS_ASSERT_IF(ok, reobj->getPrivate());
+    return ok;
 }
 
 static JSBool
@@ -326,10 +213,16 @@ regexp_construct(JSContext *cx, uintN argc, Value *vp)
     if (!obj)
         return false;
 
-    if (!CompileRegExpObject(cx, obj->asRegExp(), argc, argv, &JS_RVAL(cx, vp)))
-        return false;
+    PreInitRegExpObject pireo(obj);
+    RegExpObject *reobj = pireo.get();
 
-    *vp = ObjectValue(*obj);
+    if (!CompileRegExpObject(cx, reobj, argc, argv, &JS_RVAL(cx, vp))) {
+        pireo.fail();
+        return false;
+    }
+
+    pireo.succeed();
+    *vp = ObjectValue(*reobj);
     return true;
 }
 
@@ -463,9 +356,30 @@ js_InitRegExpClass(JSContext *cx, JSObject *obj)
     if (!proto)
         return NULL;
 
-    RegExpObject *reproto = proto->asRegExp();
-    if (!reproto->reset(cx, cx->runtime->emptyString, RegExpFlag(0)))
-        return NULL;
+    {
+        AlreadyIncRefed<RegExpPrivate> rep =
+          RegExpPrivate::create(cx, cx->runtime->emptyString, RegExpFlag(0), NULL);
+        if (!rep)
+            return NULL;
+
+        /*
+         * Associate the empty regular expression with |RegExp.prototype|, and define
+         * the initial non-method properties of any regular expression instance.
+         * These must be added before methods to preserve slot layout.
+         */
+#ifdef DEBUG
+        assertSameCompartment(cx, proto, rep->compartment);
+#endif
+
+        PreInitRegExpObject pireo(proto);
+        RegExpObject *reproto = pireo.get();
+        if (!ResetRegExpObject(cx, reproto, rep)) {
+            pireo.fail();
+            return NULL;
+        }
+
+        pireo.succeed();
+    }
 
     if (!DefinePropertiesAndBrand(cx, proto, NULL, regexp_methods))
         return NULL;
@@ -505,7 +419,7 @@ js_InitRegExpClass(JSContext *cx, JSObject *obj)
  * RegExp.prototype.test doesn't need to create a results array, and we use
  * |execType| to perform this optimization.
  */
-static bool
+static JSBool
 ExecuteRegExp(JSContext *cx, Native native, uintN argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
@@ -517,15 +431,15 @@ ExecuteRegExp(JSContext *cx, Native native, uintN argc, Value *vp)
         return ok;
 
     RegExpObject *reobj = obj->asRegExp();
-    RegExpPrivate *rep = reobj->getOrCreatePrivate(cx);
-    if (!rep)
+    RegExpPrivate *re = reobj->getPrivate();
+    if (!re)
         return true;
 
     /*
      * Code execution under this call could swap out the guts of |reobj|, so we
      * have to take a defensive refcount here.
      */
-    AutoRefCount<RegExpPrivate> arc(cx, NeedsIncRef<RegExpPrivate>(rep));
+    AutoRefCount<RegExpPrivate> arc(cx, NeedsIncRef<RegExpPrivate>(re));
     RegExpStatics *res = cx->regExpStatics();
 
     /* Step 2. */
@@ -534,10 +448,6 @@ ExecuteRegExp(JSContext *cx, Native native, uintN argc, Value *vp)
         return false;
 
     /* Step 3. */
-    JSLinearString *linearInput = input->ensureLinear(cx);
-    if (!linearInput)
-        return false;
-    const jschar *chars = linearInput->chars();
     size_t length = input->length();
 
     /* Step 4. */
@@ -549,7 +459,7 @@ ExecuteRegExp(JSContext *cx, Native native, uintN argc, Value *vp)
         return false;
 
     /* Steps 6-7 (with sticky extension). */
-    if (!rep->global() && !rep->sticky())
+    if (!re->global() && !re->sticky())
         i = 0;
 
     /* Step 9a. */
@@ -560,15 +470,12 @@ ExecuteRegExp(JSContext *cx, Native native, uintN argc, Value *vp)
     }
 
     /* Steps 8-21. */
-    RegExpExecType execType = native == regexp_test ? RegExpTest : RegExpExec;
     size_t lastIndexInt(i);
-    if (!ExecuteRegExp(cx, res, rep, linearInput, chars, length, &lastIndexInt, execType,
-                       &args.rval())) {
+    if (!re->execute(cx, res, input, &lastIndexInt, native == regexp_test, &args.rval()))
         return false;
-    }
 
     /* Step 11 (with sticky extension). */
-    if (rep->global() || (!args.rval().isNull() && rep->sticky())) {
+    if (re->global() || (!args.rval().isNull() && re->sticky())) {
         if (args.rval().isNull())
             reobj->zeroLastIndex();
         else
