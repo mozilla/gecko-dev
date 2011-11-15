@@ -560,7 +560,7 @@ ExecuteRegExp(JSContext *cx, Native native, uintN argc, Value *vp)
     }
 
     /* Steps 8-21. */
-    RegExpExecType execType = (native == regexp_test) ? RegExpTest : RegExpExec;
+    RegExpExecType execType = native == regexp_test ? RegExpTest : RegExpExec;
     size_t lastIndexInt(i);
     if (!ExecuteRegExp(cx, res, rep, linearInput, chars, length, &lastIndexInt, execType,
                        &args.rval())) {
