@@ -2663,8 +2663,7 @@ mjit::Compiler::generateMethod()
           END_CASE(JSOP_SETGNAME)
 
           BEGIN_CASE(JSOP_REGEXP)
-            if (!jsop_regexp())
-                return Compile_Error;
+            jsop_regexp();
           END_CASE(JSOP_REGEXP)
 
           BEGIN_CASE(JSOP_OBJECT)
@@ -6502,7 +6501,7 @@ mjit::Compiler::jsop_newinit()
     return true;
 }
 
-bool
+void
 mjit::Compiler::jsop_regexp()
 {
     JSObject *obj = script->getRegExp(fullAtomIndex(PC));
@@ -6518,7 +6517,7 @@ mjit::Compiler::jsop_regexp()
         masm.move(ImmPtr(obj), Registers::ArgReg1);
         INLINE_STUBCALL(stubs::RegExp, REJOIN_FALLTHROUGH);
         frame.pushSynced(JSVAL_TYPE_OBJECT);
-        return true;
+        return;
     }
 
     RegExpObject *reobj = obj->asRegExp();
@@ -6547,7 +6546,7 @@ mjit::Compiler::jsop_regexp()
                 Native native = callee->getFunctionPrivate()->maybeNative();
                 if (native == js::regexp_exec || native == js::regexp_test) {
                     frame.push(ObjectValue(*obj));
-                    return true;
+                    return;
                 }
             }
         } else if (JSOp(*use) == JSOP_CALL && which == 0) {
@@ -6560,19 +6559,11 @@ mjit::Compiler::jsop_regexp()
                     native == js::str_replace ||
                     native == js::str_split) {
                     frame.push(ObjectValue(*obj));
-                    return true;
+                    return;
                 }
             }
         }
     }
-
-    /*
-     * Force creation of the RegExpPrivate in the script's RegExpObject so we take it in the
-     * getNewObject template copy.
-     */
-    RegExpPrivate *rep = reobj->getOrCreatePrivate(cx);
-    if (!rep)
-        return false;
 
     RegisterID result = frame.allocReg();
     Jump emptyFreeList = masm.getNewObject(cx, result, obj);
@@ -6583,14 +6574,9 @@ mjit::Compiler::jsop_regexp()
     stubcc.masm.move(ImmPtr(obj), Registers::ArgReg1);
     OOL_STUBCALL(stubs::RegExp, REJOIN_FALLTHROUGH);
 
-    /* Bump the refcount on the wrapped RegExp. */
-    size_t *refcount = rep->addressOfRefCount();
-    masm.add32(Imm32(1), AbsoluteAddress(refcount));
-
     frame.pushTypedPayload(JSVAL_TYPE_OBJECT, result);
 
     stubcc.rejoin(Changes(1));
-    return true;
 }
 
 bool
