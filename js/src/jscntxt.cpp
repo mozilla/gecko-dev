@@ -111,7 +111,6 @@ ThreadData::ThreadData()
 #endif
     waiveGCQuota(false),
     tempLifoAlloc(TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE),
-    repCache(NULL),
     dtoaState(NULL),
     nativeStackBase(GetNativeStackBase()),
     pendingProxyOperation(NULL),
@@ -152,31 +151,6 @@ ThreadData::triggerOperationCallback(JSRuntime *rt)
     if (requestDepth != 0)
         JS_ATOMIC_INCREMENT(&rt->interruptCounter);
 #endif
-}
-
-RegExpPrivateCache *
-ThreadData::createRegExpPrivateCache(JSRuntime *rt)
-{
-    JS_ASSERT(!repCache);
-    RegExpPrivateCache *newCache = rt->new_<RegExpPrivateCache>(rt);
-
-    if (!newCache || !newCache->init()) {
-        rt->delete_<RegExpPrivateCache>(newCache);
-        return NULL;
-    }
-
-    repCache = newCache;
-    return repCache;
-}
-
-void
-ThreadData::purgeRegExpPrivateCache(JSRuntime *rt)
-{
-    if (!repCache)
-        return;
-
-    rt->delete_<RegExpPrivateCache>(repCache);
-    repCache = NULL;
 }
 
 } /* namespace js */
@@ -338,24 +312,6 @@ js_PurgeThreads(JSContext *cx)
     }
 #else
     cx->runtime->threadData.purge(cx);
-#endif
-}
-
-void
-js_PurgeThreads_PostGlobalSweep(JSContext *cx)
-{
-#ifdef JS_THREADSAFE
-    for (JSThread::Map::Enum e(cx->runtime->threads);
-         !e.empty();
-         e.popFront())
-    {
-        JSThread *thread = e.front().value;
-
-        JS_ASSERT(!JS_CLIST_IS_EMPTY(&thread->contextList));
-        thread->data.purgeRegExpPrivateCache(cx->runtime);
-    }
-#else
-    cx->runtime->threadData.purgeRegExpPrivateCache(cx->runtime);
 #endif
 }
 
