@@ -157,6 +157,33 @@ interface mozIThirdPartyUtil : nsISupports
   boolean isThirdPartyChannel(in nsIChannel aChannel, [optional] in nsIURI aURI);
 };
 
+/**
+ * Interface extension for branches only to avoid iid rev of mozIThirdPartyUtil.
+ * This interface has been merged with mozIThirdPartyUtil on trunk and will
+ * cease to exist in Firefox 10.
+ */
+[scriptable, uuid(bc92a019-c595-439a-9d1c-353d3ff80780)]
+interface mozIThirdPartyUtil_BRANCH : mozIThirdPartyUtil
+{
+  /**
+   * getBaseDomain
+   *
+   * Get the base domain for aHostURI; e.g. for "www.bbc.co.uk", this would be
+   * "bbc.co.uk". Only properly-formed URI's are tolerated, though a trailing
+   * dot may be present. If aHostURI is an IP address, an alias such as
+   * 'localhost', an eTLD such as 'co.uk', or the empty string, aBaseDomain will
+   * be the exact host. The result of this function should only be used in exact
+   * string comparisons, since substring comparisons will not be valid for the
+   * special cases elided above.
+   *
+   * @param aHostURI
+   *        The URI to analyze.
+   *
+   * @return the base domain.
+   */
+  AUTF8String getBaseDomain(in nsIURI aHostURI);
+};
+
 %{ C++
 /**
  * The mozIThirdPartyUtil implementation is an XPCOM service registered
