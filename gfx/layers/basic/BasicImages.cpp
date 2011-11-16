@@ -146,8 +146,9 @@ void
 BasicPlanarYCbCrImage::SetData(const Data& aData)
 {
   // Do some sanity checks to prevent integer overflow
-  if (aData.mYSize.width > 16384 || aData.mYSize.height > 16384) {
-    NS_ERROR("Illegal width or height");
+  if (aData.mYSize.width > PlanarYCbCrImage::MAX_DIMENSION ||
+      aData.mYSize.height > PlanarYCbCrImage::MAX_DIMENSION) {
+    NS_ERROR("Illegal image source width or height");
     return;
   }
   
@@ -168,6 +169,15 @@ BasicPlanarYCbCrImage::SetData(const Data& aData)
   // YCbCr to RGB conversion rather than on the RGB data when rendered.
   PRBool prescale = mScaleHint.width > 0 && mScaleHint.height > 0 &&
                     mScaleHint != aData.mPicSize;
+
+  gfxIntSize size(prescale ? mScaleHint.width : aData.mPicSize.width,
+                  prescale ? mScaleHint.height : aData.mPicSize.height);
+  if (size.width > PlanarYCbCrImage::MAX_DIMENSION ||
+      size.height > PlanarYCbCrImage::MAX_DIMENSION) {
+    NS_ERROR("Illegal image dest width or height");
+    return;
+  }
+
   if (format == gfxASurface::ImageFormatRGB16_565) {
 #if defined(HAVE_YCBCR_TO_RGB565)
     if (prescale &&
@@ -201,9 +211,6 @@ BasicPlanarYCbCrImage::SetData(const Data& aData)
     if (aData.mPicX != 0 || aData.mPicY != 0 || type == gfx::YV24)
       prescale = PR_FALSE;
   }
-
-  gfxIntSize size(prescale ? mScaleHint.width : aData.mPicSize.width,
-                  prescale ? mScaleHint.height : aData.mPicSize.height);
 
   mStride = gfxASurface::FormatStrideForWidth(format, size.width);
   mBuffer = AllocateBuffer(size.height * mStride);
