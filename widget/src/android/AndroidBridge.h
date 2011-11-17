@@ -199,9 +199,6 @@ public:
 
     void PerformHapticFeedback(bool aIsLongPress);
 
-    void Vibrate(const nsTArray<PRUint32>& aPattern);
-    void CancelVibrate();
-
     void SetFullScreen(bool aFullScreen);
 
     void ShowInputMethodPicker();
@@ -356,9 +353,6 @@ protected:
     jmethodID jShowInputMethodPicker;
     jmethodID jHideProgressDialog;
     jmethodID jPerformHapticFeedback;
-    jmethodID jVibrate1;
-    jmethodID jVibrateA;
-    jmethodID jCancelVibrate;
     jmethodID jSetKeepScreenOn;
     jmethodID jIsNetworkLinkUp;
     jmethodID jIsNetworkLinkKnown;

@@ -49,7 +49,6 @@ LIBXUL_LIBRARY  = 1
 EXPORTS		= \
 		nsEventStateManager.h \
 		nsEventListenerManager.h \
-		nsDOMEventTargetHelper.h \
 		$(NULL)
 		
 CPPSRCS		= \

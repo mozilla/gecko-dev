@@ -233,7 +233,6 @@ ContentChild* ContentChild::sSingleton;
 ContentChild::ContentChild()
 #ifdef ANDROID
  : mScreenSize(0, 0)
- , mID(PRUint64(-1))
 #endif
 {
 }
@@ -801,16 +800,6 @@ ContentChild::RecvAppInfo(const nsCString& version, const nsCString& buildID)
 {
     mAppInfo.version.Assign(version);
     mAppInfo.buildID.Assign(buildID);
-    return true;
-}
-
-bool
-ContentChild::RecvSetID(const PRUint64 &id)
-{
-    if (mID != PRUint64(-1)) {
-        NS_WARNING("Setting content child's ID twice?");
-    }
-    mID = id;
     return true;
 }
 
