@@ -94,15 +94,14 @@ var resultObserver = {
     this.movedNode = node;
   },
   openedContainer: null,
-  closedContainer: null,
-  containerStateChanged: function (aNode, aOldState, aNewState) {
-    if (aNewState == Ci.nsINavHistoryContainerResultNode.STATE_OPENED) {
-      this.openedContainer = aNode;
-    }
-    else if (aNewState == Ci.nsINavHistoryContainerResultNode.STATE_CLOSED) {
-      this.closedContainer = aNode;
-    }
+  containerOpened: function(node) {
+    this.openedContainer = node;
   },
+  closedContainer: null,
+  containerClosed: function(node) {
+    this.closedContainer = node;
+  },
+  containerStateChanged: function (node, oldState, newState) {},
   invalidatedContainer: null,
   invalidateContainer: function(node) {    
     this.invalidatedContainer = node;

@@ -137,6 +137,7 @@ PlacesController.prototype = {
   },
 
   supportsCommand: function PC_supportsCommand(aCommand) {
+    //LOG("supportsCommand: " + command);
     // Non-Places specific commands that we also support
     switch (aCommand) {
     case "cmd_undo":
@@ -775,6 +776,17 @@ PlacesController.prototype = {
                                       .getIdForItemAt(ip.itemId, ip.index);
       this._view.selectItems([insertedNodeId], false);
     }
+  },
+
+
+  /**
+   * Create a new Bookmark folder somewhere. Prompts the user for the name
+   * of the folder.
+   */
+  newFolder: function PC_newFolder() {
+    Cu.reportError("PlacesController.newFolder is deprecated and will be \
+                   removed in a future release.  Use newItem instead.");
+    this.newItem("folder");
   },
 
   /**
