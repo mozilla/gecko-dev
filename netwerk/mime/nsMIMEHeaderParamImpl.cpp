@@ -300,9 +300,7 @@ nsMIMEHeaderParamImpl::GetParameterInternal(const char *aHeaderValue,
       PRBool needUnescape = *(tokenEnd - 1) == '*';
       // the 1st line of a multi-line parameter or a single line  that needs 
       // unescaping. ( title*0*=  or  title*= )
-      // only allowed for token form, not for quoted-string
-      if (!needUnquote &&
-          ((*cp == '0' && needUnescape) || (tokenEnd - tokenStart == paramLen + 1)))
+      if ((*cp == '0' && needUnescape) || (tokenEnd - tokenStart == paramLen + 1))
       {
         // look for single quotation mark(')
         const char *sQuote1 = PL_strchr(valueStart, 0x27);
