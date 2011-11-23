@@ -367,14 +367,6 @@ CreateDatabaseConnection(const nsAString& aName,
 {
   NS_ASSERTION(!NS_IsMainThread(), "Wrong thread!");
 
-  nsCOMPtr<nsIFile> dbDirectory;
-  nsresult rv = aDBFile->GetParent(getter_AddRefs(dbDirectory));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  PRBool exists;
-  rv = aDBFile->Exists(&exists);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   NS_NAMED_LITERAL_CSTRING(quotaVFSName, "quota");
 
   nsCOMPtr<mozIStorageServiceQuotaManagement> ss =
@@ -382,14 +374,12 @@ CreateDatabaseConnection(const nsAString& aName,
   NS_ENSURE_TRUE(ss, NS_ERROR_FAILURE);
 
   nsCOMPtr<mozIStorageConnection> connection;
-  rv = ss->OpenDatabaseWithVFS(aDBFile, quotaVFSName,
-                               getter_AddRefs(connection));
+  nsresult rv = ss->OpenDatabaseWithVFS(aDBFile, quotaVFSName,
+                                        getter_AddRefs(connection));
   if (rv == NS_ERROR_FILE_CORRUPTED) {
     // Nuke the database file.  The web services can recreate their data.
     rv = aDBFile->Remove(PR_FALSE);
     NS_ENSURE_SUCCESS(rv, rv);
-
-    exists = PR_FALSE;
 
     rv = ss->OpenDatabaseWithVFS(aDBFile, quotaVFSName,
                                  getter_AddRefs(connection));
@@ -401,28 +391,28 @@ CreateDatabaseConnection(const nsAString& aName,
   rv = connection->GetSchemaVersion(&schemaVersion);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (schemaVersion != DB_SCHEMA_VERSION) {
-    if (exists) {
-      // If the connection is not at the right schema version, nuke it.
-      rv = aDBFile->Remove(PR_FALSE);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      rv = ss->OpenDatabaseWithVFS(aDBFile, quotaVFSName,
-                                   getter_AddRefs(connection));
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
+  if (!schemaVersion) {
+    // Brand new file, initialize our tables.
+    mozStorageTransaction transaction(connection, false,
+                                  mozIStorageConnection::TRANSACTION_IMMEDIATE);
 
     rv = CreateTables(connection);
     NS_ENSURE_SUCCESS(rv, rv);
 
     rv = CreateMetaData(connection, aName);
     NS_ENSURE_SUCCESS(rv, rv);
-  }
 
-  // Check to make sure that the database schema is correct again.
-  NS_ASSERTION(NS_SUCCEEDED(connection->GetSchemaVersion(&schemaVersion)) &&
-               schemaVersion == DB_SCHEMA_VERSION,
-               "CreateTables failed!");
+    rv = transaction.Commit();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    NS_ASSERTION(NS_SUCCEEDED(connection->GetSchemaVersion(&schemaVersion)) &&
+                 schemaVersion == DB_SCHEMA_VERSION,
+                 "CreateTables set a bad schema version!");
+  }
+  else if (schemaVersion != DB_SCHEMA_VERSION) {
+    NS_WARNING("Unable to open IndexedDB database, schema doesn't match");
+    return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
+  }
 
   // Turn on foreign key constraints.
   rv = connection->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
