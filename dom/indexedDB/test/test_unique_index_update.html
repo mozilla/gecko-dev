@@ -12,32 +12,35 @@
   <script type="text/javascript;version=1.7">
     function testSteps()
     {
-      let request = mozIndexedDB.open(window.location.pathname, 1);
+      let request = mozIndexedDB.open(window.location.pathname);
       request.onerror = errorHandler;
-      request.onupgradeneeded = grabEventAndContinueHandler;
       request.onsuccess = grabEventAndContinueHandler;
-
       let event = yield;
 
       let db = event.target.result;
 
-      for each (let autoIncrement in [false, true]) {
+      request = db.setVersion("1");
+      request.onerror = errorHandler;
+      request.onsuccess = grabEventAndContinueHandler;
+      event = yield;
+
+      for each (let name in ["1", "2"]) {
         let objectStore =
-          db.createObjectStore(autoIncrement, { keyPath: "id",
-                                                autoIncrement: autoIncrement });
-        objectStore.createIndex("", "index", { unique: true });
+          db.createObjectStore(name, { keyPath: "id",
+                                       autoIncrement: name == "2" });
+        objectStore.createIndex("1", "index", { unique: true });
 
         for (let i = 0; i < 10; i++) {
           objectStore.add({ id: i, index: i });
         }
       }
 
-      event = yield;
-      is(event.type, "success", "expect a success event");
+      event.target.transaction.oncomplete = continueToNextStep;
+      yield;
 
-      for each (let autoIncrement in [false, true]) {
-        objectStore = db.transaction(autoIncrement, IDBTransaction.READ_WRITE)
-                        .objectStore(autoIncrement);
+      for each (let name in ["1", "2"]) {
+        objectStore = db.transaction(name, IDBTransaction.READ_WRITE)
+                        .objectStore(name);
 
         request = objectStore.put({ id: 5, index: 6 });
         request.onsuccess = unexpectedSuccessHandler;
@@ -48,7 +51,7 @@
 
         let keyRange = IDBKeyRange.only(5);
 
-        objectStore.index("").openCursor(keyRange).onsuccess = function(event) {
+        objectStore.index("1").openCursor(keyRange).onsuccess = function(event) {
           let cursor = event.target.result;
           ok(cursor, "Must have a cursor here");
 

@@ -12,27 +12,28 @@
   <script type="text/javascript;version=1.7">
     function testSteps()
     {
-      let request = mozIndexedDB.open(window.location.pathname, 1);
+      let request = mozIndexedDB.open(window.location.pathname);
       request.onerror = errorHandler;
-      request.onupgradeneeded = grabEventAndContinueHandler;
       request.onsuccess = grabEventAndContinueHandler;
-
       let event = yield;
 
       let db = event.target.result;
       db.onerror = errorHandler;
 
-      for each (let autoIncrement in [false, true]) {
+      db.setVersion("1").onsuccess = grabEventAndContinueHandler;
+      event = yield;
+      dump("OK\n");
+      for each (let objectStoreName in ["1", "2"]) {
         let objectStore =
-          db.createObjectStore(autoIncrement, { keyPath: "id",
-                                                autoIncrement: autoIncrement });
+          db.createObjectStore(objectStoreName, { keyPath: "id",
+                                                  autoIncrement: objectStoreName == "2" });
 
         for (let i = 0; i < 10; i++) {
           objectStore.add({ id: i, index: i });
         }
 
-        for each (let unique in [false, true]) {
-          objectStore.createIndex(unique, "index", { unique: unique });
+        for each (let indexName in ["1", "2"]) {
+          objectStore.createIndex(indexName, "index", { unique: indexName == "2" });
         }
 
         for (let i = 10; i < 20; i++) {
@@ -40,33 +41,55 @@
         }
       }
 
-      event = yield;
-      is(event.type, "success", "expect a success event");
+      event.target.transaction.oncomplete = continueToNextStep;
+      yield;
 
-      for each (let autoIncrement in [false, true]) {
-        let objectStore = db.transaction(autoIncrement)
-                            .objectStore(autoIncrement);
+      for each (let objectStoreName in ["1", "2"]) {
+        let objectStore = db.transaction(objectStoreName)
+                            .objectStore(objectStoreName);
 
-        objectStore.count().onsuccess = grabEventAndContinueHandler;
-        let event = yield;
+        let objectStoreCount = 0;
+        objectStore.openCursor().onsuccess = function(event) {
+          let cursor = event.target.result;
+          if (cursor) {
+            objectStoreCount++;
+            cursor.continue();
+          }
+          else {
+            continueToNextStep();
+          }
+        };
+        yield;
 
-        is(event.target.result, 20, "Correct number of entries in objectStore");
+        is(objectStoreCount, 20, "Correct number of entries in objectStore");
 
-        let objectStoreCount = event.target.result;
-        let indexCount = event.target.result;
+        let indexCount = objectStoreCount;
 
-        for each (let unique in [false, true]) {
-          let index = db.transaction(autoIncrement, IDBTransaction.READ_WRITE)
-                        .objectStore(autoIncrement)
-                        .index(unique);
+        for each (let indexName in ["1", "2"]) {
+          let index = db.transaction(objectStoreName)
+                        .objectStore(objectStoreName)
+                        .index(indexName);
 
-          index.count().onsuccess = grabEventAndContinueHandler;
-          let event = yield;
+          let count = 0;
+          index.openKeyCursor().onsuccess = function(event) {
+            let cursor = event.target.result;
+            if (cursor) {
+              count++;
+              cursor.continue();
+            }
+            else {
+              continueToNextStep();
+            }
+          };
+          yield;
 
-          is(event.target.result, indexCount,
-             "Correct number of entries in index");
+          is(count, indexCount, "Correct number of entries in index");
 
-          let modifiedEntry = unique ? 5 : 10;
+          index = db.transaction(objectStoreName, IDBTransaction.READ_WRITE)
+                    .objectStore(objectStoreName)
+                    .index(indexName);
+
+          let modifiedEntry = indexName == "2" ? 5 : 10;
           let keyRange = IDBKeyRange.only(modifiedEntry);
 
           let sawEntry = false;
@@ -76,7 +99,7 @@
               sawEntry = true;
               is(cursor.key, modifiedEntry, "Correct key");
 
-              cursor.value.index = unique ? 30 : 35;
+              cursor.value.index = indexName == "2" ? 30 : 35;
               cursor.update(cursor.value).onsuccess = function(event) {
                 cursor.continue();
               }
@@ -90,17 +113,30 @@
           is(sawEntry, true, "Saw entry for key value " + modifiedEntry);
 
           // Recount index. Shouldn't change.
-          index = db.transaction(autoIncrement, IDBTransaction.READ_WRITE)
-                    .objectStore(autoIncrement)
-                    .index(unique);
+          index = db.transaction(objectStoreName)
+                    .objectStore(objectStoreName)
+                    .index(indexName);
 
-          index.count().onsuccess = grabEventAndContinueHandler;
-          event = yield;
+          count = 0;
+          index.openKeyCursor().onsuccess = function(event) {
+            let cursor = event.target.result;
+            if (cursor) {
+              count++;
+              cursor.continue();
+            }
+            else {
+              continueToNextStep();
+            }
+          };
+          yield;
 
-          is(event.target.result, indexCount,
-             "Correct number of entries in index");
+          is(count, indexCount, "Correct number of entries in index");
 
-          modifiedEntry = unique ? 30 : 35;
+          index = db.transaction(objectStoreName, IDBTransaction.READ_WRITE)
+                    .objectStore(objectStoreName)
+                    .index(indexName);
+
+          modifiedEntry = indexName == "2" ? 30 : 35;
           keyRange = IDBKeyRange.only(modifiedEntry);
 
           sawEntry = false;
@@ -125,23 +161,46 @@
           is(sawEntry, true, "Saw entry for key value " + modifiedEntry);
 
           // Recount objectStore. Should be unchanged.
-          objectStore = db.transaction(autoIncrement, IDBTransaction.READ_WRITE)
-                          .objectStore(autoIncrement);
+          objectStore = db.transaction(objectStoreName)
+                          .objectStore(objectStoreName);
 
-          objectStore.count().onsuccess = grabEventAndContinueHandler;
-          event = yield;
+          count = 0;
+          objectStore.openCursor().onsuccess = function(event) {
+            let cursor = event.target.result;
+            if (cursor) {
+              count++;
+              cursor.continue();
+            }
+            else {
+              continueToNextStep();
+            }
+          };
+          yield;
 
-          is(event.target.result, objectStoreCount,
-             "Correct number of entries in objectStore");
+          is(count, objectStoreCount, "Correct number of entries in objectStore");
 
           // Recount index. Should be one item less.
-          index = objectStore.index(unique);
+          index = db.transaction(objectStoreName)
+                    .objectStore(objectStoreName)
+                    .index(indexName);
 
-          index.count().onsuccess = grabEventAndContinueHandler;
-          event = yield;
+          count = 0;
+          index.openKeyCursor().onsuccess = function(event) {
+            let cursor = event.target.result;
+            if (cursor) {
+              count++;
+              cursor.continue();
+            }
+            else {
+              continueToNextStep();
+            }
+          };
+          yield;
 
-          is(event.target.result, indexCount,
-             "Correct number of entries in index");
+          is(count, indexCount, "Correct number of entries in index");
+
+          objectStore = db.transaction(objectStoreName, IDBTransaction.READ_WRITE)
+                          .objectStore(objectStoreName);
 
           modifiedEntry = objectStoreCount - 1;
 
@@ -152,17 +211,42 @@
           objectStoreCount--;
           indexCount--;
 
-          objectStore.count().onsuccess = grabEventAndContinueHandler;
-          event = yield;
+          objectStore = db.transaction(objectStoreName)
+                          .objectStore(objectStoreName);
 
-          is(event.target.result, objectStoreCount,
-             "Correct number of entries in objectStore");
+          count = 0;
+          objectStore.openCursor().onsuccess = function(event) {
+            let cursor = event.target.result;
+            if (cursor) {
+              count++;
+              cursor.continue();
+            }
+            else {
+              continueToNextStep();
+            }
+          };
+          yield;
 
-          index.count().onsuccess = grabEventAndContinueHandler;
-          event = yield;
+          is(count, objectStoreCount, "Correct number of entries in objectStore");
 
-          is(event.target.result, indexCount,
-             "Correct number of entries in index");
+          index = db.transaction(objectStoreName)
+                    .objectStore(objectStoreName)
+                    .index(indexName);
+
+          count = 0;
+          index.openKeyCursor().onsuccess = function(event) {
+            let cursor = event.target.result;
+            if (cursor) {
+              count++;
+              cursor.continue();
+            }
+            else {
+              continueToNextStep();
+            }
+          };
+          yield;
+
+          is(count, indexCount, "Correct number of entries in index");
         }
       }
 
