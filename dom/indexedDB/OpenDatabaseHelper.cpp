@@ -395,14 +395,6 @@ CreateDatabaseConnection(const nsAString& aName,
 {
   NS_ASSERTION(!NS_IsMainThread(), "Wrong thread!");
 
-  nsCOMPtr<nsIFile> dbDirectory;
-  nsresult rv = aDBFile->GetParent(getter_AddRefs(dbDirectory));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  bool exists;
-  rv = aDBFile->Exists(&exists);
-  NS_ENSURE_SUCCESS(rv, rv);
-
   NS_NAMED_LITERAL_CSTRING(quotaVFSName, "quota");
 
   nsCOMPtr<mozIStorageServiceQuotaManagement> ss =
@@ -410,14 +402,12 @@ CreateDatabaseConnection(const nsAString& aName,
   NS_ENSURE_TRUE(ss, NS_ERROR_FAILURE);
 
   nsCOMPtr<mozIStorageConnection> connection;
-  rv = ss->OpenDatabaseWithVFS(aDBFile, quotaVFSName,
-                               getter_AddRefs(connection));
+  nsresult rv = ss->OpenDatabaseWithVFS(aDBFile, quotaVFSName,
+                                        getter_AddRefs(connection));
   if (rv == NS_ERROR_FILE_CORRUPTED) {
     // Nuke the database file.  The web services can recreate their data.
     rv = aDBFile->Remove(false);
     NS_ENSURE_SUCCESS(rv, rv);
-
-    exists = false;
 
     rv = ss->OpenDatabaseWithVFS(aDBFile, quotaVFSName,
                                  getter_AddRefs(connection));
@@ -429,42 +419,41 @@ CreateDatabaseConnection(const nsAString& aName,
   rv = connection->GetSchemaVersion(&schemaVersion);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (schemaVersion != DB_SCHEMA_VERSION) {
+  if (!schemaVersion) {
+    // Brand new file, initialize our tables.
+    mozStorageTransaction transaction(connection, false,
+                                  mozIStorageConnection::TRANSACTION_IMMEDIATE);
+
+    rv = CreateTables(connection);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = CreateMetaData(connection, aName);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = transaction.Commit();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    NS_ASSERTION(NS_SUCCEEDED(connection->GetSchemaVersion(&schemaVersion)) &&
+                 schemaVersion == DB_SCHEMA_VERSION,
+                 "CreateTables set a bad schema version!");
+  }
+  else if (schemaVersion != DB_SCHEMA_VERSION) {
     // This logic needs to change next time we change the schema!
     PR_STATIC_ASSERT(DB_SCHEMA_VERSION == 5);
+
     if (schemaVersion == 4) {
       rv = UpgradeSchemaFrom4To5(connection);
       NS_ENSURE_SUCCESS(rv, rv);
+
+      rv = connection->GetSchemaVersion(&schemaVersion);
+      NS_ENSURE_SUCCESS(rv, rv);
     }
-    else {
-      // Nuke it from orbit, it's the only way to be sure.
-      if (exists) {
-        // If the connection is not at the right schema version, nuke it.
-        rv = aDBFile->Remove(false);
-        NS_ENSURE_SUCCESS(rv, rv);
 
-        rv = ss->OpenDatabaseWithVFS(aDBFile, quotaVFSName,
-                                     getter_AddRefs(connection));
-        NS_ENSURE_SUCCESS(rv, rv);
-      }
-
-      mozStorageTransaction transaction(connection, false,
-                                        mozIStorageConnection::TRANSACTION_IMMEDIATE);
-      rv = CreateTables(connection);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      rv = CreateMetaData(connection, aName);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      rv = transaction.Commit();
-      NS_ENSURE_SUCCESS(rv, rv);
+    if (schemaVersion != DB_SCHEMA_VERSION) {
+      NS_WARNING("Unable to open IndexedDB database, schema doesn't match");
+      return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
     }
   }
-
-  // Check to make sure that the database schema is correct again.
-  NS_ASSERTION(NS_SUCCEEDED(connection->GetSchemaVersion(&schemaVersion)) &&
-               schemaVersion == DB_SCHEMA_VERSION,
-               "CreateTables failed!");
 
   // Turn on foreign key constraints.
   rv = connection->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
