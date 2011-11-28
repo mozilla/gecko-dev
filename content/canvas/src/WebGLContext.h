@@ -1015,9 +1015,10 @@ public:
     }
 
     PRBool HasImageInfoAt(size_t level, size_t face) const {
-        return level <= mMaxLevelWithCustomImages &&
-               face < mFacesCount &&
-               ImageInfoAt(level, 0).mIsDefined;
+        CheckedUint32 checked_index = CheckedUint32(level) * mFacesCount + face;
+        return checked_index.valid() &&
+               checked_index.value() < mImageInfos.Length() &&
+               ImageInfoAt(level, face).mIsDefined;
     }
 
     static size_t FaceForTarget(WebGLenum target) {
