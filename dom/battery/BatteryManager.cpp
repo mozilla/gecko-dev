@@ -195,7 +195,7 @@ BatteryManager::Notify(const hal::BatteryInformation& aBatteryInfo)
 /* static */ bool
 BatteryManager::HasSupport()
 {
-  return Preferences::GetBool("dom.battery.enabled", true);
+  return Preferences::GetBool("dom.battery.enabled", false);
 }
 
 } // namespace battery

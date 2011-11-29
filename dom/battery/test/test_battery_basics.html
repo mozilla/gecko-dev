@@ -14,11 +14,7 @@
 
 /** Test for Battery API **/
 
-ok('mozBattery' in navigator, "navigator.mozBattery should exist");
-
-var battery = navigator.mozBattery;
-is(battery.level, 1.0, "Default battery level should be 1.0");
-is(battery.charging, true, "Default charging value should be true");
+ok(!('mozBattery' in navigator), "navigator.mozBattery shouldn't exist");
 
 </script>
 </pre>
