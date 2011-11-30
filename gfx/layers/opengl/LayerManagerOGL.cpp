@@ -996,10 +996,8 @@ LayerManagerOGL::SetupBackBuffer(int aWidth, int aHeight)
                                     mBackBufferTexture,
                                     0);
 
-  if (mGLContext->fCheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER) !=
-      LOCAL_GL_FRAMEBUFFER_COMPLETE) {
-    NS_RUNTIMEABORT("Error setting up framebuffer --- framebuffer not complete");
-  }
+  NS_ASSERTION(mGLContext->fCheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER) ==
+               LOCAL_GL_FRAMEBUFFER_COMPLETE, "Error setting up framebuffer.");
 
   mBackBufferSize.width = aWidth;
   mBackBufferSize.height = aHeight;
@@ -1157,12 +1155,8 @@ LayerManagerOGL::CreateFBOWithTexture(const nsIntRect& aRect, InitMode aInit,
                                     tex,
                                     0);
 
-  // Making this call to fCheckFramebufferStatus prevents a crash on
-  // PowerVR. See bug 695246.
-  if (mGLContext->fCheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER) !=
-      LOCAL_GL_FRAMEBUFFER_COMPLETE) {
-    NS_RUNTIMEABORT("Error setting up framebuffer --- framebuffer not complete");
-  }
+  NS_ASSERTION(mGLContext->fCheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER) ==
+               LOCAL_GL_FRAMEBUFFER_COMPLETE, "Error setting up framebuffer.");
 
   SetupPipeline(aRect.width, aRect.height, DontApplyWorldTransform);
   mGLContext->fScissor(0, 0, aRect.width, aRect.height);
