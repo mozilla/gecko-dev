@@ -396,7 +396,9 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameT
      mStylePosition->mMaxHeight.GetUnit() != eStyleUnit_Auto) ||
     mStylePosition->OffsetHasPercent(NS_SIDE_TOP) ||
     mStylePosition->mOffset.GetBottomUnit() != eStyleUnit_Auto ||
-    frame->IsBoxFrame();
+    frame->IsBoxFrame() ||
+    (mStylePosition->mHeight.GetUnit() == eStyleUnit_Auto &&
+     frame->GetIntrinsicSize().height.GetUnit() == eStyleUnit_Percent);
 
   if (mStyleText->mLineHeight.GetUnit() == eStyleUnit_Enumerated) {
     NS_ASSERTION(mStyleText->mLineHeight.GetIntValue() ==
