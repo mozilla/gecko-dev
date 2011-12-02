@@ -476,14 +476,11 @@ CheckParticipatesInCycleCollection(PRUint32 aLangID, void *aThing,
 {
     Closure *closure = static_cast<Closure*>(aClosure);
 
-    if(!closure->cycleCollectionEnabled &&
-       aLangID == nsIProgrammingLanguage::JAVASCRIPT &&
-       js_GetGCThingTraceKind(aThing) == JSTRACE_OBJECT)
-    {
-        closure->cycleCollectionEnabled =
-            xpc::ParticipatesInCycleCollection(closure->cx,
-                                               static_cast<JSObject*>(aThing));
-    }
+    closure->cycleCollectionEnabled =
+        aLangID == nsIProgrammingLanguage::JAVASCRIPT &&
+        AddToCCKind(js_GetGCThingTraceKind(aThing)) &&
+        xpc::ParticipatesInCycleCollection(closure->cx,
+                                           static_cast<js::gc::Cell*>(aThing));
 }
 
 static JSDHashOperator
@@ -493,7 +490,6 @@ NoteJSHolder(JSDHashTable *table, JSDHashEntryHdr *hdr, uint32 number,
     ObjectHolder* entry = reinterpret_cast<ObjectHolder*>(hdr);
     Closure *closure = static_cast<Closure*>(arg);
 
-    closure->cycleCollectionEnabled = PR_FALSE;
     entry->tracer->Trace(entry->holder, CheckParticipatesInCycleCollection,
                          closure);
     if(!closure->cycleCollectionEnabled)
