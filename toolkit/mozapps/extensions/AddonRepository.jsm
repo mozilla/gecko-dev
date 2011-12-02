@@ -21,6 +21,7 @@
 # Contributor(s):
 #   Dave Townsend <dtownsend@oxymoronical.com>
 #   Ben Parr <bparr@bparr.com>
+#   Blair McBride <bmcbride@mozilla.com>
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -74,6 +75,10 @@ XPCOMUtils.defineLazyGetter(this, "PREF_CHECK_COMPATIBILITY", function () {
 #endif
 });
 
+const PREF_EM_STRICT_COMPATIBILITY       = "extensions.strictCompatibility";
+// Note: This has to be kept in sync with the same constant in AddonManager.jsm
+const STRICT_COMPATIBILITY_DEFAULT       = true;
+
 const XMLURI_PARSE_ERROR  = "http://www.mozilla.org/newlayout/xml/parsererror.xml";
 
 const API_VERSION = "1.5";
@@ -81,7 +86,9 @@ const DEFAULT_CACHE_TYPES = "extension,theme,locale,dictionary";
 
 const KEY_PROFILEDIR = "ProfD";
 const FILE_DATABASE  = "addons.sqlite";
-const DB_SCHEMA      = 2;
+const DB_SCHEMA      = 3;
+
+const TOOLKIT_ID     = "toolkit@mozilla.org";
 
 ["LOG", "WARN", "ERROR"].forEach(function(aName) {
   this.__defineGetter__(aName, function() {
@@ -357,6 +364,12 @@ AddonSearchResult.prototype = {
   isPlatformCompatible: true,
 
   /**
+   * Array of AddonCompatibilityOverride objects, that describe overrides for
+   * compatibility with an application versions.
+   **/
+  compatibilityOverrides: null,
+
+  /**
    * True if the add-on has a secure means of updating
    */
   providesUpdatesSecurely: true,
@@ -609,8 +622,8 @@ var AddonRepository = {
     getAddonsToCache(aIds, function(aAddons) {
       // Completely remove cache if there are no add-ons to cache
       if (aAddons.length == 0) {
-        this._addons = null;
-        this._pendingCallbacks = null;
+        self._addons = null;
+        self._pendingCallbacks = null;
         AddonDatabase.delete(aCallback);
         return;
       }
@@ -758,12 +771,12 @@ var AddonRepository = {
     let url = this._formatURLPref(PREF_GETADDONS_BYIDS, params);
 
     let self = this;
-    function handleResults(aElements, aTotalResults) {
+    function handleResults(aElements, aTotalResults, aCompatData  ) {
       // Don't use this._parseAddons() so that, for example,
       // incompatible add-ons are not filtered out
       let results = [];
       for (let i = 0; i < aElements.length && results.length < self._maxResults; i++) {
-        let result = self._parseAddon(aElements[i]);
+        let result = self._parseAddon(aElements[i], null, aCompatData);
         if (result == null)
           continue;
 
@@ -775,6 +788,24 @@ var AddonRepository = {
         results.push(result);
         // Ignore this add-on from now on
         ids.splice(idIndex, 1);
+      }
+
+      // Include any compatibility overrides for addons not hosted by the
+      // remote repository.
+      for each (let addonCompat in aCompatData) {
+        if (addonCompat.hosted)
+          continue;
+
+        let addon = new AddonSearchResult(addonCompat.id);
+        // Compatibility overrides can only be for extensions.
+        addon.type = "extension";
+        addon.compatibilityOverrides = addonCompat.compatRanges;
+        let result = {
+          addon: addon,
+          xpiURL: null,
+          xpiHash: null
+        };
+        results.push(result);
       }
 
       // aTotalResults irrelevant
@@ -879,6 +910,14 @@ var AddonRepository = {
     return (elementsList.length == 1) ? elementsList[0] : null;
   },
 
+  // Get direct descendant by unique tag name.
+  // Returns null if not unique tag name.
+  _getUniqueDirectDescendant: function(aElement, aTagName) {
+    let elementsList = Array.filter(aElement.children,
+                                    function(aChild) aChild.tagName == aTagName);
+    return (elementsList.length == 1) ? elementsList[0] : null;
+  },
+
   // Parse out trimmed text content. Returns null if text content empty.
   _getTextContent: function(aElement) {
     let textContent = aElement.textContent.trim();
@@ -892,6 +931,14 @@ var AddonRepository = {
     return (descendant != null) ? this._getTextContent(descendant) : null;
   },
 
+  // Parse out trimmed text content of a direct descendant with the specified
+  // tag name.
+  // Returns null if the parsing unsuccessful.
+  _getDirectDescendantTextContent: function(aElement, aTagName) {
+    let descendant = this._getUniqueDirectDescendant(aElement, aTagName);
+    return (descendant != null) ? this._getTextContent(descendant) : null;
+  },
+
   /*
    * Creates an AddonSearchResult by parsing an <addon> element
    *
@@ -899,10 +946,13 @@ var AddonRepository = {
    *         The <addon> element to parse
    * @param  aSkip
    *         Object containing ids and sourceURIs of add-ons to skip.
+   * @param  aCompatData
+   *         Array of parsed addon_compatibility elements to accosiate with the
+   *         resulting AddonSearchResult. Optional.
    * @return Result object containing the parsed AddonSearchResult, xpiURL and
    *         xpiHash if the parsing was successful. Otherwise returns null.
    */
-  _parseAddon: function(aElement, aSkip) {
+  _parseAddon: function(aElement, aSkip, aCompatData) {
     let skipIDs = (aSkip && aSkip.ids) ? aSkip.ids : [];
     let skipSourceURIs = (aSkip && aSkip.sourceURIs) ? aSkip.sourceURIs : [];
 
@@ -916,6 +966,9 @@ var AddonRepository = {
       xpiURL: null,
       xpiHash: null
     };
+
+    if (aCompatData && guid in aCompatData)
+      addon.compatibilityOverrides = aCompatData[guid].compatRanges;
 
     let self = this;
     for (let node = aElement.firstChild; node; node = node.nextSibling) {
@@ -1109,6 +1162,11 @@ var AddonRepository = {
       checkCompatibility = Services.prefs.getBoolPref(PREF_CHECK_COMPATIBILITY);
     } catch(e) { }
 
+    let strictCompatibility = STRICT_COMPATIBILITY_DEFAULT;
+    try {
+      strictCompatibility = Services.prefs.getBoolPref(PREF_EM_STRICT_COMPATIBILITY);
+    } catch (e) {}
+
     function isSameApplication(aAppNode) {
       return self._getTextContent(aAppNode) == Services.appinfo.ID;
     }
@@ -1133,7 +1191,8 @@ var AddonRepository = {
 
         let currentVersion = Services.appinfo.version;
         return (Services.vc.compare(minVersion, currentVersion) <= 0 &&
-                Services.vc.compare(currentVersion, maxVersion) <= 0);
+                ((!strictCompatibility) ||
+                 Services.vc.compare(currentVersion, maxVersion) <= 0));
       });
 
       // Ignore add-ons not compatible with this Application
@@ -1145,7 +1204,9 @@ var AddonRepository = {
           continue;
       }
 
-      // Add-on meets all requirements, so parse out data
+      // Add-on meets all requirements, so parse out data.
+      // Don't pass in compatiblity override data, because that's only returned
+      // in GUID searches, which don't use _parseAddons().
       let result = this._parseAddon(element, aSkip);
       if (result == null)
         continue;
@@ -1200,6 +1261,83 @@ var AddonRepository = {
     });
   },
 
+  // Parses addon_compatibility nodes, that describe compatibility overrides.
+  _parseAddonCompatElement: function(aResultObj, aElement) {
+    let guid = this._getDescendantTextContent(aElement, "guid");
+    if (!guid)
+      return;
+
+    let compat = {id: guid};
+    compat.hosted = aElement.getAttribute("hosted") != "false";
+
+    function findMatchingAppRange(aNodes) {
+      let toolkitAppRange = null;
+      for (let i = 0; i < aNodes.length; i++) {
+        let node = aNodes[i];
+        let appID = this._getDescendantTextContent(node, "appID");
+        if (appID != Services.appinfo.ID && appID != TOOLKIT_ID)
+          continue;
+
+        let minVersion = this._getDescendantTextContent(node, "min_version");
+        let maxVersion = this._getDescendantTextContent(node, "max_version");
+        if (minVersion == null || maxVersion == null)
+          continue;
+
+        let appRange = { appID: appID,
+                         appMinVersion: minVersion,
+                         appMaxVersion: maxVersion };
+
+        // Only use Toolkit app ranges if no ranges match the application ID.
+        if (appID == TOOLKIT_ID)
+          toolkitAppRange = appRange;
+        else
+          return appRange;
+      }
+      return toolkitAppRange;
+    }
+
+    function parseRangeNode(aNode) {
+      let type = aNode.getAttribute("type");
+      // Only "incompatible" (blacklisting) is supported for now.
+      if (type != "incompatible")
+        return null;
+
+      let override = new AddonManagerPrivate.AddonCompatibilityOverride(type);
+
+      override.minVersion = this._getDirectDescendantTextContent(aNode, "min_version");
+      override.maxVersion = this._getDirectDescendantTextContent(aNode, "max_version");
+
+      if (!override.minVersion || !override.maxVersion)
+        return null;
+
+      let appRanges = aNode.querySelectorAll("compatible_applications > application");
+      let appRange = findMatchingAppRange.bind(this)(appRanges);
+      if (!appRange)
+        return null;
+
+      override.appID = appRange.appID;
+      override.appMinVersion = appRange.appMinVersion;
+      override.appMaxVersion = appRange.appMaxVersion;
+
+      return override;
+    }
+
+    let rangeNodes = aElement.querySelectorAll("version_ranges > version_range");
+    compat.compatRanges = Array.map(rangeNodes, parseRangeNode.bind(this))
+                               .filter(function(aItem) !!aItem);
+    if (compat.compatRanges.length == 0)
+      return;
+
+    aResultObj[compat.id] = compat;
+  },
+
+  // Parses addon_compatibility elements.
+  _parseAddonCompatData: function(aElements) {
+    let compatData = {};
+    Array.forEach(aElements, this._parseAddonCompatElement.bind(this, compatData));
+    return compatData;
+  },
+
   // Begins a new search if one isn't currently executing
   _beginSearch: function(aURI, aMaxResults, aCallback, aHandleResults) {
     if (this._searching || aURI == null || aMaxResults <= 0) {
@@ -1241,7 +1379,10 @@ var AddonRepository = {
       if (parsedTotalResults >= totalResults)
         totalResults = parsedTotalResults;
 
-      aHandleResults(elements, totalResults);
+      let compatElements = documentElement.getElementsByTagName("addon_compatibility");
+      let compatData = self._parseAddonCompatData(compatElements);
+
+      aHandleResults(elements, totalResults, compatData);
     }, false);
     this._request.send(null);
   },
@@ -1285,7 +1426,31 @@ var AddonRepository = {
     });
 
     return Services.urlFormatter.formatURL(url);
+  },
+
+  // Find a AddonCompatibilityOverride that matches a given aAddonVersion and
+  // application/platform version.
+  findMatchingCompatOverride: function AR_findMatchingCompatOverride(aAddonVersion,
+                                                                     aCompatOverrides) {
+    for (let i = 0; i < aCompatOverrides.length; i++) {
+      let override = aCompatOverrides[i];
+
+      let appVersion = null;
+      if (override.appID == TOOLKIT_ID)
+        appVersion = Services.appinfo.platformVersion;
+      else
+        appVersion = Services.appinfo.version;
+
+      if (Services.vc.compare(override.minVersion, aAddonVersion) <= 0 &&
+          Services.vc.compare(aAddonVersion, override.maxVersion) <= 0 &&
+          Services.vc.compare(override.appMinVersion, appVersion) <= 0 &&
+          Services.vc.compare(appVersion, override.appMaxVersion) <= 0) {
+        return override;
+      }
+    }
+    return null;
   }
+
 };
 AddonRepository.initialize();
 
@@ -1314,6 +1479,11 @@ var AddonDatabase = {
                        "thumbnailURL, thumbnailWidth, thumbnailHeight, caption " +
                        "FROM screenshot ORDER BY addon_internal_id, num",
 
+    getAllCompatOverrides: "SELECT addon_internal_id, type, minVersion, " +
+                           "maxVersion, appID, appMinVersion, appMaxVersion " +
+                           "FROM compatibility_override " +
+                           "ORDER BY addon_internal_id, num",
+
     insertAddon: "INSERT INTO addon VALUES (NULL, :id, :type, :name, :version, " +
                  ":creator, :creatorURL, :description, :fullDescription, " +
                  ":developerComments, :eula, :iconURL, :homepageURL, :supportURL, " +
@@ -1332,6 +1502,11 @@ var AddonDatabase = {
                       "VALUES (:addon_internal_id, " +
                       ":num, :url, :width, :height, :thumbnailURL, " +
                       ":thumbnailWidth, :thumbnailHeight, :caption)",
+
+    insertCompatibilityOverride: "INSERT INTO compatibility_override VALUES " +
+                                 "(:addon_internal_id, :num, :type, " +
+                                 ":minVersion, :maxVersion, :appID, " +
+                                 ":appMinVersion, :appMaxVersion)",
 
     emptyAddon:       "DELETE FROM addon"
   },
@@ -1398,29 +1573,42 @@ var AddonDatabase = {
     if (dbMissing)
       this._createSchema();
 
-    switch (this.connection.schemaVersion) {
-      case 0:
-        this._createSchema();
-        break;
-      case 1:
-        try {
+    try {
+      switch (this.connection.schemaVersion) {
+        case 0:
+          LOG("Recreating database schema");
+          this._createSchema();
+          break;
+        case 1:
+          LOG("Upgrading database schema");
           this.connection.executeSimpleSQL("ALTER TABLE screenshot ADD COLUMN width INTEGER");
           this.connection.executeSimpleSQL("ALTER TABLE screenshot ADD COLUMN height INTEGER");
           this.connection.executeSimpleSQL("ALTER TABLE screenshot ADD COLUMN thumbnailWidth INTEGER");
           this.connection.executeSimpleSQL("ALTER TABLE screenshot ADD COLUMN thumbnailHeight INTEGER");
-          this._createIndices();
-          this.connection.schemaVersion = DB_SCHEMA;
-        } catch (e) {
-          ERROR("Failed to create database schema", e);
-          this.logSQLError(this.connection.lastError, this.connection.lastErrorString);
-          this.connection.rollbackTransaction();
+        case 2:
+          this.connection.createTable("compatibility_override",
+                                      "addon_internal_id INTEGER, " +
+                                      "num INTEGER, " +
+                                      "type TEXT, " +
+                                      "minVersion TEXT, " +
+                                      "maxVersion TEXT, " +
+                                      "appID TEXT, " +
+                                      "appMinVersion TEXT, " +
+                                      "appMaxVersion TEXT, " +
+                                      "PRIMARY KEY (addon_internal_id, num)");
+            this._createIndices();
+            this._createTriggers();
+            this.connection.schemaVersion = DB_SCHEMA;
+        case 3:
+          break;
+        default:
           return tryAgain();
-        }
-        break;
-      case 2:
-        break;
-      default:
-        return tryAgain();
+      }
+    } catch (e) {
+      ERROR("Failed to create database schema", e);
+      this.logSQLError(this.connection.lastError, this.connection.lastErrorString);
+      this.connection.rollbackTransaction();
+      return tryAgain();
     }
 
     return this.connection;
@@ -1609,6 +1797,38 @@ var AddonDatabase = {
             return;
           }
 
+          getAllCompatOverrides();
+        }
+      });
+    }
+
+    function getAllCompatOverrides() {
+      self.getAsyncStatement("getAllCompatOverrides").executeAsync({
+        handleResult: function(aResults) {
+          let row = null;
+          while (row = aResults.getNextRow()) {
+            let addon_internal_id = row.getResultByName("addon_internal_id");
+            if (!(addon_internal_id in addons)) {
+              WARN("Found a compatibility override not linked to an add-on in database");
+              continue;
+            }
+
+            let addon = addons[addon_internal_id];
+            if (!addon.compatibilityOverrides)
+              addon.compatibilityOverrides = [];
+            addon.compatibilityOverrides.push(self._makeCompatOverrideFromAsyncRow(row));
+          }
+        },
+
+        handleError: self.asyncErrorLogger,
+
+        handleCompletion: function(aReason) {
+          if (aReason != Ci.mozIStorageStatementCallback.REASON_FINISHED) {
+            ERROR("Error retrieving compatibility overrides from database. Returning empty results");
+            aCallback({});
+            return;
+          }
+
           let returnedAddons = {};
           for each (let addon in addons)
             returnedAddons[addon.id] = addon;
@@ -1691,8 +1911,9 @@ var AddonDatabase = {
     let internal_id = null;
     this.connection.beginTransaction();
 
-    // Simultaneously insert the developers and screenshots of the add-on
-    function insertDevelopersAndScreenshots() {
+    // Simultaneously insert the developers, screenshots, and compatibility
+    // overrides of the add-on.
+    function insertAdditionalData() {
       let stmts = [];
 
       // Initialize statement and parameters for inserting an array
@@ -1710,11 +1931,15 @@ var AddonDatabase = {
         stmts.push(stmt);
       }
 
-      // Initialize statements to insert developers and screenshots
+      // Initialize statements to insert developers, screenshots, and
+      // compatibility overrides
       initializeArrayInsert("insertDeveloper", aAddon.developers,
                             self._addDeveloperParams);
       initializeArrayInsert("insertScreenshot", aAddon.screenshots,
                             self._addScreenshotParams);
+      initializeArrayInsert("insertCompatibilityOverride",
+                            aAddon.compatibilityOverrides,
+                            self._addCompatOverrideParams);
 
       // Immediately call callback if nothing to insert
       if (stmts.length == 0) {
@@ -1728,7 +1953,7 @@ var AddonDatabase = {
         handleError: self.asyncErrorLogger,
         handleCompletion: function(aReason) {
           if (aReason != Ci.mozIStorageStatementCallback.REASON_FINISHED) {
-            ERROR("Error inserting developers and screenshots into database. Attempting to continue");
+            ERROR("Error inserting additional addon metadata into database. Attempting to continue");
             self.connection.rollbackTransaction();
           }
           else {
@@ -1754,7 +1979,7 @@ var AddonDatabase = {
         }
 
         internal_id = self.connection.lastInsertRowID;
-        insertDevelopersAndScreenshots();
+        insertAdditionalData();
       }
     });
   },
@@ -1841,6 +2066,35 @@ var AddonDatabase = {
   },
 
   /**
+   * Add compatibility override parameters to the specified
+   * mozIStorageBindingParamsArray.
+   *
+   * @param  aParams
+   *         The mozIStorageBindingParamsArray to add the parameters to
+   * @param  aInternalID
+   *         The internal_id of the add-on that this override is for
+   * @param  aOverride
+   *         The override to make the parameters from
+   * @param  aIndex
+   *         The index of this override
+   */
+  _addCompatOverrideParams: function AD_addCompatOverrideParams(aParams,
+                                                                aInternalID,
+                                                                aOverride,
+                                                                aIndex) {
+    let bp = aParams.newBindingParams();
+    bp.bindByName("addon_internal_id", aInternalID);
+    bp.bindByName("num", aIndex);
+    bp.bindByName("type", aOverride.type);
+    bp.bindByName("minVersion", aOverride.minVersion);
+    bp.bindByName("maxVersion", aOverride.maxVersion);
+    bp.bindByName("appID", aOverride.appID);
+    bp.bindByName("appMinVersion", aOverride.appMinVersion);
+    bp.bindByName("appMaxVersion", aOverride.appMaxVersion);
+    aParams.addParams(bp);
+  },
+
+  /**
    * Make add-on from an asynchronous row
    * Note: This add-on will be lacking both developers and screenshots
    *
@@ -1909,6 +2163,28 @@ var AddonDatabase = {
   },
 
   /**
+   * Make a CompatibilityOverride from an asynchronous row
+   *
+   * @param  aRow
+   *         The asynchronous row to use
+   * @return The created CompatibilityOverride
+   */
+  _makeCompatOverrideFromAsyncRow: function AD_makeCompatOverrideFromAsyncRow(aRow) {
+    let type = aRow.getResultByName("type");
+    let minVersion = aRow.getResultByName("minVersion");
+    let maxVersion = aRow.getResultByName("maxVersion");
+    let appID = aRow.getResultByName("appID");
+    let appMinVersion = aRow.getResultByName("appMinVersion");
+    let appMaxVersion = aRow.getResultByName("appMaxVersion");
+    return new AddonManagerPrivate.AddonCompatibilityOverride(type,
+                                                              minVersion,
+                                                              maxVersion,
+                                                              appID,
+                                                              appMinVersion,
+                                                              appMaxVersion);
+  },
+
+  /**
    * Synchronously creates the schema in the database.
    */
   _createSchema: function AD__createSchema() {
@@ -1964,13 +2240,19 @@ var AddonDatabase = {
                                   "caption TEXT, " +
                                   "PRIMARY KEY (addon_internal_id, num)");
 
-      this._createIndices();
+      this.connection.createTable("compatibility_override",
+                                  "addon_internal_id INTEGER, " +
+                                  "num INTEGER, " +
+                                  "type TEXT, " +
+                                  "minVersion TEXT, " +
+                                  "maxVersion TEXT, " +
+                                  "appID TEXT, " +
+                                  "appMinVersion TEXT, " +
+                                  "appMaxVersion TEXT, " +
+                                  "PRIMARY KEY (addon_internal_id, num)");
 
-      this.connection.executeSimpleSQL("CREATE TRIGGER delete_addon AFTER DELETE " +
-        "ON addon BEGIN " +
-        "DELETE FROM developer WHERE addon_internal_id=old.internal_id; " +
-        "DELETE FROM screenshot WHERE addon_internal_id=old.internal_id; " +
-        "END");
+      this._createIndices();
+      this._createTriggers();
 
       this.connection.schemaVersion = DB_SCHEMA;
       this.connection.commitTransaction();
@@ -1983,6 +2265,19 @@ var AddonDatabase = {
   },
 
   /**
+   * Synchronously creates the triggers in the database.
+   */
+  _createTriggers: function AD__createTriggers() {
+    this.connection.executeSimpleSQL("DROP TRIGGER IF EXISTS delete_addon");
+    this.connection.executeSimpleSQL("CREATE TRIGGER delete_addon AFTER DELETE " +
+      "ON addon BEGIN " +
+      "DELETE FROM developer WHERE addon_internal_id=old.internal_id; " +
+      "DELETE FROM screenshot WHERE addon_internal_id=old.internal_id; " +
+      "DELETE FROM compatibility_override WHERE addon_internal_id=old.internal_id; " +
+      "END");
+  },
+
+  /**
    * Synchronously creates the indices in the database.
    */
   _createIndices: function AD__createIndices() {
@@ -1990,5 +2285,7 @@ var AddonDatabase = {
                                        "ON developer (addon_internal_id)");
       this.connection.executeSimpleSQL("CREATE INDEX IF NOT EXISTS screenshot_idx " +
                                        "ON screenshot (addon_internal_id)");
+      this.connection.executeSimpleSQL("CREATE INDEX IF NOT EXISTS compatibility_override_idx " +
+                                       "ON compatibility_override (addon_internal_id)");
   }
 };
