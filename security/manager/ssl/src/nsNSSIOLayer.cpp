@@ -3689,6 +3689,11 @@ nsSSLIOLayerSetOptions(PRFileDesc *fd, PRBool forSTARTTLS,
                        PRBool anonymousLoad, nsNSSSocketInfo *infoObject)
 {
   nsNSSShutDownPreventionLock locker;
+
+  if (SECSuccess != SSL_OptionSet(fd, SSL_CBC_RANDOM_IV, false)) {
+      return NS_ERROR_FAILURE;
+  }
+
   if (forSTARTTLS || proxyHost) {
     if (SECSuccess != SSL_OptionSet(fd, SSL_SECURITY, PR_FALSE)) {
       return NS_ERROR_FAILURE;
