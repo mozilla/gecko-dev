@@ -1278,6 +1278,10 @@ var AddonManagerPrivate = {
     AddonManagerInternal.updateAddonAppDisabledStates();
   },
 
+  updateAddonRepositoryData: function AMP_updateAddonRepositoryData(aCallback) {
+    AddonManagerInternal.updateAddonRepositoryData(aCallback);
+  },
+
   callInstallListeners: function AMP_callInstallListeners(aMethod) {
     return AddonManagerInternal.callInstallListeners.apply(AddonManagerInternal,
                                                            arguments);
