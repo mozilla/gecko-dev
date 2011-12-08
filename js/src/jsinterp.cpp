@@ -4690,15 +4690,13 @@ BEGIN_CASE(JSOP_DEFLOCALFUN)
         if (!parent)
             goto error;
 
-        if (obj->getParent() != parent) {
 #ifdef JS_TRACER
-            if (TRACE_RECORDER(cx))
-                AbortRecording(cx, "DEFLOCALFUN for closure");
+        if (TRACE_RECORDER(cx))
+            AbortRecording(cx, "DEFLOCALFUN for closure");
 #endif
-            obj = CloneFunctionObject(cx, fun, parent, true);
-            if (!obj)
-                goto error;
-        }
+        obj = CloneFunctionObject(cx, fun, parent, true);
+        if (!obj)
+            goto error;
     }
 
     JS_ASSERT_IF(script->hasGlobal(), obj->getProto() == fun->getProto());
