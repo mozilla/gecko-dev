@@ -1421,11 +1421,9 @@ stubs::DefLocalFun(VMFrame &f, JSFunction *fun)
         if (!parent)
             THROWV(NULL);
 
-        if (obj->getParent() != parent) {
-            obj = CloneFunctionObject(f.cx, fun, parent, true);
-            if (!obj)
-                THROWV(NULL);
-        }
+        obj = CloneFunctionObject(f.cx, fun, parent, true);
+        if (!obj)
+            THROWV(NULL);
     }
 
     JS_ASSERT_IF(f.script()->compileAndGo, obj->getGlobal() == fun->getGlobal());
