@@ -522,6 +522,10 @@ _TEST_FILES2 = \
 		file_bug692434.xml \
 		test_bug693875.html \
 		test_nodelist_holes.html \
+		test_bug707142.html \
+		file_bug707142_baseline.json \
+		file_bug707142_bom.json \
+		file_bug707142_utf-16.json \
 		$(NULL)
 
 _CHROME_FILES =	\
