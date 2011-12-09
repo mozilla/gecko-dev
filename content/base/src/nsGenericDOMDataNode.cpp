@@ -85,9 +85,6 @@ nsGenericDOMDataNode::~nsGenericDOMDataNode()
 {
   NS_PRECONDITION(!IsInDoc(),
                   "Please remove this from the document properly");
-  if (GetParent()) {
-    NS_RELEASE(mParent);
-  }
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsGenericDOMDataNode)
@@ -500,9 +497,6 @@ nsGenericDOMDataNode::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 
   // Set parent
   if (aParent) {
-    if (!GetParent()) {
-      NS_ADDREF(aParent);
-    }
     mParent = aParent;
   }
   else {
@@ -551,11 +545,7 @@ nsGenericDOMDataNode::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
   }
 
   if (aNullParent) {
-    if (GetParent()) {
-      NS_RELEASE(mParent);
-    } else {
-      mParent = nsnull;
-    }
+    mParent = nsnull;
     SetParentIsContent(false);
   }
   ClearInDocument();
@@ -846,7 +836,9 @@ nsGenericDOMDataNode::ReplaceWholeText(const nsAString& aContent,
 {
   *aResult = nsnull;
 
-  GetOwnerDoc()->WarnOnceAbout(nsIDocument::eReplaceWholeText);
+  if (GetOwnerDoc()) {
+    GetOwnerDoc()->WarnOnceAbout(nsIDocument::eReplaceWholeText);
+  }
 
   // Handle parent-less nodes
   nsCOMPtr<nsIContent> parent = GetParent();

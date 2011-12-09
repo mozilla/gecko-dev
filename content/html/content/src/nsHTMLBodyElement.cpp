@@ -511,7 +511,8 @@ nsHTMLBodyElement::GetAssociatedEditor()
   NS_IMETHODIMP nsHTMLBodyElement::GetOn##name_(JSContext *cx,      \
                                            jsval *vp) {             \
     /* XXXbz note to self: add tests for this! */                   \
-    nsPIDOMWindow* win = GetOwnerDoc()->GetInnerWindow();           \
+    nsPIDOMWindow* win =                                            \
+      GetOwnerDoc() ? GetOwnerDoc()->GetInnerWindow() : nsnull;     \
     if (win && win->IsInnerWindow()) {                              \
       nsCOMPtr<nsIInlineEventHandlers> ev = do_QueryInterface(win); \
       return ev->GetOn##name_(cx, vp);                              \
@@ -521,7 +522,8 @@ nsHTMLBodyElement::GetAssociatedEditor()
   }                                                                 \
   NS_IMETHODIMP nsHTMLBodyElement::SetOn##name_(JSContext *cx,      \
                                            const jsval &v) {        \
-    nsPIDOMWindow* win = GetOwnerDoc()->GetInnerWindow();           \
+    nsPIDOMWindow* win =                                            \
+      GetOwnerDoc() ? GetOwnerDoc()->GetInnerWindow() : nsnull;     \
     if (win && win->IsInnerWindow()) {                              \
       nsCOMPtr<nsIInlineEventHandlers> ev = do_QueryInterface(win); \
       return ev->SetOn##name_(cx, v);                               \
@@ -531,7 +533,8 @@ nsHTMLBodyElement::GetAssociatedEditor()
 #define WINDOW_EVENT(name_, id_, type_, struct_)                  \
   NS_IMETHODIMP nsHTMLBodyElement::GetOn##name_(JSContext *cx,    \
                                                 jsval *vp) {      \
-    nsPIDOMWindow* win = GetOwnerDoc()->GetInnerWindow();         \
+    nsPIDOMWindow* win =                                          \
+      GetOwnerDoc() ? GetOwnerDoc()->GetInnerWindow() : nsnull;   \
     if (win && win->IsInnerWindow()) {                            \
       return win->GetOn##name_(cx, vp);                           \
     }                                                             \
@@ -540,7 +543,8 @@ nsHTMLBodyElement::GetAssociatedEditor()
   }                                                               \
   NS_IMETHODIMP nsHTMLBodyElement::SetOn##name_(JSContext *cx,    \
                                                 const jsval &v) { \
-    nsPIDOMWindow* win = GetOwnerDoc()->GetInnerWindow();         \
+    nsPIDOMWindow* win =                                          \
+      GetOwnerDoc() ? GetOwnerDoc()->GetInnerWindow() : nsnull;   \
     if (win && win->IsInnerWindow()) {                            \
       return win->SetOn##name_(cx, v);                            \
     }                                                             \

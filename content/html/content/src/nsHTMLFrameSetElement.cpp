@@ -360,7 +360,8 @@ nsHTMLFrameSetElement::ParseRowCol(const nsAString & aValue,
   NS_IMETHODIMP nsHTMLFrameSetElement::GetOn##name_(JSContext *cx,    \
                                                jsval *vp) {           \
     /* XXXbz note to self: add tests for this! */                     \
-    nsPIDOMWindow* win = GetOwnerDoc()->GetInnerWindow();             \
+    nsPIDOMWindow* win =                                              \
+      GetOwnerDoc() ? GetOwnerDoc()->GetInnerWindow() : nsnull;       \
     if (win && win->IsInnerWindow()) {                                \
       nsCOMPtr<nsIInlineEventHandlers> ev = do_QueryInterface(win);   \
       return ev->GetOn##name_(cx, vp);                                \
@@ -370,7 +371,8 @@ nsHTMLFrameSetElement::ParseRowCol(const nsAString & aValue,
   }                                                                   \
   NS_IMETHODIMP nsHTMLFrameSetElement::SetOn##name_(JSContext *cx,    \
                                                const jsval &v) {      \
-    nsPIDOMWindow* win = GetOwnerDoc()->GetInnerWindow();             \
+    nsPIDOMWindow* win =                                              \
+      GetOwnerDoc() ? GetOwnerDoc()->GetInnerWindow() : nsnull;       \
     if (win && win->IsInnerWindow()) {                                \
       nsCOMPtr<nsIInlineEventHandlers> ev = do_QueryInterface(win);   \
       return ev->SetOn##name_(cx, v);                                 \
@@ -381,7 +383,8 @@ nsHTMLFrameSetElement::ParseRowCol(const nsAString & aValue,
   NS_IMETHODIMP nsHTMLFrameSetElement::GetOn##name_(JSContext *cx,    \
                                                     jsval *vp) {      \
     /* XXXbz note to self: add tests for this! */                     \
-    nsPIDOMWindow* win = GetOwnerDoc()->GetInnerWindow();             \
+    nsPIDOMWindow* win =                                              \
+      GetOwnerDoc() ? GetOwnerDoc()->GetInnerWindow() : nsnull;       \
     if (win && win->IsInnerWindow()) {                                \
       return win->GetOn##name_(cx, vp);                               \
     }                                                                 \
@@ -390,7 +393,8 @@ nsHTMLFrameSetElement::ParseRowCol(const nsAString & aValue,
   }                                                                   \
   NS_IMETHODIMP nsHTMLFrameSetElement::SetOn##name_(JSContext *cx,    \
                                                     const jsval &v) { \
-    nsPIDOMWindow* win = GetOwnerDoc()->GetInnerWindow();             \
+    nsPIDOMWindow* win =                                              \
+      GetOwnerDoc() ? GetOwnerDoc()->GetInnerWindow() : nsnull;       \
     if (win && win->IsInnerWindow()) {                                \
       return win->SetOn##name_(cx, v);                                \
     }                                                                 \
