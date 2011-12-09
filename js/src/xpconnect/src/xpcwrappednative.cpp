@@ -2961,9 +2961,7 @@ CallMethodHelper::ConvertDependentParams()
 
         if(paramInfo.IsOut())
         {
-            if(datum_type.IsPointer() &&
-               !datum_type.IsInterfacePointer() &&
-               isArray)
+            if (!isArray || datum_type.IsPointer())
             {
                 dp->SetValNeedsCleanup();
             }
