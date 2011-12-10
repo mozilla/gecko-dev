@@ -1600,6 +1600,8 @@ Define(JSParseNode *pn, JSAtom *atom, JSTreeContext *tc, bool let = false)
             if ((!pnu || pnu->pn_blockid < tc->bodyid) && foundLexdep)
                 tc->lexdeps->remove(atom);
         }
+
+        pn->pn_dflags |= dn->pn_dflags & PND_CLOSED;
     }
 
     JSDefinition *toAdd = (JSDefinition *) pn;
