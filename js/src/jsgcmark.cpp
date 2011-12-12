@@ -832,10 +832,9 @@ MarkChildren(JSTracer *trc, JSScript *script)
         script->types->trace(trc);
 }
 
-void
-MarkChildren(JSTracer *trc, const Shape *shape)
+const Shape *
+MarkShapeChildrenAcyclic(JSTracer *trc, const Shape *shape)
 {
-restart:
     MarkId(trc, shape->propid, "propid");
 
     if (shape->hasGetterValue() && shape->getter())
@@ -846,9 +845,14 @@ restart:
     if (shape->isMethod())
         MarkObjectWithPrinter(trc, shape->methodObject(), PrintPropertyMethod, shape, 0);
 
-    shape = shape->previous();
-    if (shape)
-        goto restart;
+    return shape->previous();
+}
+
+void
+MarkChildren(JSTracer *trc, const Shape *shape)
+{
+    if (const Shape *prev = MarkShapeChildrenAcyclic(trc, shape))
+        MarkShape(trc, prev, "parent");
 }
 
 static void
