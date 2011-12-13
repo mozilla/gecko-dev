@@ -254,7 +254,6 @@ stubs::SetName(VMFrame &f, JSAtom *origAtom)
             JS_ASSERT(atom);
         }
 
-        PropertyName *name = atom->asPropertyName();
         jsid id = ATOM_TO_JSID(atom);
         if (entry && JS_LIKELY(!obj->getOps()->setProperty)) {
             uintN defineHow;
@@ -268,7 +267,7 @@ stubs::SetName(VMFrame &f, JSAtom *origAtom)
             if (!js_SetPropertyHelper(cx, obj, id, defineHow, &rval, strict))
                 THROW();
         } else {
-            if (!obj->setProperty(cx, name, &rval, strict))
+            if (!obj->setGeneric(cx, id, &rval, strict))
                 THROW();
         }
     } while (0);
