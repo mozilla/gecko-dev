@@ -141,6 +141,7 @@ function test_component(contractid) {
   doTest("testDouble", -80.5, 15000.2, fuzzComparator);
   doTest("testChar", "a", "2");
   doTest("testString", "someString", "another string");
+  doTest("testWstring", "someString", "another string");
   // TODO: Fix bug 687679 and use the second argument listed below
   doTest("testWchar", "z", "q");// "ア");
   doTestWorkaround("testDOMString", "Beware: ☠ s");
@@ -165,7 +166,8 @@ function test_component(contractid) {
 
   // Test arrays.
   doIsTest("testShortArray", [2, 4, 6], 3, [1, 3, 5, 7], 4, arrayComparator(standardComparator));
-  doIsTest("testLongLongArray", [-10000000000], 1, [1, 3, 1234511234551], 3, arrayComparator(standardComparator));
+  doIsTest("testDoubleArray", [-10, -0.5], 2, [1, 3, 1e11, -8e-5 ], 4, arrayComparator(fuzzComparator));
+
   doIsTest("testStringArray", ["mary", "hat", "hey", "lid", "tell", "lam"], 6,
                               ["ids", "fleas", "woes", "wide", "has", "know", "!"], 7, arrayComparator(standardComparator));
   doIsTest("testWstringArray", ["沒有語言", "的偉大嗎?]"], 2,
