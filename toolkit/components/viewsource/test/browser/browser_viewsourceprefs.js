@@ -22,7 +22,7 @@ function test() {
 
     is(wrapMenuItem.hasAttribute("checked"), false, "Wrap menu item not checked by default");
     is(syntaxMenuItem.hasAttribute("checked"), true, "Syntax menu item checked by default");
-    checkStyle(aWindow, "-moz-tab-size", 4);
+    checkStyle(aWindow, "-moz-tab-size", 8);
     checkStyle(aWindow, "white-space", "pre");
 
     test1();

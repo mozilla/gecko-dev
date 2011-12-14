@@ -162,9 +162,6 @@ const PRInt32 kBackward = 1;
 
 //#define DEBUG_charset
 
-#define NS_USE_NEW_VIEW_SOURCE 1
-#define NS_USE_NEW_PLAIN_TEXT 1
-
 static NS_DEFINE_CID(kCParserCID, NS_PARSER_CID);
 
 PRUint32       nsHTMLDocument::gWyciwygSessionCnt = 0;
@@ -657,8 +654,7 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
   nsCAutoString contentType;
   aChannel->GetContentType(contentType);
 
-  bool viewSource = aCommand && !nsCRT::strcmp(aCommand, "view-source") &&
-    NS_USE_NEW_VIEW_SOURCE;
+  bool viewSource = aCommand && !nsCRT::strcmp(aCommand, "view-source");
   bool plainText = (contentType.EqualsLiteral(TEXT_PLAIN) ||
     contentType.EqualsLiteral(TEXT_CSS) ||
     contentType.EqualsLiteral(APPLICATION_JAVASCRIPT) ||
@@ -666,9 +662,11 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
     contentType.EqualsLiteral(TEXT_ECMASCRIPT) ||
     contentType.EqualsLiteral(APPLICATION_ECMASCRIPT) ||
     contentType.EqualsLiteral(TEXT_JAVASCRIPT));
-  bool loadAsHtml5 = nsHtml5Module::sEnabled || viewSource || plainText;
-  if (!NS_USE_NEW_PLAIN_TEXT && !viewSource) {
+  bool loadAsHtml5 = true;
+  // Turn off new View Source but not new non-View Source plain text handling
+  if (viewSource) {
     plainText = false;
+    loadAsHtml5 = false;
   }
 
   NS_ASSERTION(!(plainText && aSink),
@@ -692,14 +690,14 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
   }
 #endif
   
-  if (loadAsHtml5 && !viewSource &&
+  if (loadAsHtml5 &&
       (!(contentType.EqualsLiteral("text/html") || plainText) &&
       aCommand && !nsCRT::strcmp(aCommand, "view"))) {
     loadAsHtml5 = false;
   }
   
   // TODO: Proper about:blank treatment is bug 543435
-  if (loadAsHtml5 && !viewSource) {
+  if (loadAsHtml5) {
     // mDocumentURI hasn't been set, yet, so get the URI from the channel
     nsCOMPtr<nsIURI> uri;
     aChannel->GetOriginalURI(getter_AddRefs(uri));
@@ -746,11 +744,11 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
 
   if (needsParser) {
     if (loadAsHtml5) {
+      NS_ASSERTION(!viewSource,
+        "How come we are using HTML5 parser for View Source?");
       mParser = nsHtml5Module::NewHtml5Parser();
       if (plainText) {
         mParser->MarkAsNotScriptCreated("plain-text");
-      } else if (viewSource && !contentType.EqualsLiteral("text/html")) {
-        mParser->MarkAsNotScriptCreated("view-source-xml");
       } else {
         mParser->MarkAsNotScriptCreated(aCommand);
       }
