@@ -2618,6 +2618,7 @@ CallMethodHelper::ConvertIndependentParam(uint8 i)
                 dp->SetValNeedsCleanup();
                 break;
             case nsXPTType::T_CHAR_STR:
+            case nsXPTType::T_WCHAR_STR:
                 dp->SetValNeedsCleanup();
                 break;
             case nsXPTType::T_ASTRING:
@@ -2729,7 +2730,8 @@ CallMethodHelper::ConvertDependentParams()
                  (datum_type.TagPart() == nsXPTType::T_IID ||
                   datum_type.TagPart() == nsXPTType::T_PSTRING_SIZE_IS ||
                   datum_type.TagPart() == nsXPTType::T_PWSTRING_SIZE_IS)) ||
-                (isArray && datum_type.TagPart() == nsXPTType::T_CHAR_STR)) {
+                (isArray && (datum_type.TagPart() == nsXPTType::T_CHAR_STR ||
+                             datum_type.TagPart() == nsXPTType::T_WCHAR_STR))) {
                 dp->SetValNeedsCleanup();
             }
         }
