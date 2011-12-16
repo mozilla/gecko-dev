@@ -1,0 +1,49 @@
+# HG changeset patch
+# Parent ad9c59f772eec146d854fac78172426db5da6213
+diff --git a/gfx/angle/src/libGLESv2/libGLESv2.cpp b/gfx/angle/src/libGLESv2/libGLESv2.cpp
+--- a/gfx/angle/src/libGLESv2/libGLESv2.cpp
++++ b/gfx/angle/src/libGLESv2/libGLESv2.cpp
+@@ -1045,16 +1045,21 @@ void __stdcall glCopyTexImage2D(GLenum t
+         {
+             return error(GL_INVALID_VALUE);
+         }
+ 
+         gl::Context *context = gl::getContext();
+ 
+         if (context)
+         {
++            if (level > context->getMaximumTextureLevel())
++            {
++                return error(GL_INVALID_VALUE);
++            }
++
+             switch (target)
+             {
+               case GL_TEXTURE_2D:
+                 if (width > (context->getMaximumTextureDimension() >> level) ||
+                     height > (context->getMaximumTextureDimension() >> level))
+                 {
+                     return error(GL_INVALID_VALUE);
+                 }
+@@ -4575,16 +4580,21 @@ void __stdcall glTexImage2D(GLenum targe
+         {
+             return error(GL_INVALID_VALUE);
+         }
+ 
+         gl::Context *context = gl::getContext();
+ 
+         if (context)
+         {
++            if (level > context->getMaximumTextureLevel())
++            {
++                return error(GL_INVALID_VALUE);
++            }
++
+             switch (target)
+             {
+               case GL_TEXTURE_2D:
+                 if (width > (context->getMaximumTextureDimension() >> level) ||
+                     height > (context->getMaximumTextureDimension() >> level))
+                 {
+                     return error(GL_INVALID_VALUE);
+                 }
