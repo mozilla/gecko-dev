@@ -133,7 +133,6 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
         layerController.setRoot(mTileLayer);
         if (mGeckoViewport != null) {
             layerController.setViewportMetrics(mGeckoViewport);
-            layerController.notifyPanZoomControllerOfGeometryChange(false);
         }
 
         GeckoAppShell.registerGeckoEventListener("Viewport:Update", this);
@@ -189,7 +188,7 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
                 } else {
                     Log.d(LOGTAG, "Received viewport update from gecko");
                     controller.setViewportMetrics(mGeckoViewport);
-                    controller.notifyPanZoomControllerOfGeometryChange(true);
+                    controller.abortPanZoomAnimation();
                 }
             }
         } catch (JSONException e) {
