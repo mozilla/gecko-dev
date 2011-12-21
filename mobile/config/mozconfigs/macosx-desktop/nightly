@@ -9,7 +9,4 @@ ac_add_options --disable-install-strip
 ac_add_options --disable-installer
 ac_add_options --enable-application=mobile
 
-# Nightlies only since this has a cost in performance
-ac_add_options --enable-js-diagnostics
-
 export MOZILLA_OFFICIAL=1
