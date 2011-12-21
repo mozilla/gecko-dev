@@ -1026,7 +1026,10 @@ abstract public class GeckoApp
                         loadUrl(url, AwesomeBar.Type.EDIT);
                     }
                 });
-                mGeckoLayout.addView(mAboutHomeContent);
+                RelativeLayout.LayoutParams lp = 
+                    new RelativeLayout.LayoutParams(LayoutParams.FILL_PARENT, 
+                                                    LayoutParams.FILL_PARENT);
+                mGeckoLayout.addView(mAboutHomeContent, lp);
             }
             if (mAboutHomeContent != null)
                 mAboutHomeContent.setVisibility(mShow ? View.VISIBLE : View.GONE);
