@@ -299,7 +299,6 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
     }
 
     private void adjustViewport() {
-        Log.i(LOGTAG, "Adjusting viewport");
         ViewportMetrics viewportMetrics =
             new ViewportMetrics(getLayerController().getViewportMetrics());
 
