@@ -67,7 +67,7 @@ HISTOGRAM(CYCLE_COLLECTOR_COLLECTED, 1, 100000, 50, EXPONENTIAL, "Number of obje
 /**
  * GC telemetry
  */
-HISTOGRAM(GC_REASON, 0, 20, 20, LINEAR, "Reason (enum value) for initiating a GC")
+HISTOGRAM(GC_REASON, 1, 20, 20, LINEAR, "Reason (enum value) for initiating a GC")
 HISTOGRAM(GC_IS_COMPARTMENTAL, 0, 1, 2, BOOLEAN, "Is it a compartmental GC?")
 HISTOGRAM(GC_IS_SHAPE_REGEN, 0, 1, 2, BOOLEAN, "Is it a shape regenerating GC?")
 HISTOGRAM(GC_MS, 1, 10000, 50, EXPONENTIAL, "Time spent running JS GC (ms)")
