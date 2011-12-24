@@ -1108,7 +1108,7 @@ nsWindow::OnDraw(AndroidGeckoEvent *ae)
 
     AndroidGeckoSoftwareLayerClient &client =
         AndroidBridge::Bridge()->GetSoftwareLayerClient();
-    client.BeginDrawing();
+    client.BeginDrawing(gAndroidBounds.width, gAndroidBounds.height);
 
     nsAutoString metadata;
     unsigned char *bits = client.LockBufferBits();

@@ -140,8 +140,26 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
         GeckoAppShell.registerGeckoEventListener("Viewport:UpdateLater", this);
     }
 
-    public void beginDrawing() {
+    public void beginDrawing(int width, int height) {
         beginTransaction(mTileLayer);
+
+        if (mBufferSize.width != width || mBufferSize.height != height) {
+            mBufferSize = new IntSize(width, height);
+
+            // Reallocate the buffer if necessary
+
+            // * 2 because it's a 16-bit buffer (so 2 bytes per pixel).
+            int size = mBufferSize.getArea() * 2;
+            if (mBuffer == null || mBuffer.capacity() != size) {
+                // Free the old buffer
+                if (mBuffer != null) {
+                    GeckoAppShell.freeDirectBuffer(mBuffer);
+                    mBuffer = null;
+                }
+
+                mBuffer = GeckoAppShell.allocateDirectBuffer(size);
+            }
+        }
     }
 
     private void updateViewport(String viewportDescription, final boolean onlyUpdatePageSize) {
@@ -243,21 +261,12 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
                 throw new RuntimeException("Screen size of " + mScreenSize + " larger than maximum texture size of " + maxSize);
 
             // Round to next power of two until we use NPOT texture support
-            mBufferSize = new IntSize(Math.min(maxSize, IntSize.nextPowerOfTwo(mScreenSize.width + LayerController.MIN_BUFFER.width)),
-                                      Math.min(maxSize, IntSize.nextPowerOfTwo(mScreenSize.height + LayerController.MIN_BUFFER.height)));
-
-            // Free the old buffer first, if it exists
-            if (mBuffer != null) {
-                GeckoAppShell.freeDirectBuffer(mBuffer);
-                mBuffer = null;
-            }
-
-            // * 2 because it's a 16-bit buffer (so 2 bytes per pixel).
-            mBuffer = GeckoAppShell.allocateDirectBuffer(mBufferSize.getArea() * 2);
+            IntSize bufferSize = new IntSize(Math.min(maxSize, IntSize.nextPowerOfTwo(mScreenSize.width + LayerController.MIN_BUFFER.width)),
+                                             Math.min(maxSize, IntSize.nextPowerOfTwo(mScreenSize.height + LayerController.MIN_BUFFER.height)));
 
             Log.i(LOGTAG, "Screen-size changed to " + mScreenSize);
             GeckoEvent event = new GeckoEvent(GeckoEvent.SIZE_CHANGED,
-                                              mBufferSize.width, mBufferSize.height,
+                                              bufferSize.width, bufferSize.height,
                                               metrics.widthPixels, metrics.heightPixels);
             GeckoAppShell.sendEventToGecko(event);
         }
