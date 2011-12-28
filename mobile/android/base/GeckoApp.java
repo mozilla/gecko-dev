@@ -1399,7 +1399,7 @@ abstract public class GeckoApp
             enableStrictMode();
         }
 
-        System.loadLibrary("mozutils");
+        System.loadLibrary("mozglue");
         mMainHandler = new Handler();
         Log.w(LOGTAG, "zerdatime " + SystemClock.uptimeMillis() + " - onCreate");
         if (savedInstanceState != null) {
