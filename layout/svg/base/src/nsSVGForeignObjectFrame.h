@@ -44,7 +44,6 @@
 #include "nsSVGUtils.h"
 #include "nsRegion.h"
 #include "nsIPresShell.h"
-#include "mozilla/Attributes.h"
 
 class nsSVGOuterSVGFrame;
 
@@ -70,8 +69,6 @@ public:
   NS_IMETHOD  AttributeChanged(PRInt32         aNameSpaceID,
                                nsIAtom*        aAttribute,
                                PRInt32         aModType);
-
-  virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) MOZ_OVERRIDE;
 
   virtual nsIFrame* GetContentInsertionFrame() {
     return GetFirstPrincipalChild()->GetContentInsertionFrame();
