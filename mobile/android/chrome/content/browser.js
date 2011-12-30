@@ -411,7 +411,6 @@ var BrowserApp = {
   },
 
   quit: function quit() {
-      Cu.reportError("got quit quit message");
       window.QueryInterface(Ci.nsIDOMChromeWindow).minimize();
       window.close();
   },
