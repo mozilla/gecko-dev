@@ -1601,7 +1601,7 @@ abstract public class GeckoApp
 
         final GeckoApp self = this;
  
-        mMainHandler.postDelayed(new Runnable() {
+        GeckoAppShell.getHandler().postDelayed(new Runnable() {
             public void run() {
                 
                 Log.w(LOGTAG, "zerdatime " + new Date().getTime() + " - pre checkLaunchState");
