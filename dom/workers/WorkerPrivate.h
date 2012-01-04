@@ -216,6 +216,7 @@ private:
   PRUint64 mBusyCount;
   Status mParentStatus;
   PRUint32 mJSContextOptions;
+  PRUint32 mJSRuntimeHeapSize;
   PRUint8 mGCZeal;
   bool mJSObjectRooted;
   bool mParentSuspended;
@@ -306,6 +307,9 @@ public:
 
   void
   UpdateJSContextOptions(JSContext* aCx, PRUint32 aOptions);
+
+  void
+  UpdateJSRuntimeHeapSize(JSContext* aCx, PRUint32 aJSRuntimeHeapSize);
 
 #ifdef JS_GC_ZEAL
   void
@@ -441,6 +445,12 @@ public:
   GetJSContextOptions() const
   {
     return mJSContextOptions;
+  }
+
+  PRUint32
+  GetJSRuntimeHeapSize() const
+  {
+    return mJSRuntimeHeapSize;
   }
 
 #ifdef JS_GC_ZEAL
@@ -656,6 +666,9 @@ public:
 
   void
   UpdateJSContextOptionsInternal(JSContext* aCx, PRUint32 aOptions);
+
+  void
+  UpdateJSRuntimeHeapSizeInternal(JSContext* aCx, PRUint32 aJSRuntimeHeapSize);
 
   void
   ScheduleDeletion(bool aWasPending);
