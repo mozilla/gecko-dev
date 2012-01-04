@@ -15,3 +15,6 @@ mk_add_options PROFILE_GEN_SCRIPT='$(PYTHON) @MOZ_OBJDIR@/_profile/pgo/profilese
 export MOZILLA_OFFICIAL=1
 
 export MOZ_TELEMETRY_REPORTING=1
+
+# Enable parallel compiling
+mk_add_options MOZ_MAKE_FLAGS="-j4"
