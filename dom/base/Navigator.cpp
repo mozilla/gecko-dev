@@ -526,6 +526,13 @@ Navigator::JavaEnabled(bool* aReturn)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+Navigator::TaintEnabled(bool *aReturn)
+{
+  *aReturn = false;
+  return NS_OK;
+}
+
 void
 Navigator::RefreshMIMEArray()
 {
