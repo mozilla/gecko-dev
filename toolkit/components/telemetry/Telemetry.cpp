@@ -21,7 +21,6 @@
  *
  * Contributor(s):
  *   Taras Glek <tglek@mozilla.com>
- *   Vladan Djeric <vdjeric@mozilla.com>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -82,7 +81,7 @@ public:
   typedef nsBaseHashtableET<nsCStringHashKey, StmtStats> SlowSQLEntryType;
 
 private:
-  bool AddSQLInfo(JSContext *cx, JSObject *rootObj, bool mainThread);
+  bool AddSlowSQLInfo(JSContext *cx, JSObject *rootObj, bool mainThread);
 
   // This is used for speedy JS string->Telemetry::ID conversions
   typedef nsBaseHashtableET<nsCharPtrHashKey, Telemetry::ID> CharPtrEntryType;
@@ -337,26 +336,41 @@ TelemetryImpl::NewHistogram(const nsACString &name, PRUint32 min, PRUint32 max, 
 struct EnumeratorArgs {
   JSContext *cx;
   JSObject *statsObj;
+  JSObject *statementsObj;
+  int32 statementIndex;
 };
 
 PLDHashOperator
 StatementEnumerator(TelemetryImpl::SlowSQLEntryType *entry, void *arg)
 {
   EnumeratorArgs *args = static_cast<EnumeratorArgs *>(arg);
-  const nsACString &sql = entry->GetKey();
+  const nsACString &statement = entry->GetKey();
   jsval hitCount = UINT_TO_JSVAL(entry->mData.hitCount);
   jsval totalTime = UINT_TO_JSVAL(entry->mData.totalTime);
+  args->statementIndex++;
 
-  JSObject *arrayObj = JS_NewArrayObject(args->cx, 2, nsnull);
-  if (!arrayObj ||
-      !JS_SetElement(args->cx, arrayObj, 0, &hitCount) ||
-      !JS_SetElement(args->cx, arrayObj, 1, &totalTime))
+  JSObject *hitsAndTimeObj = JS_NewArrayObject(args->cx, 2, nsnull);
+  if (!hitsAndTimeObj ||
+      !JS_SetElement(args->cx, hitsAndTimeObj, 0, &hitCount) ||
+      !JS_SetElement(args->cx, hitsAndTimeObj, 1, &totalTime))
     return PL_DHASH_STOP;
 
-  JSBool success = JS_DefineProperty(args->cx, args->statsObj,
-                                     sql.BeginReading(),
-                                     OBJECT_TO_JSVAL(arrayObj),
-                                     NULL, NULL, JSPROP_ENUMERATE);
+  jsid propertyId = INT_TO_JSID(args->statementIndex);
+  JSBool success = JS_DefinePropertyById(args->cx, args->statsObj,
+                                         INT_TO_JSID(args->statementIndex),
+                                         OBJECT_TO_JSVAL(hitsAndTimeObj),
+                                         NULL, NULL, JSPROP_ENUMERATE);
+  if (!success)
+    return PL_DHASH_STOP;
+
+  JSString *string = JS_NewStringCopyN(args->cx, statement.BeginReading(), statement.Length());
+  if (!string)
+    return PL_DHASH_STOP;
+
+  success = JS_DefinePropertyById(args->cx, args->statementsObj,
+                                  INT_TO_JSID(args->statementIndex),
+                                  STRING_TO_JSVAL(string), NULL, NULL,
+                                  JSPROP_ENUMERATE);
   if (!success)
     return PL_DHASH_STOP;
 
@@ -364,20 +378,28 @@ StatementEnumerator(TelemetryImpl::SlowSQLEntryType *entry, void *arg)
 }
 
 bool
-TelemetryImpl::AddSQLInfo(JSContext *cx, JSObject *rootObj, bool mainThread)
+TelemetryImpl::AddSlowSQLInfo(JSContext *cx, JSObject *rootObj, bool mainThread)
 {
+  JSObject *statementsObj = JS_NewObject(cx, NULL, NULL, NULL);
   JSObject *statsObj = JS_NewObject(cx, NULL, NULL, NULL);
-  if (!statsObj)
+  if (!statementsObj || !statsObj)
     return false;
 
   JSBool ok = JS_DefineProperty(cx, rootObj,
-                                mainThread ? "mainThread" : "otherThreads",
-                                OBJECT_TO_JSVAL(statsObj),
+                                mainThread ? "slowSQLOnMain" : "slowSQLOnOther",
+                                OBJECT_TO_JSVAL(statementsObj),
                                 NULL, NULL, JSPROP_ENUMERATE);
   if (!ok)
     return false;
 
-  EnumeratorArgs args = { cx, statsObj };
+  ok = JS_DefineProperty(cx, rootObj,
+                         mainThread ? "slowSQLStatsMain" : "slowSQLStatsOther",
+                         OBJECT_TO_JSVAL(statsObj),
+                         NULL, NULL, JSPROP_ENUMERATE);
+  if (!ok)
+    return false;
+
+  EnumeratorArgs args = { cx, statsObj, statementsObj, 0 };
   nsTHashtable<SlowSQLEntryType> *sqlMap;
   sqlMap = (mainThread ? &mSlowSQLOnMainThread : &mSlowSQLOnOtherThread);
   PRUint32 num = sqlMap->EnumerateEntries(StatementEnumerator,
@@ -409,23 +431,13 @@ TelemetryImpl::GetHistogramSnapshots(JSContext *cx, jsval *ret)
       return NS_ERROR_FAILURE;
     }
   }
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-TelemetryImpl::GetSlowSQL(JSContext *cx, jsval *ret)
-{
-  JSObject *root_obj = JS_NewObject(cx, NULL, NULL, NULL);
-  if (!root_obj)
-    return NS_ERROR_FAILURE;
-  *ret = OBJECT_TO_JSVAL(root_obj);
 
   MutexAutoLock hashMutex(mHashMutex);
   // Add info about slow SQL queries on the main thread
-  if (!AddSQLInfo(cx, root_obj, true))
+  if (!AddSlowSQLInfo(cx, root_obj, true))
     return NS_ERROR_FAILURE;
   // Add info about slow SQL queries on other threads
-  if (!AddSQLInfo(cx, root_obj, false))
+  if (!AddSlowSQLInfo(cx, root_obj, false))
     return NS_ERROR_FAILURE;
 
   return NS_OK;
