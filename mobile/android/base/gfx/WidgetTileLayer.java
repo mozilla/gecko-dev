@@ -76,8 +76,8 @@ public class WidgetTileLayer extends Layer {
     }
 
     @Override
-    protected void performUpdates(GL10 gl) {
-        super.performUpdates(gl);
+    protected boolean performUpdates(GL10 gl, RenderContext context) {
+        super.performUpdates(gl, context);
 
         if (mTextureIDs == null) {
             mTextureIDs = new int[1];
@@ -86,6 +86,8 @@ public class WidgetTileLayer extends Layer {
 
         bindAndSetGLParameters();
         GeckoAppShell.bindWidgetTexture();
+
+        return true;
     }
 
     @Override
