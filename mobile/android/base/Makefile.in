@@ -98,6 +98,7 @@ JAVAFILES = \
   gfx/LayerController.java \
   gfx/LayerRenderer.java \
   gfx/LayerView.java \
+  gfx/MultiTileLayer.java \
   gfx/NinePatchTileLayer.java \
   gfx/PanningPerfAPI.java \
   gfx/PlaceholderLayerClient.java \
