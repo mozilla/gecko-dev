@@ -2923,18 +2923,12 @@ var ViewportHandler = {
   _nextDocumentId: 0,
 
   init: function init() {
-    addEventListener("DOMWindowCreated", this, false);
     addEventListener("DOMMetaAdded", this, false);
-    addEventListener("DOMContentLoaded", this, false);
-    addEventListener("pageshow", this, false);
     addEventListener("resize", this, false);
   },
 
   uninit: function uninit() {
-    removeEventListener("DOMWindowCreated", this, false);
     removeEventListener("DOMMetaAdded", this, false);
-    removeEventListener("DOMContentLoaded", this, false);
-    removeEventListener("pageshow", this, false);
     removeEventListener("resize", this, false);
   },
 
@@ -2947,18 +2941,9 @@ var ViewportHandler = {
       return;
 
     switch (aEvent.type) {
-      case "DOMWindowCreated":
-        this.resetMetadata(tab);
-        break;
-
       case "DOMMetaAdded":
         if (target.name == "viewport")
           this.updateMetadata(tab);
-        break;
-
-      case "DOMContentLoaded":
-      case "pageshow":
-        this.updateMetadata(tab);
         break;
 
       case "resize":
