@@ -3589,6 +3589,8 @@ var PermissionsHelper = {
       Services.logins.setLoginSavingEnabled(aURI.prePath, true);
     } else {
       Services.perms.remove(aURI.host, aType);
+      // Clear content prefs set in ContentPermissionPrompt.js
+      Services.contentPrefs.removePref(aURI, aType + ".request.remember");
     }
   }
 }
