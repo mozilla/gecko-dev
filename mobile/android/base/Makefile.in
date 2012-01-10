@@ -111,6 +111,7 @@ JAVAFILES = \
   gfx/TileLayer.java \
   gfx/ViewportMetrics.java \
   gfx/WidgetTileLayer.java \
+  ui/Axis.java \
   ui/PanZoomController.java \
   ui/SubdocumentScrollHelper.java \
   $(NULL)
