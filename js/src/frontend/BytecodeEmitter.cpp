@@ -4705,6 +4705,7 @@ EmitNewInit(JSContext *cx, BytecodeEmitter *bce, JSProtoKey key, ParseNode *pn, 
 {
     if (Emit3(cx, bce, JSOP_NEWINIT, (jsbytecode) key, 0) < 0)
         return false;
+    CheckTypeSet(cx, bce, JSOP_NEWINIT);
 #if JS_HAS_SHARP_VARS
     if (bce->hasSharps()) {
         if (pn->pn_count != 0)
@@ -6993,6 +6994,7 @@ frontend::EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             ptrdiff_t off = EmitN(cx, bce, JSOP_NEWARRAY, 3);
             if (off < 0)
                 return JS_FALSE;
+            CheckTypeSet(cx, bce, JSOP_NEWARRAY);
             pc = bce->code(off);
             SET_UINT24(pc, pn->pn_count);
         }
