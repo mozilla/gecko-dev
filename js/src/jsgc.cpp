@@ -419,6 +419,10 @@ FinalizeArenas(JSContext *cx, ArenaLists::ArenaList *al, AllocKind thingKind)
 inline bool
 ChunkPool::wantBackgroundAllocation(JSRuntime *rt) const
 {
+#if 1
+    /* The background allocation is disabled due to bug 711900. */
+    return false;
+#else
     /*
      * To minimize memory waste we do not want to run the background chunk
      * allocation if we have empty chunks or when the runtime needs just few
@@ -427,6 +431,7 @@ ChunkPool::wantBackgroundAllocation(JSRuntime *rt) const
     return rt->gcHelperThread.canBackgroundAllocate() &&
            emptyCount == 0 &&
            rt->gcChunkSet.count() >= 4;
+#endif
 }
 #endif
 
