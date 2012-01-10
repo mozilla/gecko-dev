@@ -112,6 +112,7 @@ JAVAFILES = \
   gfx/ViewportMetrics.java \
   gfx/WidgetTileLayer.java \
   ui/PanZoomController.java \
+  ui/SubdocumentScrollHelper.java \
   $(NULL)
 
 PROCESSEDJAVAFILES = \
