@@ -87,8 +87,8 @@ pref("layout.css.dpi", 240);
 pref("ui.scrollbarsCanOverlapContent", 1);
 
 /* cache prefs */
-pref("browser.cache.disk.enable", true);
-pref("browser.cache.disk.capacity", 10240); // kilobytes
+pref("browser.cache.disk.enable", false);
+pref("browser.cache.disk.capacity", 0); // kilobytes
 pref("browser.cache.disk.smart_size.enabled", false);
 pref("browser.cache.disk.smart_size.first_run", false);
 
