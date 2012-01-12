@@ -1697,6 +1697,12 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
 
   TabView.init();
 
+  setUrlAndSearchBarWidthForConditionalForwardButton();
+  window.addEventListener("resize", function resizeHandler(event) {
+    if (event.target == window)
+      setUrlAndSearchBarWidthForConditionalForwardButton();
+  });
+
   // Enable Inspector?
   let enabled = gPrefService.getBoolPref("devtools.inspector.enabled");
   if (enabled) {
@@ -2599,6 +2605,24 @@ function UpdateUrlbarSearchSplitterState()
     urlbar.parentNode.insertBefore(splitter, ibefore);
   } else if (splitter)
     splitter.parentNode.removeChild(splitter);
+}
+
+function setUrlAndSearchBarWidthForConditionalForwardButton() {
+  // Woraround for bug 694084: Showing/hiding the conditional forward button resizes
+  // the search bar when the url/search bar splitter hasn't been used.
+  var urlbarContainer = document.getElementById("urlbar-container");
+  var searchbarContainer = document.getElementById("search-container");
+  if (!urlbarContainer ||
+      !searchbarContainer ||
+      urlbarContainer.hasAttribute("width") ||
+      searchbarContainer.hasAttribute("width") ||
+      urlbarContainer.parentNode != searchbarContainer.parentNode)
+    return;
+  urlbarContainer.style.width = searchbarContainer.style.width = "";
+  var urlbarWidth = urlbarContainer.clientWidth;
+  var searchbarWidth = searchbarContainer.clientWidth;
+  urlbarContainer.style.width = urlbarWidth + "px";
+  searchbarContainer.style.width = searchbarWidth + "px";
 }
 
 function UpdatePageProxyState()
@@ -3726,6 +3750,7 @@ function BrowserToolboxCustomizeDone(aToolboxChanged) {
   // and the location bar are combined, so we need this ordering
   CombinedStopReload.init();
   UpdateUrlbarSearchSplitterState();
+  setUrlAndSearchBarWidthForConditionalForwardButton();
 
   // Update the urlbar
   if (gURLBar) {
