@@ -57,7 +57,6 @@ import java.util.List;
 import org.mozilla.gecko.db.BrowserDB;
 
 public class Tab {
-    public static enum AgentMode { MOBILE, DESKTOP };
     private static final String LOGTAG = "GeckoTab";
     private static final int kThumbnailWidth = 120;
     private static final int kThumbnailHeight = 80;
@@ -80,7 +79,6 @@ public class Tab {
     private HashMap<String, DoorHanger> mDoorHangers;
     private long mFaviconLoadId;
     private CheckBookmarkTask mCheckBookmarkTask;
-    private AgentMode mAgentMode = AgentMode.MOBILE;
     private String mDocumentURI;
     private String mContentType;
 
@@ -482,13 +480,5 @@ public class Tab {
         protected void onPostExecute(Void unused) {
             setBookmark(false);
         }
-    }
-
-    public void setAgentMode(AgentMode agentMode) {
-        mAgentMode = agentMode;
-    }
-
-    public AgentMode getAgentMode() {
-        return mAgentMode;
     }
 }
