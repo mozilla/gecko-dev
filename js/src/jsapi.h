@@ -679,7 +679,7 @@ class Value
 
     friend jsval_layout (::JSVAL_TO_IMPL)(Value);
     friend Value (::IMPL_TO_JSVAL)(jsval_layout l);
-} JSVAL_ALIGNMENT;
+};
 
 /************************************************************************/
 
@@ -834,6 +834,11 @@ IMPL_TO_JSVAL(jsval_layout l)
     return v;
 }
 
+#ifdef DEBUG
+struct JSValueAlignmentTester { char c; JS::Value v; };
+JS_STATIC_ASSERT(sizeof(JSValueAlignmentTester) == 16);
+#endif /* DEBUG */
+
 #else  /* defined(__cplusplus) */
 
 /*
@@ -857,6 +862,11 @@ IMPL_TO_JSVAL(jsval_layout l)
 }
 
 #endif  /* defined(__cplusplus) */
+
+#ifdef DEBUG
+typedef struct { char c; jsval_layout l; } JSLayoutAlignmentTester;
+JS_STATIC_ASSERT(sizeof(JSLayoutAlignmentTester) == 16);
+#endif /* DEBUG */
 
 JS_STATIC_ASSERT(sizeof(jsval_layout) == sizeof(jsval));
 
