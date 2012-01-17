@@ -1258,9 +1258,11 @@ nsImageFrame::GetContainer(LayerManager* aManager, imgIContainer* aImage)
   
   CairoImage::Data cairoData;
   nsRefPtr<gfxASurface> imageSurface;
-  aImage->GetFrame(imgIContainer::FRAME_CURRENT,
-                   imgIContainer::FLAG_SYNC_DECODE,
-                   getter_AddRefs(imageSurface));
+  nsresult rv = aImage->GetFrame(imgIContainer::FRAME_CURRENT,
+                                 imgIContainer::FLAG_SYNC_DECODE,
+                                 getter_AddRefs(imageSurface));
+  NS_ENSURE_SUCCESS(rv, nsnull);
+
   cairoData.mSurface = imageSurface;
   aImage->GetWidth(&cairoData.mSize.width);
   aImage->GetHeight(&cairoData.mSize.height);
