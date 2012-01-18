@@ -140,8 +140,7 @@ static NS_DEFINE_CID(kCParserCID,     NS_PARSER_CID);
 #define NS_FOUND_TARGET NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_EDITOR, 3)
 
 // some little helpers
-static bool FindIntegerAfterString(const char *aLeadingString, 
-                                     nsCString &aCStr, PRInt32 &foundNumber);
+static PRInt32 FindPositiveIntegerAfterString(const char *aLeadingString, nsCString &aCStr);
 static nsresult RemoveFragComments(nsCString &theStr);
 static void RemoveBodyAndHead(nsIDOMNode *aNode);
 static nsresult FindTargetNode(nsIDOMNode *aStart, nsCOMPtr<nsIDOMNode> &aResult);
@@ -1149,24 +1148,22 @@ NS_IMETHODIMP nsHTMLEditor::PrepareHTMLTransferable(nsITransferable **aTransfera
   return NS_OK;
 }
 
-bool
-FindIntegerAfterString(const char *aLeadingString, 
-                       nsCString &aCStr, PRInt32 &foundNumber)
+PRInt32
+FindPositiveIntegerAfterString(const char *aLeadingString, nsCString &aCStr)
 {
   // first obtain offsets from cfhtml str
   PRInt32 numFront = aCStr.Find(aLeadingString);
   if (numFront == -1)
-    return false;
+    return -1;
   numFront += strlen(aLeadingString); 
   
   PRInt32 numBack = aCStr.FindCharInSet(CRLF, numFront);
   if (numBack == -1)
-    return false;
+    return -1;
    
   nsCAutoString numStr(Substring(aCStr, numFront, numBack-numFront));
   PRInt32 errorCode;
-  foundNumber = numStr.ToInteger(&errorCode);
-  return true;
+  return numStr.ToInteger(&errorCode);
 }
 
 nsresult
@@ -1193,36 +1190,14 @@ RemoveFragComments(nsCString & aStr)
 nsresult
 nsHTMLEditor::ParseCFHTML(nsCString & aCfhtml, PRUnichar **aStuffToPaste, PRUnichar **aCfcontext)
 {
-  // First obtain offsets from cfhtml str.
-  PRInt32 startHTML, endHTML, startFragment, endFragment;
-  if (!FindIntegerAfterString("StartHTML:", aCfhtml, startHTML) || 
-      startHTML < -1)
-    return NS_ERROR_FAILURE;
-  if (!FindIntegerAfterString("EndHTML:", aCfhtml, endHTML) || 
-      endHTML < -1) 
-    return NS_ERROR_FAILURE;
-  if (!FindIntegerAfterString("StartFragment:", aCfhtml, startFragment) || 
-      startFragment < 0) 
-    return NS_ERROR_FAILURE;
-  if (!FindIntegerAfterString("EndFragment:", aCfhtml, endFragment) || 
-      startFragment < 0)
-    return NS_ERROR_FAILURE;
+  // first obtain offsets from cfhtml str
+  PRInt32 startHTML     = FindPositiveIntegerAfterString("StartHTML:", aCfhtml);
+  PRInt32 endHTML       = FindPositiveIntegerAfterString("EndHTML:", aCfhtml);
+  PRInt32 startFragment = FindPositiveIntegerAfterString("StartFragment:", aCfhtml);
+  PRInt32 endFragment   = FindPositiveIntegerAfterString("EndFragment:", aCfhtml);
 
-  // The StartHTML and EndHTML markers are allowed to be -1 to include everything.
-  //   See Reference: MSDN doc entitled "HTML Clipboard Format"
-  //   http://msdn.microsoft.com/en-us/library/aa767917(VS.85).aspx#unknown_854
-  if (startHTML == -1) {
-    startHTML = aCfhtml.Find("<!--StartFragment-->");
-    if (startHTML == -1)
-      return false;
-  }
-  if (endHTML == -1) {
-    const char endFragmentMarker[] = "<!--EndFragment-->";
-    endHTML = aCfhtml.Find(endFragmentMarker);
-    if (endHTML == -1)
-      return false;
-    endHTML += ArrayLength(endFragmentMarker) - 1;
-  }
+  if ((startHTML<0) || (endHTML<0) || (startFragment<0) || (endFragment<0))
+    return NS_ERROR_FAILURE;
 
   // create context string
   nsCAutoString contextUTF8(Substring(aCfhtml, startHTML, startFragment - startHTML) +
