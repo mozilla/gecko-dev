@@ -220,16 +220,23 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
     }
 
     public Bitmap getBitmap() {
-        if (mBufferSize.width <= 0 || mBufferSize.height <= 0)
-            return null;
+        // Begin a tile transaction, otherwise the buffer can be destroyed while
+        // we're reading from it.
+        beginTransaction(mTileLayer);
         try {
-            Bitmap b = Bitmap.createBitmap(mBufferSize.width, mBufferSize.height,
-                                           CairoUtils.cairoFormatTobitmapConfig(mFormat));
-            b.copyPixelsFromBuffer(mBuffer.asIntBuffer());
-            return b;
-        } catch (OutOfMemoryError oom) {
-            Log.w(LOGTAG, "Unable to create bitmap", oom);
-            return null;
+            if (mBuffer == null || mBufferSize.width <= 0 || mBufferSize.height <= 0)
+                return null;
+            try {
+                Bitmap b = Bitmap.createBitmap(mBufferSize.width, mBufferSize.height,
+                                               CairoUtils.cairoFormatTobitmapConfig(mFormat));
+                b.copyPixelsFromBuffer(mBuffer.asIntBuffer());
+                return b;
+            } catch (OutOfMemoryError oom) {
+                Log.w(LOGTAG, "Unable to create bitmap", oom);
+                return null;
+            }
+        } finally {
+            endTransaction(mTileLayer);
         }
     }
 
