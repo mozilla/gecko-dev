@@ -42,6 +42,11 @@
 #include "jscntxt.h"
 #include "nsTraceRefcnt.h"
 
+// All the EventTarget subclasses have to be included here.
+#include "Worker.h"
+#include "WorkerScope.h"
+#include "XMLHttpRequest.h"
+
 #include "WorkerInlines.h"
 
 USING_WORKERS_NAMESPACE
@@ -62,6 +67,23 @@ DECL_EVENTTARGET_CLASS(gClass, "EventTarget")
 DECL_EVENTTARGET_CLASS(gMainThreadClass, "WorkerEventTarget")
 
 #undef DECL_EVENTTARGET_CLASS
+
+inline
+bool
+EnsureObjectIsEventTarget(JSContext* aCx, JSObject* aObj, char* aFunctionName)
+{
+  JSClass* classPtr = JS_GET_CLASS(aCx, aObj);
+  if (classPtr &&
+      (ClassIsWorker(classPtr) || ClassIsWorkerGlobalScope(classPtr) ||
+       ClassIsXMLHttpRequest(classPtr))) {
+    return true;
+  }
+
+  JS_ReportErrorNumber(aCx, js_GetErrorMessage, NULL, JSMSG_INCOMPATIBLE_PROTO,
+                       "EventTarget", aFunctionName,
+                        classPtr ? classPtr->name : "object");
+  return false;
+}
 
 inline
 EventTarget*
@@ -139,6 +161,18 @@ JSBool
 EventTarget::AddEventListener(JSContext* aCx, uintN aArgc, jsval* aVp)
 {
   JSObject* obj = JS_THIS_OBJECT(aCx, aVp);
+
+  if (!EnsureObjectIsEventTarget(aCx, obj, "AddEventListener")) {
+    return false;
+  }
+
+  if (!EnsureObjectIsEventTarget(aCx, obj, "RemoveEventListener")) {
+    return false;
+  }
+
+  if (!EnsureObjectIsEventTarget(aCx, obj, "DispatchEvent")) {
+    return false;
+  }
 
   EventTarget* self = GetPrivate(aCx, obj);
   if (!self) {
