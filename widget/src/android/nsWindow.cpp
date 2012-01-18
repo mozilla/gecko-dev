@@ -1195,6 +1195,8 @@ nsWindow::OnDraw(AndroidGeckoEvent *ae)
         AndroidBridge::Bridge()->GetSoftwareLayerClient();
     client.BeginDrawing(gAndroidBounds.width, gAndroidBounds.height);
 
+    nsIntRect dirtyRect = ae->Rect().Intersect(nsIntRect(0, 0, gAndroidBounds.width, gAndroidBounds.height));
+
     nsAutoString metadata;
     unsigned char *bits = NULL;
     if (sHasDirectTexture) {
@@ -1203,7 +1205,7 @@ nsWindow::OnDraw(AndroidGeckoEvent *ae)
         sDirectTexture->Reallocate(gAndroidBounds.width, gAndroidBounds.height);
       }
 
-      sDirectTexture->Lock(AndroidGraphicBuffer::UsageSoftwareWrite, ae->Rect(), &bits);
+      sDirectTexture->Lock(AndroidGraphicBuffer::UsageSoftwareWrite, dirtyRect, &bits);
     } else {
       bits = client.LockBufferBits();
     }
@@ -1236,7 +1238,7 @@ nsWindow::OnDraw(AndroidGeckoEvent *ae)
                     break;
                 } else {
                     targetSurface->SetDeviceOffset(gfxPoint(-x, -y));
-                    DrawTo(targetSurface, ae->Rect());
+                    DrawTo(targetSurface, dirtyRect);
                 }
             }
         }
@@ -1253,7 +1255,7 @@ nsWindow::OnDraw(AndroidGeckoEvent *ae)
         client.UnlockBuffer();
     }
 
-    client.EndDrawing(ae->Rect(), metadata);
+    client.EndDrawing(dirtyRect, metadata);
     return;
 #endif
 
