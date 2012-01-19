@@ -2061,9 +2061,10 @@ abstract public class GeckoApp
         File profileDir = getProfileDir();
         if (profileDir != null) {
             Log.i(LOGTAG, "checking profile migration in: " + profileDir.getAbsolutePath());
+            final GeckoApp app = GeckoApp.mAppContext;
+            GeckoAppShell.ensureSQLiteLibsLoaded(app.getApplication().getPackageResourcePath());
             ProfileMigrator profileMigrator =
-                new ProfileMigrator(GeckoApp.mAppContext.getContentResolver(),
-                                    profileDir);
+                new ProfileMigrator(app.getContentResolver(), profileDir);
             profileMigrator.launchBackground();
         }
     }

@@ -62,6 +62,8 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include "Zip.h"
+#include "sqlite3.h"
+#include "SQLiteBridge.h"
 
 /* Android headers don't define RUSAGE_THREAD */
 #ifndef RUSAGE_THREAD
@@ -194,12 +196,13 @@ SHELL_WRAPPER1(onChangeNetworkLinkStatus, jstring)
 SHELL_WRAPPER1(reportJavaCrash, jstring)
 SHELL_WRAPPER0(executeNextRunnable)
 SHELL_WRAPPER1(cameraCallbackBridge, jbyteArray)
-SHELL_WRAPPER3(notifyBatteryChange, jdouble, jboolean, jdouble);
-SHELL_WRAPPER3(notifySmsReceived, jstring, jstring, jlong);
-SHELL_WRAPPER0(bindWidgetTexture);
-SHELL_WRAPPER0_WITH_RETURN(testDirectTexture, bool);
+SHELL_WRAPPER3(notifyBatteryChange, jdouble, jboolean, jdouble)
+SHELL_WRAPPER3(notifySmsReceived, jstring, jstring, jlong)
+SHELL_WRAPPER0(bindWidgetTexture)
+SHELL_WRAPPER0_WITH_RETURN(testDirectTexture, bool)
 
 static void * xul_handle = NULL;
+static void * sqlite_handle = NULL;
 static time_t apk_mtime = 0;
 #ifdef DEBUG
 extern "C" int extractLibs = 1;
@@ -517,11 +520,9 @@ report_mapping(char *name, void *base, uint32_t len, uint32_t offset)
 extern "C" void simple_linker_init(void);
 
 static void
-loadLibs(const char *apkName)
+loadGeckoLibs(const char *apkName)
 {
   chdir(getenv("GRE_HOME"));
-
-  simple_linker_init();
 
   struct stat status;
   if (!stat(apkName, &status))
@@ -534,7 +535,6 @@ loadLibs(const char *apkName)
   
   Zip *zip = new Zip(apkName);
 
-  lib_mapping = (struct mapping_info *)calloc(MAX_MAPPING_INFO, sizeof(*lib_mapping));
 #ifdef MOZ_CRASHREPORTER
   file_ids = (char *)extractBuf("lib.id", zip);
 #endif
@@ -544,7 +544,6 @@ loadLibs(const char *apkName)
   MOZLOAD("nspr4");
   MOZLOAD("plc4");
   MOZLOAD("plds4");
-  MOZLOAD("mozsqlite3");
   MOZLOAD("nssutil3");
   MOZLOAD("nss3");
   MOZLOAD("ssl3");
@@ -600,20 +599,67 @@ loadLibs(const char *apkName)
   StartupTimeline_Record(LIBRARIES_LOADED, &t1);
 }
 
-extern "C" NS_EXPORT void JNICALL
-Java_org_mozilla_gecko_GeckoAppShell_loadLibs(JNIEnv *jenv, jclass jGeckoAppShellClass, jstring jApkName, jboolean jShouldExtract)
+static void loadSQLiteLibs(const char *apkName)
 {
-  if (jShouldExtract)
-    extractLibs = 1;
+  chdir(getenv("GRE_HOME"));
 
+  simple_linker_init();
+
+  struct stat status;
+  if (!stat(apkName, &status))
+    apk_mtime = status.st_mtime;
+
+  Zip *zip = new Zip(apkName);
+  lib_mapping = (struct mapping_info *)calloc(MAX_MAPPING_INFO, sizeof(*lib_mapping));
+
+#ifdef MOZ_CRASHREPORTER
+  file_ids = (char *)extractBuf("lib.id", zip);
+#endif
+
+#define MOZLOAD(name) mozload("lib" name ".so", zip)
+  sqlite_handle = MOZLOAD("mozsqlite3");
+#undef MOZLOAD
+
+  delete zip;
+
+#ifdef MOZ_CRASHREPORTER
+  free(file_ids);
+  file_ids = NULL;
+#endif
+
+  if (!sqlite_handle)
+    __android_log_print(ANDROID_LOG_ERROR, "GeckoLibLoad", "Couldn't get a handle to libmozsqlite3!");
+
+  setup_sqlite_functions(sqlite_handle);
+}
+
+extern "C" NS_EXPORT void JNICALL
+Java_org_mozilla_gecko_GeckoAppShell_loadGeckoLibsNative(JNIEnv *jenv, jclass jGeckoAppShellClass, jstring jApkName)
+{
   const char* str;
-  // XXX: java doesn't give us true UTF8, we should figure out something 
+  // XXX: java doesn't give us true UTF8, we should figure out something
   // better to do here
   str = jenv->GetStringUTFChars(jApkName, NULL);
   if (str == NULL)
     return;
 
-  loadLibs(str);
+  loadGeckoLibs(str);
+  jenv->ReleaseStringUTFChars(jApkName, str);
+}
+
+extern "C" NS_EXPORT void JNICALL
+Java_org_mozilla_gecko_GeckoAppShell_loadSQLiteLibsNative(JNIEnv *jenv, jclass jGeckoAppShellClass, jstring jApkName, jboolean jShouldExtract) {
+  if (jShouldExtract)
+    extractLibs = 1;
+
+  const char* str;
+  // XXX: java doesn't give us true UTF8, we should figure out something
+  // better to do here
+  str = jenv->GetStringUTFChars(jApkName, NULL);
+  if (str == NULL)
+    return;
+
+  loadSQLiteLibs(str);
   jenv->ReleaseStringUTFChars(jApkName, str);
 }
 
@@ -633,7 +679,8 @@ ChildProcessInit(int argc, char* argv[])
   }
 
   fillLibCache(argv[argc - 1]);
-  loadLibs(argv[i]);
+  loadSQLiteLibs(argv[i]);
+  loadGeckoLibs(argv[i]);
 
   // don't pass the last arg - it's only recognized by the lib cache
   argc--;
