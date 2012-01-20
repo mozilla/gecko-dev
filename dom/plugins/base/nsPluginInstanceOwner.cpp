@@ -1695,6 +1695,28 @@ bool nsPluginInstanceOwner::AddPluginView(const gfxRect& aRect)
 
   JNIEnv* env = GetJNIForThread();
   jclass cls = env->FindClass("org/mozilla/gecko/GeckoAppShell");
+
+#ifdef MOZ_JAVA_COMPOSITOR
+  nsAutoString metadata;
+  nsCOMPtr<nsIAndroidDrawMetadataProvider> metadataProvider =
+      AndroidBridge::Bridge()->GetDrawMetadataProvider();
+  metadataProvider->GetDrawMetadata(metadata);
+
+  jstring jMetadata = env->NewString(nsPromiseFlatString(metadata).get(), metadata.Length());
+
+  jmethodID method = env->GetStaticMethodID(cls,
+                                            "addPluginView",
+                                            "(Landroid/view/View;IIIILjava/lang/String;)V");
+
+  env->CallStaticVoidMethod(cls,
+                            method,
+                            javaSurface,
+                            (int)aRect.x,
+                            (int)aRect.y,
+                            (int)aRect.width,
+                            (int)aRect.height,
+                            jMetadata);
+#else
   jmethodID method = env->GetStaticMethodID(cls,
                                             "addPluginView",
                                             "(Landroid/view/View;DDDD)V");
@@ -1706,6 +1728,7 @@ bool nsPluginInstanceOwner::AddPluginView(const gfxRect& aRect)
                             aRect.y,
                             aRect.width,
                             aRect.height);
+#endif
 
   if (!mPluginViewAdded) {
     ANPEvent event;

@@ -555,6 +555,7 @@ public class PanZoomController
             finishBounce();
             finishAnimation();
             mState = PanZoomState.NOTHING;
+            GeckoApp.mAppContext.showPluginViews();
         }
 
         /* Performs one frame of a bounce animation. */
