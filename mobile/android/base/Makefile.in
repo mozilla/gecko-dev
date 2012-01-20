@@ -136,6 +136,8 @@ ifeq (,$(ANDROID_VERSION_CODE))
 ANDROID_VERSION_CODE=$(shell $(PYTHON) $(topsrcdir)/toolkit/xre/make-platformini.py --print-buildid | cut -c1-10)
 endif
 
+UA_BUILDID=$(shell $(PYTHON) $(topsrcdir)/toolkit/xre/make-platformini.py --print-buildid | cut -c1-8)
+
 DEFINES += \
   -DANDROID_PACKAGE_NAME=$(ANDROID_PACKAGE_NAME) \
   -DMOZ_APP_DISPLAYNAME="$(MOZ_APP_DISPLAYNAME)" \
@@ -146,6 +148,7 @@ DEFINES += \
   -DMOZ_CRASHREPORTER=$(MOZ_CRASHREPORTER) \
   -DANDROID_VERSION_CODE=$(ANDROID_VERSION_CODE) \
   -DMOZILLA_OFFICIAL=$(MOZILLA_OFFICIAL) \
+  -DUA_BUILDID=$(UA_BUILDID) \
   $(NULL)
 
 GARBAGE += \
@@ -504,7 +507,7 @@ classes.dex: $(JAVAFILES) $(PROCESSEDJAVAFILES) R.java
 	$(JAVAC) $(JAVAC_FLAGS) -Xlint:unchecked -Xlint:deprecation -d classes  $(addprefix $(srcdir)/,$(JAVAFILES)) $(PROCESSEDJAVAFILES) R.java
 	$(DX) --dex --output=$@ classes
 
-AndroidManifest.xml $(PROCESSEDJAVAFILES) package-name.txt: % : %.in
+AndroidManifest.xml $(PROCESSEDJAVAFILES) package-name.txt: % : %.in Makefile.in
 	mkdir -p db
 	$(PYTHON) $(topsrcdir)/config/Preprocessor.py \
              $(AUTOMATION_PPARGS) $(DEFINES) $(ACDEFINES) $< > $@
