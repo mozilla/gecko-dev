@@ -150,6 +150,7 @@ public class Tab {
     }
 
     public void updateThumbnail(final Bitmap b) {
+        final Tab tab = this;
         GeckoAppShell.getHandler().post(new Runnable() {
             public void run() {
                 if (sMinDim == 0) {
@@ -175,6 +176,11 @@ public class Tab {
                 } else {
                     mThumbnail = null;
                 }
+                GeckoApp.mAppContext.mMainHandler.post(new Runnable() {
+                    public void run() {
+                        GeckoApp.mAppContext.onTabsChanged(tab);
+                    }
+                });
             }
         });
     }
