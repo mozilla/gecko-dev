@@ -47,6 +47,7 @@ import android.graphics.Color;
 import android.graphics.LightingColorFilter;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
+import android.os.SystemClock;
 import android.provider.Browser;
 import android.util.AttributeSet;
 import android.util.Base64;
