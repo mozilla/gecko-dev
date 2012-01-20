@@ -48,6 +48,7 @@
 #include "nsDebug.h"
 #include "nsTraceRefcnt.h"
 #include "mozilla/Util.h"
+#include "mozilla/mozalloc.h"
 #include NEW_H
 
 //
@@ -64,22 +65,22 @@
 // moz_free() end up calling the same underlying free()).
 //
 
+#if defined(MOZALLOC_HAVE_XMALLOC)
 struct nsTArrayFallibleAllocator
 {
   static void* Malloc(size_t size) {
-    return NS_Alloc(size);
+    return moz_malloc(size);
   }
 
   static void* Realloc(void* ptr, size_t size) {
-    return NS_Realloc(ptr, size);
+    return moz_realloc(ptr, size);
   }
 
   static void Free(void* ptr) {
-    NS_Free(ptr);
+    moz_free(ptr);
   }
 };
 
-#if defined(MOZALLOC_HAVE_XMALLOC)
 struct nsTArrayInfallibleAllocator
 {
   static void* Malloc(size_t size) {
@@ -92,6 +93,23 @@ struct nsTArrayInfallibleAllocator
 
   static void Free(void* ptr) {
     moz_free(ptr);
+  }
+};
+
+#else
+
+struct nsTArrayFallibleAllocator
+{
+  static void* Malloc(size_t size) {
+    return malloc(size);
+  }
+
+  static void* Realloc(void* ptr, size_t size) {
+    return realloc(ptr, size);
+  }
+
+  static void Free(void* ptr) {
+    free(ptr);
   }
 };
 #endif
