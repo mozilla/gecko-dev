@@ -2250,13 +2250,10 @@ BasicShadowableThebesLayer::SetBackBufferAndAttrs(const OptionalThebesBuffer& aB
 {
   if (OptionalThebesBuffer::Tnull_t == aBuffer.type()) {
     mBackBuffer = SurfaceDescriptor();
-  } else if (!IsSurfaceDescriptorValid(mBackBuffer)) {
+  } else {
     mBackBuffer = aBuffer.get_ThebesBuffer().buffer();
     mBackBufferRect = aBuffer.get_ThebesBuffer().rect();
     mBackBufferRectRotation = aBuffer.get_ThebesBuffer().rotation();
-  } else {
-    SurfaceDescriptor obsoleteBuffer = aBuffer.get_ThebesBuffer().buffer();
-    BasicManager()->ShadowLayerForwarder::DestroySharedSurface(&obsoleteBuffer);
   }
   mFrontAndBackBufferDiffer = true;
   mROFrontBuffer = aReadOnlyFrontBuffer;
@@ -2359,8 +2356,6 @@ BasicShadowableThebesLayer::PaintBuffer(gfxContext* aContext,
                                       mBuffer.BufferRect(),
                                       mBuffer.BufferRotation(),
                                       mBackBuffer);
-  mROFrontBuffer = ThebesBuffer(mBackBuffer, mBuffer.BufferRect(), mBuffer.BufferRotation());
-  mBackBuffer = SurfaceDescriptor();
 }
 
 already_AddRefed<gfxASurface>
