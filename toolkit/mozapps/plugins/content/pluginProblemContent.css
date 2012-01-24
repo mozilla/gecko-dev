@@ -46,8 +46,7 @@ html|applet:not([height]), html|applet[height=""] {
 :-moz-handler-disabled .msgDisabled,
 :-moz-handler-disabled .msgManagePlugins,
 :-moz-handler-blocked .msgBlocked,
-:-moz-handler-crashed .msgCrashed,
-:-moz-handler-crashed .msgReload {
+:-moz-handler-crashed .msgCrashed {
   display: block;
 }
 
@@ -60,7 +59,8 @@ html|applet:not([height]), html|applet[height=""] {
 .submitStatus[status="submitting"] .msgSubmitting,
 .submitStatus[status="success"]    .msgSubmitted,
 .submitStatus[status="failed"]     .msgSubmitFailed,
-.submitStatus[status="please"]     .msgSubmitPlease {
+.submitStatus[status="please"]     .msgSubmitPlease,
+.submitStatus                      .msgReload {
   display: block;
 }
 
