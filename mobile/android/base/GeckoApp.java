@@ -914,7 +914,7 @@ abstract public class GeckoApp
                 Tab tab = handleAddTab(message);
                 Boolean selected = message.getBoolean("selected");
                 if (selected)
-                    handleSelectTab(tab.getId());
+                    Tabs.getInstance().selectTab(tab.getId());
             } else if (event.equals("Tab:Close")) {
                 int tabId = message.getInt("tabID");
                 Tab tab = Tabs.getInstance().getTab(tabId);
@@ -923,10 +923,9 @@ abstract public class GeckoApp
                 int tabId = message.getInt("tabID");
                 Tab tab = Tabs.getInstance().getTab(tabId);
                 processThumbnail(tab, null, Base64.decode(message.getString("data").substring(22), Base64.DEFAULT));
-            } else if (event.equals("Tab:Selected")) {
+            } else if (event.equals("Tab:Select")) {
                 int tabId = message.getInt("tabID");
-                Log.i(LOGTAG, "Switched to tab: " + tabId);
-                handleSelectTab(tabId);
+                Tabs.getInstance().selectTab(tabId);
             } else if (event.equals("Doorhanger:Add")) {
                 handleDoorHanger(message);
             } else if (event.equals("Doorhanger:Remove")) {
@@ -1140,31 +1139,6 @@ abstract public class GeckoApp
         });
 
         return tab;
-    }
-
-    void handleSelectTab(int tabId) {
-        final Tab tab = Tabs.getInstance().selectTab(tabId);
-        if (tab == null)
-            return;
-
-        if (tab.getURL().equals("about:home"))
-            showAboutHome();
-        else
-            hideAboutHome();
-
-        mMainHandler.post(new Runnable() { 
-            public void run() {
-                mAutoCompletePopup.hide();
-                if (Tabs.getInstance().isSelectedTab(tab)) {
-                    mBrowserToolbar.setTitle(tab.getDisplayTitle());
-                    mBrowserToolbar.setFavicon(tab.getFavicon());
-                    mBrowserToolbar.setSecurityMode(tab.getSecurityMode());
-                    mBrowserToolbar.setProgressVisibility(tab.isLoading());
-                    mDoorHangerPopup.updatePopup();
-                    mBrowserToolbar.setShadowVisibility(!(tab.getURL().startsWith("about:")));
-                }
-            }
-        });
     }
 
     void handleDocumentStart(int tabId, final boolean showProgress) {
@@ -1570,7 +1544,7 @@ abstract public class GeckoApp
         GeckoAppShell.registerGeckoEventListener("onCameraCapture", GeckoApp.mAppContext);
         GeckoAppShell.registerGeckoEventListener("Tab:Added", GeckoApp.mAppContext);
         GeckoAppShell.registerGeckoEventListener("Tab:Close", GeckoApp.mAppContext);
-        GeckoAppShell.registerGeckoEventListener("Tab:Selected", GeckoApp.mAppContext);
+        GeckoAppShell.registerGeckoEventListener("Tab:Select", GeckoApp.mAppContext);
         GeckoAppShell.registerGeckoEventListener("Tab:ScreenshotData", GeckoApp.mAppContext);
         GeckoAppShell.registerGeckoEventListener("Doorhanger:Add", GeckoApp.mAppContext);
         GeckoAppShell.registerGeckoEventListener("Doorhanger:Remove", GeckoApp.mAppContext);
@@ -1895,7 +1869,7 @@ abstract public class GeckoApp
         GeckoAppShell.unregisterGeckoEventListener("onCameraCapture", GeckoApp.mAppContext);
         GeckoAppShell.unregisterGeckoEventListener("Tab:Added", GeckoApp.mAppContext);
         GeckoAppShell.unregisterGeckoEventListener("Tab:Close", GeckoApp.mAppContext);
-        GeckoAppShell.unregisterGeckoEventListener("Tab:Selected", GeckoApp.mAppContext);
+        GeckoAppShell.unregisterGeckoEventListener("Tab:Select", GeckoApp.mAppContext);
         GeckoAppShell.unregisterGeckoEventListener("Tab:ScreenshotData", GeckoApp.mAppContext);
         GeckoAppShell.unregisterGeckoEventListener("Doorhanger:Add", GeckoApp.mAppContext);
         GeckoAppShell.unregisterGeckoEventListener("Menu:Add", GeckoApp.mAppContext);
@@ -2339,7 +2313,7 @@ abstract public class GeckoApp
         JSONObject args = new JSONObject();
         try {
             args.put("url", url);
-            args.put("parentId", Tabs.getInstance().getSelectedTabId());
+            args.put("parentId", Tabs.getInstance().getSelectedTab().getId());
         } catch (Exception e) {
             Log.e(LOGTAG, "error building JSON arguments");
         }
