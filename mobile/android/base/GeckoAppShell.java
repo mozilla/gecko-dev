@@ -516,7 +516,7 @@ public class GeckoAppShell
     }
 
     public static void sendEventToGecko(GeckoEvent e) {
-        if (GeckoApp.mAppContext.checkLaunchState(GeckoApp.LaunchState.GeckoRunning)) {
+        if (GeckoApp.checkLaunchState(GeckoApp.LaunchState.GeckoRunning)) {
             notifyGeckoOfEvent(e);
         } else {
             gPendingEvents.addLast(e);
@@ -634,7 +634,7 @@ public class GeckoAppShell
 
     static void onXreExit() {
         // mLaunchState can only be Launched or GeckoRunning at this point
-        GeckoApp.mAppContext.setLaunchState(GeckoApp.LaunchState.GeckoExiting);
+        GeckoApp.setLaunchState(GeckoApp.LaunchState.GeckoExiting);
         Log.i(LOGTAG, "XRE exited");
         if (gRestartScheduled) {
             GeckoApp.mAppContext.doRestart();
@@ -1278,7 +1278,7 @@ public class GeckoAppShell
         int countdown = 40;
         while (!checkForGeckoProcs() &&  --countdown > 0) {
             try {
-                Thread.currentThread().sleep(100);
+                Thread.sleep(100);
             } catch (InterruptedException ie) {}
         }
     }
