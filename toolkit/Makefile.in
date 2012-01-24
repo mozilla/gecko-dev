@@ -57,11 +57,14 @@ PARALLEL_DIRS = \
   mozapps/shared \
   mozapps/update \
   mozapps/xpinstall \
-  mozapps/webapps \
   obsolete \
   profile \
   themes \
   $(NULL)
+
+ifeq (android,$(MOZ_WIDGET_TOOLKIT))
+PARALLEL_DIRS += mozapps/webapps
+endif
 
 ifneq (,$(filter gtk2 qt,$(MOZ_WIDGET_TOOLKIT)))
 PARALLEL_DIRS += system/unixproxy
