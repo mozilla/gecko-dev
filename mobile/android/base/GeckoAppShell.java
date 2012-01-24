@@ -144,7 +144,7 @@ public class GeckoAppShell
     private static native void reportJavaCrash(String stackTrace);
 
     public static void notifyUriVisited(String uri) {
-        sendEventToGecko(new GeckoEvent(GeckoEvent.VISTITED, uri));
+        sendEventToGecko(new GeckoEvent(GeckoEvent.VISITED, uri));
     }
 
     public static native void processNextNativeEvent();
