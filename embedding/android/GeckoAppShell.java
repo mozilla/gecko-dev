@@ -1710,4 +1710,7 @@ public class GeckoAppShell
         }
         return false;
     }
+
+    // This is only used in Native Fennec.
+    public static void preventPanning() { }
 }

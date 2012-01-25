@@ -847,7 +847,7 @@ public class PanZoomController
         return true;
     }
 
-    private void cancelTouch() {
+    public void cancelTouch() {
         GeckoEvent e = new GeckoEvent("Gesture:CancelTouch", "");
         GeckoAppShell.sendEventToGecko(e);
     }

@@ -222,6 +222,8 @@ public:
 
     void ShowInputMethodPicker();
 
+    void PreventPanning();
+
     void HideProgressDialogOnce();
 
     bool IsNetworkLinkUp();
@@ -419,6 +421,7 @@ protected:
     jmethodID jGetDpi;
     jmethodID jSetFullScreen;
     jmethodID jShowInputMethodPicker;
+    jmethodID jPreventPanning;
     jmethodID jHideProgressDialog;
     jmethodID jPerformHapticFeedback;
     jmethodID jVibrate1;
