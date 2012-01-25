@@ -754,6 +754,7 @@ abstract public class GeckoApp
         tab.updateFaviconURL(null);
         tab.updateSecurityMode("unknown");
         tab.removeTransientDoorHangers();
+        tab.setHasTouchListeners(false);
 
         maybeCancelFaviconLoad(tab);
 
@@ -765,6 +766,7 @@ abstract public class GeckoApp
                     mBrowserToolbar.setSecurityMode("unknown");
                     mDoorHangerPopup.updatePopup();
                     mBrowserToolbar.setShadowVisibility(!(tab.getURL().startsWith("about:")));
+                    mLayerController.setWaitForTouchListeners(false);
 
                     if (tab != null)
                         hidePlugins(tab, true);
