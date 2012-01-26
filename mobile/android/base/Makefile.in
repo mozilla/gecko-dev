@@ -50,13 +50,14 @@ DIST_FILES = package-name.txt
 
 SYNC_JAVA_FILES=$(shell cat $(topsrcdir)/mobile/android/sync/java-sources.mn | tr '\n' ' ';)
 SYNC_PP_JAVA_FILES=$(shell cat $(topsrcdir)/mobile/android/sync/preprocess-sources.mn | tr '\n' ' ';)
+SYNC_THIRDPARTY_JAVA_FILES=$(shell cat $(topsrcdir)/mobile/android/sync/java-third-party-sources.mn | tr '\n' ' ';)
 SYNC_RES_DRAWABLE=$(shell cat $(topsrcdir)/mobile/android/sync/android-drawable-resources.mn | tr '\n' ' ';)
 SYNC_RES_DRAWABLE_LDPI=$(shell cat $(topsrcdir)/mobile/android/sync/android-drawable-ldpi-resources.mn | tr '\n' ' ';)
 SYNC_RES_DRAWABLE_MDPI=$(shell cat $(topsrcdir)/mobile/android/sync/android-drawable-mdpi-resources.mn | tr '\n' ' ';)
 SYNC_RES_DRAWABLE_HDPI=$(shell cat $(topsrcdir)/mobile/android/sync/android-drawable-hdpi-resources.mn | tr '\n' ' ';)
 SYNC_RES_LAYOUT=$(shell cat $(topsrcdir)/mobile/android/sync/android-layout-resources.mn | tr '\n' ' ';)
 SYNC_RES_VALUES=$(shell cat $(topsrcdir)/mobile/android/sync/android-values-resources.mn | tr '\n' ' ';)
-SYNC_RES_XML=res/xml/sync_authenticator.xml
+SYNC_RES_XML=res/xml/sync_authenticator.xml res/xml/sync_options.xml
 SYNC_PP_RES_XML=res/xml/sync_syncadapter.xml
 
 JAVAFILES = \
@@ -566,9 +567,10 @@ include $(topsrcdir)/config/android-common.mk
 # Sync dependencies are provided in a single jar. Sync classes themselves are delivered as source,
 # because Android resource classes must be compiled together in order to avoid overlapping resource
 # indices.
-classes.dex: $(JAVAFILES) $(PROCESSEDJAVAFILES) R.java
+classes.dex: $(JAVAFILES) $(PROCESSEDJAVAFILES) $(SYNC_THIRDPARTY_JAVA_FILES) R.java
 	$(NSINSTALL) -D classes
-	$(JAVAC) $(JAVAC_FLAGS) -Xlint:unchecked -Xlint:deprecation -d classes  $(addprefix $(srcdir)/,$(JAVAFILES)) $(PROCESSEDJAVAFILES) R.java
+	$(JAVAC) $(JAVAC_FLAGS) -d classes $(addprefix $(srcdir)/,$(SYNC_THIRDPARTY_JAVA_FILES))
+	$(JAVAC) $(JAVAC_FLAGS) -Xlint:unchecked -Xlint:deprecation -d classes -classpath classes $(addprefix $(srcdir)/,$(JAVAFILES)) $(PROCESSEDJAVAFILES) R.java
 	$(DX) --dex --output=$@ classes
 
 PP_RES_XML=$(SYNC_PP_RES_XML)
