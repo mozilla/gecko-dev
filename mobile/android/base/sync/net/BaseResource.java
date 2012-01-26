@@ -19,7 +19,7 @@
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- *  Richard Newman <rnewman@mozilla.com>
+ *   Richard Newman <rnewman@mozilla.com>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -50,6 +50,7 @@ import android.util.Log;
 import ch.boye.httpclientandroidlib.Header;
 import ch.boye.httpclientandroidlib.HttpEntity;
 import ch.boye.httpclientandroidlib.HttpResponse;
+import ch.boye.httpclientandroidlib.HttpVersion;
 import ch.boye.httpclientandroidlib.auth.Credentials;
 import ch.boye.httpclientandroidlib.auth.UsernamePasswordCredentials;
 import ch.boye.httpclientandroidlib.client.ClientProtocolException;
@@ -70,6 +71,7 @@ import ch.boye.httpclientandroidlib.impl.client.DefaultHttpClient;
 import ch.boye.httpclientandroidlib.impl.conn.tsccm.ThreadSafeClientConnManager;
 import ch.boye.httpclientandroidlib.params.HttpConnectionParams;
 import ch.boye.httpclientandroidlib.params.HttpParams;
+import ch.boye.httpclientandroidlib.params.HttpProtocolParams;
 import ch.boye.httpclientandroidlib.protocol.BasicHttpContext;
 import ch.boye.httpclientandroidlib.protocol.HttpContext;
 
@@ -80,18 +82,44 @@ import ch.boye.httpclientandroidlib.protocol.HttpContext;
  * Exposes simple get/post/put/delete methods.
  */
 public class BaseResource implements Resource {
+  public static boolean rewriteLocalhost = true;
+
   private static final String LOG_TAG = "BaseResource";
   protected URI uri;
   protected BasicHttpContext context;
   protected DefaultHttpClient client;
   public    ResourceDelegate delegate;
   protected HttpRequestBase request;
+  public String charset = "utf-8";
 
   public BaseResource(String uri) throws URISyntaxException {
-	  this(new URI(uri));
+    this(uri, rewriteLocalhost);
   }
+
   public BaseResource(URI uri) {
-    this.uri = uri;
+    this(uri, rewriteLocalhost);
+  }
+
+  public BaseResource(String uri, boolean rewrite) throws URISyntaxException {
+	  this(new URI(uri), rewrite);
+  }
+
+  public BaseResource(URI uri, boolean rewrite) {
+    if (rewrite && uri.getHost().equals("localhost")) {
+      // Rewrite localhost URIs to refer to the special Android emulator loopback passthrough interface.
+      Log.d(LOG_TAG, "Rewriting " + uri + " to point to 10.0.2.2.");
+      try {
+        this.uri = new URI(uri.getScheme(), uri.getUserInfo(), "10.0.2.2", uri.getPort(), uri.getPath(), uri.getQuery(), uri.getFragment());
+      } catch (URISyntaxException e) {
+        Log.e(LOG_TAG, "Got error rewriting URI for Android emulator.", e);
+      }
+    } else {
+      this.uri = uri;
+    }
+  }
+
+  public URI getURI() {
+    return this.uri;
   }
 
   /**
@@ -129,6 +157,8 @@ public class BaseResource implements Resource {
     HttpParams params = client.getParams();
     HttpConnectionParams.setConnectionTimeout(params, delegate.connectionTimeout());
     HttpConnectionParams.setSoTimeout(params, delegate.socketTimeout());
+    HttpProtocolParams.setContentCharset(params, charset);
+    HttpProtocolParams.setVersion(params, HttpVersion.HTTP_1_1);
     delegate.addHeaders(request, client);
   }
 
@@ -154,8 +184,7 @@ public class BaseResource implements Resource {
     SchemeRegistry schemeRegistry = new SchemeRegistry();
     schemeRegistry.register(new Scheme("https", 443, sf));
     schemeRegistry.register(new Scheme("http", 80, new PlainSocketFactory()));
-    ThreadSafeClientConnManager cm = new ThreadSafeClientConnManager(
-        schemeRegistry);
+    ThreadSafeClientConnManager cm = new ThreadSafeClientConnManager(schemeRegistry);
     connManager = cm;
     return cm;
   }

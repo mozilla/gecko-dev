@@ -6,14 +6,19 @@
 <!-- Main titles. -->
 <!ENTITY sync.app.name.label '&syncBrand.fullName.label;'>
 <!ENTITY sync.title.connect.label 'Connect to &syncBrand.shortName.label;'>
+<!ENTITY sync.title.adddevice.label 'Add a &syncBrand.fullName.label; Account'>
 <!ENTITY sync.title.pair.label 'Pair a Device'>
 
 <!-- J-PAKE Key Screen -->
 <!ENTITY sync.subtitle.connect.label 'To activate your new device, select “Set up &syncBrand.shortName.label;” on the device.'>
+<!ENTITY sync.subtitle.header.label 'Enter this code on your computer'>
+<!ENTITY sync.subtitle.connectlocation.label 'Select “&sync.title.pair.label;” in the &syncBrand.shortName.label; section of your desktop Firefox options.'>
 <!ENTITY sync.subtitle.pair.label 'To activate, select “Pair a device” on your other device.'>
 <!ENTITY sync.pin.default.label '...\n...\n...\n'>
-<!ENTITY sync.link.show.label '<a href="https://support.mozilla.com/kb/add-a-device-to-firefox-sync">Show me how</a>'>
-<!ENTITY sync.link.nodevice.label '<a href="#">I don\&apos;t have the device with me…</a>'>
+<!ENTITY sync.pin.oneline.label '...'>
+<!ENTITY sync.link.show.label 'Show me how.'>
+<!ENTITY sync.link.advancedsetup.label 'Advanced setup...'>
+<!ENTITY sync.link.nodevice.label 'I don\&apos;t have the device with me…'>
 
 <!-- J-PAKE Waiting Screen -->
 <!ENTITY sync.jpake.subtitle.waiting.label 'Waiting for other device…'>
@@ -31,16 +36,25 @@
 <!ENTITY sync.subtitle.fail.label '&syncBrand.fullName.label; could not connect to the server. Would you like to try again?'>
 <!ENTITY sync.button.tryagain.label 'Try again'>
 <!ENTITY sync.button.manual.label 'Manual Setup'>
+<!ENTITY sync.subtitle.nointernet.label 'No internet connection available.'>
   
 <!-- Setup Success -->
 <!ENTITY sync.title.success.label 'Setup Complete'>
 <!ENTITY sync.subtitle.success.label 'Your data is now being downloaded in the background. You can go to Settings to manage your account.'>
 <!ENTITY sync.settings.label 'Settings'>
 <!ENTITY sync.subtitle.manage.label 'Your &syncBrand.fullName.label; account is already set up. Go to Settings to manage your account.'>
-  
+
+<!-- Pair Device -->
+<!ENTITY sync.pair.tryagain.label 'Please try again.'>
+
+<!-- Firefox SyncAdapter Settings Screen -->
+<!ENTITY sync.settings.options.label 'Options'>
+<!ENTITY sync.summary.pair.label 'Link another device to your &syncBrand.shortName.label; account'>
+
 <!-- Common text -->
 <!ENTITY sync.button.cancel.label 'Cancel'>
 <!ENTITY sync.button.connect.label 'Connect'>
+<!ENTITY sync.button.ok.label 'OK'>
   
 <!-- Account strings -->
 <!ENTITY sync.account.label.label '&syncBrand.fullName.label;'>
@@ -53,3 +67,6 @@
 <!ENTITY bookmarks.folder.unfiled.label 'Unsorted Bookmarks'>
 <!ENTITY bookmarks.folder.desktop.label 'Desktop Bookmarks'>
 <!ENTITY bookmarks.folder.mobile.label 'Mobile Bookmarks'>
+
+<!-- Notification strings -->
+<!ENTITY sync.notification.oneaccount.label 'Only one &syncBrand.fullName.label; account is supported.'>
