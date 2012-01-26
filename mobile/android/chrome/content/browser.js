@@ -306,7 +306,7 @@ var BrowserApp = {
           Services.obs.removeObserver(restoreCleanup, "sessionstore-windows-restored");
           if (aData == "fail") {
             let params = { selected: restoreToFront };
-            BrowserApp.addTab("about:home");
+            BrowserApp.addTab("about:home", { showProgress: false });
           }
         }
       };
@@ -315,7 +315,7 @@ var BrowserApp = {
       // Start the restore
       ss.restoreLastSession(restoreToFront, forceRestore);
     } else {
-      this.addTab(url);
+      this.addTab(url, { showProgress: url != "about:home" });
 
       // show telemetry door hanger if we aren't restoring a session
       this._showTelemetryPrompt();
@@ -466,11 +466,12 @@ var BrowserApp = {
   },
 
   addTab: function addTab(aURI, aParams) {
-    aParams = aParams || { selected: true, flags: Ci.nsIWebNavigation.LOAD_FLAGS_NONE };
+    aParams = aParams || {};
+
     let newTab = new Tab(aURI, aParams);
     this._tabs.push(newTab);
-    if ("selected" in aParams && aParams.selected)
-      newTab.active = true;
+
+    newTab.active = "selected" in aParams ? aParams.selected : true;
 
     let evt = document.createEvent("UIEvents");
     evt.initUIEvent("TabOpen", true, false, window, null);
@@ -1378,7 +1379,7 @@ Tab.prototype = {
     if (this.browser)
       return;
 
-    aParams = aParams || { selected: true };
+    aParams = aParams || {};
 
     this.vbox = document.createElement("vbox");
     this.vbox.align = "start";
