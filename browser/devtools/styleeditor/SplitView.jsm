@@ -172,7 +172,6 @@ SplitView.prototype = {
     if (binding.onShow) {
       binding.onShow(aSummary, binding._details, binding.data);
     }
-    aSummary.scrollIntoView();
   },
 
   /**
