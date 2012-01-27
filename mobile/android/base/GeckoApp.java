@@ -124,7 +124,7 @@ abstract public class GeckoApp
     public Handler mMainHandler;
     private File mProfileDir;
     private static boolean sIsGeckoReady = false;
-    private static int mOrientation;
+    public static int mOrientation;
 
     private IntentFilter mConnectivityFilter;
 
@@ -1557,6 +1557,8 @@ abstract public class GeckoApp
 
         setContentView(R.layout.gecko_app);
 
+        mOrientation = getResources().getConfiguration().orientation;
+
         if (Build.VERSION.SDK_INT >= 11) {
             refreshActionBar();
         } else {
@@ -1696,8 +1698,6 @@ abstract public class GeckoApp
                 checkMigrateProfile();
             }
         }, 50);
-
-        mOrientation = getResources().getConfiguration().orientation;
     }
 
     /**
