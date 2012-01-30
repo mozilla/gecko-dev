@@ -600,12 +600,12 @@ abstract public class GeckoApp
                     mLastViewport = viewportMetrics.toJSON();
 
                 mLastTitle = lastHistoryEntry.mTitle;
-                getAndProcessThumbnailForTab(tab);
+                getAndProcessThumbnailForTab(tab, true);
             }
         }
     }
 
-    void getAndProcessThumbnailForTab(final Tab tab) {
+    void getAndProcessThumbnailForTab(final Tab tab, boolean forceBigSceenshot) {
         boolean isSelectedTab = Tabs.getInstance().isSelectedTab(tab);
         final Bitmap bitmap = isSelectedTab ?
             mSoftwareLayerClient.getBitmap() : null;
@@ -616,10 +616,10 @@ abstract public class GeckoApp
             processThumbnail(tab, bitmap, bos.toByteArray());
         } else {
             mLastScreen = null;
-            int sw = isSelectedTab ? mSoftwareLayerClient.getWidth() : tab.getMinScreenshotWidth();
-            int sh = isSelectedTab ? mSoftwareLayerClient.getHeight(): tab.getMinScreenshotHeight();
-            int dw = isSelectedTab ? sw : tab.getThumbnailWidth();
-            int dh = isSelectedTab ? sh : tab.getThumbnailHeight();
+            int sw = forceBigSceenshot ? mSoftwareLayerClient.getWidth() : tab.getMinScreenshotWidth();
+            int sh = forceBigSceenshot ? mSoftwareLayerClient.getHeight(): tab.getMinScreenshotHeight();
+            int dw = forceBigSceenshot ? sw : tab.getThumbnailWidth();
+            int dh = forceBigSceenshot ? sh : tab.getThumbnailHeight();
             try {
                 JSONObject message = new JSONObject();
                 message.put("tabID", tab.getId());
