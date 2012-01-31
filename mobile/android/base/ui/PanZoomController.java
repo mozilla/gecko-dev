@@ -279,6 +279,7 @@ public class PanZoomController
                 return false;
             }
             cancelTouch();
+            GeckoApp.mAppContext.hidePlugins(false /* don't hide layers */);
             // fall through
         case PANNING_HOLD_LOCKED:
             GeckoApp.mAppContext.mAutoCompletePopup.hide();
@@ -460,6 +461,8 @@ public class PanZoomController
             stopAnimationTimer();
         }
 
+        GeckoApp.mAppContext.hidePlugins(false /* don't hide layers */);
+
         mAnimationTimer = new Timer("Animation Timer");
         mAnimationRunnable = runnable;
         mAnimationTimer.scheduleAtFixedRate(new TimerTask() {
@@ -478,6 +481,8 @@ public class PanZoomController
             mAnimationRunnable.terminate();
             mAnimationRunnable = null;
         }
+
+        GeckoApp.mAppContext.showPlugins();
     }
 
     private float getVelocity() {
@@ -567,7 +572,6 @@ public class PanZoomController
             finishBounce();
             finishAnimation();
             mState = PanZoomState.NOTHING;
-            GeckoApp.mAppContext.showPluginViews();
         }
 
         /* Performs one frame of a bounce animation. */
@@ -645,6 +649,7 @@ public class PanZoomController
         stopAnimationTimer();
 
         // Force a viewport synchronisation
+        GeckoApp.mAppContext.showPlugins();
         mController.setForceRedraw();
         mController.notifyLayerClientOfGeometryChange();
     }
@@ -725,7 +730,7 @@ public class PanZoomController
 
         mState = PanZoomState.PINCHING;
         mLastZoomFocus = new PointF(detector.getFocusX(), detector.getFocusY());
-        GeckoApp.mAppContext.hidePluginViews();
+        GeckoApp.mAppContext.hidePlugins(false /* don't hide layers, only views */);
         GeckoApp.mAppContext.mAutoCompletePopup.hide();
         cancelTouch();
 
@@ -790,9 +795,9 @@ public class PanZoomController
         startTouch(detector.getFocusX(), detector.getFocusY(), detector.getEventTime());
 
         // Force a viewport synchronisation
+        GeckoApp.mAppContext.showPlugins();
         mController.setForceRedraw();
         mController.notifyLayerClientOfGeometryChange();
-        GeckoApp.mAppContext.showPluginViews();
     }
 
     public boolean getRedrawHint() {
@@ -846,7 +851,6 @@ public class PanZoomController
     }
 
     private boolean animatedZoomTo(RectF zoomToRect) {
-        GeckoApp.mAppContext.hidePluginViews();
         GeckoApp.mAppContext.mAutoCompletePopup.hide();
 
         mState = PanZoomState.ANIMATED_ZOOM;

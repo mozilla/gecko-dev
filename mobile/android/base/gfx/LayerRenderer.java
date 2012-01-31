@@ -46,6 +46,7 @@ import org.mozilla.gecko.gfx.LayerView;
 import org.mozilla.gecko.gfx.NinePatchTileLayer;
 import org.mozilla.gecko.gfx.SingleTileLayer;
 import org.mozilla.gecko.gfx.TextureReaper;
+import org.mozilla.gecko.gfx.TextureGenerator;
 import org.mozilla.gecko.gfx.TextLayer;
 import org.mozilla.gecko.gfx.TileLayer;
 import android.content.Context;
@@ -62,6 +63,7 @@ import android.view.WindowManager;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 
 /**
  * The layer renderer implements the rendering logic for a layer view.
@@ -88,6 +90,8 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
     private final FadeRunnable mFadeRunnable;
     private RenderContext mLastPageContext;
     private int mMaxTextureSize;
+
+    private ArrayList<Layer> mExtraLayers = new ArrayList<Layer>();
 
     // Dropped frames display
     private int[] mFrameTimings;
@@ -130,10 +134,32 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
         int maxTextureSizeResult[] = new int[1];
         gl.glGetIntegerv(GL10.GL_MAX_TEXTURE_SIZE, maxTextureSizeResult, 0);
         mMaxTextureSize = maxTextureSizeResult[0];
+
+        TextureGenerator.get().fill();
     }
 
     public int getMaxTextureSize() {
         return mMaxTextureSize;
+    }
+
+    public void addLayer(Layer layer) {
+        LayerController controller = mView.getController();
+
+        synchronized (controller) {
+            if (mExtraLayers.contains(layer)) {
+                mExtraLayers.remove(layer);
+            }
+
+            mExtraLayers.add(layer);
+        }
+    }
+
+    public void removeLayer(Layer layer) {
+        LayerController controller = mView.getController();
+
+        synchronized (controller) {
+            mExtraLayers.remove(layer);
+        }
     }
 
     /**
@@ -143,6 +169,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
         long frameStartTime = SystemClock.uptimeMillis();
 
         TextureReaper.get().reap(gl);
+        TextureGenerator.get().fill();
 
         LayerController controller = mView.getController();
         RenderContext screenContext = createScreenContext();
@@ -176,6 +203,9 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
             updated &= mVertScrollLayer.update(gl, pageContext);
             updated &= mHorizScrollLayer.update(gl, pageContext);
 
+            for (Layer layer : mExtraLayers)
+                updated &= layer.update(gl, pageContext);
+
             /* Draw the background. */
             mBackgroundLayer.draw(screenContext);
 
@@ -199,6 +229,10 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
                 rootLayer.draw(pageContext);
 
             gl.glDisable(GL10.GL_SCISSOR_TEST);
+
+            /* Draw any extra layers that were added (likely plugins) */
+            for (Layer layer : mExtraLayers)
+                layer.draw(pageContext);
 
             /* Draw the vertical scrollbar. */
             IntSize screenSize = new IntSize(controller.getViewportSize());
