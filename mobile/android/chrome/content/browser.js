@@ -760,7 +760,7 @@ var BrowserApp = {
   },
 
   getSearchEngines: function() {
-    let engineData = Services.search.getEngines({});
+    let engineData = Services.search.getVisibleEngines({});
     let searchEngines = engineData.map(function (engine) {
       return {
         name: engine.name,
