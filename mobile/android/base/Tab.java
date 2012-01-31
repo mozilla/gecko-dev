@@ -82,6 +82,7 @@ public final class Tab {
     private String mDocumentURI;
     private String mContentType;
     private ArrayList<View> mPluginViews;
+    private boolean mHasLoaded;
 
     public static final class HistoryEntry {
         public String mUri;         // must never be null
@@ -115,6 +116,7 @@ public final class Tab {
         mDocumentURI = "";
         mContentType = "";
         mPluginViews = new ArrayList<View>();
+        mHasLoaded = false;
     }
 
     public int getId() {
@@ -425,6 +427,14 @@ public final class Tab {
 
     public HashMap<String, DoorHanger> getDoorHangers() {
         return mDoorHangers;
+    }
+
+    public void setHasLoaded(boolean hasLoaded) {
+        mHasLoaded = hasLoaded;
+    }
+
+    public boolean hasLoaded() {
+        return mHasLoaded;
     }
 
     void handleSessionHistoryMessage(String event, JSONObject message) throws JSONException {

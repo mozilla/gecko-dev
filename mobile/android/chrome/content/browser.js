@@ -1407,7 +1407,8 @@ Tab.prototype = {
         parentId: ("parentId" in aParams) ? aParams.parentId : -1,
         external: ("external" in aParams) ? aParams.external : false,
         selected: ("selected" in aParams) ? aParams.selected : true,
-        title: aParams.title || ""
+        title: aParams.title || "",
+        delayLoad: aParams.delayLoad || false
       }
     };
     sendMessageToJava(message);
