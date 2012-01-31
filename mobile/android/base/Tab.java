@@ -44,6 +44,7 @@ import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.View;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -80,6 +81,7 @@ public final class Tab {
     private CheckBookmarkTask mCheckBookmarkTask;
     private String mDocumentURI;
     private String mContentType;
+    private ArrayList<View> mPluginViews;
 
     public static final class HistoryEntry {
         public String mUri;         // must never be null
@@ -112,6 +114,7 @@ public final class Tab {
         mFaviconLoadId = 0;
         mDocumentURI = "";
         mContentType = "";
+        mPluginViews = new ArrayList<View>();
     }
 
     public int getId() {
@@ -533,5 +536,17 @@ public final class Tab {
         protected void onPostExecute(Void unused) {
             setBookmark(false);
         }
+    }
+
+    public void addPluginView(View view) {
+        mPluginViews.add(view);
+    }
+
+    public void removePluginView(View view) {
+        mPluginViews.remove(view);
+    }
+
+    public View[] getPluginViews() {
+        return mPluginViews.toArray(new View[mPluginViews.size()]);
     }
 }

@@ -110,6 +110,7 @@ public class Tabs implements GeckoEventListener {
         if (!tabs.containsKey(id))
             return null;
 
+        final Tab oldTab = getSelectedTab();
         final Tab tab = tabs.get(id);
         // This avoids a NPE below, but callers need to be careful to
         // handle this case
@@ -132,6 +133,9 @@ public class Tabs implements GeckoEventListener {
                     GeckoApp.mBrowserToolbar.setProgressVisibility(tab.isLoading());
                     GeckoApp.mDoorHangerPopup.updatePopup();
                     GeckoApp.mBrowserToolbar.setShadowVisibility(!(tab.getURL().startsWith("about:")));
+
+                    if (oldTab != null)
+                        GeckoApp.mAppContext.hidePluginViews(oldTab);
                 }
             }
         });
@@ -195,6 +199,7 @@ public class Tabs implements GeckoEventListener {
                 GeckoApp.mAppContext.onTabsChanged(closedTab);
                 GeckoApp.mBrowserToolbar.updateTabs(Tabs.getInstance().getCount());
                 GeckoApp.mDoorHangerPopup.updatePopup();
+                GeckoApp.mAppContext.hidePluginViews(closedTab);
             }
         });
 
