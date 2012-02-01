@@ -1111,7 +1111,7 @@ var NativeWindow = {
     },
 
     remove: function(aId) {
-      this.items[aId] = null;
+      delete this.items[aId];
     },
 
     SelectorContext: function(aSelector) {
