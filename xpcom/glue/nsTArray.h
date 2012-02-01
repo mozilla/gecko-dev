@@ -48,7 +48,6 @@
 #include "nsDebug.h"
 #include "nsTraceRefcnt.h"
 #include "mozilla/Util.h"
-#include "mozilla/mozalloc.h"
 #include NEW_H
 
 //
