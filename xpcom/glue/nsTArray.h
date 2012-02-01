@@ -97,6 +97,7 @@ struct nsTArrayInfallibleAllocator
 
 #else
 
+#include <stdlib.h>
 struct nsTArrayFallibleAllocator
 {
   static void* Malloc(size_t size) {
