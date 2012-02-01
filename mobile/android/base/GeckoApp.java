@@ -1562,6 +1562,20 @@ abstract public class GeckoApp
             checkAndLaunchUpdate();
         }
 
+        super.onCreate(savedInstanceState);
+
+        setContentView(R.layout.gecko_app);
+
+        mOrientation = getResources().getConfiguration().orientation;
+
+        if (Build.VERSION.SDK_INT >= 11) {
+            refreshActionBar();
+        } else {
+            mBrowserToolbar = (BrowserToolbar) findViewById(R.id.browser_toolbar);
+        }
+
+        mBrowserToolbar.setTitle(mLastTitle);
+
         String passedUri = null;
         String uri = getURIFromIntent(intent);
         if (uri != null && uri.length() > 0)
@@ -1575,8 +1589,12 @@ abstract public class GeckoApp
             if (profileDir != null)
                 sessionExists = new File(profileDir, "sessionstore.bak").exists();
             Log.w(LOGTAG, "zerdatime " + SystemClock.uptimeMillis() + " - finish check sessionstore.bak exists");
-            if (!sessionExists)
+            if (!sessionExists) {
+                mBrowserToolbar.updateTabCount(1);
                 showAboutHome();
+            }
+        } else {
+            mBrowserToolbar.updateTabCount(1);
         }
 
         if (sGREDir == null)
@@ -1601,20 +1619,6 @@ abstract public class GeckoApp
             checkAndSetLaunchState(LaunchState.Launching, LaunchState.Launched))
             sGeckoThread.start();
 
-        super.onCreate(savedInstanceState);
-
-        setContentView(R.layout.gecko_app);
-
-        mOrientation = getResources().getConfiguration().orientation;
-
-        if (Build.VERSION.SDK_INT >= 11) {
-            refreshActionBar();
-        } else {
-            mBrowserToolbar = (BrowserToolbar) findViewById(R.id.browser_toolbar);
-        }
-
-        mBrowserToolbar.setTitle(mLastTitle);
-
         mFavicons = new Favicons(this);
 
         // setup gecko layout
@@ -1630,7 +1634,7 @@ abstract public class GeckoApp
             mBrowserToolbar.setTitle(tab.getDisplayTitle());
             mBrowserToolbar.setFavicon(tab.getFavicon());
             mBrowserToolbar.setProgressVisibility(tab.isLoading());
-            mBrowserToolbar.updateTabs(Tabs.getInstance().getCount()); 
+            mBrowserToolbar.updateTabCountAndAnimate(Tabs.getInstance().getCount()); 
         }
 
         tabs.setContentResolver(getContentResolver()); 
