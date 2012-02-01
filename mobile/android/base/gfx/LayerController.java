@@ -378,10 +378,11 @@ public class LayerController {
         int action = event.getAction();
         PointF point = new PointF(event.getX(), event.getY());
         if ((action & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_DOWN) {
+            mView.clearEventQueue();
             initialTouchLocation = point;
+            allowDefaultActions = !mWaitForTouchListeners;
             post(new Runnable() {
                 public void run() {
-                    mView.clearEventQueue();
                     preventPanning(mWaitForTouchListeners);
                 }
             });
