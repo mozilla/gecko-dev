@@ -135,7 +135,7 @@ public class AwesomeBarTabs extends TabHost {
             ImageView favicon = (ImageView) childView.findViewById(R.id.favicon);
 
             if (b == null) {
-                favicon.setImageResource(android.R.id.empty);
+                favicon.setImageDrawable(null);
             } else {
                 Bitmap bitmap = BitmapFactory.decodeByteArray(b, 0, b.length);
                 favicon.setImageBitmap(bitmap);
@@ -151,7 +151,7 @@ public class AwesomeBarTabs extends TabHost {
             ImageView favicon = (ImageView) view;
 
             if (b == null) {
-                favicon.setImageResource(android.R.id.empty);
+                favicon.setImageDrawable(null);
             } else {
                 Bitmap bitmap = BitmapFactory.decodeByteArray(b, 0, b.length);
                 favicon.setImageBitmap(bitmap);
