@@ -4704,7 +4704,7 @@ nsLayoutUtils::InflationMinFontSizeFor(const nsHTMLReflowState &aReflowState)
   }
 
   nsIFrame *reflowRoot = nsnull;
-  for (const nsHTMLReflowState *rs = &aReflowState; rs;
+  for (const nsHTMLReflowState *rs = &aReflowState; rs && rs->frame;
        reflowRoot = rs->frame, rs = rs->parentReflowState) {
     if (IsContainerForFontSizeInflation(rs->frame)) {
       if (!ShouldInflateFontsForContainer(rs->frame)) {
@@ -4716,6 +4716,9 @@ nsLayoutUtils::InflationMinFontSizeFor(const nsHTMLReflowState &aReflowState)
       return MinimumFontSizeFor(aReflowState.frame->PresContext(),
                                 rs->ComputedWidth());
     }
+  }
+  if (!reflowRoot->GetParent()) {
+    return 0;
   }
 
   // We've hit the end of the reflow state chain.  There are two
