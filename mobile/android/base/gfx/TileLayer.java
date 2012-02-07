@@ -37,10 +37,8 @@
 
 package org.mozilla.gecko.gfx;
 
-import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.RectF;
-import android.graphics.Region;
 import android.opengl.GLES20;
 import android.util.Log;
 import javax.microedition.khronos.opengles.GL10;
@@ -141,22 +139,6 @@ public abstract class TileLayer extends Layer {
 
     public boolean getSkipTextureUpdate() {
         return mSkipTextureUpdate;
-    }
-
-    @Override
-    public Region getValidRegion(RenderContext context) {
-        if (mValidTextureRect.isEmpty())
-            return new Region();
-
-        Point origin = getOrigin();
-        float scaleFactor = context.zoomFactor / getResolution();
-        float x = (origin.x + mValidTextureRect.left) * scaleFactor;
-        float y = (origin.y + mValidTextureRect.top) * scaleFactor;
-        float width = mValidTextureRect.width() * scaleFactor;
-        float height = mValidTextureRect.height() * scaleFactor;
-
-        return new Region(Math.round(x), Math.round(y),
-                          Math.round(x + width), Math.round(y + height));
     }
 
     @Override

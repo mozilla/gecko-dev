@@ -267,18 +267,6 @@ public class MultiTileLayer extends Layer {
         }
     }
 
-    @Override
-    public Region getValidRegion(RenderContext context) {
-        Region validRegion = new Region();
-        for (SubTile tile : mTiles) {
-            if (tile.key == null || tile.getValidTextureArea().isEmpty())
-                continue;
-            validRegion.op(tile.getValidRegion(context), Region.Op.UNION);
-        }
-
-        return validRegion;
-    }
-
     class SubTile extends SingleTileLayer {
         public int x;
         public int y;
