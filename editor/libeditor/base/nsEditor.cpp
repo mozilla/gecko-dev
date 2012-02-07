@@ -3662,10 +3662,14 @@ nsEditor::IsEditable(nsIContent *aNode)
     // rely on frameless textnodes being visible.
     return false;
   }
-  if (aNode->NodeType() != nsIDOMNode::TEXT_NODE)
-    return true;  // not a text node; not invisible
-
-  return IsTextInDirtyFrameVisible(aNode);
+  switch (aNode->NodeType()) {
+    case nsIDOMNode::ELEMENT_NODE:
+      return true; // not a text node; not invisible
+    case nsIDOMNode::TEXT_NODE:
+      return IsTextInDirtyFrameVisible(aNode);
+    default:
+      return false;
+  }
 }
 
 bool
