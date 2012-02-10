@@ -43,6 +43,17 @@
     margin: 0;
   }
 
+  img {
+    position: absolute;
+    margin: auto;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+  }
+}
+
+@media print {
   /* We must declare the image as a block element. If we stay as
   an inline element, our parent LineBox will be inline too and
   ignore the available height during reflow.
@@ -51,11 +62,5 @@
   multiple pages. */
   img {
     display: block;
-    position: absolute;
-    margin: auto;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
   }
 }
