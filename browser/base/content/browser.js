@@ -188,6 +188,7 @@ XPCOMUtils.defineLazyGetter(this, "Tilt", function() {
 
 let gInitialPages = [
   "about:blank",
+  "about:newtab",
   "about:privatebrowsing",
   "about:sessionrestore"
 ];
@@ -2204,7 +2205,7 @@ function openLocation() {
     else {
       // If there are no open browser windows, open a new one
       win = window.openDialog("chrome://browser/content/", "_blank",
-                              "chrome,all,dialog=no", "about:blank");
+                              "chrome,all,dialog=no", BROWSER_NEW_TAB_URL);
       win.addEventListener("load", openLocationCallback, false);
     }
     return;
@@ -2222,7 +2223,7 @@ function openLocationCallback()
 
 function BrowserOpenTab()
 {
-  openUILinkIn("about:blank", "tab");
+  openUILinkIn(BROWSER_NEW_TAB_URL, "tab");
 }
 
 /* Called from the openLocation dialog. This allows that dialog to instruct
@@ -2557,7 +2558,7 @@ function URLBarSetURI(aURI) {
     else
       value = losslessDecodeURI(uri);
 
-    valid = (uri.spec != "about:blank");
+    valid = !isBlankPageURL(uri.spec);
   }
 
   gURLBar.value = value;
@@ -2874,7 +2875,7 @@ function getMeOutOfHere() {
   // Get the start page from the *default* pref branch, not the user's
   var prefs = Cc["@mozilla.org/preferences-service;1"]
              .getService(Ci.nsIPrefService).getDefaultBranch(null);
-  var url = "about:blank";
+  var url = BROWSER_NEW_TAB_URL;
   try {
     url = prefs.getComplexValue("browser.startup.homepage",
                                 Ci.nsIPrefLocalizedString).data;
@@ -5192,7 +5193,7 @@ nsBrowserAccess.prototype = {
       case Ci.nsIBrowserDOMWindow.OPEN_NEWWINDOW :
         // FIXME: Bug 408379. So how come this doesn't send the
         // referrer like the other loads do?
-        var url = aURI ? aURI.spec : "about:blank";
+        var url = aURI ? aURI.spec : BROWSER_NEW_TAB_URL;
         // Pass all params to openDialog to ensure that "url" isn't passed through
         // loadOneOrMoreURIs, which splits based on "|"
         newWindow = openDialog(getBrowserURL(), "_blank", "all,dialog=no", url, null, null, null);
@@ -5225,7 +5226,7 @@ nsBrowserAccess.prototype = {
         let loadInBackground = gPrefService.getBoolPref("browser.tabs.loadDivertedInBackground");
         let referrer = aOpener ? makeURI(aOpener.location.href) : null;
 
-        let tab = win.gBrowser.loadOneTab(aURI ? aURI.spec : "about:blank", {
+        let tab = win.gBrowser.loadOneTab(aURI ? aURI.spec : BROWSER_NEW_TAB_URL, {
                                           referrerURI: referrer,
                                           fromExternal: isExternal,
                                           inBackground: loadInBackground});
@@ -5982,7 +5983,7 @@ function MultiplexHandler(event)
     } else if (name == 'charsetCustomize') {
         //do nothing - please remove this else statement, once the charset prefs moves to the pref window
     } else {
-        SetForcedCharset(node.getAttribute('id'));
+        BrowserSetForcedCharacterSet(node.getAttribute('id'));
     }
     } catch(ex) { alert(ex); }
 }
@@ -7098,25 +7099,10 @@ var gPluginHandler = {
     BrowserOpenAddonsMgr("addons://list/plugin");
   },
 
-  // When user clicks try, checks if we should also send crash report in bg
-  retryPluginPage: function (browser, plugin, pluginDumpID, browserDumpID) {
-    let doc = plugin.ownerDocument;
-
-    let statusDiv =
-      doc.getAnonymousElementByAttribute(plugin, "class", "submitStatus");
-    let status = statusDiv.getAttribute("status");
-
-    let submitChk =
-      doc.getAnonymousElementByAttribute(plugin, "class", "pleaseSubmitCheckbox");
-
-    // Check status to make sure we haven't submitted already
-    if (status == "please" && submitChk.checked) {
-      this.submitReport(pluginDumpID, browserDumpID);
-    }
-    this.reloadPage(browser);
-  },
-
-  submitReport: function (pluginDumpID, browserDumpID) {
+  // Callback for user clicking "submit a report" link
+  submitReport : function(pluginDumpID, browserDumpID) {
+    // The crash reporter wants a DOM element it can append an IFRAME to,
+    // which it uses to submit a form. Let's just give it gBrowser.
     this.CrashSubmit.submit(pluginDumpID);
     if (browserDumpID)
       this.CrashSubmit.submit(browserDumpID);
@@ -7334,7 +7320,8 @@ var gPluginHandler = {
       return;
 
     let submittedReport = aEvent.getData("submittedCrashReport");
-    let doPrompt        = true; // XXX followup to get via gCrashReporter
+    let doPrompt        = true; // XXX followup for .getData("doPrompt");
+    let submitReports   = true; // XXX followup for .getData("submitReports");
     let pluginName      = aEvent.getData("pluginName");
     let pluginFilename  = aEvent.getData("pluginFilename");
     let pluginDumpID    = aEvent.getData("pluginDumpID");
@@ -7352,7 +7339,6 @@ var gPluginHandler = {
     let overlay = doc.getAnonymousElementByAttribute(plugin, "class", "mainBox");
     let statusDiv = doc.getAnonymousElementByAttribute(plugin, "class", "submitStatus");
 #ifdef MOZ_CRASHREPORTER
-    let submitReports = gCrashReporter.submitReports;
     let status;
 
     // Determine which message to show regarding crash reports.
@@ -7363,21 +7349,18 @@ var gPluginHandler = {
       status = "noSubmit";
     }
     else { // doPrompt
-      // link submit checkbox to gCrashReporter submitReports preference
-      let submitChk = doc.getAnonymousElementByAttribute(
-                        plugin, "class", "pleaseSubmitCheckbox");
-      submitChk.checked = submitReports;
-      submitChk.addEventListener("click", function() {
-        gCrashReporter.submitReports = this.checked;
-      }, false);
-
       status = "please";
+      // XXX can we make the link target actually be blank?
+      let pleaseLink = doc.getAnonymousElementByAttribute(
+                            plugin, "class", "pleaseSubmitLink");
+      this.addLinkClickCallback(pleaseLink, "submitReport",
+                                pluginDumpID, browserDumpID);
     }
 
     // If we don't have a minidumpID, we can't (or didn't) submit anything.
     // This can happen if the plugin is killed from the task manager.
     if (!pluginDumpID) {
-      status = "noReport";
+        status = "noReport";
     }
 
     statusDiv.setAttribute("status", status);
@@ -7387,23 +7370,10 @@ var gPluginHandler = {
     let helpIcon = doc.getAnonymousElementByAttribute(plugin, "class", "helpIcon");
     this.addLinkClickCallback(helpIcon, "openHelpPage");
 
-    // If we're showing the checkbox to trigger report submission, we'll want
-    // to be able to update all the instances of the UI for this crash when
-    // one instance of the checkbox is modified or the status is updated.
+    // If we're showing the link to manually trigger report submission, we'll
+    // want to be able to update all the instances of the UI for this crash to
+    // show an updated message when a report is submitted.
     if (doPrompt) {
-      let submitReportsPrefObserver = {
-        QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
-                                               Ci.nsISupportsWeakReference]),
-        observe : function(subject, topic, data) {
-          let submitChk = doc.getAnonymousElementByAttribute(
-                            plugin, "class", "pleaseSubmitCheckbox");
-          submitChk.checked = gCrashReporter.submitReports;
-        },
-        handleEvent : function(event) {
-            // Not expected to be called, just here for the closure.
-        }
-      };
-
       let observer = {
         QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
                                                Ci.nsISupportsWeakReference]),
@@ -7420,21 +7390,16 @@ var gPluginHandler = {
         handleEvent : function(event) {
             // Not expected to be called, just here for the closure.
         }
-      };
+      }
 
       // Use a weak reference, so we don't have to remove it...
       Services.obs.addObserver(observer, "crash-report-status", true);
-      Services.obs.addObserver(
-        submitReportsPrefObserver, "submit-reports-pref-changed", true);
-
       // ...alas, now we need something to hold a strong reference to prevent
       // it from being GC. But I don't want to manually manage the reference's
       // lifetime (which should be no greater than the page).
-      // Clever solution? Use a closure with an event listener on the document.
+      // Clever solution? Use a closue with an event listener on the document.
       // When the doc goes away, so do the listener references and the closure.
       doc.addEventListener("mozCleverClosureHack", observer, false);
-      doc.addEventListener(
-        "mozCleverClosureHack", submitReportsPrefObserver, false);
     }
 #endif
 
@@ -7444,12 +7409,7 @@ var gPluginHandler = {
     let browser = gBrowser.getBrowserForDocument(doc.defaultView.top.document);
 
     let link = doc.getAnonymousElementByAttribute(plugin, "class", "reloadLink");
-#ifdef MOZ_CRASHREPORTER
-    this.addLinkClickCallback(
-      link, "retryPluginPage", browser, plugin, pluginDumpID, browserDumpID);
-#else
     this.addLinkClickCallback(link, "reloadPage", browser);
-#endif
 
     let notificationBox = gBrowser.getNotificationBox(browser);
 
@@ -7774,9 +7734,11 @@ function undoCloseWindow(aIndex) {
  */
 function isTabEmpty(aTab) {
   let browser = aTab.linkedBrowser;
+  let uri = browser.currentURI.spec;
+  let body = browser.contentDocument.body;
   return browser.sessionHistory.count < 2 &&
-         browser.currentURI.spec == "about:blank" &&
-         !browser.contentDocument.body.hasChildNodes() &&
+         isBlankPageURL(uri) &&
+         (!body || !body.hasChildNodes()) &&
          !aTab.hasAttribute("busy");
 }
 

@@ -111,6 +111,7 @@ function StyleEditor(aDocument, aStyleSheet)
 
   this._styleSheet = aStyleSheet;
   this._styleSheetIndex = -1; // unknown for now, will be set after load
+  this._styleSheetFilePath = null; // original file path for the style sheet
 
   this._loaded = false;
 
@@ -358,7 +359,6 @@ StyleEditor.prototype = {
   load: function SE_load()
   {
     if (!this._styleSheet) {
-      this._flags.push(StyleEditorFlags.NEW);
       this._appendNewStyleSheet();
     }
     this._loadSource();
@@ -572,6 +572,7 @@ StyleEditor.prototype = {
    * @param mixed aFile
    *        Optional nsIFile or string representing the filename to save in the
    *        background, no UI will be displayed.
+   *        If not specified, the original style sheet URI is used.
    *        To implement 'Save' instead of 'Save as', you can pass savedFile here.
    * @param function(nsIFile aFile) aCallback
    *        Optional callback called when the operation has finished.
@@ -581,7 +582,8 @@ StyleEditor.prototype = {
    */
   saveToFile: function SE_saveToFile(aFile, aCallback)
   {
-    aFile = this._showFilePicker(aFile, true);
+    aFile = this._showFilePicker(aFile || this._styleSheetFilePath, true);
+
     if (!aFile) {
       if (aCallback) {
         aCallback(null);
@@ -731,6 +733,14 @@ StyleEditor.prototype = {
   {
     if (typeof(aFile) == "string") {
       try {
+        if (Services.io.extractScheme(aFile) == "file") {
+          let uri = Services.io.newURI(aFile, null, null);
+          let file = uri.QueryInterface(Ci.nsIFileURL).file;
+          return file;
+        }
+      } catch (ex) {
+      }
+      try {
         let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
         file.initWithPath(aFile);
         return file;
@@ -773,6 +783,7 @@ StyleEditor.prototype = {
     let scheme = Services.io.extractScheme(this.styleSheet.href);
     switch (scheme) {
       case "file":
+        this._styleSheetFilePath = this.styleSheet.href;
       case "chrome":
       case "resource":
         this._loadSourceFromFile(this.styleSheet.href);
@@ -868,9 +879,12 @@ StyleEditor.prototype = {
     parent.appendChild(style);
 
     this._styleSheet = document.styleSheets[document.styleSheets.length - 1];
-    this._flags.push(aText ? StyleEditorFlags.IMPORTED : StyleEditorFlags.NEW);
     if (aText) {
       this._onSourceLoad(aText);
+      this._flags.push(StyleEditorFlags.IMPORTED);
+    } else {
+      this._flags.push(StyleEditorFlags.NEW);
+      this._flags.push(StyleEditorFlags.UNSAVED);
     }
   },
 
