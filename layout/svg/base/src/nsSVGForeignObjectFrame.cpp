@@ -294,6 +294,10 @@ nsSVGForeignObjectFrame::GetTransformMatrix(nsIFrame* aAncestor,
   *aOutAncestor = nsSVGUtils::GetOuterSVGFrame(this);
   NS_ASSERTION(*aOutAncestor, "How did we end up without an outer frame?");
 
+  if (GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD) {
+    return gfx3DMatrix::From2D(gfxMatrix(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+  }
+
   /* Return the matrix back to the root, factoring in the x and y offsets. */
   return gfx3DMatrix::From2D(GetCanvasTMForChildren());
 }
@@ -404,10 +408,16 @@ nsSVGForeignObjectFrame::NotifySVGChanged(PRUint32 aFlags)
     }
 
   } else if (aFlags & COORD_CONTEXT_CHANGED) {
-    // Our coordinate context's width/height has changed. If we have a
-    // percentage width/height our dimensions will change so we must reflow.
     nsSVGForeignObjectElement *fO =
       static_cast<nsSVGForeignObjectElement*>(mContent);
+    // Coordinate context changes affect mCanvasTM if we have a
+    // percentage 'x' or 'y'
+    if (fO->mLengthAttributes[nsSVGForeignObjectElement::X].IsPercentage() ||
+        fO->mLengthAttributes[nsSVGForeignObjectElement::Y].IsPercentage()) {
+      mCanvasTM = nsnull;
+    }
+    // Our coordinate context's width/height has changed. If we have a
+    // percentage width/height our dimensions will change so we must reflow.
     if (fO->mLengthAttributes[nsSVGForeignObjectElement::WIDTH].IsPercentage() ||
         fO->mLengthAttributes[nsSVGForeignObjectElement::HEIGHT].IsPercentage()) {
       reflow = true;
