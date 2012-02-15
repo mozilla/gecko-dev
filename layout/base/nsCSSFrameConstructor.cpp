@@ -8019,7 +8019,7 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
         ApplyRenderingChangeToTree(presContext, frame, hint);
         didInvalidate = true;
       }
-      if (hint & nsChangeHint_UpdateOverflow) {
+      if ((hint & nsChangeHint_UpdateOverflow) && !didReflow) {
         while (frame) {
           nsOverflowAreas* pre = static_cast<nsOverflowAreas*>
             (frame->Properties().Get(frame->PreTransformOverflowAreasProperty()));
