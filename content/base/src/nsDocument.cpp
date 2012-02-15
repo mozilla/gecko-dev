@@ -73,6 +73,7 @@
 
 #include "nsGUIEvent.h"
 #include "nsAsyncDOMEvent.h"
+#include "nsIDOMNodeFilter.h"
 
 #include "nsIDOMStyleSheet.h"
 #include "nsDOMAttribute.h"
@@ -1720,6 +1721,18 @@ NS_INTERFACE_MAP_END
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsDocument)
 NS_IMPL_CYCLE_COLLECTING_RELEASE_WITH_DESTROY(nsDocument, 
                                               nsNodeUtils::LastRelease(this))
+
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(nsDocument)
+  return nsGenericElement::CanSkip(tmp);
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_END
+
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_BEGIN(nsDocument)
+  return nsGenericElement::CanSkipInCC(tmp);
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_END
+
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_BEGIN(nsDocument)
+  return nsGenericElement::CanSkipThis(tmp);
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_END
 
 static PLDHashOperator
 SubDocTraverser(PLDHashTable *table, PLDHashEntryHdr *hdr, PRUint32 number,
@@ -5024,10 +5037,14 @@ NS_IMETHODIMP
 nsDocument::CreateNodeIterator(nsIDOMNode *aRoot,
                                PRUint32 aWhatToShow,
                                nsIDOMNodeFilter *aFilter,
-                               bool aEntityReferenceExpansion,
+                               PRUint8 aOptionalArgc,
                                nsIDOMNodeIterator **_retval)
 {
   *_retval = nsnull;
+
+  if (!aOptionalArgc) {
+    aWhatToShow = nsIDOMNodeFilter::SHOW_ALL;
+  }
 
   if (!aRoot)
     return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
@@ -5042,23 +5059,26 @@ nsDocument::CreateNodeIterator(nsIDOMNode *aRoot,
 
   nsNodeIterator *iterator = new nsNodeIterator(root,
                                                 aWhatToShow,
-                                                aFilter,
-                                                aEntityReferenceExpansion);
+                                                aFilter);
   NS_ENSURE_TRUE(iterator, NS_ERROR_OUT_OF_MEMORY);
 
   NS_ADDREF(*_retval = iterator);
 
-  return NS_OK; 
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDocument::CreateTreeWalker(nsIDOMNode *aRoot,
                              PRUint32 aWhatToShow,
                              nsIDOMNodeFilter *aFilter,
-                             bool aEntityReferenceExpansion,
+                             PRUint8 aOptionalArgc,
                              nsIDOMTreeWalker **_retval)
 {
   *_retval = nsnull;
+
+  if (!aOptionalArgc) {
+    aWhatToShow = nsIDOMNodeFilter::SHOW_ALL;
+  }
 
   if (!aRoot)
     return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
@@ -5073,8 +5093,7 @@ nsDocument::CreateTreeWalker(nsIDOMNode *aRoot,
 
   nsTreeWalker* walker = new nsTreeWalker(root,
                                           aWhatToShow,
-                                          aFilter,
-                                          aEntityReferenceExpansion);
+                                          aFilter);
   NS_ENSURE_TRUE(walker, NS_ERROR_OUT_OF_MEMORY);
 
   NS_ADDREF(*_retval = walker);
@@ -5840,24 +5859,21 @@ nsDocument::SetTextContent(const nsAString & aTextContent)
 NS_IMETHODIMP
 nsDocument::LookupPrefix(const nsAString & namespaceURI, nsAString & aResult)
 {
-  SetDOMStringToNull(aResult);
-  return NS_OK;
+  return nsINode::LookupPrefix(namespaceURI, aResult);
 }
 
 NS_IMETHODIMP
 nsDocument::IsDefaultNamespace(const nsAString & namespaceURI,
                               bool *aResult)
 {
-  *aResult = namespaceURI.IsEmpty();
-  return NS_OK;
+  return nsINode::IsDefaultNamespace(namespaceURI, aResult);
 }
 
 NS_IMETHODIMP
 nsDocument::LookupNamespaceURI(const nsAString & prefix,
                               nsAString & aResult)
 {
-  SetDOMStringToNull(aResult);
-  return NS_OK;
+  return nsINode::LookupNamespaceURI(prefix, aResult);
 }
 
 NS_IMETHODIMP
@@ -7097,8 +7113,16 @@ nsDocument::BlockOnload()
       // block onload only when there are no script blockers.
       ++mAsyncOnloadBlockCount;
       if (mAsyncOnloadBlockCount == 1) {
-        nsContentUtils::AddScriptRunner(
+        bool success = nsContentUtils::AddScriptRunner(
           NS_NewRunnableMethod(this, &nsDocument::AsyncBlockOnload));
+
+        // The script runner shouldn't fail to add. But if somebody broke
+        // something and it does, we'll thrash at 100% cpu forever. The best
+        // response is just to ignore the onload blocking request. See bug 579535.
+        if (!success) {
+          NS_WARNING("Disaster! Onload blocking script runner failed to add - expect bad things!");
+          mAsyncOnloadBlockCount = 0;
+        }
       }
       return;
     }

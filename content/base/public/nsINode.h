@@ -288,8 +288,8 @@ private:
 
 // IID for the nsINode interface
 #define NS_INODE_IID \
-{ 0xd026d280, 0x5b25, 0x41c0, \
-  { 0x92, 0xcf, 0x6, 0xf6, 0xf, 0xb, 0x9a, 0xfe } }
+{ 0xfcd3b0d1, 0x75db, 0x46c4, \
+  { 0xa1, 0xf5, 0x07, 0xc2, 0x09, 0xf8, 0x1f, 0x44 } }
 
 /**
  * An internal interface that abstracts some DOMNode-related parts that both
@@ -377,6 +377,11 @@ public:
    * for which IsElement() is true.
    */
   mozilla::dom::Element* AsElement();
+
+  /**
+   * Return if this node has any children.
+   */
+  bool HasChildren() const { return !!mFirstChild; }
 
   /**
    * Get the number of children
@@ -1218,6 +1223,13 @@ private:
     NodeIsCommonAncestorForRangeInSelection,
     // Set if the node is a descendant of a node with the above bit set.
     NodeIsDescendantOfCommonAncestorForRangeInSelection,
+    // Set if CanSkipInCC check has been done for this subtree root.
+    NodeIsCCMarkedRoot,
+    // Maybe set if this node is in black subtree.
+    NodeIsCCBlackTree,
+    // Maybe set if the node is a root of a subtree 
+    // which needs to be kept in the purple buffer.
+    NodeIsPurpleRoot,
     // Guard value
     BooleanFlagCount
   };
@@ -1264,6 +1276,16 @@ public:
     { SetBoolFlag(NodeIsDescendantOfCommonAncestorForRangeInSelection); }
   void ClearDescendantOfCommonAncestorForRangeInSelection()
     { ClearBoolFlag(NodeIsDescendantOfCommonAncestorForRangeInSelection); }
+
+  void SetCCMarkedRoot(bool aValue)
+    { SetBoolFlag(NodeIsCCMarkedRoot, aValue); }
+  bool CCMarkedRoot() const { return GetBoolFlag(NodeIsCCMarkedRoot); }
+  void SetInCCBlackTree(bool aValue)
+    { SetBoolFlag(NodeIsCCBlackTree, aValue); }
+  bool InCCBlackTree() const { return GetBoolFlag(NodeIsCCBlackTree); }
+  void SetIsPurpleRoot(bool aValue)
+    { SetBoolFlag(NodeIsPurpleRoot, aValue); }
+  bool IsPurpleRoot() const { return GetBoolFlag(NodeIsPurpleRoot); }
 
 protected:
   void SetParentIsContent(bool aValue) { SetBoolFlag(ParentIsContent, aValue); }

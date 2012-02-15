@@ -69,6 +69,7 @@
 #include "mozilla/Telemetry.h"
 #include "nsDOMError.h"
 #include "nsAlgorithm.h"
+#include "sampler.h"
 
 using namespace mozilla;
 
@@ -977,6 +978,8 @@ nsHttpChannel::ProcessResponse()
     LOG(("nsHttpChannel::ProcessResponse [this=%p httpStatus=%u]\n",
         this, httpStatus));
 
+    UpdateInhibitPersistentCachingFlag();
+
     if (mTransaction->SSLConnectFailed()) {
         if (!ShouldSSLProxyResponseContinue(httpStatus))
             return ProcessFailedSSLConnect(httpStatus);
@@ -1782,6 +1785,8 @@ nsHttpChannel::ProcessPartialContent()
     // make the cached response be the current response
     mResponseHead = mCachedResponseHead;
 
+    UpdateInhibitPersistentCachingFlag();
+
     rv = UpdateExpirationTime();
     if (NS_FAILED(rv)) return rv;
 
@@ -1862,6 +1867,8 @@ nsHttpChannel::ProcessNotModified()
 
     // make the cached response be the current response
     mResponseHead = mCachedResponseHead;
+
+    UpdateInhibitPersistentCachingFlag();
 
     rv = UpdateExpirationTime();
     if (NS_FAILED(rv)) return rv;
@@ -2847,6 +2854,8 @@ nsHttpChannel::ReadFromCache()
     if (mCachedResponseHead)
         mResponseHead = mCachedResponseHead;
 
+    UpdateInhibitPersistentCachingFlag();
+
     // if we don't already have security info, try to get it from the cache 
     // entry. there are two cases to consider here: 1) we are just reading
     // from the cache, or 2) this may be due to a 304 not modified response,
@@ -3001,16 +3010,6 @@ nsHttpChannel::InitCacheEntry()
     LOG(("nsHttpChannel::InitCacheEntry [this=%p entry=%p]\n",
         this, mCacheEntry.get()));
 
-    // The no-store directive within the 'Cache-Control:' header indicates
-    // that we must not store the response in a persistent cache.
-    if (mResponseHead->NoStore())
-        mLoadFlags |= INHIBIT_PERSISTENT_CACHING;
-
-    // Only cache SSL content on disk if the pref is set
-    if (!gHttpHandler->IsPersistentHttpsCachingEnabled() &&
-        mConnectionInfo->UsingSSL())
-        mLoadFlags |= INHIBIT_PERSISTENT_CACHING;
-
     if (mLoadFlags & INHIBIT_PERSISTENT_CACHING) {
         rv = mCacheEntry->SetStoragePolicy(nsICache::STORE_IN_MEMORY);
         if (NS_FAILED(rv)) return rv;
@@ -3027,6 +3026,19 @@ nsHttpChannel::InitCacheEntry()
     return NS_OK;
 }
 
+void
+nsHttpChannel::UpdateInhibitPersistentCachingFlag()
+{
+    // The no-store directive within the 'Cache-Control:' header indicates
+    // that we must not store the response in a persistent cache.
+    if (mResponseHead->NoStore())
+        mLoadFlags |= INHIBIT_PERSISTENT_CACHING;
+
+    // Only cache SSL content on disk if the pref is set
+    if (!gHttpHandler->IsPersistentHttpsCachingEnabled() &&
+        mConnectionInfo->UsingSSL())
+        mLoadFlags |= INHIBIT_PERSISTENT_CACHING;
+}
 
 nsresult
 nsHttpChannel::InitOfflineCacheEntry()
@@ -4108,6 +4120,7 @@ nsHttpChannel::GetRequestMethod(nsACString& aMethod)
 NS_IMETHODIMP
 nsHttpChannel::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
 {
+    SAMPLE_LABEL("nsHttpChannel", "OnStartRequest");
     if (!(mCanceled || NS_FAILED(mStatus))) {
         // capture the request's status, so our consumers will know ASAP of any
         // connection failures, etc - bug 93581
@@ -4129,7 +4142,7 @@ nsHttpChannel::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
         mSecurityInfo = mTransaction->SecurityInfo();
     }
 
-    if (gHttpHandler->IsSpdyEnabled() && !mCachePump && NS_FAILED(mStatus) &&
+    if (!mCachePump && NS_FAILED(mStatus) &&
         (mLoadFlags & LOAD_REPLACE) && mOriginalURI && mAllowSpdy) {
         // For sanity's sake we may want to cancel an alternate protocol
         // redirection involving the original host name
@@ -4213,6 +4226,7 @@ nsHttpChannel::ContinueOnStartRequest3(nsresult result)
 NS_IMETHODIMP
 nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult status)
 {
+    SAMPLE_LABEL("network", "nsHttpChannel::OnStopRequest");
     LOG(("nsHttpChannel::OnStopRequest [this=%p request=%p status=%x]\n",
         this, request, status));
 
@@ -4388,6 +4402,7 @@ nsHttpChannel::OnDataAvailable(nsIRequest *request, nsISupports *ctxt,
                                nsIInputStream *input,
                                PRUint32 offset, PRUint32 count)
 {
+    SAMPLE_LABEL("network", "nsHttpChannel::OnDataAvailable");
     LOG(("nsHttpChannel::OnDataAvailable [this=%p request=%p offset=%u count=%u]\n",
         this, request, offset, count));
 

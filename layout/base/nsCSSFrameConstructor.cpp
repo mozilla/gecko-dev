@@ -8021,20 +8021,16 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
       }
       if (hint & nsChangeHint_UpdateOverflow) {
         while (frame) {
-          nsOverflowAreas overflowAreas;
           nsOverflowAreas* pre = static_cast<nsOverflowAreas*>
             (frame->Properties().Get(frame->PreTransformOverflowAreasProperty()));
           if (pre) {
             // FinishAndStoreOverflow will change the overflow areas passed in,
             // so make a copy.
-            overflowAreas = *pre;
+            nsOverflowAreas overflowAreas = *pre;
+            frame->FinishAndStoreOverflow(overflowAreas, frame->GetSize());
           } else {
-            // There is no transform yet on this frame, so we can just use its
-            // current overflow areas.
-            overflowAreas = frame->GetOverflowAreas();
+            frame->UpdateOverflow();
           }
-
-          frame->FinishAndStoreOverflow(overflowAreas, frame->GetSize());
 
           nsIFrame* next =
             nsLayoutUtils::GetNextContinuationOrSpecialSibling(frame);
@@ -9043,6 +9039,16 @@ nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
     }
   }
 #endif
+
+  // Reconstruct if inflowFrame is parent's only child, and parent is, or has,
+  // a non-fluid continuation, i.e. it was split by bidi resolution
+  if (!inFlowFrame->GetPrevSibling() &&
+      !inFlowFrame->GetNextSibling() &&
+      (parent->GetPrevContinuation() && !parent->GetPrevInFlow() ||
+       parent->GetNextContinuation() && !parent->GetNextInFlow())) {
+    *aResult = RecreateFramesForContent(parent->GetContent(), true);
+    return true;
+  }
 
   // We might still need to reconstruct things if the parent of inFlowFrame is
   // special, since in that case the removal of aFrame might affect the

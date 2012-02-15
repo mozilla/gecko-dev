@@ -472,9 +472,13 @@ TaggingService.prototype = {
   onBeginUpdateBatch: function () {},
   onEndUpdateBatch: function () {},
 
-  // nsISupports
+  //////////////////////////////////////////////////////////////////////////////
+  //// nsISupports
+
   classID: Components.ID("{bbc23860-2553-479d-8b78-94d9038334f7}"),
-  
+
+  _xpcom_factory: XPCOMUtils.generateSingletonFactory(TaggingService),
+
   QueryInterface: XPCOMUtils.generateQI([
     Ci.nsITaggingService
   , Ci.nsINavBookmarkObserver
@@ -534,6 +538,8 @@ TagAutoCompleteResult.prototype = {
   get matchCount() {
     return this._results.length;
   },
+
+  get typeAheadResult() false,
 
   /**
    * Get the value of the result at the given index
@@ -673,8 +679,11 @@ TagAutoCompleteSearch.prototype = {
         */
       }
 
-      var newResult = new TagAutoCompleteResult(searchString,
-        Ci.nsIAutoCompleteResult.RESULT_SUCCESS, 0, "", results, comments);
+      let searchResult = results.length > 0 ?
+                           Ci.nsIAutoCompleteResult.RESULT_SUCCESS :
+                           Ci.nsIAutoCompleteResult.RESULT_NOMATCH;
+      var newResult = new TagAutoCompleteResult(searchString, searchResult, 0,
+                                                "", results, comments);
       listener.onSearchResult(self, newResult);
       yield false;
     }
@@ -692,12 +701,16 @@ TagAutoCompleteSearch.prototype = {
     this._stopped = true;
   },
 
-  // nsISupports
+  //////////////////////////////////////////////////////////////////////////////
+  //// nsISupports
+
+  classID: Components.ID("{1dcc23b0-d4cb-11dc-9ad6-479d56d89593}"),
+
+  _xpcom_factory: XPCOMUtils.generateSingletonFactory(TagAutoCompleteSearch),
+
   QueryInterface: XPCOMUtils.generateQI([
     Ci.nsIAutoCompleteSearch
-  ]),
-
-  classID: Components.ID("{1dcc23b0-d4cb-11dc-9ad6-479d56d89593}")
+  ])
 };
 
 let component = [TaggingService, TagAutoCompleteSearch];
