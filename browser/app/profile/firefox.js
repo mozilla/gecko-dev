@@ -1112,10 +1112,10 @@ pref("prompts.tab_modal.enabled", true);
 pref("browser.panorama.animate_zoom", true);
 
 // Defines the url to be used for new tabs.
-pref("browser.newtab.url", "about:newtab");
+pref("browser.newtab.url", "about:blank");
 
 // Toggles the content of 'about:newtab'. Shows the grid when enabled.
-pref("browser.newtabpage.enabled", true);
+pref("browser.newtabpage.enabled", false);
 
 // Enable the DOM full-screen API.
 pref("full-screen-api.enabled", true);
