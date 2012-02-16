@@ -769,7 +769,8 @@ class CompileScriptRunnable : public WorkerRunnable
 {
 public:
   CompileScriptRunnable(WorkerPrivate* aWorkerPrivate)
-  : WorkerRunnable(aWorkerPrivate, WorkerThread, ModifyBusyCount)
+  : WorkerRunnable(aWorkerPrivate, WorkerThread, ModifyBusyCount,
+                   SkipWhenClearing)
   { }
 
   bool
@@ -797,7 +798,8 @@ class CloseEventRunnable : public WorkerRunnable
 {
 public:
   CloseEventRunnable(WorkerPrivate* aWorkerPrivate)
-  : WorkerRunnable(aWorkerPrivate, WorkerThread, UnchangedBusyCount)
+  : WorkerRunnable(aWorkerPrivate, WorkerThread, UnchangedBusyCount,
+                   SkipWhenClearing)
   { }
 
   bool
@@ -850,7 +852,8 @@ public:
                        nsTArray<nsCOMPtr<nsISupports> >& aClonedObjects)
   : WorkerRunnable(aWorkerPrivate, aTarget, aTarget == WorkerThread ?
                                                        ModifyBusyCount :
-                                                       UnchangedBusyCount)
+                                                       UnchangedBusyCount,
+                   SkipWhenClearing)
   {
     aData.steal(&mData, &mDataByteCount);
 
@@ -1002,7 +1005,8 @@ public:
                       const nsString& aFilename, const nsString& aLine,
                       PRUint32 aLineNumber, PRUint32 aColumnNumber,
                       PRUint32 aFlags, PRUint32 aErrorNumber)
-  : WorkerRunnable(aWorkerPrivate, ParentThread, UnchangedBusyCount),
+  : WorkerRunnable(aWorkerPrivate, ParentThread, UnchangedBusyCount,
+                   SkipWhenClearing),
     mMessage(aMessage), mFilename(aFilename), mLine(aLine),
     mLineNumber(aLineNumber), mColumnNumber(aColumnNumber), mFlags(aFlags),
     mErrorNumber(aErrorNumber)
@@ -1204,7 +1208,8 @@ class TimerRunnable : public WorkerRunnable
 {
 public:
   TimerRunnable(WorkerPrivate* aWorkerPrivate)
-  : WorkerRunnable(aWorkerPrivate, WorkerThread, UnchangedBusyCount)
+  : WorkerRunnable(aWorkerPrivate, WorkerThread, UnchangedBusyCount,
+                   SkipWhenClearing)
   { }
 
   bool
@@ -1307,7 +1312,8 @@ class KillCloseEventRunnable : public WorkerRunnable
 
 public:
   KillCloseEventRunnable(WorkerPrivate* aWorkerPrivate)
-  : WorkerRunnable(aWorkerPrivate, WorkerThread, UnchangedBusyCount)
+  : WorkerRunnable(aWorkerPrivate, WorkerThread, UnchangedBusyCount,
+                   SkipWhenClearing)
   { }
 
   ~KillCloseEventRunnable()
@@ -1546,9 +1552,10 @@ mozilla::dom::workers::AssertIsOnMainThread()
 }
 
 WorkerRunnable::WorkerRunnable(WorkerPrivate* aWorkerPrivate, Target aTarget,
-                               BusyBehavior aBusyBehavior)
+                               BusyBehavior aBusyBehavior,
+                               ClearingBehavior aClearingBehavior)
 : mWorkerPrivate(aWorkerPrivate), mTarget(aTarget),
-  mBusyBehavior(aBusyBehavior)
+  mBusyBehavior(aBusyBehavior), mClearingBehavior(aClearingBehavior)
 {
   NS_ASSERTION(aWorkerPrivate, "Null worker private!");
 }
@@ -2593,7 +2600,7 @@ WorkerPrivate::DoRunLoop(JSContext* aCx)
     Status currentStatus;
     bool scheduleIdleGC;
 
-    nsIRunnable* event;
+    WorkerRunnable* event;
     {
       MutexAutoLock lock(mMutex);
 
@@ -2635,7 +2642,7 @@ WorkerPrivate::DoRunLoop(JSContext* aCx)
         // Keep track of whether or not this is the idle GC event.
         eventIsNotIdleGCEvent = event != idleGCEvent;
 
-        event->Run();
+        static_cast<nsIRunnable*>(event)->Run();
         NS_RELEASE(event);
       }
 
@@ -2858,7 +2865,7 @@ WorkerPrivate::ProcessAllControlRunnables()
   bool result = true;
 
   for (;;) {
-    nsIRunnable* event;
+    WorkerRunnable* event;
     {
       MutexAutoLock lock(mMutex);
       if (!mControlQueue.Pop(event)) {
@@ -2866,7 +2873,7 @@ WorkerPrivate::ProcessAllControlRunnables()
       }
     }
 
-    if (NS_FAILED(event->Run())) {
+    if (NS_FAILED(static_cast<nsIRunnable*>(event)->Run())) {
       result = false;
     }
 
@@ -2945,8 +2952,13 @@ WorkerPrivate::ClearQueue(EventQueue* aQueue)
   AssertIsOnWorkerThread();
   mMutex.AssertCurrentThreadOwns();
 
-  nsIRunnable* event;
+  WorkerRunnable* event;
   while (aQueue->Pop(event)) {
+    if (event->WantsToRunDuringClear()) {
+      MutexAutoUnlock unlock(mMutex);
+
+      static_cast<nsIRunnable*>(event)->Run();
+    }
     event->Release();
   }
 }
@@ -3174,7 +3186,7 @@ WorkerPrivate::RunSyncLoop(JSContext* aCx, PRUint32 aSyncLoopKey)
   SyncQueue* syncQueue = mSyncQueues[aSyncLoopKey].get();
 
   for (;;) {
-    nsIRunnable* event;
+    WorkerRunnable* event;
     {
       MutexAutoLock lock(mMutex);
 
@@ -3188,7 +3200,7 @@ WorkerPrivate::RunSyncLoop(JSContext* aCx, PRUint32 aSyncLoopKey)
     JS_GC(mJSContext);
 #endif
 
-    event->Run();
+    static_cast<nsIRunnable*>(event)->Run();
     NS_RELEASE(event);
 
 #ifdef EXTRA_GC
