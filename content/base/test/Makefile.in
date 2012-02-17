@@ -540,6 +540,11 @@ _TEST_FILES2 = \
 		file_bug707142_bom.json \
 		file_bug707142_utf-16.json \
 		test_reentrant_flush.html \
+		test_bug717511.html \
+		file_bug717511.html \
+		file_bug717511.html^headers^ \
+		file_bug717511_2.html \
+		file_bug717511_2.html^headers^ \
 		$(NULL)
 
 _CHROME_FILES =	\
