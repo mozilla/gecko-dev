@@ -3607,6 +3607,11 @@ JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b, TradeGutsReserved &
         reserved.newaslots = NULL;
         reserved.newbslots = NULL;
     }
+
+    if (a->inDictionaryMode())
+        a->lastProperty()->listp = &a->shape_;
+    if (b->inDictionaryMode())
+        b->lastProperty()->listp = &b->shape_;
 }
 
 /*
