@@ -823,7 +823,8 @@ XPC_WN_OuterObject(JSContext *cx, JSObject *obj)
     return obj;
 }
 
-js::Class XPC_WN_NoHelper_JSClass = {
+XPCNativeScriptableSharedJSClass XPC_WN_NoHelper_JSClass = {
+  { // base
     "XPCWrappedNative_NoHelper",    // name;
     WRAPPER_SLOTS |
     JSCLASS_PRIVATE_IS_NSISUPPORTS, // flags
@@ -895,6 +896,8 @@ js::Class XPC_WN_NoHelper_JSClass = {
         XPC_WN_JSOp_ThisObject,
         XPC_WN_JSOp_Clear
     }
+  },
+  0 // interfaceBitmap
 };
 
 
@@ -1220,7 +1223,7 @@ XPC_WN_JSOp_Enumerate(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
                       jsval *statep, jsid *idp)
 {
     js::Class *clazz = js::GetObjectClass(obj);
-    if (!IS_WRAPPER_CLASS(clazz) || clazz == &XPC_WN_NoHelper_JSClass) {
+    if (!IS_WRAPPER_CLASS(clazz) || clazz == &XPC_WN_NoHelper_JSClass.base) {
         // obj must be a prototype object or a wrapper w/o a
         // helper. Short circuit this call to the default
         // implementation.
