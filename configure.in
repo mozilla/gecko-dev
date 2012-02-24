@@ -6356,6 +6356,40 @@ if test -n "$MOZ_MAINTENANCE_SERVICE"; then
 fi
 
 dnl ========================================================
+dnl Verify MAR signatures
+dnl ========================================================
+
+MOZ_ARG_ENABLE_BOOL(verify-mar,
+[  --enable-verify-mar     Enable verifying MAR signatures],
+    MOZ_VERIFY_MAR_SIGNATURE=1,
+    MOZ_VERIFY_MAR_SIGNATURE= )
+
+if test -n "$MOZ_VERIFY_MAR_SIGNATURE"; then
+  if test "$OS_ARCH" = "WINNT"; then
+    AC_DEFINE(MOZ_VERIFY_MAR_SIGNATURE)
+  else
+    AC_MSG_ERROR([Can only build with --enable-verify-mar with a Windows target])
+  fi
+fi
+
+dnl ========================================================
+dnl Enable building the signmar program.
+dnl This option is much different than the --enable-verify-mar option.
+dnl --enable-verify-mar is for enabling the verification check on MAR
+dnl files in the updater.  The --enable-signmar option is for building
+dnl the signmar program.
+dnl ========================================================
+
+MOZ_ARG_ENABLE_BOOL(sign-mar,
+[  --enable-signmar     Enable building the signmar program],
+    MOZ_ENABLE_SIGNMAR=1,
+    MOZ_ENABLE_SIGNMAR= )
+
+if test -n "$MOZ_ENABLE_SIGNMAR"; then
+  AC_DEFINE(MOZ_ENABLE_SIGNMAR)
+fi
+
+dnl ========================================================
 dnl Updater
 dnl ========================================================
 
@@ -8451,6 +8485,8 @@ AC_SUBST(MOZ_ONLY_TOUCH_EVENTS)
 AC_SUBST(MOZ_USER_DIR)
 AC_SUBST(MOZ_CRASHREPORTER)
 AC_SUBST(MOZ_MAINTENANCE_SERVICE)
+AC_SUBST(MOZ_VERIFY_MAR_SIGNATURE)
+AC_SUBST(MOZ_ENABLE_SIGNMAR)
 AC_SUBST(MOZ_UPDATER)
 AC_SUBST(MOZ_ANGLE)
 AC_SUBST(MOZ_DIRECTX_SDK_PATH)
@@ -8538,6 +8574,8 @@ AC_SUBST(MOZ_APP_BASENAME)
 AC_SUBST(MOZ_APP_VENDOR)
 AC_SUBST(MOZ_APP_PROFILE)
 AC_SUBST(MOZ_APP_ID)
+AC_SUBST(MAR_CHANNEL_ID)
+AC_SUBST(ACCEPTED_MAR_CHANNEL_IDS)
 AC_SUBST(MOZ_PROFILE_MIGRATOR)
 AC_SUBST(MOZ_EXTENSION_MANAGER)
 AC_DEFINE_UNQUOTED(MOZ_APP_UA_NAME, "$MOZ_APP_UA_NAME")
