@@ -1953,7 +1953,7 @@ nsPurpleBuffer::RemoveSkippable()
                     nsISupports* o = canonicalize(e->mObject);
                     nsXPCOMCycleCollectionParticipant* cp;
                     ToParticipant(o, &cp);
-                    if (!cp->CanSkip(o)) {
+                    if (!cp->CanSkip(o, false)) {
                         continue;
                     }
                     cp->UnmarkPurple(o);

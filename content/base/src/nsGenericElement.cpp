@@ -4499,7 +4499,7 @@ ShouldClearPurple(nsIContent* aContent)
 // since checking the blackness of the current document is usually fast and we
 // don't want slow down such common cases.
 bool
-nsGenericElement::CanSkip(nsINode* aNode)
+nsGenericElement::CanSkip(nsINode* aNode, bool aRemovingAllowed)
 {
   // Don't try to optimize anything during shutdown.
   if (nsCCUncollectableMarker::sGeneration == 0) {
@@ -4559,7 +4559,7 @@ nsGenericElement::CanSkip(nsINode* aNode)
       }
       // No need to put stuff to the nodesToClear array, if we can clear it
       // already here.
-      if (node->IsPurple() && node != aNode) {
+      if (node->IsPurple() && (node != aNode || aRemovingAllowed)) {
         node->RemovePurple();
       }
       MarkNodeChildren(node);
@@ -4570,12 +4570,15 @@ nsGenericElement::CanSkip(nsINode* aNode)
     }
   }
 
-  if (!foundBlack) {
+  if (!currentDoc || !foundBlack) { 
     if (!gPurpleRoots) {
       gPurpleRoots = new nsAutoTArray<nsINode*, 1020>();
     }
     root->SetIsPurpleRoot(true);
     gPurpleRoots->AppendElement(root);
+  }
+
+  if (!foundBlack) {
     return false;
   }
 
@@ -4592,8 +4595,9 @@ nsGenericElement::CanSkip(nsINode* aNode)
   for (PRUint32 i = 0; i < nodesToClear.Length(); ++i) {
     nsIContent* n = nodesToClear[i];
     MarkNodeChildren(n);
-    // Can't remove currently handled purple node.
-    if (n != aNode && n->IsPurple()) {
+    // Can't remove currently handled purple node,
+    // unless aRemovingAllowed is true. 
+    if ((n != aNode || aRemovingAllowed) && n->IsPurple()) {
       n->RemovePurple();
     }
   }
@@ -4623,7 +4627,7 @@ nsGenericElement::InitCCCallbacks()
 }
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(nsGenericElement)
-  return nsGenericElement::CanSkip(tmp);
+  return nsGenericElement::CanSkip(tmp, aRemovingAllowed);
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_BEGIN(nsGenericElement)
