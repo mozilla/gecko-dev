@@ -3249,7 +3249,7 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
       if (!prefs.mPreferD3D9 && !prefs.mPreferOpenGL) {
         nsRefPtr<mozilla::layers::LayerManagerD3D10> layerManager =
           new mozilla::layers::LayerManagerD3D10(this);
-        if (layerManager->Initialize()) {
+        if (layerManager->Initialize(prefs.mForceAcceleration)) {
           mLayerManager = layerManager;
         }
       }
@@ -3258,7 +3258,7 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
       if (!prefs.mPreferOpenGL && !mLayerManager && sAllowD3D9) {
         nsRefPtr<mozilla::layers::LayerManagerD3D9> layerManager =
           new mozilla::layers::LayerManagerD3D9(this);
-        if (layerManager->Initialize()) {
+        if (layerManager->Initialize(prefs.mForceAcceleration)) {
           mLayerManager = layerManager;
         }
       }

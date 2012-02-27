@@ -115,6 +115,7 @@ nsBaseWidget::nsBaseWidget()
 , mBorderStyle(eBorderStyle_none)
 , mOnDestroyCalled(false)
 , mUseAcceleratedRendering(false)
+, mForceLayersAcceleration(false)
 , mTemporarilyUseBasicLayerManager(false)
 , mBounds(0,0,0,0)
 , mOriginalBounds(nsnull)
@@ -778,7 +779,7 @@ nsBaseWidget::GetShouldAccelerate()
   // we should use AddBoolPrefVarCache
   bool disableAcceleration =
     Preferences::GetBool("layers.acceleration.disabled", false);
-  bool forceAcceleration =
+  mForceLayersAcceleration =
     Preferences::GetBool("layers.acceleration.force-enabled", false);
 
   const char *acceleratedEnv = PR_GetEnv("MOZ_ACCELERATED");
@@ -811,7 +812,7 @@ nsBaseWidget::GetShouldAccelerate()
   if (disableAcceleration || safeMode)
     return false;
 
-  if (forceAcceleration)
+  if (mForceLayersAcceleration)
     return true;
   
   if (!whitelisted) {
@@ -888,7 +889,8 @@ LayerManager* nsBaseWidget::GetLayerManager(PLayersChild* aShadowManager,
          * platforms on LayerManagerOGL should ensure their widget is able to
          * deal with it though!
          */
-        if (layerManager->Initialize()) {
+
+        if (layerManager->Initialize(mForceLayersAcceleration)) {
           mLayerManager = layerManager;
         }
       }

@@ -296,6 +296,7 @@ protected:
   nsBorderStyle     mBorderStyle;
   bool              mOnDestroyCalled;
   bool              mUseAcceleratedRendering;
+  bool              mForceLayersAcceleration;
   bool              mTemporarilyUseBasicLayerManager;
   nsIntRect         mBounds;
   nsIntRect*        mOriginalBounds;
