@@ -893,13 +893,6 @@ nsEventSource::SetupHttpChannel()
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  nsCOMPtr<nsIInterfaceRequestor> notificationCallbacks;
-  mHttpChannel->GetNotificationCallbacks(getter_AddRefs(notificationCallbacks));
-  if (notificationCallbacks != this) {
-    mNotificationCallbacks = notificationCallbacks;
-    mHttpChannel->SetNotificationCallbacks(this);
-  }
-
   return NS_OK;
 }
 
@@ -941,6 +934,13 @@ nsEventSource::InitChannelAndRequestEventSource()
 
   rv = SetupHttpChannel();
   NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIInterfaceRequestor> notificationCallbacks;
+  mHttpChannel->GetNotificationCallbacks(getter_AddRefs(notificationCallbacks));
+  if (notificationCallbacks != this) {
+    mNotificationCallbacks = notificationCallbacks;
+    mHttpChannel->SetNotificationCallbacks(this);
+  }
 
   nsCOMPtr<nsIStreamListener> listener =
     new nsCORSListenerProxy(this, mPrincipal, mHttpChannel,
