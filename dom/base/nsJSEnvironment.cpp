@@ -175,6 +175,7 @@ static PRUint32 sForgetSkippableBeforeCC = 0;
 static PRUint32 sPreviousSuspectedCount = 0;
 
 static bool sCleanupSinceLastGC = true;
+static bool sNeedsFullCC = false;
 
 nsScriptNameSpaceManager *gNameSpaceManager;
 
@@ -3320,6 +3321,7 @@ nsJSContext::CycleCollectNow(nsICycleCollectorListener *aListener,
   sRemovedPurples = 0;
   sForgetSkippableBeforeCC = 0;
   sCleanupSinceLastGC = true;
+  sNeedsFullCC = false;
 }
 
 // static
@@ -3377,7 +3379,8 @@ CCTimerFired(nsITimer *aTimer, void *aClosure)
   } else {
     sPreviousSuspectedCount = 0;
     nsJSContext::KillCCTimer();
-    if (nsCycleCollector_suspectedCount() > 500 ||
+    if (sNeedsFullCC ||
+        nsCycleCollector_suspectedCount() > 500 ||
         sLastCCEndTime + NS_CC_FORCED < PR_Now()) {
       nsJSContext::CycleCollectNow();
     }
@@ -3473,7 +3476,8 @@ nsJSContext::MaybePokeCC()
     return;
   }
 
-  if (nsCycleCollector_suspectedCount() > 100 ||
+  if (sNeedsFullCC ||
+      nsCycleCollector_suspectedCount() > 100 ||
       sLastCCEndTime + NS_CC_FORCED < PR_Now()) {
     sCCTimerFireCount = 0;
     CallCreateInstance("@mozilla.org/timer;1", &sCCTimer);
@@ -3571,6 +3575,7 @@ DOMGCFinishedCallback(JSRuntime *rt, JSCompartment *comp, const char *status)
     // If this was a full GC, poke the CC to run soon.
     if (!comp) {
       sGCHasRun = true;
+      sNeedsFullCC = true;
       nsJSContext::MaybePokeCC();
     }
   }
@@ -3679,6 +3684,7 @@ nsJSRuntime::Startup()
   sLoadingInProgress = false;
   sCCollectedWaitingForGC = 0;
   sPostGCEventsToConsole = false;
+  sNeedsFullCC = false;
   gNameSpaceManager = nsnull;
   sRuntimeService = nsnull;
   sRuntime = nsnull;
