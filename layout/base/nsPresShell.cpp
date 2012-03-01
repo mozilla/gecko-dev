@@ -1256,8 +1256,6 @@ PresShell::Destroy()
   // before we destroy the frame manager, since apparently frame destruction
   // sometimes spins the event queue when plug-ins are involved(!).
   rd->RemoveLayoutFlushObserver(this);
-  rd->RevokeViewManagerFlush();
-
   mResizeEvent.Revoke();
   if (mAsyncResizeTimerIsActive) {
     mAsyncResizeEventTimer->Cancel();
@@ -2118,6 +2116,8 @@ PresShell::ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight)
 
   if (!GetPresContext()->SupressingResizeReflow())
   {
+    nsIViewManager::UpdateViewBatch batch(mViewManager);
+
     // Have to make sure that the content notifications are flushed before we
     // start messing with the frame model; otherwise we can get content doubling.
     mDocument->FlushPendingNotifications(Flush_ContentAndNotify);
@@ -2140,7 +2140,6 @@ PresShell::ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight)
 
         // Kick off a top-down reflow
         AUTO_LAYOUT_PHASE_ENTRY_POINT(GetPresContext(), Reflow);
-        nsIViewManager::AutoDisableRefresh refreshBlocker(mViewManager);
 
         mDirtyRoots.RemoveElement(rootFrame);
         DoReflow(rootFrame, true);
@@ -2148,6 +2147,8 @@ PresShell::ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight)
 
       DidDoReflow(true);
     }
+
+    batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
   }
 
   rootFrame = FrameManager()->GetRootFrame();
@@ -2470,6 +2471,17 @@ PresShell::ScrollLine(bool aForward)
     scrollFrame->ScrollBy(nsIntPoint(0, aForward ? lineCount : -lineCount),
                           nsIScrollableFrame::LINES,
                           nsIScrollableFrame::SMOOTH);
+      
+//NEW FOR LINES    
+    // force the update to happen now, otherwise multiple scrolls can
+    // occur before the update is processed. (bug #7354)
+
+  // I'd use Composite here, but it doesn't always work.
+    // vm->Composite();
+    nsIViewManager* viewManager = GetViewManager();
+    if (viewManager) {
+      viewManager->ForceUpdate();
+    }
   }
   return NS_OK;
 }
@@ -2483,6 +2495,16 @@ PresShell::ScrollCharacter(bool aRight)
     scrollFrame->ScrollBy(nsIntPoint(aRight ? 1 : -1, 0),
                           nsIScrollableFrame::LINES,
                           nsIScrollableFrame::SMOOTH);
+//NEW FOR LINES    
+    // force the update to happen now, otherwise multiple scrolls can
+    // occur before the update is processed. (bug #7354)
+
+  // I'd use Composite here, but it doesn't always work.
+    // vm->Composite();
+    nsIViewManager* viewManager = GetViewManager();
+    if (viewManager) {
+      viewManager->ForceUpdate();
+    }
   }
   return NS_OK;
 }
@@ -2990,6 +3012,7 @@ PresShell::RecreateFramesFor(nsIContent* aContent)
   // to keep the number of entrypoints down.
 
   NS_ASSERTION(mViewManager, "Should have view manager");
+  nsIViewManager::UpdateViewBatch batch(mViewManager);
 
   // Have to make sure that the content notifications are flushed before we
   // start messing with the frame model; otherwise we can get content doubling.
@@ -3005,6 +3028,7 @@ PresShell::RecreateFramesFor(nsIContent* aContent)
   nsresult rv = mFrameConstructor->ProcessRestyledFrames(changeList);
   --mChangeNestCount;
   
+  batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
   return rv;
 }
 
@@ -3643,18 +3667,6 @@ nsresult PresShell::GetLinkLocation(nsIDOMNode* aNode, nsAString& aLocationStrin
 }
 
 void
-PresShell::ScheduleViewManagerFlush()
-{
-  nsPresContext* presContext = GetPresContext();
-  if (presContext) {
-    presContext->RefreshDriver()->ScheduleViewManagerFlush();
-  }
-  if (mDocument) {
-    mDocument->SetNeedLayoutFlush();
-  }
-}
-
-void
 PresShell::DispatchSynthMouseMove(nsGUIEvent *aEvent,
                                   bool aFlushOnHoverChange)
 {
@@ -4024,7 +4036,7 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
   }
 
   NS_ASSERTION(!isSafeToFlush || mViewManager, "Must have view manager");
-  // Make sure the view manager stays alive.
+  // Make sure the view manager stays alive while batching view updates.
   nsCOMPtr<nsIViewManager> viewManagerDeathGrip = mViewManager;
   if (isSafeToFlush && mViewManager) {
     // Processing pending notifications can kill us, and some callers only
@@ -4037,6 +4049,11 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
         return;
       }
     }
+
+    // Style reresolves not in conjunction with reflows can't cause
+    // painting or geometry changes, so don't bother with view update
+    // batching if we only have style reresolve
+    nsIViewManager::UpdateViewBatch batch(mViewManager);
 
     // We need to make sure external resource documents are flushed too (for
     // example, svg filters that reference a filter in an external document
@@ -4130,11 +4147,15 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
       if (rootPresContext) {
         rootPresContext->UpdatePluginGeometry();
       }
-
-      if (!mIsDestroying) {
-        mViewManager->UpdateWidgetGeometry();
-      }
     }
+
+    PRUint32 updateFlags = NS_VMREFRESH_NO_SYNC;
+    if (aType >= Flush_Display) {
+      // Flushing paints, so perform the invalidates and drawing
+      // immediately
+      updateFlags = NS_VMREFRESH_IMMEDIATE;
+    }
+    batch.EndUpdateViewBatch(updateFlags);
   }
 }
 
@@ -7703,7 +7724,7 @@ PresShell::DoVerifyReflow()
     // First synchronously render what we have so far so that we can
     // see it.
     nsIView* rootView = mViewManager->GetRootView();
-    mViewManager->InvalidateView(rootView);
+    mViewManager->UpdateView(rootView, NS_VMREFRESH_IMMEDIATE);
 
     FlushPendingNotifications(Flush_Layout);
     mInVerifyReflow = true;
@@ -7750,7 +7771,6 @@ PresShell::ProcessReflowCommands(bool aInterruptible)
       nsAutoScriptBlocker scriptBlocker;
       WillDoReflow();
       AUTO_LAYOUT_PHASE_ENTRY_POINT(GetPresContext(), Reflow);
-      nsIViewManager::AutoDisableRefresh refreshBlocker(mViewManager);
 
       do {
         // Send an incremental reflow notification to the target frame.
@@ -7899,6 +7919,7 @@ PresShell::Observe(nsISupports* aSubject,
     // at interesting times during startup.
     if (rootFrame) {
       NS_ASSERTION(mViewManager, "View manager must exist");
+      nsIViewManager::UpdateViewBatch batch(mViewManager);
 
       nsWeakFrame weakRoot(rootFrame);
       // Have to make sure that the content notifications are flushed before we
@@ -7923,6 +7944,7 @@ PresShell::Observe(nsISupports* aSubject,
           --mChangeNestCount;
         }
       }
+      batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
     }
     return NS_OK;
   }

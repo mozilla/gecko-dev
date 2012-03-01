@@ -70,7 +70,7 @@ interface nsIDOMFile;
 interface nsIFile;
 interface nsIDOMTouch;
 
-[scriptable, uuid(ab6e9c71-8aa1-40bb-8bf9-65e16429055f)]
+[scriptable, uuid(401b9315-c562-4066-a15c-7feb7ad5bb47)]
 interface nsIDOMWindowUtils : nsISupports {
 
   /**
@@ -431,6 +431,12 @@ interface nsIDOMWindowUtils : nsISupports {
    */
   void cycleCollect([optional] in nsICycleCollectorListener aListener,
                     [optional] in long aExtraForgetSkippableCalls);
+
+  /**
+   * Force processing of any queued paints
+   */
+
+  void processUpdates();
 
   /** Synthesize a simple gesture event for a window. The event types
    *  supported are: MozSwipeGesture, MozMagnifyGestureStart,
