@@ -90,9 +90,6 @@ function checkHistograms(request, response) {
   let tc = payload.histograms[TELEMETRY_SUCCESS]
   do_check_eq(uneval(tc), 
               uneval(expected_tc));
-
-  do_check_true(("mainThread" in payload.slowSQL) &&
-                ("otherThreads" in payload.slowSQL));
   gFinished = true;
 }
 

@@ -47,9 +47,8 @@ import android.graphics.Color;
 import android.graphics.LightingColorFilter;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
-import android.provider.Browser;
+import android.os.SystemClock;
 import android.util.AttributeSet;
-import android.util.Base64;
 import android.util.Log;
 import android.util.Pair;
 import android.view.LayoutInflater;
@@ -135,7 +134,7 @@ public class AwesomeBarTabs extends TabHost {
             ImageView favicon = (ImageView) childView.findViewById(R.id.favicon);
 
             if (b == null) {
-                favicon.setImageResource(R.drawable.favicon);
+                favicon.setImageDrawable(null);
             } else {
                 Bitmap bitmap = BitmapFactory.decodeByteArray(b, 0, b.length);
                 favicon.setImageBitmap(bitmap);
@@ -151,7 +150,7 @@ public class AwesomeBarTabs extends TabHost {
             ImageView favicon = (ImageView) view;
 
             if (b == null) {
-                favicon.setImageResource(R.drawable.favicon);
+                favicon.setImageDrawable(null);
             } else {
                 Bitmap bitmap = BitmapFactory.decodeByteArray(b, 0, b.length);
                 favicon.setImageBitmap(bitmap);
@@ -352,9 +351,13 @@ public class AwesomeBarTabs extends TabHost {
 
             if (delta < 0) {
                 return HistorySection.TODAY;
-            } else if (delta > 0 && delta < MS_PER_DAY) {
+            }
+
+            if (delta < MS_PER_DAY) {
                 return HistorySection.YESTERDAY;
-            } else if (delta > MS_PER_DAY && delta < MS_PER_WEEK) {
+            }
+
+            if (delta < MS_PER_WEEK) {
                 return HistorySection.WEEK;
             }
 
@@ -407,16 +410,10 @@ public class AwesomeBarTabs extends TabHost {
     }
 
     private class AwesomeBarCursorAdapter extends SimpleCursorAdapter {
-        private int mLayout;
-        private String[] mFrom;
-        private int[] mTo;
         private String mSearchTerm;
 
         public AwesomeBarCursorAdapter(Context context, int layout, Cursor c, String[] from, int[] to) {
             super(context, layout, c, from, to);
-            mLayout = layout;
-            mTo = to;
-            mFrom = from;
             mSearchTerm = "";
         }
 
@@ -477,10 +474,9 @@ public class AwesomeBarTabs extends TabHost {
             String base64 = dataURI.substring(dataURI.indexOf(',') + 1);
             Drawable drawable = null;
             try {
-                byte[] bytes = Base64.decode(base64, Base64.DEFAULT);
+                byte[] bytes = GeckoAppShell.decodeBase64(base64);
                 ByteArrayInputStream stream = new ByteArrayInputStream(bytes);
-                drawable = (Drawable) Drawable.createFromStream(stream, "src");
-            
+                drawable = Drawable.createFromStream(stream, "src");
                 stream.close();
             } catch (IllegalArgumentException e) {
                 Log.i(LOGTAG, "exception while decoding drawable: " + base64, e);
@@ -623,7 +619,15 @@ public class AwesomeBarTabs extends TabHost {
         mAllPagesCursorAdapter.setFilterQueryProvider(new FilterQueryProvider() {
             public Cursor runQuery(CharSequence constraint) {
                 ContentResolver resolver = mContext.getContentResolver();
-                return BrowserDB.filter(resolver, constraint, MAX_RESULTS);
+                long start = new Date().getTime();
+
+                Cursor c = BrowserDB.filter(resolver, constraint, MAX_RESULTS);
+                c.getCount(); // ensure the query runs at least once
+
+                long end = new Date().getTime();
+                Log.i(LOGTAG, "Got cursor in " + (end - start) + "ms");
+
+                return c;
             }
         });
 

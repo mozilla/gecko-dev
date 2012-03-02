@@ -104,6 +104,7 @@ class RuntimeService : public nsIObserver
   nsCString mSystemCharset;
 
   static PRUint32 sDefaultJSContextOptions;
+  static PRUint32 sDefaultJSRuntimeHeapSize;
   static PRInt32 sCloseHandlerTimeoutSeconds;
 
 #ifdef JS_GC_ZEAL
@@ -191,6 +192,23 @@ public:
   UpdateAllWorkerJSContextOptions();
 
   static PRUint32
+  GetDefaultJSRuntimeHeapSize()
+  {
+    AssertIsOnMainThread();
+    return sDefaultJSRuntimeHeapSize;
+  }
+
+  static void
+  SetDefaultJSRuntimeHeapSize(PRUint32 aMaxBytes)
+  {
+    AssertIsOnMainThread();
+    sDefaultJSRuntimeHeapSize = aMaxBytes;
+  }
+
+  void
+  UpdateAllWorkerJSRuntimeHeapSize();
+
+  static PRUint32
   GetCloseHandlerTimeoutSeconds()
   {
     return sCloseHandlerTimeoutSeconds > 0 ? sCloseHandlerTimeoutSeconds : 0;
@@ -214,6 +232,9 @@ public:
   void
   UpdateAllWorkerGCZeal();
 #endif
+
+  void
+  GarbageCollectAllWorkers(bool aShrinking);
 
   class AutoSafeJSContext
   {

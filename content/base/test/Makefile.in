@@ -485,8 +485,13 @@ _TEST_FILES2 = \
 		test_blobbuilder.html \
 		fileutils.js \
 		test_bug338583.html \
+		test_EventSource_redirects.html \
 		eventsource.resource \
 		eventsource.resource^headers^ \
+		eventsource_redirect.resource \
+		eventsource_redirect.resource^headers^ \
+		eventsource_redirect_to.resource \
+		eventsource_redirect_to.resource^headers^ \
 		badContentType.eventsource \
 		badContentType.eventsource^headers^ \
 		badEventFieldName.eventsource \
@@ -528,6 +533,7 @@ _TEST_FILES2 = \
 		test_bug690056.html \
 		test_bug692434.html \
 		file_bug692434.xml \
+		test_bug693615.html \
 		test_bug693875.html \
 		test_nodelist_holes.html \
 		test_xhr_abort_after_load.html \
@@ -539,6 +545,11 @@ _TEST_FILES2 = \
 		file_bug707142_bom.json \
 		file_bug707142_utf-16.json \
 		test_reentrant_flush.html \
+		test_bug717511.html \
+		file_bug717511.html \
+		file_bug717511.html^headers^ \
+		file_bug717511_2.html \
+		file_bug717511_2.html^headers^ \
 		$(NULL)
 
 _CHROME_FILES =	\

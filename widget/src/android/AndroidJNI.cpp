@@ -40,6 +40,7 @@
 #include "nsString.h"
 
 #include "AndroidBridge.h"
+#include "AndroidGraphicBuffer.h"
 
 #include <jni.h>
 #include <pthread.h>
@@ -52,10 +53,6 @@
 #include "nsIObserverService.h"
 #include "mozilla/Services.h"
 #include "nsINetworkLinkService.h"
-
-#ifdef MOZ_ANDROID_HISTORY
-#include "nsAndroidHistory.h"
-#endif
 
 #ifdef MOZ_CRASHREPORTER
 #include "nsICrashReporter.h"
@@ -88,6 +85,10 @@ extern "C" {
     NS_EXPORT void JNICALL Java_org_mozilla_gecko_GeckoAppShell_notifyUriVisited(JNIEnv *, jclass, jstring uri);
     NS_EXPORT void JNICALL Java_org_mozilla_gecko_GeckoAppShell_notifyBatteryChange(JNIEnv* jenv, jclass, jdouble, jboolean, jdouble);
     NS_EXPORT void JNICALL Java_org_mozilla_gecko_GeckoAppShell_notifySmsReceived(JNIEnv* jenv, jclass, jstring, jstring, jlong);
+
+#ifdef MOZ_JAVA_COMPOSITOR
+    NS_EXPORT void JNICALL Java_org_mozilla_gecko_GeckoAppShell_bindWidgetTexture(JNIEnv* jenv, jclass);
+#endif
 }
 
 
@@ -187,33 +188,27 @@ Java_org_mozilla_gecko_GeckoAppShell_onChangeNetworkLinkStatus(JNIEnv *jenv, jcl
 }
 
 NS_EXPORT void JNICALL
-Java_org_mozilla_gecko_GeckoAppShell_reportJavaCrash(JNIEnv *jenv, jclass, jstring stack)
+Java_org_mozilla_gecko_GeckoAppShell_reportJavaCrash(JNIEnv *jenv, jclass, jstring jStackTrace)
 {
 #ifdef MOZ_CRASHREPORTER
-    nsJNIString javaStack(stack, jenv);
-    CrashReporter::AppendAppNotesToCrashReport(NS_ConvertUTF16toUTF8(javaStack));
-#endif
+    const nsJNIString stackTrace16(jStackTrace, jenv);
+    const NS_ConvertUTF16toUTF8 stackTrace8(stackTrace16);
+    CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("JavaStackTrace"), stackTrace8);
+#endif // MOZ_CRASHREPORTER
+
     abort();
 }
 
 NS_EXPORT void JNICALL
-Java_org_mozilla_gecko_GeckoAppShell_executeNextRunnable(JNIEnv *, jclass)
+Java_org_mozilla_gecko_GeckoAppShell_executeNextRunnable(JNIEnv *jenv, jclass)
 {
     __android_log_print(ANDROID_LOG_INFO, "GeckoJNI", "%s", __PRETTY_FUNCTION__);
     if (!AndroidBridge::Bridge()) {
         __android_log_print(ANDROID_LOG_INFO, "GeckoJNI", "no bridge in %s!!!!", __PRETTY_FUNCTION__);
         return;
     }
-    AndroidBridge::Bridge()->ExecuteNextRunnable();
+    AndroidBridge::Bridge()->ExecuteNextRunnable(jenv);
     __android_log_print(ANDROID_LOG_INFO, "GeckoJNI", "leaving %s", __PRETTY_FUNCTION__);
-}
-
-NS_EXPORT void JNICALL
-Java_org_mozilla_gecko_GeckoAppShell_notifyUriVisited(JNIEnv *jenv, jclass, jstring uri)
-{
-#ifdef MOZ_ANDROID_HISTORY
-    nsAndroidHistory::NotifyURIVisited(nsJNIString(uri, jenv));
-#endif
 }
 
 NS_EXPORT void JNICALL
@@ -278,3 +273,13 @@ Java_org_mozilla_gecko_GeckoAppShell_notifySmsReceived(JNIEnv* jenv, jclass,
     nsCOMPtr<nsIRunnable> runnable = new NotifySmsReceivedRunnable(message);
     NS_DispatchToMainThread(runnable);
 }
+
+#ifdef MOZ_JAVA_COMPOSITOR
+
+NS_EXPORT void JNICALL
+Java_org_mozilla_gecko_GeckoAppShell_bindWidgetTexture(JNIEnv* jenv, jclass)
+{
+    nsWindow::BindToTexture();
+}
+
+#endif

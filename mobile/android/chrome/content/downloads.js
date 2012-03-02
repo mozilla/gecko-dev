@@ -125,6 +125,7 @@ var Downloads = {
   },
 
   observe: function dl_observe(aSubject, aTopic, aData) {
+    let download = aSubject.QueryInterface(Ci.nsIDownload);
     let msgKey = "";
     if (aTopic == "dl-start") {
       msgKey = "alertDownloadsStart";
@@ -133,17 +134,30 @@ var Downloads = {
           this._dlmgr = Cc["@mozilla.org/download-manager;1"].getService(Ci.nsIDownloadManager);
         this._progressAlert = new AlertDownloadProgressListener();
         this._dlmgr.addListener(this._progressAlert);
-
-        NativeWindow.toast.show(Strings.browser.GetStringFromName("alertDownloadsToast"), "long");
       }
+
+      NativeWindow.toast.show(Strings.browser.GetStringFromName("alertDownloadsToast"), "long");
     } else if (aTopic == "dl-done") {
       msgKey = "alertDownloadsDone";
+
+      // In order to get the fileSize to be correct for "Save as PDF", we need
+      // let the local file be safely written before accessing it.
+      setTimeout(function() {
+        let message = {
+          gecko: {
+            type: "Downloads:Done",
+            displayName: download.displayName,
+            path: download.targetFile.path,
+            size: download.targetFile.fileSize,
+            mimeType: download.MIMEInfo ? download.MIMEInfo.type : ""
+          }
+        };
+        sendMessageToJava(message);
+      }, 0);
     }
 
-    if (msgKey) {
-      let download = aSubject.QueryInterface(Ci.nsIDownload);
+    if (msgKey)
       this.showAlert(download, Strings.browser.formatStringFromName(msgKey, [download.displayName], 1));
-    }
   },
 
   QueryInterface: function (aIID) {

@@ -152,6 +152,12 @@ public class Favicons {
 
             db.replace(TABLE_NAME, null, values);
         }
+
+
+        public void clearFavicons() {
+            SQLiteDatabase db = mDbHelper.getWritableDatabase();
+            db.delete(TABLE_NAME, null, null);
+        }
     }
 
     public Favicons(Context context) {
@@ -199,6 +205,10 @@ public class Favicons {
         return task.cancel(false);
     }
 
+    public void clearFavicons() {
+        mDbHelper.clearFavicons();
+    }
+
     public void close() {
         Log.d(LOGTAG, "Closing Favicons database");
         mDbHelper.close();
@@ -219,7 +229,10 @@ public class Favicons {
         private OnFaviconLoadedListener mListener;
 
         public LoadFaviconTask(String pageUrl, String faviconUrl, OnFaviconLoadedListener listener) {
-            mId = ++mNextFaviconLoadId;
+            synchronized(this) {
+                mId = ++mNextFaviconLoadId;
+            }
+
             mPageUrl = pageUrl;
             mFaviconUrl = faviconUrl;
             mListener = listener;

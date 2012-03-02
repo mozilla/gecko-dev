@@ -503,6 +503,11 @@ gfxWindowsPlatform::GetThebesSurfaceForDrawTarget(DrawTarget *aTarget)
 {
 #ifdef XP_WIN
   if (aTarget->GetType() == BACKEND_DIRECT2D) {
+    if (!GetD2DDevice()) {
+      // We no longer have a D2D device, can't do this.
+      return NULL;
+    }
+
     RefPtr<ID3D10Texture2D> texture =
       static_cast<ID3D10Texture2D*>(aTarget->GetNativeSurface(NATIVE_SURFACE_D3D10_TEXTURE));
 

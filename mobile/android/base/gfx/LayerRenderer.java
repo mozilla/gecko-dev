@@ -46,6 +46,7 @@ import org.mozilla.gecko.gfx.LayerView;
 import org.mozilla.gecko.gfx.NinePatchTileLayer;
 import org.mozilla.gecko.gfx.SingleTileLayer;
 import org.mozilla.gecko.gfx.TextureReaper;
+import org.mozilla.gecko.gfx.TextureGenerator;
 import org.mozilla.gecko.gfx.TextLayer;
 import org.mozilla.gecko.gfx.TileLayer;
 import android.content.Context;
@@ -62,16 +63,13 @@ import android.view.WindowManager;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 
 /**
  * The layer renderer implements the rendering logic for a layer view.
  */
 public class LayerRenderer implements GLSurfaceView.Renderer {
     private static final String LOGTAG = "GeckoLayerRenderer";
-
-    private static final float BACKGROUND_COLOR_R = 0.81f;
-    private static final float BACKGROUND_COLOR_G = 0.81f;
-    private static final float BACKGROUND_COLOR_B = 0.81f;
 
     /*
      * The amount of time a frame is allowed to take to render before we declare it a dropped
@@ -83,6 +81,8 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
     private static final int FRAME_RATE_METER_HEIGHT = 32;
 
     private final LayerView mView;
+    private final SingleTileLayer mBackgroundLayer;
+    private final CheckerboardImage mCheckerboardImage;
     private final SingleTileLayer mCheckerboardLayer;
     private final NinePatchTileLayer mShadowLayer;
     private final TextLayer mFrameRateLayer;
@@ -91,6 +91,8 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
     private final FadeRunnable mFadeRunnable;
     private RenderContext mLastPageContext;
     private int mMaxTextureSize;
+
+    private ArrayList<Layer> mExtraLayers = new ArrayList<Layer>();
 
     // Dropped frames display
     private int[] mFrameTimings;
@@ -102,8 +104,11 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
 
         LayerController controller = view.getController();
 
-        CairoImage checkerboardImage = new BufferedCairoImage(controller.getCheckerboardPattern());
-        mCheckerboardLayer = new SingleTileLayer(true, checkerboardImage);
+        CairoImage backgroundImage = new BufferedCairoImage(controller.getBackgroundPattern());
+        mBackgroundLayer = new SingleTileLayer(true, backgroundImage);
+
+        mCheckerboardImage = new CheckerboardImage();
+        mCheckerboardLayer = new SingleTileLayer(true, mCheckerboardImage);
 
         CairoImage shadowImage = new BufferedCairoImage(controller.getShadowPattern());
         mShadowLayer = new NinePatchTileLayer(shadowImage);
@@ -130,10 +135,32 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
         int maxTextureSizeResult[] = new int[1];
         gl.glGetIntegerv(GL10.GL_MAX_TEXTURE_SIZE, maxTextureSizeResult, 0);
         mMaxTextureSize = maxTextureSizeResult[0];
+
+        TextureGenerator.get().fill();
     }
 
     public int getMaxTextureSize() {
         return mMaxTextureSize;
+    }
+
+    public void addLayer(Layer layer) {
+        LayerController controller = mView.getController();
+
+        synchronized (controller) {
+            if (mExtraLayers.contains(layer)) {
+                mExtraLayers.remove(layer);
+            }
+
+            mExtraLayers.add(layer);
+        }
+    }
+
+    public void removeLayer(Layer layer) {
+        LayerController controller = mView.getController();
+
+        synchronized (controller) {
+            mExtraLayers.remove(layer);
+        }
     }
 
     /**
@@ -143,9 +170,12 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
         long frameStartTime = SystemClock.uptimeMillis();
 
         TextureReaper.get().reap(gl);
+        TextureGenerator.get().fill();
 
         LayerController controller = mView.getController();
         RenderContext screenContext = createScreenContext();
+
+        boolean updated = true;
 
         synchronized (controller) {
             Layer rootLayer = controller.getRoot();
@@ -166,16 +196,19 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
             mLastPageContext = pageContext;
 
             /* Update layers. */
-            if (rootLayer != null) rootLayer.update(gl);
-            mShadowLayer.update(gl);
-            mCheckerboardLayer.update(gl);
-            mFrameRateLayer.update(gl);
-            mVertScrollLayer.update(gl);
-            mHorizScrollLayer.update(gl);
+            if (rootLayer != null) updated &= rootLayer.update(gl, pageContext);
+            updated &= mBackgroundLayer.update(gl, screenContext);
+            updated &= mShadowLayer.update(gl, pageContext);
+            updateCheckerboardLayer(gl, screenContext);
+            updated &= mFrameRateLayer.update(gl, screenContext);
+            updated &= mVertScrollLayer.update(gl, pageContext);
+            updated &= mHorizScrollLayer.update(gl, pageContext);
+
+            for (Layer layer : mExtraLayers)
+                updated &= layer.update(gl, pageContext);
 
             /* Draw the background. */
-            gl.glClearColor(BACKGROUND_COLOR_R, BACKGROUND_COLOR_G, BACKGROUND_COLOR_B, 1.0f);
-            gl.glClear(GL10.GL_COLOR_BUFFER_BIT);
+            mBackgroundLayer.draw(screenContext);
 
             /* Draw the drop shadow, if we need to. */
             Rect pageRect = getPageRect();
@@ -198,6 +231,10 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
 
             gl.glDisable(GL10.GL_SCISSOR_TEST);
 
+            /* Draw any extra layers that were added (likely plugins) */
+            for (Layer layer : mExtraLayers)
+                layer.draw(pageContext);
+
             /* Draw the vertical scrollbar. */
             IntSize screenSize = new IntSize(controller.getViewportSize());
             if (pageRect.height() > screenSize.height)
@@ -213,11 +250,16 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
             updateDroppedFrames(frameStartTime);
             try {
                 gl.glEnable(GL10.GL_BLEND);
+                gl.glBlendFunc(GL10.GL_SRC_ALPHA, GL10.GL_ONE_MINUS_SRC_ALPHA);
                 mFrameRateLayer.draw(screenContext);
             } finally {
                 gl.glDisable(GL10.GL_BLEND);
             }
         }
+
+        // If a layer update requires further work, schedule another redraw
+        if (!updated)
+            mView.requestRender();
 
         PanningPerfAPI.recordFrameTime();
     }
@@ -290,7 +332,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
         mDroppedFrames -= (mFrameTimings[mCurrentFrame] + 1) / MAX_FRAME_TIME;
         mDroppedFrames += (frameElapsedTime + 1) / MAX_FRAME_TIME;
 
-        mFrameTimings[mCurrentFrame] = (int)frameElapsedTime;
+        mFrameTimings[mCurrentFrame] = frameElapsedTime;
         mCurrentFrame = (mCurrentFrame + 1) % mFrameTimings.length;
 
         int averageTime = mFrameTimingsSum / mFrameTimings.length;
@@ -324,7 +366,24 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
                 SharedPreferences preferences = context.getSharedPreferences("GeckoApp", 0);
                 mShowFrameRate = preferences.getBoolean("showFrameRate", false);
             }
-        }).run();
+        }).start();
+    }
+
+    private void updateCheckerboardLayer(GL10 gl, RenderContext renderContext) {
+        int newCheckerboardColor = mView.getController().getCheckerboardColor();
+        if (newCheckerboardColor == mCheckerboardImage.getColor()) {
+            return;
+        }
+
+        mCheckerboardLayer.beginTransaction();
+        try {
+            mCheckerboardImage.setColor(newCheckerboardColor);
+            mCheckerboardLayer.invalidate();
+        } finally {
+            mCheckerboardLayer.endTransaction();
+        }
+
+        mCheckerboardLayer.update(gl, renderContext);
     }
 
     class FadeRunnable implements Runnable {

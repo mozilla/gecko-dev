@@ -42,15 +42,19 @@
 #include "secasn1.h"
 #include "pkcs11t.h"
 
+SEC_BEGIN_PROTOS
+
 /* find a better home for these... */
 extern const SEC_ASN1Template SECKEY_PointerToEncryptedPrivateKeyInfoTemplate[];
-extern SEC_ASN1TemplateChooser NSS_Get_SECKEY_PointerToEncryptedPrivateKeyInfoTemplate;
+SEC_ASN1_CHOOSER_DECLARE(SECKEY_PointerToEncryptedPrivateKeyInfoTemplate)
 extern const SEC_ASN1Template SECKEY_EncryptedPrivateKeyInfoTemplate[];
-extern SEC_ASN1TemplateChooser NSS_Get_SECKEY_EncryptedPrivateKeyInfoTemplate;
+SEC_ASN1_CHOOSER_DECLARE(SECKEY_EncryptedPrivateKeyInfoTemplate)
 extern const SEC_ASN1Template SECKEY_PrivateKeyInfoTemplate[];
-extern SEC_ASN1TemplateChooser NSS_Get_SECKEY_PrivateKeyInfoTemplate;
+SEC_ASN1_CHOOSER_DECLARE(SECKEY_PrivateKeyInfoTemplate)
 extern const SEC_ASN1Template SECKEY_PointerToPrivateKeyInfoTemplate[];
-extern SEC_ASN1TemplateChooser NSS_Get_SECKEY_PointerToPrivateKeyInfoTemplate;
+SEC_ASN1_CHOOSER_DECLARE(SECKEY_PointerToPrivateKeyInfoTemplate)
+
+SEC_END_PROTOS
 
 /* PKCS11 needs to be included */
 typedef struct SECMODModuleStr SECMODModule;
@@ -338,7 +342,7 @@ typedef PRUint32 PK11AttrFlags;
 #define SECMOD_SLOT_FLAGS "slotFlags=[RSA,DSA,DH,RC2,RC4,DES,RANDOM,SHA1,MD5,MD2,SSL,TLS,AES,Camellia,SEED,SHA256,SHA512]"
 
 #define SECMOD_MAKE_NSS_FLAGS(fips,slot) \
-"Flags=internal,critical"fips" slotparams=("#slot"={"SECMOD_SLOT_FLAGS"})"
+"Flags=internal,critical" fips " slotparams=(" #slot "={" SECMOD_SLOT_FLAGS "})"
 
 #define SECMOD_INT_NAME "NSS Internal PKCS #11 Module"
 #define SECMOD_INT_FLAGS SECMOD_MAKE_NSS_FLAGS("",1)

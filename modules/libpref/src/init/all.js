@@ -96,7 +96,8 @@ pref("offline-apps.quota.warn",        51200);
 // 0 => disable compression
 // 1 => best speed
 // 9 => best compression
-pref("browser.cache.compression_level", 5);
+// cache compression turned off for now - see bug #715198
+pref("browser.cache.compression_level", 0);
 
 // Whether or not indexedDB is enabled.
 pref("dom.indexedDB.enabled", true);
@@ -258,6 +259,8 @@ pref("ui.scrollToClick", 0);
 // Only on mac tabfocus is expected to handle UI widgets as well as web content
 pref("accessibility.tabfocus_applies_to_xul", true);
 #endif
+
+pref("focusmanager.testmode", false);
 
 pref("accessibility.usetexttospeech", "");
 pref("accessibility.usebrailledisplay", "");
@@ -816,8 +819,8 @@ pref("network.ftp.control.qos", 0);
 // <ws>: WebSocket
 pref("network.websocket.enabled", true);
 
-// mobile might want to set this much smaller
-pref("network.websocket.max-message-size", 16000000);
+// 2147483647 == PR_INT32_MAX == ~2 GB  
+pref("network.websocket.max-message-size", 2147483647);
 
 // Should we automatically follow http 3xx redirects during handshake
 pref("network.websocket.auto-follow-http-redirects", false);
@@ -913,6 +916,7 @@ pref("network.IDN.whitelist.pl", true);
 pref("network.IDN.whitelist.pr", true);
 pref("network.IDN.whitelist.se", true);
 pref("network.IDN.whitelist.sh", true);
+pref("network.IDN.whitelist.si", true);
 pref("network.IDN.whitelist.th", true);
 pref("network.IDN.whitelist.tm", true);
 pref("network.IDN.whitelist.tw", true);
@@ -939,6 +943,8 @@ pref("network.IDN.whitelist.xn--fzc2c9e2c", true);
 pref("network.IDN.whitelist.xn--xkc2al3hye2a", true);
 // qa, Qatar, .<Qatar>
 pref("network.IDN.whitelist.xn--wgbl6a", true);
+// rs, Serbia, .<Srb>
+pref("network.IDN.whitelist.xn--90a3ac", true);
 // ru, Russian Federation, .<RF>
 pref("network.IDN.whitelist.xn--p1ai", true);
 // sa, Saudi Arabia, .<al-Saudiah> with variants
@@ -948,6 +954,8 @@ pref("network.IDN.whitelist.xn--mgbqly7c0a67fbc", true);
 pref("network.IDN.whitelist.xn--mgbqly7cvafr", true);
 // sy, Syria, .<Souria>
 pref("network.IDN.whitelist.xn--ogbpf8fl", true);
+// th, Thailand, .<Thai>
+pref("network.IDN.whitelist.xn--o3cw4h", true);
 // tw, Taiwan, <.Taiwan> with variants
 pref("network.IDN.whitelist.xn--kpry57d", true);  // Traditional
 pref("network.IDN.whitelist.xn--kprw13d", true);  // Simplified
@@ -1484,14 +1492,14 @@ pref("plugins.click_to_play", false);
 #ifndef DEBUG
 // How long a plugin is allowed to process a synchronous IPC message
 // before we consider it "hung".
-pref("dom.ipc.plugins.timeoutSecs", 25);
+pref("dom.ipc.plugins.timeoutSecs", 45);
 // How long a plugin process will wait for a response from the parent
 // to a synchronous request before terminating itself. After this
-// point the child assumes the parent is hung.
-pref("dom.ipc.plugins.parentTimeoutSecs", 15);
+// point the child assumes the parent is hung. Currently disabled.
+pref("dom.ipc.plugins.parentTimeoutSecs", 0);
 // How long a plugin launch is allowed to take before
 // we consider it failed.
-pref("dom.ipc.plugins.processLaunchTimeoutSecs", 25);
+pref("dom.ipc.plugins.processLaunchTimeoutSecs", 45);
 #else
 // No timeout in DEBUG builds
 pref("dom.ipc.plugins.timeoutSecs", 0);

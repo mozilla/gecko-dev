@@ -374,7 +374,6 @@ EXTRA_DSO_LDOPTS += \
   $(NSS_LIBS) \
   $(MOZ_CAIRO_LIBS) \
   $(MOZ_HARFBUZZ_LIBS) \
-  $(MOZ_OTS_LIBS) \
   $(MOZ_APP_EXTRA_LIBS) \
   $(SQLITE_LIBS) \
   $(NULL)
@@ -402,6 +401,13 @@ EXTRA_DSO_LDOPTS += $(MOZ_LIBVPX_LIBS)
 endif
 
 EXTRA_DSO_LDOPTS += $(call EXPAND_LIBNAME_PATH,gkmedias,$(DIST)/lib) 
+
+ifeq ($(OS_ARCH),WINNT)
+EXTRA_DSO_LDOPTS += \
+  delayimp.lib \
+  -DELAYLOAD:gkmedias.dll \
+  $(NULL)
+endif
 
 ifdef MOZ_SYDNEYAUDIO
 ifeq ($(OS_ARCH),Linux)
@@ -485,7 +491,7 @@ endif
 
 ifeq ($(OS_ARCH),Darwin)
 ifdef MOZ_SYDNEYAUDIO
-EXTRA_DSO_LDOPTS += \
+OS_LIBS += \
   -framework Carbon \
   -framework CoreAudio \
   -framework AudioToolbox \

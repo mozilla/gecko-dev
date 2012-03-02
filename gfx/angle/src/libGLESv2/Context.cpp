@@ -1668,15 +1668,11 @@ bool Context::applyRenderTarget(bool ignoreViewport)
         return error(GL_INVALID_FRAMEBUFFER_OPERATION, false);
     }
 
-    IDirect3DSurface9 *renderTarget = NULL;
-    IDirect3DSurface9 *depthStencil = NULL;
-
     bool renderTargetChanged = false;
     unsigned int renderTargetSerial = framebufferObject->getRenderTargetSerial();
     if (renderTargetSerial != mAppliedRenderTargetSerial)
     {
-        renderTarget = framebufferObject->getRenderTarget();
-
+        IDirect3DSurface9 *renderTarget = framebufferObject->getRenderTarget();
         if (!renderTarget)
         {
             return false;   // Context must be lost
@@ -1685,8 +1681,10 @@ bool Context::applyRenderTarget(bool ignoreViewport)
         mAppliedRenderTargetSerial = renderTargetSerial;
         mScissorStateDirty = true; // Scissor area must be clamped to render target's size-- this is different for different render targets.
         renderTargetChanged = true;
+        renderTarget->Release();
     }
 
+    IDirect3DSurface9 *depthStencil = NULL;
     unsigned int depthbufferSerial = 0;
     unsigned int stencilbufferSerial = 0;
     if (framebufferObject->getDepthbufferType() != GL_NONE)
@@ -1724,17 +1722,14 @@ bool Context::applyRenderTarget(bool ignoreViewport)
 
     if (!mRenderTargetDescInitialized || renderTargetChanged)
     {
+        IDirect3DSurface9 *renderTarget = framebufferObject->getRenderTarget();
         if (!renderTarget)
         {
-            renderTarget = framebufferObject->getRenderTarget();
-
-            if (!renderTarget)
-            {
-                return false;   // Context must be lost
-            }
+            return false;   // Context must be lost
         }
         renderTarget->GetDesc(&mRenderTargetDesc);
         mRenderTargetDescInitialized = true;
+        renderTarget->Release();
     }
 
     D3DVIEWPORT9 viewport;
@@ -1803,11 +1798,13 @@ bool Context::applyRenderTarget(bool ignoreViewport)
         GLfloat xy[2] = {1.0f / viewport.Width, -1.0f / viewport.Height};
         programObject->setUniform2fv(halfPixelSize, 1, xy);
 
-        GLint viewport = programObject->getDxViewportLocation();
-        GLfloat whxy[4] = {mState.viewportWidth / 2.0f, mState.viewportHeight / 2.0f, 
+        // These values are used for computing gl_FragCoord in Program::linkVaryings(). The approach depends on Shader Model 3.0 support.
+        GLint coord = programObject->getDxCoordLocation();
+        float h = mSupportsShaderModel3 ? mRenderTargetDesc.Height : mState.viewportHeight / 2.0f;
+        GLfloat whxy[4] = {mState.viewportWidth / 2.0f, h, 
                           (float)mState.viewportX + mState.viewportWidth / 2.0f, 
                           (float)mState.viewportY + mState.viewportHeight / 2.0f};
-        programObject->setUniform4fv(viewport, 1, whxy);
+        programObject->setUniform4fv(coord, 1, whxy);
 
         GLint depth = programObject->getDxDepthLocation();
         GLfloat dz[2] = {(zFar - zNear) / 2.0f, (zNear + zFar) / 2.0f};
@@ -2248,7 +2245,6 @@ void Context::readPixels(GLint x, GLint y, GLsizei width, GLsizei height,
     }
 
     IDirect3DSurface9 *renderTarget = framebuffer->getRenderTarget();
-
     if (!renderTarget)
     {
         return;   // Context must be lost, return silently
@@ -2260,6 +2256,7 @@ void Context::readPixels(GLint x, GLint y, GLsizei width, GLsizei height,
     if (desc.MultiSampleType != D3DMULTISAMPLE_NONE)
     {
         UNIMPLEMENTED();   // FIXME: Requires resolve using StretchRect into non-multisampled render target
+        renderTarget->Release();
         return error(GL_OUT_OF_MEMORY);
     }
 
@@ -2292,6 +2289,8 @@ void Context::readPixels(GLint x, GLint y, GLsizei width, GLsizei height,
     }
 
     result = mDevice->GetRenderTargetData(renderTarget, systemSurface);
+    renderTarget->Release();
+    renderTarget = NULL;
 
     if (FAILED(result))
     {
@@ -2599,17 +2598,7 @@ void Context::clear(GLbitfield mask)
     float depth = clamp01(mState.depthClearValue);
     int stencil = mState.stencilClearValue & 0x000000FF;
 
-    IDirect3DSurface9 *renderTarget = framebufferObject->getRenderTarget();
-
-    if (!renderTarget)
-    {
-        return;   // Context must be lost, return silently
-    }
-
-    D3DSURFACE_DESC desc;
-    renderTarget->GetDesc(&desc);
-
-    bool alphaUnmasked = (dx2es::GetAlphaSize(desc.Format) == 0) || mState.colorMaskAlpha;
+    bool alphaUnmasked = (dx2es::GetAlphaSize(mRenderTargetDesc.Format) == 0) || mState.colorMaskAlpha;
 
     const bool needMaskedStencilClear = (flags & D3DCLEAR_STENCIL) &&
                                         (mState.stencilWritemask & stencilUnmasked) != stencilUnmasked;
@@ -2710,12 +2699,12 @@ void Context::clear(GLbitfield mask)
 
         float quad[4][4];   // A quadrilateral covering the target, aligned to match the edges
         quad[0][0] = -0.5f;
-        quad[0][1] = desc.Height - 0.5f;
+        quad[0][1] = mRenderTargetDesc.Height - 0.5f;
         quad[0][2] = 0.0f;
         quad[0][3] = 1.0f;
 
-        quad[1][0] = desc.Width - 0.5f;
-        quad[1][1] = desc.Height - 0.5f;
+        quad[1][0] = mRenderTargetDesc.Width - 0.5f;
+        quad[1][1] = mRenderTargetDesc.Height - 0.5f;
         quad[1][2] = 0.0f;
         quad[1][3] = 1.0f;
 
@@ -2724,7 +2713,7 @@ void Context::clear(GLbitfield mask)
         quad[2][2] = 0.0f;
         quad[2][3] = 1.0f;
 
-        quad[3][0] = desc.Width - 0.5f;
+        quad[3][0] = mRenderTargetDesc.Width - 0.5f;
         quad[3][1] = -0.5f;
         quad[3][2] = 0.0f;
         quad[3][3] = 1.0f;
@@ -2870,6 +2859,7 @@ void Context::drawElements(GLenum mode, GLsizei count, GLenum type, const void *
 // Implements glFlush when block is false, glFinish when block is true
 void Context::sync(bool block)
 {
+    egl::Display *display = getDisplay();
     IDirect3DQuery9 *eventQuery = NULL;
     HRESULT result;
 
@@ -2902,6 +2892,13 @@ void Context::sync(bool block)
         {
             // Keep polling, but allow other threads to do something useful first
             Sleep(0);
+            // explicitly check for device loss
+            // some drivers seem to return S_FALSE even if the device is lost
+            // instead of D3DERR_DEVICELOST like they should
+            if (display->testDeviceLost())
+            {
+                result = D3DERR_DEVICELOST;
+            }
         }
     }
     while(block && result == S_FALSE);
@@ -3791,8 +3788,14 @@ void Context::blitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1
 
         if (blitRenderTarget)
         {
-            HRESULT result = mDevice->StretchRect(readFramebuffer->getRenderTarget(), &sourceTrimmedRect, 
-                                                 drawFramebuffer->getRenderTarget(), &destTrimmedRect, D3DTEXF_NONE);
+            IDirect3DSurface9* readRenderTarget = readFramebuffer->getRenderTarget();
+            IDirect3DSurface9* drawRenderTarget = drawFramebuffer->getRenderTarget();
+
+            HRESULT result = mDevice->StretchRect(readRenderTarget, &sourceTrimmedRect, 
+                                                  drawRenderTarget, &destTrimmedRect, D3DTEXF_NONE);
+
+            readRenderTarget->Release();
+            drawRenderTarget->Release();
 
             if (FAILED(result))
             {

@@ -202,7 +202,7 @@ class XPCShellRemote(xpcshell.XPCShellTests, object):
 
         shellArgs = "cd "+self.remoteHere
         shellArgs += "; LD_LIBRARY_PATH="+self.remoteBinDir
-        shellArgs += "; export CACHE_PATH="+self.remoteBinDir
+        shellArgs += "; export MOZ_LINKER_CACHE="+self.remoteBinDir
         if (self.device.getAppRoot()):
           # xpcshell still runs without GRE_HOME; it may not be necessary
           shellArgs += "; export GRE_HOME="+self.device.getAppRoot()

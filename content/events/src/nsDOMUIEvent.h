@@ -69,8 +69,8 @@ public:
                                 JSContext* aCx, JSObject* aObj);
 protected:
   // Internal helper functions
-  nsIntPoint GetClientPoint();
   nsIntPoint GetScreenPoint();
+  nsIntPoint GetClientPoint();
   nsIntPoint GetLayerPoint();
   nsIntPoint GetPagePoint();
 

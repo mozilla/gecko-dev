@@ -37,9 +37,14 @@
 
 package org.mozilla.gecko.gfx;
 
-import org.mozilla.gecko.FloatUtils;
 import android.graphics.Point;
 import android.graphics.PointF;
+import android.util.FloatMath;
+
+import org.json.JSONObject;
+import org.json.JSONException;
+import org.mozilla.gecko.FloatUtils;
+
 import java.lang.Math;
 
 public final class PointUtils {
@@ -72,5 +77,20 @@ public final class PointUtils {
    public static float distance(PointF point) {
         return (float)Math.sqrt(point.x * point.x + point.y * point.y);
    }
+
+    /** Computes the scalar distance between two points. */
+    public static float distance(PointF one, PointF two) {
+        return PointF.length(one.x - two.x, one.y - two.y);
+    }
+
+    public static JSONObject toJSON(PointF point) throws JSONException {
+        // Ensure we put ints, not longs, because Gecko message handlers call getInt().
+        int x = Math.round(point.x);
+        int y = Math.round(point.y);
+        JSONObject json = new JSONObject();
+        json.put("x", x);
+        json.put("y", y);
+        return json;
+    }
 }
 

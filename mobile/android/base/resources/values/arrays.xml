@@ -1,26 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <resources>
-    <string-array name="pref_enable_flash_entries">
-        <item>@string/pref_enable_flash_yes</item>
-        <item>@string/pref_enable_flash_tap_to_play</item>
-        <item>@string/pref_enable_flash_no</item>
+    <string-array name="pref_plugins_entries">
+        <item>@string/pref_plugins_enabled</item>
+        <item>@string/pref_plugins_tap_to_play</item>
+        <item>@string/pref_plugins_disabled</item>
     </string-array>
-    <string-array name="pref_enable_flash_values">
+    <string-array name="pref_plugins_values">
         <item>1</item>
         <item>2</item>
         <item>0</item>
     </string-array>
     <string-array name="pref_font_size_entries">
+        <item>@string/pref_font_size_tiny</item>
         <item>@string/pref_font_size_small</item>
         <item>@string/pref_font_size_medium</item>
         <item>@string/pref_font_size_large</item>
         <item>@string/pref_font_size_xlarge</item>
     </string-array>
     <string-array name="pref_font_size_values">
+        <item>0</item>
+        <item>80</item>
         <item>120</item>
         <item>160</item>
-        <item>200</item>
-        <item>280</item>
+        <item>240</item>
+    </string-array>
+    <string-array name="pref_char_encoding_entries">
+        <item>@string/pref_char_encoding_on</item>
+        <item>@string/pref_char_encoding_off</item>
+    </string-array>
+    <string-array name="pref_char_encoding_values">
+        <item>true</item>
+        <item>false</item>
     </string-array>
 </resources>

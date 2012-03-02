@@ -140,8 +140,12 @@ LifoAlloc::freeUnused()
     }
 
     /* Free all chunks after |latest|. */
-    for (BumpChunk *victim = latest->next(); victim; victim = victim->next())
+    BumpChunk *it = latest->next();
+    while (it) {
+        BumpChunk *victim = it;
+        it = it->next();
         BumpChunk::delete_(victim);
+    }
 
     latest->setNext(NULL);
 }

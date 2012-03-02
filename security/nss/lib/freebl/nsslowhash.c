@@ -33,9 +33,11 @@
  * the terms of any one of the MPL, the GPL or the LGPL.
  *
  * ***** END LICENSE BLOCK ***** */
-/* $Id: nsslowhash.c,v 1.6 2010/09/10 00:42:36 emaldona%redhat.com Exp $ */
+/* $Id: nsslowhash.c,v 1.7 2012/01/18 17:21:01 kaie%kuix.de Exp $ */
 
+#ifdef FREEBL_NO_DEPEND
 #include "stubs.h"
+#endif
 #include "prtypes.h"
 #include "secerr.h"
 #include "pkcs11t.h"
@@ -317,11 +319,13 @@ NSSLOW_Init(void)
 {
     SECStatus rv;
     CK_RV crv;
+#ifdef FREEBL_NO_DEPEND
     PRBool nsprAvailable = PR_FALSE;
 
 
     rv = FREEBL_InitStubs();
     nsprAvailable = (rv ==  SECSuccess ) ? PR_TRUE : PR_FALSE;
+#endif
 
     if (post_failed) {
 	return NULL;

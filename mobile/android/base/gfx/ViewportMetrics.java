@@ -42,14 +42,15 @@ import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.util.DisplayMetrics;
 import org.mozilla.gecko.FloatUtils;
+import org.mozilla.gecko.GeckoApp;
 import org.mozilla.gecko.gfx.FloatSize;
 import org.mozilla.gecko.gfx.IntSize;
 import org.mozilla.gecko.gfx.LayerController;
 import org.mozilla.gecko.gfx.RectUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.json.JSONStringer;
 import android.util.Log;
 
 /**
@@ -64,11 +65,20 @@ public class ViewportMetrics {
     private PointF mViewportOffset;
     private float mZoomFactor;
 
+    // A scale from -1,-1 to 1,1 that represents what edge of the displayport
+    // we want the viewport to be biased towards.
+    private PointF mViewportBias;
+    private static final float MAX_BIAS = 0.8f;
+
     public ViewportMetrics() {
-        mPageSize = new FloatSize(1, 1);
-        mViewportRect = new RectF(0, 0, 1, 1);
+        DisplayMetrics metrics = new DisplayMetrics();
+        GeckoApp.mAppContext.getWindowManager().getDefaultDisplay().getMetrics(metrics);
+
+        mPageSize = new FloatSize(metrics.widthPixels, metrics.heightPixels);
+        mViewportRect = new RectF(0, 0, metrics.widthPixels, metrics.heightPixels);
         mViewportOffset = new PointF(0, 0);
         mZoomFactor = 1.0f;
+        mViewportBias = new PointF(0.0f, 0.0f);
     }
 
     public ViewportMetrics(ViewportMetrics viewport) {
@@ -77,6 +87,7 @@ public class ViewportMetrics {
         PointF offset = viewport.getViewportOffset();
         mViewportOffset = new PointF(offset.x, offset.y);
         mZoomFactor = viewport.getZoomFactor();
+        mViewportBias = viewport.mViewportBias;
     }
 
     public ViewportMetrics(JSONObject json) throws JSONException {
@@ -94,36 +105,36 @@ public class ViewportMetrics {
         mViewportRect = new RectF(x, y, x + width, y + height);
         mViewportOffset = new PointF(offsetX, offsetY);
         mZoomFactor = zoom;
+        mViewportBias = new PointF(0.0f, 0.0f);
     }
 
     public PointF getOptimumViewportOffset(IntSize displayportSize) {
-        // XXX We currently always position the viewport in the centre of the
-        //     displayport, but we might want to optimise this during panning
-        //     to minimise checkerboarding.
-        Point optimumOffset =
-            new Point((int)Math.round((displayportSize.width - mViewportRect.width()) / 2),
-                      (int)Math.round((displayportSize.height - mViewportRect.height()) / 2));
-
         /* XXX Until bug #524925 is fixed, changing the viewport origin will
-         * probably cause things to be slower than just having a smaller usable
-         * displayport.
+         *     cause unnecessary relayouts. This may cause rendering time to
+         *     increase and should be considered.
          */
-        Rect viewport = RectUtils.round(getClampedViewport());
+        RectF viewport = getClampedViewport();
+
+        FloatSize bufferSpace = new FloatSize(displayportSize.width - viewport.width(),
+                                            displayportSize.height - viewport.height());
+        PointF optimumOffset =
+            new PointF(bufferSpace.width * ((mViewportBias.x + 1.0f) / 2.0f),
+                       bufferSpace.height * ((mViewportBias.y + 1.0f) / 2.0f));
 
         // Make sure this offset won't cause wasted pixels in the displayport
         // (i.e. make sure the resultant displayport intersects with the page
         //  as much as possible)
         if (viewport.left - optimumOffset.x < 0)
           optimumOffset.x = viewport.left;
-        else if (optimumOffset.x + viewport.right > mPageSize.width)
-          optimumOffset.x -= (mPageSize.width - (optimumOffset.x + viewport.right));
+        else if ((bufferSpace.width - optimumOffset.x) + viewport.right > mPageSize.width)
+          optimumOffset.x = bufferSpace.width - (mPageSize.width - viewport.right);
 
         if (viewport.top - optimumOffset.y < 0)
           optimumOffset.y = viewport.top;
-        else if (optimumOffset.y + viewport.bottom > mPageSize.height)
-          optimumOffset.y -= (mPageSize.height - (optimumOffset.y + viewport.bottom));
+        else if ((bufferSpace.height - optimumOffset.y) + viewport.bottom > mPageSize.height)
+          optimumOffset.y = bufferSpace.height - (mPageSize.height - viewport.bottom);
 
-        return new PointF(optimumOffset);
+        return new PointF(Math.round(optimumOffset.x), Math.round(optimumOffset.y));
     }
 
     public PointF getOrigin() {
@@ -184,6 +195,23 @@ public class ViewportMetrics {
     }
 
     public void setOrigin(PointF origin) {
+        // When the origin is set, we compare it with the last value set and
+        // change the viewport bias accordingly, so that any viewport based
+        // on these metrics will have a larger buffer in the direction of
+        // movement.
+
+        // XXX Note the comment about bug #524925 in getOptimumViewportOffset.
+        //     Ideally, the viewport bias would be a sliding scale, but we
+        //     don't want to change it too often at the moment.
+        if (FloatUtils.fuzzyEquals(origin.x, mViewportRect.left))
+            mViewportBias.x = 0;
+        else
+            mViewportBias.x = ((mViewportRect.left - origin.x) > 0) ? MAX_BIAS : -MAX_BIAS;
+        if (FloatUtils.fuzzyEquals(origin.y, mViewportRect.top))
+            mViewportBias.y = 0;
+        else
+            mViewportBias.y = ((mViewportRect.top - origin.y) > 0) ? MAX_BIAS : -MAX_BIAS;
+
         mViewportRect.set(origin.x, origin.y,
                           origin.x + mViewportRect.width(),
                           origin.y + mViewportRect.height());
@@ -218,6 +246,15 @@ public class ViewportMetrics {
         setOrigin(origin);
 
         mZoomFactor = newZoomFactor;
+
+        // Similar to setOrigin, set the viewport bias based on the focal point
+        // of the zoom so that a viewport based on these metrics will have a
+        // larger buffer based on the direction of movement when scaling.
+        //
+        // This is biased towards scaling outwards, as zooming in doesn't
+        // really require a viewport bias.
+        mViewportBias.set(((focus.x / mViewportRect.width()) * (2.0f * MAX_BIAS)) - MAX_BIAS,
+                          ((focus.y / mViewportRect.height()) * (2.0f * MAX_BIAS)) - MAX_BIAS);
     }
 
     /*
@@ -234,23 +271,42 @@ public class ViewportMetrics {
         return result;
     }
 
+    public boolean fuzzyEquals(ViewportMetrics other) {
+        return mPageSize.fuzzyEquals(other.mPageSize)
+            && RectUtils.fuzzyEquals(mViewportRect, other.mViewportRect)
+            && FloatUtils.fuzzyEquals(mViewportOffset, other.mViewportOffset)
+            && FloatUtils.fuzzyEquals(mZoomFactor, other.mZoomFactor);
+    }
+
     public String toJSON() {
-        try {
-            JSONStringer object = new JSONStringer().object();
-            object.key("zoom").value(mZoomFactor);
-            object.key("offsetY").value(mViewportOffset.y);
-            object.key("offsetX").value(mViewportOffset.x);
-            object.key("pageHeight").value(mPageSize.height);
-            object.key("pageWidth").value(mPageSize.width);
-            object.key("height").value(mViewportRect.height());
-            object.key("width").value(mViewportRect.width());
-            object.key("y").value(mViewportRect.top);
-            object.key("x").value(mViewportRect.left);
-            return object.endObject().toString();
-        } catch (JSONException je) {
-            Log.e(LOGTAG, "Error serializing viewportmetrics", je);
-            return "";
-        }
+        // Round off height and width. Since the height and width are the size of the screen, it
+        // makes no sense to send non-integer coordinates to Gecko.
+        int height = Math.round(mViewportRect.height());
+        int width = Math.round(mViewportRect.width());
+
+        StringBuffer sb = new StringBuffer(256);
+        sb.append("{ \"x\" : ").append(mViewportRect.left)
+          .append(", \"y\" : ").append(mViewportRect.top)
+          .append(", \"width\" : ").append(width)
+          .append(", \"height\" : ").append(height)
+          .append(", \"pageWidth\" : ").append(mPageSize.width)
+          .append(", \"pageHeight\" : ").append(mPageSize.height)
+          .append(", \"offsetX\" : ").append(mViewportOffset.x)
+          .append(", \"offsetY\" : ").append(mViewportOffset.y)
+          .append(", \"zoom\" : ").append(mZoomFactor)
+          .append(" }");
+        return sb.toString();
+    }
+
+    @Override
+    public String toString() {
+        StringBuffer buff = new StringBuffer(128);
+        buff.append("v=").append(mViewportRect.toString())
+            .append(" p=").append(mPageSize.toString())
+            .append(" z=").append(mZoomFactor)
+            .append(" o=").append(mViewportOffset.x)
+            .append(',').append(mViewportOffset.y);
+        return buff.toString();
     }
 }
 

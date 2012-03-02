@@ -20,6 +20,7 @@
  *
  * Contributor(s):
  *   Cedric Vivier <cedricv@neonux.com> (original author)
+ *   Paul Rouget <paul@mozilla.com>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -35,9 +36,79 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-.splitview-nav > li hgroup > .stylesheet-error-message {
+.stylesheet-error-message {
   display: none;
 }
-.splitview-nav > li.error hgroup > .stylesheet-error-message {
+
+li.error > .stylesheet-info > .stylesheet-more  > .stylesheet-error-message {
   display: block;
+}
+
+.splitview-nav > li,
+.stylesheet-info,
+.stylesheet-more {
+  display: -moz-box;
+}
+
+.splitview-nav > li {
+  -moz-box-orient: horizontal;
+}
+
+.splitview-nav > li > hgroup {
+  display: -moz-box;
+  -moz-box-orient: vertical;
+  -moz-box-flex: 1;
+}
+
+.stylesheet-info > h1 {
+  -moz-box-flex: 1;
+}
+
+.stylesheet-name > label {
+  display: inline;
+  cursor: pointer;
+}
+
+.splitview-nav > li > hgroup.stylesheet-info {
+  -moz-box-pack: center;
+}
+
+.stylesheet-enabled {
+  display: -moz-box;
+}
+
+.stylesheet-saveButton {
+  display: none;
+}
+
+.stylesheet-rule-count,
+li.splitview-active > hgroup > .stylesheet-more > h3 > .stylesheet-saveButton,
+li:hover > hgroup > .stylesheet-more > h3 > .stylesheet-saveButton {
+  display: -moz-box;
+}
+
+.stylesheet-more > spacer {
+  -moz-box-flex: 1;
+}
+
+/* portrait mode */
+@media (max-width: 550px) {
+  li.splitview-active > hgroup > .stylesheet-more > .stylesheet-rule-count,
+  li:hover > hgroup > .stylesheet-more > .stylesheet-rule-count {
+    display: none;
+  }
+
+  .stylesheet-more {
+    -moz-box-flex: 1;
+    -moz-box-direction: reverse;
+  }
+
+  .splitview-nav > li > hgroup.stylesheet-info {
+    -moz-box-orient: horizontal;
+    -moz-box-flex: 1;
+  }
+
+  .stylesheet-more > spacer {
+    -moz-box-flex: 0;
+  }
 }

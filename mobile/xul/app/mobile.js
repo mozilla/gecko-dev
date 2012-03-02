@@ -83,15 +83,13 @@ pref("layout.css.dpi", 160);
 pref("layout.css.dpi", 240);
 #endif
 #endif
-/* allow scrollbars to float above chrome ui */
-pref("ui.scrollbarsCanOverlapContent", 1);
 
 /* use long press to display a context menu */
 pref("ui.click_hold_context_menus", true);
 
 /* cache prefs */
-pref("browser.cache.disk.enable", true);
-pref("browser.cache.disk.capacity", 10240); // kilobytes
+pref("browser.cache.disk.enable", false);
+pref("browser.cache.disk.capacity", 0); // kilobytes
 pref("browser.cache.disk.smart_size.enabled", false);
 pref("browser.cache.disk.smart_size.first_run", false);
 
@@ -108,8 +106,8 @@ pref("browser.cache.offline.capacity", 5120); // kilobytes
 pref("offline-apps.quota.max", 2048); // kilobytes
 pref("offline-apps.quota.warn", 1024); // kilobytes
 
-/* zlib compression level used for cache compression */
-pref("browser.cache.compression_level", 1);
+// cache compression turned off for now - see bug #715198
+pref("browser.cache.compression_level", 0);
 
 /* protocol warning prefs */
 pref("network.protocol-handler.warn-external.tel", false);
@@ -225,7 +223,8 @@ pref("extensions.getAddons.recommended.url", "https://services.addons.mozilla.or
 pref("extensions.getAddons.search.browseURL", "https://addons.mozilla.org/%LOCALE%/mobile/search?q=%TERMS%");
 pref("extensions.getAddons.search.url", "https://services.addons.mozilla.org/%LOCALE%/mobile/api/%API_VERSION%/search/%TERMS%/all/%MAX_RESULTS%/%OS%/%VERSION%");
 pref("extensions.getAddons.browseAddons", "https://addons.mozilla.org/%LOCALE%/mobile/");
-pref("extensions.getAddons.get.url", "https://services.addons.mozilla.org/%LOCALE%/mobile/api/%API_VERSION%/search/guid:%IDS%?src=mobile&appOS=%OS%&appVersion=%VERSION%&tMain=%TIME_MAIN%&tFirstPaint=%TIME_FIRST_PAINT%&tSessionRestored=%TIME_SESSION_RESTORED%");
+pref("extensions.getAddons.get.url", "https://services.addons.mozilla.org/%LOCALE%/mobile/api/%API_VERSION%/search/guid:%IDS%?src=mobile&appOS=%OS%&appVersion=%VERSION%");
+pref("extensions.getAddons.getWithPerformance.url", "https://services.addons.mozilla.org/%LOCALE%/mobile/api/%API_VERSION%/search/guid:%IDS%?src=mobile&appOS=%OS%&appVersion=%VERSION%&tMain=%TIME_MAIN%&tFirstPaint=%TIME_FIRST_PAINT%&tSessionRestored=%TIME_SESSION_RESTORED%");
 
 /* preference for the locale picker */
 pref("extensions.getLocales.get.url", "");
@@ -422,7 +421,7 @@ pref("browser.ui.zoom.animationDuration", 200); // ms duration of double-tap zoo
 pref("browser.ui.zoom.reflow", false); // Change text wrapping on double-tap
 pref("browser.ui.zoom.reflow.fontSize", 720);
 
-pref("font.size.inflation.minTwips", 120);
+pref("font.size.inflation.minTwips", 0);
 
 // pinch gesture
 pref("browser.ui.pinch.maxGrowth", 150);     // max pinch distance growth
@@ -442,7 +441,7 @@ pref("browser.ui.touch.weight.visited", 120); // percentage
 pref("plugin.disable", false);
 pref("dom.ipc.plugins.enabled", true);
 #elifdef ANDROID
-pref("plugin.disable", false);
+pref("plugin.disable", true);
 pref("dom.ipc.plugins.enabled", false);
 #else
 pref("plugin.disable", true);
@@ -560,7 +559,7 @@ pref("font.default.x-western", "SwissA");
 #ifdef MOZ_SERVICES_SYNC
 // sync service
 pref("services.sync.client.type", "mobile");
-pref("services.sync.registerEngines", "Tab,Bookmarks,Form,History,Password,Prefs");
+pref("services.sync.registerEngines", "Tab,Bookmarks,Form,History,Password,Prefs,Addons");
 pref("services.sync.autoconnectDelay", 5);
 
 // prefs to sync by default

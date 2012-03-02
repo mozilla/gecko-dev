@@ -57,12 +57,12 @@ public final class RectUtils {
     }
 
     public static Rect contract(Rect rect, int lessWidth, int lessHeight) {
-        float halfLessWidth = (float)lessWidth / 2.0f;
-        float halfLessHeight = (float)lessHeight / 2.0f;
-        return new Rect((int)Math.round((float)rect.left + halfLessWidth),
-                        (int)Math.round((float)rect.top + halfLessHeight),
-                        (int)Math.round((float)rect.right - halfLessWidth),
-                        (int)Math.round((float)rect.bottom - halfLessHeight));
+        float halfLessWidth = lessWidth / 2.0f;
+        float halfLessHeight = lessHeight / 2.0f;
+        return new Rect(Math.round(rect.left + halfLessWidth),
+                        Math.round(rect.top + halfLessHeight),
+                        Math.round(rect.right - halfLessWidth),
+                        Math.round(rect.bottom - halfLessHeight));
     }
 
     public static RectF contract(RectF rect, float lessWidth, float lessHeight) {
@@ -106,18 +106,6 @@ public final class RectUtils {
 
     public static IntSize getSize(Rect rect) {
         return new IntSize(rect.width(), rect.height());
-    }
-
-    /* Returns a new RectF which restricts a source rect to the area inside a second destination rect.
-     * If the source rect is wider/taller than the destination rect, it's width/height will be shortened
-     * (and its aspect ratio will NOT be maintained).
-    */
-    public static RectF restrict(RectF rect, RectF dest) {
-        float width = Math.min(rect.width(), dest.width());
-        float height = Math.min(rect.height(), dest.height());
-        float x = Math.max(dest.left, Math.min(dest.right-width, rect.left));
-        float y = Math.max(dest.top, Math.min(dest.bottom-height, rect.top));
-        return new RectF(x, y, x+width, y+height);
     }
 
     /*

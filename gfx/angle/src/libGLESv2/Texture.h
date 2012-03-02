@@ -56,7 +56,7 @@ class Image
     HRESULT lock(D3DLOCKED_RECT *lockedRect, const RECT *rect);
     void unlock();
 
-    bool isRenderable() const;
+    bool isRenderableFormat() const;
     D3DFORMAT getD3DFormat() const;
 
     GLsizei getWidth() const {return mWidth;}
@@ -134,7 +134,9 @@ class Image
     GLenum mType;
 
     bool mDirty;
-    bool mManaged;
+
+    D3DPOOL mD3DPool;   // can only be D3DPOOL_SYSTEMMEM or D3DPOOL_MANAGED since it needs to be lockable.
+    D3DFORMAT mD3DFormat;
 
     IDirect3DSurface9 *mSurface;
 };
@@ -142,20 +144,21 @@ class Image
 class TextureStorage
 {
   public:
-    explicit TextureStorage(bool renderable);
+    explicit TextureStorage(bool renderTarget);
 
     virtual ~TextureStorage();
 
-    bool isRenderable() const;
+    bool isRenderTarget() const;
     bool isManaged() const;
+    D3DPOOL getPool() const;
     unsigned int getTextureSerial() const;
     virtual unsigned int getRenderTargetSerial(GLenum target) const = 0;
 
   private:
     DISALLOW_COPY_AND_ASSIGN(TextureStorage);
 
-    const bool mRenderable;
-    const bool mManaged;
+    const bool mRenderTarget;
+    const D3DPOOL mD3DPool;
 
     const unsigned int mTextureSerial;
     static unsigned int issueTextureSerial();
@@ -202,8 +205,8 @@ class Texture : public RefCountObject
     bool hasDirtyParameters() const;
     bool hasDirtyImages() const;
     void resetDirty();
-    unsigned int getTextureSerial() const;
-    unsigned int getRenderTargetSerial(GLenum target) const;
+    unsigned int getTextureSerial();
+    unsigned int getRenderTargetSerial(GLenum target);
 
     bool isImmutable() const;
 
@@ -245,14 +248,14 @@ class Texture : public RefCountObject
   private:
     DISALLOW_COPY_AND_ASSIGN(Texture);
 
-    virtual TextureStorage *getStorage() const = 0;
+    virtual TextureStorage *getStorage(bool renderTarget) = 0;
 };
 
 class TextureStorage2D : public TextureStorage
 {
   public:
     explicit TextureStorage2D(IDirect3DTexture9 *surfaceTexture);
-    TextureStorage2D(int levels, D3DFORMAT format, int width, int height, bool renderable);
+    TextureStorage2D(int levels, D3DFORMAT format, int width, int height, bool renderTarget);
 
     virtual ~TextureStorage2D();
 
@@ -308,7 +311,7 @@ class Texture2D : public Texture
     virtual void updateTexture();
     virtual void convertToRenderTarget();
     virtual IDirect3DSurface9 *getRenderTarget(GLenum target);
-    virtual TextureStorage *getStorage() const;
+    virtual TextureStorage *getStorage(bool renderTarget);
 
     bool isMipmapComplete() const;
 
@@ -317,7 +320,7 @@ class Texture2D : public Texture
 
     Image mImageArray[IMPLEMENTATION_MAX_TEXTURE_LEVELS];
 
-    TextureStorage2D *mTexture;
+    TextureStorage2D *mTexStorage;
     egl::Surface *mSurface;
 
     BindingPointer<Renderbuffer> mColorbufferProxy;
@@ -326,7 +329,7 @@ class Texture2D : public Texture
 class TextureStorageCubeMap : public TextureStorage
 {
   public:
-    TextureStorageCubeMap(int levels, D3DFORMAT format, int size, bool renderable);
+    TextureStorageCubeMap(int levels, D3DFORMAT format, int size, bool renderTarget);
 
     virtual ~TextureStorageCubeMap();
 
@@ -389,7 +392,7 @@ class TextureCubeMap : public Texture
     virtual void updateTexture();
     virtual void convertToRenderTarget();
     virtual IDirect3DSurface9 *getRenderTarget(GLenum target);
-    virtual TextureStorage *getStorage() const;
+    virtual TextureStorage *getStorage(bool renderTarget);
 
     bool isCubeComplete() const;
     bool isMipmapCubeComplete() const;
@@ -400,7 +403,7 @@ class TextureCubeMap : public Texture
 
     Image mImageArray[6][IMPLEMENTATION_MAX_TEXTURE_LEVELS];
 
-    TextureStorageCubeMap *mTexture;
+    TextureStorageCubeMap *mTexStorage;
 
     BindingPointer<Renderbuffer> mFaceProxies[6];
 };

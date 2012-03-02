@@ -2852,11 +2852,6 @@ MOZ_ARG_DISABLE_BOOL(polyic,
 [  --disable-polyic      Disable use of PICs by JIT compiler],
   ENABLE_POLYIC= )
 
-MOZ_ARG_ENABLE_BOOL(tracejit,
-[  --enable-tracejit     Deprecated, does nothing],
-  ENABLE_TRACEJIT=,
-  ENABLE_TRACEJIT= )
-
 MOZ_ARG_ENABLE_BOOL(methodjit-spew,
 [  --enable-methodjit-spew      Enable method JIT spew support],
   ENABLE_METHODJIT_SPEW=1,
@@ -3866,13 +3861,6 @@ AC_CACHE_CHECK(for __attribute__((warn_unused_result)),
                                ac_cv_attribute_warn_unused=yes,
                                ac_cv_attribute_warn_unused=no)])
 
-AC_CACHE_CHECK(for __attribute__((noreturn)),
-               ac_cv_attribute_noreturn,
-               [AC_TRY_COMPILE([void f(void) __attribute__((noreturn));],
-                               [],
-                               ac_cv_attribute_noreturn=yes,
-                               ac_cv_attribute_noreturn=no)])
-
 dnl End of C++ language/feature checks
 AC_LANG_C
 
@@ -3926,12 +3914,6 @@ if test "$ac_cv_attribute_warn_unused" = yes ; then
   AC_DEFINE(NS_WARN_UNUSED_RESULT, [__attribute__((warn_unused_result))])
 else
   AC_DEFINE(NS_WARN_UNUSED_RESULT,)
-fi
-
-if test "$ac_cv_attribute_noreturn" = yes ; then
-  AC_DEFINE(NS_NORETURN, [__attribute__((noreturn))])
-else
-  AC_DEFINE(NS_NORETURN,)
 fi
 
 dnl We can't run TRY_COMPILE tests on Windows, so hard-code some
@@ -4311,7 +4293,7 @@ if test "$MOZ_MEMORY"; then
     ;;
   *-mingw*)
     AC_DEFINE(MOZ_MEMORY_WINDOWS)
-    # the interesting bits will get passed down in MOZ_UTILS_LDFLAGS
+    # the interesting bits will get passed down in MOZ_GLUE_LDFLAGS
     ;;
   *)
     AC_MSG_ERROR([--enable-jemalloc not supported on ${target}])
@@ -4326,8 +4308,8 @@ if test "$MOZ_MEMORY"; then
   fi
 fi
 AC_SUBST(MOZ_MEMORY)
-AC_SUBST(MOZ_UTILS_LDFLAGS)
-AC_SUBST(MOZ_UTILS_PROGRAM_LDFLAGS)
+AC_SUBST(MOZ_GLUE_LDFLAGS)
+AC_SUBST(MOZ_GLUE_PROGRAM_LDFLAGS)
 
 dnl ========================================================
 dnl = Use malloc wrapper lib

@@ -526,6 +526,13 @@ Navigator::JavaEnabled(bool* aReturn)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+Navigator::TaintEnabled(bool *aReturn)
+{
+  *aReturn = false;
+  return NS_OK;
+}
+
 void
 Navigator::RefreshMIMEArray()
 {
@@ -1033,6 +1040,14 @@ Navigator::SizeOf() const
   size += mNotification ? sizeof(*mNotification.get()) : 0;
 
   return size;
+}
+
+void
+Navigator::SetWindow(nsPIDOMWindow *aInnerWindow)
+{
+  NS_ASSERTION(aInnerWindow->IsInnerWindow(),
+               "Navigator must get an inner window!");
+  mWindow = do_GetWeakReference(aInnerWindow);
 }
 
 } // namespace dom

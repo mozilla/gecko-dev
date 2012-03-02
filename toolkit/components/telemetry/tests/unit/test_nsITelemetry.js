@@ -91,11 +91,6 @@ function test_getHistogramById() {
   do_check_true(s.static);
 }
 
-function test_getSlowSQL() {
-  var slow = Telemetry.slowSQL;
-  do_check_true(("mainThread" in slow) && ("otherThreads" in slow));
-}
-
 // Check that telemetry doesn't record in private mode
 function test_privateMode() {
   var h = Telemetry.newHistogram("test::private_mode_boolean", 1,2,3, Telemetry.HISTOGRAM_BOOLEAN);
@@ -122,6 +117,5 @@ function run_test()
 
   test_boolean_histogram();
   test_getHistogramById();
-  test_getSlowSQL();
   test_privateMode();
 }

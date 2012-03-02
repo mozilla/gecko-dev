@@ -744,6 +744,15 @@ SpdySession::CleanupStream(SpdyStream *aStream, nsresult aResult)
       mUrgentForWrite.Push(stream);
   }
 
+  // Check the streams queued for activation. Because we normally accept a high
+  // level of parallelization this should also be short.
+  size = mQueuedStreams.GetSize();
+  for (PRUint32 count = 0; count < size; ++count) {
+    SpdyStream *stream = static_cast<SpdyStream *>(mQueuedStreams.PopFront());
+    if (stream != aStream)
+      mQueuedStreams.Push(stream);
+  }
+
   // Remove the stream from the ID hash table. (this one isn't short, which is
   // why it is hashed.)
   mStreamIDHash.Remove(aStream->StreamID());
@@ -768,7 +777,7 @@ SpdySession::HandleSynStream(SpdySession *self)
   NS_ABORT_IF_FALSE(self->mFrameControlType == CONTROL_TYPE_SYN_STREAM,
                     "wrong control type");
   
-  if (self->mFrameDataSize < 12) {
+  if (self->mFrameDataSize < 18) {
     LOG3(("SpdySession::HandleSynStream %p SYN_STREAM too short data=%d",
           self, self->mFrameDataSize));
     return NS_ERROR_ILLEGAL_VALUE;
@@ -776,9 +785,12 @@ SpdySession::HandleSynStream(SpdySession *self)
 
   PRUint32 streamID =
     PR_ntohl(reinterpret_cast<PRUint32 *>(self->mFrameBuffer.get())[2]);
+  PRUint32 associatedID =
+    PR_ntohl(reinterpret_cast<PRUint32 *>(self->mFrameBuffer.get())[3]);
 
-  LOG3(("SpdySession::HandleSynStream %p recv SYN_STREAM (push) for ID 0x%X.",
-        self, streamID));
+  LOG3(("SpdySession::HandleSynStream %p recv SYN_STREAM (push) "
+        "for ID 0x%X associated with 0x%X.",
+        self, streamID, associatedID));
     
   if (streamID & 0x01) {                   // test for odd stream ID
     LOG3(("SpdySession::HandleSynStream %p recvd SYN_STREAM id must be even.",
@@ -792,6 +804,15 @@ SpdySession::HandleSynStream(SpdySession *self)
   // begin to migrate to a new session.
   if (streamID >= kMaxStreamID)
     self->mShouldGoAway = true;
+
+  // Need to decompress the headers even though we aren't using them yet in
+  // order to keep the compression context consistent for other syn_reply frames
+  nsresult rv = self->DownstreamUncompress(self->mFrameBuffer + 18,
+                                           self->mFrameDataSize - 10);
+  if (NS_FAILED(rv)) {
+    LOG(("SpdySession::HandleSynStream uncompress failed\n"));
+    return rv;
+  }
 
   // todo populate cache. For now, just reject server push p3
   self->GenerateRstStream(RST_REFUSED_STREAM, streamID);
@@ -863,8 +884,10 @@ SpdySession::HandleSynReply(SpdySession *self)
 
   nsresult rv = self->DownstreamUncompress(self->mFrameBuffer + 14,
                                            self->mFrameDataSize - 6);
-  if (NS_FAILED(rv))
+  if (NS_FAILED(rv)) {
+    LOG(("SpdySession::HandleSynReply uncompress failed\n"));
     return rv;
+  }
   
   Telemetry::Accumulate(Telemetry::SPDY_SYN_REPLY_SIZE,
                         self->mFrameDataSize - 6);

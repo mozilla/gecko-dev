@@ -4,7 +4,6 @@ ac_add_options --enable-debug
 
 # Build Fennec
 ac_add_options --enable-application=mobile
-ac_add_options --disable-elf-hack
 
 # Android
 ac_add_options --target=arm-linux-androideabi
@@ -19,4 +18,4 @@ ac_add_options --with-system-zlib
 export JAVA_HOME=/tools/jdk6
 export MOZILLA_OFFICIAL=1
 
-ac_add_options --with-branding=mobile/xul/branding/nightly
+ac_add_options --with-branding=mobile/xul/branding/beta

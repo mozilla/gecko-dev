@@ -21,7 +21,6 @@
  *
  * Contributor(s):
  *   Taras Glek <tglek@mozilla.com>
- *   Vladan Djeric <vdjeric@mozilla.com>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -52,8 +51,6 @@
 #include "nsHashKeys.h"
 #include "nsBaseHashtable.h"
 #include "nsXULAppAPI.h"
-#include "nsThreadUtils.h"
-#include "mozilla/Mutex.h"
 
 namespace {
 
@@ -72,28 +69,14 @@ public:
   static bool CanRecord();
   static already_AddRefed<nsITelemetry> CreateTelemetryInstance();
   static void ShutdownTelemetry();
-  static void RecordSlowStatement(const nsACString &statement,
-                                  const nsACString &dbName,
-                                  PRUint32 delay);
-  struct StmtStats {
-    PRUint32 hitCount;
-    PRUint32 totalTime;
-  };
-  typedef nsBaseHashtableET<nsCStringHashKey, StmtStats> SlowSQLEntryType;
 
 private:
-  bool AddSQLInfo(JSContext *cx, JSObject *rootObj, bool mainThread);
-
   // This is used for speedy JS string->Telemetry::ID conversions
   typedef nsBaseHashtableET<nsCharPtrHashKey, Telemetry::ID> CharPtrEntryType;
   typedef nsTHashtable<CharPtrEntryType> HistogramMapType;
   HistogramMapType mHistogramMap;
   bool mCanRecord;
   static TelemetryImpl *sTelemetry;
-  nsTHashtable<SlowSQLEntryType> mSlowSQLOnMainThread;
-  nsTHashtable<SlowSQLEntryType> mSlowSQLOnOtherThread;
-  nsTHashtable<nsCStringHashKey> mTrackedDBs;
-  Mutex mHashMutex;
 };
 
 TelemetryImpl*  TelemetryImpl::sTelemetry = NULL;
@@ -295,31 +278,12 @@ WrapAndReturnHistogram(Histogram *h, JSContext *cx, jsval *ret)
 }
 
 TelemetryImpl::TelemetryImpl():
-mCanRecord(XRE_GetProcessType() == GeckoProcessType_Default),
-mHashMutex("Telemetry::mHashMutex")
+mCanRecord(XRE_GetProcessType() == GeckoProcessType_Default)
 {
-  // A whitelist to prevent Telemetry reporting on Addon & Thunderbird DBs
-  const char *trackedDBs[] = {
-    "addons.sqlite", "chromeappsstore.sqlite", "content-prefs.sqlite",
-    "cookies.sqlite", "downloads.sqlite", "extensions.sqlite",
-    "formhistory.sqlite", "index.sqlite", "permissions.sqlite", "places.sqlite",
-    "search.sqlite", "signons.sqlite", "urlclassifier3.sqlite",
-    "webappsstore.sqlite"
-  };
-
-  mTrackedDBs.Init();
-  for (int i = 0; i < sizeof(trackedDBs)/sizeof(const char*); i++)
-    mTrackedDBs.PutEntry(nsDependentCString(trackedDBs[i]));
-
-  mSlowSQLOnMainThread.Init();
-  mSlowSQLOnOtherThread.Init();
   mHistogramMap.Init(Telemetry::HistogramCount);
 }
 
 TelemetryImpl::~TelemetryImpl() {
-  mTrackedDBs.Clear();
-  mSlowSQLOnMainThread.Clear();
-  mSlowSQLOnOtherThread.Clear();
   mHistogramMap.Clear();
 }
 
@@ -333,61 +297,6 @@ TelemetryImpl::NewHistogram(const nsACString &name, PRUint32 min, PRUint32 max, 
   h->ClearFlags(Histogram::kUmaTargetedHistogramFlag);
   return WrapAndReturnHistogram(h, cx, ret);
 }
-
-struct EnumeratorArgs {
-  JSContext *cx;
-  JSObject *statsObj;
-};
-
-PLDHashOperator
-StatementEnumerator(TelemetryImpl::SlowSQLEntryType *entry, void *arg)
-{
-  EnumeratorArgs *args = static_cast<EnumeratorArgs *>(arg);
-  const nsACString &sql = entry->GetKey();
-  jsval hitCount = UINT_TO_JSVAL(entry->mData.hitCount);
-  jsval totalTime = UINT_TO_JSVAL(entry->mData.totalTime);
-
-  JSObject *arrayObj = JS_NewArrayObject(args->cx, 2, nsnull);
-  if (!arrayObj ||
-      !JS_SetElement(args->cx, arrayObj, 0, &hitCount) ||
-      !JS_SetElement(args->cx, arrayObj, 1, &totalTime))
-    return PL_DHASH_STOP;
-
-  JSBool success = JS_DefineProperty(args->cx, args->statsObj,
-                                     sql.BeginReading(),
-                                     OBJECT_TO_JSVAL(arrayObj),
-                                     NULL, NULL, JSPROP_ENUMERATE);
-  if (!success)
-    return PL_DHASH_STOP;
-
-  return PL_DHASH_NEXT;
-}
-
-bool
-TelemetryImpl::AddSQLInfo(JSContext *cx, JSObject *rootObj, bool mainThread)
-{
-  JSObject *statsObj = JS_NewObject(cx, NULL, NULL, NULL);
-  if (!statsObj)
-    return false;
-
-  JSBool ok = JS_DefineProperty(cx, rootObj,
-                                mainThread ? "mainThread" : "otherThreads",
-                                OBJECT_TO_JSVAL(statsObj),
-                                NULL, NULL, JSPROP_ENUMERATE);
-  if (!ok)
-    return false;
-
-  EnumeratorArgs args = { cx, statsObj };
-  nsTHashtable<SlowSQLEntryType> *sqlMap;
-  sqlMap = (mainThread ? &mSlowSQLOnMainThread : &mSlowSQLOnOtherThread);
-  PRUint32 num = sqlMap->EnumerateEntries(StatementEnumerator,
-                                          static_cast<void*>(&args));
-  if (num != sqlMap->Count())
-    return false;
-
-  return true;
-}
-
 
 NS_IMETHODIMP
 TelemetryImpl::GetHistogramSnapshots(JSContext *cx, jsval *ret)
@@ -412,24 +321,6 @@ TelemetryImpl::GetHistogramSnapshots(JSContext *cx, jsval *ret)
   return NS_OK;
 }
 
-NS_IMETHODIMP
-TelemetryImpl::GetSlowSQL(JSContext *cx, jsval *ret)
-{
-  JSObject *root_obj = JS_NewObject(cx, NULL, NULL, NULL);
-  if (!root_obj)
-    return NS_ERROR_FAILURE;
-  *ret = OBJECT_TO_JSVAL(root_obj);
-
-  MutexAutoLock hashMutex(mHashMutex);
-  // Add info about slow SQL queries on the main thread
-  if (!AddSQLInfo(cx, root_obj, true))
-    return NS_ERROR_FAILURE;
-  // Add info about slow SQL queries on other threads
-  if (!AddSQLInfo(cx, root_obj, false))
-    return NS_ERROR_FAILURE;
-
-  return NS_OK;
-}
 
 NS_IMETHODIMP
 TelemetryImpl::GetHistogramById(const nsACString &name, JSContext *cx, jsval *ret)
@@ -495,41 +386,6 @@ TelemetryImpl::ShutdownTelemetry()
   NS_IF_RELEASE(sTelemetry);
 }
 
-void
-TelemetryImpl::RecordSlowStatement(const nsACString &statement,
-                                   const nsACString &dbName,
-                                   PRUint32 delay)
-{
-  if (!sTelemetry) {
-    // Make the service manager hold a long-lived reference to the service
-    nsCOMPtr<nsITelemetry> telemetryService =
-      do_GetService("@mozilla.org/base/telemetry;1");
-    if (!telemetryService || !sTelemetry)
-      return;
-  }
-
-  if (!sTelemetry->mCanRecord || !sTelemetry->mTrackedDBs.GetEntry(dbName))
-    return;
-
-  nsTHashtable<SlowSQLEntryType> *slowSQLMap = NULL;
-  if (NS_IsMainThread())
-    slowSQLMap = &(sTelemetry->mSlowSQLOnMainThread);
-  else
-    slowSQLMap = &(sTelemetry->mSlowSQLOnOtherThread);
-
-  MutexAutoLock hashMutex(sTelemetry->mHashMutex);
-  SlowSQLEntryType *entry = slowSQLMap->GetEntry(statement);
-  if (!entry) {
-    entry = slowSQLMap->PutEntry(statement);
-    if (NS_UNLIKELY(!entry))
-      return;
-    entry->mData.hitCount = 0;
-    entry->mData.totalTime = 0;
-  }
-  entry->mData.hitCount++;
-  entry->mData.totalTime += delay;
-}
-
 NS_IMPL_THREADSAFE_ISUPPORTS1(TelemetryImpl, nsITelemetry)
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsITelemetry, TelemetryImpl::CreateTelemetryInstance)
 
@@ -587,14 +443,6 @@ GetHistogramById(ID id)
   Histogram *h = NULL;
   GetHistogramByEnumId(id, &h);
   return h;
-}
-
-void
-RecordSlowSQLStatement(const nsACString &statement,
-                       const nsACString &dbName,
-                       PRUint32 delay)
-{
-  TelemetryImpl::RecordSlowStatement(statement, dbName, delay);
 }
 
 } // namespace Telemetry

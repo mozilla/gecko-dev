@@ -1798,6 +1798,14 @@ bool nsCocoaWindow::ShouldFocusPlugin()
   mGeckoWindow->ReportSizeEvent();
 }
 
+- (void)windowDidChangeScreen:(NSNotification *)aNotification
+{
+  if (!mGeckoWindow)
+    return;
+
+  mGeckoWindow->ReportMoveEvent();
+}
+
 - (void)windowDidBecomeMain:(NSNotification *)aNotification
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;

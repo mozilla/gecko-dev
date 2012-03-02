@@ -70,6 +70,8 @@ static const unsigned long kDialogTimerTimeout = 300;
 #define MAX_EXTENSION_LENGTH 10
 #define FILE_BUFFER_SIZE     4096 
 
+typedef DWORD FILEOPENDIALOGOPTIONS;
+
 ///////////////////////////////////////////////////////////////////////////////
 // Helper classes
 
@@ -864,6 +866,8 @@ nsFilePicker::ShowXPFilePicker(const nsString& aInitialDir)
   return true;
 }
 
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
+
 bool
 nsFilePicker::ShowFilePicker(const nsString& aInitialDir)
 {
@@ -886,7 +890,8 @@ nsFilePicker::ShowFilePicker(const nsString& aInitialDir)
   // options
 
   FILEOPENDIALOGOPTIONS fos = 0;
-  fos |= FOS_SHAREAWARE | FOS_OVERWRITEPROMPT | FOS_NOREADONLYRETURN;
+  fos |= FOS_SHAREAWARE | FOS_OVERWRITEPROMPT |
+         FOS_FORCEFILESYSTEM;
 
   // Handle add to recent docs settings
   if (IsPrivacyModeEnabled() || !mAddToRecentDocs) {
@@ -908,6 +913,7 @@ nsFilePicker::ShowFilePicker(const nsString& aInitialDir)
       break;
 
     case modeSave:
+      fos |= FOS_NOREADONLYRETURN;
       // Don't follow shortcuts when saving a shortcut, this can be used
       // to trick users (bug 271732)
       if (IsDefaultPathLink())
@@ -970,6 +976,12 @@ nsFilePicker::ShowFilePicker(const nsString& aInitialDir)
 
   // results
 
+  // Remember what filter type the user selected
+  UINT filterIdxResult;
+  if (SUCCEEDED(dialog->GetFileTypeIndex(&filterIdxResult))) {
+    mSelectedType = (PRInt16)filterIdxResult;
+  }
+
   // single selection
   if (mMode != modeOpenMultiple) {
     nsRefPtr<IShellItem> item;
@@ -1014,6 +1026,8 @@ nsFilePicker::ShowFilePicker(const nsString& aInitialDir)
   }
   return true;
 }
+
+#endif // MOZ_WINSDK_TARGETVER
 
 ///////////////////////////////////////////////////////////////////////////////
 // nsIFilePicker impl.
@@ -1328,18 +1342,17 @@ nsFilePicker::IsDefaultPathHtml()
   return false;
 }
 
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
+
 void
 nsFilePicker::ComDlgFilterSpec::Append(const nsAString& aTitle, const nsAString& aFilter)
 {
-  PRUint32 size = sizeof(COMDLG_FILTERSPEC);
-  PRUint32 hdrLen = size * (mLength + 1);
-  mSpecList = (COMDLG_FILTERSPEC*)realloc(mSpecList, hdrLen);
-  if (!mSpecList) {
+  COMDLG_FILTERSPEC* pSpecForward = mSpecList.AppendElement();
+  if (!pSpecForward) {
     NS_WARNING("mSpecList realloc failed.");
     return;
   }
-  COMDLG_FILTERSPEC* pSpecForward = (COMDLG_FILTERSPEC*)(mSpecList + mLength);
-  memset(pSpecForward, 0, size);
+  memset(pSpecForward, 0, sizeof(*pSpecForward));
   nsString* pStr = mStrings.AppendElement(aTitle);
   if (!pStr) {
     NS_WARNING("mStrings.AppendElement failed.");
@@ -1351,6 +1364,14 @@ nsFilePicker::ComDlgFilterSpec::Append(const nsAString& aTitle, const nsAString&
     NS_WARNING("mStrings.AppendElement failed.");
     return;
   }
+  if (aFilter.EqualsLiteral("..apps"))
+    pStr->AssignLiteral("*.exe;*.com");
+  else {
+    pStr->StripWhitespace();
+    if (pStr->EqualsLiteral("*"))
+      pStr->AppendLiteral(".*");
+  }
   pSpecForward->pszSpec = pStr->get();
-  mLength++;
 }
+
+#endif // MOZ_WINSDK_TARGETVER

@@ -12,10 +12,13 @@
     <uses-sdk android:minSdkVersion="5"
               android:targetSdkVersion="11"/>
 
+#include ../sync/manifests/SyncAndroidManifest_permissions.xml.in
+
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.DOWNLOAD_WITHOUT_NOTIFICATION"/>
     <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT"/>
 
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
@@ -49,6 +52,10 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="org.mozilla.gecko.UPDATE"/>
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
 
             <!-- Default browser intents -->
@@ -101,8 +108,11 @@
                   android:excludeFromRecents="true">
           <intent-filter>
             <action android:name="org.mozilla.gecko.restart"/>
+            <action android:name="org.mozilla.gecko.restart_update"/>
           </intent-filter>
         </activity>
+
+#include ../sync/manifests/SyncAndroidManifest_activities.xml.in
 
 #if MOZ_CRASHREPORTER
   <activity android:name="CrashReporter"
@@ -116,18 +126,19 @@
 	</activity>
 #endif
 
+        <!-- Bug 715260: Hiding Webapps support
         <activity android:name="LauncherShortcuts"
                   android:label="@string/launcher_shortcuts_title"
                   android:theme="@style/Gecko.Translucent">
-            <!--  This intent-filter allows your shortcuts to be created in the launcher. -->
             <intent-filter>
                 <action android:name="android.intent.action.CREATE_SHORTCUT" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+        -->
 
         <activity android:name="org.mozilla.gecko.AwesomeBar"
-                  android:theme="@style/Gecko.Light.NoActionBar"
+                  android:theme="@style/Gecko.Light"
                   android:configChanges="orientation"
                   android:windowSoftInputMode="stateAlwaysVisible|adjustResize"/>
 
@@ -137,13 +148,14 @@
 
         <activity android:name="org.mozilla.gecko.GeckoPreferences"
                   android:theme="@style/Gecko.TitleBar"
-                  android:label="@string/preferences_title"
+                  android:label="@string/settings_title"
                   android:excludeFromRecents="true"/>
 
         <provider android:name="@ANDROID_PACKAGE_NAME@.db.BrowserProvider"
                   android:authorities="@ANDROID_PACKAGE_NAME@.db.browser"
                   android:permission="@ANDROID_PACKAGE_NAME@.permissions.BROWSER_PROVIDER"/>
 
+#include ../sync/manifests/SyncAndroidManifest_services.xml.in
     </application>
 
     <permission android:name="@ANDROID_PACKAGE_NAME@.permissions.BROWSER_PROVIDER"
