@@ -2574,9 +2574,17 @@ bool
 nsDisplayTransform::ShouldPrerenderTransformedContent(nsDisplayListBuilder* aBuilder,
                                                       nsIFrame* aFrame)
 {
-  return aFrame->AreLayersMarkedActive(nsChangeHint_UpdateTransformLayer) &&
-         aFrame->GetVisualOverflowRectRelativeToSelf().Size() <=
-          aBuilder->ReferenceFrame()->GetSize();
+  if (aFrame->AreLayersMarkedActive(nsChangeHint_UpdateTransformLayer) &&
+      aFrame->GetVisualOverflowRectRelativeToSelf().Size() <=
+        aBuilder->ReferenceFrame()->GetSize()) {
+    // Bug 717521 - pre-render max 4096 x 4096 device pixels.
+    nscoord max = aFrame->PresContext()->DevPixelsToAppUnits(4096);
+    nsRect visual = aFrame->GetVisualOverflowRect();
+    if (visual.width <= max && visual.height <= max) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /* If the matrix is singular, or a hidden backface is shown, the frame won't be visible or hit. */
