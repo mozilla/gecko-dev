@@ -1035,17 +1035,19 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature,
 
 // Implement nsIGfxInfoDebug
 
-/* void spoofVendorID (in DOMString aVendorID); */
-NS_IMETHODIMP GfxInfo::SpoofVendorID(const nsAString & aVendorID)
+/* void spoofVendorID (in unsigned long aVendorID); */
+NS_IMETHODIMP GfxInfo::SpoofVendorID(PRUint32 aVendorID)
 {
-  mAdapterVendorID = aVendorID;
+  mAdapterVendorID.Truncate(0);
+  mAdapterVendorID.AppendPrintf("0x%04x", aVendorID);
   return NS_OK;
 }
 
 /* void spoofDeviceID (in unsigned long aDeviceID); */
-NS_IMETHODIMP GfxInfo::SpoofDeviceID(const nsAString & aDeviceID)
+NS_IMETHODIMP GfxInfo::SpoofDeviceID(PRUint32 aDeviceID)
 {
-  mAdapterDeviceID = aDeviceID;
+  mAdapterDeviceID.Truncate(0);
+  mAdapterDeviceID.AppendPrintf("0x%04x", aDeviceID);
   return NS_OK;
 }
 

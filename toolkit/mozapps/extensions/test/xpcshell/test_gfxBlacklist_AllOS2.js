@@ -2,9 +2,9 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-// Test whether a machine which is older than the equal
-// blacklist entry is correctly allowed.
-// Uses test_gfxBlacklist.xml
+// Make sure that a blacklist entry with an OS of "All" matches Windows Vista,
+// as long as the rest of the blacklist matches it.
+// Uses test_gfxBlacklist_AllOS.xml
 
 do_load_httpd_js();
 
@@ -35,11 +35,11 @@ function run_test() {
   gfxInfo.QueryInterface(Ci.nsIGfxInfoDebug);
 
   // Set the vendor/device ID, etc, to match the test file.
-  gfxInfo.spoofVendorID(0xdcdc);
+  gfxInfo.spoofVendorID(0xabcd);
   gfxInfo.spoofDeviceID(0x1234);
-  gfxInfo.spoofDriverVersion("8.52.322.1110");
-  // Windows 7
-  gfxInfo.spoofOSVersion(0x60001);
+  gfxInfo.spoofDriverVersion("8.52.322.2201");
+  // Windows Vista
+  gfxInfo.spoofOSVersion(0x60000);
 
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "3", "8");
   startupManager();
@@ -53,7 +53,7 @@ function run_test() {
   function checkBlacklist()
   {
     var status = gfxInfo.getFeatureStatus(Ci.nsIGfxInfo.FEATURE_DIRECT2D);
-    do_check_eq(status, Ci.nsIGfxInfo.FEATURE_NO_INFO);
+    do_check_eq(status, Ci.nsIGfxInfo.FEATURE_BLOCKED_DRIVER_VERSION);
 
     // Make sure unrelated features aren't affected
     status = gfxInfo.getFeatureStatus(Ci.nsIGfxInfo.FEATURE_DIRECT3D_9_LAYERS);
@@ -68,5 +68,5 @@ function run_test() {
     do_execute_soon(checkBlacklist);
   }, "blocklist-data-gfxItems", false);
 
-  load_blocklist("test_gfxBlacklist.xml");
+  load_blocklist("test_gfxBlacklist_AllOS.xml");
 }

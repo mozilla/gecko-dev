@@ -48,7 +48,6 @@
 #include "nsTArray.h"
 #include "nsString.h"
 #include "GfxInfoCollector.h"
-#include "nsIGfxInfoDebug.h"
 
 namespace mozilla {
 namespace widget {  
@@ -56,9 +55,6 @@ namespace widget {
 class GfxInfoBase : public nsIGfxInfo,
                     public nsIObserver,
                     public nsSupportsWeakReference
-#ifdef DEBUG
-                  , public nsIGfxInfoDebug
-#endif
 {
 public:
   GfxInfoBase();

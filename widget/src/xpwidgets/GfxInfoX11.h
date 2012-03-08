@@ -79,11 +79,6 @@ public:
   
   NS_IMETHOD_(void) GetData();
 
-#ifdef DEBUG
-  NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_NSIGFXINFODEBUG
-#endif
-
 protected:
 
   virtual nsresult GetFeatureStatusImpl(PRInt32 aFeature, 

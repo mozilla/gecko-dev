@@ -2,9 +2,9 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-// Test whether the blacklist succesfully adds and removes the prefs that store
-// its decisions when the remote blacklist is changed.
-// Uses test_gfxBlacklist.xml and test_gfxBlacklist2.xml
+// Make sure that a blacklist entry with an OS of "All" matches Windows 7, as
+// long as the rest of the blacklist matches it.
+// Uses test_gfxBlacklist_AllOS.xml
 
 do_load_httpd_js();
 
@@ -50,13 +50,7 @@ function run_test() {
 
   do_test_pending();
 
-  function blacklistAdded(aSubject, aTopic, aData)
-  {
-    // If we wait until after we go through the event loop, gfxInfo is sure to
-    // have processed the gfxItems event.
-    do_execute_soon(ensureBlacklistSet);
-  }
-  function ensureBlacklistSet()
+  function checkBlacklist()
   {
     var status = gfxInfo.getFeatureStatus(Ci.nsIGfxInfo.FEATURE_DIRECT2D);
     do_check_eq(status, Ci.nsIGfxInfo.FEATURE_BLOCKED_DRIVER_VERSION);
@@ -65,44 +59,14 @@ function run_test() {
     status = gfxInfo.getFeatureStatus(Ci.nsIGfxInfo.FEATURE_DIRECT3D_9_LAYERS);
     do_check_eq(status, Ci.nsIGfxInfo.FEATURE_NO_INFO);
 
-    var prefs = Cc["@mozilla.org/preferences-service;1"].
-          getService(Ci.nsIPrefBranch2);
-    do_check_eq(prefs.getIntPref("gfx.blacklist.direct2d"),
-                Ci.nsIGfxInfo.FEATURE_BLOCKED_DRIVER_VERSION);
-
-    Services.obs.removeObserver(blacklistAdded, "blocklist-data-gfxItems");
-    Services.obs.addObserver(blacklistRemoved, "blocklist-data-gfxItems", false);
-    load_blocklist("test_gfxBlacklist2.xml");
-  }
-
-  function blacklistRemoved(aSubject, aTopic, aData)
-  {
-    // If we wait until after we go through the event loop, gfxInfo is sure to
-    // have processed the gfxItems event.
-    do_execute_soon(ensureBlacklistUnset);
-  }
-  function ensureBlacklistUnset()
-  {
-    var status = gfxInfo.getFeatureStatus(Ci.nsIGfxInfo.FEATURE_DIRECT2D);
-    do_check_eq(status, Ci.nsIGfxInfo.FEATURE_NO_INFO);
-
-    // Make sure unrelated features aren't affected
-    status = gfxInfo.getFeatureStatus(Ci.nsIGfxInfo.FEATURE_DIRECT3D_9_LAYERS);
-    do_check_eq(status, Ci.nsIGfxInfo.FEATURE_NO_INFO);
-
-    var prefs = Cc["@mozilla.org/preferences-service;1"].
-          getService(Ci.nsIPrefBranch2);
-    var exists = false;
-    try {
-      prefs.getIntPref("gfx.blacklist.direct2d");
-      exists = true;
-    } catch(e) {}
-
-    do_check_false(exists);
-
     gTestserver.stop(do_test_finished);
   }
 
-  Services.obs.addObserver(blacklistAdded, "blocklist-data-gfxItems", false);
-  load_blocklist("test_gfxBlacklist.xml");
+  Services.obs.addObserver(function(aSubject, aTopic, aData) {
+    // If we wait until after we go through the event loop, gfxInfo is sure to
+    // have processed the gfxItems event.
+    do_execute_soon(checkBlacklist);
+  }, "blocklist-data-gfxItems", false);
+
+  load_blocklist("test_gfxBlacklist_AllOS.xml");
 }
