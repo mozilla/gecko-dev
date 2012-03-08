@@ -100,11 +100,6 @@ private:
   nsString mDriverDate;
   nsString mDeviceKey;
 
-  nsString mAdapterDeviceID;
-  nsString mAdapterVendorID;
-  nsString mAdapterDescription;
-  PRInt32 mAndroidSDKVersion;
-
   PRUint32 mRendererIDs[16];
 };
 
