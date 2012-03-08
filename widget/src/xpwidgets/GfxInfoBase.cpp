@@ -47,7 +47,6 @@
 #include "nsCOMArray.h"
 #include "nsAutoPtr.h"
 #include "nsString.h"
-#include "nsUnicharUtils.h"
 #include "mozilla/Services.h"
 #include "mozilla/Observer.h"
 #include "nsIObserver.h"
@@ -644,15 +643,15 @@ GfxInfoBase::FindBlocklistedDeviceInList(const nsTArray<GfxDriverInfo>& info,
       continue;
     }
 
-    if (!info[i].mAdapterVendor.Equals(GfxDriverInfo::GetDeviceVendor(VendorAll), nsCaseInsensitiveStringComparator()) &&
-        !info[i].mAdapterVendor.Equals(adapterVendorID, nsCaseInsensitiveStringComparator())) {
+    if (info[i].mAdapterVendor != GfxDriverInfo::GetDeviceVendor(VendorAll) &&
+        info[i].mAdapterVendor != adapterVendorID) {
       continue;
     }
 
     if (info[i].mDevices != GfxDriverInfo::allDevices && info[i].mDevices->Length()) {
         bool deviceMatches = false;
         for (PRUint32 j = 0; j < info[i].mDevices->Length(); j++) {
-            if ((*info[i].mDevices)[j].Equals(adapterDeviceID, nsCaseInsensitiveStringComparator())) {
+            if ((*info[i].mDevices)[j] == adapterDeviceID) {
                 deviceMatches = true;
                 break;
             }
