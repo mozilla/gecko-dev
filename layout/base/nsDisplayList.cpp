@@ -1452,9 +1452,8 @@ nsDisplayBorder::Paint(nsDisplayListBuilder* aBuilder,
 nsRect
 nsDisplayBorder::GetBounds(nsDisplayListBuilder* aBuilder)
 {
-  nsRect borderBounds(ToReferenceFrame(), mFrame->GetSize());
-  borderBounds.Inflate(mFrame->GetStyleBorder()->GetImageOutset());
-  return SnapBounds(mSnappingEnabled, mFrame->PresContext(), borderBounds);
+  return SnapBounds(mSnappingEnabled, mFrame->PresContext(),
+                    nsRect(ToReferenceFrame(), mFrame->GetSize()));
 }
 
 // Given a region, compute a conservative approximation to it as a list
