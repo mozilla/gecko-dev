@@ -68,6 +68,8 @@ using namespace mozilla;
 using namespace mozilla::widget;
 
 GfxInfo::GfxInfo()
+  : mAdapterVendorID(0),
+    mAdapterDeviceID(0)
 {
 }
 
@@ -102,25 +104,24 @@ GfxInfo::GetDeviceInfo()
   io_registry_entry_t dsp_port = CGDisplayIOServicePort(kCGDirectMainDisplay);
   CFTypeRef vendor_id_ref = SearchPortForProperty(dsp_port, CFSTR("vendor-id"));
   if (vendor_id_ref) {
-    mAdapterVendorID.AppendPrintf("0x%4x", IntValueOfCFData((CFDataRef)vendor_id_ref));
+    mAdapterVendorID = IntValueOfCFData((CFDataRef)vendor_id_ref);
     CFRelease(vendor_id_ref);
   }
   CFTypeRef device_id_ref = SearchPortForProperty(dsp_port, CFSTR("device-id"));
   if (device_id_ref) {
-    mAdapterDeviceID.AppendPrintf("0x%4x", IntValueOfCFData((CFDataRef)device_id_ref));
+    mAdapterDeviceID = IntValueOfCFData((CFDataRef)device_id_ref);
     CFRelease(device_id_ref);
   }
 }
 
-// TODO dRdR FIXME
 static bool
-IsATIRadeonX1000(nsAString& aVendorID, nsAString& aDeviceID)
+IsATIRadeonX1000(PRUint32 aVendorID, PRUint32 aDeviceID)
 {
-  if (aVendorID.LowerCaseEqualsLiteral("0x1002")) {
+  if (aVendorID == 0x1002) {
     // this list is from the ATIRadeonX1000.kext Info.plist
-    const char * devices[] = {"0x7187", "0x7210", "0x71de", "0x7146", "0x7142", "0x7109", "0x71c5", "0x71c0", "0x7240", "0x7249", "0x7291"};
+    PRUint32 devices[] = {0x7187, 0x7210, 0x71DE, 0x7146, 0x7142, 0x7109, 0x71C5, 0x71C0, 0x7240, 0x7249, 0x7291};
     for (size_t i = 0; i < ArrayLength(devices); i++) {
-      if (aDeviceID.LowerCaseEqualsASCII(devices[i]))
+      if (aDeviceID == devices[i])
         return true;
     }
   }
@@ -291,32 +292,32 @@ GfxInfo::GetAdapterDriverDate2(nsAString & aAdapterDriverDate)
   return NS_ERROR_FAILURE;
 }
 
-/* readonly attribute DOMString adapterVendorID; */
+/* readonly attribute unsigned long adapterVendorID; */
 NS_IMETHODIMP
-GfxInfo::GetAdapterVendorID(nsAString & aAdapterVendorID)
+GfxInfo::GetAdapterVendorID(PRUint32 *aAdapterVendorID)
 {
-  aAdapterVendorID = mAdapterVendorID;
+  *aAdapterVendorID = mAdapterVendorID;
   return NS_OK;
 }
 
-/* readonly attribute DOMString adapterVendorID2; */
+/* readonly attribute unsigned long adapterVendorID2; */
 NS_IMETHODIMP
-GfxInfo::GetAdapterVendorID2(nsAString & aAdapterVendorID)
+GfxInfo::GetAdapterVendorID2(PRUint32 *aAdapterVendorID)
 {
   return NS_ERROR_FAILURE;
 }
 
-/* readonly attribute DOMString adapterDeviceID; */
+/* readonly attribute unsigned long adapterDeviceID; */
 NS_IMETHODIMP
-GfxInfo::GetAdapterDeviceID(nsAString & aAdapterDeviceID)
+GfxInfo::GetAdapterDeviceID(PRUint32 *aAdapterDeviceID)
 {
-  aAdapterDeviceID = mAdapterDeviceID;
+  *aAdapterDeviceID = mAdapterDeviceID;
   return NS_OK;
 }
 
-/* readonly attribute DOMString adapterDeviceID2; */
+/* readonly attribute unsigned long adapterDeviceID2; */
 NS_IMETHODIMP
-GfxInfo::GetAdapterDeviceID2(nsAString & aAdapterDeviceID)
+GfxInfo::GetAdapterDeviceID2(PRUint32 *aAdapterDeviceID)
 {
   return NS_ERROR_FAILURE;
 }
@@ -332,26 +333,25 @@ void
 GfxInfo::AddCrashReportAnnotations()
 {
 #if defined(MOZ_CRASHREPORTER)
-  nsString deviceID, vendorID;
-  nsCAutoString narrowDeviceID, narrowVendorID;
+  nsCAutoString deviceIDString, vendorIDString;
+  PRUint32 deviceID, vendorID;
 
-  GetAdapterDeviceID(deviceID);
-  CopyUTF16toUTF8(deviceID, narrowDeviceID);
-  GetAdapterVendorID(vendorID);
-  CopyUTF16toUTF8(vendorID, narrowVendorID);
+  GetAdapterDeviceID(&deviceID);
+  GetAdapterVendorID(&vendorID);
+
+  deviceIDString.AppendPrintf("%04x", deviceID);
+  vendorIDString.AppendPrintf("%04x", vendorID);
 
   CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("AdapterVendorID"),
-                                     narrowVendorID);
+      vendorIDString);
   CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("AdapterDeviceID"),
-                                     narrowDeviceID);
+      deviceIDString);
   /* Add an App Note for now so that we get the data immediately. These
    * can go away after we store the above in the socorro db */
   nsCAutoString note;
   /* AppendPrintf only supports 32 character strings, mrghh. */
-  note.Append("AdapterVendorID: ");
-  note.Append(narrowVendorID);
-  note.Append(", AdapterDeviceID: ");
-  note.Append(narrowDeviceID);
+  note.AppendPrintf("AdapterVendorID: %04x, ", vendorID);
+  note.AppendPrintf("AdapterDeviceID: %04x", deviceID);
   CrashReporter::AppendAppNotesToCrashReport(note);
 #endif
 }
@@ -367,7 +367,7 @@ GfxInfo::GetGfxDriverInfo()
 {
   if (!mDriverInfo->Length()) {
     IMPLEMENT_MAC_DRIVER_BLOCKLIST(DRIVER_OS_ALL,
-      (nsAString&) GfxDriverInfo::GetDeviceVendor(VendorATI), GfxDriverInfo::allDevices,
+      GfxDriverInfo::vendorATI, GfxDriverInfo::allDevices,
       nsIGfxInfo::FEATURE_WEBGL_MSAA, nsIGfxInfo::FEATURE_BLOCKED_OS_VERSION);
   }
   return *mDriverInfo;
@@ -464,8 +464,7 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature,
     bool foundGoodDevice = true;
 
     // Blacklist the Geforce 7300 GT because of bug 678053
-    if (mAdapterVendorID.LowerCaseEqualsLiteral("0x10de") &&
-        mAdapterDeviceID.LowerCaseEqualsLiteral("0x0393")) {
+    if (mAdapterVendorID == 0x10de && mAdapterDeviceID == 0x0393) {
       foundGoodDevice = false;
     }
 
@@ -476,9 +475,8 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature,
   if (aFeature == nsIGfxInfo::FEATURE_WEBGL_MSAA) {
     // Blacklist all ATI cards on OSX, except for
     // 0x6760 and 0x9488
-    if (mAdapterVendorID == GfxDriverInfo::GetDeviceVendor(VendorATI) && 
-        (mAdapterDeviceID.LowerCaseEqualsLiteral("0x6760") ||
-         mAdapterDeviceID.LowerCaseEqualsLiteral("0x9488"))) {
+    if (mAdapterVendorID == GfxDriverInfo::vendorATI && 
+          (mAdapterDeviceID == 0x6760 || mAdapterDeviceID == 0x9488)) {
       *aStatus = nsIGfxInfo::FEATURE_NO_INFO;
       return NS_OK;
     }

@@ -43,7 +43,6 @@
 
 #define V(a,b,c,d) GFX_DRIVER_VERSION(a,b,c,d)
 
-// Macros for adding a blocklist item to the static list.
 #define APPEND_TO_DRIVER_BLOCKLIST(os, vendor, devices, feature, featureStatus, driverComparator, driverVersion, suggestedVersion) \
     mDriverInfo->AppendElement(GfxDriverInfo(os, vendor, devices, feature, featureStatus, driverComparator, driverVersion, suggestedVersion))
 #define APPEND_TO_DRIVER_BLOCKLIST2(os, vendor, devices, feature, featureStatus, driverComparator, driverVersion) \
@@ -87,27 +86,17 @@ enum DeviceFamily {
   IntelGMA3150,
   IntelGMAX3000,
   IntelGMAX4500HD,
-  NvidiaBlockD3D9Layers,
-  DeviceFamilyMax
+  NvidiaBlockD3D9Layers
 };
 
-enum DeviceVendor {
-  VendorAll,
-  VendorIntel,
-  VendorNVIDIA,
-  VendorAMD,
-  VendorATI,
-  DeviceVendorMax
-};
-
-/* Array of devices to match, or an empty array for all devices */
-typedef nsTArray<nsString> GfxDeviceFamily;
+/* A zero-terminated array of devices to match, or all devices */
+typedef PRUint32* GfxDeviceFamily;
 
 struct GfxDriverInfo
 {
   // If |ownDevices| is true, you are transferring ownership of the devices
   // array, and it will be deleted when this GfxDriverInfo is destroyed.
-  GfxDriverInfo(OperatingSystem os, nsAString& vendor, GfxDeviceFamily* devices,
+  GfxDriverInfo(OperatingSystem os, PRUint32 vendor, GfxDeviceFamily devices,
                 PRInt32 feature, PRInt32 featureStatus, VersionComparisonOp op,
                 PRUint64 driverVersion, const char *suggestedVersion = nsnull,
                 bool ownDevices = false);
@@ -118,10 +107,11 @@ struct GfxDriverInfo
 
   OperatingSystem mOperatingSystem;
 
-  nsString mAdapterVendor;
+  PRUint32 mAdapterVendor;
+  static PRUint32 allAdapterVendors;
 
-  static GfxDeviceFamily* const allDevices;
-  GfxDeviceFamily* mDevices;
+  GfxDeviceFamily mDevices;
+  static GfxDeviceFamily allDevices;
 
   // Whether the mDevices array should be deleted when this structure is
   // deallocated. False by default.
@@ -141,13 +131,14 @@ struct GfxDriverInfo
   PRUint64 mDriverVersionMax;
   static PRUint64 allDriverVersions;
 
+  static PRUint32 vendorIntel;
+  static PRUint32 vendorNVIDIA;
+  static PRUint32 vendorAMD;
+  static PRUint32 vendorATI;
+
   const char *mSuggestedVersion;
 
-  static const GfxDeviceFamily* GetDeviceFamily(DeviceFamily id);
-  static GfxDeviceFamily* mDeviceFamilies[DeviceFamilyMax];
-
-  static const nsAString& GetDeviceVendor(DeviceVendor id);
-  static nsAString* mDeviceVendors[DeviceVendorMax];
+  static const GfxDeviceFamily GetDeviceFamily(DeviceFamily id);
 };
 
 #define GFX_DRIVER_VERSION(a,b,c,d) \

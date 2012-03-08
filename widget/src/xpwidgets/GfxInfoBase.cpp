@@ -80,16 +80,10 @@ public:
                      const PRUnichar *aData)
   {
     MOZ_ASSERT(strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID) == 0);
-
-    delete GfxInfoBase::mDriverInfo;
-    GfxInfoBase::mDriverInfo = nsnull;
-
-    for (PRUint32 i = 0; i < DeviceFamilyMax; i++)
-      delete GfxDriverInfo::mDeviceFamilies[i];
-
-    for (PRUint32 i = 0; i < DeviceVendorMax; i++)
-      delete GfxDriverInfo::mDeviceVendors[i];
-
+    if (GfxInfoBase::mDriverInfo) {
+      delete GfxInfoBase::mDriverInfo;
+      GfxInfoBase::mDriverInfo = nsnull;
+    }
     return NS_OK;
   }
 };
@@ -313,16 +307,29 @@ BlacklistOSToOperatingSystem(const nsAString& os)
   return DRIVER_OS_UNKNOWN;
 }
 
-static GfxDeviceFamily*
+static PRUint32
+BlacklistHexToInt(const nsAString& aHex)
+{
+  PRInt32 err;
+  // nsAString doesn't have .ToInteger() :(
+  nsAutoString hex(aHex);
+  PRInt32 value = hex.ToInteger(&err, 16);
+  if (NS_FAILED(err))
+    return 0;
+  return (PRUint32) value;
+}
+
+static PRUint32*
 BlacklistDevicesToDeviceFamily(nsIDOMNodeList* aDevices)
 {
   PRUint32 length;
   if (NS_FAILED(aDevices->GetLength(&length)))
     return nsnull;
 
-  // For each <device>, get its device ID, and return a freshly-allocated
-  // GfxDeviceFamily with the contents of that array.
-  GfxDeviceFamily* deviceIds = new GfxDeviceFamily;
+  // For each <device>, get its device ID, and return a freshly-allocated array
+  // with the contents of that array.
+  nsAutoArrayPtr<PRUint32> deviceIds(new PRUint32[length + 1]);
+  memset(deviceIds, 0, sizeof(PRUint32) * (length + 1));
 
   for (PRUint32 i = 0; i < length; ++i) {
     nsCOMPtr<nsIDOMNode> node;
@@ -333,10 +340,10 @@ BlacklistDevicesToDeviceFamily(nsIDOMNodeList* aDevices)
     if (!BlacklistNodeToTextValue(node, deviceValue))
       continue;
 
-    deviceIds->AppendElement(deviceValue);
+    deviceIds[i] = BlacklistHexToInt(deviceValue);
   }
 
-  return deviceIds;
+  return deviceIds.forget();
 }
 
 static PRInt32
@@ -471,7 +478,7 @@ BlacklistEntryToDriverInfo(nsIDOMNode* aBlacklistEntry,
   if (BlacklistNodeGetChildByName(element, NS_LITERAL_STRING("vendor"),
                                   getter_AddRefs(dataNode))) {
     BlacklistNodeToTextValue(dataNode, dataValue);
-    aDriverInfo.mAdapterVendor = dataValue;
+    aDriverInfo.mAdapterVendor = BlacklistHexToInt(dataValue);
   }
 
   // <devices>
@@ -488,7 +495,7 @@ BlacklistEntryToDriverInfo(nsIDOMNode* aBlacklistEntry,
       nsCOMPtr<nsIDOMNodeList> devices;
       if (NS_SUCCEEDED(devicesElement->GetElementsByTagName(NS_LITERAL_STRING("device"),
                                                             getter_AddRefs(devices)))) {
-        GfxDeviceFamily* deviceIds = BlacklistDevicesToDeviceFamily(devices);
+        PRUint32* deviceIds = BlacklistDevicesToDeviceFamily(devices);
         if (deviceIds) {
           // Get GfxDriverInfo to adopt the devices array we created.
           aDriverInfo.mDeleteDevices = true;
@@ -541,8 +548,6 @@ BlacklistEntriesToDriverInfo(nsIDOMNodeList* aBlacklistEntries,
   if (NS_FAILED(aBlacklistEntries->GetLength(&length)))
     return;
 
-  aDriverInfo.Clear();
-  aDriverInfo.SetLength(length);
   for (PRUint32 i = 0; i < length; ++i) {
     nsCOMPtr<nsIDOMNode> blacklistEntry;
     if (NS_SUCCEEDED(aBlacklistEntries->Item(i,
@@ -550,10 +555,8 @@ BlacklistEntriesToDriverInfo(nsIDOMNodeList* aBlacklistEntries,
         blacklistEntry) {
       GfxDriverInfo di;
       if (BlacklistEntryToDriverInfo(blacklistEntry, di)) {
-        aDriverInfo[i] = di;
+        aDriverInfo.AppendElement(di);
       }
-      // Prevent di falling out of scope from destroying the devices.
-      di.mDeleteDevices = false;
     }
   }
 }
@@ -573,6 +576,7 @@ GfxInfoBase::Observe(nsISupports* aSubject, const char* aTopic,
       {
         nsTArray<GfxDriverInfo> driverInfo;
         BlacklistEntriesToDriverInfo(blacklistEntries, driverInfo);
+
         EvaluateDownloadedBlacklist(driverInfo);
       }
     }
@@ -593,8 +597,6 @@ GfxInfoBase::~GfxInfoBase()
 nsresult
 GfxInfoBase::Init()
 {
-  InitGfxDriverInfoShutdownObserver();
-
   nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
   if (os) {
     os->AddObserver(this, "blocklist-data-gfxItems", true);
@@ -622,11 +624,11 @@ GfxInfoBase::FindBlocklistedDeviceInList(const nsTArray<GfxDriverInfo>& info,
 {
   PRInt32 status = nsIGfxInfo::FEATURE_STATUS_UNKNOWN;
 
-  nsAutoString adapterVendorID;
-  nsAutoString adapterDeviceID;
+  PRUint32 adapterVendorID = 0;
+  PRUint32 adapterDeviceID = 0;
   nsAutoString adapterDriverVersionString;
-  if (NS_FAILED(GetAdapterVendorID(adapterVendorID)) ||
-      NS_FAILED(GetAdapterDeviceID(adapterDeviceID)) ||
+  if (NS_FAILED(GetAdapterVendorID(&adapterVendorID)) ||
+      NS_FAILED(GetAdapterDeviceID(&adapterDeviceID)) ||
       NS_FAILED(GetAdapterDriverVersion(adapterDriverVersionString)))
   {
     return NS_OK;
@@ -643,15 +645,15 @@ GfxInfoBase::FindBlocklistedDeviceInList(const nsTArray<GfxDriverInfo>& info,
       continue;
     }
 
-    if (info[i].mAdapterVendor != GfxDriverInfo::GetDeviceVendor(VendorAll) &&
+    if (info[i].mAdapterVendor != GfxDriverInfo::allAdapterVendors &&
         info[i].mAdapterVendor != adapterVendorID) {
       continue;
     }
 
-    if (info[i].mDevices != GfxDriverInfo::allDevices && info[i].mDevices->Length()) {
+    if (info[i].mDevices != GfxDriverInfo::allDevices) {
         bool deviceMatches = false;
-        for (PRUint32 j = 0; j < info[i].mDevices->Length(); j++) {
-            if ((*info[i].mDevices)[j] == adapterDeviceID) {
+        for (const PRUint32 *devices = info[i].mDevices; *devices; ++devices) {
+            if (*devices == adapterDeviceID) {
                 deviceMatches = true;
                 break;
             }
@@ -753,11 +755,11 @@ GfxInfoBase::GetFeatureStatusImpl(PRInt32 aFeature,
   if (aOS)
     os = *aOS;
 
-  nsAutoString adapterVendorID;
-  nsAutoString adapterDeviceID;
+  PRUint32 adapterVendorID = 0;
+  PRUint32 adapterDeviceID = 0;
   nsAutoString adapterDriverVersionString;
-  if (NS_FAILED(GetAdapterVendorID(adapterVendorID)) ||
-      NS_FAILED(GetAdapterDeviceID(adapterDeviceID)) ||
+  if (NS_FAILED(GetAdapterVendorID(&adapterVendorID)) ||
+      NS_FAILED(GetAdapterDeviceID(&adapterDeviceID)) ||
       NS_FAILED(GetAdapterDriverVersion(adapterDriverVersionString)))
   {
     return NS_OK;
@@ -770,13 +772,11 @@ GfxInfoBase::GetFeatureStatusImpl(PRInt32 aFeature,
   // the static list after that. This order is used so that we can later escape
   // out of static blocks (i.e. if we were wrong or something was patched, we
   // can back out our static block without doing a release).
-  PRInt32 status;
-  if (aDriverInfo.Length()) {
-    status = FindBlocklistedDeviceInList(aDriverInfo, aSuggestedVersion, aFeature, os);
-  } else {
-    if (!mDriverInfo) {
-      mDriverInfo = new nsTArray<GfxDriverInfo>();
-    }
+  InitGfxDriverInfoShutdownObserver();
+  if (!mDriverInfo)
+    mDriverInfo = new nsTArray<GfxDriverInfo>();
+  PRInt32 status = FindBlocklistedDeviceInList(aDriverInfo, aSuggestedVersion, aFeature, os);
+  if (status == nsIGfxInfo::FEATURE_STATUS_UNKNOWN) {
     status = FindBlocklistedDeviceInList(GetGfxDriverInfo(), aSuggestedVersion, aFeature, os);
   }
 
