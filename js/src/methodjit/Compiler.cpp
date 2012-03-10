@@ -150,7 +150,7 @@ mjit::Compiler::Compiler(JSContext *cx, JSScript *outerScript,
 CompileStatus
 mjit::Compiler::compile()
 {
-    JS_ASSERT(!outerChunk.chunk);
+    JS_ASSERT(!outerChunkRef().chunk);
 
     void **checkAddr = isConstructing
                        ? &outerScript->jitArityCheckCtor
@@ -552,8 +552,8 @@ mjit::Compiler::performCompilation()
 #endif
 
     JaegerSpew(JSpew_Scripts, "successfully compiled (code \"%p\") (size \"%u\")\n",
-               outerChunk.chunk->code.m_code.executableAddress(),
-               unsigned(outerChunk.chunk->code.m_size));
+               outerChunkRef().chunk->code.m_code.executableAddress(),
+               unsigned(outerChunkRef().chunk->code.m_size));
 
     return Compile_Okay;
 }
@@ -1782,7 +1782,7 @@ mjit::Compiler::finishThisUp()
                              result, masm.size(),
                              result + masm.size(), stubcc.size());
 
-    outerChunk.chunk = chunk;
+    outerChunkRef().chunk = chunk;
 
     Repatcher repatch(chunk);
 

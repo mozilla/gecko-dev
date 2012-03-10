@@ -394,7 +394,7 @@ class Compiler : public BaseCompiler
     JSScript *outerScript;
     unsigned chunkIndex;
     bool isConstructing;
-    ChunkDescriptor &outerChunk;
+    ChunkDescriptor outerChunk;
 
     /* SSA information for the outer script and all frames we will be inlining. */
     analyze::CrossScriptSSA ssa;
@@ -519,6 +519,10 @@ private:
 
     JITScript *outerJIT() {
         return outerScript->getJIT(isConstructing);
+    }
+
+    ChunkDescriptor &outerChunkRef() {
+        return outerJIT()->chunkDescriptor(chunkIndex);
     }
 
     bool bytecodeInChunk(jsbytecode *pc) {
