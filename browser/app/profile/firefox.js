@@ -238,7 +238,7 @@ pref("keyword.URL", "");
 pref("general.useragent.locale", "@AB_CD@");
 pref("general.skins.selectedSkin", "classic/1.0");
 
-pref("general.smoothScroll", true);
+pref("general.smoothScroll", false);
 #ifdef UNIX_BUT_NOT_MAC
 pref("general.autoScroll", false);
 #else
