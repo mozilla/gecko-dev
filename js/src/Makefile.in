@@ -170,7 +170,6 @@ CPPSRCS		= \
 		SemanticAnalysis.cpp \
 		TokenStream.cpp \
 		LifoAlloc.cpp \
-		MapObject.cpp \
 		MemoryMetrics.cpp \
 		RegExpObject.cpp \
 		RegExpStatics.cpp \
