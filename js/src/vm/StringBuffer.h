@@ -109,7 +109,6 @@ StringBuffer::append(JSString *str)
 inline size_t
 StringBuffer::length() const
 {
-    JS_ASSERT(cb.length() <= JSString::MAX_LENGTH);
     return cb.length();
 }
 
