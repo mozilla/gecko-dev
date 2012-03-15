@@ -50,7 +50,6 @@ ifdef MOZ_ENABLE_PROFILER_SPS
 EXPORTS += \
   sps_sampler.h \
   thread_helper.h \
-  shared-libraries.h \
   $(NULL)
 
 LOCAL_INCLUDES += \

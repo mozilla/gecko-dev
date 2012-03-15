@@ -453,7 +453,6 @@ TelemetryPing.prototype = {
       payloadObj.simpleMeasurements = getSimpleMeasurements();
       payloadObj.histograms = this.getHistograms(Telemetry.histogramSnapshots);
       payloadObj.slowSQL = Telemetry.slowSQL;
-      payloadObj.chromeHangs = Telemetry.chromeHangs;
       payloadObj.addonHistograms = this.getAddonHistograms();
     }
     if (Object.keys(this._slowSQLStartup.mainThread).length
