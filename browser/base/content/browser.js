@@ -3968,6 +3968,18 @@ var FullScreen = {
     document.mozCancelFullScreen();
   },
 
+  handleEvent: function (event) {
+    switch (event.type) {
+      case "deactivate":
+        // We must call exitDomFullScreen asynchronously, since "deactivate" is
+        // dispatched in the middle of the focus manager's window lowering code,
+        // and the focus manager gets confused if we exit fullscreen mode in the
+        // middle of window lowering. See bug 729872.
+        setTimeout(this.exitDomFullScreen, 0);
+        break;
+    }
+  },
+
   enterDomFullScreen : function(event) {
     if (!document.mozFullScreen) {
       return;
@@ -4013,7 +4025,7 @@ var FullScreen = {
     gBrowser.tabContainer.addEventListener("TabSelect", this.exitDomFullScreen);
 
     // Exit DOM full-screen mode when the browser window loses focus (ALT+TAB, etc).
-    window.addEventListener("deactivate", this.exitDomFullScreen, true);
+    window.addEventListener("deactivate", this, true);
 
     // Cancel any "hide the toolbar" animation which is in progress, and make
     // the toolbar hide immediately.
@@ -4047,7 +4059,7 @@ var FullScreen = {
       gBrowser.tabContainer.removeEventListener("TabOpen", this.exitDomFullScreen);
       gBrowser.tabContainer.removeEventListener("TabClose", this.exitDomFullScreen);
       gBrowser.tabContainer.removeEventListener("TabSelect", this.exitDomFullScreen);
-      window.removeEventListener("deactivate", this.exitDomFullScreen, true);
+      window.removeEventListener("deactivate", this, true);
     }
   },
 
