@@ -244,6 +244,10 @@ private:
   // Value of the "media.webm.force_stereo_mode" pref, which we need off the
   // main thread.
   PRInt32 mForceStereoMode;
+
+  // Boolean which is set to true when the "media.webm.force_stereo_mode" is
+  // explicitly set.
+  bool mStereoModeForced;
 };
 
 #endif
