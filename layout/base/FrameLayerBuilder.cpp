@@ -1044,6 +1044,7 @@ ContainerState::PopThebesLayerData()
     data->mLayer->SetVisibleRegion(nsIntRegion());
   } else {
     layer = data->mLayer;
+    imageContainer = nsnull;
   }
 
   gfxMatrix transform;
@@ -1051,7 +1052,7 @@ ContainerState::PopThebesLayerData()
     NS_ERROR("Only 2D transformations currently supported");
   }
   
-  //ImageLayers are already configured with a visible region
+  // ImageLayers are already configured with a visible region
   if (!imageContainer) {
     NS_ASSERTION(!transform.HasNonIntegerTranslation(),
                  "Matrix not just an integer translation?");
