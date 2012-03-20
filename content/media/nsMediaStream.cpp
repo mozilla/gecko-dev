@@ -533,9 +533,15 @@ already_AddRefed<nsIPrincipal> nsMediaChannelStream::GetCurrentPrincipal()
   return principal.forget();
 }
 
+bool nsMediaChannelStream::CanClone()
+{
+  return mCacheStream.IsAvailableForSharing();
+}
+
 nsMediaStream* nsMediaChannelStream::CloneData(nsMediaDecoder* aDecoder)
 {
   NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
+  NS_ASSERTION(mCacheStream.IsAvailableForSharing(), "Stream can't be cloned");
 
   nsMediaChannelStream* stream = new nsMediaChannelStream(aDecoder, nsnull, mURI);
   if (stream) {
@@ -913,6 +919,7 @@ public:
   virtual void     Suspend(bool aCloseImmediately) {}
   virtual void     Resume() {}
   virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
+  virtual bool     CanClone();
   virtual nsMediaStream* CloneData(nsMediaDecoder* aDecoder);
   virtual nsresult ReadFromCache(char* aBuffer, PRInt64 aOffset, PRUint32 aCount);
 
@@ -1088,6 +1095,11 @@ already_AddRefed<nsIPrincipal> nsMediaFileStream::GetCurrentPrincipal()
     return nsnull;
   secMan->GetChannelPrincipal(mChannel, getter_AddRefs(principal));
   return principal.forget();
+}
+
+bool nsMediaFileStream::CanClone()
+{
+  return true;
 }
 
 nsMediaStream* nsMediaFileStream::CloneData(nsMediaDecoder* aDecoder)

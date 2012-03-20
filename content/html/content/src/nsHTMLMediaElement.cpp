@@ -1407,7 +1407,10 @@ nsHTMLMediaElement::LookupMediaElementURITable(nsIURI* aURI)
     if (NS_SUCCEEDED(elem->NodePrincipal()->Equals(NodePrincipal(), &equal)) && equal &&
         elem->mCORSMode == mCORSMode) {
       NS_ASSERTION(elem->mDecoder && elem->mDecoder->GetStream(), "Decoder gone");
-      return elem;
+      nsMediaStream* resource = elem->mDecoder->GetStream();
+      if (resource->CanClone()) {
+        return elem;
+      }
     }
   }
   return nsnull;
