@@ -347,4 +347,5 @@ load 691118-1.html
 load 695861.html
 load 698335.html
 load 707098.html
-load 722137.html
+asserts(0-2) pref(dom.disable_open_during_load,false) load 735943.html # the assertion is bug 735966
+asserts(0-2) load 722137.html # sometimes the above assertions are delayed and is reported on this test instead
