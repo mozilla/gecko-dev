@@ -463,7 +463,7 @@ js::RunScript(JSContext *cx, JSScript *script, StackFrame *fp)
         return false;
 
     if (status == mjit::Compile_Okay)
-        return mjit::JaegerShot(cx, false);
+        return mjit::JaegerStatusToSuccess(mjit::JaegerShot(cx, false));
 #endif
 
     return Interpret(cx, fp);
@@ -1781,8 +1781,9 @@ check_backedge:
         void *ncode =
             script->nativeCodeForPC(regs.fp()->isConstructing(), regs.pc);
         JS_ASSERT(ncode);
-        mjit::JaegerStatus status =
-            mjit::JaegerShotAtSafePoint(cx, ncode, true);
+        mjit::JaegerStatus status = mjit::JaegerShotAtSafePoint(cx, ncode, true);
+        if (status == mjit::Jaeger_ThrowBeforeEnter)
+            goto error;
         CHECK_PARTIAL_METHODJIT(status);
         interpReturnOK = (status == mjit::Jaeger_Returned);
         if (entryFrame != regs.fp())
@@ -2754,7 +2755,7 @@ BEGIN_CASE(JSOP_FUNAPPLY)
         if (status == mjit::Compile_Okay) {
             mjit::JaegerStatus status = mjit::JaegerShot(cx, true);
             CHECK_PARTIAL_METHODJIT(status);
-            interpReturnOK = (status == mjit::Jaeger_Returned);
+            interpReturnOK = mjit::JaegerStatusToSuccess(status);
             CHECK_INTERRUPT_HANDLER();
             goto jit_return;
         }
