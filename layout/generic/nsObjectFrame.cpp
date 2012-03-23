@@ -2674,4 +2674,14 @@ NS_NewObjectFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
   return new (aPresShell) nsObjectFrame(aContext);
 }
 
+bool
+nsObjectFrame::PaintedByGecko()
+{
+#ifdef XP_MACOSX
+  return true;
+#else
+  return !mWidget;
+#endif
+}
+
 NS_IMPL_FRAMEARENA_HELPERS(nsObjectFrame)

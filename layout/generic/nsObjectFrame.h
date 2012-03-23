@@ -207,6 +207,8 @@ public:
    */
   static void EndSwapDocShells(nsIContent* aContent, void*);
 
+  bool PaintedByGecko();
+
   nsIWidget* GetWidget() { return mWidget; }
 
 protected:
