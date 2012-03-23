@@ -1296,7 +1296,7 @@ nsresult nsHTMLEditor::InsertObject(const char* aType, nsISupports* aObject, boo
 
     nsAutoString stuffToPaste;
     stuffToPaste.AssignLiteral("<IMG src=\"data:");
-    AppendUTF8toUTF16(aType, stuffToPaste);
+    AppendUTF8toUTF16(type, stuffToPaste);
     stuffToPaste.AppendLiteral(";base64,");
     AppendUTF8toUTF16(base64, stuffToPaste);
     stuffToPaste.AppendLiteral("\" alt=\"\" >");
