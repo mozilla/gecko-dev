@@ -1544,8 +1544,7 @@ Tab.prototype = {
     sendMessageToJava(message);
 
     this.overscrollController = new OverscrollController(this);
-    this.browser.contentWindow.controllers
-      .insertControllerAt(0, this.overscrollController);
+    this.browser.contentWindow.controllers.insertControllerAt(0, this.overscrollController);
 
     let flags = Ci.nsIWebProgress.NOTIFY_STATE_ALL |
                 Ci.nsIWebProgress.NOTIFY_LOCATION |
@@ -1595,8 +1594,7 @@ Tab.prototype = {
     if (!this.browser)
       return;
 
-    this.browser.controllers.contentWindow
-      .removeController(this.overscrollController);
+    this.browser.contentWindow.controllers.removeController(this.overscrollController);
 
     this.browser.removeProgressListener(this);
     this.browser.removeEventListener("DOMContentLoaded", this, true);
