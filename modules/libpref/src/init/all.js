@@ -1332,7 +1332,7 @@ pref("mousewheel.horizscroll.withmetakey.sysnumlines",true);
 
 // These define the smooth scroll behavior (min ms, max ms) for different triggers
 // Some triggers:
-// Pixels: Discrete mouse wheel events, Synaptics touchpads on windows (generate wheel events)
+// mouseWheel: Discrete mouse wheel events, Synaptics touchpads on windows (generate wheel events)
 // Lines:  Up/Down/Left/Right KB arrows
 // Pages:  Page up/down, Space
 // Scrollbars: Clicking scrollbars arrows, clicking scrollbars tracks
@@ -1350,6 +1350,7 @@ pref("general.smoothScroll.scrollbars.durationMinMS", 150);
 pref("general.smoothScroll.scrollbars.durationMaxMS", 150);
 pref("general.smoothScroll.other.durationMinMS", 150);
 pref("general.smoothScroll.other.durationMaxMS", 150);
+// Enable disable smooth scrolling for different triggers (when "general.smoothScroll" is enabled)
 pref("general.smoothScroll.mouseWheel", true);
 pref("general.smoothScroll.pixels", true);
 pref("general.smoothScroll.lines", true);
