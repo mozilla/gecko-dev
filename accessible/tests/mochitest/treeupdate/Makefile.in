@@ -56,6 +56,7 @@ _TEST_FILES =\
 		test_hidden.html \
 		test_list_editabledoc.html \
 		test_list.html \
+		test_listbox.xul \
 		test_menu.xul \
 		test_menubutton.xul \
 		test_recreation.html \

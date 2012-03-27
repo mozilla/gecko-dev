@@ -10547,7 +10547,7 @@ nsCSSFrameConstructor::CreateListBoxContent(nsPresContext* aPresContext,
     nsIFrame* newFrame = frameItems.FirstChild();
     *aNewFrame = newFrame;
 
-    if (NS_SUCCEEDED(rv) && (nsnull != newFrame)) {
+    if (newFrame) {
       // Notify the parent frame
       if (aIsAppend)
         rv = ((nsListBoxBodyFrame*)aParentFrame)->ListBoxAppendFrames(frameItems);
@@ -10556,6 +10556,16 @@ nsCSSFrameConstructor::CreateListBoxContent(nsPresContext* aPresContext,
     }
 
     EndUpdate();
+
+#ifdef ACCESSIBILITY
+    if (newFrame) {
+      nsAccessibilityService* accService = nsIPresShell::AccService();
+      if (accService) {
+        accService->ContentRangeInserted(mPresShell, aChild->GetParent(),
+                                         aChild, aChild->GetNextSibling());
+      }
+    }
+#endif
   }
 
   return rv;
