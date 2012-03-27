@@ -152,7 +152,7 @@ abstract public class GeckoApp
     public String mLastSnapshotUri;
     public String mLastViewport;
     public byte[] mLastScreen;
-    public int mOwnActivityDepth = 0;
+    private int mOwnActivityDepth = 0;
     private boolean mRestoreSession = false;
     private boolean mInitialized = false;
 
@@ -2545,7 +2545,6 @@ abstract public class GeckoApp
                 }
             }
         }
-        mOwnActivityDepth++;
         startActivityForResult(intent, AWESOMEBAR_REQUEST);
         return true;
     }
@@ -2878,6 +2877,18 @@ abstract public class GeckoApp
             }
         }
     } 
+
+    @Override
+    public void startActivity(Intent intent) {
+        mOwnActivityDepth++;
+        super.startActivity(intent);
+    }
+
+    @Override
+    public void startActivityForResult(Intent intent, int request) {
+        mOwnActivityDepth++;
+        super.startActivityForResult(intent, request);
+    }
 }
 
 class PluginLayoutParams extends AbsoluteLayout.LayoutParams
