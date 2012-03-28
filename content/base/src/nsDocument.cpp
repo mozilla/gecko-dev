@@ -2541,6 +2541,7 @@ void
 nsDocument::StopDocumentLoad()
 {
   if (mParser) {
+    mParserAborted = true;
     mParser->Terminate();
   }
 }

@@ -1555,6 +1555,7 @@ nsHTMLDocument::Open(const nsAString& aContentTypeOrUrl,
   // resetting the document.
   mSecurityInfo = securityInfo;
 
+  mParserAborted = false;
   bool loadAsHtml5 = nsHtml5Module::sEnabled;
   if (loadAsHtml5) {
     mParser = nsHtml5Module::NewHtml5Parser();
@@ -1696,6 +1697,13 @@ nsHTMLDocument::WriteCommon(JSContext *cx,
     // No calling document.write*() on XHTML!
 
     return NS_ERROR_DOM_INVALID_STATE_ERR;
+  }
+
+  if (mParserAborted) {
+    // Hixie says aborting the parser doesn't undefine the insertion point.
+    // However, since we null out mParser in that case, we track the
+    // theoretically defined insertion point using mParserAborted.
+    return NS_OK;
   }
 
   nsresult rv = NS_OK;
