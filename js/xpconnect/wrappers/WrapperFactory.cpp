@@ -80,6 +80,9 @@ static JSObject *
 GetCurrentOuter(JSContext *cx, JSObject *obj)
 {
     obj = JS_ObjectToOuterObject(cx, obj);
+    if (!obj)
+        return NULL;
+
     if (IsWrapper(obj) && !js::GetObjectClass(obj)->ext.innerObject) {
         obj = UnwrapObject(obj);
         NS_ASSERTION(js::GetObjectClass(obj)->ext.innerObject,
@@ -175,6 +178,9 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
 
     // We only hand out outer objects to script.
     obj = GetCurrentOuter(cx, obj);
+    if (!obj)
+        return nsnull;
+
     if (js::GetObjectClass(obj)->ext.innerObject)
         return DoubleWrap(cx, obj, flags);
 
