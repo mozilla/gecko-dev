@@ -892,7 +892,7 @@ public:
                     nsXPCOMCycleCollectionParticipant *cp;
                     ToParticipant(e->mObject, &cp);
 
-                    cp->UnmarkPurple(e->mObject);
+                    cp->UnmarkIfPurple(e->mObject);
                 }
 
                 if (--mCount == 0)
@@ -2198,7 +2198,7 @@ AddPurpleRoot(GCGraphBuilder &builder, nsISupports *root)
         }
     }
 
-    cp->UnmarkPurple(root);
+    cp->UnmarkIfPurple(root);
 
     return true;
 }
@@ -2230,7 +2230,7 @@ nsPurpleBuffer::RemoveSkippable(bool removeChildlessNodes)
                         (!removeChildlessNodes || MayHaveChild(o, cp))) {
                         continue;
                     }
-                    cp->UnmarkPurple(o);
+                    cp->UnmarkIfPurple(o);
                 }
                 Remove(e);
             }
