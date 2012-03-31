@@ -238,6 +238,7 @@ nsParser::Initialize(bool aConstructor)
            NS_PARSER_FLAG_CAN_TOKENIZE;
 
   mProcessingNetworkData = false;
+  mIsAboutBlank = false;
 }
 
 void
@@ -407,6 +408,10 @@ nsParser::SetContentSink(nsIContentSink* aSink)
 
   if (mSink) {
     mSink->SetParser(this);
+    nsCOMPtr<nsIHTMLContentSink> htmlSink = do_QueryInterface(mSink);
+    if (htmlSink) {
+      mIsAboutBlank = htmlSink->IsAboutBlank();
+    }
   }
 }
 
@@ -2017,6 +2022,18 @@ nsParser::DetectMetaTag(const char* aBytes,
   return false;
 }
 
+static NS_METHOD
+NoOpParserWriteFunc(nsIInputStream* in,
+                void* closure,
+                const char* fromRawSegment,
+                PRUint32 toOffset,
+                PRUint32 count,
+                PRUint32 *writeCount)
+{
+  *writeCount = count;
+  return NS_OK;
+}
+
 typedef struct {
   bool mNeedCharsetCheck;
   nsParser* mParser;
@@ -2108,6 +2125,18 @@ nsParser::OnDataAvailable(nsIRequest *request, nsISupports* aContext,
                   "Must have a buffered input stream");
 
   nsresult rv = NS_OK;
+
+  if (mIsAboutBlank) {
+    MOZ_ASSERT(false, "Must not get OnDataAvailable for about:blank");
+    // ... but if an extension tries to feed us data for about:blank in a
+    // release build, silently ignore the data.
+    PRUint32 totalRead;
+    rv = pIStream->ReadSegments(NoOpParserWriteFunc,
+                                nsnull,
+                                aLength,
+                                &totalRead);
+    return rv;
+  }
 
   CParserContext *theContext = mParserContext;
 

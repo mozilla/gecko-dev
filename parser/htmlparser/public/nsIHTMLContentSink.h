@@ -83,8 +83,8 @@
 #include "nsHTMLTags.h"
 
 #define NS_IHTML_CONTENT_SINK_IID \
-{ 0xb6d6ae00, 0x0884, 0x4a30, \
-  { 0xa8, 0xb4, 0xce, 0xca, 0x57, 0x27, 0x1a, 0x3e } }
+{ 0x1cc778ae, 0xcc2b, 0x45e6, \
+  { 0x8a, 0x64, 0xa6, 0x80, 0x1a, 0x27, 0x12, 0x4a } }
 
 #define MAX_REFLOW_DEPTH  200
 
@@ -93,6 +93,11 @@ class nsIHTMLContentSink : public nsIContentSink
 public:
 
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_IHTML_CONTENT_SINK_IID)
+
+  /**
+   * Checks is this is an instance of HTMLContentSink.
+   */
+  virtual bool IsAboutBlank() { return false; }
 
   /**
    * This method is used to open the HEAD container. It is useful if a tag

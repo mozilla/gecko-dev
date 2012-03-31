@@ -190,6 +190,7 @@ public:
   virtual bool IsScriptExecuting();
 
   // nsIHTMLContentSink
+  virtual bool IsAboutBlank() { return true; }
   NS_IMETHOD OpenContainer(const nsIParserNode& aNode);
   NS_IMETHOD CloseContainer(const nsHTMLTag aTag);
   NS_IMETHOD CloseMalformedContainer(const nsHTMLTag aTag);
