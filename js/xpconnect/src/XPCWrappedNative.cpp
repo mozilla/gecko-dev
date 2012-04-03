@@ -732,7 +732,13 @@ XPCWrappedNative::Morph(XPCCallContext& ccx,
                  "Xray wrapper being used to parent XPCWrappedNative?");
 
     JSAutoEnterCompartment ac;
-    if (!ac.enter(ccx, existingJSObject) || !wrapper->Init(ccx, existingJSObject)) {
+    if (!ac.enter(ccx, existingJSObject)) {
+        wrapper->mIdentity = nsnull;
+        NS_RELEASE(wrapper);
+        return NS_ERROR_FAILURE;
+    }
+
+    if (!wrapper->Init(ccx, existingJSObject)) {
         NS_RELEASE(wrapper);
         return NS_ERROR_FAILURE;
     }
