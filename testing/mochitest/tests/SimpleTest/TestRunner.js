@@ -6,8 +6,8 @@
  */
 function getElement(id) {
     return ((typeof(id) == "string") ?
-        document.getElementById(id) : id); 
-};   
+        document.getElementById(id) : id);
+}
 
 this.$ = this.getElement;
 
@@ -29,7 +29,7 @@ function contentAsyncEvent(type, data) {
 }
 
 /* Helper Function */
-function extend(obj, /* optional */skip) {        
+function extend(obj, /* optional */ skip) {
     // Extend an array with an array-like object starting
     // from the skip index
     if (!skip) {
@@ -43,7 +43,7 @@ function extend(obj, /* optional */skip) {
         }
     }
     return ret;
-};
+}
 
 function flattenArguments(lst/* ...*/) {
     var res = [];
@@ -59,7 +59,7 @@ function flattenArguments(lst/* ...*/) {
         }
     }
     return res;
-};
+}
 
 /**
  * TestRunner: A test runner for SimpleTest
@@ -107,7 +107,9 @@ TestRunner._checkForHangs = function() {
         frameWindow.SimpleTest.ok(false, "Skipping " + skippedTests + " remaining tests.");
       }
 
-      frameWindow.SimpleTest.finish();
+      // Add a little (1 second) delay to ensure automation.py has time to notice
+      // "Test timed out" log and process it (= take a screenshot).
+      setTimeout(function delayedFinish() { frameWindow.SimpleTest.finish(); }, 1000);
 
       if (TestRunner._haltTests)
         return;
@@ -354,7 +356,7 @@ TestRunner.runNextTest = function() {
         if (TestRunner.repeat == 0 && TestRunner.onComplete) {
              TestRunner.onComplete();
          }
- 
+
         if (TestRunner._currentLoop < TestRunner.repeat) {
           TestRunner._currentLoop++;
           TestRunner.resetTests(TestRunner._urls);
@@ -457,7 +459,7 @@ TestRunner.displayLoopErrors = function(tableName, tests) {
     var curtest;
     if (table.rows.length == 0) {
       //if table headers are not yet generated, make them
-      var row = table.insertRow(table.rows.length); 
+      var row = table.insertRow(table.rows.length);
       var cell = row.insertCell(0);
       var textNode = document.createTextNode("Test File Name:");
       cell.appendChild(textNode);
@@ -468,13 +470,13 @@ TestRunner.displayLoopErrors = function(tableName, tests) {
       textNode = document.createTextNode("Error message:");
       cell.appendChild(textNode);
     }
-  
+
     //find the broken test
     for (var testnum in tests){
       curtest = tests[testnum];
       if( !((curtest.todo && !curtest.result) || (curtest.result && !curtest.todo)) ){
         //this is a failed test or the result of todo test. Display the related message
-        row = table.insertRow(table.rows.length); 
+        row = table.insertRow(table.rows.length);
         cell = row.insertCell(0);
         textNode = document.createTextNode(TestRunner.currentTestURL);
         cell.appendChild(textNode);
