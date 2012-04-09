@@ -339,11 +339,13 @@ public:
   void ReflowAbsoluteFrames(nsPresContext*           aPresContext,
                             nsHTMLReflowMetrics&     aDesiredSize,
                             const nsHTMLReflowState& aReflowState,
-                            nsReflowStatus&          aStatus);
+                            nsReflowStatus&          aStatus,
+                            bool                     aConstrainHeight = true);
   void FinishReflowWithAbsoluteFrames(nsPresContext*           aPresContext,
                                       nsHTMLReflowMetrics&     aDesiredSize,
                                       const nsHTMLReflowState& aReflowState,
-                                      nsReflowStatus&          aStatus);
+                                      nsReflowStatus&          aStatus,
+                                      bool                     aConstrainHeight = true);
   void DestroyAbsoluteFrames(nsIFrame* aDestructRoot);
   virtual bool CanContinueTextRun() const;
 
