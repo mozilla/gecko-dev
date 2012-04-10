@@ -344,6 +344,14 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(IDBKeyRange)
 
 DOMCI_DATA(IDBKeyRange, IDBKeyRange)
 
+IDBKeyRange::~IDBKeyRange()
+{
+  if (mRooted) {
+    NS_DROP_JS_OBJECTS(this, IDBKeyRange);
+    mRooted = false;
+  }
+}
+
 NS_IMETHODIMP
 IDBKeyRange::GetLower(JSContext* aCx,
                       jsval* aLower)
