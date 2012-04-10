@@ -143,27 +143,6 @@ members = [
     'nsIDOMElement.getAttributeNS',
     'nsIDOMElement.onmouseenter',
     'nsIDOMElement.onmouseleave',
-    'nsIDOMElement.getElementsByClassName',
-    'nsIDOMElement.getClientRects',
-    'nsIDOMElement.getBoundingClientRect',
-    'nsIDOMElement.scrollTop',
-    'nsIDOMElement.scrollLeft',
-    'nsIDOMElement.scrollHeight',
-    'nsIDOMElement.scrollWidth',
-    'nsIDOMElement.clientTop',
-    'nsIDOMElement.clientLeft',
-    'nsIDOMElement.clientHeight',
-    'nsIDOMElement.clientWidth',
-    'nsIDOMElement.firstElementChild',
-    'nsIDOMElement.lastElementChild',
-    'nsIDOMElement.previousElementSibling',
-    'nsIDOMElement.nextElementSibling',
-    'nsIDOMElement.childElementCount',
-    'nsIDOMElement.children',
-    'nsIDOMElement.classList',
-    'nsIDOMElement.setCapture',
-    'nsIDOMElement.releaseCapture',
-    'nsIDOMElement.mozMatchesSelector',
     'nsIDOMNamedNodeMap.item',
     'nsIDOMNamedNodeMap.length',
     'nsIDOMNode.*',
@@ -176,6 +155,7 @@ members = [
     'nsIDOMDOMTokenList.*',
     'nsIDOMDOMSettableTokenList.*',
     'nsIDOMXULDocument.getBoxObjectFor',
+    'nsIDOMNSElement.*',
 
     # dom/interfaces/css
     'nsIDOMElementCSSInlineStyle.*',
@@ -707,95 +687,98 @@ customMethodCalls = {
         'setter_code': '    rv = self->SetPropertyValue(prop, arg0);',
         'canFail': True
         },
-    'nsIDOMElement_GetScrollTop': {
+    'nsIDOMNSElement_': {
+        'thisType': 'nsGenericElement'
+        },
+    'nsIDOMNSElement_GetScrollTop': {
         'thisType': 'nsGenericElement',
         'code': '    PRInt32 result = self->GetScrollTop();',
         'canFail': False
         },
-    'nsIDOMElement_SetScrollTop': {
+    'nsIDOMNSElement_SetScrollTop': {
         'thisType': 'nsGenericElement',
         'canFail': False
         },
-    'nsIDOMElement_GetScrollLeft': {
+    'nsIDOMNSElement_GetScrollLeft': {
         'thisType': 'nsGenericElement',
         'code': '    PRInt32 result = self->GetScrollLeft();',
         'canFail': False
         },
-    'nsIDOMElement_SetScrollLeft': {
+    'nsIDOMNSElement_SetScrollLeft': {
         'thisType': 'nsGenericElement',
         'canFail': False
         },
-    'nsIDOMElement_GetScrollHeight': {
+    'nsIDOMNSElement_GetScrollHeight': {
         'thisType': 'nsGenericElement',
         'code': '    PRInt32 result = self->GetScrollHeight();',
         'canFail': False
         },
-    'nsIDOMElement_GetScrollWidth': {
+    'nsIDOMNSElement_GetScrollWidth': {
         'thisType': 'nsGenericElement',
         'code': '    PRInt32 result = self->GetScrollWidth();',
         'canFail': False
         },
-    'nsIDOMElement_GetClientTop': {
+    'nsIDOMNSElement_GetClientTop': {
         'thisType': 'nsGenericElement',
         'code': '    PRInt32 result = self->GetClientTop();',
         'canFail': False
         },
-    'nsIDOMElement_SetClientTop': {
+    'nsIDOMNSElement_SetClientTop': {
         'thisType': 'nsGenericElement',
         'canFail': False
         },
-    'nsIDOMElement_GetClientLeft': {
+    'nsIDOMNSElement_GetClientLeft': {
         'thisType': 'nsGenericElement',
         'code': '    PRInt32 result = self->GetClientLeft();',
         'canFail': False
         },
-    'nsIDOMElement_SetClientLeft': {
+    'nsIDOMNSElement_SetClientLeft': {
         'thisType': 'nsGenericElement',
         'canFail': False
         },
-    'nsIDOMElement_GetClientHeight': {
+    'nsIDOMNSElement_GetClientHeight': {
         'thisType': 'nsGenericElement',
         'code': '    PRInt32 result = self->GetClientHeight();',
         'canFail': False
         },
-    'nsIDOMElement_GetClientWidth': {
+    'nsIDOMNSElement_GetClientWidth': {
         'thisType': 'nsGenericElement',
         'code': '    PRInt32 result = self->GetClientWidth();',
         'canFail': False
         },
-    'nsIDOMElement_GetFirstElementChild': {
+    'nsIDOMNSElement_GetFirstElementChild': {
         'thisType': 'nsGenericElement',
         'code': '    nsIContent *result = self->GetFirstElementChild();',
         'canFail': False
         },
-    'nsIDOMElement_GetLastElementChild': {
+    'nsIDOMNSElement_GetLastElementChild': {
         'thisType': 'nsGenericElement',
         'code': '    nsIContent *result = self->GetLastElementChild();',
         'canFail': False
         },
-    'nsIDOMElement_GetPreviousElementSibling': {
+    'nsIDOMNSElement_GetPreviousElementSibling': {
         'thisType': 'nsGenericElement',
         'code': '    nsIContent *result = self->GetPreviousElementSibling();',
         'canFail': False
         },
-    'nsIDOMElement_GetNextElementSibling': {
+    'nsIDOMNSElement_GetNextElementSibling': {
         'thisType': 'nsGenericElement',
         'code': '    nsIContent *result = self->GetNextElementSibling();',
         'canFail': False
         },
-    'nsIDOMElement_GetClassList': {
+    'nsIDOMNSElement_GetClassList': {
         'thisType': 'nsGenericElement',
         'code': '    nsDOMTokenList *result = self->GetClassList(&rv);'
         },
-    'nsIDOMElement_SetCapture': {
+    'nsIDOMNSElement_SetCapture': {
         'thisType': 'nsGenericElement',
         'canFail': False
         },
-    'nsIDOMElement_ReleaseCapture': {
+    'nsIDOMNSElement_ReleaseCapture': {
         'thisType': 'nsGenericElement',
         'canFail': False
         },
-    'nsIDOMElement_MozMatchesSelector': {
+    'nsIDOMNSElement_MozMatchesSelector': {
         'thisType': 'nsGenericElement',
         'code': '    bool result = self->MozMatchesSelector(arg0, &rv);',
         },
