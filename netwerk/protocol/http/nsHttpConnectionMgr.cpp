@@ -1774,6 +1774,7 @@ nsHttpConnectionMgr::ActivateTimeoutTick()
             NS_WARNING("failed to create timer for http timeout management");
             return;
         }
+        mReadTimeoutTick->SetTarget(mSocketThreadTarget);
     }
 
     NS_ABORT_IF_FALSE(!mReadTimeoutTickArmed, "timer tick armed");
