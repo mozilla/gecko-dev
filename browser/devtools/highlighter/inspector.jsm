@@ -1071,6 +1071,9 @@ InspectorUI.prototype = {
    */
   ruleViewAddContextMenu: function IUI_ruleViewAddContextMenu()
   {
+    // Bug 740606: Disabled for the Firefox 13 branch.
+    return;
+
     let iframe = this.getToolIframe(this.ruleViewObject);
     let popupSet = this.chromeDoc.getElementById("mainPopupSet");
     let menu = this.chromeDoc.createElement("menupopup");
