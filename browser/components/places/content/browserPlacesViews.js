@@ -166,14 +166,26 @@ PlacesViewBase.prototype = {
       window.content.focus();
   },
 
-  _cleanPopup: function PVB_cleanPopup(aPopup) {
+  _cleanPopup: function PVB_cleanPopup(aPopup, aDelay) {
     // Remove Places nodes from the popup.
     let child = aPopup._startMarker;
     while (child.nextSibling != aPopup._endMarker) {
-      if (child.nextSibling._placesNode)
-        aPopup.removeChild(child.nextSibling);
-      else
+      let sibling = child.nextSibling;
+      if (sibling._placesNode && !aDelay) {
+        aPopup.removeChild(sibling);
+      }
+      else if (sibling._placesNode && aDelay) {
+        // HACK (bug 733419): the popups originating from the OS X native
+        // menubar don't live-update while open, thus we don't clean it
+        // until the next popupshowing, to avoid zombie menuitems.
+        if (!aPopup._delayedRemovals)
+          aPopup._delayedRemovals = [];
+        aPopup._delayedRemovals.push(sibling);
         child = child.nextSibling;
+      }
+      else {
+        child = child.nextSibling;
+      }
     }
   },
 
@@ -680,7 +692,8 @@ PlacesViewBase.prototype = {
           return;
 
         this._setLivemarkStatusMenuItem(aPopup, aLivemark.status);
-        this._cleanPopup(aPopup);
+        this._cleanPopup(aPopup,
+          this._nativeView && aPopup.parentNode.hasAttribute("open"));
 
         let children = aLivemark.getNodesForContainer(placesNode);
         for (let i = 0; i < children.length; i++) {
@@ -832,6 +845,13 @@ PlacesViewBase.prototype = {
     let popup = aEvent.originalTarget;
 
     this._ensureMarkers(popup);
+
+    // Remove any delayed element, see _cleanPopup for details.
+    if ("_delayedRemovals" in popup) {
+      while (popup._delayedRemovals.length > 0) {
+        popup.removeChild(popup._delayedRemovals.shift());
+      }
+    }
 
     if (popup._placesNode && PlacesUIUtils.getViewForNode(popup) == this) {
       if (!popup._placesNode.containerOpen)
@@ -1736,8 +1756,12 @@ function PlacesMenu(aPopupShowingEvent, aPlace) {
   this._addEventListeners(window, ["unload"], false);
 
 #ifdef XP_MACOSX
-  if (this._viewElt.parentNode.localName == "menubar") {
-    this._nativeView = true;
+  // Must walk up to support views in sub-menus, like Bookmarks Toolbar menu.
+  for (let elt = this._viewElt.parentNode; elt; elt = elt.parentNode) {
+    if (elt.localName == "menubar") {
+      this._nativeView = true;
+      break;
+    }
   }
 #endif
 
