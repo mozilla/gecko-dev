@@ -641,7 +641,13 @@ nsCORSListenerProxy::OnStopRequest(nsIRequest* aRequest,
                                    nsISupports* aContext,
                                    nsresult aStatusCode)
 {
-  return mOuterListener->OnStopRequest(aRequest, aContext, aStatusCode);
+  nsresult rv = mOuterListener->OnStopRequest(aRequest, aContext, aStatusCode);
+  mOuterListener = nsnull;
+  mOuterNotificationCallbacks = nsnull;
+  mRedirectCallback = nsnull;
+  mOldRedirectChannel = nsnull;
+  mNewRedirectChannel = nsnull;
+  return rv;
 }
 
 NS_IMETHODIMP
@@ -1028,6 +1034,9 @@ nsCORSPreflightListener::OnStopRequest(nsIRequest *aRequest,
                                        nsISupports *aContext,
                                        nsresult aStatus)
 {
+  mOuterChannel = nsnull;
+  mOuterListener = nsnull;
+  mOuterContext = nsnull;
   return NS_OK;
 }
 
