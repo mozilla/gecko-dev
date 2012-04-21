@@ -573,6 +573,9 @@ PopupNotifications.prototype = {
       }
     }, this);
 
+    while (this.panel.lastChild)
+      this.panel.removeChild(this.panel.lastChild);
+
     this._update();
   },
 
