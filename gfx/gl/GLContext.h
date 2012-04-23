@@ -2016,8 +2016,7 @@ public:
         mSymbols.fBufferData(target, size, data, usage);
 
         // bug 744888
-        if (WorkAroundDriverBugs() &&
-            !data &&
+        if (!data &&
             Vendor() == VendorNVIDIA)
         {
             char c = 0;
