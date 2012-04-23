@@ -786,7 +786,8 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
     properties should be a PropertyArrays instance.
     """
     def __init__(self, descriptor, properties):
-        args = [Argument('JSContext*', 'aCx'), Argument('JSObject*', 'aGlobal')]
+        args = [Argument('JSContext*', 'aCx'), Argument('JSObject*', 'aGlobal'),
+                Argument('JSObject*', 'aReceiver')]
         CGAbstractMethod.__init__(self, descriptor, 'CreateInterfaceObjects', 'JSObject*', args)
         self.properties = properties
     def definition_body(self):
@@ -795,7 +796,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             getParentProto = "JS_GetObjectPrototype(aCx, aGlobal)"
         else:
             parentProtoName = self.descriptor.prototypeChain[-2]
-            getParentProto = "%s::GetProtoObject(aCx, aGlobal)" % (parentProtoName)
+            getParentProto = "%s::GetProtoObject(aCx, aGlobal, aReceiver)" % (parentProtoName)
 
         needInterfaceObject = self.descriptor.interface.hasInterfaceObject()
         needInterfacePrototypeObject = self.descriptor.interface.hasInterfacePrototypeObject()
@@ -827,7 +828,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                           "    return NULL;\n" +
                           "  }") % getParentProto
 
-        call = """return bindings::CreateInterfaceObjects(aCx, aGlobal, parentProto,
+        call = """return bindings::CreateInterfaceObjects(aCx, aGlobal, aReceiver, parentProto,
                                           %s, %s,
                                           %%(methods)s, %%(attrs)s, %%(consts)s, %%(staticMethods)s,
                                           %s);""" % (
@@ -856,12 +857,20 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
     constructor object).
     """
     def __init__(self, descriptor, name, idPrefix=""):
-        args = [Argument('JSContext*', 'aCx'), Argument('JSObject*', 'aGlobal')]
+        args = [Argument('JSContext*', 'aCx'), Argument('JSObject*', 'aGlobal'),
+                Argument('JSObject*', 'aReceiver')]
         CGAbstractMethod.__init__(self, descriptor, name,
                                   'JSObject*', args, inline=True)
         self.id = idPrefix + "id::" + self.descriptor.name
     def definition_body(self):
         return """
+
+  /* aGlobal and aReceiver are usually the same, but they can be different
+     too. For example a sandbox often has an xray wrapper for a window as the
+     prototype of the sandbox's global. In that case aReceiver is the xray
+     wrapper and aGlobal is the sandbox's global.
+   */
+
   /* Make sure our global is sane.  Hopefully we can remove this sometime */
   if (!(js::GetObjectClass(aGlobal)->flags & JSCLASS_DOM_GLOBAL)) {
     return NULL;
@@ -870,7 +879,7 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
   JSObject** protoOrIfaceArray = GetProtoOrIfaceArray(aGlobal);
   JSObject* cachedObject = protoOrIfaceArray[%s];
   if (!cachedObject) {
-    protoOrIfaceArray[%s] = cachedObject = CreateInterfaceObjects(aCx, aGlobal);
+    protoOrIfaceArray[%s] = cachedObject = CreateInterfaceObjects(aCx, aGlobal, aReceiver);
   }
 
   /* cachedObject might _still_ be null, but that's OK */
@@ -881,7 +890,6 @@ class CGGetProtoObjectMethod(CGGetPerInterfaceObject):
     A method for getting the interface prototype object.
     """
     def __init__(self, descriptor):
-        args = [Argument('JSContext*', 'aCx'), Argument('JSObject*', 'aGlobal')]
         CGGetPerInterfaceObject.__init__(self, descriptor, "GetProtoObject")
     def definition_body(self):
         return """
@@ -893,14 +901,13 @@ class CGGetConstructorObjectMethod(CGGetPerInterfaceObject):
     A method for getting the interface constructor object.
     """
     def __init__(self, descriptor):
-        args = [Argument('JSContext*', 'aCx'), Argument('JSObject*', 'aGlobal')]
         CGGetPerInterfaceObject.__init__(self, descriptor, "GetConstructorObject", "constructors::")
     def definition_body(self):
         return """
   /* Get the interface object for this class.  This will create the object as
      needed. */""" + CGGetPerInterfaceObject.definition_body(self)
 
-def CheckPref(descriptor, scopeName, varName, retval, wrapperCache = None):
+def CheckPref(descriptor, globalName, varName, retval, wrapperCache = None):
     """
     Check whether bindings should be enabled for this descriptor.  If not, set
     varName to false and return retval.
@@ -908,15 +915,23 @@ def CheckPref(descriptor, scopeName, varName, retval, wrapperCache = None):
     if not descriptor.prefable:
         return ""
     if wrapperCache:
-       wrapperCache = "%s->ClearIsDOMBinding();\n" % (wrapperCache)
+       wrapperCache = "      %s->ClearIsDOMBinding();\n" % (wrapperCache)
     else:
         wrapperCache = ""
     return """
-  if (!%s->ParisBindingsEnabled()) {
-%s    %s = false;
-    return %s;
+  {
+    XPCWrappedNativeScope* scope =
+      XPCWrappedNativeScope::FindInJSObjectScope(aCx, %s);
+    if (!scope) {
+      return %s;
+    }
+
+    if (!scope->ParisBindingsEnabled()) {
+%s      %s = false;
+      return %s;
+    }
   }
-""" % (scopeName, wrapperCache, varName, retval)
+""" % (globalName, retval, wrapperCache, varName, retval)
 
 class CGDefineDOMInterfaceMethod(CGAbstractMethod):
     """
@@ -924,7 +939,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
     a given interface.
     """
     def __init__(self, descriptor):
-        args = [Argument('JSContext*', 'aCx'), Argument('XPCWrappedNativeScope*', 'aScope'),
+        args = [Argument('JSContext*', 'aCx'), Argument('JSObject*', 'aReceiver'),
                 Argument('bool*', 'aEnabled')]
         CGAbstractMethod.__init__(self, descriptor, 'DefineDOMInterface', 'bool', args)
 
@@ -946,9 +961,11 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
         else:
             getter = "GetConstructorObject"
 
-        return CheckPref(self.descriptor, "aScope", "*aEnabled", "false") + """
+        return ("  JSObject* global = JS_GetGlobalForObject(aCx, aReceiver);\n" +
+                CheckPref(self.descriptor, "global", "*aEnabled", "false") + 
+                """
   *aEnabled = true;
-  return !!%s(aCx, aScope->GetGlobalJSObject());""" % (getter)
+  return !!%s(aCx, global, aReceiver);""" % (getter))
 
 class CGNativeToSupportsMethod(CGAbstractStaticMethod):
     """
@@ -998,13 +1015,9 @@ class CGWrapMethod(CGAbstractMethod):
     }
   }
 
-  XPCWrappedNativeScope* scope =
-    XPCWrappedNativeScope::FindInJSObjectScope(aCx, parent);
-  if (!scope) {
-    return NULL;
-  }
+  JSObject* global = JS_GetGlobalForObject(aCx, parent);
 %s
-  JSObject* proto = GetProtoObject(aCx, scope->GetGlobalJSObject());
+  JSObject* proto = GetProtoObject(aCx, global, global);
   if (!proto) {
     return NULL;
   }
@@ -1019,7 +1032,7 @@ class CGWrapMethod(CGAbstractMethod):
 
   aObject->SetWrapper(obj);
 
-  return obj;""" % (CheckPref(self.descriptor, "scope", "*aTriedToWrap", "NULL", "aObject"))
+  return obj;""" % (CheckPref(self.descriptor, "global", "*aTriedToWrap", "NULL", "aObject"))
 
 builtinNames = {
     IDLType.Tags.bool: 'bool',
