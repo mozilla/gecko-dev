@@ -69,8 +69,10 @@ public:
    * from the network.
    */
   enum {
-    ACTION_REDRAW_ON_DECODE = 0x01,
-    ACTION_REDRAW_ON_LOAD   = 0x02,
+    ACTION_REFLOW_ON_DECODE = 0x01,
+    ACTION_REDRAW_ON_DECODE = 0x02,
+    ACTION_REFLOW_ON_LOAD   = 0x04,
+    ACTION_REDRAW_ON_LOAD   = 0x08
   };
   static already_AddRefed<nsImageLoader>
     Create(nsIFrame *aFrame, imgIRequest *aRequest,
@@ -101,6 +103,7 @@ public:
 
 private:
   nsresult Load(imgIRequest *aImage);
+  void DoReflow();
   /* if aDamageRect is nsnull, the whole frame is redrawn. */
   void DoRedraw(const nsRect* aDamageRect);
 

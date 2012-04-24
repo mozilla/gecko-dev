@@ -1,5 +1,4 @@
 /* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set tw=78 expandtab softtabstop=2 ts=2 sw=2: */
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
@@ -2901,101 +2900,61 @@ nsComputedDOMStyle::DoGetBoxSizing()
   return val;
 }
 
-/* Border image properties */
-
 nsIDOMCSSValue*
-nsComputedDOMStyle::DoGetBorderImageSource()
+nsComputedDOMStyle::DoGetBorderImage()
 {
   const nsStyleBorder* border = GetStyleBorder();
 
-  imgIRequest* imgSrc = border->GetBorderImage();
-  nsROCSSPrimitiveValue* val = GetROCSSPrimitiveValue();
-  if (imgSrc) {
-    nsCOMPtr<nsIURI> uri;
-    imgSrc->GetURI(getter_AddRefs(uri));
-    val->SetURI(uri);
-  } else {
-    val->SetIdent(eCSSKeyword_none);
+  // none
+  if (!border->GetBorderImage()) {
+    nsROCSSPrimitiveValue *valNone = GetROCSSPrimitiveValue();
+    valNone->SetIdent(eCSSKeyword_none);
+    return valNone;
   }
 
-  return val;
-}
-
-nsIDOMCSSValue*
-nsComputedDOMStyle::DoGetBorderImageSlice()
-{
-  nsDOMCSSValueList* valueList = GetROCSSValueList(false);
-
-  const nsStyleBorder* border = GetStyleBorder();
-  // Four slice numbers.
-  NS_FOR_CSS_SIDES (side) {
-    nsROCSSPrimitiveValue* val = GetROCSSPrimitiveValue();
-    valueList->AppendCSSValue(val);
-    SetValueToCoord(val, border->mBorderImageSlice.Get(side), nsnull, nsnull);
-  }
-
-  // Fill keyword.
-  if (NS_STYLE_BORDER_IMAGE_SLICE_FILL == border->mBorderImageFill) {
-    nsROCSSPrimitiveValue* val = GetROCSSPrimitiveValue();
-    valueList->AppendCSSValue(val);
-    val->SetIdent(eCSSKeyword_fill);
-  }
-
-  return valueList;
-}
-
-nsIDOMCSSValue*
-nsComputedDOMStyle::DoGetBorderImageWidth()
-{
-  const nsStyleBorder* border = GetStyleBorder();
-  nsDOMCSSValueList* valueList = GetROCSSValueList(false);
-  NS_FOR_CSS_SIDES (side) {
-    nsROCSSPrimitiveValue* val = GetROCSSPrimitiveValue();
-    valueList->AppendCSSValue(val);
-    SetValueToCoord(val, border->mBorderImageWidth.Get(side),
-                    nsnull, nsnull);
-  }
-
-  return valueList;
-}
-
-nsIDOMCSSValue*
-nsComputedDOMStyle::DoGetBorderImageOutset()
-{
   nsDOMCSSValueList *valueList = GetROCSSValueList(false);
 
-  const nsStyleBorder* border = GetStyleBorder();
-  // four slice numbers
-  NS_FOR_CSS_SIDES (side) {
-    nsROCSSPrimitiveValue* val = GetROCSSPrimitiveValue();
-    valueList->AppendCSSValue(val);
-    SetValueToCoord(val, border->mBorderImageOutset.Get(side),
-                    nsnull, nsnull);
+  // uri
+  nsROCSSPrimitiveValue *valURI = GetROCSSPrimitiveValue();
+  valueList->AppendCSSValue(valURI);
+  nsCOMPtr<nsIURI> uri;
+  border->GetBorderImage()->GetURI(getter_AddRefs(uri));
+  valURI->SetURI(uri);
+
+  // four split numbers
+  NS_FOR_CSS_SIDES(side) {
+    nsROCSSPrimitiveValue *valSplit = GetROCSSPrimitiveValue();
+    valueList->AppendCSSValue(valSplit);
+    SetValueToCoord(valSplit, border->mBorderImageSplit.Get(side), true);
   }
 
-  return valueList;
-}
+  // copy of border-width
+  if (border->mHaveBorderImageWidth) {
+    nsROCSSPrimitiveValue *slash = GetROCSSPrimitiveValue();
+    valueList->AppendCSSValue(slash);
+    slash->SetString(NS_LITERAL_STRING("/"));
+    NS_FOR_CSS_SIDES(side) {
+      nsROCSSPrimitiveValue *borderWidth = GetROCSSPrimitiveValue();
+      valueList->AppendCSSValue(borderWidth);
+      nscoord width = GetStyleBorder()->mBorderImageWidth.Side(side);
+      borderWidth->SetAppUnits(width);
+    }
+  }
 
-nsIDOMCSSValue*
-nsComputedDOMStyle::DoGetBorderImageRepeat()
-{
-  nsDOMCSSValueList* valueList = GetROCSSValueList(false);
+  // first keyword
+  nsROCSSPrimitiveValue *keyword = GetROCSSPrimitiveValue();
+  valueList->AppendCSSValue(keyword);
+  keyword->SetIdent(
+    nsCSSProps::ValueToKeywordEnum(GetStyleBorder()->mBorderImageHFill,
+                                   nsCSSProps::kBorderImageKTable));
 
-  const nsStyleBorder* border = GetStyleBorder();
+  // second keyword
+  nsROCSSPrimitiveValue *keyword2 = GetROCSSPrimitiveValue();
+  valueList->AppendCSSValue(keyword2);
+  keyword2->SetIdent(
+    nsCSSProps::ValueToKeywordEnum(GetStyleBorder()->mBorderImageVFill,
+                                   nsCSSProps::kBorderImageKTable));
 
-  // horizontal repeat
-  nsROCSSPrimitiveValue* valX = GetROCSSPrimitiveValue();
-  valueList->AppendCSSValue(valX);
-  valX->SetIdent(
-    nsCSSProps::ValueToKeywordEnum(border->mBorderImageRepeatH,
-                                   nsCSSProps::kBorderImageRepeatKTable));
-
-  // vertical repeat
-  nsROCSSPrimitiveValue* valY = GetROCSSPrimitiveValue();
-  valueList->AppendCSSValue(valY);
-  valY->SetIdent(
-    nsCSSProps::ValueToKeywordEnum(border->mBorderImageRepeatV,
-                                   nsCSSProps::kBorderImageRepeatKTable));
   return valueList;
 }
 
@@ -4673,12 +4632,7 @@ nsComputedDOMStyle::GetQueryablePropertyMap(PRUint32* aLength)
     COMPUTED_STYLE_MAP_ENTRY(_moz_background_inline_policy, BackgroundInlinePolicy),
     COMPUTED_STYLE_MAP_ENTRY(binding,                       Binding),
     COMPUTED_STYLE_MAP_ENTRY(border_bottom_colors,          BorderBottomColors),
-    //// COMPUTED_STYLE_MAP_ENTRY(border_image,             BorderImage),
-    COMPUTED_STYLE_MAP_ENTRY(border_image_outset,           BorderImageOutset),
-    COMPUTED_STYLE_MAP_ENTRY(border_image_repeat,           BorderImageRepeat),
-    COMPUTED_STYLE_MAP_ENTRY(border_image_slice,            BorderImageSlice),
-    COMPUTED_STYLE_MAP_ENTRY(border_image_source,           BorderImageSource),
-    COMPUTED_STYLE_MAP_ENTRY(border_image_width,            BorderImageWidth),
+    COMPUTED_STYLE_MAP_ENTRY(border_image,                  BorderImage),
     COMPUTED_STYLE_MAP_ENTRY(border_left_colors,            BorderLeftColors),
     COMPUTED_STYLE_MAP_ENTRY(border_right_colors,           BorderRightColors),
     COMPUTED_STYLE_MAP_ENTRY(border_top_colors,             BorderTopColors),
