@@ -901,7 +901,9 @@ GCMarker::saveValueRanges()
             } else {
                 HeapSlot *vp = obj->fixedSlots();
                 unsigned nfixed = obj->numFixedSlots();
-                if (arr->start >= vp && arr->start < vp + nfixed) {
+                if (arr->start == arr->end) {
+                    arr->index = obj->slotSpan();
+                } if (arr->start >= vp && arr->start < vp + nfixed) {
                     JS_ASSERT(arr->end == vp + Min(nfixed, obj->slotSpan()));
                     arr->index = arr->start - vp;
                 } else {
@@ -918,7 +920,7 @@ GCMarker::saveValueRanges()
     }
 }
 
-bool
+JS_NEVER_INLINE bool
 GCMarker::restoreValueArray(JSObject *obj, void **vpp, void **endp)
 {
     uintptr_t start = stack.pop();
@@ -960,6 +962,25 @@ GCMarker::restoreValueArray(JSObject *obj, void **vpp, void **endp)
     return true;
 }
 
+void
+GCMarker::processMarkStackOther(uintptr_t tag, uintptr_t addr)
+{
+    if (tag == TypeTag) {
+        ScanTypeObject(this, reinterpret_cast<types::TypeObject *>(addr));
+    } else if (tag == SavedValueArrayTag) {
+        JS_ASSERT(!(addr & Cell::CellMask));
+        JSObject *obj = reinterpret_cast<JSObject *>(addr);
+        HeapValue *vp, *end;
+        if (restoreValueArray(obj, (void **)&vp, (void **)&end))
+            pushValueArray(obj, vp, end);
+        else
+            pushObject(obj);
+    } else {
+        JS_ASSERT(tag == XmlTag);
+        MarkChildren(this, reinterpret_cast<JSXML *>(addr));
+    }
+}
+
 inline void
 GCMarker::processMarkStackTop(SliceBudget &budget)
 {
@@ -994,31 +1015,12 @@ GCMarker::processMarkStackTop(SliceBudget &budget)
         goto scan_obj;
     }
 
-    if (tag == TypeTag) {
-        ScanTypeObject(this, reinterpret_cast<types::TypeObject *>(addr));
-    } else if (tag == SavedValueArrayTag) {
-        JS_ASSERT(!(addr & Cell::CellMask));
-        obj = reinterpret_cast<JSObject *>(addr);
-        if (restoreValueArray(obj, (void **)&vp, (void **)&end))
-            goto scan_value_array;
-        else
-            goto scan_obj;
-    } else {
-        JS_ASSERT(tag == XmlTag);
-        MarkChildren(this, reinterpret_cast<JSXML *>(addr));
-    }
-    budget.step();
+    processMarkStackOther(tag, addr);
     return;
 
   scan_value_array:
     JS_ASSERT(vp <= end);
     while (vp != end) {
-        budget.step();
-        if (budget.isOverBudget()) {
-            pushValueArray(obj, vp, end);
-            return;
-        }
-
         const Value &v = *vp++;
         if (v.isString()) {
             JSString *str = v.toString();

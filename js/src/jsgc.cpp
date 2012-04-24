@@ -2468,7 +2468,8 @@ MaybeGC(JSContext *cx)
         comp->gcBytes >= 3 * (comp->gcTriggerBytes / 4) &&
         rt->gcIncrementalState == NO_INCREMENTAL)
     {
-        GCSlice(cx, NULL, GC_NORMAL, gcreason::MAYBEGC);
+        GCSlice(cx, (rt->gcMode == JSGC_MODE_COMPARTMENT) ? comp : NULL,
+                GC_NORMAL, gcreason::MAYBEGC);
         return;
     }
 
