@@ -249,6 +249,10 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
   }
 
   metrics.mScrollId = aScrollId;
+
+  nsIPresShell* presShell = presContext->GetPresShell();
+  metrics.mResolution = gfxSize(presShell->GetXResolution(), presShell->GetYResolution());
+
   aRoot->SetFrameMetrics(metrics);
 }
 
