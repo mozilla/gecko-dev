@@ -459,6 +459,15 @@ gfxUserFontSet::OnLoadComplete(gfxProxyFontEntry *aProxy,
 {
     // download successful, make platform font using font data
     if (NS_SUCCEEDED(aDownloadStatus)) {
+
+        // if the proxy doesn't belong to a family, we just bail as it won't be
+        // accessible/usable anyhow (maybe the font set got modified right as
+        // the load was completing?)
+        if (!aProxy->Family()) {
+            NS_Free(const_cast<PRUint8*>(aFontData));
+            return true;
+        }
+
         gfxFontEntry *fe = nsnull;
 
         gfxUserFontType fontType =
