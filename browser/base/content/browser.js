@@ -8785,7 +8785,8 @@ let gPrivateBrowsingUI = {
    * and the setter should only be used in tests.
    */
   get privateWindow() {
-    return window.getInterface(Ci.nsIWebNavigation)
+    return window.QueryInterface(Ci.nsIInterfaceRequestor)
+                 .getInterface(Ci.nsIWebNavigation)
                  .QueryInterface(Ci.nsIDocShellTreeItem)
                  .treeOwner
                  .QueryInterface(Ci.nsIInterfaceRequestor)
@@ -8795,7 +8796,8 @@ let gPrivateBrowsingUI = {
   },
 
   set privateWindow(val) {
-    return window.getInterface(Ci.nsIWebNavigation)
+    return window.QueryInterface(Ci.nsIInterfaceRequestor)
+                 .getInterface(Ci.nsIWebNavigation)
                  .QueryInterface(Ci.nsIDocShellTreeItem)
                  .treeOwner
                  .QueryInterface(Ci.nsIInterfaceRequestor)
