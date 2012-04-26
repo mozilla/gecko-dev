@@ -792,6 +792,10 @@ protected:
 
 private:
 
+
+#ifdef ANDROID
+  nsIDocument* GetTouchEventTargetDocument();
+#endif
   bool InZombieDocument(nsIContent *aContent);
   already_AddRefed<nsIPresShell> GetParentPresShell();
   nsresult RetargetEventToParent(nsGUIEvent* aEvent,
