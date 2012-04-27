@@ -143,6 +143,10 @@ public:
         *found = false;
         return true;
     }
+    static nsISupports* nativeToSupports(nsISupports* aNative)
+    {
+        return aNative;
+    }
 };
 
 template<class ListType, class IndexOps, class NameOps=NoOps>
@@ -266,6 +270,10 @@ public:
     static bool nativeGet(JSContext *cx, JSObject *proxy, JSObject *proto, jsid id, bool *found,
                           JS::Value *vp);
     static ListType *getNative(JSObject *proxy);
+    static nsISupports* nativeToSupports(ListType* aNative)
+    {
+        return Base::nativeToSupports(aNative);
+    }
 };
 
 struct nsISupportsResult
