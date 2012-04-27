@@ -2005,7 +2005,7 @@ AndroidBridge::CreateSurface()
 
   jobject surface = env->CallStaticObjectMethod(cls, method);
   if (surface)
-    env->NewGlobalRef(surface);
+    surface = env->NewGlobalRef(surface);
   
   return surface;
 #endif
