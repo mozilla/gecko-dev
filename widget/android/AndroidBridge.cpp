@@ -836,7 +836,7 @@ AndroidBridge::Vibrate(const nsTArray<PRUint32>& aPattern)
     if (!env)
         return;
 
-    AutoLocalJNIFrame frame;
+    AutoLocalJNIFrame jniFrame(env);
 
     ALOG_BRIDGE("AndroidBridge::Vibrate");
 
@@ -1615,7 +1615,7 @@ AndroidBridge::GetMessage(PRInt32 aMessageId, PRInt32 aRequestId, PRUint64 aProc
 {
     ALOG_BRIDGE("AndroidBridge::GetMessage");
 
-    JNIEnv *env = env;
+    JNIEnv *env = GetJNIEnv();
     if (!env)
         return;
 
