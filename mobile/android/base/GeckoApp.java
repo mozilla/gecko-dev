@@ -2110,7 +2110,8 @@ abstract public class GeckoApp
         GeckoAppShell.unregisterGeckoEventListener("Session:StatePurged", GeckoApp.mAppContext);
         GeckoAppShell.unregisterGeckoEventListener("Bookmark:Insert", GeckoApp.mAppContext);
 
-        mFavicons.close();
+        if (mFavicons != null)
+            mFavicons.close();
 
         if (SmsManager.getInstance() != null) {
             SmsManager.getInstance().stop();
@@ -2120,11 +2121,11 @@ abstract public class GeckoApp
 
         super.onDestroy();
 
-        mBatteryReceiver.unregisterFor(mAppContext);
+        if (mBatteryReceiver != null)
+            mBatteryReceiver.unregisterFor(mAppContext);
 
-        if (mAboutHomeContent != null) {
+        if (mAboutHomeContent != null)
             mAboutHomeContent.onDestroy();
-        }
 
         ((GeckoApplication) getApplication()).removeApplicationLifecycleCallbacks(this);
     }
