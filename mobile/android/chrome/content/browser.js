@@ -1599,6 +1599,7 @@ Tab.prototype = {
     this.browser.addEventListener("scroll", this, true);
     this.browser.addEventListener("MozScrolledAreaChanged", this, true);
     this.browser.addEventListener("PluginClickToPlay", this, true);
+    this.browser.addEventListener("pageshow", this, true);
 
     Services.obs.addObserver(this, "before-first-paint", false);
 
@@ -1986,9 +1987,6 @@ Tab.prototype = {
           gecko: {
             type: "DOMContentLoaded",
             tabID: this.id,
-            windowID: 0,
-            uri: this.browser.currentURI.spec,
-            title: this.browser.contentTitle,
             bgColor: backgroundColor
           }
         });
@@ -2150,6 +2148,19 @@ Tab.prototype = {
             NativeWindow.doorhanger.hide("ask-to-play-plugins", tab.id);
         }, true);
         break;
+      }
+
+      case "pageshow": {
+        // only send pageshow for the top-level document
+        if (aEvent.originalTarget.defaultView != this.browser.contentWindow)
+          return;
+
+        sendMessageToJava({
+          gecko: {
+            type: "Content:PageShow",
+            tabID: this.id
+          }
+        });
       }
     }
   },
