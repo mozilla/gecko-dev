@@ -2572,7 +2572,7 @@ var BrowserEventHandler = {
 
   observe: function(aSubject, aTopic, aData) {
     if (aTopic == "dom-touch-listener-added") {
-      let tab = BrowserApp.getTabForWindow(aSubject);
+      let tab = BrowserApp.getTabForWindow(aSubject.top);
       if (!tab)
         return;
 
