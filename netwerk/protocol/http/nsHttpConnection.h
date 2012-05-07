@@ -158,6 +158,10 @@ public:
 
     bool UsingSpdy() { return mUsingSpdy; }
 
+    // true when connection SSL NPN phase is complete and we know
+    // authoritatively whether UsingSpdy() or not.
+    bool ReportedNPN() { return mReportedSpdy; }
+
     // When the connection is active this is called every 15 seconds
     void  ReadTimeoutTick(PRIntervalTime now);
 

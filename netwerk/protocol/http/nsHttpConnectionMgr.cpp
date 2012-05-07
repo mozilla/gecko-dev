@@ -1133,14 +1133,35 @@ nsHttpConnectionMgr::GetConnection(nsConnectionEntry *ent,
         
         if (gHttpHandler->IsSpdyEnabled() &&
             ent->mConnInfo->UsingSSL() &&
-            !ent->mConnInfo->UsingHttpProxy())
-        {
-            // If this host is trying to negotiate a SPDY session right now,
-            // don't create any new connections until the result of the
-            // negotiation is known.
-    
-            if ((!ent->mTestedSpdy || ent->mUsingSpdy) &&
-                (ent->mHalfOpens.Length() || ent->mActiveConns.Length()))
+            !ent->mConnInfo->UsingHttpProxy() &&
+            !(trans->Caps() & NS_HTTP_DISALLOW_SPDY) &&
+            (!ent->mTestedSpdy || ent->mUsingSpdy) &&
+            (ent->mHalfOpens.Length() || ent->mActiveConns.Length())) {
+            bool restrictConnection = true;
+
+            // There is a concern that a host is using a mix of HTTP/1 and SPDY.
+            // In that case we don't want to restrict connections just because
+            // there is a single active HTTP/1 session in use. Confirm that the
+            // restriction is due to a handshake in progress or a live spdy
+            // session.
+            if (!ent->mHalfOpens.Length() &&
+                ent->mUsingSpdy && ent->mActiveConns.Length()) {
+                bool confirmedRestrict = false;
+
+                for (PRUint32 index = 0; index < ent->mActiveConns.Length(); ++index) {
+                    nsHttpConnection *conn = ent->mActiveConns[index];
+                    if (!conn->ReportedNPN() || conn->CanDirectlyActivate()) {
+                        confirmedRestrict = true;
+                        break; // confirmed;
+                    }
+                }
+                if (!confirmedRestrict) {
+                    LOG(("nsHttpConnectionMgr spdy connection restriction to "
+                         "%s bypassed.\n", ent->mConnInfo->Host()));
+                    restrictConnection = false;
+                }
+            }
+            if (restrictConnection)
                 return;
         }
         
