@@ -365,3 +365,23 @@ body[narrow] #restorePreviousSession::before {
   top: 12px;
   right: 12px;
 }
+
+body[dir=rtl] > #launcher {
+  -moz-box-ordinal-group: 1;
+}
+
+body[dir=rtl] > .spacer {
+  -moz-box-ordinal-group: 2;
+}
+
+body[dir=rtl] > #topSection {
+  -moz-box-ordinal-group: 3;
+}
+
+body[dir=rtl] > .spacer:first-child {
+  -moz-box-ordinal-group: 4;
+}
+
+body[dir=rtl] > #aboutMozilla {
+  -moz-box-ordinal-group: 5;
+}
