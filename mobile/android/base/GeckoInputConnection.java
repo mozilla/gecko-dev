@@ -592,8 +592,7 @@ public class GeckoInputConnection
             }
         }
 
-        boolean needCompositionString = !hasCompositionString();
-        if (needCompositionString) {
+        if (!hasCompositionString()) {
             if (DEBUG) Log.d(LOGTAG, ". . . onTextChanged: IME_COMPOSITION_BEGIN");
             GeckoAppShell.sendEventToGecko(
                 GeckoEvent.createIMEEvent(GeckoEvent.IME_COMPOSITION_BEGIN, 0, 0));
@@ -620,7 +619,7 @@ public class GeckoInputConnection
 
         // End composition if all characters in the word have been deleted.
         // This fixes autocomplete results not appearing.
-        if (count == 0 || needCompositionString)
+        if (count == 0)
             endComposition();
 
         // Block this thread until all pending events are processed
