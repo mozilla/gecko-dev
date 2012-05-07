@@ -43,6 +43,7 @@
 #include "nsContentUtils.h"
 #include "nsIDOMEventListener.h"
 #include "nsIDOMMutationEvent.h"
+#include "nsIAttribute.h"
 #include "nsIDocument.h"
 #include "nsThreadUtils.h"
 #ifdef DEBUG
@@ -181,6 +182,30 @@ nsTextNode::CloneDataNode(nsINodeInfo *aNodeInfo, bool aCloneText) const
   }
 
   return it;
+}
+
+nsresult
+nsTextNode::BindToAttribute(nsIAttribute* aAttr)
+{
+  NS_ASSERTION(!IsInDoc(), "Unbind before binding!");
+  NS_ASSERTION(!GetNodeParent(), "Unbind before binding!");
+  NS_ASSERTION(HasSameOwnerDoc(aAttr), "Wrong owner document!");
+
+  mParent = aAttr;
+  SetParentIsContent(false);
+  ClearInDocument();
+  return NS_OK;
+}
+
+nsresult
+nsTextNode::UnbindFromAttribute()
+{
+  NS_ASSERTION(GetNodeParent(), "Bind before unbinding!");
+  NS_ASSERTION(GetNodeParent() &&
+               GetNodeParent()->IsNodeOfType(nsINode::eATTRIBUTE),
+               "Use this method only to unbind from an attribute!");
+  mParent = nsnull;
+  return NS_OK;
 }
 
 nsresult
