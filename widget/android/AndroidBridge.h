@@ -575,6 +575,10 @@ public:
         }
     }
 
+    JNIEnv* GetEnv() {
+        return mJNIEnv;
+    }
+
     bool CheckForException() {
         if (mJNIEnv->ExceptionCheck()) {
             mJNIEnv->ExceptionDescribe();
