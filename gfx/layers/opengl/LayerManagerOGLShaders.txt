@@ -300,10 +300,16 @@ uniform sampler2D uWhiteTexture;
 
 void main()
 {
+  // bug 751732 - the shader below doesn't compile on Motorola devices for
+  // unknown reasons.
+#ifdef GL_ES
+  gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+#else
   vec3 onBlack = texture2D(uBlackTexture, vTexCoord).bgr;
   vec3 onWhite = texture2D(uWhiteTexture, vTexCoord).bgr;
   vec4 alphas = (1.0 - onWhite + onBlack).rgbg;
   gl_FragColor = alphas * uLayerOpacity;
+#endif
 }
 @end
 
@@ -315,9 +321,15 @@ uniform sampler2D uWhiteTexture;
 
 void main()
 {
+  // bug 751732 - the shader below doesn't compile on Motorola devices for
+  // unknown reasons.
+#ifdef GL_ES
+  gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+#else
   vec3 onBlack = texture2D(uBlackTexture, vTexCoord).bgr;
   vec3 onWhite = texture2D(uWhiteTexture, vTexCoord).bgr;
   vec4 alphas = (1.0 - onWhite + onBlack).rgbg;
   gl_FragColor = vec4(onBlack, alphas.a) * uLayerOpacity;
+#endif
 }
 @end
