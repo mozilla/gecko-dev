@@ -7272,6 +7272,12 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     }
 
     if (id == sJava_id || id == sPackages_id) {
+      nsIDOMDocument* domDoc = win->GetExtantDocument();
+      if (domDoc) {
+        nsCOMPtr<nsIDocument> doc = do_QueryInterface(domDoc);
+        doc->WarnOnceAbout(nsIDocument::eJavaPackages);
+      }
+
       static bool isResolvingJavaProperties;
 
       if (!isResolvingJavaProperties) {
