@@ -312,6 +312,9 @@ public:
     NS_IMETHOD         BeginMoveDrag(nsMouseEvent* aEvent);
 
     MozContainer*      GetMozContainer() { return mContainer; }
+    // GetMozContainerWidget returns the MozContainer even for undestroyed
+    // descendant windows
+    GtkWidget*         GetMozContainerWidget();
     GdkWindow*         GetGdkWindow() { return mGdkWindow; }
     bool               IsDestroyed() { return mIsDestroyed; }
 
@@ -393,7 +396,6 @@ protected:
 private:
     void               DestroyChildWindows();
     void               GetToplevelWidget(GtkWidget **aWidget);
-    GtkWidget         *GetMozContainerWidget();
     nsWindow          *GetContainerWindow();
     void               SetUrgencyHint(GtkWidget *top_window, bool state);
     void              *SetupPluginPort(void);
