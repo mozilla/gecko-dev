@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* vim: set sw=4 ts=8 et tw=80 : */
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -52,6 +52,7 @@
 #include "mozilla/layers/PCompositorParent.h"
 #include "mozilla/layers/PLayersParent.h"
 #include "base/thread.h"
+#include "mozilla/Monitor.h"
 #include "ShadowLayersManager.h"
 
 class nsIWidget;
@@ -158,6 +159,8 @@ private:
   // This flag is set during a layers update, so that the first composition
   // after a layers update has it set. It is cleared after that first composition.
   bool mLayersUpdated;
+
+  mozilla::Monitor mPauseCompositionMonitor;
 
   DISALLOW_EVIL_CONSTRUCTORS(CompositorParent);
 };
