@@ -757,3 +757,6 @@ pref("ui.scrolling.min_scrollable_distance", -1);
 // A comma-separated list of float values in the range [0.0, 1.0) that are used as
 // interpolation frames for zoom animations.
 pref("ui.zooming.animation_frames", "");
+
+// Mobile manages state by autodetection
+pref("network.manage-offline-status", true);
