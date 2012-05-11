@@ -3081,27 +3081,6 @@ mjit::Compiler::generateMethod()
             uint32_t uses = 0;
 
             jsbytecode *pc2 = NULL;
-            if (fun->joinable()) {
-                pc2 = PC + JSOP_LAMBDA_LENGTH;
-                JSOp next = JSOp(*pc2);
-
-                if (next == JSOP_INITMETHOD) {
-                    stub = stubs::LambdaJoinableForInit;
-                } else if (next == JSOP_SETMETHOD) {
-                    stub = stubs::LambdaJoinableForSet;
-                    uses = 1;
-                } else if (next == JSOP_CALL) {
-                    int iargc = GET_ARGC(pc2);
-                    if (iargc == 1 || iargc == 2) {
-                        stub = stubs::LambdaJoinableForCall;
-                        uses = frame.frameSlots();
-                    }
-                } else if (next == JSOP_NULL) {
-                    pc2 += JSOP_NULL_LENGTH;
-                    if (JSOp(*pc2) == JSOP_CALL && GET_ARGC(pc2) == 0)
-                        stub = stubs::LambdaJoinableForNull;
-                }
-            }
 
             prepareStubCall(Uses(uses));
             masm.move(ImmPtr(fun), Registers::ArgReg1);

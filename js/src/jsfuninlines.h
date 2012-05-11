@@ -84,13 +84,6 @@ JSFunction::initializeExtended()
     toExtended()->extendedSlots[1].init(js::UndefinedValue());
 }
 
-inline void
-JSFunction::setJoinable()
-{
-    JS_ASSERT(isInterpreted());
-    flags |= JSFUN_JOINABLE;
-}
-
 inline bool
 JSFunction::isClonedMethod() const
 {
