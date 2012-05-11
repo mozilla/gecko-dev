@@ -1318,11 +1318,12 @@ abstract public class GeckoApp
                 if (layer == null) {
                     layer = new PluginLayer(view, rect, mLayerController.getView().getRenderer().getMaxTextureSize());
                     tab.addPluginLayer(view, layer);
-                    mLayerController.getView().addLayer(layer);
                 } else {
                     layer.reset(rect);
                     layer.setVisible(true);
                 }
+
+                mLayerController.getView().addLayer(layer);
             }
         });
     }
