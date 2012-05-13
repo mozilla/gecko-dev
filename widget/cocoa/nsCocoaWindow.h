@@ -357,6 +357,7 @@ protected:
   bool                 mSheetNeedsShow; // if this is a sheet, are we waiting to be shown?
                                         // this is used for sibling sheet contention only
   bool                 mFullScreen;
+  bool                 mInFullScreenTransition; // true from the request to enter/exit fullscreen
   bool                 mModal;
 
   bool                 mIsAnimationSuppressed;

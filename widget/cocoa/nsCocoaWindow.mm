@@ -139,6 +139,7 @@ nsCocoaWindow::nsCocoaWindow()
 , mWindowMadeHere(false)
 , mSheetNeedsShow(false)
 , mFullScreen(false)
+, mInFullScreenTransition(false)
 , mModal(false)
 , mIsAnimationSuppressed(false)
 , mInReportMoveEvent(false)
@@ -1187,6 +1188,7 @@ NS_METHOD nsCocoaWindow::MakeFullScreen(bool aFullScreen)
 
   NS_ASSERTION(mFullScreen != aFullScreen, "Unnecessary MakeFullScreen call");
 
+  mInFullScreenTransition = true;
   NSDisableScreenUpdates();
   // The order here matters. When we exit full screen mode, we need to show the
   // Dock first, otherwise the newly-created window won't have its minimize
@@ -1196,6 +1198,7 @@ NS_METHOD nsCocoaWindow::MakeFullScreen(bool aFullScreen)
   NSEnableScreenUpdates();
   NS_ENSURE_SUCCESS(rv, rv);
 
+  mInFullScreenTransition = false;
   mFullScreen = aFullScreen;
   DispatchSizeModeEvent();
 
@@ -1452,8 +1455,13 @@ void
 nsCocoaWindow::DispatchSizeModeEvent()
 {
   nsSizeMode newMode = GetWindowSizeMode(mWindow, mFullScreen);
-  if (mSizeMode == newMode)
+
+  // Don't dispatch a sizemode event if:
+  // 1. the window is transitioning to fullscreen
+  // 2. the new sizemode is the same as the current sizemode
+  if (mInFullScreenTransition || mSizeMode == newMode) {
     return;
+  }
 
   mSizeMode = newMode;
   nsSizeModeEvent event(true, NS_SIZEMODE, this);
