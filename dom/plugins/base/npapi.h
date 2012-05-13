@@ -238,7 +238,7 @@ typedef enum {
   /* 32-bit per pixel 8-bit per channel - 1 unused channel */
   NPImageFormatBGRX32     = 0x2 
 } NPImageFormat;
-
+ 
 typedef struct _NPAsyncSurface
 {
   uint32_t version;
@@ -301,28 +301,25 @@ typedef struct
 #endif /* XP_UNIX */
 
 typedef enum {
-#if defined(XP_MACOSX)
 #ifndef NP_NO_QUICKDRAW
   NPDrawingModelQuickDraw = 0,
 #endif
+#if defined(XP_MACOSX)
   NPDrawingModelCoreGraphics = 1,
   NPDrawingModelOpenGL = 2,
   NPDrawingModelCoreAnimation = 3,
   NPDrawingModelInvalidatingCoreAnimation = 4,
 #endif
-#if defined(XP_WIN)
   NPDrawingModelSyncWin = 5,
-#endif
-#if defined(MOZ_X11)
   NPDrawingModelSyncX = 6,
-#endif
   NPDrawingModelAsyncBitmapSurface = 7
 #if defined(XP_WIN)
-  , NPDrawingModelAsyncWindowsDXGISurface = 8
+  , NPDrawingModelAsyncWindowsDXGISurface = 8,
+  NPDrawingModelAsyncWindowsDX9ExSurface = 9
 #endif
 } NPDrawingModel;
 
-#ifdef XP_MACOSX
+#if defined(XP_MACOSX)
 typedef enum {
 #ifndef NP_NO_CARBON
   NPEventModelCarbon = 0,
@@ -407,10 +404,10 @@ typedef enum {
 
   NPPVsupportsAdvancedKeyHandling = 21,
 
-  NPPVpluginUsesDOMForCursorBool = 22,
+  NPPVpluginUsesDOMForCursorBool = 22
 
   /* Used for negotiating drawing models */
-  NPPVpluginDrawingModel = 1000
+  , NPPVpluginDrawingModel = 1000
 #if defined(XP_MACOSX)
   /* Used for negotiating event models */
   , NPPVpluginEventModel = 1001
@@ -418,7 +415,7 @@ typedef enum {
   , NPPVpluginCoreAnimationLayer = 1003
 #endif
 
-#if defined(MOZ_PLATFORM_MAEMO) && ((MOZ_PLATFORM_MAEMO == 5) || (MOZ_PLATFORM_MAEMO == 6))
+#if (MOZ_PLATFORM_MAEMO == 5) || (MOZ_PLATFORM_MAEMO == 6)
   , NPPVpluginWindowlessLocalBool = 2002
 #endif
 } NPPVariable;
@@ -452,11 +449,11 @@ typedef enum {
 
   NPNVsupportsAdvancedKeyHandling = 21,
 
-  NPNVdocumentOrigin = 22,
+  NPNVdocumentOrigin = 22
 
-  NPNVpluginDrawingModel = 1000 /* Get the current drawing model (NPDrawingModel) */
+  /* Used for negotiating drawing models */
+  , NPNVpluginDrawingModel = 1000
 #if defined(XP_MACOSX)
-  , NPNVcontentsScaleFactor = 1001
 #ifndef NP_NO_QUICKDRAW
   , NPNVsupportsQuickDrawBool = 2000
 #endif
@@ -465,10 +462,13 @@ typedef enum {
   , NPNVsupportsCoreAnimationBool = 2003
   , NPNVsupportsInvalidatingCoreAnimationBool = 2004
 #endif
-  , NPNVsupportsAsyncBitmapSurfaceBool = 2007
+  , NPNVsupportsSyncDrawingBool = 2005
+  , NPNVsupportsAsyncBitmapSurfaceBool = 2006
 #if defined(XP_WIN)
-  , NPNVsupportsAsyncWindowsDXGISurfaceBool = 2008
+  , NPNVsupportsAsyncWindowsDXGISurfaceBool = 2007
+  , NPNVsupportsAsyncWindowsDX9ExSurfaceBool = 2008
 #endif
+
 #if defined(XP_MACOSX)
 #ifndef NP_NO_CARBON
   , NPNVsupportsCarbonBool = 3000 /* TRUE if the browser supports the Carbon event model */
@@ -479,7 +479,7 @@ typedef enum {
   , NPNVsupportsCompositingCoreAnimationPluginsBool = 74656 /* TRUE if the browser supports
                                                                CA model compositing */
 #endif
-#if defined(MOZ_PLATFORM_MAEMO) && ((MOZ_PLATFORM_MAEMO == 5) || (MOZ_PLATFORM_MAEMO == 6))
+#if (MOZ_PLATFORM_MAEMO == 5) || (MOZ_PLATFORM_MAEMO == 6)
   , NPNVSupportsWindowlessLocal = 2002
 #endif
 } NPNVariable;
