@@ -1031,12 +1031,10 @@ ContainerState::PopThebesLayerData()
       nsRefPtr<ImageLayer> imageLayer = CreateOrRecycleImageLayer();
       imageLayer->SetContainer(imageContainer);
       data->mImage->ConfigureLayer(imageLayer);
-      if (mParameters.mInActiveTransformedSubtree) {
-        // The layer's current transform is applied first, then the result is scaled.
-        gfx3DMatrix transform = imageLayer->GetTransform()*
-          gfx3DMatrix::ScalingMatrix(mParameters.mXScale, mParameters.mYScale, 1.0f);
-        imageLayer->SetTransform(transform);
-      }
+      // The layer's current transform is applied first, then the result is scaled.
+      gfx3DMatrix transform = imageLayer->GetTransform()*
+        gfx3DMatrix::ScalingMatrix(mParameters.mXScale, mParameters.mYScale, 1.0f);
+      imageLayer->SetTransform(transform);
       NS_ASSERTION(data->mImageClip.mRoundedClipRects.IsEmpty(),
                    "How did we get rounded clip rects here?");
       if (data->mImageClip.mHaveClipRect) {
