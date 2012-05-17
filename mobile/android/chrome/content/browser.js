@@ -2936,7 +2936,7 @@ const ElementTouchHelper = {
       aX -= rect.left;
       aY -= rect.top;
       cwu = elem.contentDocument.defaultView.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
-      elem = ElementTouchHelper.getClosest(cwu, aX, aY);
+      elem = this.getClosest(cwu, aX, aY);
     }
 
     return elem;
@@ -2975,7 +2975,7 @@ const ElementTouchHelper = {
     if (this.isElementClickable(target, unclickableCache))
       return target;
 
-    let target = null;
+    target = null;
     let nodes = aWindowUtils.nodesFromRect(aX, aY, this.radius.top * dpiRatio,
                                                    this.radius.right * dpiRatio,
                                                    this.radius.bottom * dpiRatio,
