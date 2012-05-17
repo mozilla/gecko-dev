@@ -2335,7 +2335,7 @@ Tab.prototype = {
   },
 
   OnHistoryPurge: function(aNumEntries) {
-    this._sendHistoryEvent("Purge", -1, null);
+    this._sendHistoryEvent("Purge", aNumEntries, null);
     return true;
   },
 
