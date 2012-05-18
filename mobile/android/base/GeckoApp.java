@@ -672,6 +672,8 @@ abstract public class GeckoApp
         tab.removeTransientDoorHangers();
         tab.setAllowZoom(true);
         tab.setDefaultZoom(0);
+        tab.setMinZoom(0);
+        tab.setMaxZoom(0);
         tab.setHasTouchListeners(false);
         tab.setCheckerboardColor(Color.WHITE);
 
@@ -1005,11 +1007,15 @@ abstract public class GeckoApp
                     return;
                 tab.setAllowZoom(message.getBoolean("allowZoom"));
                 tab.setDefaultZoom((float) message.getDouble("defaultZoom"));
+                tab.setMinZoom((float) message.getDouble("minZoom"));
+                tab.setMaxZoom((float) message.getDouble("maxZoom"));
                 // Sync up the LayerController and the tab if the tab's currently displayed.
                 LayerController controller = getLayerController();
                 if (controller != null && Tabs.getInstance().isSelectedTab(tab)) {
                     controller.setAllowZoom(tab.getAllowZoom());
                     controller.setDefaultZoom(tab.getDefaultZoom());
+                    controller.setMinZoom(tab.getMinZoom());
+                    controller.setMaxZoom(tab.getMaxZoom());
                 }
             } else if (event.equals("Tab:HasTouchListener")) {
                 int tabId = message.getInt("tabID");
