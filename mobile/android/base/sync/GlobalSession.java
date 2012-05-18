@@ -533,30 +533,26 @@ public class GlobalSession implements CredentialsSource, PrefsSource, HttpRespon
   /**
    * Do a fresh start then quietly finish the sync, starting another.
    */
-  public void freshStart() {
-    // TODO: Bugs 745430 and 745431, especially Bug 709313: Support
-    // blank server after node reassignment or initial setup.
-    abort(null, "aborting freshStart because uploading fresh meta/global record is not yet implemented.");
+  protected void freshStart() {
+    final GlobalSession globalSession = this;
+    freshStart(this, new FreshStartDelegate() {
 
-    // final GlobalSession globalSession = this;
-    // freshStart(this, new FreshStartDelegate() {
-    //
-    //   @Override
-    //   public void onFreshStartFailed(Exception e) {
-    //     globalSession.abort(e, "Fresh start failed.");
-    //   }
-    //
-    //   @Override
-    //   public void onFreshStart() {
-    //     try {
-    //       globalSession.config.persistToPrefs();
-    //       globalSession.restart();
-    //     } catch (Exception e) {
-    //       Logger.warn(LOG_TAG, "Got exception when restarting sync after freshStart.", e);
-    //       globalSession.abort(e, "Got exception after freshStart.");
-    //     }
-    //   }
-    // });
+      @Override
+      public void onFreshStartFailed(Exception e) {
+        globalSession.abort(e, "Fresh start failed.");
+      }
+
+      @Override
+      public void onFreshStart() {
+        try {
+          globalSession.config.persistToPrefs();
+          globalSession.restart();
+        } catch (Exception e) {
+          Logger.warn(LOG_TAG, "Got exception when restarting sync after freshStart.", e);
+          globalSession.abort(e, "Got exception after freshStart.");
+        }
+      }
+    });
   }
 
   /**

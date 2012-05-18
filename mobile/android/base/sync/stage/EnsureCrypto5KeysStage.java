@@ -130,30 +130,27 @@ implements SyncStorageRequestDelegate, KeyUploadDelegate {
     int statusCode = response.getStatusCode();
     Logger.debug(LOG_TAG, "Got " + statusCode + " fetching keys.");
     if (statusCode == 404) {
-      // TODO: Bugs 745430 and 745431, especially Bug 709313: Support
-      // blank server after node reassignment or initial setup.
-      session.abort(null, "aborting after finding keys missing because uploading fresh crypto/keys record is not yet implemented.");
+      // No keys. Generate and upload, then refetch.
+      CryptoRecord keysWBO;
+      try {
+        keysWBO = CollectionKeys.generateCollectionKeysRecord();
+      } catch (CryptoException e) {
+        session.abort(e, "Couldn't generate new key bundle.");
+        return;
+      }
+      keysWBO.keyBundle = session.config.syncKeyBundle;
+      try {
+        keysWBO.encrypt();
+      } catch (UnsupportedEncodingException e) {
+        // Shouldn't occur, so let's not waste too much time on niceties. TODO
+        session.abort(e, "Couldn't encrypt new key bundle: unsupported encoding.");
+        return;
+      } catch (CryptoException e) {
+        session.abort(e, "Couldn't encrypt new key bundle.");
+        return;
+      }
+      session.uploadKeys(keysWBO, this);
       return;
-      // // No keys. Generate and upload, then refetch.
-      // CryptoRecord keysWBO;
-      // try {
-      //   keysWBO = CollectionKeys.generateCollectionKeysRecord();
-      // } catch (CryptoException e) {
-      //   session.abort(e, "Couldn't generate new key bundle.");
-      //   return;
-      // }
-      // keysWBO.keyBundle = session.config.syncKeyBundle;
-      // try {
-      //   keysWBO.encrypt();
-      // } catch (UnsupportedEncodingException e) {
-      //   // Shouldn't occur, so let's not waste too much time on niceties. TODO
-      //   session.abort(e, "Couldn't encrypt new key bundle: unsupported encoding.");
-      //   return;
-      // } catch (CryptoException e) {
-      //   session.abort(e, "Couldn't encrypt new key bundle.");
-      //   return;
-      // }
-      // session.uploadKeys(keysWBO, this);
     }
     session.handleHTTPError(response, "Failure fetching keys.");
   }
