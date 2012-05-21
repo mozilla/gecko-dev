@@ -494,8 +494,7 @@ nsTextControlFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
                                     nsSize aMargin, nsSize aBorder,
                                     nsSize aPadding, bool aShrinkWrap)
 {
-  float inflation =
-    nsLayoutUtils::FontSizeInflationFor(this, nsLayoutUtils::eInReflow);
+  float inflation = nsLayoutUtils::FontSizeInflationFor(this);
   nsSize autoSize;
   nsresult rv = CalcIntrinsicSize(aRenderingContext, autoSize, inflation);
   if (NS_FAILED(rv)) {
@@ -602,8 +601,7 @@ nsTextControlFrame::GetBoxAscent(nsBoxLayoutState& aState)
   // Return the baseline of the first (nominal) row, with centering for
   // single-line controls.
 
-  float inflation =
-    nsLayoutUtils::FontSizeInflationFor(this, nsLayoutUtils::eInReflow);
+  float inflation = nsLayoutUtils::FontSizeInflationFor(this);
 
   // First calculate the ascent wrt the client rect
   nsRect clientRect;
