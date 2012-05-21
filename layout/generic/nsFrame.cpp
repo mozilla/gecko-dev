@@ -3910,7 +3910,7 @@ nsFrame::ShrinkWidthToFit(nsRenderingContext *aRenderingContext,
 {
   // If we're a container for font size inflation, then shrink
   // wrapping inside of us should not apply font size inflation.
-  AutoMaybeNullInflationContainer an(this);
+  AutoMaybeDisableFontInflation an(this);
 
   nscoord result;
   nscoord minWidth = GetMinWidth(aRenderingContext);
@@ -7344,7 +7344,7 @@ nsFrame::RefreshSizeCache(nsBoxLayoutState& aState)
     {
       // If we're a container for font size inflation, then shrink
       // wrapping inside of us should not apply font size inflation.
-      AutoMaybeNullInflationContainer an(this);
+      AutoMaybeDisableFontInflation an(this);
 
       metrics->mBlockPrefSize.width =
         GetPrefWidth(rendContext) + bp.LeftRight();
