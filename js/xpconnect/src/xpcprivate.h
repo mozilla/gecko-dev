@@ -2145,7 +2145,13 @@ public:
     void
     SetScriptableShared(XPCNativeScriptableShared* shared) {mShared = shared;}
 
-    void Mark() {if (mShared) mShared->Mark();}
+    void Mark() {
+        if (mShared)
+            mShared->Mark();
+    }
+
+    void TraceJS(JSTracer *trc) {}
+    void AutoTrace(JSTracer *trc) {}
 
 protected:
     XPCNativeScriptableInfo(nsIXPCScriptable* scriptable = nsnull,
@@ -4162,6 +4168,7 @@ DEFINE_AUTO_MARKING_PTR_TYPE(AutoMarkingWrappedNativePtr, XPCWrappedNative)
 DEFINE_AUTO_MARKING_PTR_TYPE(AutoMarkingWrappedNativeTearOffPtr, XPCWrappedNativeTearOff)
 DEFINE_AUTO_MARKING_PTR_TYPE(AutoMarkingWrappedNativeProtoPtr, XPCWrappedNativeProto)
 DEFINE_AUTO_MARKING_PTR_TYPE(AutoMarkingJSVal, XPCMarkableJSVal)
+DEFINE_AUTO_MARKING_PTR_TYPE(AutoMarkingNativeScriptableInfoPtr, XPCNativeScriptableInfo)
 
 #define DEFINE_AUTO_MARKING_ARRAY_PTR_TYPE(class_, type_)                     \
 class class_ : public AutoMarkingPtr                                          \
