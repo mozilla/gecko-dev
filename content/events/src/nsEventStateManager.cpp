@@ -2206,6 +2206,8 @@ nsEventStateManager::DetermineDragTarget(nsPresContext* aPresContext,
 
   nsCOMPtr<nsISupports> container = aPresContext->GetContainer();
   nsCOMPtr<nsIDOMWindow> window = do_GetInterface(container);
+  if (!window)
+    return;
 
   // GetDragData determines if a selection, link or image in the content
   // should be dragged, and places the data associated with the drag in the
