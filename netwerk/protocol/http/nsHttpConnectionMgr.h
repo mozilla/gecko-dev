@@ -398,6 +398,8 @@ private:
         
         nsHttpTransaction *Transaction() { return mTransaction; }
 
+        bool HasConnected() { return mHasConnected; }
+
     private:
         nsConnectionEntry              *mEnt;
         nsRefPtr<nsHttpTransaction>    mTransaction;
@@ -413,6 +415,8 @@ private:
         nsCOMPtr<nsISocketTransport>   mBackupTransport;
         nsCOMPtr<nsIAsyncOutputStream> mBackupStreamOut;
         nsCOMPtr<nsIAsyncInputStream>  mBackupStreamIn;
+
+        bool                           mHasConnected;
     };
     friend class nsHalfOpenSocket;
 
