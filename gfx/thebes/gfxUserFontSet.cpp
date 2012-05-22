@@ -629,7 +629,7 @@ gfxUserFontSet::LoadFont(gfxProxyFontEntry *aProxy,
     // accessible/usable anyhow (maybe the font set got modified right as
     // the load was completing?)
     if (!aProxy->Family()) {
-        NS_Free(aFontData);
+        NS_Free(const_cast<PRUint8*>(aFontData));
         return nsnull;
     }
 
