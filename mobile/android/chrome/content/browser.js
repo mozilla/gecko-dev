@@ -151,14 +151,6 @@ var Strings = {};
   });
 });
 
-var MetadataProvider = {
-  getDrawMetadata: function getDrawMetadata() {
-    let viewport = BrowserApp.selectedTab.getViewport();
-    viewport.zoom = BrowserApp.selectedTab._drawZoom;
-    return JSON.stringify(viewport);
-  },
-};
-
 var BrowserApp = {
   _tabs: [],
   _selectedTab: null,
@@ -172,8 +164,6 @@ var BrowserApp = {
     this.deck = document.getElementById("browsers");
     BrowserEventHandler.init();
     ViewportHandler.init();
-
-    getBridge().setDrawMetadataProvider(MetadataProvider);
 
     getBridge().browserApp = this;
 

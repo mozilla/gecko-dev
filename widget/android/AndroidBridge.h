@@ -337,8 +337,6 @@ public:
     
     void HandleGeckoMessage(const nsAString& message, nsAString &aRet);
 
-    nsCOMPtr<nsIAndroidDrawMetadataProvider> GetDrawMetadataProvider();
-
     void CheckURIVisited(const nsAString& uri);
     void MarkURIVisited(const nsAString& uri);
 
