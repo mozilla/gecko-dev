@@ -320,21 +320,15 @@ CompositorParent::TransformShadowTree()
   float rootScaleY = rootTransform.GetYScale();
 
   if (mIsFirstPaint && metrics) {
-    nsIntPoint scrollOffset = metrics->mViewportScrollOffset;
-    mContentSize = metrics->mContentSize;
-    mozilla::AndroidBridge::Bridge()->SetFirstPaintViewport(scrollOffset.x, scrollOffset.y,
+    mContentRect = metrics->mContentRect;
+    mozilla::AndroidBridge::Bridge()->SetFirstPaintViewport(metrics->mViewportScrollOffset,
                                                             1/rootScaleX,
-                                                            mContentSize.width,
-                                                            mContentSize.height,
-                                                            metrics->mCSSContentSize.width,
-                                                            metrics->mCSSContentSize.height);
+                                                            mContentRect,
+                                                            metrics->mCSSContentRect);
     mIsFirstPaint = false;
-  } else if (metrics && (metrics->mContentSize != mContentSize)) {
-    mContentSize = metrics->mContentSize;
-    mozilla::AndroidBridge::Bridge()->SetPageSize(1/rootScaleX, mContentSize.width,
-                                                  mContentSize.height,
-                                                  metrics->mCSSContentSize.width,
-                                                  metrics->mCSSContentSize.height);
+  } else if (metrics && !metrics->mContentRect.IsEqualEdges(mContentRect)) {
+    mContentRect = metrics->mContentRect;
+    mozilla::AndroidBridge::Bridge()->SetPageRect(1/rootScaleX, mContentRect, metrics->mCSSContentRect);
   }
 
   // We synchronise the viewport information with Java after sending the above
