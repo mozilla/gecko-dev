@@ -3417,6 +3417,8 @@ BEGIN_CASE(JSOP_NEWINIT)
     obj->setType(type);
 
     PUSH_OBJECT(*obj);
+    TypeScript::Monitor(cx, script, regs.pc, regs.sp[-1]);
+
     CHECK_INTERRUPT_HANDLER();
 }
 END_CASE(JSOP_NEWINIT)
@@ -3434,6 +3436,8 @@ BEGIN_CASE(JSOP_NEWARRAY)
     obj->setType(type);
 
     PUSH_OBJECT(*obj);
+    TypeScript::Monitor(cx, script, regs.pc, regs.sp[-1]);
+
     CHECK_INTERRUPT_HANDLER();
 }
 END_CASE(JSOP_NEWARRAY)
@@ -3451,6 +3455,8 @@ BEGIN_CASE(JSOP_NEWOBJECT)
         goto error;
 
     PUSH_OBJECT(*obj);
+    TypeScript::Monitor(cx, script, regs.pc, regs.sp[-1]);
+
     CHECK_INTERRUPT_HANDLER();
 }
 END_CASE(JSOP_NEWOBJECT)
