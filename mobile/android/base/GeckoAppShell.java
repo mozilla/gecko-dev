@@ -485,8 +485,7 @@ public class GeckoAppShell
         if (restoreMode != RESTORE_NONE)
             combinedArgs += " -restoremode " + restoreMode;
 
-        DisplayMetrics metrics = new DisplayMetrics();
-        GeckoApp.mAppContext.getWindowManager().getDefaultDisplay().getMetrics(metrics);
+        DisplayMetrics metrics = GeckoApp.mAppContext.getDisplayMetrics();
         combinedArgs += " -width " + metrics.widthPixels + " -height " + metrics.heightPixels;
 
         GeckoApp.mAppContext.runOnUiThread(new Runnable() {
@@ -1192,9 +1191,7 @@ public class GeckoAppShell
 
     public static int getDpi() {
         if (sDensityDpi == 0) {
-            DisplayMetrics metrics = new DisplayMetrics();
-            GeckoApp.mAppContext.getWindowManager().getDefaultDisplay().getMetrics(metrics);
-            sDensityDpi = metrics.densityDpi;
+            sDensityDpi = GeckoApp.mAppContext.getDisplayMetrics().densityDpi;
         }
 
         return sDensityDpi;
