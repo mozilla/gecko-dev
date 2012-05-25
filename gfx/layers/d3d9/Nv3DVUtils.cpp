@@ -126,15 +126,14 @@ Nv3DVUtils::SetDeviceInfo(IUnknown *devUnknown)
       return;
   }
 
-  bool rv = false;
-  rv = m3DVStreaming->Nv3DVSetDevice(devUnknown);
-  if (rv) {
+  bool rv = m3DVStreaming->Nv3DVSetDevice(devUnknown);
+  if (!rv) {
       NS_WARNING("Nv3DVStreaming Nv3DVControl failed!");
       return;
   }
 
   rv = m3DVStreaming->Nv3DVControl(NV_STEREO_MODE_RIGHT_LEFT, true, FIREFOX_3DV_APP_HANDLE);
-  NS_WARN_IF_FALSE(!rv, "Nv3DVStreaming Nv3DVControl failed!");
+  NS_WARN_IF_FALSE(rv, "Nv3DVStreaming Nv3DVControl failed!");
 }
 
 /*
@@ -148,7 +147,7 @@ Nv3DVUtils::SendNv3DVControl(Nv_Stereo_Mode eStereoMode, bool bEnableStereo, DWO
       return;
 
   DebugOnly<bool> rv = m3DVStreaming->Nv3DVControl(eStereoMode, bEnableStereo, dw3DVAppHandle);
-  NS_WARN_IF_FALSE(!rv, "Nv3DVStreaming Nv3DVControl failed!");
+  NS_WARN_IF_FALSE(rv, "Nv3DVStreaming Nv3DVControl failed!");
 }
 
 /*
@@ -162,7 +161,7 @@ Nv3DVUtils::SendNv3DVMetaData(unsigned int dwWidth, unsigned int dwHeight, HANDL
       return;
 
   DebugOnly<bool> rv = m3DVStreaming->Nv3DVMetaData((DWORD)dwWidth, (DWORD)dwHeight, hSrcLuma, hDst);
-  NS_WARN_IF_FALSE(!rv, "Nv3DVStreaming Nv3DVMetaData failed!");
+  NS_WARN_IF_FALSE(rv, "Nv3DVStreaming Nv3DVMetaData failed!");
 }
 
 } /* namespace layers */
