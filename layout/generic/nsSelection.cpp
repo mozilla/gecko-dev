@@ -700,7 +700,6 @@ nsSelectionIterator::IsDone()
 ////////////BEGIN nsFrameSelection methods
 
 nsFrameSelection::nsFrameSelection()
-  : mDelayedMouseEvent(false, 0, nsnull, nsMouseEvent::eReal)
 {
   PRInt32 i;
   for (i = 0;i<nsISelectionController::NUM_SELECTIONTYPES;i++){
@@ -3340,25 +3339,13 @@ nsFrameSelection::DeleteFromDocument()
 void
 nsFrameSelection::SetDelayedCaretData(nsMouseEvent *aMouseEvent)
 {
-  if (aMouseEvent)
-  {
+  if (aMouseEvent) {
     mDelayedMouseEventValid = true;
-    mDelayedMouseEvent      = *aMouseEvent;
-
-    // Don't cache the widget.  We don't need it and it could go away.
-    mDelayedMouseEvent.widget = nsnull;
-  }
-  else
+    mDelayedMouseEventIsShift = aMouseEvent->IsShift();
+    mDelayedMouseEventClickCount = aMouseEvent->clickCount;
+  } else {
     mDelayedMouseEventValid = false;
-}
-
-nsMouseEvent*
-nsFrameSelection::GetDelayedCaretData()
-{
-  if (mDelayedMouseEventValid)
-    return &mDelayedMouseEvent;
-  
-  return nsnull;
+  }
 }
 
 void
