@@ -3341,7 +3341,7 @@ nsFrameSelection::SetDelayedCaretData(nsMouseEvent *aMouseEvent)
 {
   if (aMouseEvent) {
     mDelayedMouseEventValid = true;
-    mDelayedMouseEventIsShift = aMouseEvent->IsShift();
+    mDelayedMouseEventIsShift = aMouseEvent->isShift;
     mDelayedMouseEventClickCount = aMouseEvent->clickCount;
   } else {
     mDelayedMouseEventValid = false;
