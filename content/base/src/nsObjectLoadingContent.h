@@ -242,7 +242,8 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
     void CreateStaticClone(nsObjectLoadingContent* aDest) const;
 
-    static void DoStopPlugin(nsPluginInstanceOwner *aInstanceOwner, bool aDelayedStop);
+    void DoStopPlugin(nsPluginInstanceOwner* aInstanceOwner, bool aDelayedStop,
+                      bool aForcedReentry = false);
 
   private:
 
@@ -400,6 +401,9 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     // Used to keep track of whether or not a plugin should be played.
     // This is used for click-to-play plugins.
     bool                        mShouldPlay : 1;
+
+    // Protects DoStopPlugin from reentry (bug 724781).
+    bool                        mIsStopping : 1;
 
     // Used to track when we might try to instantiate a plugin instance based on
     // a src data stream being delivered to this object. When this is true we don't
