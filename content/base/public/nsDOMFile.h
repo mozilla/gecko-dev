@@ -70,6 +70,7 @@ class nsIBlobBuilder;
 nsresult NS_NewBlobBuilder(nsISupports* *aSupports);
 
 class nsDOMFileBase : public nsIDOMFile,
+                      public nsIDOMBlob_GECKO_13,
                       public nsIXHRSendable,
                       public nsIMutable
 {
@@ -116,6 +117,7 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMBLOB
   NS_DECL_NSIDOMFILE
+  NS_DECL_NSIDOMBLOB_GECKO_13
   NS_DECL_NSIXHRSENDABLE
   NS_DECL_NSIMUTABLE
 
