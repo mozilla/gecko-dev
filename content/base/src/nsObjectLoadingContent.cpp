@@ -340,7 +340,6 @@ public:
   nsStopPluginRunnable(nsPluginInstanceOwner* aInstanceOwner,
                        nsObjectLoadingContent* aContent)
     : mInstanceOwner(aInstanceOwner)
-    , mContentKungFuDeathGrip(aContent)
     , mContent(aContent)
   {
     NS_ASSERTION(aInstanceOwner, "need an owner");
@@ -356,8 +355,7 @@ public:
 private:
   nsCOMPtr<nsITimer> mTimer;
   nsRefPtr<nsPluginInstanceOwner> mInstanceOwner;
-  nsCOMPtr<nsIObjectLoadingContent> mContentKungFuDeathGrip;
-  nsObjectLoadingContent* mContent;
+  nsCOMPtr<nsIObjectLoadingContent> mContent;
 };
 
 NS_IMPL_ISUPPORTS_INHERITED1(nsStopPluginRunnable, nsRunnable, nsITimerCallback)
@@ -396,7 +394,8 @@ nsStopPluginRunnable::Run()
 
   mTimer = nsnull;
 
-  mContent->DoStopPlugin(mInstanceOwner, false, true);
+  static_cast<nsObjectLoadingContent*>(mContent.get())->
+    DoStopPlugin(mInstanceOwner, false, true);
 
   return NS_OK;
 }
