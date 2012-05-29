@@ -95,6 +95,7 @@ public class Tabs implements GeckoEventListener {
             GeckoApp.mAppContext.mMainHandler.post(new Runnable() {
                 public void run() {
                     GeckoApp.mBrowserToolbar.updateTabCountAndAnimate(getCount());
+                    GeckoApp.mAppContext.invalidateOptionsMenu();
                 }
             });
         }
@@ -137,6 +138,7 @@ public class Tabs implements GeckoEventListener {
                     GeckoApp.mBrowserToolbar.setFavicon(tab.getFavicon());
                     GeckoApp.mBrowserToolbar.setSecurityMode(tab.getSecurityMode());
                     GeckoApp.mBrowserToolbar.setProgressVisibility(tab.getState() == Tab.STATE_LOADING);
+                    GeckoApp.mAppContext.invalidateOptionsMenu();
                     GeckoApp.mDoorHangerPopup.updatePopup();
                     GeckoApp.mBrowserToolbar.setShadowVisibility((url == null) || !url.startsWith("about:"));
                     notifyListeners(tab, TabEvents.SELECTED);

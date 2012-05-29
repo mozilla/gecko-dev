@@ -376,6 +376,17 @@ abstract public class GeckoApp
     }
 
     @Override
+    public void invalidateOptionsMenu() {
+        if (sMenu == null)
+            return;
+
+        onPrepareOptionsMenu(sMenu);
+
+        if (Build.VERSION.SDK_INT >= 11)
+            super.invalidateOptionsMenu();
+    }
+
+    @Override
     public boolean onCreateOptionsMenu(Menu menu)
     {
         sMenu = menu;
@@ -690,6 +701,7 @@ abstract public class GeckoApp
                     mBrowserToolbar.setTitle(uri);
                     mBrowserToolbar.setFavicon(null);
                     mBrowserToolbar.setSecurityMode("unknown");
+                    invalidateOptionsMenu();
                     mDoorHangerPopup.updatePopup();
                     mBrowserToolbar.setShadowVisibility(!(tab.getURL().startsWith("about:")));
 
@@ -728,6 +740,7 @@ abstract public class GeckoApp
                     mBrowserToolbar.setFavicon(tab.getFavicon());
                     mBrowserToolbar.setSecurityMode(tab.getSecurityMode());
                     mBrowserToolbar.setProgressVisibility(tab.getState() == Tab.STATE_LOADING);
+                    invalidateOptionsMenu();
                 }
             }
         });
@@ -1236,6 +1249,7 @@ abstract public class GeckoApp
             public void run() {
                 if (Tabs.getInstance().isSelectedTab(tab)) {
                     mBrowserToolbar.setSecurityMode(tab.getSecurityMode());
+                    invalidateOptionsMenu();
                     if (showProgress && tab.getState() == Tab.STATE_LOADING)
                         mBrowserToolbar.setProgressVisibility(true);
                 }
@@ -1253,8 +1267,10 @@ abstract public class GeckoApp
 
         mMainHandler.post(new Runnable() {
             public void run() {
-                if (Tabs.getInstance().isSelectedTab(tab))
+                if (Tabs.getInstance().isSelectedTab(tab)) {
+                    invalidateOptionsMenu();
                     mBrowserToolbar.setProgressVisibility(false);
+                }
                 Tabs.getInstance().notifyListeners(tab, Tabs.TabEvents.STOP);
             }
         });
@@ -1511,6 +1527,7 @@ abstract public class GeckoApp
             LinearLayout actionBar = (LinearLayout) getLayoutInflater().inflate(R.layout.browser_toolbar, null);
             mBrowserToolbar.from(actionBar);
             mBrowserToolbar.refresh();
+            invalidateOptionsMenu();
             GeckoActionBar.setBackgroundDrawable(this, getResources().getDrawable(R.drawable.gecko_actionbar_bg));
             GeckoActionBar.setCustomView(this, actionBar);
         }
@@ -1573,6 +1590,8 @@ abstract public class GeckoApp
 
     private void initialize() {
         mInitialized = true;
+
+        invalidateOptionsMenu();
 
         Intent intent = getIntent();
         String action = intent.getAction();
