@@ -2660,7 +2660,7 @@ abstract public class GeckoApp
 
     static abstract class FilePickerResultHandler implements ActivityResultHandler {
         String handleActivityResult(int resultCode, Intent data) {
-            if (data == null && resultCode != RESULT_OK)
+            if (data == null || resultCode != RESULT_OK)
                 return "";
             Uri uri = data.getData();
             if ("file".equals(uri.getScheme())) {
