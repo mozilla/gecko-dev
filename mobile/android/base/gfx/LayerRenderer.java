@@ -162,12 +162,11 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
         "    gl_FragColor = texture2D(sTexture, vec2(vTexCoord.x, 1.0 - vTexCoord.y));\n" +
         "}\n";
 
-    public void setCheckerboardBitmap(Bitmap bitmap, float pageWidth, float pageHeight) {
+    public void setCheckerboardBitmap(Bitmap bitmap, RectF pageRect) {
         mCheckerboardLayer.setBitmap(bitmap);
         mCheckerboardLayer.beginTransaction();
         try {
-            mCheckerboardLayer.setPosition(new Rect(0, 0, Math.round(pageWidth),
-                                                    Math.round(pageHeight)));
+            mCheckerboardLayer.setPosition(RectUtils.round(pageRect));
             mCheckerboardLayer.invalidate();
         } finally {
             mCheckerboardLayer.endTransaction();
@@ -176,12 +175,11 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
 
     public void updateCheckerboardBitmap(Bitmap bitmap, float x, float y,
                                          float width, float height,
-                                         float pageWidth, float pageHeight) {
+                                         RectF pageRect) {
         mCheckerboardLayer.updateBitmap(bitmap, x, y, width, height);
         mCheckerboardLayer.beginTransaction();
         try {
-            mCheckerboardLayer.setPosition(new Rect(0, 0, Math.round(pageWidth),
-                                                    Math.round(pageHeight)));
+            mCheckerboardLayer.setPosition(RectUtils.round(pageRect));
             mCheckerboardLayer.invalidate();
         } finally {
             mCheckerboardLayer.endTransaction();
