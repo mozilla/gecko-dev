@@ -37,6 +37,8 @@
 
 package org.mozilla.gecko;
 
+import android.util.Log;
+
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
