@@ -290,7 +290,7 @@ include $(topsrcdir)/toolkit/mozapps/installer/package-name.mk
 
 ifndef UNIVERSAL_BINARY
 PKG_STAGE = $(DIST)/test-package-stage
-package-tests: stage-mochitest stage-reftest stage-xpcshell stage-jstests stage-jetpack stage-firebug stage-peptest stage-mozbase
+package-tests: stage-mochitest stage-reftest stage-xpcshell stage-jstests stage-jetpack stage-firebug stage-peptest stage-mozbase stage-modules
 else
 # This staging area has been built for us by universal/flight.mk
 PKG_STAGE = $(DIST)/universal/test-package-stage
@@ -352,10 +352,14 @@ stage-peptest: make-stage-dir
 
 stage-mozbase: make-stage-dir
 	$(MAKE) -C $(DEPTH)/testing/mozbase stage-package
+
+stage-modules: make-stage-dir
+	$(TOUCH) $(PKG_STAGE)/modules/.dummy
+
 .PHONY: \
   mochitest mochitest-plain mochitest-chrome mochitest-a11y mochitest-ipcplugins \
   reftest crashtest \
   xpcshell-tests \
   jstestbrowser \
   peptest \
-  package-tests make-stage-dir stage-mochitest stage-reftest stage-xpcshell stage-jstests stage-android stage-jetpack stage-firebug stage-peptest stage-mozbase
+  package-tests make-stage-dir stage-mochitest stage-reftest stage-xpcshell stage-jstests stage-android stage-jetpack stage-firebug stage-peptest stage-mozbase stage-modules
