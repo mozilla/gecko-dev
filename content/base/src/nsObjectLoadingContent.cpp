@@ -2208,6 +2208,7 @@ nsObjectLoadingContent::DoStopPlugin(nsPluginInstanceOwner* aInstanceOwner,
   }
   mIsStopping = true;
 
+  nsRefPtr<nsPluginInstanceOwner> kungFuDeathGrip(aInstanceOwner);
   nsRefPtr<nsNPAPIPluginInstance> inst;
   aInstanceOwner->GetInstance(getter_AddRefs(inst));
   if (inst) {
