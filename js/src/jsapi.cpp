@@ -790,6 +790,7 @@ JSRuntime::JSRuntime()
     pendingProxyOperation(NULL),
     trustedPrincipals_(NULL),
     wrapObjectCallback(TransparentObjectWrapper),
+    sameCompartmentWrapObjectCallback(NULL),
     preWrapObjectCallback(NULL),
     preserveWrapperCallback(NULL),
 #ifdef DEBUG
@@ -1325,10 +1326,12 @@ JS_SetDestroyCompartmentCallback(JSRuntime *rt, JSDestroyCompartmentCallback cal
 JS_PUBLIC_API(JSWrapObjectCallback)
 JS_SetWrapObjectCallbacks(JSRuntime *rt,
                           JSWrapObjectCallback callback,
+                          JSSameCompartmentWrapObjectCallback sccallback,
                           JSPreWrapCallback precallback)
 {
     JSWrapObjectCallback old = rt->wrapObjectCallback;
     rt->wrapObjectCallback = callback;
+    rt->sameCompartmentWrapObjectCallback = sccallback;
     rt->preWrapObjectCallback = precallback;
     return old;
 }
