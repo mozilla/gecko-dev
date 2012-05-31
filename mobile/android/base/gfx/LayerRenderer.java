@@ -349,15 +349,9 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
                                  mCoordBuffer);
     }
 
-    public void onSurfaceChanged(GL10 gl, final int width, final int height) {
+    public void resizeView(final int width, final int height) {
         mSurfaceWidth = width;
         mSurfaceHeight = height;
-
-        GLES20.glViewport(0, 0, width, height);
-
-        if (mFrameRateLayer != null) {
-            moveFrameRateLayer(width, height);
-        }
 
         // updating the state in the view/controller/client should be
         // done on the main UI thread, not the GL renderer thread
@@ -368,6 +362,11 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
         });
 
         /* TODO: Throw away tile images? */
+    }
+
+    @Override
+    public void onSurfaceChanged(GL10 gl, final int width, final int height) {
+        resizeView(width, height);
     }
 
     private void updateDroppedFrames(long frameStartTime) {
