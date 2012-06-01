@@ -47,17 +47,17 @@ struct SurfaceDescriptorD3D10 {
   WindowsHandle handle;
 };
 
+struct SharedTextureDescriptor {
+  TextureShareType shareType;
+  SharedTextureHandle handle;
+  nsIntSize size;
+};
+
 union SurfaceDescriptor {
   Shmem;
   SurfaceDescriptorD3D10;
   SurfaceDescriptorX11;
   SharedTextureDescriptor;
-};
-
-struct SharedTextureDescriptor {
-  TextureShareType shareType;
-  SharedTextureHandle handle;
-  nsIntSize size;
 };
 
 struct YUVImage {
