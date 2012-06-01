@@ -22,6 +22,8 @@ using mozilla::layers::FrameMetrics;
 using mozilla::layers::SurfaceDescriptorX11;
 using mozilla::null_t;
 using mozilla::WindowsHandle;
+using mozilla::gl::SharedTextureHandle;
+using mozilla::gl::TextureImage::TextureShareType;
 
 /**
  * The layers protocol is spoken between thread contexts that manage
@@ -49,6 +51,13 @@ union SurfaceDescriptor {
   Shmem;
   SurfaceDescriptorD3D10;
   SurfaceDescriptorX11;
+  SharedTextureDescriptor;
+};
+
+struct SharedTextureDescriptor {
+  TextureShareType shareType;
+  SharedTextureHandle handle;
+  nsIntSize size;
 };
 
 struct YUVImage {
