@@ -136,7 +136,7 @@ public class GLController {
     synchronized void surfaceChanged(int newWidth, int newHeight) {
         mWidth = newWidth;
         mHeight = newHeight;
-        mView.getRenderer().onSurfaceChanged(null, mWidth, mHeight);
+        mView.getRenderer().resizeView(mWidth, mHeight);
         mSurfaceValid = true;
         notifyAll();
     }
