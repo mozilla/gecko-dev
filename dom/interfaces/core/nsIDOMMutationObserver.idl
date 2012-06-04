@@ -57,7 +57,7 @@ dictionary MutationObserverInit
 
 //[Constructor(in nsIMutationCallback aDoneCallback)]
 [scriptable, builtinclass, uuid(156e2ce4-e44a-45f3-92c2-e6611f391dae)]
-interface nsIDOMMozMutationObserver : nsISupports
+interface nsIDOMMutationObserver : nsISupports
 {
   [implicit_jscontext]
   void observe(in nsIDOMNode aTarget, in jsval aOptions);
@@ -68,5 +68,5 @@ interface nsIDOMMozMutationObserver : nsISupports
 [scriptable, function, uuid(fb539590-b088-4d07-96ff-2cefbc90a198)]
 interface nsIMutationObserverCallback : nsISupports
 {
-  void handleMutations(in nsIVariant aRecords, in nsIDOMMozMutationObserver aObserver);
+  void handleMutations(in nsIVariant aRecords, in nsIDOMMutationObserver aObserver);
 };
