@@ -142,7 +142,6 @@ DOMCI_DATA(Blob, nsDOMFileBase)
 NS_INTERFACE_MAP_BEGIN(nsDOMFileBase)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIDOMFile)
   NS_INTERFACE_MAP_ENTRY(nsIDOMBlob)
-  NS_INTERFACE_MAP_ENTRY(nsIBlob_GECKO_13)
   NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIDOMFile, mIsFile)
   NS_INTERFACE_MAP_ENTRY(nsIXHRSendable)
   NS_INTERFACE_MAP_ENTRY(nsIMutable)
@@ -261,16 +260,6 @@ nsDOMFileBase::Slice(PRInt64 aStart, PRInt64 aEnd,
                        aContentType).get();
 
   return *aBlob ? NS_OK : NS_ERROR_UNEXPECTED;
-}
-
-NS_IMETHODIMP
-nsDOMFileBase::MozSlice(PRInt64 aStart, PRInt64 aEnd,
-                        const nsAString& aContentType, PRUint8 optional_argc,
-                        nsIDOMBlob **aBlob)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-
-  return Slice(aStart, aEnd, aContentType, optional_argc, aBlob);
 }
 
 NS_IMETHODIMP
