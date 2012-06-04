@@ -146,6 +146,9 @@ public class GeckoInputConnection
 
     @Override
     public boolean commitText(CharSequence text, int newCursorPosition) {
+        if (mCommittingText)
+            Log.e(LOGTAG, "Please report this bug:", new IllegalStateException("commitText, but already committing text?!"));
+
         mCommittingText = true;
         replaceText(text, newCursorPosition, false);
         mCommittingText = false;
@@ -159,6 +162,7 @@ public class GeckoInputConnection
 
     @Override
     public boolean finishComposingText() {
+        // finishComposingText() is sometimes called even when we are not composing text.
         if (hasCompositionString()) {
             if (DEBUG) Log.d(LOGTAG, ". . . finishComposingText: endComposition");
             endComposition();
@@ -292,6 +296,7 @@ public class GeckoInputConnection
 
     @Override
     public boolean setComposingText(CharSequence text, int newCursorPosition) {
+        // setComposingText will likely be called multiple times while we are composing text.
         clampSelection();
         return super.setComposingText(text, newCursorPosition);
     }
@@ -595,7 +600,8 @@ public class GeckoInputConnection
             }
         }
 
-        if (!hasCompositionString()) {
+        boolean startCompositionString = !hasCompositionString();
+        if (startCompositionString) {
             if (DEBUG) Log.d(LOGTAG, ". . . onTextChanged: IME_COMPOSITION_BEGIN");
             GeckoAppShell.sendEventToGecko(
                 GeckoEvent.createIMEEvent(GeckoEvent.IME_COMPOSITION_BEGIN, 0, 0));
@@ -622,7 +628,7 @@ public class GeckoInputConnection
 
         // End composition if all characters in the word have been deleted.
         // This fixes autocomplete results not appearing.
-        if (count == 0)
+        if (count == 0 || (startCompositionString && mCommittingText))
             endComposition();
 
         // Block this thread until all pending events are processed
@@ -665,8 +671,13 @@ public class GeckoInputConnection
 
     private void endComposition() {
         if (DEBUG) Log.d(LOGTAG, "IME: endComposition: IME_COMPOSITION_END");
+
+        if (!hasCompositionString())
+           Log.e(LOGTAG, "Please report this bug:", new IllegalStateException("endComposition, but not composing text?!"));
+
         GeckoAppShell.sendEventToGecko(
             GeckoEvent.createIMEEvent(GeckoEvent.IME_COMPOSITION_END, 0, 0));
+
         mCompositionStart = NO_COMPOSITION_STRING;
     }
 
