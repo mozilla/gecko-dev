@@ -96,6 +96,18 @@ public:
 
 #undef IMPL_GETTER_AND_SETTER
 
+  JSObject*
+  GetOnuploadprogress(nsresult& aRv)
+  {
+    aRv = NS_ERROR_NOT_IMPLEMENTED;
+    return NULL;
+  }
+  void
+  SetOnuploadprogress(JSObject* aListener, nsresult& aRv)
+  {
+    aRv = NS_ERROR_NOT_IMPLEMENTED;
+  }
+
   uint16_t
   GetReadyState() const
   {
