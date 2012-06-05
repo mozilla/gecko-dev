@@ -40,8 +40,6 @@ package org.mozilla.gecko;
 import java.lang.Math;
 import java.util.Date;
 
-import android.util.Log;
-
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -50,11 +48,12 @@ import android.content.IntentFilter;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.os.SystemClock;
+import android.util.Log;
 
 public class GeckoBatteryManager
   extends BroadcastReceiver
 {
-    private static final String LOGTAG = "GeckoBatteryManager";
+  private static final String LOGTAG = "GeckoBatteryManager";
 
   // Those constants should be keep in sync with the ones in:
   // dom/battery/Constants.h
@@ -76,7 +75,7 @@ public class GeckoBatteryManager
           IntentFilter filter = new IntentFilter();
           filter.addAction(Intent.ACTION_BATTERY_CHANGED);
 
-          // registerReciever can return null if registering fails
+          // registerReceiver can return null if registering fails
           isRegistered = activity.registerReceiver(this, filter) != null;
           if (!isRegistered)
               Log.e(LOGTAG, "Registering receiver failed");
@@ -85,7 +84,11 @@ public class GeckoBatteryManager
 
   public void unregisterFor(Activity activity) {
       if (isRegistered) {
-          activity.unregisterReceiver(this);
+          try {
+              activity.unregisterReceiver(this);
+          } catch (IllegalArgumentException iae) {
+              Log.e(LOGTAG, "Unregistering receiver failed", iae);
+          }
           isRegistered = false;
       }
   }
