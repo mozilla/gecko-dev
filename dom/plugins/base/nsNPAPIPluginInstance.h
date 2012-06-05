@@ -159,6 +159,7 @@ public:
   void NotifyForeground(bool aForeground);
   void NotifyOnScreen(bool aOnScreen);
   void MemoryPressure();
+  void NotifyFullScreen(bool aFullScreen);
 
   bool IsOnScreen() {
     return mOnScreen;
@@ -167,12 +168,13 @@ public:
   PRUint32 GetANPDrawingModel() { return mANPDrawingModel; }
   void SetANPDrawingModel(PRUint32 aModel);
 
-  // This stuff is for kSurface_ANPDrawingModel
   void* GetJavaSurface();
-  void SetJavaSurface(void* aSurface);
-  void RequestJavaSurface();
 
   void PostEvent(void* event);
+  // These are really mozilla::dom::ScreenOrientation, but it's
+  // difficult to include that here
+  PRUint32 FullScreenOrientation() { return mFullScreenOrientation; }
+  void SetFullScreenOrientation(PRUint32 orientation) { mFullScreenOrientation  = orientation; }
 #endif
 
   nsresult NewStreamListener(const char* aURL, void* notifyData,
@@ -257,6 +259,8 @@ protected:
 
   nsTArray<nsCOMPtr<PluginEventRunnable>> mPostedEvents;
   void PopPostedEvent(PluginEventRunnable* r);
+
+  PRUint32 mFullScreenOrientation;
 #endif
 
   enum {

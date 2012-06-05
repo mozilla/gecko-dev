@@ -36,6 +36,10 @@
  * the terms of any one of the MPL, the GPL or the LGPL.
  *
  * ***** END LICENSE BLOCK ***** */
+#ifdef MOZ_WIDGET_ANDROID
+// For ScreenOrientation.h
+#include "base/basictypes.h"
+#endif
 
 #include "prlog.h"
 #include "prmem.h"
@@ -70,6 +74,8 @@
 #include "mozilla/Mutex.h"
 #include "mozilla/CondVar.h"
 #include "AndroidBridge.h"
+#include "IPCMessageUtils.h"
+#include "mozilla/dom/ScreenOrientation.h"
 
 class PluginEventRunnable : public nsRunnable
 {
@@ -110,6 +116,7 @@ nsNPAPIPluginInstance::nsNPAPIPluginInstance()
     mSurface(nsnull),
     mANPDrawingModel(0),
     mOnScreen(true),
+    mFullScreenOrientation(dom::eScreenOrientation_LandscapePrimary),
 #endif
     mRunning(NOT_STARTED),
     mWindowless(false),
@@ -778,63 +785,29 @@ void nsNPAPIPluginInstance::MemoryPressure()
   SendLifecycleEvent(this, kFreeMemory_ANPLifecycleAction);
 }
 
+void nsNPAPIPluginInstance::NotifyFullScreen(bool aFullScreen)
+{
+  PLUGIN_LOG(PLUGIN_LOG_NORMAL, ("nsNPAPIPluginInstance::NotifyFullScreen this=%p\n",this));
+
+  if (RUNNING != mRunning)
+    return;
+
+  SendLifecycleEvent(this, aFullScreen ? kEnterFullScreen_ANPLifecycleAction : kExitFullScreen_ANPLifecycleAction);
+}
+
 void nsNPAPIPluginInstance::SetANPDrawingModel(PRUint32 aModel)
 {
   mANPDrawingModel = aModel;
 }
 
-class SurfaceGetter : public nsRunnable {
-public:
-  SurfaceGetter(nsNPAPIPluginInstance* aInstance, NPPluginFuncs* aPluginFunctions, NPP_t aNPP) : 
-    mInstance(aInstance), mPluginFunctions(aPluginFunctions), mNPP(aNPP) {
-  }
-  ~SurfaceGetter() {
-  }
-  nsresult Run() {
-    void* surface;
-    (*mPluginFunctions->getvalue)(&mNPP, kJavaSurface_ANPGetValue, &surface);
-    mInstance->SetJavaSurface(surface);
-    return NS_OK;
-  }
-  void RequestSurface() {
-    JNIEnv* env = GetJNIForThread();
-    if (!env)
-      return;
-
-    if (!mozilla::AndroidBridge::Bridge()) {
-      PLUGIN_LOG(PLUGIN_LOG_BASIC, ("nsNPAPIPluginInstance null AndroidBridge"));
-      return;
-    }
-    mozilla::AndroidBridge::Bridge()->PostToJavaThread(env, this);
-  }
-private:
-  nsNPAPIPluginInstance* mInstance;
-  NPP_t mNPP;
-  NPPluginFuncs* mPluginFunctions;
-};
-
-
 void* nsNPAPIPluginInstance::GetJavaSurface()
 {
-  if (mANPDrawingModel != kSurface_ANPDrawingModel)
+  void* surface = nsnull; 
+  nsresult rv = GetValueFromPlugin(kJavaSurface_ANPGetValue, &surface);
+  if (NS_FAILED(rv))
     return nsnull;
-  
-  return mSurface;
-}
 
-void nsNPAPIPluginInstance::SetJavaSurface(void* aSurface)
-{
-  mSurface = aSurface;
-}
-
-void nsNPAPIPluginInstance::RequestJavaSurface()
-{
-  if (mSurfaceGetter.get())
-    return;
-
-  mSurfaceGetter = new SurfaceGetter(this, mPlugin->PluginFuncs(), mNPP);
-
-  ((SurfaceGetter*)mSurfaceGetter.get())->RequestSurface();
+  return surface;
 }
 
 void nsNPAPIPluginInstance::PostEvent(void* event)

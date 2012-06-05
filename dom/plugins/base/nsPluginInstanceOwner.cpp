@@ -125,6 +125,10 @@ static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
 #include "ANPBase.h"
 #include "AndroidBridge.h"
 #include "AndroidMediaLayer.h"
+#include "nsWindow.h"
+
+static nsPluginInstanceOwner* sFullScreenInstance = nsnull;
+
 using namespace mozilla::dom;
 
 #include <android/log.h>
@@ -343,7 +347,9 @@ nsPluginInstanceOwner::nsPluginInstanceOwner()
 
 #ifdef MOZ_WIDGET_ANDROID
   mInverted = false;
+  mFullScreen = false;
   mLayer = nsnull;
+  mJavaView = nsnull;
 #endif
 }
 
@@ -1715,31 +1721,39 @@ void nsPluginInstanceOwner::SendSize(int width, int height)
   mInstance->HandleEvent(&event, nsnull);
 }
 
-bool nsPluginInstanceOwner::AddPluginView(const gfxRect& aRect)
+bool nsPluginInstanceOwner::AddPluginView(const gfxRect& aRect /* = gfxRect(0, 0, 0, 0) */)
 {
-  void* javaSurface = mInstance->GetJavaSurface();
-  if (!javaSurface) {
-    mInstance->RequestJavaSurface();
-    return false;
+  if (!mJavaView) {
+    mJavaView = mInstance->GetJavaSurface();
+  
+    if (!mJavaView)
+      return false;
+
+    mJavaView = (void*)AndroidBridge::GetJNIEnv()->NewGlobalRef((jobject)mJavaView);
   }
 
   if (AndroidBridge::Bridge())
-    AndroidBridge::Bridge()->AddPluginView((jobject)javaSurface, aRect);
+    AndroidBridge::Bridge()->AddPluginView((jobject)mJavaView, aRect, mFullScreen, mInstance->FullScreenOrientation());
+
+  if (mFullScreen)
+    sFullScreenInstance = this;
 
   return true;
 }
 
 void nsPluginInstanceOwner::RemovePluginView()
 {
-  if (!mInstance)
-    return;
-
-  void* surface = mInstance->GetJavaSurface();
-  if (!surface)
+  if (!mInstance || !mJavaView)
     return;
 
   if (AndroidBridge::Bridge())
-    AndroidBridge::Bridge()->RemovePluginView((jobject)surface);
+    AndroidBridge::Bridge()->RemovePluginView((jobject)mJavaView, mFullScreen);
+
+  AndroidBridge::GetJNIEnv()->DeleteGlobalRef((jobject)mJavaView);
+  mJavaView = nsnull;
+
+  if (mFullScreen)
+    sFullScreenInstance = nsnull;
 }
 
 void nsPluginInstanceOwner::Invalidate() {
@@ -1748,6 +1762,47 @@ void nsPluginInstanceOwner::Invalidate() {
   rect.right = mPluginWindow->width;
   rect.bottom = mPluginWindow->height;
   InvalidateRect(&rect);
+}
+
+void nsPluginInstanceOwner::RequestFullScreen() {
+  if (mFullScreen)
+    return;
+
+  // Remove whatever view we currently have (if any, fullscreen or otherwise)
+  RemovePluginView();
+
+  mFullScreen = true;
+  AddPluginView();
+
+  mInstance->NotifyFullScreen(mFullScreen);
+}
+
+void nsPluginInstanceOwner::ExitFullScreen() {
+  if (!mFullScreen)
+    return;
+
+  RemovePluginView();
+
+  mFullScreen = false;
+  
+  PRInt32 model = mInstance->GetANPDrawingModel();
+
+  if (model == kSurface_ANPDrawingModel) {
+    // We need to invalidate the plugin rect so Paint() gets called above.
+    // This will cause the view to be re-added. Gross.
+    Invalidate();
+  }
+
+  mInstance->NotifyFullScreen(mFullScreen);
+}
+
+void nsPluginInstanceOwner::ExitFullScreen(jobject view) {
+  JNIEnv* env = AndroidBridge::GetJNIEnv();
+
+  if (env && sFullScreenInstance && sFullScreenInstance->mInstance &&
+      env->IsSameObject(view, (jobject)sFullScreenInstance->mInstance->GetJavaSurface())) {
+    sFullScreenInstance->ExitFullScreen();
+  } 
 }
 
 #endif
@@ -2861,7 +2916,7 @@ void nsPluginInstanceOwner::Paint(gfxContext* aContext,
                                   const gfxRect& aFrameRect,
                                   const gfxRect& aDirtyRect)
 {
-  if (!mInstance || !mObjectFrame || !mPluginDocumentActiveState)
+  if (!mInstance || !mObjectFrame || !mPluginDocumentActiveState || mFullScreen)
     return;
 
   PRInt32 model = mInstance->GetANPDrawingModel();
