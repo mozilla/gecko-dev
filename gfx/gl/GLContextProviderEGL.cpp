@@ -474,8 +474,13 @@ public:
     RenewSurface() {
         ReleaseSurface();
         EGLConfig config;
+
+#ifdef MOZ_JAVA_COMPOSITOR
+        mSurface = mozilla::AndroidBridge::Bridge()->ProvideEGLSurface();
+#else
         CreateConfig(&config);
         mSurface = CreateSurfaceForWindow(NULL, config);
+#endif
 
         return sEGLLibrary.fMakeCurrent(EGL_DISPLAY(),
                                         mSurface, mSurface,
@@ -1460,15 +1465,18 @@ CreateConfig(EGLConfig* aConfig)
 static EGLSurface
 CreateSurfaceForWindow(nsIWidget *aWidget, EGLConfig config)
 {
+#ifdef MOZ_JAVA_COMPOSITOR
+    // Use mozilla::AndroidBridge::Bridge()->ProvideEGLSurface() instead.
+    NS_RUNTIMEABORT("CreateSurfaceForWindow should not be called on Native Fennec.");
+#endif
+
     EGLSurface surface;
 
 #ifdef DEBUG
     sEGLLibrary.DumpEGLConfig(config);
 #endif
 
-#ifdef MOZ_JAVA_COMPOSITOR
-    surface = mozilla::AndroidBridge::Bridge()->ProvideEGLSurface();
-#elif defined(MOZ_WIDGET_ANDROID)
+#if defined(MOZ_WIDGET_ANDROID)
 
     // On Android, we have to ask Java to make the eglCreateWindowSurface
     // call for us.  See GLHelpers.java for a description of why.
@@ -1552,9 +1560,10 @@ GLContextProviderEGL::CreateForWindow(nsIWidget *aWidget)
 
 #ifdef MOZ_JAVA_COMPOSITOR
     mozilla::AndroidBridge::Bridge()->RegisterCompositor();
+    EGLSurface surface = mozilla::AndroidBridge::Bridge()->ProvideEGLSurface();
+#else
+    EGLSurface surface = CreateSurfaceForWindow(aWidget, config);
 #endif
-
-   EGLSurface surface = CreateSurfaceForWindow(aWidget, config);
 
     if (!surface) {
         return nsnull;
