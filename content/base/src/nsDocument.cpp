@@ -2946,7 +2946,7 @@ nsDocument::NodesFromRectHelper(float aX, float aY,
       // XXX felipe: I can't get this type right without the intermediate vars
       nsCOMPtr<nsIDOMElement> x = CheckAncestryAndGetFrame(currentDoc);
       nsCOMPtr<nsIContent> elementDoc = do_QueryInterface(x);
-      if (elementDoc != lastAdded) {
+      if (elementDoc && elementDoc != lastAdded) {
         elements->AppendElement(elementDoc);
         lastAdded = elementDoc;
       }

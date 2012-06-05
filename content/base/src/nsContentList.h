@@ -106,6 +106,7 @@ public:
 
   void AppendElement(nsIContent *aContent)
   {
+    NS_ASSERTION(aContent, "Element to append must not be null");
     mElements.AppendElement(aContent);
   }
   void MaybeAppendElement(nsIContent* aContent)
