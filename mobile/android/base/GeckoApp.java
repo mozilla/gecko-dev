@@ -477,6 +477,10 @@ abstract public class GeckoApp
 
     @Override
     public void openOptionsMenu() {
+        // Scroll custom menu to the top
+        if (mMenuPanel != null)
+            mMenuPanel.scrollTo(0, 0);
+
         if (!mBrowserToolbar.openOptionsMenu())
             super.openOptionsMenu();
     }
@@ -576,6 +580,10 @@ abstract public class GeckoApp
                 onCreatePanelMenu(featureId, menu);
                 onPreparePanel(featureId, mMenuPanel, mMenu);
             }
+
+            // Scroll custom menu to the top
+            if (mMenuPanel != null)
+                mMenuPanel.scrollTo(0, 0);
 
             return true;
         }
