@@ -4651,8 +4651,10 @@ nsReflowFrameRunnable::Run()
 static nscoord
 MinimumFontSizeFor(nsPresContext* aPresContext, nscoord aContainerWidth)
 {
-  PRUint32 emPerLine = nsLayoutUtils::FontSizeInflationEmPerLine();
-  PRUint32 minTwips = nsLayoutUtils::FontSizeInflationMinTwips();
+  nsIPresShell* presShell = aPresContext->PresShell();
+
+  PRUint32 emPerLine = presShell->FontSizeInflationEmPerLine();
+  PRUint32 minTwips = presShell->FontSizeInflationMinTwips();
   if (emPerLine == 0 && minTwips == 0) {
     return 0;
   }
@@ -4799,8 +4801,11 @@ nsLayoutUtils::FontSizeInflationFor(const nsIFrame *aFrame)
 /* static */ bool
 nsLayoutUtils::FontSizeInflationEnabled(nsPresContext *aPresContext)
 {
-  if ((sFontSizeInflationEmPerLine == 0 &&
-       sFontSizeInflationMinTwips == 0) ||
+  nsIPresShell* presShell = aPresContext->GetPresShell();
+
+  if (!presShell ||
+      (presShell->FontSizeInflationEmPerLine() == 0 &&
+       presShell->FontSizeInflationMinTwips() == 0) ||
        aPresContext->IsChrome()) {
     return false;
   }

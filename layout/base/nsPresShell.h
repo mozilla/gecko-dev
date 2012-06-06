@@ -497,6 +497,15 @@ protected:
                                ScrollAxis  aHorizontal,
                                PRUint32    aFlags);
 
+  /**
+   * Initialize cached font inflation preference values.
+   *
+   * @see nsLayoutUtils::sFontSizeInflationEmPerLine
+   * @see nsLayoutUtils::sFontSizeInflationMinTwips
+   * @see nsLayoutUtils::sFontSizeInflationLineThreshold
+   */
+  void SetupFontInflation();
+
   friend struct AutoRenderingStateSaveRestore;
   friend struct RenderingState;
 
