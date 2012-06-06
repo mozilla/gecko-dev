@@ -1020,9 +1020,6 @@ PresShell::Init(nsIDocument* aDocument,
   // Get our activeness from the docShell.
   QueryIsActive();
 
-  // Setup our font inflation preferences.
-  SetupFontInflation();
-
   return NS_OK;
 }
 
@@ -9178,12 +9175,4 @@ nsIPresShell::SetScrollPositionClampingScrollPortSize(nscoord aWidth, nscoord aH
   mScrollPositionClampingScrollPortSizeSet = true;
   mScrollPositionClampingScrollPortSize.width = aWidth;
   mScrollPositionClampingScrollPortSize.height = aHeight;
-}
-
-void
-PresShell::SetupFontInflation()
-{
-  mFontSizeInflationEmPerLine = nsLayoutUtils::FontSizeInflationEmPerLine();
-  mFontSizeInflationMinTwips = nsLayoutUtils::FontSizeInflationMinTwips();
-  mFontSizeInflationLineThreshold = nsLayoutUtils::FontSizeInflationLineThreshold();
 }

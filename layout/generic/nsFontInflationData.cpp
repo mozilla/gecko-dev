@@ -226,8 +226,7 @@ nsFontInflationData::UpdateWidth(const nsHTMLReflowState &aReflowState)
 
   // See comment above "font.size.inflation.lineThreshold" in
   // modules/libpref/src/init/all.js .
-  nsIPresShell* presShell = bfc->PresContext()->PresShell();
-  PRUint32 lineThreshold = presShell->FontSizeInflationLineThreshold();
+  PRUint32 lineThreshold = nsLayoutUtils::FontSizeInflationLineThreshold();
   nscoord newTextThreshold = (newNCAWidth * lineThreshold) / 100;
 
   if (mTextThreshold <= mTextAmount && mTextAmount < newTextThreshold) {
