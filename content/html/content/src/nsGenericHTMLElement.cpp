@@ -3082,6 +3082,12 @@ nsGenericHTMLElement::GetContextMenu(nsIDOMHTMLMenuElement** aContextMenu)
   return NS_OK;
 }
 
+bool
+nsGenericHTMLElement::IsLabelable() const
+{
+  return Tag() == nsGkAtoms::progress;
+}
+
 //----------------------------------------------------------------------
 
 nsGenericHTMLFormElement::nsGenericHTMLFormElement(already_AddRefed<nsINodeInfo> aNodeInfo)
