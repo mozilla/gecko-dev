@@ -2086,7 +2086,7 @@ abstract public class GeckoApp
         }
         else if (ACTION_LOAD.equals(action)) {
             String uri = intent.getDataString();
-            loadUrl(uri, AwesomeBar.Type.EDIT);
+            loadUrl(uri, AwesomeBar.Target.CURRENT_TAB);
             Log.i(LOGTAG,"onNewIntent: " + uri);
         }
         else if (Intent.ACTION_VIEW.equals(action)) {
@@ -2684,22 +2684,22 @@ abstract public class GeckoApp
 
     @Override
     public boolean onSearchRequested() {
-        return showAwesomebar(AwesomeBar.Type.EDIT);
+        return showAwesomebar(AwesomeBar.Target.CURRENT_TAB);
     }
 
-    public boolean showAwesomebar(AwesomeBar.Type aType) {
-        return showAwesomebar(aType, null);
+    public boolean showAwesomebar(AwesomeBar.Target aTarget) {
+        return showAwesomebar(aTarget, null);
     }
 
-    public boolean showAwesomebar(AwesomeBar.Type aType, String aUrl) {
+    public boolean showAwesomebar(AwesomeBar.Target aTarget, String aUrl) {
         Intent intent = new Intent(getBaseContext(), AwesomeBar.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION | Intent.FLAG_ACTIVITY_NO_HISTORY);
-        intent.putExtra(AwesomeBar.TYPE_KEY, aType.name());
+        intent.putExtra(AwesomeBar.TARGET_KEY, aTarget.name());
 
         // if we were passed in a url, show it
         if (aUrl != null && !TextUtils.isEmpty(aUrl)) {
             intent.putExtra(AwesomeBar.CURRENT_URL_KEY, aUrl);
-        } else if (aType == AwesomeBar.Type.EDIT) {
+        } else if (aTarget == AwesomeBar.Target.CURRENT_TAB) {
             // otherwise, if we're editing the current tab, show its url
             Tab tab = Tabs.getInstance().getSelectedTab();
             if (tab != null) {
@@ -2870,11 +2870,11 @@ abstract public class GeckoApp
         public void onActivityResult(int resultCode, Intent data) {
             if (data != null) {
                 String url = data.getStringExtra(AwesomeBar.URL_KEY);
-                AwesomeBar.Type type = AwesomeBar.Type.valueOf(data.getStringExtra(AwesomeBar.TYPE_KEY));
+                AwesomeBar.Target target = AwesomeBar.Target.valueOf(data.getStringExtra(AwesomeBar.TARGET_KEY));
                 String searchEngine = data.getStringExtra(AwesomeBar.SEARCH_KEY);
                 boolean userEntered = data.getBooleanExtra(AwesomeBar.USER_ENTERED_KEY, false);
                 if (url != null && url.length() > 0)
-                    loadRequest(url, type, searchEngine, userEntered);
+                    loadRequest(url, target, searchEngine, userEntered);
             }
         }
     }
@@ -2920,8 +2920,8 @@ abstract public class GeckoApp
 
     // If searchEngine is provided, url will be used as the search query.
     // Otherwise, the url is loaded.
-    protected void loadRequest(String url, AwesomeBar.Type type, String searchEngine, boolean userEntered) {
-        Log.d(LOGTAG, type.name());
+    protected void loadRequest(String url, AwesomeBar.Target target, String searchEngine, boolean userEntered) {
+        Log.d(LOGTAG, target.name());
         JSONObject args = new JSONObject();
         try {
             args.put("url", url);
@@ -2930,7 +2930,8 @@ abstract public class GeckoApp
         } catch (Exception e) {
             Log.e(LOGTAG, "error building JSON arguments");
         }
-        if (type == AwesomeBar.Type.ADD) {
+
+        if (target == AwesomeBar.Target.NEW_TAB) {
             Log.d(LOGTAG, "Sending message to Gecko: " + SystemClock.uptimeMillis() + " - Tab:Add");
             GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Tab:Add", args.toString()));
         } else {
@@ -2938,8 +2939,8 @@ abstract public class GeckoApp
         }
     }
 
-    public void loadUrl(String url, AwesomeBar.Type type) {
-        loadRequest(url, type, null, false);
+    public void loadUrl(String url, AwesomeBar.Target target) {
+        loadRequest(url, target, null, false);
     }
 
     /**
@@ -3106,14 +3107,14 @@ abstract public class GeckoApp
             case R.id.pasteandgo: {
                 String text = GeckoAppShell.getClipboardText();
                 if (text != null && !TextUtils.isEmpty(text)) {
-                    loadUrl(text, AwesomeBar.Type.EDIT);
+                    loadUrl(text, AwesomeBar.Target.CURRENT_TAB);
                 }
                 return true;
             }
             case R.id.paste: {
                 String text = GeckoAppShell.getClipboardText();
                 if (text != null && !TextUtils.isEmpty(text)) {
-                    showAwesomebar(AwesomeBar.Type.EDIT, text);
+                    showAwesomebar(AwesomeBar.Target.CURRENT_TAB, text);
                 }
                 return true;
             }

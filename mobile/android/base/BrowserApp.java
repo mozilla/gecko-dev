@@ -186,7 +186,7 @@ abstract public class BrowserApp extends GeckoApp
     }
 
     @Override
-    protected void loadRequest(String url, AwesomeBar.Type target, String searchEngine, boolean userEntered) {
+    protected void loadRequest(String url, AwesomeBar.Target target, String searchEngine, boolean userEntered) {
         mBrowserToolbar.setTitle(url);
         super.loadRequest(url, target, searchEngine, userEntered);
     }
@@ -296,7 +296,7 @@ abstract public class BrowserApp extends GeckoApp
     }
 
     void addTab() {
-        showAwesomebar(AwesomeBar.Type.ADD);
+        showAwesomebar(AwesomeBar.Target.NEW_TAB);
     }
 
     public void showLocalTabs() {
@@ -490,7 +490,7 @@ abstract public class BrowserApp extends GeckoApp
                     mAboutHomeContent.setUriLoadCallback(new AboutHomeContent.UriLoadCallback() {
                         public void callback(String url) {
                             mBrowserToolbar.setProgressVisibility(true);
-                            loadUrl(url, AwesomeBar.Type.EDIT);
+                            loadUrl(url, AwesomeBar.Target.CURRENT_TAB);
                         }
                     });
                 } else {
