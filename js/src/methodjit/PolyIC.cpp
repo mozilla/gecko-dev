@@ -470,11 +470,16 @@ class SetPropCompiler : public PICStubCompiler
         JS_ASSERT(pic.typeMonitored);
 
         RecompilationMonitor monitor(cx);
+
+        types::TypeObject *type = obj->getType(cx);
+        if (monitor.recompiled())
+            return false;
+
         jsid id = ATOM_TO_JSID(name);
 
-        if (!obj->getType(cx)->unknownProperties()) {
+        if (!type->unknownProperties()) {
             types::AutoEnterTypeInference enter(cx);
-            types::TypeSet *types = obj->getType(cx)->getProperty(cx, types::MakeTypeId(cx, id), true);
+            types::TypeSet *types = type->getProperty(cx, types::MakeTypeId(cx, id), true);
             if (!types)
                 return false;
             pic.rhsTypes->addSubset(cx, types);
