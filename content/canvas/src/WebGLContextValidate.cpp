@@ -526,7 +526,7 @@ WebGLContext::InitAndValidateGL()
         if (renderer == gl::GLContext::RendererAdreno200 ||
             renderer == gl::GLContext::RendererAdreno205)
         {
-            GenerateWarning("WebGL blocked on this Adreno driver!");
+            LogMessage("WebGL blocked on this Adreno driver!");
             return false;
         }
     }
