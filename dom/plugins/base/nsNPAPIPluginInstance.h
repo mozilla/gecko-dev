@@ -169,14 +169,14 @@ public:
   void SetANPDrawingModel(PRUint32 aModel);
 
   void* GetJavaSurface();
-
   void PostEvent(void* event);
+
   // These are really mozilla::dom::ScreenOrientation, but it's
   // difficult to include that here
   PRUint32 FullScreenOrientation() { return mFullScreenOrientation; }
-  void SetFullScreenOrientation(PRUint32 orientation) { mFullScreenOrientation  = orientation; }
-#endif
+  void SetFullScreenOrientation(PRUint32 orientation);
 
+#endif
   nsresult NewStreamListener(const char* aURL, void* notifyData,
                              nsIPluginStreamListener** listener);
 
@@ -261,6 +261,7 @@ protected:
   void PopPostedEvent(PluginEventRunnable* r);
 
   PRUint32 mFullScreenOrientation;
+  bool mFullScreen;
 #endif
 
   enum {
