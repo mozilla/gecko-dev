@@ -82,6 +82,9 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
 
     private int mCount;
 
+    private static final int TABS_CONTRACTED = 1;
+    private static final int TABS_EXPANDED = 2;
+
     public BrowserToolbar(Context context) {
         mContext = context;
         mInflater = LayoutInflater.from(context);
@@ -99,6 +102,7 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         mAwesomeBar = (Button) mLayout.findViewById(R.id.awesome_bar);
         mAwesomeBar.setOnClickListener(new Button.OnClickListener() {
             public void onClick(View v) {
+                GeckoApp.mAppContext.hideTabs();
                 onAwesomeBarSearch();
             }
         });
@@ -111,10 +115,7 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         mTabs = (ImageButton) mLayout.findViewById(R.id.tabs);
         mTabs.setOnClickListener(new Button.OnClickListener() {
             public void onClick(View v) {
-                if (Tabs.getInstance().getCount() > 1)
-                    showTabs();
-                else
-                    addTab();
+                toggleTabs();
             }
         });
         mTabs.setImageLevel(0);
@@ -122,7 +123,7 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         mTabsCount = (TextSwitcher) mLayout.findViewById(R.id.tabs_count);
         mTabsCount.removeAllViews();
         mTabsCount.setFactory(this);
-        mTabsCount.setText("0");
+        mTabsCount.setText("");
         mCount = 0;
 
         mBack = (ImageButton) mLayout.findViewById(R.id.back);
@@ -227,11 +228,12 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
                     mMenuPopup = new MenuPopup(mContext);
                     mMenuPopup.setPanelView(panel);
                 }
-            } else if (sActionItems.size() > 0) {
-                for (View view : sActionItems)
-                    addActionItem(view);
             }
         }
+    }
+
+    public void requestLayout() {
+        mLayout.invalidate();
     }
 
     @Override
@@ -248,8 +250,11 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         GeckoApp.mAppContext.addTab();
     }
 
-    private void showTabs() {
-        GeckoApp.mAppContext.showTabs();
+    private void toggleTabs() {
+        if (GeckoApp.mAppContext.areTabsShown())
+            GeckoApp.mAppContext.hideTabs();
+        else
+            GeckoApp.mAppContext.showLocalTabs();
     }
 
     public void updateTabCountAndAnimate(int count) {
@@ -259,20 +264,13 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         } else if (mCount < count) {
             mTabsCount.setInAnimation(mSlideUpIn);
             mTabsCount.setOutAnimation(mSlideUpOut);
+        } else {
+            return;
         }
 
-        // Always update the count text even if we're not showing it,
-        // since it can appear in a future animation (e.g. 1 -> 2)
         mTabsCount.setText(String.valueOf(count));
         mCount = count;
-
-        if (count > 1) {
-            // Show tab count if it is greater than 1
-            mTabsCount.setVisibility(View.VISIBLE);
-            // Set image to more tabs dropdown "v"
-            mTabs.setImageLevel(count);
-            mTabs.setContentDescription(mContext.getString(R.string.num_tabs, count));
-        }
+        mTabs.setContentDescription(mContext.getString(R.string.num_tabs, count));
 
         mHandler.postDelayed(new Runnable() {
             public void run() {
@@ -282,15 +280,6 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
 
         mHandler.postDelayed(new Runnable() {
             public void run() {
-                // This will only happen when we are animating from 2 -> 1.
-                // We're doing this here (as opposed to above) because we want
-                // the count to disappear _after_ the animation.
-                if (Tabs.getInstance().getCount() == 1) {
-                    // Set image to new tab button "+"
-                    mTabs.setImageLevel(1);
-                    mTabsCount.setVisibility(View.GONE);
-                    mTabs.setContentDescription(mContext.getString(R.string.new_tab));
-                }
                 ((TextView) mTabsCount.getCurrentView()).setTextColor(mContext.getResources().getColor(R.color.tabs_counter_color));
             }
         }, 2 * mDuration);
@@ -298,14 +287,16 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
 
     public void updateTabCount(int count) {
         mTabsCount.setCurrentText(String.valueOf(count));
-        mTabs.setImageLevel(count);
-        if (count > 1) {
-            mTabsCount.setVisibility(View.VISIBLE);
-            mTabs.setContentDescription(mContext.getString(R.string.num_tabs, count));
-        } else {
-            mTabsCount.setVisibility(View.INVISIBLE);
-            mTabs.setContentDescription(mContext.getString(R.string.new_tab));
-        }
+        mTabs.setContentDescription(mContext.getString(R.string.num_tabs, count));
+        mCount = count;
+        updateTabs(GeckoApp.mAppContext.areTabsShown());
+    }
+
+    public void updateTabs(boolean areTabsShown) {
+        if (areTabsShown)
+            mTabs.setImageLevel(TABS_EXPANDED);
+        else
+            mTabs.setImageLevel(TABS_CONTRACTED);
     }
 
     public void setProgressVisibility(boolean visible) {
@@ -421,17 +412,11 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
     }
 
     public void show() {
-        if (Build.VERSION.SDK_INT >= 11)
-            GeckoActionBar.show(GeckoApp.mAppContext);
-        else
-            mLayout.setVisibility(View.VISIBLE);
+        mLayout.setVisibility(View.VISIBLE);
     }
 
     public void hide() {
-        if (Build.VERSION.SDK_INT >= 11)
-            GeckoActionBar.hide(GeckoApp.mAppContext);
-        else
-            mLayout.setVisibility(View.GONE);
+        mLayout.setVisibility(View.GONE);
     }
 
     public void refresh() {
