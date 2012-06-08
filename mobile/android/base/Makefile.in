@@ -381,7 +381,6 @@ RES_DRAWABLE_BASE = \
   res/drawable/address_bar_back_button_bg.xml \
   res/drawable/address_bar_back_button_pressed_bg.xml \
   res/drawable/address_bar_texture_port.png \
-  res/drawable/address_bar_pressed_texture_port.png \
   res/drawable/address_bar_url.xml \
   res/drawable/address_bar_url_default.9.png \
   res/drawable/address_bar_url_pressed.9.png \
@@ -452,7 +451,6 @@ RES_DRAWABLE_HDPI = \
   res/drawable-hdpi/tabs_normal.png \
   res/drawable-hdpi/tabs_pressed.png \
   res/drawable-hdpi/address_bar_texture_port.png \
-  res/drawable-hdpi/address_bar_pressed_texture_port.png \
   res/drawable-hdpi/address_bar_url_default.9.png \
   res/drawable-hdpi/address_bar_url_pressed.9.png \
   res/drawable-hdpi/doorhanger_arrow.png \
@@ -555,7 +553,6 @@ RES_DRAWABLE_XHDPI_V11 = \
   res/drawable-xhdpi-v11/tabs_normal.png \
   res/drawable-xhdpi-v11/tabs_pressed.png \
   res/drawable-xhdpi-v11/address_bar_texture_port.png \
-  res/drawable-xhdpi-v11/address_bar_pressed_texture_port.png \
   res/drawable-xhdpi-v11/address_bar_url_default.9.png \
   res/drawable-xhdpi-v11/address_bar_url_pressed.9.png \
   res/drawable-xhdpi-v11/doorhanger_arrow.png \
@@ -586,14 +583,12 @@ RES_DRAWABLE_XHDPI_V11 = \
 
 RES_DRAWABLE_LAND_V14 = \
   res/drawable-land-v14/address_bar_bg.xml \
-  res/drawable-land-v14/address_bar_pressed_bg.xml \
   $(NULL)
 
 RES_DRAWABLE_LAND_MDPI_V14 = \
   res/drawable-land-mdpi-v14/ic_awesomebar_go.png \
   res/drawable-land-mdpi-v14/ic_awesomebar_search.png \
   res/drawable-land-mdpi-v14/address_bar_texture_land.png \
-  res/drawable-land-mdpi-v14/address_bar_pressed_texture_land.png \
   res/drawable-land-mdpi-v14/address_bar_url_default.9.png \
   res/drawable-land-mdpi-v14/address_bar_url_pressed.9.png \
   res/drawable-land-mdpi-v14/tabs_carat.png \
@@ -608,7 +603,6 @@ RES_DRAWABLE_LAND_HDPI_V14 = \
   res/drawable-land-hdpi-v14/ic_awesomebar_go.png \
   res/drawable-land-hdpi-v14/ic_awesomebar_search.png \
   res/drawable-land-hdpi-v14/address_bar_texture_land.png \
-  res/drawable-land-hdpi-v14/address_bar_pressed_texture_land.png \
   res/drawable-land-hdpi-v14/address_bar_url_default.9.png \
   res/drawable-land-hdpi-v14/address_bar_url_pressed.9.png \
   res/drawable-land-hdpi-v14/tabs_carat.png \
@@ -623,7 +617,6 @@ RES_DRAWABLE_LAND_XHDPI_V14 = \
   res/drawable-land-xhdpi-v14/ic_awesomebar_go.png \
   res/drawable-land-xhdpi-v14/ic_awesomebar_search.png \
   res/drawable-land-xhdpi-v14/address_bar_texture_land.png \
-  res/drawable-land-xhdpi-v14/address_bar_pressed_texture_land.png \
   res/drawable-land-xhdpi-v14/address_bar_url_default.9.png \
   res/drawable-land-xhdpi-v14/address_bar_url_pressed.9.png \
   res/drawable-land-xhdpi-v14/tabs_carat.png \
@@ -636,9 +629,7 @@ RES_DRAWABLE_LAND_XHDPI_V14 = \
 
 RES_DRAWABLE_XLARGE_MDPI = \
   res/drawable-xlarge-mdpi/address_bar_bg.xml \
-  res/drawable-xlarge-mdpi/address_bar_pressed_bg.xml \
   res/drawable-xlarge-mdpi/address_bar_texture_tablet.png \
-  res/drawable-xlarge-mdpi/address_bar_pressed_texture_tablet.png \
   res/drawable-xlarge-mdpi/address_bar_back_button_bg.png \
   res/drawable-xlarge-mdpi/address_bar_back_button_pressed_bg.png \
   res/drawable-xlarge-mdpi/address_bar_url_default.9.png \
@@ -656,7 +647,6 @@ RES_DRAWABLE_XLARGE_MDPI = \
 
 RES_DRAWABLE_XLARGE_HDPI = \
   res/drawable-xlarge-hdpi/address_bar_texture_tablet.png \
-  res/drawable-xlarge-hdpi/address_bar_pressed_texture_tablet.png \
   res/drawable-xlarge-hdpi/address_bar_back_button_bg.png \
   res/drawable-xlarge-hdpi/address_bar_back_button_pressed_bg.png \
   res/drawable-xlarge-hdpi/address_bar_url_default.9.png \
@@ -674,7 +664,6 @@ RES_DRAWABLE_XLARGE_HDPI = \
 
 RES_DRAWABLE_XLARGE_XHDPI = \
   res/drawable-xlarge-xhdpi/address_bar_texture_tablet.png \
-  res/drawable-xlarge-xhdpi/address_bar_pressed_texture_tablet.png \
   res/drawable-xlarge-xhdpi/address_bar_back_button_bg.png \
   res/drawable-xlarge-xhdpi/address_bar_back_button_pressed_bg.png \
   res/drawable-xlarge-xhdpi/address_bar_url_default.9.png \
@@ -693,7 +682,6 @@ RES_DRAWABLE_XLARGE_XHDPI = \
 RES_DRAWABLE_SW600DP_MDPI = \
   res/drawable-sw600dp-mdpi/address_bar_bg.xml \
   res/drawable-sw600dp-mdpi/address_bar_texture_tablet.png \
-  res/drawable-sw600dp-mdpi/address_bar_pressed_texture_tablet.png \
   res/drawable-sw600dp-mdpi/address_bar_back_button_bg.png \
   res/drawable-sw600dp-mdpi/address_bar_back_button_pressed_bg.png \
   res/drawable-sw600dp-mdpi/address_bar_url_default.9.png \
@@ -711,7 +699,6 @@ RES_DRAWABLE_SW600DP_MDPI = \
 
 RES_DRAWABLE_SW600DP_HDPI = \
   res/drawable-sw600dp-hdpi/address_bar_texture_tablet.png \
-  res/drawable-sw600dp-hdpi/address_bar_pressed_texture_tablet.png \
   res/drawable-sw600dp-hdpi/address_bar_back_button_bg.png \
   res/drawable-sw600dp-hdpi/address_bar_back_button_pressed_bg.png \
   res/drawable-sw600dp-hdpi/address_bar_url_default.9.png \
@@ -729,7 +716,6 @@ RES_DRAWABLE_SW600DP_HDPI = \
 
 RES_DRAWABLE_SW600DP_XHDPI = \
   res/drawable-sw600dp-xhdpi/address_bar_texture_tablet.png \
-  res/drawable-sw600dp-xhdpi/address_bar_pressed_texture_tablet.png \
   res/drawable-sw600dp-xhdpi/address_bar_back_button_bg.png \
   res/drawable-sw600dp-xhdpi/address_bar_back_button_pressed_bg.png \
   res/drawable-sw600dp-xhdpi/address_bar_url_default.9.png \
@@ -768,7 +754,6 @@ MOZ_ANDROID_DRAWABLES += \
   mobile/android/base/resources/drawable/abouthome_sync_box.xml                 \
   mobile/android/base/resources/drawable/abouthome_topsites_bg_repeat.xml       \
   mobile/android/base/resources/drawable/address_bar_bg.xml                     \
-  mobile/android/base/resources/drawable/address_bar_pressed_bg.xml             \
   mobile/android/base/resources/drawable/action_bar_button.xml                  \
   mobile/android/base/resources/drawable/address_bar_bg_shadow.png              \
   mobile/android/base/resources/drawable/address_bar_bg_shadow_repeat.xml       \
@@ -779,6 +764,7 @@ MOZ_ANDROID_DRAWABLES += \
   mobile/android/base/resources/drawable/awesomebar_tab_selected.xml            \
   mobile/android/base/resources/drawable/awesomebar_tab_unselected.xml          \
   mobile/android/base/resources/drawable/desktop_notification.png               \
+  mobile/android/base/resources/drawable/highlight.xml                          \
   mobile/android/base/resources/drawable/progress_spinner.xml                   \
   mobile/android/base/resources/drawable/progress_spinner_1.png                 \
   mobile/android/base/resources/drawable/progress_spinner_2.png                 \
