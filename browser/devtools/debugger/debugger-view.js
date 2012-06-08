@@ -381,7 +381,7 @@ ScriptsView.prototype = {
 
     let rawLength = rawValue.length;
     let lastColon = rawValue.lastIndexOf(":");
-    let lastAt = rawValue.lastIndexOf("@");
+    let lastAt = rawValue.lastIndexOf("#");
 
     let fileEnd = lastColon != -1 ? lastColon : lastAt != -1 ? lastAt : rawLength;
     let lineEnd = lastAt != -1 ? lastAt : rawLength;
