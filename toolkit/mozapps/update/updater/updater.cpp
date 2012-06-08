@@ -2101,6 +2101,7 @@ UpdateThreadFunc(void *param)
 
       ensure_remove_recursive(stageDir);
       WriteStatusText(sUsingService ? "pending-service" : "pending");
+      putenv("MOZ_PROCESS_UPDATES="); // We need to use -process-updates again in the tests
       reportRealResults = false; // pretend success
     }
   }
