@@ -111,10 +111,12 @@ function ResponsiveUI(aWindow, aTab)
   // Events
   this.tab.addEventListener("TabClose", this);
   this.tab.addEventListener("TabAttrModified", this);
-  this.mainWindow.addEventListener("keypress", this.bound_onKeypress, true);
+  this.mainWindow.document.addEventListener("keypress", this.bound_onKeypress, false);
 
   this.buildUI();
   this.checkMenus();
+
+  this.inspectorWasOpen = this.mainWindow.InspectorUI.isInspectorOpen;
 
   try {
     if (Services.prefs.getBoolPref("devtools.responsiveUI.rotate")) {
@@ -139,6 +141,10 @@ ResponsiveUI.prototype = {
    * Destroy the nodes. Remove listeners. Reset the style.
    */
   close: function RUI_unload() {
+    if (this.closing)
+      return;
+    this.closing = true;
+
     this.unCheckMenus();
     // Reset style of the stack.
     let style = "max-width: none;" +
@@ -153,7 +159,7 @@ ResponsiveUI.prototype = {
     this.saveCurrentPreset();
 
     // Remove listeners.
-    this.mainWindow.removeEventListener("keypress", this.bound_onKeypress, true);
+    this.mainWindow.document.removeEventListener("keypress", this.bound_onKeypress, false);
     this.menulist.removeEventListener("select", this.bound_presetSelected, true);
     this.tab.removeEventListener("TabClose", this);
     this.tab.removeEventListener("TabAttrModified", this);
@@ -194,9 +200,17 @@ ResponsiveUI.prototype = {
   onKeypress: function RUI_onKeypress(aEvent) {
     if (aEvent.keyCode == this.mainWindow.KeyEvent.DOM_VK_ESCAPE &&
         this.mainWindow.gBrowser.selectedBrowser == this.browser) {
-      aEvent.preventDefault();
-      aEvent.stopPropagation();
-      this.close();
+
+      // If the inspector wasn't open at first but is open now,
+      // we don't want to close the Responsive Mode on Escape.
+      // We let the inspector close first.
+
+      let isInspectorOpen = this.mainWindow.InspectorUI.isInspectorOpen;
+      if (this.inspectorWasOpen || !isInspectorOpen) {
+        aEvent.preventDefault();
+        aEvent.stopPropagation();
+        this.close();
+      }
     }
   },
 
