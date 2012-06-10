@@ -4760,15 +4760,10 @@ nsLayoutUtils::FontSizeInflationInner(const nsIFrame *aFrame,
        f && !IsContainerForFontSizeInflation(f);
        f = f->GetParent()) {
     nsIContent* content = f->GetContent();
-    nsIAtom* fType = f->GetType();
     // Also, if there is more than one frame corresponding to a single
     // content node, we want the outermost one.
     if (!(f->GetParent() && f->GetParent()->GetContent() == content) &&
-        // ignore width/height on inlines since they don't apply
-        fType != nsGkAtoms::inlineFrame &&
-        // ignore width on radios and checkboxes since we enlarge them and
-        // they have width/height in ua.css
-        fType != nsGkAtoms::formControlFrame) {
+        f->GetType() != nsGkAtoms::inlineFrame) {
       nsStyleCoord stylePosWidth = f->GetStylePosition()->mWidth;
       nsStyleCoord stylePosHeight = f->GetStylePosition()->mHeight;
       if (stylePosWidth.GetUnit() != eStyleUnit_Auto ||
