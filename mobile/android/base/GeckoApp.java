@@ -1416,8 +1416,6 @@ abstract public class GeckoApp
             return;
         }
 
-        GeckoAppShell.onFullScreenPluginHidden(view);
-
         GeckoScreenOrientationListener.getInstance().unlockScreenOrientation();
 
         setFullScreen(false);
@@ -2652,7 +2650,8 @@ abstract public class GeckoApp
         }
 
         if (mFullScreenPluginView != null) {
-            removePluginView(mFullScreenPluginView, true);
+            GeckoAppShell.onFullScreenPluginHidden(mFullScreenPluginView);
+            removeFullScreenPluginView(mFullScreenPluginView);
             return;
         }
 
