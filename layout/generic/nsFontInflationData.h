@@ -52,7 +52,9 @@ public:
 
   static nsFontInflationData* FindFontInflationDataFor(const nsIFrame *aFrame);
 
-  static void
+  // Returns whether the effective width changed (which requires the
+  // caller to mark its descendants dirty
+  static bool
     UpdateFontInflationDataWidthFor(const nsHTMLReflowState& aReflowState);
 
   static void MarkFontInflationDataTextDirty(nsIFrame *aFrame);
