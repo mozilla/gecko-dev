@@ -410,10 +410,6 @@ public class GeckoAppShell
         f = Environment.getDownloadCacheDirectory();
         GeckoAppShell.putenv("EXTERNAL_STORAGE=" + f.getPath());
 
-        // setup the app-specific cache path
-        f = context.getCacheDir();
-        GeckoAppShell.putenv("CACHE_DIRECTORY=" + f.getPath());
-
         putLocaleEnv();
     }
 
