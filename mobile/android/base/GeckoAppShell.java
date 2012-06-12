@@ -386,10 +386,6 @@ public class GeckoAppShell
         // Enable fixed position layers
         GeckoAppShell.putenv("MOZ_ENABLE_FIXED_POSITION_LAYERS=1");
 
-        // setup the app-specific cache path
-        f = context.getCacheDir();
-        GeckoAppShell.putenv("CACHE_DIRECTORY=" + f.getPath());
-
         putLocaleEnv();
     }
 
