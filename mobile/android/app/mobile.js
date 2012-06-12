@@ -751,3 +751,6 @@ pref("ui.zooming.animation_frames", "");
 
 // Mobile manages state by autodetection
 pref("network.manage-offline-status", true);
+
+// increase the timeout clamp for background tabs to 15 minutes
+pref("dom.min_background_timeout_value", 900000);
