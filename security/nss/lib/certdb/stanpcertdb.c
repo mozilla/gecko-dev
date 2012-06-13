@@ -311,15 +311,13 @@ __CERT_AddTempCertToPerm(CERTCertificate *cert, char *nickname,
     }
     stanNick = nssCertificate_GetNickname(c, NULL);
     if (stanNick && nickname && strcmp(nickname, stanNick) != 0) {
-	/* different: take the new nickname */
+	/* take the new nickname */
 	cert->nickname = NULL;
-        nss_ZFreeIf(stanNick);
 	stanNick = NULL;
     }
     if (!stanNick && nickname) {
-        /* Either there was no nickname yet, or we have a new nickname */
-	stanNick = nssUTF8_Duplicate((NSSUTF8 *)nickname, NULL);
-    } /* else: old stanNick is identical to new nickname */
+	stanNick = nssUTF8_Duplicate((NSSUTF8 *)nickname, c->object.arena);
+    }
     /* Delete the temp instance */
     nssCertificateStore_Lock(context->certStore, &lockTrace);
     nssCertificateStore_RemoveCertLOCKED(context->certStore, c);
@@ -338,8 +336,6 @@ __CERT_AddTempCertToPerm(CERTCertificate *cert, char *nickname,
                                               &c->serial,
 					      cert->emailAddr,
                                               PR_TRUE);
-    nss_ZFreeIf(stanNick);
-    stanNick = NULL;
     PK11_FreeSlot(slot);
     if (!permInstance) {
 	if (NSS_GetError() == NSS_ERROR_INVALID_CERTIFICATE) {

@@ -245,6 +245,7 @@ pkix_SignatureChecker_Check(
                         certVerified = PKIX_TRUE;
                 } else {
                         certVerified = PKIX_FALSE;
+                        PKIX_DECREF(verifyFail);
                 }
         }
 
@@ -291,7 +292,6 @@ pkix_SignatureChecker_Check(
                                 plContext),
                                 PKIX_LISTGETITEMFAILED);
 
-                        PKIX_DECREF(verifyFail);
                         verifyFail = PKIX_PL_Cert_VerifySignature
                                 (cert, pKey, plContext);
 
@@ -300,6 +300,7 @@ pkix_SignatureChecker_Check(
                                 break;
                         } else {
                                 certVerified = PKIX_FALSE;
+                                PKIX_DECREF(verifyFail);
                         }
 
                         PKIX_DECREF(pKey);
@@ -308,8 +309,6 @@ pkix_SignatureChecker_Check(
 #endif
 
         if (certVerified == PKIX_FALSE) {
-                pkixErrorResult = verifyFail;
-                verifyFail = NULL;
                 PKIX_ERROR(PKIX_VALIDATIONFAILEDCERTSIGNATURECHECKING);
         }
 

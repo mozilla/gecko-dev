@@ -2889,9 +2889,6 @@ PKIX_PL_Cert_VerifySignature(
         status = CERT_VerifySignedDataWithPublicKey(tbsCert, nssPubKey, wincx);
 
         if (status != SECSuccess) {
-                if (PORT_GetError() != SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED) {
-                        PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
-                }
                 PKIX_ERROR(PKIX_SIGNATUREDIDNOTVERIFYWITHTHEPUBLICKEY);
         }
 
