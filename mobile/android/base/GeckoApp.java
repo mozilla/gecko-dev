@@ -65,7 +65,8 @@ abstract public class GeckoApp
                 extends GeckoActivity 
                 implements GeckoEventListener, SensorEventListener, LocationListener,
                            GeckoApplication.ApplicationLifecycleCallbacks,
-                           TabsPanel.TabsLayoutChangeListener {
+                           TabsPanel.TabsLayoutChangeListener,
+                           PropertyAnimator.PropertyAnimationListener {
     private static final String LOGTAG = "GeckoApp";
 
     public static enum StartupMode {
@@ -990,21 +991,50 @@ abstract public class GeckoApp
         if (mMainLayoutAnimator != null)
             mMainLayoutAnimator.stop();
 
-        RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams) mMainLayout.getLayoutParams();
+        mMainLayoutAnimator = new PropertyAnimator(150);
+        mMainLayoutAnimator.setPropertyAnimationListener(this);
 
-        if (isTablet())
-            mMainLayoutAnimator = new PropertyAnimator(mMainLayout,
-                                                       PropertyAnimator.Property.MARGIN_LEFT,
-                                                       params.leftMargin,
-                                                       width,
-                                                       200);
-        else
-            mMainLayoutAnimator = new PropertyAnimator(mMainLayout,
-                                                       PropertyAnimator.Property.MARGIN_TOP,
-                                                       params.topMargin,
-                                                       height,
-                                                       200);
+        if (isTablet()) {
+            mMainLayoutAnimator.attach(mBrowserToolbar.getLayout(),
+                                       PropertyAnimator.Property.SHRINK_LEFT,
+                                       width);
+
+            // Set the gecko layout for sliding.
+            if (!mTabsPanel.isShown()) {
+                ((LinearLayout.LayoutParams) mGeckoLayout.getLayoutParams()).setMargins(0, 0, 0, 0);
+                mGeckoLayout.scrollTo(mTabsPanel.getWidth() * -1, 0);
+                mGeckoLayout.requestLayout();
+            }
+
+            mMainLayoutAnimator.attach(mGeckoLayout,
+                                       PropertyAnimator.Property.SLIDE_LEFT,
+                                       width);
+
+        } else {
+            mMainLayoutAnimator.attach(mMainLayout,
+                                       PropertyAnimator.Property.SLIDE_TOP,
+                                       height);
+        }
+
         mMainLayoutAnimator.start();
+    }
+
+    @Override
+    public void onPropertyAnimationStart() {
+    }
+
+    @Override
+    public void onPropertyAnimationEnd() {
+        mMainHandler.post(new Runnable() {
+            public void run() {
+                if (isTablet() && mTabsPanel.isShown()) {
+                    // Fake the gecko layout to have been shrunk, instead of sliding.
+                    ((LinearLayout.LayoutParams) mGeckoLayout.getLayoutParams()).setMargins(mTabsPanel.getWidth(), 0, 0, 0);
+                    mGeckoLayout.scrollTo(0, 0);
+                    mGeckoLayout.requestLayout();
+                }
+            }
+        });
     }
 
     public void handleMessage(String event, JSONObject message) {
