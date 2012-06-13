@@ -94,6 +94,7 @@ abstract public class GeckoApp
 
     private GeckoConnectivityReceiver mConnectivityReceiver;
     private GeckoBatteryManager mBatteryReceiver;
+    private PromptService mPromptService;
 
     public static DoorHangerPopup mDoorHangerPopup;
     public static FormAssistPopup mFormAssistPopup;
@@ -1929,6 +1930,8 @@ abstract public class GeckoApp
         mConnectivityReceiver = new GeckoConnectivityReceiver();
         mConnectivityReceiver.registerFor(mAppContext);
 
+        mPromptService = new PromptService();
+
         GeckoNetworkManager.getInstance().init();
         GeckoNetworkManager.getInstance().start();
 
@@ -2527,7 +2530,7 @@ abstract public class GeckoApp
         }
 
         public void run() {
-            GeckoAppShell.getPromptService().Show(mTitle, "", null, mItems, false);
+            mPromptService.show(mTitle, "", null, mItems, false);
         }
 
         private String mTitle;
