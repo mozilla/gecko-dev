@@ -251,6 +251,9 @@ private:
                           nsNPAPIPluginInstance *aInstance,
                           nsIStreamListener **aStreamListener);
 
+  nsPluginTag*
+  FindPreferredPlugin(const InfallibleTArray<nsPluginTag*>& matches);
+
   // Return an nsPluginTag for this type, if any.  If aCheckEnabled is
   // true, only enabled plugins will be returned.
   nsPluginTag*
@@ -292,13 +295,6 @@ private:
 
   // Checks to see if a tag object is in our list of live tags.
   bool IsLiveTag(nsIPluginTag* tag);
-
-  // Checks our list of live tags for an equivalent tag.
-  nsPluginTag* HaveSamePlugin(nsPluginTag * aPluginTag);
-
-  // checks if given plugin is a duplicate of what we already have
-  // in the plugin list but found in some different place
-  bool IsDuplicatePlugin(nsPluginTag * aPluginTag);
 
   nsresult EnsurePrivateDirServiceProvider();
 
