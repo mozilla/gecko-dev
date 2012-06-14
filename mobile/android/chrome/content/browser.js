@@ -4317,12 +4317,12 @@ var ViewportHandler = {
 
   init: function init() {
     addEventListener("DOMMetaAdded", this, false);
-    addEventListener("resize", this, false);
+    Services.obs.addObserver(this, "Window:Resize", false);
   },
 
   uninit: function uninit() {
     removeEventListener("DOMMetaAdded", this, false);
-    removeEventListener("resize", this, false);
+    Services.obs.removeObserver(this, "Window:Resize", false);
   },
 
   handleEvent: function handleEvent(aEvent) {
@@ -4337,15 +4337,12 @@ var ViewportHandler = {
         if (tab && tab.contentDocumentIsDisplayed)
           this.updateMetadata(tab);
         break;
+    }
+  },
 
-      case "resize":
-        // guard against zero values corrupting our viewport numbers. this happens sometimes
-        // during initialization.
-        if (window.outerWidth == 0 || window.outerHeight == 0)
-          break;
-
-        // check dimensions changed to avoid infinite loop because updateViewportSize
-        // triggers a resize on the content window and will trigger this listener again
+  observe: function(aSubject, aTopic, aData) {
+    switch (aTopic) {
+      case "Window:Resize":
         if (window.outerWidth == gScreenWidth && window.outerHeight == gScreenHeight)
           break;
         if (window.outerWidth == 0 || window.outerHeight == 0)
