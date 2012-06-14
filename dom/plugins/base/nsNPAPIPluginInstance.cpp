@@ -797,7 +797,9 @@ void nsNPAPIPluginInstance::NotifyFullScreen(bool aFullScreen)
   SendLifecycleEvent(this, mFullScreen ? kEnterFullScreen_ANPLifecycleAction : kExitFullScreen_ANPLifecycleAction);
 
   if (mFullScreen && mFullScreenOrientation != dom::eScreenOrientation_None) {
-    AndroidBridge::Bridge()->LockScreenOrientation(mFullScreenOrientation);
+    dom::ScreenOrientationWrapper orientation;
+    orientation.orientation = mFullScreenOrientation;
+    AndroidBridge::Bridge()->LockScreenOrientation(orientation);
   }
 }
 
@@ -836,7 +838,9 @@ void nsNPAPIPluginInstance::SetFullScreenOrientation(PRUint32 orientation)
     // We're already fullscreen so immediately apply the orientation change
 
     if (mFullScreenOrientation != dom::eScreenOrientation_None) {
-      AndroidBridge::Bridge()->LockScreenOrientation(mFullScreenOrientation);
+      dom::ScreenOrientationWrapper orientation;
+      orientation.orientation = mFullScreenOrientation;
+      AndroidBridge::Bridge()->LockScreenOrientation(orientation);
     } else if (oldOrientation != dom::eScreenOrientation_None) {
       // We applied an orientation when we entered fullscreen, but
       // we don't want it anymore
