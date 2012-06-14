@@ -47,10 +47,10 @@ class nsIDOMStorageObsolete;
 class nsIURI;
 class nsIPrincipal;
 
-// {BAFFCEB1-FD40-4ea9-8378-3509DD79204A}
+// {DF13D438-D023-4b50-8B88-69EB66760CEB}
 #define NS_PIDOMSTORAGE_IID                                 \
-  { 0xbaffceb1, 0xfd40, 0x4ea9,  \
-    { 0x83, 0x78, 0x35, 0x9, 0xdd, 0x79, 0x20, 0x4a } }
+  { 0xdf13d438, 0xd023, 0x4b50,  \
+    { 0x8b, 0x88, 0x69, 0xeb, 0x66, 0x76, 0xc, 0xeb } }
 
 class nsPIDOMStorage : public nsISupports
 {
@@ -59,12 +59,14 @@ public:
 
   typedef enum {
     Unknown = 0,
-    LocalStorage = 1,
-    SessionStorage = 2
+    GlobalStorage = 1,
+    LocalStorage = 2,
+    SessionStorage = 3
   } nsDOMStorageType;
 
   virtual nsresult InitAsSessionStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI) = 0;
   virtual nsresult InitAsLocalStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI) = 0;
+  virtual nsresult InitAsGlobalStorage(const nsACString &aDomainDemanded) = 0;
 
   virtual already_AddRefed<nsIDOMStorage> Clone() = 0;
   virtual already_AddRefed<nsIDOMStorage> Fork(const nsSubstring &aDocumentURI) = 0;

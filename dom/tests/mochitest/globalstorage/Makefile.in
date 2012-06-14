@@ -16,7 +16,7 @@
 #
 # The Initial Developer of the Original Code is
 # Mozilla Foundation.
-# Portions created by the Initial Developer are Copyright (C) 2007
+# Portions created by the Initial Developer are Copyright (C) 2010
 # the Initial Developer. All Rights Reserved.
 #
 # Contributor(s):
@@ -39,51 +39,16 @@ DEPTH		= ../../../..
 topsrcdir	= @top_srcdir@
 srcdir		= @srcdir@
 VPATH		= @srcdir@
-relativesrcdir  = dom/tests/mochitest/chrome
+relativesrcdir	= dom/tests/mochitest/globalstorage
 
 include $(DEPTH)/config/autoconf.mk
 include $(topsrcdir)/config/rules.mk
 
-_TEST_FILES = \
-		test_dom_fullscreen_warning.xul \
-		dom_fullscreen_warning.xul \
-		test_fullscreen.xul \
-		fullscreen.xul \
-		test_fullscreen_preventdefault.xul \
-		fullscreen_preventdefault.xul \
-		test_domstorage.xul \
-		domstorage_global.xul \
-		domstorage_global.js \
-		focus_window2.xul \
-		focus_frameset.html \
-		child_focus_frame.html \
-		test_focus_switchbinding.xul \
-		test_focus.xul \
-		window_focus.xul \
-		test_focused_link_scroll.xul \
-		test_geolocation.xul \
-		test_activation.xul \
-		window_activation.xul \
-		test_DOMWindowCreated.xul \
-		DOMWindowCreated_chrome.xul \
-		DOMWindowCreated_content.html \
-		test_sandbox_image.xul \
-		test_cyclecollector.xul \
-		test_resize_move_windows.xul \
-		test_popup_blocker_chrome.xul \
-		test_moving_xhr.xul \
-		test_nodesFromRect.html \
-		489127.html \
-		test_focus_docnav.xul \
-		window_focus_docnav.xul \
+_TEST_FILES	= \
+		test_bug614116.html \
+		iframe_bug614116-1.html \
+		iframe_bug614116-2.html \
 		$(NULL)
 
-ifeq (WINNT,$(OS_ARCH))
-_TEST_FILES += \
-		test_sizemode_attribute.xul \
-		sizemode_attribute.xul \
-		$(NULL)
-endif
-
-libs:: $(_TEST_FILES)
-	$(INSTALL) $(foreach f,$^,"$f") $(DEPTH)/_tests/testing/mochitest/chrome/$(relativesrcdir)
+libs:: 	$(_TEST_FILES)
+	$(INSTALL) $(foreach f,$^,"$f") $(DEPTH)/_tests/testing/mochitest/tests/$(relativesrcdir)
