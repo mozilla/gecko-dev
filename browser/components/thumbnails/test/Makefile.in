@@ -15,7 +15,6 @@ _BROWSER_FILES = \
 	browser_thumbnails_capture.js \
 	browser_thumbnails_privacy.js \
 	browser_thumbnails_redirect.js \
-	browser_thumbnails_storage.js \
 	browser_thumbnails_bug726727.js \
 	browser_thumbnails_bug753755.js \
 	head.js \
