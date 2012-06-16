@@ -1660,7 +1660,6 @@ static const nsContractIDMapData kConstructorMap[] =
   NS_DEFINE_CONSTRUCTOR_DATA(FileReader, NS_FILEREADER_CONTRACTID)
   NS_DEFINE_CONSTRUCTOR_DATA(FormData, NS_FORMDATA_CONTRACTID)
   NS_DEFINE_CONSTRUCTOR_DATA(XMLSerializer, NS_XMLSERIALIZER_CONTRACTID)
-  NS_DEFINE_CONSTRUCTOR_DATA(XMLHttpRequest, NS_XMLHTTPREQUEST_CONTRACTID)
   NS_DEFINE_CONSTRUCTOR_DATA(WebSocket, NS_WEBSOCKET_CONTRACTID)
   NS_DEFINE_CONSTRUCTOR_DATA(XPathEvaluator, NS_XPATH_EVALUATOR_CONTRACTID)
   NS_DEFINE_CONSTRUCTOR_DATA(XSLTProcessor,
@@ -1695,6 +1694,13 @@ NS_DOMStorageEventCtor(nsISupports** aInstancePtrResult)
   return CallQueryInterface(e, aInstancePtrResult);
 }
 
+nsresult
+NS_XMLHttpRequestCtor(nsISupports** aInstancePtrResult)
+{
+  nsXMLHttpRequest* xhr = new nsXMLHttpRequest();
+  return CallQueryInterface(xhr, aInstancePtrResult);
+}
+
 struct nsConstructorFuncMapData
 {
   PRInt32 mDOMClassInfoID;
@@ -1723,6 +1729,7 @@ static const nsConstructorFuncMapData kConstructorFuncMap[] =
   NS_DEFINE_EVENT_CONSTRUCTOR_FUNC_DATA(MouseEvent)
   NS_DEFINE_EVENT_CONSTRUCTOR_FUNC_DATA(StorageEvent)
   NS_DEFINE_CONSTRUCTOR_FUNC_DATA(MozSmsFilter, sms::SmsFilter::NewSmsFilter)
+  NS_DEFINE_CONSTRUCTOR_FUNC_DATA(XMLHttpRequest, NS_XMLHttpRequestCtor)
 };
 
 nsIXPConnect *nsDOMClassInfo::sXPConnect = nsnull;
