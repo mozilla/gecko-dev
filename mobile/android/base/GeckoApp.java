@@ -1216,7 +1216,11 @@ abstract public class GeckoApp
                     public void run() {
                         AccessibilityManager accessibilityManager =
                             (AccessibilityManager) mAppContext.getSystemService(Context.ACCESSIBILITY_SERVICE);
-                        accessibilityManager.sendAccessibilityEvent(accEvent);
+                        try {
+                            accessibilityManager.sendAccessibilityEvent(accEvent);
+                        } catch (IllegalStateException e) {
+                            // Accessibility is off.
+                        }
                     }
                 });
             } else if (event.equals("Accessibility:Ready")) {
