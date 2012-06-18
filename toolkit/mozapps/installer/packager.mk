@@ -595,7 +595,10 @@ endif
 ifdef MOZ_SIGN_PREPARED_PACKAGE_CMD
 ifeq (Darwin, $(OS_ARCH)) 
 MAKE_PACKAGE    = $(PREPARE_PACKAGE) \
-                  && cd ./$(PKG_DMG_SOURCE) && $(MOZ_SIGN_PREPARED_PACKAGE_CMD) $(MOZ_MACBUNDLE_NAME)  && cd $(PACKAGE_BASE_DIR) \
+                  && cd ./$(PKG_DMG_SOURCE) && $(MOZ_SIGN_PREPARED_PACKAGE_CMD) $(MOZ_MACBUNDLE_NAME) \
+                  && rm $(MOZ_MACBUNDLE_NAME)/Contents/CodeResources \
+                  && cp $(MOZ_MACBUNDLE_NAME)/Contents/_CodeSignature/CodeResources $(MOZ_MACBUNDLE_NAME)/Contents \
+                  && cd $(PACKAGE_BASE_DIR) \
                   && $(INNER_MAKE_PACKAGE)
 else
 MAKE_PACKAGE    = $(PREPARE_PACKAGE) && $(MOZ_SIGN_PREPARED_PACKAGE_CMD) \
@@ -767,6 +770,11 @@ ifdef MOZ_OPTIONAL_PKG_LIST
 	  "$(call core_abspath,$(DEPTH)/installer-stage/optional)", \
 	  "$(MOZ_PKG_MANIFEST)", "$(PKGCP_OS)", 1, 0, 1 \
 	  $(foreach pkg,$(MOZ_OPTIONAL_PKG_LIST),$(PKG_ARG)) )
+ifeq (DMG, $(MOZ_PKG_FORMAT))
+ifeq (dmg, $(filter dmg, $(MOZ_INTERNAL_SIGNING_FORMAT)))
+	@cd $(DIST)/$(_APPNAME)/Contents && ln -sf _CodeSignature/CodeResources CodeResources
+endif
+endif
 	if test -d $(DEPTH)/installer-stage/optional/extensions ; then \
 		cd $(DEPTH)/installer-stage/optional/extensions; find -maxdepth 1 -mindepth 1 -exec rm -r ../../core/extensions/{} \; ; \
 	fi
