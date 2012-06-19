@@ -1130,8 +1130,13 @@ ic::SplatApplyArgs(VMFrame &f)
     }
 
     int delta = length - 1;
-    if (delta > 0 && !BumpStack(f, delta))
-        THROWV(false);
+    if (delta > 0) {
+        if (!BumpStack(f, delta))
+            THROWV(false);
+
+        MakeRangeGCSafe(f.regs.sp, delta);
+    }
+
     f.regs.sp += delta;
 
     /* Steps 7-8. */
