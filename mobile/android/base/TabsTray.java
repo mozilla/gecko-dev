@@ -150,8 +150,8 @@ public class TabsTray extends LinearLayout
         }
     }
 
-    void hideTabs() {
-        GeckoApp.mAppContext.hideTabs();
+    void autoHideTabs() {
+        GeckoApp.mAppContext.autoHideTabs();
     }
 
     // ViewHolder for a row in the list
@@ -343,7 +343,7 @@ public class TabsTray extends LinearLayout
                     TabRow tab = (TabRow)mView.getTag();
                     int tabId = tab.id;
                     Tabs.getInstance().selectTab(tabId);
-                    hideTabs();
+                    autoHideTabs();
                 }
             }
 
