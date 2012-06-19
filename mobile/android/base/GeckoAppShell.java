@@ -546,8 +546,13 @@ public class GeckoAppShell
                     if (tab == null)
                         return;
 
-                    if (!Tabs.getInstance().isSelectedTab(tab) && SCREENSHOT_THUMBNAIL != token)
+                    // XXX This code and GeckoApp.handleThumbnailData should
+                    // change to match the version in mozilla-central (Firefox 16)
+                    // if bug 755070 lands on the Firefox 15 branch.
+                    if (SCREENSHOT_THUMBNAIL == token) {
+                        GeckoApp.mAppContext.handleThumbnailData(tab, data, width, height);
                         return;
+                    }
 
                     Bitmap b = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
                     b.copyPixelsFromBuffer(data);
@@ -565,9 +570,6 @@ public class GeckoAppShell
                                 sLastCheckerboardWidthRatio * width,
                                 sLastCheckerboardHeightRatio * height,
                                 sCheckerboardPageRect);
-                        break;
-                    case SCREENSHOT_THUMBNAIL:
-                        GeckoApp.mAppContext.processThumbnail(tab, b, null);
                         break;
                     }
                 } finally {
@@ -1523,7 +1525,7 @@ public class GeckoAppShell
                                      int x, int y,
                                      int w, int h,
                                      boolean isFullScreen)
-{
+    {
         ImmutableViewportMetrics pluginViewport;
 
         Log.i(LOGTAG, "addPluginView:" + view + " @ x:" + x + " y:" + y + " w:" + w + " h:" + h + " fullscreen: " + isFullScreen);

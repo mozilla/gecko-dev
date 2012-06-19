@@ -730,9 +730,20 @@ abstract public class GeckoApp
             GeckoAppShell.sendEventToGecko(GeckoEvent.createScreenshotEvent(tab.getId(), 0, 0, 0, 0, 0, 0, dw, dh, GeckoAppShell.SCREENSHOT_THUMBNAIL));
         }
     }
-    
+
+    void handleThumbnailData(Tab tab, ByteBuffer data, int width, int height) {
+        if (shouldUpdateThumbnail(tab)) {
+            // XXX Needs bug 755070
+            // Bitmap b = tab.getThumbnailBitmap();
+            Bitmap b = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+
+            b.copyPixelsFromBuffer(data);
+            processThumbnail(tab, b, null);
+        }
+    }
+
     void processThumbnail(Tab thumbnailTab, Bitmap bitmap, byte[] compressed) {
-        if (Tabs.getInstance().isSelectedTab(thumbnailTab)) {
+        if (shouldUpdateThumbnail(thumbnailTab)) {
             if (compressed == null) {
                 ByteArrayOutputStream bos = new ByteArrayOutputStream();
                 bitmap.compress(Bitmap.CompressFormat.PNG, 0, bos);
@@ -747,6 +758,10 @@ abstract public class GeckoApp
         } catch (OutOfMemoryError ome) {
             Log.w(LOGTAG, "decoding byte array ran out of memory", ome);
         }
+    }
+
+    private boolean shouldUpdateThumbnail(Tab tab) {
+        return (Tabs.getInstance().isSelectedTab(tab) || mTabsPanel.isShown());
     }
 
     void updatePopups(final Tab tab) {
