@@ -266,6 +266,7 @@ RES_LAYOUT = \
   res/layout/remote_tabs_group.xml \
   res/layout/tabs_counter.xml \
   res/layout/tabs_panel.xml \
+  res/layout/tabs_panel_toolbar.xml \
   res/layout/tabs_row.xml \
   res/layout/tabs_tray.xml \
   res/layout/list_item_header.xml \
@@ -291,7 +292,7 @@ RES_LAYOUT_XLARGE = \
   res/layout-xlarge/remote_tabs_child.xml \
   res/layout-xlarge/remote_tabs_group.xml \
   res/layout-xlarge/site_identity_popup.xml \
-  res/layout-xlarge/tabs_panel.xml \
+  res/layout-xlarge/tabs_panel_toolbar.xml \
   res/layout-xlarge/tabs_row.xml \
   $(NULL)
 
