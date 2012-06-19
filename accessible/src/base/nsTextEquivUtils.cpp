@@ -525,5 +525,9 @@ PRUint32 nsTextEquivUtils::gRoleToNameRulesMap[] =
   eFromSubtree,      // ROLE_RICH_OPTION
   eNoRule,           // ROLE_LISTBOX
   eNoRule,           // ROLE_FLAT_EQUATION
-  eFromSubtree       // ROLE_GRID_CELL
+  eFromSubtree,      // ROLE_GRID_CELL
+  eNoRule,           // ROLE_EMBEDDED_OBJECT
+  eFromSubtree,      // ROLE_NOTE
+  eNoRule,           // ROLE_FIGURE
+  eFromSubtree       // ROLE_CHECK_RICH_OPTION
 };
