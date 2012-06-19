@@ -1736,25 +1736,6 @@ IndexedDatabaseManager::InitWindowless(const jsval& aObj, JSContext* aCx)
     return NS_ERROR_FAILURE;
   }
 
-  // sqlite3_quota_remove won't actually remove anything if we're not tracking
-  // the quota here. Manually remove the file if it exists.
-  nsresult rv;
-  nsCOMPtr<nsIFile> file =
-    do_CreateInstance(NS_LOCAL_FILE_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = file->InitWithPath(mFilePath);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  bool exists;
-  rv = file->Exists(&exists);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (exists) {
-    rv = file->Remove(false);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
   return NS_OK;
 }
 
