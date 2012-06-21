@@ -371,14 +371,18 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
     }
 
     public boolean isBookmark(ContentResolver cr, String uri) {
-        Cursor cursor = cr.query(mBookmarksUriWithProfile,
-                                 new String[] { Bookmarks._ID },
-                                 Bookmarks.URL + " = ?",
-                                 new String[] { uri },
-                                 Bookmarks.URL);
-
-        int count = cursor.getCount();
-        cursor.close();
+        int count = 0;
+        try {
+            Cursor c = cr.query(mBookmarksUriWithProfile,
+                                new String[] { Bookmarks._ID },
+                                Bookmarks.URL + " = ? " +
+                                new String[] { uri },
+                                Bookmarks.URL);
+            count = c.getCount();
+            c.close();
+        } catch (NullPointerException e) {
+            Log.e(LOGTAG, "NullPointerException in isBookmark for " + uri);
+        }
 
         return (count == 1);
     }
