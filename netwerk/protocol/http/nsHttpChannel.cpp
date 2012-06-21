@@ -263,22 +263,22 @@ nsHttpChannel::Connect(bool firstTime)
                 event->Revoke();
             }
             mozilla::Telemetry::Accumulate(
-                    mozilla::Telemetry::HTTP_CACHE_DISPOSITION, kCacheHit);
+                    mozilla::Telemetry::HTTP_CACHE_DISPOSITION_2, kCacheHit);
 
             char* cacheDeviceID = nsnull;
             mCacheEntry->GetDeviceID(&cacheDeviceID);
             if (cacheDeviceID) {
                 if (!strcmp(cacheDeviceID, kDiskDeviceID))
                     mozilla::Telemetry::Accumulate(
-                            mozilla::Telemetry::HTTP_DISK_CACHE_DISPOSITION,
+                            mozilla::Telemetry::HTTP_DISK_CACHE_DISPOSITION_2,
                             kCacheHit);
                 else if (!strcmp(cacheDeviceID, kMemoryDeviceID))
                     mozilla::Telemetry::Accumulate(
-                            mozilla::Telemetry::HTTP_MEMORY_CACHE_DISPOSITION,
+                            mozilla::Telemetry::HTTP_MEMORY_CACHE_DISPOSITION_2,
                             kCacheHit);
                 else if (!strcmp(cacheDeviceID, kOfflineDeviceID))
                     mozilla::Telemetry::Accumulate(
-                            mozilla::Telemetry::HTTP_OFFLINE_CACHE_DISPOSITION,
+                            mozilla::Telemetry::HTTP_OFFLINE_CACHE_DISPOSITION_2,
                             kCacheHit);
             }
             return rv;
@@ -1115,7 +1115,7 @@ nsHttpChannel::ProcessResponse()
     else
         cacheDisposition = kCacheMissedViaReval;
 
-    mozilla::Telemetry::Accumulate(mozilla::Telemetry::HTTP_CACHE_DISPOSITION,
+    mozilla::Telemetry::Accumulate(mozilla::Telemetry::HTTP_CACHE_DISPOSITION_2,
             cacheDisposition);
     if (mCacheEntry) {
         char* cacheDeviceID = nsnull;
@@ -1123,15 +1123,15 @@ nsHttpChannel::ProcessResponse()
         if (cacheDeviceID) {
             if (!strcmp(cacheDeviceID, kDiskDeviceID))
                 mozilla::Telemetry::Accumulate(
-                        mozilla::Telemetry::HTTP_DISK_CACHE_DISPOSITION,
+                        mozilla::Telemetry::HTTP_DISK_CACHE_DISPOSITION_2,
                         cacheDisposition);
             else if (!strcmp(cacheDeviceID, kMemoryDeviceID))
                 mozilla::Telemetry::Accumulate(
-                        mozilla::Telemetry::HTTP_MEMORY_CACHE_DISPOSITION,
+                        mozilla::Telemetry::HTTP_MEMORY_CACHE_DISPOSITION_2,
                         cacheDisposition);
             else if (!strcmp(cacheDeviceID, kOfflineDeviceID))
                 mozilla::Telemetry::Accumulate(
-                        mozilla::Telemetry::HTTP_OFFLINE_CACHE_DISPOSITION,
+                        mozilla::Telemetry::HTTP_OFFLINE_CACHE_DISPOSITION_2,
                         cacheDisposition);
         }
     }
