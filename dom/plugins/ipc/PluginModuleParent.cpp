@@ -212,7 +212,7 @@ PluginModuleParent::TimeoutChanged(const char* aPref, void* aModule)
 void
 PluginModuleParent::CleanupFromTimeout()
 {
-    if (!mShutdown)
+    if (!mShutdown && OkToCleanup())
         Close();
 }
 
