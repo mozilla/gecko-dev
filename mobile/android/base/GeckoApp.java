@@ -500,6 +500,7 @@ abstract public class GeckoApp
         MenuItem saveAsPDF = aMenu.findItem(R.id.save_as_pdf);
         MenuItem charEncoding = aMenu.findItem(R.id.char_encoding);
         MenuItem findInPage = aMenu.findItem(R.id.find_in_page);
+        MenuItem desktopMode = aMenu.findItem(R.id.desktop_mode);
 
         if (tab == null || tab.getURL() == null) {
             bookmark.setEnabled(false);
@@ -522,6 +523,7 @@ abstract public class GeckoApp
         }
 
         forward.setEnabled(tab.canDoForward());
+        desktopMode.setChecked(tab.getDesktopMode());
 
         // Disable share menuitem for about:, chrome:, file:, and resource: URIs
         String scheme = Uri.parse(tab.getURL()).getScheme();
@@ -711,6 +713,19 @@ abstract public class GeckoApp
                 return true;
             case R.id.find_in_page:
                 mFindInPageBar.show();
+                return true;
+            case R.id.desktop_mode:
+                Tab selectedTab = Tabs.getInstance().getSelectedTab();
+                if (selectedTab == null)
+                    return true;
+                JSONObject args = new JSONObject();
+                try {
+                    args.put("desktopMode", !item.isChecked());
+                    args.put("tabId", selectedTab.getId());
+                } catch (JSONException e) {
+                    Log.e(LOGTAG, "error building json arguments");
+                }
+                GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("DesktopMode:Change", args.toString()));
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -1206,6 +1221,20 @@ abstract public class GeckoApp
                         }
                         GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Accessibility:Settings",
                                                                                        ret.toString()));
+                    }
+                });
+            } else if (event.equals("DesktopMode:Changed")) {
+                int tabId = message.getInt("tabId");
+                boolean desktopMode = message.getBoolean("desktopMode");
+                final Tab tab = Tabs.getInstance().getTab(tabId);
+                if (tab == null)
+                    return;
+
+                tab.setDesktopMode(desktopMode);
+                mMainHandler.post(new Runnable() {
+                    public void run() {
+                        if (tab == Tabs.getInstance().getSelectedTab())
+                            invalidateOptionsMenu();
                     }
                 });
             }
@@ -1854,6 +1883,7 @@ abstract public class GeckoApp
         GeckoAppShell.registerGeckoEventListener("Bookmark:Insert", GeckoApp.mAppContext);
         GeckoAppShell.registerGeckoEventListener("Accessibility:Event", GeckoApp.mAppContext);
         GeckoAppShell.registerGeckoEventListener("Accessibility:Ready", GeckoApp.mAppContext);
+        GeckoAppShell.registerGeckoEventListener("DesktopMode:Changed", GeckoApp.mAppContext);
 
         if (SmsManager.getInstance() != null) {
           SmsManager.getInstance().start();
@@ -2187,6 +2217,7 @@ abstract public class GeckoApp
         GeckoAppShell.unregisterGeckoEventListener("Bookmark:Insert", GeckoApp.mAppContext);
         GeckoAppShell.unregisterGeckoEventListener("Accessibility:Event", GeckoApp.mAppContext);
         GeckoAppShell.unregisterGeckoEventListener("Accessibility:Ready", GeckoApp.mAppContext);
+        GeckoAppShell.unregisterGeckoEventListener("DesktopMode:Changed", GeckoApp.mAppContext);
 
         if (mFavicons != null)
             mFavicons.close();
