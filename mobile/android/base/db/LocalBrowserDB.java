@@ -401,7 +401,7 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
         // This method is about normal bookmarks, not the Reading List
         int count = 0;
         try {
-            Cursor c = cr.query(mBookmarksUriWithProfile,
+            Cursor c = cr.query(bookmarksUriWithLimit(1),
                                 new String[] { Bookmarks._ID },
                                 Bookmarks.URL + " = ? AND " +
                                 Bookmarks.PARENT + " != ?",
@@ -414,7 +414,7 @@ public class LocalBrowserDB implements BrowserDB.BrowserDBIface {
             Log.e(LOGTAG, "NullPointerException in isBookmark for " + uri);
         }
 
-        return (count == 1);
+        return (count > 0);
     }
 
     public String getUrlForKeyword(ContentResolver cr, String keyword) {

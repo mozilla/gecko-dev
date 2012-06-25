@@ -191,7 +191,7 @@ public class AndroidBrowserDB implements BrowserDB.BrowserDBIface {
         int count = cursor.getCount();
         cursor.close();
 
-        return (count == 1);
+        return (count > 0);
     }
 
     public String getUrlForKeyword(ContentResolver cr, String keyword) {
