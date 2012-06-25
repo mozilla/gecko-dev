@@ -499,7 +499,7 @@ let Manager = {
       NetworkResponseListener = ConsoleProgressListener = null;
 
     XPCOMUtils = gConsoleStorage = WebConsoleUtils = l10n = JSPropertyProvider =
-      NetworkHelper = NetUtil = activityDistributor = null;
+      null;
   },
 };
 
