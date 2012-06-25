@@ -24,6 +24,8 @@ FENNEC_JAVA_FILES = \
   AboutHomeContent.java \
   AboutHomeSection.java \
   AlertNotification.java \
+  AndroidImport.java \
+  AndroidImportPreference.java \
   AwesomeBar.java \
   AwesomeBarTabs.java \
   BrowserApp.java \
