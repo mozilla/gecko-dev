@@ -3596,6 +3596,55 @@ nsXPCComponents_Utils::EvalInSandbox(const nsAString& source,
                              jsVersion, false, retval);
 }
 
+struct NS_STACK_CLASS AutoSecurityJunkPusher
+{
+    JSContext                *mCx;
+    nsIPrincipal             *mPrincipal;
+    XPCJSContextStack        *mStack;
+    nsIScriptSecurityManager *mSSM;
+    bool                      mPushed;
+
+    AutoSecurityJunkPusher(JSContext *cx, nsIPrincipal *principal)
+       : mCx(cx)
+       , mPrincipal(principal)
+       , mStack(XPCPerThreadData::GetData(cx)->GetJSContextStack())
+       , mSSM(XPCWrapper::GetSecurityManager())
+       , mPushed(false)
+    {}
+
+    bool Push() {
+        if (!mStack)
+            return false;
+
+        // First, push the js context.
+        if (!mStack->Push(mCx)) {
+            JS_ReportError(mCx, "Unable to initialize XPConnect with the sandbox context");
+            return false;
+        }
+
+        // Then, push the principal.
+        nsresult rv = mSSM->PushContextPrincipal(mCx, nsnull, mPrincipal);
+        if (NS_FAILED(rv)) {
+            mStack->Pop();
+            return false;
+        }
+
+        mPushed = true;
+        return true;
+    }
+
+    void Pop() {
+        MOZ_ASSERT(mPushed);
+        mSSM->PopContextPrincipal(mCx);
+        mStack->Pop();
+    }
+
+    ~AutoSecurityJunkPusher() {
+        if (mPushed)
+            Pop();
+    }
+};
+
 nsresult
 xpc_EvalInSandbox(JSContext *cx, JSObject *sandbox, const nsAString& source,
                   const char *filename, PRInt32 lineNo,
@@ -3662,15 +3711,9 @@ xpc_EvalInSandbox(JSContext *cx, JSObject *sandbox, const nsAString& source,
     if (jsVersion != JSVERSION_DEFAULT)
         JS_SetVersion(sandcx->GetJSContext(), jsVersion);
 
-    XPCPerThreadData *data = XPCPerThreadData::GetData(cx);
-    XPCJSContextStack *stack = nsnull;
-    if (data && (stack = data->GetJSContextStack())) {
-        if (!stack->Push(sandcx->GetJSContext())) {
-            JS_ReportError(cx,
-                           "Unable to initialize XPConnect with the sandbox context");
-            return NS_ERROR_FAILURE;
-        }
-    }
+    AutoSecurityJunkPusher pusher(sandcx->GetJSContext(), prin);
+    if (!pusher.Push())
+        return NS_ERROR_FAILURE;
 
     nsresult rv = NS_OK;
 
@@ -3679,8 +3722,6 @@ xpc_EvalInSandbox(JSContext *cx, JSObject *sandbox, const nsAString& source,
         JSAutoEnterCompartment ac;
 
         if (!ac.enter(sandcx->GetJSContext(), sandbox)) {
-            if (stack)
-                unused << stack->Pop();
             return NS_ERROR_FAILURE;
         }
 
@@ -3755,9 +3796,6 @@ xpc_EvalInSandbox(JSContext *cx, JSObject *sandbox, const nsAString& source,
             }
         }
     }
-
-    if (stack)
-        unused << stack->Pop();
 
     return rv;
 }
