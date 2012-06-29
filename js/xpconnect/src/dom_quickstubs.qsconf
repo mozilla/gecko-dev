@@ -75,6 +75,7 @@ members = [
     'nsIDOMWindow.getComputedStyle',
     'nsIDOMWindow.sessionStorage',
     'nsIDOMWindow.localStorage',
+    'nsIDOMWindow_globalStorage.globalStorage',
     'nsIDOMWindow.onmouseenter',
     'nsIDOMWindow.onmouseleave',
     'nsIDOMJSWindow.dump',

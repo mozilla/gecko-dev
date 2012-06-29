@@ -130,6 +130,13 @@ StorageChild::InitAsLocalStorage(nsIURI* aDomainURI, bool aCanUseChromePersist)
   InitRemote();
 }
 
+void
+StorageChild::InitAsGlobalStorage(const nsACString& aDomainDemanded)
+{
+  DOMStorageBase::InitAsGlobalStorage(aDomainDemanded);
+  InitRemote();
+}
+
 nsTArray<nsString>*
 StorageChild::GetKeys(bool aCallerSecure)
 {

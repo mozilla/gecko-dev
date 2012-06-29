@@ -1,0 +1,19 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+interface nsIDOMStorageList;
+
+/**
+ * Compatibility interface to reintroduce globalStorage.
+ */
+[scriptable, uuid(B3DA2CBA-486E-4e94-AC99-B73CC1DB7902)]
+interface nsIDOMWindow_globalStorage : nsISupports
+{
+  /**
+   * Global storage, accessible by domain.
+   */
+  readonly attribute nsIDOMStorageList globalStorage;
+};

@@ -127,6 +127,7 @@
 #include "nsIDOMMimeType.h"
 #include "nsIDOMLocation.h"
 #include "nsIDOMWindow.h"
+#include "nsIDOMWindow_globalStorage.h"
 #include "nsPIDOMWindow.h"
 #include "nsIDOMJSWindow.h"
 #include "nsIDOMWindowCollection.h"
@@ -2374,6 +2375,7 @@ nsDOMClassInfo::RegisterExternalClasses()
   DOM_CLASSINFO_MAP_ENTRY(nsIDOMJSWindow)                                      \
   DOM_CLASSINFO_MAP_ENTRY(nsIDOMEventTarget)                                   \
   DOM_CLASSINFO_MAP_ENTRY(nsIInlineEventHandlers)                              \
+  DOM_CLASSINFO_MAP_ENTRY(nsIDOMWindow_globalStorage)                          \
   DOM_CLASSINFO_MAP_CONDITIONAL_ENTRY(nsIDOMStorageIndexedDB,                  \
                                       _support_indexed_db)                     \
   DOM_CLASSINFO_MAP_CONDITIONAL_ENTRY(nsIDOMWindowPerformance,                 \

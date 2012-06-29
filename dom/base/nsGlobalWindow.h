@@ -99,6 +99,7 @@
 #include "mozilla/TimeStamp.h"
 #include "nsIDOMTouchEvent.h"
 #include "nsIInlineEventHandlers.h"
+#include "nsIDOMWindow_globalStorage.h"
 
 // JS includes
 #include "jsapi.h"
@@ -262,7 +263,8 @@ class nsGlobalWindow : public nsPIDOMWindow,
                        public PRCListStr,
                        public nsIDOMWindowPerformance,
                        public nsITouchEventReceiver,
-                       public nsIInlineEventHandlers
+                       public nsIInlineEventHandlers,
+                       public nsIDOMWindow_globalStorage
 {
 public:
   friend class nsDOMMozURLProperty;
@@ -315,6 +317,9 @@ public:
 
   // nsIDOMWindow
   NS_DECL_NSIDOMWINDOW
+
+  // nsIDOMWindow_globalStorage
+  NS_DECL_NSIDOMWINDOW_GLOBALSTORAGE
 
   // nsIDOMWindowPerformance
   NS_DECL_NSIDOMWINDOWPERFORMANCE
@@ -985,6 +990,7 @@ protected:
   friend class nsDOMScriptableHelper;
   friend class nsDOMWindowUtils;
   friend class PostMessageEvent;
+  static nsIDOMStorageList *sGlobalStorageList;
 
   static WindowByIdTable* sWindowsById;
   static bool sWarnedAboutWindowInternal;
