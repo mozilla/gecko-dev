@@ -47,10 +47,9 @@ class nsIDOMStorageObsolete;
 class nsIURI;
 class nsIPrincipal;
 
-// {DF13D438-D023-4b50-8B88-69EB66760CEB}
-#define NS_PIDOMSTORAGE_IID                                 \
-  { 0xdf13d438, 0xd023, 0x4b50,  \
-    { 0x8b, 0x88, 0x69, 0xeb, 0x66, 0x76, 0xc, 0xeb } }
+#define NS_PIDOMSTORAGE_IID \
+{ 0x86dfe3c4, 0x4286, 0x4648, \
+  { 0xb2, 0x09, 0x55, 0x27, 0x50, 0x59, 0x26, 0xac } }
 
 class nsPIDOMStorage : public nsISupports
 {
@@ -59,14 +58,12 @@ public:
 
   typedef enum {
     Unknown = 0,
-    GlobalStorage = 1,
-    LocalStorage = 2,
-    SessionStorage = 3
+    LocalStorage = 1,
+    SessionStorage = 2
   } nsDOMStorageType;
 
   virtual nsresult InitAsSessionStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI) = 0;
   virtual nsresult InitAsLocalStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI) = 0;
-  virtual nsresult InitAsGlobalStorage(const nsACString &aDomainDemanded) = 0;
 
   virtual already_AddRefed<nsIDOMStorage> Clone() = 0;
   virtual already_AddRefed<nsIDOMStorage> Fork(const nsSubstring &aDocumentURI) = 0;
@@ -78,10 +75,6 @@ public:
   virtual bool CanAccess(nsIPrincipal *aPrincipal) = 0;
 
   virtual nsDOMStorageType StorageType() = 0;
-
-  virtual void BroadcastChangeNotification(const nsSubstring &aKey,
-                                           const nsSubstring &aOldValue,
-                                           const nsSubstring &aNewValue) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsPIDOMStorage, NS_PIDOMSTORAGE_IID)

@@ -127,7 +127,6 @@
 #include "nsIDOMMimeType.h"
 #include "nsIDOMLocation.h"
 #include "nsIDOMWindow.h"
-#include "nsIDOMWindow_globalStorage.h"
 #include "nsPIDOMWindow.h"
 #include "nsIDOMJSWindow.h"
 #include "nsIDOMWindowCollection.h"
@@ -1356,8 +1355,6 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            nsIXPCScriptable::WANT_DELPROPERTY |
                            nsIXPCScriptable::DONT_ENUM_STATIC_PROPS |
                            nsIXPCScriptable::WANT_NEWENUMERATE)
-  NS_DEFINE_CLASSINFO_DATA(StorageList, nsStorageListSH,
-                           ARRAY_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(StorageItem, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(StorageEvent, nsDOMGenericSH,
@@ -2375,7 +2372,6 @@ nsDOMClassInfo::RegisterExternalClasses()
   DOM_CLASSINFO_MAP_ENTRY(nsIDOMJSWindow)                                      \
   DOM_CLASSINFO_MAP_ENTRY(nsIDOMEventTarget)                                   \
   DOM_CLASSINFO_MAP_ENTRY(nsIInlineEventHandlers)                              \
-  DOM_CLASSINFO_MAP_ENTRY(nsIDOMWindow_globalStorage)                          \
   DOM_CLASSINFO_MAP_CONDITIONAL_ENTRY(nsIDOMStorageIndexedDB,                  \
                                       _support_indexed_db)                     \
   DOM_CLASSINFO_MAP_CONDITIONAL_ENTRY(nsIDOMWindowPerformance,                 \
@@ -3918,10 +3914,6 @@ nsDOMClassInfo::Init()
 
   DOM_CLASSINFO_MAP_BEGIN(Storage, nsIDOMStorage)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMStorage)
-  DOM_CLASSINFO_MAP_END
-
-  DOM_CLASSINFO_MAP_BEGIN(StorageList, nsIDOMStorageList)
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMStorageList)
   DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN(StorageItem, nsIDOMStorageItem)
@@ -10641,18 +10633,6 @@ nsStorage2SH::NewEnumerate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 
   return NS_OK;
 }
-
-// StorageList scriptable helper
-
-nsISupports*
-nsStorageListSH::GetNamedItem(nsISupports *aNative, const nsAString& aName,
-                              nsWrapperCache **aCache, nsresult *aResult)
-{
-  nsDOMStorageList* storagelist = static_cast<nsDOMStorageList*>(aNative);
-
-  return storagelist->GetNamedItem(aName, aResult);
-}
-
 
 // nsIDOMEventListener::HandleEvent() 'this' converter helper
 
