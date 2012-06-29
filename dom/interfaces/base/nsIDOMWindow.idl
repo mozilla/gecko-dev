@@ -49,6 +49,7 @@ interface nsIDOMMediaQueryList;
 interface nsIDOMOfflineResourceList;
 interface nsIDOMPerformance;
 interface nsIDOMStorage;
+interface nsIDOMStorageList;
 interface nsIPrompt;
 interface nsISelection;
 interface nsIVariant;
