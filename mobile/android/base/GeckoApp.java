@@ -1311,6 +1311,7 @@ abstract public class GeckoApp
 
         mMainHandler.post(new Runnable() {
             public void run() {
+                Tabs.getInstance().notifyListeners(tab, Tabs.TabEvents.STOP);
             }
         });
 
