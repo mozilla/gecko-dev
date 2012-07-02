@@ -207,6 +207,21 @@ SetProxyExtra(JSObject *obj, size_t n, const Value &extra)
     SetReservedSlot(obj, JSSLOT_PROXY_EXTRA + n, extra);
 }
 
+
+inline void
+SetProxyHandler(JSObject *obj, ProxyHandler *handler)
+{
+    JS_ASSERT(IsProxy(obj));
+    SetReservedSlot(obj, JSSLOT_PROXY_HANDLER, PrivateValue(handler));
+}
+
+inline void
+SetProxyPrivate(JSObject *obj, const Value &value)
+{
+    JS_ASSERT(IsProxy(obj));
+    SetReservedSlot(obj, JSSLOT_PROXY_PRIVATE, value);
+}
+
 JS_FRIEND_API(JSObject *)
 NewProxyObject(JSContext *cx, ProxyHandler *handler, const Value &priv,
                JSObject *proto, JSObject *parent,

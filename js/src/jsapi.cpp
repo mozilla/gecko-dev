@@ -1497,6 +1497,8 @@ JS_PUBLIC_API(JSObject *)
 JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
 {
     AssertNoGC(cx);
+    JS_ASSERT(!IsCrossCompartmentWrapper(origobj));
+    JS_ASSERT(!IsCrossCompartmentWrapper(target));
 
      // This function is called when an object moves between two
      // different compartments. In that case, we need to "move" the
@@ -1526,6 +1528,7 @@ JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
         // innards).
         obj = &p->value.toObject();
         map.remove(p);
+        NukeCrossCompartmentWrapper(obj);
         if (!obj->swap(cx, target))
             return NULL;
     } else {
@@ -1559,6 +1562,7 @@ JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
         WrapperMap &pmap = wcompartment->crossCompartmentWrappers;
         JS_ASSERT(pmap.lookup(origv));
         pmap.remove(origv);
+        NukeCrossCompartmentWrapper(wobj);
 
         // First, we wrap it in the new compartment. This will return
         // a new wrapper.
@@ -1607,6 +1611,10 @@ js_TransplantObjectWithWrapper(JSContext *cx,
                                JSObject *targetwrapper)
 {
     AssertNoGC(cx);
+    JS_ASSERT(!IsCrossCompartmentWrapper(origobj));
+    JS_ASSERT(!IsCrossCompartmentWrapper(origwrapper));
+    JS_ASSERT(!IsCrossCompartmentWrapper(targetobj));
+    JS_ASSERT(!IsCrossCompartmentWrapper(targetwrapper));
 
     JSObject *obj;
     JSCompartment *destination = targetobj->compartment();
@@ -1623,6 +1631,7 @@ js_TransplantObjectWithWrapper(JSContext *cx,
         // wrapper (swapping it with the given new wrapper).
         obj = &p->value.toObject();
         map.remove(p);
+        NukeCrossCompartmentWrapper(obj);
         if (!obj->swap(cx, targetwrapper))
             return NULL;
     } else {
@@ -1655,6 +1664,7 @@ js_TransplantObjectWithWrapper(JSContext *cx,
         WrapperMap &pmap = wcompartment->crossCompartmentWrappers;
         JS_ASSERT(pmap.lookup(origv));
         pmap.remove(origv);
+        NukeCrossCompartmentWrapper(wobj);
 
         // First, we wrap it in the new compartment. This will return a
         // new wrapper.
