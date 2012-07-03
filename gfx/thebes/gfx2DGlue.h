@@ -5,6 +5,10 @@
 #include "mozilla/gfx/Rect.h"
 #include "mozilla/gfx/2D.h"
 
+#ifndef GFX_2D_GLUE_H
+#define GFX_2D_GLUE_H
+
+
 namespace mozilla {
 namespace gfx {
 class DrawTarget;
@@ -172,6 +176,22 @@ inline gfxMatrix ThebesMatrix(const Matrix &aMatrix)
                    aMatrix._22, aMatrix._31, aMatrix._32);
 }
 
+inline gfxASurface::gfxImageFormat SurfaceFormatToImageFormat(SurfaceFormat aFormat)
+{
+  switch (aFormat) {
+  case FORMAT_B8G8R8A8:
+    return gfxASurface::ImageFormatARGB32;
+  case FORMAT_B8G8R8X8:
+    return gfxASurface::ImageFormatRGB24;
+  case FORMAT_R5G6B5:
+    return gfxASurface::ImageFormatRGB16_565;
+  case FORMAT_A8:
+    return gfxASurface::ImageFormatA8;
+  default:
+    return gfxASurface::ImageFormatUnknown;
+  }
+}
+
 inline gfxASurface::gfxContentType ContentForFormat(const SurfaceFormat &aFormat)
 {
   switch (aFormat) {
@@ -266,3 +286,5 @@ inline gfxContext::GraphicsOperator ThebesOp(CompositionOp aOp)
 
 }
 }
+
+#endif
