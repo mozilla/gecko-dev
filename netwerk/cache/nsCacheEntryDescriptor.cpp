@@ -540,11 +540,6 @@ nsInputStreamWrapper::LazyInit()
     rv = nsCacheService::OpenInputStreamForEntry(cacheEntry, mode,
                                                  mStartOffset,
                                                  getter_AddRefs(mInput));
-
-    CACHE_LOG_DEBUG(("nsInputStreamWrapper::LazyInit "
-                      "[entry=%p, wrapper=%p, mInput=%p, rv=%d]",
-                      mDescriptor, this, mInput.get(), PRIntn(rv)));
-
     if (NS_FAILED(rv)) return rv;
 
     mInitialized = true;
@@ -573,14 +568,9 @@ nsresult nsCacheEntryDescriptor::
 nsInputStreamWrapper::Read(char *buf, PRUint32 count, PRUint32 *countRead)
 {
     nsresult rv = EnsureInit();
-    if (NS_SUCCEEDED(rv))
-        rv = mInput->Read(buf, count, countRead);
+    if (NS_FAILED(rv)) return rv;
 
-    CACHE_LOG_DEBUG(("nsInputStreamWrapper::Read "
-                      "[entry=%p, wrapper=%p, mInput=%p, rv=%d]",
-                      mDescriptor, this, mInput.get(), rv));
-
-    return rv;
+    return mInput->Read(buf, count, countRead);
 }
 
 nsresult nsCacheEntryDescriptor::
