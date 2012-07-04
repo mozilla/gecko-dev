@@ -22,6 +22,7 @@
 #include "nsIDOMClientRect.h"
 #include "nsIDOMWakeLockListener.h"
 #include "nsIPowerManagerService.h"
+#include "nsFrameManager.h"
 
 #include "mozilla/Services.h"
 #include "mozilla/unused.h"
@@ -87,6 +88,15 @@ class AfterPaintListener : public nsIDOMEventListener {
     }
 
     virtual nsresult HandleEvent(nsIDOMEvent* aEvent) {
+        PRUint32 generation = nsFrameManager::GetGlobalGenerationNumber();
+        if (mLastGeneration == generation) {
+            // the frame tree has not changed since our last AfterPaint
+            // so we can drop this event.
+            return NS_OK;
+        }
+
+        mLastGeneration = generation;
+
         nsCOMPtr<nsIDOMNotifyPaintEvent> paintEvent = do_QueryInterface(aEvent);
         if (!paintEvent)
             return NS_OK;
@@ -117,6 +127,7 @@ class AfterPaintListener : public nsIDOMEventListener {
     }
 
   private:
+    PRUint32 mLastGeneration;
     nsCOMPtr<nsIDOMEventTarget> mEventTarget;
 };
 
