@@ -96,6 +96,13 @@ nsIdleServiceDaily::Observe(nsISupports *,
   PRInt32 nowSec = static_cast<PRInt32>(PR_Now() / PR_USEC_PER_SEC);
   Preferences::SetInt(PREF_LAST_DAILY, nowSec);
 
+  // Force that to be stored so we don't retrigger twice a day under
+  // any circumstances.
+  nsIPrefService* prefs = Preferences::GetService();
+  if (prefs) {
+    prefs->SavePrefFile(nsnull);
+  }
+
   // Start timer for the next check in one day.
   (void)mTimer->InitWithFuncCallback(DailyCallback,
                                      this,
