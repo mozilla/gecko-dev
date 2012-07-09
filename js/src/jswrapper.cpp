@@ -47,6 +47,7 @@
 #include "jsiter.h"
 #include "jsnum.h"
 #include "jswrapper.h"
+#include "gc/Root.h"
 #include "methodjit/PolyIC.h"
 #include "methodjit/MonoIC.h"
 #ifdef JS_METHODJIT
@@ -173,8 +174,10 @@ AbstractWrapper::getOwnPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid
 bool
 AbstractWrapper::defineProperty(JSContext *cx, JSObject *wrapper, jsid id, PropertyDescriptor *desc)
 {
-    SET(JS_DefinePropertyById(cx, wrappedObject(wrapper), id, desc->value,
-                              desc->getter, desc->setter, desc->attrs));
+    RootedVarObject obj(cx, wrappedObject(wrapper));
+    SET(CheckDefineProperty(cx, obj, RootedVarId(cx, id), RootedVarValue(cx, desc->value),
+                            desc->getter, desc->setter, desc->attrs) &&
+        JS_DefinePropertyById(cx, obj, id, desc->value, desc->getter, desc->setter, desc->attrs));
 }
 
 bool
