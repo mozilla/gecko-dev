@@ -244,6 +244,9 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
             mMenu.setVisibility(View.VISIBLE);
             mMenu.setOnClickListener(new Button.OnClickListener() {
                 public void onClick(View view) {
+                    if (!GeckoApp.mAppContext.isTablet() && GeckoApp.mAppContext.areTabsShown())
+                        return;
+
                     GeckoApp.mAppContext.openOptionsMenu();
                 }
             });
@@ -379,11 +382,25 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
 
     public void updateTabs(boolean areTabsShown) {
         if (areTabsShown) {
-            mTabs.setImageLevel(TABS_EXPANDED);
             mTabs.getBackground().setLevel(TABS_EXPANDED);
+
+            if (!GeckoApp.mAppContext.isTablet()) {
+                mTabs.setImageLevel(0);
+                mTabsCount.setVisibility(View.GONE);
+                mMenu.setImageLevel(TABS_EXPANDED);
+                mMenu.getBackground().setLevel(TABS_EXPANDED);
+            } else {
+                mTabs.setImageLevel(TABS_EXPANDED);
+            }
         } else {
             mTabs.setImageLevel(TABS_CONTRACTED);
             mTabs.getBackground().setLevel(TABS_CONTRACTED);
+
+            if (!GeckoApp.mAppContext.isTablet()) {
+                mTabsCount.setVisibility(View.VISIBLE);
+                mMenu.setImageLevel(TABS_CONTRACTED);
+                mMenu.getBackground().setLevel(TABS_CONTRACTED);
+            }
         }
     }
 
