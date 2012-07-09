@@ -19,13 +19,13 @@ import org.mozilla.gecko.sync.setup.SyncAccounts.SyncAccountParameters;
 import android.accounts.Account;
 import android.accounts.AccountAuthenticatorActivity;
 import android.accounts.AccountManager;
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
@@ -133,7 +133,8 @@ public class SetupSyncActivity extends AccountAuthenticatorActivity {
         return;
       }
     }
-    
+
+    final Activity setupActivity = this;
     runOnUiThread(new Runnable() {
       @Override
       public void run() {
@@ -144,10 +145,7 @@ public class SetupSyncActivity extends AccountAuthenticatorActivity {
             R.string.sync_notification_oneaccount, Toast.LENGTH_LONG);
         toast.show();
 
-        Intent intent = new Intent(Settings.ACTION_SYNC_SETTINGS);
-        intent.setFlags(Constants.FLAG_ACTIVITY_REORDER_TO_FRONT_NO_ANIMATION);
-        startActivity(intent);
-
+        SyncAccounts.openSyncSettings(setupActivity);
         finish();
       }
     });
