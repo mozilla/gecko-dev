@@ -51,6 +51,7 @@ _CHROME_FILES = \
 		file_expandosharing.jsm \
 		test_bug758563.xul \
 		test_bug760076.xul \
+		test_bug771429.xul \
 		$(NULL)
 
 # Disabled until this test gets updated to test the new proxy based
