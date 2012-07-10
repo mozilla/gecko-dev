@@ -7919,7 +7919,7 @@ nsModifierKeyState::InitInputEvent(nsInputEvent& aInputEvent) const
     aInputEvent.modifiers |= MODIFIER_ALT;
   }
   if (mIsWinDown) {
-    aInputEvent.modifiers |= MODIFIER_WIN;
+    aInputEvent.modifiers |= MODIFIER_OS;
   }
   if (mIsCapsLocked) {
     aInputEvent.modifiers |= MODIFIER_CAPSLOCK;
@@ -7928,7 +7928,7 @@ nsModifierKeyState::InitInputEvent(nsInputEvent& aInputEvent) const
     aInputEvent.modifiers |= MODIFIER_NUMLOCK;
   }
   if (mIsScrollLocked) {
-    aInputEvent.modifiers |= MODIFIER_SCROLL;
+    aInputEvent.modifiers |= MODIFIER_SCROLLLOCK;
   }
   // If both Control key and Alt key are pressed, it means AltGr is pressed.
   // Ideally, we should check whether the current keyboard layout has AltGr
