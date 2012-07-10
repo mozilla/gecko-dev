@@ -140,7 +140,10 @@ public:
   
   inline void CleanRedirectCacheChainIfNecessary()
   {
-      mRedirectedCachekeys = nsnull;
+      if (mRedirectedCachekeys) {
+          delete mRedirectedCachekeys;
+          mRedirectedCachekeys = nsnull;
+      }
   }
   NS_IMETHOD HTTPUpgrade(const nsACString & aProtocolName,
                          nsIHttpUpgradeListener *aListener); 
@@ -269,7 +272,7 @@ protected:
   // Current suspension depth for this channel object
   PRUint32                          mSuspendCount;
 
-  nsAutoPtr<nsTArray<nsCString> >   mRedirectedCachekeys;
+  nsTArray<nsCString>              *mRedirectedCachekeys;
 };
 
 // Share some code while working around C++'s absurd inability to handle casting

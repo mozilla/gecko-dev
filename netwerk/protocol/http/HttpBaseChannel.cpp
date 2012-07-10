@@ -50,6 +50,7 @@ HttpBaseChannel::HttpBaseChannel()
   , mTimingEnabled(false)
   , mAllowSpdy(true)
   , mSuspendCount(0)
+  , mRedirectedCachekeys(nsnull)
 {
   LOG(("Creating HttpBaseChannel @%x\n", this));
 
@@ -1625,7 +1626,8 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
     if (mRedirectedCachekeys) {
         LOG(("HttpBaseChannel::SetupReplacementChannel "
              "[this=%p] transferring chain of redirect cache-keys", this));
-        httpInternal->SetCacheKeysRedirectChain(mRedirectedCachekeys.forget());
+        httpInternal->SetCacheKeysRedirectChain(mRedirectedCachekeys);
+        mRedirectedCachekeys = nsnull;
     }
   }
   
