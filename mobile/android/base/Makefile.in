@@ -28,7 +28,6 @@ FENNEC_JAVA_FILES = \
   AwesomeBarTabs.java \
   BrowserApp.java \
   BrowserToolbar.java \
-  ConfirmPreference.java \
   SyncPreference.java \
   db/AndroidBrowserDB.java \
   db/BrowserDB.java \
@@ -68,7 +67,9 @@ FENNEC_JAVA_FILES = \
   LinkTextView.java \
   MenuItemActionBar.java \
   MenuItemDefault.java \
+  MultiChoicePreference.java \
   NSSBridge.java \
+  PrivateDataPreference.java \
   PropertyAnimator.java \
   ProfileMigrator.java \
   PromptService.java \
@@ -151,6 +152,7 @@ FENNEC_PP_JAVA_FILES = \
 
 FENNEC_PP_XML_FILES = \
   res/layout/abouthome_content.xml \
+  res/xml/preferences.xml \
   res/menu/gecko_menu.xml \
   res/menu-v11/gecko_menu.xml \
   res/menu-xlarge/gecko_menu.xml \
@@ -330,7 +332,6 @@ RES_VALUES_SW600DP_V14 = \
   $(NULL)
 
 RES_XML = \
-	res/xml/preferences.xml \
 	$(SYNC_RES_XML) \
 	$(NULL)
 
