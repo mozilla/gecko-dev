@@ -147,4 +147,10 @@
 
   <string name="bookmarkdefaults_title_abouthome">@bookmarks_aboutHome@</string>
   <string name="bookmarkdefaults_url_abouthome">about:home</string>
+
+  <!-- Don't keep activities prompt -->
+  <string name="ics_dumbness_title">&ics_dumbness_title;</string>
+  <string name="ics_dumbness_message">&ics_dumbness_message;</string>
+  <string name="ics_dumbness_ok">&ics_dumbness_ok;</string>
+
 </resources>

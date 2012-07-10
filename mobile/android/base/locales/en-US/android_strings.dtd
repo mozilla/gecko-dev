@@ -125,3 +125,7 @@
 <!ENTITY filepicker_audio_title "Choose or record a sound">
 <!ENTITY filepicker_image_title "Choose or take a picture">
 <!ENTITY filepicker_video_title "Choose or record a video">
+
+<!ENTITY ics_dumbness_title "There\'s a Problem">
+<!ENTITY ics_dumbness_message "\&quot;Don\'t keep activities\&quot; is turned on. Please turn it off in Settings > Developer options.">
+<!ENTITY ics_dumbness_ok "Settings">

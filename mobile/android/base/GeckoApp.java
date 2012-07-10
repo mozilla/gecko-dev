@@ -1725,7 +1725,35 @@ abstract public class GeckoApp
             passedUri = "about:empty";
         }
 
-        sGeckoThread = new GeckoThread(intent, passedUri, mRestoreMode);
+        if (sGeckoThread == null) {
+            sGeckoThread = new GeckoThread(intent, passedUri, mRestoreMode);
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle(R.string.ics_dumbness_title);
+            builder.setMessage(R.string.ics_dumbness_message);
+            builder.setPositiveButton(R.string.ics_dumbness_ok, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int which) {
+                    final String ACTION = "android.intent.action.MAIN";
+                    final String PACKAGE = "com.android.settings";
+                    final String CLASS = PACKAGE + ".DevelopmentSettings";
+                    Intent intent = new Intent(ACTION);
+                    intent.setComponent(new ComponentName(PACKAGE, CLASS));
+                    startActivity(intent);
+                }
+            });
+            builder.setNegativeButton(R.string.button_cancel, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int which) {
+                }
+            });
+            AlertDialog dialog = builder.create();
+            dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                public void onDismiss(DialogInterface dialog) {
+                    System.exit(0);
+                }
+            });
+            dialog.show();
+        }
+
         if (!ACTION_DEBUG.equals(action) &&
             checkAndSetLaunchState(LaunchState.Launching, LaunchState.Launched)) {
             sGeckoThread.start();
