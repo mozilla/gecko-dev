@@ -3876,13 +3876,15 @@ var FindHelper = {
     Services.obs.addObserver(this, "FindInPage:Prev", false);
     Services.obs.addObserver(this, "FindInPage:Next", false);
     Services.obs.addObserver(this, "FindInPage:Closed", false);
+    Services.obs.addObserver(this, "Tab:Selected", false);
   },
 
   uninit: function() {
-    Services.obs.removeObserver(this, "FindInPage:Find", false);
-    Services.obs.removeObserver(this, "FindInPage:Prev", false);
-    Services.obs.removeObserver(this, "FindInPage:Next", false);
-    Services.obs.removeObserver(this, "FindInPage:Closed", false);
+    Services.obs.removeObserver(this, "FindInPage:Find");
+    Services.obs.removeObserver(this, "FindInPage:Prev");
+    Services.obs.removeObserver(this, "FindInPage:Next");
+    Services.obs.removeObserver(this, "FindInPage:Closed");
+    Services.obs.removeObserver(this, "Tab:Selected");
   },
 
   observe: function(aMessage, aTopic, aData) {
@@ -3899,6 +3901,7 @@ var FindHelper = {
         this.findAgain(aData, false);
         break;
 
+      case "Tab:Selected":
       case "FindInPage:Closed":
         this.findClosed();
         break;
