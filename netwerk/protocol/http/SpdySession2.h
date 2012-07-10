@@ -154,6 +154,8 @@ public:
   // an overload of nsAHttpSegementReader
   virtual nsresult CommitToSegmentSize(PRUint32 size);
   
+  void     PrintDiagnostics (nsCString &log);
+
 private:
 
   enum stateType {
