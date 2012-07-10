@@ -320,9 +320,6 @@ var BrowserApp = {
       loadParams.showProgress = (url != "about:home");
       loadParams.pinned = pinned;
       this.addTab(url, loadParams);
-
-      // show telemetry door hanger if we aren't restoring a session
-      this._showTelemetryPrompt();
     }
 
     if (this.isAppUpdated())
@@ -342,6 +339,11 @@ var BrowserApp = {
         "value": Services.prefs.getBoolPref("gfx.show_checkerboard_pattern")
       }
     });
+
+    // disable telemetry for beta
+    Services.prefs.clearUserPref("toolkit.telemetry.enabled");
+    Services.prefs.clearUserPref("toolkit.telemetry.prompted");
+    Services.prefs.clearUserPref("toolkit.telemetry.rejected");
   },
 
   isAppUpdated: function() {
