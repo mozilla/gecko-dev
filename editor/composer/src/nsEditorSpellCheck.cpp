@@ -494,6 +494,8 @@ nsEditorSpellCheck::SetCurrentDictionary(const nsAString& aDictionary)
 {
   NS_ENSURE_TRUE(mSpellChecker, NS_ERROR_NOT_INITIALIZED);
 
+  nsRefPtr<nsEditorSpellCheck> kungFuDeathGrip = this;
+
   if (!mUpdateDictionaryRunning) {
 
     nsDefaultStringComparator comparator;
@@ -581,6 +583,8 @@ NS_IMETHODIMP
 nsEditorSpellCheck::UpdateCurrentDictionary()
 {
   nsresult rv;
+
+  nsRefPtr<nsEditorSpellCheck> kungFuDeathGrip = this;
 
   UpdateDictionnaryHolder holder(this);
 
