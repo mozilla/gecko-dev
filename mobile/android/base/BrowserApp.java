@@ -337,6 +337,9 @@ abstract public class BrowserApp extends GeckoApp
         if (mMainLayoutAnimator != null)
             mMainLayoutAnimator.stop();
 
+        if (mTabsPanel.isShown())
+            mTabsPanel.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
+
         mMainLayoutAnimator = new PropertyAnimator(150);
         mMainLayoutAnimator.setPropertyAnimationListener(this);
 
@@ -385,8 +388,10 @@ abstract public class BrowserApp extends GeckoApp
                     mGeckoLayout.requestLayout();
                 }
 
-                if (!mTabsPanel.isShown())
+                if (!mTabsPanel.isShown()) {
                     mBrowserToolbar.updateTabs(false);
+                    mTabsPanel.setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+                }
             }
         });
     }
