@@ -572,6 +572,12 @@ abstract public class GeckoApp
 
             super.onMeasure(widthMeasureSpec, restrictedHeightSpec);
         }
+
+        @Override
+        public boolean dispatchPopulateAccessibilityEvent (AccessibilityEvent event) {
+            onPopulateAccessibilityEvent(event);
+            return true;
+        }
     }
 
     @Override
