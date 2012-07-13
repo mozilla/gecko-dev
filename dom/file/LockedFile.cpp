@@ -437,7 +437,7 @@ already_AddRefed<FileRequest>
 LockedFile::GenerateFileRequest()
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-  return FileRequest::Create(GetOwner(), this);
+  return FileRequest::Create(GetOwner(), this, true);
 }
 
 bool
