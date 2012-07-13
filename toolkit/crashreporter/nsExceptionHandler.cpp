@@ -1697,6 +1697,10 @@ GetPendingDir(nsILocalFile** dir)
   }
 
   nsCOMPtr<nsILocalFile> pending = do_CreateInstance(NS_LOCAL_FILE_CONTRACTID);
+  if (!pending) {
+    NS_WARNING("Can't set up pending directory during shutdown.");
+    return false;
+  }
 #ifdef XP_WIN
   pending->InitWithPath(nsDependentString(pendingDirectory));
 #else
