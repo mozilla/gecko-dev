@@ -35,6 +35,7 @@ import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.SimpleExpandableListAdapter;
 import android.widget.TabHost;
+import android.widget.TabWidget;
 import android.widget.TextView;
 
 import java.io.ByteArrayInputStream;
@@ -164,7 +165,7 @@ public class AwesomeBarTabs extends TabHost {
 
         private Resources mResources;
         private LinkedList<Pair<Integer, String>> mParentStack;
-        private LinearLayout mBookmarksTitleView;
+        private TextView mBookmarksTitleView;
 
         public BookmarksListAdapter(Context context, Cursor c) {
             super(context, -1, c, new String[] {}, new int[] {});
@@ -300,11 +301,11 @@ public class AwesomeBarTabs extends TabHost {
             return convertView;
         }
 
-        public LinearLayout getHeaderView() {
+        public TextView getHeaderView() {
             return mBookmarksTitleView;
         }
 
-        public void setHeaderView(LinearLayout titleView) {
+        public void setHeaderView(TextView titleView) {
             mBookmarksTitleView = titleView;
         }
     }
@@ -370,9 +371,9 @@ public class AwesomeBarTabs extends TabHost {
                         mBookmarksAdapter.changeCursor(cursor);
                     }
 
-                    LinearLayout headerView = mBookmarksAdapter.getHeaderView();
+                    TextView headerView = mBookmarksAdapter.getHeaderView();
                     if (headerView == null) {
-                        headerView = (LinearLayout) mInflater.inflate(R.layout.awesomebar_header_row, null);
+                        headerView = (TextView) mInflater.inflate(R.layout.awesomebar_header_row, null);
                         mBookmarksAdapter.setHeaderView(headerView);
                     }
 
@@ -384,7 +385,7 @@ public class AwesomeBarTabs extends TabHost {
                         if (list.getHeaderViewsCount() == 0)
                             list.addHeaderView(headerView, null, true);
 
-                        ((TextView) headerView.findViewById(R.id.title)).setText(mFolderTitle);
+                        headerView.setText(mFolderTitle);
                     }
 
                     list.setAdapter(mBookmarksAdapter);
@@ -744,6 +745,8 @@ public class AwesomeBarTabs extends TabHost {
         addBookmarksTab();
         addHistoryTab();
 
+        styleSelectedTab();
+
         setOnTabChangedListener(new TabHost.OnTabChangeListener() {
             public void onTabChanged(String tabId) {
                 boolean hideSoftInput = true;
@@ -762,6 +765,8 @@ public class AwesomeBarTabs extends TabHost {
                     hideSoftInput = false;
                 }
 
+                styleSelectedTab();
+
                 // Always dismiss SKB when changing to lazy-loaded tabs
                 if (hideSoftInput) {
                     View tabView = getCurrentTabView();
@@ -774,18 +779,37 @@ public class AwesomeBarTabs extends TabHost {
         filter("");
     }
 
+    private void styleSelectedTab() {
+        int selIndex = getCurrentTab();
+        TabWidget tabWidget = getTabWidget();
+        for (int i = 0; i < tabWidget.getTabCount(); i++) {
+             if (i == selIndex)
+                 continue;
+
+             if (i == (selIndex - 1))
+                 tabWidget.getChildTabViewAt(i).getBackground().setLevel(1);
+             else if (i == (selIndex + 1))
+                 tabWidget.getChildTabViewAt(i).getBackground().setLevel(2);
+             else
+                 tabWidget.getChildTabViewAt(i).getBackground().setLevel(0);
+        }
+
+        if (selIndex == 0)
+            findViewById(R.id.tab_widget_left).getBackground().setLevel(1);
+        else
+            findViewById(R.id.tab_widget_left).getBackground().setLevel(0);
+
+        if (selIndex == (tabWidget.getTabCount() - 1))
+            findViewById(R.id.tab_widget_right).getBackground().setLevel(2);
+        else
+            findViewById(R.id.tab_widget_right).getBackground().setLevel(0);
+    }
+
     private TabSpec addAwesomeTab(String id, int titleId, int contentId) {
         TabSpec tab = newTabSpec(id);
 
-        View indicatorView = mInflater.inflate(R.layout.awesomebar_tab_indicator, null);
-        Drawable background = indicatorView.getBackground();
-        try {
-            background.setColorFilter(new LightingColorFilter(Color.WHITE, 0xFFFF9500));
-        } catch (Exception e) {
-            Log.d(LOGTAG, "background.setColorFilter failed " + e);            
-        }
-        TextView title = (TextView) indicatorView.findViewById(R.id.title);
-        title.setText(titleId);
+        TextView indicatorView = (TextView) mInflater.inflate(R.layout.awesomebar_tab_indicator, null);
+        indicatorView.setText(titleId);
 
         tab.setIndicator(indicatorView);
         tab.setContent(contentId);
@@ -1008,7 +1032,7 @@ public class AwesomeBarTabs extends TabHost {
 
         // The tabs should only be visible if there's no on-going search
         int tabsVisibility = (searchTerm.length() == 0 ? View.VISIBLE : View.GONE);
-        getTabWidget().setVisibility(tabsVisibility);
+        findViewById(R.id.tab_widget_container).setVisibility(tabsVisibility);
 
         // Perform the actual search
         mAllPagesCursorAdapter.filter(searchTerm);
