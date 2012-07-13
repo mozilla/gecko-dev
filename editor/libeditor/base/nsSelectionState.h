@@ -29,6 +29,8 @@ struct nsRangeStore
   ~nsRangeStore();
   nsresult StoreRange(nsIDOMRange *aRange);
   nsresult GetRange(nsRange** outRange);
+
+  NS_INLINE_DECL_REFCOUNTING(nsRangeStore)
         
   nsCOMPtr<nsIDOMNode> startNode;
   PRInt32              startOffset;
@@ -54,7 +56,7 @@ class nsSelectionState
     void     MakeEmpty();
     bool     IsEmpty();
   protected:    
-    nsTArray<nsRangeStore> mArray;
+    nsTArray<nsRefPtr<nsRangeStore> > mArray;
     
     friend class nsRangeUpdater;
 };
@@ -98,7 +100,7 @@ class nsRangeUpdater
     nsresult WillMoveNode();
     nsresult DidMoveNode(nsIDOMNode *aOldParent, PRInt32 aOldOffset, nsIDOMNode *aNewParent, PRInt32 aNewOffset);
   protected:    
-    nsTArray<nsRangeStore*> mArray;
+    nsTArray<nsRefPtr<nsRangeStore> > mArray;
     bool mLock;
 };
 
@@ -114,25 +116,26 @@ class NS_STACK_CLASS nsAutoTrackDOMPoint
     nsRangeUpdater &mRU;
     nsCOMPtr<nsIDOMNode> *mNode;
     PRInt32 *mOffset;
-    nsRangeStore mRangeItem;
+    nsRefPtr<nsRangeStore> mRangeItem;
   public:
     nsAutoTrackDOMPoint(nsRangeUpdater &aRangeUpdater, nsCOMPtr<nsIDOMNode> *aNode, PRInt32 *aOffset) :
     mRU(aRangeUpdater)
     ,mNode(aNode)
     ,mOffset(aOffset)
     {
-      mRangeItem.startNode = *mNode;
-      mRangeItem.endNode = *mNode;
-      mRangeItem.startOffset = *mOffset;
-      mRangeItem.endOffset = *mOffset;
-      mRU.RegisterRangeItem(&mRangeItem);
+      mRangeItem = new nsRangeStore();
+      mRangeItem->startNode = *mNode;
+      mRangeItem->endNode = *mNode;
+      mRangeItem->startOffset = *mOffset;
+      mRangeItem->endOffset = *mOffset;
+      mRU.RegisterRangeItem(mRangeItem);
     }
     
     ~nsAutoTrackDOMPoint()
     {
-      mRU.DropRangeItem(&mRangeItem);
-      *mNode  = mRangeItem.startNode;
-      *mOffset = mRangeItem.startOffset;
+      mRU.DropRangeItem(mRangeItem);
+      *mNode  = mRangeItem->startNode;
+      *mOffset = mRangeItem->startOffset;
     }
 };
 
