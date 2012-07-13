@@ -19,12 +19,9 @@ import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.content.ContentResolver;
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.util.Log;
 
 /**
@@ -35,9 +32,6 @@ import android.util.Log;
  */
 public class SyncAccounts {
   private static final String LOG_TAG = "SyncAccounts";
-
-  private static final String MOTO_BLUR_SETTINGS_ACTIVITY = "com.motorola.blur.settings.AccountsAndServicesPreferenceActivity";
-  private static final String MOTO_BLUR_PACKAGE           = "com.motorola.blur.setup";
 
   public final static String DEFAULT_SERVER = "https://auth.services.mozilla.com/";
   private static final String GLOBAL_LOG_TAG = "FxSync";
@@ -356,27 +350,6 @@ public class SyncAccounts {
     Logger.debug(LOG_TAG, "Setting authority " + authority + " to " +
                           (syncAutomatically ? "" : "not ") + "sync automatically.");
     ContentResolver.setSyncAutomatically(account, authority, syncAutomatically);
-  }
-
-  public static Intent openSyncSettings(Context context) {
-    Intent intent = null;
-
-    try {
-      // Allow Motorola Blur package to be loaded.
-      final int contextFlags = Context.CONTEXT_INCLUDE_CODE | Context.CONTEXT_IGNORE_SECURITY;
-      Context foreignContext = context.createPackageContext(MOTO_BLUR_PACKAGE, contextFlags);
-      Class<?> motorolaAccounts = foreignContext.getClassLoader().loadClass(MOTO_BLUR_SETTINGS_ACTIVITY);
-      intent = new Intent(foreignContext, motorolaAccounts);
-    } catch (NameNotFoundException e) {
-      Logger.info(LOG_TAG, "No Blur package found. Launching Sync Settings normally.");
-      intent = new Intent(Settings.ACTION_SYNC_SETTINGS);
-    } catch (ClassNotFoundException e) {
-      Logger.warn(LOG_TAG, "Blur package found but no class. Launching Sync Settings normally.", e);
-      intent = new Intent(Settings.ACTION_SYNC_SETTINGS);
-    }
-    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-    context.startActivity(intent);
-    return intent;
   }
 
   protected static void setClientRecord(Context context, AccountManager accountManager, Account account,
