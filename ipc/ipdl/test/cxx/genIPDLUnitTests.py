@@ -94,10 +94,10 @@ def main(argv):
         reinterpret_cast<%sChild**>(&gChildActor);
         *child = new %sChild();
 
-        mozilla::ipc::AsyncChannel *parentChannel = (*parent)->GetIPCChannel();
-        mozilla::ipc::AsyncChannel *childChannel = (*child)->GetIPCChannel();
-        mozilla::ipc::AsyncChannel::Side parentSide = 
-            mozilla::ipc::AsyncChannel::Parent;
+        ::mozilla::ipc::AsyncChannel *parentChannel = (*parent)->GetIPCChannel();
+        ::mozilla::ipc::AsyncChannel *childChannel = (*child)->GetIPCChannel();
+        ::mozilla::ipc::AsyncChannel::Side parentSide = 
+            ::mozilla::ipc::AsyncChannel::Parent;
 
         (*parent)->Open(childChannel, childMessageLoop, parentSide);
         return (*parent)->Main();

@@ -111,7 +111,7 @@ ${ENUM_TO_STRINGS}
 IPDLUnitTestType
 IPDLUnitTest()
 {
-    return IPDLUnitTestFromString(mozilla::_ipdltest::IPDLUnitTestName());
+    return IPDLUnitTestFromString(::mozilla::_ipdltest::IPDLUnitTestName());
 }
 
 
@@ -258,7 +258,7 @@ DeleteParentActor()
 //===== TEMPLATED =====
 ${PARENT_DELETE_CASES}
 //-----------------------------------------------------------------------------
-    default:  mozilla::_ipdltest::fail("???");
+    default:  ::mozilla::_ipdltest::fail("???");
     }
 }
 
@@ -361,7 +361,7 @@ DeleteChildActor()
 //===== TEMPLATED =====
 ${CHILD_DELETE_CASES}
 //-----------------------------------------------------------------------------
-    default:  mozilla::_ipdltest::fail("???");
+    default:  ::mozilla::_ipdltest::fail("???");
     }
 }
 

@@ -44,4 +44,6 @@ IPDLSRCS =					\
   PTestSyncHang.ipdl                            \
   PTestSyncWakeup.ipdl				\
   PTestSysVShmem.ipdl				\
+  PTestBadActor.ipdl                            \
+  PTestBadActorSub.ipdl                         \
   $(NULL)
