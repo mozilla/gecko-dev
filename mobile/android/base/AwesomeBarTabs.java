@@ -69,6 +69,7 @@ public class AwesomeBarTabs extends TabHost {
     private boolean mInflated;
     private LayoutInflater mInflater;
     private OnUrlOpenListener mUrlOpenListener;
+    private View.OnTouchListener mListTouchListener;
     private ContentResolver mContentResolver;
     private ContentObserver mContentObserver;
     private SearchEngine mSuggestEngine;
@@ -880,6 +881,14 @@ public class AwesomeBarTabs extends TabHost {
         // to the TabHost.
         setup();
 
+        mListTouchListener = new View.OnTouchListener() {
+            public boolean onTouch(View view, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_DOWN)
+                    hideSoftInput(view);
+                return false;
+            }
+        };
+
         addAllPagesTab();
         addBookmarksTab();
         addHistoryTab();
@@ -991,6 +1000,7 @@ public class AwesomeBarTabs extends TabHost {
         });
 
         allPagesList.setAdapter(mAllPagesCursorAdapter);
+        allPagesList.setOnTouchListener(mListTouchListener);
     }
 
     private void addBookmarksTab() {
@@ -1001,6 +1011,7 @@ public class AwesomeBarTabs extends TabHost {
                       R.id.bookmarks_list);
 
         ListView bookmarksList = (ListView) findViewById(R.id.bookmarks_list);
+        bookmarksList.setOnTouchListener(mListTouchListener);
 
         // Only load bookmark list when tab is actually used.
         // See OnTabChangeListener above.
@@ -1014,6 +1025,7 @@ public class AwesomeBarTabs extends TabHost {
                       R.id.history_list);
 
         ListView historyList = (ListView) findViewById(R.id.history_list);
+        historyList.setOnTouchListener(mListTouchListener);
 
         // Only load history list when tab is actually used.
         // See OnTabChangeListener above.
@@ -1174,38 +1186,12 @@ public class AwesomeBarTabs extends TabHost {
         public Drawable icon;
         public ArrayList<String> suggestions;
 
-        public SearchEngine(String name) {
-            this(name, null);
-        }
-
         public SearchEngine(String name, Drawable icon) {
             this.name = name;
             this.icon = icon;
             this.suggestions = new ArrayList<String>();
         }
     };
-
-    /**
-     * Sets the suggest engine, which will show suggestions for user-entered queries.
-     * If the suggest engine has already been set, it will be replaced, and its
-     * suggestions will be copied to the new suggest engine.
-     */
-    public void setSuggestEngine(String name, Drawable icon) {
-        // We currently save the suggest engine in shared preferences, so this
-        // method is called immediately when the AwesomeBar is created. It's
-        // called again in setSuggestions(), when the list of search engines is
-        // received from Gecko (in case the suggestion engine has changed).
-        final SearchEngine suggestEngine = new SearchEngine(name, icon);
-        if (mSuggestEngine != null)
-            suggestEngine.suggestions = mSuggestEngine.suggestions;
-
-        GeckoAppShell.getMainHandler().post(new Runnable() {
-            public void run() {
-                mSuggestEngine = suggestEngine;
-                mAllPagesCursorAdapter.notifyDataSetChanged();
-            }
-        });
-    }
 
     /**
      * Sets suggestions associated with the current suggest engine.
@@ -1225,16 +1211,17 @@ public class AwesomeBarTabs extends TabHost {
     /**
      * Sets search engines to be shown for user-entered queries.
      */
-    public void setSearchEngines(String suggestEngine, JSONArray engines) {
+    public void setSearchEngines(String suggestEngineName, JSONArray engines) {
         final ArrayList<SearchEngine> searchEngines = new ArrayList<SearchEngine>();
+        SearchEngine suggestEngine = null;
         for (int i = 0; i < engines.length(); i++) {
             try {
                 JSONObject engineJSON = engines.getJSONObject(i);
                 String name = engineJSON.getString("name");
                 String iconURI = engineJSON.getString("iconURI");
                 Drawable icon = getDrawableFromDataURI(iconURI);
-                if (name.equals(suggestEngine)) {
-                    setSuggestEngine(name, icon);
+                if (name.equals(suggestEngineName)) {
+                    suggestEngine = new SearchEngine(name, icon);
                 } else {
                     searchEngines.add(new SearchEngine(name, icon));
                 }
@@ -1244,8 +1231,10 @@ public class AwesomeBarTabs extends TabHost {
             }
         }
 
+        final SearchEngine suggestEngineArg = suggestEngine;
         GeckoAppShell.getMainHandler().post(new Runnable() {
             public void run() {
+                mSuggestEngine = suggestEngineArg;
                 mSearchEngines = searchEngines;
                 mAllPagesCursorAdapter.notifyDataSetChanged();
             }
@@ -1254,17 +1243,5 @@ public class AwesomeBarTabs extends TabHost {
 
     public boolean isInReadingList() {
         return mInReadingList;
-    }
-
-    @Override
-    public boolean onInterceptTouchEvent(MotionEvent ev) {
-        // we should only have to hide the soft keyboard once - when the user
-        // initially touches the screen
-        if (ev.getAction() == MotionEvent.ACTION_DOWN)
-            hideSoftInput(this);
-
-        // the android docs make no sense, but returning false will cause this and other
-        // motion events to be sent to the view the user tapped on
-        return false;
     }
 }

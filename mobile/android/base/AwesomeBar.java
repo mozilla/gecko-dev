@@ -75,9 +75,6 @@ public class AwesomeBar extends GeckoActivity implements GeckoEventListener {
     private SuggestClient mSuggestClient;
     private AsyncTask<String, Void, ArrayList<String>> mSuggestTask;
 
-    private static String sSuggestEngine;
-    private static String sSuggestTemplate;
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -175,12 +172,9 @@ public class AwesomeBar extends GeckoActivity implements GeckoEventListener {
 
                 // If the AwesomeBar has a composition string, don't call updateGoButton().
                 // That method resets IME and composition state will be broken.
-                if (hasCompositionString(s)) {
-                    return;
+                if (!hasCompositionString(s)) {
+                    updateGoButton(text);
                 }
-
-                // no composition string. It is safe to update IME flags.
-                updateGoButton(text);
 
                 // cancel previous query
                 if (mSuggestTask != null) {
@@ -226,67 +220,36 @@ public class AwesomeBar extends GeckoActivity implements GeckoEventListener {
             }
         });
 
+        mText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            public void onFocusChange(View v, boolean hasFocus) {
+                if (!hasFocus) {
+                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                    imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+                }
+            }
+        });
+
         registerForContextMenu(mAwesomeTabs.findViewById(R.id.all_pages_list));
         registerForContextMenu(mAwesomeTabs.findViewById(R.id.bookmarks_list));
         registerForContextMenu(mAwesomeTabs.findViewById(R.id.history_list));
-
-        if (sSuggestTemplate == null) {
-            loadSuggestClientFromPrefs();
-        } else {
-            loadSuggestClient();
-        }
 
         GeckoAppShell.registerGeckoEventListener("SearchEngines:Data", this);
         GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("SearchEngines:Get", null));
     }
 
-    private void loadSuggestClientFromPrefs() {
-        GeckoAppShell.getHandler().post(new Runnable() {
-            public void run() {
-                SharedPreferences prefs = getSearchPreferences();
-                sSuggestEngine = prefs.getString("suggestEngine", null);
-                sSuggestTemplate = prefs.getString("suggestTemplate", null);
-                if (sSuggestTemplate != null) {
-                    loadSuggestClient();
-                    mAwesomeTabs.setSuggestEngine(sSuggestEngine, null);
-                }
-            }
-        });
-    }
-
-    private void loadSuggestClient() {
-        mSuggestClient = new SuggestClient(GeckoApp.mAppContext, sSuggestTemplate, SUGGESTION_TIMEOUT, SUGGESTION_MAX);
-    }
-
     public void handleMessage(String event, JSONObject message) {
         try {
             if (event.equals("SearchEngines:Data")) {
-                final String suggestEngine = message.optString("suggestEngine");
-                final String suggestTemplate = message.optString("suggestTemplate");
-                if (!TextUtils.equals(suggestTemplate, sSuggestTemplate)) {
-                    saveSuggestEngineData(suggestEngine, suggestTemplate);
-                    sSuggestEngine = suggestEngine;
-                    sSuggestTemplate = suggestTemplate;
-                    loadSuggestClient();
-                }
+                final String suggestEngine =  message.isNull("suggestEngine") ? null : message.getString("suggestEngine");
+                final String suggestTemplate = message.isNull("suggestTemplate") ? null : message.getString("suggestTemplate");
+                if (suggestTemplate != null)
+                    mSuggestClient = new SuggestClient(GeckoApp.mAppContext, suggestTemplate, SUGGESTION_TIMEOUT, SUGGESTION_MAX);
                 mAwesomeTabs.setSearchEngines(suggestEngine, message.getJSONArray("searchEngines"));
             }
         } catch (Exception e) {
             // do nothing
             Log.i(LOGTAG, "handleMessage throws " + e + " for message: " + event);
         }
-    }
-
-    private void saveSuggestEngineData(final String suggestEngine, final String suggestTemplate) {
-        GeckoAppShell.getHandler().post(new Runnable() {
-            public void run() {
-                SharedPreferences prefs = getSearchPreferences();
-                SharedPreferences.Editor editor = prefs.edit();
-                editor.putString("suggestEngine", suggestEngine);
-                editor.putString("suggestTemplate", suggestTemplate);
-                editor.commit();
-            }
-        });
     }
 
     @Override
@@ -399,6 +362,11 @@ public class AwesomeBar extends GeckoActivity implements GeckoEventListener {
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
+        // Galaxy Note sends key events for the stylus that are outside of the
+        // valid keyCode range (see bug 758427)
+        if (keyCode > KeyEvent.getMaxKeyCode())
+            return true;
+
         // This method is called only if the key event was not handled
         // by any of the views, which usually means the edit box lost focus
         if (keyCode == KeyEvent.KEYCODE_BACK ||
@@ -736,9 +704,5 @@ public class AwesomeBar extends GeckoActivity implements GeckoEventListener {
             }
         }
         return false;
-    }
-
-    private SharedPreferences getSearchPreferences() {
-        return getSharedPreferences("search.prefs", MODE_PRIVATE);
     }
 }
