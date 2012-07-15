@@ -956,7 +956,7 @@ nsresult nsBuiltinDecoder::GetSeekable(nsTimeRanges* aSeekable)
     return NS_OK;
   }
 
-  if (mDecoderStateMachine->IsSeekableInBufferedRanges()) {
+  if (mDecoderStateMachine && mDecoderStateMachine->IsSeekableInBufferedRanges()) {
     return GetBuffered(aSeekable);
   } else {
     // The stream is not seekable using only buffered ranges, and is not
