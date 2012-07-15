@@ -4754,6 +4754,14 @@ nsDOMClassInfo::PostCreate(nsIXPConnectWrappedNative *wrapper,
 }
 
 NS_IMETHODIMP
+nsDOMClassInfo::PostTransplant(nsIXPConnectWrappedNative *wrapper,
+                               JSContext *cx, JSObject *obj)
+{
+  MOZ_NOT_REACHED("nsDOMClassInfo::PostTransplant Don't call me!");
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsDOMClassInfo::AddProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                             JSObject *obj, jsid id, jsval *vp,
                             bool *_retval)
@@ -8318,6 +8326,15 @@ nsArraySH::GetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   return rv;
 }
 
+NS_IMETHODIMP
+nsElementSH::PostTransplant(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
+                            JSObject *obj)
+{
+  // XBL bindings are reapplied asynchronously when the node is inserted into a
+  // new document and frame construction occurs.
+  return NS_OK;
+}
+
 
 // StringList scriptable helper
 
@@ -8744,6 +8761,14 @@ nsDocumentSH::PostCreate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
       return NS_ERROR_FAILURE;
     }
   }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDocumentSH::PostTransplant(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
+                             JSObject *obj)
+{
+  // Nothing to do here.
   return NS_OK;
 }
 
@@ -9867,6 +9892,14 @@ nsHTMLPluginObjElementSH::PostCreate(nsIXPConnectWrappedNative *wrapper,
     new nsPluginProtoChainInstallRunner(wrapper, scriptContext);
   nsContentUtils::AddScriptRunner(runner);
 
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsHTMLPluginObjElementSH::PostTransplant(nsIXPConnectWrappedNative *wrapper,
+                                         JSContext *cx, JSObject *obj)
+{
+  // XXXbholley - Implement me!
   return NS_OK;
 }
 
