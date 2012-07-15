@@ -94,6 +94,7 @@
 <!ENTITY pref_private_data_sessions "Active logins">
 <!ENTITY pref_private_data_offlineApps "Offline website data">
 <!ENTITY pref_private_data_siteSettings "Site preferences">
+<!ENTITY pref_search_suggestions "Show search suggestions">
 
 <!ENTITY quit "Quit">
 

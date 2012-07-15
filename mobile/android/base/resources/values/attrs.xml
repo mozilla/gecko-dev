@@ -29,4 +29,9 @@
          <attr name="initialValues" format="string"/>
     </declare-styleable>
 
+    <declare-styleable name="FlowLayout">
+         <attr name="spacing" format="dimension"/>
+    </declare-styleable>
+
 </resources>
+
