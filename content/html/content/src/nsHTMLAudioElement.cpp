@@ -193,11 +193,15 @@ nsHTMLAudioElement::MozCurrentSampleOffset(PRUint64 *aRetVal)
     return NS_ERROR_DOM_INVALID_STATE_ERR;
   }
 
-  *aRetVal = mAudioStream->GetPositionInFrames() * mChannels;
+  PRInt64 position = mAudioStream->GetPositionInFrames();
+  if (position < 0) {
+    *aRetVal = 0;
+  } else {
+    *aRetVal = position * mChannels;
+  }
   return NS_OK;
 }
 
-  
 nsresult nsHTMLAudioElement::SetAcceptHeader(nsIHttpChannel* aChannel)
 {
     nsCAutoString value(

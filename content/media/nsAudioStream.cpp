@@ -1146,12 +1146,19 @@ nsBufferedAudioStream::GetPosition()
   return -1;
 }
 
+// This function is miscompiled by PGO with MSVC 2010.  See bug 768333.
+#ifdef _MSC_VER
+#pragma optimize("", off)
+#endif
 PRInt64
 nsBufferedAudioStream::GetPositionInFrames()
 {
   MonitorAutoLock mon(mMonitor);
   return GetPositionInFramesUnlocked();
 }
+#ifdef _MSC_VER
+#pragma optimize("", on)
+#endif
 
 PRInt64
 nsBufferedAudioStream::GetPositionInFramesUnlocked()
@@ -1172,11 +1179,11 @@ nsBufferedAudioStream::GetPositionInFramesUnlocked()
 
   // Adjust the reported position by the number of silent frames written
   // during stream underruns.
-  PRInt64 adjustedPosition = 0;
+  PRUint64 adjustedPosition = 0;
   if (position >= mLostFrames) {
     adjustedPosition = position - mLostFrames;
   }
-  return adjustedPosition;
+  return NS_MIN<PRUint64>(adjustedPosition, PR_INT64_MAX);
 }
 
 bool
