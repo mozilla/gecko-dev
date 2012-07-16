@@ -82,6 +82,25 @@ protected:
   IDBRequest();
   ~IDBRequest();
 
+  virtual void RootResultValInternal();
+  virtual void UnrootResultValInternal();
+
+  void RootResultVal()
+  {
+    if (!mRooted) {
+      RootResultValInternal();
+      mRooted = true;
+    }
+  }
+
+  void UnrootResultVal()
+  {
+    if (mRooted) {
+      UnrootResultValInternal();
+      mRooted = false;
+    }
+  }
+
   nsCOMPtr<nsISupports> mSource;
   nsRefPtr<IDBTransaction> mTransaction;
 
@@ -96,6 +115,7 @@ protected:
 
   nsresult mErrorCode;
   bool mHaveResultOrErrorCode;
+  bool mRooted;
 };
 
 class IDBOpenDBRequest : public IDBRequest,
@@ -127,6 +147,9 @@ public:
 
 protected:
   ~IDBOpenDBRequest();
+
+  virtual void RootResultValInternal();
+  virtual void UnrootResultValInternal();
 
   // Only touched on the main thread.
   NS_DECL_EVENT_HANDLER(blocked)
