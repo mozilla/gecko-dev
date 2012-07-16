@@ -452,8 +452,6 @@
 @BINPATH@/components/messageWakeupService.manifest
 @BINPATH@/components/SettingsManager.js
 @BINPATH@/components/SettingsManager.manifest
-@BINPATH@/components/Webapps.js
-@BINPATH@/components/Webapps.manifest
 @BINPATH@/components/AppsService.js
 @BINPATH@/components/AppsService.manifest
 
