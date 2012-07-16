@@ -578,8 +578,7 @@ abstract public class GeckoApp
 
         @Override
         public boolean dispatchPopulateAccessibilityEvent (AccessibilityEvent event) {
-            if (Build.VERSION.SDK_INT >= 14) // Build.VERSION_CODES.ICE_CREAM_SANDWICH
-                onPopulateAccessibilityEvent(event);
+            onPopulateAccessibilityEvent(event);
             return true;
         }
     }
