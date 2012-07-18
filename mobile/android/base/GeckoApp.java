@@ -96,11 +96,11 @@ abstract public class GeckoApp
     private GeckoBatteryManager mBatteryReceiver;
     private PromptService mPromptService;
     private TextSelection mTextSelection;
+    private Favicons mFavicons;
 
     public DoorHangerPopup mDoorHangerPopup;
     public FormAssistPopup mFormAssistPopup;
     public TabsPanel mTabsPanel;
-    public Favicons mFavicons;
 
     private LayerController mLayerController;
     private GeckoLayerClient mLayerClient;
@@ -375,6 +375,13 @@ abstract public class GeckoApp
         }
 
         return null;
+    }
+
+    synchronized Favicons getFavicons() {
+        if (mFavicons == null)
+            mFavicons = new Favicons(this);
+
+        return mFavicons;
     }
 
     Class<?> getPluginClass(String packageName, String className)
@@ -869,7 +876,7 @@ abstract public class GeckoApp
 
     void handleClearHistory() {
         BrowserDB.clearHistory(getContentResolver());
-        mFavicons.clearFavicons();
+        getFavicons().clearFavicons();
     }
 
     public StartupMode getStartupMode() {
@@ -1811,8 +1818,6 @@ abstract public class GeckoApp
             }, 1000 * 5 /* 5 seconds */);
             Log.i(LOGTAG, "Intent : ACTION_DEBUG - waiting 5s before launching");
         }
-
-        mFavicons = new Favicons(this);
 
         Tabs.getInstance().setContentResolver(getContentResolver());
         Tabs.registerOnTabsChangedListener(this);
