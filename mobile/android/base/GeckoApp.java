@@ -96,6 +96,7 @@ abstract public class GeckoApp
     private GeckoConnectivityReceiver mConnectivityReceiver;
     private GeckoBatteryManager mBatteryReceiver;
     private PromptService mPromptService;
+    private TextSelection mTextSelection;
 
     public DoorHangerPopup mDoorHangerPopup;
     public FormAssistPopup mFormAssistPopup;
@@ -1981,6 +1982,9 @@ abstract public class GeckoApp
 
         mPromptService = new PromptService();
 
+        mTextSelection = new TextSelection((TextSelectionHandle) findViewById(R.id.start_handle),
+                                           (TextSelectionHandle) findViewById(R.id.end_handle));
+
         GeckoNetworkManager.getInstance().init();
         GeckoNetworkManager.getInstance().start();
 
@@ -2340,6 +2344,8 @@ abstract public class GeckoApp
             mFormAssistPopup.destroy();
         if (mPromptService != null)
             mPromptService.destroy();
+        if (mTextSelection != null)
+            mTextSelection.destroy();
 
         GeckoAppShell.getHandler().post(new Runnable() {
             public void run() {
