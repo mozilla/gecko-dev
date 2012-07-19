@@ -6,9 +6,10 @@
 package org.mozilla.gecko;
 
 import android.R;
+import android.content.Context;
 import android.os.Build;
 import android.os.SystemClock;
-import android.content.Context;
+import android.provider.Settings.Secure;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.Selection;
@@ -39,6 +40,8 @@ import android.view.inputmethod.InputMethodManager;
 
 import org.mozilla.gecko.gfx.InputConnectionHandler;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -86,6 +89,17 @@ public class GeckoInputConnection
     private static int mIMEState;
     private static String mIMETypeHint;
     private static String mIMEActionHint;
+
+    // The blocklist is so short that ArrayList is probably cheaper than HashSet.
+    private final Collection<String> sFormAutoCompleteBlocklist = Arrays.asList(new String[] {
+        "com.adamrocker.android.input.simeji/.OpenWnnSimeji",   // Simeji (bug 768108)
+        "com.google.android.inputmethod.japanese/.MozcService", // Google Japanese Input (bug 775850)
+        "com.nuance.swype.input/.IME",                          // Swype Beta (bug 755909)
+        "com.owplus.ime.openwnnplus/.OpenWnnJAJP",              // OpenWnn Plus (bug 768108)
+        "com.swype.android.inputmethod/.SwypeInputMethod"       // Swype (bug 755909)
+        });
+
+    private String mCurrentInputMethod;
 
     // Is a composition active?
     private int mCompositionStart = NO_COMPOSITION_STRING;
@@ -860,6 +874,22 @@ public class GeckoInputConnection
             endComposition();
         }
 
+        String prevInputMethod = mCurrentInputMethod;
+        mCurrentInputMethod = getCurrentInputMethod();
+
+        // If the user has changed IMEs, check whether the new IME is blocklisted.
+        if (mCurrentInputMethod != prevInputMethod) {
+            FormAssistPopup popup = GeckoApp.mAppContext.mFormAssistPopup;
+            if (popup != null) {
+                boolean blocklisted = mCurrentInputMethod != null &&
+                                      sFormAutoCompleteBlocklist.contains(mCurrentInputMethod);
+                if (DEBUG && blocklisted) {
+                    Log.d(LOGTAG, "FormAssist: Blocklisting \"" + mCurrentInputMethod + "\" IME");
+                }
+                popup.block(blocklisted);
+            }
+        }
+
         resetCompositionState();
         return this;
     }
@@ -1168,6 +1198,11 @@ public class GeckoInputConnection
         }
 
         return new Span(start, end, content);
+    }
+
+    private String getCurrentInputMethod() {
+        return Secure.getString(GeckoApp.mAppContext.getContentResolver(),
+                                Secure.DEFAULT_INPUT_METHOD);
     }
 
     private static void postToUiThread(Runnable runnable) {
