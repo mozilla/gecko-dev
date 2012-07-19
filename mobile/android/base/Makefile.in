@@ -23,13 +23,19 @@ SYNC_PP_RES_XML=res/xml/sync_syncadapter.xml res/xml/sync_options.xml
 FENNEC_JAVA_FILES = \
   AboutHomeContent.java \
   AboutHomeSection.java \
+  ActivityHandlerHelper.java \
+  ActivityResultHandler.java \
+  ActivityResultHandlerMap.java \
   AlertNotification.java \
   AndroidImport.java \
   AndroidImportPreference.java \
   AwesomeBar.java \
+  AwesomebarResultHandler.java \
   AwesomeBarTabs.java \
   BrowserApp.java \
   BrowserToolbar.java \
+  CameraImageResultHandler.java \
+  CameraVideoResultHandler.java \
   SyncPreference.java \
   db/AndroidBrowserDB.java \
   db/BrowserDB.java \
@@ -38,6 +44,8 @@ FENNEC_JAVA_FILES = \
   DoorHanger.java \
   DoorHangerPopup.java \
   Favicons.java \
+  FilePickerResultHandler.java \
+  FilePickerResultHandlerSync.java \
   FindInPageBar.java \
   FloatUtils.java \
   FlowLayout.java \
