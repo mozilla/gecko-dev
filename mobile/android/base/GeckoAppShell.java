@@ -1071,8 +1071,13 @@ public class GeckoAppShell
         Intent intent = new Intent(Intent.ACTION_SEND);
         boolean isDataURI = aSrc.startsWith("data:");
         OutputStream os = null;
-
         File dir = GeckoApp.getTempDirectory();
+
+        if (dir == null) {
+            showImageShareFailureToast();
+            return;
+        }
+
         GeckoApp.deleteTempFiles();
 
         try {
@@ -1118,11 +1123,7 @@ public class GeckoAppShell
                intent.putExtra(Intent.EXTRA_TEXT, aSrc);
                intent.setType("text/plain");
             } else {
-               // Don't fail silently, tell the user that we weren't able to share the image
-               Toast toast = Toast.makeText(GeckoApp.mAppContext,
-                                            GeckoApp.mAppContext.getResources().getString(R.string.share_image_failed),
-                                            Toast.LENGTH_SHORT);
-               toast.show();
+               showImageShareFailureToast();
                return;
             }
         } finally {
@@ -1130,6 +1131,14 @@ public class GeckoAppShell
         }
         GeckoApp.mAppContext.startActivity(Intent.createChooser(intent,
                 GeckoApp.mAppContext.getResources().getString(R.string.share_title)));
+    }
+
+    // Don't fail silently, tell the user that we weren't able to share the image
+    private static final void showImageShareFailureToast() {
+        Toast toast = Toast.makeText(GeckoApp.mAppContext,
+                                     GeckoApp.mAppContext.getResources().getString(R.string.share_image_failed),
+                                     Toast.LENGTH_SHORT);
+        toast.show();
     }
 
     static boolean openUriExternal(String aUriSpec, String aMimeType, String aPackageName,
