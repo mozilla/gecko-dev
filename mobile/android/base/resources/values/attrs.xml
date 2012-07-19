@@ -33,5 +33,9 @@
          <attr name="spacing" format="dimension"/>
     </declare-styleable>
 
+    <declare-styleable name="TextSelectionHandle">
+         <attr name="handleType" format="string"/>
+    </declare-styleable>
+
 </resources>
 
