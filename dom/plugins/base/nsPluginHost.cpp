@@ -1238,11 +1238,16 @@ nsPluginHost::TrySetUpPluginInstance(const char *aMimeType,
   // the browser during initialization.
   aOwner->SetInstance(instance.get());
 
+  // Add the instance to the instances list before we call NPP_New so that
+  // it is "in play" before NPP_New happens. Take it out if NPP_New fails.
+  mInstances.AppendElement(instance.get());
+
   // this should not addref the instance or owner
   // except in some cases not Java, see bug 140931
   // our COM pointer will free the peer
   nsresult rv = instance->Initialize(plugin.get(), aOwner, mimetype);
   if (NS_FAILED(rv)) {
+    mInstances.RemoveElement(instance.get());
     aOwner->SetInstance(nsnull);
     return rv;
   }
@@ -1252,8 +1257,6 @@ nsPluginHost::TrySetUpPluginInstance(const char *aMimeType,
   if (pluginTag->mUnloadTimer) {
     pluginTag->mUnloadTimer->Cancel();
   }
-
-  mInstances.AppendElement(instance.get());
 
 #ifdef PLUGIN_LOGGING
   nsCAutoString urlSpec2;
