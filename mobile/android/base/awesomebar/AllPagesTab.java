@@ -64,7 +64,6 @@ public class AllPagesTab extends AwesomeBarTab implements GeckoEventListener {
     private ArrayList<SearchEngine> mSearchEngines;
     private SuggestClient mSuggestClient;
     private AsyncTask<String, Void, ArrayList<String>> mSuggestTask;
-    private ListView mView = null;
     private AwesomeBarCursorAdapter mCursorAdapter = null;
 
     private class SearchEntryViewHolder {
@@ -114,10 +113,10 @@ public class AllPagesTab extends AwesomeBarTab implements GeckoEventListener {
             ((Activity)mContext).registerForContextMenu(mView);
             mView.setTag(TAG);
             AwesomeBarCursorAdapter adapter = getCursorAdapter();
-            mView.setAdapter(adapter);
+            ((ListView)mView).setAdapter(adapter);
             mView.setOnTouchListener(mListListener);
         }
-        return mView;
+        return (ListView)mView;
     }
 
     public void destroy() {
