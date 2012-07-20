@@ -52,6 +52,10 @@
 #include "GLContext.h"
 #include "GLContextProvider.h"
 
+#ifdef MOZ_WIDGET_ANDROID
+#include "TexturePoolOGL.h"
+#endif
+
 #include "mozilla/FunctionTimer.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Assertions.h"
@@ -307,6 +311,11 @@ gfxPlatform::Init()
 
     gPlatform->mWorkAroundDriverBugs = Preferences::GetBool("gfx.work-around-driver-bugs", true);
 
+#ifdef MOZ_WIDGET_ANDROID
+    // Texture pool init
+    mozilla::gl::TexturePoolOGL::Init();
+#endif
+
     // Force registration of the gfx component, thus arranging for
     // ::Shutdown to be called.
     nsCOMPtr<nsISupports> forceReg
@@ -342,6 +351,11 @@ gfxPlatform::Shutdown()
         Preferences::RemoveObservers(gPlatform->mFontPrefsObserver, kObservedPrefs);
         gPlatform->mFontPrefsObserver = nsnull;
     }
+
+#ifdef MOZ_WIDGET_ANDROID
+    // Shut down the texture pool
+    mozilla::gl::TexturePoolOGL::Shutdown();
+#endif
 
     // Shut down the default GL context provider.
     mozilla::gl::GLContextProvider::Shutdown();
