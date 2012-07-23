@@ -39,6 +39,7 @@ import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 
 import org.mozilla.gecko.gfx.InputConnectionHandler;
+import org.mozilla.gecko.gfx.LayerController;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -322,6 +323,11 @@ public class GeckoInputConnection
         return super.setComposingText(text, newCursorPosition);
     }
 
+    private static View getView() {
+        LayerController controller = GeckoApp.mAppContext.getLayerController();
+        return (controller == null ? null : controller.getView());
+    }
+
     // Android's BaseInputConnection.java is vulnerable to IndexOutOfBoundsExceptions because it
     // does not adequately protect against stale indexes for selections exceeding the content length
     // when the Editable content changes. We must clamp the indexes to be safe.
@@ -471,7 +477,7 @@ public class GeckoInputConnection
     }
 
     private static InputMethodManager getInputMethodManager() {
-        Context context = GeckoApp.mAppContext.getLayerController().getView().getContext();
+        Context context = getView().getContext();
         return (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
     }
 
@@ -491,7 +497,7 @@ public class GeckoInputConnection
         if (mUpdateRequest == null)
             return;
 
-        View v = GeckoApp.mAppContext.getLayerController().getView();
+        View v = getView();
 
         if (imm == null) {
             imm = getInputMethodManager();
@@ -554,7 +560,7 @@ public class GeckoInputConnection
         }
 
         if (imm != null && imm.isFullscreenMode()) {
-            View v = GeckoApp.mAppContext.getLayerController().getView();
+            View v = getView();
             imm.updateSelection(v, start, end, -1, -1);
         }
     }
@@ -961,7 +967,7 @@ public class GeckoInputConnection
             // Let active IME process pre-IME key events
             return false;
 
-        View view = GeckoApp.mAppContext.getLayerController().getView();
+        View view = getView();
         KeyListener keyListener = TextKeyListener.getInstance();
 
         // KeyListener returns true if it handled the event for us.
@@ -1009,7 +1015,7 @@ public class GeckoInputConnection
             // Let active IME process pre-IME key events
             return false;
 
-        View view = GeckoApp.mAppContext.getLayerController().getView();
+        View view = getView();
         KeyListener keyListener = TextKeyListener.getInstance();
 
         if (mIMEState == IME_STATE_DISABLED ||
@@ -1029,7 +1035,7 @@ public class GeckoInputConnection
     }
 
     public boolean onKeyLongPress(int keyCode, KeyEvent event) {
-        View v = GeckoApp.mAppContext.getLayerController().getView();
+        View v = getView();
         switch (keyCode) {
             case KeyEvent.KEYCODE_MENU:
                 InputMethodManager imm = getInputMethodManager();
@@ -1050,7 +1056,7 @@ public class GeckoInputConnection
     public void notifyIME(final int type, final int state) {
         postToUiThread(new Runnable() {
             public void run() {
-                View v = GeckoApp.mAppContext.getLayerController().getView();
+                View v = getView();
                 if (v == null)
                     return;
 
@@ -1095,7 +1101,7 @@ public class GeckoInputConnection
     public void notifyIMEEnabled(final int state, final String typeHint, final String actionHint) {
         postToUiThread(new Runnable() {
             public void run() {
-                View v = GeckoApp.mAppContext.getLayerController().getView();
+                View v = getView();
                 if (v == null)
                     return;
 
@@ -1156,7 +1162,9 @@ public class GeckoInputConnection
             // TimerTask.run() is running on a random background thread, so post to UI thread.
             postToUiThread(new Runnable() {
                 public void run() {
-                    final View v = GeckoApp.mAppContext.getLayerController().getView();
+                    final View v = getView();
+                    if (v == null)
+                        return;
 
                     final InputMethodManager imm = getInputMethodManager();
                     if (imm == null)
