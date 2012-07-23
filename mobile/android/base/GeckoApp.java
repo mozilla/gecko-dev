@@ -124,6 +124,7 @@ abstract public class GeckoApp
     abstract public int getLayout();
     abstract public boolean isBrowserToolbarSupported();
     abstract public View getBrowserToolbar();
+    abstract public boolean hasTabsSideBar();
     abstract protected String getDefaultProfileName();
 
     public static boolean checkLaunchState(LaunchState checkState) {
@@ -952,17 +953,13 @@ abstract public class GeckoApp
     public boolean areTabsShown() { return false; }
 
     public boolean hasPermanentMenuKey() {
-        boolean hasMenu = false;
+        boolean hasMenu = true;
 
         if (Build.VERSION.SDK_INT >= 11)
-            hasMenu = true;
+            hasMenu = false;
 
-        if (Build.VERSION.SDK_INT >= 14) {
-            if (!ViewConfiguration.get(GeckoApp.mAppContext).hasPermanentMenuKey())
-                hasMenu = true;
-            else
-                hasMenu = false;
-        }
+        if (Build.VERSION.SDK_INT >= 14)
+            hasMenu = ViewConfiguration.get(GeckoApp.mAppContext).hasPermanentMenuKey();
 
         return hasMenu;
     }
@@ -1730,7 +1727,8 @@ abstract public class GeckoApp
     public boolean isTablet() {
         int screenLayout = getResources().getConfiguration().screenLayout;
         return (Build.VERSION.SDK_INT >= 11 &&
-                ((screenLayout & Configuration.SCREENLAYOUT_SIZE_MASK) == Configuration.SCREENLAYOUT_SIZE_XLARGE));
+                (((screenLayout & Configuration.SCREENLAYOUT_SIZE_MASK) == Configuration.SCREENLAYOUT_SIZE_LARGE) || 
+                 ((screenLayout & Configuration.SCREENLAYOUT_SIZE_MASK) == Configuration.SCREENLAYOUT_SIZE_XLARGE)));
     }
 
     /** Called when the activity is first created. */

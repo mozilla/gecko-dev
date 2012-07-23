@@ -33,5 +33,9 @@
          <attr name="initialValues" format="string"/>
     </declare-styleable>
 
+    <declare-styleable name="TabsPanel">
+         <attr name="sidebar" format="boolean"/>
+    </declare-styleable>
+
 </resources>
 
