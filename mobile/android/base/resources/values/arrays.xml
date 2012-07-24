@@ -59,6 +59,7 @@
         <item>true</item>
         <item>true</item>
         <item>true</item>
+        <item>true</item>
     </string-array>
     <string-array name="pref_private_data_keys">
         <item>private.data.history_downloads</item>
