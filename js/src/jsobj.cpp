@@ -999,7 +999,7 @@ obj_lookupGetter(JSContext *cx, unsigned argc, Value *vp)
         // The vanilla getter lookup code below requires that the object is
         // native. Handle proxies separately.
         vp->setUndefined();
-        PropertyDescriptor desc;
+        AutoPropertyDescriptorRooter desc(cx);
         if (!Proxy::getPropertyDescriptor(cx, obj, id, false, &desc))
             return JS_FALSE;
         if (desc.obj && (desc.attrs & JSPROP_GETTER) && desc.getter)
@@ -1033,7 +1033,7 @@ obj_lookupSetter(JSContext *cx, unsigned argc, Value *vp)
         // The vanilla setter lookup code below requires that the object is
         // native. Handle proxies separately.
         vp->setUndefined();
-        PropertyDescriptor desc;
+        AutoPropertyDescriptorRooter desc(cx);
         if (!Proxy::getPropertyDescriptor(cx, obj, id, false, &desc))
             return JS_FALSE;
         if (desc.obj && (desc.attrs & JSPROP_SETTER) && desc.setter)
