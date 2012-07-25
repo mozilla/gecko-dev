@@ -2519,8 +2519,8 @@ Tab.prototype = {
       case "DOMContentLoaded": {
         let target = aEvent.originalTarget;
 
-        // ignore on frames
-        if (target.defaultView != this.browser.contentWindow)
+        // ignore on frames and other documents
+        if (target != this.browser.contentDocument)
           return;
 
         // Sample the background color of the page and pass it along. (This is used to draw the
@@ -2565,8 +2565,8 @@ Tab.prototype = {
         if (!target.href || target.disabled)
           return;
 
-        // ignore on frames
-        if (target.ownerDocument.defaultView != this.browser.contentWindow)
+        // ignore on frames and other documents
+        if (target.ownerDocument != this.browser.contentDocument)
           return;
 
         // sanitize the rel string
@@ -2619,8 +2619,8 @@ Tab.prototype = {
         if (!aEvent.isTrusted)
           return;
 
-        // ignore on frames
-        if (aEvent.target.defaultView != this.browser.contentWindow)
+        // ignore on frames and other documents
+        if (aEvent.originalTarget != this.browser.contentDocument)
           return;
 
         sendMessageToJava({
