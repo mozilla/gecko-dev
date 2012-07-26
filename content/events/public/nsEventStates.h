@@ -236,6 +236,8 @@ private:
 #define NS_EVENT_STATE_FULL_SCREEN_ANCESTOR   NS_DEFINE_EVENT_STATE_MACRO(35)
 // Handler for click to play plugin
 #define NS_EVENT_STATE_TYPE_CLICK_TO_PLAY NS_DEFINE_EVENT_STATE_MACRO(36)
+// Platform does not support plugin content (some mobile platforms)
+#define NS_EVENT_STATE_TYPE_UNSUPPORTED_PLATFORM NS_DEFINE_EVENT_STATE_MACRO(37)
 
 /**
  * NOTE: do not go over 63 without updating nsEventStates::InternalType!

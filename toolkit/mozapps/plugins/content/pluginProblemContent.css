@@ -17,12 +17,14 @@ html|applet:not([height]), html|applet[height=""] {
 }
 
 :-moz-type-unsupported .mainBox,
+:-moz-type-unsupported-platform .mainBox,
 :-moz-handler-clicktoplay .mainBox,
 :-moz-handler-disabled .mainBox,
 :-moz-handler-blocked .mainBox {
   -moz-user-focus: normal;
 }
 :-moz-type-unsupported .mainBox:focus,
+:-moz-type-unsupported-platform .mainBox:focus,
 :-moz-handler-clicktoplay .mainBox:focus,
 :-moz-handler-disabled .mainBox:focus,
 :-moz-handler-blocked .mainBox:focus {
@@ -46,6 +48,7 @@ html|applet:not([height]), html|applet[height=""] {
 }
 
 :-moz-type-unsupported .msgUnsupported,
+:-moz-type-unsupported-platform .msgUnsupportedPlatform,
 :-moz-handler-clicktoplay .msgClickToPlay,
 :-moz-handler-clicktoplay .msgTapToPlay,
 :-moz-handler-disabled .msgDisabled,
