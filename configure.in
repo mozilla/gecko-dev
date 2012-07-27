@@ -4191,7 +4191,7 @@ MOZ_WAVE=1
 MOZ_MEDIA=
 MOZ_OPUS=1
 MOZ_WEBM=1
-MOZ_WEBRTC=1
+MOZ_WEBRTC=
 MOZ_WEBRTC_SIGNALING=
 MOZ_MEDIA_PLUGINS=
 MOZ_MEDIA_NAVIGATOR=
@@ -5236,12 +5236,12 @@ if test -n "$MOZ_WEBRTC"; then
 fi
 
 dnl ========================================================
-dnl = Disable WebRTC code
+dnl = Enable WebRTC code
 dnl ========================================================
-MOZ_ARG_DISABLE_BOOL(webrtc,
-[  --disable-webrtc        Disable support for WebRTC],
-    MOZ_WEBRTC=,
-    MOZ_WEBRTC=1)
+MOZ_ARG_ENABLE_BOOL(webrtc,
+[  --enable-webrtc        Enable support for WebRTC],
+    MOZ_WEBRTC=1,
+    MOZ_WEBRTC=)
 
 if test -n "$MOZ_WEBRTC"; then
     AC_DEFINE(MOZ_WEBRTC)
