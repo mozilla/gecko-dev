@@ -2081,8 +2081,17 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   // nsDisplayFixedPosition. We check if we're already building a fixed-pos
   // item and disallow nesting, to prevent the situation of bug #769541
   // occurring.
+  // We also disallow fixed position items when there is no display port. The
+  // logic behind this is that fixed position items are only useful to
+  // perform asynchronous zooming, and the presence of a display-port implies
+  // that async zooming may be performed.
+  nsIFrame* rootScrollFrame;
+  nsIContent* rootContent;
   bool buildFixedPositionItem = disp->mPosition == NS_STYLE_POSITION_FIXED
-    && !child->GetParent()->GetParent() && !isSVG && !aBuilder->IsInFixedPosition();
+    && !child->GetParent()->GetParent() && !isSVG && !aBuilder->IsInFixedPosition() &&
+	(rootScrollFrame = PresContext()->PresShell()->GetRootScrollFrame()) &&
+    (rootContent = rootScrollFrame->GetContent()) &&
+    (nsLayoutUtils::GetDisplayPort(rootContent, nsnull));
 
   nsDisplayListBuilder::AutoBuildingDisplayList
     buildingForChild(aBuilder, child, pseudoStackingContext, buildFixedPositionItem);
