@@ -2087,8 +2087,8 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   // that async zooming may be performed.
   nsIFrame* rootScrollFrame;
   nsIContent* rootContent;
-  bool buildFixedPositionItem = disp->mPosition == NS_STYLE_POSITION_FIXED
-    && !child->GetParent()->GetParent() && !isSVG && !aBuilder->IsInFixedPosition() &&
+  bool buildFixedPositionItem = disp->mPosition == NS_STYLE_POSITION_FIXED &&
+    !child->GetParent()->GetParent() && !aBuilder->IsInFixedPosition() &&
 	(rootScrollFrame = PresContext()->PresShell()->GetRootScrollFrame()) &&
     (rootContent = rootScrollFrame->GetContent()) &&
     (nsLayoutUtils::GetDisplayPort(rootContent, nsnull));
