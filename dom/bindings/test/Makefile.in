@@ -62,6 +62,7 @@ MOCHITEST_FILES = \
   test_lookupGetter.html \
   test_InstanceOf.html \
   test_traceProtos.html \
+  test_sequence_wrapping.html \
   $(NULL)
 
 
