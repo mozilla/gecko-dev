@@ -25,6 +25,11 @@
                         android:layout_height="fill_parent"
                         android:layout_weight="1">
 
+            <org.mozilla.gecko.gfx.LayerView android:id="@+id/layer_view"
+                                             android:layout_width="fill_parent"
+                                             android:layout_height="fill_parent"
+                                             android:background="#FFF"/>
+
             <AbsoluteLayout android:id="@+id/plugin_container"
                             android:background="@android:color/transparent"
                             android:layout_width="fill_parent"

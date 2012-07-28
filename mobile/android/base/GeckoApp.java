@@ -1795,12 +1795,7 @@ abstract public class GeckoApp
              * run experience, perhaps?
              */
             mLayerController = new LayerController(this);
-            View v = mLayerController.getView();
-
-            // Instead of flickering the checkerboard, show a white screen until Gecko paints
-            v.setBackgroundColor(Color.WHITE);
-
-            mGeckoLayout.addView(v, 0);
+            mLayerController.setView((LayerView)findViewById(R.id.layer_view));
         }
 
         mPluginContainer = (AbsoluteLayout) findViewById(R.id.plugin_container);
