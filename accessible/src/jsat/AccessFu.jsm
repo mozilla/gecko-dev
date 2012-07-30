@@ -196,8 +196,10 @@ var AccessFu = {
   observe: function observe(aSubject, aTopic, aData) {
     switch (aTopic) {
       case 'Accessibility:Settings':
-        this._processPreferences(JSON.parse(aData).enabled + 0,
-                                 JSON.parse(aData).exploreByTouch + 0);
+        this._processPreferences(
+          JSON.parse(aData).enabled + 0,
+          (Utils.AndroidSdkVersion < 16) ?
+            JSON.parse(aData).exploreByTouch + 0 : false);
         break;
       case 'nsPref:changed':
         this._processPreferences(this.prefsBranch.getIntPref('activate'),
