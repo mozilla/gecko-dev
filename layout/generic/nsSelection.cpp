@@ -481,8 +481,6 @@ nsFrameSelection::nsFrameSelection()
   mBatching = 0;
   mChangesDuringBatching = false;
   mNotifyFrames = true;
-  mLimiter = nsnull; //no default limiter.
-  mAncestorLimiter = nsnull;
   
   mMouseDoubleDownState = false;
   
@@ -535,6 +533,8 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsFrameSelection)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mAppendStartSelectedCell)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mUnselectCellOnMouseUp)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mMaintainRange)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mLimiter)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mAncestorLimiter)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsFrameSelection)
   if (tmp->mShell && tmp->mShell->GetDocument() &&
@@ -555,6 +555,8 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsFrameSelection)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mAppendStartSelectedCell)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mUnselectCellOnMouseUp)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR_AMBIGUOUS(mMaintainRange, nsIDOMRange)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mLimiter)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mAncestorLimiter)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsFrameSelection)
