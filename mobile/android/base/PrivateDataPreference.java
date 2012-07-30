@@ -55,7 +55,7 @@ class PrivateDataPreference extends MultiChoicePreference {
             }
 
             // clear private data in java
-            if (key.equals("history") && value) {
+            if (key.equals("history_downloads") && value) {
                 GeckoAppShell.getHandler().post(new Runnable() {
                     public void run() {
                         BrowserDB.clearHistory(mContext.getContentResolver());
