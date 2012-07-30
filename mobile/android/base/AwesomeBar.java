@@ -73,10 +73,6 @@ public class AwesomeBar extends GeckoActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        if (Build.VERSION.SDK_INT >= 11) {
-            getActionBar().hide();
-        }
-
         Log.d(LOGTAG, "creating awesomebar");
 
         mResolver = Tabs.getInstance().getContentResolver();
@@ -175,8 +171,7 @@ public class AwesomeBar extends GeckoActivity {
                 }
 
                 if (Build.VERSION.SDK_INT >= 11) {
-                    if (getActionBar().isShowing())
-                        getActionBar().hide();
+                    getActionBar().hide();
                 }
             }
 
@@ -235,8 +230,7 @@ public class AwesomeBar extends GeckoActivity {
             @Override
             public void onSelectionChanged(int selStart, int selEnd) {
                 if (Build.VERSION.SDK_INT >= 11 && selStart == selEnd) {
-                    if (getActionBar().isShowing())
-                        getActionBar().hide();
+                    getActionBar().hide();
                 }
             }
         });
