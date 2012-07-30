@@ -7,6 +7,7 @@
 #define __selectionstate_h__
 
 #include "nsCOMPtr.h"
+#include "nsAutoPtr.h"
 #include "nsTArray.h"
 #include "nsIDOMNode.h"
 #include "nsIDOMRange.h"
