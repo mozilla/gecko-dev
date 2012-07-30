@@ -153,10 +153,6 @@ public class Favicons {
         return mHttpClient;
     }
 
-    public String getFaviconUrlForPageUrl(String pageUrl) {
-        return mDbHelper.getFaviconUrlForPageUrl(pageUrl);
-    }
-
     public long loadFavicon(String pageUrl, String faviconUrl,
             OnFaviconLoadedListener listener) {
 
