@@ -46,6 +46,7 @@ import org.mozilla.gecko.db.BrowserContract.Bookmarks;
 import org.mozilla.gecko.db.BrowserContract.Combined;
 import org.mozilla.gecko.db.BrowserDB.URLColumns;
 import org.mozilla.gecko.db.BrowserDB;
+import org.mozilla.gecko.AwesomeBarTabs.AwesomeBarCursorAdapter.AwesomeBarCursorItem;
 
 import org.json.JSONObject;
 import java.net.URLEncoder;
@@ -526,12 +527,17 @@ public class AwesomeBar extends GeckoActivity implements GeckoEventListener {
             AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
             Object selectedItem = list.getItemAtPosition(info.position);
 
-            if (!(selectedItem instanceof Cursor)) {
-                Log.e(LOGTAG, "item at " + info.position + " is not a Cursor");
+            Cursor cursor = null;
+            if (selectedItem instanceof AwesomeBarCursorItem) {
+                // All pages tab uses AwesomeBarCursorItems for things that aren't search items
+                cursor = ((AwesomeBarCursorItem) selectedItem).getCursor();
+            } else if (selectedItem instanceof Cursor) {
+                // The bookmarks tab uses Cursors
+                cursor = (Cursor) selectedItem;
+            } else {
+                Log.e(LOGTAG, "item at " + info.position + " is not an AwesomeBarCursorItem or a Cursor");
                 return;
             }
-
-            Cursor cursor = (Cursor) selectedItem;
 
             // Don't show the context menu for folders
             if (!(list == findViewById(R.id.bookmarks_list) &&

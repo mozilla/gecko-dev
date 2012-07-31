@@ -610,17 +610,21 @@ public class AwesomeBarTabs extends TabHost {
         public void onClick();
     }
 
-    private class AwesomeBarCursorAdapter extends SimpleCursorAdapter {
+    public class AwesomeBarCursorAdapter extends SimpleCursorAdapter {
         private String mSearchTerm;
 
         private static final int ROW_SEARCH = 0;
         private static final int ROW_STANDARD = 1;
 
-        private class AwesomeBarCursorItem implements AwesomeBarItem {
+        public class AwesomeBarCursorItem implements AwesomeBarItem {
             private Cursor mCursor;
 
             public AwesomeBarCursorItem(Cursor cursor) {
                 mCursor = cursor;
+            }
+
+            public Cursor getCursor() {
+                return mCursor;
             }
 
             public void onClick() {
