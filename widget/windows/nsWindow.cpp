@@ -6707,6 +6707,12 @@ nsWindow::SetupKeyModifiersSequence(nsTArray<KeyPair>* aArray, PRUint32 aModifie
   }
 }
 
+BOOL WINAPI EnumFirstChild(HWND hwnd, LPARAM lParam)
+{
+  *((HWND*)lParam) = hwnd;
+  return FALSE;
+}
+
 nsresult
 nsWindow::ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
 {
@@ -6740,7 +6746,47 @@ nsWindow::ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
         r.Sub(bounds, configuration.mBounds);
         r.MoveBy(-bounds.x,
                  -bounds.y);
-        w->Invalidate(r.GetBounds());
+        nsIntRect toInvalidate = r.GetBounds();
+
+        w->Invalidate(toInvalidate);
+
+        // XXX - Even more evil workaround!! See bug 762948, flash's bottom
+        // level sandboxed window doesn't seem to get our invalidate. We send
+        // an invalidate to it manually. This is totally specialized for this
+        // bug, for other child window structures this will just be a more or
+        // less bogus invalidate but since that should not have any bad
+        // side-effects this will have to do for now.
+        HWND current = (HWND)w->GetNativeData(NS_NATIVE_WINDOW);
+        POINT p = {configuration.mBounds.x, configuration.mBounds.y};
+
+        RECT windowRect;
+        RECT parentRect;
+
+        ::GetWindowRect(current, &parentRect);
+        
+        HWND next = current;
+
+        do {
+          current = next;
+
+          ::EnumChildWindows(current, &EnumFirstChild, (LPARAM)&next);
+
+          ::GetWindowRect(next, &windowRect);
+          // This is relative to the screen, adjust it to be relative to the
+          // window we're reconfiguring.
+          windowRect.left -= parentRect.left;
+          windowRect.top -= parentRect.top;
+        } while (next != current && windowRect.top == 0 && windowRect.left == 0);
+
+        if (windowRect.top == 0 && windowRect.left == 0) {
+          RECT rect;
+          rect.left   = toInvalidate.x;
+          rect.top    = toInvalidate.y;
+          rect.right  = toInvalidate.XMost();
+          rect.bottom = toInvalidate.YMost();
+
+          ::InvalidateRect(next, &rect, FALSE);
+        }
       }
     }
     rv = w->SetWindowClipRegion(configuration.mClipRegion, false);
