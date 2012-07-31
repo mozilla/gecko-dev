@@ -1630,6 +1630,16 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
                 JS_SetPrivate(flat, nsnull);
             }
 
+            // Before proceeding, eagerly create any same-compartment security wrappers
+            // that the object might have. This forces us to take the 'WithWrapper' path
+            // while transplanting that handles this stuff correctly.
+            {
+                JSAutoEnterCompartment innerAC;
+                if (!innerAC.enter(ccx, aOldScope->GetGlobalJSObject()) ||
+                    !wrapper->GetSameCompartmentSecurityWrapper(ccx))
+                    return NS_ERROR_FAILURE;
+            }
+
             {   // scoped lock
                 Native2WrappedNativeMap* oldMap = aOldScope->GetWrappedNativeMap();
                 Native2WrappedNativeMap* newMap = aNewScope->GetWrappedNativeMap();
@@ -1663,16 +1673,6 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
                              "wrapper already in new scope!");
 
                 (void) newMap->Add(wrapper);
-            }
-
-            // Before proceeding, eagerly create any same-compartment security wrappers
-            // that the object might have. This forces us to take the 'WithWrapper' path
-            // while transplanting that handles this stuff correctly.
-            {
-                JSAutoEnterCompartment innerAC;
-                if (!innerAC.enter(ccx, aOldScope->GetGlobalJSObject()) ||
-                    !wrapper->GetSameCompartmentSecurityWrapper(ccx))
-                    return NS_ERROR_FAILURE;
             }
 
             JSObject *ww = wrapper->GetWrapper();
