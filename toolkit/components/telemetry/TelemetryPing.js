@@ -436,7 +436,8 @@ TelemetryPing.prototype = {
         Telemetry.histogramFrom("STARTUP_" + name, name);
       }
     }
-    this._slowSQLStartup = Telemetry.slowSQL;
+    // Bug 777220: Temporarily turn off slowSQL reporting
+    this._slowSQLStartup = {mainThread:{}, otherThreads:{}};
   },
 
   getSessionPayloadAndSlug: function getSessionPayloadAndSlug(reason) {
@@ -465,7 +466,8 @@ TelemetryPing.prototype = {
     else {
       payloadObj.simpleMeasurements = getSimpleMeasurements();
       payloadObj.histograms = this.getHistograms(Telemetry.histogramSnapshots);
-      payloadObj.slowSQL = Telemetry.slowSQL;
+      // Bug 777220: Temporarily turn off slowSQL reporting
+      payloadObj.slowSQL = {mainThread:{}, otherThreads:{}};
       payloadObj.chromeHangs = Telemetry.chromeHangs;
       payloadObj.addonHistograms = this.getAddonHistograms();
     }
