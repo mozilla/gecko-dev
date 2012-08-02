@@ -300,7 +300,7 @@ nsSVGPaintingProperty::DoUpdate()
   if (!mFrame)
     return;
 
-  if (mFrame->IsFrameOfType(nsIFrame::eSVG)) {
+  if (mFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT) {
     nsSVGUtils::InvalidateBounds(mFrame);
   } else {
     InvalidateAllContinuations(mFrame);
