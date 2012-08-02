@@ -4486,6 +4486,7 @@ WebGLContext::name##_base(WebGLUniformLocation *location_object,                
     }                                                                           \
                                                                                 \
     uint32_t numElementsToUpload = NS_MIN(info.arraySize, arrayLength/expectedElemSize);     \
+    MakeContextCurrent();                                                       \
     gl->f##name(location, numElementsToUpload, data);    \
 }
 
