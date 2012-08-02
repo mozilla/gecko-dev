@@ -369,8 +369,8 @@ nsSVGIntegrationUtils::PaintFramesWithEffects(nsRenderingContext* aCtx,
                                               nsDisplayList* aInnerList)
 {
 #ifdef DEBUG
-  nsISVGChildFrame *svgChildFrame = do_QueryFrame(aFrame);
-  NS_ASSERTION(!svgChildFrame, "Should never be called on an SVG frame");
+  NS_ASSERTION(!(aFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT),
+               "Should never be called on an SVG frame");
 #endif
 
   /* SVG defines the following rendering model:
