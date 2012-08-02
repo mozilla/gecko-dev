@@ -64,13 +64,10 @@ public class AboutHomeContent extends ScrollView
        implements TabsAccessor.OnQueryTabsCompleteListener {
     private static final String LOGTAG = "GeckoAboutHome";
 
-    private static final int NUMBER_OF_TOP_SITES_PORTRAIT = 4;
-    private static final int NUMBER_OF_TOP_SITES_LANDSCAPE = 3;
-
-    private static final int NUMBER_OF_COLS_PORTRAIT = 2;
-    private static final int NUMBER_OF_COLS_LANDSCAPE = 3;
-
     private static final int NUMBER_OF_REMOTE_TABS = 5;
+
+    private static int mNumberOfTopSites;
+    private static int mNumberOfCols;
 
     static enum UpdateFlags {
         TOP_SITES,
@@ -211,6 +208,8 @@ public class AboutHomeContent extends ScrollView
                 GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Tab:Add", args.toString()));
             }
         };
+
+        setTopSitesConstants();
     }
 
     public void onDestroy() {
@@ -279,14 +278,6 @@ public class AboutHomeContent extends ScrollView
         updateSyncLayout(isFirstRun, hasTopSites);
     }
 
-    private int getNumberOfTopSites() {
-        Configuration config = getContext().getResources().getConfiguration();
-        if (config.orientation == Configuration.ORIENTATION_LANDSCAPE)
-            return NUMBER_OF_TOP_SITES_LANDSCAPE;
-        else
-            return NUMBER_OF_TOP_SITES_PORTRAIT;
-    }
-
     private void loadTopSites(final Activity activity) {
         // Ensure we initialize GeckoApp's startup mode in
         // background thread before we use it when updating
@@ -300,7 +291,7 @@ public class AboutHomeContent extends ScrollView
         final ContentResolver resolver = GeckoApp.mAppContext.getContentResolver();
         final Cursor oldCursor = mCursor;
         // Swap in the new cursor.
-        mCursor = BrowserDB.getTopSites(resolver, NUMBER_OF_TOP_SITES_PORTRAIT);;
+        mCursor = BrowserDB.getTopSites(resolver, mNumberOfTopSites);
 
         GeckoApp.mAppContext.mMainHandler.post(new Runnable() {
             public void run() {
@@ -353,10 +344,16 @@ public class AboutHomeContent extends ScrollView
         update(activity, EnumSet.of(UpdateFlags.TOP_SITES));
     }
 
+    private void setTopSitesConstants() {
+        mNumberOfTopSites = getResources().getInteger(R.integer.number_of_top_sites);
+        mNumberOfCols = getResources().getInteger(R.integer.number_of_top_sites_cols);
+    }
+
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         if (mTopSitesAdapter != null)
             mTopSitesAdapter.notifyDataSetChanged();
+        setTopSitesConstants();
 
         super.onConfigurationChanged(newConfig);
     }
@@ -678,16 +675,10 @@ public class AboutHomeContent extends ScrollView
                     nSites = c.getCount();
             }
 
-            Configuration config = getContext().getResources().getConfiguration();
-            if (config.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                nSites = Math.min(nSites, NUMBER_OF_TOP_SITES_LANDSCAPE);
-                numRows = (int) Math.round((double) nSites / NUMBER_OF_COLS_LANDSCAPE);
-                setNumColumns(NUMBER_OF_COLS_LANDSCAPE);
-            } else {
-                nSites = Math.min(nSites, NUMBER_OF_TOP_SITES_PORTRAIT);
-                numRows = (int) Math.round((double) nSites / NUMBER_OF_COLS_PORTRAIT);
-                setNumColumns(NUMBER_OF_COLS_PORTRAIT);
-            }
+            nSites = Math.min(nSites, mNumberOfTopSites);
+            numRows = (int) Math.round((double) nSites / mNumberOfCols);
+            setNumColumns(mNumberOfCols);
+
             int expandedHeightSpec = 
                 MeasureSpec.makeMeasureSpec((int)(mDisplayDensity * numRows * kTopSiteItemHeight),
                                             MeasureSpec.EXACTLY);
@@ -704,7 +695,7 @@ public class AboutHomeContent extends ScrollView
 
         @Override
         public int getCount() {
-            return Math.min(super.getCount(), getNumberOfTopSites());
+            return Math.min(super.getCount(), mNumberOfTopSites);
         }
 
         @Override
