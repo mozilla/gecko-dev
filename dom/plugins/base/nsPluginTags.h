@@ -77,6 +77,7 @@ public:
   PRLibrary     *mLibrary;
   nsRefPtr<nsNPAPIPlugin> mPlugin;
   bool          mIsJavaPlugin;
+  bool          mIsNPRuntimeEnabledJavaPlugin;
   bool          mIsFlashPlugin;
   nsCString     mFileName; // UTF-8
   nsCString     mFullPath; // UTF-8

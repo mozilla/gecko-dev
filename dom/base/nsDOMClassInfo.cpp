@@ -1801,6 +1801,8 @@ jsid nsDOMClassInfo::sAddEventListener_id= JSID_VOID;
 jsid nsDOMClassInfo::sBaseURIObject_id   = JSID_VOID;
 jsid nsDOMClassInfo::sNodePrincipal_id   = JSID_VOID;
 jsid nsDOMClassInfo::sDocumentURIObject_id=JSID_VOID;
+jsid nsDOMClassInfo::sJava_id            = JSID_VOID;
+jsid nsDOMClassInfo::sPackages_id        = JSID_VOID;
 jsid nsDOMClassInfo::sWrappedJSObject_id = JSID_VOID;
 jsid nsDOMClassInfo::sURL_id             = JSID_VOID;
 jsid nsDOMClassInfo::sKeyPath_id         = JSID_VOID;
@@ -2071,6 +2073,8 @@ nsDOMClassInfo::DefineStaticJSVals(JSContext *cx)
   SET_JSID_TO_STRING(sBaseURIObject_id,   cx, "baseURIObject");
   SET_JSID_TO_STRING(sNodePrincipal_id,   cx, "nodePrincipal");
   SET_JSID_TO_STRING(sDocumentURIObject_id,cx,"documentURIObject");
+  SET_JSID_TO_STRING(sJava_id,            cx, "java");
+  SET_JSID_TO_STRING(sPackages_id,        cx, "Packages");
   SET_JSID_TO_STRING(sWrappedJSObject_id, cx, "wrappedJSObject");
   SET_JSID_TO_STRING(sURL_id,             cx, "URL");
   SET_JSID_TO_STRING(sKeyPath_id,         cx, "keyPath");
@@ -5233,6 +5237,8 @@ nsDOMClassInfo::ShutDown()
   sBaseURIObject_id   = JSID_VOID;
   sNodePrincipal_id   = JSID_VOID;
   sDocumentURIObject_id=JSID_VOID;
+  sJava_id            = JSID_VOID;
+  sPackages_id        = JSID_VOID;
   sWrappedJSObject_id = JSID_VOID;
   sKeyPath_id         = JSID_VOID;
   sAutoIncrement_id   = JSID_VOID;
@@ -7427,7 +7433,40 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
       return NS_OK;
     }
 
-    if (sDialogArguments_id == id && win->IsModalContentWindow()) {
+    if (sJava_id == id || sPackages_id == id) {
+      nsIDOMDocument* domDoc = win->GetExtantDocument();
+      if (domDoc) {
+        nsCOMPtr<nsIDocument> doc = do_QueryInterface(domDoc);
+        doc->WarnOnceAbout(nsIDocument::eJavaPackages);
+      }
+
+      static bool isResolvingJavaProperties;
+
+      if (!isResolvingJavaProperties) {
+        isResolvingJavaProperties = true;
+
+        // Tell the window to initialize the Java properties. The
+        // window needs to do this as we need to do this only once,
+        // and detecting that reliably from here is hard.
+
+        win->InitJavaProperties(); 
+
+        JSBool hasProp;
+        bool ok = ::JS_HasPropertyById(cx, obj, id, &hasProp);
+
+        isResolvingJavaProperties = false;
+
+        if (!ok) {
+          return NS_ERROR_FAILURE;
+        }
+
+        if (hasProp) {
+          *objp = obj;
+
+          return NS_OK;
+        }
+      }
+    } else if (sDialogArguments_id == id && win->IsModalContentWindow()) {
       nsCOMPtr<nsIArray> args;
       ((nsGlobalModalWindow *)win)->GetDialogArguments(getter_AddRefs(args));
 

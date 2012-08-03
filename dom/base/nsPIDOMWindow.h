@@ -464,7 +464,12 @@ public:
   void SetHasMouseEnterLeaveEventListeners()
   {
     mMayHaveMouseEnterLeaveEventListener = true;
-  }
+  }  
+
+  /**
+   * Initialize window.java and window.Packages.
+   */
+  virtual void InitJavaProperties() = 0;
 
   virtual JSObject* GetCachedXBLPrototypeHandler(nsXBLPrototypeHandler* aKey) = 0;
   virtual void CacheXBLPrototypeHandler(nsXBLPrototypeHandler* aKey,
