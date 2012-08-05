@@ -481,7 +481,7 @@ nsXMLHttpRequest::~nsXMLHttpRequest()
 }
 
 void
-nsXMLHttpRequest::RootResultArrayBuffer()
+nsXMLHttpRequest::RootJSResultObjects()
 {
   nsContentUtils::PreserveWrapper(
     static_cast<nsIDOMEventTarget*>(
@@ -999,6 +999,8 @@ nsXMLHttpRequest::CreateResponseParsedJSON(JSContext* aCx)
   if (!aCx) {
     return NS_ERROR_FAILURE;
   }
+  RootJSResultObjects();
+
   // The Unicode converter has already zapped the BOM if there was one
   if (!JS_ParseJSON(aCx,
                     static_cast<const jschar*>(mResponseText.get()),
@@ -1220,7 +1222,7 @@ nsXMLHttpRequest::GetResponse(JSContext* aCx, ErrorResult& aRv)
     }
 
     if (!mResultArrayBuffer) {
-      RootResultArrayBuffer();
+      RootJSResultObjects();
       aRv = nsContentUtils::CreateArrayBuffer(aCx, mResponseBody,
                                               &mResultArrayBuffer);
       if (aRv.Failed()) {
