@@ -508,7 +508,7 @@ public:
   NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS_INHERITED(nsXMLHttpRequest,
                                                                    nsXHREventTarget)
   bool AllowUploadProgress();
-  void RootResultArrayBuffer();
+  void RootJSResultObjects();
 
   virtual void DisconnectFromOwner();
 protected:
