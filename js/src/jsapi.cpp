@@ -2192,6 +2192,28 @@ JS_GetClassObject(JSContext *cx, JSObject *obj, JSProtoKey key, JSObject **objp)
     return js_GetClassObject(cx, obj, key, objp);
 }
 
+JS_PUBLIC_API(JSBool)
+JS_GetClassPrototype(JSContext *cx, JSProtoKey key, JSObject **objp)
+{
+    AssertNoGC(cx);
+    CHECK_REQUEST(cx);
+    JSObject *global = GetGlobalForScopeChain(cx);
+    if (!global)
+        return false;
+    bool result = js_GetClassPrototype(cx, global, key, objp);
+    return result;
+}
+
+JS_PUBLIC_API(JSProtoKey)
+JS_IdentifyClassPrototype(JSContext *cx, JSObject *obj)
+{
+    AssertNoGC(cx);
+    CHECK_REQUEST(cx);
+    assertSameCompartment(cx, obj);
+    JS_ASSERT(!IsCrossCompartmentWrapper(obj));
+    return js_IdentifyClassPrototype(obj);
+}
+
 JS_PUBLIC_API(JSObject *)
 JS_GetObjectPrototype(JSContext *cx, JSObject *forObj)
 {

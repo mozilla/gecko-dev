@@ -1083,6 +1083,13 @@ js_GetClassObject(JSContext *cx, JSObject *obj, JSProtoKey key,
                   JSObject **objp);
 
 /*
+ * Determine if the given object is a prototype for a standard class. If so,
+ * return the associated JSProtoKey. If not, return JSProto_Null.
+ */
+extern JSProtoKey
+js_IdentifyClassPrototype(JSObject *obj);
+
+/*
  * If protoKey is not JSProto_Null, then clasp is ignored. If protoKey is
  * JSProto_Null, clasp must non-null.
  */
