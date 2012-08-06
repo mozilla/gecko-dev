@@ -51,13 +51,7 @@ IDBWrapperCache::~IDBWrapperCache()
 bool
 IDBWrapperCache::SetScriptOwner(JSObject* aScriptOwner)
 {
-  if (!aScriptOwner) {
-    NS_ASSERTION(!mScriptOwner,
-                 "Don't null out existing owner, we need to call "
-                 "DropJSObjects!");
-
-    return true;
-  }
+  NS_ASSERTION(aScriptOwner, "This should never be null!");
 
   mScriptOwner = aScriptOwner;
 
