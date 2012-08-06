@@ -14,11 +14,14 @@ LIBRARY_NAME	= xpcwrappers_s
 FORCE_STATIC_LIB = 1
 LIBXUL_LIBRARY = 1
 
-CPPSRCS		= AccessCheck.cpp \
-	          CrossOriginWrapper.cpp \
-		  FilteringWrapper.cpp \
-		  XrayWrapper.cpp \
-		  WrapperFactory.cpp
+CPPSRCS = \
+  AccessCheck.cpp \
+  ChromeObjectWrapper.cpp \
+  CrossOriginWrapper.cpp \
+  FilteringWrapper.cpp \
+  WrapperFactory.cpp \
+  XrayWrapper.cpp \
+  $(NULL)
 
 LOCAL_INCLUDES = \
                 -I$(srcdir)/../src \
