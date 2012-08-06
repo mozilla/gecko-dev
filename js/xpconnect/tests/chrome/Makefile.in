@@ -39,6 +39,7 @@ _CHROME_FILES = \
 		test_bug664689.xul \
 		test_bug706301.xul \
 		test_bug743843.xul \
+		test_bug760109.xul \
 		test_APIExposer.xul \
 		test_precisegc.xul \
 		test_nodelists.xul \
