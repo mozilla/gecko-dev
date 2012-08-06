@@ -7547,7 +7547,7 @@ namespace js {
 bool
 GlobalObject::getFunctionNamespace(JSContext *cx, Value *vp)
 {
-    HeapSlot &v = getSlotRef(FUNCTION_NS);
+    Value v = getSlot(FUNCTION_NS);
     if (v.isUndefined()) {
         JSRuntime *rt = cx->runtime;
         JSLinearString *prefix = rt->atomState.typeAtoms[JSTYPE_FUNCTION];
@@ -7566,7 +7566,8 @@ GlobalObject::getFunctionNamespace(JSContext *cx, Value *vp)
         if (!JSObject::clearType(cx, obj))
             return false;
 
-        v.set(this, FUNCTION_NS, ObjectValue(*obj));
+        v = ObjectValue(*obj);
+        setSlot(FUNCTION_NS, v);
     }
 
     *vp = v;
