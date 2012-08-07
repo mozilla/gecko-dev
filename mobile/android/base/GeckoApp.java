@@ -1067,6 +1067,8 @@ abstract public class GeckoApp
             } else if (event.equals("Reader:FaviconRequest")) {
                 final String url = message.getString("url");
                 handleFaviconRequest(url);
+            } else if (event.equals("Reader:GoToReadingList")) {
+                showReadingList();
             } else if (event.equals("Content:StateChange")) {
                 final int tabId = message.getInt("tabID");
                 final String uri = message.getString("uri");
@@ -1904,6 +1906,7 @@ abstract public class GeckoApp
         GeckoAppShell.registerGeckoEventListener("Content:LoadError", GeckoApp.mAppContext);
         GeckoAppShell.registerGeckoEventListener("Content:PageShow", GeckoApp.mAppContext);
         GeckoAppShell.registerGeckoEventListener("Reader:FaviconRequest", GeckoApp.mAppContext);
+        GeckoAppShell.registerGeckoEventListener("Reader:GoToReadingList", this);
         GeckoAppShell.registerGeckoEventListener("onCameraCapture", GeckoApp.mAppContext);
         GeckoAppShell.registerGeckoEventListener("Doorhanger:Add", GeckoApp.mAppContext);
         GeckoAppShell.registerGeckoEventListener("Doorhanger:Remove", GeckoApp.mAppContext);
@@ -2270,6 +2273,7 @@ abstract public class GeckoApp
         GeckoAppShell.unregisterGeckoEventListener("Content:LoadError", GeckoApp.mAppContext);
         GeckoAppShell.unregisterGeckoEventListener("Content:PageShow", GeckoApp.mAppContext);
         GeckoAppShell.unregisterGeckoEventListener("Reader:FaviconRequest", GeckoApp.mAppContext);
+        GeckoAppShell.unregisterGeckoEventListener("Reader:GoToReadingList", this);
         GeckoAppShell.unregisterGeckoEventListener("onCameraCapture", GeckoApp.mAppContext);
         GeckoAppShell.unregisterGeckoEventListener("Doorhanger:Add", GeckoApp.mAppContext);
         GeckoAppShell.unregisterGeckoEventListener("Doorhanger:Remove", GeckoApp.mAppContext);
@@ -2635,6 +2639,16 @@ abstract public class GeckoApp
         int requestCode = GeckoAppShell.sActivityHelper.makeRequestCodeForAwesomebar();
         startActivityForResult(intent, requestCode);
         return true;
+    }
+
+    public void showReadingList() {
+        Intent intent = new Intent(getBaseContext(), AwesomeBar.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION | Intent.FLAG_ACTIVITY_NO_HISTORY);
+        intent.putExtra(AwesomeBar.TARGET_KEY, AwesomeBar.Target.CURRENT_TAB.toString());
+        intent.putExtra(AwesomeBar.READING_LIST_KEY, true);
+
+        int requestCode = GeckoAppShell.sActivityHelper.makeRequestCodeForAwesomebar();
+        startActivityForResult(intent, requestCode);
     }
 
     @Override
