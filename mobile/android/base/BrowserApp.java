@@ -298,6 +298,9 @@ abstract public class BrowserApp extends GeckoApp
 
         invalidateOptionsMenu();
         mTabsPanel.refresh();
+
+        if (mAboutHomeContent != null)
+            mAboutHomeContent.refresh();
     }
 
     @Override
