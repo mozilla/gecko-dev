@@ -727,7 +727,7 @@ user_pref("camino.use_system_proxy_settings", false); // Camino-only, harmless t
     self.log.info("Can't trigger Breakpad, just killing process")
     proc.kill()
 
-  def waitForFinish(self, proc, utilityPath, timeout, maxTime, startTime, debuggerInfo, symbolsPath):
+  def waitForFinish(self, proc, utilityPath, timeout, maxTime, startTime, debuggerInfo, symbolsPath, logger):
     """ Look for timeout or crashes and return the status after the process terminates """
     stackFixerProcess = None
     stackFixerFunction = None
@@ -764,6 +764,8 @@ user_pref("camino.use_system_proxy_settings", false); // Camino-only, harmless t
         if stackFixerFunction:
           line = stackFixerFunction(line)
         self.log.info(line.rstrip().decode("UTF-8", "ignore"))
+        if logger:
+          logger.log(line)
         if "TEST-START" in line and "|" in line:
           self.lastTestSeen = line.split("|")[1].strip()
         if not debuggerInfo and "TEST-UNEXPECTED-FAIL" in line and "Test timed out" in line:
@@ -853,7 +855,7 @@ user_pref("camino.use_system_proxy_settings", false); // Camino-only, harmless t
 
   def runApp(self, testURL, env, app, profileDir, extraArgs,
              runSSLTunnel = False, utilityPath = None,
-             xrePath = None, certPath = None,
+             xrePath = None, certPath = None, logger = None,
              debuggerInfo = None, symbolsPath = None,
              timeout = -1, maxTime = None):
     """
@@ -912,7 +914,7 @@ user_pref("camino.use_system_proxy_settings", false); // Camino-only, harmless t
                  stderr = subprocess.STDOUT)
     self.log.info("INFO | automation.py | Application pid: %d", proc.pid)
 
-    status = self.waitForFinish(proc, utilityPath, timeout, maxTime, startTime, debuggerInfo, symbolsPath)
+    status = self.waitForFinish(proc, utilityPath, timeout, maxTime, startTime, debuggerInfo, symbolsPath, logger)
     self.log.info("INFO | automation.py | Application ran for: %s", str(datetime.now() - startTime))
 
     # Do a final check for zombie child processes.
