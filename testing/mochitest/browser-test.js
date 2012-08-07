@@ -7,12 +7,6 @@ if (Cc === undefined) {
   var Ci = Components.interfaces;
   var Cu = Components.utils;
 }
-
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "Services",
-  "resource://gre/modules/Services.jsm");
-
 window.addEventListener("load", testOnLoad, false);
 
 function testOnLoad() {
@@ -21,18 +15,21 @@ function testOnLoad() {
   gConfig = readConfig();
   if (gConfig.testRoot == "browser") {
     // Make sure to launch the test harness for the first opened window only
-    var prefs = Services.prefs;
+    var prefs = Cc["@mozilla.org/preferences-service;1"].
+                getService(Ci.nsIPrefBranch);
     if (prefs.prefHasUserValue("testing.browserTestHarness.running"))
       return;
 
     prefs.setBoolPref("testing.browserTestHarness.running", true);
 
+    var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
+             getService(Ci.nsIWindowWatcher);
     var sstring = Cc["@mozilla.org/supports-string;1"].
                   createInstance(Ci.nsISupportsString);
     sstring.data = location.search;
 
-    Services.ww.openWindow(window, "chrome://mochikit/content/browser-harness.xul", "browserTest",
-                           "chrome,centerscreen,dialog=no,resizable,titlebar,toolbar=no,width=800,height=600", sstring);
+    ww.openWindow(window, "chrome://mochikit/content/browser-harness.xul", "browserTest",
+                  "chrome,centerscreen,dialog=no,resizable,titlebar,toolbar=no,width=800,height=600", sstring);
   } else {
     // This code allows us to redirect without requiring specialpowers for chrome and a11y tests.
     function messageHandler(m) {
@@ -56,10 +53,15 @@ function Tester(aTests, aDumper, aCallback) {
   this.dumper = aDumper;
   this.tests = aTests;
   this.callback = aCallback;
-  this.openedWindows = {};
-  this.openedURLs = {};
+  this._cs = Cc["@mozilla.org/consoleservice;1"].
+             getService(Ci.nsIConsoleService);
+  this._wm = Cc["@mozilla.org/appshell/window-mediator;1"].
+             getService(Ci.nsIWindowMediator);
+  this._fm = Cc["@mozilla.org/focus-manager;1"].
+             getService(Ci.nsIFocusManager);
 
-  this._scriptLoader = Services.scriptloader;
+  this._scriptLoader = Cc["@mozilla.org/moz/jssubscript-loader;1"].
+                       getService(Ci.mozIJSSubScriptLoader);
   this._scriptLoader.loadSubScript("chrome://mochikit/content/tests/SimpleTest/EventUtils.js", this.EventUtils);
   var simpleTestScope = {};
   this._scriptLoader.loadSubScript("chrome://mochikit/content/tests/SimpleTest/specialpowersAPI.js", simpleTestScope);
@@ -77,8 +79,6 @@ Tester.prototype = {
   checker: null,
   currentTestIndex: -1,
   lastStartTime: null,
-  openedWindows: null,
-
   get currentTest() {
     return this.tests[this.currentTestIndex];
   },
@@ -92,9 +92,7 @@ Tester.prototype = {
       gConfig = readConfig();
     this.repeat = gConfig.repeat;
     this.dumper.dump("*** Start BrowserChrome Test Results ***\n");
-    Services.console.registerListener(this);
-    Services.obs.addObserver(this, "chrome-document-global-created", false);
-    Services.obs.addObserver(this, "content-document-global-created", false);
+    this._cs.registerListener(this);
     this._globalProperties = Object.keys(window);
     this._globalPropertyWhitelist = ["navigator", "constructor", "Application",
       "__SS_tabsToRestore", "__SSi", "webConsoleCommandController",
@@ -123,7 +121,7 @@ Tester.prototype = {
     }
 
     this.dumper.dump("TEST-INFO | checking window state\n");
-    let windowsEnum = Services.wm.getEnumerator(null);
+    let windowsEnum = this._wm.getEnumerator(null);
     while (windowsEnum.hasMoreElements()) {
       let win = windowsEnum.getNext();
       if (win != window && !win.closed &&
@@ -158,9 +156,7 @@ Tester.prototype = {
       this.nextTest();
     }
     else{
-      Services.console.unregisterListener(this);
-      Services.obs.removeObserver(this, "chrome-document-global-created");
-      Services.obs.removeObserver(this, "content-document-global-created");
+      this._cs.unregisterListener(this);
   
       this.dumper.dump("\nINFO TEST-START | Shutdown\n");
       if (this.tests.length) {
@@ -187,34 +183,10 @@ Tester.prototype = {
       this.callback(this.tests);
       this.callback = null;
       this.tests = null;
-      this.openedWindows = null;
     }
   },
 
-  observe: function Tester_observe(aSubject, aTopic, aData) {
-    if (!aTopic) {
-      this.onConsoleMessage(aSubject);
-    } else if (this.currentTest) {
-      this.onDocumentCreated(aSubject);
-    }
-  },
-
-  onDocumentCreated: function Tester_onDocumentCreated(aWindow) {
-    let utils = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                       .getInterface(Ci.nsIDOMWindowUtils);
-    let outerID = utils.outerWindowID;
-    let innerID = utils.currentInnerWindowID;
-
-    if (!(outerID in this.openedWindows)) {
-      this.openedWindows[outerID] = this.currentTest;
-    }
-    this.openedWindows[innerID] = this.currentTest;
-
-    let url = aWindow.location.href || "about:blank";
-    this.openedURLs[outerID] = this.openedURLs[innerID] = url;
-  },
-
-  onConsoleMessage: function Tester_onConsoleMessage(aConsoleMessage) {
+  observe: function Tester_observe(aConsoleMessage) {
     // Ignore empty messages.
     if (!aConsoleMessage.message)
       return;
@@ -290,20 +262,12 @@ Tester.prototype = {
         // Schedule GC and CC runs before finishing in order to detect
         // DOM windows leaked by our tests or the tested code.
         Cu.schedulePreciseGC((function () {
-          let analyzer = new CCAnalyzer();
-          analyzer.run(function () {
-            for (let obj of analyzer.find("nsGlobalWindow ")) {
-              let m = obj.name.match(/^nsGlobalWindow #(\d+)/);
-              if (m && m[1] in this.openedWindows) {
-                let test = this.openedWindows[m[1]];
-                let msg = "leaked until shutdown [" + obj.name +
-                          " " + (this.openedURLs[m[1]] || "NULL") + "]";
-                test.addResult(new testResult(false, msg, "", false));
-              }
-            }
-
-            this.finish();
-          }.bind(this));
+          let winutils = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                               .getInterface(Ci.nsIDOMWindowUtils);
+          winutils.garbageCollect();
+          winutils.garbageCollect();
+          winutils.garbageCollect();
+          this.finish();
         }).bind(this));
         return;
       }
@@ -488,7 +452,9 @@ function testScope(aTester, aTest) {
   };
 
   this.executeSoon = function test_executeSoon(func) {
-    Services.tm.mainThread.dispatch({
+    let tm = Cc["@mozilla.org/thread-manager;1"].getService(Ci.nsIThreadManager);
+
+    tm.mainThread.dispatch({
       run: function() {
         func();
       }

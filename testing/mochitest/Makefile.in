@@ -63,7 +63,6 @@ _SERV_FILES = 	\
 		harness.xul \
 		browser-test-overlay.xul \
 		browser-test.js \
-		cc-analyzer.js \
 		chrome-harness.js \
 		browser-harness.xul \
 		redirect.html \
