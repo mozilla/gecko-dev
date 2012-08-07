@@ -437,6 +437,7 @@ let AboutReader = {
     let button = document.getElementById(id);
 
     button.addEventListener("click", function(aEvent) {
+      aEvent.stopPropagation();
       callback();
     }, true);
   },
