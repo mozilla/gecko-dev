@@ -191,6 +191,10 @@ protected:
   nscoord ComputeWidthValue(nscoord aContainingBlockWidth,
                             PRUint8 aBoxSizing,
                             const nsStyleCoord& aCoord);
+
+  nscoord ComputeHeightValue(nscoord aContainingBlockHeight,
+                             PRUint8 aBoxSizing,
+                             const nsStyleCoord& aCoord);
 };
 
 /**
