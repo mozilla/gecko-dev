@@ -3767,6 +3767,12 @@ void nsPluginInstanceOwner::SetFrame(nsObjectFrame *aFrame)
       }
     }
 #endif
+    
+    nsFocusManager* fm = nsFocusManager::GetFocusManager();
+    const nsIContent* content = aFrame->GetContent();
+    if (fm && content) {
+      mContentFocused = (content == fm->GetFocusedContent());
+    }
   }
 }
 
