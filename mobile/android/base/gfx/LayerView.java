@@ -87,12 +87,12 @@ public class LayerView extends SurfaceView implements SurfaceHolder.Callback {
         if (GeckoApp.mAppContext != null && GeckoApp.mAppContext.mFormAssistPopup != null)
             GeckoApp.mAppContext.mFormAssistPopup.hide();
 
-        return mTouchEventHandler.handleEvent(event);
+        return mTouchEventHandler == null ? false : mTouchEventHandler.handleEvent(event);
     }
 
     @Override
     public boolean onHoverEvent(MotionEvent event) {
-        return mTouchEventHandler.handleEvent(event);
+        return mTouchEventHandler == null ? false : mTouchEventHandler.handleEvent(event);
     }
 
     public LayerController getController() { return mController; }
