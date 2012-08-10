@@ -888,7 +888,7 @@ BasicLayerManager::CreateReadbackLayer()
 }
 
 BasicShadowLayerManager::BasicShadowLayerManager(nsIWidget* aWidget) :
-  BasicLayerManager(aWidget)
+  BasicLayerManager(aWidget), mRepeatTransaction(false)
 {
   MOZ_COUNT_CTOR(BasicShadowLayerManager);
 }
