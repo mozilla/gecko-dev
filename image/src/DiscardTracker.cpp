@@ -252,6 +252,8 @@ DiscardTracker::TimerCallback(nsITimer *aTimer, void *aClosure)
 void
 DiscardTracker::DiscardNow()
 {
+  printf("\n\n***DiscardTracker::DiscardNow***\n\n");
+
   // Assuming the list is ordered with oldest discard tracker nodes at the back
   // and newest ones at the front, iterate from back to front discarding nodes
   // until we encounter one which is new enough to keep and until we go under
@@ -265,6 +267,7 @@ DiscardTracker::DiscardNow()
 
       // Discarding the image should cause sCurrentDecodedImageBytes to
       // decrease via a call to InformAllocation().
+      printf("***Calling node->img->Discard()***\n\n");
       node->img->Discard();
 
       // Careful: Discarding may have caused the node to have been removed

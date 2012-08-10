@@ -91,8 +91,10 @@ public:
   NS_DECL_NSIIMAGEDOCUMENT
 
   // imgIDecoderObserver (override nsStubImageDecoderObserver)
+  NS_IMETHOD OnDiscard(imgIRequest* aRequest);
   NS_IMETHOD OnStartContainer(imgIRequest* aRequest, imgIContainer* aImage);
-  NS_IMETHOD OnStopDecode(imgIRequest *aRequest, nsresult aStatus, const PRUnichar *aStatusArg);
+  NS_IMETHOD OnStopContainer(imgIRequest* aRequest, imgIContainer* aContainer);
+  NS_IMETHOD OnStopDecode(imgIRequest* aRequest, nsresult aStatus, const PRUnichar *aStatusArg);
 
   // nsIDOMEventListener
   NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);
@@ -505,6 +507,19 @@ ImageDocument::ToggleImageSize()
 }
 
 NS_IMETHODIMP
+ImageDocument::OnDiscard(imgIRequest *aRequest)
+{
+  printf("\n\n***ImageDocument::OnDiscard***\n\n");
+  // mImageContent can be null if the document is already destroyed
+  if (mImageContent) {
+    // Remove any decoded-related styling when the image is unloaded.
+    mImageContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::_class,
+                             true);
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 ImageDocument::OnStartContainer(imgIRequest* aRequest, imgIContainer* aImage)
 {
   aImage->GetWidth(&mImageWidth);
@@ -518,17 +533,31 @@ ImageDocument::OnStartContainer(imgIRequest* aRequest, imgIContainer* aImage)
 }
 
 NS_IMETHODIMP
+ImageDocument::OnStopContainer(imgIRequest *aRequest, imgIContainer *aContainer)
+{
+  printf("\n\n***ImageDocument::OnStopContainer***\n\n");
+  // mImageContent can be null if the document is already destroyed.
+  // Only set the attribute if it didn't already exist to prevent unneeded
+  // style resolutions.
+  if (mImageContent &&
+      !mImageContent->HasAttr(kNameSpaceID_None, nsGkAtoms::_class)) {
+    printf("***Didn't have a 'decoded' class, adding one now***\n\n");
+    // Update the background-color of the image only after the
+    // image has been decoded to prevent flashes of just the
+    // background-color.
+    mImageContent->SetAttr(kNameSpaceID_None, nsGkAtoms::_class,
+                           NS_LITERAL_STRING("decoded"), true);
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 ImageDocument::OnStopDecode(imgIRequest *aRequest,
                             nsresult aStatus,
                             const PRUnichar *aStatusArg)
 {
   UpdateTitleAndCharset();
-
-  nsCOMPtr<nsIImageLoadingContent> imageLoader = do_QueryInterface(mImageContent);
-  if (imageLoader) {
-    mObservingImageLoader = false;
-    imageLoader->RemoveObserver(this);
-  }
 
   // mImageContent can be null if the document is already destroyed
   if (NS_FAILED(aStatus) && mStringBundle && mImageContent) {
