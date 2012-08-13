@@ -496,7 +496,7 @@ private:
 
     nsConnectionEntry *GetOrCreateConnectionEntry(nsHttpConnectionInfo *);
 
-    bool     MakeNewConnection(nsConnectionEntry *ent,
+    nsresult MakeNewConnection(nsConnectionEntry *ent,
                                nsHttpTransaction *trans);
     bool     AddToShortestPipeline(nsConnectionEntry *ent,
                                    nsHttpTransaction *trans,
