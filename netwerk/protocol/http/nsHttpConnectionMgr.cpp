@@ -3003,7 +3003,9 @@ nsConnectionEntry::RemoveHalfOpen(nsHalfOpenSocket *halfOpen)
 
     if (!UnconnectedHalfOpens())
         // perhaps this reverted RestrictConnections()
-        gHttpHandler->ConnMgr()->ProcessPendingQForEntry(this);
+        // use the PostEvent version of processpendingq to avoid
+        // altering the pending q vector from an arbitrary stack
+        gHttpHandler->ConnMgr()->ProcessPendingQ(mConnInfo);
 }
 
 
