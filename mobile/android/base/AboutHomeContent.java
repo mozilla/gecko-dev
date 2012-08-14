@@ -152,7 +152,7 @@ public class AboutHomeContent extends ScrollView
     }
 
     private void inflate() {
-        mInflater = (LayoutInflater) mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        mInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         mInflater.inflate(R.layout.abouthome_content, this);
 
         mTopSitesGrid = (GridView)findViewById(R.id.top_sites_grid);
