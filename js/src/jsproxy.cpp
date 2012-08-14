@@ -453,8 +453,8 @@ IndirectProxyHandler::construct(JSContext *cx, JSObject *proxy, unsigned argc,
     JS_ASSERT(OperationInProgress(cx, proxy));
     Value fval = GetConstruct(proxy);
     if (fval.isUndefined())
-        fval = GetCall(proxy);
-    return InvokeConstructor(cx, fval, argc, argv, rval);
+        return InvokeConstructor(cx, GetCall(proxy), argc, argv, rval);
+    return Invoke(cx, UndefinedValue(), fval, argc, argv, rval);
 }
 
 bool
