@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.TimeUnit;
+import java.lang.SecurityException;
 
 import org.json.simple.parser.ParseException;
 import org.mozilla.gecko.db.BrowserContract;
@@ -150,8 +151,16 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements GlobalSe
         e.printStackTrace();
         return;
       }
+
+      // Bug 755638 - Uncaught SecurityException when attempting to sync multiple Fennecs
+      // to the same Sync account.
+      // Uncheck Sync checkbox because we cannot sync this instance.
+      if (e instanceof SecurityException) {
+        Logger.error(LOG_TAG, "SecurityException, multiple Fennecs. Disabling this instance.", e);
+        SyncAccounts.backgroundSetSyncAutomatically(this.localAccount, false);
+        return;
+      }
       syncResult.stats.numIoExceptions++;
-      Log.e(LOG_TAG, "Unknown exception. Aborting sync.", e);
     } finally {
       notifyMonitor();
     }
@@ -263,32 +272,37 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements GlobalSe
     this.syncResult   = syncResult;
     this.localAccount = account;
 
-    Log.i(LOG_TAG,
-        "Syncing account named " + account.name +
-        " for client named '" + getClientName() +
-        "' with client guid " + getAccountGUID() +
-        " (sync account has " + getClientsCount() + " clients).");
+    try {
+      Log.i(LOG_TAG,
+          "Syncing account named " + account.name +
+          " for client named '" + getClientName() +
+          "' with client guid " + getAccountGUID() +
+          " (sync account has " + getClientsCount() + " clients).");
 
-    thisSyncIsForced = (extras != null) && (extras.getBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, false));
-    long delay = delayMilliseconds();
-    if (delay > 0) {
-      if (thisSyncIsForced) {
-        Log.i(LOG_TAG, "Forced sync: overruling remaining backoff of " + delay + "ms.");
-      } else {
-        Log.i(LOG_TAG, "Not syncing: must wait another " + delay + "ms.");
-        long remainingSeconds = delay / 1000;
-        syncResult.delayUntil = remainingSeconds + BACKOFF_PAD_SECONDS;
-        return;
+      thisSyncIsForced = (extras != null) && (extras.getBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, false));
+      long delay = delayMilliseconds();
+      if (delay > 0) {
+        if (thisSyncIsForced) {
+          Log.i(LOG_TAG, "Forced sync: overruling remaining backoff of " + delay + "ms.");
+        } else {
+          Log.i(LOG_TAG, "Not syncing: must wait another " + delay + "ms.");
+          long remainingSeconds = delay / 1000;
+          syncResult.delayUntil = remainingSeconds + BACKOFF_PAD_SECONDS;
+          return;
+        }
       }
+
+      // TODO: don't clear the auth token unless we have a sync error.
+      Logger.debug(LOG_TAG, "Got onPerformSync. Extras bundle is " + extras);
+
+      // TODO: don't always invalidate; use getShouldInvalidateAuthToken.
+      // However, this fixes Bug 716815, so it'll do for now.
+      Logger.trace(LOG_TAG, "Invalidating auth token.");
+      invalidateAuthToken(account);
+    } catch (Exception e) {
+      this.handleException(e, syncResult);
+      return;
     }
-
-    // TODO: don't clear the auth token unless we have a sync error.
-    Logger.debug(LOG_TAG, "Got onPerformSync. Extras bundle is " + extras);
-
-    // TODO: don't always invalidate; use getShouldInvalidateAuthToken.
-    // However, this fixes Bug 716815, so it'll do for now.
-    Logger.trace(LOG_TAG, "Invalidating auth token.");
-    invalidateAuthToken(account);
 
     final SyncAdapter self = this;
     final AccountManagerCallback<Bundle> callback = new AccountManagerCallback<Bundle>() {

@@ -14,6 +14,7 @@ import org.mozilla.gecko.sync.Utils;
 import org.mozilla.gecko.sync.config.AccountPickler;
 import org.mozilla.gecko.sync.repositories.android.RepoUtils;
 import org.mozilla.gecko.sync.syncadapter.SyncAdapter;
+import org.mozilla.gecko.sync.ThreadPool;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
@@ -363,6 +364,15 @@ public class SyncAccounts {
     Logger.debug(LOG_TAG, "Setting authority " + authority + " to " +
                           (syncAutomatically ? "" : "not ") + "sync automatically.");
     ContentResolver.setSyncAutomatically(account, authority, syncAutomatically);
+  }
+
+  public static void backgroundSetSyncAutomatically(final Account account, final boolean syncAutomatically) {
+    ThreadPool.run(new Runnable() {
+      @Override
+      public void run() {
+        setSyncAutomatically(account, syncAutomatically);
+      }
+    });
   }
 
   /**
