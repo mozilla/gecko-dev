@@ -88,8 +88,8 @@ public class GeckoInputConnection
 
     private static final Timer mIMETimer = new Timer("GeckoInputConnection Timer");
     private static int mIMEState;
-    private static String mIMETypeHint;
-    private static String mIMEActionHint;
+    private static String mIMETypeHint = "";
+    private static String mIMEActionHint = "";
 
     // The blocklist is so short that ArrayList is probably cheaper than HashSet.
     private final Collection<String> sFormAutoCompleteBlocklist = Arrays.asList(new String[] {
@@ -123,8 +123,6 @@ public class GeckoInputConnection
         mEditable = Editable.Factory.getInstance().newEditable("");
         spanAndSelectEditable();
         mIMEState = IME_STATE_DISABLED;
-        mIMETypeHint = "";
-        mIMEActionHint = "";
     }
 
     @Override
@@ -870,8 +868,11 @@ public class GeckoInputConnection
             outAttrs.imeOptions = EditorInfo.IME_ACTION_SEARCH;
         else if (mIMEActionHint.equalsIgnoreCase("send"))
             outAttrs.imeOptions = EditorInfo.IME_ACTION_SEND;
-        else if (mIMEActionHint != null && mIMEActionHint.length() != 0)
+        else if (mIMEActionHint.length() > 0) {
+            if (DEBUG)
+                Log.w(LOGTAG, "Unexpected mIMEActionHint=\"" + mIMEActionHint + "\"");
             outAttrs.actionLabel = mIMEActionHint;
+        }
 
         DisplayMetrics metrics = GeckoApp.mAppContext.getDisplayMetrics();
         if (Math.min(metrics.widthPixels, metrics.heightPixels) > INLINE_IME_MIN_DISPLAY_SIZE) {
@@ -1104,8 +1105,8 @@ public class GeckoInputConnection
                 /* When IME is 'disabled', IME processing is disabled.
                    In addition, the IME UI is hidden */
                 mIMEState = state;
-                mIMETypeHint = typeHint;
-                mIMEActionHint = actionHint;
+                mIMETypeHint = (typeHint == null) ? "" : typeHint;
+                mIMEActionHint = (actionHint == null) ? "" : actionHint;
                 IMEStateUpdater.enableIME();
             }
         });
