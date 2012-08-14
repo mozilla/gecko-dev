@@ -5,8 +5,6 @@
 
 <resources>
 
-    <dimen name="abouthome_gutter_small">20dp</dimen>
-    <dimen name="abouthome_gutter_large">40dp</dimen>
     <dimen name="awesomebar_header_row_height">24dp</dimen>
     <dimen name="awesomebar_row_height">66dp</dimen>
     <dimen name="awesomebar_suggestion_item_height">32dp</dimen>
