@@ -2436,6 +2436,10 @@ nsresult AndroidBridge::TakeScreenshot(nsIDOMWindow *window, PRInt32 srcX, PRInt
     void* data = env->GetDirectBufferAddress(buffer);
     memset(data, 0, bufferSize);
     nsRefPtr<gfxImageSurface> surf = new gfxImageSurface(static_cast<unsigned char*>(data), nsIntSize(dstW, dstH), stride, gfxASurface::ImageFormatRGB16_565);
+    if (surf->CairoStatus() != 0) {
+        ALOG_BRIDGE("Error creating gfxImageSurface");
+        return NS_ERROR_FAILURE;
+    }
     nsRefPtr<gfxContext> context = new gfxContext(surf);
     context->Scale(scale * dstW / srcW, scale * dstH / srcH);
     rv = presShell->RenderDocument(r, renderDocFlags, bgColor, context);

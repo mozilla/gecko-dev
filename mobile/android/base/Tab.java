@@ -149,11 +149,13 @@ public final class Tab {
     }
 
     int getThumbnailWidth() {
-        return (int)(kThumbnailWidth * getDensity());
+        int desiredWidth = (int)(kThumbnailWidth * getDensity());
+        return desiredWidth & ~0x1;
     }
 
     int getThumbnailHeight() {
-        return (int)(kThumbnailHeight * getDensity());
+        int desiredHeight = (int)(kThumbnailHeight * getDensity());
+        return desiredHeight & ~0x1;
     }
 
     public void updateThumbnail(final Bitmap b) {
