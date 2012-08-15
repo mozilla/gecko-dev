@@ -2678,7 +2678,7 @@ mjit::Compiler::jsop_initprop()
 
     RootedObject baseobj(cx, frame.extra(obj).initObject);
 
-    if (!baseobj || monitored(PC)) {
+    if (!baseobj || monitored(PC) || cx->compartment->needsBarrier()) {
         prepareStubCall(Uses(2));
         masm.move(ImmPtr(name), Registers::ArgReg1);
         INLINE_STUBCALL(stubs::InitProp, REJOIN_FALLTHROUGH);
