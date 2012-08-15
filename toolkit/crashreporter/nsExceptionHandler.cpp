@@ -196,12 +196,17 @@ static const char kAvailablePhysicalMemoryParameter[] = "AvailablePhysicalMemory
 static const int kAvailablePhysicalMemoryParameterLen =
   sizeof(kAvailablePhysicalMemoryParameter)-1;
 
+static const char kIsGarbageCollectingParameter[] = "IsGarbageCollecting=";
+static const int kIsGarbageCollectingParameterLen =
+  sizeof(kIsGarbageCollectingParameter)-1;
+
 // this holds additional data sent via the API
 static Mutex* crashReporterAPILock;
 static Mutex* notesFieldLock;
 static AnnotationTable* crashReporterAPIData_Hash;
 static nsCString* crashReporterAPIData = nsnull;
 static nsCString* notesField = nsnull;
+static bool isGarbageCollecting;
 
 // OOP crash reporting
 static CrashGenerationServer* crashServer; // chrome process has this
@@ -500,6 +505,12 @@ bool MinidumpCallback(const XP_CHAR* dump_path,
                   &nBytes, NULL);
         WriteFile(hFile, "\n", 1, &nBytes, NULL);
       }
+      if (isGarbageCollecting) {
+        WriteFile(hFile, kIsGarbageCollectingParameter, kIsGarbageCollectingParameterLen,
+                  &nBytes, NULL);
+        WriteFile(hFile, isGarbageCollecting ? "1" : "0", 1, &nBytes, NULL);
+        WriteFile(hFile, "\n", 1, &nBytes, NULL);
+      }
 
       // Try to get some information about memory.
       MEMORYSTATUSEX statex;
@@ -575,6 +586,11 @@ bool MinidumpCallback(const XP_CHAR* dump_path,
                         kTimeSinceLastCrashParameterLen);
         ignored = sys_write(fd, timeSinceLastCrashString,
                         timeSinceLastCrashStringLen);
+        ignored = sys_write(fd, "\n", 1);
+      }
+      if (isGarbageCollecting) {
+        ignored = sys_write(fd, kIsGarbageCollectingParameter, kIsGarbageCollectingParameterLen);
+        ignored = sys_write(fd, isGarbageCollecting ? "1" : "0", 1);
         ignored = sys_write(fd, "\n", 1);
       }
       if (oomAllocationSizeBufferLen) {
@@ -1307,6 +1323,16 @@ nsresult AnnotateCrashReport(const nsACString& key, const nsACString& data)
   crashReporterAPIData->Truncate(0);
   crashReporterAPIData_Hash->EnumerateRead(EnumerateEntries,
                                            crashReporterAPIData);
+
+  return NS_OK;
+}
+
+nsresult SetGarbageCollecting(bool collecting)
+{
+  if (!GetEnabled())
+    return NS_ERROR_NOT_INITIALIZED;
+
+  isGarbageCollecting = collecting;
 
   return NS_OK;
 }
