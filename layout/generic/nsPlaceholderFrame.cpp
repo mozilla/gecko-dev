@@ -82,8 +82,14 @@ nsPlaceholderFrame::AddInlineMinWidth(nsRenderingContext *aRenderingContext,
   // false.
 
   // ...but push floats onto the list
-  if (mOutOfFlowFrame->GetStyleDisplay()->mFloats != NS_STYLE_FLOAT_NONE)
-    aData->floats.AppendElement(mOutOfFlowFrame);
+  if (mOutOfFlowFrame->GetStyleDisplay()->mFloats != NS_STYLE_FLOAT_NONE) {
+    nscoord floatWidth =
+      nsLayoutUtils::IntrinsicForContainer(aRenderingContext,
+                                           mOutOfFlowFrame,
+                                           nsLayoutUtils::MIN_WIDTH);
+    aData->floats.AppendElement(
+      InlineIntrinsicWidthData::FloatInfo(mOutOfFlowFrame, floatWidth));
+  }
 }
 
 /* virtual */ void
@@ -97,8 +103,14 @@ nsPlaceholderFrame::AddInlinePrefWidth(nsRenderingContext *aRenderingContext,
   // false.
 
   // ...but push floats onto the list
-  if (mOutOfFlowFrame->GetStyleDisplay()->mFloats != NS_STYLE_FLOAT_NONE)
-    aData->floats.AppendElement(mOutOfFlowFrame);
+  if (mOutOfFlowFrame->GetStyleDisplay()->mFloats != NS_STYLE_FLOAT_NONE) {
+    nscoord floatWidth =
+      nsLayoutUtils::IntrinsicForContainer(aRenderingContext,
+                                           mOutOfFlowFrame,
+                                           nsLayoutUtils::PREF_WIDTH);
+    aData->floats.AppendElement(
+      InlineIntrinsicWidthData::FloatInfo(mOutOfFlowFrame, floatWidth));
+  }
 }
 
 NS_IMETHODIMP
