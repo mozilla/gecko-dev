@@ -18,6 +18,7 @@ import android.graphics.drawable.AnimationDrawable;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.Rect;
 import android.os.Build;
 import android.os.Handler;
 import android.os.SystemClock;
@@ -30,6 +31,8 @@ import android.view.ContextMenu;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MenuInflater;
+import android.view.MotionEvent;
+import android.view.TouchDelegate;
 import android.view.View;
 import android.view.View.MeasureSpec;
 import android.view.ViewGroup;
@@ -236,6 +239,19 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
             mMenu.setOnClickListener(new Button.OnClickListener() {
                 public void onClick(View view) {
                     GeckoApp.mAppContext.openOptionsMenu();
+                }
+            });
+
+            // Set a touch delegate to Tabs button, so the touch events on its tail
+            // are passed to the menu button.
+            mLayout.post(new Runnable() {
+                @Override
+                public void run() {
+                    int height = mTabs.getHeight();
+                    int width = mTabs.getWidth();
+                    int tail = (width - height) / 2;
+                    Rect bounds = new Rect(width - tail, 0, width, height);
+                    mTabs.setTouchDelegate(new TailTouchDelegate(bounds, mMenu));
                 }
             });
         }
@@ -646,6 +662,30 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
 
         public void show() {
             showAsDropDown(mReader, (mReader.getWidth() - mWidth) / 2, 0);
+        }
+    }
+
+    private class TailTouchDelegate extends TouchDelegate {
+        public TailTouchDelegate(Rect bounds, View delegateView) {
+            super(bounds, delegateView);
+        }
+
+        @Override 
+        public boolean onTouchEvent(MotionEvent event) {
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    // Android bug 36445: Touch Delegation not reset on ACTION_DOWN.
+                    if (!super.onTouchEvent(event)) {
+                        MotionEvent cancelEvent = MotionEvent.obtain(event);
+                        cancelEvent.setAction(MotionEvent.ACTION_CANCEL);
+                        super.onTouchEvent(cancelEvent);
+                        return false;
+                     } else {
+                        return true;
+                     }
+                default:
+                    return super.onTouchEvent(event);
+            }
         }
     }
 }
