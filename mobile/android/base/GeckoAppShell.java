@@ -160,6 +160,14 @@ public class GeckoAppShell
                     e = cause;
                 }
 
+                if (e instanceof java.lang.OutOfMemoryError) {
+                    SharedPreferences prefs =
+                        GeckoApp.mAppContext.getSharedPreferences(GeckoApp.PREFS_NAME, 0);
+                    SharedPreferences.Editor editor = prefs.edit();
+                    editor.putBoolean(GeckoApp.PREFS_OOM_EXCEPTION, true);
+                    editor.commit();
+                }
+
                 reportJavaCrash(getStackTraceString(e));
             }
         });

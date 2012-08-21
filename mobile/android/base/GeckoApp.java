@@ -74,7 +74,12 @@ abstract public class GeckoApp
     public static final String ACTION_LOAD          = "org.mozilla.gecko.LOAD";
     public static final String ACTION_UPDATE        = "org.mozilla.gecko.UPDATE";
     public static final String ACTION_INIT_PW       = "org.mozilla.gecko.INIT_PW";
-    public static final String SAVED_STATE_TITLE    = "title";
+    public static final String SAVED_STATE_TITLE         = "title";
+    public static final String SAVED_STATE_IN_BACKGROUND = "inBackground";
+
+    public static final String PREFS_NAME          = "GeckoApp";
+    public static final String PREFS_OOM_EXCEPTION = "OOMException";
+    public static final String PREFS_WAS_STOPPED   = "wasStopped";
 
     StartupMode mStartupMode = null;
     protected LinearLayout mMainLayout;
@@ -722,12 +727,19 @@ abstract public class GeckoApp
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
 
+        Log.i(LOGTAG, "onSaveInstanceState");
+
         if (outState == null)
             outState = new Bundle();
 
         Tab tab = Tabs.getInstance().getSelectedTab();
         if (tab != null)
             outState.putString(SAVED_STATE_TITLE, tab.getDisplayTitle());
+
+        boolean inBackground =
+            ((GeckoApplication)getApplication()).isApplicationInBackground();
+
+        outState.putBoolean(SAVED_STATE_IN_BACKGROUND, inBackground);
     }
 
     public DisplayMetrics getDisplayMetrics() {
@@ -1752,9 +1764,42 @@ abstract public class GeckoApp
         // setup tabs panel
         mTabsPanel = (TabsPanel) findViewById(R.id.tabs_panel);
 
+        // check if the last run was exited due to a normal kill while
+        // we were in the background, or a more harsh kill while we were
+        // active
         if (savedInstanceState != null) {
+            Log.i(LOGTAG, "Restoring from OOM");
             mRestoreMode = GeckoAppShell.RESTORE_OOM;
+
+            boolean wasInBackground =
+                savedInstanceState.getBoolean(SAVED_STATE_IN_BACKGROUND, false);
+            Log.i(LOGTAG, "Was in background: " + wasInBackground);
+
+            if (!wasInBackground) {
+                Telemetry.HistogramAdd("OUT_OF_MEMORY_KILLED", 1);
+            }
         }
+
+        GeckoBackgroundThread.getHandler().post(new Runnable() {
+            public void run() {
+                SharedPreferences prefs =
+                    GeckoApp.mAppContext.getSharedPreferences(PREFS_NAME, 0);
+
+                boolean wasOOM = prefs.getBoolean(PREFS_OOM_EXCEPTION, false);
+                boolean wasStopped = prefs.getBoolean(PREFS_WAS_STOPPED, true);
+                if (wasOOM || !wasStopped) {
+                    Log.i(LOGTAG, "Crashed due to OOM last run");
+                    Telemetry.HistogramAdd("OUT_OF_MEMORY_KILLED", 1);
+                }
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putBoolean(GeckoApp.PREFS_OOM_EXCEPTION, false);
+
+                // put a flag to check if we got a normal onSaveInstaceState
+                // on exit, or if we were suddenly killed (crash or native OOM)
+                editor.putBoolean(GeckoApp.PREFS_WAS_STOPPED, false);
+                editor.commit();
+            }
+        });
 
         ((GeckoApplication) getApplication()).addApplicationLifecycleCallbacks(this);
     }
@@ -1810,8 +1855,10 @@ abstract public class GeckoApp
             passedUri = uri;
         }
 
-        if (mRestoreMode == GeckoAppShell.RESTORE_NONE && getProfile().shouldRestoreSession())
+        if (mRestoreMode == GeckoAppShell.RESTORE_NONE && getProfile().shouldRestoreSession()) {
+            Log.i(LOGTAG, "Restoring crash");
             mRestoreMode = GeckoAppShell.RESTORE_CRASH;
+        }
 
         boolean isExternalURL = passedUri != null && !passedUri.equals("about:home");
         initializeChrome(uri, isExternalURL);
@@ -2198,6 +2245,16 @@ abstract public class GeckoApp
 
         // User may have enabled/disabled accessibility.
         updateAccessibilitySettings();
+
+        GeckoBackgroundThread.getHandler().post(new Runnable() {
+            public void run() {
+                SharedPreferences prefs =
+                    GeckoApp.mAppContext.getSharedPreferences(GeckoApp.PREFS_NAME, 0);
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putBoolean(GeckoApp.PREFS_WAS_STOPPED, false);
+                editor.commit();
+            }
+         });
     }
 
     @Override
@@ -2228,9 +2285,41 @@ abstract public class GeckoApp
     }
 
     @Override
+    public void onPause()
+    {
+        Log.i(LOGTAG, "pause");
+
+        // In some way it's sad that Android will trigger StrictMode warnings
+        // here as the whole point is to save to disk while the activity is not
+        // interacting with the user.
+        GeckoBackgroundThread.getHandler().post(new Runnable() {
+            public void run() {
+                SharedPreferences prefs =
+                    GeckoApp.mAppContext.getSharedPreferences(GeckoApp.PREFS_NAME, 0);
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putBoolean(GeckoApp.PREFS_WAS_STOPPED, true);
+                editor.commit();
+            }
+        });
+
+        super.onPause();
+    }
+
+    @Override
     public void onRestart()
     {
         Log.i(LOGTAG, "restart");
+
+        GeckoBackgroundThread.getHandler().post(new Runnable() {
+            public void run() {
+                SharedPreferences prefs =
+                    GeckoApp.mAppContext.getSharedPreferences(GeckoApp.PREFS_NAME, 0);
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putBoolean(GeckoApp.PREFS_WAS_STOPPED, false);
+                editor.commit();
+            }
+        });
+
         super.onRestart();
     }
 
