@@ -156,7 +156,7 @@ let DebuggerController = {
 
     let client = this.client = new DebuggerClient(transport);
 
-    client.addListener("tabNavigated", this._onTabNavigated);
+    client.addListener("tabNavigated", this._onTabDetached);
     client.addListener("tabDetached", this._onTabDetached);
 
     client.connect(function(aType, aTraits) {
@@ -172,7 +172,7 @@ let DebuggerController = {
    * Closes the debugger client and removes event handlers as necessary.
    */
   _disconnect: function DC__disconnect() {
-    this.client.removeListener("tabNavigated", this._onTabNavigated);
+    this.client.removeListener("tabNavigated", this._onTabDetached);
     this.client.removeListener("tabDetached", this._onTabDetached);
     this.client.close();
 
@@ -484,7 +484,7 @@ StackFrames.prototype = {
    * Called soon after the thread client's framescleared notification.
    */
   _afterFramesCleared: function SF__afterFramesCleared() {
-    if (!this.activeThread.cachedFrames.length) {
+    if (this.activeThread && !this.activeThread.cachedFrames.length) {
       DebuggerView.StackFrames.emptyText();
       DebuggerView.Properties.emptyText();
       DebuggerController.dispatchEvent("Debugger:AfterFramesCleared");
