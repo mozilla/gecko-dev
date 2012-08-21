@@ -401,7 +401,18 @@ JS_PUBLIC_API(JSBool)
 JS_WriteTypedArray(JSStructuredCloneWriter *w, jsval v)
 {
     JS_ASSERT(v.isObject());
-    return w->writeTypedArray(&v.toObject());
+    JSObject *obj = &v.toObject();
+
+    // If the object is a security wrapper, try puncturing it. This may throw
+    // if the access is not allowed.
+    if (obj->isWrapper()) {
+        JSObject *unwrapped = UnwrapObjectChecked(w->context(), obj);
+        if (!unwrapped)
+            return false;
+        obj = unwrapped;
+    }
+
+    return w->writeTypedArray(obj);
 }
 
 bool
