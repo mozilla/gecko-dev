@@ -13,6 +13,7 @@
     <dimen name="awesomebar_tab_transparency_height">38dp</dimen>
     <dimen name="browser_toolbar_height">48dp</dimen>
     <dimen name="browser_toolbar_icon_width">36dp</dimen>
+    <dimen name="browser_toolbar_lock_width">21.33dp</dimen>
     <dimen name="flow_layout_spacing">6dp</dimen>
     <dimen name="local_tab_row_height">108dp</dimen>
     <dimen name="remote_tab_child_row_height">54dp</dimen>
