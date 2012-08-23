@@ -115,6 +115,7 @@ function startListeners() {
   addMessageListenerId("Marionette:sleepSession", sleepSession);
   addMessageListenerId("Marionette:emulatorCmdResult", emulatorCmdResult);
   addMessageListenerId("Marionette:importScript", importScript);
+  addMessageListenerId("Marionette:getAppCacheStatus", getAppCacheStatus);
 }
 
 /**
@@ -177,6 +178,7 @@ function deleteSession(msg) {
   removeMessageListenerId("Marionette:sleepSession", sleepSession);
   removeMessageListenerId("Marionette:emulatorCmdResult", emulatorCmdResult);
   removeMessageListenerId("Marionette:importScript", importScript);
+  removeMessageListenerId("Marionette:getAppCacheStatus", getAppCacheStatus);
   this.elementManager.reset();
   try {
     importedScripts.remove(false);
@@ -809,6 +811,10 @@ function switchToFrame(msg) {
     curWindow.focus();
     sendOk();
   }
+}
+
+function getAppCacheStatus() {
+  sendResponse({ value: curWindow.applicationCache.status });
 }
 
 // emulator callbacks

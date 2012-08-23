@@ -5,6 +5,7 @@
 import socket
 
 from client import MarionetteClient
+from application_cache import ApplicationCache
 from keys import Keys
 from errors import *
 from emulator import Emulator
@@ -436,3 +437,7 @@ class Marionette(object):
         with open(js_file, "r") as f:
             js = f.read()
         return self._send_message('importScript', 'ok', script=js)
+
+    @property
+    def application_cache(self):
+        return ApplicationCache(self)
