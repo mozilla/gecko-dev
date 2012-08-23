@@ -31,6 +31,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "webappsUI",
 XPCOMUtils.defineLazyModuleGetter(this, "PageThumbs",
                                   "resource:///modules/PageThumbs.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "NewTabUtils",
+                                  "resource:///modules/NewTabUtils.jsm");
+
 XPCOMUtils.defineLazyModuleGetter(this, "PdfJs",
                                   "resource://pdf.js/PdfJs.jsm");
 
@@ -336,6 +339,7 @@ BrowserGlue.prototype = {
     webappsUI.init();
 
     PageThumbs.init();
+    NewTabUtils.init();
 
     PdfJs.init();
 
