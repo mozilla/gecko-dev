@@ -844,6 +844,10 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
     nsCOMPtr<nsPIDOMWindow> newDebugWindow = do_GetInterface(newDocShell);
     NS_ASSERTION(newWindow == newDebugWindow, "Different windows??");
 #endif
+    // The principal of the initial about:blank document gets set up in
+    // nsWindowWatcher::AddWindow. Make sure to call it. In the common case
+    // this call already happened when the window was created, but
+    // SetInitialPrincipalToSubject is safe to call multiple times.
     if (newWindow) {
       newWindow->SetInitialPrincipalToSubject();
     }
