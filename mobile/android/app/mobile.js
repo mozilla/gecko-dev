@@ -696,3 +696,7 @@ pref("reader.color_scheme", "light");
  
  // Used to show a first-launch tip in reader
 pref("reader.has_used_toolbar", false);
+
+// default orientation for the app, default to undefined
+// the java GeckoScreenOrientationListener needs this to be defined
+pref("app.orientation.default", "");
