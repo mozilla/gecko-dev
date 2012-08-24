@@ -21,4 +21,4 @@ export JAVA_HOME=/tools/jdk6
 export MOZILLA_OFFICIAL=1
 
 ac_add_options --enable-official-branding
-ac_add_options --with-branding=mobile/android/branding/release
+ac_add_options --with-branding=mobile/android/branding/official
