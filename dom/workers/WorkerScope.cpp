@@ -859,7 +859,7 @@ DOMJSClass DedicatedWorkerGlobalScope::sClass = {
   },
   { prototypes::id::EventTarget_workers, prototypes::id::_ID_Count,
     prototypes::id::_ID_Count },
-  -1, false, NULL
+  -1, false, &sNativePropertyHooks
 };
 
 JSPropertySpec DedicatedWorkerGlobalScope::sProperties[] = {

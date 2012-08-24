@@ -25,6 +25,22 @@ USING_WORKERS_NAMESPACE
 using namespace mozilla::dom;
 using mozilla::ErrorResult;
 
+// These are temporary until these classes are moved to be codegenerated.
+bool
+WorkerResolveProperty(JSContext* cx, JSObject* wrapper, jsid id, bool set,
+                      JSPropertyDescriptor* desc)
+{
+  return true;
+}
+bool
+WorkerEnumerateProperties(JS::AutoIdVector& props)
+{
+  return true;
+}
+NativePropertyHooks mozilla::dom::workers::sNativePropertyHooks =
+  { WorkerResolveProperty, WorkerEnumerateProperties, NULL };
+
+
 namespace {
 
 class Worker
@@ -287,7 +303,7 @@ DOMJSClass Worker::sClass = {
   },
   { prototypes::id::EventTarget_workers, prototypes::id::_ID_Count,
     prototypes::id::_ID_Count },
-  -1, false, NULL
+  -1, false, &sNativePropertyHooks
 };
 
 JSPropertySpec Worker::sProperties[] = {
@@ -405,7 +421,7 @@ DOMJSClass ChromeWorker::sClass = {
   },
   { prototypes::id::EventTarget_workers, prototypes::id::_ID_Count,
     prototypes::id::_ID_Count },
-  -1, false, NULL
+  -1, false, &sNativePropertyHooks
 };
 
 WorkerPrivate*
