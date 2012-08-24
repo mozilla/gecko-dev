@@ -24,6 +24,7 @@
 
 class nsIIdleObserver;
 class nsIPrincipal;
+class nsIDocShellTreeItem; // XXX - Temporary! Goes away in the next patch
 
 // Popup control state enum. The values in this enum must go from most
 // permissive to least permissive so that it's safe to push state in
@@ -48,8 +49,8 @@ class nsIArray;
 class nsPIWindowRoot;
 
 #define NS_PIDOMWINDOW_IID \
-{ 0x0c4d0b84, 0xb524, 0x4572, \
-  { 0x8e, 0xd1, 0x7f, 0x78, 0x14, 0x7c, 0x4d, 0xf1 } }
+{ 0x1e8d2dd4, 0xaf9a, 0x464f, \
+  { 0x9a, 0x1f, 0x4a, 0xe8, 0xc3, 0xce, 0x81, 0x02 } }
 
 class nsPIDOMWindow : public nsIDOMWindowInternal
 {
@@ -272,6 +273,9 @@ public:
   // preloaded into it when it was created, or created by
   // CreateAboutBlankContentViewer()).
   virtual void SetOpenerScriptPrincipal(nsIPrincipal* aPrincipal) = 0;
+  virtual void SetInitialPrincipalToSubject(nsIDocShellTreeItem* aItem,
+                                            nsIDOMWindow* aParent) = 0;
+
   // Ask this window who opened it.
   virtual nsIPrincipal* GetOpenerScriptPrincipal() = 0;
 
