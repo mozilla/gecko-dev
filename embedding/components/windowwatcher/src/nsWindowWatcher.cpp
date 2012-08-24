@@ -845,7 +845,7 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
     NS_ASSERTION(newWindow == newDebugWindow, "Different windows??");
 #endif
     if (newWindow) {
-      newWindow->SetInitialPrincipalToSubject(newDocShellItem, aParent);
+      newWindow->SetInitialPrincipalToSubject();
     }
   }
 
