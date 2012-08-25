@@ -244,6 +244,7 @@ public:
   static jsid sNamedItem_id;
   static jsid sEnumerate_id;
   static jsid sNavigator_id;
+  static jsid sTop_id;
   static jsid sDocument_id;
   static jsid sFrames_id;
   static jsid sSelf_id;
