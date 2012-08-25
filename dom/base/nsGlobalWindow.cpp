@@ -1265,6 +1265,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsGlobalWindow)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mInnerWindowHolder)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mOuterWindow)
 
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mOpenerScriptPrincipal)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NATIVE_MEMBER(mListenerManager,
                                                   nsEventListenerManager)
 
@@ -1312,6 +1313,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGlobalWindow)
     NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mOuterWindow)
   }
 
+  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mOpenerScriptPrincipal)
   if (tmp->mListenerManager) {
     tmp->mListenerManager->Disconnect();
     NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mListenerManager)
@@ -1459,6 +1461,8 @@ nsGlobalWindow::WouldReuseInnerWindow(nsIDocument *aNewDocument)
   // We reuse the inner window when:
   // a. We are currently at our original document.
   // b. At least one of the following conditions are true:
+  // -- We are not currently a content window (i.e., we're currently a chrome
+  //    window).
   // -- The new document is the same as the old document. This means that we're
   //    getting called from document.open().
   // -- The new document has the same origin as what we have loaded right now.
@@ -1473,10 +1477,9 @@ nsGlobalWindow::WouldReuseInnerWindow(nsIDocument *aNewDocument)
   
   NS_ASSERTION(NS_IsAboutBlank(mDoc->GetDocumentURI()),
                "How'd this happen?");
-
+  
   // Great, we're the original document, check for one of the other
   // conditions.
-
   if (mDoc == aNewDocument) {
     return true;
   }
@@ -1489,66 +1492,63 @@ nsGlobalWindow::WouldReuseInnerWindow(nsIDocument *aNewDocument)
     return true;
   }
 
+  nsCOMPtr<nsIDocShellTreeItem> treeItem(do_QueryInterface(mDocShell));
+
+  if (treeItem) {
+    PRInt32 itemType = nsIDocShellTreeItem::typeContent;
+    treeItem->GetItemType(&itemType);
+
+    // If we're a chrome window, then we want to reuse the inner window.
+    return itemType == nsIDocShellTreeItem::typeChrome;
+  }
+
+  // No treeItem: don't reuse the current inner window.
   return false;
 }
 
 void
-nsGlobalWindow::SetInitialPrincipalToSubject()
+nsGlobalWindow::SetOpenerScriptPrincipal(nsIPrincipal* aPrincipal)
 {
-  FORWARD_TO_OUTER_VOID(SetInitialPrincipalToSubject, ());
+  FORWARD_TO_OUTER_VOID(SetOpenerScriptPrincipal, (aPrincipal));
 
-  // First, grab the subject principal. These methods never fail.
-  nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
-  nsCOMPtr<nsIPrincipal> newWindowPrincipal, systemPrincipal;
-  ssm->GetSubjectPrincipal(getter_AddRefs(newWindowPrincipal));
-  ssm->GetSystemPrincipal(getter_AddRefs(systemPrincipal));
-  if (!newWindowPrincipal) {
-    newWindowPrincipal = systemPrincipal;
-  }
-
-  // Now, if we're about to use the system principal, make sure we're not using
-  // it for a content docshell.
-  if (newWindowPrincipal == systemPrincipal) {
-    PRInt32 itemType;
-    nsCOMPtr<nsIDocShellTreeItem> item = do_QueryInterface(GetDocShell());
-    nsresult rv = item->GetItemType(&itemType);
-    if (NS_FAILED(rv) || itemType != nsIDocShellTreeItem::typeChrome) {
-      newWindowPrincipal = nsnull;
-    }
-  }
-
-  // If there's an existing document, bail if it either:
   if (mDoc) {
-    // (a) is not an initial about:blank document, or
-    if (!mDoc->IsInitialDocument())
+    if (!mDoc->IsInitialDocument()) {
+      // We have a document already, and it's not the original one.  Bail out.
+      // Do NOT set mOpenerScriptPrincipal in this case, just to be safe.
       return;
-    // (b) already has the correct principal.
-    if (mDoc->NodePrincipal() == newWindowPrincipal)
-      return;
+    }
 
 #ifdef DEBUG
-    // If we have a document loaded at this point, it had better be about:blank.
-    // Otherwise, something is really weird.
+    // We better have an about:blank document loaded at this point.  Otherwise,
+    // something is really weird.
     nsCOMPtr<nsIURI> uri;
     mDoc->NodePrincipal()->GetURI(getter_AddRefs(uri));
     NS_ASSERTION(uri && NS_IsAboutBlank(uri) &&
                  NS_IsAboutBlank(mDoc->GetDocumentURI()),
                  "Unexpected original document");
 #endif
+
+    GetDocShell()->CreateAboutBlankContentViewer(aPrincipal);
+    mDoc->SetIsInitialDocument(true);
+
+    nsCOMPtr<nsIPresShell> shell;
+    GetDocShell()->GetPresShell(getter_AddRefs(shell));
+
+    if (shell && !shell->DidInitialReflow()) {
+      // Ensure that if someone plays with this document they will get
+      // layout happening.
+      nsRect r = shell->GetPresContext()->GetVisibleArea();
+      shell->InitialReflow(r.width, r.height);
+    }
   }
+}
 
-  GetDocShell()->CreateAboutBlankContentViewer(newWindowPrincipal);
-  mDoc->SetIsInitialDocument(true);
+nsIPrincipal*
+nsGlobalWindow::GetOpenerScriptPrincipal()
+{
+  FORWARD_TO_OUTER(GetOpenerScriptPrincipal, (), nsnull);
 
-  nsCOMPtr<nsIPresShell> shell;
-  GetDocShell()->GetPresShell(getter_AddRefs(shell));
-
-  if (shell && !shell->DidInitialReflow()) {
-    // Ensure that if someone plays with this document they will get
-    // layout happening.
-    nsRect r = shell->GetPresContext()->GetVisibleArea();
-    shell->InitialReflow(r.width, r.height);
-  }
+  return mOpenerScriptPrincipal;
 }
 
 PopupControlState
@@ -1893,15 +1893,7 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
     // match the new document.
     // NB: We don't just call currentInner->RefreshCompartmentPrincipals() here
     // because we haven't yet set its mDoc to aDocument.
-    JSCompartment *compartment = js::GetObjectCompartment(currentInner->mJSObject);
-#ifdef DEBUG
-    bool sameOrigin = false;
-    nsIPrincipal *existing =
-      nsJSPrincipals::get(JS_GetCompartmentPrincipals(compartment));
-    aDocument->NodePrincipal()->Equals(existing, &sameOrigin);
-    MOZ_ASSERT(sameOrigin);
-#endif
-    JS_SetCompartmentPrincipals(compartment,
+    JS_SetCompartmentPrincipals(js::GetObjectCompartment(currentInner->mJSObject),
                                 nsJSPrincipals::get(aDocument->NodePrincipal()));
   } else {
     if (aState) {

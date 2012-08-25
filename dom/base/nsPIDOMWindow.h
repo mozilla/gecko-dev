@@ -48,8 +48,8 @@ class nsIArray;
 class nsPIWindowRoot;
 
 #define NS_PIDOMWINDOW_IID \
-{ 0x1e8d2dd4, 0xaf9a, 0x464f, \
-  { 0x9a, 0x1f, 0x4a, 0xe8, 0xc3, 0xce, 0x81, 0x02 } }
+{ 0x0c4d0b84, 0xb524, 0x4572, \
+  { 0x8e, 0xd1, 0x7f, 0x78, 0x14, 0x7c, 0x4d, 0xf1 } }
 
 class nsPIDOMWindow : public nsIDOMWindowInternal
 {
@@ -266,9 +266,14 @@ public:
     return win->mIsHandlingResizeEvent;
   }
 
-  // Set the window up with an about:blank document with the current subject
-  // principal.
-  virtual void SetInitialPrincipalToSubject() = 0;
+  // Tell this window who opened it.  This only has an effect if there is
+  // either no document currently in the window or if the document is the
+  // original document this window came with (an about:blank document either
+  // preloaded into it when it was created, or created by
+  // CreateAboutBlankContentViewer()).
+  virtual void SetOpenerScriptPrincipal(nsIPrincipal* aPrincipal) = 0;
+  // Ask this window who opened it.
+  virtual nsIPrincipal* GetOpenerScriptPrincipal() = 0;
 
   virtual PopupControlState PushPopupControlState(PopupControlState aState,
                                                   bool aForce) const = 0;
