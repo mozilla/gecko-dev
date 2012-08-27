@@ -2143,6 +2143,8 @@ abstract public class GeckoApp
         if (mBatteryReceiver != null)
             mBatteryReceiver.unregisterFor(mAppContext);
 
+        Tabs.unregisterOnTabsChangedListener(this);
+
         ((GeckoApplication) getApplication()).removeApplicationLifecycleCallbacks(this);
     }
 
