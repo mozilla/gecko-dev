@@ -614,14 +614,13 @@ StackSpace::containingSegment(const StackFrame *target) const
 }
 
 void
-StackSpace::markAndClobberFrame(JSTracer *trc, StackFrame *fp, Value *slotsEnd, jsbytecode *pc)
+StackSpace::markFrameValues(JSTracer *trc, StackFrame *fp, Value *slotsEnd, jsbytecode *pc)
 {
     Value *slotsBegin = fp->slots();
 
     if (!fp->isScriptFrame()) {
         JS_ASSERT(fp->isDummyFrame());
-        if (trc)
-            gc::MarkValueRootRange(trc, slotsBegin, slotsEnd, "vm_stack");
+        gc::MarkValueRootRange(trc, slotsBegin, slotsEnd, "vm_stack");
         return;
     }
 
@@ -630,8 +629,7 @@ StackSpace::markAndClobberFrame(JSTracer *trc, StackFrame *fp, Value *slotsEnd, 
 
     JSScript *script = fp->script();
     if (!script->hasAnalysis() || !script->analysis()->ranLifetimes()) {
-        if (trc)
-            gc::MarkValueRootRange(trc, slotsBegin, slotsEnd, "vm_stack");
+        gc::MarkValueRootRange(trc, slotsBegin, slotsEnd, "vm_stack");
         return;
     }
 
@@ -643,7 +641,6 @@ StackSpace::markAndClobberFrame(JSTracer *trc, StackFrame *fp, Value *slotsEnd, 
      * results are thrown away during the sweeping phase, so we always have at
      * least one GC to do this.
      */
-    JSRuntime *rt = script->compartment()->rt;
     analyze::AutoEnterAnalysis aea(script->compartment());
     analyze::ScriptAnalysis *analysis = script->analysis();
     uint32_t offset = pc - script->code;
@@ -653,9 +650,8 @@ StackSpace::markAndClobberFrame(JSTracer *trc, StackFrame *fp, Value *slotsEnd, 
 
         /* Will this slot be synced by the JIT? */
         if (!analysis->trackSlot(slot) || analysis->liveness(slot).live(offset)) {
-            if (trc)
-                gc::MarkValueRoot(trc, vp, "vm_stack");
-        } else if (!trc || script->compartment()->isDiscardingJitCode(trc)) {
+            gc::MarkValueRoot(trc, vp, "vm_stack");
+        } else if (script->compartment()->isDiscardingJitCode(trc)) {
             /*
              * If we're throwing away analysis information, we need to replace
              * non-live Values with ones that can safely be marked in later
@@ -680,7 +676,7 @@ StackSpace::markAndClobberFrame(JSTracer *trc, StackFrame *fp, Value *slotsEnd, 
                 else if (type == JSVAL_TYPE_BOOLEAN)
                     *vp = BooleanValue(false);
                 else if (type == JSVAL_TYPE_STRING)
-                    *vp = StringValue(rt->atomState.nullAtom);
+                    *vp = StringValue(trc->runtime->atomState.nullAtom);
                 else if (type == JSVAL_TYPE_NULL)
                     *vp = NullValue();
                 else if (type == JSVAL_TYPE_OBJECT)
@@ -689,13 +685,17 @@ StackSpace::markAndClobberFrame(JSTracer *trc, StackFrame *fp, Value *slotsEnd, 
         }
     }
 
-    if (trc)
-        gc::MarkValueRootRange(trc, fixedEnd, slotsEnd, "vm_stack");
+    gc::MarkValueRootRange(trc, fixedEnd, slotsEnd, "vm_stack");
 }
 
 void
-StackSpace::markAndClobber(JSTracer *trc)
+StackSpace::mark(JSTracer *trc)
 {
+    /*
+     * JIT code can leave values in an incoherent (i.e., unsafe for precise
+     * marking) state, hence MarkStackRangeConservatively.
+     */
+
     /* NB: this depends on the continuity of segments in memory. */
     Value *nextSegEnd = firstUnused();
     for (StackSegment *seg = seg_; seg; seg = seg->prevInMemory()) {
@@ -713,18 +713,16 @@ StackSpace::markAndClobber(JSTracer *trc)
         jsbytecode *pc = seg->maybepc();
         for (StackFrame *fp = seg->maybefp(); (Value *)fp > (Value *)seg; fp = fp->prev()) {
             /* Mark from fp->slots() to slotsEnd. */
-            markAndClobberFrame(trc, fp, slotsEnd, pc);
+            markFrameValues(trc, fp, slotsEnd, pc);
 
-            if (trc)
-                fp->mark(trc);
+            fp->mark(trc);
             slotsEnd = (Value *)fp;
 
             InlinedSite *site;
             pc = fp->prevpc(&site);
             JS_ASSERT_IF(fp->prev(), !site);
         }
-        if (trc)
-            gc::MarkValueRootRange(trc, seg->slotsBegin(), slotsEnd, "vm_stack");
+        gc::MarkValueRootRange(trc, seg->slotsBegin(), slotsEnd, "vm_stack");
         nextSegEnd = (Value *)seg;
     }
 }
