@@ -981,8 +981,14 @@ PropertyAccess(JSContext *cx, JSScript *script_, jsbytecode *pc, TypeObject *obj
         return;
     }
 
-    /* Capture the effects of a standard property access. */
-    TypeSet *types = object->getProperty(cx, id, assign);
+    /*
+     * Capture the effects of a standard property access.  For assignments, we do not
+     * automatically update the 'own' bit on accessed properties, except for indexed
+     * elements in dense arrays.  The latter exception allows for JIT fast paths to avoid
+     * testing the array's type when assigning to dense array elements.
+     */
+    bool markOwn = assign && JSID_IS_VOID(id);
+    TypeSet *types = object->getProperty(cx, id, markOwn);
     if (!types)
         return;
     if (assign) {

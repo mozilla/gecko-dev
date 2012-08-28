@@ -273,7 +273,7 @@ class SetPropCompiler : public PICStubCompiler
 
         pic.setPropLabels().setStubShapeJump(masm, start, stubShapeJumpLabel);
 
-        if (pic.typeMonitored) {
+        if (pic.typeMonitored || adding) {
             /*
              * Inference does not know the type of the object being updated,
              * and we need to make sure that the updateMonitoredTypes() call
