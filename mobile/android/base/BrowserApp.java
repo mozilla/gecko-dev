@@ -862,6 +862,19 @@ abstract public class BrowserApp extends GeckoApp
         }
     }
 
+    // A white list of locales that support about:feedback.
+    private final String kFeedbackWhiteListArray[] = new String[] { 
+        "en_US"
+    };
+
+    private final CopyOnWriteArrayList<String> kFeedbackWhiteList =
+        new CopyOnWriteArrayList<String>(kFeedbackWhiteListArray);
+
+    private boolean isFeedbackSupported() {
+        String locale = Locale.getDefault().toString();
+        return kFeedbackWhiteList.contains(locale);
+    }
+
     /*
      * If the app has been launched a certain number of times, and we haven't asked for feedback before,
      * open a new tab with about:feedback when launching the app from the icon shortcut.
@@ -870,7 +883,8 @@ abstract public class BrowserApp extends GeckoApp
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
 
-        if (!Intent.ACTION_MAIN.equals(intent.getAction()))
+        // Only prompt for feedback if about:feedback is supported in the current locale.
+        if (!Intent.ACTION_MAIN.equals(intent.getAction()) || !isFeedbackSupported())
             return;
 
         (new GeckoAsyncTask<Void, Void, Boolean>() {
