@@ -56,7 +56,7 @@ IsRefreshDriverPaintingEnabled()
     sRefreshDriverPaintingPrefCached = true;
     mozilla::Preferences::AddBoolVarCache(&sRefreshDriverPaintingEnabled,
                                           "viewmanager.refresh-driver-painting.enabled",
-                                          true);
+                                          false);
   }
 
   return sRefreshDriverPaintingEnabled;
