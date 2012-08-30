@@ -204,9 +204,16 @@ public class AwesomeBar extends GeckoActivity {
 
         mText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             public void onFocusChange(View v, boolean hasFocus) {
-                if (!hasFocus) {
-                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (v == null || hasFocus) {
+                    return;
+                }
+
+                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                try {
                     imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+                } catch (NullPointerException e) {
+                    Log.e(LOGTAG, "InputMethodManagerService, why are you throwing"
+                                  + " a NullPointerException? See bug 782096", e);
                 }
             }
         });
