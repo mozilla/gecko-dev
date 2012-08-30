@@ -392,6 +392,7 @@ FunctionBox::FunctionBox(ObjectBox* traceListHead, JSObject *obj, ParseContext *
   : ObjectBox(traceListHead, obj),
     siblings(outerpc->functionList),
     kids(NULL),
+    parent(outerpc->sc->inFunction() ? outerpc->sc->funbox() : NULL),
     bindings(),
     bufStart(0),
     bufEnd(0),
@@ -4909,6 +4910,7 @@ CompExprTransplanter::transplant(ParseNode *pn)
                 funboxp = &(*funboxp)->siblings;
             *funboxp = funbox->siblings;
 
+            funbox->parent = parent;
             funbox->siblings = parent->kids;
             parent->kids = funbox;
         }
