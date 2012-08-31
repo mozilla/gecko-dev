@@ -122,6 +122,7 @@ nsMathMLmoFrame::ProcessTextData()
 
   nsAutoString data;
   nsContentUtils::GetNodeTextContent(mContent, false, data);
+  data.CompressWhitespace();
   PRInt32 length = data.Length();
   PRUnichar ch = (length == 0) ? kNullCh : data[0];
 
