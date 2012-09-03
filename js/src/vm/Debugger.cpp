@@ -2435,7 +2435,7 @@ class Debugger::ScriptQuery {
      */
     bool consider(JSScript *script, AutoScriptVector *vector) {
         if (script->selfHosted)
-             return;
+            return true;
         JSCompartment *compartment = script->compartment();
         if (!compartments.has(compartment))
             return true;
