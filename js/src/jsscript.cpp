@@ -1602,6 +1602,7 @@ JSScript::Create(JSContext *cx, HandleObject enclosingScope, bool savedCallerFun
     }
 
     script->compileAndGo = options.compileAndGo;
+    script->selfHosted = options.selfHostingMode;
     script->noScriptRval = options.noScriptRval;
 
     script->version = options.version;
@@ -1891,6 +1892,9 @@ JSScript::enclosingScriptsCompiledSuccessfully() const
 void
 js::CallNewScriptHook(JSContext *cx, HandleScript script, HandleFunction fun)
 {
+    if (script->selfHosted)
+        return;
+
     AssertCanGC();
     JS_ASSERT(!script->isActiveEval);
     if (JSNewScriptHook hook = cx->runtime->debugHooks.newScriptHook) {
@@ -1903,6 +1907,9 @@ js::CallNewScriptHook(JSContext *cx, HandleScript script, HandleFunction fun)
 void
 js::CallDestroyScriptHook(FreeOp *fop, RawScript script)
 {
+    if (script->selfHosted)
+        return;
+
     // The hook will only call into JS if a GC is not running.
     if (JSDestroyScriptHook hook = fop->runtime()->debugHooks.destroyScriptHook)
         hook(fop, script, fop->runtime()->debugHooks.destroyScriptHookData);
@@ -2262,6 +2269,7 @@ js::CloneScript(JSContext *cx, HandleObject enclosingScope, HandleFunction fun, 
     options.setPrincipals(cx->compartment->principals)
            .setOriginPrincipals(src->originPrincipals)
            .setCompileAndGo(src->compileAndGo)
+           .setSelfHostingMode(src->selfHosted)
            .setNoScriptRval(src->noScriptRval)
            .setVersion(src->getVersion())
            .setUserBit(src->userBit);
