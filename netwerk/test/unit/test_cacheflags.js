@@ -115,11 +115,6 @@ var gTests = [
   new Test(httpBase + shortexpPath, 0,
            true,   // expect success
            false,  // read from cache
-           true,   // hit server
-           true),  // USE PRIVATE BROWSING, so not cached for later requests
-  new Test(httpBase + shortexpPath, 0,
-           true,   // expect success
-           false,  // read from cache
            true),  // hit server
   new Test(httpBase + shortexpPath, 0,
            true,   // expect success

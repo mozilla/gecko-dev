@@ -28,8 +28,7 @@ public:
     enum SessionInfo {
         eStoragePolicyMask        = 0x000000FF,
         eStreamBasedMask          = 0x00000100,
-        eDoomEntriesIfExpiredMask = 0x00001000,
-        ePrivateMask              = 0x00010000
+        eDoomEntriesIfExpiredMask = 0x00001000
     };
 
     void   MarkStreamBased()  { mInfo |=  eStreamBasedMask; }
@@ -40,9 +39,6 @@ public:
     void   ClearDoomEntriesIfExpired() { mInfo &= ~eDoomEntriesIfExpiredMask; }
     bool WillDoomEntriesIfExpired()  { return (0 != (mInfo & eDoomEntriesIfExpiredMask)); }
 
-    void   MarkPrivate() { mInfo |= ePrivateMask; }
-    void   MarkPublic() { mInfo &= ~ePrivateMask; }
-    bool IsPrivate() { return (mInfo & ePrivateMask) != 0; }
     nsCacheStoragePolicy  StoragePolicy()
     {
         return (nsCacheStoragePolicy)(mInfo & eStoragePolicyMask);

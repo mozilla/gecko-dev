@@ -36,7 +36,7 @@ WyciwygChannelChild::WyciwygChannelChild()
   , mCharsetSource(kCharsetUninitialized)
   , mState(WCC_NEW)
   , mIPCOpen(false)
-  , mEventQ(NS_ISUPPORTS_CAST(nsIWyciwygChannel*, this))
+  , mEventQ(this)
 {
   LOG(("Creating WyciwygChannelChild @%x\n", this));
 }
