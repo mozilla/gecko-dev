@@ -23,8 +23,7 @@ namespace mozilla {
 namespace net {
 
 FTPChannelChild::FTPChannelChild(nsIURI* uri)
-: PrivateBrowsingConsumer(this)
-, mIPCOpen(false)
+: mIPCOpen(false)
 , ALLOW_THIS_IN_INITIALIZER_LIST(mEventQ(static_cast<nsIFTPChannel*>(this)))
 , mCanceled(false)
 , mSuspendCount(0)
@@ -161,7 +160,7 @@ FTPChannelChild::AsyncOpen(::nsIStreamListener* listener, nsISupports* aContext)
     mLoadGroup->AddRequest(this, nsnull);
 
   SendAsyncOpen(nsBaseChannel::URI(), mStartPos, mEntityID,
-                IPC::InputStream(mUploadStream), UsePrivateBrowsing());
+                IPC::InputStream(mUploadStream));
 
   // The socket transport layer in the chrome process now has a logical ref to
   // us until OnStopRequest is called.

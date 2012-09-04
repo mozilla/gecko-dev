@@ -49,8 +49,7 @@ parent:
             nsCString           entityID,
             bool                chooseApplicationCache,
             nsCString           appCacheClientID,
-            bool                allowSpdy,
-            bool                usePrivateBrowsing);
+            bool                allowSpdy);
 
   // Used to connect redirected-to channel on the parent with redirected-to
   // channel on the child.
