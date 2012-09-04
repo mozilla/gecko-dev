@@ -2217,19 +2217,14 @@ nsFtpState::CheckCache()
     if (!cache)
         return false;
 
-    bool isPrivate = mChannel->UsePrivateBrowsing();
-    const char* sessionName = isPrivate ? "FTP-private" : "FTP";
-    nsCacheStoragePolicy policy =
-        isPrivate ? nsICache::STORE_IN_MEMORY : nsICache::STORE_ANYWHERE;
     nsCOMPtr<nsICacheSession> session;
-    cache->CreateSession(sessionName,
-                         policy,
+    cache->CreateSession("FTP",
+                         nsICache::STORE_ANYWHERE,
                          nsICache::STREAM_BASED,
                          getter_AddRefs(session));
     if (!session)
         return false;
     session->SetDoomEntriesIfExpired(false);
-    session->SetIsPrivate(isPrivate);
 
     // Set cache access requested:
     nsCacheAccessMode accessReq;

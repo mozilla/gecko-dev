@@ -42,8 +42,6 @@ nsCacheEntry::nsCacheEntry(nsCString *          key,
 
     if (streamBased) MarkStreamBased();
     SetStoragePolicy(storagePolicy);
-
-    MarkPublic();
 }
 
 

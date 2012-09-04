@@ -42,6 +42,7 @@
 #include "nsThreadUtils.h"
 #include "nsAutoPtr.h"
 #include "nsIMutableArray.h"
+#include "nsILoadContext.h"
 
 // used to access our datastore of user-configured helper applications
 #include "nsIHandlerService.h"
@@ -106,7 +107,6 @@
 #include "nsIDocShellTreeOwner.h"
 #include "nsIDocShellTreeItem.h"
 #include "ExternalHelperAppChild.h"
-#include "nsIPrivateBrowsingConsumer.h"
 
 #ifdef MOZ_WIDGET_ANDROID
 #include "AndroidBridge.h"
@@ -2181,8 +2181,14 @@ nsresult nsExternalAppHandler::OpenWithApplication()
 
     // See whether the channel has been opened in private browsing mode
     NS_ASSERTION(mRequest, "This should never be called with a null request");
-    nsCOMPtr<nsIPrivateBrowsingConsumer> pbConsumer = do_QueryInterface(mRequest);
-    bool inPrivateBrowsing = pbConsumer && pbConsumer->UsePrivateBrowsing();
+    bool inPrivateBrowsing = false;
+    nsCOMPtr<nsIChannel> channel = do_QueryInterface(mRequest);
+    if (channel)
+    {
+      nsCOMPtr<nsILoadContext> loadContext;
+      NS_QueryNotificationCallbacks(channel, loadContext);
+      inPrivateBrowsing = loadContext && loadContext->UsePrivateBrowsing();
+    }
 
     // make the tmp file readonly so users won't edit it and lose the changes
     // only if we're going to delete the file

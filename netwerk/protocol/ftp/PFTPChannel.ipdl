@@ -24,7 +24,7 @@ parent:
   __delete__();
 
   AsyncOpen(URI uri, PRUint64 startPos, nsCString entityID,
-            InputStream uploadStream, bool usePrivateBrowsing);
+            InputStream uploadStream);
   ConnectChannel(PRUint32 channelId);
   Cancel(nsresult status);
   Suspend();

@@ -57,8 +57,7 @@ bool
 FTPChannelParent::RecvAsyncOpen(const IPC::URI& aURI,
                                 const PRUint64& aStartPos,
                                 const nsCString& aEntityID,
-                                const IPC::InputStream& aUploadStream,
-                                const bool& aUsePrivateBrowsing)
+                                const IPC::InputStream& aUploadStream)
 {
   nsCOMPtr<nsIURI> uri(aURI);
 
@@ -92,8 +91,6 @@ FTPChannelParent::RecvAsyncOpen(const IPC::URI& aURI,
   rv = mChannel->ResumeAt(aStartPos, aEntityID);
   if (NS_FAILED(rv))
     return SendFailedAsyncOpen(rv);
-
-  mChannel->OverridePrivateBrowsing(aUsePrivateBrowsing);
 
   rv = mChannel->AsyncOpen(this, nsnull);
   if (NS_FAILED(rv))

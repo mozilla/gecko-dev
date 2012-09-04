@@ -51,7 +51,6 @@ public:
     virtual nsresult Visit( nsICacheVisitor * visitor );
 
     virtual nsresult EvictEntries(const char * clientID);
-    nsresult EvictPrivateEntries();
     
     void             SetCapacity(PRInt32  capacity);
     void             SetMaxEntrySize(PRInt32  maxSizeInKilobytes);
@@ -69,9 +68,6 @@ private:
     void      EvictEntry( nsCacheEntry * entry , bool deleteEntry);
     void      EvictEntriesIfNecessary();
     int       EvictionList(nsCacheEntry * entry, PRInt32  deltaSize);
-
-    typedef bool (*EvictionMatcherFn)(nsCacheEntry* entry, void* args);
-    nsresult DoEvictEntries(EvictionMatcherFn matchFn, void* args);
 
 #ifdef DEBUG
     void      CheckEntryCount();

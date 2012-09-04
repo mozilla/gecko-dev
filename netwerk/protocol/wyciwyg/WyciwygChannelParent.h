@@ -28,8 +28,7 @@ public:
 protected:
   virtual bool RecvInit(const IPC::URI& uri);
   virtual bool RecvAsyncOpen(const IPC::URI& original,
-                             const PRUint32& loadFlags,
-                             const bool& usingPrivateBrowsing);
+                             const PRUint32& loadFlags);
   virtual bool RecvWriteToCacheEntry(const nsString& data);
   virtual bool RecvCloseCacheEntry(const nsresult& reason);
   virtual bool RecvSetCharsetAndSource(const PRInt32& source,
