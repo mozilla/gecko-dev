@@ -1056,27 +1056,15 @@ nsHttpConnectionMgr::ReportFailedToProcess(nsIURI *uri)
     if (NS_FAILED(rv) || !isHttp || host.IsEmpty())
         return;
 
-    // report the event for all the permutations of anonymous and
-    // private versions of this host
+    // report the event for both the anonymous and non-anonymous
+    // versions of this host
     nsRefPtr<nsHttpConnectionInfo> ci =
         new nsHttpConnectionInfo(host, port, nullptr, usingSSL);
     ci->SetAnonymous(false);
-    ci->SetPrivate(false);
     PipelineFeedbackInfo(ci, RedCorruptedContent, nullptr, 0);
 
-    ci = ci->Clone();
-    ci->SetAnonymous(false);
-    ci->SetPrivate(true);
-    PipelineFeedbackInfo(ci, RedCorruptedContent, nullptr, 0);
-
-    ci = ci->Clone();
+    ci = new nsHttpConnectionInfo(host, port, nullptr, usingSSL);
     ci->SetAnonymous(true);
-    ci->SetPrivate(false);
-    PipelineFeedbackInfo(ci, RedCorruptedContent, nullptr, 0);
-
-    ci = ci->Clone();
-    ci->SetAnonymous(true);
-    ci->SetPrivate(true);
     PipelineFeedbackInfo(ci, RedCorruptedContent, nullptr, 0);
 }
 

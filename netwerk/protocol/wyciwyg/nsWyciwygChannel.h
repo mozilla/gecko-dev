@@ -72,7 +72,6 @@ protected:
     bool                                mIsPending;
     bool                                mCharsetAndSourceSet;
     bool                                mNeedToWriteCharset;
-    bool                                mPrivateBrowsing;
     int32_t                             mCharsetSource;
     nsCString                           mCharset;
     int32_t                             mContentLength;

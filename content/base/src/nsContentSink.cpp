@@ -16,7 +16,6 @@
 #include "mozilla/css/Loader.h"
 #include "nsStyleLinkElement.h"
 #include "nsIDocShell.h"
-#include "nsILoadContext.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsCPrefetchService.h"
 #include "nsIURI.h"
@@ -1010,13 +1009,6 @@ nsContentSink::ProcessOfflineManifest(const nsAString& aManifestSpec)
   // Don't bother processing offline manifest for documents
   // without a docshell
   if (!mDocShell) {
-    return;
-  }
-
-  // If the docshell's in private browsing mode, we don't want to do any
-  // manifest processing.
-  nsCOMPtr<nsILoadContext> loadContext = do_QueryInterface(mDocShell);
-  if (loadContext->UsePrivateBrowsing()) {
     return;
   }
 
