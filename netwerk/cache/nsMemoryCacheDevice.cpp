@@ -443,44 +443,26 @@ nsMemoryCacheDevice::Visit(nsICacheVisitor * visitor)
 }
 
 
-static bool
-IsEntryPrivate(nsCacheEntry* entry, void* args)
-{
-    return entry->IsPrivate();
-}
-
-struct ClientIDArgs {
-    const char* clientID;
-    PRUint32 prefixLength;
-};
-
-static bool
-EntryMatchesClientID(nsCacheEntry* entry, void* args)
-{
-    const char * clientID = static_cast<ClientIDArgs*>(args)->clientID;
-    PRUint32 prefixLength = static_cast<ClientIDArgs*>(args)->prefixLength;
-    const char * key = entry->Key()->get();
-    return !clientID || nsCRT::strncmp(clientID, key, prefixLength) == 0;
-}
-
 nsresult
-nsMemoryCacheDevice::DoEvictEntries(bool (*matchFn)(nsCacheEntry* entry, void* args), void* args)
+nsMemoryCacheDevice::EvictEntries(const char * clientID)
 {
     nsCacheEntry * entry;
+    PRUint32 prefixLength = (clientID ? strlen(clientID) : 0);
 
     for (int i = kQueueCount - 1; i >= 0; --i) {
         PRCList * elem = PR_LIST_HEAD(&mEvictionList[i]);
         while (elem != &mEvictionList[i]) {
             entry = (nsCacheEntry *)elem;
             elem = PR_NEXT_LINK(elem);
-
-            if (!matchFn(entry, args))
+            
+            const char * key = entry->Key()->get();
+            if (clientID && nsCRT::strncmp(clientID, key, prefixLength) != 0)
                 continue;
             
             if (entry->IsInUse()) {
                 nsresult rv = nsCacheService::DoomEntry(entry);
                 if (NS_FAILED(rv)) {
-                    CACHE_LOG_WARNING(("memCache->DoEvictEntries() aborted: rv =%x", rv));
+                    CACHE_LOG_WARNING(("memCache->EvictEntries() aborted: rv =%x", rv));
                     return rv;
                 }
             } else {
@@ -490,19 +472,6 @@ nsMemoryCacheDevice::DoEvictEntries(bool (*matchFn)(nsCacheEntry* entry, void* a
     }
 
     return NS_OK;
-}
-
-nsresult
-nsMemoryCacheDevice::EvictEntries(const char * clientID)
-{
-    ClientIDArgs args = {clientID, clientID ? PRUint32(strlen(clientID)) : 0};
-    return DoEvictEntries(&EntryMatchesClientID, &args);
-}
-
-nsresult
-nsMemoryCacheDevice::EvictPrivateEntries()
-{
-    return DoEvictEntries(&IsEntryPrivate, NULL);
 }
 
 

@@ -21,8 +21,6 @@ nsCacheSession::nsCacheSession(const char *         clientID,
   if (streamBased) MarkStreamBased();
   else SetStoragePolicy(nsICache::STORE_IN_MEMORY);
 
-  MarkPublic();
-
   MarkDoomEntriesIfExpired();
 }
 
@@ -124,19 +122,4 @@ NS_IMETHODIMP nsCacheSession::DoomEntry(const nsACString &key,
                                         nsICacheListener *listener)
 {
     return nsCacheService::DoomEntry(this, key, listener);
-}
-
-NS_IMETHODIMP nsCacheSession::GetIsPrivate(bool* aPrivate)
-{
-    *aPrivate = IsPrivate();
-    return NS_OK;
-}
-
-NS_IMETHODIMP nsCacheSession::SetIsPrivate(bool aPrivate)
-{
-    if (aPrivate)
-        MarkPrivate();
-    else
-        MarkPublic();
-    return NS_OK;
 }

@@ -36,8 +36,7 @@ protected:
   NS_OVERRIDE virtual bool RecvAsyncOpen(const IPC::URI& uri,
                                          const PRUint64& startPos,
                                          const nsCString& entityID,
-                                         const IPC::InputStream& uploadStream,
-                                         const bool& aUsePrivateBrowsing);
+                                         const IPC::InputStream& uploadStream);
   NS_OVERRIDE virtual bool RecvConnectChannel(const PRUint32& channelId);
   NS_OVERRIDE virtual bool RecvCancel(const nsresult& status);
   NS_OVERRIDE virtual bool RecvSuspend();

@@ -81,12 +81,10 @@ private:
 
 // nsWyciwygChannel methods 
 nsWyciwygChannel::nsWyciwygChannel()
-  : PrivateBrowsingConsumer(this),
-    mStatus(NS_OK),
+  : mStatus(NS_OK),
     mIsPending(false),
     mCharsetAndSourceSet(false),
     mNeedToWriteCharset(false),
-    mPrivate(false),
     mCharsetSource(kCharsetUninitialized),
     mContentLength(-1),
     mLoadFlags(LOAD_NORMAL)
@@ -398,9 +396,6 @@ nsWyciwygChannel::WriteToCacheEntry(const nsAString &aData)
   if (NS_FAILED(rv)) 
     return rv;
 
-  // UsePrivateBrowsing deals with non-threadsafe objects
-  mPrivate = UsePrivateBrowsing();
-
   return mCacheIOTarget->Dispatch(new nsWyciwygWriteEvent(this, aData, spec),
                                   NS_DISPATCH_NORMAL);
 }
@@ -670,20 +665,17 @@ nsWyciwygChannel::OpenCacheEntry(const nsACString & aCacheKey,
 
   // honor security settings
   nsCacheStoragePolicy storagePolicy;
-  if (mPrivate || mLoadFlags & INHIBIT_PERSISTENT_CACHING)
+  if (mLoadFlags & INHIBIT_PERSISTENT_CACHING)
     storagePolicy = nsICache::STORE_IN_MEMORY;
   else
     storagePolicy = nsICache::STORE_ANYWHERE;
 
   nsCOMPtr<nsICacheSession> cacheSession;
   // Open a stream based cache session.
-  const char* sessionName = mPrivate ? "wyciwyg-private" : "wyciwyg";
-  rv = cacheService->CreateSession(sessionName, storagePolicy, true,
+  rv = cacheService->CreateSession("wyciwyg", storagePolicy, true,
                                    getter_AddRefs(cacheSession));
   if (!cacheSession) 
     return NS_ERROR_FAILURE;
-
-  cacheSession->SetIsPrivate(mPrivate);
 
   if (aAccessMode == nsICache::ACCESS_WRITE)
     rv = cacheSession->OpenCacheEntry(aCacheKey, aAccessMode, false,
