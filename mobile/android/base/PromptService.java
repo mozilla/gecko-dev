@@ -201,7 +201,7 @@ public class PromptService implements OnClickListener, OnCancelListener, OnItemC
     }
 
     public void show(String aTitle, String aText, PromptButton[] aButtons, PromptListItem[] aMenuList, boolean aMultipleSelection) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(GeckoApp.mAppContext);
+        final AlertDialog.Builder builder = new AlertDialog.Builder(GeckoApp.mAppContext);
         if (!aTitle.equals("")) {
             builder.setTitle(aTitle);
         }
@@ -267,9 +267,14 @@ public class PromptService implements OnClickListener, OnCancelListener, OnItemC
             builder.setNegativeButton(aButtons[2].label, this);
         }
 
-        mDialog = builder.create();
-        mDialog.setOnCancelListener(this);
-        mDialog.show();
+        // The AlertDialog must be created on the UI thread, not the GeckoBackgroundThread.
+        GeckoAppShell.getMainHandler().post(new Runnable() {
+            public void run() {
+                mDialog = builder.create();
+                mDialog.setOnCancelListener(PromptService.this);
+                mDialog.show();
+            }
+        });
     }
 
     public void onClick(DialogInterface aDialog, int aWhich) {
