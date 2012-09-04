@@ -1,0 +1,41 @@
+<!DOCTYPE HTML>
+<html>
+<body>
+<script type="application/javascript">
+
+/** Test for Bug 726125 **/
+function go() {
+  var win = document.getElementById('jarframe').contentWindow;
+
+  try {
+    var func = win.a;
+  } catch (e) {
+    parent.postMessage("Signed JARs should have codebase principals. " +
+                       "Should be able to access accross signed & unsigned " +
+                       "frames from the same origin", "*");
+    return;
+  }
+
+  try {
+    win.a();
+  } catch (e) {
+    if (/denied UniversalXPConnect privileges/i.test(e.message)) {
+      parent.postMessage("Success", "*");
+    } else {
+      parent.postMessage("Unexpected exception: " + e.message, "*");
+    }
+    return;
+  }
+
+  parent.postMessage("Signed jars shouldn't be allowed to enablePrivilege", "*");
+}
+
+</script>
+
+<iframe src="jar:http://www.mozilla.org/tests/js/xpconnect/tests/mochitest/bug657267.jar!/file_bug657267.html"
+        id="jarframe"
+        onload="go()">
+</iframe>
+
+</body>
+</html>
