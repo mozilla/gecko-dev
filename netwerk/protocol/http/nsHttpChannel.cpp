@@ -79,11 +79,14 @@ AccumulateCacheHitTelemetry(mozilla::Telemetry::ID deviceHistogram,
 }
 
 const char *
-GetCacheSessionNameForStoragePolicy(nsCacheStoragePolicy storagePolicy)
+GetCacheSessionNameForStoragePolicy(nsCacheStoragePolicy storagePolicy,
+                                    bool isPrivate)
 {
+    MOZ_ASSERT(!isPrivate || storagePolicy == nsICache::STORE_IN_MEMORY);
+
     switch (storagePolicy) {
     case nsICache::STORE_IN_MEMORY:
-        return "HTTP-memory-only";
+        return isPrivate ? "HTTP-memory-only-PB" : "HTTP-memory-only";
     case nsICache::STORE_OFFLINE:
         return "HTTP-offline";
     default:
@@ -187,6 +190,7 @@ public:
     HttpCacheQuery(nsHttpChannel * channel,
                    const nsACString & clientID,
                    nsCacheStoragePolicy storagePolicy,
+                   bool usingPrivateBrowsing,
                    const nsACString & cacheKey,
                    nsCacheAccessMode accessToRequest,
                    bool noWait,
@@ -201,6 +205,7 @@ public:
         , mFallbackChannel(channel->mFallbackChannel)
         , mClientID(clientID)
         , mStoragePolicy(storagePolicy)
+        , mUsingPrivateBrowsing(usingPrivateBrowsing)
         , mCacheKey(cacheKey)
         , mAccessToRequest(accessToRequest)
         , mNoWait(noWait)
@@ -255,6 +260,7 @@ private:
     const bool mFallbackChannel;
     const InfallableCopyCString mClientID;
     const nsCacheStoragePolicy mStoragePolicy;
+    const bool mUsingPrivateBrowsing;
     const InfallableCopyCString mCacheKey;
     const nsCacheAccessMode mAccessToRequest;
     const bool mNoWait;
@@ -538,6 +544,7 @@ nsHttpChannel::SpeculativeConnect()
         return;
 
     mConnectionInfo->SetAnonymous((mLoadFlags & LOAD_ANONYMOUS) != 0);
+    mConnectionInfo->SetPrivate(UsingPrivateBrowsing());
     gHttpHandler->SpeculativeConnect(mConnectionInfo,
                                      callbacks, NS_GetCurrentThread());
 }
@@ -832,6 +839,7 @@ nsHttpChannel::SetupTransaction()
         mCaps |= NS_HTTP_TIMING_ENABLED;
 
     mConnectionInfo->SetAnonymous((mLoadFlags & LOAD_ANONYMOUS) != 0);
+    mConnectionInfo->SetPrivate(UsingPrivateBrowsing());
 
     if (mUpgradeProtocolCallback) {
         mRequestHead.SetHeader(nsHttp::Upgrade, mUpgradeProtocol, false);
@@ -2439,7 +2447,7 @@ nsHttpChannel::OpenCacheEntry(bool usingSSL)
             // us from writing to the offline cache as a normal cache entry.
             mCacheQuery = new HttpCacheQuery(
                                 this, appCacheClientID,
-                                nsICache::STORE_OFFLINE,
+                                nsICache::STORE_OFFLINE, UsingPrivateBrowsing(),
                                 cacheKey, nsICache::ACCESS_READ,
                                 mLoadFlags & LOAD_BYPASS_LOCAL_CACHE_IF_BUSY,
                                 usingSSL, true);
@@ -2540,9 +2548,10 @@ nsHttpChannel::OpenNormalCacheEntry(bool usingSSL)
 
     nsresult rv;
 
-    nsCacheStoragePolicy storagePolicy = DetermineStoragePolicy();
+    bool isPrivate = UsingPrivateBrowsing();
+    nsCacheStoragePolicy storagePolicy = DetermineStoragePolicy(isPrivate);
     nsDependentCString clientID(
-        GetCacheSessionNameForStoragePolicy(storagePolicy));
+        GetCacheSessionNameForStoragePolicy(storagePolicy, isPrivate));
 
     nsCAutoString cacheKey;
     GenerateCacheKey(mPostID, cacheKey);
@@ -2554,7 +2563,7 @@ nsHttpChannel::OpenNormalCacheEntry(bool usingSSL)
  
     mCacheQuery = new HttpCacheQuery(
                                 this, clientID, storagePolicy,
-                                cacheKey,
+                                UsingPrivateBrowsing(), cacheKey,
                                 accessRequested,
                                 mLoadFlags & LOAD_BYPASS_LOCAL_CACHE_IF_BUSY,
                                 usingSSL, false);
@@ -2846,6 +2855,9 @@ HttpCacheQuery::Run()
             rv = serv->CreateSession(mClientID.get(), mStoragePolicy,
                                      nsICache::STREAM_BASED,
                                      getter_AddRefs(session));
+        }
+        if (NS_SUCCEEDED(rv)) {
+            rv = session->SetIsPrivate(mUsingPrivateBrowsing);
         }
         if (NS_SUCCEEDED(rv)) {
             rv = session->SetDoomEntriesIfExpired(false);
@@ -5837,8 +5849,10 @@ nsHttpChannel::DoInvalidateCacheEntry(const nsCString &key)
     // one point by using only READ_ONLY access-policy. I think this is safe.
 
     // First, find session holding the cache-entry - use current storage-policy
-    nsCacheStoragePolicy storagePolicy = DetermineStoragePolicy();
-    const char * clientID = GetCacheSessionNameForStoragePolicy(storagePolicy);
+    bool isPrivate = UsingPrivateBrowsing();
+    nsCacheStoragePolicy storagePolicy = DetermineStoragePolicy(isPrivate);
+    const char * clientID = GetCacheSessionNameForStoragePolicy(storagePolicy,
+                                                                isPrivate);
 
     LOG(("DoInvalidateCacheEntry [channel=%p session=%s policy=%d key=%s]",
          this, clientID, PRIntn(storagePolicy), key.get()));
@@ -5853,6 +5867,9 @@ nsHttpChannel::DoInvalidateCacheEntry(const nsCString &key)
                                  getter_AddRefs(session));
     }
     if (NS_SUCCEEDED(rv)) {
+        rv = session->SetIsPrivate(UsingPrivateBrowsing());
+    }
+    if (NS_SUCCEEDED(rv)) {
         rv = session->DoomEntry(key, nsnull);
     }
 
@@ -5861,10 +5878,12 @@ nsHttpChannel::DoInvalidateCacheEntry(const nsCString &key)
 }
 
 nsCacheStoragePolicy
-nsHttpChannel::DetermineStoragePolicy()
+nsHttpChannel::DetermineStoragePolicy(bool isPrivate)
 {
     nsCacheStoragePolicy policy = nsICache::STORE_ANYWHERE;
-    if (mLoadFlags & INHIBIT_PERSISTENT_CACHING)
+    if (isPrivate)
+        policy = nsICache::STORE_IN_MEMORY;
+    else if (mLoadFlags & INHIBIT_PERSISTENT_CACHING)
         policy = nsICache::STORE_IN_MEMORY;
 
     return policy;
@@ -5895,6 +5914,7 @@ void
 nsHttpChannel::AsyncOnExamineCachedResponse()
 {
     gHttpHandler->OnExamineCachedResponse(this);
+
 }
 
 } } // namespace mozilla::net

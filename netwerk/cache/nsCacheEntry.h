@@ -116,7 +116,8 @@ public:
         eActiveMask          = 0x00002000,
         eInitializedMask     = 0x00004000,
         eValidMask           = 0x00008000,
-        eBindingMask         = 0x00010000
+        eBindingMask         = 0x00010000,
+        ePrivateMask         = 0x00020000
     };
     
     void MarkBinding()         { mFlags |=  eBindingMask; }
@@ -132,6 +133,8 @@ public:
     void MarkStreamData()      { mFlags |=  eStreamDataMask; }
     void MarkValid()           { mFlags |=  eValidMask; }
     void MarkInvalid()         { mFlags &= ~eValidMask; }
+    void MarkPrivate()         { mFlags |=  ePrivateMask; }
+    void MarkPublic()          { mFlags &= ~ePrivateMask; }
     //    void MarkAllowedInMemory() { mFlags |=  eAllowedInMemoryMask; }
     //    void MarkAllowedOnDisk()   { mFlags |=  eAllowedOnDiskMask; }
 
@@ -148,6 +151,7 @@ public:
                                         !(PR_CLIST_IS_EMPTY(&mRequestQ) &&
                                           PR_CLIST_IS_EMPTY(&mDescriptorQ)); }
     bool IsNotInUse()        { return !IsInUse(); }
+    bool IsPrivate()         { return (mFlags & ePrivateMask) != 0; }
 
 
     bool IsAllowedInMemory()
@@ -158,9 +162,9 @@ public:
 
     bool IsAllowedOnDisk()
     {
-        return (StoragePolicy() == nsICache::STORE_ANYWHERE) ||
+        return !IsPrivate() && ((StoragePolicy() == nsICache::STORE_ANYWHERE) ||
             (StoragePolicy() == nsICache::STORE_ON_DISK) ||
-            (StoragePolicy() == nsICache::STORE_ON_DISK_AS_FILE);
+            (StoragePolicy() == nsICache::STORE_ON_DISK_AS_FILE));
     }
 
     bool IsAllowedOffline()
