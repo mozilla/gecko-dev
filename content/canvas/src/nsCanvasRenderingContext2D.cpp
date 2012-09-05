@@ -4319,6 +4319,9 @@ nsCanvasRenderingContext2D::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
     // If we don't have anything to draw, don't bother.
     if (!mValid || !mSurface || mSurface->CairoStatus() || !mThebes ||
         !mSurfaceCreated) {
+        // No DidTransactionCallback will be received, so mark the context clean
+        // now so future invalidations will be dispatched.
+        MarkContextClean();
         return nullptr;
     }
 
@@ -4335,6 +4338,9 @@ nsCanvasRenderingContext2D::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
     nsRefPtr<CanvasLayer> canvasLayer = aManager->CreateCanvasLayer();
     if (!canvasLayer) {
         NS_WARNING("CreateCanvasLayer returned null!");
+        // No DidTransactionCallback will be received, so mark the context clean
+        // now so future invalidations will be dispatched.
+        MarkContextClean();
         return nullptr;
     }
     CanvasRenderingContext2DUserData *userData = nullptr;
