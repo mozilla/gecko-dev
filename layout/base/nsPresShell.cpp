@@ -1970,8 +1970,6 @@ PresShell::NotifyDestroyingFrame(nsIFrame* aFrame)
 {
   NS_TIME_FUNCTION_MIN(1.0);
 
-  mPresContext->ForgetUpdatePluginGeometryFrame(aFrame);
-
   if (!mIgnoreFrameDestruction) {
     mDocument->StyleImageLoader()->DropRequestsForFrame(aFrame);
 
@@ -3599,7 +3597,7 @@ PresShell::UnsuppressAndInvalidate()
 
     nsRootPresContext* rootPC = mPresContext->GetRootPresContext();
     if (rootPC) {
-      rootPC->RequestUpdatePluginGeometry(rootFrame);
+      rootPC->RequestUpdatePluginGeometry();
     }
   }
 
@@ -7138,14 +7136,6 @@ PresShell::Freeze()
     presContext->RefreshDriver()->Freeze();
   }
 
-  if (presContext) {
-    nsRootPresContext* rootPresContext = presContext->GetRootPresContext();
-    if (rootPresContext) {
-      rootPresContext->
-        RootForgetUpdatePluginGeometryFrameForPresContext(mPresContext);
-    }
-  }
-
   mFrozen = true;
   if (mDocument) {
     UpdateImageLockingState();
@@ -7497,7 +7487,7 @@ PresShell::DoReflow(nsIFrame* target, bool aInterruptible)
 
   nsRootPresContext* rootPC = mPresContext->GetRootPresContext();
   if (rootPC) {
-    rootPC->RequestUpdatePluginGeometry(target);
+    rootPC->RequestUpdatePluginGeometry();
   }
 
   return !interrupted;
