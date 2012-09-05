@@ -17,6 +17,7 @@
 #include "nsIEncodedChannel.h"
 #include "nsIResumableChannel.h"
 #include "nsIApplicationCacheChannel.h"
+#include "nsILoadContext.h"
 #include "nsEscape.h"
 #include "nsStreamListenerWrapper.h"
 

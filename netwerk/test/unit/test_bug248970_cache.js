@@ -10,6 +10,7 @@ const Cr = Components.results;
 const kDiskDevice = "disk";
 const kMemoryDevice = "memory";
 const kOfflineDevice = "offline";
+const kPrivate = "private";
 
 const kCacheA = "cache-A";
 const kCacheA2 = "cache-A2";
@@ -19,26 +20,6 @@ const kTestContent = "test content";
 
 // the name for our cache session
 const kPrivateBrowsing = "PrivateBrowsing";
-
-var _PBSvc;
-function get_privatebrowsing_service() {
-  if (_PBSvc)
-    return _PBSvc;
-
-  try {
-    _PBSvc = Cc["@mozilla.org/privatebrowsing;1"].
-             getService(Ci.nsIPrivateBrowsingService);
-    return _PBSvc;
-  } catch (e) {}
-
-  return null;
-}
-
-
-
-
-
-
 
 function check_devices_available(devices) {
   var cs = get_cache_service();
@@ -102,7 +83,8 @@ function make_input_stream_scriptable(input) {
 
 const entries = [
 // key       content       device          should exist after leaving PB
-  [kCacheA,  kTestContent, kMemoryDevice,  false],
+  [kCacheA,  kTestContent, kMemoryDevice,  true],
+  [kCacheA2, kTestContent, kPrivate,       false],
   [kCacheB,  kTestContent, kDiskDevice,    true],
   [kCacheC,  kTestContent, kOfflineDevice, true]
 ]
@@ -115,6 +97,7 @@ function get_storage_policy(device)
     case kOfflineDevice:
       return Ci.nsICache.STORE_OFFLINE;
     case kMemoryDevice:
+    case kPrivate:
       return Ci.nsICache.STORE_IN_MEMORY;
   }
   do_throw("unknown device");
@@ -138,6 +121,9 @@ function store_entries(cb)
   var session = cache.createSession(kPrivateBrowsing,
                                     get_storage_policy(entries[store_idx][2]),
                                     Ci.nsICache.STREAM_BASED);
+  if (entries[store_idx][2] == kPrivate) {
+    session.isPrivate = true;
+  }
 
   session.asyncOpenCacheEntry(entries[store_idx][0],
                               Ci.nsICache.ACCESS_WRITE,
@@ -182,6 +168,9 @@ function check_entries(cb, pbExited)
   var session = cache.createSession(kPrivateBrowsing,
                                     get_storage_policy(entries[check_idx][2]),
                                     Ci.nsICache.STREAM_BASED);
+  if (entries[check_idx][2] == kPrivate) {
+    session.isPrivate = true;
+  }
 
   session.asyncOpenCacheEntry(entries[check_idx][0],
                               Ci.nsICache.ACCESS_READ,
@@ -228,33 +217,17 @@ function run_test2() {
 }
 
 function run_test3() {
-  var pb = get_privatebrowsing_service();
-  if (pb) { // Private Browsing might not be available
-    var prefBranch = Cc["@mozilla.org/preferences-service;1"].
-                     getService(Ci.nsIPrefBranch);
-    prefBranch.setBoolPref("browser.privatebrowsing.keep_current_session", true);
+  // Simulate all private browsing instances being closed
+  var obsvc = Cc["@mozilla.org/observer-service;1"].
+    getService(Ci.nsIObserverService);
+  obsvc.notifyObservers(null, "last-pb-context-exited", null);
 
-    // Enter private browsing mode
-    pb.privateBrowsingEnabled = true;
+  // Make sure all three cache devices are still available
+  check_devices_available([kMemoryDevice, kDiskDevice, kOfflineDevice]);
 
-    // Make sure only the memory device is available
-    check_devices_available([kMemoryDevice]);
+  // Make sure the memory device is not empty
+  do_check_eq(get_device_entry_count(kMemoryDevice), 1);
 
-    // Make sure the memory device is empty
-    do_check_eq(get_device_entry_count(kMemoryDevice), 0);
-
-    // Exit private browsing mode
-    pb.privateBrowsingEnabled = false;
-
-    // Make sure all three cache devices are available after leaving the private mode
-    check_devices_available([kMemoryDevice, kDiskDevice, kOfflineDevice]);
-
-    // Make sure the memory device is empty
-    do_check_eq(get_device_entry_count(kMemoryDevice), 0);
-
-    // Check if cache-A is gone, and cache-B and cache-C are still available
-    check_entries(do_test_finished, true);
-    
-    prefBranch.clearUserPref("browser.privatebrowsing.keep_current_session");
-  }
+  // Check if cache-A is gone, and cache-B and cache-C are still available
+  check_entries(do_test_finished, true);
 }

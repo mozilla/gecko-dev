@@ -168,8 +168,6 @@ public:
 
     static void      SetCacheCompressionLevel(int32_t level);
 
-    static void      OnEnterExitPrivateBrowsing();
-
     // Starts smart cache size computation if disk device is available
     static nsresult  SetDiskSmartSize();
 
@@ -179,7 +177,10 @@ public:
     static void      AssertOwnsLock()
     { gService->mLock.AssertCurrentThreadOwns(); }
 
+    static void      LeavePrivateBrowsing();
     bool             IsDoomListEmpty();
+
+    typedef bool (*DoomCheckFn)(nsCacheEntry* entry);
 
 private:
     friend class nsCacheServiceAutoLock;
@@ -248,7 +249,7 @@ private:
     void             ClearPendingRequests(nsCacheEntry * entry);
     void             ClearDoomList(void);
     void             ClearActiveEntries(void);
-    void             DoomActiveEntries(void);
+    void             DoomActiveEntries(DoomCheckFn check);
 
     static
     PLDHashOperator  DeactivateAndClearEntry(PLDHashTable *    table,

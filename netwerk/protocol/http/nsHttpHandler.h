@@ -22,7 +22,6 @@
 #include "nsIIOService.h"
 #include "nsIObserver.h"
 #include "nsIObserverService.h"
-#include "nsIPrivateBrowsingService.h"
 #include "nsIStreamConverterService.h"
 #include "nsICacheSession.h"
 #include "nsICookieService.h"
@@ -162,9 +161,6 @@ public:
     {
         return mConnMgr->SpeculativeConnect(ci, callbacks, target);
     }
-
-    // for anything that wants to know if we're in private browsing mode.
-    bool InPrivateBrowsingMode();
 
     //
     // The HTTP handler caches pointers to specific XPCOM services, and
@@ -313,13 +309,6 @@ private:
 
     bool mPipeliningOverSSL;
     bool mEnforceAssocReq;
-
-    // cached value of whether or not the browser is in private browsing mode.
-    enum {
-        PRIVATE_BROWSING_OFF = false,
-        PRIVATE_BROWSING_ON = true,
-        PRIVATE_BROWSING_UNKNOWN = 2
-    } mInPrivateBrowsingMode;
 
     nsCString mAccept;
     nsCString mAcceptLanguages;

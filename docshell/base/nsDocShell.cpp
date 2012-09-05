@@ -9077,6 +9077,10 @@ nsDocShell::GetInheritedPrincipal(bool aConsiderCurrentDocument)
 bool
 nsDocShell::ShouldCheckAppCache(nsIURI *aURI)
 {
+    if (mInPrivateBrowsing) {
+        return false;
+    }
+
     nsCOMPtr<nsIOfflineCacheUpdateService> offlineService =
         do_GetService(NS_OFFLINECACHEUPDATESERVICE_CONTRACTID);
     if (!offlineService) {

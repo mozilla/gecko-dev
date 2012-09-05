@@ -33,7 +33,7 @@ nsHttpConnectionInfo::SetOriginServer(const nsACString &host, int32_t port)
         keyPort = Port();
     }
 
-    mHashKey.AssignLiteral("...");
+    mHashKey.AssignLiteral("....");
     mHashKey.Append(keyHost);
     mHashKey.Append(':');
     mHashKey.AppendInt(keyPort);
@@ -58,8 +58,9 @@ nsHttpConnectionInfo::Clone() const
 {
     nsHttpConnectionInfo* clone = new nsHttpConnectionInfo(mHost, mPort, mProxyInfo, mUsingSSL);
 
-    // Make sure the anonymous flag is transferred!
-    clone->SetAnonymous(mHashKey.CharAt(2) == 'A');
+    // Make sure the anonymous and private flags are transferred!
+    clone->SetAnonymous(GetAnonymous());
+    clone->SetPrivate(GetPrivate());
 
     return clone;
 }
