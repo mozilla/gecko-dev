@@ -307,7 +307,11 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary **outLibrary)
     printf("LoadPlugin() %s returned %lx\n", 
            libSpec.value.pathname, (unsigned long)pLibrary);
 #endif
-    
+
+    if (!pLibrary) {
+        return NS_ERROR_FAILURE;
+    }
+
     return NS_OK;
 }
 
