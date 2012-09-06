@@ -965,7 +965,7 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
     mGotData = true;
 
     mimetype_closure closure;
-    nsAutoCString newType;
+    nsCAutoString newType;
     closure.request = this;
     closure.newType = &newType;
 
@@ -1043,7 +1043,7 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
       }
 
       /* set our content disposition as a property */
-      nsAutoCString disposition;
+      nsCAutoString disposition;
       if (chan) {
         chan->GetContentDispositionHeader(disposition);
       }
@@ -1089,7 +1089,7 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
         imageFlags |= Image::INIT_FLAG_MULTIPART;
 
       // Get our URI string
-      nsAutoCString uriString;
+      nsCAutoString uriString;
       rv = mURI->GetSpec(uriString);
       if (NS_FAILED(rv))
         uriString.Assign("<unknown image URI>");
@@ -1108,7 +1108,7 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
         /* Use content-length as a size hint for http channels. */
         nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(aRequest));
         if (httpChannel) {
-          nsAutoCString contentLength;
+          nsCAutoString contentLength;
           rv = httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("content-length"),
                                               contentLength);
           if (NS_SUCCEEDED(rv)) {
