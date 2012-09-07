@@ -846,7 +846,7 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
 #endif
     nsCOMPtr<nsPIDOMWindow2> newWindow2 = do_QueryInterface(newWindow); // mozilla16-only
     if (newWindow2) {
-      newWindow2->SetInitialPrincipalToSubject(newDocShellItem, aParent);
+      newWindow2->SetInitialPrincipalToSubject();
     }
   }
 

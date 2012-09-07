@@ -340,8 +340,7 @@ public:
 
   virtual NS_HIDDEN_(void) SetOpenerScriptPrincipal(nsIPrincipal* aPrincipal);
   // This lives on nsPIDOMWindow2 for mozilla16.
-  virtual NS_HIDDEN_(void) SetInitialPrincipalToSubject(nsIDocShellTreeItem* aItem,
-                                                        nsIDOMWindow* aParent);
+  virtual NS_HIDDEN_(void) SetInitialPrincipalToSubject();
   virtual NS_HIDDEN_(nsIPrincipal*) GetOpenerScriptPrincipal();
 
   virtual NS_HIDDEN_(PopupControlState) PushPopupControlState(PopupControlState state, bool aForce) const;
