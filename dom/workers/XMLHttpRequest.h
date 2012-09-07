@@ -74,6 +74,18 @@ public:
   Constructor(JSContext* aCx, JSObject* aGlobal,
               const Nullable<MozXMLHttpRequestParametersWorkers>& aParams,
               ErrorResult& aRv);
+
+  static XMLHttpRequest*
+  Constructor(JSContext* aCx, JSObject* aGlobal,
+              const nsAString& ignored, ErrorResult& aRv)
+  {
+    // Pretend like someone passed null, so we can pick up the default values
+    Nullable<MozXMLHttpRequestParametersWorkers> params;
+    params.SetNull();
+
+    return Constructor(aCx, aGlobal, params, aRv);
+  }
+
   void
   Unpin();
 

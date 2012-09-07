@@ -177,7 +177,7 @@ public:
     return GetOwner();
   }
 
-  // The WebIDL constructor.
+  // The WebIDL constructors.
   static already_AddRefed<nsXMLHttpRequest>
   Constructor(JSContext* aCx,
               nsISupports* aGlobal,
@@ -198,6 +198,19 @@ public:
       req->InitParameters(params.mozAnon, params.mozSystem);
     }
     return req.forget();
+  }
+
+  static already_AddRefed<nsXMLHttpRequest>
+  Constructor(JSContext* aCx,
+              nsISupports* aGlobal,
+              const nsAString& ignored,
+              ErrorResult& aRv)
+  {
+    // Pretend like someone passed null, so we can pick up the default values
+    mozilla::dom::Nullable<mozilla::dom::MozXMLHttpRequestParameters> params;
+    params.SetNull();
+
+    return Constructor(aCx, aGlobal, params, aRv);
   }
 
   void Construct(nsIPrincipal* aPrincipal,
