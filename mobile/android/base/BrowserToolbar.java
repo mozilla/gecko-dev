@@ -64,6 +64,7 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
     private TextView mTitle;
     private int mTitlePadding;
     private boolean mSiteSecurityVisible;
+    private boolean mAnimateSiteSecurity;
     private ImageButton mTabs;
     private ImageView mBack;
     private ImageView mForward;
@@ -110,6 +111,7 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
 
         sActionItems = new ArrayList<View>();
         Tabs.registerOnTabsChangedListener(this);
+        mAnimateSiteSecurity = true;
     }
 
     public void from(LinearLayout layout) {
@@ -337,11 +339,16 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
                 break;
             case RESTORED:
             case SELECTED:
+                // We should not animate the lock icon when switching or
+                // restoring tabs.
+                mAnimateSiteSecurity = false;
+                // fall through
             case LOCATION_CHANGE:
             case LOAD_ERROR:
                 if (Tabs.getInstance().isSelectedTab(tab)) {
                     refresh();
                 }
+                mAnimateSiteSecurity = true;
                 break;
             case CLOSED:
             case ADDED:
@@ -499,6 +506,11 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
             return;
 
         mSiteSecurityVisible = visible;
+
+        if (!mAnimateSiteSecurity) {
+            mSiteSecurity.setVisibility(visible ? View.VISIBLE : View.GONE);
+            return;
+        }
 
         mTitle.clearAnimation();
         mSiteSecurity.clearAnimation();
