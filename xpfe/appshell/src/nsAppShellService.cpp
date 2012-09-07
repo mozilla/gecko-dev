@@ -19,6 +19,7 @@
 #include "nsIWindowWatcher.h"
 #include "nsPIWindowWatcher.h"
 #include "nsIDOMWindow.h"
+#include "nsPIDOMWindow.h"
 #include "nsWebShellWindow.h"
 
 #include "nsIEnumerator.h"
@@ -450,6 +451,12 @@ nsAppShellService::GetApplicationProvidedHiddenWindow(bool* aAPHW)
 NS_IMETHODIMP
 nsAppShellService::RegisterTopLevelWindow(nsIXULWindow* aWindow)
 {
+  nsCOMPtr<nsIDocShell> docShell;
+  aWindow->GetDocShell(getter_AddRefs(docShell));
+  nsCOMPtr<nsPIDOMWindow> domWindow(do_GetInterface(docShell));
+  nsCOMPtr<nsPIDOMWindow2> domWindow2 = do_QueryInterface(domWindow);
+  domWindow2->SetInitialPrincipalToSubject();
+
   // tell the window mediator about the new window
   nsCOMPtr<nsIWindowMediator> mediator
     ( do_GetService(NS_WINDOWMEDIATOR_CONTRACTID) );
@@ -461,16 +468,8 @@ nsAppShellService::RegisterTopLevelWindow(nsIXULWindow* aWindow)
   // tell the window watcher about the new window
   nsCOMPtr<nsPIWindowWatcher> wwatcher ( do_GetService(NS_WINDOWWATCHER_CONTRACTID) );
   NS_ASSERTION(wwatcher, "No windowwatcher?");
-  if (wwatcher) {
-    nsCOMPtr<nsIDocShell> docShell;
-    aWindow->GetDocShell(getter_AddRefs(docShell));
-    NS_ASSERTION(docShell, "Window has no docshell");
-    if (docShell) {
-      nsCOMPtr<nsIDOMWindow> domWindow(do_GetInterface(docShell));
-      NS_ASSERTION(domWindow, "Couldn't get DOM window.");
-      if (domWindow)
-        wwatcher->AddWindow(domWindow, 0);
-    }
+  if (wwatcher && domWindow) {
+    wwatcher->AddWindow(domWindow, 0);
   }
 
   // an ongoing attempt to quit is stopped by a newly opened window
