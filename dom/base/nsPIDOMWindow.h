@@ -266,16 +266,10 @@ public:
     return win->mIsHandlingResizeEvent;
   }
 
-  // Tell this window who opened it.  This only has an effect if there is
-  // either no document currently in the window or if the document is the
-  // original document this window came with (an about:blank document either
-  // preloaded into it when it was created, or created by
-  // CreateAboutBlankContentViewer()).
-  virtual void SetOpenerScriptPrincipal(nsIPrincipal* aPrincipal) = 0;
-
-  // This function is a no-op and returns NULL. We're leaving it in for
+  // These functions are no-ops and return NULL/void. We're leaving it in for
   // mozilla16 to avoid the IID rev.
   virtual nsIPrincipal* GetOpenerScriptPrincipal() = 0;
+  virtual void SetOpenerScriptPrincipal(nsIPrincipal* aPrincipal) = 0;
 
   virtual PopupControlState PushPopupControlState(PopupControlState aState,
                                                   bool aForce) const = 0;
@@ -751,6 +745,8 @@ class nsPIDOMWindow2 : public nsISupports
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_PIDOMWINDOW2_IID)
+  // Set the window up with an about:blank document with the current subject
+  // principal.
   virtual void SetInitialPrincipalToSubject() = 0;
 };
 

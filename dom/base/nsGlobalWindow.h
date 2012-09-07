@@ -338,7 +338,7 @@ public:
   virtual NS_HIDDEN_(void) SetIsBackground(bool aIsBackground);
   virtual NS_HIDDEN_(void) SetChromeEventHandler(nsIDOMEventTarget* aChromeEventHandler);
 
-  virtual NS_HIDDEN_(void) SetOpenerScriptPrincipal(nsIPrincipal* aPrincipal);
+  virtual NS_HIDDEN_(void) SetOpenerScriptPrincipal(nsIPrincipal* aPrincipal) {}; // mozilla16 IID compat
   // This lives on nsPIDOMWindow2 for mozilla16.
   virtual NS_HIDDEN_(void) SetInitialPrincipalToSubject();
   virtual NS_HIDDEN_(nsIPrincipal*) GetOpenerScriptPrincipal() { return NULL; }; // mozilla16 IID compat
