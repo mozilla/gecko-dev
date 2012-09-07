@@ -256,15 +256,14 @@ class BaseShape : public js::gc::Cell
 
         EXTENSIBLE_PARENTS =    0x8,
         DELEGATE           =   0x10,
-        SYSTEM             =   0x20,
-        NOT_EXTENSIBLE     =   0x40,
-        INDEXED            =   0x80,
-        BOUND_FUNCTION     =  0x100,
-        VAROBJ             =  0x200,
-        WATCHED            =  0x400,
-        ITERATED_SINGLETON =  0x800,
-        NEW_TYPE_UNKNOWN   = 0x1000,
-        UNCACHEABLE_PROTO  = 0x2000,
+        NOT_EXTENSIBLE     =   0x20,
+        INDEXED            =   0x40,
+        BOUND_FUNCTION     =   0x80,
+        VAROBJ             =  0x100,
+        WATCHED            =  0x200,
+        ITERATED_SINGLETON =  0x400,
+        NEW_TYPE_UNKNOWN   =  0x800,
+        UNCACHEABLE_PROTO  = 0x1000,
 
         OBJECT_FLAG_MASK   = 0x3ff8
     };
