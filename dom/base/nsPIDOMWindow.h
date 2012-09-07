@@ -272,7 +272,9 @@ public:
   // preloaded into it when it was created, or created by
   // CreateAboutBlankContentViewer()).
   virtual void SetOpenerScriptPrincipal(nsIPrincipal* aPrincipal) = 0;
-  // Ask this window who opened it.
+
+  // This function is a no-op and returns NULL. We're leaving it in for
+  // mozilla16 to avoid the IID rev.
   virtual nsIPrincipal* GetOpenerScriptPrincipal() = 0;
 
   virtual PopupControlState PushPopupControlState(PopupControlState aState,
