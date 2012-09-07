@@ -22,6 +22,7 @@
 #define DOM_WINDOW_FROZEN_TOPIC "dom-window-frozen"
 #define DOM_WINDOW_THAWED_TOPIC "dom-window-thawed"
 
+class nsIDocShellTreeItem; // XXX - Temporary! Goes away in the next patch
 class nsIIdleObserver;
 class nsIPrincipal;
 
@@ -740,5 +741,19 @@ private:
 };
 
 #define nsAutoPopupStatePusher NS_AUTO_POPUP_STATE_PUSHER
+
+#define NS_PIDOMWINDOW2_IID \
+{ 0x9884e714, 0xc5b7, 0x49ec, \
+  { 0x96, 0xd9, 0xdd, 0xf1, 0x35, 0x30, 0xe1, 0xb0 } }
+
+class nsPIDOMWindow2 : public nsISupports
+{
+public:
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_PIDOMWINDOW2_IID)
+  virtual void SetInitialPrincipalToSubject(nsIDocShellTreeItem* aItem,
+                                            nsIDOMWindow* aParent) = 0;
+};
+
+NS_DEFINE_STATIC_IID_ACCESSOR(nsPIDOMWindow2, NS_PIDOMWINDOW2_IID)
 
 #endif // nsPIDOMWindow_h__

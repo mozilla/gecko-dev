@@ -265,7 +265,8 @@ class nsGlobalWindow : public nsPIDOMWindow,
                        public PRCListStr,
                        public nsIDOMWindowPerformance,
                        public nsITouchEventReceiver,
-                       public nsIInlineEventHandlers
+                       public nsIInlineEventHandlers,
+                       public nsPIDOMWindow2 // mozilla16-only
 {
 public:
   friend class nsDOMMozURLProperty;
@@ -338,6 +339,9 @@ public:
   virtual NS_HIDDEN_(void) SetChromeEventHandler(nsIDOMEventTarget* aChromeEventHandler);
 
   virtual NS_HIDDEN_(void) SetOpenerScriptPrincipal(nsIPrincipal* aPrincipal);
+  // This lives on nsPIDOMWindow2 for mozilla16.
+  virtual NS_HIDDEN_(void) SetInitialPrincipalToSubject(nsIDocShellTreeItem* aItem,
+                                                        nsIDOMWindow* aParent);
   virtual NS_HIDDEN_(nsIPrincipal*) GetOpenerScriptPrincipal();
 
   virtual NS_HIDDEN_(PopupControlState) PushPopupControlState(PopupControlState state, bool aForce) const;

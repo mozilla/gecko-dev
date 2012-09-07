@@ -1200,6 +1200,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsGlobalWindow)
   NS_INTERFACE_MAP_ENTRY(nsIScriptObjectPrincipal)
   NS_INTERFACE_MAP_ENTRY(nsIDOMEventTarget)
   NS_INTERFACE_MAP_ENTRY(nsPIDOMWindow)
+  NS_INTERFACE_MAP_ENTRY(nsPIDOMWindow2)
   NS_INTERFACE_MAP_ENTRY(nsIDOMStorageIndexedDB)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
   NS_INTERFACE_MAP_ENTRY(nsIInterfaceRequestor)
@@ -1543,6 +1544,39 @@ nsGlobalWindow::SetOpenerScriptPrincipal(nsIPrincipal* aPrincipal)
       shell->InitialReflow(r.width, r.height);
     }
   }
+}
+
+void
+nsGlobalWindow::SetInitialPrincipalToSubject(nsIDocShellTreeItem* aItem,
+                                             nsIDOMWindow* aParent)
+{
+  nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
+  MOZ_ASSERT(ssm);
+
+  nsresult rv;
+  nsCOMPtr<nsIPrincipal> newWindowPrincipal;
+  rv = ssm->GetSubjectPrincipal(getter_AddRefs(newWindowPrincipal));
+  MOZ_ASSERT(NS_SUCCEEDED(rv));
+
+  if (!newWindowPrincipal && aParent) {
+    nsCOMPtr<nsIScriptObjectPrincipal> sop(do_QueryInterface(aParent));
+    if (sop) {
+      newWindowPrincipal = sop->GetPrincipal();
+    }
+  }
+
+  bool isSystem;
+  rv = ssm->IsSystemPrincipal(newWindowPrincipal, &isSystem);
+  if (NS_FAILED(rv) || isSystem) {
+    // Don't pass this principal along to content windows
+    PRInt32 itemType;
+    rv = aItem->GetItemType(&itemType);
+    if (NS_FAILED(rv) || itemType != nsIDocShellTreeItem::typeChrome) {
+      newWindowPrincipal = nsnull;
+    }
+  }
+
+  SetOpenerScriptPrincipal(newWindowPrincipal);
 }
 
 nsIPrincipal*
