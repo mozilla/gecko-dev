@@ -7,7 +7,6 @@ package org.mozilla.gecko;
 
 import android.content.Context;
 import android.graphics.drawable.Drawable;
-import android.net.Uri;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -189,12 +188,6 @@ public class AwesomeBarTabs extends TabHost {
                 (InputMethodManager) mContext.getSystemService(Context.INPUT_METHOD_SERVICE);
 
         return imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
-    }
-
-    private String getReaderForUrl(String url) {
-        // FIXME: still need to define the final way to open items from
-        // reading list. For now, we're using an about:reader page.
-        return "about:reader?url=" + Uri.encode(url);
     }
 
     public void setOnUrlOpenListener(OnUrlOpenListener listener) {
