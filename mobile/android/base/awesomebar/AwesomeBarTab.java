@@ -11,7 +11,6 @@ import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.net.Uri;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -90,12 +89,6 @@ abstract public class AwesomeBarTab {
             mResources = mContext.getResources();
         }
         return mResources;
-    }
-
-    protected String getReaderForUrl(String url) {
-        // FIXME: still need to define the final way to open items from
-        // reading list. For now, we're using an about:reader page.
-        return "about:reader?url=" + Uri.encode(url) + "&readingList=1";
     }
 
     protected void updateFavicon(ImageView faviconView, Cursor cursor) {
