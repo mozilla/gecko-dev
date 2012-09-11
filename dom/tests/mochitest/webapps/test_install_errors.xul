@@ -27,7 +27,8 @@ function go() {
 }
 
 steps = [no_args, parse_error, invalid_manifest, permission_denied, invalid_content,
-         mgmt_api_errors, mgmt_api_add_listener, uninstall_apps, tearDown];
+         install_package_not_implemented, mgmt_api_errors, mgmt_api_add_listener,
+         uninstall_apps, tearDown];
 
 function no_args(next)  {
   debug("in " + arguments.callee.name);
@@ -63,6 +64,12 @@ function invalid_content(next) {
           [{ name: "== \"INVALID_MANIFEST\"" }], "error", todo, next);
 }
 
+function install_package_not_implemented(next) {
+  ok(!("installPackage" in navigator.mozApps),
+     "installPackage not in navigator.mozApps");
+  next();
+}
+
 function mgmt_api_errors(next) {
   debug("in " + arguments.callee.name);
   onIframeLoad("no_delegated_install", ok, next);
@@ -87,4 +94,3 @@ function uninstall_apps(next) {
 </script> 
 
 </window>
-
