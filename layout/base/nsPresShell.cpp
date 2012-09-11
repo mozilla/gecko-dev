@@ -3996,6 +3996,9 @@ PresShell::DocumentStatesChanged(nsIDocument* aDocument,
     nsIFrame* root = mFrameConstructor->GetRootFrame();
     if (root) {
       root->InvalidateFrameSubtree();
+      if (root->HasView()) {
+        root->GetView()->SetForcedRepaint(true);
+      }
     }
   }
 }
