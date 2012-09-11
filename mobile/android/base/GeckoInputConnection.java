@@ -39,6 +39,7 @@ import android.view.inputmethod.ExtractedTextRequest;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 
+import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -88,6 +89,7 @@ class GeckoInputConnection
     private static String mIMETypeHint = "";
     private static String mIMEModeHint = "";
     private static String mIMEActionHint = "";
+    private static Boolean sIsPreJellyBeanAsusTransformer;
 
     private String mCurrentInputMethod;
 
@@ -890,6 +892,9 @@ class GeckoInputConnection
     }
 
     public boolean onKeyPreIme(int keyCode, KeyEvent event) {
+        if (hasBuggyHardwareKeyboardLayout())
+            return false;
+
         switch (event.getAction()) {
             case KeyEvent.ACTION_DOWN:
                 return processKeyDown(keyCode, event);
@@ -1198,6 +1203,18 @@ class GeckoInputConnection
     private static String prettyPrintString(CharSequence s) {
         // Quote string and replace newlines with CR arrows.
         return "\"" + s.toString().replace('\n', UNICODE_CRARR) + "\"";
+    }
+
+    private static boolean hasBuggyHardwareKeyboardLayout() {
+        // Asus Transformers generate en-US keycodes for HKB keys, regardless of system locale or
+        // keyboard layout. This bug is reportedly fixed in JB. See bug 669361 and bug 712018.
+        if (sIsPreJellyBeanAsusTransformer == null) {
+            sIsPreJellyBeanAsusTransformer = Build.VERSION.SDK_INT < 16 &&
+                                             "asus".equals(Build.BRAND) &&
+                                             "EeePad".equals(Build.BOARD);
+        }
+        // The locale may change while Firefox is running, but the device and OS should not. :)
+        return sIsPreJellyBeanAsusTransformer && !Locale.getDefault().equals(Locale.US);
     }
 
     private static final class Span {
