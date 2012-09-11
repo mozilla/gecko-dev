@@ -26,11 +26,38 @@ namespace mozilla {
 namespace layers {
 
 static Thread* sCompositorThread = nsnull;
+// manual reference count of the compositor thread.
+static int sCompositorThreadRefCount = 0;
+static MessageLoop* sMainLoop = nsnull;
+
+static void DeferredDeleteCompositorParent(CompositorParent* aNowReadyToDie)
+{
+  aNowReadyToDie->Release();
+}
+
+static void DeleteCompositorThread()
+{
+  if (NS_IsMainThread()) {
+    delete sCompositorThread;  
+    sCompositorThread = nsnull;
+  } else {
+    sMainLoop->PostTask(FROM_HERE, NewRunnableFunction(&DeleteCompositorThread));
+  }
+}
+
+static void ReleaseCompositorThread()
+{
+  if(--sCompositorThreadRefCount == 0) {
+    DeleteCompositorThread();
+  }
+}
+
 
 void CompositorParent::StartUp()
 {
   CreateCompositorMap();
   CreateThread();
+  sMainLoop = MessageLoop::current();
 }
 
 void CompositorParent::ShutDown()
@@ -45,6 +72,7 @@ bool CompositorParent::CreateThread()
   if (sCompositorThread) {
     return true;
   }
+  sCompositorThreadRefCount = 1;
   sCompositorThread = new Thread("Compositor");
   if (!sCompositorThread->Start()) {
     delete sCompositorThread;
@@ -57,10 +85,7 @@ bool CompositorParent::CreateThread()
 void CompositorParent::DestroyThread()
 {
   NS_ASSERTION(NS_IsMainThread(), "Should be on the main Thread!");
-  if (sCompositorThread) {
-    delete sCompositorThread;
-    sCompositorThread = nsnull;
-  }
+  ReleaseCompositorThread();
 }
 
 MessageLoop* CompositorParent::CompositorLoop()
@@ -92,6 +117,7 @@ CompositorParent::CompositorParent(nsIWidget* aWidget,
   // this task has been processed.
   CompositorLoop()->PostTask(FROM_HERE, NewRunnableFunction(&AddCompositor, 
                                                           this, &mCompositorID));
+  ++sCompositorThreadRefCount;
 }
 
 PlatformThreadId
@@ -103,6 +129,7 @@ CompositorParent::CompositorThreadID()
 CompositorParent::~CompositorParent()
 {
   MOZ_COUNT_DTOR(CompositorParent);
+  ReleaseCompositorThread();
 }
 
 void
@@ -131,6 +158,15 @@ bool
 CompositorParent::RecvStop()
 {
   Destroy();
+  // There are chances that the ref count reaches zero on the main thread shortly
+  // after this function returns while some ipdl code still needs to run on 
+  // this thread.
+  // We must keep the compositor parent alive untill the code handling message 
+  // reception is finished on this thread.
+  this->AddRef(); // Corresponds to DeferredDeleteCompositorParent's Release
+  CompositorLoop()->PostTask(FROM_HERE, 
+                           NewRunnableFunction(&DeferredDeleteCompositorParent,
+                                               this));
   return true;
 }
 
