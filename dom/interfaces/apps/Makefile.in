@@ -16,6 +16,7 @@ GRE_MODULE     = 1
 
 XPIDLSRCS =                               \
             nsIDOMApplicationRegistry.idl \
+            nsIDOMApplicationRegistry2.idl \
             nsIAppsService.idl \
             $(NULL)
 

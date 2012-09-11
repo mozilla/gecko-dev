@@ -83,7 +83,7 @@ interface mozIDOMApplicationMgmt : nsISupports
   attribute nsIDOMEventListener onuninstall;
 };
 
-[scriptable, uuid(6e3d4cf8-ad45-4a8d-8f94-4527ec68673c)]
+[scriptable, uuid(dd9a044c-1073-4d2b-a17d-c9b5834b3420)]
 interface mozIDOMApplicationRegistry : nsISupports
 {
   /**
@@ -111,16 +111,6 @@ interface mozIDOMApplicationRegistry : nsISupports
    * are not launchable (e.g. by not being natively installed), or null.
    */
   nsIDOMDOMRequest getNotInstalled();
-
-  /**
-   * Install a packaged web app.
-   *
-   * @param packageUrl : the URL of the webapps manifest.
-   * @param parameters : A structure with optional information.
-   *                     { receipts: ... } will be used to specify the payment receipts for this installation.
-   * @returns          : A DOMRequest object, returning the app object in |result| if install succeeds.
-   */
-  nsIDOMDOMRequest installPackage(in DOMString packageUrl, [optional] in jsval parameters);
 
   readonly attribute mozIDOMApplicationMgmt mgmt;
 };
