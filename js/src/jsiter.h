@@ -150,6 +150,9 @@ UnwindIteratorForException(JSContext *cx, JSObject *obj);
 void
 UnwindIteratorForUncatchableException(JSContext *cx, JSObject *obj);
 
+JSBool
+IteratorConstructor(JSContext *cx, unsigned argc, Value *vp);
+
 }
 
 extern bool
