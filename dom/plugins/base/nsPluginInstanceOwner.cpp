@@ -184,7 +184,7 @@ nsPluginInstanceOwner::GetImageContainer()
   SharedTextureImage::Data data;
   data.mHandle = mInstance->CreateSharedHandle();
   data.mShareType = mozilla::gl::TextureImage::ThreadShared;
-  data.mInverted = mInstance->Inverted();
+  data.mInverted = AndroidBridge::Bridge()->IsHoneycomb() ? true : mInstance->Inverted();
 
   gfxRect r = GetPluginRect();
   data.mSize = gfxIntSize(r.width, r.height);
