@@ -14,7 +14,6 @@ import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -649,12 +648,6 @@ public class AwesomeBar extends GeckoActivity {
             }
         }
         return true;
-    }
-
-    public static String getReaderForUrl(String url) {
-        // FIXME: still need to define the final way to open items from
-        // reading list. For now, we're using an about:reader page.
-        return "about:reader?url=" + Uri.encode(url) + "&readingList=1";
     }
 
     private static boolean hasCompositionString(Editable content) {
