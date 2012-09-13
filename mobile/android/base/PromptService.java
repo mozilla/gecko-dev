@@ -180,7 +180,8 @@ public class PromptService implements OnClickListener, OnCancelListener, OnItemC
 
     // GeckoEventListener implementation
     public void handleMessage(String event, final JSONObject message) {
-        GeckoAppShell.getHandler().post(new Runnable() {
+        // The dialog must be created on the UI thread.
+        GeckoAppShell.getMainHandler().post(new Runnable() {
             public void run() {
                 processMessage(message);
             }
@@ -267,14 +268,9 @@ public class PromptService implements OnClickListener, OnCancelListener, OnItemC
             builder.setNegativeButton(aButtons[2].label, this);
         }
 
-        // The AlertDialog must be created on the UI thread, not the GeckoBackgroundThread.
-        GeckoAppShell.getMainHandler().post(new Runnable() {
-            public void run() {
-                mDialog = builder.create();
-                mDialog.setOnCancelListener(PromptService.this);
-                mDialog.show();
-            }
-        });
+        mDialog = builder.create();
+        mDialog.setOnCancelListener(PromptService.this);
+        mDialog.show();
     }
 
     public void onClick(DialogInterface aDialog, int aWhich) {
