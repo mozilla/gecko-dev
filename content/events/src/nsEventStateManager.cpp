@@ -390,9 +390,11 @@ OutOfTime(PRUint32 aBaseTime, PRUint32 aThreshold)
 }
 
 static bool
-CanScrollInRange(nscoord aMin, nscoord aValue, nscoord aMax, PRInt32 aDirection)
+CanScrollInRange(nscoord aMin, nscoord aValue, nscoord aMax,
+                 PRInt32 aDirection, nscoord aOneDevPixel)
 {
-  return aDirection > 0 ? aValue < aMax : aMin < aValue;
+  return (aDirection > 0 ? aValue < aMax : aMin < aValue) &&
+         (aMax - aMin >= aOneDevPixel);
 }
 
 static bool
@@ -404,9 +406,14 @@ CanScrollOn(nsIScrollableFrame* aScrollFrame, PRInt32 aNumLines,
   nsPoint scrollPt = aScrollFrame->GetScrollPosition();
   nsRect scrollRange = aScrollFrame->GetScrollRange();
 
+  nscoord oneDevPixel =
+    aScrollFrame->GetScrolledFrame()->PresContext()->AppUnitsPerDevPixel();
+
   return aScrollHorizontal
-    ? CanScrollInRange(scrollRange.x, scrollPt.x, scrollRange.XMost(), aNumLines)
-    : CanScrollInRange(scrollRange.y, scrollPt.y, scrollRange.YMost(), aNumLines);
+    ? CanScrollInRange(scrollRange.x, scrollPt.x, scrollRange.XMost(),
+                       aNumLines, oneDevPixel)
+    : CanScrollInRange(scrollRange.y, scrollPt.y, scrollRange.YMost(),
+                       aNumLines, oneDevPixel);
 }
 
 void
