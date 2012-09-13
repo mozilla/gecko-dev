@@ -229,32 +229,35 @@ function run_test2() {
 
 function run_test3() {
   var pb = get_privatebrowsing_service();
-  if (pb) { // Private Browsing might not be available
-    var prefBranch = Cc["@mozilla.org/preferences-service;1"].
-                     getService(Ci.nsIPrefBranch);
-    prefBranch.setBoolPref("browser.privatebrowsing.keep_current_session", true);
-
-    // Enter private browsing mode
-    pb.privateBrowsingEnabled = true;
-
-    // Make sure only the memory device is available
-    check_devices_available([kMemoryDevice]);
-
-    // Make sure the memory device is empty
-    do_check_eq(get_device_entry_count(kMemoryDevice), 0);
-
-    // Exit private browsing mode
-    pb.privateBrowsingEnabled = false;
-
-    // Make sure all three cache devices are available after leaving the private mode
-    check_devices_available([kMemoryDevice, kDiskDevice, kOfflineDevice]);
-
-    // Make sure the memory device is empty
-    do_check_eq(get_device_entry_count(kMemoryDevice), 0);
-
-    // Check if cache-A is gone, and cache-B and cache-C are still available
-    check_entries(do_test_finished, true);
-    
-    prefBranch.clearUserPref("browser.privatebrowsing.keep_current_session");
+  if (!pb) { // Private Browsing might not be available
+    do_test_finished();
+    return;
   }
+
+  var prefBranch = Cc["@mozilla.org/preferences-service;1"].
+                   getService(Ci.nsIPrefBranch);
+  prefBranch.setBoolPref("browser.privatebrowsing.keep_current_session", true);
+
+  // Enter private browsing mode
+  pb.privateBrowsingEnabled = true;
+
+  // Make sure only the memory device is available
+  check_devices_available([kMemoryDevice]);
+
+  // Make sure the memory device is empty
+  do_check_eq(get_device_entry_count(kMemoryDevice), 0);
+
+  // Exit private browsing mode
+  pb.privateBrowsingEnabled = false;
+
+  // Make sure all three cache devices are available after leaving the private mode
+  check_devices_available([kMemoryDevice, kDiskDevice, kOfflineDevice]);
+
+  // Make sure the memory device is empty
+  do_check_eq(get_device_entry_count(kMemoryDevice), 0);
+
+  // Check if cache-A is gone, and cache-B and cache-C are still available
+  check_entries(do_test_finished, true);
+    
+  prefBranch.clearUserPref("browser.privatebrowsing.keep_current_session");
 }
