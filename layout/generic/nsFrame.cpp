@@ -1942,6 +1942,13 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   return rv;
 }
 
+static bool
+IsRootScrollFrameActive(nsIPresShell* aPresShell)
+{
+  nsIScrollableFrame* sf = aPresShell->GetRootScrollFrameAsScrollable();
+  return sf && sf->IsScrollingActive();
+}
+
 nsresult
 nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
                                    nsIFrame*               aChild,
@@ -2076,13 +2083,16 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   // logic behind this is that fixed position items are only useful to
   // perform asynchronous zooming, and the presence of a display-port implies
   // that async zooming may be performed.
+  // Don't build an nsDisplayFixedPosition if our root scroll frame is not
+  // active, that's pointless and the extra layer(s) created may be wasteful.
   nsIFrame* rootScrollFrame;
   nsIContent* rootContent;
   bool buildFixedPositionItem = disp->mPosition == NS_STYLE_POSITION_FIXED &&
     !child->GetParent()->GetParent() && !aBuilder->IsInFixedPosition() &&
 	(rootScrollFrame = PresContext()->PresShell()->GetRootScrollFrame()) &&
     (rootContent = rootScrollFrame->GetContent()) &&
-    (nsLayoutUtils::GetDisplayPort(rootContent, nsnull));
+    (nsLayoutUtils::GetDisplayPort(rootContent, nsnull)) &&
+    IsRootScrollFrameActive(PresContext()->PresShell());
 
   nsDisplayListBuilder::AutoBuildingDisplayList
     buildingForChild(aBuilder, child, pseudoStackingContext, buildFixedPositionItem);
