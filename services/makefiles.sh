@@ -13,6 +13,7 @@ add_makefiles "
   services/notifications/Makefile
   services/sync/Makefile
   services/sync/locales/Makefile
+  services/captivedetect/Makefile
 "
 
 if [ "$ENABLE_TESTS" ]; then
