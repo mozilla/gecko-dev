@@ -2848,7 +2848,6 @@ JSFunctionSpec _typedArray::jsfuncs[] = {                                      \
 #else
 # define IMPL_TYPED_ARRAY_STATICS(_typedArray)                                 \
 JSFunctionSpec _typedArray::jsfuncs[] = {                                      \
-    JS_FN("iterator", JS_ArrayIterator, 0, 0),                                 \
     JS_FN("subarray", _typedArray::fun_subarray, 2, JSFUN_GENERIC_NATIVE),     \
     JS_FN("set", _typedArray::fun_set, 2, JSFUN_GENERIC_NATIVE),               \
     JS_FS_END                                                                  \
