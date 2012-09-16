@@ -37,8 +37,6 @@
 
 #include "vm/MethodGuard-inl.h"
 
-#define ENABLE_TYPEDARRAY_MOVE
-
 using namespace mozilla;
 using namespace js;
 using namespace js::gc;
