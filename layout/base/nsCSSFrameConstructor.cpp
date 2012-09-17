@@ -5688,6 +5688,9 @@ AdjustAppendParentForAfterContent(nsPresContext* aPresContext,
   if (nsLayoutUtils::HasPseudoStyle(aContainer, parentStyle,
                                     nsCSSPseudoElements::ePseudo_after,
                                     aPresContext)) {
+    // Ensure that the :after frame is on the principal child list.
+    aParentFrame->DrainSelfOverflowList();
+
     nsIFrame* afterFrame = nsLayoutUtils::GetAfterFrame(aParentFrame);
     if (afterFrame) {
       *aAfterFrame = afterFrame;
@@ -5730,8 +5733,13 @@ FindAppendPrevSibling(nsIFrame* aParentFrame, nsIFrame* aAfterFrame)
 {
   if (aAfterFrame) {
     NS_ASSERTION(aAfterFrame->GetParent() == aParentFrame, "Wrong parent");
+    NS_ASSERTION(aAfterFrame->GetPrevSibling() ||
+                 aParentFrame->GetFirstPrincipalChild() == aAfterFrame,
+                 ":after frame must be on the principal child list here");
     return aAfterFrame->GetPrevSibling();
   }
+
+  aParentFrame->DrainSelfOverflowList();
 
   return aParentFrame->GetLastChild(kPrincipalList);
 }
