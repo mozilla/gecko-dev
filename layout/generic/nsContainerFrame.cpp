@@ -1499,14 +1499,20 @@ nsContainerFrame::MoveOverflowToChildList(nsPresContext* aPresContext)
     }
   }
 
-  // It's also possible that we have an overflow list for ourselves
+  // It's also possible that we have an overflow list for ourselves.
+  return DrainSelfOverflowList() || result;
+}
+
+bool
+nsContainerFrame::DrainSelfOverflowList()
+{
   nsAutoPtr<nsFrameList> overflowFrames(StealOverflowFrames());
   if (overflowFrames) {
     NS_ASSERTION(mFrames.NotEmpty(), "overflow list w/o frames");
     mFrames.AppendFrames(nsnull, *overflowFrames);
-    result = true;
+    return true;
   }
-  return result;
+  return false;
 }
 
 nsOverflowContinuationTracker::nsOverflowContinuationTracker(nsPresContext*    aPresContext,
