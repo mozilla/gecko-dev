@@ -460,10 +460,18 @@ public:
     mActiveScrolledRootPosition(0, 0) {}
 
   /**
+   * Record the number of clips in the Thebes layer's mask layer.
+   * Should not be reset when the layer is recycled since it is used to track
+   * changes in the use of mask layers.
+   */
+  uint32_t mMaskClipCount;
+
+  /**
    * A color that should be painted over the bounds of the layer's visible
    * region before any other content is painted.
    */
   nscolor mForcedBackgroundColor;
+
   /**
    * The resolution scale used.
    */
@@ -1542,6 +1550,10 @@ ContainerState::FindThebesLayerFor(nsDisplayItem* aItem,
     thebesLayerData = mThebesLayerDataStack[lowestUsableLayerWithScrolledRoot];
     layer = thebesLayerData->mLayer;
   }
+
+  // check to see if the new item has rounded rect clips in common with
+  // other items in the layer
+  thebesLayerData->UpdateCommonClipCount(aClip);
 
   thebesLayerData->Accumulate(this, aItem, aVisibleRect, aDrawRect, aClip);
 
@@ -2910,7 +2922,7 @@ FrameLayerBuilder::Clip::RemoveRoundedCorners()
 }
 
 gfxRect
-CalculateBounds(nsTArray<FrameLayerBuilder::Clip::RoundedRect> aRects, PRInt32 A2D)
+CalculateBounds(const nsTArray<FrameLayerBuilder::Clip::RoundedRect>& aRects, PRInt32 A2D)
 {
   nsRect bounds = aRects[0].mRect;
   for (PRUint32 i = 1; i < aRects.Length(); ++i) {
@@ -2919,16 +2931,36 @@ CalculateBounds(nsTArray<FrameLayerBuilder::Clip::RoundedRect> aRects, PRInt32 A
  
   return nsLayoutUtils::RectToGfxRect(bounds, A2D);
 }
- 
+
+static void
+SetClipCount(ThebesDisplayItemLayerUserData* aThebesData,
+             PRUint32 aClipCount)
+{
+  if (aThebesData) {
+    aThebesData->mMaskClipCount = aClipCount;
+  }
+}
+
 void
 ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aClip,
                                PRUint32 aRoundedRectClipCount) 
 {
+  // if the number of clips we are going to mask has decreased, then aLayer might have
+  // cached graphics which assume the existence of a soon-to-be non-existent mask layer
+  // in that case, invalidate the whole layer.
+  ThebesDisplayItemLayerUserData* thebesData = GetThebesDisplayItemLayerUserData(aLayer);
+  if (thebesData &&
+      aRoundedRectClipCount < thebesData->mMaskClipCount) {
+    ThebesLayer* thebes = aLayer->AsThebesLayer();
+    thebes->InvalidateRegion(thebes->GetValidRegion().GetBounds());
+  }
+
   // don't build an unnecessary mask
   nsIntRect layerBounds = aLayer->GetVisibleRegion().GetBounds();
   if (aClip.mRoundedClipRects.IsEmpty() ||
-      aRoundedRectClipCount <= 0 ||
+      aRoundedRectClipCount == 0 ||
       layerBounds.IsEmpty()) {
+    SetClipCount(thebesData, 0);
     return;
   }
 
@@ -2946,6 +2978,7 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aCl
 
   if (*userData == newData) {
     aLayer->SetMaskLayer(maskLayer);
+    SetClipCount(thebesData, aRoundedRectClipCount);
     return;
   }
  
@@ -3000,6 +3033,7 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aCl
     // fail if we can't get the right surface
     if (!surface || surface->CairoStatus()) {
       NS_WARNING("Could not create surface for mask layer.");
+      SetClipCount(thebesData, 0);
       return;
     }
 
@@ -3035,6 +3069,7 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aCl
   userData->mImageKey = key;
 
   aLayer->SetMaskLayer(maskLayer);
+  SetClipCount(thebesData, aRoundedRectClipCount);
   return;
 }
 
