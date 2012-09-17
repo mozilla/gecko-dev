@@ -220,24 +220,6 @@ nsCSSOffsetState::ComputeWidthValue(nscoord aContainingBlockWidth,
                            outside, aCoord);
 }
 
-nscoord
-nsCSSOffsetState::ComputeHeightValue(nscoord aContainingBlockHeight,
-                                     PRUint8 aBoxSizing,
-                                     const nsStyleCoord& aCoord)
-{
-  nscoord inside = 0;
-  switch (aBoxSizing) {
-    case NS_STYLE_BOX_SIZING_BORDER:
-      inside = mComputedBorderPadding.TopBottom();
-      break;
-    case NS_STYLE_BOX_SIZING_PADDING:
-      inside = mComputedPadding.TopBottom();
-      break;
-  }
-  return nsLayoutUtils::ComputeHeightValue(aContainingBlockHeight, 
-                                           inside, aCoord);
-}
-
 void
 nsHTMLReflowState::SetComputedWidth(nscoord aComputedWidth)
 {
@@ -1977,9 +1959,8 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
       } else {
         NS_ASSERTION(heightUnit == mStylePosition->mHeight.GetUnit(),
                      "unexpected height unit change");
-        mComputedHeight = ComputeHeightValue(aContainingBlockHeight, 
-                                             mStylePosition->mBoxSizing,
-                                             mStylePosition->mHeight);
+        mComputedHeight = nsLayoutUtils::
+          ComputeHeightValue(aContainingBlockHeight, mStylePosition->mHeight);
       }
 
       // Doesn't apply to table elements
@@ -2492,9 +2473,8 @@ nsHTMLReflowState::ComputeMinMaxValues(nscoord aContainingBlockWidth,
        minHeight.IsCalcUnit())) {
     mComputedMinHeight = 0;
   } else {
-    mComputedMinHeight = ComputeHeightValue(aContainingBlockHeight, 
-                                            mStylePosition->mBoxSizing, 
-                                            minHeight);
+    mComputedMinHeight = nsLayoutUtils::
+      ComputeHeightValue(aContainingBlockHeight, minHeight);
   }
   const nsStyleCoord &maxHeight = mStylePosition->mMaxHeight;
   nsStyleUnit maxHeightUnit = maxHeight.GetUnit();
@@ -2512,9 +2492,8 @@ nsHTMLReflowState::ComputeMinMaxValues(nscoord aContainingBlockWidth,
          maxHeight.IsCalcUnit())) {
       mComputedMaxHeight = NS_UNCONSTRAINEDSIZE;
     } else {
-      mComputedMaxHeight = ComputeHeightValue(aContainingBlockHeight, 
-                                              mStylePosition->mBoxSizing,
-                                              maxHeight);
+      mComputedMaxHeight = nsLayoutUtils::
+        ComputeHeightValue(aContainingBlockHeight, maxHeight);
     }
   }
 
