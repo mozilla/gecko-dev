@@ -3858,7 +3858,9 @@ function logical_box_prop_get_computed(cs, property)
 function get_computed_value(cs, property)
 {
 	var info = gCSSProperties[property];
-	if ("subproperties" in info) {
+	if (info.type == CSS_TYPE_TRUE_SHORTHAND ||
+	    (info.type == CSS_TYPE_SHORTHAND_AND_LONGHAND &&
+	     property == "text-decoration")) {
 		var results = [];
 		for (var idx in info.subproperties) {
 			var subprop = info.subproperties[idx];
