@@ -94,6 +94,9 @@ MOZ_STATIC_ASSERT((CSS_PROPERTY_PARSE_PROPERTY_MASK &
 
 // NOTE: next free bit is (1<<15)
 
+// Is this property (which must be a shorthand) really an alias?
+#define CSS_PROPERTY_IS_ALIAS                     (1<<17)
+
 /**
  * Types of animatable values.
  */
