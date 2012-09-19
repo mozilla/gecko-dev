@@ -515,7 +515,8 @@ ContextStack::popFrameAfterOverflow()
 }
 
 inline JSScript *
-ContextStack::currentScript(jsbytecode **ppc) const
+ContextStack::currentScript(jsbytecode **ppc,
+                            MaybeAllowCrossCompartment allowCrossCompartment) const
 {
     if (ppc)
         *ppc = NULL;
@@ -533,7 +534,7 @@ ContextStack::currentScript(jsbytecode **ppc) const
         JS_ASSERT(inlined->inlineIndex < chunk->nInlineFrames);
         mjit::InlineFrame *frame = &chunk->inlineFrames()[inlined->inlineIndex];
         JSScript *script = frame->fun->script();
-        if (script->compartment() != cx_->compartment)
+        if (!allowCrossCompartment && script->compartment() != cx_->compartment)
             return NULL;
         if (ppc)
             *ppc = script->code + inlined->pcOffset;
@@ -542,7 +543,7 @@ ContextStack::currentScript(jsbytecode **ppc) const
 #endif
 
     JSScript *script = fp->script();
-    if (script->compartment() != cx_->compartment)
+    if (!allowCrossCompartment && script->compartment() != cx_->compartment)
         return NULL;
 
     if (ppc)
