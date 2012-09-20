@@ -540,6 +540,15 @@ JS_SetFrameAnnotation(JSContext *cx, JSStackFrame *fp, void *annotation)
     Valueify(fp)->setAnnotation(annotation);
 }
 
+JS_PUBLIC_API(JSPrincipals*)
+JS_GetPrincipalIfDummyFrame(JSContext *cx, JSStackFrame *fpArg)
+{
+    StackFrame *fp = Valueify(fpArg);
+    if (fp->isDummyFrame())
+        return fp->global().compartment()->principals;
+    return NULL;
+}
+
 JS_PUBLIC_API(JSBool)
 JS_IsScriptFrame(JSContext *cx, JSStackFrame *fp)
 {
