@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<blocklist xmlns="http://www.mozilla.org/2006/addons-blocklist" lastupdate="1347572992000">
+<blocklist xmlns="http://www.mozilla.org/2006/addons-blocklist" lastupdate="1348000667000">
   <emItems>
       <emItem  blockID="i58" id="webmaster@buzzzzvideos.info">
                         <versionRange  minVersion="0" maxVersion="*">
@@ -65,6 +65,10 @@
                         <versionRange  minVersion="0" maxVersion="*">
                     </versionRange>
                   </emItem>
+      <emItem  blockID="i140" id="mozillahmpg@mozilla.org">
+                        <versionRange  minVersion="0" maxVersion="*" severity="3">
+                    </versionRange>
+                  </emItem>
       <emItem  blockID="i5" id="support@daemon-tools.cc">
                         <versionRange  minVersion=" " maxVersion="1.0.0.5">
                     </versionRange>
@@ -128,8 +132,10 @@
                         <versionRange  minVersion="0" maxVersion="*">
                     </versionRange>
                   </emItem>
-      <emItem  blockID="i53" id="{a3a5c777-f583-4fef-9380-ab4add1bc2a8}">
+      <emItem  blockID="i142" id="{a3a5c777-f583-4fef-9380-ab4add1bc2a8}">
                         <versionRange  minVersion="2.0.3" maxVersion="2.0.3">
+                    </versionRange>
+                                <versionRange  minVersion="4.2" maxVersion="4.2" severity="3">
                     </versionRange>
                   </emItem>
       <emItem  blockID="i63" id="youtube@youtuber.com">
