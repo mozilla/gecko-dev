@@ -773,8 +773,8 @@ IndexedDatabaseManager::EnsureOriginIsInitialized(const nsACString& aOrigin,
   rv = patternFile->Append(NS_LITERAL_STRING("*"));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCString pattern;
-  rv = patternFile->GetNativePath(pattern);
+  nsString pattern;
+  rv = patternFile->GetPath(pattern);
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Now tell SQLite to start tracking this pattern.
@@ -782,7 +782,7 @@ IndexedDatabaseManager::EnsureOriginIsInitialized(const nsACString& aOrigin,
     do_GetService(MOZ_STORAGE_SERVICE_CONTRACTID);
   NS_ENSURE_TRUE(ss, NS_ERROR_FAILURE);
 
-  rv = ss->SetQuotaForFilenamePattern(pattern,
+  rv = ss->SetQuotaForFilenamePattern(NS_ConvertUTF16toUTF8(pattern),
                                       GetIndexedDBQuotaMB() * 1024 * 1024,
                                       mQuotaCallbackSingleton, nsnull);
   NS_ENSURE_SUCCESS(rv, rv);
