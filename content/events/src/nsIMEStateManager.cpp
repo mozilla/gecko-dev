@@ -62,7 +62,7 @@ nsIMEStateManager::OnDestroyPresContext(nsPresContext* aPresContext)
                               InputContextAction::LOST_FOCUS);
     SetIMEState(newState, nsnull, widget, action);
   }
-  sContent = nsnull;
+  NS_IF_RELEASE(sContent);
   sPresContext = nsnull;
   OnTextStateBlur(nsnull, nsnull);
   return NS_OK;
@@ -90,7 +90,7 @@ nsIMEStateManager::OnRemoveContent(nsPresContext* aPresContext,
     SetIMEState(newState, nsnull, widget, action);
   }
 
-  sContent = nsnull;
+  NS_IF_RELEASE(sContent);
   sPresContext = nsnull;
 
   return NS_OK;
@@ -173,7 +173,10 @@ nsIMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
   SetIMEState(newState, aContent, widget, aAction);
 
   sPresContext = aPresContext;
-  sContent = aContent;
+  if (sContent != aContent) {
+    NS_IF_RELEASE(sContent);
+    NS_IF_ADDREF(sContent = aContent);
+  }
 
   return NS_OK;
 }
