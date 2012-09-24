@@ -127,6 +127,7 @@ MOCHITEST_FILES = \
 		test_media_selection.html \
 		test_playback.html \
 		test_seekLies.html \
+		test_streams_srcObject.html \
 		$(NULL)
 
 $(warning test_error_in_video_document.html is disabled for intermittent failures. Bug 608634)
