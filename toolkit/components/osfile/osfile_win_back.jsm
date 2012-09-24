@@ -186,12 +186,12 @@
        };
 
        let _FindClose =
-         libc.declare("CloseHandle", ctypes.winapi_abi,
+         libc.declare("FindClose", ctypes.winapi_abi,
                         /*return */ctypes.bool,
                         /*handle*/ ctypes.voidptr_t);
 
        WinFile.FindClose = function(handle) {
-         return handle.dispose(); // Returns the value of |CloseHandle|.
+         return handle.dispose(); // Returns the value of |FindClose|.
        };
 
        // Declare libc functions as functions of |OS.Win.File|
