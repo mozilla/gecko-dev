@@ -106,6 +106,11 @@ status_t MediaStreamSource::getSize(off64_t *size)
 
 using namespace android;
 
+namespace OmxPlugin {
+
+const int OMX_QCOM_COLOR_FormatYVU420PackedSemiPlanar32m4ka = 0x7FA30C01;
+const int OMX_QCOM_COLOR_FormatYVU420SemiPlanar = 0x7FA30C00;
+
 class OmxDecoder {
   PluginHost *mPluginHost;
   Decoder *mDecoder;
@@ -830,8 +835,10 @@ static bool CreateDecoder(PluginHost *aPluginHost, Decoder *aDecoder, const char
   return true;
 }
 
+} // namespace OmxPlugin
+
 // Export the manifest so MPAPI can find our entry points.
 Manifest MOZ_EXPORT_DATA(MPAPI_MANIFEST) {
-  CanDecode,
-  CreateDecoder
+  OmxPlugin::CanDecode,
+  OmxPlugin::CreateDecoder
 };
