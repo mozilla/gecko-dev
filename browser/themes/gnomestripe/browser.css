@@ -2776,6 +2776,10 @@ stack[anonid=browserStack][responsivemode] {
   background-color: #f0f0f0;
 }
 
+.chat-titlebar[activity] {
+  background-color: #ceeaff;
+}
+
 .chat-frame {
   padding: 0;
   margin: 0;
@@ -2803,6 +2807,14 @@ stack[anonid=browserStack][responsivemode] {
 .chatbar-button > .toolbarbutton-text,
 .chatbar-button > .toolbarbutton-menu-dropmarker {
   display: none;
+}
+
+.chatbar-button[activity] {
+  background-color: #ceeaff;
+}
+
+.chatbar-button > menupopup > menuitem[activity] {
+  font-weight: bold;
 }
 
 .chatbar-innerbox {
