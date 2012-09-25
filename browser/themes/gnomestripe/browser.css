@@ -2698,7 +2698,6 @@ stack[anonid=browserStack][responsivemode] {
   height: 32px;
   border-radius: 2px;
   margin: 10px;
-  list-style-image: url("chrome://browser/skin/social/social.png");
 }
 
 #social-statusarea-username {
@@ -2709,6 +2708,7 @@ stack[anonid=browserStack][responsivemode] {
   cursor: pointer;
   min-width: 0;
   margin: 0 6px;
+  list-style-image: none;
 }
 #social-statusarea-username:hover {
   text-decoration: underline;
