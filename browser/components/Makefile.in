@@ -47,8 +47,6 @@ ifdef MOZ_SAFE_BROWSING
 PARALLEL_DIRS += safebrowsing
 endif
 
-TEST_DIRS += test
-
 DIRS += build
 
 ifdef MOZILLA_OFFICIAL
