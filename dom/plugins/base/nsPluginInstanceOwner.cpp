@@ -184,7 +184,7 @@ nsPluginInstanceOwner::GetImageContainer()
   SharedTextureImage::Data data;
   data.mHandle = mInstance->CreateSharedHandle();
   data.mShareType = mozilla::gl::TextureImage::ThreadShared;
-  data.mInverted = AndroidBridge::Bridge()->IsHoneycomb() ? true : mInstance->Inverted();
+  data.mInverted = mInstance->Inverted();
 
   gfxRect r = GetPluginRect();
   data.mSize = gfxIntSize(r.width, r.height);
@@ -1808,7 +1808,7 @@ already_AddRefed<ImageContainer> nsPluginInstanceOwner::GetImageContainerForVide
 
   data.mHandle = mInstance->GLContext()->CreateSharedHandle(gl::TextureImage::ThreadShared, aVideoInfo->mSurfaceTexture, gl::GLContext::SurfaceTexture);
   data.mShareType = mozilla::gl::TextureImage::ThreadShared;
-  data.mInverted = mInstance->Inverted();
+  data.mInverted = AndroidBridge::Bridge()->IsHoneycomb() ? true : mInstance->Inverted();
   data.mSize = gfxIntSize(aVideoInfo->mDimensions.width, aVideoInfo->mDimensions.height);
 
   SharedTextureImage* pluginImage = static_cast<SharedTextureImage*>(img.get());
