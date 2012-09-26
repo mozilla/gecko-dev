@@ -481,13 +481,6 @@ public:
     return mDiscoveredClearance && *mDiscoveredClearance;
   }
 
-  // Compute the offsets for a relative position element
-  static void ComputeRelativeOffsets(uint8_t aCBDirection,
-                                     nsIFrame* aFrame,
-                                     nscoord aContainingBlockWidth,
-                                     nscoord aContainingBlockHeight,
-                                     nsMargin& aComputedOffsets);
-
 #ifdef DEBUG
   // Reflow trace methods.  Defined in nsFrame.cpp so they have access
   // to the display-reflow infrastructure.
@@ -541,6 +534,11 @@ protected:
                                nscoord aContainingBlockWidth,
                                nscoord aContainingBlockHeight,
                                nsIAtom* aFrameType);
+
+  void ComputeRelativeOffsets(const nsHTMLReflowState* cbrs,
+                              nscoord aContainingBlockWidth,
+                              nscoord aContainingBlockHeight,
+                              nsPresContext* aPresContext);
 
   // Calculates the computed values for the 'min-Width', 'max-Width',
   // 'min-Height', and 'max-Height' properties, and stores them in the assorted
