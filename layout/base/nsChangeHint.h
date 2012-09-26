@@ -86,24 +86,12 @@ enum nsChangeHint {
   nsChangeHint_ChildrenOnlyTransform = 0x1000,
 
   /**
-   * The frame's offsets have changed, while its dimensions might have
-   * changed as well.  This hint is used for positioned frames if their
-   * offset changes.  If we decide that the dimensions are likely to
-   * change, this will trigger a reflow.
-   *
-   * Note that this should probably be used in combination with
-   * nsChangeHint_UpdateOverflow in order to get the overflow areas of
-   * the ancestors updated as well.
-   */
-  nsChangeHint_RecomputePosition = 0x2000,
-
-  /**
    * Behaves like ReconstructFrame, but only if the frame has descendants
    * that are absolutely or fixed position. Use this hint when a style change
    * has changed whether the frame is a container for fixed-pos or abs-pos
    * elements, but reframing is otherwise not needed.
    */
-  nsChangeHint_AddOrRemoveTransform = 0x4000,
+  nsChangeHint_AddOrRemoveTransform = 0x2000,
 
   /**
    * This change hint has *no* change handling behavior.  However, it
@@ -111,7 +99,7 @@ enum nsChangeHint {
    * changes, and it's inherited by a child, that might require a reflow
    * due to the border-width change on the child.
    */
-  nsChangeHint_BorderStyleNoneChange = 0x8000
+  nsChangeHint_BorderStyleNoneChange = 0x4000
 
   // IMPORTANT NOTE: When adding new hints, consider whether you need to
   // add them to NS_HintsNotHandledForDescendantsIn() below.
@@ -168,7 +156,6 @@ inline bool NS_IsHintSubset(nsChangeHint aSubset, nsChangeHint aSuperSet) {
           nsChangeHint_UpdateOpacityLayer | \
           nsChangeHint_UpdateOverflow | \
           nsChangeHint_ChildrenOnlyTransform | \
-          nsChangeHint_RecomputePosition | \
           nsChangeHint_AddOrRemoveTransform | \
           nsChangeHint_BorderStyleNoneChange | \
           nsChangeHint_NeedReflow | \
@@ -181,7 +168,6 @@ inline nsChangeHint NS_HintsNotHandledForDescendantsIn(nsChangeHint aChangeHint)
     nsChangeHint_UpdateOpacityLayer |
     nsChangeHint_UpdateOverflow |
     nsChangeHint_ChildrenOnlyTransform |
-    nsChangeHint_RecomputePosition |
     nsChangeHint_AddOrRemoveTransform |
     nsChangeHint_BorderStyleNoneChange));
 

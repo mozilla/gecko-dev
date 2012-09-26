@@ -1159,29 +1159,26 @@ nsChangeHint nsStylePosition::CalcDifference(const nsStylePosition& aOther) cons
     return NS_CombineHint(hint, nsChangeHint_AllReflowHints);
   }
 
-  if (mWidth != aOther.mWidth ||
-      mMinWidth != aOther.mMinWidth ||
-      mMaxWidth != aOther.mMaxWidth) {
-    // None of our width differences can affect descendant intrinsic
-    // sizes and none of them need to force children to reflow.
-    return
-      NS_CombineHint(hint,
-                     NS_SubtractHint(nsChangeHint_AllReflowHints,
-                                     NS_CombineHint(nsChangeHint_ClearDescendantIntrinsics,
-                                                    nsChangeHint_NeedDirtyReflow)));
+  if ((mWidth == aOther.mWidth) &&
+      (mMinWidth == aOther.mMinWidth) &&
+      (mMaxWidth == aOther.mMaxWidth)) {
+    if (mOffset == aOther.mOffset) {
+      return hint;
+    } else {
+      // Offset changes only affect positioned content, and can't affect any
+      // intrinsic widths.  They also don't need to force reflow of
+      // descendants.
+      return NS_CombineHint(hint, nsChangeHint_NeedReflow);
+    }
   }
 
-  // If width and height have not changed, but any of the offsets have changed,
-  // then return the respective hints so that we would hopefully be able to
-  // avoid reflowing.
-  // Note that it is possible that we'll need to reflow when processing
-  // restyles, but we don't have enough information to make a good decision
-  // right now.
-  if (mOffset != aOther.mOffset) {
-    NS_UpdateHint(hint, nsChangeHint(nsChangeHint_RecomputePosition |
-                                     nsChangeHint_UpdateOverflow));
-  }
-  return hint;
+  // None of our width differences can affect descendant intrinsic
+  // sizes and none of them need to force children to reflow.
+  return
+    NS_CombineHint(hint,
+                   NS_SubtractHint(nsChangeHint_AllReflowHints,
+                                   NS_CombineHint(nsChangeHint_ClearDescendantIntrinsics,
+                                                  nsChangeHint_NeedDirtyReflow)));
 }
 
 /* static */ bool

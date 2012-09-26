@@ -1082,9 +1082,7 @@ struct nsStylePosition {
 
   nsChangeHint CalcDifference(const nsStylePosition& aOther) const;
   static nsChangeHint MaxDifference() {
-    return NS_CombineHint(NS_STYLE_HINT_REFLOW,
-                          nsChangeHint(nsChangeHint_RecomputePosition |
-                                       nsChangeHint_UpdateOverflow));
+    return NS_STYLE_HINT_REFLOW;
   }
 
   nsStyleSides  mOffset;                // [reset] coord, percent, calc, auto
