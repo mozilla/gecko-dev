@@ -1052,11 +1052,7 @@ function BlocklistItemData(versionRangeElement) {
     this.severity = versionRangeElement.getAttribute("severity");
   else
     this.severity = DEFAULT_SEVERITY;
-  if (versionRangeElement && versionRangeElement.hasAttribute("vulnerabilitystatus")) {
-    this.vulnerabilityStatus = versionRangeElement.getAttribute("vulnerabilitystatus");
-  } else {
-    this.vulnerabilityStatus = VULNERABILITYSTATUS_NONE;
-  }
+  this.vulnerabilityStatus = VULNERABILITYSTATUS_NONE;
   this.targetApps = { };
   var found = false;
 

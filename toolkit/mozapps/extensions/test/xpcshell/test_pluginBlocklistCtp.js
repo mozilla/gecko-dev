@@ -12,14 +12,14 @@ var PLUGINS = [{
   blocklisted: false
 },
 {
-  // severity=0, vulnerabilitystatus=1 -> update available
+  // severity=0, vulnerabilitystatus=1 -> outdated (ctp blocklisting disabled)
   name: "test_plugin_1",
   version: "5",
   disabled: false,
   blocklisted: false
 },
 {
-  // severity=0, vulnerabilitystatus=2 -> no update
+  // severity=0, vulnerabilitystatus=2 -> outdated (ctp blocklisting disabled)
   name: "test_plugin_2",
   version: "5",
   disabled: false,
@@ -64,9 +64,9 @@ function run_test() {
 
   do_check_true(blocklist.getPluginBlocklistState(PLUGINS[0], "1", "1.9") == nsIBLS.STATE_OUTDATED);
 
-  do_check_true(blocklist.getPluginBlocklistState(PLUGINS[1], "1", "1.9") == nsIBLS.STATE_VULNERABLE_UPDATE_AVAILABLE);
+  do_check_true(blocklist.getPluginBlocklistState(PLUGINS[1], "1", "1.9") == nsIBLS.STATE_OUTDATED);
   
-  do_check_true(blocklist.getPluginBlocklistState(PLUGINS[2], "1", "1.9") == nsIBLS.STATE_VULNERABLE_NO_UPDATE);
+  do_check_true(blocklist.getPluginBlocklistState(PLUGINS[2], "1", "1.9") == nsIBLS.STATE_OUTDATED);
 
   do_check_true(blocklist.getPluginBlocklistState(PLUGINS[3], "1", "1.9") == nsIBLS.STATE_BLOCKED);
 
