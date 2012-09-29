@@ -1484,6 +1484,7 @@ abstract public class GeckoApp
                     if (profileName == null)
                         profileName = "default";
                 }
+                GeckoApp.sIsUsingCustomProfile = true;
             }
             if (profileName != null || profilePath != null) {
                 mProfile = GeckoProfile.get(this, profileName, profilePath);
@@ -2205,7 +2206,8 @@ abstract public class GeckoApp
                     ProfileMigrator profileMigrator = new ProfileMigrator(app);
 
                     // Do a migration run on the first start after an upgrade.
-                    if (!profileMigrator.hasMigrationRun()) {
+                    if (!GeckoApp.sIsUsingCustomProfile &&
+                        !profileMigrator.hasMigrationRun()) {
                         // Show the "Setting up Fennec" screen if this takes
                         // a while.
                         final SetupScreen setupScreen = new SetupScreen(app);
@@ -2249,7 +2251,7 @@ abstract public class GeckoApp
 
     private void checkMigrateSync() {
         final File profileDir = getProfile().getDir();
-        if (profileDir != null) {
+        if (!GeckoApp.sIsUsingCustomProfile && profileDir != null) {
             final GeckoApp app = GeckoApp.mAppContext;
             ProfileMigrator profileMigrator = new ProfileMigrator(app);
             if (!profileMigrator.hasSyncMigrated()) {
