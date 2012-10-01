@@ -2489,8 +2489,9 @@ nsDOMClassInfo::Init()
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMNavigatorBluetooth)
 #endif
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMNavigatorCamera)
+#ifdef MOZ_SYS_MSG
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMNavigatorSystemMessages)
-
+#endif
   DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN(Plugin, nsIDOMPlugin)
