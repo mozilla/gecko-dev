@@ -504,8 +504,12 @@ var gPluginHandler = {
       label: gNavigatorBundle.getString("activatePluginsMessage.always"),
       accessKey: gNavigatorBundle.getString("activatePluginsMessage.always.accesskey"),
       callback: function () {
-        Services.perms.add(aBrowser.currentURI, "plugins", Ci.nsIPermissionManager.ALLOW_ACTION);
+        // bug 796039/797043: setting the plugin permission to "ALLOW"
+        // causes the "activated" property on an nsIObjectLoadingContent
+        // to return true for plugins that have not actually been activated.
+        // Thus, activate all applicable plugins before setting the permission.
         gPluginHandler.activatePlugins(contentWindow);
+        Services.perms.add(aBrowser.currentURI, "plugins", Ci.nsIPermissionManager.ALLOW_ACTION);
       }
     },{
       label: gNavigatorBundle.getString("activatePluginsMessage.never"),

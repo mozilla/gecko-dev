@@ -377,7 +377,12 @@ function test12a() {
 
   // Simulate clicking the "Allow Always" button.
   popupNotification.secondaryActions[0].callback();
-  var condition = function() objLoadingContent.activated;
+  // bug 796039/797043: setting the plugin permission to "ALLOW"
+  // causes the "activated" property on an nsIObjectLoadingContent
+  // to return true for plugins that have not actually been activated.
+  // So, to see if the plugin has really activated, see if it's exposing
+  // a method we're expecting of an activated plugin.
+  var condition = function() plugin.wrappedJSObject.setCookie;
   waitForCondition(condition, test12b, "Test 12a, Waited too long for plugin to activate");
 }
 
