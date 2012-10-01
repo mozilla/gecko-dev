@@ -599,7 +599,7 @@ nsStyleBorder::UntrackImage(nsPresContext* aContext)
   // Unregister the image with the document
   nsIDocument* doc = aContext->Document();
   if (doc)
-    doc->RemoveImage(mBorderImageSource);
+    doc->RemoveImage(mBorderImageSource, nsIDocument::REQUEST_DISCARD);
 
   // Mark state
 #ifdef DEBUG
@@ -1570,7 +1570,7 @@ nsStyleImage::UntrackImage(nsPresContext* aContext)
   // Unregister the image with the document
   nsIDocument* doc = aContext->Document();
   if (doc)
-    doc->RemoveImage(mImage);
+    doc->RemoveImage(mImage, nsIDocument::REQUEST_DISCARD);
 
   // Mark state
 #ifdef DEBUG
@@ -2499,7 +2499,7 @@ nsStyleContentData::UntrackImage(nsPresContext* aContext)
   // Unregister the image with the document
   nsIDocument* doc = aContext->Document();
   if (doc)
-    doc->RemoveImage(mContent.mImage);
+    doc->RemoveImage(mContent.mImage, nsIDocument::REQUEST_DISCARD);
 
   // Mark state
 #ifdef DEBUG
