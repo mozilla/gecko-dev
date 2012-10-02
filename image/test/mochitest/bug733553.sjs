@@ -2,24 +2,16 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-var bodyPartIndex = -1;
+var bodyPartIndex = 0;
 var bodyParts = [
   ["red.png", "image/png"],
+  ["red.png", "image/png"], // Tests actually begin here
   ["animated-gif2.gif", "image/gif"],
   ["red.png", "image/png"],
   ["lime100x100.svg", "image/svg+xml"],
-  ["lime100x100.svg", "image/svg+xml"],
   ["animated-gif2.gif", "image/gif"],
   ["red.png", "image/png"],
-  ["damon.jpg", "image/jpeg"],
-  ["damon.jpg", "application/octet-stream"],
-  ["damon.jpg", "image/jpeg"],
-  ["rillybad.jpg", "application/x-unknown-content-type"],
-  ["damon.jpg", "image/jpeg"],
-  ["bad.jpg", "image/jpeg"],
-  ["red.png", "image/png"],
-  ["invalid.jpg", "image/jpeg"],
-  ["animated-gif2.gif", "image/gif"]
+  ["lime100x100.svg", "image/svg+xml"]
 ];
 var timer = Components.classes["@mozilla.org/timer;1"];
 var partTimer = timer.createInstance(Components.interfaces.nsITimer);
@@ -43,7 +35,6 @@ function getFileAsInputStream(aFilename) {
 
 function handleRequest(request, response)
 {
-  setSharedState("next-part", "-1");
   response.setHeader("Content-Type",
                      "multipart/x-mixed-replace;boundary=BOUNDARYOMG", false);
   response.setHeader("Cache-Control", "no-cache", false);
@@ -55,22 +46,8 @@ function handleRequest(request, response)
 }
 
 function sendParts(response) {
-  let wait = false;
-  let nextPart = parseInt(getSharedState("next-part"), 10);
-  if (nextPart == bodyPartIndex) {
-    // Haven't been signaled yet, remain in holding pattern
-    wait = true;
-  } else {
-    bodyPartIndex = nextPart;
-  }
   if (bodyParts.length > bodyPartIndex) {
-    let callback;
-    if (!wait) {
-      callback = getSendNextPart(response);
-    } else {
-      callback = function () { sendParts(response); };
-    }
-    partTimer.initWithCallback(callback, 1000,
+    partTimer.initWithCallback(getSendNextPart(response), 1000,
                                Components.interfaces.nsITimer.TYPE_ONE_SHOT);
   }
   else {
@@ -84,7 +61,7 @@ function sendClose(response) {
 }
 
 function getSendNextPart(response) {
-  var part = bodyParts[bodyPartIndex];
+  var part = bodyParts[bodyPartIndex++];
   var nextPartHead = "Content-Type: " + part[1] + "\r\n\r\n";
   var inputStream = getFileAsInputStream(part[0]);
   return function () {

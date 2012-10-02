@@ -1593,7 +1593,7 @@ RasterImage::SourceDataComplete()
 }
 
 nsresult
-RasterImage::NewSourceData()
+RasterImage::NewSourceData(const char* aMimeType)
 {
   nsresult rv;
 
@@ -1627,6 +1627,8 @@ RasterImage::NewSourceData()
   // Reset some flags
   mDecoded = false;
   mHasSourceData = false;
+
+  mSourceDataMimeType.Assign(aMimeType);
 
   // We're decode-on-load here. Open up a new decoder just like what happens when
   // we call Init() for decode-on-load images.
