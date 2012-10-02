@@ -1914,7 +1914,7 @@ class BindNameCompiler : public PICStubCompiler
         RecompilationMonitor monitor(cx);
 
         RootedObject scope(cx);
-        if (!LookupNameForSet(cx, name, scopeChain, &scope))
+        if (!LookupNameWithGlobalDefault(cx, name, scopeChain, &scope))
             return NULL;
 
         if (monitor.recompiled())

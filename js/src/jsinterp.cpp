@@ -1831,8 +1831,9 @@ BEGIN_CASE(JSOP_BINDNAME)
     RootedPropertyName &name = rootName0;
     name = script->getName(regs.pc);
 
+    /* Assigning to an undeclared name adds a property to the global object. */
     RootedObject &scope = rootObject1;
-    if (!LookupNameForSet(cx, name, scopeChain, &scope))
+    if (!LookupNameWithGlobalDefault(cx, name, scopeChain, &scope))
         goto error;
 
     PUSH_OBJECT(*scope);
@@ -2496,9 +2497,7 @@ BEGIN_CASE(JSOP_IMPLICITTHIS)
     scopeObj = cx->stack.currentScriptedScopeChain();
 
     RootedObject &scope = rootObject1;
-    RootedObject &pobj = rootObject2;
-    RootedShape &prop = rootShape0;
-    if (!LookupName(cx, name, scopeObj, &scope, &pobj, &prop))
+    if (!LookupNameWithGlobalDefault(cx, name, scopeObj, &scope))
         goto error;
 
     Value v;
