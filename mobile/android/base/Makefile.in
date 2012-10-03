@@ -162,6 +162,7 @@ FENNEC_JAVA_FILES = \
   GeckoScreenOrientationListener.java \
   UpdateService.java \
   GeckoUpdateReceiver.java \
+  ReferrerReceiver.java \
   $(MOZGLUE_JAVA_FILES) \
   $(UTIL_JAVA_FILES) \
   $(NULL)
