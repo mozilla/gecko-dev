@@ -747,6 +747,7 @@ private:
   Rect GetAzureDeviceSpaceClipBounds();
   Matrix GetDeviceTransform() const;
   Matrix GetDTTransform() const;
+  void PushNewDT(gfxASurface::gfxContentType content);
 
   bool mPathIsRect;
   bool mTransformChanged;
