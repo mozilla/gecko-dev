@@ -2774,7 +2774,8 @@ var gDetailView = {
           [this._addon.name, gStrings.brandShortName, gStrings.appVersion], 3
         );
         document.getElementById("detail-warning-link").hidden = true;
-      } else if (this._addon.blocklistState == Ci.nsIBlocklistService.STATE_SOFTBLOCKED) {
+      } else if (this._addon.blocklistState == Ci.nsIBlocklistService.STATE_SOFTBLOCKED ||
+                 this._addon.blocklistState == Ci.nsIBlocklistService.STATE_VULNERABLE_NO_UPDATE) {
         this.node.setAttribute("notification", "warning");
         document.getElementById("detail-warning").textContent = gStrings.ext.formatStringFromName(
           "details.notification.softblocked",
@@ -2784,7 +2785,8 @@ var gDetailView = {
         warningLink.value = gStrings.ext.GetStringFromName("details.notification.softblocked.link");
         warningLink.href = this._addon.blocklistURL;
         warningLink.hidden = false;
-      } else if (this._addon.blocklistState == Ci.nsIBlocklistService.STATE_OUTDATED) {
+      } else if (this._addon.blocklistState == Ci.nsIBlocklistService.STATE_OUTDATED ||
+                 this._addon.blocklistState == Ci.nsIBlocklistService.STATE_VULNERABLE_UPDATE_AVAILABLE) {
         this.node.setAttribute("notification", "warning");
         document.getElementById("detail-warning").textContent = gStrings.ext.formatStringFromName(
           "details.notification.outdated",

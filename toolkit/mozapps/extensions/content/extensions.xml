@@ -1192,7 +1192,8 @@
               );
               this._warningLink.hidden = true;
               this._warningBtn.hidden = true;
-            } else if (!isUpgrade && this.mAddon.blocklistState == Ci.nsIBlocklistService.STATE_SOFTBLOCKED) {
+            } else if (!isUpgrade && (this.mAddon.blocklistState == Ci.nsIBlocklistService.STATE_SOFTBLOCKED ||
+                                      this.mAddon.blocklistState == Ci.nsIBlocklistService.STATE_VULNERABLE_NO_UPDATE)) {
               this.setAttribute("notification", "warning");
               this._warning.textContent = gStrings.ext.formatStringFromName(
                 "notification.softblocked",
@@ -1202,7 +1203,8 @@
               this._warningLink.href = this.mAddon.blocklistURL;
               this._warningLink.hidden = false;
               this._warningBtn.hidden = true;
-            } else if (!isUpgrade && this.mAddon.blocklistState == Ci.nsIBlocklistService.STATE_OUTDATED) {
+            } else if (!isUpgrade && (this.mAddon.blocklistState == Ci.nsIBlocklistService.STATE_OUTDATED ||
+                                      this.mAddon.blocklistState == Ci.nsIBlocklistService.STATE_VULNERABLE_UPDATE_AVAILABLE)) {
               this.setAttribute("notification", "warning");
               this._warning.textContent = gStrings.ext.formatStringFromName(
                 "notification.outdated",
