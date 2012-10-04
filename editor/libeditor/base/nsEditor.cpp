@@ -3657,20 +3657,6 @@ nsEditor::IsContainer(nsIDOMNode *aNode)
   return aNode ? true : false;
 }
 
-bool
-nsEditor::IsTextInDirtyFrameVisible(nsIContent *aNode)
-{
-  MOZ_ASSERT(aNode);
-  MOZ_ASSERT(aNode->NodeType() == nsIDOMNode::TEXT_NODE);
-
-  // virtual method
-  //
-  // If this is a simple non-html editor,
-  // the best we can do is to assume it's visible.
-
-  return true;
-}
-
 static inline bool
 IsElementVisible(dom::Element* aElement)
 {
@@ -3753,9 +3739,8 @@ nsEditor::IsEditable(nsIContent *aNode)
   }
   switch (aNode->NodeType()) {
     case nsIDOMNode::ELEMENT_NODE:
-      return true; // not a text node; not invisible
     case nsIDOMNode::TEXT_NODE:
-      return IsTextInDirtyFrameVisible(aNode);
+      return true; // element or text node; not invisible
     default:
       return false;
   }
