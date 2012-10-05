@@ -1726,10 +1726,15 @@ ProfileLockedDialog(nsIFile* aProfileDir, nsIFile* aProfileLocalDir,
       // The actual value is irrelevant but we shouldn't be handing out
       // malformed JSBools to XPConnect.
       bool checkState = false;
+#ifdef MOZ_WIDGET_ANDROID
+      mozilla::AndroidBridge::Bridge()->KillAnyZombies();
+      button = 1;
+#else
       rv = ps->ConfirmEx(nullptr, killTitle, killMessage, flags,
                          killTitle, nullptr, nullptr, nullptr, 
                          &checkState, &button);
       NS_ENSURE_SUCCESS_LOG(rv, rv);
+#endif
 
       if (button == 1) {
         rv = aUnlocker->Unlock(nsIProfileUnlocker::FORCE_QUIT);
@@ -1740,8 +1745,13 @@ ProfileLockedDialog(nsIFile* aProfileDir, nsIFile* aProfileLocalDir,
                                   nullptr, aResult);
       }
     } else {
+#ifdef MOZ_WIDGET_ANDROID
+      if (mozilla::AndroidBridge::Bridge()->UnlockProfile())
+        return NS_OK;
+#else
       rv = ps->Alert(nullptr, killTitle, killMessage);
       NS_ENSURE_SUCCESS_LOG(rv, rv);
+#endif
     }
 
     return NS_ERROR_ABORT;

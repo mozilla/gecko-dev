@@ -2317,6 +2317,20 @@ public class GeckoAppShell
         if (GeckoApp.mAppContext != null)
             GeckoApp.mAppContext.notifyCheckUpdateResult(result);
     }
+    
+    public static boolean unlockProfile() {
+        // Try to kill any zombie Fennec's that might be running
+        GeckoAppShell.killAnyZombies();
+
+        // Then force unlock this profile
+        GeckoProfile profile = GeckoApp.mAppContext.getProfile();
+        File lock = profile.getFile(".parentlock");
+        if (lock.exists()) {
+            lock.delete();
+            return true;
+        }
+        return false;
+    }
 }
 
 class ScreenshotHandler implements Runnable {
