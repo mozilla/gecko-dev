@@ -683,6 +683,7 @@ var SocialToolbar = {
         stack.classList.add("toolbarbutton-icon");
         image = document.createElement("image");
         image.setAttribute("id", imageId);
+        image.classList.add("social-notification-icon-image");
         image = stack.appendChild(image);
         label = document.createElement("label");
         label.setAttribute("id", labelId);

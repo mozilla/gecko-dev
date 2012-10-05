@@ -3347,10 +3347,6 @@ stack[anonid=browserStack][responsivemode] {
   padding: 0;
 }
 
-.social-notification-icon-stack > image {
-  max-height: 16px;
-}
-
 .social-notification-icon-hbox {
   padding: 0;
 }
@@ -3376,6 +3372,11 @@ stack[anonid=browserStack][responsivemode] {
   .social-notification-icon-stack > image:-moz-window-inactive {
     opacity: .5;
   }
+}
+
+.social-notification-icon-image {
+  width: 16px;
+  height: 16px;
 }
 
 /* === end of social toolbar button === */
