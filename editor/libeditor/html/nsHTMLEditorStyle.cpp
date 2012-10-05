@@ -55,6 +55,15 @@ class nsISupports;
 
 using namespace mozilla;
 
+static bool
+IsEmptyTextNode(nsHTMLEditor* aThis, nsINode* aNode)
+{
+  bool isEmptyTextNode = false;
+  return nsEditor::IsTextNode(aNode) &&
+         NS_SUCCEEDED(aThis->IsEmptyNode(aNode, &isEmptyTextNode)) &&
+         isEmptyTextNode;
+}
+
 NS_IMETHODIMP nsHTMLEditor::AddDefaultProperty(nsIAtom *aProperty, 
                                             const nsAString & aAttribute, 
                                             const nsAString & aValue)
@@ -425,7 +434,7 @@ nsHTMLEditor::SetInlinePropertyOnNodeImpl(nsIContent* aNode,
       for (nsIContent* child = aNode->GetFirstChild();
            child;
            child = child->GetNextSibling()) {
-        if (IsEditable(child)) {
+        if (IsEditable(child) && !IsEmptyTextNode(this, child)) {
           arrayOfNodes.AppendObject(child);
         }
       }
