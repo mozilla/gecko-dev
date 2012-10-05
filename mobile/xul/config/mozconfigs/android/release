@@ -18,4 +18,4 @@ export MOZILLA_OFFICIAL=1
 export MOZ_TELEMETRY_REPORTING=1
 
 ac_add_options --enable-official-branding
-ac_add_options --with-branding=mobile/xul/branding/beta
+ac_add_options --with-branding=mobile/xul/branding/official
