@@ -3576,11 +3576,6 @@ PresShell::UnsuppressAndInvalidate()
     if (mCaretEnabled && mCaret) {
       mCaret->CheckCaretDrawingState();
     }
-
-    nsRootPresContext* rootPC = mPresContext->GetRootPresContext();
-    if (rootPC) {
-      rootPC->RequestUpdatePluginGeometry();
-    }
   }
 
   // now that painting is unsuppressed, focus may be set on the document
@@ -3886,14 +3881,6 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
     }
 
     if (aType >= Flush_Layout) {
-      // Flush plugin geometry. Don't flush plugin geometry for
-      // interruptible layouts, since WillPaint does an interruptible
-      // layout.
-      nsRootPresContext* rootPresContext = mPresContext->GetRootPresContext();
-      if (rootPresContext) {
-        rootPresContext->UpdatePluginGeometry();
-      }
-
       if (!mIsDestroying) {
         mViewManager->UpdateWidgetGeometry();
       }
@@ -7006,7 +6993,7 @@ PresShell::WillPaint(bool aWillSendDidPaint)
   }
 
   if (!aWillSendDidPaint && rootPresContext == mPresContext) {
-    rootPresContext->UpdatePluginGeometry();
+    rootPresContext->ApplyPluginGeometryUpdates();
   }
   rootPresContext->FlushWillPaintObservers();
   if (mIsDestroying)
@@ -7032,7 +7019,7 @@ PresShell::DidPaint()
   // This should only be called on root presshells, but maybe if a document
   // tree is torn down we might not be a root presshell...
   if (rootPresContext == mPresContext) {
-    rootPresContext->UpdatePluginGeometry();
+    rootPresContext->ApplyPluginGeometryUpdates();
   }
 
   if (nsContentUtils::XPConnect()) {
@@ -7489,11 +7476,6 @@ PresShell::DoReflow(nsIFrame* target, bool aInterruptible)
     // before our reflow event happens.
     mSuppressInterruptibleReflows = true;
     MaybeScheduleReflow();
-  }
-
-  nsRootPresContext* rootPC = mPresContext->GetRootPresContext();
-  if (rootPC) {
-    rootPC->RequestUpdatePluginGeometry();
   }
 
   return !interrupted;
