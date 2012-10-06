@@ -755,7 +755,7 @@ var SocialSidebar = {
   get chromeless() {
     let docElem = document.documentElement;
     return docElem.getAttribute('disablechrome') ||
-           docElem.getAttribute('chromehidden').contains("toolbar");
+           docElem.getAttribute('chromehidden').indexOf("toolbar") != -1;
   },
 
   // Whether the user has toggled the sidebar on (for windows where it can appear)
