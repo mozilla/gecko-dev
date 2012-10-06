@@ -300,7 +300,7 @@ HashStore::SanityCheck()
 }
 
 nsresult
-HashStore::CalculateChecksum(nsAutoCString& aChecksum,
+HashStore::CalculateChecksum(nsCAutoString& aChecksum,
                              int64_t aSize,
                              bool aChecksumPresent)
 {

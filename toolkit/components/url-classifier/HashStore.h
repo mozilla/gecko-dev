@@ -116,7 +116,7 @@ private:
 
   nsresult ReadHeader();
   nsresult SanityCheck();
-  nsresult CalculateChecksum(nsAutoCString& aChecksum, int64_t aSize, bool aChecksumPresent);
+  nsresult CalculateChecksum(nsCAutoString& aChecksum, int64_t aSize, bool aChecksumPresent);
   nsresult CheckChecksum(nsIFile* aStoreFile);
   void UpdateHeader();
 
