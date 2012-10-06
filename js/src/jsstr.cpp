@@ -1128,6 +1128,7 @@ RopeMatch(JSContext *cx, JSString *textstr, const jschar *pat, uint32_t patlen, 
     return true;
 }
 
+#if 0
 /* ES6 20120708 draft 15.5.4.24. */
 static JSBool
 str_contains(JSContext *cx, unsigned argc, Value *vp)
@@ -1173,6 +1174,7 @@ str_contains(JSContext *cx, unsigned argc, Value *vp)
     args.rval().setBoolean(StringMatch(text, textlen, pat, patlen) >= 0);
     return true;
 }
+#endif
 
 static JSBool
 str_indexOf(JSContext *cx, unsigned argc, Value *vp)
@@ -3102,7 +3104,9 @@ static JSFunctionSpec string_methods[] = {
     JS_FN("toUpperCase",       str_toUpperCase,       0,JSFUN_GENERIC_NATIVE),
     JS_FN("charAt",            js_str_charAt,         1,JSFUN_GENERIC_NATIVE),
     JS_FN("charCodeAt",        js_str_charCodeAt,     1,JSFUN_GENERIC_NATIVE),
+#if 0 // See bug 789036
     JS_FN("contains",          str_contains,          1,JSFUN_GENERIC_NATIVE),
+#endif
     JS_FN("indexOf",           str_indexOf,           1,JSFUN_GENERIC_NATIVE),
     JS_FN("lastIndexOf",       str_lastIndexOf,       1,JSFUN_GENERIC_NATIVE),
     JS_FN("startsWith",        str_startsWith,        1,JSFUN_GENERIC_NATIVE),
