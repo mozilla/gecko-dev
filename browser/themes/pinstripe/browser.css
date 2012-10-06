@@ -3440,6 +3440,7 @@ stack[anonid=browserStack][responsivemode] {
 
 .chat-titlebar {
   background-color: #d9d9d9;
+  background-image: linear-gradient(rgba(255,255,255,.43), rgba(255,255,255,0));
   height: 20px;
   min-height: 20px;
   width: 100%;
@@ -3456,7 +3457,10 @@ stack[anonid=browserStack][responsivemode] {
 }
 
 .chat-titlebar[activity] {
-  background-color: #ceeaff;
+  background-image: radial-gradient(ellipse closest-side at center, rgb(255,255,255), rgba(255,255,255,0));
+  background-repeat: no-repeat;
+  background-size: 100% 20px;
+  background-position: 0 -10px;
 }
 
 .chat-titlebar[selected] {
@@ -3481,8 +3485,15 @@ stack[anonid=browserStack][responsivemode] {
   -moz-border-end: 1px solid #404040;
 }
 
-.chatbar-button[open="true"],
-.chatbar-button:active:hover {
+.chatbar-button > .toolbarbutton-icon {
+  opacity: .6;
+}
+.chatbar-button:hover > .toolbarbutton-icon,
+.chatbar-button[open="true"] > .toolbarbutton-icon {
+  opacity: 1;
+}
+
+.chatbar-button[open="true"] {
   background-color: #f0f0f0;
   box-shadow: inset 0 2px 5px rgba(0,0,0,0.6), 0 1px rgba(255,255,255,0.2);
 }
@@ -3493,7 +3504,7 @@ stack[anonid=browserStack][responsivemode] {
 }
 
 .chatbar-button[activity] {
-  background-color: #ceeaff;
+  background-image: radial-gradient(circle farthest-corner at center 2px, rgb(254,254,255) 3%, rgba(210,235,255,0.9) 12%, rgba(148,205,253,0.6) 30%, rgba(148,205,253,0.2) 70%);
 }
 
 .chatbar-button > menupopup > menuitem[activity] {
@@ -3502,7 +3513,7 @@ stack[anonid=browserStack][responsivemode] {
 
 .chatbar-innerbox {
   background: transparent;
-  margin: -285px -1px 0 -1px;
+  margin: -285px 0 0;
   overflow: hidden;
 }
 
@@ -3517,6 +3528,8 @@ chatbox {
   background-color: white;
   border: 1px solid #404040;
   border-bottom: none;
+  border-top-left-radius: @toolbarbuttonCornerRadius@;
+  border-top-right-radius: @toolbarbuttonCornerRadius@;
 }
 
 chatbox[minimized="true"] {
