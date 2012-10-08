@@ -153,6 +153,7 @@ abstract public class GeckoApp
     public static int mOrientation;
     private boolean mIsRestoringActivity;
     private String mCurrentResponse = "";
+    public static boolean sIsUsingCustomProfile = false;
 
     private GeckoConnectivityReceiver mConnectivityReceiver;
     private GeckoBatteryManager mBatteryReceiver;
