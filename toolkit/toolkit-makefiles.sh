@@ -1587,6 +1587,12 @@ if [ ! "$MOZ_NATIVE_PNG" ]; then
   "
 fi
 
+if [ "$MOZ_DMDV" ]; then
+  add_makefiles "
+    tools/dmdv/Makefile
+  "
+fi
+
 if [ "$MOZ_JPROF" ]; then
   add_makefiles "
     tools/jprof/Makefile
