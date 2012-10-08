@@ -6,8 +6,7 @@
 #ifndef MOZILLA_GFX_HELPERSD2D_H_
 #define MOZILLA_GFX_HELPERSD2D_H_
 
-#include "moz-d2d1-1.h"
-
+#include <d2d1.h>
 #include <dwrite.h>
 #include "2D.h"
 
