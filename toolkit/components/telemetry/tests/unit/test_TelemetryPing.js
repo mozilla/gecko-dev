@@ -281,25 +281,11 @@ function checkPersistedHistogramsAsync(request, response) {
   checkPayload(request, "saved-session", 3);
 
   gFinished = true;
-
-  runOldPingFileTest();
 }
 
 function checkHistogramsAsync(request, response) {
   httpserver.registerPathHandler(PATH, checkPersistedHistogramsAsync);
   checkPayload(request, "test-ping", 3);
-}
-
-function runOldPingFileTest() {
-  let histogramsFile = getSavedHistogramsFile("old-histograms.dat");
-  const TelemetryPing = Cc["@mozilla.org/base/telemetry-ping;1"].getService(Ci.nsIObserver);
-  TelemetryPing.observe(histogramsFile, "test-save-histograms", null);
-  do_check_true(histogramsFile.exists());
-
-  let mtime = histogramsFile.lastModifiedTime;
-  histogramsFile.lastModifiedTime = mtime - 8 * 24 * 60 * 60 * 1000; // 8 days.
-  TelemetryPing.observe(histogramsFile, "test-load-histograms", null);
-  do_check_false(histogramsFile.exists());
 }
 
 // copied from toolkit/mozapps/extensions/test/xpcshell/head_addons.js
