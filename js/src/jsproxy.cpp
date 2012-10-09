@@ -378,6 +378,12 @@ BaseProxyHandler::finalize(JSFreeOp *fop, JSObject *proxy)
 {
 }
 
+JSObject *
+BaseProxyHandler::weakmapKeyDelegate(JSObject *proxy)
+{
+    return NULL;
+}
+
 bool
 BaseProxyHandler::getPrototypeOf(JSContext *cx, JSObject *proxy, JSObject **proto)
 {
@@ -574,6 +580,12 @@ IndirectProxyHandler::iteratorNext(JSContext *cx, JSObject *proxy, Value *vp)
         *vp = MagicValue(JS_NO_ITER_VALUE);
     }
     return true;
+}
+
+JSObject *
+IndirectProxyHandler::weakmapKeyDelegate(JSObject *proxy)
+{
+    return UnwrapObject(proxy);
 }
 
 DirectProxyHandler::DirectProxyHandler(void *family)
@@ -1704,6 +1716,13 @@ proxy_TraceFunction(JSTracer *trc, JSObject *obj)
     proxy_TraceObject(trc, obj);
 }
 
+static JSObject *
+proxy_WeakmapKeyDelegate(RawObject obj)
+{
+    JS_ASSERT(obj->isProxy());
+    return GetProxyHandler(obj)->weakmapKeyDelegate(obj);
+}
+
 static JSBool
 proxy_Convert(JSContext *cx, HandleObject proxy, JSType hint, MutableHandleValue vp)
 {
@@ -1715,8 +1734,7 @@ static void
 proxy_Finalize(FreeOp *fop, JSObject *obj)
 {
     JS_ASSERT(obj->isProxy());
-    if (!obj->getSlot(JSSLOT_PROXY_HANDLER).isUndefined())
-        GetProxyHandler(obj)->finalize(fop, obj);
+    GetProxyHandler(obj)->finalize(fop, obj);
 }
 
 static JSBool
@@ -1737,6 +1755,17 @@ proxy_TypeOf(JSContext *cx, HandleObject proxy)
     return Proxy::typeOf(cx, proxy);
 }
 
+#define PROXY_CLASS_EXT                             \
+    {                                               \
+        NULL,                /* equality */         \
+        NULL,                /* outerObject */      \
+        NULL,                /* innerObject */      \
+        NULL,                /* iteratorObject */   \
+        NULL,                /* unused */           \
+        false,               /* isWrappedNative */  \
+        proxy_WeakmapKeyDelegate                    \
+    }
+
 JS_FRIEND_DATA(Class) js::ObjectProxyClass = {
     "Proxy",
     Class::NON_NATIVE | JSCLASS_IMPLEMENTS_BARRIERS | JSCLASS_HAS_RESERVED_SLOTS(4),
@@ -1753,7 +1782,7 @@ JS_FRIEND_DATA(Class) js::ObjectProxyClass = {
     proxy_HasInstance,       /* hasInstance */
     NULL,                    /* construct   */
     proxy_TraceObject,       /* trace       */
-    JS_NULL_CLASS_EXT,
+    PROXY_CLASS_EXT,
     {
         proxy_LookupGeneric,
         proxy_LookupProperty,
@@ -1810,7 +1839,10 @@ JS_FRIEND_DATA(Class) js::OuterWindowProxyClass = {
         NULL,                /* equality    */
         NULL,                /* outerObject */
         proxy_innerObject,
-        NULL                 /* unused */
+        NULL,                /* iteratorObject */
+        NULL,                /* unused */
+        false,               /* isWrappedNative */
+        proxy_WeakmapKeyDelegate
     },
     {
         proxy_LookupGeneric,
@@ -1881,7 +1913,7 @@ JS_FRIEND_DATA(Class) js::FunctionProxyClass = {
     FunctionClass.hasInstance,
     proxy_Construct,
     proxy_TraceFunction,     /* trace       */
-    JS_NULL_CLASS_EXT,
+    PROXY_CLASS_EXT,
     {
         proxy_LookupGeneric,
         proxy_LookupProperty,
