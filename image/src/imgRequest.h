@@ -81,7 +81,6 @@ public:
   // instantiated.
   nsresult LockImage();
   nsresult UnlockImage();
-  nsresult StartDecoding();
   nsresult RequestDecode();
 
   inline void SetInnerWindowID(uint64_t aInnerWindowId) {

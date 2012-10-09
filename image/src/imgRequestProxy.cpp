@@ -177,7 +177,7 @@ nsresult imgRequestProxy::ChangeOwner(imgRequest *aNewOwner)
   // If we were decoded, or if we'd previously requested a decode, request a
   // decode on the new image
   if (wasDecoded || mDecodeRequested)
-    mOwner->StartDecoding();
+    mOwner->RequestDecode();
 
   return NS_OK;
 }
@@ -302,20 +302,6 @@ NS_IMETHODIMP imgRequestProxy::CancelAndForgetObserver(nsresult aStatus)
   return NS_OK;
 }
 
-/* void startDecode (); */
-NS_IMETHODIMP
-imgRequestProxy::StartDecoding()
-{
-  if (!mOwner)
-    return NS_ERROR_FAILURE;
-
-  // Flag this, so we know to transfer the request if our owner changes
-  mDecodeRequested = true;
-
-  // Forward the request
-  return mOwner->StartDecoding();
-}
-
 /* void requestDecode (); */
 NS_IMETHODIMP
 imgRequestProxy::RequestDecode()
@@ -329,7 +315,6 @@ imgRequestProxy::RequestDecode()
   // Forward the request
   return mOwner->RequestDecode();
 }
-
 
 /* void lockImage (); */
 NS_IMETHODIMP

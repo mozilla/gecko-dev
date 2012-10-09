@@ -5789,7 +5789,7 @@ nsSVGFEImageElement::OnStartContainer(imgIRequest *aRequest,
 
   // Request a decode
   NS_ABORT_IF_FALSE(aContainer, "who sent the notification then?");
-  aContainer->StartDecoding();
+  aContainer->RequestDecode();
 
   // We have a size - invalidate
   Invalidate();

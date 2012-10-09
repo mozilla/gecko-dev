@@ -2518,27 +2518,13 @@ RasterImage::WantDecodedFrames()
   }
 
   // Request a decode (no-op if we're decoded)
-  return StartDecoding();
+  return RequestDecode();
 }
 
 //******************************************************************************
 /* void requestDecode() */
 NS_IMETHODIMP
 RasterImage::RequestDecode()
-{
-  return RequestDecodeCore(ASYNCHRONOUS);
-}
-
-/* void startDecode() */
-NS_IMETHODIMP
-RasterImage::StartDecoding()
-{
-  return RequestDecodeCore(SOMEWHAT_SYNCHRONOUS);
-}
-
-
-NS_IMETHODIMP
-RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
 {
   nsresult rv;
 
@@ -2598,7 +2584,7 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
   // If we can do decoding now, do so.  Small images will decode completely,
   // large images will decode a bit and post themselves to the event loop
   // to finish decoding.
-  if (!mDecoded && !mInDecoder && mHasSourceData && aDecodeType == SOMEWHAT_SYNCHRONOUS) {
+  if (!mDecoded && !mInDecoder && mHasSourceData) {
     SAMPLE_LABEL_PRINTF("RasterImage", "DecodeABitOf", "%s", GetURIString());
     DecodeWorker::Singleton()->DecodeABitOf(this);
     return NS_OK;

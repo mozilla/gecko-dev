@@ -1613,7 +1613,7 @@ nsresult
 nsStyleImage::RequestDecode() const
 {
   if ((mType == eStyleImageType_Image) && mImage)
-    return mImage->StartDecoding();
+    return mImage->RequestDecode();
   return NS_OK;
 }
 
