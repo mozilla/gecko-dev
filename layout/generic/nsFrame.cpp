@@ -4643,28 +4643,6 @@ nsIFrame::InvalidateWithFlags(const nsRect& aDamageRect, uint32_t aFlags)
   InvalidateInternal(aDamageRect, 0, 0, nullptr, aFlags);
 }
 
-static void InvalidateAncestorOfOutOfFlow(nsIFrame* aFrame)
-{
-  nsIFrame* placeholder =
-    aFrame->PresContext()->FrameManager()->GetPlaceholderFrameFor(aFrame);
-  if (!placeholder)
-    return;
-  // If there's an ancestor of the placeholder that isn't an ancestor of
-  // aFrame, and that ancestor has a container layer, we need to
-  // invalidate the ThebesLayer children of that container layer since
-  // they will contain the rendering of aFrame! This is rare, so
-  // just be aggressive and invalidate everything in the ThebesLayers.
-  // We can't optimize this using the geometry of f since the area of aFrame
-  // is not necessarily included in the overflow area of f (since f isn't
-  // an ancestor of aFrame).
-  for (nsIFrame* f = placeholder; f && f != aFrame->GetParent(); f = f->GetParent()) {
-    if (f->GetStateBits() & NS_FRAME_HAS_CONTAINER_LAYER) {
-      FrameLayerBuilder::InvalidateThebesLayersInSubtreeWithUntrustedFrameGeometry(f);
-      return;
-    }
-  }
-}
-
 /**
  * Helper function that funnels an InvalidateInternal request up to the
  * parent.  This function is used so that if MOZ_SVG is not defined, we still
@@ -4715,10 +4693,6 @@ nsIFrame::InvalidateInternalAfterResize(const nsRect& aDamageRect, nscoord aX,
     // frame coordinate space, and we should continue passing it up without
     // further transforms.
     aFlags &= ~INVALIDATE_ALREADY_TRANSFORMED;
-  }
-
-  if (mState & NS_FRAME_OUT_OF_FLOW) {
-    InvalidateAncestorOfOutOfFlow(this);
   }
 
   if ((mState & NS_FRAME_HAS_CONTAINER_LAYER) &&
