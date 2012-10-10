@@ -21,6 +21,7 @@ EXPORTS_mozilla += \
   LinkedList.h \
   MathAlgorithms.h \
   MSStdInt.h \
+  NullPtr.h \
   RangedPtr.h \
   RefPtr.h \
   Scoped.h \
@@ -30,4 +31,5 @@ EXPORTS_mozilla += \
   TypeTraits.h \
   Types.h \
   Util.h \
+  WeakPtr.h \
   $(NULL)
