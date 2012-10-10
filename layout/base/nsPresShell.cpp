@@ -7021,9 +7021,7 @@ PresShell::WillPaintWindow(bool aWillSendDidPaint)
     return;
   }
 
-  if (!aWillSendDidPaint) {
-    rootPresContext->ApplyPluginGeometryUpdates();
-  }
+  rootPresContext->ApplyPluginGeometryUpdates();
 }
 
 void
@@ -7031,12 +7029,10 @@ PresShell::DidPaintWindow()
 {
   nsRootPresContext* rootPresContext = mPresContext->GetRootPresContext();
   if (rootPresContext != mPresContext) {
-    // This could be a popup's presshell. We don't allow plugins in popups
-    // so there's nothing to do here.
+    // This could be a popup's presshell. No point in notifying XPConnect
+    // about compositing of popups.
     return;
   }
-
-  rootPresContext->ApplyPluginGeometryUpdates();
 
   if (nsContentUtils::XPConnect()) {
     nsContentUtils::XPConnect()->NotifyDidPaint();
