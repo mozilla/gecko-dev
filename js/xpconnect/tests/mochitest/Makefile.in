@@ -61,6 +61,8 @@ MOCHITEST_FILES =	bug500931_helper.html \
 		file_bug658560.html \
 		test_bug655297.html \
 		test_bug691059.html \
+		file_bug720619.html \
+		test_bug720619.html \
 		test_bug745483.html \
 		file_bug758563.html \
 		test_bug764389.html \

@@ -37,6 +37,7 @@ MOCHITEST_CHROME_FILES = \
 		test_bug760076.xul \
 		test_bug760109.xul \
 		test_bug763343.xul \
+		test_bug720619.xul \
 		test_APIExposer.xul \
 		test_cows.xul \
 		test_documentdomain.xul \
