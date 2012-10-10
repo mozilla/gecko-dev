@@ -218,8 +218,14 @@ IndirectWrapper::defaultValue(JSContext *cx, JSObject *wrapper_, JSType hint, Va
 {
     RootedObject wrapper(cx, wrapper_);
 
+    // NB: In addition to clearing the pending exception, we also have to temporarily
+    // disable the error reporter, because SpiderMonkey calls it directly if there's
+    // no JS code on the stack, which might be the case here.
     bool status;
-    if (!enter(cx, wrapper_, JSID_VOID, PUNCTURE, &status)) {
+    JSErrorReporter reporter = JS_SetErrorReporter(cx, NULL);
+    bool ok = enter(cx, wrapper_, JSID_VOID, PUNCTURE, &status);
+    JS_SetErrorReporter(cx, reporter);
+    if (!ok) {
         RootedValue v(cx);
         JS_ClearPendingException(cx);
         if (!DefaultValue(cx, wrapper, hint, &v))
@@ -317,8 +323,14 @@ DirectWrapper::defaultValue(JSContext *cx, JSObject *wrapper_, JSType hint, Valu
 {
     RootedObject wrapper(cx, wrapper_);
 
+    // NB: In addition to clearing the pending exception, we also have to temporarily
+    // disable the error reporter, because SpiderMonkey calls it directly if there's
+    // no JS code on the stack, which might be the case here.
     bool status;
-    if (!enter(cx, wrapper_, JSID_VOID, PUNCTURE, &status)) {
+    JSErrorReporter reporter = JS_SetErrorReporter(cx, NULL);
+    bool ok = enter(cx, wrapper_, JSID_VOID, PUNCTURE, &status);
+    JS_SetErrorReporter(cx, reporter);
+    if (!ok) {
         RootedValue v(cx);
         JS_ClearPendingException(cx);
         if (!DefaultValue(cx, wrapper, hint, &v))
