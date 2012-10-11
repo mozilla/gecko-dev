@@ -46,6 +46,8 @@ MOCHITEST_CHROME_FILES = \
 		window_callback_wrapping.xul \
 		test_sandbox_postMessage.html \
 		test_sandbox_bindings.xul \
+		test_bug799299.xul \
+		file_bug799299.xul \
 		$(NULL)
 
 ifeq (WINNT,$(OS_ARCH))
