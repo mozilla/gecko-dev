@@ -47,7 +47,7 @@ it
 ja linux win32
 ja-JP-mac osx
 kk
-km
+km linux osx
 kn
 ko
 ku
