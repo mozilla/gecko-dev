@@ -20,6 +20,7 @@
 #include "nsCOMArray.h"
 #include "nsTArray.h"
 #include "nsString.h"
+#include "nsCycleCollectionParticipant.h"
 
 class nsXMLNameSpaceMap;
 class nsCSSRuleProcessor;
@@ -107,7 +108,9 @@ class nsCSSStyleSheet MOZ_FINAL : public nsIStyleSheet,
 public:
   nsCSSStyleSheet();
 
-  NS_DECL_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsCSSStyleSheet,
+                                           nsIStyleSheet)
 
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_CSS_STYLE_SHEET_IMPL_CID)
 
@@ -264,6 +267,17 @@ protected:
 
   // Add the namespace mapping from this @namespace rule to our namespace map
   nsresult RegisterNamespaceRule(mozilla::css::Rule* aRule);
+
+  // Drop our reference to mRuleCollection
+  void DropRuleCollection();
+
+  // Drop our reference to mMedia
+  void DropMedia();
+
+  // Unlink our inner, if needed, for cycle collection
+  void UnlinkInner();
+  // Traverse our inner, if needed, for cycle collection
+  void TraverseInner(nsCycleCollectionTraversalCallback &);
 
 protected:
   nsString              mTitle;

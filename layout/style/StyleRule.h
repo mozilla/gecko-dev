@@ -347,6 +347,8 @@ public:
 
   virtual nsIDOMCSSRule* GetDOMRule();
 
+  virtual nsIDOMCSSRule* GetExistingDOMRule();
+
   // The new mapping function.
   virtual void MapRuleInfoInto(nsRuleData* aRuleData);
 
