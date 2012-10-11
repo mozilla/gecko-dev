@@ -76,6 +76,10 @@ protected:
 
   nsIStyleSheet* GetStyleSheet() { return mStyleSheet; }
 
+  // CC methods
+  void Unlink();
+  void Traverse(nsCycleCollectionTraversalCallback &cb);
+
 private:
   /**
    * @param aOldDocument should be non-null only if we're updating because we
