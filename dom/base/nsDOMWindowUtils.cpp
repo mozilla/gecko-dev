@@ -2778,3 +2778,15 @@ nsDOMWindowUtils::ExitFullscreen()
   nsIDocument::ExitFullScreen(/* async = */ false);
   return NS_OK;
 }
+
+NS_IMETHODIMP
+nsDOMWindowUtils::AllowScriptsToClose()
+{
+  if (!IsUniversalXPConnectCapable()) {
+    return NS_ERROR_DOM_SECURITY_ERR;
+  }
+  nsCOMPtr<nsPIDOMWindow> window = do_QueryReferent(mWindow);
+  NS_ENSURE_STATE(window);
+  static_cast<nsGlobalWindow*>(window.get())->AllowScriptsToClose();
+  return NS_OK;
+}

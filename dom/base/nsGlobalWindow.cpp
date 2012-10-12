@@ -668,6 +668,7 @@ nsGlobalWindow::nsGlobalWindow(nsGlobalWindow *aOuterWindow)
     mShowFocusRingForContent(false),
     mFocusByKeyOccurred(false),
     mNotifiedIDDestroyed(false),
+    mAllowScriptsToClose(false),
     mTimeoutInsertionPoint(nullptr),
     mTimeoutPublicIdCounter(1),
     mTimeoutFiringDepth(0),
@@ -6494,7 +6495,7 @@ nsGlobalWindow::Close()
   // Don't allow scripts from content to close windows
   // that were not opened by script
   if (!mHadOriginalOpener && !nsContentUtils::IsCallerTrustedForWrite()) {
-    bool allowClose =
+    bool allowClose = mAllowScriptsToClose ||
       Preferences::GetBool("dom.allow_scripts_to_close_windows", true);
     if (!allowClose) {
       // We're blocking the close operation

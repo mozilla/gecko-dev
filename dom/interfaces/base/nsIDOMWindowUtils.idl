@@ -39,7 +39,7 @@ interface nsIFile;
 interface nsIDOMTouch;
 interface nsIDOMClientRect;
 
-[scriptable, uuid(f7222baa-7c4b-4079-a9e0-db13cf797f58)]
+[scriptable, uuid(9f599acb-75e5-4f5f-97aa-f93165da2259)]
 interface nsIDOMWindowUtils : nsISupports {
 
   /**
@@ -1201,4 +1201,10 @@ interface nsIDOMWindowUtils : nsISupports {
    * dialogs (e.g. window.alert()).
    */
   void preventFurtherDialogs();
+
+  /**
+   * After calling the method, the window for which this DOMWindowUtils
+   * was created can be closed using scripts.
+   */
+   void allowScriptsToClose();
 };
