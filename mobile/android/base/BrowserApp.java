@@ -203,6 +203,8 @@ abstract public class BrowserApp extends GeckoApp
         LinearLayout actionBar = (LinearLayout) getActionBarLayout();
         mMainLayout.addView(actionBar, 0);
 
+        ((GeckoApp.MainLayout) mMainLayout).setOnInterceptTouchListener(new HideTabsTouchListener());
+
         mBrowserToolbar = new BrowserToolbar(this);
         mBrowserToolbar.from(actionBar);
 
@@ -644,7 +646,6 @@ abstract public class BrowserApp extends GeckoApp
                              mAboutHomeStartupTimer.stop();
                          }
                     });
-                    mAboutHomeContent.setOnInterceptTouchListener(new ContentTouchListener());
                 } else {
                     mAboutHomeContent.update(EnumSet.of(AboutHomeContent.UpdateFlags.TOP_SITES,
                                                         AboutHomeContent.UpdateFlags.REMOTE_TABS));
@@ -654,6 +655,51 @@ abstract public class BrowserApp extends GeckoApp
                 findViewById(R.id.abouthome_content).setVisibility(View.GONE);
             }
         } 
+    }
+
+    private class HideTabsTouchListener implements OnInterceptTouchListener {
+        private boolean mIsHidingTabs = false;
+
+        @Override
+        public boolean onInterceptTouchEvent(View view, MotionEvent event) {
+            // We need to account for scroll state for the touched view otherwise
+            // tapping on an "empty" part of the view will still be considered a
+            // valid touch event.
+            if (view.getScrollX() != 0 || view.getScrollY() != 0) {
+                Rect rect = new Rect();
+                view.getHitRect(rect);
+                rect.offset(-view.getScrollX(), -view.getScrollY());
+
+                int[] viewCoords = new int[2];
+                view.getLocationOnScreen(viewCoords);
+
+                int x = (int) event.getRawX() - viewCoords[0];
+                int y = (int) event.getRawY() - viewCoords[1];
+
+                if (!rect.contains(x, y))
+                    return false;
+            }
+
+            // If the tab tray is showing, hide the tab tray and don't send the event to content.
+            if (event.getActionMasked() == MotionEvent.ACTION_DOWN && autoHideTabs()) {
+                mIsHidingTabs = true;
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public boolean onTouch(View view, MotionEvent event) {
+            if (mIsHidingTabs) {
+                // Keep consuming events until the gesture finishes.
+                int action = event.getActionMasked();
+                if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                    mIsHidingTabs = false;
+                }
+                return true;
+            }
+            return false;
+        }
     }
 
     private void addAddonMenuItem(final int id, final String label, final String icon) {
