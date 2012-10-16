@@ -2407,6 +2407,10 @@ nsDisplayItem::LayerState
 nsDisplayOpacity::GetLayerState(nsDisplayListBuilder* aBuilder,
                                 LayerManager* aManager,
                                 const ContainerParameters& aParameters) {
+  if (mFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT) {
+    // Temporary hack to work around bug 786894 on branches
+    return LAYER_INACTIVE;
+  }
   if (mFrame->AreLayersMarkedActive(nsChangeHint_UpdateOpacityLayer) &&
       !IsItemTooSmallForActiveLayer(this))
     return LAYER_ACTIVE;
@@ -3456,6 +3460,10 @@ nsDisplayItem::LayerState
 nsDisplayTransform::GetLayerState(nsDisplayListBuilder* aBuilder,
                                   LayerManager* aManager,
                                   const ContainerParameters& aParameters) {
+  if (mFrame->GetStateBits() & NS_FRAME_SVG_LAYOUT) {
+    // Temporary hack to work around bug 786894 on branches
+    return LAYER_INACTIVE;
+  }
   // Here we check if the *post-transform* bounds of this item are big enough
   // to justify an active layer.
   if (mFrame->AreLayersMarkedActive(nsChangeHint_UpdateTransformLayer) &&
@@ -3836,6 +3844,8 @@ nsDisplaySVGEffects::GetLayerState(nsDisplayListBuilder* aBuilder,
                                    LayerManager* aManager,
                                    const ContainerParameters& aParameters)
 {
+  // LAYER_SVG_EFFECTS is an inactive layer type, so no need for the
+  // temporary hack to work around bug 786894 on branches here.
   return LAYER_SVG_EFFECTS;
 }
 
