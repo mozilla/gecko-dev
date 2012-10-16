@@ -472,7 +472,7 @@ public:
   }
 
   // We need a GetInterface callable from JS for chrome JS
-  JS::Value GetInterface(JSContext* aCx, nsIJSIID* aIID, ErrorResult& aRv);
+  JS::Value GetInterface(JSContext* aCx, nsIJSID* aIID, ErrorResult& aRv);
 
   // This creates a trusted readystatechange event, which is not cancelable and
   // doesn't bubble.
