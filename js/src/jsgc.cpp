@@ -3937,6 +3937,8 @@ class AutoTraceSession {
   private:
     AutoTraceSession(const AutoTraceSession&) MOZ_DELETE;
     void operator=(const AutoTraceSession&) MOZ_DELETE;
+
+    JSRuntime::HeapState prevState;
 };
 
 /* ...while this class is to be used only for garbage collection. */
@@ -3948,7 +3950,8 @@ class AutoGCSession : AutoTraceSession {
 
 /* Start a new heap session. */
 AutoTraceSession::AutoTraceSession(JSRuntime *rt, JSRuntime::HeapState heapState)
-  : runtime(rt)
+  : runtime(rt),
+    prevState(rt->heapState)
 {
     JS_ASSERT(!rt->noGCOrAllocationCheck);
     JS_ASSERT(!rt->isHeapBusy());
@@ -3959,7 +3962,7 @@ AutoTraceSession::AutoTraceSession(JSRuntime *rt, JSRuntime::HeapState heapState
 AutoTraceSession::~AutoTraceSession()
 {
     JS_ASSERT(runtime->isHeapBusy());
-    runtime->heapState = JSRuntime::Idle;
+    runtime->heapState = prevState;
 }
 
 AutoGCSession::AutoGCSession(JSRuntime *rt)
@@ -4576,34 +4579,38 @@ ShrinkGCBuffers(JSRuntime *rt)
 #endif
 }
 
+struct AutoFinishGC
+{
+    AutoFinishGC(JSRuntime *rt) {
+        if (IsIncrementalGCInProgress(rt)) {
+            PrepareForIncrementalGC(rt);
+            FinishIncrementalGC(rt, gcreason::API);
+        }
+
+        rt->gcHelperThread.waitBackgroundSweepEnd();
+    }
+};
+
+struct AutoPrepareForTracing
+{
+    AutoFinishGC finish;
+    AutoTraceSession session;
+    AutoCopyFreeListToArenas copy;
+
+    AutoPrepareForTracing(JSRuntime *rt)
+      : finish(rt),
+        session(rt),
+        copy(rt)
+    {}
+};
+
 void
 TraceRuntime(JSTracer *trc)
 {
     JS_ASSERT(!IS_GC_MARKING_TRACER(trc));
 
-#ifdef JS_THREADSAFE
-    {
-        JSRuntime *rt = trc->runtime;
-        if (!rt->isHeapBusy()) {
-            AutoTraceSession session(rt);
-
-            rt->gcHelperThread.waitBackgroundSweepEnd();
-
-            AutoCopyFreeListToArenas copy(rt);
-            RecordNativeStackTopForGC(rt);
-            MarkRuntime(trc);
-            return;
-        }
-    }
-#else
-    AutoCopyFreeListToArenas copy(trc->runtime);
+    AutoPrepareForTracing prep(trc->runtime);
     RecordNativeStackTopForGC(trc->runtime);
-#endif
-
-    /*
-     * Calls from inside a normal GC or a recursive calls are OK and do not
-     * require session setup.
-     */
     MarkRuntime(trc);
 }
 
@@ -4641,12 +4648,8 @@ IterateCompartmentsArenasCells(JSRuntime *rt, void *data,
                                IterateArenaCallback arenaCallback,
                                IterateCellCallback cellCallback)
 {
-    JS_ASSERT(!rt->isHeapBusy());
+    AutoPrepareForTracing prop(rt);
 
-    AutoTraceSession session(rt);
-    rt->gcHelperThread.waitBackgroundSweepEnd();
-
-    AutoCopyFreeListToArenas copy(rt);
     for (CompartmentsIter c(rt); !c.done(); c.next()) {
         (*compartmentCallback)(rt, data, c);
 
@@ -4663,11 +4666,7 @@ IterateCompartmentsArenasCells(JSRuntime *rt, void *data,
 void
 IterateChunks(JSRuntime *rt, void *data, IterateChunkCallback chunkCallback)
 {
-    /* :XXX: Any way to common this preamble with IterateCompartmentsArenasCells? */
-    JS_ASSERT(!rt->isHeapBusy());
-
-    AutoTraceSession session(rt);
-    rt->gcHelperThread.waitBackgroundSweepEnd();
+    AutoPrepareForTracing prep(rt);
 
     for (js::GCChunkSet::Range r = rt->gcChunkSet.all(); !r.empty(); r.popFront())
         chunkCallback(rt, data, r.front());
@@ -4677,13 +4676,7 @@ void
 IterateCells(JSRuntime *rt, JSCompartment *compartment, AllocKind thingKind,
              void *data, IterateCellCallback cellCallback)
 {
-    /* :XXX: Any way to common this preamble with IterateCompartmentsArenasCells? */
-    JS_ASSERT(!rt->isHeapBusy());
-
-    AutoTraceSession session(rt);
-    rt->gcHelperThread.waitBackgroundSweepEnd();
-
-    AutoCopyFreeListToArenas copy(rt);
+    AutoPrepareForTracing prep(rt);
 
     JSGCTraceKind traceKind = MapAllocToTraceKind(thingKind);
     size_t thingSize = Arena::thingSize(thingKind);
@@ -4703,13 +4696,7 @@ void
 IterateGrayObjects(JSCompartment *compartment, GCThingCallback *cellCallback, void *data)
 {
     JS_ASSERT(compartment);
-    JSRuntime *rt = compartment->rt;
-    JS_ASSERT(!rt->isHeapBusy());
-
-    AutoTraceSession session(rt);
-    rt->gcHelperThread.waitBackgroundSweepEnd();
-
-    AutoCopyFreeListToArenas copy(rt);
+    AutoPrepareForTracing prep(compartment->rt);
 
     for (size_t finalizeKind = 0; finalizeKind <= FINALIZE_OBJECT_LAST; finalizeKind++) {
         for (CellIterUnderGC i(compartment, AllocKind(finalizeKind)); !i.done(); i.next()) {
