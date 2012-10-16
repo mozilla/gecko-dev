@@ -24,10 +24,7 @@
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/MemoryInfoDumper.h"
 
-#ifdef XP_WIN
-#include <process.h>
-#define getpid _getpid
-#else
+#ifndef XP_WIN
 #include <unistd.h>
 #endif
 
