@@ -249,7 +249,7 @@ public:
   {
     nsPresContext* presContext = aContainerFrame->PresContext();
     mAppUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
-    mContainerReferenceFrame = aContainerItem ? aContainerItem->ReferenceFrame() :
+    mContainerReferenceFrame = aContainerItem ? aContainerItem->ReferenceFrameForChildren() :
       mBuilder->FindReferenceFrameFor(mContainerFrame);
     // When AllowResidualTranslation is false, display items will be drawn
     // scaled with a translation by integer pixels, so we know how the snapping
