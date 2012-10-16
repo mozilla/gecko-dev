@@ -35,7 +35,7 @@ var tests = {
   },
   testNoAmbientNotificationsIsNoKeyboardMenu: function(next) {
     // The menu bar isn't as easy to instrument on Mac.
-    if (navigator.platform.contains("Mac")) {
+    if (navigator.platform.indexOf("Mac") != -1) {
       info("Skipping checking the menubar on Mac OS");
       next();
     }
@@ -76,7 +76,7 @@ var tests = {
       is(statusIconLabel.value, "", "status value is correct");
 
       // The menu bar isn't as easy to instrument on Mac.
-      if (navigator.platform.contains("Mac"))
+      if (navigator.platform.indexOf("Mac") != -1)
         next();
 
       // Test that keyboard accessible menuitem was added.
