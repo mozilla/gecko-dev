@@ -74,8 +74,8 @@ gcli.addCommand({
             name: 'selection',
             data: ['collapse', 'expand', 'end-expand', 'expand-strict']
           },
-          description: gcli.lookup('jsbBraceStyleDesc'),
-          manual: gcli.lookup('jsbBraceStyleManual'),
+          description: gcli.lookup('jsbBraceStyleDesc2'),
+          manual: gcli.lookup('jsbBraceStyleManual2'),
           defaultValue: "collapse"
         },
         {
