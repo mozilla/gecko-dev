@@ -346,6 +346,9 @@ waitFor(
             online, offline = self._get_adb_devices()
         self.port = int(list(online - original_online)[0])
         self._emulator_launched = True
+
+        # bug 802877
+        time.sleep(10)
         self.geo.set_default_location()
 
         if self.logcat_dir:
