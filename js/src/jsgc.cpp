@@ -4582,7 +4582,7 @@ ShrinkGCBuffers(JSRuntime *rt)
 struct AutoFinishGC
 {
     AutoFinishGC(JSRuntime *rt) {
-        if (rt->gcIncrementalState != NO_INCREMENTAL) {
+        if (rt->gcIncrementalState != NO_INCREMENTAL && !rt->gcVerifyPreData) {
             PrepareForIncrementalGC(rt);
             FinishIncrementalGC(rt, gcreason::API);
         }
