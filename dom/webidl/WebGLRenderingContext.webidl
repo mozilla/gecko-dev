@@ -769,21 +769,6 @@ interface WebGLContextEvent : Event {
 
 // specific extension interfaces
 
-interface WebGLExtensionStandardDerivatives {
-    const GLenum FRAGMENT_SHADER_DERIVATIVE_HINT_OES = 0x8B8B;
-};
-
-interface WebGLExtensionLoseContext {
-    void loseContext();
-    void restoreContext();
-};
-
-interface WebGLExtensionTextureFilterAnisotropic
-{
-    const GLenum TEXTURE_MAX_ANISOTROPY_EXT     = 0x84FE;
-    const GLenum MAX_TEXTURE_MAX_ANISOTROPY_EXT = 0x84FF;
-};
-
 interface WebGLExtensionCompressedTextureS3TC
 {
     const GLenum COMPRESSED_RGB_S3TC_DXT1_EXT  = 0x83F0;
@@ -807,9 +792,30 @@ interface WebGLExtensionCompressedTexturePVRTC
     const GLenum COMPRESSED_RGBA_PVRTC_2BPPV1 = 0x8C03;
 };
 
+interface WebGLExtensionDebugRendererInfo
+{
+    const GLenum UNMASKED_VENDOR_WEBGL        = 0x9245;
+    const GLenum UNMASKED_RENDERER_WEBGL      = 0x9246;
+};
+
 interface WebGLExtensionDepthTexture
 {
     const GLenum UNSIGNED_INT_24_8_WEBGL = 0x84FA;
+};
+
+interface WebGLExtensionLoseContext {
+    void loseContext();
+    void restoreContext();
+};
+
+interface WebGLExtensionTextureFilterAnisotropic
+{
+    const GLenum TEXTURE_MAX_ANISOTROPY_EXT     = 0x84FE;
+    const GLenum MAX_TEXTURE_MAX_ANISOTROPY_EXT = 0x84FF;
+};
+
+interface WebGLExtensionStandardDerivatives {
+    const GLenum FRAGMENT_SHADER_DERIVATIVE_HINT_OES = 0x8B8B;
 };
 
 interface WebGLExtensionTextureFloat
