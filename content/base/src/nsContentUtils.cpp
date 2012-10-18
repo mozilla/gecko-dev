@@ -6395,7 +6395,7 @@ public:
   {
   }
 
-  NS_IMETHOD_(void) NoteWeakMapping(void* map, void* key, void* val)
+  NS_IMETHOD_(void) NoteWeakMapping(void* map, void* key, void* kdelegate, void* val)
   {
   }
 
