@@ -397,6 +397,7 @@ struct NoteWeakMapChildrenTracer : public JSTracer
     nsCycleCollectionTraversalCallback &mCb;
     JSObject *mMap;
     void *mKey;
+    void *mKeyDelegate;
 };
 
 static void
@@ -411,7 +412,7 @@ TraceWeakMappingChild(JSTracer *trc, void **thingp, JSGCTraceKind kind)
     if (!xpc_IsGrayGCThing(thing) && !tracer->mCb.WantAllTraces())
         return;
     if (AddToCCKind(kind)) {
-        tracer->mCb.NoteWeakMapping(tracer->mMap, tracer->mKey, thing);
+        tracer->mCb.NoteWeakMapping(tracer->mMap, tracer->mKey, tracer->mKeyDelegate, thing);
     } else {
         JS_TraceChildren(trc, thing, kind);
     }
@@ -454,11 +455,16 @@ TraceWeakMapping(js::WeakMapTracer *trc, JSObject *m,
     if (!AddToCCKind(kkind))
         k = nullptr;
 
+    JSObject *kdelegate = NULL;
+    if (kkind == JSTRACE_OBJECT)
+        kdelegate = js::GetWeakmapKeyDelegate((JSObject *)k);
+
     if (AddToCCKind(vkind)) {
-        tracer->mCb.NoteWeakMapping(m, k, v);
+        tracer->mCb.NoteWeakMapping(m, k, kdelegate, v);
     } else {
         tracer->mChildTracer.mMap = m;
         tracer->mChildTracer.mKey = k;
+        tracer->mChildTracer.mKeyDelegate = kdelegate;
         JS_TraceChildren(&tracer->mChildTracer, v, vkind);
     }
 }
