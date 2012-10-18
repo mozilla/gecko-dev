@@ -526,7 +526,7 @@ public:
    */
   static nsRect TransformFrameRectToAncestor(nsIFrame* aFrame,
                                              const nsRect& aRect,
-                                             const nsIFrame* aAncestor);
+                                             nsIFrame* aAncestor);
 
 
   /**

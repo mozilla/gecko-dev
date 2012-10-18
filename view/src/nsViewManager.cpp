@@ -653,33 +653,35 @@ void nsViewManager::InvalidateViews(nsView *aView)
 
 void nsViewManager::WillPaintWindow(nsIWidget* aWidget, bool aWillSendDidPaint)
 {
-  if (!IsRefreshDriverPaintingEnabled() && aWidget && mContext) {
-    // If an ancestor widget was hidden and then shown, we could
-    // have a delayed resize to handle.
-    for (nsViewManager *vm = this; vm;
-         vm = vm->mRootView->GetParent()
-                ? vm->mRootView->GetParent()->GetViewManager()
-                : nullptr) {
-      if (vm->mDelayedResize != nsSize(NSCOORD_NONE, NSCOORD_NONE) &&
-          vm->mRootView->IsEffectivelyVisible() &&
-          mPresShell && mPresShell->IsVisible()) {
-        vm->FlushDelayedResize(true);
-        vm->InvalidateView(vm->mRootView);
-      }
+  if (IsRefreshDriverPaintingEnabled())
+    return;
+
+  if (!aWidget || !mContext)
+    return;
+
+  // If an ancestor widget was hidden and then shown, we could
+  // have a delayed resize to handle.
+  for (nsViewManager *vm = this; vm;
+       vm = vm->mRootView->GetParent()
+              ? vm->mRootView->GetParent()->GetViewManager()
+              : nullptr) {
+    if (vm->mDelayedResize != nsSize(NSCOORD_NONE, NSCOORD_NONE) &&
+        vm->mRootView->IsEffectivelyVisible() &&
+        mPresShell && mPresShell->IsVisible()) {
+      vm->FlushDelayedResize(true);
+      vm->InvalidateView(vm->mRootView);
     }
+  }
 
-    // Flush things like reflows by calling WillPaint on observer presShells.
-    nsRefPtr<nsViewManager> rootVM = RootViewManager();
+  // Flush things like reflows and plugin widget geometry updates by
+  // calling WillPaint on observer presShells.
+  nsRefPtr<nsViewManager> rootVM = RootViewManager();
+  if (mPresShell) {
     rootVM->CallWillPaintOnObservers(aWillSendDidPaint);
-
-    // Flush view widget geometry updates and invalidations.
-    rootVM->ProcessPendingUpdates();
   }
 
-  nsCOMPtr<nsIPresShell> shell = mPresShell;
-  if (shell) {
-    shell->WillPaintWindow(aWillSendDidPaint);
-  }
+  // Flush view widget geometry updates and invalidations.
+  rootVM->ProcessPendingUpdates();
 }
 
 bool nsViewManager::PaintWindow(nsIWidget* aWidget, nsIntRegion aRegion,
@@ -707,11 +709,6 @@ bool nsViewManager::PaintWindow(nsIWidget* aWidget, nsIntRegion aRegion,
 
 void nsViewManager::DidPaintWindow()
 {
-  nsCOMPtr<nsIPresShell> shell = mPresShell;
-  if (shell) {
-    shell->DidPaintWindow();
-  }
-
   if (!IsRefreshDriverPaintingEnabled()) {
     mRootViewManager->CallDidPaintOnObserver();
   }
@@ -1205,7 +1202,8 @@ nsViewManager::ProcessPendingUpdates()
   if (IsRefreshDriverPaintingEnabled()) {
     mPresShell->GetPresContext()->RefreshDriver()->RevokeViewManagerFlush();
       
-    // Flush things like reflows by calling WillPaint on observer presShells.
+    // Flush things like reflows and plugin widget geometry updates by
+    // calling WillPaint on observer presShells.
     if (mPresShell) {
       CallWillPaintOnObservers(true);
     }

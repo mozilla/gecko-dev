@@ -381,14 +381,13 @@ nsObjectFrame::PrepForDrawing(nsIWidget *aWidget)
   viewMan->ResizeView(view, r);
   viewMan->MoveViewTo(view, origin.x, origin.y);
 
-  nsPresContext* presContext = PresContext();
-  nsRootPresContext* rpc = presContext->GetRootPresContext();
+  nsRootPresContext* rpc = PresContext()->GetRootPresContext();
   if (!rpc) {
     return NS_ERROR_FAILURE;
   }
 
   if (mWidget) {
-    // Disallow windowed plugins in popups
+    // Disallow plugins in popups
     nsIFrame* rootFrame = rpc->PresShell()->FrameManager()->GetRootFrame();
     nsIWidget* parentWidget = rootFrame->GetNearestWidget();
     if (!parentWidget || nsLayoutUtils::GetDisplayRootFrame(this) != rootFrame) {
@@ -406,18 +405,18 @@ nsObjectFrame::PrepForDrawing(nsIWidget *aWidget)
     mWidget->Show(true);
     mWidget->Enable(true);
 
-    // Set the plugin window to have an empty clip region until we know
-    // what our true position, size and clip region are. These
-    // will be reset when nsRootPresContext computes our true
-    // geometry. The plugin window does need to have a good size here, so
-    // set the size explicitly to a reasonable guess.
-    nsAutoTArray<nsIWidget::Configuration,1> configurations;
-    nsIWidget::Configuration* configuration = configurations.AppendElement();
-    nscoord appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
-    configuration->mChild = mWidget;
-    configuration->mBounds.width = NSAppUnitsToIntPixels(mRect.width, appUnitsPerDevPixel);
-    configuration->mBounds.height = NSAppUnitsToIntPixels(mRect.height, appUnitsPerDevPixel);
-    parentWidget->ConfigureChildren(configurations);
+    // Set the plugin window to have an empty cliprect. The cliprect
+    // will be reset when nsRootPresContext::UpdatePluginGeometry
+    // runs later. The plugin window does need to have the correct
+    // size here. GetEmptyClipConfiguration will probably give it the
+    // size, but just in case we haven't been reflowed or something, set
+    // the size explicitly.
+    nsAutoTArray<nsIWidget::Configuration,1> configuration;
+    GetEmptyClipConfiguration(&configuration);
+    NS_ASSERTION(configuration.Length() > 0, "Empty widget configuration array!");
+    configuration[0].mBounds.width = mRect.width;
+    configuration[0].mBounds.height = mRect.height;
+    parentWidget->ConfigureChildren(configuration);
 
     nsRefPtr<nsDeviceContext> dx;
     viewMan->GetDeviceContext(*getter_AddRefs(dx));
@@ -763,6 +762,7 @@ nsObjectFrame::RegisterPluginForGeometryUpdates()
   }
   mRootPresContextRegisteredWith = rpc;
   mRootPresContextRegisteredWith->RegisterPluginForGeometryUpdates(mContent);
+  mRootPresContextRegisteredWith->RequestUpdatePluginGeometry();
 }
 
 void
@@ -791,8 +791,7 @@ nsObjectFrame::SetInstanceOwner(nsPluginInstanceOwner* aOwner)
     nsIWidget* parent = mWidget->GetParent();
     if (parent) {
       nsTArray<nsIWidget::Configuration> configurations;
-      nsIWidget::Configuration* configuration = configurations.AppendElement();
-      configuration->mChild = mWidget;
+      this->GetEmptyClipConfiguration(&configurations);
       parent->ConfigureChildren(configurations);
 
       mWidget->Show(false);
@@ -1050,44 +1049,8 @@ nsDisplayPlugin::ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                    nsRegion* aVisibleRegion,
                                    const nsRect& aAllowVisibleRegionExpansion)
 {
-  if (aBuilder->IsForPluginGeometry()) {
-    nsObjectFrame* f = static_cast<nsObjectFrame*>(mFrame);
-    if (!aBuilder->IsInTransform() || f->IsPaintedByGecko()) {
-      // Since transforms induce reference frames, we don't need to worry
-      // about this method fluffing out due to non-rectilinear transforms.
-      nsRect rAncestor = nsLayoutUtils::TransformFrameRectToAncestor(f,
-          f->GetContentRectRelativeToSelf(), ReferenceFrame());
-      nscoord appUnitsPerDevPixel =
-        ReferenceFrame()->PresContext()->AppUnitsPerDevPixel();
-      f->mNextConfigurationBounds = rAncestor.ToNearestPixels(appUnitsPerDevPixel);
-
-      bool snap;
-      nsRegion visibleRegion;
-      visibleRegion.And(*aVisibleRegion, GetBounds(aBuilder, &snap));
-      // Make visibleRegion relative to f
-      visibleRegion.MoveBy(-ToReferenceFrame());
-
-      f->mNextConfigurationClipRegion.Clear();
-      nsRegionRectIterator iter(visibleRegion);
-      for (const nsRect* r = iter.Next(); r; r = iter.Next()) {
-        nsRect rAncestor =
-          nsLayoutUtils::TransformFrameRectToAncestor(f, *r, ReferenceFrame());
-        nsIntRect rPixels = rAncestor.ToNearestPixels(appUnitsPerDevPixel)
-            - f->mNextConfigurationBounds.TopLeft();
-        if (!rPixels.IsEmpty()) {
-          f->mNextConfigurationClipRegion.AppendElement(rPixels);
-        }
-      }
-    }
-
-    if (f->mInnerView) {
-      // This should produce basically the same rectangle (but not relative
-      // to the root frame). We only call this here for the side-effect of
-      // setting mViewToWidgetOffset on the view.
-      f->mInnerView->CalcWidgetBounds(eWindowType_plugin);
-    }
-  }
-
+  bool snap;
+  mVisibleRegion.And(*aVisibleRegion, GetBounds(aBuilder, &snap));
   return nsDisplayItem::ComputeVisibility(aBuilder, aVisibleRegion,
                                           aAllowVisibleRegionExpansion);
 }
@@ -1102,18 +1065,19 @@ nsDisplayPlugin::GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
   if (!aBuilder->IsForPluginGeometry()) {
     nsIWidget* widget = f->GetWidget();
     if (widget) {
-      // Be conservative and treat plugins with widgets as not opaque,
-      // because that's simple and we might need the content under the widget
-      // if the widget is unexpectedly clipped away. (As can happen when
-      // chrome content over a plugin forces us to clip out the plugin for
-      // security reasons.)
-      // We shouldn't be repainting the content under plugins much anyway
-      // since there generally shouldn't be anything to invalidate or paint
-      // in ThebesLayers there.
-  	  return result;
+      nsTArray<nsIntRect> clip;
+      widget->GetWindowClipRegion(&clip);
+      nsTArray<nsIWidget::Configuration> configuration;
+      GetWidgetConfiguration(aBuilder, &configuration);
+      NS_ASSERTION(configuration.Length() == 1, "No configuration found");
+      if (clip != configuration[0].mClipRegion) {
+        // Something has clipped us unexpectedly. Perhaps there is a translucent
+        // chrome element overlaying us that forced us to be clipped away. Treat
+        // us as non-opaque since we may have holes.
+    	return result;
+      }
     }
   }
-
   if (f->IsOpaque()) {
     nsRect bounds = GetBounds(aBuilder, aSnap);
     if (aBuilder->IsForPluginGeometry() ||
@@ -1122,8 +1086,70 @@ nsDisplayPlugin::GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
       result = bounds;
     }
   }
-
   return result;
+}
+
+void
+nsDisplayPlugin::GetWidgetConfiguration(nsDisplayListBuilder* aBuilder,
+                                        nsTArray<nsIWidget::Configuration>* aConfigurations)
+{
+  nsObjectFrame* f = static_cast<nsObjectFrame*>(mFrame);
+  nsPoint pluginOrigin = mFrame->GetContentRectRelativeToSelf().TopLeft() +
+    ToReferenceFrame();
+  f->ComputeWidgetGeometry(mVisibleRegion, pluginOrigin, aConfigurations);
+}
+
+void
+nsObjectFrame::ComputeWidgetGeometry(const nsRegion& aRegion,
+                                     const nsPoint& aPluginOrigin,
+                                     nsTArray<nsIWidget::Configuration>* aConfigurations)
+{
+  if (!mWidget) {
+#ifndef XP_MACOSX
+    if (mInstanceOwner) {
+      // UpdateWindowVisibility will notify the plugin of position changes
+      // by updating the NPWindow and calling NPP_SetWindow/AsyncSetWindow.
+      mInstanceOwner->UpdateWindowVisibility(!aRegion.IsEmpty());
+    }
+#endif
+    return;
+  }
+
+  if (!mInnerView) {
+    return;
+  }
+
+  nsPresContext* presContext = PresContext();
+  nsRootPresContext* rootPC = presContext->GetRootPresContext();
+  if (!rootPC)
+    return;
+
+  nsIWidget::Configuration* configuration = aConfigurations->AppendElement();
+  if (!configuration)
+    return;
+  configuration->mChild = mWidget;
+
+  int32_t appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
+  nsIFrame* rootFrame = rootPC->PresShell()->FrameManager()->GetRootFrame();
+  nsRect bounds = GetContentRectRelativeToSelf() + GetOffsetToCrossDoc(rootFrame);
+  configuration->mBounds = bounds.ToNearestPixels(appUnitsPerDevPixel);
+
+  // This should produce basically the same rectangle (but not relative
+  // to the root frame). We only call this here for the side-effect of
+  // setting mViewToWidgetOffset on the view.
+  mInnerView->CalcWidgetBounds(eWindowType_plugin);
+
+  nsRegionRectIterator iter(aRegion);
+  nsIntPoint pluginOrigin = aPluginOrigin.ToNearestPixels(appUnitsPerDevPixel);
+  for (const nsRect* r = iter.Next(); r; r = iter.Next()) {
+    // Snap *r to pixels while it's relative to the painted widget, to
+    // improve consistency with rectangle and image drawing
+    nsIntRect pixRect =
+      r->ToNearestPixels(appUnitsPerDevPixel) - pluginOrigin;
+    if (!pixRect.IsEmpty()) {
+      configuration->mClipRegion.AppendElement(pixRect);
+    }
+  }
 }
 
 nsresult
@@ -1146,12 +1172,6 @@ nsObjectFrame::DidSetWidgetGeometry()
 #if defined(XP_MACOSX)
   if (mInstanceOwner) {
     mInstanceOwner->FixUpPluginWindow(nsPluginInstanceOwner::ePluginPaintEnable);
-  }
-#else
-  if (!mWidget && mInstanceOwner) {
-    // UpdateWindowVisibility will notify the plugin of position changes
-    // by updating the NPWindow and calling NPP_SetWindow/AsyncSetWindow.
-    mInstanceOwner->UpdateWindowVisibility(!mNextConfigurationBounds.IsEmpty());
   }
 #endif
 }
@@ -2265,7 +2285,7 @@ NS_NewObjectFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 }
 
 bool
-nsObjectFrame::IsPaintedByGecko() const
+nsObjectFrame::PaintedByGecko()
 {
 #ifdef XP_MACOSX
   return true;

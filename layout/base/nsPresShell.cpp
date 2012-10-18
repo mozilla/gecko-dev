@@ -3576,6 +3576,11 @@ PresShell::UnsuppressAndInvalidate()
     if (mCaretEnabled && mCaret) {
       mCaret->CheckCaretDrawingState();
     }
+
+    nsRootPresContext* rootPC = mPresContext->GetRootPresContext();
+    if (rootPC) {
+      rootPC->RequestUpdatePluginGeometry();
+    }
   }
 
   // now that painting is unsuppressed, focus may be set on the document
@@ -3881,6 +3886,14 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
     }
 
     if (aType >= Flush_Layout) {
+      // Flush plugin geometry. Don't flush plugin geometry for
+      // interruptible layouts, since WillPaint does an interruptible
+      // layout.
+      nsRootPresContext* rootPresContext = mPresContext->GetRootPresContext();
+      if (rootPresContext) {
+        rootPresContext->UpdatePluginGeometry();
+      }
+
       if (!mIsDestroying) {
         mViewManager->UpdateWidgetGeometry();
       }
@@ -6981,20 +6994,20 @@ PresShell::ShouldIgnoreInvalidation()
 void
 PresShell::WillPaint(bool aWillSendDidPaint)
 {
-  nsRootPresContext* rootPresContext = mPresContext->GetRootPresContext();
-  if (!rootPresContext) {
-    // In some edge cases, such as when we don't have a root frame yet,
-    // we can't find the root prescontext. There's nothing to do in that
-    // case.
-    return;
-  }
-
   // Don't bother doing anything if some viewmanager in our tree is painting
   // while we still have painting suppressed or we are not active.
   if (mPaintingSuppressed || !mIsActive || !IsVisible()) {
     return;
   }
 
+  nsRootPresContext* rootPresContext = mPresContext->GetRootPresContext();
+  if (!rootPresContext) {
+    return;
+  }
+
+  if (!aWillSendDidPaint && rootPresContext == mPresContext) {
+    rootPresContext->UpdatePluginGeometry();
+  }
   rootPresContext->FlushWillPaintObservers();
   if (mIsDestroying)
     return;
@@ -7009,29 +7022,17 @@ PresShell::WillPaint(bool aWillSendDidPaint)
 void
 PresShell::DidPaint()
 {
-}
-
-void
-PresShell::WillPaintWindow(bool aWillSendDidPaint)
-{
-  nsRootPresContext* rootPresContext = mPresContext->GetRootPresContext();
-  if (rootPresContext != mPresContext) {
-    // This could be a popup's presshell. We don't allow plugins in popups
-    // so there's nothing to do here.
+  if (mPaintingSuppressed || !mIsActive || !IsVisible()) {
     return;
   }
 
-  rootPresContext->ApplyPluginGeometryUpdates();
-}
+  NS_ASSERTION(mPresContext->IsRoot(), "Should only call DidPaint on root presshells");
 
-void
-PresShell::DidPaintWindow()
-{
   nsRootPresContext* rootPresContext = mPresContext->GetRootPresContext();
-  if (rootPresContext != mPresContext) {
-    // This could be a popup's presshell. No point in notifying XPConnect
-    // about compositing of popups.
-    return;
+  // This should only be called on root presshells, but maybe if a document
+  // tree is torn down we might not be a root presshell...
+  if (rootPresContext == mPresContext) {
+    rootPresContext->UpdatePluginGeometry();
   }
 
   if (nsContentUtils::XPConnect()) {
@@ -7488,6 +7489,11 @@ PresShell::DoReflow(nsIFrame* target, bool aInterruptible)
     // before our reflow event happens.
     mSuppressInterruptibleReflows = true;
     MaybeScheduleReflow();
+  }
+
+  nsRootPresContext* rootPC = mPresContext->GetRootPresContext();
+  if (rootPC) {
+    rootPC->RequestUpdatePluginGeometry();
   }
 
   return !interrupted;
