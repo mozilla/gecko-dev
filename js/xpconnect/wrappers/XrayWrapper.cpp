@@ -558,11 +558,45 @@ holder_set(JSContext *cx, JSHandleObject wrapper_, JSHandleId id, JSBool strict,
     return true;
 }
 
+template <typename T>
+static bool
+Is(JSObject *wrapper)
+{
+    JSObject *holder = GetHolder(wrapper);
+    XPCWrappedNative *wn = GetWrappedNativeFromHolder(holder);
+    nsCOMPtr<T> native = do_QueryWrappedNative(wn);
+    return !!native;
+}
+
+static JSBool
+IdentityValueOf(JSContext *cx, unsigned argc, jsval *vp)
+{
+    JS_SET_RVAL(cx, vp, JS_THIS(cx, vp));
+    return true;
+}
+
 bool
 XPCWrappedNativeXrayTraits::resolveNativeProperty(JSContext *cx, JSObject *wrapper,
                                                   JSObject *holder, jsid id, bool set,
                                                   JSPropertyDescriptor *desc)
 {
+    // Explicitly make valueOf an identity operation so that it plays better
+    // with the rest of the Xray infrastructure.
+    XPCJSRuntime* rt = nsXPConnect::GetRuntimeInstance();
+    if (id == rt->GetStringID(XPCJSRuntime::IDX_VALUE_OF) &&
+        Is<nsIDOMLocation>(wrapper))
+    {
+        JSFunction *fun = JS_NewFunctionById(cx, &IdentityValueOf, 0, 0, NULL, id);
+        if (!fun)
+            return false;
+        desc->obj = wrapper;
+        desc->attrs = 0;
+        desc->getter = NULL;
+        desc->setter = NULL;
+        desc->shortid = 0;
+        desc->value = ObjectValue(*JS_GetFunctionObject(fun));
+        return true;
+    }
     desc->obj = NULL;
 
     MOZ_ASSERT(js::GetObjectJSClass(holder) == &HolderClass);
@@ -655,16 +689,6 @@ wrappedJSObject_getter(JSContext *cx, JSHandleObject wrapper, JSHandleId id, jsv
     *vp = OBJECT_TO_JSVAL(wrapper);
 
     return WrapperFactory::WaiveXrayAndWrap(cx, vp);
-}
-
-template <typename T>
-static bool
-Is(JSObject *wrapper)
-{
-    JSObject *holder = GetHolder(wrapper);
-    XPCWrappedNative *wn = GetWrappedNativeFromHolder(holder);
-    nsCOMPtr<T> native = do_QueryWrappedNative(wn);
-    return !!native;
 }
 
 static JSBool
