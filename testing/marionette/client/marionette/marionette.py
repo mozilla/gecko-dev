@@ -75,6 +75,10 @@ class HTMLElement(object):
         return self.marionette._send_message('isElementDisplayed', 'value', element=self.id)
 
     @property
+    def size(self):
+        return self.marionette._send_message('getElementSize', 'value', element=self.id)
+
+    @property
     def tag_name(self):
         return self.marionette._send_message('getElementTagName', 'value', element=self.id)
 
