@@ -608,6 +608,9 @@ let DOMApplicationRegistry = {
       case "Webapps:UnregisterForMessages":
         this.removeMessageListener(msg, mm);
         break;
+      case "child-process-shutdown":
+        this.removeMessageListener(["Webapps:Internal:AllMessages"], mm);
+        break;
       case "Webapps:GetList":
         this.addMessageListener(["Webapps:AddApp", "Webapps:RemoveApp"], mm);
         return this.webapps;
@@ -625,9 +628,6 @@ let DOMApplicationRegistry = {
         break;
       case "Activities:Register:OK":
         this.notifyAppsRegistryReady();
-        break;
-      case "child-process-shutdown":
-        this.removeMessageListener(mm);
         break;
     }
   },
