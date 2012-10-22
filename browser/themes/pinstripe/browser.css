@@ -2052,7 +2052,7 @@ sidebarheader {
 }
 
 #appcontent ~ .sidebar-splitter {
-  -moz-border-start: 1px solid #404040;
+  -moz-border-start: 1px solid #ccc;
   -moz-border-end: none;
   -moz-margin-start: 0;
   -moz-margin-end: -3px;
@@ -4174,7 +4174,7 @@ html|*#gcli-output-frame {
   padding: 2px;
   -moz-padding-start: 6px;
   border: none;
-  border-bottom: 1px solid #404040;
+  border-bottom: 1px solid #ccc;
   cursor: pointer;
 }
 
@@ -4207,8 +4207,8 @@ html|*#gcli-output-frame {
   padding: 2px;
   height: 21px;
   width: 21px;
-  border-top: 1px solid #404040;
-  -moz-border-end: 1px solid #404040;
+  border-top: 1px solid #ccc;
+  -moz-border-end: 1px solid #ccc;
 }
 
 .chatbar-button > .toolbarbutton-icon {
@@ -4259,7 +4259,7 @@ chatbox {
   width: 260px;
   -moz-margin-start: 4px;
   background-color: white;
-  border: 1px solid #404040;
+  border: 1px solid #ccc;
   border-bottom: none;
   border-top-left-radius: @toolbarbuttonCornerRadius@;
   border-top-right-radius: @toolbarbuttonCornerRadius@;
