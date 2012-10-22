@@ -38,7 +38,7 @@ class SHA1Sum {
 public:
   static const unsigned int HashSize = 20;
   SHA1Sum();
-  void update(const uint8_t *dataIn, uint32_t len);
+  void update(const void* dataIn, uint32_t len);
   void finish(uint8_t hashout[20]);
 };
 }
