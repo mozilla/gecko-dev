@@ -144,8 +144,7 @@ public class AboutHomeContent extends ScrollView
             }
         };
 
-        mPrelimPromoBoxType = (new Random()).nextFloat() < 0.5 ? AboutHomePromoBox.Type.SYNC :
-                AboutHomePromoBox.Type.APPS;
+        mPrelimPromoBoxType = AboutHomePromoBox.Type.SYNC;
     }
 
     private void inflate() {
@@ -224,7 +223,7 @@ public class AboutHomeContent extends ScrollView
 
         AboutHomePromoBox.Type type = mPrelimPromoBoxType;
         if (syncIsSetup && type == AboutHomePromoBox.Type.SYNC)
-            type = AboutHomePromoBox.Type.APPS;
+            type = AboutHomePromoBox.Type.NONE;
 
         mPromoBox.show(type);
     }
