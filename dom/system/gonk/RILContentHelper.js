@@ -727,9 +727,8 @@ RILContentHelper.prototype = {
         }
         break;
       case "RIL:USSDReceived":
-        let res = JSON.stringify({message: msg.json.message,
-                                  sessionEnded: msg.json.sessionEnded});
-        Services.obs.notifyObservers(null, kUssdReceivedTopic, res);
+        Services.obs.notifyObservers(null, kUssdReceivedTopic,
+                                     msg.json.message);
         break;
       case "RIL:SendMMI:Return:OK":
       case "RIL:CancelMMI:Return:OK":

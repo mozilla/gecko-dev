@@ -4922,11 +4922,14 @@ RIL[UNSOLICITED_ON_USSD] = function UNSOLICITED_ON_USSD() {
     debug("On USSD. Type Code: " + typeCode + " Message: " + message);
   }
 
-  this._ussdSession = (typeCode != "0" && typeCode != "2");
+  this._ussdSession = (typeCode != "0" || typeCode != "2");
 
+  // Empty message should not be progressed to the DOM.
+  if (!message || message == "") {
+    return;
+  }
   this.sendDOMMessage({rilMessageType: "USSDReceived",
-                       message: message,
-                       sessionEnded: !this._ussdSession});
+                       message: message});
 };
 RIL[UNSOLICITED_NITZ_TIME_RECEIVED] = function UNSOLICITED_NITZ_TIME_RECEIVED() {
   let dateString = Buf.readString();

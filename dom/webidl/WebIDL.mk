@@ -53,12 +53,6 @@ webidl_files += \
   $(NULL)
 endif
 
-ifdef MOZ_B2G_RIL
-webidl_files += \
-  USSDReceivedEvent.webidl \
-  $(NULL)
-endif
-
 ifdef ENABLE_TESTS
 test_webidl_files := \
   TestCodeGen.webidl \

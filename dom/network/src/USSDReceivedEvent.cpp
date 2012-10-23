@@ -14,14 +14,13 @@ namespace dom {
 namespace network {
 
 already_AddRefed<USSDReceivedEvent>
-USSDReceivedEvent::Create(nsAString& aMessage, bool aSessionEnded)
+USSDReceivedEvent::Create(nsAString& aMessage)
 {
   NS_ASSERTION(!aMessage.IsEmpty(), "Empty message!");
 
   nsRefPtr<USSDReceivedEvent> event = new USSDReceivedEvent();
 
   event->mMessage = aMessage;
-  event->mSessionEnded = aSessionEnded;
 
   return event.forget();
 }
@@ -38,13 +37,6 @@ NS_IMETHODIMP
 USSDReceivedEvent::GetMessage(nsAString& aMessage)
 {
   aMessage.Assign(mMessage);
-  return NS_OK;
-}
-
-/* [infallible] */ NS_IMETHODIMP
-USSDReceivedEvent::GetSessionEnded(bool* aSessionEnded)
-{
-  *aSessionEnded = mSessionEnded;
   return NS_OK;
 }
 
