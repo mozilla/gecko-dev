@@ -3028,6 +3028,7 @@ FrameLayerBuilder::DrawThebesLayer(ThebesLayer* aLayer,
     (aCallbackData);
 
   FrameLayerBuilder *layerBuilder = aLayer->Manager()->GetLayerBuilder();
+  NS_ASSERTION(layerBuilder, "Unexpectedly null layer builder!");
 
   if (layerBuilder->CheckDOMModified())
     return;
