@@ -1016,5 +1016,5 @@ nsLocation::CallerSubsumes()
   bool subsumes = false;
   nsresult rv = nsContentUtils::GetSubjectPrincipal()->Subsumes(sop->GetPrincipal(), &subsumes);
   NS_ENSURE_SUCCESS(rv, false);
-  return subsumes;
+  return subsumes || nsContentUtils::CallerHasUniversalXPConnect();
 }
