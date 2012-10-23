@@ -48,12 +48,8 @@
     <item gecko:id="@+id/downloads"
           gecko:title="@string/downloads"/>
 
-#if MOZ_UPDATE_CHANNEL != beta
-#if MOZ_UPDATE_CHANNEL != release
     <item gecko:id="@+id/apps"
           gecko:title="@string/apps"/>
-#endif
-#endif
 
     <item gecko:id="@+id/char_encoding"
           gecko:visible="false"
