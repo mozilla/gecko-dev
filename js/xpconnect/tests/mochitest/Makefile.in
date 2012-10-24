@@ -19,6 +19,7 @@ MOCHITEST_FILES =	bug500931_helper.html \
 		chrome_wrappers_helper.html \
 		file_doublewrappedcompartments.html \
 		file_evalInSandbox.html \
+		test_sameOriginPolicy.html \
 		file_wrappers-2.html \
 		test_bug92773.html \
 		test_bug384632.html \
