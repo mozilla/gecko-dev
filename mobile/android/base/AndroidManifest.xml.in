@@ -14,6 +14,7 @@
     <supports-screens android:smallScreens="false" />
 #endif
 
+    <supports-screens android:smallScreens="false" />
     <uses-sdk android:minSdkVersion="8"
               android:targetSdkVersion="14"/>
 
