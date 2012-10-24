@@ -21,6 +21,7 @@
 #include "nsStringBuffer.h"
 #include "nsTArray.h"
 #include "nsStyleConsts.h"
+#include "mozilla/FloatingPoint.h"
 
 class imgIRequest;
 class nsIDocument;
@@ -348,6 +349,7 @@ public:
   float GetFloatValue() const
   {
     NS_ABORT_IF_FALSE(eCSSUnit_Number <= mUnit, "not a float value");
+    MOZ_ASSERT(!MOZ_DOUBLE_IS_NaN(mValue.mFloat));
     return mValue.mFloat;
   }
 
