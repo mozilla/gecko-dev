@@ -43,6 +43,8 @@ MOCHITEST_CHROME_FILES = \
 	test_scrolling_repaints.html \
 	test_transformed_scrolling_repaints.html \
 	test_transformed_scrolling_repaints_2.html \
+	test_dialog_with_positioning.html \
+	     dialog_with_positioning_window.xul \
 	$(NULL)
 
 ifdef MOZ_DEBUG
