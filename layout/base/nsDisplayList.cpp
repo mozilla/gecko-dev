@@ -2779,6 +2779,11 @@ nsDisplayScrollLayer::nsDisplayScrollLayer(nsDisplayListBuilder* aBuilder,
 
   NS_ASSERTION(mScrolledFrame && mScrolledFrame->GetContent(),
                "Need a child frame with content");
+  nsIFrame *parent = nsLayoutUtils::GetCrossDocParentFrame(aForFrame);
+  NS_ASSERTION(parent, "Must have a parent!");
+  mReferenceFrame = 
+    aBuilder->FindReferenceFrameFor(parent);
+  mToReferenceFrame = aForFrame->GetOffsetToCrossDoc(mReferenceFrame);
 }
 
 nsDisplayScrollLayer::nsDisplayScrollLayer(nsDisplayListBuilder* aBuilder,
@@ -2796,6 +2801,11 @@ nsDisplayScrollLayer::nsDisplayScrollLayer(nsDisplayListBuilder* aBuilder,
 
   NS_ASSERTION(mScrolledFrame && mScrolledFrame->GetContent(),
                "Need a child frame with content");
+  nsIFrame *parent = nsLayoutUtils::GetCrossDocParentFrame(aForFrame);
+  NS_ASSERTION(parent, "Must have a parent!");
+  mReferenceFrame = 
+    aBuilder->FindReferenceFrameFor(parent);
+  mToReferenceFrame = aForFrame->GetOffsetToCrossDoc(mReferenceFrame);
 }
 
 nsDisplayScrollLayer::nsDisplayScrollLayer(nsDisplayListBuilder* aBuilder,
@@ -2812,6 +2822,11 @@ nsDisplayScrollLayer::nsDisplayScrollLayer(nsDisplayListBuilder* aBuilder,
 
   NS_ASSERTION(mScrolledFrame && mScrolledFrame->GetContent(),
                "Need a child frame with content");
+  nsIFrame *parent = nsLayoutUtils::GetCrossDocParentFrame(aForFrame);
+  NS_ASSERTION(parent, "Must have a parent!");
+  mReferenceFrame = 
+    aBuilder->FindReferenceFrameFor(parent);
+  mToReferenceFrame = aForFrame->GetOffsetToCrossDoc(mReferenceFrame);
 }
 
 #ifdef NS_BUILD_REFCNT_LOGGING
@@ -2900,6 +2915,9 @@ nsDisplayScrollLayer::TryMerge(nsDisplayListBuilder* aBuilder,
   if (other->mScrolledFrame != this->mScrolledFrame) {
     return false;
   }
+
+  NS_ASSERTION(other->mReferenceFrame == mReferenceFrame,
+               "Must have the same reference frame!");
 
   FrameProperties props = mScrolledFrame->Properties();
   props.Set(nsIFrame::ScrollLayerCount(),
