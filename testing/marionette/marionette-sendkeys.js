@@ -21,7 +21,7 @@
 var type = function(doc, element, text, releaseModifiers,
     opt_keysState) {
 
-  var currentTextLength = element.value.length;
+  var currentTextLength = element.value ? element.value.length : 0;
   element.selectionStart = currentTextLength;
   element.selectionEnd = currentTextLength;
 
