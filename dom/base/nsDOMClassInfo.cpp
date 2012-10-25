@@ -7749,15 +7749,6 @@ nsNodeSH::PostCreatePrototype(JSContext * cx, JSObject * proto)
   return rv;
 }
 
-bool
-nsNodeSH::IsCapabilityEnabled(const char* aCapability)
-{
-  bool enabled;
-  return sSecMan &&
-    NS_SUCCEEDED(sSecMan->IsCapabilityEnabled(aCapability, &enabled)) &&
-    enabled;
-}
-
 NS_IMETHODIMP
 nsNodeSH::PreCreate(nsISupports *nativeObj, JSContext *cx, JSObject *globalObj,
                     JSObject **parentObj)
@@ -7793,7 +7784,7 @@ nsNodeSH::PreCreate(nsISupports *nativeObj, JSContext *cx, JSObject *globalObj,
   bool hasHadScriptHandlingObject = false;
   NS_ENSURE_STATE(doc->GetScriptHandlingObject(hasHadScriptHandlingObject) ||
                   hasHadScriptHandlingObject ||
-                  IsPrivilegedScript());
+                  nsContentUtils::IsCallerChrome());
 
   nsINode *native_parent;
 
