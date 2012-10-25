@@ -191,14 +191,6 @@ inline void SetPendingException(JSContext *cx, const PRUnichar *aMsg)
 }
 
 // DomainPolicy members
-#ifdef DEBUG_CAPS_DomainPolicyLifeCycle
-uint32_t DomainPolicy::sObjects=0;
-void DomainPolicy::_printPopulationInfo()
-{
-    printf("CAPS.DomainPolicy: Gen. %d, %d DomainPolicy objects.\n",
-        sGeneration, sObjects);
-}
-#endif
 uint32_t DomainPolicy::sGeneration = 0;
 
 // Helper class to get stuff from the ClassInfo and not waste extra time with
@@ -444,9 +436,6 @@ struct DomainEntry
     nsCString         mOrigin;
     DomainPolicy*     mDomainPolicy;
     DomainEntry*      mNext;
-#if defined(DEBUG) || defined(DEBUG_CAPS_HACKER)
-    nsCString         mPolicyName_DEBUG;
-#endif
 };
 
 static bool
@@ -681,12 +670,6 @@ nsScriptSecurityManager::CheckPropertyAccessImpl(uint32_t aAction,
     // Hold the class info data here so we don't have to go back to virtual
     // methods all the time
     ClassInfoData classInfoData(aClassInfo, aClassName);
-#ifdef DEBUG_CAPS_CheckPropertyAccessImpl
-    nsAutoCString propertyName;
-    propertyName.AssignWithConversion((PRUnichar*)IDToString(cx, aProperty));
-    printf("### CanAccess(%s.%s, %i) ", classInfoData.GetName(), 
-           propertyName.get(), aAction);
-#endif
 
     //-- Look up the security policy for this class and subject domain
     SecurityLevel securityLevel;
@@ -713,24 +696,15 @@ nsScriptSecurityManager::CheckPropertyAccessImpl(uint32_t aAction,
         switch (securityLevel.level)
         {
         case SCRIPT_SECURITY_NO_ACCESS:
-#ifdef DEBUG_CAPS_CheckPropertyAccessImpl
-            printf("noAccess ");
-#endif
             rv = NS_ERROR_DOM_PROP_ACCESS_DENIED;
             break;
 
         case SCRIPT_SECURITY_ALL_ACCESS:
-#ifdef DEBUG_CAPS_CheckPropertyAccessImpl
-            printf("allAccess ");
-#endif
             rv = NS_OK;
             break;
 
         case SCRIPT_SECURITY_SAME_ORIGIN_ACCESS:
             {
-#ifdef DEBUG_CAPS_CheckPropertyAccessImpl
-                printf("sameOrigin ");
-#endif
                 nsCOMPtr<nsIPrincipal> principalHolder;
                 if(aJSObject)
                 {
@@ -749,26 +723,17 @@ nsScriptSecurityManager::CheckPropertyAccessImpl(uint32_t aAction,
                 break;
             }
         default:
-#ifdef DEBUG_CAPS_CheckPropertyAccessImpl
-                printf("ERROR ");
-#endif
             NS_ERROR("Bad Security Level Value");
             return NS_ERROR_FAILURE;
         }
     }
     else // if SECURITY_ACCESS_LEVEL_FLAG is false, securityLevel is a capability
     {
-#ifdef DEBUG_CAPS_CheckPropertyAccessImpl
-        printf("Cap:%s ", securityLevel.capability);
-#endif
         rv = SubjectIsPrivileged() ? NS_OK : NS_ERROR_DOM_SECURITY_ERR;
     }
 
     if (NS_SUCCEEDED(rv))
     {
-#ifdef DEBUG_CAPS_CheckPropertyAccessImpl
-    printf(" GRANTED.\n");
-#endif
         return rv;
     }
 
@@ -811,12 +776,6 @@ nsScriptSecurityManager::CheckPropertyAccessImpl(uint32_t aAction,
     }
     rv = CheckXPCPermissions(cx, aObj, aJSObject, subjectPrincipal,
                              objectSecurityLevel);
-#ifdef DEBUG_CAPS_CheckPropertyAccessImpl
-    if(NS_SUCCEEDED(rv))
-        printf("CheckXPCPerms GRANTED.\n");
-    else
-        printf("CheckXPCPerms DENIED.\n");
-#endif
 
     if (NS_FAILED(rv)) //-- Security tests failed, access is denied, report error
     {
@@ -1063,9 +1022,6 @@ nsScriptSecurityManager::LookupPolicy(nsIPrincipal* aPrincipal,
     if (!dpolicy && mOriginToPolicyMap)
     {
         //-- Look up the relevant domain policy, if any
-#ifdef DEBUG_CAPS_LookupPolicy
-        printf("DomainLookup ");
-#endif
         if (nsCOMPtr<nsIExpandedPrincipal> exp = do_QueryInterface(aPrincipal)) 
         {
             // For expanded principals domain origin is not defined so let's just
@@ -1138,10 +1094,6 @@ nsScriptSecurityManager::LookupPolicy(nsIPrincipal* aPrincipal,
 
     if (!cpolicy)
     { //-- No cached policy for this class, need to look it up
-#ifdef DEBUG_CAPS_LookupPolicy
-        printf("ClassLookup ");
-#endif
-
         cpolicy = static_cast<ClassPolicy*>
                              (PL_DHashTableOperate(dpolicy,
                                                       aClassData.GetName(),
@@ -1551,9 +1503,6 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
             NS_ENSURE_TRUE(console, NS_ERROR_FAILURE);
 
             console->LogStringMessage(message.get());
-#ifdef DEBUG
-            fprintf(stderr, "%s\n", NS_ConvertUTF16toUTF8(message).get());
-#endif
         }
     }
     
@@ -1602,9 +1551,6 @@ nsScriptSecurityManager::ReportError(JSContext* cx, const nsAString& messageTag,
         NS_ENSURE_TRUE(console, NS_ERROR_FAILURE);
 
         console->LogStringMessage(message.get());
-#ifdef DEBUG
-        fprintf(stderr, "%s\n", NS_LossyConvertUTF16toASCII(message).get());
-#endif
     }
     return NS_OK;
 }
@@ -2316,18 +2262,10 @@ nsScriptSecurityManager::CanCreateWrapper(JSContext *cx,
                                           nsIClassInfo *aClassInfo,
                                           void **aPolicy)
 {
-#ifdef DEBUG_CAPS_CanCreateWrapper
-    char* iidStr = aIID.ToString();
-    printf("### CanCreateWrapper(%s) ", iidStr);
-    NS_Free(iidStr);
-#endif
 // XXX Special case for nsIXPCException ?
     ClassInfoData objClassInfo = ClassInfoData(aClassInfo, nullptr);
     if (objClassInfo.IsDOMClass())
     {
-#ifdef DEBUG_CAPS_CanCreateWrapper
-        printf("DOM class - GRANTED.\n");
-#endif
         return NS_OK;
     }
 
@@ -2374,14 +2312,6 @@ nsScriptSecurityManager::CanCreateWrapper(JSContext *cx,
         NS_ENSURE_SUCCESS(rv2, rv2);
 
         SetPendingException(cx, errorMsg.get());
-
-#ifdef DEBUG_CAPS_CanCreateWrapper
-        printf("DENIED.\n");
-    }
-    else
-    {
-        printf("GRANTED.\n");
-#endif
     }
 
     return rv;
@@ -2391,12 +2321,6 @@ NS_IMETHODIMP
 nsScriptSecurityManager::CanCreateInstance(JSContext *cx,
                                            const nsCID &aCID)
 {
-#ifdef DEBUG_CAPS_CanCreateInstance
-    char* cidStr = aCID.ToString();
-    printf("### CanCreateInstance(%s) ", cidStr);
-    NS_Free(cidStr);
-#endif
-
     nsresult rv = CheckXPCPermissions(nullptr, nullptr, nullptr, nullptr, nullptr);
     if (NS_FAILED(rv))
     {
@@ -2406,14 +2330,6 @@ nsScriptSecurityManager::CanCreateInstance(JSContext *cx,
         aCID.ToProvidedString(cidStr);
         errorMsg.Append(cidStr);
         SetPendingException(cx, errorMsg.get());
-
-#ifdef DEBUG_CAPS_CanCreateInstance
-        printf("DENIED\n");
-    }
-    else
-    {
-        printf("GRANTED\n");
-#endif
     }
     return rv;
 }
@@ -2422,12 +2338,6 @@ NS_IMETHODIMP
 nsScriptSecurityManager::CanGetService(JSContext *cx,
                                        const nsCID &aCID)
 {
-#ifdef DEBUG_CAPS_CanGetService
-    char* cidStr = aCID.ToString();
-    printf("### CanGetService(%s) ", cidStr);
-    NS_Free(cidStr);
-#endif
-
     nsresult rv = CheckXPCPermissions(nullptr, nullptr, nullptr, nullptr, nullptr);
     if (NS_FAILED(rv))
     {
@@ -2437,14 +2347,6 @@ nsScriptSecurityManager::CanGetService(JSContext *cx,
         aCID.ToProvidedString(cidStr);
         errorMsg.Append(cidStr);
         SetPendingException(cx, errorMsg.get());
-
-#ifdef DEBUG_CAPS_CanGetService
-        printf("DENIED\n");
-    }
-    else
-    {
-        printf("GRANTED\n");
-#endif
     }
 
     return rv;
@@ -2864,9 +2766,6 @@ nsScriptSecurityManager::InitPolicies()
                     domainPolicy->Drop();
                     return NS_ERROR_OUT_OF_MEMORY;
                 }
-#ifdef DEBUG
-                newEntry->mPolicyName_DEBUG = nameBegin;
-#endif
                 DomainEntry *existingEntry = (DomainEntry *)
                     mOriginToPolicyMap->Get(&key);
                 if (!existingEntry)
@@ -2914,9 +2813,6 @@ nsScriptSecurityManager::InitPolicies()
     // Reset the "dirty" flag
     mPolicyPrefsChanged = false;
 
-#ifdef DEBUG_CAPS_HACKER
-    PrintPolicyDB();
-#endif
     return NS_OK;
 }
 
@@ -3132,89 +3028,3 @@ nsScriptSecurityManager::GetExtendedOrigin(nsIURI* aURI,
   mozilla::GetExtendedOrigin(aURI, aAppId, aInMozBrowser, aExtendedOrigin);
   return NS_OK;
 }
-
-///////////////////////////////////////////////////////////////////////////////
-// The following code prints the contents of the policy DB to the console.
-#ifdef DEBUG_CAPS_HACKER
-
-//typedef PLDHashOperator
-//(* PLDHashEnumerator)(PLDHashTable *table, PLDHashEntryHdr *hdr,
-//                      uint32_t number, void *arg);
-static PLDHashOperator
-PrintPropertyPolicy(PLDHashTable *table, PLDHashEntryHdr *entry,
-                    uint32_t number, void *arg)
-{
-    PropertyPolicy* pp = (PropertyPolicy*)entry;
-    nsAutoCString prop("        ");
-    JSContext* cx = (JSContext*)arg;
-    prop.AppendInt((uint32_t)pp->key);
-    prop += ' ';
-    LossyAppendUTF16toASCII((PRUnichar*)JS_GetStringChars(pp->key), prop);
-    prop += ": Get=";
-    if (SECURITY_ACCESS_LEVEL_FLAG(pp->mGet))
-        prop.AppendInt(pp->mGet.level);
-    else
-        prop += pp->mGet.capability;
-
-    prop += " Set=";
-    if (SECURITY_ACCESS_LEVEL_FLAG(pp->mSet))
-        prop.AppendInt(pp->mSet.level);
-    else
-        prop += pp->mSet.capability;
-        
-    printf("%s.\n", prop.get());
-    return PL_DHASH_NEXT;
-}
-
-static PLDHashOperator
-PrintClassPolicy(PLDHashTable *table, PLDHashEntryHdr *entry,
-                 uint32_t number, void *arg)
-{
-    ClassPolicy* cp = (ClassPolicy*)entry;
-    printf("    %s\n", cp->key);
-
-    PL_DHashTableEnumerate(cp->mPolicy, PrintPropertyPolicy, arg);
-    return PL_DHASH_NEXT;
-}
-
-// typedef bool
-// (* nsHashtableEnumFunc)(nsHashKey *aKey, void *aData, void* aClosure);
-static bool
-PrintDomainPolicy(nsHashKey *aKey, void *aData, void* aClosure)
-{
-    DomainEntry* de = (DomainEntry*)aData;
-    printf("----------------------------\n");
-    printf("Domain: %s Policy Name: %s.\n", de->mOrigin.get(),
-           de->mPolicyName_DEBUG.get());
-    PL_DHashTableEnumerate(de->mDomainPolicy, PrintClassPolicy, aClosure);
-    return true;
-}
-
-static bool
-PrintCapability(nsHashKey *aKey, void *aData, void* aClosure)
-{
-    char* cap = (char*)aData;
-    printf("    %s.\n", cap);
-    return true;
-}
-
-void
-nsScriptSecurityManager::PrintPolicyDB()
-{
-    printf("############## Security Policies ###############\n");
-    if(mOriginToPolicyMap)
-    {
-        JSContext* cx = GetCurrentJSContext();
-        if (!cx)
-            cx = GetSafeJSContext();
-        printf("----------------------------\n");
-        printf("Domain: Default.\n");
-        PL_DHashTableEnumerate(mDefaultPolicy, PrintClassPolicy, (void*)cx);
-        mOriginToPolicyMap->Enumerate(PrintDomainPolicy, (void*)cx);
-    }
-    printf("############ End Security Policies #############\n\n");
-    printf("############## Capabilities ###############\n");
-    mCapabilities->Enumerate(PrintCapability);
-    printf("############## End Capabilities ###############\n");
-}
-#endif
