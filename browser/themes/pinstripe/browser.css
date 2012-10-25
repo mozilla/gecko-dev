@@ -3434,6 +3434,7 @@ stack[anonid=browserStack][responsivemode] {
 .chat-title {
   font-weight: bold;
   color: -moz-dialogtext;
+  text-shadow: none;
   cursor: inherit;
 }
 
