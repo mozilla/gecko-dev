@@ -485,7 +485,8 @@ nsWindow::Create(nsIWidget *aParent,
       parent = NULL;
     }
 
-    if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION) {
+    if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION &&
+        mPopupType == ePopupTypeMenu && aInitData->mDropShadow) {
       extendedStyle |= WS_EX_COMPOSITED;
     }
 
