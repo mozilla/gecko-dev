@@ -265,17 +265,14 @@ static nscoord CalcLengthWith(const nsCSSValue& aValue,
                           aCanStoreInRuleTree);
     return css::ComputeCalc(aValue, ops);
   }
-  // Common code for all units other than pixel-based units and fixed-length
-  // units:
-  aCanStoreInRuleTree = false;
-  const nsStyleFont *styleFont =
-    aStyleFont ? aStyleFont : aStyleContext->GetStyleFont();
-  if (aFontSize == -1) {
-    // XXX Should this be styleFont->mSize instead to avoid taking minfontsize
-    // prefs into account?
-    aFontSize = styleFont->mFont.size;
-  }
   switch (aValue.GetUnit()) {
+    // While we could deal with 'rem' units correctly by simply not
+    // caching any data that uses them in the rule tree, it's valuable
+    // to store them in the rule tree (for faster dynamic changes of
+    // other things).  And since the font size of the root element
+    // changes rarely, we instead handle dynamic changes to the root
+    // element's font size by rebuilding all style data in
+    // nsCSSFrameConstructor::RestyleElement.
     case eCSSUnit_RootEM: {
       aPresContext->SetUsesRootEMUnits(true);
       nscoord rootFontSize;
@@ -292,12 +289,15 @@ static nscoord CalcLengthWith(const nsCSSValue& aValue,
         // nsRuleNode::SetFont makes the same assumption!), so we should
         // use GetStyleFont on this context to get the root element's
         // font size.
+        const nsStyleFont *styleFont =
+          aStyleFont ? aStyleFont : aStyleContext->GetStyleFont();
         rootFontSize = styleFont->mFont.size;
       } else {
         // This is not the root element or we are calculating something other
         // than font size, so rem is relative to the root element's font size.
         nsRefPtr<nsStyleContext> rootStyle;
-        const nsStyleFont *rootStyleFont = styleFont;
+        const nsStyleFont *rootStyleFont =
+          aStyleFont ? aStyleFont : aStyleContext->GetStyleFont();
         Element* docElement = aPresContext->Document()->GetRootElement();
 
         if (docElement) {
@@ -313,6 +313,22 @@ static nscoord CalcLengthWith(const nsCSSValue& aValue,
 
       return ScaleCoord(aValue, float(rootFontSize));
     }
+    default:
+      // Fall through to the code for units that can't be stored in the
+      // rule tree because they depend on font data.
+      break;
+  }
+  // Common code for units that depend on the element's font data and
+  // thus can't be stored in the rule tree:
+  aCanStoreInRuleTree = false;
+  const nsStyleFont *styleFont =
+    aStyleFont ? aStyleFont : aStyleContext->GetStyleFont();
+  if (aFontSize == -1) {
+    // XXX Should this be styleFont->mSize instead to avoid taking minfontsize
+    // prefs into account?
+    aFontSize = styleFont->mFont.size;
+  }
+  switch (aValue.GetUnit()) {
     case eCSSUnit_EM: {
       return ScaleCoord(aValue, float(aFontSize));
       // XXX scale against font metrics height instead?
@@ -1445,7 +1461,7 @@ CheckFontCallback(const nsRuleData* aRuleData,
   // and 'narrower' values of 'font-stretch' depend on the parent.
   const nsCSSValue& size = *aRuleData->ValueForFontSize();
   const nsCSSValue& weight = *aRuleData->ValueForFontWeight();
-  if (size.IsRelativeLengthUnit() ||
+  if ((size.IsRelativeLengthUnit() && size.GetUnit() != eCSSUnit_RootEM) ||
       size.GetUnit() == eCSSUnit_Percent ||
       (size.GetUnit() == eCSSUnit_Enumerated &&
        (size.GetIntValue() == NS_STYLE_FONT_SIZE_SMALLER ||
