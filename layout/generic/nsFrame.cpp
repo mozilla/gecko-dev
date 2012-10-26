@@ -6852,6 +6852,10 @@ bool
 nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
                                  nsSize aNewSize)
 {
+  NS_ASSERTION(!((GetStateBits() & NS_FRAME_SVG_LAYOUT) &&
+                 (GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)),
+               "Don't call - overflow rects not maintain on these SVG frames");
+
   nsRect bounds(nsPoint(0, 0), aNewSize);
   // Store the passed in overflow area if we are a preserve-3d frame,
   // and it's not just the frame bounds.
@@ -7028,6 +7032,10 @@ nsIFrame::RecomputePerspectiveChildrenOverflow(const nsStyleContext* aStartStyle
     nsFrameList::Enumerator childFrames(lists.CurrentList());
     for (; !childFrames.AtEnd(); childFrames.Next()) {
       nsIFrame* child = childFrames.get();
+      if ((child->GetStateBits() & NS_FRAME_SVG_LAYOUT) &&
+          (child->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
+        continue; // frame does not maintain overflow rects
+      }
       if (child->HasPerspective()) {
         nsOverflowAreas* overflow = 
           static_cast<nsOverflowAreas*>(child->Properties().Get(nsIFrame::InitialOverflowProperty()));
@@ -7041,8 +7049,11 @@ nsIFrame::RecomputePerspectiveChildrenOverflow(const nsStyleContext* aStartStyle
         }
       } else if (child->GetStyleContext()->GetParent() == aStartStyle ||
                  child->GetStyleContext() == aStartStyle) {
-        // Recurse into frames with the same style context, or a direct
-        // child style context.
+        // If a frame is using perspective, then the size used to compute
+        // perspective-origin is the size of the frame belonging to its parent
+        // style context. We must find any descendant frames using our size
+        // (by recurse into frames with the same style context, or a direct
+        // child style context) to update their overflow rects too.
         child->RecomputePerspectiveChildrenOverflow(aStartStyle, nullptr);
       }
     }
@@ -7070,6 +7081,10 @@ RecomputePreserve3DChildrenOverflow(nsIFrame* aFrame, const nsRect* aBounds)
     nsFrameList::Enumerator childFrames(lists.CurrentList());
     for (; !childFrames.AtEnd(); childFrames.Next()) {
       nsIFrame* child = childFrames.get();
+      if ((child->GetStateBits() & NS_FRAME_SVG_LAYOUT) &&
+          (child->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
+        continue; // frame does not maintain overflow rects
+      }
       if (child->Preserves3DChildren()) {
         RecomputePreserve3DChildrenOverflow(child, NULL);
       } else if (child->Preserves3D()) {
