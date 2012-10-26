@@ -16,6 +16,7 @@
 #include "nsThreadUtils.h"
 #include "nsStringGlue.h"
 #include "nsIScriptSecurityManager.h"
+#include "mozilla/Preferences.h"
 
 // A note about the preload list:
 // When a site specifically disables sts by sending a header with
@@ -350,11 +351,23 @@ int STSPreloadCompare(const void *key, const void *entry)
 const nsSTSPreload *
 nsStrictTransportSecurityService::GetPreloadListEntry(const char *aHost)
 {
-  return (const nsSTSPreload *) bsearch(aHost,
-                                        kSTSPreloadList,
-                                        PR_ARRAY_SIZE(kSTSPreloadList),
-                                        sizeof(nsSTSPreload),
-                                        STSPreloadCompare);
+  PRTime currentTime = PR_Now();
+  int32_t timeOffset = 0;
+  nsresult rv = mozilla::Preferences::GetInt("test.currentTimeOffsetSeconds",
+                                             &timeOffset);
+  if (NS_SUCCEEDED(rv)) {
+    currentTime += (PRTime(timeOffset) * PR_USEC_PER_SEC);
+  }
+
+  if (currentTime < gPreloadListExpirationTime) {
+    return (const nsSTSPreload *) bsearch(aHost,
+                                          kSTSPreloadList,
+                                          PR_ARRAY_SIZE(kSTSPreloadList),
+                                          sizeof(nsSTSPreload),
+                                          STSPreloadCompare);
+  }
+
+  return nullptr;
 }
 
 NS_IMETHODIMP
