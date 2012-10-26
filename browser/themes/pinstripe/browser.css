@@ -3520,6 +3520,13 @@ stack[anonid=browserStack][responsivemode] {
   font-weight: bold;
 }
 
+.chatbar-button > menupopup > .menuitem-iconic > .menu-iconic-left > .menu-iconic-icon {
+  width: auto;
+  height: auto;
+  max-height: 16px;
+  max-width: 16px;
+}
+
 .chatbar-innerbox {
   background: transparent;
   margin: -285px 0 0;
