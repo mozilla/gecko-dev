@@ -7,6 +7,9 @@
 /* nsStrictTransportSecurityService.cpp, you shouldn't be #including it.     */
 /*****************************************************************************/
 
+#include "mozilla/StandardInteger.h"
+const PRTime gPreloadListExpirationTime = INT64_C(1362156597190000);
+
 class nsSTSPreload
 {
   public:
@@ -48,7 +51,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "www.apollo-auto.com", true },
   { "www.braintreepayments.com", false },
   { "www.cueup.com", false },
-  { "www.elanex.biz", false },
   { "www.mydigipass.com", false },
   { "www.noisebridge.net", false },
   { "www.torproject.org", false },
