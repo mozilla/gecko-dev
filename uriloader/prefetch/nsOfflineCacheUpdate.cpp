@@ -1155,6 +1155,8 @@ nsOfflineCacheUpdate::nsOfflineCacheUpdate()
     , mOnlyCheckUpdate(false)
     , mSucceeded(true)
     , mObsolete(false)
+    , mAppID(NECKO_NO_APP_ID)
+    , mInBrowser(false)
     , mItemsInProgress(0)
     , mRescheduleCount(0)
     , mPinnedEntryRetriesCount(0)
@@ -1215,7 +1217,8 @@ nsOfflineCacheUpdate::Init(nsIURI *aManifestURI,
                            nsIURI *aDocumentURI,
                            nsIDOMDocument *aDocument,
                            nsIFile *aCustomProfileDir,
-                           nsILoadContext *aLoadContext)
+                           uint32_t aAppID,
+                           bool aInBrowser)
 {
     nsresult rv;
 
@@ -1257,9 +1260,9 @@ nsOfflineCacheUpdate::Init(nsIURI *aManifestURI,
         mCustomProfileDir = aCustomProfileDir;
     }
     else {
-        rv = cacheService->BuildGroupID(aManifestURI,
-                                        aLoadContext,
-                                        mGroupID);
+        rv = cacheService->BuildGroupIDForApp(aManifestURI,
+                                              aAppID, aInBrowser,
+                                              mGroupID);
         NS_ENSURE_SUCCESS(rv, rv);
 
         rv = cacheService->GetActiveCache(mGroupID,
@@ -1276,7 +1279,8 @@ nsOfflineCacheUpdate::Init(nsIURI *aManifestURI,
                                                              &mPinned);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    mLoadContext = aLoadContext;
+    mAppID = aAppID;
+    mInBrowser = aInBrowser;
 
     mState = STATE_INITIALIZED;
     return NS_OK;
@@ -1681,7 +1685,7 @@ nsOfflineCacheUpdate::ManifestCheckCompleted(nsresult aStatus,
         // Leave aDocument argument null. Only glues and children keep
         // document instances.
         newUpdate->Init(mManifestURI, mDocumentURI, nullptr,
-                        mCustomProfileDir, mLoadContext);
+                        mCustomProfileDir, mAppID, mInBrowser);
 
         // In a rare case the manifest will not be modified on the next refetch
         // transfer all master document URIs to the new update to ensure that
