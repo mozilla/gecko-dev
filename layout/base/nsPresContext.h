@@ -933,6 +933,14 @@ public:
     mIsGlyph = aValue;
   }
 
+  bool UsesRootEMUnits() const {
+    return mUsesRootEMUnits;
+  }
+
+  void SetUsesRootEMUnits(bool aValue) {
+    mUsesRootEMUnits = aValue;
+  }
+
 protected:
   friend class nsRunnableMethod<nsPresContext>;
   NS_HIDDEN_(void) ThemeChangedInternal();
@@ -1184,6 +1192,9 @@ protected:
 
   // Are we currently drawing an SVG glyph?
   unsigned              mIsGlyph : 1;
+
+  // Does the associated document use root-em (rem) units?
+  unsigned              mUsesRootEMUnits : 1;
 
   // Is the current mUserFontSet valid?
   unsigned              mUserFontSetDirty : 1;

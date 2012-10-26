@@ -277,6 +277,7 @@ static nscoord CalcLengthWith(const nsCSSValue& aValue,
   }
   switch (aValue.GetUnit()) {
     case eCSSUnit_RootEM: {
+      aPresContext->SetUsesRootEMUnits(true);
       nscoord rootFontSize;
 
       if (aUseProvidedRootEmSize) {
