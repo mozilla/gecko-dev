@@ -756,6 +756,7 @@ JSRuntime::JSRuntime()
     gcLastGCTime(0),
     gcJitReleaseTime(0),
     gcMode(JSGC_MODE_GLOBAL),
+    gcAllocationThreshold(30),
     gcHighFrequencyGC(false),
     gcHighFrequencyTimeThreshold(1000),
     gcHighFrequencyLowLimitBytes(100 * 1024 * 1024),
@@ -2988,6 +2989,9 @@ JS_SetGCParameter(JSRuntime *rt, JSGCParamKey key, uint32_t value)
       case JSGC_ANALYSIS_PURGE_TRIGGER:
         rt->analysisPurgeTriggerBytes = value * 1024 * 1024;
         break;
+      case JSGC_ALLOCATION_THRESHOLD:
+        rt->gcAllocationThreshold = value * 1024 * 1024;
+        break;
       default:
         JS_ASSERT(key == JSGC_MODE);
         rt->gcMode = JSGCMode(value);
@@ -3036,6 +3040,8 @@ JS_GetGCParameter(JSRuntime *rt, JSGCParamKey key)
         return rt->gcDynamicMarkSlice;
       case JSGC_ANALYSIS_PURGE_TRIGGER:
         return rt->analysisPurgeTriggerBytes / 1024 / 1024;
+      case JSGC_ALLOCATION_THRESHOLD:
+        return rt->gcAllocationThreshold / 1024 / 1024;
       default:
         JS_ASSERT(key == JSGC_NUMBER);
         return uint32_t(rt->gcNumber);
