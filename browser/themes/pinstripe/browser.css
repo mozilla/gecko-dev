@@ -3327,8 +3327,17 @@ stack[anonid=browserStack][responsivemode] {
   -moz-box-orient: horizontal;
 }
 
-#social-toolbar-item > .toolbarbutton-1 {
-  margin: 0px;
+#social-toolbar-item > .toolbarbutton-1:not(:first-child):not(:last-child) {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+#social-toolbar-item > .toolbarbutton-1:first-child {
+  -moz-margin-end: 0;
+}
+
+#social-toolbar-item > .toolbarbutton-1:last-child {
+  -moz-margin-start: 0;
 }
 
 .social-notification-icon-hbox {
