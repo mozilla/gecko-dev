@@ -666,9 +666,6 @@ FunctionEnd
 
 Function .onInit
   ; We need this set up for most of the helper.exe operations.
-  !ifdef AppName
-  ${InitHashAppModelId} "$INSTDIR" "Software\Mozilla\${AppName}\TaskBarIDs"
-  !endif
   ${UninstallOnInitCommon}
 FunctionEnd
 
