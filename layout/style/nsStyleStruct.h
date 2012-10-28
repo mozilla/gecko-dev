@@ -1571,8 +1571,7 @@ struct nsStyleDisplay {
     return nsChangeHint(NS_STYLE_HINT_FRAMECHANGE |
                         nsChangeHint_UpdateOpacityLayer |
                         nsChangeHint_UpdateTransformLayer |
-                        nsChangeHint_UpdateOverflow |
-                        nsChangeHint_AddOrRemoveTransform);
+                        nsChangeHint_UpdateOverflow);
   }
 
   // We guarantee that if mBinding is non-null, so are mBinding->GetURI() and

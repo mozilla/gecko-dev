@@ -86,20 +86,12 @@ enum nsChangeHint {
   nsChangeHint_ChildrenOnlyTransform = 0x1000,
 
   /**
-   * Behaves like ReconstructFrame, but only if the frame has descendants
-   * that are absolutely or fixed position. Use this hint when a style change
-   * has changed whether the frame is a container for fixed-pos or abs-pos
-   * elements, but reframing is otherwise not needed.
-   */
-  nsChangeHint_AddOrRemoveTransform = 0x2000,
-
-  /**
    * This change hint has *no* change handling behavior.  However, it
    * exists to be a non-inherited hint, because when the border-style
    * changes, and it's inherited by a child, that might require a reflow
    * due to the border-width change on the child.
    */
-  nsChangeHint_BorderStyleNoneChange = 0x4000
+  nsChangeHint_BorderStyleNoneChange = 0x2000
 
   // IMPORTANT NOTE: When adding new hints, consider whether you need to
   // add them to NS_HintsNotHandledForDescendantsIn() below.
@@ -156,7 +148,6 @@ inline bool NS_IsHintSubset(nsChangeHint aSubset, nsChangeHint aSuperSet) {
           nsChangeHint_UpdateOpacityLayer | \
           nsChangeHint_UpdateOverflow | \
           nsChangeHint_ChildrenOnlyTransform | \
-          nsChangeHint_AddOrRemoveTransform | \
           nsChangeHint_BorderStyleNoneChange | \
           nsChangeHint_NeedReflow | \
           nsChangeHint_ClearAncestorIntrinsics)
@@ -168,7 +159,6 @@ inline nsChangeHint NS_HintsNotHandledForDescendantsIn(nsChangeHint aChangeHint)
     nsChangeHint_UpdateOpacityLayer |
     nsChangeHint_UpdateOverflow |
     nsChangeHint_ChildrenOnlyTransform |
-    nsChangeHint_AddOrRemoveTransform |
     nsChangeHint_BorderStyleNoneChange));
 
   if (!NS_IsHintSubset(nsChangeHint_NeedDirtyReflow, aChangeHint) &&
