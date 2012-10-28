@@ -87,15 +87,7 @@ enum nsChangeHint {
    * The children-only transform of an SVG frame changed, requiring the
    * overflow rects of the frame's immediate children to be updated.
    */
-  nsChangeHint_ChildrenOnlyTransform = 0x1000,
-
-  /**
-   * Behaves like ReconstructFrame, but only if the frame has descendants
-   * that are absolutely or fixed position. Use this hint when a style change
-   * has changed whether the frame is a container for fixed-pos or abs-pos
-   * elements, but reframing is otherwise not needed.
-   */
-  nsChangeHint_AddOrRemoveTransform = 0x2000
+  nsChangeHint_ChildrenOnlyTransform = 0x1000
 };
 
 // Redefine these operators to return nothing. This will catch any use
