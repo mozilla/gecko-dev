@@ -282,7 +282,7 @@ public:
     if (mSigma > SIGMA_MAX) {
       mSigma = SIGMA_MAX;
     }
-      
+
     Matrix transform = mCtx->mTarget->GetTransform();
 
     mTempRect = mgfx::Rect(0, 0, ctx->mWidth, ctx->mHeight);
@@ -310,7 +310,7 @@ public:
 
     transform._31 -= mTempRect.x;
     transform._32 -= mTempRect.y;
-      
+
     mTarget =
       mCtx->mTarget->CreateShadowDrawTarget(IntSize(int32_t(mTempRect.width), int32_t(mTempRect.height)),
                                              FORMAT_B8G8R8A8, mSigma);
@@ -332,7 +332,7 @@ public:
     }
 
     RefPtr<SourceSurface> snapshot = mTarget->Snapshot();
-    
+
     mCtx->mTarget->DrawSurfaceWithShadow(snapshot, mTempRect.TopLeft(),
                                          Color::FromABGR(mCtx->CurrentState().shadowColor),
                                          mCtx->CurrentState().shadowOffset, mSigma,
@@ -983,7 +983,7 @@ nsCanvasRenderingContext2DAzure::Render(gfxContext *ctx, gfxPattern::GraphicsFil
   }
 
   nsRefPtr<gfxASurface> surface;
-  
+
   if (NS_FAILED(GetThebesSurface(getter_AddRefs(surface)))) {
     return NS_ERROR_FAILURE;
   }
@@ -1974,7 +1974,7 @@ nsCanvasRenderingContext2DAzure::ClearRect(double x, double y, double w,
   if (!FloatValidate(x,y,w,h) || !mTarget) {
     return;
   }
- 
+
   mTarget->ClearRect(mgfx::Rect(x, y, w, h));
 
   RedrawUser(gfxRect(x, y, w, h));
@@ -2044,7 +2044,7 @@ nsCanvasRenderingContext2DAzure::FillRect(double x, double y, double w,
   }
 
   mgfx::Rect bounds;
-  
+
   EnsureTarget();
   if (NeedToDrawShadow()) {
     bounds = mgfx::Rect(x, y, w, h);
@@ -2272,7 +2272,7 @@ nsCanvasRenderingContext2DAzure::LineTo(float x, float y)
   LineTo((double)x, (double)y);
   return NS_OK;
 }
-  
+
 NS_IMETHODIMP
 nsCanvasRenderingContext2DAzure::QuadraticCurveTo(float cpx, float cpy, float x,
                                                   float y)
@@ -3228,7 +3228,7 @@ nsCanvasRenderingContext2DAzure::DrawOrMeasureText(const nsAString& aRawText,
   processor.mDoMeasureBoundingBox = doDrawShadow || !mIsEntireFrameInvalid;
   processor.mState = &CurrentState();
   processor.mFontgrp = currentFontStyle;
-    
+
   nscoord totalWidthCoord;
 
   // calls bidi algo twice since it needs the full text width and the
@@ -3393,7 +3393,7 @@ gfxFontGroup *nsCanvasRenderingContext2DAzure::GetCurrentFontStyle()
         rv = NS_ERROR_OUT_OF_MEMORY;
       }
     }
-            
+
     NS_ASSERTION(NS_SUCCEEDED(rv), "Default canvas font is invalid");
   }
 
@@ -3768,7 +3768,7 @@ nsCanvasRenderingContext2DAzure::DrawImage(const HTMLImageOrCanvasOrVideoElement
     filter = mgfx::FILTER_POINT;
 
   mgfx::Rect bounds;
-  
+
   if (NeedToDrawShadow()) {
     bounds = mgfx::Rect(dx, dy, dw, dh);
     bounds = mTarget->GetTransform().TransformBounds(bounds);
@@ -4265,7 +4265,7 @@ nsCanvasRenderingContext2DAzure::GetImageDataArray(JSContext* aCx,
 
   uint8_t* src = data;
   uint32_t srcStride = aWidth * 4;
-  
+
   RefPtr<DataSourceSurface> readback;
   if (!srcReadRect.IsEmpty()) {
     RefPtr<SourceSurface> snapshot = mTarget->Snapshot();
@@ -4528,7 +4528,7 @@ nsCanvasRenderingContext2DAzure::GetThebesSurface(gfxASurface **surface)
   EnsureTarget();
   if (!mThebesSurface) {
     mThebesSurface =
-      gfxPlatform::GetPlatform()->GetThebesSurfaceForDrawTarget(mTarget);    
+      gfxPlatform::GetPlatform()->GetThebesSurfaceForDrawTarget(mTarget);
 
     if (!mThebesSurface) {
       return NS_ERROR_FAILURE;
