@@ -3082,7 +3082,9 @@ struct NS_STACK_CLASS nsCanvasBidiProcessorAzure : public nsBidiPresUtils::BidiP
       buffer.mGlyphs = &glyphBuf.front();
       buffer.mNumGlyphs = glyphBuf.size();
 
-      Rect bounds(mBoundingBox.x, mBoundingBox.y, mBoundingBox.width, mBoundingBox.height);
+      Rect bounds = mCtx->mTarget->GetTransform().
+        TransformBounds(Rect(mBoundingBox.x, mBoundingBox.y,
+                             mBoundingBox.width, mBoundingBox.height));
       if (mOp == nsCanvasRenderingContext2DAzure::TEXT_DRAW_OPERATION_FILL) {
         AdjustedTarget(mCtx, &bounds)->
           FillGlyphs(scaledFont, buffer,
