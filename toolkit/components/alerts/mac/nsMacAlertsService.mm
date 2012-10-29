@@ -191,16 +191,8 @@ nsMacAlertsService::Init()
     do_GetService("@mozilla.org/observer-service;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // Only use Growl with OS version < 10.8.
-  SInt32 osVersion = 0;
-  OSErr err = ::Gestalt (gestaltSystemVersion, &osVersion);
-  osVersion &= 0xFFFF; // The system version is in the low order word
-  if ((err != noErr) || (osVersion < 0x00001080)) {
-    rv = InitGrowl();
-  }
-  else {
-    rv = InitNotificationCenter();
-  }
+  // Don't ever use Notification Center, it isn't ready yet.
+  InitGrowl();
 
   (void)os->AddObserver(this, DOM_WINDOW_DESTROYED_TOPIC, false);
   (void)os->AddObserver(this, "profile-before-change", false);
