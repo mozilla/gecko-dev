@@ -446,7 +446,7 @@ nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu, b
   nsPresContext* pc = PresContext();
   nsIView* view = GetView();
 
-  if (sizeChanged) {
+  if ((isOpen && mIsOpenChanged) || sizeChanged) {
     // If the size of the popup changed, apply any size constraints.
     nsIWidget* widget = view->GetWidget();
     if (widget) {
@@ -792,6 +792,13 @@ nsMenuPopupFrame::HidePopup(bool aDeselectMenu, nsPopupState aNewState)
   nsIView* view = GetView();
   nsIViewManager* viewManager = view->GetViewManager();
   viewManager->SetViewVisibility(view, nsViewVisibility_kHide);
+  nsIWidget* widget = view->GetWidget();
+  if (widget) {
+    widget::SizeConstraints sizeConstraints = widget->GetSizeConstraints();
+    sizeConstraints.mMinSize.width = sizeConstraints.mMinSize.height = 0;
+    widget->SetSizeConstraints(sizeConstraints);
+  }
+  viewManager->ResizeView(view, nsRect(0, 0, 0, 0));
 
   FireDOMEvent(NS_LITERAL_STRING("DOMMenuInactive"), mContent);
 
