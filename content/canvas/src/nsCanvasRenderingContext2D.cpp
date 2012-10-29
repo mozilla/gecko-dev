@@ -3721,8 +3721,8 @@ nsCanvasRenderingContext2D::DrawWindow(nsIDOMWindow* aWindow, float aX, float aY
         renderDocFlags |= nsIPresShell::RENDER_ASYNC_DECODE_IMAGES;
     }
 
-    nsresult rv = presContext->PresShell()->
-        RenderDocument(r, renderDocFlags, bgColor, mThebes);
+    nsCOMPtr<nsIPresShell> shell = presContext->PresShell();
+    nsresult rv = shell->RenderDocument(r, renderDocFlags, bgColor, mThebes);
 
     // get rid of the pattern surface ref, just in case
     mThebes->SetColor(gfxRGBA(1,1,1,1));

@@ -3977,8 +3977,8 @@ nsCanvasRenderingContext2DAzure::DrawWindow(nsIDOMWindow* window, double x,
     renderDocFlags |= nsIPresShell::RENDER_ASYNC_DECODE_IMAGES;
   }
 
-  unused << presContext->PresShell()->
-    RenderDocument(r, renderDocFlags, backgroundColor, thebes);
+  nsCOMPtr<nsIPresShell> shell = presContext->PresShell();
+  unused << shell->RenderDocument(r, renderDocFlags, backgroundColor, thebes);
 
   // note that x and y are coordinates in the document that
   // we're drawing; x and y are drawn to 0,0 in current user
