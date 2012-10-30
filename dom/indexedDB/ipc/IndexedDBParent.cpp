@@ -162,8 +162,8 @@ IndexedDBParent::RecvPIndexedDBDatabaseConstructor(
 
   nsRefPtr<IDBOpenDBRequest> request;
   nsresult rv =
-    mFactory->OpenCommon(aName, aVersion, false, nullptr,
-                         getter_AddRefs(request));
+    mFactory->OpenCommon(aName, aVersion, mFactory->GetASCIIOrigin(), false,
+                         nullptr, getter_AddRefs(request));
   NS_ENSURE_SUCCESS(rv, false);
 
   IndexedDBDatabaseParent* actor =
@@ -199,7 +199,8 @@ IndexedDBParent::RecvPIndexedDBDeleteDatabaseRequestConstructor(
   nsRefPtr<IDBOpenDBRequest> request;
 
   nsresult rv =
-    mFactory->OpenCommon(aName, 0, true, nullptr, getter_AddRefs(request));
+    mFactory->OpenCommon(aName, 0, mFactory->GetASCIIOrigin(), true, nullptr,
+                         getter_AddRefs(request));
   NS_ENSURE_SUCCESS(rv, false);
 
   rv = actor->SetOpenRequest(request);
