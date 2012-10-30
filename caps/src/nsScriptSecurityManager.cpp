@@ -1889,6 +1889,13 @@ nsScriptSecurityManager::GetNoAppCodebasePrincipal(nsIURI* aURI,
 }
 
 NS_IMETHODIMP
+nsScriptSecurityManager::GetCodebasePrincipal(nsIURI* aURI,
+                                              nsIPrincipal** aPrincipal)
+{
+  return GetNoAppCodebasePrincipal(aURI, aPrincipal);
+}
+
+NS_IMETHODIMP
 nsScriptSecurityManager::GetAppCodebasePrincipal(nsIURI* aURI,
                                                  uint32_t aAppId,
                                                  bool aInMozBrowser,
