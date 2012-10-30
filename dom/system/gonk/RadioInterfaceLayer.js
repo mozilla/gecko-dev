@@ -37,11 +37,13 @@ const nsIRadioInterfaceLayer = Ci.nsIRadioInterfaceLayer;
 const kNetworkInterfaceStateChangedTopic = "network-interface-state-changed";
 const kSmsReceivedObserverTopic          = "sms-received";
 const kSmsSentObserverTopic              = "sms-sent";
-const kSmsDeliveredObserverTopic         = "sms-delivered";
+const kSmsDeliverySuccessObserverTopic   = "sms-delivery-success";
+const kSmsDeliveryErrorObserverTopic     = "sms-delivery-error";
 const kMozSettingsChangedObserverTopic   = "mozsettings-changed";
 const kSysMsgListenerReadyObserverTopic  = "system-message-listener-ready";
 const kSysClockChangeObserverTopic       = "system-clock-change";
 const kTimeNitzAutomaticUpdateEnabled    = "time.nitz.automatic-update.enabled";
+
 const DOM_SMS_DELIVERY_RECEIVED          = "received";
 const DOM_SMS_DELIVERY_SENT              = "sent";
 
@@ -511,8 +513,8 @@ RadioInterfaceLayer.prototype = {
       case "sms-sent":
         this.handleSmsSent(message);
         return;
-      case "sms-delivered":
-        this.handleSmsDelivered(message);
+      case "sms-delivery":
+        this.handleSmsDelivery(message);
         return;
       case "sms-send-failed":
         this.handleSmsSendFailed(message);
@@ -1248,6 +1250,7 @@ RadioInterfaceLayer.prototype = {
     }
     let sms = gSmsService.createSmsMessage(id,
                                            DOM_SMS_DELIVERY_RECEIVED,
+                                           RIL.GECKO_SMS_DELIVERY_STATUS_SUCCESS,
                                            message.sender || null,
                                            message.receiver || null,
                                            message.fullBody || null,
@@ -1257,6 +1260,7 @@ RadioInterfaceLayer.prototype = {
     gSystemMessenger.broadcastMessage("sms-received",
                                       {id: id,
                                        delivery: DOM_SMS_DELIVERY_RECEIVED,
+                                       deliveryStatus: RIL.GECKO_SMS_DELIVERY_STATUS_SUCCESS,
                                        sender: message.sender || null,
                                        receiver: message.receiver || null,
                                        body: message.fullBody || null,
@@ -1294,6 +1298,7 @@ RadioInterfaceLayer.prototype = {
                                                  timestamp);
     let sms = gSmsService.createSmsMessage(id,
                                            DOM_SMS_DELIVERY_SENT,
+                                           RIL.GECKO_SMS_DELIVERY_STATUS_PENDING,
                                            null,
                                            options.number,
                                            options.fullBody,
@@ -1304,16 +1309,17 @@ RadioInterfaceLayer.prototype = {
       // No more used if STATUS-REPORT not requested.
       delete this._sentSmsEnvelopes[message.envelopeId];
     } else {
-      options.sms = sms;
+      options.id = id;
+      options.timestamp = timestamp;
     }
 
     gSmsRequestManager.notifySmsSent(options.requestId, sms);
 
-    Services.obs.notifyObservers(options.sms, kSmsSentObserverTopic, null);
+    Services.obs.notifyObservers(sms, kSmsSentObserverTopic, null);
   },
 
-  handleSmsDelivered: function handleSmsDelivered(message) {
-    debug("handleSmsDelivered: " + JSON.stringify(message));
+  handleSmsDelivery: function handleSmsDelivery(message) {
+    debug("handleSmsDelivery: " + JSON.stringify(message));
 
     let options = this._sentSmsEnvelopes[message.envelopeId];
     if (!options) {
@@ -1321,7 +1327,21 @@ RadioInterfaceLayer.prototype = {
     }
     delete this._sentSmsEnvelopes[message.envelopeId];
 
-    Services.obs.notifyObservers(options.sms, kSmsDeliveredObserverTopic, null);
+    gSmsDatabaseService.setMessageDeliveryStatus(options.id,
+                                                 message.deliveryStatus);
+    let sms = gSmsService.createSmsMessage(options.id,
+                                           DOM_SMS_DELIVERY_SENT,
+                                           message.deliveryStatus,
+                                           null,
+                                           options.number,
+                                           options.fullBody,
+                                           options.timestamp,
+                                           true);
+
+    let topic = (message.deliveryStatus == RIL.GECKO_SMS_DELIVERY_STATUS_SUCCESS)
+                ? kSmsDeliverySuccessObserverTopic
+                : kSmsDeliveryErrorObserverTopic;
+    Services.obs.notifyObservers(sms, topic, null);
   },
 
   handleSmsSendFailed: function handleSmsSendFailed(message) {
