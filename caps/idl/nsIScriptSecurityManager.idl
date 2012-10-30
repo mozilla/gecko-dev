@@ -10,7 +10,7 @@ interface nsIURI;
 interface nsIChannel;
 interface nsIDocShell;
 
-[scriptable, uuid(75a7afe3-d7c9-46fe-b305-ae686457bc7f)]
+[scriptable, uuid(45e12581-2c3f-4142-8e0d-4075e5a67d2d)]
 interface nsIScriptSecurityManager : nsIXPCSecurityManager
 {
     ///////////////// Security Checks //////////////////
@@ -177,6 +177,13 @@ interface nsIScriptSecurityManager : nsIXPCSecurityManager
      * The returned principal will have appId = NO_APP_ID.
      */
     nsIPrincipal getNoAppCodebasePrincipal(in nsIURI uri);
+
+    /**
+     * Legacy name for getNoAppCodebasePrincipal.
+     *
+     * @deprecated use getNoAppCodebasePrincipal instead.
+     */
+    [deprecated] nsIPrincipal getCodebasePrincipal(in nsIURI uri);
 
     ///////////////// Capabilities API /////////////////////
     /**
