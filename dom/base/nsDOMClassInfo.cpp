@@ -8023,7 +8023,7 @@ nsDOMMutationObserverSH::PreserveWrapper(nsISupports* aNative)
 // IDBFactory helper
 
 /* static */
-template<nsresult (*func)(JSContext *cx, unsigned argc, jsval *vp, bool aDelete), bool aDelete>
+template<nsresult (*func)(JSContext *, unsigned, jsval *, bool), bool aDelete>
 JSBool
 IDBFNativeShim(JSContext *cx, unsigned argc, jsval *vp)
 {
@@ -8033,7 +8033,7 @@ IDBFNativeShim(JSContext *cx, unsigned argc, jsval *vp)
     return false;
   }
 
-  return true;  
+  return true;
 }
 
 /* static */ nsresult
@@ -8057,6 +8057,10 @@ IDBFOpenForPrincipal(JSContext *cx, unsigned argc, JS::Value *vp, bool aDelete)
     return NS_ERROR_TYPE_ERR;
   }
 
+  if (aDelete) {
+    version = 0;
+  }
+
   nsDependentJSString name;
   NS_ENSURE_TRUE(name.init(cx, nameJS), NS_ERROR_UNEXPECTED);
 
@@ -8076,7 +8080,7 @@ IDBFOpenForPrincipal(JSContext *cx, unsigned argc, JS::Value *vp, bool aDelete)
     OpenCommon(name, version, extendedOrigin, aDelete, cx,
                getter_AddRefs(request));
   NS_ENSURE_SUCCESS(rv, rv);
-  
+
   return WrapNative(cx, JS_GetGlobalForScopeChain(cx),
                     static_cast<nsIIDBOpenDBRequest*>(request),
                     &NS_GET_IID(nsIIDBOpenDBRequest), true, vp);
@@ -8095,7 +8099,7 @@ IDBFactorySH::PostCreatePrototype(JSContext * cx, JSObject * proto)
                           3, JSPROP_ENUMERATE) ||
        !JS_DefineFunction(cx, proto, "deleteForPrincipal",
                           IDBFNativeShim<IDBFOpenForPrincipal, true>,
-                          3, JSPROP_ENUMERATE))) {
+                          2, JSPROP_ENUMERATE))) {
     return NS_ERROR_UNEXPECTED;
   }
 
