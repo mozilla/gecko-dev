@@ -39,9 +39,9 @@ class SHA1Sum {
 
 public:
   static const unsigned int HashSize = 20;
-  MFBT_API() SHA1Sum();
-  MFBT_API(void) update(const void* dataIn, uint32_t len);
-  MFBT_API(void) finish(uint8_t hashout[20]);
+  MFBT_API SHA1Sum();
+  MFBT_API void update(const void* dataIn, uint32_t len);
+  MFBT_API void finish(uint8_t hashout[20]);
 };
 }
 
