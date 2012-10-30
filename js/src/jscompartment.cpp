@@ -71,7 +71,7 @@ JSCompartment::JSCompartment(JSRuntime *rt)
     scriptCountsMap(NULL),
     debugScriptMap(NULL)
 {
-    setGCMaxMallocBytes(rt->gcMaxMallocBytes);
+    setGCMaxMallocBytes(rt->gcMaxMallocBytes * 0.9);
 }
 
 JSCompartment::~JSCompartment()
