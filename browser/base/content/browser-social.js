@@ -12,6 +12,7 @@ let SocialUI = {
     Services.obs.addObserver(this, "social:pref-changed", false);
     Services.obs.addObserver(this, "social:ambient-notification-changed", false);
     Services.obs.addObserver(this, "social:profile-changed", false);
+    Services.obs.addObserver(this, "social:frameworker-error", false);
 
     Services.prefs.addObserver("social.sidebar.open", this, false);
     Services.prefs.addObserver("social.toast-notifications.enabled", this, false);
@@ -29,6 +30,7 @@ let SocialUI = {
     Services.obs.removeObserver(this, "social:pref-changed");
     Services.obs.removeObserver(this, "social:ambient-notification-changed");
     Services.obs.removeObserver(this, "social:profile-changed");
+    Services.obs.removeObserver(this, "social:frameworker-error");
 
     Services.prefs.removeObserver("social.sidebar.open", this);
     Services.prefs.removeObserver("social.toast-notifications.enabled", this);
@@ -68,6 +70,12 @@ let SocialUI = {
         SocialToolbar.updateProfile();
         SocialShareButton.updateProfileInfo();
         SocialChatBar.update();
+        break;
+      case "social:frameworker-error":
+        if (Social.provider) {
+          Social.errorState = "frameworker-error";
+          SocialSidebar.setSidebarErrorMessage("frameworker-error");
+        }
         break;
       case "nsPref:changed":
         SocialSidebar.updateSidebar();
@@ -1009,6 +1017,11 @@ var SocialSidebar = {
         );
       }
     } else {
+      if (Social.errorState == "frameworker-error") {
+        SocialSidebar.setSidebarErrorMessage("frameworker-error");
+        return;
+      }
+
       // Make sure the right sidebar URL is loaded
       if (sbrowser.getAttribute("origin") != Social.provider.origin) {
         sbrowser.setAttribute("origin", Social.provider.origin);
@@ -1057,10 +1070,18 @@ var SocialSidebar = {
 
   _unloadTimeoutId: 0,
 
-  setSidebarErrorMessage: function() {
+  setSidebarErrorMessage: function(aType) {
     let sbrowser = document.getElementById("social-sidebar-browser");
-    let url = encodeURIComponent(Social.provider.sidebarURL);
-    sbrowser.loadURI("about:socialerror?mode=tryAgain&url=" + url, null, null);
+    switch (aType) {
+      case "sidebar-error":
+        let url = encodeURIComponent(Social.provider.sidebarURL);
+        sbrowser.loadURI("about:socialerror?mode=tryAgain&url=" + url, null, null);
+        break;
+
+      case "frameworker-error":
+        sbrowser.setAttribute("src", "about:socialerror?mode=workerFailure");
+        break;
+    }
   }
 }
 
@@ -1098,7 +1119,7 @@ SocialErrorListener.prototype = {
 
   onLocationChange: function SPL_onLocationChange(aWebProgress, aRequest, aLocation, aFlags) {
     let failure = aFlags & Ci.nsIWebProgressListener.LOCATION_CHANGE_ERROR_PAGE;
-    if (failure) {
+    if (failure && Social.errorState != "frameworker-error") {
       aRequest.cancel(Components.results.NS_BINDING_ABORTED);
       window.setTimeout(function(self) {
         self.setErrorMessage(aWebProgress);
@@ -1117,7 +1138,7 @@ SocialErrorListener.prototype = {
         break;
 
       case "sidebar":
-        SocialSidebar.setSidebarErrorMessage();
+        SocialSidebar.setSidebarErrorMessage("sidebar-error");
         break;
 
       case "notification-panel":
