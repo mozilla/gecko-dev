@@ -10,6 +10,7 @@ var Cc = Components.classes;
 var Cu = Components.utils;
 
 Components.utils.import("resource://specialpowers/MockFilePicker.jsm");
+Components.utils.import("resource://specialpowers/MockPermissionPrompt.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
 function SpecialPowersAPI() { 
@@ -413,6 +414,10 @@ SpecialPowersAPI.prototype = {
 
   get MockFilePicker() {
     return MockFilePicker
+  },
+
+  get MockPermissionPrompt() {
+    return MockPermissionPrompt
   },
 
   get Services() {
