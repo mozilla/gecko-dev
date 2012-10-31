@@ -100,11 +100,7 @@ BluetoothOppManager::BluetoothOppManager() : mConnected(false)
                                            , mPutFinal(false)
                                            , mWaitingForConfirmationFlag(false)
 {
-  // FIXME / Bug 800249:
-  //   mConnectedDeviceAddress is Bluetooth address of connected device,
-  //   we will be able to get this value after bug 800249 lands. For now,
-  //   just assign a fake value to it.
-  mConnectedDeviceAddress.AssignASCII("00:00:00:00:00:00");
+  mConnectedDeviceAddress.AssignLiteral("00:00:00:00:00:00");
 }
 
 BluetoothOppManager::~BluetoothOppManager()
@@ -276,6 +272,8 @@ BluetoothOppManager::AfterOppDisconnected()
     mReadFileThread->Shutdown();
     mReadFileThread = nullptr;
   }
+
+  mConnectedDeviceAddress.AssignLiteral("00:00:00:00:00:00");
 }
 
 // Virtual function of class SocketConsumer
@@ -888,6 +886,9 @@ BluetoothOppManager::ReceivingFileConfirmation(const nsString& aAddress,
 void
 BluetoothOppManager::OnConnectSuccess()
 {
+  // Cache device address since we can't get socket address when a remote
+  // device disconnect with us.
+  GetSocketAddr(mConnectedDeviceAddress);
 }
 
 void
@@ -898,4 +899,8 @@ BluetoothOppManager::OnConnectError()
 void
 BluetoothOppManager::OnDisconnect()
 {
+  // It is valid for a bluetooth device which is transfering file via OPP
+  // closing socket without sending OBEX disconnect request first. So we
+  // call AfterOppDisconnected here to ensure all variables will be cleaned.
+  AfterOppDisconnected();
 }
