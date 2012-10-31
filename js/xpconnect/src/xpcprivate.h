@@ -980,7 +980,7 @@ private:
     nsTArray<JSGCCallback> extraGCCallbacks;
     bool mWatchdogHibernating;
     PRTime mLastActiveTime; // -1 if active NOW
-    XPCIncrementalReleaseRunnable *mReleaseRunnable;
+    nsRefPtr<XPCIncrementalReleaseRunnable> mReleaseRunnable;
     js::GCSliceCallback mPrevGCSliceCallback;
 
     nsCOMPtr<nsIException>   mPendingException;
