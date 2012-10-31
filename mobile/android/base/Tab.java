@@ -20,6 +20,7 @@ import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.Build;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -163,8 +164,16 @@ public final class Tab {
     }
 
     public Bitmap getThumbnailBitmap() {
-        if (mThumbnailBitmap != null)
-            return mThumbnailBitmap;
+        // Bug 787318 - Honeycomb has a bug with bitmap caching, we can't
+        // reuse the bitmap there.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB
+            || Build.VERSION.SDK_INT > Build.VERSION_CODES.HONEYCOMB_MR2) {
+            if (mThumbnailBitmap != null)
+                return mThumbnailBitmap;
+        } else {
+            if (mThumbnailBitmap != null)
+                mThumbnailBitmap.recycle();
+        }
         return mThumbnailBitmap = Bitmap.createBitmap(getThumbnailWidth(), getThumbnailHeight(), Bitmap.Config.RGB_565);
     }
 
