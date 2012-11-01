@@ -141,10 +141,12 @@ struct CompartmentStats
 #if JS_HAS_XML_SUPPORT
       , gcHeapXML(0)
 #endif
-      , objectSlots(0)
-      , objectElements(0)
-      , objectMisc(0)
-      , objectPrivate(0)
+      , objectsExtraSlots(0)
+      , objectsExtraElements(0)
+      , objectsExtraArgumentsData(0)
+      , objectsExtraRegExpStatics(0)
+      , objectsExtraPropertyIteratorData(0)
+      , objectsExtraPrivate(0)
       , nonHugeStringChars(0)
       , shapesExtraTreeTables(0)
       , shapesExtraDictTables(0)
@@ -176,10 +178,12 @@ struct CompartmentStats
 #if JS_HAS_XML_SUPPORT
       , gcHeapXML(other.gcHeapXML)
 #endif
-      , objectSlots(other.objectSlots)
-      , objectElements(other.objectElements)
-      , objectMisc(other.objectMisc)
-      , objectPrivate(other.objectPrivate)
+      , objectsExtraSlots(other.objectsExtraSlots)
+      , objectsExtraElements(other.objectsExtraElements)
+      , objectsExtraArgumentsData(other.objectsExtraArgumentsData)
+      , objectsExtraRegExpStatics(other.objectsExtraRegExpStatics)
+      , objectsExtraPropertyIteratorData(other.objectsExtraPropertyIteratorData)
+      , objectsExtraPrivate(other.objectsExtraPrivate)
       , nonHugeStringChars(other.nonHugeStringChars)
       , shapesExtraTreeTables(other.shapesExtraTreeTables)
       , shapesExtraDictTables(other.shapesExtraDictTables)
@@ -219,10 +223,12 @@ struct CompartmentStats
     size_t gcHeapXML;
 #endif
 
-    size_t objectSlots;
-    size_t objectElements;
-    size_t objectMisc;
-    size_t objectPrivate;
+    size_t objectsExtraSlots;
+    size_t objectsExtraElements;
+    size_t objectsExtraArgumentsData;
+    size_t objectsExtraRegExpStatics;
+    size_t objectsExtraPropertyIteratorData;
+    size_t objectsExtraPrivate;
     size_t nonHugeStringChars;
     size_t shapesExtraTreeTables;
     size_t shapesExtraDictTables;
@@ -260,10 +266,12 @@ struct CompartmentStats
         ADD(gcHeapXML);
     #endif
 
-        ADD(objectSlots);
-        ADD(objectElements);
-        ADD(objectMisc);
-        ADD(objectPrivate);
+        ADD(objectsExtraSlots);
+        ADD(objectsExtraElements);
+        ADD(objectsExtraArgumentsData);
+        ADD(objectsExtraRegExpStatics);
+        ADD(objectsExtraPropertyIteratorData);
+        ADD(objectsExtraPrivate);
         ADD(nonHugeStringChars);
         ADD(shapesExtraTreeTables);
         ADD(shapesExtraDictTables);
