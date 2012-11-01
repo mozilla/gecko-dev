@@ -71,6 +71,7 @@
 #include "nsIMediaList.h"
 
 #include "ImageContainer.h"
+#include "nsIPowerManagerService.h"
 
 #ifdef MOZ_OGG
 #include "nsOggDecoder.h"
@@ -448,7 +449,7 @@ NS_IMPL_BOOL_ATTR(nsHTMLMediaElement, Controls, controls)
 NS_IMPL_BOOL_ATTR(nsHTMLMediaElement, Autoplay, autoplay)
 NS_IMPL_BOOL_ATTR(nsHTMLMediaElement, Loop, loop)
 NS_IMPL_BOOL_ATTR(nsHTMLMediaElement, DefaultMuted, muted)
-NS_IMPL_ENUM_ATTR_DEFAULT_VALUE(nsHTMLMediaElement, Preload, preload, NULL)
+NS_IMPL_ENUM_ATTR_DEFAULT_VALUE(nsHTMLMediaElement, Preload, preload, nullptr)
 NS_IMPL_ENUM_ATTR_DEFAULT_VALUE(nsHTMLMediaElement, MozAudioChannelType, mozaudiochannel, "normal")
 
 NS_IMETHODIMP
@@ -875,9 +876,9 @@ void nsHTMLMediaElement::LoadFromSourceChildren()
     if (child->GetAttr(kNameSpaceID_None, nsGkAtoms::media, media) && !media.IsEmpty()) {
       nsCSSParser cssParser;
       nsRefPtr<nsMediaList> mediaList(new nsMediaList());
-      cssParser.ParseMediaList(media, NULL, 0, mediaList, false);
+      cssParser.ParseMediaList(media, nullptr, 0, mediaList, false);
       nsIPresShell* presShell = OwnerDoc()->GetShell();
-      if (presShell && !mediaList->Matches(presShell->GetPresContext(), NULL)) {
+      if (presShell && !mediaList->Matches(presShell->GetPresContext(), nullptr)) {
         DispatchAsyncSourceError(child);
         const PRUnichar* params[] = { media.get(), src.get() };
         ReportLoadError("MediaLoadSourceMediaNotMatched", params, ArrayLength(params));
@@ -1460,7 +1461,7 @@ nsHTMLMediaElement::BuildObjectFromTags(nsCStringHashKey::KeyType aKey,
   JSString* string = JS_NewUCStringCopyZ(args->cx, wideValue.Data());
   JS::Value value = STRING_TO_JSVAL(string);
   if (!JS_DefineProperty(args->cx, args->tags, aKey.Data(), value,
-                         NULL, NULL, JSPROP_ENUMERATE)) {
+                         nullptr, nullptr, JSPROP_ENUMERATE)) {
     NS_WARNING("Failed to set metadata property");
     args->error = true;
     return PL_DHASH_STOP;
@@ -1476,7 +1477,7 @@ nsHTMLMediaElement::MozGetMetadata(JSContext* cx, JS::Value* aValue)
     return NS_ERROR_DOM_INVALID_STATE_ERR;
   }
 
-  JSObject* tags = JS_NewObject(cx, NULL, NULL, NULL);
+  JSObject* tags = JS_NewObject(cx, nullptr, nullptr, nullptr);
   if (!tags) {
     return NS_ERROR_FAILURE;
   }
@@ -1750,6 +1751,8 @@ nsHTMLMediaElement::nsHTMLMediaElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   }
 #endif
 
+  mPaused.SetOuter(this);
+
   RegisterFreezableElement();
   NotifyOwnerDocumentActivityChanged();
 }
@@ -1870,6 +1873,49 @@ NS_IMETHODIMP nsHTMLMediaElement::Play()
   UpdatePreloadAction();
 
   return NS_OK;
+}
+
+nsHTMLMediaElement::WakeLockBoolWrapper&
+nsHTMLMediaElement::WakeLockBoolWrapper::operator=(bool val) {
+  if (mValue == val) {
+    return *this;
+  }
+
+  mValue = val;
+  UpdateWakeLock();
+  return *this;
+}
+
+void
+nsHTMLMediaElement::WakeLockBoolWrapper::SetCanPlay(bool aCanPlay)
+{
+  mCanPlay = aCanPlay;
+  UpdateWakeLock();
+}
+
+void
+nsHTMLMediaElement::WakeLockBoolWrapper::UpdateWakeLock()
+{
+  if (!mOuter) {
+    return;
+
+  }
+  bool playing = (!mValue && mCanPlay);
+
+  if (playing) {
+    nsCOMPtr<nsIPowerManagerService> pmService =
+      do_GetService(POWERMANAGERSERVICE_CONTRACTID);
+    NS_ENSURE_TRUE_VOID(pmService);
+
+    if (!mWakeLock) {
+      pmService->NewWakeLock(NS_LITERAL_STRING("cpu"),
+                             mOuter->OwnerDoc()->GetWindow(),
+                             getter_AddRefs(mWakeLock));
+    }
+  } else if (mWakeLock) {
+    // Wakelock 'unlocks' itself in its destructor.
+    mWakeLock = nullptr;
+  }
 }
 
 bool nsHTMLMediaElement::ParseAttribute(int32_t aNamespaceID,
@@ -2420,7 +2466,7 @@ bool nsHTMLMediaElement::ShouldHandleMediaType(const char* aMIMEType)
   }
 #endif
 #ifdef MOZ_MEDIA_PLUGINS
-  if (IsMediaPluginsEnabled() && GetMediaPluginHost()->FindDecoder(nsDependentCString(aMIMEType), NULL))
+  if (IsMediaPluginsEnabled() && GetMediaPluginHost()->FindDecoder(nsDependentCString(aMIMEType), nullptr))
     return true;
 #endif
   // We should not return true for Wave types, since there are some
@@ -2544,7 +2590,7 @@ nsHTMLMediaElement::CreateDecoder(const nsACString& aType)
   }
 #endif
 #ifdef MOZ_MEDIA_PLUGINS
-  if (IsMediaPluginsEnabled() && GetMediaPluginHost()->FindDecoder(aType, NULL)) {
+  if (IsMediaPluginsEnabled() && GetMediaPluginHost()->FindDecoder(aType, nullptr)) {
     nsRefPtr<nsMediaPluginDecoder> decoder = new nsMediaPluginDecoder(aType);
     if (decoder->Init(this)) {
       return decoder.forget();
@@ -3676,7 +3722,7 @@ nsHTMLMediaElement::CopyInnerTo(nsGenericElement* aDest)
       if (frame && frame->GetType() == nsGkAtoms::HTMLVideoFrame &&
           static_cast<nsVideoFrame*>(frame)->ShouldDisplayPoster()) {
         nsIContent* content = static_cast<nsVideoFrame*>(frame)->GetPosterImage();
-        element = content ? content->AsElement() : NULL;
+        element = content ? content->AsElement() : nullptr;
       } else {
         element = const_cast<nsHTMLMediaElement*>(this);
       }
@@ -3852,6 +3898,7 @@ void nsHTMLMediaElement::UpdateAudioChannelPlayingState()
     if (mPlayingThroughTheAudioChannel) {
       bool canPlay;
       mAudioChannelAgent->StartPlaying(&canPlay);
+      mPaused.SetCanPlay(canPlay);
     } else {
       mAudioChannelAgent->StopPlaying();
       mAudioChannelAgent = nullptr;
@@ -3865,6 +3912,7 @@ NS_IMETHODIMP nsHTMLMediaElement::CanPlayChanged(bool canPlay)
   NS_ENSURE_TRUE(nsContentUtils::IsCallerChrome(), NS_ERROR_NOT_AVAILABLE);
 
   UpdateChannelMuteState(canPlay);
+  mPaused.SetCanPlay(canPlay);
   return NS_OK;
 }
 void nsHTMLMediaElement::NotifyAudioAvailableListener()
