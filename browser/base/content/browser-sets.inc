@@ -91,7 +91,6 @@
     <command id="Tools:DevToolbar" oncommand="DeveloperToolbar.toggle();" disabled="true" hidden="true"/>
     <command id="Tools:DevToolbarFocus" oncommand="DeveloperToolbar.focusToggle();" disabled="true"/>
     <command id="Tools:WebConsole" oncommand="HUDConsoleUI.toggleHUD();"/>
-    <command id="Tools:RemoteWebConsole" oncommand="HUDConsoleUI.toggleRemoteHUD();" disabled="true" hidden="true"/>
     <command id="Tools:Inspect" oncommand="InspectorUI.toggleInspectorUI();"/>
     <command id="Tools:Debugger" oncommand="DebuggerUI.toggleDebugger();" disabled="true" hidden="true"/>
     <command id="Tools:RemoteDebugger" oncommand="DebuggerUI.toggleRemoteDebugger();" disabled="true" hidden="true"/>
@@ -199,10 +198,6 @@
                  type="checkbox" autocheck="false"
                  key="key_webConsole"
                  command="Tools:WebConsole"/>
-    <broadcaster id="devtoolsMenuBroadcaster_RemoteWebConsole"
-                 label="&remoteWebConsoleCmd.label;"
-                 type="checkbox" autocheck="false"
-                 command="Tools:RemoteWebConsole"/>
     <broadcaster id="devtoolsMenuBroadcaster_Inspect"
                  label="&inspectMenu.label;"
                  type="checkbox" autocheck="false"

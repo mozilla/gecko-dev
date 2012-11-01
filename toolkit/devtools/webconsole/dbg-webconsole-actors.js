@@ -355,8 +355,6 @@ WebConsoleActor.prototype =
           }
           this.consoleProgressListener.startMonitor(this.consoleProgressListener.
                                                     MONITOR_LOCATION_CHANGE);
-          startedListeners.push(listener);
-          break;
       }
     }
     return {
