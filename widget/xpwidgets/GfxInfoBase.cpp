@@ -120,6 +120,9 @@ GetPrefNameForFeature(int32_t aFeature)
     case nsIGfxInfo::FEATURE_WEBGL_MSAA:
       name = BLACKLIST_PREF_BRANCH "webgl.msaa";
       break;
+    case nsIGfxInfo::FEATURE_STAGEFRIGHT:
+      name = BLACKLIST_PREF_BRANCH "stagefright";
+      break;
     default:
       break;
   };
@@ -269,7 +272,8 @@ BlacklistFeatureToGfxFeature(const nsAString& aFeature)
     return nsIGfxInfo::FEATURE_WEBGL_ANGLE;
   else if (aFeature == NS_LITERAL_STRING("WEBGL_MSAA"))
     return nsIGfxInfo::FEATURE_WEBGL_MSAA;
-
+  else if (aFeature == NS_LITERAL_STRING("STAGEFRIGHT"))
+    return nsIGfxInfo::FEATURE_STAGEFRIGHT;
   return 0;
 }
 
@@ -378,6 +382,13 @@ BlacklistEntryToDriverInfo(nsIDOMNode* aBlacklistEntry,
     aDriverInfo.mOperatingSystem = BlacklistOSToOperatingSystem(dataValue);
   }
 
+  // <osversion>14</osversion> currently only used for Android
+  if (BlacklistNodeGetChildByName(element, NS_LITERAL_STRING("osversion"),
+                                  getter_AddRefs(dataNode))) {
+    BlacklistNodeToTextValue(dataNode, dataValue);
+    aDriverInfo.mOperatingSystemVersion = strtoul(NS_LossyConvertUTF16toASCII(dataValue).get(), NULL, 10);
+  }
+
   // <vendor>0x8086</vendor>
   if (BlacklistNodeGetChildByName(element, NS_LITERAL_STRING("vendor"),
                                   getter_AddRefs(dataNode))) {
@@ -437,6 +448,31 @@ BlacklistEntryToDriverInfo(nsIDOMNode* aBlacklistEntry,
                                   getter_AddRefs(dataNode))) {
     BlacklistNodeToTextValue(dataNode, dataValue);
     aDriverInfo.mComparisonOp = BlacklistComparatorToComparisonOp(dataValue);
+  }
+
+  // <model>foo</model>
+  if (BlacklistNodeGetChildByName(element, NS_LITERAL_STRING("model"),
+                                  getter_AddRefs(dataNode))) {
+    BlacklistNodeToTextValue(dataNode, dataValue);
+    aDriverInfo.mModel = dataValue;
+  }
+  // <product>foo</product>
+  if (BlacklistNodeGetChildByName(element, NS_LITERAL_STRING("product"),
+                                  getter_AddRefs(dataNode))) {
+    BlacklistNodeToTextValue(dataNode, dataValue);
+    aDriverInfo.mProduct = dataValue;
+  }
+  // <manufacturer>foo</manufacturer>
+  if (BlacklistNodeGetChildByName(element, NS_LITERAL_STRING("manufacturer"),
+                                  getter_AddRefs(dataNode))) {
+    BlacklistNodeToTextValue(dataNode, dataValue);
+    aDriverInfo.mManufacturer = dataValue;
+  }
+  // <hardware>foo</hardware>
+  if (BlacklistNodeGetChildByName(element, NS_LITERAL_STRING("hardware"),
+                                  getter_AddRefs(dataNode))) {
+    BlacklistNodeToTextValue(dataNode, dataValue);
+    aDriverInfo.mHardware = dataValue;
   }
 
   // We explicitly ignore unknown elements.
@@ -554,6 +590,10 @@ GfxInfoBase::FindBlocklistedDeviceInList(const nsTArray<GfxDriverInfo>& info,
       continue;
     }
 
+    if (info[i].mOperatingSystemVersion && info[i].mOperatingSystemVersion != OperatingSystemVersion()) {
+        continue;
+    }
+
     if (!info[i].mAdapterVendor.Equals(GfxDriverInfo::GetDeviceVendor(VendorAll), nsCaseInsensitiveStringComparator()) &&
         !info[i].mAdapterVendor.Equals(adapterVendorID, nsCaseInsensitiveStringComparator())) {
       continue;
@@ -574,6 +614,19 @@ GfxInfoBase::FindBlocklistedDeviceInList(const nsTArray<GfxDriverInfo>& info,
     }
 
     bool match = false;
+
+    if (!info[i].mHardware.IsEmpty() && !info[i].mHardware.Equals(Hardware())) {
+        continue;
+    }
+    if (!info[i].mModel.IsEmpty() && !info[i].mModel.Equals(Model())) {
+        continue;
+    }
+    if (!info[i].mProduct.IsEmpty() && !info[i].mProduct.Equals(Product())) {
+        continue;
+    }
+    if (!info[i].mManufacturer.IsEmpty() && !info[i].mManufacturer.Equals(Manufacturer())) {
+        continue;
+    }
 
 #if defined(XP_WIN) || defined(ANDROID)
     switch (info[i].mComparisonOp) {
@@ -740,6 +793,7 @@ GfxInfoBase::EvaluateDownloadedBlacklist(nsTArray<GfxDriverInfo>& aDriverInfo)
     nsIGfxInfo::FEATURE_WEBGL_OPENGL,
     nsIGfxInfo::FEATURE_WEBGL_ANGLE,
     nsIGfxInfo::FEATURE_WEBGL_MSAA,
+    nsIGfxInfo::FEATURE_STAGEFRIGHT,
     0
   };
 
