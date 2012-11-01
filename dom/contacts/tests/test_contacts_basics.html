@@ -25,7 +25,9 @@ var comp = SpecialPowers.wrap(SpecialPowers.Components);
 comp.utils.import("resource://gre/modules/ContactService.jsm");
 comp.utils.import("resource://gre/modules/PermissionPromptHelper.jsm");
 SpecialPowers.setBoolPref("dom.mozContacts.enabled", true);
-SpecialPowers.addPermission("contacts", true, document);
+SpecialPowers.addPermission("contacts-write", true, document);
+SpecialPowers.addPermission("contacts-read", true, document);
+SpecialPowers.addPermission("contacts-create", true, document);
 
 // For Sorting
 var c1 = {
