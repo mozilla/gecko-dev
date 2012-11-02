@@ -61,11 +61,12 @@ class RemoteAutomation(Automation):
 
         return env
 
-    def waitForFinish(self, proc, utilityPath, timeout, maxTime, startTime, debuggerInfo, symbolsDir):
+    def waitForFinish(self, proc, utilityPath, timeout, maxTime, startTime, debuggerInfo, symbolsPath):
+        """ Wait for tests to finish (as evidenced by the process exiting),
+            or for maxTime elapse, in which case kill the process regardless.
+        """
         # maxTime is used to override the default timeout, we should honor that
         status = proc.wait(timeout = maxTime)
-
-        print proc.stdout
 
         if (status == 1 and self._devicemanager.processExist(proc.procName)):
             # Then we timed out, make sure Fennec is dead
@@ -166,9 +167,8 @@ class RemoteAutomation(Automation):
         def stdout(self):
             t = self.dm.getFile(self.proc)
             if t == None: return ''
-            tlen = len(t)
             retVal = t[self.stdoutlen:]
-            self.stdoutlen = tlen
+            self.stdoutlen = len(t)
             return retVal.strip('\n').strip()
 
         def wait(self, timeout = None):
@@ -185,6 +185,9 @@ class RemoteAutomation(Automation):
                 timer += interval
                 if (timer > timeout):
                     break
+
+            # Flush anything added to stdout during the sleep
+            print self.stdout
 
             if (timer >= timeout):
                 return 1
