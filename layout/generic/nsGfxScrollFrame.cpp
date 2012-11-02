@@ -1685,7 +1685,7 @@ InvalidateFixedBackgroundFramesFromList(nsDisplayListBuilder* aBuilder,
                                         const nsDisplayList& aList)
 {
   for (nsDisplayItem* item = aList.GetBottom(); item; item = item->GetAbove()) {
-    nsDisplayList* sublist = item->GetList();
+    nsDisplayList* sublist = item->GetSameCoordinateSystemChildren();
     if (sublist) {
       InvalidateFixedBackgroundFramesFromList(aBuilder, aMovingFrame, *sublist);
       continue;

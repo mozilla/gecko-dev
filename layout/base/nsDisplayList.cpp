@@ -828,7 +828,7 @@ nsDisplayList::FlattenTo(nsTArray<nsDisplayItem*>* aElements) {
   nsDisplayItem* item;
   while ((item = RemoveBottom()) != nullptr) {
     if (item->GetType() == nsDisplayItem::TYPE_WRAP_LIST) {
-      item->GetList()->FlattenTo(aElements);
+      item->GetSameCoordinateSystemChildren()->FlattenTo(aElements);
       item->~nsDisplayItem();
     } else {
       aElements->AppendElement(item);
@@ -919,7 +919,7 @@ nsDisplayList::ComputeVisibilityForSublist(nsDisplayListBuilder* aBuilder,
     nsDisplayItem* item = elements[i];
     nsDisplayItem* belowItem = i < 1 ? nullptr : elements[i - 1];
 
-    nsDisplayList* list = item->GetList();
+    nsDisplayList* list = item->GetSameCoordinateSystemChildren();
     if (aBuilder->AllowMergingAndFlattening()) {
       if (belowItem && item->TryMerge(aBuilder, belowItem)) {
         belowItem->~nsDisplayItem();
@@ -1358,7 +1358,7 @@ void nsDisplayList::ExplodeAnonymousChildLists(nsDisplayListBuilder* aBuilder) {
     if (i->GetUnderlyingFrame()) {
       tmp.AppendToTop(i);
     } else {
-      nsDisplayList* list = i->GetList();
+      nsDisplayList* list = i->GetSameCoordinateSystemChildren();
       NS_ASSERTION(list, "leaf items can't be anonymous");
       list->ExplodeAnonymousChildLists(aBuilder);
       nsDisplayItem* j;
@@ -2469,7 +2469,7 @@ bool nsDisplayWrapList::ChildrenCanBeInactive(nsDisplayListBuilder* aBuilder,
     if (state == LAYER_ACTIVE || state == LAYER_ACTIVE_FORCE)
       return false;
     if (state == LAYER_NONE) {
-      nsDisplayList* list = i->GetList();
+      nsDisplayList* list = i->GetSameCoordinateSystemChildren();
       if (list && !ChildrenCanBeInactive(aBuilder, aManager, aParameters, *list, aActiveScrolledRoot))
         return false;
     }
@@ -3770,7 +3770,7 @@ already_AddRefed<Layer> nsDisplayTransform::BuildLayer(nsDisplayListBuilder *aBu
   }
 
   nsRefPtr<ContainerLayer> container = aManager->GetLayerBuilder()->
-    BuildContainerLayerFor(aBuilder, aManager, mFrame, this, *mStoredList.GetList(),
+    BuildContainerLayerFor(aBuilder, aManager, mFrame, this, *mStoredList.GetChildren(),
                            aContainerParameters, &newTransformMatrix);
 
   // Add the preserve-3d flag for this layer, BuildContainerLayerFor clears all flags,
@@ -3812,7 +3812,7 @@ nsDisplayTransform::GetLayerState(nsDisplayListBuilder* aBuilder,
   return !mStoredList.ChildrenCanBeInactive(aBuilder,
                                             aManager,
                                             aParameters,
-                                            *mStoredList.GetList(),
+                                            *mStoredList.GetChildren(),
                                             activeScrolledRoot)
       ? LAYER_ACTIVE : LAYER_INACTIVE;
 }
