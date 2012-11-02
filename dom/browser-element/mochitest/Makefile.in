@@ -144,12 +144,14 @@ MOCHITEST_FILES = \
 		file_wyciwyg.html \
 		browserElement_ExposableURI.js \
 		test_browserElement_inproc_ExposableURI.html \
-		file_post_request.html \
-		test_browserElement_inproc_ReloadPostRequest.html \
-		browserElement_ReloadPostRequest.js \
 		browserElement_FrameWrongURI.js \
 		test_browserElement_inproc_FrameWrongURI.html \
 		file_browserElement_FrameWrongURI.html \
+		file_post_request.html \
+		test_browserElement_inproc_ReloadPostRequest.html \
+		browserElement_ReloadPostRequest.js \
+		browserElement_PurgeHistory.js \
+		test_browserElement_inproc_PurgeHistory.html \
 		$(NULL)
 
 # Disabled due to https://bugzilla.mozilla.org/show_bug.cgi?id=774100
@@ -214,9 +216,10 @@ MOCHITEST_FILES += \
 		test_browserElement_oop_DOMRequestError.html \
 		test_browserElement_oop_AppFramePermission.html \
 		test_browserElement_oop_ExposableURI.html \
-		test_browserElement_oop_ReloadPostRequest.html \
 		test_browserElement_oop_FrameWrongURI.html \
-		$(NULL)
+		test_browserElement_oop_ReloadPostRequest.html \
+		test_browserElement_oop_PurgeHistory.html \
+	$(NULL)
 endif #}
 endif #}
 
