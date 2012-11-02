@@ -365,7 +365,7 @@ void nsViewManager::Refresh(nsView *aView, const nsIntRegion& aRegion,
 #endif
       if (IsRefreshDriverPaintingEnabled()) {
         mPresShell->Paint(aView, damageRegion, nsIPresShell::PaintType_Composite,
-                          false);
+                          aWillSendDidPaint);
       } else {
         mPresShell->Paint(aView, damageRegion, nsIPresShell::PaintType_Full,
                           aWillSendDidPaint);
