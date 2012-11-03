@@ -101,6 +101,7 @@ BluetoothOppManager::BluetoothOppManager() : mConnected(false)
                                            , mWaitingForConfirmationFlag(false)
 {
   mConnectedDeviceAddress.AssignLiteral("00:00:00:00:00:00");
+  mSocketStatus = GetConnectionStatus();
 }
 
 BluetoothOppManager::~BluetoothOppManager()
@@ -173,6 +174,8 @@ BluetoothOppManager::Listen()
                                            true,
                                            true,
                                            this);
+  mSocketStatus = GetConnectionStatus();
+
   return NS_FAILED(rv) ? false : true;
 }
 
@@ -889,11 +892,16 @@ BluetoothOppManager::OnConnectSuccess()
   // Cache device address since we can't get socket address when a remote
   // device disconnect with us.
   GetSocketAddr(mConnectedDeviceAddress);
+
+  mSocketStatus = GetConnectionStatus();
 }
 
 void
 BluetoothOppManager::OnConnectError()
 {
+  CloseSocket();
+  mSocketStatus = GetConnectionStatus();
+  Listen();
 }
 
 void
@@ -903,4 +911,8 @@ BluetoothOppManager::OnDisconnect()
   // closing socket without sending OBEX disconnect request first. So we
   // call AfterOppDisconnected here to ensure all variables will be cleaned.
   AfterOppDisconnected();
+
+  if (mSocketStatus == SocketConnectionStatus::SOCKET_CONNECTED) {
+    Listen();
+  }
 }
