@@ -4162,7 +4162,7 @@ ResetIncrementalGC(JSRuntime *rt, const char *reason)
         AutoCopyFreeListToArenas copy(rt);
         for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
             if (c->isGCMarking()) {
-                c->setNeedsBarrier(false, JSCompartment::DontUpdateIon);
+                c->setNeedsBarrier(false);
                 c->setGCState(JSCompartment::NoGC);
                 wasMarking = true;
             }
@@ -4220,15 +4220,10 @@ AutoGCSlice::AutoGCSlice(JSRuntime *rt)
     rt->stackSpace.markActiveCompartments();
 
     for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
-        /*
-         * Clear needsBarrier early so we don't do any write barriers during
-         * GC. We don't need to update the Ion barriers (which is expensive)
-         * because Ion code doesn't run during GC. If need be, we'll update the
-         * Ion barriers in ~AutoGCSlice.
-         */
+        /* Clear this early so we don't do any write barriers during GC. */
         if (c->isGCMarking()) {
             JS_ASSERT(c->needsBarrier());
-            c->setNeedsBarrier(false, JSCompartment::DontUpdateIon);
+            c->setNeedsBarrier(false);
         } else {
             JS_ASSERT(!c->needsBarrier());
         }
@@ -4239,11 +4234,11 @@ AutoGCSlice::~AutoGCSlice()
 {
     for (GCCompartmentsIter c(runtime); !c.done(); c.next()) {
         if (c->isGCMarking()) {
-            c->setNeedsBarrier(true, JSCompartment::UpdateIon);
+            c->setNeedsBarrier(true);
             c->arenas.prepareForIncrementalGC(runtime);
         } else {
             JS_ASSERT(c->isGCSweeping());
-            c->setNeedsBarrier(false, JSCompartment::UpdateIon);
+            c->setNeedsBarrier(false);
         }
     }
 }
@@ -4400,7 +4395,7 @@ IncrementalCollectSlice(JSRuntime *rt,
 
       default:
         JS_ASSERT(false);
-    }
+     }
 }
 
 class IncrementalSafety
@@ -5356,7 +5351,7 @@ StartVerifyPreBarriers(JSRuntime *rt)
     rt->gcMarker.start(rt);
     for (CompartmentsIter c(rt); !c.done(); c.next()) {
         PurgeJITCaches(c);
-        c->setNeedsBarrier(true, JSCompartment::UpdateIon);
+        c->setNeedsBarrier(true);
         c->arenas.purge();
     }
 
@@ -5439,7 +5434,7 @@ EndVerifyPreBarriers(JSRuntime *rt)
             compartmentCreated = true;
 
         PurgeJITCaches(c);
-        c->setNeedsBarrier(false, JSCompartment::UpdateIon);
+        c->setNeedsBarrier(false);
     }
 
     /*

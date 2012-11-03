@@ -48,7 +48,6 @@ JSCompartment::JSCompartment(JSRuntime *rt)
     gcStoreBuffer(&gcNursery),
 #endif
     needsBarrier_(false),
-    ionUsingBarriers_(false),
     gcScheduled(false),
     gcState(NoGC),
     gcPreserveCode(false),
@@ -132,7 +131,7 @@ JSCompartment::init(JSContext *cx)
 }
 
 void
-JSCompartment::setNeedsBarrier(bool needs, ShouldUpdateIon updateIon)
+JSCompartment::setNeedsBarrier(bool needs)
 {
 #ifdef JS_METHODJIT
     /* ClearAllFrames calls compileBarriers() and needs the old value. */
@@ -142,10 +141,8 @@ JSCompartment::setNeedsBarrier(bool needs, ShouldUpdateIon updateIon)
 #endif
 
 #ifdef JS_ION
-    if (updateIon == UpdateIon && needs != ionUsingBarriers_) {
+    if (needsBarrier_ != needs)
         ion::ToggleBarriers(this, needs);
-        ionUsingBarriers_ = needs;
-    }
 #endif
 
     needsBarrier_ = needs;
