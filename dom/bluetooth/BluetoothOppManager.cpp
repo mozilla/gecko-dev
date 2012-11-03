@@ -204,10 +204,6 @@ BluetoothOppManager::SendFile(BlobParent* aActor,
 bool
 BluetoothOppManager::StopSendingFile(BluetoothReplyRunnable* aRunnable)
 {
-  if (!mBlob) {
-    return false;
-  }
-
   mAbortFlag = true;
 
   return true;
@@ -532,12 +528,16 @@ BluetoothOppManager::ReceiveSocketData(UnixSocketRawData* aMessage)
           ReceivingFileConfirmation(mConnectedDeviceAddress, sFileName,
                                     sFileLength, sContentType);
         } else {
-          ReplyToPut(mPutFinal, true);
+          ReplyToPut(mPutFinal, mAbortFlag ? false : true);
 
-          if (mPutFinal) {
+          if (mAbortFlag) {
             mReceiving = false;
-            FileTransferComplete(mConnectedDeviceAddress, true, true, sFileName,
-                                 sSentFileLength, sContentType);
+            FileTransferComplete(mConnectedDeviceAddress, false, true,
+                                 sFileName, sSentFileLength, sContentType);
+          } else if (mPutFinal) {
+            mReceiving = false;
+            FileTransferComplete(mConnectedDeviceAddress, true, true,
+                                 sFileName, sSentFileLength, sContentType);
           }
         }
       }
