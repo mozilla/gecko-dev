@@ -21,7 +21,7 @@
 #include "nsIOutputStream.h"
 #include "nsNetUtil.h"
 
-#define TARGET_FOLDER "/sdcard/download/bluetooth/"
+#define TARGET_FOLDER "/sdcard/downloads/bluetooth/"
 
 USING_BLUETOOTH_NAMESPACE
 using namespace mozilla::ipc;
@@ -134,7 +134,7 @@ BluetoothOppManager::Connect(const nsAString& aDeviceObjectPath,
   }
 
   nsString serviceUuidStr =
-    NS_ConvertUTF8toUTF16(mozilla::dom::bluetooth::BluetoothServiceUuidStr::ObjectPush);
+    NS_ConvertUTF8toUTF16(BluetoothServiceUuidStr::ObjectPush);
 
   nsRefPtr<BluetoothReplyRunnable> runnable = aRunnable;
 
@@ -513,7 +513,9 @@ BluetoothOppManager::ReceiveSocketData(UnixSocketRawData* aMessage)
                      "Invalid packet length");
         mPacketLeftLength -= receivedLength;
 
-        mOutputStream->Write((char*)&aMessage->mData[0], receivedLength, &wrote);
+        mOutputStream->Write((char*)&aMessage->mData[0],
+                             receivedLength,
+                             &wrote);
         NS_ASSERTION(receivedLength == wrote, "Writing to the file failed");
       }
 
@@ -557,7 +559,7 @@ BluetoothOppManager::SendConnectRequest()
   req[3] = 0x10; // version=1.0
   req[4] = 0x00; // flag=0x00
   req[5] = BluetoothOppManager::MAX_PACKET_LENGTH >> 8;
-  req[6] = BluetoothOppManager::MAX_PACKET_LENGTH;
+  req[6] = (uint8_t)BluetoothOppManager::MAX_PACKET_LENGTH;
 
   index += AppendHeaderConnectionId(&req[index], mConnectionId);
   SetObexPacketInfo(req, ObexRequestCode::Connect, index);
@@ -574,9 +576,10 @@ BluetoothOppManager::SendPutHeaderRequest(const nsAString& aFileName,
 {
   uint8_t* req = new uint8_t[mRemoteMaxPacketLength];
 
-  const PRUnichar* fileNamePtr = aFileName.BeginReading();
-  uint32_t len = aFileName.Length();
+  int len = aFileName.Length();
   uint8_t* fileName = new uint8_t[(len + 1) * 2];
+  const PRUnichar* fileNamePtr = aFileName.BeginReading();
+
   for (int i = 0; i < len; i++) {
     fileName[i * 2] = (uint8_t)(fileNamePtr[i] >> 8);
     fileName[i * 2 + 1] = (uint8_t)fileNamePtr[i];
@@ -683,7 +686,7 @@ BluetoothOppManager::ReplyToConnect()
   req[3] = 0x10; // version=1.0
   req[4] = 0x00; // flag=0x00
   req[5] = BluetoothOppManager::MAX_PACKET_LENGTH >> 8;
-  req[6] = BluetoothOppManager::MAX_PACKET_LENGTH;
+  req[6] = (uint8_t)BluetoothOppManager::MAX_PACKET_LENGTH;
 
   SetObexPacketInfo(req, ObexResponseCode::Success, index);
 
@@ -730,7 +733,9 @@ BluetoothOppManager::ReplyToPut(bool aFinal, bool aContinue)
     if (aFinal) {
       SetObexPacketInfo(req, ObexResponseCode::Unauthorized, index);
     } else {
-      SetObexPacketInfo(req, ObexResponseCode::Unauthorized & (~FINAL_BIT), index);
+      SetObexPacketInfo(req,
+                        ObexResponseCode::Unauthorized & (~FINAL_BIT),
+                        index);
     }
   }
 
@@ -881,7 +886,7 @@ BluetoothOppManager::ReceivingFileConfirmation(const nsString& aAddress,
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   if (!BroadcastSystemMessage(type, parameters)) {
-    NS_WARNING("Failed to broadcast [bluetooth-opp-receiving-file-confirmation]");
+    NS_WARNING("Failed to send [bluetooth-opp-receiving-file-confirmation]");
     return;
   }
 }
