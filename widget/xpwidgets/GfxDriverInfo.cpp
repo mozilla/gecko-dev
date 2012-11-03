@@ -17,7 +17,6 @@ nsAString* GfxDriverInfo::mDeviceVendors[DeviceVendorMax];
 
 GfxDriverInfo::GfxDriverInfo()
   : mOperatingSystem(DRIVER_OS_UNKNOWN),
-    mOperatingSystemVersion(0),
     mAdapterVendor(GfxDriverInfo::GetDeviceVendor(VendorAll)),
     mDevices(allDevices),
     mDeleteDevices(false),
@@ -37,7 +36,6 @@ GfxDriverInfo::GfxDriverInfo(OperatingSystem os, nsAString& vendor,
                              const char *suggestedVersion /* = nullptr */,
                              bool ownDevices /* = false */)
   : mOperatingSystem(os),
-    mOperatingSystemVersion(0),
     mAdapterVendor(vendor),
     mDevices(devices),
     mDeleteDevices(ownDevices),
@@ -51,7 +49,6 @@ GfxDriverInfo::GfxDriverInfo(OperatingSystem os, nsAString& vendor,
 
 GfxDriverInfo::GfxDriverInfo(const GfxDriverInfo& aOrig)
   : mOperatingSystem(aOrig.mOperatingSystem),
-    mOperatingSystemVersion(aOrig.mOperatingSystemVersion),
     mAdapterVendor(aOrig.mAdapterVendor),
     mFeature(aOrig.mFeature),
     mFeatureStatus(aOrig.mFeatureStatus),
