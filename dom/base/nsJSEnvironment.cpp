@@ -173,7 +173,26 @@ static uint32_t sCleanupsSinceLastGC = UINT32_MAX;
 static bool sNeedsFullCC = false;
 static nsJSContext *sContextList = nullptr;
 
-nsScriptNameSpaceManager *gNameSpaceManager;
+static nsScriptNameSpaceManager *gNameSpaceManager;
+static nsIMemoryReporter *gReporter;
+
+NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(ScriptNameSpaceManagerMallocSizeOf,
+                                     "script-namespace-manager")
+
+static int64_t
+GetScriptNameSpaceManagerSize()
+{
+  MOZ_ASSERT(gNameSpaceManager);
+  return gNameSpaceManager->SizeOfIncludingThis(
+             ScriptNameSpaceManagerMallocSizeOf);
+}
+
+NS_MEMORY_REPORTER_IMPLEMENT(ScriptNameSpaceManager,
+    "explicit/script-namespace-manager",
+    KIND_HEAP,
+    nsIMemoryReporter::UNITS_BYTES,
+    GetScriptNameSpaceManagerSize,
+    "Memory used for the script namespace manager.")
 
 static nsIJSRuntimeService *sRuntimeService;
 JSRuntime *nsJSRuntime::sRuntime;
@@ -3664,6 +3683,7 @@ nsJSRuntime::Startup()
   sDisableExplicitCompartmentGC = false;
   sNeedsFullCC = false;
   gNameSpaceManager = nullptr;
+  gReporter = nullptr;
   sRuntimeService = nullptr;
   sRuntime = nullptr;
   sIsInitialized = false;
@@ -4023,6 +4043,9 @@ nsJSRuntime::GetNameSpaceManager()
 
     nsresult rv = gNameSpaceManager->Init();
     NS_ENSURE_SUCCESS(rv, nullptr);
+
+    gReporter = new NS_MEMORY_REPORTER_NAME(ScriptNameSpaceManager);
+    NS_RegisterMemoryReporter(gReporter);
   }
 
   return gNameSpaceManager;
@@ -4039,6 +4062,10 @@ nsJSRuntime::Shutdown()
   nsJSContext::KillInterSliceGCTimer();
 
   NS_IF_RELEASE(gNameSpaceManager);
+  if (gReporter) {
+    (void)::NS_UnregisterMemoryReporter(gReporter);
+    gReporter = nullptr;
+  }
 
   if (!sContextCount) {
     // We're being shutdown, and there are no more contexts
