@@ -1033,6 +1033,8 @@ public:
       value = &mCurrentValue;
     }
 
+    nsAutoScriptBlocker scriptBlocker;
+
     mState->PrepareEditor(value);
 
     mState->mValueTransferInProgress = false;
