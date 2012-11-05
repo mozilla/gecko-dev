@@ -43,7 +43,7 @@ static struct _PT_Bookeeping
     PRCondVar *cv;              /* used to signal global things */
     PRInt32 system, user;       /* a count of the two different types */
     PRUintn this_many;          /* number of threads allowed for exit */
-    pthread_key_t key;          /* private private data key */
+    pthread_key_t key;          /* thread private data key */
     PRThread *first, *last;     /* list of threads we know about */
 #if defined(_PR_DCETHREADS) || defined(_POSIX_THREAD_PRIORITY_SCHEDULING)
     PRInt32 minPrio, maxPrio;   /* range of scheduling priorities */
@@ -975,7 +975,8 @@ void _PR_Fini(void)
         rv = pthread_setspecific(pt_book.key, NULL);
         PR_ASSERT(0 == rv);
     }
-    _PT_PTHREAD_KEY_DELETE(pt_book.key);
+    rv = pthread_key_delete(pt_book.key);
+    PR_ASSERT(0 == rv);
     /* TODO: free other resources used by NSPR */
     /* _pr_initialized = PR_FALSE; */
 }  /* _PR_Fini */
