@@ -113,7 +113,9 @@ class Navigator : public nsIDOMNavigator
 #endif
                 , public nsIDOMNavigatorCamera
                 , public nsIDOMNavigatorSystemMessages
+#ifdef MOZ_TIME_MANAGER
                 , public nsIDOMMozNavigatorTime
+#endif
 #ifdef MOZ_AUDIO_CHANNEL_MANAGER
                 , public nsIMozNavigatorAudioChannelManager
 #endif
@@ -147,7 +149,9 @@ public:
   NS_DECL_NSIDOMNAVIGATORBLUETOOTH
 #endif
   NS_DECL_NSIDOMNAVIGATORSYSTEMMESSAGES
+#ifdef MOZ_TIME_MANAGER
   NS_DECL_NSIDOMMOZNAVIGATORTIME
+#endif
 
 #ifdef MOZ_AUDIO_CHANNEL_MANAGER
   NS_DECL_NSIMOZNAVIGATORAUDIOCHANNELMANAGER
