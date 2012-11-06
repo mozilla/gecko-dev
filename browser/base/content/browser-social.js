@@ -994,6 +994,8 @@ var SocialSidebar = {
     // Hide the toggle menu item if the sidebar cannot appear
     let command = document.getElementById("Social:ToggleSidebar");
     command.hidden = !this.canShow;
+    // Bug 772808 - hidden on the command isn't inherited by menuitems.
+    document.getElementById("menu_socialSidebar").hidden = !this.canShow;
 
     // Hide the sidebar if it cannot appear, or has been toggled off.
     // Also set the command "checked" state accordingly.
