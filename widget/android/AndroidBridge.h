@@ -28,6 +28,8 @@
 #include "nsIAndroidBridge.h"
 #include "nsISmsRequest.h"
 
+#include "mozilla/StaticPtr.h"
+ 
 // Some debug #defines
 // #define DEBUG_ANDROID_EVENTS
 // #define DEBUG_ANDROID_WIDGET
@@ -368,6 +370,7 @@ public:
 
 protected:
     static AndroidBridge *sBridge;
+    static StaticAutoPtr<nsTArray<nsCOMPtr<nsISmsRequest> > > sSmsRequests;
 
     // the global JavaVM
     JavaVM *mJavaVM;
