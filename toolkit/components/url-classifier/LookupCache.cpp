@@ -99,8 +99,7 @@ LookupCache::Open()
     // Simply lacking a .cache file is a recoverable error,
     // as unlike the .pset/.sbstore files it is a pure cache.
     // Just create a new empty one.
-    Clear();
-    UpdateHeader();
+    ClearCompleteCache();
   } else {
     // Read in the .cache file
     rv = ReadHeader(inputStream);
@@ -148,7 +147,7 @@ LookupCache::Reset()
   rv = prefixsetFile->Remove(false);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  Clear();
+  ClearAll();
 
   return NS_OK;
 }
@@ -277,11 +276,18 @@ LookupCache::WriteFile()
 }
 
 void
-LookupCache::Clear()
+LookupCache::ClearAll()
 {
-  mCompletions.Clear();
+  ClearCompleteCache();
   mPrefixSet->SetPrefixes(nullptr, 0);
   mPrimed = false;
+}
+
+void
+LookupCache::ClearCompleteCache()
+{
+  mCompletions.Clear();
+  UpdateHeader();
 }
 
 void
@@ -324,8 +330,7 @@ nsresult
 LookupCache::ReadHeader(nsIInputStream* aInputStream)
 {
   if (!aInputStream) {
-    Clear();
-    UpdateHeader();
+    ClearCompleteCache();
     return NS_OK;
   }
 
