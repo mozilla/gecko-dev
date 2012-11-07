@@ -1001,8 +1001,10 @@ nsGlobalWindow::CleanUp(bool aIgnoreModalDialog)
       os->RemoveObserver(mObserver, "dom-storage2-changed");
     }
 
+#ifdef MOZ_B2G
     DisableNetworkEvent(NS_NETWORK_UPLOAD_EVENT);
     DisableNetworkEvent(NS_NETWORK_DOWNLOAD_EVENT);
+#endif // MOZ_B2G
 
     if (mIdleService) {
       mIdleService->RemoveIdleObserver(mObserver, MIN_IDLE_NOTIFICATION_TIME_S);
@@ -1201,6 +1203,9 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsGlobalWindow)
   // Make sure this matches the cast in nsGlobalWindow::FromWrapper()
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIScriptGlobalObject)
   NS_INTERFACE_MAP_ENTRY(nsIDOMWindow)
+#ifdef MOZ_B2G
+  NS_INTERFACE_MAP_ENTRY(nsIDOMWindowB2G)
+#endif // MOZ_B2G
   NS_INTERFACE_MAP_ENTRY(nsIDOMJSWindow)
   if (aIID.Equals(NS_GET_IID(nsIDOMWindowInternal))) {
     foundInterface = static_cast<nsIDOMWindowInternal*>(this);
@@ -9087,6 +9092,7 @@ nsGlobalWindow::Observe(nsISupports* aSubject, const char* aTopic,
     return NS_OK;
   }
 
+#ifdef MOZ_B2G
   if (!nsCRT::strcmp(aTopic, NS_NETWORK_ACTIVITY_BLIP_UPLOAD_TOPIC) ||
       !nsCRT::strcmp(aTopic, NS_NETWORK_ACTIVITY_BLIP_DOWNLOAD_TOPIC)) {
     nsRefPtr<nsDOMEvent> event = new nsDOMEvent(nullptr, nullptr);
@@ -9103,6 +9109,7 @@ nsGlobalWindow::Observe(nsISupports* aSubject, const char* aTopic,
     bool dummy;
     return DispatchEvent(event, &dummy);
   }
+#endif // MOZ_B2G
 
   NS_WARNING("unrecognized topic in nsGlobalWindow::Observe");
   return NS_ERROR_FAILURE;
@@ -11156,6 +11163,7 @@ nsGlobalWindow::SetHasAudioAvailableEventListeners()
   }
 }
 
+#ifdef MOZ_B2G
 void
 nsGlobalWindow::EnableNetworkEvent(uint32_t aType)
 {
@@ -11207,6 +11215,7 @@ nsGlobalWindow::DisableNetworkEvent(uint32_t aType)
       break;
   }
 }
+#endif // MOZ_B2G
 
 #define EVENT(name_, id_, type_, struct_)                                    \
   NS_IMETHODIMP nsGlobalWindow::GetOn##name_(JSContext *cx,                  \

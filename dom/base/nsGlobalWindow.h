@@ -69,6 +69,10 @@
 // JS includes
 #include "jsapi.h"
 
+#ifdef MOZ_B2G
+#include "nsIDOMWindowB2G.h"
+#endif // MOZ_B2G
+
 #define DEFAULT_HOME_PAGE "www.mozilla.org"
 #define PREF_BROWSER_STARTUP_HOMEPAGE "browser.startup.homepage"
 
@@ -271,6 +275,9 @@ class nsGlobalWindow : public nsPIDOMWindow,
                        public nsIDOMWindowPerformance,
                        public nsITouchEventReceiver,
                        public nsIInlineEventHandlers
+#ifdef MOZ_B2G
+                     , public nsIDOMWindowB2G
+#endif // MOZ_B2G
 {
 public:
   friend class nsDOMMozURLProperty;
@@ -319,6 +326,11 @@ public:
 
   // nsIDOMWindow
   NS_DECL_NSIDOMWINDOW
+
+#ifdef MOZ_B2G
+  // nsIDOMWindowB2G
+  NS_DECL_NSIDOMWINDOWB2G
+#endif // MOZ_B2G
 
   // nsIDOMWindowPerformance
   NS_DECL_NSIDOMWINDOWPERFORMANCE
@@ -541,8 +553,10 @@ public:
   virtual void EnableTimeChangeNotifications();
   virtual void DisableTimeChangeNotifications();
 
+#ifdef MOZ_B2G
   virtual void EnableNetworkEvent(uint32_t aType);
   virtual void DisableNetworkEvent(uint32_t aType);
+#endif // MOZ_B2G
 
   virtual nsresult SetArguments(nsIArray *aArguments, nsIPrincipal *aOrigin);
 

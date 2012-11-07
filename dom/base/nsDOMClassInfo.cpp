@@ -2385,6 +2385,20 @@ nsDOMClassInfo::RegisterExternalClasses()
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMUIEvent)                                    \
     DOM_CLASSINFO_EVENT_MAP_ENTRIES
 
+#ifdef MOZ_B2G
+#define DOM_CLASSINFO_WINDOW_MAP_ENTRIES(_support_indexed_db)                  \
+  DOM_CLASSINFO_MAP_ENTRY(nsIDOMWindow)                                        \
+  DOM_CLASSINFO_MAP_ENTRY(nsIDOMWindowB2G)                                     \
+  DOM_CLASSINFO_MAP_ENTRY(nsIDOMJSWindow)                                      \
+  DOM_CLASSINFO_MAP_ENTRY(nsIDOMEventTarget)                                   \
+  DOM_CLASSINFO_MAP_ENTRY(nsIInlineEventHandlers)                              \
+  DOM_CLASSINFO_MAP_CONDITIONAL_ENTRY(nsIDOMStorageIndexedDB,                  \
+                                      _support_indexed_db)                     \
+  DOM_CLASSINFO_MAP_CONDITIONAL_ENTRY(nsIDOMWindowPerformance,                 \
+                                      nsGlobalWindow::HasPerformanceSupport()) \
+  DOM_CLASSINFO_MAP_CONDITIONAL_ENTRY(nsITouchEventReceiver,                   \
+                                      nsDOMTouchEvent::PrefEnabled())
+#else // !MOZ_B2G
 #define DOM_CLASSINFO_WINDOW_MAP_ENTRIES(_support_indexed_db)                  \
   DOM_CLASSINFO_MAP_ENTRY(nsIDOMWindow)                                        \
   DOM_CLASSINFO_MAP_ENTRY(nsIDOMJSWindow)                                      \
@@ -2396,6 +2410,7 @@ nsDOMClassInfo::RegisterExternalClasses()
                                       nsGlobalWindow::HasPerformanceSupport()) \
   DOM_CLASSINFO_MAP_CONDITIONAL_ENTRY(nsITouchEventReceiver,                   \
                                       nsDOMTouchEvent::PrefEnabled())
+#endif // MOZ_B2G
 
 nsresult
 nsDOMClassInfo::Init()
