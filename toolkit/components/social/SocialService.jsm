@@ -99,6 +99,9 @@ const SocialService = {
     this._setEnabled(enable);
   },
   _setEnabled: function _setEnabled(enable) {
+    if (enable == SocialServiceInternal.enabled)
+      return;
+
     SocialServiceInternal.providerArray.forEach(function (p) p.enabled = enable);
     SocialServiceInternal.enabled = enable;
     MozSocialAPI.enabled = enable;
