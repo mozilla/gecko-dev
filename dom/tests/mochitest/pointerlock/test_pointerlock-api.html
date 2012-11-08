@@ -20,7 +20,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=633602
         /**
          * Pointer Lock tests for bug 633602.  These depend on the fullscreen api
          * which doesn't work when run in the mochitests' iframe, since the
-         * mochitests' iframe doesn't have a mozallowfullscreen attribute.  To get
+         * mochitests' iframe doesn't have a allowfullscreen attribute.  To get
          * around this, all tests are run in a child window, which can go fullscreen.
          * This method is borrowed from content/html/content/test/test_fullscreen-api.html.
          **/
@@ -39,7 +39,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=633602
         
         // Run the tests which go full-screen in new window, as Mochitests
         // normally run in an iframe, which by default will not have the
-        // mozallowfullscreen attribute set, so full-screen won't work.
+        // allowfullscreen attribute set, so full-screen won't work.
         var gTestFiles = [
           "file_approval.html",
           "file_screenClientXYConst.html",
