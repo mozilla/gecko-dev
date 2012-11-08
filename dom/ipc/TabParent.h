@@ -161,6 +161,7 @@ public:
     void UpdateFrame(const layers::FrameMetrics& aFrameMetrics);
     void HandleDoubleTap(const nsIntPoint& aPoint);
     void HandleSingleTap(const nsIntPoint& aPoint);
+    void HandleLongTap(const nsIntPoint& aPoint);
     void Activate();
     void Deactivate();
 
