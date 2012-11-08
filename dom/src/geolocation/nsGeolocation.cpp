@@ -42,6 +42,7 @@
 #include "mozilla/unused.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/ClearOnShutdown.h"
 
 #include <math.h>
 
@@ -113,10 +114,9 @@ public:
 
   void MozSettingValue(const bool aValue)
   {
-    // It is theoretically possible to shut down before the first settings check
-    // has completed (though extremely unlikely).
-    if (nsGeolocationService::gService) {
-      nsGeolocationService::gService->HandleMozsettingValue(aValue);
+    nsRefPtr<nsGeolocationService> gs = nsGeolocationService::GetGeolocationService();
+    if (gs) {
+      gs->HandleMozsettingValue(aValue);
     }
   }
 };
@@ -384,10 +384,10 @@ nsGeolocationRequest::Cancel()
 NS_IMETHODIMP
 nsGeolocationRequest::Allow()
 {
-  nsRefPtr<nsGeolocationService> geoService = nsGeolocationService::GetInstance();
+  nsRefPtr<nsGeolocationService> gs = nsGeolocationService::GetGeolocationService();
 
   // Kick off the geo device, if it isn't already running
-  nsresult rv = geoService->StartDevice();
+  nsresult rv = gs->StartDevice();
 
   if (NS_FAILED(rv)) {
     // Location provider error
@@ -395,7 +395,7 @@ nsGeolocationRequest::Allow()
     return NS_OK;
   }
 
-  nsCOMPtr<nsIDOMGeoPosition> lastPosition = geoService->GetCachedPosition();
+  nsCOMPtr<nsIDOMGeoPosition> lastPosition = gs->GetCachedPosition();
   DOMTimeStamp cachedPositionTime;
   if (lastPosition) {
     lastPosition->GetTimestamp(&cachedPositionTime);
@@ -414,7 +414,7 @@ nsGeolocationRequest::Allow()
       maximumAge = mOptions->maximumAge;
     }
     if (mOptions->enableHighAccuracy) {
-      geoService->SetHigherAccuracy(true);
+      gs->SetHigherAccuracy(true);
     }
   }
 
@@ -522,9 +522,9 @@ void
 nsGeolocationRequest::Shutdown()
 {
   if (mOptions && mOptions->enableHighAccuracy) {
-    nsRefPtr<nsGeolocationService> geoService = nsGeolocationService::GetInstance();
-    if (geoService) {
-      geoService->SetHigherAccuracy(false);
+    nsRefPtr<nsGeolocationService> gs = nsGeolocationService::GetGeolocationService();
+    if (gs) {
+      gs->SetHigherAccuracy(false);
     }
   }
 
@@ -903,31 +903,24 @@ nsGeolocationService::StopDevice()
   }
 }
 
-nsGeolocationService* nsGeolocationService::gService = nullptr;
+nsRefPtr<nsGeolocationService> nsGeolocationService::sService;
 
-nsGeolocationService*
-nsGeolocationService::GetInstance()
-{
-  if (!nsGeolocationService::gService) {
-    nsGeolocationService::gService = new nsGeolocationService();
-    NS_ASSERTION(nsGeolocationService::gService, "null nsGeolocationService.");
-
-    if (nsGeolocationService::gService) {
-      if (NS_FAILED(nsGeolocationService::gService->Init())) {
-        delete nsGeolocationService::gService;
-        nsGeolocationService::gService = nullptr;
-      }
-    }
-  }
-  return nsGeolocationService::gService;
-}
-
-nsGeolocationService*
+already_AddRefed<nsGeolocationService>
 nsGeolocationService::GetGeolocationService()
 {
-  nsGeolocationService* inst = nsGeolocationService::GetInstance();
-  NS_IF_ADDREF(inst);
-  return inst;
+  nsRefPtr<nsGeolocationService> result;
+  if (nsGeolocationService::sService) {
+    result = nsGeolocationService::sService;
+    return result.forget();
+  }
+
+  result = new nsGeolocationService();
+  if (NS_FAILED(result->Init())) {
+    return nullptr;
+  }
+  ClearOnShutdown(&nsGeolocationService::sService);
+  nsGeolocationService::sService = result;
+  return result.forget();
 }
 
 void
@@ -1017,7 +1010,7 @@ nsGeolocation::Init(nsIDOMWindow* aContentDom)
   // If no aContentDom was passed into us, we are being used
   // by chrome/c++ and have no mOwner, no mPrincipal, and no need
   // to prompt.
-  mService = nsGeolocationService::GetInstance();
+  mService = nsGeolocationService::GetGeolocationService();
   if (mService) {
     mService->AddLocator(this);
   }
