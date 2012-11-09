@@ -1452,7 +1452,7 @@ ion::SideCannon(JSContext *cx, StackFrame *fp, jsbytecode *pc)
 }
 
 IonExecStatus
-ion::FastInvoke(JSContext *cx, HandleFunction fun, CallArgs &args)
+ion::FastInvoke(JSContext *cx, HandleFunction fun, CallArgsList &args)
 {
     JS_CHECK_RECURSION(cx, return IonExec_Error);
 
@@ -1494,7 +1494,9 @@ ion::FastInvoke(JSContext *cx, HandleFunction fun, CallArgs &args)
     Value result = Int32Value(fun->nargs);
 
     JSAutoResolveFlags rf(cx, RESOLVE_INFER);
+    args.setActive();
     enter(jitcode, args.length() + 1, &args[0] - 1, fp, calleeToken, &result);
+    args.setInactive();
 
     if (clearCallingIntoIon)
         fp->clearCallingIntoIon();
