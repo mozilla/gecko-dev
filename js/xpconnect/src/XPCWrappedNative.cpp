@@ -26,6 +26,7 @@
 #include "mozilla/Util.h"
 
 using namespace xpc;
+using namespace mozilla;
 
 bool
 xpc_OkToHandOutWrapper(nsWrapperCache *cache)
@@ -1804,6 +1805,15 @@ XPCWrappedNative::GetWrappedNativeOfJSObject(JSContext* cx,
     XPCWrappedNativeProto* proto = nullptr;
     nsIClassInfo* protoClassInfo = nullptr;
 
+    // When an object is unwrapped (near the bottom of this function), we need
+    // to enter its compartment. Unfortunately, given the crazy usage of gotos,
+    // scoped JSAutoCompartments are pretty much impossible. So instead, we use
+    // a single Maybe<JSAutoCompartment>, and let anyone who wants to enter a
+    // compartment destroy and then reconstruct it.
+    Maybe<JSAutoCompartment> mac;
+    if (cx)
+        mac.construct(cx, obj);
+
     // If we were passed a function object then we need to find the correct
     // wrapper out of those that might be in the callee obj's proto chain.
 
@@ -1833,6 +1843,10 @@ XPCWrappedNative::GetWrappedNativeOfJSObject(JSContext* cx,
     }
 
   restart:
+    if (cx) {
+        mac.destroy();
+        mac.construct(cx, obj);
+    }
     for (cur = obj; cur; ) {
         // this is on two lines to make the compiler happy given the goto.
         js::Class* clazz;
