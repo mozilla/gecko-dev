@@ -1456,18 +1456,18 @@ RegisterThemeGeometry(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
       borderBox.ToNearestPixels(aFrame->PresContext()->AppUnitsPerDevPixel()));
 }
 
-nsDisplayBackground::nsDisplayBackground(nsDisplayListBuilder* aBuilder,
-                                         nsIFrame* aFrame,
-                                         uint32_t aLayer,
-                                         bool aIsThemed,
-                                         const nsStyleBackground* aBackgroundStyle)
+nsDisplayBackgroundImage::nsDisplayBackgroundImage(nsDisplayListBuilder* aBuilder,
+                                                   nsIFrame* aFrame,
+                                                   uint32_t aLayer,
+                                                   bool aIsThemed,
+                                                   const nsStyleBackground* aBackgroundStyle)
   : nsDisplayItem(aBuilder, aFrame)
   , mBackgroundStyle(aBackgroundStyle)
   , mLayer(aLayer)
   , mIsThemed(aIsThemed)
   , mIsBottommostLayer(true)
 {
-  MOZ_COUNT_CTOR(nsDisplayBackground);
+  MOZ_COUNT_CTOR(nsDisplayBackgroundImage);
 
   if (mIsThemed) {
     const nsStyleDisplay* disp = mFrame->GetStyleDisplay();
@@ -1494,18 +1494,18 @@ nsDisplayBackground::nsDisplayBackground(nsDisplayListBuilder* aBuilder,
   }
 }
 
-nsDisplayBackground::~nsDisplayBackground()
+nsDisplayBackgroundImage::~nsDisplayBackgroundImage()
 {
 #ifdef NS_BUILD_REFCNT_LOGGING
-  MOZ_COUNT_DTOR(nsDisplayBackground);
+  MOZ_COUNT_DTOR(nsDisplayBackgroundImage);
 #endif
 }
 
 /*static*/ nsresult
-nsDisplayBackground::AppendBackgroundItemsToTop(nsDisplayListBuilder* aBuilder,
-                                                nsIFrame* aFrame,
-                                                nsDisplayList* aList,
-                                                nsDisplayBackground** aBackground)
+nsDisplayBackgroundImage::AppendBackgroundItemsToTop(nsDisplayListBuilder* aBuilder,
+                                                     nsIFrame* aFrame,
+                                                     nsDisplayList* aList,
+                                                     nsDisplayBackgroundImage** aBackground)
 {
   nsStyleContext* bgSC = nullptr;
   const nsStyleBackground* bg = nullptr;
@@ -1535,8 +1535,8 @@ nsDisplayBackground::AppendBackgroundItemsToTop(nsDisplayListBuilder* aBuilder,
   // i = 0.
   bool backgroundSet = !aBackground;
   NS_FOR_VISIBLE_BACKGROUND_LAYERS_BACK_TO_FRONT(i, bg) {
-    nsDisplayBackground* bgItem =
-      new (aBuilder) nsDisplayBackground(aBuilder, aFrame, i, isThemed, bg);
+    nsDisplayBackgroundImage* bgItem =
+      new (aBuilder) nsDisplayBackgroundImage(aBuilder, aFrame, i, isThemed, bg);
     nsresult rv = aList->AppendNewToTop(bgItem);
     if (rv != NS_OK) {
       return rv;
@@ -1645,7 +1645,8 @@ static bool RoundedRectContainsRect(const nsRect& aRoundedRect,
 }
 
 bool
-nsDisplayBackground::IsSingleFixedPositionImage(nsDisplayListBuilder* aBuilder, const nsRect& aClipRect)
+nsDisplayBackgroundImage::IsSingleFixedPositionImage(nsDisplayListBuilder* aBuilder,
+                                                     const nsRect& aClipRect)
 {
   if (mIsThemed || !mBackgroundStyle)
     return false;
@@ -1703,7 +1704,7 @@ nsDisplayBackground::IsSingleFixedPositionImage(nsDisplayListBuilder* aBuilder, 
 }
 
 bool
-nsDisplayBackground::TryOptimizeToImageLayer(nsDisplayListBuilder* aBuilder)
+nsDisplayBackgroundImage::TryOptimizeToImageLayer(nsDisplayListBuilder* aBuilder)
 {
   if (mIsThemed || !mBackgroundStyle)
     return false;
@@ -1770,9 +1771,9 @@ nsDisplayBackground::TryOptimizeToImageLayer(nsDisplayListBuilder* aBuilder)
 }
 
 LayerState
-nsDisplayBackground::GetLayerState(nsDisplayListBuilder* aBuilder,
-                                   LayerManager* aManager,
-                                   const FrameLayerBuilder::ContainerParameters& aParameters)
+nsDisplayBackgroundImage::GetLayerState(nsDisplayListBuilder* aBuilder,
+                                        LayerManager* aManager,
+                                        const FrameLayerBuilder::ContainerParameters& aParameters)
 {
   if (!aManager->IsCompositingCheap() ||
       !nsLayoutUtils::GPUImageScalingEnabled() ||
@@ -1805,9 +1806,9 @@ nsDisplayBackground::GetLayerState(nsDisplayListBuilder* aBuilder,
 }
 
 already_AddRefed<Layer>
-nsDisplayBackground::BuildLayer(nsDisplayListBuilder* aBuilder,
-                                LayerManager* aManager,
-                                const ContainerParameters& aParameters)
+nsDisplayBackgroundImage::BuildLayer(nsDisplayListBuilder* aBuilder,
+                                     LayerManager* aManager,
+                                     const ContainerParameters& aParameters)
 {
   nsRefPtr<ImageLayer> layer = aManager->CreateImageLayer();
   layer->SetContainer(mImageContainer);
@@ -1816,7 +1817,7 @@ nsDisplayBackground::BuildLayer(nsDisplayListBuilder* aBuilder,
 }
 
 void
-nsDisplayBackground::ConfigureLayer(ImageLayer* aLayer)
+nsDisplayBackgroundImage::ConfigureLayer(ImageLayer* aLayer)
 {
   aLayer->SetFilter(nsLayoutUtils::GetGraphicsFilterForFrame(mFrame));
 
@@ -1832,10 +1833,10 @@ nsDisplayBackground::ConfigureLayer(ImageLayer* aLayer)
 }
 
 void
-nsDisplayBackground::HitTest(nsDisplayListBuilder* aBuilder,
-                             const nsRect& aRect,
-                             HitTestState* aState,
-                             nsTArray<nsIFrame*> *aOutFrames)
+nsDisplayBackgroundImage::HitTest(nsDisplayListBuilder* aBuilder,
+                                  const nsRect& aRect,
+                                  HitTestState* aState,
+                                  nsTArray<nsIFrame*> *aOutFrames)
 {
   if (mIsThemed) {
     // For theme backgrounds, assume that any point in our border rect is a hit.
@@ -1852,9 +1853,9 @@ nsDisplayBackground::HitTest(nsDisplayListBuilder* aBuilder,
 }
 
 bool
-nsDisplayBackground::ComputeVisibility(nsDisplayListBuilder* aBuilder,
-                                       nsRegion* aVisibleRegion,
-                                       const nsRect& aAllowVisibleRegionExpansion)
+nsDisplayBackgroundImage::ComputeVisibility(nsDisplayListBuilder* aBuilder,
+                                            nsRegion* aVisibleRegion,
+                                            const nsRect& aAllowVisibleRegionExpansion)
 {
   if (!nsDisplayItem::ComputeVisibility(aBuilder, aVisibleRegion,
                                         aAllowVisibleRegionExpansion)) {
@@ -1868,10 +1869,10 @@ nsDisplayBackground::ComputeVisibility(nsDisplayListBuilder* aBuilder,
 }
 
 /* static */ nsRegion
-nsDisplayBackground::GetInsideClipRegion(nsDisplayItem* aItem,
-                                         nsPresContext* aPresContext,
-                                         uint8_t aClip, const nsRect& aRect,
-                                         bool* aSnap)
+nsDisplayBackgroundImage::GetInsideClipRegion(nsDisplayItem* aItem,
+                                              nsPresContext* aPresContext,
+                                              uint8_t aClip, const nsRect& aRect,
+                                              bool* aSnap)
 {
   nsRegion result;
   if (aRect.IsEmpty())
@@ -1910,8 +1911,8 @@ nsDisplayBackground::GetInsideClipRegion(nsDisplayItem* aItem,
 }
 
 nsRegion
-nsDisplayBackground::GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
-                                     bool* aSnap) {
+nsDisplayBackgroundImage::GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
+                                          bool* aSnap) {
   nsRegion result;
   *aSnap = false;
   // theme background overrides any other background
@@ -1949,7 +1950,7 @@ nsDisplayBackground::GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
 }
 
 bool
-nsDisplayBackground::IsUniform(nsDisplayListBuilder* aBuilder, nscolor* aColor) {
+nsDisplayBackgroundImage::IsUniform(nsDisplayListBuilder* aBuilder, nscolor* aColor) {
   // theme background overrides any other background
   if (mIsThemed) {
     const nsStyleDisplay* disp = mFrame->GetStyleDisplay();
@@ -1973,8 +1974,8 @@ nsDisplayBackground::IsUniform(nsDisplayListBuilder* aBuilder, nscolor* aColor) 
 }
 
 bool
-nsDisplayBackground::IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder,
-                                                    nsIFrame* aFrame)
+nsDisplayBackgroundImage::IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder,
+                                                         nsIFrame* aFrame)
 {
   // theme background overrides any other background and is never fixed
   if (mIsThemed)
@@ -1994,7 +1995,7 @@ nsDisplayBackground::IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuild
 }
 
 nsRect
-nsDisplayBackground::GetPositioningArea()
+nsDisplayBackgroundImage::GetPositioningArea()
 {
   if (!mBackgroundStyle) {
     return nsRect();
@@ -2008,7 +2009,7 @@ nsDisplayBackground::GetPositioningArea()
 }
 
 bool
-nsDisplayBackground::RenderingMightDependOnPositioningAreaSizeChange()
+nsDisplayBackgroundImage::RenderingMightDependOnPositioningAreaSizeChange()
 {
   // theme background overrides any other background and we don't know what to do here
   if (mIsThemed)
@@ -2045,8 +2046,8 @@ static void CheckForBorderItem(nsDisplayItem *aItem, uint32_t& aFlags)
 }
 
 void
-nsDisplayBackground::Paint(nsDisplayListBuilder* aBuilder,
-                           nsRenderingContext* aCtx) {
+nsDisplayBackgroundImage::Paint(nsDisplayListBuilder* aBuilder,
+                                nsRenderingContext* aCtx) {
 
   nsPoint offset = ToReferenceFrame();
   uint32_t flags = aBuilder->GetBackgroundPaintFlags();
@@ -2057,9 +2058,9 @@ nsDisplayBackground::Paint(nsDisplayListBuilder* aBuilder,
                                   flags, nullptr, mLayer);
 }
 
-void nsDisplayBackground::ComputeInvalidationRegion(nsDisplayListBuilder* aBuilder,
-                                                    const nsDisplayItemGeometry* aGeometry,
-                                                    nsRegion* aInvalidRegion)
+void nsDisplayBackgroundImage::ComputeInvalidationRegion(nsDisplayListBuilder* aBuilder,
+                                                         const nsDisplayItemGeometry* aGeometry,
+                                                         nsRegion* aInvalidRegion)
 {
   if (!mBackgroundStyle) {
     return;
@@ -2086,7 +2087,7 @@ void nsDisplayBackground::ComputeInvalidationRegion(nsDisplayListBuilder* aBuild
 }
 
 nsRect
-nsDisplayBackground::GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) {
+nsDisplayBackgroundImage::GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) {
   *aSnap = true;
   nsPresContext* presContext = mFrame->PresContext();
 
@@ -2114,7 +2115,7 @@ nsDisplayBackground::GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) {
 }
 
 uint32_t
-nsDisplayBackground::GetPerFrameKey()
+nsDisplayBackgroundImage::GetPerFrameKey()
 {
   return (mLayer << nsDisplayItem::TYPE_BITS) |
     nsDisplayItem::GetPerFrameKey();
@@ -2153,7 +2154,7 @@ nsDisplayBackgroundColor::GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
   const nsStyleBackground::Layer& bottomLayer = mBackgroundStyle->BottomLayer();
   nsRect borderBox = nsRect(ToReferenceFrame(), mFrame->GetSize());
   nsPresContext* presContext = mFrame->PresContext();
-  return nsDisplayBackground::GetInsideClipRegion(this, presContext, bottomLayer.mClip, borderBox, aSnap);
+  return nsDisplayBackgroundImage::GetInsideClipRegion(this, presContext, bottomLayer.mClip, borderBox, aSnap);
 }
 
 bool

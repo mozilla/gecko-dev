@@ -1477,7 +1477,7 @@ nsresult
 nsFrame::DisplayBackgroundUnconditional(nsDisplayListBuilder*   aBuilder,
                                         const nsDisplayListSet& aLists,
                                         bool                    aForceBackground,
-                                        nsDisplayBackground**   aBackground)
+                                        nsDisplayBackgroundImage**   aBackground)
 {
   *aBackground = nullptr;
 
@@ -1486,7 +1486,7 @@ nsFrame::DisplayBackgroundUnconditional(nsDisplayListBuilder*   aBuilder,
   // true.
   if (aBuilder->IsForEventDelivery() || aForceBackground ||
       !GetStyleBackground()->IsTransparent() || GetStyleDisplay()->mAppearance) {
-    return nsDisplayBackground::AppendBackgroundItemsToTop(aBuilder, this,
+    return nsDisplayBackgroundImage::AppendBackgroundItemsToTop(aBuilder, this,
                                                            aLists.BorderBackground(),
                                                            aBackground);
   }
@@ -1512,7 +1512,7 @@ nsFrame::DisplayBorderBackgroundOutline(nsDisplayListBuilder*   aBuilder,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  nsDisplayBackground* bg;
+  nsDisplayBackgroundImage* bg;
   nsresult rv =
     DisplayBackgroundUnconditional(aBuilder, aLists, aForceBackground, &bg);
   NS_ENSURE_SUCCESS(rv, rv);
