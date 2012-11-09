@@ -14,8 +14,11 @@
 
 #include "nsThreadUtils.h"
 #include "nsICryptoHash.h"
-#include "nsIFaviconService.h" 
+#ifdef MOZ_PLACES
+#include "nsIFaviconService.h"
+#endif
 #include "nsIDownloader.h"
+#include "nsIURI.h"
 
 #include "mozilla/Attributes.h"
 
@@ -217,6 +220,7 @@ private:
   static bool VistaCreateItemFromParsingNameInit();
 };
 
+#ifdef MOZ_PLACES
 class AsyncFaviconDataReady MOZ_FINAL : public nsIFaviconDataCallback
 {
 public:
@@ -232,6 +236,7 @@ private:
   nsCOMPtr<nsIThread> mIOThread;
   const bool mURLShortcut;
 };
+#endif
 
 /**
   * Asynchronously tries add the list to the build
