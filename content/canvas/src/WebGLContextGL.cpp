@@ -896,6 +896,10 @@ WebGLContext::CopyTexSubImage2D_base(WebGLenum target,
 
     const char *info = sub ? "copyTexSubImage2D" : "copyTexImage2D";
 
+    if (!ValidateLevelWidthHeightForTarget(target, level, width, height, info)) {
+        return;
+    }
+
     MakeContextCurrent();
 
     WebGLTexture *tex = activeBoundTextureForTarget(target);
