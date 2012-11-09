@@ -381,7 +381,7 @@ PruneDisplayListForExtraPage(nsDisplayListBuilder* aBuilder,
     nsDisplayItem* i = aList->RemoveBottom();
     if (!i)
       break;
-    nsDisplayList* subList = i->GetSameCoordinateSystemChildren();
+    nsDisplayList* subList = i->GetList();
     if (subList) {
       PruneDisplayListForExtraPage(aBuilder, aPage, aExtraPage, aY, subList);
       nsDisplayItem::Type type = i->GetType();

@@ -1780,8 +1780,8 @@ WrapPreserve3DListInternal(nsIFrame* aFrame, nsDisplayListBuilder *aBuilder, nsD
             newList.AppendToTop(new (aBuilder) nsDisplayTransform(aBuilder, aFrame, &temp, aIndex++));
           }
           nsDisplayWrapList *list = static_cast<nsDisplayWrapList*>(item);
-          rv = WrapPreserve3DListInternal(aFrame, aBuilder, list->GetChildren(), aIndex);
-          newList.AppendToTop(list->GetChildren());
+          rv = WrapPreserve3DListInternal(aFrame, aBuilder, list->GetList(), aIndex);
+          newList.AppendToTop(list->GetList());
           list->~nsDisplayWrapList();
           break;
         }
@@ -1790,10 +1790,7 @@ WrapPreserve3DListInternal(nsIFrame* aFrame, nsDisplayListBuilder *aBuilder, nsD
             newList.AppendToTop(new (aBuilder) nsDisplayTransform(aBuilder, aFrame, &temp, aIndex++));
           }
           nsDisplayOpacity *opacity = static_cast<nsDisplayOpacity*>(item);
-          // Call GetChildren, not GetSameCoordinateSystemChildren, because
-          // the preserve-3d children of 'opacity' are temporarily not in the
-          // same coordinate system as the opacity --- until this wrapping is done.
-          rv = WrapPreserve3DListInternal(aFrame, aBuilder, opacity->GetChildren(), aIndex);
+          rv = WrapPreserve3DListInternal(aFrame, aBuilder, opacity->GetList(), aIndex);
           opacity->UpdateBounds(aBuilder);
           newList.AppendToTop(item);
           break;

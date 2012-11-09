@@ -1011,17 +1011,10 @@ public:
   }
 
   /**
-   * If this has a child list where the children are in the same coordinate
-   * system as this item (i.e., they have the same reference frame),
-   * return the list.
+   * If this is a leaf item we return null, otherwise we return the wrapped
+   * list.
    */
-  virtual nsDisplayList* GetSameCoordinateSystemChildren() { return nullptr; }
-
-  /**
-   * If this has a child list, return it, even if the children are in
-   * a different coordinate system to this item.
-   */
-  virtual nsDisplayList* GetChildren() { return nullptr; }
+  virtual nsDisplayList* GetList() { return nullptr; }
 
   /**
    * Returns the visible rect. Should only be called after ComputeVisibility
@@ -2072,16 +2065,8 @@ public:
 
   virtual nsRect GetComponentAlphaBounds(nsDisplayListBuilder* aBuilder);
                                     
-  virtual nsDisplayList* GetSameCoordinateSystemChildren() MOZ_OVERRIDE
-  {
-    NS_ASSERTION(mList.IsEmpty() || !ReferenceFrame() ||
-                 !mList.GetBottom()->ReferenceFrame() ||
-                 mList.GetBottom()->ReferenceFrame() == ReferenceFrame(),
-                 "Children must have same reference frame");
-    return &mList;
-  }
-  virtual nsDisplayList* GetChildren() MOZ_OVERRIDE { return &mList; }
-
+  virtual nsDisplayList* GetList() MOZ_OVERRIDE { return &mList; }
+  
   /**
    * This creates a copy of this item, but wrapping aItem instead of
    * our existing list. Only gets called if this item returned nullptr
@@ -2592,7 +2577,7 @@ public:
     return GetBounds(aBuilder, &snap);
   }
 
-  virtual nsDisplayList* GetChildren() MOZ_OVERRIDE { return mStoredList.GetChildren(); }
+  nsDisplayWrapList* GetStoredList() { return &mStoredList; }
 
   virtual void HitTest(nsDisplayListBuilder *aBuilder, const nsRect& aRect,
                        HitTestState *aState, nsTArray<nsIFrame*> *aOutFrames) MOZ_OVERRIDE;

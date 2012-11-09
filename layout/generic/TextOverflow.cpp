@@ -610,7 +610,7 @@ TextOverflow::PruneDisplayListContents(nsDisplayList*        aList,
       continue;
     }
 
-    nsDisplayList* wrapper = item->GetSameCoordinateSystemChildren();
+    nsDisplayList* wrapper = item->GetList();
     if (wrapper) {
       if (!itemFrame || GetSelfOrNearestBlock(itemFrame) == mBlock) {
         PruneDisplayListContents(wrapper, aFramesToHide, aInsideMarkersArea);
