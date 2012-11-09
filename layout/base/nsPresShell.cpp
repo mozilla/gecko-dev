@@ -1056,7 +1056,9 @@ PresShell::Destroy()
     mHiddenInvalidationObserverRefreshDriver->RemovePresShellToInvalidateIfHidden(this);
   }
 
-  rd->RevokeViewManagerFlush();
+  if (rd->PresContext() == GetPresContext()) {
+    rd->RevokeViewManagerFlush();
+  }
 
   mResizeEvent.Revoke();
   if (mAsyncResizeTimerIsActive) {
