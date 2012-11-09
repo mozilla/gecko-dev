@@ -52,6 +52,45 @@ Filter(JSContext *cx, JSObject *wrapper, AutoIdVector &props)
     return true;
 }
 
+template <typename Policy>
+static void
+FilterSetter(JSContext *cx, JSObject *wrapper, jsid id, js::PropertyDescriptor *desc)
+{
+    JSErrorReporter reporter = JS_SetErrorReporter(cx, NULL);
+    Permission perm = DenyAccess;
+    bool setAllowed = Policy::check(cx, wrapper, id, Wrapper::SET, perm);
+    JS_ASSERT_IF(setAllowed, perm != DenyAccess);
+    if (!setAllowed || JS_IsExceptionPending(cx)) {
+        // On branch, we don't have a good way to differentiate between exceptions
+        // we want to throw and exceptions we want to squash. Squash them all.
+        JS_ClearPendingException(cx);
+        desc->setter = nullptr;
+    }
+    JS_SetErrorReporter(cx, reporter);
+}
+
+template <typename Base, typename Policy>
+bool
+FilteringWrapper<Base, Policy>::getPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid id,
+                                                      bool set, js::PropertyDescriptor *desc)
+{
+    if (!Base::getPropertyDescriptor(cx, wrapper, id, set, desc))
+        return false;
+    FilterSetter<Policy>(cx, wrapper, id, desc);
+    return true;
+}
+
+template <typename Base, typename Policy>
+bool
+FilteringWrapper<Base, Policy>::getOwnPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid id,
+                                                         bool set, js::PropertyDescriptor *desc)
+{
+    if (!Base::getOwnPropertyDescriptor(cx, wrapper, id, set, desc))
+        return false;
+    FilterSetter<Policy>(cx, wrapper, id, desc);
+    return true;
+}
+
 template <typename Base, typename Policy>
 bool
 FilteringWrapper<Base, Policy>::getOwnPropertyNames(JSContext *cx, JSObject *wrapper, AutoIdVector &props)
@@ -83,7 +122,7 @@ FilteringWrapper<Base, Policy>::iterate(JSContext *cx, JSObject *wrapper, unsign
     // We refuse to trigger the iterator hook across chrome wrappers because
     // we don't know how to censor custom iterator objects. Instead we trigger
     // the default proxy iterate trap, which will ask enumerate() for the list
-    // of (consored) ids.
+    // of (censored) ids.
     return js::BaseProxyHandler::iterate(cx, wrapper, flags, vp);
 }
 
