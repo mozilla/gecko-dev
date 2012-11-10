@@ -2825,7 +2825,7 @@ nsDocShell::GetSameTypeParent(nsIDocShellTreeItem ** aParent)
 }
 
 NS_IMETHODIMP
-nsDocShell::GetParentIgnoreBrowserFrame(nsIDocShell** aParent)
+nsDocShell::GetSameTypeParentIgnoreBrowserAndAppBoundaries(nsIDocShell** aParent)
 {
     NS_ENSURE_ARG_POINTER(aParent);
     *aParent = nullptr;
@@ -12439,7 +12439,7 @@ nsDocShell::GetAppId(uint32_t* aAppId)
     MOZ_ASSERT(GetFrameType() != eFrameTypeApp);
 
     nsCOMPtr<nsIDocShell> parent;
-    GetParentIgnoreBrowserFrame(getter_AddRefs(parent));
+    GetSameTypeParentIgnoreBrowserAndAppBoundaries(getter_AddRefs(parent));
 
     if (!parent) {
         *aAppId = nsIScriptSecurityManager::NO_APP_ID;
