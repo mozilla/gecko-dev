@@ -8778,7 +8778,7 @@ HasCrossProcessParent(nsIDocument* aDocument)
   if (!docShell) {
     return false;
   }
-  return docShell->GetIsContentBoundary();
+  return docShell->GetIsBrowserOrApp();
 }
 
 static bool
