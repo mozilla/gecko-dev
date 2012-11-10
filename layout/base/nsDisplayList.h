@@ -1864,7 +1864,6 @@ protected:
   typedef class mozilla::layers::ImageContainer ImageContainer;
   typedef class mozilla::layers::ImageLayer ImageLayer;
 
-
   bool TryOptimizeToImageLayer(nsDisplayListBuilder* aBuilder);
   bool IsSingleFixedPositionImage(nsDisplayListBuilder* aBuilder, const nsRect& aClipRect);
   void ConfigureLayer(ImageLayer* aLayer);
