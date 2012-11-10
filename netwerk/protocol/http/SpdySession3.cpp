@@ -1381,6 +1381,7 @@ SpdySession3::HandleWindowUpdate(SpdySession3 *self)
   }
 
   self->ResetDownstreamState();
+  self->ResumeRecv();
   return NS_OK;
 }
 
@@ -1483,6 +1484,10 @@ SpdySession3::ReadSegments(nsAHttpSegmentReader *reader,
   // to flush.
   FlushOutputQueue();
 
+  // Allow new server reads - that might be data or control information
+  // (e.g. window updates or http replies) that are responses to these writes
+  ResumeRecv();
+
   if (stream->RequestBlockedOnRead()) {
     
     // We are blocked waiting for input - either more http headers or
@@ -1526,9 +1531,6 @@ SpdySession3::ReadSegments(nsAHttpSegmentReader *reader,
   LOG3(("SpdySession3::ReadSegments %p stream=%p stream send complete",
         this, stream));
   
-  /* we now want to recv data */
-  ResumeRecv();
-
   // call readsegments again if there are other streams ready
   // to go in this session
   SetWriteCallbacks();
