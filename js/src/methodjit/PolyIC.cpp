@@ -1494,6 +1494,11 @@ class GetPropCompiler : public PICStubCompiler
         if (!obj->hasIdempotentProtoChain())
             MarkNotIdempotent(f.script(), f.pc());
 
+        // The property is missing, Mark as not idempotent to avoid
+        // recompilation in Ion Monkey GetPropertyCache.
+        if (!getprop.holder)
+            MarkNotIdempotent(f.script(), f.pc());
+
         if (hadGC())
             return Lookup_Uncacheable;
 
