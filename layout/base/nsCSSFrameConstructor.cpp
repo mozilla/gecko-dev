@@ -113,6 +113,7 @@
 #include "nsIDOMSVGFilters.h"
 #include "DOMSVGTests.h"
 #include "nsSVGEffects.h"
+#include "nsSVGTextPathFrame.h"
 #include "nsSVGUtils.h"
 
 #include "nsRefreshDriver.h"
@@ -7781,6 +7782,12 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
       } else {
         aFrame->InvalidateOverflowRect();
       }
+    }
+    if (aChange & nsChangeHint_UpdateTextPath) {
+      NS_ABORT_IF_FALSE(aFrame->GetType() == nsGkAtoms::svgTextPathFrame,
+                        "textPath frame expected");
+      // Invalidate and reflow the entire nsSVGTextFrame:
+      static_cast<nsSVGTextPathFrame*>(aFrame)->NotifyGlyphMetricsChange();
     }
     if (aChange & nsChangeHint_UpdateOpacityLayer) {
       aFrame->MarkLayersActive(nsChangeHint_UpdateOpacityLayer);

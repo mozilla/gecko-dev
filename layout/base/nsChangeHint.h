@@ -87,7 +87,13 @@ enum nsChangeHint {
    * The children-only transform of an SVG frame changed, requiring the
    * overflow rects of the frame's immediate children to be updated.
    */
-  nsChangeHint_ChildrenOnlyTransform = 0x1000
+  nsChangeHint_ChildrenOnlyTransform = 0x1000,
+
+  /**
+   * SVG textPath needs to be recomputed because the path has changed.
+   * This means that the glyph positions of the text need to be recomputed.
+   */
+  nsChangeHint_UpdateTextPath = 0x2000
 };
 
 // Redefine these operators to return nothing. This will catch any use
