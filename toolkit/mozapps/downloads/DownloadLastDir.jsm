@@ -28,7 +28,7 @@ const SAVE_PER_SITE_PREF = LAST_DIR_PREF + ".savePerSite";
 const PBSVC_CID = "@mozilla.org/privatebrowsing;1";
 const nsILocalFile = Components.interfaces.nsILocalFile;
 
-var EXPORTED_SYMBOLS = [ "gDownloadLastDir" ];
+this.EXPORTED_SYMBOLS = [ "gDownloadLastDir" ];
 
 Components.utils.import("resource://gre/modules/Services.jsm");
 
@@ -89,7 +89,7 @@ function isContentPrefEnabled() {
 }
 
 let gDownloadLastDirFile = readLastDirPref();
-let gDownloadLastDir = {
+this.gDownloadLastDir = {
   // compat shims
   get file() { return this.getFile(); },
   set file(val) { this.setFile(null, val); },

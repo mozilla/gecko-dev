@@ -12,7 +12,7 @@ Cu.import("resource://services-common/rest.js");
 Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/util.js");
 
-const EXPORTED_SYMBOLS = ["JPAKEClient"];
+this.EXPORTED_SYMBOLS = ["JPAKEClient"];
 
 const REQUEST_TIMEOUT         = 60; // 1 minute
 const KEYEXCHANGE_VERSION     = 3;
@@ -114,7 +114,7 @@ const JPAKE_VERIFY_VALUE      = "0123456789ABCDEF";
  * Note that after completion or abort, the 'client' instance may not be reused.
  * You will have to create a new one in case you'd like to restart the process.
  */
-function JPAKEClient(controller) {
+this.JPAKEClient = function JPAKEClient(controller) {
   this.controller = controller;
 
   this._log = Log4Moz.repository.getLogger("Sync.JPAKEClient");

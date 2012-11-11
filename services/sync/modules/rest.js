@@ -10,16 +10,16 @@ Cu.import("resource://services-sync/util.js");
 Cu.import("resource://services-sync/identity.js");
 Cu.import("resource://services-sync/constants.js");
 
-const EXPORTED_SYMBOLS = ["SyncStorageRequest"];
+this.EXPORTED_SYMBOLS = ["SyncStorageRequest"];
 
 const STORAGE_REQUEST_TIMEOUT = 5 * 60; // 5 minutes
 
 /**
  * RESTRequest variant for use against a Sync storage server.
  */
-function SyncStorageRequest(uri) {
+this.SyncStorageRequest = function SyncStorageRequest(uri) {
   RESTRequest.call(this, uri);
-}
+};
 SyncStorageRequest.prototype = {
 
   __proto__: RESTRequest.prototype,

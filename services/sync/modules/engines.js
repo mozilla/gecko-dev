@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const EXPORTED_SYMBOLS = ['Engines', 'Engine', 'SyncEngine',
-                          'Tracker', 'Store'];
+this.EXPORTED_SYMBOLS = ['Engines', 'Engine', 'SyncEngine',
+                         'Tracker', 'Store'];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -32,7 +32,7 @@ Cu.import("resource://services-sync/main.js");    // So we can get to Service fo
  * want to sync.
  *
  */
-function Tracker(name) {
+this.Tracker = function Tracker(name) {
   name = name || "Unnamed";
   this.name = this.file = name.toLowerCase();
 
@@ -165,7 +165,7 @@ Tracker.prototype = {
  * and/or applyIncoming function on top of the basic APIs.
  */
 
-function Store(name) {
+this.Store = function Store(name) {
   name = name || "Unnamed";
   this.name = name.toLowerCase();
 
@@ -363,7 +363,7 @@ function EngineManagerSvc() {
   this._log = Log4Moz.repository.getLogger("Sync.EngineManager");
   this._log.level = Log4Moz.Level[Svc.Prefs.get(
     "log.logger.service.engines", "Debug")];
-}
+};
 EngineManagerSvc.prototype = {
   get: function EngMgr_get(name) {
     // Return an array of engines if we have an array of names
@@ -432,7 +432,7 @@ EngineManagerSvc.prototype = {
   }
 };
 
-function Engine(name) {
+this.Engine = function Engine(name) {
   this.Name = name || "Unnamed";
   this.name = name.toLowerCase();
 
@@ -505,7 +505,7 @@ Engine.prototype = {
   }
 };
 
-function SyncEngine(name) {
+this.SyncEngine = function SyncEngine(name) {
   Engine.call(this, name || "SyncEngine");
   this.loadToFetch();
   this.loadPreviousFailed();

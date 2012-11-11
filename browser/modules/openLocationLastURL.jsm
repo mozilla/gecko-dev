@@ -6,7 +6,7 @@ const LAST_URL_PREF = "general.open_location.last_url";
 const nsISupportsString = Components.interfaces.nsISupportsString;
 const Ci = Components.interfaces;
 
-var EXPORTED_SYMBOLS = [ "OpenLocationLastURL" ];
+this.EXPORTED_SYMBOLS = [ "OpenLocationLastURL" ];
 
 let prefSvc = Components.classes["@mozilla.org/preferences-service;1"]
                         .getService(Components.interfaces.nsIPrefBranch);
@@ -39,7 +39,7 @@ os.addObserver(observer, "last-pb-context-exited", true);
 os.addObserver(observer, "browser:purge-session-history", true);
 
 
-function OpenLocationLastURL(aWindow) {
+this.OpenLocationLastURL = function OpenLocationLastURL(aWindow) {
   this.window = aWindow;
 }
 

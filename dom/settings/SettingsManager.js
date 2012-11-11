@@ -371,4 +371,4 @@ SettingsManager.prototype = {
                                      flags: nsIClassInfo.DOM_OBJECT})
 }
 
-const NSGetFactory = XPCOMUtils.generateNSGetFactory([SettingsManager, SettingsLock])
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory([SettingsManager, SettingsLock])

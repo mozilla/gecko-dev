@@ -3829,7 +3829,7 @@ UpdatePrompt.prototype = {
 };
 
 var components = [UpdateService, Checker, UpdatePrompt, UpdateManager];
-var NSGetFactory = XPCOMUtils.generateNSGetFactory(components);
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory(components);
 
 #if 0
 /**

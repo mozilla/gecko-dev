@@ -117,4 +117,4 @@ BrowserCLH.prototype = {
 };
 
 var components = [ BrowserCLH ];
-const NSGetFactory = XPCOMUtils.generateNSGetFactory(components);
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory(components);

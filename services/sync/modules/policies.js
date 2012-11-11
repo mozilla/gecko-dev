@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const EXPORTED_SYMBOLS = ["SyncScheduler",
-                          "ErrorHandler",
-                          "SendCredentialsController"];
+this.EXPORTED_SYMBOLS = ["SyncScheduler",
+                         "ErrorHandler",
+                         "SendCredentialsController"];
 
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
@@ -17,7 +17,7 @@ Cu.import("resource://services-sync/status.js");
 
 Cu.import("resource://services-sync/main.js");    // So we can get to Service for callbacks.
 
-let SyncScheduler = {
+this.SyncScheduler = {
   _log: Log4Moz.repository.getLogger("Sync.SyncScheduler"),
 
   _fatalLoginStatus: [LOGIN_FAILED_NO_USERNAME,
@@ -466,7 +466,7 @@ let SyncScheduler = {
 const LOG_PREFIX_SUCCESS = "success-";
 const LOG_PREFIX_ERROR   = "error-";
 
-let ErrorHandler = {
+this.ErrorHandler = {
 
   /**
    * Flag that turns on error reporting for all errors, incl. network errors.
@@ -831,7 +831,7 @@ let ErrorHandler = {
  *   jpakeclient.controller = new SendCredentialsController(jpakeclient);
  * 
  */
-function SendCredentialsController(jpakeclient) {
+this.SendCredentialsController = function SendCredentialsController(jpakeclient) {
   this._log = Log4Moz.repository.getLogger("Sync.SendCredentialsController");
   this._log.level = Log4Moz.Level[Svc.Prefs.get("log.logger.service.main")];
 
@@ -845,7 +845,7 @@ function SendCredentialsController(jpakeclient) {
   Services.obs.addObserver(this, "weave:service:sync:finish", false);
   Services.obs.addObserver(this, "weave:service:sync:error",  false);
   Services.obs.addObserver(this, "weave:service:start-over",  false);
-}
+};
 SendCredentialsController.prototype = {
 
   unload: function unload() {

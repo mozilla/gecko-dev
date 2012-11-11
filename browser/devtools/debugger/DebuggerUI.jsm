@@ -19,7 +19,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-let EXPORTED_SYMBOLS = ["DebuggerUI"];
+this.EXPORTED_SYMBOLS = ["DebuggerUI"];
 
 /**
  * Provides a simple mechanism of managing debugger instances.
@@ -27,10 +27,10 @@ let EXPORTED_SYMBOLS = ["DebuggerUI"];
  * @param nsIDOMWindow aWindow
  *        The chrome window for which the DebuggerUI instance is created.
  */
-function DebuggerUI(aWindow) {
+this.DebuggerUI = function DebuggerUI(aWindow) {
   this.chromeWindow = aWindow;
   this.listenToTabs();
-}
+};
 
 DebuggerUI.prototype = {
 

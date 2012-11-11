@@ -1479,4 +1479,4 @@ LoginManagerPrompter.prototype = {
 
 
 var component = [LoginManagerPromptFactory, LoginManagerPrompter];
-var NSGetFactory = XPCOMUtils.generateNSGetFactory(component);
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory(component);

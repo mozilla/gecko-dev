@@ -4,7 +4,7 @@
 
 "use strict";
 
-var EXPORTED_SYMBOLS = ["Dict"];
+this.EXPORTED_SYMBOLS = ["Dict"];
 
 /**
  * Transforms a given key into a property name guaranteed not to collide with
@@ -30,7 +30,7 @@ function unconvert(aProp) {
  *                 dictionary. Only the "own" enumerable properties of the
  *                 object are considered.
  */
-function Dict(aInitial) {
+this.Dict = function Dict(aInitial) {
   if (aInitial === undefined)
     aInitial = {};
   var items = {}, count = 0;

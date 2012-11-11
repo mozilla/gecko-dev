@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // 'Weave' continues to be exported for backwards compatibility.
-const EXPORTED_SYMBOLS = ["Service", "Weave"];
+this.EXPORTED_SYMBOLS = ["Service", "Weave"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -1691,5 +1691,5 @@ WeaveSvc.prototype = {
 };
 
 // Load Weave on the first time this file is loaded
-let Service = new WeaveSvc();
+this.Service = new WeaveSvc();
 Service.onStartup();

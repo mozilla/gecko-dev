@@ -652,4 +652,4 @@ BrowserElementParent.prototype = {
   },
 };
 
-var NSGetFactory = XPCOMUtils.generateNSGetFactory([BrowserElementParentFactory]);
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory([BrowserElementParentFactory]);

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const EXPORTED_SYMBOLS = ['TabEngine', 'TabSetRecord'];
+this.EXPORTED_SYMBOLS = ['TabEngine', 'TabSetRecord'];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -27,7 +27,7 @@ Cu.import("resource://services-common/preferences.js");
 const PBPrefs = new Preferences("browser.privatebrowsing.");
 
 
-function TabSetRecord(collection, id) {
+this.TabSetRecord = function TabSetRecord(collection, id) {
   CryptoWrapper.call(this, collection, id);
 }
 TabSetRecord.prototype = {
@@ -39,7 +39,7 @@ TabSetRecord.prototype = {
 Utils.deferGetSet(TabSetRecord, "cleartext", ["clientName", "tabs"]);
 
 
-function TabEngine() {
+this.TabEngine = function TabEngine() {
   SyncEngine.call(this, "Tabs");
 
   // Reset the client on every startup so that we fetch recent tabs
