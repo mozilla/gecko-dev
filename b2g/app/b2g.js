@@ -593,3 +593,7 @@ pref("general.useragent.override.facebook.com", "\(Mobile#(Android; Mobile");
 pref("general.useragent.override.youtube.com", "\(Mobile#(Android; Mobile");
 
 pref("jsloader.reuseGlobal", false);
+
+// Enable freeing dirty pages when minimizing memory; this reduces memory
+// consumption when applications are sent to the background.
+pref("memory.free_dirty_pages", true);
