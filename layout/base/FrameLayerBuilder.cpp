@@ -2295,9 +2295,9 @@ FrameLayerBuilder::AddThebesDisplayItem(ThebesLayer* aLayer,
 
       nsIntPoint offset = GetLastPaintOffset(aLayer) - GetTranslationForThebesLayer(aLayer);
       props->MoveBy(-offset);
-      nsIntRect invalid = props->ComputeDifferences(layer, nullptr);
+      nsIntRegion invalid = props->ComputeDifferences(layer, nullptr);
       if (aLayerState == LAYER_SVG_EFFECTS) {
-        invalid = nsSVGIntegrationUtils::AdjustInvalidAreaForSVGEffects(aItem->GetUnderlyingFrame(), invalid);
+        invalid = nsSVGIntegrationUtils::AdjustInvalidAreaForSVGEffects(aItem->GetUnderlyingFrame(), invalid.GetBounds());
       }
       if (!invalid.IsEmpty()) {
 #ifdef DEBUG_INVALIDATIONS
