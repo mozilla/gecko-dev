@@ -1766,8 +1766,11 @@ JSScript::isShortRunning()
 {
     return length < 100 &&
            hasAnalysis() &&
-           !analysis()->hasFunctionCalls() &&
-           getMaxLoopCount() < 40;
+           !analysis()->hasFunctionCalls()
+#ifdef JS_METHODJIT
+           && getMaxLoopCount() < 40
+#endif
+           ;
 }
 
 bool
