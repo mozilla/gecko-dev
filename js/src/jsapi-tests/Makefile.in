@@ -67,6 +67,7 @@ CPPSRCS = \
   testProfileStrings.cpp \
   testJSEvaluateScript.cpp \
   testErrorCopying.cpp \
+  testEnclosingFunction.cpp \
   $(NULL)
 
 CSRCS = \
