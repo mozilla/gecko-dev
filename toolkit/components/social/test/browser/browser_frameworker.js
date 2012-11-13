@@ -545,6 +545,8 @@ let tests = {
                                            undefined, "testReloadAndNewPort");
         worker2.port.onmessage = function(e) {
           if (e.data.topic == "ready") {
+            // "worker" and "worker2" are handles to the same worker
+            worker2.terminate();
             cbnext();
           }
         }
