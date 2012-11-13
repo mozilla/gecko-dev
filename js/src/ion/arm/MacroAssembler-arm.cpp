@@ -2234,6 +2234,12 @@ MacroAssemblerARMCompat::boxDouble(const FloatRegister &src, const ValueOperand 
              VFPRegister(src), FloatToCore);
 }
 
+void
+MacroAssemblerARMCompat::boxNonDouble(JSValueType type, const Register &src, const ValueOperand &dest) {
+    if (src != dest.payloadReg())
+        ma_mov(src, dest.payloadReg());
+    ma_mov(ImmType(type), dest.typeReg());
+}
 
 void
 MacroAssemblerARMCompat::boolValueToDouble(const ValueOperand &operand, const FloatRegister &dest)
