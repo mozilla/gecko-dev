@@ -90,8 +90,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-  { 0x4e05b167, 0x475b, 0x422b, \
-    { 0x88, 0xc0, 0xa5, 0xb1, 0x61, 0xcf, 0x87, 0x79 } }
+  { 0x46409199, 0x4190, 0x4619, \
+    {0xba, 0xd0, 0x01, 0x31, 0x24, 0x94, 0xa9, 0x2c} }
 
 /*
  * Window shadow styles
@@ -560,9 +560,10 @@ class nsIWidget : public nsISupports {
      * Return the default scale factor for the window. This is the
      * default number of device pixels per CSS pixel to use. This should
      * depend on OS/platform settings such as the Mac's "UI scale factor"
-     * or Windows' "font DPI".
+     * or Windows' "font DPI". This will take into account Gecko preferences
+     * overriding the system setting.
      */
-    virtual double GetDefaultScale() = 0;
+    double GetDefaultScale();
 
     /**
      * Return the first child of this widget.  Will return null if
@@ -1643,6 +1644,11 @@ class nsIWidget : public nsISupports {
     { return nullptr; }
 
 protected:
+    /**
+     * Like GetDefaultScale, but taking into account only the system settings
+     * and ignoring Gecko preferences.
+     */
+    virtual double GetDefaultScaleInternal() { return 1.0; }
 
     // keep the list of children.  We also keep track of our siblings.
     // The ownership model is as follows: parent holds a strong ref to

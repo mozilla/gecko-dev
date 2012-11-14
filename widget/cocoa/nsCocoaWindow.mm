@@ -1398,7 +1398,7 @@ NS_IMETHODIMP nsCocoaWindow::GetScreenBounds(nsIntRect &aRect)
 }
 
 double
-nsCocoaWindow::GetDefaultScale()
+nsCocoaWindow::GetDefaultScaleInternal()
 {
   return BackingScaleFactor();
 }
