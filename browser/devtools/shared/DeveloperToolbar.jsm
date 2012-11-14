@@ -583,7 +583,7 @@ function OutputPanel(aChromeDoc, aInput, aLoadCallback)
     <html:iframe xmlns:html="http://www.w3.org/1999/xhtml"
                  id="gcli-output-frame"
                  src="chrome://browser/content/devtools/commandlineoutput.xhtml"
-                 flex="1"/>
+                 sandbox="allow-same-origin"/>
   </tooltip|panel>
   */
 
@@ -615,6 +615,7 @@ function OutputPanel(aChromeDoc, aInput, aLoadCallback)
   this._frame.id = "gcli-output-frame";
   this._frame.setAttribute("src", "chrome://browser/content/devtools/commandlineoutput.xhtml");
   this._frame.setAttribute("flex", "1");
+  this._frame.setAttribute("sandbox", "allow-same-origin");
   this._panel.appendChild(this._frame);
 
   this.displayedOutput = undefined;
@@ -827,7 +828,8 @@ function TooltipPanel(aChromeDoc, aInput, aLoadCallback)
     <html:iframe xmlns:html="http://www.w3.org/1999/xhtml"
                  id="gcli-tooltip-frame"
                  src="chrome://browser/content/devtools/commandlinetooltip.xhtml"
-                 flex="1"/>
+                 flex="1"
+                 sandbox="allow-same-origin"/>
   </tooltip|panel>
   */
 
@@ -859,6 +861,7 @@ function TooltipPanel(aChromeDoc, aInput, aLoadCallback)
   this._frame.id = "gcli-tooltip-frame";
   this._frame.setAttribute("src", "chrome://browser/content/devtools/commandlinetooltip.xhtml");
   this._frame.setAttribute("flex", "1");
+  this._frame.setAttribute("sandbox", "allow-same-origin");
   this._panel.appendChild(this._frame);
 
   this._frame.addEventListener("load", this._onload, true);

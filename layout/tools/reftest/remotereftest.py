@@ -6,6 +6,7 @@ import sys
 import os
 import time
 import tempfile
+import traceback
 
 # We need to know our current directory so that we can serve our test files from it.
 SCRIPT_DIRECTORY = os.path.abspath(os.path.realpath(os.path.dirname(sys.argv[0])))
@@ -438,7 +439,8 @@ def main(args):
         reftest.runTests(manifest, options, cmdlineArgs)
         logcat = dm.getLogcat()
     except:
-        print "TEST-UNEXPECTED-FAIL | | exception while running reftests"
+        print "Automation Error: Exception caught while running tests"
+        traceback.print_exc()
         reftest.stopWebServer(options)
         return 1
 

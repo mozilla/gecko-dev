@@ -1003,6 +1003,7 @@ pref("network.IDN.whitelist.ac", true);
 pref("network.IDN.whitelist.ar", true);
 pref("network.IDN.whitelist.at", true);
 pref("network.IDN.whitelist.br", true);
+pref("network.IDN.whitelist.ca", true);
 pref("network.IDN.whitelist.ch", true);
 pref("network.IDN.whitelist.cl", true);
 pref("network.IDN.whitelist.cn", true);
@@ -1013,6 +1014,7 @@ pref("network.IDN.whitelist.es", true);
 pref("network.IDN.whitelist.fi", true);
 pref("network.IDN.whitelist.fr", true);
 pref("network.IDN.whitelist.gr", true);
+pref("network.IDN.whitelist.gt", true);
 pref("network.IDN.whitelist.hu", true);
 pref("network.IDN.whitelist.il", true);
 pref("network.IDN.whitelist.io", true);
@@ -1084,8 +1086,11 @@ pref("network.IDN.whitelist.xn--kprw13d", true);  // Simplified
 pref("network.IDN.whitelist.asia", true);
 pref("network.IDN.whitelist.biz", true);
 pref("network.IDN.whitelist.cat", true);
+pref("network.IDN.whitelist.com", true);
 pref("network.IDN.whitelist.info", true);
 pref("network.IDN.whitelist.museum", true);
+pref("network.IDN.whitelist.name", true);
+pref("network.IDN.whitelist.net", true);
 pref("network.IDN.whitelist.org", true);
 pref("network.IDN.whitelist.tel", true);
 

@@ -1612,12 +1612,6 @@ const int32_t nsCSSProps::kColorInterpolationKTable[] = {
   eCSSKeyword_UNKNOWN, -1
 };
 
-const int32_t nsCSSProps::kColumnFillKTable[] = {
-  eCSSKeyword_auto, NS_STYLE_COLUMN_FILL_AUTO,
-  eCSSKeyword_balance, NS_STYLE_COLUMN_FILL_BALANCE,
-  eCSSKeyword_UNKNOWN, -1
-};
-
 bool
 nsCSSProps::FindKeyword(nsCSSKeyword aKeyword, const int32_t aTable[], int32_t& aResult)
 {
