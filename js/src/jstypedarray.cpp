@@ -467,6 +467,7 @@ ArrayBufferObject::stealContents(JSContext *cx, JSObject *obj, void **contents,
     JSObject *views = *GetViewList(&buffer);
     js::ObjectElements *header = js::ObjectElements::fromElements((js::HeapSlot*)buffer.dataPointer());
     if (buffer.hasDynamicElements()) {
+        *GetViewList(&buffer) = NULL;
         *contents = header;
         *data = buffer.dataPointer();
 
@@ -3618,6 +3619,7 @@ JS_NewArrayBufferWithContents(JSContext *cx, void *contents)
         return NULL;
     JSObject *obj = ArrayBufferObject::create(cx, 0);
     obj->setDynamicElements(reinterpret_cast<js::ObjectElements *>(contents));
+    JS_ASSERT(*GetViewList(&obj->asArrayBuffer()) == NULL);
     return obj;
 }
 
