@@ -189,7 +189,7 @@ var tests = {
       is(chatbar.childNodes.length, 0, "should be no chats left");
       checkPopup();
       is(chatbar.selectedChat, null, "nothing should be selected");
-      is(chatbar.chatboxForURL.size, 0, "chatboxForURL map should be empty");
+      is(chatbar.chatboxForURL.size(), 0, "chatboxForURL map should be empty");
       port.close();
       next();
     });
