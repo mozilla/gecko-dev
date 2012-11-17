@@ -16,7 +16,6 @@
 #include "nsIIdleService.h"
 #include "nsCategoryCache.h"
 #include "nsWeakReference.h"
-#include "mozilla/TimeStamp.h"
 
 /**
  * Class we can use to store an observer with its associated idle time
@@ -137,15 +136,15 @@ private:
    *
    * The function might not restart the timer if there is one running currently
    *
-   * @param aNextTimeout
+   * @param aNextTimeoutInPR
    *        The last absolute time the timer should expire
    */
-  void SetTimerExpiryIfBefore(mozilla::TimeStamp aNextTimeout);
+  void SetTimerExpiryIfBefore(PRTime aNextTimeoutInPR);
 
   /**
    * Stores the next timeout time, 0 means timer not running
    */
-  mozilla::TimeStamp mCurrentlySetToTimeoutAt;
+  PRTime mCurrentlySetToTimeoutAtInPR;
 
   /**
    * mTimer holds the internal timer used by this class to detect when to poll
@@ -181,7 +180,7 @@ private:
   /**
    * Absolute value for when the last user interaction took place.
    */
-  mozilla::TimeStamp mLastUserInteraction;
+  PRTime mLastUserInteractionInPR;
 
 
   /**
