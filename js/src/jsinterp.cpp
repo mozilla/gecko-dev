@@ -305,7 +305,7 @@ js::RunScript(JSContext *cx, HandleScript script, StackFrame *fp)
             if (status == ion::IonExec_Bailout)
                 return Interpret(cx, fp, JSINTERP_REJOIN);
 
-            return status != ion::IonExec_Error;
+            return !IsErrorStatus(status);
         }
     }
 #endif
@@ -1525,6 +1525,10 @@ BEGIN_CASE(JSOP_LOOPENTRY)
                 DO_OP();
             }
 
+            // We failed to call into Ion at all, so treat as an error.
+            if (maybeOsr == ion::IonExec_Aborted)
+                goto error;
+
             interpReturnOK = (maybeOsr == ion::IonExec_Ok);
 
             if (entryFrame != regs.fp())
@@ -2499,7 +2503,7 @@ BEGIN_CASE(JSOP_FUNCALL)
                 op = JSOp(*regs.pc);
                 DO_OP();
             }
-            interpReturnOK = (exec == ion::IonExec_Error) ? false : true;
+            interpReturnOK = !IsErrorStatus(exec);
             goto jit_return;
         }
     }

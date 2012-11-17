@@ -1316,7 +1316,7 @@ ion::CanEnterUsingFastInvoke(JSContext *cx, HandleScript script, uint32_t numAct
 static IonExecStatus
 EnterIon(JSContext *cx, StackFrame *fp, void *jitcode)
 {
-    JS_CHECK_RECURSION(cx, return IonExec_Error);
+    JS_CHECK_RECURSION(cx, return IonExec_Aborted);
     JS_ASSERT(ion::IsEnabled(cx));
     JS_ASSERT(CheckFrame(fp));
     JS_ASSERT(!fp->script()->ion->bailoutExpected());
