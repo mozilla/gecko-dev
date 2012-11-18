@@ -23,6 +23,7 @@
 
 using namespace mozilla;
 using namespace mozilla::layers;
+using namespace mozilla::dom;
 
 #ifdef PR_LOGGING
 extern PRLogModuleInfo* gBuiltinDecoderLog;
@@ -984,7 +985,14 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
   // are unsafe to call with the decoder monitor held are documented as such
   // in nsAudioStream.h.
   nsRefPtr<nsAudioStream> audioStream = nsAudioStream::AllocateStream();
-  audioStream->Init(channels, rate);
+  // In order to access decoder with the monitor held but avoid the dead lock
+  // issue explaned above, to hold monitor here only for getting audio channel type.
+  AudioChannelType audioChannelType;
+  {
+    ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+    audioChannelType = mDecoder->GetAudioChannelType();
+  }
+  audioStream->Init(channels, rate, audioChannelType);
 
   {
     // We must hold the monitor while setting mAudioStream or whenever we query

@@ -23,6 +23,7 @@
 #include "nsDOMMediaStream.h"
 #include "mozilla/Mutex.h"
 #include "nsTimeRanges.h"
+#include "AudioChannelCommon.h"
 
 // Define to output information on decoding and painting framerate
 /* #define DEBUG_FRAME_RATE 1 */
@@ -580,7 +581,7 @@ protected:
    * Called asynchronously to release a self-reference to this element.
    */
   void DoRemoveSelfReference();
-  
+
   /**
    * Possible values of the 'preload' attribute.
    */
@@ -592,7 +593,7 @@ protected:
   };
 
   /**
-   * The preloading action to perform. These dictate how we react to the 
+   * The preloading action to perform. These dictate how we react to the
    * preload attribute. See mPreloadAction.
    */
   enum PreloadAction {
@@ -619,7 +620,7 @@ protected:
 
   /**
    * Handle a change to the preload attribute. Should be called whenever the
-   * value (or presence) of the preload attribute changes. The change in 
+   * value (or presence) of the preload attribute changes. The change in
    * attribute value may cause a change in the mPreloadAction of this
    * element. If there is a change then this method will initiate any
    * behaviour that is necessary to implement the action.
@@ -710,7 +711,7 @@ protected:
     // No load algorithm instance is waiting for a source to be added to the
     // media in order to continue loading.
     NOT_WAITING,
-    // We've run the load algorithm, and we tried all source children of the 
+    // We've run the load algorithm, and we tried all source children of the
     // media element, and failed to load any successfully. We're waiting for
     // another source element to be added to the media element, and will try
     // to load any such element when its added.
@@ -744,7 +745,7 @@ protected:
   // This is always the original URL we're trying to load --- before
   // redirects etc.
   nsCOMPtr<nsIURI> mLoadingSrc;
-  
+
   // Stores the current preload action for this element. Initially set to
   // PRELOAD_UNDEFINED, its value is changed by calling
   // UpdatePreloadAction().
@@ -904,6 +905,9 @@ protected:
   // sniffing phase, that would fail because sniffing only works when applied to
   // the first bytes of the stream.
   nsCString mMimeType;
+
+  // Audio Channel Type.
+  mozilla::dom::AudioChannelType mAudioChannelType;
 };
 
 #endif

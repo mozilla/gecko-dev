@@ -32,6 +32,7 @@ extern "C" {
 #endif
 
 using namespace mozilla;
+using namespace mozilla::dom;
 
 #if defined(XP_MACOSX)
 #define SA_PER_STREAM_VOLUME 1
@@ -60,7 +61,8 @@ class nsNativeAudioStream : public nsAudioStream
   ~nsNativeAudioStream();
   nsNativeAudioStream();
 
-  nsresult Init(int32_t aNumChannels, int32_t aRate);
+  nsresult Init(int32_t aNumChannels, int32_t aRate,
+                const AudioChannelType aAudioChannelType);
   void Shutdown();
   nsresult Write(const void* aBuf, uint32_t aFrames);
   uint32_t Available();
@@ -95,7 +97,8 @@ class nsRemotedAudioStream : public nsAudioStream
   nsRemotedAudioStream();
   ~nsRemotedAudioStream();
 
-  nsresult Init(int32_t aNumChannels, int32_t aRate);
+  nsresult Init(int32_t aNumChannels, int32_t aRate,
+                const AudioChannelType aAudioChannelType);
   void Shutdown();
   nsresult Write(const void* aBuf, uint32_t aFrames);
   uint32_t Available();
@@ -349,6 +352,33 @@ static uint32_t GetCubebLatency()
 }
 #endif
 
+static sa_stream_type_t ConvertChannelToSAType(AudioChannelType aType)
+{
+  switch(aType) {
+    case AUDIO_CHANNEL_NORMAL:
+      return SA_STREAM_TYPE_SYSTEM;
+      break;
+    case AUDIO_CHANNEL_CONTENT:
+      return SA_STREAM_TYPE_MUSIC;
+      break;
+    case AUDIO_CHANNEL_NOTIFICATION:
+      return SA_STREAM_TYPE_NOTIFICATION;
+      break;
+    case AUDIO_CHANNEL_ALARM:
+      return SA_STREAM_TYPE_ALARM;
+      break;
+    case AUDIO_CHANNEL_TELEPHONY:
+      return SA_STREAM_TYPE_VOICE_CALL;
+      break;
+    case AUDIO_CHANNEL_PUBLICNOTIFICATION:
+      return SA_STREAM_TYPE_ENFORCED_AUDIBLE;
+      break;
+    default:
+      NS_ERROR("The value of AudioChannelType is invalid");
+      return SA_STREAM_TYPE_MAX;
+      break;
+  }
+}
 void nsAudioStream::InitLibrary()
 {
 #ifdef PR_LOGGING
@@ -426,7 +456,8 @@ nsNativeAudioStream::~nsNativeAudioStream()
 
 NS_IMPL_THREADSAFE_ISUPPORTS0(nsNativeAudioStream)
 
-nsresult nsNativeAudioStream::Init(int32_t aNumChannels, int32_t aRate)
+nsresult nsNativeAudioStream::Init(int32_t aNumChannels, int32_t aRate,
+                                   const AudioChannelType aAudioChannelType)
 {
   mRate = aRate;
   mChannels = aNumChannels;
@@ -441,6 +472,15 @@ nsresult nsNativeAudioStream::Init(int32_t aNumChannels, int32_t aRate)
     mAudioHandle = nullptr;
     mInError = true;
     PR_LOG(gAudioStreamLog, PR_LOG_ERROR, ("nsNativeAudioStream: sa_stream_create_pcm error"));
+    return NS_ERROR_FAILURE;
+  }
+
+  int saError = sa_stream_set_stream_type(static_cast<sa_stream_t*>(mAudioHandle),
+                       ConvertChannelToSAType(aAudioChannelType));
+  if (saError != SA_SUCCESS && saError != SA_ERROR_NOT_SUPPORTED) {
+    mAudioHandle = nullptr;
+    mInError = true;
+    PR_LOG(gAudioStreamLog, PR_LOG_ERROR, ("nsNativeAudioStream: sa_stream_set_stream_type error"));
     return NS_ERROR_FAILURE;
   }
 
@@ -631,7 +671,7 @@ NS_IMPL_THREADSAFE_ISUPPORTS0(nsRemotedAudioStream)
 
 nsresult
 nsRemotedAudioStream::Init(int32_t aNumChannels,
-                           int32_t aRate)
+                           int32_t aRate, AudioChannelType aAudioChannelType)
 {
   mRate = aRate;
   mChannels = aNumChannels;
@@ -834,7 +874,8 @@ class nsBufferedAudioStream : public nsAudioStream
   nsBufferedAudioStream();
   ~nsBufferedAudioStream();
 
-  nsresult Init(int32_t aNumChannels, int32_t aRate);
+  nsresult Init(int32_t aNumChannels, int32_t aRate,
+                const AudioChannelType aAudioChannelType);
   void Shutdown();
   nsresult Write(const void* aBuf, uint32_t aFrames);
   uint32_t Available();
@@ -936,7 +977,8 @@ nsBufferedAudioStream::~nsBufferedAudioStream()
 NS_IMPL_THREADSAFE_ISUPPORTS0(nsBufferedAudioStream)
 
 nsresult
-nsBufferedAudioStream::Init(int32_t aNumChannels, int32_t aRate)
+nsBufferedAudioStream::Init(int32_t aNumChannels, int32_t aRate,
+                            const AudioChannelType aAudioChannelType)
 {
   cubeb* cubebContext = GetCubebContext();
 

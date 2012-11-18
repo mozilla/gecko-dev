@@ -10,6 +10,7 @@
 #include "VideoFrameContainer.h"
 #include "MediaStreamGraph.h"
 #include "nsIObserver.h"
+#include "AudioChannelCommon.h"
 
 class nsHTMLMediaElement;
 class nsIStreamListener;
@@ -49,6 +50,7 @@ public:
   typedef mozilla::TimeStamp TimeStamp;
   typedef mozilla::TimeDuration TimeDuration;
   typedef mozilla::VideoFrameContainer VideoFrameContainer;
+  typedef mozilla::dom::AudioChannelType AudioChannelType;
 
   nsMediaDecoder();
   virtual ~nsMediaDecoder();
@@ -387,6 +389,9 @@ public:
     return mVideoFrameContainer ? mVideoFrameContainer->GetImageContainer() : nullptr;
   }
 
+  void SetAudioChannelType(AudioChannelType aType) { mAudioChannelType = aType; }
+  AudioChannelType GetAudioChannelType() { return mAudioChannelType; }
+
 protected:
 
   // Start timer to update download progress information.
@@ -437,6 +442,10 @@ protected:
   // being run that operates on the element and decoder during shutdown.
   // Read/Write from the main thread only.
   bool mShuttingDown;
+
+  // Be assigned from media element during the initialization and pass to
+  // nsAudioStream Class.
+  AudioChannelType mAudioChannelType;
 };
 
 namespace mozilla {

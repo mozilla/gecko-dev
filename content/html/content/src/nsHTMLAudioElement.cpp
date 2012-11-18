@@ -12,6 +12,7 @@
 #include "jsfriendapi.h"
 #include "nsContentUtils.h"
 #include "nsJSUtils.h"
+#include "AudioChannelCommon.h"
 
 using namespace mozilla::dom;
 
@@ -126,7 +127,7 @@ nsHTMLAudioElement::MozSetup(uint32_t aChannels, uint32_t aRate)
   }
 
   mAudioStream = nsAudioStream::AllocateStream();
-  nsresult rv = mAudioStream->Init(aChannels, aRate);
+  nsresult rv = mAudioStream->Init(aChannels, aRate, mAudioChannelType);
   if (NS_FAILED(rv)) {
     mAudioStream->Shutdown();
     mAudioStream = nullptr;
