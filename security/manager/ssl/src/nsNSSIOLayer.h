@@ -13,7 +13,6 @@
 #include "nsNSSCertificate.h"
 #include "nsDataHashtable.h"
 #include "nsTHashtable.h"
-#include "nsISocketTransport.h"
 
 class nsNSSSocketInfo : public mozilla::psm::TransportSecurityInfo,
                         public nsISSLSocketControl,
