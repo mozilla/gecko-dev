@@ -903,6 +903,10 @@ public:
        const nsIntRect& aRect, const nsIntPoint& aRotation,
        nsIntRect* aPrevRect, nsIntPoint* aPrevRotation);
 
+  nsIntPoint Rotation() {
+    return mBufferRotation;
+  }
+
 protected:
   virtual nsIntPoint GetOriginOffset() {
     return mBufferRect.TopLeft() - mBufferRotation;
@@ -1102,6 +1106,17 @@ Layer*
 ShadowThebesLayerOGL::GetLayer()
 {
   return this;
+}
+
+LayerRenderState
+ShadowThebesLayerOGL::GetRenderState()
+{
+  if (!mBuffer || mDestroyed) {
+    return LayerRenderState();
+  }
+  uint32_t flags = (mBuffer->Rotation() != nsIntPoint()) ?
+                   LAYER_RENDER_STATE_BUFFER_ROTATION : 0;
+  return LayerRenderState(&mBufferDescriptor, flags);
 }
 
 bool
