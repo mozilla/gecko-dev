@@ -1530,6 +1530,7 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, HandleObject obj,
      */
     GeneratorWriteBarrierPre(cx, gen);
 
+    JSGeneratorState futureState;
     JS_ASSERT(gen->state == JSGEN_NEWBORN || gen->state == JSGEN_OPEN);
     switch (op) {
       case JSGENOP_NEXT:
@@ -1541,18 +1542,18 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, HandleObject obj,
              */
             gen->regs.sp[-1] = arg;
         }
-        gen->state = JSGEN_RUNNING;
+        futureState = JSGEN_RUNNING;
         break;
 
       case JSGENOP_THROW:
         cx->setPendingException(arg);
-        gen->state = JSGEN_RUNNING;
+        futureState = JSGEN_RUNNING;
         break;
 
       default:
         JS_ASSERT(op == JSGENOP_CLOSE);
         cx->setPendingException(MagicValue(JS_GENERATOR_CLOSING));
-        gen->state = JSGEN_CLOSING;
+        futureState = JSGEN_CLOSING;
         break;
     }
 
@@ -1563,6 +1564,12 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, HandleObject obj,
             SetGeneratorClosed(cx, gen);
             return JS_FALSE;
         }
+
+        /*
+         * Don't change the state until after the frame is successfully pushed
+         * or else we might fail to scan some generator values.
+         */
+        gen->state = futureState;
 
         StackFrame *fp = gfg.fp();
         gen->regs = cx->regs();
