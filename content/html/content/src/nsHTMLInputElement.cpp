@@ -902,6 +902,18 @@ nsHTMLInputElement::GetIndeterminate(bool* aValue)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsHTMLInputElement::GetInputmode(nsAString& value)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsHTMLInputElement::SetInputmode(const nsAString& value)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
 nsresult
 nsHTMLInputElement::SetIndeterminateInternal(bool aValue,
                                              bool aShouldInvalidate)
