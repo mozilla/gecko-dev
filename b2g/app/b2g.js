@@ -588,10 +588,6 @@ pref("browser.prompt.allowNative", false);
 // a restart is required to enable a new value.
 pref("network.activity.blipIntervalMilliseconds", 250);
 
-// Send some sites a custom user-agent.
-pref("general.useragent.override.facebook.com", "\(Mobile#(Android; Mobile");
-pref("general.useragent.override.youtube.com", "\(Mobile#(Android; Mobile");
-
 pref("jsloader.reuseGlobal", false);
 
 // Enable font inflation for browser tab content.
