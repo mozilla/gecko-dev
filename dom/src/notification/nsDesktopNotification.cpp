@@ -76,9 +76,12 @@ nsDOMDesktopNotification::nsDOMDesktopNotification(const nsAString & title,
   if (Preferences::GetBool("notification.prompt.testing", false) &&
       Preferences::GetBool("notification.prompt.testing.allow", true)) {
     mAllow = true;
-    return;
   }
+}
 
+void
+nsDOMDesktopNotification::Init()
+{
   nsRefPtr<nsDesktopNotificationRequest> request = new nsDesktopNotificationRequest(this);
 
   // if we are in the content process, then remote it to the parent.
@@ -109,7 +112,6 @@ nsDOMDesktopNotification::nsDOMDesktopNotification(const nsAString & title,
 
   // otherwise, dispatch it
   NS_DispatchToMainThread(request);
-
 }
 
 nsDOMDesktopNotification::~nsDOMDesktopNotification()
@@ -196,11 +198,12 @@ nsDesktopNotificationCenter::CreateNotification(const nsAString & title,
                                                 nsIDOMDesktopNotification **aResult)
 {
   NS_ENSURE_STATE(mOwner);
-  nsRefPtr<nsIDOMDesktopNotification> notification = new nsDOMDesktopNotification(title, 
-                                                                                  description,
-                                                                                  iconURL,
-                                                                                  mOwner,
-                                                                                  mPrincipal);
+  nsRefPtr<nsDOMDesktopNotification> notification = new nsDOMDesktopNotification(title, 
+                                                                                 description,
+                                                                                 iconURL,
+                                                                                 mOwner,
+                                                                                 mPrincipal);
+  notification->Init();
   notification.forget(aResult);
   return NS_OK;
 }
