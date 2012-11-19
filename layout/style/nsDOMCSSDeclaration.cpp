@@ -284,6 +284,21 @@ nsDOMCSSDeclaration::ParsePropertyValue(const nsCSSProperty aPropID,
   return SetCSSDeclaration(decl);
 }
 
+// Hacky fix for Bug 813264 - MozColumnFill was backed out of 17 by Bug 810726,
+// but we want to stub just the nsIDOMCSS2Properties IDL functions to avoid
+// changing the IID.
+NS_IMETHODIMP
+nsDOMCSSDeclaration::GetMozColumnFill(nsAString& value)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsDOMCSSDeclaration::SetMozColumnFill(const nsAString& value)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
 nsresult
 nsDOMCSSDeclaration::RemoveProperty(const nsCSSProperty aPropID)
 {
