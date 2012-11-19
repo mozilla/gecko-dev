@@ -282,15 +282,12 @@ this.expandPermissions = function expandPermissions(aPermName, aAccess) {
     return [];
   }
 
-/*
-Temporarily disabled in order to add access fields to gaia: See Bug 805646
   if (!aAccess && tableEntry.access ||
       aAccess && !tableEntry.access) {
     Cu.reportError("PermissionsTable.jsm: expandPermissions: Invalid Manifest : " +
                    aPermName + " " + aAccess + "\n");
     throw new Error("PermissionsTable.jsm: expandPermissions: Invalid Manifest");
   }
-*/
 
   let expandedPerms = [];
 
@@ -311,18 +308,6 @@ Temporarily disabled in order to add access fields to gaia: See Bug 805646
         break;
       default:
         return [];
-    }
-
-    // XXXbent This is a temporary hack! Remove this whole block once the
-    //         Settings API and the DeviceStorage API have stopped checking just
-    //         the bare permission (e.g. "settings" vs. "settings-read").
-    if (true) {
-      expandedPerms.push(aPermName);
-      if (tableEntry.additional) {
-        for each (let additional in tableEntry.additional) {
-          expandedPerms.push(additional);
-        }
-      }
     }
 
     let permArr = mapSuffixes(aPermName, requestedSuffixes);
