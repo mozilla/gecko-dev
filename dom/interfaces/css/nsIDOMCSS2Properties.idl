@@ -14,7 +14,7 @@
  * http://www.w3.org/TR/DOM-Level-2-Style
  */
 
-[builtinclass, scriptable, uuid(492673d6-039b-4d94-a598-dbf82abc174f)]
+[builtinclass, scriptable, uuid(243898eb-0e13-416d-9a2e-33af084985ed)]
 interface nsIDOMCSS2Properties : nsISupports
 {
            attribute DOMString        background;
@@ -496,6 +496,11 @@ interface nsIDOMCSS2Properties : nsISupports
                                         // raises(DOMException) on setting
 
            attribute DOMString        MozColumnWidth;
+                                        // raises(DOMException) on setting
+
+  // Bug 813264 - column-fill was backed out of 17 in Bug 810726, but the IID
+  //              change is undesirable
+[noscript] attribute DOMString        MozColumnFill;
                                         // raises(DOMException) on setting
 
            attribute DOMString        MozColumnGap;
