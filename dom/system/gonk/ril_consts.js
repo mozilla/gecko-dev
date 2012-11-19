@@ -581,6 +581,7 @@ this.STK_DEVICE_ID_NETWORK = 0x83;
 
 // STK Proactive commands.
 this.STK_CMD_REFRESH = 0x01;
+this.STK_CMD_MORE_TIME = 0x02;
 this.STK_CMD_POLL_INTERVAL = 0x03;
 this.STK_CMD_POLL_OFF = 0x04;
 this.STK_CMD_SET_UP_EVENT_LIST = 0x05;
