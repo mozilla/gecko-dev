@@ -83,3 +83,8 @@ interface nsIPluginHost : nsISupports
   void unregisterPlayPreviewMimeType(in AUTF8String mimeType);
 };
 
+[scriptable, uuid(1cf52b41-454e-4ec1-a3b7-969386ce97c2)]
+interface nsIPluginHost2 : nsIPluginHost
+{
+  bool isPluginClickToPlayForType(in AUTF8String mimeType);
+};

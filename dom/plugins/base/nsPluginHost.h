@@ -58,7 +58,7 @@ public:
   nsRefPtr<nsInvalidPluginTag> mNext;
 };
 
-class nsPluginHost : public nsIPluginHost,
+class nsPluginHost : public nsIPluginHost2,
                      public nsIObserver,
                      public nsITimerCallback,
                      public nsSupportsWeakReference
@@ -75,6 +75,7 @@ public:
   NS_DECL_NSIPLUGINHOST
   NS_DECL_NSIOBSERVER
   NS_DECL_NSITIMERCALLBACK
+  NS_DECL_NSIPLUGINHOST2
 
   nsresult Init();
   nsresult LoadPlugins();
@@ -85,7 +86,6 @@ public:
                                nsIPluginInstanceOwner *aOwner);
   nsresult IsPluginEnabledForType(const char* aMimeType);
   nsresult IsPluginEnabledForExtension(const char* aExtension, const char* &aMimeType);
-  bool     IsPluginClickToPlayForType(const char *aMimeType);
   bool     IsPluginPlayPreviewForType(const char *aMimeType);
   nsresult GetBlocklistStateForType(const char *aMimeType, uint32_t *state);
 
