@@ -14,7 +14,7 @@
  * http://www.w3.org/TR/DOM-Level-2-Style
  */
 
-[builtinclass, scriptable, uuid(2ae61565-1a66-4e6e-960d-b999c631e5c6)]
+[builtinclass, scriptable, uuid(b86b1b20-6875-402a-b463-5005077f55fe)]
 interface nsIDOMCSS2Properties : nsISupports
 {
            attribute DOMString        background;
@@ -496,9 +496,6 @@ interface nsIDOMCSS2Properties : nsISupports
                                         // raises(DOMException) on setting
 
            attribute DOMString        MozColumnWidth;
-                                        // raises(DOMException) on setting
-
-           attribute DOMString        MozColumnFill;
                                         // raises(DOMException) on setting
 
            attribute DOMString        MozColumnGap;
