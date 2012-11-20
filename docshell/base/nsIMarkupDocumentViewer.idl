@@ -23,7 +23,7 @@ interface nsIMarkupDocumentViewer;
 
 [ref] native nsIMarkupDocumentViewerTArray(nsTArray<nsCOMPtr<nsIMarkupDocumentViewer> >);
 
-[scriptable, uuid(1016d5e8-690f-4d97-8ac5-d50ffa341c46)]
+[scriptable, uuid(9014d2be-be9e-4d0c-b7ae-4e82857b153d)]
 interface nsIMarkupDocumentViewer : nsISupports
 {
 
