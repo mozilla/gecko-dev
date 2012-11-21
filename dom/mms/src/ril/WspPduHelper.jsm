@@ -867,12 +867,14 @@ this.UintVar = {
 /**
  * This encoding is used for token values, which have no well-known binary
  * encoding, or when the assigned number of the well-known encoding is small
- * enough to fit into Short-Integer.
+ * enough to fit into Short-Integer. We change Extension-Media from 
+ * NullTerminatedTexts to TextString because of Bug 823816. 
  *
  *   Constrained-encoding = Extension-Media | Short-integer
- *   Extension-Media = *TEXT End-of-string
+ *   Extension-Media = TextString
  *
  * @see WAP-230-WSP-20010705-a clause 8.4.2.1
+ * @see https://bugzilla.mozilla.org/show_bug.cgi?id=823816
  */
 this.ConstrainedEncoding = {
   /**
@@ -882,7 +884,7 @@ this.ConstrainedEncoding = {
    * @return Decode integer value or string.
    */
   decode: function decode(data) {
-    return decodeAlternatives(data, null, NullTerminatedTexts, ShortInteger);
+    return decodeAlternatives(data, null, TextString, ShortInteger);
   },
 
   /**
@@ -895,7 +897,7 @@ this.ConstrainedEncoding = {
     if (typeof value == "number") {
       ShortInteger.encode(data, value);
     } else {
-      NullTerminatedTexts.encode(data, value);
+      TextString.encode(data, value);
     }
   },
 };
@@ -1277,9 +1279,9 @@ this.TypeValue = {
   encode: function encode(data, type) {
     let entry = WSP_WELL_KNOWN_CONTENT_TYPES[type.toLowerCase()];
     if (entry) {
-      ShortInteger.encode(data, entry.number);
+      ConstrainedEncoding.encode(data, entry.number);
     } else {
-      NullTerminatedTexts.encode(data, type);
+      ConstrainedEncoding.encode(data, type);
     }
   },
 };
@@ -2037,7 +2039,7 @@ this.ContentTypeValue = {
    */
   encodeConstrainedMedia: function encodeConstrainedMedia(data, value) {
     if (value.params) {
-      throw new CodeError("Constrained-media: should use general form instread");
+      throw new CodeError("Constrained-media: should use general form instead");
     }
 
     TypeValue.encode(data, value.media);
@@ -2141,6 +2143,58 @@ this.ApplicationIdValue = {
 
 this.PduHelper = {
   /**
+   * @param data
+   *        A UInt8Array of data for decode.
+   * @param charset
+   *        charset for decode
+   *
+   * @return Decoded string.
+   */
+  decodeStringContent: function decodeStringContent(data, charset) {
+      let conv = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+                 .createInstance(Ci.nsIScriptableUnicodeConverter);
+
+      let entry;
+      if (charset) {
+        entry = WSP_WELL_KNOWN_CHARSETS[charset];
+      }
+      // Set converter to default one if (entry && entry.converter) is null.
+      // @see OMA-TS-MMS-CONF-V1_3-20050526-D 7.1.9
+      conv.charset = (entry && entry.converter) || "UTF-8";
+      try {
+        return conv.convertFromByteArray(data, data.length);
+      } catch (e) {
+      }
+      return null;
+  },
+
+  /**
+  * @param strContent
+  *        Decoded string content.
+  * @param charset
+  *        Charset for encode.
+  *
+  * @return An encoded UInt8Array of string content.
+  */
+  encodeStringContent: function encodeStringContent(strContent, charset) {
+    let conv = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+               .createInstance(Ci.nsIScriptableUnicodeConverter);
+
+    let entry;
+    if (charset) {
+      entry = WSP_WELL_KNOWN_CHARSETS[charset];
+    }
+    // Set converter to default one if (entry && entry.converter) is null.
+    // @see OMA-TS-MMS-CONF-V1_3-20050526-D 7.1.9
+    conv.charset = (entry && entry.converter) || "UTF-8";
+    try {
+      return conv.convertToByteArray(strContent);
+    } catch (e) {
+    }
+    return null;
+  },
+
+  /**
    * Parse multiple header fields with end mark.
    *
    * @param data
@@ -2235,7 +2289,18 @@ this.PduHelper = {
 
         headers = this.parseHeaders(data, headersEnd, headers);
 
-        let content = Octet.decodeMultiple(data, contentEnd);
+        let octetArray = Octet.decodeMultiple(data, contentEnd);
+        let content = null;
+        if (octetArray) {
+          if (headers["content-type"].media.indexOf("text/") === 0) {
+            content = this.decodeStringContent(octetArray,
+              headers["content-type"].params.charset["charset"]);
+          }
+          if (!content) {
+            content = new Blob([octetArray],
+              {"type" : headers["content-type"].media});
+          }
+        }
 
         parts[i] = {
           index: i,
@@ -2359,7 +2424,19 @@ this.PduHelper = {
       // Encode headersLen, DataLen
       let headersLen = data.offset;
       UintVar.encode(data, headersLen);
-      UintVar.encode(data, part.content.length);
+      if (typeof part.content === "string") {
+        let charset;
+        if (contentType && contentType.params && contentType.params.charset &&
+          contentType.params.charset.charset) {
+          charset = contentType.params.charset.charset;
+        }
+        part.content = this.encodeStringContent(part.content, charset);
+        UintVar.encode(data, part.content.length);
+      } else if (part.content instanceof Uint8Array) {
+        UintVar.encode(data, part.content.length);
+      } else {
+        throw new TypeError();
+      }
 
       // Move them to the beginning of encoded octet array.
       let slice1 = data.array.slice(headersLen);
@@ -2475,7 +2552,7 @@ this.WSP_HEADER_FIELDS = (function () {
 })();
 
 // WSP Content Type Assignments
-// @see http://www.wapforum.org/wina
+// @see http://www.openmobilealliance.org/tech/omna/omna-wsp-content-type.aspx
 this.WSP_WELL_KNOWN_CONTENT_TYPES = (function () {
   let types = {};
 
@@ -2484,18 +2561,115 @@ this.WSP_WELL_KNOWN_CONTENT_TYPES = (function () {
       type: type,
       number: number,
     };
-    types[type] = types[number] = entry;
+    // For case like "text/x-vCalendar", we need toLoweCase() for generating
+    // the same index.
+    types[type.toLowerCase()] = types[number] = entry;
   }
 
   // Well Known Values
   // Encoding Version: 1.1
+  add("*/*", 0x00);
+  add("text/*", 0x01);
+  add("text/html", 0x02);
+  add("text/plain", 0x03);
+  add("text/x-hdml", 0x04);
+  add("text/x-ttml", 0x05);
+  add("text/x-vCalendar", 0x06);
+  add("text/x-vCard", 0x07);
+  add("text/vnd.wap.wml", 0x08);
+  add("text/vnd.wap.wmlscript", 0x09);
+  add("text/vnd.wap.wta-event", 0x0A);
+  add("multipart/*", 0x0B);
+  add("multipart/mixed", 0x0C);
+  add("multipart/form-data", 0x0D);
+  add("multipart/byterantes", 0x0E);
+  add("multipart/alternative", 0x0F);
+  add("application/*", 0x10);
+  add("application/java-vm", 0x11);
+  add("application/x-www-form-urlencoded", 0x12);
+  add("application/x-hdmlc", 0x13);
+  add("application/vnd.wap.wmlc", 0x14);
+  add("application/vnd.wap.wmlscriptc", 0x15);
+  add("application/vnd.wap.wta-eventc", 0x16);
+  add("application/vnd.wap.uaprof", 0x17);
+  add("application/vnd.wap.wtls-ca-certificate", 0x18);
+  add("application/vnd.wap.wtls-user-certificate", 0x19);
+  add("application/x-x509-ca-cert", 0x1A);
+  add("application/x-x509-user-cert", 0x1B);
+  add("image/*", 0x1C);
+  add("image/gif", 0x1D);
+  add("image/jpeg", 0x1E);
+  add("image/tiff", 0x1F);
+  add("image/png", 0x20);
+  add("image/vnd.wap.wbmp", 0x21);
+  add("application/vnd.wap.multipart.*", 0x22);
   add("application/vnd.wap.multipart.mixed", 0x23);
+  add("application/vnd.wap.multipart.form-data", 0x24);
+  add("application/vnd.wap.multipart.byteranges", 0x25);
+  add("application/vnd.wap.multipart.alternative", 0x26);
+  add("application/xml", 0x27);
+  add("text/xml", 0x28);
+  add("application/vnd.wap.wbxml", 0x29);
+  add("application/x-x968-cross-cert", 0x2A);
+  add("application/x-x968-ca-cert", 0x2B);
+  add("application/x-x968-user-cert", 0x2C);
+  add("text/vnd.wap.si", 0x2D);
 
   // Encoding Version: 1.2
+  add("application/vnd.wap.sic", 0x2E);
+  add("text/vnd.wap.sl", 0x2F);
+  add("application/vnd.wap.slc", 0x30);
+  add("text/vnd.wap.co", 0x31);
+  add("application/vnd.wap.coc", 0x32);
   add("application/vnd.wap.multipart.related", 0x33);
+  add("application/vnd.wap.sia", 0x34);
+
+  // Encoding Version: 1.3
+  add("text/vnd.wap.connectivity-xml", 0x35);
+  add("application/vnd.wap.connectivity-wbxml", 0x36);
 
   // Encoding Version: 1.4
+  add("application/pkcs7-mime", 0x37);
+  add("application/vnd.wap.hashed-certificate", 0x38);
+  add("application/vnd.wap.signed-certificate", 0x39);
+  add("application/vnd.wap.cert-response", 0x3A);
+  add("application/xhtml+xml", 0x3B);
+  add("application/wml+xml", 0x3C);
+  add("text/css", 0x3D);
   add("application/vnd.wap.mms-message", 0x3E);
+  add("application/vnd.wap.rollover-certificate", 0x3F);
+
+  // Encoding Version: 1.5
+  add("application/vnd.wap.locc+wbxml", 0x40);
+  add("application/vnd.wap.loc+xml", 0x41);
+  add("application/vnd.syncml.dm+wbxml", 0x42);
+  add("application/vnd.syncml.dm+xml", 0x43);
+  add("application/vnd.syncml.notification", 0x44);
+  add("application/vnd.wap.xhtml+xml", 0x45);
+  add("application/vnd.wv.csp.cir", 0x46);
+  add("application/vnd.oma.dd+xml", 0x47);
+  add("application/vnd.oma.drm.message", 0x48);
+  add("application/vnd.oma.drm.content", 0x49);
+  add("application/vnd.oma.drm.rights+xml", 0x4A);
+  add("application/vnd.oma.drm.rights+wbxml", 0x4B);
+  add("application/vnd.wv.csp+xml", 0x4C);
+  add("application/vnd.wv.csp+wbxml", 0x4D);
+  add("application/vnd.syncml.ds.notification", 0x4E);
+
+  // Encoding Version: 1.6
+  add("audio/*", 0x4F);
+  add("video/*", 0x50);
+
+  // Encoding Version: TBD
+  add("application/vnd.oma.dd2+xml", 0x51);
+  add("application/mikey", 0x52);
+  add("application/vnd.oma.dcd", 0x53);
+  add("application/vnd.oma.dcdc", 0x54);
+  add("text/x-vMessage", 0x55);
+  add("application/vnd.omads-email+wbxml", 0x56);
+  add("text/x-vBookmark", 0x57);
+  add("application/vnd.syncml.dm.notification", 0x58);
+  add("application/octet-stream", 0x5A);
 
   return types;
 })();
@@ -2572,9 +2746,33 @@ this.WSP_WELL_KNOWN_CHARSETS = (function () {
     charsets[name] = charsets[number] = entry;
   }
 
-  add("ansi_x3.4-1968",     3, null);
-  add("iso_8859-1:1987",    4, "ISO-8859-1");
+  add("us-ascii",           3, null);
+  add("iso-8859-1",         4, "ISO-8859-1");
+  add("iso-8859-2",         5, "ISO-8859-2");
+  add("iso-8859-3",         6, "ISO-8859-3");
+  add("iso-8859-4",         7, "ISO-8859-4");
+  add("iso-8859-5",         8, "ISO-8859-5");
+  add("iso-8859-6",         9, "ISO-8859-6");
+  add("iso-8859-7",        10, "ISO-8859-7");
+  add("iso-8859-8",        11, "ISO-8859-8");
+  add("iso-8859-9",        12, "ISO-8859-9");
+  add("iso-8859-10",       13, "ISO-8859-10");
+  add("shift_jis",         17, "Shift_JIS");
+  add("euc-jp",            18, "EUC-JP");
+  add("iso-2022-kr",       37, "ISO-2022-KR");
+  add("euc-kr",            38, "EUC-KR");
+  add("iso-2022-jp",       39, "ISO-2022-JP");
+  add("iso-2022-jp-2",     40, "iso-2022-jp-2");
+  add("iso-8859-6-e",      81, "ISO-8859-6-E");
+  add("iso-8859-6-i",      82, "ISO-8859-6-I");
+  add("iso-8859-8-e",      84, "ISO-8859-8-E");
+  add("iso-8859-8-i",      85, "ISO-8859-8-I");
   add("utf-8",            106, "UTF-8");
+  add("iso-10646-ucs-2", 1000, "iso-10646-ucs-2");
+  add("utf-16",          1015, "UTF-16");
+  add("gb2312",          2025, "GB2312");
+  add("big5",            2026, "Big5");
+  add("koi8-r",          2084, "KOI8-R");
   add("windows-1252",    2252, "windows-1252");
 
   return charsets;
