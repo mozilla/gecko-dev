@@ -5595,7 +5595,7 @@ JS_DecompileScript(JSContext *cx, JSScript *scriptArg, const char *name, unsigne
     if (fun)
         return JS_DecompileFunction(cx, fun, indent);
     bool haveSource = script->scriptSource()->hasSourceData();
-    if (!haveSource && !JSScript::loadSource(cx, script, &haveSource))
+    if (!haveSource && !script->loadSource(cx, &haveSource))
         return NULL;
     return haveSource ? script->sourceData(cx) : js_NewStringCopyZ(cx, "[no source]");
 }
