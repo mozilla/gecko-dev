@@ -40,6 +40,8 @@
 #include "nsICharsetConverterManager.h"
 #include "nsIUnicodeDecoder.h"
 #include "nsIChromeRegistry.h"
+#include "nsILoadContext.h"
+#include "nsIWebNavigation.h"
 
 #include "mozilla/Preferences.h"
 #include "mozilla/StartupTimeline.h"
