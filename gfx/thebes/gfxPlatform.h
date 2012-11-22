@@ -466,6 +466,8 @@ public:
 
     virtual void FontsPrefsChanged(const char *aPref);
 
+    void OrientationSyncPrefsObserverChanged();
+
     int32_t GetBidiNumeralOption();
 
     /**
@@ -489,6 +491,8 @@ public:
     bool WorkAroundDriverBugs() const { return mWorkAroundDriverBugs; }
 
     virtual int GetScreenDepth() const;
+
+    uint32_t GetOrientationSyncMillis() const;
 
 protected:
     gfxPlatform();
@@ -571,6 +575,7 @@ private:
     nsTArray<uint32_t> mCJKPrefLangs;
     nsCOMPtr<nsIObserver> mSRGBOverrideObserver;
     nsCOMPtr<nsIObserver> mFontPrefsObserver;
+    nsCOMPtr<nsIObserver> mOrientationSyncPrefsObserver;
 
     // The preferred draw target backend to use for canvas
     mozilla::gfx::BackendType mPreferredCanvasBackend;
@@ -583,6 +588,7 @@ private:
     bool mWorkAroundDriverBugs;
 
     mozilla::RefPtr<mozilla::gfx::DrawEventRecorder> mRecorder;
+    uint32_t mOrientationSyncMillis;
 };
 
 #endif /* GFX_PLATFORM_H */
