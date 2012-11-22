@@ -28,7 +28,7 @@ add_test(function test_register_provider() {
   do_check_eq(collector._providers.length, 1);
   collector.registerProvider(dummy);
   do_check_eq(collector._providers.length, 1);
-  do_check_eq(collector.providerErrors.size, 1);
+  do_check_eq(collector.providerErrors.size(), 1);
 
   let failed = false;
   try {
@@ -53,7 +53,7 @@ add_test(function test_collect_constant_measurements() {
 
   collector.collectConstantMeasurements().then(function onResult() {
     do_check_eq(provider.collectConstantCount, 1);
-    do_check_eq(collector.collectionResults.size, 1);
+    do_check_eq(collector.collectionResults.size(), 1);
     do_check_true(collector.collectionResults.has("DummyProvider"));
 
     let result = collector.collectionResults.get("DummyProvider");
@@ -88,7 +88,7 @@ add_test(function test_collect_constant_populate_throws() {
   collector.registerProvider(provider);
 
   collector.collectConstantMeasurements().then(function onResult() {
-    do_check_eq(collector.collectionResults.size, 1);
+    do_check_eq(collector.collectionResults.size(), 1);
     do_check_true(collector.collectionResults.has("DummyProvider"));
 
     let result = collector.collectionResults.get("DummyProvider");
@@ -129,7 +129,7 @@ add_test(function test_collect_multiple() {
 
   collector.collectConstantMeasurements().then(function onResult(innerCollector) {
     do_check_eq(collector, innerCollector);
-    do_check_eq(collector.collectionResults.size, 10);
+    do_check_eq(collector.collectionResults.size(), 10);
 
     run_next_test();
   });
@@ -149,10 +149,10 @@ add_test(function test_collect_aggregate() {
   do_check_eq(collector._providers.length, 2);
 
   collector.collectConstantMeasurements().then(function onResult() {
-    do_check_eq(collector.collectionResults.size, 1);
+    do_check_eq(collector.collectionResults.size(), 1);
 
     let measurements = collector.collectionResults.get("DummyProvider").measurements;
-    do_check_eq(measurements.size, 2);
+    do_check_eq(measurements.size(), 2);
     do_check_true(measurements.has("measurement1"));
     do_check_true(measurements.has("measurement2"));
 

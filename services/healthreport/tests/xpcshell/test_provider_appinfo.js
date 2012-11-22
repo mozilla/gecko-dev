@@ -57,9 +57,9 @@ add_test(function test_collect_smoketest() {
   do_check_true(result instanceof MetricsCollectionResult);
 
   result.onFinished(function onFinished() {
-    do_check_eq(result.expectedMeasurements.size, 1);
+    do_check_eq(result.expectedMeasurements.size(), 1);
     do_check_true(result.expectedMeasurements.has("appinfo"));
-    do_check_eq(result.measurements.size, 1);
+    do_check_eq(result.measurements.size(), 1);
     do_check_true(result.measurements.has("appinfo"));
     do_check_eq(result.errors.length, 0);
 
