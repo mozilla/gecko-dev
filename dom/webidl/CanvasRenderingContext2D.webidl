@@ -90,6 +90,7 @@ interface CanvasRenderingContext2D {
 // NOT IMPLEMENTED  void resetClip();
   boolean isPointInPath(double x, double y);
 // NOT IMPLEMENTED  boolean isPointInPath(Path path, double x, double y);
+  boolean isPointInStroke(double x, double y);
 
   // text (see also the CanvasDrawingStyles interface)
   [Throws]
@@ -143,8 +144,6 @@ interface CanvasRenderingContext2D {
   // image smoothing mode -- if disabled, images won't be smoothed
   // if scaled.
   attribute boolean mozImageSmoothingEnabled;
-
-  boolean mozIsPointInStroke(double x, double y);
 
   // Show the caret if appropriate when drawing
   [ChromeOnly]
