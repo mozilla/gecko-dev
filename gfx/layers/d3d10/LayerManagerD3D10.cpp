@@ -27,6 +27,7 @@
 #include "gfxCrashReporterUtils.h"
 
 using namespace std;
+using namespace mozilla::dom;
 using namespace mozilla::gfx;
 
 namespace mozilla {
@@ -753,7 +754,9 @@ LayerManagerD3D10::Render(EndTransactionFlags aFlags)
     PaintToTarget();
   } else if (mBackBuffer) {
     ShadowLayerForwarder::BeginTransaction(mWidget->GetNaturalBounds(),
-                                           ROTATION_0);
+                                           ROTATION_0,
+                                           mWidget->GetNaturalBounds(),
+                                           eScreenOrientation_LandscapePrimary);
     
     nsIntRect contentRect = nsIntRect(0, 0, rect.width, rect.height);
     if (!mRootForShadowTree) {

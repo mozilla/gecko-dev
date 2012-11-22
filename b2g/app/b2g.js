@@ -616,3 +616,6 @@ pref("font.size.inflation.disabledInMasterProcess", true);
 // Enable freeing dirty pages when minimizing memory; this reduces memory
 // consumption when applications are sent to the background.
 pref("memory.free_dirty_pages", true);
+
+// Wait up to this much milliseconds when orientation changed
+pref("layers.orientation.sync.timeout", 1000);

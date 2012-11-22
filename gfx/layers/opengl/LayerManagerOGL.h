@@ -348,6 +348,8 @@ public:
   gfxMatrix& GetWorldTransform(void);
   void WorldTransformRect(nsIntRect& aRect);
 
+  void UpdateRenderBounds(const nsIntRect& aRect);
+
   /**
    * Set the size of the surface we're rendering to.
    */
@@ -452,6 +454,7 @@ private:
   void *mThebesLayerCallbackData;
   gfxMatrix mWorldMatrix;
   nsAutoPtr<FPSState> mFPS;
+  nsIntRect mRenderBounds;
 #ifdef DEBUG
   // NB: only interesting when this is a purely compositing layer
   // manager.  True after possibly onscreen layers have had their
