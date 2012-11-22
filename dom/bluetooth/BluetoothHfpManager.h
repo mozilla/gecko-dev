@@ -36,7 +36,6 @@ public:
                           const char* aNumber, bool aIsActive);
   void SetupCIND(int aCallIndex, int aCallState, bool aInitial);
   bool Listen();
-  void SetVolume(int aVolume);
 
 private:
   friend class BluetoothHfpManagerObserver;

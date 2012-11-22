@@ -6,22 +6,22 @@
 
 #include "base/basictypes.h"
 
-#include "BluetoothReplyRunnable.h"
+#include "BluetoothDevice.h"
 #include "BluetoothUtils.h"
 #include "jsapi.h"
 #include "mozilla/Scoped.h"
 #include "mozilla/dom/bluetooth/BluetoothTypes.h"
 #include "nsContentUtils.h"
 #include "nsISystemMessagesInternal.h"
-#include "nsString.h"
 #include "nsTArray.h"
+#include "nsString.h"
 
-BEGIN_BLUETOOTH_NAMESPACE
+USING_BLUETOOTH_NAMESPACE
 
 nsresult
-SetJsObject(JSContext* aContext,
-            JSObject* aObj,
-            const InfallibleTArray<BluetoothNamedValue>& aData)
+mozilla::dom::bluetooth::StringArrayToJSArray(JSContext* aCx, JSObject* aGlobal,
+                                              const nsTArray<nsString>& aSourceArray,
+                                              JSObject** aResultArray)
 {
   NS_ASSERTION(aCx, "Null context!");
   NS_ASSERTION(aGlobal, "Null global!");
@@ -139,8 +139,8 @@ mozilla::dom::bluetooth::SetJsObject(JSContext* aContext,
 }
 
 nsString
-GetObjectPathFromAddress(const nsAString& aAdapterPath,
-                         const nsAString& aDeviceAddress)
+mozilla::dom::bluetooth::GetObjectPathFromAddress(const nsAString& aAdapterPath,
+                                                  const nsAString& aDeviceAddress)
 {
   // The object path would be like /org/bluez/2906/hci0/dev_00_23_7F_CB_B4_F1,
   // and the adapter path would be the first part of the object path, according
@@ -153,7 +153,7 @@ GetObjectPathFromAddress(const nsAString& aAdapterPath,
 }
 
 nsString
-GetAddressFromObjectPath(const nsAString& aObjectPath)
+mozilla::dom::bluetooth::GetAddressFromObjectPath(const nsAString& aObjectPath)
 {
   // The object path would be like /org/bluez/2906/hci0/dev_00_23_7F_CB_B4_F1,
   // and the adapter path would be the first part of the object path, according
@@ -170,8 +170,9 @@ GetAddressFromObjectPath(const nsAString& aObjectPath)
 }
 
 bool
-BroadcastSystemMessage(const nsAString& aType,
-                       const InfallibleTArray<BluetoothNamedValue>& aData)
+mozilla::dom::bluetooth::BroadcastSystemMessage(
+  const nsAString& aType,
+  const InfallibleTArray<BluetoothNamedValue>& aData)
 {
   JSContext* cx = nsContentUtils::GetSafeJSContext();
   NS_ASSERTION(!::JS_IsExceptionPending(cx),
@@ -201,27 +202,4 @@ BroadcastSystemMessage(const nsAString& aType,
 
   return true;
 }
-
-void
-DispatchBluetoothReply(BluetoothReplyRunnable* aRunnable,
-                       const BluetoothValue& aValue,
-                       const nsAString& aErrorStr)
-{
-  // Reply will be deleted by the runnable after running on main thread
-  BluetoothReply* reply;
-  if (!aErrorStr.IsEmpty()) {
-    nsString err(aErrorStr);
-    reply = new BluetoothReply(BluetoothReplyError(err));
-  } else {
-    MOZ_ASSERT(aValue.type() != BluetoothValue::T__None);
-    reply = new BluetoothReply(BluetoothReplySuccess(aValue));
-  }
-
-  aRunnable->SetReply(reply);
-  if (NS_FAILED(NS_DispatchToMainThread(aRunnable))) {
-    NS_WARNING("Failed to dispatch to main thread!");
-  }
-}
-
-END_BLUETOOTH_NAMESPACE
 
