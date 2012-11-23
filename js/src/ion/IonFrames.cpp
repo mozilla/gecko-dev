@@ -1171,7 +1171,7 @@ InlineFrameIterator::dump() const
             else {
                 if (i - 2 == callee()->nargs && numActualArgs() > callee()->nargs) {
                     DumpOp d(callee()->nargs);
-                    forEachCanonicalActualArg(d, d.i_, numActualArgs());
+                    forEachCanonicalActualArg(d, d.i_, numActualArgs() - d.i_);
                 }
 
                 fprintf(stderr, "  slot %d: ", i - 2 - callee()->nargs);
