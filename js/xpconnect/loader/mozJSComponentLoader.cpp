@@ -73,6 +73,22 @@ using namespace mozilla;
 using namespace mozilla::scache;
 using namespace xpc;
 
+// This JSClass exists to trick silly code that expects toString()ing the
+// global in a component scope to return something with "BackstagePass" in it
+// to continue working.
+static JSClass kFakeBackstagePassJSClass =
+{
+    "FakeBackstagePass",
+    0,
+    JS_PropertyStub,
+    JS_PropertyStub,
+    JS_PropertyStub,
+    JS_StrictPropertyStub,
+    JS_EnumerateStub,
+    JS_ResolveStub,
+    JS_ConvertStub
+};
+
 static const char kJSRuntimeServiceContractID[] = "@mozilla.org/js/xpc/RuntimeService;1";
 static const char kXPConnectServiceContractID[] = "@mozilla.org/js/xpc/XPConnect;1";
 static const char kObserverServiceContractID[] = "@mozilla.org/observer-service;1";
@@ -473,7 +489,7 @@ mozJSComponentLoader::LoadModule(FileLocation &aFile)
 
     ModuleEntry* mod;
     if (mModules.Get(spec, &mod))
-	return mod;
+    return mod;
 
     nsAutoPtr<ModuleEntry> entry(new ModuleEntry);
 
@@ -708,7 +724,8 @@ mozJSComponentLoader::PrepareObjectForLocation(JSCLContextHelper& aCx,
     if (aReuseLoaderGlobal) {
         // If we're reusing the loader global, we don't actually use the
         // global, but rather we use a different object as the 'this' object.
-        JSObject* newObj = JS_NewObject(aCx, nullptr, nullptr, nullptr);
+        JSObject* newObj = JS_NewObject(aCx, &kFakeBackstagePassJSClass,
+                                        nullptr, nullptr);
         NS_ENSURE_TRUE(newObj, nullptr);
 
         obj = newObj;
