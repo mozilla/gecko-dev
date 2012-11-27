@@ -360,6 +360,7 @@ nsWindow::nsWindow()
     mWindowType          = eWindowType_child;
     mSizeState           = nsSizeMode_Normal;
     mLastSizeMode        = nsSizeMode_Normal;
+    mSizeConstraints.mMaxSize = GetSafeWindowSize(mSizeConstraints.mMaxSize);
 
 #ifdef MOZ_X11
     mOldFocusWindow      = 0;
@@ -927,19 +928,20 @@ nsWindow::ConstrainPosition(bool aAllowSlop, int32_t *aX, int32_t *aY)
 
 void nsWindow::SetSizeConstraints(const SizeConstraints& aConstraints)
 {
-  if (mShell) {
-    GdkGeometry geometry;
-    geometry.min_width = aConstraints.mMinSize.width;
-    geometry.min_height = aConstraints.mMinSize.height;
-    geometry.max_width = aConstraints.mMaxSize.width;
-    geometry.max_height = aConstraints.mMaxSize.height;
+    mSizeConstraints.mMinSize = GetSafeWindowSize(aConstraints.mMinSize);
+    mSizeConstraints.mMaxSize = GetSafeWindowSize(aConstraints.mMaxSize);
 
-    uint32_t hints = GDK_HINT_MIN_SIZE | GDK_HINT_MAX_SIZE;
-    gtk_window_set_geometry_hints(GTK_WINDOW(mShell), nullptr,
-                                  &geometry, GdkWindowHints(hints));
-  }
+    if (mShell) {
+        GdkGeometry geometry;
+        geometry.min_width = mSizeConstraints.mMinSize.width;
+        geometry.min_height = mSizeConstraints.mMinSize.height;
+        geometry.max_width = mSizeConstraints.mMaxSize.width;
+        geometry.max_height = mSizeConstraints.mMaxSize.height;
 
-  nsBaseWidget::SetSizeConstraints(aConstraints);
+        uint32_t hints = GDK_HINT_MIN_SIZE | GDK_HINT_MAX_SIZE;
+        gtk_window_set_geometry_hints(GTK_WINDOW(mShell), nullptr,
+                                      &geometry, GdkWindowHints(hints));
+    }
 }
 
 NS_IMETHODIMP
@@ -1006,7 +1008,7 @@ nsWindow::Resize(int32_t aWidth, int32_t aHeight, bool aRepaint)
     // interpreted as frame bounds, but NativeResize treats these as window
     // bounds (Bug 581866).
 
-    mBounds.SizeTo(GetSafeWindowSize(nsIntSize(aWidth, aHeight)));
+    mBounds.SizeTo(aWidth, aHeight);
 
     if (!mCreated)
         return NS_OK;
@@ -1082,7 +1084,7 @@ nsWindow::Resize(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight,
 
     mBounds.x = aX;
     mBounds.y = aY;
-    mBounds.SizeTo(GetSafeWindowSize(nsIntSize(aWidth, aHeight)));
+    mBounds.SizeTo(aWidth, aHeight);
 
     mNeedsMove = true;
 
@@ -3371,6 +3373,7 @@ nsWindow::Create(nsIWidget        *aParent,
 
     // save our bounds
     mBounds = aRect;
+    ConstrainSize(&mBounds.width, &mBounds.height);
 
     // figure out our parent window
     GtkWidget      *parentMozContainer = nullptr;
@@ -3964,14 +3967,16 @@ nsWindow::SetHasMappedToplevel(bool aState)
 nsIntSize
 nsWindow::GetSafeWindowSize(nsIntSize aSize)
 {
+    // The X protocol uses CARD32 for window sizes, but the server (1.11.3)
+    // reads it as CARD16.  Sizes of pixmaps, used for drawing, are (unsigned)
+    // CARD16 in the protocol, but the server's ProcCreatePixmap returns
+    // BadAlloc if dimensions cannot be represented by signed shorts.
     nsIntSize result = aSize;
     const int32_t kInt16Max = 32767;
     if (result.width > kInt16Max) {
-        NS_WARNING("Clamping huge window width");
         result.width = kInt16Max;
     }
     if (result.height > kInt16Max) {
-        NS_WARNING("Clamping huge window height");
         result.height = kInt16Max;
     }
     return result;
