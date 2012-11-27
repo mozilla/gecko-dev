@@ -120,6 +120,10 @@ SettingsListener.observe('language.current', 'en-US', function(value) {
   if (!((new RegExp('^' + value + '[^a-z-_] *[,;]?', 'i')).test(intl))) {
     Services.prefs.setCharPref(prefName, value + ', ' + intl);
   }
+
+  if (shell.hasStarted() == false) {
+    shell.start();
+  }
 });
 
 // =================== RIL ====================
