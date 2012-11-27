@@ -25,6 +25,7 @@ class nsMediaOmxReader : public nsBuiltinDecoderReader
   int64_t mVideoSeekTimeUs;
   int64_t mAudioSeekTimeUs;
   VideoData *mLastVideoFrame;
+  int32_t mSkipCount;
 public:
   nsMediaOmxReader(nsBuiltinDecoder* aDecoder);
   ~nsMediaOmxReader();
