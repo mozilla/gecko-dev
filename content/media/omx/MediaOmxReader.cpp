@@ -13,6 +13,8 @@
 #include "VideoUtils.h"
 #include "MediaOmxDecoder.h"
 
+#define MAX_DROPPED_FRAMES 25
+
 using namespace android;
 
 namespace mozilla {
@@ -24,7 +26,8 @@ MediaOmxReader::MediaOmxReader(MediaDecoder *aDecoder) :
   mHasAudio(false),
   mVideoSeekTimeUs(-1),
   mAudioSeekTimeUs(-1),
-  mLastVideoFrame(nullptr)
+  mLastVideoFrame(nullptr),
+  mSkipCount(0)
 {
 }
 
@@ -141,6 +144,7 @@ bool MediaOmxReader::DecodeVideoFrame(bool &aKeyframeSkip,
   while (true) {
     MPAPI::VideoFrame frame;
     frame.mGraphicBuffer = nullptr;
+    frame.mShouldSkip = false;
     if (!mOmxDecoder->ReadVideo(&frame, aTimeThreshold, aKeyframeSkip, doSeek)) {
       // We reached the end of the video stream. If we have a buffered
       // video frame, push it the video queue using the total duration
@@ -157,6 +161,14 @@ bool MediaOmxReader::DecodeVideoFrame(bool &aKeyframeSkip,
       mVideoQueue.Finish();
       return false;
     }
+
+    parsed++;
+    if (frame.mShouldSkip && mSkipCount < MAX_DROPPED_FRAMES) {
+      mSkipCount++;
+      return true;
+    }
+
+    mSkipCount = 0;
 
     mVideoSeekTimeUs = -1;
     doSeek = aKeyframeSkip = false;
@@ -228,7 +240,6 @@ bool MediaOmxReader::DecodeVideoFrame(bool &aKeyframeSkip,
       return false;
     }
 
-    parsed++;
     decoded++;
     NS_ASSERTION(decoded <= parsed, "Expect to decode fewer frames than parsed in MediaPlugin...");
 

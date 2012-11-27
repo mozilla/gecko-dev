@@ -27,6 +27,7 @@ class MediaOmxReader : public MediaDecoderReader
   int64_t mVideoSeekTimeUs;
   int64_t mAudioSeekTimeUs;
   VideoData *mLastVideoFrame;
+  int32_t mSkipCount;
 public:
   MediaOmxReader(MediaDecoder* aDecoder);
   ~MediaOmxReader();
