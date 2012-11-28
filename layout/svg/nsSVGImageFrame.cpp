@@ -194,7 +194,8 @@ nsSVGImageFrame::AttributeChanged(int32_t         aNameSpaceID,
         aAttribute == nsGkAtoms::y ||
         aAttribute == nsGkAtoms::width ||
         aAttribute == nsGkAtoms::height) {
-      nsSVGUtils::InvalidateAndScheduleReflowSVG(this);
+      nsSVGUtils::InvalidateBounds(this, false);
+      nsSVGUtils::ScheduleReflowSVG(this);
       return NS_OK;
     }
     else if (aAttribute == nsGkAtoms::preserveAspectRatio) {
@@ -575,7 +576,8 @@ NS_IMETHODIMP nsSVGImageListener::OnStopDecode(imgIRequest *aRequest,
   if (!mFrame)
     return NS_ERROR_FAILURE;
 
-  nsSVGUtils::InvalidateAndScheduleReflowSVG(mFrame);
+  nsSVGUtils::InvalidateBounds(mFrame, false);
+  nsSVGUtils::ScheduleReflowSVG(mFrame);
   return NS_OK;
 }
 
@@ -602,7 +604,8 @@ NS_IMETHODIMP nsSVGImageListener::OnStartContainer(imgIRequest *aRequest,
     return NS_ERROR_FAILURE;
 
   mFrame->mImageContainer = aContainer;
-  nsSVGUtils::InvalidateAndScheduleReflowSVG(mFrame);
+  nsSVGUtils::InvalidateBounds(mFrame, false);
+  nsSVGUtils::ScheduleReflowSVG(mFrame);
 
   return NS_OK;
 }
