@@ -2526,8 +2526,8 @@ void
 nsXULPrototypeScript::UnlinkJSObjects()
 {
     if (mScriptObject.mObject) {
-        nsContentUtils::DropJSObjects(this);
         mScriptObject.mObject = nullptr;
+        nsContentUtils::DropJSObjects(this);
     }
 }
 

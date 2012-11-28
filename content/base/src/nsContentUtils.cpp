@@ -6959,9 +6959,8 @@ nsContentUtils::ReleaseWrapper(nsISupports* aScriptObjectHolder,
       xpc::CompartmentPrivate *priv = xpc::GetCompartmentPrivate(obj);
       priv->RemoveDOMExpandoObject(obj);
     }
-    DropJSObjects(aScriptObjectHolder);
-
     aCache->SetPreservingWrapper(false);
+    DropJSObjects(aScriptObjectHolder);
   }
 }
 

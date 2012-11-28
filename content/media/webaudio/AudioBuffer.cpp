@@ -53,10 +53,8 @@ AudioBuffer::AudioBuffer(AudioContext* aContext, uint32_t aLength,
 
 AudioBuffer::~AudioBuffer()
 {
-  // Drop the JS object reference if we're still holding to the channels
-  if (mChannels.Length()) {
-    NS_DROP_JS_OBJECTS(this, AudioBuffer);
-  }
+  mChannels.Clear();
+  NS_DROP_JS_OBJECTS(this, AudioBuffer);
 }
 
 bool
