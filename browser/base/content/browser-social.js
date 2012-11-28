@@ -363,7 +363,7 @@ let SocialFlyout = {
 
     iframe.removeAttribute("src");
     iframe.webNavigation.loadURI("about:socialerror?mode=compactInfo", null, null, null, null);
-    sizeSocialPanelToContent(iframe);
+    sizeSocialPanelToContent(this.panel, iframe);
   },
 
   unload: function() {
@@ -890,7 +890,8 @@ var SocialToolbar = {
     aNotificationFrame.removeAttribute("src");
     aNotificationFrame.webNavigation.loadURI("about:socialerror?mode=tryAgainOnly&url=" +
                                              encodeURIComponent(src), null, null, null, null);
-    sizeSocialPanelToContent(aNotificationFrame);
+    let panel = aNotificationFrame.parentNode;
+    sizeSocialPanelToContent(panel, aNotificationFrame);
   }
 }
 
