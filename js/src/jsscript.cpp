@@ -1164,6 +1164,7 @@ SourceCompressionToken::ensureReady()
 void
 SourceCompressionToken::abort()
 {
+    JS_ASSERT(active());
 #ifdef JS_THREADSAFE
     cx->runtime->sourceCompressorThread.abort(this);
 #endif
