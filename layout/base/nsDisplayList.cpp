@@ -1495,6 +1495,8 @@ nsDisplayBackgroundImage::nsDisplayBackgroundImage(nsDisplayListBuilder* aBuilde
       aBuilder->SetHasFixedItems();
     }
   }
+
+  mBounds = GetBoundsInternal();
 }
 
 nsDisplayBackgroundImage::~nsDisplayBackgroundImage()
@@ -2050,6 +2052,11 @@ void nsDisplayBackgroundImage::ComputeInvalidationRegion(nsDisplayListBuilder* a
 nsRect
 nsDisplayBackgroundImage::GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) {
   *aSnap = true;
+  return mBounds;
+}
+
+nsRect
+nsDisplayBackgroundImage::GetBoundsInternal() {
   nsPresContext* presContext = mFrame->PresContext();
 
   if (mIsThemed) {
