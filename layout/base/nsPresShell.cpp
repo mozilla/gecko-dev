@@ -6332,6 +6332,37 @@ static bool CanHandleContextMenuEvent(nsMouseEvent* aMouseEvent,
   return true;
 }
 
+#ifdef MOZ_B2G
+static void
+MaybeChromeOnlyDispatch(nsIContent* aEventTarget, nsEvent* aEvent)
+{
+  // Horrible hack for B2G to propagate events even from
+  // disabled form elements to chrome. See bug 804811.
+  // See also nsGenericHTMLFormElement::IsElementDisabledForEvents.
+  if (aEvent->message != NS_MOUSE_MOVE) {
+    nsINode* possibleFormElement = aEventTarget->ChromeOnlyAccess() ?
+      aEventTarget->FindFirstNonChromeOnlyAccessContent() : aEventTarget;
+    if (possibleFormElement &&
+        possibleFormElement->IsNodeOfType(nsINode::eHTML_FORM_CONTROL)) {
+      nsEvent event(true, NS_EVENT_TYPE_NULL);
+      nsCOMArray<nsIDOMEventTarget> targets;
+      nsEventDispatcher::Dispatch(aEventTarget, nullptr, &event, nullptr,
+                                  nullptr, nullptr, &targets);
+      nsCOMPtr<nsIContent> last;
+      if (targets.Count()) {
+        last = do_QueryInterface(targets[targets.Count() - 1]);
+      }
+      if (!targets.Count() ||
+          (last &&
+           nsContentUtils::ContentIsDescendantOf(last,
+                                                 possibleFormElement))) {
+        aEvent->flags |= NS_EVENT_FLAG_ONLY_CHROME_DISPATCH;
+      }
+    }
+  }
+}
+#endif
+
 nsresult
 PresShell::HandleEventInternal(nsEvent* aEvent, nsEventStatus* aStatus)
 {
@@ -6517,6 +6548,9 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsEventStatus* aStatus)
           DispatchTouchEvent(aEvent, aStatus, &eventCB, touchIsNew);
         }
         else if (mCurrentEventContent) {
+#ifdef MOZ_B2G
+          MaybeChromeOnlyDispatch(mCurrentEventContent, aEvent);
+#endif
           nsEventDispatcher::Dispatch(mCurrentEventContent, mPresContext,
                                       aEvent, nullptr, aStatus, &eventCB);
         }
@@ -6527,6 +6561,9 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsEventStatus* aStatus)
                                                         getter_AddRefs(targetContent));
           }
           if (NS_SUCCEEDED(rv) && targetContent) {
+#ifdef MOZ_B2G
+            MaybeChromeOnlyDispatch(targetContent, aEvent);
+#endif
             nsEventDispatcher::Dispatch(targetContent, mPresContext, aEvent,
                                         nullptr, aStatus, &eventCB);
           } else if (mDocument) {
