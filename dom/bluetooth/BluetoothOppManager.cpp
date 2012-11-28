@@ -248,6 +248,11 @@ BluetoothOppManager::Listen()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
+  if (GetConnectionStatus() == SocketConnectionStatus::SOCKET_LISTENING) {
+    NS_WARNING("BluetoothOppManager has been already listening");
+    return true;
+  }
+
   CloseSocket();
 
   BluetoothService* bs = BluetoothService::Get();
@@ -316,6 +321,8 @@ BluetoothOppManager::StopSendingFile()
 bool
 BluetoothOppManager::ConfirmReceivingFile(bool aConfirm)
 {
+  if (!mConnected) return false;
+
   if (!mWaitingForConfirmationFlag) {
     NS_WARNING("We are not waiting for a confirmation now.");
     return false;
@@ -325,28 +332,13 @@ BluetoothOppManager::ConfirmReceivingFile(bool aConfirm)
   NS_ASSERTION(mPacketLeftLength == 0,
                "Should not be in the middle of receiving a PUT packet.");
 
-  if (!aConfirm) {
-    DeleteReceivedFile();
-    FileTransferComplete(mConnectedDeviceAddress, false, true, sFileName,
-                         sSentFileLength, sContentType);
-    ReplyToPut(mPutFinal, false);
-  } else {
-    StartFileTransfer(mConnectedDeviceAddress, true,
-                      sFileName, sFileLength, sContentType);
-
-    bool success = WriteToFile(mBodySegment.get(), mBodySegmentLength);
-    ReplyToPut(mPutFinal, success);
-
-    if (!success) {
-      DeleteReceivedFile();
-      FileTransferComplete(mConnectedDeviceAddress, false, true, sFileName,
-                           sSentFileLength, sContentType);
-    } else if (mPutFinal) {
-      FileTransferComplete(mConnectedDeviceAddress, true, true, sFileName,
-                           sSentFileLength, sContentType);
-    }
+  bool success = false;
+  if (aConfirm) {
+    StartFileTransfer();
+    success = WriteToFile(mBodySegment.get(), mBodySegmentLength);
   }
 
+  ReplyToPut(mPutFinal, success);
   return true;
 }
 
@@ -386,8 +378,6 @@ BluetoothOppManager::AfterOppDisconnected()
     mReadFileThread->Shutdown();
     mReadFileThread = nullptr;
   }
-
-  mConnectedDeviceAddress.AssignLiteral("00:00:00:00:00:00");
 }
 
 void
@@ -395,7 +385,6 @@ BluetoothOppManager::DeleteReceivedFile()
 {
   nsString path;
   path.AssignLiteral(TARGET_FOLDER);
-  path += sFileName;
 
   nsCOMPtr<nsIFile> f;
   nsresult rv = NS_NewLocalFile(path + sFileName, false, getter_AddRefs(f));
@@ -528,30 +517,24 @@ BluetoothOppManager::ReceiveSocketData(UnixSocketRawData* aMessage)
 
       sFileLength = fileLength;
 
-      if (NS_FAILED(NS_NewThread(getter_AddRefs(mReadFileThread)))) {
+      rv = NS_NewThread(getter_AddRefs(mReadFileThread));
+      if (NS_FAILED(rv)) {
         NS_WARNING("Can't create thread");
         SendDisconnectRequest();
         return;
       }
 
       sInstance->SendPutHeaderRequest(sFileName, sFileLength);
-      StartFileTransfer(mConnectedDeviceAddress, false,
-                        sFileName, sFileLength, sContentType);
+      StartFileTransfer();
     } else {
       SendDisconnectRequest();
     }
   } else if (mLastCommand == ObexRequestCode::Disconnect) {
-    if (opCode != ObexResponseCode::Success) {
-      // FIXME: Needs error handling here
-      NS_WARNING("[OPP] Disconnect failed");
-    }
-
     AfterOppDisconnected();
+    CloseSocket();
   } else if (mLastCommand == ObexRequestCode::Put) {
     if (opCode != ObexResponseCode::Continue) {
       NS_WARNING("[OPP] Put failed");
-      FileTransferComplete(mConnectedDeviceAddress, false, false, sFileName,
-                           sSentFileLength, sContentType);
       SendDisconnectRequest();
       return;
     }
@@ -562,51 +545,44 @@ BluetoothOppManager::ReceiveSocketData(UnixSocketRawData* aMessage)
     }
 
     if (kUpdateProgressBase * mUpdateProgressCounter < sSentFileLength) {
-      UpdateProgress(mConnectedDeviceAddress, false,
-                     sSentFileLength, sFileLength);
+      UpdateProgress();
       mUpdateProgressCounter = sSentFileLength / kUpdateProgressBase + 1;
     }
 
+    nsresult rv;
     if (!mInputStream) {
-      nsresult rv = mBlob->GetInternalStream(getter_AddRefs(mInputStream));
+      rv = mBlob->GetInternalStream(getter_AddRefs(mInputStream));
       if (NS_FAILED(rv)) {
         NS_WARNING("Can't get internal stream of blob");
-        FileTransferComplete(mConnectedDeviceAddress, false, false, sFileName,
-                             sSentFileLength, sContentType);
         SendDisconnectRequest();
         return;
       }
     }
 
     nsRefPtr<ReadFileTask> task = new ReadFileTask(mInputStream);
-    if (NS_FAILED(mReadFileThread->Dispatch(task, NS_DISPATCH_NORMAL))) {
-      NS_WARNING("Cannot dispatch ring task!");
-      FileTransferComplete(mConnectedDeviceAddress, false, false, sFileName,
-                           sSentFileLength, sContentType);
+    rv = mReadFileThread->Dispatch(task, NS_DISPATCH_NORMAL);
+    if (NS_FAILED(rv)) {
+      NS_WARNING("Cannot dispatch read file task!");
       SendDisconnectRequest();
     }
   } else if (mLastCommand == ObexRequestCode::PutFinal) {
     if (opCode != ObexResponseCode::Success) {
       NS_WARNING("[OPP] PutFinal failed");
-      FileTransferComplete(mConnectedDeviceAddress, false, false, sFileName,
-                           sSentFileLength, sContentType);
       SendDisconnectRequest();
       return;
     }
 
-    FileTransferComplete(mConnectedDeviceAddress, true, false, sFileName,
-                         sSentFileLength, sContentType);
+    mSuccessFlag = true;
     SendDisconnectRequest();
   } else if (mLastCommand == ObexRequestCode::Abort) {
     if (opCode != ObexResponseCode::Success) {
       NS_WARNING("[OPP] Abort failed");
     }
-
-    FileTransferComplete(mConnectedDeviceAddress, false, false, sFileName,
-                         sSentFileLength, sContentType);
     SendDisconnectRequest();
   } else {
     // Remote request or unknown mLastCommand
+    mTransferMode = true;
+    mSuccessFlag = false;
     ObexHeaderSet pktHeaders(opCode);
 
     if (opCode == ObexRequestCode::Connect) {
@@ -683,10 +659,7 @@ BluetoothOppManager::ReceiveSocketData(UnixSocketRawData* aMessage)
 
           if (!mWaitingForConfirmationFlag) {
             if (!WriteToFile(mBodySegment.get(), mBodySegmentLength)) {
-              DeleteReceivedFile();
-              FileTransferComplete(mConnectedDeviceAddress,
-                                   false, true, sFileName,
-                                   sSentFileLength, sContentType);
+              CloseSocket();
             }
           }
         }
@@ -699,8 +672,7 @@ BluetoothOppManager::ReceiveSocketData(UnixSocketRawData* aMessage)
           if (!CreateFile()) {
             ReplyToPut(mPutFinal, false);
           } else {
-            ReceivingFileConfirmation(mConnectedDeviceAddress, sFileName,
-                                      sFileLength, sContentType);
+            ReceivingFileConfirmation();
           }
         } else {
           ReplyToPut(mPutFinal, !mAbortFlag);
@@ -708,18 +680,12 @@ BluetoothOppManager::ReceiveSocketData(UnixSocketRawData* aMessage)
           // Send progress notification
           sSentFileLength += mBodySegmentLength;
           if (sSentFileLength > kUpdateProgressBase * mUpdateProgressCounter) {
-            UpdateProgress(mConnectedDeviceAddress, true,
-                           sSentFileLength, sFileLength);
+            UpdateProgress();
             mUpdateProgressCounter = sSentFileLength / kUpdateProgressBase + 1;
           }
 
-          if (mAbortFlag) {
-            FileTransferComplete(mConnectedDeviceAddress, false, true,
-                                 sFileName, sSentFileLength, sContentType);
-            DeleteReceivedFile();
-          } else if (mPutFinal) {
-            FileTransferComplete(mConnectedDeviceAddress, true, true,
-                                 sFileName, sSentFileLength, sContentType);
+          if (mPutFinal) {
+            mSuccessFlag = true;
           }
         }
       }
@@ -746,6 +712,8 @@ BluetoothOppManager::SendConnectRequest()
   index += AppendHeaderConnectionId(&req[index], mConnectionId);
   SetObexPacketInfo(req, ObexRequestCode::Connect, index);
   mLastCommand = ObexRequestCode::Connect;
+  mTransferMode = false;
+  mSuccessFlag = false;
 
   UnixSocketRawData* s = new UnixSocketRawData(index);
   memcpy(s->mData, req, s->mSize);
@@ -927,12 +895,7 @@ BluetoothOppManager::ReplyToPut(bool aFinal, bool aContinue)
 }
 
 void
-BluetoothOppManager::FileTransferComplete(const nsString& aDeviceAddress,
-                                          bool aSuccess,
-                                          bool aReceived,
-                                          const nsString& aFileName,
-                                          uint32_t aFileLength,
-                                          const nsString& aContentType)
+BluetoothOppManager::FileTransferComplete()
 {
   nsString type, name;
   BluetoothValue v;
@@ -940,27 +903,27 @@ BluetoothOppManager::FileTransferComplete(const nsString& aDeviceAddress,
   type.AssignLiteral("bluetooth-opp-transfer-complete");
 
   name.AssignLiteral("address");
-  v = aDeviceAddress;
+  v = mConnectedDeviceAddress;
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   name.AssignLiteral("success");
-  v = aSuccess;
+  v = mSuccessFlag;
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   name.AssignLiteral("received");
-  v = aReceived;
+  v = mTransferMode;
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   name.AssignLiteral("fileName");
-  v = aFileName;
+  v = sFileName;
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   name.AssignLiteral("fileLength");
-  v = aFileLength;
+  v = sSentFileLength;
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   name.AssignLiteral("contentType");
-  v = aContentType;
+  v = sContentType;
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   if (!BroadcastSystemMessage(type, parameters)) {
@@ -970,11 +933,7 @@ BluetoothOppManager::FileTransferComplete(const nsString& aDeviceAddress,
 }
 
 void
-BluetoothOppManager::StartFileTransfer(const nsString& aDeviceAddress,
-                                       bool aReceived,
-                                       const nsString& aFileName,
-                                       uint32_t aFileLength,
-                                       const nsString& aContentType)
+BluetoothOppManager::StartFileTransfer()
 {
   nsString type, name;
   BluetoothValue v;
@@ -982,23 +941,23 @@ BluetoothOppManager::StartFileTransfer(const nsString& aDeviceAddress,
   type.AssignLiteral("bluetooth-opp-transfer-start");
 
   name.AssignLiteral("address");
-  v = aDeviceAddress;
+  v = mConnectedDeviceAddress;
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   name.AssignLiteral("received");
-  v = aReceived;
+  v = mTransferMode;
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   name.AssignLiteral("fileName");
-  v = aFileName;
+  v = sFileName;
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   name.AssignLiteral("fileLength");
-  v = aFileLength;
+  v = sFileLength;
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   name.AssignLiteral("contentType");
-  v = aContentType;
+  v = sContentType;
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   if (!BroadcastSystemMessage(type, parameters)) {
@@ -1008,10 +967,7 @@ BluetoothOppManager::StartFileTransfer(const nsString& aDeviceAddress,
 }
 
 void
-BluetoothOppManager::UpdateProgress(const nsString& aDeviceAddress,
-                                    bool aReceived,
-                                    uint32_t aProcessedLength,
-                                    uint32_t aFileLength)
+BluetoothOppManager::UpdateProgress()
 {
   nsString type, name;
   BluetoothValue v;
@@ -1019,19 +975,19 @@ BluetoothOppManager::UpdateProgress(const nsString& aDeviceAddress,
   type.AssignLiteral("bluetooth-opp-update-progress");
 
   name.AssignLiteral("address");
-  v = aDeviceAddress;
+  v = mConnectedDeviceAddress;
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   name.AssignLiteral("received");
-  v = aReceived;
+  v = mTransferMode;
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   name.AssignLiteral("processedLength");
-  v = aProcessedLength;
+  v = sSentFileLength;
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   name.AssignLiteral("fileLength");
-  v = aFileLength;
+  v = sFileLength;
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   if (!BroadcastSystemMessage(type, parameters)) {
@@ -1041,10 +997,7 @@ BluetoothOppManager::UpdateProgress(const nsString& aDeviceAddress,
 }
 
 void
-BluetoothOppManager::ReceivingFileConfirmation(const nsString& aAddress,
-                                               const nsString& aFileName,
-                                               uint32_t aFileLength,
-                                               const nsString& aContentType)
+BluetoothOppManager::ReceivingFileConfirmation()
 {
   nsString type, name;
   BluetoothValue v;
@@ -1052,19 +1005,19 @@ BluetoothOppManager::ReceivingFileConfirmation(const nsString& aAddress,
   type.AssignLiteral("bluetooth-opp-receiving-file-confirmation");
 
   name.AssignLiteral("address");
-  v = aAddress;
+  v = mConnectedDeviceAddress;
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   name.AssignLiteral("fileName");
-  v = aFileName;
+  v = sFileName;
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   name.AssignLiteral("fileLength");
-  v = aFileLength;
+  v = sFileLength;
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   name.AssignLiteral("contentType");
-  v = aContentType;
+  v = sContentType;
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   if (!BroadcastSystemMessage(type, parameters)) {
@@ -1114,12 +1067,19 @@ BluetoothOppManager::OnConnectError()
 void
 BluetoothOppManager::OnDisconnect()
 {
+  if (mSocketStatus == SocketConnectionStatus::SOCKET_CONNECTED) {
+    if (!mSuccessFlag && mTransferMode) {
+      DeleteReceivedFile();
+    }
+    FileTransferComplete();
+    Listen();
+  } else if (mSocketStatus == SocketConnectionStatus::SOCKET_CONNECTING) {
+    NS_WARNING("BluetoothOppManager got unexpected socket status!");
+  }
+
   // It is valid for a bluetooth device which is transfering file via OPP
   // closing socket without sending OBEX disconnect request first. So we
   // call AfterOppDisconnected here to ensure all variables will be cleaned.
   AfterOppDisconnected();
-
-  if (mSocketStatus == SocketConnectionStatus::SOCKET_CONNECTED) {
-    Listen();
-  }
+  mConnectedDeviceAddress.AssignLiteral("00:00:00:00:00:00");
 }
