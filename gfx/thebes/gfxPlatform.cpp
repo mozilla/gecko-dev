@@ -1225,6 +1225,8 @@ gfxPlatform::UseAzureContentDrawing()
   static bool sAzureContentDrawingPrefCached = false;
 
   if (!sAzureContentDrawingPrefCached) {
+
+#ifdef XP_WIN
     BOOL font_smoothing;
     UINT smoothing_type;
 
@@ -1242,6 +1244,7 @@ gfxPlatform::UseAzureContentDrawing()
         return false;
       }
     }
+#endif
 
     sAzureContentDrawingPrefCached = true;
     mozilla::Preferences::AddBoolVarCache(&sAzureContentDrawingEnabled,
