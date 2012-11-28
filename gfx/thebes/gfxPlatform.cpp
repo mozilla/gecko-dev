@@ -1225,6 +1225,27 @@ gfxPlatform::UseAzureContentDrawing()
   static bool sAzureContentDrawingPrefCached = false;
 
   if (!sAzureContentDrawingPrefCached) {
+
+#ifdef XP_WIN
+    BOOL font_smoothing;
+    UINT smoothing_type;
+
+    if (!SystemParametersInfo(SPI_GETFONTSMOOTHING, 0, &font_smoothing, 0)) {
+      return false;
+    }
+
+    if (font_smoothing) {
+      if (!SystemParametersInfo(SPI_GETFONTSMOOTHINGTYPE,
+                                0, &smoothing_type, 0)) {
+        return false;
+      }
+
+      if (smoothing_type != FE_FONTSMOOTHINGCLEARTYPE) {
+        return false;
+      }
+    }
+#endif
+
     sAzureContentDrawingPrefCached = true;
     mozilla::Preferences::AddBoolVarCache(&sAzureContentDrawingEnabled,
                                           "gfx.content.azure.enabled");
