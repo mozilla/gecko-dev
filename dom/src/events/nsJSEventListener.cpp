@@ -58,6 +58,8 @@ nsJSEventListener::nsJSEventListener(nsIScriptContext *aContext,
 nsJSEventListener::~nsJSEventListener() 
 {
   if (mContext) {
+    mScopeObject = nullptr;
+    mHandler = nullptr;
     NS_DROP_JS_OBJECTS(this, nsJSEventListener);
   }
 }
@@ -65,8 +67,9 @@ nsJSEventListener::~nsJSEventListener()
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsJSEventListener)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsJSEventListener)
   if (tmp->mContext) {
-    NS_DROP_JS_OBJECTS(tmp, nsJSEventListener);
     tmp->mScopeObject = nullptr;
+    tmp->mHandler = nullptr;
+    NS_DROP_JS_OBJECTS(tmp, nsJSEventListener);
     NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mContext)
   }
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
