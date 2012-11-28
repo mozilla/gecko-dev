@@ -584,7 +584,7 @@ pref("browser.prompt.allowNative", false);
 // a restart is required to enable a new value.
 pref("network.activity.blipIntervalMilliseconds", 250);
 
-pref("jsloader.reuseGlobal", false);
+pref("jsloader.reuseGlobal", true);
 
 // Enable font inflation for browser tab content.
 pref("font.size.inflation.minTwips", 120);
