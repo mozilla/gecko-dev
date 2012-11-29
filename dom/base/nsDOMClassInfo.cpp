@@ -562,6 +562,11 @@ using mozilla::dom::indexedDB::IDBWrapperCache;
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/HTMLCollectionBinding.h"
 
+#ifdef MOZ_AUDIO_CHANNEL_MANAGER
+#include "nsIAudioChannelManager.h"
+#include "AudioChannelManager.h"
+#endif
+
 using namespace mozilla;
 using namespace mozilla::dom;
 
@@ -1727,6 +1732,11 @@ static nsDOMClassInfoData sClassInfoData[] = {
   NS_DEFINE_CLASSINFO_DATA(DataChannel, nsEventTargetSH,
                            EVENTTARGET_SCRIPTABLE_FLAGS)
 #endif
+
+#ifdef MOZ_AUDIO_CHANNEL_MANAGER
+  NS_DEFINE_CLASSINFO_DATA(AudioChannelManager, nsEventTargetSH,
+                           EVENTTARGET_SCRIPTABLE_FLAGS)
+#endif
 };
 
 // Objects that should be constructable through |new Name();|
@@ -2516,6 +2526,9 @@ nsDOMClassInfo::Init()
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMNavigatorSystemMessages)
 #endif
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozNavigatorTime)
+#ifdef MOZ_AUDIO_CHANNEL_MANAGER
+    DOM_CLASSINFO_MAP_ENTRY(nsIMozNavigatorAudioChannelManager)
+#endif
 
   DOM_CLASSINFO_MAP_END
 
@@ -4535,6 +4548,13 @@ nsDOMClassInfo::Init()
 #ifdef MOZ_WEBRTC
   DOM_CLASSINFO_MAP_BEGIN(DataChannel, nsIDOMDataChannel)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMDataChannel)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMEventTarget)
+  DOM_CLASSINFO_MAP_END
+#endif
+
+#ifdef MOZ_AUDIO_CHANNEL_MANAGER
+  DOM_CLASSINFO_MAP_BEGIN(AudioChannelManager, nsIAudioChannelManager)
+    DOM_CLASSINFO_MAP_ENTRY(nsIAudioChannelManager)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMEventTarget)
   DOM_CLASSINFO_MAP_END
 #endif
