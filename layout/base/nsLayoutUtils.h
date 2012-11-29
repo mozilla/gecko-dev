@@ -1639,10 +1639,6 @@ public:
     return sFontSizeInflationForceEnabled;
   }
 
-  static bool FontSizeInflationDisabledInMasterProcess() {
-    return sFontSizeInflationDisabledInMasterProcess;
-  }
-
   /**
    * See comment above "font.size.inflation.mappingIntercept" in
    * modules/libpref/src/init/all.js .
@@ -1761,7 +1757,6 @@ private:
   static uint32_t sFontSizeInflationLineThreshold;
   static int32_t sFontSizeInflationMappingIntercept;
   static bool sFontSizeInflationForceEnabled;
-  static bool sFontSizeInflationDisabledInMasterProcess;
 };
 
 template<typename PointType, typename RectType, typename CoordType>

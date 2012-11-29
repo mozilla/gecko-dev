@@ -9188,7 +9188,6 @@ PresShell::SetupFontInflation()
   mFontSizeInflationMinTwips = nsLayoutUtils::FontSizeInflationMinTwips();
   mFontSizeInflationLineThreshold = nsLayoutUtils::FontSizeInflationLineThreshold();
   mFontSizeInflationForceEnabled = nsLayoutUtils::FontSizeInflationForceEnabled();
-  mFontSizeInflationDisabledInMasterProcess = nsLayoutUtils::FontSizeInflationDisabledInMasterProcess();
 }
 
 void
