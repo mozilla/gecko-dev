@@ -690,6 +690,9 @@ protected:
   // created. Synchronized by the decoder monitor.
   bool mRequestedNewDecodeThread;
   
+protected:
+  virtual uint32_t GetAmpleVideoFrames() { return mAmpleVideoFrames; }
+
 private:
   // Manager for queuing and dispatching MozAudioAvailable events.  The
   // event manager is accessed from the state machine and audio threads,

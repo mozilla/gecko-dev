@@ -6,7 +6,7 @@
 
 #include "nsMediaOmxDecoder.h"
 #include "nsMediaOmxReader.h"
-#include "nsBuiltinDecoderStateMachine.h"
+#include "MediaOmxStateMachine.h"
 
 nsMediaOmxDecoder::nsMediaOmxDecoder() :
   nsBuiltinDecoder()
@@ -20,7 +20,7 @@ nsMediaDecoder* nsMediaOmxDecoder::Clone()
 
 nsDecoderStateMachine* nsMediaOmxDecoder::CreateStateMachine()
 {
-  return new nsBuiltinDecoderStateMachine(this, new nsMediaOmxReader(this));
+  return new MediaOmxStateMachine(this, new nsMediaOmxReader(this));
 }
 
 nsMediaOmxDecoder::~nsMediaOmxDecoder()
