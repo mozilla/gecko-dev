@@ -750,7 +750,8 @@ public:
   RecvEnableSwitchNotifications(const SwitchDevice& aDevice) MOZ_OVERRIDE
   {
     // Content has no reason to listen to switch events currently.
-    return false;
+    hal::RegisterSwitchObserver(aDevice, this);
+    return true;
   }
 
   virtual bool
@@ -769,7 +770,8 @@ public:
   RecvGetCurrentSwitchState(const SwitchDevice& aDevice, hal::SwitchState *aState) MOZ_OVERRIDE
   {
     // Content has no reason to listen to switch events currently.
-    return false;
+    *aState = hal::GetCurrentSwitchState(aDevice);
+    return true;
   }
 
   virtual bool
