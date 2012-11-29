@@ -149,8 +149,15 @@ class XPCShellRemote(xpcshell.XPCShellTests, object):
 
 
     def setupTestDir(self):
-        self.xpcDir = os.path.join(self.options.objdir, "_tests/xpcshell")
-        self.device.pushDir(self.xpcDir, self.remoteScriptsDir)
+        push_attempts = 10
+        for retry in range(1, push_attempts+1):
+            print 'pushing', self.xpcDir, '(attempt %s of %s)' % (retry, push_attempts)
+            try:
+                self.device.pushDir(self.xpcDir, self.remoteScriptsDir)
+                break
+            except DMError:
+                if retry == push_attempts:
+                    raise
 
     def buildTestList(self):
         xpcshell.XPCShellTests.buildTestList(self)
@@ -158,7 +165,6 @@ class XPCShellRemote(xpcshell.XPCShellTests, object):
         for test in self.alltests:
           uniqueTestPaths.add(test['here'])
         for testdir in uniqueTestPaths:
-          self.xpcDir = os.path.join(self.options.objdir, "_tests/xpcshell")
           abbrevTestDir = os.path.relpath(testdir, self.xpcDir)
           remoteScriptDir = self.remoteJoin(self.remoteScriptsDir, abbrevTestDir)
           self.pathMapping.append(PathMapping(testdir, remoteScriptDir))
