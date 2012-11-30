@@ -1202,9 +1202,12 @@ ContentParent::DeallocPBrowser(PBrowserParent* frame)
 PDeviceStorageRequestParent*
 ContentParent::AllocPDeviceStorageRequest(const DeviceStorageParams& aParams)
 {
-  DeviceStorageRequestParent* result = new DeviceStorageRequestParent(aParams);
-  NS_ADDREF(result);
-  return result;
+  nsRefPtr<DeviceStorageRequestParent> result = new DeviceStorageRequestParent(aParams);
+  if (!result->EnsureRequiredPermissions(this)) {
+      return nullptr;
+  }
+  result->Dispatch();
+  return result.forget().get();
 }
 
 bool
