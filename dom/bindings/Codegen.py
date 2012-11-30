@@ -3255,11 +3255,6 @@ if (!%(resultStr)s) {
         # NB: setValue(..., True) calls JS_WrapValue(), so is fallible
         return (setValue(toValue % result, True), False)
 
-    if type.isDictionary():
-        assert not type.nullable()
-        return (wrapAndSetPtr("%s.ToObject(cx, ${obj}, ${jsvalPtr})" % result),
-                False)
-
     if type.isUnion():
         if type.nullable():
             prefix = "%s->"
@@ -3268,7 +3263,7 @@ if (!%(resultStr)s) {
         return (wrapAndSetPtr((prefix % result) +
                               "ToJSVal(cx, ${obj}, ${jsvalPtr})"), False)
 
-    if not type.isPrimitive():
+    if not (type.isPrimitive() or type.isDictionary()):
         raise TypeError("Need to learn to wrap %s" % type)
 
     if type.nullable():
@@ -3278,9 +3273,14 @@ if (!%(resultStr)s) {
         return ("if (%s.IsNull()) {\n" % result +
                 CGIndenter(CGGeneric(setValue("JSVAL_NULL"))).define() + "\n" +
                 "}\n" + recTemplate, recInfal)
-    
+
+    if type.isDictionary():
+        return (wrapAndSetPtr("%s.ToObject(cx, ${obj}, ${jsvalPtr})" % result),
+                False)
+
+
     tag = type.tag()
-    
+
     if tag in [IDLType.Tags.int8, IDLType.Tags.uint8, IDLType.Tags.int16,
                IDLType.Tags.uint16, IDLType.Tags.int32]:
         return (setValue("INT_TO_JSVAL(int32_t(%s))" % result), True)
@@ -3417,11 +3417,13 @@ def getRetvalDeclarationForType(returnType, descriptorProvider,
             result = CGWrapper(result, pre="Nullable< ", post=" >")
         return result, True
     if returnType.isDictionary():
-        assert not returnType.nullable()
+        nullable = returnType.nullable()
         result = CGGeneric(
             CGDictionary.makeDictionaryName(returnType.unroll().inner,
                                             descriptorProvider.workers) +
             "Initializer")
+        if nullable:
+            result = CGWrapper(result, pre="Nullable< ", post=" >")
         return result, True
     if returnType.isUnion():
         raise TypeError("Need to sort out ownership model for union retvals");
