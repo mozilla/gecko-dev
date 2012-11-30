@@ -51,6 +51,7 @@ FENNEC_JAVA_FILES = \
   awesomebar/AllPagesTab.java \
   awesomebar/BookmarksTab.java \
   awesomebar/HistoryTab.java \
+  BackButton.java \
   BrowserApp.java \
   BrowserToolbar.java \
   BrowserToolbarBackground.java \
@@ -70,6 +71,7 @@ FENNEC_JAVA_FILES = \
   FlowLayout.java \
   FontSizePreference.java \
   FormAssistPopup.java \
+  ForwardButton.java \
   GeckoAccessibility.java \
   GeckoApplication.java \
   GeckoApp.java \
@@ -508,10 +510,6 @@ RES_DRAWABLE_BASE = \
   res/drawable/tab_thumbnail_default.png \
   res/drawable/tab_thumbnail_shadow.png \
   res/drawable/tabs_carat.png \
-  res/drawable/address_bar_back_button.xml \
-  res/drawable/address_bar_back_button_bg.xml \
-  res/drawable/address_bar_back_button_pressed_bg.xml \
-  res/drawable/address_bar_forward_button.xml \
   res/drawable/address_bar_texture_port.png \
   res/drawable/address_bar_url.xml \
   res/drawable/address_bar_url_default.9.png \
@@ -823,8 +821,6 @@ RES_DRAWABLE_LAND_XHDPI_V14 = \
 RES_DRAWABLE_LARGE_MDPI_V11 = \
   res/drawable-large-mdpi-v11/address_bar_bg.xml \
   res/drawable-large-mdpi-v11/address_bar_texture_tablet.png \
-  res/drawable-large-mdpi-v11/address_bar_back_button_bg.png \
-  res/drawable-large-mdpi-v11/address_bar_back_button_pressed_bg.png \
   res/drawable-large-mdpi-v11/address_bar_url_default.9.png \
   res/drawable-large-mdpi-v11/address_bar_url_pressed.9.png \
   res/drawable-large-mdpi-v11/ic_awesomebar_go.png \
@@ -846,8 +842,6 @@ RES_DRAWABLE_LARGE_MDPI_V11 = \
 
 RES_DRAWABLE_LARGE_HDPI_V11 = \
   res/drawable-large-hdpi-v11/address_bar_texture_tablet.png \
-  res/drawable-large-hdpi-v11/address_bar_back_button_bg.png \
-  res/drawable-large-hdpi-v11/address_bar_back_button_pressed_bg.png \
   res/drawable-large-hdpi-v11/address_bar_url_default.9.png \
   res/drawable-large-hdpi-v11/address_bar_url_pressed.9.png \
   res/drawable-large-hdpi-v11/ic_awesomebar_go.png \
@@ -869,8 +863,6 @@ RES_DRAWABLE_LARGE_HDPI_V11 = \
 
 RES_DRAWABLE_LARGE_XHDPI_V11 = \
   res/drawable-large-xhdpi-v11/address_bar_texture_tablet.png \
-  res/drawable-large-xhdpi-v11/address_bar_back_button_bg.png \
-  res/drawable-large-xhdpi-v11/address_bar_back_button_pressed_bg.png \
   res/drawable-large-xhdpi-v11/address_bar_url_default.9.png \
   res/drawable-large-xhdpi-v11/address_bar_url_pressed.9.png \
   res/drawable-large-xhdpi-v11/ic_awesomebar_go.png \
@@ -947,6 +939,7 @@ MOZ_ANDROID_DRAWABLES += \
   mobile/android/base/resources/drawable/address_bar_bg.xml                     \
   mobile/android/base/resources/drawable/address_bar_bg_shadow_repeat.xml       \
   mobile/android/base/resources/drawable/address_bar_url_level.xml              \
+  mobile/android/base/resources/drawable/address_bar_nav_button.xml             \
   mobile/android/base/resources/drawable/autocomplete_list_bg.9.png             \
   mobile/android/base/resources/drawable/awesomebar_tab_indicator.xml           \
   mobile/android/base/resources/drawable/awesomebar_tab_selected.xml            \

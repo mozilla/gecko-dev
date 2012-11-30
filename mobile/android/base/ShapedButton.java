@@ -57,7 +57,10 @@ public abstract class ShapedButton extends ImageButton
 
     @Override
     public void draw(Canvas canvas) {
-        mCanvasDelegate.draw(canvas, mPath, getWidth(), getHeight());
+        if (mCanvasDelegate != null)
+            mCanvasDelegate.draw(canvas, mPath, getWidth(), getHeight());
+        else
+            defaultDraw(canvas);
     }
 
     @Override
