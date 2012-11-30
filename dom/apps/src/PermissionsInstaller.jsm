@@ -203,11 +203,6 @@ this.PermissionsTable =  { "resource-lock": {
                              privileged: DENY_ACTION,
                              certified: ALLOW_ACTION
                            },
-                           "mozBluetooth": {
-                             app: DENY_ACTION,
-                             privileged: DENY_ACTION,
-                             certified: ALLOW_ACTION
-                           },
                            "wifi-manage": {
                              app: DENY_ACTION,
                              privileged: DENY_ACTION,
