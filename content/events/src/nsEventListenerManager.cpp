@@ -108,6 +108,7 @@ nsEventListenerManager::nsEventListenerManager(nsISupports* aTarget) :
   mMayHaveAudioAvailableEventListener(false),
   mMayHaveTouchEventListener(false),
   mMayHaveMouseEnterLeaveEventListener(false),
+  mClearingListeners(false),
   mNoListenerForEvent(0),
   mTarget(aTarget)
 {
@@ -135,7 +136,12 @@ nsEventListenerManager::~nsEventListenerManager()
 void
 nsEventListenerManager::RemoveAllListeners()
 {
+  if (mClearingListeners) {
+    return;
+  }
+  mClearingListeners = true;
   mListeners.Clear();
+  mClearingListeners = false;
 }
 
 void
@@ -189,7 +195,7 @@ nsEventListenerManager::AddEventListener(nsIDOMEventListener *aListener,
 {
   NS_ABORT_IF_FALSE(aType && aTypeAtom, "Missing type");
 
-  if (!aListener) {
+  if (!aListener || mClearingListeners) {
     return;
   }
 
@@ -641,6 +647,10 @@ nsEventListenerManager::AddScriptEventListener(nsIAtom *aName,
 void
 nsEventListenerManager::RemoveScriptEventListener(nsIAtom* aName)
 {
+  if (mClearingListeners) {
+    return;
+  }
+
   uint32_t eventType = nsContentUtils::GetEventId(aName);
   nsListenerStruct* ls = FindJSEventListener(eventType, aName);
 
