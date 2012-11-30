@@ -1591,6 +1591,15 @@ MarionetteDriverActor.prototype = {
   },
 
   /**
+   * Takes a screenshot of a DOM node. If there is no node given a screenshot
+   * of the window will be taken.
+   */
+  screenShot: function MDA_saveScreenshot(aRequest) {
+    this.sendAsync("screenShot", {element: aRequest.element,
+                                  highlights: aRequest.highlights});
+  },
+
+  /**
    * Helper function to convert an outerWindowID into a UID that Marionette
    * tracks.
    */
@@ -1767,7 +1776,8 @@ MarionetteDriverActor.prototype.requestTypes = {
   "importScript": MarionetteDriverActor.prototype.importScript,
   "getAppCacheStatus": MarionetteDriverActor.prototype.getAppCacheStatus,
   "closeWindow": MarionetteDriverActor.prototype.closeWindow,
-  "setTestName": MarionetteDriverActor.prototype.setTestName
+  "setTestName": MarionetteDriverActor.prototype.setTestName,
+  "screenShot": MarionetteDriverActor.prototype.screenShot
 };
 
 /**
