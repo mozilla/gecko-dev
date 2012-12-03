@@ -1124,7 +1124,7 @@ IterateCells(JSRuntime *rt, JSCompartment *compartment, gc::AllocKind thingKind,
  * Invoke cellCallback on every gray JS_OBJECT in the given compartment.
  */
 extern JS_FRIEND_API(void)
-IterateGrayObjects(JSCompartment *compartment, GCThingCallback *cellCallback, void *data);
+IterateGrayObjects(JSCompartment *compartment, GCThingCallback cellCallback, void *data);
 
 } /* namespace js */
 

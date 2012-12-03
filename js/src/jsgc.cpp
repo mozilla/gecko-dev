@@ -3778,6 +3778,10 @@ BeginSweepPhase(JSRuntime *rt)
         if (rt->gcFinalizeCallback)
             rt->gcFinalizeCallback(&fop, JSFINALIZE_END, !isFull);
     }
+
+    /* If we finished a full GC, then the gray bits are correct. */
+    if (isFull)
+        rt->gcGrayBitsValid = true;
 }
 
 bool
@@ -4693,7 +4697,7 @@ IterateCells(JSRuntime *rt, JSCompartment *compartment, AllocKind thingKind,
 }
 
 void
-IterateGrayObjects(JSCompartment *compartment, GCThingCallback *cellCallback, void *data)
+IterateGrayObjects(JSCompartment *compartment, GCThingCallback cellCallback, void *data)
 {
     JS_ASSERT(compartment);
     AutoPrepareForTracing prep(compartment->rt);

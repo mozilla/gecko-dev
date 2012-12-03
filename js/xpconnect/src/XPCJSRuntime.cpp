@@ -718,7 +718,6 @@ XPCJSRuntime::GCCallback(JSRuntime *rt, JSGCStatus status)
             else
                 DoDeferredRelease(self->mNativesToReleaseArray);
 
-            self->GetXPConnect()->ClearGCBeforeCC();
             break;
         }
     }
