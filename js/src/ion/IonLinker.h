@@ -54,6 +54,8 @@ class Linker
                                      bytesNeeded - headerSize, pool);
         if (!code)
             return NULL;
+        if (masm.oom())
+            return fail(cx);
         code->copyFrom(masm);
         masm.link(code);
         return code;
