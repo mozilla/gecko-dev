@@ -136,10 +136,6 @@ xpc_IsGrayGCThing(void *thing)
 extern JSBool
 xpc_GCThingIsGrayCCThing(void *thing);
 
-// Implemented in nsXPConnect.cpp.
-extern void
-xpc_UnmarkGrayGCThingRecursive(void *thing, JSGCTraceKind kind);
-
 // Remove the gray color from the given JSObject and any other objects that can
 // be reached through it.
 inline JSObject *
@@ -147,7 +143,7 @@ xpc_UnmarkGrayObject(JSObject *obj)
 {
     if (obj) {
         if (xpc_IsGrayGCThing(obj))
-            xpc_UnmarkGrayGCThingRecursive(obj, JSTRACE_OBJECT);
+            js::UnmarkGrayGCThingRecursively(obj, JSTRACE_OBJECT);
         else if (js::IsIncrementalBarrierNeededOnObject(obj))
             js::IncrementalReferenceBarrier(obj);
     }
@@ -159,7 +155,7 @@ xpc_UnmarkGrayScript(JSScript *script)
 {
     if (script) {
         if (xpc_IsGrayGCThing(script))
-            xpc_UnmarkGrayGCThingRecursive(script, JSTRACE_SCRIPT);
+            js::UnmarkGrayGCThingRecursively(script, JSTRACE_SCRIPT);
         else if (js::IsIncrementalBarrierNeededOnScript(script))
             js::IncrementalReferenceBarrier(script);
     }
