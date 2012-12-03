@@ -167,6 +167,7 @@ def checkForCrashes(dumpDir, symbolsPath, testName=None):
     for d in dumps:
       stackwalkOutput = []
       stackwalkOutput.append("Crash dump filename: " + d)
+      topFrame = None
       if symbolsPath and stackwalkPath and os.path.exists(stackwalkPath):
         # run minidump stackwalk
         p = subprocess.Popen([stackwalkPath, d, symbolsPath],
