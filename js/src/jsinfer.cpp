@@ -2506,6 +2506,8 @@ TypeCompartment::nukeTypes(FreeOp *fop)
 # endif
     }
 #endif /* JS_METHODJIT */
+
+    pendingNukeTypes = false;
 }
 
 void
