@@ -444,6 +444,7 @@ MarionetteDriverActor.prototype = {
    *
    */
   newSession: function MDA_newSession() {
+    this.scriptTimeout = 10000;
 
     function waitForWindow() {
       let checkTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
@@ -685,7 +686,8 @@ MarionetteDriverActor.prototype = {
     if (this.context == "content") {
       this.sendAsync("executeScript", {value: aRequest.value,
                                        args: aRequest.args,
-                                       newSandbox:aRequest.newSandbox});
+                                       newSandbox: aRequest.newSandbox,
+                                       timeout: this.scriptTimeout});
       return;
     }
 
@@ -732,7 +734,7 @@ MarionetteDriverActor.prototype = {
     }
     else {
       this.scriptTimeout = timeout;
-      this.sendAsync("setScriptTimeout", {value: timeout});
+      this.sendOk();
     }
   },
 
@@ -752,18 +754,19 @@ MarionetteDriverActor.prototype = {
       aRequest.newSandbox = true;
     }
     if (this.context == "chrome") {
-      if (aRequest.timeout) {
-        this.executeWithCallback(aRequest, aRequest.timeout);
+      if (aRequest.async) {
+        this.executeWithCallback(aRequest, aRequest.async);
       }
       else {
         this.execute(aRequest, true);
       }
     }
     else {
-      this.sendAsync("executeJSScript", { value:aRequest.value,
-                                          args:aRequest.args,
-                                          newSandbox:aRequest.newSandbox,
-                                          timeout:aRequest.timeout });
+      this.sendAsync("executeJSScript", { value: aRequest.value,
+                                          args: aRequest.args,
+                                          newSandbox: aRequest.newSandbox,
+                                          async: aRequest.async,
+                                          timeout: this.scriptTimeout });
    }
   },
 
@@ -794,7 +797,8 @@ MarionetteDriverActor.prototype = {
       this.sendAsync("executeAsyncScript", {value: aRequest.value,
                                             args: aRequest.args,
                                             id: this.command_id,
-                                            newSandbox: aRequest.newSandbox});
+                                            newSandbox: aRequest.newSandbox,
+                                            timeout: this.scriptTimeout});
       return;
     }
 
