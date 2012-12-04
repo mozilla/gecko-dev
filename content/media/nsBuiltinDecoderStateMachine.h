@@ -610,7 +610,8 @@ protected:
   // been consumed by the play state machine thread.
   uint32_t mAmpleVideoFrames;
   // True if we shouldn't play our audio (but still write it to any capturing
-  // streams).
+  // streams). When this is true, mStopAudioThread is always true and
+  // the audio thread will never start again after it has stopped.
   bool mAudioCaptured;
 
   // True if the media resource can be seeked. Accessed from the state
