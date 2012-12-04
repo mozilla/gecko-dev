@@ -130,7 +130,7 @@ namespace ion {
     _(Floor)                                                                \
     _(Round)                                                                \
     _(In)                                                                   \
-    _(InstanceOf)                                                           \
+    _(CallInstanceOf)                                                       \
     _(InterruptCheck)                                                       \
     _(FunctionBoundary)                                                     \
     _(GetDOMProperty)                                                       \
