@@ -253,6 +253,11 @@ this.PermissionsTable =  { "resource-lock": {
                              privileged: DENY_ACTION,
                              certified: ALLOW_ACTION
                            },
+                           cellbroadcast: {
+                             app: DENY_ACTION,
+                             privileged: DENY_ACTION,
+                             certified: ALLOW_ACTION
+                           },
                          };
 
 /**

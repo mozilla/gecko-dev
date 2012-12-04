@@ -516,6 +516,7 @@ using mozilla::dom::indexedDB::IDBWrapperCache;
 #include "nsIDOMVoicemailEvent.h"
 #include "nsIDOMIccManager.h"
 #include "StkCommandEvent.h"
+#include "nsIDOMMozCellBroadcast.h"
 #endif
 
 #ifdef MOZ_B2G_FM
@@ -1526,6 +1527,9 @@ static nsDOMClassInfoData sClassInfoData[] = {
 #ifdef MOZ_B2G_RIL
   NS_DEFINE_CLASSINFO_DATA(MozMobileConnection, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
+
+  NS_DEFINE_CLASSINFO_DATA(MozCellBroadcast, nsDOMGenericSH,
+                           DOM_DEFAULT_SCRIPTABLE_FLAGS)
 #endif
 
   NS_DEFINE_CLASSINFO_DATA(USSDReceivedEvent, nsDOMGenericSH,
@@ -2501,6 +2505,7 @@ nsDOMClassInfo::Init()
                                         network::IsAPIEnabled())
 #ifdef MOZ_B2G_RIL
     DOM_CLASSINFO_MAP_ENTRY(nsIMozNavigatorMobileConnection)
+    DOM_CLASSINFO_MAP_ENTRY(nsIMozNavigatorCellBroadcast)
 #endif
 #ifdef MOZ_B2G_BT
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMNavigatorBluetooth)
@@ -4150,6 +4155,11 @@ nsDOMClassInfo::Init()
 #ifdef MOZ_B2G_RIL
   DOM_CLASSINFO_MAP_BEGIN(MozMobileConnection, nsIDOMMozMobileConnection)
      DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozMobileConnection)
+     DOM_CLASSINFO_MAP_ENTRY(nsIDOMEventTarget)
+  DOM_CLASSINFO_MAP_END
+
+  DOM_CLASSINFO_MAP_BEGIN(MozCellBroadcast, nsIDOMMozCellBroadcast)
+     DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozCellBroadcast)
      DOM_CLASSINFO_MAP_ENTRY(nsIDOMEventTarget)
   DOM_CLASSINFO_MAP_END
 #endif
