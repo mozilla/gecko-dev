@@ -30,7 +30,6 @@ let SocialUI = {
       SocialChatBar.update();
     });
 
-    this.updateActiveBroadcaster();
     Social.init(this._providerReady.bind(this));
   },
 
@@ -123,6 +122,7 @@ let SocialUI = {
     SocialSidebar.init();
     SocialMenu.populate();
     SocialChatBar.update();
+    this.updateActiveBroadcaster();
   },
 
   updateToggleCommand: function SocialUI_updateToggleCommand() {
