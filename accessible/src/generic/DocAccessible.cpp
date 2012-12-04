@@ -1921,6 +1921,23 @@ DocAccessible::UpdateTreeInternal(Accessible* aChild, bool aIsInsert)
     // Create accessible tree for shown accessible.
     CacheChildrenInSubtree(aChild);
 
+    // XXX: since select change insertion point of option contained by optgroup
+    // then we need to have special processing for them (bug 690417).
+    if (!aIsInsert && aChildNode->IsHTML(nsGkAtoms::optgroup) &&
+        aContainer->GetContent()->IsHTML(nsGkAtoms::select)) {
+      for (nsIContent* optContent = aChildNode->GetFirstChild(); optContent;
+           optContent = optContent->GetNextSibling()) {
+        if (optContent->IsHTML(nsGkAtoms::option)) {
+          Accessible* option = GetAccessible(optContent);
+          if (option) {
+            NS_ASSERTION(option->Parent() == aContainer,
+                         "Not expected hierarchy on HTML select!");
+            if (option->Parent() == aContainer)
+              updateFlags |= UpdateTreeInternal(option, aIsInsert, reorderEvent);
+          }
+        }
+      }
+    }
   } else {
     // Fire menupopup end event before hide event if a menu goes away.
 
