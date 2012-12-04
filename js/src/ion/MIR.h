@@ -5313,18 +5313,18 @@ class MInArray
 };
 
 // Implementation for instanceof operator.
-class MInstanceOf
+class MCallInstanceOf
   : public MBinaryInstruction,
-    public InstanceOfPolicy
+    public MixPolicy<BoxPolicy<0>, ObjectPolicy<1> >
 {
   public:
-    MInstanceOf(MDefinition *obj, MDefinition *proto)
+    MCallInstanceOf(MDefinition *obj, MDefinition *proto)
       : MBinaryInstruction(obj, proto)
     {
         setResultType(MIRType_Boolean);
     }
 
-    INSTRUCTION_HEADER(InstanceOf);
+    INSTRUCTION_HEADER(CallInstanceOf);
 
     TypePolicy *typePolicy() {
         return this;

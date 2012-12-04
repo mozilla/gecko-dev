@@ -1924,22 +1924,19 @@ LIRGenerator::visitIn(MIn *ins)
 }
 
 bool
-LIRGenerator::visitInstanceOf(MInstanceOf *ins)
+LIRGenerator::visitCallInstanceOf(MCallInstanceOf *ins)
 {
     MDefinition *lhs = ins->lhs();
     MDefinition *rhs = ins->rhs();
 
-    JS_ASSERT(lhs->type() == MIRType_Value || lhs->type() == MIRType_Object);
+    JS_ASSERT(lhs->type() == MIRType_Value);
     JS_ASSERT(rhs->type() == MIRType_Object);
 
-    // InstanceOf with non-object will always return false
-    if (lhs->type() == MIRType_Object) {
-        LInstanceOfO *lir = new LInstanceOfO(useRegister(lhs), useRegister(rhs), temp(), temp());
-        return define(lir, ins) && assignSafepoint(lir, ins);
-    }
-
-    LInstanceOfV *lir = new LInstanceOfV(useRegister(rhs), temp(), temp());
-    return useBox(lir, LInstanceOfV::LHS, lhs) && define(lir, ins) && assignSafepoint(lir, ins);
+    // CallInstanceOf with non-object will always return false
+    LCallInstanceOf *lir = new LCallInstanceOf(useRegisterAtStart(rhs));
+    if (!useBoxAtStart(lir, LCallInstanceOf::LHS, lhs))
+        return false;
+    return defineVMReturn(lir, ins) && assignSafepoint(lir, ins);
 }
 
 bool

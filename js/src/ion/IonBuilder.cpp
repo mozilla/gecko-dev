@@ -6500,7 +6500,7 @@ IonBuilder::jsop_instanceof()
 {
     MDefinition *proto = current->pop();
     MDefinition *obj = current->pop();
-    MInstanceOf *ins = new MInstanceOf(obj, proto);
+    MCallInstanceOf *ins = new MCallInstanceOf(obj, proto);
 
     current->add(ins);
     current->push(ins);
