@@ -43,6 +43,7 @@ GfxInfo::Init()
     mIsFGLRX = false;
     mIsNouveau = false;
     mIsIntel = false;
+    mIsLlvmpipe = false;
     mHasTextureFromPixmap = false;
     return GfxInfoBase::Init();
 }
@@ -212,6 +213,8 @@ GfxInfo::GetData()
             mIsNouveau = true;
         if (strcasestr(mRenderer.get(), "intel")) // yes, intel is in the renderer string
             mIsIntel = true;
+        if (strcasestr(mRenderer.get(), "llvmpipe"))
+            mIsLlvmpipe = true;
     } else if (strstr(mVendor.get(), "NVIDIA Corporation")) {
         mIsNVIDIA = true;
         // with the NVIDIA driver, the version string contains "NVIDIA major.minor"
@@ -329,6 +332,8 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
         } else if (version(mMajorVersion, mMinorVersion, mRevisionVersion) < version(7,10,3)) {
           *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
           aSuggestedDriverVersion.AssignLiteral("Mesa 7.10.3");
+        } else if (mIsLlvmpipe) {
+          *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION;
         }
         if (aFeature == nsIGfxInfo::FEATURE_WEBGL_MSAA)
         {
