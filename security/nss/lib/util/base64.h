@@ -31,7 +31,7 @@ extern unsigned char *ATOB_AsciiToData(const char *string, unsigned int *lenp);
 /*
 ** Convert from ascii to binary encoding of an item.
 */
-extern SECStatus ATOB_ConvertAsciiToItem(SECItem *binary_item, char *ascii);
+extern SECStatus ATOB_ConvertAsciiToItem(SECItem *binary_item, const char *ascii);
 
 /*
 ** Convert from binary encoding of an item to ascii.

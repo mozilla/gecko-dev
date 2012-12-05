@@ -44,5 +44,11 @@ endif
 include $(CORE_DEPTH)/coreconf/rules.mk
 
 # Generate certdata.c.
-generate:
-	$(PERL) certdata.perl < certdata.txt
+
+# By default, use the unmodified certdata.txt.
+ifndef NSS_CERTDATA_TXT
+NSS_CERTDATA_TXT = certdata.txt
+endif
+
+$(OBJDIR)/certdata.c: $(NSS_CERTDATA_TXT) certdata.perl
+	$(PERL) certdata.perl < $(NSS_CERTDATA_TXT) > $@

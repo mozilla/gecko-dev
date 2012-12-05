@@ -809,7 +809,7 @@ ATOB_AsciiToData(const char *string, unsigned int *lenp)
 ** Convert from ascii to binary encoding of an item.
 */
 SECStatus
-ATOB_ConvertAsciiToItem(SECItem *binary_item, char *ascii)
+ATOB_ConvertAsciiToItem(SECItem *binary_item, const char *ascii)
 {
     SECItem *dummy;
 
