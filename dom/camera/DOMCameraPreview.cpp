@@ -249,6 +249,8 @@ DOMCameraPreview::StopPreview()
   DOM_CAMERA_LOGI("Stopping preview stream\n");
   DOM_CAMERA_SETSTATE(STOPPING);
   mCameraControl->StopPreview();
+  mInput->EndTrack(TRACK_VIDEO);
+  mInput->Finish();
 }
 
 void
@@ -256,8 +258,11 @@ DOMCameraPreview::SetStateStopped()
 {
   NS_ASSERTION(NS_IsMainThread(), "SetStateStopped() not called from main thread");
 
-  mInput->EndTrack(TRACK_VIDEO);
-  mInput->Finish();
+  // see bug 809259 and bug 817367.
+  if (mState != STOPPING) {
+    mInput->EndTrack(TRACK_VIDEO);
+    mInput->Finish();
+  }
   DOM_CAMERA_SETSTATE(STOPPED);
   DOM_CAMERA_LOGI("Preview stream stopped\n");
 
