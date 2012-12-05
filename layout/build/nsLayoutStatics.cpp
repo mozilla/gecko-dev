@@ -61,6 +61,8 @@
 #include "Navigator.h"
 #include "nsDOMStorageBaseDB.h"
 
+#include "AudioChannelService.h"
+
 #ifdef MOZ_XUL
 #include "nsXULPopupManager.h"
 #include "nsXULContentUtils.h"
@@ -363,6 +365,8 @@ nsLayoutStatics::Shutdown()
   nsHyphenationManager::Shutdown();
   nsEditorSpellCheck::ShutDown();
   nsDOMMutationObserver::Shutdown();
+
+  AudioChannelService::Shutdown();
 
   ContentParent::ShutDown();
 }
