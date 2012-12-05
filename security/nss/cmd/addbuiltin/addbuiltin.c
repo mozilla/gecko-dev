@@ -473,6 +473,19 @@ int main(int argc, char **argv)
 	infile = PR_STDIN;
     }
 
+#if defined(WIN32)
+    /* We must put stdout into O_BINARY mode or else the output will include
+    ** carriage returns.
+    */
+    {
+	int smrv = _setmode(_fileno(stdout), _O_BINARY);
+	if (smrv == -1) {
+	    fprintf(stderr, "%s: Cannot change stdout to binary mode.\n", progName);
+	    exit(1);
+	}
+    }
+#endif
+
     nickname = strdup(addbuiltin.options[opt_Nickname].arg);
     
     NSS_NoDB_Init(NULL);

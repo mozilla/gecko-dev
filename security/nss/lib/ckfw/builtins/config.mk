@@ -24,6 +24,9 @@ ifdef BUILD_IDG
     DEFINES += -DNSSDEBUG
 endif
 
+# Needed for compilation of $(OBJDIR)/certdata.c
+INCLUDES += -I$(CORE_DEPTH)/nss/lib/ckfw/builtins
+
 #
 # To create a loadable module on Darwin, we must use -bundle.
 #

@@ -600,8 +600,8 @@ pk11_FindAttrInTemplate(CK_ATTRIBUTE *attr, unsigned int numAttrs,
  * figure out which hash algorithm to use until we decryptted this.
  */
 SECStatus
-PK11_VerifyRecover(SECKEYPublicKey *key,
-			 	SECItem *sig, SECItem *dsig, void *wincx)
+PK11_VerifyRecover(SECKEYPublicKey *key, const SECItem *sig,
+		   SECItem *dsig, void *wincx)
 {
     PK11SlotInfo *slot = key->pkcs11Slot;
     CK_OBJECT_HANDLE id = key->pkcs11ID;
@@ -660,7 +660,8 @@ PK11_VerifyRecover(SECKEYPublicKey *key,
  * verify a signature from its hash.
  */
 SECStatus
-PK11_Verify(SECKEYPublicKey *key, SECItem *sig, SECItem *hash, void *wincx)
+PK11_Verify(SECKEYPublicKey *key, const SECItem *sig, const SECItem *hash,
+	    void *wincx)
 {
     PK11SlotInfo *slot = key->pkcs11Slot;
     CK_OBJECT_HANDLE id = key->pkcs11ID;
@@ -729,7 +730,7 @@ PK11_Verify(SECKEYPublicKey *key, SECItem *sig, SECItem *hash, void *wincx)
  * sign a hash. The algorithm is determined by the key.
  */
 SECStatus
-PK11_Sign(SECKEYPrivateKey *key, SECItem *sig, SECItem *hash)
+PK11_Sign(SECKEYPrivateKey *key, SECItem *sig, const SECItem *hash)
 {
     PK11SlotInfo *slot = key->pkcs11Slot;
     CK_MECHANISM mech = {0, NULL, 0 };
