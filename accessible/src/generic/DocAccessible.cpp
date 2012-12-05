@@ -1890,7 +1890,7 @@ DocAccessible::UpdateTree(Accessible* aContainer, nsIContent* aChildNode,
             NS_ASSERTION(option->Parent() == aContainer,
                          "Not expected hierarchy on HTML select!");
             if (option->Parent() == aContainer)
-              updateFlags |= UpdateTreeInternal(option, aIsInsert, reorderEvent);
+              updateFlags |= UpdateTreeInternal(option, aIsInsert);
           }
         }
       }
