@@ -3770,6 +3770,9 @@ void nsHTMLMediaElement::GetMimeType(nsCString& aMimeType)
 
 nsresult nsHTMLMediaElement::UpdateChannelMuteState()
 {
+  // Only on B2G we mute the nsHTMLMediaElement following the rules of
+  // AudioChannelService.
+#ifdef MOZ_B2G
   bool hidden = false;
   nsCOMPtr<nsIDOMDocument> domDoc = do_QueryInterface(OwnerDoc());
   if (!domDoc) {
@@ -3796,12 +3799,15 @@ nsresult nsHTMLMediaElement::UpdateChannelMuteState()
     SetMutedInternal(mMuted);
     DispatchAsyncEvent(NS_LITERAL_STRING("mozinterruptend"));
   }
+#endif
 
   return NS_OK;
 }
 
 void nsHTMLMediaElement::UpdateAudioChannelPlayingState()
 {
+  // The nsHTMLMediaElement is registered to the AudioChannelService only on B2G.
+#ifdef MOZ_B2G
   bool playingThroughTheAudioChannel =
      (mReadyState >= nsIDOMHTMLMediaElement::HAVE_FUTURE_DATA &&
       IsPotentiallyPlaying());
@@ -3819,6 +3825,7 @@ void nsHTMLMediaElement::UpdateAudioChannelPlayingState()
       audioChannelService->UnregisterMediaElement(this);
     }
   }
+#endif
 }
 
 nsresult nsHTMLMediaElement::NotifyAudioChannelStateChanged()
