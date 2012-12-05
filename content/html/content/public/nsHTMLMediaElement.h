@@ -648,6 +648,9 @@ protected:
    */
   void ProcessMediaFragmentURI();
 
+  // Check the permissions for audiochannel.
+  bool CheckAudioChannelPermissions(const nsAString& aType);
+
   // The current decoder. Load() has been called on this decoder.
   // At most one of mDecoder and mSrcStream can be non-null.
   nsRefPtr<nsMediaDecoder> mDecoder;
