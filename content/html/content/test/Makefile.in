@@ -333,6 +333,7 @@ MOCHITEST_FILES = \
 		test_htmlcollection.html \
 		test_formelements.html \
 		test_rowscollection.html \
+		test_mozaudiochannel.html \
 		$(NULL)
 
 MOCHITEST_BROWSER_FILES = \
