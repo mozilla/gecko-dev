@@ -923,7 +923,7 @@ TiledTextureImage::TiledTextureImage(GLContext* aGL,
 {
     mTileSize = (!(aFlags & TextureImage::ForceSingleTile) && mGL->WantsSmallTiles())
         ? 256 : mGL->GetMaxTextureSize();
-    if (aSize != nsIntSize(0,0)) {
+    if (aSize.width != 0 && aSize.height != 0) {
         Resize(aSize);
     }
 }
@@ -935,6 +935,10 @@ TiledTextureImage::~TiledTextureImage()
 bool 
 TiledTextureImage::DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom /* = nsIntPoint(0, 0) */)
 {
+    if (mSize.width == 0 || mSize.height == 0) {
+        return true;
+    }
+
     nsIntRegion region;
 
     if (mTextureState != Valid) {
@@ -1153,6 +1157,9 @@ void TiledTextureImage::SetIterationCallback(TileIterationCallback aCallback,
 
 nsIntRect TiledTextureImage::GetTileRect()
 {
+    if (!GetTileCount()) {
+        return nsIntRect();
+    }
     nsIntRect rect = mImages[mCurrentImage]->GetTileRect();
     unsigned int xPos = (mCurrentImage % mColumns) * mTileSize;
     unsigned int yPos = (mCurrentImage / mColumns) * mTileSize;
@@ -1172,6 +1179,9 @@ nsIntRect TiledTextureImage::GetSrcTileRect()
 void
 TiledTextureImage::BindTexture(GLenum aTextureUnit)
 {
+    if (!GetTileCount()) {
+        return;
+    }
     mImages[mCurrentImage]->BindTexture(aTextureUnit);
 }
 
