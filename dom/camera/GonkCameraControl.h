@@ -20,6 +20,7 @@
 #include "base/basictypes.h"
 #include "prtypes.h"
 #include "prrwlock.h"
+#include "DeviceStorage.h"
 #include "nsIDOMCameraManager.h"
 #include "DOMCameraControl.h"
 #include "CameraControlImpl.h"
@@ -107,11 +108,11 @@ protected:
   android::MediaProfiles*   mMediaProfiles;
   android::GonkRecorder*    mRecorder;
 
-  nsString                  mVideoFile;
-
   // camcorder profile settings for the desired quality level
   nsRefPtr<GonkRecorderProfileManager> mProfileManager;
   nsRefPtr<GonkRecorderProfile> mRecorderProfile;
+
+  nsRefPtr<DeviceStorageFile> mVideoFile;
 
 private:
   nsGonkCameraControl(const nsGonkCameraControl&) MOZ_DELETE;
