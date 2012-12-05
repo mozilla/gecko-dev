@@ -7,8 +7,8 @@
 import sys, os
 import subprocess
 import runxpcshelltests as xpcshell
-from automationutils import *
-from mozdevice import devicemanagerADB, devicemanagerSUT
+from automationutils import replaceBackSlashes
+from mozdevice import devicemanagerADB, devicemanagerSUT, DMError
 
 here = os.path.dirname(os.path.abspath(__file__))
 
