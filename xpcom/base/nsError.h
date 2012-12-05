@@ -67,6 +67,7 @@
 #define NS_ERROR_MODULE_DOM_FILE   32
 #define NS_ERROR_MODULE_DOM_INDEXEDDB 33
 #define NS_ERROR_MODULE_DOM_FILEHANDLE 34
+#define NS_ERROR_MODULE_SIGNED_JAR 35
 
 /* NS_ERROR_MODULE_GENERAL should be used by modules that do not
  * care if return code values overlap. Callers of methods that
@@ -989,6 +990,21 @@ typedef enum tag_nsresult
   NS_ERROR_DOM_FILEHANDLE_LOCKEDFILE_INACTIVE_ERR = FAILURE(3),
   NS_ERROR_DOM_FILEHANDLE_ABORT_ERR               = FAILURE(4),
   NS_ERROR_DOM_FILEHANDLE_READ_ONLY_ERR           = FAILURE(5),
+#undef MODULE
+
+
+  /* ======================================================================= */
+  /* 35: NS_ERROR_MODULE_SIGNED_JAR */
+  /* ======================================================================= */
+#define MODULE NS_ERROR_MODULE_SIGNED_JAR
+  NS_ERROR_SIGNED_JAR_NOT_SIGNED                  = FAILURE(1),
+  NS_ERROR_SIGNED_JAR_MODIFIED_ENTRY              = FAILURE(2),
+  NS_ERROR_SIGNED_JAR_UNSIGNED_ENTRY              = FAILURE(3),
+  NS_ERROR_SIGNED_JAR_ENTRY_MISSING               = FAILURE(4),
+  NS_ERROR_SIGNED_JAR_WRONG_SIGNATURE             = FAILURE(5),
+  NS_ERROR_SIGNED_JAR_ENTRY_TOO_LARGE             = FAILURE(6),
+  NS_ERROR_SIGNED_JAR_ENTRY_INVALID               = FAILURE(7),
+  NS_ERROR_SIGNED_JAR_MANIFEST_INVALID            = FAILURE(8),
 #undef MODULE
 
 
