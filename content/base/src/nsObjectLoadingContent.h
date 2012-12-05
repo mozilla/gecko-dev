@@ -77,6 +77,8 @@ class nsObjectLoadingContent : public nsImageLoadingContent
       eFallbackSuppressed = nsIObjectLoadingContent::PLUGIN_SUPPRESSED,
       // Blocked by content policy
       eFallbackUserDisabled = nsIObjectLoadingContent::PLUGIN_USER_DISABLED,
+      /// ** All values >= eFallbackClickToPlay and
+      //     <= eFallbackVulnerableNoUpdate are click-to-play types.
       // The plugin is disabled until the user clicks on it
       eFallbackClickToPlay = nsIObjectLoadingContent::PLUGIN_CLICK_TO_PLAY,
       // The plugin is vulnerable (update available)
