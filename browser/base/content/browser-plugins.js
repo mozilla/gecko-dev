@@ -290,7 +290,8 @@ var gPluginHandler = {
 
   canActivatePlugin: function PH_canActivatePlugin(objLoadingContent) {
     return !objLoadingContent.activated &&
-           objLoadingContent.pluginFallbackType !== Ci.nsIObjectLoadingContent.PLUGIN_PLAY_PREVIEW;
+           objLoadingContent.pluginFallbackType >= Ci.nsIObjectLoadingContent.PLUGIN_CLICK_TO_PLAY &&
+           objLoadingContent.pluginFallbackType <= Ci.nsIObjectLoadingContent.PLUGIN_VULNERABLE_NO_UPDATE;
   },
 
   activatePlugins: function PH_activatePlugins(aContentWindow) {
