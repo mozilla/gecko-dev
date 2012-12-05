@@ -138,6 +138,10 @@ interface nsIDOMHTMLMediaElement : nsIDOMHTMLElement
    //   Use case: dialer, voip
    // * publicnotification
    //   Always plays in speaker, even when headphones are plugged in.
-
    attribute DOMString mozAudioChannelType;
+
+  // In addition the media element has these new events:
+  // * onmozinterruptbegin - called when the media element is interrupted
+  //   because of the audiochannel manager.
+  // * onmozinterruptend - called when the interruption is concluded
 };
