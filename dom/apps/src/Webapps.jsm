@@ -1475,8 +1475,12 @@ this.DOMApplicationRegistry = {
             let manifest = JSON.parse(converter.ConvertToUnicode(NetUtil.readInputStreamToString(istream,
                                                                  istream.available()) || ""));
 
-            if (!AppsUtils.checkManifest(manifest, aApp.installOrigin)) {
+            if (!AppsUtils.checkManifest(manifest)) {
               throw "INVALID_MANIFEST";
+            }
+
+            if (!AppsUtils.checkInstallAllowed(manifest, aApp.installOrigin)) {
+              throw "INSTALL_FROM_DENIED";
             }
 
             if (!checkAppStatus(manifest)) {
