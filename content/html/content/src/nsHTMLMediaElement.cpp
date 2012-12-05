@@ -67,6 +67,8 @@
 #include "nsIScriptError.h"
 #include "nsHostObjectProtocolHandler.h"
 
+#include "AudioChannelService.h"
+
 #include "nsCSSParser.h"
 #include "nsIMediaList.h"
 
@@ -1535,14 +1537,9 @@ NS_IMETHODIMP nsHTMLMediaElement::GetMuted(bool *aMuted)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsHTMLMediaElement::SetMuted(bool aMuted)
+void nsHTMLMediaElement::SetMutedInternal(bool aMuted)
 {
-  if (aMuted == mMuted)
-    return NS_OK;
-
-  mMuted = aMuted;
-
-  float effectiveVolume = mMuted ? 0.0f : float(mVolume);
+  float effectiveVolume = aMuted || mChannelMuted ? 0.0f : float(mVolume);
   if (mDecoder) {
     mDecoder->SetVolume(effectiveVolume);
   } else if (mAudioStream) {
@@ -1550,6 +1547,15 @@ NS_IMETHODIMP nsHTMLMediaElement::SetMuted(bool aMuted)
   } else if (mSrcStream) {
     GetSrcMediaStream()->SetAudioOutputVolume(this, effectiveVolume);
   }
+}
+
+NS_IMETHODIMP nsHTMLMediaElement::SetMuted(bool aMuted)
+{
+  if (aMuted == mMuted)
+    return NS_OK;
+
+  mMuted = aMuted;
+  SetMutedInternal(aMuted);
 
   DispatchAsyncEvent(NS_LITERAL_STRING("volumechange"));
 
@@ -1743,7 +1749,9 @@ nsHTMLMediaElement::nsHTMLMediaElement(already_AddRefed<nsINodeInfo> aNodeInfo)
     mCORSMode(CORS_NONE),
     mHasAudio(false),
     mDownloadSuspendedByCache(false),
-    mAudioChannelType(AUDIO_CHANNEL_NORMAL)
+    mAudioChannelType(AUDIO_CHANNEL_NORMAL),
+    mChannelMuted(false),
+    mPlayingThroughTheAudioChannel(false)
 {
 #ifdef PR_LOGGING
   if (!gMediaElementLog) {
@@ -3203,6 +3211,8 @@ void nsHTMLMediaElement::ChangeReadyState(nsMediaReadyState aState)
   nsMediaReadyState oldState = mReadyState;
   mReadyState = aState;
 
+  UpdateAudioChannelPlayingState();
+
   if (mNetworkState == nsIDOMHTMLMediaElement::NETWORK_EMPTY ||
       oldState == mReadyState) {
     return;
@@ -3447,6 +3457,10 @@ void nsHTMLMediaElement::NotifyOwnerDocumentActivityChanged()
     }
   }
 
+  if (mPlayingThroughTheAudioChannel) {
+    UpdateChannelMuteState();
+  }
+
   AddRemoveSelfReference();
 }
 
@@ -3485,6 +3499,8 @@ void nsHTMLMediaElement::AddRemoveSelfReference()
       NS_DispatchToMainThread(event);
     }
   }
+
+  UpdateAudioChannelPlayingState();
 }
 
 void nsHTMLMediaElement::DoRemoveSelfReference()
@@ -3760,6 +3776,64 @@ NS_IMETHODIMP nsHTMLMediaElement::GetMozFragmentEnd(double *aTime)
 void nsHTMLMediaElement::GetMimeType(nsCString& aMimeType)
 {
   aMimeType = mMimeType;
+}
+
+nsresult nsHTMLMediaElement::UpdateChannelMuteState()
+{
+  bool hidden = false;
+  nsCOMPtr<nsIDOMDocument> domDoc = do_QueryInterface(OwnerDoc());
+  if (!domDoc) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsresult rv = domDoc->GetHidden(&hidden);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  bool mute = false;
+
+  nsRefPtr<AudioChannelService> audioChannelService = AudioChannelService::GetAudioChannelService();
+  if (audioChannelService) {
+    mute = audioChannelService->GetMuted(mAudioChannelType, hidden);
+  }
+
+  // We have to mute this channel:
+  if (mute && !mChannelMuted) {
+    mChannelMuted = true;
+    SetMutedInternal(mMuted);
+    DispatchAsyncEvent(NS_LITERAL_STRING("mozinterruptbegin"));
+  } else if (!mute && mChannelMuted) {
+    mChannelMuted = false;
+    SetMutedInternal(mMuted);
+    DispatchAsyncEvent(NS_LITERAL_STRING("mozinterruptend"));
+  }
+
+  return NS_OK;
+}
+
+void nsHTMLMediaElement::UpdateAudioChannelPlayingState()
+{
+  bool playingThroughTheAudioChannel =
+     (mReadyState >= nsIDOMHTMLMediaElement::HAVE_FUTURE_DATA &&
+      IsPotentiallyPlaying());
+  if (playingThroughTheAudioChannel != mPlayingThroughTheAudioChannel) {
+    mPlayingThroughTheAudioChannel = playingThroughTheAudioChannel;
+
+    nsRefPtr<AudioChannelService> audioChannelService = AudioChannelService::GetAudioChannelService();
+    if (!audioChannelService) {
+      return;
+    }
+
+    if (mPlayingThroughTheAudioChannel) {
+      audioChannelService->RegisterMediaElement(this, mAudioChannelType);
+    } else {
+      audioChannelService->UnregisterMediaElement(this);
+    }
+  }
+}
+
+nsresult nsHTMLMediaElement::NotifyAudioChannelStateChanged()
+{
+  return UpdateChannelMuteState();
 }
 
 void nsHTMLMediaElement::NotifyAudioAvailableListener()

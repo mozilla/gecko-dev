@@ -117,7 +117,7 @@ public:
 
   /**
    * Call this to reevaluate whether we should start/stop due to our owner
-   * document being active or inactive.
+   * document being active, inactive, visible or hidden.
    */
   void NotifyOwnerDocumentActivityChanged();
 
@@ -386,6 +386,9 @@ public:
     NS_ASSERTION(mSrcStream, "Don't call this when not playing a stream");
     return mSrcStream->GetStream();
   }
+
+  // Notification from the AudioChannelService.
+   nsresult NotifyAudioChannelStateChanged();
 
 protected:
   class MediaLoadListener;
@@ -661,8 +664,19 @@ protected:
     return isPaused;
   }
 
+  /**
+   * Mute or unmute the audio, without changing the value that |muted| reports.
+   */
+  void SetMutedInternal(bool aMuted);
+
   // Check the permissions for audiochannel.
   bool CheckAudioChannelPermissions(const nsAString& aType);
+
+  // This method does the check for muting/unmuting the audio channel.
+  nsresult UpdateChannelMuteState();
+
+  // Update the audio channel playing state
+  void UpdateAudioChannelPlayingState();
 
   // The current decoder. Load() has been called on this decoder.
   // At most one of mDecoder and mSrcStream can be non-null.
@@ -924,6 +938,12 @@ protected:
 
   // Audio Channel Type.
   mozilla::dom::AudioChannelType mAudioChannelType;
+
+  // The audiochannel has been muted
+  bool mChannelMuted;
+
+  // Is this media element playing?
+  bool mPlayingThroughTheAudioChannel;
 };
 
 #endif

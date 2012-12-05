@@ -7289,7 +7289,7 @@ nsDocument::CloneDocHelper(nsDocument* clone) const
 
   if (mCreatingStaticClone) {
     nsCOMPtr<nsILoadGroup> loadGroup;
-    
+
     // |mDocumentContainer| is the container of the document that is being
     // created and not the original container. See CreateStaticClone function().
     nsCOMPtr<nsIDocumentLoader> docLoader = do_QueryReferent(mDocumentContainer);
@@ -9495,6 +9495,8 @@ nsDocument::UpdateVisibilityState()
                                          NS_LITERAL_STRING("mozvisibilitychange"),
                                          /* bubbles = */ true,
                                          /* cancelable = */ false);
+
+    EnumerateFreezableElements(NotifyActivityChanged, nullptr);
   }
 }
 
