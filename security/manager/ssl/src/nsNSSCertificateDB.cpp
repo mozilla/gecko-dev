@@ -41,6 +41,8 @@ extern "C" {
 #include "ocsp.h"
 #include "plbase64.h"
 
+using namespace mozilla;
+
 #ifdef PR_LOGGING
 extern PRLogModuleInfo* gPIPNSSLog;
 #endif
