@@ -77,6 +77,9 @@ public class GeckoLayerClient
 
     /* Used as the return value of progressiveUpdateCallback */
     private final ProgressiveUpdateData mProgressiveUpdateData;
+    private DisplayPortMetrics mProgressiveUpdateDisplayPort;
+    private boolean mLastProgressiveUpdateWasLowPrecision;
+    private boolean mProgressiveUpdateWasInDanger;
 
     /* This is written by the compositor thread and read by the UI thread. */
     private volatile boolean mCompositorCreated;
@@ -116,6 +119,9 @@ public class GeckoLayerClient
         mDrawTimingQueue = new DrawTimingQueue();
         mCurrentViewTransform = new ViewTransform(0, 0, 1);
         mProgressiveUpdateData = new ProgressiveUpdateData();
+        mProgressiveUpdateDisplayPort = new DisplayPortMetrics();
+        mLastProgressiveUpdateWasLowPrecision = false;
+        mProgressiveUpdateWasInDanger = false;
         mCompositorCreated = false;
 
         mForceRedraw = true;
@@ -360,7 +366,20 @@ public class GeckoLayerClient
     // is useful for slow-to-render pages when the display-port starts lagging
     // behind enough that continuing to draw it is wasted effort.
     public ProgressiveUpdateData progressiveUpdateCallback(boolean aHasPendingNewThebesContent,
-                                                           float x, float y, float width, float height, float resolution) {
+                                                           float x, float y, float width, float height,
+                                                           float resolution, boolean lowPrecision) {
+        // Skip all low precision draws until we're at risk of checkerboarding
+        if (lowPrecision && !mProgressiveUpdateWasInDanger) {
+            mProgressiveUpdateData.abort = true;
+            return mProgressiveUpdateData;
+        }
+
+        // Reset the checkerboard risk flag
+        if (!lowPrecision && mLastProgressiveUpdateWasLowPrecision) {
+            mProgressiveUpdateWasInDanger = false;
+        }
+        mLastProgressiveUpdateWasLowPrecision = lowPrecision;
+
         // Grab a local copy of the last display-port sent to Gecko and the
         // current viewport metrics to avoid races when accessing them.
         DisplayPortMetrics displayPort = mDisplayPort;
@@ -370,10 +389,23 @@ public class GeckoLayerClient
 
         // Always abort updates if the resolution has changed. There's no use
         // in drawing at the incorrect resolution.
-        if (!FloatUtils.fuzzyEquals(resolution, displayPort.resolution)) {
+        if (!FloatUtils.fuzzyEquals(resolution, viewportMetrics.zoomFactor)) {
             Log.d(LOGTAG, "Aborting draw due to resolution change");
             mProgressiveUpdateData.abort = true;
             return mProgressiveUpdateData;
+        }
+
+        // Store the high precision displayport for comparison when doing low
+        // precision updates.
+        if (!lowPrecision) {
+            if (!FloatUtils.fuzzyEquals(resolution, mProgressiveUpdateDisplayPort.resolution) ||
+                !FloatUtils.fuzzyEquals(x, mProgressiveUpdateDisplayPort.getLeft()) ||
+                !FloatUtils.fuzzyEquals(y, mProgressiveUpdateDisplayPort.getTop()) ||
+                !FloatUtils.fuzzyEquals(x + width, mProgressiveUpdateDisplayPort.getRight()) ||
+                !FloatUtils.fuzzyEquals(y + height, mProgressiveUpdateDisplayPort.getBottom())) {
+                mProgressiveUpdateDisplayPort =
+                    new DisplayPortMetrics(x, y, x+width, y+height, resolution);
+            }
         }
 
         // XXX All sorts of rounding happens inside Gecko that becomes hard to
@@ -386,11 +418,20 @@ public class GeckoLayerClient
         // display-port. If we abort updating when we shouldn't, we can end up
         // with blank regions on the screen and we open up the risk of entering
         // an endless updating cycle.
-        if (Math.abs(displayPort.getLeft() - x) <= 2 &&
-            Math.abs(displayPort.getTop() - y) <= 2 &&
-            Math.abs(displayPort.getBottom() - (y + height)) <= 2 &&
-            Math.abs(displayPort.getRight() - (x + width)) <= 2) {
+        if (Math.abs(displayPort.getLeft() - mProgressiveUpdateDisplayPort.getLeft()) <= 2 &&
+            Math.abs(displayPort.getTop() - mProgressiveUpdateDisplayPort.getTop()) <= 2 &&
+            Math.abs(displayPort.getBottom() - mProgressiveUpdateDisplayPort.getBottom()) <= 2 &&
+            Math.abs(displayPort.getRight() - mProgressiveUpdateDisplayPort.getRight()) <= 2) {
             return mProgressiveUpdateData;
+        }
+
+        if (!lowPrecision && !mProgressiveUpdateWasInDanger) {
+            // If we're not doing low precision draws and we're about to
+            // checkerboard, give up and move onto low precision drawing.
+            if (DisplayPortCalculator.aboutToCheckerboard(viewportMetrics,
+                  mPanZoomController.getVelocityVector(), mProgressiveUpdateDisplayPort)) {
+                mProgressiveUpdateWasInDanger = true;
+            }
         }
 
         // Abort updates when the display-port no longer contains the visible
@@ -407,18 +448,11 @@ public class GeckoLayerClient
             return mProgressiveUpdateData;
         }
 
-        // There's no new content (where new content is considered to be an
-        // update in a region that wasn't previously visible), and we've sent a
-        // more recent display-port.
-        // Aborting in this situation helps us recover more quickly when the
-        // user starts scrolling on a page that contains animated content that
-        // is slow to draw.
-        if (!aHasPendingNewThebesContent) {
-            Log.d(LOGTAG, "Aborting update due to more relevant display-port in event queue");
-            mProgressiveUpdateData.abort = true;
-            return mProgressiveUpdateData;
+        // Abort drawing stale low-precision content if there's a more recent
+        // display-port in the pipeline.
+        if (lowPrecision && !aHasPendingNewThebesContent) {
+          mProgressiveUpdateData.abort = true;
         }
-
         return mProgressiveUpdateData;
     }
 
