@@ -121,6 +121,7 @@ let SocialUI = {
     SocialShareButton.init();
     SocialSidebar.init();
     SocialMenu.populate();
+    SocialChatBar.update();
   },
 
   updateToggleCommand: function SocialUI_updateToggleCommand() {
