@@ -73,8 +73,6 @@ MapSECStatus(SECStatus rv)
   return PRErrorCode_to_nsresult(error);
 }
 
-namespace mozilla {
-
 // Alphabetical order by NSS type
 MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedPRFileDesc,
                                           PRFileDesc,
