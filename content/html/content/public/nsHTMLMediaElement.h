@@ -24,6 +24,7 @@
 #include "nsTimeRanges.h"
 #include "nsIDOMWakeLock.h"
 #include "AudioChannelCommon.h"
+#include "AudioChannelAgent.h"
 
 // Define to output information on decoding and painting framerate
 /* #define DEBUG_FRAME_RATE 1 */
@@ -41,7 +42,8 @@ class DASHDecoder;
 
 class nsHTMLMediaElement : public nsGenericHTMLElement,
                            public nsIObserver,
-                           public mozilla::MediaDecoderOwner
+                           public mozilla::MediaDecoderOwner,
+                           public nsIAudioChannelAgentCallback
 {
 public:
   typedef mozilla::TimeStamp TimeStamp;
@@ -85,6 +87,8 @@ public:
   NS_DECL_NSIDOMHTMLMEDIAELEMENT
 
   NS_DECL_NSIOBSERVER
+
+  NS_DECL_NSIAUDIOCHANNELAGENTCALLBACK
 
   // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
@@ -387,9 +391,6 @@ public:
     return mSrcStream->GetStream();
   }
 
-  // Notification from the AudioChannelService.
-   nsresult NotifyAudioChannelStateChanged();
-
 protected:
   class MediaLoadListener;
   class StreamListener;
@@ -673,7 +674,7 @@ protected:
   bool CheckAudioChannelPermissions(const nsAString& aType);
 
   // This method does the check for muting/unmuting the audio channel.
-  nsresult UpdateChannelMuteState();
+  nsresult UpdateChannelMuteState(bool aCanPlay);
 
   // Update the audio channel playing state
   void UpdateAudioChannelPlayingState();
@@ -944,6 +945,9 @@ protected:
 
   // Is this media element playing?
   bool mPlayingThroughTheAudioChannel;
+
+  // An agent used to join audio channel service.
+  nsCOMPtr<nsIAudioChannelAgent> mAudioChannelAgent;
 };
 
 #endif
