@@ -165,6 +165,8 @@
     _(Floor)                        \
     _(Round)                        \
     _(In)                           \
+    _(InstanceOfO)                  \
+    _(InstanceOfV)                  \
     _(CallInstanceOf)               \
     _(InterruptCheck)               \
     _(FunctionBoundary)             \
