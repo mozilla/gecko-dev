@@ -370,6 +370,9 @@ static sa_stream_type_t ConvertChannelToSAType(AudioChannelType aType)
     case AUDIO_CHANNEL_TELEPHONY:
       return SA_STREAM_TYPE_VOICE_CALL;
       break;
+    case AUDIO_CHANNEL_RINGER:
+      return SA_STREAM_TYPE_RING;
+      break;
     case AUDIO_CHANNEL_PUBLICNOTIFICATION:
       return SA_STREAM_TYPE_ENFORCED_AUDIBLE;
       break;

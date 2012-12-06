@@ -20,7 +20,7 @@
  * @status UNDER_DEVELOPMENT
  */
 
-[scriptable, uuid(771a0d40-18ed-11e2-89ca-10bf48d64bd4)]
+[scriptable, uuid(ee5df17c-3928-11e2-8808-10bf48d64bd4)]
 interface nsIDOMHTMLAudioElement : nsIDOMHTMLMediaElement
 {
   // Setup the audio stream for writing
