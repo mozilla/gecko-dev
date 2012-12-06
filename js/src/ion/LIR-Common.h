@@ -3143,6 +3143,41 @@ class LIn : public LCallInstructionHelper<1, BOX_PIECES+1, 0>
     static const size_t RHS = BOX_PIECES;
 };
 
+class LInstanceOfO : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(InstanceOfO);
+    LInstanceOfO(const LAllocation &lhs) {
+        setOperand(0, lhs);
+    }
+
+    MInstanceOf *mir() const {
+        return mir_->toInstanceOf();
+    }
+
+    const LAllocation *lhs() {
+        return getOperand(0);
+    }
+};
+
+class LInstanceOfV : public LInstructionHelper<1, BOX_PIECES, 0>
+{
+  public:
+    LIR_HEADER(InstanceOfV);
+    LInstanceOfV() {
+    }
+
+    MInstanceOf *mir() const {
+        return mir_->toInstanceOf();
+    }
+
+    const LAllocation *lhs() {
+        return getOperand(LHS);
+    }
+
+    static const size_t LHS = 0;
+};
+
 class LCallInstanceOf : public LCallInstructionHelper<1, BOX_PIECES+1, 0>
 {
   public:

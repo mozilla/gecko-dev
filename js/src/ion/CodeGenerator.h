@@ -170,6 +170,9 @@ class CodeGenerator : public CodeGeneratorSpecific
     bool visitBitOpV(LBitOpV *lir);
     bool visitIn(LIn *ins);
     bool visitInArray(LInArray *ins);
+    bool emitInstanceOf(LInstruction *ins, RawObject prototypeObject);
+    bool visitInstanceOfO(LInstanceOfO *ins);
+    bool visitInstanceOfV(LInstanceOfV *ins);
     bool visitCallInstanceOf(LCallInstanceOf *ins);
     bool visitFunctionBoundary(LFunctionBoundary *lir);
     bool visitGetDOMProperty(LGetDOMProperty *lir);

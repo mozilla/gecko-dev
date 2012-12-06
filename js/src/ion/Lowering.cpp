@@ -1924,6 +1924,22 @@ LIRGenerator::visitIn(MIn *ins)
 }
 
 bool
+LIRGenerator::visitInstanceOf(MInstanceOf *ins)
+{
+    MDefinition *lhs = ins->getOperand(0);
+
+    JS_ASSERT(lhs->type() == MIRType_Value || lhs->type() == MIRType_Object);
+
+    if (lhs->type() == MIRType_Object) {
+        LInstanceOfO *lir = new LInstanceOfO(useRegister(lhs));
+        return define(lir, ins) && assignSafepoint(lir, ins);
+    }
+
+    LInstanceOfV *lir = new LInstanceOfV();
+    return useBox(lir, LInstanceOfV::LHS, lhs) && define(lir, ins) && assignSafepoint(lir, ins);
+}
+
+bool
 LIRGenerator::visitCallInstanceOf(MCallInstanceOf *ins)
 {
     MDefinition *lhs = ins->lhs();
