@@ -196,6 +196,8 @@ nsNPAPIPluginInstance::~nsNPAPIPluginInstance()
   }
 }
 
+uint32_t nsNPAPIPluginInstance::gInPluginCalls = 0;
+
 void
 nsNPAPIPluginInstance::Destroy()
 {
