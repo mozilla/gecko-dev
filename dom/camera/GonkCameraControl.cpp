@@ -40,6 +40,7 @@
 #include "GonkRecorderProfiles.h"
 #include "GonkCameraControl.h"
 #include "CameraCommon.h"
+#include "mozilla/Services.h"
 
 using namespace mozilla;
 using namespace android;
