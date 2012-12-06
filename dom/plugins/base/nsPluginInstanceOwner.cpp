@@ -550,7 +550,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetURL(const char *aURL,
   nsAutoString  unitarget;
   unitarget.AssignASCII(aTarget); // XXX could this be nonascii?
 
-  nsCOMPtr<nsIURI> baseURI = GetBaseURI();
+  nsCOMPtr<nsIURI> baseURI = mContent->GetBaseURI();
 
   // Create an absolute URL
   nsCOMPtr<nsIURI> uri;
@@ -942,7 +942,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetParameter(const char* name, const char* 
 
   return NS_ERROR_FAILURE;
 }
-
+  
 NS_IMETHODIMP nsPluginInstanceOwner::GetDocumentBase(const char* *result)
 {
   NS_ENSURE_ARG_POINTER(result);
@@ -3818,7 +3818,7 @@ nsObjectFrame* nsPluginInstanceOwner::GetFrame()
 void nsPluginInstanceOwner::FixUpURLS(const nsString &name, nsAString &value)
 {
   if (name.LowerCaseEqualsLiteral("pluginspage")) {
-    nsCOMPtr<nsIURI> baseURI = GetBaseURI();
+    nsCOMPtr<nsIURI> baseURI = mContent->GetBaseURI();
     nsAutoString newURL;
     NS_MakeAbsoluteURI(newURL, value, baseURI);
     if (!newURL.IsEmpty())
@@ -3829,14 +3829,6 @@ void nsPluginInstanceOwner::FixUpURLS(const nsString &name, nsAString &value)
 NS_IMETHODIMP nsPluginInstanceOwner::PrivateModeChanged(bool aEnabled)
 {
   return mInstance ? mInstance->PrivateModeStateChanged(aEnabled) : NS_OK;
-}
-
-already_AddRefed<nsIURI> nsPluginInstanceOwner::GetBaseURI() const
-{
-  if (!mContent) {
-    return nullptr;
-  }
-  return mContent->GetBaseURI();
 }
 
 // nsPluginDOMContextMenuListener class implementation
