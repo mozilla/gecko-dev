@@ -25,6 +25,7 @@ EXTRA_JS_MODULES = \
 	Social.jsm \
 	webappsUI.jsm \
 	webrtcUI.jsm \
+	SharedFrame.jsm \
 	$(NULL)
 
 ifeq ($(MOZ_WIDGET_TOOLKIT),windows)
