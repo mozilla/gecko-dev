@@ -40,7 +40,8 @@ class nsDASHDecoder;
 #endif
 
 class nsHTMLMediaElement : public nsGenericHTMLElement,
-                           public nsIObserver
+                           public nsIObserver,
+                           public nsIAudioChannelAgentCallback
 {
 public:
   typedef mozilla::TimeStamp TimeStamp;
