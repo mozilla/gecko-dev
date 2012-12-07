@@ -57,6 +57,40 @@ function testLocalInfoLanguage(cmd) {
   runNextTest();
 }
 
+function testTimerManagementStart(cmd) {
+  log("STK CMD " + JSON.stringify(cmd));
+  is(cmd.typeOfCommand, icc.STK_CMD_TIMER_MANAGEMENT);
+  is(cmd.commandNumber, 0x01);
+  is(cmd.commandQualifier, icc.STK_TIMER_START);
+  is(cmd.options.timerAction, icc.STK_TIMER_START);
+  is(cmd.options.timerId, 0x01);
+  is(cmd.options.timerValue, (0x01 * 60 * 60) + (0x02 * 60) + 0x03);
+
+  runNextTest();
+}
+
+function testTimerManagementDeactivate(cmd) {
+  log("STK CMD " + JSON.stringify(cmd));
+  is(cmd.typeOfCommand, icc.STK_CMD_TIMER_MANAGEMENT);
+  is(cmd.commandNumber, 0x01);
+  is(cmd.commandQualifier, icc.STK_TIMER_DEACTIVATE);
+  is(cmd.options.timerAction, icc.STK_TIMER_DEACTIVATE);
+  is(cmd.options.timerId, 0x04);
+
+  runNextTest();
+}
+
+function testTimerManagementGetCurrentValue(cmd) {
+  log("STK CMD " + JSON.stringify(cmd));
+  is(cmd.typeOfCommand, icc.STK_CMD_TIMER_MANAGEMENT);
+  is(cmd.commandNumber, 0x01);
+  is(cmd.commandQualifier, icc.STK_TIMER_GET_CURRENT_VALUE);
+  is(cmd.options.timerAction, icc.STK_TIMER_GET_CURRENT_VALUE);
+  is(cmd.options.timerId, 0x08);
+
+  runNextTest();
+}
+
 function testSetupCall(cmd) {
   log("STK CMD " + JSON.stringify(cmd));
   is(cmd.typeOfCommand, icc.STK_CMD_SET_UP_CALL);
@@ -80,6 +114,12 @@ let tests = [
    func: testLocalInfoDate},
   {command: "d009810301260482028182",
    func: testLocalInfoLanguage},
+  {command: "d011810301270082028182a40101a503102030",
+   func: testTimerManagementStart},
+  {command: "d00c810301270182028182a40104",
+   func: testTimerManagementDeactivate},
+  {command: "d00c810301270282028182a40108",
+   func: testTimerManagementGetCurrentValue},
   {command: "d029810301100482028182050a446973636f6e6e6563748609811032042143651c2c05074d657373616765",
    func: testSetupCall},
 ];
