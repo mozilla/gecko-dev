@@ -52,6 +52,12 @@ AccessCheck::subsumes(JSCompartment *a, JSCompartment *b)
     return subsumes;
 }
 
+bool
+AccessCheck::subsumes(JSObject *a, JSObject *b)
+{
+    return subsumes(js::GetObjectCompartment(a), js::GetObjectCompartment(b));
+}
+
 // Same as above, but ignoring document.domain.
 bool
 AccessCheck::subsumesIgnoringDomain(JSCompartment *a, JSCompartment *b)
@@ -494,6 +500,11 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper:
 
     if (!exposedProps.isObject()) {
         EnterAndThrow(cx, wrapper, "__exposedProps__ must be undefined, null, or an Object");
+        return false;
+    }
+
+    if (!AccessCheck::subsumes(js::UnwrapObject(hallpass), wrappedObject)) {
+        EnterAndThrow(cx, wrapper, "Invalid __exposedProps__");
         return false;
     }
 
