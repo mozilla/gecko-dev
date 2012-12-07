@@ -1343,6 +1343,9 @@ NumberValueToStringBuffer(JSContext *cx, const Value &v, StringBuffer &sb)
     return sb.appendInflated(cstr, cstrlen);
 }
 
+#if defined(_MSC_VER)
+# pragma optimize("g", off)
+#endif
 JS_PUBLIC_API(bool)
 ToNumberSlow(JSContext *cx, Value v, double *out)
 {
@@ -1401,6 +1404,9 @@ ToNumberSlow(JSContext *cx, Value v, double *out)
     *out = js_NaN;
     return true;
 }
+#if defined(_MSC_VER)
+# pragma optimize("", on)
+#endif
 
 /*
  * Convert a value to an int64_t, according to the WebIDL rules for long long
