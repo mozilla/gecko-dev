@@ -2162,7 +2162,7 @@ nsObjectLoadingContent::PluginCrashed(nsIPluginTag* aPluginTag,
   return NS_OK;
 }
 
-NS_IMETHODIMP
+nsresult
 nsObjectLoadingContent::ScriptRequestPluginInstance(bool aCallerIsContentJS,
                                                     nsNPAPIPluginInstance **aResult)
 {
