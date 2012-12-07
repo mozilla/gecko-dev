@@ -289,7 +289,9 @@ var DebuggerServer = {
     }
   },
 
-  onStopListening: function DH_onStopListening() { },
+  onStopListening: function DS_onStopListening(aSocket, status) {
+    dumpn("onStopListening, status: " + status);
+  },
 
   /**
    * Raises an exception if the server has not been properly initialized.
