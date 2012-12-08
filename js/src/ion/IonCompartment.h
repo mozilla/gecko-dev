@@ -53,7 +53,8 @@ class IonCompartment
     ReadBarriered<IonCode> invalidator_;
 
     // Thunk that calls the GC pre barrier.
-    ReadBarriered<IonCode> preBarrier_;
+    ReadBarriered<IonCode> valuePreBarrier_;
+    ReadBarriered<IonCode> shapePreBarrier_;
 
     // Map VMFunction addresses to the IonCode of the wrapper.
     VMWrapperMap *functionWrappers_;
@@ -74,7 +75,7 @@ class IonCompartment
     IonCode *generateBailoutTable(JSContext *cx, uint32 frameClass);
     IonCode *generateBailoutHandler(JSContext *cx);
     IonCode *generateInvalidator(JSContext *cx);
-    IonCode *generatePreBarrier(JSContext *cx);
+    IonCode *generatePreBarrier(JSContext *cx, MIRType type);
 
   public:
     IonCode *generateVMWrapper(JSContext *cx, const VMFunction &f);
@@ -147,13 +148,21 @@ class IonCompartment
         return enterJIT_.get()->as<EnterIonCode>();
     }
 
-    IonCode *preBarrier(JSContext *cx) {
-        if (!preBarrier_) {
-            preBarrier_ = generatePreBarrier(cx);
-            if (!preBarrier_)
+    IonCode *valuePreBarrier(JSContext *cx) {
+        if (!valuePreBarrier_) {
+            valuePreBarrier_ = generatePreBarrier(cx, MIRType_Value);
+            if (!valuePreBarrier_)
                 return NULL;
         }
-        return preBarrier_;
+        return valuePreBarrier_;
+    }
+    IonCode *shapePreBarrier(JSContext *cx) {
+        if (!shapePreBarrier_) {
+            shapePreBarrier_ = generatePreBarrier(cx, MIRType_Shape);
+            if (!shapePreBarrier_)
+                return NULL;
+        }
+        return shapePreBarrier_;
     }
     AutoFlushCache *flusher() {
         return flusher_;
