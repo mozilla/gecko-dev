@@ -368,11 +368,16 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     template <typename T>
     void callPreBarrier(const T &address, MIRType type) {
-        JS_ASSERT(type == MIRType_Value || type == MIRType_String || type == MIRType_Object);
+        JS_ASSERT(type == MIRType_Value ||
+                  type == MIRType_String ||
+                  type == MIRType_Object ||
+                  type == MIRType_Shape);
         Label done;
 
         JSContext *cx = GetIonContext()->cx;
-        IonCode *preBarrier = cx->compartment->ionCompartment()->preBarrier(cx);
+        IonCode *preBarrier = (type == MIRType_Shape)
+                              ? cx->compartment->ionCompartment()->shapePreBarrier(cx)
+                              : cx->compartment->ionCompartment()->valuePreBarrier(cx);
         if (!preBarrier) {
             enoughMemory_ = false;
             return;

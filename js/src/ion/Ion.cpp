@@ -214,8 +214,10 @@ IonCompartment::sweep(FreeOp *fop)
         argumentsRectifier_ = NULL;
     if (invalidator_ && !IsIonCodeMarked(invalidator_.unsafeGet()))
         invalidator_ = NULL;
-    if (preBarrier_ && !IsIonCodeMarked(preBarrier_.unsafeGet()))
-        preBarrier_ = NULL;
+    if (valuePreBarrier_ && !IsIonCodeMarked(valuePreBarrier_.unsafeGet()))
+        valuePreBarrier_ = NULL;
+    if (shapePreBarrier_ && !IsIonCodeMarked(shapePreBarrier_.unsafeGet()))
+        shapePreBarrier_ = NULL;
 
     for (size_t i = 0; i < bailoutTables_.length(); i++) {
         if (bailoutTables_[i] && !IsIonCodeMarked(bailoutTables_[i].unsafeGet()))
@@ -1761,9 +1763,15 @@ ion::FinishInvalidation(FreeOp *fop, JSScript *script)
 }
 
 void
-ion::MarkFromIon(JSCompartment *comp, Value *vp)
+ion::MarkValueFromIon(JSCompartment *comp, Value *vp)
 {
     gc::MarkValueUnbarriered(comp->barrierTracer(), vp, "write barrier");
+}
+
+void
+ion::MarkShapeFromIon(JSCompartment *comp, Shape **shapep)
+{
+    gc::MarkShapeUnbarriered(comp->barrierTracer(), shapep, "write barrier");
 }
 
 void
