@@ -272,6 +272,9 @@ nsHTMLEditRules::Init(nsPlaintextEditor *aEditor)
 NS_IMETHODIMP
 nsHTMLEditRules::DetachEditor()
 {
+  if (mHTMLEditor) {
+    mHTMLEditor->RemoveEditActionListener(this);
+  }
   mHTMLEditor = nullptr;
   return nsTextEditRules::DetachEditor();
 }
