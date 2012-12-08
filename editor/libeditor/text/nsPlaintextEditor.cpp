@@ -124,6 +124,10 @@ NS_IMETHODIMP nsPlaintextEditor::Init(nsIDOMDocument *aDoc,
   NS_ENSURE_TRUE(aDoc, NS_ERROR_NULL_POINTER);
   
   nsresult res = NS_OK, rulesRes = NS_OK;
+  if (mRules) {
+    mRules->DetachEditor();
+    mRules = nullptr;
+  }
   
   if (1)
   {
@@ -314,6 +318,7 @@ nsPlaintextEditor::UpdateMetaCharset(nsIDOMDocument* aDocument,
 
 NS_IMETHODIMP nsPlaintextEditor::InitRules()
 {
+  MOZ_ASSERT(!mRules);
   // instantiate the rules for this text editor
   mRules = new nsTextEditRules();
   return mRules->Init(this);
