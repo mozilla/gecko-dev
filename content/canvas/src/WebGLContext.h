@@ -1148,6 +1148,7 @@ protected:
     bool mDisableExtensions;
     bool mHasRobustness;
     bool mIsMesa;
+    bool mLoseContextOnHeapMinimize;
 
     template<typename WebGLObjectType>
     void DeleteWebGLObjectsArray(nsTArray<WebGLObjectType>& array);
