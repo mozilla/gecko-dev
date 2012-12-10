@@ -133,6 +133,19 @@ class nsObjectLoadingContent : public nsImageLoadingContent
      */
     bool SrcStreamLoading() { return mSrcStreamLoading; };
 
+    /**
+     * Requests the plugin instance for scripting, attempting to spawn it if
+     * appropriate.
+     *
+     * The first time content js tries to access a pre-empted plugin
+     * (click-to-play or play preview), an event is dispatched.
+     *
+     * Bug 810082 - This method will be moving to the nsIObjectLoadingContent in
+     *              20+
+     */
+    nsresult ScriptRequestPluginInstance(bool callerIsContentJS,
+                                         nsNPAPIPluginInstance **aResult);
+
   protected:
     /**
      * Begins loading the object when called

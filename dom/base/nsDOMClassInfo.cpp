@@ -127,6 +127,7 @@
 #include "nsNPAPIPluginInstance.h"
 #include "nsIObjectFrame.h"
 #include "nsIObjectLoadingContent.h"
+#include "nsObjectLoadingContent.h"
 #include "nsIPluginHost.h"
 
 #include "nsIDOMHTMLOptionElement.h"
@@ -9658,11 +9659,16 @@ nsHTMLPluginObjElementSH::GetPluginInstanceIfSafe(nsIXPConnectWrappedNative *wra
   nsCOMPtr<nsIObjectLoadingContent> objlc(do_QueryInterface(content));
   NS_ASSERTION(objlc, "Object nodes must implement nsIObjectLoadingContent");
 
+  // Bug 810082 - Hacky -- this call moves to nsIObjectLoadingContent in 20+,
+  //              but changing the IID on branches is undesirable.
+  nsObjectLoadingContent *objlc_direct =
+    static_cast<nsObjectLoadingContent *>(objlc.get());
+
   bool callerIsContentJS = (!xpc::AccessCheck::callerIsChrome() &&
                             !xpc::AccessCheck::callerIsXBL(cx) &&
                             js::IsContextRunningJS(cx));
-  return objlc->ScriptRequestPluginInstance(callerIsContentJS,
-                                            _result);
+  return objlc_direct->ScriptRequestPluginInstance(callerIsContentJS,
+                                                   _result);
 }
 
 class nsPluginProtoChainInstallRunner MOZ_FINAL : public nsIRunnable
