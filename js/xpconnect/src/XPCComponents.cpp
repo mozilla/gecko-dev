@@ -3008,7 +3008,7 @@ sandbox_convert(JSContext *cx, JSHandleObject obj, JSType type, JSMutableHandleV
     return JS_ConvertStub(cx, obj, type, vp);
 }
 
-static JSClass SandboxClass = {
+JSClass SandboxClass = {
     "Sandbox",
     XPCONNECT_GLOBAL_FLAGS,
     JS_PropertyStub,   JS_PropertyStub, JS_PropertyStub, JS_StrictPropertyStub,

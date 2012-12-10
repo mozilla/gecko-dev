@@ -26,6 +26,8 @@
 
 using namespace mozilla::dom;
 
+extern JSClass SandboxClass;
+
 namespace xpc {
 
 using namespace js;
@@ -1117,6 +1119,60 @@ XPCWrappedNativeXrayTraits::defineProperty(JSContext *cx, JSObject *wrapper, jsi
         }
 
         *defined = true;
+        XPCJSRuntime* rt = nsXPConnect::GetRuntimeInstance();
+        if (id == rt->GetStringID(XPCJSRuntime::IDX_WEBSOCKET) &&
+            Is<nsIDOMWindow>(wrapper))
+        {
+            // This is a total hack to allow websockets to actually work.  They
+            // need to be able to get to their window, so we want to call their
+            // constructor in the compartment of our underlying window.  So
+            // we're going to create a new JSFunction for the native, then wrap
+            // it up into our compartment.  We don't xray random function in
+            // Gecko 18, so this will just give a cross-compartment wrapper
+            // which will enter the right compartment when we go to call it.
+
+            // First sanity-check that the value in desc is a function at all.
+            if (desc->value.isObject() &&
+                JS_ObjectIsFunction(cx, &desc->value.toObject()) &&
+                JS_GetClass(JS_GetGlobalForObject(cx, wrapper)) == &SandboxClass)
+            {
+                JSFunction* oldFunction =
+                    JS_GetObjectFunction(&desc->value.toObject());
+                JSNative native = JS_GetFunctionNative(cx, oldFunction);
+                if (native) {
+                    // We can't check that it's the right native, sadly
+
+                    // Let's go ahead and create a function in the right
+                    // compartment.
+                    MOZ_ASSERT(oldFunction);
+                    JSString *functionName = JS_GetFunctionId(oldFunction);
+                    jsid functionId =
+                        functionName ?
+                          INTERNED_STRING_TO_JSID(cx, functionName) : JSID_VOID;
+                    JSFunction* newFunction;
+                    {
+                        // Scope for auto-compartment
+                        JSObject* targetObj = getTargetObject(wrapper);
+                        JSAutoCompartment ac(cx, targetObj);
+                        newFunction =
+                            JS_NewFunctionById(cx, native,
+                                               JS_GetFunctionArity(oldFunction),
+                                               JS_GetFunctionFlags(oldFunction),
+                                               JS_GetGlobalForScopeChain(cx),
+                                               functionId);
+                        if (!newFunction)
+                            return false;
+                    }
+
+                    // And save it in our descriptor
+                    desc->value =
+                        JS::ObjectValue(*JS_GetFunctionObject(newFunction));
+                    if (!JS_WrapValue(cx, &desc->value))
+                        return false;
+                }
+            }
+        }
+
         return JS_DefinePropertyById(cx, holder, id, desc->value, desc->getter, desc->setter,
                                      desc->attrs);
     }

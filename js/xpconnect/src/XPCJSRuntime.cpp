@@ -67,7 +67,8 @@ const char* XPCJSRuntime::mStrings[] = {
     "baseURIObject",        // IDX_BASEURIOBJECT
     "nodePrincipal",        // IDX_NODEPRINCIPAL
     "documentURIObject",    // IDX_DOCUMENTURIOBJECT
-    "mozMatchesSelector"    // IDX_MOZMATCHESSELECTOR
+    "mozMatchesSelector",   // IDX_MOZMATCHESSELECTOR
+    "WebSocket"             // IDX_WEBSOCKET
 };
 
 /***************************************************************************/

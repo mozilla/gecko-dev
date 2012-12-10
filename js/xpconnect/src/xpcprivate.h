@@ -796,6 +796,7 @@ public:
         IDX_NODEPRINCIPAL           ,
         IDX_DOCUMENTURIOBJECT       ,
         IDX_MOZMATCHESSELECTOR      ,
+        IDX_WEBSOCKET               ,
         IDX_TOTAL_COUNT // just a count of the above
     };
 
