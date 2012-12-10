@@ -19,7 +19,6 @@ namespace xpc {
 class AccessCheck {
   public:
     static bool subsumes(JSCompartment *a, JSCompartment *b);
-    static bool subsumes(JSObject *a, JSObject *b);
     static bool subsumesIgnoringDomain(JSCompartment *a, JSCompartment *b);
     static bool isChrome(JSCompartment *compartment);
     static bool callerIsChrome();
