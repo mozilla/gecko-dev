@@ -260,6 +260,7 @@ MarkupView.prototype = {
     if (this._inspector._IUI.highlighter.isNodeHighlightable(node)) {
       this._inspector._IUI.select(node, true, false, "treepanel");
       this._inspector._IUI.highlighter.highlight(node);
+      this._inspector._IUI.highlighter.lock();
     }
 
     if (!aIgnoreFocus) {
