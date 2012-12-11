@@ -1446,7 +1446,8 @@
         <xul:hbox flex="1" align="center" class="center-item-warning">
           <xul:image class="center-item-warning-icon"/>
           <xul:label class="center-item-warning-description" xbl:inherits="xbl:text=warningText"/>
-          <xul:label xbl:inherits="href=updateLink" value="&checkForUpdates;" class="text-link"/>
+          <!-- using onclick to override default behavior due to bug 263433 -->
+          <xul:label xbl:inherits="href=updateLink" value="&checkForUpdates;" class="text-link" onclick="event.preventDefault(); openUILinkIn(this.href, 'tab');"/>
           <xul:spacer flex="1"/>
         </xul:hbox>
       </xul:vbox>
