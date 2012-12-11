@@ -1692,6 +1692,8 @@ var gBrowserInit = {
       }
     }
 
+    SocialUI.nonBrowserWindowInit();
+
     this._delayedStartupTimeoutId = setTimeout(this.nonBrowserWindowDelayedStartup.bind(this), 0);
   },
 
