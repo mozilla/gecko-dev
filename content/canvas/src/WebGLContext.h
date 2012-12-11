@@ -1372,6 +1372,8 @@ protected:
     void LoseOldestWebGLContextIfLimitExceeded();
     void UpdateLastUseIndex();
 
+    void ReattachTextureToAnyFramebufferToWorkAroundBugs(WebGLTexture *tex, WebGLint level);
+
 #ifdef XP_MACOSX
     // see bug 713305. This RAII helper guarantees that we're on the discrete GPU, during its lifetime
     // Debouncing note: we don't want to switch GPUs too frequently, so try to not create and destroy
