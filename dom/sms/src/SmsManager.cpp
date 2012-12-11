@@ -21,7 +21,9 @@
 #include "nsIPermissionManager.h"
 
 #define RECEIVED_EVENT_NAME         NS_LITERAL_STRING("received")
+#define SENDING_EVENT_NAME          NS_LITERAL_STRING("sending")
 #define SENT_EVENT_NAME             NS_LITERAL_STRING("sent")
+#define FAILED_EVENT_NAME           NS_LITERAL_STRING("failed")
 #define DELIVERY_SUCCESS_EVENT_NAME NS_LITERAL_STRING("deliverysuccess")
 #define DELIVERY_ERROR_EVENT_NAME   NS_LITERAL_STRING("deliveryerror")
 
@@ -52,7 +54,9 @@ NS_IMPL_ADDREF_INHERITED(SmsManager, nsDOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(SmsManager, nsDOMEventTargetHelper)
 
 NS_IMPL_EVENT_HANDLER(SmsManager, received)
+NS_IMPL_EVENT_HANDLER(SmsManager, sending)
 NS_IMPL_EVENT_HANDLER(SmsManager, sent)
+NS_IMPL_EVENT_HANDLER(SmsManager, failed)
 NS_IMPL_EVENT_HANDLER(SmsManager, deliverysuccess)
 NS_IMPL_EVENT_HANDLER(SmsManager, deliveryerror)
 
@@ -109,7 +113,9 @@ SmsManager::Init(nsPIDOMWindow *aWindow)
   }
 
   obs->AddObserver(this, kSmsReceivedObserverTopic, false);
+  obs->AddObserver(this, kSmsSendingObserverTopic, false);
   obs->AddObserver(this, kSmsSentObserverTopic, false);
+  obs->AddObserver(this, kSmsFailedObserverTopic, false);
   obs->AddObserver(this, kSmsDeliverySuccessObserverTopic, false);
   obs->AddObserver(this, kSmsDeliveryErrorObserverTopic, false);
 }
@@ -124,7 +130,9 @@ SmsManager::Shutdown()
   }
 
   obs->RemoveObserver(this, kSmsReceivedObserverTopic);
+  obs->RemoveObserver(this, kSmsSendingObserverTopic);
   obs->RemoveObserver(this, kSmsSentObserverTopic);
+  obs->RemoveObserver(this, kSmsFailedObserverTopic);
   obs->RemoveObserver(this, kSmsDeliverySuccessObserverTopic);
   obs->RemoveObserver(this, kSmsDeliveryErrorObserverTopic);
 }
@@ -343,6 +351,17 @@ SmsManager::Observe(nsISupports* aSubject, const char* aTopic,
     return NS_OK;
   }
 
+  if (!strcmp(aTopic, kSmsSendingObserverTopic)) {
+    nsCOMPtr<nsIDOMMozSmsMessage> message = do_QueryInterface(aSubject);
+    if (!message) {
+      NS_ERROR("Got a 'sms-sending' topic without a valid message!");
+      return NS_OK;
+    }
+
+    DispatchTrustedSmsEventToSelf(SENDING_EVENT_NAME, message);
+    return NS_OK;
+  }
+
   if (!strcmp(aTopic, kSmsSentObserverTopic)) {
     nsCOMPtr<nsIDOMMozSmsMessage> message = do_QueryInterface(aSubject);
     if (!message) {
@@ -351,6 +370,17 @@ SmsManager::Observe(nsISupports* aSubject, const char* aTopic,
     }
 
     DispatchTrustedSmsEventToSelf(SENT_EVENT_NAME, message);
+    return NS_OK;
+  }
+
+  if (!strcmp(aTopic, kSmsFailedObserverTopic)) {
+    nsCOMPtr<nsIDOMMozSmsMessage> message = do_QueryInterface(aSubject);
+    if (!message) {
+      NS_ERROR("Got a 'sms-failed' topic without a valid message!");
+      return NS_OK;
+    }
+
+    DispatchTrustedSmsEventToSelf(FAILED_EVENT_NAME, message);
     return NS_OK;
   }
 
