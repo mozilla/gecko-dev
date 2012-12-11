@@ -69,7 +69,9 @@ class OmxDecoder {
   typedef mozilla::MediaDecoder MediaDecoder;
 
   enum {
-    kPreferSoftwareCodecs = 1
+    kPreferSoftwareCodecs = 1,
+    kSoftwareCodecsOnly = 8,
+    kHardwareCodecsOnly = 16,
   };
 
   MediaDecoder *mDecoder;
