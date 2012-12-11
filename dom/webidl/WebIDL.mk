@@ -31,6 +31,7 @@ webidl_files = \
   EventHandler.webidl \
   EventListener.webidl \
   EventTarget.webidl \
+  File.webidl \
   FileList.webidl \
   FileReaderSync.webidl \
   GainNode.webidl \
