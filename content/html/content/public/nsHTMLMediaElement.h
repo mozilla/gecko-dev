@@ -657,6 +657,13 @@ protected:
    */
   void SetMutedInternal(bool aMuted);
 
+  /**
+   * Suspend (if aPauseForInactiveDocument) or resume element playback and
+   * resource download.  If aSuspendEvents is true, event delivery is
+   * suspended (and events queued) until the element is resumed.
+   */
+  void SuspendOrResumeElement(bool aPauseElement, bool aSuspendEvents);
+
   // Check the permissions for audiochannel.
   bool CheckAudioChannelPermissions(const nsAString& aType);
 
@@ -852,8 +859,12 @@ protected:
   // to raise the 'waiting' event as per 4.7.1.8 in HTML 5 specification.
   bool mPlayingBeforeSeek;
 
-  // True iff this element is paused because the document is inactive
-  bool mPausedForInactiveDocument;
+  // True iff this element is paused because the document is inactive or has
+  // been suspended by the audio channel service.
+  bool mPausedForInactiveDocumentOrChannel;
+
+  // True iff event delivery is suspended (mPausedForInactiveDocumentOrChannel must also be true).
+  bool mEventDeliveryPaused;
 
   // True if we've reported a "waiting" event since the last
   // readyState change to HAVE_CURRENT_DATA.
@@ -927,8 +938,8 @@ protected:
   // Audio Channel Type.
   mozilla::dom::AudioChannelType mAudioChannelType;
 
-  // The audiochannel has been muted
-  bool mChannelMuted;
+  // The audiochannel has been suspended.
+  bool mChannelSuspended;
 
   // Is this media element playing?
   bool mPlayingThroughTheAudioChannel;
