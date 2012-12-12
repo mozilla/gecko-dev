@@ -13,6 +13,7 @@
         "{srcdir}/b2g/config/panda/README",
         "{workdir}/sources.xml"
     ],
+    "gecko_l10n_root": "http://hg.mozilla.org/releases/l10n/mozilla-aurora",
     "gaia": {
         "vcs": "hgtool",
         "repo": "http://hg.mozilla.org/integration/gaia-nightly",
