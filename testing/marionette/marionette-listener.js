@@ -854,7 +854,7 @@ function switchToFrame(msg) {
       sendError("Error loading page", 13, null, command_id);
       return;
     }
-    
+    checkTimer.initWithCallback(checkLoad, 100, Ci.nsITimer.TYPE_ONE_SHOT);
   }
   let foundFrame = null;
   let frames = curWindow.document.getElementsByTagName("iframe");
@@ -865,7 +865,7 @@ function switchToFrame(msg) {
   if ((msg.json.value == null) && (msg.json.element == null)) {
     curWindow = content;
     curWindow.focus();
-    
+    checkTimer.initWithCallback(checkLoad, 100, Ci.nsITimer.TYPE_ONE_SHOT);
     return;
   }
   if (msg.json.element != undefined) {
@@ -1067,7 +1067,7 @@ function getVisibleCookies(location) {
 function getAppCacheStatus(msg) {
   sendResponse({ value: curWindow.applicationCache.status },
                msg.json.command_id);
-}
+} 
 
 // emulator callbacks
 let _emu_cb_id = 0;
