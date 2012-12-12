@@ -145,7 +145,7 @@ typedef enum {
   SH_DEPENDENCY_GRAPH = 0x0400,
 
   // Enforce the GLSL 1.017 Appendix A section 7 packing restrictions.
-  SH_ENFORCE_PACKING_RESTRICTIONS = 0x0800,
+  SH_ENFORCE_PACKING_RESTRICTIONS = 0x0800
 } ShCompileOptions;
 
 //
