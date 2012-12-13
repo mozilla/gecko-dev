@@ -158,8 +158,8 @@ private:
    */
   bool mWaitingForConfirmationFlag;
 
-  nsAutoPtr<uint8_t> mBodySegment;
-  nsAutoPtr<uint8_t> mReceivedDataBuffer;
+  nsAutoArrayPtr<uint8_t> mBodySegment;
+  nsAutoArrayPtr<uint8_t> mReceivedDataBuffer;
 
   nsCOMPtr<nsIDOMBlob> mBlob;
   nsCOMPtr<nsIThread> mReadFileThread;
