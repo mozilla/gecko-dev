@@ -91,22 +91,28 @@ class XPCShellRemote(xpcshell.XPCShellTests, object):
           self.device.mkDir(self.remoteComponentsDir)
 
         local = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'head.js')
-        self.device.pushFile(local, self.remoteScriptsDir)
+        remoteFile = self.remoteJoin(self.remoteScriptsDir, "head.js")
+        self.device.pushFile(local, remoteFile)
 
         local = os.path.join(self.localBin, "xpcshell")
-        self.device.pushFile(local, self.remoteBinDir)
+        remoteFile = self.remoteJoin(self.remoteBinDir, "xpcshell")
+        self.device.pushFile(local, remoteFile)
 
         local = os.path.join(self.localBin, "components/httpd.js")
-        self.device.pushFile(local, self.remoteComponentsDir)
+        remoteFile = self.remoteJoin(self.remoteComponentsDir, "httpd.js")
+        self.device.pushFile(local, remoteFile)
 
         local = os.path.join(self.localBin, "components/httpd.manifest")
-        self.device.pushFile(local, self.remoteComponentsDir)
+        remoteFile = self.remoteJoin(self.remoteComponentsDir, "httpd.manifest")
+        self.device.pushFile(local, remoteFile)
 
         local = os.path.join(self.localBin, "components/test_necko.xpt")
-        self.device.pushFile(local, self.remoteComponentsDir)
+        remoteFile = self.remoteJoin(self.remoteComponentsDir, "test_necko.xpt")
+        self.device.pushFile(local, remoteFile)
 
         if self.options.localAPK:
-            self.device.pushFile(self.options.localAPK, self.remoteBinDir)
+            remoteFile = self.remoteJoin(self.remoteBinDir, os.path.basename(self.options.localAPK))
+            self.device.pushFile(self.options.localAPK, remoteFile)
 
         self.pushLibs()
 
