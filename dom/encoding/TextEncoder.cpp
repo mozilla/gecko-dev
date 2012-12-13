@@ -26,6 +26,10 @@ TextEncoder::Init(const nsAString& aEncoding,
     return;
   }
 
+  if (mEncoding.EqualsLiteral("UTF-16")) {
+    mEncoding.AssignLiteral("UTF-16LE");
+  }
+
   if (!mEncoding.EqualsLiteral("UTF-8") &&
       !mEncoding.EqualsLiteral("UTF-16LE") &&
       !mEncoding.EqualsLiteral("UTF-16BE")) {
