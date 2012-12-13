@@ -6,7 +6,6 @@
 package org.mozilla.gecko;
 
 import android.content.Context;
-import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.support.v4.view.ViewPager;
 import android.support.v4.view.PagerAdapter;
@@ -295,9 +294,11 @@ public class AwesomeBarTabs extends TabHost {
 
         @Override
         public void onLightweightThemeChanged() {
-            Drawable drawable = mActivity.getLightweightTheme().getDrawableWithAlpha(this, 255, 0);
+            LightweightThemeDrawable drawable = mActivity.getLightweightTheme().getColorDrawable(this);
             if (drawable == null)
                 return;
+
+            drawable.setAlpha(255, 0);
 
             int[] padding =  new int[] { getPaddingLeft(),
                                          getPaddingTop(),
