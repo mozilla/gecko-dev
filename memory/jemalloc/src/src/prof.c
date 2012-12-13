@@ -26,7 +26,7 @@ bool		opt_prof_leak = false;
 bool		opt_prof_accum = false;
 char		opt_prof_prefix[PATH_MAX + 1];
 
-uint64_t	prof_interval;
+uint64_t	prof_interval = 0;
 bool		prof_promote;
 
 /*
@@ -1206,13 +1206,11 @@ prof_boot1(void)
 		 */
 		opt_prof = true;
 		opt_prof_gdump = false;
-		prof_interval = 0;
 	} else if (opt_prof) {
 		if (opt_lg_prof_interval >= 0) {
 			prof_interval = (((uint64_t)1U) <<
 			    opt_lg_prof_interval);
-		} else
-			prof_interval = 0;
+		}
 	}
 
 	prof_promote = (opt_prof && opt_lg_prof_sample > LG_PAGE);
@@ -1268,6 +1266,48 @@ prof_boot2(void)
 	prof_booted = true;
 
 	return (false);
+}
+
+void
+prof_prefork(void)
+{
+
+	if (opt_prof) {
+		unsigned i;
+
+		malloc_mutex_lock(&bt2ctx_mtx);
+		malloc_mutex_lock(&prof_dump_seq_mtx);
+		for (i = 0; i < PROF_NCTX_LOCKS; i++)
+			malloc_mutex_lock(&ctx_locks[i]);
+	}
+}
+
+void
+prof_postfork_parent(void)
+{
+
+	if (opt_prof) {
+		unsigned i;
+
+		for (i = 0; i < PROF_NCTX_LOCKS; i++)
+			malloc_mutex_postfork_parent(&ctx_locks[i]);
+		malloc_mutex_postfork_parent(&prof_dump_seq_mtx);
+		malloc_mutex_postfork_parent(&bt2ctx_mtx);
+	}
+}
+
+void
+prof_postfork_child(void)
+{
+
+	if (opt_prof) {
+		unsigned i;
+
+		for (i = 0; i < PROF_NCTX_LOCKS; i++)
+			malloc_mutex_postfork_child(&ctx_locks[i]);
+		malloc_mutex_postfork_child(&prof_dump_seq_mtx);
+		malloc_mutex_postfork_child(&bt2ctx_mtx);
+	}
 }
 
 /******************************************************************************/
