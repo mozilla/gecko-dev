@@ -34,7 +34,7 @@ class B2GXPCShellRemote(XPCShellRemote):
 
     # Overriden
     def setupTestDir(self):
-        if self.device._useZip:
+        if self.device.useZip:
             return XPCShellRemote.setupTestDir(self)
 
         push_attempts = 10
