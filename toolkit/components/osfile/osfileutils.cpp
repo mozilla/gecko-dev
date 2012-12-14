@@ -78,17 +78,17 @@ extern "C" {
 
 // Memory utilities
 
-MOZ_EXPORT_API(void) osfile_ns_free(void* buf) {
+MOZ_EXPORT void  osfile_ns_free(void* buf) {
   NS_Free(buf);
 }
 
 // Unicode utilities
 
-MOZ_EXPORT_API(PRUnichar*) osfile_wstrdup(PRUnichar* string) {
+MOZ_EXPORT PRUnichar*  osfile_wstrdup(PRUnichar* string) {
   return NS_strdup(string);
 }
 
-MOZ_EXPORT_API(PRUnichar*) osfile_DecodeAll(
+MOZ_EXPORT PRUnichar*  osfile_DecodeAll(
    const char* aEncoding,
    const char* aSource,
    const int32_t aBytesToDecode)
@@ -141,7 +141,7 @@ MOZ_EXPORT_API(PRUnichar*) osfile_DecodeAll(
   return dest.forget();
 }
 
-MOZ_EXPORT_API(char*) osfile_EncodeAll(
+MOZ_EXPORT char*  osfile_EncodeAll(
    const char* aEncoding,
    const PRUnichar* aSource,
    int32_t* aBytesProduced)
