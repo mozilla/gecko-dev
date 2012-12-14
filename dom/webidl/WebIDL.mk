@@ -24,7 +24,6 @@ webidl_files = \
   Function.webidl \
   EventListener.webidl \
   EventTarget.webidl \
-  File.webidl \
   FileList.webidl \
   FileReaderSync.webidl \
   HTMLCollection.webidl \
