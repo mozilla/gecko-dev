@@ -12,7 +12,7 @@ extern "C" {
 /**
  * As |NS_Free|, but exported.
  */
-MOZ_EXPORT_API(void) osfile_ns_free(void* buf);
+MOZ_EXPORT void osfile_ns_free(void* buf);
 
 // Unicode utilities
 
@@ -25,7 +25,7 @@ MOZ_EXPORT_API(void) osfile_ns_free(void* buf);
  * string, or a new string with the same contents as |source|.
  * Memory MUST be released with |osfile_ns_free|.
  */
-MOZ_EXPORT_API(PRUnichar*) osfile_wstrdup(PRUnichar* source);
+MOZ_EXPORT PRUnichar* osfile_wstrdup(PRUnichar* source);
 
 /**
  * Decode a nul-terminated C string into a Unicode string.
@@ -38,7 +38,7 @@ MOZ_EXPORT_API(PRUnichar*) osfile_wstrdup(PRUnichar* source);
  *   chars, representing |aSource|. This memory MUST be released with
  *   |NS_Free|/|osfile_ns_free|.
  */
-MOZ_EXPORT_API(PRUnichar*) osfile_DecodeAll(
+MOZ_EXPORT PRUnichar* osfile_DecodeAll(
    const char* aEncoding,
    const char* aSource,
    const int32_t aBytesToDecode);
@@ -55,7 +55,7 @@ MOZ_EXPORT_API(PRUnichar*) osfile_DecodeAll(
  * |aBytesWritten|.  The buffer MUST be released with
  * |NS_Free|/|osfile_ns_free|.
  */
-MOZ_EXPORT_API(char*) osfile_EncodeAll(
+MOZ_EXPORT char* osfile_EncodeAll(
    const char* aEncoding,
    const PRUnichar* aSource,
    int32_t* aBytesWritten);
