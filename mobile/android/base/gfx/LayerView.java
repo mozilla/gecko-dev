@@ -52,8 +52,7 @@ public class LayerView extends FrameLayout {
     private LayerRenderer mRenderer;
     /* Must be a PAINT_xxx constant */
     private int mPaintState;
-    private int mCheckerboardColor;
-    private boolean mCheckerboardShouldShowChecks;
+    private int mBackgroundColor;
 
     private SurfaceView mSurfaceView;
     private TextureView mTextureView;
@@ -93,8 +92,7 @@ public class LayerView extends FrameLayout {
 
         mGLController = new GLController(this);
         mPaintState = PAINT_START;
-        mCheckerboardColor = Color.WHITE;
-        mCheckerboardShouldShowChecks = true;
+        mBackgroundColor = Color.WHITE;
     }
 
     public void initializeView(EventDispatcher eventDispatcher) {
@@ -187,21 +185,12 @@ public class LayerView extends FrameLayout {
         return mLayerClient.convertViewPointToLayerPoint(viewPoint);
     }
 
-    int getCheckerboardColor() {
-        return mCheckerboardColor;
+    int getBackgroundColor() {
+        return mBackgroundColor;
     }
 
-    public void setCheckerboardColor(int newColor) {
-        mCheckerboardColor = newColor;
-        requestRender();
-    }
-
-    boolean checkerboardShouldShowChecks() {
-        return mCheckerboardShouldShowChecks;
-    }
-
-    void setCheckerboardShouldShowChecks(boolean value) {
-        mCheckerboardShouldShowChecks = value;
+    public void setBackgroundColor(int newColor) {
+        mBackgroundColor = newColor;
         requestRender();
     }
 
