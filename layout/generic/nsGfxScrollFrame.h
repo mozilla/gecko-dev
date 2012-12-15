@@ -467,6 +467,9 @@ public:
   virtual nsPoint GetScrollPosition() const MOZ_OVERRIDE {
     return mInner.GetScrollPosition();
   }
+  virtual nsPoint GetLogicalScrollPosition() const MOZ_OVERRIDE {
+    return mInner.GetLogicalScrollPosition();
+  }
   virtual nsRect GetScrollRange() const MOZ_OVERRIDE {
     return mInner.GetScrollRange();
   }
@@ -716,6 +719,9 @@ public:
   }
   virtual nsPoint GetScrollPosition() const MOZ_OVERRIDE {
     return mInner.GetScrollPosition();
+  }
+  virtual nsPoint GetLogicalScrollPosition() const MOZ_OVERRIDE {
+    return mInner.GetLogicalScrollPosition();
   }
   virtual nsRect GetScrollRange() const MOZ_OVERRIDE {
     return mInner.GetScrollRange();
