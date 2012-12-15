@@ -3583,6 +3583,7 @@ class CGGenericMethod(CGAbstractBindingMethod):
     def generate_code(self):
         return CGIndenter(CGGeneric(
             "const JSJitInfo *info = FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
+            "MOZ_ASSERT(info->type == JSJitInfo::Method);\n"
             "JSJitMethodOp method = (JSJitMethodOp)info->op;\n"
             "return method(cx, obj, self, argc, vp);"))
 
@@ -3627,6 +3628,7 @@ class CGGenericGetter(CGAbstractBindingMethod):
     def generate_code(self):
         return CGIndenter(CGGeneric(
             "const JSJitInfo *info = FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
+            "MOZ_ASSERT(info->type == JSJitInfo::Getter);\n"
             "JSJitPropertyOp getter = info->op;\n"
             "return getter(cx, obj, self, vp);"))
 
@@ -3685,6 +3687,7 @@ class CGGenericSetter(CGAbstractBindingMethod):
                 "  argv = &undef;\n"
                 "}\n"
                 "const JSJitInfo *info = FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
+                "MOZ_ASSERT(info->type == JSJitInfo::Setter);\n"
                 "JSJitPropertyOp setter = info->op;\n"
                 "if (!setter(cx, obj, self, argv)) {\n"
                 "  return false;\n"
@@ -3727,7 +3730,7 @@ class CGMemberJITInfo(CGThing):
     def declare(self):
         return ""
 
-    def defineJitInfo(self, infoName, opName, infallible):
+    def defineJitInfo(self, infoName, opName, opType, infallible):
         protoID = "prototypes::id::%s" % self.descriptor.name
         depth = "PrototypeTraits<%s>::Depth" % protoID
         failstr = "true" if infallible else "false"
@@ -3736,9 +3739,10 @@ class CGMemberJITInfo(CGThing):
                 "  %s,\n"
                 "  %s,\n"
                 "  %s,\n"
+                "  JSJitInfo::%s,\n"
                 "  %s,  /* isInfallible. False in setters. */\n"
                 "  false  /* isConstant. Only relevant for getters. */\n"
-                "};\n" % (infoName, opName, protoID, depth, failstr))
+                "};\n" % (infoName, opName, protoID, depth, opType, failstr))
 
     def define(self):
         if self.member.isAttr():
@@ -3746,12 +3750,12 @@ class CGMemberJITInfo(CGThing):
             getter = ("(JSJitPropertyOp)get_%s" % self.member.identifier.name)
             getterinfal = "infallible" in self.descriptor.getExtendedAttributes(self.member, getter=True)
             getterinfal = getterinfal and infallibleForMember(self.member, self.member.type, self.descriptor)
-            result = self.defineJitInfo(getterinfo, getter, getterinfal)
+            result = self.defineJitInfo(getterinfo, getter, "Getter", getterinfal)
             if not self.member.readonly:
                 setterinfo = ("%s_setterinfo" % self.member.identifier.name)
                 setter = ("(JSJitPropertyOp)set_%s" % self.member.identifier.name)
                 # Setters are always fallible, since they have to do a typed unwrap.
-                result += self.defineJitInfo(setterinfo, setter, False)
+                result += self.defineJitInfo(setterinfo, setter, "Setter", False)
             return result
         if self.member.isMethod():
             methodinfo = ("%s_methodinfo" % self.member.identifier.name)
@@ -3771,7 +3775,7 @@ class CGMemberJITInfo(CGThing):
                     # No arguments and infallible return boxing
                     methodInfal = True
 
-            result = self.defineJitInfo(methodinfo, method, methodInfal)
+            result = self.defineJitInfo(methodinfo, method, "Method", methodInfal)
             return result
         raise TypeError("Illegal member type to CGPropertyJITInfo")
 

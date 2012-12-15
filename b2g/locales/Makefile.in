@@ -75,10 +75,10 @@ NO_JA_JP_MAC_AB_CD := $(if $(filter ja-JP-mac, $(AB_CD)),ja,$(AB_CD))
 
 libs-%:
 	$(NSINSTALL) -D $(DIST)/install
-	@$(MAKE) -C ../../toolkit/locales libs-$* BOTH_MANIFESTS=1
-	@$(MAKE) -C ../../intl/locales AB_CD=$* XPI_NAME=locale-$* BOTH_MANIFESTS=1
-	@$(MAKE) libs AB_CD=$* XPI_NAME=locale-$* PREF_DIR=$(PREF_DIR) BOTH_MANIFESTS=1
-	@$(MAKE) -C $(DEPTH)/$(MOZ_BRANDING_DIRECTORY)/locales AB_CD=$* XPI_NAME=locale-$* BOTH_MANIFESTS=1
+	@$(MAKE) -C ../../toolkit/locales libs-$*
+	@$(MAKE) -C ../../intl/locales AB_CD=$* XPI_NAME=locale-$*
+	@$(MAKE) libs AB_CD=$* XPI_NAME=locale-$* PREF_DIR=$(PREF_DIR)
+	@$(MAKE) -C $(DEPTH)/$(MOZ_BRANDING_DIRECTORY)/locales AB_CD=$* XPI_NAME=locale-$*
 
 # Tailored target to just add the chrome processing for multi-locale builds
 chrome-%:
