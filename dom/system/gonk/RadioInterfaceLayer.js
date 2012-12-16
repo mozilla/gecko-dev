@@ -1594,6 +1594,7 @@ RadioInterfaceLayer.prototype = {
 
   handleUSSDReceived: function handleUSSDReceived(ussd) {
     debug("handleUSSDReceived " + JSON.stringify(ussd));
+    gSystemMessenger.broadcastMessage("ussd-received", ussd);
     this._sendTargetMessage("mobileconnection", "RIL:USSDReceived", ussd);
   },
 
