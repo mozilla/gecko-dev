@@ -296,9 +296,8 @@ _BROWSER_FILES = \
                  social_window.html \
                  social_worker.js \
                  browser_URLBarSetURI.js \
+                 browser_bug567306.js \
                  $(NULL)
-# disabled temporarily (bug 814793)
-#                  browser_bug567306.js \
 
 
 ifneq (cocoa,$(MOZ_WIDGET_TOOLKIT))
