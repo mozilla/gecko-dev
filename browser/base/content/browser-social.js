@@ -43,8 +43,9 @@ let SocialUI = {
   },
 
   nonBrowserWindowInit: function SocialUI_nonBrowserInit() {
-    // Disable the social menu item in non-browser windows
+    // Disable the social menu items in non-browser windows
     document.getElementById("menu_socialAmbientMenu").hidden = true;
+    document.getElementById("menu_socialToggle").hidden = true;
   },
 
   showProfile: function SocialUI_showProfile() {
