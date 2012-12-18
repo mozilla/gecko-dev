@@ -508,7 +508,9 @@ PuppetWidget::Paint()
     }
   }
 
-  mAttachedWidgetListener->DidPaintWindow();
+  if (mAttachedWidgetListener) {
+    mAttachedWidgetListener->DidPaintWindow();
+  }
 
   return NS_OK;
 }
