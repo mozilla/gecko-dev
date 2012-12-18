@@ -669,10 +669,6 @@ public:
            sizes.mLiveBlockTable,
            "Memory used by DMD's live block table.");
 
-    REPORT("explicit/dmd/double-report-table",
-           sizes.mDoubleReportTable,
-           "Memory used by DMD's double-report table.");
-
 #undef REPORT
 
     return NS_OK;
