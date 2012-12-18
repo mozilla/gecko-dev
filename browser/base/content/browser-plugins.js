@@ -321,7 +321,6 @@ var gPluginHandler = {
     let browser = gBrowser.getBrowserForDocument(aContentWindow.document);
     let notification = PopupNotifications.getNotification("click-to-play-plugins", browser);
     if (notification) {
-      browser._clickToPlayDoorhangerShown = false;
       notification.remove();
     }
     if (pluginNeedsActivation) {
@@ -428,8 +427,7 @@ var gPluginHandler = {
       }, true);
     }
 
-    if (!browser._clickToPlayDoorhangerShown)
-      gPluginHandler._showClickToPlayNotification(browser);
+    gPluginHandler._showClickToPlayNotification(browser);
   },
 
   _handlePlayPreviewEvent: function PH_handlePlayPreviewEvent(aPlugin) {
@@ -572,9 +570,7 @@ var gPluginHandler = {
    },
 
   _showClickToPlayNotification: function PH_showClickToPlayNotification(aBrowser) {
-    aBrowser._clickToPlayDoorhangerShown = true;
     let contentWindow = aBrowser.contentWindow;
-
     let messageString = gNavigatorBundle.getString("activatePluginsMessage.message");
     let mainAction = {
       label: gNavigatorBundle.getString("activateAllPluginsMessage.label"),
