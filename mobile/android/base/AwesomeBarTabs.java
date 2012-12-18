@@ -153,12 +153,10 @@ public class AwesomeBarTabs extends TabHost {
             public void onPageSelected(int position) {
                 tabWidget.setCurrentTab(position);
                 styleSelectedTab();
-                hideSoftInput(mViewPager);
              }
          });
 
         for (int i = 0; i < mTabs.length; i++) {
-            mTabs[i].setListTouchListener(mListTouchListener);
             addAwesomeTab(mTabs[i].getTag(),
                           mTabs[i].getTitleStringId(),
                           i);
