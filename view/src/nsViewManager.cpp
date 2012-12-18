@@ -342,11 +342,6 @@ void nsViewManager::Refresh(nsView *aView, const nsIntRegion& aRegion,
     return;
   }
 
-  if (aView->ForcedRepaint() && IsRefreshDriverPaintingEnabled()) {
-    ProcessPendingUpdates();
-    aView->SetForcedRepaint(false);
-  }
-
   NS_ASSERTION(!IsPainting(), "recursive painting not permitted");
   if (IsPainting()) {
     RootViewManager()->mRecursiveRefreshPending = true;
@@ -687,6 +682,19 @@ void nsViewManager::WillPaintWindow(nsIWidget* aWidget, bool aWillSendDidPaint)
 
   // Flush view widget geometry updates and invalidations.
   rootVM->ProcessPendingUpdates();
+
+  if (aWidget && IsRefreshDriverPaintingEnabled()) {
+    nsView* view = nsView::GetViewFor(aWidget);
+    if (view && view->ForcedRepaint()) {
+      ProcessPendingUpdates();
+      // Re-get the view pointer here since the ProcessPendingUpdates might have
+      // destroyed it during CallWillPaintOnObservers.
+      view = nsView::GetViewFor(aWidget);
+      if (view) {
+        view->SetForcedRepaint(false);
+      }
+    }
+  }
 }
 
 bool nsViewManager::PaintWindow(nsIWidget* aWidget, nsIntRegion aRegion,
