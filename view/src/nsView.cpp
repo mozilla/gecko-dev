@@ -1056,6 +1056,15 @@ nsView::DidPaintWindow()
   vm->DidPaintWindow();
 }
 
+void
+nsView::RequestRepaint()
+{
+  nsIPresShell* presShell = mViewManager->GetPresShell();
+  if (presShell) {
+    presShell->ScheduleViewManagerFlush();
+  }
+}
+
 nsEventStatus
 nsView::HandleEvent(nsGUIEvent* aEvent, bool aUseAttachedEvents)
 {
