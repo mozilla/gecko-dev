@@ -1357,12 +1357,14 @@ js::ion::SetPropertyCache(JSContext *cx, size_t cacheIndex, HandleObject obj, Ha
     RootedObject holder(cx);
 
     bool inlinable = IsPropertyInlineable(obj, cache);
+    bool addedSetterStub = false;
     if (inlinable) {
         RootedShape shape(cx);
         if (IsPropertySetInlineable(cx, obj, id, &shape)) {
             cache.incrementStubCount();
             if (!cache.attachNativeExisting(cx, ion, obj, shape))
                 return false;
+            addedSetterStub = true;
         } else {
             RootedObject holder(cx);
             if (!JSObject::lookupProperty(cx, obj, name, &holder, &shape))
@@ -1372,6 +1374,7 @@ js::ion::SetPropertyCache(JSContext *cx, size_t cacheIndex, HandleObject obj, Ha
                 cache.incrementStubCount();
                 if (!cache.attachSetterCall(cx, ion, obj, holder, shape, returnAddr))
                     return false;
+                addedSetterStub = true;
             }
         }
     }
@@ -1385,7 +1388,7 @@ js::ion::SetPropertyCache(JSContext *cx, size_t cacheIndex, HandleObject obj, Ha
 
     // The property did not exists before, now we can try again to inline the
     // procedure which is adding the property.
-    if (inlinable && IsPropertyAddInlineable(cx, obj, id, oldSlots, &shape)) {
+    if (inlinable && !addedSetterStub && IsPropertyAddInlineable(cx, obj, id, oldSlots, &shape)) {
         const Shape *newShape = obj->lastProperty();
         cache.incrementStubCount();
         if (!cache.attachNativeAdding(cx, ion, obj, oldShape, newShape, shape))
