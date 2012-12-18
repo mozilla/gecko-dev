@@ -1243,7 +1243,7 @@ CSPSource.prototype = {
     if (!aSource) return false;
 
     if (!(aSource instanceof CSPSource))
-      aSource = CSPSource.create(aSource, this._CSPRep);
+      return this.permits(CSPSource.create(aSource, this._CSPRep));
 
     // verify scheme
     if (this.scheme != aSource.scheme)
@@ -1469,7 +1469,7 @@ CSPHost.prototype = {
 
     if (!(aHost instanceof CSPHost)) {
       // -- compare CSPHost to String
-      aHost =  CSPHost.fromString(aHost);
+      return this.permits(CSPHost.fromString(aHost));
     }
     var thislen = this._segments.length;
     var thatlen = aHost._segments.length;
