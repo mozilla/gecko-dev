@@ -1371,12 +1371,34 @@ nsNPAPIPluginInstance::PrivateModeStateChanged(bool enabled)
     return NS_ERROR_FAILURE;
 
   PluginDestructionGuard guard(this);
-
+    
   NPError error;
   NPBool value = static_cast<NPBool>(enabled);
   NS_TRY_SAFE_CALL_RETURN(error, (*pluginFunctions->setvalue)(&mNPP, NPNVprivateModeBool, &value), this);
   return (error == NPERR_NO_ERROR) ? NS_OK : NS_ERROR_FAILURE;
 }
+
+class DelayUnscheduleEvent : public nsRunnable {
+public:
+  nsRefPtr<nsNPAPIPluginInstance> mInstance;
+  uint32_t mTimerID;
+  DelayUnscheduleEvent(nsNPAPIPluginInstance* aInstance, uint32_t aTimerId)
+    : mInstance(aInstance)
+    , mTimerID(aTimerId)
+  {}
+
+  ~DelayUnscheduleEvent() {}
+
+  NS_IMETHOD Run();
+};
+
+NS_IMETHODIMP
+DelayUnscheduleEvent::Run()
+{
+  mInstance->UnscheduleTimer(mTimerID);
+  return NS_OK;
+}
+
 
 static void
 PluginTimerCallback(nsITimer *aTimer, void *aClosure)
@@ -1403,8 +1425,8 @@ PluginTimerCallback(nsITimer *aTimer, void *aClosure)
   // use UnscheduleTimer to clean up if this is a one-shot timer
   uint32_t timerType;
   t->timer->GetType(&timerType);
-  if (t->needUnschedule || timerType == nsITimer::TYPE_ONE_SHOT)
-    inst->UnscheduleTimer(id);
+  if (timerType == nsITimer::TYPE_ONE_SHOT)
+      inst->UnscheduleTimer(id);
 }
 
 nsNPAPITimer*
@@ -1429,7 +1451,7 @@ nsNPAPIPluginInstance::ScheduleTimer(uint32_t interval, NPBool repeat, void (*ti
 
   nsNPAPITimer *newTimer = new nsNPAPITimer();
 
-  newTimer->inCallback = newTimer->needUnschedule = false;
+  newTimer->inCallback = false;
   newTimer->npp = &mNPP;
 
   // generate ID that is unique to this instance
@@ -1468,7 +1490,8 @@ nsNPAPIPluginInstance::UnscheduleTimer(uint32_t timerID)
     return;
 
   if (t->inCallback) {
-    t->needUnschedule = true;
+    nsCOMPtr<nsIRunnable> e = new DelayUnscheduleEvent(this, timerID);
+    NS_DispatchToCurrentThread(e);
     return;
   }
 
