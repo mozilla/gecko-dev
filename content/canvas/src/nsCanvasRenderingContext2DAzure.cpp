@@ -3208,7 +3208,7 @@ nsCanvasRenderingContext2DAzure::DrawOrMeasureText(const nsAString& aRawText,
   const ContextState &state = CurrentState();
 
   // This is only needed to know if we can know the drawing bounding box easily.
-  bool doDrawShadow = aOp == TEXT_DRAW_OPERATION_FILL && NeedToDrawShadow();
+  bool doDrawShadow = NeedToDrawShadow();
 
   nsCanvasBidiProcessorAzure processor;
 

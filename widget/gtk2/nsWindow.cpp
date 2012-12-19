@@ -2016,6 +2016,10 @@ nsWindow::OnExposeEvent(cairo_t *cr)
         // there is nothing left to do.
         if (!mGdkWindow)
             return TRUE;
+
+        // The will paint notification might have killed our listener.
+        if (!mWidgetListener)
+            return FALSE;
     }
 
 #if defined(MOZ_WIDGET_GTK2)
