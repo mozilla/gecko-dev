@@ -116,8 +116,8 @@ public:
   const static uint32_t kDefaultBufferSize = 2048;
 
   // kDefaultQueueSize must be >= other queue size constants
-  const static uint32_t kDefaultQueueSize =  16384;
-  const static uint32_t kQueueMinimumCleanup = 8192;
+  const static uint32_t kDefaultQueueSize =  32768;
+  const static uint32_t kQueueMinimumCleanup = 24576;
   const static uint32_t kQueueTailRoom    =  4096;
   const static uint32_t kQueueReserved    =  1024;
 
