@@ -136,6 +136,7 @@ MOCHITEST_FILES	= \
 		file_bug809290_c.html \
 		file_empty.html \
 		test_bug817476.html \
+		test_bug823173.html \
 		$(NULL)
 
 ifneq (Linux,$(OS_ARCH))
