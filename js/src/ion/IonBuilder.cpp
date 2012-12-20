@@ -5567,66 +5567,6 @@ TestShouldDOMCall(JSContext *cx, types::TypeSet *inTypes, HandleFunction func,
     return true;
 }
 
-static bool
-TestAreKnownDOMTypes(JSContext *cx, types::TypeSet *inTypes)
-{
-    if (inTypes->unknown())
-        return false;
-
-    // First iterate to make sure they all are DOM objects, then freeze all of
-    // them as such if they are.
-    for (unsigned i = 0; i < inTypes->getObjectCount(); i++) {
-        types::TypeObject *curType = inTypes->getTypeObject(i);
-
-        if (!curType) {
-            JSObject *curObj = inTypes->getSingleObject(i);
-
-            // Skip holes in TypeSets.
-            if (!curObj)
-                continue;
-
-            curType = curObj->getType(cx);
-        }
-
-        if (curType->unknownProperties())
-            return false;
-
-        // Unlike TypeSet::HasObjectFlags, TypeObject::hasAnyFlags doesn't add a
-        // freeze.
-        if (curType->hasAnyFlags(types::OBJECT_FLAG_NON_DOM))
-            return false;
-    }
-
-    // If we didn't check anything, no reason to say yes.
-    if (inTypes->getObjectCount() > 0)
-        return true;
-
-    return false;
-}
-
-static void
-FreezeDOMTypes(JSContext *cx, types::StackTypeSet *inTypes)
-{
-    for (unsigned i = 0; i < inTypes->getObjectCount(); i++) {
-        types::TypeObject *curType = inTypes->getTypeObject(i);
-
-        if (!curType) {
-            JSObject *curObj = inTypes->getSingleObject(i);
-
-            // Skip holes in TypeSets.
-            if (!curObj)
-                continue;
-
-            curType = curObj->getType(cx);
-        }
-
-        // Add freeze by asking the question.
-        DebugOnly<bool> wasntDOM =
-            types::HeapTypeSet::HasObjectFlags(cx, curType, types::OBJECT_FLAG_NON_DOM);
-        JS_ASSERT(!wasntDOM);
-    }
-}
-
 bool
 IonBuilder::annotateGetPropertyCache(JSContext *cx, MDefinition *obj, MGetPropertyCache *getPropCache,
                                     types::StackTypeSet *objTypes, types::StackTypeSet *pushedTypes)
@@ -5835,15 +5775,6 @@ IonBuilder::jsop_getprop(HandlePropertyName name)
             MConstant *known = MConstant::New(ObjectValue(*singleton));
             current->add(known);
             current->push(known);
-            if (singleton->isFunction()) {
-                RootedFunction singletonFunc(cx, singleton->toFunction());
-                if (TestAreKnownDOMTypes(cx, unaryTypes.inTypes) &&
-                    TestShouldDOMCall(cx, unaryTypes.inTypes, singletonFunc, JSJitInfo::Method))
-                {
-                    FreezeDOMTypes(cx, unaryTypes.inTypes);
-                    known->setDOMFunction();
-                }
-            }
             return true;
         }
     }
