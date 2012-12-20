@@ -448,8 +448,22 @@ public:
     return GetBFCacheEntry() ? nullptr : mPresShell;
   }
 
+  void DisallowBFCaching()
+  {
+    NS_ASSERTION(!mBFCacheEntry, "We're already in the bfcache!");
+    mBFCacheDisallowed = true;
+  }
+
+  bool IsBFCachingAllowed() const
+  {
+    return !mBFCacheDisallowed;
+  }
+
   void SetBFCacheEntry(nsIBFCacheEntry* aEntry)
   {
+    NS_ASSERTION(IsBFCachingAllowed() || !aEntry,
+                 "You should have checked!");
+
     mBFCacheEntry = aEntry;
   }
 
@@ -1896,6 +1910,9 @@ protected:
 
   // True if a DOMMutationObserver is perhaps attached to a node in the document.
   bool mMayHaveDOMMutationObservers;
+
+  // True if DisallowBFCaching has been called on this document.
+  bool mBFCacheDisallowed;
 
   // The document's script global object, the object from which the
   // document can get its script context and scope. This is the

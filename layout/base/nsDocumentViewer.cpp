@@ -1542,7 +1542,7 @@ DocumentViewerImpl::Destroy()
     mSHEntry->SetSticky(mIsSticky);
     mIsSticky = true;
 
-    bool savePresentation = true;
+    bool savePresentation = mDocument ? mDocument->IsBFCachingAllowed() : true;
 
     // Remove our root view from the view hierarchy.
     if (mPresShell) {
