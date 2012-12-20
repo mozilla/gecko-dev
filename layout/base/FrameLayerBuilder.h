@@ -454,6 +454,9 @@ public:
     }
   };
 
+  NS_DECLARE_FRAME_PROPERTY_WITH_FRAME_IN_DTOR(LayerManagerDataProperty,
+                                               RemoveFrameFromLayerManager)
+
 protected:
   /**
    * We store an array of these for each frame that is associated with
@@ -472,9 +475,6 @@ protected:
   };
 
   static void RemoveFrameFromLayerManager(nsIFrame* aFrame, void* aPropertyValue);
-
-  NS_DECLARE_FRAME_PROPERTY_WITH_FRAME_IN_DTOR(LayerManagerDataProperty,
-                                               RemoveFrameFromLayerManager)
 
   /**
    * We accumulate DisplayItemData elements in a hashtable during
