@@ -14,6 +14,7 @@
 #include "pratom.h"
 #include "MediaPluginReader.h"
 #include "nsIGfxInfo.h"
+#include "gfxCrashReporterUtils.h"
 
 #include "MPAPI.h"
 
@@ -104,6 +105,8 @@ void MediaPluginHost::TryLoad(const char *name)
     return;
   }
 
+  ScopedGfxFeatureReporter reporter("Stagefright", forceEnabled);
+
   if (!forceEnabled) {
     nsCOMPtr<nsIGfxInfo> gfxInfo = do_GetService("@mozilla.org/gfx/info;1");
     if (gfxInfo) {
@@ -116,6 +119,8 @@ void MediaPluginHost::TryLoad(const char *name)
       }
     }
   }
+
+  reporter.SetSuccessful();
 
   PRLibrary *lib = PR_LoadLibrary(name);
   if (lib) {
