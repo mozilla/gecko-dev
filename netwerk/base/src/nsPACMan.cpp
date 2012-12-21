@@ -495,6 +495,29 @@ nsPACMan::ProcessPendingQ()
     mPAC.Shutdown();
 }
 
+// this is to workaround bug 815783 and is not a general
+// purpose solution. It is intended to only be applied to gecko 18
+static nsresult
+WorkaroundFileLocalhostURL(nsACString &aURI)
+{
+  // only deal with file://
+  if (!StringBeginsWith(aURI, NS_LITERAL_CSTRING("file://")))
+    return NS_OK;
+
+  // file://localhost/foo -> file:///foo
+  if (StringBeginsWith(aURI, NS_LITERAL_CSTRING("file://localhost/"))) {
+    aURI.Replace(0, 17, NS_LITERAL_CSTRING("file:///"));
+    return NS_OK;
+  }
+  
+  // file://?:/foo -> file:///foo
+  if (aURI.Length() >= 10 && aURI.CharAt(8) == ':' && aURI.CharAt(9) == '/') {
+    aURI.Replace(0, 10, NS_LITERAL_CSTRING("file:///"));
+  }
+      
+  return NS_OK;
+}
+
 // returns true if progress was made by shortening the queue
 bool
 nsPACMan::ProcessPending()
@@ -523,6 +546,7 @@ nsPACMan::ProcessPending()
   if (mSystemProxySettings &&
       NS_SUCCEEDED(mSystemProxySettings->GetPACURI(PACURI)) &&
       !PACURI.IsEmpty() &&
+      NS_SUCCEEDED(WorkaroundFileLocalhostURL(PACURI)) && // bug 815783 for Gecko 18 only
       !PACURI.Equals(mPACURISpec)) {
     query->UseAlternatePACFile(PACURI);
     completed = true;
