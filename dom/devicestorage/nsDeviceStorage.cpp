@@ -1009,7 +1009,7 @@ public:
     mFile->CollectFiles(cursor->mFiles, cursor->mSince);
 
     nsCOMPtr<ContinueCursorEvent> event = new ContinueCursorEvent(mRequest);
-    NS_DispatchToMainThread(event);
+    event->Continue();
 
     return NS_OK;
   }
@@ -1147,7 +1147,7 @@ nsDOMDeviceStorageCursor::Continue()
   }
 
   nsCOMPtr<ContinueCursorEvent> event = new ContinueCursorEvent(this);
-  NS_DispatchToMainThread(event);
+  event->Continue();
 
   mOkToCallContinue = false;
   return NS_OK;
