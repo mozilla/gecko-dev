@@ -1610,6 +1610,7 @@ function WifiWorker() {
 
   this.wantScanResults = [];
 
+  this._allowWpaEap = false;
   this._needToEnableNetworks = false;
   this._highestPriority = -1;
 
@@ -1772,6 +1773,12 @@ function WifiWorker() {
       self._enableAllNetworks();
       WifiManager.saveConfig(function() {})
     });
+
+    try {
+      self._allowWpaEap = Services.prefs.getBoolPref("b2g.wifi.allow_unsafe_wpa_eap");
+    } catch (e) {
+      self._allowWpaEap = false;
+    }
 
     // Check if we need to dequeue requests first.
     self._notifyAfterStateChange(true, true);
@@ -2051,7 +2058,8 @@ function WifiWorker() {
                 ("wep_key0" in known && known.wep_key0)) {
               network.password = "*";
             }
-          } else if ((eapIndex = network.capabilities.indexOf("WPA-EAP")) >= 0) {
+          } else if (!self._allowWpaEap &&
+                     (eapIndex = network.capabilities.indexOf("WPA-EAP")) >= 0) {
             // Don't offer to connect to WPA-EAP networks unless one has been
             // configured through other means (e.g. it was added directly to
             // wpa_supplicant.conf). Here, we have an unknown WPA-EAP network,
