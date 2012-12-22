@@ -3888,7 +3888,7 @@ public:
       nsIContent* current = aTarget;
       // Note, it is ok if commonParent is null!
       while (current && current != commonParent) {
-        if (!current->IsInNativeAnonymousSubtree()) {
+        if (!current->ChromeOnlyAccess()) {
           mTargets.AppendObject(current);
         }
         // mouseenter/leave is fired only on elements.

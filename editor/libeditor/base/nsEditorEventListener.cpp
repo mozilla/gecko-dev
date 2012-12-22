@@ -980,7 +980,7 @@ bool
 nsEditorEventListener::IsFileControlTextBox()
 {
   dom::Element* root = mEditor->GetRoot();
-  if (root && root->IsInNativeAnonymousSubtree()) {
+  if (root && root->ChromeOnlyAccess()) {
     nsIContent* parent = root->FindFirstNonNativeAnonymous();
     if (parent && parent->IsHTML(nsGkAtoms::input)) {
       nsCOMPtr<nsIFormControl> formControl = do_QueryInterface(parent);

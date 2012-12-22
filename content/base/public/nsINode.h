@@ -153,8 +153,13 @@ enum {
 
   NODE_ALL_DIRECTION_FLAGS      = NODE_HAS_DIRECTION_LTR | NODE_HAS_DIRECTION_RTL,
 
+  NODE_CHROME_ONLY_ACCESS       = 0x00400000U,
+
+  NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS
+                                = 0x00800000U,
+
   // Remaining bits are node type specific.
-  NODE_TYPE_SPECIFIC_BITS_OFFSET =        22
+  NODE_TYPE_SPECIFIC_BITS_OFFSET =        24
 };
 
 /**
@@ -913,7 +918,8 @@ public:
                                   NODE_IS_IN_ANONYMOUS_SUBTREE |
                                   NODE_ATTACH_BINDING_ON_POSTCREATE |
                                   NODE_DESCENDANTS_NEED_FRAMES |
-                                  NODE_NEEDS_FRAME)) ||
+                                  NODE_NEEDS_FRAME |
+                                  NODE_CHROME_ONLY_ACCESS)) ||
                  IsNodeOfType(eCONTENT),
                  "Flag only permitted on nsIContent nodes");
     mFlags |= aFlagsToSet;
@@ -962,6 +968,13 @@ public:
 #else
     return HasFlag(NODE_IS_IN_ANONYMOUS_SUBTREE);
 #endif
+  }
+
+  // True for native anonymous content and for XBL content if the binging
+  // has chromeOnlyContent="true".
+  bool ChromeOnlyAccess() const
+  {
+    return HasFlag(NODE_IS_IN_ANONYMOUS_SUBTREE | NODE_CHROME_ONLY_ACCESS);
   }
 
   /**

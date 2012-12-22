@@ -177,6 +177,12 @@ public:
     return HasFlag(NODE_IS_NATIVE_ANONYMOUS_ROOT);
   }
 
+  bool IsRootOfChromeAccessOnlySubtree() const
+  {
+    return HasFlag(NODE_IS_NATIVE_ANONYMOUS_ROOT |
+                   NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS);
+  }
+
   /**
    * Makes this content anonymous
    * @see nsIAnonymousContentCreator
@@ -188,8 +194,8 @@ public:
   }
 
   /**
-   * Returns |this| if it is not native anonymous, otherwise
-   * first non native anonymous ancestor.
+   * Returns |this| if it is not chrome-only/native anonymous, otherwise
+   * first non chrome-only/native anonymous ancestor.
    */
   virtual nsIContent* FindFirstNonNativeAnonymous() const;
 
