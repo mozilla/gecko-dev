@@ -14,9 +14,8 @@ namespace dom {
 static const PRUnichar kReplacementChar = static_cast<PRUnichar>(0xFFFD);
 
 void
-TextDecoder::Init(const nsAString& aEncoding,
-                  const TextDecoderOptions& aFatal,
-                  ErrorResult& aRv)
+TextDecoderBase::Init(const nsAString& aEncoding, const bool aFatal,
+                      ErrorResult& aRv)
 {
   nsAutoString label(aEncoding);
   EncodingUtils::TrimSpaceCharacters(label);
@@ -45,13 +44,13 @@ TextDecoder::Init(const nsAString& aEncoding,
   // If the constructor is called with an options argument,
   // and the fatal property of the dictionary is set,
   // set the internal fatal flag of the decoder object.
-  mFatal = aFatal.fatal;
+  mFatal = aFatal;
 
   CreateDecoder(aRv);
 }
 
 void
-TextDecoder::CreateDecoder(ErrorResult& aRv)
+TextDecoderBase::CreateDecoder(ErrorResult& aRv)
 {
   // Create a decoder object for mEncoding.
   nsCOMPtr<nsICharsetConverterManager> ccm =
@@ -73,7 +72,7 @@ TextDecoder::CreateDecoder(ErrorResult& aRv)
 }
 
 void
-TextDecoder::ResetDecoder(bool aResetOffset)
+TextDecoderBase::ResetDecoder(bool aResetOffset)
 {
   mDecoder->Reset();
   if (aResetOffset) {
@@ -82,10 +81,10 @@ TextDecoder::ResetDecoder(bool aResetOffset)
 }
 
 void
-TextDecoder::Decode(const ArrayBufferView* aView,
-                    const TextDecodeOptions& aOptions,
-                    nsAString& aOutDecodedString,
-                    ErrorResult& aRv)
+TextDecoderBase::Decode(const ArrayBufferView* aView,
+                        const bool aStream,
+                        nsAString& aOutDecodedString,
+                        ErrorResult& aRv)
 {
   const char* data;
   uint32_t length;
@@ -100,7 +99,7 @@ TextDecoder::Decode(const ArrayBufferView* aView,
 
   aOutDecodedString.Truncate();
   if (mIsUTF16Family && mOffset < 2) {
-    HandleBOM(data, length, aOptions, aOutDecodedString, aRv);
+    HandleBOM(data, length, aStream, aOutDecodedString, aRv);
     if (aRv.Failed() || mOffset < 2) {
       return;
     }
@@ -146,7 +145,7 @@ TextDecoder::Decode(const ArrayBufferView* aView,
 
   // If the internal streaming flag of the decoder object is not set,
   // then reset the encoding algorithm state to the default values
-  if (!aOptions.stream) {
+  if (!aStream) {
     ResetDecoder();
     if (rv == NS_OK_UDEC_MOREINPUT) {
       if (mFatal) {
@@ -165,12 +164,12 @@ TextDecoder::Decode(const ArrayBufferView* aView,
 }
 
 void
-TextDecoder::HandleBOM(const char*& aData, uint32_t& aLength,
-                       const TextDecodeOptions& aOptions,
+TextDecoderBase::HandleBOM(const char*& aData, uint32_t& aLength,
+                       const bool aStream,
                        nsAString& aOutString, ErrorResult& aRv)
 {
   if (aLength < 2u - mOffset) {
-    if (aOptions.stream) {
+    if (aStream) {
       memcpy(mInitialBytes + mOffset, aData, aLength);
       mOffset += aLength;
     } else if (mFatal) {
@@ -213,7 +212,7 @@ TextDecoder::HandleBOM(const char*& aData, uint32_t& aLength,
 }
 
 void
-TextDecoder::FeedBytes(const char* aBytes, nsAString* aOutString)
+TextDecoderBase::FeedBytes(const char* aBytes, nsAString* aOutString)
 {
   PRUnichar buf[3];
   int32_t srcLen = mOffset;
@@ -228,7 +227,7 @@ TextDecoder::FeedBytes(const char* aBytes, nsAString* aOutString)
 }
 
 void
-TextDecoder::GetEncoding(nsAString& aEncoding)
+TextDecoderBase::GetEncoding(nsAString& aEncoding)
 {
   // Our utf-16 converter does not comply with the Encoding Standard.
   // As a result the utf-16le converter is used for the encoding label

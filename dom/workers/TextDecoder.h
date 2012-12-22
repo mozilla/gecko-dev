@@ -42,7 +42,7 @@ public:
          const TextDecodeOptionsWorkers& aOptions,
          nsAString& aOutDecodedString,
          ErrorResult& aRv) {
-    return TextDecoderBase::Decode(aView, aOptions.mStream,
+    return TextDecoderBase::Decode(aView, aOptions.stream,
                                    aOutDecodedString, aRv);
   }
 };

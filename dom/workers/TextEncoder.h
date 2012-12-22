@@ -48,7 +48,7 @@ public:
          const nsAString& aString,
          const TextEncodeOptionsWorkers& aOptions,
          ErrorResult& aRv) {
-    return TextEncoderBase::Encode(aCx, aString, aOptions.mStream, aRv);
+    return TextEncoderBase::Encode(aCx, aString, aOptions.stream, aRv);
   }
 };
 

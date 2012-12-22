@@ -30,7 +30,7 @@ TextDecoder::Constructor(JSContext* aCx, JSObject* aObj,
                          ErrorResult& aRv)
 {
   nsRefPtr<TextDecoder> txtDecoder = new TextDecoder(aCx);
-  txtDecoder->Init(aEncoding, aOptions.mFatal, aRv);
+  txtDecoder->Init(aEncoding, aOptions.fatal, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }

@@ -9,7 +9,7 @@
  * http://wiki.whatwg.org/wiki/WHATWG_Wiki:Copyrights
  */
 
-[Constructor(optional DOMString encoding)]
+[Constructor(optional DOMString encoding = "utf-8")]
 interface TextEncoder {
   [SetterThrows]
   readonly attribute DOMString encoding;
