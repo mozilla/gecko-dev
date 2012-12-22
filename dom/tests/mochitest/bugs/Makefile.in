@@ -129,15 +129,8 @@ MOCHITEST_FILES	= \
 		test_bug750051.html \
 		test_bug755320.html \
 		test_bug777628.html \
-		$(NULL)
-
-ifneq (ANDROID,$(OS_ARCH))
-MOCHITEST_FILES += \
 		test_bug823173.html \
 		$(NULL)
-else
-$(warning test_bug823173 is disabled on Android for Firefox 18 because their xpts are all broken.  See bug 807222 part 5)
-endif
 
 ifneq (Linux,$(OS_ARCH))
 MOCHITEST_FILES += \
