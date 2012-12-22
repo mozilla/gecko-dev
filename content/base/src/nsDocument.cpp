@@ -2801,7 +2801,7 @@ nsDocument::GetActiveElement(nsIDOMElement **aElement)
                                            getter_AddRefs(focusedWindow));
     // be safe and make sure the element is from this document
     if (focusedContent && focusedContent->OwnerDoc() == this) {
-      if (focusedContent->IsInNativeAnonymousSubtree()) {
+      if (focusedContent->ChromeOnlyAccess()) {
         focusedContent = focusedContent->FindFirstNonNativeAnonymous();
       }
       if (focusedContent) {
@@ -7436,7 +7436,7 @@ nsDocument::MutationEventDispatched(nsINode* aTarget)
     for (int32_t i = 0; i < count; ++i) {
       nsINode* possibleTarget = mSubtreeModifiedTargets[i];
       nsCOMPtr<nsIContent> content = do_QueryInterface(possibleTarget);
-      if (content && content->IsInNativeAnonymousSubtree()) {
+      if (content && content->ChromeOnlyAccess()) {
         continue;
       }
 
