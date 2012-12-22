@@ -129,6 +129,7 @@
 #include "nsNPAPIPluginInstance.h"
 #include "nsIObjectFrame.h"
 #include "nsIObjectLoadingContent.h"
+#include "nsObjectLoadingContent.h"
 #include "nsIPluginHost.h"
 
 #include "nsIDOMHTMLOptionElement.h"
@@ -9647,6 +9648,7 @@ nsHTMLSelectElementSH::SetProperty(nsIXPConnectWrappedNative *wrapper,
 nsresult
 nsHTMLPluginObjElementSH::GetPluginInstanceIfSafe(nsIXPConnectWrappedNative *wrapper,
                                                   JSObject *obj,
+                                                  JSContext *cx,
                                                   nsNPAPIPluginInstance **_result)
 {
   *_result = nullptr;
@@ -9657,22 +9659,16 @@ nsHTMLPluginObjElementSH::GetPluginInstanceIfSafe(nsIXPConnectWrappedNative *wra
   nsCOMPtr<nsIObjectLoadingContent> objlc(do_QueryInterface(content));
   NS_ASSERTION(objlc, "Object nodes must implement nsIObjectLoadingContent");
 
-  nsresult rv = objlc->GetPluginInstance(_result);
-  if (NS_SUCCEEDED(rv) && *_result) {
-    return rv;
-  }
+  // Bug 810082 - Hacky -- this call moves to nsIObjectLoadingContent in 20+,
+  //              but changing the IID on branches is undesirable.
+  nsObjectLoadingContent *objlc_direct =
+    static_cast<nsObjectLoadingContent *>(objlc.get());
 
-  // If it's not safe to run script we'll only return the instance if it exists.
-  // Ditto if the document is inactive.
-  if (!nsContentUtils::IsSafeToRunScript() || !content->OwnerDoc()->IsActive()) {
-    return rv;
-  }
-
-  // We don't care if this actually starts the plugin or not, we just want to
-  // try to start it now if possible.
-  objlc->SyncStartPluginInstance();
-
-  return objlc->GetPluginInstance(_result);
+  bool callerIsContentJS = (!xpc::AccessCheck::callerIsChrome() &&
+                            !xpc::AccessCheck::callerIsXBL(cx) &&
+                            js::IsContextRunningJS(cx));
+  return objlc_direct->ScriptRequestPluginInstance(callerIsContentJS,
+                                                   _result);
 }
 
 class nsPluginProtoChainInstallRunner MOZ_FINAL : public nsIRunnable
@@ -9733,7 +9729,7 @@ nsHTMLPluginObjElementSH::SetupProtoChain(nsIXPConnectWrappedNative *wrapper,
   JSAutoCompartment ac(cx, obj);
 
   nsRefPtr<nsNPAPIPluginInstance> pi;
-  nsresult rv = GetPluginInstanceIfSafe(wrapper, obj, getter_AddRefs(pi));
+  nsresult rv = GetPluginInstanceIfSafe(wrapper, obj, cx, getter_AddRefs(pi));
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (!pi) {
@@ -9933,7 +9929,7 @@ nsHTMLPluginObjElementSH::Call(nsIXPConnectWrappedNative *wrapper,
                                jsval *argv, jsval *vp, bool *_retval)
 {
   nsRefPtr<nsNPAPIPluginInstance> pi;
-  nsresult rv = GetPluginInstanceIfSafe(wrapper, obj, getter_AddRefs(pi));
+  nsresult rv = GetPluginInstanceIfSafe(wrapper, obj, cx, getter_AddRefs(pi));
   NS_ENSURE_SUCCESS(rv, rv);
 
   // If obj is a native wrapper, or if there's no plugin around for
@@ -9998,7 +9994,7 @@ nsHTMLPluginObjElementSH::NewResolve(nsIXPConnectWrappedNative *wrapper,
   // possible.
 
   nsRefPtr<nsNPAPIPluginInstance> pi;
-  nsresult rv = GetPluginInstanceIfSafe(wrapper, obj, getter_AddRefs(pi));
+  nsresult rv = GetPluginInstanceIfSafe(wrapper, obj, cx, getter_AddRefs(pi));
   NS_ENSURE_SUCCESS(rv, rv);
 
   return nsElementSH::NewResolve(wrapper, cx, obj, id, flags, objp,
