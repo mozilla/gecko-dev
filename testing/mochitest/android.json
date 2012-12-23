@@ -177,6 +177,7 @@
  "dom/tests/mochitest/bugs/test_bug597809.html": "",
  "dom/tests/mochitest/bugs/test_bug61098.html": "",
  "dom/tests/mochitest/bugs/test_bug641552.html": "",
+ "dom/tests/mochitest/bugs/test_bug823173.html": "disabled on Android for Firefox 18 because their xpts are all broken.  See bug 807222 part 5",
  "dom/tests/mochitest/bugs/test_devicemotion_multiple_listeners.html": "bug 775227",
  "dom/tests/mochitest/bugs/test_resize_move_windows.html": "TIMED_OUT",
  "dom/tests/mochitest/bugs/test_window_bar.html": "",

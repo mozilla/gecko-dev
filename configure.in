@@ -4308,6 +4308,7 @@ MOZ_WEBSMS_BACKEND=
 MOZ_GRAPHITE=1
 ACCESSIBILITY=1
 MOZ_SYS_MSG=
+MOZ_TIME_MANAGER=
 MOZ_PAY=
 MOZ_AUDIO_CHANNEL_MANAGER=
 
@@ -7572,6 +7573,14 @@ if test -n "$MOZ_SYS_MSG"; then
     AC_DEFINE(MOZ_SYS_MSG)
 fi
 AC_SUBST(MOZ_SYS_MSG)
+
+dnl ========================================================
+dnl = Enable Support for Time Manager API
+dnl ========================================================
+if test -n "$MOZ_TIME_MANAGER"; then
+    AC_DEFINE(MOZ_TIME_MANAGER)
+fi
+AC_SUBST(MOZ_TIME_MANAGER)
 
 dnl ========================================================
 dnl = Enable Camera Interface for B2G (Gonk usually)
