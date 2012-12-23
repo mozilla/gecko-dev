@@ -83,10 +83,10 @@ public:
     return mResolution * mDevPixelsPerCSSPixel;
   }
 
-  gfx::Point GetScrollOffsetInLayerPixels() const
+  gfxPoint GetScrollOffsetInLayerPixels() const
   {
-    return gfx::Point(mScrollOffset.x * LayersPixelsPerCSSPixel().width,
-                      mScrollOffset.y * LayersPixelsPerCSSPixel().height);
+    return gfxPoint(mScrollOffset.x * LayersPixelsPerCSSPixel().width,
+                    mScrollOffset.y * LayersPixelsPerCSSPixel().height);
   }
 
   // ---------------------------------------------------------------------------
