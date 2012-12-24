@@ -640,6 +640,7 @@ DSTOffsetCache::computeDSTOffsetMilliseconds(int64_t localTimeSeconds)
 int64_t
 DSTOffsetCache::getDSTOffsetMilliseconds(int64_t localTimeMilliseconds)
 {
+    purgeIfTZAIsStale();
     sanityCheck();
 
     int64_t localTimeSeconds = localTimeMilliseconds / MILLISECONDS_PER_SECOND;

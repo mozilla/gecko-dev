@@ -318,7 +318,7 @@ WeekDay(double t)
 }
 
 /* ES5 15.9.1.7. Set by UpdateLocalTZA(). */
-static double LocalTZA;
+double js::LocalTZA;
 
 inline void
 UpdateLocalTZA()
