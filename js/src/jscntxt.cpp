@@ -27,6 +27,7 @@
 #include "jsatom.h"
 #include "jscntxt.h"
 #include "jsversion.h"
+#include "jsdate.h"
 #include "jsdbgapi.h"
 #include "jsexn.h"
 #include "jsfun.h"
@@ -1291,8 +1292,8 @@ DSTOffsetCache::purge()
     rangeStartSeconds = rangeEndSeconds = INT64_MIN;
     oldOffsetMilliseconds = 0;
     oldRangeStartSeconds = oldRangeEndSeconds = INT64_MIN;
+    localTZA = LocalTZA;
 
-    sanityCheck();
 }
 
 /*
@@ -1304,6 +1305,14 @@ DSTOffsetCache::purge()
 DSTOffsetCache::DSTOffsetCache()
 {
     purge();
+    sanityCheck();
+}
+
+void
+DSTOffsetCache::purgeIfTZAIsStale()
+{
+    if (localTZA != LocalTZA)
+        purge();
 }
 
 JSContext::JSContext(JSRuntime *rt)

@@ -38,6 +38,9 @@ TimeClip(double time)
     return ToInteger(time + (+0.0));
 }
 
+/* ES5 15.9.1.7. Set by UpdateLocalTZA(). */
+extern double LocalTZA;
+
 } /* namespace js */
 
 extern JSObject *

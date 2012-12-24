@@ -63,6 +63,9 @@ class DSTOffsetCache {
     inline void purge();
 
   private:
+    void purgeIfTZAIsStale();
+    double localTZA;
+
     int64_t computeDSTOffsetMilliseconds(int64_t localTimeSeconds);
 
     int64_t offsetMilliseconds;
