@@ -19,12 +19,14 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.LinearLayout;
 import android.widget.TabHost;
 import android.widget.TabWidget;
-import android.widget.TextView;
 
-public class AwesomeBarTabs extends TabHost {
+public class AwesomeBarTabs extends TabHost
+                            implements LightweightTheme.OnChangeListener { 
     private static final String LOGTAG = "GeckoAwesomeBarTabs";
 
     private Context mContext;
+    private GeckoActivity mActivity;
+
     private boolean mInflated;
     private LayoutInflater mInflater;
     private OnUrlOpenListener mUrlOpenListener;
@@ -104,6 +106,8 @@ public class AwesomeBarTabs extends TabHost {
         Log.d(LOGTAG, "Creating AwesomeBarTabs");
 
         mContext = context;
+        mActivity = (GeckoActivity) context;
+
         mInflated = false;
         mInflater = (LayoutInflater) mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
     }
@@ -169,19 +173,51 @@ public class AwesomeBarTabs extends TabHost {
         filter("");
     }
 
+    @Override
+    public void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        mActivity.getLightweightTheme().addListener(this);
+    }
+
+    @Override
+    public void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        mActivity.getLightweightTheme().removeListener(this);
+    }
+
+    @Override
+    public void onLightweightThemeChanged() {
+        styleSelectedTab();
+    }
+
+    @Override
+    public void onLightweightThemeReset() {
+        styleSelectedTab();
+    }
+
     private void styleSelectedTab() {
         int selIndex = mViewPager.getCurrentItem();
         TabWidget tabWidget = getTabWidget();
+
         for (int i = 0; i < tabWidget.getTabCount(); i++) {
+            GeckoTextView view = (GeckoTextView) tabWidget.getChildTabViewAt(i);
+            if (i == selIndex) {
+                view.resetTheme();
+                continue;
+            } else if (mActivity.getLightweightTheme().isEnabled()) {
+                view.setTheme(mActivity.getLightweightTheme().isLightTheme());
+            } else {
+                view.resetTheme();
+            }
+
+            if (i == (selIndex - 1))
+                view.getBackground().setLevel(1);
+            else if (i == (selIndex + 1))
+                view.getBackground().setLevel(2);
+            else
+                view.getBackground().setLevel(0);
              if (i == selIndex)
                  continue;
-
-             if (i == (selIndex - 1))
-                 tabWidget.getChildTabViewAt(i).getBackground().setLevel(1);
-             else if (i == (selIndex + 1))
-                 tabWidget.getChildTabViewAt(i).getBackground().setLevel(2);
-             else
-                 tabWidget.getChildTabViewAt(i).getBackground().setLevel(0);
         }
 
         if (selIndex == 0)
@@ -197,7 +233,7 @@ public class AwesomeBarTabs extends TabHost {
 
 
     private View addAwesomeTab(String id, int titleId, final int contentId) {
-        TextView indicatorView = (TextView) mInflater.inflate(R.layout.awesomebar_tab_indicator, null);
+        GeckoTextView indicatorView = (GeckoTextView) mInflater.inflate(R.layout.awesomebar_tab_indicator, null);
         indicatorView.setText(titleId);
 
         getTabWidget().addView(indicatorView);
