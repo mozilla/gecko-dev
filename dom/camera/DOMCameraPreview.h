@@ -59,6 +59,23 @@ protected:
   };
   uint32_t mState;
 
+  // Helper function, used in conjunction with the macro below, to make
+  //  it easy to track state changes, which must happen only on the main
+  //  thread.
+  void
+  SetState(uint32_t aNewState, const char* aFileOrFunc, int aLine)
+  {
+#ifdef PR_LOGGING
+    const char* states[] = { "stopped", "starting", "started", "stopping" };
+    MOZ_ASSERT(mState < sizeof(states) / sizeof(states[0]));
+    MOZ_ASSERT(aNewState < sizeof(states) / sizeof(states[0]));
+    DOM_CAMERA_LOGI("SetState: (this=%p) '%s' --> '%s' : %s:%d\n", this, states[mState], states[aNewState], aFileOrFunc, aLine);
+#endif
+
+    NS_ASSERTION(NS_IsMainThread(), "Preview state set OFF OF main thread!");
+    mState = aNewState;
+  }
+
   uint32_t mWidth;
   uint32_t mHeight;
   uint32_t mFramesPerSecond;
@@ -77,5 +94,7 @@ private:
 };
 
 } // namespace mozilla
+
+#define DOM_CAMERA_SETSTATE(newState)   SetState((newState), __func__, __LINE__)
 
 #endif // DOM_CAMERA_DOMCAMERAPREVIEW_H
