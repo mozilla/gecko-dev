@@ -5,7 +5,7 @@
 /*
  * PKCS7 decoding, verification.
  *
- * $Id: p7decode.c,v 1.29 2012/04/25 14:50:06 gerv%gerv.net Exp $
+ * $Id: p7decode.c,v 1.30 2012/11/27 22:48:08 bsmith%mozilla.com Exp $
  */
 
 #include "p7local.h"

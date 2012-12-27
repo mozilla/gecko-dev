@@ -5,7 +5,7 @@
 /*
  * Interface to the OCSP implementation.
  *
- * $Id: ocsp.h,v 1.22 2012/09/22 13:41:58 wtc%google.com Exp $
+ * $Id: ocsp.h,v 1.23.2.1 2012/12/12 16:38:39 wtc%google.com Exp $
  */
 
 #ifndef _OCSP_H_
@@ -632,6 +632,73 @@ CERT_CreateOCSPCertID(CERTCertificate *cert, PRTime time);
  */
 extern SECStatus
 CERT_DestroyOCSPCertID(CERTOCSPCertID* certID);
+
+
+extern CERTOCSPSingleResponse*
+CERT_CreateOCSPSingleResponseGood(PLArenaPool *arena,
+                                  CERTOCSPCertID *id,
+                                  PRTime thisUpdate,
+                                  const PRTime *nextUpdate);
+
+extern CERTOCSPSingleResponse*
+CERT_CreateOCSPSingleResponseUnknown(PLArenaPool *arena,
+                                     CERTOCSPCertID *id,
+                                     PRTime thisUpdate,
+                                     const PRTime *nextUpdate);
+
+extern CERTOCSPSingleResponse*
+CERT_CreateOCSPSingleResponseRevoked(
+    PLArenaPool *arena,
+    CERTOCSPCertID *id,
+    PRTime thisUpdate,
+    const PRTime *nextUpdate,
+    PRTime revocationTime,
+    const CERTCRLEntryReasonCode* revocationReason);
+
+extern SECItem*
+CERT_CreateEncodedOCSPSuccessResponse(
+    PLArenaPool *arena,
+    CERTCertificate *responderCert,
+    CERTOCSPResponderIDType responderIDType,
+    PRTime producedAt,
+    CERTOCSPSingleResponse **responses,
+    void *wincx);
+
+/*
+ * FUNCTION: CERT_CreateEncodedOCSPErrorResponse
+ *  Creates an encoded OCSP response with an error response status.
+ * INPUTS:
+ *  PLArenaPool *arena
+ *    The return value is allocated from here.
+ *    If a NULL is passed in, allocation is done from the heap instead.
+ *  int error
+ *    An NSS error code indicating an error response status. The error
+ *    code is mapped to an OCSP response status as follows:
+ *        SEC_ERROR_OCSP_MALFORMED_REQUEST -> malformedRequest
+ *        SEC_ERROR_OCSP_SERVER_ERROR -> internalError
+ *        SEC_ERROR_OCSP_TRY_SERVER_LATER -> tryLater
+ *        SEC_ERROR_OCSP_REQUEST_NEEDS_SIG -> sigRequired
+ *        SEC_ERROR_OCSP_UNAUTHORIZED_REQUEST -> unauthorized
+ *    where the OCSP response status is an enumerated type defined in
+ *    RFC 2560:
+ *    OCSPResponseStatus ::= ENUMERATED {
+ *        successful           (0),     --Response has valid confirmations
+ *        malformedRequest     (1),     --Illegal confirmation request
+ *        internalError        (2),     --Internal error in issuer
+ *        tryLater             (3),     --Try again later
+ *                                      --(4) is not used
+ *        sigRequired          (5),     --Must sign the request
+ *        unauthorized         (6)      --Request unauthorized
+ *    }
+ * RETURN:
+ *   Returns a pointer to the SECItem holding the response.
+ *   On error, returns null with error set describing the reason:
+ *	SEC_ERROR_INVALID_ARGS
+ *   Other errors are low-level problems (no memory, bad database, etc.).
+ */
+extern SECItem*
+CERT_CreateEncodedOCSPErrorResponse(PLArenaPool *arena, int error);
+
 /************************************************************************/
 SEC_END_PROTOS
 

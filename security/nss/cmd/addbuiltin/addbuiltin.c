@@ -5,7 +5,7 @@
 /*
  * Tool for converting builtin CA certs.
  *
- * $Id: addbuiltin.c,v 1.19 2012/07/04 15:21:47 gerv%gerv.net Exp $
+ * $Id: addbuiltin.c,v 1.20 2012/11/29 02:11:04 bsmith%mozilla.com Exp $
  */
 
 #include "nssrenam.h"
@@ -266,7 +266,7 @@ void printheader() {
 "# License, v. 2.0. If a copy of the MPL was not distributed with this\n"
 "# file, You can obtain one at http://mozilla.org/MPL/2.0/.\n"
      "#\n"
-     "CVS_ID \"@(#) $RCSfile: addbuiltin.c,v $ $Revision: 1.19 $ $Date: 2012/07/04 15:21:47 $\"\n"
+     "CVS_ID \"@(#) $RCSfile: addbuiltin.c,v $ $Revision: 1.20 $ $Date: 2012/11/29 02:11:04 $\"\n"
      "\n"
      "#\n"
      "# certdata.txt\n"
