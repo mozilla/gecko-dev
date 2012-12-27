@@ -1,12 +1,3 @@
 This directory contains patches that were added locally
 on top of the NSS release.
 
-bug-797572: Export SRTP functions from libssl, needed for WebRTC. This will be
-            included in the final NSS 3.14 release.
-bug-683266.patch - Added so we can customize code signing trust for b2g in
-                   bug 772365. Also requires removal of
-                   security/nss/lib/ckfw/builtins/certdata.c.
-bug-808218.patch - Added so the code in bug 772365 will compile without casts
-bug-812802.patch - Added so that the version of addbuiltin in this repository
-                   can be used (if built) to regenerate b2g-certdata.txt for
-                   bug 772365.

@@ -5,7 +5,7 @@
 /*
  * Base64 decoding (ascii to binary).
  *
- * $Id: nssb64d.c,v 1.9 2012/04/25 14:50:16 gerv%gerv.net Exp $
+ * $Id: nssb64d.c,v 1.10 2012/11/27 22:48:09 bsmith%mozilla.com Exp $
  */
 
 #include "nssb64.h"
