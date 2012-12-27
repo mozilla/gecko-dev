@@ -623,8 +623,6 @@ GonkGPSGeolocationProvider::ShutdownGPS()
     mGpsInterface->stop();
     mGpsInterface->cleanup();
   }
-
-  mInitThread = nullptr;
 }
 
 NS_IMETHODIMP
