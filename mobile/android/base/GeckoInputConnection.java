@@ -57,8 +57,8 @@ class GeckoInputConnection
     private boolean mBatchSelectionChanged;
     private boolean mBatchTextChanged;
 
-    public static InputConnectionHandler create(View targetView,
-                                                GeckoEditableClient editable) {
+    public static GeckoEditableListener create(View targetView,
+                                               GeckoEditableClient editable) {
         if (DEBUG)
             return DebugGeckoInputConnection.create(targetView, editable);
         else
@@ -69,8 +69,6 @@ class GeckoInputConnection
                                    GeckoEditableClient editable) {
         super(targetView, true);
         mEditableClient = editable;
-        // install the editable => input connection listener
-        editable.setListener(this);
         mIMEState = IME_STATE_DISABLED;
     }
 
@@ -587,8 +585,8 @@ final class DebugGeckoInputConnection
         super(targetView, editable);
     }
 
-    public static InputConnectionHandler create(View targetView,
-                                                GeckoEditableClient editable) {
+    public static GeckoEditableListener create(View targetView,
+                                               GeckoEditableClient editable) {
         final Class[] PROXY_INTERFACES = { InputConnection.class,
                 InputConnectionHandler.class,
                 GeckoEditableListener.class };
@@ -597,8 +595,7 @@ final class DebugGeckoInputConnection
         dgic.mProxy = (InputConnection)Proxy.newProxyInstance(
                 GeckoInputConnection.class.getClassLoader(),
                 PROXY_INTERFACES, dgic);
-        editable.setListener((GeckoEditableListener)dgic.mProxy);
-        return (InputConnectionHandler)dgic.mProxy;
+        return (GeckoEditableListener)dgic.mProxy;
     }
 
     private static StringBuilder debugAppend(StringBuilder sb, Object obj) {
