@@ -4017,6 +4017,12 @@ mjit::Compiler::ionCompileHelper()
 
     void *ionScriptAddress = &script_->ion;
 
+#ifdef JS_CPU_X64
+    // Allocate a temp register. Note that we have to do this before calling
+    // syncExitAndJump below.
+    RegisterID reg = frame.allocReg();
+#endif
+
     InternalCompileTrigger trigger;
     trigger.pc = PC;
     trigger.stubLabel = stubcc.syncExitAndJump(Uses(0));
@@ -4044,7 +4050,6 @@ mjit::Compiler::ionCompileHelper()
                                            Imm32(0));
 #elif defined(JS_CPU_X64)
     /* Handle processors that can't load from absolute addresses. */
-    RegisterID reg = frame.allocReg();
     masm.move(ImmPtr(useCountAddress), reg);
     trigger.inlineJump = masm.branch32(Assembler::GreaterThanOrEqual,
                                        Address(reg),
