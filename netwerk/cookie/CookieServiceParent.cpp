@@ -24,12 +24,10 @@ static bool
 GetAppInfoFromParams(const IPC::SerializedLoadContext &aLoadContext,
                      PBrowserParent* aBrowser,
                      uint32_t& aAppId,
-                     bool& aIsInBrowserElement,
-                     bool& aIsPrivate)
+                     bool& aIsInBrowserElement)
 {
   aAppId = NECKO_NO_APP_ID;
   aIsInBrowserElement = false;
-  aIsPrivate = false;
 
   const char* error = NeckoParent::GetValidatedAppInfo(aLoadContext, aBrowser,
                                                        &aAppId,
@@ -41,9 +39,6 @@ GetAppInfoFromParams(const IPC::SerializedLoadContext &aLoadContext,
     return false;
   }
 
-  if (aLoadContext.IsPrivateBitValid()) {
-    aIsPrivate = aLoadContext.mUsePrivateBrowsing;
-  }
   return true;
 }
 
@@ -84,7 +79,7 @@ CookieServiceParent::RecvGetCookieString(const URIParams& aHost,
   uint32_t appId;
   bool isInBrowserElement;
   bool valid = GetAppInfoFromParams(aLoadContext, aBrowser, appId,
-                                    isInBrowserElement, isPrivate);
+                                    isInBrowserElement);
   if (!valid) {
     return false;
   }
@@ -117,7 +112,7 @@ CookieServiceParent::RecvSetCookieString(const URIParams& aHost,
   uint32_t appId;
   bool isInBrowserElement;
   bool valid = GetAppInfoFromParams(aLoadContext, aBrowser, appId,
-                                    isInBrowserElement, isPrivate);
+                                    isInBrowserElement);
   if (!valid) {
     return false;
   }
