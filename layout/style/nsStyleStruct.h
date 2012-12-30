@@ -1693,8 +1693,9 @@ struct nsStyleDisplay {
            mOverflowX != NS_STYLE_OVERFLOW_CLIP;
   }
 
-  /* Returns whether the element has the -moz-transform property. */
-  bool HasTransform() const {
+  /* Returns whether the element has the -moz-transform property
+   * or a related property. */
+  bool HasTransformStyle() const {
     return mSpecifiedTransform != nullptr || 
            mTransformStyle == NS_STYLE_TRANSFORM_STYLE_PRESERVE_3D ||
            mBackfaceVisibility == NS_STYLE_BACKFACE_VISIBILITY_HIDDEN;
@@ -1710,6 +1711,9 @@ struct nsStyleDisplay {
   inline bool IsPositioned(const nsIFrame* aFrame) const;
   inline bool IsRelativelyPositioned(const nsIFrame* aFrame) const;
   inline bool IsAbsolutelyPositioned(const nsIFrame* aFrame) const;
+  /* Returns whether the element has the -moz-transform property
+   * or a related property, and supports CSS transforms. */
+  inline bool HasTransform(const nsIFrame* aFrame) const;
 };
 
 struct nsStyleTable {
