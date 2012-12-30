@@ -988,4 +988,10 @@ GetListBaseExpandoSlot()
     return gListBaseExpandoSlot;
 }
 
+JS_FRIEND_API(void)
+SetCTypesActivityCallback(JSRuntime *rt, CTypesActivityCallback cb)
+{
+    rt->ctypesActivityCallback = cb;
+}
+
 } // namespace js

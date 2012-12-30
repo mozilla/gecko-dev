@@ -1527,6 +1527,21 @@ IdToJsval(jsid id)
     return IdToValue(id);
 }
 
+enum CTypesActivityType {
+    CTYPES_CALL_BEGIN,
+    CTYPES_CALL_END
+};
+
+typedef void
+(* CTypesActivityCallback)(JSContext *cx, CTypesActivityType type);
+
+/*
+ * Sets a callback that is run whenever js-ctypes is about to be used when
+ * calling into C.
+ */
+JS_FRIEND_API(void)
+SetCTypesActivityCallback(JSRuntime *rt, CTypesActivityCallback cb);
+
 } /* namespace js */
 
 #endif /* __cplusplus */
