@@ -179,8 +179,12 @@ nsHostRecord::Create(const nsHostKey *key, nsHostRecord **result)
 
 nsHostRecord::~nsHostRecord()
 {
-    if (addr)
+    if (addr) {
         free(addr);
+    }
+    if (addr_info) {
+        PR_FreeAddrInfo(addr_info);
+    }
 }
 
 bool
