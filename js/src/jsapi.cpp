@@ -879,6 +879,7 @@ JSRuntime::JSRuntime(JSUseHelperThreads useHelperThreads)
     ionActivation(NULL),
     ionPcScriptCache(NULL),
     ionReturnOverride_(MagicValue(JS_ARG_POISON)),
+    ctypesActivityCallback(NULL),
     useHelperThreads_(useHelperThreads)
 {
     /* Initialize infallibly first, so we can goto bad and JS_DestroyRuntime. */
