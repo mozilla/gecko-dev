@@ -405,9 +405,13 @@ inline bool
 MaybeWrapValue(JSContext* cx, JSObject* obj, JS::Value* vp)
 {
   MOZ_ASSERT(js::GetObjectCompartment(obj) == js::GetContextCompartment(cx));
-  if (vp->isObject() &&
-      js::GetObjectCompartment(&vp->toObject()) != js::GetObjectCompartment(obj)) {
-    return JS_WrapValue(cx, vp);
+  if (vp->isGCThing()) {
+    void* gcthing = vp->toGCThing();
+    // Might be null if vp.isNull() :(
+    if (gcthing &&
+        js::GetGCThingCompartment(gcthing) != js::GetObjectCompartment(obj)) {
+      return JS_WrapValue(cx, vp);
+    }
   }
 
   return true;
