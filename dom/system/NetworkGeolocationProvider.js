@@ -98,7 +98,13 @@ WifiGeoPositionProvider.prototype = {
 
   watch: function(c) {
     LOG("watch called");
-    if (!this.wifiService) {
+
+    let useScanning = true;
+    try {
+      useScanning = Services.prefs.getBoolPref("geo.wifi.scan");
+    } catch (e) {}
+
+    if (!this.wifiService && useScanning) {
       this.wifiService = Cc["@mozilla.org/wifi/monitor;1"].getService(Components.interfaces.nsIWifiMonitor);
       this.wifiService.startWatching(this);
     }
