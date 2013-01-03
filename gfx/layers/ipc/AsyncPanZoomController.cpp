@@ -1155,8 +1155,6 @@ bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSa
 void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aViewportFrame, bool aIsFirstPaint) {
   MonitorAutoLock monitor(mMonitor);
 
-  mPaintThrottler.TaskComplete();
-
   mLastContentPaintMetrics = aViewportFrame;
 
   mFrameMetrics.mMayHaveTouchListeners = aViewportFrame.mMayHaveTouchListeners;
@@ -1189,7 +1187,7 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aViewportFr
     }
   }
 
-  mWaitingForContentToPaint = false;
+  mWaitingForContentToPaint = mPaintThrottler.TaskComplete();
   bool needContentRepaint = false;
   if (aViewportFrame.mCompositionBounds.width == mFrameMetrics.mCompositionBounds.width &&
       aViewportFrame.mCompositionBounds.height == mFrameMetrics.mCompositionBounds.height) {
