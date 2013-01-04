@@ -1003,7 +1003,7 @@ GetListBaseExpandoSlot()
 }
 
 JS_FRIEND_API(void)
-js::SetCTypesActivityCallback(JSRuntime *rt, CTypesActivityCallback cb)
+SetCTypesActivityCallback(JSRuntime *rt, CTypesActivityCallback cb)
 {
     rt->ctypesActivityCallback = cb;
 }
