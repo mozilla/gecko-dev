@@ -558,7 +558,9 @@ class Mochitest(object):
 
   def buildProfile(self, options):
     """ create the profile and add optional chrome bits and files if requested """
-    self.automation.initializeProfile(options.profilePath, options.extraPrefs, useServerLocations = True)
+    self.automation.initializeProfile(options.profilePath,
+                                      options.extraPrefs,
+                                      useServerLocations=True)
     manifest = self.addChromeToProfile(options)
     self.copyExtraFilesToProfile(options)
     self.installExtensionsToProfile(options)
@@ -675,7 +677,7 @@ class Mochitest(object):
                                     "VMware recording: (%s)" % str(e))
       self.vmwareHelper = None
 
-  def runTests(self, options):
+  def runTests(self, options, onLaunch=None):
     """ Prepare, configure, run tests and cleanup """
     debuggerInfo = getDebuggerInfo(self.oldcwd, options.debugger, options.debuggerArgs,
                       options.debuggerInteractive);
@@ -722,13 +724,14 @@ class Mochitest(object):
     try:
       status = self.automation.runApp(testURL, browserEnv, options.app,
                                   options.profilePath, options.browserArgs,
-                                  runSSLTunnel = self.runSSLTunnel,
-                                  utilityPath = options.utilityPath,
-                                  xrePath = options.xrePath,
+                                  runSSLTunnel=self.runSSLTunnel,
+                                  utilityPath=options.utilityPath,
+                                  xrePath=options.xrePath,
                                   certPath=options.certPath,
                                   debuggerInfo=debuggerInfo,
                                   symbolsPath=options.symbolsPath,
-                                  timeout = timeout)
+                                  timeout=timeout,
+                                  onLaunch=onLaunch)
     except KeyboardInterrupt:
       self.automation.log.info("INFO | runtests.py | Received keyboard interrupt.\n");
       status = -1
