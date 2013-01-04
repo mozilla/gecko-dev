@@ -489,6 +489,7 @@ using mozilla::dom::indexedDB::IDBWrapperCache;
 #include "nsIDOMSmsRequest.h"
 #include "nsIDOMSmsFilter.h"
 #include "nsIDOMSmsCursor.h"
+#include "nsIDOMSmsSegmentInfo.h"
 #include "nsIDOMConnection.h"
 #ifdef MOZ_B2G_RIL
 #include "nsIDOMMobileConnection.h"
@@ -1500,6 +1501,9 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
 
   NS_DEFINE_CLASSINFO_DATA(MozSmsCursor, nsDOMGenericSH,
+                           DOM_DEFAULT_SCRIPTABLE_FLAGS)
+
+  NS_DEFINE_CLASSINFO_DATA(MozSmsSegmentInfo, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
 
   NS_DEFINE_CLASSINFO_DATA(MozConnection, nsDOMGenericSH,
@@ -4115,6 +4119,10 @@ nsDOMClassInfo::Init()
 
   DOM_CLASSINFO_MAP_BEGIN(MozSmsCursor, nsIDOMMozSmsCursor)
      DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozSmsCursor)
+  DOM_CLASSINFO_MAP_END
+
+  DOM_CLASSINFO_MAP_BEGIN(MozSmsSegmentInfo, nsIDOMMozSmsSegmentInfo)
+     DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozSmsSegmentInfo)
   DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN(MozConnection, nsIDOMMozConnection)
