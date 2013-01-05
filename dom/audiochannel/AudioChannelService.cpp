@@ -225,6 +225,12 @@ AudioChannelService::GetMuted(AudioChannelType aType, bool aElementHidden)
   return muted;
 }
 
+bool
+AudioChannelService::ContentChannelIsActive()
+{
+  return mChannelCounters[AUDIO_CHANNEL_CONTENT].Length() > 0;
+}
+
 static PLDHashOperator
 NotifyEnumerator(AudioChannelAgent* aAgent,
                  AudioChannelType aType, void* aData)
