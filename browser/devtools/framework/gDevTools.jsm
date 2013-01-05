@@ -539,7 +539,9 @@ let gDevToolsBrowser = {
    */
   _removeToolFromMenu: function DT_removeToolFromMenu(toolId, doc) {
     let command = doc.getElementById("Tools:" + toolId);
-    command.parentNode.removeChild(command);
+    if (command) {
+      command.parentNode.removeChild(command);
+    }
 
     let key = doc.getElementById("key_" + toolId);
     if (key) {
@@ -547,7 +549,19 @@ let gDevToolsBrowser = {
     }
 
     let bc = doc.getElementById("devtoolsMenuBroadcaster_" + toolId);
-    bc.parentNode.removeChild(bc);
+    if (bc) {
+      bc.parentNode.removeChild(bc);
+    }
+
+    let appmenuitem = doc.getElementById("appmenuitem_" + toolId);
+    if (appmenuitem) {
+      appmenuitem.parentNode.removeChild(appmenuitem);
+    }
+
+    let menuitem = doc.getElementById("menuitem_" + toolId);
+    if (menuitem) {
+      menuitem.parentNode.removeChild(menuitem);
+    }
   },
 
   /**
