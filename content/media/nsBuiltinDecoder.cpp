@@ -711,8 +711,8 @@ void nsBuiltinDecoder::PlaybackEnded()
   PlaybackPositionChanged();
   ChangeState(PLAY_STATE_ENDED);
 
+  UpdateReadyStateForData();
   if (mElement)  {
-    UpdateReadyStateForData();
     mElement->PlaybackEnded();
   }
 
