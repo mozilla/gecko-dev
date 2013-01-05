@@ -3875,5 +3875,11 @@ pref("jsloader.reuseGlobal", false);
 // event loop to become idle before actually taking the screenshot.
 pref("dom.browserElement.maxScreenshotDelayMS", 2000);
 
+// If the user puts a finger down on an element and we think the user
+// might be executing a pan gesture, how long do we wait before
+// tentatively deciding the gesture is actually a tap and activating
+// the target element?
+pref("ui.touch_activation.delay_ms", 50);
+
 // Whether we should show the placeholder when the element is focused but empty.
 pref("dom.placeholder.show_on_focus", true);
