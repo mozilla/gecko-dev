@@ -412,6 +412,13 @@ MaybeWrapValue(JSContext* cx, JSObject* obj, JS::Value* vp)
         js::GetGCThingCompartment(gcthing) != js::GetObjectCompartment(obj)) {
       return JS_WrapValue(cx, vp);
     }
+
+    // We're same-compartment, but even then for objects we might have
+    // to wrap in a same-compartment wrapper.
+    if (vp->isObject() && !IS_SLIM_WRAPPER(&vp->toObject())) {
+      // non-slimwrappers might need SOWs
+      return JS_WrapValue(cx, vp);
+    }
   }
 
   return true;
