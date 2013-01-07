@@ -423,6 +423,12 @@ InitProcessPriorityManager()
 bool
 CurrentProcessIsForeground()
 {
+  // The process priority manager is the only thing which changes our priority,
+  // so if the manager does not exist, then we must be in the foreground.
+  if (!sManager) {
+    return true;
+  }
+
   return sManager->GetPriority() >= PROCESS_PRIORITY_FOREGROUND;
 }
 
