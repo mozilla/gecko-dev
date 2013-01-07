@@ -95,20 +95,20 @@ VolumeManager::SetState(STATE aNewState)
 
 //static
 void
-VolumeManager::RegisterStateObserver(StateObserver *aObserver)
+VolumeManager::RegisterStateObserver(StateObserver* aObserver)
 {
   mStateObserverList.AddObserver(aObserver);
 }
 
 //static
-void VolumeManager::UnregisterStateObserver(StateObserver *aObserver)
+void VolumeManager::UnregisterStateObserver(StateObserver* aObserver)
 {
   mStateObserverList.RemoveObserver(aObserver);
 }
 
 //static
 TemporaryRef<Volume>
-VolumeManager::FindVolumeByName(const nsCSubstring &aName)
+VolumeManager::FindVolumeByName(const nsCSubstring& aName)
 {
   if (!sVolumeManager) {
     return NULL;
@@ -126,7 +126,7 @@ VolumeManager::FindVolumeByName(const nsCSubstring &aName)
 
 //static
 TemporaryRef<Volume>
-VolumeManager::FindAddVolumeByName(const nsCSubstring &aName)
+VolumeManager::FindAddVolumeByName(const nsCSubstring& aName)
 {
   RefPtr<Volume> vol = FindVolumeByName(aName);
   if (vol) {
@@ -140,7 +140,7 @@ VolumeManager::FindAddVolumeByName(const nsCSubstring &aName)
 
 class VolumeListCallback : public VolumeResponseCallback
 {
-  virtual void ResponseReceived(const VolumeCommand *aCommand)
+  virtual void ResponseReceived(const VolumeCommand* aCommand)
   {
     switch (ResponseCode()) {
       case ResponseCode::VolumeListResult: {
@@ -206,7 +206,7 @@ VolumeManager::OpenSocket()
 
 //static
 void
-VolumeManager::PostCommand(VolumeCommand *aCommand)
+VolumeManager::PostCommand(VolumeCommand* aCommand)
 {
   if (!sVolumeManager) {
     ERR("VolumeManager not initialized. Dropping command '%s'", aCommand->Data());
@@ -241,7 +241,7 @@ VolumeManager::WriteCommandData()
     return;
   }
 
-  VolumeCommand *cmd = mCommands.front();
+  VolumeCommand* cmd = mCommands.front();
   if (cmd->BytesRemaining() == 0) {
     // All bytes have been written. We're waiting for a response.
     return;
@@ -353,7 +353,7 @@ VolumeManager::OnFileCanWriteWithoutBlocking(int aFd)
 }
 
 void
-VolumeManager::HandleBroadcast(int aResponseCode, nsCString &aResponseLine)
+VolumeManager::HandleBroadcast(int aResponseCode, nsCString& aResponseLine)
 {
   // Format of the line is something like:
   //
