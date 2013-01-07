@@ -65,6 +65,9 @@ Volume::Volume(const nsCSubstring& aName)
 void
 Volume::SetMediaPresent(bool aMediaPresent)
 {
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
+
   // mMediaPresent is slightly redunant to the state, however
   // when media is removed (while Idle), we get the following:
   //    631 Volume sdcard /mnt/sdcard disk removed (179:0)
@@ -99,6 +102,9 @@ Volume::SetMediaPresent(bool aMediaPresent)
 void
 Volume::SetState(Volume::STATE aNewState)
 {
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
+
   if (aNewState == mState) {
     return;
   }
@@ -126,6 +132,9 @@ Volume::SetState(Volume::STATE aNewState)
 void
 Volume::SetMountPoint(const nsCSubstring& aMountPoint)
 {
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
+
   if (mMountPoint.Equals(aMountPoint)) {
     return;
   }
@@ -136,30 +145,45 @@ Volume::SetMountPoint(const nsCSubstring& aMountPoint)
 void
 Volume::StartMount(VolumeResponseCallback* aCallback)
 {
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
+
   StartCommand(new VolumeActionCommand(this, "mount", "", aCallback));
 }
 
 void
 Volume::StartUnmount(VolumeResponseCallback* aCallback)
 {
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
+
   StartCommand(new VolumeActionCommand(this, "unmount", "force", aCallback));
 }
 
 void
 Volume::StartShare(VolumeResponseCallback* aCallback)
 {
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
+
   StartCommand(new VolumeActionCommand(this, "share", "ums", aCallback));
 }
 
 void
 Volume::StartUnshare(VolumeResponseCallback* aCallback)
 {
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
+
   StartCommand(new VolumeActionCommand(this, "unshare", "ums", aCallback));
 }
 
 void
 Volume::StartCommand(VolumeCommand* aCommand)
 {
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
+
   VolumeManager::PostCommand(aCommand);
 }
 
@@ -167,6 +191,7 @@ Volume::StartCommand(VolumeCommand* aCommand)
 void
 Volume::RegisterObserver(Volume::EventObserver* aObserver)
 {
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
 
   mEventObserverList.AddObserver(aObserver);
@@ -182,6 +207,7 @@ Volume::RegisterObserver(Volume::EventObserver* aObserver)
 void
 Volume::UnregisterObserver(Volume::EventObserver* aObserver)
 {
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
 
   mEventObserverList.RemoveObserver(aObserver);
@@ -193,6 +219,9 @@ Volume::UpdateMountLock(const nsACString& aVolumeName,
                         const int32_t& aMountGeneration,
                         const bool& aMountLocked)
 {
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
+
   RefPtr<Volume> vol = VolumeManager::FindVolumeByName(aVolumeName);
   if (!vol || (vol->mMountGeneration != aMountGeneration)) {
     return;
@@ -207,6 +236,9 @@ Volume::UpdateMountLock(const nsACString& aVolumeName,
 void
 Volume::HandleVoldResponse(int aResponseCode, nsCWhitespaceTokenizer& aTokenizer)
 {
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
+
   // The volume name will have already been parsed, and the tokenizer will point
   // to the token after the volume name
   switch (aResponseCode) {
