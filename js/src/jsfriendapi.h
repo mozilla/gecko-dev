@@ -1547,7 +1547,9 @@ IdToJsval(jsid id)
 
 enum CTypesActivityType {
     CTYPES_CALL_BEGIN,
-    CTYPES_CALL_END
+    CTYPES_CALL_END,
+    CTYPES_CALLBACK_BEGIN,
+    CTYPES_CALLBACK_END
 };
 
 typedef void
@@ -1559,6 +1561,29 @@ typedef void
  */
 JS_FRIEND_API(void)
 SetCTypesActivityCallback(JSRuntime *rt, CTypesActivityCallback cb);
+
+class JS_FRIEND_API(AutoCTypesActivityCallback) {
+  private:
+    JSContext *cx;
+    CTypesActivityCallback callback;
+    CTypesActivityType beginType;
+    CTypesActivityType endType;
+    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+
+  public:
+    AutoCTypesActivityCallback(JSContext *cx, CTypesActivityType beginType,
+                               CTypesActivityType endType
+                               MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
+    ~AutoCTypesActivityCallback() {
+        DoEndCallback();
+    }
+    void DoEndCallback() {
+        if (callback) {
+            callback(cx, endType);
+            callback = nullptr;
+        }
+    }
+};
 
 } /* namespace js */
 
