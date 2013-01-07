@@ -1134,6 +1134,12 @@ this.DOMApplicationRegistry = {
         return;
       }
 
+      // Store the new update manifest.
+      let dir = FileUtils.getDir(DIRECTORY_NAME, ["webapps", id], true, true);
+      let manFile = dir.clone();
+      manFile.append("update.webapp");
+      this._writeFile(manFile, JSON.stringify(aManifest), function() { });
+
       let manifest = new ManifestHelper(aManifest, app.manifestURL);
       // A package is available: set downloadAvailable to fire the matching
       // event.
@@ -1290,7 +1296,7 @@ this.DOMApplicationRegistry = {
           app.etag = xhr.getResponseHeader("Etag");
           app.lastCheckedUpdate = Date.now();
           if (app.origin.startsWith("app://")) {
-            updatePackagedApp(manifest);
+            updatePackagedApp.call(this, manifest);
           } else {
             updateHostedApp.call(this, manifest);
           }
