@@ -281,6 +281,7 @@ nsGonkCameraControl::Init()
 nsGonkCameraControl::~nsGonkCameraControl()
 {
   DOM_CAMERA_LOGT("%s:%d : this=%p, mHwHandle = %d\n", __func__, __LINE__, this, mHwHandle);
+
   ReleaseHardwareImpl(nullptr);
   if (mRwLock) {
     PRRWLock* lock = mRwLock;
@@ -1330,7 +1331,7 @@ nsGonkCameraControl::ReleaseHardwareImpl(ReleaseHardwareTask* aReleaseHardware)
   StopPreviewInternal(true /* forced */);
 
   // release the hardware handle
-  GonkCameraHardware::ReleaseHandle(mHwHandle);
+  GonkCameraHardware::ReleaseHandle(mHwHandle, true /* unregister */);
 
   if (aReleaseHardware && aReleaseHardware->mOnSuccessCb) {
     nsCOMPtr<nsIRunnable> releaseHardwareResult = new ReleaseHardwareResult(aReleaseHardware->mOnSuccessCb, mWindowId);
