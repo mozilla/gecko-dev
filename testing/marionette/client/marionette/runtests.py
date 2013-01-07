@@ -212,11 +212,11 @@ class MarionetteTestRunner(object):
         self.perf = perf
         self.perfserv = perfserv
         self.gecko_path = gecko_path
-        self.testvars = None
+        self.testvars = {} 
         self.tree = tree
         self.device = device
 
-        if testvars is not None:
+        if testvars:
             if not os.path.exists(testvars):
                 raise Exception('--testvars file does not exist')
             
@@ -240,6 +240,7 @@ class MarionetteTestRunner(object):
                 os.mkdir(self.logcat_dir)
 
         # for XML output
+        self.testvars['xml_output'] = self.xml_output
         self.results = []
 
     def reset_test_stats(self):
