@@ -156,11 +156,9 @@ StatsCellCallback(JSRuntime *rt, void *data, void *thing, JSGCTraceKind traceKin
         cStats->objectsExtraPropertyIteratorData += propertyIteratorDataSize;
 
         if (ObjectPrivateVisitor *opv = closure->opv) {
-            js::Class *clazz = js::GetObjectClass(obj);
-            if (clazz->flags & JSCLASS_HAS_PRIVATE &&
-                clazz->flags & JSCLASS_PRIVATE_IS_NSISUPPORTS)
-            {
-                cStats->objectsExtraPrivate += opv->sizeOfIncludingThis(GetObjectPrivate(obj));
+            nsISupports *iface;
+            if (opv->getISupports(obj, &iface) && iface) {
+                cStats->objectsExtraPrivate += opv->sizeOfIncludingThis(iface);
             }
         }
         break;
