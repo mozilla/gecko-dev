@@ -3161,8 +3161,6 @@ WebGLContext::ReadPixels(WebGLint x, WebGLint y, WebGLsizei width,
     WebGLsizei framebufferHeight = framebufferRect ? framebufferRect->Height() : 0;
 
     void* data = pixels->Data();
-    uint32_t dataByteLen = JS_GetTypedArrayByteLength(pixels->Obj());
-    int dataType = JS_GetArrayBufferViewType(pixels->Obj());
 
     uint32_t channels = 0;
 
@@ -3200,6 +3198,8 @@ WebGLContext::ReadPixels(WebGLint x, WebGLint y, WebGLsizei width,
             return ErrorInvalidEnum("readPixels: Bad type");
     }
 
+    int dataType = JS_GetArrayBufferViewType(pixels->Obj());
+
     // Check the pixels param type
     if (dataType != requiredDataType)
         return ErrorInvalidOperation("readPixels: Mismatched type/pixels types");
@@ -3216,6 +3216,7 @@ WebGLContext::ReadPixels(WebGLint x, WebGLint y, WebGLsizei width,
     if (!checked_neededByteLength.isValid())
         return ErrorInvalidOperation("readPixels: integer overflow computing the needed buffer size");
 
+    uint32_t dataByteLen = JS_GetTypedArrayByteLength(pixels->Obj());
     if (checked_neededByteLength.value() > dataByteLen)
         return ErrorInvalidOperation("readPixels: buffer too small");
 
