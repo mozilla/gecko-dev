@@ -3162,7 +3162,7 @@ WebGLContext::ReadPixels(WebGLint x, WebGLint y, WebGLsizei width,
 
     void* data = pixels->Data();
     uint32_t dataByteLen = JS_GetTypedArrayByteLength(pixels->Obj());
-    int dataType = JS_GetTypedArrayType(pixels->Obj());
+    int dataType = JS_GetArrayBufferViewType(pixels->Obj());
 
     uint32_t channels = 0;
 
@@ -4882,7 +4882,7 @@ WebGLContext::TexImage2D(WebGLenum target, WebGLint level,
     return TexImage2D_base(target, level, internalformat, width, height, 0, border, format, type,
                            pixels ? pixels->Data() : 0,
                            pixels ? pixels->Length() : 0,
-                           pixels ? (int)JS_GetTypedArrayType(pixels->Obj()) : -1,
+                           pixels ? (int)JS_GetArrayBufferViewType(pixels->Obj()) : -1,
                            WebGLTexelConversions::Auto, false);
 }
 
@@ -5036,7 +5036,7 @@ WebGLContext::TexSubImage2D(WebGLenum target, WebGLint level,
     return TexSubImage2D_base(target, level, xoffset, yoffset,
                               width, height, 0, format, type,
                               pixels->Data(), pixels->Length(),
-                              JS_GetTypedArrayType(pixels->Obj()),
+                              JS_GetArrayBufferViewType(pixels->Obj()),
                               WebGLTexelConversions::Auto, false);
 }
 
