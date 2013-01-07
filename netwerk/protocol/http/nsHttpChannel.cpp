@@ -3659,7 +3659,15 @@ nsHttpChannel::InitOfflineCacheEntry()
     }
 
     if (!mResponseHead || mResponseHead->NoStore()) {
+        if (mResponseHead->NoStore()) {
+            mOfflineCacheEntry->AsyncDoom(nullptr);
+        }
+
         CloseOfflineCacheEntry();
+
+        if (mResponseHead->NoStore()) {
+            return NS_ERROR_NOT_AVAILABLE;
+        }
 
         return NS_OK;
     }
