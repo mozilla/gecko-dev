@@ -164,6 +164,7 @@ class nsMainThreadPtrHandle
   nsMainThreadPtrHandle(const nsMainThreadPtrHandle& aOther) : mPtr(aOther.mPtr) {}
   nsMainThreadPtrHandle& operator=(const nsMainThreadPtrHandle& aOther) {
     mPtr = aOther.mPtr;
+    return *this;
   }
 
   operator nsMainThreadPtrHolder<T>*() { return mPtr.get(); }
