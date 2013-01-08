@@ -336,7 +336,10 @@ waitFor(
         # setup DNS fix for networking
         self._run_adb(['shell', 'setprop', 'net.dns1', '10.0.2.3'])
 
-    def setup(self, marionette, gecko_path=None):
+    def setup(self, marionette, gecko_path=None, busybox=None):
+        if busybox:
+            self.install_busybox(busybox)
+
         if gecko_path:
             self.install_gecko(gecko_path, marionette)
 
