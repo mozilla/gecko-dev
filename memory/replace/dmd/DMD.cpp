@@ -30,7 +30,7 @@
 #include "nscore.h"
 #include "nsStackWalk.h"
 
-#include "js/HashTable.h"
+#include "HashTable.h"
 #include "js/Vector.h"
 
 #include "mozilla/Assertions.h"
@@ -802,7 +802,7 @@ StackTrace::Get(Thread* aT)
     // more interesting stuff.  But in test mode we need to skip a bit less to
     // sufficiently differentiate some similar stacks.
     uint32_t skip = (gMode == Test) ? 2 : 3;
-    nsresult rv = NS_StackWalk(StackWalkCallback, skip, &tmp, 0, nullptr);
+    nsresult rv = NS_StackWalk(StackWalkCallback, skip, &tmp, 0);
     if (NS_FAILED(rv) || tmp.mLength == 0) {
       tmp.mLength = 0;
     }
