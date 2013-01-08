@@ -888,6 +888,8 @@ nsGonkCameraControl::StartRecordingImpl(StartRecordingTask* aStartRecording)
 
   if (mRecorder->start() != OK) {
     DOM_CAMERA_LOGE("mRecorder->start() failed\n");
+    // important: we MUST destroy the recorder if start() fails!
+    mRecorder = nullptr;
     return NS_ERROR_FAILURE;
   }
 
@@ -927,7 +929,6 @@ nsGonkCameraControl::StopRecordingImpl(StopRecordingTask* aStopRecording)
   NS_ENSURE_TRUE(mRecorder, NS_OK);
 
   mRecorder->stop();
-  delete mRecorder;
   mRecorder = nullptr;
 
   // notify DeviceStorage that the new video file is closed and ready

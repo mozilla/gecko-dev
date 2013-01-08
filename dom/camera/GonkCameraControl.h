@@ -106,7 +106,7 @@ protected:
   uint32_t                  mDiscardedFrameCount;
 
   android::MediaProfiles*   mMediaProfiles;
-  android::GonkRecorder*    mRecorder;
+  nsRefPtr<android::GonkRecorder> mRecorder;
 
   // camcorder profile settings for the desired quality level
   nsRefPtr<GonkRecorderProfileManager> mProfileManager;
