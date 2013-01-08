@@ -5641,6 +5641,12 @@ PurgePCCounts(JSContext *cx)
     ReleaseScriptCounts(rt->defaultFreeOp());
 }
 
+bool
+IsIncrementalBarrierNeededOnGCThing(js::gc::Cell *thing, JSGCTraceKind kind)
+{
+    return thing->compartment()->needsBarrier();
+}
+
 } /* namespace js */
 
 JS_PUBLIC_API(void)
