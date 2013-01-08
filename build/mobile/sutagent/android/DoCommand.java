@@ -107,7 +107,7 @@ public class DoCommand {
     String ffxProvider = "org.mozilla.ffxcp";
     String fenProvider = "org.mozilla.fencp";
 
-    private final String prgVersion = "SUTAgentAndroid Version 1.13";
+    private final String prgVersion = "SUTAgentAndroid Version 1.13.1";
 
     public enum Command
         {
@@ -3498,7 +3498,7 @@ private void CancelNotification()
             else
                 prgIntent.setAction(Intent.ACTION_MAIN);
 
-            if (sArgs[0].contains("fennec"))
+            if (sArgs[0].contains("fennec") || sArgs[0].contains("firefox"))
                 {
                 sArgList = "";
                 sUrl = "";
