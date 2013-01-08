@@ -79,6 +79,10 @@ public:
   }
 
   nsresult HandleShutdown();
+
+  // Return true if there is an ongoing file-transfer session, please see
+  // Bug 827267 for more information.
+  bool IsTransferring();
 private:
   BluetoothOppManager();
   void StartFileTransfer();
