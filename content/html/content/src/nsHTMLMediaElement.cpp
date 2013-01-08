@@ -3816,8 +3816,8 @@ void nsHTMLMediaElement::UpdateAudioChannelPlayingState()
   bool playingThroughTheAudioChannel =
      (!mPaused &&
       (HasAttr(kNameSpaceID_None, nsGkAtoms::loop) ||
-      mReadyState >= nsIDOMHTMLMediaElement::HAVE_CURRENT_DATA &&
-      !IsPlaybackEnded()));
+       (mReadyState >= nsIDOMHTMLMediaElement::HAVE_CURRENT_DATA &&
+        !IsPlaybackEnded())));
   if (playingThroughTheAudioChannel != mPlayingThroughTheAudioChannel) {
     mPlayingThroughTheAudioChannel = playingThroughTheAudioChannel;
 
