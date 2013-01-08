@@ -554,19 +554,23 @@ namespace JSC {
         // pc relative loads (useful for loading from pools).
         void ldr_imm(int rd, ARMWord imm, Condition cc = AL)
         {
+#if defined(JS_METHODJIT_SPEW)
             char mnemonic[16];
             snprintf(mnemonic, 16, "ldr%s", nameCC(cc));
             js::JaegerSpew(js::JSpew_Insns,
                     IPFX    "%-15s %s, =0x%x @ (%d) (reusable pool entry)\n", MAYBE_PAD, mnemonic, nameGpReg(rd), imm, static_cast<int32_t>(imm));
+#endif
             m_buffer.putIntWithConstantInt(static_cast<ARMWord>(cc) | DTR | DT_LOAD | DT_UP | RN(ARMRegisters::pc) | RD(rd), imm, true);
         }
 
         void ldr_un_imm(int rd, ARMWord imm, Condition cc = AL)
         {
+#if defined(JS_METHODJIT_SPEW)
             char mnemonic[16];
             snprintf(mnemonic, 16, "ldr%s", nameCC(cc));
             js::JaegerSpew(js::JSpew_Insns,
                     IPFX    "%-15s %s, =0x%x @ (%d)\n", MAYBE_PAD, mnemonic, nameGpReg(rd), imm, static_cast<int32_t>(imm));
+#endif
             m_buffer.putIntWithConstantInt(static_cast<ARMWord>(cc) | DTR | DT_LOAD | DT_UP | RN(ARMRegisters::pc) | RD(rd), imm);
         }
 
@@ -1374,6 +1378,7 @@ namespace JSC {
 
         void spewInsWithOp2(char const * ins, Condition cc, int rd, int rn, ARMWord op2)
         {
+#if defined(JS_METHODJIT_SPEW)
             char    mnemonic[16];
             snprintf(mnemonic, 16, "%s%s", ins, nameCC(cc));
 
@@ -1382,10 +1387,12 @@ namespace JSC {
 
             js::JaegerSpew(js::JSpew_Insns,
                     IPFX   "%-15s %s, %s, %s\n", MAYBE_PAD, mnemonic, nameGpReg(rd), nameGpReg(rn), op2_fmt);
+#endif
         }
 
         void spewInsWithOp2(char const * ins, Condition cc, int r, ARMWord op2)
         {
+#if defined(JS_METHODJIT_SPEW)
             char    mnemonic[16];
             snprintf(mnemonic, 16, "%s%s", ins, nameCC(cc));
 
@@ -1394,6 +1401,7 @@ namespace JSC {
 
             js::JaegerSpew(js::JSpew_Insns,
                     IPFX   "%-15s %s, %s\n", MAYBE_PAD, mnemonic, nameGpReg(r), op2_fmt);
+#endif
         }
 
         ARMWord RM(int reg)
