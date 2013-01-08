@@ -5941,6 +5941,12 @@ AutoMaybeTouchDeadCompartments::~AutoMaybeTouchDeadCompartments()
     runtime->gcManipulatingDeadCompartments = manipulatingDeadCompartments;
 }
 
+bool
+IsIncrementalBarrierNeededOnGCThing(js::gc::Cell *thing, JSGCTraceKind kind)
+{
+    return thing->compartment()->needsBarrier();
+}
+
 } /* namespace js */
 
 JS_PUBLIC_API(void)
