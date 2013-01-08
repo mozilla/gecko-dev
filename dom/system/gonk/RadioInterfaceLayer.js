@@ -1126,15 +1126,6 @@ RadioInterfaceLayer.prototype = {
       return;
     }
 
-    if (!this.dataCallSettings["enabled"] && this.dataNetworkInterface.connected) {
-      debug("Data call settings: disconnect data call.");
-      this.dataNetworkInterface.disconnect();
-      return;
-    }
-    if (!this.dataCallSettings["enabled"] || this.dataNetworkInterface.connected) {
-      debug("Data call settings: nothing to do.");
-      return;
-    }
     let dataInfo = this.rilContext.data;
     let isRegistered =
       dataInfo.state == RIL.GECKO_MOBILE_CONNECTION_STATE_REGISTERED;
@@ -1143,6 +1134,18 @@ RadioInterfaceLayer.prototype = {
     if (!isRegistered || !haveDataConnection) {
       debug("RIL is not ready for data connection: Phone's not registered " +
             "or doesn't have data connection.");
+      return;
+    }
+
+    if (this.dataNetworkInterface.connected &&
+        (!this.dataCallSettings["enabled"] ||
+         (dataInfo.roaming && !this.dataCallSettings["roaming_enabled"]))) {
+      debug("Data call settings: disconnect data call.");
+      this.dataNetworkInterface.disconnect();
+      return;
+    }
+    if (!this.dataCallSettings["enabled"] || this.dataNetworkInterface.connected) {
+      debug("Data call settings: nothing to do.");
       return;
     }
     if (dataInfo.roaming && !this.dataCallSettings["roaming_enabled"]) {
