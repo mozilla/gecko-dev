@@ -1186,25 +1186,20 @@ public:
   }
   virtual int64_t GetLength() {
     MutexAutoLock lock(mLock);
-    if (mInput) {
-      EnsureSizeInitialized();
-    }
+
+    EnsureSizeInitialized();
     return mSizeInitialized ? mSize : 0;
   }
   virtual int64_t GetNextCachedData(int64_t aOffset)
   {
     MutexAutoLock lock(mLock);
-    if (!mInput) {
-      return -1;
-    }
+
     EnsureSizeInitialized();
     return (aOffset < mSize) ? aOffset : -1;
   }
   virtual int64_t GetCachedDataEnd(int64_t aOffset) {
     MutexAutoLock lock(mLock);
-    if (!mInput) {
-      return aOffset;
-    }
+
     EnsureSizeInitialized();
     return NS_MAX(aOffset, mSize);
   }
@@ -1241,9 +1236,7 @@ private:
   nsCOMPtr<nsISeekableStream> mSeekable;
 
   // Input stream for the media data. This can be used from any
-  // thread. This is annulled when the decoder is being shutdown.
-  // The decoder can be shut down while we're calculating buffered
-  // ranges or seeking, so this must be null-checked before it's used.
+  // thread.
   nsCOMPtr<nsIInputStream>  mInput;
 
   // Whether we've attempted to initialize mSize. Note that mSize can be -1
@@ -1295,9 +1288,7 @@ void FileMediaResource::EnsureSizeInitialized()
 nsresult FileMediaResource::GetCachedRanges(nsTArray<MediaByteRange>& aRanges)
 {
   MutexAutoLock lock(mLock);
-  if (!mInput) {
-    return NS_ERROR_FAILURE;
-  }
+
   EnsureSizeInitialized();
   if (mSize == -1) {
     return NS_ERROR_FAILURE;
@@ -1361,12 +1352,11 @@ nsresult FileMediaResource::Close()
 {
   NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
 
-  MutexAutoLock lock(mLock);
+  // Since mChennel is only accessed by main thread, there is no necessary to
+  // take the lock.
   if (mChannel) {
     mChannel->Cancel(NS_ERROR_PARSED_DATA_CACHED);
     mChannel = nullptr;
-    mInput = nullptr;
-    mSeekable = nullptr;
   }
 
   return NS_OK;
@@ -1413,8 +1403,7 @@ MediaResource* FileMediaResource::CloneData(nsMediaDecoder* aDecoder)
 nsresult FileMediaResource::ReadFromCache(char* aBuffer, int64_t aOffset, uint32_t aCount)
 {
   MutexAutoLock lock(mLock);
-  if (!mInput || !mSeekable)
-    return NS_ERROR_FAILURE;
+
   EnsureSizeInitialized();
   int64_t offset = 0;
   nsresult res = mSeekable->Tell(&offset);
@@ -1443,8 +1432,7 @@ nsresult FileMediaResource::ReadFromCache(char* aBuffer, int64_t aOffset, uint32
 nsresult FileMediaResource::Read(char* aBuffer, uint32_t aCount, uint32_t* aBytes)
 {
   MutexAutoLock lock(mLock);
-  if (!mInput)
-    return NS_ERROR_FAILURE;
+
   EnsureSizeInitialized();
   return mInput->Read(aBuffer, aCount, aBytes);
 }
