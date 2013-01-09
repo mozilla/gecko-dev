@@ -3277,12 +3277,6 @@ js_InitStringClass(JSContext *cx, HandleObject obj)
         return NULL;
     }
 
-    /* Capture normal data properties pregenerated for String objects. */
-    TypeObject *type = proto->getNewType(cx);
-    if (!type)
-        return NULL;
-    AddTypeProperty(cx, type, "length", Type::Int32Type());
-
     if (!DefineConstructorAndPrototype(cx, global, JSProto_String, ctor, proto))
         return NULL;
 
