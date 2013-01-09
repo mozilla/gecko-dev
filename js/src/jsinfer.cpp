@@ -5700,6 +5700,18 @@ JSObject::getNewType(JSContext *cx, JSFunction *fun_, bool isDOM)
         type->flags |= OBJECT_FLAG_UNKNOWN_MASK;
 #endif
 
+    if (self->isRegExp()) {
+        AddTypeProperty(cx, type, "source", types::Type::StringType());
+        AddTypeProperty(cx, type, "global", types::Type::BooleanType());
+        AddTypeProperty(cx, type, "ignoreCase", types::Type::BooleanType());
+        AddTypeProperty(cx, type, "multiline", types::Type::BooleanType());
+        AddTypeProperty(cx, type, "sticky", types::Type::BooleanType());
+        AddTypeProperty(cx, type, "lastIndex", types::Type::Int32Type());
+    }
+
+    if (self->isString())
+        AddTypeProperty(cx, type, "length", Type::Int32Type());
+
     if (self->getClass()->ext.equality)
         type->flags |= OBJECT_FLAG_SPECIAL_EQUALITY;
 
