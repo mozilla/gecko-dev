@@ -923,8 +923,10 @@ BluetoothHfpManager::SetupCIND(int aCallIndex, int aCallState,
         sStopSendingRingFlag = false;
 
         if (!mCLIP) {
-          MessageLoop::current()->PostTask(FROM_HERE,
-                                           new SendRingIndicatorTask(""));
+          MessageLoop::current()->
+            PostDelayedTask(FROM_HERE,
+                            new SendRingIndicatorTask(""),
+                            sRingInterval);
         } else {
           // Same logic as implementation in ril_worker.js
           int type = TOA_UNKNOWN;
@@ -933,8 +935,10 @@ BluetoothHfpManager::SetupCIND(int aCallIndex, int aCallState,
             type = TOA_INTERNATIONAL;
           }
 
-          MessageLoop::current()->PostTask(FROM_HERE,
-                                           new SendRingIndicatorTask(aNumber, type));
+          MessageLoop::current()->
+            PostDelayedTask(FROM_HERE,
+                            new SendRingIndicatorTask(aNumber, type),
+                            sRingInterval);
         }
       }
       break;
