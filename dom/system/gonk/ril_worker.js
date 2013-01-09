@@ -1792,7 +1792,10 @@ let RIL = {
   getPNN: function getPNN() {
     let pnn = [];
     function callback(options) {
-      let pnnElement = this.iccInfoPrivate.PNN = {};
+      let pnnElement = {
+        fullName: "",
+        shortName: ""
+      };
       let len = Buf.readUint32();
       let readLen = 0;
       while (len > readLen) {
