@@ -28,7 +28,6 @@
 #include "Layers.h"
 #include "FrameLayerBuilder.h"
 #include "nsDisplayList.h"
-#include "nsStyleChangeList.h"
 
 using mozilla::TimeStamp;
 using mozilla::TimeDuration;
@@ -252,8 +251,7 @@ ForceLayerRerendering(nsIFrame* aFrame, CommonElementAnimationData* aData)
 
 nsStyleContext*
 nsTransitionManager::UpdateThrottledStyle(dom::Element* aElement,
-                                          nsStyleContext* aParentStyle,
-                                          nsStyleChangeList& aChangeList)
+                                          nsStyleContext* aParentStyle)
 {
   NS_ASSERTION(GetElementTransitions(aElement,
                                      nsCSSPseudoElements::ePseudo_NotPseudoElement,
@@ -285,7 +283,6 @@ nsTransitionManager::UpdateThrottledStyle(dom::Element* aElement,
       mPresContext->AnimationManager()->EnsureStyleRuleFor(ea);
       curRule.mRule = ea->mStyleRule;
 
-      // FIXME: maybe not needed anymore:
       ForceLayerRerendering(primaryFrame, ea);
     } else if (curRule.mLevel == nsStyleSet::eTransitionSheet) {
       ElementTransitions *et =
@@ -295,7 +292,6 @@ nsTransitionManager::UpdateThrottledStyle(dom::Element* aElement,
       et->EnsureStyleRuleFor(mPresContext->RefreshDriver()->MostRecentRefresh());
       curRule.mRule = et->mStyleRule;
 
-      // FIXME: maybe not needed anymore:
       ForceLayerRerendering(primaryFrame, et);
     } else {
       curRule.mRule = ruleNode->GetRule();
@@ -308,21 +304,6 @@ nsTransitionManager::UpdateThrottledStyle(dom::Element* aElement,
 
   nsRefPtr<nsStyleContext> newStyle = mPresContext->PresShell()->StyleSet()->
     ResolveStyleForRules(aParentStyle, oldStyle, rules);
-
-  // We absolutely must call CalcStyleDifference in order to ensure the
-  // new context has all the structs cached that the old context had.
-  // We also need it for processing of the changes.
-  nsChangeHint styleChange =
-    oldStyle->CalcStyleDifference(newStyle, nsChangeHint(0));
-  // This isn't particularly dangerous, but I want to catch if it happens:
-  NS_ABORT_IF_FALSE(NS_IsHintSubset(styleChange,
-                                    NS_CombineHint(nsChangeHint_UpdateOpacityLayer,
-                                      NS_CombineHint(nsChangeHint_UpdateTransformLayer,
-                                                     nsChangeHint_UpdateOverflow))),
-                    "unexpected change hint");
-  aChangeList.AppendChange(primaryFrame, primaryFrame->GetContent(),
-                           styleChange);
-
   primaryFrame->SetStyleContextWithoutNotification(newStyle);
 
   ReparentBeforeAndAfter(aElement, primaryFrame, newStyle, mPresContext->PresShell()->StyleSet());
@@ -332,8 +313,7 @@ nsTransitionManager::UpdateThrottledStyle(dom::Element* aElement,
 
 void
 nsTransitionManager::UpdateThrottledStylesForSubtree(nsIContent* aContent,
-                                                     nsStyleContext* aParentStyle,
-                                                     nsStyleChangeList& aChangeList)
+                                                     nsStyleContext* aParentStyle)
 {
   dom::Element* element;
   if (aContent->IsElement()) {
@@ -350,7 +330,7 @@ nsTransitionManager::UpdateThrottledStylesForSubtree(nsIContent* aContent,
                                   nsCSSPseudoElements::ePseudo_NotPseudoElement,
                                   false))) {
     // re-resolve our style
-    newStyle = UpdateThrottledStyle(element, aParentStyle, aChangeList);
+    newStyle = UpdateThrottledStyle(element, aParentStyle);
     // remove the current transition from the working set
     et->mFlushGeneration = mPresContext->RefreshDriver()->MostRecentRefresh();
   } else {
@@ -371,7 +351,7 @@ nsTransitionManager::UpdateThrottledStylesForSubtree(nsIContent* aContent,
   if (newStyle) {
     for (nsIContent *child = aContent->GetFirstChild(); child;
          child = child->GetNextSibling()) {
-      UpdateThrottledStylesForSubtree(child, newStyle, aChangeList);
+      UpdateThrottledStylesForSubtree(child, newStyle);
     }
   }
 }
@@ -392,8 +372,6 @@ nsTransitionManager::UpdateAllThrottledStyles()
 
   mPresContext->TickLastUpdateThrottledStyle();
   TimeStamp now = mPresContext->RefreshDriver()->MostRecentRefresh();
-
-  nsStyleChangeList changeList;
 
   // update each transitioning element by finding its root-most ancestor with a
   // transition, and flushing the style on that ancestor and all its descendants
@@ -431,12 +409,9 @@ nsTransitionManager::UpdateAllThrottledStyles()
     if (element &&
         (primaryFrame = element->GetPrimaryFrame())) {
       UpdateThrottledStylesForSubtree(element,
-        primaryFrame->GetStyleContext()->GetParent(), changeList);
+        primaryFrame->GetStyleContext()->GetParent());
     }
   }
-
-  mPresContext->PresShell()->FrameConstructor()->
-    ProcessRestyledFrames(changeList);
 }
 
 already_AddRefed<nsIStyleRule>

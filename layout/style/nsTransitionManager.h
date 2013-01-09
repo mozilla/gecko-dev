@@ -219,14 +219,12 @@ private:
   // If the element has a transition, it is flushed back to its primary frame.
   // If the element does not have a transition, then its style is reparented.
   void UpdateThrottledStylesForSubtree(nsIContent* aContent,
-                                       nsStyleContext* aParentStyle,
-                                       nsStyleChangeList &aChangeList);
+                                       nsStyleContext* aParentStyle);
   // Update the style on aElement from the transition stored in this manager and
   // the new parent style - aParentStyle. aElement must be transitioning or
   // animated. Returns the updated style.
   nsStyleContext* UpdateThrottledStyle(mozilla::dom::Element* aElement,
-                                       nsStyleContext* aParentStyle,
-                                       nsStyleChangeList &aChangeList);
+                                       nsStyleContext* aParentStyle);
 };
 
 #endif /* !defined(nsTransitionManager_h_) */
