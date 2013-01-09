@@ -95,20 +95,20 @@ VolumeManager::SetState(STATE aNewState)
 
 //static
 void
-VolumeManager::RegisterStateObserver(StateObserver* aObserver)
+VolumeManager::RegisterStateObserver(StateObserver *aObserver)
 {
   mStateObserverList.AddObserver(aObserver);
 }
 
 //static
-void VolumeManager::UnregisterStateObserver(StateObserver* aObserver)
+void VolumeManager::UnregisterStateObserver(StateObserver *aObserver)
 {
   mStateObserverList.RemoveObserver(aObserver);
 }
 
 //static
 TemporaryRef<Volume>
-VolumeManager::FindVolumeByName(const nsCSubstring& aName)
+VolumeManager::FindVolumeByName(const nsCSubstring &aName)
 {
   if (!sVolumeManager) {
     return NULL;
@@ -126,7 +126,7 @@ VolumeManager::FindVolumeByName(const nsCSubstring& aName)
 
 //static
 TemporaryRef<Volume>
-VolumeManager::FindAddVolumeByName(const nsCSubstring& aName)
+VolumeManager::FindAddVolumeByName(const nsCSubstring &aName)
 {
   RefPtr<Volume> vol = FindVolumeByName(aName);
   if (vol) {
@@ -140,7 +140,7 @@ VolumeManager::FindAddVolumeByName(const nsCSubstring& aName)
 
 class VolumeListCallback : public VolumeResponseCallback
 {
-  virtual void ResponseReceived(const VolumeCommand* aCommand)
+  virtual void ResponseReceived(const VolumeCommand *aCommand)
   {
     switch (ResponseCode()) {
       case ResponseCode::VolumeListResult: {
@@ -206,7 +206,7 @@ VolumeManager::OpenSocket()
 
 //static
 void
-VolumeManager::PostCommand(VolumeCommand* aCommand)
+VolumeManager::PostCommand(VolumeCommand *aCommand)
 {
   if (!sVolumeManager) {
     ERR("VolumeManager not initialized. Dropping command '%s'", aCommand->Data());
@@ -241,7 +241,7 @@ VolumeManager::WriteCommandData()
     return;
   }
 
-  VolumeCommand* cmd = mCommands.front();
+  VolumeCommand *cmd = mCommands.front();
   if (cmd->BytesRemaining() == 0) {
     // All bytes have been written. We're waiting for a response.
     return;
@@ -302,7 +302,7 @@ VolumeManager::OnFileCanReadWithoutBlocking(int aFd)
         // We found a line terminator. Each line is formatted as an
         // integer response code followed by the rest of the line.
         // Fish out the response code.
-        char* endPtr;
+        char *endPtr;
         int responseCode = strtol(mRcvBuf, &endPtr, 10);
         if (*endPtr == ' ') {
           endPtr++;
@@ -319,7 +319,7 @@ VolumeManager::OnFileCanReadWithoutBlocking(int aFd)
         } else {
           // Everything else is considered to be part of the command response.
           if (mCommands.size() > 0) {
-            VolumeCommand* cmd = mCommands.front();
+            VolumeCommand *cmd = mCommands.front();
             cmd->HandleResponse(responseCode, responseLine);
             if (responseCode >= ResponseCode::CommandOkay) {
               // That's a terminating response. We can remove the command.
@@ -353,7 +353,7 @@ VolumeManager::OnFileCanWriteWithoutBlocking(int aFd)
 }
 
 void
-VolumeManager::HandleBroadcast(int aResponseCode, nsCString& aResponseLine)
+VolumeManager::HandleBroadcast(int aResponseCode, nsCString &aResponseLine)
 {
   // Format of the line is something like:
   //

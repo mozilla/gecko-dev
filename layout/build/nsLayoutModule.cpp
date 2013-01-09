@@ -333,10 +333,6 @@ NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsITimeService,
 #ifdef MOZ_WIDGET_GONK
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsIGeolocationProvider,
                                          GonkGPSGeolocationProvider::GetSingleton)
-// Since the nsVolumeService constructor calls into nsIPowerManagerService,
-// we need it to be constructed sometime after nsIPowerManagerService.
-NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsVolumeService,
-                                         nsVolumeService::GetSingleton)
 #endif
 
 //-----------------------------------------------------------------------------
