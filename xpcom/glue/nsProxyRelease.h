@@ -116,7 +116,7 @@ public:
   ~nsMainThreadPtrHolder() {
     if (NS_IsMainThread()) {
       NS_IF_RELEASE(mRawPtr);
-    } else {
+    } else if (mRawPtr) {
       nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
       if (!mainThread) {
         NS_WARNING("Couldn't get main thread! Leaking pointer.");
