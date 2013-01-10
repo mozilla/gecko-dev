@@ -993,22 +993,22 @@ CompositorParent::TransformShadowTree(TimeStamp aCurrentFrame)
     // within the page boundaries.
     if (mContentRect.width * tempScaleDiffX < mWidgetSize.width) {
       offset.x = -metricsScrollOffset.x;
-      scaleDiff.height = NS_MIN(1.0f, mWidgetSize.width / (float)mContentRect.width);
+      scaleDiff.width = NS_MIN(1.0f, mWidgetSize.width / (float)mContentRect.width);
     } else {
       offset.x = clamped(mScrollOffset.x / tempScaleDiffX, (float)mContentRect.x,
                          mContentRect.XMost() - mWidgetSize.width / tempScaleDiffX) -
                  metricsScrollOffset.x;
-      scaleDiff.height = tempScaleDiffX;
+      scaleDiff.width = tempScaleDiffX;
     }
 
     if (mContentRect.height * tempScaleDiffY < mWidgetSize.height) {
       offset.y = -metricsScrollOffset.y;
-      scaleDiff.width = NS_MIN(1.0f, mWidgetSize.height / (float)mContentRect.height);
+      scaleDiff.height = NS_MIN(1.0f, mWidgetSize.height / (float)mContentRect.height);
     } else {
       offset.y = clamped(mScrollOffset.y / tempScaleDiffY, (float)mContentRect.y,
                          mContentRect.YMost() - mWidgetSize.height / tempScaleDiffY) -
                  metricsScrollOffset.y;
-      scaleDiff.width = tempScaleDiffY;
+      scaleDiff.height = tempScaleDiffY;
     }
 
     // The transform already takes the resolution scale into account.  Since we
