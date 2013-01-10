@@ -185,6 +185,8 @@ var gVolumeMountLock = null;
 XPCOMUtils.defineLazyGetter(this, "gExtStorage", function aus_gExtStorage() {
     return Services.env.get("EXTERNAL_STORAGE");
 });
+
+var gSDCardMountLock = null;
 #endif
 
 XPCOMUtils.defineLazyModuleGetter(this, "UpdateChannel",
