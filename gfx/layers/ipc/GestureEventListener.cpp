@@ -229,7 +229,7 @@ nsEventStatus GestureEventListener::HandlePinchGestureEvent(const MultiTouchInpu
                                      currentSpan,
                                      currentSpan);
 
-        mAsyncPanZoomController->ReceiveInputEvent(pinchEvent);
+        mAsyncPanZoomController->HandleInputEvent(pinchEvent);
 
         mState = GESTURE_PINCH;
       }
@@ -243,7 +243,7 @@ nsEventStatus GestureEventListener::HandlePinchGestureEvent(const MultiTouchInpu
                                    currentSpan,
                                    mPreviousSpan);
 
-      mAsyncPanZoomController->ReceiveInputEvent(pinchEvent);
+      mAsyncPanZoomController->HandleInputEvent(pinchEvent);
       break;
     }
     default:
@@ -261,7 +261,7 @@ nsEventStatus GestureEventListener::HandlePinchGestureEvent(const MultiTouchInpu
                                  1.0f,
                                  1.0f);
 
-    mAsyncPanZoomController->ReceiveInputEvent(pinchEvent);
+    mAsyncPanZoomController->HandleInputEvent(pinchEvent);
 
     mState = GESTURE_NONE;
 
@@ -278,19 +278,19 @@ nsEventStatus GestureEventListener::HandlePinchGestureEvent(const MultiTouchInpu
 nsEventStatus GestureEventListener::HandleSingleTapUpEvent(const MultiTouchInput& aEvent)
 {
   TapGestureInput tapEvent(TapGestureInput::TAPGESTURE_UP, aEvent.mTime, aEvent.mTouches[0].mScreenPoint);
-  return mAsyncPanZoomController->ReceiveInputEvent(tapEvent);
+  return mAsyncPanZoomController->HandleInputEvent(tapEvent);
 }
 
 nsEventStatus GestureEventListener::HandleSingleTapConfirmedEvent(const MultiTouchInput& aEvent)
 {
   TapGestureInput tapEvent(TapGestureInput::TAPGESTURE_CONFIRMED, aEvent.mTime, aEvent.mTouches[0].mScreenPoint);
-  return mAsyncPanZoomController->ReceiveInputEvent(tapEvent);
+  return mAsyncPanZoomController->HandleInputEvent(tapEvent);
 }
 
 nsEventStatus GestureEventListener::HandleLongTapEvent(const MultiTouchInput& aEvent)
 {
   TapGestureInput tapEvent(TapGestureInput::TAPGESTURE_LONG, aEvent.mTime, aEvent.mTouches[0].mScreenPoint);
-  return mAsyncPanZoomController->ReceiveInputEvent(tapEvent);
+  return mAsyncPanZoomController->HandleInputEvent(tapEvent);
 }
 
 nsEventStatus GestureEventListener::HandleTapCancel(const MultiTouchInput& aEvent)
@@ -317,7 +317,7 @@ nsEventStatus GestureEventListener::HandleTapCancel(const MultiTouchInput& aEven
 nsEventStatus GestureEventListener::HandleDoubleTap(const MultiTouchInput& aEvent)
 {
   TapGestureInput tapEvent(TapGestureInput::TAPGESTURE_DOUBLE, aEvent.mTime, aEvent.mTouches[0].mScreenPoint);
-  return mAsyncPanZoomController->ReceiveInputEvent(tapEvent);
+  return mAsyncPanZoomController->HandleInputEvent(tapEvent);
 }
 
 void GestureEventListener::TimeoutDoubleTap()
