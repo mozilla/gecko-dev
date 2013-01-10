@@ -681,6 +681,9 @@ protected:
   // True if unsafe rules should be allowed
   bool mUnsafeRulesEnabled : 1;
 
+  // True if viewport units should be allowed.
+  bool mViewportUnitsEnabled : 1;
+
   // True for parsing media lists for HTML attributes, where we have to
   // ignore CSS comments.
   bool mHTMLMediaMode : 1;
@@ -754,6 +757,7 @@ CSSParserImpl::CSSParserImpl()
     mHashlessColorQuirk(false),
     mUnitlessLengthQuirk(false),
     mUnsafeRulesEnabled(false),
+    mViewportUnitsEnabled(true),
     mHTMLMediaMode(false),
     mParsingCompoundProperty(false),
     mNextFree(nullptr)
@@ -2264,9 +2268,16 @@ CSSParserImpl::ParsePageRule(RuleAppendFunc aAppendFunc, void* aData)
   // TODO: There can be page selectors after @page such as ":first", ":left".
   uint32_t parseFlags = eParseDeclaration_InBraces |
                         eParseDeclaration_AllowImportant;
+
+  // Forbid viewport units in @page rules. See bug 811391.
+  NS_ABORT_IF_FALSE(mViewportUnitsEnabled,
+                    "Viewport units should be enabled outside of @page rules.");
+  mViewportUnitsEnabled = false;
   nsAutoPtr<css::Declaration> declaration(
                                 ParseDeclarationBlock(parseFlags,
                                                       eCSSContext_Page));
+  mViewportUnitsEnabled = true;
+
   if (!declaration) {
     return false;
   }
@@ -4505,6 +4516,16 @@ CSSParserImpl::TranslateDimension(nsCSSValue& aValue,
         type = UnitData[i].type;
         break;
       }
+    }
+
+    if (!mViewportUnitsEnabled &&
+        (eCSSUnit_ViewportWidth == units  ||
+         eCSSUnit_ViewportHeight == units ||
+         eCSSUnit_ViewportMin == units    ||
+         eCSSUnit_ViewportMax == units)) {
+      // Viewport units aren't allowed right now, probably because we're
+      // inside an @page declaration. Fail.
+      return false;
     }
 
     if (i == ArrayLength(UnitData)) {
