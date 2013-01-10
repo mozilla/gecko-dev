@@ -907,6 +907,21 @@ nsPermissionManager::TestExactPermissionFromPrincipal(nsIPrincipal* aPrincipal,
 {
   NS_ENSURE_ARG_POINTER(aPrincipal);
 
+  if (nsContentUtils::IsSystemPrincipal(aPrincipal)) {
+    *aPermission = nsIPermissionManager::ALLOW_ACTION;
+    return NS_OK;
+  }
+
+  return CommonTestPermission(aPrincipal, aType, aPermission, true, true);
+}
+
+NS_IMETHODIMP
+nsPermissionManager::TestExactPermanentPermission(nsIPrincipal* aPrincipal,
+                                                  const char* aType,
+                                                  uint32_t* aPermission)
+{
+  NS_ENSURE_ARG_POINTER(aPrincipal);
+
   // System principals do not have URI so we can't try to get
   // retro-compatibility here.
   if (nsContentUtils::IsSystemPrincipal(aPrincipal)) {
@@ -914,7 +929,7 @@ nsPermissionManager::TestExactPermissionFromPrincipal(nsIPrincipal* aPrincipal,
     return NS_OK;
   }
 
-  return CommonTestPermission(aPrincipal, aType, aPermission, true);
+  return CommonTestPermission(aPrincipal, aType, aPermission, true, false);
 }
 
 NS_IMETHODIMP
@@ -963,14 +978,15 @@ nsPermissionManager::TestPermissionFromPrincipal(nsIPrincipal* aPrincipal,
     return NS_OK;
   }
 
-  return CommonTestPermission(aPrincipal, aType, aPermission, false);
+  return CommonTestPermission(aPrincipal, aType, aPermission, false, true);
 }
 
 nsresult
 nsPermissionManager::CommonTestPermission(nsIPrincipal* aPrincipal,
                                           const char *aType,
                                           uint32_t   *aPermission,
-                                          bool        aExactHostMatch)
+                                          bool        aExactHostMatch,
+                                          bool        aIncludingSession)
 {
   NS_ENSURE_ARG_POINTER(aPrincipal);
   NS_ENSURE_ARG_POINTER(aType);
@@ -1014,9 +1030,16 @@ nsPermissionManager::CommonTestPermission(nsIPrincipal* aPrincipal,
 
   PermissionHashKey* entry = GetPermissionHashKey(host, appId, isInBrowserElement,
                                                   typeIndex, aExactHostMatch);
-  if (entry) {
-    *aPermission = entry->GetPermission(typeIndex).mPermission;
+  if (!entry ||
+      (!aIncludingSession &&
+       entry->GetPermission(typeIndex).mNonSessionExpireType ==
+         nsIPermissionManager::EXPIRE_SESSION)) {
+    return NS_OK;
   }
+
+  *aPermission = aIncludingSession
+                   ? entry->GetPermission(typeIndex).mPermission
+                   : entry->GetPermission(typeIndex).mNonSessionPermission;
 
   return NS_OK;
 }
