@@ -262,7 +262,7 @@ skip-if(B2G) include table-bordercollapse/reftest.list
 # table-dom/
 skip-if(B2G) include table-dom/reftest.list
 
-include tablskip-if(B2G) e-overflow/reftest.list
+skip-if(B2G) include table-overflow/reftest.list
 
 # table-width/
 skip-if(B2G) include table-width/reftest.list
