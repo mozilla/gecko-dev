@@ -113,7 +113,7 @@ public:
   }
 
   // We can be released on any thread.
-  ~nsMainThreadPtrHolder() {
+  virtual ~nsMainThreadPtrHolder() {
     if (NS_IsMainThread()) {
       NS_IF_RELEASE(mRawPtr);
     } else if (mRawPtr) {
