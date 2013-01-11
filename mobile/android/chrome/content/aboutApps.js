@@ -58,7 +58,7 @@ function onLoad(aEvent) {
     });
   AppsUI.uninstall = contextmenus.add(gStrings.GetStringFromName("appsContext.uninstall"), contextmenus.SelectorContext("div[mozApp]"),
     function(aTarget) {
-      aTarget.app.uninstall();
+      navigator.mozApps.mgmt.uninstall(aTarget.app);
 
       let manifest = aTarget.manifest;
       gChromeWin.sendMessageToJava({
