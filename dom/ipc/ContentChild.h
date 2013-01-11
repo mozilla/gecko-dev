@@ -17,7 +17,6 @@
 
 struct ChromePackage;
 class nsIDOMBlob;
-class nsDOMFileBase;
 class nsIObserver;
 struct ResourceMapping;
 struct OverrideMapping;
@@ -204,8 +203,6 @@ public:
 
     uint64_t GetID() { return mID; }
 
-    bool GetParamsForBlob(nsDOMFileBase* aBlob,
-                          BlobConstructorParams* aOutParams);
     BlobChild* GetOrCreateActorForBlob(nsIDOMBlob* aBlob);
 
 private:
