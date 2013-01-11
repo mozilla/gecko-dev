@@ -7,7 +7,7 @@
 
 #include "base/basictypes.h"
 #include "base/process.h"
-#include "mozilla/DebugOnly.h"
+#include "mozilla/Util.h"
 #include "nscore.h"
 
 #ifdef XP_WIN
