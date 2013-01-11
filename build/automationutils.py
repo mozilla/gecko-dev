@@ -386,8 +386,7 @@ def processSingleLeakFile(leakLogFileName, PID, processType, leakThreshold):
       log.info("INFO | automationutils.processLeakLog() | process %s was " \
                "deliberately crashed and thus has no leak log" % PID)
     else:
-      log.info("TEST-UNEXPECTED-FAIL %s| automationutils.processLeakLog() | missing output line for total leaks!" %
-             processString)
+      log.info("WARNING | automationutils.processLeakLog() | missing output line for total leaks!")
   leaks.close()
 
 
