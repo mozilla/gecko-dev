@@ -1330,7 +1330,7 @@ IDBObjectStore::ReadBlobOrFile(JSStructuredCloneReader* aReader,
   MOZ_ASSERT(aReader && aRetval);
   MOZ_ASSERT(aTag == SCTAG_DOM_FILE ||
              aTag == SCTAG_DOM_FILE_WITHOUT_LASTMODIFIEDDATE ||
-             aTag == SCTAG_DOM_FILE);
+             aTag == SCTAG_DOM_BLOB);
 
   aRetval->tag = aTag;
 
