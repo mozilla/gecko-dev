@@ -1135,9 +1135,8 @@ bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSa
                                             mAsyncScrollTimeout);
   }
 
-  nsIntPoint scrollCompensation(
-    ((scrollOffset / rootScale - metricsScrollOffset) * localScale)
-    .RoundedAwayFromZero());
+  gfxPoint scrollCompensation(
+    (scrollOffset / rootScale - metricsScrollOffset) * localScale);
   *aNewTransform = ViewTransform(-scrollCompensation, localScale);
 
   mLastSampleTime = aSampleTime;
