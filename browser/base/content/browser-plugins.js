@@ -295,7 +295,7 @@ var gPluginHandler = {
 
   activatePlugins: function PH_activatePlugins(aContentWindow) {
     let browser = gBrowser.getBrowserForDocument(aContentWindow.document);
-    browser._clickToPlayPluginsActivated = true;
+    browser._clickToPlayAllPluginsActivated = true;
     let cwu = aContentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                             .getInterface(Ci.nsIDOMWindowUtils);
     let plugins = cwu.plugins;
@@ -404,7 +404,9 @@ var gPluginHandler = {
     let pluginsPermission = Services.perms.testPermission(browser.currentURI, "plugins");
     let overlay = doc.getAnonymousElementByAttribute(aPlugin, "class", "mainBox");
 
-    if (browser._clickToPlayPluginsActivated) {
+    let pluginInfo = getPluginInfo(aPlugin);
+    if (browser._clickToPlayAllPluginsActivated ||
+        browser._clickToPlayPluginsActivated.get(pluginInfo.pluginName)) {
       let objLoadingContent = aPlugin.QueryInterface(Ci.nsIObjectLoadingContent);
       objLoadingContent.playPlugin();
       return;
@@ -553,6 +555,7 @@ var gPluginHandler = {
           for (let objLoadingContent of plugins) {
             objLoadingContent.playPlugin();
           }
+          aBrowser._clickToPlayPluginsActivated.set(this.message, true);
 
           let notification = PopupNotifications.getNotification("click-to-play-plugins", aBrowser);
           if (notification &&

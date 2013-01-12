@@ -4511,7 +4511,8 @@ var TabsProgressListener = {
       // or history.push/pop/replaceState.
       if (aRequest) {
         // Initialize the click-to-play state.
-        aBrowser._clickToPlayPluginsActivated = false;
+        aBrowser._clickToPlayPluginsActivated = new Map();
+        aBrowser._clickToPlayAllPluginsActivated = false;
         aBrowser._pluginScriptedState = PLUGIN_SCRIPTED_STATE_NONE;
       }
       FullZoom.onLocationChange(aLocationURI, false, aBrowser);
