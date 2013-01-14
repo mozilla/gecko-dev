@@ -3661,7 +3661,7 @@ nsHttpChannel::InitOfflineCacheEntry()
     if (!mResponseHead || mResponseHead->NoStore()) {
         CloseOfflineCacheEntry();
 
-        if (mResponseHead->NoStore()) {
+        if (mResponseHead && mResponseHead->NoStore()) {
             return NS_ERROR_NOT_AVAILABLE;
         }
 
