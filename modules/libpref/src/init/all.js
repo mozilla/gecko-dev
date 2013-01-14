@@ -196,7 +196,7 @@ pref("media.video-queue.default-size", 10);
 //   <= 0 : hidpi mode disabled, display will just use pixel-based upscaling
 //   == 1 : hidpi supported if all screens share the same backingScaleFactor
 //   >= 2 : hidpi supported even with mixed backingScaleFactors (somewhat broken)
-pref("gfx.hidpi.enabled", 2);
+pref("gfx.hidpi.enabled", 1);
 #endif
 
 // 0 = Off, 1 = Full, 2 = Tagged Images Only. 
