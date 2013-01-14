@@ -23,7 +23,7 @@ static const float MAX_EVENT_ACCELERATION = 999.0f;
 /**
  * Amount of friction applied during flings.
  */
-static const float FLING_FRICTION = 0.006f;
+static const float FLING_FRICTION = 0.007f;
 
 /**
  * Threshold for velocity beneath which we turn off any acceleration we had
@@ -128,7 +128,7 @@ bool Axis::FlingApplyFrictionOrCancel(const TimeDuration& aDelta) {
     mVelocity = 0.0f;
     return false;
   } else {
-    mVelocity *= pow(1.0f - FLING_FRICTION, aDelta.ToMilliseconds());
+    mVelocity *= NS_MAX(1.0f - FLING_FRICTION * aDelta.ToMilliseconds(), 0.0);
   }
   return true;
 }
