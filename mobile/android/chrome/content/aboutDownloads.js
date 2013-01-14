@@ -195,7 +195,7 @@ let Downloads = {
       this.logError("_moveDownloadAfterActive() " + ex);
     }
   },
-  
+
   _inProgress: function dl_inProgress(aState) {
     return [
       this._dlmgr.DOWNLOAD_NOTSTARTED,
@@ -229,7 +229,7 @@ let Downloads = {
     else
       return gStrings.GetStringFromName("downloadState.unknownSize");
   },
-  
+
   // Not all states are displayed as-is on mobile, some are translated to a generic state
   _getState: function dl_getState(aState) {
     let str;
@@ -239,7 +239,7 @@ let Downloads = {
       case this._dlmgr.DOWNLOAD_SCANNING:
         str = this._dlmgr.DOWNLOAD_DOWNLOADING;
         break;
-        
+
       // Failed, Dirty and Blocked states show up as "Failed"
       case this._dlmgr.DOWNLOAD_FAILED:
       case this._dlmgr.DOWNLOAD_DIRTY:
@@ -247,17 +247,17 @@ let Downloads = {
       case this._dlmgr.DOWNLOAD_BLOCKED_PARENTAL:
         str = this._dlmgr.DOWNLOAD_FAILED;
         break;
-        
-      /* QUEUED and NOTSTARTED are not translated as they 
+
+      /* QUEUED and NOTSTARTED are not translated as they
          dont fall under a common state but we still need
          to display a common "status" on the UI */
-         
+
       default:
         str = aState;
     }
     return str;
   },
-  
+
   // Note: This doesn't cover all states as some of the states are translated in _getState()
   _getStateString: function dl_getStateString(aState) {
     let str;
@@ -274,13 +274,13 @@ let Downloads = {
       case this._dlmgr.DOWNLOAD_PAUSED:
         str = "downloadState.paused";
         break;
-        
+
       // Queued and Notstarted show up as "Starting..."
       case this._dlmgr.DOWNLOAD_QUEUED:
       case this._dlmgr.DOWNLOAD_NOTSTARTED:
         str = "downloadState.starting";
         break;
-        
+
       default:
         return "";
     }
@@ -410,10 +410,10 @@ let Downloads = {
     // Make sure we have an item to remove
     if (!aItem)
       return;
-  
+
     aItem.parentNode.removeChild(aItem);
   },
-  
+
   openDownload: function dl_openDownload(aItem) {
     this._getDownloadForElement(aItem, function(aDownload) {
       try {
