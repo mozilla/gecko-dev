@@ -141,6 +141,7 @@
 #include "nsIDOMCSSRule.h"
 #include "nsICSSRuleList.h"
 #include "nsIDOMRect.h"
+#include "nsIDOMCSSValueList.h"
 #include "nsDOMCSSAttrDeclaration.h"
 
 // XBL related includes.
@@ -991,6 +992,8 @@ static nsDOMClassInfoData sClassInfoData[] = {
   NS_DEFINE_CLASSINFO_DATA(StyleSheetList, nsStyleSheetListSH,
                            ARRAY_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(CSSStyleSheet, nsDOMGenericSH,
+                           DOM_DEFAULT_SCRIPTABLE_FLAGS)
+  NS_DEFINE_CLASSINFO_DATA(CSSValueList, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
 
   // Range classes
@@ -2867,6 +2870,9 @@ nsDOMClassInfo::Init()
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMCSSStyleSheet)
   DOM_CLASSINFO_MAP_END
 
+  DOM_CLASSINFO_MAP_BEGIN(CSSValueList, nsIDOMCSSValueList)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMCSSValueList)
+  DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN_NO_CLASS_IF(CSSRect, nsIDOMRect)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMRect)
