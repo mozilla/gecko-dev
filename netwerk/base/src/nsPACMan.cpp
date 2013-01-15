@@ -21,6 +21,19 @@
 using namespace mozilla;
 using namespace mozilla::net;
 
+#include "prlog.h"
+#if defined(PR_LOGGING)
+static PRLogModuleInfo *
+GetProxyLog()
+{
+    static PRLogModuleInfo *sLog;
+    if (!sLog)
+        sLog = PR_NewLogModule("proxy");
+    return sLog;
+}
+#endif
+#define LOG(args) PR_LOG(GetProxyLog(), PR_LOG_DEBUG, args)
+
 // The PAC thread does evaluations of both PAC files and
 // nsISystemProxySettings because they can both block the calling thread and we
 // don't want that on the main thread
@@ -269,16 +282,6 @@ nsPACMan::~nsPACMan()
       NS_DispatchToMainThread(runnable, NS_DISPATCH_NORMAL);
     }
   }
-  if (!NS_IsMainThread()) {
-    nsCOMPtr<nsIThread> mainThread;
-    NS_GetMainThread(getter_AddRefs(mainThread));
-
-    if (mPACURI) {
-      nsIURI *forgettable;
-      mPACURI.forget(&forgettable);
-      NS_ProxyRelease(mainThread, forgettable, false);
-    }
-  }
 
   NS_ASSERTION(mLoader == nullptr, "pac man not shutdown properly");
   NS_ASSERTION(mPendingQ.isEmpty(), "pac man not shutdown properly");
@@ -302,9 +305,9 @@ nsPACMan::AsyncGetProxyForURI(nsIURI *uri, nsPACManCallback *callback,
     return NS_ERROR_NOT_AVAILABLE;
 
   // Maybe Reload PAC
-  if (mPACURI && !mScheduledReload.IsNull() &&
+  if (!mPACURISpec.IsEmpty() && !mScheduledReload.IsNull() &&
       TimeStamp::Now() > mScheduledReload)
-    LoadPACFromURI(nullptr);
+    LoadPACFromURI(EmptyCString());
 
   nsRefPtr<PendingPACQuery> query =
     new PendingPACQuery(this, uri, callback, mainThreadResponse);
@@ -336,10 +339,10 @@ nsPACMan::PostQuery(PendingPACQuery *query)
 }
 
 nsresult
-nsPACMan::LoadPACFromURI(nsIURI *pacURI)
+nsPACMan::LoadPACFromURI(const nsCString &spec)
 {
   NS_ENSURE_STATE(!mShutdown);
-  NS_ENSURE_ARG(pacURI || mPACURI);
+  NS_ENSURE_ARG(!spec.IsEmpty() || !mPACURISpec.IsEmpty());
 
   nsCOMPtr<nsIStreamLoader> loader =
       do_CreateInstance(NS_STREAMLOADER_CONTRACTID);
@@ -363,9 +366,9 @@ nsPACMan::LoadPACFromURI(nsIURI *pacURI)
   CancelExistingLoad();
 
   mLoader = loader;
-  if (pacURI) {
-    mPACURI = pacURI;
-    mPACURI->GetSpec(mPACURISpec);
+  if (!spec.IsEmpty()) {
+    mPACURISpec = spec;
+    mPACURIRedirectSpec.Truncate();
     mLoadFailureCount = 0;  // reset
   }
 
@@ -391,9 +394,17 @@ nsPACMan::StartLoading()
     nsCOMPtr<nsIIOService> ios = do_GetIOService();
     if (ios) {
       nsCOMPtr<nsIChannel> channel;
+      nsCOMPtr<nsIURI> pacURI;
+      NS_NewURI(getter_AddRefs(pacURI), mPACURISpec);
 
       // NOTE: This results in GetProxyForURI being called
-      ios->NewChannelFromURI(mPACURI, getter_AddRefs(channel));
+      if (pacURI) {
+        ios->NewChannelFromURI(pacURI, getter_AddRefs(channel));
+      }
+      else {
+        LOG(("nsPACMan::StartLoading Failed pacspec uri conversion %s\n",
+             mPACURISpec.get()));
+      }
 
       if (channel) {
         channel->SetLoadFlags(nsIRequest::LOAD_BYPASS_CACHE);
@@ -495,29 +506,6 @@ nsPACMan::ProcessPendingQ()
     mPAC.Shutdown();
 }
 
-// this is to workaround bug 815783 and is not a general
-// purpose solution. It is intended to only be applied to gecko 18
-static nsresult
-WorkaroundFileLocalhostURL(nsACString &aURI)
-{
-  // only deal with file://
-  if (!StringBeginsWith(aURI, NS_LITERAL_CSTRING("file://")))
-    return NS_OK;
-
-  // file://localhost/foo -> file:///foo
-  if (StringBeginsWith(aURI, NS_LITERAL_CSTRING("file://localhost/"))) {
-    aURI.Replace(0, 17, NS_LITERAL_CSTRING("file:///"));
-    return NS_OK;
-  }
-  
-  // file://?:/foo -> file:///foo
-  if (aURI.Length() >= 10 && aURI.CharAt(8) == ':' && aURI.CharAt(9) == '/') {
-    aURI.Replace(0, 10, NS_LITERAL_CSTRING("file:///"));
-  }
-      
-  return NS_OK;
-}
-
 // returns true if progress was made by shortening the queue
 bool
 nsPACMan::ProcessPending()
@@ -546,7 +534,6 @@ nsPACMan::ProcessPending()
   if (mSystemProxySettings &&
       NS_SUCCEEDED(mSystemProxySettings->GetPACURI(PACURI)) &&
       !PACURI.IsEmpty() &&
-      NS_SUCCEEDED(WorkaroundFileLocalhostURL(PACURI)) && // bug 815783 for Gecko 18 only
       !PACURI.Equals(mPACURISpec)) {
     query->UseAlternatePACFile(PACURI);
     completed = true;
@@ -666,9 +653,25 @@ nsPACMan::AsyncOnChannelRedirect(nsIChannel *oldChannel, nsIChannel *newChannel,
                                  uint32_t flags,
                                  nsIAsyncVerifyRedirectCallback *callback)
 {
+  NS_ABORT_IF_FALSE(NS_IsMainThread(), "wrong thread");
+  
   nsresult rv = NS_OK;
-  if (NS_FAILED((rv = newChannel->GetURI(getter_AddRefs(mPACURI)))))
+  nsCOMPtr<nsIURI> pacURI;
+  if (NS_FAILED((rv = newChannel->GetURI(getter_AddRefs(pacURI)))))
       return rv;
+
+  rv = pacURI->GetSpec(mPACURIRedirectSpec);
+  if (NS_FAILED(rv))
+      return rv;
+
+  LOG(("nsPACMan redirect from original %s to redirected %s\n",
+       mPACURISpec.get(), mPACURIRedirectSpec.get()));
+
+  // do not update mPACURISpec - that needs to stay as the
+  // configured URI so that we can determine when the config changes.
+  // However do track the most recent URI in the redirect change
+  // as mPACURIRedirectSpec so that URI can be allowed to bypass
+  // the proxy and actually fetch the pac file.
 
   callback->OnRedirectVerifyCallback(NS_OK);
   return NS_OK;
