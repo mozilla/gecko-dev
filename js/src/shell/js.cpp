@@ -5231,6 +5231,13 @@ JSSecurityCallbacks securityCallbacks = {
     NULL
 };
 
+/* Pretend we can always preserve wrappers for dummy DOM objects. */
+static bool
+DummyPreserveWrapperCallback(JSContext *cx, JSObject *obj)
+{
+    return true;
+}
+
 int
 main(int argc, char **argv, char **envp)
 {
@@ -5396,6 +5403,8 @@ main(int argc, char **argv, char **envp)
 #ifdef JS_GC_ZEAL
     JS_SetGCZeal(cx, 0, 0);
 #endif
+
+    js::SetPreserveWrapperCallback(rt, DummyPreserveWrapperCallback);
 
     /* Must be done before creating the global object */
     if (op.getBoolOption('D'))
