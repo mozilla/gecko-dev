@@ -235,10 +235,10 @@ static bool
 DoesNotParticipateInAutoDirection(const Element* aElement)
 {
   nsINodeInfo* nodeInfo = aElement->NodeInfo();
-  return (aElement->IsHTML() &&
-          (nodeInfo->Equals(nsGkAtoms::script) ||
-           nodeInfo->Equals(nsGkAtoms::style) ||
-           nodeInfo->Equals(nsGkAtoms::textarea)));
+  return (!aElement->IsHTML() ||
+          nodeInfo->Equals(nsGkAtoms::script) ||
+          nodeInfo->Equals(nsGkAtoms::style) ||
+          nodeInfo->Equals(nsGkAtoms::textarea));
 }
 
 /**
@@ -631,21 +631,33 @@ WalkDescendantsResetAutoDirection(Element* aElement)
 void
 WalkDescendantsSetDirAuto(Element* aElement, bool aNotify)
 {
-  bool setAncestorDirAutoFlag =
+  if (!DoesNotParticipateInAutoDirection(aElement) &&
+      !aElement->IsHTML(nsGkAtoms::bdi)) {
+
+    bool setAncestorDirAutoFlag =
 #ifdef DEBUG
-    true;
+      true;
 #else
-    !aElement->AncestorHasDirAuto();
+      !aElement->AncestorHasDirAuto();
 #endif
 
-  if (setAncestorDirAutoFlag) {
-    nsIContent* child = aElement->GetFirstChild();
-    while (child) {
-      MOZ_ASSERT(!aElement->AncestorHasDirAuto() ||
-                 child->AncestorHasDirAuto(),
-                 "AncestorHasDirAuto set on node but not its children");
-      child->SetHasDirAuto();
-      child = child->GetNextNode(aElement);
+    if (setAncestorDirAutoFlag) {
+      nsIContent* child = aElement->GetFirstChild();
+      while (child) {
+        if (child->IsElement() &&
+            (DoesNotParticipateInAutoDirection(child->AsElement()) ||
+             child->NodeInfo()->Equals(nsGkAtoms::bdi) ||
+             child->HasFixedDir())) {
+          child = child->GetNextNonChildNode(aElement);
+          continue;
+        }
+
+        MOZ_ASSERT(!aElement->AncestorHasDirAuto() ||
+                   child->AncestorHasDirAuto(),
+                   "AncestorHasDirAuto set on node but not its children");
+        child->SetHasDirAuto();
+        child = child->GetNextNode(aElement);
+      }
     }
   }
 
