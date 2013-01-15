@@ -304,6 +304,7 @@ public:
   already_AddRefed<nsIDOMSVGAnimatedString> ClassName();
   nsICSSDeclaration* GetStyle(mozilla::ErrorResult& rv);
   already_AddRefed<mozilla::dom::CSSValue> GetPresentationAttribute(const nsAString& aName, mozilla::ErrorResult& rv);
+  static bool PrefEnabled();
 protected:
   virtual JSObject* WrapNode(JSContext *cx, JSObject *scope, bool *triedToWrap);
 
