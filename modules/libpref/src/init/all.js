@@ -3878,3 +3878,7 @@ pref("dom.browserElement.maxScreenshotDelayMS", 2000);
 // tentatively deciding the gesture is actually a tap and activating
 // the target element?
 pref("ui.touch_activation.delay_ms", 50);
+
+// MemoryInfoDumper can watch a fifo in the temp directory and take various
+// actions when the fifo is written to.  Disable this in general.
+pref("memory_info_dumper.watch_fifo", false);
