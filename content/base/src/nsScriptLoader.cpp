@@ -824,10 +824,14 @@ nsScriptLoader::EvaluateScript(nsScriptLoadRequest* aRequest,
   // Make sure context is a strong reference since we access it after
   // we've executed a script, which may cause all other references to
   // the context to go away.
-  nsCOMPtr<nsIScriptContext> context = globalObject->GetScriptContext();
+  nsCOMPtr<nsIScriptContext_19> context =
+    do_QueryInterface(globalObject->GetScriptContext());
   if (!context) {
     return NS_ERROR_FAILURE;
   }
+
+  bool oldProcessingScriptTag = context->GetProcessingScriptTag();
+  context->SetProcessingScriptTag(true);
 
   // Update our current script.
   nsCOMPtr<nsIScriptElement> oldCurrent = mCurrentScript;
@@ -849,6 +853,10 @@ nsScriptLoader::EvaluateScript(nsScriptLoadRequest* aRequest,
   // Put the old script back in case it wants to do anything else.
   mCurrentScript = oldCurrent;
 
+  JSContext *cx = nullptr; // Initialize this to keep GCC happy.
+  cx = context->GetNativeContext();
+  JSAutoRequest ar(cx);
+  context->SetProcessingScriptTag(oldProcessingScriptTag);
   return rv;
 }
 

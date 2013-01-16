@@ -367,5 +367,23 @@ public:
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIScriptContext, NS_ISCRIPTCONTEXT_IID)
 
+#define NS_ISCRIPTCONTEXT_19_IID \
+{ 0xea6cec57, 0x009f, 0x4950, \
+  { 0xa5, 0x24, 0x7c, 0x74, 0xfb, 0x4f, 0x38, 0x41 } }
+
+class nsIScriptContext_19 : public nsIScriptContext
+{
+public:
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_ISCRIPTCONTEXT_19_IID)
+  /** 
+   * Called to set/get information if the script context is
+   * currently processing a script tag
+   */
+  virtual bool GetProcessingScriptTag() = 0;
+  virtual void SetProcessingScriptTag(bool aResult) = 0;
+};
+
+NS_DEFINE_STATIC_IID_ACCESSOR(nsIScriptContext_19, NS_ISCRIPTCONTEXT_19_IID)
+
 #endif // nsIScriptContext_h__
 

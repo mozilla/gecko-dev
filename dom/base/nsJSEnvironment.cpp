@@ -1132,6 +1132,7 @@ nsJSContext::nsJSContext(JSRuntime *aRuntime, bool aGCOnDestruction,
   mOperationCallbackTime = 0;
   mModalStateTime = 0;
   mModalStateDepth = 0;
+  mProcessingScriptTag = false;
 }
 
 nsJSContext::~nsJSContext()
@@ -1217,6 +1218,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsJSContext)
   NS_INTERFACE_MAP_ENTRY(nsIScriptContext)
   NS_INTERFACE_MAP_ENTRY(nsIScriptContextPrincipal)
   NS_INTERFACE_MAP_ENTRY(nsIXPCScriptNotify)
+  NS_INTERFACE_MAP_ENTRY(nsIScriptContext_19)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIScriptContext)
 NS_INTERFACE_MAP_END
 
@@ -2931,6 +2933,18 @@ nsJSContext::SetScriptsEnabled(bool aEnabled, bool aFireTimeouts)
   }
 }
 
+
+bool
+nsJSContext::GetProcessingScriptTag()
+{
+  return mProcessingScriptTag;
+}
+
+void
+nsJSContext::SetProcessingScriptTag(bool aFlag)
+{
+  mProcessingScriptTag = aFlag;
+}
 
 bool
 nsJSContext::GetExecutingScript()
