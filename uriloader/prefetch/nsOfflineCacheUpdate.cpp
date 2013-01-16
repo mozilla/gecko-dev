@@ -1849,6 +1849,11 @@ nsOfflineCacheUpdate::ProcessNextURI()
     LOG(("nsOfflineCacheUpdate::ProcessNextURI [%p, inprogress=%d, numItems=%d]",
          this, mItemsInProgress, mItems.Length()));
 
+    if (mState != STATE_DOWNLOADING) {
+        LOG(("  should only be called from the DOWNLOADING state, ignoring"));
+        return NS_ERROR_UNEXPECTED;
+    }
+
     nsOfflineCacheUpdateItem * runItem = nullptr;
     uint32_t completedItems = 0;
     for (uint32_t i = 0; i < mItems.Length(); ++i) {
