@@ -366,6 +366,10 @@ ifeq ($(MOZ_WIDGET_TOOLKIT),android)
 package-tests: stage-android
 endif
 
+ifeq ($(MOZ_WIDGET_TOOLKIT),gonk)
+package-tests: stage-b2g
+endif
+
 make-stage-dir:
 	rm -rf $(PKG_STAGE)
 	$(NSINSTALL) -D $(PKG_STAGE)
@@ -376,6 +380,9 @@ make-stage-dir:
 	$(NSINSTALL) -D $(PKG_STAGE)/peptest
 	$(NSINSTALL) -D $(PKG_STAGE)/mozbase
 	$(NSINSTALL) -D $(PKG_STAGE)/modules
+
+stage-b2g: make-stage-dir
+	$(NSINSTALL) $(topsrcdir)/b2g/test/b2g-unittest-requirements.txt $(PKG_STAGE)/b2g
 
 robotium-id-map:
 ifeq ($(MOZ_BUILD_APP),mobile/android)
@@ -445,6 +452,7 @@ stage-mozbase: make-stage-dir
   peptest \
   package-tests \
   make-stage-dir \
+  stage-b2g \
   stage-mochitest \
   stage-reftest \
   stage-xpcshell \
