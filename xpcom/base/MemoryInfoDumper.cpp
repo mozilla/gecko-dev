@@ -935,4 +935,3 @@ MemoryInfoDumper::DumpMemoryReportsToFileImpl(
 }
 
 #undef DUMP
-} // namespace mozilla
