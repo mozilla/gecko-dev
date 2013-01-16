@@ -86,8 +86,15 @@ InvokeFunction(JSContext *cx, JSFunction *fun, uint32_t argc, Value *argv, Value
     Value thisv = argv[0];
     Value *argvWithoutThis = argv + 1;
 
-    // Run the function in the interpreter.
-    bool ok = Invoke(cx, thisv, fval, argc, argvWithoutThis, rval);
+    // For constructing functions, |this| is constructed at caller side and we can just call Invoke.
+    // When creating this failed / is impossible at caller site, i.e. MagicValue(JS_IS_CONSTRUCTING),
+    // we use InvokeConstructor that creates it at the callee side.
+    bool ok;
+    if (thisv.isMagic(JS_IS_CONSTRUCTING))
+        ok = InvokeConstructor(cx, fval, argc, argvWithoutThis, rval);
+    else
+        ok = Invoke(cx, thisv, fval, argc, argvWithoutThis, rval);
+
     if (ok && needsMonitor)
         types::TypeScript::Monitor(cx, *rval);
 
