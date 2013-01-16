@@ -410,9 +410,12 @@ nsWindow::Destroy(void)
     ClearCachedResources();
 
     nsIRollupListener* rollupListener = nsBaseWidget::GetActiveRollupListener();
+    if (rollupListener) {
     nsCOMPtr<nsIWidget> rollupWidget = rollupListener->GetRollupWidget();
-    if (static_cast<nsIWidget *>(this) == rollupWidget)
+        if (static_cast<nsIWidget *>(this) == rollupWidget) {
         rollupListener->Rollup(0, nullptr);
+        }
+    }
 
     Show(false);
 
@@ -935,13 +938,19 @@ bool
 nsWindow::CheckForRollup(double aMouseX, double aMouseY,
                          bool aIsWheel)
 {
-    bool retVal = false;
     nsIRollupListener* rollupListener = GetActiveRollupListener();
-    nsCOMPtr<nsIWidget> rollupWidget = rollupListener->GetRollupWidget();
-    if (rollupWidget) {
+    nsCOMPtr<nsIWidget> rollupWidget;
+    if (rollupListener) {
+        rollupWidget = rollupListener->GetRollupWidget();
+    }
+    if (!rollupWidget) {
+        nsBaseWidget::gRollupListener = nullptr;
+        return false;
+    }
+
+    bool retVal = false;
         MozQWidget *currentPopup =
             (MozQWidget *)rollupWidget->GetNativeData(NS_NATIVE_WINDOW);
-
         if (!is_mouse_in_window(currentPopup, aMouseX, aMouseY)) {
             bool rollup = true;
             if (aIsWheel) {
@@ -976,9 +985,6 @@ nsWindow::CheckForRollup(double aMouseX, double aMouseY,
                 retVal = rollupListener->Rollup(popupsToRollup, nullptr);
             }
         }
-    } else {
-        nsBaseWidget::gRollupListener = nullptr;
-    }
 
     return retVal;
 }

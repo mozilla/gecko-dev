@@ -7103,7 +7103,10 @@ void nsWindow::OnDestroy()
   // If we're going away and for some reason we're still the rollup widget, rollup and
   // turn off capture.
   nsIRollupListener* rollupListener = nsBaseWidget::GetActiveRollupListener();
-  nsCOMPtr<nsIWidget> rollupWidget = rollupListener->GetRollupWidget();
+  nsCOMPtr<nsIWidget> rollupWidget;
+  if (rollupListener) {
+    rollupWidget = rollupListener->GetRollupWidget();
+  }
   if ( this == rollupWidget ) {
     if ( rollupListener )
       rollupListener->Rollup(0, nullptr);
@@ -7946,12 +7949,19 @@ nsWindow::EventIsInsideWindow(UINT Msg, nsWindow* aWindow)
 }
 
 // Handle events that may cause a popup (combobox, XPMenu, etc) to need to rollup.
-BOOL
+bool
 nsWindow::DealWithPopups(HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inLParam, LRESULT* outResult)
 {
+  NS_ASSERTION(outResult, "Bad outResult");
+
+  *outResult = MA_NOACTIVATE;
+
+  if (!::IsWindowVisible(inWnd))
+    return false;
   nsIRollupListener* rollupListener = nsBaseWidget::GetActiveRollupListener();
+  NS_ENSURE_TRUE(rollupListener, false);
   nsCOMPtr<nsIWidget> rollupWidget = rollupListener->GetRollupWidget();
-  if (rollupWidget && ::IsWindowVisible(inWnd)) {
+  NS_ENSURE_TRUE(rollupWidget, false);
 
     inMsg = WinUtils::GetNativeMessage(inMsg);
     if (inMsg == WM_LBUTTONDOWN || inMsg == WM_RBUTTONDOWN || inMsg == WM_MBUTTONDOWN ||
@@ -7964,15 +7974,13 @@ nsWindow::DealWithPopups(HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inLPara
         inMsg == WM_NCMBUTTONDOWN ||
         inMsg == WM_MOUSEACTIVATE ||
         inMsg == WM_ACTIVATEAPP ||
-        inMsg == WM_MENUSELECT)
-    {
+      inMsg == WM_MENUSELECT) {
       // Rollup if the event is outside the popup.
       bool rollup = !nsWindow::EventIsInsideWindow(inMsg, (nsWindow*)(rollupWidget.get()));
 
-      if (rollup && (inMsg == WM_MOUSEWHEEL || inMsg == WM_MOUSEHWHEEL))
-      {
+    if (rollup && (inMsg == WM_MOUSEWHEEL || inMsg == WM_MOUSEHWHEEL)) {
         rollup = rollupListener->ShouldRollupOnMouseWheelEvent();
-        *outResult = true;
+      *outResult = MA_ACTIVATE;
       }
 
       // If we're dealing with menus, we probably have submenus and we don't
@@ -7990,8 +7998,7 @@ nsWindow::DealWithPopups(HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inLPara
             // that only those of the same type close up.
             if (i < sameTypeCount) {
               rollup = false;
-            }
-            else {
+          } else {
               popupsToRollup = sameTypeCount;
             }
             break;
@@ -8005,20 +8012,14 @@ nsWindow::DealWithPopups(HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inLPara
         // any requests to activate the window while it is displayed. Windows
         // will automatically activate the popup on the mousedown otherwise.
         if (!rollup) {
-          *outResult = MA_NOACTIVATE;
-          return TRUE;
-        }
-        else
-        {
+        return true;
+      } else {
           UINT uMsg = HIWORD(inLParam);
-          if (uMsg == WM_MOUSEMOVE)
-          {
+        if (uMsg == WM_MOUSEMOVE) {
             // WM_MOUSEACTIVATE cause by moving the mouse - X-mouse (eg. TweakUI)
             // must be enabled in Windows.
             rollup = rollupListener->ShouldRollupOnMouseActivate();
-            if (!rollup)
-            {
-              *outResult = MA_NOACTIVATE;
+          if (!rollup) {
               return true;
             }
           }
@@ -8055,20 +8056,19 @@ nsWindow::DealWithPopups(HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inLPara
               }
             }
           }
-          return TRUE;
+        return true;
         }
         // if we are only rolling up some popups, don't activate and don't let
         // the event go through. This prevents clicks menus higher in the
         // chain from opening when a context menu is open
         if (popupsToRollup != UINT32_MAX && inMsg == WM_MOUSEACTIVATE) {
           *outResult = MA_NOACTIVATEANDEAT;
-          return TRUE;
+        return true;
         }
       }
     } // if event that might trigger a popup to rollup
-  } // if rollup listeners registered
 
-  return FALSE;
+  return false;
 }
 
 /**************************************************************

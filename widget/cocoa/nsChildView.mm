@@ -2666,9 +2666,9 @@ NSEvent* gLastDragMouseDownEvent = nil;
 #endif /* MOZ_USE_NATIVE_POPUP_WINDOWS */
 
   nsIRollupListener* rollupListener = nsBaseWidget::GetActiveRollupListener();
+  NS_ENSURE_TRUE_VOID(rollupListener);
   nsCOMPtr<nsIWidget> widget = rollupListener->GetRollupWidget();
-  if (!widget)
-    return;
+  NS_ENSURE_TRUE_VOID(widget);
 
   NSWindow *popupWindow = (NSWindow*)widget->GetNativeData(NS_NATIVE_WINDOW);
   if (!popupWindow || ![popupWindow isKindOfClass:[PopupWindow class]])
@@ -2691,6 +2691,7 @@ NSEvent* gLastDragMouseDownEvent = nil;
   BOOL consumeEvent = NO;
 
   nsIRollupListener* rollupListener = nsBaseWidget::GetActiveRollupListener();
+  NS_ENSURE_TRUE(rollupListener, false);
   nsCOMPtr<nsIWidget> rollupWidget = rollupListener->GetRollupWidget();
   if (rollupWidget) {
     NSWindow* currentPopup = static_cast<NSWindow*>(rollupWidget->GetNativeData(NS_NATIVE_WINDOW));

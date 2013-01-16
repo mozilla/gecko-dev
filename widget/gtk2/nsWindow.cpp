@@ -637,9 +637,11 @@ nsWindow::Destroy(void)
                                          this);
 
     nsIRollupListener* rollupListener = nsBaseWidget::GetActiveRollupListener();
+    if (rollupListener) {
     nsCOMPtr<nsIWidget> rollupWidget = rollupListener->GetRollupWidget();
     if (static_cast<nsIWidget *>(this) == rollupWidget) {
         rollupListener->Rollup(0, nullptr);
+    }
     }
 
     // dragService will be null after shutdown of the service manager.
@@ -4767,10 +4769,17 @@ bool
 nsWindow::CheckForRollup(gdouble aMouseX, gdouble aMouseY,
                          bool aIsWheel, bool aAlwaysRollup)
 {
-    bool retVal = false;
     nsIRollupListener* rollupListener = GetActiveRollupListener();
-    nsCOMPtr<nsIWidget> rollupWidget = rollupListener->GetRollupWidget();
-    if (rollupWidget) {
+    nsCOMPtr<nsIWidget> rollupWidget;
+    if (rollupListener) {
+        rollupWidget = rollupListener->GetRollupWidget();
+    }
+    if (!rollupWidget) {
+        nsBaseWidget::gRollupListener = nullptr;
+        return false;
+    }
+
+    bool retVal = false;
         GdkWindow *currentPopup =
             (GdkWindow *)rollupWidget->GetNativeData(NS_NATIVE_WINDOW);
         if (aAlwaysRollup || !is_mouse_in_window(currentPopup, aMouseX, aMouseY)) {
@@ -4812,10 +4821,6 @@ nsWindow::CheckForRollup(gdouble aMouseX, gdouble aMouseY,
                 retVal = true;
             }
         }
-    } else {
-        nsBaseWidget::gRollupListener = nullptr;
-    }
-
     return retVal;
 }
 
