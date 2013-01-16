@@ -306,7 +306,9 @@ public class TabsPanel extends LinearLayout
         mCurrentPanel = panel;
 
         int index = panel.ordinal();
+        setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
         mTabWidget.setCurrentTab(index);
+        setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
 
         if (index == 0) {
             mPanel = mPanelNormal;
