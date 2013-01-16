@@ -8317,7 +8317,7 @@ let StkCommandParamsFactory = {
         if (!call.confirmMessage) {
           call.confirmMessage = ctlv.value.identifier;
         } else {
-          call.callMessge = ctlv.value.identifier;
+          call.callMessage = ctlv.value.identifier;
           break;
         }
       }
