@@ -1016,6 +1016,7 @@ var WifiManager = (function() {
 
   // Initial state
   manager.state = "UNINITIALIZED";
+  manager.tetheringState = "UNINITIALIZED";
   manager.enabled = false;
   manager.supplicantStarted = false;
   manager.connectionInfo = { ssid: null, bssid: null, id: -1 };
@@ -1045,10 +1046,12 @@ var WifiManager = (function() {
     }
 
     if (enable) {
+      manager.state = "INITIALIZING";
       // Kill any existing connections if necessary.
       getProperty("wifi.interface", "tiwlan0", function (ifname) {
         if (!ifname) {
           callback(-1);
+          manager.state = "UNINITIALIZED";
           return;
         }
         manager.ifname = ifname;
@@ -1074,6 +1077,7 @@ var WifiManager = (function() {
           loadDriver(function (status) {
             if (status < 0) {
               callback(status);
+              manager.state = "UNINITIALIZED";
               return;
             }
 
@@ -1084,6 +1088,7 @@ var WifiManager = (function() {
                   unloadDriver(function() {
                     callback(status);
                   });
+                  manager.state = "UNINITIALIZED";
                   return;
                 }
 
@@ -1123,25 +1128,32 @@ var WifiManager = (function() {
   // Get wifi interface and load wifi driver when enable Ap mode.
   manager.setWifiApEnabled = function(enabled, callback) {
     if (enabled) {
+      manager.tetheringState = "INITIALIZING";
       getProperty("wifi.interface", "tiwlan0", function (ifname) {
         if (!ifname) {
-          callback(enabled);
+          callback();
+          manager.tetheringState = "UNINITIALIZED";
           return;
         }
         manager.ifname = ifname;
         loadDriver(function (status) {
           if (status < 0) {
-            callback(enabled);
+            callback();
+            manager.tetheringState = "UNINITIALIZED";
             return;
           }
 
           function doStartWifiTethering() {
             cancelWaitForDriverReadyTimer();
             WifiNetworkInterface.name = manager.ifname;
-            manager.state = "WIFITETHERING";
             gNetworkManager.setWifiTethering(enabled, WifiNetworkInterface, function(result) {
+              if (result) {
+                manager.tetheringState = "UNINITIALIZED";
+              } else {
+                manager.tetheringState = "COMPLETED";
+              }
               // Pop out current request.
-              callback(enabled);
+              callback();
               // Should we fire a dom event if we fail to set wifi tethering  ?
               debug("Enable Wifi tethering result: " + (result ? result : "successfully"));
             });
@@ -1154,7 +1166,6 @@ var WifiManager = (function() {
         });
       });
     } else {
-      manager.state = "UNINITIALIZED";
       gNetworkManager.setWifiTethering(enabled, WifiNetworkInterface, function(result) {
         // Should we fire a dom event if we fail to set wifi tethering  ?
         debug("Disable Wifi tethering result: " + (result ? result : "successfully"));
@@ -1163,7 +1174,8 @@ var WifiManager = (function() {
           if (status < 0) {
             debug("Fail to unload wifi driver");
           }
-          callback(enabled);
+          manager.tetheringState = "UNINITIALIZED";
+          callback();
         });
       });
     }
@@ -2547,6 +2559,7 @@ WifiWorker.prototype = {
         // Don't remove more than one request if the previous one failed.
       } while (success &&
                this._stateRequests.length &&
+               !("callback" in this._stateRequests[0]) &&
                this._stateRequests[0].enabled === state);
     }
 
@@ -2603,7 +2616,7 @@ WifiWorker.prototype = {
     }
   },
 
-  setWifiEnabledInternal: function(enabled, callback) {
+  queueRequest: function(enabled, callback) {
     this.setWifiEnabled({enabled: enabled, callback: callback});
   },
 
@@ -2777,17 +2790,12 @@ WifiWorker.prototype = {
     this.setWifiEnabled({enabled: false});
   },
 
-  nextRequest: function nextRequest(state) {
+  nextRequest: function nextRequest() {
     if (this._stateRequests.length <= 0 ||
         !("callback" in this._stateRequests[0])) {
       return;
     }
-
-    do {
-      this._stateRequests.shift();
-    } while (this._stateRequests.length &&
-             this._stateRequests[0].enabled === state);
-
+    this._stateRequests.shift();
     // Serve the pending requests.
     if (this._stateRequests.length > 0) {
       if ("callback" in this._stateRequests[0]) {
@@ -2800,20 +2808,26 @@ WifiWorker.prototype = {
     }
   },
 
+  notifyTetheringOff: function notifyTetheringOff() {
+    // It's really sad that we don't have an API to notify the wifi
+    // hotspot status. Toggle settings to let gaia know that wifi hotspot
+    // is disabled.
+    gSettingsService.createLock().set(
+      "tethering.wifi.enabled", false, null, "fromInternalSetting");
+    // Check for the next request.
+    this.nextRequest();
+  },
+
   handleWifiEnabled: function(enabled) {
     if (WifiManager.enabled === enabled) {
       return;
     }
-    // Disable wifi tethering before enabling wifi.
-    if (gNetworkManager.wifiTetheringEnabled) {
-      this.setWifiEnabledInternal(false, function(data) {
-        this.setWifiApEnabled(data, this.nextRequest.bind(this));
+    // Make sure Wifi hotspot is idle before switching to Wifi mode.
+    if (enabled && (gNetworkManager.wifiTetheringEnabled ||
+         WifiManager.tetheringState != "UNINITIALIZED")) {
+      this.queueRequest(false, function(data) {
+        this.setWifiApEnabled(false, this.notifyTetheringOff.bind(this));
       }.bind(this));
-      // It's really sad that we don't have an API to notify the wifi
-      // hotspot status. Toggle settings to let gaia know that wifi hotspot
-      // is disalbed.
-      gSettingsService.createLock().set(
-        "tethering.wifi.enabled", false, null, "fromInternalSetting");
     }
     this.setWifiEnabled({enabled: enabled});
   },
@@ -2823,22 +2837,15 @@ WifiWorker.prototype = {
       return;
     }
 
-    // Wifi is disabled
-    if (!WifiManager.enabled) {
-      this.setWifiEnabledInternal(enabled, function(data) {
-        this.setWifiApEnabled(data, this.nextRequest.bind(this));
-      }.bind(this));
-      return;
+    // Make sure Wifi is idle before switching to Wifi hotspot mode.
+    if (enabled && (WifiManager.enabled ||
+         WifiManager.state != "UNINITIALIZED")) {
+      this.setWifiEnabled({enabled: false});
     }
 
-    // Wifi is enabled, turn off it before switching to Ap mode.
-    if (enabled) {
-      // Turn off wifi first.
-      this.setWifiEnabled({enabled: false});
-      this.setWifiEnabledInternal(enabled, (function (data) {
-        this.setWifiApEnabled(data, this.nextRequest.bind(this));
-      }).bind(this));
-    }
+    this.queueRequest(enabled, function(data) {
+      this.setWifiApEnabled(data, this.nextRequest.bind(this));
+    }.bind(this));
   },
 
   // nsIObserver implementation
