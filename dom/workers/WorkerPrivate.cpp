@@ -4210,7 +4210,7 @@ WorkerPrivate*
 GetWorkerPrivateFromContext(JSContext* aCx)
 {
   NS_ASSERTION(!NS_IsMainThread(), "Wrong thread!");
-  return static_cast<WorkerPrivate*>(JS_GetContextPrivate(aCx));
+  return static_cast<WorkerPrivate*>(JS_GetRuntimePrivate(JS_GetRuntime(aCx)));
 }
 
 JSStructuredCloneCallbacks*
