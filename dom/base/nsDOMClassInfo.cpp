@@ -7339,6 +7339,7 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 
     JSObject *windowObj = win->GetGlobalJSObject();
 
+    JSAutoCompartment ac(cx, windowObj);
     JSAutoRequest ar(cx);
 
     JSFunction *fun = ::JS_NewFunction(cx, ContentWindowGetter, 0, 0,
