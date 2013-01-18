@@ -52,8 +52,8 @@ MOCHITEST_BROWSER_FILES = \
 	browser_webconsole_bug_583816_No_input_and_Tab_key_pressed.js \
 	browser_webconsole_bug_594477_clickable_output.js \
 	browser_webconsole_bug_589162_css_filter.js \
-	browser_webconsole_bug_597103_deactivateHUDForContext_unfocused_window.js \
-	browser_webconsole_bug_595350_multiple_windows_and_tabs.js \
+	$(filter disabled-for-pgo-build-leaks--bug-824016, browser_webconsole_bug_597103_deactivateHUDForContext_unfocused_window.js) \
+	$(filter disabled-for-pgo-build-leaks--bug-824016, browser_webconsole_bug_595350_multiple_windows_and_tabs.js) \
 	browser_webconsole_bug_594497_history_arrow_keys.js \
 	browser_webconsole_bug_588342_document_focus.js \
 	browser_webconsole_bug_595934_message_categories.js \
