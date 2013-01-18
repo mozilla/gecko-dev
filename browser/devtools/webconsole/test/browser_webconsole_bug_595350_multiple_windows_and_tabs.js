@@ -65,6 +65,7 @@ function openConsoles() {
 
   waitForSuccess({
     name: "4 web consoles opened",
+    timeout: 15000,
     validatorFn: function()
     {
       return consolesOpen == 4;
@@ -99,6 +100,7 @@ function closeConsoles() {
 
   waitForSuccess({
     name: "4 web consoles closed",
+    timeout: 10000,
     validatorFn: function()
     {
       return consolesClosed == 4;
