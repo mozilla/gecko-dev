@@ -27,7 +27,7 @@ public:
   virtual nsresult StartPreview(DOMCameraPreview* aDOMPreview) = 0;
   virtual void StopPreview() = 0;
   virtual nsresult AutoFocus(nsICameraAutoFocusCallback* onSuccess, nsICameraErrorCallback* onError) = 0;
-  virtual nsresult TakePicture(CameraSize aSize, int32_t aRotation, const nsAString& aFileFormat, CameraPosition aPosition, nsICameraTakePictureCallback* onSuccess, nsICameraErrorCallback* onError) = 0;
+  virtual nsresult TakePicture(CameraSize aSize, int32_t aRotation, const nsAString& aFileFormat, CameraPosition aPosition, uint64_t aDateTime, nsICameraTakePictureCallback* onSuccess, nsICameraErrorCallback* onError) = 0;
   virtual nsresult StartRecording(CameraStartRecordingOptions* aOptions, nsIFile* aFolder, const nsAString& aFilename, nsICameraStartRecordingCallback* onSuccess, nsICameraErrorCallback* onError) = 0;
   virtual nsresult StopRecording() = 0;
   virtual nsresult GetPreviewStreamVideoMode(CameraRecorderOptions* aOptions, nsICameraPreviewStreamCallback* onSuccess, nsICameraErrorCallback* onError) = 0;
