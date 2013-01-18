@@ -31,6 +31,7 @@ public class MenuPopup extends PopupWindow {
     private int mYOffset;
     private int mArrowMargin;
     private int mPopupWidth;
+    private boolean mShowArrow;
 
     public MenuPopup(Context context) {
         super(context);
@@ -54,6 +55,7 @@ public class MenuPopup extends PopupWindow {
         mArrowTop = (ImageView) layout.findViewById(R.id.menu_arrow_top);
         mArrowBottom = (ImageView) layout.findViewById(R.id.menu_arrow_bottom);
         mPanel = (RelativeLayout) layout.findViewById(R.id.menu_panel);
+        mShowArrow = true;
     }
 
     /**
@@ -68,10 +70,26 @@ public class MenuPopup extends PopupWindow {
     }
 
     /**
+     * Show/hide the arrow pointing to the anchor.
+     *
+     * @param show Show/hide the arrow.
+     */
+    public void showArrowToAnchor(boolean show) {
+        mShowArrow = show;
+    }
+
+    /**
      * A small little offset for the arrow to overlap the anchor.
      */
     @Override
     public void showAsDropDown(View anchor) {
+        if (!mShowArrow) {
+            mArrowTop.setVisibility(View.GONE);
+            mArrowBottom.setVisibility(View.GONE);
+            showAsDropDown(anchor, 0, -mYOffset);
+            return;
+        }
+
         int[] anchorLocation = new int[2];
         anchor.getLocationOnScreen(anchorLocation);
 
