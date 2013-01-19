@@ -181,7 +181,7 @@ _BROWSER_FILES = \
                  browser_pinnedTabs.js \
                  browser_plainTextLinks.js \
                  browser_pluginnotification.js \
-                 browser_clickToPlayPluginScriptAccessPopup.js \
+                 browser_CTPScriptPlugin.js \
                  browser_pluginplaypreview.js \
                  browser_relatedTabs.js \
                  browser_sanitize-passwordDisabledHosts.js \
