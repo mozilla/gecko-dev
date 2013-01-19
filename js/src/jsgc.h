@@ -1200,13 +1200,6 @@ MaybeVerifyBarriers(JSContext *cx, bool always = false)
 static inline JSCompartment *
 GetObjectCompartment(JSObject *obj) { return reinterpret_cast<js::gc::Cell *>(obj)->compartment(); }
 
-static JS_ALWAYS_INLINE void
-ExposeValueToActiveJS(const Value &v)
-{
-    if (v.isMarkable())
-        ExposeGCThingToActiveJS(v.toGCThing(), v.gcKind());
-}
-
 } /* namespace js */
 
 #endif /* jsgc_h___ */

@@ -66,11 +66,6 @@ struct nsCycleCollectionJSRuntime
     virtual void NotifyEnterMainThread() = 0;
 
     /**
-     * Unmark gray any weak map values, as needed.
-     */
-    virtual void FixWeakMappingGrayBits() = 0;
-
-    /**
      * Should we force a JavaScript GC before a CC?
      */
     virtual bool NeedCollect() = 0;

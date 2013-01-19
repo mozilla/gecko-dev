@@ -469,72 +469,6 @@ TraceWeakMapping(js::WeakMapTracer *trc, JSObject *m,
     }
 }
 
-// This is based on the logic in TraceWeakMapping.
-struct FixWeakMappingGrayBitsTracer : public js::WeakMapTracer
-{
-    FixWeakMappingGrayBitsTracer(JSRuntime *rt)
-        : js::WeakMapTracer(rt, FixWeakMappingGrayBits)
-    {}
-
-    void
-    FixAll()
-    {
-        do {
-            mAnyMarked = false;
-            js::TraceWeakMaps(this);
-        } while (mAnyMarked);
-    }
-
-private:
-
-    static void
-    FixWeakMappingGrayBits(js::WeakMapTracer *trc, JSObject *m,
-                           void *k, JSGCTraceKind kkind,
-                           void *v, JSGCTraceKind vkind)
-    {
-        MOZ_ASSERT(!js::IsIncrementalBarrierNeeded(trc->runtime),
-                   "Don't call FixWeakMappingGrayBits during a GC.");
-
-        FixWeakMappingGrayBitsTracer *tracer = static_cast<FixWeakMappingGrayBitsTracer*>(trc);
-
-        // If nothing that could be held alive by this entry is marked gray, return.
-        bool delegateMightNeedMarking = k && xpc_IsGrayGCThing(k);
-        bool valueMightNeedMarking = v && xpc_IsGrayGCThing(v) && vkind != JSTRACE_STRING;
-        if (!delegateMightNeedMarking && !valueMightNeedMarking)
-            return;
-
-        if (!AddToCCKind(kkind))
-            k = nullptr;
-
-        if (delegateMightNeedMarking && kkind == JSTRACE_OBJECT) {
-            JSObject *kdelegate = js::GetWeakmapKeyDelegate((JSObject *)k);
-            if (kdelegate && !xpc_IsGrayGCThing(kdelegate)) {
-                js::UnmarkGrayGCThingRecursively(k, JSTRACE_OBJECT);
-                tracer->mAnyMarked = true;
-            }
-        }
-
-        if (v && xpc_IsGrayGCThing(v) &&
-            (!k || !xpc_IsGrayGCThing(k)) &&
-            (!m || !xpc_IsGrayGCThing(m)) &&
-            vkind != JSTRACE_SHAPE)
-        {
-            js::UnmarkGrayGCThingRecursively(v, vkind);
-            tracer->mAnyMarked = true;
-        }
-
-    }
-
-    bool mAnyMarked;
-};
-
-void
-nsXPConnect::FixWeakMappingGrayBits()
-{
-    FixWeakMappingGrayBitsTracer fixer(GetRuntime()->GetJSRuntime());
-    fixer.FixAll();
-}
-
 nsresult
 nsXPConnect::BeginCycleCollection(nsCycleCollectionTraversalCallback &cb)
 {
@@ -677,21 +611,6 @@ struct UnmarkGrayTracer : public JSTracer
  * black in step 2 above. This must be done on everything reachable from the
  * object being returned. The following code takes care of the recursive
  * re-coloring.
- *
- * There is an additional complication for certain kinds of edges that are not
- * contained explicitly in the source object itself, such as from a weakmap key
- * to its value, and from an object being watched by a watchpoint to the
- * watchpoint's closure. These "implicit edges" are represented in some other
- * container object, such as the weakmap or the watchpoint itself. In these
- * cases, calling unmark gray on an object won't find all of its children.
- *
- * Handling these implicit edges has two parts:
- * - A special pass enumerating all of the containers that know about the
- *   implicit edges to fix any black-gray edges that have been created. This
- *   is implemented in nsXPConnect::FixWeakMappingGrayBits.
- * - To prevent any incorrectly gray objects from escaping to live JS outside
- *   of the containers, we must add unmark-graying read barriers to these
- *   containers.
  */
 static void
 UnmarkGrayChildren(JSTracer *trc, void **thingp, JSGCTraceKind kind)
