@@ -28,13 +28,12 @@ namespace mozilla {
 }
 
 typedef mozilla::dom::SVGGraphicsElement nsSVGSVGElementBase;
-typedef mozilla::SVGPoint SVGPoint;
 
 class nsSVGSVGElement;
 
 class DOMSVGTranslatePoint MOZ_FINAL : public mozilla::nsISVGPoint {
 public:
-  DOMSVGTranslatePoint(SVGPoint* aPt, nsSVGSVGElement *aElement)
+  DOMSVGTranslatePoint(mozilla::SVGPoint* aPt, nsSVGSVGElement *aElement)
     : mozilla::nsISVGPoint(aPt), mElement(aElement) {}
 
   DOMSVGTranslatePoint(DOMSVGTranslatePoint* aPt)
@@ -119,14 +118,14 @@ public:
   /**
    * Retrieve the value of currentScale and currentTranslate.
    */
-  const SVGPoint& GetCurrentTranslate() { return mCurrentTranslate; }
+  const mozilla::SVGPoint& GetCurrentTranslate() { return mCurrentTranslate; }
   float GetCurrentScale() { return mCurrentScale; }
 
   /**
    * Retrieve the value of currentScale, currentTranslate.x or
    * currentTranslate.y prior to the last change made to any one of them.
    */
-  const SVGPoint& GetPreviousTranslate() { return mPreviousTranslate; }
+  const mozilla::SVGPoint& GetPreviousTranslate() { return mPreviousTranslate; }
   float GetPreviousScale() { return mPreviousScale; }
 
   nsSMILTimeContainer* GetTimedDocumentRoot();
@@ -342,9 +341,9 @@ private:
   // zoom and pan
   // IMPORTANT: see the comment in RecordCurrentScaleTranslate before writing
   // code to change any of these!
-  SVGPoint               mCurrentTranslate;
+  mozilla::SVGPoint               mCurrentTranslate;
   float                             mCurrentScale;
-  SVGPoint               mPreviousTranslate;
+  mozilla::SVGPoint               mPreviousTranslate;
   float                             mPreviousScale;
 
   // For outermost <svg> elements created from parsing, animation is started by
