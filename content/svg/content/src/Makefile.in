@@ -36,6 +36,7 @@ CPPSRCS		= \
 		DOMSVGTransformList.cpp \
 		nsDOMSVGZoomEvent.cpp \
 		nsDOMSVGEvent.cpp \
+		nsISVGPoint.cpp \
 		nsSVGAElement.cpp \
 		nsSVGAngle.cpp \
 		nsSVGBoolean.cpp \

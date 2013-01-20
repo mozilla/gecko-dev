@@ -56,14 +56,12 @@ nsDOMSVGZoomEvent::nsDOMSVGZoomEvent(nsPresContext* aPresContext,
           mNewScale = SVGSVGElement->GetCurrentScale();
           mPreviousScale = SVGSVGElement->GetPreviousScale();
 
-          const nsSVGTranslatePoint& translate =
-            SVGSVGElement->GetCurrentTranslate();
+          const SVGPoint& translate = SVGSVGElement->GetCurrentTranslate();
           mNewTranslate =
             new DOMSVGPoint(translate.GetX(), translate.GetY());
           mNewTranslate->SetReadonly(true);
 
-          const nsSVGTranslatePoint& prevTranslate =
-            SVGSVGElement->GetPreviousTranslate();
+          const SVGPoint& prevTranslate = SVGSVGElement->GetPreviousTranslate();
           mPreviousTranslate =
             new DOMSVGPoint(prevTranslate.GetX(), prevTranslate.GetY());
           mPreviousTranslate->SetReadonly(true);
