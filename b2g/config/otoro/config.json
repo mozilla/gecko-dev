@@ -29,7 +29,7 @@
     "gecko_l10n_git_root": "https://git.mozilla.org/releases/l10n/%(locale)s/gecko.git",
     "gaia": {
         "vcs": "hgtool",
-        "repo": "http://hg.mozilla.org/integration/gaia-nightly",
+        "repo": "http://hg.mozilla.org/integration/gaia-1_0_0",
         "l10n": {
             "vcs": "hgtool",
             "root": "http://hg.mozilla.org/gaia-l10n"
