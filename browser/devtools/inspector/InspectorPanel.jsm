@@ -429,12 +429,7 @@ InspectorPanel.prototype = {
 
     this._markupBox.removeAttribute("hidden");
 
-    let controllerWindow;
-    if (this.tabTarget) {
-      controllerWindow = this.target.tab.ownerDocument.defaultView;
-    } else if (this.winTarget) {
-      controllerWindow = this.target.window;
-    }
+    let controllerWindow = this._toolbox.doc.defaultView;
     this.markup = new MarkupView(this, this._markupFrame, controllerWindow);
 
     this.emit("markuploaded");
