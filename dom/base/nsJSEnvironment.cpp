@@ -1662,6 +1662,7 @@ nsJSContext::ExecuteScript(JSScript* aScriptObject,
 
   nsJSContext::TerminationFuncHolder holder(this);
   XPCAutoRequest ar(mContext);
+  JSAutoCompartment ac(mContext, aScopeObject);
   ++mExecuteDepth;
 
   // The result of evaluation, used only if there were no errors. This need
