@@ -44,9 +44,9 @@ class GeckoInputConnection
     private static final Timer mIMETimer = new Timer("GeckoInputConnection Timer");
 
     private static int mIMEState;
-    private static String mIMETypeHint = "";
-    private static String mIMEModeHint = "";
-    private static String mIMEActionHint = "";
+    private String mIMETypeHint = "";
+    private String mIMEModeHint = "";
+    private String mIMEActionHint = "";
 
     private String mCurrentInputMethod;
 
@@ -257,7 +257,13 @@ class GeckoInputConnection
         }
 
         removeComposingSpans(getEditable());
+        mBatchSelectionChanged = false;
+        mBatchTextChanged = false;
         mUpdateRequest = null;
+
+        mIMEState = IME_STATE_DISABLED;
+        mIMETypeHint = mIMEModeHint = mIMEActionHint = "";
+        mCurrentInputMethod = "";
     }
 
     public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
