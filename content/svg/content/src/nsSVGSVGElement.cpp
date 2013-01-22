@@ -880,6 +880,8 @@ nsSVGSVGElement::BindToTree(nsIDocument* aDocument,
                             nsIContent* aBindingParent,
                             bool aCompileEventHandlers)
 {
+  static const char kSVGStyleSheetURI[] = "resource://gre/res/svg.css";
+
   nsSMILAnimationController* smilController = nullptr;
 
   if (aDocument) {
@@ -906,6 +908,13 @@ nsSVGSVGElement::BindToTree(nsIDocument* aDocument,
                                                 aBindingParent,
                                                 aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv,rv);
+
+  if (aDocument) {
+    // Setup the style sheet during binding, not element construction,
+    // because we could move the root SVG element from the document
+    // that created it to another document.
+    aDocument->EnsureCatalogStyleSheet(kSVGStyleSheetURI);
+  }
 
   if (mTimedDocumentRoot && smilController) {
     rv = mTimedDocumentRoot->SetParent(smilController);
