@@ -5,6 +5,10 @@
 
 /*
  * Used by the console service to notify listeners of new console messages.
+ *
+ * Classes which implement this interface must have threadsafe addref/release
+ * methods, because the console service is thread-safe and sometimes
+ * addref's/releases listeners off the main thread.
  */
 
 #include "nsISupports.idl"
