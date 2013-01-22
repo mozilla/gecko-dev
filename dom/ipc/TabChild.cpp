@@ -132,6 +132,7 @@ TabChild::PreloadSlowThings()
         return;
     }
     tab->TryCacheLoadAndCompileScript(BROWSER_ELEMENT_CHILD_SCRIPT);
+    tab->RecvLoadRemoteScript(NS_LITERAL_STRING("chrome://global/content/preload.js"));
 
     sPreallocatedTab = tab;
     ClearOnShutdown(&sPreallocatedTab);
