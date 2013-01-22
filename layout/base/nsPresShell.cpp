@@ -3851,8 +3851,8 @@ PresShell::FlushPendingNotifications(mozilla::ChangesToFlush aFlush)
       }
 
       if (aFlush.mFlushAnimations &&
-          (!CommonAnimationManager::ThrottlingEnabled() ||
-           !mPresContext->StyleUpdateForAllAnimationsIsUpToDate())) {
+          CommonAnimationManager::ThrottlingEnabled() &&
+          !mPresContext->StyleUpdateForAllAnimationsIsUpToDate()) {
         mPresContext->AnimationManager()->
           FlushAnimations(CommonAnimationManager::Cannot_Throttle);
         mPresContext->TransitionManager()->
