@@ -113,7 +113,7 @@ nsImageLoadingContent::~nsImageLoadingContent()
 // removing themselves.
 #define LOOP_OVER_OBSERVERS(func_)                                       \
   PR_BEGIN_MACRO                                                         \
-    nsAutoScriptBlocker scriptBlocker                                    \
+    nsAutoScriptBlocker scriptBlocker;                                   \
     for (ImageObserver* observer = &mObserverList, *next; observer;      \
          observer = next) {                                              \
       next = observer->mNext;                                            \
