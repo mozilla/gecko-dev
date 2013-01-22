@@ -4277,10 +4277,10 @@ DocumentViewerImpl::OnDonePrinting()
 #if defined(NS_PRINTING) && defined(NS_PRINT_PREVIEW)
   if (mPrintEngine) {
     nsRefPtr<nsPrintEngine> pe = mPrintEngine;
-    mPrintEngine = nullptr;
     if (GetIsPrintPreview()) {
       pe->DestroyPrintingData();
     } else {
+      mPrintEngine = nullptr;
       pe->Destroy();
     }
 
