@@ -104,9 +104,10 @@ nsPrintObject::DestroyPresentation()
   if (mPresShell) {
     mPresShell->EndObservingDocument();
     nsAutoScriptBlocker scriptBlocker;
-    mPresShell->Destroy();
+    nsCOMPtr<nsIPresShell> shell = mPresShell;
+    mPresShell = nullptr;
+    shell->Destroy();
   }
-  mPresShell   = nullptr;
   mViewManager = nullptr;
 }
 
