@@ -14577,6 +14577,10 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
           };
         }
 
+        var cidEncoding = baseDict.get('Encoding');
+        if (isName(cidEncoding))
+          properties.cidEncoding = cidEncoding.name;
+
         var cidToGidMap = dict.get('CIDToGIDMap');
         if (isStream(cidToGidMap))
           properties.cidToGidMap = this.readCidToGidMap(cidToGidMap);
@@ -15389,6 +15393,48 @@ var serifFonts = {
 var symbolsFonts = {
   'Dingbats': true, 'Symbol': true, 'ZapfDingbats': true
 };
+
+var CMapConverterList = {
+  'H': jis7ToUnicode,
+  'V': jis7ToUnicode,
+  'EUC-H': eucjpToUnicode,
+  'EUC-V': eucjpToUnicode,
+  '90ms-RKSJ-H': sjisToUnicode,
+  '90ms-RKSJ-V': sjisToUnicode,
+  '90msp-RKSJ-H': sjisToUnicode,
+  '90msp-RKSJ-V': sjisToUnicode
+};
+
+var decodeBytes;
+if (typeof TextDecoder !== 'undefined') {
+  decodeBytes = function(bytes, encoding) {
+    return new TextDecoder(encoding).decode(bytes);
+  };
+} else if (typeof FileReaderSync !== 'undefined') {
+  decodeBytes = function(bytes, encoding) {
+    return new FileReaderSync().readAsText(new Blob([bytes]), encoding);
+  };
+} else {
+  // Clear the list so that decodeBytes will never be called.
+  CMapConverterList = {};
+}
+
+function jis7ToUnicode(str) {
+  var bytes = stringToBytes(str);
+  var length = bytes.length;
+  for (var i = 0; i < length; ++i) {
+    bytes[i] |= 0x80;
+  }
+  return decodeBytes(bytes, 'euc-jp');
+}
+
+function eucjpToUnicode(str) {
+  return decodeBytes(stringToBytes(str), 'euc-jp');
+}
+
+function sjisToUnicode(str) {
+  return decodeBytes(stringToBytes(str), 'shift_jis');
+}
 
 // Some characters, e.g. copyrightserif, mapped to the private use area and
 // might not be displayed using standard fonts. Mapping/hacking well-known chars
@@ -17073,6 +17119,7 @@ var Font = (function FontClosure() {
 
     // Trying to fix encoding using glyph CIDSystemInfo.
     this.loadCidToUnicode(properties);
+    this.cidEncoding = properties.cidEncoding;
 
     if (properties.toUnicode)
       this.toUnicode = properties.toUnicode;
@@ -18907,6 +18954,15 @@ var Font = (function FontClosure() {
         } else
           cid++;
       }
+
+      var cidEncoding = properties.cidEncoding;
+      if (cidEncoding && cidEncoding.indexOf('Identity-') !== 0) {
+        // input is already Unicode for non-Identity CMap encodings.
+        // However, Unicode-to-CID conversion is needed
+        // regardless of the CMap encoding. So we can't reset
+        // unicodeToCID.
+        this.cidToUnicode = [];
+      }
     },
 
     bindDOM: function Font_bindDOM() {
@@ -18986,16 +19042,12 @@ var Font = (function FontClosure() {
         case 'CIDFontType0':
           if (this.noUnicodeAdaptation) {
             width = this.widths[this.unicodeToCID[charcode] || charcode];
-            fontCharCode = mapPrivateUseChars(charcode);
-            break;
           }
           fontCharCode = this.toFontChar[charcode] || charcode;
           break;
         case 'CIDFontType2':
           if (this.noUnicodeAdaptation) {
             width = this.widths[this.unicodeToCID[charcode] || charcode];
-            fontCharCode = mapPrivateUseChars(charcode);
-            break;
           }
           fontCharCode = this.toFontChar[charcode] || charcode;
           break;
@@ -19080,8 +19132,20 @@ var Font = (function FontClosure() {
         charsCache = this.charsCache = Object.create(null);
 
       glyphs = [];
+      var charsCacheKey = chars;
 
-      if (this.wideChars) {
+      var converter;
+      var cidEncoding = this.cidEncoding;
+      if (cidEncoding) {
+        converter = CMapConverterList[cidEncoding];
+        if (converter) {
+          chars = converter(chars);
+        } else if (cidEncoding.indexOf('Uni') !== 0 &&
+                   cidEncoding.indexOf('Identity-') !== 0) {
+          warn('Unsupported CMap: ' + cidEncoding);
+        }
+      }
+      if (!converter && this.wideChars) {
         // composite fonts have multi-byte strings convert the string from
         // single-byte to multi-byte
         // XXX assuming CIDFonts are two-byte - later need to extract the
@@ -19108,7 +19172,7 @@ var Font = (function FontClosure() {
       }
 
       // Enter the translated string into the cache
-      return (charsCache[chars] = glyphs);
+      return (charsCache[charsCacheKey] = glyphs);
     }
   };
 
