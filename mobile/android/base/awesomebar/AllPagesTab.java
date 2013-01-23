@@ -310,7 +310,12 @@ public class AllPagesTab extends AwesomeBarTab implements GeckoEventListener {
         }
 
         public void filter(String searchTerm) {
+            boolean changed = !mSearchTerm.equals(searchTerm);
             mSearchTerm = searchTerm;
+
+            if (changed)
+                mCursorAdapter.notifyDataSetChanged();
+
             getFilter().filter(searchTerm);
         }
 
