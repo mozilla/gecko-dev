@@ -14,168 +14,11 @@
 #include "mozilla/dom/Element.h"
 #include "nsDataHashtable.h"
 #include "nsIFrame.h"
-#include "nsTPriorityQueue.h"
-#include "mozilla/SplayTree.h"
 
 class nsCSSFrameConstructor;
 
 namespace mozilla {
 namespace css {
-
-/** 
- * Helper class that collects a list of frames that need
- * UpdateOverflow() called on them, and coalesces them
- * to avoid walking up the same ancestor tree multiple times.
- */
-class OverflowChangedTracker
-{
-public:
-
-  /**
-   * Add a frame that has had a style change, and needs its
-   * overflow updated.
-   *
-   * If there are pre-transform overflow areas stored for this
-   * frame, then we will call FinishAndStoreOverflow with those
-   * areas instead of UpdateOverflow().
-   *
-   * If the overflow area changes, then UpdateOverflow will also
-   * be called on the parent.
-   */
-  void AddFrame(nsIFrame* aFrame) {
-    if (!mEntryList.contains(Entry(aFrame, true))) {
-      mEntryList.insert(new Entry(aFrame, true));
-    }
-  }
-
-  /**
-   * Remove a frame and all descendants of that frame.
-   */
-  void RemoveFrameAndDescendants(nsIFrame* aFrame) {
-    if (mEntryList.contains(Entry(aFrame, 0, false))) {
-      delete mEntryList.remove(Entry(aFrame, 0, false));
-    }
-    if (mEntryList.empty()) {
-      return;
-    }
-
-    nsAutoTArray<nsIFrame::ChildList,4> childListArray;
-    aFrame->GetCrossDocChildLists(&childListArray);
-
-    nsIFrame::ChildListArrayIterator lists(childListArray);
-    for (; !lists.IsDone(); lists.Next()) {
-      nsFrameList::Enumerator childFrames(lists.CurrentList());
-      for (; !childFrames.AtEnd(); childFrames.Next()) {
-        RemoveFrameAndDescendants(childFrames.get());
-        if (mEntryList.empty()) {
-          return;
-        }
-      }
-    }
-  }
-
-  /**
-   * Update the overflow of all added frames, and clear the entry list.
-   *
-   * Start from those deepest in the frame tree and works upwards. This stops 
-   * us from processing the same frame twice.
-   */
-  void Flush() {
-    while (!mEntryList.empty()) {
-      Entry *entry = mEntryList.removeMin();
-
-      nsIFrame *frame = entry->mFrame;
-
-      bool updateParent = false;
-      if (entry->mInitial) {
-        nsOverflowAreas* pre = static_cast<nsOverflowAreas*>
-          (frame->Properties().Get(frame->PreTransformOverflowAreasProperty()));
-        if (pre) {
-          // FinishAndStoreOverflow will change the overflow areas passed in,
-          // so make a copy.
-          nsOverflowAreas overflowAreas = *pre;
-          frame->FinishAndStoreOverflow(overflowAreas, frame->GetSize());
-          // We can't tell if the overflow changed, so update the parent regardless
-          updateParent = true;
-        }
-      }
-
-      // If the overflow changed, then we want to also update the parent's
-      // overflow. We always update the parent for initial frames.
-      if (!updateParent) {
-        updateParent = frame->UpdateOverflow() || entry->mInitial;
-      }
-      if (updateParent) {
-        nsIFrame *parent = frame->GetParent();
-        if (parent) {
-          if (!mEntryList.contains(Entry(parent, entry->mDepth - 1, false))) {
-            mEntryList.insert(new Entry(parent, entry->mDepth - 1, false));
-          }
-        }
-      }
-      delete entry;
-    }
-  }
-  
-private:
-  struct Entry : SplayTreeNode<Entry>
-  {
-    Entry(nsIFrame* aFrame, bool aInitial)
-      : mFrame(aFrame)
-      , mDepth(aFrame->GetDepthInFrameTree())
-      , mInitial(aInitial)
-    {}
-    
-    Entry(nsIFrame* aFrame, uint32_t aDepth, bool aInitial)
-      : mFrame(aFrame)
-      , mDepth(aDepth)
-      , mInitial(aInitial)
-    {}
-
-    bool operator==(const Entry& aOther) const
-    {
-      return mFrame == aOther.mFrame;
-    }
- 
-    /**
-     * Sort by the depth in the frame tree, and then
-     * the frame pointer.
-     */
-    bool operator<(const Entry& aOther) const
-    {
-      if (mDepth != aOther.mDepth) {
-        // nsTPriorityQueue implements a min-heap and we
-        // want the highest depth first, so reverse this check.
-        return mDepth > aOther.mDepth;
-      }
-
-      return mFrame < aOther.mFrame;
-    }
-
-    static int compare(const Entry& aOne, const Entry& aTwo)
-    {
-      if (aOne < aTwo) {
-        return -1;
-      } else if (aOne == aTwo) {
-        return 0;
-      } else {
-        return 1;
-      }
-    }
-
-    nsIFrame* mFrame;
-    /* Depth in the frame tree */
-    uint32_t mDepth;
-    /**
-     * True if the frame had the actual style change, and we
-     * want to check for pre-transform overflow areas.
-     */
-    bool mInitial;
-  };
-
-  /* A list of frames to process, sorted by their depth in the frame tree */
-  SplayTree<Entry, Entry> mEntryList;
-};
 
 class RestyleTracker {
 public:
@@ -271,8 +114,7 @@ private:
    */
   inline void ProcessOneRestyle(Element* aElement,
                                 nsRestyleHint aRestyleHint,
-                                nsChangeHint aChangeHint,
-                                OverflowChangedTracker& aTracker);
+                                nsChangeHint aChangeHint);
 
   /**
    * The guts of our restyle processing.

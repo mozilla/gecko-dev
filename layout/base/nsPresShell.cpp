@@ -2727,9 +2727,7 @@ PresShell::RecreateFramesFor(nsIContent* aContent)
 
   // Mark ourselves as not safe to flush while we're doing frame construction.
   ++mChangeNestCount;
-  css::OverflowChangedTracker tracker;
-  nsresult rv = mFrameConstructor->ProcessRestyledFrames(changeList, tracker);
-  tracker.Flush();
+  nsresult rv = mFrameConstructor->ProcessRestyledFrames(changeList);
   --mChangeNestCount;
   
   return rv;
@@ -7869,9 +7867,7 @@ PresShell::Observe(nsISupports* aSubject,
         {
           nsAutoScriptBlocker scriptBlocker;
           ++mChangeNestCount;
-          css::OverflowChangedTracker tracker;
-          mFrameConstructor->ProcessRestyledFrames(changeList, tracker);
-          tracker.Flush();
+          mFrameConstructor->ProcessRestyledFrames(changeList);
           --mChangeNestCount;
         }
       }

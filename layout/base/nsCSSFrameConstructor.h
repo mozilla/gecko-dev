@@ -53,7 +53,6 @@ class nsCSSFrameConstructor : public nsFrameManager
 public:
   typedef mozilla::dom::Element Element;
   typedef mozilla::css::RestyleTracker RestyleTracker;
-  typedef mozilla::css::OverflowChangedTracker OverflowChangedTracker;
 
   nsCSSFrameConstructor(nsIDocument *aDocument, nsIPresShell* aPresShell);
   ~nsCSSFrameConstructor(void) {
@@ -241,8 +240,7 @@ public:
   // This function does not call ProcessAttachedQueue() on the binding manager.
   // If the caller wants that to happen synchronously, it needs to handle that
   // itself.
-  nsresult ProcessRestyledFrames(nsStyleChangeList& aRestyleArray,
-                                 OverflowChangedTracker& aTracker);
+  nsresult ProcessRestyledFrames(nsStyleChangeList& aRestyleArray);
 
 private:
 
@@ -397,8 +395,7 @@ private:
                       nsIFrame*       aPrimaryFrame,
                       nsChangeHint    aMinHint,
                       RestyleTracker& aRestyleTracker,
-                      bool            aRestyleDescendants,
-                      OverflowChangedTracker& aTracker);
+                      bool            aRestyleDescendants);
 
   nsresult InitAndRestoreFrame (const nsFrameConstructorState& aState,
                                 nsIContent*                    aContent,
