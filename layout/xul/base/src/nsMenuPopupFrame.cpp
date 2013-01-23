@@ -713,6 +713,8 @@ nsMenuPopupFrame::ShowPopup(bool aIsContextMenu, bool aSelectFirstItem)
 {
   mIsContextMenu = aIsContextMenu;
 
+  InvalidateFrameSubtree();
+
   if (mPopupState == ePopupShowing) {
     mPopupState = ePopupOpen;
     mIsOpenChanged = true;
