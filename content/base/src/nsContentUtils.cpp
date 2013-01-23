@@ -6675,6 +6675,16 @@ nsContentUtils::FindInternalContentViewer(const char* aType,
   }
 #endif
 
+#ifdef MOZ_WIDGET_GONK
+  if (nsHTMLMediaElement::IsOmxSupportedType(nsDependentCString(aType))) {
+    docFactory = do_GetService("@mozilla.org/content/document-loader-factory;1");
+    if (docFactory && aLoaderType) {
+      *aLoaderType = TYPE_CONTENT;
+    }
+    return docFactory.forget();
+  }
+#endif
+
 #ifdef MOZ_WEBM
   if (nsHTMLMediaElement::IsWebMEnabled()) {
     for (unsigned int i = 0; i < ArrayLength(nsHTMLMediaElement::gWebMTypes); ++i) {
