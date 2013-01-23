@@ -561,7 +561,7 @@ public class AllPagesTab extends AwesomeBarTab implements GeckoEventListener {
             boolean suggestionsPrompted = suggest.getBoolean("prompted");
             JSONArray engines = data.getJSONArray("searchEngines");
 
-            mSearchEngines = new ArrayList<SearchEngine>();
+            ArrayList<SearchEngine> searchEngines = new ArrayList<SearchEngine>();
             for (int i = 0; i < engines.length(); i++) {
                 JSONObject engineJSON = engines.getJSONObject(i);
                 String name = engineJSON.getString("name");
@@ -569,12 +569,15 @@ public class AllPagesTab extends AwesomeBarTab implements GeckoEventListener {
                 Bitmap icon = BitmapUtils.getBitmapFromDataURI(iconURI);
                 if (name.equals(suggestEngine) && suggestTemplate != null) {
                     // suggest engine should be at the front of the list
-                    mSearchEngines.add(0, new SearchEngine(name, icon));
+                    searchEngines.add(0, new SearchEngine(name, icon));
                     mSuggestClient = new SuggestClient(GeckoApp.mAppContext, suggestTemplate, SUGGESTION_TIMEOUT, SUGGESTION_MAX);
                 } else {
-                    mSearchEngines.add(new SearchEngine(name, icon));
+                    searchEngines.add(new SearchEngine(name, icon));
                 }
             }
+
+            mSearchEngines = searchEngines;
+            mCursorAdapter.notifyDataSetChanged();
 
             // show suggestions opt-in if user hasn't been prompted
             if (!suggestionsPrompted && mSuggestClient != null) {
@@ -584,7 +587,6 @@ public class AllPagesTab extends AwesomeBarTab implements GeckoEventListener {
             Log.e(LOGTAG, "Error getting search engine JSON", e);
         }
 
-        mCursorAdapter.notifyDataSetChanged();
         filterSuggestions(mSearchTerm);
     }
 
