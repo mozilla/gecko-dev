@@ -323,6 +323,7 @@ private:
     uint32_t                          mCachedContentIsPartial   : 1;
     uint32_t                          mTransactionReplaced      : 1;
     uint32_t                          mAuthRetryPending         : 1;
+    uint32_t                          mProxyAuthPending         : 1;
     uint32_t                          mResuming                 : 1;
     uint32_t                          mInitedCacheEntry         : 1;
     // True if we are loading a fallback cache entry from the
