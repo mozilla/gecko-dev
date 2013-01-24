@@ -83,7 +83,8 @@ JSCompartment::JSCompartment(JSRuntime *rt)
     watchpointMap(NULL),
     scriptCountsMap(NULL),
     debugScriptMap(NULL),
-    debugScopes(NULL)
+    debugScopes(NULL),
+    enumerators(NULL)
 #ifdef JS_ION
     , ionCompartment_(NULL)
 #endif
@@ -105,6 +106,7 @@ JSCompartment::~JSCompartment()
     js_delete(scriptCountsMap);
     js_delete(debugScriptMap);
     js_delete(debugScopes);
+    js_free(enumerators);
 }
 
 bool
@@ -144,6 +146,10 @@ JSCompartment::init(JSContext *cx)
         gcStoreBuffer.disable();
     }
 #endif
+
+    enumerators = NativeIterator::allocateSentinel(cx);
+    if (!enumerators)
+        return false;
 
     return debuggees.init();
 }
@@ -727,6 +733,15 @@ JSCompartment::sweep(FreeOp *fop, bool releaseTypes)
             rt->freeLifoAlloc.transferFrom(&analysisLifoAlloc);
             rt->freeLifoAlloc.transferFrom(&oldAlloc);
         }
+    }
+
+    NativeIterator *ni = enumerators->next();
+    while (ni != enumerators) {
+        JSObject *iterObj = ni->iterObj();
+        NativeIterator *next = ni->next();
+        if (JS_IsAboutToBeFinalized(iterObj))
+            ni->unlink();
+        ni = next;
     }
 
     active = false;
