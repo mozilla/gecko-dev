@@ -5246,6 +5246,10 @@ PresShell::Paint(nsIView*           aViewToPaint,
   NS_ASSERTION(!mIsDestroying, "painting a destroyed PresShell");
   NS_ASSERTION(aViewToPaint, "null view");
 
+  if (!mIsActive) {
+    return;
+  }
+
   nsAutoNotifyDidPaint notifyDidPaint(aWillSendDidPaint);
 
   nsPresContext* presContext = GetPresContext();
