@@ -679,6 +679,8 @@ protected:
     FrameType GetInheritedFrameType();
     FrameType GetFrameType();
 
+    bool HasUnloadedParent();
+
     // hash of session storages, keyed by domain
     nsInterfaceHashtable<nsCStringHashKey, nsIDOMStorage> mStorages;
 
