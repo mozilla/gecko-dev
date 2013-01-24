@@ -437,7 +437,7 @@ let Downloads = {
       }
       aDownload.remove();
       try {
-        if (f) f.remove();
+        if (f) f.remove(false);
       } catch (ex) {
         this.logError("removeDownload() " + ex, aDownload);
       }
