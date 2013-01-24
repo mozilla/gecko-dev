@@ -494,17 +494,6 @@ ContentChild::AllocPImageBridge(mozilla::ipc::Transport* aTransport,
     return ImageBridgeChild::StartUpInChildProcess(aTransport, aOtherProcess);
 }
 
-bool
-ContentChild::RecvSetProcessPrivileges(const ChildPrivileges& aPrivs)
-{
-  ChildPrivileges privs = (aPrivs == PRIVILEGES_DEFAULT) ?
-                          GeckoChildProcessHost::DefaultChildPrivileges() :
-                          aPrivs;
-  // If this fails, we die.
-  SetCurrentProcessPrivileges(privs);
-  return true;
-}
-
 static CancelableTask* sFirstIdleTask;
 
 static void FirstIdle(void)
