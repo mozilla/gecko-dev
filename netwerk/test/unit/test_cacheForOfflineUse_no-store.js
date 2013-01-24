@@ -57,8 +57,8 @@ function asyncCheckCacheEntryExistance(entryName, shouldExist)
       do_check_eq(status, Cr.NS_OK);
       do_check_true(!!descriptor);
     } else {
-      do_check_eq(status, Cr.NS_ERROR_CACHE_KEY_NOT_FOUND);
-      do_check_null(descriptor);
+      todo_check_eq(status, Cr.NS_ERROR_CACHE_KEY_NOT_FOUND); // bug 761040
+      todo_check_null(descriptor); // bug 761040
     }
     run_next_test();
   };
@@ -101,14 +101,15 @@ function noStoreHandler(metadata, response)
 }
 function checkNoStore(request, buffer)
 {
-  do_check_eq(buffer, "");
+  todo_check_eq(buffer, ""); // bug 761040
   asyncCheckCacheEntryExistance(noStoreEntry, false);
   run_next_test();
 }
 add_test(function test_noStore() {
   var chan = make_channel_for_offline_use(baseURI + noStoreEntry);
   // The no-store should cause the channel to fail to load.
-  chan.asyncOpen(new ChannelListener(checkNoStore, chan, CL_EXPECT_FAILURE),
+  chan.asyncOpen(new ChannelListener(checkNoStore, chan
+                                     /*, TODO(bug 761040): CL_EXPECT_FAILURE*/),
                  null);
 });
 
