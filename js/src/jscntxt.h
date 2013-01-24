@@ -1497,9 +1497,6 @@ struct JSContext : js::ContextFriendFields
 
     DSTOffsetCache dstOffsetCache;
 
-    /* List of currently active non-escaping enumerators (for-in). */
-    js::PropertyIteratorObject *enumerators;
-
   private:
     /* Innermost-executing generator or null if no generator are executing. */
     JSGenerator *innermostGenerator_;
