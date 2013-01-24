@@ -91,7 +91,7 @@ AudioChannelService::RegisterAudioChannelAgent(AudioChannelAgent* aAgent,
                                                           true /* mElementHidden */,
                                                           true /* mMuted */);
   mAgents.Put(aAgent, data);
-  RegisterType(aType, CONTENT_PARENT_NO_CHILD_ID);
+  RegisterType(aType, CONTENT_PARENT_UNKNOWN_CHILD_ID);
 }
 
 void
@@ -115,7 +115,7 @@ AudioChannelService::UnregisterAudioChannelAgent(AudioChannelAgent* aAgent)
   mAgents.RemoveAndForget(aAgent, data);
 
   if (data) {
-    UnregisterType(data->mType, data->mElementHidden, CONTENT_PARENT_NO_CHILD_ID);
+    UnregisterType(data->mType, data->mElementHidden, CONTENT_PARENT_UNKNOWN_CHILD_ID);
   }
 }
 
@@ -145,7 +145,7 @@ AudioChannelService::GetMuted(AudioChannelAgent* aAgent, bool aElementHidden)
     return true;
   }
 
-  bool muted = GetMutedInternal(data->mType, CONTENT_PARENT_NO_CHILD_ID,
+  bool muted = GetMutedInternal(data->mType, CONTENT_PARENT_UNKNOWN_CHILD_ID,
                                 aElementHidden, data->mElementHidden);
 
   // Update visibility.
@@ -228,7 +228,7 @@ AudioChannelService::SendAudioChannelChangedNotification()
   // Calculating the most important active channel.
   AudioChannelType higher = AUDIO_CHANNEL_LAST;
 
-  // Top-Down in the hierarchy for visible elements
+  // Top-Down in the hierarchy.
   if (!mChannelCounters[AUDIO_CHANNEL_INT_PUBLICNOTIFICATION].IsEmpty()) {
     higher = AUDIO_CHANNEL_PUBLICNOTIFICATION;
   }
@@ -249,39 +249,16 @@ AudioChannelService::SendAudioChannelChangedNotification()
     higher = AUDIO_CHANNEL_NOTIFICATION;
   }
 
-  else if (!mChannelCounters[AUDIO_CHANNEL_INT_CONTENT].IsEmpty()) {
+  // Only 1 content channel hidden or a visible one.
+  else if ((!mChannelCounters[AUDIO_CHANNEL_INT_CONTENT_HIDDEN].IsEmpty() &&
+            !HasMoreThanOneContentChannelHidden()) ||
+           !mChannelCounters[AUDIO_CHANNEL_INT_CONTENT].IsEmpty()) {
     higher = AUDIO_CHANNEL_CONTENT;
   }
 
+  // At least 1 visible normal channel.
   else if (!mChannelCounters[AUDIO_CHANNEL_INT_NORMAL].IsEmpty()) {
     higher = AUDIO_CHANNEL_NORMAL;
-  }
-
-  // Top-Down in the hierarchy for non-visible elements
-  else if (!mChannelCounters[AUDIO_CHANNEL_INT_PUBLICNOTIFICATION_HIDDEN].IsEmpty()) {
-    higher = AUDIO_CHANNEL_PUBLICNOTIFICATION;
-  }
-
-  else if (!mChannelCounters[AUDIO_CHANNEL_INT_RINGER_HIDDEN].IsEmpty()) {
-    higher = AUDIO_CHANNEL_RINGER;
-  }
-
-  else if (!mChannelCounters[AUDIO_CHANNEL_INT_TELEPHONY_HIDDEN].IsEmpty()) {
-    higher = AUDIO_CHANNEL_TELEPHONY;
-  }
-
-  else if (!mChannelCounters[AUDIO_CHANNEL_INT_ALARM_HIDDEN].IsEmpty()) {
-    higher = AUDIO_CHANNEL_ALARM;
-  }
-
-  else if (!mChannelCounters[AUDIO_CHANNEL_INT_NOTIFICATION_HIDDEN].IsEmpty()) {
-    higher = AUDIO_CHANNEL_NOTIFICATION;
-  }
-
-  // Content channels play in background if just one is active.
-  else if ((!mChannelCounters[AUDIO_CHANNEL_INT_CONTENT_HIDDEN].IsEmpty() &&
-            !HasMoreThanOneContentChannelHidden())) {
-    higher = AUDIO_CHANNEL_CONTENT;
   }
 
   if (higher != mCurrentHigherChannel) {
@@ -327,7 +304,7 @@ AudioChannelService::Notify()
 bool
 AudioChannelService::ChannelsActiveWithHigherPriorityThan(AudioChannelInternalType aType)
 {
-  for (int i = AUDIO_CHANNEL_INT_LAST - 1;
+  for (int i = AUDIO_CHANNEL_INT_PUBLICNOTIFICATION;
        i != AUDIO_CHANNEL_INT_CONTENT_HIDDEN; --i) {
     if (i == aType) {
       return false;
@@ -412,38 +389,26 @@ AudioChannelService::GetInternalType(AudioChannelType aType,
   switch (aType) {
     case AUDIO_CHANNEL_NORMAL:
       return aElementHidden
-               ? AUDIO_CHANNEL_INT_NORMAL_HIDDEN
-               : AUDIO_CHANNEL_INT_NORMAL;
+               ? AUDIO_CHANNEL_INT_NORMAL_HIDDEN : AUDIO_CHANNEL_INT_NORMAL;
 
     case AUDIO_CHANNEL_CONTENT:
       return aElementHidden
-               ? AUDIO_CHANNEL_INT_CONTENT_HIDDEN
-               : AUDIO_CHANNEL_INT_CONTENT;
+               ? AUDIO_CHANNEL_INT_CONTENT_HIDDEN : AUDIO_CHANNEL_INT_CONTENT;
 
     case AUDIO_CHANNEL_NOTIFICATION:
-      return aElementHidden
-               ? AUDIO_CHANNEL_INT_NOTIFICATION_HIDDEN
-               : AUDIO_CHANNEL_INT_NOTIFICATION;
+      return AUDIO_CHANNEL_INT_NOTIFICATION;
 
     case AUDIO_CHANNEL_ALARM:
-      return aElementHidden
-               ? AUDIO_CHANNEL_INT_ALARM_HIDDEN
-               : AUDIO_CHANNEL_INT_ALARM;
+      return AUDIO_CHANNEL_INT_ALARM;
 
     case AUDIO_CHANNEL_TELEPHONY:
-      return aElementHidden
-               ? AUDIO_CHANNEL_INT_TELEPHONY_HIDDEN
-               : AUDIO_CHANNEL_INT_TELEPHONY;
+      return AUDIO_CHANNEL_INT_TELEPHONY;
 
     case AUDIO_CHANNEL_RINGER:
-      return aElementHidden
-               ? AUDIO_CHANNEL_INT_RINGER_HIDDEN
-               : AUDIO_CHANNEL_INT_RINGER;
+      return AUDIO_CHANNEL_INT_RINGER;
 
     case AUDIO_CHANNEL_PUBLICNOTIFICATION:
-      return aElementHidden
-               ? AUDIO_CHANNEL_INT_PUBLICNOTIFICATION_HIDDEN
-               : AUDIO_CHANNEL_INT_PUBLICNOTIFICATION;
+      return AUDIO_CHANNEL_INT_PUBLICNOTIFICATION;
 
     case AUDIO_CHANNEL_LAST:
     default:
