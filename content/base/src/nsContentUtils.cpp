@@ -4590,7 +4590,9 @@ nsContentUtils::HoldJSObjects(void* aScriptObjectHolder,
 nsresult
 nsContentUtils::DropJSObjects(void* aScriptObjectHolder)
 {
-  NS_ENSURE_TRUE(sXPConnect, NS_ERROR_UNEXPECTED);
+  if (NS_UNLIKELY(!sXPConnect)) {
+    return NS_ERROR_UNEXPECTED;
+  }
 
   NS_LOG_RELEASE(sXPConnect, sJSGCThingRootCount - 1, "HoldJSObjects");
   nsresult rv = sXPConnect->RemoveJSHolder(aScriptObjectHolder);
