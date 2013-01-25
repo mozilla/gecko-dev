@@ -702,10 +702,7 @@ WebGLContext::ValidateUniformArraySetter(const char* name, uint32_t expectedElem
 {
     if (!IsContextStable())
         return false;
-    nsCString nameString(name);
-    nsCString suffix = NS_LITERAL_CSTRING(": location");
-    nsCString concatenated = nameString + suffix;
-    if (!ValidateUniformLocation(concatenated.get(), location_object))
+    if (!ValidateUniformLocation(name, location_object))
         return false;
     location = location_object->Location();
     uint32_t uniformElemSize = location_object->ElementSize();
@@ -716,7 +713,6 @@ WebGLContext::ValidateUniformArraySetter(const char* name, uint32_t expectedElem
                               uniformElemSize);
         return false;
     }
-    const WebGLUniformInfo& info = location_object->Info();
     if (arrayLength == 0 ||
         arrayLength % expectedElemSize)
     {
@@ -726,6 +722,7 @@ WebGLContext::ValidateUniformArraySetter(const char* name, uint32_t expectedElem
                           arrayLength);
         return false;
     }
+    const WebGLUniformInfo& info = location_object->Info();
     if (!info.isArray &&
         arrayLength != expectedElemSize) {
         ErrorInvalidOperation("%s: expected an array of length exactly"
@@ -748,10 +745,7 @@ WebGLContext::ValidateUniformMatrixArraySetter(const char* name, int dim, WebGLU
     uint32_t expectedElemSize = (dim)*(dim);
     if (!IsContextStable())
         return false;
-    nsCString nameString(name);
-    nsCString suffix = NS_LITERAL_CSTRING(": location");
-    nsCString concatenated = nameString + suffix;
-    if (!ValidateUniformLocation(concatenated.get(), location_object))
+    if (!ValidateUniformLocation(name, location_object))
         return false;
     location = location_object->Location();
     uint32_t uniformElemSize = location_object->ElementSize();
@@ -762,7 +756,6 @@ WebGLContext::ValidateUniformMatrixArraySetter(const char* name, int dim, WebGLU
                               uniformElemSize);
         return false;
     }
-    const WebGLUniformInfo& info = location_object->Info();
     if (arrayLength == 0 ||
         arrayLength % expectedElemSize)
     {
@@ -772,6 +765,7 @@ WebGLContext::ValidateUniformMatrixArraySetter(const char* name, int dim, WebGLU
                           arrayLength);
         return false;
     }
+    const WebGLUniformInfo& info = location_object->Info();
     if (!info.isArray &&
         arrayLength != expectedElemSize) {
         ErrorInvalidOperation("%s: expected an array of length exactly"
@@ -796,10 +790,7 @@ WebGLContext::ValidateUniformSetter(const char* name, WebGLUniformLocation *loca
 {
     if (!IsContextStable())
         return false;
-    nsCString nameString(name);
-    nsCString suffix = NS_LITERAL_CSTRING(": location");
-    nsCString concatenated = nameString + suffix;
-    if (!ValidateUniformLocation(concatenated.get(), location_object))
+    if (!ValidateUniformLocation(name, location_object))
         return false;
     location = location_object->Location();
     return true;
