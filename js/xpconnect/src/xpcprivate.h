@@ -3438,6 +3438,8 @@ public:
     static jsval ReadableToJSVal(JSContext *cx, const nsAString &readable,
                                  nsStringBuffer** sharedBuffer);
 
+    static void ClearCache();
+
 private:
     XPCStringConvert();         // not implemented
 };
