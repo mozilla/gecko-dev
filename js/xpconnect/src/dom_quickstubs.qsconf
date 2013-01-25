@@ -66,6 +66,11 @@ members = [
     # dom/interfaces/core
     'nsIDOMCharacterData.data',
     'nsIDOMCharacterData.length',
+    'nsIDOMDocument.onreadystatechange',
+    'nsIDOMDocument.onmouseenter',
+    'nsIDOMDocument.onmouseleave',
+    'nsIDOMElement.onmouseenter',
+    'nsIDOMElement.onmouseleave',
     'nsIDOMNamedNodeMap.item',
     'nsIDOMNamedNodeMap.length',
     'nsIDOMText.splitText',
@@ -383,6 +388,46 @@ customMethodCalls = {
         'thisType': 'nsPIDOMWindow',
         'code' : '    nsPerformance* result = self->GetPerformance();\n',
         'canFail': False,
+        },
+    'nsIDOMDocument_GetOnreadystatechange' : {
+        'thisType' : 'nsDocument',
+        'unwrapThisFailureFatal' : False
+        },
+    'nsIDOMDocument_SetOnreadystatechange' : {
+        'thisType' : 'nsDocument',
+        'unwrapThisFailureFatal' : False
+        },
+    'nsIDOMDocument_GetOnmouseenter' : {
+        'thisType' : 'nsDocument',
+        'unwrapThisFailureFatal' : False
+        },
+    'nsIDOMDocument_SetOnmouseenter' : {
+        'thisType' : 'nsDocument',
+        'unwrapThisFailureFatal' : False
+        },
+    'nsIDOMDocument_GetOnmouseleave' : {
+        'thisType' : 'nsDocument',
+        'unwrapThisFailureFatal' : False
+        },
+    'nsIDOMDocument_SetOnmouseleave' : {
+        'thisType' : 'nsDocument',
+        'unwrapThisFailureFatal' : False
+        },
+    'nsIDOMElement_GetOnmouseenter' : {
+        'thisType' : 'mozilla::dom::Element',
+        'unwrapThisFailureFatal' : False
+        },
+    'nsIDOMElement_SetOnmouseenter' : {
+        'thisType' : 'mozilla::dom::Element',
+        'unwrapThisFailureFatal' : False
+        },
+    'nsIDOMElement_GetOnmouseleave' : {
+        'thisType' : 'mozilla::dom::Element',
+        'unwrapThisFailureFatal' : False
+        },
+    'nsIDOMElement_SetOnmouseleave' : {
+        'thisType' : 'mozilla::dom::Element',
+        'unwrapThisFailureFatal' : False
         },
     }
 

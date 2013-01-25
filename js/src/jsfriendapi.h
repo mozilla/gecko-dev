@@ -444,6 +444,9 @@ InitClassWithReserved(JSContext *cx, JSObject *obj, JSObject *parent_proto,
                       JSPropertySpec *ps, JSFunctionSpec *fs,
                       JSPropertySpec *static_ps, JSFunctionSpec *static_fs);
 
+JS_FRIEND_API(bool)
+DefineProperty(JSContext *cx, JSObject *obj, JSPropertySpec &ps);
+
 JS_FRIEND_API(const Value &)
 GetFunctionNativeReserved(RawObject fun, size_t which);
 

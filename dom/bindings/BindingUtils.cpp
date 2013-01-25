@@ -343,9 +343,23 @@ DefineWebIDLBindingPropertiesOnXPCProto(JSContext* cx, JSObject* proto, const Na
     return false;
   }
 
-  if (properties->attributes &&
-      !DefinePrefable(cx, proto, properties->attributes)) {
-    return false;
+  if (properties->attributes) {
+    Prefable<JSPropertySpec>* props = properties->attributes;
+    MOZ_ASSERT(props);
+    MOZ_ASSERT(props->specs);
+    do {
+      // Define if enabled
+      if (props->enabled) {
+        for (JSPropertySpec* ps = props->specs; ps->name; ++ps) {
+          if (ps->name[0] == 'o' && ps->name[1] == 'n') {
+            continue;
+          }
+          if (!js::DefineProperty(cx, proto, *ps)) {
+            return false;
+          }
+        }
+      }
+    } while ((++props)->specs);
   }
 
   return true;

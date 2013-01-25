@@ -4027,6 +4027,18 @@ JS_DefineProperties(JSContext *cx, JSObject *objArg, JSPropertySpec *ps)
     return ok;
 }
 
+namespace js {
+
+JS_FRIEND_API(bool)
+DefineProperty(JSContext *cx, JSObject *objArg, JSPropertySpec &ps)
+{
+    RootedObject obj(cx, objArg);
+    return DefineProperty(cx, obj, ps.name, UndefinedValue(), ps.getter,
+                          ps.setter, ps.flags, Shape::HAS_SHORTID, ps.tinyid);
+}
+
+} /* namespace js */
+
 static JSBool
 GetPropertyDescriptorById(JSContext *cx, HandleObject obj, HandleId id, unsigned flags,
                           JSBool own, PropertyDescriptor *desc)
