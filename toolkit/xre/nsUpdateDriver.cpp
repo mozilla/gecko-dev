@@ -25,7 +25,7 @@
 #include "nsIXULAppInfo.h"
 #include "mozilla/Preferences.h"
 #include "nsPrintfCString.h"
-#include "mozilla/DebugOnly.h"
+#include "mozilla/Util.h"
 
 #ifdef XP_MACOSX
 #include "nsILocalFileMac.h"
