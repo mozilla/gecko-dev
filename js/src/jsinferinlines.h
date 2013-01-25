@@ -320,17 +320,24 @@ struct AutoEnterCompilation
             }
         }
 
-        info.outputIndex = cx->compartment->types.constrainedOutputs->length();
+        info.outputIndex = types.constrainedOutputs->length();
         if (info.outputIndex >= RecompileInfo::NoCompilerRunning)
             return false;
 
-        if (!cx->compartment->types.constrainedOutputs->append(co))
+        if (!types.constrainedOutputs->append(co)) {
+            info.outputIndex = RecompileInfo::NoCompilerRunning;
             return false;
+        }
         return true;
     }
 
     ~AutoEnterCompilation()
     {
+        // Handle failure cases of init.
+        if (info.outputIndex >= RecompileInfo::NoCompilerRunning)
+            return;
+
+        JS_ASSERT(info.outputIndex < cx->compartment->types.constrainedOutputs->length());
         CompilerOutput *co = info.compilerOutput(cx);
         co->pendingRecompilation = false;
         if (!co->isValid())
