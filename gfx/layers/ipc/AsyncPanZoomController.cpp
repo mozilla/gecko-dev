@@ -125,6 +125,14 @@ AsyncPanZoomController::~AsyncPanZoomController() {
 
 }
 
+void
+AsyncPanZoomController::Destroy()
+{
+  // These memebrs can only be used on the controller/UI thread.
+  mGeckoContentController = nullptr;
+  mGestureEventListener = nullptr;
+}
+
 static gfx::Point
 WidgetSpaceToCompensatedViewportSpace(const gfx::Point& aPoint,
                                       gfxFloat aCurrentZoom)
