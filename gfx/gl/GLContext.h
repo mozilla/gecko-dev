@@ -1690,7 +1690,6 @@ public:
     static bool ListHasExtension(const GLubyte *extensions,
                                  const char *extension);
 
-    GLint GetMaxTextureSize() { return mMaxTextureSize; }
     GLint GetMaxTextureImageSize() { return mMaxTextureImageSize; }
     void SetFlipped(bool aFlipped) { mFlipped = aFlipped; }
 
