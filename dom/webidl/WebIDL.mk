@@ -57,6 +57,7 @@ endif
 ifdef MOZ_B2G_RIL
 webidl_files += \
   USSDReceivedEvent.webidl \
+  CFStateChangeEvent.webidl \
   $(NULL)
 endif
 
