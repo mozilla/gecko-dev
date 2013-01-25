@@ -421,7 +421,6 @@
 // Device Storage
 #include "nsIDOMDeviceStorage.h"
 #include "nsIDOMDeviceStorageCursor.h"
-#include "nsIDOMDeviceStorageStat.h"
 
 // Drag and drop
 #include "nsIDOMDataTransfer.h"
@@ -1488,9 +1487,6 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            EVENTTARGET_SCRIPTABLE_FLAGS)
 
   NS_DEFINE_CLASSINFO_DATA(DeviceStorageCursor, nsDOMGenericSH,
-                           DOM_DEFAULT_SCRIPTABLE_FLAGS)
-
-  NS_DEFINE_CLASSINFO_DATA(DeviceStorageStat, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
 
   NS_DEFINE_CLASSINFO_DATA(GeoGeolocation, nsDOMGenericSH,
@@ -4114,10 +4110,6 @@ nsDOMClassInfo::Init()
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMDeviceStorageCursor)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMDOMRequest)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMEventTarget)
-  DOM_CLASSINFO_MAP_END
-
-  DOM_CLASSINFO_MAP_BEGIN(DeviceStorageStat, nsIDOMDeviceStorageStat)
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMDeviceStorageStat)
   DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN(GeoGeolocation, nsIDOMGeoGeolocation)
