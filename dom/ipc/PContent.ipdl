@@ -76,10 +76,21 @@ struct FontListEntry {
     uint8_t   index;
 };
 
-struct DeviceStorageStatParams
+struct DeviceStorageFreeSpaceParams
 {
   nsString type;
   nsString fullpath;
+};
+
+struct DeviceStorageUsedSpaceParams
+{
+  nsString type;
+  nsString fullpath;
+};
+
+struct DeviceStorageAvailableParams
+{
+  nsString type;
 };
 
 struct DeviceStorageAddParams
@@ -116,7 +127,9 @@ union DeviceStorageParams
   DeviceStorageGetParams;
   DeviceStorageDeleteParams;
   DeviceStorageEnumerationParams;
-  DeviceStorageStatParams;
+  DeviceStorageFreeSpaceParams;
+  DeviceStorageUsedSpaceParams;
+  DeviceStorageAvailableParams;
 };
 
 // An IPCTabContext which corresponds to a PBrowser opened by a child when it
