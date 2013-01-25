@@ -4,3 +4,6 @@ on top of the NSS release.
 remove-turktrust-bug-827543.patch: Tentatively remove TURKTRUST certificates
                                    from B2G 1.0 branch only, pending final
                                    decision for all products.
+bug-834091.patch: Add SEC_PKCS7VerifyDetachedSignatureAtTime, which is needed
+                  for B2G 1.0. This patch is probably going to be modified
+                  before it can land in upstream NSS.
