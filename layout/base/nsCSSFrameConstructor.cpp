@@ -1401,6 +1401,7 @@ nsCSSFrameConstructor::nsCSSFrameConstructor(nsIDocument *aDocument,
   , mInStyleRefresh(false)
   , mHoverGeneration(0)
   , mRebuildAllExtraHint(nsChangeHint(0))
+  , mOverflowChangedTracker(nullptr)
   , mAnimationGeneration(0)
   , mPendingRestyles(ELEMENT_HAS_PENDING_RESTYLE |
                      ELEMENT_IS_POTENTIAL_RESTYLE_ROOT, this)
@@ -1478,6 +1479,10 @@ nsCSSFrameConstructor::NotifyDestroyingFrame(nsIFrame* aFrame)
     // USE nodes.  However, this is unlikely to happen in the real world
     // since USE nodes generally go along with INCREMENT nodes.
     CountersDirty();
+  }
+
+  if (mOverflowChangedTracker) {
+    mOverflowChangedTracker->RemoveFrame(aFrame);
   }
 
   nsFrameManager::NotifyDestroyingFrame(aFrame);
@@ -8080,6 +8085,10 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList,
 
   SAMPLE_LABEL("CSS", "ProcessRestyledFrames");
 
+  MOZ_ASSERT(!GetOverflowChangedTracker(), 
+             "Can't have multiple overflow changed trackers!");
+  SetOverflowChangedTracker(&aTracker);
+
   // Make sure to not rebuild quote or counter lists while we're
   // processing restyles
   BeginUpdate();
@@ -8164,9 +8173,6 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList,
       // the style resolution we will do for the frame construction
       // happens async when we're not in an animation restyle already,
       // problems could arise.
-      if (content->GetPrimaryFrame()) {
-        aTracker.RemoveFrameAndDescendants(content->GetPrimaryFrame());
-      }
       RecreateFramesForContent(content, false);
     } else {
       NS_ASSERTION(frame, "This shouldn't happen");
@@ -8268,6 +8274,7 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList,
 #endif
   }
 
+  SetOverflowChangedTracker(nullptr);
   aChangeList.Clear();
   return NS_OK;
 }
