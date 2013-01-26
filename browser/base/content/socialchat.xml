@@ -64,7 +64,7 @@
     </implementation>
 
     <handlers>
-      <handler event="focus" phase="capturing">
+      <handler event="focus">
         this.parentNode.selectedChat = this;
       </handler>
       <handler event="DOMTitleChanged"><![CDATA[
