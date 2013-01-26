@@ -77,8 +77,7 @@ const RIL_IPC_MSG_NAMES = [
   "RIL:DataError",
   "RIL:SetCallForwardingOption",
   "RIL:GetCallForwardingOption",
-  "RIL:CellBroadcastReceived",
-  "RIL:CfStateChanged"
+  "RIL:CellBroadcastReceived"
 ];
 
 const kVoiceChangedTopic     = "mobile-connection-voice-changed";
@@ -90,7 +89,6 @@ const kStkCommandTopic       = "icc-manager-stk-command";
 const kStkSessionEndTopic    = "icc-manager-stk-session-end";
 const kDataErrorTopic        = "mobile-connection-data-error";
 const kIccCardLockErrorTopic = "mobile-connection-icccardlock-error";
-const kCfStateChangedTopic   = "mobile-connection-cfstate-change";
 
 XPCOMUtils.defineLazyServiceGetter(this, "cpmm",
                                    "@mozilla.org/childprocessmessagemanager;1",
@@ -973,15 +971,6 @@ RILContentHelper.prototype = {
         break;
       case "RIL:SetCallForwardingOption":
         this.handleSetCallForwardingOption(msg.json);
-        break;
-      case "RIL:CfStateChanged":
-        let result = JSON.stringify({success: msg.json.success,
-                                     action: msg.json.action,
-                                     reason: msg.json.reason,
-                                     number: msg.json.number,
-                                     timeSeconds: msg.json.timeSeconds,
-                                     serviceClass: msg.json.serviceClass});
-        Services.obs.notifyObservers(null, kCfStateChangedTopic, result);
         break;
       case "RIL:CellBroadcastReceived":
         let message = new CellBroadcastMessage(msg.json);

@@ -3120,8 +3120,6 @@ let RIL = {
           return;
         }
 
-        options.rilMessageType = "setCallForward";
-        options.isSendMMI = true;
         options.timeSeconds = mmi.sic;
         this.setCallForward(options);
         return;
