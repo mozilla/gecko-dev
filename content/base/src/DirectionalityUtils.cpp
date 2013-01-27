@@ -241,6 +241,12 @@ DoesNotParticipateInAutoDirection(const Element* aElement)
           nodeInfo->Equals(nsGkAtoms::textarea));
 }
 
+static inline bool
+IsBdiWithoutDirAuto(const Element* aElement)
+{
+  return aElement->IsHTML(nsGkAtoms::bdi) && !aElement->HasDirAuto();
+}
+
 /**
  * Returns the directionality of a Unicode character
  */
@@ -632,7 +638,7 @@ void
 WalkDescendantsSetDirAuto(Element* aElement, bool aNotify)
 {
   if (!DoesNotParticipateInAutoDirection(aElement) &&
-      !aElement->IsHTML(nsGkAtoms::bdi)) {
+      !IsBdiWithoutDirAuto(aElement)) {
 
     bool setAncestorDirAutoFlag =
 #ifdef DEBUG
@@ -646,7 +652,7 @@ WalkDescendantsSetDirAuto(Element* aElement, bool aNotify)
       while (child) {
         if (child->IsElement() &&
             (DoesNotParticipateInAutoDirection(child->AsElement()) ||
-             child->NodeInfo()->Equals(nsGkAtoms::bdi) ||
+             IsBdiWithoutDirAuto(child->AsElement()) ||
              child->HasFixedDir())) {
           child = child->GetNextNonChildNode(aElement);
           continue;
@@ -715,7 +721,7 @@ void SetAncestorDirectionIfAuto(nsINode* aTextNode, Directionality aDir,
           while (child) {
             if (child->IsElement() &&
                 (DoesNotParticipateInAutoDirection(child->AsElement()) ||
-                 child->NodeInfo()->Equals(nsGkAtoms::bdi) ||
+                 IsBdiWithoutDirAuto(child->AsElement()) ||
                  child->HasFixedDir())) {
               child = child->GetNextNonChildNode(parent);
               continue;
@@ -883,7 +889,7 @@ SetDirOnBind(mozilla::dom::Element* aElement, nsIContent* aParent)
       do {
         if (child->IsElement() &&
             (DoesNotParticipateInAutoDirection(child->AsElement()) ||
-             child->NodeInfo()->Equals(nsGkAtoms::bdi) ||
+             IsBdiWithoutDirAuto(child->AsElement()) ||
              child->HasFixedDir())) {
           child = child->GetNextNonChildNode(aElement);
           continue;
