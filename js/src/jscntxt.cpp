@@ -309,6 +309,8 @@ js::DestroyContext(JSContext *cx, DestroyContextMode mode)
     JSRuntime *rt = cx->runtime;
     JS_AbortIfWrongThread(rt);
 
+    JS_ASSERT(!cx->enumerators);
+
 #ifdef JS_THREADSAFE
     JS_ASSERT(cx->outstandingRequests == 0);
 #endif
@@ -1123,6 +1125,7 @@ JSContext::JSContext(JSRuntime *rt)
 #ifdef MOZ_TRACE_JSCALLS
     functionCallback(NULL),
 #endif
+    enumerators(NULL),
     innermostGenerator_(NULL),
 #ifdef DEBUG
     stackIterAssertionEnabled(true),

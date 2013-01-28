@@ -145,10 +145,6 @@ JSCompartment::init(JSContext *cx)
     }
 #endif
 
-    enumerators = NativeIterator::allocateSentinel(cx);
-    if (!enumerators)
-        return false;
-
     return debuggees.init();
 }
 
@@ -731,15 +727,6 @@ JSCompartment::sweep(FreeOp *fop, bool releaseTypes)
             rt->freeLifoAlloc.transferFrom(&analysisLifoAlloc);
             rt->freeLifoAlloc.transferFrom(&oldAlloc);
         }
-    }
-
-    NativeIterator *ni = enumerators->next();
-    while (ni != enumerators) {
-        JSObject *iterObj = ni->iterObj();
-        NativeIterator *next = ni->next();
-        if (JS_IsAboutToBeFinalized(iterObj))
-            ni->unlink();
-        ni = next;
     }
 
     active = false;

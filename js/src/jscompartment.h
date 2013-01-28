@@ -29,8 +29,6 @@ namespace ion {
     class IonCompartment;
 }
 
-struct NativeIterator;
-
 /*
  * A single-entry cache for some base-10 double-to-string conversions. This
  * helps date-format-xparb.js.  It also avoids skewing the results for

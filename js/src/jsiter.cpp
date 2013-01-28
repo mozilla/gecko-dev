@@ -446,30 +446,13 @@ NativeIterator::allocateIterator(JSContext *cx, uint32_t slength, const AutoIdVe
             ni->props_array[i].init(str);
         }
     }
-    ni->next_ = NULL;
-    ni->prev_ = NULL;
-    return ni;
-}
-
-NativeIterator *
-NativeIterator::allocateSentinel(JSContext *cx)
-{
-    NativeIterator *ni = (NativeIterator *)js_malloc(sizeof(NativeIterator));
-    if (!ni)
-        return NULL;
-
-    PodZero(ni);
-
-    ni->next_ = ni;
-    ni->prev_ = ni;
     return ni;
 }
 
 inline void
-NativeIterator::init(RawObject obj, RawObject iterObj, unsigned flags, uint32_t slength, uint32_t key)
+NativeIterator::init(RawObject obj, unsigned flags, uint32_t slength, uint32_t key)
 {
     this->obj.init(obj);
-    this->iterObj_ = iterObj;
     this->flags = flags;
     this->shapes_array = (Shape **) this->props_end;
     this->shapes_length = slength;
@@ -481,7 +464,8 @@ RegisterEnumerator(JSContext *cx, PropertyIteratorObject *iterobj, NativeIterato
 {
     /* Register non-escaping native enumerators (for-in) with the current context. */
     if (ni->flags & JSITER_ENUMERATE) {
-        ni->link(cx->compartment->enumerators);
+        ni->next = cx->enumerators;
+        cx->enumerators = iterobj;
 
         JS_ASSERT(!(ni->flags & JSITER_ACTIVE));
         ni->flags |= JSITER_ACTIVE;
@@ -507,7 +491,7 @@ VectorToKeyIterator(JSContext *cx, HandleObject obj, unsigned flags, AutoIdVecto
     NativeIterator *ni = NativeIterator::allocateIterator(cx, slength, keys);
     if (!ni)
         return false;
-    ni->init(obj, iterobj, flags, slength, key);
+    ni->init(obj, flags, slength, key);
 
     if (slength) {
         /*
@@ -559,7 +543,7 @@ js::VectorToValueIterator(JSContext *cx, HandleObject obj, unsigned flags, AutoI
     NativeIterator *ni = NativeIterator::allocateIterator(cx, 0, keys);
     if (!ni)
         return false;
-    ni->init(obj, iterobj, flags, 0, 0);
+    ni->init(obj, flags, 0, 0);
 
     iterobj->setNativeIterator(ni);
     vp.setObject(*iterobj);
@@ -1036,7 +1020,8 @@ js::CloseIterator(JSContext *cx, HandleObject obj)
         NativeIterator *ni = obj->asPropertyIterator().getNativeIterator();
 
         if (ni->flags & JSITER_ENUMERATE) {
-            ni->unlink();
+            JS_ASSERT(cx->enumerators == obj);
+            cx->enumerators = ni->next;
 
             JS_ASSERT(ni->flags & JSITER_ACTIVE);
             ni->flags &= ~JSITER_ACTIVE;
@@ -1072,8 +1057,10 @@ js::UnwindIteratorForUncatchableException(JSContext *cx, RawObject obj)
 {
     if (obj->isPropertyIterator()) {
         NativeIterator *ni = obj->asPropertyIterator().getNativeIterator();
-        if (ni->flags & JSITER_ENUMERATE)
-            ni->unlink();
+        if (ni->flags & JSITER_ENUMERATE) {
+            JS_ASSERT(cx->enumerators == obj);
+            cx->enumerators = ni->next;
+        }
     }
 }
 
@@ -1098,11 +1085,10 @@ template<typename StringPredicate>
 static bool
 SuppressDeletedPropertyHelper(JSContext *cx, HandleObject obj, StringPredicate predicate)
 {
-    NativeIterator *enumeratorList = cx->compartment->enumerators;
-    NativeIterator *ni = enumeratorList->next();
-
-    while (ni != enumeratorList) {
+    PropertyIteratorObject *iterobj = cx->enumerators;
+    while (iterobj) {
       again:
+        NativeIterator *ni = iterobj->getNativeIterator();
         /* This only works for identified surpressed keys, not values. */
         if (ni->isKeyIter() && ni->obj == obj && ni->props_cursor < ni->props_end) {
             /* Check whether id is still to come. */
@@ -1110,12 +1096,6 @@ SuppressDeletedPropertyHelper(JSContext *cx, HandleObject obj, StringPredicate p
             HeapPtr<JSFlatString> *props_end = ni->end();
             for (HeapPtr<JSFlatString> *idp = props_cursor; idp < props_end; ++idp) {
                 if (predicate(*idp)) {
-                     /*
-                     * Root the iterobj. This loop can GC, so we want to make sure that if
-                     * the GC removes any elements from the list, it won't remove this one.
-                     */
-                    AutoObjectRooter iterRoot(cx, ni->iterObj());
-
                     /*
                      * Check whether another property along the prototype chain
                      * became visible as a result of this deletion.
@@ -1178,7 +1158,7 @@ SuppressDeletedPropertyHelper(JSContext *cx, HandleObject obj, StringPredicate p
                 }
             }
         }
-        ni = ni->next();
+        iterobj = ni->next;
     }
     return true;
 }
@@ -1496,6 +1476,7 @@ js_NewGenerator(JSContext *cx)
     /* Initialize JSGenerator. */
     gen->obj.init(obj);
     gen->state = JSGEN_NEWBORN;
+    gen->enumerators = NULL;
     gen->fp = genfp;
     gen->prevGenerator = NULL;
 
@@ -1591,10 +1572,14 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, HandleObject obj,
         gen->regs = cx->regs();
 
         cx->enterGenerator(gen);   /* OOM check above. */
+        PropertyIteratorObject *enumerators = cx->enumerators;
+        cx->enumerators = gen->enumerators;
 
         RootedScript script(cx, fp->script());
         ok = RunScript(cx, script, fp);
 
+        gen->enumerators = cx->enumerators;
+        cx->enumerators = enumerators;
         cx->leaveGenerator(gen);
     }
 
@@ -1806,7 +1791,7 @@ GlobalObject::initIteratorClasses(JSContext *cx, Handle<GlobalObject *> global)
         NativeIterator *ni = NativeIterator::allocateIterator(cx, 0, blank);
         if (!ni)
             return false;
-        ni->init(NULL, NULL, 0 /* flags */, 0, 0);
+        ni->init(NULL, 0 /* flags */, 0, 0);
 
         iteratorProto->asPropertyIterator().setNativeIterator(ni);
 
