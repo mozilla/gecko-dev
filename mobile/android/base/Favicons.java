@@ -45,6 +45,9 @@ public class Favicons {
 
     public static final long NOT_LOADING = 0;
 
+    private static int sFaviconSmallSize = -1;
+    private static int sFaviconLargeSize = -1;
+
     private Context mContext;
 
     private Map<Long,LoadFaviconTask> mLoadTasks;
@@ -61,6 +64,12 @@ public class Favicons {
         Log.d(LOGTAG, "Creating Favicons instance");
 
         mContext = context;
+        if (sFaviconSmallSize < 0) {
+            sFaviconSmallSize = Math.round(mContext.getResources().getDimension(R.dimen.awesomebar_row_favicon_size_small));
+        }
+        if (sFaviconLargeSize < 0) {
+            sFaviconLargeSize = Math.round(mContext.getResources().getDimension(R.dimen.awesomebar_row_favicon_size_large));
+        }
 
         mLoadTasks = Collections.synchronizedMap(new HashMap<Long,LoadFaviconTask>());
         mNextFaviconLoadId = 0;
@@ -168,6 +177,21 @@ public class Favicons {
         }
         if (mHttpClient != null)
             mHttpClient.close();
+    }
+
+    public boolean isLargeFavicon(Bitmap image) {
+        return image.getWidth() > sFaviconSmallSize || image.getHeight() > sFaviconSmallSize;
+    }
+
+    public Bitmap scaleImage(Bitmap image) {
+        // If the icon is larger than 16px, scale it to sFaviconLargeSize.
+        // Otherwise, scale it to sFaviconSmallSize.
+        if (isLargeFavicon(image)) {
+            image = Bitmap.createScaledBitmap(image, sFaviconLargeSize, sFaviconLargeSize, false);
+        } else {
+            image = Bitmap.createScaledBitmap(image, sFaviconSmallSize, sFaviconSmallSize, false);
+        }
+        return image;
     }
 
     private class LoadFaviconTask extends AsyncTask<Void, Void, Bitmap> {
@@ -282,7 +306,7 @@ public class Favicons {
             if (storedFaviconUrl != null && storedFaviconUrl.equals(mFaviconUrl)) {
                 image = loadFaviconFromDb();
                 if (image != null)
-                    return image;
+                    return scaleImage(image);
             }
 
             if (isCancelled())
@@ -292,6 +316,7 @@ public class Favicons {
 
             if (image != null) {
                 saveFaviconToDb(image);
+                image = scaleImage(image);
             }
 
             return image;

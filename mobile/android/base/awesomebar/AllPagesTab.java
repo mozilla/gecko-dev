@@ -795,6 +795,7 @@ public class AllPagesTab extends AwesomeBarTab implements GeckoEventListener {
                 if (favicon == null)
                     continue;
 
+                favicon = favicons.scaleImage(favicon);
                 favicons.putFaviconInMemCache(url, favicon);
             } while (c.moveToNext());
         } finally {
