@@ -1426,7 +1426,7 @@ UnmarkGrayChildren(JSTracer *trc, void **thingp, JSGCTraceKind kind)
 }
 
 JS_FRIEND_API(void)
-js::UnmarkGrayGCThingRecursively(void *thing, JSGCTraceKind kind)
+UnmarkGrayGCThingRecursively(void *thing, JSGCTraceKind kind)
 {
     JS_ASSERT(kind != JSTRACE_SHAPE);
 
