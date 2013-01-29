@@ -2392,7 +2392,7 @@ public:
    * the overflow areas changed.
    */
   bool FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
-                              nsSize aNewSize, nsSize* aOldSize = nullptr);
+                              nsSize aNewSize);
 
   bool FinishAndStoreOverflow(nsHTMLReflowMetrics* aMetrics) {
     return FinishAndStoreOverflow(aMetrics->mOverflowAreas,
