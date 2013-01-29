@@ -124,7 +124,6 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
 
         mPanZoomController = new PanZoomController(this, eventDispatcher);
         mView = view;
-        mView.setListener(this);
     }
 
     /** Attaches to root layer so that Gecko appears. */
@@ -134,6 +133,7 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
         mRootLayer = new VirtualLayer(new IntSize(mView.getWidth(), mView.getHeight()));
         mLayerRenderer = mView.getRenderer();
 
+        mView.setListener(this);
         sendResizeEventIfNecessary(true);
 
         DisplayPortCalculator.initPrefs();
