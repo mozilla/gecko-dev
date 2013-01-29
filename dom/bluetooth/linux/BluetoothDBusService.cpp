@@ -59,15 +59,6 @@ using namespace mozilla;
 using namespace mozilla::ipc;
 USING_BLUETOOTH_NAMESPACE
 
-#undef LOG
-#if defined(MOZ_WIDGET_GONK)
-#include <android/log.h>
-#define LOG(args...)  __android_log_print(ANDROID_LOG_INFO, "GonkDBus", args);
-#else
-#define BTDEBUG true
-#define LOG(args...) if (BTDEBUG) printf(args);
-#endif
-
 #define B2G_AGENT_CAPABILITIES "DisplayYesNo"
 #define DBUS_MANAGER_IFACE BLUEZ_DBUS_BASE_IFC ".Manager"
 #define DBUS_ADAPTER_IFACE BLUEZ_DBUS_BASE_IFC ".Adapter"
@@ -425,7 +416,7 @@ static DBusHandlerResult
 AgentEventFilter(DBusConnection *conn, DBusMessage *msg, void *data)
 {
   if (dbus_message_get_type(msg) != DBUS_MESSAGE_TYPE_METHOD_CALL) {
-    LOG("%s: agent handler not interested (not a method call).\n", __FUNCTION__);
+    BT_WARNING("%s: agent handler not interested (not a method call).\n", __FUNCTION__);
     return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
   }
 
@@ -465,7 +456,7 @@ AgentEventFilter(DBusConnection *conn, DBusMessage *msg, void *data)
                                DBUS_TYPE_OBJECT_PATH, &objectPath,
                                DBUS_TYPE_STRING, &uuid,
                                DBUS_TYPE_INVALID)) {
-      LOG("%s: Invalid arguments for Authorize() method", __FUNCTION__);
+      BT_WARNING("%s: Invalid arguments for Authorize() method", __FUNCTION__);
       errorStr.AssignLiteral("Invalid arguments for Authorize() method");
     } else {
       nsString deviceAddress =
@@ -497,7 +488,8 @@ AgentEventFilter(DBusConnection *conn, DBusMessage *msg, void *data)
                                DBUS_TYPE_OBJECT_PATH, &objectPath,
                                DBUS_TYPE_UINT32, &passkey,
                                DBUS_TYPE_INVALID)) {
-      LOG("%s: Invalid arguments for RequestConfirmation() method", __FUNCTION__);
+      BT_WARNING("%s: Invalid arguments for RequestConfirmation() method",
+                 __FUNCTION__);
       errorStr.AssignLiteral("Invalid arguments for RequestConfirmation() method");
     } else {
       parameters.AppendElement(BluetoothNamedValue(
@@ -529,7 +521,8 @@ AgentEventFilter(DBusConnection *conn, DBusMessage *msg, void *data)
     if (!dbus_message_get_args(msg, NULL,
                                DBUS_TYPE_OBJECT_PATH, &objectPath,
                                DBUS_TYPE_INVALID)) {
-      LOG("%s: Invalid arguments for RequestPinCode() method", __FUNCTION__);
+      BT_WARNING("%s: Invalid arguments for RequestPinCode() method",
+                 __FUNCTION__);
       errorStr.AssignLiteral("Invalid arguments for RequestPinCode() method");
     } else {
       parameters.AppendElement(BluetoothNamedValue(
@@ -557,7 +550,8 @@ AgentEventFilter(DBusConnection *conn, DBusMessage *msg, void *data)
     if (!dbus_message_get_args(msg, NULL,
                                DBUS_TYPE_OBJECT_PATH, &objectPath,
                                DBUS_TYPE_INVALID)) {
-      LOG("%s: Invalid arguments for RequestPasskey() method", __FUNCTION__);
+      BT_WARNING("%s: Invalid arguments for RequestPasskey() method",
+                 __FUNCTION__);
       errorStr.AssignLiteral("Invalid arguments for RequestPasskey() method");
     } else {
       parameters.AppendElement(BluetoothNamedValue(
@@ -595,7 +589,7 @@ AgentEventFilter(DBusConnection *conn, DBusMessage *msg, void *data)
     }
   } else {
 #ifdef DEBUG
-    LOG("agent handler %s: Unhandled event. Ignore.", __FUNCTION__);
+    BT_WARNING("agent handler %s: Unhandled event. Ignore.", __FUNCTION__);
 #endif
     return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
   }
@@ -636,7 +630,7 @@ RegisterLocalAgent(const char* adapterPath,
                                             agentPath,
                                             &agentVtable,
                                             NULL)) {
-    LOG("%s: Can't register object path %s for agent!",
+    BT_WARNING("%s: Can't register object path %s for agent!",
         __FUNCTION__, agentPath);
     return false;
   }
@@ -645,7 +639,7 @@ RegisterLocalAgent(const char* adapterPath,
     dbus_message_new_method_call("org.bluez", adapterPath,
                                  DBUS_ADAPTER_IFACE, "RegisterAgent");
   if (!msg) {
-    LOG("%s: Can't allocate new method call for agent!", __FUNCTION__);
+    BT_WARNING("%s: Can't allocate new method call for agent!", __FUNCTION__);
     return false;
   }
 
@@ -653,7 +647,7 @@ RegisterLocalAgent(const char* adapterPath,
                                 DBUS_TYPE_OBJECT_PATH, &agentPath,
                                 DBUS_TYPE_STRING, &capabilities,
                                 DBUS_TYPE_INVALID)) {
-    LOG("%s: Couldn't append arguments to dbus message.", __FUNCTION__);
+    BT_WARNING("%s: Couldn't append arguments to dbus message.", __FUNCTION__);
     return false;
   }
 
@@ -670,11 +664,11 @@ RegisterLocalAgent(const char* adapterPath,
       if (!strcmp(err.name, "org.bluez.Error.AlreadyExists")) {
         LOG_AND_FREE_DBUS_ERROR(&err);
 #ifdef DEBUG
-        LOG("Agent already registered, still returning true");
+        BT_WARNING("Agent already registered, still returning true");
 #endif
       } else {
         LOG_AND_FREE_DBUS_ERROR(&err);
-        LOG("%s: Can't register agent!", __FUNCTION__);
+        BT_WARNING("%s: Can't register agent!", __FUNCTION__);
         return false;
       }
     }
@@ -704,7 +698,7 @@ RegisterAgent(const nsAString& aAdapterPath)
                                             REMOTE_AGENT_PATH,
                                             &agentVtable,
                                             NULL)) {
-    LOG("%s: Can't register object path %s for remote device agent!",
+    BT_WARNING("%s: Can't register object path %s for remote device agent!",
         __FUNCTION__, REMOTE_AGENT_PATH);
 
     return false;
@@ -726,7 +720,7 @@ ExtractHandles(DBusMessage *aReply, nsTArray<uint32_t>& aOutHandles)
                             DBUS_TYPE_ARRAY, DBUS_TYPE_UINT32, &handles, &len,
                             DBUS_TYPE_INVALID)) {
      if (!handles) {
-       LOG("Null array in extract_handles");
+       BT_WARNING("Null array in extract_handles");
      } else {
         for (int i = 0; i < len; ++i) {
         aOutHandles.AppendElement(handles[i]);
@@ -780,7 +774,7 @@ BluetoothDBusService::AddReservedServicesInternal(const nsAString& aAdapterPath,
                    &services, length, DBUS_TYPE_INVALID);
 
   if (!reply) {
-    LOG("Null DBus message. Couldn't extract handles.");
+    BT_WARNING("Null DBus message. Couldn't extract handles.");
     return false;
   }
 
@@ -1342,13 +1336,13 @@ EventFilter(DBusConnection* aConn, DBusMessage* aMsg, void* aData)
   NS_ASSERTION(!NS_IsMainThread(), "Shouldn't be called from Main Thread!");
 
   if (dbus_message_get_type(aMsg) != DBUS_MESSAGE_TYPE_SIGNAL) {
-    LOG("%s: event handler not interested in %s (not a signal).\n",
+    BT_WARNING("%s: event handler not interested in %s (not a signal).\n",
         __FUNCTION__, dbus_message_get_member(aMsg));
     return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
   }
 
   if (dbus_message_get_path(aMsg) == NULL) {
-    LOG("DBusMessage %s has no bluetooth destination, ignoring\n",
+    BT_WARNING("DBusMessage %s has no bluetooth destination, ignoring\n",
         dbus_message_get_member(aMsg));
     return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
   }
@@ -1684,13 +1678,13 @@ BluetoothDBusService::StopInternal()
 
   if (!dbus_connection_unregister_object_path(gThreadConnection->GetConnection(),
                                               LOCAL_AGENT_PATH)) {
-    LOG("%s: Can't unregister object path %s for agent!",
+    BT_WARNING("%s: Can't unregister object path %s for agent!",
         __FUNCTION__, LOCAL_AGENT_PATH);
   }
 
   if (!dbus_connection_unregister_object_path(gThreadConnection->GetConnection(),
                                               REMOTE_AGENT_PATH)) {
-    LOG("%s: Can't unregister object path %s for agent!",
+    BT_WARNING("%s: Can't unregister object path %s for agent!",
         __FUNCTION__, LOCAL_AGENT_PATH);
   }
 
@@ -2285,7 +2279,7 @@ BluetoothDBusService::SetPinCodeInternal(const nsAString& aDeviceAddress,
   BluetoothValue v = true;
   DBusMessage *msg;
   if (!sPairingReqTable.Get(aDeviceAddress, &msg)) {
-    LOG("%s: Couldn't get original request message.", __FUNCTION__);
+    BT_WARNING("%s: Couldn't get original request message.", __FUNCTION__);
     errorStr.AssignLiteral("Couldn't get original request message.");
     DispatchBluetoothReply(aRunnable, v, errorStr);
     return false;
@@ -2294,7 +2288,7 @@ BluetoothDBusService::SetPinCodeInternal(const nsAString& aDeviceAddress,
   DBusMessage *reply = dbus_message_new_method_return(msg);
 
   if (!reply) {
-    LOG("%s: Memory can't be allocated for the message.", __FUNCTION__);
+    BT_WARNING("%s: Memory can't be allocated for the message.", __FUNCTION__);
     dbus_message_unref(msg);
     errorStr.AssignLiteral("Memory can't be allocated for the message.");
     DispatchBluetoothReply(aRunnable, v, errorStr);
@@ -2309,7 +2303,7 @@ BluetoothDBusService::SetPinCodeInternal(const nsAString& aDeviceAddress,
   if (!dbus_message_append_args(reply,
                                 DBUS_TYPE_STRING, &pinCode,
                                 DBUS_TYPE_INVALID)) {
-    LOG("%s: Couldn't append arguments to dbus message.", __FUNCTION__);
+    BT_WARNING("%s: Couldn't append arguments to dbus message.", __FUNCTION__);
     errorStr.AssignLiteral("Couldn't append arguments to dbus message.");
     result = false;
   } else {
@@ -2333,7 +2327,7 @@ BluetoothDBusService::SetPasskeyInternal(const nsAString& aDeviceAddress,
   BluetoothValue v = true;
   DBusMessage *msg;
   if (!sPairingReqTable.Get(aDeviceAddress, &msg)) {
-    LOG("%s: Couldn't get original request message.", __FUNCTION__);
+    BT_WARNING("%s: Couldn't get original request message.", __FUNCTION__);
     errorStr.AssignLiteral("Couldn't get original request message.");
     DispatchBluetoothReply(aRunnable, v, errorStr);
     return false;
@@ -2342,7 +2336,7 @@ BluetoothDBusService::SetPasskeyInternal(const nsAString& aDeviceAddress,
   DBusMessage *reply = dbus_message_new_method_return(msg);
 
   if (!reply) {
-    LOG("%s: Memory can't be allocated for the message.", __FUNCTION__);
+    BT_WARNING("%s: Memory can't be allocated for the message.", __FUNCTION__);
     dbus_message_unref(msg);
     errorStr.AssignLiteral("Memory can't be allocated for the message.");
     DispatchBluetoothReply(aRunnable, v, errorStr);
@@ -2355,7 +2349,7 @@ BluetoothDBusService::SetPasskeyInternal(const nsAString& aDeviceAddress,
   if (!dbus_message_append_args(reply,
                                 DBUS_TYPE_UINT32, &passkey,
                                 DBUS_TYPE_INVALID)) {
-    LOG("%s: Couldn't append arguments to dbus message.", __FUNCTION__);
+    BT_WARNING("%s: Couldn't append arguments to dbus message.", __FUNCTION__);
     errorStr.AssignLiteral("Couldn't append arguments to dbus message.");
     result = false;
   } else {
@@ -2379,7 +2373,7 @@ BluetoothDBusService::SetPairingConfirmationInternal(const nsAString& aDeviceAdd
   BluetoothValue v = true;
   DBusMessage *msg;
   if (!sPairingReqTable.Get(aDeviceAddress, &msg)) {
-    LOG("%s: Couldn't get original request message.", __FUNCTION__);
+    BT_WARNING("%s: Couldn't get original request message.", __FUNCTION__);
     errorStr.AssignLiteral("Couldn't get original request message.");
     DispatchBluetoothReply(aRunnable, v, errorStr);
     return false;
@@ -2395,7 +2389,7 @@ BluetoothDBusService::SetPairingConfirmationInternal(const nsAString& aDeviceAdd
   }
 
   if (!reply) {
-    LOG("%s: Memory can't be allocated for the message.", __FUNCTION__);
+    BT_WARNING("%s: Memory can't be allocated for the message.", __FUNCTION__);
     dbus_message_unref(msg);
     errorStr.AssignLiteral("Memory can't be allocated for the message.");
     DispatchBluetoothReply(aRunnable, v, errorStr);
@@ -2424,7 +2418,7 @@ BluetoothDBusService::SetAuthorizationInternal(const nsAString& aDeviceAddress,
   DBusMessage *msg;
 
   if (!sAuthorizeReqTable.Get(aDeviceAddress, &msg)) {
-    LOG("%s: Couldn't get original request message.", __FUNCTION__);
+    BT_WARNING("%s: Couldn't get original request message.", __FUNCTION__);
     errorStr.AssignLiteral("Couldn't get original request message.");
     DispatchBluetoothReply(aRunnable, v, errorStr);
     return false;
@@ -2440,7 +2434,7 @@ BluetoothDBusService::SetAuthorizationInternal(const nsAString& aDeviceAddress,
   }
 
   if (!reply) {
-    LOG("%s: Memory can't be allocated for the message.", __FUNCTION__);
+    BT_WARNING("%s: Memory can't be allocated for the message.", __FUNCTION__);
     dbus_message_unref(msg);
     errorStr.AssignLiteral("Memory can't be allocated for the message.");
     DispatchBluetoothReply(aRunnable, v, errorStr);
