@@ -1036,7 +1036,8 @@ IonCompile(JSContext *cx, JSScript *script, JSFunction *fun, jsbytecode *osrPc, 
     AutoFlushCache afc("IonCompile");
 
     types::AutoEnterCompilation enterCompiler(cx, types::AutoEnterCompilation::Ion);
-    enterCompiler.init(script, false, 0);
+    if (!enterCompiler.init(script, false, 0))
+        return false;
 
     AutoTempAllocatorRooter root(cx, temp);
 
