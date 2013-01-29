@@ -483,7 +483,7 @@ class Marionette(object):
 
         return unwrapped
 
-    def execute_js_script(self, script, script_args=None, async=True, new_sandbox=True, special_powers=False):
+    def execute_js_script(self, script, script_args=None, async=True, new_sandbox=True, special_powers=False, script_timeout=None):
         if script_args is None:
             script_args = []
         args = self.wrapArguments(script_args)
@@ -493,10 +493,11 @@ class Marionette(object):
                                       args=args,
                                       async=async,
                                       newSandbox=new_sandbox,
-                                      specialPowers=special_powers)
+                                      specialPowers=special_powers, 
+                                      scriptTimeout=script_timeout)
         return self.unwrapValue(response)
 
-    def execute_script(self, script, script_args=None, new_sandbox=True, special_powers=False):
+    def execute_script(self, script, script_args=None, new_sandbox=True, special_powers=False, script_timeout=None):
         if script_args is None:
             script_args = []
         args = self.wrapArguments(script_args)
@@ -505,10 +506,11 @@ class Marionette(object):
                                       value=script,
                                       args=args,
                                       newSandbox=new_sandbox,
-                                      specialPowers=special_powers)
+                                      specialPowers=special_powers,
+                                      scriptTimeout=script_timeout)
         return self.unwrapValue(response)
 
-    def execute_async_script(self, script, script_args=None, new_sandbox=True, special_powers=False):
+    def execute_async_script(self, script, script_args=None, new_sandbox=True, special_powers=False, script_timeout=None):
         if script_args is None:
             script_args = []
         args = self.wrapArguments(script_args)
@@ -517,7 +519,8 @@ class Marionette(object):
                                       value=script,
                                       args=args,
                                       newSandbox=new_sandbox,
-                                      specialPowers=special_powers)
+                                      specialPowers=special_powers,
+                                      scriptTimeout=script_timeout)
         return self.unwrapValue(response)
 
     def find_element(self, method, target, id=None):
