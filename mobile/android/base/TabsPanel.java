@@ -230,7 +230,7 @@ public class TabsPanel extends LinearLayout
             default:
                 return mActivity.onOptionsItemSelected(item);
         }
-    }  
+    }
 
     private static int getTabContainerHeight(View view) {
         Context context = view.getContext();
@@ -436,6 +436,10 @@ public class TabsPanel extends LinearLayout
 
     public boolean isSideBar() {
         return mIsSideBar;
+    }
+
+    public Panel getCurrentPanel() {
+        return mCurrentPanel;
     }
 
     public void setTabsLayoutChangeListener(TabsLayoutChangeListener listener) {
