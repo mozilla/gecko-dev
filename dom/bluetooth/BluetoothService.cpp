@@ -352,6 +352,8 @@ BluetoothService::RegisterBluetoothSignalHandler(const nsAString& aNodeName,
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aHandler);
 
+  BT_LOG("[S] %s: %s", __FUNCTION__, NS_ConvertUTF16toUTF8(aNodeName).get());
+
   BluetoothSignalObserverList* ol;
   if (!mBluetoothSignalObserverTable.Get(aNodeName, &ol)) {
     ol = new BluetoothSignalObserverList();
@@ -367,6 +369,8 @@ BluetoothService::UnregisterBluetoothSignalHandler(const nsAString& aNodeName,
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aHandler);
+
+  BT_LOG("[S] %s: %s", __FUNCTION__, NS_ConvertUTF16toUTF8(aNodeName).get());
 
   BluetoothSignalObserverList* ol;
   if (mBluetoothSignalObserverTable.Get(aNodeName, &ol)) {
@@ -770,6 +774,8 @@ BluetoothService::Notify(const BluetoothSignal& aData)
     NS_WARNING("Failed to set properties of system message!");
     return;
   }
+
+  BT_LOG("[S] %s: %s", __FUNCTION__, NS_ConvertUTF16toUTF8(aData.name()).get());
 
   if (aData.name().EqualsLiteral("RequestConfirmation")) {
     NS_ASSERTION(arr.Length() == 3, "RequestConfirmation: Wrong length of parameters");
