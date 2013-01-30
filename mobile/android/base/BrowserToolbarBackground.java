@@ -61,7 +61,7 @@ public class BrowserToolbarBackground extends LinearLayout
 
         int width = getMeasuredWidth();
         int height = getMeasuredHeight();
-        float curve = height * 1.125f;
+        int curve = (int) (height * 1.125f);
 
         mPath.reset();
 
