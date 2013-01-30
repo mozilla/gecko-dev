@@ -596,7 +596,7 @@ BluetoothHfpManager::ReceiveSocketData(UnixSocketRawData* aMessage)
 
   int currentCallState = mCurrentCallStateArray[mCurrentCallIndex];
 
-  nsAutoCString msg((const char*)aMessage->mData.get());
+  nsAutoCString msg((const char*)aMessage->mData.get(), aMessage->mSize);
   msg.StripWhitespace();
 
   nsTArray<nsCString> atCommandValues;
