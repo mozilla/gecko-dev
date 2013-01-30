@@ -235,7 +235,8 @@ nsPrintEngine::nsPrintEngine() :
   mDebugFile(nullptr),
   mLoadCounter(0),
   mDidLoadDataForPrinting(false),
-  mIsDestroying(false)
+  mIsDestroying(false),
+  mDisallowSelectionPrint(false)
 {
 }
 
@@ -558,7 +559,8 @@ nsPrintEngine::DoCommonPrint(bool                    aIsPrintPreview,
     mPrt->mPrintSettings->SetHowToEnableFrameUI(nsIPrintSettings::kFrameEnableNone);
   }
   // Now determine how to set up the Frame print UI
-  mPrt->mPrintSettings->SetPrintOptions(nsIPrintSettings::kEnableSelectionRB, isSelection || mPrt->mIsIFrameSelected);
+  mPrt->mPrintSettings->SetPrintOptions(nsIPrintSettings::kEnableSelectionRB,
+                                        !mDisallowSelectionPrint && (isSelection || mPrt->mIsIFrameSelected));
 
   nsCOMPtr<nsIDeviceContextSpec> devspec
     (do_CreateInstance("@mozilla.org/gfx/devicecontextspec;1", &rv));
