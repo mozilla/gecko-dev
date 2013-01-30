@@ -7,6 +7,8 @@
 #include "VideoUtils.h"
 #include "DOMCameraPreview.h"
 #include "CameraCommon.h"
+#include "nsGlobalWindow.h"
+#include "nsPIDOMWindow.h"
 
 using namespace mozilla;
 
@@ -135,7 +137,7 @@ protected:
   DOMCameraPreview* mDOMPreview;
 };
 
-DOMCameraPreview::DOMCameraPreview(ICameraControl* aCameraControl, uint32_t aWidth, uint32_t aHeight, uint32_t aFrameRate)
+DOMCameraPreview::DOMCameraPreview(ICameraControl* aCameraControl, uint32_t aWidth, uint32_t aHeight, uint64_t aWindowId, uint32_t aFrameRate)
   : nsDOMMediaStream()
   , mState(STOPPED)
   , mWidth(aWidth)
@@ -156,6 +158,12 @@ DOMCameraPreview::DOMCameraPreview(ICameraControl* aCameraControl, uint32_t aWid
 
   mInput->AddTrack(TRACK_VIDEO, mFramesPerSecond, 0, new VideoSegment());
   mInput->AdvanceKnownTracksTime(MEDIA_TIME_MAX);
+
+  nsPIDOMWindow *window = static_cast<nsPIDOMWindow*>
+     (nsGlobalWindow::GetInnerWindowWithId(aWindowId));
+  if (window && window->GetExtantDoc()) {
+    this->CombineWithPrincipal(window->GetExtantDoc()->NodePrincipal());
+  }
 }
 
 DOMCameraPreview::~DOMCameraPreview()
