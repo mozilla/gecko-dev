@@ -1558,6 +1558,12 @@ IdToJsval(jsid id)
     return IdToValue(id);
 }
 
+extern JS_FRIEND_API(bool)
+IsReadOnlyDateMethod(JS::IsAcceptableThis test, JS::NativeImpl method);
+
+extern JS_FRIEND_API(bool)
+IsTypedArrayThisCheck(JS::IsAcceptableThis test);
+
 } /* namespace js */
 
 #endif /* jsfriendapi_h___ */
