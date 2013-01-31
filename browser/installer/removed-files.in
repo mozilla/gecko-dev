@@ -884,6 +884,7 @@ xpicleanup@BIN_SUFFIX@
   components/BrowserElementParent.js
   components/BrowserElementParent.manifest
   components/BrowserElementPromptService.jsm
+  components/BrowserElementParent.jsm
   components/components.manifest
   components/contentAreaDropListener.js
   components/contentSecurityPolicy.js
