@@ -1297,6 +1297,11 @@ var PDFView = {
 
       if (pdfTitle)
         document.title = pdfTitle + ' - ' + document.title;
+
+      if (info.IsAcroFormPresent) {
+        // AcroForm/XFA was found
+        PDFView.fallback();
+      }
     });
   },
 
@@ -1897,10 +1902,6 @@ var PageView = function pageView(container, pdfPage, id, scale,
             var textAnnotation = createTextAnnotation(item);
             if (textAnnotation)
               div.appendChild(textAnnotation);
-            break;
-          case 'Widget':
-            // TODO: support forms
-            PDFView.fallback();
             break;
         }
       }
