@@ -1276,11 +1276,15 @@ MarionetteDriverActor.prototype = {
   singleTap: function MDA_singleTap(aRequest) {
     this.command_id = this.getCommandId();
     let serId = aRequest.element;
+    let x = aRequest.x;
+    let y = aRequest.y;
     if (this.context == "chrome") {
       this.sendError("Not in Chrome", 500, null, this.command_id);
     }
     else {
       this.sendAsync("singleTap", {value: serId,
+                                   corx: x,
+                                   cory: y,
                                    command_id: this.command_id});
     }
   },
@@ -1294,11 +1298,15 @@ MarionetteDriverActor.prototype = {
   doubleTap: function MDA_doubleTap(aRequest) {
     this.command_id = this.getCommandId();
     let serId = aRequest.element;
+    let x = aRequest.x;
+    let y = aRequest.y;
     if (this.context == "chrome") {
       this.sendError("Not in Chrome", 500, null, this.command_id);
     }
     else {
       this.sendAsync("doubleTap", {value: serId,
+                                   corx: x,
+                                   cory: y,
                                    command_id: this.command_id});
     }
   },
