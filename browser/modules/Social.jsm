@@ -121,7 +121,6 @@ this.Social = {
       try {
         let active = Services.prefs.getBoolPref("social.active");
         if (active) {
-          Services.prefs.clearUserPref("social.active");
           currentProvider = providers[0];
           currentProvider.active = true;
         }
