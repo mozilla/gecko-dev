@@ -447,8 +447,8 @@ function cleanUpdatesDir(aDir) {
           entry.remove(true);
         }
         catch (e) {
-          dump("Unable to remove directory\npath: " + entry.path +
-               "\nException: " + e + "\n");
+          dump("cleanUpdatesDir: unable to remove directory\npath: " +
+               entry.path + "\nException: " + e + "\n");
           throw(e);
         }
       }
@@ -459,8 +459,8 @@ function cleanUpdatesDir(aDir) {
         entry.remove(false);
       }
       catch (e) {
-        dump("Unable to remove file\npath: " + entry.path + "\nException: " +
-             e + "\n");
+        dump("cleanUpdatesDir: unable to remove file\npath: " + entry.path +
+             "\nException: " + e + "\n");
         throw(e);
       }
     }
@@ -494,11 +494,26 @@ function removeDirRecursive(aDir) {
     }
     else {
       entry.permissions = PERMS_FILE;
-      entry.remove(false);
+      try {
+        entry.remove(false);
+      }
+      catch (e) {
+        dump("removeDirRecursive: unable to remove file\npath: " + entry.path +
+             "\nException: " + e + "\n");
+        throw(e);
+      }
     }
   }
+
   aDir.permissions = PERMS_DIRECTORY;
-  aDir.remove(true);
+  try {
+    aDir.remove(true);
+  }
+  catch (e) {
+    dump("removeDirRecursive: unable to remove directory\npath: " + entry.path +
+         "\nException: " + e + "\n");
+    throw(e);
+  }
 }
 
 /**
