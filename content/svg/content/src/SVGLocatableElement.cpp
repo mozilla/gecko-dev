@@ -98,6 +98,11 @@ SVGLocatableElement::GetCTM(nsISupports * *aCTM)
 already_AddRefed<DOMSVGMatrix>
 SVGLocatableElement::GetCTM()
 {
+  nsIDocument* currentDoc = GetCurrentDoc();
+  if (currentDoc) {
+    // Flush all pending notifications so that our frames are up to date
+    currentDoc->FlushPendingNotifications(Flush_Layout);
+  }
   gfxMatrix m = SVGContentUtils::GetCTM(this, false);
   nsCOMPtr<DOMSVGMatrix> mat = m.IsSingular() ? nullptr : new DOMSVGMatrix(m);
   return mat.forget();
@@ -114,6 +119,11 @@ SVGLocatableElement::GetScreenCTM(nsISupports * *aCTM)
 already_AddRefed<DOMSVGMatrix>
 SVGLocatableElement::GetScreenCTM()
 {
+  nsIDocument* currentDoc = GetCurrentDoc();
+  if (currentDoc) {
+    // Flush all pending notifications so that our frames are up to date
+    currentDoc->FlushPendingNotifications(Flush_Layout);
+  }
   gfxMatrix m = SVGContentUtils::GetCTM(this, true);
   nsCOMPtr<DOMSVGMatrix> mat = m.IsSingular() ? nullptr : new DOMSVGMatrix(m);
   return mat.forget();
