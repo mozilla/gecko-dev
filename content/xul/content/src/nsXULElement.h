@@ -342,7 +342,7 @@ public:
 
     static nsresult
     Create(nsXULPrototypeElement* aPrototype, nsIDocument* aDocument,
-           bool aIsScriptable, mozilla::dom::Element** aResult);
+           bool aIsScriptable, bool aIsRoot, mozilla::dom::Element** aResult);
 
     NS_IMPL_FROMCONTENT(nsXULElement, kNameSpaceID_XUL)
 
@@ -520,7 +520,7 @@ protected:
 
     static already_AddRefed<nsXULElement>
     Create(nsXULPrototypeElement* aPrototype, nsINodeInfo *aNodeInfo,
-           bool aIsScriptable);
+           bool aIsScriptable, bool aIsRoot);
 
     bool IsReadWriteTextElement() const
     {
@@ -530,6 +530,8 @@ protected:
             (tag == nsGkAtoms::textbox || tag == nsGkAtoms::textarea) &&
             !HasAttr(kNameSpaceID_None, nsGkAtoms::readonly);
     }
+
+    void MaybeUpdatePrivateLifetime();
 };
 
 #endif // nsXULElement_h__
