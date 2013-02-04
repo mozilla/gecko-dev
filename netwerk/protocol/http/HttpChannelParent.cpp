@@ -134,7 +134,7 @@ HttpChannelParent::RecvAsyncOpen(const URIParams&           aURI,
   if (!uri) {
     // URIParams does MOZ_ASSERT if null, but we need to protect opt builds from
     // null deref here.
-    return SendFailedAsyncOpen(NS_ERROR_ILLEGAL_VALUE);
+    return false;
   }
   nsCOMPtr<nsIURI> originalUri = DeserializeURI(aOriginalURI);
   nsCOMPtr<nsIURI> docUri = DeserializeURI(aDocURI);
