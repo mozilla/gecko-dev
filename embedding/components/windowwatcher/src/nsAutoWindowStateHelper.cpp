@@ -10,7 +10,6 @@
 #include "nsIDOMEventTarget.h"
 #include "nsIDOMEvent.h"
 #include "nsString.h"
-#include "nsGUIEvent.h"
 
 /****************************************************************
  ****************** nsAutoWindowStateHelper *********************
@@ -18,7 +17,7 @@
 
 nsAutoWindowStateHelper::nsAutoWindowStateHelper(nsIDOMWindow *aWindow)
   : mWindow(aWindow),
-    mDefaultEnabled(DispatchEventToChrome("DOMWillOpenModalDialog"))
+    mDefaultEnabled(DispatchCustomEvent("DOMWillOpenModalDialog"))
 {
   nsCOMPtr<nsPIDOMWindow> window(do_QueryInterface(aWindow));
 
@@ -36,33 +35,18 @@ nsAutoWindowStateHelper::~nsAutoWindowStateHelper()
   }
 
   if (mDefaultEnabled) {
-    DispatchEventToChrome("DOMModalDialogClosed");
+    DispatchCustomEvent("DOMModalDialogClosed");
   }
 }
 
 bool
-nsAutoWindowStateHelper::DispatchEventToChrome(const char *aEventName)
+nsAutoWindowStateHelper::DispatchCustomEvent(const char *aEventName)
 {
   nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(mWindow);
   if (!window) {
     return true;
   }
 
-  // The functions of nsContentUtils do not provide the required behavior,
-  // so the following is inlined.
-  nsIDOMDocument* doc = window->GetExtantDocument();
-  if (!doc) {
-    return true;
-  }
-
-  nsCOMPtr<nsIDOMEvent> event;
-  doc->CreateEvent(NS_LITERAL_STRING("Events"), getter_AddRefs(event));
-  NS_ENSURE_TRUE(NS_SUCCEEDED(event->InitEvent(NS_ConvertASCIItoUTF16(aEventName), true, true)), false);
-  event->SetTrusted(true);
-  event->GetInternalNSEvent()->mFlags.mOnlyChromeDispatch = true;
-
-  nsCOMPtr<nsIDOMEventTarget> target(do_QueryInterface(window));
-  bool defaultActionEnabled;
-  target->DispatchEvent(event, &defaultActionEnabled);
-  return defaultActionEnabled;
+  return window->DispatchCustomEvent(aEventName);
 }
+

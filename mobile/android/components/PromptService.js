@@ -761,9 +761,7 @@ let PromptUtils = {
         return;
       let event = aDomWin.document.createEvent("Events");
       event.initEvent(aEventName, true, true);
-      let winUtils = aDomWin.QueryInterface(Ci.nsIInterfaceRequestor)
-                           .getInterface(Ci.nsIDOMWindowUtils);
-      winUtils.dispatchEventToChromeOnly(aDomWin, event);
+      aDomWin.dispatchEvent(event);
     } catch(ex) {
     }
   }

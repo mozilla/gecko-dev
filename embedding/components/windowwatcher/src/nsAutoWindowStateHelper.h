@@ -27,7 +27,7 @@ public:
   }
 
 protected:
-  bool DispatchEventToChrome(const char *aEventName);
+  bool DispatchCustomEvent(const char *aEventName);
 
   nsIDOMWindow *mWindow;
   nsCOMPtr<nsIDOMWindow> mCallerWindow;
