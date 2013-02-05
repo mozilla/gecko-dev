@@ -388,7 +388,8 @@ function checkUpdateApplied() {
   // Don't proceed until the update has been applied.
   if (gUpdateManager.activeUpdate.state != STATE_APPLIED_PLATFORM) {
     if (gTimeoutRuns > MAX_TIMEOUT_RUNS)
-      do_throw("Exceeded MAX_TIMEOUT_RUNS whilst waiting for update to be applied, current state is: " + gUpdateManager.activeUpdate.state);
+      do_throw("Exceeded MAX_TIMEOUT_RUNS whilst waiting for update to be " +
+               "applied, current state is: " + gUpdateManager.activeUpdate.state);
     else
       do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateApplied);
     return;
@@ -406,7 +407,8 @@ function checkUpdateApplied() {
   log.append(FILE_LAST_LOG);
   if (!log.exists()) {
     if (gTimeoutRuns > MAX_TIMEOUT_RUNS)
-      do_throw("Exceeded MAX_TIMEOUT_RUNS whist waiting for update log to be created");
+      do_throw("Exceeded MAX_TIMEOUT_RUNS whist waiting for update log to be " +
+               "created");
     else
       do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateApplied);
     return;
@@ -501,7 +503,8 @@ function checkUpdateFinished() {
     let status = readStatusFile();
     if (status != STATE_SUCCEEDED) {
       if (gTimeoutRuns > MAX_TIMEOUT_RUNS)
-        do_throw("Exceeded MAX_TIMEOUT_RUNS whilst waiting for state to change to succeeded, current status: " + status);
+        do_throw("Exceeded MAX_TIMEOUT_RUNS whilst waiting for state to " +
+                 "change to succeeded, current status: " + status);
       else
         do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateFinished);
       return;
@@ -516,7 +519,8 @@ function checkUpdateFinished() {
   } catch (e) {
     if (e.result == Components.results.NS_ERROR_FILE_IS_LOCKED) {
       if (gTimeoutRuns > MAX_TIMEOUT_RUNS)
-        do_throw("Exceeded MAX_TIMEOUT_RUNS whist waiting for file to be unlocked");
+        do_throw("Exceeded MAX_TIMEOUT_RUNS whist waiting for file to be " +
+                 "unlocked");
       else
         // This might happen on Windows in case the callback application has not
         // finished its job yet.  So, we'll wait some more.
@@ -584,5 +588,5 @@ function checkUpdateFinished() {
   logTestInfo("testing " + updatesDir.path + " should exist");
   do_check_true(updatesDir.exists());
 
-  removeCallbackCopy();
+  waitForFilesInUse();
 }
