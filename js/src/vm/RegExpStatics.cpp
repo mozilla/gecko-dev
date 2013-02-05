@@ -84,7 +84,7 @@ RegExpStatics::executeLazy(JSContext *cx)
      */
 
     size_t length = matchesInput->length();
-    StableCharPtr chars(matchesInput->chars(), length);
+    const jschar *chars = matchesInput->chars();
 
     /* Execute the full regular expression. */
     RegExpGuard shared(cx);

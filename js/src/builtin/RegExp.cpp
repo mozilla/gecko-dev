@@ -51,7 +51,7 @@ class RegExpMatchBuilder
 };
 
 bool
-js::CreateRegExpMatchResult(JSContext *cx, JSString *input_, StableCharPtr chars, size_t length,
+js::CreateRegExpMatchResult(JSContext *cx, JSString *input_, const jschar *chars, size_t length,
                             MatchPairs &matches, Value *rval)
 {
     RootedString input(cx, input_);
@@ -70,7 +70,7 @@ js::CreateRegExpMatchResult(JSContext *cx, JSString *input_, StableCharPtr chars
         return false;
 
     if (!input) {
-        input = js_NewStringCopyN(cx, chars.get(), length);
+        input = js_NewStringCopyN(cx, chars, length);
         if (!input)
             return false;
     }
@@ -107,7 +107,7 @@ js::CreateRegExpMatchResult(JSContext *cx, JSString *input_, StableCharPtr chars
 bool
 js::CreateRegExpMatchResult(JSContext *cx, HandleString string, MatchPairs &matches, Value *rval)
 {
-    Rooted<JSStableString*> input(cx, string->ensureStable(cx));
+    Rooted<JSLinearString*> input(cx, string->ensureLinear(cx));
     if (!input)
         return false;
     return CreateRegExpMatchResult(cx, input, input->chars(), input->length(), matches, rval);
@@ -115,7 +115,7 @@ js::CreateRegExpMatchResult(JSContext *cx, HandleString string, MatchPairs &matc
 
 RegExpRunStatus
 ExecuteRegExpImpl(JSContext *cx, RegExpStatics *res, RegExpShared &re, RegExpObject &regexp,
-                  JSLinearString *input, StableCharPtr chars, size_t length,
+                  JSLinearString *input, const jschar *chars, size_t length,
                   size_t *lastIndex, MatchConduit &matches)
 {
     RegExpRunStatus status;
@@ -140,7 +140,7 @@ ExecuteRegExpImpl(JSContext *cx, RegExpStatics *res, RegExpShared &re, RegExpObj
 /* Legacy ExecuteRegExp behavior is baked into the JSAPI. */
 bool
 js::ExecuteRegExpLegacy(JSContext *cx, RegExpStatics *res, RegExpObject &reobj,
-                        Handle<JSStableString*> input, StableCharPtr chars, size_t length,
+                        Handle<JSLinearString*> input, const jschar *chars, size_t length,
                         size_t *lastIndex, JSBool test, jsval *rval)
 {
     RegExpGuard shared(cx);
@@ -552,8 +552,8 @@ js::ExecuteRegExp(JSContext *cx, HandleObject regexp, HandleString string, Match
     RegExpStatics *res = cx->regExpStatics();
 
     /* Step 3. */
-    Rooted<JSStableString*> stableInput(cx, string->ensureStable(cx));
-    if (!stableInput)
+    Rooted<JSLinearString*> linearInput(cx, string->ensureLinear(cx));
+    if (!linearInput)
         return RegExpRunStatus_Error;
 
     /* Step 4. */
@@ -568,8 +568,8 @@ js::ExecuteRegExp(JSContext *cx, HandleObject regexp, HandleString string, Match
     if (!re->global() && !re->sticky())
         i = 0;
 
-    StableCharPtr chars = stableInput->chars();
-    size_t length = stableInput->length();
+    const jschar *chars = linearInput->chars();
+    size_t length = linearInput->length();
 
     /* Step 9a. */
     if (i < 0 || i > length) {
@@ -580,7 +580,7 @@ js::ExecuteRegExp(JSContext *cx, HandleObject regexp, HandleString string, Match
     /* Steps 8-21. */
     size_t lastIndexInt(i);
     RegExpRunStatus status =
-        ExecuteRegExpImpl(cx, res, *re, *reobj, stableInput, chars, length, &lastIndexInt, matches);
+        ExecuteRegExpImpl(cx, res, *re, *reobj, linearInput, chars, length, &lastIndexInt, matches);
 
     if (status == RegExpRunStatus_Error)
         return RegExpRunStatus_Error;
