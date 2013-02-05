@@ -163,7 +163,7 @@ SVGLocatableElement::GetTransformToElement(nsSVGElement& aElement,
   nsCOMPtr<DOMSVGMatrix> tmp = targetScreenCTM->Inverse(rv);
   if (rv.Failed()) return nullptr;
 
-  nsCOMPtr<DOMSVGMatrix> mat = tmp->Multiply(*ourScreenCTM).get();
+  nsCOMPtr<DOMSVGMatrix> mat = tmp->Multiply(*ourScreenCTM);
   return mat.forget();
 }
 
