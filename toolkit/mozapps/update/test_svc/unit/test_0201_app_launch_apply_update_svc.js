@@ -362,7 +362,9 @@ function checkUpdateApplied() {
   // Don't proceed until the update has been applied.
   if (gUpdateManager.activeUpdate.state != STATE_APPLIED_PLATFORM) {
     if (gTimeoutRuns > MAX_TIMEOUT_RUNS)
-      do_throw("Exceeded MAX_TIMEOUT_RUNS whilst waiting for update to be applied, current state is: " + gUpdateManager.activeUpdate.state);
+      do_throw("Exceeded MAX_TIMEOUT_RUNS whilst waiting for update to be " +
+               "applied, current state is: " +
+               gUpdateManager.activeUpdate.state);
     else
       do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateApplied);
     return;
@@ -380,7 +382,8 @@ function checkUpdateApplied() {
   log.append(FILE_LAST_LOG);
   if (!log.exists()) {
     if (gTimeoutRuns > MAX_TIMEOUT_RUNS)
-      do_throw("Exceeded MAX_TIMEOUT_RUNS whilst waiting for update log to be created");
+      do_throw("Exceeded MAX_TIMEOUT_RUNS whilst waiting for update log to " +
+               "be created");
     else
       do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateApplied);
     return;
@@ -475,7 +478,8 @@ function checkUpdateFinished() {
     let status = readStatusFile();
     if (status != STATE_SUCCEEDED) {
       if (gTimeoutRuns > MAX_TIMEOUT_RUNS)
-        do_throw("Exceeded MAX_TIMEOUT_RUNS whilst waiting for state to change to succeeded, current status: " + status);
+        do_throw("Exceeded MAX_TIMEOUT_RUNS whilst waiting for state to " +
+                 "change to succeeded, current status: " + status);
       else
         do_timeout(CHECK_TIMEOUT_MILLI, checkUpdateFinished);
       return;
@@ -558,6 +562,5 @@ function checkUpdateFinished() {
   logTestInfo("testing " + updatesDir.path + " should exist");
   do_check_true(updatesDir.exists());
 
-  // Give the callback app time to close before trying to delete it.
-  do_timeout(TEST_HELPER_TIMEOUT, removeCallbackCopy);
+  waitForFilesInUse();
 }
