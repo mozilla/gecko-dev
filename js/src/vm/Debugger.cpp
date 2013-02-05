@@ -3589,7 +3589,7 @@ js::EvaluateInEnv(JSContext *cx, Handle<Env*> env, HandleValue thisv, StackFrame
            .setCompileAndGo(true)
            .setNoScriptRval(false)
            .setFileAndLine(filename, lineno);
-    RootedScript script(cx, frontend::CompileScript(cx, env, fp, options, chars, length,
+    RootedScript script(cx, frontend::CompileScript(cx, env, fp, options, chars.get(), length,
                                                     /* source = */ NULL,
                                                     /* staticLevel = */ fp ? 1 : 0));
     if (!script)

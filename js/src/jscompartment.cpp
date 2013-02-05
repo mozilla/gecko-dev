@@ -327,10 +327,10 @@ JSCompartment::wrap(JSContext *cx, Value *vp, JSObject *existing)
 
     if (vp->isString()) {
         RootedValue orig(cx, *vp);
-        JSStableString *str = vp->toString()->ensureStable(cx);
+        JSLinearString *str = vp->toString()->ensureLinear(cx);
         if (!str)
             return false;
-        JSString *wrapped = js_NewStringCopyN(cx, str->chars().get(), str->length());
+        JSString *wrapped = js_NewStringCopyN(cx, str->chars(), str->length());
         if (!wrapped)
             return false;
         vp->setString(wrapped);

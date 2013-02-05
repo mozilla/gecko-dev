@@ -275,7 +275,7 @@ EvalKernel(JSContext *cx, const CallArgs &args, EvalType evalType, StackFrame *c
                .setPrincipals(principals)
                .setOriginPrincipals(originPrincipals);
         JSScript *compiled = frontend::CompileScript(cx, scopeobj, caller, options,
-                                                     chars, length, stableStr, staticLevel);
+                                                     chars.get(), length, stableStr, staticLevel);
         if (!compiled)
             return false;
 

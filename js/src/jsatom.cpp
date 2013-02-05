@@ -311,12 +311,12 @@ js::AtomizeString(JSContext *cx, JSString *str, InternBehavior ib)
         return &atom;
     }
 
-    JSStableString *stable = str->ensureStable(cx);
-    if (!stable)
+    JSLinearString *linear = str->ensureLinear(cx);
+    if (!linear)
         return NULL;
 
-    const jschar *chars = stable->chars().get();
-    size_t length = stable->length();
+    const jschar *chars = linear->chars();
+    size_t length = linear->length();
     JS_ASSERT(length <= JSString::MAX_LENGTH);
     return AtomizeInline(cx, &chars, length, ib);
 }
