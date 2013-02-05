@@ -59,6 +59,7 @@ PARALLEL_DIRS += \
   messages \
   power \
   settings \
+  mobilemessage \
   sms \
   mms \
   src \
