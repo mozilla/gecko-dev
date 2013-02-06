@@ -6013,10 +6013,10 @@ JS_GetStringCharsZ(JSContext *cx, JSString *str)
     AssertHeapIsIdleOrStringIsFlat(cx, str);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, str);
-    JSLinearString *linear = str->ensureLinear(cx);
-    if (!linear)
+    JSFlatString *flat = str->ensureFlat(cx);
+    if (!flat)
         return NULL;
-    return linear->chars();
+    return flat->chars();
 }
 
 JS_PUBLIC_API(const jschar *)
@@ -6026,11 +6026,11 @@ JS_GetStringCharsZAndLength(JSContext *cx, JSString *str, size_t *plength)
     AssertHeapIsIdleOrStringIsFlat(cx, str);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, str);
-    JSLinearString *linear = str->ensureLinear(cx);
-    if (!linear)
+    JSFlatString *flat = str->ensureFlat(cx);
+    if (!flat)
         return NULL;
-    *plength = linear->length();
-    return linear->chars();
+    *plength = flat->length();
+    return flat->chars();
 }
 
 JS_PUBLIC_API(const jschar *)
@@ -6051,10 +6051,10 @@ JS_PUBLIC_API(const jschar *)
 JS_GetInternedStringChars(JSString *str)
 {
     JS_ASSERT(str->isAtom());
-    JSLinearString *linear = str->ensureLinear(NULL);
-    if (!linear)
+    JSFlatString *flat = str->ensureFlat(NULL);
+    if (!flat)
         return NULL;
-    return linear->chars();
+    return flat->chars();
 }
 
 JS_PUBLIC_API(const jschar *)
@@ -6062,11 +6062,11 @@ JS_GetInternedStringCharsAndLength(JSString *str, size_t *plength)
 {
     JS_ASSERT(str->isAtom());
     JS_ASSERT(plength);
-    JSLinearString *linear = str->ensureLinear(NULL);
-    if (!linear)
+    JSFlatString *flat = str->ensureFlat(NULL);
+    if (!flat)
         return NULL;
-    *plength = linear->length();
-    return linear->chars();
+    *plength = flat->length();
+    return flat->chars();
 }
 
 extern JS_PUBLIC_API(JSFlatString *)
