@@ -1184,6 +1184,20 @@ nsPresContext::GetNearestWidget(nsPoint* aOffset)
   return frame->GetView()->GetNearestWidget(aOffset);
 }
 
+nsIWidget*
+nsPresContext::GetRootWidget()
+{
+  NS_ENSURE_TRUE(mShell, nullptr);
+  nsIViewManager* vm = mShell->GetViewManager();
+  if (!vm) {
+    return nullptr;
+  }
+  nsCOMPtr<nsIWidget> widget;
+  nsresult rv = vm->GetRootWidget(getter_AddRefs(widget));
+  NS_ENSURE_SUCCESS(rv, nullptr);
+  return widget.get();
+}
+
 // We may want to replace this with something faster, maybe caching the root prescontext
 nsRootPresContext*
 nsPresContext::GetRootPresContext()

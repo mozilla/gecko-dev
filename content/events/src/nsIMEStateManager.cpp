@@ -124,7 +124,7 @@ nsIMEStateManager::OnDestroyPresContext(nsPresContext* aPresContext)
 
   DestroyTextStateManager();
 
-  nsCOMPtr<nsIWidget> widget = sPresContext->GetNearestWidget();
+  nsCOMPtr<nsIWidget> widget = sPresContext->GetRootWidget();
   if (widget) {
     IMEState newState = GetNewIMEState(sPresContext, nullptr);
     InputContextAction action(InputContextAction::CAUSE_UNKNOWN,
@@ -154,7 +154,7 @@ nsIMEStateManager::OnRemoveContent(nsPresContext* aPresContext,
       // is called during the content being removed.  Then, the native
       // composition events which are caused by following APIs are ignored due
       // to unsafe to run script (in PresShell::HandleEvent()).
-      nsCOMPtr<nsIWidget> widget = aPresContext->GetNearestWidget();
+      nsCOMPtr<nsIWidget> widget = aPresContext->GetRootWidget();
       if (widget) {
         nsresult rv =
           storedComposition.NotifyIME(REQUEST_TO_CANCEL_COMPOSITION);
@@ -184,7 +184,7 @@ nsIMEStateManager::OnRemoveContent(nsPresContext* aPresContext,
   DestroyTextStateManager();
 
   // Current IME transaction should commit
-  nsCOMPtr<nsIWidget> widget = sPresContext->GetNearestWidget();
+  nsCOMPtr<nsIWidget> widget = sPresContext->GetRootWidget();
   if (widget) {
     IMEState newState = GetNewIMEState(sPresContext, nullptr);
     InputContextAction action(InputContextAction::CAUSE_UNKNOWN,
@@ -216,7 +216,7 @@ nsIMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
     (sContent != aContent || sPresContext != aPresContext);
 
   nsCOMPtr<nsIWidget> oldWidget =
-    sPresContext ? sPresContext->GetNearestWidget() : nullptr;
+    sPresContext ? sPresContext->GetRootWidget() : nullptr;
   if (oldWidget && focusActuallyChanging) {
     // If we're deactivating, we shouldn't commit composition forcibly because
     // the user may want to continue the composition.
@@ -236,7 +236,7 @@ nsIMEStateManager::OnChangeFocusInternal(nsPresContext* aPresContext,
 
   nsCOMPtr<nsIWidget> widget =
     (sPresContext == aPresContext) ? oldWidget.get() :
-                                     aPresContext->GetNearestWidget();
+                                     aPresContext->GetRootWidget();
   if (!widget) {
     return NS_OK;
   }
@@ -323,7 +323,7 @@ nsIMEStateManager::OnClickInEditor(nsPresContext* aPresContext,
     return;
   }
 
-  nsCOMPtr<nsIWidget> widget = aPresContext->GetNearestWidget();
+  nsCOMPtr<nsIWidget> widget = aPresContext->GetRootWidget();
   NS_ENSURE_TRUE_VOID(widget);
 
   bool isTrusted;
@@ -381,7 +381,7 @@ nsIMEStateManager::UpdateIMEState(const IMEState &aNewIMEState,
     NS_WARNING("ISM doesn't know which editor has focus");
     return;
   }
-  nsCOMPtr<nsIWidget> widget = sPresContext->GetNearestWidget();
+  nsCOMPtr<nsIWidget> widget = sPresContext->GetRootWidget();
   if (!widget) {
     NS_WARNING("focused widget is not found");
     return;
@@ -681,7 +681,7 @@ nsIMEStateManager::NotifyIME(NotificationToIME aNotification,
 {
   NS_ENSURE_TRUE(aPresContext, NS_ERROR_INVALID_ARG);
 
-  nsIWidget* widget = aPresContext->GetNearestWidget();
+  nsIWidget* widget = aPresContext->GetRootWidget();
   if (!widget) {
     return NS_ERROR_NOT_AVAILABLE;
   }
@@ -1047,7 +1047,7 @@ nsIMEStateManager::CreateTextStateManager()
     return;
   }
 
-  nsCOMPtr<nsIWidget> widget = sPresContext->GetNearestWidget();
+  nsCOMPtr<nsIWidget> widget = sPresContext->GetRootWidget();
   if (!widget) {
     return; // Sometimes, there are no widgets.
   }
