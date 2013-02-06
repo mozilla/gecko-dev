@@ -360,12 +360,8 @@ nsComboboxControlFrame::ShowPopup(bool aShowPopup)
 bool
 nsComboboxControlFrame::ShowList(bool aShowList)
 {
-  nsCOMPtr<nsIPresShell> shell = PresContext()->GetPresShell();
-
-  nsWeakFrame weakFrame(this);
-
+  nsIView* view = mDropdownFrame->GetView();
   if (aShowList) {
-    nsIView* view = mDropdownFrame->GetView();
     NS_ASSERTION(!view->HasWidget(),
                  "We shoudldn't have a widget before we need to display the popup");
 
@@ -376,45 +372,38 @@ nsComboboxControlFrame::ShowList(bool aShowList)
     widgetData.mWindowType  = eWindowType_popup;
     widgetData.mBorderStyle = eBorderStyle_default;
     view->CreateWidgetForPopup(&widgetData);
+  } else {
+    nsIWidget* widget = view->GetWidget();
+    if (widget) {
+      // We must do this before ShowPopup in case it destroys us (bug 813442).
+      widget->CaptureRollupEvents(this, false, false);
+    }
   }
 
+  nsWeakFrame weakFrame(this);
   ShowPopup(aShowList);  // might destroy us
   if (!weakFrame.IsAlive()) {
     return false;
   }
 
   mDroppedDown = aShowList;
+  nsIWidget* widget = view->GetWidget();
   if (mDroppedDown) {
     // The listcontrol frame will call back to the nsComboboxControlFrame's
     // ListWasSelected which will stop the capture.
     mListControlFrame->AboutToDropDown();
     mListControlFrame->CaptureMouseEvents(true);
-  }
-
-  // XXXbz so why do we need to flush here, exactly?
-  shell->GetDocument()->FlushPendingNotifications(Flush_Layout);
-  if (!weakFrame.IsAlive()) {
-    return false;
-  }
-
-  nsIFrame* listFrame = do_QueryFrame(mListControlFrame);
-  if (listFrame) {
-    nsIView* view = listFrame->GetView();
-    NS_ASSERTION(view, "nsComboboxControlFrame view is null");
-    if (view) {
-      nsIWidget* widget = view->GetWidget();
-      if (widget) {
-        widget->CaptureRollupEvents(this, mDroppedDown, mDroppedDown);
-
-        if (!aShowList) {
-          nsCOMPtr<nsIRunnable> widgetDestroyer =
-            new DestroyWidgetRunnable(widget);
-          // 'widgetDestroyer' now has a strong ref on the widget so calling
-          // DestroyWidget here will not *delete* it.
-          view->DestroyWidget();
-          NS_DispatchToMainThread(widgetDestroyer);
-        }
-      }
+    if (widget) {
+      widget->CaptureRollupEvents(this, true, true);
+    }
+  } else {
+    if (widget) {
+      nsCOMPtr<nsIRunnable> widgetDestroyer =
+        new DestroyWidgetRunnable(widget);
+      // 'widgetDestroyer' now has a strong ref on the widget so calling
+      // DestroyWidget here will not *delete* it.
+      view->DestroyWidget();
+      NS_DispatchToMainThread(widgetDestroyer);
     }
   }
 
