@@ -49,7 +49,10 @@ Compressor::init()
         return false;
     zs.zalloc = zlib_alloc;
     zs.zfree = zlib_free;
-    int ret = deflateInit(&zs, Z_DEFAULT_COMPRESSION);
+    // zlib is slow and we'd rather be done compression sooner
+    // even if it means decompression is slower which penalizes
+    // Function.toString()
+    int ret = deflateInit(&zs, Z_BEST_SPEED);
     if (ret != Z_OK) {
         JS_ASSERT(ret == Z_MEM_ERROR);
         return false;
