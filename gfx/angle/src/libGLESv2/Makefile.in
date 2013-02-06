@@ -84,6 +84,7 @@ CPPSRCS = \
         ForLoopUnroll.cpp \
         MapLongVariableNames.cpp \
         spooky.cpp \
+        ArrayBoundsClamper.cpp \
         BuiltInFunctionEmulator.cpp \
         Input.cpp \
         Lexer.cpp \
