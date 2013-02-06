@@ -700,6 +700,8 @@ void SetAncestorDirectionIfAuto(nsINode* aTextNode, Directionality aDir,
       break;
     }
 
+    aTextNode->SetAncestorHasDirAuto();
+
     if (parent->HasDirAuto()) {
       bool resetDirection = false;
 
