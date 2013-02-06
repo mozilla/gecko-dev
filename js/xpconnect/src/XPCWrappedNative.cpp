@@ -1583,8 +1583,9 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
                     wrapper->UpdateScriptableInfo(newProto->GetScriptableInfo());
                 }
 
-                NS_ASSERTION(!newMap->Find(wrapper->GetIdentityObject()),
-                             "wrapper already in new scope!");
+                // Crash if the wrapper is already in the new scope.
+                if (newMap->Find(wrapper->GetIdentityObject()))
+                    MOZ_CRASH();
 
                 if (!newMap->Add(wrapper))
                     MOZ_CRASH();
