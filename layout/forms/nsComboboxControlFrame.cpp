@@ -1421,16 +1421,12 @@ nsComboboxControlFrame::DestroyFrom(nsIFrame* aDestructRoot)
   nsFormControlFrame::RegUnRegAccessKey(static_cast<nsIFrame*>(this), false);
 
   if (mDroppedDown) {
-    // Get parent view
-    nsIFrame * listFrame = do_QueryFrame(mListControlFrame);
-    if (listFrame) {
-      nsIView* view = listFrame->GetView();
-      NS_ASSERTION(view, "nsComboboxControlFrame view is null");
-      if (view) {
-        nsIWidget* widget = view->GetWidget();
-        if (widget)
-          widget->CaptureRollupEvents(this, false, true);
-      }
+    MOZ_ASSERT(mDropdownFrame, "mDroppedDown without frame");
+    nsIView* view = mDropdownFrame->GetView();
+    MOZ_ASSERT(view);
+    nsIWidget* widget = view->GetWidget();
+    if (widget) {
+      widget->CaptureRollupEvents(this, false, true);
     }
   }
 
