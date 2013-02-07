@@ -235,7 +235,6 @@ const ContentPanning = {
     let isPan = KineticPanning.isPan();
     if (!isPan) {
       // If panning distance is not large enough, both BES and APZC should not perform scrolling
-      evt.preventDefault();
       return;
     }
 
