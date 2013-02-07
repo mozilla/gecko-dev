@@ -114,10 +114,10 @@ typedef struct CapturingContentInfo {
   nsIContent* mContent;
 } CapturingContentInfo;
 
-// 1e1949fe-9dea-4761-a503-8bb428d92483
-#define NS_IPRESSHELL_IID \
-{ 0xb3f6240c, 0x971f, 0x498a, \
-  { 0x9c, 0x70, 0xe5, 0x88, 0x0d, 0x70, 0xcd, 0x0b } }
+// 942c3ba8-1b97-437d-9895-f057a33865bd
+ #define NS_IPRESSHELL_IID \
+{ 0x942c3ba8, 0x1b97, 0x437d, \
+  { 0x98, 0x95, 0xf0, 0x57, 0xa3, 0x38, 0x65, 0xbd } }
   
 // debug VerifyReflow flags
 #define VERIFY_REFLOW_ON                    0x01
@@ -186,6 +186,18 @@ public:
   virtual NS_HIDDEN_(void) Destroy() = 0;
 
   bool IsDestroying() { return mIsDestroying; }
+
+  /**
+   * Make a one-way transition into a "zombie" state.  In this state,
+   * no reflow is done, no painting is done, and no refresh driver
+   * ticks are processed.  This is a dangerous state: it can leave
+   * areas of the composition target unpainted if callers aren't
+   * careful.  (Don't let your zombie presshell out of the shed.)
+   *
+   * This is used in cases where a presshell is created for reasons
+   * other than reflow/painting.
+   */
+  virtual NS_HIDDEN_(void) MakeZombie() = 0;
 
   /**
    * All frames owned by the shell are allocated from an arena.  They
@@ -1418,6 +1430,7 @@ protected:
   bool                      mStylesHaveChanged : 1;
   bool                      mDidInitialize : 1;
   bool                      mIsDestroying : 1;
+  bool                      mIsZombie : 1;
   bool                      mIsReflowing : 1;
 
   // For all documents we initially lock down painting.
