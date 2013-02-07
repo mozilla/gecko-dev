@@ -223,14 +223,16 @@ nsStyleLinkElement::DoUpdateStyleSheet(nsIDocument *aOldDocument,
     nsStyleLinkElement::SetStyleSheet(nullptr);
   }
 
-  if (mDontLoadStyle || !mUpdatesEnabled) {
-    return NS_OK;
-  }
-
   nsCOMPtr<nsIContent> thisContent;
   QueryInterface(NS_GET_IID(nsIContent), getter_AddRefs(thisContent));
 
   NS_ENSURE_TRUE(thisContent, NS_ERROR_FAILURE);
+
+  // When static documents are created, stylesheets are cloned manually.
+  if (mDontLoadStyle || !mUpdatesEnabled ||
+      thisContent->OwnerDoc()->IsStaticDocument()) {
+    return NS_OK;
+  }
 
   nsCOMPtr<nsIDocument> doc = thisContent->GetDocument();
 
