@@ -558,10 +558,20 @@ TypeInferenceOracle::canEnterInlinedFunction(JSFunction *target)
 {
     AssertCanGC();
     RootedScript script(cx, target->nonLazyScript());
-    if (!script->hasAnalysis() || !script->analysis()->ranInference())
+    if (!script->hasAnalysis() ||
+        !script->analysis()->ranInference() ||
+        !script->analysis()->ranSSA())
+    {
         return false;
+    }
 
     if (!script->analysis()->ionInlineable())
+        return false;
+
+    if (script->needsArgsObj())
+        return false;
+
+    if (!script->compileAndGo)
         return false;
 
     if (script->analysis()->usesScopeChain())
