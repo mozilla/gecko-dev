@@ -1032,7 +1032,7 @@ struct nsCycleCollector
     // Prepare for and cleanup after one or more collection(s).
     bool PrepareForCollection(nsCycleCollectorResults *aResults,
                               nsTArray<PtrInfo*> *aWhiteNodes);
-    void GCIfNeeded(bool aForceGC);
+    void FixGrayBits(bool aForceGC);
     void CleanupAfterCollection();
 
     // Start and finish an individual collection.
@@ -1971,16 +1971,13 @@ GCGraphBuilder::AddWeakMapNode(void *node)
 NS_IMETHODIMP_(void)
 GCGraphBuilder::NoteWeakMapping(void *map, void *key, void *kdelegate, void *val)
 {
-    PtrInfo *valNode = AddWeakMapNode(val);
-
-    if (!valNode)
-        return;
-
+    // Don't try to optimize away the entry here, as we've already attempted to
+    // do that in TraceWeakMapping in nsXPConnect.
     WeakMapping *mapping = mWeakMaps.AppendElement();
     mapping->mMap = map ? AddWeakMapNode(map) : nullptr;
     mapping->mKey = key ? AddWeakMapNode(key) : nullptr;
     mapping->mKeyDelegate = kdelegate ? AddWeakMapNode(kdelegate) : mapping->mKey;
-    mapping->mVal = valNode;
+    mapping->mVal = val ? AddWeakMapNode(val) : nullptr;
 }
 
 static bool
@@ -2205,11 +2202,11 @@ nsCycleCollector::ScanWeakMaps()
         for (uint32_t i = 0; i < mGraph.mWeakMaps.Length(); i++) {
             WeakMapping *wm = &mGraph.mWeakMaps[i];
 
-            // If mMap or mKey are null, the original object was marked black.
+            // If any of these are null, the original object was marked black.
             uint32_t mColor = wm->mMap ? wm->mMap->mColor : black;
             uint32_t kColor = wm->mKey ? wm->mKey->mColor : black;
             uint32_t kdColor = wm->mKeyDelegate ? wm->mKeyDelegate->mColor : black;
-            PtrInfo *v = wm->mVal;
+            uint32_t vColor = wm->mVal ? wm->mVal->mColor : black;
 
             // All non-null weak mapping maps, keys and values are
             // roots (in the sense of WalkFromRoots) in the cycle
@@ -2218,15 +2215,15 @@ nsCycleCollector::ScanWeakMaps()
             MOZ_ASSERT(mColor != grey, "Uncolored weak map");
             MOZ_ASSERT(kColor != grey, "Uncolored weak map key");
             MOZ_ASSERT(kdColor != grey, "Uncolored weak map key delegate");
-            MOZ_ASSERT(v->mColor != grey, "Uncolored weak map value");
+            MOZ_ASSERT(vColor != grey, "Uncolored weak map value");
 
             if (mColor == black && kColor != black && kdColor == black) {
                 GraphWalker<ScanBlackVisitor>(ScanBlackVisitor(mWhiteNodeCount)).Walk(wm->mKey);
                 anyChanged = true;
             }
 
-            if (mColor == black && kColor == black && v->mColor != black) {
-                GraphWalker<ScanBlackVisitor>(ScanBlackVisitor(mWhiteNodeCount)).Walk(v);
+            if (mColor == black && kColor == black && vColor != black) {
+                GraphWalker<ScanBlackVisitor>(ScanBlackVisitor(mWhiteNodeCount)).Walk(wm->mVal);
                 anyChanged = true;
             }
         }
@@ -2627,10 +2624,10 @@ nsCycleCollector::LogPurpleRemoval(void* aObject)
 // and also when UnmarkGray has run out of stack.  We also force GCs on shut 
 // down to collect cycles involving both DOM and JS.
 void
-nsCycleCollector::GCIfNeeded(bool aForceGC)
+nsCycleCollector::FixGrayBits(bool aForceGC)
 {
     NS_ASSERTION(NS_IsMainThread(),
-                 "nsCycleCollector::GCIfNeeded() must be called on the main thread.");
+                 "nsCycleCollector::FixGrayBits() must be called on the main thread.");
 
     if (mParams.mDoNothing)
         return;
@@ -2639,6 +2636,8 @@ nsCycleCollector::GCIfNeeded(bool aForceGC)
         return;
 
     if (!aForceGC) {
+        mJSRuntime->FixWeakMappingGrayBits();
+
         bool needGC = mJSRuntime->NeedCollect();
         // Only do a telemetry ping for non-shutdown CCs.
         Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR_NEED_GC, needGC);
@@ -2739,7 +2738,7 @@ nsCycleCollector::Collect(bool aMergeCompartments,
     uint32_t totalCollections = 0;
     while (aTryCollections > totalCollections) {
         // Synchronous cycle collection. Always force a JS GC beforehand.
-        GCIfNeeded(true);
+        FixGrayBits(true);
         if (aListener && NS_FAILED(aListener->Begin()))
             aListener = nullptr;
         if (!(BeginCollection(aMergeCompartments, aListener) &&
@@ -3116,7 +3115,7 @@ public:
         if (aListener) {
             aListener->GetWantAllTraces(&wantAllTraces);
         }
-        mCollector->GCIfNeeded(wantAllTraces);
+        mCollector->FixGrayBits(wantAllTraces);
 
         MutexAutoLock autoLock(mLock);
 

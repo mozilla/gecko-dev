@@ -749,7 +749,6 @@ XPCJSRuntime::GCCallback(JSRuntime *rt, JSGCStatus status)
                     }
                 }
             }
-            self->GetXPConnect()->ClearGCBeforeCC();
             break;
         }
     }

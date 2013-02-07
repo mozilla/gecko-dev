@@ -94,6 +94,7 @@ const RIL_IPC_MOBILECONNECTION_MSG_NAMES = [
   "RIL:CancelMMI",
   "RIL:SendStkResponse",
   "RIL:SendStkMenuSelection",
+  "RIL:SendStkTimerExpiration",
   "RIL:SendStkEventDownload",
   "RIL:RegisterMobileConnectionMsg",
   "RIL:SetCallForwardingOption",
@@ -468,6 +469,9 @@ RadioInterfaceLayer.prototype = {
         break;
       case "RIL:SendStkMenuSelection":
         this.sendStkMenuSelection(msg.json);
+        break;
+      case "RIL:SendStkTimerExpiration":
+        this.sendStkTimerExpiration(msg.json);
         break;
       case "RIL:SendStkEventDownload":
         this.sendStkEventDownload(msg.json);
@@ -1218,8 +1222,12 @@ RadioInterfaceLayer.prototype = {
         call.isActive = false;
         if (this._activeCall &&
             this._activeCall.callIndex == call.callIndex) {
-          // Previously active call is not active now. Disable audio.
+          // Previously active call is not active now.
           this._activeCall = null;
+        }
+
+        if (!this._activeCall) {
+          // No active call. Disable the audio.
           gAudioManager.phoneState = nsIAudioManager.PHONE_STATE_NORMAL;
           debug("No active call, put audio system into PHONE_STATE_NORMAL: "
                 + gAudioManager.phoneState);
@@ -1998,6 +2006,11 @@ RadioInterfaceLayer.prototype = {
 
   sendStkMenuSelection: function sendStkMenuSelection(message) {
     message.rilMessageType = "sendStkMenuSelection";
+    this.worker.postMessage(message);
+  },
+
+  sendStkTimerExpiration: function sendStkTimerExpiration(message) {
+    message.rilMessageType = "sendStkTimerExpiration";
     this.worker.postMessage(message);
   },
 

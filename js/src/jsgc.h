@@ -1136,7 +1136,7 @@ IterateCells(JSRuntime *rt, JSCompartment *compartment, gc::AllocKind thingKind,
  * Invoke cellCallback on every gray JS_OBJECT in the given compartment.
  */
 extern JS_FRIEND_API(void)
-IterateGrayObjects(JSCompartment *compartment, GCThingCallback *cellCallback, void *data);
+IterateGrayObjects(JSCompartment *compartment, GCThingCallback cellCallback, void *data);
 
 } /* namespace js */
 
@@ -1224,6 +1224,27 @@ GetObjectCompartment(JSObject *obj)
 
 void
 PurgeJITCaches(JSCompartment *c);
+
+bool
+IsIncrementalBarrierNeededOnGCThing(js::gc::Cell *thing, JSGCTraceKind kind);
+
+JS_ALWAYS_INLINE void
+ExposeGCThingToActiveJS(js::gc::Cell *thing, JSGCTraceKind kind)
+{
+    JS_ASSERT(kind != JSTRACE_SHAPE);
+
+    if (js::GCThingIsMarkedGray(thing))
+        js::UnmarkGrayGCThingRecursively(thing, kind);
+    else if (IsIncrementalBarrierNeededOnGCThing(thing, kind))
+        js::IncrementalReferenceBarrier(thing);
+}
+
+JS_ALWAYS_INLINE void
+ExposeValueToActiveJS(const Value &v)
+{
+    if (v.isMarkable())
+        ExposeGCThingToActiveJS(static_cast<js::gc::Cell*>(v.toGCThing()), v.gcKind());
+}
 
 } /* namespace js */
 

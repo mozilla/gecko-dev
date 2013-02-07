@@ -884,6 +884,7 @@ xpicleanup@BIN_SUFFIX@
   components/BrowserElementParent.js
   components/BrowserElementParent.manifest
   components/BrowserElementPromptService.jsm
+  components/BrowserElementParent.jsm
   components/components.manifest
   components/contentAreaDropListener.js
   components/contentSecurityPolicy.js
@@ -965,6 +966,7 @@ xpicleanup@BIN_SUFFIX@
   defaults/pref/firefox.js
   defaults/pref/firefox-l10n.js
   defaults/pref/services-sync.js
+  defaults/pref/services-captivedetect.js
   defaults/profile/bookmarks.html
   defaults/profile/chrome/userChrome-example.css
   defaults/profile/chrome/userContent-example.css
