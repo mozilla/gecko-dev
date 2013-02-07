@@ -995,7 +995,10 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
     }
 
     public void updateBackButton(boolean enabled) {
-         mBack.setColorFilter(enabled ? 0 : 0xFF999999);
+         Drawable drawable = mBack.getDrawable();
+         if (drawable != null)
+             drawable.setAlpha(enabled ? 255 : 77);
+
          mBack.setEnabled(enabled);
     }
 
