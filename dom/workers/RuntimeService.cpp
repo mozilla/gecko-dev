@@ -21,7 +21,6 @@
 #include "nsPIDOMWindow.h"
 
 #include "jsdbgapi.h"
-#include "jsfriendapi.h"
 #include "mozilla/dom/EventTargetBinding.h"
 #include "mozilla/Preferences.h"
 #include "nsContentUtils.h"
@@ -388,35 +387,6 @@ ContentSecurityPolicyAllows(JSContext* aCx)
   return false;
 }
 
-void
-CTypesActivityCallback(JSContext* aCx,
-                       js::CTypesActivityType aType)
-{
-  WorkerPrivate* worker = GetWorkerPrivateFromContext(aCx);
-  worker->AssertIsOnWorkerThread();
-
-  switch (aType) {
-    case js::CTYPES_CALL_BEGIN:
-      worker->BeginCTypesCall();
-      break;
-
-    case js::CTYPES_CALL_END:
-      worker->EndCTypesCall();
-      break;
-
-    case js::CTYPES_CALLBACK_BEGIN:
-      worker->BeginCTypesCallback();
-      break;
-
-    case js::CTYPES_CALLBACK_END:
-      worker->EndCTypesCallback();
-      break;
-
-    default:
-      MOZ_NOT_REACHED("Unknown type flag!");
-  }
-}
-
 JSContext*
 CreateJSContextForWorker(WorkerPrivate* aWorkerPrivate)
 {
@@ -459,13 +429,11 @@ CreateJSContextForWorker(WorkerPrivate* aWorkerPrivate)
     return nullptr;
   }
 
-  JS_SetRuntimePrivate(runtime, aWorkerPrivate);
+  JS_SetContextPrivate(workerCx, aWorkerPrivate);
 
   JS_SetErrorReporter(workerCx, ErrorReporter);
 
   JS_SetOperationCallback(workerCx, OperationCallback);
-
-  js::SetCTypesActivityCallback(runtime, CTypesActivityCallback);
 
   NS_ASSERTION((aWorkerPrivate->GetJSContextOptions() &
                 kRequiredJSContextOptions) == kRequiredJSContextOptions,

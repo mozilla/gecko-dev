@@ -861,8 +861,7 @@ JSRuntime::JSRuntime()
     ionStackLimit(0),
     ionActivation(NULL),
     ionPcScriptCache(NULL),
-    ionReturnOverride_(MagicValue(JS_ARG_POISON)),
-    ctypesActivityCallback(NULL)
+    ionReturnOverride_(MagicValue(JS_ARG_POISON))
 {
     /* Initialize infallibly first, so we can goto bad and JS_DestroyRuntime. */
     JS_INIT_CLIST(&contextList);

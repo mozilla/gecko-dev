@@ -988,22 +988,4 @@ GetListBaseExpandoSlot()
     return gListBaseExpandoSlot;
 }
 
-JS_FRIEND_API(void)
-SetCTypesActivityCallback(JSRuntime *rt, CTypesActivityCallback cb)
-{
-    rt->ctypesActivityCallback = cb;
-}
-
-AutoCTypesActivityCallback::AutoCTypesActivityCallback(JSContext *cx,
-                                                       CTypesActivityType beginType,
-                                                       CTypesActivityType endType
-                                                       MOZ_GUARD_OBJECT_NOTIFIER_PARAM_IN_IMPL)
-  : cx(cx), callback(cx->runtime->ctypesActivityCallback), beginType(beginType), endType(endType)
-{
-    MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-
-    if (callback)
-        callback(cx, beginType);
-}
-
 } // namespace js
