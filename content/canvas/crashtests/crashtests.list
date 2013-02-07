@@ -13,6 +13,6 @@ load 746813-1.html
 #load 745818-large-source.html
 load 743499-negative-size.html
 load 767337-1.html
-load 780392-1.html
+skip-if(B2G) load 780392-1.html # bug 833371
 load 794463-1.html
 load 802926-1.html
