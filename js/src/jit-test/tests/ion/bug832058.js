@@ -1,3 +1,4 @@
+// |jit-test| error: TypeError
 function f(c) {
   var b = arguments;
   if (c == 1)
