@@ -360,3 +360,4 @@ MSG_DEF(JSMSG_PAR_ARRAY_REDUCE_EMPTY, 306, 0, JSEXN_ERR, "cannot reduce empty Pa
 MSG_DEF(JSMSG_PAR_ARRAY_ALREADY_FLAT, 307, 0, JSEXN_ERR, "cannot flatten 1-dimensional ParallelArray object")
 MSG_DEF(JSMSG_PAR_ARRAY_SCATTER_CONFLICT, 308, 0, JSEXN_ERR, "no conflict resolution function provided")
 MSG_DEF(JSMSG_PAR_ARRAY_SCATTER_BOUNDS, 309, 0, JSEXN_ERR, "index in scatter vector out of bounds")
+MSG_DEF(JSMSG_UNWRAP_DENIED,          310, 0, JSEXN_ERR, "permission denied to unwrap object")
