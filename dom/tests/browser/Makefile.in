@@ -27,6 +27,8 @@ MOCHITEST_BROWSER_FILES := \
 ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
 MOCHITEST_BROWSER_FILES += \
   browser_geolocation_privatebrowsing_perwindowpb.js \
+  browser_localStorage_privatestorageevent.js \
+  page_privatestorageevent.html
   $(NULL)
 else
 MOCHITEST_BROWSER_FILES += \

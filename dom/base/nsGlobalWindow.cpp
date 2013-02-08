@@ -9063,6 +9063,12 @@ nsGlobalWindow::Observe(nsISupports* aSubject, const char* aTopic,
     nsCOMPtr<nsPIDOMStorage> pistorage = do_QueryInterface(changingStorage);
     nsPIDOMStorage::nsDOMStorageType storageType = pistorage->StorageType();
 
+    nsCOMPtr<nsILoadContext> loadContext = do_QueryInterface(GetDocShell());
+    bool isPrivate = loadContext && loadContext->UsePrivateBrowsing();
+    if (pistorage->IsStoragePrivate() ^ isPrivate) {
+      return NS_OK;
+    }
+
     bool fireMozStorageChanged = false;
     principal = GetPrincipal();
     switch (storageType)
