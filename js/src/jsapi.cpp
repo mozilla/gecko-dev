@@ -5700,7 +5700,9 @@ JS::Evaluate(JSContext *cx, HandleObject obj, CompileOptions options,
 
     options.setCompileAndGo(true);
     options.setNoScriptRval(!rval);
-    RootedScript script(cx, frontend::CompileScript(cx, obj, NULL, options, chars, length));
+    SourceCompressionToken sct(cx);
+    RootedScript script(cx, frontend::CompileScript(cx, obj, NULL, options, chars, length,
+                                                    NULL, 0, &sct));
     if (!script)
         return false;
 
