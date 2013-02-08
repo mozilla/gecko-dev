@@ -62,7 +62,7 @@ RotateBitsLeft32(uint32_t value, uint8_t bits)
 uint32_t
 HashString_ESR10(const nsAString& aFilename)
 {
-  const uint16_t* str = aFilename.BeginReading();
+  const PRUnichar* str = aFilename.BeginReading();
   size_t length = aFilename.Length();
 
   uint32_t hash = 0;
