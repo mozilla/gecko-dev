@@ -124,8 +124,18 @@ public:
     }
 
     if (!gInShutdown) {
-      // Notify all the managers about the state change.
       gBluetoothService->SetEnabled(mEnabled);
+
+      nsAutoString signalName, signalPath;
+      BluetoothValue v = true;
+      if (mEnabled) {
+        signalName = NS_LITERAL_STRING("Enabled");
+      } else {
+        signalName = NS_LITERAL_STRING("Disabled");
+      }
+      signalPath = NS_LITERAL_STRING("/");
+      BluetoothSignal signal(signalName, signalPath, v);
+      gBluetoothService->DistributeSignal(signal);
     }
 
     if (!mEnabled || gInShutdown) {
@@ -345,7 +355,6 @@ BluetoothService::RegisterBluetoothSignalHandler(const nsAString& aNodeName,
     mBluetoothSignalObserverTable.Put(aNodeName, ol);
   }
 
-  ol->RemoveObserver(aHandler);
   ol->AddObserver(aHandler);
 }
 
@@ -459,20 +468,7 @@ BluetoothService::SetEnabled(bool aEnabled)
     unused << childActors[index]->SendEnabled(aEnabled);
   }
 
-  if (aEnabled) {
-    BluetoothManagerList::ForwardIterator iter(mLiveManagers);
-    nsString managerPath = NS_LITERAL_STRING("/");
-
-    /**
-     * Re-register managers since table mBluetoothSignalObserverTable was
-     * cleared after turned off bluetooth
-     */
-    while (iter.HasMore()) {
-      RegisterBluetoothSignalHandler(
-        managerPath,
-        (BluetoothSignalObserver*)iter.GetNext());
-    }
-  } else {
+  if (!aEnabled) {
     /**
      * Remove all handlers except BluetoothManager when turning off bluetooth
      * since it is possible that the event 'onAdapterAdded' would be fired after
@@ -500,14 +496,6 @@ BluetoothService::SetEnabled(bool aEnabled)
   }
 
   mEnabled = aEnabled;
-
-  // Fire onenabled/ondisabled event for each BluetoothManager
-  BluetoothManagerList::ForwardIterator iter(mLiveManagers);
-  while (iter.HasMore()) {
-    if (NS_FAILED(iter.GetNext()->FireEnabledDisabledEvent(aEnabled))) {
-      NS_WARNING("FireEnabledDisabledEvent failed!");
-    }
-  }
 
   gToggleInProgress = false;
 }
@@ -684,26 +672,6 @@ BluetoothService::HandleShutdown()
   }
 
   return NS_OK;
-}
-
-void
-BluetoothService::RegisterManager(BluetoothManager* aManager)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(aManager);
-  MOZ_ASSERT(!mLiveManagers.Contains(aManager));
-
-  mLiveManagers.AppendElement(aManager);
-}
-
-void
-BluetoothService::UnregisterManager(BluetoothManager* aManager)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(aManager);
-  MOZ_ASSERT(mLiveManagers.Contains(aManager));
-
-  mLiveManagers.RemoveElement(aManager);
 }
 
 // static

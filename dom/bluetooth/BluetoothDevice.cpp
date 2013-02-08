@@ -62,15 +62,18 @@ BluetoothDevice::BluetoothDevice(nsPIDOMWindow* aOwner,
   for (uint32_t i = 0; i < values.Length(); ++i) {
     SetPropertyByValue(values[i]);
   }
+
+  BluetoothService* bs = BluetoothService::Get();
+  NS_ENSURE_TRUE_VOID(bs);
+  bs->RegisterBluetoothSignalHandler(mPath, this);
 }
 
 BluetoothDevice::~BluetoothDevice()
 {
   BluetoothService* bs = BluetoothService::Get();
   // bs can be null on shutdown, where destruction might happen.
-  if (bs) {
-    bs->UnregisterBluetoothSignalHandler(mPath, this);
-  }
+  NS_ENSURE_TRUE_VOID(bs);
+  bs->UnregisterBluetoothSignalHandler(mPath, this);
   Unroot();
 }
 
@@ -160,17 +163,11 @@ BluetoothDevice::Create(nsPIDOMWindow* aOwner,
                         const nsAString& aAdapterPath,
                         const BluetoothValue& aValue)
 {
-  // Make sure we at least have a service
-  BluetoothService* bs = BluetoothService::Get();
-  if (!bs) {
-    NS_WARNING("BluetoothService not available!");
-    return nullptr;
-  }
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(aOwner);
 
-  nsRefPtr<BluetoothDevice> device = new BluetoothDevice(aOwner, aAdapterPath,
-                                                         aValue);
-
-  bs->RegisterBluetoothSignalHandler(device->mPath, device);
+  nsRefPtr<BluetoothDevice> device =
+    new BluetoothDevice(aOwner, aAdapterPath, aValue);
 
   return device.forget();
 }

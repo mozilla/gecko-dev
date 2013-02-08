@@ -143,17 +143,19 @@ BluetoothAdapter::BluetoothAdapter(nsPIDOMWindow* aOwner, const BluetoothValue& 
   for (uint32_t i = 0; i < values.Length(); ++i) {
     SetPropertyByValue(values[i]);
   }
+
+  BluetoothService* bs = BluetoothService::Get();
+  NS_ENSURE_TRUE_VOID(bs);
+  bs->RegisterBluetoothSignalHandler(mPath, this);
 }
 
 BluetoothAdapter::~BluetoothAdapter()
 {
   BluetoothService* bs = BluetoothService::Get();
   // We can be null on shutdown, where this might happen
-  if (bs) {
-    // XXXbent I don't see anything about LOCAL_AGENT_PATH or REMOTE_AGENT_PATH
-    //         here. Probably a bug? Maybe use UnregisterAll.
-    bs->UnregisterBluetoothSignalHandler(mPath, this);
-  }
+  NS_ENSURE_TRUE_VOID(bs);
+  bs->UnregisterBluetoothSignalHandler(mPath, this);
+
   Unroot();
 }
 
@@ -251,15 +253,10 @@ BluetoothAdapter::SetPropertyByValue(const BluetoothNamedValue& aValue)
 already_AddRefed<BluetoothAdapter>
 BluetoothAdapter::Create(nsPIDOMWindow* aOwner, const BluetoothValue& aValue)
 {
-  BluetoothService* bs = BluetoothService::Get();
-  if (!bs) {
-    NS_WARNING("BluetoothService not available!");
-    return nullptr;
-  }
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(aOwner);
 
   nsRefPtr<BluetoothAdapter> adapter = new BluetoothAdapter(aOwner, aValue);
-
-  bs->RegisterBluetoothSignalHandler(adapter->GetPath(), adapter);
 
   return adapter.forget();
 }
