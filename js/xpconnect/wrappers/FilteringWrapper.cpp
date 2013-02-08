@@ -144,22 +144,15 @@ FilteringWrapper<Base, Policy>::enter(JSContext *cx, JSObject *wrapper, jsid id,
 
 #define SOW FilteringWrapper<CrossCompartmentSecurityWrapper, OnlyIfSubjectIsSystem>
 #define SCSOW FilteringWrapper<SameCompartmentSecurityWrapper, OnlyIfSubjectIsSystem>
-#define XOW FilteringWrapper<XrayWrapper<CrossCompartmentSecurityWrapper>, \
-                             CrossOriginAccessiblePropertiesOnly>
-#define PXOW   FilteringWrapper<XrayProxy, \
-                                CrossOriginAccessiblePropertiesOnly>
-#define DXOW   FilteringWrapper<XrayDOM, \
-                                CrossOriginAccessiblePropertiesOnly>
-#define NNXOW FilteringWrapper<CrossCompartmentSecurityWrapper, \
-                               CrossOriginAccessiblePropertiesOnly>
-#define LW    FilteringWrapper<XrayWrapper<SameCompartmentSecurityWrapper>, \
-                               LocationPolicy>
-#define XLW   FilteringWrapper<XrayWrapper<CrossCompartmentSecurityWrapper>, \
-                               LocationPolicy>
-#define CW FilteringWrapper<SameCompartmentSecurityWrapper, \
-                            ComponentsObjectPolicy>
-#define XCW FilteringWrapper<CrossCompartmentSecurityWrapper, \
-                            ComponentsObjectPolicy>
+#define XOW FilteringWrapper<SecurityXrayXPCWN, CrossOriginAccessiblePropertiesOnly>
+#define PXOW FilteringWrapper<SecurityXrayProxy, CrossOriginAccessiblePropertiesOnly>
+#define DXOW   FilteringWrapper<SecurityXrayDOM, CrossOriginAccessiblePropertiesOnly>
+#define NNXOW FilteringWrapper<CrossCompartmentSecurityWrapper, CrossOriginAccessiblePropertiesOnly>
+#define LW    FilteringWrapper<SCSecurityXrayXPCWN, LocationPolicy>
+#define XLW   FilteringWrapper<SecurityXrayXPCWN, LocationPolicy>
+#define CW FilteringWrapper<SameCompartmentSecurityWrapper, ComponentsObjectPolicy>
+#define XCW FilteringWrapper<CrossCompartmentSecurityWrapper, ComponentsObjectPolicy>
+
 template<> SOW SOW::singleton(WrapperFactory::SCRIPT_ACCESS_ONLY_FLAG |
                               WrapperFactory::SOW_FLAG);
 template<> SCSOW SCSOW::singleton(WrapperFactory::SCRIPT_ACCESS_ONLY_FLAG |
