@@ -68,6 +68,11 @@ struct OnlyIfSubjectIsSystem : public Policy {
         AccessCheck::deny(cx, id);
         return false;
     }
+
+    static bool allowNativeCall(JSContext *cx, JS::IsAcceptableThis test, JS::NativeImpl impl)
+    {
+        return AccessCheck::isSystemOnlyAccessPermitted(cx);
+    }
 };
 
 // This policy only permits access to properties that are safe to be used
@@ -85,6 +90,10 @@ struct CrossOriginAccessiblePropertiesOnly : public Policy {
         perm = DenyAccess;
         JSAutoCompartment ac(cx, wrapper);
         AccessCheck::deny(cx, id);
+        return false;
+    }
+    static bool allowNativeCall(JSContext *cx, JS::IsAcceptableThis test, JS::NativeImpl impl)
+    {
         return false;
     }
 };
@@ -133,6 +142,10 @@ struct LocationPolicy : public Policy {
         AccessCheck::deny(cx, id);
         return false;
     }
+    static bool allowNativeCall(JSContext *cx, JS::IsAcceptableThis test, JS::NativeImpl impl)
+    {
+        return false;
+    }
 };
 
 // This policy only permits access to properties if they appear in the
@@ -140,12 +153,17 @@ struct LocationPolicy : public Policy {
 struct ExposedPropertiesOnly : public Policy {
     static bool check(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act,
                       Permission &perm);
+    static bool allowNativeCall(JSContext *cx, JS::IsAcceptableThis test, JS::NativeImpl impl);
 };
 
 // Components specific policy
 struct ComponentsObjectPolicy : public Policy {
     static bool check(JSContext *cx, JSObject *wrapper, jsid id, js::Wrapper::Action act,
                       Permission &perm);
+
+    static bool allowNativeCall(JSContext *cx, JS::IsAcceptableThis test, JS::NativeImpl impl) {
+        return false;
+    }
 };
 
 }
