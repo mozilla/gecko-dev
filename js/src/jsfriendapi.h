@@ -987,6 +987,12 @@ SetListBaseInformation(void *listBaseHandlerFamily, uint32_t listBaseExpandoSlot
 void *GetListBaseHandlerFamily();
 uint32_t GetListBaseExpandoSlot();
 
+extern JS_FRIEND_API(bool)
+IsReadOnlyDateMethod(JS::IsAcceptableThis test, JS::NativeImpl method);
+
+extern JS_FRIEND_API(bool)
+IsTypedArrayThisCheck(JS::IsAcceptableThis test);
+
 } /* namespace js */
 
 #endif
