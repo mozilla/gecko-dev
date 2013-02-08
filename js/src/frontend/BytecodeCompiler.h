@@ -16,8 +16,7 @@ namespace frontend {
 JSScript *
 CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *callerFrame,
               const CompileOptions &options, const jschar *chars, size_t length,
-              JSString *source_ = NULL, unsigned staticLevel = 0,
-              SourceCompressionToken *extraSct = NULL);
+              JSString *source_ = NULL, unsigned staticLevel = 0);
 
 bool
 CompileFunctionBody(JSContext *cx, HandleFunction fun, CompileOptions options,
