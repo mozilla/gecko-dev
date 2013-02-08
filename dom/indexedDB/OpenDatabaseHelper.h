@@ -83,6 +83,9 @@ public:
     return mDatabase;
   }
 
+  static nsresult
+  CheckExistingDatabase(nsIFile* aDirectory, const nsAString& aName);
+
   static
   nsresult CreateDatabaseConnection(const nsAString& aName,
                                     nsIFile* aDBFile,

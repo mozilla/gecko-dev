@@ -53,11 +53,32 @@ MakeSchemaVersion(uint32_t aMajorSchemaVersion,
 const int32_t kSQLiteSchemaVersion = int32_t((kMajorSchemaVersion << 4) +
                                              kMinorSchemaVersion);
 
+uint32_t
+RotateBitsLeft32(uint32_t value, uint8_t bits)
+{
+  return (value << bits) | (value >> (32 - bits));
+}
+
+uint32_t
+HashString_ESR10(const nsAString& aFilename)
+{
+  const uint16_t* str = aFilename.BeginReading();
+  size_t length = aFilename.Length();
+
+  uint32_t hash = 0;
+  for (size_t i = 0; i < length; i++) {
+    hash = RotateBitsLeft32(hash, 4) ^ str[i];
+  }
+  return hash;
+}
+
 nsresult
 GetDatabaseFilename(const nsAString& aName,
-                    nsAString& aDatabaseFilename)
+                    nsAString& aDatabaseFilename,
+                    bool aUseESR10Hashing = false)
 {
-  aDatabaseFilename.AppendInt(HashString(aName));
+  aDatabaseFilename.AppendInt(aUseESR10Hashing ? HashString_ESR10(aName)
+                                               : HashString(aName));
 
   nsCString escapedName;
   if (!NS_Escape(NS_ConvertUTF16toUTF8(aName), escapedName, url_XPAlphas)) {
@@ -1616,6 +1637,9 @@ OpenDatabaseHelper::DoDatabaseWork()
                                                getter_AddRefs(dbDirectory));
   NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
 
+  rv = CheckExistingDatabase(dbDirectory, mName);
+  NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
+
   nsAutoString filename;
   rv = GetDatabaseFilename(mName, filename);
   NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
@@ -1698,6 +1722,83 @@ OpenDatabaseHelper::DoDatabaseWork()
   }
 
   mFileManager = fileManager.forget();
+
+  return NS_OK;
+}
+
+// static
+nsresult
+OpenDatabaseHelper::CheckExistingDatabase(nsIFile* aDirectory,
+                                          const nsAString& aName)
+{
+  NS_ASSERTION(!NS_IsMainThread(), "Wrong thread!");
+
+  nsString oldFilename;
+  nsresult rv = GetDatabaseFilename(aName, oldFilename, true);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsString newFilename;
+  rv = GetDatabaseFilename(aName, newFilename, false);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIFile> oldDbFile;
+  rv = aDirectory->Clone(getter_AddRefs(oldDbFile));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = oldDbFile->Append(oldFilename + NS_LITERAL_STRING(".sqlite"));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  bool exists;
+  rv = oldDbFile->Exists(&exists);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (exists) {
+    nsCOMPtr<nsIFile> newDbFile;
+    rv = aDirectory->Clone(getter_AddRefs(newDbFile));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsString newDbFilename = newFilename + NS_LITERAL_STRING(".sqlite");
+
+    rv = newDbFile->Append(newDbFilename);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = newDbFile->Exists(&exists);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (exists) {
+      NS_WARNING("The database has been already created with the new hashing "
+                 "algorithm!");
+      return NS_OK;
+    }
+
+    rv = oldDbFile->MoveTo(nullptr, newDbFilename);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  nsCOMPtr<nsIFile> oldFmDirectory;
+  rv = aDirectory->Clone(getter_AddRefs(oldFmDirectory));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = oldFmDirectory->Append(oldFilename);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = oldFmDirectory->Exists(&exists);
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (exists) {
+    nsCOMPtr<nsIFile> newFmDirectory;
+    rv = aDirectory->Clone(getter_AddRefs(newFmDirectory));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = newFmDirectory->Append(newFilename);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = newFmDirectory->Exists(&exists);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (!exists) {
+      rv = oldFmDirectory->MoveTo(nullptr, newFilename);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+  }
 
   return NS_OK;
 }
@@ -2351,6 +2452,9 @@ DeleteDatabaseHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
   NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
 
   NS_ASSERTION(directory, "What?");
+
+  rv = OpenDatabaseHelper::CheckExistingDatabase(directory, mName);
+  NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
 
   nsAutoString filename;
   rv = GetDatabaseFilename(mName, filename);
