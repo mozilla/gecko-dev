@@ -162,7 +162,14 @@ private:
     static void PreallocateAppProcess();
     static void DelayedPreallocateAppProcess();
     static void ScheduleDelayedPreallocateAppProcess();
-    static already_AddRefed<ContentParent> MaybeTakePreallocatedAppProcess();
+
+    // Take the preallocated process and transform it into a "real" app process,
+    // for the specified manifest URL.  If there is no preallocated process (or
+    // if it's dead), this returns false.
+    static already_AddRefed<ContentParent>
+    MaybeTakePreallocatedAppProcess(const nsAString& aAppManifestURL,
+                                    ChildPrivileges aPrivs);
+
     static void FirstIdle();
 
     // Hide the raw constructor methods since we don't want client code
