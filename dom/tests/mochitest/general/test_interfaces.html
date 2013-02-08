@@ -13,7 +13,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=766694
 <a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=766694">Mozilla Bug 766694</a>
 <p id="display"></p>
 <div id="content" style="display: none">
-  
+
 </div>
 <pre id="test">
 <script type="application/javascript">
@@ -543,7 +543,8 @@ var interfaceNamesInGlobalScope =
     "RTCIceCandidate",
     "RTCPeerConnection",
     "AsyncScrollEventDetail",
-    "MozSmsSegmentInfo"
+    "MozSmsSegmentInfo",
+    "DOMCursor"
   ]
 
 for (var i in SpecialPowers.Components.interfaces) {
@@ -553,7 +554,7 @@ for (var i in SpecialPowers.Components.interfaces) {
     name = s.substring("nsIDOM".length);
   } else if (s.indexOf("nsI") == 0) {
     name = s.substring("nsI".length);
-  } 
+  }
   if (name && (name in window)) {
     ok(interfaceNamesInGlobalScope.indexOf(name) >= 0,
        "Unexpected interface name in global scope: " + name);
