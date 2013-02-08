@@ -70,7 +70,7 @@ Wrapper::wrappedObject(RawObject wrapper)
     return GetProxyTargetObject(wrapper);
 }
 
-Wrapper::Wrapper(unsigned flags) : mFlags(flags)
+Wrapper::Wrapper(unsigned flags) : mFlags(flags), mSafeToUnwrap(true)
 {
 }
 
@@ -862,7 +862,9 @@ CrossCompartmentWrapper CrossCompartmentWrapper::singleton(0u);
 template <class Base>
 SecurityWrapper<Base>::SecurityWrapper(unsigned flags)
   : Base(flags)
-{}
+{
+    Base::setSafeToUnwrap(false);
+}
 
 template <class Base>
 bool
