@@ -4047,7 +4047,6 @@ var XULBrowserWindow = {
   },
 
   onLocationChange: function (aWebProgress, aRequest, aLocationURI, aFlags) {
-    const nsIWebProgressListener = Ci.nsIWebProgressListener;
     var location = aLocationURI ? aLocationURI.spec : "";
     this._hostChanged = true;
 
@@ -4099,12 +4098,6 @@ var XULBrowserWindow = {
         // persist across the first location change.
         let nBox = gBrowser.getNotificationBox(selectedBrowser);
         nBox.removeTransientNotifications();
-
-        // Only need to call locationChange if the PopupNotifications object
-        // for this window has already been initialized (i.e. its getter no
-        // longer exists)
-        if (!__lookupGetter__("PopupNotifications"))
-          PopupNotifications.locationChange();
       }
     }
 
@@ -4139,6 +4132,18 @@ var XULBrowserWindow = {
         // Update starring UI
         PlacesStarButton.updateState();
         SocialShareButton.updateShareState();
+      }
+
+      // Filter out anchor navigation, history.push/pop/replaceState and
+      // tab switches.
+      if (aRequest) {
+        // Only need to call locationChange if the PopupNotifications object
+        // for this window has already been initialized (i.e. its getter no
+        // longer exists)
+        // XXX bug 839445: We never tell PopupNotifications about location
+        // changes in background tabs.
+        if (!__lookupGetter__("PopupNotifications"))
+          PopupNotifications.locationChange();
       }
 
       // Show or hide browser chrome based on the whitelist
@@ -4183,7 +4188,7 @@ var XULBrowserWindow = {
           (aLocationURI.schemeIs("about") || aLocationURI.schemeIs("chrome"))) {
         // Don't need to re-enable/disable find commands for same-document location changes
         // (e.g. the replaceStates in about:addons)
-        if (!(aFlags & nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT)) {
+        if (!(aFlags & Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT)) {
           if (content.document.readyState == "interactive" || content.document.readyState == "complete")
             disableFindCommands(shouldDisableFind(content.document));
           else {
