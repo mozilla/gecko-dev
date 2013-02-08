@@ -1255,7 +1255,9 @@ gfxContext::SetColor(const gfxRGBA& c)
     if (gfxPlatform::GetCMSMode() == eCMSMode_All) {
 
         gfxRGBA cms;
-        gfxPlatform::TransformPixel(c, cms, gfxPlatform::GetCMSRGBTransform());
+        qcms_transform *transform = gfxPlatform::GetCMSRGBTransform();
+        if (transform)
+          gfxPlatform::TransformPixel(c, cms, transform);
 
         // Use the original alpha to avoid unnecessary float->byte->float
         // conversion errors
@@ -1271,7 +1273,9 @@ gfxContext::SetColor(const gfxRGBA& c)
     if (gfxPlatform::GetCMSMode() == eCMSMode_All) {
 
         gfxRGBA cms;
-        gfxPlatform::TransformPixel(c, cms, gfxPlatform::GetCMSRGBTransform());
+        qcms_transform *transform = gfxPlatform::GetCMSRGBTransform();
+        if (transform)
+          gfxPlatform::TransformPixel(c, cms, transform);
 
         // Use the original alpha to avoid unnecessary float->byte->float
         // conversion errors
