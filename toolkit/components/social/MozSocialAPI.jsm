@@ -8,7 +8,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "SocialService", "resource://gre/modules/SocialService.jsm");
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
+#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
 XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils", "resource://gre/modules/PrivateBrowsingUtils.jsm");
 #endif
 
@@ -44,8 +44,8 @@ function injectController(doc, topic, data) {
   try {
     let window = doc.defaultView;
     if (!window
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
-        || !PrivateBrowsingUtils.isWindowPrivate(window)
+#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
+        || PrivateBrowsingUtils.isWindowPrivate(window)
 #endif
        )
       return;
@@ -237,7 +237,7 @@ function getChromeWindow(contentWin) {
 function isWindowGoodForChats(win) {
   return win.SocialChatBar
          && win.SocialChatBar.isAvailable
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
+#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
          && !PrivateBrowsingUtils.isWindowPrivate(win)
 #endif
          ;
