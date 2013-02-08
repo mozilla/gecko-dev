@@ -1047,9 +1047,9 @@ EnsureKernelLowMemKillerParamsSet()
   const char* priorityClasses[] = {
     "master",
     "foreground",
-    "background",
+    "backgroundPerceivable",
     "backgroundHomescreen",
-    "backgroundPerceivable"
+    "background"
   };
   for (size_t i = 0; i < NS_ARRAY_LENGTH(priorityClasses); i++) {
     int32_t oomScoreAdj;
