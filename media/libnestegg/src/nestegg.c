@@ -1589,13 +1589,6 @@ nestegg_track_count(nestegg * ctx, unsigned int * tracks)
 }
 
 int
-nestegg_has_cues(nestegg * ctx)
-{
-  return ctx->segment.cues.cue_point.head ||
-    ne_find_seek_for_id(ctx->segment.seek_head.head, ID_CUES);
-}
-
-int
 nestegg_get_cue_point(nestegg * ctx, unsigned int cluster_num, int64_t max_offset,
                       int64_t * start_pos, int64_t * end_pos, uint64_t * tstamp)
 {
