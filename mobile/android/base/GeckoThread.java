@@ -44,6 +44,11 @@ public class GeckoThread extends Thread {
         // so just save it to locale here and reset it as default after the join
         Locale locale = Locale.getDefault();
 
+        if (locale.toString().equalsIgnoreCase("zh_hk")) {
+            locale = Locale.TRADITIONAL_CHINESE;
+            Locale.setDefault(locale);
+        }
+
         String resourcePath = app.getApplication().getPackageResourcePath();
         GeckoAppShell.setupGeckoEnvironment(app);
         GeckoAppShell.loadSQLiteLibs(app, resourcePath);
