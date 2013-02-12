@@ -107,6 +107,17 @@ void nsStyleContext::AddChild(nsStyleContext* aChild)
                aChild->mNextSibling == aChild,
                "child already in a child list");
 
+#if defined(_WIN32) && defined(_MSC_VER)
+#define NOPS_8 __asm nop __asm nop __asm nop __asm nop __asm nop __asm nop __asm nop __asm nop
+#define NOPS_64 NOPS_8 NOPS_8 NOPS_8 NOPS_8 NOPS_8 NOPS_8 NOPS_8 NOPS_8
+  __asm jmp AddChildSuperHack
+  NOPS_64
+  NOPS_64
+  NOPS_64
+  NOPS_64
+  __asm AddChildSuperHack:
+#endif
+
   nsStyleContext **list = aChild->mRuleNode->IsRoot() ? &mEmptyChild : &mChild;
 
   // Insert at the beginning of the list.  See also FindChildWithRules.
