@@ -18,7 +18,7 @@ load 381777-1.svg
 load 383685-1.svg
 load 385096.html
 load 385554-1.html
-load 385554-2.xul
+skip-if(B2G) load 385554-2.xul # bug 834382
 load 388712-1.svg
 load 395616-1.html
 load 396618-1.html
