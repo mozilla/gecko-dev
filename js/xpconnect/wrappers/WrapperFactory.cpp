@@ -345,11 +345,11 @@ JSObject *
 WrapperFactory::Rewrap(JSContext *cx, JSObject *obj, JSObject *wrappedProto, JSObject *parent,
                        unsigned flags)
 {
-    NS_ASSERTION(!IsWrapper(obj) ||
-                 GetProxyHandler(obj) == &XrayWaiver ||
-                 js::GetObjectClass(obj)->ext.innerObject,
-                 "wrapped object passed to rewrap");
-    NS_ASSERTION(JS_GetClass(obj) != &XrayUtils::HolderClass, "trying to wrap a holder");
+    MOZ_ASSERT(!IsWrapper(obj) ||
+               GetProxyHandler(obj) == &XrayWaiver ||
+               js::GetObjectClass(obj)->ext.innerObject,
+               "wrapped object passed to rewrap");
+    MOZ_ASSERT(JS_GetClass(obj) != &XrayUtils::HolderClass, "trying to wrap a holder");
 
     JSCompartment *origin = js::GetObjectCompartment(obj);
     JSCompartment *target = js::GetContextCompartment(cx);
