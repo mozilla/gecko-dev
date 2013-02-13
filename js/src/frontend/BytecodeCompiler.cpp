@@ -51,7 +51,8 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
                         const CompileOptions &options,
                         const jschar *chars, size_t length,
                         JSString *source_ /* = NULL */,
-                        unsigned staticLevel /* = 0 */)
+                        unsigned staticLevel /* = 0 */,
+                        SourceCompressionToken *extraSct /* = NULL */)
 {
     RootedString source(cx, source_);
 
@@ -82,10 +83,11 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
     if (!ss)
         return NULL;
     ScriptSourceHolder ssh(cx->runtime, ss);
-    SourceCompressionToken sct(cx);
+    SourceCompressionToken mysct(cx);
+    SourceCompressionToken *sct = (extraSct) ? extraSct : &mysct;
     switch (options.sourcePolicy) {
       case CompileOptions::SAVE_SOURCE:
-        if (!ss->setSourceCopy(cx, chars, length, false, &sct))
+        if (!ss->setSourceCopy(cx, chars, length, false, sct))
             return NULL;
         break;
       case CompileOptions::LAZY_SOURCE:
@@ -98,7 +100,7 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
     Parser parser(cx, options, chars, length, /* foldConstants = */ true);
     if (!parser.init())
         return NULL;
-    parser.sct = &sct;
+    parser.sct = sct;
 
     GlobalSharedContext globalsc(cx, scopeChain, StrictModeFromContext(cx));
 

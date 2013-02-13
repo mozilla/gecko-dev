@@ -28,7 +28,7 @@ load 300912.html
 load 308752-1.html
 load 308752-2.html
 load 316636-1.html
-load 322779-1.xul
+skip-if(B2G) load 322779-1.xul # bug 834382
 load 323489-1.html
 load 323604-1.html
 load 323604-2.xhtml

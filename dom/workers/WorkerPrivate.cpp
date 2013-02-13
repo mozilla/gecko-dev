@@ -1391,240 +1391,49 @@ public:
   }
 };
 
-class CollectRuntimeStatsRunnable : public WorkerControlRunnable
+class WorkerJSRuntimeStats : public JS::RuntimeStats
 {
-  typedef mozilla::Mutex Mutex;
-  typedef mozilla::CondVar CondVar;
-
-  Mutex mMutex;
-  CondVar mCondVar;
-  volatile bool mDone;
-  bool mIsQuick;
-  void* mData;
-  bool* mSucceeded;
+  const nsACString& mRtPath;
 
 public:
-  CollectRuntimeStatsRunnable(WorkerPrivate* aWorkerPrivate, bool aIsQuick,
-                              void* aData, bool* aSucceeded)
-  : WorkerControlRunnable(aWorkerPrivate, WorkerThread, UnchangedBusyCount),
-    mMutex("CollectRuntimeStatsRunnable::mMutex"),
-    mCondVar(mMutex, "CollectRuntimeStatsRunnable::mCondVar"), mDone(false),
-    mIsQuick(aIsQuick), mData(aData), mSucceeded(aSucceeded)
+  WorkerJSRuntimeStats(const nsACString& aRtPath)
+  : JS::RuntimeStats(JsWorkerMallocSizeOf), mRtPath(aRtPath)
   { }
 
-  bool
-  PreDispatch(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
+  ~WorkerJSRuntimeStats()
   {
-    AssertIsOnMainThread();
-    return true;
+    for (size_t i = 0; i != compartmentStatsVector.length(); i++) {
+      free(compartmentStatsVector[i].extra1);
+      // No need to free |extra2| because it's a static string.
+    }
   }
 
-  void
-  PostDispatch(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
-               bool aDispatchResult)
+  virtual void
+  initExtraCompartmentStats(JSCompartment* aCompartment,
+                            JS::CompartmentStats* aCompartmentStats)
+                            MOZ_OVERRIDE
   {
-    AssertIsOnMainThread();
-  }
+    MOZ_ASSERT(!aCompartmentStats->extra1);
+    MOZ_ASSERT(!aCompartmentStats->extra2);
 
-  bool
-  DispatchInternal()
-  {
-    AssertIsOnMainThread();
+    // ReportJSRuntimeExplicitTreeStats expects that
+    // aCompartmentStats->{extra1,extra2} are char pointers.
 
-    if (!WorkerControlRunnable::DispatchInternal()) {
-      NS_WARNING("Failed to dispatch runnable!");
-      return false;
-    }
+    // This is the |cJSPathPrefix|.  Each worker has exactly two compartments:
+    // one for atoms, and one for everything else.
+    nsAutoCString cJSPathPrefix(mRtPath);
+    cJSPathPrefix += js::IsAtomsCompartment(aCompartment)
+                   ? NS_LITERAL_CSTRING("compartment(web-worker-atoms)/")
+                   : NS_LITERAL_CSTRING("compartment(web-worker)/");
+    aCompartmentStats->extra1 = strdup(cJSPathPrefix.get());
 
-    {
-      MutexAutoLock lock(mMutex);
-      while (!mDone) {
-        mCondVar.Wait();
-      }
-    }
-
-    return true;
-  }
-
-  bool
-  WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
-  {
-    JSRuntime *rt = JS_GetRuntime(aCx);
-    if (mIsQuick) {
-      *static_cast<int64_t*>(mData) = JS::GetExplicitNonHeapForRuntime(rt, JsWorkerMallocSizeOf);
-      *mSucceeded = true;
-    } else {
-      *mSucceeded = JS::CollectRuntimeStats(rt, static_cast<JS::RuntimeStats*>(mData), nullptr);
-    }
-
-    {
-      MutexAutoLock lock(mMutex);
-      mDone = true;
-      mCondVar.Notify();
-    }
-
-    return true;
+    // This should never be used when reporting with workers (hence the "?!").
+    static const char bogusMemoryReporterPath[] = "explicit/workers/?!/";
+    aCompartmentStats->extra2 = const_cast<char*>(bogusMemoryReporterPath);
   }
 };
 
 } /* anonymous namespace */
-
-struct WorkerJSRuntimeStats : public JS::RuntimeStats
-{
-  WorkerJSRuntimeStats(nsACString &aRtPath)
-   : JS::RuntimeStats(JsWorkerMallocSizeOf), mRtPath(aRtPath) { }
-
-  ~WorkerJSRuntimeStats() {
-    for (size_t i = 0; i != compartmentStatsVector.length(); i++) {
-      free(compartmentStatsVector[i].extra1);
-      // no need to free |extra2|, because it's a static string
-    }
-  }
-
-  virtual void initExtraCompartmentStats(JSCompartment *c,
-                                         JS::CompartmentStats *cstats) MOZ_OVERRIDE
-  {
-    MOZ_ASSERT(!cstats->extra1);
-    MOZ_ASSERT(!cstats->extra2);
-    
-    // ReportJSRuntimeExplicitTreeStats expects that cstats->{extra1,extra2}
-    // are char pointers.
-
-    // This is the |cJSPathPrefix|.  Each worker has exactly two compartments:
-    // one for atoms, and one for everything else.
-    nsCString cJSPathPrefix(mRtPath);
-    cJSPathPrefix += js::IsAtomsCompartment(c)
-                   ? NS_LITERAL_CSTRING("compartment(web-worker-atoms)/")
-                   : NS_LITERAL_CSTRING("compartment(web-worker)/");
-    cstats->extra1 = strdup(cJSPathPrefix.get());
-
-    // This is the |cDOMPathPrefix|, which should never be used when reporting
-    // with workers (hence the "?!").
-    cstats->extra2 = (void *)"explicit/workers/?!/";
-  }
-
-private:
-  nsCString mRtPath;
-};
-  
-BEGIN_WORKERS_NAMESPACE
-
-class WorkerMemoryReporter MOZ_FINAL : public nsIMemoryMultiReporter
-{
-  WorkerPrivate* mWorkerPrivate;
-  nsCString mAddressString;
-  nsCString mRtPath;
-
-public:
-  NS_DECL_ISUPPORTS
-
-  WorkerMemoryReporter(WorkerPrivate* aWorkerPrivate)
-  : mWorkerPrivate(aWorkerPrivate)
-  {
-    aWorkerPrivate->AssertIsOnWorkerThread();
-
-    nsCString escapedDomain(aWorkerPrivate->Domain());
-    escapedDomain.ReplaceChar('/', '\\');
-
-    NS_ConvertUTF16toUTF8 escapedURL(aWorkerPrivate->ScriptURL());
-    escapedURL.ReplaceChar('/', '\\');
-
-    {
-      // 64bit address plus '0x' plus null terminator.
-      char address[21];
-      uint32_t addressSize =
-        JS_snprintf(address, sizeof(address), "%p", aWorkerPrivate);
-      if (addressSize != uint32_t(-1)) {
-        mAddressString.Assign(address, addressSize);
-      }
-      else {
-        NS_WARNING("JS_snprintf failed!");
-        mAddressString.AssignLiteral("<unknown address>");
-      }
-    }
-
-    mRtPath = NS_LITERAL_CSTRING("explicit/workers/workers(") +
-              escapedDomain + NS_LITERAL_CSTRING(")/worker(") +
-              escapedURL + NS_LITERAL_CSTRING(", ") + mAddressString +
-              NS_LITERAL_CSTRING(")/");
-  }
-
-  nsresult
-  CollectForRuntime(bool aIsQuick, void* aData)
-  {
-    AssertIsOnMainThread();
-
-    if (!mWorkerPrivate) {
-#ifdef DEBUG
-      nsAutoCString message("Unable to report memory for ");
-      message += NS_LITERAL_CSTRING("Worker (") + mAddressString +
-                 NS_LITERAL_CSTRING(")! It is either using ctypes or is in "
-                                    "the process of being destroyed");
-      NS_WARNING(message.get());
-#endif
-      *static_cast<int64_t*>(aData) = 0;
-      return NS_OK;
-    }
-
-    if (!mWorkerPrivate->BlockAndCollectRuntimeStats(aIsQuick, aData)) {
-      return NS_ERROR_FAILURE;
-    }
-
-    return NS_OK;
-  }
-
-  NS_IMETHOD GetName(nsACString &aName)
-  {
-    aName.AssignLiteral("workers");
-    return NS_OK;
-  }
-
-  NS_IMETHOD
-  CollectReports(nsIMemoryMultiReporterCallback* aCallback,
-                 nsISupports* aClosure)
-  {
-    AssertIsOnMainThread();
-
-    WorkerJSRuntimeStats rtStats(mRtPath);
-    nsresult rv = CollectForRuntime(/* isQuick = */false, &rtStats);
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-
-    // Always report, even if we're disabled, so that we at least get an entry
-    // in about::memory.
-    return xpc::ReportJSRuntimeExplicitTreeStats(rtStats, mRtPath,
-                                                 aCallback, aClosure);
-  }
-
-  NS_IMETHOD
-  GetExplicitNonHeap(int64_t *aAmount)
-  {
-    AssertIsOnMainThread();
-
-    return CollectForRuntime(/* isQuick = */true, aAmount);
-  }
-
-  void Disable()
-  {
-#ifdef DEBUG
-    // Setting mWorkerPrivate to nullptr is safe only because we've locked the
-    // worker's mutex on the worker's thread, in the caller.  So we check that.
-    //
-    // Also, we may have already disabled the reporter (and thus set
-    // mWorkerPrivate to nullptr) due to the use of CTypes (see
-    // ChromeWorkerScope.cpp).  That's why the NULL check is necessary.
-    if (mWorkerPrivate) {
-        mWorkerPrivate->mMutex.AssertCurrentThreadOwns();
-    }
-#endif
-    mWorkerPrivate = nullptr;
-  }
-};
-
-END_WORKERS_NAMESPACE
-
-NS_IMPL_THREADSAFE_ISUPPORTS1(WorkerMemoryReporter, nsIMemoryMultiReporter)
 
 #ifdef DEBUG
 void
@@ -1886,6 +1695,103 @@ struct WorkerPrivate::TimeoutInfo
   bool mCanceled;
 };
 
+class WorkerPrivate::MemoryReporter MOZ_FINAL : public nsIMemoryMultiReporter
+{
+  friend class WorkerPrivate;
+
+  SharedMutex mMutex;
+  WorkerPrivate* mWorkerPrivate;
+  nsCString mRtPath;
+
+public:
+  NS_DECL_ISUPPORTS
+
+  MemoryReporter(WorkerPrivate* aWorkerPrivate)
+  : mMutex(aWorkerPrivate->mMutex), mWorkerPrivate(aWorkerPrivate)
+  {
+    aWorkerPrivate->AssertIsOnWorkerThread();
+
+    nsCString escapedDomain(aWorkerPrivate->Domain());
+    escapedDomain.ReplaceChar('/', '\\');
+
+    NS_ConvertUTF16toUTF8 escapedURL(aWorkerPrivate->ScriptURL());
+    escapedURL.ReplaceChar('/', '\\');
+
+    nsAutoCString addressString;
+    addressString.AppendPrintf("0x%p", static_cast<void*>(aWorkerPrivate));
+
+    mRtPath = NS_LITERAL_CSTRING("explicit/workers/workers(") +
+              escapedDomain + NS_LITERAL_CSTRING(")/worker(") +
+              escapedURL + NS_LITERAL_CSTRING(", ") + addressString +
+              NS_LITERAL_CSTRING(")/");
+  }
+
+  NS_IMETHOD
+  GetName(nsACString& aName)
+  {
+    aName.AssignLiteral("workers");
+    return NS_OK;
+  }
+
+  NS_IMETHOD
+  CollectReports(nsIMemoryMultiReporterCallback* aCallback,
+                 nsISupports* aClosure)
+  {
+    AssertIsOnMainThread();
+
+    WorkerJSRuntimeStats rtStats(mRtPath);
+
+    {
+      MutexAutoLock lock(mMutex);
+
+      if (!mWorkerPrivate ||
+          !mWorkerPrivate->BlockAndCollectRuntimeStats(/* aIsQuick = */ false,
+                                                       &rtStats)) {
+        // Returning NS_OK here will effectively report 0 memory.
+        return NS_OK;
+      }
+    }
+
+    return xpc::ReportJSRuntimeExplicitTreeStats(rtStats, mRtPath,
+                                                 aCallback, aClosure);
+  }
+
+  NS_IMETHOD
+  GetExplicitNonHeap(int64_t* aAmount)
+  {
+    AssertIsOnMainThread();
+
+    {
+      MutexAutoLock lock(mMutex);
+
+      if (!mWorkerPrivate ||
+          !mWorkerPrivate->BlockAndCollectRuntimeStats(/* aIsQuick = */ true,
+                                                       aAmount)) {
+        *aAmount = 0;
+      }
+    }
+
+    return NS_OK;
+  }
+
+private:
+  ~MemoryReporter()
+  { }
+
+  void
+  Disable()
+  {
+    // Called from WorkerPrivate::DisableMemoryReporter.
+    mMutex.AssertCurrentThreadOwns();
+
+    NS_ASSERTION(mWorkerPrivate, "Disabled more than once!");
+    mWorkerPrivate = nullptr;
+  }
+};
+
+NS_IMPL_THREADSAFE_ISUPPORTS1(WorkerPrivate::MemoryReporter,
+                              nsIMemoryMultiReporter)
+
 template <class Derived>
 WorkerPrivateParent<Derived>::WorkerPrivateParent(
                                      JSContext* aCx, JSObject* aObject,
@@ -1902,6 +1808,7 @@ WorkerPrivateParent<Derived>::WorkerPrivateParent(
                                      bool aEvalAllowed)
 : EventTarget(aParent ? aCx : NULL), mMutex("WorkerPrivateParent Mutex"),
   mCondVar(mMutex, "WorkerPrivateParent CondVar"),
+  mMemoryReportCondVar(mMutex, "WorkerPrivateParent Memory Report CondVar"),
   mJSObject(aObject), mParent(aParent), mParentJSContext(aParentJSContext),
   mScriptURL(aScriptURL), mDomain(aDomain), mBusyCount(0),
   mParentStatus(Pending), mJSContextOptions(0),
@@ -2491,7 +2398,7 @@ WorkerPrivate::WorkerPrivate(JSContext* aCx, JSObject* aObject,
   mStatus(Pending), mSuspended(false), mTimerRunning(false),
   mRunningExpiredTimeouts(false), mCloseHandlerStarted(false),
   mCloseHandlerFinished(false), mMemoryReporterRunning(false),
-  mXHRParamsAllowed(aXHRParamsAllowed)
+  mBlockedForMemoryReporter(false), mXHRParamsAllowed(aXHRParamsAllowed)
 {
   MOZ_COUNT_CTOR(mozilla::dom::workers::WorkerPrivate);
 }
@@ -2747,12 +2654,7 @@ WorkerPrivate::DoRunLoop(JSContext* aCx)
     idleGCEvent = runnable;
   }
 
-  mMemoryReporter = new WorkerMemoryReporter(this);
-
-  if (NS_FAILED(NS_RegisterMemoryMultiReporter(mMemoryReporter))) {
-    NS_WARNING("Failed to register memory reporter!");
-    mMemoryReporter = nullptr;
-  }
+  EnableMemoryReporter();
 
   for (;;) {
     Status currentStatus;
@@ -2763,7 +2665,7 @@ WorkerPrivate::DoRunLoop(JSContext* aCx)
       MutexAutoLock lock(mMutex);
 
       while (!mControlQueue.Pop(event) && !mQueue.Pop(event)) {
-        mCondVar.Wait();
+        WaitForWorkerEvents();
       }
 
       bool eventIsNotIdleGCEvent;
@@ -2864,16 +2766,7 @@ WorkerPrivate::DoRunLoop(JSContext* aCx)
           NS_WARNING("Failed to cancel the GC timer!");
         }
 
-        // Call this before unregistering the reporter as we may be racing with
-        // the main thread.
         DisableMemoryReporter();
-
-        if (mMemoryReporter) {
-          if (NS_FAILED(NS_UnregisterMemoryMultiReporter(mMemoryReporter))) {
-            NS_WARNING("Failed to unregister memory reporter!");
-          }
-          mMemoryReporter = nullptr;
-        }
 
         StopAcceptingEvents();
         return;
@@ -2908,7 +2801,7 @@ WorkerPrivate::OperationCallback(JSContext* aCx)
         break;
       }
 
-      mCondVar.Wait(PR_MillisecondsToInterval(RemainingRunTimeMS()));
+      WaitForWorkerEvents(PR_MillisecondsToInterval(RemainingRunTimeMS()));
     }
   }
 
@@ -2962,51 +2855,158 @@ bool
 WorkerPrivate::BlockAndCollectRuntimeStats(bool aIsQuick, void* aData)
 {
   AssertIsOnMainThread();
+  mMutex.AssertCurrentThreadOwns();
   NS_ASSERTION(aData, "Null data!");
 
-  {
-    MutexAutoLock lock(mMutex);
-    mMemoryReporterRunning = true;
+  NS_ASSERTION(!mMemoryReporterRunning, "How can we get reentered here?!");
+
+  // This signals the worker that it should block itself as soon as possible.
+  mMemoryReporterRunning = true;
+
+  NS_ASSERTION(mJSContext, "This must never be null!");
+  JSRuntime* rt = JS_GetRuntime(mJSContext);
+
+  // If the worker is not already blocked (e.g. waiting for a worker event or
+  // currently in a ctypes call) then we need to trigger the operation
+  // callback to trap the worker.
+  if (!mBlockedForMemoryReporter) {
+    JS_TriggerOperationCallback(rt);
+
+    // Wait until the worker actually blocks.
+    while (!mBlockedForMemoryReporter) {
+      mMemoryReportCondVar.Wait();
+    }
   }
 
-  bool succeeded;
+  bool succeeded = false;
 
-  nsRefPtr<CollectRuntimeStatsRunnable> runnable =
-    new CollectRuntimeStatsRunnable(this, aIsQuick, aData, &succeeded);
-  if (!runnable->Dispatch(nullptr)) {
-    NS_WARNING("Failed to dispatch runnable!");
-    succeeded = false;
+  // If mMemoryReporter is still set then we can do the actual report. Otherwise
+  // we're trying to shut down and we don't want to do anything but clean up.
+  if (mMemoryReporter) {
+    // Don't hold the lock while doing the actual report.
+    MutexAutoUnlock unlock(mMutex);
+
+    if (aIsQuick) {
+      *static_cast<int64_t*>(aData) =
+        JS::GetExplicitNonHeapForRuntime(rt, JsWorkerMallocSizeOf);
+      succeeded = true;
+    } else {
+      succeeded =
+        JS::CollectRuntimeStats(rt, static_cast<JS::RuntimeStats*>(aData),
+                                nullptr);
+    }
   }
 
-  {
-    MutexAutoLock lock(mMutex);
-    mMemoryReporterRunning = false;
-  }
+  NS_ASSERTION(mMemoryReporterRunning, "This isn't possible!");
+  NS_ASSERTION(mBlockedForMemoryReporter, "Somehow we got unblocked!");
+
+  // Tell the worker that it can now continue its execution.
+  mMemoryReporterRunning = false;
+
+  // The worker may be waiting so we must notify.
+  mMemoryReportCondVar.Notify();
 
   return succeeded;
 }
 
-bool
+void
+WorkerPrivate::EnableMemoryReporter()
+{
+  AssertIsOnWorkerThread();
+
+  // No need to lock here since the main thread can't race until we've
+  // successfully registered the reporter.
+  mMemoryReporter = new MemoryReporter(this);
+
+  if (NS_FAILED(NS_RegisterMemoryMultiReporter(mMemoryReporter))) {
+    NS_WARNING("Failed to register memory reporter!");
+    // No need to lock here since a failed registration means our memory
+    // reporter can't start running. Just clean up.
+    mMemoryReporter = nullptr;
+
+    return;
+  }
+}
+
+void
 WorkerPrivate::DisableMemoryReporter()
 {
   AssertIsOnWorkerThread();
 
-  bool result = true;
-
+  nsRefPtr<MemoryReporter> memoryReporter;
   {
     MutexAutoLock lock(mMutex);
 
-    while (mMemoryReporterRunning) {
-      MutexAutoUnlock unlock(mMutex);
-      result = ProcessAllControlRunnables() && result;
+    // There is nothing to do here if the memory reporter was never successfully
+    // registered.
+    if (!mMemoryReporter) {
+      return;
     }
 
-    if (mMemoryReporter) {
-      mMemoryReporter->Disable();
+    // We don't need this set any longer. Swap it out so that we can unregister
+    // below.
+    mMemoryReporter.swap(memoryReporter);
+
+    // Next disable the memory reporter so that the main thread stops trying to
+    // signal us.
+    memoryReporter->Disable();
+
+    // If the memory reporter is waiting to start then we need to wait for it to
+    // finish.
+    if (mMemoryReporterRunning) {
+      NS_ASSERTION(!mBlockedForMemoryReporter,
+                   "Can't be blocked in more than one place at the same time!");
+      mBlockedForMemoryReporter = true;
+
+      // Tell the main thread that we're blocked.
+      mMemoryReportCondVar.Notify();
+
+      // Wait for it the main thread to finish. Since we swapped out
+      // mMemoryReporter above the main thread should respond quickly.
+      while (mMemoryReporterRunning) {
+        mMemoryReportCondVar.Wait();
+      }
+
+      NS_ASSERTION(mBlockedForMemoryReporter, "Somehow we got unblocked!");
+      mBlockedForMemoryReporter = false;
     }
   }
 
-  return result;
+  // Finally unregister the memory reporter.
+  if (NS_FAILED(NS_UnregisterMemoryMultiReporter(memoryReporter))) {
+    NS_WARNING("Failed to unregister memory reporter!");
+  }
+}
+
+void
+WorkerPrivate::WaitForWorkerEvents(PRIntervalTime aInterval)
+{
+  AssertIsOnWorkerThread();
+  mMutex.AssertCurrentThreadOwns();
+
+  NS_ASSERTION(!mBlockedForMemoryReporter,
+                "Can't be blocked in more than one place at the same time!");
+
+  // Let the main thread know that the worker is blocked and that memory
+  // reporting may proceed.
+  mBlockedForMemoryReporter = true;
+
+  // The main thread may be waiting so we must notify.
+  mMemoryReportCondVar.Notify();
+
+  // Now wait for an actual worker event.
+  mCondVar.Wait(aInterval);
+
+  // We've gotten some kind of signal but we can't continue until the memory
+  // reporter has finished. Wait again.
+  while (mMemoryReporterRunning) {
+    mMemoryReportCondVar.Wait();
+  }
+
+  NS_ASSERTION(mBlockedForMemoryReporter, "Somehow we got unblocked!");
+
+  // No need to notify here as the main thread isn't watching for this state.
+  mBlockedForMemoryReporter = false;
 }
 
 bool
@@ -3020,6 +3020,32 @@ WorkerPrivate::ProcessAllControlRunnables()
     WorkerRunnable* event;
     {
       MutexAutoLock lock(mMutex);
+
+      // Block here if the memory reporter is trying to run.
+      if (mMemoryReporterRunning) {
+        NS_ASSERTION(!mBlockedForMemoryReporter,
+                     "Can't be blocked in more than one place at the same "
+                     "time!");
+
+        // Let the main thread know that we've received the block request and
+        // that memory reporting may proceed.
+        mBlockedForMemoryReporter = true;
+
+        // The main thread is almost certainly waiting so we must notify here.
+        mMemoryReportCondVar.Notify();
+
+        // Wait for the memory report to finish.
+        while (mMemoryReporterRunning) {
+          mMemoryReportCondVar.Wait();
+        }
+
+        NS_ASSERTION(mBlockedForMemoryReporter, "Somehow we got unblocked!");
+
+        // No need to notify here as the main thread isn't watching for this
+        // state.
+        mBlockedForMemoryReporter = false;
+      }
+
       if (!mControlQueue.Pop(event)) {
         break;
       }
@@ -3031,6 +3057,7 @@ WorkerPrivate::ProcessAllControlRunnables()
 
     NS_RELEASE(event);
   }
+
   return result;
 }
 
@@ -3381,7 +3408,7 @@ WorkerPrivate::RunSyncLoop(JSContext* aCx, uint32_t aSyncLoopKey)
       MutexAutoLock lock(mMutex);
 
       while (!mControlQueue.Pop(event) && !syncQueue->mQueue.Pop(event)) {
-        mCondVar.Wait();
+        WaitForWorkerEvents();
       }
     }
 
@@ -4129,6 +4156,46 @@ WorkerPrivate::GetContentSecurityPolicy(JSContext* aCx,
   return true;
 }
 
+void
+WorkerPrivate::BeginCTypesCall()
+{
+  AssertIsOnWorkerThread();
+
+  MutexAutoLock lock(mMutex);
+
+  NS_ASSERTION(!mBlockedForMemoryReporter,
+               "Can't be blocked in more than one place at the same time!");
+
+  // Let the main thread know that the worker is effectively blocked while in
+  // this ctypes call. It isn't technically true (obviously the call could do
+  // non-blocking things), but we're assuming that ctypes can't call back into
+  // JSAPI here and therefore any work the ctypes call does will not alter the
+  // data structures of this JS runtime.
+  mBlockedForMemoryReporter = true;
+
+  // The main thread may be waiting on us so it must be notified.
+  mMemoryReportCondVar.Notify();
+}
+
+void
+WorkerPrivate::EndCTypesCall()
+{
+  AssertIsOnWorkerThread();
+
+  MutexAutoLock lock(mMutex);
+
+  NS_ASSERTION(mBlockedForMemoryReporter, "Somehow we got unblocked!");
+
+  // Don't continue until the memory reporter has finished.
+  while (mMemoryReporterRunning) {
+    mMemoryReportCondVar.Wait();
+  }
+
+  // No need to notify the main thread here as it shouldn't be waiting to see
+  // this state.
+  mBlockedForMemoryReporter = false;
+}
+
 BEGIN_WORKERS_NAMESPACE
 
 // Force instantiation.
@@ -4138,7 +4205,7 @@ WorkerPrivate*
 GetWorkerPrivateFromContext(JSContext* aCx)
 {
   NS_ASSERTION(!NS_IsMainThread(), "Wrong thread!");
-  return static_cast<WorkerPrivate*>(JS_GetContextPrivate(aCx));
+  return static_cast<WorkerPrivate*>(JS_GetRuntimePrivate(JS_GetRuntime(aCx)));
 }
 
 JSStructuredCloneCallbacks*

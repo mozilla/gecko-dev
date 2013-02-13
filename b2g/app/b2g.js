@@ -180,8 +180,6 @@ pref("content.sink.perf_parse_time", 50000000);
 
 // Maximum scripts runtime before showing an alert
 pref("dom.max_chrome_script_run_time", 0); // disable slow script dialog for chrome
-// Bug 817230 - disable the dialog until we implement its checkbox properly
-pref("dom.max_script_run_time", 0);
 
 // plugins
 pref("plugin.disable", true);
@@ -561,7 +559,7 @@ pref("hal.processPriorityManager.gonk.masterKillUnderMB", 1);
 pref("hal.processPriorityManager.gonk.foregroundOomScoreAdjust", 67);
 pref("hal.processPriorityManager.gonk.foregroundKillUnderMB", 4);
 pref("hal.processPriorityManager.gonk.backgroundPerceivableOomScoreAdjust", 134);
-pref("hal.processPriorityManager.gonk.backgroundPerceivebleKillUnderMB", 5);
+pref("hal.processPriorityManager.gonk.backgroundPerceivableKillUnderMB", 5);
 pref("hal.processPriorityManager.gonk.backgroundHomescreenOomScoreAdjust", 200);
 pref("hal.processPriorityManager.gonk.backgroundHomescreenKillUnderMB", 5);
 pref("hal.processPriorityManager.gonk.backgroundOomScoreAdjust", 400);
@@ -569,9 +567,11 @@ pref("hal.processPriorityManager.gonk.backgroundKillUnderMB", 8);
 pref("hal.processPriorityManager.gonk.notifyLowMemUnderMB", 10);
 
 // Niceness values (i.e., CPU priorities) for B2G processes.
-pref("hal.processPriorityManager.gonk.masterNice", -1);
-pref("hal.processPriorityManager.gonk.foregroundNice", 0);
-pref("hal.processPriorityManager.gonk.backgroundNice", 10);
+pref("hal.processPriorityManager.gonk.masterNice", 0);
+pref("hal.processPriorityManager.gonk.foregroundNice", 1);
+pref("hal.processPriorityManager.gonk.backgroundPerceivableNice", 10);
+pref("hal.processPriorityManager.gonk.backgroundHomescreenNice", 20);
+pref("hal.processPriorityManager.gonk.backgroundNice", 20);
 
 #ifndef DEBUG
 // Enable pre-launching content processes for improved startup time
@@ -645,3 +645,5 @@ pref("memory_info_dumper.watch_fifo.directory", "/data/local");
 // <input type='file'> implementation is not complete. We have to disable the
 // type to web content to help them do feature detection.
 pref("dom.disable_input_file", true);
+
+pref("general.useragent.enable_overrides", true);

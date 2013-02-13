@@ -7,9 +7,11 @@
 // This script is run when the preallocated process starts.  It is injected as
 // a frame script.
 
-"use strict";
+const BrowserElementIsPreloaded = true;
 
-(function () {
+(function (global) {
+  "use strict";
+
   let Cu = Components.utils;
   let Cc = Components.classes;
   let Ci = Components.interfaces;
@@ -28,6 +30,10 @@
   Cu.import("resource://gre/modules/SettingsDB.jsm");
   Cu.import("resource://gre/modules/SettingsQueue.jsm");
   Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+  if (Services.prefs.getBoolPref("general.useragent.enable_overrides")) {
+    Cu.import('resource://gre/modules/UserAgentOverrides.jsm');
+    UserAgentOverrides.init();
+  }
 
   Cc["@mozilla.org/appshell/appShellService;1"].getService(Ci["nsIAppShellService"]);
   Cc["@mozilla.org/appshell/window-mediator;1"].getService(Ci["nsIWindowMediator"]);
@@ -69,11 +75,23 @@
   Cc["@mozilla.org/thread-manager;1"].getService(Ci["nsIThreadManager"]);
   Cc["@mozilla.org/toolkit/app-startup;1"].getService(Ci["nsIAppStartup"]);
   Cc["@mozilla.org/uriloader;1"].getService(Ci["nsIURILoader"]);
+  Cc["@mozilla.org/contentsecuritypolicy;1"].createInstance(Ci["nsIContentSecurityPolicy"]);
+
+  /* Applications Specific Helper */
+  Cc["@mozilla.org/settingsManager;1"].getService(Ci["nsIDOMSettingsManager"]);
+
+  // This is a produc-specific file that's sometimes unavailable.
+  try {
+    Services.scriptloader.loadSubScript("chrome://browser/content/forms.js", global);
+  } catch (e) {
+  }
+  Services.scriptloader.loadSubScript("chrome://global/content/BrowserElementPanning.js", global);
+  Services.scriptloader.loadSubScript("chrome://global/content/BrowserElementChildPreload.js", global);
+
+  Services.io.getProtocolHandler("app");
+  Services.io.getProtocolHandler("default");
 
   docShell.isActive = false;
-  docShell.QueryInterface(Ci.nsIWebNavigation)
-          .loadURI("about:blank",
-                   Ci.nsIWebNavigation.LOAD_FLAGS_NONE,
-                   null, null, null);
+  docShell.createAboutBlankContentViewer(null);
 
-})();
+})(this);

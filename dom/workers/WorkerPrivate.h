@@ -15,6 +15,7 @@
 #include "nsPIDOMWindow.h"
 
 #include "jsapi.h"
+#include "mozilla/Assertions.h"
 #include "mozilla/CondVar.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/TimeStamp.h"
@@ -32,6 +33,7 @@
 
 class JSAutoStructuredCloneBuffer;
 class nsIDocument;
+class nsIMemoryMultiReporter;
 class nsIPrincipal;
 class nsIScriptContext;
 class nsIURI;
@@ -41,7 +43,6 @@ class nsIXPCScriptNotify;
 
 BEGIN_WORKERS_NAMESPACE
 
-class WorkerMemoryReporter;
 class WorkerPrivate;
 
 class WorkerRunnable : public nsIRunnable
@@ -148,6 +149,58 @@ protected:
   DispatchInternal();
 };
 
+// SharedMutex is a small wrapper around an (internal) reference-counted Mutex
+// object. It exists to avoid changing a lot of code to use Mutex* instead of
+// Mutex&.
+class SharedMutex
+{
+  typedef mozilla::Mutex Mutex;
+
+  class RefCountedMutex : public Mutex
+  {
+  public:
+    RefCountedMutex(const char* aName)
+    : Mutex(aName)
+    { }
+
+    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RefCountedMutex)
+
+  private:
+    ~RefCountedMutex()
+    { }
+  };
+
+  nsRefPtr<RefCountedMutex> mMutex;
+
+public:
+  SharedMutex(const char* aName)
+  : mMutex(new RefCountedMutex(aName))
+  { }
+
+  SharedMutex(SharedMutex& aOther)
+  : mMutex(aOther.mMutex)
+  { }
+
+  operator Mutex&()
+  {
+    MOZ_ASSERT(mMutex);
+    return *mMutex;
+  }
+
+  operator const Mutex&() const
+  {
+    MOZ_ASSERT(mMutex);
+    return *mMutex;
+  }
+
+  void
+  AssertCurrentThreadOwns() const
+  {
+    MOZ_ASSERT(mMutex);
+    mMutex->AssertCurrentThreadOwns();
+  }
+};
+
 template <class Derived>
 class WorkerPrivateParent : public EventTarget
 {
@@ -165,8 +218,9 @@ public:
   };
 
 protected:
-  mozilla::Mutex mMutex;
+  SharedMutex mMutex;
   mozilla::CondVar mCondVar;
+  mozilla::CondVar mMemoryReportCondVar;
 
 private:
   JSObject* mJSObject;
@@ -339,9 +393,10 @@ public:
   {
     AssertIsOnParentThread();
     bool acceptingEvents;
-    mMutex.Lock();
-    acceptingEvents = mParentStatus < Terminating;
-    mMutex.Unlock();
+    {
+      mozilla::MutexAutoLock lock(mMutex);
+      acceptingEvents = mParentStatus < Terminating;
+    }
     return acceptingEvents;
   }
 
@@ -525,7 +580,6 @@ public:
 class WorkerPrivate : public WorkerPrivateParent<WorkerPrivate>
 {
   friend class WorkerPrivateParent<WorkerPrivate>;
-  friend class WorkerMemoryReporter;
   typedef WorkerPrivateParent<WorkerPrivate> ParentType;
 
   struct TimeoutInfo;
@@ -553,6 +607,9 @@ class WorkerPrivate : public WorkerPrivateParent<WorkerPrivate>
     }
   };
 
+  class MemoryReporter;
+  friend class MemoryReporter;
+
   nsTArray<nsAutoPtr<SyncQueue> > mSyncQueues;
 
   // Touched on multiple threads, protected with mMutex.
@@ -565,7 +622,7 @@ class WorkerPrivate : public WorkerPrivateParent<WorkerPrivate>
   nsTArray<nsAutoPtr<TimeoutInfo> > mTimeouts;
 
   nsCOMPtr<nsITimer> mTimer;
-  nsRefPtr<WorkerMemoryReporter> mMemoryReporter;
+  nsRefPtr<MemoryReporter> mMemoryReporter;
 
   mozilla::TimeStamp mKillTime;
   uint32_t mErrorHandlerRecursionCount;
@@ -577,6 +634,7 @@ class WorkerPrivate : public WorkerPrivateParent<WorkerPrivate>
   bool mCloseHandlerStarted;
   bool mCloseHandlerFinished;
   bool mMemoryReporterRunning;
+  bool mBlockedForMemoryReporter;
   bool mXHRParamsAllowed;
 
 #ifdef DEBUG
@@ -717,10 +775,7 @@ public:
   ScheduleDeletion(bool aWasPending);
 
   bool
-  BlockAndCollectRuntimeStats(bool isQuick, void* aData);
-
-  bool
-  DisableMemoryReporter();
+  BlockAndCollectRuntimeStats(bool aIsQuick, void* aData);
 
   bool
   XHRParamsAllowed() const
@@ -767,6 +822,30 @@ public:
 
   WorkerCrossThreadDispatcher*
   GetCrossThreadDispatcher();
+
+  // This may block!
+  void
+  BeginCTypesCall();
+
+  // This may block!
+  void
+  EndCTypesCall();
+
+  void
+  BeginCTypesCallback()
+  {
+    // If a callback is beginning then we need to do the exact same thing as
+    // when a ctypes call ends.
+    EndCTypesCall();
+  }
+
+  void
+  EndCTypesCallback()
+  {
+    // If a callback is ending then we need to do the exact same thing as
+    // when a ctypes call begins.
+    BeginCTypesCall();
+  }
 
 private:
   WorkerPrivate(JSContext* aCx, JSObject* aObject, WorkerPrivate* aParent,
@@ -836,6 +915,15 @@ private:
 
   bool
   ProcessAllControlRunnables();
+
+  void
+  EnableMemoryReporter();
+
+  void
+  DisableMemoryReporter();
+
+  void
+  WaitForWorkerEvents(PRIntervalTime interval = PR_INTERVAL_NO_TIMEOUT);
 
   static bool
   CheckXHRParamsAllowed(nsPIDOMWindow* aWindow);

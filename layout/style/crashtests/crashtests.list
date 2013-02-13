@@ -18,9 +18,9 @@ load 404470-1.html
 load 411603-1.html
 load 412588-1.html
 asserts-if(winWidget,2) load 413274-1.xhtml # Bug 576435
-load 416461-1.xul
+skip-if(B2G) load 416461-1.xul # bug 834382
 load 418007-1.xhtml
-load 431705-1.xul
+skip-if(B2G) load 431705-1.xul # bug 834382
 load 432561-1.html
 load 437170-1.html
 load 437532-1.html
