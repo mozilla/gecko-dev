@@ -1547,8 +1547,10 @@ XrayWrapper<Base, Traits>::getPropertyDescriptor(JSContext *cx, JSObject *wrappe
     if (!Traits::singleton.resolveOwnProperty(cx, *this, wrapper, holder, id, set, desc))
         return false;
 
-    if (desc->obj)
+    if (desc->obj) {
+        desc->obj = wrapper;
         return true;
+    }
 
     if (!JS_GetPropertyDescriptorById(cx, holder, id, JSRESOLVE_QUALIFIED, desc))
         return false;
@@ -1576,12 +1578,16 @@ XrayWrapper<Base, Traits>::getPropertyDescriptor(JSContext *cx, JSObject *wrappe
         desc->value.setObject(*JS_GetFunctionObject(toString));
     }
 
-    desc->obj = wrapper;
-
     unsigned flags = (set ? JSRESOLVE_ASSIGNING : 0) | JSRESOLVE_QUALIFIED;
-    return JS_DefinePropertyById(cx, holder, id, desc->value, desc->getter, desc->setter,
-                                 desc->attrs) &&
-           JS_GetPropertyDescriptorById(cx, holder, id, flags, desc);
+    if (!JS_DefinePropertyById(cx, holder, id, desc->value, desc->getter,
+                               desc->setter, desc->attrs) ||
+        !JS_GetPropertyDescriptorById(cx, holder, id, flags, desc))
+    {
+        return false;
+    }
+    MOZ_ASSERT(desc->obj);
+    desc->obj = wrapper;
+    return true;
 }
 
 template <typename Base, typename Traits>
@@ -1624,8 +1630,10 @@ XrayWrapper<Base, Traits>::getOwnPropertyDescriptor(JSContext *cx, JSObject *wra
     if (!Traits::singleton.resolveOwnProperty(cx, *this, wrapper, holder, id, set, desc))
         return false;
 
-    if (desc->obj)
+    if (desc->obj) {
+        desc->obj = wrapper;
         return true;
+    }
 
     unsigned flags = (set ? JSRESOLVE_ASSIGNING : 0) | JSRESOLVE_QUALIFIED;
     if (!JS_GetPropertyDescriptorById(cx, holder, id, flags, desc))
