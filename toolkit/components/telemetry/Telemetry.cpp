@@ -387,6 +387,7 @@ struct TelemetryHistogram {
   uint32_t histogramType;
   uint16_t id_offset;
   uint16_t comment_offset;
+  bool extendedStatisticsOK;
 
   const char *id() const;
   const char *comment() const;
@@ -495,6 +496,9 @@ GetHistogramByEnumId(Telemetry::ID id, Histogram **ret)
   }
 #endif
 
+  if (p.extendedStatisticsOK) {
+    h->SetFlags(Histogram::kExtendedStatisticsFlag);
+  }
   *ret = knownHistograms[id] = h;
   return NS_OK;
 }
@@ -880,6 +884,7 @@ TelemetryImpl::NewHistogram(const nsACString &name, uint32_t min, uint32_t max, 
   if (NS_FAILED(rv))
     return rv;
   h->ClearFlags(Histogram::kUmaTargetedHistogramFlag);
+  h->SetFlags(Histogram::kExtendedStatisticsFlag);
   return WrapAndReturnHistogram(h, cx, ret);
 }
 
