@@ -156,8 +156,8 @@ class CircularRowBuffer {
 // |src_data| and continues for the num_values() of the filter.
 template<bool has_alpha>
 // This function is miscompiled with gcc 4.5 with pgo. See bug 827946.
-#if defined(__GNUC__) && defined(MOZ_GCC_VERSION_AT_LEAST)
-#if MOZ_GCC_VERSION_AT_LEAST(4, 5, 0) && !MOZ_GCC_VERSION_AT_LEAST(4, 6, 0)
+#if !defined(__clang__) && defined(__GNUC__)
+#if (__GNUC__ == 4) && (__GNUC_MINOR__ == 5)
 __attribute__((optimize("-O1")))
 #endif
 #endif
