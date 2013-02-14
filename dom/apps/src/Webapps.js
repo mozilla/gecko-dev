@@ -411,6 +411,7 @@ WebappsApplication.prototype = {
     this.initHelper(aWindow, ["Webapps:OfflineCache",
                               "Webapps:CheckForUpdate:Return:OK",
                               "Webapps:CheckForUpdate:Return:KO",
+                              "Webapps:Launch:Return:KO",
                               "Webapps:PackageEvent"]);
 
     cpmm.sendAsyncMessage("Webapps:RegisterForMessages",
