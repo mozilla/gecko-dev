@@ -500,7 +500,11 @@ ProcessPriorityManager::ComputeIsInForeground()
 
 #ifdef DEBUG
     nsAutoCString spec;
-    nsCOMPtr<nsIURI> uri = window->GetDocumentURI();
+    nsCOMPtr<nsIDocument> doc = window->GetExtantDoc();
+    nsCOMPtr<nsIURI> uri;
+    if (doc) {
+      uri = doc->GetDocumentURI();
+    }
     if (uri) {
       uri->GetSpec(spec);
     }

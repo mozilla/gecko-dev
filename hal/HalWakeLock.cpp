@@ -262,7 +262,8 @@ GetWakeLockInfo(const nsAString& aTopic, WakeLockInformation* aWakeLockInfo)
   table->EnumerateRead(CountWakeLocks, &totalCount);
   aWakeLockInfo->numLocks() = totalCount.numLocks;
   aWakeLockInfo->numHidden() = totalCount.numHidden;
-  aWakeLockInfo->lockingProcesses() = totalCount.processes;
+  aWakeLockInfo->lockingProcesses().Clear();
+  aWakeLockInfo->lockingProcesses().AppendElements(totalCount.processes);
   aWakeLockInfo->topic() = aTopic;
 }
 
