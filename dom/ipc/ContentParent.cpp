@@ -873,7 +873,7 @@ ContentParent::ContentParent(const nsAString& aAppManifestURL,
                              ChildOSPrivileges aOSPrivileges)
     : mSubprocess(nullptr)
     , mOSPrivileges(aOSPrivileges)
-    , mChildID(CONTENT_PARENT_UNKNOWN_CHILD_ID)
+    , mChildID(CONTENT_PROCESS_ID_UNKNOWN)
     , mGeolocationWatchID(-1)
     , mRunToCompletionDepth(0)
     , mShouldCallUnblockChild(false)
