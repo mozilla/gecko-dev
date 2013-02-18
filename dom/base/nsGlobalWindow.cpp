@@ -3348,7 +3348,8 @@ NS_IMETHODIMP
 nsGlobalWindow::GetCrypto(nsIDOMCrypto** aCrypto)
 {
 #ifdef MOZ_DISABLE_DOMCRYPTO
-  return NS_ERROR_NOT_IMPLEMENTED;
+  *aCrypto = nullptr;
+  return NS_OK;
 #else
   FORWARD_TO_OUTER(GetCrypto, (aCrypto), NS_ERROR_NOT_INITIALIZED);
 
