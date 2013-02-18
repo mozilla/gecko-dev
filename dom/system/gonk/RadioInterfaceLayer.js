@@ -575,7 +575,13 @@ RadioInterfaceLayer.prototype = {
         this.handleCallWaitingStatusChange(message);
         break;
       case "sms-received":
-        this.handleSmsReceived(message);
+        let ackOk = this.handleSmsReceived(message);
+        if (ackOk) {
+          this.worker.postMessage({
+            rilMessageType: "ackSMS",
+            result: RIL.PDU_FCS_OK
+          });
+        }
         return;
       case "sms-sent":
         this.handleSmsSent(message);
@@ -1394,12 +1400,12 @@ RadioInterfaceLayer.prototype = {
       if (handler) {
         handler(message);
       }
-      return;
+      return true;
     }
 
     if (message.encoding == RIL.PDU_DCS_MSG_CODING_8BITS_ALPHABET) {
       // Don't know how to handle binary data yet.
-      return;
+      return true;
     }
 
     // TODO: Bug #768441
@@ -1412,7 +1418,7 @@ RadioInterfaceLayer.prototype = {
       mwi.returnNumber = message.sender || null;
       mwi.returnMessage = message.fullBody || null;
       this._sendTargetMessage("voicemail", "RIL:VoicemailNotification", mwi);
-      return;
+      return true;
     }
 
     let notifyReceived = function notifyReceived(rv, sms) {
@@ -1466,6 +1472,9 @@ RadioInterfaceLayer.prototype = {
                                              false);
       notifyReceived(Cr.NS_OK, sms);
     }
+
+    // SMS ACK will be sent in notifyReceived. Return false here.
+    return false;
   },
 
   /**
