@@ -1506,6 +1506,7 @@
       WriteRegStr SHCTX "$R3\$R5\DefaultIcon" "" "$R7"
 
       ; Main command handler for the app
+      WriteRegStr SHCTX "$R3\$R5\shell" "" "open"
       WriteRegStr SHCTX "$R3\$R5\shell\open\command" "" "$R6"
 
       ; Drop support for DDE (bug 491947), and remove old dde entries if
