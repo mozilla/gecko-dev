@@ -1777,11 +1777,9 @@ pref("dom.ipc.plugins.hangUIMinDisplaySecs", 0);
 #endif
 #endif
 
-#ifdef XP_WIN
-// Disable oopp for java on windows. They run their own
-// process isolation which conflicts with our implementation.
+// Disable oopp for standard java. They run their own process isolation (which
+// conflicts with our implementation, at least on Windows).
 pref("dom.ipc.plugins.java.enabled", false);
-#endif
 
 pref("dom.ipc.plugins.flash.subprocess.crashreporter.enabled", true);
 
