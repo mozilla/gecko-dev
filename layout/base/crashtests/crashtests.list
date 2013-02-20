@@ -61,21 +61,21 @@ load 306940-1.html
 load 310267-1.xml
 load 310638-1.svg
 load 310638-2.html
-load 311661-1.xul
-load 311661-2.xul
+skip-if(B2G) load 311661-1.xul # bug 834382
+skip-if(B2G) load 311661-2.xul # bug 834382
 load 313086-1.xml
 load 317285-1.html
 load 317934-1.html
 load 320459-1.html
-load 321058-1.xul
-load 321058-2.xul
-load 321077-1.xul
-load 321077-2.xul
+skip-if(B2G) load 321058-1.xul # bug 834382
+skip-if(B2G) load 321058-2.xul # bug 834382
+skip-if(B2G) load 321077-1.xul # bug 834382
+skip-if(B2G) load 321077-2.xul # bug 834382
 load 322436-1.html
 load 325967-1.html
 load 325984-1.xhtml
 load 325984-2.html
-load 328944-1.xul
+skip-if(B2G) load 328944-1.xul # bug 834382
 load 329900-1.html
 load 330015-1.html
 load 331204-1.html
@@ -85,7 +85,7 @@ load 331679-3.xml
 load 331883-1.html
 load 335140-1.html
 load 336291-1.html
-load 336999-1.xul
+skip-if(B2G) load 336999-1.xul # bug 834382
 load 337066-1.xhtml
 load 337268-1.html
 load 337419-1.html
@@ -139,7 +139,7 @@ load 374297-1.html
 load 374297-2.html
 load 376223-1.xhtml
 asserts(0-99) load 378325-1.html # bug 531589
-asserts(0-3) load 379105-1.xhtml # bug 570215, bug 479160
+skip-if(B2G) asserts(0-3) load 379105-1.xhtml # bug 570215, bug 479160, bug 834382
 load 379419-1.xhtml
 load 379768-1.html
 load 379799-1.html

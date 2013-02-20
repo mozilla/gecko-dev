@@ -1,8 +1,8 @@
-load 38589-1.xul
+skip-if(B2G) load 38589-1.xul # bug 834382
 load 64049-1.html
 load 281743-1.html
 load 323497-1.html
-asserts-if(gtk2Widget,0-2) load 382756-1.xul # Bug 540078
+skip-if(B2G) asserts-if(gtk2Widget,0-2) load 382756-1.xul # Bug 540078, bug 834382
 asserts-if(gtk2Widget,0-2) load 387745-1.svg # Bug 540078
 load 429315-1.html
 load 507563-1.html

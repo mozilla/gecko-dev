@@ -14,9 +14,9 @@ include ../../content/xml/content/crashtest/crashtests.list
 include ../../content/xml/document/crashtests/crashtests.list
 include ../../content/xbl/crashtests/crashtests.list
 include ../../content/xslt/crashtests/crashtests.list
-include ../../content/xul/content/crashtests/crashtests.list
-include ../../content/xul/document/crashtests/crashtests.list
-include ../../content/xul/templates/src/crashtests/crashtests.list
+skip-if(B2G) include ../../content/xul/content/crashtests/crashtests.list # bug 834382
+skip-if(B2G) include ../../content/xul/document/crashtests/crashtests.list # bug 834382
+skip-if(B2G) include ../../content/xul/templates/src/crashtests/crashtests.list # bug 834382
 include ../../content/mathml/content/crashtests/crashtests.list
 include ../../content/media/test/crashtests/crashtests.list
 
@@ -42,9 +42,9 @@ include ../../layout/mathml/crashtests/crashtests.list
 include ../../layout/style/crashtests/crashtests.list
 include ../../layout/svg/crashtests/crashtests.list
 include ../../layout/tables/crashtests/crashtests.list
-include ../../layout/xul/base/src/crashtests/crashtests.list
-include ../../layout/xul/base/src/grid/crashtests/crashtests.list
-include ../../layout/xul/base/src/tree/src/crashtests/crashtests.list
+skip-if(B2G) include ../../layout/xul/base/src/crashtests/crashtests.list # bug 834382
+skip-if(B2G) include ../../layout/xul/base/src/grid/crashtests/crashtests.list # bug 834382
+skip-if(B2G) include ../../layout/xul/base/src/tree/src/crashtests/crashtests.list # bug 834382
 
 include ../../gfx/tests/crashtests/crashtests.list
 
