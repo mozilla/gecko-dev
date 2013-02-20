@@ -1429,7 +1429,6 @@ nsCSSFrameConstructor::nsCSSFrameConstructor(nsIDocument *aDocument,
   , mInStyleRefresh(false)
   , mHoverGeneration(0)
   , mRebuildAllExtraHint(nsChangeHint(0))
-  , mOverflowChangedTracker(nullptr)
   , mAnimationGeneration(0)
   , mPendingRestyles(ELEMENT_HAS_PENDING_RESTYLE |
                      ELEMENT_IS_POTENTIAL_RESTYLE_ROOT, this)
@@ -1509,9 +1508,7 @@ nsCSSFrameConstructor::NotifyDestroyingFrame(nsIFrame* aFrame)
     CountersDirty();
   }
 
-  if (mOverflowChangedTracker) {
-    mOverflowChangedTracker->RemoveFrame(aFrame);
-  }
+  mOverflowChangedTracker.RemoveFrame(aFrame);
 
   nsFrameManager::NotifyDestroyingFrame(aFrame);
 }
@@ -8111,8 +8108,7 @@ NeedToReframeForAddingOrRemovingTransform(nsIFrame* aFrame)
 }
 
 nsresult
-nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList,
-                                             OverflowChangedTracker& aTracker)
+nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
 {
   NS_ASSERTION(!nsContentUtils::IsSafeToRunScript(),
                "Someone forgot a script blocker");
@@ -8121,10 +8117,6 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList,
     return NS_OK;
 
   SAMPLE_LABEL("CSS", "ProcessRestyledFrames");
-
-  MOZ_ASSERT(!GetOverflowChangedTracker(), 
-             "Can't have multiple overflow changed trackers!");
-  SetOverflowChangedTracker(&aTracker);
 
   // Make sure to not rebuild quote or counter lists while we're
   // processing restyles
@@ -8256,7 +8248,7 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList,
             // updating overflows since that will happen when it's reflowed.
             if (!(childFrame->GetStateBits() &
                   (NS_FRAME_IS_DIRTY | NS_FRAME_HAS_DIRTY_CHILDREN))) {
-              aTracker.AddFrame(childFrame);
+              mOverflowChangedTracker.AddFrame(childFrame);
             }
             NS_ASSERTION(!nsLayoutUtils::GetNextContinuationOrSpecialSibling(childFrame),
                          "SVG frames should not have continuations or special siblings");
@@ -8269,7 +8261,7 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList,
         if (!(frame->GetStateBits() &
               (NS_FRAME_IS_DIRTY | NS_FRAME_HAS_DIRTY_CHILDREN))) {
           while (frame) {
-            aTracker.AddFrame(frame);
+            mOverflowChangedTracker.AddFrame(frame);
 
             frame =
               nsLayoutUtils::GetNextContinuationOrSpecialSibling(frame);
@@ -8311,7 +8303,6 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList,
 #endif
   }
 
-  SetOverflowChangedTracker(nullptr);
   aChangeList.Clear();
   return NS_OK;
 }
@@ -8321,8 +8312,7 @@ nsCSSFrameConstructor::RestyleElement(Element        *aElement,
                                       nsIFrame       *aPrimaryFrame,
                                       nsChangeHint   aMinHint,
                                       RestyleTracker& aRestyleTracker,
-                                      bool            aRestyleDescendants,
-                                      OverflowChangedTracker& aTracker)
+                                      bool            aRestyleDescendants)
 {
   NS_ASSERTION(aPrimaryFrame == aElement->GetPrimaryFrame(),
                "frame/content mismatch");
@@ -8359,7 +8349,7 @@ nsCSSFrameConstructor::RestyleElement(Element        *aElement,
     nsStyleChangeList changeList;
     ComputeStyleChangeFor(aPrimaryFrame, &changeList, aMinHint,
                           aRestyleTracker, aRestyleDescendants);
-    ProcessRestyledFrames(changeList, aTracker);
+    ProcessRestyledFrames(changeList);
   } else {
     // no frames, reconstruct for content
     MaybeRecreateFramesForElement(aElement);
@@ -12123,9 +12113,8 @@ nsCSSFrameConstructor::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker,
                         &changeList, aExtraHint,
                         aRestyleTracker, true);
   // Process the required changes
-  OverflowChangedTracker tracker;
-  ProcessRestyledFrames(changeList, tracker);
-  tracker.Flush();
+  ProcessRestyledFrames(changeList);
+  FlushOverflowChangedTracker();
 
   // Tell the style set it's safe to destroy the old rule tree.  We
   // must do this after the ProcessRestyledFrames call in case the
