@@ -531,9 +531,7 @@ RES_DRAWABLE_BASE = \
   res/drawable/ic_menu_desktop_mode_on.xml \
   res/drawable/ic_menu_forward.png \
   res/drawable/ic_menu_new_private_tab.png \
-  res/drawable/ic_menu_new_private_tab_small.png \
   res/drawable/ic_menu_new_tab.png \
-  res/drawable/ic_menu_new_tab_small.png \
   res/drawable/ic_menu_reload.png \
   res/drawable/ic_menu_quit.xml \
   res/drawable/ic_status_logo.png \
@@ -632,9 +630,7 @@ RES_DRAWABLE_HDPI = \
   res/drawable-hdpi/ic_menu_close_all_tabs.png \
   res/drawable-hdpi/ic_menu_forward.png \
   res/drawable-hdpi/ic_menu_new_private_tab.png \
-  res/drawable-hdpi/ic_menu_new_private_tab_small.png \
   res/drawable-hdpi/ic_menu_new_tab.png \
-  res/drawable-hdpi/ic_menu_new_tab_small.png \
   res/drawable-hdpi/ic_menu_reload.png \
   res/drawable-hdpi/ic_status_logo.png \
   res/drawable-hdpi/remote_tabs_off.png \
@@ -729,9 +725,7 @@ RES_DRAWABLE_XHDPI = \
   res/drawable-xhdpi/ic_menu_close_all_tabs.png \
   res/drawable-xhdpi/ic_menu_forward.png \
   res/drawable-xhdpi/ic_menu_new_private_tab.png \
-  res/drawable-xhdpi/ic_menu_new_private_tab_small.png \
   res/drawable-xhdpi/ic_menu_new_tab.png \
-  res/drawable-xhdpi/ic_menu_new_tab_small.png \
   res/drawable-xhdpi/ic_menu_reload.png \
   res/drawable-xhdpi/ic_status_logo.png \
   res/drawable-xhdpi/spinner_default.9.png \
@@ -953,7 +947,6 @@ RES_DRAWABLE_XLARGE_MDPI_V11 = \
   res/drawable-xlarge-mdpi-v11/tabs_carat_contracted.png \
   res/drawable-xlarge-mdpi-v11/tabs_carat_expanded.png \
   res/drawable-xlarge-mdpi-v11/tabs_level.xml \
-  res/drawable-xlarge-mdpi-v11/tabs_menu.png \
   $(NULL)
 
 RES_DRAWABLE_XLARGE_HDPI_V11 = \
@@ -965,7 +958,6 @@ RES_DRAWABLE_XLARGE_HDPI_V11 = \
   res/drawable-xlarge-hdpi-v11/menu.png \
   res/drawable-xlarge-hdpi-v11/tabs_carat_contracted.png \
   res/drawable-xlarge-hdpi-v11/tabs_carat_expanded.png \
-  res/drawable-xlarge-hdpi-v11/tabs_menu.png \
   $(NULL)
 
 RES_DRAWABLE_XLARGE_XHDPI_V11 = \
@@ -977,7 +969,6 @@ RES_DRAWABLE_XLARGE_XHDPI_V11 = \
   res/drawable-xlarge-xhdpi-v11/menu.png \
   res/drawable-xlarge-xhdpi-v11/tabs_carat_contracted.png \
   res/drawable-xlarge-xhdpi-v11/tabs_carat_expanded.png \
-  res/drawable-xlarge-xhdpi-v11/tabs_menu.png \
   $(NULL)
 
 RES_COLOR = \
@@ -988,10 +979,8 @@ RES_COLOR = \
 RES_MENU = \
   res/menu/awesomebar_contextmenu.xml \
   res/menu/gecko_app_menu.xml \
-  res/menu/tabs_menu.xml \
   res/menu/titlebar_contextmenu.xml \
   res/menu/abouthome_topsites_contextmenu.xml \
-  res/menu-v11/tabs_menu.xml \
   $(NULL)
 
 JAVA_CLASSPATH = $(ANDROID_SDK)/android.jar

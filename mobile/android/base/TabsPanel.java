@@ -27,8 +27,7 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 
 public class TabsPanel extends LinearLayout
-                       implements GeckoPopupMenu.OnMenuItemClickListener,
-                                  LightweightTheme.OnChangeListener,
+                       implements LightweightTheme.OnChangeListener,
                                   IconTabWidget.OnTabChangedListener {
     private static final String LOGTAG = "GeckoTabsPanel";
 
@@ -59,15 +58,11 @@ public class TabsPanel extends LinearLayout
     private TabsLayoutChangeListener mLayoutChangeListener;
 
     private IconTabWidget mTabWidget;
-    private static ImageButton mMenuButton;
     private static ImageButton mAddTab;
 
     private Panel mCurrentPanel;
     private boolean mIsSideBar;
     private boolean mVisible;
-
-    private GeckoPopupMenu mPopupMenu;
-    private Menu mMenu;
 
     public TabsPanel(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -84,11 +79,6 @@ public class TabsPanel extends LinearLayout
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.TabsPanel);
         mIsSideBar = a.getBoolean(R.styleable.TabsPanel_sidebar, false);
         a.recycle();
-
-        mPopupMenu = new GeckoPopupMenu(context);
-        mPopupMenu.inflate(R.menu.tabs_menu);
-        mPopupMenu.setOnMenuItemClickListener(this);
-        mMenu = mPopupMenu.getMenu();
 
         LayoutInflater.from(context).inflate(R.layout.tabs_panel, this);
         initialize();
@@ -128,15 +118,6 @@ public class TabsPanel extends LinearLayout
         button.setContentDescription(resources.getString(R.string.tabs_synced));
 
         mTabWidget.setTabSelectionListener(this);
-
-        mMenuButton = (ImageButton) findViewById(R.id.menu);
-        mMenuButton.setOnClickListener(new Button.OnClickListener() {
-            public void onClick(View view) {
-                TabsPanel.this.openTabsMenu();
-            }
-        });
-
-        mPopupMenu.setAnchor(mMenuButton);
     }
 
     public void addTab() {
@@ -148,15 +129,6 @@ public class TabsPanel extends LinearLayout
         mActivity.autoHideTabs();
     }
 
-    public void openTabsMenu() {
-        if (mCurrentPanel == Panel.REMOTE_TABS)
-            mMenu.findItem(R.id.close_all_tabs).setEnabled(false);
-        else
-            mMenu.findItem(R.id.close_all_tabs).setEnabled(true); 
-
-        mPopupMenu.show();
-    }
-
     @Override
     public void onTabChanged(int index) {
         if (index == 0)
@@ -165,25 +137,6 @@ public class TabsPanel extends LinearLayout
             show(Panel.PRIVATE_TABS);
         else
             show(Panel.REMOTE_TABS);
-    }
-
-    @Override
-    public boolean onMenuItemClick(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.close_all_tabs:
-                for (Tab tab : Tabs.getInstance().getTabsInOrder()) {
-                    Tabs.getInstance().closeTab(tab);
-                }
-                autoHidePanel();
-                return true;
-
-            case R.id.new_tab:
-            case R.id.new_private_tab:
-                hide();
-            // fall through
-            default:
-                return mActivity.onOptionsItemSelected(item);
-        }
     }
 
     private static int getTabContainerHeight(View view) {
@@ -335,14 +288,12 @@ public class TabsPanel extends LinearLayout
                 mFooter.setVisibility(View.GONE);
 
             mAddTab.setVisibility(View.INVISIBLE);
-            mMenuButton.setVisibility(View.INVISIBLE);
         } else {
             if (mFooter != null)
                 mFooter.setVisibility(View.VISIBLE);
 
             mAddTab.setVisibility(View.VISIBLE);
             mAddTab.setImageLevel(index);
-            mMenuButton.setVisibility(View.VISIBLE);
         }
 
         if (isSideBar()) {
@@ -358,7 +309,6 @@ public class TabsPanel extends LinearLayout
     public void hide() {
         if (mVisible) {
             mVisible = false;
-            mPopupMenu.dismiss();
             dispatchLayoutChange(0, 0);
 
             if (mPanel != null) {
