@@ -235,6 +235,17 @@ InflateUTF8StringToBuffer(JSContext *cx, const char *bytes, size_t length,
                           jschar *chars, size_t *charsLength,
                           FlationCoding fc = NormalEncoding);
 
+/*
+ * The same as InflateUTF8StringToBuffer(), except that any malformed UTF-8
+ * characters will be replaced by \uFFFD. No exception will be thrown for
+ * malformed UTF-8 input.
+ */
+extern bool
+InflateUTF8StringToBufferReplaceInvalid(JSContext *cx, const char *bytes,
+                                        size_t length, jschar *chars,
+                                        size_t *charsLength,
+                                        FlationCoding fc = NormalEncoding);
+
 /* Get number of bytes in the deflated sequence of characters. */
 extern size_t
 GetDeflatedStringLength(JSContext *cx, const jschar *chars, size_t charsLength);
