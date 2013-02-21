@@ -531,6 +531,7 @@ RES_DRAWABLE_BASE = \
   res/drawable/ic_menu_forward.png \
   res/drawable/ic_menu_new_private_tab.png \
   res/drawable/ic_menu_new_private_tab_small.png \
+  res/drawable/ic_menu_new_tab.png \
   res/drawable/ic_menu_new_tab_small.png \
   res/drawable/ic_menu_reload.png \
   res/drawable/ic_menu_quit.xml \
