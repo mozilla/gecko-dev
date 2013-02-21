@@ -232,6 +232,24 @@ StackFrame::copyRawFrameSlots(AutoValueVector *vec)
     return true;
 }
 
+static void
+CleanupTornValue(StackFrame *fp, Value *vp)
+{
+    if (vp->isObject() && !vp->toGCThing())
+        vp->setObject(fp->global());
+    if (vp->isString() && !vp->toGCThing())
+        vp->setString(fp->compartment()->rt->emptyString);
+}
+
+void
+StackFrame::cleanupTornValues()
+{
+    for (size_t i = 0; i < numFormalArgs(); i++)
+        CleanupTornValue(this, &formals()[i]);
+    for (size_t i = 0; i < script()->nfixed; i++)
+        CleanupTornValue(this, &slots()[i]);
+}
+
 static inline void
 AssertDynamicScopeMatchesStaticScope(JSScript *script, JSObject *scope)
 {
