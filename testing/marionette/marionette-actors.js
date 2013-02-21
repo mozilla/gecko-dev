@@ -1236,7 +1236,7 @@ MarionetteDriverActor.prototype = {
     }
   },
 
-  /**
+/**
    * Set timeout for page loading, searching and scripts
    *
    * @param object aRequest
@@ -1301,42 +1301,6 @@ MarionetteDriverActor.prototype = {
       this.sendAsync("doubleTap", {value: serId,
                                    command_id: this.command_id});
     }
-  },
-
-  /**
-   * Start touch
-   *
-   * @param object aRequest
-   *        'element' represents the ID of the element to touch
-   */
-  press: function MDA_press(aRequest) {
-    this.command_id = this.getCommandId();
-    let element = aRequest.element;
-    let x = aRequest.x;
-    let y = aRequest.y;
-    this.sendAsync("press", {value: element,
-                             corx: x,
-                             cory: y,
-                             command_id: this.command_id});
-  },
-
-  /**
-   * End touch
-   *
-   * @param object aRequest
-   *        'element' represents the ID of the element to end the touch
-   */
-  release: function MDA_release(aRequest) {
-    this.command_id = this.getCommandId();
-    let element = aRequest.element;
-    let touchId = aRequest.touchId;
-    let x = aRequest.x;
-    let y = aRequest.y;
-    this.sendAsync("release", {value: element,
-                               touchId: touchId,
-                               corx: x,
-                               cory: y,
-                               command_id: this.command_id});
   },
 
   /**
@@ -2061,8 +2025,6 @@ MarionetteDriverActor.prototype.requestTypes = {
   "timeouts": MarionetteDriverActor.prototype.timeouts,
   "singleTap": MarionetteDriverActor.prototype.singleTap,
   "doubleTap": MarionetteDriverActor.prototype.doubleTap,
-  "press": MarionetteDriverActor.prototype.press,
-  "release": MarionetteDriverActor.prototype.release,
   "executeAsyncScript": MarionetteDriverActor.prototype.executeWithCallback,
   "executeJSScript": MarionetteDriverActor.prototype.executeJSScript,
   "setSearchTimeout": MarionetteDriverActor.prototype.setSearchTimeout,

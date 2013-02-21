@@ -56,12 +56,6 @@ class HTMLElement(object):
     def double_tap(self):
         return self.marionette._send_message('doubleTap', 'ok', element=self.id)
 
-    def press(self, x=None, y=None):
-        return self.marionette._send_message('press', 'value', element=self.id, x=x, y=y)
-
-    def release(self, touch_id, x=None, y=None):
-        return self.marionette._send_message('release', 'ok', element=self.id, touchId=touch_id, x=x, y=y)
-
     @property
     def text(self):
         return self.marionette._send_message('getElementText', 'value', element=self.id)
