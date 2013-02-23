@@ -212,6 +212,11 @@ public:
                           BlobConstructorParams* aOutParams);
     BlobChild* GetOrCreateActorForBlob(nsIDOMBlob* aBlob);
 
+protected:
+    virtual bool RecvPBrowserConstructor(PBrowserChild* actor,
+                                         const IPCTabContext& context,
+                                         const uint32_t& chromeFlags);
+
 private:
     virtual void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
 
