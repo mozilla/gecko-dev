@@ -1417,9 +1417,9 @@ let RIL = {
 
       if (this.iccInfo.imsi) {
         // MCC is the first 3 digits of IMSI
-        this.iccInfo.mcc = parseInt(this.iccInfo.imsi.substr(0,3));
+        this.iccInfo.mcc = this.iccInfo.imsi.substr(0,3);
         // The 4th byte of the response is the length of MNC
-        this.iccInfo.mnc = parseInt(this.iccInfo.imsi.substr(3, this.iccInfo.ad[3]));
+        this.iccInfo.mnc = this.iccInfo.imsi.substr(3, this.iccInfo.ad[3]);
         if (DEBUG) debug("MCC: " + this.iccInfo.mcc + " MNC: " + this.iccInfo.mnc);
         this._handleICCInfoChange();
       }
@@ -1746,11 +1746,11 @@ let RIL = {
           }
           if (i === 2) {
             // 0-2: MCC
-            oplElement.mcc = parseInt(buf);
+            oplElement.mcc = buf;
             buf = "";
           } else if (i === 5) {
             // 3-5: MNC
-            oplElement.mnc = parseInt(buf);
+            oplElement.mnc = buf;
           }
         }
         // LAC/TAC
@@ -2306,11 +2306,11 @@ let RIL = {
             }
             if (i === 2) {
               // 0-2: MCC
-              plmnEntry.mcc = parseInt(buf);
+              plmnEntry.mcc = buf;
               buf = "";
             } else if (i === 5) {
               // 3-5: MNC
-              plmnEntry.mnc = parseInt(buf);
+              plmnEntry.mnc = buf;
             }
           }
           if (DEBUG) debug("readPLMNEntries: PLMN = " + plmnEntry.mcc + ", " + plmnEntry.mnc);
@@ -2532,14 +2532,10 @@ let RIL = {
    */
   selectNetwork: function selectNetwork(options) {
     if (DEBUG) {
-      debug("Setting manual network selection: " + options.mcc + options.mnc);
+      debug("Setting manual network selection: " + options.mcc + ", " + options.mnc);
     }
 
-    // TODO: Bug 828307 - B2G RIL: Change to store MNC/MCC values from integer to string
-    let mnc = options.mnc.toString();
-    if (mnc.length == 1)
-      mnc = "0" + mnc;
-    let numeric = options.mcc.toString() + mnc;
+    let numeric = (options.mcc && options.mnc) ? options.mcc + options.mnc : null;
     Buf.newParcel(REQUEST_SET_NETWORK_SELECTION_MANUAL, options);
     Buf.writeString(numeric);
     Buf.sendParcel();
@@ -4209,7 +4205,7 @@ let RIL = {
     }
 
     let [longName, shortName, networkTuple] = operatorData;
-    let thisTuple = "" + this.operator.mcc + this.operator.mnc;
+    let thisTuple = this.operator.mcc + this.operator.mnc;
 
     if (this.operator.longName !== longName ||
         this.operator.shortName !== shortName ||
@@ -4224,8 +4220,8 @@ let RIL = {
         this.operator.shortName = shortName;
       }
 
-      this.operator.mcc = 0;
-      this.operator.mnc = 0;
+      this.operator.mcc = null;
+      this.operator.mnc = null;
 
       // According to ril.h, the operator fields will be NULL when the operator
       // is not currently registered. We can avoid trying to parse the numeric
@@ -4417,7 +4413,8 @@ let RIL = {
       let network = {
         longName: strings[i],
         shortName: strings[i + 1],
-        mcc: 0, mnc: 0,
+        mcc: null,
+        mnc: null,
         state: null
       };
 
@@ -4449,24 +4446,17 @@ let RIL = {
    */
   _processNetworkTuple: function _processNetworkTuple(networkTuple, network) {
     let tupleLen = networkTuple.length;
-    let mcc = 0, mnc = 0;
 
     if (tupleLen == 5 || tupleLen == 6) {
-      mcc = parseInt(networkTuple.substr(0, 3), 10);
-      if (isNaN(mcc)) {
-        throw new Error("MCC could not be parsed from network tuple: " + networkTuple );
-      }
-
-      mnc = parseInt(networkTuple.substr(3), 10);
-      if (isNaN(mnc)) {
-        throw new Error("MNC could not be parsed from network tuple: " + networkTuple);
-      }
+      network.mcc = networkTuple.substr(0, 3);
+      network.mnc = networkTuple.substr(3);
     } else {
+      network.mcc = null;
+      network.mnc = null;
+
       throw new Error("Invalid network tuple (should be 5 or 6 digits): " + networkTuple);
     }
 
-    network.mcc = mcc;
-    network.mnc = mnc;
   },
 
   /**
@@ -9120,14 +9110,11 @@ let ComprehensionTlvHelper = {
     // shall be coded as '1111'".
 
     // MCC & MNC, 3 octets
-    let mcc = loc.mcc.toString();
-    let mnc = loc.mnc.toString();
-    if (mnc.length == 1) {
-      mnc = "F0" + mnc;
-    } else if (mnc.length == 2) {
-      mnc = "F" + mnc;
+    let mcc = loc.mcc, mnc;
+    if (loc.mnc.length == 2) {
+      mnc = "F" + loc.mnc;
     } else {
-      mnc = mnc[2] + mnc[0] + mnc[1];
+      mnc = loc.mnc[2] + loc.mnc[0] + loc.mnc[1];
     }
     GsmPDUHelper.writeSwappedNibbleBCD(mcc + mnc);
 

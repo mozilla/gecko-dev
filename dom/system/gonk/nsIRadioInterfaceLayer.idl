@@ -225,7 +225,7 @@ interface nsIRILContentHelper : nsIMobileConnectionProvider
   readonly attribute DOMString voicemailDisplayName;
 };
 
-[scriptable, uuid(7cb249b8-7ec9-4e31-a043-293121574dd0)]
+[scriptable, uuid(3440c000-abc2-11e2-9e96-0800200c9a66)]
 interface nsIICCRecords : nsISupports
 {
   /**
@@ -251,12 +251,12 @@ interface nsIICCRecords : nsISupports
   /**
    * Mobile Country Code
    */
-  readonly attribute unsigned short mcc;
+  readonly attribute DOMString mcc;
 
   /**
    * Mobile Network Code
    */
-  readonly attribute unsigned short mnc;
+  readonly attribute DOMString mnc;
 
   /**
    * Abbreviated dialling numbers
