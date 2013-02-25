@@ -221,8 +221,8 @@ add_test(function test_write_location_info_tlv() {
 
   // Test with 2-digit mnc, and gsmCellId obtained from UMTS network.
   let loc = {
-    mcc: 466,
-    mnc: 92,
+    mcc: "466",
+    mnc: "92",
     gsmLocationAreaCode : 10291,
     gsmCellId: 19072823
   };
@@ -249,8 +249,8 @@ add_test(function test_write_location_info_tlv() {
 
   // Test with 1-digit mnc, and gsmCellId obtained from GSM network.
   loc = {
-    mcc: 466,
-    mnc: 2,
+    mcc: "466",
+    mnc: "02",
     gsmLocationAreaCode : 10291,
     gsmCellId: 65534
   };
@@ -275,8 +275,8 @@ add_test(function test_write_location_info_tlv() {
 
   // Test with 3-digit mnc, and gsmCellId obtained from GSM network.
   loc = {
-    mcc: 466,
-    mnc: 222,
+    mcc: "466",
+    mnc: "222",
     gsmLocationAreaCode : 10291,
     gsmCellId: 65534
   };
@@ -781,8 +781,8 @@ add_test(function test_update_network_name() {
   do_check_eq(RIL.updateNetworkName(), null);
 
   // Set HPLMN
-  RIL.iccInfo.mcc = 123;
-  RIL.iccInfo.mnc = 456;
+  RIL.iccInfo.mcc = "123";
+  RIL.iccInfo.mnc = "456";
 
   RIL.voiceRegistrationState = {
     cell: {
@@ -811,22 +811,22 @@ add_test(function test_update_network_name() {
   // Set EF_OPL
   RIL.iccInfoPrivate.OPL = [
     {
-      "mcc": 123,
-      "mnc": 456,
+      "mcc": "123",
+      "mnc": "456",
       "lacTacStart": 0,
       "lacTacEnd": 0xFFFE,
       "pnnRecordId": 4
     },
     {
-      "mcc": 123,
-      "mnc": 457,
+      "mcc": "123",
+      "mnc": "457",
       "lacTacStart": 0,
       "lacTacEnd": 0x0010,
       "pnnRecordId": 3
     },
     {
-      "mcc": 123,
-      "mnc": 457,
+      "mcc": "123",
+      "mnc": "457",
       "lacTacStart": 0,
       "lacTacEnd": 0x1010,
       "pnnRecordId": 2
