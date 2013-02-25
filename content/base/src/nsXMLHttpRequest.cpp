@@ -3356,6 +3356,15 @@ nsXMLHttpRequest::SetMultipart(bool aMultipart, nsresult& aRv)
     return;
   }
 
+  nsCOMPtr<nsPIDOMWindow> window = GetOwner();
+  nsCOMPtr<nsIDocument> doc;
+  if (window) {
+    doc = do_QueryInterface(window->GetExtantDocument());
+  }
+  nsContentUtils::ReportToConsoleNonLocalized(
+    NS_LITERAL_STRING("Support for multipart responses in XMLHttpRequest is going to be removed in an upcoming version. Please migrate to checking the responseText from progress events, to Server-Sent Events or to Web Sockets."),
+    nsIScriptError::warningFlag, "DOM", doc);
+
   if (aMultipart) {
     mState |= XML_HTTP_REQUEST_MULTIPART;
   } else {
