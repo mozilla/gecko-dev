@@ -99,6 +99,10 @@ public:
    * Insert aDuration of null data at the end of the segment.
    */
   virtual void AppendNullData(TrackTicks aDuration) = 0;
+  /**
+   * Remove all contents, setting duration to 0.
+   */
+  virtual void Clear() = 0;
 
 protected:
   MediaSegment(Type aType) : mDuration(0), mType(aType)
@@ -191,6 +195,11 @@ public:
       mChunks.AppendElement()->SetNull(aDuration);
     }
     mDuration += aDuration;
+  }
+  virtual void Clear()
+  {
+    mDuration = 0;
+    mChunks.Clear();
   }
 
   class ChunkIterator {
