@@ -1448,21 +1448,36 @@ bool nsChildView::DispatchWindowEvent(nsGUIEvent &event)
   return ConvertStatus(status);
 }
 
-bool nsChildView::PaintWindow(nsIntRegion aRegion, bool aIsAlternate)
+nsIWidget*
+nsChildView::GetWidgetForListenerEvents()
 {
-  nsIWidget* widget = this;
-  nsIWidgetListener* listener = mWidgetListener;
-
   // If there is no listener, use the parent popup's listener if that exists.
-  if (!listener && mParentWidget) {
+  if (!mWidgetListener && mParentWidget) {
     nsWindowType type;
     mParentWidget->GetWindowType(type);
     if (type == eWindowType_popup) {
-      widget = mParentWidget;
-      listener = mParentWidget->GetWidgetListener();
+      return mParentWidget;
     }
   }
 
+  return this;
+}
+
+void nsChildView::WillPaintWindow()
+{
+  nsCOMPtr<nsIWidget> widget = GetWidgetForListenerEvents();
+
+  nsIWidgetListener* listener = widget->GetWidgetListener();
+  if (listener) {
+    listener->WillPaintWindow(widget, false);
+  }
+}
+
+bool nsChildView::PaintWindow(nsIntRegion aRegion, bool aIsAlternate)
+{
+  nsCOMPtr<nsIWidget> widget = GetWidgetForListenerEvents();
+
+  nsIWidgetListener* listener = widget->GetWidgetListener();
   if (!listener)
     return false;
 
@@ -2629,10 +2644,7 @@ NSEvent* gLastDragMouseDownEvent = nil;
                  afterDelay:0];
     }
 
-    nsIWidgetListener* listener = mGeckoChild->GetWidgetListener();
-    if (listener) {
-      listener->WillPaintWindow(mGeckoChild, false);
-    }
+    mGeckoChild->WillPaintWindow();
   }
   [super viewWillDraw];
 }
