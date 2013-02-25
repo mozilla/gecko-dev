@@ -447,8 +447,23 @@ GonkGPSGeolocationProvider::SetReferenceLocation()
     nsCOMPtr<nsIICCRecords> icc;
     rilCtx->GetIcc(getter_AddRefs(icc));
     if (icc) {
-      icc->GetMcc(&location.u.cellID.mcc);
-      icc->GetMnc(&location.u.cellID.mnc);
+      nsresult result;
+      nsAutoString mcc, mnc;
+
+      icc->GetMcc(mcc);
+      icc->GetMnc(mnc);
+
+      location.u.cellID.mcc = mcc.ToInteger(&result, 10);
+      if (result != NS_OK) {
+        NS_WARNING("Cannot parse mcc to integer");
+        location.u.cellID.mcc = 0;
+      }
+
+      location.u.cellID.mnc = mnc.ToInteger(&result, 10);
+      if (result != NS_OK) {
+        NS_WARNING("Cannot parse mnc to integer");
+        location.u.cellID.mnc = 0;
+      }
     }
     nsCOMPtr<nsIDOMMozMobileConnectionInfo> voice;
     rilCtx->GetVoice(getter_AddRefs(voice));
