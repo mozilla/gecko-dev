@@ -29,8 +29,8 @@ function setEmulatorOperatorNames(longName, shortName) {
 }
 
 function checkValidMccMnc() {
-  is(network.mcc, 310, "network.mcc");
-  is(network.mnc, 260, "network.mnc");
+  is(network.mcc, "310", "network.mcc");
+  is(network.mnc, "260", "network.mnc");
 }
 
 function doTestMobileOperatorNames(longName, shortName, callback) {

@@ -18,15 +18,15 @@ let telkilaNetwork = null;
 function isAndroidNetwork(network) {
   is(network.longName, "Android");
   is(network.shortName, "Android");
-  is(network.mcc, 310);
-  is(network.mnc, 260);
+  is(network.mcc, "310");
+  is(network.mnc, "260");
 }
 
 function isTelkilaNetwork(network) {
   is(network.longName, "TelKila");
   is(network.shortName, "TelKila");
-  is(network.mcc, 310);
-  is(network.mnc, 295);
+  is(network.mcc, "310");
+  is(network.mnc, "295");
 }
 
 function testConnectionInfo() {
@@ -63,8 +63,8 @@ function testGetNetworks() {
     let networks = request.result;
 
     // The emulator RIL server should always return 2 networks:
-    // {"longName":"Android","shortName":"Android","mcc":310,"mnc":260,"state":"available"}
-    // {"longName":"TelKila","shortName":"TelKila","mcc":310,"mnc":295,"state":"available"}
+    // {"longName":"Android","shortName":"Android","mcc":"310","mnc":"260","state":"available"}
+    // {"longName":"TelKila","shortName":"TelKila","mcc":"310","mnc":"295","state":"available"}
     is(networks.length, 2);
 
     let network1 = androidNetwork = networks[0];
