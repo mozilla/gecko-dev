@@ -1055,7 +1055,7 @@ pref("devtools.debugger.ui.variables-only-enum-visible", false);
 pref("devtools.debugger.ui.variables-searchbox-visible", false);
 
 // Enable the Profiler
-pref("devtools.profiler.enabled", true);
+pref("devtools.profiler.enabled", false);
 
 // Enable the Tilt inspector
 pref("devtools.tilt.enabled", true);

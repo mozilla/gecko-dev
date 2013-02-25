@@ -10,10 +10,11 @@ relativesrcdir = @relativesrcdir@
 
 include $(DEPTH)/config/autoconf.mk
 
-MOCHITEST_BROWSER_FILES = \
-		browser_profiler_run.js \
-		browser_profiler_controller.js \
-		browser_profiler_profiles.js \
-		head.js \
+# Profiler tests disabled for Beta.
+# MOCHITEST_BROWSER_FILES = \
+#		browser_profiler_run.js \
+#		browser_profiler_controller.js \
+#		browser_profiler_profiles.js \
+#		head.js \
 
 include $(topsrcdir)/config/rules.mk
