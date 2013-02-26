@@ -21,6 +21,7 @@
 #include "prinrval.h"
 #include "mozilla/Attributes.h"
 
+#define TOPIC_FRECENCY_UPDATED "places-frecency-updated"
 #define WAITFORTOPIC_TIMEOUT_SECONDS 5
 
 using namespace mozilla;
@@ -141,6 +142,30 @@ NS_IMPL_ISUPPORTS1(
   WaitForTopicSpinner,
   nsIObserver
 )
+
+/**
+ * Adds a URI to the database.
+ *
+ * @param aURI
+ *        The URI to add to the database.
+ */
+void
+addURI(nsIURI* aURI)
+{
+  nsRefPtr<WaitForTopicSpinner> spinner =
+    new WaitForTopicSpinner(TOPIC_FRECENCY_UPDATED);
+
+  nsCOMPtr<nsINavHistoryService> hist =
+    do_GetService(NS_NAVHISTORYSERVICE_CONTRACTID);
+  int64_t id;
+  nsresult rv = hist->AddVisit(aURI, PR_Now(), nullptr,
+                               nsINavHistoryService::TRANSITION_LINK, false,
+                               0, &id);
+  do_check_success(rv);
+
+  // Wait for frecency update.
+  spinner->Spin();
+}
 
 struct PlaceRecord
 {
@@ -270,41 +295,6 @@ do_get_lastVisit(int64_t placeId, VisitRecord& result)
   do_check_success(rv);
   rv = stmt->GetInt32(2, &result.transitionType);
   do_check_success(rv);
-}
-
-void
-do_wait_async_updates() {
-  nsCOMPtr<mozIStorageConnection> db = do_get_db();
-  nsCOMPtr<mozIStorageAsyncStatement> stmt;
-
-  db->CreateAsyncStatement(NS_LITERAL_CSTRING("BEGIN EXCLUSIVE"),
-                           getter_AddRefs(stmt));
-  nsCOMPtr<mozIStoragePendingStatement> pending;
-  (void)stmt->ExecuteAsync(nullptr, getter_AddRefs(pending));
-
-  db->CreateAsyncStatement(NS_LITERAL_CSTRING("COMMIT"),
-                           getter_AddRefs(stmt));
-  nsRefPtr<AsyncStatementSpinner> spinner = new AsyncStatementSpinner();
-  (void)stmt->ExecuteAsync(spinner, getter_AddRefs(pending));
-
-  spinner->SpinUntilCompleted();
-}
-
-/**
- * Adds a URI to the database.
- *
- * @param aURI
- *        The URI to add to the database.
- */
-void
-addURI(nsIURI* aURI)
-{
-  nsCOMPtr<mozilla::IHistory> history = do_GetService(NS_IHISTORY_CONTRACTID);
-  do_check_true(history);
-  nsresult rv = history->VisitURI(aURI, nullptr, mozilla::IHistory::TOP_LEVEL);
-  do_check_success(rv);
-
-  do_wait_async_updates();
 }
 
 static const char TOPIC_PROFILE_CHANGE[] = "profile-before-change";
