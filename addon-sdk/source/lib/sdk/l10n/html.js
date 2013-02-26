@@ -92,4 +92,4 @@ function disable() {
 }
 exports.disable = disable;
 
-require("api-utils/unload").when(disable);
+require("sdk/system/unload").when(disable);

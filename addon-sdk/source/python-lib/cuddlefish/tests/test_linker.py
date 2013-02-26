@@ -43,18 +43,18 @@ class Basic(unittest.TestCase):
         # target_cfg.dependencies is not provided, so we'll search through
         # all known packages (everything in 'deps').
         m = manifest.build_manifest(target_cfg, pkg_cfg, deps, scan_tests=False)
-        m = m.get_harness_options_manifest()
+        m = m.get_harness_options_manifest(False)
 
         def assertReqIs(modname, reqname, path):
-            reqs = m["one/lib/%s.js" % modname]["requirements"]
-            self.failUnlessEqual(reqs[reqname]["path"], path)
-        assertReqIs("main", "panel", "addon-sdk/lib/sdk/panel.js")
-        assertReqIs("main", "two.js", "one/lib/two.js")
-        assertReqIs("main", "./two", "one/lib/two.js")
-        assertReqIs("main", "sdk/tabs.js", "addon-sdk/lib/sdk/tabs.js")
-        assertReqIs("main", "./subdir/three", "one/lib/subdir/three.js")
-        assertReqIs("two", "main", "one/lib/main.js")
-        assertReqIs("subdir/three", "../main", "one/lib/main.js")
+            reqs = m["one/%s" % modname]["requirements"]
+            self.failUnlessEqual(reqs[reqname], path)
+        assertReqIs("main", "panel", "sdk/panel")
+        assertReqIs("main", "two.js", "one/two")
+        assertReqIs("main", "./two", "one/two")
+        assertReqIs("main", "sdk/tabs.js", "sdk/tabs")
+        assertReqIs("main", "./subdir/three", "one/subdir/three")
+        assertReqIs("two", "main", "one/main")
+        assertReqIs("subdir/three", "../main", "one/main")
 
         target_cfg.dependencies = []
         # now, because .dependencies *is* provided, we won't search 'deps',
@@ -72,13 +72,13 @@ class Basic(unittest.TestCase):
                                               [target_cfg.name, "addon-sdk"])
         self.failUnlessEqual(deps, ["addon-sdk", "three"])
         m = manifest.build_manifest(target_cfg, pkg_cfg, deps, scan_tests=False)
-        m = m.get_harness_options_manifest()
+        m = m.get_harness_options_manifest(False)
         def assertReqIs(modname, reqname, path):
-            reqs = m["three/lib/%s.js" % modname]["requirements"]
-            self.failUnlessEqual(reqs[reqname]["path"], path)
-        assertReqIs("main", "three-a", "three-a/lib/main.js")
-        assertReqIs("main", "three-b", "three-b/lib/main.js")
-        assertReqIs("main", "three-c", "three-c/lib/main.js")
+            reqs = m["three/%s" % modname]["requirements"]
+            self.failUnlessEqual(reqs[reqname], path)
+        assertReqIs("main", "three-a", "three-a/main")
+        assertReqIs("main", "three-b", "three-b/main")
+        assertReqIs("main", "three-c", "three-c/main")
 
     def test_relative_main_in_top(self):
         target_cfg = self.get_pkg("five")
@@ -90,8 +90,8 @@ class Basic(unittest.TestCase):
         self.failUnlessEqual(deps, ["addon-sdk", "five"])
         # all we care about is that this next call doesn't raise an exception
         m = manifest.build_manifest(target_cfg, pkg_cfg, deps, scan_tests=False)
-        m = m.get_harness_options_manifest()
-        reqs = m["five/lib/main.js"]["requirements"]
+        m = m.get_harness_options_manifest(False)
+        reqs = m["five/main"]["requirements"]
         self.failUnlessEqual(reqs, {});
 
     def test_unreachable_relative_main_in_top(self):

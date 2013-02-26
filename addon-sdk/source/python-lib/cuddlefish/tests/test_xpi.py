@@ -202,7 +202,7 @@ class SmallXPI(unittest.TestCase):
                                               [target_cfg.name, "addon-sdk"])
         addon_sdk_dir = pkg_cfg.packages["addon-sdk"].lib[0]
         m = manifest.build_manifest(target_cfg, pkg_cfg, deps, scan_tests=False)
-        used_files = list(m.get_used_files())
+        used_files = list(m.get_used_files(True))
         here = up(os.path.abspath(__file__))
         def absify(*parts):
             fn = os.path.join(here, "linker-files", *parts)
@@ -328,7 +328,7 @@ class SmallXPI(unittest.TestCase):
                                               [target_cfg.name, "addon-sdk"])
         m = manifest.build_manifest(target_cfg, pkg_cfg, deps, scan_tests=True)
         self.failUnlessEqual(sorted(m.get_all_test_modules()),
-                             sorted(["test-one", "test-two"]))
+                             sorted(["three/tests/test-one", "three/tests/test-two"]))
         # the current __init__.py code omits limit_to=used_files for 'cfx
         # test', so all test files are included in the XPI. But the test
         # runner will only execute the tests that m.get_all_test_modules()
@@ -371,7 +371,7 @@ class SmallXPI(unittest.TestCase):
         m = manifest.build_manifest(target_cfg, pkg_cfg, deps, scan_tests=True,
                                     test_filter_re=FILTER)
         self.failUnlessEqual(sorted(m.get_all_test_modules()),
-                             sorted(["test-one"]))
+                             sorted(["three/tests/test-one"]))
         # the current __init__.py code omits limit_to=used_files for 'cfx
         # test', so all test files are included in the XPI. But the test
         # runner will only execute the tests that m.get_all_test_modules()
