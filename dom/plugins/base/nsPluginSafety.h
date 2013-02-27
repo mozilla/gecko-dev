@@ -10,6 +10,8 @@
 #include "nsPluginHost.h"
 #include <prinrval.h>
 
+enum NSPluginCallReentry;
+
 // On Android, we need to guard against plugin code leaking entries in the local
 // JNI ref table. See https://bugzilla.mozilla.org/show_bug.cgi?id=780831#c21
 #ifdef MOZ_WIDGET_ANDROID
@@ -24,8 +26,8 @@
 #define CALL_SAFETY_ON
 #endif
 
-PRIntervalTime NS_NotifyBeginPluginCall();
-void NS_NotifyPluginCall(PRIntervalTime);
+PRIntervalTime NS_NotifyBeginPluginCall(NSPluginCallReentry aReentryState);
+void NS_NotifyPluginCall(PRIntervalTime aTime, NSPluginCallReentry aReentryState);
 
 #ifdef CALL_SAFETY_ON
 
@@ -40,10 +42,10 @@ PR_BEGIN_MACRO                                                     \
                                     gSkipPluginSafeCalls);         \
 PR_END_MACRO
 
-#define NS_TRY_SAFE_CALL_RETURN(ret, fun, pluginInst) \
+#define NS_TRY_SAFE_CALL_RETURN(ret, fun, pluginInst, pluginCallReentry) \
 PR_BEGIN_MACRO                                     \
   MAIN_THREAD_JNI_REF_GUARD;                       \
-  PRIntervalTime startTime = NS_NotifyBeginPluginCall(); \
+  PRIntervalTime startTime = NS_NotifyBeginPluginCall(pluginCallReentry); \
   if(gSkipPluginSafeCalls)                         \
     ret = fun;                                     \
   else                                             \
@@ -61,13 +63,13 @@ PR_BEGIN_MACRO                                     \
       ret = (NPError)NS_ERROR_FAILURE;             \
     }                                              \
   }                                                \
-  NS_NotifyPluginCall(startTime);		   \
+  NS_NotifyPluginCall(startTime, pluginCallReentry); \
 PR_END_MACRO
 
-#define NS_TRY_SAFE_CALL_VOID(fun, pluginInst) \
+#define NS_TRY_SAFE_CALL_VOID(fun, pluginInst, pluginCallReentry) \
 PR_BEGIN_MACRO                              \
   MAIN_THREAD_JNI_REF_GUARD;                \
-  PRIntervalTime startTime = NS_NotifyBeginPluginCall(); \
+  PRIntervalTime startTime = NS_NotifyBeginPluginCall(pluginCallReentry); \
   if(gSkipPluginSafeCalls)                  \
     fun;                                    \
   else                                      \
@@ -84,25 +86,25 @@ PR_BEGIN_MACRO                              \
         static_cast<nsPluginHost*>(host.get())->HandleBadPlugin(nullptr, pluginInst);\
     }                                       \
   }                                         \
-  NS_NotifyPluginCall(startTime);		   \
+  NS_NotifyPluginCall(startTime, pluginCallReentry); \
 PR_END_MACRO
 
 #else // vanilla calls
 
-#define NS_TRY_SAFE_CALL_RETURN(ret, fun, pluginInst) \
+#define NS_TRY_SAFE_CALL_RETURN(ret, fun, pluginInst, pluginCallReentry) \
 PR_BEGIN_MACRO                                     \
   MAIN_THREAD_JNI_REF_GUARD;                       \
-  PRIntervalTime startTime = NS_NotifyBeginPluginCall(); \
+  PRIntervalTime startTime = NS_NotifyBeginPluginCall(pluginCallReentry); \
   ret = fun;                                       \
-  NS_NotifyPluginCall(startTime);		               \
+  NS_NotifyPluginCall(startTime, pluginCallReentry); \
 PR_END_MACRO
 
-#define NS_TRY_SAFE_CALL_VOID(fun, pluginInst)     \
+#define NS_TRY_SAFE_CALL_VOID(fun, pluginInst, pluginCallReentry) \
 PR_BEGIN_MACRO                                     \
   MAIN_THREAD_JNI_REF_GUARD;                       \
-  PRIntervalTime startTime = NS_NotifyBeginPluginCall(); \
+  PRIntervalTime startTime = NS_NotifyBeginPluginCall(pluginCallReentry); \
   fun;                                             \
-  NS_NotifyPluginCall(startTime);		               \
+  NS_NotifyPluginCall(startTime, pluginCallReentry); \
 PR_END_MACRO
 
 #endif // CALL_SAFETY_ON

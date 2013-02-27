@@ -2076,6 +2076,8 @@ nsObjectFrame::HandleEvent(nsPresContext* aPresContext,
   if (mInstanceOwner->SendNativeEvents() &&
       NS_IS_PLUGIN_EVENT(anEvent)) {
     *anEventStatus = mInstanceOwner->ProcessEvent(*anEvent);
+    // Due to plugin code reentering Gecko, this frame may be dead at this
+    // point.
     return rv;
   }
 
@@ -2090,6 +2092,8 @@ nsObjectFrame::HandleEvent(nsPresContext* aPresContext,
        anEvent->message == NS_WHEEL_WHEEL) &&
       mInstanceOwner->GetEventModel() == NPEventModelCocoa) {
     *anEventStatus = mInstanceOwner->ProcessEvent(*anEvent);
+    // Due to plugin code reentering Gecko, this frame may be dead at this
+    // point.
     return rv;
   }
 #endif
