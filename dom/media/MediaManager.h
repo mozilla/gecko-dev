@@ -111,6 +111,15 @@ public:
     return mStream->AsSourceStream();
   }
 
+  bool CapturingVideo()
+  {
+    return mVideoSource && mLastEndTimeVideo > 0 && !mFinished;
+  }
+  bool CapturingAudio()
+  {
+    return mAudioSource && mLastEndTimeAudio > 0 && !mFinished;
+  }
+
   // implement in .cpp to avoid circular dependency with MediaOperationRunnable
   // Can be invoked from EITHER MainThread or MSG thread
   void Invalidate();
@@ -384,6 +393,9 @@ private:
   ~MediaManager() {
     delete mBackend;
   }
+
+  nsresult MediaCaptureWindowStateInternal(nsIDOMWindow* aWindow, bool* aVideo,
+                                           bool* aAudio);
 
   // ONLY access from MainThread so we don't need to lock
   WindowTable mActiveWindows;
