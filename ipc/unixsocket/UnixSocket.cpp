@@ -62,6 +62,8 @@ public:
 
   void QueueWriteData(UnixSocketRawData* aData)
   {
+    MOZ_ASSERT(!NS_IsMainThread());
+    MOZ_ASSERT(!IsShutdownOnIOThread());
     mOutgoingQ.AppendElement(aData);
     OnFileCanWriteWithoutBlocking(mFd);
   }
@@ -449,12 +451,11 @@ void ShutdownSocketTask::Run()
 {
   MOZ_ASSERT(!NS_IsMainThread());
 
-  // The receiver task should have been stopped at this point, but
-  // SocketReceiverTask runnables might still be pending the main
-  // thread. We enqueue the DeleteInstanceRunnable _after_ any pending
-  // SocketReceiverTask. Otherwise we might free 'impl' before those
-  // runnables have been executed.
-
+  // At this point, there should be no new events on the IO thread after this
+  // one with the possible exception of a SocketAcceptTask that
+  // ShutdownOnIOThread will cancel for us. We are now fully shut down, so we
+  // can send a message to the main thread that will delete mImpl safely knowing
+  // that no more tasks reference it.
   mImpl->ShutdownOnIOThread();
 
   nsRefPtr<nsIRunnable> t(new DeleteInstanceRunnable<UnixSocketImpl>(mImpl));
@@ -604,6 +605,16 @@ UnixSocketConsumer::UnixSocketConsumer() : mImpl(nullptr)
 
 UnixSocketConsumer::~UnixSocketConsumer()
 {
+}
+
+/* static */ void
+UnixSocketConsumer::RawSendSocketData(UnixSocketImpl* aImpl,
+                                      UnixSocketRawData* aData)
+{
+  MOZ_ASSERT(!NS_IsMainThread());
+  MOZ_ASSERT(aImpl && !aImpl->IsShutdownOnIOThread());
+
+  aImpl->QueueWriteData(aData);
 }
 
 bool

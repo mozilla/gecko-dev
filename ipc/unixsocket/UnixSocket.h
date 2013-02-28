@@ -133,6 +133,14 @@ public:
   virtual void ReceiveSocketData(UnixSocketRawData* aMessage) = 0;
 
   /**
+   * Queue data to be sent to the socket. Can only be called on the IO thread.
+   *
+   * @param aImpl Implementation to send the data on.
+   * @param aData Data to be sent to the socket.
+   */
+  static void RawSendSocketData(UnixSocketImpl* aImpl, UnixSocketRawData* aData);
+
+  /**
    * Queue data to be sent to the socket on the IO thread. Can only be called on
    * originating thread.
    *
@@ -216,8 +224,12 @@ public:
    */
   void GetSocketAddr(nsAString& aAddrStr);
 
-private:
+protected:
+  // This wants to be private (the class is opaque to consumers) but needs to
+  // be protected because of the BluetoothOppManager.
   UnixSocketImpl* mImpl;
+
+private:
   SocketConnectionStatus mConnectionStatus;
 };
 
