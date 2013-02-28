@@ -2568,7 +2568,7 @@ dnl ========================================================
 AC_PROG_GCC_TRADITIONAL
 _SAVE_LIBS="$LIBS"
 LIBS="$LIBS $OS_LIBS"
-AC_CHECK_FUNCS(dladdr gettid lchown setpriority strerror syscall)
+AC_CHECK_FUNCS(lchown strerror dladdr)
 LIBS="$_SAVE_LIBS"
 
 dnl AC_FUNC_MEMCMP
