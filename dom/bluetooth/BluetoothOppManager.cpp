@@ -119,44 +119,47 @@ BluetoothOppManagerObserver::Observe(nsISupports* aSubject,
   return NS_ERROR_UNEXPECTED;
 }
 
-class ReadFileTask : public nsRunnable
+class ReadFileTask : public Task
 {
 public:
-  ReadFileTask(nsIInputStream* aInputStream,
-               uint32_t aRemoteMaxPacketSize) : mInputStream(aInputStream)
+  ReadFileTask(UnixSocketImpl* aImpl,
+               nsIInputStream* aInputStream,
+               uint32_t aRemoteMaxPacketSize)
+    : mImpl(aImpl),
+      mInputStream(aInputStream)
   {
     MOZ_ASSERT(NS_IsMainThread());
 
     mAvailablePacketSize = aRemoteMaxPacketSize - kPutRequestHeaderSize;
   }
 
-  NS_IMETHOD Run()
+  virtual void Run()
   {
+    // NB: We know that we're not yet shutdown. We assert this under
+    // SendPutRequest (in RawSendSocketData).
     MOZ_ASSERT(!NS_IsMainThread());
 
     uint32_t numRead;
-    nsAutoArrayPtr<char> buf;
-    buf = new char[mAvailablePacketSize];
+    nsAutoArrayPtr<char> buf(new char[mAvailablePacketSize]);
 
     // function inputstream->Read() only works on non-main thread
     nsresult rv = mInputStream->Read(buf.get(), mAvailablePacketSize, &numRead);
     if (NS_FAILED(rv)) {
       // Needs error handling here
-      return NS_ERROR_FAILURE;
+      return;
     }
 
     if (numRead > 0) {
       if (sSentFileLength + numRead >= sFileLength) {
         sWaitingToSendPutFinal = true;
       }
-      sInstance->SendPutRequest((uint8_t*)buf.get(), numRead);
+      sInstance->SendPutRequest(mImpl, (uint8_t*)buf.get(), numRead);
       sSentFileLength += numRead;
     }
-
-    return NS_OK;
-  };
+  }
 
 private:
+  UnixSocketImpl* mImpl;
   nsCOMPtr<nsIInputStream> mInputStream;
   uint32_t mAvailablePacketSize;
 };
@@ -450,11 +453,6 @@ BluetoothOppManager::AfterOppDisconnected()
     mOutputStream->Close();
     mOutputStream = nullptr;
   }
-
-  if (mReadFileThread) {
-    mReadFileThread->Shutdown();
-    mReadFileThread = nullptr;
-  }
 }
 
 void
@@ -546,7 +544,7 @@ BluetoothOppManager::WriteToFile(const uint8_t* aData, int aDataLength)
 
   uint32_t wrote = 0;
   mOutputStream->Write((const char*)aData, aDataLength, &wrote);
-  if (aDataLength != wrote) {
+  if (uint32_t(aDataLength) != wrote) {
     NS_WARNING("Writing to the file failed");
     return false;
   }
@@ -610,13 +608,6 @@ BluetoothOppManager::ExtractBlobHeaders()
   }
 
   sFileLength = fileLength;
-  rv = NS_NewThread(getter_AddRefs(mReadFileThread));
-  if (NS_FAILED(rv)) {
-    NS_WARNING("Can't create thread");
-    SendDisconnectRequest();
-    return false;
-  }
-
   return true;
 }
 
@@ -869,9 +860,8 @@ BluetoothOppManager::ClientDataHandler(UnixSocketRawData* aMessage)
       mUpdateProgressCounter = sSentFileLength / kUpdateProgressBase + 1;
     }
 
-    nsresult rv;
     if (!mInputStream) {
-      rv = mBlob->GetInternalStream(getter_AddRefs(mInputStream));
+      nsresult rv = mBlob->GetInternalStream(getter_AddRefs(mInputStream));
       if (NS_FAILED(rv)) {
         NS_WARNING("Can't get internal stream of blob");
         SendDisconnectRequest();
@@ -879,13 +869,10 @@ BluetoothOppManager::ClientDataHandler(UnixSocketRawData* aMessage)
       }
     }
 
-    nsRefPtr<ReadFileTask> task = new ReadFileTask(mInputStream,
-                                                   mRemoteMaxPacketLength);
-    rv = mReadFileThread->Dispatch(task, NS_DISPATCH_NORMAL);
-    if (NS_FAILED(rv)) {
-      NS_WARNING("Cannot dispatch read file task!");
-      SendDisconnectRequest();
-    }
+    MOZ_ASSERT(mImpl);
+    XRE_GetIOMessageLoop()->PostTask(FROM_HERE,
+                                     new ReadFileTask(mImpl, mInputStream,
+                                                      mRemoteMaxPacketLength));
   } else {
     NS_WARNING("Unhandled ObexRequestCode");
   }
@@ -960,10 +947,32 @@ BluetoothOppManager::SendPutHeaderRequest(const nsAString& aFileName,
   delete [] req;
 }
 
+// See the comment in SendPutRequest for why this is necessary.
+class SetLastCommandRunnable : public nsRunnable
+{
+public:
+  SetLastCommandRunnable(int aCommand)
+    : mCommand(aCommand)
+  {
+    MOZ_ASSERT(!NS_IsMainThread());
+  }
+
+  NS_IMETHOD Run()
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+    sInstance->SetLastCommand(mCommand);
+    return NS_OK;
+  }
+
+private:
+  int mCommand;
+};
+
 void
-BluetoothOppManager::SendPutRequest(uint8_t* aFileBody,
+BluetoothOppManager::SendPutRequest(UnixSocketImpl* aImpl, uint8_t* aFileBody,
                                     int aFileBodyLength)
 {
+  MOZ_ASSERT(!NS_IsMainThread());
   int packetLeftSpace = mRemoteMaxPacketLength - kPutRequestHeaderSize;
 
   if (!mConnected) return;
@@ -974,19 +983,28 @@ BluetoothOppManager::SendPutRequest(uint8_t* aFileBody,
 
   // Section 3.3.3 "Put", IrOBEX 1.2
   // [opcode:1][length:2][Headers:var]
-  uint8_t* req = new uint8_t[mRemoteMaxPacketLength];
+  nsAutoArrayPtr<uint8_t> req(new uint8_t[mRemoteMaxPacketLength]);
 
   int index = 3;
   index += AppendHeaderBody(&req[index], aFileBody, aFileBodyLength);
 
   SetObexPacketInfo(req, ObexRequestCode::Put, index);
-  mLastCommand = ObexRequestCode::Put;
+
+  // We need to set mLastCommand at this point, but we're off the main thread,
+  // so we're not allowed to touch it. We fire an event at the main thread to do
+  // it for us. It is important to send the event before calling
+  // RawSendSocketData so that we set mLastCommand before any potential
+  // responses come back from the socket.
+  nsRefPtr<SetLastCommandRunnable> runnable(
+      new SetLastCommandRunnable(ObexRequestCode::Put));
+  nsresult rv = NS_DispatchToMainThread(runnable);
+  NS_ENSURE_SUCCESS_VOID(rv);
 
   UnixSocketRawData* s = new UnixSocketRawData(index);
   memcpy(s->mData, req, s->mSize);
-  SendSocketData(s);
 
-  delete [] req;
+  // We're already on the IO thread, so we can queue the write data directly.
+  UnixSocketConsumer::RawSendSocketData(aImpl, s);
 }
 
 void
