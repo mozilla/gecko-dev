@@ -21,10 +21,10 @@ endif #}
 
 ifeq (gonk,$(MOZ_WIDGET_TOOLKIT))
 DIRS += netd unixsocket
-endif
-
+else
 ifeq ($(OS_ARCH),Linux)
 DIRS += unixsocket
+endif
 endif
 
 TOOL_DIRS = app
