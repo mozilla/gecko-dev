@@ -472,6 +472,7 @@ var BrowserApp = {
                                       aTarget.ownerDocument);
       });
 
+    /* Temporarily disabled. See bug 844935.
     NativeWindow.contextmenus.add(Strings.browser.GetStringFromName("contextmenu.setWallpaper"),
       NativeWindow.contextmenus.imageSaveableContext,
       function(aTarget) {
@@ -483,6 +484,7 @@ var BrowserApp = {
           }
         });
       });
+    */
   },
 
   onAppUpdated: function() {
