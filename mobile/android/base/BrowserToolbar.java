@@ -549,6 +549,7 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         proxy.setAlpha(1);
 
         final PropertyAnimator contentAnimator = new PropertyAnimator(250);
+        contentAnimator.setUseHardwareLayer(false);
 
         // Shrink the awesome entry back to its original size
         contentAnimator.attach(mAwesomeBarRightEdge,
@@ -629,6 +630,7 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         }
 
         final PropertyAnimator contentAnimator = new PropertyAnimator(250);
+        contentAnimator.setUseHardwareLayer(false);
 
         int translation = prepareAwesomeBarAnimation();
 
