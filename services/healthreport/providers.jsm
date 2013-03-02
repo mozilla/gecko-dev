@@ -764,7 +764,7 @@ DailyCrashesMeasurement.prototype = Object.freeze({
 
   configureStorage: function () {
     this.registerStorageField("pending", this.storage.FIELD_DAILY_COUNTER);
-    this.registerStorageField("submitted", this.storage.FIELD_DAILY_COUNTER);
+    return this.registerStorageField("submitted", this.storage.FIELD_DAILY_COUNTER);
   },
 });
 
