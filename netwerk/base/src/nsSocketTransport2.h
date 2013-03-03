@@ -23,7 +23,12 @@
 #include "nsICancelable.h"
 #include "nsIClassInfo.h"
 
+#include "prerror.h"
+
 class nsSocketTransport;
+
+nsresult
+ErrorAccordingToNSPR(PRErrorCode errorCode);
 
 //-----------------------------------------------------------------------------
 
