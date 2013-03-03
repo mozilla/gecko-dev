@@ -291,10 +291,10 @@ nsDOMMultipartFile::InitFile(JSContext* aCx,
     nativeEOL = d.endings == EndingTypesValues::Native;
   }
 
-  // We expect to get a path to represent as a File object,
-  // an nsIFile, or an nsIDOMFile.
+  // We expect to get a path to represent as a File object or
+  // Blob object, an nsIFile, or an nsIDOMFile.
   nsCOMPtr<nsIFile> file;
-  nsCOMPtr<nsIDOMFile> domFile;
+  nsCOMPtr<nsIDOMBlob> blob;
   if (!aArgv[0].isString()) {
     // Lets see if it's an nsIFile
     if (!aArgv[0].isObject()) {
@@ -309,9 +309,9 @@ nsDOMMultipartFile::InitFile(JSContext* aCx,
       return NS_ERROR_UNEXPECTED;
     }
 
-    domFile = do_QueryInterface(supports);
+    blob = do_QueryInterface(supports);
     file = do_QueryInterface(supports);
-    if (!domFile && !file) {
+    if (!blob && !file) {
       return NS_ERROR_UNEXPECTED;
     }
   } else {
@@ -343,16 +343,16 @@ nsDOMMultipartFile::InitFile(JSContext* aCx,
       file->GetLeafName(mName);
     }
 
-    domFile = new nsDOMFileFile(file);
+    blob = new nsDOMFileFile(file);
   }
-  
+
   // XXXkhuey this is terrible
   if (mContentType.IsEmpty()) {
-    domFile->GetType(mContentType);
+    blob->GetType(mContentType);
   }
 
   BlobSet blobSet;
-  blobSet.AppendBlob(domFile);
+  blobSet.AppendBlob(blob);
   mBlobs = blobSet.GetBlobs();
 
   return NS_OK;
