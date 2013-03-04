@@ -4082,12 +4082,6 @@ var XULBrowserWindow = {
         // persist across the first location change.
         let nBox = gBrowser.getNotificationBox(selectedBrowser);
         nBox.removeTransientNotifications();
-
-        // Only need to call locationChange if the PopupNotifications object
-        // for this window has already been initialized (i.e. its getter no
-        // longer exists)
-        if (!__lookupGetter__("PopupNotifications"))
-          PopupNotifications.locationChange();
       }
     }
 
@@ -4122,6 +4116,18 @@ var XULBrowserWindow = {
         // Update starring UI
         PlacesStarButton.updateState();
         SocialShareButton.updateShareState();
+      }
+
+      // Filter out anchor navigation, history.push/pop/replaceState and
+      // tab switches.
+      if (aRequest) {
+        // Only need to call locationChange if the PopupNotifications object
+        // for this window has already been initialized (i.e. its getter no
+        // longer exists)
+        // XXX bug 839445: We never tell PopupNotifications about location
+        // changes in background tabs.
+        if (!__lookupGetter__("PopupNotifications"))
+          PopupNotifications.locationChange();
       }
 
       // Show or hide browser chrome based on the whitelist
