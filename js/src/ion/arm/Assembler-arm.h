@@ -1220,6 +1220,13 @@ class Assembler
         dtmActive(false),
         dtmCond(Always)
     {
+    }
+
+    // We need to wait until an AutoIonContextAlloc is created by the
+    // IonMacroAssembler, before allocating any space.
+    void initWithAllocator() {
+        m_buffer.initWithAllocator();
+
         // Set up the backwards double region
         new (&pools_[2]) Pool (1024, 8, 4, 8, 8, true);
         // Set up the backwards 32 bit region
@@ -1235,6 +1242,7 @@ class Assembler
             }
         }
     }
+
     static Condition InvertCondition(Condition cond);
 
     // MacroAssemblers hold onto gcthings, so they are traced by the GC.

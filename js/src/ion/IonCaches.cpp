@@ -623,7 +623,7 @@ bool
 IonCacheGetProperty::attachReadSlot(JSContext *cx, IonScript *ion, JSObject *obj, JSObject *holder,
                                     HandleShape shape)
 {
-    MacroAssembler masm;
+    MacroAssembler masm(cx);
     RepatchLabel failures;
 
     GetNativePropertyStub getprop;
@@ -660,7 +660,7 @@ IonCacheGetProperty::attachCallGetter(JSContext *cx, IonScript *ion, JSObject *o
                                       const SafepointIndex *safepointIndex, void *returnAddr)
 {
     AssertCanGC();
-    MacroAssembler masm;
+    MacroAssembler masm(cx);
     RepatchLabel failures;
 
     JS_ASSERT(!idempotent());
@@ -713,7 +713,7 @@ IonCacheGetProperty::attachDenseArrayLength(JSContext *cx, IonScript *ion, JSObj
     JS_ASSERT(!idempotent());
 
     Label failures;
-    MacroAssembler masm;
+    MacroAssembler masm(cx);
 
     // Guard object is a dense array.
     RootedObject globalObj(cx, &script->global());
@@ -786,7 +786,7 @@ IonCacheGetProperty::attachTypedArrayLength(JSContext *cx, IonScript *ion, JSObj
     JS_ASSERT(!idempotent());
 
     Label failures;
-    MacroAssembler masm;
+    MacroAssembler masm(cx);
 
     Register tmpReg;
     if (output().hasValue()) {
@@ -1049,7 +1049,7 @@ bool
 IonCacheSetProperty::attachNativeExisting(JSContext *cx, IonScript *ion,
                                           HandleObject obj, HandleShape shape)
 {
-    MacroAssembler masm;
+    MacroAssembler masm(cx);
 
     RepatchLabel exit_;
     CodeOffsetJump exitOffset =
@@ -1111,7 +1111,7 @@ IonCacheSetProperty::attachSetterCall(JSContext *cx, IonScript *ion,
                                       HandleObject obj, HandleObject holder, HandleShape shape,
                                       void *returnAddr)
 {
-    MacroAssembler masm;
+    MacroAssembler masm(cx);
 
     // Need to set correct framePushed on the masm so that exit frame descriptors are
     // properly constructed.
@@ -1298,7 +1298,7 @@ IonCacheSetProperty::attachNativeAdding(JSContext *cx, IonScript *ion, JSObject 
                                         HandleShape oldShape, HandleShape newShape,
                                         HandleShape propShape)
 {
-    MacroAssembler masm;
+    MacroAssembler masm(cx);
 
     Label failures;
 
@@ -1580,7 +1580,7 @@ IonCacheGetElement::attachGetProp(JSContext *cx, IonScript *ion, HandleObject ob
 
     RepatchLabel failures;
     Label nonRepatchFailures;
-    MacroAssembler masm;
+    MacroAssembler masm(cx);
 
     // Guard on the index value.
     ValueOperand val = index().reg().valueReg();
@@ -1619,7 +1619,7 @@ IonCacheGetElement::attachDenseArray(JSContext *cx, IonScript *ion, JSObject *ob
     JS_ASSERT(idval.isInt32());
 
     Label failures;
-    MacroAssembler masm;
+    MacroAssembler masm(cx);
 
     // Guard object is a dense array.
     RootedObject globalObj(cx, &script->global());
@@ -1744,7 +1744,7 @@ IonCacheBindName::attachGlobal(JSContext *cx, IonScript *ion, JSObject *scopeCha
 {
     JS_ASSERT(scopeChain->isGlobal());
 
-    MacroAssembler masm;
+    MacroAssembler masm(cx);
 
     // Guard on the scope chain.
     RepatchLabel exit_;
@@ -1834,7 +1834,7 @@ IonCacheBindName::attachNonGlobal(JSContext *cx, IonScript *ion, JSObject *scope
 {
     JS_ASSERT(IsCacheableNonGlobalScope(scopeChain));
 
-    MacroAssembler masm;
+    MacroAssembler masm(cx);
 
     // Guard on the shape of the scope chain.
     RepatchLabel failures;
@@ -1956,7 +1956,7 @@ IonCacheName::attach(JSContext *cx, IonScript *ion, HandleObject scopeChain, Han
                      HandleShape shape)
 {
     AssertCanGC();
-    MacroAssembler masm;
+    MacroAssembler masm(cx);
     Label failures;
 
     Register scratchReg = outputReg().valueReg().scratchReg();
