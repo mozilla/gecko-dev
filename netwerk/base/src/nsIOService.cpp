@@ -692,7 +692,9 @@ nsIOService::SetOffline(bool offline)
     }
 
     nsIIOService *subject = static_cast<nsIIOService *>(this);
+#ifdef DEBUG
     nsresult rv;
+#endif
     while (mSetOfflineValue != mOffline) {
         offline = mSetOfflineValue;
 
@@ -721,7 +723,10 @@ nsIOService::SetOffline(bool offline)
             // go online
             if (mDNSService) {
                 mDNSService->SetOffline(false);
-                rv = mDNSService->Init();
+#ifdef DEBUG
+                rv =
+#endif
+                    mDNSService->Init();
                 NS_ASSERTION(NS_SUCCEEDED(rv), "DNS service init failed");
             }
             InitializeSocketTransportService();
@@ -745,11 +750,17 @@ nsIOService::SetOffline(bool offline)
         // be sure to try and shutdown both (even if the first fails)...
         // shutdown dns service first, because it has callbacks for socket transport
         if (mDNSService) {
-            rv = mDNSService->Shutdown();
+#ifdef DEBUG
+                rv =
+#endif
+                 mDNSService->Shutdown();
             NS_ASSERTION(NS_SUCCEEDED(rv), "DNS service shutdown failed");
         }
         if (mSocketTransportService) {
-            rv = mSocketTransportService->Shutdown();
+#ifdef DEBUG
+                rv =
+#endif
+                 mSocketTransportService->Shutdown();
             NS_ASSERTION(NS_SUCCEEDED(rv), "socket transport service shutdown failed");
         }
     }

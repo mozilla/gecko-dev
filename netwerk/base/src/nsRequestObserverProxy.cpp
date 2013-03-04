@@ -90,7 +90,10 @@ public:
 
     NS_IMETHOD Run()
     {
-        nsresult rv, status = NS_OK;
+#ifdef DEBUG
+        nsresult rv;
+#endif
+        nsresult status = NS_OK;
 
         LOG(("nsOnStopRequestEvent::HandleEvent [req=%x]\n", mRequest.get()));
 
@@ -102,7 +105,10 @@ public:
         // Do not allow any more events to be handled after OnStopRequest
         mProxy->mObserver = 0;
 
-        rv = mRequest->GetStatus(&status);
+#ifdef DEBUG
+                rv =
+#endif
+             mRequest->GetStatus(&status);
         NS_ASSERTION(NS_SUCCEEDED(rv), "GetStatus failed for request!");
 
         LOG(("handle stopevent=%p\n", this));
