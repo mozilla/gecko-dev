@@ -115,7 +115,7 @@ MobileICCCardLockResult.prototype = {
 
 function MobileICCInfo() {
   try {
-    this.lastKnownMcc = Services.prefs.getIntPref("ril.lastKnownMcc");
+    this.lastKnownMcc = Services.prefs.getCharPref("ril.lastKnownMcc");
   } catch (e) {}
 };
 MobileICCInfo.prototype = {
@@ -894,7 +894,7 @@ RILContentHelper.prototype = {
         this.updateICCInfo(msg.json, this.iccInfo);
         if (this.iccInfo.mcc) {
           try {
-            Services.prefs.setIntPref("ril.lastKnownMcc", this.iccInfo.mcc);
+            Services.prefs.setCharPref("ril.lastKnownMcc", this.iccInfo.mcc);
           } catch (e) {}
         }
         Services.obs.notifyObservers(null, kIccInfoChangedTopic, null);
