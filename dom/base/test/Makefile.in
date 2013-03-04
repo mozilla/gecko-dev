@@ -16,6 +16,7 @@ MOCHITEST_FILES = \
   test_gsp-quirks.html \
   test_nondomexception.html \
   test_screen_orientation.html \
+  test_domcursor.html \
   $(NULL)
 
 MOCHITEST_CHROME_FILES = \
