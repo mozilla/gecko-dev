@@ -674,18 +674,26 @@ SampleValue(float aPortion, Animation& aAnimation, nsStyleAnimation::Value& aSta
 
   TransformData& data = aAnimation.data().get_TransformData();
   nsPoint origin = data.origin();
-  int32_t auPerCSSPixel = nsDeviceContext::AppUnitsPerCSSPixel();
+  // we expect all our transform data to arrive in css pixels, so here we must
+  // adjust to dev pixels.
+  double cssPerDev = double(nsDeviceContext::AppUnitsPerCSSPixel())
+                     / double(data.appUnitsPerDevPixel());
+  gfxPoint3D mozOrigin = data.mozOrigin();
+  mozOrigin.x = mozOrigin.x * cssPerDev;
+  mozOrigin.y = mozOrigin.y * cssPerDev;
+  gfxPoint3D perspectiveOrigin = data.perspectiveOrigin();
+  perspectiveOrigin.x = perspectiveOrigin.x * cssPerDev;
+  perspectiveOrigin.y = perspectiveOrigin.y * cssPerDev;
   gfx3DMatrix transform =
     nsDisplayTransform::GetResultingTransformMatrix(
-      nullptr, origin, auPerCSSPixel,
-      &data.bounds(), interpolatedList, &data.mozOrigin(),
-      &data.perspectiveOrigin(), &data.perspective());
-  // NB: See nsDisplayTransform::GetTransform().
-  gfxPoint3D newOrigin =
-    gfxPoint3D(NS_round(NSAppUnitsToFloatPixels(origin.x, auPerCSSPixel)),
-               NS_round(NSAppUnitsToFloatPixels(origin.y, auPerCSSPixel)),
+      nullptr, origin, data.appUnitsPerDevPixel(),
+      &data.bounds(), interpolatedList, &mozOrigin,
+      &perspectiveOrigin, &data.perspective());
+  gfxPoint3D scaledOrigin =
+    gfxPoint3D(NS_round(NSAppUnitsToFloatPixels(origin.x, data.appUnitsPerDevPixel())),
+               NS_round(NSAppUnitsToFloatPixels(origin.y, data.appUnitsPerDevPixel())),
                0.0f);
-  transform.Translate(newOrigin);
+  transform.Translate(scaledOrigin);
 
   InfallibleTArray<TransformFunction> functions;
   functions.AppendElement(TransformMatrix(transform));
