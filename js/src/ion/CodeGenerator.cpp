@@ -933,7 +933,7 @@ CodeGenerator::visitCallDOMNative(LCallDOMNative *call)
     } else {
         // Test for failure.
         Label success, exception;
-        masm.branchTest32(Assembler::Zero, ReturnReg, ReturnReg, &exception);
+        masm.branchTestBool(Assembler::Zero, ReturnReg, ReturnReg, &exception);
 
         // Load the outparam vp[0] into output register(s).
         masm.loadValue(Address(StackPointer, IonDOMMethodExitFrameLayout::offsetOfResult()),
@@ -4811,7 +4811,7 @@ CodeGenerator::visitGetDOMProperty(LGetDOMProperty *ins)
                        JSReturnOperand);
     } else {
         Label success, exception;
-        masm.branchTest32(Assembler::Zero, ReturnReg, ReturnReg, &exception);
+        masm.branchTestBool(Assembler::Zero, ReturnReg, ReturnReg, &exception);
 
         masm.loadValue(Address(StackPointer, IonDOMExitFrameLayout::offsetOfResult()),
                        JSReturnOperand);
@@ -4873,7 +4873,7 @@ CodeGenerator::visitSetDOMProperty(LSetDOMProperty *ins)
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ins->mir()->fun()));
 
     Label success, exception;
-    masm.branchTest32(Assembler::Zero, ReturnReg, ReturnReg, &exception);
+    masm.branchTestBool(Assembler::Zero, ReturnReg, ReturnReg, &exception);
 
     masm.jump(&success);
 
