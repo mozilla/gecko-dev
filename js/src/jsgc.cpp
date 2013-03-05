@@ -2689,7 +2689,7 @@ MaybeGC(JSContext *cx)
         return;
     }
 
-    double factor = rt->gcHighFrequencyGC ? 0.75 : 0.9;
+    double factor = rt->gcHighFrequencyGC ? 0.85 : 0.9;
     JSCompartment *comp = cx->compartment;
     if (comp->gcBytes > 1024 * 1024 &&
         comp->gcBytes >= factor * comp->gcTriggerBytes &&
