@@ -117,9 +117,6 @@ public class TabsPanel extends LinearLayout
         Resources resources = getContext().getResources();
 
         mTabWidget = (IconTabWidget) findViewById(R.id.tab_widget);
-        mTabWidget.addTab(R.drawable.tabs_normal);
-        mTabWidget.addTab(R.drawable.tabs_private);
-        mTabWidget.addTab(R.drawable.tabs_synced);
 
         button = mTabWidget.addTab(R.drawable.tabs_normal);
         button.setContentDescription(resources.getString(R.string.tabs_normal));
