@@ -1777,6 +1777,7 @@ pref("dom.archivereader.enabled", false);
 // resolved.
 pref("hangmonitor.timeout", 0);
 
+pref("plugins.load_appdir_plugins", false);
 // If true, plugins will be click to play
 pref("plugins.click_to_play", false);
 
