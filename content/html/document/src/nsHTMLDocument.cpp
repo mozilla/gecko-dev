@@ -330,7 +330,7 @@ nsHTMLDocument::TryHintCharset(nsIMarkupDocumentViewer* aMarkupDV,
       if(requestCharsetSource <= aCharsetSource)
         return;
 
-      if(NS_SUCCEEDED(rv) && EncodingUtils::EncodingUtils::IsAsciiCompatible(requestCharset)) {
+      if(NS_SUCCEEDED(rv) && EncodingUtils::IsAsciiCompatible(requestCharset)) {
         aCharsetSource = requestCharsetSource;
         aCharset = requestCharset;
 
