@@ -19,7 +19,6 @@ const DEBUG = false;
 
 const kNetworkInterfaceStateChangedTopic = "network-interface-state-changed";
 const kXpcomShutdownObserverTopic        = "xpcom-shutdown";
-const kPrefenceChangedObserverTopic      = "nsPref:changed";
 
 // File modes for saving MMS attachments.
 const FILE_OPEN_MODE = FileUtils.MODE_CREATE
@@ -58,20 +57,6 @@ XPCOMUtils.defineLazyGetter(this, "MMS", function () {
 function MmsService() {
   Services.obs.addObserver(this, kXpcomShutdownObserverTopic, false);
   Services.obs.addObserver(this, kNetworkInterfaceStateChangedTopic, false);
-  this.MMSProxySettings.forEach(function(name) {
-    Services.prefs.addObserver(name, this, false);
-  }, this);
-
-  try {
-    this.MMSC = Services.prefs.getCharPref("ril.mms.mmsc");
-    this.MMSProxy = Services.prefs.getCharPref("ril.mms.mmsproxy");
-    this.MMSPort = Services.prefs.getIntPref("ril.mms.mmsport");
-    this.updateMMSProxyInfo();
-  } catch (e) {
-    debug("Failed to initialize the MMS proxy settings from the preference.");
-    this.clearMMSProxySettings();
-  }
-
   try {
     this.urlUAProf = Services.prefs.getCharPref('wap.UAProf.url');
   } catch (e) {
@@ -97,15 +82,8 @@ MmsService.prototype = {
    */
   confSendDeliveryReport: CONFIG_SEND_REPORT_DEFAULT_YES,
 
-  /** MMS proxy settings. */
+  proxyInfo: null,
   MMSC: null,
-  MMSProxy: null,
-  MMSPort: null,
-  MMSProxyInfo: null,
-  MMSProxySettings: ["ril.mms.mmsc",
-                     "ril.mms.mmsproxy",
-                     "ril.mms.mmsport"],
-  MMSNetworkConnected: false,
 
   /** MMS proxy filter reference count. */
   proxyFilterRefCount: 0,
@@ -561,31 +539,30 @@ MmsService.prototype = {
   },
 
   /**
-   * Update the MMS proxy info.
+   * Update proxyInfo & MMSC from preferences.
+   *
+   * @param enabled
+   *        Enable or disable MMS proxy.
    */
-  updateMMSProxyInfo: function updateMMSProxyInfo() {
-    if (this.MMSProxy === null || this.MMSPort === null) {
-      debug("updateMMSProxyInfo: MMSProxy or MMSPort is not yet decided." );
-      return;
+  updateProxyInfo: function updateProxyInfo(enabled) {
+    try {
+      if (enabled) {
+        this.MMSC = Services.prefs.getCharPref("ril.data.mmsc");
+        this.proxyInfo = gpps.newProxyInfo("http",
+                                           Services.prefs.getCharPref("ril.data.mmsproxy"),
+                                           Services.prefs.getIntPref("ril.data.mmsport"),
+                                           Ci.nsIProxyInfo.TRANSPARENT_PROXY_RESOLVES_HOST,
+                                           -1, null);
+        debug("updateProxyInfo: "
+              + JSON.stringify({MMSC: this.MMSC, proxyInfo: this.proxyInfo}));
+        return;
+      }
+    } catch (e) {
+      // Failed to refresh proxy info from settings. Fallback to disable.
     }
 
-    this.MMSProxyInfo =
-      gpps.newProxyInfo("http",
-                        this.MMSProxy,
-                        this.MMSPort,
-                        Ci.nsIProxyInfo.TRANSPARENT_PROXY_RESOLVES_HOST,
-                        -1, null);
-    debug("updateMMSProxyInfo: " + JSON.stringify(this.MMSProxyInfo));
-  },
-
-  /**
-   * Clear the MMS proxy settings.
-   */
-  clearMMSProxySettings: function clearMMSProxySettings() {
     this.MMSC = null;
-    this.MMSProxy = null;
-    this.MMSPort = null;
-    this.MMSProxyInfo = null;
+    this.proxyInfo = null;
   },
 
   // nsIMmsService
@@ -606,43 +583,15 @@ MmsService.prototype = {
     switch (topic) {
       case kNetworkInterfaceStateChangedTopic: {
         let iface = subject.QueryInterface(Ci.nsINetworkInterface);
-        if (iface.type != Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE &&
-            iface.type != Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS) {
-          return;
+        if ((iface.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE)
+            || (iface.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS)) {
+          this.updateProxyInfo(iface.state == Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED);
         }
-        this.MMSNetworkConnected =
-          iface.state == Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED;
         break;
       }
       case kXpcomShutdownObserverTopic: {
         Services.obs.removeObserver(this, kXpcomShutdownObserverTopic);
         Services.obs.removeObserver(this, kNetworkInterfaceStateChangedTopic);
-        this.MMSProxySettings.forEach(function(name) {
-          Services.prefs.removeObserver(name, this);
-        }, this);
-        break;
-      }
-      case kPrefenceChangedObserverTopic: {
-        try {
-          switch (data) {
-            case "ril.mms.mmsc":
-              this.MMSC = Services.prefs.getCharPref("ril.mms.mmsc");
-              break;
-            case "ril.mms.mmsproxy":
-              this.MMSProxy = Services.prefs.getCharPref("ril.mms.mmsproxy");
-              this.updateMMSProxyInfo();
-              break;
-            case "ril.mms.mmsport":
-              this.MMSPort = Services.prefs.getIntPref("ril.mms.mmsport");
-              this.updateMMSProxyInfo();
-              break;
-            default:
-              break;
-          }
-        } catch (e) {
-          debug("Failed to update the MMS proxy settings from the preference.");
-          this.clearMMSProxySettings();
-        }
         break;
       }
     }
@@ -651,27 +600,13 @@ MmsService.prototype = {
   // nsIProtocolProxyFilter
 
   applyFilter: function applyFilter(service, uri, proxyInfo) {
-    if (!this.MMSNetworkConnected) {
-      debug("applyFilter: the MMS network is not connected.");
-      return proxyInfo;
-     }
-
-    if (this.MMSC === null || uri.prePath != this.MMSC) {
-      debug("applyFilter: MMSC is not matched.");
-      return proxyInfo;
+    if (uri.prePath == this.MMSC) {
+      debug("applyFilter: match " + uri.spec);
+      return this.proxyInfo;
     }
 
-    if (this.MMSProxyInfo === null) {
-      debug("applyFilter: MMS proxy info is not yet decided.");
-      return proxyInfo;
-    }
-
-    // Fall-through, reutrn the MMS proxy info.
-    debug("applyFilter: MMSC is matched: " +
-          JSON.stringify({ MMSC: this.MMSC,
-                           MMSProxyInfo: this.MMSProxyInfo }));
-    return this.MMSProxyInfo;
-  }
+    return proxyInfo;
+  },
 };
 
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory([MmsService]);
