@@ -26,7 +26,7 @@ healthreport_depends = \
   ../common/async.js \
   ../common/bagheeraclient.js \
   ../metrics/Metrics.jsm \
-  ../metrics/collector.jsm \
+  ../metrics/providermanager.jsm \
   ../metrics/dataprovider.jsm \
   ../metrics/storage.jsm \
   healthreporter.jsm \
