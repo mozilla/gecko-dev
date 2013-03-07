@@ -1709,6 +1709,11 @@ window[tabsontop="false"] richlistitem[type~="action"][actiontype="switchtab"][s
   margin-top: 1em;
 }
 
+/* transitions disabled on Mac for Fx 20 and 21 due to bug 846334 */
+.social-panel > .panel-arrowcontainer[panelopen] {
+  transition: none;
+}
+
 /* STAR BUTTON */
 #star-button {
   list-style-image: url("chrome://browser/skin/places/star-icons.png");
