@@ -191,27 +191,20 @@ static const AllocKind FinalizePhaseScripts[] = {
     FINALIZE_SCRIPT
 };
 
-static const AllocKind FinalizePhaseIonCode[] = {
-    FINALIZE_IONCODE
-};
-
 static const AllocKind* FinalizePhases[] = {
     FinalizePhaseStrings,
-    FinalizePhaseScripts,
-    FinalizePhaseIonCode
+    FinalizePhaseScripts
 };
 static const int FinalizePhaseCount = sizeof(FinalizePhases) / sizeof(AllocKind*);
 
 static const int FinalizePhaseLength[] = {
     sizeof(FinalizePhaseStrings) / sizeof(AllocKind),
-    sizeof(FinalizePhaseScripts) / sizeof(AllocKind),
-    sizeof(FinalizePhaseIonCode) / sizeof(AllocKind)
+    sizeof(FinalizePhaseScripts) / sizeof(AllocKind)
 };
 
 static const gcstats::Phase FinalizePhaseStatsPhase[] = {
     gcstats::PHASE_SWEEP_STRING,
-    gcstats::PHASE_SWEEP_SCRIPT,
-    gcstats::PHASE_SWEEP_IONCODE
+    gcstats::PHASE_SWEEP_SCRIPT
 };
 
 /*
@@ -1466,7 +1459,7 @@ void
 ArenaLists::queueIonCodeForSweep(FreeOp *fop)
 {
     gcstats::AutoPhase ap(fop->runtime()->gcStats, gcstats::PHASE_SWEEP_IONCODE);
-    queueForForegroundSweep(fop, FINALIZE_IONCODE);
+    finalizeNow(fop, FINALIZE_IONCODE);
 }
 
 void
