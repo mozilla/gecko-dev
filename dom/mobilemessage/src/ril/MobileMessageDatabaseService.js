@@ -165,7 +165,6 @@ MobileMessageDatabaseService.prototype = {
       }
 
       let db = event.target.result;
-
       let currentVersion = event.oldVersion;
       while (currentVersion != event.newVersion) {
         switch (currentVersion) {
@@ -413,8 +412,8 @@ MobileMessageDatabaseService.prototype = {
     };
   },
 
-  createSmsMessageFromRecord: function createSmsMessageFromRecord(aRecord) {
-    if (DEBUG) debug("createSmsMessageFromRecord: " + JSON.stringify(aRecord));
+  createMessageFromRecord: function createMessageFromRecord(aRecord) {
+    if (DEBUG) debug("createMessageFromRecord: " + JSON.stringify(aRecord));
     return gSmsService.createSmsMessage(aRecord.id,
                                         aRecord.delivery,
                                         aRecord.deliveryStatus,
@@ -482,7 +481,7 @@ MobileMessageDatabaseService.prototype = {
     let getRequest = aObjectStore.get(firstMessageId);
     let self = this;
     getRequest.onsuccess = function onsuccess(event) {
-      let sms = self.createSmsMessageFromRecord(event.target.result);
+      let sms = self.createMessageFromRecord(event.target.result);
       if (aMessageList.listId >= 0) {
         if (DEBUG) {
           debug("notifyNextMessageInListGot - listId: "
@@ -657,7 +656,8 @@ MobileMessageDatabaseService.prototype = {
       if (!aCallback) {
         return;
       }
-      aCallback.notify(rv, aRecord);
+      let sms = self.createMessageFromRecord(aRecord);
+      aCallback.notify(rv, sms);
     }
 
     this.newTxn(READ_WRITE, function(error, txn, stores) {
@@ -677,8 +677,9 @@ MobileMessageDatabaseService.prototype = {
       // First add to main objectStore.
       stores[0].put(aRecord);
 
-      // Next update the other objectStore.
       let number = getNumberFromRecord(aRecord);
+
+      // Next update the other objectStore.
       stores[1].get(number).onsuccess = function onsuccess(event) {
         let mostRecentEntry = event.target.result;
         if (mostRecentEntry) {
@@ -711,96 +712,101 @@ MobileMessageDatabaseService.prototype = {
     return aRecord.id;
   },
 
-  getRilIccInfoMsisdn: function getRilIccInfoMsisdn() {
-    let iccInfo = this.mRIL.rilContext.icc;
-    let number = iccInfo ? iccInfo.msisdn : null;
-
-    // Workaround an xpconnect issue with undefined string objects.
-    // See bug 808220
-    if (number === undefined || number === "undefined") {
-      return null;
-    }
-    return number;
-  },
-
-  makePhoneNumberInternational: function makePhoneNumberInternational(aNumber) {
-    if (!aNumber) {
-      return aNumber;
-    }
-    let parsedNumber = PhoneNumberUtils.parse(aNumber.toString());
-    if (!parsedNumber || !parsedNumber.internationalNumber) {
-      return aNumber;
-    }
-    return parsedNumber.internationalNumber;
-  },
 
   /**
    * nsIRilMobileMessageDatabaseService API
    */
 
-  saveReceivedMessage: function saveReceivedMessage(aMessage, aCallback) {
-    if (aMessage.type === undefined ||
-        aMessage.sender === undefined ||
-        aMessage.messageClass === undefined ||
-        aMessage.timestamp === undefined) {
-      if (aCallback) {
-        aCallback.notify(Cr.NS_ERROR_FAILURE, null);
-      }
-      return;
+  saveReceivedMessage: function saveReceivedMessage(
+      aSender, aBody, aMessageClass, aDate, aCallback) {
+    let receiver = this.mRIL.rilContext.icc
+                 ? this.mRIL.rilContext.icc.msisdn
+                 : null;
+
+    // Workaround an xpconnect issue with undefined string objects.
+    // See bug 808220
+    if (receiver === undefined || receiver === "undefined") {
+      receiver = null;
     }
 
-    let receiver = this.getRilIccInfoMsisdn();
-    receiver = this.makePhoneNumberInternational(receiver);
+    if (receiver) {
+      let parsedNumber = PhoneNumberUtils.parse(receiver);
+      receiver = (parsedNumber && parsedNumber.internationalNumber)
+                 ? parsedNumber.internationalNumber
+                 : receiver;
+    }
 
-    let sender = aMessage.sender =
-      this.makePhoneNumberInternational(aMessage.sender);
+    let sender = aSender;
+    if (sender) {
+      let parsedNumber = PhoneNumberUtils.parse(sender);
+      sender = (parsedNumber && parsedNumber.internationalNumber)
+               ? parsedNumber.internationalNumber
+               : sender;
+    }
 
-    let timestamp = aMessage.timestamp;
+    let record = {
+      deliveryIndex:  [DELIVERY_RECEIVED, aDate],
+      numberIndex:    [[sender, aDate], [receiver, aDate]],
+      readIndex:      [FILTER_READ_UNREAD, aDate],
 
-    // Adding needed indexes and extra attributes for internal use.
-    aMessage.deliveryIndex = [DELIVERY_RECEIVED, timestamp];
-    aMessage.numberIndex = [[sender, timestamp], [receiver, timestamp]];
-    aMessage.readIndex = [FILTER_READ_UNREAD, timestamp];
-    aMessage.delivery = DELIVERY_RECEIVED;
-    aMessage.deliveryStatus = DELIVERY_STATUS_SUCCESS;
-    aMessage.receiver = receiver;
-    aMessage.read = FILTER_READ_UNREAD;
-
-    return this.saveRecord(aMessage, aCallback);
+      delivery:       DELIVERY_RECEIVED,
+      deliveryStatus: DELIVERY_STATUS_SUCCESS,
+      sender:         sender,
+      receiver:       receiver,
+      body:           aBody,
+      messageClass:   aMessageClass,
+      timestamp:      aDate,
+      read:           FILTER_READ_UNREAD
+    };
+    return this.saveRecord(record, aCallback);
   },
 
-  saveSendingMessage: function saveSendingMessage(aMessage, aCallback) {
-    if (aMessage.type === undefined ||
-        aMessage.receiver === undefined ||
-        aMessage.deliveryStatus === undefined ||
-        aMessage.timestamp === undefined) {
-      if (aCallback) {
-        aCallback.notify(Cr.NS_ERROR_FAILURE, null);
-      }
-      return;
-    }
-
-    let sender = this.getRilIccInfoMsisdn();
-    let receiver = aMessage.receiver;
-
+  saveSendingMessage: function saveSendingMessage(
+      aReceiver, aBody, aDeliveryStatus, aDate, aCallback) {
     let rilContext = this.mRIL.rilContext;
-    if (rilContext.voice.network.mcc === rilContext.iccInfo.mcc) {
-      receiver = aMessage.receiver = this.makePhoneNumberInternational(receiver);
-      sender = this.makePhoneNumberInternational(sender);
+    let sender = rilContext.icc
+               ? rilContext.icc.msisdn
+               : null;
+
+    // Workaround an xpconnect issue with undefined string objects.
+    // See bug 808220
+    if (sender === undefined || sender === "undefined") {
+      sender = null;
     }
 
-    let timestamp = aMessage.timestamp;
+    let receiver = aReceiver;
 
-    // Adding needed indexes and extra attributes for internal use.
-    aMessage.deliveryIndex = [DELIVERY_SENDING, timestamp];
-    aMessage.numberIndex = [[sender, timestamp], [receiver, timestamp]];
-    aMessage.readIndex = [FILTER_READ_READ, timestamp];
-    aMessage.delivery = DELIVERY_SENDING;
-    aMessage.sender = sender;
-    aMessage.messageClass = MESSAGE_CLASS_NORMAL;
-    aMessage.read = FILTER_READ_READ;
+    if (rilContext.voice.network.mcc === rilContext.icc.mcc) {
+      if (receiver) {
+        let parsedNumber = PhoneNumberUtils.parse(receiver.toString());
+        receiver = (parsedNumber && parsedNumber.internationalNumber)
+                   ? parsedNumber.internationalNumber
+                   : receiver;
+      }
 
-    return this.saveRecord(aMessage, aCallback);
+      if (sender) {
+        let parsedNumber = PhoneNumberUtils.parse(sender.toString());
+        sender = (parsedNumber && parsedNumber.internationalNumber)
+                 ? parsedNumber.internationalNumber
+                 : sender;
+      }
+    }
+
+    let record = {
+      deliveryIndex:  [DELIVERY_SENDING, aDate],
+      numberIndex:    [[sender, aDate], [receiver, aDate]],
+      readIndex:      [FILTER_READ_READ, aDate],
+
+      delivery:       DELIVERY_SENDING,
+      deliveryStatus: aDeliveryStatus,
+      sender:         sender,
+      receiver:       receiver,
+      body:           aBody,
+      messageClass:   MESSAGE_CLASS_NORMAL,
+      timestamp:      aDate,
+      read:           FILTER_READ_READ
+    };
+    return this.saveRecord(record, aCallback);
   },
 
   setMessageDelivery: function setMessageDelivery(
@@ -816,7 +822,11 @@ MobileMessageDatabaseService.prototype = {
       if (!callback) {
         return;
       }
-      callback.notify(rv, record);
+      let sms = null;
+      if (record) {
+        sms = self.createMessageFromRecord(record);
+      }
+      callback.notify(rv, sms);
     }
 
     this.newTxn(READ_WRITE, function (error, txn, store) {
@@ -904,7 +914,7 @@ MobileMessageDatabaseService.prototype = {
           aRequest.notifyGetMessageFailed(Ci.nsISmsRequest.UNKNOWN_ERROR);
           return;
         }
-        let sms = self.createSmsMessageFromRecord(record);
+        let sms = self.createMessageFromRecord(record);
         aRequest.notifyMessageGot(sms);
       };
 
@@ -1210,7 +1220,7 @@ MobileMessageDatabaseService.prototype = {
               // For all numbers.
               processing: filter.numbers.length,
               results: []
-            }];
+	    }];
 
             let timeRange = null;
             if (filter.startDate != null && filter.endDate != null) {
@@ -1317,7 +1327,7 @@ MobileMessageDatabaseService.prototype = {
           if (DEBUG) debug("Could not get message id " + messageId);
           aRequest.notifyReadMessageListFailed(Ci.nsISmsRequest.NOT_FOUND_ERROR);
         }
-        let sms = self.createSmsMessageFromRecord(record);
+        let sms = self.createMessageFromRecord(record);
         aRequest.notifyNextMessageInListGot(sms);
       };
 
