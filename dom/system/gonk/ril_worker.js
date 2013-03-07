@@ -731,7 +731,7 @@ let RIL = {
     /**
      * Card state
      */
-    this.cardState = GECKO_CARDSTATE_UNKNOWN;
+    this.cardState = null;
 
     /**
      * Strings
@@ -3762,27 +3762,14 @@ let RIL = {
    */
   _processICCStatus: function _processICCStatus(iccStatus) {
     this.iccStatus = iccStatus;
-    let newCardState;
 
     if ((!iccStatus) || (iccStatus.cardState == CARD_STATE_ABSENT)) {
-      switch (this.radioState) {
-        case GECKO_RADIOSTATE_UNAVAILABLE:
-          newCardState = GECKO_CARDSTATE_UNKNOWN;
-          break;
-        case GECKO_RADIOSTATE_OFF:
-          newCardState = GECKO_CARDSTATE_NOT_READY;
-          break;
-        case GECKO_RADIOSTATE_READY:
-          if (DEBUG) {
-            debug("ICC absent");
-          }
-          newCardState = GECKO_CARDSTATE_ABSENT;
-          break;
-      }
-      if (newCardState == this.cardState) {
+      if (DEBUG) debug("ICC absent");
+      if (this.cardState == GECKO_CARDSTATE_ABSENT) {
+        this.operator = null;
         return;
       }
-      this.cardState = newCardState;
+      this.cardState = GECKO_CARDSTATE_ABSENT;
       this.sendDOMMessage({rilMessageType: "cardstatechange",
                            cardState: this.cardState});
       return;
@@ -3791,13 +3778,15 @@ let RIL = {
     // TODO: Bug 726098, change to use cdmaSubscriptionAppIndex when in CDMA.
     let index = iccStatus.gsmUmtsSubscriptionAppIndex;
     let app = iccStatus.apps[index];
-    if (iccStatus.cardState == CARD_STATE_ERROR || !app) {
-      if (this.cardState == GECKO_CARDSTATE_UNKNOWN) {
-        this.operator = null;
+    if (!app) {
+      if (DEBUG) {
+        debug("Subscription application is not present in iccStatus.");
+      }
+      if (this.cardState == GECKO_CARDSTATE_ABSENT) {
         return;
       }
+      this.cardState = GECKO_CARDSTATE_ABSENT;
       this.operator = null;
-      this.cardState = GECKO_CARDSTATE_UNKNOWN;
       this.sendDOMMessage({rilMessageType: "cardstatechange",
                            cardState: this.cardState});
       return;
@@ -3806,6 +3795,7 @@ let RIL = {
     this.aid = app.aid;
     this.appType = app.app_type;
 
+    let newCardState;
     switch (app.app_state) {
       case CARD_APPSTATE_PIN:
         newCardState = GECKO_CARDSTATE_PIN_REQUIRED;
@@ -3822,7 +3812,7 @@ let RIL = {
       case CARD_APPSTATE_UNKNOWN:
       case CARD_APPSTATE_DETECTED:
       default:
-        newCardState = GECKO_CARDSTATE_UNKNOWN;
+        newCardState = GECKO_CARDSTATE_NOT_READY;
     }
 
     if (this.cardState == newCardState) {
