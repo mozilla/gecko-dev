@@ -2237,12 +2237,7 @@ this.PduHelper = {
 
         headers = this.parseHeaders(data, headersEnd, headers);
 
-        let octetArray = Octet.decodeMultiple(data, contentEnd);
-        let content = null;
-        if (octetArray) {
-          content = new Blob([octetArray],
-            {"type" : headers["content-type"].media});
-        }
+        let content = Octet.decodeMultiple(data, contentEnd);
 
         parts[i] = {
           index: i,
