@@ -39,7 +39,7 @@ IonBuilder::IonBuilder(JSContext *cx, TempAllocator *temp, MIRGraph *graph,
     callerResumePoint_(NULL),
     callerBuilder_(NULL),
     oracle(oracle),
-    inliningDepth(inliningDepth),
+    inliningDepth_(inliningDepth),
     failedBoundsCheck_(info->script()->failedBoundsCheck),
     failedShapeGuard_(info->script()->failedShapeGuard),
     lazyArguments_(NULL)
@@ -420,7 +420,7 @@ IonBuilder::buildInline(IonBuilder *callerBuilder, MResumePoint *callerResumePoi
     if (instrumentedProfiling())
         predecessor->add(MFunctionBoundary::New(script(),
                                                 MFunctionBoundary::Inline_Enter,
-                                                inliningDepth));
+                                                inliningDepth_));
 
     predecessor->end(MGoto::New(current));
     if (!current->addPredecessorWithoutPhis(predecessor))
@@ -871,7 +871,7 @@ IonBuilder::inspectOpcode(JSOp op)
         return true;
 
       case JSOP_SETARG:
-        JS_ASSERT(inliningDepth == 0);
+        JS_ASSERT(inliningDepth_ == 0);
         // To handle this case, we should spill the arguments to the space where
         // actual arguments are stored. The tricky part is that if we add a MIR
         // to wrap the spilling action, we don't want the spilling to be
@@ -1031,7 +1031,11 @@ IonBuilder::inspectOpcode(JSOp op)
 
       case JSOP_CALLEE:
       {
-        MCallee *callee = MCallee::New();
+        MInstruction *callee;
+        if (inliningDepth_ == 0)
+            callee = MCallee::New();
+        else
+            callee = MConstant::New(ObjectValue(*info().fun()));
         current->add(callee);
         current->push(callee);
         return true;
@@ -2897,7 +2901,7 @@ IonBuilder::jsop_call_inline(HandleFunction callee, uint32_t argc, bool construc
         return false;
 
     IonBuilder inlineBuilder(cx, &temp(), &graph(), &oracle,
-                             info, inliningDepth + 1, loopDepth_);
+                             info, inliningDepth_ + 1, loopDepth_);
 
     // Create |this| on the caller-side for inlined constructors.
     MDefinition *thisDefn = NULL;
@@ -2951,7 +2955,7 @@ IonBuilder::makeInliningDecision(AutoObjectVector &targets, uint32_t argc)
 {
     AssertCanGC();
 
-    if (inliningDepth >= js_IonOptions.maxInlineDepth)
+    if (inliningDepth_ >= js_IonOptions.maxInlineDepth)
         return false;
 
     // For "small" functions, we should be more aggressive about inlining.
@@ -3782,7 +3786,7 @@ IonBuilder::jsop_funapplyarguments(uint32_t argc)
 
     // When this script isn't inlined, use MApplyArgs,
     // to copy the arguments from the stack and call the function
-    if (inliningDepth == 0) {
+    if (inliningDepth_ == 0) {
         // This
         MPassArg *passThis = current->pop()->toPassArg();
         MDefinition *argThis = passThis->getArgument();
@@ -3814,7 +3818,7 @@ IonBuilder::jsop_funapplyarguments(uint32_t argc)
 
     // When inlining we have the arguments the function gets called with
     // and can optimize even more, by just calling the functions with the args.
-    JS_ASSERT(inliningDepth > 0);
+    JS_ASSERT(inliningDepth_ > 0);
 
     // Arguments
     Vector<MPassArg *> args(cx);
@@ -4647,7 +4651,7 @@ IonBuilder::insertRecompileCheck()
     if (!inliningEnabled())
         return;
 
-    if (inliningDepth > 0)
+    if (inliningDepth_ > 0)
         return;
 
     // Don't recompile if we are already inlining.
@@ -5626,7 +5630,7 @@ IonBuilder::jsop_arguments_length()
     args->setFoldedUnchecked();
 
     // We don't know anything from the callee
-    if (inliningDepth == 0) {
+    if (inliningDepth_ == 0) {
         MInstruction *ins = MArgumentsLength::New();
         current->add(ins);
         current->push(ins);
@@ -5640,7 +5644,7 @@ IonBuilder::jsop_arguments_length()
 bool
 IonBuilder::jsop_arguments_getelem()
 {
-    if (inliningDepth != 0)
+    if (inliningDepth_ != 0)
         return abort("NYI inlined get argument element");
 
     RootedScript scriptRoot(cx, script());
