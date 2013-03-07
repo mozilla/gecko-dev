@@ -39,7 +39,6 @@ const CONFIG_SEND_REPORT_DEFAULT_YES = 2;
 const CONFIG_SEND_REPORT_ALWAYS      = 3;
 
 const TIME_TO_BUFFER_MMS_REQUESTS    = 30000;
-const TIME_TO_RELEASE_MMS_CONNECTION = 30000;
 
 XPCOMUtils.defineLazyServiceGetter(this, "gpps",
                                    "@mozilla.org/network/protocol-proxy-service;1",
@@ -130,9 +129,6 @@ MmsService.prototype = {
   mmsRequestQueue: [],
   timerToClearQueue: Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer),
 
-  timerToReleaseMmsConnection: Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer),
-  isProxyFilterRegistered: false,
-
   /**
    * Calculate Whether or not should we enable X-Mms-Report-Allowed.
    *
@@ -149,20 +145,6 @@ MmsService.prototype = {
       }
     }
     return config >= CONFIG_SEND_REPORT_DEFAULT_YES;
-  },
-
-  /**
-   * Callback when |timerToClearQueue| is timeout or cancelled by shutdown.
-   */
-  timerToClearQueueCb: function timerToClearQueueCb() {
-    debug("timerToClearQueueCb: clear the buffered MMS requests due to " +
-          "the timeout or cancel: number: " + this.mmsRequestQueue.length);
-    while (this.mmsRequestQueue.length) {
-      let mmsRequest = this.mmsRequestQueue.shift();
-      if (mmsRequest.callback) {
-        mmsRequest.callback(0, null);
-      }
-    }
   },
 
   /**
@@ -194,39 +176,25 @@ MmsService.prototype = {
 
       // Set a timer to clear the buffered MMS requests if the
       // MMS network fails to be connected within a time period.
-      this.timerToClearQueue.
-        initWithCallback(this.timerToClearQueueCb.bind(this),
-                         TIME_TO_BUFFER_MMS_REQUESTS,
-                         Ci.nsITimer.TYPE_ONE_SHOT);
+      this.timerToClearQueue.initWithCallback(function timerToClearQueueCb() {
+        debug("timerToClearQueueCb: clear the buffered MMS requests due to " +
+              "the timeout: number: " + this.mmsRequestQueue.length);
+        while (this.mmsRequestQueue.length) {
+          let mmsRequest = this.mmsRequestQueue.shift();
+          if (mmsRequest.callback) {
+            mmsRequest.callback(0, null);
+          }
+        }
+      }.bind(this), TIME_TO_BUFFER_MMS_REQUESTS, Ci.nsITimer.TYPE_ONE_SHOT);
       return false;
     }
 
-    if (!this.mmsConnRefCount && !this.isProxyFilterRegistered) {
+    if (!this.mmsConnRefCount) {
       debug("acquireMmsConnection: register the MMS proxy filter.");
       gpps.registerFilter(this, 0);
-      this.isProxyFilterRegistered = true;
     }
     this.mmsConnRefCount++;
     return true;
-  },
-
-  /**
-   * Callback when |timerToReleaseMmsConnection| is timeout or cancelled by shutdown.
-   */
-  timerToReleaseMmsConnectionCb: function timerToReleaseMmsConnectionCb() {
-    if (this.mmsConnRefCount) {
-      return;
-    }
-
-    debug("timerToReleaseMmsConnectionCb: " +
-          "unregister the MMS proxy filter and deactivate the MMS data call.");
-    if (this.isProxyFilterRegistered) {
-      gpps.unregisterFilter(this);
-      this.isProxyFilterRegistered = false;
-    }
-    if (this.mmsNetworkConnected) {
-      gRIL.deactivateDataCallByType("mms");
-    }
   },
 
   /**
@@ -237,12 +205,10 @@ MmsService.prototype = {
     if (this.mmsConnRefCount <= 0) {
       this.mmsConnRefCount = 0;
 
-      // Set a timer to delay the release of MMS network connection,
-      // since the MMS requests often come consecutively in a short time.
-      this.timerToReleaseMmsConnection.
-        initWithCallback(this.timerToReleaseMmsConnectionCb.bind(this),
-                         TIME_TO_RELEASE_MMS_CONNECTION,
-                         Ci.nsITimer.TYPE_ONE_SHOT);
+      debug("releaseMmsConnection: " +
+            "unregister the MMS proxy filter and deactivate the MMS data call.");
+      gpps.unregisterFilter(this);
+      gRIL.deactivateDataCallByType("mms");
     }
   },
 
@@ -745,9 +711,12 @@ MmsService.prototype = {
           Services.prefs.removeObserver(name, this);
         }, this);
         this.timerToClearQueue.cancel();
-        this.timerToClearQueueCb();
-        this.timerToReleaseMmsConnection.cancel();
-        this.timerToReleaseMmsConnectionCb();
+        while (this.mmsRequestQueue.length) {
+          let mmsRequest = this.mmsRequestQueue.shift();
+          if (mmsRequest.callback) {
+            mmsRequest.callback(0, null);
+          }
+        }
         break;
       }
       case kPrefenceChangedObserverTopic: {
