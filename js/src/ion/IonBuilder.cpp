@@ -3855,9 +3855,11 @@ IonBuilder::jsop_call(uint32_t argc, bool constructing)
     if (inliningEnabled()) {
         // Inline a single native call if possible.
         if (numTargets == 1 && targets[0]->toFunction()->isNative()) {
+            MDefinition *callee = current->peek(-(argc + 2));
             RootedFunction target(cx, targets[0]->toFunction());
             switch (inlineNativeCall(target->native(), argc, constructing)) {
               case InliningStatus_Inlined:
+                callee->setFoldedUnchecked();
                 return true;
               case InliningStatus_Error:
                 return false;
