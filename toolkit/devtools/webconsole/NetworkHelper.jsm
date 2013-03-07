@@ -212,9 +212,10 @@ this.NetworkHelper =
    */
   getWindowForRequest: function NH_getWindowForRequest(aRequest)
   {
-    try {
-      return this.getRequestLoadContext(aRequest).associatedWindow;
-    } catch (ex) { }
+    let loadContext = this.getRequestLoadContext(aRequest);
+    if (loadContext) {
+      return loadContext.associatedWindow;
+    }
     return null;
   },
 
@@ -226,13 +227,18 @@ this.NetworkHelper =
    */
   getRequestLoadContext: function NH_getRequestLoadContext(aRequest)
   {
-    try {
-      return aRequest.notificationCallbacks.getInterface(Ci.nsILoadContext);
-    } catch (ex) { }
+    if (aRequest && aRequest.notificationCallbacks) {
+      try {
+        return aRequest.notificationCallbacks.getInterface(Ci.nsILoadContext);
+      } catch (ex) { }
+    }
 
-    try {
-      return aRequest.loadGroup.notificationCallbacks.getInterface(Ci.nsILoadContext);
-    } catch (ex) { }
+    if (aRequest && aRequest.loadGroup
+                 && aRequest.loadGroup.notificationCallbacks) {
+      try {
+        return aRequest.loadGroup.notificationCallbacks.getInterface(Ci.nsILoadContext);
+      } catch (ex) { }
+    }
 
     return null;
   },

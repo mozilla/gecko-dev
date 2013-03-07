@@ -47,20 +47,15 @@ XPCOMUtils.defineLazyModuleGetter(this, "ConsoleAPIStorage",
  * @constructor
  * @param object aConnection
  *        The connection to the client, DebuggerServerConnection.
- * @param object [aParentActor]
- *        Optional, the parent actor.
+ * @param object [aTabActor]
+ *        Optional, the parent tab actor. This must be an instance of
+ *        BrowserTabActor.
  */
-function WebConsoleActor(aConnection, aParentActor)
+function WebConsoleActor(aConnection, aTabActor)
 {
   this.conn = aConnection;
-
-  if (aParentActor instanceof BrowserTabActor &&
-      aParentActor.browser instanceof Ci.nsIDOMWindow) {
-    this._window = aParentActor.browser;
-  }
-  else if (aParentActor instanceof BrowserTabActor &&
-           aParentActor.browser instanceof Ci.nsIDOMElement) {
-    this._window = aParentActor.browser.contentWindow;
+  if (aTabActor instanceof BrowserTabActor) {
+    this._browser = aTabActor.browser;
   }
   else {
     this._window = Services.wm.getMostRecentWindow("navigator:browser");
@@ -78,6 +73,14 @@ function WebConsoleActor(aConnection, aParentActor)
 
 WebConsoleActor.prototype =
 {
+  /**
+   * The xul:browser we work with. This is only available when the Web Console
+   * actor is a tab actor.
+   * @private
+   * @type nsIDOMElement
+   */
+  _browser: null,
+
   /**
    * Tells if this Web Console actor is a global actor or not.
    * @private
@@ -134,7 +137,7 @@ WebConsoleActor.prototype =
    * The content window we work with.
    * @type nsIDOMWindow
    */
-  get window() this._window,
+  get window() this._browser ? this._browser.contentWindow : this._window,
 
   _window: null,
 
@@ -217,7 +220,7 @@ WebConsoleActor.prototype =
     this._objectActorsPool = null;
     this._networkEventActorsPool = null;
     this._sandboxLocation = this.sandbox = null;
-    this.conn = this._window = null;
+    this.conn = this._browser = this._window = null;
   },
 
   /**
@@ -329,18 +332,26 @@ WebConsoleActor.prototype =
           startedListeners.push(listener);
           break;
         case "FileActivity":
+          if (this._isGlobalActor) {
+            // The ConsoleProgressListener cannot listen for global events.
+            // See bug 798764.
+            break;
+          }
           if (!this.consoleProgressListener) {
             this.consoleProgressListener =
-              new ConsoleProgressListener(this.window, this);
+              new ConsoleProgressListener(this._browser, this);
           }
           this.consoleProgressListener.startMonitor(this.consoleProgressListener.
                                                     MONITOR_FILE_ACTIVITY);
           startedListeners.push(listener);
           break;
         case "LocationChange":
+          if (this._isGlobalActor) {
+            break;
+          }
           if (!this.consoleProgressListener) {
             this.consoleProgressListener =
-              new ConsoleProgressListener(this.window, this);
+              new ConsoleProgressListener(this._browser, this);
           }
           this.consoleProgressListener.startMonitor(this.consoleProgressListener.
                                                     MONITOR_LOCATION_CHANGE);
