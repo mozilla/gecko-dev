@@ -867,14 +867,12 @@ this.UintVar = {
 /**
  * This encoding is used for token values, which have no well-known binary
  * encoding, or when the assigned number of the well-known encoding is small
- * enough to fit into Short-Integer. We change Extension-Media from 
- * NullTerminatedTexts to TextString because of Bug 823816. 
+ * enough to fit into Short-Integer.
  *
  *   Constrained-encoding = Extension-Media | Short-integer
- *   Extension-Media = TextString
+ *   Extension-Media = *TEXT End-of-string
  *
  * @see WAP-230-WSP-20010705-a clause 8.4.2.1
- * @see https://bugzilla.mozilla.org/show_bug.cgi?id=823816
  */
 this.ConstrainedEncoding = {
   /**
@@ -884,7 +882,7 @@ this.ConstrainedEncoding = {
    * @return Decode integer value or string.
    */
   decode: function decode(data) {
-    return decodeAlternatives(data, null, TextString, ShortInteger);
+    return decodeAlternatives(data, null, NullTerminatedTexts, ShortInteger);
   },
 
   /**
@@ -897,7 +895,7 @@ this.ConstrainedEncoding = {
     if (typeof value == "number") {
       ShortInteger.encode(data, value);
     } else {
-      TextString.encode(data, value);
+      NullTerminatedTexts.encode(data, value);
     }
   },
 };
@@ -1279,9 +1277,9 @@ this.TypeValue = {
   encode: function encode(data, type) {
     let entry = WSP_WELL_KNOWN_CONTENT_TYPES[type.toLowerCase()];
     if (entry) {
-      ConstrainedEncoding.encode(data, entry.number);
+      ShortInteger.encode(data, entry.number);
     } else {
-      ConstrainedEncoding.encode(data, type);
+      NullTerminatedTexts.encode(data, type);
     }
   },
 };
