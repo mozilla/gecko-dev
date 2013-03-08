@@ -23,6 +23,7 @@
 #include "nsGkAtoms.h"
 #include "nsMutationEvent.h"
 #include "nsContentUtils.h"
+#include "nsJSEnvironment.h"
 #include "nsIURI.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsIScriptError.h"
@@ -77,6 +78,7 @@ nsDOMEvent::nsDOMEvent(nsPresContext* aPresContext, nsEvent* aEvent)
   }
 
   InitPresContextData(aPresContext);
+  nsJSContext::LikelyShortLivingObjectCreated();
 }
 
 void

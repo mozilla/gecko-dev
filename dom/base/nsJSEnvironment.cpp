@@ -161,6 +161,7 @@ static uint32_t sPendingLoadCount;
 static bool sLoadingInProgress;
 
 static uint32_t sCCollectedWaitingForGC;
+static uint32_t sLikelyShortLivingObjectsNeedingGC;
 static bool sPostGCEventsToConsole;
 static bool sPostGCEventsToObserver;
 static bool sDisableExplicitCompartmentGC;
@@ -3189,7 +3190,8 @@ nsJSContext::CycleCollectNow(nsICycleCollectorListener *aListener,
 
   // If we collected a substantial amount of cycles, poke the GC since more objects
   // might be unreachable now.
-  if (sCCollectedWaitingForGC > 250) {
+  if (sCCollectedWaitingForGC > 250 ||
+      sLikelyShortLivingObjectsNeedingGC > 2500) {
     PokeGC(js::gcreason::CC_WAITING);
   }
 
@@ -3222,14 +3224,15 @@ nsJSContext::CycleCollectNow(nsICycleCollectorListener *aListener,
     }
 
     NS_NAMED_MULTILINE_LITERAL_STRING(kFmt,
-      NS_LL("CC(T+%.1f) duration: %llums, suspected: %lu, visited: %lu RCed and %lu%s GCed, collected: %lu RCed and %lu GCed (%lu waiting for GC)%s\n")
+      NS_LL("CC(T+%.1f) duration: %llums, suspected: %lu, visited: %lu RCed and %lu%s GCed, collected: %lu RCed and %lu GCed (%lu|%lu waiting for GC)%s\n")
       NS_LL("ForgetSkippable %lu times before CC, min: %lu ms, max: %lu ms, avg: %lu ms, total: %lu ms, removed: %lu"));
     nsString msg;
     msg.Adopt(nsTextFormatter::smprintf(kFmt.get(), double(delta) / PR_USEC_PER_SEC,
                                         (now - start) / PR_USEC_PER_MSEC, suspected,
                                         ccResults.mVisitedRefCounted, ccResults.mVisitedGCed, mergeMsg.get(),
                                         ccResults.mFreedRefCounted, ccResults.mFreedGCed,
-                                        sCCollectedWaitingForGC, gcMsg.get(),
+                                        sCCollectedWaitingForGC, sLikelyShortLivingObjectsNeedingGC,
+                                        gcMsg.get(),
                                         sForgetSkippableBeforeCC,
                                         minForgetSkippableTime / PR_USEC_PER_MSEC,
                                         sMaxForgetSkippableTime / PR_USEC_PER_MSEC,
@@ -3256,6 +3259,7 @@ nsJSContext::CycleCollectNow(nsICycleCollectorListener *aListener,
              NS_LL("\"RCed\": %lu, ")
              NS_LL("\"GCed\": %lu }, ")
          NS_LL("\"waiting_for_gc\": %lu, ")
+         NS_LL("\"short_living_objects_waiting_for_gc\": %lu, ")
          NS_LL("\"forced_gc\": %d, ")
          NS_LL("\"forget_skippable\": { ")
              NS_LL("\"times_before_cc\": %lu, ")
@@ -3271,6 +3275,7 @@ nsJSContext::CycleCollectNow(nsICycleCollectorListener *aListener,
                                          ccResults.mVisitedRefCounted, ccResults.mVisitedGCed,
                                          ccResults.mFreedRefCounted, ccResults.mFreedGCed,
                                          sCCollectedWaitingForGC,
+                                         sLikelyShortLivingObjectsNeedingGC,
                                          ccResults.mForcedGC,
                                          sForgetSkippableBeforeCC,
                                          minForgetSkippableTime / PR_USEC_PER_MSEC,
@@ -3636,6 +3641,7 @@ DOMGCSliceCallback(JSRuntime *aRt, js::GCProgress aProgress, const js::GCDescrip
     nsJSContext::KillInterSliceGCTimer();
 
     sCCollectedWaitingForGC = 0;
+    sLikelyShortLivingObjectsNeedingGC = 0;
     sCleanupsSinceLastGC = 0;
     sNeedsFullCC = true;
     nsJSContext::MaybePokeCC();
@@ -3731,6 +3737,12 @@ nsJSContext::ReportPendingException()
   }
 }
 
+void
+nsJSContext::LikelyShortLivingObjectCreated()
+{
+  ++sLikelyShortLivingObjectsNeedingGC;
+}
+
 /**********************************************************************
  * nsJSRuntime implementation
  *********************************************************************/
@@ -3763,6 +3775,7 @@ nsJSRuntime::Startup()
   sPendingLoadCount = 0;
   sLoadingInProgress = false;
   sCCollectedWaitingForGC = 0;
+  sLikelyShortLivingObjectsNeedingGC = 0;
   sPostGCEventsToConsole = false;
   sDisableExplicitCompartmentGC = false;
   sNeedsFullCC = false;

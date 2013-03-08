@@ -11,6 +11,7 @@
 #include "nsCOMPtr.h"
 #include "nsIDOMEventTarget.h"
 #include "nsPIDOMWindow.h"
+#include "nsJSEnvironment.h"
 #include "nsPoint.h"
 #include "nsGUIEvent.h"
 #include "nsCycleCollectionParticipant.h"
