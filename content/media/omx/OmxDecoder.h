@@ -3,6 +3,7 @@
 #include <utils/RefBase.h>
 
 #include "GonkNativeWindow.h"
+#include "GonkNativeWindowClient.h"
 #include "GonkIOSurfaceImage.h"
 #include "MPAPI.h"
 #include "MediaResource.h"
@@ -79,6 +80,7 @@ class OmxDecoder : public RefBase {
   nsBuiltinDecoder *mDecoder;
   MediaResource *mResource;
   sp<GonkNativeWindow> mNativeWindow;
+  sp<GonkNativeWindowClient> mNativeWindowClient;
   sp<MediaSource> mVideoTrack;
   sp<MediaSource> mVideoSource;
   sp<MediaSource> mAudioTrack;

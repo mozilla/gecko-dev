@@ -19,6 +19,7 @@
 #include "prlog.h"
 
 #include "GonkNativeWindow.h"
+#include "GonkNativeWindowClient.h"
 #include "OmxDecoder.h"
 
 #ifdef PR_LOGGING
@@ -226,6 +227,7 @@ bool OmxDecoder::Init() {
   int64_t totalDurationUs = 0;
 
   mNativeWindow = new GonkNativeWindow();
+  mNativeWindowClient = new GonkNativeWindowClient(mNativeWindow);
 
   // OMXClient::connect() always returns OK and abort's fatally if
   // it can't connect.
@@ -249,7 +251,7 @@ bool OmxDecoder::Init() {
                                    videoTrack,
                                    nullptr,
                                    flags,
-                                   mNativeWindow);
+                                   mNativeWindowClient);
     if (videoSource == nullptr) {
       NS_WARNING("Couldn't create OMX video source");
       return false;
