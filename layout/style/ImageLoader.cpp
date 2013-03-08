@@ -341,7 +341,14 @@ ImageLoader::DoRedraw(FrameSet* aFrameSet)
     nsIFrame* frame = aFrameSet->ElementAt(i);
 
     if (frame->GetStyleVisibility()->IsVisible()) {
-      FrameLayerBuilder::IterateRetainedDataFor(frame, InvalidateImagesCallback);
+      if (frame->IsFrameOfType(nsIFrame::eTablePart)) {
+        // Tables don't necessarily build border/background display items
+        // for the individual table part frames, so IterateRetainedDataFor
+        // might not find the right display item.
+        frame->InvalidateFrame();
+      } else {
+        FrameLayerBuilder::IterateRetainedDataFor(frame, InvalidateImagesCallback);
+      }
     }
   }
 }
