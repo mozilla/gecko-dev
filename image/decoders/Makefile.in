@@ -19,6 +19,7 @@ LIBXUL_LIBRARY  = 1
 
 CPPSRCS = nsPNGDecoder.cpp nsJPEGDecoder.cpp nsGIFDecoder2.cpp \
           nsBMPDecoder.cpp nsICODecoder.cpp nsIconDecoder.cpp \
+          nsWBMPDecoder.cpp \
           $(NULL)
 
 CSRCS   = iccjpeg.c \

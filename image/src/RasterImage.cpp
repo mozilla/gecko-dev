@@ -26,6 +26,7 @@
 #include "nsBMPDecoder.h"
 #include "nsICODecoder.h"
 #include "nsIconDecoder.h"
+#include "nsWBMPDecoder.h"
 
 #include "gfxContext.h"
 #include "gfx2DGlue.h"
@@ -2387,6 +2388,9 @@ RasterImage::InitDecoder(bool aDoSizeDecode)
       break;
     case eDecoderType_icon:
       mDecoder = new nsIconDecoder(*this, observer);
+      break;
+    case eDecoderType_wbmp:
+      mDecoder = new nsWBMPDecoder(*this, observer);
       break;
     default:
       NS_ABORT_IF_FALSE(0, "Shouldn't get here!");
