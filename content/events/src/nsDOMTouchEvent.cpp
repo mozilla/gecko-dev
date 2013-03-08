@@ -131,6 +131,7 @@ nsDOMTouch::Equals(nsIDOMTouch* aTouch)
 nsDOMTouchList::nsDOMTouchList(nsTArray<nsCOMPtr<nsIDOMTouch> > &aTouches)
 {
   mPoints.AppendElements(aTouches);
+  nsJSContext::LikelyShortLivingObjectCreated();
 }
 
 DOMCI_DATA(TouchList, nsDOMTouchList)
