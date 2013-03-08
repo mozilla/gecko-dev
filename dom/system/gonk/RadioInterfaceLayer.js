@@ -2545,7 +2545,7 @@ RadioInterfaceLayer.prototype = {
 
     let options = this._fragmentText(message, null, strict7BitEncoding);
     options.rilMessageType = "sendSMS";
-    options.number = number;
+    options.number = PhoneNumberUtils.normalize(number);
     options.requestStatusReport = true;
     if (options.segmentMaxSeq > 1) {
       options.segmentRef16Bit = this.segmentRef16Bit;
@@ -2571,7 +2571,14 @@ RadioInterfaceLayer.prototype = {
           sms: domMessage,
           requestStatusReport: options.requestStatusReport
       });
-      this.worker.postMessage(options);
+
+      if (PhoneNumberUtils.isPlainPhoneNumber(options.number)) {
+        this.worker.postMessage(options);
+      } else {
+        debug('Number ' + options.number + ' is not sendable.');
+        this.handleSmsSendFailed(options);
+      }
+
     }.bind(this));
   },
 
