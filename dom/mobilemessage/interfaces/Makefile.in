@@ -20,6 +20,7 @@ XPIDLSRCS = \
   nsIDOMSmsManager.idl \
   nsIDOMMobileMessageManager.idl \
   nsIDOMSmsMessage.idl \
+  nsIDOMMozMmsMessage.idl \
   nsIDOMSmsEvent.idl \
   nsIDOMSmsRequest.idl \
   nsIDOMSmsFilter.idl \

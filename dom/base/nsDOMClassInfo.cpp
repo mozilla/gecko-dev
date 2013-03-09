@@ -497,6 +497,7 @@ using mozilla::dom::indexedDB::IDBWrapperCache;
 #include "nsIDOMSmsManager.h"
 #include "nsIDOMMobileMessageManager.h"
 #include "nsIDOMSmsMessage.h"
+#include "nsIDOMMozMmsMessage.h"
 #include "nsIDOMSmsEvent.h"
 #include "nsIDOMSmsRequest.h"
 #include "nsIDOMSmsFilter.h"
@@ -1520,6 +1521,9 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
 
   NS_DEFINE_CLASSINFO_DATA(MozSmsMessage, nsDOMGenericSH,
+                           DOM_DEFAULT_SCRIPTABLE_FLAGS)
+
+  NS_DEFINE_CLASSINFO_DATA(MozMmsMessage, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
 
   NS_DEFINE_CLASSINFO_DATA(MozSmsEvent, nsDOMGenericSH,
@@ -4165,6 +4169,10 @@ nsDOMClassInfo::Init()
 
   DOM_CLASSINFO_MAP_BEGIN(MozSmsMessage, nsIDOMMozSmsMessage)
      DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozSmsMessage)
+  DOM_CLASSINFO_MAP_END
+
+  DOM_CLASSINFO_MAP_BEGIN(MozMmsMessage, nsIDOMMozMmsMessage)
+     DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozMmsMessage)
   DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN(MozSmsEvent, nsIDOMMozSmsEvent)
