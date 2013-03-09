@@ -50,6 +50,7 @@ EXPORTS_mozilla/dom/mobilemessage = \
   SmsServicesFactory.h \
   Constants.h \
   Types.h \
+  MobileMessageCallback.h \
   $(NULL)
 
 CPPSRCS = \
@@ -65,6 +66,7 @@ CPPSRCS = \
   Constants.cpp \
   SmsChild.cpp \
   SmsRequest.cpp \
+  MobileMessageCallback.cpp \
   SmsFilter.cpp \
   SmsSegmentInfo.cpp \
   SmsCursor.cpp \
