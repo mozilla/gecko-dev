@@ -495,6 +495,7 @@ using mozilla::dom::indexedDB::IDBWrapperCache;
 #include "nsIDOMPowerManager.h"
 #include "nsIDOMWakeLock.h"
 #include "nsIDOMSmsManager.h"
+#include "nsIDOMMobileMessageManager.h"
 #include "nsIDOMSmsMessage.h"
 #include "nsIDOMSmsEvent.h"
 #include "nsIDOMSmsRequest.h"
@@ -1515,6 +1516,9 @@ static nsDOMClassInfoData sClassInfoData[] = {
   NS_DEFINE_CLASSINFO_DATA(MozSmsManager, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
 
+  NS_DEFINE_CLASSINFO_DATA(MozMobileMessageManager, nsDOMGenericSH,
+                           DOM_DEFAULT_SCRIPTABLE_FLAGS)
+
   NS_DEFINE_CLASSINFO_DATA(MozSmsMessage, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
 
@@ -2522,6 +2526,7 @@ nsDOMClassInfo::Init()
     DOM_CLASSINFO_MAP_CONDITIONAL_ENTRY(nsINavigatorBattery,
                                         battery::BatteryManager::HasSupport())
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozNavigatorSms)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozNavigatorMobileMessage)
 #ifdef MOZ_MEDIA_NAVIGATOR
     DOM_CLASSINFO_MAP_ENTRY(nsINavigatorUserMedia)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMNavigatorUserMedia)
@@ -4152,6 +4157,10 @@ nsDOMClassInfo::Init()
 
   DOM_CLASSINFO_MAP_BEGIN(MozSmsManager, nsIDOMMozSmsManager)
      DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozSmsManager)
+  DOM_CLASSINFO_MAP_END
+
+  DOM_CLASSINFO_MAP_BEGIN(MozMobileMessageManager, nsIDOMMozMobileMessageManager)
+     DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozMobileMessageManager)
   DOM_CLASSINFO_MAP_END
 
   DOM_CLASSINFO_MAP_BEGIN(MozSmsMessage, nsIDOMMozSmsMessage)

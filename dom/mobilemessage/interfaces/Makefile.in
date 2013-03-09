@@ -16,7 +16,9 @@ include $(topsrcdir)/dom/dom-config.mk
 XPIDLSRCS = \
   nsIMobileMessageDatabaseService.idl \
   nsIDOMNavigatorSms.idl \
+  nsIDOMNavigatorMobileMessage.idl \
   nsIDOMSmsManager.idl \
+  nsIDOMMobileMessageManager.idl \
   nsIDOMSmsMessage.idl \
   nsIDOMSmsEvent.idl \
   nsIDOMSmsRequest.idl \
