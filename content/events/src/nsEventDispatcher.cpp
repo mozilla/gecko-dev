@@ -857,6 +857,8 @@ nsEventDispatcher::CreateEvent(nsPresContext* aPresContext,
     return NS_NewDOMCustomEvent(aDOMEvent, aPresContext, nullptr);
   if (aEventType.LowerCaseEqualsLiteral("mozsmsevent"))
     return NS_NewDOMSmsEvent(aDOMEvent, aPresContext, nullptr);
+  if (aEventType.LowerCaseEqualsLiteral("mozmmsevent"))
+    return NS_NewDOMMozMmsEvent(aDOMEvent, aPresContext, nullptr);
   if (aEventType.LowerCaseEqualsLiteral("storageevent")) {
     return NS_NewDOMStorageEvent(aDOMEvent, aPresContext, nullptr);
   }

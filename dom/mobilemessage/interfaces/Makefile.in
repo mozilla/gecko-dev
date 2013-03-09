@@ -22,6 +22,7 @@ XPIDLSRCS = \
   nsIDOMSmsMessage.idl \
   nsIDOMMozMmsMessage.idl \
   nsIDOMSmsEvent.idl \
+  nsIDOMMozMmsEvent.idl \
   nsIDOMSmsRequest.idl \
   nsIDOMSmsFilter.idl \
   nsIDOMSmsCursor.idl \
