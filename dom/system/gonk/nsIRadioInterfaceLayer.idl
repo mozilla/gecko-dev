@@ -9,7 +9,7 @@ interface nsIDOMMozMobileConnectionInfo;
 interface nsIDOMDOMRequest;
 interface nsIDOMWindow;
 interface nsIDOMMozVoicemailStatus;
-interface nsISmsRequest;
+interface nsIMobileMessageCallback;
 interface nsIDOMMozSmsSegmentInfo;
 interface nsIDOMMozCellBroadcastMessage;
 
@@ -306,7 +306,7 @@ interface nsIRilContext : nsISupports
   readonly attribute nsIDOMMozMobileConnectionInfo data;
 };
 
-[scriptable, uuid(a585a7f4-6a64-4d6b-a3fb-bcd90624dcd4)]
+[scriptable, uuid(8b3a1bc8-86d2-11e2-ace0-33f0ed290b90)]
 interface nsIRadioInterfaceLayer : nsISupports
 {
   const unsigned short CALL_STATE_UNKNOWN = 0;
@@ -359,7 +359,7 @@ interface nsIRadioInterfaceLayer : nsISupports
 
   void sendSMS(in DOMString number,
                in DOMString message,
-               in nsISmsRequest request);
+               in nsIMobileMessageCallback request);
 
   /**
    * ICC-related functionality.
