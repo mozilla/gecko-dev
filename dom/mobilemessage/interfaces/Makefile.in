@@ -27,6 +27,7 @@ XPIDLSRCS = \
   nsIDOMSmsCursor.idl \
   nsIDOMSmsSegmentInfo.idl \
   nsIMobileMessageCallback.idl \
+  nsIMobileMessageService.idl \
   nsISmsService.idl \
   $(NULL)
 

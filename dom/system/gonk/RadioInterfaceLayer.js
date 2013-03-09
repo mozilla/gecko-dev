@@ -114,9 +114,9 @@ XPCOMUtils.defineLazyServiceGetter(this, "gPowerManagerService",
                                    "@mozilla.org/power/powermanagerservice;1",
                                    "nsIPowerManagerService");
 
-XPCOMUtils.defineLazyServiceGetter(this, "gSmsService",
-                                   "@mozilla.org/sms/smsservice;1",
-                                   "nsISmsService");
+XPCOMUtils.defineLazyServiceGetter(this, "gMobileMessageService",
+                                   "@mozilla.org/mobilemessage/mobilemessageservice;1",
+                                   "nsIMobileMessageService");
 
 XPCOMUtils.defineLazyServiceGetter(this, "gMobileMessageDatabaseService",
                                    "@mozilla.org/mobilemessage/rilmobilemessagedatabaseservice;1",
@@ -1390,15 +1390,15 @@ RadioInterfaceLayer.prototype = {
   },
 
   createSmsMessageFromRecord: function createSmsMessageFromRecord(aRecord) {
-    return gSmsService.createSmsMessage(aRecord.id,
-                                        aRecord.delivery,
-                                        aRecord.deliveryStatus,
-                                        aRecord.sender,
-                                        aRecord.receiver,
-                                        aRecord.body,
-                                        aRecord.messageClass,
-                                        aRecord.timestamp,
-                                        aRecord.read);
+    return gMobileMessageService.createSmsMessage(aRecord.id,
+                                                  aRecord.delivery,
+                                                  aRecord.deliveryStatus,
+                                                  aRecord.sender,
+                                                  aRecord.receiver,
+                                                  aRecord.body,
+                                                  aRecord.messageClass,
+                                                  aRecord.timestamp,
+                                                  aRecord.read);
   },
 
   portAddressedSmsApps: null,
@@ -2526,9 +2526,9 @@ RadioInterfaceLayer.prototype = {
       charsInLastSegment /= 2;
     }
 
-    let result = gSmsService.createSmsSegmentInfo(options.segmentMaxSeq,
-                                                  options.segmentChars,
-                                                  options.segmentChars - charsInLastSegment);
+    let result = gMobileMessageService.createSmsSegmentInfo(options.segmentMaxSeq,
+                                                            options.segmentChars,
+                                                            options.segmentChars - charsInLastSegment);
     return result;
   },
 
