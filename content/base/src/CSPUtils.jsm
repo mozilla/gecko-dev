@@ -45,8 +45,7 @@ const R_HOSTCHAR   = new RegExp ("[a-zA-Z0-9\\-]", 'i');
 
 // host            = "*" / [ "*." ] 1*host-char *( "." 1*host-char )
 const R_HOST       = new RegExp ("\\*|(((\\*\\.)?" + R_HOSTCHAR.source +
-                              "+)" + "(\\." + R_HOSTCHAR.source + "+)*)", 'i');
-
+                                      "+)(\\." + R_HOSTCHAR.source +"+)*)",'i');
 // port            = ":" ( 1*DIGIT / "*" )
 const R_PORT       = new RegExp ("(\\:([0-9]+|\\*))", 'i');
 
@@ -987,8 +986,7 @@ CSPSource.fromString = function(aStr, self, enforceSelfChecks) {
     self = CSPSource.create(self, undefined, false);
   }
 
-  // Check for scheme-source match - this only matches if the source
-  // string is just a scheme with no host.
+  // check for scheme-source match
   if (R_SCHEMESRC.test(aStr)){
     var schemeSrcMatch = R_GETSCHEME.exec(aStr);
     sObj._scheme = schemeSrcMatch[0];
@@ -1010,22 +1008,16 @@ CSPSource.fromString = function(aStr, self, enforceSelfChecks) {
     }
 
     // get array of matches to the R_HOST regular expression
-    var hostMatch = R_HOSTSRC.exec(aStr);
+    var hostMatch = R_HOST.exec(aStr);
     if (!hostMatch){
       CSPError(CSPLocalizer.getFormatStr("couldntParseInvalidSource", [aStr]));
       return null;
     }
-    // Host regex gets scheme, so remove scheme from aStr. Add 3 for '://'
+    // host regex gets scheme, so remove scheme from aStr. Add 3 for '://'
     if (schemeMatch)
-      hostMatch = R_HOSTSRC.exec(aStr.substring(schemeMatch[0].length + 3));
-
-    var portMatch = R_PORT.exec(hostMatch);
-
-    // Host regex also gets port, so remove the port here.
-    if (portMatch)
-      hostMatch = R_HOSTSRC.exec(hostMatch[0].substring(0, hostMatch[0].length - portMatch[0].length));
-
+      hostMatch = R_HOST.exec(aStr.substring(schemeMatch[0].length + 3));
     sObj._host = CSPHost.fromString(hostMatch[0]);
+    var portMatch = R_PORT.exec(aStr);
     if (!portMatch) {
       // gets the default port for the given scheme
       defPort = Services.io.getProtocolHandler(sObj._scheme).defaultPort;
