@@ -81,7 +81,7 @@ def build_one_stage_aux(stage_dir, is_stage_one):
     configure_opts = ["--enable-optimized",
                       "--disable-assertions",
                       "--prefix=%s" % inst_dir,
-                      "--with-gcc-toolchain=/tools/gcc-4.5-0moz4"]
+                      "--with-gcc-toolchain=/tools/gcc-4.5-0moz3"]
     if is_stage_one and not isDarwin:
         configure_opts.append("--with-optimize-option=-O0")
 
@@ -120,8 +120,8 @@ if isDarwin:
 else:
     extra_cflags = "-static-libgcc"
     extra_cxxflags = "-static-libgcc -static-libstdc++"
-    cc = "/tools/gcc-4.5-0moz4/bin/gcc %s" % extra_cflags
-    cxx = "/tools/gcc-4.5-0moz4/bin/g++ %s" % extra_cxxflags
+    cc = "/tools/gcc-4.5-0moz3/bin/gcc %s" % extra_cflags
+    cxx = "/tools/gcc-4.5-0moz3/bin/g++ %s" % extra_cxxflags
 
 build_one_stage({"CC"  : cc,
                  "CXX" : cxx },
