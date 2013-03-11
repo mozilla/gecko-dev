@@ -1311,7 +1311,7 @@ SmsDatabaseService.prototype = {
               } else if (!messageRecord.read) {
                 // Shortcut, just update the unread count.
                 if (DEBUG) {
-                  debug("Updating unread count for number '" + number + "': " +
+                  debug("Updating unread count for thread id " + threadId + ": " +
                         (threadRecord.unreadCount + 1) + " -> " +
                         threadRecord.unreadCount);
                 }
@@ -1674,7 +1674,7 @@ SmsDatabaseService.prototype = {
         aRequest.notifyMarkMessageReadFailed(Ci.nsISmsRequest.INTERNAL_ERROR);
       };
       let messageStore = stores[0];
-      let mostRecentStore = stores[1];
+      let threadStore = stores[1];
       messageStore.get(messageId).onsuccess = function onsuccess(event) {
         let messageRecord = event.target.result;
         if (!messageRecord) {
@@ -1707,26 +1707,27 @@ SmsDatabaseService.prototype = {
           }
 
           // Now update the unread count.
-          let number = numberFromMessage(messageRecord);
+          let threadId = messageRecord.threadId;
 
-          mostRecentStore.get(number).onsuccess = function(event) {
-            let mostRecentRecord = event.target.result;
-            mostRecentRecord.unreadCount += value ? -1 : 1;
+          threadStore.get(threadId).onsuccess = function(event) {
+            let threadRecord = event.target.result;
+            threadRecord.unreadCount += value ? -1 : 1;
             if (DEBUG) {
-              debug("Updating unreadCount for '" + number + "': " +
+              debug("Updating unreadCount for thread id " + threadId + ": " +
                     (value ?
-                     mostRecentRecord.unreadCount + 1 :
-                     mostRecentRecord.unreadCount - 1) +
-                    " -> " + mostRecentRecord.unreadCount);
+                     threadRecord.unreadCount + 1 :
+                     threadRecord.unreadCount - 1) +
+                     " -> " + threadRecord.unreadCount);
             }
-            mostRecentStore.put(mostRecentRecord).onsuccess = function(event) {
+            threadStore.put(threadRecord).onsuccess = function(event) {
               aRequest.notifyMessageMarkedRead(messageRecord.read);
             };
           };
         };
       };
-    }, [MESSAGE_STORE_NAME, MOST_RECENT_STORE_NAME]);
+    }, [MESSAGE_STORE_NAME, THREAD_STORE_NAME]);
   },
+
   getThreadList: function getThreadList(aRequest) {
     if (DEBUG) debug("Getting thread list");
     this.newTxn(READ_ONLY, function (error, txn, mostRecentStore) {
