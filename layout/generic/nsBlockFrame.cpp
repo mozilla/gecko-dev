@@ -6188,7 +6188,7 @@ nsBlockFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   // so that our text-overflow markers will appear on top of this block's
   // normal content but below any of its its' positioned children.
   if (textOverflow) {
-    aLists.PositionedDescendants()->AppendToTop(&textOverflow->GetMarkers());
+    linesDisplayListCollection.Content()->AppendToTop(&textOverflow->GetMarkers());
   }
   linesDisplayListCollection.MoveTo(aLists);
 
