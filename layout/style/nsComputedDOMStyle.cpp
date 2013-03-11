@@ -757,16 +757,6 @@ nsComputedDOMStyle::DoGetColumnGap()
 }
 
 CSSValue*
-nsComputedDOMStyle::DoGetColumnFill()
-{
-  nsROCSSPrimitiveValue *val = GetROCSSPrimitiveValue();
-  val->SetIdent(
-    nsCSSProps::ValueToKeywordEnum(GetStyleColumn()->mColumnFill,
-                                   nsCSSProps::kColumnFillKTable));
-  return val;
-}
-
-CSSValue*
 nsComputedDOMStyle::DoGetColumnRuleWidth()
 {
   nsROCSSPrimitiveValue *val = GetROCSSPrimitiveValue();
@@ -4886,7 +4876,6 @@ nsComputedDOMStyle::GetQueryablePropertyMap(uint32_t* aLength)
     COMPUTED_STYLE_MAP_ENTRY(box_pack,                      BoxPack),
     COMPUTED_STYLE_MAP_ENTRY(box_sizing,                    BoxSizing),
     COMPUTED_STYLE_MAP_ENTRY(_moz_column_count,             ColumnCount),
-    COMPUTED_STYLE_MAP_ENTRY(_moz_column_fill,              ColumnFill),
     COMPUTED_STYLE_MAP_ENTRY(_moz_column_gap,               ColumnGap),
     //// COMPUTED_STYLE_MAP_ENTRY(_moz_column_rule,         ColumnRule),
     COMPUTED_STYLE_MAP_ENTRY(_moz_column_rule_color,        ColumnRuleColor),
