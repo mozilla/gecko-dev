@@ -428,6 +428,7 @@ test-pref(layout.css.flexbox.enabled,true) load 798235-1.html
 test-pref(layout.css.flexbox.enabled,true) load 799207-1.html
 asserts(12) test-pref(layout.css.flexbox.enabled,true) load 799207-2.html
 test-pref(layout.css.flexbox.enabled,true) load 804089-1.xhtml
-asserts(0-2) load 810726.html # bug 840818 and bug 847130 
+load 840818.html
+load 810726.html
 load 842132-1.html
 load 847130.xhtml

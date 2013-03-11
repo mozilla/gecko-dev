@@ -673,6 +673,7 @@ protected:
                           nsBlockFrame*        aFromContainer,
                           bool                 aFromOverflowLine,
                           nsFrameList&         aFromFrameList,
+                          nsLineList&          aFromLineList,
                           nsLineList::iterator aFromLine);
 
   /**
