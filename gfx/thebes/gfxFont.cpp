@@ -53,9 +53,6 @@ using mozilla::services::GetObserverService;
 
 gfxFontCache *gfxFontCache::gGlobalCache = nullptr;
 
-static const PRUnichar kEllipsisChar[] = { 0x2026, 0x0 };
-static const PRUnichar kASCIIPeriodsChar[] = { '.', '.', '.', 0x0 };
-
 #ifdef DEBUG_roc
 #define DEBUG_TEXT_RUN_STORAGE_METRICS
 #endif
@@ -3255,8 +3252,7 @@ gfxFontGroup::HasFont(const gfxFontEntry *aFontEntry)
     return false;
 }
 
-gfxFontGroup::~gfxFontGroup()
-{
+gfxFontGroup::~gfxFontGroup() {
     mFonts.Clear();
     SetUserFontSet(nullptr);
 }
@@ -3830,39 +3826,6 @@ gfxFontGroup::InitScriptRun(gfxContext *aContext,
     }
 }
 
-gfxTextRun *
-gfxFontGroup::GetEllipsisTextRun(int32_t aAppUnitsPerDevPixel,
-                                 LazyReferenceContextGetter& aRefContextGetter)
-{
-    if (mCachedEllipsisTextRun &&
-        mCachedEllipsisTextRun->GetAppUnitsPerDevUnit() == aAppUnitsPerDevPixel) {
-        return mCachedEllipsisTextRun;
-    }
-
-    // Use a Unicode ellipsis if the font supports it,
-    // otherwise use three ASCII periods as fallback.
-    gfxFont* firstFont = GetFontAt(0);
-    nsString ellipsis = firstFont->HasCharacter(kEllipsisChar[0])
-        ? nsDependentString(kEllipsisChar,
-                            ArrayLength(kEllipsisChar) - 1)
-        : nsDependentString(kASCIIPeriodsChar,
-                            ArrayLength(kASCIIPeriodsChar) - 1);
-
-    nsRefPtr<gfxContext> refCtx = aRefContextGetter.GetRefContext();
-    Parameters params = {
-        refCtx, nullptr, nullptr, nullptr, 0, aAppUnitsPerDevPixel
-    };
-    gfxTextRun* textRun =
-        MakeTextRun(ellipsis.get(), ellipsis.Length(), &params, TEXT_IS_PERSISTENT);
-    if (!textRun) {
-        return nullptr;
-    }
-    mCachedEllipsisTextRun = textRun;
-    textRun->ReleaseFontGroup(); // don't let the presence of a cached ellipsis
-                                 // textrun prolong the fontgroup's life
-    return textRun;
-}
-
 already_AddRefed<gfxFont>
 gfxFontGroup::TryOtherFamilyMembers(gfxFont* aFont, uint32_t aCh)
 {
@@ -4115,7 +4078,6 @@ gfxFontGroup::UpdateFontList()
         ForEachFont(FindPlatformFont, this);
 #endif
         mCurrGeneration = GetGeneration();
-        mCachedEllipsisTextRun = nullptr;
     }
 }
 
@@ -4554,7 +4516,6 @@ gfxTextRun::gfxTextRun(const gfxTextRunFactory::Parameters *aParams,
                        uint32_t aLength, gfxFontGroup *aFontGroup, uint32_t aFlags)
   : mUserData(aParams->mUserData),
     mFontGroup(aFontGroup),
-    mReleasedFontGroup(false),
     mAppUnitsPerDevUnit(aParams->mAppUnitsPerDevUnit),
     mFlags(aFlags), mCharacterCount(aLength)
 {
@@ -4585,22 +4546,8 @@ gfxTextRun::~gfxTextRun()
     mFlags = 0xFFFFFFFF;
 #endif
 
-    // The cached ellipsis textrun (if any) in a fontgroup will have already
-    // been told to release its reference to the group, so we mustn't do that
-    // again here.
-    if (!mReleasedFontGroup) {
-        NS_RELEASE(mFontGroup);
-    }
-
-    MOZ_COUNT_DTOR(gfxTextRun);
-}
-
-void
-gfxTextRun::ReleaseFontGroup()
-{
-    NS_ASSERTION(!mReleasedFontGroup, "doubly released!");
     NS_RELEASE(mFontGroup);
-    mReleasedFontGroup = true;
+    MOZ_COUNT_DTOR(gfxTextRun);
 }
 
 bool
