@@ -742,15 +742,6 @@ BluetoothHfpManager::ReceiveSocketData(UnixSocketRawData* aMessage)
     // Currently, we don't support memory dialing in Dialer app
     SendLine("ERROR");
     return;
-  } else if ((msg.Find("AT+XAPL=") != -1) ||
-             (msg.Find("AT+XEVENT=") != -1)) {
-    // FIXME: Bug 838089
-    // These are vendor commands used on some special headsets. Eventually we
-    // should reply with ERROR to all unknown incoming commands. However,
-    // in order not to cause interoperability issues for b2g18 branch, only
-    // filtering these two commands should be fine for now.
-    SendLine("ERROR");
-    return;
   } else if (msg.Find("ATD") != -1) {
     nsAutoCString message(msg), newMsg;
     int end = message.FindChar(';');
@@ -802,10 +793,13 @@ BluetoothHfpManager::ReceiveSocketData(UnixSocketRawData* aMessage)
   } else {
 #ifdef DEBUG
     nsCString warningMsg;
-    warningMsg.AssignLiteral("Not handling HFP message, reply ok: ");
+    warningMsg.Append(NS_LITERAL_CSTRING("Unsupported AT command: "));
     warningMsg.Append(msg);
+    warningMsg.Append(NS_LITERAL_CSTRING(", reply with ERROR"));
     NS_WARNING(warningMsg.get());
 #endif
+    SendLine("ERROR");
+    return;
   }
 
 respond_with_ok:
