@@ -5417,17 +5417,6 @@ nsIPresShell::SetCapturingContent(nsIContent* aContent, uint8_t aFlags)
   }
 }
 
-nsIContent*
-PresShell::GetCurrentEventContent()
-{
-  if (mCurrentEventContent &&
-      mCurrentEventContent->GetCurrentDoc() != mDocument) {
-    mCurrentEventContent = nullptr;
-    mCurrentEventFrame = nullptr;
-  }
-  return mCurrentEventContent;
-}
-
 nsIFrame*
 PresShell::GetCurrentEventFrame()
 {
@@ -5435,16 +5424,16 @@ PresShell::GetCurrentEventFrame()
     return nullptr;
   }
     
-  // GetCurrentEventContent() makes sure the content is still in the
-  // same document that this pres shell belongs to. If not, then the
-  // frame shouldn't get an event, nor should we even assume its safe
-  // to try and find the frame.
-  nsIContent* content = GetCurrentEventContent();
-  if (!mCurrentEventFrame && content) {
-    mCurrentEventFrame = content->GetPrimaryFrame();
-    MOZ_ASSERT(!mCurrentEventFrame ||
-               mCurrentEventFrame->PresContext()->GetPresShell() == this);
+  if (!mCurrentEventFrame && mCurrentEventContent) {
+    // Make sure the content still has a document reference. If not,
+    // then we assume it is no longer in the content tree and the
+    // frame shouldn't get an event, nor should we even assume its
+    // safe to try and find the frame.
+    if (mCurrentEventContent->GetDocument()) {
+      mCurrentEventFrame = mCurrentEventContent->GetPrimaryFrame();
+    }
   }
+
   return mCurrentEventFrame;
 }
 
@@ -5457,15 +5446,15 @@ PresShell::GetEventTargetFrame()
 already_AddRefed<nsIContent>
 PresShell::GetEventTargetContent(nsEvent* aEvent)
 {
-  nsIContent* content = GetCurrentEventContent();
-  if (content) {
-    NS_ADDREF(content);
+  nsIContent* content = nullptr;
+
+  if (mCurrentEventContent) {
+    content = mCurrentEventContent;
+    NS_IF_ADDREF(content);
   } else {
     nsIFrame* currentEventFrame = GetCurrentEventFrame();
     if (currentEventFrame) {
       currentEventFrame->GetContentForEvent(aEvent, &content);
-      NS_ASSERTION(!content || content->GetCurrentDoc() == mDocument,
-                   "handing out content from a different doc");
     } else {
       content = nullptr;
     }
@@ -5495,13 +5484,6 @@ PresShell::PopCurrentEventInfo()
     mCurrentEventFrameStack.RemoveElementAt(0);
     mCurrentEventContent = mCurrentEventContentStack.ObjectAt(0);
     mCurrentEventContentStack.RemoveObjectAt(0);
-
-    // Don't use it if it has moved to a different document.
-    if (mCurrentEventContent &&
-        mCurrentEventContent->GetCurrentDoc() != mDocument) {
-      mCurrentEventContent = nullptr;
-      mCurrentEventFrame = nullptr;
-    }
   }
 }
 
@@ -6218,7 +6200,7 @@ PresShell::HandleEvent(nsIFrame        *aFrame,
         mCurrentEventContent = eventTarget;
       }
         
-      if (!GetCurrentEventContent() || !GetCurrentEventFrame() ||
+      if (!mCurrentEventContent || !GetCurrentEventFrame() ||
           InZombieDocument(mCurrentEventContent)) {
         rv = RetargetEventToParent(aEvent, aEventStatus);
         PopCurrentEventInfo();
@@ -6356,16 +6338,6 @@ nsresult
 PresShell::HandleEventWithTarget(nsEvent* aEvent, nsIFrame* aFrame,
                                  nsIContent* aContent, nsEventStatus* aStatus)
 {
-#if DEBUG
-  MOZ_ASSERT(!aFrame || aFrame->PresContext()->GetPresShell() == this,
-             "wrong shell");
-  if (aContent) {
-    nsIDocument* doc = aContent->GetCurrentDoc();
-    NS_ASSERTION(doc, "event for content that isn't in a document");
-    NS_ASSERTION(!doc || doc->GetShell() == this, "wrong shell");
-  }
-#endif
-
   PushCurrentEventInfo(aFrame, aContent);
   nsresult rv = HandleEventInternal(aEvent, aStatus);
   PopCurrentEventInfo();
@@ -6449,7 +6421,7 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsEventStatus* aStatus)
       case NS_KEY_PRESS:
       case NS_KEY_DOWN:
       case NS_KEY_UP: {
-        nsIDocument* doc = GetCurrentEventContent() ?
+        nsIDocument *doc = mCurrentEventContent ?
                            mCurrentEventContent->OwnerDoc() : nullptr;
         nsIDocument* root = nullptr;
         if (static_cast<const nsKeyEvent*>(aEvent)->keyCode == NS_VK_ESCAPE &&
