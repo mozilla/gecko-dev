@@ -220,19 +220,14 @@ AudioStream::~AudioStream()
 {
 }
 
-nsresult AudioStream::EnsureTimeStretcherInitialized()
+void AudioStream::EnsureTimeStretcherInitialized()
 {
   if (!mTimeStretcher) {
-    // SoundTouch does not support a number of channels > 2
-    if (mChannels > 2) {
-      return NS_ERROR_FAILURE;
-    }
     mTimeStretcher = new soundtouch::SoundTouch();
     mTimeStretcher->setSampleRate(mInRate);
     mTimeStretcher->setChannels(mChannels);
     mTimeStretcher->setPitch(1.0);
   }
-  return NS_OK;
 }
 
 nsresult AudioStream::SetPlaybackRate(double aPlaybackRate)
@@ -243,14 +238,10 @@ nsresult AudioStream::SetPlaybackRate(double aPlaybackRate)
   if (aPlaybackRate == mAudioClock.GetPlaybackRate()) {
     return NS_OK;
   }
-
-  if (EnsureTimeStretcherInitialized() != NS_OK) {
-    return NS_ERROR_FAILURE;
-  }
-
   mAudioClock.SetPlaybackRate(aPlaybackRate);
   mOutRate = mInRate / aPlaybackRate;
 
+  EnsureTimeStretcherInitialized();
 
   if (mAudioClock.GetPreservesPitch()) {
     mTimeStretcher->setTempo(aPlaybackRate);
@@ -269,9 +260,7 @@ nsresult AudioStream::SetPreservesPitch(bool aPreservesPitch)
     return NS_OK;
   }
 
-  if (EnsureTimeStretcherInitialized() != NS_OK) {
-    return NS_ERROR_FAILURE;
-  }
+  EnsureTimeStretcherInitialized();
 
   if (aPreservesPitch == true) {
     mTimeStretcher->setTempo(mAudioClock.GetPlaybackRate());
@@ -377,9 +366,7 @@ nsresult NativeAudioStream::Write(const AudioDataValue* aBuf, uint32_t aFrames)
   int32_t written = -1;
 
   if (mInRate != mOutRate) {
-    if (EnsureTimeStretcherInitialized() != NS_OK) {
-      return NS_ERROR_FAILURE;
-    }
+    EnsureTimeStretcherInitialized();
     mTimeStretcher->putSamples(aBuf, aFrames);
     uint32_t numFrames = mTimeStretcher->numSamples();
     uint32_t arraySize = numFrames * mChannels * sizeof(AudioDataValue);
@@ -619,7 +606,7 @@ class BufferedAudioStream : public AudioStream
   // This method acquires the monitor and forward the call to the base
   // class, to prevent a race on |mTimeStretcher|, in
   // |AudioStream::EnsureTimeStretcherInitialized|.
-  nsresult EnsureTimeStretcherInitialized();
+  void EnsureTimeStretcherInitialized();
 
 private:
   static long DataCallback_S(cubeb_stream*, void* aThis, void* aBuffer, long aFrames)
@@ -718,11 +705,11 @@ BufferedAudioStream::~BufferedAudioStream()
   Shutdown();
 }
 
-nsresult
+void
 BufferedAudioStream::EnsureTimeStretcherInitialized()
 {
   MonitorAutoLock mon(mMonitor);
-  return AudioStream::EnsureTimeStretcherInitialized();
+  AudioStream::EnsureTimeStretcherInitialized();
 }
 
 nsresult
@@ -986,9 +973,7 @@ BufferedAudioStream::GetTimeStretched(void* aBuffer, long aFrames)
   long processedFrames = 0;
 
   // We need to call the non-locking version, because we already have the lock.
-  if (AudioStream::EnsureTimeStretcherInitialized() != NS_OK) {
-    return 0;
-  }
+  AudioStream::EnsureTimeStretcherInitialized();
 
   uint8_t* wpos = reinterpret_cast<uint8_t*>(aBuffer);
   double playbackRate = static_cast<double>(mInRate) / mOutRate;

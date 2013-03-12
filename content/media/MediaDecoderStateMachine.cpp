@@ -984,16 +984,12 @@ void MediaDecoderStateMachine::AudioLoop()
     volume = mVolume;
     mAudioStream->SetVolume(volume);
     preservesPitch = mPreservesPitch;
-    if (audioStream->SetPreservesPitch(preservesPitch) != NS_OK) {
-      NS_WARNING("Setting the pitch preservation failed at AudioLoop start.");
-    }
+    mAudioStream->SetPreservesPitch(preservesPitch);
     playbackRate = mPlaybackRate;
     if (playbackRate != 1.0) {
       NS_ASSERTION(playbackRate != 0,
           "Don't set the playbackRate to 0 on an AudioStream.");
-      if (audioStream->SetPlaybackRate(playbackRate) != NS_OK) {
-        NS_WARNING("Setting the playback rate failed at AudioLoop start.");
-      }
+      mAudioStream->SetPlaybackRate(playbackRate);
     }
   }
   while (1) {
@@ -1050,14 +1046,10 @@ void MediaDecoderStateMachine::AudioLoop()
     if (setPlaybackRate) {
       NS_ASSERTION(playbackRate != 0,
                    "Don't set the playbackRate to 0 in the AudioStreams");
-      if (mAudioStream->SetPlaybackRate(playbackRate) != NS_OK) {
-        NS_WARNING("Setting the playback rate failed in AudioLoop.");
-      }
+      mAudioStream->SetPlaybackRate(playbackRate);
     }
     if (setPreservesPitch) {
-      if (mAudioStream->SetPreservesPitch(preservesPitch) != NS_OK) {
-        NS_WARNING("Setting the pitch preservation failed in AudioLoop.");
-      }
+      mAudioStream->SetPreservesPitch(preservesPitch);
     }
     if (minWriteFrames == -1) {
       minWriteFrames = mAudioStream->GetMinWriteSize();
@@ -2725,12 +2717,6 @@ void MediaDecoderStateMachine::SetPlaybackRate(double aPlaybackRate)
   NS_ASSERTION(aPlaybackRate != 0,
       "PlaybackRate == 0 should be handled before this function.");
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-
-  // We don't currently support more than two channels when changing playback
-  // rate.
-  if (mAudioStream && mAudioStream->GetChannels() > 2) {
-    return;
-  }
 
   if (mPlaybackRate == aPlaybackRate) {
     return;
