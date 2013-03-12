@@ -512,7 +512,6 @@ private:
                                              nsHttpTransaction *trans);
 
     void               ProcessSpdyPendingQ(nsConnectionEntry *ent);
-    void               ProcessAllSpdyPendingQ();
     static PLDHashOperator ProcessSpdyPendingQCB(
         const nsACString &key, nsAutoPtr<nsConnectionEntry> &ent,
         void *closure);
@@ -578,6 +577,7 @@ private:
     void OnMsgUpdateParam          (int32_t, void *);
     void OnMsgClosePersistentConnections (int32_t, void *);
     void OnMsgProcessFeedback      (int32_t, void *);
+    void OnMsgProcessAllSpdyPendingQ (int32_t, void *);
 
     // Total number of active connections in all of the ConnectionEntry objects
     // that are accessed from mCT connection table.
