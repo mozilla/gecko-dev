@@ -35244,7 +35244,7 @@ var Jbig2Image = (function Jbig2ImageClosure() {
           return d;
         } else {
           this.chigh -= qeIcx;
-          if ((this.a & 0x8000) == 0) {
+          if ((this.a & 0x8000) === 0) {
             var d = this.exchangeMps(cx);
             this.renormD();
             return d;
@@ -35255,14 +35255,14 @@ var Jbig2Image = (function Jbig2ImageClosure() {
       },
       renormD: function ArithmeticDecoder_renormD() {
         do {
-          if (this.ct == 0)
+          if (this.ct === 0)
             this.byteIn();
 
           this.a <<= 1;
           this.chigh = ((this.chigh << 1) & 0xFFFF) | ((this.clow >> 15) & 1);
           this.clow = (this.clow << 1) & 0xFFFF;
           this.ct--;
-        } while ((this.a & 0x8000) == 0);
+        } while ((this.a & 0x8000) === 0);
       },
       exchangeMps: function ArithmeticDecoder_exchangeMps(cx) {
         var d;
@@ -35382,7 +35382,7 @@ var Jbig2Image = (function Jbig2ImageClosure() {
           break;
         default:
           v = v * 2 + bit;
-          if (--toRead == 0)
+          if (--toRead === 0)
             state = 0;
           continue;
       }
@@ -35431,9 +35431,9 @@ var Jbig2Image = (function Jbig2ImageClosure() {
     [{x: -1, y: -2}, {x: 0, y: -2}, {x: 1, y: -2}, {x: -2, y: -1},
      {x: -1, y: -1}, {x: 0, y: -1}, {x: 1, y: -1}, {x: 2, y: -1},
      {x: -4, y: 0}, {x: -3, y: 0}, {x: -2, y: 0}, {x: -1, y: 0}],
-    [{x: -1, y: -2}, {x: 0, y: -2}, {x: 1, y: -2}, {x: -2, y: -1},
-     {x: -1, y: -1}, {x: 0, y: -1}, {x: 1, y: -1}, {x: 2, y: -1},
-     {x: -3, y: 0}, {x: -2, y: 0}, {x: -1, y: 0}],
+    [{x: -1, y: -2}, {x: 0, y: -2}, {x: 1, y: -2}, {x: 2, y: -2},
+     {x: -2, y: -1}, {x: -1, y: -1}, {x: 0, y: -1}, {x: 1, y: -1},
+     {x: 2, y: -1}, {x: -3, y: 0}, {x: -2, y: 0}, {x: -1, y: 0}],
     [{x: -1, y: -2}, {x: 0, y: -2}, {x: 1, y: -2}, {x: -2, y: -1},
      {x: -1, y: -1}, {x: 0, y: -1}, {x: 1, y: -1}, {x: -2, y: 0},
      {x: -1, y: 0}],
@@ -35558,7 +35558,7 @@ var Jbig2Image = (function Jbig2ImageClosure() {
                             offsetX, offsetY, prediction, at,
                             decodingContext) {
     var codingTemplate = RefinementTemplates[templateIndex].coding;
-    if (templateIndex == 0)
+    if (templateIndex === 0)
       codingTemplate = codingTemplate.concat([at[0]]);
     var codingTemplateLength = codingTemplate.length;
     var codingTemplateX = new Int32Array(codingTemplateLength);
@@ -35568,7 +35568,7 @@ var Jbig2Image = (function Jbig2ImageClosure() {
       codingTemplateY[k] = codingTemplate[k].y;
     }
     var referenceTemplate = RefinementTemplates[templateIndex].reference;
-    if (templateIndex == 0)
+    if (templateIndex === 0)
       referenceTemplate = referenceTemplate.concat([at[1]]);
     var referenceTemplateLength = referenceTemplate.length;
     var referenceTemplateX = new Int32Array(referenceTemplateLength);
@@ -35651,7 +35651,7 @@ var Jbig2Image = (function Jbig2ImageClosure() {
       var totalWidth = 0;
       while (true) {
         var deltaWidth = decodeInteger(contextCache, 'IADW', decoder); // 6.5.7
-        if (deltaWidth == null)
+        if (deltaWidth === null)
           break; // OOB
         currentWidth += deltaWidth;
         totalWidth += currentWidth;
@@ -35778,7 +35778,7 @@ var Jbig2Image = (function Jbig2ImageClosure() {
         i++;
 
         var deltaS = decodeInteger(contextCache, 'IADS', decoder); // 6.4.8
-        if (deltaS == null)
+        if (deltaS === null)
           break; // OOB
         currentS += deltaS + dsOffset;
       } while (true);
@@ -35830,9 +35830,42 @@ var Jbig2Image = (function Jbig2ImageClosure() {
       position += 4;
     }
     segmentHeader.length = readUint32(data, position);
-    if (segmentHeader.length == 0xFFFFFFFF)
-      error('JBIG2 error: unknown segment length is not supported');
     position += 4;
+    if (segmentHeader.length == 0xFFFFFFFF) {
+      // 7.2.7 Segment data length, unknown segment length
+      if (segmentType === 38) { // ImmediateGenericRegion
+        var genericRegionInfo = readRegionSegmentInformation(data, position);
+        var genericRegionSegmentFlags = data[position +
+          RegionSegmentInformationFieldLength];
+        var genericRegionMmr = !!(genericRegionSegmentFlags & 1);
+        // searching for the segment end
+        var searchPatternLength = 6;
+        var searchPattern = new Uint8Array(searchPatternLength);
+        if (!genericRegionMmr) {
+          searchPattern[0] = 0xFF;
+          searchPattern[1] = 0xAC;
+        }
+        searchPattern[2] = (genericRegionInfo.height >>> 24) & 0xFF;
+        searchPattern[3] = (genericRegionInfo.height >> 16) & 0xFF;
+        searchPattern[4] = (genericRegionInfo.height >> 8) & 0xFF;
+        searchPattern[5] = genericRegionInfo.height & 0xFF;
+        for (var i = position, ii = data.length; i < ii; i++) {
+          var j = 0;
+          while (j < searchPatternLength && searchPattern[j] === data[i + j]) {
+            j++;
+          }
+          if (j == searchPatternLength) {
+            segmentHeader.length = i + searchPatternLength;
+            break;
+          }
+        }
+        if (segmentHeader.length == 0xFFFFFFFF) {
+          error('JBIG2 error: segment end was not found');
+        }
+      } else {
+        error('JBIG2 error: invalid unknown segment length');
+      }
+    }
     segmentHeader.headerEnd = position;
     return segmentHeader;
   }
@@ -35900,7 +35933,7 @@ var Jbig2Image = (function Jbig2ImageClosure() {
         dictionary.refinementTemplate = (dictionaryFlags >> 12) & 1;
         position += 2;
         if (!dictionary.huffman) {
-          var atLength = dictionary.template == 0 ? 4 : 1;
+          var atLength = dictionary.template === 0 ? 4 : 1;
           var at = [];
           for (var i = 0; i < atLength; i++) {
             at.push({
@@ -35943,7 +35976,7 @@ var Jbig2Image = (function Jbig2ImageClosure() {
         textRegion.transposed = !!(textRegionSegmentFlags & 64);
         textRegion.combinationOperator = (textRegionSegmentFlags >> 7) & 3;
         textRegion.defaultPixelValue = (textRegionSegmentFlags >> 9) & 1;
-        textRegion.dsOffset = (textRegionSegmentFlags >> 10) & 31;
+        textRegion.dsOffset = (textRegionSegmentFlags << 17) >> 27;
         textRegion.refinementTemplate = (textRegionSegmentFlags >> 15) & 1;
         if (textRegion.huffman) {
           var textRegionHuffmanFlags = readUint16(data, position);
@@ -35986,7 +36019,7 @@ var Jbig2Image = (function Jbig2ImageClosure() {
         genericRegion.template = (genericRegionSegmentFlags >> 1) & 3;
         genericRegion.prediction = !!(genericRegionSegmentFlags & 8);
         if (!genericRegion.mmr) {
-          var atLength = genericRegion.template == 0 ? 4 : 1;
+          var atLength = genericRegion.template === 0 ? 4 : 1;
           var at = [];
           for (var i = 0; i < atLength; i++) {
             at.push({
@@ -36017,6 +36050,8 @@ var Jbig2Image = (function Jbig2ImageClosure() {
         pageInfo.requiresBuffer = !!(pageSegmentFlags & 32);
         pageInfo.combinationOperatorOverride = !!(pageSegmentFlags & 64);
         args = [pageInfo];
+        break;
+      case 49: // EndOfPage
         break;
       case 50: // EndOfStripe
         break;
