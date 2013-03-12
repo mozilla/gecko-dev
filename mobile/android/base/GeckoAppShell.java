@@ -410,6 +410,16 @@ public class GeckoAppShell
         }
     }
 
+    private static void delTree(File file) {
+        if (file.isDirectory()) {
+            File children[] = file.listFiles();
+            for (File child : children) {
+                delTree(child);
+            }
+        }
+        file.delete();
+    }
+
     public static void setupGeckoEnvironment(Context context) {
         GeckoProfile profile = GeckoProfile.get(context);
 
@@ -419,9 +429,12 @@ public class GeckoAppShell
         // profile home path
         GeckoAppShell.putenv("HOME=" + profile.getFilesDir().getPath());
 
-        // setup the tmp path
-        File f = context.getDir("tmp", Context.MODE_WORLD_READABLE |
-                                 Context.MODE_WORLD_WRITEABLE );
+        File f = context.getDir("tmpdir", Context.MODE_PRIVATE);
+        // check if the old tmp dir is there
+        File oldDir = new File(f.getParentFile(), "app_tmp");
+        if (oldDir.exists()) {
+            delTree(oldDir);
+        }
         if (!f.exists())
             f.mkdirs();
         GeckoAppShell.putenv("TMPDIR=" + f.getPath());
