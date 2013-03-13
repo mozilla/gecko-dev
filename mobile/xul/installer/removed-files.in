@@ -30,3 +30,4 @@ extensions/feedback@mobile.mozilla.org.xpi
 #endif
 @DLL_PREFIX@mozutils@DLL_SUFFIX@
 jssubloader/
+components/dom_sms.xpt

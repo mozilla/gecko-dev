@@ -6,7 +6,7 @@
 
 #include "mozilla/Util.h"
 // On top because they include basictypes.h:
-#include "SmsFilter.h"
+#include "mozilla/dom/SmsFilter.h"
 
 #ifdef XP_WIN
 #undef GetClassName
@@ -1847,7 +1847,7 @@ static const nsConstructorFuncMapData kConstructorFuncMap[] =
 #define MOZ_GENERATED_EVENT(_event_interface) \
   NS_DEFINE_EVENT_CONSTRUCTOR_FUNC_DATA(_event_interface)
 #include "GeneratedEvents.h"
-  NS_DEFINE_CONSTRUCTOR_FUNC_DATA(MozSmsFilter, sms::SmsFilter::NewSmsFilter)
+  NS_DEFINE_CONSTRUCTOR_FUNC_DATA(MozSmsFilter, SmsFilter::NewSmsFilter)
   NS_DEFINE_CONSTRUCTOR_FUNC_DATA(XMLHttpRequest, NS_XMLHttpRequestCtor)
   NS_DEFINE_CONSTRUCTOR_FUNC_DATA(DOMParser, DOMParserCtor)
   NS_DEFINE_CONSTRUCTOR_FUNC_DATA(FileReader, FileReaderCtor)

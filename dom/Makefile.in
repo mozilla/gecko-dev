@@ -60,7 +60,6 @@ PARALLEL_DIRS += \
   power \
   settings \
   mobilemessage \
-  sms \
   mms \
   src \
   time \

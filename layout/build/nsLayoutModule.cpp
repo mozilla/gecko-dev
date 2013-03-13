@@ -238,7 +238,7 @@ static void Shutdown();
 #include "nsCSPService.h"
 #include "nsISmsService.h"
 #include "nsIMobileMessageDatabaseService.h"
-#include "mozilla/dom/sms/SmsServicesFactory.h"
+#include "mozilla/dom/mobilemessage/SmsServicesFactory.h"
 #include "nsIPowerManagerService.h"
 #include "nsIAlarmHalService.h"
 #include "nsMixedContentBlocker.h"
@@ -256,7 +256,7 @@ static void Shutdown();
 using namespace mozilla;
 using namespace mozilla::dom;
 using namespace mozilla::dom::file;
-using namespace mozilla::dom::sms;
+using namespace mozilla::dom::mobilemessage;
 using mozilla::dom::alarm::AlarmHalService;
 using mozilla::dom::indexedDB::IndexedDatabaseManager;
 using mozilla::dom::power::PowerManagerService;
