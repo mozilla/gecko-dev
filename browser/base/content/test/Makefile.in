@@ -297,7 +297,6 @@ _BROWSER_FILES = \
                  browser_URLBarSetURI.js \
                  browser_bookmark_titles.js \
                  browser_pageInfo_plugins.js \
-                 browser_private_no_prompt.js \
                  $(NULL)
 
 ifneq (cocoa,$(MOZ_WIDGET_TOOLKIT))
@@ -329,6 +328,7 @@ _BROWSER_FILES += \
                 browser_save_private_link_perwindowpb.js \
                 browser_tabMatchesInAwesomebar_perwindowpb.js \
                 browser_tab_drag_drop_perwindow.js \
+                browser_private_no_prompt.js \
                 $(NULL)
 else
 _BROWSER_FILES += \

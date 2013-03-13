@@ -265,7 +265,7 @@ var gPrivacyPane = {
       this._shouldPromptForRestart = true;
 #else
       // Toggle the private browsing mode without switching the session
-      let prefValue = document.getElementById("browser.privatebrowsing.autostart").value;
+      let prefValue = document.getElementById("privateBrowsingAutoStart").checked;
       let keepCurrentSession = document.getElementById("browser.privatebrowsing.keep_current_session");
       keepCurrentSession.value = true;
 
