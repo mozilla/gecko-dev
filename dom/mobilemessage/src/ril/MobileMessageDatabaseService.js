@@ -776,7 +776,7 @@ MobileMessageDatabaseService.prototype = {
     tres = tres.filter(function (element) {
       return qres.indexOf(element.id) != -1;
     });
-    if (aContextIndex < 0) {
+    if (aContextIndex == null) {
       for (let i = 0; i < tres.length; i++) {
         this.onNextMessageInListGot(aMessageStore, aMessageList, tres[i].id);
       }
@@ -1335,13 +1335,16 @@ MobileMessageDatabaseService.prototype = {
     }
 
     let self = this;
-    this.newTxn(READ_ONLY, function (error, txn, messageStore) {
+    this.newTxn(READ_ONLY, function (error, txn, stores) {
       if (error) {
         //TODO look at event.target.errorCode, pick appropriate error constant.
         if (DEBUG) debug("IDBRequest error " + error.target.errorCode);
         aRequest.notifyReadMessageListFailed(Ci.nsISmsRequest.INTERNAL_ERROR);
         return;
       }
+
+      let messageStore = stores[0];
+      let participantStore = stores[1];
 
       let messageList = {
         listId: -1,
@@ -1362,6 +1365,7 @@ MobileMessageDatabaseService.prototype = {
 
       let singleFilterSuccessCb = function onsfsuccess(event) {
         if (messageList.stop) {
+          // Client called clearMessageList(). Return.
           return;
         }
 
@@ -1378,10 +1382,11 @@ MobileMessageDatabaseService.prototype = {
 
       let singleFilterErrorCb = function onsferror(event) {
         if (messageList.stop) {
+          // Client called clearMessageList(). Return.
           return;
         }
 
-        if (DEBUG) debug("IDBRequest error " + event.target.errorCode);
+        if (DEBUG && event) debug("IDBRequest error " + event.target.errorCode);
         onNextMessageInListGotCb(-1);
       };
 
@@ -1395,6 +1400,7 @@ MobileMessageDatabaseService.prototype = {
 
         let multiFiltersSuccessCb = function onmfsuccess(contextIndex, event) {
           if (messageList.stop) {
+            // Client called clearMessageList(). Return.
             return;
           }
 
@@ -1411,6 +1417,7 @@ MobileMessageDatabaseService.prototype = {
 
         let multiFiltersErrorCb = function onmferror(contextIndex, event) {
           if (messageList.stop) {
+            // Client called clearMessageList(). Return.
             return;
           }
 
@@ -1448,17 +1455,19 @@ MobileMessageDatabaseService.prototype = {
           return messageStore.index(indexName).openKeyCursor(range, direction);
         };
 
-        let createSimpleRangedRequest = function csrr(indexName, key) {
+        let createSimpleRangedRequest = function csrr(indexName, key, contextIndex) {
           let request = createRangedRequest(indexName, key);
           if (singleFilter) {
             request.onsuccess = singleFilterSuccessCb;
             request.onerror = singleFilterErrorCb;
           } else {
-            let contextIndex = numberOfContexts++;
-            messageList.contexts.push({
-              processing: true,
-              results: []
-            });
+            if (contextIndex == null) {
+              contextIndex = numberOfContexts++;
+              messageList.contexts.push({
+                processing: true,
+                results: []
+              });
+            }
             request.onsuccess = multiFiltersSuccessCb.bind(null, contextIndex);
             request.onerror = multiFiltersErrorCb.bind(null, contextIndex);
           }
@@ -1475,17 +1484,37 @@ MobileMessageDatabaseService.prototype = {
         // match the values of filter.numbers
         if (filter.numbers) {
           if (DEBUG) debug("filter.numbers " + filter.numbers.join(", "));
-          let multiNumbers = filter.numbers.length > 1;
-          if (!multiNumbers) {
-            createSimpleRangedRequest("number", filter.numbers[0]);
-          } else {
-            let contextIndex = -1;
-            if (!singleFilter) {
-              contextIndex = numberOfContexts++;
-              messageList.contexts.push({
-                processing: true,
-                results: []
-              });
+          let contextIndex;
+          if (!singleFilter) {
+            contextIndex = numberOfContexts++;
+            messageList.contexts.push({
+              processing: true,
+              results: []
+            });
+          }
+          self.findParticipantIdsByAddresses(participantStore, filter.numbers,
+                                             false, true,
+                                             function (participantIds) {
+            if (!participantIds || !participantIds.length) {
+              // Oops! No such participant at all.
+
+              if (messageList.stop) {
+                // Client called clearMessageList(). Return.
+                return;
+              }
+
+              if (singleFilter) {
+                onNextMessageInListGotCb(0);
+              } else {
+                multiFiltersGotCb(contextIndex, 0, 0);
+              }
+              return;
+            }
+
+            if (participantIds.length == 1) {
+              createSimpleRangedRequest("participantIds", participantIds[0],
+                                        contextIndex);
+              return;
             }
 
             let multiNumbersGotCb =
@@ -1494,6 +1523,7 @@ MobileMessageDatabaseService.prototype = {
 
             let multiNumbersSuccessCb = function onmnsuccess(queueIndex, event) {
               if (messageList.stop) {
+                // Client called clearMessageList(). Return.
                 return;
               }
 
@@ -1512,6 +1542,7 @@ MobileMessageDatabaseService.prototype = {
 
             let multiNumbersErrorCb = function onmnerror(queueIndex, event) {
               if (messageList.stop) {
+                // Client called clearMessageList(). Return.
                 return;
               }
 
@@ -1525,7 +1556,7 @@ MobileMessageDatabaseService.prototype = {
               results: []
             }, {
               // For all numbers.
-              processing: filter.numbers.length,
+              processing: participantIds.length,
               results: []
             }];
 
@@ -1544,12 +1575,13 @@ MobileMessageDatabaseService.prototype = {
             timeRequest.onsuccess = multiNumbersSuccessCb.bind(null, 0);
             timeRequest.onerror = multiNumbersErrorCb.bind(null, 0);
 
-            for (let i = 0; i < filter.numbers.length; i++) {
-              let request = createRangedRequest("number", filter.numbers[i]);
+            for (let i = 0; i < participantIds.length; i++) {
+              let request = createRangedRequest("participantIds",
+                                                participantIds[i]);
               request.onsuccess = multiNumbersSuccessCb.bind(null, 1);
               request.onerror = multiNumbersErrorCb.bind(null, 1);
             }
-          }
+          });
         }
 
         // Retrieve the keys from the 'read' index that matches the value of
@@ -1587,7 +1619,7 @@ MobileMessageDatabaseService.prototype = {
       }
 
       txn.onerror = singleFilterErrorCb;
-    });
+    }, [MESSAGE_STORE_NAME, PARTICIPANT_STORE_NAME]);
   },
 
   getNextMessageInList: function getNextMessageInList(listId, aRequest) {
