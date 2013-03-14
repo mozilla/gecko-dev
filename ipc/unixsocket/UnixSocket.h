@@ -15,6 +15,7 @@
 #ifdef MOZ_B2G_BT
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/sco.h>
+#include <bluetooth/l2cap.h>
 #include <bluetooth/rfcomm.h>
 #endif
 #include <stdlib.h>
@@ -33,6 +34,7 @@ union sockaddr_any {
 #ifdef MOZ_B2G_BT
   struct sockaddr_sco sco;
   struct sockaddr_rc rc;
+  struct sockaddr_l2 l2;
 #endif
   // ... others
 };
