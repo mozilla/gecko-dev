@@ -997,7 +997,7 @@ bool
 nsWindow::DrawTo(gfxASurface *targetSurface, const nsIntRect &invalidRect)
 {
     mozilla::layers::RenderTraceScope trace("DrawTo", "717171");
-    if (!mIsVisible || !mWidgetListener)
+    if (!mIsVisible || !mWidgetListener || !GetLayerManager(nullptr))
         return false;
 
     nsRefPtr<nsWindow> kungFuDeathGrip(this);
@@ -2368,7 +2368,7 @@ nsWindow::WidgetPaintsBackground()
 bool
 nsWindow::NeedsPaint()
 {
-  if (sCompositorPaused || FindTopLevel() != nsWindow::TopWindow()) {
+  if (sCompositorPaused || FindTopLevel() != nsWindow::TopWindow() || !GetLayerManager(nullptr)) {
     return false;
   }
   return nsIWidget::NeedsPaint();
