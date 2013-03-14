@@ -663,11 +663,23 @@ regexp_test_impl(JSContext *cx, CallArgs args)
 bool
 js::regexp_test_raw(JSContext *cx, HandleObject regexp, HandleString input, JSBool *result)
 {
-    MatchPair match;
-    MatchConduit conduit(&match);
-    RegExpRunStatus status = ExecuteRegExp(cx, regexp, input, conduit);
-    *result = (status == RegExpRunStatus_Success);
-    return (status != RegExpRunStatus_Error);
+    if (regexp->isRegExp()) {
+        MatchPair match;
+        MatchConduit conduit(&match);
+        RegExpRunStatus status = ExecuteRegExp(cx, regexp, input, conduit);
+        *result = (status == RegExpRunStatus_Success);
+        return (status != RegExpRunStatus_Error);
+    }
+
+    Value vp[3];
+    AutoArrayRooter rooter(cx, 3, vp);
+    JS::CallArgs args = JS::CallArgsFromVp(1, vp);
+    args.setCallee(NullValue()); // will cause a incorrect error message.
+    args.setThis(ObjectValue(*regexp));
+    args[0] = StringValue(input);
+
+    // We call this function to produce the exception as expected.
+    return js::regexp_test(cx, 3, vp);
 }
 
 JSBool
