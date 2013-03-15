@@ -45,6 +45,7 @@ EXPORTS = \
   nsPluginTags.h \
   nsPluginDirServiceProvider.h \
   nsPluginHost.h \
+  nsJSNPRuntime.h \
   nsPluginInstanceOwner.h \
   nsPluginPlayPreviewInfo.h \
   $(NULL)

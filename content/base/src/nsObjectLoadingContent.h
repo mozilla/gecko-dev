@@ -137,6 +137,9 @@ class nsObjectLoadingContent : public nsImageLoadingContent
      */
     bool SrcStreamLoading() { return mSrcStreamLoading; }
 
+    // Remove plugin from protochain
+    void TeardownProtoChain();
+
   protected:
     /**
      * Begins loading the object when called
