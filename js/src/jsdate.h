@@ -40,6 +40,7 @@ TimeClip(double time)
 
 /* ES5 15.9.1.7. Set by UpdateLocalTZA(). */
 extern double LocalTZA;
+extern int32_t LocalGMTDifference;
 
 } /* namespace js */
 
