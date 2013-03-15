@@ -25,6 +25,7 @@
 #include "nsIPermissionManager.h"
 #include "nsPluginHost.h"
 #include "nsJSNPRuntime.h"
+#include "jswrapper.h"
 #include "nsIJSContextStack.h"
 #include "nsIPresShell.h"
 #include "nsIScriptGlobalObject.h"
@@ -2267,7 +2268,8 @@ nsObjectLoadingContent::PluginDestroyed()
   // plugins in plugin host. Invalidate instance owner / prototype but otherwise
   // don't take any action.
   TeardownProtoChain();
-  CloseChannel();
+  DisconnectFrame();
+  mInstanceOwner->Destroy();
   mInstanceOwner = nullptr;
   return NS_OK;
 }
@@ -2515,8 +2517,8 @@ nsObjectLoadingContent::DoStopPlugin(nsPluginInstanceOwner* aInstanceOwner,
     pluginHost->StopPluginInstance(inst);
   }
   TeardownProtoChain();
-
   aInstanceOwner->Destroy();
+
   mIsStopping = false;
 }
 
@@ -2557,9 +2559,11 @@ nsObjectLoadingContent::StopPluginInstance()
   }
 #endif
 
-  DoStopPlugin(mInstanceOwner, delayedStop);
-
+  nsRefPtr<nsPluginInstanceOwner> ownerGrip(mInstanceOwner);
   mInstanceOwner = nullptr;
+
+  // This can/will re-enter
+  DoStopPlugin(ownerGrip, delayedStop);
 
   return NS_OK;
 }
