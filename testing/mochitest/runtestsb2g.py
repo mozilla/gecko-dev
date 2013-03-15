@@ -299,10 +299,7 @@ class B2GMochitest(Mochitest, B2GMochitestMixin):
         self.originalProfilesIni = None
 
     def copyRemoteFile(self, src, dest):
-        if self._dm.useDDCopy:
-            self._dm._checkCmdAs(['shell', 'dd', 'if=%s' % src, 'of=%s' % dest])
-        else:
-            self._dm._checkCmdAs(['shell', 'cp', src, dest])
+        self._dm._checkCmdAs(['shell', 'dd', 'if=%s' % src, 'of=%s' % dest])
 
     def origUserJSExists(self):
         return self._dm.fileExists('/data/local/user.js.orig')
