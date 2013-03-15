@@ -277,6 +277,9 @@ test(
                                                       URI("http://self.com:88"));
       var allSourceList = CSPSourceList.fromString("*");
       var allAndMoreSourceList = CSPSourceList.fromString("* https://bar.com 'none'");
+      var wildcardHostSourceList = CSPSourceList.fromString("*.foo.com", URI("http://self.com"));
+      var allDoubledHostSourceList = CSPSourceList.fromString("**");
+      var allGarbageHostSourceList = CSPSourceList.fromString("*a");
 
       //'none' should permit none."
       do_check_false( nullSourceList.permits("http://a.com"));
@@ -302,6 +305,16 @@ test(
 
       //* short circuts parsing
       do_check_true(allAndMoreSourceList.permits("http://a.com"));
+
+      //"** permits all"
+      do_check_false(allDoubledHostSourceList.permits("http://barbaz.com"));
+      //"*a permits all"
+      do_check_false(allGarbageHostSourceList.permits("http://barbaz.com"));
+
+      //"*.foo.com does not permit somerandom.foo.com"
+      do_check_true(wildcardHostSourceList.permits("http://somerandom.foo.com"));
+      //"*.foo.com permits all"
+      do_check_false(wildcardHostSourceList.permits("http://barbaz.com"));
     });
 
 test(
