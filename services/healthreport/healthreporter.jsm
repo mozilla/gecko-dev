@@ -1126,6 +1126,16 @@ HealthReporter.prototype = Object.freeze({
 
     request.onSubmissionSuccess(now);
 
+#ifdef PRERELEASE_BUILD
+    // Intended to be temporary until we a) assess the impact b) bug 846133
+    // deploys more robust storage for state.
+    try {
+      Services.prefs.savePrefFile(null);
+    } catch (ex) {
+      this._log.warn("Error forcing prefs save: " + CommonUtils.exceptionStr(ex));
+    }
+#endif
+
     return promise;
   },
 
