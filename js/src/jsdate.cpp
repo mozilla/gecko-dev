@@ -319,11 +319,13 @@ WeekDay(double t)
 
 /* ES5 15.9.1.7. Set by UpdateLocalTZA(). */
 double js::LocalTZA;
+int32_t js::LocalGMTDifference;
 
 inline void
 UpdateLocalTZA()
 {
-    LocalTZA = -(PRMJ_LocalGMTDifference() * msPerSecond);
+    LocalGMTDifference = PRMJ_LocalGMTDifference();
+    LocalTZA = -(LocalGMTDifference * msPerSecond);
 }
 
 inline int

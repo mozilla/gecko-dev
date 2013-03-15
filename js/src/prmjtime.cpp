@@ -13,6 +13,8 @@
 #include <string.h>
 #include <time.h>
 
+#include "jsapi.h"
+#include "jsdate.h"
 #include "jstypes.h"
 #include "jsutil.h"
 
@@ -668,7 +670,7 @@ DSTOffsetCache::computeDSTOffsetMilliseconds(int64_t localTimeSeconds)
     if (!ComputeLocalTime(static_cast<time_t>(localTimeSeconds), &tm))
         return 0;
 
-    int32_t base = PRMJ_LocalGMTDifference();
+    int32_t base = js::LocalGMTDifference;
 
     int32_t dayoff = int32_t((localTimeSeconds - base) % (SECONDS_PER_HOUR * 24));
     int32_t tmoff = tm.tm_sec + (tm.tm_min * SECONDS_PER_MINUTE) +
