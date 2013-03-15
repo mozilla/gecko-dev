@@ -318,6 +318,8 @@ _BROWSER_FILES = \
                  browser_pluginCrashCommentAndURL.js \
                  pluginCrashCommentAndURL.html \
                  browser_private_no_prompt.js \
+                 browser_aboutHealthReport.js \
+                 healthreport_testRemoteCommands.html \
                  $(NULL)
 
 ifneq (cocoa,$(MOZ_WIDGET_TOOLKIT))
