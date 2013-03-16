@@ -880,11 +880,17 @@ function waitForEvents(event)
   }
 }
 
-var subwindow = window.open("./subtst_contextmenu.html", "contextmenu-subtext", "width=600,height=800");
-subwindow.addEventListener("MozAfterPaint", waitForEvents, false);
-subwindow.onload = waitForEvents;
+const isOSXMtnLion = navigator.userAgent.indexOf("Mac OS X 10.8") != -1;
 
-SimpleTest.waitForExplicitFinish();
+if (isOSXMtnLion) {
+  todo(false, "Mountain Lion doesn't like this test (bug 792304)");
+} else {
+  var subwindow = window.open("./subtst_contextmenu.html", "contextmenu-subtext", "width=600,height=800");
+  subwindow.addEventListener("MozAfterPaint", waitForEvents, false);
+  subwindow.onload = waitForEvents;
+
+  SimpleTest.waitForExplicitFinish();
+}
 </script>
 </pre>
 </body>
