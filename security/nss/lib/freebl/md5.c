@@ -1,38 +1,6 @@
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is the Netscape security libraries.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1994-2000
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifdef FREEBL_NO_DEPEND
 #include "stubs.h"
@@ -238,7 +206,7 @@ MD5_HashBuf(unsigned char *dest, const unsigned char *src, uint32 src_length)
 	MD5_Begin(&cx);
 	MD5_Update(&cx, src, src_length);
 	MD5_End(&cx, dest, &len, MD5_HASH_LEN);
-/*	memset(&cx, 0, sizeof cx); */
+	memset(&cx, 0, sizeof cx);
 	return SECSuccess;
 }
 
@@ -257,7 +225,7 @@ MD5_NewContext(void)
 void 
 MD5_DestroyContext(MD5Context *cx, PRBool freeit)
 {
-/*	memset(cx, 0, sizeof *cx); */
+	memset(cx, 0, sizeof *cx);
 	if (freeit) {
 	    PORT_Free(cx);
 	}
@@ -555,7 +523,8 @@ MD5_End(MD5Context *cx, unsigned char *digest,
 	md5_compress(cx, cx->u.w);
 
 	/* Copy the resulting values out of the chain variables into return buf. */
-	*digestLen = MD5_HASH_LEN;
+	if (digestLen)
+		*digestLen = MD5_HASH_LEN;
 #ifndef IS_LITTLE_ENDIAN
 	cx->cv[0] = lendian(cx->cv[0]);
 	cx->cv[1] = lendian(cx->cv[1]);
@@ -563,6 +532,32 @@ MD5_End(MD5Context *cx, unsigned char *digest,
 	cx->cv[3] = lendian(cx->cv[3]);
 #endif
 	memcpy(digest, cx->cv, MD5_HASH_LEN);
+}
+
+void
+MD5_EndRaw(MD5Context *cx, unsigned char *digest,
+           unsigned int *digestLen, unsigned int maxDigestLen)
+{
+#ifndef IS_LITTLE_ENDIAN
+	PRUint32 tmp;
+#endif
+	PRUint32 cv[4];
+
+	if (maxDigestLen < MD5_HASH_LEN) {
+		PORT_SetError(SEC_ERROR_INVALID_ARGS);
+		return;
+	}
+
+	memcpy(cv, cx->cv, sizeof(cv));
+#ifndef IS_LITTLE_ENDIAN
+	cv[0] = lendian(cv[0]);
+	cv[1] = lendian(cv[1]);
+	cv[2] = lendian(cv[2]);
+	cv[3] = lendian(cv[3]);
+#endif
+	memcpy(digest, cv, MD5_HASH_LEN);
+	if (digestLen)
+		*digestLen = MD5_HASH_LEN;
 }
 
 unsigned int 

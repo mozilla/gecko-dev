@@ -1,46 +1,16 @@
 #
-# ***** BEGIN LICENSE BLOCK *****
-# Version: MPL 1.1/GPL 2.0/LGPL 2.1
-#
-# The contents of this file are subject to the Mozilla Public License Version
-# 1.1 (the "License"); you may not use this file except in compliance with
-# the License. You may obtain a copy of the License at
-# http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS IS" basis,
-# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
-# for the specific language governing rights and limitations under the
-# License.
-#
-# The Original Code is the Netscape security libraries.
-#
-# The Initial Developer of the Original Code is
-# Netscape Communications Corporation.
-# Portions created by the Initial Developer are Copyright (C) 1994-2000
-# the Initial Developer. All Rights Reserved.
-#
-# Contributor(s):
-#
-# Alternatively, the contents of this file may be used under the terms of
-# either the GNU General Public License Version 2 or later (the "GPL"), or
-# the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
-# in which case the provisions of the GPL or the LGPL are applicable instead
-# of those above. If you wish to allow use of your version of this file only
-# under the terms of either the GPL or the LGPL, and not to allow others to
-# use your version of this file under the terms of the MPL, indicate your
-# decision by deleting the provisions above and replace them with the notice
-# and other provisions required by the GPL or the LGPL. If you do not delete
-# the provisions above, a recipient may use your version of this file under
-# the terms of any one of the MPL, the GPL or the LGPL.
-#
-# ***** END LICENSE BLOCK *****
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 include $(CORE_DEPTH)/coreconf/UNIX.mk
 
 #
 # The default implementation strategy for Linux is now pthreads
 #
-USE_PTHREADS = 1
+ifneq ($(OS_TARGET),Android)
+	USE_PTHREADS = 1
+endif
 
 ifeq ($(USE_PTHREADS),1)
 	IMPL_STRATEGY = _PTH
@@ -52,6 +22,26 @@ RANLIB			= ranlib
 
 DEFAULT_COMPILER = gcc
 
+ifeq ($(OS_TARGET),Android)
+ifndef ANDROID_NDK
+	$(error Must set ANDROID_NDK to the path to the android NDK first)
+endif
+	ANDROID_PREFIX=$(OS_TEST)-linux-androideabi
+	ANDROID_TARGET=$(ANDROID_PREFIX)-4.4.3
+	# should autodetect which linux we are on, currently android only
+	# supports linux-x86 prebuilts
+	ANDROID_TOOLCHAIN=$(ANDROID_NDK)/toolchains/$(ANDROID_TARGET)/prebuilt/linux-x86
+	ANDROID_SYSROOT=$(ANDROID_NDK)/platforms/android-$(OS_TARGET_RELEASE)/arch-$(OS_TEST)
+	ANDROID_CC=$(ANDROID_TOOLCHAIN)/bin/$(ANDROID_PREFIX)-gcc
+# internal tools need to be built with the native compiler
+ifndef INTERNAL_TOOLS
+	CC = $(ANDROID_CC) --sysroot=$(ANDROID_SYSROOT)
+	DEFAULT_COMPILER=$(ANDROID_PREFIX)-gcc
+	ARCHFLAG = --sysroot=$(ANDROID_SYSROOT)
+	DEFINES += -DNO_SYSINFO -DNO_FORK_CHECK -DANDROID
+	CROSS_COMPILE = 1
+endif
+endif
 ifeq ($(OS_TEST),ppc64)
 	CPU_ARCH	= ppc
 ifeq ($(USE_64),1)
@@ -99,7 +89,9 @@ endif
 endif
 
 
+ifneq ($(OS_TARGET),Android)
 LIBC_TAG		= _glibc
+endif
 
 ifeq ($(OS_RELEASE),2.0)
 	OS_REL_CFLAGS	+= -DLINUX2_0
@@ -135,7 +127,7 @@ endif
 # Place -ansi and *_SOURCE before $(DSO_CFLAGS) so DSO_CFLAGS can override
 # -ansi on platforms like Android where the system headers are C99 and do
 # not build with -ansi.
-STANDARDS_CFLAGS	= -ansi -D_POSIX_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE
+STANDARDS_CFLAGS	= -D_POSIX_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE
 OS_CFLAGS		= $(STANDARDS_CFLAGS) $(DSO_CFLAGS) $(OS_REL_CFLAGS) $(ARCHFLAG) -Wall -Werror-implicit-function-declaration -Wno-switch -pipe -DLINUX -Dlinux -DHAVE_STRERROR
 OS_LIBS			= $(OS_PTHREAD) -ldl -lc
 
@@ -164,7 +156,7 @@ endif
 G++INCLUDES		= -I/usr/include/g++
 
 #
-# Always set CPU_TAG on Linux, WINCE.
+# Always set CPU_TAG on Linux.
 #
 CPU_TAG = _$(CPU_ARCH)
 
@@ -173,10 +165,12 @@ CPU_TAG = _$(CPU_ARCH)
 # dependencies by default.  Set FREEBL_NO_DEPEND to 0 in the environment to
 # override this.
 #
+ifneq ($(OS_TARGET),Android)
 ifeq (2.6,$(firstword $(sort 2.6 $(OS_RELEASE))))
 ifndef FREEBL_NO_DEPEND
 FREEBL_NO_DEPEND = 1
 FREEBL_LOWHASH = 1
+endif
 endif
 endif
 

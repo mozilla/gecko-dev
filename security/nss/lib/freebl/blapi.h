@@ -1,43 +1,10 @@
 /*
  * crypto.h - public data structures and prototypes for the crypto library
  *
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is the Netscape security libraries.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1994-2000
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Dr Vipul Gupta <vipul.gupta@sun.com>, Sun Microsystems Laboratories
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-/* $Id: blapi.h,v 1.45 2012/03/28 22:38:27 rrelyea%redhat.com Exp $ */
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* $Id: blapi.h,v 1.51 2013/02/14 21:20:46 wtc%google.com Exp $ */
 
 #ifndef _BLAPI_H_
 #define _BLAPI_H_
@@ -908,6 +875,18 @@ extern void MD5_End(MD5Context *cx, unsigned char *digest,
 		    unsigned int *digestLen, unsigned int maxDigestLen);
 
 /*
+** Export the current state of the MD5 hash without appending the standard
+** padding and length bytes. Produce the digested results in "digest"
+**	"cx" the context
+**	"digest" where the 16 bytes of digest data are stored
+**	"digestLen" where the digest length (16) is stored (optional)
+**	"maxDigestLen" the maximum amount of data that can ever be
+**	   stored in "digest"
+*/
+extern void MD5_EndRaw(MD5Context *cx, unsigned char *digest,
+		       unsigned int *digestLen, unsigned int maxDigestLen);
+
+/*
  * Return the the size of a buffer needed to flatten the MD5 Context into
  *    "cx" the context
  *  returns size;
@@ -1064,6 +1043,18 @@ extern void SHA1_End(SHA1Context *cx, unsigned char *digest,
 		     unsigned int *digestLen, unsigned int maxDigestLen);
 
 /*
+** Export the current state of the SHA-1 hash without appending the standard
+** padding and length bytes. Produce the digested results in "digest"
+**	"cx" the context
+**	"digest" where the 20 bytes of digest data are stored
+**	"digestLen" where the digest length (20) is stored (optional)
+**	"maxDigestLen" the maximum amount of data that can ever be
+**	   stored in "digest"
+*/
+extern void SHA1_EndRaw(SHA1Context *cx, unsigned char *digest,
+			unsigned int *digestLen, unsigned int maxDigestLen);
+
+/*
 ** trace the intermediate state info of the SHA1 hash.
 */
 extern void SHA1_TraceState(SHA1Context *cx);
@@ -1101,6 +1092,17 @@ extern void SHA224_Update(SHA224Context *cx, const unsigned char *input,
 			unsigned int inputLen);
 extern void SHA224_End(SHA224Context *cx, unsigned char *digest,
 		     unsigned int *digestLen, unsigned int maxDigestLen);
+/*
+** Export the current state of the SHA-224 hash without appending the standard
+** padding and length bytes. Produce the digested results in "digest"
+**	"cx" the context
+**	"digest" where the 28 bytes of digest data are stored
+**	"digestLen" where the digest length (28) is stored (optional)
+**	"maxDigestLen" the maximum amount of data that can ever be
+**	   stored in "digest"
+*/
+extern void SHA224_EndRaw(SHA224Context *cx, unsigned char *digest,
+			  unsigned int *digestLen, unsigned int maxDigestLen);
 extern SECStatus SHA224_HashBuf(unsigned char *dest, const unsigned char *src,
 			      uint32 src_length);
 extern SECStatus SHA224_Hash(unsigned char *dest, const char *src);
@@ -1119,6 +1121,17 @@ extern void SHA256_Update(SHA256Context *cx, const unsigned char *input,
 			unsigned int inputLen);
 extern void SHA256_End(SHA256Context *cx, unsigned char *digest,
 		     unsigned int *digestLen, unsigned int maxDigestLen);
+/*
+** Export the current state of the SHA-256 hash without appending the standard
+** padding and length bytes. Produce the digested results in "digest"
+**	"cx" the context
+**	"digest" where the 32 bytes of digest data are stored
+**	"digestLen" where the digest length (32) is stored (optional)
+**	"maxDigestLen" the maximum amount of data that can ever be
+**	   stored in "digest"
+*/
+extern void SHA256_EndRaw(SHA256Context *cx, unsigned char *digest,
+			  unsigned int *digestLen, unsigned int maxDigestLen);
 extern SECStatus SHA256_HashBuf(unsigned char *dest, const unsigned char *src,
 			      uint32 src_length);
 extern SECStatus SHA256_Hash(unsigned char *dest, const char *src);
@@ -1135,6 +1148,17 @@ extern void SHA512_DestroyContext(SHA512Context *cx, PRBool freeit);
 extern void SHA512_Begin(SHA512Context *cx);
 extern void SHA512_Update(SHA512Context *cx, const unsigned char *input,
 			unsigned int inputLen);
+/*
+** Export the current state of the SHA-512 hash without appending the standard
+** padding and length bytes. Produce the digested results in "digest"
+**	"cx" the context
+**	"digest" where the 64 bytes of digest data are stored
+**	"digestLen" where the digest length (64) is stored (optional)
+**	"maxDigestLen" the maximum amount of data that can ever be
+**	   stored in "digest"
+*/
+extern void SHA512_EndRaw(SHA512Context *cx, unsigned char *digest,
+			  unsigned int *digestLen, unsigned int maxDigestLen);
 extern void SHA512_End(SHA512Context *cx, unsigned char *digest,
 		     unsigned int *digestLen, unsigned int maxDigestLen);
 extern SECStatus SHA512_HashBuf(unsigned char *dest, const unsigned char *src,
@@ -1155,6 +1179,17 @@ extern void SHA384_Update(SHA384Context *cx, const unsigned char *input,
 			unsigned int inputLen);
 extern void SHA384_End(SHA384Context *cx, unsigned char *digest,
 		     unsigned int *digestLen, unsigned int maxDigestLen);
+/*
+** Export the current state of the SHA-384 hash without appending the standard
+** padding and length bytes. Produce the digested results in "digest"
+**	"cx" the context
+**	"digest" where the 48 bytes of digest data are stored
+**	"digestLen" where the digest length (48) is stored (optional)
+**	"maxDigestLen" the maximum amount of data that can ever be
+**	   stored in "digest"
+*/
+extern void SHA384_EndRaw(SHA384Context *cx, unsigned char *digest,
+			  unsigned int *digestLen, unsigned int maxDigestLen);
 extern SECStatus SHA384_HashBuf(unsigned char *dest, const unsigned char *src,
 			      uint32 src_length);
 extern SECStatus SHA384_Hash(unsigned char *dest, const char *src);
@@ -1262,9 +1297,14 @@ PRNGTEST_Generate(PRUint8 *bytes, unsigned int bytes_len,
 extern SECStatus
 PRNGTEST_Uninstantiate(void);
 
+extern SECStatus
+PRNGTEST_RunHealthTests(void);
+
 /* Generate PQGParams and PQGVerify structs.
  * Length of seed and length of h both equal length of P. 
  * All lengths are specified by "j", according to the table above.
+ *
+ * The verify parameters will conform to FIPS186-1.
  */
 extern SECStatus
 PQG_ParamGen(unsigned int j, 	   /* input : determines length of P. */
@@ -1275,10 +1315,42 @@ PQG_ParamGen(unsigned int j, 	   /* input : determines length of P. */
  * Length of P specified by j.  Length of h will match length of P.
  * Length of SEED in bytes specified in seedBytes.
  * seedBbytes must be in the range [20..255] or an error will result.
+ *
+ * The verify parameters will conform to FIPS186-1.
  */
 extern SECStatus
 PQG_ParamGenSeedLen(
              unsigned int j, 	     /* input : determines length of P. */
+	     unsigned int seedBytes, /* input : length of seed in bytes.*/
+             PQGParams **pParams,    /* output: P Q and G returned here */
+	     PQGVerify **pVfy);      /* output: counter and seed. */
+
+/* Generate PQGParams and PQGVerify structs.
+ * Length of P specified by L in bits.  
+ * Length of Q specified by N in bits.  
+ * Length of SEED in bytes specified in seedBytes.
+ * seedBbytes must be in the range [N..L*2] or an error will result.
+ *
+ * Not that J uses the above table, L is the length exact. L and N must
+ * match the table below or an error will result:
+ *
+ *  L            N
+ * 1024         160
+ * 2048         224
+ * 2048         256
+ * 3072         256
+ *
+ * If N or seedBytes are set to zero, then PQG_ParamGenSeedLen will
+ * pick a default value (typically the smallest secure value for these
+ * variables).
+ *
+ * The verify parameters will conform to FIPS186-3 using the smallest 
+ * permissible hash for the key strength.
+ */
+extern SECStatus
+PQG_ParamGenV2(
+             unsigned int L, 	     /* input : determines length of P. */
+             unsigned int N, 	     /* input : determines length of Q. */
 	     unsigned int seedBytes, /* input : length of seed in bytes.*/
              PQGParams **pParams,    /* output: P Q and G returned here */
 	     PQGVerify **pVfy);      /* output: counter and seed. */
@@ -1294,20 +1366,9 @@ PQG_ParamGenSeedLen(
  *       SECSuccess: PQGParams are valid.
  *       SECFailure: PQGParams are invalid.
  *
- * Verify the following 12 facts about PQG counter SEED g and h
- * 1.  Q is 160 bits long.
- * 2.  P is one of the 9 valid lengths.
- * 3.  G < P
- * 4.  P % Q == 1
- * 5.  Q is prime
- * 6.  P is prime
- * Steps 7-12 are done only if the optional PQGVerify is supplied.
- * 7.  counter < 4096
- * 8.  g >= 160 and g < 2048   (g is length of seed in bits)
- * 9.  Q generated from SEED matches Q in PQGParams.
- * 10. P generated from (L, counter, g, SEED, Q) matches P in PQGParams.
- * 11. 1 < h < P-1
- * 12. G generated from h matches G in PQGParams.
+ * Verify the PQG againts the counter, SEED and h.
+ * These tests are specified in FIPS 186-3 Appendix A.1.1.1, A.1.1.3, and A.2.2
+ * PQG_VerifyParams will automatically choose the appropriate test.
  */
 
 extern SECStatus   PQG_VerifyParams(const PQGParams *params, 

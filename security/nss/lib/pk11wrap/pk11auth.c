@@ -1,38 +1,6 @@
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is the Netscape security libraries.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1994-2000
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 /*
  * This file deals with PKCS #11 passwords and authentication.
  */
@@ -77,8 +45,9 @@ static struct PK11GlobalStruct {
  * Check the user's password. Log into the card if it's correct.
  * succeed if the user is already logged in.
  */
-SECStatus
-pk11_CheckPassword(PK11SlotInfo *slot,char *pw)
+static SECStatus
+pk11_CheckPassword(PK11SlotInfo *slot, CK_SESSION_HANDLE session,
+			char *pw, PRBool alreadyLocked, PRBool contextSpecific)
 {
     int len = 0;
     CK_RV crv;
@@ -98,15 +67,17 @@ pk11_CheckPassword(PK11SlotInfo *slot,char *pw)
     }
 
     do {
-	PK11_EnterSlotMonitor(slot);
-	crv = PK11_GETTAB(slot)->C_Login(slot->session,CKU_USER,
+	if (!alreadyLocked) PK11_EnterSlotMonitor(slot);
+	crv = PK11_GETTAB(slot)->C_Login(session,
+		contextSpecific ? CKU_CONTEXT_SPECIFIC : CKU_USER,
 						(unsigned char *)pw,len);
 	slot->lastLoginCheck = 0;
 	mustRetry = PR_FALSE;
-	PK11_ExitSlotMonitor(slot);
+	if (!alreadyLocked) PK11_ExitSlotMonitor(slot);
 	switch (crv) {
 	/* if we're already logged in, we're good to go */
 	case CKR_OK:
+		/* TODO If it was for CKU_CONTEXT_SPECIFIC should we do this */
 	    slot->authTransact = PK11_Global.transaction;
 	    /* Fall through */
 	case CKR_USER_ALREADY_LOGGED_IN:
@@ -121,10 +92,19 @@ pk11_CheckPassword(PK11SlotInfo *slot,char *pw)
 	 * if the token is still there. */
 	case CKR_SESSION_HANDLE_INVALID:
 	case CKR_SESSION_CLOSED:
+	    if (session != slot->session) {
+		/* don't bother retrying, we were in a middle of an operation,
+		 * which is now lost. Just fail. */
+	        PORT_SetError(PK11_MapError(crv));
+	        rv = SECFailure; 
+		break;
+	    }
 	    if (retry++ == 0) {
 		rv = PK11_InitToken(slot,PR_FALSE);
 		if (rv == SECSuccess) {
 		    if (slot->session != CK_INVALID_SESSION) {
+			session = slot->session; /* we should have 
+						  * a new session now */
 			mustRetry = PR_TRUE;
 		    } else {
 			PORT_SetError(PK11_MapError(crv));
@@ -272,7 +252,8 @@ PK11_HandlePasswordCheck(PK11SlotInfo *slot,void *wincx)
 	    NeedAuth = PR_TRUE;
 	}
     }
-    if (NeedAuth) PK11_DoPassword(slot,PR_TRUE,wincx);
+    if (NeedAuth) PK11_DoPassword(slot, slot->session, PR_TRUE,
+			wincx, PR_FALSE, PR_FALSE);
 }
 
 void
@@ -331,7 +312,8 @@ pk11_LoginStillRequired(PK11SlotInfo *slot, void *wincx)
 SECStatus
 PK11_Authenticate(PK11SlotInfo *slot, PRBool loadCerts, void *wincx) {
     if (pk11_LoginStillRequired(slot,wincx)) {
-	return PK11_DoPassword(slot,loadCerts,wincx);
+	return PK11_DoPassword(slot, slot->session, loadCerts, wincx,
+				PR_FALSE, PR_FALSE);
     }
     return SECSuccess;
 }
@@ -562,7 +544,9 @@ PK11_SetIsLoggedInFunc(PK11IsLoggedInFunc func)
  * of the PKCS 11 module.
  */
 SECStatus
-PK11_DoPassword(PK11SlotInfo *slot, PRBool loadCerts, void *wincx)
+PK11_DoPassword(PK11SlotInfo *slot, CK_SESSION_HANDLE session,
+			PRBool loadCerts, void *wincx, PRBool alreadyLocked,
+			PRBool contextSpecific)
 {
     SECStatus rv = SECFailure;
     char * password;
@@ -631,7 +615,8 @@ PK11_DoPassword(PK11SlotInfo *slot, PRBool loadCerts, void *wincx)
 		break;
 	    }
 	}
-	rv = pk11_CheckPassword(slot,password);
+	rv = pk11_CheckPassword(slot, session, password, 
+				alreadyLocked, contextSpecific);
 	PORT_Memset(password, 0, PORT_Strlen(password));
 	PORT_Free(password);
 	if (rv != SECWouldBlock) break;

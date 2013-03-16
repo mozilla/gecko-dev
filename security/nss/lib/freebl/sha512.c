@@ -1,42 +1,10 @@
 /*
  * sha512.c - implementation of SHA224, SHA256, SHA384 and SHA512
  *
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is the Netscape security libraries.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 2002
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-/* $Id: sha512.c,v 1.19 2011/09/14 17:48:03 wtc%google.com Exp $ */
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* $Id: sha512.c,v 1.23 2013/02/06 00:41:13 wtc%google.com Exp $ */
 
 #ifdef FREEBL_NO_DEPEND
 #include "stubs.h"
@@ -188,8 +156,9 @@ SHA256_NewContext(void)
 void 
 SHA256_DestroyContext(SHA256Context *ctx, PRBool freeit)
 {
+    memset(ctx, 0, sizeof *ctx);
     if (freeit) {
-        PORT_ZFree(ctx, sizeof *ctx);
+        PORT_Free(ctx);
     }
 }
 
@@ -493,6 +462,35 @@ SHA256_End(SHA256Context *ctx, unsigned char *digest,
 	*digestLen = padLen;
 }
 
+void
+SHA256_EndRaw(SHA256Context *ctx, unsigned char *digest,
+	      unsigned int *digestLen, unsigned int maxDigestLen)
+{
+    PRUint32 h[8];
+    unsigned int len;
+#ifdef SWAP4MASK
+    PRUint32 t1;
+#endif
+
+    memcpy(h, ctx->h, sizeof(h));
+
+#if defined(IS_LITTLE_ENDIAN)
+    BYTESWAP4(h[0]);
+    BYTESWAP4(h[1]);
+    BYTESWAP4(h[2]);
+    BYTESWAP4(h[3]);
+    BYTESWAP4(h[4]);
+    BYTESWAP4(h[5]);
+    BYTESWAP4(h[6]);
+    BYTESWAP4(h[7]);
+#endif
+
+    len = PR_MIN(SHA256_LENGTH, maxDigestLen);
+    memcpy(digest, h, len);
+    if (digestLen)
+	*digestLen = len;
+}
+
 SECStatus 
 SHA256_HashBuf(unsigned char *dest, const unsigned char *src, 
                uint32 src_length)
@@ -503,6 +501,7 @@ SHA256_HashBuf(unsigned char *dest, const unsigned char *src,
     SHA256_Begin(&ctx);
     SHA256_Update(&ctx, src, src_length);
     SHA256_End(&ctx, dest, &outLen, SHA256_LENGTH);
+    memset(&ctx, 0, sizeof ctx);
 
     return SECSuccess;
 }
@@ -586,6 +585,14 @@ SHA224_End(SHA256Context *ctx, unsigned char *digest,
     SHA256_End(ctx, digest, digestLen, maxLen);
 }
 
+void
+SHA224_EndRaw(SHA256Context *ctx, unsigned char *digest,
+	      unsigned int *digestLen, unsigned int maxDigestLen)
+{
+    unsigned int maxLen = SHA_MIN(maxDigestLen, SHA224_LENGTH);
+    SHA256_EndRaw(ctx, digest, digestLen, maxLen);
+}
+
 SECStatus 
 SHA224_HashBuf(unsigned char *dest, const unsigned char *src,
                uint32 src_length)
@@ -596,6 +603,7 @@ SHA224_HashBuf(unsigned char *dest, const unsigned char *src,
     SHA224_Begin(&ctx);
     SHA256_Update(&ctx, src, src_length);
     SHA256_End(&ctx, dest, &outLen, SHA224_LENGTH);
+    memset(&ctx, 0, sizeof ctx);
 
     return SECSuccess;
 }
@@ -819,8 +827,9 @@ SHA512_NewContext(void)
 void 
 SHA512_DestroyContext(SHA512Context *ctx, PRBool freeit)
 {
+    memset(ctx, 0, sizeof *ctx);
     if (freeit) {
-        PORT_ZFree(ctx, sizeof *ctx);
+        PORT_Free(ctx);
     }
 }
 
@@ -1256,6 +1265,36 @@ SHA512_End(SHA512Context *ctx, unsigned char *digest,
 	*digestLen = padLen;
 }
 
+void
+SHA512_EndRaw(SHA512Context *ctx, unsigned char *digest,
+              unsigned int *digestLen, unsigned int maxDigestLen)
+{
+#if defined(HAVE_LONG_LONG)
+    PRUint64 t1;
+#else
+    PRUint32 t1;
+#endif
+    PRUint64 h[8];
+    unsigned int len;
+
+    memcpy(h, ctx->h, sizeof(h));
+
+#if defined(IS_LITTLE_ENDIAN)
+    BYTESWAP8(h[0]);
+    BYTESWAP8(h[1]);
+    BYTESWAP8(h[2]);
+    BYTESWAP8(h[3]);
+    BYTESWAP8(h[4]);
+    BYTESWAP8(h[5]);
+    BYTESWAP8(h[6]);
+    BYTESWAP8(h[7]);
+#endif
+    len = PR_MIN(SHA512_LENGTH, maxDigestLen);
+    memcpy(digest, h, len);
+    if (digestLen)
+	*digestLen = len;
+}
+
 SECStatus 
 SHA512_HashBuf(unsigned char *dest, const unsigned char *src, 
                uint32 src_length)
@@ -1266,6 +1305,7 @@ SHA512_HashBuf(unsigned char *dest, const unsigned char *src,
     SHA512_Begin(&ctx);
     SHA512_Update(&ctx, src, src_length);
     SHA512_End(&ctx, dest, &outLen, SHA512_LENGTH);
+    memset(&ctx, 0, sizeof ctx);
 
     return SECSuccess;
 }
@@ -1363,6 +1403,14 @@ SHA384_End(SHA384Context *ctx, unsigned char *digest,
     SHA512_End(ctx, digest, digestLen, maxLen);
 }
 
+void
+SHA384_EndRaw(SHA384Context *ctx, unsigned char *digest,
+	      unsigned int *digestLen, unsigned int maxDigestLen)
+{
+    unsigned int maxLen = SHA_MIN(maxDigestLen, SHA384_LENGTH);
+    SHA512_EndRaw(ctx, digest, digestLen, maxLen);
+}
+
 SECStatus 
 SHA384_HashBuf(unsigned char *dest, const unsigned char *src,
 			  uint32 src_length)
@@ -1373,6 +1421,7 @@ SHA384_HashBuf(unsigned char *dest, const unsigned char *src,
     SHA384_Begin(&ctx);
     SHA512_Update(&ctx, src, src_length);
     SHA512_End(&ctx, dest, &outLen, SHA384_LENGTH);
+    memset(&ctx, 0, sizeof ctx);
 
     return SECSuccess;
 }

@@ -78,23 +78,12 @@ mkstempflags(char *path, int extraFlags)
 	return (_gettemp(path, &fd, extraFlags) ? fd : -1);
 }
 
-#ifdef WINCE /* otherwise, use the one in libc */
-char *
-mktemp(char *path)
-{
-	return(_gettemp(path, (int *)NULL, 0) ? path : (char *)NULL);
-}
-#endif
-
 /* NB: This routine modifies its input string, and does not always restore it.
 ** returns 1 on success, 0 on failure.
 */
 static int 
 _gettemp(char *path, register int *doopen, int extraFlags)
 {    
-#if !defined(_WINDOWS) || defined(_WIN32)
-	extern int errno;                    
-#endif
 	register char *start, *trv;
 	struct stat sbuf;
 	unsigned int pid;

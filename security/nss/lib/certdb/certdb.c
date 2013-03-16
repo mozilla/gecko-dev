@@ -1,45 +1,11 @@
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is the Netscape security libraries.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1994-2000
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *    Aaron Spangler <aaron@spangler.ods.org>
- *    Kaspar Brand <mozbugzilla@velox.ch>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /*
  * Certificate handling code
  *
- * $Id: certdb.c,v 1.121.2.1 2012/04/03 00:38:19 wtc%google.com Exp $
+ * $Id: certdb.c,v 1.124 2013/01/07 04:11:50 ryan.sleevi%gmail.com Exp $
  */
 
 #include "nssilock.h"
@@ -2085,35 +2051,38 @@ cert_Version(CERTCertificate *cert)
 static unsigned int
 cert_ComputeTrustOverrides(CERTCertificate *cert, unsigned int cType)
 {
-    CERTCertTrust *trust = cert->trust;
+    CERTCertTrust trust;
+    SECStatus rv = SECFailure;
 
-    if (trust && (trust->sslFlags |
-		  trust->emailFlags |
-		  trust->objectSigningFlags)) {
+    rv = CERT_GetCertTrust(cert, &trust);
 
-	if (trust->sslFlags & (CERTDB_TERMINAL_RECORD|CERTDB_TRUSTED)) 
+    if (rv == SECSuccess && (trust.sslFlags |
+		  trust.emailFlags |
+		  trust.objectSigningFlags)) {
+
+	if (trust.sslFlags & (CERTDB_TERMINAL_RECORD|CERTDB_TRUSTED)) 
 	    cType |= NS_CERT_TYPE_SSL_SERVER|NS_CERT_TYPE_SSL_CLIENT;
-	if (trust->sslFlags & (CERTDB_VALID_CA|CERTDB_TRUSTED_CA)) 
+	if (trust.sslFlags & (CERTDB_VALID_CA|CERTDB_TRUSTED_CA)) 
 	    cType |= NS_CERT_TYPE_SSL_CA;
 #if defined(CERTDB_NOT_TRUSTED)
-	if (trust->sslFlags & CERTDB_NOT_TRUSTED) 
+	if (trust.sslFlags & CERTDB_NOT_TRUSTED) 
 	    cType &= ~(NS_CERT_TYPE_SSL_SERVER|NS_CERT_TYPE_SSL_CLIENT|
 	               NS_CERT_TYPE_SSL_CA);
 #endif
-	if (trust->emailFlags & (CERTDB_TERMINAL_RECORD|CERTDB_TRUSTED)) 
+	if (trust.emailFlags & (CERTDB_TERMINAL_RECORD|CERTDB_TRUSTED)) 
 	    cType |= NS_CERT_TYPE_EMAIL;
-	if (trust->emailFlags & (CERTDB_VALID_CA|CERTDB_TRUSTED_CA)) 
+	if (trust.emailFlags & (CERTDB_VALID_CA|CERTDB_TRUSTED_CA)) 
 	    cType |= NS_CERT_TYPE_EMAIL_CA;
 #if defined(CERTDB_NOT_TRUSTED)
-	if (trust->emailFlags & CERTDB_NOT_TRUSTED) 
+	if (trust.emailFlags & CERTDB_NOT_TRUSTED) 
 	    cType &= ~(NS_CERT_TYPE_EMAIL|NS_CERT_TYPE_EMAIL_CA);
 #endif
-	if (trust->objectSigningFlags & (CERTDB_TERMINAL_RECORD|CERTDB_TRUSTED)) 
+	if (trust.objectSigningFlags & (CERTDB_TERMINAL_RECORD|CERTDB_TRUSTED)) 
 	    cType |= NS_CERT_TYPE_OBJECT_SIGNING;
-	if (trust->objectSigningFlags & (CERTDB_VALID_CA|CERTDB_TRUSTED_CA)) 
+	if (trust.objectSigningFlags & (CERTDB_VALID_CA|CERTDB_TRUSTED_CA)) 
 	    cType |= NS_CERT_TYPE_OBJECT_SIGNING_CA;
 #if defined(CERTDB_NOT_TRUSTED)
-	if (trust->objectSigningFlags & CERTDB_NOT_TRUSTED) 
+	if (trust.objectSigningFlags & CERTDB_NOT_TRUSTED) 
 	    cType &= ~(NS_CERT_TYPE_OBJECT_SIGNING|
 	               NS_CERT_TYPE_OBJECT_SIGNING_CA);
 #endif
@@ -2852,10 +2821,14 @@ loser:
 
 PRBool CERT_IsUserCert(CERTCertificate* cert)
 {
-    if ( cert->trust &&
-        ((cert->trust->sslFlags & CERTDB_USER ) ||
-         (cert->trust->emailFlags & CERTDB_USER ) ||
-         (cert->trust->objectSigningFlags & CERTDB_USER )) ) {
+    CERTCertTrust trust;
+    SECStatus rv = SECFailure;
+
+    rv = CERT_GetCertTrust(cert, &trust);
+    if (rv == SECSuccess &&
+        ((trust.sslFlags & CERTDB_USER ) ||
+         (trust.emailFlags & CERTDB_USER ) ||
+         (trust.objectSigningFlags & CERTDB_USER )) ) {
         return PR_TRUE;
     } else {
         return PR_FALSE;

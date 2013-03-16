@@ -1,42 +1,8 @@
 #! /bin/bash
 #
-# ***** BEGIN LICENSE BLOCK *****
-# Version: MPL 1.1/GPL 2.0/LGPL 2.1
-#
-# The contents of this file are subject to the Mozilla Public License Version
-# 1.1 (the "License"); you may not use this file except in compliance with
-# the License. You may obtain a copy of the License at
-# http://www.mozilla.org/MPL/
-#
-# Software distributed under the License is distributed on an "AS IS" basis,
-# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
-# for the specific language governing rights and limitations under the
-# License.
-#
-# The Original Code is the Netscape security libraries.
-#
-# The Initial Developer of the Original Code is
-# Netscape Communications Corporation.
-# Portions created by the Initial Developer are Copyright (C) 1994-2009
-# the Initial Developer. All Rights Reserved.
-#
-# Contributor(s):
-#   Dr Vipul Gupta <vipul.gupta@sun.com>, Sun Microsystems Laboratories
-#   Slavomir Katuscak <slavomir.katuscak@sun.com>, Sun Microsystems
-#
-# Alternatively, the contents of this file may be used under the terms of
-# either the GNU General Public License Version 2 or later (the "GPL"), or
-# the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
-# in which case the provisions of the GPL or the LGPL are applicable instead
-# of those above. If you wish to allow use of your version of this file only
-# under the terms of either the GPL or the LGPL, and not to allow others to
-# use your version of this file under the terms of the MPL, indicate your
-# decision by deleting the provisions above and replace them with the notice
-# and other provisions required by the GPL or the LGPL. If you do not delete
-# the provisions above, a recipient may use your version of this file under
-# the terms of any one of the MPL, the GPL or the LGPL.
-#
-# ***** END LICENSE BLOCK *****
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 ########################################################################
 #
@@ -158,6 +124,29 @@ crlu()
         cert_log "ERROR: ${CU_ACTION} failed $RET"
     else
         html_passed "${CU_ACTION}"
+    fi
+
+    return $RET
+}
+
+################################ ocspr ##################################
+# local shell function to call ocsresp, also: writes action and options to
+# stdout, sets variable RET and writes results to the html file results
+#########################################################################
+ocspr()
+{
+    echo "$SCRIPTNAME: ${OR_ACTION} --------------------------"
+
+    OCSPRESP="ocspresp"
+    echo "$OCSPRESP $*"
+    ${PROFTOOL} ${BINDIR}/$OCSPRESP $*
+    RET=$?
+    if [ "$RET" -ne 0 ]; then
+        OCSPFAILED=$RET
+        html_failed "${OR_ACTION} ($RET) "
+        cert_log "ERROR: ${OR_ACTION} failed $RET"
+    else
+        html_passed "${OR_ACTION}"
     fi
 
     return $RET
@@ -1090,12 +1079,12 @@ cert_extensions_test()
 
     echo
     echo certutil -d ${CERT_EXTENSIONS_DIR} -S -n ${CERTNAME} \
-        -t "u,u,u" -o /tmp/cert -s "${CU_SUBJECT}" -x -f ${R_PWFILE} \
+        -t "u,u,u" -o ${CERT_EXTENSIONS_DIR}/tempcert -s "${CU_SUBJECT}" -x -f ${R_PWFILE} \
         -z "${R_NOISE_FILE}" -${OPT} \< ${TARG_FILE}
     echo "certutil options:"
     cat ${TARG_FILE}
     ${BINDIR}/certutil -d ${CERT_EXTENSIONS_DIR} -S -n ${CERTNAME} \
-        -t "u,u,u" -o /tmp/cert -s "${CU_SUBJECT}" -x -f ${R_PWFILE} \
+        -t "u,u,u" -o ${CERT_EXTENSIONS_DIR}/tempcert -s "${CU_SUBJECT}" -x -f ${R_PWFILE} \
         -z "${R_NOISE_FILE}" -${OPT} < ${TARG_FILE}
     RET=$?
     if [ "${RET}" -ne 0 ]; then
@@ -1469,6 +1458,14 @@ cert_test_distrust()
   RETEXPECTED=0
 }
 
+cert_test_ocspresp()
+{
+  echo "$SCRIPTNAME: OCSP response creation selftest"
+  OR_ACTION="perform selftest"
+  RETEXPECTED=0
+  ocspr ${SERVER_CADIR} "serverCA" "chain-1-serverCA" -f "${R_PWFILE}" 2>&1
+}
+
 ############################## cert_cleanup ############################
 # local shell function to finish this script (no exit since it might be
 # sourced)
@@ -1488,11 +1485,14 @@ cert_all_CA
 cert_extended_ssl 
 cert_ssl 
 cert_smime_client        
-cert_fips
+if [ -z "$NSS_TEST_DISABLE_FIPS" ]; then
+    cert_fips
+fi
 cert_eccurves
 cert_extensions
 cert_test_password
 cert_test_distrust
+cert_test_ocspresp
 
 if [ -z "$NSS_TEST_DISABLE_CRL" ] ; then
     cert_crl_ssl

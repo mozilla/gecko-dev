@@ -1,38 +1,6 @@
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is the Netscape security libraries.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1994-2000
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "nspr.h"
 #include "secerr.h"
 #include "secport.h"
@@ -261,7 +229,7 @@ loser:
 }
 
 void
-cert_AddToVerifyLog(CERTVerifyLog *log, CERTCertificate *cert, unsigned long error,
+cert_AddToVerifyLog(CERTVerifyLog *log, CERTCertificate *cert, long error,
 	       unsigned int depth, void *arg)
 {
     CERTVerifyLogNode *node, *tnode;
@@ -322,14 +290,16 @@ cert_AddToVerifyLog(CERTVerifyLog *log, CERTCertificate *cert, unsigned long err
 
 #define LOG_ERROR_OR_EXIT(log,cert,depth,arg) \
     if ( log != NULL ) { \
-	cert_AddToVerifyLog(log, cert, PORT_GetError(), depth, (void *)arg); \
+	cert_AddToVerifyLog(log, cert, PORT_GetError(), depth, \
+			    (void *)(PRWord)arg); \
     } else { \
 	goto loser; \
     }
 
 #define LOG_ERROR(log,cert,depth,arg) \
     if ( log != NULL ) { \
-	cert_AddToVerifyLog(log, cert, PORT_GetError(), depth, (void *)arg); \
+	cert_AddToVerifyLog(log, cert, PORT_GetError(), depth, \
+			    (void *)(PRWord)arg); \
     }
 
 static SECStatus
@@ -358,6 +328,7 @@ cert_VerifyCertChainOld(CERTCertDBHandle *handle, CERTCertificate *cert,
     int certsListLen = 16;
     int namesCount = 0;
     PRBool subjectCertIsSelfIssued;
+    CERTCertTrust issuerTrust;
 
     if (revoked) {
         *revoked = PR_FALSE;
@@ -558,7 +529,7 @@ cert_VerifyCertChainOld(CERTCertDBHandle *handle, CERTCertificate *cert,
             LOG_ERROR(log,subjectCert,count,0);
         }
 
-	if ( issuerCert->trust ) {
+	if ( CERT_GetCertTrust(issuerCert, &issuerTrust) == SECSuccess) {
 	    /* we have some trust info, but this does NOT imply that this
 	     * cert is actually trusted for any purpose.  The cert may be
 	     * explicitly UNtrusted.  We won't know until we examine the
@@ -582,7 +553,7 @@ cert_VerifyCertChainOld(CERTCertDBHandle *handle, CERTCertificate *cert,
 	            }
 	        }
 
-	        flags = SEC_GET_TRUST_FLAGS(issuerCert->trust, trustType);
+	        flags = SEC_GET_TRUST_FLAGS(&issuerTrust, trustType);
 	        if (( flags & requiredFlags ) == requiredFlags) {
 	            /* we found a trusted one, so return */
 	            rv = rvFinal; 
@@ -604,7 +575,7 @@ cert_VerifyCertChainOld(CERTCertDBHandle *handle, CERTCertificate *cert,
                  * certUsageAnyCA or certUsageStatusResponder. */
                 for (trustType = trustSSL; trustType < trustTypeNone;
                      trustType++) {
-                    flags = SEC_GET_TRUST_FLAGS(issuerCert->trust, trustType);
+                    flags = SEC_GET_TRUST_FLAGS(&issuerTrust, trustType);
                     if ((flags & requiredFlags) == requiredFlags) {
 	                rv = rvFinal; 
 	                goto done;
@@ -618,7 +589,7 @@ cert_VerifyCertChainOld(CERTCertDBHandle *handle, CERTCertificate *cert,
 		 * untrusted */
                 for (trustType = trustSSL; trustType < trustTypeNone;
                      trustType++) {
-                    flags = SEC_GET_TRUST_FLAGS(issuerCert->trust, trustType);
+                    flags = SEC_GET_TRUST_FLAGS(&issuerTrust, trustType);
 		    /* is it explicitly distrusted? */
 		    if ((flags & CERTDB_TERMINAL_RECORD) && 
 			((flags & (CERTDB_TRUSTED|CERTDB_TRUSTED_CA)) == 0)) {
@@ -759,6 +730,7 @@ CERT_VerifyCACertForUsage(CERTCertDBHandle *handle, CERTCertificate *cert,
     unsigned int requiredCAKeyUsage;
     unsigned int requiredFlags;
     CERTCertificate *issuerCert;
+    CERTCertTrust certTrust;
 
 
     if (CERT_KeyUsageAndTypeForCertUsage(certUsage, PR_TRUE,
@@ -824,7 +796,7 @@ CERT_VerifyCACertForUsage(CERTCertDBHandle *handle, CERTCertificate *cert,
 	isca = PR_TRUE;
     }
 	
-    if ( cert->trust ) {
+    if ( CERT_GetCertTrust(cert, &certTrust) == SECSuccess ) {
 	/* we have some trust info, but this does NOT imply that this
 	 * cert is actually trusted for any purpose.  The cert may be
 	 * explicitly UNtrusted.  We won't know until we examine the
@@ -853,7 +825,7 @@ CERT_VerifyCACertForUsage(CERTCertDBHandle *handle, CERTCertificate *cert,
 	/*
 	 * check the trust params of the issuer
 	 */
-	flags = SEC_GET_TRUST_FLAGS(cert->trust, trustType);
+	flags = SEC_GET_TRUST_FLAGS(&certTrust, trustType);
 	if ( ( flags & requiredFlags ) == requiredFlags) {
 	    /* we found a trusted one, so return */
 	    rv = rvFinal; 
@@ -945,16 +917,17 @@ cert_CheckLeafTrust(CERTCertificate *cert, SECCertUsage certUsage,
 	            unsigned int *failedFlags, PRBool *trusted)
 {
     unsigned int flags;
+    CERTCertTrust trust;
 
     *failedFlags = 0;
     *trusted = PR_FALSE;
 			
     /* check trust flags to see if this cert is directly trusted */
-    if ( cert->trust ) { 
+    if ( CERT_GetCertTrust(cert, &trust) == SECSuccess ) { 
 	switch ( certUsage ) {
 	  case certUsageSSLClient:
 	  case certUsageSSLServer:
-	    flags = cert->trust->sslFlags;
+	    flags = trust.sslFlags;
 	    
 	    /* is the cert directly trusted or not trusted ? */
 	    if ( flags & CERTDB_TERMINAL_RECORD) { /* the trust record is 
@@ -970,7 +943,7 @@ cert_CheckLeafTrust(CERTCertificate *cert, SECCertUsage certUsage,
 	    break;
 	  case certUsageSSLServerWithStepUp:
 	    /* XXX - step up certs can't be directly trusted, only distrust */
-	    flags = cert->trust->sslFlags;
+	    flags = trust.sslFlags;
 	    if ( flags & CERTDB_TERMINAL_RECORD) { /* the trust record is 
 						    * authoritative */
 		if (( flags & CERTDB_TRUSTED ) == 0) {	
@@ -981,7 +954,7 @@ cert_CheckLeafTrust(CERTCertificate *cert, SECCertUsage certUsage,
 	    }
 	    break;
 	  case certUsageSSLCA:
-	    flags = cert->trust->sslFlags;
+	    flags = trust.sslFlags;
 	    if ( flags & CERTDB_TERMINAL_RECORD) { /* the trust record is 
 						    * authoritative */
 		if (( flags & (CERTDB_TRUSTED|CERTDB_TRUSTED_CA) ) == 0) {	
@@ -993,7 +966,7 @@ cert_CheckLeafTrust(CERTCertificate *cert, SECCertUsage certUsage,
 	    break;
 	  case certUsageEmailSigner:
 	  case certUsageEmailRecipient:
-	    flags = cert->trust->emailFlags;
+	    flags = trust.emailFlags;
 	    if ( flags & CERTDB_TERMINAL_RECORD) { /* the trust record is 
 						    * authoritative */
 		if ( flags & CERTDB_TRUSTED ) {	/* trust this cert */
@@ -1008,7 +981,7 @@ cert_CheckLeafTrust(CERTCertificate *cert, SECCertUsage certUsage,
 	    
 	    break;
 	  case certUsageObjectSigner:
-	    flags = cert->trust->objectSigningFlags;
+	    flags = trust.objectSigningFlags;
 
 	    if ( flags & CERTDB_TERMINAL_RECORD) { /* the trust record is 
 						    * authoritative */
@@ -1023,21 +996,21 @@ cert_CheckLeafTrust(CERTCertificate *cert, SECCertUsage certUsage,
 	    break;
 	  case certUsageVerifyCA:
 	  case certUsageStatusResponder:
-	    flags = cert->trust->sslFlags;
+	    flags = trust.sslFlags;
 	    /* is the cert directly trusted or not trusted ? */
 	    if ( ( flags & ( CERTDB_VALID_CA | CERTDB_TRUSTED_CA ) ) ==
 		( CERTDB_VALID_CA | CERTDB_TRUSTED_CA ) ) {
 		*trusted = PR_TRUE;
 		return SECSuccess;
 	    }
-	    flags = cert->trust->emailFlags;
+	    flags = trust.emailFlags;
 	    /* is the cert directly trusted or not trusted ? */
 	    if ( ( flags & ( CERTDB_VALID_CA | CERTDB_TRUSTED_CA ) ) ==
 		( CERTDB_VALID_CA | CERTDB_TRUSTED_CA ) ) {
 		*trusted = PR_TRUE;
 		return SECSuccess;
 	    }
-	    flags = cert->trust->objectSigningFlags;
+	    flags = trust.objectSigningFlags;
 	    /* is the cert directly trusted or not trusted ? */
 	    if ( ( flags & ( CERTDB_VALID_CA | CERTDB_TRUSTED_CA ) ) ==
 		( CERTDB_VALID_CA | CERTDB_TRUSTED_CA ) ) {
@@ -1048,7 +1021,7 @@ cert_CheckLeafTrust(CERTCertificate *cert, SECCertUsage certUsage,
 	  case certUsageAnyCA:
 	  case certUsageUserCertImport:
 	    /* do we distrust these certs explicitly */
-	    flags = cert->trust->sslFlags;
+	    flags = trust.sslFlags;
 	    if ( flags & CERTDB_TERMINAL_RECORD) { /* the trust record is 
 						    * authoritative */
 		if ((flags & (CERTDB_TRUSTED|CERTDB_TRUSTED_CA)) == 0) {
@@ -1056,7 +1029,7 @@ cert_CheckLeafTrust(CERTCertificate *cert, SECCertUsage certUsage,
 		    return SECFailure;
 		}
 	    }
-	    flags = cert->trust->emailFlags;
+	    flags = trust.emailFlags;
 	    if ( flags & CERTDB_TERMINAL_RECORD) { /* the trust record is 
 						    * authoritative */
 		if ((flags & (CERTDB_TRUSTED|CERTDB_TRUSTED_CA)) == 0) {
@@ -1066,7 +1039,7 @@ cert_CheckLeafTrust(CERTCertificate *cert, SECCertUsage certUsage,
 	    }
 	    /* fall through */
 	  case certUsageProtectedObjectSigner:
-	    flags = cert->trust->objectSigningFlags;
+	    flags = trust.objectSigningFlags;
 	    if ( flags & CERTDB_TERMINAL_RECORD) { /* the trust record is 
 						    * authoritative */
 		if ((flags & (CERTDB_TRUSTED|CERTDB_TRUSTED_CA)) == 0) {
@@ -1417,6 +1390,7 @@ CERT_FindMatchingCert(CERTCertDBHandle *handle, SECItem *derName,
 {
     CERTCertList *certList = NULL;
     CERTCertificate *cert = NULL;
+    CERTCertTrust certTrust;
     unsigned int requiredTrustFlags;
     SECTrustType requiredTrustType;
     unsigned int flags;
@@ -1458,10 +1432,10 @@ CERT_FindMatchingCert(CERTCertDBHandle *handle, SECItem *derName,
 	    if ( ( owner == certOwnerCA ) && preferTrusted &&
 		( requiredTrustType != trustTypeNone ) ) {
 
-		if ( cert->trust == NULL ) {
+		if ( CERT_GetCertTrust(cert, &certTrust) != SECSuccess ) {
 		    flags = 0;
 		} else {
-		    flags = SEC_GET_TRUST_FLAGS(cert->trust, requiredTrustType);
+		    flags = SEC_GET_TRUST_FLAGS(&certTrust, requiredTrustType);
 		}
 
 		if ( ( flags & requiredTrustFlags ) != requiredTrustFlags ) {

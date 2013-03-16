@@ -1,39 +1,6 @@
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is the Netscape security libraries.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1994-2000
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Dr Vipul Gupta <vipul.gupta@sun.com>, Sun Microsystems Laboratories
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "secoid.h"
 #include "pkcs11t.h"
@@ -64,6 +31,7 @@ const char __nss_util_sccsid[] = "@(#)NSS " NSSUTIL_VERSION _DEBUG_STRING
         "  " __DATE__ " " __TIME__;
 
 /* MISSI Mosaic Object ID space */
+/* USGov algorithm OID space: { 2 16 840 1 101 } */
 #define USGOV                   0x60, 0x86, 0x48, 0x01, 0x65
 #define MISSI	                USGOV, 0x02, 0x01, 0x01
 #define MISSI_OLD_KEA_DSS	MISSI, 0x0c
@@ -76,6 +44,7 @@ const char __nss_util_sccsid[] = "@(#)NSS " NSSUTIL_VERSION _DEBUG_STRING
 #define NISTALGS    USGOV, 3, 4
 #define AES         NISTALGS, 1
 #define SHAXXX      NISTALGS, 2
+#define DSA2        NISTALGS, 3
 
 /**
  ** The Netscape OID space is allocated by Terry Hayes.  If you need
@@ -113,10 +82,6 @@ const char __nss_util_sccsid[] = "@(#)NSS " NSSUTIL_VERSION _DEBUG_STRING
 #define PKCS7			PKCS, 0x07
 #define PKCS9			PKCS, 0x09
 #define PKCS12			PKCS, 0x0c
-
-/* Fortezza algorithm OID space: { 2 16 840 1 101 2 1 1 } */
-/* ### mwelch -- Is this just for algorithms, or all of Fortezza? */
-#define FORTEZZA_ALG 0x60, 0x86, 0x48, 0x01, 0x65, 0x02, 0x01, 0x01
 
 /* Other OID name spaces */
 #define ALGORITHM		0x2b, 0x0e, 0x03, 0x02
@@ -179,6 +144,13 @@ const char __nss_util_sccsid[] = "@(#)NSS " NSSUTIL_VERSION _DEBUG_STRING
 /* { 1.3.6.1.4.1.311 } */
 #define MICROSOFT_OID 0x2b, 0x6, 0x1, 0x4, 0x1, 0x82, 0x37
 #define EV_NAME_ATTRIBUTE 	MICROSOFT_OID, 60, 2, 1
+
+/* Microsoft Crypto 2.0 ID space */
+/* { 1.3.6.1.4.1.311.10 } */
+#define MS_CRYPTO_20            MICROSOFT_OID, 10
+/* Microsoft Crypto 2.0 Extended Key Usage ID space */
+/* { 1.3.6.1.4.1.311.10.3 } */
+#define MS_CRYPTO_EKU           MS_CRYPTO_20, 3
 
 #define CERTICOM_OID            0x2b, 0x81, 0x04
 #define SECG_OID                CERTICOM_OID, 0x00
@@ -447,6 +419,8 @@ CONST_OID pkcs12KeyUsageAttr[]          	= { 2, 5, 29, 15 };
 
 CONST_OID ansix9DSASignature[]               	= { ANSI_X9_ALGORITHM, 0x01 };
 CONST_OID ansix9DSASignaturewithSHA1Digest[] 	= { ANSI_X9_ALGORITHM, 0x03 };
+CONST_OID nistDSASignaturewithSHA224Digest[]	= { DSA2, 0x01 };
+CONST_OID nistDSASignaturewithSHA256Digest[]	= { DSA2, 0x02 };
 
 /* verisign OIDs */
 CONST_OID verisignUserNotices[]     		= { VERISIGN, 1, 7, 1, 1 };
@@ -481,12 +455,13 @@ CONST_OID pkixExtendedKeyUsageCodeSign[]      	= { PKIX_KEY_USAGE, 3 };
 CONST_OID pkixExtendedKeyUsageEMailProtect[]  	= { PKIX_KEY_USAGE, 4 };
 CONST_OID pkixExtendedKeyUsageTimeStamp[]     	= { PKIX_KEY_USAGE, 8 };
 CONST_OID pkixOCSPResponderExtendedKeyUsage[] 	= { PKIX_KEY_USAGE, 9 };
+CONST_OID msExtendedKeyUsageTrustListSigning[]	= { MS_CRYPTO_EKU, 1 };
 
 /* OIDs for Netscape defined algorithms */
 CONST_OID netscapeSMimeKEA[] 			= { NETSCAPE_ALGS, 0x01 };
 
 /* Fortezza algorithm OIDs */
-CONST_OID skipjackCBC[] 			= { FORTEZZA_ALG, 0x04 };
+CONST_OID skipjackCBC[] 			= { MISSI, 0x04 };
 CONST_OID dhPublicKey[] 			= { ANSI_X942_ALGORITHM, 0x1 };
 
 CONST_OID aes128_ECB[] 				= { AES, 1 };
@@ -1659,6 +1634,18 @@ const static SECOidData oids[SEC_OID_TOTAL] = {
         "Business Category",
 	CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION ),
 
+    OD( nistDSASignaturewithSHA224Digest,
+	SEC_OID_NIST_DSA_SIGNATURE_WITH_SHA224_DIGEST,
+	"DSA with SHA-224 Signature",
+	CKM_INVALID_MECHANISM /* not yet defined */, INVALID_CERT_EXTENSION),
+    OD( nistDSASignaturewithSHA256Digest,
+	SEC_OID_NIST_DSA_SIGNATURE_WITH_SHA256_DIGEST,
+	"DSA with SHA-256 Signature",
+	CKM_INVALID_MECHANISM /* not yet defined */, INVALID_CERT_EXTENSION),
+    OD( msExtendedKeyUsageTrustListSigning, 
+        SEC_OID_MS_EXT_KEY_USAGE_CTL_SIGNING,
+        "Microsoft Trust List Signing",
+	CKM_INVALID_MECHANISM, INVALID_CERT_EXTENSION )
 };
 
 /* PRIVATE EXTENDED SECOID Table
@@ -1941,9 +1928,12 @@ SECOID_Init(void)
 	/* initialize any policy flags that are disabled by default */
 	xOids[SEC_OID_MD2                           ].notPolicyFlags = ~0;
 	xOids[SEC_OID_MD4                           ].notPolicyFlags = ~0;
+	xOids[SEC_OID_MD5                           ].notPolicyFlags = ~0;
 	xOids[SEC_OID_PKCS1_MD2_WITH_RSA_ENCRYPTION ].notPolicyFlags = ~0;
 	xOids[SEC_OID_PKCS1_MD4_WITH_RSA_ENCRYPTION ].notPolicyFlags = ~0;
+	xOids[SEC_OID_PKCS1_MD5_WITH_RSA_ENCRYPTION ].notPolicyFlags = ~0;
 	xOids[SEC_OID_PKCS5_PBE_WITH_MD2_AND_DES_CBC].notPolicyFlags = ~0;
+	xOids[SEC_OID_PKCS5_PBE_WITH_MD5_AND_DES_CBC].notPolicyFlags = ~0;
     }
 
     envVal = PR_GetEnv("NSS_HASH_ALG_SUPPORT");

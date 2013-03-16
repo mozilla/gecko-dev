@@ -1,39 +1,7 @@
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is the Netscape security libraries.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1994-2000
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-/* $Id: rijndael.c,v 1.26 2010/11/18 01:33:24 rrelyea%redhat.com Exp $ */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* $Id: rijndael.c,v 1.30 2013/01/25 18:02:53 rrelyea%redhat.com Exp $ */
 
 #ifdef FREEBL_NO_DEPEND
 #include "stubs.h"
@@ -47,9 +15,21 @@
 #include "blapi.h"
 #include "rijndael.h"
 
+#include "cts.h"
+#include "ctr.h"
+#include "gcm.h"
+
 #if USE_HW_AES
+#include "intel-gcm.h"
 #include "intel-aes.h"
 #include "mpi.h"
+
+static int has_intel_aes = 0;
+static int has_intel_avx = 0;
+static int has_intel_clmul = 0;
+static PRBool use_hw_aes = PR_FALSE;
+static PRBool use_hw_avx = PR_FALSE;
+static PRBool use_hw_gcm = PR_FALSE;
 #endif
 
 /*
@@ -988,15 +968,16 @@ AESContext * AES_AllocateContext(void)
 }
 
 
-SECStatus   
-AES_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize, 
+/*
+** Initialize a new AES context suitable for AES encryption/decryption in
+** the ECB or CBC mode.
+** 	"mode" the mode of operation, which must be NSS_AES or NSS_AES_CBC
+*/
+static SECStatus   
+aes_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize, 
 	        const unsigned char *iv, int mode, unsigned int encrypt,
 	        unsigned int blocksize)
 {
-#if USE_HW_AES
-    static int has_intel_aes;
-    PRBool use_hw_aes = PR_FALSE;
-#endif
     unsigned int Nk;
     /* According to Rijndael AES Proposal, section 12.1, block and key
      * lengths between 128 and 256 bits are supported, as long as the
@@ -1032,12 +1013,18 @@ AES_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
 	if (disable_hw_aes == NULL) {
 	    freebl_cpuid(1, &eax, &ebx, &ecx, &edx);
 	    has_intel_aes = (ecx & (1 << 25)) != 0 ? 1 : -1;
+	    has_intel_clmul = (ecx & (1 << 1)) != 0 ? 1 : -1;
+	    has_intel_avx = (ecx & (1 << 28)) != 0 ? 1 : -1;
 	} else {
 	    has_intel_aes = -1;
+	    has_intel_avx = -1;
+	    has_intel_clmul = -1;
 	}
     }
     use_hw_aes = (PRBool)
 		(has_intel_aes > 0 && (keysize % 8) == 0 && blocksize == 16);
+    use_hw_gcm = (PRBool)
+		(use_hw_aes && has_intel_avx>0 && has_intel_clmul>0);
 #endif
     /* Nb = (block size in bits) / 32 */
     cx->Nb = blocksize / 4;
@@ -1050,18 +1037,20 @@ AES_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
 	memcpy(cx->iv, iv, blocksize);
 #if USE_HW_AES
 	if (use_hw_aes) {
-	    cx->worker = intel_aes_cbc_worker(encrypt, keysize);
+	    cx->worker = (freeblCipherFunc)
+				intel_aes_cbc_worker(encrypt, keysize);
 	} else
 #endif
-	    cx->worker = (encrypt
+	    cx->worker = (freeblCipherFunc) (encrypt
 			  ? &rijndael_encryptCBC : &rijndael_decryptCBC);
     } else {
 #if  USE_HW_AES
 	if (use_hw_aes) {
-	    cx->worker = intel_aes_ecb_worker(encrypt, keysize);
+	    cx->worker = (freeblCipherFunc) 
+				intel_aes_ecb_worker(encrypt, keysize);
 	} else
 #endif
-	    cx->worker = (encrypt
+	    cx->worker = (freeblCipherFunc) (encrypt
 			  ? &rijndael_encryptECB : &rijndael_decryptECB);
     }
     PORT_Assert((cx->Nb * (cx->Nr + 1)) <= RIJNDAEL_MAX_EXP_KEY_SIZE);
@@ -1094,11 +1083,91 @@ AES_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize,
 		goto cleanup;
 	}
     }
+    cx->worker_cx = cx;
+    cx->destroy = NULL;
+    cx->isBlock = PR_TRUE;
     return SECSuccess;
 cleanup:
     return SECFailure;
 }
 
+SECStatus   
+AES_InitContext(AESContext *cx, const unsigned char *key, unsigned int keysize, 
+	        const unsigned char *iv, int mode, unsigned int encrypt,
+	        unsigned int blocksize)
+{
+    int basemode = mode;
+    PRBool baseencrypt = encrypt;
+    SECStatus rv;
+
+    switch (mode) {
+    case NSS_AES_CTS:
+	basemode = NSS_AES_CBC;
+	break;
+    case NSS_AES_GCM:
+    case NSS_AES_CTR:
+	basemode = NSS_AES;
+	baseencrypt = PR_TRUE;
+	break;
+    }
+    /* make sure enough is initializes so we can safely call Destroy */
+    cx->worker_cx = NULL;
+    cx->destroy = NULL;
+    rv = aes_InitContext(cx, key, keysize, iv, basemode, 
+					baseencrypt, blocksize);
+    if (rv != SECSuccess) {
+	AES_DestroyContext(cx, PR_FALSE);
+	return rv;
+    }
+
+    /* finally, set up any mode specific contexts */
+    switch (mode) {
+    case NSS_AES_CTS:
+	cx->worker_cx = CTS_CreateContext(cx, cx->worker, iv, blocksize);
+	cx->worker = (freeblCipherFunc) 
+			(encrypt ?  CTS_EncryptUpdate : CTS_DecryptUpdate);
+	cx->destroy = (freeblDestroyFunc) CTS_DestroyContext;
+	cx->isBlock = PR_FALSE;
+	break;
+    case NSS_AES_GCM:
+#if USE_HW_AES
+	if(use_hw_gcm) {
+        	cx->worker_cx = intel_AES_GCM_CreateContext(cx, cx->worker, iv, blocksize);
+		cx->worker = (freeblCipherFunc)
+			(encrypt ? intel_AES_GCM_EncryptUpdate : intel_AES_GCM_DecryptUpdate);
+		cx->destroy = (freeblDestroyFunc) intel_AES_GCM_DestroyContext;
+		cx->isBlock = PR_FALSE;
+    	} else
+#endif
+	{
+	cx->worker_cx = GCM_CreateContext(cx, cx->worker, iv, blocksize);
+	cx->worker = (freeblCipherFunc)
+			(encrypt ? GCM_EncryptUpdate : GCM_DecryptUpdate);
+	cx->destroy = (freeblDestroyFunc) GCM_DestroyContext;
+	cx->isBlock = PR_FALSE;
+	}
+	break;
+    case NSS_AES_CTR:
+	cx->worker_cx = CTR_CreateContext(cx, cx->worker, iv, blocksize);
+	cx->worker = (freeblCipherFunc) CTR_Update ;
+	cx->destroy = (freeblDestroyFunc) CTR_DestroyContext;
+	cx->isBlock = PR_FALSE;
+	break;
+    default:
+	/* everything has already been set up by aes_InitContext, just
+	 * return */
+	return SECSuccess;
+    }
+    /* check to see if we succeeded in getting the worker context */
+    if (cx->worker_cx == NULL) {
+	/* no, just destroy the existing context */
+	cx->destroy = NULL; /* paranoia, though you can see a dozen lines */
+			    /* below that this isn't necessary */
+	AES_DestroyContext(cx, PR_FALSE);
+	return SECFailure;
+    }
+    return SECSuccess;
+}
 
 /* AES_CreateContext
  *
@@ -1130,7 +1199,11 @@ AES_CreateContext(const unsigned char *key, const unsigned char *iv,
 void 
 AES_DestroyContext(AESContext *cx, PRBool freeit)
 {
-/*  memset(cx, 0, sizeof *cx); */
+    if (cx->worker_cx && cx->destroy) {
+	(*cx->destroy)(cx->worker_cx, PR_TRUE);
+	cx->worker_cx = NULL;
+	cx->destroy = NULL;
+    }
     if (freeit)
 	PORT_Free(cx);
 }
@@ -1153,7 +1226,7 @@ AES_Encrypt(AESContext *cx, unsigned char *output,
 	return SECFailure;
     }
     blocksize = 4 * cx->Nb;
-    if (inputLen % blocksize != 0) {
+    if (cx->isBlock && (inputLen % blocksize != 0)) {
 	PORT_SetError(SEC_ERROR_INPUT_LEN);
 	return SECFailure;
     }
@@ -1162,7 +1235,7 @@ AES_Encrypt(AESContext *cx, unsigned char *output,
 	return SECFailure;
     }
     *outputLen = inputLen;
-    return (*cx->worker)(cx, output, outputLen, maxOutputLen,	
+    return (*cx->worker)(cx->worker_cx, output, outputLen, maxOutputLen,	
                              input, inputLen, blocksize);
 }
 
@@ -1184,7 +1257,7 @@ AES_Decrypt(AESContext *cx, unsigned char *output,
 	return SECFailure;
     }
     blocksize = 4 * cx->Nb;
-    if (inputLen % blocksize != 0) {
+    if (cx->isBlock && (inputLen % blocksize != 0)) {
 	PORT_SetError(SEC_ERROR_INPUT_LEN);
 	return SECFailure;
     }
@@ -1193,6 +1266,6 @@ AES_Decrypt(AESContext *cx, unsigned char *output,
 	return SECFailure;
     }
     *outputLen = inputLen;
-    return (*cx->worker)(cx, output, outputLen, maxOutputLen,	
+    return (*cx->worker)(cx->worker_cx, output, outputLen, maxOutputLen,	
                              input, inputLen, blocksize);
 }

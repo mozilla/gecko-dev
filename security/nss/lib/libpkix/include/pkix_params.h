@@ -1,39 +1,6 @@
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is the PKIX-C library.
- *
- * The Initial Developer of the Original Code is
- * Sun Microsystems, Inc.
- * Portions created by the Initial Developer are
- * Copyright 2004-2007 Sun Microsystems, Inc.  All Rights Reserved.
- *
- * Contributor(s):
- *   Sun Microsystems, Inc.
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 /*
  * This file defines functions associated with the various parameters used
  * by the top-level functions.
@@ -669,9 +636,11 @@ PKIX_ProcessingParams_GetTrustAnchors(
  * FUNCTION: PKIX_ProcessingParams_SetTrustAnchors
  * DESCRIPTION:
  *
- * Sets user defined set of trust anchors. A certificate will be considered
- * invalid if it does not chain to a trusted anchor from this list.
- * 
+ * Sets user defined set of trust anchors. The handling of the trust anchors
+ * may be furthered alter via PKIX_ProcessingParams_SetUseOnlyTrustAnchors.
+ * By default, a certificate will be considered invalid if it does not chain
+ * to a trusted anchor from this list.
+ *
  * PARAMETERS:
  *  "params"
  *      Address of ProcessingParams whose List of TrustAnchors are to
@@ -692,6 +661,71 @@ PKIX_Error *
 PKIX_ProcessingParams_SetTrustAnchors(
         PKIX_ProcessingParams *params,
         PKIX_List *pAnchors,  /* list of TrustAnchor */
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_ProcessingParams_GetUseOnlyTrustAnchors
+ * DESCRIPTION:
+ *
+ * Retrieves a pointer to the Boolean. The boolean value represents
+ * the switch value that is used to identify whether trust anchors, if
+ * specified, should be the exclusive source of trust information.
+ * If the function succeeds, the pointer to the Boolean is guaranteed to be
+ * non-NULL.
+ *
+ * PARAMETERS:
+ *  "params"
+ *      Address of ProcessingParams. Must be non-NULL.
+ *  "pUseOnlyTrustAnchors"
+ *      Address where object pointer will be stored. Must be non-NULL.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Conditionally Thread Safe
+ *      (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Params Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_ProcessingParams_GetUseOnlyTrustAnchors(
+        PKIX_ProcessingParams *params,
+        PKIX_Boolean *pUseOnlyTrustAnchors,
+        void *plContext);
+
+/*
+ * FUNCTION: PKIX_ProcessingParams_SetUseOnlyTrustAnchors
+ * DESCRIPTION:
+ *
+ * Configures whether trust anchors are used as the exclusive source of trust.
+ *
+ * PARAMETERS:
+ *  "params"
+ *      Address of ProcessingParams. Must be non-NULL.
+ *  "useOnlyTrustAnchors"
+ *      If true, indicates that trust anchors should be used exclusively when
+ *      they have been specified via PKIX_ProcessingParams_SetTrustAnchors. A
+ *      certificate will be considered invalid if it does not chain to a
+ *      trusted anchor from that list.
+ *      If false, indicates that the trust anchors are additive to whatever
+ *      existing trust stores are configured. A certificate is considered
+ *      valid if it chains to EITHER a trusted anchor from that list OR a
+ *      certificate marked trusted in a trust store.
+ *  "plContext"
+ *      Platform-specific context pointer.
+ * THREAD SAFETY:
+ *  Conditionally Thread Safe
+ *      (see Thread Safety Definitions in Programmer's Guide)
+ * RETURNS:
+ *  Returns NULL if the function succeeds.
+ *  Returns a Params Error if the function fails in a non-fatal way.
+ *  Returns a Fatal Error if the function fails in an unrecoverable way.
+ */
+PKIX_Error *
+PKIX_ProcessingParams_SetUseOnlyTrustAnchors(
+        PKIX_ProcessingParams *params,
+        PKIX_Boolean useOnlyTrustAnchors,
         void *plContext);
 
 /*
