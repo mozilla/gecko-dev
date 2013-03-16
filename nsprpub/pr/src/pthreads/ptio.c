@@ -1150,7 +1150,7 @@ void _PR_InitIO(void)
         osfd = socket(AF_INET6, SOCK_STREAM, 0);
         if (osfd != -1) {
             int on;
-            int optlen = sizeof(on);
+            socklen_t optlen = sizeof(on);
             if (getsockopt(osfd, IPPROTO_IPV6, IPV6_V6ONLY,
                     &on, &optlen) == 0) {
                 _pr_ipv6_v6only_on_by_default = on;
@@ -4850,7 +4850,7 @@ PR_IMPLEMENT(PRInt32) PR_FD_NISSET(PRInt32 fd, PR_fd_set *set)
 
 #include <sys/types.h>
 #include <sys/time.h>
-#if !defined(SUNOS4) && !defined(HPUX) \
+#if !defined(HPUX) \
     && !defined(LINUX) && !defined(__GNU__) && !defined(__GLIBC__)
 #include <sys/select.h>
 #endif
