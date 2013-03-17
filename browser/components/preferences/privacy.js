@@ -238,7 +238,6 @@ var gPrivacyPane = {
       let prompts = Cc["@mozilla.org/embedcomp/prompt-service;1"].getService(Ci.nsIPromptService);
       let shouldProceed = prompts.confirm(window, title, msg)
       if (shouldProceed) {
-        document.documentElement.acceptDialog();
         let cancelQuit = Cc["@mozilla.org/supports-PRBool;1"]
                            .createInstance(Ci.nsISupportsPRBool);
         Services.obs.notifyObservers(cancelQuit, "quit-application-requested",
@@ -246,6 +245,8 @@ var gPrivacyPane = {
         shouldProceed = !cancelQuit.data;
 
         if (shouldProceed) {
+          pref.value = autoStart.hasAttribute('checked');
+          document.documentElement.acceptDialog();
           let appStartup = Cc["@mozilla.org/toolkit/app-startup;1"]
                              .getService(Ci.nsIAppStartup);
           appStartup.quit(Ci.nsIAppStartup.eAttemptQuit |  Ci.nsIAppStartup.eRestart);
