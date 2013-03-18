@@ -87,14 +87,6 @@ public class GLController {
         }
 
         mEGLConfig = chooseConfig();
-
-        // updating the state in the view/controller/client should be
-        // done on the main UI thread, not the GL renderer thread
-        mView.post(new Runnable() {
-            public void run() {
-                mView.setViewportSize(mWidth, mHeight);
-            }
-        });
     }
 
     private EGLConfig chooseConfig() {
