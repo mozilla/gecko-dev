@@ -149,8 +149,6 @@ public class GeckoAppShell
 
     private static Handler sGeckoHandler;
 
-    public static GfxInfoThread sGfxInfoThread = null;
-
     static ActivityHandlerHelper sActivityHelper = new ActivityHandlerHelper();
     static NotificationServiceClient sNotificationClient;
 
@@ -2100,9 +2098,7 @@ public class GeckoAppShell
     }
 
     public static String getGfxInfoData() {
-        String data = sGfxInfoThread.getData();
-        sGfxInfoThread = null;
-        return data;
+        return GfxInfoThread.getData();
     }
 
     public static void registerSurfaceTextureFrameListener(Object surfaceTexture, final int id) {
