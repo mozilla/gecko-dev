@@ -23,7 +23,6 @@ void AndroidEGLObject::Init(JNIEnv* aJEnv) {
 
 jmethodID AndroidGLController::jWaitForValidSurfaceMethod = 0;
 jmethodID AndroidGLController::jProvideEGLSurfaceMethod = 0;
-jmethodID AndroidGLController::jResumeCompositorIfValidMethod = 0;
 
 void
 AndroidGLController::Init(JNIEnv* aJEnv)
@@ -32,7 +31,6 @@ AndroidGLController::Init(JNIEnv* aJEnv)
 
     jProvideEGLSurfaceMethod = aJEnv->GetMethodID(jClass, "provideEGLSurface",
                                                   "()Ljavax/microedition/khronos/egl/EGLSurface;");
-    jResumeCompositorIfValidMethod = aJEnv->GetMethodID(jClass, "resumeCompositorIfValid", "()V");
     jWaitForValidSurfaceMethod = aJEnv->GetMethodID(jClass, "waitForValidSurface", "()V");
 }
 
@@ -42,16 +40,6 @@ AndroidGLController::Acquire(JNIEnv* aJEnv, jobject aJObj)
     mJEnv = aJEnv;
     mThread = pthread_self();
     mJObj = aJEnv->NewGlobalRef(aJObj);
-}
-
-void
-AndroidGLController::Reacquire(JNIEnv *aJEnv, jobject aJObj)
-{
-    aJEnv->DeleteGlobalRef(mJObj);
-    mJObj = aJEnv->NewGlobalRef(aJObj);
-
-    AutoLocalJNIFrame jniFrame(aJEnv, 0);
-    aJEnv->CallVoidMethod(mJObj, jResumeCompositorIfValidMethod);
 }
 
 EGLSurface
