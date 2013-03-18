@@ -955,7 +955,7 @@ XPCWrappedNativeXrayTraits::resolveOwnProperty(JSContext *cx, js::Wrapper &jsWra
     int32_t index = GetArrayIndexFromId(cx, id);
     if (IsArrayIndex(index)) {
         nsGlobalWindow* win =
-            static_cast<nsGlobalWindow*>(As<nsIDOMWindow>(wrapper));
+            static_cast<nsGlobalWindow*>(As<nsPIDOMWindow>(wrapper));
         // Note: As() unwraps outer windows to get to the inner window.
         if (win) {
             bool unused;
