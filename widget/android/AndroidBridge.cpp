@@ -94,6 +94,7 @@ AndroidBridge::Init(JNIEnv *jEnv,
 
     mJNIEnv = nullptr;
     mThread = nullptr;
+    mGLControllerObj = nullptr;
     mOpenedGraphicsLibraries = false;
     mHasNativeBitmapAccess = false;
     mHasNativeWindowAccess = false;
@@ -216,8 +217,16 @@ AndroidBridge::Init(JNIEnv *jEnv,
 
     jLayerView = (jclass) jEnv->NewGlobalRef(jEnv->FindClass("org/mozilla/gecko/gfx/LayerView"));
 
-    AndroidGLController::Init(jEnv);
-    AndroidEGLObject::Init(jEnv);
+    jclass glControllerClass = jEnv->FindClass("org/mozilla/gecko/gfx/GLController");
+    jProvideEGLSurfaceMethod = jEnv->GetMethodID(glControllerClass, "provideEGLSurface",
+                                                  "()Ljavax/microedition/khronos/egl/EGLSurface;");
+
+    jclass eglClass = jEnv->FindClass("com/google/android/gles_jni/EGLSurfaceImpl");
+    if (eglClass) {
+        jEGLSurfacePointerField = jEnv->GetFieldID(eglClass, "mEGLSurface", "I");
+    } else {
+        jEGLSurfacePointerField = 0;
+    }
 #else
     jAddPluginView = jEnv->GetStaticMethodID(jGeckoAppShellClass, "addPluginView", "(Landroid/view/View;DDDD)V");
     jRemovePluginView = jEnv->GetStaticMethodID(jGeckoAppShellClass, "removePluginView", "(Landroid/view/View;)V");
@@ -1184,16 +1193,21 @@ AndroidBridge::CallEglCreateWindowSurface(void *dpy, void *config, AndroidGeckoS
     return (void*) realSurface;
 }
 
-static AndroidGLController sController;
-
 void
 AndroidBridge::RegisterCompositor(JNIEnv *env)
 {
     ALOG_BRIDGE("AndroidBridge::RegisterCompositor");
-    if (!env)
-        env = GetJNIForThread();    // called on the compositor thread
-    if (!env)
+    if (mGLControllerObj) {
+        // we already have this set up, no need to do it again
         return;
+    }
+
+    if (!env) {
+        env = GetJNIForThread();    // called on the compositor thread
+    }
+    if (!env) {
+        return;
+    }
 
     AutoLocalJNIFrame jniFrame(env);
 
@@ -1203,13 +1217,24 @@ AndroidBridge::RegisterCompositor(JNIEnv *env)
     if (jniFrame.CheckForException())
         return;
 
-    sController.Acquire(env, glController);
+    mGLControllerObj = env->NewGlobalRef(glController);
 }
 
 EGLSurface
 AndroidBridge::ProvideEGLSurface()
 {
-    return sController.ProvideEGLSurface();
+    if (!jEGLSurfacePointerField) {
+        return NULL;
+    }
+    MOZ_ASSERT(mGLControllerObj, "AndroidBridge::ProvideEGLSurface called with a null GL controller ref");
+
+    JNIEnv* env = GetJNIForThread(); // called on the compositor thread
+    AutoLocalJNIFrame jniFrame(env);
+    jobject eglSurface = env->CallObjectMethod(mGLControllerObj, jProvideEGLSurfaceMethod);
+    if (jniFrame.CheckForException() || !eglSurface)
+        return NULL;
+
+    return reinterpret_cast<EGLSurface>(env->GetIntField(eglSurface, jEGLSurfacePointerField));
 }
 
 bool
