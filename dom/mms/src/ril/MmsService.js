@@ -21,6 +21,7 @@ const DEBUG = false;
 const kMmsSendingObserverTopic           = "mms-sending";
 const kMmsSentObserverTopic              = "mms-sent";
 const kMmsFailedObserverTopic            = "mms-failed";
+const kMmsReceivedObserverTopic          = "mms-received";
 
 const kNetworkInterfaceStateChangedTopic = "network-interface-state-changed";
 const kXpcomShutdownObserverTopic        = "xpcom-shutdown";
@@ -49,6 +50,10 @@ const DELIVERY_NOT_DOWNLOADED = "not-downloaded";
 const DELIVERY_SENDING = "sending";
 const DELIVERY_SENT = "sent";
 const DELIVERY_ERROR = "error";
+
+const DELIVERY_STATUS_SUCCESS = "success";
+const DELIVERY_STATUS_PENDING = "pending";
+
 
 const MAX_RETRY_COUNT = Services.prefs.getIntPref("dom.mms.retrievalRetryCount");
 const DELAY_TIME_TO_RETRY = Services.prefs.getIntPref("dom.mms.retrievalRetryInterval");
@@ -923,6 +928,7 @@ MmsService.prototype = {
   convertIntermediateToSavable: function convertIntermediateToSavable(intermediate) {
     intermediate.type = "mms";
     intermediate.delivery = DELIVERY_NOT_DOWNLOADED;
+    intermediate.deliveryStatus = [DELIVERY_STATUS_PENDING];
     intermediate.timestamp = Date.now();
     intermediate.sender = null;
     if (intermediate.headers.from) {
@@ -968,6 +974,7 @@ MmsService.prototype = {
     }
 
     savable.delivery = DELIVERY_RECEIVED;
+    savable.deliveryStatus = [DELIVERY_STATUS_SUCCESS];
     for (let field in intermediate.headers) {
       savable.headers[field] = intermediate.headers[field];
     }
@@ -1018,8 +1025,6 @@ MmsService.prototype = {
 
     gMobileMessageDatabaseService.saveReceivedMessage(savableMessage,
       (function (rv, domMessage) {
-        // TODO: Bug 760065 - B2G MMS: Implement MMS DOM API
-        // Connect to DOM API for notifing new comming MMS to Gaia.
         let success = Components.isSuccessCode(rv);
         if (!success) {
           // At this point we could send a message to content to notify the
@@ -1032,6 +1037,9 @@ MmsService.prototype = {
           // for the resended notification indication.
           return;
         }
+
+        // Notifing new comming notification indication through notifyObservers.
+        Services.obs.notifyObservers(domMessage, kMmsReceivedObserverTopic, null);
 
         let retrievalMode = RETRIEVAL_MODE_MANUAL;
         try {
@@ -1082,8 +1090,6 @@ MmsService.prototype = {
 
           gMobileMessageDatabaseService.saveReceivedMessage(savableMessage,
             (function (rv, domMessage) {
-              // TODO: Bug 760065 - B2G MMS: Implement MMS DOM API
-              // Connect to DOM API for notifing new comming MMS to Gaia.
               let success = Components.isSuccessCode(rv);
               if (!success) {
                 // At this point we could send a message to content to
@@ -1099,6 +1105,9 @@ MmsService.prototype = {
                 transaction.run();
                 return;
               }
+
+              // Notifing new retrieved MMS message through notifyObservers.
+              Services.obs.notifyObservers(domMessage, kMmsReceivedObserverTopic, null);
             }).bind(this)
           );
         }).bind(this));
