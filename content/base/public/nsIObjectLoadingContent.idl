@@ -22,7 +22,7 @@ interface nsIURI;
  * This interface represents a content node that loads objects.
  */
 
-[scriptable, uuid(e9102696-4bb4-4a98-a31f-be9da5a3d18e)]
+[scriptable, uuid(5804ab94-4fa1-4720-8f3e-655b769ea2df)]
 interface nsIObjectLoadingContent : nsISupports
 {
   /**
@@ -108,6 +108,10 @@ interface nsIObjectLoadingContent : nsISupports
    */
   [noscript] nsIFrame getPrintFrame();
 
+  /*
+   * Notifications from pluginhost that our instance crashed or was destroyed.
+   */
+  [noscript] void pluginDestroyed();
   [noscript] void pluginCrashed(in nsIPluginTag pluginTag,
                                 in AString pluginDumpID,
                                 in AString browserDumpID,
