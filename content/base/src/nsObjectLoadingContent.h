@@ -285,6 +285,11 @@ class nsObjectLoadingContent : public nsImageLoadingContent
      */
     ParameterUpdateFlags UpdateObjectParameters();
 
+    /**
+     * Queue a InDocCheckEvent
+     */
+    void QueueInDocCheckEvent();
+
     void NotifyContentObjectWrapper();
 
     /**
