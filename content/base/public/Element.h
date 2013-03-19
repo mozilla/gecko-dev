@@ -333,15 +333,6 @@ public:
 
   bool GetBindingURL(nsIDocument *aDocument, css::URLValue **aResult);
 
-  // The bdi element defaults to dir=auto if it has no dir attribute set.
-  // Other elements will only have dir=auto if they have an explicit dir=auto,
-  // which will mean that HasValidDir() returns true but HasFixedDir() returns
-  // false
-  inline bool HasDirAuto() const {
-    return (!HasFixedDir() &&
-            (HasValidDir() || NodeInfo()->Equals(nsGkAtoms::bdi)));
-  }
-
 protected:
   /**
    * Method to get the _intrinsic_ content state of this element.  This is the

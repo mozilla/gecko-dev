@@ -81,7 +81,6 @@
 #include "mozAutoDocUpdate.h"
 #include "nsContentCreatorFunctions.h"
 #include "nsContentUtils.h"
-#include "mozilla/dom/DirectionalityUtils.h"
 #include "nsRadioVisitor.h"
 
 #include "mozilla/LookAndFeel.h"
@@ -769,10 +768,6 @@ nsHTMLInputElement::BeforeSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
       }
     } else if (aNotify && aName == nsGkAtoms::disabled) {
       mDisabledChanged = true;
-    } else if (aName == nsGkAtoms::dir &&
-               AttrValueIs(kNameSpaceID_None, nsGkAtoms::dir,
-                           nsGkAtoms::_auto, eIgnoreCase)) {
-      SetDirectionIfAuto(false, aNotify);
     }
   }
 
@@ -879,9 +874,6 @@ nsHTMLInputElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
       UpdateStepMismatchValidityState();
     } else if (aName == nsGkAtoms::step) {
       UpdateStepMismatchValidityState();
-    } else if (aName == nsGkAtoms::dir &&
-               aValue && aValue->Equals(nsGkAtoms::_auto, eIgnoreCase)) {
-      SetDirectionIfAuto(true, aNotify);
     }
 
     UpdateState(aNotify);
@@ -2828,9 +2820,6 @@ nsHTMLInputElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
     AddedToRadioGroup();
   }
 
-  // Set direction based on value if dir=auto
-  SetDirectionIfAuto(HasDirAuto(), false);
-
   // An element can't suffer from value missing if it is not in a document.
   // We have to check if we suffer from that as we are now in a document.
   UpdateValueMissingValidityState();
@@ -3588,21 +3577,6 @@ nsHTMLInputElement::SetDefaultValueAsValue()
 
   // SetValueInternal is going to sanitize the value.
   return SetValueInternal(resetVal, false, false);
-}
-
-void
-nsHTMLInputElement::SetDirectionIfAuto(bool aAuto, bool aNotify)
-{
-  if (aAuto) {
-    SetHasDirAuto();
-    if (IsSingleLineTextControl(true)) {
-      nsAutoString value;
-      GetValue(value);
-      SetDirectionalityFromValue(this, value, aNotify);
-    }
-  } else {
-    ClearHasDirAuto();
-  }
 }
 
 NS_IMETHODIMP
@@ -5060,10 +5034,6 @@ NS_IMETHODIMP_(void)
 nsHTMLInputElement::OnValueChanged(bool aNotify)
 {
   UpdateAllValidityStates(aNotify);
-
-  if (HasDirAuto()) {
-    SetDirectionIfAuto(true, aNotify);
-  }
 }
 
 NS_IMETHODIMP_(bool)

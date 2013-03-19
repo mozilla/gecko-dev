@@ -1164,7 +1164,7 @@ Element::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   //  because it has to happen after updating the parent pointer, but before
   //  recursively binding the kids.
   if (IsHTML()) {
-    SetDirOnBind(this, aParent);
+    RecomputeDirectionality(this, false);
   }
 
   // If NODE_FORCE_XBL_BINDINGS was set we might have anonymous children
@@ -1356,7 +1356,7 @@ Element::UnbindFromTree(bool aDeep, bool aNullParent)
   //  because it has to happen after unsetting the parent pointer, but before
   //  recursively unbinding the kids.
   if (IsHTML()) {
-    ResetDir(this);
+    RecomputeDirectionality(this, false);
   }
 
   if (aDeep) {
@@ -1831,13 +1831,7 @@ Element::SetAttrAndNotify(int32_t aNamespaceID,
     aValueForAfterSetAttr.SetTo(aParsedValue);
   }
 
-  bool hadValidDir = false;
-
   if (aNamespaceID == kNameSpaceID_None) {
-    if (aName == nsGkAtoms::dir) {
-      hadValidDir = HasValidDir() || NodeInfo()->Equals(nsGkAtoms::bdi);
-    }
-
     // XXXbz Perhaps we should push up the attribute mapping function
     // stuff to Element?
     if (!IsAttributeMapped(aName) ||
@@ -1873,10 +1867,6 @@ Element::SetAttrAndNotify(int32_t aNamespaceID,
   if (aCallAfterSetAttr) {
     rv = AfterSetAttr(aNamespaceID, aName, &aValueForAfterSetAttr, aNotify);
     NS_ENSURE_SUCCESS(rv, rv);
-
-    if (aNamespaceID == kNameSpaceID_None && aName == nsGkAtoms::dir) {
-      OnSetDirAttr(this, &aValueForAfterSetAttr, hadValidDir, aNotify);
-    }
   }
 
   if (aFireMutation) {
@@ -2079,12 +2069,6 @@ Element::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aName,
   // react to unexpected attribute changes.
   nsMutationGuard::DidMutate();
 
-  bool hadValidDir = false;
-
-  if (aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::dir) {
-    hadValidDir = HasValidDir() || NodeInfo()->Equals(nsGkAtoms::bdi);
-  }
-
   nsAttrValue oldValue;
   rv = mAttrsAndChildren.RemoveAttrAt(index, oldValue);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -2106,10 +2090,6 @@ Element::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aName,
 
   rv = AfterSetAttr(aNameSpaceID, aName, nullptr, aNotify);
   NS_ENSURE_SUCCESS(rv, rv);
-
-  if (aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::dir) {
-    OnSetDirAttr(this, nullptr, hadValidDir, aNotify);
-  }
 
   if (hasMutationListeners) {
     nsCOMPtr<nsIDOMEventTarget> node = do_QueryObject(this);
