@@ -215,8 +215,6 @@ nsWindow::DoDraw(void)
         return;
     }
 
-    StopBootAnimation();
-
     nsIntRegion region = gWindowToRedraw->mDirtyRegion;
     gWindowToRedraw->mDirtyRegion.SetEmpty();
 
@@ -550,6 +548,8 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
         }
         return mLayerManager;
     }
+
+    StopBootAnimation();
 
     // Set mUseAcceleratedRendering here to make it consistent with
     // nsBaseWidget::GetLayerManager
