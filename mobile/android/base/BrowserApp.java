@@ -242,7 +242,6 @@ abstract public class BrowserApp extends GeckoApp
 
     @Override
     public void onDestroy() {
-        super.onDestroy();
         if (mAboutHomeContent != null)
             mAboutHomeContent.onDestroy();
         if (mBrowserToolbar != null)
@@ -254,6 +253,8 @@ abstract public class BrowserApp extends GeckoApp
         unregisterEventListener("Feedback:OpenPlayStore");
         unregisterEventListener("Feedback:MaybeLater");
         unregisterEventListener("Telemetry:Gather");
+
+        super.onDestroy();
     }
 
     @Override
