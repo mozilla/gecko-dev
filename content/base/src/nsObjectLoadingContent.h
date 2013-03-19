@@ -353,6 +353,11 @@ class nsObjectLoadingContent : public nsImageLoadingContent
      */
     ParameterUpdateFlags UpdateObjectParameters();
 
+    /**
+     * Queue a CheckPluginStopEvent and track it in mPendingCheckPluginStopEvent
+     */
+    void QueueCheckPluginStopEvent();
+
     void NotifyContentObjectWrapper();
 
     /**
