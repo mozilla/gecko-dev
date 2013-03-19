@@ -459,7 +459,7 @@ CurrentSessionMeasurement.prototype = Object.freeze({
     fields.set("firstPaint", [now, sessions.firstPaint]);
     fields.set("sessionRestored", [now, sessions.sessionRestored]);
 
-    return Promise.resolve({
+    return CommonUtils.laterTickResolvingPromise({
       days: new Metrics.DailyValues(),
       singular: fields,
     });
@@ -694,14 +694,14 @@ AddonsProvider.prototype = Object.freeze({
     this._listener = listener;
     AddonManager.addAddonListener(this._listener);
 
-    return Promise.resolve();
+    return CommonUtils.laterTickResolvingPromise();
   },
 
   onShutdown: function () {
     AddonManager.removeAddonListener(this._listener);
     this._listener = null;
 
-    return Promise.resolve();
+    return CommonUtils.laterTickResolvingPromise();
   },
 
   collectConstantData: function () {
