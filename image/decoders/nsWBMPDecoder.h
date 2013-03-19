@@ -9,7 +9,7 @@
 
 #include "Decoder.h"
 #include "nsCOMPtr.h"
-#include "imgDecoderObserver.h"
+#include "imgIDecoderObserver.h"
 #include "gfxColor.h"
 
 namespace mozilla {
