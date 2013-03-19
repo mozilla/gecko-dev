@@ -420,7 +420,7 @@ ContactManager.prototype = {
         if (data.waitingForNext) {
           if (DEBUG) debug("cursor waiting for contact, sending");
           data.waitingForNext = false;
-          this._fireSuccessOrDone(data.cursor, contact);
+          this.nextTick(this._fireSuccessOrDone.bind(this, data.cursor, contact));
         } else {
           if (DEBUG) debug("cursor not waiting, saving");
           data.cachedContacts.push(contact);
@@ -625,12 +625,16 @@ ContactManager.prototype = {
     return cursor;
   },
 
+  nextTick: function nextTick(aCallback) {
+    Services.tm.currentThread.dispatch(aCallback, Ci.nsIThread.DISPATCH_NORMAL);
+  },
+
   handleContinue: function CM_handleContinue(aCursorId) {
     if (DEBUG) debug("handleContinue: " + aCursorId);
     let data = this._cursorData[aCursorId];
     if (data.cachedContacts.length > 0) {
       if (DEBUG) debug("contact in cache");
-      this._fireSuccessOrDone(data.cursor, data.cachedContacts.shift());
+      this.nextTick(this._fireSuccessOrDone.bind(this, data.cursor, data.cachedContacts.shift()));
     } else {
       if (DEBUG) debug("waiting for contact");
       data.waitingForNext = true;
