@@ -2415,8 +2415,7 @@ public:
     mHaveCurrentData(false),
     mBlocked(false),
     mMutex("nsHTMLMediaElement::StreamListener"),
-    mPendingNotifyOutput(false),
-    mDidHaveCurrentData(false)
+    mPendingNotifyOutput(false)
   {}
   void Forget() { mElement = nullptr; }
 
@@ -2483,21 +2482,12 @@ public:
       NS_NewRunnableMethod(this, &StreamListener::DoNotifyFinished);
     aGraph->DispatchToMainThreadAfterStreamStateUpdate(event.forget());
   }
-  virtual void NotifyHasCurrentData(MediaStreamGraph* aGraph,
-                                    bool aHasCurrentData)
+  virtual void NotifyHasCurrentData(MediaStreamGraph* aGraph)
   {
     MutexAutoLock lock(mMutex);
-    if (mDidHaveCurrentData == aHasCurrentData)
-      return;
-    mDidHaveCurrentData = aHasCurrentData;
-    // Ignore the case where aHasCurrentData is false. If aHasCurrentData
-    // changes from true to false, we don't worry about it. Video elements
-    // preserve the last played frame anyway.
-    if (aHasCurrentData) {
-      nsCOMPtr<nsIRunnable> event =
-        NS_NewRunnableMethod(this, &StreamListener::DoNotifyHaveCurrentData);
-      aGraph->DispatchToMainThreadAfterStreamStateUpdate(event.forget());
-    }
+    nsCOMPtr<nsIRunnable> event =
+      NS_NewRunnableMethod(this, &StreamListener::DoNotifyHaveCurrentData);
+    aGraph->DispatchToMainThreadAfterStreamStateUpdate(event.forget());
   }
   virtual void NotifyOutput(MediaStreamGraph* aGraph)
   {
@@ -2519,7 +2509,6 @@ private:
   // mMutex protects the fields below; they can be accessed on any thread
   Mutex mMutex;
   bool mPendingNotifyOutput;
-  bool mDidHaveCurrentData;
 };
 
 void nsHTMLMediaElement::SetupSrcMediaStreamPlayback(DOMMediaStream* aStream)

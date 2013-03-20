@@ -41,6 +41,8 @@ public:
   explicit AudioNodeStream(AudioNodeEngine* aEngine)
     : ProcessedMediaStream(nullptr), mEngine(aEngine), mLastChunk(nullptr)
   {
+    // AudioNodes are always producing data
+    mHasCurrentData = true;
   }
   ~AudioNodeStream();
 
