@@ -2085,9 +2085,7 @@ nsresult nsHTMLMediaElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
   if (aNotify && aNameSpaceID == kNameSpaceID_None) {
     if (aName == nsGkAtoms::autoplay) {
       StopSuspendingAfterFirstFrame();
-      if (mReadyState == nsIDOMHTMLMediaElement::HAVE_ENOUGH_DATA) {
-        NotifyAutoplayDataReady();
-      }
+      CheckAutoplayDataReady();
       // This attribute can affect AddRemoveSelfReference
       AddRemoveSelfReference();
       UpdatePreloadAction();
@@ -2813,6 +2811,9 @@ void nsHTMLMediaElement::SeekCompleted()
 void nsHTMLMediaElement::NotifySuspendedByCache(bool aIsSuspended)
 {
   mDownloadSuspendedByCache = aIsSuspended;
+  // If this is an autoplay element, we may need to kick off its autoplaying
+  // now so we consume data and hopefully free up cache space.
+  CheckAutoplayDataReady();
 }
 
 void nsHTMLMediaElement::DownloadSuspended()
@@ -2951,9 +2952,7 @@ void nsHTMLMediaElement::ChangeReadyState(nsMediaReadyState aState)
     DispatchAsyncEvent(NS_LITERAL_STRING("canplay"));
   }
 
-  if (mReadyState == nsIDOMHTMLMediaElement::HAVE_ENOUGH_DATA) {
-    NotifyAutoplayDataReady();
-  }
+  CheckAutoplayDataReady();
 
   if (oldState < nsIDOMHTMLMediaElement::HAVE_FUTURE_DATA &&
       mReadyState >= nsIDOMHTMLMediaElement::HAVE_FUTURE_DATA &&
@@ -2969,14 +2968,20 @@ void nsHTMLMediaElement::ChangeReadyState(nsMediaReadyState aState)
 
 bool nsHTMLMediaElement::CanActivateAutoplay()
 {
+  // For stream inputs, we activate autoplay on HAVE_CURRENT_DATA because
+  // this element itself might be blocking the stream from making progress by
+  // being paused.
   return mAutoplaying &&
          mPaused &&
+         (mDownloadSuspendedByCache ||
+          (mDecoder && mReadyState >= nsIDOMHTMLMediaElement::HAVE_ENOUGH_DATA) ||
+          (mSrcStream && mReadyState >= nsIDOMHTMLMediaElement::HAVE_CURRENT_DATA)) &&
          HasAttr(kNameSpaceID_None, nsGkAtoms::autoplay) &&
          mAutoplayEnabled &&
          !IsEditable();
 }
 
-void nsHTMLMediaElement::NotifyAutoplayDataReady()
+void nsHTMLMediaElement::CheckAutoplayDataReady()
 {
   if (CanActivateAutoplay()) {
     mPaused = false;
