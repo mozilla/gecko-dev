@@ -255,7 +255,7 @@ private:
   /**
    * Address struct of the socket currently in use
    */
-  sockaddr_any mAddr;
+  sockaddr mAddr;
 
 };
 
@@ -476,12 +476,9 @@ UnixSocketImpl::Accept()
 
   // This will set things we don't particularly care about, but it will hand
   // back the correct structure size which is what we do care about.
-  if (!mConnector->CreateAddr(true, mAddrSize, mAddr, nullptr)) {
-    NS_WARNING("Cannot create socket address!");
-    return;
-  }
+  mConnector->CreateAddr(true, mAddrSize, &mAddr, nullptr);
 
-  if (mFd.get() < 0)
+  if(mFd.get() < 0)
   {
     mFd = mConnector->Create();
     if (mFd.get() < 0) {
@@ -492,7 +489,7 @@ UnixSocketImpl::Accept()
       return;
     }
 
-    if (bind(mFd.get(), (struct sockaddr*)&mAddr, mAddrSize)) {
+    if (bind(mFd.get(), &mAddr, mAddrSize)) {
 #ifdef DEBUG
       LOG("...bind(%d) gave errno %d", mFd.get(), errno);
 #endif
@@ -509,7 +506,7 @@ UnixSocketImpl::Accept()
   }
 
   int client_fd;
-  client_fd = accept(mFd.get(), (struct sockaddr*)&mAddr, &mAddrSize);
+  client_fd = accept(mFd.get(), &mAddr, &mAddrSize);
   if (client_fd < 0) {
     EnqueueTask(SOCKET_RETRY_TIME_MS, new SocketAcceptTask(this));
     return;
@@ -548,12 +545,9 @@ UnixSocketImpl::Connect()
 
   int ret;
 
-  if (!mConnector->CreateAddr(false, mAddrSize, mAddr, mAddress.get())) {
-    NS_WARNING("Cannot create socket address!");
-    return;
-  }
+  mConnector->CreateAddr(false, mAddrSize, &mAddr, mAddress.get());
 
-  ret = connect(mFd.get(), (struct sockaddr*)&mAddr, mAddrSize);
+  ret = connect(mFd.get(), &mAddr, mAddrSize);
 
   if (ret) {
 #if DEBUG
