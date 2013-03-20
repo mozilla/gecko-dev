@@ -11,17 +11,18 @@ const { Cc, Ci, Cu } = require('chrome');
 const { defer } = require('../lang/functional');
 const { emit, on, once, off } = require('../event/core');
 const { when: unload } = require('../system/unload');
-const { getWindowLoadingContext, windows } = require('../window/utils');
-const { WindowTracker } = require("../deprecated/window-utils");
 const events = require('../system/events');
 const { deprecateFunction } = require('../util/deprecate');
+const { isOneOf, is, satisfiesVersion, version } = require('../system/xul-app');
+const { isWindowPrivate } = require('../window/utils');
+const { isPrivateBrowsingSupported } = require('../self');
 
 let deferredEmit = defer(emit);
 let pbService;
 let PrivateBrowsingUtils;
 
 // Private browsing is only supported in Fx
-if (require("../system/xul-app").is("Firefox")) {
+if (isOneOf(['Firefox', 'Fennec'])) {
   // get the nsIPrivateBrowsingService if it exists
   try {
     pbService = Cc["@mozilla.org/privatebrowsing;1"].
@@ -32,7 +33,8 @@ if (require("../system/xul-app").is("Firefox")) {
     //     feature is not really active.  See Bug 818800 and Bug 826037
     if (!('privateBrowsingEnabled' in pbService))
       pbService = undefined;
-  } catch(e) { /* Private Browsing Service has been removed (Bug 818800) */ }
+  }
+  catch(e) { /* Private Browsing Service has been removed (Bug 818800) */ }
 
   try {
     PrivateBrowsingUtils = Cu.import('resource://gre/modules/PrivateBrowsingUtils.jsm', {}).PrivateBrowsingUtils;
@@ -40,21 +42,21 @@ if (require("../system/xul-app").is("Firefox")) {
   catch(e) { /* if this file DNE then an error will be thrown */ }
 }
 
-function isWindowPrivate(win) {
-  // if the pbService is undefined, the PrivateBrowsingUtils.jsm is available,
-  // and the app is Firefox, then assume per-window private browsing is
-  // enabled.
-  return win instanceof Ci.nsIDOMWindow &&
-         isWindowPBSupported &&
-         PrivateBrowsingUtils.isWindowPrivate(win);
-}
-exports.isWindowPrivate = isWindowPrivate;
-
 // checks that global private browsing is implemented
-let isGlobalPBSupported = exports.isGlobalPBSupported =  !!pbService;
+let isGlobalPBSupported = exports.isGlobalPBSupported = !!pbService && is('Firefox');
 
 // checks that per-window private browsing is implemented
-let isWindowPBSupported = exports.isWindowPBSupported = !isGlobalPBSupported && !!PrivateBrowsingUtils;
+let isWindowPBSupported = exports.isWindowPBSupported =
+                          !pbService && !!PrivateBrowsingUtils && is('Firefox');
+
+// checks that per-tab private browsing is implemented
+let isTabPBSupported = exports.isTabPBSupported =
+                       !pbService && !!PrivateBrowsingUtils && is('Fennec') && satisfiesVersion(version, '>=20.0*');
+                       
+function ignoreWindow(window) {
+  return !isPrivateBrowsingSupported && isWindowPrivate(window);
+}
+exports.ignoreWindow = ignoreWindow;
 
 function onChange() {
   // Emit event with in next turn of event loop.

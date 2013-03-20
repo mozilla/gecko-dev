@@ -3,9 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 'use strict';
 
-let { Cc, Ci } = require("chrome");
 const timer = require("sdk/timers");
-const { LoaderWithHookedConsole, pb, pbUtils, activate, deactivate } = require("./helper");
+const { LoaderWithHookedConsole, deactivate, pb, pbUtils } = require("./helper");
 const tabs = require("sdk/tabs");
 
 exports["test activate private mode via handler"] = function(test) {
@@ -47,10 +46,14 @@ exports.testGetIsActive = function (test) {
 
   test.assertEqual(pb.isActive, false,
                    "private-browsing.isActive is correct without modifying PB service");
+  test.assertEqual(pb.isPrivate(), false,
+                   "private-browsing.sPrivate() is correct without modifying PB service");
 
   pb.once("start", function() {
     test.assert(pb.isActive,
                   "private-browsing.isActive is correct after modifying PB service");
+    test.assert(pb.isPrivate(),
+                  "private-browsing.sPrivate() is correct after modifying PB service");
     // Switch back to normal mode.
     pb.deactivate();
   });
@@ -59,6 +62,8 @@ exports.testGetIsActive = function (test) {
   pb.once("stop", function() {
     test.assert(!pb.isActive,
                 "private-browsing.isActive is correct after modifying PB service");
+    test.assert(!pb.isPrivate(),
+                "private-browsing.sPrivate() is correct after modifying PB service");
     test.done();
   });
 };
@@ -72,6 +77,8 @@ exports.testStart = function(test) {
                 'private mode is active when "start" event is emitted');
     test.assert(pb.isActive,
                 '`isActive` is `true` when "start" event is emitted');
+    test.assert(pb.isPrivate(),
+                '`isPrivate` is `true` when "start" event is emitted');
     pb.removeListener("start", onStart);
     deactivate(function() test.done());
   });
@@ -86,6 +93,8 @@ exports.testStop = function(test) {
                      "private mode is disabled when stop event is emitted");
     test.assertEqual(pb.isActive, false,
                      "`isActive` is `false` when stop event is emitted");
+    test.assertEqual(pb.isPrivate(), false,
+                     "`isPrivate()` is `false` when stop event is emitted");
     test.done();
   });
   pb.activate();
@@ -106,6 +115,8 @@ exports.testBothListeners = function(test) {
                      "private mode is disabled when stop event is emitted");
     test.assertEqual(pb.isActive, false,
                      "`isActive` is `false` when stop event is emitted");
+    test.assertEqual(pb.isPrivate(), false,
+                     "`isPrivate()` is `false` when stop event is emitted");
 
     pb.on("start", finish);
     pb.removeListener("start", onStart);
@@ -121,6 +132,8 @@ exports.testBothListeners = function(test) {
                 "private mode is active when start event is emitted");
     test.assert(pb.isActive,
                 "`isActive` is `true` when start event is emitted");
+    test.assert(pb.isPrivate(),
+                "`isPrivate()` is `true` when start event is emitted");
 
     pb.on("stop", onStop);
     pb.deactivate();
@@ -137,6 +150,8 @@ exports.testBothListeners = function(test) {
                 "private mode is active when start event is emitted");
     test.assert(pb.isActive,
                 "`isActive` is `true` when start event is emitted");
+    test.assert(pb.isPrivate(),
+                "`isPrivate()` is `true` when start event is emitted");
 
     pb.removeListener("start", finish);
     pb.removeListener("stop", onStop);
@@ -145,6 +160,7 @@ exports.testBothListeners = function(test) {
     pb.once("stop", function () {
       test.assertEqual(pbUtils.getMode(), false);
       test.assertEqual(pb.isActive, false);
+      test.assertEqual(pb.isPrivate(), false);
 
       test.done();
     });
@@ -159,7 +175,7 @@ exports.testAutomaticUnload = function(test) {
   test.waitUntilDone();
 
   // Create another private browsing instance and unload it
-  let { loader, errors } = LoaderWithHookedConsole();
+  let { loader, errors } = LoaderWithHookedConsole(module);
   let pb2 = loader.require("sdk/private-browsing");
   let called = false;
   pb2.on("start", function onStart() {
@@ -175,7 +191,10 @@ exports.testAutomaticUnload = function(test) {
       test.assert(!called, 
         "First private browsing instance is destroyed and inactive");
       // Must reset to normal mode, so that next test starts with it.
-      deactivate(function() test.done());
+      deactivate(function() {
+        test.assert(errors.length, 0, "should have been 1 deprecation error");
+        test.done();
+      });
     }, 0);
   });
 
@@ -186,7 +205,7 @@ exports.testUnloadWhileActive = function(test) {
   test.waitUntilDone();
 
   let called = false;
-  let { loader, errors } = LoaderWithHookedConsole();
+  let { loader, errors } = LoaderWithHookedConsole(module);
   let pb2 = loader.require("sdk/private-browsing");
   let ul = loader.require("sdk/system/unload");
 
@@ -206,7 +225,8 @@ exports.testUnloadWhileActive = function(test) {
     test.fail("stop should not have been fired");
   });
   pb.once("stop", function() {
-    test.assert(!called, "stop was not called on unload")
+    test.assert(!called, "stop was not called on unload");
+    test.assert(errors.length, 2, "should have been 2 deprecation errors");
     test.done();
   });
 

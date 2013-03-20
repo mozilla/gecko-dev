@@ -6,12 +6,14 @@
 const { Cc, Ci } = require('chrome');
 const { setTimeout } = require('sdk/timers');
 const { Loader } = require('sdk/test/loader');
-const wm = Cc['@mozilla.org/appshell/window-mediator;1'].
-           getService(Ci.nsIWindowMediator);
-
+const { onFocus, getMostRecentWindow, windows } = require('sdk/window/utils');
+const { open, close, focus } = require('sdk/window/helpers');
 const { browserWindows } = require("sdk/windows");
 const tabs = require("sdk/tabs");
-const { WindowTracker } = require("sdk/deprecated/window-utils");
+const winUtils = require("sdk/deprecated/window-utils");
+const { WindowTracker } = winUtils;
+const { isPrivate } = require('sdk/private-browsing');
+const { isWindowPBSupported } = require('sdk/private-browsing/utils');
 
 // TEST: open & close window
 exports.testOpenAndCloseWindow = function(test) {
@@ -267,36 +269,11 @@ exports.testActiveWindow = function(test) {
   });
 
   function nextStep() {
-    if (testSteps.length > 0)
+    if (testSteps.length)
       testSteps.shift()();
   }
 
-  function continueAfterFocus(targetWindow) {
-    // Based on SimpleTest.waitForFocus
-    var fm = Cc["@mozilla.org/focus-manager;1"].
-             getService(Ci.nsIFocusManager);
-
-    var childTargetWindow = {};
-    fm.getFocusedElementForWindow(targetWindow, true, childTargetWindow);
-    childTargetWindow = childTargetWindow.value;
-
-    var focusedChildWindow = {};
-    if (fm.activeWindow) {
-      fm.getFocusedElementForWindow(fm.activeWindow, true, focusedChildWindow);
-      focusedChildWindow = focusedChildWindow.value;
-    }
-
-    var focused = (focusedChildWindow == childTargetWindow);
-    if (focused) {
-      setTimeout(nextStep, 0);
-    } else {
-      childTargetWindow.addEventListener("focus", function focusListener() {
-        childTargetWindow.removeEventListener("focus", focusListener, true);
-        setTimeout(nextStep, 0);
-      }, true);
-    }
-
-  }
+  let continueAfterFocus = function(w) onFocus(w).then(nextStep);
 
   function finishTest() {
     window3.close(function() {
@@ -369,4 +346,66 @@ exports.testTrackWindows = function(test) {
   })
 
   openWindow();
+}
+
+// test that it is not possible to open a private window by default
+exports.testWindowOpenPrivateDefault = function(test) {
+  test.waitUntilDone();
+
+  browserWindows.open({
+    url: 'about:mozilla',
+    isPrivate: true,
+    onOpen: function(window) {
+      test.assertEqual();
+
+      let tab = window.tabs[0];
+      tab.once('ready', function() {
+        test.assertEqual(tab.url, 'about:mozilla', 'opened correct tab');
+        test.assertEqual(isPrivate(tab), false, 'tab is not private');
+
+        window.close(function() {
+          test.done();
+        });
+      });
+    }
+  });
+}
+
+// test that it is not possible to find a private window in
+// windows module's iterator
+exports.testWindowIteratorPrivateDefault = function(test) {
+  test.waitUntilDone();
+
+  test.assertEqual(browserWindows.length, 1, 'only one window open');
+
+  open('chrome://browser/content/browser.xul', {
+    features: {
+      private: true,
+      chrome: true
+    }
+  }).then(function(window) {
+    // test that there is a private window opened
+    test.assertEqual(isPrivate(window), isWindowPBSupported, 'there is a private window open');
+    test.assertStrictEqual(window, winUtils.activeWindow);
+    test.assertStrictEqual(window, getMostRecentWindow());
+
+    test.assert(!isPrivate(browserWindows.activeWindow));
+
+    if (isWindowPBSupported) {
+      test.assertEqual(browserWindows.length, 1, 'only one window in browserWindows');
+      test.assertEqual(windows().length, 1, 'only one window in windows()');
+    }
+    else {
+      test.assertEqual(browserWindows.length, 2, 'two windows open');
+      test.assertEqual(windows().length, 2, 'two windows in windows()');
+    }
+    test.assertEqual(windows(null, { includePrivate: true }).length, 2);
+
+    for each(let window in browserWindows) {
+      // test that all windows in iterator are not private
+      test.assert(!isPrivate(window), 'no window in browserWindows is private');
+    }
+
+    close(window).then(test.done.bind(test));
+  });
 }

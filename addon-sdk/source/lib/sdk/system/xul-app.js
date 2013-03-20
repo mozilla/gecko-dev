@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
 "use strict";
 
 module.metadata = {
@@ -40,18 +39,20 @@ var ids = exports.ids = {
   Thunderbird: "{3550f703-e582-4d05-9a08-453d09bdfdc6}"
 };
 
-var is = exports.is = function is(name) {
+function is(name) {
   if (!(name in ids))
     throw new Error("Unkown Mozilla Application: " + name);
   return ID == ids[name];
 };
+exports.is = is;
 
-var isOneOf = exports.isOneOf = function isOneOf(names) {
+function isOneOf(names) {
   for (var i = 0; i < names.length; i++)
     if (is(names[i]))
       return true;
   return false;
 };
+exports.isOneOf = isOneOf;
 
 /**
  * Use this to check whether the given version (e.g. xulApp.platformVersion)
@@ -103,7 +104,6 @@ function normalizeRange(range) {
  *  A version to compare
  */
 function compareVersion(version, comparison, compareVersion) {
-
   let hasWildcard = compareVersion.indexOf("*") !== -1;
 
   comparison = comparison || "=";
@@ -181,5 +181,4 @@ function satisfiesVersion(version, versionRange) {
       : true);
   });
 }
-
 exports.satisfiesVersion = satisfiesVersion;

@@ -269,8 +269,7 @@ class ManifestBuilder:
                 yield absname
 
         for me in self.get_module_entries():
-            # Do not add manifest entries for system modules,
-            # so that we won't ship SDK files.
+            # Only ship SDK files if we are told to do so
             if me.packageName != "addon-sdk" or bundle_sdk_modules:
                 yield me.js_filename
 
@@ -281,8 +280,9 @@ class ManifestBuilder:
         manifest = {}
         for me in self.get_module_entries():
             path = me.get_path()
-            # Do not add manifest entries for system modules,
-            # so that we won't ship SDK files.
+            # Do not add manifest entries for system modules.
+            # Doesn't prevent from shipping modules.
+            # Shipping modules is decided in `get_used_files`.
             if me.packageName != "addon-sdk" or bundle_sdk_modules:
                 manifest[path] = me.get_entry_for_manifest()
         return manifest

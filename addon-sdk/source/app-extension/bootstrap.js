@@ -81,6 +81,15 @@ function startup(data, reasonCode) {
 
     let id = options.jetpackID;
     let name = options.name;
+
+    // Clean the metadata
+    options.metadata[name]['permissions'] = options.metadata[name]['permissions'] || {};
+
+    // freeze the permissionss
+    Object.freeze(options.metadata[name]['permissions']);
+    // freeze the metadata
+    Object.freeze(options.metadata[name]);
+
     // Register a new resource 'domain' for this addon which is mapping to
     // XPI's `resources` folder.
     // Generate the domain name by using jetpack ID, which is the extension ID
@@ -141,6 +150,11 @@ function startup(data, reasonCode) {
       // Only accept overloading folder by ensuring always ending with `/`
       if (path) path += '/';
       let fileURI = branch.getCharPref(name);
+
+      // On mobile, file URI has to end with a `/` otherwise, setSubstitution
+      // takes the parent folder instead.
+      if (fileURI[fileURI.length-1] !== '/')
+        fileURI += '/';
 
       // Maps the given file:// URI to a resource:// in order to avoid various
       // failure that happens with file:// URI and be close to production env

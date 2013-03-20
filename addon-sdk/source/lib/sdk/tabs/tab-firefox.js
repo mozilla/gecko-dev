@@ -11,6 +11,8 @@ const { getThumbnailURIForWindow } = require("../content/thumbnail");
 const { getFaviconURIForLocation } = require("../io/data");
 const { activateTab, getOwnerWindow, getBrowserForTab, getTabTitle, setTabTitle,
         getTabURL, setTabURL, getTabContentType, getTabId } = require('./utils');
+const { getOwnerWindow: getPBOwnerWindow } = require('../private-browsing/window/utils');
+const viewNS = require('sdk/core/namespace').ns();
 
 // Array of the inner instances of all the wrapped tabs.
 const TABS = [];
@@ -50,6 +52,9 @@ const TabTrait = Trait.compose(EventEmitter, {
     if (options.isPinned)
       this.pin();
 
+    viewNS(this._public).tab = this._tab;
+    getPBOwnerWindow.implement(this._public, getChromeTab);
+
     // Since we will have to identify tabs by a DOM elements facade function
     // is used as constructor that collects all the instances and makes sure
     // that they more then one wrapper is not created per tab.
@@ -58,7 +63,10 @@ const TabTrait = Trait.compose(EventEmitter, {
   destroy: function destroy() {
     this._removeAllListeners();
     if (this._tab) {
-      this._browser.removeEventListener(EVENTS.ready.dom, this._onReady, true);
+      let browser = this._browser;
+      // The tab may already be removed from DOM -or- not yet added
+      if (browser)
+        browser.removeEventListener(EVENTS.ready.dom, this._onReady, true);
       this._tab = null;
       TABS.splice(TABS.indexOf(this), 1);
     }
@@ -212,12 +220,21 @@ const TabTrait = Trait.compose(EventEmitter, {
   }
 });
 
-function Tab(options) {
+function getChromeTab(tab) {
+  return getOwnerWindow(viewNS(tab).tab);
+}
+
+function Tab(options, existingOnly) {
   let chromeTab = options.tab;
   for each (let tab in TABS) {
     if (chromeTab == tab._tab)
       return tab._public;
   }
+  // If called asked to return only existing wrapper,
+  // we should return null here as no matching Tab object has been found
+  if (existingOnly)
+    return null;
+
   let tab = TabTrait(options);
   TABS.push(tab);
   return tab._public;
