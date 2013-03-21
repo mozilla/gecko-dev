@@ -479,6 +479,10 @@ TabParent::TryCapture(const nsGUIEvent& aEvent)
 {
   MOZ_ASSERT(sEventCapturer == this && mEventCaptureDepth > 0);
 
+  if (mIsDestroyed) {
+    return false;
+  }
+
   if (aEvent.eventStructType != NS_TOUCH_EVENT) {
     // Only capture of touch events is implemented, for now.
     return false;
@@ -499,19 +503,29 @@ TabParent::TryCapture(const nsGUIEvent& aEvent)
     return false;
   }
 
-  // Adjust the widget coordinates to be relative to our frame.
-  nsRefPtr<nsFrameLoader> frameLoader = GetFrameLoader();
+  if (RenderFrameParent* rfp = GetRenderFrame()) {
+    // We need to process screen relative events co-ordinates for gestures to
+    // avoid phantom movement when the frame moves.
+    rfp->NotifyInputEvent(event);
 
-  if (!frameLoader) {
-    // No frame anymore?
-    sEventCapturer = nullptr;
-    return false;
+    // Adjust the widget coordinates to be relative to our frame.
+    nsRefPtr<nsFrameLoader> frameLoader = GetFrameLoader();
+
+    if (!frameLoader) {
+      // No frame anymore?
+      sEventCapturer = nullptr;
+      return false;
+    }
+
+    // Remove the frame offset and compensate for zoom.
+    nsEventStateManager::MapEventCoordinatesForChildProcess(frameLoader,
+                                                            &event);
+    rfp->ApplyZoomCompensationToEvent(&event);
   }
 
-  nsEventStateManager::MapEventCoordinatesForChildProcess(frameLoader, &event);
-
-  SendRealTouchEvent(event);
-  return true;
+  return (event.message == NS_TOUCH_MOVE) ?
+    PBrowserParent::SendRealTouchMoveEvent(event) :
+    PBrowserParent::SendRealTouchEvent(event);
 }
 
 bool
@@ -1256,7 +1270,8 @@ TabParent::MaybeForwardEventToRenderFrame(const nsInputEvent& aEvent,
                                           nsInputEvent* aOutEvent)
 {
   if (RenderFrameParent* rfp = GetRenderFrame()) {
-    rfp->NotifyInputEvent(aEvent, aOutEvent);
+    rfp->NotifyInputEvent(aEvent);
+    rfp->ApplyZoomCompensationToEvent(aOutEvent);
   }
 }
 
