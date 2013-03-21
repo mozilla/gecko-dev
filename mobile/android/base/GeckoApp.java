@@ -1555,6 +1555,8 @@ abstract public class GeckoApp
                 editor.commit();
             }
         });
+
+        GeckoAppShell.setNotificationClient(makeNotificationClient());
     }
 
     protected void initializeChrome(String uri, boolean isExternalURL) {
@@ -2730,6 +2732,12 @@ abstract public class GeckoApp
             }
         }
         return false;
+    }
+
+    protected NotificationClient makeNotificationClient() {
+        // Don't use a notification service; we may be killed in the background
+        // during downloads.
+        return new AppNotificationClient(getApplicationContext());
     }
 
     public static boolean shouldShowProgress(String url) {
