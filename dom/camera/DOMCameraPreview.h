@@ -10,7 +10,6 @@
 #include "StreamBuffer.h"
 #include "ICameraControl.h"
 #include "nsDOMMediaStream.h"
-#include "CameraPreviewMediaStream.h"
 #include "CameraCommon.h"
 
 using namespace mozilla;
@@ -80,7 +79,7 @@ protected:
   uint32_t mWidth;
   uint32_t mHeight;
   uint32_t mFramesPerSecond;
-  CameraPreviewMediaStream* mInput;
+  SourceMediaStream* mInput;
   nsRefPtr<ImageContainer> mImageContainer;
   VideoSegment mVideoSegment;
   uint32_t mFrameCount;
