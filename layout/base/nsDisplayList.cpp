@@ -1555,15 +1555,12 @@ nsDisplayBackgroundImage::AppendBackgroundItemsToTop(nsDisplayListBuilder* aBuil
                                                drawBackgroundImage, drawBackgroundColor);
   }
 
-  // Even if we don't actually have a background color to paint, we may still need
-  // to create an item for hit testing.
-  if ((drawBackgroundColor && color != NS_RGBA(0,0,0,0)) ||
-      aBuilder->IsForEventDelivery()) {
-    aList->AppendNewToTop(
-        new (aBuilder) nsDisplayBackgroundColor(aBuilder, aFrame, bg,
-                                                drawBackgroundColor ? color : NS_RGBA(0, 0, 0, 0)));
-  }
-
+  // Even if we don't actually have a background color to paint, we still need
+  // to create the item because it's used for hit testing.
+  aList->AppendNewToTop(
+      new (aBuilder) nsDisplayBackgroundColor(aBuilder, aFrame, bg,
+                                              drawBackgroundColor ? color : NS_RGBA(0, 0, 0, 0)));
+ 
   // Passing bg == nullptr in this macro will result in one iteration with
   // i = 0.
   bool backgroundSet = !aBackground;
@@ -1726,14 +1723,6 @@ nsDisplayBackgroundImage::TryOptimizeToImageLayer(nsDisplayListBuilder* aBuilder
   uint32_t flags = aBuilder->GetBackgroundPaintFlags();
   nsRect borderArea = nsRect(ToReferenceFrame(), mFrame->GetSize());
   const nsStyleBackground::Layer &layer = mBackgroundStyle->mLayers[mLayer];
-
-  if (layer.mClip != NS_STYLE_BG_CLIP_BORDER) {
-    return false;
-  }
-  nscoord radii[8];
-  if (mFrame->GetBorderRadii(radii)) {
-    return false;
-  }
 
   nsBackgroundLayerState state =
     nsCSSRendering::PrepareBackgroundLayer(presContext,
