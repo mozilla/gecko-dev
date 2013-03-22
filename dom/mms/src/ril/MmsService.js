@@ -75,6 +75,10 @@ XPCOMUtils.defineLazyServiceGetter(this, "gMobileMessageService",
                                    "@mozilla.org/mobilemessage/mobilemessageservice;1",
                                    "nsIMobileMessageService");
 
+XPCOMUtils.defineLazyServiceGetter(this, "gSystemMessenger",
+                                   "@mozilla.org/system-message-internal;1",
+                                   "nsISystemMessagesInternal");
+
 XPCOMUtils.defineLazyGetter(this, "gRIL", function () {
   return Cc["@mozilla.org/telephony/system-worker-manager;1"].
            getService(Ci.nsIInterfaceRequestor).
@@ -1003,6 +1007,36 @@ MmsService.prototype = {
   },
 
   /**
+   * A helper to broadcast the system message to launch registered apps
+   * like Costcontrol, Notification and Message app... etc.
+   *
+   * @param aName
+   *        The system message name.
+   * @param aDomMessage
+   *        The nsIDOMMozMmsMessage object.
+   */
+  broadcastMmsSystemMessage: function broadcastMmsSystemMessage(aName, aDomMessage) {
+    debug("Broadcasting the MMS system message: " + aName);
+
+    // Sadly we cannot directly broadcast the aDomMessage object
+    // because the system message mechamism will rewrap the object
+    // based on the content window, which needs to know the properties.
+    gSystemMessenger.broadcastMessage(aName, {
+      type:           aDomMessage.type,
+      id:             aDomMessage.id,
+      delivery:       aDomMessage.delivery,
+      deliveryStatus: aDomMessage.deliveryStatus,
+      sender:         aDomMessage.sender,
+      receivers:      aDomMessage.receivers,
+      timestamp:      aDomMessage.timestamp.getTime(),
+      read:           aDomMessage.read,
+      subject:        aDomMessage.subject,
+      smil:           aDomMessage.smil,
+      attachments:    aDomMessage.attachments
+    });
+  },
+
+  /**
    * Handle incoming M-Notification.ind PDU.
    *
    * @param notification
@@ -1033,6 +1067,9 @@ MmsService.prototype = {
           // for the resent notification indication.
           return;
         }
+
+        // Broadcasting an 'sms-received' system message to open apps.
+        this.broadcastMmsSystemMessage("sms-received", domMessage);
 
         // Notifying observers a new notification indication is coming.
         Services.obs.notifyObservers(domMessage, kMmsReceivedObserverTopic, null);
@@ -1104,6 +1141,9 @@ MmsService.prototype = {
                 transaction.run();
                 return;
               }
+
+              // Broadcasting an 'sms-received' system message to open apps.
+              this.broadcastMmsSystemMessage("sms-received", domMessage);
 
               // Notifying observers an MMS message is received.
               Services.obs.notifyObservers(domMessage, kMmsReceivedObserverTopic, null);
@@ -1251,6 +1291,8 @@ MmsService.prototype = {
           Services.obs.notifyObservers(aDomMessage, kMmsFailedObserverTopic, null);
           return;
         }
+
+        self.broadcastMmsSystemMessage("sms-sent", aDomMessage);
         aRequest.notifyMessageSent(aDomMessage);
         Services.obs.notifyObservers(aDomMessage, kMmsSentObserverTopic, null);
       });
