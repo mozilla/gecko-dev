@@ -13,8 +13,6 @@
 #include "mozilla/dom/EventTargetBinding.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/FileReaderSyncBinding.h"
-#include "mozilla/dom/TextDecoderBinding.h"
-#include "mozilla/dom/TextEncoderBinding.h"
 #include "mozilla/dom/XMLHttpRequestBinding.h"
 #include "mozilla/dom/XMLHttpRequestUploadBinding.h"
 #include "mozilla/OSFileConstants.h"
@@ -993,8 +991,6 @@ CreateDedicatedWorkerGlobalScope(JSContext* aCx)
   // object which has these protos, which breaks things like
   // instanceof.
   if (!FileReaderSyncBinding_workers::GetProtoObject(aCx, global, global) ||
-      !TextDecoderBinding_workers::GetProtoObject(aCx, global, global) ||
-      !TextEncoderBinding_workers::GetProtoObject(aCx, global, global) ||
       !XMLHttpRequestBinding_workers::GetProtoObject(aCx, global, global) ||
       !XMLHttpRequestUploadBinding_workers::GetProtoObject(aCx, global, global)) {
     return NULL;

@@ -21,7 +21,6 @@ MOCHITEST_FILES = \
   test_TextEncoder.html \
   test_TextEncoder.js \
   test_stringencoding.html \
-  worker_helper.js \
   $(NULL)
 
 MOCHITEST_CHROME_FILES = \

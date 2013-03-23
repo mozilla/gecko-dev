@@ -75,7 +75,6 @@ AppProtocolHandler.prototype = {
       // non-CoreApps in child need to ask parent for file handle, use jar:ipcfile://
       uri = "jar:remoteopenfile://" + appInfo.basePath + appId + "/application.zip!" + fileSpec;
     }
-    dump("AppProtocol: " + uri + "\n");
     let channel = Services.io.newChannel(uri, null, null);
     channel.QueryInterface(Ci.nsIJARChannel).setAppURI(aURI);
     channel.QueryInterface(Ci.nsIChannel).originalURI = aURI;
