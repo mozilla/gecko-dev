@@ -3540,8 +3540,10 @@ function OpenBrowserWindow(options)
   if (gPrivateBrowsingUI.privateBrowsingEnabled) {
 #endif
     extraFeatures = ",private";
-    // Force the new window to load about:privatebrowsing instead of the default home page
-    defaultArgs = "about:privatebrowsing";
+    if (!PrivateBrowsingUtils.permanentPrivateBrowsing) {
+      // Force the new window to load about:privatebrowsing instead of the default home page
+      defaultArgs = "about:privatebrowsing";
+    }
   } else {
     extraFeatures = ",non-private";
   }
