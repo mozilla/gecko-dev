@@ -22,5 +22,4 @@ pref("datareporting.healthreport.service.loadDelayMsec", 10000);
 pref("datareporting.healthreport.service.loadDelayFirstRunMsec", 60000);
 pref("datareporting.healthreport.service.providerCategories", "healthreport-js-provider");
 
-pref("datareporting.healthreport.about.glossaryUrl", "https://services.mozilla.com/healthreport/glossary.html");
-pref("datareporting.healthreport.about.reportUrl",   "https://services.mozilla.com/healthreport/placeholder.html");
+pref("datareporting.healthreport.about.reportUrl",   "https://fhr.cdn.mozilla.net/%LOCALE%/");
