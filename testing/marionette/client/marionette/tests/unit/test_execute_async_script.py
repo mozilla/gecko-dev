@@ -4,6 +4,8 @@
 
 from marionette_test import MarionetteTestCase
 from errors import JavascriptException, MarionetteException, ScriptTimeoutException
+import time
+
 
 class TestExecuteAsyncContent(MarionetteTestCase):
     def setUp(self):
