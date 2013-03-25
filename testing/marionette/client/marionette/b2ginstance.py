@@ -68,7 +68,7 @@ class B2GInstance(object):
                 return option
         raise Exception('%s not found!' % binary)
 
-    def __init__(self, homedir=None):
+    def __init__(self, homedir=None, emulator=False):
         if not homedir:
             homedir = self.find_b2g_dir()
         else:
@@ -79,7 +79,7 @@ class B2GInstance(object):
 
         self.homedir = homedir
         self.adb_path = self.check_adb(self.homedir)
-        self.fastboot_path = self.check_fastboot(self.homedir)
+        self.fastboot_path = None if emulator else self.check_fastboot(self.homedir)
         self.update_tools = os.path.join(self.homedir, 'tools', 'update-tools')
 
     def check_file(self, filePath):
