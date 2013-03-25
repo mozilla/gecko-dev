@@ -6145,6 +6145,11 @@ nsDocument::AdoptNode(nsIDOMNode *aAdoptedNode, nsIDOMNode **aResult)
     case nsIDOMNode::COMMENT_NODE:
     case nsIDOMNode::DOCUMENT_TYPE_NODE:
     {
+      // Don't allow adopting a node's anonymous subtree out from under it.
+      if (adoptedNode->AsContent()->IsRootOfAnonymousSubtree()) {
+        return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
+      }
+
       // We don't want to adopt an element into its own contentDocument or into
       // a descendant contentDocument, so we check if the frameElement of this
       // document or any of its parents is the adopted node or one of its
@@ -6165,7 +6170,9 @@ nsDocument::AdoptNode(nsIDOMNode *aAdoptedNode, nsIDOMNode **aResult)
       // Remove from parent.
       nsCOMPtr<nsINode> parent = adoptedNode->GetNodeParent();
       if (parent) {
-        parent->RemoveChildAt(parent->IndexOf(adoptedNode), true);
+        int32_t idx = parent->IndexOf(adoptedNode);
+        MOZ_ASSERT(idx >= 0);
+        parent->RemoveChildAt(idx, true);
       }
 
       break;
