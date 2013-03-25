@@ -58,6 +58,14 @@ private:
 
   MediaStreamSource(const MediaStreamSource &);
   MediaStreamSource &operator=(const MediaStreamSource &);
+
+#ifdef MOZ_ANDROID_HTC_WORKAROUND
+  // libstagefright on some Jellybean HTC devices (at least the Tegra 3 One X)
+  // call this function and expect this magic number to be returned when
+  // sniffing audio stream formats.
+  // It is unclear what this is for or what it does.
+  virtual uint32_t MagicalHTCIncantation() { return 0x3f0; }
+#endif
 };
 
 MediaStreamSource::MediaStreamSource(PluginHost *aPluginHost, Decoder *aDecoder) :
