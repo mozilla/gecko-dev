@@ -188,6 +188,7 @@ tier_platform_dirs += \
 		media/omx-plugin/lib/hc/libstagefright \
 		media/omx-plugin/hc \
 		media/omx-plugin/sony \
+		media/omx-plugin/jb-htc \
 		$(NULL)
 endif
 

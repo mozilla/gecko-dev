@@ -347,7 +347,7 @@ INNER_ROBOCOP_PACKAGE=echo 'Testing is disabled - No Robocop for you'
 endif
 
 ifdef MOZ_OMX_PLUGIN
-OMX_PLUGIN_NAMES = libomxplugin.so libomxplugingb.so libomxplugingb235.so libomxpluginhc.so libomxpluginsony.so libomxpluginfroyo.so
+OMX_PLUGIN_NAMES = libomxplugin.so libomxplugingb.so libomxplugingb235.so libomxpluginhc.so libomxpluginsony.so libomxpluginfroyo.so libomxpluginjb-htc.so
 else
 OMX_PLUGIN_NAMES =
 endif
@@ -388,6 +388,7 @@ INNER_UNMAKE_PACKAGE	= \
   mv lib/$(ABI_DIR)/libomxpluginhc.so . && \
   mv lib/$(ABI_DIR)/libomxpluginsony.so . && \
   mv lib/$(ABI_DIR)/libomxpluginfroyo.so . && \
+  mv lib/$(ABI_DIR)/libomxpluginjb-htc.so . && \
   mv lib/$(ABI_DIR)/*plugin-container* $(MOZ_CHILD_PROCESS_NAME) && \
   rm -rf lib/$(ABI_DIR) && \
   popd
