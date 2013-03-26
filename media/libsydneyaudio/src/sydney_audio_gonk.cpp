@@ -162,10 +162,23 @@ sa_stream_open(sa_stream_t *s) {
     AudioSystem::CHANNEL_OUT_MONO : AudioSystem::CHANNEL_OUT_STEREO;
 
   int frameCount;
+  /* frameCount returned here is already twice of minFrameCount and calculated
+   * inside AudioTrack::getMinFrameCount() */
   if (AudioTrack::getMinFrameCount(&frameCount, s->streamType,
                                    s->rate) != NO_ERROR) {
     return SA_ERROR_INVALID;
   }
+  /* Mixing thread in AudioFlinger will hold twice minFrameCount in maximum. So
+   * in order to avoid exhausted we needs to set more then twice.
+   * For music stream type, the frameCount is set to 1 second which meets the
+   * settings in decoding thread.
+   * The others just set to 4 times of minFrameCount for short latency. */
+  if (s->streamType != AudioSystem::MUSIC) {
+    frameCount *= 2;
+  } else {
+    frameCount = s->rate;
+  }
+
   int minsz = frameCount * s->channels * sizeof(int16_t);
 
   s->bufferSize = s->rate * s->channels * sizeof(int16_t);
