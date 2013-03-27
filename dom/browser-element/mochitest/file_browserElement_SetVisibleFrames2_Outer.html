@@ -11,6 +11,7 @@ iframe.addEventListener('mozbrowsershowmodalprompt', function(e) {
       iframe.setVisible(false);
       iframe.setVisible(true);
       setTimeout(function() {
+        iframe.setVisible(false);
         alert('parent:finish');
       }, 0);
     }, 0);
