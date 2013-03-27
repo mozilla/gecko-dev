@@ -23,6 +23,7 @@ public:
   virtual void OnSocketReady(PRFileDesc *fd, int16_t outFlags);
   virtual void OnSocketDetached(PRFileDesc *fd);
   virtual void IsLocal(bool *aIsLocal);
+  virtual void KeepWhenOffline(bool *aKeepWhenOffline);
 
   nsServerSocket();
 
@@ -43,6 +44,7 @@ private:
   nsCOMPtr<nsIServerSocketListener> mListener;
   nsCOMPtr<nsIEventTarget>          mListenerTarget;
   bool                              mAttached;
+  bool                              mKeepWhenOffline;
 };
 
 //-----------------------------------------------------------------------------

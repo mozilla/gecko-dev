@@ -67,6 +67,16 @@ public:
     // connections.
     //
     virtual void IsLocal(bool *aIsLocal) = 0;
+
+    //
+    // called to determine if this socket should not be terminated when Gecko
+    // is turned offline. This is mostly useful for the debugging server
+    // socket.
+    //
+    virtual void KeepWhenOffline(bool *aKeepWhenOffline)
+    {
+        *aKeepWhenOffline = false;
+    }
 };
 
 #endif // !nsASocketHandler_h__
