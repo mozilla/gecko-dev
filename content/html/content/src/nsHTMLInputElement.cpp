@@ -230,49 +230,38 @@ nsHTMLInputElement::nsFilePickerShownCallback::Done(int16_t aResult)
   nsCOMArray<nsIDOMFile> newFiles;
   if (mMulti) {
     nsCOMPtr<nsISimpleEnumerator> iter;
-    nsresult rv = mFilePicker->GetFiles(getter_AddRefs(iter));
+    nsresult rv = mFilePicker->GetDomfiles(getter_AddRefs(iter));
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<nsISupports> tmp;
     bool prefSaved = false;
     bool loop = true;
+
     while (NS_SUCCEEDED(iter->HasMoreElements(&loop)) && loop) {
       iter->GetNext(getter_AddRefs(tmp));
-      nsCOMPtr<nsIFile> localFile = do_QueryInterface(tmp);
-      if (!localFile) {
-        continue;
-      }
-      nsString path;
-      localFile->GetPath(path);
-      if (path.IsEmpty()) {
-        continue;
-      }
-      nsCOMPtr<nsIDOMFile> domFile =
-        do_QueryObject(new nsDOMFileFile(localFile));
+      nsCOMPtr<nsIDOMFile> domFile = do_QueryInterface(tmp);
+      MOZ_ASSERT(domFile);
+
       newFiles.AppendObject(domFile);
+
       if (!prefSaved) {
         // Store the last used directory using the content pref service
         nsHTMLInputElement::gUploadLastDir->StoreLastUsedDirectory(
-          mInput->OwnerDoc()->GetDocumentURI(), localFile);
+          mInput->OwnerDoc()->GetDocumentURI(), domFile);
         prefSaved = true;
       }
     }
   }
   else {
-    nsCOMPtr<nsIFile> localFile;
-    nsresult rv = mFilePicker->GetFile(getter_AddRefs(localFile));
+    nsCOMPtr<nsIDOMFile> domFile;
+    nsresult rv = mFilePicker->GetDomfile(getter_AddRefs(domFile));
     NS_ENSURE_SUCCESS(rv, rv);
-    if (localFile) {
-      nsString path;
-      rv = localFile->GetPath(path);
-      if (!path.IsEmpty()) {
-        nsCOMPtr<nsIDOMFile> domFile=
-          do_QueryObject(new nsDOMFileFile(localFile));
-        newFiles.AppendObject(domFile);
-        // Store the last used directory using the content pref service
-        nsHTMLInputElement::gUploadLastDir->StoreLastUsedDirectory(
-          mInput->OwnerDoc()->GetDocumentURI(), localFile);
-      }
+    if (domFile) {
+      newFiles.AppendObject(domFile);
+
+      // Store the last used directory using the content pref service
+      nsHTMLInputElement::gUploadLastDir->StoreLastUsedDirectory(
+          mInput->OwnerDoc()->GetDocumentURI(), domFile);
     }
   }
 
@@ -458,12 +447,24 @@ UploadLastDir::FetchLastUsedDirectory(nsIURI* aURI, nsIFile** aFile)
 }
 
 nsresult
-UploadLastDir::StoreLastUsedDirectory(nsIURI* aURI, nsIFile* aFile)
+UploadLastDir::StoreLastUsedDirectory(nsIURI* aURI, nsIDOMFile* aDomFile)
 {
   NS_PRECONDITION(aURI, "aURI is null");
-  NS_PRECONDITION(aFile, "aFile is null");
+  NS_PRECONDITION(aDomFile, "aDomFile is null");
+
+  nsString path;
+  nsresult rv = aDomFile->GetMozFullPathInternal(path);
+  if (NS_FAILED(rv) || path.IsEmpty()) {
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIFile> localFile;
+  rv = NS_NewNativeLocalFile(NS_ConvertUTF16toUTF8(path), true,
+                             getter_AddRefs(localFile));
+  NS_ENSURE_SUCCESS(rv, rv);
+
   nsCOMPtr<nsIFile> parentFile;
-  aFile->GetParent(getter_AddRefs(parentFile));
+  localFile->GetParent(getter_AddRefs(parentFile));
   if (!parentFile) {
     return NS_OK;
   }
@@ -1458,6 +1459,9 @@ nsHTMLInputElement::GetDisplayFileName(nsAString& aValue) const
   for (int32_t i = 0; i < mFiles.Count(); ++i) {
     nsString str;
     mFiles[i]->GetMozFullPathInternal(str);
+    if (str.IsEmpty()) {
+      mFiles[i]->GetName(str);
+    }
     if (i == 0) {
       aValue.Append(str);
     }
