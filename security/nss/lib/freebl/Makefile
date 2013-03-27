@@ -187,9 +187,7 @@ ifeq ($(CPU_ARCH),x86_64)
 #   DEFINES += -DMPI_AMD64_ADD
     # comment the next two lines to turn off intel HW accelleration
     DEFINES += -DUSE_HW_AES
-    ASFILES += intel-aes.s intel-gcm.s
-    EXTRA_SRCS += intel-gcm-wrap.c
-    INTEL_GCM = 1
+    ASFILES += intel-aes.s
     MPI_SRCS += mpi_amd64.c mp_comba.c
 endif
 ifeq ($(CPU_ARCH),x86)
@@ -444,9 +442,7 @@ else
 	DEFINES += -DNSS_USE_COMBA -DMP_CHAR_STORE_SLOW -DMP_IS_LITTLE_ENDIAN
 	# comment the next two lines to turn off intel HW accelleration
 	DEFINES += -DUSE_HW_AES
-	ASFILES += intel-aes.s intel-gcm.s
-        EXTRA_SRCS += intel-gcm-wrap.c
-        INTEL_GCM = 1
+	ASFILES += intel-aes.s
 	MPI_SRCS += mpi_amd64.c
     else
 	# Solaris x86
@@ -645,21 +641,5 @@ ifdef NEED_ABSOLUTE_PATH
 else
 	$(CC) -o $@ -c $(CFLAGS) -fno-strict-aliasing $<
 endif
-endif
-endif
-
-ifdef INTEL_GCM
-#
-# GCM binary needs -mssse3
-#
-$(OBJDIR)/$(PROG_PREFIX)intel-gcm-wrap$(OBJ_SUFFIX): CFLAGS += -mssse3
-
-# The integrated assembler in Clang 3.2 does not support % in the
-# expression of a .set directive. intel-gcm.s uses .set to give
-# symbolic names to registers, for example,
-#     .set  Htbl, %rdi
-# So we can't use Clang's integrated assembler with intel-gcm.s.
-ifneq (,$(findstring clang,$(AS)))
-$(OBJDIR)/$(PROG_PREFIX)intel-gcm$(OBJ_SUFFIX): ASFLAGS += -no-integrated-as
 endif
 endif
