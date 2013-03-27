@@ -127,12 +127,8 @@ Prompt.prototype = {
     if (aCheckMsg)
       aInputs.push({ type: "checkbox", label: PromptUtils.cleanUpLabel(aCheckMsg), checked: aCheckState.value });
 
-    let callerWin;
-    if (this._domWin) {
+    if (this._domWin)
       PromptUtils.fireDialogEvent(this._domWin, "DOMWillOpenModalDialog");
-      let winUtils = this._domWin.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
-      callerWin = winUtils.enterModalStateWithWindow();
-    }
 
     let msg = { type: "Prompt:Show" };
     if (aTitle) msg.title = aTitle;
@@ -142,16 +138,7 @@ Prompt.prototype = {
       { label: PromptUtils.getLocaleString("Cancel") }
     ];
     msg.inputs = aInputs;
-
-    let retval = PromptUtils.sendMessageToJava(msg);
-
-    if (this._domWin) {
-      let winUtils = this._domWin.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
-      winUtils.leaveModalStateWithWindow(callerWin);
-      PromptUtils.fireDialogEvent(this._domWin, "DOMModalDialogClosed");
-    }
-
-    return retval;
+    return PromptUtils.sendMessageToJava(msg);
   },
 
   /*
