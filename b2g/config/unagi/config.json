@@ -32,7 +32,7 @@
         "repo": "http://hg.mozilla.org/integration/gaia-1_0_1",
         "l10n": {
             "vcs": "hgtool",
-            "root": "http://hg.mozilla.org/gaia-l10n"
+            "root": "http://hg.mozilla.org/releases/gaia-l10n/v1_0_1"
         }
     }
 }
