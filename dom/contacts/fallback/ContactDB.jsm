@@ -554,9 +554,9 @@ ContactDB.prototype = {
                     chunk.length = 0;
                     this.nextTick(sendChunk.bind(this, start+CHUNK_SIZE));
                   }
-                };
+                }.bind(this);
               }
-            });
+            }.bind(this));
           }.bind(this);
           sendChunk(0);
         }
