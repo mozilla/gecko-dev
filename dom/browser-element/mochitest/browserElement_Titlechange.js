@@ -66,6 +66,4 @@ function runTest() {
   iframe3.src = 'data:text/html,<html><head><title>SHOULD NOT GET EVENT</title></head><body></body></html>';
 }
 
-addEventListener('load', function() { SimpleTest.executeSoon(runTest); });
-
-
+addEventListener('testready', runTest);
