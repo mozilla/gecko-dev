@@ -3558,6 +3558,7 @@ NS_IMETHODIMP HTMLMediaElement::GetMozFragmentEnd(double* aTime)
 
 void HTMLMediaElement::NotifyAudioAvailableListener()
 {
+  OwnerDoc()->WarnOnceAbout(nsIDocument::eMozAudioData);
   if (mDecoder) {
     mDecoder->NotifyAudioAvailableListener();
   }

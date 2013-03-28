@@ -156,6 +156,8 @@ HTMLAudioElement::MozSetup(uint32_t aChannels, uint32_t aRate, ErrorResult& aRv)
     return;
   }
 
+  OwnerDoc()->WarnOnceAbout(nsIDocument::eMozAudioData);
+
   // If there is already a src provided, don't setup another stream
   if (mDecoder) {
     aRv.Throw(NS_ERROR_FAILURE);
