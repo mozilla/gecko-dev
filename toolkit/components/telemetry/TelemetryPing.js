@@ -751,9 +751,8 @@ TelemetryPing.prototype = {
       Telemetry.canRecord = false;
       return;
     }
-    Services.obs.addObserver(this, "profile-before-change", false);
+    Services.obs.addObserver(this, "profile-before-change2", false);
     Services.obs.addObserver(this, "sessionstore-windows-restored", false);
-    Services.obs.addObserver(this, "quit-application-granted", false);
     Services.obs.addObserver(this, "xul-window-visible", false);
     this._hasWindowRestoredObserver = true;
     this._hasXulWindowVisibleObserver = true;
@@ -974,8 +973,7 @@ TelemetryPing.prototype = {
       Services.obs.removeObserver(this, "xul-window-visible");
       this._hasXulWindowVisibleObserver = false;
     }
-    Services.obs.removeObserver(this, "profile-before-change");
-    Services.obs.removeObserver(this, "quit-application-granted");
+    Services.obs.removeObserver(this, "profile-before-change2");
   },
 
   getPayload: function getPayload() {
@@ -1031,9 +1029,6 @@ TelemetryPing.prototype = {
     case "profile-after-change":
       this.setup();
       break;
-    case "profile-before-change":
-      this.uninstall();
-      break;
     case "cycle-collector-begin":
       let now = new Date();
       if (!gLastMemoryPoll
@@ -1073,7 +1068,8 @@ TelemetryPing.prototype = {
     case "idle":
       this.sendIdlePing(false, this._server);
       break;
-    case "quit-application-granted":
+    case "profile-before-change2":
+      this.uninstall();
       if (Telemetry.canSend) {
         this.savePendingPings();
       }
