@@ -1141,7 +1141,7 @@ TabParent::AllocPRenderFrame(ScrollingBehavior* aScrolling,
 
   nsRefPtr<nsFrameLoader> frameLoader = GetFrameLoader();
   if (!frameLoader) {
-    NS_ERROR("Can't allocate graphics resources, aborting subprocess");
+    NS_WARNING("Can't allocate graphics resources, aborting subprocess");
     return nullptr;
   }
 
