@@ -74,12 +74,6 @@ this.SystemMessagePermissionsTable = {
   "notification": {
     "desktop-notification": []
   },
-  "push": {
-  	"push": []
-  },
-  "push-register": {
-  	"push": []
-  },
   "sms-received": {
     "sms": []
   },
