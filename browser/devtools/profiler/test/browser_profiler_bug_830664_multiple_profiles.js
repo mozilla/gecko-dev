@@ -58,6 +58,9 @@ function stopProfiling() {
     "Profile 1 *", "Profile 1 has a star next to it.");
   is(gPanel.document.querySelector("li#profile-2 > h1").textContent,
     "Profile 2", "Profile 2 doesn't have a star next to it.");
+  is(doc.querySelector("#profilerMessage").textContent,
+    "Profiler is already running. If you want to run this profile stop Profile 1 first.",
+    "Message is correct.");
 
   gPanel.profiles.get(gUid).once("enabled", confirmAndFinish);
   sendFromActiveProfile("stop");

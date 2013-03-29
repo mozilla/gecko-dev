@@ -73,8 +73,8 @@ function ProfileUI(uid, panel) {
       case "loaded":
         if (this.panel._runningUid !== null) {
           this.iframe.contentWindow.postMessage(JSON.stringify({
-            uid: this._runningUid,
-            isCurrent: this._runningUid === uid,
+            uid: this.panel._runningUid,
+            isCurrent: this.panel._runningUid === uid,
             task: "onStarted"
           }), "*");
         }
