@@ -1,4 +1,4 @@
-y/* This Source Code Form is subject to the terms of the Mozilla Public
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -411,10 +411,6 @@ pref("services.push.retryBaseInterval", 5000);
 pref("services.push.maxRetryInterval", 1200000);
 // How long before a DOMRequest errors as timeout
 pref("services.push.requestTimeout", 10000);
-// enable udp wakeup support
-pref("services.push.udp.wakeupEnabled", true);
-// port on which UDP server socket is bound
-pref("services.push.udp.port", 2442);
 
 // NetworkStats
 #ifdef MOZ_B2G_RIL
