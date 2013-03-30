@@ -5,7 +5,7 @@
 "use strict";
 
 function debug(s) {
-  // dump("-*- Push.js: " + s + "\n");
+//    dump("-*- Push.js: " + s + "\n");
 }
 
 const Cc = Components.classes;
@@ -47,13 +47,17 @@ Push.prototype = {
                         .getService(Ci.nsIAppsService);
     this._app = appsService.getAppByLocalId(principal.appId);
     this._manifestURL = appsService.getManifestURLByLocalId(principal.appId);
-    if (!this._manifestURL)
+    if (!this._manifestURL) {
+      debug("No manifestURL");
       return null;
+    }
 
     let perm = Services.perms.testExactPermissionFromPrincipal(principal,
                                                                "push");
-    if (perm != Ci.nsIPermissionManager.ALLOW_ACTION)
+    if (perm != Ci.nsIPermissionManager.ALLOW_ACTION) {
+      debug("No Permission");
       return null;
+    }
 
     this.initHelper(aWindow, []);
 

@@ -5,7 +5,7 @@
 "use strict";
 
 function debug(s) {
-  // dump("-*- PushService.js: " + s + "\n");
+//    dump("-*- PushService.js: " + s + "\n");
 }
 
 const Cc = Components.classes;
@@ -16,10 +16,8 @@ const Cr = Components.results;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/IndexedDBHelper.jsm");
-Cu.import("resource://gre/modules/Timer.jsm");
 Cu.import("resource://gre/modules/services-common/preferences.js");
-Cu.import("resource://gre/modules/services-common/utils.js");
-Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js");
+Cu.import("resource://gre/modules/commonjs/promise/core.js");
 
 const kPUSHDB_DB_NAME = "push";
 const kPUSHDB_DB_VERSION = 1; // Change this if the IndexedDB format changes
@@ -758,7 +756,14 @@ PushService.prototype = {
 
     this._ws.sendMsg(JSON.stringify(data));
     // Process the next one as soon as possible.
-    setTimeout(this._processNextRequestInQueue.bind(this), 0);
+    this.nextTick(this._processNextRequestInQueue.bind(this));
+  },
+
+  nextTick: function(aCallback, thisObj) {
+    if (thisObj) {
+      aCallback = aCallback.bind(thisObj);
+    }
+    Services.tm.currentThread.dispatch(aCallback, Ci.nsIThread.DISPATCH_NORMAL);
   },
 
   _receivedUpdate: function(aChannelID, aLatestVersion) {
