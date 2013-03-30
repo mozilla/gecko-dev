@@ -2441,6 +2441,7 @@ NS_IMETHODIMP
 nsDocShell::SetSecurityUI(nsISecureBrowserUI *aSecurityUI)
 {
     mSecurityUI = aSecurityUI;
+    mSecurityUI->SetDocShell(this);
     return NS_OK;
 }
 
