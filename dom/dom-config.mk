@@ -9,6 +9,7 @@ DOM_SRCDIRS = \
   dom/file \
   dom/power \
   dom/push \
+  dom/push/src \
   dom/media \
   dom/network/src \
   dom/settings \

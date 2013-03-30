@@ -27,6 +27,7 @@ MAKEFILES_dom="
   dom/interfaces/load-save/Makefile
   dom/interfaces/offline/Makefile
   dom/interfaces/notification/Makefile
+  dom/interfaces/push/Makefile
   dom/interfaces/range/Makefile
   dom/interfaces/settings/Makefile
   dom/interfaces/sidebar/Makefile
@@ -71,6 +72,8 @@ MAKEFILES_dom="
   dom/plugins/base/Makefile
   dom/plugins/ipc/Makefile
   dom/power/Makefile
+  dom/push/Makefile
+  dom/push/src/Makefile
   dom/settings/Makefile
   dom/src/Makefile
   dom/src/events/Makefile

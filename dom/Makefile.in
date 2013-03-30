@@ -39,6 +39,7 @@ PARALLEL_DIRS = \
   interfaces/svg \
   interfaces/smil \
   interfaces/apps \
+  interfaces/push \
   $(NULL)
 
 PARALLEL_DIRS += \
@@ -68,6 +69,7 @@ PARALLEL_DIRS += \
   permission \
   plugins/base \
   plugins/ipc \
+  push \
   indexedDB \
   system \
   ipc \
