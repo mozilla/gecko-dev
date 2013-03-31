@@ -295,11 +295,15 @@ let SocialUI = {
   },
 
   disableWithConfirmation: function SocialUI_disableWithConfirmation() {
+    let provider = Social.provider || Social.defaultProvider;
+    if (!provider)
+      return;
+
     let brandShortName = document.getElementById("bundle_brand").getString("brandShortName");
     let dialogTitle = gNavigatorBundle.getFormattedString("social.remove.confirmationOK",
-                                                          [Social.provider.name]);
+                                                          [provider.name]);
     let text = gNavigatorBundle.getFormattedString("social.remove.confirmationLabel",
-                                                   [Social.provider.name, brandShortName]);
+                                                   [provider.name, brandShortName]);
     let okButtonText = dialogTitle;
 
     let ps = Services.prompt;
@@ -310,7 +314,7 @@ let SocialUI = {
     let confirmationIndex = ps.confirmEx(null, dialogTitle, text, flags,
                                          okButtonText, null, null, null, {});
     if (confirmationIndex == 0) {
-      Social.deactivateFromOrigin(Social.provider.origin);
+      Social.deactivateFromOrigin(provider.origin);
     }
   },
 
