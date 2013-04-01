@@ -68,9 +68,8 @@ public:
   static already_AddRefed<nsIFile> GetFileForId(nsIFile* aDirectory,
                                                 int64_t aId);
 
-  static nsresult InitDirectory(mozIStorageServiceQuotaManagement* aService,
-                                nsIFile* aDirectory, nsIFile* aDatabaseFile,
-                                FactoryPrivilege aPrivilege);
+  static nsresult InitDirectory(nsIFile* aDirectory, nsIFile* aDatabaseFile,
+                                mozIStorageServiceQuotaManagement* aService);
 
 private:
   nsCString mOrigin;

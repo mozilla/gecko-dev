@@ -667,18 +667,29 @@ static int quotaFileSize(sqlite3_file *pConn, sqlite3_int64 *pSize){
   sqlite3_file *pSubOpen = quotaSubOpen(pConn);
   quotaFile *pFile = p->pFile;
   quotaGroup *pGroup;
-  sqlite3_int64 sz;
+  sqlite3_int64 szFile, szGroup;
   int rc;
 
-  rc = pSubOpen->pMethods->xFileSize(pSubOpen, &sz);
+  rc = pSubOpen->pMethods->xFileSize(pSubOpen, &szFile);
   if( rc==SQLITE_OK ){
     quotaEnter();
     pGroup = pFile->pGroup;
-    pGroup->iSize -= pFile->iSize;
-    pFile->iSize = sz;
-    pGroup->iSize += sz;
+    szGroup =  pGroup->iSize - pFile->iSize + szFile;
+    if( szGroup>pGroup->iLimit && pGroup->iLimit>0 ){
+      if( pGroup->xCallback ){
+        pGroup->xCallback(pFile->zFilename, &pGroup->iLimit, szGroup,
+                          pGroup->pArg);
+      }
+      if( szGroup>pGroup->iLimit && pGroup->iLimit>0 ){
+        rc = SQLITE_FULL;
+      }
+    }
+    if( rc==SQLITE_OK ){
+      pGroup->iSize = szGroup;
+      pFile->iSize = szFile;
+      *pSize = szFile;
+    }
     quotaLeave();
-    *pSize = sz;
   }
   return rc;
 }

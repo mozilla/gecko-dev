@@ -131,19 +131,13 @@ public:
   GetIndexedDBQuotaMB();
 
   nsresult EnsureOriginIsInitialized(const nsACString& aOrigin,
-                                     FactoryPrivilege aPrivilege,
+                                     bool aTrackQuota,
                                      nsIFile** aDirectory);
 
   // Determine if the quota is lifted for the Window the current thread is
   // using.
-  static inline bool
-  QuotaIsLifted()
-  {
-    IndexedDatabaseManager* mgr = Get();
-    NS_ASSERTION(mgr, "Must have a manager here!");
-
-    return mgr->QuotaIsLiftedInternal();
-  }
+  bool
+  QuotaIsLifted();
 
   static inline void
   CancelPromptsForWindow(nsPIDOMWindow* aWindow)
@@ -226,7 +220,6 @@ private:
                                   void* aClosure);
 
   void SetCurrentWindowInternal(nsPIDOMWindow* aWindow);
-  bool QuotaIsLiftedInternal();
   void CancelPromptsForWindowInternal(nsPIDOMWindow* aWindow);
 
   // Called when a database is created.

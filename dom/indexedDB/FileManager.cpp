@@ -262,13 +262,11 @@ FileManager::GetFileForId(nsIFile* aDirectory, int64_t aId)
 
 // static
 nsresult
-FileManager::InitDirectory(mozIStorageServiceQuotaManagement* aService,
-                           nsIFile* aDirectory,
+FileManager::InitDirectory(nsIFile* aDirectory,
                            nsIFile* aDatabaseFile,
-                           FactoryPrivilege aPrivilege)
+                           mozIStorageServiceQuotaManagement* aService)
 {
   NS_ASSERTION(!NS_IsMainThread(), "Wrong thread!");
-  NS_ASSERTION(aService, "Null service!");
   NS_ASSERTION(aDirectory, "Null directory!");
   NS_ASSERTION(aDatabaseFile, "Null database file!");
 
@@ -377,7 +375,9 @@ FileManager::InitDirectory(mozIStorageServiceQuotaManagement* aService,
     }
   }
 
-  if (aPrivilege == Chrome) {
+  // If no quota service was passed to us then there is no need to update quota
+  // information for files in our directory.
+  if (!aService) {
     return NS_OK;
   }
 

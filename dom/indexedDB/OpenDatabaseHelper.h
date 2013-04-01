@@ -22,8 +22,12 @@ class ContentParent;
 
 BEGIN_INDEXEDDB_NAMESPACE
 
+class CheckPermissionsHelper;
+
 class OpenDatabaseHelper : public HelperBase
 {
+  friend class CheckPermissionsHelper;
+
 public:
   OpenDatabaseHelper(IDBOpenDBRequest* aRequest,
                      const nsAString& aName,
@@ -37,7 +41,8 @@ public:
       mForDeletion(aForDeletion), mPrivilege(aPrivilege), mDatabaseId(nullptr),
       mContentParent(aContentParent), mCurrentVersion(0), mLastObjectStoreId(0),
       mLastIndexId(0), mState(eCreated), mResultCode(NS_OK),
-      mLoadDBMetadata(false)
+      mLoadDBMetadata(false),
+      mTrackingQuota(aPrivilege == Chrome ? false : true)
   {
     NS_ASSERTION(!aForDeletion || !aRequestedVersion,
                  "Can't be for deletion and request a version!");
@@ -94,6 +99,12 @@ protected:
   void DispatchErrorEvent();
   virtual void ReleaseMainThreadObjects() MOZ_OVERRIDE;
 
+  // Called by CheckPermissionsHelper on the main thread before dispatch.
+  void SetUnlimitedQuotaAllowed()
+  {
+    mTrackingQuota = false;
+  }
+
   // Methods only called on the DB thread
   nsresult DoDatabaseWork();
 
@@ -132,6 +143,7 @@ protected:
 
   nsRefPtr<DatabaseInfo> mDBInfo;
   bool mLoadDBMetadata;
+  bool mTrackingQuota;
 };
 
 END_INDEXEDDB_NAMESPACE
