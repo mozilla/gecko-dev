@@ -115,7 +115,10 @@ public:
                 nsISupports* aUserData,
                 int64_t* _retval)
   {
-    if (IndexedDatabaseManager::QuotaIsLifted()) {
+    IndexedDatabaseManager* mgr = IndexedDatabaseManager::Get();
+    NS_ASSERTION(mgr, "Must have a manager here!");
+
+    if (mgr->QuotaIsLifted()) {
       *_retval = 0;
       return NS_OK;
     }
@@ -960,7 +963,7 @@ IndexedDatabaseManager::GetIndexedDBQuotaMB()
 
 nsresult
 IndexedDatabaseManager::EnsureOriginIsInitialized(const nsACString& aOrigin,
-                                                  FactoryPrivilege aPrivilege,
+                                                  bool aTrackQuota,
                                                   nsIFile** aDirectory)
 {
 #ifdef DEBUG
@@ -1013,7 +1016,7 @@ IndexedDatabaseManager::EnsureOriginIsInitialized(const nsACString& aOrigin,
     do_GetService(MOZ_STORAGE_SERVICE_CONTRACTID);
   NS_ENSURE_TRUE(ss, NS_ERROR_FAILURE);
 
-  if (aPrivilege != Chrome) {
+  if (aTrackQuota) {
     rv = ss->SetQuotaForFilenamePattern(NS_ConvertUTF16toUTF8(pattern),
                                         GetIndexedDBQuotaMB() * 1024 * 1024,
                                         mQuotaCallbackSingleton, nullptr);
@@ -1075,11 +1078,11 @@ IndexedDatabaseManager::EnsureOriginIsInitialized(const nsACString& aOrigin,
     rv = fileManagerDirectory->Append(dbBaseFilename);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = FileManager::InitDirectory(ss, fileManagerDirectory, file,
-                                    aPrivilege);
+    rv = FileManager::InitDirectory(fileManagerDirectory, file,
+                                    aTrackQuota ? ss : nullptr);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    if (aPrivilege != Chrome) {
+    if (aTrackQuota) {
       rv = ss->UpdateQuotaInformationForFile(file);
       NS_ENSURE_SUCCESS(rv, rv);
     }
@@ -1124,7 +1127,7 @@ IndexedDatabaseManager::EnsureOriginIsInitialized(const nsACString& aOrigin,
 }
 
 bool
-IndexedDatabaseManager::QuotaIsLiftedInternal()
+IndexedDatabaseManager::QuotaIsLifted()
 {
   nsPIDOMWindow* window = nullptr;
   nsRefPtr<CheckQuotaHelper> helper = nullptr;
