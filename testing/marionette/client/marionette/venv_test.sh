@@ -3,7 +3,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-VIRTUAL_ENV_VERSION="49f40128a9ca3824ebf253eca408596e135cf893"
+VIRTUAL_ENV_VERSION="1.8.2"
 
 PYTHON=$1
 
@@ -37,7 +37,7 @@ then
   echo "Using virtual environment in $VENV_DIR"
 else
   echo "Creating a virtual environment (version ${VIRTUAL_ENV_VERSION}) in ${VENV_DIR}"
-  curl https://raw.github.com/pypa/virtualenv/${VIRTUAL_ENV_VERSION}/virtualenv.py | ${PYTHON} - --no-site-packages $VENV_DIR
+  curl https://raw.github.com/pypa/virtualenv/${VIRTUAL_ENV_VERSION}/virtualenv.py | ${PYTHON} - $VENV_DIR
 fi
 . $VENV_DIR/bin/activate
 

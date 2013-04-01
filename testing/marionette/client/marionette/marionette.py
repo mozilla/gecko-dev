@@ -62,9 +62,6 @@ class HTMLElement(object):
     def release(self, touch_id, x=None, y=None):
         return self.marionette._send_message('release', 'ok', element=self.id, touchId=touch_id, x=x, y=y)
 
-    def cancel_touch(self, touch_id):
-        return self.marionette._send_message('cancelTouch', 'ok', element=self.id, touchId=touch_id)
-
     @property
     def text(self):
         return self.marionette._send_message('getElementText', 'value', element=self.id)
@@ -134,27 +131,8 @@ class Actions(object):
         self.action_chain.append(['wait', time])
         return self
 
-    def cancel(self):
-        self.action_chain.append(['cancel'])
-        return self
-
     def perform(self):
         return self.marionette._send_message('actionChain', 'ok', value=self.action_chain)
-
-class MultiActions(object):
-    def __init__(self, marionette):
-        self.multi_actions = []
-        self.max_length = 0
-        self.marionette = marionette
-
-    def add(self, action):
-        self.multi_actions.append(action.action_chain)
-        if len(action.action_chain) > self.max_length:
-          self.max_length = len(action.action_chain)
-        return self
-
-    def perform(self):
-        return self.marionette._send_message('multiAction', 'ok', value=self.multi_actions, max_length=self.max_length)
 
 class Marionette(object):
 
@@ -166,7 +144,7 @@ class Marionette(object):
 
     def __init__(self, host='localhost', port=2828, bin=None, profile=None,
                  emulator=None, sdcard=None, emulatorBinary=None,
-                 emulatorImg=None, emulator_res=None, gecko_path=None,
+                 emulatorImg=None, emulator_res='480x800', gecko_path=None,
                  connectToRunningEmulator=False, homedir=None, baseurl=None,
                  noWindow=False, logcat_dir=None, busybox=None):
         self.host = host
@@ -185,10 +163,6 @@ class Marionette(object):
         self._test_name = None
 
         if bin:
-            port = int(self.port)
-            if not Marionette.is_port_available(port, host=self.host):
-                ex_msg = "%s:%d is unavailable." % (self.host, port)
-                raise MarionetteException(message=ex_msg)
             self.instance = GeckoInstance(host=self.host, port=self.port,
                                           bin=self.bin, profile=self.profile)
             self.instance.start()
@@ -217,9 +191,9 @@ class Marionette(object):
         self.client = MarionetteClient(self.host, self.port)
 
         if emulator:
-            self.emulator.setup(self,
-                                gecko_path=gecko_path,
-                                busybox=busybox)
+            self.emulator.setup(self, gecko_path=gecko_path)
+            if busybox:
+                self.emulator.install_busybox(busybox)
 
     def __del__(self):
         if self.emulator:
@@ -228,18 +202,6 @@ class Marionette(object):
             self.instance.close()
         for qemu in self.extra_emulators:
             qemu.emulator.close()
-
-    @staticmethod
-    def is_port_available(port, host=''):
-        port = int(port)
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            s.bind((host, port))
-            return True
-        except socket.error:
-            return False
-        finally:
-            s.close()
 
     @classmethod
     def getMarionetteOrExit(cls, *args, **kwargs):
@@ -521,7 +483,7 @@ class Marionette(object):
 
         return unwrapped
 
-    def execute_js_script(self, script, script_args=None, async=True, new_sandbox=True, special_powers=False, script_timeout=None):
+    def execute_js_script(self, script, script_args=None, async=True, new_sandbox=True, special_powers=False):
         if script_args is None:
             script_args = []
         args = self.wrapArguments(script_args)
@@ -531,11 +493,10 @@ class Marionette(object):
                                       args=args,
                                       async=async,
                                       newSandbox=new_sandbox,
-                                      specialPowers=special_powers, 
-                                      scriptTimeout=script_timeout)
+                                      specialPowers=special_powers)
         return self.unwrapValue(response)
 
-    def execute_script(self, script, script_args=None, new_sandbox=True, special_powers=False, script_timeout=None):
+    def execute_script(self, script, script_args=None, new_sandbox=True, special_powers=False):
         if script_args is None:
             script_args = []
         args = self.wrapArguments(script_args)
@@ -544,11 +505,10 @@ class Marionette(object):
                                       value=script,
                                       args=args,
                                       newSandbox=new_sandbox,
-                                      specialPowers=special_powers,
-                                      scriptTimeout=script_timeout)
+                                      specialPowers=special_powers)
         return self.unwrapValue(response)
 
-    def execute_async_script(self, script, script_args=None, new_sandbox=True, special_powers=False, script_timeout=None):
+    def execute_async_script(self, script, script_args=None, new_sandbox=True, special_powers=False):
         if script_args is None:
             script_args = []
         args = self.wrapArguments(script_args)
@@ -557,8 +517,7 @@ class Marionette(object):
                                       value=script,
                                       args=args,
                                       newSandbox=new_sandbox,
-                                      specialPowers=special_powers,
-                                      scriptTimeout=script_timeout)
+                                      specialPowers=special_powers)
         return self.unwrapValue(response)
 
     def find_element(self, method, target, id=None):

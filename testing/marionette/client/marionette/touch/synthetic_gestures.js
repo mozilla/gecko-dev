@@ -286,9 +286,9 @@ var SyntheticGestures = (function() {
   // If not specified then the center of the target is used. t is the
   // optional amount of time between touchstart and touchend event.
   function tap(target, then, x, y, t, sendAll) {
-    if (!SyntheticGestures.touchSupported || !target.ownerDocument.createTouch) {
+    if (!SyntheticGestures.touchSupported) {
       console.warn('tap: touch events not supported; using mouse instead');
-      return mousetap(target, then, x, y, t, true);
+      return mousetap(target, then, x, y, t);
     }
 
     if (x == null)
@@ -312,7 +312,7 @@ var SyntheticGestures = (function() {
   // except that interval is the time between taps rather than the time between
   // touchstart and touchend
   function dbltap(target, then, x, y, interval) {
-    if (!SyntheticGestures.touchSupported || !target.ownerDocument.createTouch) {
+    if (!SyntheticGestures.touchSupported) {
       console.warn('dbltap: touch events not supported; using mouse instead');
       return mousedbltap(target, then, x, y, interval);
     }
@@ -347,7 +347,7 @@ var SyntheticGestures = (function() {
   // Begin a touch at x1,y1 and hold it for holdtime ms,
   // then move smoothly to x2,y2 over movetime ms, and then invoke then().
   function hold(target, holdtime, x1, y1, x2, y2, movetime, then) {
-    if (!SyntheticGestures.touchSupported || !target.ownerDocument.createTouch) {
+    if (!SyntheticGestures.touchSupported) {
       console.warn('hold: touch events not supported; using mouse instead');
       return mousehold(target, holdtime, x1, y1, x2, y2, movetime, then);
     }
