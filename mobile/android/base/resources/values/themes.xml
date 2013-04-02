@@ -42,9 +42,7 @@
 
     <style name="Gecko.Light.AwesomeBar"/>
     
-    <style name="Gecko.TitleBar.Preferences">
-        <item name="android:windowBackground">@color/background_normal</item>
-    </style>
+    <style name="Gecko.TitleBar.Preferences"/>
     
     <style name="Gecko.Translucent.TabsTray"/>
 
