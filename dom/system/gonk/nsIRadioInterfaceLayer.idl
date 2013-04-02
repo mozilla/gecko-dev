@@ -292,14 +292,12 @@ interface nsIVoicemailInfo : nsISupports
   readonly attribute DOMString displayName;
 };
 
-[scriptable, uuid(5e43d291-8ec0-42b7-8aad-756f1df86bae)]
+[scriptable, uuid(e6dc89f2-0d4e-46fc-902c-cfeeaee15e40)]
 interface nsIRilContext : nsISupports
 {
   readonly attribute DOMString radioState;
 
   readonly attribute DOMString cardState;
-
-  readonly attribute DOMString networkSelectionMode;
 
   readonly attribute nsIICCRecords icc;
 
