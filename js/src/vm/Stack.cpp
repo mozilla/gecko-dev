@@ -123,6 +123,7 @@ StackFrame::copyFrameAndValues(JSContext *cx, Value *vp, StackFrame *otherfp,
     }
 
     *this = *otherfp;
+    unsetPushedSPSFrame();
     if (doPostBarrier)
         writeBarrierPost();
 
