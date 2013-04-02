@@ -335,6 +335,7 @@ function RILContentHelper() {
     return;
   }
   this.cardState = rilContext.cardState;
+  this.networkSelectionMode = rilContext.networkSelectionMode;
   this.updateICCInfo(rilContext.icc, this.iccInfo);
   this.updateConnectionInfo(rilContext.voice, this.voiceConnectionInfo);
   this.updateConnectionInfo(rilContext.data, this.dataConnectionInfo);
