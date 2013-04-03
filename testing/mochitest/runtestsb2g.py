@@ -18,9 +18,7 @@ from runtests import Mochitest
 from runtests import MochitestOptions
 from runtests import MochitestServer
 
-import devicemanager
-import devicemanagerADB
-
+from mozdevice import DeviceManagerADB, DMError
 from marionette import Marionette
 
 
@@ -321,7 +319,7 @@ class B2GMochitest(Mochitest, B2GMochitestMixin):
                 try:
                     self._dm._checkCmdAs(['shell', 'rm', '-rf',
                                           os.path.join(self.bundlesDir, filename)])
-                except devicemanager.DMError:
+                except DMError:
                     pass
 
         if not options.emulator:
@@ -470,7 +468,7 @@ class B2GMochitest(Mochitest, B2GMochitestMixin):
         self._dm._checkCmdAs(['shell', 'rm', '-r', self.remoteProfile])
         try:
             self._dm.pushDir(options.profilePath, self.remoteProfile)
-        except devicemanager.DMError:
+        except DMError:
             print "Automation Error: Unable to copy profile to device."
             raise
 
@@ -483,7 +481,7 @@ class B2GMochitest(Mochitest, B2GMochitestMixin):
                                   os.path.join(self.bundlesDir, filename)])
         try:
             self._dm.pushDir(extensionDir, self.bundlesDir)
-        except devicemanager.DMError:
+        except DMError:
             print "Automation Error: Unable to copy extensions to device."
             raise
 
@@ -583,7 +581,7 @@ def run_remote_mochitests(automation, parser, options):
     if options.deviceIP:
         kwargs.update({'host': options.deviceIP,
                        'port': options.devicePort})
-    dm = devicemanagerADB.DeviceManagerADB(**kwargs)
+    dm = DeviceManagerADB(**kwargs)
     automation.setDeviceManager(dm)
     options = parser.verifyRemoteOptions(options, automation)
     if (options == None):
