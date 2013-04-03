@@ -20,23 +20,15 @@ SimpleTest.waitForExplicitFinish();
 
 browserElementTestHelpers.setEnabledPref(true);
 browserElementTestHelpers.addPermission();
+browserElementTestHelpers.setOOPDisabledPref(true); // this is breaking the autofocus.
+
+var iframe = document.createElement('iframe');
+iframe.mozbrowser = true;
+iframe.src = browserElementTestHelpers.focusPage;
+document.body.appendChild(iframe);
 
 // Number of expected events at which point we will consider the test as done.
 var nbEvents = whitelistedEvents.length * 3;
-
-var iframe;
-var finished = false;
-function runTest() {
-  iframe = document.createElement('iframe');
-  iframe.mozbrowser = true;
-  iframe.src = browserElementTestHelpers.focusPage;
-  document.body.appendChild(iframe);
-
-  SimpleTest.waitForFocus(function() {
-    iframe.focus();
-    SimpleTest.executeSoon(test2);
-  });
-}
 
 function eventHandler(e) {
   ok(((e.type == 'keydown' || e.type == 'keypress' || e.type == 'keyup') &&
@@ -47,18 +39,19 @@ function eventHandler(e) {
   nbEvents--;
 
   if (nbEvents == 0) {
+    browserElementTestHelpers.restoreOriginalPrefs();
     SimpleTest.finish();
     return;
   }
 
-  if (nbEvents < 0 && !finished) {
+  if (nbEvents < 0) {
     ok(false, "got an unexpected event! " + e.type + " " + e.keyCode);
     SimpleTest.finish();
     return;
   }
 }
 
-function test2() {
+function runTest() {
   is(document.activeElement, iframe, "iframe should be focused");
 
   addEventListener('keydown', eventHandler);
@@ -79,7 +72,10 @@ function test2() {
   synthesizeKey("VK_PAGE_DOWN", {}); // keypress is ignored because .preventDefault() will be called.
   synthesizeKey("VK_CONTEXT_MENU", {});
   synthesizeKey("VK_SLEEP", {});
-  finished = true;
 }
 
-addEventListener('testready', runTest);
+SimpleTest.waitForFocus(function() {
+  iframe.focus();
+  SimpleTest.executeSoon(runTest);
+});
+

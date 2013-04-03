@@ -5,13 +5,13 @@
 "use strict";
 
 SimpleTest.waitForExplicitFinish();
-browserElementTestHelpers.setEnabledPref(true);
-browserElementTestHelpers.addPermission();
-// Permission to embed an app.
-SpecialPowers.addPermission("embed-apps", true, document);
-
 
 function runTest() {
+  browserElementTestHelpers.setEnabledPref(true);
+  browserElementTestHelpers.addPermission();
+  // Permission to embed an app.
+  SpecialPowers.addPermission("embed-apps", true, document);
+
   var iframe1 = document.createElement('iframe');
   iframe1.mozbrowser = true;
   iframe1.setAttribute('mozapp', 'http://example.org/manifest.webapp');
@@ -44,4 +44,4 @@ function runTest() {
   iframe1.src = 'http://example.org/tests/dom/browser-element/mochitest/file_browserElement_AppWindowNamespace.html';
 }
 
-addEventListener('testready', runTest);
+runTest();

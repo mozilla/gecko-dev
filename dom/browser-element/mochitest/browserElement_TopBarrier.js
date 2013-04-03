@@ -4,7 +4,6 @@
 // Test that an <iframe mozbrowser> is a window.{top,parent,frameElement} barrier.
 "use strict";
 
-SimpleTest.waitForExplicitFinish();
 browserElementTestHelpers.setEnabledPref(true);
 browserElementTestHelpers.addPermission();
 
@@ -24,6 +23,8 @@ function runTest() {
   // difference in anything.
   iframe.style.display = 'none';
   document.body.appendChild(iframe);
+
+  SimpleTest.waitForExplicitFinish();
 }
 
 var numMsgReceived = 0;
@@ -75,4 +76,4 @@ function waitForMessages(num) {
   SimpleTest.finish();
 }
 
-addEventListener('testready', runTest);
+runTest();

@@ -7,10 +7,11 @@
 "use strict";
 
 SimpleTest.waitForExplicitFinish();
-browserElementTestHelpers.setEnabledPref(true);
-browserElementTestHelpers.addPermission();
 
 function runTest() {
+  browserElementTestHelpers.setEnabledPref(true);
+  browserElementTestHelpers.addPermission();
+
   var principal = SpecialPowers.wrap(SpecialPowers.getNodePrincipal(document));
   SpecialPowers.addPermission("browser", true, { url: SpecialPowers.wrap(principal.URI).spec,
                                                  appId: principal.appId,
@@ -63,4 +64,4 @@ function finish() {
   SimpleTest.finish();
 }
 
-addEventListener('testready', runTest);
+runTest();

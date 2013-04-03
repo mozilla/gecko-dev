@@ -5,8 +5,6 @@
 "use strict";
 
 SimpleTest.waitForExplicitFinish();
-browserElementTestHelpers.setEnabledPref(true);
-browserElementTestHelpers.addPermission();
 
 var iframeScript = function() {
   content.document.addEventListener("mozvisibilitychange", function() {
@@ -17,6 +15,10 @@ var iframeScript = function() {
 }
 
 function runTest() {
+
+  browserElementTestHelpers.setEnabledPref(true);
+  browserElementTestHelpers.addPermission();
+
   var mm;
   var numEvents = 0;
   var iframe1 = document.createElement('iframe');
@@ -72,4 +74,6 @@ function runTest() {
   iframe1.addEventListener('mozbrowserloadend', iframeLoaded);
 }
 
-addEventListener('testready', runTest);
+addEventListener('load', function() { SimpleTest.executeSoon(runTest); });
+
+
