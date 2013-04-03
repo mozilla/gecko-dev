@@ -5,10 +5,11 @@
 "use strict";
 
 SimpleTest.waitForExplicitFinish();
-browserElementTestHelpers.setEnabledPref(true);
-browserElementTestHelpers.addPermission();
 
 function runTest() {
+  browserElementTestHelpers.setEnabledPref(true);
+  browserElementTestHelpers.addPermission();
+
   var iframe1 = document.createElement('iframe');
   iframe1.mozbrowser = true;
   document.body.appendChild(iframe1);
@@ -65,4 +66,6 @@ function runTest() {
   iframe3.src = 'data:text/html,<html><head><title>SHOULD NOT GET EVENT</title></head><body></body></html>';
 }
 
-addEventListener('testready', runTest);
+addEventListener('load', function() { SimpleTest.executeSoon(runTest); });
+
+

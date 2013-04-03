@@ -5,10 +5,11 @@
 "use strict";
 
 SimpleTest.waitForExplicitFinish();
-browserElementTestHelpers.setEnabledPref(true);
-browserElementTestHelpers.addPermission();
 
 function runTest() {
+  browserElementTestHelpers.setEnabledPref(true);
+  browserElementTestHelpers.addPermission();
+
   var iframe = document.createElement('iframe');
   iframe.mozbrowser = true;
   document.body.appendChild(iframe);
@@ -41,4 +42,4 @@ function wrongListener() {
   ok(false, 'first listener should have been removed');
 }
 
-addEventListener('testready', runTest);
+runTest();

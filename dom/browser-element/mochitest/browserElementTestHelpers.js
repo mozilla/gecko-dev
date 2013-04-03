@@ -4,12 +4,6 @@
 // Helpers for managing the browser frame preferences.
 "use strict";
 
-function _getPath() {
-  return window.location.pathname
-               .substring(0, window.location.pathname.lastIndexOf('/'))
-               .replace("/priority", "");
-}
-
 const browserElementTestHelpers = {
   _getBoolPref: function(pref) {
     try {
@@ -20,40 +14,71 @@ const browserElementTestHelpers = {
     }
   },
 
-  _setPref: function(pref, value) {
-    this.lockTestReady();
-    if (value !== undefined && value !== null) {
-      SpecialPowers.pushPrefEnv({'set': [[pref, value]]}, this.unlockTestReady.bind(this));
-    } else {
-      SpecialPowers.pushPrefEnv({'clear': [[pref]]}, this.unlockTestReady.bind(this));
+  _setBoolPref: function(pref, value) {
+    if (value !== undefined) {
+      SpecialPowers.setBoolPref(pref, value);
+    }
+    else {
+      SpecialPowers.clearUserPref(pref);
     }
   },
 
-  _testReadyLockCount: 0,
-  _firedTestReady: false,
-  lockTestReady: function() {
-    this._testReadyLockCount++;
-  },
-
-  unlockTestReady: function() {
-    this._testReadyLockCount--;
-    if (this._testReadyLockCount == 0 && !this._firedTestReady) {
-      this._firedTestReady = true;
-      dispatchEvent(new Event("testready"));
+  _getCharPref: function(pref) {
+    try {
+      return SpecialPowers.getCharPref(pref);
+    }
+    catch (e) {
+      return undefined;
     }
   },
 
-  enableProcessPriorityManager: function() {
-    this._setPref('dom.ipc.processPriorityManager.testMode', true);
-    this._setPref('dom.ipc.processPriorityManager.enabled', true);
+  _setCharPref: function(pref, value) {
+    if (value !== undefined) {
+      SpecialPowers.setCharPref(pref, value);
+    }
+    else {
+      SpecialPowers.clearUserPref(pref);
+    }
+  },
+
+  getEnabledPref: function() {
+    return this._getBoolPref('dom.mozBrowserFramesEnabled');
   },
 
   setEnabledPref: function(value) {
-    this._setPref('dom.mozBrowserFramesEnabled', value);
+    this._setBoolPref('dom.mozBrowserFramesEnabled', value);
+  },
+
+  getOOPDisabledPref: function() {
+    return this._getBoolPref('dom.ipc.tabs.disabled');
+  },
+
+  setOOPDisabledPref: function(value) {
+    this._setBoolPref('dom.ipc.tabs.disabled', value);
   },
 
   getOOPByDefaultPref: function() {
     return this._getBoolPref("dom.ipc.browser_frames.oop_by_default");
+  },
+
+  setOOPByDefaultPref: function(value) {
+    return this._setBoolPref("dom.ipc.browser_frames.oop_by_default", value);
+  },
+
+  getIPCSecurityDisabledPref: function() {
+    return this._getBoolPref("network.disable.ipc.security");
+  },
+
+  setIPCSecurityDisabledPref: function(value) {
+    return this._setBoolPref("network.disable.ipc.security", value);
+  },
+
+  getPageThumbsEnabledPref: function() {
+    return this._getBoolPref('browser.pageThumbs.enabled');
+  },
+
+  setPageThumbsEnabledPref: function(value) {
+    this._setBoolPref('browser.pageThumbs.enabled', value);
   },
 
   addPermission: function() {
@@ -72,62 +97,57 @@ const browserElementTestHelpers = {
     this.tempPermissions.push(url);
   },
 
+  restoreOriginalPrefs: function() {
+    this.setEnabledPref(this.origEnabledPref);
+    this.setOOPDisabledPref(this.origOOPDisabledPref);
+    this.setOOPByDefaultPref(this.origOOPByDefaultPref);
+    this.setPageThumbsEnabledPref(this.origPageThumbsEnabledPref);
+    this.setIPCSecurityDisabledPref(this.origIPCSecurityPref);
+    this.removeAllTempPermissions();
+  },
+
+  'origEnabledPref': null,
+  'origOOPDisabledPref': null,
+  'origOOPByDefaultPref': null,
+  'origPageThumbsEnabledPref': null,
+  'origIPCSecurityPref': null,
   'tempPermissions': [],
 
   // Some basically-empty pages from different domains you can load.
-  'emptyPage1': 'http://example.com' + _getPath() + '/file_empty.html',
-  'emptyPage2': 'http://example.org' + _getPath() + '/file_empty.html',
-  'emptyPage3': 'http://test1.example.org' + _getPath() + '/file_empty.html',
-  'focusPage': 'http://example.org' + _getPath() + '/file_focus.html',
+  'emptyPage1': 'http://example.com' +
+                window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/')) +
+                '/file_empty.html',
+  'emptyPage2': 'http://example.org' +
+                window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/')) +
+                '/file_empty.html',
+  'emptyPage3': 'http://test1.example.org' +
+                window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/')) +
+                '/file_empty.html',
+  'focusPage': 'http://example.org' +
+                window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/')) +
+                '/file_focus.html',
 };
 
-// Set some prefs:
-//
-//  * browser.pageThumbs.enabled: false
-//
-//    Disable tab view; it seriously messes us up.
-//
-//  * dom.ipc.browser_frames.oop_by_default
-//
-//    Enable or disable OOP-by-default depending on the test's filename.  You
-//    can still force OOP on or off with <iframe mozbrowser remote=true/false>,
-//    at least until bug 756376 lands.
-//
-//  * dom.ipc.tabs.disabled: false
-//
-//    Allow us to create OOP frames.  Even if they're not the default, some
-//    "in-process" tests create OOP frames.
-//
-//  * network.disable.ipc.security: true
-//
-//    Disable the networking security checks; our test harness just tests
-//    browser elements without sticking them in apps, and the security checks
-//    dislike that.
-//
-//    Unfortunately setting network.disable.ipc.security to false before the
-//    child process(es) created by this test have shut down can cause us to
-//    assert and kill the child process.  That doesn't cause the tests to fail,
-//    but it's still scary looking.  So we just set the pref to true and never
-//    pop that value.  We'll rely on the tests which test IPC security to set
-//    it to false.
+browserElementTestHelpers.origEnabledPref = browserElementTestHelpers.getEnabledPref();
+browserElementTestHelpers.origOOPDisabledPref = browserElementTestHelpers.getOOPDisabledPref();
+browserElementTestHelpers.origOOPByDefaultPref = browserElementTestHelpers.getOOPByDefaultPref();
+browserElementTestHelpers.origPageThumbsEnabledPref = browserElementTestHelpers.getPageThumbsEnabledPref();
+browserElementTestHelpers.origIPCSecurityPref = browserElementTestHelpers.getIPCSecurityDisabledPref();
 
-(function() {
-  var oop = location.pathname.indexOf('_inproc_') == -1;
+// Disable tab view; it seriously messes us up.
+browserElementTestHelpers.setPageThumbsEnabledPref(false);
 
-  browserElementTestHelpers.lockTestReady();
-  SpecialPowers.setBoolPref("network.disable.ipc.security", true);
-  SpecialPowers.pushPrefEnv({set: [["browser.pageThumbs.enabled", false],
-                                   ["dom.ipc.browser_frames.oop_by_default", oop],
-                                   ["dom.ipc.tabs.disabled", false]]},
-                            browserElementTestHelpers.unlockTestReady.bind(browserElementTestHelpers));
-})();
+// Enable or disable OOP-by-default depending on the test's filename.  You can
+// still force OOP on or off with <iframe mozbrowser remote=true/false>, at
+// least until bug 756376 lands.
+var oop = location.pathname.indexOf('_inproc_') == -1;
+browserElementTestHelpers.setOOPByDefaultPref(oop);
+browserElementTestHelpers.setOOPDisabledPref(false);
+
+// Disable the networking security checks; our test harness just tests browser elements
+// without sticking them in apps, and the security checks dislike that.
+browserElementTestHelpers.setIPCSecurityDisabledPref(true);
 
 addEventListener('unload', function() {
-  browserElementTestHelpers.removeAllTempPermissions();
-});
-
-// Wait for the load event before unlocking the test-ready event.
-browserElementTestHelpers.lockTestReady();
-addEventListener('load', function() {
-  SimpleTest.executeSoon(browserElementTestHelpers.unlockTestReady.bind(browserElementTestHelpers));
+  browserElementTestHelpers.restoreOriginalPrefs();
 });

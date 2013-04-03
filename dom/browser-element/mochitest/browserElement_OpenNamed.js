@@ -6,12 +6,13 @@
 
 "use strict";
 SimpleTest.waitForExplicitFinish();
-browserElementTestHelpers.setEnabledPref(true);
-browserElementTestHelpers.addPermission();
 
 var iframe;
 var popupFrame;
 function runTest() {
+  browserElementTestHelpers.setEnabledPref(true);
+  browserElementTestHelpers.addPermission();
+
   iframe = document.createElement('iframe');
   iframe.mozbrowser = true;
 
@@ -54,4 +55,4 @@ function test2() {
   iframe.src = 'file_browserElement_OpenNamed.html?test2';
 }
 
-addEventListener('testready', runTest);
+runTest();
