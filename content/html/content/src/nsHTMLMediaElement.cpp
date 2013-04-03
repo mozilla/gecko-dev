@@ -3827,7 +3827,8 @@ void nsHTMLMediaElement::UpdateAudioChannelPlayingState()
       if (!mAudioChannelAgent) {
         return;
       }
-      mAudioChannelAgent->Init(mAudioChannelType, this);
+      // Use a weak ref so the audio channel agent can't leak |this|.
+      mAudioChannelAgent->InitWithWeakCallback(mAudioChannelType, this);
 
       nsCOMPtr<nsIDOMDocument> domDoc = do_QueryInterface(OwnerDoc());
       if (domDoc) {
