@@ -399,7 +399,7 @@ ArrayBufferObject::releaseAsmJSArrayBuffer(FreeOp *fop, RawObject obj)
     uint8_t *p = buffer.dataPointer() - PageSize ;
     JS_ASSERT(uintptr_t(p) % PageSize == 0);
 # ifdef XP_WIN
-    VirtualAlloc(p, AsmJSMappedSize, MEM_RESERVE, PAGE_NOACCESS);
+    VirtualFree(p, 0, MEM_RELEASE);
 # else
     munmap(p, AsmJSMappedSize);
 # endif
