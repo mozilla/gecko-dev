@@ -417,15 +417,15 @@ public class AboutHomeContent extends ScrollView
         if (urls.size() == 0)
             return;
 
-        (new GeckoAsyncTask<Void, Void, Cursor>(GeckoApp.mAppContext, GeckoAppShell.getHandler()) {
+        (new GeckoAsyncTask<Void, Void, Map<String, Bitmap> >(GeckoApp.mAppContext, GeckoAppShell.getHandler()) {
             @Override
-            public Cursor doInBackground(Void... params) {
-                return BrowserDB.getThumbnailsForUrls(cr, urls);
+            public Map<String, Bitmap> doInBackground(Void... params) {
+                return getThumbnailsFromCursor(BrowserDB.getThumbnailsForUrls(cr, urls));
             }
 
             @Override
-            public void onPostExecute(Cursor c) {
-                updateTopSitesThumbnails(getThumbnailsFromCursor(c));
+            public void onPostExecute(Map<String, Bitmap> thumbnails) {
+                updateTopSitesThumbnails(thumbnails);
             }
         }).execute();
     }
