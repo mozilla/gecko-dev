@@ -141,7 +141,7 @@ SyncChannel::OnDispatchMessage(const Message& msg)
 
     mProcessingSyncMessage = true;
     Result rv =
-        static_cast<SyncListener*>(mListener)->OnMessageReceived(msg, reply);
+        static_cast<SyncListener*>(mListener.get())->OnMessageReceived(msg, reply);
     mProcessingSyncMessage = false;
 
     if (!MaybeHandleError(rv, "SyncChannel")) {
@@ -230,7 +230,7 @@ SyncChannel::ShouldContinueFromTimeout()
     bool cont;
     {
         MonitorAutoUnlock unlock(*mMonitor);
-        cont = static_cast<SyncListener*>(mListener)->OnReplyTimeout();
+        cont = static_cast<SyncListener*>(mListener.get())->OnReplyTimeout();
     }
 
     if (!cont) {
