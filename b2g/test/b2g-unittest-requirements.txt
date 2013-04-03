@@ -1,2 +1,9 @@
-mozprocess==0.8
-mozdevice==0.12
+ManifestDestiny=0.5.6
+mozcrash==0.5
+mozdevice==0.21
+mozfile==0.3
+mozhttpd==0.5
+mozlog==1.1
+moznetwork==0.21
+mozprocess==0.9
+mozrunner==5.15
