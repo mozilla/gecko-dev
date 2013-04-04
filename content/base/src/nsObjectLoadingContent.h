@@ -380,6 +380,11 @@ class nsObjectLoadingContent : public nsImageLoadingContent
      */
     bool ShouldPlay(FallbackType &aReason);
 
+    /*
+     * Helper to check if mBaseURI can be used by java as a codebase
+     */
+    bool CheckJavaCodebase();
+
     /**
      * Helper to check if our current URI passes policy
      *
