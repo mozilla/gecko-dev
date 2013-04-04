@@ -896,7 +896,8 @@ BluetoothOppManager::ClientDataHandler(UnixSocketRawData* aMessage)
 
 // Virtual function of class SocketConsumer
 void
-BluetoothOppManager::ReceiveSocketData(nsAutoPtr<UnixSocketRawData>& aMessage)
+BluetoothOppManager::ReceiveSocketData(BluetoothSocket* aSocket,
+                                       nsAutoPtr<UnixSocketRawData>& aMessage)
 {
   if (mLastCommand) {
     ClientDataHandler(aMessage);
@@ -1270,8 +1271,10 @@ BluetoothOppManager::ReceivingFileConfirmation()
 }
 
 void
-BluetoothOppManager::OnConnectSuccess()
+BluetoothOppManager::OnConnectSuccess(BluetoothSocket* aSocket)
 {
+  MOZ_ASSERT(aSocket == mSocket);
+
   if (mRunnable) {
     BluetoothReply* reply = new BluetoothReply(BluetoothReplySuccess(true));
     mRunnable->SetReply(reply);
@@ -1288,8 +1291,10 @@ BluetoothOppManager::OnConnectSuccess()
 }
 
 void
-BluetoothOppManager::OnConnectError()
+BluetoothOppManager::OnConnectError(BluetoothSocket* aSocket)
 {
+  MOZ_ASSERT(aSocket == mSocket);
+
   if (mRunnable) {
     nsString errorStr;
     errorStr.AssignLiteral("Failed to connect with a bluetooth opp manager!");
@@ -1307,8 +1312,10 @@ BluetoothOppManager::OnConnectError()
 }
 
 void
-BluetoothOppManager::OnDisconnect()
+BluetoothOppManager::OnDisconnect(BluetoothSocket* aSocket)
 {
+  MOZ_ASSERT(aSocket == mSocket);
+
   /**
    * It is valid for a bluetooth device which is transfering file via OPP
    * closing socket without sending OBEX disconnect request first. So we
