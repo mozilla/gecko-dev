@@ -12,9 +12,6 @@ import sys
 import tempfile
 import traceback
 
-from mozdevice import DeviceManagerADB
-import mozcrash
-
 class B2GInstance(object):
     @classmethod
     def check_b2g_dir(cls, dir):
@@ -94,6 +91,7 @@ class B2GInstance(object):
     @property
     def dm(self):
         if not self._dm:
+            from mozdevice import DeviceManagerADB
             self._dm = DeviceManagerADB(adbPath=self.adb_path)
         return self._dm
 
@@ -122,6 +120,7 @@ class B2GInstance(object):
         return remote_profiles
 
     def check_for_crashes(self, symbols_path):
+        import mozcrash
         remote_dump_dirs = [posixpath.join(p, 'minidumps') for p in self.check_remote_profiles()]
         crashed = False
         for remote_dump_dir in remote_dump_dirs:
