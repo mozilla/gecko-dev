@@ -16,6 +16,8 @@
 #include "vm/SPSProfiler.h"
 #include "vm/StringBuffer.h"
 
+#include "jsscriptinlines.h"
+
 using namespace js;
 
 using mozilla::DebugOnly;
