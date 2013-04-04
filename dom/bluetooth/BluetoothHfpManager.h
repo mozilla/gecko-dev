@@ -8,14 +8,16 @@
 #define mozilla_dom_bluetooth_bluetoothhfpmanager_h__
 
 #include "BluetoothCommon.h"
+#include "BluetoothSocketObserver.h"
 #include "BluetoothRilListener.h"
 #include "mozilla/ipc/UnixSocket.h"
 #include "nsIObserver.h"
 
 BEGIN_BLUETOOTH_NAMESPACE
 
-class BluetoothReplyRunnable;
 class BluetoothHfpManagerObserver;
+class BluetoothReplyRunnable;
+class BluetoothSocket;
 class Call;
 
 /**
@@ -48,12 +50,17 @@ enum BluetoothCmeError {
   NETWORK_NOT_ALLOWED = 32
 };
 
-class BluetoothHfpManager : public mozilla::ipc::UnixSocketConsumer
+class BluetoothHfpManager : public BluetoothSocketObserver
 {
 public:
   static BluetoothHfpManager* Get();
-  virtual void ReceiveSocketData(nsAutoPtr<mozilla::ipc::UnixSocketRawData>& aMessage)
-    MOZ_OVERRIDE;
+
+  ~BluetoothHfpManager();
+  virtual void ReceiveSocketData(
+    nsAutoPtr<mozilla::ipc::UnixSocketRawData>& aMessage) MOZ_OVERRIDE;
+  virtual void OnConnectSuccess() MOZ_OVERRIDE;
+  virtual void OnConnectError() MOZ_OVERRIDE;
+  virtual void OnDisconnect() MOZ_OVERRIDE;
 
   bool Connect(const nsAString& aDeviceObjectPath,
                const bool aIsHandsfree,
@@ -66,6 +73,7 @@ public:
    */
   void HandleCallStateChanged(uint32_t aCallIndex, uint16_t aCallState,
                               const nsAString& aNumber, bool aSend);
+  bool IsConnected();
 
 private:
   class GetVolumeTask;
@@ -73,7 +81,6 @@ private:
   friend class BluetoothHfpManagerObserver;
 
   BluetoothHfpManager();
-  ~BluetoothHfpManager();
   nsresult HandleIccInfoChanged();
   nsresult HandleShutdown();
   nsresult HandleVolumeChanged(const nsAString& aData);
@@ -91,10 +98,6 @@ private:
   bool SendLine(const char* aMessage);
   void UpdateCIND(uint8_t aType, uint8_t aValue, bool aSend);
 
-  virtual void OnConnectSuccess() MOZ_OVERRIDE;
-  virtual void OnConnectError() MOZ_OVERRIDE;
-  virtual void OnDisconnect() MOZ_OVERRIDE;
-
   int mCurrentVgs;
   int mCurrentVgm;
   uint32_t mCurrentCallIndex;
@@ -107,11 +110,12 @@ private:
   nsString mDevicePath;
   nsString mMsisdn;
   nsString mOperatorName;
-  enum mozilla::ipc::SocketConnectionStatus mSocketStatus;
+  enum SocketConnectionStatus mSocketStatus;
 
   nsTArray<Call> mCurrentCallArray;
   nsAutoPtr<BluetoothRilListener> mListener;
   nsRefPtr<BluetoothReplyRunnable> mRunnable;
+  nsRefPtr<BluetoothSocket> mSocket;
 };
 
 END_BLUETOOTH_NAMESPACE
