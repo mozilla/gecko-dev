@@ -111,7 +111,7 @@ private:
   nsString mDevicePath;
   nsString mMsisdn;
   nsString mOperatorName;
-  enum SocketConnectionStatus mSocketStatus;
+  SocketConnectionStatus mPrevSocketStatus;
 
   nsTArray<Call> mCurrentCallArray;
   nsAutoPtr<BluetoothRilListener> mListener;
