@@ -1107,6 +1107,7 @@ nsParser::ContinueInterruptedParsing()
   // the reenabling process, hold a reference to ourselves.
   nsresult result=NS_OK;
   nsCOMPtr<nsIParser> kungFuDeathGrip(this);
+  nsCOMPtr<nsIContentSink> sinkDeathGrip(mSink);
 
 #ifdef DEBUG
   if (!(mFlags & NS_PARSER_FLAG_PARSER_ENABLED)) {
@@ -2118,6 +2119,8 @@ nsParser::OnDataAvailable(nsIRequest *request, nsISupports* aContext,
     // non-whitespace data
     if (IsOkToProcessNetworkData() &&
         theContext->mScanner->FirstNonWhitespacePosition() >= 0) {
+      nsCOMPtr<nsIParser> kungFuDeathGrip(this);
+      nsCOMPtr<nsIContentSink> sinkDeathGrip(mSink);
       mProcessingNetworkData = true;
       if (mSink) {
         mSink->WillParse();
