@@ -639,6 +639,10 @@ def parse_options():
                       help='on an emulator, causes Marionette to load earlier '
                       'in the startup process than it otherwise would; needed '
                       'for testing WebAPIs')
+    parser.add_option('--symbols-path', dest='symbols_path', action='store',
+                      default=None,
+                      help='absolute path to directory containing breakpad '
+                      'symbols, or the URL of a zip file containing symbols')
 
     options, tests = parser.parse_args()
 
