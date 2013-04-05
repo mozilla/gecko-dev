@@ -13,7 +13,7 @@ interface nsISmsRequest;
 #define SMS_SERVICE_CONTRACTID "@mozilla.org/sms/smsservice;1"
 %}
 
-[scriptable, builtinclass, uuid(944297ed-0dc7-4dee-89a6-c962ea0218d3)]
+[scriptable, builtinclass, uuid(4310bdb5-eefa-4f70-965a-74041228ab26)]
 interface nsISmsService : nsISupports
 {
   boolean hasSupport();
@@ -26,7 +26,6 @@ interface nsISmsService : nsISupports
 
   [implicit_jscontext]
   nsIDOMMozSmsMessage createSmsMessage(in long      id,
-                                       in unsigned long long threadId,
                                        in DOMString delivery,
                                        in DOMString deliveryStatus,
                                        in DOMString sender,

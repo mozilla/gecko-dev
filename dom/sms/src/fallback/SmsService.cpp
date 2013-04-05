@@ -40,7 +40,6 @@ SmsService::Send(const nsAString& aNumber,
 
 NS_IMETHODIMP
 SmsService::CreateSmsMessage(int32_t aId,
-                             uint64_t aThreadId,
                              const nsAString& aDelivery,
                              const nsAString& aDeliveryStatus,
                              const nsAString& aSender,
@@ -52,7 +51,7 @@ SmsService::CreateSmsMessage(int32_t aId,
                              JSContext* aCx,
                              nsIDOMMozSmsMessage** aMessage)
 {
-  return SmsMessage::Create(aId, aThreadId, aDelivery, aDeliveryStatus,
+  return SmsMessage::Create(aId, aDelivery, aDeliveryStatus,
                             aSender, aReceiver,
                             aBody, aMessageClass, aTimestamp, aRead,
                             aCx, aMessage);

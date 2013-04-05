@@ -8,7 +8,6 @@ interface nsIDOMMozSmsMessage;
 
 dictionary SmsThreadListItem
 {
-  unsigned long long id;
   DOMString senderOrReceiver;
   unsigned long long timestamp;
   DOMString body;
