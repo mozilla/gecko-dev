@@ -23,7 +23,6 @@ public:
   NS_DECL_NSIDOMMOZMMSMESSAGE
 
   MmsMessage(int32_t                                        aId,
-             const uint64_t                                 aThreadId,
              mobilemessage::DeliveryState                   aDelivery,
              const nsTArray<mobilemessage::DeliveryStatus>& aDeliveryStatus,
              const nsAString&                               aSender,
@@ -35,7 +34,6 @@ public:
              const nsTArray<MmsAttachment>&                 aAttachments);
 
   static nsresult Create(int32_t               aId,
-                         const uint64_t        aThreadId,
                          const nsAString&      aDelivery,
                          const JS::Value&      aDeliveryStatus,
                          const nsAString&      aSender,
@@ -51,7 +49,6 @@ public:
 private:
 
   int32_t                                 mId;
-  uint64_t                                mThreadId;
   mobilemessage::DeliveryState            mDelivery;
   nsTArray<mobilemessage::DeliveryStatus> mDeliveryStatus;
   nsString                                mSender;

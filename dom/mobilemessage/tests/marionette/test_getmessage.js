@@ -16,8 +16,6 @@ let gotSmsOnsent = false;
 let gotReqOnsuccess = false;
 let inSmsId = 0;
 let outSmsId = 0;
-let inThreadId = 0;
-let outThreadId = 0;
 let inSmsTimeStamp;
 let outSmsTimeStamp;
 
@@ -37,8 +35,6 @@ function simulateIncomingSms() {
     ok(incomingSms.id, "sms id");
     inSmsId = incomingSms.id;
     log("Received SMS (id: " + inSmsId + ").");
-    ok(incomingSms.threadId, "thread id");
-    inThreadId = incomingSms.threadId;
     is(incomingSms.body, inText, "msg body");
     is(incomingSms.delivery, "received", "delivery");
     is(incomingSms.deliveryStatus, "success", "deliveryStatus");
@@ -66,8 +62,6 @@ function sendSms() {
     ok(sentSms.id, "sms id");
     outSmsId = sentSms.id;
     log("Sent SMS (id: " + outSmsId + ").");
-    ok(sentSms.threadId, "thread id");
-    outThreadId = sentSms.threadId;
     is(sentSms.body, outText, "msg body");
     is(sentSms.delivery, "sent", "delivery");
     is(sentSms.deliveryStatus, "pending", "deliveryStatus");
@@ -117,7 +111,6 @@ function getReceivedSms() {
     let foundSms = event.target.result;
     is(foundSms.id, inSmsId, "SMS id matches");
     log("Got SMS (id: " + foundSms.id + ").");
-    is(foundSms.threadId, inThreadId, "thread id matches");
     is(foundSms.body, inText, "SMS msg text matches");
     is(foundSms.delivery, "received", "delivery");
     is(foundSms.deliveryStatus, "success", "deliveryStatus");
@@ -151,7 +144,6 @@ function getSentSms() {
     let foundSms = event.target.result;
     is(foundSms.id, outSmsId, "SMS id matches");
     log("Got SMS (id: " + foundSms.id + ").");
-    is(foundSms.threadId, outThreadId, "thread id matches");
     is(foundSms.body, outText, "SMS msg text matches");
     is(foundSms.delivery, "sent", "delivery");
     is(foundSms.deliveryStatus, "pending", "deliveryStatus");
