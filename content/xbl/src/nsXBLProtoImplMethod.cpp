@@ -104,6 +104,7 @@ nsXBLProtoImplMethod::InstallMember(JSContext* aCx,
 
   JSObject* globalObject = JS_GetGlobalForObject(aCx, aTargetClassObject);
   JSObject* scopeObject = xpc::GetXBLScope(aCx, globalObject);
+  NS_ENSURE_TRUE(scopeObject, NS_ERROR_OUT_OF_MEMORY);
 
   // now we want to reevaluate our property using aContext and the script object for this window...
   if (mJSMethodObject) {
@@ -310,6 +311,7 @@ nsXBLProtoImplAnonymousMethod::Execute(nsIContent* aBoundElement)
 
   JSObject* thisObject = JSVAL_TO_OBJECT(v);
   JSObject* scopeObject = xpc::GetXBLScope(cx, globalObject);
+  NS_ENSURE_TRUE(scopeObject, NS_ERROR_OUT_OF_MEMORY);
 
   JSAutoRequest ar(cx);
   JSAutoCompartment ac(cx, scopeObject);
