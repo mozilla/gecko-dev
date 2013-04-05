@@ -88,16 +88,6 @@ private:
   nsresult SendMessageReply(const MessageReply& aReply);
 
   /**
-   * Root mResult (jsval) to prevent garbage collection.
-   */
-  void RootResult();
-
-  /**
-   * Unroot mResult (jsval) to allow garbage collection.
-   */
-  void UnrootResult();
-
-  /**
    * Set the object in a success state with the result being aMessage.
    */
   void SetSuccess(nsIDOMMozSmsMessage* aMessage);
@@ -136,7 +126,6 @@ private:
   nsresult NotifyError(int32_t aError);
 
   jsval     mResult;
-  bool      mResultRooted;
   bool      mDone;
   bool      mParentAlive;
   SmsRequestParent* mParent;
