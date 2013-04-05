@@ -26,6 +26,7 @@ sms.onreceived = function onreceived(event) {
   let message = event.message;
   ok(message instanceof MozSmsMessage);
 
+  ok(message.threadId, "thread id");
   is(message.delivery, "received");
   is(message.deliveryStatus, "success");
   is(message.sender, SENDER);
