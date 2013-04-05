@@ -6145,6 +6145,9 @@ FindStartPC(JSContext *cx, JSScript *script, int spindex, int skipStackHits,
     if (!pcstack.init(cx, script, current))
         return false;
 
+    if (spindex < 0 && spindex + pcstack.depth() < 0)
+        spindex = JSDVG_SEARCH_STACK;
+
     if (spindex == JSDVG_SEARCH_STACK) {
         // We search from fp->sp to base to find the most recently calculated
         // value matching v under assumption that it is it that caused
