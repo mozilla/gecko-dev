@@ -6152,6 +6152,9 @@ FindStartPC(JSContext *cx, ScriptFrameIter &iter, int spindex, int skipStackHits
     if (!pcstack.init(cx, iter.script(), current))
         return false;
 
+    if (spindex < 0 && spindex + pcstack.depth() < 0)
+        spindex = JSDVG_SEARCH_STACK;
+
     if (spindex == JSDVG_SEARCH_STACK) {
         size_t index = iter.numFrameSlots();
         Value s;
