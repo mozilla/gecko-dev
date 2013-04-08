@@ -1068,11 +1068,13 @@ public class AboutHomeContent extends ScrollView
                         }
 
                         final byte[] b = c.getBlob(c.getColumnIndexOrThrow(Thumbnails.DATA));
+                        Bitmap bitmap = null;
                         if (b != null) {
-                            return BitmapFactory.decodeByteArray(b, 0, b.length);
+                            bitmap = BitmapFactory.decodeByteArray(b, 0, b.length);
                         }
+                        c.close();
 
-                        return null;
+                        return bitmap;
                     }
 
                     @Override
