@@ -37,10 +37,13 @@ let SocialServiceInternal = {
     return [p for ([, p] of Iterator(this.providers))];
   },
   get manifests() {
-    // Retrieve the builtin manifests from prefs
+    // Retrieve the manifests of installed providers from prefs
     let MANIFEST_PREFS = Services.prefs.getBranch("social.manifest.");
     let prefs = MANIFEST_PREFS.getChildList("", []);
     for (let pref of prefs) {
+      // we only consider manifests in user level prefs to be *installed*
+      if (!MANIFEST_PREFS.prefHasUserValue(pref))
+        continue;
       try {
         var manifest = JSON.parse(MANIFEST_PREFS.getComplexValue(pref, Ci.nsISupportsString).data);
         if (manifest && typeof(manifest) == "object" && manifest.origin)
@@ -66,7 +69,7 @@ let SocialServiceInternal = {
     let prefs = MANIFEST_PREFS.getChildList("", []);
     for (let pref of prefs) {
       try {
-        var manifest = JSON.parse(MANIFEST_PREFS.getCharPref(pref));
+        var manifest = JSON.parse(MANIFEST_PREFS.getComplexValue(pref, Ci.nsISupportsString).data);
         if (manifest.origin == origin) {
           return pref;
         }
@@ -125,21 +128,67 @@ let ActiveProviders = {
 };
 
 function migrateSettings() {
+  let activeProviders;
   try {
     // we don't care what the value is, if it is set, we've already migrated
-    Services.prefs.getCharPref("social.activeProviders");
-    return;
+    activeProviders = Services.prefs.getCharPref("social.activeProviders");
   } catch(e) {
-    try {
-      let active = Services.prefs.getBoolPref("social.active");
-      if (active) {
-        for (let manifest of SocialServiceInternal.manifests) {
-          ActiveProviders.add(manifest.origin);
-          return;
-        }
+    // do nothing
+  }
+  if (activeProviders) {
+    // migration from fx21 to fx22 or later
+    // ensure any *builtin* provider in activeproviders is in user level prefs
+    for (let origin in ActiveProviders._providers) {
+      let prefname = getPrefnameFromOrigin(origin);
+      if (!Services.prefs.prefHasUserValue(prefname)) {
+        // if we've got an active *builtin* provider, ensure that the pref
+        // is set at a user-level as that will signify *installed* status.
+        let manifest = JSON.parse(Services.prefs.getComplexValue(prefname, Ci.nsISupportsString).data);
+        // our default manifests have been updated with the builtin flags as of
+        // fx22, delete it so we can set the user-pref
+        delete manifest.builtin;
+
+        let string = Cc["@mozilla.org/supports-string;1"].
+                     createInstance(Ci.nsISupportsString);
+        string.data = JSON.stringify(manifest);
+        Services.prefs.setComplexValue(prefname, Ci.nsISupportsString, string);
       }
-    } catch(e) {
-      // not activated, nothing to see here.
+    }
+    return;
+  }
+
+  // primary migration from pre-fx21
+  let active;
+  try {
+    active = Services.prefs.getBoolPref("social.active");
+  } catch(e) {}
+  if (!active)
+    return;
+
+  // primary difference from SocialServiceInternal.manifests is that we
+  // only read the default branch here.
+  let manifestPrefs = Services.prefs.getDefaultBranch("social.manifest.");
+  let prefs = manifestPrefs.getChildList("", []);
+  for (let pref of prefs) {
+    try {
+      let manifest = JSON.parse(manifestPrefs.getComplexValue(pref, Ci.nsISupportsString).data);
+      if (manifest && typeof(manifest) == "object" && manifest.origin) {
+        // our default manifests have been updated with the builtin flags as of
+        // fx22, delete it so we can set the user-pref
+        delete manifest.builtin;
+
+        let string = Cc["@mozilla.org/supports-string;1"].createInstance(Ci.nsISupportsString);
+        string.data = JSON.stringify(manifest);
+        // pref here is just the branch name, set the full pref name
+        Services.prefs.setComplexValue("social.manifest." + pref, Ci.nsISupportsString, string);
+        ActiveProviders.add(manifest.origin);
+        ActiveProviders.flush();
+        // social.active was used at a time that there was only one
+        // builtin, we'll assume that is still the case
+        return;
+      }
+    } catch (err) {
+      Cu.reportError("SocialService: failed to load manifest: " + pref + ", exception: " + err);
     }
   }
 }
@@ -295,10 +344,9 @@ this.SocialService = {
   },
 
   getOriginActivationType: function(origin) {
-    for (let manifest in SocialServiceInternal.manifests) {
-      if (manifest.origin == origin)
-        return 'builtin';
-    }
+    let prefname = SocialServiceInternal.getManifestPrefname(origin);
+    if (Services.prefs.getDefaultBranch("social.manifest.").getPrefType(prefname) == Services.prefs.PREF_STRING)
+      return 'builtin';
 
     let whitelist = Services.prefs.getCharPref("social.whitelist").split(',');
     if (whitelist.indexOf(origin) >= 0)
@@ -411,8 +459,15 @@ this.SocialService = {
         // no way to know what provider we're trying to enable.  This is
         // primarily an issue for "version zero" providers that did not
         // send the manifest with the dom event for activation.
-        if (!manifest)
-          manifest = SocialServiceInternal.getManifestByOrigin(installOrigin);
+        if (!manifest) {
+          let prefname = getPrefnameFromOrigin(installOrigin);
+          manifest = Services.prefs.getDefaultBranch(null)
+                          .getComplexValue(prefname, Ci.nsISupportsString).data;
+          manifest = JSON.parse(manifest);
+          // ensure we override a builtin manifest by having a different value in it
+          if (manifest.builtin)
+            delete manifest.builtin;
+        }
       case "directory":
         // a manifest is requried, and will have been vetted by reviewers
       case "whitelist":
