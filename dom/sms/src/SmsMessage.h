@@ -24,6 +24,7 @@ public:
   NS_DECL_NSIDOMMOZSMSMESSAGE
 
   SmsMessage(int32_t aId,
+             const uint64_t aThreadId,
              DeliveryState aDelivery,
              DeliveryStatus aDeliveryStatus,
              const nsString& aSender,
@@ -35,6 +36,7 @@ public:
   SmsMessage(const SmsMessageData& aData);
 
   static nsresult Create(int32_t aId,
+                         const uint64_t aThreadId,
                          const nsAString& aDelivery,
                          const nsAString& aDeliveryStatus,
                          const nsAString& aSender,

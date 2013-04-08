@@ -1448,6 +1448,7 @@ RadioInterfaceLayer.prototype = {
 
       gSystemMessenger.broadcastMessage("sms-received", {
           id: message.id,
+          threadId: sms.threadId,
           delivery: DOM_SMS_DELIVERY_RECEIVED,
           deliveryStatus: RIL.GECKO_SMS_DELIVERY_STATUS_SUCCESS,
           sender: message.sender || null,
@@ -1470,6 +1471,7 @@ RadioInterfaceLayer.prototype = {
     } else {
       message.id = -1;
       let sms = gSmsService.createSmsMessage(message.id,
+                                             0,
                                              DOM_SMS_DELIVERY_RECEIVED,
                                              RIL.GECKO_SMS_DELIVERY_STATUS_SUCCESS,
                                              message.sender || null,
@@ -1515,6 +1517,7 @@ RadioInterfaceLayer.prototype = {
       //TODO bug 832140 handle !Components.isSuccessCode(rv)
       gSystemMessenger.broadcastMessage("sms-sent",
                                         {id: options.sms.id,
+                                         threadId: options.sms.threadId,
                                          delivery: DOM_SMS_DELIVERY_SENT,
                                          deliveryStatus: options.sms.deliveryStatus,
                                          sender: message.sender || null,
