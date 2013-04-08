@@ -8,6 +8,7 @@ package org.mozilla.gecko;
 import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.db.BrowserContract.Combined;
 import org.mozilla.gecko.util.GeckoAsyncTask;
+import org.mozilla.gecko.util.GeckoBackgroundThread;
 import org.mozilla.gecko.util.StringUtils;
 
 import android.app.Activity;
@@ -374,28 +375,32 @@ public class AwesomeBar extends GeckoActivity {
         finishWithResult(resultIntent);
     }
 
-    private void openUserEnteredAndFinish(String url) {
-        int index = url.indexOf(' ');
-        String keywordUrl = null;
-        String keywordSearch = null;
+    private void openUserEnteredAndFinish(final String url) {
+        final int index = url.indexOf(' ');
 
         // Check for a keyword if the URL looks like a search query
         if (StringUtils.isSearchQuery(url, true)) {
-            if (index == -1) {
-                keywordUrl = BrowserDB.getUrlForKeyword(getContentResolver(), url);
-                keywordSearch = "";
-            } else {
-                keywordUrl = BrowserDB.getUrlForKeyword(getContentResolver(), url.substring(0, index));
-                keywordSearch = url.substring(index + 1);
-            }
+            GeckoBackgroundThread.getHandler().post(new Runnable() {
+                public void run() {
+                    String keywordUrl = null;
+                    String keywordSearch = "";
+                    if (index == -1) {
+                        keywordUrl = BrowserDB.getUrlForKeyword(getContentResolver(), url);
+                    } else {
+                        keywordUrl = BrowserDB.getUrlForKeyword(getContentResolver(), url.substring(0, index));
+                        keywordSearch = url.substring(index + 1);
+                    }
+                    if (keywordUrl == null) {
+                        openUrlAndFinish(url, "", true);
+                    } else {
+                        String search = URLEncoder.encode(keywordSearch);
+                        openUrlAndFinish(keywordUrl.replace("%s", search), "", true);
+                    }
+                }
+            });
+        } else {
+            openUrlAndFinish(url, "", true);
         }
-
-        if (keywordUrl != null) {
-            String search = URLEncoder.encode(keywordSearch);
-            url = keywordUrl.replace("%s", search);
-        }
-
-        openUrlAndFinish(url, "", true);
     }
 
     private void openSearchAndFinish(String url, String engine) {
