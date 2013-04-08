@@ -25,7 +25,7 @@ interface nsIFile;
  *
  * @threadsafe
  */
-[scriptable, uuid(b2a4b534-f92e-4387-9bd9-d10408173925)]
+[scriptable, uuid(eaca7250-2cbc-4a1f-ba12-2f30da42e4fc)]
 interface mozIStorageConnection : nsISupports {
   /**
    * The default size for SQLite database pages used by mozStorage for new
@@ -33,7 +33,7 @@ interface mozIStorageConnection : nsISupports {
    * This value must stay in sync with the SQLITE_DEFAULT_PAGE_SIZE define in
    * /db/sqlite3/src/Makefile.in
    */
-  const long DEFAULT_PAGE_SIZE = 32768;
+  const long DEFAULT_PAGE_SIZE = 2048;
 
   /**
    * Closes a database connection.  Callers must finalize all statements created
