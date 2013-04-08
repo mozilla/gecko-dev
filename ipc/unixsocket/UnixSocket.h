@@ -153,7 +153,7 @@ public:
    *
    * @param aMessage Data received from the socket.
    */
-  virtual void ReceiveSocketData(UnixSocketRawData* aMessage) = 0;
+  virtual void ReceiveSocketData(nsAutoPtr<UnixSocketRawData>& aMessage) = 0;
 
   /**
    * Queue data to be sent to the socket. Can only be called on the IO thread.

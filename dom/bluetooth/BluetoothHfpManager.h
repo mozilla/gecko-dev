@@ -22,8 +22,9 @@ class BluetoothHfpManager : public mozilla::ipc::UnixSocketConsumer
 public:
   ~BluetoothHfpManager();
   static BluetoothHfpManager* Get();
-  virtual void ReceiveSocketData(mozilla::ipc::UnixSocketRawData* aMessage)
+  virtual void ReceiveSocketData(nsAutoPtr<mozilla::ipc::UnixSocketRawData>& aMessage)
     MOZ_OVERRIDE;
+
   bool Connect(const nsAString& aDeviceObjectPath,
                const bool aIsHandsfree,
                BluetoothReplyRunnable* aRunnable);
