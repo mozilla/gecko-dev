@@ -1595,6 +1595,7 @@ function switchToFrame(msg) {
     if(msg.json.focus == true) {
       curWindow.focus();
     }
+    sandbox = null;
     checkTimer.initWithCallback(checkLoad, 100, Ci.nsITimer.TYPE_ONE_SHOT);
     return;
   }
