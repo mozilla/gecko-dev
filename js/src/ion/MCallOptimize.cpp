@@ -1164,6 +1164,13 @@ IonBuilder::inlineParallelArrayTail(CallInfo &callInfo,
     if (!call)
         return InliningStatus_Error;
 
+    // Save the script for inspection by visitCallKnown().
+    if (target && target->isInterpreted()) {
+        if (!target->getOrCreateScript(cx))
+            return InliningStatus_Error;
+        call->rootTargetScript(target);
+    }
+
     callInfo.unwrapArgs();
 
     // Explicitly pad any missing arguments with |undefined|.
