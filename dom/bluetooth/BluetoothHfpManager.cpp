@@ -632,7 +632,7 @@ BluetoothHfpManager::ReceiveSocketData(BluetoothSocket* aSocket,
   // For more information, please refer to 4.34.1 "Bluetooth Defined AT
   // Capabilities" in Bluetooth hands-free profile 1.6
   if (msg.Find("AT+BRSF=") != -1) {
-    SendCommand("+BRSF: ", 33);
+    SendCommand("+BRSF: ", 97);
   } else if (msg.Find("AT+CIND=?") != -1) {
     // Asking for CIND range
     SendCommand("+CIND: ", 0);
