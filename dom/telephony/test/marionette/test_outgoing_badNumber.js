@@ -1,12 +1,12 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-MARIONETTE_TIMEOUT = 10000;
+MARIONETTE_TIMEOUT = 60000;
 
 SpecialPowers.addPermission("telephony", true, document);
 
 let telephony = window.navigator.mozTelephony;
-let number = "not a valid phone number";
+let number = "****5555552368****";
 let outgoing;
 let calls;
 
