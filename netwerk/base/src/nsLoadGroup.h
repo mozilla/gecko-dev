@@ -7,6 +7,7 @@
 #define nsLoadGroup_h__
 
 #include "nsILoadGroup.h"
+#include "nsILoadGroupChild.h"
 #include "nsIChannel.h"
 #include "nsIStreamListener.h"
 #include "nsAgg.h"
@@ -24,6 +25,7 @@ class  nsISupportsArray;
 class  nsILoadGroupConnectionInfo;
 
 class nsLoadGroup : public nsILoadGroup,
+                    public nsILoadGroupChild,
                     public nsISupportsPriority,
                     public nsSupportsWeakReference
 {
@@ -37,6 +39,10 @@ public:
     ////////////////////////////////////////////////////////////////////////////
     // nsILoadGroup methods:
     NS_DECL_NSILOADGROUP
+
+    ////////////////////////////////////////////////////////////////////////////
+    // nsILoadGroupChild methods:
+    NS_DECL_NSILOADGROUPCHILD
 
     ////////////////////////////////////////////////////////////////////////////
     // nsISupportsPriority methods:
@@ -71,6 +77,7 @@ protected:
     PLDHashTable                    mRequests;
 
     nsWeakPtr                       mObserver;
+    nsWeakPtr                       mParentLoadGroup;
     
     nsresult                        mStatus;
     int32_t                         mPriority;
