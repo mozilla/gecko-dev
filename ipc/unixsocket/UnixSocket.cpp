@@ -613,16 +613,6 @@ UnixSocketConsumer::~UnixSocketConsumer()
 {
 }
 
-/* static */ void
-UnixSocketConsumer::RawSendSocketData(UnixSocketImpl* aImpl,
-                                      UnixSocketRawData* aData)
-{
-  MOZ_ASSERT(!NS_IsMainThread());
-  MOZ_ASSERT(aImpl && !aImpl->IsShutdownOnIOThread());
-
-  aImpl->QueueWriteData(aData);
-}
-
 bool
 UnixSocketConsumer::SendSocketData(UnixSocketRawData* aData)
 {

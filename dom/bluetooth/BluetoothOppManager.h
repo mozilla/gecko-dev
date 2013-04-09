@@ -60,23 +60,13 @@ public:
 
   void SendConnectRequest();
   void SendPutHeaderRequest(const nsAString& aFileName, int aFileSize);
-
-  // Note: This function is called on the IO thread and cannot touch mImpl
-  // directly as that can race.
-  void SendPutRequest(mozilla::ipc::UnixSocketImpl* aImpl,
-                      uint8_t* aFileBody, int aFileBodyLength);
+  void SendPutRequest(uint8_t* aFileBody, int aFileBodyLength);
   void SendPutFinalRequest();
   void SendDisconnectRequest();
   void SendAbortRequest();
 
   void ExtractPacketHeaders(const ObexHeaderSet& aHeader);
   bool ExtractBlobHeaders();
-
-  void SetLastCommand(int aCommand)
-  {
-    MOZ_ASSERT(NS_IsMainThread());
-    mLastCommand = aCommand;
-  }
 
   nsresult HandleShutdown();
 
@@ -178,6 +168,7 @@ private:
   nsAutoArrayPtr<uint8_t> mReceivedDataBuffer;
 
   nsCOMPtr<nsIDOMBlob> mBlob;
+  nsCOMPtr<nsIThread> mReadFileThread;
   nsCOMPtr<nsIOutputStream> mOutputStream;
   nsCOMPtr<nsIInputStream> mInputStream;
 
