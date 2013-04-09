@@ -121,10 +121,12 @@ public:
     
 class AddrInfo {
 public:
-  AddrInfo(const char *host, const PRAddrInfo *prAddrInfo);
+  AddrInfo(const char *host, const PRAddrInfo *prAddrInfo,
+           const char *cname);
   ~AddrInfo();
 
   char *mHostName;
+  char *mCanonicalName;
   LinkedList<NetAddrElement> mAddresses;
 };
 

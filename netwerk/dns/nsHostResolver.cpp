@@ -993,7 +993,10 @@ nsHostResolver::ThreadFunc(void *arg)
         nsresult status;
         AddrInfo *ai = nullptr;
         if (prai) {
-            ai = new AddrInfo(rec->host, prai);
+            const char *cname = nullptr;
+            if (rec->flags & RES_CANON_NAME)
+                cname = PR_GetCanonNameFromAddrInfo(prai);
+            ai = new AddrInfo(rec->host, prai, cname);
             PR_FreeAddrInfo(prai);
 
             status = NS_OK;
