@@ -636,6 +636,10 @@ def parse_options():
     parser.add_option('--tree', dest='tree', action='store',
                       default='b2g',
                       help='the tree that the revsion parameter refers to')
+    parser.add_option('--symbols-path', dest='symbols_path', action='store',
+                      default=None,
+                      help='absolute path to directory containing breakpad '
+                      'symbols, or the URL of a zip file containing symbols')
 
     options, tests = parser.parse_args()
 
