@@ -2191,6 +2191,10 @@ this.DOMApplicationRegistry = {
               app.installState = "installed";
               app.readyToApplyDownload = false;
               self.broadcastMessage("Webapps:PackageEvent", {
+                                      type: "downloaded",
+                                      manifestURL: aApp.manifestURL,
+                                      app: app })
+              self.broadcastMessage("Webapps:PackageEvent", {
                                       type: "applied",
                                       manifestURL: aApp.manifestURL,
                                       app: app });
