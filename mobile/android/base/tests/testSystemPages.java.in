@@ -24,8 +24,8 @@ import java.util.Arrays;
         blockForGeckoReady();
 
         String urls [] = {  "about:firefox", "about:rights", "about:home", "about:addons", "about:downloads", "about:buildconfig", "about:"};
-        String expectedUrls [] = { "about:apps", "about:downloads", "about:addons", "about:"};
-        String menuItems [] = { "Apps", "Downloads", "Add-ons", "Settings"};
+        String expectedUrls [] = { "about:downloads", "about:addons", "about:"};
+        String menuItems [] = { "Downloads", "Add-ons", "Settings"};
 
         /* This first section loads system pages from the awesome bar
 	and checks that the pages are loaded in the same tab */
