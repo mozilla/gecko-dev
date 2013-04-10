@@ -671,6 +671,10 @@ CompositorParent::TransformFixedLayers(Layer* aLayer,
       nsIntRect transformedClipRect(*clipRect);
       transformedClipRect.MoveBy(translation.x, translation.y);
       shadow->SetShadowClipRect(&transformedClipRect);
+
+    // The transform has now been applied, so there's no need to iterate over
+    // child layers.
+    return;
     }
   }
 
