@@ -936,7 +936,7 @@ RILContentHelper.prototype = {
         this._deliverCallback("_telephonyCallbacks",
                               "notifyError",
                               [msg.json.callIndex,
-                               msg.json.error]);
+                               msg.json.errorMsg]);
         break;
       case "RIL:VoicemailNotification":
         this.handleVoicemailNotification(msg.json);
