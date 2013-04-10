@@ -329,7 +329,6 @@ public:
     if (img) {
       mChild->SendPublishImage(*img);
     }
-    delete img;
   }
 
   ImageContainerChild *mChild;
