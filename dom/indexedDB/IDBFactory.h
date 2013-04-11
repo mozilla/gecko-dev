@@ -79,6 +79,9 @@ public:
   GetConnection(const nsAString& aDatabaseFilePath);
 
   static nsresult
+  SetDefaultPragmas(mozIStorageConnection* aConnection);
+
+  static nsresult
   LoadDatabaseInformation(mozIStorageConnection* aConnection,
                           nsIAtom* aDatabaseId,
                           uint64_t* aVersion,
