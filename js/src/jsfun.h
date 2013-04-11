@@ -199,6 +199,7 @@ class JSFunction : public JSObject
 
     js::UnrootedScript getOrCreateScript(JSContext *cx) {
         JS_ASSERT(isInterpreted());
+        JS_ASSERT(cx);
         if (isInterpretedLazy()) {
             js::RootedFunction self(cx, this);
             js::MaybeCheckStackRoots(cx);
