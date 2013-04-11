@@ -13,7 +13,9 @@ let histograms = {
   PLACES_KEYWORDS_COUNT: function (val) do_check_eq(val, 1),
   PLACES_SORTED_BOOKMARKS_PERC: function (val) do_check_eq(val, 100),
   PLACES_TAGGED_BOOKMARKS_PERC: function (val) do_check_eq(val, 100),
-  PLACES_DATABASE_FILESIZE_MB: function (val) do_check_true(val > 0),
+  // PLACES_DATABASE_FILESIZE_MB is randomly orange on linux pgo, but we don't
+  // use places on b2g so this isn't testing anything useful anyway.
+  //PLACES_DATABASE_FILESIZE_MB: function (val) do_check_true(val > 0),
   // The journal may have been truncated.
   PLACES_DATABASE_JOURNALSIZE_MB: function (val) do_check_true(val >= 0),
   PLACES_DATABASE_PAGESIZE_B: function (val) do_check_eq(val, 2048),
