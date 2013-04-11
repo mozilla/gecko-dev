@@ -78,7 +78,10 @@ public:
 
 private:
   class GetVolumeTask;
+  class SendRingIndicatorTask;
+
   friend class GetVolumeTask;
+  friend class SendRingIndicatorTask;
   friend class BluetoothHfpManagerObserver;
 
   BluetoothHfpManager();

@@ -50,6 +50,9 @@ namespace {
   StaticAutoPtr<BluetoothHfpManager> gBluetoothHfpManager;
   StaticRefPtr<BluetoothHfpManagerObserver> sHfpObserver;
   bool gInShutdown = false;
+  static bool sStopSendingRingFlag = true;
+
+  static int sRingInterval = 3000; //unit: ms
   static const char kHfpCrlf[] = "\xd\xa";
 } // anonymous namespace
 
@@ -261,6 +264,53 @@ BluetoothHfpManagerObserver::Observe(nsISupports* aSubject,
 
 NS_IMPL_ISUPPORTS1(BluetoothHfpManagerObserver, nsIObserver)
 
+class BluetoothHfpManager::SendRingIndicatorTask : public Task
+{
+public:
+  SendRingIndicatorTask(const nsAString& aNumber, int aType)
+    : mNumber(aNumber)
+    , mType(aType)
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+  }
+
+  void Run() MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    NS_ENSURE_FALSE_VOID(sStopSendingRingFlag);
+
+    if (!gBluetoothHfpManager) {
+      NS_WARNING("BluetoothHfpManager no longer exists, cannot send ring!");
+      return;
+    }
+
+    nsAutoCString ringMsg(kHfpCrlf);
+    ringMsg.AppendLiteral("RING");
+    ringMsg.AppendLiteral(kHfpCrlf);
+    gBluetoothHfpManager->SendLine(ringMsg.get());
+
+    if (!mNumber.IsEmpty()) {
+      nsAutoCString clipMsg(kHfpCrlf);
+      clipMsg.AppendLiteral("+CLIP: \"");
+      clipMsg.Append(NS_ConvertUTF16toUTF8(mNumber).get());
+      clipMsg.AppendLiteral("\",");
+      clipMsg.AppendInt(mType);
+      clipMsg.AppendLiteral(kHfpCrlf);
+      gBluetoothHfpManager->SendLine(clipMsg.get());
+    }
+
+    MessageLoop::current()->
+      PostDelayedTask(FROM_HERE,
+                      new SendRingIndicatorTask(mNumber, mType),
+                      sRingInterval);
+  }
+
+private:
+  nsString mNumber;
+  int mType;
+};
+
 void
 OpenScoSocket(const nsAString& aDeviceAddress)
 {
@@ -322,6 +372,7 @@ BluetoothHfpManager::ResetCallArray()
 void
 BluetoothHfpManager::Reset()
 {
+  sStopSendingRingFlag = true;
   sCINDItems[CINDType::CALL].value = CallState::NO_CALL;
   sCINDItems[CINDType::CALLSETUP].value = CallSetupState::NO_CALLSETUP;
   sCINDItems[CINDType::CALLHELD].value = CallHeldState::NO_CALLHELD;
@@ -1132,6 +1183,7 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
         UpdateCIND(CINDType::CALLSETUP, CallSetupState::INCOMING, aSend);
       } else {
         // Start sending RING indicator to HF
+        sStopSendingRingFlag = false;
         UpdateCIND(CINDType::CALLSETUP, CallSetupState::INCOMING, aSend);
 
         nsAutoString number(aNumber);
@@ -1139,6 +1191,9 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
           number.AssignLiteral("");
         }
 
+        MessageLoop::current()->PostDelayedTask(FROM_HERE,
+          new SendRingIndicatorTask(number, mCurrentCallArray[aCallIndex].mType),
+          sRingInterval);
       }
       break;
     case nsIRadioInterfaceLayer::CALL_STATE_DIALING:
@@ -1163,6 +1218,7 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
         case nsIRadioInterfaceLayer::CALL_STATE_INCOMING:
         case nsIRadioInterfaceLayer::CALL_STATE_DISCONNECTED:
           // Incoming call, no break
+          sStopSendingRingFlag = true;
 
           mSocket->GetAddress(address);
           OpenScoSocket(address);
@@ -1200,6 +1256,8 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
       switch (prevCallState) {
         case nsIRadioInterfaceLayer::CALL_STATE_INCOMING:
         case nsIRadioInterfaceLayer::CALL_STATE_BUSY:
+          // Incoming call, no break
+          sStopSendingRingFlag = true;
         case nsIRadioInterfaceLayer::CALL_STATE_DIALING:
         case nsIRadioInterfaceLayer::CALL_STATE_ALERTING:
           // Outgoing call
