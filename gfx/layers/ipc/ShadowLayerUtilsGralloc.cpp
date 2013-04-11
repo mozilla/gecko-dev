@@ -262,7 +262,11 @@ ShadowLayerForwarder::PlatformAllocBuffer(const gfxIntSize& aSize,
   MaybeMagicGrallocBufferHandle handle;
   PGrallocBufferChild* gc =
     mShadowManager->SendPGrallocBufferConstructor(aSize, aContent, &handle);
-  if (handle.Tnull_t == handle.type()) {
+  if (!gc) {
+    NS_ERROR("GrallocBufferConstructor failed by returned null");
+    return false;
+  } else if (handle.Tnull_t == handle.type()) {
+    NS_ERROR("GrallocBufferConstructor failed by returning handle with type Tnull_t");
     PGrallocBufferChild::Send__delete__(gc);
     return false;
   }
