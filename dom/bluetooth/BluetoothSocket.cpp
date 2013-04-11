@@ -10,6 +10,15 @@
 #include "BluetoothUnixSocketConnector.h"
 #include "nsThreadUtils.h"
 
+#undef LOG
+#if defined(MOZ_WIDGET_GONK)
+#include <android/log.h>
+#define LOG(args...)  __android_log_print(ANDROID_LOG_INFO, "GonkDBus", args);
+#else
+#define BTDEBUG true
+#define LOG(args...) if (BTDEBUG) printf(args);
+#endif
+
 using namespace mozilla::ipc;
 USING_BLUETOOTH_NAMESPACE
 
@@ -37,8 +46,8 @@ BluetoothSocket::Connect(const nsACString& aDeviceAddress, int aChannel)
   if (!ConnectSocket(c.forget(), aDeviceAddress.BeginReading())) {
     nsAutoString addr;
     GetAddress(addr);
-    BT_LOG("%s failed. Current connected device address: %s",
-           __FUNCTION__, NS_ConvertUTF16toUTF8(addr).get());
+    LOG("%s failed. Current connected device address: %s",
+        __FUNCTION__, NS_ConvertUTF16toUTF8(addr).get());
     return false;
   }
 
@@ -56,8 +65,8 @@ BluetoothSocket::Listen(int aChannel)
   if (!ListenSocket(c.forget())) {
     nsAutoString addr;
     GetAddress(addr);
-    BT_LOG("%s failed. Current connected device address: %s",
-           __FUNCTION__, NS_ConvertUTF16toUTF8(addr).get());
+    LOG("%s failed. Current connected device address: %s",
+        __FUNCTION__, NS_ConvertUTF16toUTF8(addr).get());
     return false;
   }
 

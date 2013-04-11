@@ -8,22 +8,29 @@
 #define mozilla_dom_bluetooth_bluetoothhfpmanager_h__
 
 #include "BluetoothCommon.h"
+#include "BluetoothSocketObserver.h"
 #include "BluetoothRilListener.h"
 #include "mozilla/ipc/UnixSocket.h"
 #include "nsIObserver.h"
 
 BEGIN_BLUETOOTH_NAMESPACE
 
-class BluetoothReplyRunnable;
 class BluetoothHfpManagerObserver;
+class BluetoothReplyRunnable;
+class BluetoothSocket;
 
-class BluetoothHfpManager : public mozilla::ipc::UnixSocketConsumer
+class BluetoothHfpManager : public BluetoothSocketObserver
 {
 public:
-  ~BluetoothHfpManager();
   static BluetoothHfpManager* Get();
-  virtual void ReceiveSocketData(nsAutoPtr<mozilla::ipc::UnixSocketRawData>& aMessage)
-    MOZ_OVERRIDE;
+
+  ~BluetoothHfpManager();
+  virtual void ReceiveSocketData(
+    BluetoothSocket* aSocket,
+    nsAutoPtr<mozilla::ipc::UnixSocketRawData>& aMessage) MOZ_OVERRIDE;
+  virtual void OnConnectSuccess(BluetoothSocket* aSocket) MOZ_OVERRIDE;
+  virtual void OnConnectError(BluetoothSocket* aSocket) MOZ_OVERRIDE;
+  virtual void OnDisconnect(BluetoothSocket* aSocket) MOZ_OVERRIDE;
 
   bool Connect(const nsAString& aDeviceObjectPath,
                const bool aIsHandsfree,
@@ -39,6 +46,7 @@ public:
                  const char* aPhoneNumber, bool aInitial);
   bool Listen();
   void SetVolume(int aVolume);
+  bool IsConnected();
 
 private:
   friend class BluetoothHfpManagerObserver;
@@ -62,10 +70,11 @@ private:
   bool mReceiveVgsFlag;
   nsString mDevicePath;
   nsString mMsisdn;
-  enum mozilla::ipc::SocketConnectionStatus mSocketStatus;
+  SocketConnectionStatus mPrevSocketStatus;
   nsTArray<int> mCurrentCallStateArray;
   nsAutoPtr<BluetoothRilListener> mListener;
   nsRefPtr<BluetoothReplyRunnable> mRunnable;
+  nsRefPtr<BluetoothSocket> mSocket;
 };
 
 END_BLUETOOTH_NAMESPACE
