@@ -140,6 +140,7 @@ OmxDecoder::OmxDecoder(MediaResource *aResource,
   mVideoBuffer(nullptr),
   mAudioBuffer(nullptr),
   mIsVideoSeeking(false),
+  mPaused(false),
   mAudioMetadataRead(false)
 {
 }
@@ -664,4 +665,33 @@ void OmxDecoder::ReleaseAllPendingVideoBuffersLocked()
     buffer->release();
   }
   mPendingVideoBuffers.clear();
+}
+
+nsresult OmxDecoder::Play() {
+  if (!mPaused) {
+    return NS_OK;
+  }
+  if (mVideoSource.get() && mVideoSource->start() != OK) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  if (mAudioSource.get()&& mAudioSource->start() != OK) {
+    return NS_ERROR_UNEXPECTED;
+  }
+  mPaused = false;
+  return NS_OK;
+}
+
+void OmxDecoder::Pause() {
+  if (mPaused) {
+    return;
+  }
+  if (mVideoSource.get()) {
+    mVideoSource->pause();
+  }
+
+  if (mAudioSource.get()) {
+    mAudioSource->pause();
+  }
+  mPaused = true;
 }

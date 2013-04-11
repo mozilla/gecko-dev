@@ -325,3 +325,16 @@ nsresult nsMediaOmxReader::GetBuffered(nsTimeRanges* aBuffered, int64_t aStartTi
   }
   return NS_OK;
 }
+
+void nsMediaOmxReader::OnDecodeThreadFinish() {
+  if (mOmxDecoder.get()) {
+    mOmxDecoder->Pause();
+  }
+}
+
+void nsMediaOmxReader::OnDecodeThreadStart() {
+  if (mOmxDecoder.get()) {
+    nsresult result = mOmxDecoder->Play();
+    NS_ASSERTION(result == NS_OK, "OmxDecoder should be in play state to continue decoding");
+  }
+}

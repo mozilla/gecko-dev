@@ -485,6 +485,8 @@ int64_t nsBuiltinDecoderStateMachine::GetDecodedAudioDuration() {
 void nsBuiltinDecoderStateMachine::DecodeThreadRun()
 {
   NS_ASSERTION(OnDecodeThread(), "Should be on decode thread.");
+  mReader->OnDecodeThreadStart();
+
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
 
   if (mState == DECODER_STATE_DECODING_METADATA) {
@@ -507,7 +509,10 @@ void nsBuiltinDecoderStateMachine::DecodeThreadRun()
   }
 
   mDecodeThreadIdle = true;
+
   LOG(PR_LOG_DEBUG, ("%p Decode thread finished", mDecoder.get()));
+
+  mReader->OnDecodeThreadFinish();
 }
 
 void nsBuiltinDecoderStateMachine::SendStreamAudio(AudioData* aAudio,

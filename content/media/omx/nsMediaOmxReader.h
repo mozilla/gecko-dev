@@ -54,6 +54,9 @@ public:
     return true;
   }
 
+  virtual void OnDecodeThreadStart() MOZ_OVERRIDE;
+
+  virtual void OnDecodeThreadFinish() MOZ_OVERRIDE;
 };
 
 #endif
