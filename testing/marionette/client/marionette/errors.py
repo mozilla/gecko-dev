@@ -55,9 +55,6 @@ class TimeoutException(MarionetteException):
 class InvalidResponseException(MarionetteException):
     pass
 
-class NoSuchAttributeException(MarionetteException):
-    pass
-
 class JavascriptException(MarionetteException):
     pass
 
