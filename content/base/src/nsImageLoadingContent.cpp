@@ -97,8 +97,9 @@ void
 nsImageLoadingContent::DestroyImageLoadingContent()
 {
   // Cancel our requests so they won't hold stale refs to us
-  ClearCurrentRequest(NS_BINDING_ABORTED);
-  ClearPendingRequest(NS_BINDING_ABORTED);
+  // NB: Don't ask to discard the images here.
+  ClearCurrentRequest(NS_BINDING_ABORTED, 0);
+  ClearPendingRequest(NS_BINDING_ABORTED, 0);
 }
 
 nsImageLoadingContent::~nsImageLoadingContent()
@@ -852,8 +853,8 @@ void
 nsImageLoadingContent::CancelImageRequests(bool aNotify)
 {
   AutoStateChanger changer(this, aNotify);
-  ClearPendingRequest(NS_BINDING_ABORTED);
-  ClearCurrentRequest(NS_BINDING_ABORTED);
+  ClearPendingRequest(NS_BINDING_ABORTED, REQUEST_DISCARD);
+  ClearCurrentRequest(NS_BINDING_ABORTED, REQUEST_DISCARD);
 }
 
 nsresult
@@ -864,8 +865,8 @@ nsImageLoadingContent::UseAsPrimaryRequest(imgIRequest* aRequest,
   AutoStateChanger changer(this, aNotify);
 
   // Get rid if our existing images
-  ClearPendingRequest(NS_BINDING_ABORTED);
-  ClearCurrentRequest(NS_BINDING_ABORTED);
+  ClearPendingRequest(NS_BINDING_ABORTED, REQUEST_DISCARD);
+  ClearCurrentRequest(NS_BINDING_ABORTED, REQUEST_DISCARD);
 
   // Clone the request we were given.
   nsCOMPtr<imgIRequest>& req = PrepareNextRequest();;
@@ -980,14 +981,14 @@ nsImageLoadingContent::SetBlockedRequest(nsIURI* aURI, int16_t aContentDecision)
   // reason "image source changed". However, apparently there's some abuse
   // over in nsImageFrame where the displaying of the "broken" icon for the
   // next image depends on the cancel reason of the previous image. ugh.
-  ClearPendingRequest(NS_ERROR_IMAGE_BLOCKED);
+  ClearPendingRequest(NS_ERROR_IMAGE_BLOCKED, REQUEST_DISCARD);
 
   // For the blocked case, we only want to cancel the existing current request
   // if size is not available. bz says the web depends on this behavior.
   if (!HaveSize(mCurrentRequest)) {
 
     mImageBlockingStatus = aContentDecision;
-    ClearCurrentRequest(NS_ERROR_IMAGE_BLOCKED);
+    ClearCurrentRequest(NS_ERROR_IMAGE_BLOCKED, REQUEST_DISCARD);
 
     // We still want to remember what URI we were despite not having an actual
     // request.
@@ -1003,7 +1004,7 @@ nsImageLoadingContent::PrepareCurrentRequest()
   mImageBlockingStatus = nsIContentPolicy::ACCEPT;
 
   // Get rid of anything that was there previously.
-  ClearCurrentRequest(NS_ERROR_IMAGE_SRC_CHANGED);
+  ClearCurrentRequest(NS_ERROR_IMAGE_SRC_CHANGED, REQUEST_DISCARD);
 
   if (mNewRequestsWillNeedAnimationReset) {
     mCurrentRequestFlags |= REQUEST_NEEDS_ANIMATION_RESET;
@@ -1017,7 +1018,7 @@ nsCOMPtr<imgIRequest>&
 nsImageLoadingContent::PreparePendingRequest()
 {
   // Get rid of anything that was there previously.
-  ClearPendingRequest(NS_ERROR_IMAGE_SRC_CHANGED);
+  ClearPendingRequest(NS_ERROR_IMAGE_SRC_CHANGED, REQUEST_DISCARD);
 
   if (mNewRequestsWillNeedAnimationReset) {
     mPendingRequestFlags |= REQUEST_NEEDS_ANIMATION_RESET;
@@ -1073,7 +1074,8 @@ nsImageLoadingContent::MakePendingRequestCurrent()
 }
 
 void
-nsImageLoadingContent::ClearCurrentRequest(nsresult aReason)
+nsImageLoadingContent::ClearCurrentRequest(nsresult aReason, 
+                                           uint32_t aFlags)
 {
   if (!mCurrentRequest) {
     // Even if we didn't have a current request, we might have been keeping
@@ -1090,14 +1092,15 @@ nsImageLoadingContent::ClearCurrentRequest(nsresult aReason)
                                         &mCurrentRequestRegistered);
 
   // Clean up the request.
-  UntrackImage(mCurrentRequest);
+  UntrackImage(mCurrentRequest, aFlags);
   mCurrentRequest->CancelAndForgetObserver(aReason);
   mCurrentRequest = nullptr;
   mCurrentRequestFlags = 0;
 }
 
 void
-nsImageLoadingContent::ClearPendingRequest(nsresult aReason)
+nsImageLoadingContent::ClearPendingRequest(nsresult aReason,
+                                           uint32_t aFlags)
 {
   if (!mPendingRequest)
     return;
@@ -1113,7 +1116,7 @@ nsImageLoadingContent::ClearPendingRequest(nsresult aReason)
   nsLayoutUtils::DeregisterImageRequest(GetFramePresContext(), mPendingRequest,
                                         &mPendingRequestRegistered);
 
-  UntrackImage(mPendingRequest);
+  UntrackImage(mPendingRequest, aFlags);
   mPendingRequest->CancelAndForgetObserver(aReason);
   mPendingRequest = nullptr;
   mPendingRequestFlags = 0;
@@ -1224,7 +1227,8 @@ nsImageLoadingContent::TrackImage(imgIRequest* aImage)
 }
 
 nsresult
-nsImageLoadingContent::UntrackImage(imgIRequest* aImage)
+nsImageLoadingContent::UntrackImage(imgIRequest* aImage,
+                                    uint32_t aFlags /* = 0 */)
 {
   if (!aImage)
     return NS_OK;
@@ -1237,12 +1241,20 @@ nsImageLoadingContent::UntrackImage(imgIRequest* aImage)
     mPendingRequestFlags &= ~REQUEST_SHOULD_BE_TRACKED;
   }
 
-  // If GetOurDocument() returns null here, we've outlived our document.
-  // That's fine, because the document empties out the tracker and unlocks
-  // all locked images on destruction.
+  // We may not be in the document.  If we outlived our document that's fine,
+  // because the document empties out the tracker and unlocks all locked images
+  // on destruction.  But if we were never in the document we may need to force
+  // discarding the image here, since this is the only chance we have.
   nsIDocument* doc = GetOurCurrentDoc();
-  if (doc)
-    return doc->RemoveImage(aImage, nsIDocument::REQUEST_DISCARD);
+  if (doc) {
+    return doc->RemoveImage(aImage,
+                            (aFlags & REQUEST_DISCARD) ? nsIDocument::REQUEST_DISCARD :
+                                                         0);
+  } else if (aFlags & REQUEST_DISCARD) {
+    // If we're not in the document we may still need to be discarded.
+    aImage->RequestDiscard();
+  }
+    
   return NS_OK;
 }
 
