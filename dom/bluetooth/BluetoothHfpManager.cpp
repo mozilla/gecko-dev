@@ -591,7 +591,8 @@ BluetoothHfpManager::HandleShutdown()
 
 // Virtual function of class SocketConsumer
 void
-BluetoothHfpManager::ReceiveSocketData(nsAutoPtr<UnixSocketRawData>& aMessage)
+BluetoothHfpManager::ReceiveSocketData(BluetoothSocket* aSocket,
+                                       nsAutoPtr<UnixSocketRawData>& aMessage)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -842,7 +843,7 @@ BluetoothHfpManager::SendLine(const char* aMessage)
 }
 
 bool
-BluetoothHfpManager::SendCommand(const char* aCommand, uint8_t aValue)
+BluetoothHfpManager::SendCommand(const char* aCommand, int aValue)
 {
   if (mPrevSocketStatus != SocketConnectionStatus::SOCKET_CONNECTED) {
     return false;

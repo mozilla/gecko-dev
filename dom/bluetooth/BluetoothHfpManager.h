@@ -60,9 +60,6 @@ private:
   void Cleanup();
   void NotifyDialer(const nsAString& aCommand);
   void NotifySettings();
-  virtual void OnConnectSuccess() MOZ_OVERRIDE;
-  virtual void OnConnectError() MOZ_OVERRIDE;
-  virtual void OnDisconnect() MOZ_OVERRIDE;
 
   int mCurrentVgs;
   int mCurrentCallIndex;
