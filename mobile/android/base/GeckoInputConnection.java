@@ -46,14 +46,18 @@ class GeckoInputConnection
 
     private static Handler sBackgroundHandler;
 
-    private class ThreadUtils {
+    private static class ThreadUtils {
+        // We only want one UI editable around to keep synchronization simple,
+        // so we make ThreadUtils a singleton
+        public static final ThreadUtils sInstance = new ThreadUtils();
+
         private Editable mUiEditable;
         private Object mUiEditableReturn;
         private Exception mUiEditableException;
         private final SynchronousQueue<Runnable> mIcRunnableSync;
         private final Runnable mIcSignalRunnable;
 
-        public ThreadUtils() {
+        private ThreadUtils() {
             mIcRunnableSync = new SynchronousQueue<Runnable>();
             mIcSignalRunnable = new Runnable() {
                 @Override public void run() {
@@ -119,13 +123,14 @@ class GeckoInputConnection
         }
 
         public Editable getEditableForUiThread(final Handler uiHandler,
-                                               final Handler icHandler) {
+                                               final GeckoEditableClient client) {
             if (DEBUG) {
                 GeckoApp.assertOnThread(uiHandler.getLooper().getThread());
             }
+            final Handler icHandler = client.getInputConnectionHandler();
             if (icHandler.getLooper() == uiHandler.getLooper()) {
                 // IC thread is UI thread; safe to use Editable directly
-                return getEditable();
+                return client.getEditable();
             }
             // IC thread is not UI thread; we need to return a proxy Editable in order
             // to safely use the Editable from the UI thread
@@ -151,7 +156,7 @@ class GeckoInputConnection
                                 synchronized (icHandler) {
                                     try {
                                         mUiEditableReturn = method.invoke(
-                                            mEditableClient.getEditable(), args);
+                                            client.getEditable(), args);
                                     } catch (Exception e) {
                                         mUiEditableException = e;
                                     }
@@ -177,8 +182,6 @@ class GeckoInputConnection
             return mUiEditable;
         }
     }
-
-    private final ThreadUtils mThreadUtils = new ThreadUtils();
 
     // Managed only by notifyIMEEnabled; see comments in notifyIMEEnabled
     private int mIMEState;
@@ -652,10 +655,10 @@ class GeckoInputConnection
             // that point the key event has already been processed.
             mainHandler.post(new Runnable() {
                 @Override public void run() {
-                    mThreadUtils.endWaitForUiThread();
+                    ThreadUtils.sInstance.endWaitForUiThread();
                 }
             });
-            mThreadUtils.waitForUiThread(icHandler);
+            ThreadUtils.sInstance.waitForUiThread(icHandler);
         }
         return false; // seems to always return false
     }
@@ -705,8 +708,8 @@ class GeckoInputConnection
         }
 
         Handler uiHandler = view.getRootView().getHandler();
-        Handler icHandler = mEditableClient.getInputConnectionHandler();
-        Editable uiEditable = mThreadUtils.getEditableForUiThread(uiHandler, icHandler);
+        Editable uiEditable = ThreadUtils.sInstance.
+            getEditableForUiThread(uiHandler, mEditableClient);
         if (!keyListener.onKeyDown(view, uiEditable, keyCode, event)) {
             mEditableClient.sendEvent(GeckoEvent.createKeyEvent(event));
         }
@@ -746,8 +749,8 @@ class GeckoInputConnection
         }
 
         Handler uiHandler = view.getRootView().getHandler();
-        Handler icHandler = mEditableClient.getInputConnectionHandler();
-        Editable uiEditable = mThreadUtils.getEditableForUiThread(uiHandler, icHandler);
+        Editable uiEditable = ThreadUtils.sInstance.
+            getEditableForUiThread(uiHandler, mEditableClient);
         if (!keyListener.onKeyUp(view, uiEditable, keyCode, event)) {
             mEditableClient.sendEvent(GeckoEvent.createKeyEvent(event));
         }
