@@ -72,7 +72,7 @@ CSRCS = \
 # don't have to vacuum to make sure the data is not visible in the file.
 # -DSQLITE_ENABLE_FTS3=1 enables the full-text index module.
 # -DSQLITE_CORE=1 statically links that module into the SQLite library.
-# -DSQLITE_DEFAULT_PAGE_SIZE=32768 and SQLITE_MAX_DEFAULT_PAGE_SIZE=32768
+# -DSQLITE_DEFAULT_PAGE_SIZE=2048 and SQLITE_MAX_DEFAULT_PAGE_SIZE=32768
 # increases the page size from 1k, see bug 416330.  The value must stay in sync
 # with mozIStorageConnection::DEFAULT_PAGE_SIZE.
 # -DSQLITE_MAX_SCHEMA_RETRY increases the times SQLite may try to reparse
@@ -85,7 +85,7 @@ DEFINES = \
   -DSQLITE_CORE=1 \
   -DSQLITE_ENABLE_FTS3=1 \
   -DSQLITE_ENABLE_UNLOCK_NOTIFY=1 \
-  -DSQLITE_DEFAULT_PAGE_SIZE=32768 \
+  -DSQLITE_DEFAULT_PAGE_SIZE=2048 \
   -DSQLITE_MAX_DEFAULT_PAGE_SIZE=32768 \
   -DSQLITE_MAX_SCHEMA_RETRY=25 \
   $(NULL)

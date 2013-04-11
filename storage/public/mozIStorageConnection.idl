@@ -33,7 +33,7 @@ interface mozIStorageConnection : nsISupports {
    * This value must stay in sync with the SQLITE_DEFAULT_PAGE_SIZE define in
    * /db/sqlite3/src/Makefile.in
    */
-  const long DEFAULT_PAGE_SIZE = 32768;
+  const long DEFAULT_PAGE_SIZE = 2048;
 
   /**
    * Closes a database connection.  Callers must finalize all statements created
