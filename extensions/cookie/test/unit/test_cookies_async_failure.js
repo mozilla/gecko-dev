@@ -18,6 +18,36 @@
 //    This should result in an abort of the database rebuild; the partially-
 //    built database should be moved to 'cookies.sqlite.bak-rebuild'.
 
+const corruptionMarkerHost = "http://corruptmarker.com";
+const corruptionMarkerCookie = "corrupt=here";
+
+// Understanding this requires a careful study of the SQLite documentation:
+//   http://www.sqlite.org/fileformat2.html
+const corruptionMarkers = [
+  // TABLE moz_cookies
+  {
+    header: [0x0E, 0x00, 0x2F, 0x08, 0x08, 0x1B, 0x15, 0x2F, 0x0F, 0x04, 0x06,
+             0x06, 0x08, 0x08],
+    payload: [String.charCodeAt(i)
+              for each (i in "corruptmarker.comcorrupthere")]
+  },
+
+  // INDEX moz_basedomain
+  {
+    header: [0x05, 0x2F, 0x08, 0x08, 0x02],
+    payload: [String.charCodeAt(i)
+              for each (i in "corruptmarker.com")]
+  },
+
+  // INDEX sqlite_autoindex_moz_cookies_1moz_cookies (created by the
+  // CONSTRAINT clause of the moz_cookies table)
+  {
+    header: [0x07, 0x1B, 0x2F, 0x0F, 0x08, 0x08, 0x02],
+    payload: [String.charCodeAt(i)
+              for each (i in "corruptcorruptmarker.com")]
+  }
+];
+
 let test_generator = do_run_test();
 
 function run_test() {
@@ -86,30 +116,75 @@ function do_get_rebuild_backup_file(profile)
 
 function do_corrupt_db(file)
 {
-  // Sanity check: the database size should be larger than 450k, since we've
-  // written about 460k of data. If it's not, let's make it obvious now.
-  let size = file.fileSize;
-  do_check_true(size > 450e3);
+  // Corrupt the database by writing bad data to the header of a row. We find
+  // the header by searching for known values. Corruption requires writing
+  // 0x0A (an invalid column type) to the all but the first byte of the header.
+  const poisonChar = "\x0A";
 
-  // Corrupt the database by writing bad data to the end of the file. We
-  // assume that the important metadata -- table structure etc -- is stored
-  // elsewhere, and that doing this will not cause synchronous failure when
-  // initializing the database connection. This is totally empirical --
-  // overwriting between 1k and 100k of live data seems to work. (Note that the
-  // database file will be larger than the actual content requires, since the
-  // cookie service uses a large growth increment. So we calculate the offset
-  // based on the expected size of the content, not just the file size.)
-  let ostream = Cc["@mozilla.org/network/file-output-stream;1"].
-                createInstance(Ci.nsIFileOutputStream);
-  ostream.init(file, 2, -1, 0);
-  let sstream = ostream.QueryInterface(Ci.nsISeekableStream);
-  let n = size - 450e3 + 20e3;
-  sstream.seek(Ci.nsISeekableStream.NS_SEEK_SET, size - n);
-  for (let i = 0; i < n; ++i) {
-    ostream.write("a", 1);
+  let size = file.fileSize;
+
+  let istream = Cc["@mozilla.org/network/file-input-stream;1"].
+                createInstance(Ci.nsIFileInputStream);
+  istream.init(file, -1, -1, 0);
+
+  let bstream = Cc["@mozilla.org/binaryinputstream;1"].
+                createInstance(Ci.nsIBinaryInputStream);
+  bstream.setInputStream(istream);
+
+  let bytes = bstream.readByteArray(bstream.available());
+
+  bstream.close();
+
+  let ostream;
+  let sstream;
+
+  try {
+    a: for each (let marker in corruptionMarkers) {
+      const header = marker.header;
+      const payload = marker.payload;
+      const match = header.concat(payload);
+
+      do_check_true(size > match.length);
+      do_check_true(header.length > 1);
+
+      let matchIndex = -1;
+      b: for (let i = 0, count = bytes.length - match.length; i < count; i++) {
+        if (bytes[i] != match[0]) {
+          continue b;
+        }
+
+        for (let j = 1; j < match.length; j++) {
+          if (bytes[i + j] != match[j]) {
+            continue b;
+          }
+        }
+
+        matchIndex = i;
+        break;
+      }
+
+      if (matchIndex == -1) {
+        continue a;
+      }
+
+      if (!ostream) {
+        ostream = Cc["@mozilla.org/network/file-output-stream;1"].
+                  createInstance(Ci.nsIFileOutputStream);
+        ostream.init(file, 2, -1, 0);
+        sstream = ostream.QueryInterface(Ci.nsISeekableStream);
+      }
+
+      sstream.seek(Ci.nsISeekableStream.NS_SEEK_SET, matchIndex + 1);
+
+      let poison = new Array(header.length).join(poisonChar);
+      ostream.write(poison, poison.length);
+    }
+  } finally {
+    if (ostream) {
+      ostream.flush();
+      ostream.close();
+    }
   }
-  ostream.flush();
-  ostream.close();
 
   do_check_eq(file.clone().fileSize, size);
   return size;
@@ -213,6 +288,11 @@ function run_test_2(generator)
     Services.cookies.setCookieString(uri, null, "oh=hai; max-age=1000", null);
   }
 
+  let uri = NetUtil.newURI(corruptionMarkerHost);
+  Services.cookies.setCookieString(uri, null,
+                                   corruptionMarkerCookie + "; max-age=1000",
+                                   null);
+
   // Close the profile.
   do_close_profile(sub_generator);
   yield;
@@ -278,13 +358,17 @@ function run_test_3(generator)
 
   // Load the profile and populate it.
   do_load_profile();
-  for (let i = 0; i < 10; ++i) {
+  for (let i = 0; i < 1000; ++i) {
     let uri = NetUtil.newURI("http://hither.com/");
     Services.cookies.setCookieString(uri, null, "oh" + i + "=hai; max-age=1000",
       null);
   }
-  for (let i = 10; i < 3000; ++i) {
-    let uri = NetUtil.newURI("http://haithur.com/");
+  let uri = NetUtil.newURI(corruptionMarkerHost);
+  Services.cookies.setCookieString(uri, null,
+                                   corruptionMarkerCookie + "; max-age=1000",
+                                   null);
+  for (let i = 1000; i < 3000; ++i) {
+    let uri = NetUtil.newURI(corruptionMarkerHost);
     Services.cookies.setCookieString(uri, null, "oh" + i + "=hai; max-age=1000",
       null);
   }
@@ -306,8 +390,8 @@ function run_test_3(generator)
   // Synchronously read in the cookies for our two domains. The first should
   // succeed, but the second should fail midway through, resulting in none of
   // those cookies being present.
-  do_check_eq(Services.cookiemgr.countCookiesFromHost("hither.com"), 10);
-  do_check_eq(Services.cookiemgr.countCookiesFromHost("haithur.com"), 0);
+  do_check_eq(Services.cookiemgr.countCookiesFromHost("hither.com"), 1000);
+  do_check_eq(Services.cookiemgr.countCookiesFromHost(corruptionMarkerHost), 0);
 
   // Wait for the backup file to be created and the database rebuilt.
   do_check_false(do_get_backup_file(profile).exists());
@@ -320,8 +404,8 @@ function run_test_3(generator)
   do_close_profile(sub_generator);
   yield;
   let db = Services.storage.openDatabase(do_get_cookie_file(profile));
-  do_check_eq(do_count_cookies_in_db(db, "hither.com"), 10);
-  do_check_eq(do_count_cookies_in_db(db), 10);
+  do_check_eq(do_count_cookies_in_db(db, "hither.com"), 1000);
+  do_check_eq(do_count_cookies_in_db(db), 1000);
   db.close();
 
   // Check that the original database was renamed.
@@ -373,6 +457,10 @@ function run_test_4(generator)
     let uri = NetUtil.newURI("http://" + i + ".com/");
     Services.cookies.setCookieString(uri, null, "oh=hai; max-age=1000", null);
   }
+  let uri = NetUtil.newURI(corruptionMarkerHost);
+  Services.cookies.setCookieString(uri, null,
+                                   corruptionMarkerCookie + "; max-age=1000",
+                                   null);
 
   // Close the profile.
   do_close_profile(sub_generator);
@@ -441,6 +529,10 @@ function run_test_4(generator)
     let uri = NetUtil.newURI("http://" + i + ".com/");
     Services.cookies.setCookieString(uri, null, "oh=hai; max-age=1000", null);
   }
+  let uri = NetUtil.newURI(corruptionMarkerHost);
+  Services.cookies.setCookieString(uri, null,
+                                   corruptionMarkerCookie + "; max-age=1000",
+                                   null);
 
   // Close the profile.
   do_close_profile(sub_generator);
@@ -512,7 +604,13 @@ function run_test_5(generator)
   let uri = NetUtil.newURI("http://bar.com/");
   Services.cookies.setCookieString(uri, null, "oh=hai; path=/; max-age=1000",
     null);
-  for (let i = 0; i < 3000; ++i) {
+  let uri = NetUtil.newURI("http://0.com/");
+  Services.cookies.setCookieString(uri, null, "oh=hai; max-age=1000", null);
+  uri = NetUtil.newURI(corruptionMarkerHost);
+  Services.cookies.setCookieString(uri, null,
+                                   corruptionMarkerCookie + "; max-age=1000",
+                                   null);
+  for (let i = 1; i < 3000; ++i) {
     let uri = NetUtil.newURI("http://" + i + ".com/");
     Services.cookies.setCookieString(uri, null, "oh=hai; max-age=1000", null);
   }

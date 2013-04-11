@@ -2,10 +2,10 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-// This file tests that dbs are using 32k pagesize
+// This file tests that dbs are using 2k pagesize
 
-const kExpectedPageSize = 32768; // 32K
-const kExpectedCacheSize = 128; // (4MiB / 32KiB)
+const kExpectedPageSize = 2048; // 2K
+const kExpectedCacheSize = 2000; // (4MiB / 2KiB)
 
 function check_size(db)
 {
@@ -32,4 +32,3 @@ function run_test()
   check_size(getDatabase(new_file("shared32k")));
   check_size(getService().openUnsharedDatabase(new_file("unshared32k")));
 }
-
