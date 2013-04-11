@@ -1088,7 +1088,7 @@ BluetoothHfpManager::CallStateChanged(int aCallIndex, int aCallState,
 }
 
 void
-BluetoothHfpManager::OnConnectSuccess()
+BluetoothHfpManager::OnConnectSuccess(BluetoothSocket* aSocket)
 {
   // For active connection request, we need to reply the DOMRequest
   if (mRunnable) {
@@ -1113,8 +1113,10 @@ BluetoothHfpManager::OnConnectSuccess()
 }
 
 void
-BluetoothHfpManager::OnConnectError()
+BluetoothHfpManager::OnConnectError(BluetoothSocket* aSocket)
 {
+  MOZ_ASSERT(aSocket == mSocket);
+
   // For active connection request, we need to reply the DOMRequest
   if (mRunnable) {
     BluetoothValue v;
@@ -1126,14 +1128,14 @@ BluetoothHfpManager::OnConnectError()
   }
 
   // If connecting for some reason didn't work, restart listening
-  CloseSocket();
-  mSocketStatus = GetConnectionStatus();
   Listen();
 }
 
 void
-BluetoothHfpManager::OnDisconnect()
+BluetoothHfpManager::OnDisconnect(BluetoothSocket* aSocket)
 {
+  MOZ_ASSERT(aSocket == mSocket);
+
   // When we close a connected socket, then restart listening again and
   // notify Settings app.
   if (mPrevSocketStatus == SocketConnectionStatus::SOCKET_CONNECTED) {
@@ -1142,6 +1144,8 @@ BluetoothHfpManager::OnDisconnect()
   } else if (mPrevSocketStatus == SocketConnectionStatus::SOCKET_CONNECTING) {
     NS_WARNING("BluetoothHfpManager got unexpected socket status!");
   }
+
+  CloseScoSocket();
 
   sStopSendingRingFlag = true;
   sCINDItems[CINDType::CALL].value = CallState::NO_CALL;
