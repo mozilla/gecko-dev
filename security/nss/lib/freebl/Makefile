@@ -91,7 +91,7 @@ ifdef FREEBL_PRELINK_COMMAND
 	DEFINES +=-DFREEBL_PRELINK_COMMAND=\"$(FREEBL_PRELINK_COMMAND)\"
 endif
 # NSS_X86 means the target is a 32-bits x86 CPU architecture
-# NSS_X64 means the target is a 64-bits x64 CPU architecture
+# NSS_X64 means the target is a 64-bits 64 CPU architecture
 # NSS_X86_OR_X64 means the target is either x86 or x64
 ifeq (,$(filter-out i386 x386 x86 x86_64,$(CPU_ARCH)))
         DEFINES += -DNSS_X86_OR_X64
@@ -180,14 +180,16 @@ endif # Darwin
 ifeq ($(OS_TARGET),Linux)
 ifeq ($(CPU_ARCH),x86_64)
     ASFILES  = arcfour-amd64-gas.s mpi_amd64_gas.s
-    ASFLAGS += -march=opteron -m64 -fPIC -Wa,--noexecstack
+    ASFLAGS += -m64 -fPIC -Wa,--noexecstack
     DEFINES += -DNSS_BEVAND_ARCFOUR -DMPI_AMD64 -DMP_ASSEMBLY_MULTIPLY
     DEFINES += -DNSS_USE_COMBA
     DEFINES += -DMP_CHAR_STORE_SLOW -DMP_IS_LITTLE_ENDIAN
 #   DEFINES += -DMPI_AMD64_ADD
     # comment the next two lines to turn off intel HW accelleration
     DEFINES += -DUSE_HW_AES
-    ASFILES += intel-aes.s
+    ASFILES += intel-aes.s intel-gcm.s
+    EXTRA_SRCS += intel-gcm-wrap.c
+    INTEL_GCM = 1
     MPI_SRCS += mpi_amd64.c mp_comba.c
 endif
 ifeq ($(CPU_ARCH),x86)
@@ -442,7 +444,9 @@ else
 	DEFINES += -DNSS_USE_COMBA -DMP_CHAR_STORE_SLOW -DMP_IS_LITTLE_ENDIAN
 	# comment the next two lines to turn off intel HW accelleration
 	DEFINES += -DUSE_HW_AES
-	ASFILES += intel-aes.s
+	ASFILES += intel-aes.s intel-gcm.s
+        EXTRA_SRCS += intel-gcm-wrap.c
+        INTEL_GCM = 1
 	MPI_SRCS += mpi_amd64.c
     else
 	# Solaris x86
@@ -641,5 +645,21 @@ ifdef NEED_ABSOLUTE_PATH
 else
 	$(CC) -o $@ -c $(CFLAGS) -fno-strict-aliasing $<
 endif
+endif
+endif
+
+ifdef INTEL_GCM
+#
+# GCM binary needs -mssse3
+#
+$(OBJDIR)/$(PROG_PREFIX)intel-gcm-wrap$(OBJ_SUFFIX): CFLAGS += -mssse3
+
+# The integrated assembler in Clang 3.2 does not support % in the
+# expression of a .set directive. intel-gcm.s uses .set to give
+# symbolic names to registers, for example,
+#     .set  Htbl, %rdi
+# So we can't use Clang's integrated assembler with intel-gcm.s.
+ifneq (,$(findstring clang,$(AS)))
+$(OBJDIR)/$(PROG_PREFIX)intel-gcm$(OBJ_SUFFIX): ASFLAGS += -no-integrated-as
 endif
 endif

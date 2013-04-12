@@ -4,7 +4,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-/* $Id: loader.c,v 1.57 2012/06/28 17:55:05 rrelyea%redhat.com Exp $ */
+/* $Id: loader.c,v 1.60 2013/02/06 22:20:22 wtc%google.com Exp $ */
 
 #include "loader.h"
 #include "prmem.h"
@@ -1851,10 +1851,58 @@ PQG_ParamGenV2( unsigned int L, unsigned int N, unsigned int seedBytes,
   return (vector->p_PQG_ParamGenV2)(L, N, seedBytes, pParams, pVfy); 
 }
 
-PRBool
+SECStatus
 PRNGTEST_RunHealthTests(void)
 {
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
-      return PR_FALSE;
+      return SECFailure;
   return vector->p_PRNGTEST_RunHealthTests();
+}
+
+SECStatus
+SSLv3_MAC_ConstantTime(
+    unsigned char *result,
+    unsigned int *resultLen,
+    unsigned int maxResultLen,
+    const SECHashObject *hashObj,
+    const unsigned char *secret,
+    unsigned int secretLen,
+    const unsigned char *header,
+    unsigned int headerLen,
+    const unsigned char *body,
+    unsigned int bodyLen,
+    unsigned int bodyTotalLen)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_SSLv3_MAC_ConstantTime)(
+      result, resultLen, maxResultLen,
+      hashObj,
+      secret, secretLen,
+      header, headerLen,
+      body, bodyLen, bodyTotalLen);
+}
+
+SECStatus
+HMAC_ConstantTime(
+    unsigned char *result,
+    unsigned int *resultLen,
+    unsigned int maxResultLen,
+    const SECHashObject *hashObj,
+    const unsigned char *secret,
+    unsigned int secretLen,
+    const unsigned char *header,
+    unsigned int headerLen,
+    const unsigned char *body,
+    unsigned int bodyLen,
+    unsigned int bodyTotalLen)
+{
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_HMAC_ConstantTime)(
+      result, resultLen, maxResultLen,
+      hashObj,
+      secret, secretLen,
+      header, headerLen,
+      body, bodyLen, bodyTotalLen);
 }

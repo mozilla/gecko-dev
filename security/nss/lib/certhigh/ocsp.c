@@ -6,7 +6,7 @@
  * Implementation of OCSP services, for both client and server.
  * (XXX, really, mostly just for client right now, but intended to do both.)
  *
- * $Id: ocsp.c,v 1.74.2.1 2012/12/12 16:38:39 wtc%google.com Exp $
+ * $Id: ocsp.c,v 1.77 2013/01/23 23:05:50 kaie%kuix.de Exp $
  */
 
 #include "prerror.h"
@@ -156,7 +156,7 @@ ocsp_CertRevokedAfter(ocspRevokedInfo *revokedInfo, int64 time);
 #define NSS_HAVE_GETENV 1
 #endif
 
-static PRBool wantOcspTrace()
+static PRBool wantOcspTrace(void)
 {
     static PRBool firstTime = PR_TRUE;
     static PRBool wantTrace = PR_FALSE;
@@ -504,7 +504,7 @@ ocsp_MakeCacheEntryMostRecent(OCSPCacheData *cache, OCSPCacheItem *new_most_rece
 }
 
 static PRBool
-ocsp_IsCacheDisabled()
+ocsp_IsCacheDisabled(void)
 {
     /* 
      * maxCacheEntries == 0 means unlimited cache entries
@@ -592,7 +592,7 @@ ocsp_CheckCacheSize(OCSPCacheData *cache)
 }
 
 SECStatus
-CERT_ClearOCSPCache()
+CERT_ClearOCSPCache(void)
 {
     OCSP_TRACE(("OCSP CERT_ClearOCSPCache\n"));
     PR_EnterMonitor(OCSP_Global.monitor);
@@ -953,7 +953,7 @@ SECStatus OCSP_ShutdownGlobal(void)
  * A return value of NULL means: 
  *   The application did not register it's own HTTP client.
  */
-const SEC_HttpClientFcn *SEC_GetRegisteredHttpClient()
+const SEC_HttpClientFcn *SEC_GetRegisteredHttpClient(void)
 {
     const SEC_HttpClientFcn *retval;
 
@@ -1940,7 +1940,7 @@ loser:
 }
 
 static CERTOCSPRequest *
-ocsp_prepareEmptyOCSPRequest()
+ocsp_prepareEmptyOCSPRequest(void)
 {
     PRArenaPool *arena = NULL;
     CERTOCSPRequest *request = NULL;
@@ -4686,7 +4686,7 @@ ocsp_GetCachedOCSPResponseStatusIfFresh(CERTOCSPCertID *certID,
 }
 
 PRBool
-ocsp_FetchingFailureIsVerificationFailure()
+ocsp_FetchingFailureIsVerificationFailure(void)
 {
     PRBool isFailure;
 
@@ -5691,7 +5691,6 @@ CERT_GetOCSPResponseStatus(CERTOCSPResponse *response)
       case ocspResponse_unauthorized:
 	PORT_SetError(SEC_ERROR_OCSP_UNAUTHORIZED_REQUEST);
 	break;
-      case ocspResponse_other:
       case ocspResponse_unused:
       default:
 	PORT_SetError(SEC_ERROR_OCSP_UNKNOWN_RESPONSE_STATUS);

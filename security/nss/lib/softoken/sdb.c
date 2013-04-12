@@ -24,14 +24,18 @@
 #include <sqlite3.h>
 #include "prthread.h"
 #include "prio.h"
-#include "stdio.h"
+#include <stdio.h>
 #include "secport.h"
 #include "prmon.h"
 #include "prenv.h"
+#include "prprf.h"
 #include "prsystem.h" /* for PR_GetDirectorySeparator() */
-#include "sys/stat.h"
-#if defined (_WIN32)
+#include <sys/stat.h>
+#if defined(_WIN32)
 #include <io.h>
+#include <windows.h>
+#elif defined(XP_UNIX)
+#include <unistd.h>
 #endif
 
 #ifdef SQLITE_UNSAFE_THREADS
@@ -187,106 +191,116 @@ sdb_done(int err, int *count)
 }
 
 /*
- * 
- * strdup limited to 'n' bytes. (Note: len of file is assumed to be >= len)
- *
- * We don't have a PORT_ version of this function,
- * I suspect it's only normally available in glib,
+ * find out where sqlite stores the temp tables. We do this by replicating
+ * the logic from sqlite.
  */
+#if defined(_WIN32)
 static char *
-sdb_strndup(const char *file, int len)
+sdb_getFallbackTempDir(void)
 {
-   char *result = PORT_Alloc(len+1);
+    /* sqlite uses sqlite3_temp_directory if it is not NULL. We don't have
+     * access to sqlite3_temp_directory because it is not exported from
+     * sqlite3.dll. Assume sqlite3_win32_set_directory isn't called and
+     * sqlite3_temp_directory is NULL.
+     */
+    char path[MAX_PATH];
+    DWORD rv;
+    size_t len;
 
-   if (result == NULL) {
-	return result;
-   }
-
-   PORT_Memcpy(result, file, len);
-   result[len] = 0;
-   return result;
+    rv = GetTempPathA(MAX_PATH, path);
+    if (rv > MAX_PATH || rv == 0)
+        return NULL;
+    len = strlen(path);
+    if (len == 0)
+        return NULL;
+    /* The returned string ends with a backslash, for example, "C:\TEMP\". */
+    if (path[len - 1] == '\\')
+        path[len - 1] = '\0';
+    return PORT_Strdup(path);
 }
-
-/*
- * call back from  sqlite3_exec("Pragma database_list"). Looks for the
- * temp directory, then return the file the temp directory is stored
- * at. */
-static int 
-sdb_getTempDirCallback(void *arg, int columnCount, char **cval, char **cname)
+#elif defined(XP_UNIX)
+static char *
+sdb_getFallbackTempDir(void)
 {
-    int i;
-    int found = 0;
-    char *file = NULL;
-    char *end, *dir;
-    char dirsep;
+    const char *azDirs[] = {
+        NULL,
+        NULL,
+        "/var/tmp",
+        "/usr/tmp",
+        "/tmp",
+        NULL     /* List terminator */
+    };
+    unsigned int i;
+    struct stat buf;
+    const char *zDir = NULL;
 
-    /* we've already found the temp directory, don't look at any more records*/
-    if (*(char **)arg) {
-	return SQLITE_OK;
+    azDirs[0] = sqlite3_temp_directory;
+    azDirs[1] = getenv("TMPDIR");
+
+    for (i = 0; i < PR_ARRAY_SIZE(azDirs); i++) {
+        zDir = azDirs[i];
+        if (zDir == NULL) continue;
+        if (stat(zDir, &buf)) continue;
+        if (!S_ISDIR(buf.st_mode)) continue;
+        if (access(zDir, 07)) continue;
+        break;
     }
 
-    /* look at the columns to see if this record is the temp database,
-     * and does it say where it is stored */
-    for (i=0; i < columnCount; i++) {
-	if (PORT_Strcmp(cname[i],"name") == 0) {
-	    if (PORT_Strcmp(cval[i], "temp") == 0) {
-		found++;
-		continue;
-	    }
-	}
-	if (PORT_Strcmp(cname[i],"file") == 0) {
-	    if (cval[i] && (*cval[i] != 0)) {
-		file = cval[i];
-	    }
-	}
-    }
-
-    /* if we couldn't find it, ask for the next record */
-    if (!found || !file) {
-	return SQLITE_OK;
-    }
-
-    /* drop of the database file name and just return the directory */
-    dirsep = PR_GetDirectorySeparator();
-    end = PORT_Strrchr(file, dirsep);
-    if (!end) {
-	return SQLITE_OK;
-    }
-    dir = sdb_strndup(file, end-file);
-
-    *(char **)arg = dir;
-    return SQLITE_OK;
+    if (zDir == NULL)
+        return NULL;
+    return PORT_Strdup(zDir);
 }
+#else
+#error "sdb_getFallbackTempDir not implemented"
+#endif
 
-/*
- * find out where sqlite stores the temp tables. We do this by creating
- * a temp table, then looking for the database name that sqlite3 creates.
- */
+#ifndef SQLITE_FCNTL_TEMPFILENAME
+/* SQLITE_FCNTL_TEMPFILENAME was added in SQLite 3.7.15 */
+#define SQLITE_FCNTL_TEMPFILENAME 16
+#endif
+
 static char *
 sdb_getTempDir(sqlite3 *sqlDB)
 {
-    char *tempDir = NULL;
-    int sqlerr;
+    int sqlrv;
+    char *result = NULL;
+    char *tempName = NULL;
+    char *foundSeparator = NULL;
 
-    /* create a temporary table */
-    sqlerr = sqlite3_exec(sqlDB, "CREATE TEMPORARY TABLE myTemp (id)",
-			  NULL, 0, NULL);
-    if (sqlerr != SQLITE_OK) {
+    /* Obtain temporary filename in sqlite's directory for temporary tables */
+    sqlrv = sqlite3_file_control(sqlDB, 0, SQLITE_FCNTL_TEMPFILENAME,
+				 (void*)&tempName);
+    if (sqlrv == SQLITE_NOTFOUND) {
+	/* SQLITE_FCNTL_TEMPFILENAME not implemented because we are using
+	 * an older SQLite. */
+	return sdb_getFallbackTempDir();
+    }
+    if (sqlrv != SQLITE_OK) {
 	return NULL;
     }
-    /* look for through the database list for the temp directory */
-    sqlerr = sqlite3_exec(sqlDB, "PRAGMA database_list", 
-		sdb_getTempDirCallback, &tempDir, NULL);
 
-    /* drop the temp table we created */
-    sqlite3_exec(sqlDB, "DROP TABLE myTemp", NULL, 0, NULL);
+    /* We'll extract the temporary directory from tempName */
+    foundSeparator = PORT_Strrchr(tempName, PR_GetDirectorySeparator());
+    if (foundSeparator) {
+	/* We shorten the temp filename string to contain only
+	  * the directory name (including the trailing separator).
+	  * We know the byte after the foundSeparator position is
+	  * safe to use, in the shortest scenario it contains the
+	  * end-of-string byte.
+	  * By keeping the separator at the found position, it will
+	  * even work if tempDir consists of the separator, only.
+	  * (In this case the toplevel directory will be used for
+	  * access speed testing). */
+	++foundSeparator;
+	*foundSeparator = 0;
 
-    if (sqlerr != SQLITE_OK) {
-	return NULL;
+	/* Now we copy the directory name for our caller */
+	result = PORT_Strdup(tempName);
     }
-    return tempDir;
+
+    sqlite3_free(tempName);
+    return result;
 }
-
 
 /*
  * Map SQL_LITE errors to PKCS #11 errors as best we can.
@@ -326,11 +340,13 @@ sdb_mapSQLError(sdbDataType type, int sqlerr)
  */
 static char *sdb_BuildFileName(const char * directory, 
 			const char *prefix, const char *type, 
-			int version, int flags)
+			int version)
 {
     char *dbname = NULL;
     /* build the full dbname */
-    dbname = sqlite3_mprintf("%s/%s%s%d.db",directory, prefix, type, version);
+    dbname = sqlite3_mprintf("%s%c%s%s%d.db", directory,
+			     (int)(unsigned char)PR_GetDirectorySeparator(),
+			     prefix, type, version);
     return dbname;
 }
 
@@ -346,28 +362,63 @@ sdb_measureAccess(const char *directory)
     PRIntervalTime time;
     PRIntervalTime delta;
     PRIntervalTime duration = PR_MillisecondsToInterval(33);
+    const char *doesntExistName = "_dOeSnotExist_.db";
+    char *temp, *tempStartOfFilename;
+    size_t maxTempLen, maxFileNameLen, directoryLength;
 
     /* no directory, just return one */
     if (directory == NULL) {
 	return 1;
     }
 
+    /* our calculation assumes time is a 4 bytes == 32 bit integer */
+    PORT_Assert(sizeof(time) == 4);
+
+    directoryLength = strlen(directory);
+
+    maxTempLen = directoryLength + strlen(doesntExistName)
+		 + 1 /* potential additional separator char */
+		 + 11 /* max chars for 32 bit int plus potential sign */
+		 + 1; /* zero terminator */
+
+    temp = PORT_Alloc(maxTempLen);
+    if (!temp) {
+        return 1;
+    }
+
+    /* We'll copy directory into temp just once, then ensure it ends
+     * with the directory separator, then remember the position after
+     * the separator, and calculate the number of remaining bytes. */
+
+    strcpy(temp, directory);
+    if (directory[directoryLength - 1] != PR_GetDirectorySeparator()) {
+	temp[directoryLength++] = PR_GetDirectorySeparator();
+    }
+    tempStartOfFilename = temp + directoryLength;
+    maxFileNameLen = maxTempLen - directoryLength;
+
     /* measure number of Access operations that can be done in 33 milliseconds
      * (1/30'th of a second), or 10000 operations, which ever comes first.
      */
     time =  PR_IntervalNow();
     for (i=0; i < 10000u; i++) { 
-	char *temp;
 	PRIntervalTime next;
 
-        temp  = sdb_BuildFileName(directory,"","._dOeSnotExist_", time+i, 0);
+	/* We'll use the variable part first in the filename string, just in
+	 * case it's longer than assumed, so if anything gets cut off, it
+	 * will be cut off from the constant part.
+	 * This code assumes the directory name at the beginning of
+	 * temp remains unchanged during our loop. */
+        PR_snprintf(tempStartOfFilename, maxFileNameLen,
+		    ".%lu%s", (PRUint32)(time+i), doesntExistName);
 	PR_Access(temp,PR_ACCESS_EXISTS);
-        sqlite3_free(temp);
 	next = PR_IntervalNow();
 	delta = next - time;
 	if (delta >= duration)
 	    break;
     }
+
+    PORT_Free(temp);
 
     /* always return 1 or greater */
     return i ? i : 1u;
@@ -1936,9 +1987,9 @@ s_open(const char *directory, const char *certPrefix, const char *keyPrefix,
 	SDB **certdb, SDB **keydb, int *newInit)
 {
     char *cert = sdb_BuildFileName(directory, certPrefix,
-				   "cert", cert_version, flags);
+				   "cert", cert_version);
     char *key = sdb_BuildFileName(directory, keyPrefix,
-				   "key", key_version, flags);
+				   "key", key_version);
     CK_RV error = CKR_OK;
     int inUpdate;
     PRUint32 accessOps;
