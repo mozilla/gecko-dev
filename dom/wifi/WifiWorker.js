@@ -40,13 +40,15 @@ XPCOMUtils.defineLazyServiceGetter(this, "gSettingsService",
 // command always succeeds and we do a string/boolean check for the
 // expected results).
 var WifiManager = (function() {
-  function getSdkVersion() {
+  function getStartupPrefs() {
     Cu.import("resource://gre/modules/systemlibs.js");
-    let sdkVersion = libcutils.property_get("ro.build.version.sdk");
-    return parseInt(sdkVersion, 10);
+    return {
+      sdkVersion: parseInt(libcutils.property_get("ro.build.version.sdk"), 10),
+      unloadDriverEnabled: libcutils.property_get("ro.moz.wifi.unloaddriver") === "1"
+    };
   }
 
-  let sdkVersion = getSdkVersion();
+  let {sdkVersion, unloadDriverEnabled} = getStartupPrefs();
 
   var controlWorker = new ChromeWorker(WIFIWORKER_WORKER);
   var eventWorker = new ChromeWorker(WIFIWORKER_WORKER);
@@ -129,12 +131,14 @@ var WifiManager = (function() {
   }
 
   function unloadDriver(callback) {
-    // Unloading drivers is generally unnecessary and
-    // can trigger bugs in some drivers.
-    // On properly written drivers, bringing the interface
-    // down powers down the interface.
-    callback(0);
-    return;
+    if (!unloadDriverEnabled) {
+      // Unloading drivers is generally unnecessary and
+      // can trigger bugs in some drivers.
+      // On properly written drivers, bringing the interface
+      // down powers down the interface.
+      callback(0);
+      return;
+    }
 
     voidControlMessage("unload_driver", function(status) {
       driverLoaded = (status < 0);
