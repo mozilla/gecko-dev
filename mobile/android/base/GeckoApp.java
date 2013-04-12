@@ -2433,6 +2433,9 @@ abstract public class GeckoApp
         mLayerView.setTouchIntercepter(this);
     }
 
+    public void setAccessibilityEnabled(boolean enabled) {
+    }
+
     @Override
     public boolean onInterceptTouchEvent(View view, MotionEvent event) {
         return false;
