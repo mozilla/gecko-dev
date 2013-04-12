@@ -122,12 +122,14 @@ public:
     return IsComposing() && IsComposingWindow(aWindow);
   }
 
+  static bool CanOptimizeKeyAndIMEMessages();
+
 #ifdef DEBUG
   /**
    * IsIMEAvailable() returns TRUE when current keyboard layout has IME.
    * Otherwise, FALSE.
    */
-  static bool IsIMEAvailable() { return !!::ImmIsIME(::GetKeyboardLayout(0)); }
+  static bool IsIMEAvailable() { return sIsIME; }
 #endif
 
   // If aForce is TRUE, these methods doesn't check whether we have composition
@@ -323,6 +325,9 @@ protected:
   bool mIsComposing;
   bool mIsComposingOnPlugin;
   bool mNativeCaretIsCreated;
+
+  static bool sIsIME;
+  static bool sIsIMEOpening;
 
   static UINT sCodePage;
   static DWORD sIMEProperty;
