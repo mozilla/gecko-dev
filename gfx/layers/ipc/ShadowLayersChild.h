@@ -36,6 +36,7 @@ protected:
   DeallocPGrallocBuffer(PGrallocBufferChild* actor) MOZ_OVERRIDE;
   virtual PLayerChild* AllocPLayer() MOZ_OVERRIDE;
   virtual bool DeallocPLayer(PLayerChild* actor) MOZ_OVERRIDE;
+  virtual void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
 };
 
 } // namespace layers
