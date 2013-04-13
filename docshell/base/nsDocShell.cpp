@@ -5195,13 +5195,15 @@ nsDocShell::GetSandboxFlags(uint32_t  *aSandboxFlags)
 NS_IMETHODIMP
 nsDocShell::SetVisibility(bool aVisibility)
 {
-    if (!mContentViewer)
+    // Show()/Hide() may change mContentViewer.
+    nsCOMPtr<nsIContentViewer> cv = mContentViewer;
+    if (!cv)
         return NS_OK;
     if (aVisibility) {
-        mContentViewer->Show();
+        cv->Show();
     }
     else {
-        mContentViewer->Hide();
+        cv->Hide();
     }
     
     return NS_OK;
