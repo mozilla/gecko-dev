@@ -2426,8 +2426,10 @@ PluginInstanceChild::NPN_NewStream(NPMIMEType aMIMEType, const char* aWindow,
     PluginStreamChild* ps = new PluginStreamChild();
 
     NPError result;
-    CallPPluginStreamConstructor(ps, nsDependentCString(aMIMEType),
-                                 NullableString(aWindow), &result);
+    if (!CallPPluginStreamConstructor(ps, nsDependentCString(aMIMEType),
+                                      NullableString(aWindow), &result)) {
+        NS_RUNTIMEABORT("PluginStream constructor failed");
+    }
     if (NPERR_NO_ERROR != result) {
         *aStream = NULL;
         PPluginStreamChild::Call__delete__(ps, NPERR_GENERIC_ERROR, true);
