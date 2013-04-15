@@ -1314,8 +1314,7 @@ NS_METHOD nsWindow::Move(double aX, double aY)
 
   // for top-level windows only, convert coordinates from global display pixels
   // (the "parent" coordinate space) to the window's device pixel space
-  double scale =
-    (mWindowType <= eWindowType_popup) ? GetDefaultScale() : 1.0;
+  double scale = BoundsUseDisplayPixels() ? GetDefaultScale() : 1.0;
   int32_t x = NSToIntRound(aX * scale);
   int32_t y = NSToIntRound(aY * scale);
 
@@ -1368,8 +1367,7 @@ NS_METHOD nsWindow::Resize(double aWidth, double aHeight, bool aRepaint)
 {
   // for top-level windows only, convert coordinates from global display pixels
   // (the "parent" coordinate space) to the window's device pixel space
-  double scale =
-    (mWindowType <= eWindowType_popup) ? GetDefaultScale() : 1.0;
+  double scale = BoundsUseDisplayPixels() ? GetDefaultScale() : 1.0;
   int32_t width = NSToIntRound(aWidth * scale);
   int32_t height = NSToIntRound(aHeight * scale);
 
@@ -1419,8 +1417,7 @@ NS_METHOD nsWindow::Resize(double aX, double aY, double aWidth, double aHeight, 
 {
   // for top-level windows only, convert coordinates from global display pixels
   // (the "parent" coordinate space) to the window's device pixel space
-  double scale =
-    (mWindowType <= eWindowType_popup) ? GetDefaultScale() : 1.0;
+  double scale = BoundsUseDisplayPixels() ? GetDefaultScale() : 1.0;
   int32_t x = NSToIntRound(aX * scale);
   int32_t y = NSToIntRound(aY * scale);
   int32_t width = NSToIntRound(aWidth * scale);
@@ -1845,7 +1842,6 @@ NS_METHOD nsWindow::GetBounds(nsIntRect &aRect)
   } else {
     aRect = mBounds;
   }
-
   return NS_OK;
 }
 
