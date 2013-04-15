@@ -1055,8 +1055,10 @@ _geturlnotify(NPP aNPP,
     StreamNotifyChild* sn = new StreamNotifyChild(url);
 
     NPError err;
-    InstCast(aNPP)->CallPStreamNotifyConstructor(
-        sn, url, NullableString(aTarget), false, nsCString(), false, &err);
+    if (!InstCast(aNPP)->CallPStreamNotifyConstructor(
+           sn, url, NullableString(aTarget), false, nsCString(), false, &err)) {
+        NS_RUNTIMEABORT("StreamNotify constructor failed");
+    }
 
     if (NPERR_NO_ERROR == err) {
         // If NPN_PostURLNotify fails, the parent will immediately send us
@@ -1166,9 +1168,11 @@ _posturlnotify(NPP aNPP,
     StreamNotifyChild* sn = new StreamNotifyChild(url);
 
     NPError err;
-    InstCast(aNPP)->CallPStreamNotifyConstructor(
-        sn, url, NullableString(aTarget), true,
-        nsCString(aBuffer, aLength), aIsFile, &err);
+    if (!InstCast(aNPP)->CallPStreamNotifyConstructor(
+            sn, url, NullableString(aTarget), true,
+            nsCString(aBuffer, aLength), aIsFile, &err)) {
+        NS_RUNTIMEABORT("StreamNotify constructor failed");
+    }
 
     if (NPERR_NO_ERROR == err) {
         // If NPN_PostURLNotify fails, the parent will immediately send us
