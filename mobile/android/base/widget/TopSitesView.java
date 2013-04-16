@@ -189,42 +189,47 @@ public class TopSitesView extends GridView {
     }
 
     public void loadTopSites() {
-        final ContentResolver resolver = mContext.getContentResolver();
+        ThreadUtils.postToBackgroundThread(new Runnable() {
+            @Override
+            public void run() {
+                final ContentResolver resolver = mContext.getContentResolver();
         Cursor old = null;
         if (mTopSitesAdapter != null) {
             old = mTopSitesAdapter.getCursor();
         }
-        // Swap in the new cursor.
-        final Cursor oldCursor = old;
-        final Cursor newCursor = BrowserDB.getTopSites(resolver, mNumberOfTopSites);
+                // Swap in the new cursor.
+                final Cursor oldCursor = old;
+                final Cursor newCursor = BrowserDB.getTopSites(resolver, mNumberOfTopSites);
 
-        post(new Runnable() {
-            @Override
-            public void run() {
-                if (mTopSitesAdapter == null) {
-                    mTopSitesAdapter = new TopSitesCursorAdapter(mContext,
-                                                                 R.layout.abouthome_topsite_item,
-                                                                 newCursor,
-                                                                 new String[] { URLColumns.TITLE },
-                                                                 new int[] { R.id.title });
+                post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (mTopSitesAdapter == null) {
+                            mTopSitesAdapter = new TopSitesCursorAdapter(mContext,
+                                                                         R.layout.abouthome_topsite_item,
+                                                                         newCursor,
+                                                                         new String[] { URLColumns.TITLE },
+                                                                         new int[] { R.id.title });
 
-                    setAdapter(mTopSitesAdapter);
-                } else {
-                    mTopSitesAdapter.changeCursor(newCursor);
-                }
+                            setAdapter(mTopSitesAdapter);
+                        } else {
+                            mTopSitesAdapter.changeCursor(newCursor);
+                        }
 
-                if (mTopSitesAdapter.getCount() > 0)
-                    loadTopSitesThumbnails(resolver);
+                        if (mTopSitesAdapter.getCount() > 0)
+                            loadTopSitesThumbnails(resolver);
 
-                // Free the old Cursor in the right thread now.
-                if (oldCursor != null && !oldCursor.isClosed())
-                    oldCursor.close();
+                        // Free the old Cursor in the right thread now.
+                        if (oldCursor != null && !oldCursor.isClosed())
+                            oldCursor.close();
 
-                // Even if AboutHome isn't necessarily entirely loaded if we
-                // get here, for phones this is the part the user initially sees,
-                // so it's the one we will care about for now.
-                if (mLoadCompleteListener != null)
-                    mLoadCompleteListener.onAboutHomeLoadComplete();
+                        // Even if AboutHome isn't necessarily entirely loaded if we
+                        // get here, for phones this is the part the user initially sees,
+                        // so it's the one we will care about for now.
+                        if (mLoadCompleteListener != null)
+                            mLoadCompleteListener.onAboutHomeLoadComplete();
+                    }
+                });
             }
         });
     }
