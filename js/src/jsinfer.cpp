@@ -2295,6 +2295,8 @@ AddPendingRecompile(JSContext *cx, UnrootedScript script, jsbytecode *pc,
     RecompileInfo& info = cx->compartment->types.compiledInfo;
     if (info.outputIndex != RecompileInfo::NoCompilerRunning) {
         CompilerOutput *co = info.compilerOutput(cx);
+        if (!co)
+            return;
         switch (co->kind()) {
           case CompilerOutput::MethodJIT:
             break;
@@ -2695,6 +2697,9 @@ TypeCompartment::growPendingArray(JSContext *cx)
 void
 TypeCompartment::processPendingRecompiles(FreeOp *fop)
 {
+    if (!pendingRecompiles)
+        return;
+
     /* Steal the list of scripts to recompile, else we will try to recursively recompile them. */
     Vector<RecompileInfo> *pending = pendingRecompiles;
     pendingRecompiles = NULL;
@@ -2798,6 +2803,8 @@ void
 TypeCompartment::addPendingRecompile(JSContext *cx, const RecompileInfo &info)
 {
     CompilerOutput *co = info.compilerOutput(cx);
+    if (!co)
+        return;
 
     if (co->pendingRecompilation)
         return;
