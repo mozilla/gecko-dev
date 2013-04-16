@@ -67,8 +67,8 @@ public class TopSitesView extends GridView {
 
     private Context mContext;
     private BrowserApp mActivity;
-    private AboutHomeContent.UriLoadCallback mUriLoadCallback = null;
-    private AboutHomeContent.VoidCallback mLoadCompleteCallback = null;
+    private AboutHome.UriLoadListener mUriLoadListener;
+    private AboutHome.LoadCompleteListener mLoadCompleteListener;
 
     protected TopSitesCursorAdapter mTopSitesAdapter;
 
@@ -106,9 +106,9 @@ public class TopSitesView extends GridView {
                     return;
                 }
 
-                if (mUriLoadCallback != null) {
+                if (mUriLoadListener != null) {
                     // Decode "user-entered" URLs before loading them.
-                    mUriLoadCallback.callback(decodeUserEnteredUrl(spec));
+                    mUriLoadListener.onAboutHomeUriLoad(decodeUserEnteredUrl(spec));
                 }
             }
         });
@@ -223,8 +223,8 @@ public class TopSitesView extends GridView {
                 // Even if AboutHome isn't necessarily entirely loaded if we
                 // get here, for phones this is the part the user initially sees,
                 // so it's the one we will care about for now.
-                if (mLoadCompleteCallback != null)
-                    mLoadCompleteCallback.callback();
+                if (mLoadCompleteListener != null)
+                    mLoadCompleteListener.onAboutHomeLoadComplete();
             }
         });
     }
@@ -353,12 +353,12 @@ public class TopSitesView extends GridView {
         mNumberOfCols = getResources().getInteger(R.integer.number_of_top_sites_cols);
     }
 
-    public void setUriLoadCallback(AboutHomeContent.UriLoadCallback uriLoadCallback) {
-        mUriLoadCallback = uriLoadCallback;
+    public void setUriLoadListener(AboutHome.UriLoadListener uriLoadListener) {
+        mUriLoadListener = uriLoadListener;
     }
 
-    public void setLoadCompleteCallback(AboutHomeContent.VoidCallback callback) {
-        mLoadCompleteCallback = callback;
+    public void setLoadCompleteListener(AboutHome.LoadCompleteListener listener) {
+        mLoadCompleteListener = listener;
     }
 
     public void refresh() {

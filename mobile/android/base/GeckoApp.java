@@ -1374,6 +1374,37 @@ abstract public class GeckoApp
         mJavaUiStartupTimer = new Telemetry.Timer("FENNEC_STARTUP_TIME_JAVAUI");
         mGeckoReadyStartupTimer = new Telemetry.Timer("FENNEC_STARTUP_TIME_GECKOREADY");
 
+        String args = getIntent().getStringExtra("args");
+
+        String profileName = null;
+        String profilePath = null;
+        if (args != null) {
+            if (args.contains("-P")) {
+                Pattern p = Pattern.compile("(?:-P\\s*)(\\w*)(\\s*)");
+                Matcher m = p.matcher(args);
+                if (m.find()) {
+                    profileName = m.group(1);
+                }
+            }
+            if (args.contains("-profile")) {
+                Pattern p = Pattern.compile("(?:-profile\\s*)(\\S*)(\\s*)");
+                Matcher m = p.matcher(args);
+                if (m.find()) {
+                    profilePath =  m.group(1);
+                }
+                if (profileName == null) {
+                    profileName = getDefaultProfileName();
+                    if (profileName == null)
+                        profileName = "default";
+                }
+                GeckoApp.sIsUsingCustomProfile = true;
+            }
+            if (profileName != null || profilePath != null) {
+                mProfile = GeckoProfile.get(this, profileName, profilePath);
+            }
+        }
+
+        BrowserDB.initialize(getProfile().getName());
         ((GeckoApplication)getApplication()).initialize();
 
         mAppContext = this;
@@ -1383,7 +1414,7 @@ abstract public class GeckoApp
         Favicons.getInstance().attachToContext(this);
 
         // Check to see if the activity is restarted after configuration change.
-        if (getLastNonConfigurationInstance() != null) {
+        if (getLastCustomNonConfigurationInstance() != null) {
             // Restart the application as a safe way to handle the configuration change.
             doRestart();
             System.exit(0);
@@ -1412,7 +1443,7 @@ abstract public class GeckoApp
             }
         }
 
-        LayoutInflater.from(this).setFactory(GeckoViewsFactory.getInstance());
+        LayoutInflater.from(this).setFactory(this);
 
         super.onCreate(savedInstanceState);
 
@@ -1495,37 +1526,6 @@ abstract public class GeckoApp
 
         Intent intent = getIntent();
         String action = intent.getAction();
-        String args = intent.getStringExtra("args");
-
-        String profileName = null;
-        String profilePath = null;
-        if (args != null) {
-            if (args.contains("-P")) {
-                Pattern p = Pattern.compile("(?:-P\\s*)(\\w*)(\\s*)");
-                Matcher m = p.matcher(args);
-                if (m.find()) {
-                    profileName = m.group(1);
-                }
-            }
-            if (args.contains("-profile")) {
-                Pattern p = Pattern.compile("(?:-profile\\s*)(\\S*)(\\s*)");
-                Matcher m = p.matcher(args);
-                if (m.find()) {
-                    profilePath =  m.group(1);
-                }
-                if (profileName == null) {
-                    profileName = getDefaultProfileName();
-                    if (profileName == null)
-                        profileName = "default";
-                }
-                GeckoApp.sIsUsingCustomProfile = true;
-            }
-            if (profileName != null || profilePath != null) {
-                mProfile = GeckoProfile.get(this, profileName, profilePath);
-            }
-        }
-
-        BrowserDB.initialize(getProfile().getName());
 
         String passedUri = null;
         String uri = getURIFromIntent(intent);
@@ -2106,12 +2106,6 @@ abstract public class GeckoApp
     }
 
     @Override
-    public void onContentChanged() {
-        super.onContentChanged();
-    }
-
-
-    @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
 
@@ -2125,7 +2119,7 @@ abstract public class GeckoApp
     }
 
     @Override
-    public Object onRetainNonConfigurationInstance() {
+    public Object onRetainCustomNonConfigurationInstance() {
         // Send a non-null value so that we can restart the application, 
         // when activity restarts due to configuration change.
         return Boolean.TRUE;
@@ -2134,6 +2128,21 @@ abstract public class GeckoApp
     @Override
     abstract public String getPackageName();
     abstract public String getContentProcessName();
+
+    /*
+     * Only one factory can be set on the inflater; however, we want to use two
+     * factories (GeckoViewsFactory and the FragmentActivity factory).
+     * Overriding onCreateView() here allows us to dispatch view creation to
+     * both factories.
+     */
+    @Override
+    public View onCreateView(String name, Context context, AttributeSet attrs) {
+        View view = GeckoViewsFactory.getInstance().onCreateView(name, context, attrs);
+        if (view == null) {
+            view = super.onCreateView(name, context, attrs);
+        }
+        return view;
+    }
 
     public void addEnvToIntent(Intent intent) {
         Map<String,String> envMap = System.getenv();
