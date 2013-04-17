@@ -41,7 +41,7 @@ let myGlobal = this;
 this.DOMContactManager = {
   init: function() {
     if (DEBUG) debug("Init");
-    this._messages = ["Contacts:Find", "Contacts:GetAll", "Contacts:GetAll:SendNow",
+    this._messages = ["Contacts:Find", "Contacts:GetAll",
                       "Contacts:Clear", "Contact:Save",
                       "Contact:Remove", "Contacts:GetSimContacts",
                       "Contacts:RegisterForMessages", "child-process-shutdown"];
@@ -118,12 +118,7 @@ this.DOMContactManager = {
             mm.sendAsyncMessage("Contacts:GetAll:Next", {cursorId: msg.cursorId, contacts: aContacts});
           },
           function(aErrorMsg) { mm.sendAsyncMessage("Contacts:Find:Return:KO", { errorMsg: aErrorMsg }); },
-          msg.findOptions, msg.cursorId);
-        break;
-      case "Contacts:GetAll:SendNow":
-        // sendNow is a no op if there isn't an existing cursor in the DB, so we
-        // don't need to assert the permission again.
-        this._db.sendNow(msg.cursorId);
+          msg.findOptions);
         break;
       case "Contact:Save":
         if (msg.options.reason === "create") {

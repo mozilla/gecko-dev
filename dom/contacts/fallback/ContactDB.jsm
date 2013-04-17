@@ -22,92 +22,6 @@ const DB_VERSION = 8;
 const STORE_NAME = "contacts";
 const SAVED_GETALL_STORE_NAME = "getallcache";
 const CHUNK_SIZE = 20;
-const CHUNK_INTERVAL = 500;
-
-// This gives us >=2^30 unique timer IDs, enough for 1 per ms for 12.4 days.
-let gNextTimeoutId = 0;
-
-let gTimeoutTable = new Map(); // int -> nsITimer
-
-function setTimeout(aCallback, aMilliseconds) {
-  let id = gNextTimeoutId++;
-  let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-  timer.initWithCallback({
-    notify: function notify_callback() {
-        clearTimeout(id);
-        aCallback();
-      }
-    },
-    aMilliseconds,
-    timer.TYPE_ONE_SHOT);
-  gTimeoutTable.set(id, timer);
-  return id;
-}
-
-function clearTimeout(aId) {
-  let timer = gTimeoutTable.get(aId);
-  if (timer) {
-    timer.cancel();
-    gTimeoutTable.delete(aId);
-  }
-}
-
-function ContactDispatcher(aContacts, aFullContacts, aCallback, aNewTxn, aClearDispatcher) {
-  this.nextIndex = 0;
-
-  this.cancelTimeout = function() {
-    if (this.interval) {
-      clearTimeout(this.interval);
-      this.interval = null;
-    }
-  };
-
-  if (aFullContacts) {
-    this.sendChunk = function() {
-      if (aContacts.length > 0) {
-        aCallback(aContacts.splice(0, CHUNK_SIZE));
-        this.interval = setTimeout(this.sendChunk, CHUNK_INTERVAL);
-      } else {
-        aCallback(null);
-        this.cancelTimeout();
-        aClearDispatcher();
-      }
-    }.bind(this);
-  } else {
-    this.count = 0;
-    this.sendChunk = function() {
-      let chunk = [];
-      aNewTxn("readonly", STORE_NAME, function(txn, store) {
-        for (let i = this.nextIndex; i < Math.min(this.nextIndex+CHUNK_SIZE, aContacts.length); ++i) {
-          store.get(aContacts[i]).onsuccess = function(e) {
-            chunk.push(e.target.result);
-            this.count++;
-            if (this.count == aContacts.length) {
-              aCallback(chunk)
-              aCallback(null);
-              this.cancelTimeout();
-              aClearDispatcher();
-            } else if (chunk.length == CHUNK_SIZE) {
-              aCallback(chunk);
-              chunk.length = 0;
-              this.nextIndex += CHUNK_SIZE;
-              this.interval = setTimeout(this.sendChunk, CHUNK_INTERVAL);
-            }
-          }.bind(this);
-        }
-      }.bind(this));
-    }.bind(this);
-  }
-
-  this.sendChunk(0);
-}
-
-ContactDispatcher.prototype = {
-  sendNow: function() {
-    this.cancelTimeout();
-    this.interval = setTimeout(this.sendChunk, 0);
-  }
-};
 
 this.ContactDB = function ContactDB(aGlobal) {
   if (DEBUG) debug("Constructor");
@@ -116,8 +30,6 @@ this.ContactDB = function ContactDB(aGlobal) {
 
 ContactDB.prototype = {
   __proto__: IndexedDBHelper.prototype,
-
-  _dispatcher: {},
 
   upgradeSchema: function upgradeSchema(aTransaction, aDb, aOldVersion, aNewVersion) {
     if (DEBUG) debug("upgrade schema from: " + aOldVersion + " to " + aNewVersion + " called!");
@@ -609,31 +521,45 @@ ContactDB.prototype = {
     Services.tm.currentThread.dispatch(aCallback, Ci.nsIThread.DISPATCH_NORMAL);
   },
 
-  sendNow: function CDB_sendNow(aCursorId) {
-    if (aCursorId in this._dispatcher) {
-      this._dispatcher[aCursorId].sendNow();
-    }
-  },
-
-  _clearDispatcher: function CDB_clearDispatcher(aCursorId) {
-    if (aCursorId in this._dispatcher) {
-      delete this._dispatcher[aCursorId];
-    }
-  },
-
-  getAll: function CDB_getAll(aSuccessCb, aFailureCb, aOptions, aCursorId) {
+  getAll: function CDB_getAll(aSuccessCb, aFailureCb, aOptions) {
     if (DEBUG) debug("getAll")
     let optionStr = JSON.stringify(aOptions);
     this.getCacheForQuery(optionStr, function(aCachedResults, aFullContacts) {
       // aFullContacts is true if the cache didn't exist and had to be created.
       // In that case, we receive the full contacts since we already have them
-      // in memory to create the cache. This allows us to avoid accessing the
-      // object store again.
+      // in memory to create the cache anyway. This allows us to avoid accessing
+      // the main object store again.
       if (aCachedResults && aCachedResults.length > 0) {
-        let newTxnFn = this.newTxn.bind(this);
-        let clearDispatcherFn = this._clearDispatcher.bind(this, aCursorId);
-        this._dispatcher[aCursorId] = new ContactDispatcher(aCachedResults, aFullContacts,
-                                                            aSuccessCb, newTxnFn, clearDispatcherFn);
+        if (DEBUG) debug("query returned " + aCachedResults.length + " contacts");
+        if (aFullContacts) {
+          if (DEBUG) debug("full contacts: " + aCachedResults.length);
+          while(aCachedResults.length) {
+            aSuccessCb(aCachedResults.splice(0, CHUNK_SIZE));
+          }
+          aSuccessCb(null);
+        } else {
+          let count = 0;
+          let sendChunk = function(start) {
+            let chunk = [];
+            this.newTxn("readonly", STORE_NAME, function(txn, store) {
+              for (let i = start; i < Math.min(start+CHUNK_SIZE, aCachedResults.length); ++i) {
+                store.get(aCachedResults[i]).onsuccess = function(e) {
+                  chunk.push(e.target.result);
+                  count++;
+                  if (count == aCachedResults.length) {
+                    aSuccessCb(chunk);
+                    aSuccessCb(null);
+                  } else if (chunk.length == CHUNK_SIZE) {
+                    aSuccessCb(chunk);
+                    chunk.length = 0;
+                    this.nextTick(sendChunk.bind(this, start+CHUNK_SIZE));
+                  }
+                }.bind(this);
+              }
+            }.bind(this));
+          }.bind(this);
+          sendChunk(0);
+        }
       } else { // no contacts
         if (DEBUG) debug("query returned no contacts");
         aSuccessCb(null);
