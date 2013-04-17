@@ -14,6 +14,9 @@ const KEYWORD_PROMPT_REV = 1;
 
 let KeywordURLResetPrompter = {
   get shouldPrompt() {
+    // XXX Disable this feature given that we're going to be removing this pref in future versions (see bug 838864)
+    return false;
+
     let keywordURLUserSet = Services.prefs.prefHasUserValue("keyword.URL");
     let declinedRev;
     try {
