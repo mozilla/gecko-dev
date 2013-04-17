@@ -2008,6 +2008,12 @@ InlinePropertyTable::hasFunction(JSFunction *func) const
     return false;
 }
 
+bool
+MInArray::needsNegativeIntCheck() const
+{
+    return !index()->range() || index()->range()->lower() < 0;
+}
+
 MDefinition *
 MAsmJSUnsignedToDouble::foldsTo(bool useValueNumbers)
 {

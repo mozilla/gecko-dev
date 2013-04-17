@@ -7660,9 +7660,11 @@ mjit::Compiler::jsop_in()
 
     if (cx->typeInferenceEnabled() && id->isType(JSVAL_TYPE_INT32)) {
         types::StackTypeSet *types = analysis->poppedTypes(PC, 0);
+        bool isNegative = id->isConstant() && id->getValue().toInt32() < 0;
 
         if (obj->mightBeType(JSVAL_TYPE_OBJECT) &&
             types->getKnownClass() == &ArrayClass &&
+            !isNegative &&
             !types->hasObjectFlags(cx, types::OBJECT_FLAG_SPARSE_INDEXES) &&
             !types::ArrayPrototypeHasIndexedProperty(cx, outerScript))
         {
@@ -7679,6 +7681,11 @@ mjit::Compiler::jsop_in()
             Int32Key key = id->isConstant()
                          ? Int32Key::FromConstant(id->getValue().toInt32())
                          : Int32Key::FromRegister(frame.tempRegForData(id));
+
+            if (!id->isConstant()) {
+                Jump isNegative = masm.branch32(Assembler::LessThan, key.reg(), Imm32(0));
+                stubcc.linkExit(isNegative, Uses(2));
+            }
 
             masm.loadPtr(Address(dataReg, JSObject::offsetOfElements()), dataReg);
 
@@ -7709,10 +7716,8 @@ mjit::Compiler::jsop_in()
             if (dataReg != Registers::ReturnReg)
                 stubcc.masm.move(Registers::ReturnReg, dataReg);
 
-            frame.pushTypedPayload(JSVAL_TYPE_BOOLEAN, dataReg);
-
             stubcc.rejoin(Changes(2));
-
+            frame.pushTypedPayload(JSVAL_TYPE_BOOLEAN, dataReg);
             return;
         }
     }
