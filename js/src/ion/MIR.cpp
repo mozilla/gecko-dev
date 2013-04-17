@@ -1939,3 +1939,9 @@ InlinePropertyTable::trimToAndMaybePatchTargets(AutoObjectVector &targets,
     IonSpew(IonSpew_Inlining, "%d inlineable cases left after trimming to %d targets",
             (int)numEntries(), (int)targets.length());
 }
+
+bool
+MInArray::needsNegativeIntCheck() const
+{
+    return !index()->range() || index()->range()->lower() < 0;
+}
