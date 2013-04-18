@@ -31,7 +31,7 @@ public:
   NS_DECL_NSIOBSERVER
   NS_DECL_NSIVOLUMEMOUNTLOCK
 
-  static already_AddRefed<nsVolumeMountLock> Create(const nsAString& volumeName);
+  static already_AddRefed<nsIVolumeMountLock> Create(const nsAString& volumeName);
 
   const nsString& VolumeName() const  { return mVolumeName; }
 
