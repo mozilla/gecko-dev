@@ -136,11 +136,13 @@ nsNSSCertificate::InitFromDER(char *certDER, int derLen)
   return true;
 }
 
-nsNSSCertificate::nsNSSCertificate(CERTCertificate *cert) : 
-                                           mCert(nullptr),
-                                           mPermDelete(false),
-                                           mCertType(CERT_TYPE_NOT_YET_INITIALIZED),
-                                           mCachedEVStatus(ev_status_unknown)
+nsNSSCertificate::nsNSSCertificate(CERTCertificate *cert) 
+  : mCert(nullptr)
+  , mPermDelete(false)
+  , mCertType(CERT_TYPE_NOT_YET_INITIALIZED)
+#ifndef NSS_NO_LIBPKIX
+  , mCachedEVStatus(ev_status_unknown)
+#endif
 {
 #if defined(DEBUG)
   if (GeckoProcessType_Default != XRE_GetProcessType())
@@ -155,11 +157,13 @@ nsNSSCertificate::nsNSSCertificate(CERTCertificate *cert) :
     mCert = CERT_DupCertificate(cert);
 }
 
-nsNSSCertificate::nsNSSCertificate() : 
-  mCert(nullptr),
-  mPermDelete(false),
-  mCertType(CERT_TYPE_NOT_YET_INITIALIZED),
-  mCachedEVStatus(ev_status_unknown)
+nsNSSCertificate::nsNSSCertificate() 
+  : mCert(nullptr)
+  , mPermDelete(false)
+  , mCertType(CERT_TYPE_NOT_YET_INITIALIZED)
+#ifndef NSS_NO_LIBPKIX
+  , mCachedEVStatus(ev_status_unknown)
+#endif
 {
   if (GeckoProcessType_Default != XRE_GetProcessType())
     NS_ERROR("Trying to initialize nsNSSCertificate in a non-chrome process!");
@@ -1218,15 +1222,6 @@ nsNSSCertificate::VerifyForUsage(uint32_t usage, uint32_t *verificationResult)
 
   NS_ENSURE_ARG(verificationResult);
 
-  nsresult nsrv;
-  nsCOMPtr<nsINSSComponent> inss = do_GetService(kNSSComponentCID, &nsrv);
-  if (!inss)
-    return nsrv;
-  nsRefPtr<nsCERTValInParamWrapper> survivingParams;
-  nsrv = inss->GetDefaultCERTValInParam(survivingParams);
-  if (NS_FAILED(nsrv))
-    return nsrv;
-  
   SECCertificateUsage nss_usage;
   
   switch (usage)
@@ -1284,18 +1279,30 @@ nsNSSCertificate::VerifyForUsage(uint32_t usage, uint32_t *verificationResult)
   }
 
   SECStatus verify_result;
+#ifndef NSS_NO_LIBPKIX
   if (!nsNSSComponent::globalConstFlagUsePKIXVerification) {
+#endif
     CERTCertDBHandle *defaultcertdb = CERT_GetDefaultCertDB();
     verify_result = CERT_VerifyCertificateNow(defaultcertdb, mCert, true, 
-                                              nss_usage, NULL, NULL);
+                                              nss_usage, nullptr, nullptr);
+#ifndef NSS_NO_LIBPKIX
   }
   else {
+    nsresult nsrv;
+    nsCOMPtr<nsINSSComponent> inss = do_GetService(kNSSComponentCID, &nsrv);
+    if (!inss)
+      return nsrv;
+    RefPtr<nsCERTValInParamWrapper> survivingParams;
+    nsrv = inss->GetDefaultCERTValInParam(survivingParams);
+    if (NS_FAILED(nsrv))
+      return nsrv;
     CERTValOutParam cvout[1];
     cvout[0].type = cert_po_end;
     verify_result = CERT_PKIXVerifyCert(mCert, nss_usage,
                                         survivingParams->GetRawPointerForNSS(),
-                                        cvout, NULL);
+                                        cvout, nullptr);
   }
+#endif
   
   if (verify_result == SECSuccess)
   {

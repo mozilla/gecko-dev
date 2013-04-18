@@ -505,17 +505,7 @@ nsNSSCertificateDB::ImportEmailCertificate(uint8_t * data, uint32_t length,
   SECItem **rawArray;
   int numcerts;
   int i;
-  CERTValOutParam cvout[1];
-  cvout[0].type = cert_po_end;
 
-  nsCOMPtr<nsINSSComponent> inss = do_GetService(kNSSComponentCID, &nsrv);
-  if (!inss)
-    return nsrv;
-  nsRefPtr<nsCERTValInParamWrapper> survivingParams;
-  nsrv = inss->GetDefaultCERTValInParam(survivingParams);
-  if (NS_FAILED(nsrv))
-    return nsrv;
- 
   PRArenaPool *arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
   if (!arena)
     return NS_ERROR_OUT_OF_MEMORY;
@@ -582,13 +572,25 @@ nsNSSCertificateDB::ImportEmailCertificate(uint8_t * data, uint32_t length,
       continue;
     }
 
+#ifndef NSS_NO_LIBPKIX
     if (!nsNSSComponent::globalConstFlagUsePKIXVerification) {
+#endif
       if (CERT_VerifyCert(certdb, node->cert,
           true, certusage, now, ctx, NULL) != SECSuccess) {
         alert_and_skip = true;
       }
+#ifndef NSS_NO_LIBPKIX
     }
     else {
+      nsCOMPtr<nsINSSComponent> inss = do_GetService(kNSSComponentCID, &nsrv);
+      if (!inss)
+        return nsrv;
+      RefPtr<nsCERTValInParamWrapper> survivingParams;
+      nsrv = inss->GetDefaultCERTValInParam(survivingParams);
+      if (NS_FAILED(nsrv))
+        return nsrv;
+      CERTValOutParam cvout[1];
+      cvout[0].type = cert_po_end;
       if (CERT_PKIXVerifyCert(node->cert, certificateusage,
                               survivingParams->GetRawPointerForNSS(),
                               cvout, ctx)
@@ -596,6 +598,7 @@ nsNSSCertificateDB::ImportEmailCertificate(uint8_t * data, uint32_t length,
         alert_and_skip = true;
       }
     }
+#endif
 
     CERTCertificateList *certChain = nullptr;
     CERTCertificateListCleaner chainCleaner(certChain);
@@ -766,13 +769,6 @@ nsNSSCertificateDB::ImportValidCACertsInList(CERTCertList *certList, nsIInterfac
 {
   SECItem **rawArray;
   nsresult nsrv;
-  nsCOMPtr<nsINSSComponent> inss = do_GetService(kNSSComponentCID, &nsrv);
-  if (!inss)
-    return nsrv;
-  nsRefPtr<nsCERTValInParamWrapper> survivingParams;
-  nsrv = inss->GetDefaultCERTValInParam(survivingParams);
-  if (NS_FAILED(nsrv))
-    return nsrv;
 
   /* filter out the certs we don't want */
   SECStatus srv = CERT_FilterCertListByUsage(certList, certUsageAnyCA, true);
@@ -784,8 +780,6 @@ nsNSSCertificateDB::ImportValidCACertsInList(CERTCertList *certList, nsIInterfac
    * valid chains, if yes, then import.
    */
   CERTCertListNode *node;
-  CERTValOutParam cvout[1];
-  cvout[0].type = cert_po_end;
 
   for (node = CERT_LIST_HEAD(certList);
        !CERT_LIST_END(node,certList);
@@ -793,13 +787,25 @@ nsNSSCertificateDB::ImportValidCACertsInList(CERTCertList *certList, nsIInterfac
 
     bool alert_and_skip = false;
 
+#ifndef NSS_NO_LIBPKIX
     if (!nsNSSComponent::globalConstFlagUsePKIXVerification) {
+#endif
       if (CERT_VerifyCert(CERT_GetDefaultCertDB(), node->cert, 
           true, certUsageVerifyCA, PR_Now(), ctx, NULL) != SECSuccess) {
         alert_and_skip = true;
       }
+#ifndef NSS_NO_LIBPKIX
     }
     else {
+      nsCOMPtr<nsINSSComponent> inss = do_GetService(kNSSComponentCID, &nsrv);
+      if (!inss)
+        return nsrv;
+      RefPtr<nsCERTValInParamWrapper> survivingParams;
+      nsrv = inss->GetDefaultCERTValInParam(survivingParams);
+      if (NS_FAILED(nsrv))
+        return nsrv;
+      CERTValOutParam cvout[1];
+      cvout[0].type = cert_po_end;
       if (CERT_PKIXVerifyCert(node->cert, certificateUsageVerifyCA,
                               survivingParams->GetRawPointerForNSS(),
                               cvout, ctx)
@@ -807,6 +813,7 @@ nsNSSCertificateDB::ImportValidCACertsInList(CERTCertList *certList, nsIInterfac
         alert_and_skip = true;
       }
     }
+#endif
 
     CERTCertificateList *certChain = nullptr;
     CERTCertificateListCleaner chainCleaner(certChain);
@@ -1455,19 +1462,6 @@ nsNSSCertificateDB::FindCertByEmailAddress(nsISupports *aToken, const char *aEma
 {
   nsNSSShutDownPreventionLock locker;
   
-  nsCOMPtr<nsINSSComponent> inss;
-  nsRefPtr<nsCERTValInParamWrapper> survivingParams;
-  nsresult nsrv;
-  
-  if (nsNSSComponent::globalConstFlagUsePKIXVerification) {
-    inss = do_GetService(kNSSComponentCID, &nsrv);
-    if (!inss)
-      return nsrv;
-    nsrv = inss->GetDefaultCERTValInParam(survivingParams);
-    if (NS_FAILED(nsrv))
-      return nsrv;
-  }
-
   CERTCertList *certlist = PK11_FindCertsFromEmailAddress(aEmailAddress, nullptr);
   if (!certlist)
     return NS_ERROR_FAILURE;  
@@ -1486,14 +1480,25 @@ nsNSSCertificateDB::FindCertByEmailAddress(nsISupports *aToken, const char *aEma
        !CERT_LIST_END(node, certlist);
        node = CERT_LIST_NEXT(node)) {
 
+#ifndef NSS_NO_LIBPKIX
     if (!nsNSSComponent::globalConstFlagUsePKIXVerification) {
+#endif
       if (CERT_VerifyCert(CERT_GetDefaultCertDB(), node->cert,
           true, certUsageEmailRecipient, PR_Now(), nullptr, nullptr) == SECSuccess) {
         // found a valid certificate
         break;
       }
+#ifndef NSS_NO_LIBPKIX
     }
     else {
+      nsresult nsrv;
+      nsCOMPtr<nsINSSComponent> inss = do_GetService(kNSSComponentCID, &nsrv);
+      if (!inss)
+        return nsrv;
+      RefPtr<nsCERTValInParamWrapper> survivingParams;
+      nsrv = inss->GetDefaultCERTValInParam(survivingParams);
+      if (NS_FAILED(nsrv))
+        return nsrv;
       CERTValOutParam cvout[1];
       cvout[0].type = cert_po_end;
       if (CERT_PKIXVerifyCert(node->cert, certificateUsageEmailRecipient,
@@ -1504,6 +1509,7 @@ nsNSSCertificateDB::FindCertByEmailAddress(nsISupports *aToken, const char *aEma
         break;
       }
     }
+#endif
   }
 
   if (CERT_LIST_END(node, certlist)) {
