@@ -2073,17 +2073,19 @@ class FunctionCompiler
 
     bool bindContinues(ParseNode *pn, const LabelVector *maybeLabels)
     {
+        bool createdJoinBlock = false;
         if (UnlabeledBlockMap::Ptr p = unlabeledContinues_.lookup(pn)) {
-            if (!bindBreaksOrContinues(&p->value))
+            if (!bindBreaksOrContinues(&p->value, &createdJoinBlock))
                 return false;
             unlabeledContinues_.remove(p);
         }
-        return bindLabeledBreaksOrContinues(maybeLabels, &labeledContinues_);
+        return bindLabeledBreaksOrContinues(maybeLabels, &labeledContinues_, &createdJoinBlock);
     }
 
     bool bindLabeledBreaks(const LabelVector *maybeLabels)
     {
-        return bindLabeledBreaksOrContinues(maybeLabels, &labeledBreaks_);
+        bool createdJoinBlock = false;
+        return bindLabeledBreaksOrContinues(maybeLabels, &labeledBreaks_, &createdJoinBlock);
     }
 
     bool addBreak(PropertyName *maybeLabel) {
@@ -2185,11 +2187,11 @@ class FunctionCompiler
         return newBlockWithDepth(pred, loopStack_.length(), block);
     }
 
-    bool bindBreaksOrContinues(BlockVector *preds)
+    bool bindBreaksOrContinues(BlockVector *preds, bool *createdJoinBlock)
     {
         for (unsigned i = 0; i < preds->length(); i++) {
             MBasicBlock *pred = (*preds)[i];
-            if (curBlock_ && curBlock_->begin() == curBlock_->end()) {
+            if (*createdJoinBlock) {
                 pred->end(MGoto::New(curBlock_));
                 curBlock_->addPredecessor(pred);
             } else {
@@ -2202,6 +2204,7 @@ class FunctionCompiler
                     next->addPredecessor(curBlock_);
                 }
                 curBlock_ = next;
+                *createdJoinBlock = true;
             }
             JS_ASSERT(curBlock_->begin() == curBlock_->end());
         }
@@ -2209,14 +2212,15 @@ class FunctionCompiler
         return true;
     }
 
-    bool bindLabeledBreaksOrContinues(const LabelVector *maybeLabels, LabeledBlockMap *map)
+    bool bindLabeledBreaksOrContinues(const LabelVector *maybeLabels, LabeledBlockMap *map,
+                                      bool *createdJoinBlock)
     {
         if (!maybeLabels)
             return true;
         const LabelVector &labels = *maybeLabels;
         for (unsigned i = 0; i < labels.length(); i++) {
             if (LabeledBlockMap::Ptr p = map->lookup(labels[i])) {
-                if (!bindBreaksOrContinues(&p->value))
+                if (!bindBreaksOrContinues(&p->value, createdJoinBlock))
                     return false;
                 map->remove(p);
             }
@@ -2243,8 +2247,9 @@ class FunctionCompiler
 
     bool bindUnlabeledBreaks(ParseNode *pn)
     {
+        bool createdJoinBlock = false;
         if (UnlabeledBlockMap::Ptr p = unlabeledBreaks_.lookup(pn)) {
-            if (!bindBreaksOrContinues(&p->value))
+            if (!bindBreaksOrContinues(&p->value, &createdJoinBlock))
                 return false;
             unlabeledBreaks_.remove(p);
         }
