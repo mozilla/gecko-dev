@@ -204,7 +204,7 @@ MobileMessageManager::Send(const jsval& aNumber, const nsAString& aMessage, jsva
 NS_IMETHODIMP
 MobileMessageManager::SendMMS(const JS::Value& aParams, nsIDOMDOMRequest** aRequest)
 {
-  nsCOMPtr<nsIMmsService> mmsService = do_GetService(RIL_MMSSERVICE_CONTRACTID);
+  nsCOMPtr<nsIMmsService> mmsService = do_GetService(MMS_SERVICE_CONTRACTID);
   NS_ENSURE_TRUE(mmsService, NS_ERROR_FAILURE);
 
   nsRefPtr<DOMRequest> request = new DOMRequest(GetOwner());
