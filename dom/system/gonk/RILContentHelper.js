@@ -77,6 +77,8 @@ const RIL_IPC_MSG_NAMES = [
   "RIL:DataError",
   "RIL:SetCallForwardingOption",
   "RIL:GetCallForwardingOption",
+  "RIL:SetCallWaitingOption",
+  "RIL:GetCallWaitingOption",
   "RIL:CellBroadcastReceived",
   "RIL:CfStateChanged"
 ];
@@ -646,6 +648,37 @@ RILContentHelper.prototype = {
     return request;
   },
 
+  getCallWaitingOption: function getCallWaitingOption(window) {
+    if (window == null) {
+      throw Components.Exception("Can't get window object",
+                                  Cr.NS_ERROR_UNEXPECTED);
+    }
+    let request = Services.DOMRequest.createRequest(window);
+    let requestId = this.getRequestId(request);
+
+    cpmm.sendAsyncMessage("RIL:GetCallWaitingOption", {
+      requestId: requestId
+    });
+
+    return request;
+  },
+
+  setCallWaitingOption: function setCallWaitingOption(window, enabled) {
+    if (window == null) {
+      throw Components.Exception("Can't get window object",
+                                  Cr.NS_ERROR_UNEXPECTED);
+    }
+    let request = Services.DOMRequest.createRequest(window);
+    let requestId = this.getRequestId(request);
+
+    cpmm.sendAsyncMessage("RIL:SetCallWaitingOption", {
+      requestId: requestId,
+      enabled: enabled
+    });
+
+    return request;
+  },
+
   _telephonyCallbacks: null,
   _voicemailCallbacks: null,
   _enumerateTelephonyCallbacks: null,
@@ -990,6 +1023,12 @@ RILContentHelper.prototype = {
       case "RIL:SetCallForwardingOption":
         this.handleSetCallForwardingOption(msg.json);
         break;
+      case "RIL:GetCallWaitingOption":
+        this.handleGetCallWaitingOption(msg.json);
+        break;
+      case "RIL:SetCallWaitingOption":
+        this.handleSetCallWaitingOption(msg.json);
+        break;
       case "RIL:CfStateChanged":
         let result = JSON.stringify({success: msg.json.success,
                                      action: msg.json.action,
@@ -1134,6 +1173,34 @@ RILContentHelper.prototype = {
   },
 
   handleSetCallForwardingOption: function handleSetCallForwardingOption(message) {
+    let requestId = message.requestId;
+    let request = this.takeRequest(requestId);
+    if (!request) {
+      return;
+    }
+
+    if (!message.success) {
+      Services.DOMRequest.fireError(request, message.errorMsg);
+      return;
+    }
+    Services.DOMRequest.fireSuccess(request, null);
+  },
+
+  handleGetCallWaitingOption: function handleGetCallWaitingOption(message) {
+    let requestId = message.requestId;
+    let request = this.takeRequest(requestId);
+    if (!request) {
+      return;
+    }
+
+    if (!message.success) {
+      Services.DOMRequest.fireError(request, message.errorMsg);
+      return;
+    }
+    Services.DOMRequest.fireSuccess(request, message.enabled);
+  },
+
+  handleSetCallWaitingOption: function handleSetCallWaitingOption(message) {
     let requestId = message.requestId;
     let request = this.takeRequest(requestId);
     if (!request) {
