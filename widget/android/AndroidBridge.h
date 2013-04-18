@@ -328,6 +328,7 @@ public:
                      nsIMobileMessageCallback* aRequest);
     void GetMessage(int32_t aMessageId, nsIMobileMessageCallback* aRequest);
     void DeleteMessage(int32_t aMessageId, nsIMobileMessageCallback* aRequest);
+    // TODO: Bug 862718 - WebSMS Android backend: use DOMCursor
     void CreateMessageList(const dom::mobilemessage::SmsFilterData& aFilter,
                            bool aReverse, nsIMobileMessageCallback* aRequest);
     void GetNextMessageInList(int32_t aListId, nsIMobileMessageCallback* aRequest);

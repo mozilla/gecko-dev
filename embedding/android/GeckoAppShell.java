@@ -97,6 +97,7 @@ public class GeckoAppShell
     public static native void notifyGetSmsFailed(int aError, int aRequestId);
     public static native void notifySmsDeleted(boolean aDeleted, int aRequestId);
     public static native void notifySmsDeleteFailed(int aError, int aRequestId);
+    // TODO: Bug 862718 - WebSMS Android backend: use DOMCursor
     public static native void notifyNoMessageInList(int aRequestId);
     public static native void notifyListCreated(int aListId, int aMessageId, int aDeliveryStatus, String aReceiver, String aSender, String aBody, long aTimestamp, int aRequestId);
     public static native void notifyGotNextMessage(int aMessageId, int aDeliveryStatus, String aReceiver, String aSender, String aBody, long aTimestamp, int aRequestId);

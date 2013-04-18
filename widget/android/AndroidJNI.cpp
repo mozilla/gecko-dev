@@ -511,11 +511,7 @@ Java_org_mozilla_gecko_GeckoAppShell_notifyNoMessageInList(JNIEnv* jenv, jclass,
       {}
 
       NS_IMETHODIMP Run() {
-        nsCOMPtr<nsIMobileMessageCallback> request =
-          AndroidBridge::Bridge()->DequeueSmsRequest(mRequestId);
-        NS_ENSURE_TRUE(request, NS_ERROR_FAILURE);
-
-        request->NotifyNoMessageInList();
+        // TODO: Bug 862718 - WebSMS Android backend: use DOMCursor
         return NS_OK;
       }
 
@@ -551,12 +547,7 @@ Java_org_mozilla_gecko_GeckoAppShell_notifyListCreated(JNIEnv* jenv, jclass,
       {}
 
       NS_IMETHODIMP Run() {
-        nsCOMPtr<nsIMobileMessageCallback> request =
-          AndroidBridge::Bridge()->DequeueSmsRequest(mRequestId);
-        NS_ENSURE_TRUE(request, NS_ERROR_FAILURE);
-
-        nsCOMPtr<nsIDOMMozSmsMessage> message = new SmsMessage(mMessageData);
-        request->NotifyMessageListCreated(mListId, message);
+        // TODO: Bug 862718 - WebSMS Android backend: use DOMCursor
         return NS_OK;
       }
 
@@ -604,12 +595,7 @@ Java_org_mozilla_gecko_GeckoAppShell_notifyGotNextMessage(JNIEnv* jenv, jclass,
       {}
 
       NS_IMETHODIMP Run() {
-        nsCOMPtr<nsIMobileMessageCallback> request =
-          AndroidBridge::Bridge()->DequeueSmsRequest(mRequestId);
-        NS_ENSURE_TRUE(request, NS_ERROR_FAILURE);
-
-        nsCOMPtr<nsIDOMMozSmsMessage> message = new SmsMessage(mMessageData);
-        request->NotifyNextMessageInListGot(message);
+        // TODO: Bug 862718 - WebSMS Android backend: use DOMCursor
         return NS_OK;
       }
 
@@ -651,11 +637,7 @@ Java_org_mozilla_gecko_GeckoAppShell_notifyReadingMessageListFailed(JNIEnv* jenv
       {}
 
       NS_IMETHODIMP Run() {
-        nsCOMPtr<nsIMobileMessageCallback> request =
-          AndroidBridge::Bridge()->DequeueSmsRequest(mRequestId);
-        NS_ENSURE_TRUE(request, NS_ERROR_FAILURE);
-
-        request->NotifyReadMessageListFailed(mError);
+        // TODO: Bug 862718 - WebSMS Android backend: use DOMCursor
         return NS_OK;
       }
 

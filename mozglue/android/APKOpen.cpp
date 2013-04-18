@@ -332,6 +332,7 @@ SHELL_WRAPPER7(notifyGetSms, jint, jint, jstring, jstring, jstring, jlong, jint)
 SHELL_WRAPPER2(notifyGetSmsFailed, jint, jint)
 SHELL_WRAPPER2(notifySmsDeleted, jboolean, jint)
 SHELL_WRAPPER2(notifySmsDeleteFailed, jint, jint)
+// TODO: Bug 862718 - WebSMS Android backend: use DOMCursor
 SHELL_WRAPPER1(notifyNoMessageInList, jint)
 SHELL_WRAPPER8(notifyListCreated, jint, jint, jint, jstring, jstring, jstring, jlong, jint)
 SHELL_WRAPPER7(notifyGotNextMessage, jint, jint, jstring, jstring, jstring, jlong, jint)

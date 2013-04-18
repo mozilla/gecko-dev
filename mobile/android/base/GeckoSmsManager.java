@@ -763,6 +763,7 @@ public class GeckoSmsManager
     }
   }
 
+  // TODO: Bug 862718 - WebSMS Android backend: use DOMCursor
   public void createMessageList(long aStartDate, long aEndDate, String[] aNumbers, int aNumbersCount, int aDeliveryState, boolean aReverse, int aRequestId) {
     class CreateMessageListRunnable implements Runnable {
       private long     mStartDate;
@@ -888,6 +889,7 @@ public class GeckoSmsManager
     }
   }
 
+  // TODO: Bug 862718 - WebSMS Android backend: use DOMCursor
   public void getNextMessageInList(int aListId, int aRequestId) {
     class GetNextMessageInListRunnable implements Runnable {
       private int mListId;
@@ -949,6 +951,7 @@ public class GeckoSmsManager
     }
   }
 
+  // TODO: Bug 862718 - WebSMS Android backend: use DOMCursor
   public void clearMessageList(int aListId) {
     MessagesListManager.getInstance().remove(aListId);
   }

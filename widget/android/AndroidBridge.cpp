@@ -165,6 +165,7 @@ AndroidBridge::Init(JNIEnv *jEnv,
     jSendMessage = (jmethodID) jEnv->GetStaticMethodID(jGeckoAppShellClass, "sendMessage", "(Ljava/lang/String;Ljava/lang/String;I)V");
     jGetMessage = (jmethodID) jEnv->GetStaticMethodID(jGeckoAppShellClass, "getMessage", "(II)V");
     jDeleteMessage = (jmethodID) jEnv->GetStaticMethodID(jGeckoAppShellClass, "deleteMessage", "(II)V");
+    // TODO: Bug 862718 - WebSMS Android backend: use DOMCursor
     jCreateMessageList = (jmethodID) jEnv->GetStaticMethodID(jGeckoAppShellClass, "createMessageList", "(JJ[Ljava/lang/String;IIZI)V");
     jGetNextMessageinList = (jmethodID) jEnv->GetStaticMethodID(jGeckoAppShellClass, "getNextMessageInList", "(II)V");
     jClearMessageList = (jmethodID) jEnv->GetStaticMethodID(jGeckoAppShellClass, "clearMessageList", "(I)V");
@@ -1793,6 +1794,7 @@ void
 AndroidBridge::CreateMessageList(const dom::mobilemessage::SmsFilterData& aFilter, bool aReverse,
                                  nsIMobileMessageCallback* aRequest)
 {
+    // TODO: Bug 862718 - WebSMS Android backend: use DOMCursor
     ALOG_BRIDGE("AndroidBridge::CreateMessageList");
 
     JNIEnv *env = GetJNIEnv();
@@ -1823,6 +1825,7 @@ AndroidBridge::CreateMessageList(const dom::mobilemessage::SmsFilterData& aFilte
 void
 AndroidBridge::GetNextMessageInList(int32_t aListId, nsIMobileMessageCallback* aRequest)
 {
+    // TODO: Bug 862718 - WebSMS Android backend: use DOMCursor
     ALOG_BRIDGE("AndroidBridge::GetNextMessageInList");
 
     JNIEnv *env = GetJNIEnv();
@@ -1839,6 +1842,7 @@ AndroidBridge::GetNextMessageInList(int32_t aListId, nsIMobileMessageCallback* a
 void
 AndroidBridge::ClearMessageList(int32_t aListId)
 {
+    // TODO: Bug 862718 - WebSMS Android backend: use DOMCursor
     ALOG_BRIDGE("AndroidBridge::ClearMessageList");
 
     JNIEnv *env = GetJNIEnv();
