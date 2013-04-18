@@ -26,7 +26,7 @@ NS_IMPL_ISUPPORTS3(nsVolumeMountLock, nsIVolumeMountLock,
                    nsIObserver, nsISupportsWeakReference)
 
 // static
-already_AddRefed<nsVolumeMountLock>
+already_AddRefed<nsIVolumeMountLock>
 nsVolumeMountLock::Create(const nsAString& aVolumeName)
 {
   DBG("nsVolumeMountLock::Create called");
