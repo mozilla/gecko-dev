@@ -23,6 +23,8 @@ XPCOMUtils.defineLazyServiceGetter(this, "cpmm",
                                    "@mozilla.org/childprocessmessagemanager;1",
                                    "nsIMessageSender");
 
+const CONTACTS_SENDMORE_MINIMUM = 5;
+
 const nsIClassInfo            = Ci.nsIClassInfo;
 const CONTACTPROPERTIES_CID   = Components.ID("{f5181640-89e8-11e1-b0c4-0800200c9a66}");
 const nsIDOMContactProperties = Ci.nsIDOMContactProperties;
@@ -642,6 +644,9 @@ ContactManager.prototype = {
       if (DEBUG) debug("contact in cache");
       let contact = data.cachedContacts.shift();
       this.nextTick(this._fireSuccessOrDone.bind(this, data.cursor, contact));
+      if (data.cachedContacts.length < CONTACTS_SENDMORE_MINIMUM) {
+        cpmm.sendAsyncMessage("Contacts:GetAll:SendNow", { cursorId: aCursorId });
+      }
     } else {
       if (DEBUG) debug("waiting for contact");
       data.waitingForNext = true;
