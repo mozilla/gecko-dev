@@ -727,6 +727,8 @@ nsObjectLoadingContent::InstantiatePluginInstance(bool aIsLoading)
   // Flush layout so that the frame is created if possible and the plugin is
   // initialized with the latest information.
   doc->FlushPendingNotifications(Flush_Layout);
+  // Flushing layout may have re-entered and loaded something underneath us
+  NS_ENSURE_TRUE(mInstantiating, NS_OK);
 
   if (!thisContent->GetPrimaryFrame()) {
     LOG(("OBJLC [%p]: Not instantiating plugin with no frame", this));
@@ -750,17 +752,35 @@ nsObjectLoadingContent::InstantiatePluginInstance(bool aIsLoading)
     appShell->SuspendNative();
   }
 
+  nsRefPtr<nsPluginInstanceOwner> newOwner;
   rv = pluginHost->InstantiatePluginInstance(mContentType.get(),
                                              mURI.get(), this,
-                                             getter_AddRefs(mInstanceOwner));
+                                             getter_AddRefs(newOwner));
 
+  // XXX(johns): We don't suspend native inside stopping plugins...
   if (appShell) {
     appShell->ResumeNative();
   }
 
-  if (NS_FAILED(rv)) {
-    return rv;
+  if (!mInstantiating || NS_FAILED(rv)) {
+    LOG(("OBJLC [%p]: Plugin instantiation failed or re-entered, "
+         "killing old instance", this));
+    // XXX(johns): This needs to be de-duplicated with DoStopPlugin, but we
+    //             don't want to touch the protochain or delayed stop.
+    //             (Bug 767635)
+    if (newOwner) {
+      nsRefPtr<nsNPAPIPluginInstance> inst;
+      newOwner->GetInstance(getter_AddRefs(inst));
+      newOwner->SetFrame(nullptr);
+      if (inst) {
+        pluginHost->StopPluginInstance(inst);
+      }
+      newOwner->Destroy();
+    }
+    return NS_OK;
   }
+
+  mInstanceOwner = newOwner;
 
   // Set up scripting interfaces.
   NotifyContentObjectWrapper();
@@ -2131,6 +2151,10 @@ nsObjectLoadingContent::UnloadObject(bool aResetState)
     mContentType.Truncate();
     mOriginalContentType.Truncate();
   }
+
+  // InstantiatePluginInstance checks this after re-entrant calls and aborts if
+  // it was cleared from under it
+  mInstantiating = false;
 
   mScriptRequested = false;
 
