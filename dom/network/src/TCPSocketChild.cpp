@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <algorithm>
 #include "TCPSocketChild.h"
 #include "mozilla/net/NeckoChild.h"
 #include "mozilla/dom/PBrowserChild.h"
@@ -17,9 +18,9 @@ using mozilla::net::gNeckoChild;
 namespace IPC {
 
 bool
-DeserializeUint8Array(JSRawObject aObj,
-                      const nsTArray<uint8_t>& aBuffer,
-                      jsval* aVal)
+DeserializeArrayBuffer(JSRawObject aObj,
+                       const nsTArray<uint8_t>& aBuffer,
+                       jsval* aVal)
 {
   JSContext* cx = nsContentUtils::GetSafeJSContext();
   JSAutoRequest ar(cx);
@@ -32,10 +33,7 @@ DeserializeUint8Array(JSRawObject aObj,
   if (!data)
     return false;
   memcpy(data, aBuffer.Elements(), aBuffer.Length());
-  JSObject* arr = JS_NewUint8ArrayWithBuffer(cx, obj, 0, aBuffer.Length());
-  if (!arr)
-    return false;
-  *aVal = OBJECT_TO_JSVAL(arr);
+  *aVal = OBJECT_TO_JSVAL(obj);
   return true;
 }
 
@@ -136,7 +134,7 @@ TCPSocketChild::RecvCallback(const nsString& aType,
 
     if (data.type() == SendableData::TArrayOfuint8_t) {
       jsval val;
-      IPC::DeserializeUint8Array(mSocketObj, data.get_ArrayOfuint8_t(), &val);
+      IPC::DeserializeArrayBuffer(mSocketObj, data.get_ArrayOfuint8_t(), &val);
       rv = mSocket->CallListenerArrayBuffer(aType, val);
 
     } else if (data.type() == SendableData::TnsString) {
@@ -175,7 +173,10 @@ TCPSocketChild::Close()
 }
 
 NS_IMETHODIMP
-TCPSocketChild::Send(const JS::Value& aData, JSContext* aCx)
+TCPSocketChild::Send(const JS::Value& aData,
+                     uint32_t aByteOffset,
+                     uint32_t aByteLength,
+                     JSContext* aCx)
 {
   if (aData.isString()) {
     JSString* jsstr = aData.toString();
@@ -187,15 +188,16 @@ TCPSocketChild::Send(const JS::Value& aData, JSContext* aCx)
   } else {
     NS_ENSURE_TRUE(aData.isObject(), NS_ERROR_FAILURE);
     JSObject* obj = &aData.toObject();
-    NS_ENSURE_TRUE(JS_IsTypedArrayObject(obj, aCx), NS_ERROR_FAILURE);
-    NS_ENSURE_TRUE(JS_IsUint8Array(obj, aCx), NS_ERROR_FAILURE);
-    uint32_t nbytes = JS_GetTypedArrayByteLength(obj, aCx);
-    uint8_t* data = JS_GetUint8ArrayData(obj, aCx);
+    NS_ENSURE_TRUE(JS_IsArrayBufferObject(obj, aCx), NS_ERROR_FAILURE);
+    uint32_t buflen = JS_GetArrayBufferByteLength(obj, aCx);
+    aByteOffset = std::min(buflen, aByteOffset);
+    uint32_t nbytes = std::min(buflen - aByteOffset, aByteLength);
+    uint8_t* data = JS_GetArrayBufferData(obj, aCx);
     if (!data) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
     FallibleTArray<uint8_t> fallibleArr;
-    if (!fallibleArr.InsertElementsAt(0, data, nbytes)) {
+    if (!fallibleArr.InsertElementsAt(0, data + aByteOffset, nbytes)) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
     InfallibleTArray<uint8_t> arr;

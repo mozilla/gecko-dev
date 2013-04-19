@@ -14,9 +14,9 @@ namespace IPC {
 
 //Defined in TCPSocketChild.cpp
 extern bool
-DeserializeUint8Array(JSRawObject aObj,
-                      const nsTArray<uint8_t>& aBuffer,
-                      jsval* aVal);
+DeserializeArrayBuffer(JSRawObject aObj,
+                       const nsTArray<uint8_t>& aBuffer,
+                       jsval* aVal);
 
 }
 
@@ -104,7 +104,7 @@ TCPSocketParent::RecvData(const SendableData& aData)
   switch (aData.type()) {
     case SendableData::TArrayOfuint8_t: {
       jsval val;
-      IPC::DeserializeUint8Array(mIntermediaryObj, aData.get_ArrayOfuint8_t(), &val);
+      IPC::DeserializeArrayBuffer(mIntermediaryObj, aData.get_ArrayOfuint8_t(), &val);
       rv = mIntermediary->SendArrayBuffer(val);
       NS_ENSURE_SUCCESS(rv, true);
       break;
@@ -156,10 +156,9 @@ TCPSocketParent::SendCallback(const nsAString& aType, const JS::Value& aDataVal,
 
   } else if (aDataVal.isObject()) {
     JSObject* obj = &aDataVal.toObject();
-    if (JS_IsTypedArrayObject(obj, aCx)) {
-      NS_ENSURE_TRUE(JS_IsUint8Array(obj, aCx), NS_ERROR_FAILURE);
-      uint32_t nbytes = JS_GetTypedArrayByteLength(obj, aCx);
-      uint8_t* buffer = JS_GetUint8ArrayData(obj, aCx);
+    if (JS_IsArrayBufferObject(obj, aCx)) {
+      uint32_t nbytes = JS_GetArrayBufferByteLength(obj, aCx);
+      uint8_t* buffer = JS_GetArrayBufferData(obj, aCx);
       if (!buffer) {
         FireInteralError(this, __LINE__);
         return NS_ERROR_OUT_OF_MEMORY;

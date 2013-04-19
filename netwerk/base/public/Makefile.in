@@ -30,6 +30,7 @@ SDK_XPIDLSRCS   = \
 		$(NULL)
 
 XPIDLSRCS	= \
+		nsIArrayBufferInputStream.idl \
 		nsIApplicationCache.idl \
 		nsIApplicationCacheChannel.idl \
 		nsIApplicationCacheContainer.idl \

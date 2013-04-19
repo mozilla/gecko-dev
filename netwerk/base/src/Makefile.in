@@ -22,6 +22,7 @@ EXPORTS = \
 		$(NULL)
 
 CPPSRCS		= \
+		ArrayBufferInputStream.cpp \
 		nsTransportUtils.cpp \
 		nsAsyncStreamCopier.cpp \
 		nsAsyncRedirectVerifyHelper.cpp \
