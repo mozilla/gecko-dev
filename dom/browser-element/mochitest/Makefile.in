@@ -164,9 +164,6 @@ MOCHITEST_FILES = \
 # Disabled due to https://bugzilla.mozilla.org/show_bug.cgi?id=774100
 #		test_browserElement_inproc_Reload.html \
 
-# Disabled due to focus issues (no bug that I'm aware of)
-# 		test_browserElement_oop_KeyEvents.html \
-
 # OOP tests don't work on Windows (bug 763081) or native-fennec (bug
 # 774939).
 #
@@ -193,6 +190,7 @@ MOCHITEST_FILES += \
 		test_browserElement_oop_SetVisible.html \
 		test_browserElement_oop_SetVisibleFrames.html \
 		test_browserElement_oop_SetVisibleFrames2.html \
+		test_browserElement_oop_KeyEvents.html \
 		test_browserElement_oop_XFrameOptions.html \
 		test_browserElement_oop_XFrameOptionsDeny.html \
 		test_browserElement_oop_XFrameOptionsSameOrigin.html \

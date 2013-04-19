@@ -19,10 +19,11 @@
 "use strict";
 
 SimpleTest.waitForExplicitFinish();
-browserElementTestHelpers.setEnabledPref(true);
-browserElementTestHelpers.addPermission();
 
 function runTest() {
+  browserElementTestHelpers.setEnabledPref(true);
+  browserElementTestHelpers.addPermission();
+
   // We're going to open a remote frame if OOP off by default.  If OOP is on by
   // default, we're going to open an in-process frame.
   var remote = !browserElementTestHelpers.getOOPByDefaultPref();
@@ -103,4 +104,4 @@ function test2(popup, blankScreenshotArrayBuffer) {
   };
 }
 
-addEventListener('testready', runTest);
+runTest();
