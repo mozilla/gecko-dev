@@ -368,6 +368,10 @@ BluetoothService::UnregisterBluetoothSignalHandler(const nsAString& aNodeName,
   BluetoothSignalObserverList* ol;
   if (mBluetoothSignalObserverTable.Get(aNodeName, &ol)) {
     ol->RemoveObserver(aHandler);
+    // We shouldn't have duplicate instances in the ObserverList, but there's
+    // no appropriate way to do duplication check while registering, so
+    // assertions are added here.
+    MOZ_ASSERT(!ol->RemoveObserver(aHandler));
     if (ol->Length() == 0) {
       mBluetoothSignalObserverTable.Remove(aNodeName);
     }
@@ -382,7 +386,12 @@ RemoveAllSignalHandlers(const nsAString& aKey,
                         nsAutoPtr<BluetoothSignalObserverList>& aData,
                         void* aUserArg)
 {
-  aData->RemoveObserver(static_cast<BluetoothSignalObserver*>(aUserArg));
+  BluetoothSignalObserver* handler = static_cast<BluetoothSignalObserver*>(aUserArg);
+  aData->RemoveObserver(handler);
+  // We shouldn't have duplicate instances in the ObserverList, but there's
+  // no appropriate way to do duplication check while registering, so
+  // assertions are added here.
+  MOZ_ASSERT(!aData->RemoveObserver(handler));
   return aData->Length() ? PL_DHASH_NEXT : PL_DHASH_REMOVE;
 }
 
