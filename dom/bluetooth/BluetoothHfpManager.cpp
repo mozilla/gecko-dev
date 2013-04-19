@@ -624,31 +624,42 @@ BluetoothHfpManager::ReceiveSocketData(BluetoothSocket* aSocket,
     ParseAtCommand(msg, 8, atCommandValues);
 
     if (atCommandValues.IsEmpty()) {
-      NS_WARNING("Could't get the value of command [AT+VGS=]");
+      NS_WARNING("Could't get the value of command [AT+CHLD=]");
       goto respond_with_ok;
     }
 
-    nsresult rv;
-    int chld = atCommandValues[0].ToInteger(&rv);
-    if (NS_FAILED(rv)) {
-      NS_WARNING("Failed to extract volume value from bluetooth headset!");
-      goto respond_with_ok;
+    /**
+     * The following two cases are supported:
+     * AT+CHLD=1 - Releases active calls and accepts the other (held or
+     *             waiting) call
+     * AT+CHLD=2 - Places active calls on hold and accepts the other (held
+     *             or waiting) call
+     *
+     * The following cases are NOT supported yet:
+     * AT+CHLD=0, AT+CHLD=1<idx>, AT+CHLD=2<idx>, AT+CHLD=3, AT+CHLD=4
+     * Please see 4.33.2 in Bluetooth hands-free profile 1.6 for more
+     * information.
+     */
+    char chld = atCommandValues[0][0];
+    bool valid = true;
+    if (atCommandValues[0].Length() > 1) {
+      NS_WARNING("No index should be included in command [AT+CHLD]");
+      valid = false;
+    } else if (chld == '0' || chld == '3' || chld == '4') {
+      NS_WARNING("The value of command [AT+CHLD] is not supported");
+      valid = false;
+    } else if (chld == '1') {
+      NotifyDialer(NS_LITERAL_STRING("CHUP+ATA"));
+    } else if (chld == '2') {
+      NotifyDialer(NS_LITERAL_STRING("CHLD+ATA"));
+    } else {
+      NS_WARNING("Wrong value of command [AT+CHLD]");
+      valid = false;
     }
 
-    switch(chld) {
-      case 1:
-        // Releases active calls and accepts the other (held or waiting) call
-        NotifyDialer(NS_LITERAL_STRING("CHUP+ATA"));
-        break;
-      case 2:
-        // Places active calls on hold and accepts the other (held or waiting) call
-        NotifyDialer(NS_LITERAL_STRING("CHLD+ATA"));
-        break;
-      default:
-#ifdef DEBUG
-        NS_WARNING("Not handling chld value");
-#endif
-        break;
+    if (!valid) {
+      SendLine("ERROR");
+      return;
     }
   } else if (msg.Find("AT+VGS=") != -1) {
     // Adjust volume by headset
