@@ -1393,12 +1393,13 @@ RadioInterfaceLayer.prototype = {
 
   portAddressedSmsApps: null,
   handleSmsReceived: function handleSmsReceived(message) {
-    debug("handleSmsReceived: " + JSON.stringify(message));
-
     // FIXME: Bug 737202 - Typed arrays become normal arrays when sent to/from workers
     if (message.encoding == RIL.PDU_DCS_MSG_CODING_8BITS_ALPHABET) {
       message.fullData = new Uint8Array(message.fullData);
     }
+
+    message.timestamp = Date.now();
+    debug("handleSmsReceived: " + JSON.stringify(message));
 
     // Dispatch to registered handler if application port addressing is
     // available. Note that the destination port can possibly be zero when
