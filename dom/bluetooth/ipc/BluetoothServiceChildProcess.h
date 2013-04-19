@@ -185,6 +185,11 @@ private:
   // This method should never be called from the child.
   virtual nsresult
   PrepareAdapterInternal(const nsAString& aPath) MOZ_OVERRIDE;
+
+  bool
+  IsSignalRegistered(const nsAString& aNodeName) {
+    return !!mBluetoothSignalObserverTable.Get(aNodeName);
+  }
 };
 
 END_BLUETOOTH_NAMESPACE
