@@ -351,8 +351,6 @@ ContactManager.prototype = {
   __proto__: DOMRequestIpcHelper.prototype,
   _oncontactchange: null,
 
-  _cursorData: {},
-
   set oncontactchange(aCallback) {
     if (DEBUG) debug("set oncontactchange");
     let allowCallback = function() {
@@ -421,7 +419,10 @@ ContactManager.prototype = {
         }
         break;
       case "Contacts:GetAll:Next":
-        let data = this._cursorData[msg.cursorId];
+        let data = this.getRequest(msg.cursorId);
+        if (!data) {
+          break;
+        }
         let result = contacts ? this._convertContacts(contacts) : [null];
         if (data.waitingForNext) {
           if (DEBUG) debug("cursor waiting for contact, sending");
@@ -609,7 +610,6 @@ ContactManager.prototype = {
   },
 
   createCursor: function CM_createCursor(aRequest) {
-    let id = this._getRandomId();
     let data = {
       cursor: Services.DOMRequest.createCursor(this._window, function() {
         this.handleContinue(id);
@@ -617,8 +617,8 @@ ContactManager.prototype = {
       cachedContacts: [],
       waitingForNext: true,
     };
+    let id = this.getRequestId(data);
     if (DEBUG) debug("saved cursor id: " + id);
-    this._cursorData[id] = data;
     return [id, data.cursor];
   },
 
@@ -639,7 +639,7 @@ ContactManager.prototype = {
 
   handleContinue: function CM_handleContinue(aCursorId) {
     if (DEBUG) debug("handleContinue: " + aCursorId);
-    let data = this._cursorData[aCursorId];
+    let data = this.getRequest(aCursorId);
     if (data.cachedContacts.length > 0) {
       if (DEBUG) debug("contact in cache");
       let contact = data.cachedContacts.shift();
