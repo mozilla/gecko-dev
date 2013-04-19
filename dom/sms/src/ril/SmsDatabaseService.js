@@ -1024,6 +1024,7 @@ SmsDatabaseService.prototype = {
           if (threadRecord.lastTimestamp <= timestamp) {
             threadRecord.lastTimestamp = timestamp;
             threadRecord.subject = aMessageRecord.body;
+            threadRecord.lastMessageId = aMessageRecord.id;
             needsUpdate = true;
           }
 
@@ -1241,10 +1242,12 @@ SmsDatabaseService.prototype = {
   },
 
   deleteMessage: function deleteMessage(messageId, aRequest) {
+    if (DEBUG) debug("deleteMessage: message id " + messageId);
     let deleted = false;
     let self = this;
     this.newTxn(READ_WRITE, function (error, txn, stores) {
       if (error) {
+        if (DEBUG) debug("deleteMessage: failed to open transaction");
         aRequest.notifyDeleteMessageFailed(Ci.nsISmsRequest.INTERNAL_ERROR);
         return;
       }
@@ -1271,6 +1274,7 @@ SmsDatabaseService.prototype = {
 
           // First actually delete the message.
           messageStore.delete(messageId).onsuccess = function(event) {
+            if (DEBUG) debug("Message id " + messageId + " deleted");
             deleted = true;
 
             // Then update unread count and most recent message.
@@ -1279,6 +1283,7 @@ SmsDatabaseService.prototype = {
             threadStore.get(threadId).onsuccess = function(event) {
               // This must exist.
               let threadRecord = event.target.result;
+              if (DEBUG) debug("Updating thread record " + JSON.stringify(threadRecord));
 
               if (!messageRecord.read) {
                 threadRecord.unreadCount--;
@@ -1778,6 +1783,9 @@ SmsDatabaseService.prototype = {
         // TODO: keep backward compatibility of original API interface only.
         let results = [];
         for each (let item in event.target.result) {
+          if (DEBUG) {
+            debug("thread item: " + JSON.stringify(item));
+          }
           results.push({
             id: item.id,
             senderOrReceiver: item.participantAddresses[0],
