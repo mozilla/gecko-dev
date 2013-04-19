@@ -106,4 +106,4 @@ function runTest() {
 
 }
 
-addEventListener('testready', runTest);
+addEventListener('load', function() { SimpleTest.executeSoon(runTest); });

@@ -6,8 +6,6 @@
 "use strict";
 
 SimpleTest.waitForExplicitFinish();
-browserElementTestHelpers.setEnabledPref(true);
-browserElementTestHelpers.addPermission();
 
 function runTest() {
   browserElementTestHelpers.setEnabledPref(true);
@@ -26,4 +24,4 @@ function runTest() {
   iframe.src = 'file_browserElement_XFrameOptions.sjs?DENY';
 }
 
-addEventListener('testready', runTest);
+runTest();
