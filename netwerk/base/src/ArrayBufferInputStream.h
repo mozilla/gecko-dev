@@ -22,7 +22,7 @@
 class ArrayBufferInputStream : public nsIArrayBufferInputStream {
 public:
   ArrayBufferInputStream();
-  ~ArrayBufferInputStream();
+  virtual ~ArrayBufferInputStream();
   NS_DECL_ISUPPORTS
   NS_DECL_NSIARRAYBUFFERINPUTSTREAM
   NS_DECL_NSIINPUTSTREAM
