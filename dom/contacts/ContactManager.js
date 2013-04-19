@@ -284,7 +284,7 @@ Contact.prototype = {
 
     this.org =             _create(aProp.org) || null;
     this.jobTitle =        _create(aProp.jobTitle) || null;
-    this.bday =            (aProp.bday == "undefined" || aProp.bday == null) ? null : new Date(aProp.bday);
+    this.bday =            aProp.bday ? new Date(aProp.bday) : null;
     this.note =            _create(aProp.note) || null;
 
     if (aProp.impp) {
@@ -305,7 +305,7 @@ Contact.prototype = {
       this.url = null;
     }
 
-    this.anniversary =     (aProp.anniversary == "undefined" || aProp.anniversary == null) ? null : new Date(aProp.anniversary);
+    this.anniversary =     aProp.anniversary ? new Date(aProp.anniversary) : null;
     this.sex =             (aProp.sex != "undefined") ? aProp.sex : null;
     this.genderIdentity =  (aProp.genderIdentity != "undefined") ? aProp.genderIdentity : null;
   },
