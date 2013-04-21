@@ -766,12 +766,17 @@ function runTest(testNum) {
         doKey("return");
         checkForm("21:21");
 
-        input = $_(16, "field13");
+        // Go to test 500.
+        fh.addEntry("field1", "value1");
+        input = $_(1, "field1");
+        testNum = 499;
+
         restoreForm();
         doKey("down");
         break;
 
       case 407:
+        break; // disabled on branch
         checkMenuEntries([]); // type=range does not have a drop down menu
         doKey("down");
         doKey("return");

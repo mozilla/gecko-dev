@@ -204,7 +204,7 @@ reflectLimitedEnumerated({
   attribute: "type",
   validValues: [ "hidden", "text", "search", "tel", "url", "email", "password",
                  "checkbox", "radio", "file", "submit", "image", "reset",
-                 "button", "date", "time", "number", "range" ],
+                 "button", "date", "time", "number" ], // "range" is disabled on branch
   invalidValues: [ "this-is-probably-a-wrong-type", "", "tulip" ],
   defaultValue: "text",
   unsupportedValues: [ "datetime", "month", "week", "datetime-local",

@@ -141,6 +141,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=851780
       is(NonTextInput[i], 0, "input event doesn't apply");
     }
 
+/* disabled on branch
     // Type changes.
     var input = document.createElement('input');
     input.type = 'text';
@@ -176,6 +177,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=851780
     is(rangeInput, 3, "Input event should be dispatched during a drag");
     synthesizeMouse(range, centerOfRangeX, centerOfRangeY, { type: "mouseup" });
     is(rangeInput, 4, "Input event should be dispatched at the end of a drag");
+*/
 
     MockFilePicker.cleanup();
     SimpleTest.finish();

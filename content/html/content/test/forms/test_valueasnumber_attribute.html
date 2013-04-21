@@ -40,7 +40,6 @@ function checkAvailability()
     ["reset", false],
     ["button", false],
     ["number", true],
-    ["range", true],
     ["date", true],
     ["time", true],
     // The next types have not been implemented but will fallback to "text"
@@ -50,6 +49,7 @@ function checkAvailability()
 
   var todoList =
   [
+    ["range", true],
     ["datetime", true],
     ["month", true],
     ["week", true],
@@ -494,8 +494,8 @@ checkNumberGet();
 checkNumberSet();
 
 // <input type='range'> test
-checkRangeGet();
-checkRangeSet();
+//checkRangeGet(); disabled on branch
+//checkRangeSet();
 
 // <input type='date'> test
 checkDateGet();

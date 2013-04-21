@@ -164,6 +164,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=722599
       }
     }
 
+/* disabled on branch
     // Special case type=range
     var range = document.getElementById("input_range");
     range.focus();
@@ -185,6 +186,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=722599
     is(rangeChange, 1, "Change event shouldn't be dispatched on range input element during drag of thumb");
     synthesizeMouse(range, centerOfRangeX, centerOfRangeY, { type: "mouseup" });
     is(rangeChange, 2, "Change event should be dispatched on range input element at end of drag");
+*/
 
     //Input type change test.
     input = document.getElementById("input_checkbox");

@@ -42,19 +42,19 @@ var inputTypes =
 [
   "text", "password", "search", "tel", "hidden", "checkbox", "radio",
   "submit", "image", "reset", "button", "email", "url", "number", "date",
-  "time", "range"
+  "time", // disabled on branch "range"
 ];
 
 var todoTypes =
 [
-  "color",
+  "color", "range",
   "month", "week", "datetime", "datetime-local",
 ];
 
 var valueModeValue =
 [
   "text", "search", "url", "tel", "email", "password", "date", "datetime",
-  "month", "week", "time", "datetime-local", "number", "range", "color",
+  "month", "week", "time", "datetime-local", "number", "color", // disabled on branch "range"
 ];
 
 function sanitizeValue(aType, aValue)

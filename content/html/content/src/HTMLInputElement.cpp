@@ -3812,8 +3812,7 @@ HTMLInputElement::ParseAttribute(int32_t aNamespaceID,
         newType = aResult.GetEnumValue();
         if ((IsExperimentalMobileType(newType) &&
              !Preferences::GetBool("dom.experimental_forms", false)) ||
-            (newType == NS_FORM_INPUT_RANGE &&
-             !Preferences::GetBool("dom.experimental_forms_range", false))) {
+            (newType == NS_FORM_INPUT_RANGE)) { // disabled on branch !Preferences::GetBool("dom.experimental_forms_range", false)
           newType = kInputDefaultType->value;
           aResult.SetTo(newType, &aValue);
         }
