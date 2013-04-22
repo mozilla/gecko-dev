@@ -719,11 +719,15 @@ nsBinaryInputStream::ReadByteArray(uint32_t aLength, uint8_t* *_rval)
 }
 
 NS_IMETHODIMP
-nsBinaryInputStream::ReadArrayBuffer(uint32_t aLength, JSContext* cx, JS::Value* _rval)
+nsBinaryInputStream::ReadArrayBuffer(uint32_t aLength, const JS::Value& aBuffer, JSContext* cx)
 {
     JSAutoRequest ar(cx);
-    JSObject* buffer = JS_NewArrayBuffer(cx, aLength);
-    if (!buffer) {
+    if (!aBuffer.isObject()) {
+        return NS_ERROR_FAILURE;
+    }
+    JSObject* buffer = &aBuffer.toObject();
+    if (!JS_IsArrayBufferObject(buffer, cx) ||
+        JS_GetArrayBufferByteLength(buffer, cx) < aLength) {
         return NS_ERROR_FAILURE;
     }
     uint8_t* data = JS_GetArrayBufferData(buffer, cx);
@@ -737,8 +741,6 @@ nsBinaryInputStream::ReadArrayBuffer(uint32_t aLength, JSContext* cx, JS::Value*
     if (bytesRead != aLength) {
         return NS_ERROR_FAILURE;
     }
-
-    *_rval = JS::ObjectValue(*buffer);
     return NS_OK;
 }
 
