@@ -436,6 +436,13 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
           cManufacturer.Equals("samsung", nsCaseInsensitiveCStringComparator()) ||
           cModel.Equals("galaxy nexus", nsCaseInsensitiveCStringComparator()); // some Galaxy Nexus have manufacturer=amazon
 
+        if (cModel.Equals("SGH-I717", nsCaseInsensitiveCStringComparator()) ||
+            cModel.Equals("SGH-I727", nsCaseInsensitiveCStringComparator()) ||
+            cModel.Equals("SGH-T989", nsCaseInsensitiveCStringComparator()))
+        {
+          isWhitelisted = false;
+        }
+
         if (!isWhitelisted) {
           *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DEVICE;
           return NS_OK;
