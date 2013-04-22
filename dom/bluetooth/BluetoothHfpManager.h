@@ -67,11 +67,21 @@ private:
   bool mReceiveVgsFlag;
   nsString mDevicePath;
   nsString mMsisdn;
-  SocketConnectionStatus mPrevSocketStatus;
   nsTArray<int> mCurrentCallStateArray;
   nsAutoPtr<BluetoothRilListener> mListener;
   nsRefPtr<BluetoothReplyRunnable> mRunnable;
+
+  // If a connection has been established, mSocket will be the socket
+  // communicating with the remote socket. We maintain the invariant that if
+  // mSocket is non-null, mHandsfreeSocket and mHeadsetSocket must be null (and
+  // vice versa).
   nsRefPtr<BluetoothSocket> mSocket;
+
+  // Server sockets. Once an inbound connection is established, it will hand
+  // over the ownership to mSocket, and get a new server socket while Listen()
+  // is called.
+  nsRefPtr<BluetoothSocket> mHandsfreeSocket;
+  nsRefPtr<BluetoothSocket> mHeadsetSocket;
 };
 
 END_BLUETOOTH_NAMESPACE
