@@ -28,8 +28,8 @@ public:
   NS_DECL_NSIINPUTSTREAM
 
 private:
-  JSContext* mCx;
-  JSObject* mArrayBuffer;
+  JSRuntime* mRt;
+  jsval mArrayBuffer;
   uint8_t* mBuffer;
   uint32_t mBufferLength;
   uint32_t mOffset;
