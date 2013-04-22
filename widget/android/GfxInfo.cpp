@@ -448,6 +448,16 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
           return NS_OK;
         }
       }
+      else if (CompareVersions(mOSVersion.get(), "4.1.0") < 0)
+      {
+        bool isBlocklisted =
+          cManufacturer.Equals("Sony", nsCaseInsensitiveCStringComparator());
+
+        if (isBlocklisted) {
+          *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DEVICE;
+          return NS_OK;
+        }
+      }
     }
   }
 
