@@ -49,6 +49,10 @@ public:
   };
   static WinVersion GetWindowsVersion();
 
+  // Retrieves the Service Pack version number.
+  // Returns true on success, false on failure.
+  static bool GetWindowsServicePackVersion(UINT& aOutMajor, UINT& aOutMinor);
+  
   /**
    * Gets the value of a string-typed registry value.
    *
