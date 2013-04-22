@@ -1776,19 +1776,6 @@ JSObject::ReserveForTradeGuts(JSContext *cx, JSObject *aArg, JSObject *bArg,
      * swaps can be performed infallibly.
      */
 
-#ifdef JSGC_INCREMENTAL
-    /*
-     * We need a write barrier here. If |a| was marked and |b| was not, then
-     * after the swap, |b|'s guts would never be marked. The write barrier
-     * solves this.
-     */
-    JS::Zone *zone = a->zone();
-    if (zone->needsBarrier()) {
-        MarkChildren(zone->barrierTracer(), a);
-        MarkChildren(zone->barrierTracer(), b);
-    }
-#endif
-
     /*
      * Swap prototypes and classes on the two objects, so that TradeGuts can
      * preserve the types of the two objects.
@@ -2008,6 +1995,24 @@ JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b, TradeGutsReserved &
         a->lastProperty()->listp = &a->shape_;
     if (b->inDictionaryMode())
         b->lastProperty()->listp = &b->shape_;
+
+#ifdef JSGC_INCREMENTAL
+    /*
+     * We need a write barrier here. If |a| was marked and |b| was not, then
+     * after the swap, |b|'s guts would never be marked. The write barrier
+     * solves this.
+     *
+     * Normally write barriers happen before the write. However, that's not
+     * necessary here because nothing is being destroyed. We're just swapping.
+     * We don't do the barrier before TradeGuts because ReserveForTradeGuts
+     * makes changes to the objects that might confuse the tracing code.
+     */
+    JS::Zone *zone = a->zone();
+    if (zone->needsBarrier()) {
+        MarkChildren(zone->barrierTracer(), a);
+        MarkChildren(zone->barrierTracer(), b);
+    }
+#endif
 }
 
 /* Use this method with extreme caution. It trades the guts of two objects. */

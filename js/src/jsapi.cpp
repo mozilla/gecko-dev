@@ -785,7 +785,9 @@ JSRuntime::JSRuntime(JSUseHelperThreads useHelperThreads)
     gcIsFull(false),
     gcTriggerReason(gcreason::NO_REASON),
     gcStrictCompartmentChecking(false),
+#ifdef DEBUG
     gcDisableStrictProxyCheckingCount(0),
+#endif
     gcIncrementalState(gc::NO_INCREMENTAL),
     gcLastMarkSlice(false),
     gcSweepOnBackgroundThread(false),
@@ -1572,6 +1574,7 @@ JS_TransplantObject(JSContext *cx, JSObject *origobjArg, JSObject *targetArg)
     JS_ASSERT(!IsCrossCompartmentWrapper(target));
 
     AutoMaybeTouchDeadZones agc(cx);
+    AutoDisableProxyCheck adpc(cx->runtime);
 
     JSCompartment *destination = target->compartment();
     RootedValue origv(cx, ObjectValue(*origobj));
@@ -1645,6 +1648,7 @@ js_TransplantObjectWithWrapper(JSContext *cx,
     RootedObject targetwrapper(cx, targetwrapperArg);
 
     AutoMaybeTouchDeadZones agc(cx);
+    AutoDisableProxyCheck adpc(cx->runtime);
 
     AssertHeapIsIdle(cx);
     JS_ASSERT(!IsCrossCompartmentWrapper(origobj));

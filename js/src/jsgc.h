@@ -1245,6 +1245,25 @@ MaybeVerifyBarriers(JSContext *cx, bool always = false)
 void
 PurgeJITCaches(JSCompartment *c);
 
+#ifdef DEBUG
+/* Use this to avoid assertions when manipulating the wrapper map. */
+struct AutoDisableProxyCheck
+{
+    uintptr_t &count;
+
+    AutoDisableProxyCheck(JSRuntime *rt);
+
+   ~AutoDisableProxyCheck() {
+        count--;
+    }
+};
+#else
+struct AutoDisableProxyCheck
+{
+    AutoDisableProxyCheck(JSRuntime *rt) {}
+};
+#endif
+
 } /* namespace js */
 
 #endif /* jsgc_h___ */
