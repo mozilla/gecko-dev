@@ -203,19 +203,17 @@ BluetoothScoManager::Connect(const nsAString& aDeviceAddress)
     return false;
   }
 
-  if (mSocket->GetConnectionStatus() ==
-      SocketConnectionStatus::SOCKET_CONNECTED) {
-    NS_WARNING("Sco socket has been connected");
+  SocketConnectionStatus status = mSocket->GetConnectionStatus();
+  if (status == SocketConnectionStatus::SOCKET_CONNECTED ||
+      status == SocketConnectionStatus::SOCKET_CONNECTING) {
+    NS_WARNING("SCO connection exists or is being established");
     return false;
   }
 
   mSocket->Disconnect();
 
   BluetoothService* bs = BluetoothService::Get();
-  if (!bs) {
-    NS_WARNING("BluetoothService not available!");
-    return false;
-  }
+  NS_ENSURE_TRUE(bs, false);
 
   nsresult rv = bs->GetScoSocket(aDeviceAddress,
                                  true,
@@ -291,4 +289,15 @@ BluetoothScoManager::OnDisconnect(BluetoothSocket* aSocket)
     nsString address = NS_LITERAL_STRING("");
     NotifyAudioManager(address);
   }
+}
+
+bool
+BluetoothScoManager::IsConnected()
+{
+  if (mSocket) {
+    return mSocket->GetConnectionStatus() ==
+           SocketConnectionStatus::SOCKET_CONNECTED;
+  }
+
+  return false;
 }
