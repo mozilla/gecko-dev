@@ -5013,3 +5013,11 @@ AutoMaybeTouchDeadZones::~AutoMaybeTouchDeadZones()
 
     runtime->gcManipulatingDeadZones = manipulatingDeadZones;
 }
+
+#ifdef DEBUG
+AutoDisableProxyCheck::AutoDisableProxyCheck(JSRuntime *rt)
+  : count(rt->gcDisableStrictProxyCheckingCount)
+{
+    count++;
+}
+#endif

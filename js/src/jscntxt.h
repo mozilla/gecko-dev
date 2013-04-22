@@ -911,6 +911,7 @@ struct JSRuntime : js::RuntimeFriendFields,
      */
     bool                gcStrictCompartmentChecking;
 
+#ifdef DEBUG
     /*
      * If this is 0, all cross-compartment proxies must be registered in the
      * wrapper map. This checking must be disabled temporarily while creating
@@ -918,6 +919,9 @@ struct JSRuntime : js::RuntimeFriendFields,
      * creation.
      */
     uintptr_t           gcDisableStrictProxyCheckingCount;
+#else
+    uintptr_t           unused1;
+#endif
 
     /*
      * The current incremental GC phase. This is also used internally in
