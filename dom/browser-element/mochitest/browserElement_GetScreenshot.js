@@ -93,4 +93,4 @@ function runTest() {
   iframe1.addEventListener('mozbrowserloadend', iframeLoadedHandler);
 }
 
-addEventListener('testready', runTest);
+addEventListener('load', function() { SimpleTest.executeSoon(runTest); });

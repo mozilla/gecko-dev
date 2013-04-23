@@ -6,15 +6,16 @@
 "use strict";
 
 SimpleTest.waitForExplicitFinish();
-browserElementTestHelpers.setEnabledPref(true);
-browserElementTestHelpers.addPermission();
-SpecialPowers.addPermission("embed-apps", true, window.document);
-
-addEventListener('unload', function() {
-  SpecialPowers.removePermission("embed-apps", window.document);
-});
 
 function runTest() {
+  browserElementTestHelpers.setEnabledPref(true);
+  browserElementTestHelpers.addPermission();
+  SpecialPowers.addPermission("embed-apps", true, window.document);
+
+  addEventListener('unload', function() {
+    SpecialPowers.removePermission("embed-apps", window.document);
+  });
+
   // Our app frame and browser frame load the same content.  That content calls
   // window.close() and then alert().  We should get a mozbrowserclose event on
   // the app frame before the mozbrowsershowmodalprompt, but not on the browser
@@ -67,6 +68,4 @@ function runTest() {
 // writing, anyway).  But that means that browser tabs can close themselves,
 // which is what we want to test /can't/ happen!   For the purposes of this
 // test (and normal browser operation), this pref should be false.
-addEventListener('testready', function() {
-  SpecialPowers.pushPrefEnv({'set': [['dom.allow_scripts_to_close_windows', false]]}, runTest);
-});
+SpecialPowers.pushPrefEnv({'set': [['dom.allow_scripts_to_close_windows', false]]}, runTest);
