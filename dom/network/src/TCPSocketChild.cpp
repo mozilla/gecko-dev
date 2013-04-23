@@ -12,6 +12,7 @@
 #include "nsContentUtils.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
+#include "jswrapper.h"
 
 using mozilla::net::gNeckoChild;
 
@@ -83,7 +84,10 @@ TCPSocketChild::Open(nsITCPSocketInternal* aSocket, const nsAString& aHost,
 {
   mSocket = aSocket;
   MOZ_ASSERT(aSocketObj.isObject());
-  mSocketObj = &aSocketObj.toObject();
+  mSocketObj = js::UnwrapObjectChecked(aCx, &aSocketObj.toObject());
+  if (!mSocketObj) {
+    return NS_ERROR_FAILURE;
+  }
   AddIPDLReference();
   gNeckoChild->SendPTCPSocketConstructor(this, nsString(aHost), aPort,
                                          aUseSSL, nsString(aBinaryType),
@@ -134,7 +138,8 @@ TCPSocketChild::RecvCallback(const nsString& aType,
 
     if (data.type() == SendableData::TArrayOfuint8_t) {
       jsval val;
-      IPC::DeserializeArrayBuffer(mSocketObj, data.get_ArrayOfuint8_t(), &val);
+      bool ok = IPC::DeserializeArrayBuffer(mSocketObj, data.get_ArrayOfuint8_t(), &val);
+      NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
       rv = mSocket->CallListenerArrayBuffer(aType, val);
 
     } else if (data.type() == SendableData::TnsString) {
