@@ -9,6 +9,7 @@ import org.mozilla.gecko.AwesomeBar.ContextMenuSubject;
 import org.mozilla.gecko.db.BrowserContract.Combined;
 import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.db.BrowserDB.URLColumns;
+import org.mozilla.gecko.gfx.BitmapUtils;
 import org.mozilla.gecko.util.GamepadUtils;
 import org.mozilla.gecko.util.ThreadUtils;
 
@@ -19,7 +20,6 @@ import android.content.res.Resources;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.text.TextUtils;
 import android.util.Log;
@@ -193,8 +193,8 @@ public class HistoryTab extends AwesomeBarTab {
             Bitmap favicon = null;
 
             if (b != null) {
-                Bitmap bitmap = BitmapFactory.decodeByteArray(b, 0, b.length);
-                if (bitmap != null && bitmap.getWidth() > 0 && bitmap.getHeight() > 0) {
+                Bitmap bitmap = BitmapUtils.decodeByteArray(b);
+                if (bitmap != null) {
                     favicon = Favicons.getInstance().scaleImage(bitmap);
                 }
             }
