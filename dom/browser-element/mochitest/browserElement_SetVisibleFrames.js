@@ -11,12 +11,13 @@
 "use strict";
 
 SimpleTest.waitForExplicitFinish();
-browserElementTestHelpers.setEnabledPref(true);
-browserElementTestHelpers.addPermission();
 
 var iframe;
 
 function runTest() {
+  browserElementTestHelpers.setEnabledPref(true);
+  browserElementTestHelpers.addPermission();
+
   var principal = SpecialPowers.wrap(SpecialPowers.getNodePrincipal(document));
   SpecialPowers.addPermission("browser", true, { url: SpecialPowers.wrap(principal.URI).spec,
                                                  appId: principal.appId,
@@ -73,8 +74,6 @@ function finish() {
   // expected, but if we don't remove our listener, then we'll end up causing
   // the /next/ test to fail!
   iframe.removeEventListener('mozbrowsershowmodalprompt', checkMessage);
-  iframe.setVisible(false);
-  document.body.removeChild(iframe);
 
   var principal = SpecialPowers.wrap(SpecialPowers.getNodePrincipal(document));
   SpecialPowers.removePermission("browser", { url: SpecialPowers.wrap(principal.URI).spec,
@@ -96,10 +95,8 @@ function checkMessage(e) {
   is(msg, expectedMsg);
   if (msg == expectedMsg) {
     expectedMsg = null;
-    var callback = expectedMsgCallback;
-    expectedMsgCallback = null;
-    SimpleTest.executeSoon(function() { callback() });
+    SimpleTest.executeSoon(function() { expectedMsgCallback() });
   }
 }
 
-addEventListener('testready', runTest);
+runTest();

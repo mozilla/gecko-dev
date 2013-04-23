@@ -35,10 +35,11 @@ js_template = textwrap.dedent("""\
     "use strict";
 
     SimpleTest.waitForExplicitFinish();
-    browserElementTestHelpers.setEnabledPref(true);
-    browserElementTestHelpers.addPermission();
 
     function runTest() {{
+      browserElementTestHelpers.setEnabledPref(true);
+      browserElementTestHelpers.addPermission();
+
       var iframe = document.createElement('iframe');
       iframe.mozbrowser = true;
 
@@ -47,8 +48,7 @@ js_template = textwrap.dedent("""\
       document.body.appendChild(iframe);
     }}
 
-    addEventListener('testready', runTest);
-    """)
+    runTest();""")
 
 def print_fill(s):
     print(textwrap.fill(textwrap.dedent(s)))

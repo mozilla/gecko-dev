@@ -5,8 +5,6 @@
 "use strict";
 
 SimpleTest.waitForExplicitFinish();
-browserElementTestHelpers.setEnabledPref(true);
-browserElementTestHelpers.addPermission();
 
 var initialScreenshotArrayBuffer = null;
 
@@ -27,6 +25,8 @@ function arrayBuffersEqual(a, b) {
 }
 
 function runTest() {
+  browserElementTestHelpers.setEnabledPref(true);
+  browserElementTestHelpers.addPermission();
   var count = 0;
 
   var iframe = document.createElement('iframe');
@@ -75,4 +75,4 @@ function runTest() {
   iframe.src = 'http://example.com/tests/dom/browser-element/mochitest/file_browserElement_XFrameOptionsAllowFrom.html';
 }
 
-addEventListener('testready', runTest);
+runTest();

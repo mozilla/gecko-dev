@@ -5,8 +5,6 @@
 
 "use strict";
 SimpleTest.waitForExplicitFinish();
-browserElementTestHelpers.setEnabledPref(true);
-browserElementTestHelpers.addPermission();
 
 var iframeScript = function() {
   sendAsyncMessage('test:innerHTML', {
@@ -20,6 +18,9 @@ var loadedEvents = 0;
 var countAcc;
 
 function runTest() {
+  browserElementTestHelpers.setEnabledPref(true);
+  browserElementTestHelpers.addPermission();
+
   iframe = document.createElement('iframe');
   iframe.mozbrowser = true;
 
@@ -56,4 +57,4 @@ function mozbrowserLoaded() {
   mm.loadFrameScript('data:,(' + iframeScript.toString() + ')();', false);
 }
 
-addEventListener('testready', runTest);
+runTest();
