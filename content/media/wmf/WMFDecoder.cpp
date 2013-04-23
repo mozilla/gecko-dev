@@ -10,6 +10,9 @@
 #include "WMFUtils.h"
 #include "MediaDecoderStateMachine.h"
 #include "mozilla/Preferences.h"
+#include "WinUtils.h"
+
+using namespace mozilla::widget;
 
 namespace mozilla {
 
