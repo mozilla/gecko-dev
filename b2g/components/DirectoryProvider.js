@@ -91,7 +91,7 @@ DirectoryProvider.prototype = {
     if (!Services.volumeService) {
       return false;
     }
-    let volume = Services.volumeService.createOrGetVolumeByPath(volumePath);
+    let volume = Services.volumeService.getVolumeByPath(volumePath);
     if (!volume || volume.state !== Ci.nsIVolume.STATE_MOUNTED) {
       return false;
     }
@@ -201,7 +201,7 @@ DirectoryProvider.prototype = {
     }
 
     if (Services.volumeService) {
-      let extVolume = Services.volumeService.createOrGetVolumeByPath(path);
+      let extVolume = Services.volumeService.getVolumeByPath(path);
       if (!extVolume) {
         path = LOCAL_DIR;
       }
