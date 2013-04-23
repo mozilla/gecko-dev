@@ -1,0 +1,135 @@
+# HG changeset patch
+# User Gabriele Svelto <gsvelto@mozilla.com>
+# Date 1365851195 -7200
+# Node ID 9e0b08ec93ff6af42f18e6e1515bd9de8ae09022
+# Parent  14d8789ebb236b7d9b3d1e99e487bed9709714ac
+Bug 861434 - Adjust thread nice values relatively to the main thread's nice value when using PR_SetThreadPriority() on Linux
+
+diff --git a/pr/src/pthreads/ptthread.c b/pr/src/pthreads/ptthread.c
+--- a/pr/src/pthreads/ptthread.c
++++ b/pr/src/pthreads/ptthread.c
+@@ -57,40 +57,46 @@
+     PRInt32 minPrio, maxPrio;   /* range of scheduling priorities */
+ #endif
+ } pt_book = {0};
+ 
+ static void _pt_thread_death(void *arg);
+ static void _pt_thread_death_internal(void *arg, PRBool callDestructors);
+ static void init_pthread_gc_support(void);
+ 
+-#if defined(_PR_DCETHREADS) || \
+-    defined(_POSIX_THREAD_PRIORITY_SCHEDULING) || \
+-    defined(_PR_NICE_PRIORITY_SCHEDULING)
++#if defined(_PR_DCETHREADS) || defined(_POSIX_THREAD_PRIORITY_SCHEDULING)
+ static PRIntn pt_PriorityMap(PRThreadPriority pri)
+ {
+ #ifdef NTO
+     /* This priority algorithm causes lots of problems on Neutrino
+      * for now I have just hard coded everything to run at priority 10
+      * until I can come up with a new algorithm.
+      *     Jerry.Kirk@Nexwarecorp.com
+      */
+     return 10;
+-#elif defined(_PR_NICE_PRIORITY_SCHEDULING)
+-    /* This maps high priorities to low nice values:
+-     * PR_PRIORITY_LOW     1
+-     * PR_PRIORITY_NORMAL  0
+-     * PR_PRIORITY_HIGH   -1
+-     * PR_PRIORITY_URGENT -2 */
+-    return 1 - pri;
+ #else
+     return pt_book.minPrio +
+ 	    pri * (pt_book.maxPrio - pt_book.minPrio) / PR_PRIORITY_LAST;
+ #endif
+ }
++#elif defined(_PR_NICE_PRIORITY_SCHEDULING)
++/*
++ * This functions maps higher priorities to lower nice values relative to the
++ * priority specified in the |pri| parameter. The corresponding relative
++ * adjustments are:
++ *
++ * PR_PRIORITY_LOW    +1
++ * PR_PRIORITY_NORMAL  0
++ * PR_PRIORITY_HIGH   -1
++ * PR_PRIORITY_URGENT -2
++ */
++static int pt_RelativePriority(int nice, PRThreadPriority pri)
++{
++    return nice + (1 - pri);
++}
+ #endif
+ 
+ /*
+ ** Initialize a stack for a native pthread thread
+ */
+ static void _PR_InitializeStack(PRThreadStack *ts)
+ {
+     if( ts && (ts->stackTop == 0) ) {
+@@ -128,21 +134,26 @@
+      * they are writing the same value, this unprotected double
+      * write should be safe.
+      */
+     thred->id = pthread_self();
+ 
+ #ifdef _PR_NICE_PRIORITY_SCHEDULING
+     /*
+      * We need to know the kernel thread ID of each thread in order to
+-     * set its priority hence we do it here instead of at creation time.
++     * set its nice value hence we do it here instead of at creation time.
+      */
+     tid = gettid();
++    errno = 0;
++    rv = getpriority(PRIO_PROCESS, 0);
+ 
+-    rv = setpriority(PRIO_PROCESS, tid, pt_PriorityMap(thred->priority));
++    /* If we cannot read the main thread nice value don't try to change it. */
++    if (errno == 0) {
++        setpriority(PRIO_PROCESS, tid, pt_RelativePriority(rv, thred->priority));
++    }
+ 
+     PR_Lock(pt_book.ml);
+     thred->tid = tid;
+     PR_NotifyAllCondVar(pt_book.cv);
+     PR_Unlock(pt_book.ml);
+ #endif
+ 
+     /*
+@@ -683,24 +694,31 @@
+ 			rv = -1;
+     }
+ #elif defined(_PR_NICE_PRIORITY_SCHEDULING)
+     PR_Lock(pt_book.ml);
+     while (thred->tid == 0)
+         PR_WaitCondVar(pt_book.cv, PR_INTERVAL_NO_TIMEOUT);
+     PR_Unlock(pt_book.ml);
+ 
+-    rv = setpriority(PRIO_PROCESS, thred->tid, pt_PriorityMap(newPri));
++    errno = 0;
++    rv = getpriority(PRIO_PROCESS, 0);
+ 
+-    if (rv == -1 && errno == EPERM)
+-    {
+-        /* We don't set pt_schedpriv to EPERM because adjusting the nice
+-         * value might be permitted for certain ranges but not others */
+-        PR_LOG(_pr_thread_lm, PR_LOG_MIN,
+-            ("PR_SetThreadPriority: no thread scheduling privilege"));
++    /* Do not proceed unless we know the main thread's nice value. */
++    if (errno == 0) {
++        rv = setpriority(PRIO_PROCESS, thred->tid, pt_RelativePriority(rv, newPri));
++
++        if (rv == -1)
++        {
++            /* We don't set pt_schedpriv to EPERM in case errno == EPERM because
++             * adjusting the nice value might be permitted for certain ranges but
++             * not for others. */
++            PR_LOG(_pr_thread_lm, PR_LOG_MIN,
++                ("PR_SetThreadPriority: no thread scheduling privilege"));
++        }
+     }
+ #endif
+ 
+     thred->priority = newPri;
+ }  /* PR_SetThreadPriority */
+ 
+ PR_IMPLEMENT(PRStatus) PR_Interrupt(PRThread *thred)
+ {

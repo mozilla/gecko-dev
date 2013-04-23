@@ -3,3 +3,6 @@ on top of the NSPR release.
 
 * linux-setpriority.patch: Bug 841651 - Implement PR_SetThreadPriority()
   on Linux-based platforms using per-thread nice values.
+
+* linux-setpriority-rel.patch: Bug 861434 - Adjust thread nice values relatively
+  to the main thread's nice value when using PR_SetThreadPriority() on Linux.
