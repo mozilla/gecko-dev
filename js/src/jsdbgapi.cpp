@@ -613,6 +613,12 @@ JS_SetScriptUserBit(JSScript *script, bool b)
     script->userBit = b;
 }
 
+JS_PUBLIC_API(bool)
+JS_GetScriptIsSelfHosted(JSScript *script)
+{
+    return script->selfHosted;
+}
+
 /***************************************************************************/
 
 JS_PUBLIC_API(void)
