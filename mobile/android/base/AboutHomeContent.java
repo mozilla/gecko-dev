@@ -75,6 +75,7 @@ public class AboutHomeContent extends ScrollView
 
     private static int mNumberOfTopSites;
     private static int mNumberOfCols;
+    private Map<String, Bitmap> mPendingThumbnails;
 
     public static enum UnpinFlags {
         REMOVE_PIN,
@@ -349,16 +350,16 @@ public class AboutHomeContent extends ScrollView
         ImageView thumbnailView = (ImageView) view.findViewById(R.id.thumbnail);
 
         if (thumbnail == null) {
-            thumbnailView.setImageResource(R.drawable.abouthome_thumbnail_bg);
             thumbnailView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            thumbnailView.setImageResource(R.drawable.abouthome_thumbnail_bg);
         } else {
             try {
-                thumbnailView.setImageBitmap(thumbnail);
                 thumbnailView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                thumbnailView.setImageBitmap(thumbnail);
             } catch (OutOfMemoryError oom) {
                 Log.e(LOGTAG, "Unable to load thumbnail bitmap", oom);
-                thumbnailView.setImageResource(R.drawable.abouthome_thumbnail_bg);
                 thumbnailView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                thumbnailView.setImageResource(R.drawable.abouthome_thumbnail_bg);
             }
         }
     }
@@ -375,8 +376,8 @@ public class AboutHomeContent extends ScrollView
             TopSitesViewHolder holder = (TopSitesViewHolder)view.getTag();
             final String url = holder.getUrl();
             if (TextUtils.isEmpty(url)) {
-                holder.thumbnailView.setImageResource(R.drawable.abouthome_thumbnail_add);
                 holder.thumbnailView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                holder.thumbnailView.setImageResource(R.drawable.abouthome_thumbnail_add);
             } else {
                 displayThumbnail(view, thumbnails.get(url));
             }
@@ -425,7 +426,14 @@ public class AboutHomeContent extends ScrollView
 
             @Override
             public void onPostExecute(Map<String, Bitmap> thumbnails) {
-                updateTopSitesThumbnails(thumbnails);
+                // If we're waiting for a layout to happen, the GridView may be
+                // stale, so store the pending thumbnails here. They will be
+                // shown on the next layout pass.
+                if (isLayoutRequested()) {
+                    mPendingThumbnails = thumbnails;
+                } else {
+                    updateTopSitesThumbnails(thumbnails);
+                }
             }
         }).execute();
     }
@@ -775,6 +783,12 @@ public class AboutHomeContent extends ScrollView
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         super.onLayout(changed, left, top, right, bottom);
+
+        if (mPendingThumbnails != null) {
+            updateTopSitesThumbnails(mPendingThumbnails);
+            mPendingThumbnails = null;
+        }
+
         onLightweightThemeChanged();
     }
 
@@ -976,8 +990,8 @@ public class AboutHomeContent extends ScrollView
     private void clearThumbnail(TopSitesViewHolder holder) {
         holder.setTitle("");
         holder.setUrl("");
-        holder.thumbnailView.setImageResource(R.drawable.abouthome_thumbnail_add);
         holder.thumbnailView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        holder.thumbnailView.setImageResource(R.drawable.abouthome_thumbnail_add);
         holder.setPinned(false);
     }
 
