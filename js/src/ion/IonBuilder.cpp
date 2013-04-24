@@ -3064,6 +3064,15 @@ IonBuilder::addTypeBarrier(uint32_t i, CallInfo &callinfo, types::StackTypeSet *
 
     bool needsBarrier = false;
 
+    // Make sure unknown inputs are always boxed.
+    if (callerObs->getKnownTypeTag() == JSVAL_TYPE_UNKNOWN &&
+        ins->type() != MIRType_Value)
+    {
+        MBox *box = MBox::New(ins);
+        current->add(box);
+        ins = box;
+    }
+
     while (excluded) {
         if (excluded->target == calleeObs && callerObs->hasType(excluded->type)) {
             if (excluded->type == types::Type::DoubleType() &&
@@ -3104,15 +3113,6 @@ IonBuilder::addTypeBarrier(uint32_t i, CallInfo &callinfo, types::StackTypeSet *
     if (needsBarrier) {
         MTypeBarrier *barrier = MTypeBarrier::New(ins, cloneTypeSet(calleeObs), Bailout_Normal);
         current->add(barrier);
-
-        // Always box unknown inputs.
-        if (callerObs->getKnownTypeTag() == JSVAL_TYPE_UNKNOWN &&
-            ins->type() != MIRType_Value)
-        {
-            MBox *box = MBox::New(ins);
-            current->add(box);
-            ins = box;
-        }
     }
 
     if (i == 0)
