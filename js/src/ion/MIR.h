@@ -1903,7 +1903,9 @@ JSOpToCondition(MCompare::CompareType compareType, JSOp op)
 // Takes a typed value and checks if it is a certain type. If so, the payload
 // is unpacked and returned as that type. Otherwise, it is considered a
 // deoptimization.
-class MUnbox : public MUnaryInstruction
+class MUnbox
+  : public MUnaryInstruction,
+    public BoxPolicy<0>
 {
   public:
     enum Mode {
@@ -1964,6 +1966,9 @@ class MUnbox : public MUnaryInstruction
     }
     AliasSet getAliasSet() const {
         return AliasSet::None();
+    }
+    TypePolicy *typePolicy() {
+        return this;
     }
     void printOpcode(FILE *fp);
 };
