@@ -19,6 +19,8 @@ Cu.import("resource://gre/modules/IndexedDBHelper.jsm");
 Cu.import("resource://gre/modules/services-common/preferences.js");
 Cu.import("resource://gre/modules/commonjs/promise/core.js");
 
+const prefs = new Preferences("services.push.");
+
 const kPUSHDB_DB_NAME = "push";
 const kPUSHDB_DB_VERSION = 1; // Change this if the IndexedDB format changes
 const kPUSHDB_STORE_NAME = "push";
@@ -279,6 +281,10 @@ PushService.prototype = {
   observe: function observe(aSubject, aTopic, aData) {
     switch (aTopic) {
       case "app-startup":
+
+        if (!prefs.get("enabled"))
+          return;
+
         Services.obs.addObserver(this, "final-ui-startup", false);
         Services.obs.addObserver(this, "profile-change-teardown", false);
         Services.obs.addObserver(this,
@@ -313,7 +319,7 @@ PushService.prototype = {
       case "nsPref:changed":
         if (aData == "services.push.serverURL") {
           debug("services.push.serverURL changed! websocket. new value " +
-                this._prefs.get("serverURL"));
+                prefs.get("serverURL"));
           this._shutdownWS();
         }
         break;
@@ -370,10 +376,8 @@ PushService.prototype = {
     }
   },
 
-  _prefs : new Preferences("services.push."),
-
   get _UAID() {
-    return this._prefs.get("userAgentID");
+    return prefs.get("userAgentID");
   },
 
   set _UAID(newID) {
@@ -383,7 +387,7 @@ PushService.prototype = {
       return;
     }
     debug("New _UAID: " + newID);
-    this._prefs.set("userAgentID", newID);
+    prefs.set("userAgentID", newID);
   },
 
   // keeps requests buffered if the websocket disconnects or is not connected
@@ -437,9 +441,9 @@ PushService.prototype = {
         ppmm.addMessageListener(msgName, this);
     }.bind(this));
 
-    this._requestTimeout = this._prefs.get("requestTimeout");
+    this._requestTimeout = prefs.get("requestTimeout");
 
-    this._udpPort = this._prefs.get("udp.port");
+    this._udpPort = prefs.get("udp.port");
 
     this._db.getAllChannelIDs(
       function(channelIDs) {
@@ -456,7 +460,7 @@ PushService.prototype = {
 
     // This is only used for testing. Different tests require connecting to
     // slightly different URLs.
-    this._prefs.observe("serverURL", this);
+    prefs.observe("serverURL", this);
   },
 
   _shutdownWS: function() {
@@ -493,13 +497,13 @@ PushService.prototype = {
     debug("socketError()");
 
     // Calculate new timeout, but cap it to
-    var retryTimeout = this._prefs.get("retryBaseInterval") *
-                        Math.pow(2, this._retryFailCount);
+    var retryTimeout = prefs.get("retryBaseInterval") *
+                       Math.pow(2, this._retryFailCount);
 
     // It is easier to express the max interval as a pref in milliseconds,
     // rather than have it as a number and make people do the calculation of
     // retryBaseInterval * 2^maxRetryFailCount.
-    retryTimeout = Math.min(retryTimeout, this._prefs.get("maxRetryInterval"));
+    retryTimeout = Math.min(retryTimeout, prefs.get("maxRetryInterval"));
 
     this._retryFailCount++;
 
@@ -523,7 +527,7 @@ PushService.prototype = {
       return;
     }
 
-    var serverURL = this._prefs.get("serverURL");
+    var serverURL = prefs.get("serverURL");
     if (!serverURL) {
       debug("No services.push.serverURL found!");
       return;
@@ -1227,7 +1231,7 @@ PushService.prototype = {
       return;
     }
 
-    if (!this._prefs.get("udp.wakeupEnabled")) {
+    if (!prefs.get("udp.wakeupEnabled")) {
       debug("UDP support disabled");
       return;
     }
