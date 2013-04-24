@@ -407,7 +407,7 @@ RILContentHelper.prototype = {
 
   // nsIRILContentHelper
 
-  cardState:            RIL.GECKO_CARDSTATE_UNAVAILABLE,
+  cardState:            RIL.GECKO_CARDSTATE_UNKNOWN,
   iccInfo:              null,
   voiceConnectionInfo:  null,
   dataConnectionInfo:   null,

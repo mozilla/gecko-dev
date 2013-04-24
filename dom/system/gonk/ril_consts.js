@@ -1990,7 +1990,7 @@ this.GECKO_RADIOSTATE_UNAVAILABLE   = null;
 this.GECKO_RADIOSTATE_OFF           = "off";
 this.GECKO_RADIOSTATE_READY         = "ready";
 
-this.GECKO_CARDSTATE_UNAVAILABLE    = null;
+this.GECKO_CARDSTATE_UNKNOWN        = "unknown";
 this.GECKO_CARDSTATE_ABSENT         = "absent";
 this.GECKO_CARDSTATE_PIN_REQUIRED   = "pinRequired";
 this.GECKO_CARDSTATE_PUK_REQUIRED   = "pukRequired";
