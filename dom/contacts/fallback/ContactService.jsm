@@ -44,7 +44,8 @@ this.DOMContactManager = {
     this._messages = ["Contacts:Find", "Contacts:GetAll", "Contacts:GetAll:SendNow",
                       "Contacts:Clear", "Contact:Save",
                       "Contact:Remove", "Contacts:GetSimContacts",
-                      "Contacts:RegisterForMessages", "child-process-shutdown"];
+                      "Contacts:RegisterForMessages", "child-process-shutdown",
+                      "Contacts:GetRevision"];
     this._children = [];
     this._messages.forEach(function(msgName) {
       ppmm.addMessageListener(msgName, this);
@@ -191,6 +192,19 @@ this.DOMContactManager = {
                                    contacts: aContacts});
             }
           }.bind(this));
+        break;
+      case "Contacts:GetRevision":
+        if (!this.assertPermission(aMessage, "contacts-read")) {
+          return null;
+        }
+        this._db.getRevision(
+          function(revision) {
+            mm.sendAsyncMessage("Contacts:Revision", {
+              requestID: msg.requestID,
+              revision: revision
+            });
+          }
+        );
         break;
       case "Contacts:RegisterForMessages":
         if (!aMessage.target.assertPermission("contacts-read")) {
