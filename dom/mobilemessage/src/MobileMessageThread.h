@@ -31,6 +31,7 @@ public:
                          const JS::Value& aTimestamp,
                          const nsAString& aBody,
                          const uint64_t aUnreadCount,
+                         const nsAString& aLastMessageType,
                          JSContext* aCx,
                          nsIDOMMozMobileMessageThread** aThread);
 
