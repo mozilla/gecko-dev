@@ -143,12 +143,14 @@ public:
                                     JSObject *wrapper, JSObject *holder,
                                     jsid id, JSPropertyDescriptor *desc, unsigned flags);
 
-    static bool call(JSContext *cx, JS::Handle<JSObject*> wrapper, unsigned argc, Value *vp)
+    static bool call(JSContext *cx, JS::Handle<JSObject*> wrapper,
+                     unsigned argc, Value *vp, js::Wrapper& baseInstance)
     {
         MOZ_NOT_REACHED("Call trap currently implemented only for XPCWNs");
     }
     static bool construct(JSContext *cx, JS::Handle<JSObject*> wrapper, unsigned argc,
-                          Value *argv, JS::MutableHandle<Value> rval)
+                          Value *argv, JS::MutableHandle<Value> rval,
+                          js::Wrapper& baseInstance)
     {
         MOZ_NOT_REACHED("Call trap currently implemented only for XPCWNs");
     }
@@ -197,9 +199,11 @@ public:
                                bool *defined);
     static bool enumerateNames(JSContext *cx, JSObject *wrapper, unsigned flags,
                                JS::AutoIdVector &props);
-    static bool call(JSContext *cx, JS::Handle<JSObject*> wrapper, unsigned argc, Value *vp);
+    static bool call(JSContext *cx, JS::Handle<JSObject*> wrapper,
+                     unsigned argc, Value *vp, js::Wrapper& baseInstance);
     static bool construct(JSContext *cx, JS::Handle<JSObject*> wrapper, unsigned argc,
-                          Value *argv, JS::MutableHandle<JS::Value> rval);
+                          Value *argv, JS::MutableHandle<JS::Value> rval,
+                          js::Wrapper& baseInstance);
 
     static bool isResolving(JSContext *cx, JSObject *holder, jsid id);
 
@@ -241,9 +245,11 @@ public:
                                bool *defined);
     static bool enumerateNames(JSContext *cx, JSObject *wrapper, unsigned flags,
                                JS::AutoIdVector &props);
-    static bool call(JSContext *cx, JS::Handle<JSObject*> wrapper, unsigned argc, Value *vp);
+    static bool call(JSContext *cx, JS::Handle<JSObject*> wrapper,
+                     unsigned argc, Value *vp, js::Wrapper& baseInstance);
     static bool construct(JSContext *cx, JS::Handle<JSObject*> wrapper, unsigned argc,
-                          Value *argv, JS::MutableHandle<JS::Value> rval);
+                          Value *argv, JS::MutableHandle<JS::Value> rval,
+                          js::Wrapper& baseInstance);
 
     static bool isResolving(JSContext *cx, JSObject *holder, jsid id)
     {
@@ -1146,7 +1152,8 @@ XPCWrappedNativeXrayTraits::createHolder(JSContext *cx, JSObject *wrapper)
 
 bool
 XPCWrappedNativeXrayTraits::call(JSContext *cx, JS::Handle<JSObject*> wrapper,
-                                 unsigned argc, Value *vp)
+                                 unsigned argc, Value *vp,
+                                 js::Wrapper& baseInstance)
 {
     // Run the resolve hook of the wrapped native.
     XPCWrappedNative *wn = getWN(wrapper);
@@ -1172,7 +1179,8 @@ XPCWrappedNativeXrayTraits::call(JSContext *cx, JS::Handle<JSObject*> wrapper,
 bool
 XPCWrappedNativeXrayTraits::construct(JSContext *cx, JS::Handle<JSObject*> wrapper,
                                       unsigned argc, Value *argv,
-                                      JS::MutableHandle<JS::Value> rval)
+                                      JS::MutableHandle<JS::Value> rval,
+                                      js::Wrapper& baseInstance)
 {
     // Run the resolve hook of the wrapped native.
     XPCWrappedNative *wn = getWN(wrapper);
@@ -1256,46 +1264,60 @@ DOMXrayTraits::enumerateNames(JSContext *cx, JSObject *wrapper, unsigned flags,
 }
 
 bool
-DOMXrayTraits::call(JSContext *cx, JS::Handle<JSObject*> wrapper, unsigned argc, Value *vp)
+DOMXrayTraits::call(JSContext *cx, JS::Handle<JSObject*> wrapper, unsigned argc,
+                    Value *vp, js::Wrapper& baseInstance)
 {
     JSObject *obj = getTargetObject(wrapper);
-    AutoValueRooter rval(cx);
+    js::Class* clasp = js::GetObjectClass(obj);
+    // What we have is either a WebIDL interface object, a WebIDL prototype
+    // object, or a WebIDL instance object.  WebIDL prototype objects never have
+    // a clasp->call.  WebIDL interface objects we want to invoke on the xray
+    // compartment.  WebIDL instance objects either don't have a clasp->call or
+    // are using "legacycaller", which basically means plug-ins.  We want to
+    // call those on the content compartment.
     bool ok;
-    {
-        JSAutoCompartment ac(cx, obj);
-        if (!JS_WrapValue(cx, &vp[1]))
+    if (clasp->flags & JSCLASS_IS_DOMIFACEANDPROTOJSCLASS) {
+        if (!clasp->call) {
+            js_ReportIsNotFunction(cx, JS::ObjectValue(*wrapper));
             return false;
-        JS::Value* argv = JS_ARGV(cx, vp);
-        for (unsigned i = 0; i < argc; ++i) {
-            if (!JS_WrapValue(cx, &argv[i]))
-                return false;
         }
-        ok = JS::Call(cx, vp[1], obj, argc, argv, rval.addr());
+        // call it on the Xray compartment
+        ok = clasp->call(cx, argc, vp);
+    } else {
+        // This is only reached for WebIDL instance objects, and in practice
+        // only for plugins.  Just call them on the content compartment.
+        ok = baseInstance.call(cx, wrapper, argc, vp);
     }
-    if (!ok || !JS_WrapValue(cx, rval.addr()))
+    if (!ok || !JS_WrapValue(cx, vp))
         return false;
-    JS_SET_RVAL(cx, vp, rval.value());
     return true;
 }
 
 bool
 DOMXrayTraits::construct(JSContext *cx, JS::Handle<JSObject*> wrapper, unsigned argc,
-                         Value *argv, JS::MutableHandle<JS::Value> rval)
+                         Value *argv, JS::MutableHandle<JS::Value> rval,
+                         js::Wrapper& baseInstance)
 {
     JSObject *obj = getTargetObject(wrapper);
     MOZ_ASSERT(mozilla::dom::HasConstructor(obj));
-    JSObject *newObj;
-    {
-        JSAutoCompartment ac(cx, obj);
-        for (unsigned i = 0; i < argc; ++i) {
-            if (!JS_WrapValue(cx, &argv[i]))
-                return false;
+    js::Class* clasp = js::GetObjectClass(obj);
+    // See comments in DOMXrayTraits::call() explaining what's going on here.
+    if (clasp->flags & JSCLASS_IS_DOMIFACEANDPROTOJSCLASS) {
+        if (!clasp->construct) {
+            js_ReportIsNotFunction(cx, JS::ObjectValue(*wrapper));
+            return false;
         }
-        newObj = JS_New(cx, obj, argc, argv);
+        // We're going to assume that argv == vp + 2
+        JS::Value* vp = argv - 2;
+        if (!clasp->construct(cx, argc, vp))
+            return false;
+        rval.set(vp[0]);
+    } else {
+        if (!baseInstance.construct(cx, wrapper, argc, argv, rval))
+            return false;
     }
-    if (!newObj || !JS_WrapObject(cx, &newObj))
+    if (!rval.isObject() || !JS_WrapValue(cx, rval.address()))
         return false;
-    rval.setObject(*newObj);
     return true;
 }
 
@@ -1913,7 +1935,7 @@ XrayWrapper<Base, Traits>::call(JSContext *cx, JS::Handle<JSObject*> wrapper,
                                 unsigned argc, js::Value *vp)
 {
     assertEnteredPolicy(cx, wrapper, JSID_VOID);
-    return Traits::call(cx, wrapper, argc, vp);
+    return Traits::call(cx, wrapper, argc, vp, Base::singleton);
 }
 
 template <typename Base, typename Traits>
@@ -1923,7 +1945,7 @@ XrayWrapper<Base, Traits>::construct(JSContext *cx, JS::Handle<JSObject*> wrappe
                                      JS::MutableHandle<JS::Value> rval)
 {
     assertEnteredPolicy(cx, wrapper, JSID_VOID);
-    return Traits::construct(cx, wrapper, argc, argv, rval);
+    return Traits::construct(cx, wrapper, argc, argv, rval, Base::singleton);
 }
 
 /*
