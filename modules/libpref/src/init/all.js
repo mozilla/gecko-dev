@@ -3646,6 +3646,9 @@ pref("image.mem.max_decoded_image_kb", 51200);
 // cache.
 pref("canvas.image.cache.limit", 0);
 
+// How many images to eagerly decode on a given page. 0 means "no limit".
+pref("image.onload.decode.limit", 0);
+
 // WebGL prefs
 pref("webgl.force-enabled", false);
 pref("webgl.disabled", false);
