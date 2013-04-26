@@ -53,71 +53,62 @@ function clearTimeout(aId) {
 }
 
 function ContactDispatcher(aContacts, aFullContacts, aCallback, aNewTxn, aClearDispatcher) {
-  let nextIndex = 0;
-  let interval;
+  this.nextIndex = 0;
 
-  function cancelTimeout() {
-    if (interval) {
-      clearTimeout(interval);
-      interval = null;
-    }
-  }
-
-  let sendChunk;
-  let count = 0;
-  if (aFullContacts) {
-    sendChunk = function() {
-      try {
-        if (aContacts.length > 0) {
-          aCallback(aContacts.splice(0, CHUNK_SIZE));
-          interval = setTimeout(sendChunk, CHUNK_INTERVAL);
-        } else {
-          aCallback(null);
-          cancelTimeout();
-          aClearDispatcher();
-        }
-      } catch (e) {
-        aClearDispatcher();
-      }
-    }
-  } else {
-    this.count = 0;
-    sendChunk = function() {
-      try {
-        let chunk = [];
-        aNewTxn("readonly", STORE_NAME, function(txn, store) {
-          for (let i = nextIndex; i < Math.min(nextIndex+CHUNK_SIZE, aContacts.length); ++i) {
-            store.get(aContacts[i]).onsuccess = function(e) {
-              chunk.push(e.target.result);
-              count++;
-              if (count === aContacts.length) {
-                aCallback(chunk)
-                aCallback(null);
-                cancelTimeout();
-                aClearDispatcher();
-              } else if (chunk.length === CHUNK_SIZE) {
-                aCallback(chunk);
-                chunk.length = 0;
-                nextIndex += CHUNK_SIZE;
-                interval = setTimeout(this.sendChunk, CHUNK_INTERVAL);
-              }
-            }
-          }
-        });
-      } catch (e) {
-        aClearDispatcher();
-      }
-    }
-  }
-
-  sendChunk(0);
-
-  return {
-    sendNow: function() {
-      cancelTimeout();
-      interval = setTimeout(sendChunk, 0);
+  this.cancelTimeout = function() {
+    if (this.interval) {
+      clearTimeout(this.interval);
+      this.interval = null;
     }
   };
+
+  if (aFullContacts) {
+    this.sendChunk = function() {
+      if (aContacts.length > 0) {
+        aCallback(aContacts.splice(0, CHUNK_SIZE));
+        this.interval = setTimeout(this.sendChunk, CHUNK_INTERVAL);
+      } else {
+        aCallback(null);
+        this.cancelTimeout();
+        aClearDispatcher();
+      }
+    }.bind(this);
+  } else {
+    this.count = 0;
+    this.sendChunk = function() {
+      let chunk = [];
+      aNewTxn("readonly", STORE_NAME, function(txn, store) {
+        for (let i = this.nextIndex; i < Math.min(this.nextIndex+CHUNK_SIZE, aContacts.length); ++i) {
+          store.get(aContacts[i]).onsuccess = function(e) {
+            chunk.push(e.target.result);
+            this.count++;
+            if (this.count == aContacts.length) {
+              aCallback(chunk)
+              aCallback(null);
+              this.cancelTimeout();
+              aClearDispatcher();
+            } else if (chunk.length == CHUNK_SIZE) {
+              aCallback(chunk);
+              chunk.length = 0;
+              this.nextIndex += CHUNK_SIZE;
+              this.interval = setTimeout(this.sendChunk, CHUNK_INTERVAL);
+            }
+          }.bind(this);
+        }
+      }.bind(this));
+    }.bind(this);
+  }
+
+  this.sendChunk(0);
+}
+
+ContactDispatcher.prototype = {
+  sendNow: function() {
+    this.cancelTimeout();
+    this.interval = setTimeout(this.sendChunk, 0);
+  }
+};
+
 this.ContactDB = function ContactDB(aGlobal) {
   if (DEBUG) debug("Constructor");
   this._global = aGlobal;

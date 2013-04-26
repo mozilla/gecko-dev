@@ -115,12 +115,7 @@ this.DOMContactManager = {
         }
         this._db.getAll(
           function(aContacts) {
-            try {
-              mm.sendAsyncMessage("Contacts:GetAll:Next", {cursorId: msg.cursorId, contacts: aContacts});
-            } catch (e) {
-              if (DEBUG) debug("Child is dead, DB should stop sending contacts");
-              throw e;
-            }
+            mm.sendAsyncMessage("Contacts:GetAll:Next", {cursorId: msg.cursorId, contacts: aContacts});
           },
           function(aErrorMsg) { mm.sendAsyncMessage("Contacts:Find:Return:KO", { errorMsg: aErrorMsg }); },
           msg.findOptions, msg.cursorId);
