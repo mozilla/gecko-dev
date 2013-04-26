@@ -118,6 +118,8 @@ function ContactDispatcher(aContacts, aFullContacts, aCallback, aNewTxn, aClearD
       interval = setTimeout(sendChunk, 0);
     }
   };
+}
+
 this.ContactDB = function ContactDB(aGlobal) {
   if (DEBUG) debug("Constructor");
   this._global = aGlobal;
