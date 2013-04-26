@@ -3645,6 +3645,10 @@ pref("image.mem.max_ms_before_yield", 5);
 // might keep around more than this, but we'll try to get down to this value).
 pref("image.mem.max_decoded_image_kb", 51200);
 
+// Limit for the canvas image cache. 0 means we don't limit the size of the
+// cache.
+pref("canvas.image.cache.limit", 0);
+
 // WebGL prefs
 pref("webgl.force-enabled", false);
 pref("webgl.disabled", false);
