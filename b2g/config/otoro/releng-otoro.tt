@@ -1,9 +1,15 @@
 [
 {
-"size": 895366028,
-"digest": "f5549337dab179792483213a72254e50a3bc858487d8a00bf5562bb422b5a8d5c456ba5070b89f17e258e627e400ca62c28d7bb2cc35a8b3bcdf1c1ba5a6d71b",
+"size": 151678929,
+"digest": "7a9a71799a114791868a2e631c4593f2885bb38f2620b83f100acf17581b3631f11e7c87aee30a81fc754074213347c68bef4bfa8a6906d09050165d04bc37fb",
 "algorithm": "sha512",
-"filename": "gonk.tar.xz"
+"filename": "backup-otoro.tar.bz2"
+},
+{
+"size": 1570553,
+"digest": "ea03de74df73b05e939c314cd15c54aac7b5488a407b7cc4f5f263f3049a1f69642c567dd35c43d0bc3f0d599d0385a26ab2dd947a6b18f9044e4918b382eea7",
+"algorithm": "sha512",
+"filename": "Adreno200-AU_LINUX_ANDROID_ICS_CHOCO_CS.04.00.03.06.001.zip"
 },
 {
 "size": 4139008,

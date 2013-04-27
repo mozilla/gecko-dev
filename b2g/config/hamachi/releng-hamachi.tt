@@ -1,14 +1,14 @@
 [
 {
-"size": 846698248,
-"digest": "e289a1eb3fc5c488d08ebc3d8a59a4365bb3e6be258b5aa1f8ecdc25067f87a7e9f778f3ce49d2ae5d48e5306a60b13dba04df4550a2e27cea40ddcf9dccde28",
+"size": 85358580,
+"digest": "e26e3501b4119724f94d5d3edcdfefde00faceddab3114c9c3b118fec11118d6f2293ea3c25426ec5ba7c7e0fe14d8349dbb8fa940e2f04ea83e26694d933696",
 "algorithm": "sha512",
-"filename": "gonk.tar.xz"
+"filename": "backup-hamachi.tar.xz"
 },
 {
-"size": 4589568,
-"digest": "e0ee3406a73ad3472d475bce148d38218585f921e792a45e388d8eeffa0b092dd66d77edb68852470975696be4b8133c1385d2d935c880abe4aef057a6ebaef1",
+"size": 1570553,
+"digest": "ea03de74df73b05e939c314cd15c54aac7b5488a407b7cc4f5f263f3049a1f69642c567dd35c43d0bc3f0d599d0385a26ab2dd947a6b18f9044e4918b382eea7",
 "algorithm": "sha512",
-"filename": "boot.img"
+"filename": "Adreno200-AU_LINUX_ANDROID_ICS_CHOCO_CS.04.00.03.06.001.zip"
 }
 ]
