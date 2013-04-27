@@ -1342,7 +1342,8 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
                     return NS_OK;
                 }
             }
-            return NS_OK;
+            // None of our whitelisted principals worked.
+            return NS_ERROR_DOM_BAD_URI;
         }
         NS_ERROR("Non-system principals or expanded principal passed to CheckLoadURIWithPrincipal "
                  "must have a URI!");
