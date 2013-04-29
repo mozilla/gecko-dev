@@ -448,7 +448,7 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
           return NS_OK;
         }
       }
-      else if (CompareVersions(mOSVersion.get(), "4.1.0") < 0)
+      else if (CompareVersions(mOSVersion.get(), "4.2.0") < 0)
       {
         bool isBlocklisted =
           cManufacturer.Equals("Sony", nsCaseInsensitiveCStringComparator());
