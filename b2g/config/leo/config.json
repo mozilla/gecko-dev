@@ -7,6 +7,7 @@
     "build_targets": [],
     "upload_files": [
         "{objdir}/dist/b2g-*.crashreporter-symbols.zip",
+        "{objdir}/dist/b2g-*.tar.gz",
         "{workdir}/sources.xml"
     ],
     "zip_files": [
