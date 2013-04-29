@@ -41,6 +41,9 @@ GetNativePropertiesObject(JSContext *cx, JSObject *wrapper);
 bool
 IsXrayResolving(JSContext *cx, JSObject *wrapper, jsid id);
 
+bool
+HasNativeProperty(JSContext *cx, JSHandleObject wrapper, JSHandleId id,
+                  bool *hasProp);
 }
 
 class XrayTraits;
