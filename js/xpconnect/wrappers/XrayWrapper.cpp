@@ -134,7 +134,7 @@ public:
     }
 
     virtual bool resolveNativeProperty(JSContext *cx, JSObject *wrapper, JSObject *holder, jsid id,
-                                      JSPropertyDescriptor *desc, unsigned flags);
+                                      JSPropertyDescriptor *desc, unsigned flags) = 0;
     // NB: resolveOwnProperty may decide whether or not to cache what it finds
     // on the holder. If the result is not cached, the lookup will happen afresh
     // for each access, which is the right thing for things like dynamic NodeList
