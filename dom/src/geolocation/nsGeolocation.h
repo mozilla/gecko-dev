@@ -146,7 +146,7 @@ private:
   nsCOMPtr<nsITimer> mDisconnectTimer;
 
   // The object providing geo location information to us.
-  nsCOMArray<nsIGeolocationProvider> mProviders;
+  nsCOMPtr<nsIGeolocationProvider> mProvider;
 
   // mGeolocators are not owned here.  Their constructor
   // adds them to this list, and their destructor removes
