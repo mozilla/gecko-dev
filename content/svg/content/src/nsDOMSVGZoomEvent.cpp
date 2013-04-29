@@ -22,6 +22,8 @@ nsDOMSVGZoomEvent::nsDOMSVGZoomEvent(nsPresContext* aPresContext,
                                      nsGUIEvent* aEvent)
   : nsDOMUIEvent(aPresContext,
                  aEvent ? aEvent : new nsGUIEvent(false, NS_SVG_ZOOM, 0))
+  , mPreviousScale(0)
+  , mNewScale(0)
 {
   if (aEvent) {
     mEventIsInternal = false;
