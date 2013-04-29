@@ -6,6 +6,7 @@
 #if !defined(nsHTMLAudioElement_h__)
 #define nsHTMLAudioElement_h__
 
+#include "nsITimer.h"
 #include "nsIDOMHTMLAudioElement.h"
 #include "nsIJSNativeInitializer.h"
 #include "nsHTMLMediaElement.h"
@@ -13,7 +14,8 @@
 typedef uint16_t nsMediaNetworkState;
 typedef uint16_t nsMediaReadyState;
 
-class nsHTMLAudioElement : public nsHTMLMediaElement,
+class nsHTMLAudioElement : public nsITimerCallback,
+                           public nsHTMLMediaElement,
                            public nsIDOMHTMLAudioElement,
                            public nsIJSNativeInitializer
 {
@@ -36,6 +38,12 @@ public:
   // nsIDOMHTMLMediaElement
   NS_FORWARD_NSIDOMHTMLMEDIAELEMENT(nsHTMLMediaElement::)
 
+  // nsIAudioChannelAgentCallback
+  NS_DECL_NSIAUDIOCHANNELAGENTCALLBACK
+
+  // NS_DECL_NSITIMERCALLBACK
+  NS_DECL_NSITIMERCALLBACK
+
   // nsIDOMHTMLAudioElement
   NS_DECL_NSIDOMHTMLAUDIOELEMENT
 
@@ -53,6 +61,15 @@ public:
 protected:
   virtual void GetItemValueText(nsAString& text);
   virtual void SetItemValueText(const nsAString& text);
+
+  // Update the audio channel playing state
+  virtual void UpdateAudioChannelPlayingState() MOZ_OVERRIDE;
+
+  // Due to that audio data API doesn't indicate the timing of pause or end,
+  // the timer is used to defer the timing of pause/stop after writing data.
+  nsCOMPtr<nsITimer> mDeferStopPlayTimer;
+  // To indicate mDeferStopPlayTimer is on fire or not.
+  bool mTimerActivated;
 };
 
 #endif
