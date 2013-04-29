@@ -59,9 +59,7 @@ class nsGeolocationRequest
                        int32_t watchId = 0);
   void Shutdown();
 
-  // Called by the geolocation device to notify that a location has changed.
-  // isBetter: the accuracy is as good or better than the previous position. 
-  bool Update(nsIDOMGeoPosition* aPosition, bool aIsBetter);
+  bool Update(nsIDOMGeoPosition* aPosition);
 
   void SendLocation(nsIDOMGeoPosition* location);
   void MarkCleared();
@@ -124,7 +122,6 @@ public:
 
   void SetCachedPosition(nsIDOMGeoPosition* aPosition);
   nsIDOMGeoPosition* GetCachedPosition();
-  PRBool IsBetterPosition(nsIDOMGeoPosition *aSomewhere);
 
   // Find and startup a geolocation device (gps, nmea, etc.)
   nsresult StartDevice(nsIPrincipal* aPrincipal);
@@ -183,7 +180,7 @@ public:
   nsresult Init(nsIDOMWindow* contentDom=nullptr);
 
   // Called by the geolocation device to notify that a location has changed.
-  void Update(nsIDOMGeoPosition* aPosition, bool aIsBetter);
+  void Update(nsIDOMGeoPosition* aPosition);
 
   // Returns true if any of the callbacks are repeating
   bool HasActiveCallbacks();
