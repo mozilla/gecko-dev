@@ -132,6 +132,8 @@ public:
         return js::UnwrapObject(wrapper, /* stopAtOuter = */ false);
     }
 
+    virtual bool resolveNativeProperty(JSContext *cx, JSObject *wrapper, JSObject *holder, jsid id,
+                                      JSPropertyDescriptor *desc, unsigned flags);
     virtual bool resolveOwnProperty(JSContext *cx, js::Wrapper &jsWrapper,
                                     JSObject *wrapper, JSObject *holder,
                                     jsid id, JSPropertyDescriptor *desc, unsigned flags);
@@ -178,7 +180,7 @@ class XPCWrappedNativeXrayTraits : public XrayTraits
 public:
     static const XrayType Type = XrayForWrappedNative;
 
-    static bool resolveNativeProperty(JSContext *cx, JSObject *wrapper, JSObject *holder, jsid id,
+    virtual bool resolveNativeProperty(JSContext *cx, JSObject *wrapper, JSObject *holder, jsid id,
                                       JSPropertyDescriptor *desc, unsigned flags);
     virtual bool resolveOwnProperty(JSContext *cx, js::Wrapper &jsWrapper, JSObject *wrapper,
                                     JSObject *holder, jsid id, JSPropertyDescriptor *desc,
@@ -223,8 +225,8 @@ class DOMXrayTraits : public XrayTraits
 public:
     static const XrayType Type = XrayForDOMObject;
 
-    static bool resolveNativeProperty(JSContext *cx, JSObject *wrapper, JSObject *holder, jsid id,
-                                      JSPropertyDescriptor *desc, unsigned flags);
+    virtual bool resolveNativeProperty(JSContext *cx, JSObject *wrapper, JSObject *holder, jsid id,
+                                       JSPropertyDescriptor *desc, unsigned flags);
     virtual bool resolveOwnProperty(JSContext *cx, js::Wrapper &jsWrapper, JSObject *wrapper,
                                     JSObject *holder, jsid id, JSPropertyDescriptor *desc,
                                     unsigned flags);
@@ -1539,7 +1541,7 @@ XrayWrapper<Base, Traits>::getPropertyDescriptor(JSContext *cx, JS::Handle<JSObj
     }
 
     // Nothing in the cache. Call through, and cache the result.
-    if (!Traits::resolveNativeProperty(cx, wrapper, holder, id, desc, flags))
+    if (!Traits::singleton.resolveNativeProperty(cx, wrapper, holder, id, desc, flags))
         return false;
 
     if (!desc->obj &&
