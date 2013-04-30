@@ -9102,7 +9102,7 @@ PLDHashOperator LockEnumerator(imgIRequest* aKey,
                                void*    userArg)
 {
   aKey->LockImage();
-  aKey->RequestDecode();
+  aKey->StartDecoding();
   return PL_DHASH_NEXT;
 }
 
