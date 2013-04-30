@@ -307,16 +307,6 @@ public:
     void MakeVisible();
     void MakeHidden();
 
-    virtual bool RecvSetAppType(const nsString& aAppType);
-
-    /**
-     * Get this object's app type.
-     *
-     * A TabChild's app type corresponds to the value of its frame element's
-     * "mozapptype" attribute.
-     */
-    void GetAppType(nsAString& aAppType) const { aAppType = mAppType; }
-
 protected:
     virtual PRenderFrameChild* AllocPRenderFrame(ScrollingBehavior* aScrolling,
                                                  LayersBackend* aBackend,
@@ -437,7 +427,6 @@ private:
     bool mNotified;
     bool mContentDocumentIsDisplayed;
     bool mTriedBrowserInit;
-    nsString mAppType;
     ScreenOrientation mOrientation;
 
     DISALLOW_EVIL_CONSTRUCTORS(TabChild);

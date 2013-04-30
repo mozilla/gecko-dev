@@ -138,6 +138,10 @@ public:
         return mSubprocess;
     }
 
+    int32_t Pid() {
+        return base::GetProcId(mSubprocess->GetChildProcessHandle());
+    }
+
     bool NeedsPermissionsUpdate() {
         return mSendPermissionUpdates;
     }
@@ -153,6 +157,15 @@ public:
     void KillHard();
 
     uint64_t ChildID() { return mChildID; }
+    bool IsPreallocated();
+
+    /**
+     * Get a user-friendly name for this ContentParent.  We make no guarantees
+     * about this name: It might not be unique, apps can spoof special names,
+     * etc.  So please don't use this name to make any decisions about the
+     * ContentParent based on the value returned here.
+     */
+    void FriendlyName(nsAString& aName);
 
 protected:
     void OnChannelConnected(int32_t pid);
@@ -184,16 +197,17 @@ private:
     using PContentParent::SendPBrowserConstructor;
     using PContentParent::SendPTestShellConstructor;
 
-    ContentParent(const nsAString& aAppManifestURL, bool aIsForBrowser,
+    // No more than one of !!aApp, aIsForBrowser, and aIsForPreallocated may be
+    // true.
+    ContentParent(mozIApplication* aApp,
+                  bool aIsForBrowser,
+                  bool aIsForPreallocated,
                   ChildOSPrivileges aOSPrivileges = base::PRIVILEGES_DEFAULT,
                   hal::ProcessPriority aInitialPriority = hal::PROCESS_PRIORITY_FOREGROUND);
+
     virtual ~ContentParent();
 
     void Init();
-
-    // Set the child process's priority.  Once the child starts up, it will
-    // manage its own priority via the ProcessPriorityManager.
-    void SetProcessPriority(hal::ProcessPriority aInitialPriority);
 
     // If the frame element indicates that the child process is "critical" and
     // has a pending system message, this function acquires the CPU wake lock on
@@ -400,7 +414,15 @@ private:
     // the nsIObserverService.
     nsCOMArray<nsIMemoryReporter> mMemoryReporters;
 
-    const nsString mAppManifestURL;
+    nsString mAppManifestURL;
+
+    /**
+     * We cache mAppName instead of looking it up using mAppManifestURL when we
+     * need it because it turns out that getting an app from the apps service is
+     * expensive.
+     */
+    nsString mAppName;
+
     nsRefPtr<nsFrameMessageManager> mMessageManager;
 
     // After we initiate shutdown, we also start a timer to ensure

@@ -263,7 +263,7 @@ nsLayoutStatics::Initialize()
 
   nsSVGUtils::Init();
 
-  InitProcessPriorityManager();
+  ProcessPriorityManager::Init();
 
   nsPermissionManager::AppClearDataObserverInit();
   nsCookieService::AppClearDataObserverInit();
