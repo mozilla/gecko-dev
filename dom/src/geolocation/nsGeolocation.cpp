@@ -561,7 +561,7 @@ nsGeolocationRequest::GetPrincipal()
 }
 
 bool
-nsGeolocationRequest::Update(nsIDOMGeoPosition* aPosition)
+nsGeolocationRequest::Update(nsIDOMGeoPosition* aPosition, bool aIsBetter)
 {
   if (!mAllowed) {
     return false;
@@ -574,7 +574,7 @@ nsGeolocationRequest::Update(nsIDOMGeoPosition* aPosition)
   //
   // Fixes bug 596481
   nsCOMPtr<nsIRunnable> ev;
-  if (mIsFirstUpdate) {
+  if (mIsFirstUpdate || aIsBetter) {
     mIsFirstUpdate = PR_FALSE;
     ev  = new RequestSendLocationEvent(aPosition,
                                        this,
@@ -649,6 +649,17 @@ nsresult nsGeolocationService::Init()
     return NS_OK;
   }
 
+  nsCOMPtr<nsIGeolocationProvider> provider = do_GetService(NS_GEOLOCATION_PROVIDER_CONTRACTID);
+  if (provider) {
+    mProviders.AppendObject(provider);
+  }
+
+  // look up any providers that were registered via the category manager
+  nsCOMPtr<nsICategoryManager> catMan(do_GetService("@mozilla.org/categorymanager;1"));
+  if (!catMan) {
+    return NS_ERROR_FAILURE;
+  }
+
   // check if the geolocation service is enable from settings
   nsCOMPtr<nsISettingsService> settings =
     do_GetService("@mozilla.org/settingsService;1");
@@ -676,26 +687,59 @@ nsresult nsGeolocationService::Init()
   obs->AddObserver(this, "quit-application", false);
   obs->AddObserver(this, "mozsettings-changed", false);
 
+  nsCOMPtr<nsISimpleEnumerator> geoproviders;
+  catMan->EnumerateCategory("geolocation-provider", getter_AddRefs(geoproviders));
+  if (geoproviders) {
+
+    bool hasMore;
+    while (NS_SUCCEEDED(geoproviders->HasMoreElements(&hasMore)) && hasMore) {
+      nsCOMPtr<nsISupports> elem;
+      geoproviders->GetNext(getter_AddRefs(elem));
+
+      nsCOMPtr<nsISupportsCString> elemString = do_QueryInterface(elem);
+
+      nsAutoCString name;
+      elemString->GetData(name);
+
+      nsXPIDLCString spec;
+      catMan->GetCategoryEntry("geolocation-provider", name.get(), getter_Copies(spec));
+
+      provider = do_GetService(spec);
+      if (provider) {
+        mProviders.AppendObject(provider);
+      }
+    }
+  }
+
+  // we should move these providers outside of this file! dft
+
 #ifdef MOZ_MAEMO_LIBLOCATION
-  mProvider = new MaemoLocationProvider();
+  provider = new MaemoLocationProvider();
+  if (provider) {
+    mProviders.AppendObject(provider);
+  }
 #endif
 
 #ifdef MOZ_ENABLE_QTMOBILITY
-  mProvider = new QTMLocationProvider();
+  provider = new QTMLocationProvider();
+  if (provider) {
+    mProviders.AppendObject(provider);
+  }
 #endif
 
 #ifdef MOZ_WIDGET_ANDROID
-  mProvider = new AndroidLocationProvider();
+  provider = new AndroidLocationProvider();
+  if (provider) {
+    mProviders.AppendObject(provider);
+  }
 #endif
 
 #ifdef MOZ_WIDGET_GONK
-  mProvider = do_GetService(GONK_GPS_GEOLOCATION_PROVIDER_CONTRACTID);
-#endif
-
-  nsCOMPtr<nsIGeolocationProvider> providerOveride = do_GetService(NS_GEOLOCATION_PROVIDER_CONTRACTID); 
-  if (providerOveride) {
-    mProvider = providerOveride;
+  provider = do_GetService(GONK_GPS_GEOLOCATION_PROVIDER_CONTRACTID);
+  if (provider) {
+    mProviders.AppendObject(provider);
   }
+#endif
 
   return NS_OK;
 }
@@ -811,12 +855,105 @@ nsGeolocationService::Observe(nsISupports* aSubject,
 NS_IMETHODIMP
 nsGeolocationService::Update(nsIDOMGeoPosition *aSomewhere)
 {
-  SetCachedPosition(aSomewhere);
+  // here we have to determine this aSomewhere is a "better"
+  // position than any previously recv'ed.
+
+  bool isBetter = IsBetterPosition(aSomewhere);
+
+  if (isBetter) {
+    SetCachedPosition(aSomewhere);
+  }
 
   for (uint32_t i = 0; i< mGeolocators.Length(); i++) {
-    mGeolocators[i]->Update(aSomewhere);
+    mGeolocators[i]->Update(aSomewhere, isBetter);
   }
   return NS_OK;
+}
+
+PRBool
+nsGeolocationService::IsBetterPosition(nsIDOMGeoPosition *aSomewhere)
+{
+  if (!aSomewhere) {
+    return false;
+  }
+
+  if (mProviders.Count() == 1 || !mLastPosition) {
+    return true;
+  }
+
+  nsCOMPtr<nsIDOMGeoPositionCoords> coords;
+  mLastPosition->GetCoords(getter_AddRefs(coords));
+  if (!coords) {
+    return false;
+  }
+
+  double oldAccuracy;
+  nsresult rv = coords->GetAccuracy(&oldAccuracy);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  double oldLat, oldLon;
+  rv = coords->GetLongitude(&oldLon);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  rv = coords->GetLatitude(&oldLat);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  aSomewhere->GetCoords(getter_AddRefs(coords));
+  if (!coords) {
+    return false;
+  }
+
+  double newAccuracy;
+  rv = coords->GetAccuracy(&newAccuracy);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  double newLat, newLon;
+  rv = coords->GetLongitude(&newLon);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  rv = coords->GetLatitude(&newLat);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  // Latitude and longitude is reported in degrees.
+  // However, it is easier to work in radian:
+  // see: http://en.wikipedia.org/wiki/Radian
+  double radsInDeg = M_PI / 180.0;
+
+  newLat *= radsInDeg;
+  newLon *= radsInDeg;
+  oldLat *= radsInDeg;
+  oldLon *= radsInDeg;
+
+  // WGS84 equatorial radius of earth = 6378137m
+  // http://en.wikipedia.org/wiki/WGS84
+  double radius = 6378137;
+
+  // We want to calculate the "Great Circle distance"
+  // between the point (lat1, lon1) and (lat2, lon2).  We
+  // will use the spherical law of cosines to the triangle
+  // formed by our two points and the north pole.
+  //
+  // a = sin ( lat1 ) * sin ( lat2 )  + cos ( lat1 ) * cos (lat2) * cos (lon1 - lon2)
+  // R = radius of circle
+  // distance = arccos ( a ) * R 
+  //
+  // http://en.wikipedia.org/wiki/Great-circle_distance
+
+  double delta = acos( (sin(newLat) * sin(oldLat)) +
+                       (cos(newLat) * cos(oldLat) * cos(oldLon - newLon)) ) * radius; 
+
+  // The threshold is when the distance between the two
+  // positions exceeds the worse (larger value) of the two
+  // accuracies.
+  double max_accuracy = NS_MAX(oldAccuracy, newAccuracy);
+  if (delta > max_accuracy)
+    return true;
+
+  // check to see if the aSomewhere position is more accurate
+  if (oldAccuracy >= newAccuracy)
+    return true;
+
+  return false;
 }
 
 void
@@ -834,7 +971,7 @@ nsGeolocationService::GetCachedPosition()
 nsresult
 nsGeolocationService::StartDevice(nsIPrincipal* aPrincipal)
 {
-  if (!sGeoEnabled || sGeoInitPending || !mProvider) {
+  if (!sGeoEnabled || sGeoInitPending) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
@@ -856,11 +993,14 @@ nsGeolocationService::StartDevice(nsIPrincipal* aPrincipal)
     return NS_ERROR_FAILURE;
   }
 
-  mProvider->Startup();
-  mProvider->Watch(this);
-  obs->NotifyObservers(mProviders[i],
-                       "geolocation-device-events",
-                       NS_LITERAL_STRING("starting").get());
+  for (int32_t i = 0; i < mProviders.Count(); i++) {
+    mProviders[i]->Startup();
+    mProviders[i]->Watch(this);
+    obs->NotifyObservers(mProviders[i],
+                         "geolocation-device-events",
+                         NS_LITERAL_STRING("starting").get());
+  }
+
   return NS_OK;
 }
 
@@ -901,11 +1041,15 @@ nsGeolocationService::SetHigherAccuracy(bool aEnable)
   }
 
   if (!mHigherAccuracy && highRequired) {
-      mProvider->SetHighAccuracy(true);
+    for (int32_t i = 0; i < mProviders.Count(); i++) {
+      mProviders[i]->SetHighAccuracy(true);
+    }
   }
 
   if (mHigherAccuracy && !highRequired) {
-      mProvider->SetHighAccuracy(false);
+    for (int32_t i = 0; i < mProviders.Count(); i++) {
+      mProviders[i]->SetHighAccuracy(false);
+    }
   }
 
   mHigherAccuracy = highRequired;
@@ -930,14 +1074,12 @@ nsGeolocationService::StopDevice()
     return;
   }
 
-  if (!mProvider) {
-    return;
+  for (int32_t i = 0; i < mProviders.Count(); i++) {
+    mProviders[i]->Shutdown();
+    obs->NotifyObservers(mProviders[i],
+                         "geolocation-device-events",
+                         NS_LITERAL_STRING("shutdown").get());
   }
-
-  mProvider->Shutdown();
-  obs->NotifyObservers(mProvider,
-                       "geolocation-device-events",
-                       NS_LITERAL_STRING("shutdown").get());
 }
 
 nsRefPtr<nsGeolocationService> nsGeolocationService::sService;
@@ -1122,21 +1264,21 @@ nsGeolocation::RemoveRequest(nsGeolocationRequest* aRequest)
 }
 
 void
-nsGeolocation::Update(nsIDOMGeoPosition *aSomewhere)
+nsGeolocation::Update(nsIDOMGeoPosition *aSomewhere, bool aIsBetter)
 {
   if (!WindowOwnerStillExists()) {
     return Shutdown();
   }
 
   for (uint32_t i = mPendingCallbacks.Length(); i> 0; i--) {
-    if (mPendingCallbacks[i-1]->Update(aSomewhere)) {
+    if (mPendingCallbacks[i-1]->Update(aSomewhere, aIsBetter)) {
       mPendingCallbacks.RemoveElementAt(i-1);
     }
   }
 
   // notify everyone that is watching
   for (uint32_t i = 0; i< mWatchingCallbacks.Length(); i++) {
-    mWatchingCallbacks[i]->Update(aSomewhere);
+    mWatchingCallbacks[i]->Update(aSomewhere, aIsBetter);
   }
 }
 
