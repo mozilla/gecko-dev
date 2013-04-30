@@ -2139,8 +2139,6 @@ struct nsStyleColumn {
 
   nscolor      mColumnRuleColor;  // [reset]
   uint8_t      mColumnRuleStyle;  // [reset]
-  uint8_t      mColumnFill;  // [reset] see nsStyleConsts.h
-
   // See https://bugzilla.mozilla.org/show_bug.cgi?id=271586#c43 for why
   // this is hard to replace with 'currentColor'.
   bool mColumnRuleColorIsForeground;

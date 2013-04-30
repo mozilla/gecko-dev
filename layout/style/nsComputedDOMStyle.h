@@ -348,7 +348,6 @@ private:
 
   /* Column properties */
   mozilla::dom::CSSValue* DoGetColumnCount();
-  mozilla::dom::CSSValue* DoGetColumnFill();
   mozilla::dom::CSSValue* DoGetColumnWidth();
   mozilla::dom::CSSValue* DoGetColumnGap();
   mozilla::dom::CSSValue* DoGetColumnRuleWidth();
