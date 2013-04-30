@@ -16,6 +16,7 @@
 #include "mozilla/dom/ipc/Blob.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/HalTypes.h"
+#include "mozilla/LinkedList.h"
 
 #include "nsFrameMessageManager.h"
 #include "nsIObserver.h"
@@ -59,6 +60,7 @@ class ContentParent : public PContentParent
                     , public nsIThreadObserver
                     , public nsIDOMGeoPositionCallback
                     , public mozilla::dom::ipc::MessageManagerCallback
+                    , public mozilla::LinkedListElement<ContentParent>
 {
     typedef mozilla::ipc::GeckoChildProcessHost GeckoChildProcessHost;
     typedef mozilla::ipc::OptionalURIParams OptionalURIParams;
@@ -83,6 +85,11 @@ public:
     static void JoinAllSubprocesses();
 
     static ContentParent* GetNewOrUsed(bool aForBrowserElement = false);
+
+    /**
+     * Create a subprocess suitable for use as a preallocated app process.
+     */
+    static already_AddRefed<ContentParent> PreallocateAppProcess();
 
     /**
      * Get or create a content process for the given TabContext.  aFrameElement
@@ -157,13 +164,10 @@ private:
     static nsDataHashtable<nsStringHashKey, ContentParent*> *sAppContentParents;
     static nsTArray<ContentParent*>* sNonAppContentParents;
     static nsTArray<ContentParent*>* sPrivateContent;
+    static LinkedList<ContentParent> sContentParents;
 
     static void JoinProcessesIOThread(const nsTArray<ContentParent*>* aProcesses,
                                       Monitor* aMonitor, bool* aDone);
-
-    static void PreallocateAppProcess();
-    static void DelayedPreallocateAppProcess();
-    static void ScheduleDelayedPreallocateAppProcess();
 
     // Take the preallocated process and transform it into a "real" app process,
     // for the specified manifest URL.  If there is no preallocated process (or
@@ -174,8 +178,6 @@ private:
                                     hal::ProcessPriority aInitialPriority);
 
     static hal::ProcessPriority GetInitialProcessPriority(nsIDOMElement* aFrameElement);
-
-    static void FirstIdle();
 
     // Hide the raw constructor methods since we don't want client code
     // using them.
