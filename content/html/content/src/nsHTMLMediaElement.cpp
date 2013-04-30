@@ -953,6 +953,11 @@ static bool IsAutoplayEnabled()
   return Preferences::GetBool("media.autoplay.enabled");
 }
 
+static bool UseAudioChannelService()
+{
+  return Preferences::GetBool("media.useAudioChannelService");
+}
+
 void nsHTMLMediaElement::UpdatePreloadAction()
 {
   PreloadAction nextAction = PRELOAD_UNDEFINED;
@@ -1930,7 +1935,10 @@ bool nsHTMLMediaElement::ParseAttribute(int32_t aNamespaceID,
 
 bool nsHTMLMediaElement::CheckAudioChannelPermissions(const nsAString& aString)
 {
-#ifdef MOZ_B2G
+  if (!UseAudioChannelService()) {
+    return true;
+  }
+
   // Only normal channel doesn't need permission.
   if (!aString.EqualsASCII("normal")) {
     nsCOMPtr<nsIPermissionManager> permissionManager =
@@ -1946,7 +1954,7 @@ bool nsHTMLMediaElement::CheckAudioChannelPermissions(const nsAString& aString)
       return false;
     }
   }
-#endif
+
   return true;
 }
 
@@ -3457,17 +3465,17 @@ void nsHTMLMediaElement::SuspendOrResumeElement(bool aPauseElement, bool aSuspen
 void nsHTMLMediaElement::NotifyOwnerDocumentActivityChanged()
 {
   nsIDocument* ownerDoc = OwnerDoc();
-#ifdef MOZ_B2G
-  nsCOMPtr<nsIDOMDocument> domDoc = do_QueryInterface(OwnerDoc());
-  if (domDoc) {
-    bool hidden = false;
-    domDoc->GetHidden(&hidden);
-    // SetVisibilityState will update mChannelSuspended via the CanPlayChanged callback.
-    if (mPlayingThroughTheAudioChannel && mAudioChannelAgent) {
-      mAudioChannelAgent->SetVisibilityState(!hidden);
+  if (UseAudioChannelService()) {
+    nsCOMPtr<nsIDOMDocument> domDoc = do_QueryInterface(OwnerDoc());
+    if (domDoc) {
+      bool hidden = false;
+      domDoc->GetHidden(&hidden);
+      // SetVisibilityState will update mChannelSuspended via the CanPlayChanged callback.
+      if (mPlayingThroughTheAudioChannel && mAudioChannelAgent) {
+        mAudioChannelAgent->SetVisibilityState(!hidden);
+      }
     }
   }
-#endif
   bool suspendEvents = !ownerDoc->IsActive() || !ownerDoc->IsVisible();
   bool pauseElement = suspendEvents || mChannelSuspended;
 
@@ -3792,9 +3800,10 @@ void nsHTMLMediaElement::GetMimeType(nsCString& aMimeType)
 
 nsresult nsHTMLMediaElement::UpdateChannelMuteState(bool aCanPlay)
 {
-  // Only on B2G we mute the nsHTMLMediaElement following the rules of
-  // AudioChannelService.
-#ifdef MOZ_B2G
+  if (!UseAudioChannelService()) {
+    return NS_OK;
+  }
+
   // We have to mute this channel:
   if (!aCanPlay && !mChannelSuspended) {
     mChannelSuspended = true;
@@ -3805,15 +3814,16 @@ nsresult nsHTMLMediaElement::UpdateChannelMuteState(bool aCanPlay)
   }
 
   SuspendOrResumeElement(mChannelSuspended, false);
-#endif
 
   return NS_OK;
 }
 
 void nsHTMLMediaElement::UpdateAudioChannelPlayingState()
 {
-  // The nsHTMLMediaElement is registered to the AudioChannelService only on B2G.
-#ifdef MOZ_B2G
+  if (!UseAudioChannelService()) {
+    return;
+  }
+
   bool playingThroughTheAudioChannel =
      (!mPaused &&
       (HasAttr(kNameSpaceID_None, nsGkAtoms::loop) ||
@@ -3847,7 +3857,6 @@ void nsHTMLMediaElement::UpdateAudioChannelPlayingState()
       mAudioChannelAgent = nullptr;
     }
   }
-#endif
 }
 
 /* void canPlayChanged (in boolean canPlay); */

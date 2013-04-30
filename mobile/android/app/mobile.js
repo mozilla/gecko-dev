@@ -667,3 +667,6 @@ pref("dom.event.touch.coalescing.enabled", true);
 // default orientation for the app, default to undefined
 // the java GeckoScreenOrientationListener needs this to be defined
 pref("app.orientation.default", "");
+
+// Make <audio> and <video> talk to the AudioChannelService.
+pref("media.useAudioChannelService", true);
