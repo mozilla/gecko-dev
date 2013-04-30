@@ -154,9 +154,9 @@ protected:
 private:
     typedef base::ChildPrivileges ChildOSPrivileges;
 
-    static nsDataHashtable<nsStringHashKey, ContentParent*> *gAppContentParents;
-    static nsTArray<ContentParent*>* gNonAppContentParents;
-    static nsTArray<ContentParent*>* gPrivateContent;
+    static nsDataHashtable<nsStringHashKey, ContentParent*> *sAppContentParents;
+    static nsTArray<ContentParent*>* sNonAppContentParents;
+    static nsTArray<ContentParent*>* sPrivateContent;
 
     static void JoinProcessesIOThread(const nsTArray<ContentParent*>* aProcesses,
                                       Monitor* aMonitor, bool* aDone);
