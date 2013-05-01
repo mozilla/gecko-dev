@@ -32,10 +32,6 @@ const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul",
       validBoolean = { is: ['boolean', 'undefined', 'null'] },
       ADDON_ID = require('./self').id;
 
-if (isPrivateBrowsingSupported && isWindowPBSupported) {
-  throw Error('The panel module cannot be used with per-window private browsing at the moment, see Bug 816257');
-}
-
 /**
  * Emits show and hide events.
  */
