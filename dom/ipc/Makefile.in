@@ -30,6 +30,7 @@ EXPORTS_NAMESPACES = \
 
 EXPORTS_mozilla = \
   AppProcessChecker.h \
+  ProcessPriorityManager.h \
   $(NULL)
 
 EXPORTS_mozilla/dom = \
@@ -48,7 +49,6 @@ EXPORTS_mozilla/dom = \
 
 EXPORTS_mozilla/dom/ipc = \
   Blob.h \
-  ProcessPriorityManager.h \
   nsIRemoteBlob.h \
   $(NULL)
 
