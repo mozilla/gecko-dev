@@ -28,10 +28,6 @@ const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul",
       ON_HIDE = 'popuphidden',
       validNumber = { is: ['number', 'undefined', 'null'] };
 
-if (isPrivateBrowsingSupported && isWindowPBSupported) {
-  throw Error('The panel module cannot be used with per-window private browsing at the moment, see Bug 816257');
-}
-
 /**
  * Emits show and hide events.
  */
