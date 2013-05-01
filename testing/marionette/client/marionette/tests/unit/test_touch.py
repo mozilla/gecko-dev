@@ -13,10 +13,10 @@ class testTouch(MarionetteTestCase):
       testTouch = self.marionette.absolute_url("testTouch.html")
       self.marionette.navigate(testTouch)
       button = self.marionette.find_element("id", "mozLink")
-      button.tap(0, 300)
+      button.single_tap(0, 300)
       time.sleep(10)
       self.assertEqual("Clicked", self.marionette.execute_script("return document.getElementById('mozLinkPos').innerHTML;"))
-      button.tap()
+      button.single_tap()
       time.sleep(10)
       self.assertEqual("Clicked", self.marionette.execute_script("return document.getElementById('mozLink').innerHTML;"))
 
@@ -24,12 +24,12 @@ class testTouch(MarionetteTestCase):
       testTouch = self.marionette.absolute_url("testTouch.html")
       self.marionette.navigate(testTouch)
       ele = self.marionette.find_element("id", "testh2")
-      self.assertRaises(MarionetteException, ele.tap)
+      self.assertRaises(MarionetteException, ele.single_tap)
 
     def test_scrolling(self):
       testTouch = self.marionette.absolute_url("testTouch.html")
       self.marionette.navigate(testTouch)
       ele = self.marionette.find_element("id", "scroll")
-      ele.tap()
+      ele.single_tap()
       time.sleep(10)
       self.assertEqual("Clicked", self.marionette.execute_script("return document.getElementById('scroll').innerHTML;"))

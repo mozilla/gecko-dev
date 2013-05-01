@@ -4,8 +4,7 @@
 
 import os
 from errors import ElementNotVisibleException
-from marionette import Actions
-from gestures import pinch
+
 """
 Adds touch support in Marionette
 """
@@ -36,9 +35,8 @@ class MarionetteTouchMixin(object):
 
     def flick(self, element, x1, y1, x2, y2, duration=200):
         self.check_element(element)
-        action = Actions(self.marionette)
-        action.flick(element, x1, y1, x2, y2, duration).perform()
+        # there's 'flick' which is pixels per second, but I'd rather have the library support it than piece it together here.
+        self.execute_script("%s.swipe.apply(this, arguments);" % self.library_name, [element, x1, y1, x2, y2, duration])
 
-    def pinch(self, element, x1, y1, x2, y2, x3, y3, x4, y4, duration = 200):
-        self.check_element(element)
-        pinch(element, x1, y1, x2, y2, x3, y3, x4, y4, duration)
+    def pinch(self, *args, **kwargs):
+        raise Exception("Pinch is unsupported")
