@@ -4003,6 +4003,7 @@ nsDocShell::LoadURI(const PRUnichar * aURI,
       return NS_OK; // JS may not handle returning of an error code
     }
     nsCOMPtr<nsIURI> uri;
+    nsCOMPtr<nsIInputStream> postStream(aPostStream);
     nsresult rv = NS_OK;
 
     // Create a URI from our string; if that succeeds, we want to
@@ -4034,6 +4035,7 @@ nsDocShell::LoadURI(const PRUnichar * aURI,
           fixupFlags |= nsIURIFixup::FIXUP_FLAG_USE_UTF8;
         }
         rv = sURIFixup->CreateFixupURI(uriString, fixupFlags,
+                                       getter_AddRefs(postStream),
                                        getter_AddRefs(uri));
     }
     // else no fixup service so just use the URI we created and see
@@ -4067,7 +4069,7 @@ nsDocShell::LoadURI(const PRUnichar * aURI,
     
     uint32_t loadType = MAKE_LOAD_TYPE(LOAD_NORMAL, aLoadFlags);
     loadInfo->SetLoadType(ConvertLoadTypeToDocShellLoadInfo(loadType));
-    loadInfo->SetPostDataStream(aPostStream);
+    loadInfo->SetPostDataStream(postStream);
     loadInfo->SetReferrer(aReferringURI);
     loadInfo->SetHeadersStream(aHeaderStream);
 
@@ -6658,6 +6660,7 @@ nsDocShell::EndPageLoad(nsIWebProgress * aProgress,
             // Try and make an alternative URI from the old one
             //
             nsCOMPtr<nsIURI> newURI;
+            nsCOMPtr<nsIInputStream> newPostData;
 
             nsAutoCString oldSpec;
             url->GetSpec(oldSpec);
@@ -6698,6 +6701,7 @@ nsDocShell::EndPageLoad(nsIWebProgress * aProgress,
                     // only send non-qualified hosts to the keyword server
                     if (!mOriginalUriString.IsEmpty()) {
                         sURIFixup->KeywordToURI(mOriginalUriString,
+                                                getter_AddRefs(newPostData),
                                                 getter_AddRefs(newURI));
                     }
                     else {
@@ -6717,11 +6721,15 @@ nsDocShell::EndPageLoad(nsIWebProgress * aProgress,
                             do_GetService(NS_IDNSERVICE_CONTRACTID);
                         if (idnSrv &&
                             NS_SUCCEEDED(idnSrv->IsACE(host, &isACE)) && isACE &&
-                            NS_SUCCEEDED(idnSrv->ConvertACEtoUTF8(host, utf8Host)))
+                            NS_SUCCEEDED(idnSrv->ConvertACEtoUTF8(host, utf8Host))) {
                             sURIFixup->KeywordToURI(utf8Host,
+                                                    getter_AddRefs(newPostData),
                                                     getter_AddRefs(newURI));
-                        else
-                            sURIFixup->KeywordToURI(host, getter_AddRefs(newURI));
+                        } else {
+                            sURIFixup->KeywordToURI(host,
+                                                    getter_AddRefs(newPostData),
+                                                    getter_AddRefs(newURI));
+                        }
                     }
                 } // end keywordsEnabled
             }
@@ -6754,8 +6762,10 @@ nsDocShell::EndPageLoad(nsIWebProgress * aProgress,
                 }
                 if (doCreateAlternate) {
                     newURI = nullptr;
+                    newPostData = nullptr;
                     sURIFixup->CreateFixupURI(oldSpec,
                       nsIURIFixup::FIXUP_FLAGS_MAKE_ALTERNATE_URI,
+                                              getter_AddRefs(newPostData),
                                               getter_AddRefs(newURI));
                 }
             }
@@ -6776,7 +6786,7 @@ nsDocShell::EndPageLoad(nsIWebProgress * aProgress,
                     return LoadURI(newSpecW.get(),  // URI string
                                    LOAD_FLAGS_NONE, // Load flags
                                    nullptr,          // Referring URI
-                                   nullptr,          // Post data stream
+                                   newPostData,      // Post data stream
                                    nullptr);         // Headers stream
                 }
             }
