@@ -59,6 +59,7 @@
 #include "nsFrameMessageManager.h"
 #include "nsHashPropertyBag.h"
 #include "nsIAlertsService.h"
+#include "nsIAppsService.h"
 #include "nsIClipboard.h"
 #include "nsIConsoleService.h"
 #include "nsIDOMApplicationRegistry.h"
@@ -199,8 +200,9 @@ static uint64_t gContentChildID = 1;
 ContentParent::PreallocateAppProcess()
 {
     nsRefPtr<ContentParent> process =
-        new ContentParent(MAGIC_PREALLOCATED_APP_MANIFEST_URL,
-                          /*isBrowserElement=*/false,
+        new ContentParent(/* app = */ nullptr,
+                          /* isForBrowserElement = */ false,
+                          /* isForPreallocated = */ true,
                           // Final privileges are set when we
                           // transform into our app.
                           base::PRIVILEGES_INHERIT,
@@ -317,8 +319,9 @@ ContentParent::GetNewOrUsed(bool aForBrowserElement)
     }
 
     nsRefPtr<ContentParent> p =
-        new ContentParent(/* appManifestURL = */ EmptyString(),
+        new ContentParent(/* app = */ nullptr,
                           aForBrowserElement,
+                          /* isForPreallocated = */ false,
                           base::PRIVILEGES_DEFAULT,
                           PROCESS_PRIORITY_FOREGROUND);
     p->Init();
@@ -442,8 +445,11 @@ ContentParent::CreateBrowserOrApp(const TabContext& aContext,
                                             initialPriority);
         if (!p) {
             NS_WARNING("Unable to use pre-allocated app process");
-            p = new ContentParent(manifestURL, /* isBrowserElement = */ false,
-                                  privs, initialPriority);
+            p = new ContentParent(ownApp,
+                                  /* isForBrowserElement = */ false,
+                                  /* isForPreallocated = */ false,
+                                  privs,
+                                  initialPriority);
             p->Init();
         }
         sAppContentParents->Put(manifestURL, p);
@@ -452,21 +458,9 @@ ContentParent::CreateBrowserOrApp(const TabContext& aContext,
     nsRefPtr<TabParent> tp = new TabParent(aContext);
     tp->SetOwnerElement(aFrameElement);
     PBrowserParent* browser = p->SendPBrowserConstructor(
-        tp.forget().get(), // DeallocPBrowserParent() releases this ref.
+        nsRefPtr<TabParent>(tp).forget().get(), // DeallocPBrowserParent() releases this ref.
         aContext.AsIPCTabContext(),
         /* chromeFlags */ 0);
-
-    // Send the frame element's mozapptype down to the child process.  This ends
-    // up in TabChild::GetAppType().  We have to do this /before/ we acquire the
-    // CPU wake lock for this process, because if the child sees that it has a
-    // CPU wake lock but its TabChild doesn't have the right mozapptype, it
-    // might downgrade its process priority.
-    nsCOMPtr<Element> frameElement = do_QueryInterface(aFrameElement);
-    if (frameElement) {
-      nsAutoString appType;
-      frameElement->GetAttr(kNameSpaceID_None, nsGkAtoms::mozapptype, appType);
-      unused << browser->SendSetAppType(appType);
-    }
 
     p->MaybeTakeCPUWakeLock(aFrameElement);
 
@@ -611,17 +605,6 @@ NS_IMPL_ISUPPORTS1(SystemMessageHandledListener,
 } // anonymous namespace
 
 void
-ContentParent::SetProcessPriority(ProcessPriority aPriority)
-{
-    if (!Preferences::GetBool("dom.ipc.processPriorityManager.enabled")) {
-        return;
-    }
-
-    hal::SetProcessPriority(base::GetProcId(mSubprocess->GetChildProcessHandle()),
-                            aPriority);
-}
-
-void
 ContentParent::MaybeTakeCPUWakeLock(nsIDOMElement* aFrameElement)
 {
     // Take the CPU wake lock on behalf of this processs if it's expecting a
@@ -648,7 +631,7 @@ ContentParent::MaybeTakeCPUWakeLock(nsIDOMElement* aFrameElement)
 bool
 ContentParent::SetPriorityAndCheckIsAlive(ProcessPriority aPriority)
 {
-    SetProcessPriority(aPriority);
+    ProcessPriorityManager::SetProcessPriority(this, aPriority);
 
     // Now that we've set this process's priority, check whether the process is
     // still alive.  Hopefully we've set the priority to FOREGROUND*, so the
@@ -667,14 +650,38 @@ ContentParent::SetPriorityAndCheckIsAlive(ProcessPriority aPriority)
     return true;
 }
 
+// Helper for ContentParent::TransformPreallocatedIntoApp.
+static void
+TryGetNameFromManifestURL(const nsAString& aManifestURL,
+                          nsAString& aName)
+{
+    aName.Truncate();
+    if (aManifestURL.IsEmpty() ||
+        aManifestURL == MAGIC_PREALLOCATED_APP_MANIFEST_URL) {
+        return;
+    }
+
+    nsCOMPtr<nsIAppsService> appsService = do_GetService(APPS_SERVICE_CONTRACTID);
+    NS_ENSURE_TRUE_VOID(appsService);
+
+    nsCOMPtr<mozIDOMApplication> domApp;
+    appsService->GetAppByManifestURL(aManifestURL, getter_AddRefs(domApp));
+
+    nsCOMPtr<mozIApplication> app = do_QueryInterface(domApp);
+    if (!app) {
+        return;
+    }
+
+    app->GetName(aName);
+}
+
 bool
 ContentParent::TransformPreallocatedIntoApp(const nsAString& aAppManifestURL,
                                             ChildPrivileges aPrivs)
 {
-    MOZ_ASSERT(mAppManifestURL == MAGIC_PREALLOCATED_APP_MANIFEST_URL);
-    // Clients should think of mAppManifestURL as const ... we're
-    // bending the rules here just for the preallocation hack.
-    const_cast<nsString&>(mAppManifestURL) = aAppManifestURL;
+    MOZ_ASSERT(IsPreallocated());
+    mAppManifestURL = aAppManifestURL;
+    TryGetNameFromManifestURL(aAppManifestURL, mAppName);
 
     return SendSetProcessPrivileges(aPrivs);
 }
@@ -982,8 +989,9 @@ ContentParent::GetTestShellSingleton()
     return static_cast<TestShellParent*>(ManagedPTestShellParent()[0]);
 }
 
-ContentParent::ContentParent(const nsAString& aAppManifestURL,
+ContentParent::ContentParent(mozIApplication* aApp,
                              bool aIsForBrowser,
+                             bool aIsForPreallocated,
                              ChildOSPrivileges aOSPrivileges,
                              ProcessPriority aInitialPriority /* = PROCESS_PRIORITY_FOREGROUND */)
     : mSubprocess(nullptr)
@@ -992,7 +1000,6 @@ ContentParent::ContentParent(const nsAString& aAppManifestURL,
     , mGeolocationWatchID(-1)
     , mRunToCompletionDepth(0)
     , mShouldCallUnblockChild(false)
-    , mAppManifestURL(aAppManifestURL)
     , mForceKillTask(nullptr)
     , mNumDestroyingTabs(0)
     , mIsAlive(true)
@@ -1000,8 +1007,19 @@ ContentParent::ContentParent(const nsAString& aAppManifestURL,
     , mSendPermissionUpdates(false)
     , mIsForBrowser(aIsForBrowser)
 {
+    // No more than one of !!aApp, aIsForBrowser, and aIsForPreallocated should
+    // be true.
+    MOZ_ASSERT(!!aApp + aIsForBrowser + aIsForPreallocated <= 1);
+
     // Insert ourselves into the global linked list of ContentParent objects.
     sContentParents.insertBack(this);
+
+    if (aApp) {
+        aApp->GetManifestURL(mAppManifestURL);
+        aApp->GetName(mAppName);
+    } else if (aIsForPreallocated) {
+        mAppManifestURL = MAGIC_PREALLOCATED_APP_MANIFEST_URL;
+    }
 
     // From this point on, NS_WARNING, NS_ASSERTION, etc. should print out the
     // PID along with the warning.
@@ -1013,12 +1031,15 @@ ContentParent::ContentParent(const nsAString& aAppManifestURL,
 
     mSubprocess->LaunchAndWaitForProcessHandle();
 
-    // Set the subprocess's priority.  We do this first because we're likely
-    // /lowering/ its CPU and memory priority, which it has inherited from this
-    // process.
-    SetProcessPriority(aInitialPriority);
-
     Open(mSubprocess->GetChannel(), mSubprocess->GetChildProcessHandle());
+
+    // Set the subprocess's priority.  We do this early on because we're likely
+    // /lowering/ the process's CPU and memory priority, which it has inherited
+    // from this process.
+    //
+    // This call can cause us to send IPC messages to the child process, so it
+    // must come after the Open() call above.
+    ProcessPriorityManager::SetProcessPriority(this, aInitialPriority);
 
     // NB: internally, this will send an IPC message to the child
     // process to get it to create the CompositorChild.  This
@@ -1350,7 +1371,7 @@ ContentParent::RecvAudioChannelChangedNotification()
     nsRefPtr<AudioChannelService> service =
         AudioChannelService::GetAudioChannelService();
     if (service) {
-       service->SendAudioChannelChangedNotification();
+       service->SendAudioChannelChangedNotification(ChildID());
     }
     return true;
 }
@@ -1759,6 +1780,30 @@ ContentParent::KillHard()
         FROM_HERE,
         NewRunnableFunction(&ProcessWatcher::EnsureProcessTerminated,
                             OtherProcess(), /*force=*/true));
+}
+
+bool
+ContentParent::IsPreallocated()
+{
+    return mAppManifestURL == MAGIC_PREALLOCATED_APP_MANIFEST_URL;
+}
+
+void
+ContentParent::FriendlyName(nsAString& aName)
+{
+    aName.Truncate();
+    if (IsPreallocated()) {
+        aName.AssignLiteral("(Preallocated)");
+    } else if (mIsForBrowser) {
+        aName.AssignLiteral("Browser");
+    } else if (!mAppName.IsEmpty()) {
+        aName = mAppName;
+    } else if (!mAppManifestURL.IsEmpty()) {
+        aName.AssignLiteral("Unknown app: ");
+        aName.Append(mAppManifestURL);
+    } else {
+        aName.AssignLiteral("???");
+    }
 }
 
 PCrashReporterParent*
