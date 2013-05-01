@@ -30,6 +30,7 @@ EXPORTS_NAMESPACES = \
 
 EXPORTS_mozilla = \
   AppProcessChecker.h \
+  PreallocatedProcessManager.h \
   ProcessPriorityManager.h \
   $(NULL)
 
@@ -61,6 +62,7 @@ CPPSRCS = \
   CrashReporterParent.cpp \
   CrashReporterChild.cpp \
   PermissionMessageUtils.cpp \
+  PreallocatedProcessManager.cpp \
   ProcessPriorityManager.cpp \
   StructuredCloneUtils.cpp \
   TabParent.cpp \

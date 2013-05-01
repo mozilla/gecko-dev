@@ -82,6 +82,8 @@
 #include "nsThreadUtils.h"
 #include "nsToolkitCompsCID.h"
 #include "nsWidgetsCID.h"
+#include "PreallocatedProcessManager.h"
+#include "ProcessPriorityManager.h"
 #include "SandboxHal.h"
 #include "StructuredCloneUtils.h"
 #include "TabParent.h"
@@ -175,6 +177,7 @@ MemoryReportRequestParent::~MemoryReportRequestParent()
 nsDataHashtable<nsStringHashKey, ContentParent*>* ContentParent::sAppContentParents;
 nsTArray<ContentParent*>* ContentParent::sNonAppContentParents;
 nsTArray<ContentParent*>* ContentParent::sPrivateContent;
+LinkedList<ContentParent> ContentParent::sContentParents;
 
 // This is true when subprocess launching is enabled.  This is the
 // case between StartUp() and ShutDown() or JoinAllSubprocesses().
@@ -183,60 +186,27 @@ static bool sCanLaunchSubprocesses;
 // The first content child has ID 1, so the chrome process can have ID 0.
 static uint64_t gContentChildID = 1;
 
-// Try to keep an app process always preallocated, to get
-// initialization off the critical path of app startup.
-static bool sKeepAppProcessPreallocated;
-static StaticRefPtr<ContentParent> sPreallocatedAppProcess;
-static CancelableTask* sPreallocateAppProcessTask;
-// This number is fairly arbitrary ... the intention is to put off
-// launching another app process until the last one has finished
-// loading its content, to reduce CPU/memory/IO contention.
-static int sPreallocateDelayMs;
 // We want the prelaunched process to know that it's for apps, but not
 // actually for any app in particular.  Use a magic manifest URL.
 // Can't be a static constant.
 #define MAGIC_PREALLOCATED_APP_MANIFEST_URL NS_LITERAL_STRING("{{template}}")
 
-/*static*/ void
+// PreallocateAppProcess is called by the PreallocatedProcessManager.
+// ContentParent then takes this process back within
+// MaybeTakePreallocatedAppProcess.
+
+/*static*/ already_AddRefed<ContentParent>
 ContentParent::PreallocateAppProcess()
 {
-    MOZ_ASSERT(!sPreallocatedAppProcess);
-
-    if (sPreallocateAppProcessTask) {
-        // We were called directly while a delayed task was scheduled.
-        sPreallocateAppProcessTask->Cancel();
-        sPreallocateAppProcessTask = nullptr;
-    }
-
-    sPreallocatedAppProcess =
+    nsRefPtr<ContentParent> process =
         new ContentParent(MAGIC_PREALLOCATED_APP_MANIFEST_URL,
                           /*isBrowserElement=*/false,
                           // Final privileges are set when we
                           // transform into our app.
                           base::PRIVILEGES_INHERIT,
                           PROCESS_PRIORITY_BACKGROUND);
-    sPreallocatedAppProcess->Init();
-}
-
-/*static*/ void
-ContentParent::DelayedPreallocateAppProcess()
-{
-    sPreallocateAppProcessTask = nullptr;
-    if (!sPreallocatedAppProcess) {
-        PreallocateAppProcess();
-    }
-}
-
-/*static*/ void
-ContentParent::ScheduleDelayedPreallocateAppProcess()
-{
-    if (!sKeepAppProcessPreallocated || sPreallocateAppProcessTask) {
-        return;
-    }
-    sPreallocateAppProcessTask =
-        NewRunnableFunction(DelayedPreallocateAppProcess);
-    MessageLoop::current()->PostDelayedTask(
-        FROM_HERE, sPreallocateAppProcessTask, sPreallocateDelayMs);
+    process->Init();
+    return process.forget();
 }
 
 /*static*/ already_AddRefed<ContentParent>
@@ -244,9 +214,7 @@ ContentParent::MaybeTakePreallocatedAppProcess(const nsAString& aAppManifestURL,
                                                ChildPrivileges aPrivs,
                                                ProcessPriority aInitialPriority)
 {
-    nsRefPtr<ContentParent> process = sPreallocatedAppProcess.get();
-    sPreallocatedAppProcess = nullptr;
-
+    nsRefPtr<ContentParent> process = PreallocatedProcessManager::Take();
     if (!process) {
         return nullptr;
     }
@@ -263,36 +231,16 @@ ContentParent::MaybeTakePreallocatedAppProcess(const nsAString& aAppManifestURL,
 }
 
 /*static*/ void
-ContentParent::FirstIdle(void)
-{
-    // The parent has gone idle for the first time. This would be a good
-    // time to preallocate an app process.
-    ScheduleDelayedPreallocateAppProcess();
-}
-
-/*static*/ void
 ContentParent::StartUp()
 {
     if (XRE_GetProcessType() != GeckoProcessType_Default) {
         return;
     }
 
-    sKeepAppProcessPreallocated =
-        Preferences::GetBool("dom.ipc.processPrelaunch.enabled", false);
-    if (sKeepAppProcessPreallocated) {
-        ClearOnShutdown(&sPreallocatedAppProcess);
-
-        sPreallocateDelayMs = Preferences::GetUint(
-            "dom.ipc.processPrelaunch.delayMs", 1000);
-
-        MOZ_ASSERT(!sPreallocateAppProcessTask);
-
-        // Let's not slow down the main process initialization. Wait until
-        // the main process goes idle before we preallocate a process
-        MessageLoop::current()->PostIdleTask(FROM_HERE, NewRunnableFunction(FirstIdle));
-    }
-
     sCanLaunchSubprocesses = true;
+
+    // Try to preallocate a process that we can transform into an app later.
+    PreallocatedProcessManager::AllocateAfterDelay();
 }
 
 /*static*/ void
@@ -525,30 +473,14 @@ ContentParent::CreateBrowserOrApp(const TabContext& aContext,
     return static_cast<TabParent*>(browser);
 }
 
-static PLDHashOperator
-AppendToTArray(const nsAString& aKey, ContentParent* aValue, void* aArray)
-{
-    nsTArray<ContentParent*> *array =
-        static_cast<nsTArray<ContentParent*>*>(aArray);
-    array->AppendElement(aValue);
-    return PL_DHASH_NEXT;
-}
-
 void
 ContentParent::GetAll(nsTArray<ContentParent*>& aArray)
 {
     aArray.Clear();
 
-    if (sNonAppContentParents) {
-        aArray.AppendElements(*sNonAppContentParents);
-    }
-
-    if (sAppContentParents) {
-        sAppContentParents->EnumerateRead(&AppendToTArray, &aArray);
-    }
-
-    if (sPreallocatedAppProcess) {
-        aArray.AppendElement(sPreallocatedAppProcess);
+    for (ContentParent* cp = sContentParents.getFirst(); cp;
+         cp = cp->getNext()) {
+        aArray.AppendElement(cp);
     }
 }
 
@@ -795,6 +727,11 @@ ContentParent::MarkAsDead()
     }
 
     mIsAlive = false;
+
+    // Remove from sContentParents.
+    if (isInList()) {
+         remove();
+    }
 }
 
 void
@@ -901,10 +838,6 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
 #ifdef ACCESSIBILITY
         obs->RemoveObserver(static_cast<nsIObserver*>(this), "a11y-init-or-shutdown");
 #endif
-    }
-
-    if (sPreallocatedAppProcess == this) {
-        sPreallocatedAppProcess = nullptr;
     }
 
     mMessageManager->Disconnect();
@@ -1067,6 +1000,9 @@ ContentParent::ContentParent(const nsAString& aAppManifestURL,
     , mSendPermissionUpdates(false)
     , mIsForBrowser(aIsForBrowser)
 {
+    // Insert ourselves into the global linked list of ContentParent objects.
+    sContentParents.insertBack(this);
+
     // From this point on, NS_WARNING, NS_ASSERTION, etc. should print out the
     // PID along with the warning.
     nsDebugImpl::SetMultiprocessMode("Parent");
@@ -1361,11 +1297,11 @@ ContentParent::RecvGetShowPasswordSetting(bool* showPassword)
 bool
 ContentParent::RecvFirstIdle()
 {
-    // When the ContentChild goes idle, it sends us a FirstIdle message
-    // which we use as a good time to prelaunch another process. If we
-    // prelaunch any sooner than this, then we'll be competing with the
+    // When the ContentChild goes idle, it sends us a FirstIdle message which we
+    // use as an indicator that it's a good time to prelaunch another process.
+    // If we prelaunch any sooner than this, then we'll be competing with the
     // child process and slowing it down.
-    ScheduleDelayedPreallocateAppProcess();
+    PreallocatedProcessManager::AllocateOnIdle();
     return true;
 }
 
