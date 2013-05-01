@@ -170,6 +170,7 @@ function MarionetteDriverActor(aConnection)
   this.curBrowser = null; // points to current browser
   this.context = "content";
   this.scriptTimeout = null;
+  this.searchTimeout = null;
   this.pageTimeout = null;
   this.timer = null;
   this.marionetteLog = new MarionetteLogObj();
@@ -1271,19 +1272,13 @@ MarionetteDriverActor.prototype = {
    */
   setSearchTimeout: function MDA_setSearchTimeout(aRequest) {
     this.command_id = this.getCommandId();
-    if (this.context == "chrome") {
-      try {
-        this.curBrowser.elementManager.setSearchTimeout(aRequest.value);
-        this.sendOk(this.command_id);
-      }
-      catch (e) {
-        this.sendError(e.message, e.code, e.stack, this.command_id);
-      }
+    let timeout = parseInt(aRequest.value);
+    if (isNaN(timeout)) {
+      this.sendError("Not a Number", 500, null, this.command_id);
     }
     else {
-      this.sendAsync("setSearchTimeout",
-                     { value: aRequest.value },
-                     this.command_id);
+      this.searchTimeout = timeout;
+      this.sendOk(this.command_id);
     }
   },
 
@@ -1422,6 +1417,7 @@ MarionetteDriverActor.prototype = {
         id = this.curBrowser.elementManager.find(
                               this.getCurrentWindow(),
                               aRequest,
+                              this.searchTimeout,
                               on_success,
                               on_error,
                               false,
@@ -1437,7 +1433,8 @@ MarionetteDriverActor.prototype = {
                      {
                        value: aRequest.value,
                        using: aRequest.using,
-                       element: aRequest.element
+                       element: aRequest.element,
+                       searchTimeout: this.searchTimeout
                      },
                      command_id);
     }
@@ -1459,6 +1456,7 @@ MarionetteDriverActor.prototype = {
         let on_error = this.sendError.bind(this);
         id = this.curBrowser.elementManager.find(this.getCurrentWindow(),
                                                  aRequest,
+                                                 this.searchTimeout,
                                                  on_success,
                                                  on_error,
                                                  true,
@@ -1474,7 +1472,8 @@ MarionetteDriverActor.prototype = {
                      {
                        value: aRequest.value,
                        using: aRequest.using,
-                       element: aRequest.element
+                       element: aRequest.element,
+                       searchTimeout: this.searchTimeout
                      },
                      command_id);
     }
@@ -2126,12 +2125,7 @@ MarionetteDriverActor.prototype = {
           // XXX: Should have a better way of determining that this message
           // is from a remote frame.
           this.currentRemoteFrame.targetFrameId = this.generateFrameId(message.json.value);
-          this.sendAsync("setState",
-                         {
-                           scriptTimeout: this.scriptTimeout,
-                           searchTimeout: this.curBrowser.elementManager.searchTimeout
-                         },
-                         this.currentRemoteFrame.command_id);
+          this.sendOk(this.currentRemoteFrame.command_id);
         }
 
         let browserType;
