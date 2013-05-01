@@ -666,6 +666,9 @@ pref("dom.disable_input_file", true);
 
 pref("general.useragent.enable_overrides", true);
 
+// Make <audio> and <video> talk to the AudioChannelService.
+pref("media.useAudioChannelService", true);
+
 pref("b2g.version", @MOZ_B2G_VERSION@);
 
 // Disable console buffering to save memory.
