@@ -28,6 +28,7 @@ class nsPIDOMWindow;
 #include "mozilla/Mutex.h"
 #include "prtime.h"
 #include "DeviceStorage.h"
+#include "mozilla/StaticPtr.h"
 
 #include "DeviceStorageRequestChild.h"
 
@@ -53,6 +54,70 @@ enum DeviceStorageRequestType {
     DEVICE_STORAGE_REQUEST_AVAILABLE
 };
 
+class DeviceStorageUsedSpaceCache MOZ_FINAL
+{
+public:
+  static DeviceStorageUsedSpaceCache* CreateOrGet();
+
+  DeviceStorageUsedSpaceCache();
+  ~DeviceStorageUsedSpaceCache();
+
+
+  class InvalidateRunnable MOZ_FINAL : public nsRunnable
+  {
+    public:
+      InvalidateRunnable(DeviceStorageUsedSpaceCache* aCache) {
+        mOwner = aCache;
+      }
+
+      ~InvalidateRunnable() {}
+
+      NS_IMETHOD Run() {
+        mOwner->mDirty = true;
+        return NS_OK;
+      }
+    private:
+      DeviceStorageUsedSpaceCache* mOwner;
+  };
+
+  void Invalidate() {
+    NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+    NS_ASSERTION(mIOThread, "Null mIOThread!");
+
+    nsRefPtr<InvalidateRunnable> r = new InvalidateRunnable(this);
+    mIOThread->Dispatch(r, NS_DISPATCH_NORMAL);
+  }
+
+  void Dispatch(nsIRunnable* aRunnable) {
+    NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+    NS_ASSERTION(mIOThread, "Null mIOThread!");
+
+    mIOThread->Dispatch(aRunnable, NS_DISPATCH_NORMAL);
+  }
+
+  nsresult GetUsedSizeForType(const nsAString& aStorageType, uint64_t* usedSize);
+  void SetUsedSizes(uint64_t aPictureSize, uint64_t aVideosSize,
+                    uint64_t aMusicSize, uint64_t aTotalSize);
+
+private:
+  friend class InvalidateRunnable;
+
+  nsresult GetPicturesUsedSize(uint64_t* usedSize);
+  nsresult GetMusicUsedSize(uint64_t* usedSize);
+  nsresult GetVideosUsedSize(uint64_t* usedSize);
+  nsresult GetTotalUsedSize(uint64_t* usedSize);
+
+  bool mDirty;
+  uint64_t mPicturesUsedSize;
+  uint64_t mVideosUsedSize;
+  uint64_t mMusicUsedSize;
+  uint64_t mTotalUsedSize;
+
+  nsCOMPtr<nsIThread> mIOThread;
+
+  static mozilla::StaticAutoPtr<DeviceStorageUsedSpaceCache> sDeviceStorageUsedSpaceCache;
+};
+
 class DeviceStorageTypeChecker MOZ_FINAL
 {
 public:
@@ -65,6 +130,7 @@ public:
 
   bool Check(const nsAString& aType, nsIDOMBlob* aBlob);
   bool Check(const nsAString& aType, nsIFile* aFile);
+  void GetTypeFromFile(nsIFile* aFile, nsAString& aType);
 
   static nsresult GetPermissionForType(const nsAString& aType, nsACString& aPermissionResult);
   static nsresult GetAccessForRequest(const DeviceStorageRequestType aRequestType, nsACString& aAccessResult);
@@ -75,7 +141,7 @@ private:
   nsString mVideosExtensions;
   nsString mMusicExtensions;
 
-  static nsAutoPtr<DeviceStorageTypeChecker> sDeviceStorageTypeChecker;
+  static mozilla::StaticAutoPtr<DeviceStorageTypeChecker> sDeviceStorageTypeChecker;
 };
 
 class ContinueCursorEvent MOZ_FINAL : public nsRunnable
