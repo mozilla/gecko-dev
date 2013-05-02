@@ -239,6 +239,10 @@ NetworkManager.prototype = {
                 network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_SUPL) {
               this.removeHostRoute(network);
             }
+            // Remove routing table in /proc/net/route
+            if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_WIFI) {
+              this.resetRoutingTable(this._activeInfo);
+            }
             // Remove extra host route. For example, mms proxy or mmsc.
             this.removeExtraHostRoute(network);
             if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE) {
@@ -349,6 +353,9 @@ NetworkManager.prototype = {
   active: null,
   _overriddenActive: null,
 
+  // Clone network info so we can still get information when network is disconnected
+  _activeInfo: null,
+
   overrideActive: function overrideActive(network) {
     if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS ||
         network.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_SUPL) {
@@ -456,6 +463,7 @@ NetworkManager.prototype = {
 
     // Find a suitable network interface to activate.
     this.active = null;
+    this._activeInfo = Object.create(null);
     for each (let network in this.networkInterfaces) {
       if (network.state != Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED) {
         continue;
@@ -464,6 +472,7 @@ NetworkManager.prototype = {
         defaultDataNetwork = network;
       }
       this.active = network;
+      this._activeInfo = {name:network.name, ip:network.ip, netmask:network.netmask};
       if (network.type == this.preferredNetworkType) {
         debug("Found our preferred type of network: " + network.name);
         break;
@@ -494,6 +503,16 @@ NetworkManager.prototype = {
     if (this._manageOfflineStatus) {
       Services.io.offline = !this.active;
     }
+  },
+
+  resetRoutingTable: function resetRoutingTable(network) {
+    let options = {
+      cmd: "removeNetworkRoute",
+      ifname: network.name,
+      ip : network.ip,
+      netmask: network.netmask,
+    };
+    this.worker.postMessage(options);
   },
 
   setDNS: function setDNS(networkInterface) {
