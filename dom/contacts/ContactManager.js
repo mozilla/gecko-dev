@@ -27,10 +27,26 @@ XPCOMUtils.defineLazyServiceGetter(this, "cpmm",
                                    "@mozilla.org/childprocessmessagemanager;1",
                                    "nsIMessageSender");
 
+function stringOrBust(aObj) {
+  if (typeof aObj != "string") {
+    if (DEBUG) debug("Field is not a string and was ignored.");
+    return undefined;
+  } else {
+    return aObj;
+  }
+}
+
+function sanitizeStringArray(aArray) {
+  if (!Array.isArray(aArray)) {
+    aArray = [aArray];
+  }
+  return aArray.map(stringOrBust).filter(function(el) { return el != undefined; });
+}
+
 const CONTACTS_SENDMORE_MINIMUM = 5;
 
 const nsIClassInfo            = Ci.nsIClassInfo;
-const CONTACTPROPERTIES_CID   = Components.ID("{f5181640-89e8-11e1-b0c4-0800200c9a66}");
+const CONTACTPROPERTIES_CID   = Components.ID("{86504745-da3e-4a17-b67b-88b40e0e6bc8}");
 const nsIDOMContactProperties = Ci.nsIDOMContactProperties;
 
 // ContactProperties is not directly instantiated. It is used as interface.
@@ -56,12 +72,12 @@ const CONTACTADDRESS_CID        = Components.ID("{eba48030-89e8-11e1-b0c4-080020
 const nsIDOMContactAddress      = Components.interfaces.nsIDOMContactAddress;
 
 function ContactAddress(aType, aStreetAddress, aLocality, aRegion, aPostalCode, aCountryName) {
-  this.type = aType || null;
-  this.streetAddress = aStreetAddress || null;
-  this.locality = aLocality || null;
-  this.region = aRegion || null;
-  this.postalCode = aPostalCode || null;
-  this.countryName = aCountryName || null;
+  this.type = sanitizeStringArray(aType);
+  this.streetAddress = stringOrBust(aStreetAddress);
+  this.locality = stringOrBust(aLocality);
+  this.region = stringOrBust(aRegion);
+  this.postalCode = stringOrBust(aPostalCode);
+  this.countryName = stringOrBust(aCountryName);
 };
 
 ContactAddress.prototype = {
@@ -91,8 +107,8 @@ const CONTACTFIELD_CID        = Components.ID("{e2cb19c0-e4aa-11e1-9b23-0800200c
 const nsIDOMContactField      = Components.interfaces.nsIDOMContactField;
 
 function ContactField(aType, aValue) {
-  this.type = aType || null;
-  this.value = aValue || null;
+  this.type = sanitizeStringArray(aType);
+  this.value = stringOrBust(aValue);
 };
 
 ContactField.prototype = {
@@ -118,9 +134,9 @@ const CONTACTTELFIELD_CID        = Components.ID("{ed0ab260-e4aa-11e1-9b23-08002
 const nsIDOMContactTelField      = Components.interfaces.nsIDOMContactTelField;
 
 function ContactTelField(aType, aValue, aCarrier) {
-  this.type = aType || null;
-  this.value = aValue || null;
-  this.carrier = aCarrier || null;
+  this.type = sanitizeStringArray(aType);
+  this.value = stringOrBust(aValue);
+  this.carrier = stringOrBust(aCarrier);
 };
 
 ContactTelField.prototype = {
@@ -217,19 +233,6 @@ Contact.prototype = {
                      },
 
   init: function init(aProp) {
-    // Accept non-array strings for DOMString[] properties and convert them.
-    function _create(aField) {
-      if (Array.isArray(aField)) {
-        for (let i = 0; i < aField.length; i++) {
-          if (typeof aField[i] != "string")
-            aField[i] = String(aField[i]);
-        }
-        return aField;
-      } else if (aField != null) {
-        return [String(aField)];
-      }
-    };
-
     function _checkBlobArray(aBlob) {
       if (Array.isArray(aBlob)) {
         for (let i = 0; i < aBlob.length; i++) {
@@ -243,36 +246,51 @@ Contact.prototype = {
         return aBlob;
       }
       return null;
-    };
+    }
 
-    this.name =            _create(aProp.name) || null;
-    this.honorificPrefix = _create(aProp.honorificPrefix) || null;
-    this.givenName =       _create(aProp.givenName) || null;
-    this.additionalName =  _create(aProp.additionalName) || null;
-    this.familyName =      _create(aProp.familyName) || null;
-    this.honorificSuffix = _create(aProp.honorificSuffix) || null;
-    this.nickname =        _create(aProp.nickname) || null;
+    function _isVanillaObj(aObj) {
+      return Object.prototype.toString.call(aObj) == "[object Object]";
+    }
+
+    let _create = sanitizeStringArray;
+
+    this.name =            _create(aProp.name);
+    this.honorificPrefix = _create(aProp.honorificPrefix);
+    this.givenName =       _create(aProp.givenName);
+    this.additionalName =  _create(aProp.additionalName);
+    this.familyName =      _create(aProp.familyName);
+    this.honorificSuffix = _create(aProp.honorificSuffix);
+    this.nickname =        _create(aProp.nickname);
 
     if (aProp.email) {
       aProp.email = Array.isArray(aProp.email) ? aProp.email : [aProp.email];
       this.email = new Array();
-      for (let i = 0; i < aProp.email.length; i++)
-        this.email.push(new ContactField(aProp.email[i].type, aProp.email[i].value));
+      for (let email of aProp.email) {
+        if (_isVanillaObj(email)) {
+          this.email.push(new ContactField(email.type, email.value));
+        } else if (DEBUG) {
+          debug("email field is not a ContactField and was ignored.");
+        }
+      }
     } else {
       this.email = null;
     }
 
-    this.photo =           _checkBlobArray(aProp.photo) || null;
-    this.category =        _create(aProp.category) || null;
+    this.photo =           _checkBlobArray(aProp.photo);
+    this.category =        _create(aProp.category);
 
     if (aProp.adr) {
-      // Make sure adr argument is an array. Instanceof doesn't work.
       aProp.adr = Array.isArray(aProp.adr) ? aProp.adr : [aProp.adr];
 
       this.adr = new Array();
-      for (let i = 0; i < aProp.adr.length; i++)
-        this.adr.push(new ContactAddress(aProp.adr[i].type, aProp.adr[i].streetAddress, aProp.adr[i].locality,
-                                         aProp.adr[i].region, aProp.adr[i].postalCode, aProp.adr[i].countryName));
+      for (let adr of aProp.adr) {
+        if (_isVanillaObj(adr)) {
+          this.adr.push(new ContactAddress(adr.type, adr.streetAddress, adr.locality,
+                                           adr.region, adr.postalCode, adr.countryName));
+        } else if (DEBUG) {
+          debug("adr field is not a ContactAddress and was ignored.");
+        }
+      }
     } else {
       this.adr = null;
     }
@@ -280,22 +298,32 @@ Contact.prototype = {
     if (aProp.tel) {
       aProp.tel = Array.isArray(aProp.tel) ? aProp.tel : [aProp.tel];
       this.tel = new Array();
-      for (let i = 0; i < aProp.tel.length; i++)
-        this.tel.push(new ContactTelField(aProp.tel[i].type, aProp.tel[i].value, aProp.tel[i].carrier));
+      for (let tel of aProp.tel) {
+        if (_isVanillaObj(tel)) {
+          this.tel.push(new ContactTelField(tel.type, tel.value, tel.carrier));
+        } else if (DEBUG) {
+          debug("tel field is not a ContactTelField and was ignored.");
+        }
+      }
     } else {
       this.tel = null;
     }
 
-    this.org =             _create(aProp.org) || null;
-    this.jobTitle =        _create(aProp.jobTitle) || null;
+    this.org =             _create(aProp.org);
+    this.jobTitle =        _create(aProp.jobTitle);
     this.bday =            aProp.bday ? new Date(aProp.bday) : null;
-    this.note =            _create(aProp.note) || null;
+    this.note =            _create(aProp.note);
 
     if (aProp.impp) {
       aProp.impp = Array.isArray(aProp.impp) ? aProp.impp : [aProp.impp];
       this.impp = new Array();
-      for (let i = 0; i < aProp.impp.length; i++)
-        this.impp.push(new ContactField(aProp.impp[i].type, aProp.impp[i].value));
+      for (let impp of aProp.impp) {
+        if (_isVanillaObj(impp)) {
+          this.impp.push(new ContactField(impp.type, impp.value));
+        } else if (DEBUG) {
+          debug("impp field is not a ContactField and was ignored.");
+        }
+      }
     } else {
       this.impp = null;
     }
@@ -303,8 +331,13 @@ Contact.prototype = {
     if (aProp.url) {
       aProp.url = Array.isArray(aProp.url) ? aProp.url : [aProp.url];
       this.url = new Array();
-      for (let i = 0; i < aProp.url.length; i++)
-        this.url.push(new ContactField(aProp.url[i].type, aProp.url[i].value));
+      for (let url of aProp.url) {
+        if (_isVanillaObj(url)) {
+          this.url.push(new ContactField(url.type, url.value));
+        } else if (DEBUG) {
+          debug("url field is not a ContactField and was ignored.");
+        }
+      }
     } else {
       this.url = null;
     }

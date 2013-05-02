@@ -1,5 +1,5 @@
-component {f5181640-89e8-11e1-b0c4-0800200c9a66} ContactManager.js
-contract @mozilla.org/contactProperties;1 {f5181640-89e8-11e1-b0c4-0800200c9a66}
+component {86504745-da3e-4a17-b67b-88b40e0e6bc8} ContactManager.js
+contract @mozilla.org/contactProperties;1 {86504745-da3e-4a17-b67b-88b40e0e6bc8}
 
 component {eba48030-89e8-11e1-b0c4-0800200c9a66} ContactManager.js
 contract @mozilla.org/contactAddress;1 {eba48030-89e8-11e1-b0c4-0800200c9a66}
