@@ -173,7 +173,8 @@ class MarionetteTestRunner(object):
                  es_server=None, rest_server=None, logger=None,
                  testgroup="marionette", noWindow=False, logcat_dir=None,
                  xml_output=None, repeat=0, gecko_path=None, testvars=None,
-                 tree=None, type=None, device=None, **kwargs):
+                 tree=None, type=None, device=None, symbols_path=None,
+                 **kwargs):
         self.address = address
         self.emulator = emulator
         self.emulatorBinary = emulatorBinary
@@ -202,6 +203,7 @@ class MarionetteTestRunner(object):
         self.tree = tree
         self.type = type
         self.device = device
+        self.symbols_path = symbols_path
 
         if testvars:
             if not os.path.exists(testvars):
