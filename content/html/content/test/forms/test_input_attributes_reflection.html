@@ -109,14 +109,7 @@ reflectUnsignedInt({
 
 // .indeterminate doesn't reflect a content attribute.
 
-// .inputmode
-reflectLimitedEnumerated({
-  element: document.createElement("input"),
-  attribute: "inputmode",
-  validValues: [ "numeric", "digit", "uppercase", "lowercase", "titlecase", "autocapitalized", "auto" ],
-  invalidValues: [ "", "foo", "tulip" ],
-  defaultValue: "auto"
-});
+// TODO: .inputMode
 
 // TODO: list (HTMLElement)
 
