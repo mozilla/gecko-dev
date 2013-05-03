@@ -80,7 +80,6 @@ class nsGeolocationRequest
   void NotifyError(int16_t errorCode);
   bool mAllowed;
   bool mCleared;
-  bool mIsFirstUpdate;
   bool mIsWatchPositionRequest;
 
   nsCOMPtr<nsITimer> mTimeoutTimer;

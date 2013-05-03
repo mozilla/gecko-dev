@@ -290,7 +290,6 @@ nsGeolocationRequest::nsGeolocationRequest(nsGeolocation* aLocator,
                                            int32_t aWatchId)
   : mAllowed(false),
     mCleared(false),
-    mIsFirstUpdate(true),
     mIsWatchPositionRequest(aWatchPositionRequest),
     mCallback(aCallback),
     mErrorCallback(aErrorCallback),
@@ -566,22 +565,10 @@ nsGeolocationRequest::Update(nsIDOMGeoPosition* aPosition)
   if (!mAllowed) {
     return false;
   }
-  // Only dispatch callbacks if this is the first position for this request, or
-  // if the accuracy is as good or improving.
-  //
-  // This ensures that all listeners get at least one position callback, particularly
-  // in the case when newly detected positions are all less accurate than the cached one.
-  //
-  // Fixes bug 596481
-  nsCOMPtr<nsIRunnable> ev;
-  if (mIsFirstUpdate) {
-    mIsFirstUpdate = PR_FALSE;
-    ev  = new RequestSendLocationEvent(aPosition,
-                                       this,
-                                       mIsWatchPositionRequest ? nullptr : mLocator);
-  } else {
-    ev = new RequestRestartTimerEvent(this);
-  }
+
+  nsCOMPtr<nsIRunnable> ev  = new RequestSendLocationEvent(aPosition,
+                                                           this,
+                                                           mIsWatchPositionRequest ? nullptr : mLocator);
   NS_DispatchToMainThread(ev);
   return true;
 }
