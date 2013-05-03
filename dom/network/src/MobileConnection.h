@@ -43,6 +43,9 @@ public:
 private:
   nsCOMPtr<nsIMobileConnectionProvider> mProvider;
   nsRefPtr<icc::IccManager> mIccManager;
+  nsWeakPtr mWindow;
+
+  bool CheckPermission(const char* type);
 
   nsIDOMEventTarget*
   ToIDOMEventTarget() const

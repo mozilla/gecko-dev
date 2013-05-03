@@ -1017,6 +1017,14 @@ RadioInterfaceLayer.prototype = {
     let data = this.rilContext.data;
 
     if (this.networkChanged(message, voice.network)) {
+      // Update lastKnownNetwork
+      if (message.mcc && message.mnc) {
+        try {
+          Services.prefs.setCharPref("ril.lastKnownNetwork",
+                                     message.mcc + "-" + message.mnc);
+        } catch (e) {}
+      }
+
       voice.network = message;
       this._sendTargetMessage("mobileconnection", "RIL:VoiceInfoChanged", voice);
     }
@@ -1666,6 +1674,16 @@ RadioInterfaceLayer.prototype = {
     // RIL:IccInfoChanged corresponds to a DOM event that gets fired only
     // when the MCC or MNC codes have changed.
     this._sendTargetMessage("mobileconnection", "RIL:IccInfoChanged", message);
+
+    // Update lastKnownHomeNetwork.
+    if (message.mcc && message.mnc) {
+      try {
+        Services.prefs.setCharPref("ril.lastKnownHomeNetwork",
+                                   message.mcc + "-" + message.mnc);
+        Services.prefs.setCharPref("ril.lastKnownNetwork",
+                                     message.mcc + "-" + message.mnc);
+      } catch (e) {}
+    }
   },
 
   handleICCCardLockResult: function handleICCCardLockResult(message) {
