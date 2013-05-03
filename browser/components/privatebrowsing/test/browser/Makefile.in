@@ -10,6 +10,9 @@ relativesrcdir  = @relativesrcdir@
 
 include $(DEPTH)/config/autoconf.mk
 
+# browser_privatebrowsing_DownloadLastDirWithCPS.js is fixed in m-c
+# and has been disabled in the branches until the fix propagates
+
 MOCHITEST_BROWSER_FILES =  \
 		head.js \
 		browser_privatebrowsing_certexceptionsui.js \
@@ -21,7 +24,6 @@ MOCHITEST_BROWSER_FILES =  \
 		browser_privatebrowsing_downloadLastDir.js \
 		browser_privatebrowsing_downloadLastDir_c.js \
 		browser_privatebrowsing_downloadLastDir_toggle.js \
-		browser_privatebrowsing_DownloadLastDirWithCPS.js \
 		browser_privatebrowsing_geoprompt.js \
 		browser_privatebrowsing_geoprompt_page.html \
 		browser_privatebrowsing_lastpbcontextexited.js \
