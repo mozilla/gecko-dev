@@ -442,13 +442,21 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
       }
       else if (CompareVersions(mOSVersion.get(), "4.1.0") < 0)
       {
+        // Whitelist:
+        //   All Samsung ICS devices, except for:
+        //     Samsung SGH-I717 (Bug 845729)
+        //     Samsung SGH-I727 (Bug 845729)
+        //     Samsung SGH-I757 (Bug 845729)
+        //     Samsung SGH-T989 (Bug 845729)
+        //   All Galaxy nexus ICS devices
         bool isWhitelisted =
           cManufacturer.Equals("samsung", nsCaseInsensitiveCStringComparator()) ||
           cModel.Equals("galaxy nexus", nsCaseInsensitiveCStringComparator()); // some Galaxy Nexus have manufacturer=amazon
 
-        if (cModel.Equals("SGH-I717", nsCaseInsensitiveCStringComparator()) ||
-            cModel.Equals("SGH-I727", nsCaseInsensitiveCStringComparator()) ||
-            cModel.Equals("SGH-T989", nsCaseInsensitiveCStringComparator()))
+        if (cModel.Find("SGH-I717", true) != -1 ||
+            cModel.Find("SGH-I727", true) != -1 ||
+            cModel.Find("SGH-I757", true) != -1 ||
+            cModel.Find("SGH-T989", true) != -1)
         {
           isWhitelisted = false;
         }
