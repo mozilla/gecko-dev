@@ -48,7 +48,6 @@ linx.net: did not receive HSTS header
 lists.mayfirst.org: did not receive HSTS header
 mail.google.com: did not receive HSTS header
 market.android.com: did not receive HSTS header
-mattmccutchen.net: could not connect to host
 my.alfresco.com: did not receive HSTS header
 mydigipass.com: did not receive HSTS header
 neonisi.com: could not connect to host
@@ -73,7 +72,6 @@ sunshinepress.org: could not connect to host
 talk.google.com: did not receive HSTS header
 talkgadget.google.com: did not receive HSTS header
 torproject.org: did not receive HSTS header
-ubertt.org: could not connect to host
 uprotect.it: could not connect to host
 www.developer.mydigipass.com: could not connect to host
 www.dropcam.com: max-age too low: 2592000
