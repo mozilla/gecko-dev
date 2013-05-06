@@ -30,7 +30,7 @@ public:
   ~nsDOMStoragePersistentDB() {}
 
   nsresult
-  Init(const nsString& aDatabaseName);
+  Init(const nsAString& aDatabaseName);
 
   /**
    * Close the connection, finalizing all the cached statements.
@@ -52,8 +52,8 @@ public:
    */
   nsresult
   GetKeyValue(DOMStorageImpl* aStorage,
-              const nsAString& aKey,
-              nsAString& aValue,
+              const nsACString& aKey,
+              nsACString& aValue,
               bool* aSecure);
 
   /**
@@ -61,8 +61,8 @@ public:
    */
   nsresult
   SetKey(DOMStorageImpl* aStorage,
-         const nsAString& aKey,
-         const nsAString& aValue,
+         const nsACString& aKey,
+         const nsACString& aValue,
          bool aSecure);
 
   /**
@@ -71,7 +71,7 @@ public:
    */
   nsresult
   SetSecure(DOMStorageImpl* aStorage,
-            const nsAString& aKey,
+            const nsACString& aKey,
             const bool aSecure);
 
   /**
@@ -79,7 +79,7 @@ public:
    */
   nsresult
   RemoveKey(DOMStorageImpl* aStorage,
-            const nsAString& aKey);
+            const nsACString& aKey);
 
   /**
     * Remove all keys belonging to this storage.

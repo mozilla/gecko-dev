@@ -48,10 +48,10 @@ StorageParent::RecvUpdatePrivateState(const bool& aEnabled)
 }
 
 bool
-StorageParent::RecvGetKeys(const bool& aCallerSecure, InfallibleTArray<nsString>* aKeys)
+StorageParent::RecvGetKeys(const bool& aCallerSecure, InfallibleTArray<nsCString>* aKeys)
 {
   // Callers are responsible for deallocating the array returned by mStorage->GetKeys
-  nsAutoPtr<nsTArray<nsString> > keys(mStorage->GetKeys(aCallerSecure));
+  nsAutoPtr<nsTArray<nsCString> > keys(mStorage->GetKeys(aCallerSecure));
   aKeys->SwapElements(*keys);
   return true;
 }
@@ -67,7 +67,7 @@ StorageParent::RecvGetLength(const bool& aCallerSecure, const bool& aSessionOnly
 
 bool
 StorageParent::RecvGetKey(const bool& aCallerSecure, const bool& aSessionOnly,
-                          const uint32_t& aIndex, nsString* aKey, nsresult* rv)
+                          const uint32_t& aIndex, nsCString* aKey, nsresult* rv)
 {
   mStorage->SetSessionOnly(aSessionOnly);
   *rv = mStorage->GetKey(aCallerSecure, aIndex, *aKey);
@@ -76,7 +76,7 @@ StorageParent::RecvGetKey(const bool& aCallerSecure, const bool& aSessionOnly,
 
 bool
 StorageParent::RecvGetValue(const bool& aCallerSecure, const bool& aSessionOnly,
-                            const nsString& aKey, StorageItem* aItem,
+                            const nsCString& aKey, StorageItem* aItem,
                             nsresult* rv)
 {
   mStorage->SetSessionOnly(aSessionOnly);
@@ -91,7 +91,7 @@ StorageParent::RecvGetValue(const bool& aCallerSecure, const bool& aSessionOnly,
     return true;
   }
 
-  ItemData data(EmptyString(), false);
+  ItemData data(EmptyCString(), false);
   nsDOMStorageItem* internalItem = static_cast<nsDOMStorageItem*>(item.get());
   data.value() = internalItem->GetValueInternal();
   if (aCallerSecure)
@@ -102,8 +102,8 @@ StorageParent::RecvGetValue(const bool& aCallerSecure, const bool& aSessionOnly,
 
 bool
 StorageParent::RecvSetValue(const bool& aCallerSecure, const bool& aSessionOnly,
-                            const nsString& aKey, const nsString& aData,
-                            nsString* aOldValue, nsresult* rv)
+                            const nsCString& aKey, const nsCString& aData,
+                            nsCString* aOldValue, nsresult* rv)
 {
   mStorage->SetSessionOnly(aSessionOnly);
   *rv = mStorage->SetValue(aCallerSecure, aKey, aData, *aOldValue);
@@ -112,7 +112,7 @@ StorageParent::RecvSetValue(const bool& aCallerSecure, const bool& aSessionOnly,
 
 bool
 StorageParent::RecvRemoveValue(const bool& aCallerSecure, const bool& aSessionOnly,
-                               const nsString& aKey, nsString* aOldValue,
+                               const nsCString& aKey, nsCString* aOldValue,
                                nsresult* rv)
 {
   mStorage->SetSessionOnly(aSessionOnly);
@@ -130,7 +130,7 @@ StorageParent::RecvClear(const bool& aCallerSecure, const bool& aSessionOnly,
 }
 
 bool
-StorageParent::RecvGetDBValue(const nsString& aKey, nsString* aValue,
+StorageParent::RecvGetDBValue(const nsCString& aKey, nsCString* aValue,
                               bool* aSecure, nsresult* rv)
 {
   *rv = mStorage->GetDBValue(aKey, *aValue, aSecure);
@@ -138,7 +138,7 @@ StorageParent::RecvGetDBValue(const nsString& aKey, nsString* aValue,
 }
 
 bool
-StorageParent::RecvSetDBValue(const nsString& aKey, const nsString& aValue,
+StorageParent::RecvSetDBValue(const nsCString& aKey, const nsCString& aValue,
                               const bool& aSecure, nsresult* rv)
 {
   *rv = mStorage->SetDBValue(aKey, aValue, aSecure);
@@ -146,7 +146,7 @@ StorageParent::RecvSetDBValue(const nsString& aKey, const nsString& aValue,
 }
 
 bool
-StorageParent::RecvSetSecure(const nsString& aKey, const bool& aSecure,
+StorageParent::RecvSetSecure(const nsCString& aKey, const bool& aSecure,
                              nsresult* rv)
 {
   *rv = mStorage->SetSecure(aKey, aSecure);

@@ -29,7 +29,7 @@ AllKeyEnum(nsSessionStorageEntry* aEntry, void* userArg)
   if (!item)
     return PL_DHASH_STOP;
 
-  aEntry->mItem->GetValue(item->mValue);
+  aEntry->mItem->GetValueNoConvert(item->mValue);
   nsresult rv = aEntry->mItem->GetSecure(&item->mSecure);
   if (NS_FAILED(rv))
     item->mSecure = false;
@@ -80,7 +80,7 @@ struct GetAllKeysEnumStruc
 };
 
 static PLDHashOperator
-GetAllKeysEnum(const nsAString& keyname,
+GetAllKeysEnum(const nsACString& keyname,
                nsDOMStorageMemoryDB::nsInMemoryItem* item,
                void *closure)
 {
@@ -92,7 +92,7 @@ GetAllKeysEnum(const nsAString& keyname,
 
   entry->mItem = new nsDOMStorageItem(struc->mStorage,
                                       keyname,
-                                      EmptyString(),
+                                      EmptyCString(),
                                       item->mSecure);
   if (!entry->mItem)
     return PL_DHASH_STOP;
@@ -120,8 +120,8 @@ nsDOMStorageMemoryDB::GetAllKeys(DOMStorageImpl* aStorage,
 
 nsresult
 nsDOMStorageMemoryDB::GetKeyValue(DOMStorageImpl* aStorage,
-                                  const nsAString& aKey,
-                                  nsAString& aValue,
+                                  const nsACString& aKey,
+                                  nsACString& aValue,
                                   bool* aSecure)
 {
   if (mPreloading) {
@@ -146,8 +146,8 @@ nsDOMStorageMemoryDB::GetKeyValue(DOMStorageImpl* aStorage,
 
 nsresult
 nsDOMStorageMemoryDB::SetKey(DOMStorageImpl* aStorage,
-                             const nsAString& aKey,
-                             const nsAString& aValue,
+                             const nsACString& aKey,
+                             const nsACString& aValue,
                              bool aSecure)
 {
   nsresult rv;
@@ -199,7 +199,7 @@ nsDOMStorageMemoryDB::SetKey(DOMStorageImpl* aStorage,
 
 nsresult
 nsDOMStorageMemoryDB::SetSecure(DOMStorageImpl* aStorage,
-                                const nsAString& aKey,
+                                const nsACString& aKey,
                                 const bool aSecure)
 {
   nsresult rv;
@@ -221,7 +221,7 @@ nsDOMStorageMemoryDB::SetSecure(DOMStorageImpl* aStorage,
 
 nsresult
 nsDOMStorageMemoryDB::RemoveKey(DOMStorageImpl* aStorage,
-                                const nsAString& aKey)
+                                const nsACString& aKey)
 {
   nsresult rv;
 
@@ -242,7 +242,7 @@ nsDOMStorageMemoryDB::RemoveKey(DOMStorageImpl* aStorage,
 }
 
 static PLDHashOperator
-RemoveAllKeysEnum(const nsAString& keyname,
+RemoveAllKeysEnum(const nsACString& keyname,
                   nsAutoPtr<nsDOMStorageMemoryDB::nsInMemoryItem>& item,
                   void *closure)
 {

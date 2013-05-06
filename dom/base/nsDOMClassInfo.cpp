@@ -10679,7 +10679,7 @@ nsStorage2SH::NewEnumerate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     nsCOMPtr<nsPIDOMStorage> storage(do_QueryWrappedNative(wrapper));
 
     // XXXndeakin need to free the keys afterwards
-    nsTArray<nsString> *keys = storage->GetKeys();
+    nsTArray<nsCString> *keys = storage->GetKeys();
     NS_ENSURE_TRUE(keys, NS_ERROR_OUT_OF_MEMORY);
 
     *statep = PRIVATE_TO_JSVAL(keys);
@@ -10690,11 +10690,11 @@ nsStorage2SH::NewEnumerate(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     return NS_OK;
   }
 
-  nsTArray<nsString> *keys =
-    (nsTArray<nsString> *)JSVAL_TO_PRIVATE(*statep);
+  nsTArray<nsCString> *keys =
+    (nsTArray<nsCString> *)JSVAL_TO_PRIVATE(*statep);
 
   if (enum_op == JSENUMERATE_NEXT && keys->Length() != 0) {
-    nsString& key = keys->ElementAt(0);
+    NS_ConvertUTF8toUTF16 key(keys->ElementAt(0));
     JSString *str =
       JS_NewUCStringCopyN(cx, reinterpret_cast<const jschar *>
                                               (key.get()),

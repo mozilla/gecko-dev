@@ -101,12 +101,12 @@ StorageChild::InitAsLocalStorage(nsIPrincipal* aPrincipal, bool aPrivate)
   InitRemote();
 }
 
-nsTArray<nsString>*
+nsTArray<nsCString>*
 StorageChild::GetKeys(bool aCallerSecure)
 {
-  InfallibleTArray<nsString> remoteKeys;
+  InfallibleTArray<nsCString> remoteKeys;
   SendGetKeys(aCallerSecure, &remoteKeys);
-  nsTArray<nsString>* keys = new nsTArray<nsString>;
+  nsTArray<nsCString>* keys = new nsTArray<nsCString>;
   *keys = remoteKeys;
   return keys;
 }
@@ -120,10 +120,10 @@ StorageChild::GetLength(bool aCallerSecure, uint32_t* aLength)
 }
 
 nsresult
-StorageChild::GetKey(bool aCallerSecure, uint32_t aIndex, nsAString& aKey)
+StorageChild::GetKey(bool aCallerSecure, uint32_t aIndex, nsACString& aKey)
 {
   nsresult rv;
-  nsString key;
+  nsCString key;
   SendGetKey(aCallerSecure, mSessionOnly, aIndex, &key, &rv);
   if (NS_FAILED(rv))
     return rv;
@@ -140,12 +140,14 @@ StorageChild::GetKey(bool aCallerSecure, uint32_t aIndex, nsAString& aKey)
 // If DOMStorageImpl::GetValue ever changes its behaviour, this should be kept
 // in sync.
 nsIDOMStorageItem*
-StorageChild::GetValue(bool aCallerSecure, const nsAString& aKey, nsresult* rv)
+StorageChild::GetValue(bool aCallerSecure, const nsACString& aKey,
+                       nsresult* rv)
 {
   SAMPLE_LABEL("StorageChild", "GetValue");
   nsresult rv2 = *rv = NS_OK;
   StorageItem storageItem;
-  SendGetValue(aCallerSecure, mSessionOnly, nsString(aKey), &storageItem, &rv2);
+  SendGetValue(aCallerSecure, mSessionOnly, nsCString(aKey), &storageItem,
+               &rv2);
   if (rv2 == NS_ERROR_DOM_SECURITY_ERR || rv2 == NS_ERROR_DOM_NOT_FOUND_ERR)
     return nullptr;
   *rv = rv2;
@@ -158,12 +160,12 @@ StorageChild::GetValue(bool aCallerSecure, const nsAString& aKey, nsresult* rv)
 }
 
 nsresult
-StorageChild::SetValue(bool aCallerSecure, const nsAString& aKey,
-                       const nsAString& aData, nsAString& aOldData)
+StorageChild::SetValue(bool aCallerSecure, const nsACString& aKey,
+                       const nsACString& aData, nsACString& aOldData)
 {
   nsresult rv;
-  nsString oldData;
-  SendSetValue(aCallerSecure, mSessionOnly, nsString(aKey), nsString(aData),
+  nsCString oldData;
+  SendSetValue(aCallerSecure, mSessionOnly, nsCString(aKey), nsCString(aData),
                &oldData, &rv);
   if (NS_FAILED(rv))
     return rv;
@@ -172,12 +174,12 @@ StorageChild::SetValue(bool aCallerSecure, const nsAString& aKey,
 }
 
 nsresult
-StorageChild::RemoveValue(bool aCallerSecure, const nsAString& aKey,
-                          nsAString& aOldData)
+StorageChild::RemoveValue(bool aCallerSecure, const nsACString& aKey,
+                          nsACString& aOldData)
 {
   nsresult rv;
-  nsString oldData;
-  SendRemoveValue(aCallerSecure, mSessionOnly, nsString(aKey), &oldData, &rv);
+  nsCString oldData;
+  SendRemoveValue(aCallerSecure, mSessionOnly, nsCString(aKey), &oldData, &rv);
   if (NS_FAILED(rv))
     return rv;
   aOldData = oldData;
@@ -197,31 +199,31 @@ StorageChild::Clear(bool aCallerSecure, int32_t* aOldCount)
 }
 
 nsresult
-StorageChild::GetDBValue(const nsAString& aKey, nsAString& aValue,
+StorageChild::GetDBValue(const nsACString& aKey, nsACString& aValue,
                          bool* aSecure)
 {
   nsresult rv;
-  nsString value;
-  SendGetDBValue(nsString(aKey), &value, aSecure, &rv);
+  nsCString value;
+  SendGetDBValue(nsCString(aKey), &value, aSecure, &rv);
   aValue = value;
   return rv;
 }
 
 nsresult
-StorageChild::SetDBValue(const nsAString& aKey,
-                         const nsAString& aValue,
+StorageChild::SetDBValue(const nsACString& aKey,
+                         const nsACString& aValue,
                          bool aSecure)
 {
   nsresult rv;
-  SendSetDBValue(nsString(aKey), nsString(aValue), aSecure, &rv);
+  SendSetDBValue(nsCString(aKey), nsCString(aValue), aSecure, &rv);
   return rv;
 }
 
 nsresult
-StorageChild::SetSecure(const nsAString& aKey, bool aSecure)
+StorageChild::SetSecure(const nsACString& aKey, bool aSecure)
 {
   nsresult rv;
-  SendSetSecure(nsString(aKey), aSecure, &rv);
+  SendSetSecure(nsCString(aKey), aSecure, &rv);
   return rv;
 }
 

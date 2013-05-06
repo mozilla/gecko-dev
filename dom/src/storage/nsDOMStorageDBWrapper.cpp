@@ -106,8 +106,8 @@ nsDOMStorageDBWrapper::GetAllKeys(DOMStorageImpl* aStorage,
 
 nsresult
 nsDOMStorageDBWrapper::GetKeyValue(DOMStorageImpl* aStorage,
-                                   const nsAString& aKey,
-                                   nsAString& aValue,
+                                   const nsACString& aKey,
+                                   nsACString& aValue,
                                    bool* aSecure)
 {
   IMPL_FORWARDER(GetKeyValue(aStorage, aKey, aValue, aSecure));
@@ -115,8 +115,8 @@ nsDOMStorageDBWrapper::GetKeyValue(DOMStorageImpl* aStorage,
 
 nsresult
 nsDOMStorageDBWrapper::SetKey(DOMStorageImpl* aStorage,
-                              const nsAString& aKey,
-                              const nsAString& aValue,
+                              const nsACString& aKey,
+                              const nsACString& aValue,
                               bool aSecure)
 {
   IMPL_FORWARDER(SetKey(aStorage, aKey, aValue, aSecure));
@@ -124,7 +124,7 @@ nsDOMStorageDBWrapper::SetKey(DOMStorageImpl* aStorage,
 
 nsresult
 nsDOMStorageDBWrapper::SetSecure(DOMStorageImpl* aStorage,
-                                 const nsAString& aKey,
+                                 const nsACString& aKey,
                                  const bool aSecure)
 {
   IMPL_FORWARDER(SetSecure(aStorage, aKey, aSecure));
@@ -132,7 +132,7 @@ nsDOMStorageDBWrapper::SetSecure(DOMStorageImpl* aStorage,
 
 nsresult
 nsDOMStorageDBWrapper::RemoveKey(DOMStorageImpl* aStorage,
-                                 const nsAString& aKey)
+                                 const nsACString& aKey)
 {
   IMPL_FORWARDER(RemoveKey(aStorage, aKey));
 }
