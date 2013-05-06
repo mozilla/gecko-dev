@@ -584,8 +584,8 @@ Vector<T,N,AP>::calculateNewCapacity(size_t curLength, size_t lengthInc,
         return false;
     }
 
-    /* Round up to next power of 2. */
-    newCap = RoundUpPow2(newMinCap);
+    static const size_t DOUBLING_MAX = 1024 * 1024;
+    newCap = newMinCap > DOUBLING_MAX ? newMinCap + (newMinCap / 8) : RoundUpPow2(newMinCap);
 
     /*
      * Do not allow a buffer large enough that the expression ((char *)end() -
