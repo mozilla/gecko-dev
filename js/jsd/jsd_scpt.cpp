@@ -61,6 +61,9 @@ _newJSDScript(JSDContext*  jsdc,
               JSContext    *cx,
               JSScript     *script)
 {
+    if ( JS_GetScriptIsSelfHosted(script) )
+        return NULL;
+
     JSDScript*  jsdscript;
     unsigned     lineno;
     const char* raw_filename;
@@ -825,13 +828,6 @@ jsd_SetExecutionHook(JSDContext*           jsdc,
     JSCompartment* oldCompartment;
 
     JSD_LOCK();
-
-    if ( JS_GetScriptIsSelfHosted(jsdscript->script) )
-    {
-        JSD_UNLOCK();
-        return JS_TRUE;
-    }
-
     if( ! hook )
     {
         jsd_ClearExecutionHook(jsdc, jsdscript, pc);
