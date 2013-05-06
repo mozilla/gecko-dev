@@ -669,6 +669,7 @@ MobileMessageDatabaseService.prototype = {
           });
         }
       }
+      let expiryDate = aMessageRecord.timestamp + headers["x-mms-expiry"] * 1000;
       return gMobileMessageService.createMmsMessage(aMessageRecord.id,
                                                     aMessageRecord.threadId,
                                                     aMessageRecord.delivery,
@@ -679,7 +680,8 @@ MobileMessageDatabaseService.prototype = {
                                                     aMessageRecord.read,
                                                     subject,
                                                     smil,
-                                                    attachments);
+                                                    attachments,
+                                                    expiryDate);
     }
   },
 
