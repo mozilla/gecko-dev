@@ -17,6 +17,7 @@
 
 #include "MobileConnection.h"
 #include "mozilla/dom/bluetooth/BluetoothTypes.h"
+#include "mozilla/Hal.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPtr.h"
 #include "nsContentUtils.h"
@@ -117,6 +118,7 @@ static CINDItem sCINDItems[] = {
 };
 
 class mozilla::dom::bluetooth::BluetoothHfpManagerObserver : public nsIObserver
+                                                           , public BatteryObserver
 {
 public:
   NS_DECL_ISUPPORTS
@@ -150,6 +152,8 @@ public:
       return false;
     }
 
+    hal::RegisterBatteryObserver(this);
+
     return true;
   }
 
@@ -164,12 +168,26 @@ public:
       NS_WARNING("Can't unregister observers, or already unregistered!");
       return false;
     }
+
+    hal::UnregisterBatteryObserver(this);
+
     return true;
   }
 
   ~BluetoothHfpManagerObserver()
   {
     Shutdown();
+  }
+
+  void Notify(const hal::BatteryInformation& aBatteryInfo)
+  {
+    // Range of battery level: [0, 1], double
+    // Range of CIND::BATTCHG: [0, 5], int
+    int level = ceil(aBatteryInfo.level() * 5.0);
+    if (level != sCINDItems[CINDType::BATTCHG].value) {
+      sCINDItems[CINDType::BATTCHG].value = level;
+      gBluetoothHfpManager->SendCommand("+CIEV: ", CINDType::BATTCHG);
+    }
   }
 };
 
