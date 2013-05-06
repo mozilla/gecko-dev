@@ -13,7 +13,7 @@ namespace dom {
 
 struct ItemData
 {
-  nsString value;
+  nsCString value;
   bool secure;
 };
 
@@ -39,25 +39,25 @@ parent:
        nsCString scopeDBKey, nsCString quotaDBKey, uint32_t storageType);
   
   sync GetKeys(bool callerSecure)
-      returns (nsString[] keys);
+      returns (nsCString[] keys);
   sync GetLength(bool callerSecure, bool sessionOnly)
       returns (uint32_t length, nsresult rv);
   sync GetKey(bool callerSecure, bool sessionOnly, uint32_t index)
-      returns (nsString key, nsresult rv);
-  sync GetValue(bool callerSecure, bool sessionOnly, nsString key)
+      returns (nsCString key, nsresult rv);
+  sync GetValue(bool callerSecure, bool sessionOnly, nsCString key)
       returns (StorageItem item, nsresult rv);
-  sync SetValue(bool callerSecure, bool sessionOnly, nsString key, nsString data)
-      returns (nsString oldValue, nsresult rv);
-  sync RemoveValue(bool callerSecure, bool sessionOnly, nsString key)
-      returns (nsString oldValue, nsresult rv);
+  sync SetValue(bool callerSecure, bool sessionOnly, nsCString key, nsCString data)
+      returns (nsCString oldValue, nsresult rv);
+  sync RemoveValue(bool callerSecure, bool sessionOnly, nsCString key)
+      returns (nsCString oldValue, nsresult rv);
   sync Clear(bool callerSecure, bool sessionOnly)
       returns (int32_t oldCount, nsresult rv);
 
-  sync GetDBValue(nsString key)
-      returns (nsString value, bool secure, nsresult rv);
-  sync SetDBValue(nsString key, nsString value, bool secure)
+  sync GetDBValue(nsCString key)
+      returns (nsCString value, bool secure, nsresult rv);
+  sync SetDBValue(nsCString key, nsCString value, bool secure)
       returns (nsresult rv);
-  sync SetSecure(nsString key, bool secure)
+  sync SetSecure(nsCString key, bool secure)
       returns (nsresult rv);
 
   UpdatePrivateState(bool enabled);

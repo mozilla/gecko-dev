@@ -55,7 +55,7 @@ public:
   DOMStorageImpl* mStorage;
 };
 
-class nsSessionStorageEntry : public nsStringHashKey
+class nsSessionStorageEntry : public nsCStringHashKey
 {
 public:
   nsSessionStorageEntry(KeyTypePointer aStr);
@@ -112,15 +112,15 @@ public:
   virtual void InitAsSessionStorage(nsIPrincipal* aPrincipal, bool aPrivate);
   virtual void InitAsLocalStorage(nsIPrincipal* aPrincipal, bool aPrivate);
 
-  virtual nsTArray<nsString>* GetKeys(bool aCallerSecure) = 0;
+  virtual nsTArray<nsCString>* GetKeys(bool aCallerSecure) = 0;
   virtual nsresult GetLength(bool aCallerSecure, uint32_t* aLength) = 0;
-  virtual nsresult GetKey(bool aCallerSecure, uint32_t aIndex, nsAString& aKey) = 0;
-  virtual nsIDOMStorageItem* GetValue(bool aCallerSecure, const nsAString& aKey,
+  virtual nsresult GetKey(bool aCallerSecure, uint32_t aIndex, nsACString& aKey) = 0;
+  virtual nsIDOMStorageItem* GetValue(bool aCallerSecure, const nsACString& aKey,
                                       nsresult* rv) = 0;
-  virtual nsresult SetValue(bool aCallerSecure, const nsAString& aKey,
-                            const nsAString& aData, nsAString& aOldValue) = 0;
-  virtual nsresult RemoveValue(bool aCallerSecure, const nsAString& aKey,
-                               nsAString& aOldValue) = 0;
+  virtual nsresult SetValue(bool aCallerSecure, const nsACString& aKey,
+                            const nsACString& aData, nsACString& aOldValue) = 0;
+  virtual nsresult RemoveValue(bool aCallerSecure, const nsACString& aKey,
+                               nsACString& aOldValue) = 0;
   virtual nsresult Clear(bool aCallerSecure, int32_t* aOldCount) = 0;
 
   // Call nsDOMStorage::CanUseStorage with |this|
@@ -142,21 +142,21 @@ public:
 
   // retrieve the value and secure state corresponding to a key out of storage.
   virtual nsresult
-  GetDBValue(const nsAString& aKey,
-             nsAString& aValue,
+  GetDBValue(const nsACString& aKey,
+             nsACString& aValue,
              bool* aSecure) = 0;
 
   // set the value corresponding to a key in the storage. If
   // aSecure is false, then attempts to modify a secure value
   // throw NS_ERROR_DOM_INVALID_ACCESS_ERR
   virtual nsresult
-  SetDBValue(const nsAString& aKey,
-             const nsAString& aValue,
+  SetDBValue(const nsACString& aKey,
+             const nsACString& aValue,
              bool aSecure) = 0;
 
   // set the value corresponding to a key as secure.
   virtual nsresult
-  SetSecure(const nsAString& aKey, bool aSecure) = 0;
+  SetSecure(const nsACString& aKey, bool aSecure) = 0;
 
   virtual nsresult
   CloneFrom(bool aCallerSecure, DOMStorageBase* aThat) = 0;
@@ -214,15 +214,15 @@ public:
     return mSessionOnly;
   }
 
-  virtual nsTArray<nsString>* GetKeys(bool aCallerSecure);
+  virtual nsTArray<nsCString>* GetKeys(bool aCallerSecure);
   virtual nsresult GetLength(bool aCallerSecure, uint32_t* aLength);
-  virtual nsresult GetKey(bool aCallerSecure, uint32_t aIndex, nsAString& aKey);
-  virtual nsIDOMStorageItem* GetValue(bool aCallerSecure, const nsAString& aKey,
+  virtual nsresult GetKey(bool aCallerSecure, uint32_t aIndex, nsACString& aKey);
+  virtual nsIDOMStorageItem* GetValue(bool aCallerSecure, const nsACString& aKey,
                                       nsresult* rv);
-  virtual nsresult SetValue(bool aCallerSecure, const nsAString& aKey,
-                            const nsAString& aData, nsAString& aOldValue);
-  virtual nsresult RemoveValue(bool aCallerSecure, const nsAString& aKey,
-                               nsAString& aOldValue);
+  virtual nsresult SetValue(bool aCallerSecure, const nsACString& aKey,
+                            const nsACString& aData, nsACString& aOldValue);
+  virtual nsresult RemoveValue(bool aCallerSecure, const nsACString& aKey,
+                               nsACString& aOldValue);
   virtual nsresult Clear(bool aCallerSecure, int32_t* aOldCount);
 
   // cache the keys from the database for faster lookup
@@ -234,27 +234,27 @@ public:
   // retrieve the value and secure state corresponding to a key out of storage
   // that has been cached in mItems hash table.
   nsresult
-  GetCachedValue(const nsAString& aKey,
-                 nsAString& aValue,
+  GetCachedValue(const nsACString& aKey,
+                 nsACString& aValue,
                  bool* aSecure);
 
   // retrieve the value and secure state corresponding to a key out of storage.
   virtual nsresult
-  GetDBValue(const nsAString& aKey,
-             nsAString& aValue,
+  GetDBValue(const nsACString& aKey,
+             nsACString& aValue,
              bool* aSecure);
 
   // set the value corresponding to a key in the storage. If
   // aSecure is false, then attempts to modify a secure value
   // throw NS_ERROR_DOM_INVALID_ACCESS_ERR
   virtual nsresult
-  SetDBValue(const nsAString& aKey,
-             const nsAString& aValue,
+  SetDBValue(const nsACString& aKey,
+             const nsACString& aValue,
              bool aSecure);
 
   // set the value corresponding to a key as secure.
   virtual nsresult
-  SetSecure(const nsAString& aKey, bool aSecure);
+  SetSecure(const nsACString& aKey, bool aSecure);
 
   // clear all values from the store
   void ClearAll();
@@ -312,7 +312,7 @@ public:
   NS_DECL_NSIINTERFACEREQUESTOR
 
   // Helpers for implementing nsIDOMStorage
-  nsresult GetItem(const nsAString& key, nsAString& aData);
+  nsresult GetItem(const nsACString& key, nsACString& aData);
   nsresult Clear();
 
   // nsPIDOMStorage
@@ -323,7 +323,7 @@ public:
   virtual already_AddRefed<nsIDOMStorage> Clone();
   virtual already_AddRefed<nsIDOMStorage> Fork(const nsSubstring &aDocumentURI);
   virtual bool IsForkOf(nsIDOMStorage* aThat);
-  virtual nsTArray<nsString> *GetKeys();
+  virtual nsTArray<nsCString> *GetKeys();
   virtual nsIPrincipal* Principal();
   virtual bool CanAccess(nsIPrincipal *aPrincipal);
   virtual nsDOMStorageType StorageType();
@@ -338,9 +338,9 @@ public:
   bool
   CacheStoragePermissions();
 
-  nsIDOMStorageItem* GetNamedItem(const nsAString& aKey, nsresult* aResult);
+  nsIDOMStorageItem* GetNamedItem(const nsACString& aKey, nsresult* aResult);
 
-  nsresult SetSecure(const nsAString& aKey, bool aSecure)
+  nsresult SetSecure(const nsACString& aKey, bool aSecure)
   {
     return mStorageImpl->SetSecure(aKey, aSecure);
   }
@@ -392,14 +392,14 @@ public:
   virtual already_AddRefed<nsIDOMStorage> Clone();
   virtual already_AddRefed<nsIDOMStorage> Fork(const nsSubstring &aDocumentURI);
   virtual bool IsForkOf(nsIDOMStorage* aThat);
-  virtual nsTArray<nsString> *GetKeys();
+  virtual nsTArray<nsCString> *GetKeys();
   virtual nsIPrincipal* Principal();
   virtual bool CanAccess(nsIPrincipal *aPrincipal);
   virtual nsDOMStorageType StorageType();
 
-  void BroadcastChangeNotification(const nsSubstring &aKey,
-                                   const nsSubstring &aOldValue,
-                                   const nsSubstring &aNewValue);
+  void BroadcastChangeNotification(const nsCSubstring &aKey,
+                                   const nsCSubstring &aOldValue,
+                                   const nsCSubstring &aNewValue);
   void InitAsSessionStorageFork(nsIPrincipal *aPrincipal,
                                 const nsSubstring &aDocumentURI,
                                 nsDOMStorage* aStorage);
@@ -420,8 +420,8 @@ class nsDOMStorageItem : public nsIDOMStorageItem,
 {
 public:
   nsDOMStorageItem(DOMStorageBase* aStorage,
-                   const nsAString& aKey,
-                   const nsAString& aValue,
+                   const nsACString& aKey,
+                   const nsACString& aValue,
                    bool aSecure);
   virtual ~nsDOMStorageItem();
 
@@ -435,6 +435,8 @@ public:
   // nsIDOMToString
   NS_DECL_NSIDOMTOSTRING
 
+  nsresult GetValueNoConvert(nsACString& aValue);
+
   bool IsSecure()
   {
     return mSecure;
@@ -445,12 +447,12 @@ public:
     mSecure = aSecure;
   }
 
-  const nsAString& GetValueInternal()
+  const nsACString& GetValueInternal()
   {
     return mValue;
   }
 
-  const void SetValueInternal(const nsAString& aValue)
+  const void SetValueInternal(const nsACString& aValue)
   {
     mValue = aValue;
   }
@@ -466,10 +468,10 @@ protected:
   bool mSecure;
 
   // key for the item
-  nsString mKey;
+  nsCString mKey;
 
   // value of the item
-  nsString mValue;
+  nsCString mValue;
 
   // If this item came from the db, mStorage points to the storage
   // object where this item came from.

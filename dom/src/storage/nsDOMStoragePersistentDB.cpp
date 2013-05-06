@@ -70,7 +70,7 @@ nsDOMStoragePersistentDB::nsDOMStoragePersistentDB()
 }
 
 nsresult
-nsDOMStoragePersistentDB::Init(const nsString& aDatabaseName)
+nsDOMStoragePersistentDB::Init(const nsAString& aDatabaseName)
 {
   nsresult rv;
 
@@ -353,12 +353,12 @@ nsDOMStoragePersistentDB::GetAllKeys(DOMStorageImpl* aStorage,
 
   bool exists;
   while (NS_SUCCEEDED(rv = stmt->ExecuteStep(&exists)) && exists) {
-    nsAutoString key;
-    rv = stmt->GetString(0, key);
+    nsAutoCString key;
+    rv = stmt->GetUTF8String(0, key);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    nsAutoString value;
-    rv = stmt->GetString(1, value);
+    nsAutoCString value;
+    rv = stmt->GetUTF8String(1, value);
     NS_ENSURE_SUCCESS(rv, rv);
 
     int32_t secureInt = 0;
@@ -380,8 +380,8 @@ nsDOMStoragePersistentDB::GetAllKeys(DOMStorageImpl* aStorage,
 
 nsresult
 nsDOMStoragePersistentDB::GetKeyValue(DOMStorageImpl* aStorage,
-                                      const nsAString& aKey,
-                                      nsAString& aValue,
+                                      const nsACString& aKey,
+                                      nsACString& aValue,
                                       bool* aSecure)
 {
   SAMPLE_LABEL("nsDOMStoragePersistentDB", "GetKeyValue");
@@ -404,8 +404,8 @@ nsDOMStoragePersistentDB::GetKeyValue(DOMStorageImpl* aStorage,
   rv = stmt->BindUTF8StringByName(NS_LITERAL_CSTRING("scope"),
                                   aStorage->GetScopeDBKey());
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = stmt->BindStringByName(NS_LITERAL_CSTRING("key"),
-                              aKey);
+  rv = stmt->BindUTF8StringByName(NS_LITERAL_CSTRING("key"),
+                                  aKey);
   NS_ENSURE_SUCCESS(rv, rv);
 
   bool exists;
@@ -414,7 +414,7 @@ nsDOMStoragePersistentDB::GetKeyValue(DOMStorageImpl* aStorage,
 
   int32_t secureInt = 0;
   if (exists) {
-    rv = stmt->GetString(0, aValue);
+    rv = stmt->GetUTF8String(0, aValue);
     NS_ENSURE_SUCCESS(rv, rv);
 
     rv = stmt->GetInt32(1, &secureInt);
@@ -431,8 +431,8 @@ nsDOMStoragePersistentDB::GetKeyValue(DOMStorageImpl* aStorage,
 
 nsresult
 nsDOMStoragePersistentDB::SetKey(DOMStorageImpl* aStorage,
-                                 const nsAString& aKey,
-                                 const nsAString& aValue,
+                                 const nsACString& aKey,
+                                 const nsACString& aValue,
                                  bool aSecure)
 {
   nsresult rv;
@@ -448,7 +448,7 @@ nsDOMStoragePersistentDB::SetKey(DOMStorageImpl* aStorage,
 
   usage += aKey.Length() + aValue.Length();
 
-  nsAutoString previousValue;
+  nsAutoCString previousValue;
   bool secure;
   rv = aStorage->GetCachedValue(aKey, previousValue, &secure);
   if (NS_SUCCEEDED(rv)) {
@@ -474,11 +474,11 @@ nsDOMStoragePersistentDB::SetKey(DOMStorageImpl* aStorage,
   rv = stmt->BindUTF8StringByName(NS_LITERAL_CSTRING("scope"),
                                   aStorage->GetScopeDBKey());
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = stmt->BindStringByName(NS_LITERAL_CSTRING("key"),
-                              aKey);
+  rv = stmt->BindUTF8StringByName(NS_LITERAL_CSTRING("key"),
+                                  aKey);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = stmt->BindStringByName(NS_LITERAL_CSTRING("value"),
-                              aValue);
+  rv = stmt->BindUTF8StringByName(NS_LITERAL_CSTRING("value"),
+                                  aValue);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = stmt->BindInt32ByName(NS_LITERAL_CSTRING("secure"),
                              aSecure ? 1 : 0);
@@ -499,7 +499,7 @@ nsDOMStoragePersistentDB::SetKey(DOMStorageImpl* aStorage,
 
 nsresult
 nsDOMStoragePersistentDB::SetSecure(DOMStorageImpl* aStorage,
-                                    const nsAString& aKey,
+                                    const nsACString& aKey,
                                     const bool aSecure)
 {
   nsresult rv;
@@ -522,8 +522,8 @@ nsDOMStoragePersistentDB::SetSecure(DOMStorageImpl* aStorage,
   rv = stmt->BindUTF8StringByName(NS_LITERAL_CSTRING("scope"),
                                   aStorage->GetScopeDBKey());
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = stmt->BindStringByName(NS_LITERAL_CSTRING("key"),
-                              aKey);
+  rv = stmt->BindUTF8StringByName(NS_LITERAL_CSTRING("key"),
+                                  aKey);
   NS_ENSURE_SUCCESS(rv, rv);
   rv = stmt->BindInt32ByName(NS_LITERAL_CSTRING("secure"),
                              aSecure ? 1 : 0);
@@ -539,7 +539,7 @@ nsDOMStoragePersistentDB::SetSecure(DOMStorageImpl* aStorage,
 
 nsresult
 nsDOMStoragePersistentDB::RemoveKey(DOMStorageImpl* aStorage,
-                                    const nsAString& aKey)
+                                    const nsACString& aKey)
 {
   nsresult rv;
 
@@ -563,8 +563,8 @@ nsDOMStoragePersistentDB::RemoveKey(DOMStorageImpl* aStorage,
   rv = stmt->BindUTF8StringByName(NS_LITERAL_CSTRING("scope"),
                                   aStorage->GetScopeDBKey());
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = stmt->BindStringByName(NS_LITERAL_CSTRING("key"),
-                              aKey);
+  rv = stmt->BindUTF8StringByName(NS_LITERAL_CSTRING("key"),
+                                  aKey);
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = stmt->Execute();

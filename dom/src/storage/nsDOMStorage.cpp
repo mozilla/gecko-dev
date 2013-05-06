@@ -98,13 +98,33 @@ IsCallerSecure()
   return NS_SUCCEEDED(rv) && isHttps;
 }
 
+static void
+ConvertString(const nsACString& aUTF8String, nsAString& aUTF16String)
+{
+  if (aUTF8String.IsVoid()) {
+    aUTF16String.SetIsVoid(true);
+  } else {
+    CopyUTF8toUTF16(aUTF8String, aUTF16String);
+  }
+}
+
+static void
+ConvertString(const nsAString& aUTF16String, nsACString& aUTF8String)
+{
+  if (aUTF16String.IsVoid()) {
+    aUTF8String.SetIsVoid(true);
+  } else {
+    CopyUTF16toUTF8(aUTF16String, aUTF8String);
+  }
+}
+
 nsSessionStorageEntry::nsSessionStorageEntry(KeyTypePointer aStr)
-  : nsStringHashKey(aStr), mItem(nullptr)
+  : nsCStringHashKey(aStr), mItem(nullptr)
 {
 }
 
 nsSessionStorageEntry::nsSessionStorageEntry(const nsSessionStorageEntry& aToCopy)
-  : nsStringHashKey(aToCopy), mItem(nullptr)
+  : nsCStringHashKey(aToCopy), mItem(nullptr)
 {
   NS_ERROR("We're horked.");
 }
@@ -599,7 +619,7 @@ DOMStorageImpl::CacheStoragePermissions()
 }
 
 nsresult
-DOMStorageImpl::GetCachedValue(const nsAString& aKey, nsAString& aValue,
+DOMStorageImpl::GetCachedValue(const nsACString& aKey, nsACString& aValue,
                                bool* aSecure)
 {
   aValue.Truncate();
@@ -616,7 +636,7 @@ DOMStorageImpl::GetCachedValue(const nsAString& aKey, nsAString& aValue,
 }
 
 nsresult
-DOMStorageImpl::GetDBValue(const nsAString& aKey, nsAString& aValue,
+DOMStorageImpl::GetDBValue(const nsACString& aKey, nsACString& aValue,
                            bool* aSecure)
 {
   aValue.Truncate();
@@ -627,11 +647,11 @@ DOMStorageImpl::GetDBValue(const nsAString& aKey, nsAString& aValue,
   nsresult rv = InitDB();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsAutoString value;
+  nsAutoCString value;
   rv = gStorageDB->GetKeyValue(this, aKey, value, aSecure);
 
   if (rv == NS_ERROR_DOM_NOT_FOUND_ERR) {
-    SetDOMStringToNull(aValue);
+    aValue.SetIsVoid(true);
   }
 
   if (NS_FAILED(rv))
@@ -643,8 +663,8 @@ DOMStorageImpl::GetDBValue(const nsAString& aKey, nsAString& aValue,
 }
 
 nsresult
-DOMStorageImpl::SetDBValue(const nsAString& aKey,
-                           const nsAString& aValue,
+DOMStorageImpl::SetDBValue(const nsACString& aKey,
+                           const nsACString& aValue,
                            bool aSecure)
 {
   if (!UseDB())
@@ -662,7 +682,7 @@ DOMStorageImpl::SetDBValue(const nsAString& aKey,
 }
 
 nsresult
-DOMStorageImpl::SetSecure(const nsAString& aKey, bool aSecure)
+DOMStorageImpl::SetSecure(const nsACString& aKey, bool aSecure)
 {
   if (UseDB()) {
     nsresult rv = InitDB();
@@ -684,7 +704,7 @@ DOMStorageImpl::SetSecure(const nsAString& aKey, bool aSecure)
 static PLDHashOperator
 ClearStorageItem(nsSessionStorageEntry* aEntry, void* userArg)
 {
-  aEntry->mItem->SetValueInternal(EmptyString());
+  aEntry->mItem->SetValueInternal(EmptyCString());
   return PL_DHASH_NEXT;
 }
 
@@ -709,7 +729,7 @@ CopyStorageItems(nsSessionStorageEntry* aEntry, void* userArg)
   
   CopyArgs* args = static_cast<CopyArgs*>(userArg);
 
-  nsAutoString unused;
+  nsAutoCString unused;
   nsresult rv = args->storage->SetValue(args->callerSecure, aEntry->GetKey(),
                                         aEntry->mItem->GetValueInternal(), unused);
   if (NS_FAILED(rv))
@@ -760,7 +780,7 @@ DOMStorageImpl::CacheKeysFromDB()
 struct KeysArrayBuilderStruct
 {
   bool callerIsSecure;
-  nsTArray<nsString> *keys;
+  nsTArray<nsCString> *keys;
 };
 
 static PLDHashOperator
@@ -774,7 +794,7 @@ KeysArrayBuilder(nsSessionStorageEntry* aEntry, void* userArg)
   return PL_DHASH_NEXT;
 }
 
-nsTArray<nsString>*
+nsTArray<nsCString>*
 DOMStorageImpl::GetKeys(bool aCallerSecure)
 {
   if (UseDB())
@@ -782,7 +802,7 @@ DOMStorageImpl::GetKeys(bool aCallerSecure)
 
   KeysArrayBuilderStruct keystruct;
   keystruct.callerIsSecure = aCallerSecure;
-  keystruct.keys = new nsTArray<nsString>();
+  keystruct.keys = new nsTArray<nsCString>();
   if (keystruct.keys)
     mItems.EnumerateEntries(KeysArrayBuilder, &keystruct);
  
@@ -867,7 +887,7 @@ IndexFinder(nsSessionStorageEntry* aEntry, void* userArg)
 }
 
 nsresult
-DOMStorageImpl::GetKey(bool aCallerSecure, uint32_t aIndex, nsAString& aKey)
+DOMStorageImpl::GetKey(bool aCallerSecure, uint32_t aIndex, nsACString& aKey)
 {
   // XXX: This does a linear search for the key at index, which would
   // suck if there's a large numer of indexes. Do we care? If so,
@@ -894,7 +914,7 @@ DOMStorageImpl::GetKey(bool aCallerSecure, uint32_t aIndex, nsAString& aKey)
 // The behaviour of this function must be kept in sync with StorageChild::GetValue.
 // See the explanatory comment there for more details.
 nsIDOMStorageItem*
-DOMStorageImpl::GetValue(bool aCallerSecure, const nsAString& aKey,
+DOMStorageImpl::GetValue(bool aCallerSecure, const nsACString& aKey,
                          nsresult* aResult)
 {
   nsSessionStorageEntry *entry = mItems.GetEntry(aKey);
@@ -906,7 +926,7 @@ DOMStorageImpl::GetValue(bool aCallerSecure, const nsAString& aKey,
   }
   else if (UseDB()) {
     bool secure;
-    nsAutoString value;
+    nsAutoCString value;
     nsresult rv = GetDBValue(aKey, value, &secure);
     // return null if access isn't allowed or the key wasn't found
     if (rv == NS_ERROR_DOM_SECURITY_ERR || rv == NS_ERROR_DOM_NOT_FOUND_ERR ||
@@ -929,12 +949,12 @@ DOMStorageImpl::GetValue(bool aCallerSecure, const nsAString& aKey,
 }
 
 nsresult
-DOMStorageImpl::SetValue(bool aIsCallerSecure, const nsAString& aKey,
-                         const nsAString& aData, nsAString& aOldValue)
+DOMStorageImpl::SetValue(bool aIsCallerSecure, const nsACString& aKey,
+                         const nsACString& aData, nsACString& aOldValue)
 {
   nsresult rv;
-  nsString oldValue;
-  SetDOMStringToNull(oldValue);
+  nsCString oldValue;
+  oldValue.SetIsVoid(true);
 
   // First store the value to the database, we need to do this before we update
   // the mItems cache.  SetDBValue is using the old cached value to decide
@@ -966,10 +986,10 @@ DOMStorageImpl::SetValue(bool aIsCallerSecure, const nsAString& aKey,
 }
 
 nsresult
-DOMStorageImpl::RemoveValue(bool aCallerSecure, const nsAString& aKey,
-                            nsAString& aOldValue)
+DOMStorageImpl::RemoveValue(bool aCallerSecure, const nsACString& aKey,
+                            nsACString& aOldValue)
 {
-  nsString oldValue;
+  nsCString oldValue;
   nsSessionStorageEntry *entry = mItems.GetEntry(aKey);
 
   if (entry && entry->mItem->IsSecure() && !aCallerSecure) {
@@ -983,7 +1003,7 @@ DOMStorageImpl::RemoveValue(bool aCallerSecure, const nsAString& aKey,
     CacheKeysFromDB();
     entry = mItems.GetEntry(aKey);
 
-    nsAutoString value;
+    nsAutoCString value;
     bool secureItem;
     rv = GetDBValue(aKey, value, &secureItem);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -1225,7 +1245,7 @@ nsDOMStorage::GetLength(uint32_t *aLength)
 }
 
 NS_IMETHODIMP
-nsDOMStorage::Key(uint32_t aIndex, nsAString& aKey)
+nsDOMStorage::Key(uint32_t aIndex, nsACString& aKey)
 {
   if (!CacheStoragePermissions())
     return NS_ERROR_DOM_SECURITY_ERR;
@@ -1234,7 +1254,7 @@ nsDOMStorage::Key(uint32_t aIndex, nsAString& aKey)
 }
 
 nsIDOMStorageItem*
-nsDOMStorage::GetNamedItem(const nsAString& aKey, nsresult* aResult)
+nsDOMStorage::GetNamedItem(const nsACString& aKey, nsresult* aResult)
 {
   if (!CacheStoragePermissions()) {
     *aResult = NS_ERROR_DOM_SECURITY_ERR;
@@ -1246,13 +1266,13 @@ nsDOMStorage::GetNamedItem(const nsAString& aKey, nsresult* aResult)
 }
 
 nsresult
-nsDOMStorage::GetItem(const nsAString& aKey, nsAString &aData)
+nsDOMStorage::GetItem(const nsACString& aKey, nsACString &aData)
 {
   nsresult rv;
 
   // IMPORTANT:
   // CacheStoragePermissions() is called inside of
-  // GetItem(nsAString, nsIDOMStorageItem)
+  // GetItem(nsACString, nsIDOMStorageItem)
   // To call it particularly in this method would just duplicate
   // the call. If the code changes, make sure that call to
   // CacheStoragePermissions() is put here!
@@ -1263,11 +1283,12 @@ nsDOMStorage::GetItem(const nsAString& aKey, nsAString &aData)
     return rv;
 
   if (item) {
-    rv = item->GetValue(aData);
+    nsDOMStorageItem* itemConcrete = static_cast<nsDOMStorageItem*>(item.get());
+    rv = itemConcrete->GetValueNoConvert(aData);
     NS_ENSURE_SUCCESS(rv, rv);
   }
   else
-    SetDOMStringToNull(aData);
+    aData.SetIsVoid(true);
 
   return NS_OK;
 }
@@ -1303,7 +1324,7 @@ TelemetryIDForValue(nsPIDOMStorage::nsDOMStorageType type)
 }
 
 NS_IMETHODIMP
-nsDOMStorage::GetItem(const nsAString& aKey, nsIDOMStorageItem **aItem)
+nsDOMStorage::GetItem(const nsACString& aKey, nsIDOMStorageItem **aItem)
 {
   nsresult rv;
 
@@ -1313,7 +1334,7 @@ nsDOMStorage::GetItem(const nsAString& aKey, nsIDOMStorageItem **aItem)
 }
 
 NS_IMETHODIMP
-nsDOMStorage::SetItem(const nsAString& aKey, const nsAString& aData)
+nsDOMStorage::SetItem(const nsACString& aKey, const nsACString& aData)
 {
   if (!CacheStoragePermissions())
     return NS_ERROR_DOM_SECURITY_ERR;
@@ -1321,7 +1342,7 @@ nsDOMStorage::SetItem(const nsAString& aKey, const nsAString& aData)
   Telemetry::Accumulate(TelemetryIDForKey(mStorageType), aKey.Length());
   Telemetry::Accumulate(TelemetryIDForValue(mStorageType), aData.Length());
 
-  nsString oldValue;
+  nsCString oldValue;
   nsresult rv = mStorageImpl->SetValue(IsCallerSecure(), aKey, aData, oldValue);
   if (NS_FAILED(rv))
     return rv;
@@ -1332,12 +1353,12 @@ nsDOMStorage::SetItem(const nsAString& aKey, const nsAString& aData)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsDOMStorage::RemoveItem(const nsAString& aKey)
+NS_IMETHODIMP nsDOMStorage::RemoveItem(const nsACString& aKey)
 {
   if (!CacheStoragePermissions())
     return NS_ERROR_DOM_SECURITY_ERR;
 
-  nsString oldValue;
+  nsCString oldValue;
   nsresult rv = mStorageImpl->RemoveValue(IsCallerSecure(), aKey, oldValue);
   if (rv == NS_ERROR_DOM_NOT_FOUND_ERR)
     return NS_OK;
@@ -1345,8 +1366,8 @@ NS_IMETHODIMP nsDOMStorage::RemoveItem(const nsAString& aKey)
     return rv;
 
   if (!oldValue.IsEmpty() && mEventBroadcaster) {
-    nsAutoString nullString;
-    SetDOMStringToNull(nullString);
+    nsAutoCString nullString;
+    nullString.SetIsVoid(true);
     mEventBroadcaster->BroadcastChangeNotification(aKey, oldValue, nullString);
   }
 
@@ -1365,8 +1386,8 @@ nsDOMStorage::Clear()
     return rv;
   
   if (oldCount && mEventBroadcaster) {
-    nsAutoString nullString;
-    SetDOMStringToNull(nullString);
+    nsAutoCString nullString;
+    nullString.SetIsVoid(true);
     mEventBroadcaster->BroadcastChangeNotification(nullString, nullString, nullString);
   }
 
@@ -1399,7 +1420,7 @@ nsDOMStorage::CloneFrom(nsDOMStorage* aThat)
   return mStorageImpl->CloneFrom(IsCallerSecure(), aThat->mStorageImpl);
 }
 
-nsTArray<nsString> *
+nsTArray<nsCString> *
 nsDOMStorage::GetKeys()
 {
   return mStorageImpl->GetKeys(IsCallerSecure());
@@ -1569,7 +1590,7 @@ nsDOMStorage2::InitAsSessionStorageFork(nsIPrincipal *aPrincipal, const nsSubstr
   mStorage = aStorage;
 }
 
-nsTArray<nsString> *
+nsTArray<nsCString> *
 nsDOMStorage2::GetKeys()
 {
   return mStorage->GetKeys();
@@ -1625,20 +1646,30 @@ StorageNotifierRunnable::Run()
 } // anonymous namespace
 
 void
-nsDOMStorage2::BroadcastChangeNotification(const nsSubstring &aKey,
-                                           const nsSubstring &aOldValue,
-                                           const nsSubstring &aNewValue)
+nsDOMStorage2::BroadcastChangeNotification(const nsCSubstring &aKey,
+                                           const nsCSubstring &aOldValue,
+                                           const nsCSubstring &aNewValue)
 {
   nsresult rv;
+
+  nsString key;
+  ConvertString(aKey, key);
+
+  nsString oldValue;
+  ConvertString(aOldValue, oldValue);
+
+  nsString newValue;
+  ConvertString(aNewValue, newValue);
+
   nsCOMPtr<nsIDOMEvent> domEvent;
   NS_NewDOMStorageEvent(getter_AddRefs(domEvent), nullptr, nullptr);
   nsCOMPtr<nsIDOMStorageEvent> event = do_QueryInterface(domEvent);
   rv = event->InitStorageEvent(NS_LITERAL_STRING("storage"),
                                false,
                                false,
-                               aKey,
-                               aOldValue,
-                               aNewValue,
+                               key,
+                               oldValue,
+                               newValue,
                                mDocumentURI,
                                static_cast<nsIDOMStorage*>(this));
   if (NS_FAILED(rv)) {
@@ -1658,27 +1689,48 @@ nsDOMStorage2::GetLength(uint32_t *aLength)
 NS_IMETHODIMP
 nsDOMStorage2::Key(uint32_t aIndex, nsAString& aKey)
 {
-  return mStorage->Key(aIndex, aKey);
+  nsCString key;
+  nsresult rv = mStorage->Key(aIndex, key);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  ConvertString(key, aKey);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDOMStorage2::GetItem(const nsAString& aKey, nsAString &aData)
 {
-  return mStorage->GetItem(aKey, aData);
+  nsCString data;
+  nsresult rv = mStorage->GetItem(NS_ConvertUTF16toUTF8(aKey), data);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  ConvertString(data, aData);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDOMStorage2::SetItem(const nsAString& aKey, const nsAString& aData)
 {
   mStorage->mEventBroadcaster = this;
-  return mStorage->SetItem(aKey, aData);
+
+  nsAutoCString key;
+  ConvertString(aKey, key);
+
+  nsAutoCString data;
+  ConvertString(aData, data);
+
+  return mStorage->SetItem(key, data);
 }
 
 NS_IMETHODIMP
 nsDOMStorage2::RemoveItem(const nsAString& aKey)
 {
   mStorage->mEventBroadcaster = this;
-  return mStorage->RemoveItem(aKey);
+
+  nsAutoCString key;
+  ConvertString(aKey, key);
+
+  return mStorage->RemoveItem(key);
 }
 
 NS_IMETHODIMP
@@ -1717,8 +1769,8 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsDOMStorageItem)
 NS_INTERFACE_MAP_END
 
 nsDOMStorageItem::nsDOMStorageItem(DOMStorageBase* aStorage,
-                                   const nsAString& aKey,
-                                   const nsAString& aValue,
+                                   const nsACString& aKey,
+                                   const nsACString& aValue,
                                    bool aSecure)
   : mSecure(aSecure),
     mKey(aKey),
@@ -1731,6 +1783,31 @@ nsDOMStorageItem::~nsDOMStorageItem()
 {
 }
 
+nsresult
+nsDOMStorageItem::GetValueNoConvert(nsACString& aValue)
+{
+  if (!mStorage->CacheStoragePermissions())
+    return NS_ERROR_DOM_INVALID_ACCESS_ERR;
+
+  if (mStorage->UseDB()) {
+    bool secure;
+    nsresult rv = mStorage->GetDBValue(mKey, aValue, &secure);
+    if (rv == NS_ERROR_DOM_NOT_FOUND_ERR)
+      return NS_OK;
+    if (NS_SUCCEEDED(rv) && !IsCallerSecure() && secure)
+      return NS_ERROR_DOM_SECURITY_ERR;
+    return rv;
+  }
+
+  if (IsSecure() && !IsCallerSecure()) {
+    return NS_ERROR_DOM_SECURITY_ERR;
+  }
+
+  aValue = mValue;
+  return NS_OK;
+}
+
+
 NS_IMETHODIMP
 nsDOMStorageItem::GetSecure(bool* aSecure)
 {
@@ -1739,7 +1816,7 @@ nsDOMStorageItem::GetSecure(bool* aSecure)
   }
 
   if (mStorage->UseDB()) {
-    nsAutoString value;
+    nsAutoCString value;
     return mStorage->GetDBValue(mKey, value, aSecure);
   }
 
@@ -1766,24 +1843,12 @@ nsDOMStorageItem::SetSecure(bool aSecure)
 NS_IMETHODIMP
 nsDOMStorageItem::GetValue(nsAString& aValue)
 {
-  if (!mStorage->CacheStoragePermissions())
-    return NS_ERROR_DOM_INVALID_ACCESS_ERR;
-
-  if (mStorage->UseDB()) {
-    bool secure;
-    nsresult rv = mStorage->GetDBValue(mKey, aValue, &secure);
-    if (rv == NS_ERROR_DOM_NOT_FOUND_ERR)
-      return NS_OK;
-    if (NS_SUCCEEDED(rv) && !IsCallerSecure() && secure)
-      return NS_ERROR_DOM_SECURITY_ERR;
+  nsCString value;
+  nsresult rv = GetValueNoConvert(value);
+  if (NS_FAILED(rv)) {
     return rv;
   }
-
-  if (IsSecure() && !IsCallerSecure()) {
-    return NS_ERROR_DOM_SECURITY_ERR;
-  }
-
-  aValue = mValue;
+  ConvertString(value, aValue);
   return NS_OK;
 }
 
@@ -1795,9 +1860,12 @@ nsDOMStorageItem::SetValue(const nsAString& aValue)
 
   bool secureCaller = IsCallerSecure();
 
+  nsAutoCString value;
+  ConvertString(aValue, value);
+
   if (mStorage->UseDB()) {
     // SetDBValue() does the security checks for us.
-    return mStorage->SetDBValue(mKey, aValue, secureCaller);
+    return mStorage->SetDBValue(mKey, value, secureCaller);
   }
 
   bool secureItem = IsSecure();
@@ -1807,7 +1875,7 @@ nsDOMStorageItem::SetValue(const nsAString& aValue)
     return NS_ERROR_DOM_SECURITY_ERR;
   }
 
-  mValue = aValue;
+  mValue = value;
   mSecure = secureCaller;
   return NS_OK;
 }

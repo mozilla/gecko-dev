@@ -31,24 +31,25 @@ public:
 
   virtual bool CacheStoragePermissions();
   
-  virtual nsTArray<nsString>* GetKeys(bool aCallerSecure);
+  virtual nsTArray<nsCString>* GetKeys(bool aCallerSecure);
   virtual nsresult GetLength(bool aCallerSecure, uint32_t* aLength);
-  virtual nsresult GetKey(bool aCallerSecure, uint32_t aIndex, nsAString& aKey);
-  virtual nsIDOMStorageItem* GetValue(bool aCallerSecure, const nsAString& aKey,
-                                      nsresult* rv);
-  virtual nsresult SetValue(bool aCallerSecure, const nsAString& aKey,
-                            const nsAString& aData, nsAString& aOldValue);
-  virtual nsresult RemoveValue(bool aCallerSecure, const nsAString& aKey,
-                               nsAString& aOldValue);
+  virtual nsresult GetKey(bool aCallerSecure, uint32_t aIndex, 
+                          nsACString& aKey);
+  virtual nsIDOMStorageItem* GetValue(bool aCallerSecure,
+                                      const nsACString& aKey, nsresult* rv);
+  virtual nsresult SetValue(bool aCallerSecure, const nsACString& aKey,
+                            const nsACString& aData, nsACString& aOldValue);
+  virtual nsresult RemoveValue(bool aCallerSecure, const nsACString& aKey,
+                               nsACString& aOldValue);
   virtual nsresult Clear(bool aCallerSecure, int32_t* aOldCount);
 
-  virtual nsresult GetDBValue(const nsAString& aKey,
-                              nsAString& aValue,
+  virtual nsresult GetDBValue(const nsACString& aKey,
+                              nsACString& aValue,
                               bool* aSecure);
-  virtual nsresult SetDBValue(const nsAString& aKey,
-                              const nsAString& aValue,
+  virtual nsresult SetDBValue(const nsACString& aKey,
+                              const nsACString& aValue,
                               bool aSecure);
-  virtual nsresult SetSecure(const nsAString& aKey, bool aSecure);
+  virtual nsresult SetSecure(const nsACString& aKey, bool aSecure);
 
   virtual nsresult CloneFrom(bool aCallerSecure, DOMStorageBase* aThat);
 
