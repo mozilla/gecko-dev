@@ -531,6 +531,7 @@ pref("ui.click_hold_context_menus.delay", 750);
 
 // Enable device storage
 pref("device.storage.enabled", true);
+pref("dom.storage.default_quota", 2048);
 
 pref("media.plugins.enabled", false);
 pref("media.omx.enabled", true);
