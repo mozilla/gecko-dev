@@ -61,6 +61,9 @@ _newJSDScript(JSDContext*  jsdc,
               JSContext    *cx,
               JSScript     *script)
 {
+    if ( JS_GetScriptIsSelfHosted(script) )
+        return NULL;
+
     JSDScript*  jsdscript;
     unsigned     lineno;
     const char* raw_filename;
