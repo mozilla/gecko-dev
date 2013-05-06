@@ -674,3 +674,6 @@ pref("b2g.version", @MOZ_B2G_VERSION@);
 
 // Disable console buffering to save memory.
 pref("consoleservice.buffered", false);
+
+// The url of the manifest we use for ADU pings.
+pref("ping.manifestURL", "https://marketplace.firefox.com/packaged.webapp");
