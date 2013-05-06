@@ -24,56 +24,20 @@ const SAVED_GETALL_STORE_NAME = "getallcache";
 const CHUNK_SIZE = 20;
 const CHUNK_INTERVAL = 500;
 
-// This gives us >=2^30 unique timer IDs, enough for 1 per ms for 12.4 days.
-let gNextTimeoutId = 0;
-
-let gTimeoutTable = new Map(); // int -> nsITimer
-
-function setTimeout(aCallback, aMilliseconds) {
-  let id = gNextTimeoutId++;
-  let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-  timer.initWithCallback({
-    notify: function notify_callback() {
-        clearTimeout(id);
-        aCallback();
-      }
-    },
-    aMilliseconds,
-    timer.TYPE_ONE_SHOT);
-  gTimeoutTable.set(id, timer);
-  return id;
-}
-
-function clearTimeout(aId) {
-  let timer = gTimeoutTable.get(aId);
-  if (timer) {
-    timer.cancel();
-    gTimeoutTable.delete(aId);
-  }
-}
-
 function ContactDispatcher(aContacts, aFullContacts, aCallback, aNewTxn, aClearDispatcher) {
   let nextIndex = 0;
-  let interval;
-
-  function cancelTimeout() {
-    if (interval) {
-      clearTimeout(interval);
-      interval = null;
-    }
-  }
 
   let sendChunk;
   let count = 0;
   if (aFullContacts) {
     sendChunk = function() {
       try {
-        if (aContacts.length > 0) {
-          aCallback(aContacts.splice(0, CHUNK_SIZE));
-          interval = setTimeout(sendChunk, CHUNK_INTERVAL);
-        } else {
+        let chunk = aContacts.splice(0, CHUNK_SIZE);
+        if (chunk.length > 0) {
+          aCallback(chunk);
+        }
+        if (aContacts.length === 0) {
           aCallback(null);
-          cancelTimeout();
           aClearDispatcher();
         }
       } catch (e) {
@@ -84,22 +48,21 @@ function ContactDispatcher(aContacts, aFullContacts, aCallback, aNewTxn, aClearD
     this.count = 0;
     sendChunk = function() {
       try {
+        let start = nextIndex;
+        nextIndex += CHUNK_SIZE;
         let chunk = [];
         aNewTxn("readonly", STORE_NAME, function(txn, store) {
-          for (let i = nextIndex; i < Math.min(nextIndex+CHUNK_SIZE, aContacts.length); ++i) {
+          for (let i = start; i < Math.min(start+CHUNK_SIZE, aContacts.length); ++i) {
             store.get(aContacts[i]).onsuccess = function(e) {
               chunk.push(e.target.result);
               count++;
               if (count === aContacts.length) {
-                aCallback(chunk)
+                aCallback(chunk);
                 aCallback(null);
-                cancelTimeout();
                 aClearDispatcher();
               } else if (chunk.length === CHUNK_SIZE) {
                 aCallback(chunk);
                 chunk.length = 0;
-                nextIndex += CHUNK_SIZE;
-                interval = setTimeout(sendChunk, CHUNK_INTERVAL);
               }
             }
           }
@@ -110,12 +73,9 @@ function ContactDispatcher(aContacts, aFullContacts, aCallback, aNewTxn, aClearD
     }
   }
 
-  sendChunk(0);
-
   return {
     sendNow: function() {
-      cancelTimeout();
-      interval = setTimeout(sendChunk, 0);
+      sendChunk();
     }
   };
 }
@@ -691,6 +651,7 @@ ContactDB.prototype = {
         let clearDispatcherFn = this._clearDispatcher.bind(this, aCursorId);
         this._dispatcher[aCursorId] = new ContactDispatcher(aCachedResults, aFullContacts,
                                                             aSuccessCb, newTxnFn, clearDispatcherFn);
+        this._dispatcher[aCursorId].sendNow();
       } else { // no contacts
         if (DEBUG) debug("query returned no contacts");
         aSuccessCb(null);
