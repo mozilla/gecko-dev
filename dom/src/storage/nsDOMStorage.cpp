@@ -1347,8 +1347,10 @@ nsDOMStorage::SetItem(const nsACString& aKey, const nsACString& aData)
   if (NS_FAILED(rv))
     return rv;
 
-  if (oldValue != aData && mEventBroadcaster)
-    mEventBroadcaster->BroadcastChangeNotification(aKey, oldValue, aData);
+  if (oldValue != aData && mEventBroadcaster
+      && (aData.Length() + oldValue.Length() < MAX_VALUE_BROADCAST_SIZE)) {
+   mEventBroadcaster->BroadcastChangeNotification(aKey, oldValue, aData);
+  }
 
   return NS_OK;
 }
