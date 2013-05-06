@@ -107,6 +107,8 @@ StorageParent::RecvSetValue(const bool& aCallerSecure, const bool& aSessionOnly,
 {
   mStorage->SetSessionOnly(aSessionOnly);
   *rv = mStorage->SetValue(aCallerSecure, aKey, aData, *aOldValue);
+  if (aOldValue->Length() > MAX_VALUE_BROADCAST_SIZE)
+    aOldValue->SetIsVoid(true);
   return true;
 }
 
@@ -117,6 +119,8 @@ StorageParent::RecvRemoveValue(const bool& aCallerSecure, const bool& aSessionOn
 {
   mStorage->SetSessionOnly(aSessionOnly);
   *rv = mStorage->RemoveValue(aCallerSecure, aKey, *aOldValue);
+  if (aOldValue->Length() > MAX_VALUE_BROADCAST_SIZE)
+    aOldValue->SetIsVoid(true);
   return true;
 }
 

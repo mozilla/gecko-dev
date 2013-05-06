@@ -44,6 +44,9 @@ using mozilla::dom::StorageParent;
 
 class DOMStorageImpl;
 
+// Only broadcast value changes below 500K.
+static const uint32_t MAX_VALUE_BROADCAST_SIZE = 512 * 1024;
+
 class nsDOMStorageEntry : public nsPtrHashKey<const void>
 {
 public:
