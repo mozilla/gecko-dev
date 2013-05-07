@@ -815,6 +815,8 @@ BluetoothHfpManager::ReceiveSocketData(BluetoothSocket* aSocket,
     // Currently, we don't support memory dialing in Dialer app
     SendLine("ERROR");
     return;
+  } else if (msg.Find("AT+CLCC") != -1) {
+    SendCommand("+CLCC: ");
   } else if (msg.Find("ATD") != -1) {
     nsAutoCString message(msg), newMsg;
     int end = message.FindChar(';');
