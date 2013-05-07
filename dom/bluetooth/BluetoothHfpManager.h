@@ -103,6 +103,7 @@ private:
   void UpdateCIND(uint8_t aType, uint8_t aValue, bool aSend);
 
   int mCurrentVgs;
+  int mCurrentVgm;
   uint32_t mCurrentCallIndex;
   bool mCCWA;
   bool mCLIP;
