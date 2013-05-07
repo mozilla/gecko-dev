@@ -21,5 +21,5 @@ protected:
   // OMXCodec will crash.
   // So we need few enough buffers in the queue that all buffers will be
   // returned before OMXCodec begins shutdown.
-  uint32_t GetAmpleVideoFrames() { return 1; }
+  uint32_t GetAmpleVideoFrames() { return 3; }
 };
