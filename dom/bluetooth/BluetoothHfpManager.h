@@ -104,6 +104,7 @@ private:
 
   int mCurrentVgs;
   uint32_t mCurrentCallIndex;
+  bool mCCWA;
   bool mCLIP;
   bool mCMEE;
   bool mCMER;
