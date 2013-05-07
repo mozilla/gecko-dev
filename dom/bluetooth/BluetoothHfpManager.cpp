@@ -207,13 +207,13 @@ public:
   }
 };
 
-class GetVolumeTask : public nsISettingsServiceCallback
+class BluetoothHfpManager::GetVolumeTask : public nsISettingsServiceCallback
 {
 public:
   NS_DECL_ISUPPORTS
 
   NS_IMETHOD
-  Handle(const nsAString& aName, const jsval& aResult)
+  Handle(const nsAString& aName, const JS::Value& aResult)
   {
     MOZ_ASSERT(NS_IsMainThread());
 
@@ -226,7 +226,7 @@ public:
     }
 
     BluetoothHfpManager* hfp = BluetoothHfpManager::Get();
-    hfp->SetVolume(aResult.toNumber());
+    hfp->mCurrentVgs = aResult.toNumber();
 
     return NS_OK;
   }
@@ -239,7 +239,8 @@ public:
   }
 };
 
-NS_IMPL_ISUPPORTS1(GetVolumeTask, nsISettingsServiceCallback);
+NS_IMPL_ISUPPORTS1(BluetoothHfpManager::GetVolumeTask,
+                   nsISettingsServiceCallback);
 
 NS_IMETHODIMP
 BluetoothHfpManagerObserver::Observe(nsISupports* aSubject,
@@ -264,7 +265,7 @@ BluetoothHfpManagerObserver::Observe(nsISupports* aSubject,
 
 NS_IMPL_ISUPPORTS1(BluetoothHfpManagerObserver, nsIObserver)
 
-class SendRingIndicatorTask : public Task
+class BluetoothHfpManager::SendRingIndicatorTask : public Task
 {
 public:
   SendRingIndicatorTask(const nsAString& aNumber, int aType)
@@ -448,12 +449,6 @@ BluetoothHfpManager::Get()
 
   gBluetoothHfpManager = manager;
   return gBluetoothHfpManager;
-}
-
-void
-BluetoothHfpManager::SetVolume(const int aVolume)
-{
-  mCurrentVgs = aVolume;
 }
 
 void

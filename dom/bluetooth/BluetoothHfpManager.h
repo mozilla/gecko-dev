@@ -67,11 +67,7 @@ public:
                const bool aIsHandsfree,
                BluetoothReplyRunnable* aRunnable);
   void Disconnect();
-  bool SendLine(const char* aMessage);
-  bool SendCommand(const char* aCommand, uint8_t aValue = 0);
-  void UpdateCIND(uint8_t aType, uint8_t aValue, bool aSend);
   bool Listen();
-  void SetVolume(int aVolume);
 
   /**
    * @param aSend A boolean indicates whether we need to notify headset or not
@@ -81,7 +77,13 @@ public:
   bool IsConnected();
 
 private:
+  class GetVolumeTask;
+  class SendRingIndicatorTask;
+
+  friend class GetVolumeTask;
+  friend class SendRingIndicatorTask;
   friend class BluetoothHfpManagerObserver;
+
   BluetoothHfpManager();
   nsresult HandleIccInfoChanged();
   nsresult HandleShutdown();
@@ -95,6 +97,10 @@ private:
 
   void NotifyDialer(const nsAString& aCommand);
   void NotifySettings();
+
+  bool SendCommand(const char* aCommand, uint8_t aValue = 0);
+  bool SendLine(const char* aMessage);
+  void UpdateCIND(uint8_t aType, uint8_t aValue, bool aSend);
 
   int mCurrentVgs;
   uint32_t mCurrentCallIndex;
