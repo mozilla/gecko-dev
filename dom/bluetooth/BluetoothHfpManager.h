@@ -68,14 +68,15 @@ public:
   void Disconnect();
   bool SendLine(const char* aMessage);
   bool SendCommand(const char* aCommand, const int aValue);
-  void CallStateChanged(int aCallIndex, int aCallState,
-                        const char* aNumber, bool aIsActive);
-  void EnumerateCallState(int aCallIndex, int aCallState,
-                          const char* aNumber, bool aIsActive);
-  void SetupCIND(int aCallIndex, int aCallState,
-                 const char* aPhoneNumber, bool aInitial);
+  void UpdateCIND(uint8_t aType, uint8_t aValue, bool aSend);
   bool Listen();
   void SetVolume(int aVolume);
+
+  /**
+   * @param aSend A boolean indicates whether we need to notify headset or not
+   */
+  void HandleCallStateChanged(uint32_t aCallIndex, uint16_t aCallState,
+                              const nsAString& aNumber, bool aSend);
   bool IsConnected();
 
 private:
@@ -88,6 +89,9 @@ private:
 
   bool Init();
   void Cleanup();
+  void Reset();
+  void ResetCallArray();
+
   void NotifyDialer(const nsAString& aCommand);
   void NotifySettings();
 
