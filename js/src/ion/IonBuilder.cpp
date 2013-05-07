@@ -3095,7 +3095,8 @@ IonBuilder::addTypeBarrier(uint32_t i, CallInfo &callinfo, types::StackTypeSet *
                     ins = toDouble;
                 }
                 JS_ASSERT(ins->type() == MIRType_Double ||
-                          ins->type() == MIRType_Value);
+                          ins->type() == MIRType_Value ||
+                          ins->type() == MIRType_Int32);
                 // Bail if the double does not fit in an int.
                 MInstruction *toInt = MToInt32::New(ins);
                 current->add(toInt);
