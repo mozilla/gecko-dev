@@ -1289,10 +1289,6 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
       }
 
       if (aCallIndex == mCurrentCallIndex) {
-        NS_ASSERTION(mCurrentCallArray.Length() > aCallIndex,
-          "Call index out of bounds!");
-        mCurrentCallArray[aCallIndex] = aCallState;
-
         // Find the first non-disconnected call (like connected, held),
         // and update mCurrentCallIndex
         while (index < callArrayLength) {
@@ -1317,8 +1313,6 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
       sCINDItems[CINDType::CALLSETUP].value = CallSetupState::NO_CALLSETUP;
       sCINDItems[CINDType::CALLHELD].value = CallHeldState::NO_CALLHELD;
   }
-
-  mCurrentCallArray[aCallIndex] = aCallState;
 }
 
 void
