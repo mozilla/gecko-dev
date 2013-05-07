@@ -3763,6 +3763,7 @@ var engineMetadataService = {
               }
               this._store = JSON.parse(new TextDecoder().decode(contents));
               this._initState = engineMetadataService._InitStates.FINISHED_SUCCESS;
+              return;
             } catch (ex) {
               if (this._initState == engineMetadataService._InitStates.FINISHED_SUCCESS) {
                 // No need to pursue asynchronous initialization,
