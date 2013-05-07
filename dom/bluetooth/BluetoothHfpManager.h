@@ -18,6 +18,7 @@ BEGIN_BLUETOOTH_NAMESPACE
 class BluetoothHfpManagerObserver;
 class BluetoothReplyRunnable;
 class BluetoothSocket;
+class Call;
 
 /**
  * These costants are defined in 4.33.2 "AT Capabilities Re-Used from GSM 07.07
@@ -53,8 +54,8 @@ class BluetoothHfpManager : public BluetoothSocketObserver
 {
 public:
   static BluetoothHfpManager* Get();
-
   ~BluetoothHfpManager();
+
   virtual void ReceiveSocketData(
     BluetoothSocket* aSocket,
     nsAutoPtr<mozilla::ipc::UnixSocketRawData>& aMessage) MOZ_OVERRIDE;
@@ -67,7 +68,7 @@ public:
                BluetoothReplyRunnable* aRunnable);
   void Disconnect();
   bool SendLine(const char* aMessage);
-  bool SendCommand(const char* aCommand, const int aValue);
+  bool SendCommand(const char* aCommand, uint8_t aValue = 0);
   void UpdateCIND(uint8_t aType, uint8_t aValue, bool aSend);
   bool Listen();
   void SetVolume(int aVolume);
@@ -96,7 +97,7 @@ private:
   void NotifySettings();
 
   int mCurrentVgs;
-  int mCurrentCallIndex;
+  uint32_t mCurrentCallIndex;
   bool mCLIP;
   bool mCMEE;
   bool mCMER;
@@ -106,7 +107,8 @@ private:
   nsString mDevicePath;
   nsString mMsisdn;
   nsString mOperatorName;
-  nsTArray<int> mCurrentCallStateArray;
+
+  nsTArray<Call> mCurrentCallArray;
   nsAutoPtr<BluetoothRilListener> mListener;
   nsRefPtr<BluetoothReplyRunnable> mRunnable;
 
