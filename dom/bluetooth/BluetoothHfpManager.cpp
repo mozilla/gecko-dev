@@ -631,6 +631,21 @@ BluetoothHfpManager::ReceiveSocketData(BluetoothSocket* aSocket,
      * SLC establishment is done when AT+CMER has been received.
      * Do nothing but respond with "OK".
      */
+    ParseAtCommand(msg, 8, atCommandValues);
+
+    if (atCommandValues.Length() < 4) {
+      NS_WARNING("Could't get the value of command [AT+CMER=]");
+      goto respond_with_ok;
+    }
+
+    if (!atCommandValues[0].EqualsLiteral("3") ||
+        !atCommandValues[1].EqualsLiteral("0") ||
+        !atCommandValues[2].EqualsLiteral("0")) {
+      NS_WARNING("Wrong value of CMER");
+      goto respond_with_ok;
+    }
+
+    mCMER = atCommandValues[3].EqualsLiteral("1");
   } else if (msg.Find("AT+CHLD=?") != -1) {
     SendLine("+CHLD: (1,2)");
   } else if (msg.Find("AT+CHLD=") != -1) {
@@ -932,6 +947,11 @@ BluetoothHfpManager::SendCommand(const char* aCommand, int aValue)
   message += aCommand;
 
   if (!strcmp(aCommand, "+CIEV: ")) {
+    if (!mCMER) {
+      // Indicator status update is disabled
+      return true;
+    }
+
     if ((aValue < 1) || (aValue > ArrayLength(sCINDItems) - 1)) {
       NS_WARNING("unexpected CINDType for CIEV command");
       return false;
@@ -1253,6 +1273,7 @@ BluetoothHfpManager::OnDisconnect(BluetoothSocket* aSocket)
   sCINDItems[CINDType::CALLSETUP].value = CallSetupState::NO_CALLSETUP;
   sCINDItems[CINDType::CALLHELD].value = CallHeldState::NO_CALLHELD;
   mCLIP = false;
+  mCMER = false;
 
   Listen();
   NotifySettings();
