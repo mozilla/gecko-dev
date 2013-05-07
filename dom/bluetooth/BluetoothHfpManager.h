@@ -97,9 +97,11 @@ private:
   bool mCMEE;
   bool mCMER;
   bool mFirstCKPD;
+  int mNetworkSelectionMode;
   bool mReceiveVgsFlag;
   nsString mDevicePath;
   nsString mMsisdn;
+  nsString mOperatorName;
   nsTArray<int> mCurrentCallStateArray;
   nsAutoPtr<BluetoothRilListener> mListener;
   nsRefPtr<BluetoothReplyRunnable> mRunnable;
