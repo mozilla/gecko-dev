@@ -129,6 +129,8 @@ public:
   // Call nsDOMStorage::CanUseStorage with |this|
   bool CanUseStorage();
 
+  virtual void MarkOwnerDead() {}
+
   // If true, the contents of the storage should be stored in the
   // database, otherwise this storage should act like a session
   // storage.
@@ -317,6 +319,8 @@ public:
   // Helpers for implementing nsIDOMStorage
   nsresult GetItem(const nsACString& key, nsACString& aData);
   nsresult Clear();
+
+  void MarkOwnerDead();
 
   // nsPIDOMStorage
   virtual nsresult InitAsSessionStorage(nsIPrincipal *aPrincipal, const nsSubstring &aDocumentURI,
