@@ -13,7 +13,7 @@ interface nsISmsRequest;
 interface nsIDOMMozSmsSegmentInfo;
 interface nsIDOMMozCellBroadcastMessage;
 
-[scriptable, uuid(0faabc35-644d-4ed5-b109-425280ff1cdf)]
+[scriptable, uuid(f7d645b0-dc8f-497a-aad2-d469addddca8)]
 interface nsIRILTelephonyCallback : nsISupports
 {
   /**
@@ -27,11 +27,14 @@ interface nsIRILTelephonyCallback : nsISupports
    *        Number of the other party.
    * @param isActive
    *        Indicates whether this call is the currently active one.
+   * @param isOutgoing
+   *        Indicates whether this call is outgoing or incoming.
    */
   void callStateChanged(in unsigned long callIndex,
                         in unsigned short callState,
                         in AString number,
-                        in boolean isActive);
+                        in boolean isActive,
+                        in boolean isOutgoing);
 
   /**
    * Called when nsIRILContentHelper is asked to enumerate the current
@@ -46,13 +49,16 @@ interface nsIRILTelephonyCallback : nsISupports
    *        Number of the other party.
    * @param isActive
    *        Indicates whether this call is the active one.
+   * @param isOutgoing
+   *        Indicates whether this call is outgoing or incoming.
    *
    * @return true to continue enumeration or false to cancel.
    */
   boolean enumerateCallState(in unsigned long callIndex,
                              in unsigned short callState,
                              in AString number,
-                             in boolean isActive);
+                             in boolean isActive,
+                             in boolean isOutgoing);
 
   /**
    * Called when RIL error occurs.
