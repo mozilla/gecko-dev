@@ -1350,9 +1350,7 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
       break;
     default:
       NS_WARNING("Not handling state changed");
-      sCINDItems[CINDType::CALL].value = CallState::NO_CALL;
-      sCINDItems[CINDType::CALLSETUP].value = CallSetupState::NO_CALLSETUP;
-      sCINDItems[CINDType::CALLHELD].value = CallHeldState::NO_CALLHELD;
+      break;
   }
 }
 
