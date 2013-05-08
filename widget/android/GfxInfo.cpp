@@ -469,12 +469,6 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
       else if (CompareVersions(mOSVersion.get(), "4.2.0") < 0)
       {
         bool isBlocklisted =
-          cModel.Find("GT-P3100", true) ||
-          cModel.Find("GT-P3110", true) ||
-          cModel.Find("GT-P3113", true) ||
-          cModel.Find("GT-P5100", true) ||
-          cModel.Find("GT-P5110", true) ||
-          cModel.Find("GT-P5113", true) ||
           cManufacturer.Equals("Sony", nsCaseInsensitiveCStringComparator());
 
         if (isBlocklisted) {
