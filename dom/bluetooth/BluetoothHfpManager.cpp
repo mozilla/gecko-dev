@@ -1191,8 +1191,8 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
                                             const nsAString& aNumber,
                                             bool aSend)
 {
-  if (mSocket->GetConnectionStatus() !=
-      SocketConnectionStatus::SOCKET_CONNECTED) {
+  if (!IsConnected()) {
+    // Normal case. No need to print out warnings.
     return;
   }
 
