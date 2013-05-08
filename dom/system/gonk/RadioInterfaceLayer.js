@@ -1298,7 +1298,7 @@ RadioInterfaceLayer.prototype = {
     let data = {
       number: call.number,
       duration: duration,
-      direction: call.direction
+      direction: call.isOutgoing ? "outgoing" : "incoming"
     };
     gSystemMessenger.broadcastMessage("telephony-call-ended", data);
     this.updateCallAudioState(call);
