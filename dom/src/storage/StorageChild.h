@@ -56,6 +56,8 @@ public:
   void AddIPDLReference();
   void ReleaseIPDLReference();
 
+  virtual void MarkOwnerDead();
+
 private:
   void InitRemote();
 

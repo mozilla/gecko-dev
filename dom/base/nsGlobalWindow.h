@@ -924,6 +924,8 @@ protected:
   static void NotifyDOMWindowFrozen(nsGlobalWindow* aWindow);
   static void NotifyDOMWindowThawed(nsGlobalWindow* aWindow);
 
+  void NeuterStorageInstances();
+
   void ClearStatus();
 
   virtual void UpdateParentTarget();

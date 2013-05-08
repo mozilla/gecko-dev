@@ -895,6 +895,8 @@ nsGlobalWindow::~nsGlobalWindow()
     }
   }
 
+  NeuterStorageInstances();
+
   mDocument = nullptr;           // Forces Release
   mDoc = nullptr;
 
@@ -1346,8 +1348,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGlobalWindow)
     tmp->mListenerManager->Disconnect();
     NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mListenerManager)
   }
-  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mLocalStorage)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mSessionStorage)
+  tmp->NeuterStorageInstances();
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mApplicationCache)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mDocumentPrincipal)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mDoc)
@@ -2204,6 +2205,19 @@ nsGlobalWindow::DispatchDOMWindowCreated()
 }
 
 void
+nsGlobalWindow::NeuterStorageInstances()
+{
+  if (mLocalStorage) {
+    mLocalStorage->MarkOwnerDead();
+    mLocalStorage = nullptr;
+  }
+  if (mSessionStorage) {
+    mSessionStorage->MarkOwnerDead();
+    mSessionStorage = nullptr;
+  }
+}
+
+void
 nsGlobalWindow::ClearStatus()
 {
   SetStatus(EmptyString());
@@ -2229,8 +2243,8 @@ nsGlobalWindow::InnerSetNewDocument(nsIDocument* aDocument)
   mDocument = do_QueryInterface(aDocument);
   mDoc = aDocument;
   mFocusedNode = nullptr;
-  mLocalStorage = nullptr;
-  mSessionStorage = nullptr;
+
+  NeuterStorageInstances();
 
 #ifdef DEBUG
   mLastOpenedURI = aDocument->GetDocumentURI();

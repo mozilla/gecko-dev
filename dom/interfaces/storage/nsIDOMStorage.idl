@@ -19,7 +19,7 @@
  * key is added or removed.
  */
 
-[scriptable, uuid(43E5EDAD-1E02-42c4-9D99-C3D9DEE22A20)]
+[scriptable, uuid(7bd5b445-3d50-4141-8130-e208a2207849)]
 interface nsIDOMStorage : nsISupports
 {
   /**
@@ -65,4 +65,6 @@ interface nsIDOMStorage : nsISupports
    * or an origin.
    */
   void clear();
+
+  [noscript] void markOwnerDead();
 };

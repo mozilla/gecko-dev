@@ -73,6 +73,9 @@ StorageChild::ReleaseIPDLReference()
 bool
 StorageChild::CacheStoragePermissions()
 {
+  if (!mStorage) {
+    return false;
+  }
   nsDOMStorage* storage = static_cast<nsDOMStorage*>(mStorage.get());
   return storage->CacheStoragePermissions();
 }
@@ -104,6 +107,10 @@ StorageChild::InitAsLocalStorage(nsIPrincipal* aPrincipal, bool aPrivate)
 nsTArray<nsCString>*
 StorageChild::GetKeys(bool aCallerSecure)
 {
+  if (!mIPCOpen) {
+    return nullptr;
+  }
+
   InfallibleTArray<nsCString> remoteKeys;
   SendGetKeys(aCallerSecure, &remoteKeys);
   nsTArray<nsCString>* keys = new nsTArray<nsCString>;
@@ -114,6 +121,10 @@ StorageChild::GetKeys(bool aCallerSecure)
 nsresult
 StorageChild::GetLength(bool aCallerSecure, uint32_t* aLength)
 {
+  if (!mIPCOpen) {
+    return NS_ERROR_FAILURE;
+  }
+
   nsresult rv;
   SendGetLength(aCallerSecure, mSessionOnly, aLength, &rv);
   return rv;
@@ -122,6 +133,10 @@ StorageChild::GetLength(bool aCallerSecure, uint32_t* aLength)
 nsresult
 StorageChild::GetKey(bool aCallerSecure, uint32_t aIndex, nsACString& aKey)
 {
+  if (!mIPCOpen) {
+    return NS_ERROR_FAILURE;
+  }
+
   nsresult rv;
   nsCString key;
   SendGetKey(aCallerSecure, mSessionOnly, aIndex, &key, &rv);
@@ -143,6 +158,10 @@ nsIDOMStorageItem*
 StorageChild::GetValue(bool aCallerSecure, const nsACString& aKey,
                        nsresult* rv)
 {
+  if (!mIPCOpen) {
+    return nullptr;
+  }
+
   SAMPLE_LABEL("StorageChild", "GetValue");
   nsresult rv2 = *rv = NS_OK;
   StorageItem storageItem;
@@ -163,6 +182,10 @@ nsresult
 StorageChild::SetValue(bool aCallerSecure, const nsACString& aKey,
                        const nsACString& aData, nsACString& aOldData)
 {
+  if (!mIPCOpen) {
+    return NS_ERROR_FAILURE;
+  }
+
   nsresult rv;
   nsCString oldData;
   SendSetValue(aCallerSecure, mSessionOnly, nsCString(aKey), nsCString(aData),
@@ -177,6 +200,10 @@ nsresult
 StorageChild::RemoveValue(bool aCallerSecure, const nsACString& aKey,
                           nsACString& aOldData)
 {
+  if (!mIPCOpen) {
+    return NS_ERROR_FAILURE;
+  }
+
   nsresult rv;
   nsCString oldData;
   SendRemoveValue(aCallerSecure, mSessionOnly, nsCString(aKey), &oldData, &rv);
@@ -189,6 +216,10 @@ StorageChild::RemoveValue(bool aCallerSecure, const nsACString& aKey,
 nsresult
 StorageChild::Clear(bool aCallerSecure, int32_t* aOldCount)
 {
+  if (!mIPCOpen) {
+    return NS_ERROR_FAILURE;
+  }
+
   nsresult rv;
   int32_t oldCount;
   SendClear(aCallerSecure, mSessionOnly, &oldCount, &rv);
@@ -202,6 +233,10 @@ nsresult
 StorageChild::GetDBValue(const nsACString& aKey, nsACString& aValue,
                          bool* aSecure)
 {
+  if (!mIPCOpen) {
+    return NS_ERROR_FAILURE;
+  }
+
   nsresult rv;
   nsCString value;
   SendGetDBValue(nsCString(aKey), &value, aSecure, &rv);
@@ -214,6 +249,10 @@ StorageChild::SetDBValue(const nsACString& aKey,
                          const nsACString& aValue,
                          bool aSecure)
 {
+  if (!mIPCOpen) {
+    return NS_ERROR_FAILURE;
+  }
+
   nsresult rv;
   SendSetDBValue(nsCString(aKey), nsCString(aValue), aSecure, &rv);
   return rv;
@@ -222,6 +261,10 @@ StorageChild::SetDBValue(const nsACString& aKey,
 nsresult
 StorageChild::SetSecure(const nsACString& aKey, bool aSecure)
 {
+  if (!mIPCOpen) {
+    return NS_ERROR_FAILURE;
+  }
+
   nsresult rv;
   SendSetSecure(nsCString(aKey), aSecure, &rv);
   return rv;
@@ -244,8 +287,19 @@ NS_IMETHODIMP
 StorageChild::PrivateModeChanged(bool enabled)
 {
   mInPrivateBrowsing = enabled;
-  SendUpdatePrivateState(enabled);
+  if (mIPCOpen) {
+    SendUpdatePrivateState(enabled);
+  }
   return NS_OK;
+}
+
+void
+StorageChild::MarkOwnerDead()
+{
+  if (mIPCOpen) {
+    mStorage = nullptr;
+    Send__delete__(this);
+  }
 }
 
 }

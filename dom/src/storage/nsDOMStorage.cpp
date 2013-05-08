@@ -455,6 +455,13 @@ nsDOMStorage::GetInterface(const nsIID & aIID, void **result)
   return QueryInterface(aIID, result);;
 }
 
+void
+nsDOMStorage::MarkOwnerDead()
+{
+  if (mStorageImpl)
+    mStorageImpl->MarkOwnerDead();
+}
+
 nsresult
 NS_NewDOMStorage2(nsISupports* aOuter, REFNSIID aIID, void** aResult)
 {
@@ -1680,6 +1687,14 @@ nsDOMStorage2::BroadcastChangeNotification(const nsCSubstring &aKey,
 
   nsRefPtr<StorageNotifierRunnable> r = new StorageNotifierRunnable(event);
   NS_DispatchToMainThread(r);
+}
+
+NS_IMETHODIMP
+nsDOMStorage2::MarkOwnerDead()
+{
+  if (mStorage)
+    mStorage->MarkOwnerDead();
+  return NS_OK;
 }
 
 NS_IMETHODIMP
