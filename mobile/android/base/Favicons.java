@@ -6,6 +6,7 @@
 package org.mozilla.gecko;
 
 import org.mozilla.gecko.db.BrowserDB;
+import org.mozilla.gecko.gfx.BitmapUtils;
 import org.mozilla.gecko.util.GeckoJarReader;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.gecko.util.UiAsyncTask;
@@ -17,7 +18,6 @@ import org.apache.http.entity.BufferedHttpEntity;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.http.AndroidHttpClient;
 import android.os.Handler;
 import android.support.v4.util.LruCache;
@@ -264,7 +264,8 @@ public class Favicons {
                 HttpEntity entity = getHttpClient().execute(request).getEntity();
                 BufferedHttpEntity bufferedEntity = new BufferedHttpEntity(entity);
                 InputStream contentStream = bufferedEntity.getContent();
-                image = BitmapFactory.decodeStream(contentStream);
+                image = BitmapUtils.decodeStream(contentStream);
+                contentStream.close();
             } catch (Exception e) {
                 Log.e(LOGTAG, "Error reading favicon", e);
             }
