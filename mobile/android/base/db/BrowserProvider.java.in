@@ -57,7 +57,6 @@ import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteQueryBuilder;
-import android.graphics.BitmapFactory;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
@@ -1253,7 +1252,7 @@ public class BrowserProvider extends ContentProvider {
                     return null;
                 }
                 int faviconId = faviconField.getInt(null);
-                return BitmapFactory.decodeResource(mContext.getResources(), faviconId);
+                return BitmapUtils.decodeResource(mContext, faviconId);
             } catch (java.lang.IllegalAccessException ex) {
                 Log.e(LOGTAG, "[Drawable] Can't create favicon " + name, ex);
             } catch (java.lang.NoSuchFieldException ex) {
