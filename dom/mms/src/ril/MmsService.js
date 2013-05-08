@@ -1078,7 +1078,8 @@ MmsService.prototype = {
   },
 
   /**
-   * A helper function to broadcast the mms sent system message and notify observers.
+   * A helper function to broadcast system message and notify observers that
+   * an MMS is sent.
    *
    * @params aDomMessage
    *         The nsIDOMMozMmsMessage object.
@@ -1092,7 +1093,8 @@ MmsService.prototype = {
   },
 
   /**
-   * A helper function to broadcast the mms received system message and notify observers.
+   * A helper function to broadcast system message and notify observers that
+   * an MMS is received.
    *
    * @params aDomMessage
    *         The nsIDOMMozMmsMessage object.
@@ -1101,7 +1103,7 @@ MmsService.prototype = {
     // Broadcasting a 'sms-received' system message to open apps.
     this.broadcastMmsSystemMessage("sms-received", aDomMessage);
 
-    // Notifying observers an MMS message is comming.
+    // Notifying observers an MMS message is received.
     Services.obs.notifyObservers(aDomMessage, kSmsReceivedObserverTopic, null);
   },
 
@@ -1143,6 +1145,12 @@ MmsService.prototype = {
     gMobileMessageDatabaseService.saveReceivedMessage(savableMessage,
         (function (rv, domMessage) {
       let success = Components.isSuccessCode(rv);
+
+      // Cite 6.2.1 "Transaction Flow" in OMA-TS-MMS_ENC-V1_3-20110913-A:
+      // The M-NotifyResp.ind response PDU SHALL provide a message retrieval
+      // status code. The status ‘retrieved’ SHALL be used only if the MMS
+      // Client has successfully retrieved the MM prior to sending the
+      // NotifyResp.ind response PDU.
       let transaction =
         new NotifyResponseTransaction(transactionId,
                                       success ? MMS.MMS_PDU_STATUS_RETRIEVED
@@ -1220,7 +1228,10 @@ MmsService.prototype = {
 
     // For RETRIEVAL_MODE_AUTOMATIC or RETRIEVAL_MODE_AUTOMATIC_HOME but not
     // roaming, proceed to retrieve MMS.
-    this.retrieveMessage(url, this.retrieveMessageCallback.bind(this, wish, savableMessage));
+    this.retrieveMessage(url,
+                         this.retrieveMessageCallback.bind(this,
+                                                           wish,
+                                                           savableMessage));
   },
 
   /**
@@ -1390,7 +1401,11 @@ MmsService.prototype = {
 
         if (DEBUG) debug("Send MMS successful. aParams.receivers = " +
                          JSON.stringify(aParams.receivers));
-        self.broadcastSentMessageEvent(domMessage);
+
+        // Notifying observers the MMS message is sent.
+        self.broadcastSentMessageEvent(aDomMessage);
+
+        // Return the request after sending the MMS message successfully.
         aRequest.notifyMessageSent(aDomMessage);
       });
     };
@@ -1491,9 +1506,18 @@ MmsService.prototype = {
             aRequest.notifyGetMessageFailed(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
             return;
           }
+
           // Notifying observers a new MMS message is retrieved.
-          aRequest.notifyMessageGot(domMessage);
           this.broadcastReceivedMessageEvent(domMessage);
+
+          // Return the request after retrieving the MMS message successfully.
+          aRequest.notifyMessageGot(domMessage);
+
+          // Cite 6.3.1 "Transaction Flow" in OMA-TS-MMS_ENC-V1_3-20110913-A:
+          // If an acknowledgement is requested, the MMS Client SHALL respond
+          // with an M-Acknowledge.ind PDU to the MMS Proxy-Relay that supports
+          // the specific MMS Client. The M-Acknowledge.ind PDU confirms
+          // successful message retrieval to the MMS Proxy Relay.
           let transaction = new AcknowledgeTransaction(transactionId, reportAllowed);
           transaction.run();
         }).bind(this));
