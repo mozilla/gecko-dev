@@ -328,7 +328,7 @@ nsScreen::GetLockOrientationPermission() const
   nsCOMPtr<nsIDOMDocument> domDoc;
   owner->GetDocument(getter_AddRefs(domDoc));
   nsCOMPtr<nsIDocument> doc = do_QueryInterface(domDoc);
-  if (!doc) {
+  if (!doc || doc->Hidden()) {
     return LOCK_DENIED;
   }
 
