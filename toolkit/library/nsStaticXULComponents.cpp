@@ -235,6 +235,7 @@
     MODULE(jsdebugger)                       \
     PEERCONNECTION_MODULE                    \
     GIO_MODULE                               \
+    MODULE(DiskSpaceWatcherModule)           \
     /* end of list */
 
 #define MODULE(_name) \

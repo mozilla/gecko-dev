@@ -402,6 +402,18 @@ FactoryReset()
   Hal()->SendFactoryReset();
 }
 
+void
+StartDiskSpaceWatcher()
+{
+  NS_RUNTIMEABORT("StartDiskSpaceWatcher() can't be called from sandboxed contexts.");
+}
+
+void
+StopDiskSpaceWatcher()
+{
+  NS_RUNTIMEABORT("StopDiskSpaceWatcher() can't be called from sandboxed contexts.");
+}
+
 class HalParent : public PHalParent
                 , public BatteryObserver
                 , public NetworkObserver
