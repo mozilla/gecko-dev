@@ -330,6 +330,8 @@ MOCHITEST_FILES = \
 		file_iframe_sandbox_g_if1.html \
 		file_iframe_sandbox_worker.js \
 		test_mozaudiochannel.html \
+		test_audio_wakelock.html \
+		wakelock.ogg \
 		$(NULL)
 
 MOCHITEST_BROWSER_FILES = \

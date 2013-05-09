@@ -1913,7 +1913,7 @@ nsHTMLMediaElement::WakeLockBoolWrapper::UpdateWakeLock()
                              getter_AddRefs(mWakeLock));
     }
   } else if (mWakeLock) {
-    // Wakelock 'unlocks' itself in its destructor.
+    mWakeLock->Unlock();
     mWakeLock = nullptr;
   }
 }
