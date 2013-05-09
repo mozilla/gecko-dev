@@ -2297,9 +2297,10 @@ nsHTMLMediaElement::IsH264Type(const nsACString& aType)
 #endif
 
 #ifdef MOZ_WIDGET_GONK
-const char nsHTMLMediaElement::gOmxTypes[5][16] = {
+const char nsHTMLMediaElement::gOmxTypes[6][16] = {
   "audio/mpeg",
   "audio/mp4",
+  "audio/amr",
   "video/mp4",
   "video/3gpp",
   "video/quicktime",
@@ -2583,6 +2584,17 @@ nsHTMLMediaElement::CreateDecoder(const nsACString& aType)
 #endif
 #ifdef MOZ_WIDGET_GONK
   if (IsOmxSupportedType(aType)) {
+    // AMR audio is enabled for MMS, but we are discouraging Web and App
+    // developers from using AMR, thus we only allow AMR to be played on WebApps.
+    if (aType.EqualsASCII("audio/amr") || aType.EqualsASCII("video/3gpp")) {
+      nsIPrincipal* principal = NodePrincipal();
+      if (!principal) {
+        return nullptr;
+      }
+      if (principal->GetAppStatus() < nsIPrincipal::APP_STATUS_PRIVILEGED) {
+        return nullptr;
+      }
+    }
     nsRefPtr<nsMediaOmxDecoder> decoder = new nsMediaOmxDecoder();
     if (decoder->Init(this)) {
       return decoder.forget();

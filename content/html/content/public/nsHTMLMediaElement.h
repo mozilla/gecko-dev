@@ -323,7 +323,7 @@ public:
 #ifdef MOZ_WIDGET_GONK
   static bool IsOmxEnabled();
   static bool IsOmxSupportedType(const nsACString& aType);
-  static const char gOmxTypes[5][16];
+  static const char gOmxTypes[6][16];
   static char const *const gH264Codecs[7];
 #endif
 
