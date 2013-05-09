@@ -17,7 +17,7 @@ USING_TELEPHONY_NAMESPACE
 already_AddRefed<CallEvent>
 CallEvent::Create(TelephonyCall* aCall)
 {
-  NS_ASSERTION(aCall, "Null pointer!");
+  // Note we might have a null call for the event type "callschanged."
 
   nsRefPtr<CallEvent> event = new CallEvent();
 

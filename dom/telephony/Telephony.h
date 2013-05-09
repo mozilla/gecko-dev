@@ -43,6 +43,9 @@ class Telephony : public nsDOMEventTargetHelper,
     }
   };
 
+  class EnumerationAck;
+  friend class EnumerationAck;
+
   nsCOMPtr<nsIRILContentHelper> mRIL;
   nsRefPtr<RILTelephonyCallback> mRILTelephonyCallback;
 
@@ -54,12 +57,13 @@ class Telephony : public nsDOMEventTargetHelper,
   JSObject* mCallsArray;
 
   bool mRooted;
+  bool mEnumerated;
 
 public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIDOMTELEPHONY
   NS_DECL_NSIRILTELEPHONYCALLBACK
-  NS_FORWARD_NSIDOMEVENTTARGET(nsDOMEventTargetHelper::)
+  NS_DECL_NSIDOMEVENTTARGET
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(
                                                    Telephony,
                                                    nsDOMEventTargetHelper)
@@ -121,6 +125,8 @@ private:
   DialInternal(bool isEmergency,
                const nsAString& aNumber,
                nsIDOMTelephonyCall** aResult);
+  void
+  EnqueueEnumerationAck();
 };
 
 END_TELEPHONY_NAMESPACE
