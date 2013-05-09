@@ -10,6 +10,7 @@
 
 #include "nsIDOMFile.h"
 #include "nsIInputStream.h"
+#include "nsIMultiplexInputStream.h"
 #include "nsIIPCSerializableInputStream.h"
 #include "nsIRemoteBlob.h"
 #include "nsISeekableStream.h"
@@ -48,15 +49,106 @@ public:
 NS_DEFINE_STATIC_IID_ACCESSOR(IPrivateRemoteInputStream,
                               PRIVATE_REMOTE_INPUT_STREAM_IID)
 
+template <template <class> class SmartPtr, class T>
+void
+ProxyReleaseToMainThread(SmartPtr<T>& aDoomed)
+{
+  MOZ_ASSERT(!NS_IsMainThread());
+
+  T* doomed;
+  aDoomed.forget(&doomed);
+
+  nsCOMPtr<nsIRunnable> runnable =
+    NS_NewNonOwningRunnableMethod(doomed, &T::Release);
+  if (NS_FAILED(NS_DispatchToMainThread(runnable, NS_DISPATCH_NORMAL))) {
+    NS_WARNING("Failed to proxy release, leaking!");
+  }
+}
+
+
+// This class exists to keep a blob alive at least as long as its internal
+// stream.
+class BlobInputStreamTether : public nsIMultiplexInputStream,
+                              public nsISeekableStream,
+                              public nsIIPCSerializableInputStream
+{
+  nsCOMPtr<nsIInputStream> mStream;
+  nsCOMPtr<nsIDOMBlob> mSourceBlob;
+
+  nsIMultiplexInputStream* mWeakMultiplexStream;
+  nsISeekableStream* mWeakSeekableStream;
+  nsIIPCSerializableInputStream* mWeakSerializableStream;
+
+public:
+  NS_DECL_ISUPPORTS
+  NS_FORWARD_NSIINPUTSTREAM(mStream->)
+  NS_FORWARD_SAFE_NSIMULTIPLEXINPUTSTREAM(mWeakMultiplexStream)
+  NS_FORWARD_SAFE_NSISEEKABLESTREAM(mWeakSeekableStream)
+  NS_FORWARD_SAFE_NSIIPCSERIALIZABLEINPUTSTREAM(mWeakSerializableStream)
+
+  BlobInputStreamTether(nsIInputStream* aStream, nsIDOMBlob* aSourceBlob)
+  : mStream(aStream), mSourceBlob(aSourceBlob), mWeakMultiplexStream(nullptr),
+    mWeakSeekableStream(nullptr), mWeakSerializableStream(nullptr)
+  {
+    MOZ_ASSERT(aStream);
+    MOZ_ASSERT(aSourceBlob);
+
+    nsCOMPtr<nsIMultiplexInputStream> multiplexStream =
+      do_QueryInterface(aStream);
+    if (multiplexStream) {
+      MOZ_ASSERT(SameCOMIdentity(aStream, multiplexStream));
+      mWeakMultiplexStream = multiplexStream;
+    }
+
+    nsCOMPtr<nsISeekableStream> seekableStream = do_QueryInterface(aStream);
+    if (seekableStream) {
+      MOZ_ASSERT(SameCOMIdentity(aStream, seekableStream));
+      mWeakSeekableStream = seekableStream;
+    }
+
+    nsCOMPtr<nsIIPCSerializableInputStream> serializableStream =
+      do_QueryInterface(aStream);
+    if (serializableStream) {
+      MOZ_ASSERT(SameCOMIdentity(aStream, serializableStream));
+      mWeakSerializableStream = serializableStream;
+    }
+  }
+
+protected:
+  virtual ~BlobInputStreamTether()
+  {
+    MOZ_ASSERT(mStream);
+    MOZ_ASSERT(mSourceBlob);
+
+    if (!NS_IsMainThread()) {
+      mStream = nullptr;
+      ProxyReleaseToMainThread(mSourceBlob);
+    }
+  }
+};
+
+NS_IMPL_THREADSAFE_ADDREF(BlobInputStreamTether)
+NS_IMPL_THREADSAFE_RELEASE(BlobInputStreamTether)
+
+NS_INTERFACE_MAP_BEGIN(BlobInputStreamTether)
+  NS_INTERFACE_MAP_ENTRY(nsIInputStream)
+  NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIMultiplexInputStream,
+                                     mWeakMultiplexStream)
+  NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsISeekableStream, mWeakSeekableStream)
+  NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIIPCSerializableInputStream,
+                                     mWeakSerializableStream)
+  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIInputStream)
+NS_INTERFACE_MAP_END
+
 class RemoteInputStream : public nsIInputStream,
                           public nsISeekableStream,
                           public nsIIPCSerializableInputStream,
                           public IPrivateRemoteInputStream
 {
   mozilla::Monitor mMonitor;
-  nsCOMPtr<nsIDOMBlob> mSourceBlob;
   nsCOMPtr<nsIInputStream> mStream;
-  nsCOMPtr<nsISeekableStream> mSeekableStream;
+  nsCOMPtr<nsIDOMBlob> mSourceBlob;
+  nsISeekableStream* mWeakSeekableStream;
   ActorFlavorEnum mOrigin;
 
 public:
@@ -64,7 +156,7 @@ public:
 
   RemoteInputStream(nsIDOMBlob* aSourceBlob, ActorFlavorEnum aOrigin)
   : mMonitor("RemoteInputStream.mMonitor"), mSourceBlob(aSourceBlob),
-    mOrigin(aOrigin)
+    mWeakSeekableStream(nullptr), mOrigin(aOrigin)
   {
     MOZ_ASSERT(NS_IsMainThread());
     MOZ_ASSERT(aSourceBlob);
@@ -103,14 +195,16 @@ public:
     nsCOMPtr<nsIInputStream> stream = aStream;
     nsCOMPtr<nsISeekableStream> seekableStream = do_QueryInterface(aStream);
 
+    MOZ_ASSERT_IF(seekableStream, SameCOMIdentity(aStream, seekableStream));
+
     {
       mozilla::MonitorAutoLock lock(mMonitor);
 
       MOZ_ASSERT(!mStream);
-      MOZ_ASSERT(!mSeekableStream);
+      MOZ_ASSERT(!mWeakSeekableStream);
 
       mStream.swap(stream);
-      mSeekableStream.swap(seekableStream);
+      mWeakSeekableStream = seekableStream;
 
       mMonitor.Notify();
     }
@@ -188,12 +282,12 @@ public:
     nsresult rv = BlockAndWaitForStream();
     NS_ENSURE_SUCCESS(rv, rv);
 
-    if (!mSeekableStream) {
+    if (!mWeakSeekableStream) {
       NS_WARNING("Underlying blob stream is not seekable!");
       return NS_ERROR_NO_INTERFACE;
     }
 
-    rv = mSeekableStream->Seek(aWhence, aOffset);
+    rv = mWeakSeekableStream->Seek(aWhence, aOffset);
     NS_ENSURE_SUCCESS(rv, rv);
 
     return NS_OK;
@@ -213,12 +307,12 @@ public:
     nsresult rv = BlockAndWaitForStream();
     NS_ENSURE_SUCCESS(rv, rv);
 
-    if (!mSeekableStream) {
+    if (!mWeakSeekableStream) {
       NS_WARNING("Underlying blob stream is not seekable!");
       return NS_ERROR_NO_INTERFACE;
     }
 
-    rv = mSeekableStream->Tell(aResult);
+    rv = mWeakSeekableStream->Tell(aResult);
     NS_ENSURE_SUCCESS(rv, rv);
 
     return NS_OK;
@@ -230,12 +324,12 @@ public:
     nsresult rv = BlockAndWaitForStream();
     NS_ENSURE_SUCCESS(rv, rv);
 
-    if (!mSeekableStream) {
+    if (!mWeakSeekableStream) {
       NS_WARNING("Underlying blob stream is not seekable!");
       return NS_ERROR_NO_INTERFACE;
     }
 
-    rv = mSeekableStream->SetEOF();
+    rv = mWeakSeekableStream->SetEOF();
     NS_ENSURE_SUCCESS(rv, rv);
 
     return NS_OK;
@@ -254,7 +348,14 @@ public:
 
 private:
   virtual ~RemoteInputStream()
-  { }
+  {
+    if (!NS_IsMainThread()) {
+      mStream = nullptr;
+      mWeakSeekableStream = nullptr;
+
+      ProxyReleaseToMainThread(mSourceBlob);
+    }
+  }
 
   void
   ReallyBlockAndWaitForStream()
@@ -274,9 +375,9 @@ private:
     MOZ_ASSERT(mStream);
 
 #ifdef DEBUG
-    if (waited && mSeekableStream) {
+    if (waited && mWeakSeekableStream) {
       int64_t position;
-      MOZ_ASSERT(NS_SUCCEEDED(mSeekableStream->Tell(&position)),
+      MOZ_ASSERT(NS_SUCCEEDED(mWeakSeekableStream->Tell(&position)),
                  "Failed to determine initial stream position!");
       MOZ_ASSERT(!position, "Stream not starting at 0!");
     }
@@ -309,7 +410,7 @@ private:
       ReallyBlockAndWaitForStream();
     }
 
-    return !!mSeekableStream;
+    return !!mWeakSeekableStream;
   }
 };
 
@@ -1012,13 +1113,27 @@ public:
     }
     return NS_OK;
   }
+
+
+  NS_IMETHOD
+  GetInternalStream(nsIInputStream** aStream) MOZ_OVERRIDE
+  {
+    nsCOMPtr<nsIInputStream> realStream;
+    nsresult rv =
+      nsDOMMemoryFile::GetInternalStream(getter_AddRefs(realStream));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<nsIInputStream> stream =
+      new BlobInputStreamTether(realStream, this);
+    stream.forget(aStream);
+    return NS_OK;
+  }
 };
 
 template <ActorFlavorEnum ActorFlavor>
 class RemoteMultipartBlob : public nsDOMMultipartFile,
                             public RemoteBlobBase<ActorFlavor>
 {
-
 public:
   NS_DECL_ISUPPORTS_INHERITED
 
@@ -1036,7 +1151,7 @@ public:
   }
 
   NS_IMETHOD
-  GetLastModifiedDate(JSContext* cx, JS::Value* aLastModifiedDate)
+  GetLastModifiedDate(JSContext* cx, JS::Value* aLastModifiedDate) MOZ_OVERRIDE
   {
     if (IsDateUnknown()) {
       aLastModifiedDate->setNull();
@@ -1047,6 +1162,20 @@ public:
       }
       aLastModifiedDate->setObject(*date);
     }
+    return NS_OK;
+  }
+
+  NS_IMETHOD
+  GetInternalStream(nsIInputStream** aStream) MOZ_OVERRIDE
+  {
+    nsCOMPtr<nsIInputStream> realStream;
+    nsresult rv =
+      nsDOMMultipartFile::GetInternalStream(getter_AddRefs(realStream));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<nsIInputStream> stream =
+      new BlobInputStreamTether(realStream, this);
+    stream.forget(aStream);
     return NS_OK;
   }
 };
@@ -1440,6 +1569,7 @@ Blob<ActorFlavor>::NoteDyingRemoteBlob()
 
   // Must do this before calling Send__delete__ or we'll crash there trying to
   // access a dangling pointer.
+  mBlob = nullptr;
   mRemoteBlob = nullptr;
   mRemoteMemoryBlob = nullptr;
   mRemoteMultipartBlob = nullptr;
@@ -1452,7 +1582,6 @@ void
 Blob<ActorFlavor>::ActorDestroy(ActorDestroyReason aWhy)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(mBlob);
 
   if (mRemoteBlob) {
     mRemoteBlob->SetPBlob(nullptr);
@@ -1466,7 +1595,7 @@ Blob<ActorFlavor>::ActorDestroy(ActorDestroyReason aWhy)
     mRemoteMultipartBlob->SetPBlob(nullptr);
   }
 
-  if (mOwnsBlob) {
+  if (mBlob && mOwnsBlob) {
     mBlob->Release();
   }
 }
