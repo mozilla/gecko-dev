@@ -415,7 +415,7 @@ BluetoothOppManager::SendFile(BlobParent* aActor)
   }
 
   SendConnectRequest();
-  mTransferMode = false;
+  mIsServer = false;
   StartFileTransfer();
 
   return true;
@@ -535,6 +535,38 @@ BluetoothOppManager::DeleteReceivedFile()
   f->Remove(false);
 }
 
+DeviceStorageFile*
+BluetoothOppManager::CreateDeviceStorageFile(nsIFile* aFile)
+{
+  nsString fullFilePath;
+  aFile->GetPath(fullFilePath);
+
+  MOZ_ASSERT(StringBeginsWith(fullFilePath, NS_LITERAL_STRING(TARGET_ROOT)));
+
+  nsDependentSubstring storagePath =
+    Substring(fullFilePath, strlen(TARGET_ROOT));
+
+  nsCOMPtr<nsIMIMEService> mimeSvc = do_GetService(NS_MIMESERVICE_CONTRACTID);
+  NS_ENSURE_TRUE(mimeSvc, nullptr);
+
+  nsCString mimeType;
+  nsresult rv = mimeSvc->GetTypeFromFile(aFile, mimeType);
+  if (NS_FAILED(rv)) {
+    return nullptr;
+  }
+
+  if (StringBeginsWith(mimeType, NS_LITERAL_CSTRING("image/"))) {
+    return new DeviceStorageFile(NS_LITERAL_STRING("pictures"), storagePath);
+  } else if (StringBeginsWith(mimeType, NS_LITERAL_CSTRING("video/"))) {
+    return new DeviceStorageFile(NS_LITERAL_STRING("videos"), storagePath);
+  } else if (StringBeginsWith(mimeType, NS_LITERAL_CSTRING("audio/"))) {
+    return new DeviceStorageFile(NS_LITERAL_STRING("music"), storagePath);
+  } else {
+    NS_WARNING("Couldn't recognize the mimetype of received file.");
+    return nullptr;
+  }
+}
+
 bool
 BluetoothOppManager::CreateFile()
 {
@@ -563,37 +595,10 @@ BluetoothOppManager::CreateFile()
    * the file name again.
    */
   f->GetLeafName(sFileName);
-
-  nsString fullFileName;
-  f->GetPath(fullFileName);
-  MOZ_ASSERT(StringBeginsWith(fullFileName, NS_LITERAL_STRING(TARGET_ROOT)));
-  nsDependentSubstring storagePath = Substring(fullFileName, strlen(TARGET_ROOT));
-
-  mDsFile = nullptr;
-
-  nsCOMPtr<nsIMIMEService> mimeSvc = do_GetService(NS_MIMESERVICE_CONTRACTID);
-  if (mimeSvc) {
-    nsCString mimeType;
-    nsresult rv = mimeSvc->GetTypeFromFile(f, mimeType);
-
-    if (NS_SUCCEEDED(rv)) {
-      if (StringBeginsWith(mimeType, NS_LITERAL_CSTRING("image/"))) {
-        mDsFile = new DeviceStorageFile(NS_LITERAL_STRING("pictures"), storagePath);
-      } else if (StringBeginsWith(mimeType, NS_LITERAL_CSTRING("video/"))) {
-        mDsFile = new DeviceStorageFile(NS_LITERAL_STRING("videos"), storagePath);
-      } else if (StringBeginsWith(mimeType, NS_LITERAL_CSTRING("audio/"))) {
-        mDsFile = new DeviceStorageFile(NS_LITERAL_STRING("music"), storagePath);
-      } else {
-        NS_WARNING("Couldn't recognize the mimetype of received file.");
-      }
-    }
-  }
+  mDsFile = CreateDeviceStorageFile(f);
 
   NS_NewLocalFileOutputStream(getter_AddRefs(mOutputStream), f);
-  if (!mOutputStream) {
-    NS_WARNING("Couldn't new an output stream");
-    return false;
-  }
+  NS_ENSURE_TRUE(mOutputStream, false);
 
   return true;
 }
@@ -738,7 +743,7 @@ BluetoothOppManager::ServerDataHandler(UnixSocketRawData* aMessage)
                  &pktHeaders);
     ReplyToConnect();
     AfterOppConnected();
-    mTransferMode = true;
+    mIsServer = true;
   } else if (opCode == ObexRequestCode::Disconnect ||
              opCode == ObexRequestCode::Abort) {
     // Section 3.3.2 "Disconnect", IrOBEX 1.2
@@ -840,6 +845,7 @@ BluetoothOppManager::ServerDataHandler(UnixSocketRawData* aMessage)
     if (mPutFinalFlag) {
       mSuccessFlag = true;
       FileTransferComplete();
+      NotifyAboutFileChange();
     }
   } else {
     NS_WARNING("Unhandled ObexRequestCode");
@@ -1216,7 +1222,7 @@ BluetoothOppManager::FileTransferComplete()
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   name.AssignLiteral("received");
-  v = mTransferMode;
+  v = mIsServer;
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   name.AssignLiteral("fileName");
@@ -1252,7 +1258,7 @@ BluetoothOppManager::StartFileTransfer()
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   name.AssignLiteral("received");
-  v = mTransferMode;
+  v = mIsServer;
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   name.AssignLiteral("fileName");
@@ -1286,7 +1292,7 @@ BluetoothOppManager::UpdateProgress()
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   name.AssignLiteral("received");
-  v = mTransferMode;
+  v = mIsServer;
   parameters.AppendElement(BluetoothNamedValue(name, v));
 
   name.AssignLiteral("processedLength");
@@ -1331,6 +1337,18 @@ BluetoothOppManager::ReceivingFileConfirmation()
     NS_WARNING("Failed to send [bluetooth-opp-receiving-file-confirmation]");
     return;
   }
+}
+
+void
+BluetoothOppManager::NotifyAboutFileChange()
+{
+  NS_NAMED_LITERAL_STRING(data, "modified");
+
+  nsCOMPtr<nsIObserverService> obs =
+    mozilla::services::GetObserverService();
+  NS_ENSURE_TRUE_VOID(obs);
+
+  obs->NotifyObservers(mDsFile, "file-watcher-notify", data.get());
 }
 
 void
@@ -1411,22 +1429,11 @@ BluetoothOppManager::OnDisconnect(BluetoothSocket* aSocket)
    * and notify the transfer has been completed (but failed). We also call
    * AfterOppDisconnected here to ensure all variables will be cleaned.
    */
-
   if (!mSuccessFlag) {
-    if (mTransferMode) {
+    if (mIsServer) {
       DeleteReceivedFile();
     }
     FileTransferComplete();
-  } else if (mTransferMode && mDsFile) {
-    NS_NAMED_LITERAL_STRING(data, "modified");
-
-    nsCOMPtr<nsIObserverService> obs =
-      mozilla::services::GetObserverService();
-    if (obs) {
-      obs->NotifyObservers(mDsFile, "file-watcher-notify", data.get());
-    } else {
-      NS_WARNING("Couldn't get ObserverService");
-    }
   }
 
   AfterOppDisconnected();

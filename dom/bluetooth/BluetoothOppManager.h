@@ -103,6 +103,8 @@ private:
   void AfterOppDisconnected();
   void ValidateFileName();
   bool IsReservedChar(PRUnichar c);
+  DeviceStorageFile* CreateDeviceStorageFile(nsIFile* aFile);
+  void NotifyAboutFileChange();
 
   /**
    * OBEX session status.
@@ -160,7 +162,7 @@ private:
    * True: Receive file (Server)
    * False: Send file (Client)
    */
-  bool mTransferMode;
+  bool mIsServer;
 
   /**
    * Set when receiving the first PUT packet and wait for
