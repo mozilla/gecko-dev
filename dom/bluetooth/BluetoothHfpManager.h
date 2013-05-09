@@ -81,7 +81,7 @@ private:
   class RespondToBLDNTask;
   class SendRingIndicatorTask;
 
-  friend class GetVolumeTask;a
+  friend class GetVolumeTask;
   friend class RespondToBLDNTask;
   friend class SendRingIndicatorTask;
   friend class BluetoothHfpManagerObserver;
