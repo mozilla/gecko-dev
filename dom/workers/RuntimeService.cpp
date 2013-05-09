@@ -116,8 +116,6 @@ uint32_t gMaxWorkersPerDomain = MAX_WORKERS_PER_DOMAIN;
 // Does not hold an owning reference.
 RuntimeService* gRuntimeService = nullptr;
 
-RuntimeService* gRuntimeServiceDuringInit = nullptr;
-
 enum {
   ID_Worker = 0,
   ID_ChromeWorker,
@@ -145,7 +143,7 @@ const char* gStringChars[] = {
 MOZ_STATIC_ASSERT(NS_ARRAY_LENGTH(gStringChars) == ID_COUNT,
                   "gStringChars should have the right length.");
 
-enum PrefKey {
+enum {
   PREF_strict = 0,
   PREF_werror,
   PREF_relimit,
@@ -154,27 +152,18 @@ enum PrefKey {
   PREF_typeinference,
   PREF_allow_xml,
   PREF_jit_hardening,
-  PREF_ion,
   PREF_mem_max,
-  PREF_mem_gc_high_growth_max,
-  PREF_mem_gc_high_growth_min,
-  PREF_mem_gc_high_limit_max,
-  PREF_mem_gc_high_limit_min,
-  PREF_mem_gc_low_growth,
-  PREF_mem_high_water,
-  PREF_mem_gc_threshold,
-  PREF_mem_analysis_purge,
+  PREF_ion,
+  PREF_mem_gc_allocation_threshold_mb,
 
 #ifdef JS_GC_ZEAL
   PREF_gczeal,
 #endif
 
-  // This must always be last.
   PREF_COUNT
 };
 
 #define JS_OPTIONS_DOT_STR "javascript.options."
-#define JS_MEM_DOT_STR JS_OPTIONS_DOT_STR "mem."
 
 const char* gPrefsToWatch[] = {
   JS_OPTIONS_DOT_STR "strict",
@@ -185,16 +174,9 @@ const char* gPrefsToWatch[] = {
   JS_OPTIONS_DOT_STR "typeinference",
   JS_OPTIONS_DOT_STR "allow_xml",
   JS_OPTIONS_DOT_STR "jit_hardening",
+  JS_OPTIONS_DOT_STR "mem.max",
   JS_OPTIONS_DOT_STR "ion.content",
-  JS_MEM_DOT_STR "max",
-  JS_MEM_DOT_STR "gc_high_frequency_heap_growth_max",
-  JS_MEM_DOT_STR "gc_high_frequency_heap_growth_min",
-  JS_MEM_DOT_STR "gc_high_frequency_high_limit_mb",
-  JS_MEM_DOT_STR "gc_high_frequency_low_limit_mb",
-  JS_MEM_DOT_STR "gc_low_frequency_heap_growth",
-  JS_MEM_DOT_STR "high_water_mark",
-  JS_MEM_DOT_STR "gc_allocation_threshold_mb",
-  JS_MEM_DOT_STR "analysis_purge_mb"
+  "dom.workers.mem.gc_allocation_threshold_mb"
 
 #ifdef JS_GC_ZEAL
   , PREF_WORKERS_GCZEAL
@@ -204,73 +186,32 @@ const char* gPrefsToWatch[] = {
 MOZ_STATIC_ASSERT(NS_ARRAY_LENGTH(gPrefsToWatch) == PREF_COUNT,
                   "gPrefsToWatch should have the right length.");
 
-struct GCParameterData
-{
-  PrefKey prefKey;
-  JSGCParamKey paramKey;
-  uint32_t maxValue;
-  uint32_t defaultValue;
-  uint32_t multiplier;
-  uint32_t currentValue;
-  bool useDefaultIfInvalid;
-};
-
-// This array is only touched on the main thread.
-GCParameterData gGCParameterData[] = {
-  {
-    PREF_mem_max, JSGC_MAX_BYTES,
-    0x1000, WORKER_DEFAULT_RUNTIME_HEAPSIZE, 1024 * 1024, 0, true
-  }, {
-    PREF_mem_gc_high_growth_max, JSGC_HIGH_FREQUENCY_HEAP_GROWTH_MAX,
-    10000, 0, 1, 0, false
-  }, {
-    PREF_mem_gc_high_growth_min, JSGC_HIGH_FREQUENCY_HEAP_GROWTH_MIN,
-    10000, 0, 1, 0, false
-  }, {
-    PREF_mem_gc_high_limit_max, JSGC_HIGH_FREQUENCY_HIGH_LIMIT,
-    10000, 0, 1, 0, false
-  }, {
-    PREF_mem_gc_high_limit_min, JSGC_HIGH_FREQUENCY_LOW_LIMIT,
-    10000, 0, 1, 0, false
-  }, {
-    PREF_mem_gc_low_growth, JSGC_LOW_FREQUENCY_HEAP_GROWTH,
-    10000, 0, 1, 0, false
-  }, {
-    PREF_mem_high_water, JSGC_MAX_MALLOC_BYTES,
-    0x1000, 0, 1024 * 1024, 0, false
-  }, {
-    PREF_mem_gc_threshold, JSGC_ALLOCATION_THRESHOLD,
-    10000, WORKER_DEFAULT_ALLOCATION_THRESHOLD, 1, 0, false
-  }, {
-    PREF_mem_analysis_purge, JSGC_ANALYSIS_PURGE_TRIGGER,
-    10000, 0, 1, 0, false
-  }
-};
-
-MOZ_STATIC_ASSERT(WORKER_MEMORY_PARAMETER_COUNT ==
-                  NS_ARRAY_LENGTH(gGCParameterData),
-                  "Need to update the count!");
-
 int
 PrefCallback(const char* aPrefName, void* aClosure)
 {
   AssertIsOnMainThread();
 
-  RuntimeService* rts = gRuntimeServiceDuringInit ?
-                        gRuntimeServiceDuringInit :
-                        RuntimeService::GetService();
-  if (!rts) {
-    // May be shutting down, just bail.
-    return 0;
-  }
+  RuntimeService* rts = static_cast<RuntimeService*>(aClosure);
+  NS_ASSERTION(rts, "This should never be null!");
 
-  const nsDependentCString prefName(aPrefName);
-  const PrefKey prefKey =
-    static_cast<PrefKey>(reinterpret_cast<intptr_t>(aClosure));
+  NS_NAMED_LITERAL_CSTRING(jsOptionStr, JS_OPTIONS_DOT_STR);
 
-  if (prefKey >= PREF_strict && prefKey <= PREF_ion) {
+  if (!strcmp(aPrefName, gPrefsToWatch[PREF_mem_max])) {
+    int32_t pref = Preferences::GetInt(aPrefName, -1);
+    uint32_t maxBytes = (pref <= 0 || pref >= 0x1000) ?
+                        uint32_t(-1) :
+                        uint32_t(pref) * 1024 * 1024;
+    RuntimeService::SetDefaultJSWorkerMemoryParameter(JSGC_MAX_BYTES, maxBytes);
+    rts->UpdateAllWorkerMemoryParameter(JSGC_MAX_BYTES);
+  } else if (!strcmp(aPrefName, gPrefsToWatch[PREF_mem_gc_allocation_threshold_mb])) {
+    int32_t pref = Preferences::GetInt(aPrefName, 30);
+    uint32_t threshold = (pref <= 0 || pref >= 0x1000) ?
+                          uint32_t(30) :
+                          uint32_t(pref);
+    RuntimeService::SetDefaultJSWorkerMemoryParameter(JSGC_ALLOCATION_THRESHOLD, threshold);
+    rts->UpdateAllWorkerMemoryParameter(JSGC_ALLOCATION_THRESHOLD);
+  } else if (StringBeginsWith(nsDependentCString(aPrefName), jsOptionStr)) {
     uint32_t newOptions = kRequiredJSContextOptions;
-
     if (Preferences::GetBool(gPrefsToWatch[PREF_strict])) {
       newOptions |= JSOPTION_STRICT;
     }
@@ -298,54 +239,14 @@ PrefCallback(const char* aPrefName, void* aClosure)
 
     RuntimeService::SetDefaultJSContextOptions(newOptions);
     rts->UpdateAllWorkerJSContextOptions();
-
-    return 0;
   }
-
-  if (prefKey >= PREF_mem_max && prefKey <= PREF_mem_analysis_purge) {
-    GCParameterData* data = nullptr;
-    for (uint32_t index = 0; index < ArrayLength(gGCParameterData); index++) {
-      if (gGCParameterData[index].prefKey == prefKey) {
-        data = &gGCParameterData[index];
-        break;
-      }
-    }
-
-    if (!data) {
-      NS_ERROR("This should really never happen!");
-      return 0;
-    }
-
-    uint32_t paramValue;
-
-    int32_t prefValue = Preferences::GetInt(aPrefName, -1);
-    if (prefValue <= 0 || uint32_t(prefValue) > data->maxValue) {
-      if (!data->useDefaultIfInvalid) {
-        // Ignore invalid value.
-        return 0;
-      }
-      paramValue = data->defaultValue;
-    }
-    else {
-      paramValue = uint32_t(prefValue) * data->multiplier;
-    }
-
-    data->currentValue = paramValue;
-    rts->UpdateAllWorkerMemoryParameter(data->paramKey, data->currentValue);
-
-    return 0;
-  }
-
 #ifdef JS_GC_ZEAL
-  if (prefKey == PREF_gczeal) {
+  else if (!strcmp(aPrefName, gPrefsToWatch[PREF_gczeal])) {
     int32_t gczeal = Preferences::GetInt(gPrefsToWatch[PREF_gczeal]);
     RuntimeService::SetDefaultGCZeal(uint8_t(clamped(gczeal, 0, 3)));
     rts->UpdateAllWorkerGCZeal();
-    return 0;
   }
 #endif
-
-  NS_NOTREACHED("Unhandled pref!");
   return 0;
 }
 
@@ -531,15 +432,10 @@ CreateJSContextForWorker(WorkerPrivate* aWorkerPrivate)
   }
 
   // This is the real place where we set the max memory for the runtime.
-  nsAutoTArray<MemoryParameter, WORKER_MEMORY_PARAMETER_COUNT> memoryParams;
-  aWorkerPrivate->GetMemoryParameters(memoryParams);
-
-  for (uint32_t index = 0; index < memoryParams.Length(); index++) {
-    const MemoryParameter& param = memoryParams[index];
-    if (param.value) {
-      JS_SetGCParameter(runtime, param.key, param.value);
-    }
-  }
+  JS_SetGCParameter(runtime, JSGC_MAX_BYTES,
+                    aWorkerPrivate->GetJSRuntimeHeapSize());
+  JS_SetGCParameter(runtime, JSGC_ALLOCATION_THRESHOLD,
+                    aWorkerPrivate->GetJSWorkerAllocationThreshold());
 
   JS_SetNativeStackQuota(runtime, WORKER_CONTEXT_NATIVE_STACK_LIMIT);
 
@@ -809,6 +705,12 @@ WorkerCrossThreadDispatcher::PostTask(WorkerTask* aTask)
 END_WORKERS_NAMESPACE
 
 uint32_t RuntimeService::sDefaultJSContextOptions = kRequiredJSContextOptions;
+
+uint32_t RuntimeService::sDefaultJSRuntimeHeapSize =
+  WORKER_DEFAULT_RUNTIME_HEAPSIZE;
+
+uint32_t RuntimeService::sDefaultJSAllocationThreshold =
+  WORKER_DEFAULT_ALLOCATION_THRESHOLD;
 
 int32_t RuntimeService::sCloseHandlerTimeoutSeconds = MAX_SCRIPT_RUN_TIME_SEC;
 
@@ -1178,20 +1080,13 @@ RuntimeService::Init()
     NS_WARNING("Failed to register for memory pressure notifications!");
   }
 
-  NS_ASSERTION(!gRuntimeServiceDuringInit, "This should be null!");
-  gRuntimeServiceDuringInit = this;
-
   for (uint32_t index = 0; index < ArrayLength(gPrefsToWatch); index++) {
-    void* data = reinterpret_cast<void*>(intptr_t(index));
-    if (NS_FAILED(Preferences::RegisterCallbackAndCall(PrefCallback,
-                                                       gPrefsToWatch[index],
-                                                       data))) {
+    if (NS_FAILED(Preferences::RegisterCallback(PrefCallback,
+                                                gPrefsToWatch[index], this))) {
       NS_WARNING("Failed to register pref callback?!");
     }
+    PrefCallback(gPrefsToWatch[index], this);
   }
-
-  NS_ASSERTION(gRuntimeServiceDuringInit == this, "Should be 'this'!");
-  gRuntimeServiceDuringInit = nullptr;
 
   // We assume atomic 32bit reads/writes. If this assumption doesn't hold on
   // some wacky platform then the worst that could happen is that the close
@@ -1316,8 +1211,7 @@ RuntimeService::Cleanup()
 
   if (mObserved) {
     for (uint32_t index = 0; index < ArrayLength(gPrefsToWatch); index++) {
-      void* data = reinterpret_cast<void*>(intptr_t(index));
-      Preferences::UnregisterCallback(PrefCallback, gPrefsToWatch[index], data);
+      Preferences::UnregisterCallback(PrefCallback, gPrefsToWatch[index], this);
     }
 
     if (obs) {
@@ -1493,46 +1387,12 @@ RuntimeService::UpdateAllWorkerJSContextOptions()
   BROADCAST_ALL_WORKERS(UpdateJSContextOptions, GetDefaultJSContextOptions());
 }
 
-// static
 void
-RuntimeService::GetDefaultMemoryParameters(
-                                   nsTArray<MemoryParameter>& aMemoryParameters)
+RuntimeService::UpdateAllWorkerMemoryParameter(JSGCParamKey key)
 {
-  AssertIsOnMainThread();
-
-  aMemoryParameters.Clear();
-
-  for (uint32_t index = 0; index < ArrayLength(gGCParameterData); index++) {
-    GCParameterData& data = gGCParameterData[index];
-    MemoryParameter* param = aMemoryParameters.AppendElement();
-    param->key = data.paramKey;
-    param->value = data.currentValue;
-  }
-}
-
-void
-RuntimeService::UpdateAllWorkerMemoryParameter(JSGCParamKey aKey,
-                                               uint32_t aValue)
-{
-  AssertIsOnMainThread();
-  NS_ASSERTION(aValue, "Can't handle 0 for these values!");
-
-#ifdef DEBUG
-  {
-    bool found = false;
-    for (uint32_t index = 0; index < ArrayLength(gGCParameterData); index++) {
-      if (gGCParameterData[index].paramKey == aKey) {
-        NS_ASSERTION(gGCParameterData[index].currentValue == aValue,
-                     "Value mismatch!");
-        found = true;
-        break;
-      }
-    }
-    NS_ASSERTION(found, "Unknown key!");
-  }
-#endif
-
-  BROADCAST_ALL_WORKERS(UpdateJSWorkerMemoryParameter, aKey, aValue);
+  BROADCAST_ALL_WORKERS(UpdateJSWorkerMemoryParameter,
+                        key,
+                        GetDefaultJSWorkerMemoryParameter(key));
 }
 
 #ifdef JS_GC_ZEAL

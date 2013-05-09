@@ -42,12 +42,6 @@ AssertIsOnMainThread()
 { }
 #endif
 
-struct MemoryParameter
-{
-  JSGCParamKey key;
-  uint32_t value;
-};
-
 // All of these are implemented in RuntimeService.cpp
 JSBool
 ResolveWorkerClasses(JSContext* aCx, JSHandleObject aObj, JSHandleId aId, unsigned aFlags,
