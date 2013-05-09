@@ -13,7 +13,7 @@ interface nsIMobileMessageCallback;
 interface nsIDOMMozSmsSegmentInfo;
 interface nsIDOMMozCellBroadcastMessage;
 
-[scriptable, uuid(bbf061fc-fedc-40dc-afed-240aa4a7b49c)]
+[scriptable, uuid(1623b18c-a7b0-41ea-bbe6-194a658f46d1)]
 interface nsIRILTelephonyCallback : nsISupports
 {
   /**
@@ -35,6 +35,12 @@ interface nsIRILTelephonyCallback : nsISupports
                         in AString number,
                         in boolean isActive,
                         in boolean isOutgoing);
+
+  /**
+   * Called when enumeration asked by nsIRILContentHelper::enumerateCalls
+   * is completed.
+   */
+  void enumerateCallStateComplete();
 
   /**
    * Called when nsIRILContentHelper is asked to enumerate the current
