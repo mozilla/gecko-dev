@@ -31,6 +31,8 @@
 #include "Queue.h"
 #include "WorkerFeature.h"
 
+#define WORKER_MEMORY_PARAMETER_COUNT 9
+
 class JSAutoStructuredCloneBuffer;
 class nsIDocument;
 class nsIMemoryMultiReporter;
@@ -242,11 +244,12 @@ private:
   // Only used for top level workers.
   nsTArray<nsRefPtr<WorkerRunnable> > mQueuedRunnables;
 
+  // Protected by mMutex. Keep this in sync with the list in RuntimeService.
+  nsAutoTArray<MemoryParameter, WORKER_MEMORY_PARAMETER_COUNT> mMemoryParams;
+
   uint64_t mBusyCount;
   Status mParentStatus;
   uint32_t mJSContextOptions;
-  uint32_t mJSRuntimeHeapSize;
-  uint32_t mJSWorkerAllocationThreshold;
   uint8_t mGCZeal;
   bool mJSObjectRooted;
   bool mParentSuspended;
@@ -358,7 +361,8 @@ public:
   UpdateJSContextOptions(JSContext* aCx, uint32_t aOptions);
 
   void
-  UpdateJSWorkerMemoryParameter(JSContext* aCx, JSGCParamKey key, uint32_t value);
+  UpdateJSWorkerMemoryParameter(JSContext* aCx, JSGCParamKey key,
+                                uint32_t value);
 
 #ifdef JS_GC_ZEAL
   void
@@ -534,16 +538,11 @@ public:
     return mJSContextOptions;
   }
 
-  uint32_t
-  GetJSRuntimeHeapSize() const
+  void
+  GetMemoryParameters(nsTArray<MemoryParameter>& aMemoryParameters)
   {
-    return mJSRuntimeHeapSize;
-  }
-
-  uint32_t
-  GetJSWorkerAllocationThreshold() const
-  {
-    return mJSWorkerAllocationThreshold;
+    mozilla::MutexAutoLock lock(mMutex);
+    aMemoryParameters = mMemoryParams;
   }
 
 #ifdef JS_GC_ZEAL
@@ -769,7 +768,8 @@ public:
   UpdateJSContextOptionsInternal(JSContext* aCx, uint32_t aOptions);
 
   void
-  UpdateJSWorkerMemoryParameterInternal(JSContext* aCx, JSGCParamKey key, uint32_t aValue);
+  UpdateJSWorkerMemoryParameterInternal(JSContext* aCx, JSGCParamKey key,
+                                        uint32_t aValue);
 
   void
   ScheduleDeletion(bool aWasPending);
