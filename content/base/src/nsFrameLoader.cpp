@@ -2587,6 +2587,10 @@ nsFrameLoader::ResetPermissionManagerStatus()
 /* [infallible] */ NS_IMETHODIMP
 nsFrameLoader::SetVisible(bool aVisible)
 {
+  if (mVisible == aVisible) {
+    return NS_OK;
+  }
+
   mVisible = aVisible;
   nsCOMPtr<nsIObserverService> os = services::GetObserverService();
   if (os) {
