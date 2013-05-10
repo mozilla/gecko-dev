@@ -21,6 +21,7 @@
 #include "BluetoothHfpManager.h"
 #include "BluetoothOppManager.h"
 #include "BluetoothReplyRunnable.h"
+#include "BluetoothScoManager.h"
 #include "BluetoothUnixSocketConnector.h"
 #include "BluetoothUtils.h"
 #include "BluetoothUuid.h"
@@ -815,10 +816,41 @@ public:
       return NS_ERROR_FAILURE;
     }
 
+    BluetoothScoManager* sco = BluetoothScoManager::Get();
+    if (!sco || !sco->Listen()) {
+      NS_WARNING("Failed to start listening for BluetoothScoManager!");
+      return NS_ERROR_FAILURE;
+    }
+
     BluetoothOppManager* opp = BluetoothOppManager::Get();
     if (!opp || !opp->Listen()) {
       NS_WARNING("Failed to start listening for BluetoothOppManager!");
       return NS_ERROR_FAILURE;
+    }
+
+    return NS_OK;
+  }
+};
+
+class ShutdownProfileManagersRunnable : public nsRunnable
+{
+public:
+  NS_IMETHOD
+  Run()
+  {
+    BluetoothHfpManager* hfp = BluetoothHfpManager::Get();
+    if (hfp) {
+      hfp->Disconnect();
+    }
+
+    BluetoothOppManager* opp = BluetoothOppManager::Get();
+    if (opp) {
+      opp->Disconnect();
+    }
+
+    BluetoothScoManager* sco = BluetoothScoManager::Get();
+    if (sco) {
+      sco->Disconnect();
     }
 
     return NS_OK;
@@ -2790,45 +2822,3 @@ BluetoothDBusService::ConfirmReceivingFile(const nsAString& aDeviceAddress,
   DispatchBluetoothReply(aRunnable, v, errorStr);
 }
 
-void
-BluetoothDBusService::ConnectSco(BluetoothReplyRunnable* aRunnable)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-
-  BluetoothHfpManager* hfp = BluetoothHfpManager::Get();
-  NS_ENSURE_TRUE_VOID(hfp);
-  if(!hfp->ConnectSco(aRunnable)) {
-    NS_NAMED_LITERAL_STRING(replyError,
-      "SCO socket exists or HFP is not connected");
-    DispatchBluetoothReply(aRunnable, BluetoothValue(), replyError);
-  }
-}
-
-void
-BluetoothDBusService::DisconnectSco(BluetoothReplyRunnable* aRunnable)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-
-  BluetoothHfpManager* hfp = BluetoothHfpManager::Get();
-  NS_ENSURE_TRUE_VOID(hfp);
-  if (hfp->DisconnectSco()) {
-    DispatchBluetoothReply(aRunnable,
-                           BluetoothValue(true), NS_LITERAL_STRING(""));
-    return;
-  }
-
-  NS_NAMED_LITERAL_STRING(replyError,
-    "SCO socket doesn't exist or HFP is not connected");
-  DispatchBluetoothReply(aRunnable, BluetoothValue(), replyError);
-}
-
-void
-BluetoothDBusService::IsScoConnected(BluetoothReplyRunnable* aRunnable)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-
-  BluetoothHfpManager* hfp = BluetoothHfpManager::Get();
-  NS_ENSURE_TRUE_VOID(hfp);
-  DispatchBluetoothReply(aRunnable,
-                         hfp->IsScoConnected(), EmptyString());
-}

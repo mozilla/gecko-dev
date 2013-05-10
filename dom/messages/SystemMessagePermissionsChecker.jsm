@@ -55,9 +55,6 @@ this.SystemMessagePermissionsTable = {
   "bluetooth-hfp-status-changed": {
     "bluetooth": []
   },
-  "bluetooth-sco-status-changed": {
-    "bluetooth": []
-  },
   "bluetooth-opp-transfer-complete": {
     "bluetooth": []
   },
