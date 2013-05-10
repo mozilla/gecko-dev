@@ -337,6 +337,7 @@ function RILContentHelper() {
     return;
   }
   this.cardState = rilContext.cardState;
+  this.retryCount = rilContext.retryCount;
   this.networkSelectionMode = rilContext.networkSelectionMode;
   this.updateICCInfo(rilContext.icc, this.iccInfo);
   this.updateConnectionInfo(rilContext.voice, this.voiceConnectionInfo);
@@ -410,6 +411,7 @@ RILContentHelper.prototype = {
   // nsIRILContentHelper
 
   cardState:            RIL.GECKO_CARDSTATE_UNKNOWN,
+  retryCount:           0,
   iccInfo:              null,
   voiceConnectionInfo:  null,
   dataConnectionInfo:   null,
@@ -918,6 +920,7 @@ RILContentHelper.prototype = {
     debug("Received message '" + msg.name + "': " + JSON.stringify(msg.json));
     switch (msg.name) {
       case "RIL:CardStateChanged":
+        this.retryCount = msg.json.retryCount;
         if (this.cardState != msg.json.cardState) {
           this.cardState = msg.json.cardState;
           Services.obs.notifyObservers(null, kCardStateChangedTopic, null);

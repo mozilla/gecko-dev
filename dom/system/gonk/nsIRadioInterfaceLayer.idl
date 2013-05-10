@@ -299,6 +299,8 @@ interface nsIRilContext : nsISupports
 
   readonly attribute DOMString cardState;
 
+  readonly attribute long retryCount;
+
   readonly attribute DOMString networkSelectionMode;
 
   readonly attribute nsIICCRecords icc;
