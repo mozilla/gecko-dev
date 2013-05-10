@@ -183,15 +183,6 @@ protected:
 
   bool
   DoRequest(const DenyReceivingFileRequest& aRequest);
-
-  bool
-  DoRequest(const ConnectScoRequest& aRequest);
-
-  bool
-  DoRequest(const DisconnectScoRequest& aRequest);
-
-  bool
-  DoRequest(const IsScoConnectedRequest& aRequest);
 };
 
 END_BLUETOOTH_NAMESPACE
