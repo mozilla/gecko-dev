@@ -58,6 +58,11 @@ interface nsIDOMBluetoothAdapter : nsIDOMEventTarget
   nsIDOMDOMRequest stopSendingFile(in DOMString aDeviceAddress);
   nsIDOMDOMRequest confirmReceivingFile(in DOMString aDeviceAddress, in bool aConfirmation);
 
+  // Connect/Disconnect SCO (audio) connection
+  nsIDOMDOMRequest connectSco();
+  nsIDOMDOMRequest disconnectSco();
+  nsIDOMDOMRequest isScoConnected();
+
   // Fired when discoverying and any device is discovered.
   [implicit_jscontext] attribute jsval ondevicefound;
   // Fired when any device is out of discoverable range.

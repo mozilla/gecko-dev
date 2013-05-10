@@ -124,6 +124,37 @@ private:
   nsRefPtr<BluetoothAdapter> mAdapterPtr;
 };
 
+class GetScoConnectionStatusTask : public BluetoothReplyRunnable
+{
+public:
+  GetScoConnectionStatusTask(nsIDOMDOMRequest* aReq) :
+    BluetoothReplyRunnable(aReq)
+  {
+    MOZ_ASSERT(aReq);
+  }
+
+  virtual bool ParseSuccessfulReply(JS::Value* aValue)
+  {
+    *aValue = JSVAL_VOID;
+
+    const BluetoothValue& v = mReply->get_BluetoothReplySuccess().value();
+    if (v.type() != BluetoothValue::Tbool) {
+      NS_WARNING("Not a boolean!");
+      SetError(NS_LITERAL_STRING("BluetoothReplyTypeError"));
+      return false;
+    }
+
+    aValue->setBoolean(v.get_bool());
+    return true;
+  }
+
+  void
+  ReleaseMembers()
+  {
+    BluetoothReplyRunnable::ReleaseMembers();
+  }
+};
+
 static int kCreatePairedDeviceTimeout = 50000; // unit: msec
 
 BluetoothAdapter::BluetoothAdapter(nsPIDOMWindow* aOwner, const BluetoothValue& aValue)
@@ -881,6 +912,105 @@ BluetoothAdapter::ConfirmReceivingFile(const nsAString& aDeviceAddress,
   nsRefPtr<BluetoothVoidReplyRunnable> result =
     new BluetoothVoidReplyRunnable(req);
   bs->ConfirmReceivingFile(aDeviceAddress, aConfirmation, result);
+
+  req.forget(aRequest);
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+BluetoothAdapter::ConnectSco(nsIDOMDOMRequest** aRequest)
+{
+  BluetoothService* bs = BluetoothService::Get();
+  if (!bs) {
+    NS_WARNING("BluetoothService not available!");
+    return NS_ERROR_FAILURE;
+  }
+
+  nsCOMPtr<nsIDOMRequestService> rs =
+    do_GetService("@mozilla.org/dom/dom-request-service;1");
+
+  if (!rs) {
+    NS_WARNING("No DOMRequest Service!");
+    return NS_ERROR_FAILURE;
+  }
+
+  nsCOMPtr<nsIDOMDOMRequest> req;
+  nsresult rv = rs->CreateRequest(GetOwner(), getter_AddRefs(req));
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Can't create DOMRequest!");
+    return NS_ERROR_FAILURE;
+  }
+
+  nsRefPtr<BluetoothVoidReplyRunnable> result =
+    new BluetoothVoidReplyRunnable(req);
+  bs->ConnectSco(result);
+
+  req.forget(aRequest);
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+BluetoothAdapter::DisconnectSco(nsIDOMDOMRequest** aRequest)
+{
+  BluetoothService* bs = BluetoothService::Get();
+  if (!bs) {
+    NS_WARNING("BluetoothService not available!");
+    return NS_ERROR_FAILURE;
+  }
+
+  nsCOMPtr<nsIDOMRequestService> rs =
+    do_GetService("@mozilla.org/dom/dom-request-service;1");
+
+  if (!rs) {
+    NS_WARNING("No DOMRequest Service!");
+    return NS_ERROR_FAILURE;
+  }
+
+  nsCOMPtr<nsIDOMDOMRequest> req;
+  nsresult rv = rs->CreateRequest(GetOwner(), getter_AddRefs(req));
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Can't create DOMRequest!");
+    return NS_ERROR_FAILURE;
+  }
+
+  nsRefPtr<BluetoothVoidReplyRunnable> result =
+    new BluetoothVoidReplyRunnable(req);
+  bs->DisconnectSco(result);
+
+  req.forget(aRequest);
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+BluetoothAdapter::IsScoConnected(nsIDOMDOMRequest** aRequest)
+{
+  BluetoothService* bs = BluetoothService::Get();
+  if (!bs) {
+    NS_WARNING("BluetoothService not available!");
+    return NS_ERROR_FAILURE;
+  }
+
+  nsCOMPtr<nsIDOMRequestService> rs =
+    do_GetService("@mozilla.org/dom/dom-request-service;1");
+
+  if (!rs) {
+    NS_WARNING("No DOMRequest Service!");
+    return NS_ERROR_FAILURE;
+  }
+
+  nsCOMPtr<nsIDOMDOMRequest> req;
+  nsresult rv = rs->CreateRequest(GetOwner(), getter_AddRefs(req));
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Can't create DOMRequest!");
+    return NS_ERROR_FAILURE;
+  }
+
+  nsRefPtr<BluetoothReplyRunnable> result =
+    new GetScoConnectionStatusTask(req);
+  bs->IsScoConnected(result);
 
   req.forget(aRequest);
 
