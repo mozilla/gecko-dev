@@ -73,6 +73,9 @@ public:
                BluetoothReplyRunnable* aRunnable);
   void Disconnect();
   bool Listen();
+  bool ConnectSco(BluetoothReplyRunnable* aRunnable = nullptr);
+  bool DisconnectSco();
+  bool ListenSco();
 
   /**
    * @param aSend A boolean indicates whether we need to notify headset or not
@@ -81,6 +84,8 @@ public:
                               const nsAString& aNumber, const bool aIsOutgoing,
                               bool aSend);
   bool IsConnected();
+  bool IsScoConnected();
+  void GetAddress(nsAString& aDeviceAddress);
 
 private:
   class GetVolumeTask;
@@ -104,11 +109,15 @@ private:
   void ResetCallArray();
 
   void NotifyDialer(const nsAString& aCommand);
-  void NotifySettings();
+  void NotifyStatusChanged(const nsAString& aType);
+  void NotifyAudioManager(const nsAString& aAddress);
 
   bool SendCommand(const char* aCommand, uint8_t aValue = 0);
   bool SendLine(const char* aMessage);
   void UpdateCIND(uint8_t aType, uint8_t aValue, bool aSend);
+  void OnScoConnectSuccess();
+  void OnScoConnectError();
+  void OnScoDisconnect();
 
   int mCurrentVgs;
   int mCurrentVgm;
@@ -121,13 +130,14 @@ private:
   int mNetworkSelectionMode;
   bool mReceiveVgsFlag;
   bool mBLDNProcessed;
-  nsString mDevicePath;
+  nsString mDeviceAddress;
   nsString mMsisdn;
   nsString mOperatorName;
 
   nsTArray<Call> mCurrentCallArray;
   nsAutoPtr<BluetoothRilListener> mListener;
   nsRefPtr<BluetoothReplyRunnable> mRunnable;
+  nsRefPtr<BluetoothReplyRunnable> mScoRunnable;
 
   // If a connection has been established, mSocket will be the socket
   // communicating with the remote socket. We maintain the invariant that if
@@ -140,6 +150,8 @@ private:
   // is called.
   nsRefPtr<BluetoothSocket> mHandsfreeSocket;
   nsRefPtr<BluetoothSocket> mHeadsetSocket;
+  nsRefPtr<BluetoothSocket> mScoSocket;
+  SocketConnectionStatus mScoSocketStatus;
 };
 
 END_BLUETOOTH_NAMESPACE
