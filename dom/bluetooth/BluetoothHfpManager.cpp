@@ -1206,6 +1206,7 @@ void
 BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
                                             uint16_t aCallState,
                                             const nsAString& aNumber,
+                                            const bool aIsOutgoing,
                                             bool aSend)
 {
   if (!IsConnected()) {
@@ -1224,9 +1225,9 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
   }
   mCurrentCallArray[aCallIndex].mNumber = aNumber;
 
- 
   uint16_t prevCallState = mCurrentCallArray[aCallIndex].mState;
   mCurrentCallArray[aCallIndex].mState = aCallState;
+  mCurrentCallArray[aCallIndex].mDirection = !aIsOutgoing;
 
   nsString address;
   uint32_t callArrayLength = mCurrentCallArray.Length();
@@ -1238,7 +1239,6 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
       SendCommand("+CIEV: ", CINDType::CALLHELD);
       break;
     case nsIRadioInterfaceLayer::CALL_STATE_INCOMING:
-      mCurrentCallArray[aCallIndex].mDirection = true;
 
       if (mCurrentCallIndex) {
         if (mCCWA) {
@@ -1272,14 +1272,12 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
         mBLDNProcessed = true;
       }
 
-      mCurrentCallArray[aCallIndex].mDirection = false;
       UpdateCIND(CINDType::CALLSETUP, CallSetupState::OUTGOING, aSend);
 
       mSocket->GetAddress(address);
       OpenScoSocket(address);
       break;
     case nsIRadioInterfaceLayer::CALL_STATE_ALERTING:
-      mCurrentCallArray[aCallIndex].mDirection = false;
       UpdateCIND(CINDType::CALLSETUP, CallSetupState::OUTGOING_ALERTING, aSend);
 
       // If there's an ongoing call when the headset is just connected, we have

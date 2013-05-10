@@ -32,7 +32,8 @@ BluetoothRILTelephonyCallback::CallStateChanged(uint32_t aCallIndex,
                                                 bool aIsOutgoing)
 {
   BluetoothHfpManager* hfp = BluetoothHfpManager::Get();
-  hfp->HandleCallStateChanged(aCallIndex, aCallState, aNumber, true);
+  hfp->HandleCallStateChanged(aCallIndex, aCallState, aNumber,
+                              aIsOutgoing, true);
 
   return NS_OK;
 }
@@ -46,7 +47,8 @@ BluetoothRILTelephonyCallback::EnumerateCallState(uint32_t aCallIndex,
                                                   bool* aResult)
 {
   BluetoothHfpManager* hfp = BluetoothHfpManager::Get();
-  hfp->HandleCallStateChanged(aCallIndex, aCallState, aNumber, false);
+  hfp->HandleCallStateChanged(aCallIndex, aCallState, aNumber,
+                              aIsOutgoing, false);
   *aResult = true;
   return NS_OK;
 }
