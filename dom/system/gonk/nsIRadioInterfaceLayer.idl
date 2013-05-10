@@ -292,7 +292,7 @@ interface nsIVoicemailInfo : nsISupports
   readonly attribute DOMString displayName;
 };
 
-[scriptable, uuid(5e43d291-8ec0-42b7-8aad-756f1df86bae)]
+[scriptable, uuid(816500e9-2153-4f41-b549-88afb771e3cb5)]
 interface nsIRilContext : nsISupports
 {
   readonly attribute DOMString radioState;
