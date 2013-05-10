@@ -39,6 +39,12 @@ BluetoothRILTelephonyCallback::CallStateChanged(uint32_t aCallIndex,
 }
 
 NS_IMETHODIMP
+BluetoothRILTelephonyCallback::EnumerateCallStateComplete()
+{
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 BluetoothRILTelephonyCallback::EnumerateCallState(uint32_t aCallIndex,
                                                   uint16_t aCallState,
                                                   const nsAString_internal& aNumber,
