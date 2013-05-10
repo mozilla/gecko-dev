@@ -32,10 +32,7 @@ LOCAL_INCLUDES += \
 
 DEFINES += -D_IMPL_NS_LAYOUT
 
-# Disable test_ipc on OSX due to various intermittent failures (e.g. bug 783913)
-ifneq ($(MOZ_WIDGET_TOOLKIT),cocoa)
 MOCHITEST_FILES = test_ipc.html
-endif
 
 # Need to enable these tests sometime soon.
 #XPCSHELL_TESTS = unit
