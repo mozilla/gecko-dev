@@ -331,6 +331,13 @@ nsScreen::GetLockOrientationPermission() const
   if (!doc) {
     return LOCK_DENIED;
   }
+  
+  // Prevent an invisible page to lock orientation.
+  bool hidden = false;
+  domDoc->GetHidden(&hidden);
+  if (hidden) {
+    return LOCK_DENIED;
+  })
 
   // Apps can always lock the screen orientation.
   if (doc->NodePrincipal()->GetAppStatus() >=
