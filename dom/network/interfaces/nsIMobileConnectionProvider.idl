@@ -29,6 +29,7 @@ interface nsIMobileConnectionProvider : nsISupports
   void registerMobileConnectionMsg();
 
   readonly attribute DOMString cardState;
+  readonly attribute long retryCount;
   readonly attribute nsIDOMMozMobileICCInfo iccInfo;
   readonly attribute nsIDOMMozMobileConnectionInfo voiceConnectionInfo;
   readonly attribute nsIDOMMozMobileConnectionInfo dataConnectionInfo;
