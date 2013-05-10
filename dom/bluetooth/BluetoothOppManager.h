@@ -8,6 +8,7 @@
 #define mozilla_dom_bluetooth_bluetoothoppmanager_h__
 
 #include "BluetoothCommon.h"
+#include "BluetoothProfileManagerBase.h"
 #include "BluetoothSocketObserver.h"
 #include "mozilla/dom/ipc/Blob.h"
 #include "mozilla/ipc/UnixSocket.h"
@@ -23,6 +24,7 @@ class BluetoothSocket;
 class ObexHeaderSet;
 
 class BluetoothOppManager : public BluetoothSocketObserver
+                          , public BluetoothProfileManagerBase
 {
 public:
   /*
@@ -49,7 +51,7 @@ public:
    * either call Disconnect() to close RFCOMM connection or start another
    * file-sending thread via calling SendFile() again.
    */
-  bool Connect(const nsAString& aDeviceObjectPath,
+  void Connect(const nsAString& aDeviceObjectPath,
                BluetoothReplyRunnable* aRunnable);
   void Disconnect();
   bool Listen();
@@ -82,9 +84,9 @@ public:
   virtual void OnConnectSuccess(BluetoothSocket* aSocket) MOZ_OVERRIDE;
   virtual void OnConnectError(BluetoothSocket* aSocket) MOZ_OVERRIDE;
   virtual void OnDisconnect(BluetoothSocket* aSocket) MOZ_OVERRIDE;
-  void OnConnectSuccess() MOZ_OVERRIDE;
-  void OnConnectError() MOZ_OVERRIDE;
-  void OnDisconnect() MOZ_OVERRIDE;
+  virtual void OnGetServiceChannel(const nsAString& aDeviceAddress,
+                                   const nsAString& aServiceUuid,
+                                   int aChannel) MOZ_OVERRIDE;
 
 private:
   BluetoothOppManager();

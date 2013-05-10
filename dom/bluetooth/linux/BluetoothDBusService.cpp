@@ -2491,36 +2491,24 @@ BluetoothDBusService::Connect(const nsAString& aDeviceAddress,
                               const uint16_t aProfileId,
                               BluetoothReplyRunnable* aRunnable)
 {
-  NS_ASSERTION(NS_IsMainThread(), "Must be called from main thread!");
+  MOZ_ASSERT(NS_IsMainThread());
 
-  BluetoothValue v;
-  nsString errorStr;
   if (aProfileId == BluetoothServiceClass::HANDSFREE) {
     BluetoothHfpManager* hfp = BluetoothHfpManager::Get();
-    if (!hfp->Connect(GetObjectPathFromAddress(aAdapterPath, aDeviceAddress),
-                      true, aRunnable)) {
-      errorStr.AssignLiteral("BluetoothHfpManager has connected/is connecting to a headset!");
-      DispatchBluetoothReply(aRunnable, v, errorStr);
-    }
+    hfp->Connect(
+      GetObjectPathFromAddress(sAdapterPath, aDeviceAddress), true, aRunnable);
   } else if (aProfileId == BluetoothServiceClass::HEADSET) {
     BluetoothHfpManager* hfp = BluetoothHfpManager::Get();
-    if (!hfp->Connect(GetObjectPathFromAddress(aAdapterPath, aDeviceAddress),
-                      false, aRunnable)) {
-      errorStr.AssignLiteral("BluetoothHfpManager has connected/is connecting to a headset!");
-      DispatchBluetoothReply(aRunnable, v, errorStr);
-    }
+    hfp->Connect(
+      GetObjectPathFromAddress(sAdapterPath, aDeviceAddress), false, aRunnable);
   } else if (aProfileId == BluetoothServiceClass::OBJECT_PUSH) {
     BluetoothOppManager* opp = BluetoothOppManager::Get();
-    if (!opp->Connect(GetObjectPathFromAddress(aAdapterPath, aDeviceAddress),
-                      aRunnable)) {
-      errorStr.AssignLiteral("BluetoothOppManager has connected/is connecting!");
-      DispatchBluetoothReply(aRunnable, v, errorStr);
-    }
+    opp->Connect(
+      GetObjectPathFromAddress(sAdapterPath, aDeviceAddress), aRunnable);
+  } else {
+    BluetoothValue v;
+    DispatchBluetoothReply(aRunnable, v, NS_LITERAL_STRING("UnknownProfileError"));
   }
-
-#ifdef DEBUG
-  NS_WARNING("Unknown Profile");
-#endif
 }
 
 void
@@ -2615,24 +2603,54 @@ private:
   int mChannel;
 };
 
-class GetDeviceChannelForConnectRunnable : public nsRunnable
+class OnGetServiceChannelRunnable : public nsRunnable
 {
 public:
-  GetDeviceChannelForConnectRunnable(BluetoothReplyRunnable* aRunnable,
-                                     UnixSocketConsumer* aConsumer,
-                                     const nsAString& aObjectPath,
-                                     const nsAString& aServiceUUID,
-                                     BluetoothSocketType aType,
-                                     bool aAuth,
-                                     bool aEncrypt)
-    : mRunnable(dont_AddRef(aRunnable)),
-      mConsumer(aConsumer),
-      mObjectPath(aObjectPath),
-      mServiceUUID(aServiceUUID),
-      mType(aType),
-      mAuth(aAuth),
-      mEncrypt(aEncrypt)
+  OnGetServiceChannelRunnable(const nsAString& aObjectPath,
+                              const nsAString& aServiceUuid,
+                              int aChannel,
+                              BluetoothProfileManagerBase* aManager)
+    : mServiceUuid(aServiceUuid),
+      mChannel(aChannel),
+      mManager(aManager)
   {
+    MOZ_ASSERT(!aObjectPath.IsEmpty());
+    MOZ_ASSERT(!aServiceUuid.IsEmpty());
+    MOZ_ASSERT(aManager);
+
+    mDeviceAddress = GetAddressFromObjectPath(aObjectPath);
+  }
+
+  nsresult
+  Run()
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    mManager->OnGetServiceChannel(mDeviceAddress, mServiceUuid, mChannel);
+
+    return NS_OK;
+  }
+
+private:
+  nsString mDeviceAddress;
+  nsString mServiceUuid;
+  int mChannel;
+  BluetoothProfileManagerBase* mManager;
+};
+
+class GetServiceChannelRunnable : public nsRunnable
+{
+public:
+  GetServiceChannelRunnable(const nsAString& aObjectPath,
+                            const nsAString& aServiceUuid,
+                            BluetoothProfileManagerBase* aManager)
+    : mObjectPath(aObjectPath),
+      mServiceUuid(aServiceUuid),
+      mManager(aManager)
+  {
+    MOZ_ASSERT(!aObjectPath.IsEmpty());
+    MOZ_ASSERT(!aServiceUuid.IsEmpty());
+    MOZ_ASSERT(aManager);
   }
 
   nsresult
@@ -2640,23 +2658,12 @@ public:
   {
     MOZ_ASSERT(!NS_IsMainThread());
 
-    int channel = GetDeviceServiceChannel(mObjectPath, mServiceUUID, 0x0004);
-    BluetoothValue v;
-    nsString replyError;
-    if (channel < 0) {
-      replyError.AssignLiteral("DeviceChannelRetrievalError");
-      DispatchBluetoothReply(mRunnable, v, replyError);
-      return NS_OK;
-    }
-    nsRefPtr<nsRunnable> func(new ConnectBluetoothSocketRunnable(mRunnable,
-                                                                 mConsumer,
-                                                                 mObjectPath,
-                                                                 mServiceUUID,
-                                                                 mType, mAuth,
-                                                                 mEncrypt,
-                                                                 channel));
-    if (NS_FAILED(NS_DispatchToMainThread(func, NS_DISPATCH_NORMAL))) {
-      NS_WARNING("Cannot dispatch connection task!");
+    int channel = GetDeviceServiceChannel(mObjectPath, mServiceUuid, 0x0004);
+    nsRefPtr<nsRunnable> r(new OnGetServiceChannelRunnable(mObjectPath,
+                                                           mServiceUuid,
+                                                           channel,
+                                                           mManager));
+    if (NS_FAILED(NS_DispatchToMainThread(r))) {
       return NS_ERROR_FAILURE;
     }
 
@@ -2664,47 +2671,27 @@ public:
   }
 
 private:
-  nsRefPtr<BluetoothReplyRunnable> mRunnable;
-  nsRefPtr<UnixSocketConsumer> mConsumer;
   nsString mObjectPath;
-  nsString mServiceUUID;
-  BluetoothSocketType mType;
-  bool mAuth;
-  bool mEncrypt;
+  nsString mServiceUuid;
+  BluetoothProfileManagerBase* mManager;
 };
 
 nsresult
-BluetoothDBusService::GetSocketViaService(const nsAString& aObjectPath,
-                                          const nsAString& aService,
-                                          BluetoothSocketType aType,
-                                          bool aAuth,
-                                          bool aEncrypt,
-                                          mozilla::ipc::UnixSocketConsumer* aConsumer,
-                                          BluetoothReplyRunnable* aRunnable)
+BluetoothDBusService::GetServiceChannel(const nsAString& aObjectPath,
+                                        const nsAString& aServiceUuid,
+                                        BluetoothProfileManagerBase* aManager)
 {
-  NS_ASSERTION(NS_IsMainThread(), "Must be called from main thread!");
-  if (!IsReady()) {
-    BluetoothValue v;
-    nsString errorStr;
-    errorStr.AssignLiteral("Bluetooth service is not ready yet!");
-    DispatchBluetoothReply(aRunnable, v, errorStr);
-    return NS_OK;
-  }
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(mBluetoothCommandThread);
 
-  nsRefPtr<BluetoothReplyRunnable> runnable = aRunnable;
+  nsRefPtr<nsRunnable> r(new GetServiceChannelRunnable(aObjectPath,
+                                                       aServiceUuid,
+                                                       aManager));
 
-  nsRefPtr<nsRunnable> func(new GetDeviceChannelForConnectRunnable(
-                              runnable,
-                              aConsumer,
-                              aObjectPath,
-                              aService, aType,
-                              aAuth, aEncrypt));
-  if (NS_FAILED(mBluetoothCommandThread->Dispatch(func, NS_DISPATCH_NORMAL))) {
-    NS_WARNING("Cannot dispatch firmware loading task!");
+  if (NS_FAILED(mBluetoothCommandThread->Dispatch(r, NS_DISPATCH_NORMAL))) {
     return NS_ERROR_FAILURE;
   }
 
-  runnable.forget();
   return NS_OK;
 }
 
