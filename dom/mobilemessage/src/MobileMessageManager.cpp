@@ -29,6 +29,7 @@
 #include "DOMCursor.h"
 
 #define RECEIVED_EVENT_NAME         NS_LITERAL_STRING("received")
+#define RETRIEVING_EVENT_NAME       NS_LITERAL_STRING("retrieving")
 #define SENDING_EVENT_NAME          NS_LITERAL_STRING("sending")
 #define SENT_EVENT_NAME             NS_LITERAL_STRING("sent")
 #define FAILED_EVENT_NAME           NS_LITERAL_STRING("failed")
@@ -63,6 +64,7 @@ NS_IMPL_ADDREF_INHERITED(MobileMessageManager, nsDOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(MobileMessageManager, nsDOMEventTargetHelper)
 
 NS_IMPL_EVENT_HANDLER(MobileMessageManager, received)
+NS_IMPL_EVENT_HANDLER(MobileMessageManager, retrieving)
 NS_IMPL_EVENT_HANDLER(MobileMessageManager, sending)
 NS_IMPL_EVENT_HANDLER(MobileMessageManager, sent)
 NS_IMPL_EVENT_HANDLER(MobileMessageManager, failed)
@@ -81,6 +83,7 @@ MobileMessageManager::Init(nsPIDOMWindow *aWindow)
   }
 
   obs->AddObserver(this, kSmsReceivedObserverTopic, false);
+  obs->AddObserver(this, kSmsRetrievingObserverTopic, false);
   obs->AddObserver(this, kSmsSendingObserverTopic, false);
   obs->AddObserver(this, kSmsSentObserverTopic, false);
   obs->AddObserver(this, kSmsFailedObserverTopic, false);
@@ -98,6 +101,7 @@ MobileMessageManager::Shutdown()
   }
 
   obs->RemoveObserver(this, kSmsReceivedObserverTopic);
+  obs->RemoveObserver(this, kSmsRetrievingObserverTopic);
   obs->RemoveObserver(this, kSmsSendingObserverTopic);
   obs->RemoveObserver(this, kSmsSentObserverTopic);
   obs->RemoveObserver(this, kSmsFailedObserverTopic);
@@ -435,6 +439,10 @@ MobileMessageManager::Observe(nsISupports* aSubject, const char* aTopic,
 {
   if (!strcmp(aTopic, kSmsReceivedObserverTopic)) {
     return DispatchTrustedSmsEventToSelf(aTopic, RECEIVED_EVENT_NAME, aSubject);
+  }
+
+  if (!strcmp(aTopic, kSmsRetrievingObserverTopic)) {
+    return DispatchTrustedSmsEventToSelf(aTopic, RETRIEVING_EVENT_NAME, aSubject);
   }
 
   if (!strcmp(aTopic, kSmsSendingObserverTopic)) {
