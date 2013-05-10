@@ -12,6 +12,7 @@
 #include "nsIObserver.h"
 
 #include "jsapi.h"
+#include "mozilla/Attributes.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/TimeStamp.h"
 #include "nsAutoPtr.h"
@@ -20,7 +21,6 @@
 #include "nsHashKeys.h"
 #include "nsStringGlue.h"
 #include "nsTArray.h"
-#include "mozilla/Attributes.h"
 
 class nsIThread;
 class nsITimer;
@@ -72,8 +72,6 @@ class RuntimeService MOZ_FINAL : public nsIObserver
   nsCString mSystemCharset;
 
   static uint32_t sDefaultJSContextOptions;
-  static uint32_t sDefaultJSRuntimeHeapSize;
-  static uint32_t sDefaultJSAllocationThreshold;
   static int32_t sCloseHandlerTimeoutSeconds;
 
 #ifdef JS_GC_ZEAL
@@ -160,38 +158,11 @@ public:
   void
   UpdateAllWorkerJSContextOptions();
 
-  static uint32_t
-  GetDefaultJSWorkerMemoryParameter(JSGCParamKey aKey)
-  {
-    AssertIsOnMainThread();
-    switch (aKey) {
-      case JSGC_ALLOCATION_THRESHOLD:
-        return sDefaultJSAllocationThreshold;
-      case JSGC_MAX_BYTES:
-        return sDefaultJSRuntimeHeapSize;
-      default:
-        MOZ_NOT_REACHED("Unknown Worker Memory Parameter.");
-    }
-  }
-
   static void
-  SetDefaultJSWorkerMemoryParameter(JSGCParamKey aKey, uint32_t aValue)
-  {
-    AssertIsOnMainThread();
-    switch(aKey) {
-      case JSGC_ALLOCATION_THRESHOLD:
-        sDefaultJSAllocationThreshold = aValue;
-        break;
-      case JSGC_MAX_BYTES:
-        sDefaultJSRuntimeHeapSize = aValue;
-        break;
-      default:
-        MOZ_NOT_REACHED("Unknown Worker Memory Parameter.");
-    }
-  }
+  GetDefaultMemoryParameters(nsTArray<MemoryParameter>& aMemoryParameters);
 
   void
-  UpdateAllWorkerMemoryParameter(JSGCParamKey aKey);
+  UpdateAllWorkerMemoryParameter(JSGCParamKey aKey, uint32_t aValue);
 
   static uint32_t
   GetCloseHandlerTimeoutSeconds()
