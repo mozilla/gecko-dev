@@ -15,7 +15,7 @@ interface nsIDOMWindow;
  * XPCOM component (in the content process) that provides the mobile
  * network information.
  */
-[scriptable, uuid(dee1fa95-e678-4c54-901b-0c03a8d5d399)]
+[scriptable, uuid(b23b011f-ce03-4def-9ec0-a0276e9e75e9)]
 interface nsIMobileConnectionProvider : nsISupports
 {
   /**
