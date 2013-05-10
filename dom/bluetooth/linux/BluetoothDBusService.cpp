@@ -1935,6 +1935,26 @@ public:
 
       InfallibleTArray<BluetoothNamedValue>& deviceProperties =
         v.get_ArrayOfBluetoothNamedValue();
+      uint32_t length = deviceProperties.Length();
+      // It is possible that property Icon missed due to CoD of major
+      // class is TOY but service class is "Audio", we need to assign
+      // Icon as audio-card. This is for PTS test TC_AG_COD_BV_02_I.
+      // As HFP specification defined that
+      // service class is "Audio" can be considered as HFP AG.
+      if (!ContainsIcon(deviceProperties)) {
+        for (uint32_t p = 0; p < length; ++p) {
+          if (deviceProperties[p].name().EqualsLiteral("Class")) {
+            if (HasAudioService(deviceProperties[p].value().get_uint32_t())) {
+              v.get_ArrayOfBluetoothNamedValue()
+                 .AppendElement(
+                 BluetoothNamedValue(NS_LITERAL_STRING("Icon"),
+                 NS_LITERAL_STRING("audio-card")));
+            }
+            break;
+          }
+        }
+      }
+
       for (uint32_t p = 0;
            p < v.get_ArrayOfBluetoothNamedValue().Length(); ++p) {
         BluetoothNamedValue& property = v.get_ArrayOfBluetoothNamedValue()[p];
