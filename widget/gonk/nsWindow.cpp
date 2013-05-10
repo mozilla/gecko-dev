@@ -189,7 +189,10 @@ nsWindow::nsWindow()
         // This has to happen after other init has finished.
         gfxPlatform::GetPlatform();
         sUsingOMTC = UseOffMainThreadCompositing();
-        sUsingHwc = Preferences::GetBool("layers.composer2d.enabled", false);
+
+        property_get("ro.display.colorfill", propValue, "0");
+        sUsingHwc = Preferences::GetBool("layers.composer2d.enabled",
+                                         atoi(propValue) == 1);
 
         if (sUsingOMTC) {
           sOMTCSurface = new gfxImageSurface(gfxIntSize(1, 1),
