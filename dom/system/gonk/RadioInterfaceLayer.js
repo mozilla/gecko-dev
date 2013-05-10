@@ -1406,7 +1406,7 @@ RadioInterfaceLayer.prototype = {
       receiver:       aDomMessage.receiver,
       body:           aDomMessage.body,
       messageClass:   aDomMessage.messageClass,
-      timestamp:      aDomMessage.timestamp.getTime(),
+      timestamp:      aDomMessage.timestamp,
       read:           aDomMessage.read
     });
   },
