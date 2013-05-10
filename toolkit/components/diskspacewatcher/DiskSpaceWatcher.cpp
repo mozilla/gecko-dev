@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "DiskSpaceWatcher.h"
+#include "mozilla/StaticPtr.h"
 #include "mozilla/Hal.h"
 #include "mozilla/ModuleUtils.h"
 #include "mozilla/Preferences.h"
