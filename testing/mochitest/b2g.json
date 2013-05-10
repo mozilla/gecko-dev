@@ -8,6 +8,8 @@
     "layout": ""
   },
 "excludetests": {
+    "dom/tests/mochitest/ajax/offline/test_lowDeviceStorage.html":"",
+    "dom/tests/mochitest/ajax/offline/test_lowDeviceStorageDuringUpdate.html":"",
     "dom/tests/mochitest/dom-level0/test_innerWidthHeight_script.html": "bug 807137",
     "layout/base/tests/test_after_paint_pref.html": "bug 823429",
     "layout/base/tests/test_bug450930.xhtml" : "times out",
