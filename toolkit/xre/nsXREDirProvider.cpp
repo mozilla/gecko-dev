@@ -373,7 +373,7 @@ nsXREDirProvider::GetFile(const char* aProperty, bool* aPersistent,
 #endif
   }
   else if (!strcmp(aProperty, XRE_APP_DISTRIBUTION_DIR)) {
-    rv = GetAppDir()->Clone(getter_AddRefs(file));
+    rv = mGREDir->Clone(getter_AddRefs(file));
     if (NS_SUCCEEDED(rv))
       rv = file->AppendNative(NS_LITERAL_CSTRING("distribution"));
   }
@@ -611,7 +611,7 @@ void
 nsXREDirProvider::LoadAppBundleDirs()
 {
   nsCOMPtr<nsIFile> dir;
-  nsresult rv = mXULAppDir->Clone(getter_AddRefs(dir));
+  nsresult rv = mGREDir->Clone(getter_AddRefs(dir));
   if (NS_FAILED(rv))
     return;
 

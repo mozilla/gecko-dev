@@ -18,8 +18,8 @@ function run_test()
   do_test_pending();
 
   // Copy distribution.ini file to our app dir.
-  let distroDir = Services.dirsvc.get("XCurProcD", Ci.nsIFile);
-  distroDir.append("distribution");
+  let distroDir = Services.dirsvc.get("XREExeF", Ci.nsIFile);
+  distroDir.leafName = "distribution";
   let iniFile = distroDir.clone();
   iniFile.append("distribution.ini");
   if (iniFile.exists()) {
