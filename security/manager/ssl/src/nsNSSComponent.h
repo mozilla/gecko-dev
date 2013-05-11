@@ -34,10 +34,7 @@
 
 #include "nsNSSHelper.h"
 #include "nsClientAuthRemember.h"
-
-#ifndef NSS_NO_LIBPKIX
 #include "nsCERTValInParamWrapper.h"
-#endif
 
 #define NS_NSSCOMPONENT_CID \
 {0xa277189c, 0x1dd1, 0x11b2, {0xa8, 0xc9, 0xe4, 0xe8, 0xbf, 0xb1, 0x33, 0x8e}}
@@ -158,16 +155,12 @@ class NS_NO_VTABLE nsINSSComponent : public nsISupports {
   
   NS_IMETHOD GetClientAuthRememberService(nsClientAuthRememberService **cars) = 0;
 
+  NS_IMETHOD EnsureIdentityInfoLoaded() = 0;
+
   NS_IMETHOD IsNSSInitialized(bool *initialized) = 0;
 
-#ifndef NSS_NO_LIBPKIX
-  NS_IMETHOD EnsureIdentityInfoLoaded() = 0;
-  NS_IMETHOD GetDefaultCERTValInParam(
-                  nsRefPtr<nsCERTValInParamWrapper> &out) = 0;
-  NS_IMETHOD GetDefaultCERTValInParamLocalOnly(
-                  nsRefPtr<nsCERTValInParamWrapper> &out) = 0;
-#endif
-
+  NS_IMETHOD GetDefaultCERTValInParam(nsRefPtr<nsCERTValInParamWrapper> &out) = 0;
+  NS_IMETHOD GetDefaultCERTValInParamLocalOnly(nsRefPtr<nsCERTValInParamWrapper> &out) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsINSSComponent, NS_INSSCOMPONENT_IID)
@@ -264,8 +257,11 @@ public:
   NS_IMETHOD PostEvent(const nsAString &eventType, const nsAString &token);
   NS_IMETHOD DispatchEvent(const nsAString &eventType, const nsAString &token);
   NS_IMETHOD GetClientAuthRememberService(nsClientAuthRememberService **cars);
+  NS_IMETHOD EnsureIdentityInfoLoaded();
   NS_IMETHOD IsNSSInitialized(bool *initialized);
 
+  NS_IMETHOD GetDefaultCERTValInParam(nsRefPtr<nsCERTValInParamWrapper> &out);
+  NS_IMETHOD GetDefaultCERTValInParamLocalOnly(nsRefPtr<nsCERTValInParamWrapper> &out);
 private:
 
   nsresult InitializeNSS(bool showWarningBox);
@@ -279,6 +275,7 @@ private:
   void UnloadLoadableRoots();
   void LaunchSmartCardThreads();
   void ShutdownSmartCardThreads();
+  void CleanupIdentityInfo();
   void setValidationOptions(nsIPrefBranch * pref);
   nsresult InitializePIPNSSBundle();
   nsresult ConfigureInternalPKCS11Token();
@@ -297,16 +294,6 @@ private:
   void DoProfileChangeTeardown(nsISupports* aSubject);
   void DoProfileBeforeChange(nsISupports* aSubject);
   void DoProfileChangeNetRestore();
-
-#ifndef NSS_NO_LIBPKIX
-  NS_IMETHOD EnsureIdentityInfoLoaded();
-  static PRStatus IdentityInfoInit(void);
-  void CleanupIdentityInfo();
-  NS_IMETHOD GetDefaultCERTValInParam(
-                  nsRefPtr<nsCERTValInParamWrapper> &out);
-  NS_IMETHOD GetDefaultCERTValInParamLocalOnly(
-                  nsRefPtr<nsCERTValInParamWrapper> &out);
-#endif
   
   Mutex mutex;
   
@@ -336,16 +323,14 @@ private:
 
   nsNSSHttpInterface mHttpForNSS;
   nsRefPtr<nsClientAuthRememberService> mClientAuthRememberService;
-
-#ifndef NSS_NO_LIBPKIX
-private:
   nsRefPtr<nsCERTValInParamWrapper> mDefaultCERTValInParam;
   nsRefPtr<nsCERTValInParamWrapper> mDefaultCERTValInParamLocalOnly;
+
+  static PRStatus IdentityInfoInit(void);
   PRCallOnceType mIdentityInfoCallOnce;
+
 public:
   static bool globalConstFlagUsePKIXVerification;
-#endif
-
 };
 
 class PSMContentListener : public nsIURIContentListener,

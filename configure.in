@@ -4311,7 +4311,6 @@ MOZ_SYS_MSG=
 MOZ_TIME_MANAGER=
 MOZ_PAY=
 MOZ_AUDIO_CHANNEL_MANAGER=
-NSS_NO_LIBPKIX=
 
 case "$target_os" in
     mingw*)
@@ -6351,14 +6350,6 @@ dnl ========================================================
 if test -n "$MOZ_DISABLE_DOMCRYPTO"; then
     AC_DEFINE(MOZ_DISABLE_DOMCRYPTO)
 fi
-
-dnl ========================================================
-dnl = Disable libpkix
-dnl ========================================================
-if test -n "$NSS_NO_LIBPKIX"; then
-    AC_DEFINE(NSS_NO_LIBPKIX)
-fi
-AC_SUBST(NSS_NO_LIBPKIX)
 
 dnl ========================================================
 dnl =

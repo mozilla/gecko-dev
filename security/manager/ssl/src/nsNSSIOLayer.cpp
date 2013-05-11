@@ -18,19 +18,13 @@
 #include "SSLServerCertVerification.h"
 #include "nsNSSCertHelper.h"
 #include "nsNSSCleaner.h"
-
-#ifndef NSS_NO_LIBPKIX
 #include "nsIDocShell.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsISecureBrowserUI.h"
 #include "nsIInterfaceRequestorUtils.h"
-#endif
-
 #include "nsCharSeparatedTokenizer.h"
 #include "nsIConsoleService.h"
 #include "PSMRunnable.h"
-#include "ScopedNSSTypes.h"
-#include "mozilla/Preferences.h"
 
 #include "ssl.h"
 #include "secerr.h"
@@ -149,7 +143,6 @@ nsNSSSocketInfo::SetNotificationCallbacks(nsIInterfaceRequestor* aCallbacks)
   return NS_OK;
 }
 
-#ifndef NSS_NO_LIBPKIX
 static void
 getSecureBrowserUI(nsIInterfaceRequestor * callbacks,
                    nsISecureBrowserUI ** result)
@@ -180,7 +173,6 @@ getSecureBrowserUI(nsIInterfaceRequestor * callbacks,
     }
   }
 }
-#endif
 
 void
 nsNSSSocketInfo::SetNegotiatedNPN(const char *value, uint32_t length)
@@ -349,7 +341,6 @@ nsresult nsNSSSocketInfo::SetFileDescPtr(PRFileDesc* aFilePtr)
   return NS_OK;
 }
 
-#ifndef NSS_NO_LIBPKIX
 class PreviousCertRunnable : public SyncRunnableBase
 {
 public:
@@ -376,19 +367,16 @@ public:
 private:
   nsCOMPtr<nsIInterfaceRequestor> mCallbacks; // in
 };
-#endif
 
 void nsNSSSocketInfo::GetPreviousCert(nsIX509Cert** _result)
 {
   NS_ASSERTION(_result, "_result parameter to GetPreviousCert is null");
   *_result = nullptr;
 
-#ifndef NSS_NO_LIBPKIX
   nsRefPtr<PreviousCertRunnable> runnable = new PreviousCertRunnable(mCallbacks);
   nsresult rv = runnable->DispatchToMainThreadAndWait();
   NS_ASSERTION(NS_SUCCEEDED(rv), "runnable->DispatchToMainThreadAndWait() failed");
   runnable->mPreviousCert.forget(_result);
-#endif
 }
 
 void
