@@ -99,10 +99,7 @@ PRLogModuleInfo* gPIPNSSLog = nullptr;
 
 static NS_DEFINE_CID(kNSSComponentCID, NS_NSSCOMPONENT_CID);
 int nsNSSComponent::mInstanceCount = 0;
-
-#ifndef NSS_NO_LIBPKIX
 bool nsNSSComponent::globalConstFlagUsePKIXVerification = false;
-#endif
 
 // XXX tmp callback for slot password
 extern char* pk11PasswordPrompt(PK11SlotInfo *slot, PRBool retry, void *arg);
@@ -343,11 +340,9 @@ nsNSSComponent::nsNSSComponent()
   mTimer = nullptr;
   mObserversRegistered = false;
 
-#ifndef NSS_NO_LIBPKIX
   // In order to keep startup time lower, we delay loading and 
   // registering all identity data until first needed.
   memset(&mIdentityInfoCallOnce, 0, sizeof(PRCallOnceType));
-#endif
 
   NS_ASSERTION( (0 == mInstanceCount), "nsNSSComponent is a singleton, but instantiated multiple times!");
   ++mInstanceCount;
@@ -1152,7 +1147,6 @@ void nsNSSComponent::setValidationOptions(nsIPrefBranch * pref)
                            ocspMode_FailureIsVerificationFailure
                            : ocspMode_FailureIsNotAVerificationFailure);
 
-#ifndef NSS_NO_LIBPKIX
   nsRefPtr<nsCERTValInParamWrapper> newCVIN = new nsCERTValInParamWrapper;
   if (NS_SUCCEEDED(newCVIN->Construct(
       aiaDownloadEnabled ? 
@@ -1170,7 +1164,6 @@ void nsNSSComponent::setValidationOptions(nsIPrefBranch * pref)
     // as soon as any concurrent use of the old default objects has finished.
     mDefaultCERTValInParam = newCVIN;
   }
-#endif
 
   /*
     * The new defaults might change the validity of already established SSL sessions,
@@ -1718,11 +1711,9 @@ nsNSSComponent::InitializeNSS(bool showWarningBox)
     TryCFM2MachOMigration(cfmSecurityPath, profilePath);
   #endif
 
-#ifndef NSS_NO_LIBPKIX
     rv = mPrefBranch->GetBoolPref("security.use_libpkix_verification", &globalConstFlagUsePKIXVerification);
     if (NS_FAILED(rv))
       globalConstFlagUsePKIXVerification = USE_NSS_LIBPKIX_DEFAULT;
-#endif
 
     bool supress_warning_preference = false;
     rv = mPrefBranch->GetBoolPref("security.suppress_nss_rw_impossible_warning", &supress_warning_preference);
@@ -1852,7 +1843,6 @@ nsNSSComponent::InitializeNSS(bool showWarningBox)
       // dynamic options from prefs
       setValidationOptions(mPrefBranch);
 
-#ifndef NSS_NO_LIBPKIX
       // static validation options for usagesarray - do not hit the network
       mDefaultCERTValInParamLocalOnly = new nsCERTValInParamWrapper;
       rv = mDefaultCERTValInParamLocalOnly->Construct(
@@ -1866,7 +1856,6 @@ nsNSSComponent::InitializeNSS(bool showWarningBox)
         nsPSMInitPanic::SetPanic();
         return rv;
       }
-#endif
       
       RegisterMyOCSPAIAInfoCallback();
 
@@ -1930,9 +1919,7 @@ nsNSSComponent::ShutdownNSS()
       mClientAuthRememberService->ClearRememberedDecisions();
     }
     UnloadLoadableRoots();
-#ifndef NSS_NO_LIBPKIX
     CleanupIdentityInfo();
-#endif
     PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("evaporating psm resources\n"));
     mShutdownObjectList->evaporateAllNSSResources();
     EnsureNSSInitialized(nssShutdown);
@@ -2652,7 +2639,6 @@ nsNSSComponent::IsNSSInitialized(bool *initialized)
   return NS_OK;
 }
 
-#ifndef NSS_NO_LIBPKIX
 NS_IMETHODIMP
 nsNSSComponent::GetDefaultCERTValInParam(nsRefPtr<nsCERTValInParamWrapper> &out)
 {
@@ -2672,7 +2658,6 @@ nsNSSComponent::GetDefaultCERTValInParamLocalOnly(nsRefPtr<nsCERTValInParamWrapp
   out = mDefaultCERTValInParamLocalOnly;
   return NS_OK;
 }
-#endif
 
 //---------------------------------------------
 // Implementing nsICryptoHash

@@ -445,6 +445,14 @@ CreateCertErrorRunnable(PRErrorCode defaultErrorCodeToReport,
     return nullptr;
   }
 
+  nsRefPtr<nsCERTValInParamWrapper> survivingParams;
+  nsrv = inss->GetDefaultCERTValInParam(survivingParams);
+  if (NS_FAILED(nsrv)) {
+    NS_ERROR("GetDefaultCERTValInParam failed");
+    PR_SetError(defaultErrorCodeToReport, 0);
+    return nullptr;
+  }
+  
   PRArenaPool *log_arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
   PRArenaPoolCleanerFalseParam log_arena_cleaner(log_arena);
   if (!log_arena) {
@@ -460,24 +468,13 @@ CreateCertErrorRunnable(PRErrorCode defaultErrorCodeToReport,
   CERTVerifyLogContentsCleaner verify_log_cleaner(verify_log);
   verify_log->arena = log_arena;
 
-#ifndef NSS_NO_LIBPKIX
   if (!nsNSSComponent::globalConstFlagUsePKIXVerification) {
-#endif
     srv = CERT_VerifyCertificate(CERT_GetDefaultCertDB(), cert,
                                 true, certificateUsageSSLServer,
                                 PR_Now(), static_cast<void*>(infoObject),
                                 verify_log, NULL);
-#ifndef NSS_NO_LIBPKIX
   }
   else {
-    RefPtr<nsCERTValInParamWrapper> survivingParams;
-    nsrv = inss->GetDefaultCERTValInParam(survivingParams);
-    if (NS_FAILED(nsrv)) {
-      NS_ERROR("GetDefaultCERTValInParam failed");
-      PR_SetError(defaultErrorCodeToReport, 0);
-      return nullptr;
-    }
-
     CERTValOutParam cvout[2];
     cvout[0].type = cert_po_errorLog;
     cvout[0].value.pointer.log = verify_log;
@@ -487,7 +484,6 @@ CreateCertErrorRunnable(PRErrorCode defaultErrorCodeToReport,
                               survivingParams->GetRawPointerForNSS(),
                               cvout, static_cast<void*>(infoObject));
   }
-#endif
 
   // We ignore the result code of the cert verification.
   // Either it is a failure, which is expected, and we'll process the
@@ -639,12 +635,9 @@ PSM_SSL_PKIX_AuthCertificate(CERTCertificate *peerCert, void * pinarg,
 {
     SECStatus          rv;
     
-#ifndef NSS_NO_LIBPKIX
     if (!nsNSSComponent::globalConstFlagUsePKIXVerification) {
-#endif
         rv = CERT_VerifyCertNow(CERT_GetDefaultCertDB(), peerCert, true,
                                 certUsageSSLServer, pinarg);
-#ifndef NSS_NO_LIBPKIX
     }
     else {
         nsresult nsrv;
@@ -662,7 +655,6 @@ PSM_SSL_PKIX_AuthCertificate(CERTCertificate *peerCert, void * pinarg,
                                 survivingParams->GetRawPointerForNSS(),
                                 cvout, pinarg);
     }
-#endif
 
     if (rv == SECSuccess) {
         /* cert is OK.  This is the client side of an SSL connection.

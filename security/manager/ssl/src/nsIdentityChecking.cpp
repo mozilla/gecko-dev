@@ -4,13 +4,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "nsNSSCertificate.h"
-#include "nsNSSComponent.h"
-#include "nsSSLStatus.h"
-
-#ifndef NSS_NO_LIBPKIX
-
-#include "mozilla/RefPtr.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsStreamUtils.h"
 #include "nsNetUtil.h"
@@ -20,10 +13,10 @@
 
 #include "cert.h"
 #include "base64.h"
+#include "nsNSSComponent.h"
 #include "nsSSLStatus.h"
-#include "ScopedNSSTypes.h"
-
-using namespace mozilla;
+#include "nsNSSCertificate.h"
+#include "nsNSSCleaner.h"
 
 #ifdef DEBUG
 #ifndef PSM_ENABLE_TEST_EV_ROOTS
@@ -1072,17 +1065,12 @@ static SECStatus getFirstEVPolicy(CERTCertificate *cert, SECOidTag &outOidTag)
   return SECFailure;
 }
 
-#endif
-
 NS_IMETHODIMP
 nsSSLStatus::GetIsExtendedValidation(bool* aIsEV)
 {
   NS_ENSURE_ARG_POINTER(aIsEV);
   *aIsEV = false;
 
-#ifdef NSS_NO_LIBPKIX
-  return NS_OK;
-#else
   nsCOMPtr<nsIX509Cert> cert = mServerCert;
   nsresult rv;
   nsCOMPtr<nsIIdentityInfo> idinfo = do_QueryInterface(cert, &rv);
@@ -1103,10 +1091,7 @@ nsSSLStatus::GetIsExtendedValidation(bool* aIsEV)
     return NS_OK;
 
   return idinfo->GetIsExtendedValidation(aIsEV);
-#endif
 }
-
-#ifndef NSS_NO_LIBPKIX
 
 nsresult
 nsNSSCertificate::hasValidEVOidTag(SECOidTag &resultOidTag, bool &validEV)
@@ -1249,15 +1234,9 @@ nsNSSCertificate::getValidEVOidTag(SECOidTag &resultOidTag, bool &validEV)
   return rv;
 }
 
-#endif // NSS_NO_LIBPKIX
-
 NS_IMETHODIMP
 nsNSSCertificate::GetIsExtendedValidation(bool* aIsEV)
 {
-#ifdef NSS_NO_LIBPKIX
-  *aIsEV = false;
-  return NS_OK;
-#else
   nsNSSShutDownPreventionLock locker;
   if (isAlreadyShutDown())
     return NS_ERROR_NOT_AVAILABLE;
@@ -1272,15 +1251,11 @@ nsNSSCertificate::GetIsExtendedValidation(bool* aIsEV)
 
   SECOidTag oid_tag;
   return getValidEVOidTag(oid_tag, *aIsEV);
-#endif
 }
 
 NS_IMETHODIMP
 nsNSSCertificate::GetValidEVPolicyOid(nsACString &outDottedOid)
 {
-  outDottedOid.Truncate();
-
-#ifndef NSS_NO_LIBPKIX
   nsNSSShutDownPreventionLock locker;
   if (isAlreadyShutDown())
     return NS_ERROR_NOT_AVAILABLE;
@@ -1303,12 +1278,8 @@ nsNSSCertificate::GetValidEVPolicyOid(nsACString &outDottedOid)
     outDottedOid = oid_str;
     PR_smprintf_free(oid_str);
   }
-#endif
-
   return NS_OK;
 }
-
-#ifndef NSS_NO_LIBPKIX
 
 NS_IMETHODIMP
 nsNSSComponent::EnsureIdentityInfoLoaded()
@@ -1345,5 +1316,3 @@ nsNSSComponent::CleanupIdentityInfo()
 #endif
   memset(&mIdentityInfoCallOnce, 0, sizeof(PRCallOnceType));
 }
-
-#endif
