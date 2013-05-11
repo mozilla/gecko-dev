@@ -279,7 +279,6 @@ private:
   void UnloadLoadableRoots();
   void LaunchSmartCardThreads();
   void ShutdownSmartCardThreads();
-  void CleanupIdentityInfo();
   void setValidationOptions(nsIPrefBranch * pref);
   nsresult InitializePIPNSSBundle();
   nsresult ConfigureInternalPKCS11Token();
