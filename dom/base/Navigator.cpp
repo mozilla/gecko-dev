@@ -965,44 +965,37 @@ Navigator::MozIsLocallyAvailable(const nsAString &aURI,
 
 NS_IMETHODIMP Navigator::GetDeviceStorage(const nsAString &aType, nsIDOMDeviceStorage** _retval)
 {
-  // We're going to obsolete getDeviceStorage, but want to leave it in for
-  // compatability right now. So we do essentially the same thing as GetDeviceStorages
-  // but only take the first element of the array.
+  NS_ENSURE_ARG_POINTER(_retval);
+  *_retval = nullptr;
 
-  NS_WARNING("navigator.getDeviceStorage is deprecated. Returning navigator.getDeviceStorages[0]");
+  if (!Preferences::GetBool("device.storage.enabled", false)) {
+    return NS_OK;
+  }
 
-  nsCOMPtr<nsIVariant> variantArray;
+  nsCOMPtr<nsPIDOMWindow> win(do_QueryReferent(mWindow));
 
-  nsresult rv = GetDeviceStorages(aType, getter_AddRefs(variantArray));
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (!win || !win->GetOuterWindow() || !win->GetDocShell()) {
+    return NS_ERROR_FAILURE;
+  }
 
-  uint16_t dataType;
-  variantArray->GetDataType(&dataType);
+  nsRefPtr<nsDOMDeviceStorage> storage;
+  nsDOMDeviceStorage::CreateDeviceStorageFor(win, aType, getter_AddRefs(storage));
 
-  if (dataType != nsIDataType::VTYPE_ARRAY) {
-    NS_ASSERTION(dataType == nsIDataType::VTYPE_EMPTY_ARRAY,
-                 "Expecting an empty array");
+  if (!storage) {
     *_retval = nullptr;
     return NS_OK;
   }
 
-  uint16_t valueType;
-  nsIID iid;
-  uint32_t valueCount;
-  void* rawArray;
-  variantArray->GetAsArray(&valueType, &iid, &valueCount, &rawArray);
-  NS_ASSERTION(valueCount > 0, "Expecting non-zero array size");
-  nsIDOMDeviceStorage** values = static_cast<nsIDOMDeviceStorage**>(rawArray);
-  *_retval = values[0];
-  for (uint32_t i = 1; i < valueCount; i++) {
-    values[i]->Release();
-  }
-  nsMemory::Free(rawArray);
+  NS_ADDREF(*_retval = storage.get());
+  mDeviceStorageStores.AppendElement(storage);
   return NS_OK;
 }
 
 NS_IMETHODIMP Navigator::GetDeviceStorages(const nsAString &aType, nsIVariant** _retval)
 {
+  NS_ENSURE_ARG_POINTER(_retval);
+  *_retval = nullptr;
+
   if (!Preferences::GetBool("device.storage.enabled", false)) {
     return NS_OK;
   }
