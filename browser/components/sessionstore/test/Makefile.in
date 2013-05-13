@@ -21,6 +21,7 @@ XPCSHELL_TESTS = \
 
 MOCHITEST_BROWSER_FILES = \
 	head.js \
+	browser_attributes.js \
 	browser_form_restore_events.js \
 	browser_form_restore_events_sample.html \
 	browser_formdata_format.js \
