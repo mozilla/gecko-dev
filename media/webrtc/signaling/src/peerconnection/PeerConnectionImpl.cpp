@@ -297,7 +297,7 @@ PeerConnectionImpl::~PeerConnectionImpl()
   }
 
   CSFLogInfo(logTag, "%s: PeerConnectionImpl destructor invoked", __FUNCTION__);
-  CloseInt(false);
+  CloseInt();
 
 #ifdef MOZILLA_INTERNAL_API
   // Deregister as an NSS Shutdown Object
@@ -1213,17 +1213,17 @@ PeerConnectionImpl::CheckApiState(bool assert_ice_ready) const
 }
 
 NS_IMETHODIMP
-PeerConnectionImpl::Close(bool aIsSynchronous)
+PeerConnectionImpl::Close()
 {
   CSFLogDebug(logTag, __FUNCTION__);
   PC_AUTO_ENTER_API_CALL_NO_CHECK();
 
-  return CloseInt(aIsSynchronous);
+  return CloseInt();
 }
 
 
 nsresult
-PeerConnectionImpl::CloseInt(bool aIsSynchronous)
+PeerConnectionImpl::CloseInt()
 {
   PC_AUTO_ENTER_API_CALL_NO_CHECK();
 
@@ -1239,7 +1239,7 @@ PeerConnectionImpl::CloseInt(bool aIsSynchronous)
   }
 #endif
 
-  ShutdownMedia(aIsSynchronous);
+  ShutdownMedia();
 
   // DataConnection will need to stay alive until all threads/runnables exit
 
@@ -1247,7 +1247,7 @@ PeerConnectionImpl::CloseInt(bool aIsSynchronous)
 }
 
 void
-PeerConnectionImpl::ShutdownMedia(bool aIsSynchronous)
+PeerConnectionImpl::ShutdownMedia()
 {
   PC_AUTO_ENTER_API_CALL_NO_CHECK();
 

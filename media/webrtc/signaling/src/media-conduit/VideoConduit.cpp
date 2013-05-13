@@ -25,7 +25,7 @@ mozilla::RefPtr<VideoSessionConduit> VideoSessionConduit::Create()
   {
     CSFLogError(logTag,  "%s VideoConduit Init Failed ", __FUNCTION__);
     delete obj;
-    return NULL;
+    return nullptr;
   }
   CSFLogDebug(logTag,  "%s Successfully created VideoConduit ", __FUNCTION__);
   return obj;
@@ -47,14 +47,16 @@ WebrtcVideoConduit::~WebrtcVideoConduit()
   {
     mPtrViECapture->DisconnectCaptureDevice(mCapId);
     mPtrViECapture->ReleaseCaptureDevice(mCapId);
-    mPtrExtCapture = NULL;
+    mPtrExtCapture = nullptr;
     mPtrViECapture->Release();
   }
 
   //Deal with External Renderer
   if(mPtrViERender)
   {
-    mPtrViERender->StopRender(mChannel);
+    if(mRenderer) {
+      mPtrViERender->StopRender(mChannel);
+    }
     mPtrViERender->RemoveRenderer(mChannel);
     mPtrViERender->Release();
   }
@@ -267,23 +269,35 @@ WebrtcVideoConduit::AttachRenderer(mozilla::RefPtr<VideoRenderer> aVideoRenderer
     MOZ_ASSERT(PR_FALSE);
     return kMediaConduitInvalidRenderer;
   }
-  //Assign the new renderer - overwrites if there is already one
-  mRenderer = aVideoRenderer;
 
   //Start Rendering if we haven't already
-  if(!mEngineRendererStarted)
+  if(!mRenderer)
   {
+    mRenderer = aVideoRenderer; // must be done before StartRender()
+
     if(mPtrViERender->StartRender(mChannel) == -1)
     {
       CSFLogError(logTag, "%s Starting the Renderer Failed %d ", __FUNCTION__,
                                                       mPtrViEBase->LastError());
-      mRenderer = NULL;
+      mRenderer = nullptr;
       return kMediaConduitRendererFail;
     }
-    mEngineRendererStarted = true;
+  } else {
+    //Assign the new renderer - overwrites if there is already one
+    mRenderer = aVideoRenderer;
   }
 
   return kMediaConduitNoError;
+}
+
+void
+WebrtcVideoConduit::DetachRenderer()
+{
+  if(mRenderer)
+  {
+    mPtrViERender->StopRender(mChannel);
+    mRenderer = nullptr;
+  }
 }
 
 MediaConduitErrorCode
