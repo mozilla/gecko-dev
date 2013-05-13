@@ -846,6 +846,12 @@ NoRequestDatabaseHelper::OnError()
 nsresult
 CreateObjectStoreHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
 {
+  if (IndexedDatabaseManager::InLowDiskSpaceMode()) {
+    NS_WARNING("Refusing to create additional objectStore because disk space "
+               "is low!");
+    return NS_ERROR_DOM_INDEXEDDB_QUOTA_ERR;
+  }
+
   nsCOMPtr<mozIStorageStatement> stmt =
     mTransaction->GetCachedStatement(NS_LITERAL_CSTRING(
     "INSERT INTO object_store (id, auto_increment, name, key_path) "
@@ -916,6 +922,11 @@ DeleteObjectStoreHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
 nsresult
 CreateFileHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
 {
+  if (IndexedDatabaseManager::InLowDiskSpaceMode()) {
+    NS_WARNING("Refusing to create file because disk space is low!");
+    return NS_ERROR_DOM_INDEXEDDB_QUOTA_ERR;
+  }
+
   FileManager* fileManager = mDatabase->Manager();
 
   mFileInfo = fileManager->GetNewFileInfo();

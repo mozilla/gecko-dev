@@ -2807,6 +2807,11 @@ AddHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
 {
   NS_ASSERTION(aConnection, "Passed a null connection!");
 
+  if (IndexedDatabaseManager::InLowDiskSpaceMode()) {
+    NS_WARNING("Refusing to add more data because disk space is low!");
+    return NS_ERROR_DOM_INDEXEDDB_QUOTA_ERR;
+  }
+
   nsresult rv;
   bool keyUnset = mKey.IsUnset();
   int64_t osid = mObjectStore->Id();
@@ -3706,6 +3711,11 @@ OpenCursorHelper::UnpackResponseFromParentProcess(
 nsresult
 CreateIndexHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
 {
+  if (IndexedDatabaseManager::InLowDiskSpaceMode()) {
+    NS_WARNING("Refusing to create index because disk space is low!");
+    return NS_ERROR_DOM_INDEXEDDB_QUOTA_ERR;
+  }
+
   // Insert the data into the database.
   nsCOMPtr<mozIStorageStatement> stmt =
     mTransaction->GetCachedStatement(

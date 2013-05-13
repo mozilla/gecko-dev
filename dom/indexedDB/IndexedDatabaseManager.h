@@ -161,6 +161,12 @@ public:
   }
 #endif
 
+  static bool
+  InLowDiskSpaceMode()
+  {
+    return !!sLowDiskSpaceMode;
+  }
+
   already_AddRefed<FileManager>
   GetFileManager(const nsACString& aOrigin,
                  const nsAString& aDatabaseName);
@@ -511,6 +517,7 @@ private:
   nsString mDatabaseBasePath;
 
   static bool sIsMainProcess;
+  static int32_t sLowDiskSpaceMode;
 };
 
 class AutoEnterWindow
