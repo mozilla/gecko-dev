@@ -21,6 +21,7 @@
 #include "nsPrintfCString.h"
 #include "nsNetUtil.h"
 #include "nsIPrincipal.h"
+#include "nsIDiskSpaceWatcher.h"
 
 void ReverseString(const nsCSubstring& source, nsCSubstring& result)
 {
@@ -65,6 +66,18 @@ nsDOMStorageDBWrapper::Init()
 
   rv = mPrivateBrowsingDB.Init();
   NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIDiskSpaceWatcher> diskSpaceWatcherService =
+      do_GetService("@mozilla.org/toolkit/disk-space-watcher;1");
+  if (!diskSpaceWatcherService) {
+    NS_WARNING("Could not get disk information from DiskSpaceWatcher");
+    return NS_OK;
+  }
+  bool diskFull = false;
+  diskSpaceWatcherService->GetIsDiskFull(&diskFull);
+  if (diskFull) {
+    mPersistentDB.mDisabled = true;
+  }
 
   return NS_OK;
 }
@@ -395,3 +408,13 @@ nsDOMStorageDBWrapper::StopTempTableFlushTimer()
   }
 }
 
+void
+nsDOMStorageDBWrapper::Disable()
+{
+  mPersistentDB.mDisabled = true;
+}
+
+void nsDOMStorageDBWrapper::Enable()
+{
+  mPersistentDB.mDisabled = false;
+}

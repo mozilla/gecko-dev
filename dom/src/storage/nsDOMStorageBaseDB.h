@@ -37,6 +37,8 @@ public:
   bool IsScopeDirty(DOMStorageImpl* aStorage);
 
   int32_t GetQuota() {
+    if (mDisabled)
+      return 0;
     return gQuotaLimit * 1024;
   }
 
@@ -49,6 +51,7 @@ protected:
   void MarkScopeDirty(DOMStorageImpl* aStorage);
   void MarkAllScopesDirty();
 
+  bool mDisabled;
 private:
   static uint64_t sGlobalVersion;
 

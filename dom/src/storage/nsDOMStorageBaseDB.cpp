@@ -25,6 +25,7 @@ nsDOMStorageBaseDB::Init()
 }
 
 nsDOMStorageBaseDB::nsDOMStorageBaseDB()
+  : mDisabled(false)
 {
   mScopesVersion.Init(8);
 }
