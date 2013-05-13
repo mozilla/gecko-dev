@@ -229,6 +229,9 @@ public:
    */
   void StopTempTableFlushTimer();
 
+  void Disable();
+  void Enable();
+
 protected:
   nsDOMStoragePersistentDB mPersistentDB;
   nsDOMStorageMemoryDB mSessionOnlyDB;

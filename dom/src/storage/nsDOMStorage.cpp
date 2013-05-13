@@ -185,6 +185,8 @@ nsDOMStorageManager::Initialize()
   NS_ENSURE_SUCCESS(rv, rv);
   rv = os->AddObserver(gStorageManager, "webapps-clear-data", true);
   NS_ENSURE_SUCCESS(rv, rv);
+  rv = os->AddObserver(gStorageManager, "disk-space-watcher", true);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
 }
@@ -354,6 +356,14 @@ nsDOMStorageManager::Observe(nsISupports *aSubject,
     MOZ_ASSERT(appId != nsIScriptSecurityManager::UNKNOWN_APP_ID);
 
     return DOMStorageImpl::gStorageDB->RemoveAllForApp(appId, browserOnly);
+  } else if (!strcmp(aTopic, "disk-space-watcher")) {
+    if ((DOMStorageImpl::gStorageDB) &&
+        (NS_LITERAL_STRING("full").Equals(aData))) {
+      DOMStorageImpl::gStorageDB->Disable();
+    } else if ((DOMStorageImpl::gStorageDB) &&
+               (NS_LITERAL_STRING("free").Equals(aData))) {
+      DOMStorageImpl::gStorageDB->Enable();
+    }
   }
 
   return NS_OK;
