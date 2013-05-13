@@ -232,10 +232,6 @@ let SessionStoreInternal = {
     Ci.nsISupportsWeakReference
   ]),
 
-  // xul:tab attributes to (re)store (extensions might want to hook in here);
-  // the favicon is always saved for the about:sessionrestore page
-  xulAttributes: {"image": true},
-
   // set default load state
   _loadState: STATE_STOPPED,
 
@@ -1276,7 +1272,7 @@ let SessionStoreInternal = {
       this._windows[aWindow.__SSi]._closedTabs.unshift({
         state: tabState,
         title: tabTitle,
-        image: aTab.getAttribute("image"),
+        image: tabbrowser.getIcon(aTab),
         pos: aTab._tPos
       });
       var length = this._windows[aWindow.__SSi]._closedTabs.length;
@@ -1662,11 +1658,9 @@ let SessionStoreInternal = {
   },
 
   persistTabAttribute: function ssi_persistTabAttribute(aName) {
-    if (aName in this.xulAttributes)
-      return; // this attribute is already being tracked
-
-    this.xulAttributes[aName] = true;
-    this.saveStateDelayed();
+    if (TabAttributes.persist(aName)) {
+      this.saveStateDelayed();
+    }
   },
 
   /**
@@ -1969,11 +1963,12 @@ let SessionStoreInternal = {
     else if (tabData.disallow)
       delete tabData.disallow;
 
-    tabData.attributes = {};
-    for (let name in this.xulAttributes) {
-      if (aTab.hasAttribute(name))
-        tabData.attributes[name] = aTab.getAttribute(name);
-    }
+    // Save tab attributes.
+    tabData.attributes = TabAttributes.get(aTab);
+
+    // Store the tab icon.
+    let tabbrowser = aTab.ownerDocument.defaultView.gBrowser;
+    tabData.image = tabbrowser.getIcon(aTab);
 
     if (aTab.__SS_extdata)
       tabData.extData = aTab.__SS_extdata;
@@ -2970,8 +2965,10 @@ let SessionStoreInternal = {
       else
         tabbrowser.showTab(tab);
 
-      for (let name in tabData.attributes)
-        this.xulAttributes[name] = true;
+      if ("attributes" in tabData) {
+        // Ensure that we persist tab attributes restored from previous sessions.
+        Object.keys(tabData.attributes).forEach(a => TabAttributes.persist(a));
+      }
 
       browser.__SS_tabStillLoading = true;
 
@@ -3096,10 +3093,16 @@ let SessionStoreInternal = {
     CAPABILITIES.forEach(function(aCapability) {
       browser.docShell["allow" + aCapability] = disallow.indexOf(aCapability) == -1;
     });
-    for (let name in this.xulAttributes)
-      tab.removeAttribute(name);
-    for (let name in tabData.attributes)
-      tab.setAttribute(name, tabData.attributes[name]);
+
+    // Restore tab attributes.
+    if ("attributes" in tabData) {
+      TabAttributes.set(tab, tabData.attributes);
+    }
+
+    // Restore the tab icon.
+    if ("image" in tabData) {
+      aWindow.gBrowser.setIcon(tab, tabData.image);
+    }
 
     if (tabData.storage && browser.docShell instanceof Ci.nsIDocShell)
       SessionStorage.deserialize(browser.docShell, tabData.storage);
@@ -4471,6 +4474,52 @@ let SessionStoreInternal = {
       browser.webNavigation.sessionHistory.
                             removeSHistoryListener(browser.__SS_shistoryListener);
       delete browser.__SS_shistoryListener;
+    }
+  }
+};
+
+// A set of tab attributes to persist. We will read a given list of tab
+// attributes when collecting tab data and will re-set those attributes when
+// the given tab data is restored to a new tab.
+let TabAttributes = {
+  _attrs: new Set(),
+
+  // We never want to directly read or write those attributes.
+  // 'image' should not be accessed directly but handled by using the
+  //         gBrowser.getIcon()/setIcon() methods.
+  // 'pending' is used internal by sessionstore and managed accordingly.
+  _skipAttrs: new Set(["image", "pending"]),
+
+  persist: function (name) {
+    if (this._attrs.has(name) || this._skipAttrs.has(name)) {
+      return false;
+    }
+
+    this._attrs.add(name);
+    return true;
+  },
+
+  get: function (tab) {
+    let data = {};
+
+    for (let name of this._attrs) {
+      if (tab.hasAttribute(name)) {
+        data[name] = tab.getAttribute(name);
+      }
+    }
+
+    return data;
+  },
+
+  set: function (tab, data = {}) {
+    // Clear attributes.
+    for (let name of this._attrs) {
+      tab.removeAttribute(name);
+    }
+
+    // Set attributes.
+    for (let name in data) {
+      tab.setAttribute(name, data[name]);
     }
   }
 };
