@@ -683,6 +683,11 @@ SpecialPowersAPI.prototype = {
                    .getService(Ci.nsIObserverService);
     obsvc.removeObserver(obs, notification);
   },
+  notifyObservers: function(subject, topic, data) {
+    var obsvc = Cc['@mozilla.org/observer-service;1']
+                   .getService(Ci.nsIObserverService);
+    obsvc.notifyObservers(subject, topic, data);
+  },
 
   can_QI: function(obj) {
     return obj.QueryInterface !== undefined;
@@ -1268,4 +1273,19 @@ SpecialPowersAPI.prototype = {
   getMozFullPath: function(file) {
     return file.mozFullPath;
   },
+
+  notifyObserversInParentProcess: function(subject, topic, data) {
+    if (subject) {
+      throw new Error("Can't send subject to another process!");
+    }
+    if (this.isMainProcess()) {
+      return this.notifyObservers(subject, topic, data);
+    }
+    var msg = {
+      'op': 'notify',
+      'observerTopic': topic,
+      'observerData': data
+    };
+    this._sendSyncMessage('SPObserverService', msg);
+  }
 };

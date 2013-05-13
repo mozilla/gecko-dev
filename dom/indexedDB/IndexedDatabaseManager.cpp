@@ -9,6 +9,7 @@
 #include "mozIApplicationClearPrivateDataParams.h"
 #include "nsIAtom.h"
 #include "nsIConsoleService.h"
+#include "nsIDiskSpaceWatcher.h"
 #include "nsIDOMScriptObjectFactory.h"
 #include "nsIFile.h"
 #include "nsIFileStorage.h"
@@ -64,6 +65,17 @@
 
 // profile-before-change, when we need to shut down IDB
 #define PROFILE_BEFORE_CHANGE_OBSERVER_ID "profile-before-change"
+
+// Contract ID of the disk space watcher.
+#define LOW_DISK_SPACE_CONTRACTID "@mozilla.org/toolkit/disk-space-watcher;1"
+
+// The topic to watch for low disk space.
+#define LOW_DISK_SPACE_OBSERVER_ID "disk-space-watcher"
+
+// The two possible values for the data argument when receiving the disk space
+// observer notification.
+#define LOW_DISK_SPACE_DATA_FULL "full"
+#define LOW_DISK_SPACE_DATA_FREE "free"
 
 USING_INDEXEDDB_NAMESPACE
 using namespace mozilla::services;
@@ -385,6 +397,7 @@ IndexedDatabaseManager::~IndexedDatabaseManager()
 }
 
 bool IndexedDatabaseManager::sIsMainProcess = false;
+int32_t IndexedDatabaseManager::sLowDiskSpaceMode = 0;
 
 // static
 already_AddRefed<IndexedDatabaseManager>
@@ -450,6 +463,19 @@ IndexedDatabaseManager::GetOrCreate()
       // initialize the timer until shutdown.
       instance->mShutdownTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
       NS_ENSURE_TRUE(instance->mShutdownTimer, nullptr);
+
+      // See if we're starting up in low disk space conditions.
+      nsCOMPtr<nsIDiskSpaceWatcher> watcher =
+        do_GetService(LOW_DISK_SPACE_CONTRACTID);
+      NS_WARN_IF_FALSE(watcher, "No disk space watcher component available!");
+
+      if (watcher) {
+        bool isDiskFull;
+        rv = watcher->GetIsDiskFull(&isDiskFull);
+        NS_ENSURE_SUCCESS(rv, nullptr);
+
+        sLowDiskSpaceMode = isDiskFull ? 1 : 0;
+      }
     }
 
     nsCOMPtr<nsIObserverService> obs = GetObserverService();
@@ -464,6 +490,17 @@ IndexedDatabaseManager::GetOrCreate()
                                               DEFAULT_QUOTA_MB))) {
       NS_WARNING("Unable to respond to quota pref changes!");
       gIndexedDBQuotaMB = DEFAULT_QUOTA_MB;
+    }
+
+    // We really don't want to do anything that can fail after we've added
+    // ourselves to the observer service above since we have to clean up here...
+    if (sIsMainProcess) {
+      rv = obs->AddObserver(instance, LOW_DISK_SPACE_OBSERVER_ID, false);
+      if (NS_FAILED(rv)) {
+        NS_WARNING("Second AddObserver call failed?!");
+        obs->RemoveObserver(instance, PROFILE_BEFORE_CHANGE_OBSERVER_ID);
+        return nullptr;
+      }
     }
 
     // The observer service will hold our last reference, don't AddRef here.
@@ -990,6 +1027,11 @@ IndexedDatabaseManager::EnsureOriginIsInitialized(const nsACString& aOrigin,
     NS_ENSURE_TRUE(isDirectory, NS_ERROR_UNEXPECTED);
   }
   else {
+    if (IndexedDatabaseManager::InLowDiskSpaceMode()) {
+      NS_WARNING("Refusing to create directory because disk space is low!");
+      return NS_ERROR_DOM_INDEXEDDB_QUOTA_ERR;
+    }
+
     rv = directory->Create(nsIFile::DIRECTORY_TYPE, 0755);
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -1700,6 +1742,25 @@ IndexedDatabaseManager::Observe(nsISupports* aSubject,
 
     rv = ClearDatabasesForApp(appId, browserOnly);
     NS_ENSURE_SUCCESS(rv, rv);
+
+    return NS_OK;
+  }
+
+  if (!strcmp(aTopic, LOW_DISK_SPACE_OBSERVER_ID)) {
+    NS_ASSERTION(sIsMainProcess, "Should only happen in the main process!");
+    NS_ASSERTION(aData, "No data?!");
+
+    nsDependentString data(aData);
+
+    if (data.EqualsLiteral(LOW_DISK_SPACE_DATA_FULL)) {
+      PR_ATOMIC_SET(&sLowDiskSpaceMode, 1);
+    }
+    else if (data.EqualsLiteral(LOW_DISK_SPACE_DATA_FREE)) {
+      PR_ATOMIC_SET(&sLowDiskSpaceMode, 0);
+    }
+    else {
+      NS_NOTREACHED("Unknown data value!");
+    }
 
     return NS_OK;
   }

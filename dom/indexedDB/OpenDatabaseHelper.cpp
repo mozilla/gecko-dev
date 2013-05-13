@@ -1639,6 +1639,10 @@ OpenDatabaseHelper::DoDatabaseWork()
   nsresult rv = mgr->EnsureOriginIsInitialized(mASCIIOrigin,
                                                mTrackingQuota,
                                                getter_AddRefs(dbDirectory));
+  if (NS_FAILED(rv) &&
+      NS_ERROR_GET_MODULE(rv) != NS_ERROR_MODULE_DOM_INDEXEDDB) {
+    rv = NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
+  }
   NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
 
   nsAutoString filename;
@@ -1738,6 +1742,19 @@ OpenDatabaseHelper::CreateDatabaseConnection(
   NS_ASSERTION(IndexedDatabaseManager::IsMainProcess(), "Wrong process!");
   NS_ASSERTION(!NS_IsMainThread(), "Wrong thread!");
 
+  nsresult rv;
+  bool exists;
+
+  if (IndexedDatabaseManager::InLowDiskSpaceMode()) {
+    rv = aDBFile->Exists(&exists);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (!exists) {
+      NS_WARNING("Refusing to create database because disk space is low!");
+      return NS_ERROR_DOM_INDEXEDDB_QUOTA_ERR;
+    }
+  }
+
   NS_NAMED_LITERAL_CSTRING(quotaVFSName, "quota");
 
   nsCOMPtr<mozIStorageServiceQuotaManagement> ss =
@@ -1745,8 +1762,8 @@ OpenDatabaseHelper::CreateDatabaseConnection(
   NS_ENSURE_TRUE(ss, NS_ERROR_FAILURE);
 
   nsCOMPtr<mozIStorageConnection> connection;
-  nsresult rv = ss->OpenDatabaseWithVFS(aDBFile, quotaVFSName,
-                                        getter_AddRefs(connection));
+  rv = ss->OpenDatabaseWithVFS(aDBFile, quotaVFSName,
+                               getter_AddRefs(connection));
   if (rv == NS_ERROR_FILE_CORRUPTED) {
     // If we're just opening the database during origin initialization, then
     // we don't want to erase any files. The failure here will fail origin
@@ -1759,7 +1776,6 @@ OpenDatabaseHelper::CreateDatabaseConnection(
     rv = aDBFile->Remove(false);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    bool exists;
     rv = aFileManagerDirectory->Exists(&exists);
     NS_ENSURE_SUCCESS(rv, rv);
 

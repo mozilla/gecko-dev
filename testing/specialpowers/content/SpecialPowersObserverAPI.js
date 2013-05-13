@@ -242,9 +242,35 @@ SpecialPowersObserverAPI.prototype = {
         }
         break;
 
+      case "SPObserverService":
+        switch (aMessage.json.op) {
+          case "notify":
+            let topic = aMessage.json.observerTopic;
+            let data = aMessage.json.observerData
+            Services.obs.notifyObservers(null, topic, data);
+            break;
+          default:
+            throw new SpecialPowersException("Invalid operation for SPObserverervice");
+        }
+        break;
+
       default:
         throw new SpecialPowersException("Unrecognized Special Powers API");
     }
+  },
+
+  notifyObserversInParentProcess: function(subject, topic, data) {
+    if (subject) {
+      throw new Error("Can't send subject to another process!");
+    }
+    if (this.isMainProcess()) {
+      return this.notifyObservers(subject, topic, data);
+    }
+    var msg = {
+      'op': 'notify',
+      'observerTopic': topic,
+      'observerData': data
+    };
+    this._sendSyncMessage('SPObserverService', msg);
   }
 };
-

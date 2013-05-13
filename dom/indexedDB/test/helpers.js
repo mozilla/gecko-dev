@@ -79,6 +79,8 @@ function finishTest()
 {
   resetUnlimitedQuota();
   resetArchiveReader();
+  SpecialPowers.notifyObserversInParentProcess(null, "disk-space-watcher",
+                                               "free");
 
   SimpleTest.executeSoon(function() {
     testGenerator.close();
@@ -130,6 +132,16 @@ function unexpectedSuccessHandler()
 {
   ok(false, "Got success, but did not expect it!");
   finishTest();
+}
+
+function expectedErrorHandler(name)
+{
+  return function(event) {
+    is(event.type, "error", "Got an error event");
+    is(event.target.error.name, name, "Expected error was thrown.");
+    event.preventDefault();
+    grabEventAndContinueHandler(event);
+  };
 }
 
 function ExpectError(name, preventDefault)
