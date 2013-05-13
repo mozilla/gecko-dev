@@ -247,7 +247,7 @@ TargetEventsHandler.prototype = {
   _onTabNavigated: function(aType, aPacket) {
     if (aType == "will-navigate") {
       NetMonitorView.RequestsMenu.reset();
-      NetMonitorView.NetworkDetails.toggle(false);
+      NetMonitorView.NetworkDetails.reset();
       window.emit("NetMonitor:TargetWillNavigate");
     }
     if (aType == "navigate") {
