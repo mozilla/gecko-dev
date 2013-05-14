@@ -145,7 +145,6 @@ private:
   bool mLoop;
   bool mStartCalled;
   bool mStopped;
-  bool mOffsetAndDurationRemembered;
 };
 
 }
