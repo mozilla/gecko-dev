@@ -1585,12 +1585,14 @@ public:
   NS_IMETHOD Run() {
     NS_ASSERTION(!NS_IsMainThread(), "Wrong thread!");
 
-    bool check;
-    mFile->mFile->IsDirectory(&check);
-    if (!check) {
-      nsCOMPtr<PostErrorEvent> event = new PostErrorEvent(mRequest, POST_ERROR_EVENT_FILE_NOT_ENUMERABLE);
-      NS_DispatchToMainThread(event);
-      return NS_OK;
+    if (mFile->mFile) {
+      bool check;
+      mFile->mFile->IsDirectory(&check);
+      if (!check) {
+        nsCOMPtr<PostErrorEvent> event = new PostErrorEvent(mRequest, POST_ERROR_EVENT_FILE_NOT_ENUMERABLE);
+        NS_DispatchToMainThread(event);
+        return NS_OK;
+      }
     }
 
     nsDOMDeviceStorageCursor* cursor = static_cast<nsDOMDeviceStorageCursor*>(mRequest.get());
