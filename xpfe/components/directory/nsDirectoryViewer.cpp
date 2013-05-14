@@ -159,7 +159,7 @@ nsHTTPIndex::OnFTPControlLog(bool server, const char *msg)
     JSContext* cx = context->GetNativeContext();
     NS_ENSURE_TRUE(cx, NS_OK);
 
-    JSObject* global = JS_GetGlobalObject(cx);
+    JSObject* global = JS_GetGlobalForScopeChain(cx);
     NS_ENSURE_TRUE(global, NS_OK);
 
     jsval params[2];
@@ -234,7 +234,7 @@ nsHTTPIndex::OnStartRequest(nsIRequest *request, nsISupports* aContext)
     NS_ENSURE_TRUE(context, NS_ERROR_FAILURE);
 
     JSContext* cx = context->GetNativeContext();
-    JSObject* global = JS_GetGlobalObject(cx);
+    JSObject* global = JS_GetGlobalForScopeChain(cx);
 
     // Using XPConnect, wrap the HTTP index object...
     static NS_DEFINE_CID(kXPConnectCID, NS_XPCONNECT_CID);
