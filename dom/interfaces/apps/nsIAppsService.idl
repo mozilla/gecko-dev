@@ -6,6 +6,7 @@
 
 interface mozIDOMApplication;
 interface mozIApplication;
+interface nsIURI;
 
 %{C++
 #define APPS_SERVICE_CID { 0x05072afa, 0x92fe, 0x45bf, { 0xae, 0x22, 0x39, 0xb6, 0x9c, 0x11, 0x70, 0x58 } }
@@ -16,7 +17,7 @@ interface mozIApplication;
  * This service allows accessing some DOMApplicationRegistry methods from
  * non-javascript code.
  */
-[scriptable, uuid(4ac27836-4d79-4d35-b105-d6fb7f4f8e41)]
+[scriptable, uuid(2b4a6868-22f1-4c02-a2ec-c86e796636c2)]
 interface nsIAppsService : nsISupports
 {
   mozIDOMApplication getAppByManifestURL(in DOMString manifestURL);
@@ -62,4 +63,10 @@ interface nsIAppsService : nsISupports
   DOMString getWebAppsBasePath();
 
   jsval getAppInfo(in DOMString appId);
+ 
+  /**
+   * Returns a URI to redirect to when we get a redirection to 'uri'.
+   * Returns null if no redirection is declared for this uri.
+   */
+  nsIURI getRedirect(in unsigned long localId, in nsIURI uri);
 };
