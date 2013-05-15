@@ -64,25 +64,9 @@ nsScreen::nsScreen()
 {
 }
 
-void
-nsScreen::Reset()
-{
-  hal::UnlockScreenOrientation();
-
-  if (mEventListener) {
-    nsCOMPtr<nsIDOMEventTarget> target = do_QueryInterface(GetOwner());
-    if (target) {
-      target->RemoveSystemEventListener(NS_LITERAL_STRING("mozfullscreenchange"),
-                                        mEventListener, /* usecapture */ true);
-    }
-
-    mEventListener = nullptr;
-  }
-}
-
 nsScreen::~nsScreen()
 {
-  Reset();
+  MOZ_ASSERT(!mEventListener);
   hal::UnregisterScreenConfigurationObserver(this);
 }
 
@@ -432,7 +416,7 @@ nsScreen::MozLockOrientation(const jsval& aOrientation, JSContext* aCx, bool* aR
       // We are fullscreen and lock has been accepted.
       // Now, we need to register a listener so we learn when we leave
       // full-screen and when we will have to unlock the screen.
-      nsCOMPtr<nsIDOMEventTarget> target = do_QueryInterface(GetOwner());
+      nsCOMPtr<nsIDOMEventTarget> target = do_QueryInterface(GetOwner()->GetDoc());
       if (!target) {
         return NS_OK;
       }
@@ -472,23 +456,16 @@ nsScreen::FullScreenEventListener::HandleEvent(nsIDOMEvent* aEvent)
 
   nsCOMPtr<nsIDOMEventTarget> target;
   aEvent->GetCurrentTarget(getter_AddRefs(target));
+  nsCOMPtr<nsIDOMDocument> doc = do_QueryInterface(target);
+  MOZ_ASSERT(target && doc);
 
   // We have to make sure that the event we got is the event sent when
   // fullscreen is disabled because we could get one when fullscreen
   // got enabled if the lock call is done at the same moment.
-  nsCOMPtr<nsIDOMWindow> window = do_QueryInterface(target);
-  MOZ_ASSERT(window);
-
-  nsCOMPtr<nsIDOMDocument> doc;
-  window->GetDocument(getter_AddRefs(doc));
-  // If we have no doc, we will just continue, remove the event and unlock.
-  // This is an edge case were orientation lock and fullscreen is meaningless.
-  if (doc) {
-    bool fullscreen;
-    doc->GetMozFullScreen(&fullscreen);
-    if (fullscreen) {
-      return NS_OK;
-    }
+  bool fullscreen;
+  doc->GetMozFullScreen(&fullscreen);
+  if (fullscreen) {
+    return NS_OK;
   }
 
   target->RemoveSystemEventListener(NS_LITERAL_STRING("mozfullscreenchange"),
