@@ -2895,7 +2895,8 @@ nsXMLHttpRequest::Send(nsIVariant* aVariant, const Nullable<RequestBody>& aBody)
   mUploadProgress = 0;
   mUploadProgressMax = 0;
   if ((aVariant || !aBody.IsNull()) && httpChannel &&
-      !method.EqualsLiteral("GET")) {
+      !method.LowerCaseEqualsLiteral("get") &&
+      !method.LowerCaseEqualsLiteral("head")) {
 
     nsCAutoString charset;
     nsCAutoString defaultContentType;
