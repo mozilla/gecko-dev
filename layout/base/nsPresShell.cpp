@@ -6259,6 +6259,7 @@ PresShell::HandleEventWithTarget(nsEvent* aEvent, nsIFrame* aFrame,
     NS_ASSERTION(!doc || doc->GetShell() == this, "wrong shell");
   }
 #endif
+  NS_ENSURE_STATE(!aContent || aContent->GetCurrentDoc() == mDocument);
 
   PushCurrentEventInfo(aFrame, aContent);
   nsresult rv = HandleEventInternal(aEvent, aStatus);
