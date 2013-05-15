@@ -26,23 +26,14 @@ MobileMessageDatabaseService::GetMessageMoz(int32_t aMessageId,
 }
 
 NS_IMETHODIMP
-MobileMessageDatabaseService::DeleteMessage(int32_t *aMessageIds,
-                                            uint32_t aLength,
+MobileMessageDatabaseService::DeleteMessage(int32_t aMessageId,
                                             nsIMobileMessageCallback* aRequest)
 {
   if (!AndroidBridge::Bridge()) {
     return NS_OK;
   }
 
-  if (!aMessageIds) {
-    return NS_OK;
-  }
-
-  if (aLength != 1) {
-    return NS_ERROR_FAILURE;
-  }
-
-  AndroidBridge::Bridge()->DeleteMessage(aMessageIds[0], aRequest);
+  AndroidBridge::Bridge()->DeleteMessage(aMessageId, aRequest);
   return NS_OK;
 }
 

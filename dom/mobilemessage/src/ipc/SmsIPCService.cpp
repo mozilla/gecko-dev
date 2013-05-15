@@ -130,12 +130,10 @@ SmsIPCService::GetMessageMoz(int32_t aMessageId,
 }
 
 NS_IMETHODIMP
-SmsIPCService::DeleteMessage(int32_t *aMessageIds, uint32_t aSize,
+SmsIPCService::DeleteMessage(int32_t aMessageId,
                              nsIMobileMessageCallback* aRequest)
 {
-  DeleteMessageRequest data;
-  data.messageIds().AppendElements(aMessageIds, aSize);
-  return SendRequest(data, aRequest);
+  return SendRequest(DeleteMessageRequest(aMessageId), aRequest);
 }
 
 NS_IMETHODIMP

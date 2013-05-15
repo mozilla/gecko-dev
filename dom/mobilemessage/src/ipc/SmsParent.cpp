@@ -527,9 +527,7 @@ SmsRequestParent::DoRequest(const DeleteMessageRequest& aRequest)
   nsCOMPtr<nsIMobileMessageDatabaseService> dbService =
     do_GetService(MOBILE_MESSAGE_DATABASE_SERVICE_CONTRACTID);
   if (dbService) {
-    const InfallibleTArray<int32_t>& messageIds = aRequest.messageIds();
-    rv = dbService->DeleteMessage(const_cast<int32_t *>(messageIds.Elements()),
-                                  messageIds.Length(), this);
+    rv = dbService->DeleteMessage(aRequest.messageId(), this);
   }
 
   if (NS_FAILED(rv)) {
@@ -630,11 +628,9 @@ SmsRequestParent::NotifyGetMessageFailed(int32_t aError)
 }
 
 NS_IMETHODIMP
-SmsRequestParent::NotifyMessageDeleted(bool *aDeleted, uint32_t aSize)
+SmsRequestParent::NotifyMessageDeleted(bool aDeleted)
 {
-  ReplyMessageDelete data;
-  data.deleted().AppendElements(aDeleted, aSize);
-  return SendReply(data);
+  return SendReply(ReplyMessageDelete(aDeleted));
 }
 
 NS_IMETHODIMP

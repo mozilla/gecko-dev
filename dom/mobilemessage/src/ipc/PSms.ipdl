@@ -46,7 +46,7 @@ struct GetMessageRequest
 
 struct DeleteMessageRequest
 {
-  int32_t[] messageIds;
+  int32_t messageId;
 };
 
 struct CreateMessageCursorRequest
