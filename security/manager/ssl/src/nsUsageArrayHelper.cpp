@@ -136,7 +136,9 @@ nsUsageArrayHelper::GetUsagesArray(const char *suffix,
 
   nsCOMPtr<nsINSSComponent> nssComponent;
 
+#ifndef NSS_NO_LIBPKIX
   if (!nsNSSComponent::globalConstFlagUsePKIXVerification && localOnly) {
+#endif
     nsresult rv;
     nssComponent = do_GetService(kNSSComponentCID, &rv);
     if (NS_FAILED(rv))
@@ -145,14 +147,18 @@ nsUsageArrayHelper::GetUsagesArray(const char *suffix,
     if (nssComponent) {
       nssComponent->SkipOcsp();
     }
+#ifndef NSS_NO_LIBPKIX
   }
+#endif
   
   uint32_t &count = *_count;
   count = 0;
   SECCertificateUsage usages = 0;
   int err = 0;
-  
+
+#ifndef NSS_NO_LIBPKIX
 if (!nsNSSComponent::globalConstFlagUsePKIXVerification) {
+#endif
   // CERT_VerifyCertificateNow returns SECFailure unless the certificate is
   // valid for all the given usages. Hoewver, we are only looking for the list
   // of usages for which the cert *is* valid.
@@ -168,6 +174,7 @@ if (!nsNSSComponent::globalConstFlagUsePKIXVerification) {
 			    certificateUsageStatusResponder,
 			    NULL, &usages);
   err = PR_GetError();
+#ifndef NSS_NO_LIBPKIX
 }
 else {
   nsresult nsrv;
@@ -194,6 +201,7 @@ else {
   err = PR_GetError();
   usages = cvout[0].value.scalar.usages;
 }
+#endif
 
   // The following list of checks must be < max_returned_out_array_size
   
@@ -216,9 +224,13 @@ else {
   check(suffix, usages & certificateUsageAnyCA, count, outUsages);
 #endif
 
+#ifndef NSS_NO_LIBPKIX
   if (!nsNSSComponent::globalConstFlagUsePKIXVerification && localOnly && nssComponent) {
+#endif
     nssComponent->SkipOcspOff();
+#ifndef NSS_NO_LIBPKIX
   }
+#endif
 
   if (count == 0) {
     verifyFailed(_verified, err);
