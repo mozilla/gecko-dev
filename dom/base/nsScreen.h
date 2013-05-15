@@ -26,8 +26,6 @@ class nsScreen : public nsDOMEventTargetHelper
 public:
   static already_AddRefed<nsScreen> Create(nsPIDOMWindow* aWindow);
 
-  void Reset();
-
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMSCREEN
   NS_FORWARD_NSIDOMEVENTTARGET(nsDOMEventTargetHelper::)

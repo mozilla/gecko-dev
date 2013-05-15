@@ -7523,6 +7523,17 @@ NotifyPageHide(nsIDocument* aDocument, void* aData)
   return true;
 }
 
+static void
+DispatchFullScreenChange(nsIDocument* aTarget)
+{
+  nsRefPtr<nsAsyncDOMEvent> e =
+    new nsAsyncDOMEvent(aTarget,
+                        NS_LITERAL_STRING("mozfullscreenchange"),
+                        true,
+                        false);
+  e->PostDOMEvent();
+}
+
 void
 nsDocument::OnPageHide(bool aPersisted,
                        nsIDOMEventTarget* aDispatchStartTarget)
@@ -7586,6 +7597,10 @@ nsDocument::OnPageHide(bool aPersisted,
 
     // Next reset full-screen state in all visible documents in the doctree.
     nsIDocument::ExitFullScreen(false);
+
+    // If anyone was listening to this document's state, advertizing the state
+    // change would be the least of the politeness.
+    DispatchFullScreenChange(this);
   }
 }
 
@@ -8713,17 +8728,6 @@ nsDocument::CreateTouchList(nsIVariant* aPoints,
 
   *aRetVal = retval.forget().get();
   return NS_OK;
-}
-
-static void
-DispatchFullScreenChange(nsIDocument* aTarget)
-{
-  nsRefPtr<nsAsyncDOMEvent> e =
-    new nsAsyncDOMEvent(aTarget,
-                        NS_LITERAL_STRING("mozfullscreenchange"),
-                        true,
-                        false);
-  e->PostDOMEvent();
 }
 
 NS_IMETHODIMP
