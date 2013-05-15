@@ -60,6 +60,7 @@ MmsMessage::MmsMessage(int32_t                         aId,
 
 MmsMessage::MmsMessage(const mobilemessage::MmsMessageData& aData)
   : mId(aData.id())
+  , mThreadId(aData.threadId())
   , mDelivery(aData.delivery())
   , mDeliveryStatus(aData.deliveryStatus())
   , mSender(aData.sender())
@@ -280,6 +281,7 @@ MmsMessage::GetData(ContentParent* aParent,
   NS_ASSERTION(aParent, "aParent is null");
 
   aData.id() = mId;
+  aData.threadId() = mThreadId;
   aData.delivery() = mDelivery;
   aData.sender().Assign(mSender);
   aData.timestamp() = mTimestamp;
