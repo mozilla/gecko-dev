@@ -21,6 +21,9 @@ MOCHITEST_BROWSER_FILES = \
   worker_social.js \
   browser_SocialProvider.js \
   browser_notifications.js \
+  worker_eventsource.js \
+  eventsource.resource \
+  eventsource.resource^headers^ \
   $(NULL)
 
 include $(topsrcdir)/config/rules.mk
