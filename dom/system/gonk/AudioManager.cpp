@@ -35,8 +35,6 @@ using namespace mozilla;
 #define HEADPHONES_STATUS_UNKNOWN NS_LITERAL_STRING("unknown").get()
 #define BLUETOOTH_SCO_STATUS_CHANGED "bluetooth-sco-status-changed"
 
-static void BinderDeadCallback(status_t aErr);
-static void InternalSetAudioRoutes(SwitchState aState);
 // Refer AudioService.java from Android
 static int sMaxStreamVolumeTbl[AUDIO_STREAM_CNT] = {
   5,   // voice call
@@ -53,47 +51,8 @@ static int sMaxStreamVolumeTbl[AUDIO_STREAM_CNT] = {
 };
 
 // A bitwise variable for recording what kind of headset is attached.
-static int sHeadsetState = SWITCH_STATE_OFF;
+static int sHeadsetState;
 static int kBtSampleRate = 8000;
-
-class RecoverTask : public nsRunnable
-{
-public:
-  RecoverTask() {}
-  NS_IMETHODIMP Run() {
-    nsCOMPtr<nsIAudioManager> am = do_GetService(NS_AUDIOMANAGER_CONTRACTID);
-    NS_ENSURE_TRUE(am, NS_OK);
-    for (int i = 0; i < AUDIO_STREAM_CNT; i++) {
-      AudioSystem::initStreamVolume(static_cast<audio_stream_type_t>(i), 0,
-                                    sMaxStreamVolumeTbl[i]);
-      int32_t volidx = 0;
-      am->GetStreamVolumeIndex(i, &volidx);
-      am->SetStreamVolumeIndex(static_cast<audio_stream_type_t>(i),
-                               volidx);
-    }
-    if (sHeadsetState & AUDIO_DEVICE_OUT_WIRED_HEADSET)
-      InternalSetAudioRoutes(SWITCH_STATE_HEADSET);
-    else if (sHeadsetState & AUDIO_DEVICE_OUT_WIRED_HEADPHONE)
-      InternalSetAudioRoutes(SWITCH_STATE_HEADPHONE);
-    else
-      InternalSetAudioRoutes(SWITCH_STATE_OFF);
-
-    int32_t phoneState = nsIAudioManager::PHONE_STATE_INVALID;
-    am->GetPhoneState(&phoneState);
-    AudioSystem::setPhoneState(phoneState);
-
-    AudioSystem::get_audio_flinger();
-    return NS_OK;
-  }
-};
-
-static void
-BinderDeadCallback(status_t aErr)
-{
-  if (aErr == DEAD_OBJECT) {
-    NS_DispatchToMainThread(new RecoverTask());
-  }
-}
 
 static bool
 IsDeviceOn(audio_devices_t device)
@@ -255,13 +214,10 @@ AudioManager::AudioManager() : mPhoneState(PHONE_STATE_CURRENT),
   for (int loop = 0; loop < AUDIO_STREAM_CNT; loop++) {
     AudioSystem::initStreamVolume(static_cast<audio_stream_type_t>(loop), 0,
                                   sMaxStreamVolumeTbl[loop]);
-    mCurrentStreamVolumeTbl[loop] = sMaxStreamVolumeTbl[loop];
   }
   // Force publicnotification to output at maximal volume
   AudioSystem::setStreamVolumeIndex(static_cast<audio_stream_type_t>(AUDIO_STREAM_ENFORCED_AUDIBLE),
                                     sMaxStreamVolumeTbl[AUDIO_STREAM_ENFORCED_AUDIBLE]);
-
-  AudioSystem::setErrorCallback(BinderDeadCallback);
 }
 
 AudioManager::~AudioManager() {
@@ -269,7 +225,7 @@ AudioManager::~AudioManager() {
 
   nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
   if (NS_FAILED(obs->RemoveObserver(this, BLUETOOTH_SCO_STATUS_CHANGED))) {
-    NS_WARNING("Failed to remove bluetooth-sco-status-changed oberver!");
+    NS_WARNING("Failed to add bluetooth-sco-status-changed oberver!");
   }
 }
 
@@ -454,7 +410,6 @@ AudioManager::SetFmRadioAudioEnabled(bool aFmRadioAudioEnabled)
       int32_t volIndex = 0;
       AudioSystem::getStreamVolumeIndex(static_cast<audio_stream_type_t>(AUDIO_STREAM_MUSIC), &volIndex);
       AudioSystem::setStreamVolumeIndex(static_cast<audio_stream_type_t>(AUDIO_STREAM_FM), volIndex);
-      mCurrentStreamVolumeTbl[AUDIO_STREAM_FM] = volIndex;
     }
     return NS_OK;
   } else {
@@ -474,9 +429,7 @@ AudioManager::SetStreamVolumeIndex(int32_t aStream, int32_t aIndex) {
   // sync fm volume with music stream type
   if (aStream == AUDIO_STREAM_MUSIC && IsDeviceOn(AUDIO_DEVICE_OUT_FM) && !mFMChannelIsMuted) {
     AudioSystem::setStreamVolumeIndex(static_cast<audio_stream_type_t>(AUDIO_STREAM_FM), aIndex);
-    mCurrentStreamVolumeTbl[AUDIO_STREAM_FM] = aIndex;
   }
-  mCurrentStreamVolumeTbl[aStream] = aIndex;
 
   return status ? NS_ERROR_FAILURE : NS_OK;
 }
