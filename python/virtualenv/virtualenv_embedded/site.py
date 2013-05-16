@@ -238,7 +238,10 @@ def addsitepackages(known_paths, sys_prefix=sys.prefix, exec_prefix=sys.exec_pre
                 lib64_dir = os.path.join(prefix, "lib64", "python" + sys.version[:3], "site-packages")
                 if (os.path.exists(lib64_dir) and 
                     os.path.realpath(lib64_dir) not in [os.path.realpath(p) for p in sitedirs]):
-                    sitedirs.append(lib64_dir)
+                    if sys.maxsize > 2**32:
+                        sitedirs.insert(0, lib64_dir)
+                    else:
+                        sitedirs.append(lib64_dir)
                 try:
                     # sys.getobjects only available in --with-pydebug build
                     sys.getobjects
@@ -577,10 +580,23 @@ def virtual_install_main_packages():
         hardcoded_relative_dirs = paths[:] # for the special 'darwin' case below
         lib64_path = os.path.join(sys.real_prefix, 'lib64', 'python'+sys.version[:3])
         if os.path.exists(lib64_path):
-            paths.append(lib64_path)
-        # This is hardcoded in the Python executable, but relative to sys.prefix:
-        plat_path = os.path.join(sys.real_prefix, 'lib', 'python'+sys.version[:3],
-                                 'plat-%s' % sys.platform)
+            if sys.maxsize > 2**32:
+                paths.insert(0, lib64_path)
+            else:
+                paths.append(lib64_path)
+        # This is hardcoded in the Python executable, but relative to
+        # sys.prefix.  Debian change: we need to add the multiarch triplet
+        # here, which is where the real stuff lives.  As per PEP 421, in
+        # Python 3.3+, this lives in sys.implementation, while in Python 2.7
+        # it lives in sys.
+        try:
+            arch = getattr(sys, 'implementation', sys)._multiarch
+        except AttributeError:
+            # This is a non-multiarch aware Python.  Fallback to the old way.
+            arch = sys.platform
+        plat_path = os.path.join(sys.real_prefix, 'lib', 
+                                 'python'+sys.version[:3],
+                                 'plat-%s' % arch)
         if os.path.exists(plat_path):
             paths.append(plat_path)
     # This is hardcoded in the Python executable, but
