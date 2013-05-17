@@ -487,6 +487,8 @@ DeviceStorageFile::DeviceStorageFile(const nsAString& aStorageType,
   , mRootDir(aRootDir)
   , mPath(aPath)
   , mEditable(false)
+  , mLength(UINT64_MAX)
+  , mLastModifiedDate(UINT64_MAX)
 {
   Init();
   AppendRelativePath(mRootDir);
@@ -503,6 +505,8 @@ DeviceStorageFile::DeviceStorageFile(const nsAString& aStorageType,
   , mStorageName(aStorageName)
   , mPath(aPath)
   , mEditable(false)
+  , mLength(UINT64_MAX)
+  , mLastModifiedDate(UINT64_MAX)
 {
   Init();
   AppendRelativePath(aPath);
@@ -514,6 +518,8 @@ DeviceStorageFile::DeviceStorageFile(const nsAString& aStorageType,
   : mStorageType(aStorageType)
   , mStorageName(aStorageName)
   , mEditable(false)
+  , mLength(UINT64_MAX)
+  , mLastModifiedDate(UINT64_MAX)
 {
   Init();
 }
@@ -961,6 +967,45 @@ DeviceStorageFile::Remove()
   return NS_OK;
 }
 
+nsresult
+DeviceStorageFile::CalculateMimeType()
+{
+  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+
+  nsAutoCString mimeType;
+  nsCOMPtr<nsIMIMEService> mimeService =
+    do_GetService(NS_MIMESERVICE_CONTRACTID);
+  if (mimeService) {
+    nsresult rv = mimeService->GetTypeFromFile(mFile, mimeType);
+    if (NS_FAILED(rv)) {
+      mimeType.Truncate();
+      return rv;
+    }
+  }
+
+  mMimeType = NS_ConvertUTF8toUTF16(mimeType);
+  return NS_OK;
+}
+
+nsresult
+DeviceStorageFile::CalculateSizeAndModifiedDate()
+{
+  NS_ASSERTION(!NS_IsMainThread(), "Wrong thread!");
+
+  int64_t fileSize;
+  nsresult rv = mFile->GetFileSize(&fileSize);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  mLength = fileSize;
+
+  PRTime modDate;
+  rv = mFile->GetLastModifiedTime(&modDate);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  mLastModifiedDate = modDate;
+  return NS_OK;
+}
+
 void
 DeviceStorageFile::CollectFiles(nsTArray<nsRefPtr<DeviceStorageFile> > &aFiles,
                                 PRTime aSince)
@@ -1037,6 +1082,7 @@ DeviceStorageFile::collectFilesInternal(nsTArray<nsRefPtr<DeviceStorageFile> > &
     } else if (isFile) {
       nsRefPtr<DeviceStorageFile> dsf =
         new DeviceStorageFile(mStorageType, mStorageName, mRootDir, newPath);
+      dsf->CalculateSizeAndModifiedDate();
       aFiles.AppendElement(dsf);
     }
   }
@@ -1349,7 +1395,16 @@ jsval nsIFileToJsval(nsPIDOMWindow* aWindow, DeviceStorageFile* aFile)
 
   nsString  compositePath;
   aFile->GetCompositePath(compositePath);
-  nsCOMPtr<nsIDOMBlob> blob = new nsDOMFileFile(aFile->mFile, compositePath);
+
+  // This check is useful to know if somewhere the DeviceStorageFile
+  // has not been properly set. Mimetype is not checked because it can be
+  // empty.
+  NS_ASSERTION(aFile->mLength != UINT64_MAX, "Size not set");
+  NS_ASSERTION(aFile->mLastModifiedDate != UINT64_MAX, "LastModifiedDate not set");
+
+  nsCOMPtr<nsIDOMBlob> blob = new nsDOMFileFile(compositePath, aFile->mMimeType,
+                                                aFile->mLength, aFile->mFile,
+                                                aFile->mLastModifiedDate);
   return InterfaceToJsval(aWindow, blob, &NS_GET_IID(nsIDOMBlob));
 }
 
@@ -1496,6 +1551,8 @@ ContinueCursorEvent::GetNextFile()
     if (!typeChecker->Check(cursorStorageType, file->mFile)) {
       continue;
     }
+
+    file->CalculateMimeType();
     return file.forget();
   }
 
@@ -1880,6 +1937,7 @@ public:
   : mFile(aFile)
     {
       mRequest.swap(aRequest);
+      mFile->CalculateMimeType();
     }
 
   ~ReadFileEvent() {}
@@ -1894,6 +1952,13 @@ public:
       mFile->mFile->Exists(&check);
       if (!check) {
         r = new PostErrorEvent(mRequest, POST_ERROR_EVENT_FILE_DOES_NOT_EXIST);
+      }
+    }
+
+    if (!r) {
+      nsresult rv = mFile->CalculateSizeAndModifiedDate();
+      if (NS_FAILED(rv)) {
+        r = new PostErrorEvent(mRequest, POST_ERROR_EVENT_UNKNOWN);
       }
     }
 
