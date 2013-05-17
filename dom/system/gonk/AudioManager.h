@@ -26,6 +26,7 @@
 #define NS_AUDIOMANAGER_CID {0x94f6fd70, 0x7615, 0x4af9, \
       {0x89, 0x10, 0xf9, 0x3c, 0x55, 0xe6, 0x62, 0xec}}
 #define NS_AUDIOMANAGER_CONTRACTID "@mozilla.org/telephony/audiomanager;1"
+#define AUDIO_STREAM_COUNT 11
 
 using namespace mozilla::dom;
 
@@ -51,6 +52,7 @@ public:
 
 protected:
   int32_t mPhoneState;
+  int mCurrentStreamVolumeTbl[AUDIO_STREAM_COUNT];
 
 private:
   nsAutoPtr<mozilla::hal::SwitchObserver> mObserver;
