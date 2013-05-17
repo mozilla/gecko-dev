@@ -1269,21 +1269,23 @@ DeviceStorageFile::GetStatusInternal(nsAString& aStorageName, nsAString& aStatus
 
 NS_IMPL_THREADSAFE_ISUPPORTS0(DeviceStorageFile)
 
-#ifdef MOZ_WIDGET_GONK
 static void
 RegisterForSDCardChanges(nsIObserver* aObserver)
 {
+#ifdef MOZ_WIDGET_GONK
   nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
   obs->AddObserver(aObserver, NS_VOLUME_STATE_CHANGED, false);
+#endif
 }
 
 static void
 UnregisterForSDCardChanges(nsIObserver* aObserver)
 {
+#ifdef MOZ_WIDGET_GONK
   nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
   obs->RemoveObserver(aObserver, NS_VOLUME_STATE_CHANGED);
-}
 #endif
+}
 
 void
 nsDOMDeviceStorage::SetRootDirectoryForType(const nsAString& aStorageType,
@@ -1293,11 +1295,6 @@ nsDOMDeviceStorage::SetRootDirectoryForType(const nsAString& aStorageType,
   DeviceStorageFile::GetRootDirectoryForType(aStorageType,
                                              aStorageName,
                                              getter_AddRefs(f));
-
-#ifdef MOZ_WIDGET_GONK
-  RegisterForSDCardChanges(this);
-#endif
-
   nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
   obs->AddObserver(this, "file-watcher-update", false);
   obs->AddObserver(this, "disk-space-watcher", false);
@@ -2387,7 +2384,8 @@ NS_IMPL_ADDREF_INHERITED(nsDOMDeviceStorage, nsDOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(nsDOMDeviceStorage, nsDOMEventTargetHelper)
 
 nsDOMDeviceStorage::nsDOMDeviceStorage()
-  : mIsWatchingFile(false)
+  : mCompositeComponent(false),
+    mIsWatchingFile(false)
   , mAllowedToWatchFile(false)
 { }
 
@@ -2417,6 +2415,9 @@ nsDOMDeviceStorage::Init(nsPIDOMWindow* aWindow, const nsAString &aType, const n
     if (!mRootDirectory) {
       return NS_ERROR_NOT_AVAILABLE;
     }
+  }
+  if (!IsCompositeComponent()) {
+    RegisterForSDCardChanges(this);
   }
 
   BindToOwner(aWindow);
@@ -2458,9 +2459,9 @@ nsDOMDeviceStorage::Shutdown()
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
-#ifdef MOZ_WIDGET_GONK
-  UnregisterForSDCardChanges(this);
-#endif
+  if (!IsCompositeComponent()) {
+    UnregisterForSDCardChanges(this);
+  }
 
   nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
   obs->RemoveObserver(this, "file-watcher-update");
@@ -2508,7 +2509,7 @@ nsDOMDeviceStorage::CreateDeviceStorageFor(nsPIDOMWindow* aWin,
 {
   // Create the underlying non-composite device storage objects
   nsTArray<nsRefPtr<nsDOMDeviceStorage> > stores;
-  CreateDeviceStoragesFor(aWin, aType, stores);
+  CreateDeviceStoragesFor(aWin, aType, stores, true);
   if (stores.Length() == 0) {
     *aStore = nullptr;
     return;
@@ -2535,7 +2536,8 @@ nsDOMDeviceStorage::CreateDeviceStorageFor(nsPIDOMWindow* aWin,
 void
 nsDOMDeviceStorage::CreateDeviceStoragesFor(nsPIDOMWindow* aWin,
                                             const nsAString &aType,
-                                            nsTArray<nsRefPtr<nsDOMDeviceStorage> > &aStores)
+                                            nsTArray<nsRefPtr<nsDOMDeviceStorage> > &aStores,
+                                            bool aCompositeComponent)
 {
   nsresult rv;
 
@@ -2553,6 +2555,7 @@ nsDOMDeviceStorage::CreateDeviceStoragesFor(nsPIDOMWindow* aWin,
   VolumeNameArray::size_type numVolumeNames = volNames.Length();
   for (VolumeNameArray::index_type i = 0; i < numVolumeNames; i++) {
     nsRefPtr<nsDOMDeviceStorage> storage = new nsDOMDeviceStorage();
+    storage->mCompositeComponent = aCompositeComponent;
     rv = storage->Init(aWin, aType, volNames[i]);
     if (NS_FAILED(rv)) {
       break;
@@ -3151,25 +3154,9 @@ nsDOMDeviceStorage::Observe(nsISupports *aSubject, const char *aTopic, const PRU
 
 #ifdef MOZ_WIDGET_GONK
   else if (!strcmp(aTopic, NS_VOLUME_STATE_CHANGED)) {
+    // We only invalidate the used space cache for the volume that actually changed state.
     nsCOMPtr<nsIVolume> vol = do_QueryInterface(aSubject);
     if (!vol) {
-      return NS_OK;
-    }
-    int32_t state;
-    nsresult rv = vol->GetState(&state);
-    if (NS_FAILED(rv)) {
-      return NS_OK;
-    }
-
-    nsString type;
-    if (state == nsIVolume::STATE_MOUNTED) {
-      type.Assign(NS_LITERAL_STRING("available"));
-    } else if (state == nsIVolume::STATE_SHARED || state == nsIVolume::STATE_SHAREDMNT) {
-      type.Assign(NS_LITERAL_STRING("shared"));
-    } else if (state == nsIVolume::STATE_NOMEDIA || state == nsIVolume::STATE_UNMOUNTING) {
-      type.Assign(NS_LITERAL_STRING("unavailable"));
-    } else {
-      // ignore anything else.
       return NS_OK;
     }
     nsString volName;
@@ -3179,7 +3166,13 @@ nsDOMDeviceStorage::Observe(nsISupports *aSubject, const char *aTopic, const PRU
     NS_ASSERTION(usedSpaceCache, "DeviceStorageUsedSpaceCache is null");
     usedSpaceCache->Invalidate(volName);
 
-    DispatchMountChangeEvent(volName, type);
+    // But if we're a composite storage area, we want to report a composite availability,
+    // so we use mStorageName here instead of volName. (Note: for composite devices,
+    // mStorageName will be the empty string).
+    DeviceStorageFile dsf(mStorageType, mStorageName);
+    nsString status;
+    dsf.GetStatus(status);
+    DispatchMountChangeEvent(mStorageName, status);
     return NS_OK;
   }
 #endif
@@ -3237,7 +3230,7 @@ nsDOMDeviceStorage::AddEventListener(const nsAString & aType,
       nsresult rv = mStores[i]->AddEventListener(aType, aListener, aUseCapture, aWantsUntrusted, aArgc);
       NS_ENSURE_SUCCESS(rv, rv);
     }
-    return NS_OK;
+    // Fall through, so that we add an event listener for the composite object as well.
   }
 
   nsRefPtr<DOMRequest> request = new DOMRequest(win);
@@ -3286,7 +3279,8 @@ nsDOMDeviceStorage::RemoveEventListener(const nsAString & aType,
       nsresult rv = mStores[i]->RemoveEventListener(aType, aListener, aUseCapture);
       NS_ENSURE_SUCCESS(rv, rv);
     }
-    return NS_OK;
+    // Fall through, so that we remove the event listener for the composite
+    // object as well.
   }
   nsDOMEventTargetHelper::RemoveEventListener(aType, aListener, false);
 
