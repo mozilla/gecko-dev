@@ -385,8 +385,7 @@ protected:
   void DoScrollContentIntoView();
 
   /**
-   * Initialize cached font inflation preference values and do an initial
-   * computation to determine if font inflation is enabled.
+   * Initialize cached font inflation preference values.
    *
    * @see nsLayoutUtils::sFontSizeInflationEmPerLine
    * @see nsLayoutUtils::sFontSizeInflationMinTwips
