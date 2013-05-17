@@ -144,7 +144,6 @@ public:
   void OnTracksAvailable(OnTracksAvailableCallback* aCallback);
 
 protected:
-  void Destroy();
   void InitSourceStream(nsIDOMWindow* aWindow, TrackTypeHints aHintContents);
   void InitTrackUnionStream(nsIDOMWindow* aWindow, TrackTypeHints aHintContents);
   void InitStreamCommon(MediaStream* aStream);
