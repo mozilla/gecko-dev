@@ -1220,7 +1220,11 @@ public class GeckoAppShell
         }
     }
 
-    static void setClipboardText(final String text) {
+    static void setClipboardText(String copiedText) {
+        // Copy an empty string instead of null to avoid clipboard crashes.
+        // AndroidBridge::EmptyClipboard() passes null to clear the clipboard's current contents.
+        final String text = (copiedText != null) ? copiedText : "";
+
         ThreadUtils.postToBackgroundThread(new Runnable() {
             @Override
             @SuppressWarnings("deprecation")
