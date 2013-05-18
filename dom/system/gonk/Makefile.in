@@ -79,6 +79,7 @@ LOCAL_INCLUDES += -I$(topsrcdir)/media/libsydneyaudio/src
 EXPORTS = \
   GonkGPSGeolocationProvider.h \
   nsVolume.h \
+  nsVolumeService.h \
   $(NULL)
 endif
 
