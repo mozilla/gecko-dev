@@ -158,6 +158,41 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
     if (js::GetObjectClass(obj)->ext.innerObject)
         return DoubleWrap(cx, obj, flags);
 
+    // If the object being wrapped is a prototype for a standard class and the
+    // wrapper does not subsumes the wrappee, use the one from the content
+    // compartment. This is generally safer all-around, and in the COW case this
+    // lets us safely take advantage of things like .forEach() via the
+    // ChromeObjectWrapper machinery.
+    //
+    // If the prototype chain of chrome object |obj| looks like this:
+    //
+    // obj => foo => bar => chromeWin.StandardClass.prototype
+    //
+    // The prototype chain of COW(obj) looks lke this:
+    //
+    // COW(obj) => COW(foo) => COW(bar) => contentWin.StandardClass.prototype
+    //
+    // NB: We now remap all non-subsuming access of standard prototypes.
+    bool subsumes = AccessCheck::subsumes(js::GetContextCompartment(cx),
+                                          js::GetObjectCompartment(obj));
+    XrayType xrayType = GetXrayType(obj);
+    if (!subsumes && xrayType == NotXray) {
+        JSProtoKey key = JSProto_Null;
+        {
+            JSAutoCompartment ac(cx, obj);
+            key = JS_IdentifyClassPrototype(cx, obj);
+        }
+        if (key != JSProto_Null) {
+            JSObject *homeProto = nullptr;
+            if (!JS_GetClassPrototype(cx, key, &homeProto))
+                return nullptr;
+            MOZ_ASSERT(homeProto);
+            // No need to double-wrap here. We should never have waivers to
+            // COWs.
+            return homeProto;
+        }
+    }
+
     // Now, our object is ready to be wrapped, but several objects (notably
     // nsJSIIDs) have a wrapper per scope. If we are about to wrap one of
     // those objects in a security wrapper, then we need to hand back the
@@ -363,38 +398,6 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *obj, JSObject *wrappedProto, JSO
                                         ComponentsObjectPolicy>::singleton;
         } else {
             wrapper = &ChromeObjectWrapper::singleton;
-
-            // If the prototype of the chrome object being wrapped is a prototype
-            // for a standard class, use the one from the content compartment so
-            // that we can safely take advantage of things like .forEach().
-            //
-            // If the prototype chain of chrome object |obj| looks like this:
-            //
-            // obj => foo => bar => chromeWin.StandardClass.prototype
-            //
-            // The prototype chain of COW(obj) looks lke this:
-            //
-            // COW(obj) => COW(foo) => COW(bar) => contentWin.StandardClass.prototype
-            JSProtoKey key = JSProto_Null;
-            {
-                JSAutoCompartment ac(cx, obj);
-                JSObject *unwrappedProto;
-                if (!js::GetObjectProto(cx, obj, &unwrappedProto))
-                    return NULL;
-                if (unwrappedProto && IsCrossCompartmentWrapper(unwrappedProto))
-                    unwrappedProto = Wrapper::wrappedObject(unwrappedProto);
-                if (unwrappedProto) {
-                    JSAutoCompartment ac2(cx, unwrappedProto);
-                    key = JS_IdentifyClassPrototype(cx, unwrappedProto);
-                }
-            }
-            if (key != JSProto_Null) {
-                JSObject *homeProto;
-                if (!JS_GetClassPrototype(cx, key, &homeProto))
-                    return NULL;
-                MOZ_ASSERT(homeProto);
-                proxyProto = homeProto;
-            }
         }
     } else if (AccessCheck::subsumes(target, origin)) {
         // For the same-origin case we use a transparent wrapper, unless one
