@@ -8,7 +8,7 @@
 interface nsIDOMDOMRequest;
 interface nsIDOMDOMError;
 
-[scriptable, uuid(d89870fe-5ba3-11e2-a5d2-cfa1d3f6e5f4)]
+[scriptable, uuid(6783cb64-46a0-4446-9199-a2cc775bc0e2)]
 interface mozIDOMApplication  : nsISupports
 {
   readonly attribute jsval manifest;
@@ -85,8 +85,11 @@ interface mozIDOMApplication  : nsISupports
   /* startPoint will be used when several launch_path exists for an app */
   nsIDOMDOMRequest launch([optional] in DOMString startPoint);
 
-  /* Clear data that has been collected through mozbrowser elements. */
-  void clearBrowserData();
+  /**
+   * Clear data that has been collected through mozbrowser elements.
+   * onsuccess will be called once data is actually cleared.
+   */
+  nsIDOMDOMRequest clearBrowserData();
 };
 
 [scriptable, uuid(cf742022-5ba3-11e2-868f-03310341b006)]

@@ -411,7 +411,8 @@ WebappsApplication.prototype = {
     this.initHelper(aWindow, ["Webapps:OfflineCache",
                               "Webapps:CheckForUpdate:Return:OK",
                               "Webapps:CheckForUpdate:Return:KO",
-                              "Webapps:PackageEvent"]);
+                              "Webapps:PackageEvent",
+                              "Webapps:ClearBrowserData:Return"]);
 
     cpmm.sendAsyncMessage("Webapps:RegisterForMessages",
                           ["Webapps:OfflineCache",
@@ -507,11 +508,26 @@ WebappsApplication.prototype = {
   },
 
   clearBrowserData: function() {
+    let request = this.createRequest();
     let browserChild =
       BrowserElementPromptService.getBrowserElementChildForWindow(this._window);
     if (browserChild) {
-      browserChild.messageManager.sendAsyncMessage("Webapps:ClearBrowserData");
+      browserChild.messageManager.sendAsyncMessage(
+        "Webapps:ClearBrowserData",
+        { manifestURL: this.manifestURL,
+          oid: this._id,
+          requestID: this.getRequestId(request) }
+      );
+    } else {
+      let runnable = {
+        run: function run() {
+          Services.DOMRequest.fireError(request, "NO_CLEARABLE_BROWSER");
+        }
+      }
+      Services.tm.currentThread.dispatch(runnable,
+                                         Ci.nsIThread.DISPATCH_NORMAL);
     }
+    return request;
   },
 
   uninit: function() {
@@ -632,6 +648,9 @@ WebappsApplication.prototype = {
             this._fireEvent("downloadapplied", this._ondownloadapplied);
             break;
         }
+        break;
+      case "Webapps:ClearBrowserData:Return":
+        Services.DOMRequest.fireSuccess(req, null);
         break;
     }
   },
