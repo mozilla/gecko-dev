@@ -1193,6 +1193,7 @@ js::RemapWrapper(JSContext *cx, JSObject *wobj, JSObject *newTarget)
     // invariant that the wrapper in the map points directly to the key.
     JS_ASSERT(Wrapper::wrappedObject(wobj) == newTarget);
 
+    JS_ASSERT(wobj->isWrapper());
     pmap.put(ObjectValue(*newTarget), ObjectValue(*wobj));
     return true;
 }
