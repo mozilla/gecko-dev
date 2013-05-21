@@ -48,6 +48,7 @@
 #include "MediaStreamList.h"
 #include "nsIScriptGlobalObject.h"
 #include "jsapi.h"
+#include "DOMMediaStream.h"
 #endif
 
 #ifndef USE_FAKE_MEDIA_STREAMS
@@ -142,6 +143,41 @@ public:
 
   ~PeerConnectionObserverDispatch(){}
 
+#ifdef MOZILLA_INTERNAL_API
+  class TracksAvailableCallback : public DOMMediaStream::OnTracksAvailableCallback
+  {
+  public:
+    TracksAvailableCallback(DOMMediaStream::TrackTypeHints aTrackTypeHints,
+                            nsCOMPtr<IPeerConnectionObserver> aObserver)
+      : DOMMediaStream::OnTracksAvailableCallback(aTrackTypeHints),
+        mObserver(aObserver) {}
+
+    virtual void NotifyTracksAvailable(DOMMediaStream* aStream) MOZ_OVERRIDE
+    {
+      MOZ_ASSERT(NS_IsMainThread());
+
+      // Start currentTime from the point where this stream was successfully
+      // returned.
+      aStream->SetLogicalStreamStartTime(aStream->GetStream()->GetCurrentTime());
+
+      CSFLogInfo(logTag, "Returning success for OnAddStream()");
+      // We are running on main thread here so we shouldn't have a race
+      // on this callback
+
+      // We provide a type field because it is in the IDL
+      // and we want code that looks at it not to crash.
+      // We use "video" so that if an app looks for
+      // that string it has some chance of working.
+      // TODO(ekr@rtfm.com): Bug 834847
+      // The correct way for content JS to know stream type
+      // is via get{Audio,Video}Tracks. See Bug 834835.
+      mObserver->OnAddStream(aStream, "video");
+    }
+
+    nsCOMPtr<IPeerConnectionObserver> mObserver;
+  };
+#endif
+
   NS_IMETHOD Run() {
 
     CSFLogInfo(logTag, "PeerConnectionObserverDispatch processing "
@@ -230,6 +266,12 @@ public:
           if (!stream) {
             CSFLogError(logTag, "%s: GetMediaStream returned NULL", __FUNCTION__);
           } else {
+#ifdef MOZILLA_INTERNAL_API
+            TracksAvailableCallback* tracksAvailableCallback =
+              new TracksAvailableCallback(mRemoteStream->mTrackTypeHints, mObserver);
+
+            stream->OnTracksAvailable(tracksAvailableCallback);
+#else
             // We provide a type field because it is in the IDL
             // and we want code that looks at it not to crash.
             // We use "video" so that if an app looks for
@@ -238,6 +280,7 @@ public:
             // The correct way for content JS to know stream type
             // is via get{Audio,Video}Tracks. See Bug 834835.
             mObserver->OnAddStream(stream, "video");
+#endif
           }
           break;
         }
