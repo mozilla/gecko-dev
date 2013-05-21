@@ -7494,9 +7494,18 @@ class CGDictionary(CGThing):
                         self.makeMemberName(m[0].identifier.name))
                        for m in self.memberInfo]
 
+        memberConstructList = [self.getMemberConstructor(m) for m in
+                            self.dictionary.members]
+        if any(memberConstructList):
+            memberConstructs = CGWrapper(
+                CGIndenter(CGList(memberConstructList, ",\n"), 4),
+                           pre=":\n", post="\n  ").define()
+        else:
+            memberConstructs = ""
+
         return (string.Template(
                 "struct ${selfName} : public ${inheritance} {\n"
-                "  ${selfName}() {}\n"
+                "  ${selfName}() ${memberConstructs}{}\n"
                 "  bool Init(JSContext* cx, JS::Handle<JS::Value> val);\n" +
                 ("  bool Init(const nsAString& aJSON);\n" if not self.workers else "") +
                 "  bool ToObject(JSContext* cx, JS::Handle<JSObject*> parentObject, JS::Value *vp) const;\n"
@@ -7519,7 +7528,8 @@ class CGDictionary(CGThing):
                 "    Init(nullptr, JS::NullHandleValue);\n"
                 "  }\n"
                 "};").substitute( { "selfName": self.makeClassName(d),
-                                    "inheritance": inheritance }))
+                                    "inheritance": inheritance,
+                                    "memberConstructs": memberConstructs }))
 
     def define(self):
         d = self.dictionary
@@ -7823,6 +7833,25 @@ class CGDictionary(CGThing):
             trace = CGIfWrapper(trace, "%s.WasPassed()" % memberLoc)
 
         return trace
+
+    def getMemberConstructor(self, member):
+        """
+        Get the right constructor for the member.  Most members don't need one,
+        but we need to pre-initialize 'any' and 'object' that have a default
+        value, so they're safe to trace at all times.
+        """
+        if not member.defaultValue:
+            # No default value means no need to set it up front, since it's
+            # inside an Optional and won't get traced until it's actually set
+            # up.
+            return None
+        type = member.type
+        name = CGDictionary.makeMemberName(member.identifier.name)
+        if type.isAny():
+            return CGGeneric("%s(JS::UndefinedValue())" % name)
+        if type.isObject():
+            return CGGeneric("%s(nullptr)" % name)
+        return None
 
     @staticmethod
     def makeIdName(name):
