@@ -1571,6 +1571,8 @@ public:
 
 template<typename T>
 void DoTraceSequence(JSTracer* trc, FallibleTArray<T>& seq);
+template<typename T>
+void DoTraceSequence(JSTracer* trc, InfallibleTArray<T>& seq);
 
 // Class for simple sequence arguments, only used internally by codegen.
 template<typename T>
@@ -1630,6 +1632,20 @@ class SequenceTracer<Sequence<T>, false>
 
 public:
   static void TraceSequence(JSTracer* trc, Sequence<T>* seqp, Sequence<T>* end) {
+    for ( ; seqp != end; ++seqp) {
+      DoTraceSequence(trc, *seqp);
+    }
+  }
+};
+
+// sequence<sequence<T>> as return value
+template<typename T>
+class SequenceTracer<nsTArray<T>, false>
+{
+  explicit SequenceTracer() MOZ_DELETE; // Should never be instantiated
+
+public:
+  static void TraceSequence(JSTracer* trc, nsTArray<T>* seqp, nsTArray<T>* end) {
     for ( ; seqp != end; ++seqp) {
       DoTraceSequence(trc, *seqp);
     }
@@ -1704,11 +1720,18 @@ public:
     mSequenceType = eInfallibleArray;
   }
 
-private:
+  void SetSequence(Nullable<nsTArray<T>>* aSequence)
+  {
+    mNullableArray = aSequence;
+    mSequenceType = eNullableArray;
+  }
+
+ private:
   enum SequenceType {
     eNone,
     eInfallibleArray,
-    eFallibleArray
+    eFallibleArray,
+    eNullableArray
   };
 
   virtual void trace(JSTracer *trc) MOZ_OVERRIDE
@@ -1717,12 +1740,17 @@ private:
       DoTraceSequence(trc, *mFallibleArray);
     } else if (mSequenceType == eInfallibleArray) {
       DoTraceSequence(trc, *mInfallibleArray);
+    } else if (mSequenceType == eNullableArray) {
+      if (!mNullableArray->IsNull()) {
+        DoTraceSequence(trc, mNullableArray->Value());
+      }
     }
   }
 
   union {
     InfallibleTArray<T>* mInfallibleArray;
     FallibleTArray<T>* mFallibleArray;
+    Nullable<nsTArray<T> >* mNullableArray;
   };
 
   SequenceType mSequenceType;
