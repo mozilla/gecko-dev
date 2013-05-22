@@ -271,6 +271,12 @@ PeerConnection.prototype = {
     this._pc = Cc["@mozilla.org/peerconnection;1"].
              createInstance(Ci.IPeerConnection);
     this._observer = new PeerConnectionObserver(this);
+    this._win = win;
+    this._winID = this._win.QueryInterface(Ci.nsIInterfaceRequestor)
+                           .getInterface(Ci.nsIDOMWindowUtils).currentInnerWindowID;
+
+    // Add a reference to the PeerConnection to global list (before init).
+    _globalPCList.addPC(this);
 
     // Nothing starts until ICE gathering completes.
     this._queueOrRun({
@@ -278,13 +284,6 @@ PeerConnection.prototype = {
       args: [this._observer, win, rtcConfig, Services.tm.currentThread],
       wait: true
     });
-
-    this._win = win;
-    this._winID = this._win.QueryInterface(Ci.nsIInterfaceRequestor)
-                           .getInterface(Ci.nsIDOMWindowUtils).currentInnerWindowID;
-
-    // Add a reference to the PeerConnection to global list.
-    _globalPCList.addPC(this);
   },
 
   _getPC: function() {
