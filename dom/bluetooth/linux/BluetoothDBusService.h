@@ -97,9 +97,13 @@ public:
                mozilla::ipc::UnixSocketConsumer* aConsumer);
 
   virtual nsresult
-  GetServiceChannel(const nsAString& aObjectPath,
+  GetServiceChannel(const nsAString& aDeviceAddress,
                     const nsAString& aServiceUuid,
                     BluetoothProfileManagerBase* aManager);
+
+  virtual bool
+  UpdateSdpRecords(const nsAString& aDeviceAddress,
+                   BluetoothProfileManagerBase* aManager);
 
   virtual nsresult
   CreatePairedDeviceInternal(const nsAString& aAdapterPath,
