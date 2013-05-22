@@ -678,9 +678,9 @@ protected:
   void ProcessMediaFragmentURI();
 
   /**
-   * Mute or unmute the audio, without changing the value that |muted| reports.
+   * Mute or unmute the audio and change the value that the |muted| map.
    */
-  void SetMutedInternal(bool aMuted);
+  void SetMutedInternal(uint32_t aMuted);
 
   /**
    * Suspend (if aPauseForInactiveDocument) or resume element playback and
@@ -872,8 +872,12 @@ protected:
   // 'Pause' method, or playback not yet having started.
   WakeLockBoolWrapper mPaused;
 
-  // True if the sound is muted.
-  bool mMuted;
+  enum MutedReasons {
+    MUTED_BY_CONTENT       = 0x01,
+    MUTED_BY_AUDIO_CHANNEL = 0x02
+  };
+
+  uint32_t mMuted;
 
   // True if the sound is being captured.
   bool mAudioCaptured;
@@ -962,9 +966,6 @@ protected:
 
   // Audio Channel Type.
   mozilla::dom::AudioChannelType mAudioChannelType;
-
-  // The audiochannel has been suspended.
-  bool mChannelSuspended;
 
   // Is this media element playing?
   bool mPlayingThroughTheAudioChannel;
