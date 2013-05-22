@@ -1072,6 +1072,12 @@ BluetoothOppManager::IsTransferring()
 }
 
 void
+BluetoothOppManager::GetAddress(nsAString& aDeviceAddress)
+{
+  return mSocket->GetAddress(aDeviceAddress);
+}
+
+void
 BluetoothOppManager::ReplyToConnect()
 {
   if (mConnected) return;

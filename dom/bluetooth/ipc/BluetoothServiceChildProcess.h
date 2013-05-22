@@ -52,12 +52,17 @@ public:
                                     MOZ_OVERRIDE;
 
   virtual nsresult
-  StopDiscoveryInternal(const nsAString& aAdapterPath,
-                        BluetoothReplyRunnable* aRunnable) MOZ_OVERRIDE;
+  GetConnectedDevicePropertiesInternal(uint16_t aProfileId,
+                                       BluetoothReplyRunnable* aRunnable)
+                                       MOZ_OVERRIDE;
 
   virtual nsresult
   StartDiscoveryInternal(const nsAString& aAdapterPath,
                          BluetoothReplyRunnable* aRunnable) MOZ_OVERRIDE;
+
+  virtual nsresult
+  StopDiscoveryInternal(const nsAString& aAdapterPath,
+                        BluetoothReplyRunnable* aRunnable) MOZ_OVERRIDE;
 
   virtual nsresult
   GetProperties(BluetoothObjectType aType,
