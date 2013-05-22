@@ -2856,6 +2856,12 @@ RasterImage::RequestDecodeCore(RequestDecodeType aDecodeType)
     return NS_OK;
   }
 
+  // If we don't have any bytes to flush to the decoder, we can't do anything.
+  // mBytesDecoded can be bigger than mSourceData.Length() if we're not storing
+  // the source data.
+  if (mBytesDecoded > mSourceData.Length())
+    return NS_OK;
+
   // mFinishing protects against the case when we enter RequestDecode from
   // ShutdownDecoder -- in that case, we're done with the decode, we're just
   // not quite ready to admit it.  See bug 744309.
@@ -2989,6 +2995,12 @@ RasterImage::SyncDecode()
   // If we're decoded already, or decoding until the size was available
   // finished us as a side-effect, no worries
   if (mDecoded)
+    return NS_OK;
+
+  // If we don't have any bytes to flush to the decoder, we can't do anything.
+  // mBytesDecoded can be bigger than mSourceData.Length() if we're not storing
+  // the source data.
+  if (mBytesDecoded > mSourceData.Length())
     return NS_OK;
 
   // If we have a decoder open with different flags than what we need, shut it
@@ -3370,6 +3382,8 @@ RasterImage::DecodeSomeData(uint32_t aMaxBytes)
   // If we have nothing else to decode, return
   if (mBytesDecoded == mSourceData.Length())
     return NS_OK;
+
+  MOZ_ASSERT(mBytesDecoded < mSourceData.Length());
 
   // write the proper amount of data
   uint32_t bytesToDecode = std::min(aMaxBytes,
