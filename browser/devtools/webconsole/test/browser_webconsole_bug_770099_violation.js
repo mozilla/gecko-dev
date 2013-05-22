@@ -8,7 +8,6 @@
 // Tests that the Web Console CSP messages are displayed
 
 const TEST_VIOLATION = "https://example.com/browser/browser/devtools/webconsole/test/test_bug_770099_violation.html";
-const CSP_VIOLATION_MSG = "CSP WARN:  Directive default-src https://example.com:443 violated by http://some.example.com/test.png"
 
 let hud = undefined;
 
@@ -35,12 +34,22 @@ function onLoad(aEvent) {
 function testViolationMessage(){
   let aOutputNode = hud.outputNode;
 
-  waitForSuccess({
+  waitForSuccess(
+    {
       name: "CSP policy URI warning displayed successfully",
       validatorFn: function() {
-        return hud.outputNode.textContent.indexOf(CSP_VIOLATION_MSG) > -1;
+        return aOutputNode.querySelector(".webconsole-msg-warn");
       },
-      successFn: finishTest,
+
+      successFn: function() {
+        //tests on the urlnode
+        let node = aOutputNode.querySelector(".webconsole-msg-warn");
+        isnot(node.textContent.indexOf("violated"), -1,
+                                       "CSP violation message found");
+        finishTest();
+      },
+
       failureFn: finishTest,
-    });
+    }
+  );
 }
