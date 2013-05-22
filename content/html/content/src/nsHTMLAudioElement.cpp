@@ -145,7 +145,7 @@ nsHTMLAudioElement::MozSetup(uint32_t aChannels, uint32_t aRate)
   }
 
   MetadataLoaded(aChannels, aRate, true, nullptr);
-  mAudioStream->SetVolume(mVolume);
+  mAudioStream->SetVolume(mMuted ? 0.0 : mVolume);
   return NS_OK;
 }
 
@@ -287,11 +287,11 @@ nsHTMLAudioElement::CanPlayChanged(bool canPlay)
     return nsHTMLMediaElement::CanPlayChanged(canPlay);
   }
 #ifdef MOZ_B2G
-  if (mChannelSuspended == !canPlay) {
-    return NS_OK;
+  if (canPlay) {
+    SetMutedInternal(mMuted & ~MUTED_BY_AUDIO_CHANNEL);
+  } else {
+    SetMutedInternal(mMuted | MUTED_BY_AUDIO_CHANNEL);
   }
-  mChannelSuspended = !canPlay;
-  SetMutedInternal(mChannelSuspended);
 #endif
 return NS_OK;
 }
@@ -338,6 +338,7 @@ nsHTMLAudioElement::UpdateAudioChannelPlayingState()
     if (mPlayingThroughTheAudioChannel) {
       bool canPlay;
       mAudioChannelAgent->StartPlaying(&canPlay);
+      CanPlayChanged(canPlay);
     } else {
       mAudioChannelAgent->StopPlaying();
       mAudioChannelAgent = nullptr;

@@ -1406,15 +1406,8 @@ NS_IMETHODIMP nsHTMLMediaElement::SetVolume(double aVolume)
 
   mVolume = aVolume;
 
-  if (!mMuted) {
-    if (mDecoder) {
-      mDecoder->SetVolume(mVolume);
-    } else if (mAudioStream) {
-      mAudioStream->SetVolume(mVolume);
-    } else if (mSrcStream) {
-      GetSrcMediaStream()->SetAudioOutputVolume(this, float(mVolume));
-    }
-  }
+  // Here we want just to update the volume.
+  SetMutedInternal(mMuted);
 
   DispatchAsyncEvent(NS_LITERAL_STRING("volumechange"));
 
@@ -1519,14 +1512,20 @@ nsHTMLMediaElement::SetMozFrameBufferLength(uint32_t aMozFrameBufferLength)
 /* attribute boolean muted; */
 NS_IMETHODIMP nsHTMLMediaElement::GetMuted(bool *aMuted)
 {
-  *aMuted = mMuted;
-
+  *aMuted = (mMuted & MUTED_BY_CONTENT);
   return NS_OK;
 }
 
-void nsHTMLMediaElement::SetMutedInternal(bool aMuted)
+void nsHTMLMediaElement::SetMutedInternal(uint32_t aMuted)
 {
-  float effectiveVolume = aMuted ? 0.0f : float(mVolume);
+  uint32_t oldMuted = mMuted;
+  mMuted = aMuted;
+
+  if (!!aMuted == !!oldMuted) {
+    return;
+  }
+
+  float effectiveVolume = mMuted ? 0.0f : float(mVolume);
 
   if (mDecoder) {
     mDecoder->SetVolume(effectiveVolume);
@@ -1539,11 +1538,11 @@ void nsHTMLMediaElement::SetMutedInternal(bool aMuted)
 
 NS_IMETHODIMP nsHTMLMediaElement::SetMuted(bool aMuted)
 {
-  if (aMuted == mMuted)
-    return NS_OK;
-
-  mMuted = aMuted;
-  SetMutedInternal(aMuted);
+  if (aMuted) {
+    SetMutedInternal(mMuted | MUTED_BY_CONTENT);
+  } else {
+    SetMutedInternal(mMuted & ~MUTED_BY_CONTENT);
+  }
 
   DispatchAsyncEvent(NS_LITERAL_STRING("volumechange"));
 
@@ -1717,7 +1716,7 @@ nsHTMLMediaElement::nsHTMLMediaElement(already_AddRefed<nsINodeInfo> aNodeInfo)
     mAutoplaying(true),
     mAutoplayEnabled(true),
     mPaused(true),
-    mMuted(false),
+    mMuted(0),
     mAudioCaptured(false),
     mPlayingBeforeSeek(false),
     mPausedForInactiveDocumentOrChannel(false),
@@ -1739,7 +1738,6 @@ nsHTMLMediaElement::nsHTMLMediaElement(already_AddRefed<nsINodeInfo> aNodeInfo)
     mHasAudio(false),
     mDownloadSuspendedByCache(false),
     mAudioChannelType(AUDIO_CHANNEL_NORMAL),
-    mChannelSuspended(false),
     mPlayingThroughTheAudioChannel(false)
 {
 #ifdef PR_LOGGING
@@ -2006,8 +2004,9 @@ bool nsHTMLMediaElement::CheckAudioChannelPermissions(const nsAString& aString)
 
 void nsHTMLMediaElement::DoneCreatingElement()
 {
-   if (HasAttr(kNameSpaceID_None, nsGkAtoms::muted))
-     mMuted = true;
+   if (HasAttr(kNameSpaceID_None, nsGkAtoms::muted)) {
+     mMuted |= MUTED_BY_CONTENT;
+   }
 }
 
 nsresult nsHTMLMediaElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
@@ -3528,14 +3527,15 @@ void nsHTMLMediaElement::NotifyOwnerDocumentActivityChanged()
     if (domDoc) {
       bool hidden = false;
       domDoc->GetHidden(&hidden);
-      // SetVisibilityState will update mChannelSuspended via the CanPlayChanged callback.
+      // SetVisibilityState will update mMuted with MUTED_BY_AUDIO_CHANNEL via
+      // the CanPlayChanged callback.
       if (mPlayingThroughTheAudioChannel && mAudioChannelAgent) {
         mAudioChannelAgent->SetVisibilityState(!hidden);
       }
     }
   }
   bool suspendEvents = !ownerDoc->IsActive() || !ownerDoc->IsVisible();
-  bool pauseElement = suspendEvents || mChannelSuspended;
+  bool pauseElement = suspendEvents || (mMuted & MUTED_BY_AUDIO_CHANNEL);
 
   SuspendOrResumeElement(pauseElement, suspendEvents);
 
@@ -3862,17 +3862,16 @@ nsresult nsHTMLMediaElement::UpdateChannelMuteState(bool aCanPlay)
     return NS_OK;
   }
 
-  // We have to mute this channel:
-  if (!aCanPlay && !mChannelSuspended) {
-    mChannelSuspended = true;
+  // We have to mute this channel.
+  if (!aCanPlay && !(mMuted & MUTED_BY_AUDIO_CHANNEL)) {
+    SetMutedInternal(mMuted | MUTED_BY_AUDIO_CHANNEL);
     DispatchAsyncEvent(NS_LITERAL_STRING("mozinterruptbegin"));
-  } else if (aCanPlay && mChannelSuspended) {
-    mChannelSuspended = false;
+  } else if (aCanPlay && (mMuted & MUTED_BY_AUDIO_CHANNEL)) {
+    SetMutedInternal(mMuted & ~MUTED_BY_AUDIO_CHANNEL);
     DispatchAsyncEvent(NS_LITERAL_STRING("mozinterruptend"));
   }
 
-  SuspendOrResumeElement(mChannelSuspended, false);
-
+  SuspendOrResumeElement(mMuted & MUTED_BY_AUDIO_CHANNEL, false);
   return NS_OK;
 }
 
@@ -3910,7 +3909,7 @@ void nsHTMLMediaElement::UpdateAudioChannelPlayingState()
     if (mPlayingThroughTheAudioChannel) {
       bool canPlay;
       mAudioChannelAgent->StartPlaying(&canPlay);
-      mPaused.SetCanPlay(canPlay);
+      CanPlayChanged(canPlay);
     } else {
       mAudioChannelAgent->StopPlaying();
       mAudioChannelAgent = nullptr;
