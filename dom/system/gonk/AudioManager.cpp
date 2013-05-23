@@ -53,7 +53,7 @@ static int sMaxStreamVolumeTbl[AUDIO_STREAM_CNT] = {
 };
 
 // A bitwise variable for recording what kind of headset is attached.
-static int sHeadsetState = SWITCH_STATE_OFF;
+static int sHeadsetState;
 static int kBtSampleRate = 8000;
 
 class RecoverTask : public nsRunnable
