@@ -192,7 +192,7 @@ public class HistoryTab extends AwesomeBarTab {
             byte[] b = (byte[]) historyItem.get(URLColumns.FAVICON);
             Bitmap favicon = null;
 
-            if (b != null) {
+            if (b != null && b.length > 0) {
                 Bitmap bitmap = BitmapUtils.decodeByteArray(b);
                 if (bitmap != null) {
                     favicon = Favicons.getInstance().scaleImage(bitmap);
