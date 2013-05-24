@@ -609,7 +609,15 @@ CompositorParent::TransformFixedLayers(Layer* aLayer,
     // The transform already takes the resolution scale into account.  Since we
     // will apply the resolution scale again when computing the effective
     // transform, we must apply the inverse resolution scale here.
-    gfx3DMatrix layerTransform = aLayer->GetTransform();
+    ShadowLayer* shadow = aLayer->AsShadowLayer();
+    gfx3DMatrix layerTransform;
+    if (shadow->GetShadowTransformSetByAnimation()) {
+      // Start with the animated transform
+      layerTransform = aLayer->GetLocalTransform();
+    } else {
+      layerTransform = aLayer->GetTransform();
+    }
+
     Translate2D(layerTransform, translation);
     if (ContainerLayer* c = aLayer->AsContainerLayer()) {
       layerTransform.Scale(1.0f/c->GetPreXScale(),
@@ -619,8 +627,8 @@ CompositorParent::TransformFixedLayers(Layer* aLayer,
     layerTransform.ScalePost(1.0f/aLayer->GetPostXScale(),
                              1.0f/aLayer->GetPostYScale(),
                              1);
-    ShadowLayer* shadow = aLayer->AsShadowLayer();
     shadow->SetShadowTransform(layerTransform);
+    shadow->SetShadowTransformSetByAnimation(false);
 
     const nsIntRect* clipRect = aLayer->GetClipRect();
     if (clipRect) {
@@ -628,9 +636,9 @@ CompositorParent::TransformFixedLayers(Layer* aLayer,
       transformedClipRect.MoveBy(translation.x, translation.y);
       shadow->SetShadowClipRect(&transformedClipRect);
 
-    // The transform has now been applied, so there's no need to iterate over
-    // child layers.
-    return;
+      // The transform has now been applied, so there's no need to iterate over
+      // child layers.
+      return;
     }
   }
 
@@ -649,6 +657,7 @@ SetShadowProperties(Layer* aLayer)
   ShadowLayer* shadow = aLayer->AsShadowLayer();
   // Set the shadow's base transform to the layer's base transform.
   shadow->SetShadowTransform(aLayer->GetBaseTransform());
+  shadow->SetShadowTransformSetByAnimation(false);
   shadow->SetShadowVisibleRegion(aLayer->GetVisibleRegion());
   shadow->SetShadowClipRect(aLayer->GetClipRect());
   shadow->SetShadowOpacity(aLayer->GetOpacity());
@@ -762,8 +771,8 @@ SampleAnimations(Layer* aLayer, TimeStamp aPoint)
                          c->GetInheritedYScale(),
                          1);
       }
-      NS_ASSERTION(!aLayer->GetIsFixedPosition(), "Can't animate transforms on fixed-position layers");
       shadow->SetShadowTransform(matrix);
+      shadow->SetShadowTransformSetByAnimation(true);
       break;
     }
     default:
@@ -804,7 +813,7 @@ CompositorParent::ApplyAsyncContentTransformToTree(TimeStamp aCurrentFrame,
     *aWantNextFrame |=
       controller->SampleContentTransformForFrame(aCurrentFrame,
                                                  container,
-+                                                 &treeTransform);
+                                                 &treeTransform);
 
     gfx3DMatrix transform(gfx3DMatrix(treeTransform) * aLayer->GetTransform());
     // The transform already takes the resolution scale into account.  Since we
@@ -817,6 +826,8 @@ CompositorParent::ApplyAsyncContentTransformToTree(TimeStamp aCurrentFrame,
                         1.0f/aLayer->GetPostYScale(),
                         1);
     shadow->SetShadowTransform(transform);
+    NS_ASSERTION(!shadow->GetShadowTransformSetByAnimation(),
+                 "overwriting animated transform!");
 
     TransformFixedLayers(
       aLayer,
@@ -943,6 +954,8 @@ CompositorParent::TransformScrollableLayer(Layer* aLayer, const gfx3DMatrix& aRo
                               1.0f/container->GetPostYScale(),
                               1);
   shadow->SetShadowTransform(computedTransform);
+  NS_ASSERTION(!shadow->GetShadowTransformSetByAnimation(),
+               "overwriting animated transform!");
   TransformFixedLayers(aLayer, offset, scaleDiff);
 }
 
