@@ -54,4 +54,5 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "www.mydigipass.com", false },
   { "www.noisebridge.net", false },
   { "www.torproject.org", false },
+  { "m.youtube.com", false }
 };
