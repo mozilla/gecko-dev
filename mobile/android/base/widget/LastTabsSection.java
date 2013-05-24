@@ -46,7 +46,7 @@ public class LastTabsSection extends AboutHomeSection {
                 new SessionParser() {
                     @Override
                     public void onTabRead(final SessionTab tab) {
-                        final String url = tab.getSelectedUrl();
+                        final String url = tab.getUrl();
                         // don't show last tabs for about:home
                         if (url.equals("about:home")) {
                             return;
@@ -60,8 +60,8 @@ public class LastTabsSection extends AboutHomeSection {
                             @Override
                             public void run() {
                                 View container = LayoutInflater.from(mContext).inflate(R.layout.abouthome_last_tabs_row, getItemsContainer(), false);
-                                ((TextView) container.findViewById(R.id.last_tab_title)).setText(tab.getSelectedTitle());
-                                ((TextView) container.findViewById(R.id.last_tab_url)).setText(tab.getSelectedUrl());
+                                ((TextView) container.findViewById(R.id.last_tab_title)).setText(tab.getTitle());
+                                ((TextView) container.findViewById(R.id.last_tab_url)).setText(tab.getUrl());
                                 if (favicon != null) {
                                     ((ImageView) container.findViewById(R.id.last_tab_favicon)).setImageBitmap(favicon);
                                 }
