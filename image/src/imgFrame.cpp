@@ -218,6 +218,8 @@ nsresult imgFrame::Init(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight,
 
 nsresult imgFrame::Optimize()
 {
+  MOZ_ASSERT(NS_IsMainThread());
+
   if (gDisableOptimize)
     return NS_OK;
 
@@ -527,6 +529,7 @@ nsresult imgFrame::Extract(const nsIntRect& aRegion, imgFrame** aResult)
   return NS_OK;
 }
 
+// This can be called from any thread, but not simultaneously.
 nsresult imgFrame::ImageUpdated(const nsIntRect &aUpdateRect)
 {
   mDecoded.UnionRect(mDecoded, aUpdateRect);
@@ -536,10 +539,6 @@ nsresult imgFrame::ImageUpdated(const nsIntRect &aUpdateRect)
   nsIntRect boundsRect(mOffset, mSize);
   mDecoded.IntersectRect(mDecoded, boundsRect);
 
-#ifdef XP_MACOSX
-  if (mQuartzSurface)
-    mQuartzSurface->Flush();
-#endif
   return NS_OK;
 }
 
@@ -616,6 +615,8 @@ void imgFrame::GetPaletteData(uint32_t **aPalette, uint32_t *length) const
 
 nsresult imgFrame::LockImageData()
 {
+  MOZ_ASSERT(NS_IsMainThread());
+
   NS_ABORT_IF_FALSE(mLockCount >= 0, "Unbalanced locks and unlocks");
   if (mLockCount < 0) {
     return NS_ERROR_FAILURE;
@@ -671,6 +672,8 @@ nsresult imgFrame::LockImageData()
 
 nsresult imgFrame::UnlockImageData()
 {
+  MOZ_ASSERT(NS_IsMainThread());
+
   NS_ABORT_IF_FALSE(mLockCount != 0, "Unlocking an unlocked image!");
   if (mLockCount == 0) {
     return NS_ERROR_FAILURE;
@@ -713,6 +716,8 @@ nsresult imgFrame::UnlockImageData()
 
 void imgFrame::MarkImageDataDirty()
 {
+  MOZ_ASSERT(NS_IsMainThread());
+
   if (mImageSurface)
     mImageSurface->Flush();
 
