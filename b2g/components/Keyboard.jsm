@@ -37,6 +37,7 @@ let Keyboard = {
   init: function keyboardInit() {
     Services.obs.addObserver(this, 'in-process-browser-or-app-frame-shown', false);
     Services.obs.addObserver(this, 'remote-browser-frame-shown', false);
+    Services.obs.addObserver(this, 'oop-frameloader-crashed', false);
 
     for (let name of this._messageNames)
       ppmm.addMessageListener('Keyboard:' + name, this);
@@ -45,17 +46,25 @@ let Keyboard = {
   observe: function keyboardObserve(subject, topic, data) {
     let frameLoader = subject.QueryInterface(Ci.nsIFrameLoader);
     let mm = frameLoader.messageManager;
-    mm.addMessageListener('Forms:Input', this);
+    if (topic == 'oop-frameloader-crashed') {
+      if (this.messageManager == mm) {
+        // The application has been closed unexpectingly. Let's tell the
+        // keyboard app that the focus has been lost.
+        ppmm.broadcastAsyncMessage('Keyboard:FocusChange', { 'type': 'blur' });
+      }
+    } else {
+      mm.addMessageListener('Forms:Input', this);
 
-    // When not running apps OOP, we need to load forms.js here since this
-    // won't happen from dom/ipc/preload.js
-    try {
-       if (Services.prefs.getBoolPref("dom.ipc.tabs.disabled") === true) {
-         mm.loadFrameScript(kFormsFrameScript, true);
-       }
-     } catch (e) {
-       dump('Error loading ' + kFormsFrameScript + ' as frame script: ' + e + '\n');
-     }
+      // When not running apps OOP, we need to load forms.js here since this
+      // won't happen from dom/ipc/preload.js
+      try {
+         if (Services.prefs.getBoolPref("dom.ipc.tabs.disabled") === true) {
+           mm.loadFrameScript(kFormsFrameScript, true);
+        }
+      } catch (e) {
+         dump('Error loading ' + kFormsFrameScript + ' as frame script: ' + e + '\n');
+      }
+    }
   },
 
   receiveMessage: function keyboardReceiveMessage(msg) {
