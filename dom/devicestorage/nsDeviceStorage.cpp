@@ -2041,7 +2041,6 @@ public:
       r = new PostResultEvent(mRequest, totalUsage);
     }
     NS_DispatchToMainThread(r);
-
     return NS_OK;
   }
 
@@ -2808,6 +2807,7 @@ nsDOMDeviceStorage::AddNamed(nsIDOMBlob *aBlob,
       NS_ADDREF(*_retval = request);
       r = new PostErrorEvent(request, POST_ERROR_EVENT_UNKNOWN);
       NS_DispatchToMainThread(r);
+      return NS_OK;
     }
     return ds->AddNamed(aBlob, storagePath, _retval);
   }
