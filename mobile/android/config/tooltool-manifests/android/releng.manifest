@@ -1,1 +1,20 @@
-[]
+[
+{
+"size": 75650889,
+"digest": "225ee9bb331a08ec496acc47ef8a1e9d9a21c290bfe22271cdc6ee2d10befecc372faf2a718e3e0ad5c36938a9b94f5d6b6b2d999880bc476c576856f1c99812",
+"algorithm": "sha512",
+"filename": "android-ndk-r8e-arm-gcc4.6.tar.bz2"
+},
+{
+"size": 147088338,
+"digest": "56fc5dc8c5e8cf46605667db153477e32bdf724bfa989663bbbed7e52ee47a4cb8cf7f8bf49b82b7e15fc89efe59a0f1656ca4b7a4ffcc8de31f9b2229549dab",
+"algorithm": "sha512",
+"filename": "android-sdk-16.tar.bz2"
+},
+{
+"size": 269,
+"digest": "0c21a793d87773b3ed82d141bea33869a6b647e5dddab3ecfee1738751e5c8d3d0b9ca45d7453ef88d335949c73f935c37de3521978b318ca51d8369be894b92",
+"algorithm": "sha512",
+"filename": "setup.sh"
+}
+]
