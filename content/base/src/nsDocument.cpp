@@ -8939,11 +8939,13 @@ nsDocument::FindImageMap(const nsAString& aUseMapValue)
 }
 
 #define DEPRECATED_OPERATION(_op) #_op "Warning",
+#define DEPRECATED_OPERATION_WITH_HARDCODED_STRING(_op, _str) "\0" _str,
 static const char* kWarnings[] = {
 #include "nsDeprecatedOperationList.h"
   nullptr
 };
 #undef DEPRECATED_OPERATION
+#undef DEPRECATED_OPERATION_WITH_HARDCODED_STRING
 
 void
 nsIDocument::WarnOnceAbout(DeprecatedOperations aOperation,
@@ -8956,10 +8958,18 @@ nsIDocument::WarnOnceAbout(DeprecatedOperations aOperation,
   mWarnedAbout |= (1ull << aOperation);
   uint32_t flags = asError ? nsIScriptError::errorFlag
                            : nsIScriptError::warningFlag;
-  nsContentUtils::ReportToConsole(flags,
-                                  "DOM Core", this,
-                                  nsContentUtils::eDOM_PROPERTIES,
-                                  kWarnings[aOperation]);
+  if (*kWarnings[aOperation]) {
+    // Localized message
+    nsContentUtils::ReportToConsole(flags,
+                                    "DOM Core", this,
+                                    nsContentUtils::eDOM_PROPERTIES,
+                                    kWarnings[aOperation]);
+  } else {
+    // Non-localized message
+    NS_ConvertUTF8toUTF16 errorText(&kWarnings[aOperation][1]);
+    nsContentUtils::ReportToConsoleNonLocalized(errorText, flags,
+                                                "DOM Core", this);
+  }
 }
 
 nsresult

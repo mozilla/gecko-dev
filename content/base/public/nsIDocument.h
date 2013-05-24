@@ -1843,11 +1843,13 @@ public:
   void FlushPendingLinkUpdates();
 
 #define DEPRECATED_OPERATION(_op) e##_op,
+#define DEPRECATED_OPERATION_WITH_HARDCODED_STRING(_op, _str) e##_op,
   enum DeprecatedOperations {
 #include "nsDeprecatedOperationList.h"
     eDeprecatedOperationCount
   };
 #undef DEPRECATED_OPERATION
+#undef DEPRECATED_OPERATION_WITH_HARDCODED_STRING
   void WarnOnceAbout(DeprecatedOperations aOperation, bool asError = false);
 
   virtual void PostVisibilityUpdateEvent() = 0;
