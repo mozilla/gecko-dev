@@ -1447,7 +1447,7 @@ abstract public class GeckoApp
         GeckoAppShell.setNotificationClient(makeNotificationClient());
     }
 
-    protected void initializeChrome(String uri, boolean isExternalURL) {
+    protected void initializeChrome() {
         mDoorHangerPopup = new DoorHangerPopup(this, null);
         mPluginContainer = (AbsoluteLayout) findViewById(R.id.plugin_container);
         mFormAssistPopup = (FormAssistPopup) findViewById(R.id.form_assist_popup);
@@ -1463,6 +1463,29 @@ abstract public class GeckoApp
             mLayerView = layerView;
             // bind the GeckoEditable instance to the new LayerView
             GeckoAppShell.notifyIMEContext(GeckoEditableListener.IME_STATE_DISABLED, "", "", "");
+        }
+    }
+
+    /**
+     * Loads the initial tab at Fennec startup.
+     *
+     * If Fennec was opened with an external URL, that URL will be loaded.
+     * Otherwise, unless there was a session restore, the default URL
+     * (about:home) be loaded.
+     *
+     * @param url External URL to load, or null to load the default URL
+     */
+    protected void loadStartupTab(String url) {
+        if (url == null) {
+            if (mRestoreMode == RESTORE_NONE) {
+                // Show about:home if we aren't restoring previous session and
+                // there's no external URL
+                Tab tab = Tabs.getInstance().loadUrl("about:home", Tabs.LOADURL_NEW_TAB);
+            }
+        } else {
+            // If given an external URL, load it
+            int flags = Tabs.LOADURL_NEW_TAB | Tabs.LOADURL_USER_ENTERED;
+            Tabs.getInstance().loadUrl(url, flags);
         }
     }
 
@@ -1499,6 +1522,8 @@ abstract public class GeckoApp
         }
 
         Tabs.registerOnTabsChangedListener(this);
+
+        initializeChrome();
 
         // If we are doing a restore, read the session data and send it to Gecko
         String restoreMessage = null;
@@ -1561,6 +1586,10 @@ abstract public class GeckoApp
 
         GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Session:Restore", restoreMessage));
 
+        if (!mIsRestoringActivity) {
+            loadStartupTab(isExternalURL ? passedUri : null);
+        }
+
         if (mRestoreMode == RESTORE_OOM) {
             // If we successfully did an OOM restore, we now have tab stubs
             // from the last session. Any future tabs should be animated.
@@ -1569,8 +1598,6 @@ abstract public class GeckoApp
             // Move the session file if it exists
             getProfile().moveSessionFile();
         }
-
-        initializeChrome(passedUri, isExternalURL);
 
         if (mRestoreMode == RESTORE_NONE) {
             Tabs.getInstance().notifyListeners(null, Tabs.TabEvents.RESTORED);
