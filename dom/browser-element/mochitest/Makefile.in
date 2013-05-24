@@ -161,6 +161,8 @@ MOCHITEST_FILES = \
 		browserElement_ReloadPostRequest.js \
 		browserElement_PurgeHistory.js \
 		test_browserElement_inproc_PurgeHistory.html \
+		browserElement_VisibilityChange.js \
+		test_browserElement_inproc_VisibilityChange.html \
 		$(NULL)
 
 # Disabled due to https://bugzilla.mozilla.org/show_bug.cgi?id=774100
@@ -232,6 +234,7 @@ MOCHITEST_FILES += \
 		test_browserElement_oop_FrameWrongURI.html \
 		test_browserElement_oop_ReloadPostRequest.html \
 		test_browserElement_oop_PurgeHistory.html \
+		test_browserElement_oop_VisibilityChange.html \
 	$(NULL)
 endif #}
 endif #}
