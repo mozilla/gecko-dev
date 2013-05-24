@@ -589,30 +589,14 @@ abstract public class BrowserApp extends GeckoApp
     }
 
     @Override
-    protected void initializeChrome(String uri, boolean isExternalURL) {
-        super.initializeChrome(uri, isExternalURL);
+    protected void initializeChrome() {
+        super.initializeChrome();
 
         mBrowserToolbar.updateBackButton(false);
         mBrowserToolbar.updateForwardButton(false);
         ((BrowserToolbarLayout)mBrowserToolbar.getLayout()).refreshMargins();
 
         mDoorHangerPopup.setAnchor(mBrowserToolbar.mFavicon);
-
-        if (isExternalURL || mRestoreMode != RESTORE_NONE) {
-            mAboutHomeStartupTimer.cancel();
-        }
-
-        if (!mIsRestoringActivity) {
-            if (!isExternalURL) {
-                // show about:home if we aren't restoring previous session
-                if (mRestoreMode == RESTORE_NONE) {
-                    Tab tab = Tabs.getInstance().loadUrl("about:home", Tabs.LOADURL_NEW_TAB);
-                }
-            } else {
-                int flags = Tabs.LOADURL_NEW_TAB | Tabs.LOADURL_USER_ENTERED;
-                Tabs.getInstance().loadUrl(uri, flags);
-            }
-        }
 
         // Intercept key events for gamepad shortcuts
         mLayerView.setOnKeyListener(this);
@@ -621,6 +605,16 @@ abstract public class BrowserApp extends GeckoApp
     private void setSidebarMargin(int margin) {
         ((RelativeLayout.LayoutParams) mGeckoLayout.getLayoutParams()).leftMargin = margin;
         mGeckoLayout.requestLayout();
+    }
+
+    @Override
+    protected void loadStartupTab(String url) {
+        // We aren't showing about:home, so cancel the telemetry timer
+        if (url != null || mRestoreMode != RESTORE_NONE) {
+            mAboutHomeStartupTimer.cancel();
+        }
+
+        super.loadStartupTab(url);
     }
 
     private void setToolbarMargin(int margin) {
