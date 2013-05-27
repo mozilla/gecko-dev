@@ -916,6 +916,7 @@ if [ "$ENABLE_TESTS" ]; then
     testing/mochitest/tests/browser/Makefile
     testing/mozbase/Makefile
     testing/peptest/Makefile
+    testing/config/Makefile
     testing/tools/screenshot/Makefile
     testing/xpcshell/Makefile
     testing/xpcshell/example/Makefile

@@ -333,6 +333,7 @@ include $(topsrcdir)/toolkit/mozapps/installer/package-name.mk
 ifndef UNIVERSAL_BINARY
 PKG_STAGE = $(DIST)/test-package-stage
 package-tests: \
+  stage-config \
   stage-mochitest \
   stage-reftest \
   stage-xpcshell \
@@ -376,6 +377,7 @@ make-stage-dir:
 	$(NSINSTALL) -D $(PKG_STAGE)/bin
 	$(NSINSTALL) -D $(PKG_STAGE)/bin/components
 	$(NSINSTALL) -D $(PKG_STAGE)/certs
+	$(NSINSTALL) -D $(PKG_STAGE)/config
 	$(NSINSTALL) -D $(PKG_STAGE)/jetpack
 	$(NSINSTALL) -D $(PKG_STAGE)/peptest
 	$(NSINSTALL) -D $(PKG_STAGE)/mozbase
@@ -383,6 +385,9 @@ make-stage-dir:
 
 stage-b2g: make-stage-dir
 	$(NSINSTALL) $(topsrcdir)/b2g/test/b2g-unittest-requirements.txt $(PKG_STAGE)/b2g
+
+stage-config: make-stage-dir
+	$(MAKE) -C $(DEPTH)/testing/config stage-package
 
 robotium-id-map:
 ifeq ($(MOZ_BUILD_APP),mobile/android)
@@ -453,6 +458,7 @@ stage-mozbase: make-stage-dir
   package-tests \
   make-stage-dir \
   stage-b2g \
+  stage-config \
   stage-mochitest \
   stage-reftest \
   stage-xpcshell \
