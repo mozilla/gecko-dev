@@ -1407,7 +1407,7 @@ NS_IMETHODIMP nsHTMLMediaElement::SetVolume(double aVolume)
   mVolume = aVolume;
 
   // Here we want just to update the volume.
-  SetMutedInternal(mMuted);
+  SetVolumeInternal();
 
   DispatchAsyncEvent(NS_LITERAL_STRING("volumechange"));
 
@@ -1525,6 +1525,11 @@ void nsHTMLMediaElement::SetMutedInternal(uint32_t aMuted)
     return;
   }
 
+  SetVolumeInternal();
+}
+
+void nsHTMLMediaElement::SetVolumeInternal()
+{
   float effectiveVolume = mMuted ? 0.0f : float(mVolume);
 
   if (mDecoder) {
