@@ -607,7 +607,7 @@ class StackFrame
     ArgumentsObject &argsObj() const;
     void initArgsObj(ArgumentsObject &argsobj);
 
-    inline JSObject *createRestParameter(JSContext *cx);
+    JSObject *createRestParameter(JSContext *cx);
 
     /*
      * Scope chain
