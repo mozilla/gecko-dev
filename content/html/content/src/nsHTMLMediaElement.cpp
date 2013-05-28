@@ -1905,21 +1905,35 @@ nsHTMLMediaElement::WakeLockBoolWrapper::UpdateWakeLock()
 {
   if (!mOuter) {
     return;
-
   }
+
   bool playing = (!mValue && mCanPlay);
 
   if (playing) {
+    mOuter->WakeLockCreate();
+  } else {
+    mOuter->WakeLockRelease();
+  }
+}
+
+void
+nsHTMLMediaElement::WakeLockCreate()
+{
+  if (!mWakeLock) {
     nsCOMPtr<nsIPowerManagerService> pmService =
       do_GetService(POWERMANAGERSERVICE_CONTRACTID);
     NS_ENSURE_TRUE_VOID(pmService);
 
-    if (!mWakeLock) {
-      pmService->NewWakeLock(NS_LITERAL_STRING("cpu"),
-                             mOuter->OwnerDoc()->GetWindow(),
-                             getter_AddRefs(mWakeLock));
-    }
-  } else if (mWakeLock) {
+    pmService->NewWakeLock(NS_LITERAL_STRING("cpu"),
+                           OwnerDoc()->GetWindow(),
+                           getter_AddRefs(mWakeLock));
+  }
+}
+
+void
+nsHTMLMediaElement::WakeLockRelease()
+{
+  if (mWakeLock) {
     mWakeLock->Unlock();
     mWakeLock = nullptr;
   }

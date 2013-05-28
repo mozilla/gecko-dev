@@ -30,6 +30,7 @@
 
 #include "nsEventDispatcher.h"
 #include "nsIDOMProgressEvent.h"
+#include "nsIPowerManagerService.h"
 #include "nsMediaError.h"
 
 using namespace mozilla;
@@ -212,4 +213,49 @@ NS_IMETHODIMP nsHTMLVideoElement::GetMozHasAudio(bool *aHasAudio) {
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
   *aHasAudio = mHasAudio;
   return NS_OK;
+}
+
+void nsHTMLVideoElement::NotifyOwnerDocumentActivityChanged()
+{
+  nsHTMLMediaElement::NotifyOwnerDocumentActivityChanged();
+  WakeLockUpdate();
+}
+
+void
+nsHTMLVideoElement::WakeLockCreate()
+{
+  WakeLockUpdate();
+}
+
+void
+nsHTMLVideoElement::WakeLockRelease()
+{
+  WakeLockUpdate();
+}
+
+void
+nsHTMLVideoElement::WakeLockUpdate()
+{
+  bool hidden = true;
+
+  nsCOMPtr<nsIDOMDocument> domDoc = do_QueryInterface(OwnerDoc());
+  if (domDoc) {
+    domDoc->GetHidden(&hidden);
+  }
+
+  if (mScreenWakeLock && (mPaused || hidden)) {
+    mScreenWakeLock->Unlock();
+    mScreenWakeLock = nullptr;
+    return;
+  }
+
+  if (!mScreenWakeLock && !mPaused && !hidden) {
+    nsCOMPtr<nsIPowerManagerService> pmService =
+      do_GetService(POWERMANAGERSERVICE_CONTRACTID);
+    NS_ENSURE_TRUE_VOID(pmService);
+
+    pmService->NewWakeLock(NS_LITERAL_STRING("screen"),
+                           OwnerDoc()->GetWindow(),
+                           getter_AddRefs(mScreenWakeLock));
+  }
 }

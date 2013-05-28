@@ -61,9 +61,17 @@ public:
 
   virtual nsIDOMNode* AsDOMNode() { return this; }
 
+  void NotifyOwnerDocumentActivityChanged() MOZ_OVERRIDE;
+
 protected:
   virtual void GetItemValueText(nsAString& text);
   virtual void SetItemValueText(const nsAString& text);
+
+  virtual void WakeLockCreate();
+  virtual void WakeLockRelease();
+  void WakeLockUpdate();
+
+  nsCOMPtr<nsIDOMMozWakeLock> mScreenWakeLock;
 };
 
 #endif
