@@ -3916,6 +3916,9 @@ pref("canvas.image.cache.limit", 0);
 // How many images to eagerly decode on a given page. 0 means "no limit".
 pref("image.onload.decode.limit", 0);
 
+// Try to discard images in the current tab that not visible.
+pref("layout.imagevisibility.enabled", false);
+
 // WebGL prefs
 pref("gl.msaa-level", 2);
 pref("webgl.force-enabled", false);
