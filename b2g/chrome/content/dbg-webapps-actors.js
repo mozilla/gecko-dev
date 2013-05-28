@@ -117,7 +117,7 @@ WebappsActor.prototype = {
             let appType = self._getAppType(aManifest.type);
 
             // In production builds, don't allow installation of certified apps.
-#ifdef MOZ_OFFICIAL
+#ifdef MOZ_OFFICIAL_BRANDING
             if (appType == Ci.nsIPrincipal.APP_STATUS_CERTIFIED) {
               self._sendError("Installing certified apps is not allowed.", aId);
               return;
@@ -199,7 +199,7 @@ WebappsActor.prototype = {
             let appType = self._getAppType(aManifest.type);
 
             // In production builds, don't allow installation of certified apps.
-#ifdef MOZ_OFFICIAL
+#ifdef MOZ_OFFICIAL_BRANDING
             if (appType == Ci.nsIPrincipal.APP_STATUS_CERTIFIED) {
               self._sendError("Installing certified apps is not allowed.", aId);
               return;
@@ -279,7 +279,7 @@ WebappsActor.prototype = {
 
       if (missing) {
         try {
-          aDir.remove(true);
+          appDir.remove(true);
         } catch(e) {}
         return { error: "badParameterType",
                  message: "hosted app file is missing" }
