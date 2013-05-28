@@ -40,7 +40,8 @@ function getNodeView(value) {
   return null;
 }
 getNodeView.implement = function(value, implementation) {
-  implementations.set(value, implementation)
+  implementations.set(value, implementation);
+  return value;
 }
 
 exports.getNodeView = getNodeView;
