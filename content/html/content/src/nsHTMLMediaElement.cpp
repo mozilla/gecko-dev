@@ -1543,6 +1543,10 @@ void nsHTMLMediaElement::SetVolumeInternal()
 
 NS_IMETHODIMP nsHTMLMediaElement::SetMuted(bool aMuted)
 {
+  if (aMuted == (mMuted & MUTED_BY_CONTENT)) {
+    return NS_OK;
+  }
+
   if (aMuted) {
     SetMutedInternal(mMuted | MUTED_BY_CONTENT);
   } else {
