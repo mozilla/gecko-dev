@@ -3889,6 +3889,9 @@ pref("image.multithreaded_decoding.enabled", true);
 // automatically determined based on the system's number of cores.
 pref("image.multithreaded_decoding.limit", -1);
 
+// Try to discard images in the current tab that not visible.
+pref("layout.imagevisibility.enabled", false);
+
 // WebGL prefs
 pref("gl.msaa-level", 2);
 pref("webgl.force-enabled", false);
