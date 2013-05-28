@@ -1789,6 +1789,8 @@ nsHTMLMediaElement::~nsHTMLMediaElement()
   if (mAudioStream) {
     mAudioStream->Shutdown();
   }
+
+  WakeLockRelease();
 }
 
 void nsHTMLMediaElement::StopSuspendingAfterFirstFrame()
@@ -1883,7 +1885,8 @@ NS_IMETHODIMP nsHTMLMediaElement::Play()
 }
 
 nsHTMLMediaElement::WakeLockBoolWrapper&
-nsHTMLMediaElement::WakeLockBoolWrapper::operator=(bool val) {
+nsHTMLMediaElement::WakeLockBoolWrapper::operator=(bool val)
+{
   if (mValue == val) {
     return *this;
   }
@@ -1891,6 +1894,13 @@ nsHTMLMediaElement::WakeLockBoolWrapper::operator=(bool val) {
   mValue = val;
   UpdateWakeLock();
   return *this;
+}
+
+nsHTMLMediaElement::WakeLockBoolWrapper::~WakeLockBoolWrapper()
+{
+  if (mTimer) {
+    mTimer->Cancel();
+  }
 }
 
 void
@@ -1910,10 +1920,28 @@ nsHTMLMediaElement::WakeLockBoolWrapper::UpdateWakeLock()
   bool playing = (!mValue && mCanPlay);
 
   if (playing) {
+    if (mTimer) {
+      mTimer->Cancel();
+      mTimer = nullptr;
+    }
     mOuter->WakeLockCreate();
-  } else {
-    mOuter->WakeLockRelease();
+  } else if (!mTimer) {
+    // Don't release the wake lock immediately; instead, release it after a
+    // grace period.
+    int timeout = Preferences::GetInt("media.wakelock_timeout", 2000);
+    mTimer = do_CreateInstance("@mozilla.org/timer;1");
+    mTimer->InitWithFuncCallback(TimerCallback, this, timeout,
+                                 nsITimer::TYPE_ONE_SHOT);
   }
+}
+
+void
+nsHTMLMediaElement::WakeLockBoolWrapper::TimerCallback(nsITimer* aTimer,
+                                                       void* aClosure)
+{
+  WakeLockBoolWrapper* wakeLock = static_cast<WakeLockBoolWrapper*>(aClosure);
+  wakeLock->mOuter->WakeLockRelease();
+  wakeLock->mTimer = nullptr;
 }
 
 void

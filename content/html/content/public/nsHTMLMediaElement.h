@@ -36,6 +36,9 @@ typedef uint16_t nsMediaReadyState;
 namespace mozilla {
 class MediaResource;
 }
+
+class nsITimer;
+
 #ifdef MOZ_DASH
 class nsDASHDecoder;
 #endif
@@ -419,6 +422,8 @@ protected:
     WakeLockBoolWrapper(bool val = false)
       : mValue(val), mCanPlay(true), mOuter(nullptr) {}
 
+    ~WakeLockBoolWrapper();
+
     void SetOuter(nsHTMLMediaElement* outer) { mOuter = outer; }
     void SetCanPlay(bool aCanPlay);
 
@@ -428,12 +433,15 @@ protected:
 
     bool operator !() const { return !mValue; }
 
+    static void TimerCallback(nsITimer* aTimer, void* aClosure);
+
   private:
     void UpdateWakeLock();
 
     bool mValue;
     bool mCanPlay;
     nsHTMLMediaElement* mOuter;
+    nsCOMPtr<nsITimer> mTimer;
   };
 
   /**
