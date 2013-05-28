@@ -188,7 +188,7 @@ this.PermissionsTable =  { geolocation: {
                            },
                            "deprecated-hwvideo": {
                              app: DENY_ACTION,
-                             privileged: DENY_ACTION,
+                             privileged: ALLOW_ACTION,
                              certified: ALLOW_ACTION
                            },
                            "idle": {
