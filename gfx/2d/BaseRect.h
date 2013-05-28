@@ -429,6 +429,22 @@ struct BaseRect {
                  NS_MAX(y, NS_MIN(YMost(), aPoint.y)));
   }
 
+  /**
+   * Clamp aRect to this rectangle. This returns aRect after it is forced
+   * inside the bounds of this rectangle. It will attempt to retain the size
+   * but will shrink the dimensions that don't fit.
+   */
+  Sub ClampRect(const Sub& aRect) const
+  {
+    Sub rect(NS_MAX(aRect.x, x),
+             NS_MAX(aRect.y, y),
+             NS_MIN(aRect.width, width),
+             NS_MIN(aRect.height, height));
+    rect.x = NS_MIN(rect.XMost(), XMost()) - rect.width;
+    rect.y = NS_MIN(rect.YMost(), YMost()) - rect.height;
+    return rect;
+  }
+
 private:
   // Do not use the default operator== or operator!= !
   // Use IsEqualEdges or IsEqualInterior explicitly.
