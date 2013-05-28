@@ -3887,6 +3887,12 @@ nsGfxScrollFrameInner::SaveState()
     return nullptr;
   }
 
+  // Don't store a scroll state if we never have been scrolled or restored
+  // a previous scroll state.
+  if (!mHasBeenScrolled && !mDidHistoryRestore) {
+    return nullptr;
+  }
+
   nsPresState* state = new nsPresState();
   state->SetScrollState(GetLogicalScrollPosition());
   return state;
