@@ -2164,9 +2164,9 @@ nsDocument::ResetToURI(nsIURI *aURI, nsILoadGroup *aLoadGroup,
       nsNodeUtils::ContentRemoved(this, content, i, previousSibling);
       content->UnbindFromTree();
     }
+    mCachedRootElement = nullptr;
   }
   mInUnlinkOrDeletion = oldVal;
-  mCachedRootElement = nullptr;
 
   // Reset our stylesheets
   ResetStylesheetsToURI(aURI);
