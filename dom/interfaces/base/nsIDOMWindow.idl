@@ -509,3 +509,10 @@ interface nsIDOMWindowPerformance : nsISupports
  */
 [scriptable, uuid(36aeaa8e-3126-49de-9581-276dd7117826)]
 interface nsIDOMWindowInternal : nsIDOMWindow {};
+
+[scriptable, uuid(660ae025-7eec-4308-b5ce-79cf67ee7e00)]
+interface nsIWindowCancelAnimationFrame : nsISupports
+{
+  void cancelAnimationFrame(in long aHandle);
+};
+

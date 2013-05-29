@@ -626,6 +626,7 @@ MOCHITEST_FILES_C= \
 		test_xhr_send_readystate.html \
 		test_bug813919.html \
 		test_bug814576.html \
+		test_bug876282.html \
 		test_xhr_withCredentials.html \
 		test_bothCSPheaders.html \
 		file_bothCSPheaders.html \

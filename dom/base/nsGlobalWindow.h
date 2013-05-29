@@ -270,6 +270,7 @@ class nsGlobalWindow : public mozilla::dom::EventTarget,
 #ifdef MOZ_WEBSPEECH
                      , public nsISpeechSynthesisGetter
 #endif // MOZ_WEBSPEECH
+                     , public nsIWindowCancelAnimationFrame
 {
 public:
   typedef mozilla::TimeStamp TimeStamp;
@@ -351,6 +352,9 @@ public:
 
   // nsIInlineEventHandlers
   NS_DECL_NSIINLINEEVENTHANDLERS
+
+  // nsIWindowCancelAnimationFrame
+  NS_DECL_NSIWINDOWCANCELANIMATIONFRAME
 
   // nsPIDOMWindow
   virtual NS_HIDDEN_(nsPIDOMWindow*) GetPrivateRoot();

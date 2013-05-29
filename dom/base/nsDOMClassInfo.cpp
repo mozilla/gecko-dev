@@ -1544,6 +1544,7 @@ nsDOMClassInfo::RegisterExternalClasses()
   DOM_CLASSINFO_MAP_ENTRY(nsIDOMWindow)                                        \
   DOM_CLASSINFO_MAP_ENTRY(nsIDOMWindowB2G)                                     \
   DOM_CLASSINFO_MAP_ENTRY(nsIDOMJSWindow)                                      \
+  DOM_CLASSINFO_MAP_ENTRY(nsIWindowCancelAnimationFrame)                       \
   DOM_CLASSINFO_MAP_ENTRY(nsIDOMEventTarget)                                   \
   DOM_CLASSINFO_MAP_ENTRY(nsIInlineEventHandlers)                              \
   DOM_CLASSINFO_MAP_ENTRY(nsIDOMWindowPerformance)                             \
@@ -1555,6 +1556,7 @@ nsDOMClassInfo::RegisterExternalClasses()
 #define DOM_CLASSINFO_WINDOW_MAP_ENTRIES(_support_indexed_db)                  \
   DOM_CLASSINFO_MAP_ENTRY(nsIDOMWindow)                                        \
   DOM_CLASSINFO_MAP_ENTRY(nsIDOMJSWindow)                                      \
+  DOM_CLASSINFO_MAP_ENTRY(nsIWindowCancelAnimationFrame)                       \
   DOM_CLASSINFO_MAP_ENTRY(nsIDOMEventTarget)                                   \
   DOM_CLASSINFO_MAP_ENTRY(nsIInlineEventHandlers)                              \
   DOM_CLASSINFO_MAP_ENTRY(nsIDOMWindowPerformance)                             \
