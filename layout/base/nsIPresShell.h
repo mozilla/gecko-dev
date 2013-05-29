@@ -1224,6 +1224,12 @@ public:
   bool GetIsFirstPaint() const { return mIsFirstPaint; }
 
   /**
+   * A unique ID for each instance. Used to ensure zoom/pan messages relate to
+   * the intended location.
+   */
+  uint32_t GetPresShellId() { return mPresShellId; }
+
+  /**
    * Dispatch a mouse move event based on the most recent mouse position if
    * this PresShell is visible. This is used when the contents of the page
    * moved (aFromScroll is false) or scrolled (aFromScroll is true).
@@ -1478,6 +1484,8 @@ protected:
   bool                      mSuppressInterruptibleReflows : 1;
   bool                      mScrollPositionClampingScrollPortSizeSet : 1;
 
+  uint32_t                  mPresShellId;
+
   static nsIContent*        gKeyDownTarget;
 
   // Cached font inflation values. This is done to prevent changing of font
@@ -1505,3 +1513,4 @@ nsresult
 NS_NewPresShell(nsIPresShell** aInstancePtrResult);
 
 #endif /* nsIPresShell_h___ */
+
