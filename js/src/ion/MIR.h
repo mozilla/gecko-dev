@@ -1962,6 +1962,8 @@ class MUnbox
         return mode() != Infallible;
     }
     bool congruentTo(MDefinition *const &ins) const {
+        if (!ins->isUnbox() || ins->toUnbox()->mode() != mode())
+            return false;
         return congruentIfOperandsEqual(ins);
     }
     AliasSet getAliasSet() const {
