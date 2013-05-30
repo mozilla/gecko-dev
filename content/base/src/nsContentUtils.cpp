@@ -5198,7 +5198,12 @@ nsContentUtils::GetViewportInfo(nsIDocument *aDocument,
 
   // Now convert the scale into device pixels per CSS pixel.
   nsIWidget *widget = WidgetForDocument(aDocument);
+#ifdef MOZ_WIDGET_ANDROID
+  // Temporarily use special Android code until bug 803207 is fixed
   double pixelRatio = widget ? GetDevicePixelsPerMetaViewportPixel(widget) : 1.0;
+#else
+  double pixelRatio = widget ? widget->GetDefaultScale() : 1.0;
+#endif
   scaleFloat *= pixelRatio;
   scaleMinFloat *= pixelRatio;
   scaleMaxFloat *= pixelRatio;
@@ -5274,6 +5279,7 @@ nsContentUtils::GetViewportInfo(nsIDocument *aDocument,
   return ret;
 }
 
+#ifdef MOZ_WIDGET_ANDROID
 /* static */
 double
 nsContentUtils::GetDevicePixelsPerMetaViewportPixel(nsIWidget* aWidget)
@@ -5295,6 +5301,7 @@ nsContentUtils::GetDevicePixelsPerMetaViewportPixel(nsIWidget* aWidget)
   // For very high-density displays like the iPhone 4, use an integer ratio.
   return floor(dpi / 150.0);
 }
+#endif
 
 /* static */
 nsresult
