@@ -26,10 +26,12 @@ XPIDLSRCS = \
   nsIDOMMozMobileMessageThread.idl \
   nsIDOMSmsFilter.idl \
   nsIDOMSmsSegmentInfo.idl \
+  nsIMmsService.idl \
   nsIMobileMessageCallback.idl \
   nsIMobileMessageCursorCallback.idl \
   nsIMobileMessageService.idl \
   nsISmsService.idl \
+  nsIWapPushApplication.idl \
   $(NULL)
 
 ifdef MOZ_B2G_RIL

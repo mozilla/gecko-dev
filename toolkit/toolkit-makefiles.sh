@@ -60,9 +60,6 @@ MAKEFILES_dom="
   dom/media/Makefile
   dom/messages/Makefile
   dom/messages/interfaces/Makefile
-  dom/mms/Makefile
-  dom/mms/interfaces/Makefile
-  dom/mms/src/Makefile
   dom/mobilemessage/Makefile
   dom/mobilemessage/interfaces/Makefile
   dom/mobilemessage/src/Makefile
