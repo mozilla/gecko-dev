@@ -356,7 +356,7 @@ NS_IMPL_EVENT_HANDLER(Telephony, callschanged)
 NS_IMETHODIMP
 Telephony::CallStateChanged(uint32_t aCallIndex, uint16_t aCallState,
                             const nsAString& aNumber, bool aIsActive,
-                            bool aIsOutgoing, bool aIsEmergency)
+                            bool aIsOutgoing)
 {
   NS_ASSERTION(aCallIndex != kOutgoingPlaceholderCallIndex,
                "This should never happen!");
@@ -389,7 +389,6 @@ Telephony::CallStateChanged(uint32_t aCallIndex, uint16_t aCallState,
       aCallState != nsIRadioInterfaceLayer::CALL_STATE_INCOMING &&
       outgoingCall) {
     outgoingCall->UpdateCallIndex(aCallIndex);
-    outgoingCall->UpdateEmergency(aIsEmergency);
     modifiedCall.swap(outgoingCall);
   }
 
@@ -416,7 +415,7 @@ Telephony::CallStateChanged(uint32_t aCallIndex, uint16_t aCallState,
   }
 
   nsRefPtr<TelephonyCall> call =
-    TelephonyCall::Create(this, aNumber, aCallState, aCallIndex, aIsEmergency);
+    TelephonyCall::Create(this, aNumber, aCallState, aCallIndex);
   NS_ASSERTION(call, "This should never fail!");
 
   NS_ASSERTION(mCalls.Contains(call), "Should have auto-added new call!");
@@ -437,8 +436,7 @@ Telephony::CallStateChanged(uint32_t aCallIndex, uint16_t aCallState,
 NS_IMETHODIMP
 Telephony::EnumerateCallState(uint32_t aCallIndex, uint16_t aCallState,
                               const nsAString& aNumber, bool aIsActive,
-                              bool aIsOutgoing, bool aIsEmergency,
-                              bool* aContinue)
+                              bool aIsOutgoing, bool* aContinue)
 {
   // Make sure we don't somehow add duplicates.
   for (uint32_t index = 0; index < mCalls.Length(); index++) {
@@ -451,7 +449,7 @@ Telephony::EnumerateCallState(uint32_t aCallIndex, uint16_t aCallState,
   }
 
   nsRefPtr<TelephonyCall> call =
-    TelephonyCall::Create(this, aNumber, aCallState, aCallIndex, aIsEmergency);
+    TelephonyCall::Create(this, aNumber, aCallState, aCallIndex);
   NS_ASSERTION(call, "This should never fail!");
 
   NS_ASSERTION(mCalls.Contains(call), "Should have auto-added new call!");

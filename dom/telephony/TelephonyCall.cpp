@@ -17,7 +17,7 @@ USING_TELEPHONY_NAMESPACE
 // static
 already_AddRefed<TelephonyCall>
 TelephonyCall::Create(Telephony* aTelephony, const nsAString& aNumber,
-                      uint16_t aCallState, uint32_t aCallIndex, bool aEmergency)
+                      uint16_t aCallState, uint32_t aCallIndex)
 {
   NS_ASSERTION(aTelephony, "Null pointer!");
   NS_ASSERTION(!aNumber.IsEmpty(), "Empty number!");
@@ -31,7 +31,6 @@ TelephonyCall::Create(Telephony* aTelephony, const nsAString& aNumber,
   call->mNumber = aNumber;
   call->mCallIndex = aCallIndex;
   call->mError = nullptr;
-  call->mEmergency = aEmergency;
 
   call->ChangeStateInternal(aCallState, false);
 
@@ -175,13 +174,6 @@ NS_IMETHODIMP
 TelephonyCall::GetState(nsAString& aState)
 {
   aState.Assign(mState);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-TelephonyCall::GetEmergency(bool* aEmergency)
-{
-  *aEmergency = mEmergency;
   return NS_OK;
 }
 
