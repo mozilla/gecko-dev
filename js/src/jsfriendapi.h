@@ -1482,6 +1482,10 @@ assertEnteredPolicy(JSContext *cx, JSObject *obj, jsid id);
 inline void assertEnteredPolicy(JSContext *cx, JSObject *obj, jsid id) {};
 #endif
 
+/* ES5 8.12.8. */
+extern JS_FRIEND_API(JSBool)
+DefaultValue(JSContext *cx, HandleObject obj, JSType hint, MutableHandleValue vp);
+
 } /* namespace js */
 
 extern JS_FRIEND_API(JSBool)
