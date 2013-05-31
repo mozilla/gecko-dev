@@ -130,7 +130,7 @@ private:
   bool mFirstCKPD;
   int mNetworkSelectionMode;
   bool mReceiveVgsFlag;
-  bool mBLDNProcessed;
+  bool mDialingRequestProcessed;
   nsString mDeviceAddress;
   nsString mMsisdn;
   nsString mOperatorName;
