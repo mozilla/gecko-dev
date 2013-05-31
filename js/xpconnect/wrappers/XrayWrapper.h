@@ -104,6 +104,10 @@ class XrayWrapper : public Base {
                            unsigned argc, js::Value *argv,
                            JS::MutableHandle<JS::Value> rval);
 
+    virtual bool defaultValue(JSContext *cx, JS::HandleObject wrapper,
+                              JSType hint, JS::MutableHandleValue vp)
+                              MOZ_OVERRIDE;
+
     static XrayWrapper singleton;
 
   private:

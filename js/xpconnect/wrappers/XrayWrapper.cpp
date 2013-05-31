@@ -1948,6 +1948,20 @@ XrayWrapper<Base, Traits>::construct(JSContext *cx, JS::Handle<JSObject*> wrappe
     return Traits::construct(cx, wrapper, argc, argv, rval, Base::singleton);
 }
 
+template <typename Base, typename Traits>
+bool
+XrayWrapper<Base, Traits>::defaultValue(JSContext *cx, HandleObject wrapper,
+                                        JSType hint, MutableHandleValue vp)
+{
+    // Even if this isn't a security wrapper, Xray semantics dictate that we
+    // run the DefaultValue algorithm directly on the Xray wrapper.
+    //
+    // NB: We don't have to worry about things with special [[DefaultValue]]
+    // behavior like Date because we'll never have an XrayWrapper to them.
+    return js::DefaultValue(cx, wrapper, hint, vp);
+}
+
+
 /*
  * The Permissive / Security variants should be used depending on whether the
  * compartment of the wrapper is guranteed to subsume the compartment of the
