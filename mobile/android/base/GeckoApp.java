@@ -2132,7 +2132,7 @@ abstract public class GeckoApp
 
         Tabs.unregisterOnTabsChangedListener(this);
         if (mHealthRecorder != null) {
-            mHealthRecorder.close(GeckoAppShell.getEventDispatcher());
+            mHealthRecorder.close();
             mHealthRecorder = null;
         }
     }
