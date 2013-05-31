@@ -481,6 +481,7 @@ BluetoothOppManager::AfterOppDisconnected()
   mConnected = false;
   mLastCommand = 0;
   mBlob = nullptr;
+  mDsFile = nullptr;
   mPacketLeftLength = 0;
 
   // We can't reset mSuccessFlag here since this function may be called
@@ -513,6 +514,7 @@ BluetoothOppManager::DeleteReceivedFile()
 
   if (mDsFile && mDsFile->mFile) {
     mDsFile->mFile->Remove(false);
+    mDsFile = nullptr;
   }
 }
 
@@ -696,11 +698,11 @@ BluetoothOppManager::ServerDataHandler(UnixSocketRawData* aMessage)
     ParseHeaders(&aMessage->mData[3],
                 receivedLength - 3,
                 &pktHeaders);
-    ReplyToDisconnect();
-    AfterOppDisconnected();
     if (opCode == ObexRequestCode::Abort) {
       DeleteReceivedFile();
     }
+    ReplyToDisconnect();
+    AfterOppDisconnected();
     FileTransferComplete();
   } else if (opCode == ObexRequestCode::Put ||
              opCode == ObexRequestCode::PutFinal) {
