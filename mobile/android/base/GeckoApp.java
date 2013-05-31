@@ -2128,13 +2128,14 @@ abstract public class GeckoApp
                 SmsManager.getInstance().shutdown();
         }
 
-        super.onDestroy();
-
-        Tabs.unregisterOnTabsChangedListener(this);
         if (mHealthRecorder != null) {
             mHealthRecorder.close();
             mHealthRecorder = null;
         }
+
+        super.onDestroy();
+
+        Tabs.unregisterOnTabsChangedListener(this);
     }
 
     protected void registerEventListener(String event) {
