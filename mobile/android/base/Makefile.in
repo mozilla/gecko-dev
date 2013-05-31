@@ -116,6 +116,7 @@ FENNEC_JAVA_FILES = \
   GlobalHistory.java \
   GeckoViewsFactory.java \
   health/BrowserHealthRecorder.java \
+  health/BrowserHealthReporter.java \
   InputMethods.java \
   JavaAddonManager.java \
   LightweightTheme.java \

@@ -1618,6 +1618,10 @@ public class GeckoAppShell
         }
     }
 
+    public static GeckoProfile getProfile() {
+        return GeckoApp.mAppContext.getProfile();
+    }
+
     public static void listOfOpenFiles() {
         int pidColumn = -1;
         int nameColumn = -1;
