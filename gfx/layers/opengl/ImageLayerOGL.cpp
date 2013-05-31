@@ -968,6 +968,9 @@ ShadowImageLayerOGL::RenderLayer(int aPreviousFrameBuffer,
         gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
         gl()->BindExternalBuffer(mExternalBufferTexture.GetTextureID(), graphicBuffer->getNativeBuffer());
         mImageVersion = imgVersion;
+    } else {
+        mSize = gfxIntSize(0, 0);
+        mPictureRect = nsIntRect(0, 0, 0, 0);
     }
 #endif
   }
@@ -1015,6 +1018,31 @@ ShadowImageLayerOGL::RenderLayer(int aPreviousFrameBuffer,
       } while (mTexImage->NextTile());
     }
 #ifdef MOZ_WIDGET_GONK
+  } else if (mExternalBufferTexture.IsAllocated() && mSize == gfxIntSize(0, 0)) {
+    // when there is no image for rendering, fill the region with black
+
+    gl()->MakeCurrent();
+
+    // XXX we might be able to improve performance by using glClear
+    nsIntRect visibleRect = GetEffectiveVisibleRegion().GetBounds();
+
+    /* Multiply color by the layer opacity, as the shader
+     * ignores layer opacity and expects a final color to
+     * write to the color buffer.  This saves a needless
+     * multiply in the fragment shader.
+     */
+    gfxRGBA color(0.0, 0.0, 0.0, GetEffectiveOpacity());
+
+    ShaderProgramOGL *program = mOGLManager->GetProgram(gl::ColorLayerProgramType,
+                                                        GetMaskLayer());
+    program->Activate();
+    program->SetLayerQuadRect(visibleRect);
+    program->SetLayerTransform(GetEffectiveTransform());
+    program->SetRenderOffset(aOffset);
+    program->SetRenderColor(color);
+    program->LoadMask(GetMaskLayer());
+
+    mOGLManager->BindAndDrawQuad(program);
   } else if (mExternalBufferTexture.IsAllocated()) {
     gl()->MakeCurrent();
     gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
