@@ -121,6 +121,7 @@ public:
                           int32_t aStartIndex, bool aForward,
                           int32_t* aIndex);
 
+  HTMLOptionElement* GetNamedItem(const nsAString& aName) const;
   virtual JSObject* NamedItem(JSContext* aCx, const nsAString& aName,
                               ErrorResult& error);
 
