@@ -751,10 +751,11 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
       let startCapNode = $(".requests-menu-timings-cap.start", target);
       let endCapNode = $(".requests-menu-timings-cap.end", target);
       let totalNode = $(".requests-menu-timings-total", target);
+      let direction = window.isRTL ? -1 : 1;
 
       // Render the timing information at a specific horizontal translation
       // based on the delta to the first monitored event network.
-      let translateX = "translateX(" + attachment.startedDeltaMillis + "px)";
+      let translateX = "translateX(" + (direction * attachment.startedDeltaMillis) + "px)";
 
       // Based on the total time passed until the last request, rescale
       // all the waterfalls to a reasonable size.
@@ -765,8 +766,8 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
       let revScaleX = "scaleX(" + (1 / scale) + ")";
 
       timingsNode.style.transform = scaleX + " " + translateX;
-      startCapNode.style.transform = revScaleX + " translateX(0.5px)";
-      endCapNode.style.transform = revScaleX + " translateX(-0.5px)";
+      startCapNode.style.transform = revScaleX + " translateX(" + (direction * 0.5) + "px)";
+      endCapNode.style.transform = revScaleX + " translateX(" + (direction * -0.5) + "px)";
       totalNode.style.transform = revScaleX;
     }
   },
@@ -801,10 +802,11 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
 
       // Insert one label for each division on the current scale.
       let fragment = document.createDocumentFragment();
+      let direction = window.isRTL ? -1 : 1;
 
       for (let x = 0; x < availableWidth; x += scaledStep) {
         let divisionMS = (x / aScale).toFixed(0);
-        let translateX = "translateX(" + (x | 0) + "px)";
+        let translateX = "translateX(" + ((direction * x) | 0) + "px)";
 
         let node = document.createElement("label");
         let text = L10N.getFormatStr("networkMenu.divisionMS", divisionMS);
@@ -862,7 +864,8 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
       for (let i = 1; i <= REQUESTS_WATERFALL_BACKGROUND_TICKS_SCALES; i++) {
         let increment = scaledStep * Math.pow(2, i);
         for (let x = 0; x < canvasWidth; x += increment) {
-          data32[x | 0] = (alphaComponent << 24) | (255 << 16) | (255 <<  8) | 255;
+          let position = (window.isRTL ? canvasWidth - x : x) | 0;
+          data32[position] = (alphaComponent << 24) | (255 << 16) | (255 << 8) | 255;
         }
         alphaComponent += REQUESTS_WATERFALL_BACKGROUND_TICKS_OPACITY_ADD;
       }
@@ -888,6 +891,9 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
    * Hides the overflowing columns in the requests table.
    */
   _hideOverflowingColumns: function NVRM__hideOverflowingColumns() {
+    if (window.isRTL) {
+      return;
+    }
     let table = $("#network-table");
     let toolbar = $("#requests-menu-toolbar");
     let columns = [
@@ -984,7 +990,11 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
       let waterfall = $("#requests-menu-waterfall-header-box");
       let containerBounds = container.getBoundingClientRect();
       let waterfallBounds = waterfall.getBoundingClientRect();
-      this._cachedWaterfallWidth = containerBounds.width - waterfallBounds.left;
+      if (!window.isRTL) {
+        this._cachedWaterfallWidth = containerBounds.width - waterfallBounds.left;
+      } else {
+        this._cachedWaterfallWidth = waterfallBounds.right;
+      }
     }
     return this._cachedWaterfallWidth;
   },
