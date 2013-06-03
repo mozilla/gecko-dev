@@ -39,6 +39,12 @@ BluetoothRILTelephonyCallback::CallStateChanged(uint32_t aCallIndex,
 }
 
 NS_IMETHODIMP
+BluetoothRILTelephonyCallback::EnumerateCallStateComplete()
+{
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 BluetoothRILTelephonyCallback::EnumerateCallState(uint32_t aCallIndex,
                                                   uint16_t aCallState,
                                                   const nsAString_internal& aNumber,
@@ -57,6 +63,17 @@ NS_IMETHODIMP
 BluetoothRILTelephonyCallback::NotifyError(int32_t aCallIndex,
                                            const nsAString& aError)
 {
+  BluetoothHfpManager* hfp = BluetoothHfpManager::Get();
+  // In order to not miss any related call state transition.
+  // It's possible that 3G network signal lost for unknown reason.
+  // If a call is released abnormally, NotifyError() will be called,
+  // instead of CallStateChanged(). We need to reset the call array state
+  // via setting CALL_STATE_DISCONNECTED
+  hfp->HandleCallStateChanged(aCallIndex,
+                              nsIRadioInterfaceLayer::CALL_STATE_DISCONNECTED,
+                              EmptyString(), false, true);
+  NS_WARNING("Reset the call state due to call transition ends abnormally");
+  NS_WARNING(NS_ConvertUTF16toUTF8(aError).get());
   return NS_OK;
 }
 
