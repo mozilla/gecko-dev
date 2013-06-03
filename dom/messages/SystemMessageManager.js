@@ -167,7 +167,7 @@ SystemMessageManager.prototype = {
     // window needs to check if the manifest/page URL is matched. Only
     // *one* window should handle the system message.
     if (msg.manifest !== this._manifest || msg.uri !== this._uri) {
-      debug("This page shouldn't handle the messages because its " + 
+      debug("This page shouldn't handle the messages because its " +
             "manifest = " + this._manifest + " and uri = " + this._uri);
       return;
     }
