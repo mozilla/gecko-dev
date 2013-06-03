@@ -25,12 +25,10 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=781534
    */
   runTest(function () {
     var testVideo = document.getElementById('testVideo');
-    var constraints = {video: true};
 
-    getUserMedia(constraints, function (aStream) {
-      checkMediaStreamTracks(constraints, aStream);
-
+    getUserMedia({video: true}, function (aStream) {
       var playback = new LocalMediaStreamPlayback(testVideo, aStream);
+
       playback.playMedia(false, function () {
         aStream.stop();
         SimpleTest.finish();
