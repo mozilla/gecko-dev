@@ -90,7 +90,7 @@ abstract public class AwesomeBarTab {
     protected void updateFavicon(ImageView faviconView, Cursor cursor) {
         byte[] b = cursor.getBlob(cursor.getColumnIndexOrThrow(URLColumns.FAVICON));
         Bitmap favicon = null;
-        if (b != null) {
+        if (b != null && b.length > 0) {
             Bitmap bitmap = BitmapUtils.decodeByteArray(b);
             if (bitmap != null) {
                 favicon = Favicons.getInstance().scaleImage(bitmap);
