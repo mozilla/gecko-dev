@@ -16,7 +16,7 @@ dictionary DeviceStorageEnumerationParameters
   jsval since;
 };
 
-[scriptable, uuid(be690a9b-f0b4-4cde-a505-0b442abe2109), builtinclass]
+[scriptable, uuid(72dd05eb-2a1f-4178-b2be-fcb70c7acd9b), builtinclass]
 interface nsIDOMDeviceStorage : nsIDOMEventTarget
 {
     [implicit_jscontext] attribute jsval onchange;
@@ -47,6 +47,10 @@ interface nsIDOMDeviceStorage : nsIDOMEventTarget
     // Note that the storageName is just a name (like sdcard), and doesn't
     // include any path information.
     readonly attribute DOMString storageName;
+
+    // Determines if this storage area is the one which will be used by default
+    // for storing new files.
+    readonly attribute bool default;
 
     [noscript] nsIFile getRootDirectoryForFile(in DOMString aName);
 };
