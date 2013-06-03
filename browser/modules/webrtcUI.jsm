@@ -61,21 +61,24 @@ function getBrowserForWindowId(aWindowID) {
   let contentWindow = someWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                                 .getInterface(Ci.nsIDOMWindowUtils)
                                 .getOuterWindowWithId(aWindowID);
-  return contentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                      .getInterface(Ci.nsIWebNavigation)
-                      .QueryInterface(Ci.nsIDocShell)
-                      .chromeEventHandler;
+  return getBrowserForWindow(contentWindow);
+}
+
+function getBrowserForWindow(aContentWindow) {
+  return aContentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                       .getInterface(Ci.nsIWebNavigation)
+                       .QueryInterface(Ci.nsIDocShell)
+                       .chromeEventHandler;
 }
 
 function handleRequest(aSubject, aTopic, aData) {
   let {windowID: windowID, callID: callID} = JSON.parse(aData);
 
-  let browser = getBrowserForWindowId(windowID);
   let params = aSubject.QueryInterface(Ci.nsIMediaStreamOptions);
 
-  browser.ownerDocument.defaultView.navigator.mozGetUserMediaDevices(
+  Services.wm.getMostRecentWindow(null).navigator.mozGetUserMediaDevices(
     function (devices) {
-      prompt(browser, callID, params.audio, params.video || params.picture, devices);
+      prompt(windowID, callID, params.audio, params.video || params.picture, devices);
     },
     function (error) {
       // bug 827146 -- In the future, the UI should catch NO_DEVICES_FOUND
@@ -94,7 +97,7 @@ function denyRequest(aCallID, aError) {
   Services.obs.notifyObservers(msg, "getUserMedia:response:deny", aCallID);
 }
 
-function prompt(aBrowser, aCallID, aAudioRequested, aVideoRequested, aDevices) {
+function prompt(aWindowID, aCallID, aAudioRequested, aVideoRequested, aDevices) {
   let audioDevices = [];
   let videoDevices = [];
   for (let device of aDevices) {
@@ -123,8 +126,13 @@ function prompt(aBrowser, aCallID, aAudioRequested, aVideoRequested, aDevices) {
     return;
   }
 
-  let host = aBrowser.contentDocument.documentURIObject.asciiHost;
-  let chromeDoc = aBrowser.ownerDocument;
+  let someWindow = Services.wm.getMostRecentWindow(null);
+  let contentWindow = someWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                                .getInterface(Ci.nsIDOMWindowUtils)
+                                .getOuterWindowWithId(aWindowID);
+  let host = contentWindow.document.documentURIObject.asciiHost;
+  let browser = getBrowserForWindow(contentWindow);
+  let chromeDoc = browser.ownerDocument;
   let chromeWin = chromeDoc.defaultView;
   let stringBundle = chromeWin.gNavigatorBundle;
   let message = stringBundle.getFormattedString("getUserMedia.share" + requestType + ".message",
@@ -198,7 +206,7 @@ function prompt(aBrowser, aCallID, aAudioRequested, aVideoRequested, aDevices) {
 
   let options = null;
 
-  chromeWin.PopupNotifications.show(aBrowser, "webRTC-shareDevices", message,
+  chromeWin.PopupNotifications.show(browser, "webRTC-shareDevices", message,
                                     "webRTC-shareDevices-notification-icon", mainAction,
                                     secondaryActions, options);
 }
