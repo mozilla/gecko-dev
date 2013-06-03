@@ -41,6 +41,7 @@ namespace android {
 class MediaStreamSource : public DataSource {
   typedef mozilla::MediaResource MediaResource;
 
+  Mutex mLock;
   MediaResource *mResource;
   nsBuiltinDecoder *mDecoder;
 public:
