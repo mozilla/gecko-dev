@@ -2404,6 +2404,24 @@ nsDocument::StartDocumentLoad(const char* aCommand, nsIChannel* aChannel,
   return NS_OK;
 }
 
+void
+CSPErrorQueue::Add(const char* aMessageName)
+{
+  mErrors.AppendElement(aMessageName);
+}
+
+void
+CSPErrorQueue::Flush(nsIDocument* aDocument)
+{
+  for (uint32_t i = 0; i < mErrors.Length(); i++) {
+    nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
+        "CSP", aDocument,
+        nsContentUtils::eSECURITY_PROPERTIES,
+        mErrors[i]);
+  }
+  mErrors.Clear();
+}
+
 nsresult
 nsDocument::InitCSP(nsIChannel* aChannel)
 {
@@ -2555,18 +2573,12 @@ nsDocument::InitCSP(nsIChannel* aChannel)
 
   // If the old header is present, warn that it will be deprecated.
   if (!cspOldHeaderValue.IsEmpty() || !cspOldROHeaderValue.IsEmpty()) {
-    nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
-                                    "CSP", this,
-                                    nsContentUtils::eSECURITY_PROPERTIES,
-                                    "OldCSPHeaderDeprecated");
+    mCSPWebConsoleErrorQueue.Add("OldCSPHeaderDeprecated");
 
     // Also, if the new headers AND the old headers were present, warn
     // that the old headers will be ignored.
     if (cspSpecCompliant) {
-      nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
-                                      "CSP", this,
-                                      nsContentUtils::eSECURITY_PROPERTIES,
-                                      "BothCSPHeadersPresent");
+      mCSPWebConsoleErrorQueue.Add("BothCSPHeadersPresent");
     }
   }
 
@@ -2602,10 +2614,7 @@ nsDocument::InitCSP(nsIChannel* aChannel)
     // CSP policies are present since CSP only allows one policy and it can't
     // be partially report-only.
     if (applyAppDefaultCSP || applyCSPFromHeader) {
-      nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
-                                      "CSP", this,
-                                      nsContentUtils::eSECURITY_PROPERTIES,
-                                      "ReportOnlyCSPIgnored");
+      mCSPWebConsoleErrorQueue.Add("ReportOnlyCSPIgnored");
 #ifdef PR_LOGGING
       PR_LOG(gCspPRLog, PR_LOG_DEBUG,
               ("Skipped report-only CSP init for document %p because another, enforced policy is set", this));
@@ -4188,6 +4197,10 @@ nsDocument::SetScriptGlobalObject(nsIScriptGlobalObject *aScriptGlobalObject)
   // having to QI every time it's asked for.
   nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(mScriptGlobalObject);
   mWindow = window;
+
+  // Now that we know what our window is, we can flush the CSP errors to the
+  // Web Console.
+  FlushCSPWebConsoleErrorQueue();
 
   // Set our visibility state, but do not fire the event.  This is correct
   // because either we're coming out of bfcache (in which case IsVisible() will
