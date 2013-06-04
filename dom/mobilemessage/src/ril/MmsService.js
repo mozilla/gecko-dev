@@ -1264,7 +1264,8 @@ MmsService.prototype = {
     this.retrieveMessage(url,
                          this.retrieveMessageCallback.bind(this,
                                                            wish,
-                                                           savableMessage));
+                                                           savableMessage),
+                         domMessage);
   },
 
   /**
@@ -1295,8 +1296,7 @@ MmsService.prototype = {
         .saveReceivedMessage(savableMessage,
                              this.saveReceivedMessageCallback.bind(this,
                                                                    retrievalMode,
-                                                                   savableMessage),
-                             domMessage);
+                                                                   savableMessage));
     }).bind(this));
   },
 
@@ -1477,7 +1477,7 @@ MmsService.prototype = {
   retrieve: function retrieve(aMessageId, aRequest) {
     if (DEBUG) debug("Retrieving message with ID " + aMessageId);
     gMobileMessageDatabaseService.getMessageRecordById(aMessageId,
-        (function notifyResult(aRv, aMessageRecord) {
+        (function notifyResult(aRv, aMessageRecord, aDomMessage) {
       if (Ci.nsIMobileMessageCallback.SUCCESS_NO_ERROR != aRv) {
         if (DEBUG) debug("Function getMessageRecordById() return error.");
         aRequest.notifyGetMessageFailed(aRv);
@@ -1586,7 +1586,9 @@ MmsService.prototype = {
                             null,
                             null,
                             DELIVERY_STATUS_PENDING,
-                            this.retrieveMessage(url, responseNotify.bind(this)));
+                            this.retrieveMessage(url,
+                                                 responseNotify.bind(this),
+                                                 aDomMessage));
     }).bind(this));
   },
 
