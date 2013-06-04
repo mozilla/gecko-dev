@@ -222,6 +222,7 @@ public:
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
 
+  void MaybeFireAsyncClickHandler(nsEventChainPostVisitor& aVisitor);
   NS_IMETHOD FireAsyncClickHandler();
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLInputElement,

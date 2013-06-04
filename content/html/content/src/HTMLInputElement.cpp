@@ -2742,10 +2742,28 @@ HTMLInputElement::ShouldPreventDOMActivateDispatch(EventTarget* aOriginalTarget)
                              nsGkAtoms::button, eCaseMatters);
 }
 
+void
+HTMLInputElement::MaybeFireAsyncClickHandler(nsEventChainPostVisitor& aVisitor)
+{
+  // Open a file picker when we receive a click on a <input type='file'>.
+  // A click is handled in the following cases:
+  // - preventDefault() has not been called (or something similar);
+  // - it's the left mouse button.
+  // We do not prevent non-trusted click because authors can already use
+  // .click(). However, the file picker will follow the rules of popup-blocking.
+  if (mType == NS_FORM_INPUT_FILE && NS_IS_MOUSE_LEFT_CLICK(aVisitor.mEvent) &&
+      !aVisitor.mEvent->mFlags.mDefaultPrevented) {
+    FireAsyncClickHandler();
+  }
+}
+
 nsresult
 HTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
 {
   if (!aVisitor.mPresContext) {
+    // Hack alert! In order to open file picker even in case the element isn't
+    // in document, fire click handler even without PresContext.
+    MaybeFireAsyncClickHandler(aVisitor);
     return NS_OK;
   }
 
@@ -3149,16 +3167,7 @@ HTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
     PostHandleEventForRangeThumb(aVisitor);
   }
 
-  // Open a file picker when we receive a click on a <input type='file'>.
-  // A click is handled in the following cases:
-  // - preventDefault() has not been called (or something similar);
-  // - it's the left mouse button.
-  // We do not prevent non-trusted click because authors can already use
-  // .click(). However, the file picker will follow the rules of popup-blocking.
-  if (mType == NS_FORM_INPUT_FILE && NS_IS_MOUSE_LEFT_CLICK(aVisitor.mEvent) &&
-      !aVisitor.mEvent->mFlags.mDefaultPrevented) {
-    return FireAsyncClickHandler();
-  }
+  MaybeFireAsyncClickHandler(aVisitor);
 
   return rv;
 }
