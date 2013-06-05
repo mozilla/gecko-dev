@@ -3318,6 +3318,11 @@ fsmdef_ev_setremotedesc(sm_event_t *event) {
 
     FSM_DEBUG_SM(DEB_F_PREFIX"Entered.", DEB_F_PREFIX_ARGS(FSM, __FUNCTION__));
 
+    if (dcb == NULL) {
+        FSM_DEBUG_SM(DEB_F_PREFIX"dcb is NULL.", DEB_F_PREFIX_ARGS(FSM, __FUNCTION__));
+        return SM_RC_CLEANUP;
+    }
+
     config_get_value(CFGID_SDPMODE, &sdpmode, sizeof(sdpmode));
     if (!sdpmode) {
         ui_set_remote_description(evSetRemoteDescError, line, call_id,
@@ -3338,12 +3343,6 @@ fsmdef_ev_setremotedesc(sm_event_t *event) {
             PC_INVALID_STATE, "Renegotiation of session description is not "
             "currently supported. See Bug 840728 for status.");
         return (SM_RC_END);
-    }
-
-
-    if (dcb == NULL) {
-        FSM_DEBUG_SM(DEB_F_PREFIX"dcb is NULL.", DEB_F_PREFIX_ARGS(FSM, __FUNCTION__));
-        return SM_RC_CLEANUP;
     }
 
     cc_initialize_msg_body_parts_info(&msg_body);
