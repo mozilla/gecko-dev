@@ -1201,7 +1201,7 @@ SetNiceForPid(int aPid, int aNice)
     }
 
     int newtaskpriority =
-      std::max(origtaskpriority + aNice - origProcPriority, origProcPriority);
+      std::max(origtaskpriority - origProcPriority + aNice, aNice);
     rv = setpriority(PRIO_PROCESS, tid, newtaskpriority);
 
     if (rv) {
