@@ -5207,6 +5207,8 @@ CanEffectlesslyCallLookupGenericOnObject(JSObject *obj)
             return false;
         if (obj->getClass()->ops.lookupProperty)
             return false;
+        if (obj->getClass()->resolve != JS_ResolveStub)
+            return false;
         obj = obj->getProto();
     }
     return true;
