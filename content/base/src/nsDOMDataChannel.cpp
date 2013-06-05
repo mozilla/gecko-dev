@@ -196,6 +196,13 @@ nsDOMDataChannel::GetProtocol(nsAString& aProtocol)
 }
 
 NS_IMETHODIMP
+nsDOMDataChannel::GetId(uint16_t *aId)
+{
+  mDataChannel->GetStream(aId);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsDOMDataChannel::GetStream(uint16_t *aStream)
 {
   mDataChannel->GetStream(aStream);

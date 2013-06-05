@@ -693,6 +693,20 @@ PeerConnection.prototype = {
     if (dict == undefined) {
 	dict = {};
     }
+    // can't throw warnings easily; mozilla 24+ will warn
+    if (dict.maxRetransmitNum != undefined) {
+      dict.maxRetransmits = dict.maxRetransmitNum;
+    }
+    if (dict.outOfOrderAllowed != undefined) {
+      dict.ordered = !dict.outOfOrderAllowed; // the meaning is swapped with the name change
+    }
+    if (dict.preset != undefined) {
+      dict.negotiated = dict.preset;
+    }
+    if (dict.stream != undefined) {
+      dict.id = dict.stream;
+    }
+
     if (dict.maxRetransmitTime != undefined &&
         dict.maxRetransmitNum != undefined) {
       throw new Components.Exception("Both maxRetransmitTime and maxRetransmitNum cannot be provided");
