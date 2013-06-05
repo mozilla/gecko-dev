@@ -6,6 +6,9 @@
 const TEST_URI = "http://example.com/browser/dom/tests/browser/test-console-api.html";
 
 var gWindow, gLevel, gArgs, gTestDriver;
+function isXrayWrapper(x) {
+  return x && typeof x == 'object' && XPCNativeWrapper.unwrap(x) != x;
+}
 
 function test() {
   waitForExplicitFinish();
@@ -47,7 +50,14 @@ function testConsoleData(aMessageObject) {
   }
   else {
     gArgs.forEach(function (a, i) {
-      is(aMessageObject.arguments[i], a, "correct arg " + i);
+      // Waive Xray so that we don't get messed up by Xray ToString.
+      //
+      // It'd be nice to just use XPCNativeWrapper.unwrap here, but there are
+      // a number of dumb reasons we can't. See bug 868675.
+      var arg = aMessageObject.arguments[i];
+      if (isXrayWrapper(arg))
+        arg = arg.wrappedJSObject;
+      is(arg, a, "correct arg " + i);
     });
   }
 
