@@ -1374,8 +1374,10 @@ TabChild::RecvMouseEvent(const nsString& aType,
                          const int32_t&  aModifiers,
                          const bool&     aIgnoreRootScrollFrame)
 {
-  DispatchMouseEvent(aType, aX, aY, aButton, aClickCount, aModifiers,
-                     aIgnoreRootScrollFrame);
+  nsCOMPtr<nsIDOMWindowUtils> utils(GetDOMWindowUtils());
+  NS_ENSURE_TRUE(utils, true);
+  utils->SendMouseEvent(aType, aX, aY, aButton, aClickCount, aModifiers,
+                        aIgnoreRootScrollFrame, 0, 0);
   return true;
 }
 
@@ -1511,21 +1513,8 @@ void
 TabChild::FireContextMenuEvent()
 {
   MOZ_ASSERT(mTapHoldTimer && mActivePointerId >= 0);
-  bool defaultPrevented = DispatchMouseEvent(NS_LITERAL_STRING("contextmenu"),
-                                             mGestureDownPoint.x, mGestureDownPoint.y,
-                                             2 /* Right button */,
-                                             1 /* Click count */,
-                                             0 /* Modifiers */,
-                                             false /* Ignore root scroll frame */);
-
-  // Fire a click event if someone didn't call preventDefault() on the context
-  // menu event.
-  if (defaultPrevented) {
-    CancelTapTracking();
-  } else if (mTapHoldTimer) {
-    mTapHoldTimer->Cancel();
-    mTapHoldTimer = nullptr;
-  }
+  RecvHandleLongTap(mGestureDownPoint);
+  CancelTapTracking();
 }
 
 void
@@ -2007,24 +1996,6 @@ bool
 TabChild::IsAsyncPanZoomEnabled()
 {
     return mScrolling == ASYNC_PAN_ZOOM;
-}
-
-bool
-TabChild::DispatchMouseEvent(const nsString& aType,
-                             const float&    aX,
-                             const float&    aY,
-                             const int32_t&  aButton,
-                             const int32_t&  aClickCount,
-                             const int32_t&  aModifiers,
-                             const bool&     aIgnoreRootScrollFrame)
-{
-  nsCOMPtr<nsIDOMWindowUtils> utils(GetDOMWindowUtils());
-  NS_ENSURE_TRUE(utils, true);
-  
-  bool defaultPrevented = false;
-  utils->SendMouseEvent(aType, aX, aY, aButton, aClickCount, aModifiers,
-                        aIgnoreRootScrollFrame, 0, 0, &defaultPrevented);
-  return defaultPrevented;
 }
 
 void
