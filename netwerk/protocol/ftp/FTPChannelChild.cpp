@@ -500,13 +500,22 @@ FTPChannelChild::AsyncCall(void (FTPChannelChild::*funcPtr)(),
 void
 FTPChannelChild::CompleteResume()
 {
-  mEventQ.Resume();
+  // We may have been suspended again by time event that calls this runs.
+  if (!mSuspendCount) {
+    mEventQ.Resume();
+  }
 }
 
 NS_IMETHODIMP
 FTPChannelChild::Resume()
 {
   NS_ENSURE_TRUE(mIPCOpen, NS_ERROR_NOT_AVAILABLE);
+
+  // Resuming w/o suspend: error in debug mode, ignore in build
+  MOZ_ASSERT(mSuspendCount > 0);
+  if (mSuspendCount <= 0) {
+    return NS_ERROR_UNEXPECTED;
+  }
 
   if (!--mSuspendCount) {
     SendResume();

@@ -920,6 +920,12 @@ HttpChannelChild::Suspend()
 void
 HttpChannelChild::CompleteResume()
 {
+  // channel may have been suspended again by time this event runs:
+  // just wait until we're resumed again
+  if (mSuspendCount) {
+    return;
+  }
+
   if (mCallOnResume) {
     (this->*mCallOnResume)();
     mCallOnResume = 0;
@@ -935,6 +941,12 @@ HttpChannelChild::Resume()
 {
   NS_ENSURE_TRUE(RemoteChannelExists(), NS_ERROR_NOT_AVAILABLE);
   NS_ENSURE_TRUE(mSuspendCount > 0, NS_ERROR_UNEXPECTED);
+
+  // Resuming w/o suspend: error in debug mode, ignore in build
+  MOZ_ASSERT(mSuspendCount > 0);
+  if (mSuspendCount <= 0) {
+    return NS_ERROR_UNEXPECTED;
+  }
 
   nsresult rv = NS_OK;
 

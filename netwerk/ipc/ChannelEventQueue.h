@@ -120,18 +120,12 @@ ChannelEventQueue::EndForcedQueueing()
 inline void
 ChannelEventQueue::Suspend()
 {
-  NS_ABORT_IF_FALSE(!mSuspended,
-                    "ChannelEventQueue::Suspend called recursively");
-
   mSuspended = true;
 }
 
 inline void
 ChannelEventQueue::Resume()
 {
-  NS_ABORT_IF_FALSE(mSuspended,
-                    "ChannelEventQueue::Resume called when not suspended!");
-
   mSuspended = false;
   MaybeFlushQueue();
 }
