@@ -77,10 +77,6 @@ class XrayWrapper : public Base {
     virtual bool construct(JSContext *cx, JSObject *wrapper,
                            unsigned argc, js::Value *argv, js::Value *rval);
 
-    virtual bool defaultValue(JSContext *cx, JSObject *wrapper,
-                              JSType hint, JS::Value *vp)
-                              MOZ_OVERRIDE;
-
     static XrayWrapper singleton;
 
   private:

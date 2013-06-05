@@ -1774,24 +1774,6 @@ XrayWrapper<Base, Traits>::construct(JSContext *cx, JSObject *wrapper, unsigned 
  * unwrap the wrapper).
  */
 
-template <typename Base, typename Traits>
-bool
-XrayWrapper<Base, Traits>::defaultValue(JSContext *cx, JSObject *wrapperArg,
-                                        JSType hint, JS::Value *vp)
-{
-    // Even if this isn't a security wrapper, Xray semantics dictate that we
-    // run the DefaultValue algorithm directly on the Xray wrapper.
-    //
-    // NB: We don't have to worry about things with special [[DefaultValue]]
-    // behavior like Date because we'll never have an XrayWrapper to them.
-    RootedObject wrapper(cx, wrapperArg);
-    RootedValue v(cx, *vp);
-    if (!js::DefaultValue(cx, wrapper, hint, &v))
-        return false;
-    *vp = v;
-    return true;
-}
-
 template<>
 PermissiveXrayXPCWN PermissiveXrayXPCWN::singleton(0);
 template class PermissiveXrayXPCWN;
