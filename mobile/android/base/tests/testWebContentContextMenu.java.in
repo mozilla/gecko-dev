@@ -23,7 +23,7 @@ public class testWebContentContextMenu extends PixelTest {
         String urls [] = { "/robocop/robocop_big_link.html", "/robocop/robocop_big_mailto.html", "/robocop/robocop_picture_link.html"};
         String linkMenuItems [] = { "Open Link in New Tab", "Open Link in Private Tab", "Copy Link", "Share Link", "Bookmark Link"};
         String mailtoMenuItems [] = { "Open With an App", "Copy Email Address", "Share Email Address"};
-        String photoMenuItems [] = { "Copy Image Location", "Share Image", "Set as Wallpaper", "Save Image"};
+        String photoMenuItems [] = { "Copy Image Location", "Share Image", /*"Set as Wallpaper",*/ "Save Image"};
 
         verfyLinkContextMenu(linkMenuItems, urls);
         verfyMailtoContextMenu(mailtoMenuItems, urls);
