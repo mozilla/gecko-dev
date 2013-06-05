@@ -993,6 +993,10 @@ IsReadOnlyDateMethod(JS::IsAcceptableThis test, JS::NativeImpl method);
 extern JS_FRIEND_API(bool)
 IsTypedArrayThisCheck(JS::IsAcceptableThis test);
 
+/* ES5 8.12.8. */
+JS_FRIEND_API(JSBool)
+DefaultValue(JSContext *cx, HandleObject obj, JSType hint, MutableHandleValue vp);
+
 } /* namespace js */
 
 #endif

@@ -4836,8 +4836,8 @@ MaybeCallMethod(JSContext *cx, HandleObject obj, Handle<jsid> id, MutableHandleV
     return Invoke(cx, ObjectValue(*obj), vp, 0, NULL, vp.address());
 }
 
-JSBool
-DefaultValue(JSContext *cx, HandleObject obj, JSType hint, MutableHandleValue vp)
+JS_FRIEND_API(JSBool)
+js::DefaultValue(JSContext *cx, HandleObject obj, JSType hint, MutableHandleValue vp)
 {
     JS_ASSERT(hint == JSTYPE_NUMBER || hint == JSTYPE_STRING || hint == JSTYPE_VOID);
 #if JS_HAS_XML_SUPPORT
