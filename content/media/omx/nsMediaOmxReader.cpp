@@ -135,6 +135,11 @@ bool nsMediaOmxReader::DecodeVideoFrame(bool &aKeyframeSkip,
       return false;
     }
 
+    // Ignore empty buffer which stagefright media read will sporadically return
+    if (frame.mSize == 0 && !frame.mGraphicBuffer) {
+      return true;
+    }
+
     parsed++;
     if (frame.mShouldSkip && mSkipCount < MAX_DROPPED_FRAMES) {
       mSkipCount++;
