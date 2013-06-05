@@ -24,5 +24,5 @@ configuration files containing the default values live in:
 """
 
 config = {
-    # Add custom mozharness config options here
+    'use_puppetagain_packages': True,
 }
