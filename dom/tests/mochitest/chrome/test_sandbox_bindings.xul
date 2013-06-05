@@ -38,7 +38,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=741267
       }
       try {
         var xhr = Components.utils.evalInSandbox("XMLHttpRequest()", sandbox);
-        is(xhr, "[object XrayWrapper [Object XMLHttpRequest]]", "'XMLHttpRequest()' in a sandbox should create an XMLHttpRequest object");
+        is(xhr, "[object XMLHttpRequest]", "'XMLHttpRequest()' in a sandbox should create an XMLHttpRequest object");
       } catch (e) {
         ok(false, "'XMLHttpRequest()' shouldn't throw in a sandbox");
       }

@@ -1568,10 +1568,6 @@ class JS_FRIEND_API(AutoCTypesActivityCallback) {
     }
 };
 
-/* ES5 8.12.8. */
-JS_FRIEND_API(JSBool)
-DefaultValue(JSContext *cx, HandleObject obj, JSType hint, MutableHandleValue vp);
-
 } /* namespace js */
 
 #endif /* __cplusplus */
