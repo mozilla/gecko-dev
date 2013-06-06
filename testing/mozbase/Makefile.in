@@ -27,6 +27,7 @@ MOZBASE_PACKAGES = \
   mozrunner \
   mozdevice \
   mozcrash \
+  moznetwork \
   $(NULL)
 
 MOZBASE_EXTRAS = \
