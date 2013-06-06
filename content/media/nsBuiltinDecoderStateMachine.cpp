@@ -487,30 +487,30 @@ void nsBuiltinDecoderStateMachine::DecodeThreadRun()
   NS_ASSERTION(OnDecodeThread(), "Should be on decode thread.");
   mReader->OnDecodeThreadStart();
 
-  ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+  {
+    ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
 
-  if (mState == DECODER_STATE_DECODING_METADATA) {
-    if (NS_FAILED(DecodeMetadata())) {
+    if (mState == DECODER_STATE_DECODING_METADATA &&
+        NS_FAILED(DecodeMetadata())) {
       NS_ASSERTION(mState == DECODER_STATE_SHUTDOWN,
                    "Should be in shutdown state if metadata loading fails.");
       LOG(PR_LOG_DEBUG, ("Decode metadata failed, shutting down decode thread"));
     }
-  }
 
-  while (mState != DECODER_STATE_SHUTDOWN &&
-         mState != DECODER_STATE_COMPLETED &&
-         !mStopDecodeThread)
-  {
-    if (mState == DECODER_STATE_DECODING || mState == DECODER_STATE_BUFFERING) {
-      DecodeLoop();
-    } else if (mState == DECODER_STATE_SEEKING) {
-      DecodeSeek();
+    while (mState != DECODER_STATE_SHUTDOWN &&
+           mState != DECODER_STATE_COMPLETED &&
+           !mStopDecodeThread)
+    {
+      if (mState == DECODER_STATE_DECODING || mState == DECODER_STATE_BUFFERING) {
+        DecodeLoop();
+      } else if (mState == DECODER_STATE_SEEKING) {
+        DecodeSeek();
+      }
     }
+
+    mDecodeThreadIdle = true;
+    LOG(PR_LOG_DEBUG, ("%p Decode thread finished", mDecoder.get()));
   }
-
-  mDecodeThreadIdle = true;
-
-  LOG(PR_LOG_DEBUG, ("%p Decode thread finished", mDecoder.get()));
 
   mReader->OnDecodeThreadFinish();
 }
