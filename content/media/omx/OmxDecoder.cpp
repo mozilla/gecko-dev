@@ -553,11 +553,15 @@ bool OmxDecoder::ReadVideo(VideoFrame *aFrame, int64_t aTimeUs,
       mIsVideoSeeking = false;
       ReleaseAllPendingVideoBuffersLocked();
     }
+
+    aDoSeek = false;
   } else {
     err = mVideoSource->read(&mVideoBuffer);
   }
 
-  if (err == OK && mVideoBuffer->range_length() > 0) {
+  aFrame->mSize = 0;
+
+  if (err == OK) {
     int64_t timeUs;
     int64_t durationUs;
     int32_t unreadable;
@@ -596,7 +600,7 @@ bool OmxDecoder::ReadVideo(VideoFrame *aFrame, int64_t aTimeUs,
       aFrame->mKeyFrame = keyFrame;
       aFrame->Y.mWidth = mVideoWidth;
       aFrame->Y.mHeight = mVideoHeight;
-    } else {
+    } else if (mVideoBuffer->range_length() > 0) {
       char *data = static_cast<char *>(mVideoBuffer->data()) + mVideoBuffer->range_offset();
       size_t length = mVideoBuffer->range_length();
 
@@ -614,7 +618,6 @@ bool OmxDecoder::ReadVideo(VideoFrame *aFrame, int64_t aTimeUs,
     if (aKeyframeSkip && timeUs < aTimeUs) {
       aFrame->mShouldSkip = true;
     }
-
   }
   else if (err == INFO_FORMAT_CHANGED) {
     // If the format changed, update our cached info.
@@ -627,12 +630,14 @@ bool OmxDecoder::ReadVideo(VideoFrame *aFrame, int64_t aTimeUs,
   else if (err == ERROR_END_OF_STREAM) {
     return false;
   }
-  else if (err == UNKNOWN_ERROR) {
-    // This sometimes is used to mean "out of memory", but regardless,
-    // don't keep trying to decode if the decoder doesn't want to.
-    return false;
+  else if (err == -ETIMEDOUT) {
+    LOG(PR_LOG_DEBUG, "OmxDecoder::ReadVideo timed out, will retry");
+    return true;
   }
-  else if (err != OK && err != -ETIMEDOUT) {
+  else {
+    // UNKNOWN_ERROR is sometimes is used to mean "out of memory", but
+    // regardless, don't keep trying to decode if the decoder doesn't want to.
+    LOG(PR_LOG_DEBUG, "OmxDecoder::ReadVideo failed, err=%d", err);
     return false;
   }
 
@@ -660,6 +665,7 @@ bool OmxDecoder::ReadAudio(AudioFrame *aFrame, int64_t aSeekTimeUs)
   mAudioMetadataRead = false;
 
   aSeekTimeUs = -1;
+  aFrame->mSize = 0;
 
   if (err == OK && mAudioBuffer && mAudioBuffer->range_length() != 0) {
     int64_t timeUs;
@@ -685,10 +691,12 @@ bool OmxDecoder::ReadAudio(AudioFrame *aFrame, int64_t aSeekTimeUs)
       return false;
     }
   }
-  else if (err == UNKNOWN_ERROR) {
-    return false;
+  else if (err == -ETIMEDOUT) {
+    LOG(PR_LOG_DEBUG, "OmxDecoder::ReadAudio timed out, will retry");
+    return true;
   }
-  else if (err != OK && err != -ETIMEDOUT) {
+  else if (err != OK) {
+    LOG(PR_LOG_DEBUG, "OmxDecoder::ReadAudio failed, err=%d", err);
     return false;
   }
 
