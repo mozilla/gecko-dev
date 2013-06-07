@@ -625,7 +625,7 @@ RegExpShared::executeMatchOnly(JSContext *cx, const jschar *chars, size_t length
     matches.checkAgainst(origLength);
 
     *lastIndex = matches[0].limit;
-    match = MatchPair(result, matches[0].limit);
+    match = MatchPair(result + displacement, matches[0].limit);
     return RegExpRunStatus_Success;
 }
 
