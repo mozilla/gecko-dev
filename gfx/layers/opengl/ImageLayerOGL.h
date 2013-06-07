@@ -15,6 +15,8 @@
 #include "yuv_convert.h"
 #include "mozilla/Mutex.h"
 
+#include <ui/GraphicBuffer.h>
+
 namespace mozilla {
 namespace layers {
 
@@ -157,6 +159,7 @@ class ShadowImageLayerOGL : public ShadowImageLayer,
                             public LayerOGL
 {
   typedef gl::TextureImage TextureImage;
+  typedef android::GraphicBuffer GraphicBuffer;
 
 public:
   ShadowImageLayerOGL(LayerManagerOGL* aManager);
@@ -179,6 +182,7 @@ public:
                            const nsIntPoint& aOffset);
 
   virtual void CleanupResources();
+  virtual void InvokePostRenderCallback();
 
 private:
   bool Init(const SharedImage& aFront);
@@ -202,6 +206,12 @@ private:
   // texture is allocated when the image supports binding with
   // BindExternalBuffer.
   GLTexture mExternalBufferTexture;
+
+  // In order to release the current bound gralloc buffer from the
+  // GPU, we must bind another buffer to the external target. Note
+  // that binding of the external target must happen after the draw is
+  // completed, otherwise garbage might be drawn.
+  android::sp<GraphicBuffer> mDummyGrallocBuffer;
 
   GLTexture mYUVTexture[3];
   gfxIntSize mSize;
