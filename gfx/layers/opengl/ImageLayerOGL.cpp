@@ -25,7 +25,6 @@
 
 #ifdef MOZ_WIDGET_GONK
 # include "GonkIOSurfaceImage.h"
-# include <ui/GraphicBuffer.h>
 using namespace android;
 #endif
 
@@ -1138,12 +1137,14 @@ ShadowImageLayerOGL::RenderLayer(int aPreviousFrameBuffer,
 void
 ShadowImageLayerOGL::InvokePostRenderCallback()
 {
+#ifdef MOZ_WIDGET_GONK
   // Release the underlying external image
   // This relies on ImageContainerParent::RecvPublishImage running on the
   // same thread as this thread (the compositor thread).
   gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
   gl()->BindExternalBuffer(mExternalBufferTexture.GetTextureID(),
                            mDummyGrallocBuffer->getNativeBuffer());
+#endif
 }
 
 bool
