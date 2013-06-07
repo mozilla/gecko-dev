@@ -308,14 +308,9 @@ public class AwesomeBar extends GeckoActivity {
 
         boolean wasUsingGestureKeyboard = mIsUsingGestureKeyboard;
         mIsUsingGestureKeyboard = InputMethods.isGestureKeyboard(this);
-        if (mIsUsingGestureKeyboard == wasUsingGestureKeyboard)
-            return;
-
-        int currentInputType = mText.getInputType();
-        int newInputType = mIsUsingGestureKeyboard
-                           ? (currentInputType & ~InputType.TYPE_TEXT_VARIATION_URI) // Text mode
-                           : (currentInputType | InputType.TYPE_TEXT_VARIATION_URI); // URL mode
-        mText.setRawInputType(newInputType);
+        if (mIsUsingGestureKeyboard != wasUsingGestureKeyboard) {
+            updateKeyboardInputType();
+        }
     }
 
     @Override
@@ -361,6 +356,7 @@ public class AwesomeBar extends GeckoActivity {
             mDelayRestartInput = (imeAction == EditorInfo.IME_ACTION_GO) &&
                                  (InputMethods.shouldDelayAwesomebarUpdate(mText.getContext()));
             if (!mDelayRestartInput) {
+                updateKeyboardInputType();
                 imm.restartInput(mText);
             }
         } else if (mDelayRestartInput) {
@@ -368,7 +364,22 @@ public class AwesomeBar extends GeckoActivity {
             // so if there are two restarts in a row, the first restarts will
             // be discarded and the second restart will be properly delayed
             mDelayRestartInput = false;
+            updateKeyboardInputType();
             imm.restartInput(mText);
+        }
+    }
+
+    private void updateKeyboardInputType() {
+        // If the user enters a space, then we know they are entering search terms, not a URL. If
+        // we're using a gesture keyboard, we can then switch to text mode so the IME auto-inserts
+        // spaces between words.
+        String text = mText.getText().toString();
+        int currentInputType = mText.getInputType();
+        int newInputType = (mIsUsingGestureKeyboard && StringUtils.isSearchQuery(text, false))
+                           ? (currentInputType & ~InputType.TYPE_TEXT_VARIATION_URI) // Text mode
+                           : (currentInputType | InputType.TYPE_TEXT_VARIATION_URI); // URL mode
+        if (newInputType != currentInputType) {
+            mText.setRawInputType(newInputType);
         }
     }
 
