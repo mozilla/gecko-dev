@@ -5389,8 +5389,8 @@ let RIL = {
     }
   },
 
-  setDebugEnabled: function setDebugEnabled(options) {
-    DEBUG = DEBUG_WORKER || options.enabled;
+  setInitialOptions: function setInitialOptions(options) {
+    DEBUG = DEBUG_WORKER || options.debug;
   }
 };
 

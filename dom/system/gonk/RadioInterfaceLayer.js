@@ -216,6 +216,12 @@ function RadioInterfaceLayer() {
   this.worker.onerror = this.onerror.bind(this);
   this.worker.onmessage = this.onmessage.bind(this);
 
+  // Pass initial options to ril_worker.
+  this.worker.postMessage({
+    rilMessageType: "setInitialOptions",
+    debug: debugPref,
+  });
+
   this.rilContext = {
     radioState:     RIL.GECKO_RADIOSTATE_UNAVAILABLE,
     cardState:      RIL.GECKO_CARDSTATE_UNKNOWN,
@@ -330,10 +336,6 @@ function RadioInterfaceLayer() {
   this.portAddressedSmsApps[WAP.WDP_PORT_PUSH] = this.handleSmsWdpPortPush.bind(this);
 
   this._targetMessageQueue = [];
-
-  // pass debug pref to ril_worker
-  this.worker.postMessage({rilMessageType: "setDebugEnabled",
-                           enabled: debugPref});
 }
 RadioInterfaceLayer.prototype = {
 
