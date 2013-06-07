@@ -30,6 +30,7 @@ public:
     , mIsDetached(false)
     , mMaySpanAnonymousSubtrees(false)
     , mInSelection(false)
+    , mEnableGravitationOnElementRemoval(true)
   {}
   virtual ~nsRange();
 
@@ -42,6 +43,20 @@ public:
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsRange, nsIDOMRange)
+
+  /**
+   * The DOM Range spec requires that when a node is removed from its parent,
+   * and the node's subtree contains the start or end point of a range, that
+   * start or end point is moved up to where the node was removed from its
+   * parent.
+   * For some internal uses of Ranges it's useful to disable that behavior,
+   * so that a range of children within a single parent is preserved even if
+   * that parent is removed from the document tree.
+   */
+  void SetEnableGravitationOnElementRemoval(bool aEnable)
+  {
+    mEnableGravitationOnElementRemoval = aEnable;
+  }
 
   // nsIDOMRange interface
   NS_DECL_NSIDOMRANGE
@@ -229,6 +244,7 @@ protected:
   bool mIsDetached;
   bool mMaySpanAnonymousSubtrees;
   bool mInSelection;
+  bool mEnableGravitationOnElementRemoval;
 };
 
 #endif /* nsRange_h___ */
