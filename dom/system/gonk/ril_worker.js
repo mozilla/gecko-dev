@@ -1434,7 +1434,14 @@ let RIL = {
         // MCC is the first 3 digits of IMSI
         this.iccInfo.mcc = this.iccInfo.imsi.substr(0,3);
         // The 4th byte of the response is the length of MNC
-        this.iccInfo.mnc = this.iccInfo.imsi.substr(3, this.iccInfo.ad[3]);
+        let mncLength = this.iccInfo.ad && this.iccInfo.ad[3];
+        if (!mncLength) {
+          // If response dose not contain the length of MNC, check the MCC table
+          // to decide the length of MNC.
+          let index = MCC_TABLE_FOR_MNC_LENGTH_IS_3.indexOf(this.iccInfo.mcc);
+          mncLength = (index !== -1) ? 3 : 2;
+        }
+        this.iccInfo.mnc = this.iccInfo.imsi.substr(3, mncLength);
         if (DEBUG) debug("MCC: " + this.iccInfo.mcc + " MNC: " + this.iccInfo.mnc);
         this._handleICCInfoChange();
       }
