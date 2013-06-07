@@ -25,7 +25,6 @@
 
 #ifdef MOZ_WIDGET_GONK
 # include "GonkIOSurfaceImage.h"
-# include <ui/GraphicBuffer.h>
 using namespace android;
 #endif
 
@@ -964,6 +963,11 @@ ShadowImageLayerOGL::RenderLayer(int aPreviousFrameBuffer,
         if (!mExternalBufferTexture.IsAllocated()) {
           mExternalBufferTexture.Allocate(gl());
         }
+        if (!mDummyGrallocBuffer.get()) {
+          // For YV12 the size of the buffer has to be at least 2x2
+          mDummyGrallocBuffer = new GraphicBuffer(2, 2, HAL_PIXEL_FORMAT_YV12,
+                                                  GraphicBuffer::USAGE_HW_TEXTURE);
+        }
         gl()->MakeCurrent();
         gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
         gl()->BindExternalBuffer(mExternalBufferTexture.GetTextureID(), graphicBuffer->getNativeBuffer());
@@ -1066,10 +1070,7 @@ ShadowImageLayerOGL::RenderLayer(int aPreviousFrameBuffer,
                                                 mPictureRect,
                                                 nsIntSize(mSize.width, mSize.height));
 
-    // Make sure that we release the underlying external image
-    gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
-    gl()->fBindTexture(LOCAL_GL_TEXTURE_EXTERNAL, 0);
-    mExternalBufferTexture.Release();
+    mOGLManager->AddPostRenderCallback(this);
 #endif
   } else if (mSharedHandle) {
     GLContext::SharedHandleDetails handleDetails;
@@ -1130,7 +1131,20 @@ ShadowImageLayerOGL::RenderLayer(int aPreviousFrameBuffer,
     mOGLManager->BindAndDrawQuadWithTextureRect(yuvProgram,
                                                 mPictureRect,
                                                 nsIntSize(mSize.width, mSize.height));
- }
+  }
+}
+
+void
+ShadowImageLayerOGL::InvokePostRenderCallback()
+{
+#ifdef MOZ_WIDGET_GONK
+  // Release the underlying external image
+  // This relies on ImageContainerParent::RecvPublishImage running on the
+  // same thread as this thread (the compositor thread).
+  gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
+  gl()->BindExternalBuffer(mExternalBufferTexture.GetTextureID(),
+                           mDummyGrallocBuffer->getNativeBuffer());
+#endif
 }
 
 bool

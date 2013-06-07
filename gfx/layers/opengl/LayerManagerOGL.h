@@ -367,6 +367,14 @@ public:
     CreateDrawTarget(const mozilla::gfx::IntSize &aSize,
                      mozilla::gfx::SurfaceFormat aFormat);
 
+  /**
+   * Request that a layer be notified when rendering has finished.
+   */
+  void AddPostRenderCallback(LayerOGL* aLayer)
+  {
+    mPostRenderCallbacks.AppendElement(aLayer);
+  }
+
 private:
   /** Widget associated with this layer manager */
   nsIWidget *mWidget;
@@ -408,6 +416,9 @@ private:
 
   /** Region we're clipping our current drawing to. */
   nsIntRegion mClippingRegion;
+
+  /** List of LayerOGLs that need a post-render callback */
+  nsTArray<LayerOGL*> mPostRenderCallbacks;
 
   /** Misc */
   bool mHasBGRA;
@@ -535,6 +546,8 @@ public:
   LayerManagerOGL* OGLManager() const { return mOGLManager; }
   GLContext *gl() const { return mOGLManager->gl(); }
   virtual void CleanupResources() = 0;
+
+  virtual void InvokePostRenderCallback() {}
 
   /*
    * Loads the result of rendering the layer as an OpenGL texture in aTextureUnit.

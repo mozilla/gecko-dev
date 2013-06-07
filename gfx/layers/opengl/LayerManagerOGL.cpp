@@ -697,7 +697,14 @@ LayerManagerOGL::EndTransaction(DrawThebesLayerCallback aCallback,
     }
 
     if (needGLRender) {
+      NS_ASSERTION(mPostRenderCallbacks.IsEmpty(), "Stray post-flush callback???");
+
       Render();
+
+      for (uint32_t i = 0; i < mPostRenderCallbacks.Length(); ++i) {
+        mPostRenderCallbacks[i]->InvokePostRenderCallback();
+      }
+      mPostRenderCallbacks.Clear();
     }
 
     mThebesLayerCallback = nullptr;
