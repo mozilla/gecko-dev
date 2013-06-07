@@ -398,7 +398,7 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(nsHTMLMediaElement)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsHTMLMediaElement, nsGenericHTMLElement)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mSrcStream)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mSrcAttrStream)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mSourcePointer)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR_AMBIGUOUS(mSourcePointer, nsIDOMRange)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mLoadBlockedDoc)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mSourceLoadCandidate)
   for (uint32_t i = 0; i < tmp->mOutputStreams.Length(); ++i) {
@@ -3311,6 +3311,9 @@ nsIContent* nsHTMLMediaElement::GetNextSource()
   if (!mSourcePointer) {
     // First time this has been run, create a selection to cover children.
     mSourcePointer = new nsRange();
+    // If this media element is removed from the DOM, don't gravitate the
+    // range up to its ancestor, leave it attached to the media element.
+    mSourcePointer->SetEnableGravitationOnElementRemoval(false);
 
     rv = mSourcePointer->SelectNodeContents(thisDomNode);
     if (NS_FAILED(rv)) return nullptr;
