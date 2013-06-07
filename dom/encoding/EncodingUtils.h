@@ -45,6 +45,12 @@ public:
   static bool FindEncodingForLabel(const nsAString& aLabel,
                                    const char*& aOutEncoding);
 
+  static bool FindEncodingForLabel(const nsAString& aLabel,
+                                   nsACString& aOutEncoding);
+
+  static bool FindEncodingForLabel(const nsACString& aLabel,
+                                   nsACString& aOutEncoding);
+
   /**
    * Remove any leading and trailing space characters, following the
    * definition of space characters from Encoding spec.
