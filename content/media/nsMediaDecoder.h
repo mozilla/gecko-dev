@@ -106,6 +106,12 @@ public:
   // Return true if the stream is infinite (see SetInfinite).
   virtual bool IsInfinite() = 0;
 
+  // Set/Unset dormant state if necessary.
+  // Dormant state is a state to free all scarce media resources
+  //  (like hw video codec), did not decoding and stay dormant.
+  // It is used to share scarece media resources in system.
+  virtual void SetDormantIfNecessary(bool aDormant) = 0;
+
   // Pause video playback.
   virtual void Pause() = 0;
 

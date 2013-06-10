@@ -499,12 +499,28 @@ void nsBuiltinDecoderStateMachine::DecodeThreadRun()
 
     while (mState != DECODER_STATE_SHUTDOWN &&
            mState != DECODER_STATE_COMPLETED &&
+           mState != DECODER_STATE_DORMANT &&
            !mStopDecodeThread)
     {
       if (mState == DECODER_STATE_DECODING || mState == DECODER_STATE_BUFFERING) {
         DecodeLoop();
       } else if (mState == DECODER_STATE_SEEKING) {
         DecodeSeek();
+      } else if (mState == DECODER_STATE_DECODING_METADATA) {
+        if (NS_FAILED(DecodeMetadata())) {
+          NS_ASSERTION(mState == DECODER_STATE_SHUTDOWN,
+                       "Should be in shutdown state if metadata loading fails.");
+          LOG(PR_LOG_DEBUG, ("Decode metadata failed, shutting down decode thread"));
+        }
+      } else if (mState == DECODER_STATE_WAIT_FOR_RESOURCES) {
+        mDecoder->GetReentrantMonitor().Wait();
+
+        if (!mReader->IsWaitingMediaResources()) {
+          // change state to DECODER_STATE_WAIT_FOR_RESOURCES
+          StartDecodeMetadata();
+        }
+      } else if (mState == DECODER_STATE_DORMANT) {
+        mDecoder->GetReentrantMonitor().Wait();
       }
     }
 
@@ -945,6 +961,7 @@ void nsBuiltinDecoderStateMachine::DecodeLoop()
 
   if (!mStopDecodeThread &&
       mState != DECODER_STATE_SHUTDOWN &&
+      mState != DECODER_STATE_DORMANT &&
       mState != DECODER_STATE_SEEKING)
   {
     mState = DECODER_STATE_COMPLETED;
@@ -1421,6 +1438,33 @@ void nsBuiltinDecoderStateMachine::SetSeekable(bool aSeekable)
   mSeekable = aSeekable;
 }
 
+bool nsBuiltinDecoderStateMachine::IsDormantNeeded()
+{
+  return mReader->IsDormantNeeded();
+}
+
+void nsBuiltinDecoderStateMachine::SetDormant(bool aDormant)
+{
+  NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
+  mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
+
+  if (!mReader) {
+    return;
+  }
+
+  if (aDormant) {
+    ScheduleStateMachine();
+    mState = DECODER_STATE_DORMANT;
+    mDecoder->GetReentrantMonitor().NotifyAll();
+  } else if ((aDormant != true) && (mState == DECODER_STATE_DORMANT)) {
+    ScheduleStateMachine();
+    mStartTime = 0;
+    mCurrentFrameTime = 0;
+    mState = DECODER_STATE_DECODING_METADATA;
+    mDecoder->GetReentrantMonitor().NotifyAll();
+  }
+}
+
 void nsBuiltinDecoderStateMachine::Shutdown()
 {
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
@@ -1446,6 +1490,22 @@ void nsBuiltinDecoderStateMachine::StartDecoding()
   }
   mState = DECODER_STATE_DECODING;
   ScheduleStateMachine();
+}
+
+void nsBuiltinDecoderStateMachine::StartWaitForResources()
+{
+  NS_ASSERTION(OnStateMachineThread() || OnDecodeThread(),
+               "Should be on state machine or decode thread.");
+  ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+  mState = DECODER_STATE_WAIT_FOR_RESOURCES;
+}
+
+void nsBuiltinDecoderStateMachine::StartDecodeMetadata()
+{
+  NS_ASSERTION(OnStateMachineThread() || OnDecodeThread(),
+               "Should be on state machine or decode thread.");
+  ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+  mState = DECODER_STATE_DECODING_METADATA;
 }
 
 void nsBuiltinDecoderStateMachine::Play()
@@ -1772,6 +1832,12 @@ nsresult nsBuiltinDecoderStateMachine::DecodeMetadata()
     ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
     res = mReader->ReadMetadata(&info, &tags);
   }
+  if (NS_SUCCEEDED(res) && (mState == DECODER_STATE_DECODING_METADATA) && (mReader->IsWaitingMediaResources())) {
+    // change state to DECODER_STATE_WAIT_FOR_RESOURCES
+    StartWaitForResources();
+    return NS_OK;
+  }
+
   mInfo = info;
 
   if (NS_FAILED(res) || (!info.mHasVideo && !info.mHasAudio)) {
@@ -2024,6 +2090,10 @@ nsresult nsBuiltinDecoderStateMachine::RunStateMachine()
       // Now that those threads are stopped, there's no possibility of
       // mPendingWakeDecoder being needed again. Revoke it.
       mPendingWakeDecoder = nullptr;
+      {
+        ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
+        mReader->ReleaseMediaResources();
+      }
       NS_ASSERTION(mState == DECODER_STATE_SHUTDOWN,
                    "How did we escape from the shutdown state?");
       // We must daisy-chain these events to destroy the decoder. We must
@@ -2043,11 +2113,31 @@ nsresult nsBuiltinDecoderStateMachine::RunStateMachine()
       return NS_OK;
     }
 
+    case DECODER_STATE_DORMANT: {
+      if (IsPlaying()) {
+        StopPlayback();
+      }
+      StopAudioThread();
+      StopDecodeThread();
+      // Now that those threads are stopped, there's no possibility of
+      // mPendingWakeDecoder being needed again. Revoke it.
+      mPendingWakeDecoder = nullptr;
+      {
+        ReentrantMonitorAutoExit exitMon(mDecoder->GetReentrantMonitor());
+        mReader->ReleaseMediaResources();
+      }
+      return NS_OK;
+    }
+
+    case DECODER_STATE_WAIT_FOR_RESOURCES: {
+      return NS_OK;
+    }
+
     case DECODER_STATE_DECODING_METADATA: {
       // Ensure we have a decode thread to decode metadata.
       return ScheduleDecodeThread();
     }
-  
+
     case DECODER_STATE_DECODING: {
       if (mDecoder->GetState() != nsBuiltinDecoder::PLAY_STATE_PLAYING &&
           IsPlaying())

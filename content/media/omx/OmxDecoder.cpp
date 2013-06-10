@@ -7,7 +7,6 @@
 #include <fcntl.h>
 
 #include "base/basictypes.h"
-#include <cutils/properties.h>
 #include <stagefright/foundation/AMessage.h>
 #include <stagefright/MediaExtractor.h>
 #include <stagefright/MetaData.h>
@@ -22,6 +21,7 @@
 
 #include "GonkNativeWindow.h"
 #include "GonkNativeWindowClient.h"
+#include "OMXCodecProxy.h"
 #include "OmxDecoder.h"
 
 #ifdef PR_LOGGING
@@ -162,22 +162,7 @@ OmxDecoder::OmxDecoder(MediaResource *aResource,
 
 OmxDecoder::~OmxDecoder()
 {
-  {
-    // Free all pending video buffers.
-    Mutex::Autolock autoLock(mSeekLock);
-    ReleaseAllPendingVideoBuffersLocked();
-  }
-
-  ReleaseVideoBuffer();
-  ReleaseAudioBuffer();
-
-  if (mVideoSource.get()) {
-    mVideoSource->stop();
-  }
-
-  if (mAudioSource.get()) {
-    mAudioSource->stop();
-  }
+  ReleaseMediaResources();
 
   // unregister AMessage handler from ALooper.
   mLooper->unregisterHandler(mReflector->id());
@@ -185,19 +170,15 @@ OmxDecoder::~OmxDecoder()
   mLooper->stop();
 }
 
-class AutoStopMediaSource {
-  sp<MediaSource> mMediaSource;
-public:
-  AutoStopMediaSource(const sp<MediaSource>& aMediaSource) : mMediaSource(aMediaSource) {
-  }
-
-  ~AutoStopMediaSource() {
-    mMediaSource->stop();
-  }
-};
+void OmxDecoder::statusChanged()
+{
+  mozilla::ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+  mDecoder->GetReentrantMonitor().NotifyAll();
+}
 
 static sp<IOMX> sOMX = nullptr;
-static sp<IOMX> GetOMX() {
+static sp<IOMX> GetOMX()
+{
   if(sOMX.get() == nullptr) {
     sOMX = new OMX;
     }
@@ -230,7 +211,6 @@ bool OmxDecoder::Init() {
 
   ssize_t audioTrackIndex = -1;
   ssize_t videoTrackIndex = -1;
-  const char *audioMime = nullptr;
 
   for (size_t i = 0; i < extractor->countTracks(); ++i) {
     sp<MetaData> meta = extractor->getTrackMetaData(i);
@@ -248,7 +228,6 @@ bool OmxDecoder::Init() {
       videoTrackIndex = i;
     } else if (audioTrackIndex == -1 && !strncasecmp(mime, "audio/", 6)) {
       audioTrackIndex = i;
-      audioMime = mime;
     }
   }
 
@@ -259,127 +238,52 @@ bool OmxDecoder::Init() {
 
   mResource->SetReadMode(nsMediaCacheStream::MODE_PLAYBACK);
 
+  if (videoTrackIndex != -1) {
+    mVideoTrack = extractor->getTrack(videoTrackIndex);
+  }
+
+  if (audioTrackIndex != -1) {
+    mAudioTrack = extractor->getTrack(audioTrackIndex);
+  }
+  return true;
+}
+
+bool OmxDecoder::TryLoad() {
+
+  if (!AllocateMediaResources()) {
+    return false;
+  }
+
+  //check if video is waiting resources
+  if (mVideoSource.get()) {
+    if (mVideoSource->IsWaitingResources()) {
+      return true;
+    }
+  }
+
+  // calculate duration
   int64_t totalDurationUs = 0;
-
-  mNativeWindow = new GonkNativeWindow();
-  mNativeWindowClient = new GonkNativeWindowClient(mNativeWindow);
-
-  // OMXClient::connect() always returns OK and abort's fatally if
-  // it can't connect.
-  OMXClient client;
-  status_t err = client.connect();
-  NS_ASSERTION(err == OK, "Failed to connect to OMX in mediaserver.");
-  sp<IOMX> omx = client.interface();
-
-  sp<MediaSource> videoTrack;
-  sp<MediaSource> videoSource;
-  if (videoTrackIndex != -1 && (videoTrack = extractor->getTrack(videoTrackIndex)) != nullptr) {
-    // Experience with OMX codecs is that only the HW decoders are
-    // worth bothering with, at least on the platforms where this code
-    // is currently used, and for formats this code is currently used
-    // for (h.264).  So if we don't get a hardware decoder, just give
-    // up.
-    int flags = kHardwareCodecsOnly;
-    videoSource = OMXCodec::Create(omx,
-                                   videoTrack->getFormat(),
-                                   false, // decoder
-                                   videoTrack,
-                                   nullptr,
-                                   flags,
-                                   mNativeWindowClient);
-    if (videoSource == nullptr) {
-      NS_WARNING("Couldn't create OMX video source");
-      return false;
-    }
-
-    // Check if this video is sized such that we're comfortable
-    // possibly using an OMX decoder.
-    int32_t maxWidth, maxHeight;
-    char propValue[PROPERTY_VALUE_MAX];
-    property_get("ro.moz.omx.hw.max_width", propValue, "-1");
-    maxWidth = atoi(propValue);
-    property_get("ro.moz.omx.hw.max_height", propValue, "-1");
-    maxHeight = atoi(propValue);
-
-    int32_t width = -1, height = -1;
-    if (maxWidth > 0 && maxHeight > 0 &&
-        !(videoSource->getFormat()->findInt32(kKeyWidth, &width) &&
-          videoSource->getFormat()->findInt32(kKeyHeight, &height) &&
-          width * height <= maxWidth * maxHeight)) {
-      printf_stderr("Failed to get video size, or it was too large for HW decoder (<w=%d, h=%d> but <maxW=%d, maxH=%d>)",
-                    width, height, maxWidth, maxHeight);
-      return false;
-    }
-
-    if (videoSource->start() != OK) {
-      NS_WARNING("Couldn't start OMX video source");
-      return false;
-    }
-
-    int64_t durationUs;
-    if (videoTrack->getFormat()->findInt64(kKeyDuration, &durationUs)) {
-      if (durationUs > totalDurationUs)
-        totalDurationUs = durationUs;
-    }
+  int64_t durationUs = 0;
+  if (mVideoTrack.get() && mVideoTrack->getFormat()->findInt64(kKeyDuration, &durationUs)) {
+    if (durationUs > totalDurationUs)
+      totalDurationUs = durationUs;
   }
-
-  sp<MediaSource> audioTrack;
-  sp<MediaSource> audioSource;
-  if (audioTrackIndex != -1 && (audioTrack = extractor->getTrack(audioTrackIndex)) != nullptr)
-  {
-    if (!strcasecmp(audioMime, "audio/raw")) {
-      audioSource = audioTrack;
-    } else {
-      // try to load hardware codec in mediaserver process.
-      int flags = kHardwareCodecsOnly;
-      audioSource = OMXCodec::Create(omx,
-                                     audioTrack->getFormat(),
-                                     false, // decoder
-                                     audioTrack,
-                                     nullptr,
-                                     flags);
-    }
-    if (audioSource == nullptr) {
-      // try to load software codec in this process.
-      int flags = kSoftwareCodecsOnly;
-      audioSource = OMXCodec::Create(GetOMX(),
-                                     audioTrack->getFormat(),
-                                     false, // decoder
-                                     audioTrack,
-                                     nullptr,
-                                     flags);
-      if (audioSource == nullptr) {
-        NS_WARNING("Couldn't create OMX audio source");
-        return false;
-      }
-    }
-    if (audioSource->start() != OK) {
-      NS_WARNING("Couldn't start OMX audio source");
-      return false;
-    }
-
-    int64_t durationUs;
-    if (audioTrack->getFormat()->findInt64(kKeyDuration, &durationUs)) {
-      if (durationUs > totalDurationUs)
-        totalDurationUs = durationUs;
-    }
+  if (mAudioTrack.get() && mAudioTrack->getFormat()->findInt64(kKeyDuration, &durationUs)) {
+    if (durationUs > totalDurationUs)
+      totalDurationUs = durationUs;
   }
-
-  // set decoder state
-  mVideoTrack = videoTrack;
-  mVideoSource = videoSource;
-  mAudioTrack = audioTrack;
-  mAudioSource = audioSource;
   mDurationUs = totalDurationUs;
 
+  // read video metadata
   if (mVideoSource.get() && !SetVideoFormat()) {
     NS_WARNING("Couldn't set OMX video format");
     return false;
   }
 
-  // To reliably get the channel and sample rate data we need to read from the
-  // audio source until we get a INFO_FORMAT_CHANGE status
+  // read audio metadata
   if (mAudioSource.get()) {
+    // To reliably get the channel and sample rate data we need to read from the
+    // audio source until we get a INFO_FORMAT_CHANGE status
     status_t err = mAudioSource->read(&mAudioBuffer);
     if (err != INFO_FORMAT_CHANGED) {
       if (err != OK) {
@@ -401,6 +305,125 @@ bool OmxDecoder::Init() {
   }
 
   return true;
+}
+
+bool OmxDecoder::IsDormantNeeded()
+{
+  if (mVideoTrack.get()) {
+    return true;
+  }
+  return false;
+}
+
+bool OmxDecoder::IsWaitingMediaResources()
+{
+  if (mVideoSource.get()) {
+    return mVideoSource->IsWaitingResources();
+  }
+  return false;
+}
+
+bool OmxDecoder::AllocateMediaResources()
+{
+  // OMXClient::connect() always returns OK and abort's fatally if
+  // it can't connect.
+  OMXClient client;
+  status_t err = client.connect();
+  NS_ASSERTION(err == OK, "Failed to connect to OMX in mediaserver.");
+  sp<IOMX> omx = client.interface();
+
+  if ((mVideoTrack != nullptr) && (mVideoSource == nullptr)) {
+    mNativeWindow = new GonkNativeWindow();
+    mNativeWindowClient = new GonkNativeWindowClient(mNativeWindow);
+
+    // Experience with OMX codecs is that only the HW decoders are
+    // worth bothering with, at least on the platforms where this code
+    // is currently used, and for formats this code is currently used
+    // for (h.264).  So if we don't get a hardware decoder, just give
+    // up.
+    int flags = kHardwareCodecsOnly;
+    mVideoSource =
+          OMXCodecProxy::Create(omx,
+                                mVideoTrack->getFormat(),
+                                false, // decoder
+                                mVideoTrack,
+                                nullptr,
+                                flags,
+                                mNativeWindowClient);
+    if (mVideoSource == nullptr) {
+      NS_WARNING("Couldn't create OMX video source");
+      return false;
+    } else {
+      sp<OMXCodecProxy::EventListener> listener = this;
+      mVideoSource->setEventListener(listener);
+      mVideoSource->requestResource();
+    }
+  }
+
+  if ((mAudioTrack != nullptr) && (mAudioSource == nullptr)) {
+    const char *audioMime = nullptr;
+    sp<MetaData> meta = mAudioTrack->getFormat();
+    if (!meta->findCString(kKeyMIMEType, &audioMime)) {
+      return false;
+    }
+    if (!strcasecmp(audioMime, "audio/raw")) {
+      mAudioSource = mAudioTrack;
+    } else {
+      // try to load hardware codec in mediaserver process.
+      int flags = kHardwareCodecsOnly;
+      mAudioSource = OMXCodec::Create(omx,
+                                     mAudioTrack->getFormat(),
+                                     false, // decoder
+                                     mAudioTrack,
+                                     nullptr,
+                                     flags);
+    }
+
+    if (mAudioSource == nullptr) {
+      // try to load software codec in this process.
+      int flags = kSoftwareCodecsOnly;
+      mAudioSource = OMXCodec::Create(GetOMX(),
+                                     mAudioTrack->getFormat(),
+                                     false, // decoder
+                                     mAudioTrack,
+                                     nullptr,
+                                     flags);
+      if (mAudioSource == nullptr) {
+        NS_WARNING("Couldn't create OMX audio source");
+        return false;
+      }
+    }
+    if (mAudioSource->start() != OK) {
+      NS_WARNING("Couldn't start OMX audio source");
+      return false;
+    }
+  }
+  return true;
+}
+
+
+void OmxDecoder::ReleaseMediaResources() {
+  {
+    // Free all pending video buffers.
+    Mutex::Autolock autoLock(mSeekLock);
+    ReleaseAllPendingVideoBuffersLocked();
+  }
+
+  ReleaseVideoBuffer();
+  ReleaseAudioBuffer();
+
+  if (mVideoSource.get()) {
+    mVideoSource->stop();
+    mVideoSource.clear();
+  }
+
+  if (mAudioSource.get()) {
+    mAudioSource->stop();
+    mAudioSource.clear();
+  }
+
+  mNativeWindowClient.clear();
+  mNativeWindow.clear();
 }
 
 bool OmxDecoder::SetVideoFormat() {
@@ -703,7 +726,8 @@ bool OmxDecoder::ReadAudio(AudioFrame *aFrame, int64_t aSeekTimeUs)
   return true;
 }
 
-nsresult OmxDecoder::Play() {
+nsresult OmxDecoder::Play()
+{
   if (!mPaused) {
     return NS_OK;
   }
@@ -718,7 +742,8 @@ nsresult OmxDecoder::Play() {
   return NS_OK;
 }
 
-void OmxDecoder::Pause() {
+void OmxDecoder::Pause()
+{
   if (mPaused) {
     return;
   }

@@ -125,6 +125,7 @@ ifeq (gonk,$(MOZ_WIDGET_TOOLKIT)) #{
 # include OMX decoder
 SHARED_LIBRARY_LIBS 	+= \
 	$(DEPTH)/content/media/omx/$(LIB_PREFIX)gkconomx_s.$(LIB_SUFFIX) \
+	$(DEPTH)/content/media/omx/mediaresourcemanager/$(LIB_PREFIX)mediaresourcemanager.$(LIB_SUFFIX) \
 	$(NULL)
 endif #}
 

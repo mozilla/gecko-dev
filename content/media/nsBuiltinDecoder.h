@@ -218,6 +218,8 @@ public:
   // Enumeration for the valid decoding states
   enum State {
     DECODER_STATE_DECODING_METADATA,
+    DECODER_STATE_WAIT_FOR_RESOURCES,
+    DECODER_STATE_DORMANT,
     DECODER_STATE_DECODING,
     DECODER_STATE_SEEKING,
     DECODER_STATE_BUFFERING,
@@ -238,6 +240,10 @@ public:
   virtual void SetVolume(double aVolume) = 0;
   virtual void SetAudioCaptured(bool aCapture) = 0;
 
+  // Check if the decoder needs to become dormant state.
+  virtual bool IsDormantNeeded() = 0;
+  // Set/Unset dormant state.
+  virtual void SetDormant(bool aDormant) = 0;
   virtual void Shutdown() = 0;
 
   // Called from the main thread to get the duration. The decoder monitor
@@ -380,6 +386,9 @@ public:
   virtual nsresult Seek(double aTime);
 
   virtual nsresult PlaybackRateChanged();
+
+  // Set/Unset dormant state if necessary
+  virtual void SetDormantIfNecessary(bool aDormant);
 
   virtual void Pause();
   virtual void SetVolume(double aVolume);
@@ -823,6 +832,10 @@ public:
   // can be read on any thread while holding the monitor, or on the main thread
   // without holding the monitor.
   nsAutoPtr<DecodedStreamData> mDecodedStream;
+
+  // True if this decoder is in dormant state.
+  // Should be true only when PlayState is PLAY_STATE_LOADING.
+  bool mIsDormant;
 
   // Set to one of the valid play states.
   // This can only be changed on the main thread while holding the decoder

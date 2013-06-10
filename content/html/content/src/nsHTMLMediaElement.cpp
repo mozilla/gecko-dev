@@ -3580,6 +3580,9 @@ void nsHTMLMediaElement::NotifyOwnerDocumentActivityChanged()
     if (domDoc) {
       bool hidden = false;
       domDoc->GetHidden(&hidden);
+      if (mDecoder) {
+        mDecoder->SetDormantIfNecessary(hidden);
+      }
       // SetVisibilityState will update mMuted with MUTED_BY_AUDIO_CHANNEL via
       // the CanPlayChanged callback.
       if (mPlayingThroughTheAudioChannel && mAudioChannelAgent) {

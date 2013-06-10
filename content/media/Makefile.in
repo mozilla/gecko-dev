@@ -96,6 +96,7 @@ PARALLEL_DIRS += webrtc
 
 ifeq (gonk,$(MOZ_WIDGET_TOOLKIT))
 PARALLEL_DIRS += omx
+PARALLEL_DIRS += omx/mediaresourcemanager
 endif
 
 TEST_DIRS += test
