@@ -335,5 +335,26 @@ EncodingUtils::FindEncodingForLabel(const nsAString& aLabel,
   return true;
 }
 
+bool
+EncodingUtils::FindEncodingForLabel(const nsAString& aLabel,
+                                    nsACString& aOutEncoding)
+{
+  const char* out;
+  bool success = EncodingUtils::FindEncodingForLabel(aLabel, out);
+  if (!success) {
+    return false;
+  }
+  aOutEncoding.Assign(out);
+  return true;
+}
+
+bool
+EncodingUtils::FindEncodingForLabel(const nsACString& aLabel,
+                                    nsACString& aOutEncoding)
+{
+  return EncodingUtils::FindEncodingForLabel(NS_ConvertUTF8toUTF16(aLabel),
+                                             aOutEncoding);
+}
+
 } // namespace dom
 } // namespace mozilla

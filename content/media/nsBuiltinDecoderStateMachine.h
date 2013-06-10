@@ -117,12 +117,15 @@ public:
   // nsDecoderStateMachine interface
   virtual nsresult Init(nsDecoderStateMachine* aCloneDonor);
   State GetState()
-  { 
+  {
     mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
-    return mState; 
+    return mState;
   }
   virtual void SetVolume(double aVolume);
   virtual void SetAudioCaptured(bool aCapture);
+
+  virtual bool IsDormantNeeded();
+  virtual void SetDormant(bool aDormant);
   virtual void Shutdown();
   virtual int64_t GetDuration();
   virtual void SetDuration(int64_t aDuration);
@@ -422,6 +425,10 @@ protected:
   // Moves the decoder into decoding state. Called on the state machine
   // thread. The decoder monitor must be held.
   void StartDecoding();
+
+  void StartWaitForResources();
+
+  void StartDecodeMetadata();
 
   // Returns true if we're currently playing. The decoder monitor must
   // be held.

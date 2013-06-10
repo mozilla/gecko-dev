@@ -29,11 +29,47 @@ PRLogModuleInfo* gBuiltinDecoderLog;
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(nsBuiltinDecoder, nsIObserver)
 
+void nsBuiltinDecoder::SetDormantIfNecessary(bool aDormant)
+{
+  NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
+  ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
+
+  if (!mDecoderStateMachine || !mDecoderStateMachine->IsDormantNeeded() || (mPlayState == PLAY_STATE_SHUTDOWN)) {
+    return;
+  }
+
+  if (mIsDormant == aDormant) {
+    // no change to dormant state
+    return;
+  }
+
+  if(aDormant) {
+    // enter dormant state
+    StopProgress();
+    DestroyDecodedStream();
+    mDecoderStateMachine->SetDormant(true);
+
+    mRequestedSeekTime = mCurrentTime;
+    if (mPlayState == PLAY_STATE_PLAYING){
+      mNextState = PLAY_STATE_PLAYING;
+    } else {
+      mNextState = PLAY_STATE_PAUSED;
+    }
+    mNextState = mPlayState;
+    mIsDormant = aDormant;
+    ChangeState(PLAY_STATE_LOADING);
+  } else if ((aDormant != true) && (mPlayState == PLAY_STATE_LOADING)) {
+    // exit dormant state
+    // just trigger to state machine.
+    mDecoderStateMachine->SetDormant(false);
+  }
+}
+
 void nsBuiltinDecoder::Pause() 
 {
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
   ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
-  if (mPlayState == PLAY_STATE_SEEKING || mPlayState == PLAY_STATE_ENDED) {
+  if ((mPlayState == PLAY_STATE_LOADING && mIsDormant) || mPlayState == PLAY_STATE_SEEKING || mPlayState == PLAY_STATE_ENDED) {
     mNextState = PLAY_STATE_PAUSED;
     return;
   }
@@ -224,6 +260,7 @@ nsBuiltinDecoder::nsBuiltinDecoder() :
   mDuration(-1),
   mSeekable(true),
   mReentrantMonitor("media.decoder"),
+  mIsDormant(false),
   mPlayState(PLAY_STATE_PAUSED),
   mNextState(PLAY_STATE_PAUSED),
   mResourceLoaded(false),
@@ -396,7 +433,7 @@ nsresult nsBuiltinDecoder::Play()
   NS_ASSERTION(mDecoderStateMachine != nullptr, "Should have state machine.");
   nsresult res = ScheduleStateMachineThread();
   NS_ENSURE_SUCCESS(res,res);
-  if (mPlayState == PLAY_STATE_SEEKING) {
+  if ((mPlayState == PLAY_STATE_LOADING && mIsDormant) || mPlayState == PLAY_STATE_SEEKING) {
     mNextState = PLAY_STATE_PLAYING;
     return NS_OK;
   }
@@ -494,7 +531,7 @@ nsresult nsBuiltinDecoder::Seek(double aTime)
   // If we are already in the seeking state, then setting mRequestedSeekTime
   // above will result in the new seek occurring when the current seek
   // completes.
-  if (mPlayState != PLAY_STATE_SEEKING) {
+  if ((mPlayState != PLAY_STATE_LOADING || !mIsDormant) && mPlayState != PLAY_STATE_SEEKING) {
     bool paused = false;
     if (mElement) {
       mElement->GetPaused(&paused);
@@ -1024,6 +1061,11 @@ void nsBuiltinDecoder::ChangeState(PlayState aState)
       break;
     }
   }
+
+  if (aState!= PLAY_STATE_LOADING) {
+    mIsDormant = false;
+  }
+
   GetReentrantMonitor().NotifyAll();
 }
 

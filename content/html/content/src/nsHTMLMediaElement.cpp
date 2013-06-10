@@ -1930,8 +1930,10 @@ nsHTMLMediaElement::WakeLockBoolWrapper::UpdateWakeLock()
     // grace period.
     int timeout = Preferences::GetInt("media.wakelock_timeout", 2000);
     mTimer = do_CreateInstance("@mozilla.org/timer;1");
-    mTimer->InitWithFuncCallback(TimerCallback, this, timeout,
-                                 nsITimer::TYPE_ONE_SHOT);
+    if (mTimer) {
+      mTimer->InitWithFuncCallback(TimerCallback, this, timeout,
+                                   nsITimer::TYPE_ONE_SHOT);
+    }
   }
 }
 
@@ -3578,6 +3580,9 @@ void nsHTMLMediaElement::NotifyOwnerDocumentActivityChanged()
     if (domDoc) {
       bool hidden = false;
       domDoc->GetHidden(&hidden);
+      if (mDecoder) {
+        mDecoder->SetDormantIfNecessary(hidden);
+      }
       // SetVisibilityState will update mMuted with MUTED_BY_AUDIO_CHANNEL via
       // the CanPlayChanged callback.
       if (mPlayingThroughTheAudioChannel && mAudioChannelAgent) {

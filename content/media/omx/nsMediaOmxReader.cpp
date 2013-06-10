@@ -30,11 +30,31 @@ nsMediaOmxReader::nsMediaOmxReader(nsBuiltinDecoder *aDecoder) :
 nsMediaOmxReader::~nsMediaOmxReader()
 {
   ResetDecode();
+  mOmxDecoder.clear();
 }
 
 nsresult nsMediaOmxReader::Init(nsBuiltinDecoderReader* aCloneDonor)
 {
   return NS_OK;
+}
+
+bool nsMediaOmxReader::IsWaitingMediaResources()
+{
+  return mOmxDecoder->IsWaitingMediaResources();
+}
+
+bool nsMediaOmxReader::IsDormantNeeded()
+{
+  if (!mOmxDecoder.get()) {
+    return false;
+  }
+  return mOmxDecoder->IsDormantNeeded();
+}
+
+void nsMediaOmxReader::ReleaseMediaResources()
+{
+  ResetDecode();
+  mOmxDecoder->ReleaseMediaResources();
 }
 
 nsresult nsMediaOmxReader::ReadMetadata(nsVideoInfo* aInfo,
@@ -49,6 +69,14 @@ nsresult nsMediaOmxReader::ReadMetadata(nsVideoInfo* aInfo,
     if (!mOmxDecoder->Init()) {
       return NS_ERROR_FAILURE;
     }
+  }
+
+  if (!mOmxDecoder->TryLoad()) {
+    return NS_ERROR_FAILURE;
+  }
+
+  if (IsWaitingMediaResources()) {
+    return NS_OK;
   }
 
   // Set the total duration (the max of the audio and video track).
@@ -107,8 +135,6 @@ nsresult nsMediaOmxReader::ResetDecode()
   if (container) {
     container->ClearCurrentFrame();
   }
-
-  mOmxDecoder.clear();
   return NS_OK;
 }
 

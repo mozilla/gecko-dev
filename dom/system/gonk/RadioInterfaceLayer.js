@@ -276,6 +276,7 @@ function RadioInterfaceLayer() {
   lock.get("ril.data.apn", this);
   lock.get("ril.data.user", this);
   lock.get("ril.data.passwd", this);
+  lock.get("ril.data.authtype", this);
   lock.get("ril.data.httpProxyHost", this);
   lock.get("ril.data.httpProxyPort", this);
   lock.get("ril.data.roaming_enabled", this);
@@ -285,6 +286,7 @@ function RadioInterfaceLayer() {
                                   "ril.data.apn",
                                   "ril.data.user",
                                   "ril.data.passwd",
+                                  "ril.data.authtype",
                                   "ril.data.httpProxyHost",
                                   "ril.data.httpProxyPort"];
 
@@ -292,6 +294,7 @@ function RadioInterfaceLayer() {
   lock.get("ril.mms.apn", this);
   lock.get("ril.mms.user", this);
   lock.get("ril.mms.passwd", this);
+  lock.get("ril.mms.authtype", this);
   lock.get("ril.mms.httpProxyHost", this);
   lock.get("ril.mms.httpProxyPort", this);
   lock.get("ril.mms.mmsc", this);
@@ -300,6 +303,7 @@ function RadioInterfaceLayer() {
   lock.get("ril.supl.apn", this);
   lock.get("ril.supl.user", this);
   lock.get("ril.supl.passwd", this);
+  lock.get("ril.supl.authtype", this);
   lock.get("ril.supl.httpProxyHost", this);
   lock.get("ril.supl.httpProxyPort", this);
 
@@ -1904,6 +1908,7 @@ RadioInterfaceLayer.prototype = {
       case "ril.data.apn":
       case "ril.data.user":
       case "ril.data.passwd":
+      case "ril.data.authtype":
       case "ril.data.httpProxyHost":
       case "ril.data.httpProxyPort":
         let key = aName.slice(9);
@@ -1918,6 +1923,7 @@ RadioInterfaceLayer.prototype = {
       case "ril.mms.apn":
       case "ril.mms.user":
       case "ril.mms.passwd":
+      case "ril.mms.authtype":
       case "ril.mms.httpProxyHost":
       case "ril.mms.httpProxyPort":
       case "ril.mms.mmsc":
@@ -1929,6 +1935,7 @@ RadioInterfaceLayer.prototype = {
       case "ril.supl.apn":
       case "ril.supl.user":
       case "ril.supl.passwd":
+      case "ril.supl.authtype":
       case "ril.supl.httpProxyHost":
       case "ril.supl.httpProxyPort":
         key = aName.slice(9);
@@ -2996,11 +3003,19 @@ RILNetworkInterface.prototype = {
     this.httpProxyPort = this.dataCallSettings["httpProxyPort"];
 
     debug("Going to set up data connection with APN " + this.dataCallSettings["apn"]);
+    let authType = RIL.RIL_DATACALL_AUTH_TO_GECKO.indexOf(this.dataCallSettings["authtype"]);
+    // Use the default authType if the value in database is invalid.
+    // For the case that user might not select the authentication type.
+    if (authType == -1) {
+      debug("Invalid authType " + this.dataCallSettings["authtype"]);
+      authType = RIL.RIL_DATACALL_AUTH_TO_GECKO.indexOf(RIL.GECKO_DATACALL_AUTH_DEFAULT);
+    }
     this.mRIL.setupDataCall(RIL.DATACALL_RADIOTECHNOLOGY_GSM,
                             this.dataCallSettings["apn"],
                             this.dataCallSettings["user"],
                             this.dataCallSettings["passwd"],
-                            RIL.DATACALL_AUTH_PAP_OR_CHAP, "IP");
+                            authType,
+                            "IP");
     this.connecting = true;
   },
 

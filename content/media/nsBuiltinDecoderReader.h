@@ -387,6 +387,13 @@ public:
   // on failure.
   virtual nsresult Init(nsBuiltinDecoderReader* aCloneDonor) = 0;
 
+  // True if this reader is waiting media resource allocation
+  virtual bool IsWaitingMediaResources() { return false; }
+  // True when this reader need to become dormant state
+  virtual bool IsDormantNeeded() { return false; }
+  // Release media resources they should be released in dormant state
+  virtual void ReleaseMediaResources() {};
+
   // Resets all state related to decoding, emptying all buffers etc.
   virtual nsresult ResetDecode();
 

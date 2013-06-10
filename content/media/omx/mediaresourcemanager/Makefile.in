@@ -9,19 +9,14 @@ VPATH		= @srcdir@
 
 include $(DEPTH)/config/autoconf.mk
 
-MODULE		= content
-LIBRARY_NAME	= gkconomx_s
-LIBXUL_LIBRARY 	= 1
-
-EXPORTS		+= \
-		nsMediaOmxDecoder.h \
-		$(NULL)
+LIBRARY_NAME	= mediaresourcemanager
 
 CPPSRCS		= \
-		nsMediaOmxDecoder.cpp \
-		nsMediaOmxReader.cpp \
-		OmxDecoder.cpp \
-		OMXCodecProxy.cpp \
+		IMediaResourceManagerClient.cpp \
+		IMediaResourceManagerDeathNotifier.cpp \
+		IMediaResourceManagerService.cpp \
+		MediaResourceManagerClient.cpp \
+		MediaResourceManagerService.cpp \
 		$(NULL)
 
 FORCE_STATIC_LIB = 1
@@ -30,11 +25,7 @@ include $(topsrcdir)/config/rules.mk
 include $(topsrcdir)/ipc/chromium/chromium-config.mk
 
 INCLUDES	+= \
- 		-I$(srcdir)/mediaresourcemanager \
-		-I$(topsrcdir)/ipc/chromium/src \
-		-I$(srcdir)/../../base/src \
-		-I$(srcdir)/../../html/content/src \
-		-I$(ANDROID_SOURCE)/dalvik/libnativehelper/include/nativehelper \
+	        -I$(srcdir)/ \
 		-I$(ANDROID_SOURCE)/frameworks/base/include/ \
 		-I$(ANDROID_SOURCE)/frameworks/base/include/binder/ \
 		-I$(ANDROID_SOURCE)/frameworks/base/include/utils/ \
