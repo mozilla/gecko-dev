@@ -3,7 +3,6 @@ mozcrash==0.5
 mozdevice==0.21
 mozfile==0.9
 mozhttpd==0.5
-mozInstall==1.6
 mozlog==1.1
 moznetwork==0.21
 mozprocess==0.9
