@@ -467,6 +467,8 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
                     setTitle(tab.getDisplayTitle());
                 }
                 break;
+            case RESTORED:
+                // TabCount fixup after OOM
             case SELECTED:
                 updateTabCount(Tabs.getInstance().getDisplayCount());
                 mSwitchingTabs = true;
