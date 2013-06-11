@@ -2783,7 +2783,7 @@ BluetoothDBusService::SendFile(const nsAString& aDeviceAddress,
   BluetoothValue v = true;
   nsAutoString errorStr;
 
-  if (!opp->SendFile(aDeviceAddress, aBlobParent)) {
+  if (!opp->SendFile(aBlobParent)) {
     errorStr.AssignLiteral("Calling SendFile() failed");
   }
 

@@ -10,10 +10,9 @@
 #include "BluetoothCommon.h"
 #include "BluetoothProfileManagerBase.h"
 #include "BluetoothSocketObserver.h"
-#include "DeviceStorage.h"
 #include "mozilla/dom/ipc/Blob.h"
 #include "mozilla/ipc/UnixSocket.h"
-#include "nsCOMArray.h"
+#include "DeviceStorage.h"
 
 class nsIOutputStream;
 class nsIInputStream;
@@ -58,7 +57,7 @@ public:
   void Disconnect();
   bool Listen();
 
-  bool SendFile(const nsAString& aDeviceAddress, BlobParent* aBlob);
+  bool SendFile(BlobParent* aBlob);
   bool StopSendingFile();
   bool ConfirmReceivingFile(bool aConfirm);
 
@@ -94,7 +93,6 @@ public:
 private:
   BluetoothOppManager();
   void StartFileTransfer();
-  void StartSendingNextFile();
   void FileTransferComplete();
   void UpdateProgress();
   void ReceivingFileConfirmation();
@@ -109,11 +107,9 @@ private:
   void AfterOppDisconnected();
   void ValidateFileName();
   bool IsReservedChar(PRUnichar c);
-  void ClearQueue();
-  void RetrieveSentFileName();
+  DeviceStorageFile* CreateDeviceStorageFile(nsIFile* aFile);
   void NotifyAboutFileChange();
   bool AcquireSdcardMountLock();
-  DeviceStorageFile* CreateDeviceStorageFile(nsIFile* aFile);
   /**
    * OBEX session status.
    * Set when OBEX session is established.
@@ -181,9 +177,7 @@ private:
   nsAutoArrayPtr<uint8_t> mBodySegment;
   nsAutoArrayPtr<uint8_t> mReceivedDataBuffer;
 
-  int mCurrentBlobIndex;
   nsCOMPtr<nsIDOMBlob> mBlob;
-  nsCOMArray<nsIDOMBlob> mBlobs;
 
   /**
    * A seperate member thread is required because our read calls can block
