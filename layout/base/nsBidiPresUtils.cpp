@@ -874,7 +874,7 @@ nsBidiPresUtils::ResolveParagraph(nsBlockFrame* aBlockFrame,
     }
   } // for
 
-  if (aBpd->mParagraphDepth > 0) {
+  if (aBpd->mParagraphDepth > 1) {
     nsIFrame* child;
     nsIFrame* parent;
     if (firstFrame) {
