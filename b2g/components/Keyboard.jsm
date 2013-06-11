@@ -20,7 +20,8 @@ XPCOMUtils.defineLazyServiceGetter(this, "ppmm",
 let Keyboard = {
   _messageManager: null,
   _messageNames: [
-    'SetValue', 'RemoveFocus', 'SetSelectedOption', 'SetSelectedOptions'
+    'SetValue', 'RemoveFocus', 'SetSelectedOption', 'SetSelectedOptions',
+    'ReplaceSurroundingText'
   ],
 
   get messageManager() {
@@ -108,6 +109,9 @@ let Keyboard = {
       case 'Keyboard:SetSelectedOptions':
         this.setSelectedOption(msg);
         break;
+      case 'Keyboard:ReplaceSurroundingText':
+        this.replaceSurroundingText(msg);
+        break;
     }
   },
 
@@ -132,6 +136,11 @@ let Keyboard = {
 
   removeFocus: function keyboardRemoveFocus() {
     this.messageManager.sendAsyncMessage('Forms:Select:Blur', {});
+  },
+
+  replaceSurroundingText: function keyboardReplaceSurroundingText(msg) {
+    this.messageManager.sendAsyncMessage('Forms:ReplaceSurroundingText',
+                                         msg.data);
   }
 };
 

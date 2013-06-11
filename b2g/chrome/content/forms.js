@@ -188,6 +188,7 @@ let FormAssistant = {
     addMessageListener("Forms:Select:Choice", this);
     addMessageListener("Forms:Input:Value", this);
     addMessageListener("Forms:Select:Blur", this);
+    addMessageListener("Forms:ReplaceSurroundingText", this);
   },
 
   ignoredInputTypes: new Set([
@@ -200,6 +201,7 @@ let FormAssistant = {
   scrollIntoViewTimeout: null,
   _focusedElement: null,
   _documentEncoder: null,
+  _editor: null,
 
   get focusedElement() {
     if (this._focusedElement && Cu.isDeadWrapper(this._focusedElement))
@@ -225,6 +227,7 @@ let FormAssistant = {
     }
 
     this._documentEncoder = null;
+    this._editor = null;
 
     if (element) {
       element.addEventListener('mousedown', this);
@@ -240,6 +243,15 @@ let FormAssistant = {
   get documentEncoder() {
     return this._documentEncoder;
   },
+
+  // Get the nsIPlaintextEditor object of current input field.
+  get editor() {
+    if (!this._editor && this.focusedElement) {
+      this._editor = getPlaintextEditor(this.focusedElement);
+    }
+    return this._editor;
+  },
+
 
   handleEvent: function fa_handleEvent(evt) {
     let target = evt.target;
@@ -361,6 +373,13 @@ let FormAssistant = {
         this.setFocusedElement(null);
         break;
       }
+
+      case "Forms:ReplaceSurroundingText": {
+        let range = getSelectionRange(target);
+        replaceSurroundingText(target, json.text, range[0], json.beforeLength,
+                               json.afterLength);
+        break;
+      }
     }
   },
 
@@ -476,7 +495,7 @@ function getJSON(element) {
   let attributeType = element.getAttribute("type") || "";
 
   if (attributeType) {
-    var typeLowerCase = attributeType.toLowerCase(); 
+    var typeLowerCase = attributeType.toLowerCase();
     switch (typeLowerCase) {
       case "date":
       case "time":
@@ -601,17 +620,137 @@ function getSelectionRange(element) {
     // Get the selection range of contenteditable elements
     let win = element.ownerDocument.defaultView;
     let sel = win.getSelection();
+    start = getContentEditableSelectionStart(element, sel);
+    end = start + getContentEditableSelectionLength(element, sel);
+   }
+   return [start, end];
+ }
 
-    let range = win.document.createRange();
-    range.setStart(element, 0);
-    range.setEnd(sel.anchorNode, sel.anchorOffset);
-    let encoder = FormAssistant.documentEncoder;
+function getContentEditableSelectionStart(element, selection) {
+  let doc = element.ownerDocument;
+  let range = doc.createRange();
+  range.setStart(element, 0);
+  range.setEnd(selection.anchorNode, selection.anchorOffset);
+  let encoder = FormAssistant.documentEncoder;
+  encoder.setRange(range);
+  return encoder.encodeToString().length;
+}
 
-    encoder.setRange(range);
-    start = encoder.encodeToString().length;
+function getContentEditableSelectionLength(element, selection) {
+  let encoder = FormAssistant.documentEncoder;
+  encoder.setRange(selection.getRangeAt(0));
+  return encoder.encodeToString().length;
+}
 
-    encoder.setRange(sel.getRangeAt(0));
-    end = start + encoder.encodeToString().length;
+function setSelectionRange(element, start, end) {
+  let isPlainTextField = element instanceof HTMLInputElement ||
+                        element instanceof HTMLTextAreaElement;
+
+  // Check the parameters.
+
+  if (!isPlainTextField && !isContentEditable(element)) {
+    // Skip HTMLOptionElement and HTMLSelectElement elements, as they don't
+    // support the operation of setSelectionRange.
+    return;
   }
-  return [start, end];
+
+  let text = isPlainTextField ? element.value : getContentEditableText(element);
+  let length = text.length;
+  if (start < 0) {
+    start = 0;
+  }
+  if (end > length) {
+    end = length;
+  }
+  if (start > end) {
+    start = end;
+  }
+
+  if (isPlainTextField) {
+    // Set the selection range of <input> and <textarea> elements.
+    element.setSelectionRange(start, end, "forward");
+  } else {
+    // set the selection range of contenteditable elements.
+    let win = element.ownerDocument.defaultView;
+    let sel = win.getSelection();
+
+    // Move the caret to the start position.
+    sel.collapse(element, 0);
+    for (let i = 0; i < start; i++) {
+      sel.modify("move", "forward", "character");
+    }
+
+    while (getContentEditableSelectionStart(element, sel) < start) {
+      sel.modify("move", "forward", "character");
+    }
+
+    // Extend the selection to the end position.
+    for (let i = start; i < end; i++) {
+      sel.modify("extend", "forward", "character");
+    }
+
+    let selectionLength = end - start;
+    while (getContentEditableSelectionLength(element, sel) < selectionLength) {
+      sel.modify("extend", "forward", "character");
+    }
+  }
+}
+
+// Get nsIPlaintextEditor object from an input field.
+function getPlaintextEditor(element) {
+  let editor = null;
+  // Get nsIEditor.
+  if (element instanceof HTMLInputElement ||
+      element instanceof HTMLTextAreaElement) {
+    // Get from the <input> and <textarea> elements.
+    editor = element.QueryInterface(Ci.nsIDOMNSEditableElement).editor;
+  } else if (isContentEditable(element)) {
+    // Get from content editable element.
+    let win = element.ownerDocument.defaultView;
+    let editingSession = win.QueryInterface(Ci.nsIInterfaceRequestor)
+                            .getInterface(Ci.nsIWebNavigation)
+                            .QueryInterface(Ci.nsIInterfaceRequestor)
+                            .getInterface(Ci.nsIEditingSession);
+    if (editingSession) {
+      editor = editingSession.getEditorForWindow(win);
+    }
+  }
+  if (editor) {
+    editor.QueryInterface(Ci.nsIPlaintextEditor);
+  }
+  return editor;
+}
+
+function replaceSurroundingText(element, text, selectionStart, beforeLength,
+                                afterLength) {
+  let editor = FormAssistant.editor;
+  if (!editor) {
+    return;
+  }
+
+  // Check the parameters.
+  if (beforeLength < 0) {
+    beforeLength = 0;
+  }
+  if (afterLength < 0) {
+    afterLength = 0;
+  }
+
+  let start = selectionStart - beforeLength;
+  let end = selectionStart + afterLength;
+
+  if (beforeLength != 0 || afterLength != 0) {
+    // Change selection range before replacing.
+    setSelectionRange(element, start, end);
+  }
+
+  if (start != end) {
+    // Delete the selected text.
+    editor.deleteSelection(Ci.nsIEditor.ePrevious, Ci.nsIEditor.eStrip);
+  }
+
+  if (text) {
+    // Insert the text to be replaced with.
+    editor.insertText(text);
+  }
 }
