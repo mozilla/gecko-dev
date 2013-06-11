@@ -639,6 +639,7 @@ add_test(function test_spn_display_condition() {
     [2, 123, 456, 123, 457, false, false],
     [0, 123, 456, 123, 457, false, true],
   ], run_next_test);
+});
 
 /**
  * Verify Proactive Command : More Time
@@ -1033,4 +1034,54 @@ add_test(function test_unlock_card_lock_corporateLocked() {
   run_next_test();
 });
 
+/**
+ * Verify MCC and MNC parsing
+ */
+add_test(function test_mcc_mnc_parsing() {
+  let worker = newUint8Worker();
+  let helper = worker.GsmPDUHelper;
+  let ril    = worker.RIL;
+  let buf    = worker.Buf;
+
+  function do_test(mncLengthInEf, imsi, expectedMcc, expectedMnc) {
+    ril.iccInfo.imsi = imsi;
+
+    ril._getPathIdForICCRecord = function fakeGetPathIdForICCRecord() {
+      return null;
+    };
+
+    ril.iccIO = function fakeIccIO(options) {
+      let ad = [0x00, 0x00, 0x00];
+      if (mncLengthInEf) {
+        ad.push(mncLengthInEf);
+      }
+
+      // Write data size
+      buf.writeUint32(ad.length * 2);
+
+      // Write data
+      for (let i = 0; i < ad.length; i++) {
+        helper.writeHexOctet(ad[i]);
+      }
+
+      // Write string delimiter
+      buf.writeStringDelimiter(ad.length * 2);
+
+      if (options.callback) {
+        options.callback.apply(ril);
+      }
+    };
+
+    ril.getAD();
+
+    do_check_eq(ril.iccInfo.mcc, expectedMcc);
+    do_check_eq(ril.iccInfo.mnc, expectedMnc);
+  }
+
+  do_test(undefined, "466923202422409", "466", "92" );
+  do_test(0x03,      "466923202422409", "466", "923");
+  do_test(undefined, "310260542718417", "310", "260");
+  do_test(0x02,      "310260542718417", "310", "26" );
+
+  run_next_test();
 });
