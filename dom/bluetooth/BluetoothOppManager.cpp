@@ -257,10 +257,18 @@ BluetoothOppManager::Connect(const nsAString& aDeviceObjectPath,
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  NS_ENSURE_FALSE_VOID(mSocket);
-
   BluetoothService* bs = BluetoothService::Get();
-  NS_ENSURE_TRUE_VOID(bs);
+  if (!bs || sInShutdown) {
+    DispatchBluetoothReply(aRunnable, BluetoothValue(),
+                           NS_LITERAL_STRING(ERR_NO_AVAILABLE_RESOURCE));
+    return;
+  }
+
+  if (mSocket) {
+    DispatchBluetoothReply(aRunnable, BluetoothValue(),
+                           NS_LITERAL_STRING(ERR_REACHED_CONNECTION_LIMIT));
+    return;
+  }
 
   nsString uuid;
   BluetoothUuidHelper::GetString(BluetoothServiceClass::OBJECT_PUSH, uuid);
@@ -1350,7 +1358,7 @@ BluetoothOppManager::OnConnectSuccess(BluetoothSocket* aSocket)
     if (NS_FAILED(NS_DispatchToMainThread(mRunnable))) {
       NS_WARNING("Failed to dispatch to main thread!");
     }
-    mRunnable.forget();
+    mRunnable = nullptr;
   }
 
   // Cache device address since we can't get socket address when a remote
@@ -1365,7 +1373,7 @@ BluetoothOppManager::OnConnectError(BluetoothSocket* aSocket)
     BluetoothValue v;
     DispatchBluetoothReply(mRunnable, v,
                            NS_LITERAL_STRING("OnConnectError:no runnable"));
-    mRunnable.forget();
+    mRunnable = nullptr;
   }
 
   mSocket = nullptr;
