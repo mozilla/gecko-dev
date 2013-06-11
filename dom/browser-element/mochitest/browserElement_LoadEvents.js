@@ -22,7 +22,7 @@ function runTest() {
   var iframe = document.createElement('iframe');
   iframe.mozbrowser = true;
   iframe.id = 'iframe';
-  iframe.src = browserElementTestHelpers.emptyPage1;
+  iframe.src = 'http://example.com/tests/dom/browser-element/mochitest/file_browserElement_LoadEvents.html';
 
   function loadstart(e) {
     ok(e.isTrusted, 'Event should be trusted.');
@@ -39,6 +39,7 @@ function runTest() {
     ok(seenLoadStart, 'Location change after load start.');
     ok(!seenLoadEnd, 'Location change before load end.');
     ok(e.detail, browserElementTestHelpers.emptyPage1, "event's reported location");
+    is(e.detail.backgroundColor, 'rgb(0, 128, 0)', 'Expected background color reported');
   }
 
   function loadend(e) {
@@ -98,6 +99,7 @@ function runTest2() {
     seenLoadEnd = true;
     ok(seenLoadStart, 'Load end after load start.');
     ok(seenLocationChange, 'Load end after location change.');
+    is(e.detail.backgroundColor, 'transparent', 'Expected background color reported')
   });
 
   iframe.src = browserElementTestHelpers.emptyPage2;
