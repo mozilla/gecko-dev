@@ -11,7 +11,7 @@ interface nsIB2GCameraContent : nsISupports
   DOMString getCameraURI([optional] in jsval options);
 };
 
-[scriptable, uuid(53990d7a-ab2a-11e1-8543-7767e4cbcbff)]
+[scriptable, uuid(e70b4f86-a22c-49f2-a8f6-7cdda3687d86)]
 interface nsIB2GKeyboard : nsISupports
 {
   void sendKey(in long keyCode, in long charCode);
@@ -34,10 +34,24 @@ interface nsIB2GKeyboard : nsISupports
   // for special situations where the value had to be chosen amongst a
   // list (type=month) or a widget (type=date, time, etc.).
   // If the value passed in parameter isn't valid (in the term of HTML5
-  // Forms Validation), the value will simply be ignored by the element. 
+  // Forms Validation), the value will simply be ignored by the element.
   void setValue(in jsval value);
 
   void removeFocus();
 
   attribute nsIDOMEventListener onfocuschange;
+
+  /*
+   * Replace text around the beginning of the current selection range of the
+   * editable text.
+   *
+   * @param text The string to be replaced with.
+   * @param beforeLength The number of characters to be deleted before the
+   * beginning of the current selection range. Defaults to 0.
+   * @param afterLength The number of characters to be deleted after the
+   * beginning of the current selection range. Defaults to 0.
+   */
+  void replaceSurroundingText(in DOMString text,
+                              [optional] in long beforeLength,
+                              [optional] in long afterLength);
 };

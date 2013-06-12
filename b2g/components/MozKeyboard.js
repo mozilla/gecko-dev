@@ -114,6 +114,15 @@ MozKeyboard.prototype = {
     return this._focusHandler;
   },
 
+  replaceSurroundingText: function mozKeyboardReplaceSurroundingText(
+    text, beforeLength, afterLength) {
+    cpmm.sendAsyncMessage('Keyboard:ReplaceSurroundingText', {
+      'text': text || '',
+      'beforeLength': (typeof beforeLength === 'number' ? beforeLength : 0),
+      'afterLength': (typeof afterLength === 'number' ? afterLength: 0)
+    });
+  },
+
   receiveMessage: function mozKeyboardReceiveMessage(msg) {
     let handler = this._focusHandler;
     if (!handler || !(handler instanceof Ci.nsIDOMEventListener))
@@ -136,4 +145,3 @@ MozKeyboard.prototype = {
 };
 
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory([MozKeyboard]);
-
