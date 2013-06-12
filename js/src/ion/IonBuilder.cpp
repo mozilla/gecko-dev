@@ -6025,7 +6025,14 @@ IonBuilder::jsop_setgname(HandlePropertyName name)
     // storing the type tag. This only works if the property does not have its initial
     // |undefined| value; if |undefined| is assigned at a later point, it will be added
     // to the type set.
+    //
+    // We also need to make sure the typeset reflects the inherited types from
+    // the prototype by calling getFromPrototype. Otherwise we may specialize
+    // on a typeset that becomes unknown before compilation ends, which would
+    // mean the current script wouldn't be compiled even when our assumption
+    // here is made false.
     if (propertyTypes && !globalObj->getSlot(shape->slot()).isUndefined()) {
+        globalType->getFromPrototypes(cx, id, propertyTypes);
         JSValueType knownType = propertyTypes->getKnownTypeTag(cx);
         if (knownType != JSVAL_TYPE_UNKNOWN)
             store->setSlotType(MIRTypeFromValueType(knownType));
