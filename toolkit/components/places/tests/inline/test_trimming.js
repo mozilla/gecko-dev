@@ -7,8 +7,7 @@ add_autocomplete_test([
   "mo",
   { autoFilled: "mozilla.org/", completed: "https://www.mozilla.org/" },
   function () {
-    promiseAddVisits({ uri: NetUtil.newURI("https://www.mozilla.org/test/"),
-                       transition: TRANSITION_TYPED });
+    addBookmark({ url: "https://www.mozilla.org/test/" });
   },
 ]);
 
@@ -17,8 +16,7 @@ add_autocomplete_test([
   "mozilla.org/t",
   { autoFilled: "mozilla.org/test/", completed: "https://www.mozilla.org/test/" },
   function () {
-    promiseAddVisits({ uri: NetUtil.newURI("https://www.mozilla.org/test/"),
-                       transition: TRANSITION_TYPED });
+    addBookmark({ url: "https://www.mozilla.org/test/" });
   },
 ]);
 
@@ -27,8 +25,7 @@ add_autocomplete_test([
   "mo",
   { autoFilled: "mozilla.org/", completed: "https://mozilla.org/" },
   function () {
-    promiseAddVisits({ uri: NetUtil.newURI("https://mozilla.org/test/"),
-                       transition: TRANSITION_TYPED });
+    addBookmark({ url: "https://mozilla.org/test/" });
   },
 ]);
 
@@ -37,8 +34,7 @@ add_autocomplete_test([
   "mozilla.org/t",
   { autoFilled: "mozilla.org/test/", completed: "https://mozilla.org/test/" },
   function () {
-    promiseAddVisits({ uri: NetUtil.newURI("https://mozilla.org/test/"),
-                       transition: TRANSITION_TYPED });
+    addBookmark({ url: "https://mozilla.org/test/" });
   },
 ]);
 
@@ -47,8 +43,7 @@ add_autocomplete_test([
   "mo",
   { autoFilled: "mozilla.org/", completed: "www.mozilla.org/" },
   function () {
-    promiseAddVisits({ uri: NetUtil.newURI("http://www.mozilla.org/test/"),
-                       transition: TRANSITION_TYPED });
+    addBookmark({ url: "http://www.mozilla.org/test/" });
   },
 ]);
 
@@ -57,8 +52,7 @@ add_autocomplete_test([
   "mozilla.org/t",
   { autoFilled: "mozilla.org/test/", completed: "http://www.mozilla.org/test/" },
   function () {
-    promiseAddVisits({ uri: NetUtil.newURI("http://www.mozilla.org/test/"),
-                       transition: TRANSITION_TYPED });
+    addBookmark({ url: "http://www.mozilla.org/test/" });
   },
 ]);
 
@@ -67,8 +61,7 @@ add_autocomplete_test([
   "mo",
   { autoFilled: "mozilla.org/", completed: "ftp://mozilla.org/" },
   function () {
-    promiseAddVisits({ uri: NetUtil.newURI("ftp://mozilla.org/test/"),
-                       transition: TRANSITION_TYPED });
+    addBookmark({ url: "ftp://mozilla.org/test/" });
   },
 ]);
 
@@ -77,92 +70,53 @@ add_autocomplete_test([
   "mozilla.org/t",
   { autoFilled: "mozilla.org/test/", completed: "ftp://mozilla.org/test/" },
   function () {
-    promiseAddVisits({ uri: NetUtil.newURI("ftp://mozilla.org/test/"),
-                       transition: TRANSITION_TYPED });
+    addBookmark({ url: "ftp://mozilla.org/test/" });
   },
 ]);
 
 add_autocomplete_test([
   "Ensuring correct priority 1",
   "mo",
-  { autoFilled: "mozilla.org/", completed: "mozilla.org/" },
+  { autoFilled: "mozilla.org/", completed: "https://www.mozilla.org/" },
   function () {
-    promiseAddVisits({ uri: NetUtil.newURI("https://www.mozilla.org/test/"),
-                       transition: TRANSITION_TYPED });
-    promiseAddVisits({ uri: NetUtil.newURI("https://mozilla.org/test/"),
-                       transition: TRANSITION_TYPED });
-    promiseAddVisits({ uri: NetUtil.newURI("ftp://mozilla.org/test/"),
-                       transition: TRANSITION_TYPED });
-    promiseAddVisits({ uri: NetUtil.newURI("http://www.mozilla.org/test/"),
-                       transition: TRANSITION_TYPED });
-    promiseAddVisits({ uri: NetUtil.newURI("http://mozilla.org/test/"),
-                       transition: TRANSITION_TYPED });
+    addBookmark({ url: "https://www.mozilla.org/test/" });
+    addBookmark({ url: "https://mozilla.org/test/" });
+    addBookmark({ url: "ftp://mozilla.org/test/" });
+    addBookmark({ url: "http://www.mozilla.org/test/" });
+    addBookmark({ url: "http://mozilla.org/test/" });
   },
 ]);
 
 add_autocomplete_test([
   "Ensuring correct priority 2",
   "mo",
-  { autoFilled: "mozilla.org/", completed: "mozilla.org/" },
+  { autoFilled: "mozilla.org/", completed: "https://mozilla.org/" },
   function () {
-    promiseAddVisits({ uri: NetUtil.newURI("https://mozilla.org/test/"),
-                       transition: TRANSITION_TYPED });
-    promiseAddVisits({ uri: NetUtil.newURI("ftp://mozilla.org/test/"),
-                       transition: TRANSITION_TYPED });
-    promiseAddVisits({ uri: NetUtil.newURI("http://www.mozilla.org/test/"),
-                       transition: TRANSITION_TYPED });
-    promiseAddVisits({ uri: NetUtil.newURI("http://mozilla.org/test/"),
-                       transition: TRANSITION_TYPED });
+    addBookmark({ url: "https://mozilla.org/test/" });
+    addBookmark({ url: "ftp://mozilla.org/test/" });
+    addBookmark({ url: "http://www.mozilla.org/test/" });
+    addBookmark({ url: "http://mozilla.org/test/" });
   },
 ]);
 
 add_autocomplete_test([
   "Ensuring correct priority 3",
   "mo",
-  { autoFilled: "mozilla.org/", completed: "mozilla.org/" },
+  { autoFilled: "mozilla.org/", completed: "ftp://mozilla.org/" },
   function () {
-    promiseAddVisits({ uri: NetUtil.newURI("ftp://mozilla.org/test/"),
-                       transition: TRANSITION_TYPED });
-    promiseAddVisits({ uri: NetUtil.newURI("http://www.mozilla.org/test/"),
-                       transition: TRANSITION_TYPED });
-    promiseAddVisits({ uri: NetUtil.newURI("http://mozilla.org/test/"),
-                       transition: TRANSITION_TYPED });
+    addBookmark({ url: "ftp://mozilla.org/test/" });
+    addBookmark({ url: "http://www.mozilla.org/test/" });
+    addBookmark({ url: "http://mozilla.org/test/" });
   },
 ]);
 
 add_autocomplete_test([
   "Ensuring correct priority 4",
   "mo",
-  { autoFilled: "mozilla.org/", completed: "mozilla.org/" },
-  function () {
-    promiseAddVisits({ uri: NetUtil.newURI("http://www.mozilla.org/test/"),
-                       transition: TRANSITION_TYPED });
-    promiseAddVisits({ uri: NetUtil.newURI("http://mozilla.org/test/"),
-                       transition: TRANSITION_TYPED });
-  },
-]);
-
-add_autocomplete_test([
-  "Ensuring correct priority 5",
-  "mo",
-  { autoFilled: "mozilla.org/", completed: "ftp://mozilla.org/" },
-  function () {
-    promiseAddVisits({ uri: NetUtil.newURI("ftp://mozilla.org/test/"),
-                       transition: TRANSITION_TYPED });
-    promiseAddVisits({ uri: NetUtil.newURI("ftp://www.mozilla.org/test/"),
-                       transition: TRANSITION_TYPED });
-  },
-]);
-
-add_autocomplete_test([
-  "Ensuring correct priority 6",
-  "mo",
   { autoFilled: "mozilla.org/", completed: "www.mozilla.org/" },
   function () {
-    promiseAddVisits({ uri: NetUtil.newURI("http://www.mozilla.org/test1/"),
-                       transition: TRANSITION_TYPED });
-    promiseAddVisits({ uri: NetUtil.newURI("http://www.mozilla.org/test2/"),
-                       transition: TRANSITION_TYPED });
+    addBookmark({ url: "http://www.mozilla.org/test/" });
+    addBookmark({ url: "http://mozilla.org/test/" });
   },
 ]);
 
@@ -173,12 +127,9 @@ add_autocomplete_test([
   function () {
     // The .co should be preferred, but should not get the https from the .com.
     // The .co domain must be added later to activate the trigger bug.
-    promiseAddVisits({ uri: NetUtil.newURI("https://mozilla.com/"),
-                       transition: TRANSITION_TYPED });
-    promiseAddVisits({ uri: NetUtil.newURI("http://mozilla.co/"),
-                       transition: TRANSITION_TYPED });
-    promiseAddVisits({ uri: NetUtil.newURI("http://mozilla.co/"),
-                       transition: TRANSITION_TYPED });
+    addBookmark({ url: "https://mozilla.com/" });
+    addBookmark({ url: "http://mozilla.co/" });
+    addBookmark({ url: "http://mozilla.co/" });
   },
 ]);
 
@@ -209,41 +160,5 @@ add_autocomplete_test([
   function () {
     promiseAddVisits({ uri: NetUtil.newURI("http://test.moz.org/test/"),
                        transition: TRANSITION_TYPED });
-  },
-]);
-
-add_autocomplete_test([
-  "Untyped is not accounted for www",
-  "mo",
-  { autoFilled: "moz.org/", completed: "moz.org/" },
-  function () {
-    promiseAddVisits({ uri: NetUtil.newURI("http://www.moz.org/test/") });
-  },
-]);
-
-add_autocomplete_test([
-  "Untyped is not accounted for ftp",
-  "mo",
-  { autoFilled: "moz.org/", completed: "moz.org/" },
-  function () {
-    promiseAddVisits({ uri: NetUtil.newURI("ftp://moz.org/test/") });
-  },
-]);
-
-add_autocomplete_test([
-  "Untyped is not accounted for https",
-  "mo",
-  { autoFilled: "moz.org/", completed: "moz.org/" },
-  function () {
-    promiseAddVisits({ uri: NetUtil.newURI("https://moz.org/test/") });
-  },
-]);
-
-add_autocomplete_test([
-  "Untyped is not accounted for https://www",
-  "mo",
-  { autoFilled: "moz.org/", completed: "moz.org/" },
-  function () {
-    promiseAddVisits({ uri: NetUtil.newURI("https://www.moz.org/test/") });
   },
 ]);

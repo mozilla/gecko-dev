@@ -9,10 +9,7 @@ function test() {
   registerCleanupFunction(function() {
     gBrowser.removeCurrentTab();
   });
-  const TEST_URL = "http://mochi.test:8888/notFoundPage.html";
-  // Used to verify errors are not marked as typed.
-  PlacesUtils.history.markPageAsTyped(NetUtil.newURI(TEST_URL));
-  gBrowser.selectedTab.linkedBrowser.loadURI(TEST_URL);
+  gBrowser.selectedTab.linkedBrowser.loadURI("http://mochi.test:8888/notFoundPage.html");
 
   // Create and add history observer.
   let historyObserver = {
@@ -24,10 +21,7 @@ function test() {
         is(aFrecency, 0, "Frecency should be 0");
         fieldForUrl(aURI, "hidden", function (aHidden) {
           is(aHidden, 0, "Page should not be hidden");
-          fieldForUrl(aURI, "typed", function (aTyped) {
-            is(aTyped, 0, "page should not be marked as typed");
-            promiseClearHistory().then(finish);
-          });
+          promiseClearHistory().then(finish);
         });
       });
     },
