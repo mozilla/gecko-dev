@@ -39,7 +39,6 @@ function runTest() {
     ok(seenLoadStart, 'Location change after load start.');
     ok(!seenLoadEnd, 'Location change before load end.');
     ok(e.detail, browserElementTestHelpers.emptyPage1, "event's reported location");
-    is(e.detail.backgroundColor, 'rgb(0, 128, 0)', 'Expected background color reported');
   }
 
   function loadend(e) {
@@ -47,6 +46,7 @@ function runTest() {
     ok(seenLoadStart, 'loadend after loadstart.');
     ok(!seenLoadEnd, 'Just one loadend event.');
     seenLoadEnd = true;
+    is(e.detail.backgroundColor, 'rgb(0, 128, 0)', 'Expected background color reported');
   }
 
   iframe.addEventListener('mozbrowserloadstart', loadstart);
