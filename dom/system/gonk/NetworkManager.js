@@ -288,8 +288,8 @@ NetworkManager.prototype = {
         break;
       case TOPIC_INTERFACE_REGISTERED:
         let regNetwork = subject.QueryInterface(Ci.nsINetworkInterface);
-        debug("Network '" + regNetwork.name + "' registered, adding mmsproxy and/or mmsc route");
         if (regNetwork.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS) {
+          debug("Network '" + regNetwork.name + "' registered, adding mmsproxy and/or mmsc route");
 	  let mmsHosts = this.resolveHostname(
 	      [ Services.prefs.getCharPref("ril.mms.mmsproxy"),
                 Services.prefs.getCharPref("ril.mms.mmsc") ]
@@ -299,8 +299,8 @@ NetworkManager.prototype = {
         break;
       case TOPIC_INTERFACE_UNREGISTERED:
         let unregNetwork = subject.QueryInterface(Ci.nsINetworkInterface);
-        debug("Network '" + regNetwork.name + "' unregistered, removing mmsproxy and/or mmsc route");
         if (unregNetwork.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS) {
+          debug("Network '" + unregNetwork.name + "' unregistered, removing mmsproxy and/or mmsc route");
 	  let mmsHosts = this.resolveHostname(
 	      [ Services.prefs.getCharPref("ril.mms.mmsproxy"),
                 Services.prefs.getCharPref("ril.mms.mmsc") ]
