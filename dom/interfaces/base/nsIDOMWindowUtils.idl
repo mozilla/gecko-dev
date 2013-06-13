@@ -40,7 +40,7 @@ interface nsIDOMTouch;
 interface nsIDOMClientRect;
 interface nsIURI;
 
-[scriptable, uuid(ed36f965-173c-4101-a615-63b44f51ed90 )]
+[scriptable, uuid(f36140cc-81b9-4254-b481-cef3519f06ff)]
 interface nsIDOMWindowUtils : nsISupports {
 
   /**
@@ -236,16 +236,18 @@ interface nsIDOMWindowUtils : nsISupports {
    * @param aPressure touch input pressure: 0.0 -> 1.0
    * @param aInputSourceArg input source, see nsIDOMMouseEvent for values,
    *        defaults to mouse input.
+   *
+   * returns true if the page called prevent default on this event
    */
-  void sendMouseEvent(in AString aType,
-                      in float aX,
-                      in float aY,
-                      in long aButton,
-                      in long aClickCount,
-                      in long aModifiers,
-                      [optional] in boolean aIgnoreRootScrollFrame,
-                      [optional] in float aPressure,
-                      [optional] in unsigned short aInputSourceArg);
+  boolean sendMouseEvent(in AString aType,
+                         in float aX,
+                         in float aY,
+                         in long aButton,
+                         in long aClickCount,
+                         in long aModifiers,
+                         [optional] in boolean aIgnoreRootScrollFrame,
+                         [optional] in float aPressure,
+                         [optional] in unsigned short aInputSourceArg);
 
   /** Synthesize a touch event. The event types supported are:
    *    touchstart, touchend, touchmove, and touchcancel
