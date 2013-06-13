@@ -393,13 +393,19 @@ pref("dom.ipc.processCount", 100000);
 
 pref("dom.ipc.browser_frames.oop_by_default", false);
 
-// Temporary permission hack for WebSMS
+// WebSMS
 pref("dom.sms.enabled", true);
 pref("dom.sms.strict7BitEncoding", false); // Disabled by default.
 pref("dom.sms.requestStatusReport", true); // Enabled by default.
 
-// Temporary permission hack for WebContacts
+// WebContacts
 pref("dom.mozContacts.enabled", true);
+
+// Shortnumber matching needed for e.g. Brazil:
+// 01187654321 can be found with 87654321
+pref("dom.phonenumber.substringmatching.BR", 8);
+pref("dom.phonenumber.substringmatching.CO", 10);
+pref("dom.phonenumber.substringmatching.VE", 7);
 
 // WebAlarms
 pref("dom.mozAlarms.enabled", true);
