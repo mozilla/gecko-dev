@@ -74,9 +74,7 @@ JS_SetRuntimeDebugMode(JSRuntime *rt, JSBool debug)
 static bool
 IsTopFrameConstructing(JSContext *cx, AbstractFramePtr frame)
 {
-    ScriptFrameIter iter(cx);
-    JS_ASSERT(iter.abstractFramePtr() == frame);
-    return iter.isConstructing();
+    return frame.asStackFrame()->isConstructing();
 }
 
 JSTrapStatus
