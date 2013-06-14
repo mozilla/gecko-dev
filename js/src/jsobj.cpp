@@ -1221,6 +1221,8 @@ JSObject::isSealedOrFrozen(JSContext *cx, HandleObject obj, ImmutabilityType it,
 const char *
 JSObject::className(JSContext *cx, HandleObject obj)
 {
+    assertSameCompartment(cx, obj);
+
     if (obj->isProxy())
         return Proxy::className(cx, obj);
 
