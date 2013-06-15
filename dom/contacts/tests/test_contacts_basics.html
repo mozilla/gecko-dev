@@ -136,90 +136,88 @@ function onFailure() {
 }
 
 function checkStr(str1, str2, msg) {
-  if (str1)
-    ok(typeof str1 == "string" ? [str1] : str1, (typeof str2 == "string") ? [str2] : str2, msg);
+  if (str1 ^ str2) {
+    ok(false, "Expected both strings to be either present or absent");
+    return;
+  }
+  is(str1, str2, msg);
+}
+
+function checkStrArray(str1, str2, msg) {
+  // comparing /[null(,null)+]/ and undefined should pass
+  function nonNull(e) {
+    return e != null;
+  }
+  if ((Array.isArray(str1) && str1.filter(nonNull).length == 0 && str2 == undefined)
+     ||(Array.isArray(str2) && str2.filter(nonNull).length == 0 && str1 == undefined)) {
+    ok(true, msg);
+  } else if (str1) {
+    is(JSON.stringify(typeof str1 == "string" ? [str1] : str1), JSON.stringify(typeof str2 == "string" ? [str2] : str2), msg);
+  }
 }
 
 function checkAddress(adr1, adr2) {
-  checkStr(adr1.type, adr2.type, "Same type");
-  checkStr(adr1.streetAddress, adr2.streetAddress, "Same streetAddress");
-  checkStr(adr1.locality, adr2.locality, "Same locality");
-  checkStr(adr1.region, adr2.region, "Same region");
-  checkStr(adr1.postalCode, adr2.postalCode, "Same postalCode");
-  checkStr(adr1.countryName, adr2.countryName, "Same countryName");
+  if (adr1 ^ adr2) {
+    ok(false, "Expected both adrs to be either present or absent");
+    return;
+  }
+  checkStrArray(adr1.type, adr2.type, "Same type");
+  checkStrArray(adr1.streetAddress, adr2.streetAddress, "Same streetAddress");
+  checkStrArray(adr1.locality, adr2.locality, "Same locality");
+  checkStrArray(adr1.region, adr2.region, "Same region");
+  checkStrArray(adr1.postalCode, adr2.postalCode, "Same postalCode");
+  checkStrArray(adr1.countryName, adr2.countryName, "Same countryName");
 }
 
 function checkTel(tel1, tel2) {
-  checkStr(tel1.type, tel2.type, "Same type");
-  checkStr(tel1.value, tel2.value, "Same value");
-  checkStr(tel1.carrier, tel2.carrier, "Same carrier");
+  if (tel1 ^ tel2) {
+    ok(false, "Expected both tels to be either present or absent");
+    return;
+  }
+  checkStrArray(tel1.type, tel2.type, "Same type");
+  checkStrArray(tel1.value, tel2.value, "Same value");
+  checkStrArray(tel1.carrier, tel2.carrier, "Same carrier");
 }
 
 function checkField(field1, field2) {
-  checkStr(field1.type, field2.type, "Same type");
-  checkStr(field1.value, field2.value, "Same value");
+  if (field1 ^ field2) {
+    ok(false, "Expected both fields to be either present or absent");
+    return;
+  }
+  checkStrArray(field1.type, field2.type, "Same type");
+  checkStrArray(field1.value, field2.value, "Same value");
 }
 
 function checkContacts(contact1, contact2) {
-  checkStr(contact1.name, contact2.name, "Same name");
-  checkStr(contact1.honorificPrefix, contact2.honorificPrefix, "Same honorificPrefix");
-  checkStr(contact1.givenName, contact2.givenName, "Same givenName");
-  checkStr(contact1.additionalName, contact2.additionalName, "Same additionalName");
-  checkStr(contact1.familyName, contact2.familyName, "Same familyName");
-  checkStr(contact1.honorificSuffix, contact2.honorificSuffix, "Same honorificSuffix");
-  checkStr(contact1.nickname, contact2.nickname, "Same nickname");
-  checkStr(contact1.category, contact2.category, "Same category");
-  checkStr(contact1.org, contact2.org, "Same org");
-  checkStr(contact1.jobTitle, contact2.jobTitle, "Same jobTitle");
+  checkStrArray(contact1.name, contact2.name, "Same name");
+  checkStrArray(contact1.honorificPrefix, contact2.honorificPrefix, "Same honorificPrefix");
+  checkStrArray(contact1.givenName, contact2.givenName, "Same givenName");
+  checkStrArray(contact1.additionalName, contact2.additionalName, "Same additionalName");
+  checkStrArray(contact1.familyName, contact2.familyName, "Same familyName");
+  checkStrArray(contact1.honorificSuffix, contact2.honorificSuffix, "Same honorificSuffix");
+  checkStrArray(contact1.nickname, contact2.nickname, "Same nickname");
+  checkStrArray(contact1.category, contact2.category, "Same category");
+  checkStrArray(contact1.org, contact2.org, "Same org");
+  checkStrArray(contact1.jobTitle, contact2.jobTitle, "Same jobTitle");
   is(contact1.bday ? contact1.bday.valueOf() : null, contact2.bday ? contact2.bday.valueOf() : null, "Same birthday");
-  checkStr(contact1.note, contact2.note, "Same note");
+  checkStrArray(contact1.note, contact2.note, "Same note");
   is(contact1.anniversary ? contact1.anniversary.valueOf() : null , contact2.anniversary ? contact2.anniversary.valueOf() : null, "Same anniversary");
-  is(contact1.sex, contact2.sex, "Same sex");
-  is(contact1.genderIdentity, contact2.genderIdentity, "Same genderIdentity");
+  checkStr(contact1.sex, contact2.sex, "Same sex");
+  checkStr(contact1.genderIdentity, contact2.genderIdentity, "Same genderIdentity");
 
   for (var i in contact1.email) {
-    if (contact1.email) {
-      ok(contact2.email != null, "conatct2.email exists");
-    }
-    if (contact2.email) {
-      ok(contact1.email != null, "conatct1.email exists");
-    }
     checkField(contact1.email[i], contact2.email[i]);
   }
   for (var i in contact1.adr) {
-    if (contact1.adr) {
-      ok(contact2.adr != null, "conatct2.adr exists");
-    }
-    if (contact2.adr) {
-      ok(contact1.adr != null, "conatct1.adr exists");
-    }
     checkAddress(contact1.adr[i], contact2.adr[i]);
   }
   for (var i in contact1.tel) {
-    if (contact1.tel) {
-      ok(contact2.tel != null, "conatct2.tel exists");
-    }
-    if (contact2.tel) {
-      ok(contact1.tel != null, "conatct1.tel exists");
-    }
     checkTel(contact1.tel[i], contact2.tel[i]);
   }
   for (var i in contact1.url) {
-    if (contact1.url) {
-      ok(contact2.url != null, "conatct2.url exists");
-    }
-    if (contact2.url) {
-      ok(contact1.url != null, "conatct1.url exists");
-    }
     checkField(contact1.url[i], contact2.url[i]);
   }
   for (var i in contact1.impp) {
-    if (contact1.impp) {
-      ok(contact2.impp != null, "conatct2.impp exists");
-    }
-    if (contact2.impp) {
-      ok(contact1.impp != null, "conatct1.impp exists");
-    }
     checkField(contact1.impp[i], contact2.impp[i]);
   }
 }
@@ -243,7 +241,7 @@ var steps = [
     ok(true, "Retrieving all contacts");
     req = mozContacts.find({});
     req.onsuccess = function () {
-      ok(req.result.length == 0, "Empty database is empty.");
+      is(req.result.length, 0, "Empty database is empty.");
       next();
     };
     req.onerror = onFailure;
@@ -264,7 +262,7 @@ var steps = [
     ok(true, "Retrieving all contacts");
     req = mozContacts.find({});
     req.onsuccess = function () {
-      ok(req.result.length == 1, "One contact.");
+      is(req.result.length, 1, "One contact.");
       findResult1 = req.result[0];
       next();
     };
@@ -276,7 +274,7 @@ var steps = [
     req.onsuccess = function () {
       var req2 = mozContacts.find({});
       req2.onsuccess = function () {
-        ok(req2.result.length == 0, "Empty Database.");
+        is(req2.result.length, 0, "Empty Database.");
         clearTemps();
         next();
       }
@@ -299,7 +297,7 @@ var steps = [
     req.onsuccess = function () {
       ok(createResult1.id, "The contact now has an ID.");
       sample_id1 = createResult1.id;
-      checkContacts(properties1, createResult1);
+      checkContacts(createResult1, properties1);
     };
     req.onerror = onFailure;
   },
@@ -339,7 +337,7 @@ var steps = [
                    filterValue: properties1.email[0].value};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 1, "Found exactly 1 contact.");
+      is(req.result.length, 1, "Found exactly 1 contact.");
       findResult1 = req.result[0];
       ok(findResult1.id == sample_id1, "Same ID");
       checkContacts(findResult1, createResult1);
@@ -358,7 +356,7 @@ var steps = [
                    filterValue: properties1.givenName[0].substring(0,3)};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 1, "Found exactly 1 contact.");
+      is(req.result.length, 1, "Found exactly 1 contact.");
       findResult1 = req.result[0];
       findResult1.jobTitle = ["new Job"];
       ok(findResult1.id == sample_id1, "Same ID");
@@ -389,7 +387,7 @@ var steps = [
                    filterValue: properties1.givenName[0].substring(0,3)};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 1, "Found exactly 1 contact.");
+      is(req.result.length, 1, "Found exactly 1 contact.");
       findResult1 = req.result[0];
       checkContacts(createResult1, findResult1);
       next();
@@ -415,7 +413,7 @@ var steps = [
                    filterValue: properties1.givenName[1].substring(0,3)};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 0, "Found no contact.");
+      is(req.result.length, 0, "Found no contact.");
       next();
     };
     req.onerror = onFailure;
@@ -439,7 +437,7 @@ var steps = [
                    filterValue: properties1.givenName[1].substring(0,3)};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 0, "Found no contact.");
+      is(req.result.length, 0, "Found no contact.");
       next();
     };
     req.onerror = onFailure;
@@ -466,7 +464,7 @@ var steps = [
     req.onsuccess = function () {
       ok(createResult1.id, "The contact now has an ID.");
       sample_id1 = createResult1.id;
-      checkContacts(properties1, createResult1);
+      checkContacts(createResult1, properties1);
       next();
     };
     req.onerror = onFailure;
@@ -478,7 +476,7 @@ var steps = [
                    filterValue: properties1.tel[1].value.substring(0,5)};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 1, "Found exactly 1 contact.");
+      is(req.result.length, 1, "Found exactly 1 contact.");
       findResult1 = req.result[0];
       ok(findResult1.id == sample_id1, "Same ID");
       checkContacts(createResult1, properties1);
@@ -604,7 +602,7 @@ var steps = [
                    filterValue: "9876"};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 1, "Found exactly 1 contact.");
+      is(req.result.length, 1, "Found exactly 1 contact.");
       findResult1 = req.result[0];
       ok(findResult1.id == sample_id1, "Same ID");
       checkContacts(createResult1, properties1);
@@ -619,7 +617,7 @@ var steps = [
                    filterValue: "98763456"};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 1, "Found exactly 1 contact.");
+      is(req.result.length, 1, "Found exactly 1 contact.");
       findResult1 = req.result[0];
       ok(findResult1.id == sample_id1, "Same ID");
       checkContacts(createResult1, properties1);
@@ -634,7 +632,7 @@ var steps = [
                    filterValue: properties1.givenName[0].substring(0,3)};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 1, "Found exactly 1 contact.");
+      is(req.result.length, 1, "Found exactly 1 contact.");
       findResult1 = req.result[0];
       ok(findResult1.id == sample_id1, "Same ID");
       checkContacts(createResult1, properties1);
@@ -649,7 +647,7 @@ var steps = [
                    filterValue: properties1.givenName[0].substring(0,3)};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 1, "Found exactly 1 contact.");
+      is(req.result.length, 1, "Found exactly 1 contact.");
       findResult1 = req.result[0];
       ok(findResult1.id == sample_id1, "Same ID");
       checkContacts(createResult1, properties1);
@@ -664,7 +662,7 @@ var steps = [
                    filterValue: properties1.familyName[1].substring(0,3).toLowerCase()};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 1, "Found exactly 1 contact.");
+      is(req.result.length, 1, "Found exactly 1 contact.");
       findResult1 = req.result[0];
       ok(findResult1.id == sample_id1, "Same ID");
       checkContacts(createResult1, properties1);
@@ -676,7 +674,7 @@ var steps = [
     ok(true, "Retrieving all contacts");
     req = mozContacts.find({});
     req.onsuccess = function() {
-      ok(req.result.length == 1, "Found exactly 1 contact.");
+      is(req.result.length, 1, "Found exactly 1 contact.");
       findResult1 = req.result[0];
       ok(findResult1.id == sample_id1, "Same ID");
       checkContacts(createResult1, findResult1);
@@ -693,11 +691,11 @@ var steps = [
     req.onsuccess = function () {
       var req2 = mozContacts.find({});
       req2.onsuccess = function() {
-        ok(req2.result.length == 1, "Found exactly 1 contact.");
+        is(req2.result.length, 1, "Found exactly 1 contact.");
         findResult2 = req2.result[0];
         ok(findResult2.id == sample_id1, "Same ID");
         checkContacts(findResult2, properties1);
-        ok(findResult2.impp.length == 1, "Found exactly 1 IMS info.");
+        is(findResult2.impp.length, 1, "Found exactly 1 IMS info.");
         next();
       };
       req2.onerror = onFailure;
@@ -717,7 +715,7 @@ var steps = [
                    filterValue: sample_id1};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 1, "Found exactly 1 contact.");
+      is(req.result.length, 1, "Found exactly 1 contact.");
       findResult1 = req.result[0];
       ok(findResult1.id == sample_id1, "Same ID");
       checkContacts(findResult1, properties1);
@@ -732,7 +730,7 @@ var steps = [
                    filterValue: properties1.givenName[0]};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 1, "Found exactly 1 contact.");
+      is(req.result.length, 1, "Found exactly 1 contact.");
       findResult1 = req.result[0];
       ok(findResult1.id == sample_id1, "Same ID");
       checkContacts(findResult1, properties1);
@@ -747,11 +745,11 @@ var steps = [
     req.onsuccess = function () {
       var req2 = mozContacts.find({});
       req2.onsuccess = function () {
-        ok(req2.result.length == 1, "Found exactly 1 contact.");
+        is(req2.result.length, 1, "Found exactly 1 contact.");
         findResult1 = req2.result[0];
         ok(findResult1.id == sample_id1, "Same ID");
         checkContacts(findResult1, properties1);
-        ok(findResult1.impp.length == 1, "Found exactly 1 IMS info.");
+        is(findResult1.impp.length, 1, "Found exactly 1 IMS info.");
         next();
       }
       req2.onerror = onFailure;
@@ -765,7 +763,7 @@ var steps = [
                    filterValue: properties1.givenName[0].substring(0,4)};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 1, "Found exactly 1 contact.");
+      is(req.result.length, 1, "Found exactly 1 contact.");
       findResult1 = req.result[0];
       ok(findResult1.id == sample_id1, "Same ID");
       checkContacts(findResult1, properties1);
@@ -780,7 +778,7 @@ var steps = [
                    filterValue: properties1.givenName[0]};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 1, "Found exactly 1 contact.");
+      is(req.result.length, 1, "Found exactly 1 contact.");
       findResult1 = req.result[0];
       ok(findResult1.id == sample_id1, "Same ID");
       checkContacts(findResult1, properties1);
@@ -795,7 +793,7 @@ var steps = [
                    filterValue: properties1.givenName[1]};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 1, "Found exactly 1 contact.");
+      is(req.result.length, 1, "Found exactly 1 contact.");
       findResult1 = req.result[0];
       ok(findResult1.id == sample_id1, "Same ID");
       checkContacts(findResult1, properties1);
@@ -817,7 +815,7 @@ var steps = [
       // One contact has it in nickname and the other in email
       var req2 = mozContacts.find(options);
       req2.onsuccess = function () {
-        ok(req2.result.length == 2, "Found exactly 2 contacts.");
+        is(req2.result.length, 2, "Found exactly 2 contacts.");
         ok(req2.result[0].id != req2.result[1].id, "Different ID");
         next();
       }
@@ -831,7 +829,7 @@ var steps = [
     req.onsuccess = function () {
       var req2 = mozContacts.find({});
       req2.onsuccess = function () {
-        ok(req2.result.length == 1, "One contact left.");
+        is(req2.result.length, 1, "One contact left.");
         findResult1 = req2.result[0];
         next();
       }
@@ -876,7 +874,7 @@ var steps = [
     ok(true, "Retrieving all contacts");
     req = mozContacts.find({})
     req.onsuccess = function () {
-      ok(req.result.length == 2, "Found exactly 2 contact.");
+      is(req.result.length, 2, "Found exactly 2 contact.");
       next();
     }
     req.onerror = onFailure;
@@ -888,7 +886,7 @@ var steps = [
                    filterValue: properties1.givenName[0].substring(0, 4)}
     req = mozContacts.find(options)
     req.onsuccess = function () {
-      ok(req.result.length == 1, "Found exactly 1 contact.");
+      is(req.result.length, 1, "Found exactly 1 contact.");
       findResult1 = req.result[0];
       ok(findResult1.id == sample_id1, "Same ID");
       checkContacts(findResult1, createResult1);
@@ -903,9 +901,9 @@ var steps = [
                    filterValue: properties2.givenName[0].substring(0, 4)};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 1, "Found exactly 1 contact.");
+      is(req.result.length, 1, "Found exactly 1 contact.");
       findResult1 = req.result[0];
-      ok(findResult1.adr.length == 2, "Adr length 2");
+      is(findResult1.adr.length, 2, "Adr length 2");
       checkContacts(findResult1, createResult2);
       next();
     }
@@ -918,7 +916,7 @@ var steps = [
                    filterValue: properties2.tel[0].value.substring(0, 7)};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 1, "Found exactly 1 contact.");
+      is(req.result.length, 1, "Found exactly 1 contact.");
       findResult1 = req.result[0];
       ok(findResult1.id == sample_id2, "Same ID");
       checkContacts(findResult1, createResult2);
@@ -933,7 +931,7 @@ var steps = [
                    filterValue: properties2.email[0].value.substring(0, 4)};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 1, "Found exactly 1 contact.");
+      is(req.result.length, 1, "Found exactly 1 contact.");
       findResult1 = req.result[0];
       ok(findResult1.id == sample_id2, "Same ID");
       checkContacts(findResult1, createResult2);
@@ -975,7 +973,7 @@ var steps = [
     ok(true, "Retrieving all contacts");
     req = mozContacts.find({});
     req.onsuccess = function () {
-      ok(req.result.length == 100, "100 Entries.");
+      is(req.result.length, 100, "100 Entries.");
       next();
     }
     req.onerror = onFailure;
@@ -985,7 +983,7 @@ var steps = [
     var options = { filterLimit: 10 };
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 10, "10 Entries.");
+      is(req.result.length, 10, "10 Entries.");
       next();
     }
     req.onerror = onFailure;
@@ -997,7 +995,7 @@ var steps = [
                     sortOrder: 'descending' };
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 10, "10 Entries.");
+      is(req.result.length, 10, "10 Entries.");
       next();
     }
     req.onerror = onFailure;
@@ -1009,7 +1007,7 @@ var steps = [
                    filterValue: properties1.givenName[0].substring(0, 4)};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 100, "100 Entries.");
+      is(req.result.length, 100, "100 Entries.");
       checkContacts(createResult1, req.result[99]);
       next();
     }
@@ -1023,7 +1021,7 @@ var steps = [
                    filterLimit: 15 };
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 15, "15 Entries.");
+      is(req.result.length, 15, "15 Entries.");
       checkContacts(createResult1, req.result[10]);
       next();
     }
@@ -1059,7 +1057,7 @@ var steps = [
     req = mozContacts.save(cloned);
     req.onsuccess = function () {
       ok(cloned.id, "The contact now has an ID.");
-      ok(cloned.email.value == "new email!", "Same Email");
+      ok(cloned.email[0].value == "new email!", "Same Email");
       ok(createResult1.email != cloned.email, "Clone has different email");
       ok(cloned.givenName == "Tom", "New Name");
       next();
@@ -1073,7 +1071,7 @@ var steps = [
                    filterValue: properties2.givenName[0].substring(0, 4)};
     req = mozContacts.find({});
     req.onsuccess = function () {
-      ok(req.result.length == 2, "2 Entries.");
+      is(req.result.length, 2, "2 Entries.");
       next();
     }
     req.onerror = onFailure;
@@ -1089,7 +1087,7 @@ var steps = [
                      filterValue: "XXX"};
       var req2 = mozContacts.find(options);
       req2.onsuccess = function() {
-        ok(req2.result.length == 1, "1 Entry");
+        is(req2.result.length, 1, "1 Entry");
         next();
       }
       req2.onerror = onFailure;
@@ -1222,8 +1220,8 @@ var steps = [
                      filterValue: "customTest"};
       var req2 = mozContacts.find(options);
       req2.onsuccess = function() {
-        ok(req2.result.length == 1, "1 Entry");
-        checkStr(req2.result.givenName, "customTest", "same name");
+        is(req2.result.length, 1, "1 Entry");
+        checkStrArray(req2.result.givenName, "customTest", "same name");
         ok(req2.result.yyy === undefined, "custom property undefined");
         next();
       }
@@ -1259,7 +1257,7 @@ var steps = [
                    filterValue: properties2.category[0]};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 1, "1 Entry.");
+      is(req.result.length, 1, "1 Entry.");
       checkContacts(req.result[0], createResult2);
       next();
     }
@@ -1272,7 +1270,7 @@ var steps = [
                    filterValue: properties2.category[0]};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 1, "1 Entry.");
+      is(req.result.length, 1, "1 Entry.");
       checkContacts(req.result[0], createResult2);
       next();
     }
@@ -1306,7 +1304,7 @@ var steps = [
                    filterValue: "5"};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 1, "1 Entry.");
+      is(req.result.length, 1, "1 Entry.");
       checkContacts(req.result[0], createResult1);
       next();
     }
@@ -1407,7 +1405,7 @@ var steps = [
                    filterValue: "a"};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 1, "1 Entry.");
+      is(req.result.length, 1, "1 Entry.");
       checkContacts(req.result[0], createResult1);
       next();
     }
@@ -1420,7 +1418,7 @@ var steps = [
                    filterValue: "b"};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 0, "0 Entries.");
+      is(req.result.length, 0, "0 Entries.");
       next();
     }
     req.onerror = onFailure;
@@ -1432,7 +1430,7 @@ var steps = [
                    filterValue: "1a"};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 0, "0 Entries.");
+      is(req.result.length, 0, "0 Entries.");
       next();
     }
     req.onerror = onFailure;
@@ -1444,7 +1442,7 @@ var steps = [
                    filterValue: "1(23)"};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 1, "1 Entry.");
+      is(req.result.length, 1, "1 Entry.");
       next();
     }
     req.onerror = onFailure;
@@ -1456,7 +1454,7 @@ var steps = [
                    filterValue: "1(23)a"};
     req = mozContacts.find(options);
     req.onsuccess = function () {
-      ok(req.result.length == 0, "0 Entries.");
+      is(req.result.length, 0, "0 Entries.");
       next();
     }
     req.onerror = onFailure;
@@ -1469,6 +1467,23 @@ var steps = [
       next();
     }
     req.onerror = onFailure;
+  },
+  function() {
+    ok(true, "Test setting array properties to scalar values")
+    const DOMStrings = ["name","honorificPrefix","givenName","additionalName",
+                        "familyName", "honorificSuffix","nickname","category",
+                        "org","jobTitle","note"];
+    const FIELDS = ["email","url","adr","tel","impp"];
+    createResult1 = new mozContact();
+    for (var prop of DOMStrings) {
+      createResult1[prop] = "foo";
+      ok(Array.isArray(createResult1[prop]), prop + " is array");
+    }
+    for (var prop of FIELDS) {
+      createResult1[prop] = {type: "foo"};
+      ok(Array.isArray(createResult1[prop]), prop + " is array");
+    }
+    next();
   },
   function () {
     ok(true, "all done!\n");
@@ -1485,11 +1500,11 @@ function next() {
     return;
   }
   try {
-    steps[index]();
+    var i = index++;
+    steps[i]();
   } catch(ex) {
     ok(false, "Caught exception", ex);
   }
-  index += 1;
 }
 
 function permissionTest() {
