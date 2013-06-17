@@ -868,7 +868,7 @@ nsGIFDecoder2::WriteInternal(const char *aBuffer, uint32_t aCount)
       if (*q)
         // We might need to consume 3 bytes in
         // gif_consume_netscape_extension, so make sure we have at least that.
-        GETN(std::max(3, static_cast<int>(*q)), gif_consume_netscape_extension);
+        GETN(NS_MAX(3, static_cast<int>(*q)), gif_consume_netscape_extension);
       else
         GETN(1, gif_image_start);
       break;
