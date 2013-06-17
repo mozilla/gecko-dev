@@ -2239,7 +2239,7 @@ WifiWorker.prototype = {
   tetheringSettings: {},
 
   initTetheringSettings: function initTetheringSettings() {
-    this.tetheringSettings[SETTINGS_WIFI_ENABLED] = false;
+    this.tetheringSettings[SETTINGS_WIFI_TETHERING_ENABLED] = null;
     this.tetheringSettings[SETTINGS_WIFI_SSID] = DEFAULT_WIFI_SSID;
     this.tetheringSettings[SETTINGS_WIFI_SECURITY_TYPE] = DEFAULT_WIFI_SECURITY_TYPE;
     this.tetheringSettings[SETTINGS_WIFI_SECURITY_PASSWORD] = DEFAULT_WIFI_SECURITY_PASSWORD;
