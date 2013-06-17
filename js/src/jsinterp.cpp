@@ -353,6 +353,12 @@ js::InvokeKernel(JSContext *cx, CallArgs args, MaybeConstruct construct)
     JS_ASSERT(args.length() <= StackSpace::ARGS_LENGTH_MAX);
     JS_ASSERT(!cx->compartment->activeAnalysis);
 
+    // Never allow execution of JS code when compiling.
+    if (cx->compartment->activeAnalysis) {
+        JS_ReportError(cx, "Can't run scripts during analysis.");
+        return false;
+    }
+
     /* We should never enter a new script while cx->iterValue is live. */
     JS_ASSERT(cx->iterValue.isMagic(JS_NO_ITER_VALUE));
 
@@ -1011,6 +1017,12 @@ js::Interpret(JSContext *cx, StackFrame *entryFrame, InterpMode interpMode)
         gc::MaybeVerifyBarriers(cx, true);
 
     JS_ASSERT(!cx->compartment->activeAnalysis);
+
+    // Never allow execution of JS code when compiling.
+    if (cx->compartment->activeAnalysis) {
+        JS_ReportError(cx, "Can't run scripts during analysis.");
+        return Interpret_Error;
+    }
 
 #define CHECK_PCCOUNT_INTERRUPTS() JS_ASSERT_IF(script->hasScriptCounts, switchMask == -1)
 
