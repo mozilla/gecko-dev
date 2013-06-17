@@ -2520,20 +2520,7 @@ void nsBuiltinDecoderStateMachine::UpdateReadyState() {
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
 
   nsCOMPtr<nsIRunnable> event;
-  switch (GetNextFrameStatus()) {
-    case nsHTMLMediaElement::NEXT_FRAME_UNAVAILABLE_BUFFERING:
-      event = NS_NewRunnableMethod(mDecoder, &nsBuiltinDecoder::NextFrameUnavailableBuffering);
-      break;
-    case nsHTMLMediaElement::NEXT_FRAME_AVAILABLE:
-      event = NS_NewRunnableMethod(mDecoder, &nsBuiltinDecoder::NextFrameAvailable);
-      break;
-    case nsHTMLMediaElement::NEXT_FRAME_UNAVAILABLE:
-      event = NS_NewRunnableMethod(mDecoder, &nsBuiltinDecoder::NextFrameUnavailable);
-      break;
-    default:
-      PR_NOT_REACHED("unhandled frame state");
-  }
-
+  event = NS_NewRunnableMethod(mDecoder, &nsBuiltinDecoder::UpdateReadyStateForData);
   NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
 }
 
