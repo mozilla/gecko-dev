@@ -909,32 +909,6 @@ void nsBuiltinDecoder::NotifyBytesConsumed(int64_t aBytes)
   }
 }
 
-void nsBuiltinDecoder::NextFrameUnavailableBuffering()
-{
-  NS_ASSERTION(NS_IsMainThread(), "Should be called on main thread");
-  if (!mElement || mShuttingDown || !mDecoderStateMachine)
-    return;
-
-  mElement->UpdateReadyStateForData(nsHTMLMediaElement::NEXT_FRAME_UNAVAILABLE_BUFFERING);
-}
-
-void nsBuiltinDecoder::NextFrameAvailable()
-{
-  NS_ASSERTION(NS_IsMainThread(), "Should be called on main thread");
-  if (!mElement || mShuttingDown || !mDecoderStateMachine)
-    return;
-
-  mElement->UpdateReadyStateForData(nsHTMLMediaElement::NEXT_FRAME_AVAILABLE);
-}
-
-void nsBuiltinDecoder::NextFrameUnavailable()
-{
-  NS_ASSERTION(NS_IsMainThread(), "Should be called on main thread");
-  if (!mElement || mShuttingDown || !mDecoderStateMachine)
-    return;
-  mElement->UpdateReadyStateForData(nsHTMLMediaElement::NEXT_FRAME_UNAVAILABLE);
-}
-
 void nsBuiltinDecoder::UpdateReadyStateForData()
 {
   NS_ASSERTION(NS_IsMainThread(), "Should be called on main thread");

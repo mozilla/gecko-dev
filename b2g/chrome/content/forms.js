@@ -185,6 +185,8 @@ let FormAssistant = {
     addEventListener("resize", this, true, false);
     addEventListener("submit", this, true, false);
     addEventListener("pagehide", this, true, false);
+    addEventListener("keydown", this, true, false);
+    addEventListener("keyup", this, true, false);
     addMessageListener("Forms:Select:Choice", this);
     addMessageListener("Forms:Input:Value", this);
     addMessageListener("Forms:Select:Blur", this);
@@ -202,6 +204,7 @@ let FormAssistant = {
   _focusedElement: null,
   _documentEncoder: null,
   _editor: null,
+  _editing: false,
 
   get focusedElement() {
     if (this._focusedElement && Cu.isDeadWrapper(this._focusedElement))
@@ -227,13 +230,22 @@ let FormAssistant = {
     }
 
     this._documentEncoder = null;
-    this._editor = null;
+    if (this._editor) {
+      this._editor.removeEditorObserver(this);
+      this._editor = null;
+    }
 
     if (element) {
       element.addEventListener('mousedown', this);
       element.addEventListener('mouseup', this);
       if (isContentEditable(element)) {
         this._documentEncoder = getDocumentEncoder(element);
+      }
+      this._editor = getPlaintextEditor(element);
+      if (this._editor) {
+        // Add a nsIEditorObserver to monitor the text content of the focused
+        // element.
+        this._editor.addEditorObserver(this);
       }
     }
 
@@ -246,12 +258,18 @@ let FormAssistant = {
 
   // Get the nsIPlaintextEditor object of current input field.
   get editor() {
-    if (!this._editor && this.focusedElement) {
-      this._editor = getPlaintextEditor(this.focusedElement);
-    }
     return this._editor;
   },
 
+  // Implements nsIEditorObserver get notification when the text content of
+  // current input field has changed.
+  EditAction: function fa_editAction() {
+    if (this._editing) {
+      this._editing = false;
+      return;
+    }
+    this.sendKeyboardState(this.focusedElement);
+  },
 
   handleEvent: function fa_handleEvent(evt) {
     let target = evt.target;
@@ -323,6 +341,15 @@ let FormAssistant = {
           }.bind(this), RESIZE_SCROLL_DELAY);
         }
         break;
+
+      case "keydown":
+        // Don't monitor the text change resulting from key event.
+        this._editing = true;
+        break;
+
+      case "keyup":
+        this._editing = false;
+        break;
     }
   },
 
@@ -332,6 +359,7 @@ let FormAssistant = {
       return;
     }
 
+    this._editing = true;
     let json = msg.json;
     switch (msg.name) {
       case "Forms:Input:Value": {
@@ -381,6 +409,8 @@ let FormAssistant = {
         break;
       }
     }
+    this._editing = false;
+
   },
 
   showKeyboard: function fa_showKeyboard(target) {
