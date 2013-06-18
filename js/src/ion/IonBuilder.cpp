@@ -3217,7 +3217,7 @@ IonBuilder::jsop_bitop(JSOp op)
     }
 
     current->add(ins);
-    ins->infer();
+    ins->infer(inspector, pc);
 
     current->push(ins);
     if (ins->isEffectful() && !resumeAfter(ins))
@@ -6346,7 +6346,7 @@ IonBuilder::convertShiftToMaskForStaticTypedArray(MDefinition *id,
     MConstant *mask = MConstant::New(Int32Value(~((1 << value.toInt32()) - 1)));
     MBitAnd *ptr = MBitAnd::New(id->getOperand(0), mask);
 
-    ptr->infer();
+    ptr->infer(NULL, NULL);
     JS_ASSERT(!ptr->isEffectful());
 
     current->add(mask);

@@ -889,7 +889,7 @@ MBinaryBitwiseInstruction::foldUnnecessaryBitop()
 }
 
 void
-MBinaryBitwiseInstruction::infer()
+MBinaryBitwiseInstruction::infer(BaselineInspector *, jsbytecode *)
 {
     if (getOperand(0)->mightBeType(MIRType_Object) || getOperand(1)->mightBeType(MIRType_Object)) {
         specialization_ = MIRType_None;
@@ -908,7 +908,7 @@ MBinaryBitwiseInstruction::specializeForAsmJS()
 }
 
 void
-MShiftInstruction::infer()
+MShiftInstruction::infer(BaselineInspector *, jsbytecode *)
 {
     if (getOperand(0)->mightBeType(MIRType_Object) || getOperand(1)->mightBeType(MIRType_Object))
         specialization_ = MIRType_None;
@@ -917,7 +917,7 @@ MShiftInstruction::infer()
 }
 
 void
-MUrsh::infer()
+MUrsh::infer(BaselineInspector *inspector, jsbytecode *pc)
 {
     if (getOperand(0)->mightBeType(MIRType_Object) || getOperand(1)->mightBeType(MIRType_Object)) {
         specialization_ = MIRType_None;
@@ -925,13 +925,14 @@ MUrsh::infer()
         return;
     }
 
-    if (type() == MIRType_Int32) {
-        specialization_ = MIRType_Int32;
+    if (inspector->expectedResultType(pc) == MIRType_Double) {
+        specialization_ = MIRType_Double;
+        setResultType(MIRType_Double);
         return;
     }
 
-    specialization_ = MIRType_Double;
-    setResultType(MIRType_Double);
+    specialization_ = MIRType_Int32;
+    setResultType(MIRType_Int32);
 }
 
 static inline bool
