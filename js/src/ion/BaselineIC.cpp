@@ -4444,6 +4444,7 @@ ICSetElemDenseAddCompiler::generateStubCode(MacroAssembler &masm)
     Register protoReg = regs.takeAny();
     for (size_t i = 0; i < protoChainDepth_; i++) {
         masm.loadObjProto(i == 0 ? obj : protoReg, protoReg);
+        masm.branchTestPtr(Assembler::Zero, protoReg, protoReg, &failureUnstow);
         masm.loadPtr(Address(BaselineStubReg, ICSetElem_DenseAddImpl<0>::offsetOfShape(i + 1)),
                      scratchReg);
         masm.branchTestObjShape(Assembler::NotEqual, protoReg, scratchReg, &failureUnstow);
@@ -6263,6 +6264,7 @@ ICSetPropNativeAddCompiler::generateStubCode(MacroAssembler &masm)
     // Check the proto chain.
     for (size_t i = 0; i < protoChainDepth_; i++) {
         masm.loadObjProto(i == 0 ? objReg : protoReg, protoReg);
+        masm.branchTestPtr(Assembler::Zero, protoReg, protoReg, &failureUnstow);
         masm.loadPtr(Address(BaselineStubReg, ICSetProp_NativeAddImpl<0>::offsetOfShape(i + 1)),
                      scratch);
         masm.branchTestObjShape(Assembler::NotEqual, protoReg, scratch, &failureUnstow);
