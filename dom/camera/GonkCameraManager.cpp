@@ -50,9 +50,9 @@ nsDOMCameraManager::GetListOfCameras(uint32_t *aCount, char * **aCameras)
 
   for (int32_t i = 0; i < count; ++i) {
     android::CameraInfo info;
-    int rv = android::Camera::getCameraInfo(count, &info);
+    int rv = android::Camera::getCameraInfo(i, &info);
     if (rv != 0) {
-      DOM_CAMERA_LOGE("getListOfCameras : get_camera_info(%d) failed: %d\n", count, rv);
+      DOM_CAMERA_LOGE("getListOfCameras : get_camera_info(%d) failed: %d\n", i, rv);
       continue;
     }
 
@@ -70,7 +70,7 @@ nsDOMCameraManager::GetListOfCameras(uint32_t *aCount, char * **aCameras)
       gotFront = true;
     } else {
       cameraName.Assign("extra-camera-");
-      cameraName.AppendInt(count);
+      cameraName.AppendInt(i);
       index = extraIndex++;
     }
 
