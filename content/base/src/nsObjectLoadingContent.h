@@ -15,7 +15,6 @@
 
 #include "nsImageLoadingContent.h"
 #include "nsIStreamListener.h"
-#include "nsIInterfaceRequestor.h"
 #include "nsIChannelEventSink.h"
 #include "nsIObjectLoadingContent.h"
 #include "nsIRunnable.h"
@@ -35,7 +34,6 @@ class nsObjectLoadingContent : public nsImageLoadingContent
                              , public nsIStreamListener
                              , public nsIFrameLoaderOwner
                              , public nsIObjectLoadingContent
-                             , public nsIInterfaceRequestor
                              , public nsIChannelEventSink
 {
   friend class AutoSetInstantiatingToFalse;
@@ -99,7 +97,6 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     NS_DECL_NSISTREAMLISTENER
     NS_DECL_NSIFRAMELOADEROWNER
     NS_DECL_NSIOBJECTLOADINGCONTENT
-    NS_DECL_NSIINTERFACEREQUESTOR
     NS_DECL_NSICHANNELEVENTSINK
 
     /**

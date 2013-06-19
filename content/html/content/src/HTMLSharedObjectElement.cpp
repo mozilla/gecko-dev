@@ -101,7 +101,6 @@ NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(HTMLSharedObjectElement)
     NS_INTERFACE_TABLE_ENTRY(HTMLSharedObjectElement, imgINotificationObserver)
     NS_INTERFACE_TABLE_ENTRY(HTMLSharedObjectElement, nsIImageLoadingContent)
     NS_INTERFACE_TABLE_ENTRY(HTMLSharedObjectElement, imgIOnloadBlocker)
-    NS_INTERFACE_TABLE_ENTRY(HTMLSharedObjectElement, nsIInterfaceRequestor)
     NS_INTERFACE_TABLE_ENTRY(HTMLSharedObjectElement, nsIChannelEventSink)
   NS_OFFSET_AND_INTERFACE_TABLE_END
   NS_HTML_CONTENT_INTERFACE_TABLE_TO_MAP_SEGUE_AMBIGUOUS(HTMLSharedObjectElement,
