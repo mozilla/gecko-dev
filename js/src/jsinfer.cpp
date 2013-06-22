@@ -2926,6 +2926,15 @@ TypeCompartment::addPendingRecompile(JSContext *cx, const RecompileInfo &info)
     if (!co)
         return;
 
+    if (compiledInfo.outputIndex == info.outputIndex &&
+        (co->kind() == CompilerOutput::Ion || co->kind() == CompilerOutput::ParallelIon))
+    {
+        /* Tell Ion to discard generated code when it's done. */
+        JS_ASSERT(compiledInfo.outputIndex != RecompileInfo::NoCompilerRunning);
+        co->invalidate();
+        return;
+    }
+
     if (co->pendingRecompilation)
         return;
 
