@@ -13,14 +13,18 @@
                         android:title="@string/datareporting_telemetry_title"
                         android:summary="@string/datareporting_telemetry_summary" />
 
+    <CheckBoxPreference android:key="datareporting.crashreporter.submitEnabled"
+                        android:title="@string/datareporting_crashreporter_title"
+                        android:summary="@string/datareporting_crashreporter_summary"
+                        android:defaultValue="false" />
+
     <CheckBoxPreference android:key="android.not_a_preference.healthreport.uploadEnabled"
                         android:title="@string/datareporting_fhr_title"
                         android:summary="@string/datareporting_fhr_summary"
                         android:defaultValue="true" />
 
-    <CheckBoxPreference android:key="datareporting.crashreporter.submitEnabled"
-                        android:title="@string/datareporting_crashreporter_title"
-                        android:summary="@string/datareporting_crashreporter_summary"
-                        android:defaultValue="false" />
+    <org.mozilla.gecko.AlignRightLinkPreference android:key="android.not_a_preference.healthreport.link"
+                                                android:title="@string/datareporting_fhr_title"
+                                                url="about:healthreport" />
 
 </PreferenceScreen>
