@@ -403,7 +403,7 @@ MmsProxyFilter.prototype = {
     // Fall-through, reutrn the MMS proxy info.
     if (DEBUG) debug("applyFilter: MMSC is matched: " +
                      JSON.stringify({ url: this.url,
-                                      roxyInfo: gMmsConnection.proxyInfo }));
+                                      proxyInfo: gMmsConnection.proxyInfo }));
     return gMmsConnection.proxyInfo ? gMmsConnection.proxyInfo : proxyInfo;
   }
 };
@@ -461,8 +461,6 @@ XPCOMUtils.defineLazyGetter(this, "gMmsTransactionHelper", function () {
             xhr.setRequestHeader("Content-Type",
                                  "application/vnd.wap.mms-message");
             xhr.setRequestHeader("Content-Length", istream.available());
-          } else {
-            xhr.setRequestHeader("Content-Length", 0);
           }
 
           // UAProf headers.
@@ -505,7 +503,8 @@ XPCOMUtils.defineLazyGetter(this, "gMmsTransactionHelper", function () {
                 break;
               }
               default: {
-                if (DEBUG) debug("xhr done, but status = " + xhr.status);
+                if (DEBUG) debug("xhr done, but status = " + xhr.status +
+                                 ", statusText = " + xhr.statusText);
                 break;
               }
             }
@@ -1394,7 +1393,10 @@ MmsService.prototype = {
             "content-type": {
               "media": "application/smil",
               "params": {
-                "name": "smil.xml"
+                "name": "smil.xml",
+                "charset": {
+                  "charset": "utf-8"
+                }
               }
             },
             "content-length": smil.length,
@@ -1411,13 +1413,22 @@ MmsService.prototype = {
         let attachment = attachments[i];
         let content = attachment.content;
         let location = attachment.location;
+
+        let params = {
+          "name": location
+        };
+
+        if (content.type && content.type.indexOf("text/") == 0) {
+          params.charset = {
+            "charset": "utf-8"
+          };
+        }
+
         let part = {
           "headers": {
             "content-type": {
               "media": content.type,
-              "params": {
-                "name": location
-              }
+              "params": params
             },
             "content-length": content.size,
             "content-location": location,
