@@ -88,10 +88,12 @@ public:
   void GetAddress(nsAString& aDeviceAddress);
 
 private:
+  class CloseScoTask;
   class GetVolumeTask;
   class RespondToBLDNTask;
   class SendRingIndicatorTask;
 
+  friend class CloseScoTask;
   friend class GetVolumeTask;
   friend class RespondToBLDNTask;
   friend class SendRingIndicatorTask;

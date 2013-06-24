@@ -934,6 +934,8 @@ ShadowImageLayerOGL::RenderLayer(int aPreviousFrameBuffer,
     return;
   }
   mOGLManager->MakeCurrent();
+
+  SharedImage::Type imageType = SharedImage::Tnull_t;
   if (mImageContainerID) {
     ImageContainerParent::SetCompositorIDForImage(mImageContainerID,
                                                   mOGLManager->GetCompositorID());
@@ -941,10 +943,12 @@ ShadowImageLayerOGL::RenderLayer(int aPreviousFrameBuffer,
     SharedImage* img = ImageContainerParent::GetSharedImage(mImageContainerID);
     if (imgVersion != mImageVersion) {
       if (img && (img->type() == SharedImage::TYUVImage)) {
+        imageType = SharedImage::TYUVImage;
         UploadSharedYUVToTexture(img->get_YUVImage());
   
         mImageVersion = imgVersion;
       } else if (img && (img->type() == SharedImage::TYCbCrImage)) {
+        imageType = SharedImage::TYCbCrImage;
         ShmemYCbCrImage shmemImage(img->get_YCbCrImage().data(),
                                    img->get_YCbCrImage().offset());
         UploadSharedYCbCrToTexture(shmemImage, img->get_YCbCrImage().picture());
@@ -956,6 +960,7 @@ ShadowImageLayerOGL::RenderLayer(int aPreviousFrameBuffer,
     if (img
         && (img->type() == SharedImage::TSurfaceDescriptor)
         && (img->get_SurfaceDescriptor().type() == SurfaceDescriptor::TSurfaceDescriptorGralloc)) {
+        imageType = SharedImage::TSurfaceDescriptor;
         const SurfaceDescriptorGralloc& desc = img->get_SurfaceDescriptor().get_SurfaceDescriptorGralloc();
         sp<GraphicBuffer> graphicBuffer = GrallocBufferActor::GetFrom(desc);
         mSize = gfxIntSize(graphicBuffer->getWidth(), graphicBuffer->getHeight());
@@ -972,7 +977,8 @@ ShadowImageLayerOGL::RenderLayer(int aPreviousFrameBuffer,
         gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
         gl()->BindExternalBuffer(mExternalBufferTexture.GetTextureID(), graphicBuffer->getNativeBuffer());
         mImageVersion = imgVersion;
-    } else {
+    } else if (!img) {
+        imageType = SharedImage::Tnull_t;
         mSize = gfxIntSize(0, 0);
         mPictureRect = nsIntRect(0, 0, 0, 0);
     }
@@ -1022,7 +1028,9 @@ ShadowImageLayerOGL::RenderLayer(int aPreviousFrameBuffer,
       } while (mTexImage->NextTile());
     }
 #ifdef MOZ_WIDGET_GONK
-  } else if (mExternalBufferTexture.IsAllocated() && mSize == gfxIntSize(0, 0)) {
+  } else if (imageType == SharedImage::Tnull_t
+             && mExternalBufferTexture.IsAllocated()
+             && mSize == gfxIntSize(0, 0)) {
     // when there is no image for rendering, fill the region with black
 
     gl()->MakeCurrent();
@@ -1047,7 +1055,8 @@ ShadowImageLayerOGL::RenderLayer(int aPreviousFrameBuffer,
     program->LoadMask(GetMaskLayer());
 
     mOGLManager->BindAndDrawQuad(program);
-  } else if (mExternalBufferTexture.IsAllocated()) {
+  } else if (imageType == SharedImage::TSurfaceDescriptor
+             && mExternalBufferTexture.IsAllocated()) {
     gl()->MakeCurrent();
     gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
     gl()->fBindTexture(LOCAL_GL_TEXTURE_EXTERNAL, mExternalBufferTexture.GetTextureID());

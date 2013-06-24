@@ -681,10 +681,11 @@ GonkGPSGeolocationProvider::Handle(const nsAString& aName,
   if (aName.EqualsLiteral("ril.supl.apn")) {
     JSContext *cx = nsContentUtils::GetCurrentJSContext();
     NS_ENSURE_TRUE(cx, NS_OK);
-    JSAutoRequest ar(cx);
-    JSAutoCompartment ac(cx, JSVAL_TO_OBJECT(aResult));
+
     // When we get the APN, we attempt to call data_call_open of AGPS.
     if (aResult.isString()) {
+      JSAutoRequest ar(cx);
+      JSAutoCompartment ac(cx, aResult.toString());
       nsDependentJSString apn;
       apn.init(cx, aResult.toString());
       if (!apn.IsEmpty()) {
