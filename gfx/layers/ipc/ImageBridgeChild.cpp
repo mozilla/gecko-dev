@@ -476,6 +476,14 @@ void ImageBridgeChild::ConnectAsync(ImageBridgeParent* aParent)
                                                             this, aParent));
 }
 
+void
+ImageBridgeChild::IdentifyCompositorTextureHost(const TextureFactoryIdentifier& aIdentifier)
+{
+  if (sImageBridgeChildSingleton) {
+    sImageBridgeChildSingleton->IdentifyTextureHost(aIdentifier);
+  }
+}
+
 TemporaryRef<ImageClient>
 ImageBridgeChild::CreateImageClient(CompositableType aType)
 {
@@ -500,8 +508,6 @@ ImageBridgeChild::CreateImageClient(CompositableType aType)
 TemporaryRef<ImageClient>
 ImageBridgeChild::CreateImageClientNow(CompositableType aType)
 {
-  mCompositorBackend = LAYERS_OPENGL;
-
   RefPtr<ImageClient> client
     = ImageClient::CreateImageClient(aType, this, 0);
   MOZ_ASSERT(client, "failed to create ImageClient");
