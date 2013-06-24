@@ -59,6 +59,12 @@ namespace {
   // Wait for 2 seconds for Dialer processing event 'BLDN'. '2' seconds is a
   // magic number. The mechanism should be revised once we can get call history.
   static int sWaitingForDialingInterval = 2000; //unit: ms
+
+  // Wait 3.7 seconds until Dialer stops playing busy tone. '3' seconds is the
+  // time window set in Dialer and the extra '0.7' second is a magic number.
+  // The mechanism should be revised once we know the exact time at which
+  // Dialer stops playing.
+  static int sBusyToneInterval = 3700; //unit: ms
 } // anonymous namespace
 
 /* CallState for sCINDItems[CINDType::CALL].value
@@ -331,6 +337,17 @@ public:
 private:
   nsString mNumber;
   int mType;
+};
+
+class BluetoothHfpManager::CloseScoTask : public Task
+{
+private:
+  void Run() MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(gBluetoothHfpManager);
+
+    gBluetoothHfpManager->DisconnectSco();
+  }
 };
 
 static bool
@@ -1412,8 +1429,17 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
       // -1 is necessary because call 0 is an invalid (padding) call object.
       if (mCurrentCallArray.Length() - 1 ==
             GetNumberOfCalls(nsIRadioInterfaceLayer::CALL_STATE_DISCONNECTED)) {
-        // There is no call, close Sco and clear mCurrentCallArray
-        DisconnectSco();
+        // In order to let user hear busy tone via connected Bluetooth headset,
+        // we postpone the timing of dropping SCO.
+        if (prevCallState != nsIRadioInterfaceLayer::CALL_STATE_BUSY) {
+          DisconnectSco();
+        } else {
+          // Close Sco later since Dialer is still playing busy tone via HF.
+          MessageLoop::current()->PostDelayedTask(FROM_HERE,
+                                                  new CloseScoTask(),
+                                                  sBusyToneInterval);
+        }
+
         ResetCallArray();
       }
       break;
@@ -1648,8 +1674,14 @@ BluetoothHfpManager::ConnectSco(BluetoothReplyRunnable* aRunnable)
 bool
 BluetoothHfpManager::DisconnectSco()
 {
-  if (!mScoSocket) {
+  if (!IsConnected()) {
     NS_WARNING("BluetoothHfpManager is not connected");
+    return false;
+  }
+
+  SocketConnectionStatus status = mScoSocket->GetConnectionStatus();
+  if (status != SOCKET_CONNECTED && status != SOCKET_CONNECTING) {
+    NS_WARNING("No SCO exists");
     return false;
   }
 
