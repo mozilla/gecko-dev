@@ -307,10 +307,9 @@ nsComputedDOMStyle::GetStyleContextForElementNoFlush(Element* aElement,
   }
 
   if (!aPseudo) {
-    nsIFrame* frame = aElement->GetPrimaryFrame();
+    nsIFrame* frame = nsLayoutUtils::GetStyleFrame(aElement);
     if (frame) {
-      nsStyleContext* result =
-        nsLayoutUtils::GetStyleFrame(frame)->GetStyleContext();
+      nsStyleContext* result = frame->GetStyleContext();
       // Don't use the style context if it was influenced by
       // pseudo-elements, since then it's not the primary style
       // for this element.
