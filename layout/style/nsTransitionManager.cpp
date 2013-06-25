@@ -141,7 +141,7 @@ ElementTransitions::HasAnimationOfProperty(nsCSSProperty aProperty) const
 bool
 ElementTransitions::CanPerformOnCompositorThread(CanAnimateFlags aFlags) const
 {
-  nsIFrame* frame = mElement->GetPrimaryFrame();
+  nsIFrame* frame = nsLayoutUtils::GetStyleFrame(mElement);
   if (!frame) {
     return false;
   }
@@ -259,7 +259,7 @@ nsTransitionManager::UpdateThrottledStyle(dom::Element* aElement,
                                      nsCSSPseudoElements::ePseudo_NotPseudoElement,
                                      false), "element not transitioning");
 
-  nsIFrame* primaryFrame = aElement->GetPrimaryFrame();
+  nsIFrame* primaryFrame = nsLayoutUtils::GetStyleFrame(aElement);
   if (!primaryFrame) {
     return nullptr;
   }
@@ -350,7 +350,7 @@ nsTransitionManager::UpdateThrottledStylesForSubtree(nsIContent* aContent,
   } else {
     // reparent the element's style
     nsStyleSet* styleSet = mPresContext->PresShell()->StyleSet();
-    nsIFrame* primaryFrame = aContent->GetPrimaryFrame();
+    nsIFrame* primaryFrame = nsLayoutUtils::GetStyleFrame(aContent);
     if (!primaryFrame) {
       return;
     }
@@ -423,7 +423,7 @@ nsTransitionManager::UpdateAllThrottledStyles()
 
     nsIFrame* primaryFrame;
     if (element &&
-        (primaryFrame = element->GetPrimaryFrame())) {
+        (primaryFrame = nsLayoutUtils::GetStyleFrame(element))) {
       UpdateThrottledStylesForSubtree(element,
         primaryFrame->GetStyleContext()->GetParent(), changeList);
     }
