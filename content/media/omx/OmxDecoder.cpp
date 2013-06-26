@@ -7,6 +7,7 @@
 #include <fcntl.h>
 
 #include "base/basictypes.h"
+#include <stagefright/foundation/ADebug.h>
 #include <stagefright/foundation/AMessage.h>
 #include <stagefright/MediaExtractor.h>
 #include <stagefright/MetaData.h>
@@ -172,8 +173,10 @@ OmxDecoder::~OmxDecoder()
 
 void OmxDecoder::statusChanged()
 {
-  mozilla::ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-  mDecoder->GetReentrantMonitor().NotifyAll();
+  sp<AMessage> notify =
+           new AMessage(kNotifyStatusChanged, mReflector->id());
+ // post AMessage to OmxDecoder via ALooper.
+ notify->post();
 }
 
 static sp<IOMX> sOMX = nullptr;
@@ -760,12 +763,28 @@ void OmxDecoder::Pause()
 // Called on ALooper thread.
 void OmxDecoder::onMessageReceived(const sp<AMessage> &msg)
 {
-  Mutex::Autolock autoLock(mSeekLock);
+  switch (msg->what()) {
+    case kNotifyPostReleaseVideoBuffer:
+    {
+      Mutex::Autolock autoLock(mSeekLock);
+      // Free pending video buffers when OmxDecoder is not seeking video.
+      // If OmxDecoder is seeking video, the buffers are freed on seek exit.
+      if (!mIsVideoSeeking) {
+        ReleaseAllPendingVideoBuffersLocked();
+      }
+      break;
+    }
 
-  // Free pending video buffers when OmxDecoder is not seeking video.
-  // If OmxDecoder is in seeking video, the buffers are freed on seek exit. 
-  if (mIsVideoSeeking != true) {
-    ReleaseAllPendingVideoBuffersLocked();
+    case kNotifyStatusChanged:
+    {
+      mozilla::ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+      mDecoder->GetReentrantMonitor().NotifyAll();
+      break;
+    }
+
+    default:
+      TRESPASS();
+      break;
   }
 }
 
