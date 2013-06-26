@@ -114,9 +114,9 @@ BagheeraClient.prototype = Object.freeze({
    * @param options
    *        (object) Extra options to control behavior. Recognized properties:
    *
-   *          deleteIDs -- (array) Old document IDs to delete as part of
+   *          deleteID -- (string) Old document ID to delete as part of
    *            upload. If not specified, no old documents will be deleted as
-   *            part of upload. The array values are typically UUIDs in hex
+   *            part of upload. The string value is typically a UUID in hex
    *            form.
    *
    *          telemetryCompressed -- (string) Telemetry histogram to record
@@ -161,16 +161,12 @@ BagheeraClient.prototype = Object.freeze({
     request.loadFlags = this._loadFlags;
     request.timeout = this.DEFAULT_TIMEOUT_MSEC;
 
-    // Since API changed, throw on old API usage.
-    if ("deleteID" in options) {
-      throw new Error("API has changed, use (array) deleteIDs instead");
-    }
+    let deleteID;
 
-    let deleteIDs;
-    if (options.deleteIDs && options.deleteIDs.length > 0) {
-      deleteIDs = options.deleteIDs;
-      this._log.debug("Will delete " + deleteIDs.join(", "));
-      request.setHeader("X-Obsolete-Document", deleteIDs.join(","));
+    if (options.deleteID) {
+      deleteID = options.deleteID;
+      this._log.debug("Will delete " + deleteID);
+      request.setHeader("X-Obsolete-Document", options.deleteID);
     }
 
     let deferred = Promise.defer();
@@ -194,7 +190,7 @@ BagheeraClient.prototype = Object.freeze({
     let result = new BagheeraClientRequestResult();
     result.namespace = namespace;
     result.id = id;
-    result.deleteIDs = deleteIDs ? deleteIDs.slice(0) : null;
+    result.deleteID = deleteID;
 
     request.onComplete = this._onComplete.bind(this, request, deferred, result);
     request.post(data);
