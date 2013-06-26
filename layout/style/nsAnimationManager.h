@@ -132,6 +132,8 @@ struct ElementAnimations MOZ_FINAL
   // run (because it is not currently active and has no fill behavior), but
   // only does so if aAnimation is non-null; with a null aAnimation it is an
   // error to give aCurrentTime < aStartTime, and fill-forwards is assumed.
+  // After calling GetPositionInIteration with non-null aAnimation and aEa, be
+  // sure to call CheckNeedsRefresh on the animation manager afterwards.
   static double GetPositionInIteration(TimeStamp aStartTime,
                                        TimeStamp aCurrentTime,
                                        TimeDuration aDuration,
@@ -167,12 +169,14 @@ struct ElementAnimations MOZ_FINAL
   InfallibleTArray<ElementAnimation> mAnimations;
 };
 
-class nsAnimationManager : public mozilla::css::CommonAnimationManager
+class nsAnimationManager MOZ_FINAL
+  : public mozilla::css::CommonAnimationManager
 {
 public:
   nsAnimationManager(nsPresContext *aPresContext)
     : mozilla::css::CommonAnimationManager(aPresContext)
     , mKeyframesListIsDirty(true)
+    , mObservingRefreshDriver(false)
   {
     mKeyframesRules.Init(16); // FIXME: make infallible!
   }
@@ -260,6 +264,18 @@ public:
                                           nsCSSPseudoElements::Type aPseudoType,
                                           bool aCreateIfNeeded);
 
+protected:
+  virtual void ElementDataRemoved() MOZ_OVERRIDE
+  {
+    CheckNeedsRefresh();
+  }
+  virtual void AddElementData(mozilla::css::CommonElementAnimationData* aData) MOZ_OVERRIDE;
+
+  /**
+   * Check to see if we should stop or start observing the refresh driver
+   */
+  void CheckNeedsRefresh();
+
 private:
   void BuildAnimations(nsStyleContext* aStyleContext,
                        InfallibleTArray<ElementAnimation>& aAnimations);
@@ -280,6 +296,8 @@ private:
   nsDataHashtable<nsStringHashKey, nsCSSKeyframesRule*> mKeyframesRules;
 
   EventArray mPendingEvents;
+
+  bool mObservingRefreshDriver;
 };
 
 #endif /* !defined(nsAnimationManager_h_) */
