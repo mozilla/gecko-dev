@@ -31,6 +31,7 @@ MOCHITEST_BROWSER_TESTS = \
 	browser_net_sort-01.js \
 	browser_net_sort-02.js \
 	browser_net_sort-03.js \
+	browser_net_req-resp-bodies.js \
 	head.js \
 	$(NULL)
 

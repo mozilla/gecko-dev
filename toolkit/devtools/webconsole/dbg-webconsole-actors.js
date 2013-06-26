@@ -599,6 +599,23 @@ WebConsoleActor.prototype =
   },
 
   /**
+   * The "getPreferences" request handler.
+   *
+   * @param object aRequest
+   *        The request message - which preferences need to be retrieved.
+   * @return object
+   *         The response message - a { key: value } object map.
+   */
+  onGetPreferences: function WCA_onGetPreferences(aRequest)
+  {
+    let prefs = Object.create(null);
+    for (let key of aRequest.preferences) {
+      prefs[key] = !!this._prefs[key];
+    }
+    return { preferences: prefs };
+  },
+
+  /**
    * The "setPreferences" request handler.
    *
    * @param object aRequest
@@ -1034,6 +1051,7 @@ WebConsoleActor.prototype.requestTypes =
   evaluateJS: WebConsoleActor.prototype.onEvaluateJS,
   autocomplete: WebConsoleActor.prototype.onAutocomplete,
   clearMessagesCache: WebConsoleActor.prototype.onClearMessagesCache,
+  getPreferences: WebConsoleActor.prototype.onGetPreferences,
   setPreferences: WebConsoleActor.prototype.onSetPreferences,
 };
 
