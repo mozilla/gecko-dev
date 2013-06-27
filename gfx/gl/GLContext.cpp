@@ -23,6 +23,10 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Preferences.h"
 
+#ifdef XP_MACOSX
+#include <CoreServices/CoreServices.h>
+#endif
+
 using namespace mozilla::gfx;
 
 namespace mozilla {
@@ -557,14 +561,28 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
         raw_fGetIntegerv(LOCAL_GL_MAX_RENDERBUFFER_SIZE, &mMaxRenderbufferSize);
 
 #ifdef XP_MACOSX
-        if (mWorkAroundDriverBugs &&
-            mVendor == VendorIntel) {
-            // see bug 737182 for 2D textures, bug 684882 for cube map textures.
-            mMaxTextureSize        = std::min(mMaxTextureSize,        4096);
-            mMaxCubeMapTextureSize = std::min(mMaxCubeMapTextureSize, 512);
-            // for good measure, we align renderbuffers on what we do for 2D textures
-            mMaxRenderbufferSize   = std::min(mMaxRenderbufferSize,   4096);
-            mNeedsTextureSizeChecks = true;
+        if (mWorkAroundDriverBugs) {
+            if (mVendor == VendorIntel) {
+                SInt32 major, minor;
+                OSErr err1 = ::Gestalt(gestaltSystemVersionMajor, &major);
+                OSErr err2 = ::Gestalt(gestaltSystemVersionMinor, &minor);
+
+                // For 2D textures, see bug 737182 for the original restriction to 4K and
+                // see bug 807096 for why we further restricted it to 2K on < 10.8
+                // For good measure, we align renderbuffers on what we do for 2D textures
+                if (err1 != noErr || err2 != noErr ||
+                    major < 10 || (major == 10 && minor < 8)) {
+                    mMaxTextureSize        = std::min(mMaxTextureSize, 2048);
+                    mMaxRenderbufferSize   = std::min(mMaxRenderbufferSize, 2048);
+                }
+                else {
+                    mMaxTextureSize        = std::min(mMaxTextureSize, 4096);
+                    mMaxRenderbufferSize   = std::min(mMaxRenderbufferSize, 4096);
+                }
+                // For cube map textures, see bug 684882.
+                mMaxCubeMapTextureSize = std::min(mMaxCubeMapTextureSize, 512);
+                mNeedsTextureSizeChecks = true;
+            }
         }
 #endif
 #ifdef MOZ_X11
