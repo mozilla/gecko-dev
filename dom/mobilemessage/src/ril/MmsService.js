@@ -1582,7 +1582,6 @@ MmsService.prototype = {
                 }
               }
             },
-            "content-length": smil.length,
             "content-location": "smil.xml",
             "content-id": "<smil>"
           },
