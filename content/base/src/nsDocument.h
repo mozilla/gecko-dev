@@ -1139,6 +1139,12 @@ public:
 
   static void XPCOMShutdown();
 
+  bool mIsTopLevelContentDocument:1;
+
+  bool IsTopLevelContentDocument();
+
+  void SetIsTopLevelContentDocument(bool aIsTopLevelContentDocument);
+
   js::ExpandoAndGeneration mExpandoAndGeneration;
 
 protected:

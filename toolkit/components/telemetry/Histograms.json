@@ -3311,5 +3311,10 @@
     "high": "10000",
     "n_buckets": "1000",
     "description": "The time (in milliseconds) that it took a 'detach' request to go round trip."
+  },
+  "MIXED_CONTENT_PAGE_LOAD": {
+    "kind": "enumerated",
+    "n_values": 4,
+    "description": "Accumulates type of content (mixed, mixed passive, unmixed) per page load"
   }
 }
