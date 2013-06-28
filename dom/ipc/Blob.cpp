@@ -65,6 +65,33 @@ ProxyReleaseToMainThread(SmartPtr<T>& aDoomed)
   }
 }
 
+template <ActorFlavorEnum ActorFlavor>
+already_AddRefed<nsIDOMBlob>
+BlobFromExistingActor(const BlobConstructorNoMultipartParams& aParams)
+{
+  MOZ_STATIC_ASSERT(ActorFlavor == ActorFlavorEnum::Parent,
+                    "There can only be Parent and Child, and Child should "
+                    "instantiate below!");
+
+  MOZ_ASSERT(aParams.type() == BlobConstructorNoMultipartParams::TPBlobParent);
+
+  Blob<Parent>* actor = static_cast<Blob<Parent>*>(aParams.get_PBlobParent());
+  MOZ_ASSERT(actor);
+
+  return actor->GetBlob();
+}
+
+template <>
+already_AddRefed<nsIDOMBlob>
+BlobFromExistingActor<Child>(const BlobConstructorNoMultipartParams& aParams)
+{
+  MOZ_ASSERT(aParams.type() == BlobConstructorNoMultipartParams::TPBlobChild);
+
+  Blob<Child>* actor = static_cast<Blob<Child>*>(aParams.get_PBlobChild());
+  MOZ_ASSERT(actor);
+
+  return actor->GetBlob();
+}
 
 // This class exists to keep a blob alive at least as long as its internal
 // stream.
@@ -1382,6 +1409,15 @@ Blob<ActorFlavor>::Create(const BlobConstructorParams& aParams)
           NS_ENSURE_SUCCESS(rv, nullptr);
 
           return new Blob<ActorFlavor>(slice);
+        }
+
+        case BlobConstructorNoMultipartParams::TPBlobParent:
+        case BlobConstructorNoMultipartParams::TPBlobChild: {
+          nsCOMPtr<nsIDOMBlob> localBlob =
+            BlobFromExistingActor<ActorFlavor>(params);
+          MOZ_ASSERT(localBlob);
+
+          return new Blob<ActorFlavor>(localBlob);
         }
 
         default:
