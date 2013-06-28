@@ -1761,14 +1761,13 @@ bool nsBuiltinDecoderStateMachine::HasLowDecodedData(int64_t aAudioUsecs) const
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
   // We consider ourselves low on decoded data if we're low on audio,
   // provided we've not decoded to the end of the audio stream, or
-  // if we're only playing video and we're low on video frames, provided
+  // if we're low on video frames, provided
   // we've not decoded to the end of the video stream.
   return ((HasAudio() &&
            !mReader->AudioQueue().IsFinished() &&
            AudioDecodedUsecs() < aAudioUsecs)
           ||
-         (!HasAudio() &&
-          HasVideo() &&
+         (HasVideo() &&
           !mReader->VideoQueue().IsFinished() &&
           static_cast<uint32_t>(mReader->VideoQueue().GetSize()) < LOW_VIDEO_FRAMES));
 }
