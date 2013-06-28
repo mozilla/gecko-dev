@@ -38,7 +38,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 #ifndef _RM_MGR_H__
-#define _RM_MGR_H_
+#define _RM_MGR_H__
 
 typedef struct resource_manager {
     int16_t  max_element;
