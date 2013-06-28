@@ -62,7 +62,6 @@ union BlobConstructorNoMultipartParams
   MemoryBlobOrFileConstructorParams;
   SlicedBlobConstructorParams;
   MysteryBlobConstructorParams;
-  PBlob;
 };
 
 struct MultipartBlobOrFileConstructorParams

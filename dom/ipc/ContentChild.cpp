@@ -632,19 +632,6 @@ ContentChild::GetParamsForBlob(nsDOMFileBase* aBlob,
     resultParams = MysteryBlobConstructorParams();
   }
   else {
-    nsCOMPtr<nsIRemoteBlob> remoteBlob;
-    CallQueryInterface(static_cast<nsIDOMBlob*>(aBlob),
-                       getter_AddRefs(remoteBlob));
-    if (remoteBlob) {
-      BlobChild* actor =
-        static_cast<BlobChild*>(
-          static_cast<PBlobChild*>(remoteBlob->GetPBlob()));
-      NS_ASSERTION(actor, "Null actor?!");
-
-      *aOutParams = BlobConstructorNoMultipartParams(actor);
-      return true;
-    }
-
     BlobOrFileConstructorParams params;
 
     nsString contentType;
@@ -702,6 +689,7 @@ ContentChild::GetParamsForBlob(nsDOMFileBase* aBlob,
   }
 
   *aOutParams = resultParams;
+
   return true;
 }
 
