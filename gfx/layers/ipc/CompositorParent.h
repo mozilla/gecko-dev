@@ -235,9 +235,7 @@ private:
    * layers that are descendants of the given layer.
    * aScaleDiff is considered to be the scale transformation applied when
    * displaying the layers, and is used to make sure the anchor points of
-   * fixed position layers remain in the same position. It takes into account
-   * scaling in ancestors of aLayer but not scaling performed by aLayer itself
-   * (e.g. aLayer's transform).
+   * fixed position layers remain in the same position.
    */
   void TransformFixedLayers(Layer* aLayer,
                             const gfxPoint& aTranslation,

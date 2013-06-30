@@ -598,21 +598,13 @@ CompositorParent::TransformFixedLayers(Layer* aLayer,
                                        const gfxPoint& aTranslation,
                                        const gfxSize& aScaleDiff)
 {
-  gfx3DMatrix transform = aLayer->GetLocalTransform();
-  gfxMatrix transform2D;
-  gfxSize scale = aScaleDiff;
-  if (transform.Is2D(&transform2D)) {
-    scale.width *= transform2D.xx;
-    scale.height *= transform2D.yy;
-  }
-
   if (aLayer->GetIsFixedPosition() &&
       !aLayer->GetParent()->GetIsFixedPosition()) {
     // When a scale has been applied to a layer, it focuses around (0,0).
     // The anchor position is used here as a scale focus point (assuming that
     // aScaleDiff has already been applied) to re-focus the scale.
     const gfxPoint& anchor = aLayer->GetFixedPositionAnchor();
-    gfxPoint translation(aTranslation - (anchor - anchor / scale));
+    gfxPoint translation(aTranslation - (anchor - anchor / aScaleDiff));
 
     // The transform already takes the resolution scale into account.  Since we
     // will apply the resolution scale again when computing the effective
@@ -643,16 +635,16 @@ CompositorParent::TransformFixedLayers(Layer* aLayer,
       nsIntRect transformedClipRect(*clipRect);
       transformedClipRect.MoveBy(translation.x, translation.y);
       shadow->SetShadowClipRect(&transformedClipRect);
-    }
 
-    // The transform has now been applied, so there's no need to iterate over
-    // child layers.
-    return;
+      // The transform has now been applied, so there's no need to iterate over
+      // child layers.
+      return;
+    }
   }
 
   for (Layer* child = aLayer->GetFirstChild();
        child; child = child->GetNextSibling()) {
-    TransformFixedLayers(child, aTranslation, scale);
+    TransformFixedLayers(child, aTranslation, aScaleDiff);
   }
 }
 
@@ -840,7 +832,7 @@ CompositorParent::ApplyAsyncContentTransformToTree(TimeStamp aCurrentFrame,
     TransformFixedLayers(
       aLayer,
       -treeTransform.mTranslation / treeTransform.mScale,
-      gfxSize(1.0, 1.0));
+      treeTransform.mScale);
 
     appliedTransform = true;
   }
