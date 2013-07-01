@@ -584,58 +584,84 @@ CompositorParent::CanComposite()
   return !(mPaused || !mLayerManager || !mLayerManager->GetRoot());
 }
 
-// Do a breadth-first search to find the first layer in the tree that is
-// scrollable.
-static void
-Translate2D(gfx3DMatrix& aTransform, const gfxPoint& aOffset)
+static bool
+GetBaseTransform2D(Layer* aLayer, gfxMatrix* aTransform)
 {
-  aTransform._41 += aOffset.x;
-  aTransform._42 += aOffset.y;
+  // Start with the animated transform if there is one
+  return (aLayer->AsShadowLayer()->GetShadowTransformSetByAnimation() ?
+          aLayer->GetLocalTransform() : aLayer->GetTransform()).Is2D(aTransform);
 }
 
 void
-CompositorParent::TransformFixedLayers(Layer* aLayer,
-                                       const gfxPoint& aTranslation,
-                                       const gfxSize& aScaleDiff)
+CompositorParent::AlignFixedLayersAtAnchorPoint(Layer* aLayer,
+                                                Layer* aTransformedSubtreeRoot,
+                                                const gfx3DMatrix& aPreviousTransformForRoot)
 {
-  gfx3DMatrix transform = aLayer->GetLocalTransform();
-  gfxMatrix transform2D;
-  gfxSize scale = aScaleDiff;
-  if (transform.Is2D(&transform2D)) {
-    scale.width *= transform2D.xx;
-    scale.height *= transform2D.yy;
-  }
-
-  if (aLayer->GetIsFixedPosition() &&
+  if (aLayer != aTransformedSubtreeRoot && aLayer->GetIsFixedPosition() &&
       !aLayer->GetParent()->GetIsFixedPosition()) {
-    // When a scale has been applied to a layer, it focuses around (0,0).
-    // The anchor position is used here as a scale focus point (assuming that
-    // aScaleDiff has already been applied) to re-focus the scale.
-    const gfxPoint& anchor = aLayer->GetFixedPositionAnchor();
-    gfxPoint translation(aTranslation - (anchor - anchor / scale));
+    // Insert a translation so that the position of the anchor point is the same
+    // before and after the change to the transform of aTransformedSubtreeRoot.
+    // Currently this only works for 2D transforms. The 3D transform case
+    // probably can't arise here in practice (since a position:fixed element
+    // inside a 3D-transformed container would not truly be fixed to the
+    // viewport), and it's more complex to handle. However 3D could be handled
+    // if we needed to.
+
+    gfxMatrix ancestorTransform;
+    for (Layer* l = aLayer->GetParent(); l != aTransformedSubtreeRoot;
+         l = l->GetParent()) {
+      gfxMatrix l2D;
+      if (!GetBaseTransform2D(l, &l2D)) {
+        return;
+      }
+      ancestorTransform = ancestorTransform.Multiply(l2D);
+    }
+
+    gfxMatrix oldRootTransform;
+    gfxMatrix newRootTransform;
+    if (!aPreviousTransformForRoot.Is2D(&oldRootTransform) ||
+        !aTransformedSubtreeRoot->GetLocalTransform().Is2D(&newRootTransform)) {
+      return;
+    }
+
+    gfxMatrix oldCumulativeTransform = ancestorTransform.Multiply(oldRootTransform);
+    gfxMatrix newCumulativeTransform = ancestorTransform.Multiply(newRootTransform);
+    if (newCumulativeTransform.IsSingular()) {
+      return;
+    }
+    gfxMatrix newCumulativeTransformInverse = newCumulativeTransform;
+    newCumulativeTransformInverse.Invert();
+
+    gfxMatrix layerTransform;
+    if (!GetBaseTransform2D(aLayer, &layerTransform)) {
+      return;
+    }
+    gfxPoint locallyTransformedAnchor =
+      layerTransform.Transform(aLayer->GetFixedPositionAnchor());
+    gfxPoint oldAnchorPositionInNewSpace =
+      newCumulativeTransformInverse.Transform(
+        oldCumulativeTransform.Transform(locallyTransformedAnchor));
+    gfxPoint translation = oldAnchorPositionInNewSpace - locallyTransformedAnchor;
+
+    // Apply the 2D translation. Note that this translation is applied after
+    // aLayer's current transform.
+    layerTransform.x0 += translation.x;
+    layerTransform.y0 += translation.y;
 
     // The transform already takes the resolution scale into account.  Since we
     // will apply the resolution scale again when computing the effective
     // transform, we must apply the inverse resolution scale here.
-    ShadowLayer* shadow = aLayer->AsShadowLayer();
-    gfx3DMatrix layerTransform;
-    if (shadow->GetShadowTransformSetByAnimation()) {
-      // Start with the animated transform
-      layerTransform = aLayer->GetLocalTransform();
-    } else {
-      layerTransform = aLayer->GetTransform();
-    }
-
-    Translate2D(layerTransform, translation);
+    gfx3DMatrix layerTransform3D = gfx3DMatrix::From2D(layerTransform);
     if (ContainerLayer* c = aLayer->AsContainerLayer()) {
-      layerTransform.Scale(1.0f/c->GetPreXScale(),
-                           1.0f/c->GetPreYScale(),
-                           1);
-    }
-    layerTransform.ScalePost(1.0f/aLayer->GetPostXScale(),
-                             1.0f/aLayer->GetPostYScale(),
+      layerTransform3D.Scale(1.0f/c->GetPreXScale(),
+                             1.0f/c->GetPreYScale(),
                              1);
-    shadow->SetShadowTransform(layerTransform);
+    }
+    layerTransform3D.ScalePost(1.0f/aLayer->GetPostXScale(),
+                               1.0f/aLayer->GetPostYScale(),
+                               1);
+    ShadowLayer* shadow = aLayer->AsShadowLayer();
+    shadow->SetShadowTransform(layerTransform3D);
     shadow->SetShadowTransformSetByAnimation(false);
 
     const nsIntRect* clipRect = aLayer->GetClipRect();
@@ -652,7 +678,7 @@ CompositorParent::TransformFixedLayers(Layer* aLayer,
 
   for (Layer* child = aLayer->GetFirstChild();
        child; child = child->GetNextSibling()) {
-    TransformFixedLayers(child, aTranslation, scale);
+    AlignFixedLayersAtAnchorPoint(child, aTransformedSubtreeRoot, aPreviousTransformForRoot);
   }
 }
 
@@ -816,6 +842,7 @@ CompositorParent::ApplyAsyncContentTransformToTree(TimeStamp aCurrentFrame,
   if (LayerUserData* data = aLayer->GetUserData(&sPanZoomUserDataKey)) {
     AsyncPanZoomController* controller = static_cast<PanZoomUserData*>(data)->mController;
     ShadowLayer* shadow = aLayer->AsShadowLayer();
+    gfx3DMatrix oldTransform = aLayer->GetLocalTransform();
 
     ViewTransform treeTransform;
     *aWantNextFrame |=
@@ -837,10 +864,7 @@ CompositorParent::ApplyAsyncContentTransformToTree(TimeStamp aCurrentFrame,
     NS_ASSERTION(!shadow->GetShadowTransformSetByAnimation(),
                  "overwriting animated transform!");
 
-    TransformFixedLayers(
-      aLayer,
-      -treeTransform.mTranslation / treeTransform.mScale,
-      gfxSize(1.0, 1.0));
+    AlignFixedLayersAtAnchorPoint(aLayer, aLayer, oldTransform);
 
     appliedTransform = true;
   }
@@ -858,6 +882,7 @@ CompositorParent::TransformScrollableLayer(Layer* aLayer, const gfx3DMatrix& aRo
   // We must apply the resolution scale before a pan/zoom transform, so we call
   // GetTransform here.
   const gfx3DMatrix& currentTransform = aLayer->GetTransform();
+  gfx3DMatrix oldTransform = aLayer->GetLocalTransform();
     
   gfx3DMatrix treeTransform;
 
@@ -928,29 +953,6 @@ CompositorParent::TransformScrollableLayer(Layer* aLayer, const gfx3DMatrix& aRo
   treeTransform = gfx3DMatrix(ViewTransform(-scrollCompensation,
                                             gfxSize(mXScale, mYScale)));
 
-  // If the contents can fit entirely within the widget area on a particular
-  // dimenson, we need to translate and scale so that the fixed layers remain
-  // within the page boundaries.
-  if (mContentRect.width * tempScaleDiffX < mWidgetSize.width) {
-    offset.x = -metricsScrollOffset.x;
-    scaleDiff.height = NS_MIN(1.0f, mWidgetSize.width / (float)mContentRect.width);
-  } else {
-    offset.x = clamped(mScrollOffset.x / tempScaleDiffX, (float)mContentRect.x,
-                       mContentRect.XMost() - mWidgetSize.width / tempScaleDiffX) -
-               metricsScrollOffset.x;
-    scaleDiff.height = tempScaleDiffX;
-  }
-
-  if (mContentRect.height * tempScaleDiffY < mWidgetSize.height) {
-    offset.y = -metricsScrollOffset.y;
-    scaleDiff.width = NS_MIN(1.0f, mWidgetSize.height / (float)mContentRect.height);
-  } else {
-    offset.y = clamped(mScrollOffset.y / tempScaleDiffY, (float)mContentRect.y,
-                       mContentRect.YMost() - mWidgetSize.height / tempScaleDiffY) -
-               metricsScrollOffset.y;
-    scaleDiff.width = tempScaleDiffY;
-  }
-
   // The transform already takes the resolution scale into account.  Since we
   // will apply the resolution scale again when computing the effective
   // transform, we must apply the inverse resolution scale here.
@@ -964,7 +966,7 @@ CompositorParent::TransformScrollableLayer(Layer* aLayer, const gfx3DMatrix& aRo
   shadow->SetShadowTransform(computedTransform);
   NS_ASSERTION(!shadow->GetShadowTransformSetByAnimation(),
                "overwriting animated transform!");
-  TransformFixedLayers(aLayer, offset, scaleDiff);
+  AlignFixedLayersAtAnchorPoint(aLayer, aLayer, oldTransform);
 }
 
 bool

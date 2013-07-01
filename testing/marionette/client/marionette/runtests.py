@@ -19,6 +19,7 @@ import xml.dom.minidom as dom
 
 from manifestparser import TestManifest
 from mozhttpd import MozHttpd
+from telnetlib import Telnet
 
 from marionette import Marionette
 from marionette_test import MarionetteJSTestCase, MarionetteTestCase
@@ -177,8 +178,8 @@ class MarionetteTestRunner(object):
                  es_server=None, rest_server=None, logger=None,
                  testgroup="marionette", noWindow=False, logcat_dir=None,
                  xml_output=None, repeat=0, gecko_path=None, testvars=None,
-                 tree=None, type=None, device=None, symbols_path=None,
-                 **kwargs):
+                 tree=None, type=None, device_serial=None, symbols_path=None,
+                 timeout=None, **kwargs):
         self.address = address
         self.emulator = emulator
         self.emulatorBinary = emulatorBinary
@@ -206,8 +207,12 @@ class MarionetteTestRunner(object):
         self.test_kwargs = kwargs
         self.tree = tree
         self.type = type
-        self.device = device
+        self.device_serial = device_serial
         self.symbols_path = symbols_path
+        self.timeout = timeout
+        self._device = None
+        self._capabilities = None
+        self._appName = None
 
         if testvars:
             if not os.path.exists(testvars):
@@ -235,6 +240,32 @@ class MarionetteTestRunner(object):
         # for XML output
         self.testvars['xml_output'] = self.xml_output
         self.results = []
+
+    @property
+    def capabilities(self):
+        if self._capabilities:
+            return self._capabilities
+
+        self.marionette.start_session()
+        self._capabilities = self.marionette.session_capabilities
+        self.marionette.delete_session()
+        return self._capabilities
+
+    @property
+    def device(self):
+        if self._device:
+            return self._device
+
+        self._device = self.capabilities.get('device')
+        return self._device
+
+    @property
+    def appName(self):
+        if self._appName:
+            return self._appName
+
+        self._appName = self.capabilities.get('browserName')
+        return self._appName
 
     def reset_test_stats(self):
         self.passed = 0
@@ -268,9 +299,16 @@ class MarionetteTestRunner(object):
                                          app=self.app,
                                          bin=self.bin,
                                          profile=self.profile,
-                                         baseurl=self.baseurl)
+                                         baseurl=self.baseurl,
+                                         timeout=self.timeout)
         elif self.address:
             host, port = self.address.split(':')
+            try:
+                #establish a telnet connection so we can vertify the data come back
+                tlconnection = Telnet(host, port)
+            except:
+                raise Exception("could not connect to given marionette host/port")
+
             if self.emulator:
                 self.marionette = Marionette.getMarionetteOrExit(
                                              host=host, port=int(port),
@@ -279,11 +317,13 @@ class MarionetteTestRunner(object):
                                              baseurl=self.baseurl,
                                              logcat_dir=self.logcat_dir,
                                              gecko_path=self.gecko_path,
-                                             symbols_path=self.symbols_path)
+                                             symbols_path=self.symbols_path,
+                                             timeout=self.timeout)
             else:
                 self.marionette = Marionette(host=host,
                                              port=int(port),
-                                             baseurl=self.baseurl)
+                                             baseurl=self.baseurl,
+                                             timeout=self.timeout)
         elif self.emulator:
             self.marionette = Marionette.getMarionetteOrExit(
                                          emulator=self.emulator,
@@ -295,7 +335,8 @@ class MarionetteTestRunner(object):
                                          noWindow=self.noWindow,
                                          logcat_dir=self.logcat_dir,
                                          gecko_path=self.gecko_path,
-                                         symbols_path=self.symbols_path)
+                                         symbols_path=self.symbols_path,
+                                         timeout=self.timeout)
         else:
             raise Exception("must specify binary, address or emulator")
 
@@ -414,7 +455,18 @@ class MarionetteTestRunner(object):
             manifest = TestManifest()
             manifest.read(filepath)
 
-            manifest_tests = manifest.active_tests(disabled=False)
+            all_tests = manifest.active_tests(disabled=False)
+            manifest_tests = manifest.active_tests(disabled=False,
+                                                   device=self.device,
+                                                   app=self.appName)
+            skip_tests = list(set([x['path'] for x in all_tests]) -
+                              set([x['path'] for x in manifest_tests]))
+            for skipped in skip_tests:
+                self.logger.info('TEST-SKIP | %s | device=%s, app=%s' %
+                                 (os.path.basename(skipped),
+                                  self.device,
+                                  self.appName))
+                self.todo += 1
 
             for i in manifest.get(tests=manifest_tests, **testargs):
                 self.run_test(i["path"])
@@ -583,7 +635,7 @@ class MarionetteTestOptions(OptionParser):
                         action='store',
                         help='host:port of running Gecko instance to connect to')
         self.add_option('--device',
-                        dest='device',
+                        dest='device_serial',
                         action='store',
                         help='serial ID of a device to use for adb / fastboot')
         self.add_option('--type',
@@ -639,6 +691,10 @@ class MarionetteTestOptions(OptionParser):
                         dest='symbols_path',
                         action='store',
                         help='absolute path to directory containing breakpad symbols, or the url of a zip file containing symbols')
+        self.add_option('--timeout',
+                        dest='timeout',
+                        type=int,
+                        help='if a --timeout value is given, it will set the default page load timeout, search timeout and script timeout to the given value. If not passed in, it will use the default values of 30000ms for page load, 0ms for search timeout and 10ms for script timeout')
 
     def verify_usage(self):
         options, tests = self.parse_args()

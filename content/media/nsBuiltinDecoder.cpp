@@ -807,8 +807,8 @@ nsBuiltinDecoder::GetStatistics()
 double nsBuiltinDecoder::ComputePlaybackRate(bool* aReliable)
 {
   GetReentrantMonitor().AssertCurrentThreadIn();
-  NS_ASSERTION(NS_IsMainThread() || OnStateMachineThread(),
-               "Should be on main or state machine thread.");
+  NS_ASSERTION(NS_IsMainThread() || OnStateMachineThread() || OnDecodeThread(),
+               "Should be on main or state machine or decoder thread.");
 
   int64_t length = mResource ? mResource->GetLength() : -1;
   if (mDuration >= 0 && length >= 0) {

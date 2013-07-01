@@ -3,9 +3,11 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import datetime
+import os
 import socket
 import sys
 import time
+import traceback
 
 from client import MarionetteClient
 from application_cache import ApplicationCache
@@ -200,7 +202,7 @@ class Marionette(object):
                  profile=None, emulator=None, sdcard=None, emulatorBinary=None,
                  emulatorImg=None, emulator_res=None, gecko_path=None,
                  connectToRunningEmulator=False, homedir=None, baseurl=None,
-                 noWindow=False, logcat_dir=None, busybox=None, symbols_path=None):
+                 noWindow=False, logcat_dir=None, busybox=None, symbols_path=None, timeout=None):
         self.host = host
         self.port = self.local_port = port
         self.app = app
@@ -217,6 +219,7 @@ class Marionette(object):
         self.logcat_dir = logcat_dir
         self._test_name = None
         self.symbols_path = symbols_path
+        self.timeout = timeout
 
         if bin:
             port = int(self.port)
@@ -601,26 +604,34 @@ class Marionette(object):
         if script_args is None:
             script_args = []
         args = self.wrapArguments(script_args)
+        stack = traceback.extract_stack()
+        frame = stack[-2:-1][0] # grab the second-to-last frame
         response = self._send_message('executeScript',
-                                     'value',
+                                      'value',
                                       value=script,
                                       args=args,
                                       newSandbox=new_sandbox,
                                       specialPowers=special_powers,
-                                      scriptTimeout=script_timeout)
+                                      scriptTimeout=script_timeout,
+                                      line=int(frame[1]),
+                                      filename=os.path.basename(frame[0]))
         return self.unwrapValue(response)
 
     def execute_async_script(self, script, script_args=None, new_sandbox=True, special_powers=False, script_timeout=None):
         if script_args is None:
             script_args = []
         args = self.wrapArguments(script_args)
+        stack = traceback.extract_stack()
+        frame = stack[-2:-1][0] # grab the second-to-last frame
         response = self._send_message('executeAsyncScript',
                                       'value',
                                       value=script,
                                       args=args,
                                       newSandbox=new_sandbox,
                                       specialPowers=special_powers,
-                                      scriptTimeout=script_timeout)
+                                      scriptTimeout=script_timeout,
+                                      line=int(frame[1]),
+                                      filename=os.path.basename(frame[0]))
         return self.unwrapValue(response)
 
     def find_element(self, method, target, id=None):

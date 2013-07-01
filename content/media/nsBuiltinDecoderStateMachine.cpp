@@ -1761,52 +1761,44 @@ bool nsBuiltinDecoderStateMachine::HasLowDecodedData(int64_t aAudioUsecs) const
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
   // We consider ourselves low on decoded data if we're low on audio,
   // provided we've not decoded to the end of the audio stream, or
-  // if we're only playing video and we're low on video frames, provided
+  // if we're low on video frames, provided
   // we've not decoded to the end of the video stream.
   return ((HasAudio() &&
            !mReader->AudioQueue().IsFinished() &&
            AudioDecodedUsecs() < aAudioUsecs)
           ||
-         (!HasAudio() &&
-          HasVideo() &&
+         (HasVideo() &&
           !mReader->VideoQueue().IsFinished() &&
           static_cast<uint32_t>(mReader->VideoQueue().GetSize()) < LOW_VIDEO_FRAMES));
 }
 
 bool nsBuiltinDecoderStateMachine::HasLowUndecodedData() const
 {
-  return GetUndecodedData() < mLowDataThresholdUsecs;
+  return HasLowUndecodedData(mLowDataThresholdUsecs);
 }
 
-int64_t nsBuiltinDecoderStateMachine::GetUndecodedData() const
+bool nsBuiltinDecoderStateMachine::HasLowUndecodedData(double aUsecs) const
 {
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
   NS_ASSERTION(mState > DECODER_STATE_DECODING_METADATA,
                "Must have loaded metadata for GetBuffered() to work");
-  nsTimeRanges buffered;
-  
-  nsresult res = mDecoder->GetBuffered(&buffered);
-  NS_ENSURE_SUCCESS(res, 0);
-  double currentTime = GetCurrentTime();
 
-  nsIDOMTimeRanges* r = static_cast<nsIDOMTimeRanges*>(&buffered);
-  uint32_t length = 0;
-  res = r->GetLength(&length);
-  NS_ENSURE_SUCCESS(res, 0);
-
-  for (uint32_t index = 0; index < length; ++index) {
-    double start, end;
-    res = r->Start(index, &start);
-    NS_ENSURE_SUCCESS(res, 0);
-
-    res = r->End(index, &end);
-    NS_ENSURE_SUCCESS(res, 0);
-
-    if (start <= currentTime && end >= currentTime) {
-      return static_cast<int64_t>((end - currentTime) * USECS_PER_S);
-    }
+  bool reliable;
+  double bytesPerSecond = mDecoder->ComputePlaybackRate(&reliable);
+  if (!reliable) {
+    // Default to assuming we have enough
+    return false;
   }
-  return 0;
+
+  MediaResource* stream = mDecoder->GetResource();
+  int64_t currentPos = stream->Tell();
+  int64_t requiredPos = currentPos + int64_t((aUsecs/double(USECS_PER_S))*bytesPerSecond);
+  int64_t length = stream->GetLength();
+  if (length >= 0) {
+    requiredPos = NS_MIN(requiredPos, length);
+  }
+
+  return stream->GetCachedDataEnd(currentPos) < requiredPos;
 }
 
 void nsBuiltinDecoderStateMachine::SetFrameBufferLength(uint32_t aLength)
@@ -2189,14 +2181,13 @@ nsresult nsBuiltinDecoderStateMachine::RunStateMachine()
       if ((isLiveStream || !mDecoder->CanPlayThrough()) &&
             elapsed < TimeDuration::FromSeconds(mBufferingWait) &&
             (mQuickBuffering ? HasLowDecodedData(QUICK_BUFFERING_LOW_DATA_USECS)
-                            : (GetUndecodedData() < mBufferingWait * USECS_PER_S)) &&
+                            : HasLowUndecodedData(mBufferingWait * USECS_PER_S)) &&
             !resource->IsDataCachedToEndOfResource(mDecoder->mDecoderPosition) &&
             !resource->IsSuspended())
       {
         LOG(PR_LOG_DEBUG,
-            ("%p Buffering: %.3lfs/%ds, timeout in %.3lfs %s",
+            ("%p Buffering: wait %ds, timeout in %.3lfs %s",
               mDecoder.get(),
-              GetUndecodedData() / static_cast<double>(USECS_PER_S),
               mBufferingWait,
               mBufferingWait - elapsed.ToSeconds(),
               (mQuickBuffering ? "(quick exit)" : "")));
