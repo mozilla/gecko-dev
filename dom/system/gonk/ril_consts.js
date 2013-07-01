@@ -2294,6 +2294,18 @@ this.MMI_ERROR_KS_ERROR = "emMmiError";
 this.MMI_ERROR_KS_NOT_SUPPORTED = "emMmiErrorNotSupported";
 this.MMI_ERROR_KS_INVALID_ACTION = "emMmiErrorInvalidAction";
 this.MMI_ERROR_KS_MISMATCH_PIN = "emMmiErrorMismatchPin";
+this.MMI_ERROR_KS_BAD_PIN = "emMmiErrorBadPin";
+this.MMI_ERROR_KS_BAD_PUK = "emMmiErrorBadPuk";
+this.MMI_ERROR_KS_INVALID_PIN = "emMmiErrorInvalidPin";
+this.MMI_ERROR_KS_NEEDS_PUK = "emMmiErrorNeedsPuk";
+this.MMI_ERROR_KS_PIN_PUK_ATTEMPTS = "emMmiErrorPinPukAttempts";
+this.MMI_ERROR_KS_SIM_BLOCKED = "emMmiErrorSimBlocked";
+
+// MMI status message.
+this.MMI_SM_KS_PIN_CHANGED = "smPinChanged";
+this.MMI_SM_KS_PIN2_CHANGED = "smPin2Changed";
+this.MMI_SM_KS_PIN_UNBLOCKED = "smPinUnblocked";
+this.MMI_SM_KS_PIN2_UNBLOCKED = "smPin2Unblocked";
 
 // Allow this file to be imported via Components.utils.import().
 this.EXPORTED_SYMBOLS = Object.keys(this);
