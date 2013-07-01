@@ -6,7 +6,7 @@
 
 this.EXPORTED_SYMBOLS = ['ContactDB'];
 
-const DEBUG = false;
+let DEBUG = false;
 function debug(s) { dump("-*- ContactDB component: " + s + "\n"); }
 
 const Cu = Components.utils;
@@ -531,6 +531,7 @@ ContactDB.prototype = {
   },
 
   makeExport: function makeExport(aRecord) {
+    if (DEBUG) debug("export:" + JSON.stringify(aRecord));
     let contact = {};
     contact.properties = aRecord.properties;
 
@@ -912,6 +913,10 @@ ContactDB.prototype = {
   // Enable special phone number substring matching. Does not update existing DB entries.
   enableSubstringMatching: function enableSubstringMatching(aDigits) {
     this.substringMatching = aDigits;
+  },
+
+  enableDebugging: function(aEnable) {
+    DEBUG = aEnable;
   },
 
   init: function init(aGlobal) {

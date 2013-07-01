@@ -4,7 +4,7 @@
 
 "use strict";
 
-const DEBUG = false;
+let DEBUG = false;
 function debug(s) { dump("-*- Fallback ContactService component: " + s + "\n"); }
 
 const Cu = Components.utils;
@@ -21,6 +21,10 @@ Cu.import("resource://gre/modules/PhoneNumberUtils.jsm");
 XPCOMUtils.defineLazyServiceGetter(this, "ppmm",
                                    "@mozilla.org/parentprocessmessagemanager;1",
                                    "nsIMessageListenerManager");
+
+XPCOMUtils.defineLazyServiceGetter(this, "gSettingsService",
+                                   "@mozilla.org/settingsService;1",
+                                   "nsISettingsService");
 
 XPCOMUtils.defineLazyGetter(this, "mRIL", function () {
   let telephony = Cc["@mozilla.org/telephony/system-worker-manager;1"];
@@ -66,24 +70,46 @@ this.DOMContactManager = {
       }
     }
 
+    if (gSettingsService) {
+      let lock = gSettingsService.createLock();
+      lock.get("dom.mozContacts.debugging.enabled", {
+        handle: function(aName, aResult) {
+          if (aResult !== true && aResult !== false) {
+            aResult = false;
+          }
+          updateDebug(aResult);
+        },
+        handleError: function(aErrorMessage) {
+          if (DEBUG) debug("Error reading dom.mozContacts.debugging.enabled setting: " + aErrorMessage);
+        }
+      });
+    }
+
     Services.obs.addObserver(this, "profile-before-change", false);
+    Services.obs.addObserver(this, "mozsettings-changed", false);
     Services.prefs.addObserver("dom.phonenumber.substringmatching", this, false);
   },
 
+  enableDebugging: function(aResult) {
+    this._db.enableDebugging(aResult);
+  },
+
   observe: function(aSubject, aTopic, aData) {
-    if (aTopic === 'profile-before-change') {
+    if (aTopic === "profile-before-change") {
       myGlobal = null;
       this._messages.forEach(function(msgName) {
         ppmm.removeMessageListener(msgName, this);
       }.bind(this));
       Services.obs.removeObserver(this, "profile-before-change");
+      Services.obs.removeObserver(this, "mozsettings-changed");
       Services.prefs.removeObserver("dom.phonenumber.substringmatching", this);
       ppmm = null;
+      gSettingsService = null;
       this._messages = null;
       if (this._db)
         this._db.close();
       this._db = null;
-    } else if (aTopic === 'nsPref:changed' && aData.contains("dom.phonenumber.substringmatching")) {
+    } else if (aTopic === "nsPref:changed" && aData.contains("dom.phonenumber.substringmatching")) {
       // We don't fully support changing substringMatching during runtime. This is mostly for testing.
       let countryName = PhoneNumberUtils.getCountryName();
       if (Services.prefs.getPrefType("dom.phonenumber.substringmatching." + countryName) == Ci.nsIPrefBranch.PREF_INT) {
@@ -91,6 +117,11 @@ this.DOMContactManager = {
         if (val && val > 0) {
           this._db.enableSubstringMatching(val);
         }
+      }
+    } else if (aTopic === "mozsettings-changed") {
+      let data = JSON.parse(aData);
+      if (data.key === "dom.mozContacts.debugging.enabled") {
+        updateDebug(data.value);
       }
     }
   },
@@ -253,3 +284,8 @@ this.DOMContactManager = {
 }
 
 DOMContactManager.init();
+
+function updateDebug(aResult) {
+  DEBUG = !!aResult;
+  DOMContactManager.enableDebugging(DEBUG);
+}
