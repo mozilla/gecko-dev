@@ -37,7 +37,7 @@ PathGetSiblingFilePath(LPWSTR destinationBuffer,
     return FALSE;
   }
 
-  wcscpy(destinationBuffer, siblingFilePath);
+  wcsncpy(destinationBuffer, siblingFilePath, MAX_PATH);
   if (!PathRemoveFileSpecW(destinationBuffer)) {
     return FALSE;
   }
@@ -69,13 +69,13 @@ LaunchWinPostProcess(const WCHAR *installationDir,
                      bool forceSync,
                      HANDLE userToken)
 {
-  WCHAR workingDirectory[MAX_PATH + 1];
-  wcscpy(workingDirectory, installationDir);
+  WCHAR workingDirectory[MAX_PATH + 1] = { L'\0' };
+  wcsncpy(workingDirectory, installationDir, MAX_PATH);
 
   // Launch helper.exe to perform post processing (e.g. registry and log file
   // modifications) for the update.
-  WCHAR inifile[MAX_PATH + 1];
-  wcscpy(inifile, installationDir);
+  WCHAR inifile[MAX_PATH + 1] = { L'\0' };
+  wcsncpy(inifile, installationDir, MAX_PATH);
   if (!PathAppendSafe(inifile, L"updater.ini")) {
     return FALSE;
   }
@@ -101,8 +101,8 @@ LaunchWinPostProcess(const WCHAR *installationDir,
     return FALSE;
   }
 
-  WCHAR exefullpath[MAX_PATH + 1];
-  wcscpy(exefullpath, installationDir);
+  WCHAR exefullpath[MAX_PATH + 1] = { L'\0' };
+  wcsncpy(exefullpath, installationDir, MAX_PATH);
   if (!PathAppendSafe(exefullpath, exefile)) {
     return false;
   }
@@ -112,14 +112,14 @@ LaunchWinPostProcess(const WCHAR *installationDir,
     return FALSE;
   }
 
-  WCHAR slogFile[MAX_PATH + 1];
-  wcscpy(slogFile, updateInfoDir);
+  WCHAR slogFile[MAX_PATH + 1] = { L'\0' };
+  wcsncpy(slogFile, updateInfoDir, MAX_PATH);
   if (!PathAppendSafe(slogFile, L"update.log")) {
     return FALSE;
   }
 
-  WCHAR dummyArg[14];
-  wcscpy(dummyArg, L"argv0ignored ");
+  WCHAR dummyArg[14] = { L'\0' };
+  wcsncpy(dummyArg, L"argv0ignored ", sizeof(dummyArg) / sizeof(dummyArg[0]) - 1);
 
   size_t len = wcslen(exearg) + wcslen(dummyArg);
   WCHAR *cmdline = (WCHAR *) malloc((len + 1) * sizeof(WCHAR));
@@ -127,7 +127,8 @@ LaunchWinPostProcess(const WCHAR *installationDir,
     return FALSE;
   }
 
-  wcscpy(cmdline, dummyArg);
+
+  wcsncpy(cmdline, dummyArg, len);
   wcscat(cmdline, exearg);
 
   if (forceSync ||
@@ -217,12 +218,13 @@ StartServiceUpdate(LPCWSTR installDir)
   si.lpDesktop = L"";
   PROCESS_INFORMATION pi = {0};
 
-  WCHAR maintserviceInstallerPath[MAX_PATH + 1];
-  wcscpy(maintserviceInstallerPath, installDir);
+  WCHAR maintserviceInstallerPath[MAX_PATH + 1] = { L'\0' };
+  wcsncpy(maintserviceInstallerPath, installDir, MAX_PATH);
   PathAppendSafe(maintserviceInstallerPath, 
                  L"maintenanceservice_installer.exe");
-  WCHAR cmdLine[64];
-  wcscpy(cmdLine, L"dummyparam.exe /Upgrade");
+  WCHAR cmdLine[64] = { '\0' };
+  wcsncpy(cmdLine, L"dummyparam.exe /Upgrade",
+          sizeof(cmdLine) / sizeof(cmdLine[0]) - 1);
   BOOL svcUpdateProcessStarted = CreateProcessW(maintserviceInstallerPath, 
                                                 cmdLine, 
                                                 NULL, NULL, FALSE, 
@@ -355,8 +357,8 @@ PathAppendSafe(LPWSTR base, LPCWSTR extra)
 BOOL
 WriteStatusPending(LPCWSTR updateDirPath)
 {
-  WCHAR updateStatusFilePath[MAX_PATH + 1];
-  wcscpy(updateStatusFilePath, updateDirPath);
+  WCHAR updateStatusFilePath[MAX_PATH + 1] = { L'\0' };
+  wcsncpy(updateStatusFilePath, updateDirPath, MAX_PATH);
   if (!PathAppendSafe(updateStatusFilePath, L"update.status")) {
     return FALSE;
   }
@@ -384,8 +386,8 @@ WriteStatusPending(LPCWSTR updateDirPath)
 BOOL
 WriteStatusFailure(LPCWSTR updateDirPath, int errorCode)
 {
-  WCHAR updateStatusFilePath[MAX_PATH + 1];
-  wcscpy(updateStatusFilePath, updateDirPath);
+  WCHAR updateStatusFilePath[MAX_PATH + 1] = { L'\0' };
+  wcsncpy(updateStatusFilePath, updateDirPath, MAX_PATH);
   if (!PathAppendSafe(updateStatusFilePath, L"update.status")) {
     return FALSE;
   }
@@ -638,12 +640,12 @@ DoesFallbackKeyExist()
 BOOL
 IsLocalFile(LPCWSTR file, BOOL &isLocal)
 {
-  WCHAR rootPath[MAX_PATH + 1];
+  WCHAR rootPath[MAX_PATH + 1] = { L'\0' };
   if (wcslen(file) > MAX_PATH) {
     return FALSE;
   }
 
-  wcscpy(rootPath, file);
+  wcsncpy(rootPath, file, MAX_PATH);
   PathStripToRootW(rootPath);
   isLocal = GetDriveTypeW(rootPath) == DRIVE_FIXED;
   return TRUE;
