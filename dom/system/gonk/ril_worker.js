@@ -333,7 +333,7 @@ let Buf = {
     }
     return strings;
   },
-  
+
   readStringDelimiter: function readStringDelimiter(length) {
     let delimiter = this.readUint16();
     if (!(length & 1)) {
@@ -410,7 +410,7 @@ let Buf = {
       this.writeString(strings[i]);
     }
   },
-  
+
   writeStringDelimiter: function writeStringDelimiter(length) {
     this.writeUint16(0);
     if (!(length & 1)) {
@@ -673,7 +673,7 @@ let Buf = {
 
 /**
  * The RIL state machine.
- * 
+ *
  * This object communicates with rild via parcels and with the main thread
  * via post messages. It maintains state about the radio, ICC, calls, etc.
  * and acts upon state changes accordingly.
@@ -760,7 +760,7 @@ let RIL = {
      * Application identification for apps in ICC.
      */
     this.aid = null;
-  
+
     /**
      * Application type for apps in ICC.
      */
@@ -2066,10 +2066,10 @@ let RIL = {
    *  @param options
    *         The 'options' object passed from RIL.iccIO
    *  @param addCallback
-   *         The function should be invoked when the ICC record is processed 
+   *         The function should be invoked when the ICC record is processed
    *         succesfully.
    *  @param finishCallback
-   *         The function should be invoked when the final ICC record is 
+   *         The function should be invoked when the final ICC record is
    *         processed.
    *
    */
@@ -2103,9 +2103,9 @@ let RIL = {
     for (let i = 0; i < ffLen; i++) {
       GsmPDUHelper.readHexOctet();
     }
-    
+
     Buf.readStringDelimiter(length);
-    
+
     if (options.loadAll &&
         options.p1 < options.totalRecords) {
       options.p1++;
@@ -2116,7 +2116,7 @@ let RIL = {
       }
     }
   },
-  
+
   /**
    *  Get ICC FDN.
    *
@@ -2743,7 +2743,7 @@ let RIL = {
     if (!call) {
       return;
     }
-    
+
     switch (call.state) {
       case CALL_STATE_INCOMING:
         Buf.simpleRequest(REQUEST_ANSWER);
@@ -2770,7 +2770,7 @@ let RIL = {
     if (!call) {
       return;
     }
-    
+
     switch (call.state) {
       case CALL_STATE_INCOMING:
         Buf.simpleRequest(REQUEST_UDUB);
@@ -2781,7 +2781,7 @@ let RIL = {
         break;
     }
   },
-  
+
   holdCall: function holdCall(options) {
     let call = this.currentCalls[options.callIndex];
     if (call && call.state == CALL_STATE_ACTIVE) {
@@ -3133,28 +3133,31 @@ let RIL = {
     let mmiString = options.mmi;
     let mmi = this._parseMMI(mmiString);
 
-    let _sendMMIError = (function _sendMMIError(errorMsg) {
+    let _sendMMIError = (function _sendMMIError(errorMsg, mmiServiceCode) {
       options.rilMessageType = "sendMMI";
       options.errorMsg = errorMsg;
+      if (mmiServiceCode) {
+        options.mmiServiceCode = mmiServiceCode;
+      }
       this.sendDOMMessage(options);
     }).bind(this);
 
-    function _isValidPINPUKRequest() {
+    function _isValidPINPUKRequest(mmiServiceCode) {
       // The only allowed MMI procedure for ICC PIN, PIN2, PUK and PUK2 handling
       // is "Registration" (**).
       if (!mmi.procedure || mmi.procedure != MMI_PROCEDURE_REGISTRATION ) {
-        _sendMMIError("WRONG_MMI_PROCEDURE");
+        _sendMMIError(MMI_ERROR_KS_INVALID_ACTION, mmiServiceCode);
         return;
       }
 
       if (!mmi.sia || !mmi.sia.length || !mmi.sib || !mmi.sib.length ||
           !mmi.sic || !mmi.sic.length) {
-        _sendMMIError("MISSING_SUPPLEMENTARY_INFORMATION");
+        _sendMMIError(MMI_ERROR_KS_ERROR, mmiServiceCode);
         return;
       }
 
       if (mmi.sib != mmi.sic) {
-        _sendMMIError("NEW_PIN_MISMATCH");
+        _sendMMIError(MMI_ERROR_KS_MISMATCH_PIN, mmiServiceCode);
         return;
       }
 
@@ -3167,7 +3170,7 @@ let RIL = {
         this.sendUSSD(options);
         return;
       }
-      _sendMMIError("NO_VALID_MMI_STRING");
+      _sendMMIError(MMI_ERROR_KS_ERROR);
       return;
     }
 
@@ -3191,6 +3194,7 @@ let RIL = {
         // procedure, and a reason, given by the MMI service code, but there
         // is no way that we get this far without a valid procedure or service
         // code.
+        options.mmiServiceCode = MMI_KS_SC_CALL_FORWARDING;
         options.action = MMI_PROC_TO_CF_ACTION[mmi.procedure];
         options.rilMessageType = "sendMMI";
         options.reason = MMI_SC_TO_CF_REASON[sc];
@@ -3213,10 +3217,11 @@ let RIL = {
         // an MMI code of the form **04*OLD_PIN*NEW_PIN*NEW_PIN#, where old PIN
         // should be entered as the SIA parameter and the new PIN as SIB and
         // SIC.
-        if (!_isValidPINPUKRequest()) {
+        if (!_isValidPINPUKRequest(MMI_KS_SC_PIN)) {
           return;
         }
 
+        options.mmiServiceCode = MMI_KS_SC_PIN;
         options.rilRequestType = "sendMMI";
         options.pin = mmi.sia;
         options.newPin = mmi.sib;
@@ -3229,10 +3234,11 @@ let RIL = {
         // enter and MMI code of the form **042*OLD_PIN2*NEW_PIN2*NEW_PIN2#,
         // where the old PIN2 should be entered as the SIA parameter and the
         // new PIN2 as SIB and SIC.
-        if (!_isValidPINPUKRequest()) {
+        if (!_isValidPINPUKRequest(MMI_KS_SC_PIN2)) {
           return;
         }
 
+        options.mmiServiceCode = MMI_KS_SC_PIN2;
         options.rilRequestType = "sendMMI";
         options.pin = mmi.sia;
         options.newPin = mmi.sib;
@@ -3245,10 +3251,11 @@ let RIL = {
         // enter an MMI code of the form **05*PUK*NEW_PIN*NEW_PIN#, where PUK
         // should be entered as the SIA parameter and the new PIN as SIB and
         // SIC.
-        if (!_isValidPINPUKRequest()) {
+        if (!_isValidPINPUKRequest(MMI_KS_SC_PUK)) {
           return;
         }
 
+        options.mmiServiceCode = MMI_KS_SC_PUK;
         options.rilRequestType = "sendMMI";
         options.puk = mmi.sia;
         options.newPin = mmi.sib;
@@ -3261,10 +3268,11 @@ let RIL = {
         // enter an MMI code of the form **052*PUK2*NEW_PIN2*NEW_PIN2#, where
         // PUK2 should be entered as the SIA parameter and the new PIN2 as SIB
         // and SIC.
-        if (!_isValidPINPUKRequest()) {
+        if (!_isValidPINPUKRequest(MMI_KS_SC_PUK2)) {
           return;
         }
 
+        options.mmiServiceCode = MMI_KS_SC_PUK2;
         options.rilRequestType = "sendMMI";
         options.puk = mmi.sia;
         options.newPin = mmi.sib;
@@ -3279,6 +3287,7 @@ let RIL = {
           return;
         }
         // If we already had the device's IMEI, we just send it to the DOM.
+        options.mmiServiceCode = MMI_KS_SC_IMEI;
         options.rilMessageType = "sendMMI";
         options.success = true;
         options.result = this.IMEI;
@@ -3294,12 +3303,13 @@ let RIL = {
       case MMI_SC_BA_ALL:
       case MMI_SC_BA_MO:
       case MMI_SC_BA_MT:
-        _sendMMIError("CALL_BARRING_NOT_SUPPORTED_VIA_MMI");
-        return;
-
       // Call waiting
       case MMI_SC_CALL_WAITING:
-        _sendMMIError("CALL_WAITING_NOT_SUPPORTED_VIA_MMI");
+      // CLIP
+      case MMI_SC_CLIP:
+      // CLIR
+      case MMI_SC_CLIR:
+        _sendMMIError(MMI_ERROR_KS_NOT_SUPPORTED);
         return;
     }
 
@@ -3308,13 +3318,14 @@ let RIL = {
     if (mmi.fullMMI &&
         (mmiString.charAt(mmiString.length - 1) == MMI_END_OF_USSD)) {
       options.ussd = mmi.fullMMI;
+      options.mmiServiceCode = MMI_KS_SC_USSD;
       this.sendUSSD(options);
       return;
     }
 
     // At this point, the MMI string is considered as not valid MMI code and
     // not valid USSD code.
-    _sendMMIError("NOT_VALID_MMI_STRING");
+    _sendMMIError(MMI_ERROR_KS_ERROR);
   },
 
   /**
@@ -3334,6 +3345,7 @@ let RIL = {
    * Cancel pending USSD.
    */
    cancelUSSD: function cancelUSSD(options) {
+     options.mmiServiceCode = MMI_KS_SC_USSD;
      Buf.simpleRequest(REQUEST_CANCEL_USSD, options);
    },
 
@@ -3508,7 +3520,7 @@ let RIL = {
         // GET_INKEY
         // When the ME issues a successful TERMINAL RESPONSE for a GET INKEY
         // ("Yes/No") command with command qualifier set to "Yes/No", it shall
-        // supply the value '01' when the answer is "positive" and the value 
+        // supply the value '01' when the answer is "positive" and the value
         // '00' when the answer is "negative" in the Text string data object.
         text = response.isYesNo ? 0x01 : 0x00;
       } else {
@@ -3918,10 +3930,10 @@ let RIL = {
                          cardState: this.cardState});
   },
 
-  /** 
+  /**
    * Helper function for getting the pathId for the specific ICC record
    * depeding on which type of ICC card we are using.
-   * 
+   *
    * @param fileId
    *        File id.
    * @return The pathId or null in case of an error or invalid input.
@@ -4108,7 +4120,7 @@ let RIL = {
       case ICC_COMMAND_READ_BINARY:
         this._processICCIOReadBinary(options);
         break;
-    } 
+    }
   },
 
   // We combine all of the NETWORK_INFO_MESSAGE_TYPES into one "networkinfochange"
@@ -5561,12 +5573,12 @@ RIL[REQUEST_HANGUP] = function REQUEST_HANGUP(length, options) {
   }
 
   this.getCurrentCalls();
-}; 
+};
 RIL[REQUEST_HANGUP_WAITING_OR_BACKGROUND] = function REQUEST_HANGUP_WAITING_OR_BACKGROUND(length, options) {
   if (options.rilRequestError) {
     return;
   }
-  
+
   this.getCurrentCalls();
 };
 RIL[REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND] = function REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND(length, options) {
@@ -5588,7 +5600,7 @@ RIL[REQUEST_SWITCH_HOLDING_AND_ACTIVE] = function REQUEST_SWITCH_HOLDING_AND_ACT
     return;
   }
 
-  // XXX Normally we should get a UNSOLICITED_RESPONSE_CALL_STATE_CHANGED parcel 
+  // XXX Normally we should get a UNSOLICITED_RESPONSE_CALL_STATE_CHANGED parcel
   // notifying us of call state changes, but sometimes we don't (have no idea why).
   // this.getCurrentCalls() helps update the call state actively.
   this.getCurrentCalls();
@@ -5943,6 +5955,7 @@ RIL[REQUEST_GET_IMEI] = function REQUEST_GET_IMEI(length, options) {
     return;
   }
 
+  options.mmiServiceCode = MMI_KS_SC_IMEI;
   options.rilMessageType = "sendMMI";
   options.success = options.rilRequestError == 0;
   options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
@@ -6369,7 +6382,7 @@ RIL[UNSOLICITED_NITZ_TIME_RECEIVED] = function UNSOLICITED_NITZ_TIME_RECEIVED() 
   // Always print the NITZ info so we can collection what different providers
   // send down the pipe (see bug XXX).
   // TODO once data is collected, add in |if (DEBUG)|
-  
+
   debug("DateTimeZone string " + dateString);
 
   let now = Date.now();
@@ -7314,16 +7327,16 @@ let GsmPDUHelper = {
    *        The Length of BCD number.
    *
    * From TS 131.102, in EF_ADN, EF_FDN, the field 'Length of BCD number'
-   * means the total bytes should be allocated to store the TON/NPI and 
+   * means the total bytes should be allocated to store the TON/NPI and
    * the dialing number.
    * For example, if the dialing number is 1234567890,
    * and the TON/NPI is 0x81,
-   * The field 'Length of BCD number' should be 06, which is 
+   * The field 'Length of BCD number' should be 06, which is
    * 1 byte to store the TON/NPI, 0x81
    * 5 bytes to store the BCD number 2143658709.
    *
-   * Here the definition of the length is different from SMS spec, 
-   * TS 23.040 9.1.2.5, which the length means 
+   * Here the definition of the length is different from SMS spec,
+   * TS 23.040 9.1.2.5, which the length means
    * "number of useful semi-octets within the Address-Value field".
    */
   readDiallingNumber: function readDiallingNumber(len) {
