@@ -2619,7 +2619,11 @@ SearchService.prototype = {
     this._addObservers();
 
     gInitialized = true;
+
     this._initObservers.resolve(this._initRV);
+
+    Services.obs.notifyObservers(null, SEARCH_SERVICE_TOPIC, "init-complete");
+
     LOG("_syncInit end");
   },
 
