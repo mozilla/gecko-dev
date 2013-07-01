@@ -5932,15 +5932,6 @@ dnl ========================================================
 MOZ_GAMEPAD=
 MOZ_GAMEPAD_BACKEND=stub
 
-# Gamepad DOM is built on supported platforms by default.
-case "$OS_TARGET" in
-     Darwin|WINNT|Linux)
-       MOZ_GAMEPAD=1
-       ;;
-     *)
-       ;;
-esac
-
 MOZ_ARG_DISABLE_BOOL(gamepad,
 [  --disable-gamepad   Disable gamepad support],
     MOZ_GAMEPAD=,
