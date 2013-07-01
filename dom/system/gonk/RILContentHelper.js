@@ -51,6 +51,8 @@ const CELLBROADCASTMESSAGE_CID =
   Components.ID("{29474c96-3099-486f-bb4a-3c9a1da834e4}");
 const CELLBROADCASTETWSINFO_CID =
   Components.ID("{59f176ee-9dcd-4005-9d47-f6be0cd08e17}");
+const DOMERROR_CID =
+  Components.ID("{dcc1d5b7-43d8-4740-9244-b3d8db0f503d}");
 
 const RIL_IPC_MSG_NAMES = [
   "RIL:CardStateChanged",
@@ -318,6 +320,31 @@ CellBroadcastEtwsInfo.prototype = {
   emergencyUserAlert: null,
   popup: null
 };
+
+/**
+  * nsIDOMDOMError object.
+  *
+  * We need to place DOMError JS implementation in this file to allow other
+  * JS components to inherit from it. It's really not a good option, but one
+  * of the very few that we have in b2g18 to allow JS components to inherit
+  * from DOMError without affecting the API. This changes in m-c with the
+  * introduction of WebIDL.
+  */
+function DOMError() {
+  this.wrappedJSObject = this;
+}
+DOMError.prototype = {
+  init: function domerror_init(aError) {
+    this.name = aError;
+  },
+  classID: DOMERROR_CID,
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIDOMDOMError]),
+  classInfo: XPCOMUtils.generateCI({classID: DOMERROR_CID,
+                                    contractID: "@mozilla.org/dom-error;1",
+                                    interfaces: [Ci.nsIDOMDOMError],
+                                    flags: Ci.nsIClassInfo.DOM_OBJECT,
+                                    classDescription: "DOMError object"})
+}
 
 function RILContentHelper() {
   this.iccInfo = new MobileICCInfo();
@@ -1306,7 +1333,8 @@ RILContentHelper.prototype = {
   }
 };
 
-this.NSGetFactory = XPCOMUtils.generateNSGetFactory([RILContentHelper]);
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory([RILContentHelper,
+                                                     DOMError]);
 
 let debug;
 if (DEBUG) {
