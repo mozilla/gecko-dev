@@ -513,7 +513,7 @@ this.MSISDN_MAX_NUMBER_SIZE_BYTES = 10;
 // READ_RECORD mode,  TS 102.221
 this.READ_RECORD_ABSOLUTE_MODE = 4;
 
-// GET_RESPONSE mandatory response size for EF, see TS 51.011 clause 9,
+// GET_RESPONSE mandatory response size for EF, see TS 51.011 clause 9, 
 // 'Response data in case of an EF.'
 this.GET_RESPONSE_EF_SIZE_BYTES = 15;
 
@@ -2274,43 +2274,6 @@ this.MMI_SC_BAICr = "351";
 this.MMI_SC_BA_ALL = "330";
 this.MMI_SC_BA_MO = "333";
 this.MMI_SC_BA_MT = "353";
-
-// MMI service code key strings.
-this.MMI_KS_SC_CALL_BARRING = "scCallBarring";
-this.MMI_KS_SC_CALL_FORWARDING = "scCallForwarding";
-this.MMI_KS_SC_CLIP = "scClip";
-this.MMI_KS_SC_CLIR = "scClir";
-this.MMI_KS_SC_PWD = "scPwd";
-this.MMI_KS_SC_CALL_WAITING = "scCallWaiting";
-this.MMI_KS_SC_PIN = "scPin";
-this.MMI_KS_SC_PIN2 = "scPin2";
-this.MMI_KS_SC_PUK = "scPuk";
-this.MMI_KS_SC_PUK2 = "scPuk2";
-this.MMI_KS_SC_IMEI = "scImei";
-this.MMI_KS_SC_USSD = "scUssd";
-
-// MMI error messages key strings.
-this.MMI_ERROR_KS_ERROR = "emMmiError";
-this.MMI_ERROR_KS_NOT_SUPPORTED = "emMmiErrorNotSupported";
-this.MMI_ERROR_KS_INVALID_ACTION = "emMmiErrorInvalidAction";
-this.MMI_ERROR_KS_MISMATCH_PIN = "emMmiErrorMismatchPin";
-this.MMI_ERROR_KS_BAD_PIN = "emMmiErrorBadPin";
-this.MMI_ERROR_KS_BAD_PUK = "emMmiErrorBadPuk";
-this.MMI_ERROR_KS_INVALID_PIN = "emMmiErrorInvalidPin";
-this.MMI_ERROR_KS_NEEDS_PUK = "emMmiErrorNeedsPuk";
-this.MMI_ERROR_KS_PIN_PUK_ATTEMPTS = "emMmiErrorPinPukAttempts";
-this.MMI_ERROR_KS_SIM_BLOCKED = "emMmiErrorSimBlocked";
-
-// MMI status message.
-this.MMI_SM_KS_PIN_CHANGED = "smPinChanged";
-this.MMI_SM_KS_PIN2_CHANGED = "smPin2Changed";
-this.MMI_SM_KS_PIN_UNBLOCKED = "smPinUnblocked";
-this.MMI_SM_KS_PIN2_UNBLOCKED = "smPin2Unblocked";
-this.MMI_SM_KS_SERVICE_ENABLED = "smServiceEnabled";
-this.MMI_SM_KS_SERVICE_DISABLED = "smServiceDisabled";
-this.MMI_SM_KS_SERVICE_REGISTERED = "smServiceRegistered";
-this.MMI_SM_KS_SERVICE_ERASED = "smServiceErased";
-this.MMI_SM_KS_SERVICE_INTERROGATED = "smServiceInterrogated";
 
 // Allow this file to be imported via Components.utils.import().
 this.EXPORTED_SYMBOLS = Object.keys(this);

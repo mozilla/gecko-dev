@@ -50,7 +50,7 @@ req.onerror = function(e) {
   ev = e;
 }
 reqserv.fireError(req, "OhMyError");
-ok(ev, "got error event");
+ok(ev, "got success event");
 is(ev.type, "error", "correct type during error");
 is(ev.target, req, "correct target during error");
 is(req.readyState, "done", "correct readyState after error");

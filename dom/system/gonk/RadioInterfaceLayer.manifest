@@ -28,11 +28,5 @@ contract @mozilla.org/ril;1 {2d831c8d-6017-435b-a80c-e5d422810cea}
 
 # RILContentHelper.js
 component {472816e1-1fd6-4405-996c-806f9ea68174} RILContentHelper.js
-component {dcc1d5b7-43d8-4740-9244-b3d8db0f503d} RILContentHelper.js
-component {6b204c42-7928-4e71-89ad-f90cd82aff96} RILContentHelper.js
-
 contract @mozilla.org/ril/content-helper;1 {472816e1-1fd6-4405-996c-806f9ea68174}
-contract @mozilla.org/dom-error;1 {dcc1d5b7-43d8-4740-9244-b3d8db0f503d}
-contract @mozilla.org/dom/mmi-error;1 {6b204c42-7928-4e71-89ad-f90cd82aff96}
-
 category profile-after-change RILContentHelper @mozilla.org/ril/content-helper;1

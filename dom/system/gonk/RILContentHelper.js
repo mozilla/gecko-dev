@@ -51,10 +51,6 @@ const CELLBROADCASTMESSAGE_CID =
   Components.ID("{29474c96-3099-486f-bb4a-3c9a1da834e4}");
 const CELLBROADCASTETWSINFO_CID =
   Components.ID("{59f176ee-9dcd-4005-9d47-f6be0cd08e17}");
-const DOMERROR_CID =
-  Components.ID("{dcc1d5b7-43d8-4740-9244-b3d8db0f503d}");
-const DOMMMIERROR_CID =
-  Components.ID("{6b204c42-7928-4e71-89ad-f90cd82aff96}");
 
 const RIL_IPC_MSG_NAMES = [
   "RIL:CardStateChanged",
@@ -323,69 +319,6 @@ CellBroadcastEtwsInfo.prototype = {
   popup: null
 };
 
-/**
-  * nsIDOMDOMError object.
-  *
-  * We need to place DOMError JS implementation in this file to allow other
-  * JS components to inherit from it. It's really not a good option, but one
-  * of the very few that we have in b2g18 to allow JS components to inherit
-  * from DOMError without affecting the API. This changes in m-c with the
-  * introduction of WebIDL.
-  */
-function DOMError() {
-  this.wrappedJSObject = this;
-}
-DOMError.prototype = {
-  init: function domerror_init(aError) {
-    this.name = aError;
-  },
-  classID: DOMERROR_CID,
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIDOMDOMError]),
-  classInfo: XPCOMUtils.generateCI({classID: DOMERROR_CID,
-                                    contractID: "@mozilla.org/dom-error;1",
-                                    interfaces: [Ci.nsIDOMDOMError],
-                                    flags: Ci.nsIClassInfo.DOM_OBJECT,
-                                    classDescription: "DOMError object"}),
-  __exposedProps__: {name: 'r'}
-}
-
-function DOMMMIResult(result) {
-  this.serviceCode = result.serviceCode;
-  this.statusMessage = result.statusMessage;
-  this.additionalInformation = result.additionalInformation;
-};
-DOMMMIResult.prototype = {
-  __exposedProps__: {serviceCode: 'r',
-                     statusMessage: 'r',
-                     additionalInformation: 'r'}
-};
-
-function DOMMMIError() {
-  this.wrappedJSObject = this;
-};
-DOMMMIError.prototype = {
-  __proto__: DOMError.prototype,
-  classInfo: XPCOMUtils.generateCI({
-    contractID: "@mozilla.org/dom/mmi-error;1",
-    classDescription: "DOMMMIError",
-    flags: Ci.nsIClassInfo.DOM_OBJECT,
-    interfaces: [Ci.nsIDOMMMIError]
-  }),
-  classID: DOMMMIERROR_CID,
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIDOMMMIError]),
-  init: function(aServiceCode, aName, aMessage, aAdditionalInformation) {
-    this.__proto__.__proto__.init(aName);
-    this.message = aMessage;
-    this.serviceCode = aServiceCode;
-    this.additionalInformation = aAdditionalInformation;
-  },
-  __exposedProps__: {
-    serviceCode: 'r',
-    message: 'r',
-    additionalInformation: 'r'
-  }
-};
-
 function RILContentHelper() {
   this.iccInfo = new MobileICCInfo();
   this.voiceConnectionInfo = new MobileConnectionInfo();
@@ -611,7 +544,7 @@ RILContentHelper.prototype = {
     debug("Sending MMI " + mmi);
     if (!window) {
       throw Components.Exception("Can't get window object",
-                                 Cr.NS_ERROR_UNEXPECTED);
+                                 Cr.NS_ERROR_EXPECTED);
     }
     let request = Services.DOMRequest.createRequest(window);
     let requestId = this.getRequestId(request);
@@ -1068,9 +1001,14 @@ RILContentHelper.prototype = {
         break;
       case "RIL:SendMMI:Return:OK":
       case "RIL:CancelMMI:Return:OK":
+        this.handleSendCancelMMIOK(msg.json);
+        break;
       case "RIL:SendMMI:Return:KO":
       case "RIL:CancelMMI:Return:KO":
-        this.handleSendCancelMMI(msg.json);
+        request = this.takeRequest(msg.json.requestId);
+        if (request) {
+          Services.DOMRequest.fireError(request, msg.json.errorMsg);
+        }
         break;
       case "RIL:StkCommand":
         let jsonString = JSON.stringify(msg.json);
@@ -1291,51 +1229,21 @@ RILContentHelper.prototype = {
     Services.DOMRequest.fireSuccess(request, null);
   },
 
-  handleSendCancelMMI: function handleSendCancelMMI(message) {
-    debug("handleSendCancelMMI " + JSON.stringify(message));
+  handleSendCancelMMIOK: function handleSendCancelMMIOK(message) {
     let request = this.takeRequest(message.requestId);
     if (!request) {
       return;
     }
 
-    let success = message.success;
-
-    // We expect to have an IMEI at this point if the request was supposed
-    // to query for the IMEI, so getting a successful reply from the RIL
-    // without containing an actual IMEI number is considered an error.
-    if (message.mmiServiceCode === RIL.MMI_KS_SC_IMEI &&
-        !message.statusMessage) {
-        message.errorMsg = message.errorMsg ?
-          message.errorMsg : RIL.GECKO_ERROR_GENERIC_FAILURE;
-        success = false;
-    }
-
     // MMI query call forwarding options request returns a set of rules that
     // will be exposed in the form of an array of nsIDOMMozMobileCFInfo
     // instances.
-    if (message.mmiServiceCode === RIL.MMI_KS_SC_CALL_FORWARDING &&
-        message.additionalInformation) {
-      this._cfRulesToMobileCfInfo(message.additionalInformation);
+    if (message.success && message.rules) {
+      this._cfRulesToMobileCfInfo(message.rules);
+      message.result = message.rules;
     }
 
-    let result = {
-      serviceCode: message.mmiServiceCode,
-      additionalInformation: message.additionalInformation
-    };
-
-    if (success) {
-      result.statusMessage = message.statusMessage;
-      let mmiResult = new DOMMMIResult(result);
-      Services.DOMRequest.fireSuccess(request, mmiResult);
-    } else {
-      let mmiError = Cc["@mozilla.org/dom/mmi-error;1"]
-                       .createInstance(Ci.nsIDOMMMIError);
-      mmiError.wrappedJSObject.init(result.serviceCode,
-                                    message.errorMsg,
-                                    null,
-                                    result.additionalInformation);
-      Services.DOMRequest.fireDetailedError(request, mmiError);
-    }
+    Services.DOMRequest.fireSuccess(request, message.result);
   },
 
   _getRandomId: function _getRandomId() {
@@ -1398,9 +1306,7 @@ RILContentHelper.prototype = {
   }
 };
 
-this.NSGetFactory = XPCOMUtils.generateNSGetFactory([RILContentHelper,
-                                                     DOMError,
-                                                     DOMMMIError]);
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory([RILContentHelper]);
 
 let debug;
 if (DEBUG) {
