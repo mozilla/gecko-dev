@@ -299,16 +299,10 @@ WebappsRegistry.prototype = {
                                     classDescription: "Webapps Registry"})
 }
 
+#ifndef MOZ_B2G_RIL
 /**
-  * nsIDOMDOMError object
-  */
-function createDOMError(aError) {
-  let error = Cc["@mozilla.org/dom-error;1"]
-                .createInstance(Ci.nsIDOMDOMError);
-  error.wrappedJSObject.init(aError);
-  return error;
-}
-
+ * nsIDOMDOMError object
+ */
 function DOMError() {
   this.wrappedJSObject = this;
 }
@@ -328,6 +322,7 @@ DOMError.prototype = {
                                     flags: Ci.nsIClassInfo.DOM_OBJECT,
                                     classDescription: "DOMError object"})
 }
+#endif
 
 /**
   * mozIDOMApplication object
@@ -474,7 +469,10 @@ WebappsApplication.prototype = {
   },
 
   get downloadError() {
-    return createDOMError(this._downloadError);
+    let error = Cc["@mozilla.org/dom-error;1"]
+                  .createInstance(Ci.nsIDOMDOMError);
+    error.wrappedJSObject.init(this._downloadError);
+    return error;
   },
 
   download: function() {
@@ -835,6 +833,11 @@ WebappsApplicationMgmt.prototype = {
                                     classDescription: "Webapps Application Mgmt"})
 }
 
+#ifdef MOZ_B2G_RIL
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory([WebappsRegistry,
-                                                     WebappsApplication,
-                                                     DOMError]);
+                                                     WebappsApplication]);
+#else
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory([WebappsRegistry,
+                                                     DOMError,
+                                                     WebappsApplication]);
+#endif
