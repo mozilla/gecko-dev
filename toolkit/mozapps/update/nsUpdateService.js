@@ -42,7 +42,7 @@ const PREF_APP_UPDATE_POSTUPDATE          = "app.update.postupdate";
 const PREF_APP_UPDATE_PROMPTWAITTIME      = "app.update.promptWaitTime";
 const PREF_APP_UPDATE_SHOW_INSTALLED_UI   = "app.update.showInstalledUI";
 const PREF_APP_UPDATE_SILENT              = "app.update.silent";
-const PREF_APP_UPDATE_STAGE_ENABLED       = "app.update.staging.enabled";
+const PREF_APP_UPDATE_STAGING_ENABLED     = "app.update.staging.enabled";
 const PREF_APP_UPDATE_URL                 = "app.update.url";
 const PREF_APP_UPDATE_URL_DETAILS         = "app.update.url.details";
 const PREF_APP_UPDATE_URL_OVERRIDE        = "app.update.url.override";
@@ -80,11 +80,11 @@ const KEY_UPDATE_ARCHIVE_DIR = "UpdArchD"
 #endif
 
 #ifdef XP_WIN
-#define SKIP_STAGE_UPDATES_TEST
+#define CHECK_CAN_USE_SERVICE
 #elifdef MOZ_WIDGET_GONK
 // In Gonk, the updater will remount the /system partition to move staged files
 // into place, so we skip the test here to keep things isolated.
-#define SKIP_STAGE_UPDATES_TEST
+#define CHECK_CAN_USE_SERVICE
 #endif
 
 const DIR_UPDATES         = "updates";
@@ -387,13 +387,13 @@ function testWriteAccess(updateTestFile, createDirectory) {
 
 XPCOMUtils.defineLazyGetter(this, "gCanApplyUpdates", function aus_gCanApplyUpdates() {
   function submitHasPermissionsTelemetryPing(val) {
-      try {
-        let h = Services.telemetry.getHistogramById("UPDATER_HAS_PERMISSIONS");
-        h.add(+val);
-      } catch(e) {
-        // Don't allow any exception to be propagated.
-        Components.utils.reportError(e);
-      }
+    try {
+      let h = Services.telemetry.getHistogramById("UPDATER_HAS_PERMISSIONS");
+      h.add(+val);
+    } catch(e) {
+      // Don't allow any exception to be propagated.
+      Components.utils.reportError(e);
+    }
   }
 
   try {
@@ -485,57 +485,76 @@ XPCOMUtils.defineLazyGetter(this, "gCanApplyUpdates", function aus_gCanApplyUpda
   return true;
 });
 
-XPCOMUtils.defineLazyGetter(this, "gCanStageUpdates", function aus_gCanStageUpdates() {
+/**
+ * Whether or not the application can stage an update.
+ *
+ * @return true if updates can be staged.
+ */
+function getCanStageUpdates() {
   // If background updates are disabled, then just bail out!
-  if (!getPref("getBoolPref", PREF_APP_UPDATE_STAGE_ENABLED, false)) {
-    LOG("gCanStageUpdates - staging updates is disabled by preference " + PREF_APP_UPDATE_STAGE_ENABLED);
+  if (!getPref("getBoolPref", PREF_APP_UPDATE_STAGING_ENABLED, false)) {
+    LOG("getCanStageUpdates - staging updates is disabled by preference " +
+        PREF_APP_UPDATE_STAGING_ENABLED);
     return false;
   }
 
-#ifdef SKIP_STAGE_UPDATES_TEST
+#ifdef CHECK_CAN_USE_SERVICE
   if (getPref("getBoolPref", PREF_APP_UPDATE_SERVICE_ENABLED, false)) {
     // No need to perform directory write checks, the maintenance service will
     // be able to write to all directories.
-    LOG("gCanStageUpdates - able to stage updates because we'll use the service");
+    LOG("getCanStageUpdates - able to stage updates because we'll use the service");
     return true;
   }
 #endif
 
-  try {
-    var updateTestFile = getInstallDirRoot();
-    updateTestFile.append(FILE_PERMS_TEST);
-    LOG("gCanStageUpdates - testing write access " + updateTestFile.path);
-    testWriteAccess(updateTestFile, true);
+  /**
+   * Whether or not the application can stage an update for the current session.
+   * These checks are only performed once per session due to using a lazy getter.
+   *
+   * @return true if updates can be staged for this session.
+   */
+  XPCOMUtils.defineLazyGetter(this, "canStageUpdatesSession", function canStageUpdatesSession() {
+    try {
+      var updateTestFile = getInstallDirRoot();
+      updateTestFile.append(FILE_PERMS_TEST);
+      LOG("canStageUpdatesSession - testing write access " +
+          updateTestFile.path);
+      testWriteAccess(updateTestFile, true);
 #ifndef XP_MACOSX
-    // On all platforms except Mac, we need to test the parent directory as well,
-    // as we need to be able to move files in that directory during the replacing
-    // step.
-    updateTestFile = getInstallDirRoot().parent;
-    updateTestFile.append(FILE_PERMS_TEST);
-    LOG("gCanStageUpdates - testing write access " + updateTestFile.path);
-    updateTestFile.createUnique(Ci.nsILocalFile.DIRECTORY_TYPE,
-                                FileUtils.PERMS_DIRECTORY);
-    updateTestFile.remove(false);
+      // On all platforms except Mac, we need to test the parent directory as
+      // well, as we need to be able to move files in that directory during the
+      // replacing step.
+      updateTestFile = getInstallDirRoot().parent;
+      updateTestFile.append(FILE_PERMS_TEST);
+      LOG("canStageUpdatesSession - testing write access " +
+          updateTestFile.path);
+      updateTestFile.createUnique(Ci.nsILocalFile.DIRECTORY_TYPE,
+                                  FileUtils.PERMS_DIRECTORY);
+      updateTestFile.remove(false);
 #endif
-  }
-  catch (e) {
-     LOG("gCanStageUpdates - unable to stage updates. Exception: " + e);
-    // No write privileges
-    return false;
-  }
+    }
+    catch (e) {
+       LOG("canStageUpdatesSession - unable to stage updates. Exception: " +
+           e);
+      // No write privileges
+      return false;
+    }
 
-  LOG("gCanStageUpdates - able to stage updates");
-  return true;
-});
+    LOG("canStageUpdatesSession - able to stage updates");
+    return true;
+  });
+
+  return canStageUpdatesSession;
+}
 
 XPCOMUtils.defineLazyGetter(this, "gCanCheckForUpdates", function aus_gCanCheckForUpdates() {
-  // If the administrator has locked the app update functionality
-  // OFF - this is not just a user setting, so disable the manual
-  // UI too.
+  // If the administrator has disabled app update and locked the preference so
+  // users can't check for updates. This preference check is ok in this lazy
+  // getter since locked prefs don't change until the application is restarted.
   var enabled = getPref("getBoolPref", PREF_APP_UPDATE_ENABLED, true);
   if (!enabled && Services.prefs.prefIsLocked(PREF_APP_UPDATE_ENABLED)) {
     LOG("gCanCheckForUpdates - unable to automatically check for updates, " +
-        "disabled by pref");
+        "the preference is disabled and admistratively locked.");
     return false;
   }
 
@@ -615,21 +634,22 @@ function getUpdateDirCreate(pathArray) {
   return FileUtils.getDir(KEY_UPDROOT, pathArray, true);
 }
 
- /**
- #  Gets the specified directory at the specified hierarchy under the
- #  update root directory and without creating it if it doesn't exist.
- #  @param   pathArray
- #           An array of path components to locate beneath the directory
- #           specified by |key|
- #  @return  nsIFile object for the location specified.
-  */
+/**
+#  Gets the specified directory at the specified hierarchy under the
+#  update root directory and without creating it if it doesn't exist.
+#  @param   pathArray
+#           An array of path components to locate beneath the directory
+#           specified by |key|
+#  @return  nsIFile object for the location specified.
+ */
 function getUpdateDirNoCreate(pathArray) {
   return FileUtils.getDir(KEY_UPDROOT, pathArray, false);
 }
 
 /**
-#  Gets the application base directory.
-#  @return  nsIFile object for the application base directory.
+ * Gets the application base directory.
+ *
+ * @return  nsIFile object for the application base directory.
  */
 function getAppBaseDir() {
   return Services.dirsvc.get(KEY_EXECUTABLE, Ci.nsIFile).parent;
@@ -1686,6 +1706,7 @@ const UpdateServiceFactory = {
 function UpdateService() {
   LOG("Creating UpdateService");
   Services.obs.addObserver(this, "xpcom-shutdown", false);
+  Services.prefs.addObserver("app.update.log", this, false);
 #ifdef MOZ_WIDGET_GONK
   // PowerManagerService::SyncProfile (which is called for Reboot, PowerOff
   // and Restart) sends the profile-change-net-teardown event. We can then
@@ -1739,11 +1760,17 @@ UpdateService.prototype = {
     case "network:offline-status-changed":
       this._offlineStatusChanged(data);
       break;
+    case "nsPref:changed":
+      if (data == PREF_APP_UPDATE_LOG) {
+        gLogEnabled = getPref("getBoolPref", PREF_APP_UPDATE_LOG, false);
+      }
+      break;
 #ifdef MOZ_WIDGET_GONK
     case "profile-change-net-teardown": // fall thru
 #endif
     case "xpcom-shutdown":
       Services.obs.removeObserver(this, topic);
+      Services.prefs.removeObserver("app.update.log", this);
 
       if (this._retryTimer) {
         this._retryTimer.cancel();
@@ -1767,7 +1794,7 @@ UpdateService.prototype = {
 
   /**
    * Perform post-processing on updates lingering in the updates directory
-   * from a previous browser session - either report install failures (and
+   * from a previous application session - either report install failures (and
    * optionally attempt to fetch a different version if appropriate) or
    * notify the user of install success.
    */
@@ -1907,7 +1934,7 @@ UpdateService.prototype = {
                                       "UPDATER_UPDATES_ENABLED");
       this._sendBoolPrefTelemetryPing(PREF_APP_UPDATE_AUTO,
                                       "UPDATER_UPDATES_AUTOMATIC");
-      this._sendBoolPrefTelemetryPing(PREF_APP_UPDATE_STAGE_ENABLED,
+      this._sendBoolPrefTelemetryPing(PREF_APP_UPDATE_STAGING_ENABLED,
                                       "UPDATER_STAGE_ENABLED");
 
 #ifdef XP_WIN
@@ -2522,7 +2549,7 @@ UpdateService.prototype = {
    * See nsIUpdateService.idl
    */
   get canStageUpdates() {
-    return gCanStageUpdates;
+    return getCanStageUpdates();
   },
 
   /**
@@ -2603,9 +2630,12 @@ UpdateService.prototype = {
     return this._downloader.downloadUpdate(update);
   },
 
+  /**
+   * See nsIUpdateService.idl
+   */
   applyUpdateInBackground: function AUS_applyUpdateInBackground(update) {
     // If we can't stage an update, then just bail out!
-    if (!gCanStageUpdates) {
+    if (!getCanStageUpdates()) {
       return;
     }
 
@@ -2953,6 +2983,7 @@ UpdateManager.prototype = {
 
     // Do this after *everything* else, since it will likely cause the app
     // to shut down.
+#ifdef MOZ_WIDGET_GONK
     if (update.state == STATE_APPLIED) {
       // Notify the user that an update has been staged and is ready for
       // installation (i.e. that they should restart the application). We do
@@ -2963,6 +2994,23 @@ UpdateManager.prototype = {
     } else {
       releaseSDCardMountLock();
     }
+#else
+    // Only prompt when the UI isn't already open.
+    let windowType = getPref("getCharPref", PREF_APP_UPDATE_ALTWINDOWTYPE, null);
+    if (Services.wm.getMostRecentWindow(UPDATE_WINDOW_NAME) ||
+        windowType && Services.wm.getMostRecentWindow(windowType)) {
+      return;
+    }
+
+    if (update.state == STATE_APPLIED || update.state == STATE_APPLIED_SVC ||
+        update.state == STATE_PENDING || update.state == STATE_PENDING_SVC) {
+      // Notify the user that an update has been staged and is ready for
+      // installation (i.e. that they should restart the application).
+      var prompter = Cc["@mozilla.org/updates/update-prompt;1"].
+                     createInstance(Ci.nsIUpdatePrompt);
+      prompter.showUpdateDownloaded(update, true);
+    }
+#endif
   },
 
   classID: Components.ID("{093C2356-4843-4C65-8709-D7DBCBBE7DFB}"),
@@ -3790,12 +3838,9 @@ Downloader.prototype = {
     if (Components.isSuccessCode(status)) {
       if (this._verifyDownload()) {
         state = shouldUseService() ? STATE_PENDING_SVC : STATE_PENDING
-
-        // We only need to explicitly show the prompt if this is a background
-        // download, since otherwise some kind of UI is already visible and
-        // that UI will notify.
-        if (this.background)
-          shouldShowPrompt = !getPref("getBoolPref", PREF_APP_UPDATE_STAGE_ENABLED, false);
+        if (this.background) {
+          shouldShowPrompt = !getCanStageUpdates();
+        }
 
         // Tell the updater.exe we're ready to apply.
         writeStatusFile(getUpdatesDir(), state);
@@ -3806,7 +3851,6 @@ Downloader.prototype = {
       else {
         LOG("Downloader:onStopRequest - download verification failed");
         state = STATE_DOWNLOAD_FAILED;
-
         status = Cr.NS_ERROR_CORRUPTED_CONTENT;
 
         // Yes, this code is a string.
@@ -3934,6 +3978,28 @@ Downloader.prototype = {
       return;
     }
 
+    if (state == STATE_PENDING || state == STATE_PENDING_SVC) {
+      if (getCanStageUpdates()) {
+        LOG("Downloader:onStopRequest - attempting to stage update: " +
+            this._update.name);
+
+        // Initiate the update in the background
+        try {
+          Cc["@mozilla.org/updates/update-processor;1"].
+            createInstance(Ci.nsIUpdateProcessor).
+            processUpdate(this._update);
+        } catch (e) {
+          // Fail gracefully in case the application does not support the update
+          // processor service.
+          LOG("Downloader:onStopRequest - failed to stage update. Exception: " +
+              e);
+          if (this.background) {
+            shouldShowPrompt = true;
+          }
+        }
+      }
+    }
+
     // Do this after *everything* else, since it will likely cause the app
     // to shut down.
     if (shouldShowPrompt) {
@@ -3943,13 +4009,6 @@ Downloader.prototype = {
       var prompter = Cc["@mozilla.org/updates/update-prompt;1"].
                      createInstance(Ci.nsIUpdatePrompt);
       prompter.showUpdateDownloaded(this._update, true);
-    }
-
-    if (state == STATE_PENDING || state == STATE_PENDING_SVC) {
-      // Initiate the background update job.
-      Cc["@mozilla.org/updates/update-service;1"].
-        getService(Ci.nsIApplicationUpdateService).
-        applyUpdateInBackground(this._update);
     }
 
     if (shouldRegisterOnlineObserver) {
