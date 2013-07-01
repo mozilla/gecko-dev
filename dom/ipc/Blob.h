@@ -130,6 +130,8 @@ public:
                       mozilla::ipc::RPCChannel::RPCListener>::ActorDestroyReason
           ActorDestroyReason;
   typedef mozilla::dom::BlobConstructorParams BlobConstructorParams;
+  typedef mozilla::dom::BlobConstructorNoMultipartParams
+          BlobConstructorNoMultipartParams;
 
 protected:
   nsIDOMBlob* mBlob;
