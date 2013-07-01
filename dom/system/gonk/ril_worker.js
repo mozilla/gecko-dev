@@ -835,7 +835,7 @@ let RIL = {
     };
     this.mergedCellBroadcastConfig = null;
   },
-  
+
   get muted() {
     return this._muted;
   },
@@ -3134,6 +3134,7 @@ let RIL = {
     let mmi = this._parseMMI(mmiString);
 
     let _sendMMIError = (function _sendMMIError(errorMsg, mmiServiceCode) {
+      options.success = false;
       options.rilMessageType = "sendMMI";
       options.errorMsg = errorMsg;
       if (mmiServiceCode) {
@@ -3161,6 +3162,13 @@ let RIL = {
         return;
       }
 
+      if (mmi.sia.length < 4 || mmi.sia.length > 8 ||
+          mmi.sib.length < 4 || mmi.sib.length > 8 ||
+          mmi.sic.length < 4 || mmi.sic.length > 8) {
+        _sendMMIError(MMI_ERROR_KS_INVALID_PIN, mmiServiceCode);
+        return;
+      }
+
       return true;
     }
 
@@ -3178,10 +3186,11 @@ let RIL = {
       debug("MMI " + JSON.stringify(mmi));
     }
 
+    options.rilMessageType = "sendMMI";
+
     // We check if the MMI service code is supported and in that case we
     // trigger the appropriate RIL request if possible.
     let sc = mmi.serviceCode;
-
     switch (sc) {
       // Call forwarding
       case MMI_SC_CFU:
@@ -3196,7 +3205,6 @@ let RIL = {
         // code.
         options.mmiServiceCode = MMI_KS_SC_CALL_FORWARDING;
         options.action = MMI_PROC_TO_CF_ACTION[mmi.procedure];
-        options.rilMessageType = "sendMMI";
         options.reason = MMI_SC_TO_CF_REASON[sc];
         options.number = mmi.sia;
         options.serviceClass = this._siToServiceClass(mmi.sib);
@@ -3222,7 +3230,6 @@ let RIL = {
         }
 
         options.mmiServiceCode = MMI_KS_SC_PIN;
-        options.rilRequestType = "sendMMI";
         options.pin = mmi.sia;
         options.newPin = mmi.sib;
         this.changeICCPIN(options);
@@ -3239,7 +3246,6 @@ let RIL = {
         }
 
         options.mmiServiceCode = MMI_KS_SC_PIN2;
-        options.rilRequestType = "sendMMI";
         options.pin = mmi.sia;
         options.newPin = mmi.sib;
         this.changeICCPIN2(options);
@@ -3256,7 +3262,6 @@ let RIL = {
         }
 
         options.mmiServiceCode = MMI_KS_SC_PUK;
-        options.rilRequestType = "sendMMI";
         options.puk = mmi.sia;
         options.newPin = mmi.sib;
         this.enterICCPUK(options);
@@ -3273,7 +3278,6 @@ let RIL = {
         }
 
         options.mmiServiceCode = MMI_KS_SC_PUK2;
-        options.rilRequestType = "sendMMI";
         options.puk = mmi.sia;
         options.newPin = mmi.sib;
         this.enterICCPUK2(options);
@@ -3288,9 +3292,8 @@ let RIL = {
         }
         // If we already had the device's IMEI, we just send it to the DOM.
         options.mmiServiceCode = MMI_KS_SC_IMEI;
-        options.rilMessageType = "sendMMI";
         options.success = true;
-        options.result = this.IMEI;
+        options.statusMessage = this.IMEI;
         this.sendDOMMessage(options);
         return;
 
@@ -4003,12 +4006,56 @@ let RIL = {
    /**
    * Helper for processing responses of functions such as enterICC* and changeICC*.
    */
-  _processEnterAndChangeICCResponses: function _processEnterAndChangeICCResponses(length, options) {
+  _processEnterAndChangeICCResponses:
+    function _processEnterAndChangeICCResponses(length, options) {
     options.success = options.rilRequestError == 0;
-    if (!options.success) {
-      options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
-    }
     options.retryCount = length ? Buf.readUint32List()[0] : -1;
+
+    if (options.rilMessageType != "sendMMI") {
+      this.sendDOMMessage(options);
+      return;
+    }
+
+    let mmiServiceCode = options.mmiServiceCode;
+
+    if (options.success) {
+      switch (mmiServiceCode) {
+        case MMI_KS_SC_PIN:
+          options.statusMessage = MMI_SM_KS_PIN_CHANGED;
+          break;
+        case MMI_KS_SC_PIN2:
+          options.statusMessage = MMI_SM_KS_PIN2_CHANGED;
+          break;
+        case MMI_KS_SC_PUK:
+          options.statusMessage = MMI_SM_KS_PIN_UNBLOCKED;
+          break;
+        case MMI_KS_SC_PUK2:
+          options.statusMessage = MMI_SM_KS_PIN2_UNBLOCKED;
+          break;
+      }
+    } else {
+      options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+      if (options.retryCount <= 0) {
+        if (mmiServiceCode === MMI_KS_SC_PUK) {
+          options.errorMsg = MMI_ERROR_KS_SIM_BLOCKED;
+        } else if (mmiServiceCode === MMI_KS_SC_PIN) {
+          options.errorMsg = MMI_ERROR_KS_NEEDS_PUK;
+        }
+      } else {
+        if (mmiServiceCode === MMI_KS_SC_PIN ||
+            mmiServiceCode === MMI_KS_SC_PIN2) {
+          options.errorMsg = MMI_ERROR_KS_BAD_PIN;
+        } else if (mmiServiceCode === MMI_KS_SC_PUK ||
+                   mmiServiceCode === MMI_KS_SC_PUK2) {
+          options.errorMsg = MMI_ERROR_KS_BAD_PUK;
+        }
+        if (options.retryCount != undefined) {
+          options.errorMsgAdd = MMI_ERROR_KS_PIN_PUK_ATTEMPTS;
+          options.additionalInformation = options.retryCount;
+        }
+      }
+    }
+
     this.sendDOMMessage(options);
   },
 
@@ -5962,7 +6009,7 @@ RIL[REQUEST_GET_IMEI] = function REQUEST_GET_IMEI(length, options) {
   if ((!options.success || this.IMEI == null) && !options.errorMsg) {
     options.errorMsg = GECKO_ERROR_GENERIC_FAILURE;
   }
-  options.result = this.IMEI;
+  options.statusMessage = this.IMEI;
   this.sendDOMMessage(options);
 };
 RIL[REQUEST_GET_IMEISV] = function REQUEST_GET_IMEISV(length, options) {
