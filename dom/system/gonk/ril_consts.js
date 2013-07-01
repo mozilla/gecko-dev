@@ -513,7 +513,7 @@ this.MSISDN_MAX_NUMBER_SIZE_BYTES = 10;
 // READ_RECORD mode,  TS 102.221
 this.READ_RECORD_ABSOLUTE_MODE = 4;
 
-// GET_RESPONSE mandatory response size for EF, see TS 51.011 clause 9, 
+// GET_RESPONSE mandatory response size for EF, see TS 51.011 clause 9,
 // 'Response data in case of an EF.'
 this.GET_RESPONSE_EF_SIZE_BYTES = 15;
 
@@ -2274,6 +2274,26 @@ this.MMI_SC_BAICr = "351";
 this.MMI_SC_BA_ALL = "330";
 this.MMI_SC_BA_MO = "333";
 this.MMI_SC_BA_MT = "353";
+
+// MMI service code key strings.
+this.MMI_KS_SC_CALL_BARRING = "scCallBarring";
+this.MMI_KS_SC_CALL_FORWARDING = "scCallForwarding";
+this.MMI_KS_SC_CLIP = "scClip";
+this.MMI_KS_SC_CLIR = "scClir";
+this.MMI_KS_SC_PWD = "scPwd";
+this.MMI_KS_SC_CALL_WAITING = "scCallWaiting";
+this.MMI_KS_SC_PIN = "scPin";
+this.MMI_KS_SC_PIN2 = "scPin2";
+this.MMI_KS_SC_PUK = "scPuk";
+this.MMI_KS_SC_PUK2 = "scPuk2";
+this.MMI_KS_SC_IMEI = "scImei";
+this.MMI_KS_SC_USSD = "scUssd";
+
+// MMI error messages key strings.
+this.MMI_ERROR_KS_ERROR = "emMmiError";
+this.MMI_ERROR_KS_NOT_SUPPORTED = "emMmiErrorNotSupported";
+this.MMI_ERROR_KS_INVALID_ACTION = "emMmiErrorInvalidAction";
+this.MMI_ERROR_KS_MISMATCH_PIN = "emMmiErrorMismatchPin";
 
 // Allow this file to be imported via Components.utils.import().
 this.EXPORTED_SYMBOLS = Object.keys(this);

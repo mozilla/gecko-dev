@@ -53,6 +53,8 @@ const CELLBROADCASTETWSINFO_CID =
   Components.ID("{59f176ee-9dcd-4005-9d47-f6be0cd08e17}");
 const DOMERROR_CID =
   Components.ID("{dcc1d5b7-43d8-4740-9244-b3d8db0f503d}");
+const DOMMMIERROR_CID =
+  Components.ID("{6b204c42-7928-4e71-89ad-f90cd82aff96}");
 
 const RIL_IPC_MSG_NAMES = [
   "RIL:CardStateChanged",
@@ -343,8 +345,46 @@ DOMError.prototype = {
                                     contractID: "@mozilla.org/dom-error;1",
                                     interfaces: [Ci.nsIDOMDOMError],
                                     flags: Ci.nsIClassInfo.DOM_OBJECT,
-                                    classDescription: "DOMError object"})
+                                    classDescription: "DOMError object"}),
+  __exposedProps__: {name: 'r'}
 }
+
+function DOMMMIResult(result) {
+  this.serviceCode = result.serviceCode;
+  this.statusMessage = result.statusMessage;
+  this.additionalInformation = result.additionalInformation;
+};
+DOMMMIResult.prototype = {
+  __exposedProps__: {serviceCode: 'r',
+                     statusMessage: 'r',
+                     additionalInformation: 'r'}
+};
+
+function DOMMMIError() {
+  this.wrappedJSObject = this;
+};
+DOMMMIError.prototype = {
+  __proto__: DOMError.prototype,
+  classInfo: XPCOMUtils.generateCI({
+    contractID: "@mozilla.org/dom/mmi-error;1",
+    classDescription: "DOMMMIError",
+    flags: Ci.nsIClassInfo.DOM_OBJECT,
+    interfaces: [Ci.nsIDOMMMIError]
+  }),
+  classID: DOMMMIERROR_CID,
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIDOMMMIError]),
+  init: function(aServiceCode, aName, aMessage, aAdditionalInformation) {
+    this.__proto__.__proto__.init(aName);
+    this.message = aMessage;
+    this.serviceCode = aServiceCode;
+    this.additionalInformation = aAdditionalInformation;
+  },
+  __exposedProps__: {
+    serviceCode: 'r',
+    message: 'r',
+    additionalInformation: 'r'
+  }
+};
 
 function RILContentHelper() {
   this.iccInfo = new MobileICCInfo();
@@ -571,7 +611,7 @@ RILContentHelper.prototype = {
     debug("Sending MMI " + mmi);
     if (!window) {
       throw Components.Exception("Can't get window object",
-                                 Cr.NS_ERROR_EXPECTED);
+                                 Cr.NS_ERROR_UNEXPECTED);
     }
     let request = Services.DOMRequest.createRequest(window);
     let requestId = this.getRequestId(request);
@@ -1028,14 +1068,9 @@ RILContentHelper.prototype = {
         break;
       case "RIL:SendMMI:Return:OK":
       case "RIL:CancelMMI:Return:OK":
-        this.handleSendCancelMMIOK(msg.json);
-        break;
       case "RIL:SendMMI:Return:KO":
       case "RIL:CancelMMI:Return:KO":
-        request = this.takeRequest(msg.json.requestId);
-        if (request) {
-          Services.DOMRequest.fireError(request, msg.json.errorMsg);
-        }
+        this.handleSendCancelMMI(msg.json);
         break;
       case "RIL:StkCommand":
         let jsonString = JSON.stringify(msg.json);
@@ -1256,21 +1291,57 @@ RILContentHelper.prototype = {
     Services.DOMRequest.fireSuccess(request, null);
   },
 
-  handleSendCancelMMIOK: function handleSendCancelMMIOK(message) {
+  handleSendCancelMMI: function handleSendCancelMMI(message) {
+    debug("handleSendCancelMMI " + JSON.stringify(message));
     let request = this.takeRequest(message.requestId);
     if (!request) {
       return;
     }
 
-    // MMI query call forwarding options request returns a set of rules that
-    // will be exposed in the form of an array of nsIDOMMozMobileCFInfo
-    // instances.
-    if (message.success && message.rules) {
-      this._cfRulesToMobileCfInfo(message.rules);
-      message.result = message.rules;
+    let success = message.success;
+
+    let result = {
+      serviceCode: message.mmiServiceCode
+    };
+
+    switch (message.mmiServiceCode) {
+      case RIL.MMI_KS_SC_IMEI:
+        // We expect to have an IMEI at this point, so getting a successful
+        // reply from the RIL without containing an actual IMEI number is
+        // considered an error.
+        if (success && message.result) {
+          result.statusMessage = message.result;
+        } else {
+          result.name = message.errorMsg ?
+            message.errorMsg : RIL.GECKO_ERROR_GENERIC_FAILURE;
+          success = false;
+        }
+        break;
+      case RIL.MMI_KS_SC_PIN:
+      case RIL.MMI_KS_SC_PIN2:
+      case RIL.MMI_KS_SC_PUK:
+      case RIL.MMI_KS_SC_PUK2:
+        // TODO: Bug 874000: Use DOMMMIResult for PIN/PIN2/PUK related
+        //       functionality.
+        break;
+      case RIL.MMI_KS_SC_CALL_FORWARDING:
+        // TODO: Bug 884343 - Use DOMMMIResult for Call Forwarding related
+        //       functionality.
+        break;
     }
 
-    Services.DOMRequest.fireSuccess(request, message.result);
+    if (success) {
+      let mmiResult = new DOMMMIResult(result);
+      Services.DOMRequest.fireSuccess(request, mmiResult);
+    } else {
+      let mmiError = Cc["@mozilla.org/dom/mmi-error;1"]
+                       .createInstance(Ci.nsIDOMMMIError);
+      mmiError.wrappedJSObject.init(result.serviceCode,
+                                    result.name,
+                                    result.message,
+                                    result.additionalInformation);
+      Services.DOMRequest.fireDetailedError(request, mmiError);
+    }
   },
 
   _getRandomId: function _getRandomId() {
@@ -1334,7 +1405,8 @@ RILContentHelper.prototype = {
 };
 
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory([RILContentHelper,
-                                                     DOMError]);
+                                                     DOMError,
+                                                     DOMMMIError]);
 
 let debug;
 if (DEBUG) {
