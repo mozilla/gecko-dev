@@ -747,4 +747,4 @@ pref("media.navigator.enabled", false);
 pref("media.peerconnection.enabled", false);
 
 // Make <audio> and <video> talk to the AudioChannelService.
-pref("media.useAudioChannelService", true);
+pref("media.useAudioChannelService", false);
