@@ -37,6 +37,7 @@ public:
   void FireSuccess(jsval aResult);
   void FireError(const nsAString& aError);
   void FireError(nsresult aError);
+  void FireDetailedError(nsIDOMDOMError* aError);
 
   DOMRequest(nsIDOMWindow* aWindow);
   DOMRequest();

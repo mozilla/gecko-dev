@@ -6659,7 +6659,8 @@ nsContentUtils::FindInternalContentViewer(const char* aType,
 #endif
 
 #ifdef MOZ_WIDGET_GONK
-  if (nsHTMLMediaElement::IsOmxSupportedType(nsDependentCString(aType))) {
+  if (nsHTMLMediaElement::IsOmxSupportedType(nsDependentCString(aType)) &&
+      !nsDependentCString(aType).EqualsASCII("audio/amr")) {
     docFactory = do_GetService("@mozilla.org/content/document-loader-factory;1");
     if (docFactory && aLoaderType) {
       *aLoaderType = TYPE_CONTENT;
