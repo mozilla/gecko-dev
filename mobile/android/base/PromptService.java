@@ -157,14 +157,14 @@ public class PromptService implements OnClickListener, OnCancelListener, OnItemC
                 GregorianCalendar calendar = new GregorianCalendar();
                 if (!TextUtils.isEmpty(mValue)) {
                     try {
-                        calendar.setTime(new SimpleDateFormat("kk:mm").parse(mValue));
+                        calendar.setTime(new SimpleDateFormat("HH:mm").parse(mValue));
                     } catch (Exception e) { }
                 }
                 input.setCurrentHour(calendar.get(GregorianCalendar.HOUR_OF_DAY));
                 input.setCurrentMinute(calendar.get(GregorianCalendar.MINUTE));
                 mView = (View)input;
             } else if (mType.equals("datetime-local") || mType.equals("datetime")) {
-                DateTimePicker input = new DateTimePicker(GeckoApp.mAppContext, "yyyy-MM-dd kk:mm", mValue,
+                 DateTimePicker input = new DateTimePicker(GeckoApp.mAppContext, "yyyy-MM-dd HH:mm", mValue,
                                                           DateTimePicker.PickersState.DATETIME);
                 input.toggleCalendar(true);
                 mView = (View)input;
@@ -237,7 +237,7 @@ public class PromptService implements OnClickListener, OnCancelListener, OnItemC
                 TimePicker tp = (TimePicker)mView;
                 GregorianCalendar calendar =
                     new GregorianCalendar(0,0,0,tp.getCurrentHour(),tp.getCurrentMinute());
-                return formatDateString("kk:mm",calendar);
+                return formatDateString("HH:mm",calendar);
             } else if (mType.equals("label")) {
                 return "";
             } else if (android.os.Build.VERSION.SDK_INT < 11 && mType.equals("date")) {
@@ -256,11 +256,11 @@ public class PromptService implements OnClickListener, OnCancelListener, OnItemC
                 } else if (mType.equals("week")) {
                     return formatDateString("yyyy-'W'ww",calendar);
                 } else if (mType.equals("datetime-local")) {
-                    return formatDateString("yyyy-MM-dd kk:mm",calendar);
+                    return formatDateString("yyyy-MM-dd HH:mm",calendar);
                 } else if (mType.equals("datetime")) {
                     calendar.set(GregorianCalendar.ZONE_OFFSET,0);
                     calendar.setTimeInMillis(dp.getTimeInMillis());
-                    return formatDateString("yyyy-MM-dd kk:mm",calendar);
+                    return formatDateString("yyyy-MM-dd HH:mm",calendar);
                 } else if (mType.equals("month")) {
                     return formatDateString("yyyy-MM",calendar);
                 }
