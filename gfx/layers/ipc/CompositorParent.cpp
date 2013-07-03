@@ -624,8 +624,8 @@ CompositorParent::AlignFixedLayersAtAnchorPoint(Layer* aLayer,
       return;
     }
 
-    gfxMatrix oldCumulativeTransform = ancestorTransform.Multiply(oldRootTransform);
-    gfxMatrix newCumulativeTransform = ancestorTransform.Multiply(newRootTransform);
+    gfxMatrix oldCumulativeTransform = ancestorTransform * oldRootTransform;
+    gfxMatrix newCumulativeTransform = ancestorTransform * newRootTransform;
     if (newCumulativeTransform.IsSingular()) {
       return;
     }
