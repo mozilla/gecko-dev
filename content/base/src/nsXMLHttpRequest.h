@@ -587,10 +587,11 @@ protected:
   public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIHTTPHEADERVISITOR
-    nsHeaderVisitor() { }
+    nsHeaderVisitor(bool aIsSystemXHR) : mIsSystemXHR(aIsSystemXHR) { }
     virtual ~nsHeaderVisitor() {}
     const nsACString &Headers() { return mHeaders; }
   private:
+    bool mIsSystemXHR;
     nsCString mHeaders;
   };
 
