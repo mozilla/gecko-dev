@@ -528,7 +528,7 @@ nsXMLHttpRequest::InitParameters(bool aAnon, bool aSystem)
 
   // Chrome is always allowed access, so do the permission check only
   // for non-chrome pages.
-  if (!nsContentUtils::IsCallerChrome()) {
+  if (!IsSystemXHR()) {
     nsCOMPtr<nsIDocument> doc = do_QueryInterface(window->GetExtantDocument());
     if (!doc) {
       return;
@@ -1400,7 +1400,7 @@ nsXMLHttpRequest::GetAllResponseHeaders(nsString& aResponseHeaders)
   }
 
   if (nsCOMPtr<nsIHttpChannel> httpChannel = GetCurrentHttpChannel()) {
-    nsRefPtr<nsHeaderVisitor> visitor = new nsHeaderVisitor();
+    nsRefPtr<nsHeaderVisitor> visitor = new nsHeaderVisitor(IsSystemXHR());
     if (NS_SUCCEEDED(httpChannel->VisitResponseHeaders(visitor))) {
       CopyASCIItoUTF16(visitor->Headers(), aResponseHeaders);
     }
@@ -1494,7 +1494,7 @@ nsXMLHttpRequest::GetResponseHeader(const nsACString& header,
   }
 
   // See bug #380418. Hide "Set-Cookie" headers from non-chrome scripts.
-  if (!nsContentUtils::IsCallerChrome() &&
+  if (!IsSystemXHR() &&
        (header.LowerCaseEqualsASCII("set-cookie") ||
         header.LowerCaseEqualsASCII("set-cookie2"))) {
     NS_WARNING("blocked access to response header");
@@ -3229,9 +3229,9 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
   // Prevent modification to certain HTTP headers (see bug 302263), unless
   // the executing script is privileged.
 
-  if (!nsContentUtils::IsCallerChrome()) {
+  if (!IsSystemXHR()) {
     // Step 5: Check for dangerous headers.
-    const char *kInvalidHeaders[] = {
+    static const char *kInvalidHeaders[] = {
       "accept-charset", "accept-encoding", "access-control-request-headers",
       "access-control-request-method", "connection", "content-length",
       "cookie", "cookie2", "content-transfer-encoding", "date", "dnt",
@@ -3454,7 +3454,7 @@ nsXMLHttpRequest::SetMozBackgroundRequest(bool aMozBackgroundRequest)
 void
 nsXMLHttpRequest::SetMozBackgroundRequest(bool aMozBackgroundRequest, nsresult& aRv)
 {
-  if (!nsContentUtils::IsCallerChrome()) {
+  if (!IsSystemXHR()) {
     aRv = NS_ERROR_DOM_SECURITY_ERR;
     return;
   }
@@ -4057,7 +4057,7 @@ NS_IMETHODIMP nsXMLHttpRequest::
 nsHeaderVisitor::VisitHeader(const nsACString &header, const nsACString &value)
 {
     // See bug #380418. Hide "Set-Cookie" headers from non-chrome scripts.
-    if (!nsContentUtils::IsCallerChrome() &&
+    if (!mIsSystemXHR &&
          (header.LowerCaseEqualsASCII("set-cookie") ||
           header.LowerCaseEqualsASCII("set-cookie2"))) {
         NS_WARNING("blocked access to response header");
