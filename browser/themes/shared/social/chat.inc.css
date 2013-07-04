@@ -87,6 +87,10 @@
   }
 }
 
+.chatbar-button > .toolbarbutton-icon {
+  width: 16px;
+}
+
 .chatbar-button > menupopup > .menuitem-iconic > .menu-iconic-left > .menu-iconic-icon {
   width: auto;
   height: auto;
