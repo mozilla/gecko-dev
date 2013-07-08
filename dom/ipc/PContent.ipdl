@@ -296,6 +296,7 @@ child:
      * MemoryInfoDumper::dumpGCAndCCLogsToFile.
      */
     async DumpGCAndCCLogsToFile(nsString identifier,
+                                bool dumpAllTraces,
                                 bool dumpChildProcesses);
 
     PTestShell();

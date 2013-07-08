@@ -511,10 +511,11 @@ ContentChild::RecvDumpMemoryReportsToFile(const nsString& aIdentifier,
 
 bool
 ContentChild::RecvDumpGCAndCCLogsToFile(const nsString& aIdentifier,
+                                        const bool& aDumpAllTraces,
                                         const bool& aDumpChildProcesses)
 {
     MemoryInfoDumper::DumpGCAndCCLogsToFile(
-        aIdentifier, aDumpChildProcesses);
+        aIdentifier, aDumpAllTraces, aDumpChildProcesses);
     return true;
 }
 
