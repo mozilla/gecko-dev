@@ -53,6 +53,8 @@ using mozilla::DefaultXDisplay;
 #include "nsIDOMHTMLObjectElement.h"
 #include "nsIAppShell.h"
 #include "nsIDOMHTMLAppletElement.h"
+#include "nsIObjectLoadingContent.h"
+#include "nsObjectLoadingContent.h"
 #include "nsAttrName.h"
 #include "nsIFocusManager.h"
 #include "nsFocusManager.h"
@@ -1160,6 +1162,11 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
     mNumCachedAttrs = 0xFFFD;
   }
 
+  // Check if we are java for special codebase handling
+  const char* mime = nullptr;
+  bool isJava = NS_SUCCEEDED(mInstance->GetMIMEType(&mime)) && mime &&
+                nsPluginHost::IsJavaMIMEType(mime);
+
   // now, we need to find all the PARAM tags that are children of us
   // however, be careful not to include any PARAMs that don't have us
   // as a direct parent. For nested object (or applet) tags, be sure
@@ -1252,6 +1259,28 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
     mNumCachedAttrs++;
   }
 
+  // (Bug 738396) java has quirks in its codebase parsing, pass the
+  // absolute codebase URI as content sees it.
+  bool addCodebase = false;
+  nsCAutoString codebaseStr;
+  if (isJava) {
+    nsCOMPtr<nsIObjectLoadingContent> objlc = do_QueryInterface(mContent);
+    NS_ENSURE_TRUE(objlc, NS_ERROR_UNEXPECTED);
+    // XXX(johns): This is on nsIObjectLoadingContent on trunk, but this
+    //             temporary hack is used on branches where we know nsIObjLC is
+    //             provided by a local nsObjLC class to avoid changing the IID
+    nsObjectLoadingContent *objlc_direct =
+      static_cast<nsObjectLoadingContent *>(objlc.get());
+    nsCOMPtr<nsIURI> codebaseURI;
+    nsresult rv = objlc_direct->GetBaseURI(getter_AddRefs(codebaseURI));
+    NS_ENSURE_SUCCESS(rv, rv);
+    codebaseURI->GetSpec(codebaseStr);
+    if (!mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::codebase)) {
+      mNumCachedAttrs++;
+      addCodebase = true;
+    }
+  }
+
   mCachedAttrParamNames  = (char**)NS_Alloc(sizeof(char*) * (mNumCachedAttrs + 1 + mNumCachedParams));
   NS_ENSURE_TRUE(mCachedAttrParamNames,  NS_ERROR_OUT_OF_MEMORY);
   mCachedAttrParamValues = (char**)NS_Alloc(sizeof(char*) * (mNumCachedAttrs + 1 + mNumCachedParams));
@@ -1296,7 +1325,7 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
     FixUpURLS(name, value);
 
     mCachedAttrParamNames [nextAttrParamIndex] = ToNewUTF8String(name);
-    if (!wmodeType.IsEmpty() && 
+    if (!wmodeType.IsEmpty() &&
         0 == PL_strcasecmp(mCachedAttrParamNames[nextAttrParamIndex], "wmode")) {
       mCachedAttrParamValues[nextAttrParamIndex] = ToNewUTF8String(NS_ConvertUTF8toUTF16(wmodeType));
 
@@ -1305,9 +1334,18 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
         mNumCachedAttrs--;
         wmodeSet = true;
       }
+    } else if (isJava && 0 == PL_strcasecmp(mCachedAttrParamNames[nextAttrParamIndex], "codebase")) {
+      mCachedAttrParamValues[nextAttrParamIndex] = ToNewUTF8String(NS_ConvertUTF8toUTF16(codebaseStr));
     } else {
       mCachedAttrParamValues[nextAttrParamIndex] = ToNewUTF8String(value);
     }
+    nextAttrParamIndex++;
+  }
+
+  // Potentially add CODEBASE attribute
+  if (addCodebase) {
+    mCachedAttrParamNames [nextAttrParamIndex] = ToNewUTF8String(NS_LITERAL_STRING("codebase"));
+    mCachedAttrParamValues[nextAttrParamIndex] = ToNewUTF8String(NS_ConvertUTF8toUTF16(codebaseStr));
     nextAttrParamIndex++;
   }
 
@@ -1336,7 +1374,10 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
   nextAttrParamIndex++;
 
   // Add PARAM name/value pairs.
-  for (uint16_t i = 0; i < mNumCachedParams; i++) {
+
+  // We may decrement mNumCachedParams below
+  uint16_t totalParams = mNumCachedParams;
+  for (uint16_t i = 0; i < totalParams; i++) {
     nsIDOMElement* param = ourParams.ObjectAt(i);
     if (!param) {
       continue;
@@ -1346,7 +1387,7 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
     nsAutoString value;
     param->GetAttribute(NS_LITERAL_STRING("name"), name); // check for empty done above
     param->GetAttribute(NS_LITERAL_STRING("value"), value);
-    
+
     FixUpURLS(name, value);
 
     /*
@@ -1361,6 +1402,12 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
      */
     name.Trim(" \n\r\t\b", true, true, false);
     value.Trim(" \n\r\t\b", true, true, false);
+    if (isJava && name.EqualsIgnoreCase("codebase")) {
+      // We inserted normalized codebase above, don't include other versions in
+      // params
+      mNumCachedParams--;
+      continue;
+    }
     mCachedAttrParamNames [nextAttrParamIndex] = ToNewUTF8String(name);
     mCachedAttrParamValues[nextAttrParamIndex] = ToNewUTF8String(value);
     nextAttrParamIndex++;

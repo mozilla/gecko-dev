@@ -973,6 +973,13 @@ nsObjectLoadingContent::GetContentTypeForMIMEType(const nsACString& aMIMEType,
   return NS_OK;
 }
 
+nsresult
+nsObjectLoadingContent::GetBaseURI(nsIURI **aResult)
+{
+  NS_IF_ADDREF(*aResult = mBaseURI);
+  return NS_OK;
+}
+
 // nsIInterfaceRequestor
 NS_IMETHODIMP
 nsObjectLoadingContent::GetInterface(const nsIID & aIID, void **aResult)
