@@ -7,6 +7,7 @@ import os
 import re
 import functools
 import sys
+import socket
 import time
 import types
 import unittest
@@ -247,14 +248,23 @@ permissions.forEach(function (perm) {
         self._deleteSession()
 
     def _deleteSession(self):
-        self.duration = time.time() - self.start_time
+        if hasattr(self, 'start_time'):
+            self.duration = time.time() - self.start_time
         if hasattr(self.marionette, 'session'):
             if self.marionette.session is not None:
                 try:
                     self.loglines = self.marionette.get_logs()
                 except Exception, inst:
                     self.loglines = [['Error getting log: %s' % inst]]
-                self.marionette.delete_session()
+                try:
+                    self.marionette.delete_session()
+                except (socket.error, MarionetteException):
+                    # Gecko has crashed?
+                    self.marionette.session = None
+                    try:
+                        self.marionette.client.close()
+                    except socket.error:
+                        pass
         self.marionette = None
 
 class MarionetteTestCase(CommonTestCase):
@@ -379,7 +389,10 @@ class MarionetteJSTestCase(CommonTestCase):
             self.marionette.set_script_timeout(timeout)
 
         try:
-            results = self.marionette.execute_js_script(js, args, special_powers=True)
+            results = self.marionette.execute_js_script(js,
+                                                        args,
+                                                        special_powers=True,
+                                                        filename=os.path.basename(self.jsFile))
 
             self.assertTrue(not 'timeout' in self.jsFile,
                             'expected timeout not triggered')
