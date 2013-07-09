@@ -122,6 +122,12 @@ static const uint64_t GC_IDLE_FULL_SPAN = 20 * 1000 * 1000;
 /* Increase the IGC marking slice time if we are in highFrequencyGC mode. */
 const int IGC_MARK_SLICE_MULTIPLIER = 2;
 
+#if defined(ANDROID) || defined(MOZ_B2G)
+static const int MAX_EMPTY_CHUNK_COUNT = 2;
+#else
+static const int MAX_EMPTY_CHUNK_COUNT = 30;
+#endif
+
 #ifdef JS_GC_ZEAL
 static void
 StartVerifyPreBarriers(JSRuntime *rt);
@@ -556,13 +562,16 @@ ChunkPool::expire(JSRuntime *rt, bool releaseAll)
      * and are more likely to reach the max age.
      */
     Chunk *freeList = NULL;
+    int freeChunkCount = 0;
     for (Chunk **chunkp = &emptyChunkListHead; *chunkp; ) {
         JS_ASSERT(emptyCount);
         Chunk *chunk = *chunkp;
         JS_ASSERT(chunk->unused());
         JS_ASSERT(!rt->gcChunkSet.has(chunk));
         JS_ASSERT(chunk->info.age <= MAX_EMPTY_CHUNK_AGE);
-        if (releaseAll || chunk->info.age == MAX_EMPTY_CHUNK_AGE) {
+        if (releaseAll || chunk->info.age == MAX_EMPTY_CHUNK_AGE ||
+            freeChunkCount++ > MAX_EMPTY_CHUNK_COUNT)
+        {
             *chunkp = chunk->info.next;
             --emptyCount;
             chunk->prepareToBeFreed(rt);
