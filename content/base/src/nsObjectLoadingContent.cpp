@@ -1678,7 +1678,7 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
   //
 
   if (mType != eType_Null) {
-    bool allowLoad = false;
+    bool allowLoad = true;
     if (nsPluginHost::IsJavaMIMEType(mContentType.get())) {
       nsCOMPtr<nsIScriptSecurityManager> secMan =
         nsContentUtils::GetSecurityManager();
