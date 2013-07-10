@@ -514,6 +514,11 @@ NS_IMETHODIMP nsCocoaWindow::Destroy()
     mPopupContentView->Destroy();
 
   nsBaseWidget::Destroy();
+  // nsBaseWidget::Destroy() calls GetParent()->RemoveChild(this). But we
+  // don't implement GetParent(), so we need to do the equivalent here.
+  if (mParent) {
+    mParent->RemoveChild(this);
+  }
   nsBaseWidget::OnDestroy();
 
   if (mFullScreen) {
@@ -532,11 +537,6 @@ NS_IMETHODIMP nsCocoaWindow::Destroy()
   }
 
   return NS_OK;
-}
-
-nsIWidget* nsCocoaWindow::GetParent()
-{
-  return mParent;
 }
 
 nsIWidget* nsCocoaWindow::GetSheetWindowParent(void)

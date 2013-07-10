@@ -216,8 +216,6 @@ public:
 
     NS_IMETHOD              Destroy();
 
-    virtual nsIWidget*      GetParent(void);
-
     NS_IMETHOD              Show(bool aState);
     virtual nsIWidget*      GetSheetWindowParent(void);
     NS_IMETHOD              Enable(bool aState);
