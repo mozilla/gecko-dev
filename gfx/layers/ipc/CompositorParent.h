@@ -223,22 +223,23 @@ private:
    */
   static CompositorParent* RemoveCompositor(uint64_t id);
 
-  /**
+   /**
    * Return true if current state allows compositing, that is
    * finishing a layers transaction.
    */
   bool CanComposite();
 
+  // Platform specific functions
   /**
-   * Adds a translation to the transform of any fixed-pos layer descendant of
-   * aTransformedSubtreeRoot whose parent layer is not fixed. The translation is
-   * chosen so that the layer's anchor point relative to aTransformedSubtreeRoot's
-   * parent layer is the same as it was when aTransformedSubtreeRoot's
-   * GetLocalTransform() was aPreviousTransformForRoot.
+   * Recursively applies the given translation to all top-level fixed position
+   * layers that are descendants of the given layer.
+   * aScaleDiff is considered to be the scale transformation applied when
+   * displaying the layers, and is used to make sure the anchor points of
+   * fixed position layers remain in the same position.
    */
-  void AlignFixedLayersAtAnchorPoint(Layer* aLayer,
-                                     Layer* aTransformedSubtreeRoot,
-                                     const gfx3DMatrix& aPreviousTransformForRoot);
+  void TransformFixedLayers(Layer* aLayer,
+                            const gfxPoint& aTranslation,
+                            const gfxSize& aScaleDiff);
 
   virtual PGrallocBufferParent* AllocPGrallocBuffer(
     const gfxIntSize&, const uint32_t&, const uint32_t&,
