@@ -1987,8 +1987,11 @@ void nsBuiltinDecoderStateMachine::DecodeSeek()
     }
   }
   mDecoder->StartProgressUpdates();
-  if (mState == DECODER_STATE_DORMANT || mState == DECODER_STATE_SHUTDOWN)
+  if (mState == DECODER_STATE_DECODING_METADATA ||
+      mState == DECODER_STATE_DORMANT ||
+      mState == DECODER_STATE_SHUTDOWN) {
     return;
+  }
 
   // Try to decode another frame to detect if we're at the end...
   LOG(PR_LOG_DEBUG, ("%p Seek completed, mCurrentFrameTime=%lld\n",
