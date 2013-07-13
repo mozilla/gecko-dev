@@ -624,7 +624,7 @@ struct JSDumpHeapTracer : public JSTracer {
     PtrSet visited;
     FILE   *output;
     Vector<DumpingChildInfo, 0, SystemAllocPolicy> nodes;
-    char   buffer[200];
+    char   buffer[1024 * 32];
     bool   rootTracing;
 
     JSDumpHeapTracer(FILE *fp)

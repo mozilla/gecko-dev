@@ -41,6 +41,7 @@ public:
 
   // Call these on any thread.
   void SetCurrentFrame(const gfxIntSize& aIntrinsicSize, Image* aImage);
+  void ClearCurrentFrame();
 
 protected:
   // mMutex protects all the class' fields.
