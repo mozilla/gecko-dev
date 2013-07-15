@@ -824,7 +824,10 @@ MobileMessageDatabaseService.prototype = {
     // and local(0987654321) types. The "nationalNumber" parsed from
     // phonenumberutils will be "987654321" in this case.
 
-    let request = aParticipantStore.index("addresses").get(aAddress);
+    // Normalize address before searching for participant record.
+    let normalizedAddress = PhoneNumberUtils.normalize(aAddress, false);
+
+    let request = aParticipantStore.index("addresses").get(normalizedAddress);
     request.onsuccess = (function (event) {
       let participantRecord = event.target.result;
       // 1) First try matching through "addresses" index of participant store.
@@ -838,8 +841,8 @@ MobileMessageDatabaseService.prototype = {
         return;
       }
 
-      // Only parse aAddress if it's already an international number.
-      let parsedAddress = PhoneNumberUtils.parseWithMCC(aAddress, null);
+      // Only parse normalizedAddress if it's already an international number.
+      let parsedAddress = PhoneNumberUtils.parseWithMCC(normalizedAddress, null);
       // 2) Traverse throught all participants and check all alias addresses.
       aParticipantStore.openCursor().onsuccess = (function (event) {
         let cursor = event.target.result;
@@ -850,7 +853,7 @@ MobileMessageDatabaseService.prototype = {
             return;
           }
 
-          let participantRecord = { addresses: [aAddress] };
+          let participantRecord = { addresses: [normalizedAddress] };
           let addRequest = aParticipantStore.add(participantRecord);
           addRequest.onsuccess = function (event) {
             participantRecord.id = event.target.result;
@@ -881,7 +884,7 @@ MobileMessageDatabaseService.prototype = {
             let parsedStoredAddress =
               PhoneNumberUtils.parseWithMCC(storedAddress, null);
             if (parsedStoredAddress
-                && aAddress.endsWith(parsedStoredAddress.nationalNumber)) {
+                && normalizedAddress.endsWith(parsedStoredAddress.nationalNumber)) {
               match = true;
             }
           }
@@ -894,7 +897,7 @@ MobileMessageDatabaseService.prototype = {
           if (aCreate) {
             // In a READ-WRITE transaction, append one more possible address for
             // this participant record.
-            participantRecord.addresses.push(aAddress);
+            participantRecord.addresses.push(normalizedAddress);
             cursor.update(participantRecord);
           }
           if (DEBUG) {
