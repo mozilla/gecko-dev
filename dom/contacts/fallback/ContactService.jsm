@@ -226,7 +226,8 @@ this.DOMContactManager = {
               requestID: msg.requestID,
               revision: revision
             });
-          }
+          },
+          function(aErrorMsg) { mm.sendAsyncMessage("Contacts:GetRevision:Return:KO", { requestID: msg.requestID, errorMsg: aErrorMsg }); }.bind(this)
         );
         break;
       case "Contacts:RegisterForMessages":
