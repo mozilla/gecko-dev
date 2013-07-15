@@ -824,8 +824,26 @@ MobileMessageDatabaseService.prototype = {
     // and local(0987654321) types. The "nationalNumber" parsed from
     // phonenumberutils will be "987654321" in this case.
 
-    let request = aParticipantStore.index("addresses").get(aAddress);
-    request.onsuccess = (function (event) {
+    // Normalize address before searching for participant record.
+    let normalizedAddress = PhoneNumberUtils.normalize(aAddress, false);
+    let allPossibleAddresses = [normalizedAddress];
+    let parsedAddress = PhoneNumberUtils.parse(normalizedAddress);
+    if (parsedAddress &&
+        allPossibleAddresses.indexOf(parsedAddress.internationalNumber) < 0) {
+      // We only stores international numbers into participant store because
+      // the parsed national number doesn't contain country info and may
+      // duplicate in different country.
+      allPossibleAddresses.push(parsedAddress.internationalNumber);
+    }
+    if (DEBUG) {
+      debug("findParticipantRecordByAddress: allPossibleAddresses = " +
+            JSON.stringify(allPossibleAddresses));
+    }
+
+    // Make a copy here because we may need allPossibleAddresses again.
+    let needles = allPossibleAddresses.slice(0);
+    let request = aParticipantStore.index("addresses").get(needles.pop());
+    request.onsuccess = (function onsuccess(event) {
       let participantRecord = event.target.result;
       // 1) First try matching through "addresses" index of participant store.
       //    If we're lucky, return the fetched participant record.
@@ -838,8 +856,13 @@ MobileMessageDatabaseService.prototype = {
         return;
       }
 
-      // Only parse aAddress if it's already an international number.
-      let parsedAddress = PhoneNumberUtils.parseWithMCC(aAddress, null);
+      // Try next possible address again.
+      if (needles.length) {
+        let request = aParticipantStore.index("addresses").get(needles.pop());
+        request.onsuccess = onsuccess.bind(this);
+        return;
+      }
+
       // 2) Traverse throught all participants and check all alias addresses.
       aParticipantStore.openCursor().onsuccess = (function (event) {
         let cursor = event.target.result;
@@ -850,7 +873,7 @@ MobileMessageDatabaseService.prototype = {
             return;
           }
 
-          let participantRecord = { addresses: [aAddress] };
+          let participantRecord = { addresses: [normalizedAddress] };
           let addRequest = aParticipantStore.add(participantRecord);
           addRequest.onsuccess = function (event) {
             participantRecord.id = event.target.result;
@@ -864,7 +887,7 @@ MobileMessageDatabaseService.prototype = {
         }
 
         let participantRecord = cursor.value;
-        for each (let storedAddress in participantRecord.addresses) {
+        for (let storedAddress of participantRecord.addresses) {
           let match = false;
           if (parsedAddress) {
             // 2-1) If input number is an international one, then a potential
@@ -881,7 +904,7 @@ MobileMessageDatabaseService.prototype = {
             let parsedStoredAddress =
               PhoneNumberUtils.parseWithMCC(storedAddress, null);
             if (parsedStoredAddress
-                && aAddress.endsWith(parsedStoredAddress.nationalNumber)) {
+                && normalizedAddress.endsWith(parsedStoredAddress.nationalNumber)) {
               match = true;
             }
           }
@@ -894,11 +917,12 @@ MobileMessageDatabaseService.prototype = {
           if (aCreate) {
             // In a READ-WRITE transaction, append one more possible address for
             // this participant record.
-            participantRecord.addresses.push(aAddress);
+            participantRecord.addresses =
+              participantRecord.addresses.concat(allPossibleAddresses);
             cursor.update(participantRecord);
           }
           if (DEBUG) {
-            debug("findParticipantRecordByAddress: got "
+            debug("findParticipantRecordByAddress: match "
                   + JSON.stringify(cursor.value));
           }
           aCallback(participantRecord);
