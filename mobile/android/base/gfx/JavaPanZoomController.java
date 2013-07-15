@@ -804,7 +804,11 @@ class JavaPanZoomController
         if (FloatUtils.fuzzyEquals(displacement.x, 0.0f) && FloatUtils.fuzzyEquals(displacement.y, 0.0f)) {
             return;
         }
-        if (! mSubscroller.scrollBy(displacement)) {
+        if (mSubscroller.scrollBy(displacement)) {
+            synchronized (mTarget.getLock()) {
+                mTarget.onSubdocumentScrollBy(displacement.x, displacement.y);
+            }
+        } else {
             synchronized (mTarget.getLock()) {
                 scrollBy(displacement.x, displacement.y);
             }
