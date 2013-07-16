@@ -708,8 +708,8 @@ PeerConnection.prototype = {
     }
 
     if (dict.maxRetransmitTime != undefined &&
-        dict.maxRetransmitNum != undefined) {
-      throw new Components.Exception("Both maxRetransmitTime and maxRetransmitNum cannot be provided");
+        dict.maxRetransmits != undefined) {
+      throw new Components.Exception("Both maxRetransmitTime and maxRetransmits cannot be provided");
     }
     let protocol;
     if (dict.protocol == undefined) {
@@ -722,7 +722,7 @@ PeerConnection.prototype = {
     let type;
     if (dict.maxRetransmitTime != undefined) {
       type = Ci.IPeerConnection.kDataChannelPartialReliableTimed;
-    } else if (dict.maxRetransmitNum != undefined) {
+    } else if (dict.maxRetransmits != undefined) {
       type = Ci.IPeerConnection.kDataChannelPartialReliableRexmit;
     } else {
       type = Ci.IPeerConnection.kDataChannelReliable;
@@ -730,9 +730,9 @@ PeerConnection.prototype = {
 
     // Synchronous since it doesn't block.
     let channel = this._getPC().createDataChannel(
-      label, protocol, type, dict.outOfOrderAllowed, dict.maxRetransmitTime,
-      dict.maxRetransmitNum, dict.preset ? true : false,
-      dict.stream != undefined ? dict.stream : 0xFFFF
+      label, protocol, type, !dict.ordered, dict.maxRetransmitTime,
+      dict.maxRetransmits, dict.negotiated ? true : false,
+      dict.id != undefined ? dict.id : 0xFFFF
     );
     return channel;
   },
