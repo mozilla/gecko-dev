@@ -27,6 +27,7 @@ EXPORTS_mozilla/dom = \
   $(NULL)
 
 EXTRA_COMPONENTS = \
+  ActivityMessageConfigurator.js \
   ActivityOptions.js \
   ActivityProxy.js \
   ActivityRequestHandler.js \
