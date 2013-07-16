@@ -458,6 +458,13 @@ GetNativeForGlobal(JSObject *global);
  */
 JSObject *
 GetJunkScope();
+
+/**
+ * Returns the native global of the junk scope. See comment of GetJunkScope
+ * about the conditions of using it.
+ */
+nsIGlobalObject *
+GetJunkScopeGlobal();
 } // namespace xpc
 
 nsCycleCollectionParticipant *
