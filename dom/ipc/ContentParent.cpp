@@ -789,7 +789,7 @@ ContentParent::TransformPreallocatedIntoApp(const nsAString& aAppManifestURL,
 }
 
 void
-ContentParent::ShutDownProcess(bool aFromActorDestroyed)
+ContentParent::ShutDownProcess(bool aCloseWithError)
 {
   if (!mIsDestroyed) {
     mIsDestroyed = true;
@@ -800,9 +800,7 @@ ContentParent::ShutDownProcess(bool aFromActorDestroyed)
       static_cast<IndexedDBParent*>(idbParents[i])->Disconnect();
     }
 
-    if (aFromActorDestroyed) {
-      // If ActorDestroyed() is calling this method but mIsDestroyed was false,
-      // we're in an error state.
+    if (aCloseWithError) {
       AsyncChannel* channel = GetIPCChannel();
       if (channel) {
         channel->CloseWithError();
@@ -1016,7 +1014,7 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
     // If the child process was terminated due to a SIGKIL, ShutDownProcess
     // might not have been called yet.  We must call it to ensure that our
     // channel is closed, etc.
-    ShutDownProcess(/* aForce = */ true);
+    ShutDownProcess(/* closeWithError */ true);
 
     MessageLoop::current()->
         PostTask(FROM_HERE,
@@ -1539,7 +1537,7 @@ ContentParent::Observe(nsISupports* aSubject,
                        const PRUnichar* aData)
 {
     if (!strcmp(aTopic, "xpcom-shutdown") && mSubprocess) {
-        ShutDownProcess(/* force */ false);
+        ShutDownProcess(/* closeWithError */ false);
         NS_ASSERTION(!mSubprocess, "Close should have nulled mSubprocess");
     }
 
@@ -1914,6 +1912,12 @@ ContentParent::KillHard()
         FROM_HERE,
         NewRunnableFunction(&ProcessWatcher::EnsureProcessTerminated,
                             OtherProcess(), /*force=*/true));
+    //We do clean-up here 
+    MessageLoop::current()->PostDelayedTask(
+        FROM_HERE,
+        NewRunnableMethod(this, &ContentParent::ShutDownProcess,
+                          /* closeWithError */ true),
+        3000);
 }
 
 bool
