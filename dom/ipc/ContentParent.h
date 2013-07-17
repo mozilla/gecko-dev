@@ -17,6 +17,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/HalTypes.h"
 #include "mozilla/LinkedList.h"
+#include "mozilla/StaticPtr.h"
 
 #include "nsFrameMessageManager.h"
 #include "nsIObserver.h"
@@ -175,7 +176,7 @@ private:
     static nsDataHashtable<nsStringHashKey, ContentParent*> *sAppContentParents;
     static nsTArray<ContentParent*>* sNonAppContentParents;
     static nsTArray<ContentParent*>* sPrivateContent;
-    static LinkedList<ContentParent> sContentParents;
+    static StaticAutoPtr<LinkedList<ContentParent> > sContentParents;
 
     static void JoinProcessesIOThread(const nsTArray<ContentParent*>* aProcesses,
                                       Monitor* aMonitor, bool* aDone);
