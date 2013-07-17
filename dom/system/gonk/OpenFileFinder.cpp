@@ -13,6 +13,11 @@
 namespace mozilla {
 namespace system {
 
+// Hack for b2g18 tree. ReadSysFile is available from FileUtils.h in
+// mozilla-central, but that particular change wasn't backported into b2g18.
+// Since AutoMounter.cpp in b2g18 has a version of ReadSysFile we use that one.
+extern bool ReadSysFile(const char* aFilename, char* aBuf, size_t aBufSize);
+
 OpenFileFinder::OpenFileFinder(const nsACString& aPath)
   : mPath(aPath),
     mProcDir(nullptr),

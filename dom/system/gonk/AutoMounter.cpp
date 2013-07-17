@@ -93,7 +93,7 @@ class AutoMounter;
 *
 **************************************************************************/
 
-static bool
+bool
 ReadSysFile(const char* aFilename, char* aBuf, size_t aBufSize)
 {
   int fd = open(aFilename, O_RDONLY);
