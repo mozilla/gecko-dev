@@ -161,10 +161,6 @@ protected:
                        const nsAString& aOptions,
                        nsIInputStream** aStream,
                        bool& aFellBackToPNG);
-  nsresult ParseParams(const nsAString& aType,
-                       nsIVariant* aEncoderOptions,
-                       nsAString& aParams,
-                       bool* usingCustomParseOptions);
   nsresult ToDataURLImpl(const nsAString& aMimeType,
                          nsIVariant* aEncoderOptions,
                          nsAString& aDataURL);
