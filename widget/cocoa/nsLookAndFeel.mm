@@ -477,8 +477,7 @@ bool nsLookAndFeel::UseOverlayScrollbars()
 
 bool nsLookAndFeel::SystemWantsOverlayScrollbars()
 {
-  return ([NSScroller respondsToSelector:@selector(preferredScrollerStyle)] &&
-          [NSScroller preferredScrollerStyle] == mozNSScrollerStyleOverlay);
+  return false;
 }
 
 bool nsLookAndFeel::AllowOverlayScrollbarsOverlap()
