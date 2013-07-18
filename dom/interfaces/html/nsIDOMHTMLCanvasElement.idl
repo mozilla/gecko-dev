@@ -70,6 +70,10 @@ interface nsIDOMHTMLCanvasElement : nsIDOMHTMLElement
   [optional_argc] nsIDOMFile mozGetAsFile(in DOMString name,
                                           [optional] in DOMString type);
 
+  // Valid calls are:
+  //  toBlob();              -- defaults to image/png
+  //  toBlob(type);          -- uses given type
+  //  toBlob(type, params);  -- uses given type, and any valid parameters
   [optional_argc] void toBlob(in nsIFileCallback callback,
                               [optional] in DOMString type,
                               [optional] in nsIVariant params);
