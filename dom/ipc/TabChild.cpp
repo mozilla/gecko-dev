@@ -1513,9 +1513,15 @@ TabChild::UpdateTapState(const nsTouchEvent& aEvent, nsEventStatus aStatus)
 void
 TabChild::FireContextMenuEvent()
 {
+  double scale;
+  GetDefaultScale(&scale);
+  if (scale < 0) {
+    scale = 1;
+  }
+
   MOZ_ASSERT(mTapHoldTimer && mActivePointerId >= 0);
   bool defaultPrevented = DispatchMouseEvent(NS_LITERAL_STRING("contextmenu"),
-                                             mGestureDownPoint.x, mGestureDownPoint.y,
+                                             mGestureDownPoint.x / scale, mGestureDownPoint.y / scale,
                                              2 /* Right button */,
                                              1 /* Click count */,
                                              0 /* Modifiers */,
