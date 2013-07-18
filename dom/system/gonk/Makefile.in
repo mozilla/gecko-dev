@@ -67,6 +67,7 @@ CPPSRCS += \
   nsVolumeMountLock.cpp \
   nsVolumeService.cpp \
   nsVolumeStat.cpp \
+  OpenFileFinder.cpp \
   TimeZoneSettingObserver.cpp \
   Volume.cpp \
   VolumeCommand.cpp \
