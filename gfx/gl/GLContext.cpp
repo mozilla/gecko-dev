@@ -517,12 +517,6 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
             // for good measure, we align renderbuffers on what we do for 2D textures
             mMaxRenderbufferSize   = NS_MIN(mMaxRenderbufferSize,   4096);
             mNeedsTextureSizeChecks = true;
-        } else if (mWorkAroundDriverBugs &&
-                   mVendor == VendorNVIDIA) {
-            // See bug 879656.  8192 fails, 8191 works.
-            mMaxTextureSize = NS_MIN(mMaxTextureSize, 8191);
-            mMaxRenderbufferSize = NS_MIN(mMaxRenderbufferSize, 8191);
-            mNeedsTextureSizeChecks = true;
         }
 #endif
 #ifdef MOZ_X11
