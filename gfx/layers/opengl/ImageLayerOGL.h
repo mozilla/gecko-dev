@@ -217,6 +217,10 @@ private:
   // that binding of the external target must happen after the draw is
   // completed, otherwise garbage might be drawn.
   android::sp<GraphicBuffer> mDummyGrallocBuffer;
+
+  // Keep a pointer to the underlying gralloc buffer so that it
+  // can be passed into the Composer2D API.
+  android::sp<GraphicBuffer> mFrontGraphicBuffer;
 #endif
 
   GLTexture mYUVTexture[3];
