@@ -2210,10 +2210,6 @@ nsGlobalWindow::NeuterStorageInstances()
     mLocalStorage->MarkOwnerDead();
     mLocalStorage = nullptr;
   }
-  if (mSessionStorage) {
-    mSessionStorage->MarkOwnerDead();
-    mSessionStorage = nullptr;
-  }
 }
 
 void

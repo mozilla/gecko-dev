@@ -782,6 +782,16 @@ ShadowImageLayerOGL::Swap(const SharedImage& aNewFront,
             mTexImage->GetContentType() != surf.ContentType()) {
           Init(aNewFront);
         }
+
+#ifdef MOZ_WIDGET_GONK
+        if (surface.type() == SurfaceDescriptor::TSurfaceDescriptorGralloc) {
+          const SurfaceDescriptorGralloc& desc = surface.get_SurfaceDescriptorGralloc();
+          mFrontGraphicBuffer = GrallocBufferActor::GetFrom(desc);
+        } else {
+          mFrontGraphicBuffer = nullptr;
+        }
+#endif
+
         // XXX this is always just ridiculously slow
         nsIntRegion updateRegion(nsIntRect(0, 0, size.width, size.height));
         mTexImage->DirectUpdate(surf.Get(), updateRegion);
@@ -819,6 +829,13 @@ ShadowImageLayerOGL::GetLayer()
 LayerRenderState
 ShadowImageLayerOGL::GetRenderState()
 {
+
+#ifdef MOZ_WIDGET_GONK
+  if (mFrontGraphicBuffer.get()) {
+    return LayerRenderState(mFrontGraphicBuffer.get());
+  }
+#endif
+
   if (!mImageContainerID) {
     return LayerRenderState();
   }
@@ -1188,6 +1205,9 @@ ShadowImageLayerOGL::CleanupResources()
   mYUVTexture[1].Release();
   mYUVTexture[2].Release();
   mTexImage = nullptr;
+#ifdef MOZ_WIDGET_GONK
+  mFrontGraphicBuffer = nullptr;
+#endif
 }
 
 } /* layers */

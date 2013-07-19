@@ -17,6 +17,10 @@
 #include <windows.h>
 #endif
 
+#ifdef MOZ_WIDGET_GONK
+#include <ui/GraphicBuffer.h>
+#endif
+
 /**
  * We don't include GLDefs.h here since we don't want to drag in all defines
  * in for all our users.
@@ -494,6 +498,15 @@ struct LayerRenderState {
     , mHasOwnOffset(false)
   {}
 
+#ifdef MOZ_WIDGET_GONK
+  LayerRenderState(android::GraphicBuffer* aSurface, uint32_t aFlags = 0)
+      : mSurface(nullptr)
+      , mFlags(aFlags)
+      , mHasOwnOffset(false)
+      , mGraphicBuffer(aSurface)
+    {}
+#endif
+
   LayerRenderState(SurfaceDescriptor* aSurface, nsIntPoint aOffset, uint32_t aFlags = 0)
     : mSurface(aSurface)
     , mFlags(aFlags)
@@ -511,6 +524,9 @@ struct LayerRenderState {
   uint32_t mFlags;
   nsIntPoint mOffset;
   bool mHasOwnOffset;
+#ifdef MOZ_WIDGET_GONK
+  android::sp<android::GraphicBuffer> mGraphicBuffer;
+#endif
 };
 
 /**

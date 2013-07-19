@@ -142,6 +142,7 @@ public:
    */
   static void
   DumpGCAndCCLogsToFile(const nsAString& aIdentifier,
+                        bool aDumpAllTraces,
                         bool aDumpChildProcesses);
 
 private:

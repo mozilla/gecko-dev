@@ -803,9 +803,19 @@ nsDocShell::nsDocShell():
 #endif
 }
 
+static PLDHashOperator
+NeuterSessionStorages(nsCStringHashKey::KeyType aKey, nsIDOMStorage* aStorage,
+                      void* aUserArg)
+{
+    aStorage->MarkOwnerDead();
+    return PL_DHASH_NEXT;
+}
+
 nsDocShell::~nsDocShell()
 {
     Destroy();
+
+    mStorages.EnumerateRead(NeuterSessionStorages, nullptr);
 
     nsCOMPtr<nsISHistoryInternal>
         shPrivate(do_QueryInterface(mSessionHistory));
