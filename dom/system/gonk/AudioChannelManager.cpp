@@ -58,7 +58,9 @@ AudioChannelManager::Init(nsPIDOMWindow* aWindow)
 NS_IMETHODIMP
 AudioChannelManager::GetHeadphones(bool *aHeadphones)
 {
-  *aHeadphones = mState == SWITCH_STATE_ON ? true : false;
+  MOZ_ASSERT(mState != SWITCH_STATE_UNKNOWN);
+  *aHeadphones = mState != SWITCH_STATE_OFF;
+
   return NS_OK;
 }
 
@@ -67,13 +69,7 @@ NS_IMPL_EVENT_HANDLER(AudioChannelManager, headphoneschange)
 void
 AudioChannelManager::Notify(const SwitchEvent& aEvent)
 {
-  if (aEvent.status() == SWITCH_STATE_ON ||
-      aEvent.status() == SWITCH_STATE_HEADSET ||
-      aEvent.status() == SWITCH_STATE_HEADPHONE) {
-    mState = SWITCH_STATE_ON;
-  } else {
-    mState = SWITCH_STATE_OFF;
-  }
+  mState = aEvent.status();
 
   DispatchTrustedEvent(NS_LITERAL_STRING("headphoneschange"));
 }
