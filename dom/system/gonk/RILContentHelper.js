@@ -120,9 +120,6 @@ MobileICCCardLockResult.prototype = {
 };
 
 function MobileICCInfo() {
-  try {
-    this.lastKnownMcc = Services.prefs.getCharPref("ril.lastKnownMcc");
-  } catch (e) {}
 };
 MobileICCInfo.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIDOMMozMobileICCInfo]),
@@ -138,7 +135,6 @@ MobileICCInfo.prototype = {
 
   iccid: null,
   mcc: null,
-  lastKnownMcc: null,
   mnc: null,
   spn: null,
   msisdn: null
@@ -432,9 +428,6 @@ RILContentHelper.prototype = {
   updateICCInfo: function updateICCInfo(srcInfo, destInfo) {
     for (let key in srcInfo) {
       destInfo[key] = srcInfo[key];
-      if (key === 'mcc') {
-        destInfo['lastKnownMcc'] = srcInfo[key];
-      }
     }
   },
 
@@ -995,11 +988,6 @@ RILContentHelper.prototype = {
         break;
       case "RIL:IccInfoChanged":
         this.updateICCInfo(msg.json, this.iccInfo);
-        if (this.iccInfo.mcc) {
-          try {
-            Services.prefs.setCharPref("ril.lastKnownMcc", this.iccInfo.mcc);
-          } catch (e) {}
-        }
         Services.obs.notifyObservers(null, kIccInfoChangedTopic, null);
         break;
       case "RIL:VoiceInfoChanged":

@@ -24,7 +24,7 @@ XPCOMUtils.defineLazyServiceGetter(this, "ril",
 this.PhoneNumberUtils = {
   //  1. See whether we have a network mcc
   //  2. If we don't have that, look for the simcard mcc
-  //  3. TODO: If we don't have that or its 0 (not activated), pick up the last used mcc
+  //  3. If we don't have that or its 0 (not activated), pick up the last used mcc
   //  4. If we don't have, default to some mcc
 
   // mcc for Brasil
@@ -36,19 +36,23 @@ this.PhoneNumberUtils = {
 
 #ifdef MOZ_B2G_RIL
     // Get network mcc
-    if (ril.voiceConnectionInfo && ril.voiceConnectionInfo.network) {
-      mcc = ril.voiceConnectionInfo.network.mcc;
-    }
+    let voice = mobileConnection.voiceConnectionInfo;
+    if (voice && voice.network && voice.network.mcc) {
+      mcc = voice.network.mcc;
+     }
 
     // Get SIM mcc
-    if (!mcc) {
-      mcc = ril.iccInfo.mcc;
-    }
+    let iccInfo = mobileConnection.iccInfo;
+    if (!mcc && iccInfo.mcc) {
+      mcc = iccInfo.mcc;
+     }
 
-    // Get previous mcc
-    if (!mcc && ril.voiceConnectionInfo) {
-      mcc = ril.voiceConnectionInfo.lastKnownMcc;
-    }
+    // Attempt to grab last known sim mcc from prefs
+    if (!mcc) {
+      try {
+        mcc = Services.prefs.getCharPref("ril.lastKnownSimMcc");
+      } catch (e) {}
+     }
 
     // Set to default mcc
     if (!mcc) {
