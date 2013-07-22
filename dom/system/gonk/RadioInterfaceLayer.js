@@ -1722,6 +1722,14 @@ RadioInterfaceLayer.prototype = {
     // when the MCC or MNC codes have changed.
     this._sendTargetMessage("mobileconnection", "RIL:IccInfoChanged", message);
 
+    // Update lastKnownSimMcc.
+    if (message.mcc) {
+      try {
+        Services.prefs.setCharPref("ril.lastKnownSimMcc",
+                                   message.mcc.toString());
+      } catch (e) {}
+    }
+
     // Update lastKnownHomeNetwork.
     if (message.mcc && message.mnc) {
       try {
