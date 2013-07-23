@@ -2646,11 +2646,7 @@ RadioInterfaceLayer.prototype = {
       // If the radio is disabled or the SIM card is not ready, just directly
       // return with the corresponding error code.
       let errorCode;
-      if (!PhoneNumberUtils.isPlainPhoneNumber(options.number)) {
-        debug("Error! Address is invalid when sending SMS: " +
-              options.number);
-        errorCode = Ci.nsIMobileMessageCallback.INVALID_ADDRESS_ERROR;
-      } else if (!this._radioEnabled) {
+      if (!this._radioEnabled) {
         debug("Error! Radio is disabled when sending SMS.");
         errorCode = Ci.nsIMobileMessageCallback.RADIO_DISABLED_ERROR;
       } else if (this.rilContext.cardState != "ready") {
@@ -2678,8 +2674,12 @@ RadioInterfaceLayer.prototype = {
           requestStatusReport: options.requestStatusReport
       });
 
-      // This is the entry point starting to send SMS.
-      this.worker.postMessage(options);
+      if (PhoneNumberUtils.isPlainPhoneNumber(options.number)) {
+        this.worker.postMessage(options);
+      } else {
+        debug('Number ' + options.number + ' is not sendable.');
+        this.handleSmsSendFailed(options);
+      }
 
     }.bind(this));
   },

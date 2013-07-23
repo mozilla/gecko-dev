@@ -261,7 +261,7 @@ SmsIPCService::Send(const JS::Value& aParameters,
 {
   SendMmsMessageRequest req;
   if (!GetSendMmsMessageRequestFromParams(aParameters, req)) {
-    return NS_ERROR_INVALID_ARG;
+    return NS_ERROR_UNEXPECTED;
   }
   return SendRequest(SendMessageRequest(req), aRequest);
 }
