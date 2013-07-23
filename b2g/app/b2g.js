@@ -432,6 +432,7 @@ pref("services.push.udp.port", 2442);
 // NetworkStats
 #ifdef MOZ_B2G_RIL
 pref("dom.mozNetworkStats.enabled", true);
+pref("ril.lastKnownMcc", "724");
 pref("ril.cellbroadcast.disabled", false);
 #endif
 

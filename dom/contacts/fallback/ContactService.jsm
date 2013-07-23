@@ -57,10 +57,17 @@ this.DOMContactManager = {
     this._db = new ContactDB(myGlobal);
     this._db.init(myGlobal);
 
-    this.configureSubstringMatching();
+    let countryName = PhoneNumberUtils.getCountryName();
+    if (Services.prefs.getPrefType("dom.phonenumber.substringmatching." + countryName) == Ci.nsIPrefBranch.PREF_INT) {
+      if (DEBUG) debug("Enable Substring Matching for Phone Numbers: " + countryName);
+      let val = Services.prefs.getIntPref("dom.phonenumber.substringmatching." + countryName);
+      if (val && val > 0) {
+        this._db.enableSubstringMatching(val);
+      }
+    }
 
     Services.obs.addObserver(this, "profile-before-change", false);
-    Services.prefs.addObserver("ril.lastKnownSimMcc", this, false);
+    Services.prefs.addObserver("dom.phonenumber.substringmatching", this, false);
   },
 
   observe: function(aSubject, aTopic, aData) {
@@ -76,23 +83,16 @@ this.DOMContactManager = {
       if (this._db)
         this._db.close();
       this._db = null;
-    } else if (aTopic === 'nsPref:changed' && aData === "ril.lastKnownSimMcc") {
-      this.configureSubstringMatching();
+    } else if (aTopic === 'nsPref:changed' && aData.contains("dom.phonenumber.substringmatching")) {
+      // We don't fully support changing substringMatching during runtime. This is mostly for testing.
+      let countryName = PhoneNumberUtils.getCountryName();
+      if (Services.prefs.getPrefType("dom.phonenumber.substringmatching." + countryName) == Ci.nsIPrefBranch.PREF_INT) {
+        let val = Services.prefs.getIntPref("dom.phonenumber.substringmatching." + countryName);
+        if (val && val > 0) {
+          this._db.enableSubstringMatching(val);
+        }
+      }
     }
-  },
-
-  configureSubstringMatching: function() {
-    let countryName = PhoneNumberUtils.getCountryName();
-    if (Services.prefs.getPrefType("dom.phonenumber.substringmatching." + countryName) == Ci.nsIPrefBranch.PREF_INT) {
-      let val = Services.prefs.getIntPref("dom.phonenumber.substringmatching." + countryName);
-      if (val) {
-        this._db.enableSubstringMatching(val);
-        return;
-       }
-     }
-    // if we got here, we dont have a substring setting
-    // for this country, so disable substring matching
-    this._db.disableSubstringMatching();
   },
 
   assertPermission: function(aMessage, aPerm) {
