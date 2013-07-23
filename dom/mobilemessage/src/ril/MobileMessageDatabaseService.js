@@ -1247,7 +1247,7 @@ MobileMessageDatabaseService.prototype = {
 
   saveSendingMessage: function saveSendingMessage(aMessage, aCallback) {
     if ((aMessage.type != "sms" && aMessage.type != "mms") ||
-        (aMessage.type == "sms" && !aMessage.receiver) ||
+        (aMessage.type == "sms" && aMessage.receiver == undefined) ||
         (aMessage.type == "mms" && !Array.isArray(aMessage.receivers)) ||
         aMessage.deliveryStatusRequested == undefined ||
         aMessage.timestamp == undefined) {
