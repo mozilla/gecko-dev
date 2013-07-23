@@ -249,21 +249,19 @@ ShadowLayerForwarder::PlatformAllocBuffer(const gfxIntSize& aSize,
                                           uint32_t aCaps,
                                           SurfaceDescriptor* aBuffer)
 {
-  /* XXX: Surfaces with a width or height <= 16 pixels fail to render properly
-   * when drawn from gralloc'd textures of the same size on certain GL
-   * implementations. We increase all those surfaces' dimensions to 32 to work
-   * around this problem. Remove this workaround once the devices affected by
-   * this issue are not supported anymore (currently the Unagi and Otoro). */
-  gfxIntSize allocSize = aSize;
-  allocSize.width = std::max(aSize.width, 32);
-  allocSize.height = std::max(aSize.height, 32);
-
+  // Some GL implementations fail to render gralloc textures with
+  // width < 64.  There's not much point in gralloc'ing buffers that
+  // small anyway, so fall back on shared memory plus a texture
+  // upload.
+  if (aSize.width < 64) {
+    return false;
+  }
   SAMPLE_LABEL("ShadowLayerForwarder", "PlatformAllocBuffer");
   // Gralloc buffers are efficiently mappable as gfxImageSurface, so
   // no need to check |aCaps & MAP_AS_IMAGE_SURFACE|.
   MaybeMagicGrallocBufferHandle handle;
   PGrallocBufferChild* gc =
-    mShadowManager->SendPGrallocBufferConstructor(allocSize, aContent, &handle);
+    mShadowManager->SendPGrallocBufferConstructor(aSize, aContent, &handle);
   if (!gc) {
     NS_ERROR("GrallocBufferConstructor failed by returned null");
     return false;
@@ -276,8 +274,7 @@ ShadowLayerForwarder::PlatformAllocBuffer(const gfxIntSize& aSize,
   GrallocBufferActor* gba = static_cast<GrallocBufferActor*>(gc);
   gba->InitFromHandle(handle.get_MagicGrallocBufferHandle());
 
-  *aBuffer = SurfaceDescriptorGralloc(nullptr, gc, allocSize,
-                                      /* external */ false);
+  *aBuffer = SurfaceDescriptorGralloc(nullptr, gc, aSize, /* external */ false);
   return true;
 }
 
