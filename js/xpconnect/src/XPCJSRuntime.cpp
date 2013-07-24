@@ -1014,11 +1014,13 @@ class AutoLockWatchdog {
   public:
     AutoLockWatchdog(XPCJSRuntime* aRuntime)
       : mRuntime(aRuntime) {
-        PR_Lock(mRuntime->mWatchdogLock);
+        if (mRuntime->mWatchdogLock)
+            PR_Lock(mRuntime->mWatchdogLock);
     }
 
     ~AutoLockWatchdog() {
-        PR_Unlock(mRuntime->mWatchdogLock);
+        if (mRuntime->mWatchdogLock)
+            PR_Unlock(mRuntime->mWatchdogLock);
     }
 };
 
@@ -1062,7 +1064,8 @@ XPCJSRuntime::ActivityCallback(void *arg, JSBool active)
         self->mLastActiveTime = -1;
         if (self->mWatchdogHibernating) {
             self->mWatchdogHibernating = false;
-            PR_NotifyCondVar(self->mWatchdogWakeup);
+            if (self->mWatchdogWakeup)
+                PR_NotifyCondVar(self->mWatchdogWakeup);
         }
     } else {
         self->mLastActiveTime = PR_Now();
@@ -2500,6 +2503,8 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
         xpc_InstallJSDebuggerKeywordHandler(mJSRuntime);
 #endif
 
+// We disable the watchdog for b2g on b2g18.
+#ifndef MOZ_WIDGET_GONK
     mWatchdogLock = PR_NewLock();
     if (!mWatchdogLock)
         NS_RUNTIMEABORT("PR_NewLock failed.");
@@ -2516,6 +2521,7 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
         if (!mWatchdogThread)
             NS_RUNTIMEABORT("PR_CreateThread failed!");
     }
+#endif
 }
 
 // static
@@ -2537,8 +2543,7 @@ XPCJSRuntime::newXPCJSRuntime(nsXPConnect* aXPConnect)
         self->GetNativeScriptableSharedMap()    &&
         self->GetDyingWrappedNativeProtoMap()   &&
         self->GetMapLock()                      &&
-        self->GetCompartmentSet().initialized() &&
-        self->mWatchdogThread) {
+        self->GetCompartmentSet().initialized()) {
         return self;
     }
 
