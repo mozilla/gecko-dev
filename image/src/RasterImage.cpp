@@ -27,10 +27,6 @@
 #include "nsICODecoder.h"
 #include "nsIconDecoder.h"
 
-#ifdef MOZ_WBMP
-#include "nsWBMPDecoder.h"
-#endif
-
 #include "gfxContext.h"
 #include "gfx2DGlue.h"
 
@@ -2392,11 +2388,6 @@ RasterImage::InitDecoder(bool aDoSizeDecode)
     case eDecoderType_icon:
       mDecoder = new nsIconDecoder(*this, observer);
       break;
-#ifdef MOZ_WBMP
-    case eDecoderType_wbmp:
-      mDecoder = new nsWBMPDecoder(*this, observer);
-      break;
-#endif
     default:
       NS_ABORT_IF_FALSE(0, "Shouldn't get here!");
   }
