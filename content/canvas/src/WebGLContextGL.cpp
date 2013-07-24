@@ -32,7 +32,6 @@
 
 using namespace mozilla;
 using namespace mozilla::dom;
-using namespace mozilla::gl;
 
 static bool BaseTypeAndSizeFromUniformType(WebGLenum uType, WebGLenum *baseType, WebGLint *unitSize);
 static WebGLenum InternalFormatForFormatAndType(WebGLenum format, WebGLenum type, bool isGLES2);
@@ -2019,7 +2018,6 @@ WebGLContext::EnableVertexAttribArray(WebGLuint index)
 NS_IMETHODIMP
 WebGLContext::FramebufferRenderbuffer(WebGLenum target, WebGLenum attachment, WebGLenum rbtarget, nsIWebGLRenderbuffer *rbobj)
 {
-    MOZ_ASSERT(mContext->mBoundFramebuffer == this);
     FramebufferRenderbuffer(target, attachment, rbtarget,
                             static_cast<WebGLRenderbuffer*>(rbobj));
     return NS_OK;
@@ -2044,7 +2042,6 @@ WebGLContext::FramebufferTexture2D(WebGLenum target,
                                    nsIWebGLTexture *tobj,
                                    WebGLint level)
 {
-    MOZ_ASSERT(mContext->mBoundFramebuffer == this);
     FramebufferTexture2D(target, attachment, textarget,
                          static_cast<WebGLTexture*>(tobj), level);
     return NS_OK;
@@ -6328,25 +6325,21 @@ WebGLContext::ReattachTextureToAnyFramebufferToWorkAroundBugs(WebGLTexture *tex,
         framebuffer = framebuffer->getNext())
     {
         if (framebuffer->ColorAttachment().Texture() == tex) {
-            ScopedBindFramebuffer autoFB(gl, framebuffer->GLName());
             framebuffer->FramebufferTexture2D(
               LOCAL_GL_FRAMEBUFFER, LOCAL_GL_COLOR_ATTACHMENT0,
               tex->Target(), tex, level);
         }
         if (framebuffer->DepthAttachment().Texture() == tex) {
-            ScopedBindFramebuffer autoFB(gl, framebuffer->GLName());
             framebuffer->FramebufferTexture2D(
               LOCAL_GL_FRAMEBUFFER, LOCAL_GL_DEPTH_ATTACHMENT,
               tex->Target(), tex, level);
         }
         if (framebuffer->StencilAttachment().Texture() == tex) {
-            ScopedBindFramebuffer autoFB(gl, framebuffer->GLName());
             framebuffer->FramebufferTexture2D(
               LOCAL_GL_FRAMEBUFFER, LOCAL_GL_STENCIL_ATTACHMENT,
               tex->Target(), tex, level);
         }
         if (framebuffer->DepthStencilAttachment().Texture() == tex) {
-            ScopedBindFramebuffer autoFB(gl, framebuffer->GLName());
             framebuffer->FramebufferTexture2D(
               LOCAL_GL_FRAMEBUFFER, LOCAL_GL_DEPTH_STENCIL_ATTACHMENT,
               tex->Target(), tex, level);

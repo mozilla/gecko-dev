@@ -2967,7 +2967,6 @@ public:
 
     bool CheckAndInitializeRenderbuffers()
     {
-        MOZ_ASSERT(mContext->mBoundFramebuffer == this);
         // enforce WebGL section 6.5 which is WebGL-specific, hence OpenGL itself would not
         // generate the INVALID_FRAMEBUFFER_OPERATION that we need here
         if (HasDepthStencilConflict())
