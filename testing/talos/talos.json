@@ -2,5 +2,131 @@
     "talos.zip": {
         "url": "http://build.mozilla.org/talos/zips/talos.38e088867f7b.zip",
         "path": ""
+    },
+    "global": {
+        "talos_repo": "http://hg.mozilla.org/build/talos",
+        "talos_revision": "38e088867f7b"
+    },
+    "suites": {
+        "chromez": {
+            "tests": ["tresize"],
+            "talos_options": [
+                "--mozAfterPaint",
+                "--filter",
+                "ignore_first:5",
+                "--filter",
+                "median"
+            ]
+        },
+        "dirtypaint": {
+            "tests": [
+                "tspaint_places_generated_med",
+                "tspaint_places_generated_max"
+            ],
+            "talos_addons": [
+                "http://build.mozilla.org/talos/profiles/dirtyDBs.zip",
+                "http://build.mozilla.org/talos/profiles/dirtyMaxDBs.zip"
+            ],
+            "talos_options": [
+                "--setPref",
+                "hangmonitor.timeout=0",
+                "--mozAfterPaint"
+            ]
+        },
+        "dromaeojs": {
+            "tests": [
+                "dromaeo_css",
+                "dromaeo_dom",
+                "kraken:v8_7"
+            ]
+        },
+        "other": {
+            "tests": ["tscrollr", "a11yr", "ts_paint", "tpaint"],
+            "talos_options": [
+                "--mozAfterPaint",
+                "--filter",
+                "ignore_first:5",
+                "--filter",
+                "median"
+            ]
+        },
+        "svgr": {
+            "tests": ["tsvgr", "tsvgr_opacity"],
+            "talos_options": [
+                "--filter",
+                "ignore_first:5",
+                "--filter",
+                "median"
+            ]
+        },
+        "rafx": {
+            "tests": ["tscrollx", "tsvgx", "tcanvasmark"],
+            "talos_options": [
+                "--filter",
+                "ignore_first:5",
+                "--filter",
+                "median"
+            ]
+        },
+        "tpn": {
+            "tests": ["tp5n"],
+            "pagesets_url": "http://build.mozilla.org/talos/zips/tp5n.zip",
+            "pagesets_parent_dir_path": "talos/page_load_test/",
+            "pagesets_manifest_path": "talos/page_load_test/tp5n/tp5n.manifest",
+            "plugins": {
+                "32": "http://build.mozilla.org/talos/zips/flash32_10_3_183_5.zip",
+                "64": "http://build.mozilla.org/talos/zips/flash64_11_0_d1_98.zip"
+            },
+            "talos_options": [
+                "--mozAfterPaint",
+                "--responsiveness",
+                "--filter",
+                "ignore_first:5",
+                "--filter",
+                "median",
+                "--test_timeout",
+                "3600"
+            ]
+        },
+        "tp5o": {
+            "tests": ["tp5o"],
+            "pagesets_url": "http://build.mozilla.org/talos/zips/tp5n.zip",
+            "pagesets_parent_dir_path": "talos/page_load_test/",
+            "pagesets_manifest_path": "talos/page_load_test/tp5n/tp5o.manifest",
+            "plugins": {
+                "32": "http://build.mozilla.org/talos/zips/flash32_10_3_183_5.zip",
+                "64": "http://build.mozilla.org/talos/zips/flash64_11_0_d1_98.zip"
+            },
+            "talos_options": [
+                "--mozAfterPaint",
+                "--responsiveness",
+                "--filter",
+                "ignore_first:5",
+                "--filter",
+                "median",
+                "--test_timeout",
+                "3600"
+            ]
+        },
+        "xperf": {
+            "tests": ["tp5n"],
+            "pagesets_url": "http://build.mozilla.org/talos/zips/tp5n.zip",
+            "pagesets_parent_dir_path": "talos/page_load_test/",
+            "pagesets_manifest_path": "talos/page_load_test/tp5n/tp5n.manifest",
+            "plugins": {
+                "32": "http://build.mozilla.org/talos/zips/flash32_10_3_183_5.zip",
+                "64": "http://build.mozilla.org/talos/zips/flash64_11_0_d1_98.zip"
+            },
+            "talos_options": [
+                "--mozAfterPaint",
+                "--xperf_path",
+                "\"c:/Program Files/Microsoft Windows Performance Toolkit/xperf.exe\"",
+                "--filter",
+                "ignore_first:5",
+                "--filter",
+                "median",
+                "C:/slave/talos-data/talos/xperf.config"
+            ]
+        }
     }
 }
