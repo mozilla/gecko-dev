@@ -79,21 +79,34 @@ SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
     *aTransferable = nullptr;
   }
 
-  nsresult rv;
+  nsresult rv = NS_OK;
+  
+  bool bIsPlainTextContext = false;
+
+  rv = nsCopySupport::IsPlainTextContext(aSel, aDoc, &bIsPlainTextContext);
+  if (NS_FAILED(rv)) 
+    return rv;
+
+  bool bIsHTMLCopy = !bIsPlainTextContext;
+  nsAutoString mimeType;
 
   nsCOMPtr<nsIDocumentEncoder> docEncoder;
+
   docEncoder = do_CreateInstance(NS_HTMLCOPY_ENCODER_CONTRACTID);
   NS_ENSURE_TRUE(docEncoder, NS_ERROR_FAILURE);
 
+  // We always require a plaintext version
+  
   // note that we assign text/unicode as mime type, but in fact nsHTMLCopyEncoder
   // ignore it and use text/html or text/plain depending where the selection
   // is. if it is a selection into input/textarea element or in a html content
   // with pre-wrap style : text/plain. Otherwise text/html.
   // see nsHTMLCopyEncoder::SetSelection
-  nsAutoString mimeType;
   mimeType.AssignLiteral(kUnicodeMime);
-
-  // Do the first and potentially trial encoding as preformatted and raw.
+  
+  // we want preformatted for the case where the selection is inside input/textarea
+  // and we don't want pretty printing for others cases, to not have additionnal
+  // line breaks which are then converted into spaces by the htmlConverter (see bug #524975)
   uint32_t flags = aFlags | nsIDocumentEncoder::OutputPreformatted
                           | nsIDocumentEncoder::OutputRaw;
 
@@ -101,34 +114,28 @@ SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
   NS_ASSERTION(domDoc, "Need a document");
 
   rv = docEncoder->Init(domDoc, mimeType, flags);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv)) 
+    return rv;
 
   rv = docEncoder->SetSelection(aSel);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv)) 
+    return rv;
 
-  // SetSelection set the mime type to text/plain if the selection is inside a
-  // text widget.
-  rv = docEncoder->GetMimeType(mimeType);
-  NS_ENSURE_SUCCESS(rv, rv);
-  bool selForcedTextPlain = mimeType.EqualsLiteral(kTextMime);
+  nsAutoString buffer, parents, info, textBuffer, plaintextBuffer;
 
-  nsAutoString buf;
-  rv = docEncoder->EncodeToString(buf);
-  NS_ENSURE_SUCCESS(rv, rv);
+  rv = docEncoder->EncodeToString(textBuffer);
+  if (NS_FAILED(rv)) 
+    return rv;
 
-  // The mime type is ultimately text/html if the encoder successfully encoded
-  // the selection as text/html.
-  rv = docEncoder->GetMimeType(mimeType);
-  NS_ENSURE_SUCCESS(rv, rv);
-  bool encodedTextHTML = mimeType.EqualsLiteral(kHTMLMime);
+  // If the selection was in a text input, in textarea or in pre, the encoder
+  // already produced plain text. Otherwise,the encoder produced HTML. In that
+  // case, we need to create an additional plain text serialization and an
+  // addition HTML serialization that encodes context.
+  if (bIsHTMLCopy) {
 
-  // First, prepare the text/plain clipboard flavor.
-  nsAutoString textPlainBuf;
-  if (selForcedTextPlain) {
-    // Nothing to do.  buf contains the final, preformatted, raw text/plain.
-    textPlainBuf.Assign(buf);
-  } else {
-    // Redo the encoding, but this time use pretty printing.
+    // First, create the plain text serialization
+    mimeType.AssignLiteral("text/plain");
+
     flags =
       nsIDocumentEncoder::OutputSelectionOnly |
       nsIDocumentEncoder::OutputAbsoluteLinks |
@@ -136,35 +143,35 @@ SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
       nsIDocumentEncoder::OutputDropInvisibleBreak |
       (aFlags & nsIDocumentEncoder::OutputNoScriptContent);
 
-    mimeType.AssignLiteral(kTextMime);
+    rv = docEncoder->Init(domDoc, mimeType, flags);
+    if (NS_FAILED(rv))
+      return rv;
+
+    rv = docEncoder->SetSelection(aSel);
+    if (NS_FAILED(rv))
+      return rv;
+
+    rv = docEncoder->EncodeToString(plaintextBuffer);
+    if (NS_FAILED(rv))
+      return rv;
+
+    // Now create the version that shows HTML context
+
+    mimeType.AssignLiteral(kHTMLMime);
+
+    flags = aFlags;
+
     rv = docEncoder->Init(domDoc, mimeType, flags);
     NS_ENSURE_SUCCESS(rv, rv);
 
     rv = docEncoder->SetSelection(aSel);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    rv = docEncoder->EncodeToString(textPlainBuf);
+    // encode the selection as html with contextual info
+    rv = docEncoder->EncodeToStringWithContext(parents, info, buffer);
     NS_ENSURE_SUCCESS(rv, rv);
   }
-
-  // Second, prepare the text/html flavor.
-  nsAutoString textHTMLBuf;
-  nsAutoString htmlParentsBuf;
-  nsAutoString htmlInfoBuf;
-  if (encodedTextHTML) {
-    // Redo the encoding, but this time use the passed-in flags.
-    mimeType.AssignLiteral(kHTMLMime);
-    rv = docEncoder->Init(domDoc, mimeType, aFlags);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = docEncoder->SetSelection(aSel);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = docEncoder->EncodeToStringWithContext(htmlParentsBuf, htmlInfoBuf,
-                                               textHTMLBuf);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
+  
   // Get the Clipboard
   nsCOMPtr<nsIClipboard> clipboard;
   if (doPutOnClipboard) {
@@ -178,37 +185,37 @@ SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
     nsCOMPtr<nsITransferable> trans = do_CreateInstance(kCTransferableCID);
     if (trans) {
       trans->Init(aDoc->GetLoadContext());
-      if (encodedTextHTML) {
+      if (bIsHTMLCopy) {
         // Set up a format converter so that clipboard flavor queries work.
         // This converter isn't really used for conversions.
         nsCOMPtr<nsIFormatConverter> htmlConverter =
           do_CreateInstance(kHTMLConverterCID);
         trans->SetConverter(htmlConverter);
 
-        if (!textHTMLBuf.IsEmpty()) {
+        if (!buffer.IsEmpty()) {
           // Add the html DataFlavor to the transferable
-          rv = AppendString(trans, textHTMLBuf, kHTMLMime);
+          rv = AppendString(trans, buffer, kHTMLMime);
           NS_ENSURE_SUCCESS(rv, rv);
         }
 
         // Add the htmlcontext DataFlavor to the transferable
         // Even if parents is empty string, this flavor should
         // be attached to the transferable
-        rv = AppendString(trans, htmlParentsBuf, kHTMLContext);
+        rv = AppendString(trans, parents, kHTMLContext);
         NS_ENSURE_SUCCESS(rv, rv);
 
-        if (!htmlInfoBuf.IsEmpty()) {
+        if (!info.IsEmpty()) {
           // Add the htmlinfo DataFlavor to the transferable
-          rv = AppendString(trans, htmlInfoBuf, kHTMLInfo);
+          rv = AppendString(trans, info, kHTMLInfo);
           NS_ENSURE_SUCCESS(rv, rv);
         }
 
-        if (!textPlainBuf.IsEmpty()) {
+        if (!plaintextBuffer.IsEmpty()) {
           // unicode text
           // Add the unicode DataFlavor to the transferable
           // If we didn't have this, then nsDataObj::GetData matches text/unicode against
           // the kURLMime flavour which is not desirable (eg. when pasting into Notepad)
-          rv = AppendString(trans, textPlainBuf, kUnicodeMime);
+          rv = AppendString(trans, plaintextBuffer, kUnicodeMime);
           NS_ENSURE_SUCCESS(rv, rv);
         }
 
@@ -232,9 +239,9 @@ SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
           }
         }
       } else {
-        if (!textPlainBuf.IsEmpty()) {
+        if (!textBuffer.IsEmpty()) {
           // Add the unicode DataFlavor to the transferable
-          rv = AppendString(trans, textPlainBuf, kUnicodeMime);
+          rv = AppendString(trans, textBuffer, kUnicodeMime);
           NS_ENSURE_SUCCESS(rv, rv);
         }
       }
@@ -339,6 +346,81 @@ nsresult nsCopySupport::DoHooks(nsIDocument *aDoc, nsITransferable *aTrans,
   }
 
   return rv;
+}
+
+nsresult nsCopySupport::IsPlainTextContext(nsISelection *aSel, nsIDocument *aDoc, bool *aIsPlainTextContext)
+{
+  nsresult rv;
+
+  if (!aSel || !aIsPlainTextContext)
+    return NS_ERROR_NULL_POINTER;
+
+  *aIsPlainTextContext = false;
+  
+  nsCOMPtr<nsIDOMRange> range;
+  nsCOMPtr<nsIDOMNode> commonParent;
+  int32_t count = 0;
+
+  rv = aSel->GetRangeCount(&count);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // if selection is uninitialized return
+  if (!count)
+    return NS_ERROR_FAILURE;
+  
+  // we'll just use the common parent of the first range.  Implicit assumption
+  // here that multi-range selections are table cell selections, in which case
+  // the common parent is somewhere in the table and we don't really care where.
+  rv = aSel->GetRangeAt(0, getter_AddRefs(range));
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (!range)
+    return NS_ERROR_NULL_POINTER;
+  range->GetCommonAncestorContainer(getter_AddRefs(commonParent));
+
+  for (nsCOMPtr<nsIContent> selContent(do_QueryInterface(commonParent));
+       selContent;
+       selContent = selContent->GetParent())
+  {
+    // checking for selection inside a plaintext form widget
+
+    if (!selContent->IsHTML()) {
+      continue;
+    }
+
+    nsIAtom *atom = selContent->Tag();
+
+    if (atom == nsGkAtoms::input ||
+        atom == nsGkAtoms::textarea)
+    {
+      *aIsPlainTextContext = true;
+      break;
+    }
+
+    if (atom == nsGkAtoms::body)
+    {
+      // check for moz prewrap style on body.  If it's there we are 
+      // in a plaintext editor.  This is pretty cheezy but I haven't 
+      // found a good way to tell if we are in a plaintext editor.
+      nsCOMPtr<nsIDOMElement> bodyElem = do_QueryInterface(selContent);
+      nsAutoString wsVal;
+      rv = bodyElem->GetAttribute(NS_LITERAL_STRING("style"), wsVal);
+      if (NS_SUCCEEDED(rv) && (kNotFound != wsVal.Find(NS_LITERAL_STRING("pre-wrap"))))
+      {
+        *aIsPlainTextContext = true;
+        break;
+      }
+    }
+  }
+  
+  // also consider ourselves in a text widget if we can't find an html
+  // document. Note that XHTML is not counted as HTML here, because we can't
+  // copy it properly (all the copy code for non-plaintext assumes using HTML
+  // serializers and parsers is OK, and those mess up XHTML).
+  nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(aDoc);
+  if (!(htmlDoc && aDoc->IsHTML()))
+    *aIsPlainTextContext = true;
+
+  return NS_OK;
 }
 
 nsresult
