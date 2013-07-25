@@ -494,6 +494,51 @@ nsHTMLCanvasElement::ExtractData(const nsAString& aType,
 }
 
 nsresult
+nsHTMLCanvasElement::ParseParams(const nsAString& aType,
+                                 nsIVariant* aEncoderOptions,
+                                 nsAString& aParams,
+                                 bool* usingCustomParseOptions)
+{
+  // Quality parameter is only valid for the image/jpeg MIME type
+  if (aType.EqualsLiteral("image/jpeg")) {
+    uint16_t vartype;
+
+    if (aEncoderOptions &&
+        NS_SUCCEEDED(aEncoderOptions->GetDataType(&vartype)) &&
+        vartype <= nsIDataType::VTYPE_DOUBLE) {
+
+      double quality;
+      // Quality must be between 0.0 and 1.0, inclusive
+      if (NS_SUCCEEDED(aEncoderOptions->GetAsDouble(&quality)) &&
+          quality >= 0.0 && quality <= 1.0) {
+        aParams.AppendLiteral("quality=");
+        aParams.AppendInt(NS_lround(quality * 100.0));
+      }
+    }
+  }
+
+  // If we haven't parsed the params check for proprietary options.
+  // The proprietary option -moz-parse-options will take a image lib encoder
+  // parse options string as is and pass it to the encoder.
+  *usingCustomParseOptions = false;
+  if (aParams.Length() == 0) {
+    NS_NAMED_LITERAL_STRING(mozParseOptions, "-moz-parse-options:");
+    nsAutoString paramString;
+    if (NS_SUCCEEDED(aEncoderOptions->GetAsAString(paramString)) && 
+        StringBeginsWith(paramString, mozParseOptions)) {
+      nsDependentSubstring parseOptions = Substring(paramString, 
+                                                    mozParseOptions.Length(), 
+                                                    paramString.Length() - 
+                                                    mozParseOptions.Length());
+      aParams.Append(parseOptions);
+      *usingCustomParseOptions = true;
+    }
+  }
+
+  return NS_OK;
+}
+
+nsresult
 nsHTMLCanvasElement::ToDataURLImpl(const nsAString& aMimeType,
                                    nsIVariant* aEncoderOptions,
                                    nsAString& aDataURL)
@@ -513,41 +558,11 @@ nsHTMLCanvasElement::ToDataURLImpl(const nsAString& aMimeType,
   }
 
   nsAutoString params;
+  bool usingCustomParseOptions;
 
-  // Quality parameter is only valid for the image/jpeg MIME type
-  if (type.EqualsLiteral("image/jpeg")) {
-    uint16_t vartype;
-
-    if (aEncoderOptions &&
-        NS_SUCCEEDED(aEncoderOptions->GetDataType(&vartype)) &&
-        vartype <= nsIDataType::VTYPE_DOUBLE) {
-
-      double quality;
-      // Quality must be between 0.0 and 1.0, inclusive
-      if (NS_SUCCEEDED(aEncoderOptions->GetAsDouble(&quality)) &&
-          quality >= 0.0 && quality <= 1.0) {
-        params.AppendLiteral("quality=");
-        params.AppendInt(NS_lround(quality * 100.0));
-      }
-    }
-  }
-
-  // If we haven't parsed the params check for proprietary options.
-  // The proprietary option -moz-parse-options will take a image lib encoder
-  // parse options string as is and pass it to the encoder.
-  bool usingCustomParseOptions = false;
-  if (params.Length() == 0) {
-    NS_NAMED_LITERAL_STRING(mozParseOptions, "-moz-parse-options:");
-    nsAutoString paramString;
-    if (NS_SUCCEEDED(aEncoderOptions->GetAsAString(paramString)) && 
-        StringBeginsWith(paramString, mozParseOptions)) {
-      nsDependentSubstring parseOptions = Substring(paramString, 
-                                                    mozParseOptions.Length(), 
-                                                    paramString.Length() - 
-                                                    mozParseOptions.Length());
-      params.Append(parseOptions);
-      usingCustomParseOptions = true;
-    }
+  rv = ParseParams(type, aEncoderOptions, params, &usingCustomParseOptions);
+  if (NS_FAILED(rv)) {
+    return rv;
   }
 
   nsCOMPtr<nsIInputStream> stream;
@@ -581,7 +596,7 @@ nsHTMLCanvasElement::ToDataURLImpl(const nsAString& aMimeType,
 NS_IMETHODIMP
 nsHTMLCanvasElement::ToBlob(nsIFileCallback* aCallback,
                             const nsAString& aType,
-                            nsIVariant* aParams,
+                            nsIVariant* aEncoderOptions,
                             uint8_t optional_argc)
 {
   // do a trust check if this is a write-only canvas
@@ -601,8 +616,16 @@ nsHTMLCanvasElement::ToBlob(nsIFileCallback* aCallback,
 
   bool fallbackToPNG = false;
 
+  nsAutoString params;
+  bool usingCustomParseOptions;
+
+  rv = ParseParams(type, aEncoderOptions, params, &usingCustomParseOptions);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
   nsCOMPtr<nsIInputStream> stream;
-  rv = ExtractData(type, EmptyString(), getter_AddRefs(stream), fallbackToPNG);
+  rv = ExtractData(type, params, getter_AddRefs(stream), fallbackToPNG);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (fallbackToPNG) {
