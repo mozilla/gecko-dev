@@ -40,9 +40,8 @@ public class DataReportingNotification {
         if ((!dataPrefs.contains(PREFS_POLICY_NOTIFIED_TIME)) ||
             (DATA_REPORTING_VERSION != dataPrefs.getInt(PREFS_POLICY_VERSION, -1))) {
 
-            // Launch main App to launch Data choices when notification is clicked.
-            Intent prefIntent = new Intent(GeckoApp.ACTION_LAUNCH_SETTINGS);
-            prefIntent.setClassName(AppConstants.ANDROID_PACKAGE_NAME, AppConstants.BROWSER_INTENT_CLASS);
+            // Launch Data Choices fragment when notification is clicked.
+            Intent prefIntent = new Intent(context, GeckoPreferences.class);
 
             GeckoPreferences.setResourceToOpen(prefIntent, "preferences_datareporting");
             prefIntent.putExtra(ALERT_NAME_DATAREPORTING_NOTIFICATION, true);
