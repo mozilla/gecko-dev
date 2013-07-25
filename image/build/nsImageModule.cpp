@@ -88,9 +88,6 @@ static const mozilla::Module::CategoryEntry kImageCategories[] = {
   { "Gecko-Content-Viewers", "image/icon", "@mozilla.org/content/document-loader-factory;1" },
   { "Gecko-Content-Viewers", "image/png", "@mozilla.org/content/document-loader-factory;1" },
   { "Gecko-Content-Viewers", "image/x-png", "@mozilla.org/content/document-loader-factory;1" },
-#ifdef MOZ_WBMP
-  { "Gecko-Content-Viewers", "image/vnd.wap.wbmp", "@mozilla.org/content/document-loader-factory;1" },
-#endif
   { "content-sniffing-services", "@mozilla.org/image/loader;1", "@mozilla.org/image/loader;1" },
   { NULL }
 };
