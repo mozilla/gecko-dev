@@ -243,6 +243,63 @@ let gTests = [
 
     Services.prefs.clearUserPref("browser.rights.override");
   }
+},
+{
+  desc: "Check POST search engine support",
+  setup: function() {},
+  beforeRun: function () {
+    let deferred = Promise.defer();
+    let currEngine = Services.search.defaultEngine;
+    let searchObserver = function search_observer(aSubject, aTopic, aData) {
+      let engine = aSubject.QueryInterface(Ci.nsISearchEngine);
+      info("Observer: " + aData + " for " + engine.name);
+
+      if (aData != "engine-added")
+        return;
+
+      if (engine.name != "POST Search")
+        return;
+
+      Services.search.defaultEngine = engine;
+
+      registerCleanupFunction(function() {
+        Services.search.removeEngine(engine);
+        Services.search.defaultEngine = currEngine;
+      });
+      deferred.resolve();
+    };
+    Services.obs.addObserver(searchObserver, "browser-search-engine-modified", false);
+    registerCleanupFunction(function () {
+      Services.obs.removeObserver(searchObserver, "browser-search-engine-modified");
+    });
+    Services.search.addEngine("http://test:80/browser/browser/base/content/test/POSTSearchEngine.xml",
+                              Ci.nsISearchEngine.DATA_XML, null, false);
+    return deferred.promise;
+  },
+  run: function()
+  {
+    let deferred = Promise.defer();
+
+    let needle = "Search for something awesome.";
+
+    // Ready to execute the tests!
+    let document = gBrowser.selectedTab.linkedBrowser.contentDocument;
+    let searchText = document.getElementById("searchText");
+
+    waitForLoad(function() {
+      let loadedText = gBrowser.contentDocument.body.textContent;
+      ok(loadedText, "search page loaded");
+      is(loadedText, "searchterms=" + escape(needle.replace(/\s/g, "+")),
+         "Search text should arrive correctly");
+      deferred.resolve();
+    });
+
+    searchText.value = needle;
+    searchText.focus();
+    EventUtils.synthesizeKey("VK_RETURN", {});
+
+    return deferred.promise;
+  }
 }
 
 ];
@@ -377,4 +434,16 @@ function promiseBrowserAttributes(aTab)
   observer.observe(docElt, { attributes: true });
 
   return deferred.promise;
+}
+
+function waitForLoad(cb) {
+  let browser = gBrowser.selectedBrowser;
+  browser.addEventListener("load", function listener() {
+    if (browser.currentURI.spec == "about:blank")
+      return;
+    info("Page loaded: " + browser.currentURI.spec);
+    browser.removeEventListener("load", listener, true);
+
+    cb();
+  }, true);
 }

@@ -2290,6 +2290,8 @@ function BrowserOnAboutPageLoad(doc) {
     docElt.setAttribute("snippetsVersion", AboutHomeUtils.snippetsVersion);
     docElt.setAttribute("searchEngineName",
                         AboutHomeUtils.defaultSearchEngine.name);
+    docElt.setAttribute("searchEnginePostData",
+                        AboutHomeUtils.defaultSearchEngine.postDataString || "");
     docElt.setAttribute("searchEngineURL",
                         AboutHomeUtils.defaultSearchEngine.searchURL);
 

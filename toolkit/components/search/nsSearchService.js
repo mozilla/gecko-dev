@@ -923,6 +923,7 @@ EngineURL.prototype = {
     }
 
     var postData = null;
+    let postDataString = null;
     if (this.method == "GET") {
       // GET method requests have no post data, and append the encoded
       // query string to the url...
@@ -930,8 +931,8 @@ EngineURL.prototype = {
         url += "?";
       url += dataString;
     } else if (this.method == "POST") {
-      // POST method requests must wrap the encoded text in a MIME
-      // stream and supply that as POSTDATA.
+      // For POST requests, specify the data as a MIME stream as well as a string.
+      postDataString = dataString;
       var stringStream = Cc["@mozilla.org/io/string-input-stream;1"].
                          createInstance(Ci.nsIStringInputStream);
       stringStream.data = dataString;
@@ -943,7 +944,7 @@ EngineURL.prototype = {
       postData.setData(stringStream);
     }
 
-    return new Submission(makeURI(url), postData);
+    return new Submission(makeURI(url), postData, postDataString);
   },
 
   _hasRelation: function SRC_EURL__hasRelation(aRel)
@@ -2502,7 +2503,7 @@ Engine.prototype = {
 
     if (!aData) {
       // Return a dummy submission object with our searchForm attribute
-      return new Submission(makeURI(this.searchForm), null);
+      return new Submission(makeURI(this.searchForm));
     }
 
     LOG("getSubmission: In data: \"" + aData + "\"; Purpose: \"" + aPurpose + "\"");
@@ -2539,9 +2540,10 @@ Engine.prototype = {
 };
 
 // nsISearchSubmission
-function Submission(aURI, aPostData) {
+function Submission(aURI, aPostData = null, aPostDataString = null) {
   this._uri = aURI;
   this._postData = aPostData;
+  this._postDataString = aPostDataString;
 }
 Submission.prototype = {
   get uri() {
@@ -2549,6 +2551,9 @@ Submission.prototype = {
   },
   get postData() {
     return this._postData;
+  },
+  get postDataString() {
+    return this._postDataString;
   },
   QueryInterface: function SRCH_SUBM_QI(aIID) {
     if (aIID.equals(Ci.nsISearchSubmission) ||
