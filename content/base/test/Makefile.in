@@ -626,6 +626,11 @@ MOCHITEST_FILES_C= \
 		test_bug813919.html \
 		test_bug814576.html \
 		test_bug876282.html \
+		test_CSP_bug885433.html \
+		file_CSP_bug885433_allows.html \
+		file_CSP_bug885433_allows.html^headers^ \
+		file_CSP_bug885433_blocks.html \
+		file_CSP_bug885433_blocks.html^headers^ \
 		test_xhr_withCredentials.html \
 		test_bothCSPheaders.html \
 		file_bothCSPheaders.html \
