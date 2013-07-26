@@ -39,6 +39,7 @@ class Channel::ChannelImpl : public MessageLoopForIO::Watcher {
     DCHECK(mode_ == MODE_SERVER);
     return pipe_;
   }
+  void CloseClientFileDescriptor();
 
   // See the comment in ipc_channel.h for info on Unsound_IsClosed() and
   // Unsound_NumQueuedMessages().
