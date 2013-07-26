@@ -93,7 +93,7 @@ ContactDB.prototype = {
   _dispatcher: {},
 
   upgradeSchema: function upgradeSchema(aTransaction, aDb, aOldVersion, aNewVersion) {
-    function loadInitialContacts() {
+    let loadInitialContacts = function() {
       // Add default contacts
       let jsm = {};
       Cu.import("resource://gre/modules/FileUtils.jsm", jsm);
@@ -142,7 +142,7 @@ ContactDB.prototype = {
         if (DEBUG) debug("import: " + JSON.stringify(contact));
         objectStore.put(contact);
       }
-    }
+    }.bind(this);
 
     if (DEBUG) debug("upgrade schema from: " + aOldVersion + " to " + aNewVersion + " called!");
     let db = aDb;
