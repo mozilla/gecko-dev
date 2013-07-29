@@ -509,7 +509,7 @@ Contact.prototype = {
 // ContactManager
 
 const CONTACTMANAGER_CONTRACTID = "@mozilla.org/contactManager;1";
-const CONTACTMANAGER_CID        = Components.ID("{7bfb6481-f946-4254-afc5-d7fe9f5c45a3}");
+const CONTACTMANAGER_CID        = Components.ID("{0a2b72f3-7761-431b-8fa4-df1459316272}");
 const nsIDOMContactManager      = Components.interfaces.nsIDOMContactManager;
 
 function ContactManager()
