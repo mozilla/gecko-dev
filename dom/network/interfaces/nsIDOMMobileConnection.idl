@@ -476,7 +476,7 @@ interface nsIDOMMozMobileCellInfo: nsISupports
   readonly attribute unsigned long gsmCellId;
 };
 
-[scriptable, uuid(f88f6820-abbe-11e2-9e96-0800200c9a66)]
+[scriptable, uuid(712d0bb8-267e-49c3-8722-e3319367d033)]
 interface nsIDOMMozMobileICCInfo : nsISupports
 {
    /**
@@ -488,11 +488,6 @@ interface nsIDOMMozMobileICCInfo : nsISupports
    * Mobile Country Code (MCC) of the subscriber's home network.
    */
   readonly attribute DOMString mcc;
-
-  /**
-   * Mobile Country Code (MCC) of previous subscriber's home network.
-   */
-  readonly attribute DOMString lastKnownMcc;
 
   /**
    * Mobile Network Code (MNC) of the subscriber's home network.
