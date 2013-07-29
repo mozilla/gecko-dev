@@ -2795,6 +2795,7 @@ public:
                                  WebGLenum rbtarget,
                                  WebGLRenderbuffer *wrb)
     {
+        MOZ_ASSERT(mContext->mBoundFramebuffer == this);
         if (!mContext->ValidateObjectAllowNull("framebufferRenderbuffer: renderbuffer", wrb))
         {
             return;
@@ -2841,6 +2842,7 @@ public:
                               WebGLTexture *wtex,
                               WebGLint level)
     {
+        MOZ_ASSERT(mContext->mBoundFramebuffer == this);
         if (!mContext->ValidateObjectAllowNull("framebufferTexture2D: texture",
                                                wtex))
         {
@@ -2967,6 +2969,8 @@ public:
 
     bool CheckAndInitializeRenderbuffers()
     {
+        MOZ_ASSERT(mContext->mBoundFramebuffer == this);
+        
         // enforce WebGL section 6.5 which is WebGL-specific, hence OpenGL itself would not
         // generate the INVALID_FRAMEBUFFER_OPERATION that we need here
         if (HasDepthStencilConflict())
