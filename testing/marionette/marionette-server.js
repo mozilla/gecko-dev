@@ -146,6 +146,7 @@ function MarionetteServerConnection(aPrefix, aTransport, aServer)
   this.curFrame = null; //subframe that currently has focus
   this.importedScripts = FileUtils.getFile('TmpD', ['marionettescriptchrome']);
   this.currentRemoteFrame = null; // a member of remoteFrames
+  this.currentFrameElement = null;
   this.testName = null;
   this.mozBrowserClose = null;
 
@@ -261,6 +262,7 @@ MarionetteServerConnection.prototype = {
     messageManager.addMessageListener("Marionette:register", this);
     messageManager.addMessageListener("Marionette:runEmulatorCmd", this);
     messageManager.addMessageListener("Marionette:switchToFrame", this);
+    messageManager.addMessageListener("Marionette:switchedToFrame", this);
   },
 
   /**
@@ -279,6 +281,7 @@ MarionetteServerConnection.prototype = {
     messageManager.removeMessageListener("Marionette:register", this);
     messageManager.removeMessageListener("Marionette:runEmulatorCmd", this);
     messageManager.removeMessageListener("Marionette:switchToFrame", this);
+    messageManager.removeMessageListener("Marionette:switchedToFrame", this);
   },
 
   logRequest: function MDA_logRequest(type, data) {
@@ -1193,6 +1196,23 @@ MarionetteServerConnection.prototype = {
                    command_id);
   },
  
+  getActiveFrame: function MDA_getActiveFrame() {
+    this.command_id = this.getCommandId();
+
+    if (this.context == "chrome") {
+      if (this.curFrame) {
+        let wrappedValue = this.curBrowser.elementManager.addToKnownElements(this.curFrame.frameElement);
+        this.sendResponse(wrappedValue, this.command_id);
+      } else {
+        // no current frame, we're at toplevel
+        this.sendResponse(null, this.command_id);
+      }
+    } else {
+      // not chrome
+      this.sendResponse(this.currentFrameElement, this.command_id);
+    }
+  },
+
   /**
    * Switch to a given frame within the current window
    *
@@ -2136,6 +2156,10 @@ MarionetteServerConnection.prototype = {
         remoteFrames.push(aFrame);
         this.currentRemoteFrame = aFrame;
         break;
+      case "Marionette:switchedToFrame":
+        logger.info("Switched to frame: " + JSON.stringify(message.json));
+        this.currentFrameElement = message.json.frameValue;
+        break;
       case "Marionette:register":
         // This code processes the content listener's registration information
         // and either accepts the listener, or ignores it
@@ -2231,6 +2255,7 @@ MarionetteServerConnection.prototype.requestTypes = {
   "refresh":  MarionetteServerConnection.prototype.refresh,
   "getWindow":  MarionetteServerConnection.prototype.getWindow,
   "getWindows":  MarionetteServerConnection.prototype.getWindows,
+  "getActiveFrame": MarionetteServerConnection.prototype.getActiveFrame,
   "switchToFrame": MarionetteServerConnection.prototype.switchToFrame,
   "switchToWindow": MarionetteServerConnection.prototype.switchToWindow,
   "deleteSession": MarionetteServerConnection.prototype.deleteSession,
