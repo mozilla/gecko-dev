@@ -21,6 +21,7 @@
         "VARIANT": "user",
         "MOZILLA_OFFICIAL": "1",
         "B2GUPDATER": "1",
+        "GAIA_DEV_PIXELS_PER_PX": "1.5",
         "ANDROIDFS_DIR": "{workdir}/helix-ics"
     },
     "b2g_manifest": "helix.xml",
