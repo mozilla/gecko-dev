@@ -193,8 +193,19 @@ ContainerRender(Container* aContainer,
   const gfx3DMatrix& transform = aContainer->GetEffectiveTransform();
   bool needsFramebuffer = aContainer->UseIntermediateSurface();
   if (needsFramebuffer) {
-    LayerManagerOGL::InitMode mode = LayerManagerOGL::InitModeClear;
     nsIntRect framebufferRect = visibleRect;
+    // we're about to create a framebuffer backed by textures to use as an intermediate
+    // surface. What to do if its size (as given by framebufferRect) would exceed the
+    // maximum texture size supported by the GL? The present code chooses the compromise
+    // of just clamping the framebuffer's size to the max supported size.
+    // This gives us a lower resolution rendering of the intermediate surface (children layers).
+    // See bug 827170 for a discussion.
+    GLint maxTexSize;
+    aContainer->gl()->fGetIntegerv(LOCAL_GL_MAX_TEXTURE_SIZE, &maxTexSize);
+    framebufferRect.width = std::min(framebufferRect.width, maxTexSize);
+    framebufferRect.height = std::min(framebufferRect.height, maxTexSize);
+
+    LayerManagerOGL::InitMode mode = LayerManagerOGL::InitModeClear;
     if (aContainer->GetEffectiveVisibleRegion().GetNumRects() == 1 && 
         (aContainer->GetContentFlags() & Layer::CONTENT_OPAQUE))
     {
@@ -222,11 +233,17 @@ ContainerRender(Container* aContainer,
     aContainer->gl()->PushViewportRect();
     framebufferRect -= childOffset;
     if (!aManager->CompositingDisabled()) {
-      aManager->CreateFBOWithTexture(framebufferRect,
+      // Skip this layer when create FBO failed. Bug 867226
+      if(!aManager->CreateFBOWithTexture(framebufferRect,
                                      mode,
                                      aPreviousFrameBuffer,
                                      &frameBuffer,
-                                     &containerSurface);
+                                     &containerSurface)) {
+        aContainer->gl()->PopViewportRect();
+        aContainer->gl()->PopScissorRect();
+        aContainer->gl()->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, aPreviousFrameBuffer);
+        return;
+      }
     }
     childOffset.x = visibleRect.x;
     childOffset.y = visibleRect.y;
