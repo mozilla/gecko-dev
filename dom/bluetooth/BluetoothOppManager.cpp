@@ -367,6 +367,7 @@ BluetoothOppManager::StartSendingNextFile()
   MOZ_ASSERT(!IsTransferring());
   MOZ_ASSERT(mBlobs.Count() > mCurrentBlobIndex + 1);
 
+  mIsServer = false;
   mBlob = mBlobs[++mCurrentBlobIndex];
 
   // Before sending content, we have to send a header including
@@ -383,8 +384,6 @@ BluetoothOppManager::StartSendingNextFile()
     SendPutHeaderRequest(sFileName, sFileLength);
     AfterFirstPut();
   }
-
-  mIsServer = false;
 }
 
 bool
