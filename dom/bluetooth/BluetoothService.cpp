@@ -166,8 +166,9 @@ private:
 class BluetoothService::ToggleBtTask : public nsRunnable
 {
 public:
-  ToggleBtTask(bool aEnabled)
+  ToggleBtTask(bool aEnabled, bool aIsStartup)
     : mEnabled(aEnabled)
+    , mIsStartup(aIsStartup)
   {
     MOZ_ASSERT(NS_IsMainThread());
   }
@@ -176,14 +177,18 @@ public:
   {
     MOZ_ASSERT(!NS_IsMainThread());
 
-    /*
+    /**
      * mEnabled: expected status of bluetooth
      * gBluetoothService->IsEnabled(): real status of bluetooth
      *
-     * When two values are the same, we don't switch on/off bluetooth,
-     * but we still do ToggleBtAck task.
+     * When two values are the same, we don't switch on/off bluetooth
+     * but we still do ToggleBtAck task. One special case happens at startup
+     * stage. At startup, the initialization of BluetoothService still has to
+     * be done even if mEnabled is equal to the status of Bluetooth firmware.
+     *
+     * Please see bug 892392 for more information.
      */
-    if (mEnabled == gBluetoothService->IsEnabledInternal()) {
+    if (!mIsStartup && mEnabled == gBluetoothService->IsEnabledInternal()) {
       NS_WARNING("Bluetooth has already been enabled/disabled before.");
     } else {
       // Switch on/off bluetooth
@@ -223,6 +228,7 @@ public:
 
 private:
   bool mEnabled;
+  bool mIsStartup;
 };
 
 class BluetoothService::StartupTask : public nsISettingsServiceCallback
@@ -438,7 +444,7 @@ BluetoothService::DistributeSignal(const BluetoothSignal& aSignal)
 }
 
 nsresult
-BluetoothService::StartStopBluetooth(bool aStart)
+BluetoothService::StartStopBluetooth(bool aStart, bool aIsStartup)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -465,7 +471,7 @@ BluetoothService::StartStopBluetooth(bool aStart)
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  nsCOMPtr<nsIRunnable> runnable = new ToggleBtTask(aStart);
+  nsCOMPtr<nsIRunnable> runnable = new ToggleBtTask(aStart, aIsStartup);
   rv = mBluetoothCommandThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -542,7 +548,7 @@ nsresult
 BluetoothService::HandleStartupSettingsCheck(bool aEnable)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  return StartStopBluetooth(aEnable);
+  return StartStopBluetooth(aEnable, true);
 }
 
 nsresult
@@ -628,7 +634,7 @@ BluetoothService::HandleSettingsChanged(const nsAString& aData)
 
     gToggleInProgress = true;
 
-    nsresult rv = StartStopBluetooth(value.toBoolean());
+    nsresult rv = StartStopBluetooth(value.toBoolean(), false);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -693,7 +699,7 @@ BluetoothService::HandleShutdown()
     }
   }
 
-  if (IsEnabled() && NS_FAILED(StartStopBluetooth(false))) {
+  if (IsEnabled() && NS_FAILED(StartStopBluetooth(false, false))) {
     MOZ_ASSERT(false, "Failed to deliver stop message!");
   }
 
