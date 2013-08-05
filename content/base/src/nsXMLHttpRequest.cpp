@@ -3220,13 +3220,9 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
   }
 
   // Prevent modification to certain HTTP headers (see bug 302263), unless
-  // the executing script has UniversalXPConnect.
+  // this is a system XHR.
 
-  bool privileged;
-  if (NS_FAILED(IsCapabilityEnabled("UniversalXPConnect", &privileged)))
-    return NS_ERROR_FAILURE;
-
-  if (!privileged) {
+  if (!IsSystemXHR()) {
     // Step 5: Check for dangerous headers.
     static const char *kInvalidHeaders[] = {
       "accept-charset", "accept-encoding", "access-control-request-headers",
