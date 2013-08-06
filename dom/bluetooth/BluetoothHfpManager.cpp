@@ -1376,6 +1376,7 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
           sStopSendingRingFlag = true;
 
           ConnectSco();
+        case nsIRadioInterfaceLayer::CALL_STATE_DIALING:
         case nsIRadioInterfaceLayer::CALL_STATE_ALERTING:
           // Outgoing call
           UpdateCIND(CINDType::CALL, CallState::IN_PROGRESS, aSend);

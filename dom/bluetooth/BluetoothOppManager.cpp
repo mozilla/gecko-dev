@@ -436,6 +436,7 @@ BluetoothOppManager::ConfirmReceivingFile(bool aConfirm)
   if (success && mPutFinalFlag) {
     mSuccessFlag = true;
     FileTransferComplete();
+    NotifyAboutFileChange();
   }
 
   ReplyToPut(mPutFinalFlag, success);

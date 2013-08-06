@@ -1254,6 +1254,12 @@ ProcessArgs(JSContext *cx, JSObject *obj, char **argv, int argc)
         case 'n':
             JS_ToggleOptions(cx, JSOPTION_TYPE_INFERENCE);
             break;
+        case 'p':
+            // dummy to support new mozharness changes on ESR17 & B2G18
+            if (++i == argc) {
+                return usage();
+            }
+            break;
         default:
             return usage();
         }
