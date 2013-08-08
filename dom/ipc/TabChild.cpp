@@ -259,8 +259,8 @@ TabChild::Observe(nsISupports *aSubject,
                       kDefaultViewportSize.width, kDefaultViewportSize.height);
         mLastMetrics.mCompositionBounds = nsIntRect(nsIntPoint(0, 0),
                                                     mInnerSize);
-        mLastMetrics.mResolution =
-          AsyncPanZoomController::CalculateResolution(mLastMetrics);
+        mLastMetrics.mResolution = AsyncPanZoomController::CalculateResolution(mLastMetrics)
+                                 / mLastMetrics.mDevPixelsPerCSSPixel;
         mLastMetrics.mScrollOffset = gfx::Point(0, 0);
         utils->SetResolution(mLastMetrics.mResolution.width,
                              mLastMetrics.mResolution.height);
@@ -530,13 +530,8 @@ TabChild::HandlePossibleViewportChange()
     // we have no idea how long painting will take.
     metrics, gfx::Point(0.0f, 0.0f), gfx::Point(0.0f, 0.0f), 0.0);
   gfxSize resolution = AsyncPanZoomController::CalculateResolution(metrics);
-  // XXX is this actually hysteresis?  This calculation is not well
-  // understood.  It's taken from the previous JS implementation.
-  gfxFloat hysteresis/*?*/ =
-    gfxFloat(oldBrowserWidth) / gfxFloat(oldScreenWidth);
-  resolution.width *= hysteresis;
-  resolution.height *= hysteresis;
-  metrics.mResolution = resolution;
+  metrics.mResolution = gfxSize(resolution.width / metrics.mDevPixelsPerCSSPixel,
+                                resolution.height / metrics.mDevPixelsPerCSSPixel);
   utils->SetResolution(metrics.mResolution.width, metrics.mResolution.height);
 
   // Force a repaint with these metrics. This, among other things, sets the
