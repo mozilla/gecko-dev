@@ -1085,6 +1085,11 @@ protected:
   nsCOMPtr<nsIURI> mLastOpenedURI;
 #endif
 
+#ifdef MOZ_B2G
+  bool mNetworkUploadObserverEnabled;
+  bool mNetworkDownloadObserverEnabled;
+#endif // MOZ_B2G
+
   bool mCleanedUp, mCallCleanUpAfterModalDialogCloses;
 
   nsCOMPtr<nsIDOMOfflineResourceList> mApplicationCache;

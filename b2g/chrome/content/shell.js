@@ -85,6 +85,14 @@ function debug(str) {
   dump(' -*- Shell.js: ' + str + '\n');
 }
 
+#ifdef MOZ_CRASHREPORTER
+function debugCrashReport(aStr) {
+  dump('Crash reporter : ' + aStr);
+}
+#else
+function debugCrashReport(aStr) {}
+#endif
+
 var shell = {
 
   get CrashSubmit() {
@@ -126,6 +134,8 @@ var shell = {
       // Check if we should automatically submit this crash.
       if (Services.prefs.getBoolPref("app.reportCrashes")) {
         this.submitCrash(crashID);
+      } else {
+        this.deleteCrash(crashID);
       }
     } catch (e) { }
 
@@ -138,6 +148,13 @@ var shell = {
         crashID: crashID,
         chrome: isChrome
       });
+    }
+  },
+
+  deleteCrash: function shell_deleteCrash(aCrashID) {
+    if (aCrashID) {
+      debugCrashReport('Deleting pending crash: ' + aCrashID);
+      shell.CrashSubmit.delete(aCrashID);
     }
   },
 
@@ -1048,7 +1065,11 @@ window.addEventListener('ContentStart', function cr_onContentStart() {
   let content = shell.contentBrowser.contentWindow;
   content.addEventListener("mozContentEvent", function cr_onMozContentEvent(e) {
     if (e.detail.type == "submit-crash" && e.detail.crashID) {
+      debugCrashReport("submitting crash at user request ", e.detail.crashID);
       shell.submitCrash(e.detail.crashID);
+    } else if (e.detail.type == "delete-crash" && e.detail.crashID) {
+      debugCrashReport("deleting crash at user request ", e.detail.crashID);
+      shell.deleteCrash(e.detail.crashID);
     }
   });
 });
