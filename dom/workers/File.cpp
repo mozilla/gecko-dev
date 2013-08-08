@@ -21,9 +21,6 @@
 #include "WorkerInlines.h"
 #include "WorkerPrivate.h"
 
-#define PROPERTY_FLAGS \
-  (JSPROP_ENUMERATE | JSPROP_SHARED)
-
 USING_WORKERS_NAMESPACE
 
 using mozilla::dom::workers::exceptions::ThrowDOMExceptionForNSResult;
@@ -114,13 +111,18 @@ private:
     NS_IF_RELEASE(blob);
   }
 
-  static JSBool
-  GetSize(JSContext* aCx, JSHandleObject aObj, JSHandleId aIdval, JSMutableHandleValue aVp)
+  static bool
+  IsBlob(const JS::Value& v)
   {
-    nsIDOMBlob* blob = GetInstancePrivate(aCx, aObj, "size");
-    if (!blob) {
-      return false;
-    }
+    return v.isObject() && GetPrivate(&v.toObject()) != nullptr;
+  }
+
+  static bool
+  GetSizeImpl(JSContext* aCx, JS::CallArgs aArgs)
+  {
+    JS::Rooted<JSObject*> obj(aCx, &aArgs.thisv().toObject());
+    nsIDOMBlob* blob = GetInstancePrivate(aCx, obj, "size");
+    MOZ_ASSERT(blob);
 
     uint64_t size;
     if (NS_FAILED(blob->GetSize(&size))) {
@@ -128,15 +130,22 @@ private:
       return false;
     }
 
-    aVp.set(JS_NumberValue(double(size)));
-
+    aArgs.rval().setNumber(double(size));
     return true;
   }
 
   static JSBool
-  GetType(JSContext* aCx, JSHandleObject aObj, JSHandleId aIdval, JSMutableHandleValue aVp)
+  GetSize(JSContext* aCx, unsigned aArgc, JS::Value* aVp)
   {
-    nsIDOMBlob* blob = GetInstancePrivate(aCx, aObj, "type");
+    JS::CallArgs args = JS::CallArgsFromVp(aArgc, aVp);
+    return JS::CallNonGenericMethod<IsBlob, GetSizeImpl>(aCx, args);
+  }
+
+  static bool
+  GetTypeImpl(JSContext* aCx, JS::CallArgs aArgs)
+  {
+    JS::Rooted<JSObject*> obj(aCx, &aArgs.thisv().toObject());
+    nsIDOMBlob* blob = GetInstancePrivate(aCx, obj, "type");
     if (!blob) {
       return false;
     }
@@ -152,9 +161,15 @@ private:
       return false;
     }
 
-    aVp.set(STRING_TO_JSVAL(jsType));
-
+    aArgs.rval().setString(jsType);
     return true;
+  }
+
+  static JSBool
+  GetType(JSContext* aCx, unsigned aArgc, JS::Value* aVp)
+  {
+    JS::CallArgs args = JS::CallArgsFromVp(aArgc, aVp);
+    return JS::CallNonGenericMethod<IsBlob, GetTypeImpl>(aCx, args);
   }
 
   static JSBool
@@ -210,9 +225,9 @@ JSClass Blob::sClass = {
 };
 
 JSPropertySpec Blob::sProperties[] = {
-  { "size", 0, PROPERTY_FLAGS, JSOP_WRAPPER(GetSize), JSOP_WRAPPER(js_GetterOnlyPropertyStub) },
-  { "type", 0, PROPERTY_FLAGS, JSOP_WRAPPER(GetType), JSOP_WRAPPER(js_GetterOnlyPropertyStub) },
-  { 0, 0, 0, JSOP_NULLWRAPPER, JSOP_NULLWRAPPER }
+  JS_PSGS("size", GetSize, GetterOnlyJSNative, JSPROP_ENUMERATE),
+  JS_PSGS("type", GetType, GetterOnlyJSNative, JSPROP_ENUMERATE),
+  JS_PS_END
 };
 
 JSFunctionSpec Blob::sFunctions[] = {
@@ -303,13 +318,18 @@ private:
     NS_IF_RELEASE(file);
   }
 
-  static JSBool
-  GetMozFullPath(JSContext* aCx, JSHandleObject aObj, JSHandleId aIdval, JSMutableHandleValue aVp)
+  static bool
+  IsFile(const JS::Value& v)
   {
-    nsIDOMFile* file = GetInstancePrivate(aCx, aObj, "mozFullPath");
-    if (!file) {
-      return false;
-    }
+    return v.isObject() && GetPrivate(&v.toObject()) != nullptr;
+  }
+
+  static bool
+  GetMozFullPathImpl(JSContext* aCx, JS::CallArgs aArgs)
+  {
+    JS::Rooted<JSObject*> obj(aCx, &aArgs.thisv().toObject());
+    nsIDOMFile* file = GetInstancePrivate(aCx, obj, "mozFullPath");
+    MOZ_ASSERT(file);
 
     nsString fullPath;
 
@@ -325,17 +345,23 @@ private:
       return false;
     }
 
-    aVp.set(STRING_TO_JSVAL(jsFullPath));
+    aArgs.rval().setString(jsFullPath);
     return true;
   }
 
   static JSBool
-  GetName(JSContext* aCx, JSHandleObject aObj, JSHandleId aIdval, JSMutableHandleValue aVp)
+  GetMozFullPath(JSContext* aCx, unsigned aArgc, JS::Value* aVp)
   {
-    nsIDOMFile* file = GetInstancePrivate(aCx, aObj, "name");
-    if (!file) {
-      return false;
-    }
+    JS::CallArgs args = JS::CallArgsFromVp(aArgc, aVp);
+    return JS::CallNonGenericMethod<IsFile, GetMozFullPathImpl>(aCx, args);
+  }
+
+  static bool
+  GetNameImpl(JSContext* aCx, JS::CallArgs aArgs)
+  {
+    JS::Rooted<JSObject*> obj(aCx, &aArgs.thisv().toObject());
+    nsIDOMFile* file = GetInstancePrivate(aCx, obj, "name");
+    MOZ_ASSERT(file);
 
     nsString name;
     if (NS_FAILED(file->GetName(name))) {
@@ -347,8 +373,15 @@ private:
       return false;
     }
 
-    aVp.set(STRING_TO_JSVAL(jsName));
+    aArgs.rval().setString(jsName);
     return true;
+  }
+
+  static JSBool
+  GetName(JSContext* aCx, unsigned aArgc, JS::Value* aVp)
+  {
+    JS::CallArgs args = JS::CallArgsFromVp(aArgc, aVp);
+    return JS::CallNonGenericMethod<IsFile, GetNameImpl>(aCx, args);
   }
 };
 
@@ -360,11 +393,9 @@ JSClass File::sClass = {
 };
 
 JSPropertySpec File::sProperties[] = {
-  { "name", 0, PROPERTY_FLAGS, JSOP_WRAPPER(GetName),
-    JSOP_WRAPPER(js_GetterOnlyPropertyStub) },
-  { "mozFullPath", 0, PROPERTY_FLAGS, JSOP_WRAPPER(GetMozFullPath),
-    JSOP_WRAPPER(js_GetterOnlyPropertyStub) },
-  { 0, 0, 0, JSOP_NULLWRAPPER, JSOP_NULLWRAPPER }
+  JS_PSGS("name", GetName, GetterOnlyJSNative, JSPROP_ENUMERATE),
+  JS_PSGS("mozFullPath", GetMozFullPath, GetterOnlyJSNative, JSPROP_ENUMERATE),
+  JS_PS_END
 };
 
 nsIDOMBlob*
