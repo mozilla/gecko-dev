@@ -633,17 +633,17 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
   FrameMetrics metrics;
 
   metrics.mViewport = mozilla::gfx::Rect(
-    NSAppUnitsToDoublePixels(aViewport.x, auPerDevPixel),
-    NSAppUnitsToDoublePixels(aViewport.y, auPerDevPixel),
-    NSAppUnitsToDoublePixels(aViewport.width, auPerDevPixel),
-    NSAppUnitsToDoublePixels(aViewport.height, auPerDevPixel));
+    NSAppUnitsToDoublePixels(aViewport.x, auPerCSSPixel),
+    NSAppUnitsToDoublePixels(aViewport.y, auPerCSSPixel),
+    NSAppUnitsToDoublePixels(aViewport.width, auPerCSSPixel),
+    NSAppUnitsToDoublePixels(aViewport.height, auPerCSSPixel));
 
   if (aDisplayPort) {
     metrics.mDisplayPort = mozilla::gfx::Rect(
-      NSAppUnitsToDoublePixels(aDisplayPort->x, auPerDevPixel),
-      NSAppUnitsToDoublePixels(aDisplayPort->y, auPerDevPixel),
-      NSAppUnitsToDoublePixels(aDisplayPort->width, auPerDevPixel),
-      NSAppUnitsToDoublePixels(aDisplayPort->height, auPerDevPixel));
+      NSAppUnitsToDoublePixels(aDisplayPort->x, auPerCSSPixel),
+      NSAppUnitsToDoublePixels(aDisplayPort->y, auPerCSSPixel),
+      NSAppUnitsToDoublePixels(aDisplayPort->width, auPerCSSPixel),
+      NSAppUnitsToDoublePixels(aDisplayPort->height, auPerCSSPixel));
   }
 
   nsIScrollableFrame* scrollableFrame = nullptr;

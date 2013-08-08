@@ -224,10 +224,11 @@ BuildListForLayer(Layer* aLayer,
     // Calculate rect for this layer based on aTransform.
     nsRect bounds;
     {
+      nscoord auPerCSSPixel = nsPresContext::AppUnitsPerCSSPixel();
       nscoord auPerDevPixel = aSubdocFrame->PresContext()->AppUnitsPerDevPixel();
       gfx::Rect viewport = metrics->mViewport;
       bounds = nsIntRect(viewport.x, viewport.y,
-                         viewport.width, viewport.height).ToAppUnits(auPerDevPixel);
+                         viewport.width, viewport.height).ToAppUnits(auPerCSSPixel);
       ApplyTransform(bounds, tmpTransform, auPerDevPixel);
 
     }
