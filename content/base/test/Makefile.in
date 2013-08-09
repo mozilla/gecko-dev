@@ -581,6 +581,8 @@ MOCHITEST_FILES_B = \
 		test_bug789856.html \
 		file_bug804395.jar \
 		test_bug804395.html \
+		test_bug890580.html \
+		test_bug895239.html \
 		$(NULL)
 
 # OOP tests don't work on Windows (bug 763081) or native-fennec
