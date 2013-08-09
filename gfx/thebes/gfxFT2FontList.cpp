@@ -92,7 +92,12 @@ BuildKeyNameFromFontName(nsAString &aName)
 cairo_scaled_font_t *
 FT2FontEntry::CreateScaledFont(const gfxFontStyle *aStyle)
 {
-    cairo_scaled_font_t *scaledFont = NULL;
+    cairo_font_face_t *cairoFace = CairoFontFace();
+    if (!cairoFace) {
+        return nullptr;
+    }
+
+    cairo_scaled_font_t *scaledFont = nullptr;
 
     cairo_matrix_t sizeMatrix;
     cairo_matrix_t identityMatrix;
@@ -125,7 +130,7 @@ FT2FontEntry::CreateScaledFont(const gfxFontStyle *aStyle)
         cairo_font_options_set_hint_metrics(fontOptions, CAIRO_HINT_METRICS_OFF);
     }
 
-    scaledFont = cairo_scaled_font_create(CairoFontFace(),
+    scaledFont = cairo_scaled_font_create(cairoFace,
                                           &sizeMatrix,
                                           &identityMatrix, fontOptions);
     cairo_font_options_destroy(fontOptions);
@@ -153,6 +158,9 @@ gfxFont*
 FT2FontEntry::CreateFontInstance(const gfxFontStyle *aFontStyle, bool aNeedsBold)
 {
     cairo_scaled_font_t *scaledFont = CreateScaledFont(aFontStyle);
+    if (!scaledFont) {
+        return nullptr;
+    }
     gfxFont *font = new gfxFT2Font(scaledFont, this, aFontStyle, aNeedsBold);
     cairo_scaled_font_destroy(scaledFont);
     return font;
