@@ -760,11 +760,11 @@ Walk(JSContext *cx, HandleObject holder, HandleId name, HandleValue reviver, Mut
     if (val.isObject()) {
         RootedObject obj(cx, &val.toObject());
 
-        /* 'val' must have been produced by the JSON parser, so not a proxy. */
-        JS_ASSERT(!obj->isProxy());
-        if (obj->isArray()) {
+        if (ObjectClassIs(*obj, ESClass_Array, cx)) {
             /* Step 2a(ii). */
-            uint32_t length = obj->getArrayLength();
+            uint32_t length;
+            if (!GetLengthProperty(cx, obj, &length))
+                return false;
 
             /* Step 2a(i), 2a(iii-iv). */
             RootedId id(cx);
@@ -777,24 +777,16 @@ Walk(JSContext *cx, HandleObject holder, HandleId name, HandleValue reviver, Mut
                 if (!Walk(cx, obj, id, reviver, &newElement))
                     return false;
 
-                /*
-                 * Arrays which begin empty and whose properties are always
-                 * incrementally appended are always dense, no matter their
-                 * length, under current dense/slow array heuristics.
-                 * Also, deleting a property from a dense array which is not
-                 * currently being enumerated never makes it slow.  This array
-                 * is never exposed until the reviver sees it below, so it must
-                 * be dense and isn't currently being enumerated.  Therefore
-                 * property definition and deletion will always succeed,
-                 * and we need not check for failure.
-                 */
                 if (newElement.isUndefined()) {
                     /* Step 2a(iii)(2). */
-                    JS_ALWAYS_TRUE(array_deleteElement(cx, obj, i, &newElement, false));
+                    if (!JSObject::deleteElement(cx, obj, i, &newElement, false))
+                        return false;
                 } else {
                     /* Step 2a(iii)(3). */
-                    JS_ALWAYS_TRUE(array_defineElement(cx, obj, i, newElement, JS_PropertyStub,
-                                                       JS_StrictPropertyStub, JSPROP_ENUMERATE));
+                    // XXX This definition should ignore success/failure, when
+                    //     our property-definition APIs indicate that.
+                    if (!JSObject::defineElement(cx, obj, i, newElement))
+                        return false;
                 }
             }
         } else {
@@ -818,12 +810,10 @@ Walk(JSContext *cx, HandleObject holder, HandleId name, HandleValue reviver, Mut
                         return false;
                 } else {
                     /* Step 2b(ii)(3). */
-                    JS_ASSERT(obj->isNative());
-                    if (!DefineNativeProperty(cx, obj, id, newElement, JS_PropertyStub,
-                                              JS_StrictPropertyStub, JSPROP_ENUMERATE, 0, 0))
-                    {
+                    // XXX This definition should ignore success/failure, when
+                    //     our property-definition APIs indicate that.
+                    if (!JSObject::defineGeneric(cx, obj, id, newElement))
                         return false;
-                    }
                 }
             }
         }
