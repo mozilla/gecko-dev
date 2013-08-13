@@ -51,9 +51,9 @@ DeviceStorageRequestChild::Recv__delete__(const DeviceStorageResponseValue& aVal
 
     case DeviceStorageResponseValue::TSuccessResponse:
     {
-      nsString compositePath;
-      mFile->GetCompositePath(compositePath);
-      JS::Value result = StringToJsval(mRequest->GetOwner(), compositePath);
+      nsString fullPath;
+      mFile->GetFullPath(fullPath);
+      JS::Value result = StringToJsval(mRequest->GetOwner(), fullPath);
       mRequest->FireSuccess(result);
       break;
     }
