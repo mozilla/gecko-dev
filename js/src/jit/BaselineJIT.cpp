@@ -383,6 +383,16 @@ BaselineScript::trace(JSTracer *trc)
     }
 }
 
+/* static */
+void
+BaselineScript::writeBarrierPre(Zone *zone, BaselineScript *script)
+{
+#ifdef JSGC_INCREMENTAL
+    if (zone->needsBarrier())
+        script->trace(zone->barrierTracer());
+#endif
+}
+
 void
 BaselineScript::Trace(JSTracer *trc, BaselineScript *script)
 {
@@ -829,8 +839,9 @@ jit::FinishDiscardBaselineScript(FreeOp *fop, JSScript *script)
         return;
     }
 
-    BaselineScript::Destroy(fop, script->baselineScript());
+    BaselineScript *baseline = script->baselineScript();
     script->setBaselineScript(NULL);
+    BaselineScript::Destroy(fop, baseline);
 }
 
 void
