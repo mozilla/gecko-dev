@@ -24,7 +24,6 @@ protected:
   jsval mResult;
   nsCOMPtr<nsIDOMDOMError> mError;
   bool mDone;
-  bool mRooted;
 
   NS_DECL_EVENT_HANDLER(success)
   NS_DECL_EVENT_HANDLER(error)
@@ -46,16 +45,14 @@ public:
 
   virtual ~DOMRequest()
   {
-    if (mRooted) {
-      UnrootResultVal();
-    }
+    mResult = JSVAL_VOID;
+    NS_DROP_JS_OBJECTS(this, DOMRequest);
   }
 
 protected:
   void FireEvent(const nsAString& aType, bool aBubble, bool aCancelable);
 
   virtual void RootResultVal();
-  virtual void UnrootResultVal();
 
   void Init(nsIDOMWindow* aWindow);
 };

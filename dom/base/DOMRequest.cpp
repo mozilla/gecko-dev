@@ -19,7 +19,6 @@ using mozilla::dom::DOMRequestService;
 DOMRequest::DOMRequest(nsIDOMWindow* aWindow)
   : mResult(JSVAL_VOID)
   , mDone(false)
-  , mRooted(false)
 {
   Init(aWindow);
 }
@@ -29,7 +28,6 @@ DOMRequest::DOMRequest(nsIDOMWindow* aWindow)
 DOMRequest::DOMRequest()
   : mResult(JSVAL_VOID)
   , mDone(false)
-  , mRooted(false)
 {
 }
 
@@ -54,13 +52,10 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(DOMRequest,
                                                 nsDOMEventTargetHelper)
-  if (tmp->mRooted) {
-    tmp->mResult = JSVAL_VOID;
-    tmp->UnrootResultVal();
-  }
   NS_CYCLE_COLLECTION_UNLINK_EVENT_HANDLER(success)
   NS_CYCLE_COLLECTION_UNLINK_EVENT_HANDLER(error)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mError)
+  tmp->mResult = JSVAL_VOID;
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(DOMRequest,
@@ -178,17 +173,7 @@ DOMRequest::FireEvent(const nsAString& aType, bool aBubble, bool aCancelable)
 void
 DOMRequest::RootResultVal()
 {
-  NS_ASSERTION(!mRooted, "Don't call me if already rooted!");
   NS_HOLD_JS_OBJECTS(this, DOMRequest);
-  mRooted = true;
-}
-
-void
-DOMRequest::UnrootResultVal()
-{
-  NS_ASSERTION(mRooted, "Don't call me if not rooted!");
-  NS_DROP_JS_OBJECTS(this, DOMRequest);
-  mRooted = false;
 }
 
 NS_IMPL_ISUPPORTS1(DOMRequestService, nsIDOMRequestService)

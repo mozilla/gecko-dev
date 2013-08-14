@@ -880,13 +880,11 @@ nsDOMDeviceStorageCursor::Continue()
     return NS_ERROR_UNEXPECTED;
   }
 
-  if (mRooted) {
-    // We call onsuccess multiple times. clear the last
-    // rooted result.
-    NS_DROP_JS_OBJECTS(this, nsDOMDeviceStorageCursor);
+  if (mResult != JSVAL_VOID) {
+    // We call onsuccess multiple times. Clear the last
+    // result.
     mResult = JSVAL_VOID;
     mDone = false;
-    mRooted = false;
   }
 
   nsCOMPtr<ContinueCursorEvent> event = new ContinueCursorEvent(this);
