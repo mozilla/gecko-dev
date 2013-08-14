@@ -25,7 +25,7 @@
         "B2GUPDATER": "1"
     },
     "b2g_manifest": "unagi.xml",
-    "b2g_manifest_branch": "v1-train",
+    "b2g_manifest_branch": "v1.1.0hd",
     "additional_source_tarballs": ["backup-unagi.tar.bz2"],
     "gecko_l10n_root": "http://hg.mozilla.org/releases/l10n/mozilla-beta",
     "gaia_l10n_git_root": "https://git.mozilla.org/releases/l10n/%(locale)s/gaia.git",
