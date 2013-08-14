@@ -24,7 +24,6 @@ protected:
   jsval mResult;
   nsCOMPtr<nsIDOMDOMError> mError;
   bool mDone;
-  bool mRooted;
 
 public:
   NS_DECL_ISUPPORTS_INHERITED
@@ -44,16 +43,14 @@ public:
 
   virtual ~DOMRequest()
   {
-    if (mRooted) {
-      UnrootResultVal();
-    }
+    mResult = JSVAL_VOID;
+    NS_DROP_JS_OBJECTS(this, DOMRequest);
   }
 
 protected:
   void FireEvent(const nsAString& aType, bool aBubble, bool aCancelable);
 
   void RootResultVal();
-  void UnrootResultVal();
 
   void Init(nsIDOMWindow* aWindow);
 };
