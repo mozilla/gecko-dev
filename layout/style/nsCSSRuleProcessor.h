@@ -117,8 +117,8 @@ public:
   bool AppendFontFaceRules(nsPresContext* aPresContext,
                            nsTArray<nsFontFaceRuleContainer>& aArray);
 
-  bool AppendKeyframesRules(nsPresContext* aPresContext,
-                            nsTArray<nsCSSKeyframesRule*>& aArray);
+  nsCSSKeyframesRule* KeyframesRuleForName(nsPresContext* aPresContext,
+                                           const nsString& aName);
 
 #ifdef DEBUG
   void AssertQuirksChangeOK() {

@@ -151,10 +151,9 @@ class nsStyleSet
   bool AppendFontFaceRules(nsPresContext* aPresContext,
                              nsTArray<nsFontFaceRuleContainer>& aArray);
 
-  // Append all the currently-active keyframes rules to aArray.  Return
-  // true for success and false for failure.
-  bool AppendKeyframesRules(nsPresContext* aPresContext,
-                              nsTArray<nsCSSKeyframesRule*>& aArray);
+  // Return the winning (in the cascade) @keyframes rule for the given name.
+  nsCSSKeyframesRule* KeyframesRuleForName(nsPresContext* aPresContext,
+                                           const nsString& aName);
 
   // Begin ignoring style context destruction, to avoid lots of unnecessary
   // work on document teardown.

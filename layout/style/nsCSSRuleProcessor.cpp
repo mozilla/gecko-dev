@@ -942,6 +942,7 @@ struct RuleCascadeData {
     PL_DHashTableInit(&mXULTreeRules, &RuleHash_TagTable_Ops, nullptr,
                       sizeof(RuleHashTagTableEntry), 16);
 #endif
+    mKeyframesRuleTable.Init(16); // FIXME: make infallible!
   }
 
   ~RuleCascadeData()
@@ -977,6 +978,8 @@ struct RuleCascadeData {
 
   nsTArray<nsFontFaceRuleContainer> mFontFaceRules;
   nsTArray<nsCSSKeyframesRule*> mKeyframesRules;
+
+  nsDataHashtable<nsStringHashKey, nsCSSKeyframesRule*> mKeyframesRuleTable;
 
   // Looks up or creates the appropriate list in |mAttributeSelectors|.
   // Returns null only on allocation failure.
@@ -2641,21 +2644,17 @@ nsCSSRuleProcessor::AppendFontFaceRules(
   return true;
 }
 
-// Append all the currently-active keyframes rules to aArray.  Return
-// true for success and false for failure.
-bool
-nsCSSRuleProcessor::AppendKeyframesRules(
-                              nsPresContext *aPresContext,
-                              nsTArray<nsCSSKeyframesRule*>& aArray)
+nsCSSKeyframesRule*
+nsCSSRuleProcessor::KeyframesRuleForName(nsPresContext* aPresContext,
+                                         const nsString& aName)
 {
   RuleCascadeData* cascade = GetRuleCascade(aPresContext);
 
   if (cascade) {
-    if (!aArray.AppendElements(cascade->mKeyframesRules))
-      return false;
+    return cascade->mKeyframesRuleTable.Get(aName);
   }
-  
-  return true;
+
+  return nullptr;
 }
 
 nsresult
@@ -3109,6 +3108,8 @@ FillWeightArray(PLDHashTable *table, PLDHashEntryHdr *hdr,
 RuleCascadeData*
 nsCSSRuleProcessor::GetRuleCascade(nsPresContext* aPresContext)
 {
+  // FIXME:  Make this infallible!
+
   // If anything changes about the presentation context, we will be
   // notified.  Otherwise, our cache is valid if mLastPresContext
   // matches aPresContext.  (The only rule processors used for multiple
@@ -3181,6 +3182,13 @@ nsCSSRuleProcessor::RefreshRuleCascade(nsPresContext* aPresContext)
           if (!AddRule(cur, newCascade))
             return; /* out of memory */
         }
+      }
+
+      // Build mKeyframesRuleTable.
+      for (nsTArray<nsCSSKeyframesRule*>::size_type i = 0,
+             iEnd = newCascade->mKeyframesRules.Length(); i < iEnd; ++i) {
+        nsCSSKeyframesRule* rule = newCascade->mKeyframesRules[i];
+        newCascade->mKeyframesRuleTable.Put(rule->GetName(), rule);
       }
 
       // Ensure that the current one is always mRuleCascades.
