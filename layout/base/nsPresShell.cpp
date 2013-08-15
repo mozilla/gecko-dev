@@ -4213,7 +4213,6 @@ nsIPresShell::ReconstructStyleDataInternal()
 
   if (mPresContext) {
     mPresContext->RebuildUserFontSet();
-    mPresContext->AnimationManager()->KeyframesListIsDirty();
   }
 
   Element* root = mDocument->GetRootElement();

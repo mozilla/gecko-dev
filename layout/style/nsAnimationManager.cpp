@@ -521,7 +521,6 @@ nsAnimationManager::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
 
   // Measurement of the following members may be added later if DMD finds it is
   // worthwhile:
-  // - mKeyframesRules
   // - mPendingEvents
 }
 
@@ -751,7 +750,8 @@ nsAnimationManager::BuildAnimations(nsStyleContext* aStyleContext,
 
     aDest.mIterationDuration = TimeDuration::FromMilliseconds(aSrc.GetDuration());
 
-    nsCSSKeyframesRule *rule = KeyframesRuleFor(aDest.mName);
+    nsCSSKeyframesRule* rule =
+      mPresContext->StyleSet()->KeyframesRuleForName(mPresContext, aDest.mName);
     if (!rule) {
       // no segments
       continue;
@@ -1069,24 +1069,3 @@ nsAnimationManager::DoDispatchEvents()
     }
   }
 }
-
-nsCSSKeyframesRule*
-nsAnimationManager::KeyframesRuleFor(const nsSubstring& aName)
-{
-  if (mKeyframesListIsDirty) {
-    mKeyframesListIsDirty = false;
-
-    nsTArray<nsCSSKeyframesRule*> rules;
-    mPresContext->StyleSet()->AppendKeyframesRules(mPresContext, rules);
-
-    // Per css3-animations, the last @keyframes rule specified wins.
-    mKeyframesRules.Clear();
-    for (uint32_t i = 0, i_end = rules.Length(); i != i_end; ++i) {
-      nsCSSKeyframesRule *rule = rules[i];
-      mKeyframesRules.Put(rule->GetName(), rule);
-    }
-  }
-
-  return mKeyframesRules.Get(aName);
-}
-

@@ -1658,7 +1658,6 @@ nsPresContext::RebuildAllStyleData(nsChangeHint aExtraHint)
 
   mUsesRootEMUnits = false;
   RebuildUserFontSet();
-  AnimationManager()->KeyframesListIsDirty();
 
   mShell->FrameConstructor()->RebuildAllStyleData(aExtraHint);
 }
