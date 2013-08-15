@@ -42,6 +42,10 @@
 #include "gfxPlatformMac.h"
 #endif
 
+#ifdef MOZ_WIDGET_GONK
+#include "ui/FramebufferNativeWindow.h"
+#endif
+
 namespace mozilla {
 namespace layers {
 
@@ -1036,6 +1040,16 @@ LayerManagerOGL::Render()
 
   // Allow widget to render a custom foreground too.
   mWidget->DrawWindowOverlay(this, rect);
+
+#ifdef MOZ_WIDGET_GONK
+  // Should be called when composition rendering is complete for a frame.
+  // Only HWC v1.0 needs this call. ICS gonk always needs the call.
+  // XXX HWC v1.1 or newer does not need the call. Need to handle it in JB gonk.
+  android::FramebufferNativeWindow* nativeWindow = reinterpret_cast<android::FramebufferNativeWindow*> (mWidget->GetNativeData(NS_NATIVE_WINDOW));
+  if (nativeWindow) {
+    nativeWindow->compositionComplete();
+  }
+#endif
 
 #ifdef MOZ_DUMP_PAINTING
   if (gfxUtils::sDumpPainting) {
