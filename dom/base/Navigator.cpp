@@ -1468,7 +1468,7 @@ Navigator::GetMozTime(nsIDOMMozTimeManager** aTime)
   *aTime = nullptr;
 
   if (!CheckPermission("time")) {
-    return NS_ERROR_DOM_SECURITY_ERR;
+    return NS_OK;
   }
 
   if (!mTimeManager) {
