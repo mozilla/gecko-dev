@@ -1647,7 +1647,7 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
       }
 
       // Verify that newContent has no parent.
-      if (newContent->GetParent()) {
+      if (newContent->GetParentNode()) {
         return NS_ERROR_DOM_HIERARCHY_REQUEST_ERR;
       }
 
@@ -1720,7 +1720,7 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
 
       // Verify that all the things in fragChildren have no parent.
       for (uint32_t i = 0; i < count; ++i) {
-        if (fragChildren.ref().ElementAt(i)->GetParent()) {
+        if (fragChildren.ref().ElementAt(i)->GetParentNode()) {
           return NS_ERROR_DOM_HIERARCHY_REQUEST_ERR;
         }
       }
