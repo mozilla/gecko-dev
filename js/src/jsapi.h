@@ -4369,6 +4369,29 @@ struct JSPropertySpec {
     JSStrictPropertyOpWrapper   setter;
 };
 
+/* NEVER DEFINED, DON'T USE.  For use by JS_CAST_NATIVE_TO only. */
+extern JS_PUBLIC_API(int)
+js_CheckIsNative(JSNative native);
+
+#define JS_CAST_NATIVE_TO(v, To) \
+  ((void)sizeof(js_CheckIsNative(v)), (To)(v))
+
+/*
+ * JSPropertySpec uses JSAPI JSPropertyOp and JSStrictPropertyOp in function
+ * signatures, but with JSPROP_NATIVE_ACCESSORS the actual values must be
+ * JSNatives. To avoid widespread casting, have JS_PSG and JS_PSGS perform
+ * type-safe casts.
+ */
+#define JS_PSG(name, getter, flags) \
+    {name, 0, (flags) | JSPROP_SHARED | JSPROP_NATIVE_ACCESSORS, \
+     JSOP_WRAPPER(JS_CAST_NATIVE_TO(getter, JSPropertyOp)), \
+     JSOP_NULLWRAPPER}
+#define JS_PSGS(name, getter, setter, flags) \
+    {name, 0, (flags) | JSPROP_SHARED | JSPROP_NATIVE_ACCESSORS, \
+     JSOP_WRAPPER(JS_CAST_NATIVE_TO(getter, JSPropertyOp)), \
+     JSOP_WRAPPER(JS_CAST_NATIVE_TO(setter, JSStrictPropertyOp))}
+#define JS_PS_END {0, 0, 0, JSOP_NULLWRAPPER, JSOP_NULLWRAPPER}
+
 /*
  * To define a native function, set call to a JSNativeWrapper. To define a
  * self-hosted function, set selfHostedName to the name of a function

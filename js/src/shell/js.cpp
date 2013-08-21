@@ -3968,7 +3968,7 @@ Help(JSContext *cx, unsigned argc, jsval *vp)
  */
 enum its_tinyid {
     ITS_COLOR, ITS_HEIGHT, ITS_WIDTH, ITS_FUNNY, ITS_ARRAY, ITS_RDONLY,
-    ITS_CUSTOM, ITS_CUSTOMRDONLY, ITS_CUSTOMNATIVE
+    ITS_CUSTOM, ITS_CUSTOMRDONLY
 };
 
 static JSBool
@@ -3994,11 +3994,8 @@ static JSPropertySpec its_props[] = {
                         JSOP_WRAPPER(its_getter),     JSOP_WRAPPER(its_setter)},
     {"customRdOnly",    ITS_CUSTOMRDONLY, JSPROP_ENUMERATE | JSPROP_READONLY,
                         JSOP_WRAPPER(its_getter),     JSOP_WRAPPER(its_setter)},
-    {"customNative",    ITS_CUSTOMNATIVE,
-                        JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS,
-                        JSOP_WRAPPER((JSPropertyOp)its_get_customNative),
-                        JSOP_WRAPPER((JSStrictPropertyOp)its_set_customNative)},
-    {NULL,0,0,JSOP_NULLWRAPPER, JSOP_NULLWRAPPER}
+    JS_PSGS("customNative", its_get_customNative, its_set_customNative, JSPROP_ENUMERATE),
+    JS_PS_END
 };
 
 static JSBool its_noisy;    /* whether to be noisy when finalizing it */

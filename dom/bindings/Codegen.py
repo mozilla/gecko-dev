@@ -1010,13 +1010,15 @@ class AttrDefiner(PropertyDefiner):
             return "JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_NATIVE_ACCESSORS"
 
         def getter(attr):
-            return ("{(JSPropertyOp)genericGetter, &%(name)s_getterinfo}"
+            return ("{JS_CAST_NATIVE_TO(genericGetter, JSPropertyOp),"
+                    " &%(name)s_getterinfo}"
                     % {"name" : attr.identifier.name})
 
         def setter(attr):
             if attr.readonly:
                 return "JSOP_NULLWRAPPER"
-            return ("{(JSStrictPropertyOp)genericSetter, &%(name)s_setterinfo}"
+            return ("{JS_CAST_NATIVE_TO(genericSetter, JSStrictPropertyOp),"
+                    " &%(name)s_setterinfo}"
                     % {"name" : attr.identifier.name})
 
         def specData(attr):
@@ -1026,7 +1028,7 @@ class AttrDefiner(PropertyDefiner):
         return self.generatePrefableArray(
             array, name,
             '  { "%s", 0, %s, %s, %s}',
-            '  { 0, 0, 0, JSOP_NULLWRAPPER, JSOP_NULLWRAPPER }',
+            '  JS_PS_END',
             'JSPropertySpec',
             PropertyDefiner.getControllingPref, specData, doIdArrays)
 
