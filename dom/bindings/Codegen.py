@@ -1082,7 +1082,8 @@ class AttrDefiner(PropertyDefiner):
         def getter(attr):
             native = ("genericLenientGetter" if attr.hasLenientThis()
                       else "genericGetter")
-            return ("{(JSPropertyOp)%(native)s, &%(name)s_getterinfo}"
+            return ("{JS_CAST_NATIVE_TO(%(native)s, JSPropertyOp),"
+                    " &%(name)s_getterinfo}"
                     % {"name" : attr.identifier.name,
                        "native" : native})
 
@@ -1091,7 +1092,8 @@ class AttrDefiner(PropertyDefiner):
                 return "JSOP_NULLWRAPPER"
             native = ("genericLenientSetter" if attr.hasLenientThis()
                       else "genericSetter")
-            return ("{(JSStrictPropertyOp)%(native)s, &%(name)s_setterinfo}"
+            return ("{JS_CAST_NATIVE_TO(%(native)s, JSStrictPropertyOp),"
+                    " &%(name)s_setterinfo}"
                     % {"name" : attr.identifier.name,
                        "native" : native})
 
@@ -1102,7 +1104,7 @@ class AttrDefiner(PropertyDefiner):
         return self.generatePrefableArray(
             array, name,
             '  { "%s", 0, %s, %s, %s}',
-            '  { 0, 0, 0, JSOP_NULLWRAPPER, JSOP_NULLWRAPPER }',
+            '  JS_PS_END',
             'JSPropertySpec',
             PropertyDefiner.getControllingPref, specData, doIdArrays)
 
