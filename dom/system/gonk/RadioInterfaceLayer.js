@@ -2932,6 +2932,8 @@ function RILNetworkInterface(ril, type)
 {
   this.mRIL = ril;
   this.initType = type;
+
+  this.connectedTypes = [];
 }
 
 RILNetworkInterface.prototype = {
@@ -3089,12 +3091,12 @@ RILNetworkInterface.prototype = {
   registeredAsDataCallCallback: false,
   registeredAsNetworkInterface: false,
   connecting: false,
-  dataCallSettings: {},
+  dataCallSettings: null,
 
   // APN failed connections. Retry counter
   apnRetryCounter: 0,
 
-  connectedTypes: [],
+  connectedTypes: null,
 
   inConnectedTypes: function inConnectedTypes(type) {
     return this.connectedTypes.indexOf(type) != -1;
