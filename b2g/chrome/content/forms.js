@@ -794,6 +794,9 @@ function replaceSurroundingText(element, text, selectionStart, beforeLength,
   }
 
   if (text) {
+    // We don't use CR but LF
+    // see https://bugzilla.mozilla.org/show_bug.cgi?id=902847
+    text = text.replace(/\r/g, '\n');
     // Insert the text to be replaced with.
     editor.insertText(text);
   }
