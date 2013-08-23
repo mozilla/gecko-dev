@@ -307,8 +307,7 @@ SystemMessageManager.prototype = {
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIDOMNavigatorSystemMessages,
                                          Ci.nsIDOMGlobalPropertyInitializer,
-                                         Ci.nsIObserver,
-                                         Ci.nsISupportsWeakReference]),
+                                         Ci.nsIObserver]),
 
   classInfo: XPCOMUtils.generateCI({
     classID: Components.ID("{bc076ea0-609b-4d8f-83d7-5af7cbdc3bb2}"),

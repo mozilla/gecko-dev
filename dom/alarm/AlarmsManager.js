@@ -35,9 +35,7 @@ AlarmsManager.prototype = {
 
   classID : ALARMSMANAGER_CID,
 
-  QueryInterface : XPCOMUtils.generateQI([nsIDOMMozAlarmsManager,
-                                          Ci.nsIDOMGlobalPropertyInitializer,
-                                          Ci.nsISupportsWeakReference]),
+  QueryInterface : XPCOMUtils.generateQI([nsIDOMMozAlarmsManager, Ci.nsIDOMGlobalPropertyInitializer]),
 
   classInfo : XPCOMUtils.generateCI({ classID: ALARMSMANAGER_CID,
                                       contractID: ALARMSMANAGER_CONTRACTID,

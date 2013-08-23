@@ -232,8 +232,7 @@ NetworkStatsManager.prototype = {
 
   classID : NETWORKSTATSMANAGER_CID,
   QueryInterface : XPCOMUtils.generateQI([nsIDOMMozNetworkStatsManager,
-                                         Ci.nsIDOMGlobalPropertyInitializer,
-                                         Ci.nsISupportsWeakReference]),
+                                         Ci.nsIDOMGlobalPropertyInitializer]),
 
   classInfo : XPCOMUtils.generateCI({classID: NETWORKSTATSMANAGER_CID,
                                      contractID: NETWORKSTATSMANAGER_CONTRACTID,

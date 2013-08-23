@@ -34,8 +34,7 @@ Push.prototype = {
 
   classID : PUSH_CID,
 
-  QueryInterface : XPCOMUtils.generateQI([Ci.nsIDOMGlobalPropertyInitializer,
-                                          Ci.nsISupportsWeakReference]),
+  QueryInterface : XPCOMUtils.generateQI([Ci.nsIDOMGlobalPropertyInitializer]),
 
   init: function(aWindow) {
     debug("init()");
