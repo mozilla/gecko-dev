@@ -3889,6 +3889,11 @@ pref("dom.browserElement.maxScreenshotDelayMS", 2000);
 pref("wap.UAProf.url", "");
 pref("wap.UAProf.tagname", "x-wap-profile");
 
+// MMS version 1.1 = 0x11 (or decimal 17)
+// MMS version 1.3 = 0x13 (or decimal 19)
+// @see OMA-TS-MMS_ENC-V1_3-20110913-A clause 7.3.34
+pref("dom.mms.version", 19);
+
 // Retrieval mode for MMS
 // manual: Manual retrieval mode.
 // automatic: Automatic retrieval mode even in roaming.
