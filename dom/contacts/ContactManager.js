@@ -931,7 +931,9 @@ ContactManager.prototype = {
   },
 
   classID : CONTACTMANAGER_CID,
-  QueryInterface : XPCOMUtils.generateQI([nsIDOMContactManager, Ci.nsIDOMGlobalPropertyInitializer]),
+  QueryInterface : XPCOMUtils.generateQI([nsIDOMContactManager,
+                                          Ci.nsIDOMGlobalPropertyInitializer,
+                                          Ci.nsISupportsWeakReference]),
 
   classInfo : XPCOMUtils.generateCI({classID: CONTACTMANAGER_CID,
                                      contractID: CONTACTMANAGER_CONTRACTID,

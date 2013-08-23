@@ -42,7 +42,8 @@ DOMFMRadioChild.prototype = {
              }),
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIDOMFMRadio,
-                                         Ci.nsIDOMGlobalPropertyInitializer]),
+                                         Ci.nsIDOMGlobalPropertyInitializer,
+                                         Ci.nsISupportsWeakReference]),
 
   // nsIDOMGlobalPropertyInitializer implementation
   init: function(aWindow) {

@@ -412,7 +412,8 @@ RILContentHelper.prototype = {
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIMobileConnectionProvider,
                                          Ci.nsIRILContentHelper,
-                                         Ci.nsIObserver]),
+                                         Ci.nsIObserver,
+                                         Ci.nsISupportsWeakReference]),
   classID:   RILCONTENTHELPER_CID,
   classInfo: XPCOMUtils.generateCI({classID: RILCONTENTHELPER_CID,
                                     classDescription: "RILContentHelper",
