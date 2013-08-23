@@ -1667,13 +1667,18 @@ nsGfxScrollFrameInner::AsyncScrollCallback(void* anInstance, mozilla::TimeStamp 
       }
       self->ScrollToImpl(destination,
                          (unlimitedRange + destination).UnionEdges(range));
+      // 'self' might be destroyed here
       return;
     }
   }
 
   // Apply desired destination range since this is the last step of scrolling.
+  nsWeakFrame weakFrame(self->mOuter);
   self->mAsyncScroll = nullptr;
   self->ScrollToImpl(self->mDestination, range);
+  if (!weakFrame.IsAlive()) {
+    return;
+  }
   // We are done scrolling, set our destination to wherever we actually ended
   // up scrolling to.
   self->mDestination = self->GetScrollPosition();
@@ -1703,6 +1708,7 @@ nsGfxScrollFrameInner::ScrollToCSSPixels(nsIntPoint aScrollPosition)
     // current.y must be outside 'range', so we must move in the correct direction.
   }
   ScrollTo(pt, nsIScrollableFrame::INSTANT, &range);
+  // 'this' might be destroyed here
 }
 
 nsIntPoint
@@ -1732,7 +1738,11 @@ nsGfxScrollFrameInner::ScrollToWithOrigin(nsPoint aScrollPosition,
     // Asynchronous scrolling is not allowed, so we'll kill any existing
     // async-scrolling process and do an instant scroll.
     mAsyncScroll = nullptr;
+    nsWeakFrame weakFrame(mOuter);
     ScrollToImpl(mDestination, range);
+    if (!weakFrame.IsAlive()) {
+      return;
+    }
     // We are done scrolling, set our destination to wherever we actually ended
     // up scrolling to.
     mDestination = GetScrollPosition();
@@ -1755,7 +1765,11 @@ nsGfxScrollFrameInner::ScrollToWithOrigin(nsPoint aScrollPosition,
     if (!mAsyncScroll->SetRefreshObserver(this)) {
       mAsyncScroll = nullptr;
       // Observer setup failed. Scroll the normal way.
+      nsWeakFrame weakFrame(mOuter);
       ScrollToImpl(mDestination, range);
+      if (!weakFrame.IsAlive()) {
+        return;
+      }
       // We are done scrolling, set our destination to wherever we actually
       // ended up scrolling to.
       mDestination = GetScrollPosition();
@@ -2106,7 +2120,11 @@ nsGfxScrollFrameInner::ScrollToImpl(nsPoint aPt, const nsRect& aRange)
   ScrollVisual(oldScrollFramePos);
 
   ScheduleSyntheticMouseMove();
+  nsWeakFrame weakFrame(mOuter);
   UpdateScrollbarPosition();
+  if (!weakFrame.IsAlive()) {
+    return;
+  }
   PostScrollEvent();
 
   // notify the listeners.
@@ -2503,6 +2521,7 @@ nsGfxScrollFrameInner::ScrollBy(nsIntPoint aDelta,
     AdjustForWholeDelta(aDelta.x, &pos.x);
     AdjustForWholeDelta(aDelta.y, &pos.y);
     ScrollTo(pos, aMode);
+    // 'this' might be destroyed here
     if (aOverflow) {
       *aOverflow = nsIntPoint(0, 0);
     }
@@ -2525,7 +2544,11 @@ nsGfxScrollFrameInner::ScrollBy(nsIntPoint aDelta,
                rangeLowerY,
                rangeUpperX - rangeLowerX,
                rangeUpperY - rangeLowerY);
+  nsWeakFrame weakFrame(mOuter);
   ScrollToWithOrigin(newPos, aMode, aOrigin, &range);
+  if (!weakFrame.IsAlive()) {
+    return;
+  }
 
   if (aOverflow) {
     nsPoint clampAmount = mDestination - newPos;
@@ -2648,7 +2671,11 @@ nsGfxScrollFrameInner::ScrollToRestoredPosition()
         // convert from logical to physical scroll position
         scrollToPos.x = mScrollPort.x - 
           (mScrollPort.XMost() - scrollToPos.x - mScrolledFrame->GetRect().width);
+      nsWeakFrame weakFrame(mOuter);
       ScrollTo(scrollToPos, nsIScrollableFrame::INSTANT);
+      if (!weakFrame.IsAlive()) {
+        return;
+      }
       // Re-get the scroll position, it might not be exactly equal to
       // mRestorePos due to rounding and clamping.
       mLastPos = GetLogicalScrollPosition();
@@ -2943,16 +2970,23 @@ nsGfxScrollFrameInner::Destroy()
 void
 nsGfxScrollFrameInner::UpdateScrollbarPosition()
 {
+  nsWeakFrame weakFrame(mOuter);
   mFrameIsUpdatingScrollbar = true;
 
   nsPoint pt = GetScrollPosition();
   if (mVScrollbarBox) {
     SetCoordAttribute(mVScrollbarBox->GetContent(), nsGkAtoms::curpos,
                       pt.y - GetScrolledRect().y);
+    if (!weakFrame.IsAlive()) {
+      return;
+    }
   }
   if (mHScrollbarBox) {
     SetCoordAttribute(mHScrollbarBox->GetContent(), nsGkAtoms::curpos,
                       pt.x - GetScrolledRect().x);
+    if (!weakFrame.IsAlive()) {
+      return;
+    }
   }
 
   mFrameIsUpdatingScrollbar = false;
@@ -3007,11 +3041,16 @@ void nsGfxScrollFrameInner::CurPosAttributeChanged(nsIContent* aContent)
     // didn't actually move yet.  We need to make sure other listeners
     // see that the scroll position is not (yet) what they thought it
     // was.
+    nsWeakFrame weakFrame(mOuter);
     UpdateScrollbarPosition();
+    if (!weakFrame.IsAlive()) {
+      return;
+    }
   }
   ScrollToWithOrigin(dest,
                      isSmooth ? nsIScrollableFrame::SMOOTH : nsIScrollableFrame::INSTANT,
                      nsGkAtoms::scrollbars, &allowedRange);
+  // 'this' might be destroyed here
 }
 
 /* ============= Scroll events ========== */
@@ -3906,8 +3945,13 @@ nsGfxScrollFrameInner::SetCoordAttribute(nsIContent* aContent, nsIAtom* aAtom,
   if (aContent->AttrValueIs(kNameSpaceID_None, aAtom, newValue, eCaseMatters))
     return;
 
+  nsWeakFrame weakFrame(mOuter);
+  nsCOMPtr<nsIContent> kungFuDeathGrip = aContent;
   aContent->SetAttr(kNameSpaceID_None, aAtom, newValue, true);
   MOZ_ASSERT(ShellIsAlive(weakShell), "pres shell was destroyed by scrolling");
+  if (!weakFrame.IsAlive()) {
+    return;
+  }
 
   if (mScrollbarActivity) {
     mScrollbarActivity->ActivityOccurred();
