@@ -35,11 +35,20 @@ let _requestId;
 
 let PaymentProvider = {
 
+#ifdef MOZ_B2G_RIL
   __exposedProps__: {
     paymentSuccess: 'r',
     paymentFailed: 'r',
-    iccIds: 'r'
+    iccIds: 'r',
+    mcc: 'r',
+    mnc: 'r'
   },
+#else
+  __exposedProps__: {
+    paymentSuccess: 'r',
+    paymentFailed: 'r'
+  },
+#endif
 
   _closePaymentFlowDialog: function _closePaymentFlowDialog(aCallback) {
     // After receiving the payment provider confirmation about the
@@ -100,18 +109,23 @@ let PaymentProvider = {
     });
   },
 
-  get iccIds() {
 #ifdef MOZ_B2G_RIL
-    // Until bug 814629 is done, we only have support for a single SIM, so we
-    // can only provide a single ICC ID. However, we return an array so the
-    // payment provider facing API won't need to change once we support
-    // multiple SIMs.
+  // Until bug 814629 is done, we only have support for a single SIM, so we
+  // can only provide information for a single ICC. However, we return arrays
+  // for any ICC related getter so the payment provider facing API won't need
+  // to change once we support multiple SIMs.
+  get iccIds() {
     return [mobileConnection.iccInfo.iccid];
-#else
-    return null;
-#endif
   },
 
+  get mcc() {
+    return [mobileConnection.iccInfo.mcc];
+  },
+
+  get mnc() {
+    return [mobileConnection.iccInfo.mnc];
+  }
+#endif
 };
 
 // We save the identifier of the DOM request, so we can dispatch the results
