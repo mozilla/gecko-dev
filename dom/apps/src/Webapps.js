@@ -276,7 +276,9 @@ WebappsRegistry.prototype = {
 # B2G Desktop and others: installPackage implementation status varies
                                          Ci.mozIDOMApplicationRegistry2,
 #endif
-                                         Ci.nsIDOMGlobalPropertyInitializer]),
+                                         Ci.nsIDOMGlobalPropertyInitializer,
+                                         Ci.nsIMessageListener,
+                                         Ci.nsISupportsWeakReference]),
 
   classInfo: XPCOMUtils.generateCI({classID: Components.ID("{fff440b3-fae2-45c1-bf03-3b5a2e432270}"),
                                     contractID: "@mozilla.org/webapps;1",
@@ -674,7 +676,9 @@ WebappsApplication.prototype = {
 
   classID: Components.ID("{723ed303-7757-4fb0-b261-4f78b1f6bd22}"),
 
-  QueryInterface: XPCOMUtils.generateQI([Ci.mozIDOMApplication]),
+  QueryInterface: XPCOMUtils.generateQI([Ci.mozIDOMApplication,
+                                         Ci.nsIMessageListener,
+                                         Ci.nsISupportsWeakReference]),
 
   classInfo: XPCOMUtils.generateCI({classID: Components.ID("{723ed303-7757-4fb0-b261-4f78b1f6bd22}"),
                                     contractID: "@mozilla.org/webapps/application;1",
@@ -824,7 +828,9 @@ WebappsApplicationMgmt.prototype = {
 
   classID: Components.ID("{8c1bca96-266f-493a-8d57-ec7a95098c15}"),
 
-  QueryInterface: XPCOMUtils.generateQI([Ci.mozIDOMApplicationMgmt]),
+  QueryInterface: XPCOMUtils.generateQI([Ci.mozIDOMApplicationMgmt,
+                                         Ci.nsIMessageListener,
+                                         Ci.nsISupportsWeakReference]),
 
   classInfo: XPCOMUtils.generateCI({classID: Components.ID("{8c1bca96-266f-493a-8d57-ec7a95098c15}"),
                                     contractID: "@mozilla.org/webapps/application-mgmt;1",
