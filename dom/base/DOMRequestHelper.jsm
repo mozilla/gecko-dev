@@ -74,7 +74,7 @@ DOMRequestIpcHelper.prototype = {
   initMessageListener: function initMessageListener(aMessages) {
     this._messages = aMessages;
     this._messages.forEach(function(msgName) {
-      cpmm.addMessageListener(msgName, this);
+      cpmm.addWeakMessageListener(msgName, this);
     }, this);
   },
   
@@ -90,7 +90,7 @@ DOMRequestIpcHelper.prototype = {
 
   removeMessageListener: function removeMessageListener() {
     this._messages.forEach(function(msgName) {
-      cpmm.removeMessageListener(msgName, this);
+      cpmm.removeWeakMessageListener(msgName, this);
     }, this);
     this._messages = null;
   },
