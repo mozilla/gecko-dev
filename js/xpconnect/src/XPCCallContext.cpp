@@ -129,10 +129,6 @@ XPCCallContext::Init(XPCContext::LangType callerLanguage,
     if (!obj)
         return;
 
-    mScopeForNewJSObjects = obj;
-
-    mState = HAVE_SCOPE;
-
     mMethodIndex = 0xDEAD;
 
     mState = HAVE_OBJECT;
