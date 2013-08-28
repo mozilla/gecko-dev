@@ -137,7 +137,6 @@ static const char* sBluetoothDBusSignals[] =
 /**
  * DBus Connection held for the BluetoothCommandThread to use. Should never be
  * used by any other thread.
- *
  */
 static nsAutoPtr<RawDBusConnection> gThreadConnection;
 static nsDataHashtable<nsStringHashKey, DBusMessage* > sPairingReqTable;
@@ -146,7 +145,50 @@ static PRInt32 sIsPairing = 0;
 static nsString sAdapterPath;
 
 typedef void (*UnpackFunc)(DBusMessage*, DBusError*, BluetoothValue&, nsAString&);
-typedef bool (*FilterFunc)(const BluetoothValue&);
+typedef bool (*FilterFunc)(BluetoothValue&);
+
+static bool
+HasAudioService(uint32_t aCodValue)
+{
+  return ((aCodValue & 0x200000) == 0x200000);
+}
+
+static bool
+ContainsIcon(const InfallibleTArray<BluetoothNamedValue>& aProperties)
+{
+  for (uint8_t i = 0; i < aProperties.Length(); i++) {
+    if (aProperties[i].name().EqualsLiteral("Icon")) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static void
+EnsureIconForAudioService(BluetoothValue& aValue)
+{
+  const InfallibleTArray<BluetoothNamedValue>& properties =
+    aValue.get_ArrayOfBluetoothNamedValue();
+
+  if (ContainsIcon(properties)) return;
+
+  /**
+   * Property 'Icon' may be missed due to CoD of major class is TOY. But
+   * we need to assign Icon as audio-card if service class is 'Audio'.
+   * This is for PTS test TC_AG_COD_BV_02_I. As HFP specification
+   * defines that service class is 'Audio' can be considered as HFP HF.
+   */
+  for (uint8_t i = 0; i < properties.Length(); i++) {
+    if (properties[i].name().EqualsLiteral("Class") &&
+        HasAudioService(properties[i].value().get_uint32_t())) {
+      aValue.get_ArrayOfBluetoothNamedValue()
+        .AppendElement(
+          BluetoothNamedValue(NS_LITERAL_STRING("Icon"),
+                              NS_LITERAL_STRING("audio-card")));
+      break;
+    }
+  }
+}
 
 class RemoveDeviceTask : public nsRunnable {
 public:
@@ -196,21 +238,26 @@ private:
 };
 
 static bool
-GetConnectedDevicesFilter(const BluetoothValue& aValue)
+GetConnectedDevicesFilter(BluetoothValue& aValue)
 {
-  // We don't have to filter device here
+  // Ensure property 'Icon' is audio-card for audio service devices
+  EnsureIconForAudioService(aValue);
+
   return true;
 }
 
 static bool
-GetPairedDevicesFilter(const BluetoothValue& aValue)
+GetPairedDevicesFilter(BluetoothValue& aValue)
 {
-  // Check property 'Paired' and only paired device will be returned
   if (aValue.type() != BluetoothValue::TArrayOfBluetoothNamedValue) {
     NS_WARNING("Not a BluetoothNamedValue array!");
     return false;
   }
 
+  // Ensure property 'Icon' is audio-card for audio service devices
+  EnsureIconForAudioService(aValue);
+
+  // Check property 'Paired' and only paired device will be returned
   const InfallibleTArray<BluetoothNamedValue>& deviceProperties =
     aValue.get_ArrayOfBluetoothNamedValue();
   uint32_t length = deviceProperties.Length();
@@ -966,13 +1013,6 @@ GetVoidCallback(DBusMessage* aMsg, void* aBluetoothReplyRunnable)
                   UnpackVoidMessage);
 }
 
-void
-GetIntCallback(DBusMessage* aMsg, void* aBluetoothReplyRunnable)
-{
-  RunDBusCallback(aMsg, aBluetoothReplyRunnable,
-                  UnpackIntMessage);
-}
-
 bool
 IsDeviceConnectedTypeBoolean()
 {
@@ -988,48 +1028,6 @@ IsDeviceConnectedTypeBoolean()
   // Assume it's always a boolean on desktop. Fixing someday in Bug 806457.
   return true;
 #endif
-}
-
-void
-CopyProperties(Properties* inProp, Properties* outProp, int aPropertyTypeLen)
-{
-  int i;
-
-  for (i = 0; i < aPropertyTypeLen; i++) {
-    outProp[i].name = inProp[i].name;
-    outProp[i].type = inProp[i].type;
-  }
-}
-
-int
-GetPropertyIndex(Properties* prop, const char* propertyName,
-                 int aPropertyTypeLen)
-{
-  int i;
-
-  for (i = 0; i < aPropertyTypeLen; i++) {
-    if (!strncmp(propertyName, prop[i].name, strlen(propertyName))) {
-      return i;
-    }
-  }
-  return -1;
-}
-
-bool
-HasAudioService(uint32_t aCodValue)
-{
-  return ((aCodValue & 0x200000) == 0x200000);
-}
-
-bool
-ContainsIcon(const InfallibleTArray<BluetoothNamedValue>& aProperties)
-{
-  for (uint8_t i = 0; i < aProperties.Length(); i++) {
-    if (aProperties[i].name().EqualsLiteral("Icon")) {
-      return true;
-    }
-  }
-  return false;
 }
 
 bool
@@ -1406,26 +1404,9 @@ EventFilter(DBusConnection* aConn, DBusMessage* aMsg, void* aData)
         v.get_ArrayOfBluetoothNamedValue()
           .AppendElement(BluetoothNamedValue(NS_LITERAL_STRING("Path"),
                                              path));
-        const InfallibleTArray<BluetoothNamedValue>& properties =
-          v.get_ArrayOfBluetoothNamedValue();
-        if (!ContainsIcon(properties)) {
-          for (uint8_t i = 0; i < properties.Length(); i++) {
-            // It is possible that property Icon missed due to CoD of major
-            // class is TOY but service class is "Audio", we need to assign
-            // Icon as audio-card. This is for PTS test TC_AG_COD_BV_02_I.
-            // As HFP specification defined that
-            // service class is "Audio" can be considered as HFP AG.
-            if (properties[i].name().EqualsLiteral("Class")) {
-              if (HasAudioService(properties[i].value().get_uint32_t())) {
-                v.get_ArrayOfBluetoothNamedValue()
-                  .AppendElement(
-                    BluetoothNamedValue(NS_LITERAL_STRING("Icon"),
-                                        NS_LITERAL_STRING("audio-card")));
-              }
-              break;
-            }
-          }
-        }
+
+        // Ensure property 'Icon' is audio-card for audio service devices
+        EnsureIconForAudioService(v);
       }
     } else {
       errorStr.AssignLiteral("Unexpected message struct in msg DeviceFound");
