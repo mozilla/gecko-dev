@@ -98,12 +98,6 @@ XPCConvert::NativeData2JS(XPCLazyCallContext& lccx, jsval* d, const void* s,
 
    JSContext* cx = lccx.GetJSContext();
 
-    // Allow wrong compartment or unset ScopeForNewObject when the caller knows
-    // the value is primitive (viz., XPCNativeMember::GetConstantValue).
-    NS_ABORT_IF_FALSE(type.IsArithmetic() ||
-                      js::IsObjectInContextCompartment(lccx.GetScopeForNewJSObjects(), cx),
-                      "bad scope for new JSObjects");
-
     if (pErr)
         *pErr = NS_ERROR_XPC_BAD_CONVERT_NATIVE;
 
@@ -179,7 +173,7 @@ XPCConvert::NativeData2JS(XPCLazyCallContext& lccx, jsval* d, const void* s,
                 if (!iid2)
                     break;
                 JSObject* obj;
-                if (!(obj = xpc_NewIDObject(cx, lccx.GetScopeForNewJSObjects(), *iid2)))
+                if (!(obj = xpc_NewIDObject(cx, JS_GetGlobalForScopeChain(cx), *iid2)))
                     return false;
                 *d = OBJECT_TO_JSVAL(obj);
                 break;
@@ -805,12 +799,9 @@ XPCConvert::NativeInterface2JSObject(XPCLazyCallContext& lccx,
     // optimal -- we could detect this and roll the functionality into a
     // single wrapper, but the current solution is good enough for now.
     JSContext* cx = lccx.GetJSContext();
-    NS_ABORT_IF_FALSE(js::IsObjectInContextCompartment(lccx.GetScopeForNewJSObjects(), cx),
-                      "bad scope for new JSObjects");
 
-    JSObject *jsscope = lccx.GetScopeForNewJSObjects();
     XPCWrappedNativeScope* xpcscope =
-        XPCWrappedNativeScope::FindInJSObjectScope(cx, jsscope);
+        XPCWrappedNativeScope::FindInJSObjectScope(cx, JS_GetGlobalForScopeChain(cx));
     if (!xpcscope)
         return false;
 
@@ -1400,8 +1391,6 @@ XPCConvert::NativeArray2JS(XPCLazyCallContext& lccx,
         return false;
 
     JSContext* cx = ccx.GetJSContext();
-    NS_ABORT_IF_FALSE(js::IsObjectInContextCompartment(lccx.GetScopeForNewJSObjects(), cx),
-                      "bad scope for new JSObjects");
 
     // XXX add support for putting chars in a string rather than an array
 
