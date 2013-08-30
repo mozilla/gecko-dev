@@ -31,10 +31,12 @@ function testAudioPlayPause() {
   content.appendChild(audio);
 
   var startDate;
-  audio.addEventListener('progress', function() {
+  audio.addEventListener('playing', function() {
+    startDate = new Date();
+
+    // The next step is to unlock the resource.
     lockState = false;
     audio.pause();
-    startDate = new Date();
   });
 
   navigator.mozPower.addWakeLockListener(function testAudioPlayListener(topic, state) {

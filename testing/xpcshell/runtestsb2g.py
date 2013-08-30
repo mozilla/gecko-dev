@@ -198,13 +198,12 @@ def main():
     xpcsh = B2GXPCShellRemote(dm, options, args)
 
     try:
-        success = xpcsh.runTests(xpcshell='xpcshell', testdirs=args[0:], **options.__dict__)
+        if not xpcsh.runTests(xpcshell='xpcshell', testdirs=args[0:], **options.__dict__):
+            sys.exit(1)
     except:
         print "Automation Error: Exception caught while running tests"
         traceback.print_exc()
         sys.exit(1)
-
-    sys.exit(int(success))
 
 
 # You usually run this like :
