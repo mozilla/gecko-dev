@@ -602,15 +602,15 @@ ContactDB.prototype = {
                     debug("InternationalNumber: " + parsedNumber.internationalNumber);
                     debug("NationalNumber: " + parsedNumber.nationalNumber);
                     debug("NationalFormat: " + parsedNumber.nationalFormat);
+                    debug("NationalMatchingFormat: " + parsedNumber.nationalMatchingFormat);
                   }
                   matchSearch[parsedNumber.nationalNumber] = 1;
                   matchSearch[parsedNumber.internationalNumber] = 1;
                   matchSearch[PhoneNumberUtils.normalize(parsedNumber.nationalFormat)] = 1;
                   matchSearch[PhoneNumberUtils.normalize(parsedNumber.internationalFormat)] = 1;
-
-                  if (this.substringMatching && normalized.length > this.substringMatching) {
-                    matchSearch[normalized.slice(-this.substringMatching)] = 1;
-                  }
+                  matchSearch[PhoneNumberUtils.normalize(parsedNumber.nationalMatchingFormat)] = 1;
+                } else if (this.substringMatching && normalized.length > this.substringMatching) {
+                  matchSearch[normalized.slice(-this.substringMatching)] = 1;
                 }
 
                 // containsSearch holds incremental search values for:
@@ -626,12 +626,12 @@ ContactDB.prototype = {
                 }
               }
               for (let num in containsSearch) {
-                if (num != "null") {
+                if (num && num != "null") {
                   contact.search.tel.push(num);
                 }
               }
               for (let num in matchSearch) {
-                if (num != "null") {
+                if (num && num != "null") {
                   contact.search.parsedTel.push(num);
                 }
               }
@@ -958,6 +958,7 @@ ContactDB.prototype = {
     let filter_keys = fields.slice();
     for (let key = filter_keys.shift(); key; key = filter_keys.shift()) {
       let request;
+      let substringResult = {};
       if (key == "id") {
         // store.get would return an object and not an array
         request = store.mozGetAll(options.filterValue);
@@ -987,7 +988,17 @@ ContactDB.prototype = {
 
         // Some countries need special handling for number matching. Bug 877302
         if (this.substringMatching && normalized.length > this.substringMatching) {
-          normalized = normalized.slice(-this.substringMatching);
+          let substring = normalized.slice(-this.substringMatching);
+          if (DEBUG) debug("Substring: " + substring);
+
+          let substringRequest = index.mozGetAll(substring, limit);
+
+          substringRequest.onsuccess = function (event) {
+            if (DEBUG) debug("Request successful. Record count: " + event.target.result.length);
+            for (let i in event.target.result) {
+              substringResult[event.target.result[i].id] = event.target.result[i];
+            }
+          }.bind(this);
         }
 
         if (!normalized.length) {
@@ -1022,6 +1033,11 @@ ContactDB.prototype = {
 
       request.onsuccess = function (event) {
         if (DEBUG) debug("Request successful. Record count: " + event.target.result.length);
+        if (Object.keys(substringResult).length > 0) {
+          for (let attrname in substringResult) {
+            event.target.result[attrname] = substringResult[attrname];
+          }
+        }
         this.sortResults(event.target.result, options);
         for (let i in event.target.result)
           txn.result[event.target.result[i].id] = this.makeExport(event.target.result[i]);
