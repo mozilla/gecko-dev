@@ -1266,6 +1266,36 @@ AdoptNodeIntoOwnerDoc(nsINode *aParent, nsINode *aNode)
   return NS_OK;
 }
 
+static nsresult
+CheckForOutdatedParent(nsINode* aParent, nsINode* aNode)
+{
+  if (JSObject* existingObj = aNode->GetWrapper()) {
+    nsIScriptGlobalObject* global = aParent->OwnerDoc()->GetScopeObject();
+    MOZ_ASSERT(global);
+
+    JSObject* originScope = js::GetGlobalForObjectCrossCompartment(existingObj);
+    if (originScope != global->GetGlobalJSObject()) {
+      JSContext* cx = nsContentUtils::GetSafeJSContext();
+      NS_ENSURE_TRUE(cx, NS_ERROR_FAILURE);
+
+      nsCxPusher pusher;
+      if (!pusher.Push(cx, false)) {
+        return NS_ERROR_FAILURE;
+      }
+
+      nsIXPConnect* xpc = nsContentUtils::XPConnect();
+      nsCOMPtr<nsIXPConnectJSObjectHolder> wrapper;
+      nsresult rv =
+        xpc->ReparentWrappedNativeIfFound(cx, originScope,
+                                          global->GetGlobalJSObject(),
+                                          aNode, getter_AddRefs(wrapper));
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+  }
+
+  return NS_OK;
+}
+
 nsresult
 nsINode::doInsertChildAt(nsIContent* aKid, uint32_t aIndex,
                          bool aNotify, nsAttrAndChildArray& aChildArray)
@@ -1284,6 +1314,9 @@ nsINode::doInsertChildAt(nsIContent* aKid, uint32_t aIndex,
 
   if (!HasSameOwnerDoc(aKid)) {
     rv = AdoptNodeIntoOwnerDoc(this, aKid);
+    NS_ENSURE_SUCCESS(rv, rv);
+  } else if (OwnerDoc()->DidDocumentOpen()) {
+    rv = CheckForOutdatedParent(this, aKid);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -1811,6 +1844,9 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
   // inserting them w/o calling AdoptNode().
   if (!HasSameOwnerDoc(newContent)) {
     res = AdoptNodeIntoOwnerDoc(this, aNewChild);
+    NS_ENSURE_SUCCESS(res, res);
+  } else if (doc->DidDocumentOpen()) {
+    res = CheckForOutdatedParent(this, aNewChild);
     NS_ENSURE_SUCCESS(res, res);
   }
 
