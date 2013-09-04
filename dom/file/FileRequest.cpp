@@ -164,10 +164,8 @@ FileRequest::FireProgressEvent(uint64_t aLoaded, uint64_t aTotal)
 void
 FileRequest::RootResultVal()
 {
-  NS_ASSERTION(!mRooted, "Don't call me if already rooted!");
   nsXPCOMCycleCollectionParticipant *participant;
   CallQueryInterface(this, &participant);
   nsContentUtils::HoldJSObjects(NS_CYCLE_COLLECTION_UPCAST(this, DOMRequest),
                                 participant);
-  mRooted = true;
 }
