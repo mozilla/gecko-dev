@@ -246,7 +246,9 @@ nsVolumeService::CreateOrGetVolumeByPath(const nsAString& aPath, nsIVolume** aRe
   // from the pathname, so that the caller can determine the volume size.
   nsCOMPtr<nsIVolume> vol = new nsVolume(NS_LITERAL_STRING("fake"),
                                          aPath, nsIVolume::STATE_MOUNTED,
-                                         -1 /*generation*/);
+                                         -1    /* generation */,
+                                         true  /* isMediaPresent*/,
+                                         false /* isSharing */);
   vol.forget(aResult);
   return NS_OK;
 }
@@ -379,9 +381,11 @@ public:
   NS_IMETHOD Run()
   {
     MOZ_ASSERT(NS_IsMainThread());
-    DBG("UpdateVolumeRunnable::Run '%s' state %s gen %d locked %d",
+    DBG("UpdateVolumeRunnable::Run '%s' state %s gen %d locked %d"
+        "media %d sharing %d",
         mVolume->NameStr(), mVolume->StateStr(), mVolume->MountGeneration(),
-        (int)mVolume->IsMountLocked());
+        (int)mVolume->IsMountLocked(),
+        (int)mVolume->IsMediaPresent(), mVolume->IsSharing());
 
     mVolumeService->UpdateVolume(mVolume);
     mVolumeService = nullptr;
@@ -397,9 +401,11 @@ private:
 void
 nsVolumeService::UpdateVolumeIOThread(const Volume* aVolume)
 {
-  DBG("UpdateVolumeIOThread: Volume '%s' state %s mount '%s' gen %d locked %d",
+  DBG("UpdateVolumeIOThread: Volume '%s' state %s mount '%s' gen %d locked %d"
+      "media %d sharing %d",
       aVolume->NameStr(), aVolume->StateStr(), aVolume->MountPoint().get(),
-      aVolume->MountGeneration(), (int)aVolume->IsMountLocked());
+      aVolume->MountGeneration(), (int)aVolume->IsMountLocked(),
+      (int)aVolume->IsMediaPresent(), (int)aVolume->IsSharing());
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
   NS_DispatchToMainThread(new UpdateVolumeRunnable(this, aVolume));
 }

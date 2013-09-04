@@ -25,14 +25,18 @@ public:
   // This constructor is used by the UpdateVolumeRunnable constructor
   nsVolume(const Volume* aVolume);
 
-  // This constructor is used by ContentChild::RecvFileSystemUpdate
+  // This constructor is used by ContentChild::RecvFileSystemUpdate which is
+  // used to update the volume cache maintained in the child process.
   nsVolume(const nsAString& aName, const nsAString& aMountPoint,
-           const int32_t& aState, const int32_t& aMountGeneration)
+           const int32_t& aState, const int32_t& aMountGeneration,
+           const bool& aIsMediaPresent, const bool& aIsSharing)
     : mName(aName),
       mMountPoint(aMountPoint),
       mState(aState),
       mMountGeneration(aMountGeneration),
-      mMountLocked(false)
+      mMountLocked(false),
+      mIsMediaPresent(aIsMediaPresent),
+      mIsSharing(aIsSharing)
   {
   }
 
@@ -42,7 +46,9 @@ public:
     : mName(aName),
       mState(STATE_INIT),
       mMountGeneration(-1),
-      mMountLocked(true)  // Needs to agree with Volume::Volume
+      mMountLocked(true), // Needs to agree with Volume::Volume
+      mIsMediaPresent(false),
+      mIsSharing(false)
   {
   }
 
@@ -72,11 +78,16 @@ private:
   void UpdateMountLock(const nsAString& aMountLockState);
   void UpdateMountLock(bool aMountLocked);
 
+  bool IsMediaPresent() const         { return mIsMediaPresent; }
+  bool IsSharing() const              { return mIsSharing; }
+
   nsString mName;
   nsString mMountPoint;
   int32_t  mState;
   int32_t  mMountGeneration;
   bool     mMountLocked;
+  bool     mIsMediaPresent;
+  bool     mIsSharing;
 };
 
 } // system

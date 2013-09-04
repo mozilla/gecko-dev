@@ -50,7 +50,9 @@ nsVolume::nsVolume(const Volume* aVolume)
     mMountPoint(NS_ConvertUTF8toUTF16(aVolume->MountPoint())),
     mState(aVolume->State()),
     mMountGeneration(aVolume->MountGeneration()),
-    mMountLocked(aVolume->IsMountLocked())
+    mMountLocked(aVolume->IsMountLocked()),
+    mIsMediaPresent(aVolume->MediaPresent()),
+    mIsSharing(aVolume->IsSharing())
 {
 }
 
@@ -88,9 +90,21 @@ bool nsVolume::Equals(nsIVolume* aVolume)
   return true;
 }
 
+NS_IMETHODIMP nsVolume::GetIsMediaPresent(bool *aIsMediaPresent)
+{
+  *aIsMediaPresent = mIsMediaPresent;
+  return NS_OK;
+}
+
 NS_IMETHODIMP nsVolume::GetIsMountLocked(bool *aIsMountLocked)
 {
   *aIsMountLocked = mMountLocked;
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsVolume::GetIsSharing(bool *aIsSharing)
+{
+  *aIsSharing = mIsSharing;
   return NS_OK;
 }
 
@@ -140,9 +154,11 @@ void
 nsVolume::LogState() const
 {
   if (mState == nsIVolume::STATE_MOUNTED) {
-    LOG("nsVolume: %s state %s @ '%s' gen %d locked %d",
+    LOG("nsVolume: %s state %s @ '%s' gen %d locked %d"
+        "media %d sharing %d",
         NameStr(), StateStr(), MountPointStr(),
-        MountGeneration(), (int)IsMountLocked());
+        MountGeneration(), (int)IsMountLocked(),
+        (int)IsMediaPresent(), (int)IsSharing());
     return;
   }
 
@@ -156,6 +172,8 @@ void nsVolume::Set(nsIVolume* aVolume)
   aVolume->GetName(mName);
   aVolume->GetMountPoint(mMountPoint);
   aVolume->GetState(&mState);
+  aVolume->GetIsMediaPresent(&mIsMediaPresent);
+  aVolume->GetIsSharing(&mIsSharing);
 
   int32_t volMountGeneration;
   aVolume->GetMountGeneration(&volMountGeneration);
