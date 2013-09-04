@@ -9,6 +9,7 @@ const DEBUG = false;
 function debug(s) { if(DEBUG) dump("-*- PhoneNumberutils: " + s + "\n"); }
 
 const Cu = Components.utils;
+const Ci = Components.interfaces;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import('resource://gre/modules/XPCOMUtils.jsm');
@@ -59,7 +60,17 @@ this.PhoneNumberUtils = {
       mcc = this._mcc;
     }
 #else
-    mcc = this._mcc;
+
+    // Attempt to grab last known sim mcc from prefs
+    if (!mcc) {
+      try {
+        mcc = Services.prefs.getCharPref("ril.lastKnownSimMcc");
+      } catch (e) {}
+    }
+
+    if (!mcc) {
+      mcc = this._mcc;
+    }
 #endif
 
     countryName = MCC_ISO3166_TABLE[mcc];
@@ -70,15 +81,32 @@ this.PhoneNumberUtils = {
   parse: function(aNumber) {
     if (DEBUG) debug("call parse: " + aNumber);
     let result = PhoneNumber.Parse(aNumber, this.getCountryName());
-    if (DEBUG) {
-      if (result) {
+
+    if (result) {
+      let countryName = result.countryName || this.getCountryName();
+      let number = null;
+      if (countryName) {
+        if (Services.prefs.getPrefType("dom.phonenumber.substringmatching." + countryName) == Ci.nsIPrefBranch.PREF_INT) {
+          let val = Services.prefs.getIntPref("dom.phonenumber.substringmatching." + countryName);
+          if (val) {
+            number = result.internationalNumber || result.nationalNumber;
+            if (number && number.length > val) {
+              number = number.slice(-val);
+            }
+          }
+        }
+      }
+      Object.defineProperty(result, "nationalMatchingFormat", { value: number, enumerable: true });
+      if (DEBUG) {
         debug("InternationalFormat: " + result.internationalFormat);
         debug("InternationalNumber: " + result.internationalNumber);
         debug("NationalNumber: " + result.nationalNumber);
         debug("NationalFormat: " + result.nationalFormat);
-      } else {
-        debug("No result!\n");
+        debug("CountryName: " + result.countryName);
+        debug("NationalMatchingFormat: " + result.nationalMatchingFormat);
       }
+    } else if (DEBUG) {
+      debug("NO PARSING RESULT!");
     }
     return result;
   },

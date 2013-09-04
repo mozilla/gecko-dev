@@ -31,9 +31,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(DOMCursor, DOMRequest)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mCallback)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
-NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(DOMCursor, DOMRequest)
-NS_IMPL_CYCLE_COLLECTION_TRACE_END
-
 DOMCursor::DOMCursor(nsIDOMWindow* aWindow, nsICursorContinueCallback* aCallback)
   : DOMRequest(aWindow)
   , mCallback(aCallback)
@@ -48,9 +45,6 @@ DOMCursor::Reset()
   MOZ_ASSERT(!mFinished);
 
   // Reset the request state so we can FireSuccess() again.
-  if (mRooted) {
-    UnrootResultVal();
-  }
   mResult = JSVAL_VOID;
   mDone = false;
 }
