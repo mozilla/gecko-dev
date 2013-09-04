@@ -7,6 +7,7 @@
 #ifndef mozilla_dom_domrequest_h__
 #define mozilla_dom_domrequest_h__
 
+#include "nsContentUtils.h"
 #include "nsIDOMDOMRequest.h"
 #include "nsIDOMDOMError.h"
 #include "nsDOMEventTargetHelper.h"
