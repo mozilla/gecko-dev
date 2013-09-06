@@ -1121,7 +1121,7 @@ public:
   RemoteMemoryBlob(void* aMemoryBuffer,
                    uint64_t aLength,
                    const nsAString& aContentType)
-  : nsDOMMemoryFile(aMemoryBuffer, aLength, EmptyString(), aContentType)
+  : nsDOMMemoryFile(aMemoryBuffer, aLength, aContentType)
   {
     mImmutable = true;
   }
