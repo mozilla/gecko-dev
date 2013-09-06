@@ -587,6 +587,8 @@ SmsRequestParent::SendReply(const MessageReply& aReply)
 NS_IMETHODIMP
 SmsRequestParent::NotifyMessageSent(nsISupports *aMessage)
 {
+  NS_ENSURE_TRUE(!mActorDestroyed, NS_ERROR_FAILURE);
+
   nsCOMPtr<nsIDOMMozMmsMessage> mms = do_QueryInterface(aMessage);
   if (mms) {
     MmsMessage *msg = static_cast<MmsMessage*>(mms.get());
@@ -616,6 +618,8 @@ SmsRequestParent::NotifySendMessageFailed(int32_t aError)
 NS_IMETHODIMP
 SmsRequestParent::NotifyMessageGot(nsISupports *aMessage)
 {
+  NS_ENSURE_TRUE(!mActorDestroyed, NS_ERROR_FAILURE);
+
   nsCOMPtr<nsIDOMMozMmsMessage> mms = do_QueryInterface(aMessage);
   if (mms) {
     MmsMessage *msg = static_cast<MmsMessage*>(mms.get());
