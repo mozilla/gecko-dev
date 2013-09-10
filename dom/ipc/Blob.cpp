@@ -1776,14 +1776,18 @@ Blob<ActorFlavor>::RecvPBlobConstructor(ProtocolType* aActor,
   MOZ_ASSERT(NS_IsMainThread());
 
   Blob<ActorFlavor>* subBlobActor = static_cast<Blob<ActorFlavor>*>(aActor);
+  MOZ_ASSERT(subBlobActor->ManagerIs(this));
 
-  if (!subBlobActor->ManagerIs(this)) {
-    // Somebody screwed up!
-    return false;
+  // Append sub-blobs here, but slices are special: they are sub-actors but not
+  // sub-blobs.
+  if (aParams.type() !=
+        BlobConstructorParams::TBlobConstructorNoMultipartParams ||
+      aParams.get_BlobConstructorNoMultipartParams().type() !=
+        BlobConstructorNoMultipartParams::TSlicedBlobConstructorParams) {
+    nsCOMPtr<nsIDOMBlob> blob = subBlobActor->GetBlob();
+    static_cast<nsDOMMultipartFile*>(mBlob)->AddBlob(blob);
   }
 
-  nsCOMPtr<nsIDOMBlob> blob = subBlobActor->GetBlob();
-  static_cast<nsDOMMultipartFile*>(mBlob)->AddBlob(blob);
   return true;
 }
 
