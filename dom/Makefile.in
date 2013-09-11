@@ -19,7 +19,6 @@ PARALLEL_DIRS = \
   interfaces/html \
   interfaces/events \
   interfaces/devicestorage \
-  interfaces/contacts \
   interfaces/settings \
   interfaces/stylesheets \
   interfaces/sidebar \
@@ -47,7 +46,6 @@ PARALLEL_DIRS += \
   bindings \
   battery \
   browser-element \
-  contacts \
   alarm \
   devicestorage \
   file \
