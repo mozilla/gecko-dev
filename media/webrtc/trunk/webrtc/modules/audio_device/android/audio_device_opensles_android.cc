@@ -68,8 +68,8 @@ AudioDeviceAndroidOpenSLES::AudioDeviceAndroidOpenSLES(const WebRtc_Word32 id)
       agc_enabled_(false),
       rec_thread_(NULL),
       rec_timer_(*EventWrapper::Create()),
-      mic_sampling_rate_(N_REC_SAMPLES_PER_SEC),
-      speaker_sampling_rate_(N_PLAY_SAMPLES_PER_SEC),
+      mic_sampling_rate_(N_REC_SAMPLES_PER_SEC * 1000),
+      speaker_sampling_rate_(N_PLAY_SAMPLES_PER_SEC * 1000),
       max_speaker_vol_(0),
       min_speaker_vol_(0),
       loundspeaker_on_(false),
@@ -78,7 +78,6 @@ AudioDeviceAndroidOpenSLES::AudioDeviceAndroidOpenSLES(const WebRtc_Word32 id)
                       __FUNCTION__);
   memset(rec_buf_, 0, sizeof(rec_buf_));
   memset(play_buf_, 0, sizeof(play_buf_));
-  UpdateRecordingDelay();
 }
 
 AudioDeviceAndroidOpenSLES::~AudioDeviceAndroidOpenSLES() {
@@ -1257,22 +1256,18 @@ WebRtc_Word32 AudioDeviceAndroidOpenSLES::CPULoad(
 }
 
 bool AudioDeviceAndroidOpenSLES::PlayoutWarning() const {
-  CriticalSectionScoped lock(&crit_sect_);
   return (play_warning_ > 0);
 }
 
 bool AudioDeviceAndroidOpenSLES::PlayoutError() const {
-  CriticalSectionScoped lock(&crit_sect_);
   return (play_error_ > 0);
 }
 
 bool AudioDeviceAndroidOpenSLES::RecordingWarning() const {
-  CriticalSectionScoped lock(&crit_sect_);
   return (rec_warning_ > 0);
 }
 
 bool AudioDeviceAndroidOpenSLES::RecordingError() const {
-  CriticalSectionScoped lock(&crit_sect_);
   return (rec_error_ > 0);
 }
 
@@ -1285,12 +1280,10 @@ void AudioDeviceAndroidOpenSLES::ClearPlayoutError() {
 }
 
 void AudioDeviceAndroidOpenSLES::ClearRecordingWarning() {
-  CriticalSectionScoped lock(&crit_sect_);
   rec_warning_ = 0;
 }
 
 void AudioDeviceAndroidOpenSLES::ClearRecordingError() {
-  CriticalSectionScoped lock(&crit_sect_);
   rec_error_ = 0;
 }
 
@@ -1370,30 +1363,17 @@ bool AudioDeviceAndroidOpenSLES::RecThreadFuncImpl() {
   const unsigned int total_bytes = num_bytes;
   WebRtc_Word8 buf[REC_MAX_TEMP_BUF_SIZE_PER_10ms];
 
-  // Always grab crit_sect_ first, then callback_crit_sect_
-  // And vice-versa for releasing
-  crit_sect_.Enter();
-  callback_crit_sect_.Enter();
-  while (is_recording_) {
+  {
+    // Always grab crit_sect_ first, then callback_crit_sect_
+    // And vice-versa for releasing
+    CriticalSectionScoped lock(&crit_sect_);
+    CriticalSectionScoped callback_lock(&callback_crit_sect_);
+    if (!is_recording_) {
+      return true;
+    }
     if (rec_voe_audio_queue_.size() <= 0) {
-      callback_crit_sect_.Leave();
-      crit_sect_.Leave();
-      // Wait for max 40ms for incoming audio data before looping the
-      // poll and checking for ::Stop() being called (which waits for us
-      // to return).  Actual time between audio callbacks will vary, but
-      // is based on AudioRecord min buffer sizes, which may be 15-80ms
-      // or more, depending on sampling frequency, but typically will be
-      // 25ish ms at 44100Hz.  We also don't want to take "too long" to
-      // exit after ::Stop().  This value of 40ms is arbitrary.
-      rec_timer_.Wait(40);
-      crit_sect_.Enter();
-      callback_crit_sect_.Enter();
-      if (rec_voe_audio_queue_.size() <= 0) {
-        // still no audio data; check for ::Stop()
-        callback_crit_sect_.Leave();
-        crit_sect_.Leave();
-        return true;
-      }
+      rec_timer_.Wait(1);
+      return true;
     }
 
     WebRtc_Word8* audio = rec_voe_audio_queue_.front();
@@ -1401,31 +1381,18 @@ bool AudioDeviceAndroidOpenSLES::RecThreadFuncImpl() {
     memcpy(buf, audio, total_bytes);
     memset(audio, 0, total_bytes);
     rec_voe_ready_queue_.push(audio);
-
-    voe_audio_buffer_->SetRecordedBuffer(buf, num_samples);
-    voe_audio_buffer_->SetVQEData(playout_delay_, recording_delay_, 0);
-
-    // All other implementations UnLock around DeliverRecordedData() only
-    callback_crit_sect_.Leave();
-    crit_sect_.Leave();
-    voe_audio_buffer_->DeliverRecordedData();
-    crit_sect_.Enter();
-    callback_crit_sect_.Enter();
   }
-  callback_crit_sect_.Leave();
-  crit_sect_.Leave();
 
-  // if is_recording is false, we either *just* were started, or for some reason
-  // Stop() failed to get us to return for 10 seconds - and when we return here,
-  // Stop will kill us anyways.
-  rec_timer_.Wait(1);
+  UpdateRecordingDelay();
+  voe_audio_buffer_->SetRecordedBuffer(buf, num_samples);
+  voe_audio_buffer_->SetVQEData(playout_delay_, recording_delay_, 0);
+  voe_audio_buffer_->DeliverRecordedData();
 
   return true;
 }
 
 void AudioDeviceAndroidOpenSLES::RecorderSimpleBufferQueueCallbackHandler(
-    SLAndroidSimpleBufferQueueItf queue_itf) {
-
+  SLAndroidSimpleBufferQueueItf queue_itf) {
   const unsigned int num_samples = mic_sampling_rate_ / 100;
   const unsigned int num_bytes =
     N_REC_CHANNELS * num_samples * sizeof(int16_t);
@@ -1443,17 +1410,12 @@ void AudioDeviceAndroidOpenSLES::RecorderSimpleBufferQueueCallbackHandler(
     audio = rec_queue_.front();
     rec_queue_.pop();
     rec_voe_audio_queue_.push(audio);
-    rec_timer_.Set(); // wake up record thread to process it
 
     if (rec_voe_ready_queue_.size() <= 0) {
       // Log Error.
       rec_error_ = 1;
       WEBRTC_OPENSL_TRACE(kTraceError, kTraceAudioDevice, id_,
                           "  Audio Rec thread buffers underrun");
-      // This isn't good, but continuing (as it used to) is even worse.
-      // Worst case we end up with buffers building up at the other end or
-      // starved.  To be fixed in full rewrite from upstream.
-      return;
     } else {
       audio = rec_voe_ready_queue_.front();
       rec_voe_ready_queue_.pop();
@@ -1466,7 +1428,6 @@ void AudioDeviceAndroidOpenSLES::RecorderSimpleBufferQueueCallbackHandler(
   if (res != SL_RESULT_SUCCESS) {
     WEBRTC_OPENSL_TRACE(kTraceWarning, kTraceAudioDevice, id_,
                         "  recorder callback Enqueue failed, %d", res);
-    CriticalSectionScoped lock(&crit_sect_);
     rec_warning_ = 1;
     return;
   } else {
@@ -1509,7 +1470,6 @@ WebRtc_Word32 AudioDeviceAndroidOpenSLES::InitSampleRate() {
 
   mic_sampling_rate_ = N_REC_SAMPLES_PER_SEC;
   speaker_sampling_rate_ = N_PLAY_SAMPLES_PER_SEC;
-  UpdateRecordingDelay();
 
   WEBRTC_OPENSL_TRACE(kTraceStateInfo, kTraceAudioDevice, id_,
                       "  mic sample rate (%d), speaker sample rate (%d)",
