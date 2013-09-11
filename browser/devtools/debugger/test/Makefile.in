@@ -45,7 +45,6 @@ MOCHITEST_BROWSER_TESTS = \
 	browser_dbg_propertyview-filter-06.js \
 	browser_dbg_propertyview-filter-07.js \
 	browser_dbg_propertyview-filter-08.js \
-	browser_dbg_propertyview-reexpand.js \
 	$(filter disabled-temporarily--bug-782179, browser_dbg_reload-same-script.js) \
 	browser_dbg_reload-preferred-script.js \
 	browser_dbg_pane-collapse.js \
@@ -156,6 +155,7 @@ MOCHITEST_BROWSER_TESTS += \
 	browser_dbg_createChrome.js \
 	browser_dbg_propertyview-filter-02.js \
 	browser_dbg_propertyview-filter-03.js \
+	browser_dbg_propertyview-reexpand.js \
 	$(NULL)
 endif
 
