@@ -2316,11 +2316,6 @@ char const *const nsHTMLMediaElement::gH264Codecs[7] = {
   "mp4a.40.2",
   nullptr
 };
-
-char const *const nsHTMLMediaElement::gMpegAudioCodecs[2] = {
-  "mp3",
-  nullptr
-};
 #endif
 
 #ifdef MOZ_GSTREAMER
@@ -2488,11 +2483,7 @@ nsHTMLMediaElement::CanHandleMediaType(const char* aMIMEType,
 #endif
 #ifdef MOZ_WIDGET_GONK
   if (IsOmxSupportedType(nsDependentCString(aMIMEType))) {
-    if (nsDependentCString(aMIMEType).EqualsASCII("audio/mpeg")) {
-      *aCodecList = gMpegAudioCodecs;
-    } else {
-      *aCodecList = gH264Codecs;
-    }    
+    *aCodecList = gH264Codecs;
     return CANPLAY_MAYBE;
   }
 #endif
