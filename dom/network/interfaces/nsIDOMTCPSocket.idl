@@ -25,7 +25,7 @@
 //  be possible to do (similarly to the WebSocket API):
 //    var s = new MozTCPSocket(host, port); 
 
-[scriptable, uuid(b82e17da-6476-11e1-8813-57a2ffe9e42c)]
+[scriptable, uuid(874100ae-798b-498e-8e05-358283b1e2f3)]
 interface nsIDOMTCPSocket : nsISupports
 {
   /**
@@ -46,6 +46,11 @@ interface nsIDOMTCPSocket : nsISupports
    * @return The new TCPSocket instance.
    */
   nsIDOMTCPSocket open(in DOMString host, in unsigned short port, [optional] in jsval options);
+
+  /**
+   * Enable secure on channel.
+   */
+  void upgradeToSecure();
 
   /**
    * The host of this socket object.

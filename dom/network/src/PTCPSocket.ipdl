@@ -36,6 +36,7 @@ protocol PTCPSocket
 
 parent:
   Data(SendableData data);
+  StartTLS();
   Suspend();
   Resume();
   Close();
