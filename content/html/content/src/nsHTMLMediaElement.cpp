@@ -2358,6 +2358,11 @@ const char nsHTMLMediaElement::gOmxTypes[6][16] = {
   "video/quicktime",
 };
 
+char const *const nsHTMLMediaElement::gMpegAudioCodecs[2] = {
+  "mp3",
+  nullptr
+};
+
 bool
 nsHTMLMediaElement::IsOmxEnabled()
 {
@@ -2483,7 +2488,11 @@ nsHTMLMediaElement::CanHandleMediaType(const char* aMIMEType,
 #endif
 #ifdef MOZ_WIDGET_GONK
   if (IsOmxSupportedType(nsDependentCString(aMIMEType))) {
-    *aCodecList = gH264Codecs;
+    if (nsDependentCString(aMIMEType).EqualsASCII("audio/mpeg")) {
+      *aCodecList = gMpegAudioCodecs;
+    } else {
+      *aCodecList = gH264Codecs;
+    }    
     return CANPLAY_MAYBE;
   }
 #endif
