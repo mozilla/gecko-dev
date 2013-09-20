@@ -1291,6 +1291,7 @@ this.DOMApplicationRegistry = {
               if (array.length == CHUNK_SIZE) {
                 readChunk();
               } else {
+                file.close();
                 // We're passing false to get the binary hash and not base64.
                 let hash = hasher.finish(false);
                 // convert the binary hash data to a hex string.
@@ -2325,10 +2326,25 @@ this.DOMApplicationRegistry = {
               app.downloadSize = 0;
               app.installState = "installed";
               app.readyToApplyDownload = false;
+              if (app.staged && app.staged.manifestHash) {
+                // If we're here then the manifest has changed but the package
+                // hasn't. Let's clear this, so we don't keep offering
+                // a bogus update to the user
+                app.manifestHash = app.staged.manifestHash;
+                app.etag = app.staged.etag || app.etag;
+                app.staged = {};
+                // Move the staged update manifest to a non staged one.
+                let dirPath = self._getAppDir(id).path;
+
+                // We don't really mind much if this fails.
+                OS.File.move(OS.Path.join(dirPath, "staged-update.webapp"),
+                             OS.Path.join(dirPath, "update.webapp"));
+              }
+
               self.broadcastMessage("Webapps:PackageEvent", {
                                       type: "downloaded",
                                       manifestURL: aApp.manifestURL,
-                                      app: app })
+                                      app: app });
               self.broadcastMessage("Webapps:PackageEvent", {
                                       type: "applied",
                                       manifestURL: aApp.manifestURL,

@@ -65,6 +65,7 @@ const DOM_MOBILE_MESSAGE_DELIVERY_SENT     = "sent";
 const DOM_MOBILE_MESSAGE_DELIVERY_ERROR    = "error";
 
 const CALL_WAKELOCK_TIMEOUT              = 5000;
+const SMS_HANDLED_WAKELOCK_TIMEOUT = 5000;
 
 const RIL_IPC_TELEPHONY_MSG_NAMES = [
   "RIL:EnumerateCalls",
@@ -1431,9 +1432,42 @@ RadioInterfaceLayer.prototype = {
     });
   },
 
+  // The following attributes/functions are used for acquiring the CPU wake
+  // lock when the RIL handles the received SMS. Note that we need a timer to
+  // bound the lock's life cycle to avoid exhausting the battery.
+  _smsHandledWakeLock: null,
+  _smsHandledWakeLockTimer: null,
+  _cancelSmsHandledWakeLockTimer: function _cancelSmsHandledWakeLockTimer() {
+    debug("Releasing the CPU wake lock for handling SMS.");
+    if (this._smsHandledWakeLockTimer) {
+      this._smsHandledWakeLockTimer.cancel();
+    }
+    if (this._smsHandledWakeLock) {
+      this._smsHandledWakeLock.unlock();
+      this._smsHandledWakeLock = null;
+    }
+  },
+
   portAddressedSmsApps: null,
   handleSmsReceived: function handleSmsReceived(message) {
     debug("handleSmsReceived: " + JSON.stringify(message));
+
+    // We need to acquire a CPU wake lock to avoid the system falling into
+    // the sleep mode when the RIL handles the received SMS.
+    if (!this._smsHandledWakeLock) {
+      debug("Acquiring a CPU wake lock for handling SMS.");
+      this._smsHandledWakeLock = gPowerManagerService.newWakeLock("cpu");
+    }
+    if (!this._smsHandledWakeLockTimer) {
+      debug("Creating a timer for releasing the CPU wake lock.");
+      this._smsHandledWakeLockTimer =
+        Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+    }
+    debug("Setting the timer for releasing the CPU wake lock.");
+    this._smsHandledWakeLockTimer
+        .initWithCallback(this._cancelSmsHandledWakeLockTimer.bind(this),
+                          SMS_HANDLED_WAKELOCK_TIMEOUT,
+                          Ci.nsITimer.TYPE_ONE_SHOT);
 
     // FIXME: Bug 737202 - Typed arrays become normal arrays when sent to/from workers
     if (message.encoding == RIL.PDU_DCS_MSG_CODING_8BITS_ALPHABET) {
@@ -1827,6 +1861,9 @@ RadioInterfaceLayer.prototype = {
         }
         break;
       case "xpcom-shutdown":
+        // Cancel the timer of the CPU wake lock for handling the received SMS.
+        this._cancelSmsHandledWakeLockTimer();
+
         ppmm.removeMessageListener("child-process-shutdown", this);
         for (let msgname of RIL_IPC_TELEPHONY_MSG_NAMES) {
           ppmm.removeMessageListener(msgname, this);

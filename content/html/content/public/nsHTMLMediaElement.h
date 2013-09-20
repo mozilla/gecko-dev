@@ -329,6 +329,7 @@ public:
   static bool IsOmxSupportedType(const nsACString& aType);
   static const char gOmxTypes[6][16];
   static char const *const gH264Codecs[7];
+  static char const *const gMpegAudioCodecs[2];
 #endif
 
 #ifdef MOZ_MEDIA_PLUGINS
