@@ -6,6 +6,9 @@
 #ifndef ctypes_CTypes_h
 #define ctypes_CTypes_h
 
+#include "mozilla/Assertions.h"
+#include "mozilla/TypeTraits.h"
+
 #include "jscntxt.h"
 #include "jsapi.h"
 #include "prlink.h"
@@ -57,6 +60,8 @@ private:
 template<class T, size_t N = 0>
 class Array : public Vector<T, N, SystemAllocPolicy>
 {
+  MOZ_STATIC_ASSERT((!mozilla::IsSame<T, JS::Value>::value),
+                    "use JS::AutoValueVector instead");
 };
 
 // String and AutoString classes, based on Vector.

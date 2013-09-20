@@ -4767,13 +4767,14 @@ StructType::DefineInternal(JSContext* cx, JSObject* typeObj_, JSObject* fieldsOb
   // to get GC safety for free, since if anything in this function fails we
   // do not want to mutate 'typeObj'.)
   AutoPtr<FieldInfoHash> fields(cx->new_<FieldInfoHash>());
-  Array<jsval, 16> fieldRootsArray;
-  if (!fields || !fields->init(len) || !fieldRootsArray.appendN(JSVAL_VOID, len)) {
+  if (!fields || !fields->init(len)) {
     JS_ReportOutOfMemory(cx);
     return JS_FALSE;
   }
-  js::AutoArrayRooter fieldRoots(cx, fieldRootsArray.length(),
-    fieldRootsArray.begin());
+
+  JS::AutoValueVector fieldRoots(cx);
+  if (!fieldRoots.resize(len))
+    return false;
 
   // Process the field types.
   size_t structSize, structAlign;
@@ -4793,7 +4794,7 @@ StructType::DefineInternal(JSContext* cx, JSObject* typeObj_, JSObject* fieldsOb
       Rooted<JSStableString*> name(cx, flat->ensureStable(cx));
       if (!name)
         return JS_FALSE;
-      fieldRootsArray[i] = OBJECT_TO_JSVAL(fieldType);
+      fieldRoots[i] = OBJECT_TO_JSVAL(fieldType);
 
       // Make sure each field name is unique
       FieldInfoHash::AddPtr entryPtr = fields->lookupForAdd(name);
@@ -5093,10 +5094,9 @@ StructType::BuildFieldsArray(JSContext* cx, JSObject* obj)
   size_t len = fields->count();
 
   // Prepare a new array for the 'fields' property of the StructType.
-  Array<jsval, 16> fieldsVec;
-  if (!fieldsVec.appendN(JSVAL_VOID, len))
+  JS::AutoValueVector fieldsVec(cx);
+  if (!fieldsVec.resize(len))
     return NULL;
-  js::AutoArrayRooter root(cx, fieldsVec.length(), fieldsVec.begin());
 
   for (FieldInfoHash::Range r = fields->all(); !r.empty(); r.popFront()) {
     const FieldInfoHash::Entry& entry = r.front();
@@ -5557,7 +5557,7 @@ FunctionType::Create(JSContext* cx, unsigned argc, jsval* vp)
     return JS_FALSE;
   }
 
-  Array<jsval, 16> argTypes;
+  JS::AutoValueVector argTypes(cx);
   RootedObject arrayObj(cx, NULL);
 
   if (args.length() == 3) {
@@ -5572,15 +5572,12 @@ FunctionType::Create(JSContext* cx, unsigned argc, jsval* vp)
     uint32_t len;
     ASSERT_OK(JS_GetArrayLength(cx, arrayObj, &len));
 
-    if (!argTypes.appendN(JSVAL_VOID, len)) {
-      JS_ReportOutOfMemory(cx);
+    if (!argTypes.resize(len))
       return JS_FALSE;
-    }
   }
 
   // Pull out the argument types from the array, if any.
   JS_ASSERT(!argTypes.length() || arrayObj);
-  js::AutoArrayRooter items(cx, argTypes.length(), argTypes.begin());
   for (uint32_t i = 0; i < argTypes.length(); ++i) {
     if (!JS_GetElement(cx, arrayObj, i, &argTypes[i]))
       return JS_FALSE;
@@ -5904,7 +5901,7 @@ FunctionType::ArgTypesGetter(JSContext* cx, HandleObject obj, HandleId idval, Mu
   size_t len = fninfo->mArgTypes.length();
 
   // Prepare a new array.
-  Array<jsval, 16> vec;
+  JS::AutoValueVector vec(cx);
   if (!vec.resize(len))
     return JS_FALSE;
 
@@ -6159,13 +6156,10 @@ CClosure::ClosureStub(ffi_cif* cif, void* result, void** args, void* userData)
   }
 
   // Set up an array for converted arguments.
-  Array<jsval, 16> argv;
-  if (!argv.appendN(JSVAL_VOID, cif->nargs)) {
-    JS_ReportOutOfMemory(cx);
+  JS::AutoValueVector argv(cx);
+  if (!argv.resize(cif->nargs))
     return;
-  }
 
-  js::AutoArrayRooter roots(cx, argv.length(), argv.begin());
   for (uint32_t i = 0; i < cif->nargs; ++i) {
     // Convert each argument, and have any CData objects created depend on
     // the existing buffers.
