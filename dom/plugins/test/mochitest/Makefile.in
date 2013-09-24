@@ -68,7 +68,6 @@ MOCHITEST_FILES = \
   test_bug784131.html \
   test_bug854082.html \
   test_bug863792.html \
-  file_bug863792.html \
   test_enumerate.html \
   test_npruntime_construct.html \
   307-xo-redirect.sjs \
@@ -114,6 +113,7 @@ MOCHITEST_CHROME_FILES = \
 
 ifneq ($(MOZ_WIDGET_TOOLKIT),cocoa)
 MOCHITEST_FILES += \
+  file_bug863792.html \
   test_visibility.html \
   $(NULL)
 
