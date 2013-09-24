@@ -30,7 +30,8 @@ public:
   static void Shutdown();
 
   virtual void RegisterAudioChannelAgent(AudioChannelAgent* aAgent,
-                                         AudioChannelType aType);
+                                         AudioChannelType aType,
+                                         bool aWithVideo);
   virtual void UnregisterAudioChannelAgent(AudioChannelAgent* aAgent);
 
   /**

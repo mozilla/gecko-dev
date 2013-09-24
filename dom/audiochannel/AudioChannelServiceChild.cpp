@@ -64,35 +64,28 @@ AudioChannelServiceChild::GetMuted(AudioChannelAgent* aAgent, bool aElementHidde
     return true;
   }
 
-  ContentChild *cc = ContentChild::GetSingleton();
   bool muted = true;
   bool oldElementHidden = data->mElementHidden;
 
   // Update visibility.
   data->mElementHidden = aElementHidden;
 
-  if (cc) {
-    cc->SendAudioChannelGetMuted(data->mType, aElementHidden, oldElementHidden, &muted);
-  }
+  ContentChild* cc = ContentChild::GetSingleton();
+  cc->SendAudioChannelGetMuted(data->mType, aElementHidden, oldElementHidden, &muted);
   data->mMuted = muted;
-
-  if (cc) {
-    cc->SendAudioChannelChangedNotification();
-  }
+  cc->SendAudioChannelChangedNotification();
 
   return muted;
 }
 
 void
 AudioChannelServiceChild::RegisterAudioChannelAgent(AudioChannelAgent* aAgent,
-                                                    AudioChannelType aType)
+                                                    AudioChannelType aType,
+                                                    bool aWithVideo)
 {
-  AudioChannelService::RegisterAudioChannelAgent(aAgent, aType);
+  AudioChannelService::RegisterAudioChannelAgent(aAgent, aType, aWithVideo);
 
-  ContentChild *cc = ContentChild::GetSingleton();
-  if (cc) {
-    cc->SendAudioChannelRegisterType(aType);
-  }
+  ContentChild::GetSingleton()->SendAudioChannelRegisterType(aType, aWithVideo);
 
   nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
   if (obs) {
@@ -114,10 +107,8 @@ AudioChannelServiceChild::UnregisterAudioChannelAgent(AudioChannelAgent* aAgent)
 
   AudioChannelService::UnregisterAudioChannelAgent(aAgent);
 
-  ContentChild *cc = ContentChild::GetSingleton();
-  if (cc) {
-    cc->SendAudioChannelUnregisterType(data.mType, data.mElementHidden);
-  }
+  ContentChild::GetSingleton()->SendAudioChannelUnregisterType(
+      data.mType, data.mElementHidden, data.mWithVideo);
 
   nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
   if (obs) {
