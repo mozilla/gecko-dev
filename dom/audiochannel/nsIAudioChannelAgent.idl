@@ -31,7 +31,7 @@ interface nsIAudioChannelAgentCallback : nsISupports
  *   1. Changes to the playable status of this channel.
  */
 
-[scriptable, uuid(f012a9b7-6431-4915-a4ac-4ba7d833e28e)]
+[scriptable, uuid(86ef883d-9cec-4c04-994f-5de198286e7c)]
 interface nsIAudioChannelAgent : nsISupports
 {
   const long AUDIO_AGENT_CHANNEL_NORMAL             = 0;
@@ -74,6 +74,14 @@ interface nsIAudioChannelAgent : nsISupports
   void initWithWeakCallback(in long channelType, in nsIAudioChannelAgentCallback callback);
 
   /**
+   * This method is just like init(), and specify the channel is associated with video.
+   *
+   * @param weak
+   *    true if weak reference should be hold.
+   */
+  void initWithVideo(in long channelType, in nsIAudioChannelAgentCallback callback, in boolean weak);
+
+  /**
    * Notify the agent that we want to start playing.
    * Note: Gecko component SHOULD call this function first then start to
    *          play audio stream only when return value is true.
@@ -103,6 +111,5 @@ interface nsIAudioChannelAgent : nsISupports
    *    True if the window associated with the agent is visible.
    */
   void setVisibilityState(in boolean visible);
-
 };
 

@@ -40,7 +40,8 @@ public:
    * this service, sharing the AudioChannelType.
    */
   virtual void RegisterAudioChannelAgent(AudioChannelAgent* aAgent,
-                                         AudioChannelType aType);
+                                         AudioChannelType aType,
+                                         bool aWithVideo);
 
   /**
    * Any  audio channel agent that stops playing should unregister itself to
@@ -75,9 +76,9 @@ protected:
   void SendAudioChannelChangedNotification(uint64_t aChildID);
 
   /* Register/Unregister IPC types: */
-  void RegisterType(AudioChannelType aType, uint64_t aChildID);
+  void RegisterType(AudioChannelType aType, uint64_t aChildID, bool aWithVideo);
   void UnregisterType(AudioChannelType aType, bool aElementHidden,
-                      uint64_t aChildID);
+                      uint64_t aChildID, bool aWithVideo);
 
   bool GetMutedInternal(AudioChannelType aType, uint64_t aChildID,
                         bool aElementHidden, bool aElementWasHidden);
@@ -114,15 +115,18 @@ protected:
   public:
     AudioChannelAgentData(AudioChannelType aType,
                           bool aElementHidden,
-                          bool aMuted)
+                          bool aMuted,
+                          bool aWithVideo)
     : mType(aType)
     , mElementHidden(aElementHidden)
     , mMuted(aMuted)
+    , mWithVideo(aWithVideo)
     {}
 
     AudioChannelType mType;
     bool mElementHidden;
     bool mMuted;
+    const bool mWithVideo;
   };
 
   static PLDHashOperator
@@ -137,6 +141,7 @@ protected:
   AudioChannelType mCurrentVisibleHigherChannel;
 
   nsTArray<uint64_t> mActiveContentChildIDs;
+  nsTArray<uint64_t> mWithVideoChildIDs;
   bool mActiveContentChildIDsFrozen;
 
   // This is needed for IPC comunication between
