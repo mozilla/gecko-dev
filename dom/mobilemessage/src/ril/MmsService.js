@@ -236,7 +236,9 @@ XPCOMUtils.defineLazyGetter(this, "gMmsConnection", function () {
      *              callback is done; false otherwise.
      */
     acquire: function acquire(callback) {
+      this.refCount++;
       this.connectTimer.cancel();
+      this.disconnectTimer.cancel();
 
       // If the MMS network is not yet connected, buffer the
       // MMS request and try to setup the MMS network first.
@@ -253,8 +255,6 @@ XPCOMUtils.defineLazyGetter(this, "gMmsConnection", function () {
                            Ci.nsITimer.TYPE_ONE_SHOT);
         return false;
       }
-
-      this.refCount++;
 
       callback(true);
       return true;
@@ -525,12 +525,6 @@ XPCOMUtils.defineLazyGetter(this, "gMmsTransactionHelper", function () {
         }
 
         // Setup event listeners
-        xhr.onerror = function () {
-          if (DEBUG) debug("xhr error, response headers: " +
-                           xhr.getAllResponseHeaders());
-          releaseMmsConnectionAndCallback(xhr.status, null);
-        };
-
         xhr.onreadystatechange = function () {
           if (xhr.readyState != Ci.nsIXMLHttpRequest.DONE) {
             return;
