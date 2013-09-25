@@ -106,7 +106,7 @@ function test() {
 
   function onExamineResponse(subject) {
     let channel = subject.QueryInterface(Ci.nsIHttpChannel);
-    if (channel.URI.spec != "http://mochi.test:8888/browser/browser/base/content/test/general/bug792517.sjs") {
+    if (channel.URI.spec != "http://mochi.test:8888/browser/browser/base/content/test/bug792517.sjs") {
       return;
     }
     try {
@@ -120,7 +120,7 @@ function test() {
 
   function onModifyRequest(subject) {
     let channel = subject.QueryInterface(Ci.nsIHttpChannel);
-    if (channel.URI.spec != "http://mochi.test:8888/browser/browser/base/content/test/general/bug792517.sjs") {
+    if (channel.URI.spec != "http://mochi.test:8888/browser/browser/base/content/test/bug792517.sjs") {
       return;
     }
     try {
