@@ -954,10 +954,6 @@ AuthCertificate(TransportSecurityInfo * infoObject, CERTCertificate * cert)
       PR_FREEIF(nickname);
     }
 
-    if (certList) {
-      CERT_DestroyCertList(certList);
-    }
-
     // The connection may get terminated, for example, if the server requires
     // a client cert. Let's provide a minimal SSLStatus
     // to the caller that contains at least the cert and its status.
@@ -983,6 +979,10 @@ AuthCertificate(TransportSecurityInfo * infoObject, CERTCertificate * cert)
       PR_LOG(gPIPNSSLog, PR_LOG_DEBUG,
              ("AuthCertificate setting NEW cert %p\n", status->mServerCert.get()));
     }
+  }
+
+  if (certList) {
+    CERT_DestroyCertList(certList);
   }
 
   return rv;
