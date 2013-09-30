@@ -19,6 +19,8 @@
 
 #include "sampler.h"
 
+#include "cutils/properties.h"
+
 using namespace android;
 using namespace base;
 using namespace mozilla::layers;
@@ -249,6 +251,30 @@ ShadowLayerForwarder::PlatformAllocBuffer(const gfxIntSize& aSize,
                                           uint32_t aCaps,
                                           SurfaceDescriptor* aBuffer)
 {
+
+  // Check for devices that have problems with gralloc. We only check for
+  // this on ICS or earlier, in hopes that JB will work.
+#if ANDROID_VERSION <= 15
+  static bool checkedDevice = false;
+  static bool disableGralloc = false;
+
+  if (!checkedDevice) {
+    char propValue[PROPERTY_VALUE_MAX];
+    property_get("ro.product.device", propValue, "None");
+
+    if (strcmp("peak", propValue) == 0) {
+      NS_WARNING("Geeksphone Peak has issues with gralloc, falling back to shmem");
+      disableGralloc = true;
+    }
+
+    checkedDevice = true;
+  }
+
+  if (disableGralloc) {
+    return false;
+  }
+#endif
+
   // Some GL implementations fail to render gralloc textures with
   // width < 64.  There's not much point in gralloc'ing buffers that
   // small anyway, so fall back on shared memory plus a texture
