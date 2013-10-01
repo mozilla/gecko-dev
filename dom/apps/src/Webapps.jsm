@@ -231,6 +231,12 @@ this.DOMApplicationRegistry = {
     // twice
     this._readManifests(ids, (function readCSPs(aResults) {
       aResults.forEach(function registerManifest(aResult) {
+        if (!aResult.manifest) {
+          // If we can't load the manifest, we probably have a corrupted
+          // registry. We delete the app since we can't do anything with it.
+          delete this.webapps[aResult.id];
+          return;
+        }
         let app = this.webapps[aResult.id];
         app.csp = aResult.manifest.csp || "";
         if (app.appStatus >= Ci.nsIPrincipal.APP_STATUS_PRIVILEGED) {
@@ -706,6 +712,12 @@ this.DOMApplicationRegistry = {
       aResults.forEach(function registerManifest(aResult) {
         let app = this.webapps[aResult.id];
         let manifest = aResult.manifest;
+        if (!manifest) {
+          // If we can't load the manifest, we probably have a corrupted
+          // registry. We delete the app since we can't do anything with it.
+          delete this.webapps[aResult.id];
+          return;
+        }
         app.name = manifest.name;
         app.csp = manifest.csp || "";
         if (app.appStatus >= Ci.nsIPrincipal.APP_STATUS_PRIVILEGED) {
