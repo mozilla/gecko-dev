@@ -1722,14 +1722,8 @@ BluetoothHfpManager::ConnectSco(BluetoothReplyRunnable* aRunnable)
 bool
 BluetoothHfpManager::DisconnectSco()
 {
-  if (!IsConnected()) {
-    NS_WARNING("BluetoothHfpManager is not connected");
-    return false;
-  }
-
-  SocketConnectionStatus status = mScoSocket->GetConnectionStatus();
-  if (status != SOCKET_CONNECTED && status != SOCKET_CONNECTING) {
-    NS_WARNING("No SCO exists");
+  if (!IsScoConnected()) {
+    BT_WARNING("SCO has been already disconnected.");
     return false;
   }
 
