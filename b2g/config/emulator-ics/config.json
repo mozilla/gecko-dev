@@ -19,7 +19,7 @@
     "gaia": {
         "l10n": {
             "vcs": "hgtool",
-            "root": "http://hg.mozilla.org/gaia-l10n"
+            "root": "http://hg.mozilla.org/releases/gaia-l10n/v1_1"
         }
     },
     "b2g_manifest": "emulator.xml",
