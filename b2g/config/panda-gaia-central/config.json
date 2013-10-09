@@ -20,7 +20,7 @@
         "repo": "http://hg.mozilla.org/integration/gaia-central",
         "l10n": {
             "vcs": "hgtool",
-            "root": "http://hg.mozilla.org/gaia-l10n"
+            "root": "http://hg.mozilla.org/releases/gaia-l10n/v1_1"
         }
     },
     "upload_platform": "panda_gaia_central"
