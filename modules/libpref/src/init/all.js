@@ -3041,74 +3041,68 @@ pref("font.alias-list", "sans,sans-serif,serif,monospace");
 
 // ar
 pref("font.name.serif.el", "Droid Serif");
-pref("font.name.sans-serif.el", "Roboto");
-pref("font.name.monospace.el", "Source Code Pro");
+pref("font.name.sans-serif.el", "Fira Sans");
+pref("font.name.monospace.el", "Fira Mono");
 
 pref("font.name.serif.he", "Charis SIL Compact");
-pref("font.name.sans-serif.he", "Feura Sans");
-pref("font.name.monospace.he", "Source Code Pro");
-pref("font.name-list.sans-serif.he", "Droid Sans Hebrew, Feura Sans");
+pref("font.name.sans-serif.he", "Fira Sans");
+pref("font.name.monospace.he", "Fira Mono");
+pref("font.name-list.sans-serif.he", "Droid Sans Hebrew, Fira Sans");
 
 pref("font.name.serif.ja", "Charis SIL Compact");
-pref("font.name.sans-serif.ja", "Feura Sans");
+pref("font.name.sans-serif.ja", "Fira Sans");
 pref("font.name.monospace.ja", "MotoyaLMaru");
-pref("font.name-list.sans-serif.ja", "Feura Sans, Roboto, MotoyaLMaru, MotoyaLCedar, Droid Sans Japanese");
-pref("font.name-list.monospace.ja", "MotoyaLMaru, MotoyaLCedar, Source Code Pro");
+pref("font.name-list.sans-serif.ja", "Fira Sans, MotoyaLMaru, MotoyaLCedar, Droid Sans Japanese");
+pref("font.name-list.monospace.ja", "MotoyaLMaru, MotoyaLCedar, Fira Mono");
 
 pref("font.name.serif.ko", "Charis SIL Compact");
-pref("font.name.sans-serif.ko", "Feura Sans");
-pref("font.name.monospace.ko", "Source Code Pro");
+pref("font.name.sans-serif.ko", "Fira Sans");
+pref("font.name.monospace.ko", "Fira Mono");
 
 pref("font.name.serif.th", "Charis SIL Compact");
-pref("font.name.sans-serif.th", "Feura Sans");
-pref("font.name.monospace.th", "Source Code Pro");
-pref("font.name-list.sans-serif.th", "Feura Sans, Droid Sans Thai");
+pref("font.name.sans-serif.th", "Fira Sans");
+pref("font.name.monospace.th", "Fira Mono");
+pref("font.name-list.sans-serif.th", "Fira Sans, Droid Sans Thai");
 
 pref("font.name.serif.tr", "Charis SIL Compact");
-pref("font.name.sans-serif.tr", "Feura Sans");
-pref("font.name.monospace.tr", "Source Code Pro");
-pref("font.name-list.sans-serif.tr", "Feura Sans, Roboto");
+pref("font.name.sans-serif.tr", "Fira Sans");
+pref("font.name.monospace.tr", "Fira Mono");
 
 pref("font.name.serif.x-baltic", "Charis SIL Compact");
-pref("font.name.sans-serif.x-baltic", "Feura Sans");
-pref("font.name.monospace.x-baltic", "Source Code Pro");
-pref("font.name-list.sans-serif.x-baltic", "Feura Sans, Roboto");
+pref("font.name.sans-serif.x-baltic", "Fira Sans");
+pref("font.name.monospace.x-baltic", "Fira Mono");
 
 pref("font.name.serif.x-central-euro", "Charis SIL Compact");
-pref("font.name.sans-serif.x-central-euro", "Feura Sans");
-pref("font.name.monospace.x-central-euro", "Source Code Pro");
-pref("font.name-list.sans-serif.x-central-euro", "Feura Sans, Roboto");
+pref("font.name.sans-serif.x-central-euro", "Fira Sans");
+pref("font.name.monospace.x-central-euro", "Fira Mono");
 
 pref("font.name.serif.x-cyrillic", "Charis SIL Compact");
-pref("font.name.sans-serif.x-cyrillic", "Roboto");
-pref("font.name.monospace.x-cyrillic", "Source Code Pro");
+pref("font.name.sans-serif.x-cyrillic", "Fira Sans");
+pref("font.name.monospace.x-cyrillic", "Fira Mono");
 
 pref("font.name.serif.x-unicode", "Charis SIL Compact");
-pref("font.name.sans-serif.x-unicode", "Feura Sans");
-pref("font.name.monospace.x-unicode", "Source Code Pro");
-pref("font.name-list.sans-serif.x-unicode", "Feura Sans, Roboto");
+pref("font.name.sans-serif.x-unicode", "Fira Sans");
+pref("font.name.monospace.x-unicode", "Fira Mono");
 
 pref("font.name.serif.x-user-def", "Charis SIL Compact");
-pref("font.name.sans-serif.x-user-def", "Feura Sans");
-pref("font.name.monospace.x-user-def", "Source Code Pro");
-pref("font.name-list.sans-serif.x-user-def", "Feura Sans, Roboto");
+pref("font.name.sans-serif.x-user-def", "Fira Sans");
+pref("font.name.monospace.x-user-def", "Fira Mono");
 
 pref("font.name.serif.x-western", "Charis SIL Compact");
-pref("font.name.sans-serif.x-western", "Feura Sans");
-pref("font.name.monospace.x-western", "Source Code Pro");
-pref("font.name-list.sans-serif.x-western", "Feura Sans, Roboto");
+pref("font.name.sans-serif.x-western", "Fira Sans");
+pref("font.name.monospace.x-western", "Fira Mono");
 
 pref("font.name.serif.zh-CN", "Charis SIL Compact");
-pref("font.name.sans-serif.zh-CN", "Feura Sans");
-pref("font.name.monospace.zh-CN", "Source Code Pro");
+pref("font.name.sans-serif.zh-CN", "Fira Sans");
+pref("font.name.monospace.zh-CN", "Fira Mono");
 
 pref("font.name.serif.zh-HK", "Charis SIL Compact");
-pref("font.name.sans-serif.zh-HK", "Feura Sans");
-pref("font.name.monospace.zh-HK", "Source Code Pro");
+pref("font.name.sans-serif.zh-HK", "Fira Sans");
+pref("font.name.monospace.zh-HK", "Fira Mono");
 
 pref("font.name.serif.zh-TW", "Charis SIL Compact");
-pref("font.name.sans-serif.zh-TW", "Feura Sans");
-pref("font.name.monospace.zh-TW", "Source Code Pro");
+pref("font.name.sans-serif.zh-TW", "Fira Sans");
+pref("font.name.monospace.zh-TW", "Fira Mono");
 
 pref("font.default.ar", "sans-serif");
 pref("font.size.variable.ar", 16);
