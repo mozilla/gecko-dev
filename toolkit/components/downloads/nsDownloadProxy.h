@@ -143,6 +143,12 @@ public:
     return mInner->OnSecurityChange(aWebProgress, aRequest, aState);
   }
 
+  NS_IMETHODIMP SetSha256Hash(const nsACString& aHash)
+  {
+    NS_ENSURE_TRUE(mInner, NS_ERROR_NOT_INITIALIZED);
+    return mInner->SetSha256Hash(aHash);
+  }
+
 private:
   nsCOMPtr<nsIDownload> mInner;
 };

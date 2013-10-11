@@ -2524,6 +2524,10 @@ nsDownload::~nsDownload()
 {
 }
 
+NS_IMETHODIMP nsDownload::SetSha256Hash(const nsACString& aHash) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
 #ifdef MOZ_ENABLE_GIO
 static void gio_set_metadata_done(GObject *source_obj, GAsyncResult *res, gpointer user_data)
 {
