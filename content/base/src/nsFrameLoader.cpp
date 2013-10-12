@@ -492,7 +492,8 @@ nsFrameLoader::ReallyStartLoadingInternal()
   // Kick off the load...
   bool tmpState = mNeedsAsyncDestroy;
   mNeedsAsyncDestroy = true;
-  rv = mDocShell->LoadURI(mURIToLoad, loadInfo,
+  nsCOMPtr<nsIURI> uriToLoad = mURIToLoad;
+  rv = mDocShell->LoadURI(uriToLoad, loadInfo,
                           nsIWebNavigation::LOAD_FLAGS_NONE, false);
   mNeedsAsyncDestroy = tmpState;
   mURIToLoad = nullptr;
