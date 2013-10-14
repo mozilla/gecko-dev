@@ -4561,7 +4561,8 @@ Selection::Collapse(nsINode* aParentNode, int32_t aOffset)
     return NS_ERROR_FAILURE;
   nsresult result;
 
-  nsRefPtr<nsPresContext> presContext = GetPresContext();
+  nsRefPtr<nsPresContext>  presContext;
+  GetPresContext(getter_AddRefs(presContext));
   if (presContext->Document() != aParentNode->OwnerDoc())
     return NS_ERROR_FAILURE;
 
@@ -4792,7 +4793,8 @@ Selection::Extend(nsINode* aParentNode, int32_t aOffset)
   if (!IsValidSelectionPoint(mFrameSelection, aParentNode))
     return NS_ERROR_FAILURE;
 
-  nsRefPtr<nsPresContext> presContext = GetPresContext();
+  nsRefPtr<nsPresContext>  presContext;
+  GetPresContext(getter_AddRefs(presContext));
   if (presContext->Document() != aParentNode->OwnerDoc())
     return NS_ERROR_FAILURE;
 
