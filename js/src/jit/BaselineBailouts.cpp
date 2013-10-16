@@ -126,6 +126,8 @@ struct BaselineStackBuilder
     bool enlarge() {
         JS_ASSERT(buffer_ != NULL);
         size_t newSize = bufferTotal_ * 2;
+        if (newSize == 0)
+            return false;
         uint8_t *newBuffer = reinterpret_cast<uint8_t *>(js_calloc(newSize));
         if (!newBuffer)
             return false;
