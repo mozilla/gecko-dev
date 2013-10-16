@@ -66,8 +66,6 @@ HTMLTemplateElement::~HTMLTemplateElement()
 NS_IMPL_ADDREF_INHERITED(HTMLTemplateElement, Element)
 NS_IMPL_RELEASE_INHERITED(HTMLTemplateElement, Element)
 
-NS_IMPL_CYCLE_COLLECTION_CLASS(HTMLTemplateElement)
-
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(HTMLTemplateElement,
                                                 nsGenericHTMLElement)
   if (tmp->mContent) {
