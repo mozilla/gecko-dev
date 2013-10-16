@@ -1194,17 +1194,6 @@ public:
     inline XPCContext::LangType         GetPrevCallerLanguage() const ;
     inline XPCCallContext*              GetPrevCallContext() const ;
 
-    /*
-     * The 'scope for new JSObjects' will be the scope for objects created when
-     * carrying out a JS/C++ call. This member is only available if HAVE_SCOPE.
-     * The object passed to the ccx constructor is used as the scope for new
-     * JSObjects. However, this object is also queried for a wrapper, so
-     * clients that don't want a wrapper (and thus pass NULL to the ccx
-     * constructor) need to manually call SetScopeForNewJSObjects.
-     */
-    inline JSObject*                    GetScopeForNewJSObjects() const ;
-    inline void                         SetScopeForNewJSObjects(JSObject *obj) ;
-
     inline JSObject*                    GetFlattenedJSObject() const ;
     inline nsISupports*                 GetIdentityObject() const ;
     inline XPCWrappedNative*            GetWrapper() const ;
@@ -1287,7 +1276,6 @@ private:
         INIT_FAILED,
         SYSTEM_SHUTDOWN,
         HAVE_CONTEXT,
-        HAVE_SCOPE,
         HAVE_OBJECT,
         HAVE_NAME,
         HAVE_ARGS,
@@ -1319,7 +1307,6 @@ private:
 
     XPCCallContext*                 mPrevCallContext;
 
-    JSObject*                       mScopeForNewJSObjects;
     JSObject*                       mFlattenedJSObject;
     XPCWrappedNative*               mWrapper;
     XPCWrappedNativeTearOff*        mTearOff;
@@ -1403,22 +1390,6 @@ public:
         }
 
         return mCx;
-    }
-    JSObject *GetScopeForNewJSObjects() const
-    {
-        if (mCcx)
-            return mCcx->GetScopeForNewJSObjects();
-
-        return xpc_UnmarkGrayObject(mObj);
-    }
-    void SetScopeForNewJSObjects(JSObject *obj)
-    {
-        if (mCcx) {
-            mCcx->SetScopeForNewJSObjects(obj);
-            return;
-        }
-        NS_ABORT_IF_FALSE(!mObj, "already set!");
-        mObj = obj;
     }
     JSObject *GetFlattenedJSObject() const
     {

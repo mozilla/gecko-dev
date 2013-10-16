@@ -1543,7 +1543,6 @@ XPC_WN_Shared_Proto_Enumerate(JSContext *cx, JSHandleObject obj)
     XPCCallContext ccx(JS_CALLER, cx);
     if (!ccx.IsValid())
         return false;
-    ccx.SetScopeForNewJSObjects(obj);
 
     uint16_t interface_count = set->GetInterfaceCount();
     XPCNativeInterface** interfaceArray = set->GetInterfaceArray();
@@ -1596,7 +1595,6 @@ XPC_WN_ModsAllowed_Proto_Resolve(JSContext *cx, JSHandleObject obj, JSHandleId i
     XPCCallContext ccx(JS_CALLER, cx);
     if (!ccx.IsValid())
         return false;
-    ccx.SetScopeForNewJSObjects(obj);
 
     XPCNativeScriptableInfo* si = self->GetScriptableInfo();
     unsigned enumFlag = (si && si->GetFlags().DontEnumStaticProps()) ?
@@ -1677,7 +1675,6 @@ XPC_WN_OnlyIWrite_Proto_AddPropertyStub(JSContext *cx, JSHandleObject obj, JSHan
     XPCCallContext ccx(JS_CALLER, cx);
     if (!ccx.IsValid())
         return false;
-    ccx.SetScopeForNewJSObjects(obj);
 
     // Allow XPConnect to add the property only
     if (ccx.GetResolveName() == id)
@@ -1708,7 +1705,6 @@ XPC_WN_NoMods_Proto_Resolve(JSContext *cx, JSHandleObject obj, JSHandleId id)
     XPCCallContext ccx(JS_CALLER, cx);
     if (!ccx.IsValid())
         return false;
-    ccx.SetScopeForNewJSObjects(obj);
 
     XPCNativeScriptableInfo* si = self->GetScriptableInfo();
     unsigned enumFlag = (si && si->GetFlags().DontEnumStaticProps()) ?

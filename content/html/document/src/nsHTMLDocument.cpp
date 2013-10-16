@@ -1521,6 +1521,8 @@ nsHTMLDocument::Open(const nsAString& aContentTypeOrUrl,
     }
   }
 
+  mDidDocumentOpen = true;
+
   // Call Reset(), this will now do the full reset
   Reset(channel, group);
   if (baseURI) {

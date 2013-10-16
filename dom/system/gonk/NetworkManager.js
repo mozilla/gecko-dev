@@ -242,7 +242,7 @@ NetworkManager.prototype = {
             }
             // Remove routing table in /proc/net/route
             if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_WIFI) {
-              this.resetRoutingTable(this._activeInfo);
+              this.resetRoutingTable(network);
             }
             // Remove extra host route. For example, mms proxy or mmsc.
             this.removeExtraHostRoute(network);

@@ -688,7 +688,11 @@ nsListControlFrame::SingleSelection(int32_t aClickedIndex, bool aDoToggle)
     wasChanged = SetOptionsSelectedFromFrame(aClickedIndex, aClickedIndex,
                                 true, true);
   }
+  nsWeakFrame weakFrame(this);
   ScrollToIndex(aClickedIndex);
+  if (!weakFrame.IsAlive()) {
+    return wasChanged;
+  }
 
 #ifdef ACCESSIBILITY
   bool isCurrentOptionChanged = mEndSelectionIndex != aClickedIndex;
@@ -824,7 +828,11 @@ nsListControlFrame::PerformSelection(int32_t aClickedIndex,
 
       // Clear only if control was not pressed
       wasChanged = ExtendedSelection(startIndex, endIndex, !aIsControl);
+      nsWeakFrame weakFrame(this);
       ScrollToIndex(aClickedIndex);
+      if (!weakFrame.IsAlive()) {
+        return wasChanged;
+      }
 
       if (mStartSelectionIndex == kNothingSelected) {
         mStartSelectionIndex = aClickedIndex;
@@ -841,12 +849,12 @@ nsListControlFrame::PerformSelection(int32_t aClickedIndex,
       }
 #endif
     } else if (aIsControl) {
-      wasChanged = SingleSelection(aClickedIndex, true);
+      wasChanged = SingleSelection(aClickedIndex, true); // might destroy us
     } else {
-      wasChanged = SingleSelection(aClickedIndex, false);
+      wasChanged = SingleSelection(aClickedIndex, false); // might destroy us
     }
   } else {
-    wasChanged = SingleSelection(aClickedIndex, false);
+    wasChanged = SingleSelection(aClickedIndex, false); // might destroy us
   }
 
   return wasChanged;
@@ -866,7 +874,7 @@ nsListControlFrame::HandleListSelection(nsIDOMEvent* aEvent,
   mouseEvent->GetCtrlKey(&isControl);
 #endif
   mouseEvent->GetShiftKey(&isShift);
-  return PerformSelection(aClickedIndex, isShift, isControl);
+  return PerformSelection(aClickedIndex, isShift, isControl); // might destroy us
 }
 
 //---------------------------------------------------------
@@ -1153,7 +1161,11 @@ nsListControlFrame::ResetList(bool aAllowScrolling)
     NS_ASSERTION(selectElement, "No select element!");
     if (selectElement) {
       selectElement->GetSelectedIndex(&indexToSelect);
+      nsWeakFrame weakFrame(this);
       ScrollToIndex(indexToSelect);
+      if (!weakFrame.IsAlive()) {
+        return;
+      }
     }
   }
 
@@ -1514,12 +1526,13 @@ nsListControlFrame::ComboboxFinish(int32_t aIndex)
   gLastKeyTime = 0;
 
   if (mComboboxFrame) {
-    PerformSelection(aIndex, false, false);
+    nsWeakFrame weakFrame(this);
+    PerformSelection(aIndex, false, false);  // might destroy us
+    if (!weakFrame.IsAlive() || !mComboboxFrame) {
+      return;
+    }
 
     int32_t displayIndex = mComboboxFrame->GetIndexOfDisplayArea();
-
-    nsWeakFrame weakFrame(this);
-
     if (displayIndex != aIndex) {
       mComboboxFrame->RedisplaySelectedText(); // might destroy us
     }
@@ -1560,7 +1573,11 @@ nsListControlFrame::OnSetSelectedIndex(int32_t aOldIndex, int32_t aNewIndex)
     mComboboxFrame->UpdateRecentIndex(NS_SKIP_NOTIFY_INDEX);
   }
 
+  nsWeakFrame weakFrame(this);
   ScrollToIndex(aNewIndex);
+  if (!weakFrame.IsAlive()) {
+    return NS_OK;
+  }
   mStartSelectionIndex = aNewIndex;
   mEndSelectionIndex = aNewIndex;
   InvalidateFocus();
@@ -1645,7 +1662,11 @@ nsListControlFrame::AboutToDropDown()
                      mLastDropdownBackstopColor);
 
   if (mIsAllContentHere && mIsAllFramesHere && mHasBeenInitialized) {
+    nsWeakFrame weakFrame(this);
     ScrollToIndex(GetSelectedIndex());
+    if (!weakFrame.IsAlive()) {
+      return;
+    }
 #ifdef ACCESSIBILITY
     FireMenuItemActiveEvent(); // Inform assistive tech what got focus
 #endif
@@ -2022,7 +2043,13 @@ nsListControlFrame::MouseDown(nsIDOMEvent* aMouseEvent)
     // Handle Like List
     mButtonDown = true;
     CaptureMouseEvents(true);
-    mChangesSinceDragStart = HandleListSelection(aMouseEvent, selectedIndex);
+    nsWeakFrame weakFrame(this);
+    bool change =
+      HandleListSelection(aMouseEvent, selectedIndex); // might destroy us
+    if (!weakFrame.IsAlive()) {
+      return NS_OK;
+    }
+    mChangesSinceDragStart = change;
   } else {
     // NOTE: the combo box is responsible for dropping it down
     if (mComboboxFrame) {
@@ -2064,12 +2091,12 @@ nsListControlFrame::MouseMove(nsIDOMEvent* aMouseEvent)
     if (mComboboxFrame->IsDroppedDown()) {
       int32_t selectedIndex;
       if (NS_SUCCEEDED(GetIndexFromDOMEvent(aMouseEvent, selectedIndex))) {
-        PerformSelection(selectedIndex, false, false);
+        PerformSelection(selectedIndex, false, false); // might destroy us
       }
     }
   } else {// XXX - temporary until we get drag events
     if (mButtonDown) {
-      return DragMove(aMouseEvent);
+      return DragMove(aMouseEvent); // might destroy us
     }
   }
   return NS_OK;
@@ -2097,9 +2124,13 @@ nsListControlFrame::DragMove(nsIDOMEvent* aMouseEvent)
 #else
       mouseEvent->GetCtrlKey(&isControl);
 #endif
+      nsWeakFrame weakFrame(this);
       // Turn SHIFT on when you are dragging, unless control is on.
       bool wasChanged = PerformSelection(selectedIndex,
                                            !isControl, isControl);
+      if (!weakFrame.IsAlive()) {
+        return NS_OK;
+      }
       mChangesSinceDragStart = mChangesSinceDragStart || wasChanged;
     }
   }
@@ -2486,6 +2517,7 @@ nsListControlFrame::KeyPress(nsIDOMEvent* aKeyEvent)
         startIndex++;
       }
 
+      nsWeakFrame weakFrame(this);
       uint32_t i;
       for (i = 0; i < numOptions; i++) {
         uint32_t index = (i + startIndex) % numOptions;
@@ -2497,6 +2529,9 @@ nsListControlFrame::KeyPress(nsIDOMEvent* aKeyEvent)
             if (StringBeginsWith(text, incrementalString,
                                  nsCaseInsensitiveStringComparator())) {
               bool wasChanged = PerformSelection(index, isShift, isControl);
+              if (!weakFrame.IsAlive()) {
+                return NS_OK;
+              }
               if (wasChanged) {
                 // dispatch event, update combobox, etc.
                 if (!UpdateSelection()) {
@@ -2525,12 +2560,16 @@ nsListControlFrame::KeyPress(nsIDOMEvent* aKeyEvent)
   if (newIndex != kNothingSelected) {
     // If you hold control, but not shift, no key will actually do anything
     // except space.
+    nsWeakFrame weakFrame(this);
     bool wasChanged = false;
     if (isControl && !isShift && charcode != ' ') {
       mStartSelectionIndex = newIndex;
       mEndSelectionIndex = newIndex;
       InvalidateFocus();
       ScrollToIndex(newIndex);
+      if (!weakFrame.IsAlive()) {
+        return NS_OK;
+      }
 
 #ifdef ACCESSIBILITY
       FireMenuItemActiveEvent();
@@ -2540,7 +2579,7 @@ nsListControlFrame::KeyPress(nsIDOMEvent* aKeyEvent)
     } else {
       wasChanged = PerformSelection(newIndex, isShift, isControl);
     }
-    if (wasChanged) {
+    if (wasChanged && weakFrame.IsAlive()) {
        // dispatch event, update combobox, etc.
       if (!UpdateSelection()) {
         return NS_OK;
