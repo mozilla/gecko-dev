@@ -629,6 +629,7 @@ MOCHITEST_FILES_C= \
 		badMessageEvent2.eventsource \
 		badMessageEvent2.eventsource^headers^ \
 		test_object.html \
+		test_bug840098.html \
 		test_bug869006.html \
 		test_bug868999.html \
 		test_bug869000.html \
