@@ -2007,13 +2007,6 @@ JS_WrapId(JSContext *cx, jsid *idp);
 extern JS_PUBLIC_API(JSObject *)
 JS_TransplantObject(JSContext *cx, JS::HandleObject origobj, JS::HandleObject target);
 
-extern JS_FRIEND_API(JSObject *)
-js_TransplantObjectWithWrapper(JSContext *cx,
-                               JS::HandleObject origobj,
-                               JS::HandleObject origwrapper,
-                               JS::HandleObject targetobj,
-                               JS::HandleObject targetwrapper);
-
 extern JS_PUBLIC_API(JSBool)
 JS_RefreshCrossCompartmentWrappers(JSContext *cx, JSObject *ob);
 
