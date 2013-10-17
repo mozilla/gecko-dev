@@ -33,7 +33,7 @@ using namespace js;
 static void *
 zlib_alloc(void *cx, uInt items, uInt size)
 {
-    return js_calloc(items, size);
+    return js_malloc(items * size);
 }
 
 static void
