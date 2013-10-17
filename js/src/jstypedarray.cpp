@@ -46,6 +46,7 @@ using namespace js::types;
 
 using mozilla::IsNaN;
 using mozilla::PodCopy;
+using JS::CanonicalizeNaN;
 
 /*
  * Allocate array buffers with the maximum number of fixed slots marked as
@@ -2678,7 +2679,7 @@ TypedArrayTemplate<float>::copyIndexToValue(JSObject *tarray, uint32_t index,
      * This could be removed for platforms/compilers known to convert a 32-bit
      * non-canonical nan to a 64-bit canonical nan.
      */
-    vp.setDouble(JS_CANONICALIZE_NAN(dval));
+    vp.setDouble(CanonicalizeNaN(dval));
 }
 
 template<>
@@ -2695,7 +2696,7 @@ TypedArrayTemplate<double>::copyIndexToValue(JSObject *tarray, uint32_t index,
      * confuse the engine into interpreting a double-typed jsval as an
      * object-typed jsval.
      */
-    vp.setDouble(JS_CANONICALIZE_NAN(val));
+    vp.setDouble(CanonicalizeNaN(val));
 }
 
 JSBool
@@ -3091,7 +3092,7 @@ DataViewObject::getFloat32Impl(JSContext *cx, CallArgs args)
     if (!read(cx, thisView, args, &val, "getFloat32"))
         return false;
 
-    args.rval().setDouble(JS_CANONICALIZE_NAN(val));
+    args.rval().setDouble(CanonicalizeNaN(val));
     return true;
 }
 
@@ -3113,7 +3114,7 @@ DataViewObject::getFloat64Impl(JSContext *cx, CallArgs args)
     if (!read(cx, thisView, args, &val, "getFloat64"))
         return false;
 
-    args.rval().setDouble(JS_CANONICALIZE_NAN(val));
+    args.rval().setDouble(CanonicalizeNaN(val));
     return true;
 }
 
