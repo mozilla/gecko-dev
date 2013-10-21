@@ -78,4 +78,5 @@ class MachCommands(MachCommandBase):
         if runner.failed > 0:
             return 1
 
+        bin = self.get_binary_path('app')
         return 0
