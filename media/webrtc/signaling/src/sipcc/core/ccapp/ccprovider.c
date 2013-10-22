@@ -1490,6 +1490,8 @@ static void ccappUpdateSessionData (session_update_t *sessUpd)
         if ((CCAPI_DeviceInfo_isPhoneIdle(handle) == TRUE) && (sendResetUpdates)) {
             resetNotReady();
         }
+        /* Increment the refcount before putting it in the hashtable */
+        CCAPI_Call_retainCallInfo(data);
         (void) addhash(data->sess_id, data);
             }
 
@@ -1551,12 +1553,11 @@ static void ccappUpdateSessionData (session_update_t *sessUpd)
 	    // find and deep free then delete
         sess_data_p = (session_data_t *)findhash(sessUpd->sessionID);
         if ( sess_data_p != NULL ){
-            cleanSessionData(sess_data_p);
             if ( 0 >  delhash(sessUpd->sessionID) ) {
                 APP_ERR_MSG (DEB_F_PREFIX"failed to delete hash sessid=0x%08x",
-                        DEB_F_PREFIX_ARGS(SIP_CC_PROV, fname),sessUpd->sessionID);
+                    DEB_F_PREFIX_ARGS(SIP_CC_PROV, fname),sessUpd->sessionID);
             }
-            cpr_free(sess_data_p);
+            CCAPI_Call_releaseCallInfo(sess_data_p);
         }
         if ( (gCCApp.inPreservation || (gCCApp.cucm_mode == FALLBACK)) && isNoCallExist()) {
             /* The phone is now Idle. Clear the inPreservation Flag */
@@ -1610,13 +1611,12 @@ static void ccappUpdateSessionData (session_update_t *sessUpd)
                 // find and deep free then delete
                 sess_data_p = (session_data_t *)findhash(sessUpd->sessionID);
                 if ( sess_data_p != NULL ){
-                    cleanSessionData(sess_data_p);
                     if ( 0 >  delhash(sessUpd->sessionID) ) {
-                          APP_ERR_MSG (DEB_F_PREFIX"failed to delete hash sessid=0x%08x",
-                                    DEB_F_PREFIX_ARGS(SIP_CC_PROV, fname),sessUpd->sessionID);
-                  	}
-                        cpr_free(sess_data_p);
-                     data = NULL;
+                        APP_ERR_MSG (DEB_F_PREFIX"failed to delete hash sessid=0x%08x",
+                            DEB_F_PREFIX_ARGS(SIP_CC_PROV, fname),sessUpd->sessionID);
+                    }
+                    CCAPI_Call_releaseCallInfo(sess_data_p);
+                    data = NULL;
                  }
                 if ((gCCApp.inPreservation || (gCCApp.cucm_mode == FALLBACK)) && isNoCallExist()) {
                     /* The phone is now Idle. Clear the inPreservation Flag */
