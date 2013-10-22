@@ -5,7 +5,7 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-/* $Id: ssl3con.c,v 1.201 2013/02/07 01:29:19 wtc%google.com Exp $ */
+/* $Id: ssl3con.c,v 1.201.2.1 2013/10/22 20:34:00 kaie%kuix.de Exp $ */
 
 /* TODO(ekr): Implement HelloVerifyRequest on server side. OK for now. */
 
@@ -9710,7 +9710,7 @@ ssl_RemoveSSLv3CBCPadding(sslBuffer *plaintext,
     /* SSLv3 padding bytes are random and cannot be checked. */
     t = plaintext->len;
     t -= paddingLength+overhead;
-    /* If len >= padding_length+overhead then the MSB of t is zero. */
+    /* If len >= paddingLength+overhead then the MSB of t is zero. */
     good = DUPLICATE_MSB_TO_ALL(~t);
     /* SSLv3 requires that the padding is minimal. */
     t = blockSize - (paddingLength+1);
@@ -9943,7 +9943,7 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
 	}
     }
 
-    good = (unsigned)-1;
+    good = ~0U;
     minLength = crSpec->mac_size;
     if (cipher_def->type == type_block) {
 	/* CBC records have a padding length byte at the end. */
@@ -9957,14 +9957,7 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
     /* We can perform this test in variable time because the record's total
      * length and the ciphersuite are both public knowledge. */
     if (cText->buf->len < minLength) {
-	SSL_DBG(("%d: SSL3[%d]: HandleRecord, record too small.",
-		 SSL_GETPID(), ss->fd));
-	/* must not hold spec lock when calling SSL3_SendAlert. */
-	ssl_ReleaseSpecReadLock(ss);
-	SSL3_SendAlert(ss, alert_fatal, bad_record_mac);
-	/* always log mac error, in case attacker can read server logs. */
-	PORT_SetError(SSL_ERROR_BAD_MAC_READ);
-	return SECFailure;
+	goto decrypt_loser;
     }
 
     if (cipher_def->type == type_block &&
@@ -10032,11 +10025,18 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
 	return SECFailure;
     }
 
+    if (cipher_def->type == type_block &&
+	((cText->buf->len - ivLen) % cipher_def->block_size) != 0) {
+	goto decrypt_loser;
+    }
+
     /* decrypt from cText buf to plaintext. */
     rv = crSpec->decode(
 	crSpec->decodeContext, plaintext->buf, (int *)&plaintext->len,
 	plaintext->space, cText->buf->buf + ivLen, cText->buf->len - ivLen);
-    good &= SECStatusToMask(rv);
+    if (rv != SECSuccess) {
+	goto decrypt_loser;
+    }
 
     PRINT_BUF(80, (ss, "cleartext:", plaintext->buf, plaintext->len));
 
@@ -10044,7 +10044,7 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
 
     /* If it's a block cipher, check and strip the padding. */
     if (cipher_def->type == type_block) {
-	const unsigned int blockSize = cipher_def->iv_size;
+	const unsigned int blockSize = cipher_def->block_size;
 	const unsigned int macSize = crSpec->mac_size;
 
 	if (crSpec->version <= SSL_LIBRARY_VERSION_3_0) {
@@ -10100,10 +10100,11 @@ ssl3_HandleRecord(sslSocket *ss, SSL3Ciphertext *cText, sslBuffer *databuf)
     }
 
     if (good == 0) {
+decrypt_loser:
 	/* must not hold spec lock when calling SSL3_SendAlert. */
 	ssl_ReleaseSpecReadLock(ss);
 
-	SSL_DBG(("%d: SSL3[%d]: mac check failed", SSL_GETPID(), ss->fd));
+	SSL_DBG(("%d: SSL3[%d]: decryption failed", SSL_GETPID(), ss->fd));
 
 	if (!IS_DTLS(ss)) {
 	    SSL3_SendAlert(ss, alert_fatal, bad_record_mac);
