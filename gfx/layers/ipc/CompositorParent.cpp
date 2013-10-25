@@ -919,22 +919,23 @@ CompositorParent::TransformScrollableLayer(Layer* aLayer, const gfxSize& aResolu
   // within the page boundaries.
   gfxPoint offset;
   gfxSize scaleDiff;
-  if (mContentRect.width * zoomAdjust.width < mWidgetSize.width) {
+  const nsIntRect& mCompositionBounds = metrics.mCompositionBounds;
+  if (mContentRect.width * zoomAdjust.width < mCompositionBounds.width) {
     offset.x = -geckoScroll.x;
-    scaleDiff.height = NS_MIN(1.0f, mWidgetSize.width / (float)mContentRect.width);
+    scaleDiff.height = NS_MIN(1.0f, mCompositionBounds.width / (float)mContentRect.width);
   } else {
     offset.x = clamped(mScrollOffset.x / (float)zoomAdjust.width, (float)mContentRect.x,
-                       mContentRect.XMost() - mWidgetSize.width / (float)zoomAdjust.width) -
+                       mContentRect.XMost() - mCompositionBounds.width / (float)zoomAdjust.width) -
                geckoScroll.x;
     scaleDiff.height = zoomAdjust.width;
   }
 
-  if (mContentRect.height * zoomAdjust.height < mWidgetSize.height) {
+  if (mContentRect.height * zoomAdjust.height < mCompositionBounds.height) {
     offset.y = -geckoScroll.y;
-    scaleDiff.width = NS_MIN(1.0f, mWidgetSize.height / (float)mContentRect.height);
+    scaleDiff.width = NS_MIN(1.0f, mCompositionBounds.height / (float)mContentRect.height);
   } else {
     offset.y = clamped(mScrollOffset.y / (float)zoomAdjust.height, (float)mContentRect.y,
-                       mContentRect.YMost() - mWidgetSize.height / (float)zoomAdjust.height) -
+                       mContentRect.YMost() - mCompositionBounds.height / (float)zoomAdjust.height) -
                geckoScroll.y;
     scaleDiff.width = zoomAdjust.height;
   }
