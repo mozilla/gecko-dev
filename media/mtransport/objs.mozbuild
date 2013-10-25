@@ -13,6 +13,7 @@ mtransport_lcppsrcs = [
     'nrinterfaceprioritizer.cpp',
     'nr_socket_prsock.cpp',
     'nr_timer.cpp',
+    'simpletokenbucket.cpp',
     'transportflow.cpp',
     'transportlayer.cpp',
     'transportlayerice.cpp',
