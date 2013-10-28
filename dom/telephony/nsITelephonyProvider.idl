@@ -4,7 +4,7 @@
 
 #include "nsISupports.idl"
 
-[scriptable, uuid(3aa42e77-7c2b-43a1-b105-7be094b0817a)]
+[scriptable, uuid(8961b7ef-8182-45c9-a4f2-cfa2fbcd31fa)]
 interface nsITelephonyListener : nsISupports
 {
   /**
@@ -105,6 +105,17 @@ interface nsITelephonyListener : nsISupports
    *        Number of the other party.
    */
   void notifyCdmaCallWaiting(in AString number);
+
+  /**
+   * Called when RIL error occurs to creating or separating a conference call.
+   *
+   * @param name
+   *        Error name. Possible values are addError and removeError.
+   * @param message
+   *        Detailed error message from RIL.
+   */
+  void notifyConferenceError(in AString name,
+                             in AString message);
 };
 
 %{C++
