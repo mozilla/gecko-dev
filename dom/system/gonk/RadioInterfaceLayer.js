@@ -991,6 +991,10 @@ RadioInterface.prototype = {
         gTelephonyProvider.notifySupplementaryService(message.callIndex,
                                                       message.notification);
         break;
+      case "conferenceError":
+        gTelephonyProvider.notifyConferenceError(message.errorName,
+                                                 message.errorMsg);
+        break;
       case "emergencyCbModeChange":
         this.handleEmergencyCbModeChange(message);
         break;
