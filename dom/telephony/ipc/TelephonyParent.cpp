@@ -326,6 +326,16 @@ TelephonyParent::NotifyCdmaCallWaiting(const nsAString& aNumber)
 }
 
 NS_IMETHODIMP
+TelephonyParent::NotifyConferenceError(const nsAString& aName,
+                                       const nsAString& aMessage)
+{
+  NS_ENSURE_TRUE(!mActorDestroyed, NS_ERROR_FAILURE);
+
+  return SendNotifyConferenceError(nsString(aName), nsString(aMessage)) ? NS_OK
+                                                                        : NS_ERROR_FAILURE;
+}
+
+NS_IMETHODIMP
 TelephonyParent::NotifyError(int32_t aCallIndex,
                              const nsAString& aError)
 {
@@ -429,6 +439,13 @@ TelephonyRequestParent::EnumerateCallState(uint32_t aCallIndex,
 
 NS_IMETHODIMP
 TelephonyRequestParent::NotifyCdmaCallWaiting(const nsAString& aNumber)
+{
+  MOZ_CRASH("Not a TelephonyParent!");
+}
+
+NS_IMETHODIMP
+TelephonyRequestParent::NotifyConferenceError(const nsAString& aName,
+                                              const nsAString& aMessage)
 {
   MOZ_CRASH("Not a TelephonyParent!");
 }

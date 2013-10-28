@@ -80,6 +80,16 @@ TelephonyChild::RecvNotifyConferenceCallStateChanged(const uint16_t& aCallState)
 }
 
 bool
+TelephonyChild::RecvNotifyConferenceError(const nsString& aName,
+                                          const nsString& aMessage)
+{
+  MOZ_ASSERT(mListener);
+
+  mListener->NotifyConferenceError(aName, aMessage);
+  return true;
+}
+
+bool
 TelephonyChild::RecvNotifySupplementaryService(const int32_t& aCallIndex,
                                                const uint16_t& aNotification)
 {

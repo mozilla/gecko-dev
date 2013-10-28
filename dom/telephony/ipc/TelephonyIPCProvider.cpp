@@ -238,6 +238,16 @@ TelephonyIPCProvider::NotifyCdmaCallWaiting(const nsAString& aNumber)
 }
 
 NS_IMETHODIMP
+TelephonyIPCProvider::NotifyConferenceError(const nsAString& aName,
+                                            const nsAString& aMessage)
+{
+  for (uint32_t i = 0; i < mListeners.Length(); i++) {
+    mListeners[i]->NotifyConferenceError(aName, aMessage);
+  }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 TelephonyIPCProvider::NotifyError(int32_t aCallIndex,
                                  const nsAString& aError)
 {
