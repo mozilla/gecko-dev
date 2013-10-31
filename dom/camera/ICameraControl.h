@@ -47,6 +47,8 @@ public:
   virtual nsresult Get(nsICameraRecorderStateChange** aOnRecorderStateChange) = 0;
   virtual nsresult Set(nsICameraPreviewStateChange* aOnPreviewStateChange) = 0;
   virtual nsresult Get(nsICameraPreviewStateChange** aOnPreviewStateChange) = 0;
+  virtual nsresult Set(uint32_t aKey, const CameraSize& aSize) = 0;
+  virtual nsresult Get(uint32_t aKey, CameraSize& aSize) = 0;
   virtual nsresult SetFocusAreas(JSContext* aCx, const JS::Value& aValue) = 0;
   virtual nsresult SetMeteringAreas(JSContext* aCx, const JS::Value& aValue) = 0;
   virtual nsresult GetVideoSizes(nsTArray<CameraSize>& aVideoSizes) = 0;

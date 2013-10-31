@@ -57,11 +57,13 @@ public:
   double GetParameterDouble(uint32_t aKey);
   void GetParameter(uint32_t aKey, nsTArray<dom::CameraRegion>& aRegions);
   void GetParameter(uint32_t aKey, nsTArray<CameraSize>& aSizes);
+  void GetParameter(uint32_t aKey, CameraSize& aSize);
   void SetParameter(const char* aKey, const char* aValue);
   void SetParameter(uint32_t aKey, const char* aValue);
   void SetParameter(uint32_t aKey, double aValue);
   void SetParameter(uint32_t aKey, const nsTArray<dom::CameraRegion>& aRegions);
   void SetParameter(uint32_t aKey, int aValue);
+  void SetParameter(uint32_t aKey, const CameraSize& aSize);
   nsresult GetVideoSizes(nsTArray<CameraSize>& aVideoSizes);
   nsresult PushParameters();
 
@@ -91,7 +93,9 @@ protected:
   nsresult SetupRecording(int aFd, int aRotation, int64_t aMaxFileSizeBytes, int64_t aMaxVideoLengthMs);
   nsresult SetupVideoMode(const nsAString& aProfile);
   void SetPreviewSize(uint32_t aWidth, uint32_t aHeight);
-  void SetupThumbnail(uint32_t aPictureWidth, uint32_t aPictureHeight, uint32_t aPercentQuality);
+  void SetThumbnailSize(uint32_t aWidth, uint32_t aHeight);
+  void UpdateThumbnailSize();
+  void SetPictureSize(uint32_t aWidth, uint32_t aHeight);
 
   android::sp<android::GonkCameraHardware> mCameraHw;
   double                    mExposureCompensationMin;
@@ -103,6 +107,8 @@ protected:
   uint32_t                  mHeight;
   uint32_t                  mLastPictureWidth;
   uint32_t                  mLastPictureHeight;
+  uint32_t                  mLastThumbnailWidth;
+  uint32_t                  mLastThumbnailHeight;
 
   enum {
     PREVIEW_FORMAT_UNKNOWN,

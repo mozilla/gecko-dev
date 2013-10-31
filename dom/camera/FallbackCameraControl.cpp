@@ -24,10 +24,12 @@ public:
   const char* GetParameterConstChar(uint32_t aKey);
   double GetParameterDouble(uint32_t aKey);
   void GetParameter(uint32_t aKey, nsTArray<dom::CameraRegion>& aRegions);
+  void GetParameter(uint32_t aKey, dom::CameraSize& aSize);
   void SetParameter(const char* aKey, const char* aValue);
   void SetParameter(uint32_t aKey, const char* aValue);
   void SetParameter(uint32_t aKey, double aValue);
   void SetParameter(uint32_t aKey, const nsTArray<dom::CameraRegion>& aRegions);
+  void SetParameter(uint32_t aKey, const dom::CameraSize& aSize);
   nsresult GetVideoSizes(nsTArray<CameraSize>& aVideoSizes);
   nsresult PushParameters();
 
@@ -101,6 +103,11 @@ nsFallbackCameraControl::GetParameter(uint32_t aKey, nsTArray<dom::CameraRegion>
 }
 
 void
+nsFallbackCameraControl::GetParameter(uint32_t aKey, dom::CameraSize& aSize)
+{
+}
+
+void
 nsFallbackCameraControl::SetParameter(const char* aKey, const char* aValue)
 {
 }
@@ -117,6 +124,11 @@ nsFallbackCameraControl::SetParameter(uint32_t aKey, double aValue)
 
 void
 nsFallbackCameraControl::SetParameter(uint32_t aKey, const nsTArray<dom::CameraRegion>& aRegions)
+{
+}
+
+void
+nsFallbackCameraControl::SetParameter(uint32_t aKey, const dom::CameraSize& aSize)
 {
 }
 

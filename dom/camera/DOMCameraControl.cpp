@@ -156,6 +156,69 @@ nsDOMCameraControl::SetFocusAreas(JSContext* cx, const JS::Value& aFocusAreas)
   return mCameraControl->SetFocusAreas(cx, aFocusAreas);
 }
 
+static nsresult
+GetSize(JSContext* aCx, JS::Value* aValue, const CameraSize& aSize)
+{
+  JSObject* o = JS_NewObject(aCx, nullptr, nullptr, nullptr);
+  if (!o) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  JS::Value v;
+
+  v = INT_TO_JSVAL(aSize.width);
+  if (!JS_SetProperty(aCx, o, "width", &v)) {
+    return NS_ERROR_FAILURE;
+  }
+  v = INT_TO_JSVAL(aSize.height);
+  if (!JS_SetProperty(aCx, o, "height", &v)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  *aValue = JS::ObjectValue(*o);
+  return NS_OK;
+}
+
+/* attribute any pictureSize */
+NS_IMETHODIMP
+nsDOMCameraControl::GetPictureSize(JSContext* cx, JS::Value* aSize)
+{
+  CameraSize size;
+  nsresult rv = mCameraControl->Get(CAMERA_PARAM_PICTURESIZE, size);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return GetSize(cx, aSize, size);
+}
+NS_IMETHODIMP
+nsDOMCameraControl::SetPictureSize(JSContext* cx, const JS::Value& aSize)
+{
+  CameraSize size;
+  nsresult rv = size.Init(cx, &aSize);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return mCameraControl->Set(CAMERA_PARAM_PICTURESIZE, size);
+}
+
+/* attribute any thumbnailSize */
+NS_IMETHODIMP
+nsDOMCameraControl::GetThumbnailSize(JSContext* cx, JS::Value* aSize)
+{
+  CameraSize size;
+  nsresult rv = mCameraControl->Get(CAMERA_PARAM_THUMBNAILSIZE, size);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return GetSize(cx, aSize, size);
+}
+NS_IMETHODIMP
+nsDOMCameraControl::SetThumbnailSize(JSContext* cx, const JS::Value& aSize)
+{
+  CameraSize size;
+  nsresult rv = size.Init(cx, &aSize);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return mCameraControl->Set(CAMERA_PARAM_THUMBNAILSIZE, size);
+}
+
 /* readonly attribute double focalLength; */
 NS_IMETHODIMP
 nsDOMCameraControl::GetFocalLength(double* aFocalLength)

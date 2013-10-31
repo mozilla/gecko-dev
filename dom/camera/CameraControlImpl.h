@@ -54,7 +54,7 @@ public:
   nsresult StartPreview(DOMCameraPreview* aDOMPreview);
   void StopPreview();
   nsresult AutoFocus(nsICameraAutoFocusCallback* onSuccess, nsICameraErrorCallback* onError);
-  nsresult TakePicture(CameraSize aSize, int32_t aRotation, const nsAString& aFileFormat, CameraPosition aPosition, uint64_t aDateTime, nsICameraTakePictureCallback* onSuccess, nsICameraErrorCallback* onError);
+  nsresult TakePicture(const CameraSize aSize, int32_t aRotation, const nsAString& aFileFormat, CameraPosition aPosition, uint64_t aDateTime, nsICameraTakePictureCallback* onSuccess, nsICameraErrorCallback* onError);
   nsresult StartRecording(CameraStartRecordingOptions* aOptions, nsIFile* aFolder, const nsAString& aFilename, nsICameraStartRecordingCallback* onSuccess, nsICameraErrorCallback* onError);
   nsresult StopRecording();
   nsresult GetPreviewStreamVideoMode(CameraRecorderOptions* aOptions, nsICameraPreviewStreamCallback* onSuccess, nsICameraErrorCallback* onError);
@@ -74,6 +74,8 @@ public:
   nsresult Get(nsICameraRecorderStateChange** aOnRecorderStateChange);
   nsresult Set(nsICameraPreviewStateChange* aOnPreviewStateChange);
   nsresult Get(nsICameraPreviewStateChange** aOnPreviewStateChange);
+  nsresult Set(uint32_t aKey, const CameraSize& aSize);
+  nsresult Get(uint32_t aKey, CameraSize& aSize);
 
   nsresult SetFocusAreas(JSContext* aCx, const JS::Value& aValue)
   {
@@ -92,10 +94,12 @@ public:
   virtual const char* GetParameterConstChar(uint32_t aKey) = 0;
   virtual double GetParameterDouble(uint32_t aKey) = 0;
   virtual void GetParameter(uint32_t aKey, nsTArray<CameraRegion>& aRegions) = 0;
+  virtual void GetParameter(uint32_t aKey, CameraSize& aSize) = 0;
   virtual void SetParameter(const char* aKey, const char* aValue) = 0;
   virtual void SetParameter(uint32_t aKey, const char* aValue) = 0;
   virtual void SetParameter(uint32_t aKey, double aValue) = 0;
   virtual void SetParameter(uint32_t aKey, const nsTArray<CameraRegion>& aRegions) = 0;
+  virtual void SetParameter(uint32_t aKey, const CameraSize& aSize) = 0;
   virtual nsresult GetVideoSizes(nsTArray<CameraSize>& aVideoSizes) = 0;
   virtual nsresult PushParameters() = 0;
   virtual void Shutdown();

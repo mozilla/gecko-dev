@@ -41,7 +41,7 @@ dictionary CameraSelector {
     DOMString camera = "back";
 };
 
-[scriptable, uuid(64196840-0d03-4b65-a955-790f43a4b810)]
+[scriptable, uuid(dbc274c7-be2f-450e-8c5f-dfd3d6d2235d)]
 interface nsICameraCapabilities : nsISupports
 {
     /* an array of objects with 'height' and 'width' properties
@@ -53,6 +53,11 @@ interface nsICameraCapabilities : nsISupports
        supported for picture taking */
     [implicit_jscontext]
     readonly attribute jsval        pictureSizes;
+
+    /* an array of objects with 'height' and 'width' properties
+       supported for thumbnail sizes in taken pictures */
+    [implicit_jscontext]
+    readonly attribute jsval        thumbnailSizes;
 
     /* an array of strings, e.g. [ "jpeg", "rgb565" ] */
     [implicit_jscontext]
@@ -353,6 +358,22 @@ interface nsICameraControl : nsISupports
     [implicit_jscontext]
     void setExposureCompensation([optional] in jsval compensation);
     readonly attribute double   exposureCompensation;
+
+    /* the size of the picture to be returned by a call to takePicture();
+       an object with 'height' and 'width' properties that corresponds to
+       one of the options returned by capabilities.pictureSizes. */
+    [implicit_jscontext]
+    attribute jsval             pictureSize;
+
+    /* the size of the thumbnail to be included in the picture returned
+       by a call to takePicture(), assuming the chose fileFormat supports
+       one; an object with 'height' and 'width' properties that corresponds
+       to one of the options returned by capabilities.pictureSizes.
+       
+       this setting should be considered a hint: the implementation will
+       respect it when possible, and override it if necessary. */
+    [implicit_jscontext]
+    attribute jsval             thumbnailSize;
 
     /* the function to call on the camera's shutter event, to trigger
        a shutter sound and/or a visual shutter indicator. */
