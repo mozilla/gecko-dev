@@ -1659,8 +1659,9 @@ nsEventStateManager::sClickHoldCallback(nsITimer *aTimer, void* aESM)
 void
 nsEventStateManager::FireContextClick()
 {
-  if (!mGestureDownContent)
+  if (!mGestureDownContent || !mPresContext) {
     return;
+  }
 
 #ifdef XP_MACOSX
   // Hack to ensure that we don't show a context menu when the user
