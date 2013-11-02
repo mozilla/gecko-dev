@@ -4409,7 +4409,11 @@ pref("dom.forms.inputmode", true);
 pref("dom.mozInputMethod.enabled", false);
 
 // Telephony API
+#ifdef MOZ_B2G_RIL
+pref("dom.telephony.enabled", true);
+#else
 pref("dom.telephony.enabled", false);
+#endif
 
 // Cell Broadcast API
 pref("dom.cellbroadcast.enabled", false);
