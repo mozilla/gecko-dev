@@ -4437,7 +4437,11 @@ pref("dom.mobileconnection.enabled", false);
 #endif
 
 // Voice Mail API
+#ifdef MOZ_B2G_RIL
+pref("dom.voicemail.enabled", true);
+#else
 pref("dom.voicemail.enabled", false);
+#endif
 
 // DOM Inter-App Communication API.
 pref("dom.inter-app-communication-api.enabled", false);

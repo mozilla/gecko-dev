@@ -805,6 +805,3 @@ pref("gfx.gralloc.fence-with-readpixels", true);
 
 // Cell Broadcast API
 pref("ril.cellbroadcast.disabled", false);
-
-// Voice Mail API
-pref("dom.voicemail.enabled", true);
