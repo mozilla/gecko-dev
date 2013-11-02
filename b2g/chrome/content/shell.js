@@ -16,7 +16,7 @@ Cu.import("resource://gre/modules/AppsUtils.jsm");
 Cu.import('resource://gre/modules/UserAgentOverrides.jsm');
 Cu.import('resource://gre/modules/Keyboard.jsm');
 Cu.import('resource://gre/modules/ErrorPage.jsm');
-#ifdef MOZ_B2G_RIL
+#ifdef MOZ_WIDGET_GONK
 Cu.import('resource://gre/modules/NetworkStatsService.jsm');
 #endif
 
@@ -609,7 +609,7 @@ var shell = {
 
     this.sendEvent(window, 'ContentStart');
 
-#ifdef MOZ_B2G_RIL
+#ifdef MOZ_WIDGET_GONK
     Cu.import('resource://gre/modules/OperatorApps.jsm');
 #endif
 
