@@ -572,10 +572,15 @@ BrowserTabActor.prototype = {
     dbg_assert(this.actorID,
                "tab should have an actorID.");
 
+    let windowUtils = this.window
+      .QueryInterface(Ci.nsIInterfaceRequestor)
+      .getInterface(Ci.nsIDOMWindowUtils);
+
     let response = {
       actor: this.actorID,
       title: this.title,
-      url: this.url
+      url: this.url,
+      outerWindowID: windowUtils.outerWindowID
     };
 
     // Walk over tab actors added by extensions and add them to a new ActorPool.
@@ -751,7 +756,7 @@ BrowserTabActor.prototype = {
    * Prepare to enter a nested event loop by disabling debuggee events.
    */
   preNest: function BTA_preNest() {
-    if (!this.browser) {
+    if (!this.window) {
       // The tab is already closed.
       return;
     }
@@ -766,7 +771,7 @@ BrowserTabActor.prototype = {
    * Prepare to exit a nested event loop by enabling debuggee events.
    */
   postNest: function BTA_postNest(aNestData) {
-    if (!this.browser) {
+    if (!this.window) {
       // The tab is already closed.
       return;
     }
