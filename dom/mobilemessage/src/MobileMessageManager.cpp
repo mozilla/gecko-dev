@@ -176,24 +176,38 @@ MobileMessageManager::Send(const JS::Value& aNumber_, const nsAString& aMessage,
   JS::Rooted<JSObject*> numbers(cx, &aNumber.toObject());
 
   uint32_t size;
-  JS_ALWAYS_TRUE(JS_GetArrayLength(cx, numbers, &size));
+  if (!JS_GetArrayLength(cx, numbers, &size)) {
+    return NS_ERROR_FAILURE;
+  }
 
-  JS::Value* requests = new JS::Value[size];
+  JS::AutoValueVector requests(cx);
+  if (!requests.resize(size)) {
+    return NS_ERROR_FAILURE;
+  }
 
   JS::Rooted<JS::Value> number(cx);
+  JS::Rooted<JSString*> str(cx);
   for (uint32_t i=0; i<size; ++i) {
     if (!JS_GetElement(cx, numbers, i, &number)) {
       return NS_ERROR_INVALID_ARG;
     }
 
-    JS::Rooted<JSString*> str(cx, number.toString());
+    str = JS_ValueToString(cx, number);
+    if (!str) {
+      return NS_ERROR_FAILURE;
+    }
+
     nsresult rv = Send(cx, global, str, aMessage, &requests[i]);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  aReturn->setObjectOrNull(JS_NewArrayObject(cx, size, requests));
-  NS_ENSURE_TRUE(aReturn->isObject(), NS_ERROR_FAILURE);
+  JS::Rooted<JSObject*> obj(cx);
+  obj = JS_NewArrayObject(cx, requests.length(), requests.begin());
+  if (!obj) {
+    return NS_ERROR_FAILURE;
+  }
 
+  aReturn->setObject(*obj);
   return NS_OK;
 }
 
