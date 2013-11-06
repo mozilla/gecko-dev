@@ -175,9 +175,14 @@ MobileMessageManager::Send(const jsval& aNumber, const nsAString& aMessage, jsva
   JSObject& numbers = aNumber.toObject();
 
   uint32_t size;
-  JS_ALWAYS_TRUE(JS_GetArrayLength(cx, &numbers, &size));
+  if (!JS_GetArrayLength(cx, &numbers, &size)) {
+    return NS_ERROR_FAILURE;
+  }
 
-  jsval* requests = new jsval[size];
+  JS::AutoValueVector requests(cx);
+  if (!requests.resize(size)) {
+    return NS_ERROR_FAILURE;
+  }
 
   for (uint32_t i=0; i<size; ++i) {
     jsval number;
@@ -185,13 +190,21 @@ MobileMessageManager::Send(const jsval& aNumber, const nsAString& aMessage, jsva
       return NS_ERROR_INVALID_ARG;
     }
 
-    nsresult rv = Send(cx, global, number.toString(), aMessage, &requests[i]);
+    JSString* str = JS_ValueToString(cx, number);
+    if (!str) {
+      return NS_ERROR_FAILURE;
+    }
+
+    nsresult rv = Send(cx, global, str, aMessage, &requests[i]);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  aReturn->setObjectOrNull(JS_NewArrayObject(cx, size, requests));
-  NS_ENSURE_TRUE(aReturn->isObject(), NS_ERROR_FAILURE);
+  JSObject* obj = JS_NewArrayObject(cx, requests.length(), requests.begin());
+  if (!obj) {
+    return NS_ERROR_FAILURE;
+  }
 
+  aReturn->setObject(*obj);
   return NS_OK;
 }
 
