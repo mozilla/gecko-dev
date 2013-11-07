@@ -1139,9 +1139,18 @@ nsLayoutUtils::GetActiveScrolledRootFor(nsIFrame* aFrame,
     nsIFrame* parent = GetCrossDocParentFrame(f);
     if (!parent)
       break;
-    nsIScrollableFrame* sf = do_QueryFrame(parent);
-    if (sf && sf->IsScrollingActive() && sf->GetScrolledFrame() == f)
+    nsIAtom* parentType = parent->GetType();
+#ifdef ANDROID
+    // Treat the slider thumb as being as an active scrolled root
+    // on mobile so that it can move without repainting.
+    if (parentType == nsGkAtoms::sliderFrame)
       break;
+#endif
+    if (parentType == nsGkAtoms::scrollFrame) {
+      nsIScrollableFrame* sf = do_QueryFrame(parent);
+      if (sf->IsScrollingActive() && sf->GetScrolledFrame() == f)
+        return f;
+    }
     f = parent;
   }
   return f;
