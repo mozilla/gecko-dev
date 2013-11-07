@@ -354,9 +354,10 @@ def run_desktop_mochitests(parser, options):
 
     mochitest = B2GDesktopMochitest(automation, marionette, options.profile_data_dir)
 
-    # b2g desktop builds don't always have a b2g-bin file
-    if options.app[-4:] == '-bin':
-        options.app = options.app[:-4]
+    # add a -bin suffix if b2g-bin exists, but just b2g was specified
+    if options.app[-4:] != '-bin':
+        if os.path.isfile("%s-bin" % options.app):
+            options.app = "%s-bin" % options.app
 
     options = MochitestOptions.verifyOptions(parser, options, mochitest)
     if options == None:
