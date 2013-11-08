@@ -699,7 +699,7 @@ let SessionStoreInternal = {
           // We're starting with a single private window. Save the state we
           // actually wanted to restore so that we can do it later in case
           // the user opens another, non-private window.
-          this._deferredInitialState = this._initialState;
+          this._deferredInitialState = gSessionStartup.state;
           delete this._initialState;
 
           // Nothing to restore now, notify observers things are complete.
@@ -3653,16 +3653,6 @@ let SessionStoreInternal = {
       }
     }
 
-#ifndef XP_MACOSX
-    // Don't save invalid states.
-    // Looks like we currently have private windows, only.
-    if (oState.windows.length == 0) {
-      TelemetryStopwatch.cancel("FX_SESSION_RESTORE_COLLECT_DATA_MS");
-      TelemetryStopwatch.cancel("FX_SESSION_RESTORE_COLLECT_DATA_LONGEST_OP_MS");
-      return;
-    }
-#endif
-
     for (let i = oState._closedWindows.length - 1; i >= 0; i--) {
       if (oState._closedWindows[i].isPrivate) {
         oState._closedWindows.splice(i, 1);
@@ -3702,6 +3692,12 @@ let SessionStoreInternal = {
     // Persist the last session if we deferred restoring it
     if (this._lastSessionState)
       oState.lastSessionState = this._lastSessionState;
+
+    // Make sure that we keep the previous session if we started with a single
+    // private window and no non-private windows have been opened, yet.
+    if (this._deferredInitialState) {
+      oState.windows = this._deferredInitialState.windows || [];
+    }
 
     TelemetryStopwatch.finish("FX_SESSION_RESTORE_COLLECT_DATA_MS");
     TelemetryStopwatch.finish("FX_SESSION_RESTORE_COLLECT_DATA_LONGEST_OP_MS");
@@ -4098,6 +4094,14 @@ let SessionStoreInternal = {
    * @returns [defaultState, state]
    */
   _prepDataForDeferredRestore: function ssi_prepDataForDeferredRestore(state) {
+    // Make sure that we don't modify the global state as provided by
+    // nsSessionStartup.state. Converting the object to a JSON string and
+    // parsing it again is the easiest way to do that, although not the most
+    // efficient one. Deferred sessions that don't have automatic session
+    // restore enabled tend to be a lot smaller though so that this shouldn't
+    // be a big perf hit.
+    state = JSON.parse(JSON.stringify(state));
+
     let defaultState = { windows: [], selectedWindow: 1 };
 
     state.selectedWindow = state.selectedWindow || 1;
