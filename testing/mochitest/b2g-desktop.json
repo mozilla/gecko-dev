@@ -736,6 +736,9 @@
     "layout/style/test/test_redundant_font_download.html": "Bug 931116, b2g desktop specific, initial triage",
     "layout/style/test/test_rem_unit.html": "Bug 931116, b2g desktop specific, initial triage",
     "layout/style/test/test_rule_serialization.html": "Bug 931116, b2g desktop specific, initial triage",
-    "toolkit/devtools/apps/tests/test_webapps_actor.html": "Bug 931116, b2g desktop specific, initial triage"
+    "toolkit/devtools/apps/tests/test_webapps_actor.html": "Bug 931116, b2g desktop specific, initial triage",
+
+    "content/html/content/test/forms/test_input_color_picker_popup.html": "timeout, bug 936483",
+    "content/html/content/test/forms/test_input_color_picker_update.html": "timeout, bug 936483"
   }
 }
