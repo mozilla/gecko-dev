@@ -20,6 +20,7 @@
 
 #include "mozilla/dom/PBrowserChild.h"
 #include "mozilla/dom/TabChild.h"
+#include "mozilla/Likely.h"
 #include "mozilla/Util.h"
 
 #ifdef XP_WIN
@@ -3438,6 +3439,9 @@ PresShell::DispatchSynthMouseMove(nsGUIEvent *aEvent,
   nsEventStatus status;
   nsIView* targetView = nsIView::GetViewFor(aEvent->widget);
   targetView->GetViewManager()->DispatchEvent(aEvent, targetView, &status);
+  if (MOZ_UNLIKELY(mIsDestroying)) {
+    return;
+  }
   if (aFlushOnHoverChange &&
       hoverGenerationBefore != mFrameConstructor->GetHoverGeneration()) {
     // Flush so that the resulting reflow happens now so that our caller
