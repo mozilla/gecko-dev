@@ -26,7 +26,7 @@ interface nsIFMRadioSettings : nsISupports
  *
  * If the WebFM API is re-written in c++ some day, this interface will be useless.
  */
-[scriptable, builtinclass, uuid(9586bc9c-738e-4bcd-907c-ad340a6adc8b)]
+[scriptable, builtinclass, uuid(571b660e-bd11-4b92-a6a6-885d4c00abaa)]
 interface nsIFMRadio : nsIDOMEventTarget {
     const long SEEK_DIRECTION_UP   = 0;
     const long SEEK_DIRECTION_DOWN = 1;
@@ -45,6 +45,11 @@ interface nsIFMRadio : nsIDOMEventTarget {
      * Indicates if the antenna is plugged in and available.
      */
     readonly attribute boolean isAntennaAvailable;
+
+    /**
+     * Indicates if the FM Radio is muted or not.
+     */
+    attribute boolean audioEnabled;
 
     /**
      * Enable the FM radio hardware with the given settings.

@@ -182,6 +182,30 @@ NS_IMETHODIMP FMRadio::Disable()
   return NS_OK;
 }
 
+/* attribute boolean audioEnabled; */
+NS_IMETHODIMP FMRadio::GetAudioEnabled(bool *aAudioEnabled)
+{
+  nsCOMPtr<nsIAudioManager> audioManager =
+    do_GetService(NS_AUDIOMANAGER_CONTRACTID);
+  NS_ENSURE_TRUE(audioManager, NS_OK);
+
+  audioManager->GetFmRadioAudioEnabled(aAudioEnabled);
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP FMRadio::SetAudioEnabled(bool aAudioEnabled)
+{
+  nsCOMPtr<nsIAudioManager> audioManager =
+    do_GetService(NS_AUDIOMANAGER_CONTRACTID);
+  NS_ENSURE_TRUE(audioManager, NS_OK);
+
+  LOG("Audio Enabled is set to true");
+  audioManager->SetFmRadioAudioEnabled(aAudioEnabled);
+
+  return NS_OK;
+}
+
 /* void cancelSeek */
 NS_IMETHODIMP FMRadio::CancelSeek()
 {
