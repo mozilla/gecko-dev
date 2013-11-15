@@ -392,10 +392,9 @@ parent:
                           nsString cookie,
                           nsString name,
                           nsString bidi,
-                          nsString lang,
-                          Principal principal);
+                          nsString lang);
 
-    CloseAlert(nsString name, Principal principal);
+    CloseAlert(nsString name);
 
     PExternalHelperApp(OptionalURIParams uri, nsCString aMimeContentType,
                        nsCString aContentDisposition, bool aForceSave,

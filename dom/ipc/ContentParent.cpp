@@ -2588,40 +2588,29 @@ bool
 ContentParent::RecvShowAlertNotification(const nsString& aImageUrl, const nsString& aTitle,
                                          const nsString& aText, const bool& aTextClickable,
                                          const nsString& aCookie, const nsString& aName,
-                                         const nsString& aBidi, const nsString& aLang,
-                                         const IPC::Principal& aPrincipal)
+                                         const nsString& aBidi, const nsString& aLang)
 {
-#ifdef MOZ_CHILD_PERMISSIONS
-    uint32_t permission = mozilla::CheckPermission(this, aPrincipal,
-                                                   "desktop-notification");
-    if (permission != nsIPermissionManager::ALLOW_ACTION) {
-        return true;
+    if (!AssertAppProcessPermission(this, "desktop-notification")) {
+        return false;
     }
-#endif /* MOZ_CHILD_PERMISSIONS */
-
     nsCOMPtr<nsIAlertsService> sysAlerts(do_GetService(NS_ALERTSERVICE_CONTRACTID));
     if (sysAlerts) {
         sysAlerts->ShowAlertNotification(aImageUrl, aTitle, aText, aTextClickable,
-                                         aCookie, this, aName, aBidi, aLang, aPrincipal);
+                                         aCookie, this, aName, aBidi, aLang);
     }
+
     return true;
 }
 
 bool
-ContentParent::RecvCloseAlert(const nsString& aName,
-                              const IPC::Principal& aPrincipal)
+ContentParent::RecvCloseAlert(const nsString& aName)
 {
-#ifdef MOZ_CHILD_PERMISSIONS
-    uint32_t permission = mozilla::CheckPermission(this, aPrincipal,
-                                                   "desktop-notification");
-    if (permission != nsIPermissionManager::ALLOW_ACTION) {
-        return true;
+    if (!AssertAppProcessPermission(this, "desktop-notification")) {
+        return false;
     }
-#endif
-
     nsCOMPtr<nsIAlertsService> sysAlerts(do_GetService(NS_ALERTSERVICE_CONTRACTID));
     if (sysAlerts) {
-        sysAlerts->CloseAlert(aName, aPrincipal);
+        sysAlerts->CloseAlert(aName);
     }
 
     return true;

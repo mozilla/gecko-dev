@@ -10,8 +10,6 @@
 #include "nsDOMEventTargetHelper.h"
 #include "nsIObserver.h"
 
-class nsIPrincipal;
-
 namespace mozilla {
 namespace dom {
 
@@ -117,9 +115,6 @@ protected:
   bool mIsClosed;
 
   static uint32_t sCount;
-
-private:
-  nsIPrincipal* GetPrincipal();
 };
 
 } // namespace dom

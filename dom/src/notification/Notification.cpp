@@ -325,14 +325,6 @@ Notification::Constructor(const GlobalObject& aGlobal,
   return notification.forget();
 }
 
-nsIPrincipal*
-Notification::GetPrincipal()
-{
-  nsCOMPtr<nsIScriptObjectPrincipal> sop = do_QueryInterface(GetOwner());
-  NS_ENSURE_TRUE(sop, nullptr);
-  return sop->GetPrincipal();
-}
-
 nsresult
 Notification::ShowInternal()
 {
@@ -409,8 +401,7 @@ Notification::ShowInternal()
   uniqueCookie.AppendInt(sCount++);
   return alertService->ShowAlertNotification(absoluteUrl, mTitle, mBody, true,
                                              uniqueCookie, observer, alertName,
-                                             DirectionToString(mDir), mLang,
-                                             GetPrincipal());
+                                             DirectionToString(mDir), mLang);
 }
 
 void
@@ -531,7 +522,7 @@ Notification::CloseInternal()
       nsresult rv = GetAlertName(alertName);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      rv = alertService->CloseAlert(alertName, GetPrincipal());
+      rv = alertService->CloseAlert(alertName);
       NS_ENSURE_SUCCESS(rv, rv);
     }
   }
