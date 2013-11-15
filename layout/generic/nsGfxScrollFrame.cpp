@@ -1526,7 +1526,7 @@ nsGfxScrollFrameInner::nsGfxScrollFrameInner(nsContainerFrame* aOuter,
   , mMayHaveDirtyFixedChildren(false)
   , mUpdateScrollbarAttributes(false)
   , mCollapsedResizer(false)
-  , mShouldBuildLayer(false)
+  , mShouldBuildScrollableLayer(false)
   , mHasBeenScrolled(false)
 {
   mScrollingActive = IsAlwaysActive();
@@ -2097,12 +2097,6 @@ nsGfxScrollFrameInner::AppendScrollPartsTo(nsDisplayListBuilder*   aBuilder,
   }
 }
 
-bool
-nsGfxScrollFrameInner::ShouldBuildLayer() const
-{
-  return mShouldBuildLayer;
-}
-
 class ScrollLayerWrapper : public nsDisplayWrapper
 {
 public:
@@ -2309,8 +2303,9 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   // When a displayport is being used, force building of a layer so that
   // CompositorParent can always find the scrollable layer for the root content
   // document.
+  bool shouldBuildLayer = false;
   if (usingDisplayport) {
-    mShouldBuildLayer = true;
+    shouldBuildLayer = true;
   } else {
     nsRect scrollRange = GetScrollRange();
     ScrollbarStyles styles = GetScrollbarStylesFromFrame();
@@ -2320,18 +2315,20 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
        (styles.mVertical   != NS_STYLE_OVERFLOW_HIDDEN && mVScrollbarBox));
     // TODO Turn this on for inprocess OMTC
     bool wantSubAPZC = (XRE_GetProcessType() == GeckoProcessType_Content);
-    mShouldBuildLayer =
+    shouldBuildLayer =
       wantSubAPZC &&
       hasScrollableOverflow &&
       (!mIsRoot || !mOuter->PresContext()->IsRootContentDocument());
   }
 
-  if (ShouldBuildLayer()) {
+  mShouldBuildScrollableLayer = false;
+  if (shouldBuildLayer) {
     // ScrollLayerWrapper must always be created because it initializes the
     // scroll layer count. The display lists depend on this.
     ScrollLayerWrapper wrapper(mOuter, mScrolledFrame);
 
     if (usingDisplayport) {
+      mShouldBuildScrollableLayer = true;
       DisplayListClipState::AutoSaveRestore clipState(aBuilder);
 
       // For root scrollframes in documents where the CSS viewport has been
