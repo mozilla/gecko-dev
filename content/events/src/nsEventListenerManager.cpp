@@ -888,6 +888,7 @@ nsEventListenerManager::CompileEventHandlerInternal(nsListenerStruct *aListenerS
     JS::Rooted<JSObject*> boundHandler(cx);
     JS::Rooted<JSObject*> scope(cx, listener->GetEventScope());
     context->BindCompiledEventHandler(mTarget, scope, handler, &boundHandler);
+    aListenerStruct = nullptr;
     if (!boundHandler) {
       listener->ForgetHandler();
     } else if (listener->EventName() == nsGkAtoms::onerror && win) {
@@ -910,12 +911,12 @@ nsEventListenerManager::CompileEventHandlerInternal(nsListenerStruct *aListenerS
 
 nsresult
 nsEventListenerManager::HandleEventSubType(nsListenerStruct* aListenerStruct,
-                                           const EventListenerHolder& aListener,
                                            nsIDOMEvent* aDOMEvent,
                                            EventTarget* aCurrentTarget,
                                            nsCxPusher* aPusher)
 {
   nsresult result = NS_OK;
+  EventListenerHolder listener(aListenerStruct->mListener);  // strong ref
 
   // If this is a script handler and we haven't yet
   // compiled the event handler itself
@@ -926,18 +927,19 @@ nsEventListenerManager::HandleEventSubType(nsListenerStruct* aListenerStruct,
                                          jslistener->GetEventContext() !=
                                            aPusher->GetCurrentScriptContext(),
                                          nullptr);
+    aListenerStruct = nullptr;
   }
 
   if (NS_SUCCEEDED(result)) {
     nsAutoMicroTask mt;
     // nsIDOMEvent::currentTarget is set in nsEventDispatcher.
-    if (aListener.HasWebIDLCallback()) {
+    if (listener.HasWebIDLCallback()) {
       ErrorResult rv;
-      aListener.GetWebIDLCallback()->
+      listener.GetWebIDLCallback()->
         HandleEvent(aCurrentTarget, *(aDOMEvent->InternalDOMEvent()), rv);
       result = rv.ErrorCode();
     } else {
-      result = aListener.GetXPCOMCallback()->HandleEvent(aDOMEvent);
+      result = listener.GetXPCOMCallback()->HandleEvent(aDOMEvent);
     }
   }
 
@@ -1007,9 +1009,8 @@ nsEventListenerManager::HandleEventInternal(nsPresContext* aPresContext,
             continue;
           }
 
-          EventListenerHolder kungFuDeathGrip(ls->mListener);
-          if (NS_FAILED(HandleEventSubType(ls, ls->mListener, *aDOMEvent,
-                                           aCurrentTarget, aPusher))) {
+          if (NS_FAILED(HandleEventSubType(ls, *aDOMEvent, aCurrentTarget,
+                                           aPusher))) {
             aEvent->mFlags.mExceptionHasBeenRisen = true;
           }
         }
