@@ -1393,10 +1393,12 @@ nsFocusManager::IsNonFocusableRoot(nsIContent* aContent)
   //       focusable.
   // Also, if aContent is not editable but it isn't in designMode, it's not
   // focusable.
+  // And in userfocusignored context nothing is focusable.
   nsIDocument* doc = aContent->GetCurrentDoc();
   NS_ASSERTION(doc, "aContent must have current document");
   return aContent == doc->GetRootElement() &&
-           (doc->HasFlag(NODE_IS_EDITABLE) || !aContent->IsEditable());
+           (doc->HasFlag(NODE_IS_EDITABLE) || !aContent->IsEditable() ||
+            nsContentUtils::IsUserFocusIgnored(aContent));
 }
 
 nsIContent*
@@ -1425,9 +1427,10 @@ nsFocusManager::CheckIfFocusable(nsIContent* aContent, uint32_t aFlags)
   if (!shell)
     return nullptr;
 
-  // the root content can always be focused
+  // the root content can always be focused,
+  // except in userfocusignored context.
   if (aContent == doc->GetRootElement())
-    return aContent;
+    return nsContentUtils::IsUserFocusIgnored(aContent) ? nullptr : aContent;
 
   // cannot focus content in print preview mode. Only the root can be focused.
   nsPresContext* presContext = shell->GetPresContext();
@@ -1878,10 +1881,18 @@ nsFocusManager::SendFocusOrBlurEvent(uint32_t aType,
 
   nsCOMPtr<EventTarget> eventTarget = do_QueryInterface(aTarget);
 
+  nsCOMPtr<nsINode> n = do_QueryInterface(aTarget);
+  if (!n) {
+    nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(aTarget);
+    n = win ? win->GetExtantDoc() : nullptr;
+  }
+  bool dontDispatchEvent = n && nsContentUtils::IsUserFocusIgnored(n);
+
   // for focus events, if this event was from a mouse or key and event
   // handling on the document is suppressed, queue the event and fire it
   // later. For blur events, a non-zero value would be set for aFocusMethod.
-  if (aFocusMethod && aDocument && aDocument->EventHandlingSuppressed()) {
+  if (aFocusMethod && !dontDispatchEvent &&
+      aDocument && aDocument->EventHandlingSuppressed()) {
     // aFlags is always 0 when aWindowRaised is true so this won't be called
     // on a window raise.
     NS_ASSERTION(!aWindowRaised, "aWindowRaised should not be set");
@@ -1911,9 +1922,11 @@ nsFocusManager::SendFocusOrBlurEvent(uint32_t aType,
   }
 #endif
 
-  nsContentUtils::AddScriptRunner(
-    new FocusBlurEvent(aTarget, aType, aPresShell->GetPresContext(),
-                       aWindowRaised, aIsRefocus));
+  if (!dontDispatchEvent) {
+    nsContentUtils::AddScriptRunner(
+      new FocusBlurEvent(aTarget, aType, aPresShell->GetPresContext(),
+                         aWindowRaised, aIsRefocus));
+  }
 }
 
 void

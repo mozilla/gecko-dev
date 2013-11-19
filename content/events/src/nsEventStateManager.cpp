@@ -3002,6 +3002,10 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
           }
         }
 
+        if (!suppressBlur) {
+          suppressBlur = nsContentUtils::IsUserFocusIgnored(activeContent);
+        }
+
         nsIFrame* currFrame = mCurrentTarget;
 
         // When a root content which isn't editable but has an editable HTML
