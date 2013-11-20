@@ -330,7 +330,6 @@ MOCHITEST_BROWSER_FILES = \
                  pluginCrashCommentAndURL.html \
                  browser_private_no_prompt.js \
                  browser_blob-channelname.js \
-                 browser_aboutHealthReport.js \
                  healthreport_testRemoteCommands.html \
                  browser_offlineQuotaNotification.js \
                  offlineQuotaNotification.html \
@@ -361,9 +360,11 @@ MOCHITEST_BROWSER_FILES += \
   $(NULL)
 endif
 
+# browser_aboutHealthReport.js disabled for frequent failures on Linux (bug 924307)
 # browser_CTP_context_menu.js fails intermittently on Linux (bug 909342)
 ifndef MOZ_WIDGET_GTK
 MOCHITEST_BROWSER_FILES += \
+  browser_aboutHealthReport.js \
   browser_CTP_context_menu.js \
   $(NULL)
 endif
