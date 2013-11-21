@@ -32,15 +32,19 @@ function debug(aMsg) {
   //dump("-*-*- OperatorApps.jsm : " + aMsg + "\n");
 }
 
-const DIRECTORY_NAME = "webappsDir";
-
-// The files will be stored on DIRECTORY_NAME + "/" + SINGLE_VARIANT_SOURCE_DIR
-// SINGLE_VARIANT_CONF_FILE will be stored on SINGLE_VARIANT_SOURCE_DIR
-// Apps will be stored on a app per directory basis, hanging from
+// Single Variant source dir will be set in PREF_SINGLE_VARIANT_DIR
+// preference.
+// if PREF_SINGLE_VARIANT_DIR does not exist or has not value, it will use (as
+// single variant source) the value of
+// DIRECTORY_NAME + "/" + SINGLE_VARIANT_SOURCE_DIR value instead.
+// SINGLE_VARIANT_CONF_FILE will be stored on Single Variant Source.
+// Apps will be stored on an app per directory basis, hanging from
 // SINGLE_VARIANT_SOURCE_DIR
+const DIRECTORY_NAME = "webappsDir";
 const SINGLE_VARIANT_SOURCE_DIR = "svoperapps";
 const SINGLE_VARIANT_CONF_FILE  = "singlevariantconf.json";
 const PREF_FIRST_RUN_WITH_SIM   = "dom.webapps.firstRunWithSIM";
+const PREF_SINGLE_VARIANT_DIR   = "dom.mozApps.single_variant_sourcedir";
 const METADATA                  = "metadata.json";
 const UPDATEMANIFEST            = "update.webapp";
 const MANIFEST                  = "manifest.webapp";
@@ -58,6 +62,9 @@ function isFirstRunWithSIM() {
 }
 
 #ifdef MOZ_B2G_RIL
+let File = OS.File;
+let Path = OS.Path;
+
 let iccListener = {
   notifyStkCommand: function() {},
 
@@ -88,23 +95,112 @@ this.OperatorAppsRegistry = {
 #ifdef MOZ_B2G_RIL
     if (isFirstRunWithSIM()) {
       debug("First Run with SIM");
-      let mcc = 0;
-      let mnc = 0;
-      if (mobileConnection.iccInfo && mobileConnection.iccInfo.mcc) {
-        mcc = mobileConnection.iccInfo.mcc;
-      }
-      if (mobileConnection.iccInfo && mobileConnection.iccInfo.mnc) {
-        mnc = mobileConnection.iccInfo.mnc;
-      }
-      if (mcc && mnc) {
-        this._installOperatorApps(mcc, mnc);
-      } else {
-        iccProvider.registerIccMsg(iccListener);
-      }
+      Task.spawn(function() {
+        try {
+          yield this._initializeSourceDir();
+          let mcc = 0;
+          let mnc = 0;
+          if (mobileConnection.iccInfo && mobileConnection.iccInfo.mcc) {
+            mcc = mobileConnection.iccInfo.mcc;
+          }
+          if (mobileConnection.iccInfo && mobileConnection.iccInfo.mnc) {
+            mnc = mobileConnection.iccInfo.mnc;
+          }
+          if (mcc && mnc) {
+            this._installOperatorApps(mcc, mnc);
+          } else {
+            iccProvider.registerIccMsg(iccListener);
+          }
+        } catch (e) {
+          debug("Error Initializing OperatorApps. " + e);
+        }
+      }.bind(this));
     } else {
       debug("No First Run with SIM");
     }
 #endif
+  },
+
+  _copyDirectory: function(aOrg, aDst) {
+    debug("copying " + aOrg + " to " + aDst);
+    return aDst && Task.spawn(function() {
+      try {
+        let orgInfo = yield File.stat(aOrg);
+        if (!orgInfo.isDir) {
+          return;
+        }
+
+        let dirDstExists = yield File.exists(aDst);
+        if (!dirDstExists) {
+          yield File.makeDir(aDst);
+        }
+        let iterator = new File.DirectoryIterator(aOrg);
+        if (!iterator) {
+          debug("No iterator over " + aOrg);
+          return;
+        }
+        try {
+          while (true) {
+            let entry;
+            try {
+              entry = yield iterator.next();
+            } catch (ex if ex == StopIteration) {
+              break;
+            }
+
+            if (!entry.isDir) {
+              yield File.copy(entry.path, Path.join(aDst, entry.name));
+            } else {
+              yield this._copyDirectory(entry.path,
+                                        Path.join(aDst, entry.name));
+            }
+          }
+        } finally {
+          iterator.close();
+        }
+      } catch (e) {
+        debug("Error copying " + aOrg + " to " + aDst + ". " + e);
+      }
+    }.bind(this));
+  },
+
+  _initializeSourceDir: function() {
+    return Task.spawn(function() {
+      let svFinalDirName;
+      try {
+        svFinalDirName = Services.prefs.getCharPref(PREF_SINGLE_VARIANT_DIR);
+      } catch(e) {
+        debug ("Error getting pref. " + e);
+        this.appsDir = FileUtils.getFile(DIRECTORY_NAME,
+                                        [SINGLE_VARIANT_SOURCE_DIR]).path;
+        return;
+      }
+      // If SINGLE_VARIANT_CONF_FILE is in PREF_SINGLE_VARIANT_DIR return
+      // PREF_SINGLE_VARIANT_DIR as sourceDir, else go to
+      // DIRECTORY_NAME + SINGLE_VARIANT_SOURCE_DIR and move all apps (and
+      // configuration file) to PREF_SINGLE_VARIANT_DIR and return
+      // PREF_SINGLE_VARIANT_DIR as sourceDir.
+      let existsDir = yield File.exists(svFinalDirName);
+      if (!existsDir) {
+        yield File.makeDir(svFinalDirName, {ignoreExisting: true});
+      }
+
+      let existsSvIndex = yield File.exists(Path.join(svFinalDirName,
+                                            SINGLE_VARIANT_CONF_FILE));
+      if (!existsSvIndex) {
+        let svSourceDir = FileUtils.getFile(DIRECTORY_NAME,
+                                            [SINGLE_VARIANT_SOURCE_DIR]);
+        let svSourceDirName = svSourceDir.path;
+        yield this._copyDirectory(svSourceDirName, svFinalDirName);
+        debug("removing directory:" + svSourceDirName);
+        try{
+          svSourceDir.remove(true);
+        } catch(e) {
+          debug("Error removing [" + svSourceDirName + "]." + e);
+        }
+      }
+      this.appsDir = svFinalDirName;
+    }.bind(this));
   },
 
   set appsDir(aDir) {
@@ -119,10 +215,6 @@ this.OperatorAppsRegistry = {
   },
 
   get appsDir() {
-    if (!this._baseDirectory) {
-      this._baseDirectory = FileUtils.getFile(DIRECTORY_NAME,
-                                              [SINGLE_VARIANT_SOURCE_DIR]);
-    }
     return this._baseDirectory;
   },
 
