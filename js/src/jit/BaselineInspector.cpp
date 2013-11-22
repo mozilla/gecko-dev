@@ -286,8 +286,19 @@ TryToSpecializeBinaryArithOp(ICStub **stubs,
 MIRType
 BaselineInspector::expectedBinaryArithSpecialization(jsbytecode *pc)
 {
+    if (!hasBaselineScript())
+        return MIRType_None;
+
     MIRType result;
     ICStub *stubs[2];
+
+    const ICEntry &entry = icEntryFromPC(pc);
+    ICStub *stub = entry.fallbackStub();
+    if (stub->isBinaryArith_Fallback() &&
+        stub->toBinaryArith_Fallback()->hadUnoptimizableOperands())
+    {
+        return MIRType_None;
+    }
 
     stubs[0] = monomorphicStub(pc);
     if (stubs[0]) {
