@@ -708,6 +708,7 @@ JSRuntime::JSRuntime(JSUseHelperThreads useHelperThreads)
     interpreterFrames(NULL),
     cxCallback(NULL),
     destroyCompartmentCallback(NULL),
+    destroyZoneCallback(NULL),
     compartmentNameCallback(NULL),
     activityCallback(NULL),
     activityCallbackArg(NULL),
@@ -1389,6 +1390,12 @@ JS_PUBLIC_API(void)
 JS_SetDestroyCompartmentCallback(JSRuntime *rt, JSDestroyCompartmentCallback callback)
 {
     rt->destroyCompartmentCallback = callback;
+}
+
+JS_PUBLIC_API(void)
+JS_SetDestroyZoneCallback(JSRuntime *rt, JSZoneCallback callback)
+{
+    rt->destroyZoneCallback = callback;
 }
 
 JS_PUBLIC_API(void)
