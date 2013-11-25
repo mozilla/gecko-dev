@@ -829,8 +829,6 @@ XPCJSRuntime::FinalizeCallback(JSFreeOp *fop, JSFinalizeStatus status, JSBool is
             // Find dying scopes.
             XPCWrappedNativeScope::StartFinalizationPhaseOfGC(fop, self);
 
-            XPCStringConvert::ClearCache();
-
             self->mDoingFinalization = true;
             break;
         }
@@ -2717,6 +2715,8 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
 #endif
     JS_SetContextCallback(runtime, ContextCallback);
     JS_SetDestroyCompartmentCallback(runtime, CompartmentDestroyedCallback);
+    JS_SetDestroyZoneCallback(runtime, XPCStringConvert::FreeZoneCache);
+    JS_SetSweepZoneCallback(runtime, XPCStringConvert::ClearZoneCache);
     JS_SetCompartmentNameCallback(runtime, CompartmentNameCallback);
     JS_SetGCCallback(runtime, GCCallback);
     mPrevGCSliceCallback = JS::SetGCSliceCallback(runtime, GCSliceCallback);
