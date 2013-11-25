@@ -709,6 +709,7 @@ JSRuntime::JSRuntime(JSUseHelperThreads useHelperThreads)
     cxCallback(NULL),
     destroyCompartmentCallback(NULL),
     destroyZoneCallback(NULL),
+    sweepZoneCallback(NULL),
     compartmentNameCallback(NULL),
     activityCallback(NULL),
     activityCallbackArg(NULL),
@@ -1396,6 +1397,12 @@ JS_PUBLIC_API(void)
 JS_SetDestroyZoneCallback(JSRuntime *rt, JSZoneCallback callback)
 {
     rt->destroyZoneCallback = callback;
+}
+
+JS_PUBLIC_API(void)
+JS_SetSweepZoneCallback(JSRuntime *rt, JSZoneCallback callback)
+{
+    rt->sweepZoneCallback = callback;
 }
 
 JS_PUBLIC_API(void)

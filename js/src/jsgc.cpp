@@ -3614,6 +3614,9 @@ BeginSweepingZoneGroup(JSRuntime *rt)
 
         if (zone == rt->atomsCompartment->zone())
             sweepingAtoms = true;
+
+        if (rt->sweepZoneCallback)
+            rt->sweepZoneCallback(zone);
     }
 
     ValidateIncrementalMarking(rt);
