@@ -8,6 +8,7 @@
 #define js_GCAPI_h
 
 #include "HeapAPI.h"
+#include "jsfriendapi.h"
 
 namespace JS {
 
@@ -287,6 +288,31 @@ ExposeValueToActiveJS(const Value &v)
 {
     if (v.isMarkable())
         ExposeGCThingToActiveJS(v.toGCThing(), v.gcKind());
+}
+
+/*
+ * If a GC is currently marking, mark the object black.
+ */
+static JS_ALWAYS_INLINE void
+MarkGCThingAsLive(JSRuntime *rt_, void *thing, JSGCTraceKind kind)
+{
+    shadow::Runtime *rt = reinterpret_cast<JS::shadow::Runtime*>(rt_);
+
+#ifdef JSGC_GENERATIONAL
+    /*
+     * Any object in the nursery will not be freed during any GC running at that time.
+     */
+    if (js::gc::IsInsideNursery(rt, thing))
+        return;
+#endif
+    if (IsIncrementalBarrierNeededOnGCThing(rt, thing, kind))
+        IncrementalReferenceBarrier(thing, kind);
+}
+
+static JS_ALWAYS_INLINE void
+MarkStringAsLive(JSContext *cx, JSString *string)
+{
+    MarkGCThingAsLive(js::GetRuntime(cx), string, JSTRACE_STRING);
 }
 
 } /* namespace JS */
