@@ -2686,6 +2686,8 @@ AddGeolocationListener(nsIDOMGeoPositionCallback* watcher, bool highAccuracy)
   }
 
   PositionOptions* options = new PositionOptions();
+  options->mTimeout = 0;
+  options->mMaximumAge = 0;
   options->mEnableHighAccuracy = highAccuracy;
   int32_t retval = 1;
   geo->WatchPosition(watcher, nullptr, options, &retval);
