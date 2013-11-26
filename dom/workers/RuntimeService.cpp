@@ -829,6 +829,9 @@ CreateJSContextForWorker(WorkerPrivate* aWorkerPrivate)
   JS_SetGCZeal(workerCx, settings.gcZeal, settings.gcZealFrequency);
 #endif
 
+  JS_SetDestroyZoneCallback(runtime, XPCStringConvert::FreeZoneCache);
+  JS_SetSweepZoneCallback(runtime, XPCStringConvert::ClearZoneCache);
+
   return workerCx;
 }
 
