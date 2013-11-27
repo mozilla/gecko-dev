@@ -174,6 +174,7 @@ static nsRefPtr<RawDBusConnection> gThreadConnection;
 static nsDataHashtable<nsStringHashKey, DBusMessage* >* sPairingReqTable;
 static nsTArray<uint32_t> sAuthorizedServiceClass;
 static nsString sAdapterPath;
+static bool sAdapterNameIsReady = false;
 static Atomic<int32_t> sIsPairing(0);
 static int sConnectedDeviceCount = 0;
 static StaticAutoPtr<Monitor> sStopBluetoothMonitor;
@@ -609,6 +610,7 @@ GetProperty(DBusMessageIter aIter, Properties* aPropertyTypes,
   propertyName.AssignASCII(aPropertyTypes[i].name);
   *aPropIndex = i;
 
+  // Preprocessing
   dbus_message_iter_recurse(&aIter, &prop_val);
   expectedType = aPropertyTypes[*aPropIndex].type;
   receivedType = dbus_message_iter_get_arg_type(&prop_val);
@@ -631,6 +633,7 @@ GetProperty(DBusMessageIter aIter, Properties* aPropertyTypes,
     return false;
   }
 
+  // Extract data
   BluetoothValue propertyValue;
   switch (receivedType) {
     case DBUS_TYPE_STRING:
@@ -682,11 +685,26 @@ GetProperty(DBusMessageIter aIter, Properties* aPropertyTypes,
       NS_NOTREACHED("Cannot find dbus message type!");
   }
 
+  // Postprocessing
   if (convert) {
     MOZ_ASSERT(propertyValue.type() == BluetoothValue::TArrayOfuint8_t);
 
     bool b = propertyValue.get_ArrayOfuint8_t()[0];
     propertyValue = BluetoothValue(b);
+  } else if (!sAdapterNameIsReady &&
+             aPropertyTypes == sAdapterProperties &&
+             propertyName.EqualsLiteral("Name")) {
+    MOZ_ASSERT(propertyValue.type() == BluetoothValue::TnsString);
+
+    // Notify BluetoothManager whenever adapter name is ready.
+    if (!propertyValue.get_nsString().IsEmpty()) {
+      sAdapterNameIsReady = true;
+      BluetoothSignal signal(NS_LITERAL_STRING("AdapterAdded"),
+                             NS_LITERAL_STRING(KEY_MANAGER), sAdapterPath);
+      nsRefPtr<DistributeBluetoothSignalTask> task =
+        new DistributeBluetoothSignalTask(signal);
+      NS_DispatchToMainThread(task);
+    }
   }
 
   aProperties.AppendElement(BluetoothNamedValue(propertyName, propertyValue));
@@ -1520,6 +1538,13 @@ EventFilter(DBusConnection* aConn, DBusMessage* aMsg, void* aData)
     } else {
       v = NS_ConvertUTF8toUTF16(str);
       NS_DispatchToMainThread(new PrepareAdapterRunnable(v.get_nsString()));
+
+      /**
+       * The adapter name isn't ready for the time being. Wait for the upcoming
+       * signal PropertyChanged of adapter name, and then propagate signal
+       * AdapterAdded to BluetoothManager.
+       */
+      return DBUS_HANDLER_RESULT_HANDLED;
     }
   } else if (dbus_message_is_signal(aMsg, DBUS_MANAGER_IFACE,
                                     "PropertyChanged")) {
@@ -1748,6 +1773,8 @@ BluetoothDBusService::StopInternal()
 
   sAuthorizedServiceClass.Clear();
   sControllerArray.Clear();
+
+  sAdapterNameIsReady = false;
 
   StopDBus();
   return NS_OK;
