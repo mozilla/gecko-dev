@@ -3,6 +3,8 @@
 
 MARIONETTE_TIMEOUT = 60000;
 
+const EMULATOR_ICCID = "89014103211118510720";
+
 SpecialPowers.addPermission("mobileconnection", true, document);
 
 let icc = navigator.mozIccManager;
@@ -17,19 +19,19 @@ function testReadContacts(type) {
 
     is(contacts[0].name, "Mozilla");
     is(contacts[0].tel[0].value, "15555218201");
-    is(contacts[0].id, "890141032111185107201");
+    is(contacts[0].id, EMULATOR_ICCID + "1");
 
     is(contacts[1].name, "Saßê黃");
     is(contacts[1].tel[0].value, "15555218202");
-    is(contacts[1].id, "890141032111185107202");
+    is(contacts[1].id, EMULATOR_ICCID + "2");
 
     is(contacts[2].name, "Fire 火");
     is(contacts[2].tel[0].value, "15555218203");
-    is(contacts[2].id, "890141032111185107203");
+    is(contacts[2].id, EMULATOR_ICCID + "3");
 
     is(contacts[3].name, "Huang 黃");
     is(contacts[3].tel[0].value, "15555218204");
-    is(contacts[3].id, "890141032111185107204");
+    is(contacts[3].id, EMULATOR_ICCID + "4");
 
     runNextTest();
   };
@@ -52,6 +54,14 @@ function testAddContact(type, pin2) {
   let updateRequest = icc.updateContact(type, contact, pin2);
 
   updateRequest.onsuccess = function onsuccess() {
+    let updatedContact = updateRequest.result;
+    ok(updatedContact, "updateContact should have retuend a mozContact.");
+    ok(updatedContact.id.startsWith(EMULATOR_ICCID),
+       "The returned mozContact has wrong id.");
+    let recordIndex = parseInt(updatedContact.id.substring(EMULATOR_ICCID.length));
+    ok(!isNaN(recordIndex), "Should be a number " + recordIndex);
+    ok(0 < recordIndex && recordIndex < 0xff, "is not a valid record");
+
     // Get ICC contact for checking new contact
 
     let getRequest = icc.readContacts(type);
