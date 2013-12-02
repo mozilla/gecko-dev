@@ -24,8 +24,6 @@
 #include "vm/ForkJoin.h"
 #include "ParallelArrayAnalysis.h"
 
-#include "jsscriptinlines.h"
-
 #include "vm/Interpreter-inl.h"
 #include "vm/StringObject-inl.h"
 

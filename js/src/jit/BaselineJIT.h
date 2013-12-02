@@ -254,8 +254,6 @@ struct BaselineScript
     static size_t offsetOfFlags() {
         return offsetof(BaselineScript, flags_);
     }
-
-    static void writeBarrierPre(Zone *zone, BaselineScript *script);
 };
 
 inline bool
