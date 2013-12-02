@@ -685,7 +685,7 @@ class JSScript : public js::gc::Cell
     js::jit::IonScript *const *addressOfIonScript() const {
         return &ion;
     }
-    inline void setIonScript(js::ion::IonScript *ionScript);
+    inline void setIonScript(js::jit::IonScript *ionScript);
 
     bool hasBaselineScript() const {
         return baseline && baseline != BASELINE_DISABLED_SCRIPT;
@@ -697,7 +697,7 @@ class JSScript : public js::gc::Cell
         JS_ASSERT(hasBaselineScript());
         return baseline;
     }
-    inline void setBaselineScript(js::ion::BaselineScript *baselineScript);
+    inline void setBaselineScript(js::jit::BaselineScript *baselineScript);
 
     void updateBaselineOrIonRaw();
 
@@ -720,7 +720,7 @@ class JSScript : public js::gc::Cell
     js::jit::IonScript *maybeParallelIonScript() const {
         return parallelIon;
     }
-    inline void setParallelIonScript(js::ion::IonScript *ionScript);
+    inline void setParallelIonScript(js::jit::IonScript *ionScript);
 
     static size_t offsetOfBaselineScript() {
         return offsetof(JSScript, baseline);
