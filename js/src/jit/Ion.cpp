@@ -44,6 +44,7 @@
 #include "jscompartmentinlines.h"
 #include "jsgcinlines.h"
 #include "jsinferinlines.h"
+#include "jsscriptinlines.h"
 
 #include "gc/Barrier-inl.h"
 #include "vm/Stack-inl.h"
@@ -686,6 +687,15 @@ IonScript::trace(JSTracer *trc)
     // at compilation time and is read only.
     for (size_t i = 0; i < callTargetEntries(); i++)
         gc::MarkScriptUnbarriered(trc, &callTargetList()[i], "callTarget");
+}
+
+/* static */ void
+IonScript::writeBarrierPre(Zone *zone, IonScript *ionScript)
+{
+#ifdef JSGC_INCREMENTAL
+    if (zone->needsBarrier())
+        ionScript->trace(zone->barrierTracer());
+#endif
 }
 
 void
@@ -2165,18 +2175,9 @@ jit::Invalidate(types::TypeCompartment &types, FreeOp *fop,
         JSScript *script = co.script;
         IonScript *ionScript = GetIonScript(script, executionMode);
 
-        Zone *zone = script->zone();
-        if (zone->needsBarrier()) {
-            // We're about to remove edges from the JSScript to gcthings
-            // embedded in the IonScript. Perform one final trace of the
-            // IonScript for the incremental GC, as it must know about
-            // those edges.
-            IonScript::Trace(zone->barrierTracer(), ionScript);
-        }
-
+        SetIonScript(script, executionMode, NULL);
         ionScript->detachDependentAsmJSModules(fop);
         ionScript->decref(fop);
-        SetIonScript(script, executionMode, NULL);
         co.invalidate();
 
         // Wait for the scripts to get warm again before doing another
@@ -2234,6 +2235,13 @@ jit::Invalidate(JSContext *cx, JSScript *script, bool resetUses)
 static void
 FinishInvalidationOf(FreeOp *fop, JSScript *script, IonScript *ionScript, bool parallel)
 {
+    // In all cases, NULL out script->ion or script->parallelIon to avoid
+    // re-entry.
+    if (parallel)
+        script->setParallelIonScript(NULL);
+    else
+        script->setIonScript(NULL);
+
     // If this script has Ion code on the stack, invalidation() will return
     // true. In this case we have to wait until destroying it.
     if (!ionScript->invalidated()) {
@@ -2242,13 +2250,6 @@ FinishInvalidationOf(FreeOp *fop, JSScript *script, IonScript *ionScript, bool p
 
         jit::IonScript::Destroy(fop, ionScript);
     }
-
-    // In all cases, NULL out script->ion or script->parallelIon to avoid
-    // re-entry.
-    if (parallel)
-        script->setParallelIonScript(NULL);
-    else
-        script->setIonScript(NULL);
 }
 
 void
