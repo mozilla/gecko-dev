@@ -77,6 +77,7 @@ MOCHITEST_FILES := \
   test_ByteString.html \
   test_exception_messages.html \
   test_defineProperty.html \
+  test_barewordGetsWindow.html \
   $(NULL)
 
 MOCHITEST_CHROME_FILES = \
