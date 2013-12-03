@@ -811,3 +811,6 @@ pref("gfx.gralloc.fence-with-readpixels", true);
 
 // Cell Broadcast API
 pref("ril.cellbroadcast.disabled", false);
+
+// Inactivity time in milliseconds after which we shut down the OS.File worker.
+pref("osfile.reset_worker_delay", 5000);
