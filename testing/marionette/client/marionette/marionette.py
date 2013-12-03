@@ -160,6 +160,11 @@ class HTMLElement(object):
         return self.marionette._send_message('getElementValueOfCssProperty', 'value',
                                              id=self.id,
                                              propertyName=property_name)
+    def submit(self):
+        '''
+        Submits if the element is a form or is within a form
+        '''
+        return self.marionette._send_message('submitElement', 'ok', id=self.id)
 
 class Actions(object):
     '''
@@ -527,7 +532,7 @@ class Marionette(object):
             # flagging the error.
             sys.exit()
 
-    def wait_for_port(self, timeout=30):
+    def wait_for_port(self, timeout=60):
         starttime = datetime.datetime.now()
         while datetime.datetime.now() - starttime < datetime.timedelta(seconds=timeout):
             try:
