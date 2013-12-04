@@ -22,19 +22,18 @@ ValueNumberer::ValueNumberer(MIRGraph &graph, bool optimistic)
 uint32
 ValueNumberer::lookupValue(MDefinition *ins)
 {
-
     ValueMap::AddPtr p = values.lookupForAdd(ins);
-
     if (p) {
         // make sure this is in the correct group
         setClass(ins, p->key);
-    } else {
-        if (!values.add(p, ins, ins->id()))
-            return 0;
-        breakClass(ins);
+        return p->value;
     }
 
-    return p->value;
+    if (!values.add(p, ins, ins->id()))
+        return 0;
+    breakClass(ins);
+
+    return ins->id();
 }
 
 MDefinition *
