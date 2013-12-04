@@ -1315,6 +1315,12 @@ HTMLMediaElement::SetCurrentTime(double aCurrentTime, ErrorResult& aRv)
     return;
   }
 
+  if (!mPlayed) {
+    LOG(PR_LOG_DEBUG, ("HTMLMediaElement::mPlayed not available."));
+    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+    return;
+  }
+
   if (mCurrentPlayRangeStart != -1.0) {
     double rangeEndTime = CurrentTime();
     LOG(PR_LOG_DEBUG, ("%p Adding \'played\' a range : [%f, %f]", this, mCurrentPlayRangeStart, rangeEndTime));
@@ -1431,7 +1437,9 @@ HTMLMediaElement::Played()
   nsRefPtr<TimeRanges> ranges = new TimeRanges();
 
   uint32_t timeRangeCount = 0;
-  mPlayed->GetLength(&timeRangeCount);
+  if (mPlayed) {
+    mPlayed->GetLength(&timeRangeCount);
+  }
   for (uint32_t i = 0; i < timeRangeCount; i++) {
     double begin;
     double end;
