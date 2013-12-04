@@ -737,7 +737,7 @@ BluetoothOppManager::ComposePacket(uint8_t aOpCode, UnixSocketRawData* aMessage)
   // Check length before memcpy to prevent from memory pollution
   if (dataLength < 0 ||
       mPacketReceivedLength + dataLength > mPacketLength) {
-    BT_LOGR("%s: Received packet size is unreasonable", __FUNCTION__);
+    BT_LOG("%s: Received packet size is unreasonable", __FUNCTION__);
 
     ReplyToPut(mPutFinalFlag, false);
     DeleteReceivedFile();
