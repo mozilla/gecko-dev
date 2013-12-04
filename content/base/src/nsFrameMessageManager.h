@@ -17,11 +17,13 @@
 #include "nsIPrincipal.h"
 #include "nsIXPConnect.h"
 #include "nsDataHashtable.h"
+#include "nsClassHashtable.h"
 #include "mozilla/Services.h"
 #include "nsIObserverService.h"
 #include "nsThreadUtils.h"
 #include "nsWeakPtr.h"
 #include "mozilla/Attributes.h"
+#include "nsTObserverArray.h"
 
 namespace mozilla {
 namespace dom {
@@ -89,10 +91,13 @@ struct JSObject;
 
 struct nsMessageListenerInfo
 {
+  bool operator==(const nsMessageListenerInfo& aOther) const
+  {
+    return &aOther == this;
+  }
   // Exactly one of mStrongListener and mWeakListener must be non-null.
   nsCOMPtr<nsIMessageListener> mStrongListener;
   nsWeakPtr mWeakListener;
-  nsCOMPtr<nsIAtom> mMessage;
 };
 
 
@@ -133,6 +138,7 @@ public:
     if (mOwnsCallback) {
       mOwnedCallback = aCallback;
     }
+    mListeners.Init();
   }
 
   ~nsFrameMessageManager()
@@ -220,7 +226,10 @@ public:
   }
 protected:
   friend class MMListenerRemover;
-  nsTArray<nsMessageListenerInfo> mListeners;
+  // We keep the message listeners as arrays in a hastable indexed by the
+  // message name. That gives us fast lookups in ReceiveMessage().
+  nsClassHashtable<nsStringHashKey,
+                   nsAutoTObserverArray<nsMessageListenerInfo, 1>> mListeners;
   nsCOMArray<nsIContentFrameMessageManager> mChildManagers;
   bool mChrome;     // true if we're in the chrome process
   bool mGlobal;     // true if we're the global frame message manager

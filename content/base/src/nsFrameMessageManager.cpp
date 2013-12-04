@@ -43,6 +43,20 @@ using namespace mozilla;
 using namespace mozilla::dom;
 using namespace mozilla::dom::ipc;
 
+static PLDHashOperator
+CycleCollectorTraverseListeners(const nsAString& aKey,
+                                nsAutoTObserverArray<nsMessageListenerInfo, 1>* aListeners,
+                                void* aCb)
+{
+  nsCycleCollectionTraversalCallback* cb =
+    static_cast<nsCycleCollectionTraversalCallback*> (aCb);
+  uint32_t count = aListeners->Length();
+  for (uint32_t i = 0; i < count; ++i) {
+    NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(*cb, "listeners[i] mStrongListener");
+    cb->NoteXPCOMChild(aListeners->ElementAt(i).mStrongListener.get());
+  }
+  return PL_DHASH_NEXT;
+}
 
 static bool
 IsChromeProcess()
@@ -59,11 +73,8 @@ IsChromeProcess()
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsFrameMessageManager)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsFrameMessageManager)
-  uint32_t count = tmp->mListeners.Length();
-  for (uint32_t i = 0; i < count; i++) {
-    NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mListeners[i] mStrongListener");
-    cb.NoteXPCOMChild(tmp->mListeners[i].mStrongListener.get());
-  }
+  tmp->mListeners.EnumerateRead(CycleCollectorTraverseListeners,
+                                static_cast<void*>(&cb));
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMARRAY(mChildManagers)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
@@ -126,17 +137,22 @@ NS_IMETHODIMP
 nsFrameMessageManager::AddMessageListener(const nsAString& aMessage,
                                           nsIMessageListener* aListener)
 {
-  nsCOMPtr<nsIAtom> message = do_GetAtom(aMessage);
-  uint32_t len = mListeners.Length();
-  for (uint32_t i = 0; i < len; ++i) {
-    if (mListeners[i].mMessage == message &&
-      mListeners[i].mStrongListener == aListener) {
-      return NS_OK;
+  nsAutoTObserverArray<nsMessageListenerInfo, 1>* listeners =
+    mListeners.Get(aMessage);
+  if (!listeners) {
+    listeners = new nsAutoTObserverArray<nsMessageListenerInfo, 1>();
+    mListeners.Put(aMessage, listeners);
+  } else {
+    uint32_t len = listeners->Length();
+    for (uint32_t i = 0; i < len; ++i) {
+      if (listeners->ElementAt(i).mStrongListener == aListener) {
+        return NS_OK;
+      }
     }
   }
-  nsMessageListenerInfo* entry = mListeners.AppendElement();
+
+  nsMessageListenerInfo* entry = listeners->AppendElement();
   NS_ENSURE_TRUE(entry, NS_ERROR_OUT_OF_MEMORY);
-  entry->mMessage = message;
   entry->mStrongListener = aListener;
   return NS_OK;
 }
@@ -145,17 +161,50 @@ NS_IMETHODIMP
 nsFrameMessageManager::RemoveMessageListener(const nsAString& aMessage,
                                              nsIMessageListener* aListener)
 {
-  nsCOMPtr<nsIAtom> message = do_GetAtom(aMessage);
-  uint32_t len = mListeners.Length();
+  nsAutoTObserverArray<nsMessageListenerInfo, 1>* listeners =
+    mListeners.Get(aMessage);
+  if (!listeners) {
+    return NS_OK;
+  }
+
+  uint32_t len = listeners->Length();
   for (uint32_t i = 0; i < len; ++i) {
-    if (mListeners[i].mMessage == message &&
-      mListeners[i].mStrongListener == aListener) {
-      mListeners.RemoveElementAt(i);
+    if (listeners->ElementAt(i).mStrongListener == aListener) {
+      listeners->RemoveElementAt(i);
       return NS_OK;
     }
   }
   return NS_OK;
 }
+
+#ifdef DEBUG
+typedef struct
+{
+  nsCOMPtr<nsISupports> mCanonical;
+  nsWeakPtr mWeak;
+} CanonicalCheckerParams;
+
+static PLDHashOperator
+CanonicalChecker(const nsAString& aKey,
+                 nsAutoTObserverArray<nsMessageListenerInfo, 1>* aListeners,
+                 void* aParams)
+{
+  CanonicalCheckerParams* params =
+    static_cast<CanonicalCheckerParams*> (aParams);
+
+  uint32_t count = aListeners->Length();
+  for (uint32_t i = 0; i < count; i++) {
+    if (!aListeners->ElementAt(i).mWeakListener) {
+      continue;
+    }
+    nsCOMPtr<nsISupports> otherCanonical =
+      do_QueryReferent(aListeners->ElementAt(i).mWeakListener);
+    MOZ_ASSERT((params->mCanonical == otherCanonical) ==
+               (params->mWeak == aListeners->ElementAt(i).mWeakListener));
+  }
+  return PL_DHASH_NEXT;
+}
+#endif
 
 NS_IMETHODIMP
 nsFrameMessageManager::AddWeakMessageListener(const nsAString& aMessage,
@@ -170,29 +219,26 @@ nsFrameMessageManager::AddWeakMessageListener(const nsAString& aMessage,
   // this to happen; it will break e.g. RemoveWeakMessageListener.  So let's
   // check that we're not getting ourselves into that situation.
   nsCOMPtr<nsISupports> canonical = do_QueryInterface(aListener);
-  for (uint32_t i = 0; i < mListeners.Length(); ++i) {
-    if (!mListeners[i].mWeakListener) {
-      continue;
-    }
-
-    nsCOMPtr<nsISupports> otherCanonical =
-      do_QueryReferent(mListeners[i].mWeakListener);
-    MOZ_ASSERT((canonical == otherCanonical) ==
-               (weak == mListeners[i].mWeakListener));
-  }
+  CanonicalCheckerParams params;
+  params.mCanonical = canonical;
+  params.mWeak = weak;
+  mListeners.EnumerateRead(CanonicalChecker, (void*)&params);
 #endif
-
-  nsCOMPtr<nsIAtom> message = do_GetAtom(aMessage);
-  uint32_t len = mListeners.Length();
-  for (uint32_t i = 0; i < len; ++i) {
-    if (mListeners[i].mMessage == message &&
-        mListeners[i].mWeakListener == weak) {
-      return NS_OK;
+  nsAutoTObserverArray<nsMessageListenerInfo, 1>* listeners =
+    mListeners.Get(aMessage);
+  if (!listeners) {
+    listeners = new nsAutoTObserverArray<nsMessageListenerInfo, 1>();
+    mListeners.Put(aMessage, listeners);
+  } else {
+    uint32_t len = listeners->Length();
+    for (uint32_t i = 0; i < len; ++i) {
+      if (listeners->ElementAt(i).mWeakListener == weak) {
+        return NS_OK;
+      }
     }
   }
 
-  nsMessageListenerInfo* entry = mListeners.AppendElement();
-  entry->mMessage = message;
+  nsMessageListenerInfo* entry = listeners->AppendElement();
   entry->mWeakListener = weak;
   return NS_OK;
 }
@@ -204,12 +250,16 @@ nsFrameMessageManager::RemoveWeakMessageListener(const nsAString& aMessage,
   nsWeakPtr weak = do_GetWeakReference(aListener);
   NS_ENSURE_TRUE(weak, NS_OK);
 
-  nsCOMPtr<nsIAtom> message = do_GetAtom(aMessage);
-  uint32_t len = mListeners.Length();
+  nsAutoTObserverArray<nsMessageListenerInfo, 1>* listeners =
+    mListeners.Get(aMessage);
+  if (!listeners) {
+    return NS_OK;
+  }
+
+  uint32_t len = listeners->Length();
   for (uint32_t i = 0; i < len; ++i) {
-    if (mListeners[i].mMessage == message &&
-        mListeners[i].mWeakListener == weak) {
-      mListeners.RemoveElementAt(i);
+    if (listeners->ElementAt(i).mWeakListener == weak) {
+      listeners->RemoveElementAt(i);
       return NS_OK;
     }
   }
@@ -582,142 +632,145 @@ nsFrameMessageManager::ReceiveMessage(nsISupports* aTarget,
     ctx = nsContentUtils::ThreadJSContextStack()->GetSafeJSContext();
   }
 
-  if (mListeners.Length()) {
-    nsCOMPtr<nsIAtom> name = do_GetAtom(aMessage);
+  nsAutoTObserverArray<nsMessageListenerInfo, 1>* listeners =
+    mListeners.Get(aMessage);
+  if (listeners) {
     MMListenerRemover lr(this);
 
-    for (uint32_t i = 0; i < mListeners.Length(); ++i) {
+    nsAutoTObserverArray<nsMessageListenerInfo, 1>::EndLimitedIterator
+      iter(*listeners);
+    while(iter.HasMore()) {
+      nsMessageListenerInfo& listener = iter.GetNext();
       // Remove mListeners[i] if it's an expired weak listener.
       nsCOMPtr<nsIMessageListener> weakListener;
-      if (mListeners[i].mWeakListener) {
-        weakListener = do_QueryReferent(mListeners[i].mWeakListener);
+      if (listener.mWeakListener) {
+        weakListener = do_QueryReferent(listener.mWeakListener);
         if (!weakListener) {
-          mListeners.RemoveElementAt(i--);
+          listeners->RemoveElement(listener);
           continue;
         }
       }
 
-      if (mListeners[i].mMessage == name) {
-        nsCOMPtr<nsIXPConnectWrappedJS> wrappedJS;
-        if (weakListener) {
-          wrappedJS = do_QueryInterface(weakListener);
+      nsCOMPtr<nsIXPConnectWrappedJS> wrappedJS;
+      if (weakListener) {
+        wrappedJS = do_QueryInterface(weakListener);
+      } else {
+        wrappedJS = do_QueryInterface(listener.mStrongListener);
+      }
+
+      if (!wrappedJS) {
+        continue;
+      }
+      JSObject* object = nullptr;
+      wrappedJS->GetJSObject(&object);
+      if (!object) {
+        continue;
+      }
+      nsCxPusher pusher;
+      NS_ENSURE_STATE(pusher.Push(ctx, false));
+
+      JSAutoRequest ar(ctx);
+      JSAutoCompartment ac(ctx, object);
+
+      // The parameter for the listener function.
+      JSObject* param = JS_NewObject(ctx, NULL, NULL, NULL);
+      NS_ENSURE_TRUE(param, NS_ERROR_OUT_OF_MEMORY);
+
+      jsval targetv;
+      nsContentUtils::WrapNative(ctx,
+                                 JS_GetGlobalForObject(ctx, object),
+                                 aTarget, &targetv, nullptr, true);
+
+      // To keep compatibility with e10s message manager,
+      // define empty objects array.
+      if (!aObjectsArray) {
+        // Because we want JS messages to have always the same properties,
+        // create array even if len == 0.
+        aObjectsArray = JS_NewArrayObject(ctx, 0, NULL);
+        if (!aObjectsArray) {
+          return NS_ERROR_OUT_OF_MEMORY;
+        }
+      }
+
+      JS::AutoValueRooter objectsv(ctx);
+      objectsv.set(OBJECT_TO_JSVAL(aObjectsArray));
+      if (!JS_WrapValue(ctx, objectsv.jsval_addr()))
+          return NS_ERROR_UNEXPECTED;
+
+      jsval json = JSVAL_NULL;
+      if (aCloneData && aCloneData->mDataLength &&
+          !ReadStructuredClone(ctx, *aCloneData, &json)) {
+        JS_ClearPendingException(ctx);
+        return NS_OK;
+      }
+      JSString* jsMessage =
+        JS_NewUCStringCopyN(ctx,
+                            static_cast<const jschar*>(PromiseFlatString(aMessage).get()),
+                            aMessage.Length());
+      NS_ENSURE_TRUE(jsMessage, NS_ERROR_OUT_OF_MEMORY);
+      JS_DefineProperty(ctx, param, "target", targetv, NULL, NULL, JSPROP_ENUMERATE);
+      JS_DefineProperty(ctx, param, "name",
+                        STRING_TO_JSVAL(jsMessage), NULL, NULL, JSPROP_ENUMERATE);
+      JS_DefineProperty(ctx, param, "sync",
+                        BOOLEAN_TO_JSVAL(aSync), NULL, NULL, JSPROP_ENUMERATE);
+      JS_DefineProperty(ctx, param, "json", json, NULL, NULL, JSPROP_ENUMERATE); // deprecated
+      JS_DefineProperty(ctx, param, "data", json, NULL, NULL, JSPROP_ENUMERATE);
+      JS_DefineProperty(ctx, param, "objects", objectsv.jsval_value(), NULL, NULL, JSPROP_ENUMERATE);
+
+      jsval thisValue = JSVAL_VOID;
+
+      JS::Value funval;
+      if (JS_ObjectIsCallable(ctx, object)) {
+        // If the listener is a JS function:
+        funval.setObject(*object);
+
+        // A small hack to get 'this' value right on content side where
+        // messageManager is wrapped in TabChildGlobal.
+        nsCOMPtr<nsISupports> defaultThisValue;
+        if (mChrome) {
+          defaultThisValue = do_QueryObject(this);
         } else {
-          wrappedJS = do_QueryInterface(mListeners[i].mStrongListener);
+          defaultThisValue = aTarget;
         }
-
-        if (!wrappedJS) {
-          continue;
-        }
-        JSObject* object = nullptr;
-        wrappedJS->GetJSObject(&object);
-        if (!object) {
-          continue;
-        }
-        nsCxPusher pusher;
-        NS_ENSURE_STATE(pusher.Push(ctx, false));
-
-        JSAutoRequest ar(ctx);
-        JSAutoCompartment ac(ctx, object);
-
-        // The parameter for the listener function.
-        JSObject* param = JS_NewObject(ctx, NULL, NULL, NULL);
-        NS_ENSURE_TRUE(param, NS_ERROR_OUT_OF_MEMORY);
-
-        jsval targetv;
         nsContentUtils::WrapNative(ctx,
                                    JS_GetGlobalForObject(ctx, object),
-                                   aTarget, &targetv, nullptr, true);
+                                   defaultThisValue, &thisValue, nullptr, true);
+      } else {
+        // If the listener is a JS object which has receiveMessage function:
+        if (!JS_GetProperty(ctx, object, "receiveMessage", &funval) ||
+            !funval.isObject())
+          return NS_ERROR_UNEXPECTED;
 
-        // To keep compatibility with e10s message manager,
-        // define empty objects array.
-        if (!aObjectsArray) {
-          // Because we want JS messages to have always the same properties,
-          // create array even if len == 0.
-          aObjectsArray = JS_NewArrayObject(ctx, 0, NULL);
-          if (!aObjectsArray) {
-            return NS_ERROR_OUT_OF_MEMORY;
-          }
-        }
+        // Check if the object is even callable.
+        NS_ENSURE_STATE(JS_ObjectIsCallable(ctx, &funval.toObject()));
+        thisValue.setObject(*object);
+      }
 
-        JS::AutoValueRooter objectsv(ctx);
-        objectsv.set(OBJECT_TO_JSVAL(aObjectsArray));
-        if (!JS_WrapValue(ctx, objectsv.jsval_addr()))
-            return NS_ERROR_UNEXPECTED;
+      jsval rval = JSVAL_VOID;
 
-        jsval json = JSVAL_NULL;
-        if (aCloneData && aCloneData->mDataLength &&
-            !ReadStructuredClone(ctx, *aCloneData, &json)) {
-          JS_ClearPendingException(ctx);
-          return NS_OK;
-        }
-        JSString* jsMessage =
-          JS_NewUCStringCopyN(ctx,
-                              static_cast<const jschar*>(PromiseFlatString(aMessage).get()),
-                              aMessage.Length());
-        NS_ENSURE_TRUE(jsMessage, NS_ERROR_OUT_OF_MEMORY);
-        JS_DefineProperty(ctx, param, "target", targetv, NULL, NULL, JSPROP_ENUMERATE);
-        JS_DefineProperty(ctx, param, "name",
-                          STRING_TO_JSVAL(jsMessage), NULL, NULL, JSPROP_ENUMERATE);
-        JS_DefineProperty(ctx, param, "sync",
-                          BOOLEAN_TO_JSVAL(aSync), NULL, NULL, JSPROP_ENUMERATE);
-        JS_DefineProperty(ctx, param, "json", json, NULL, NULL, JSPROP_ENUMERATE); // deprecated
-        JS_DefineProperty(ctx, param, "data", json, NULL, NULL, JSPROP_ENUMERATE);
-        JS_DefineProperty(ctx, param, "objects", objectsv.jsval_value(), NULL, NULL, JSPROP_ENUMERATE);
+      JS::AutoValueRooter argv(ctx);
+      argv.set(OBJECT_TO_JSVAL(param));
 
-        jsval thisValue = JSVAL_VOID;
+      {
+        JSObject* thisObject = JSVAL_TO_OBJECT(thisValue);
 
-        JS::Value funval;
-        if (JS_ObjectIsCallable(ctx, object)) {
-          // If the listener is a JS function:
-          funval.setObject(*object);
+        JSAutoCompartment tac(ctx, thisObject);
+        if (!JS_WrapValue(ctx, argv.jsval_addr()))
+          return NS_ERROR_UNEXPECTED;
 
-          // A small hack to get 'this' value right on content side where
-          // messageManager is wrapped in TabChildGlobal.
-          nsCOMPtr<nsISupports> defaultThisValue;
-          if (mChrome) {
-            defaultThisValue = do_QueryObject(this);
-          } else {
-            defaultThisValue = aTarget;
-          }
-          nsContentUtils::WrapNative(ctx,
-                                     JS_GetGlobalForObject(ctx, object),
-                                     defaultThisValue, &thisValue, nullptr, true);
-        } else {
-          // If the listener is a JS object which has receiveMessage function:
-          if (!JS_GetProperty(ctx, object, "receiveMessage", &funval) ||
-              !funval.isObject())
-            return NS_ERROR_UNEXPECTED;
-
-          // Check if the object is even callable.
-          NS_ENSURE_STATE(JS_ObjectIsCallable(ctx, &funval.toObject()));
-          thisValue.setObject(*object);
-        }
-
-        jsval rval = JSVAL_VOID;
-
-        JS::AutoValueRooter argv(ctx);
-        argv.set(OBJECT_TO_JSVAL(param));
-
-        {
-          JSObject* thisObject = JSVAL_TO_OBJECT(thisValue);
-
-          JSAutoCompartment tac(ctx, thisObject);
-          if (!JS_WrapValue(ctx, argv.jsval_addr()))
-            return NS_ERROR_UNEXPECTED;
-
-          JS_CallFunctionValue(ctx, thisObject,
-                               funval, 1, argv.jsval_addr(), &rval);
-          if (aJSONRetVal) {
-            nsString json;
-            if (JS_Stringify(ctx, &rval, nullptr, JSVAL_NULL,
-                             JSONCreator, &json)) {
-              aJSONRetVal->AppendElement(json);
-            }
+        JS_CallFunctionValue(ctx, thisObject,
+                             funval, 1, argv.jsval_addr(), &rval);
+        if (aJSONRetVal) {
+          nsString json;
+          if (JS_Stringify(ctx, &rval, nullptr, JSVAL_NULL,
+                           JSONCreator, &json)) {
+            aJSONRetVal->AppendElement(json);
           }
         }
       }
     }
   }
+
   nsRefPtr<nsFrameMessageManager> kungfuDeathGrip = mParentManager;
   return mParentManager ? mParentManager->ReceiveMessage(aTarget, aMessage,
                                                          aSync, aCloneData,
@@ -1447,14 +1500,24 @@ NS_NewChildProcessMessageManager(nsISyncMessageSender** aResult)
   return CallQueryInterface(mm, aResult);
 }
 
+static PLDHashOperator
+CycleCollectorMarkListeners(const nsAString& aKey,
+                            nsAutoTObserverArray<nsMessageListenerInfo, 1>* aListeners,
+                            void* aData)
+{
+  uint32_t count = aListeners->Length();
+  for (uint32_t i = 0; i < count; i++) {
+    if (aListeners->ElementAt(i).mStrongListener) {
+      xpc_TryUnmarkWrappedGrayObject(aListeners->ElementAt(i).mStrongListener);
+    }
+  }
+  return PL_DHASH_NEXT;
+}
+
 bool
 nsFrameMessageManager::MarkForCC()
 {
-  uint32_t len = mListeners.Length();
-  for (uint32_t i = 0; i < len; ++i) {
-    if (mListeners[i].mStrongListener) {
-      xpc_TryUnmarkWrappedGrayObject(mListeners[i].mStrongListener);
-    }
-  }
+  mListeners.EnumerateRead(CycleCollectorMarkListeners, nullptr);
+
   return true;
 }
