@@ -14,7 +14,6 @@
 #include "nsILineInputStream.h"
 #include "nsPromiseFlatString.h"
 #include "nsTArray.h"
-#include "nsNSSCertTrust.h"
 
 #include "cert.h"
 #include "base64.h"
@@ -688,19 +687,6 @@ register_oid(const SECItem *oid_item, const char *oid_name)
   return SECOID_AddEntry(&od);
 }
 
-static void
-addToCertListIfTrusted(CERTCertList* certList, CERTCertificate *cert) {
-  CERTCertTrust nssTrust;
-  if (CERT_GetCertTrust(cert, &nssTrust) != SECSuccess) {
-    return;
-  }
-  unsigned int flags = SEC_GET_TRUST_FLAGS(&nssTrust, trustSSL);
-
-  if (flags & CERTDB_TRUSTED_CA) {
-    CERT_AddCertToListTail(certList, CERT_DupCertificate(cert));
-  }
-}
-
 #ifdef PSM_ENABLE_TEST_EV_ROOTS
 class nsMyTrustedEVInfoClass : public nsMyTrustedEVInfo
 {
@@ -972,9 +958,8 @@ getRootsForOidFromExternalRootsFile(CERTCertList* certList,
     nsMyTrustedEVInfoClass *ev = testEVInfos->ElementAt(i);
     if (!ev)
       continue;
-    if (policyOIDTag == ev->oid_tag) {
-      addToCertListIfTrusted(certList, ev->cert)
-    }
+    if (policyOIDTag == ev->oid_tag)
+      CERT_AddCertToListTail(certList, CERT_DupCertificate(ev->cert));
   }
 
   return false;
@@ -1044,9 +1029,8 @@ getRootsForOid(SECOidTag oid_tag)
     nsMyTrustedEVInfo &entry = myTrustedEVInfos[iEV];
     if (!entry.oid_name) // invalid or placeholder list entry
       continue;
-    if (entry.oid_tag == oid_tag) {
-      addToCertListIfTrusted(certList, entry.cert);
-    }
+    if (entry.oid_tag == oid_tag)
+      CERT_AddCertToListTail(certList, CERT_DupCertificate(entry.cert));
   }
 
 #ifdef PSM_ENABLE_TEST_EV_ROOTS
