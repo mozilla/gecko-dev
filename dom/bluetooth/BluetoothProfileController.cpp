@@ -10,7 +10,6 @@
 #include "BluetoothA2dpManager.h"
 #include "BluetoothHfpManager.h"
 #include "BluetoothHidManager.h"
-#include "BluetoothOppManager.h"
 
 #include "BluetoothUtils.h"
 #include "mozilla/dom/bluetooth/BluetoothTypes.h"
@@ -80,9 +79,6 @@ BluetoothProfileController::AddProfileWithServiceClass(
     case BluetoothServiceClass::A2DP:
       profile = BluetoothA2dpManager::Get();
       break;
-    case BluetoothServiceClass::OBJECT_PUSH:
-      profile = BluetoothOppManager::Get();
-      break;
     case BluetoothServiceClass::HID:
       profile = BluetoothHidManager::Get();
       break;
@@ -132,7 +128,6 @@ BluetoothProfileController::SetupProfiles(bool aAssignServiceClass)
   // For a disconnect request, all connected profiles are put into array.
   if (!mConnect) {
     AddProfile(BluetoothHidManager::Get(), true);
-    AddProfile(BluetoothOppManager::Get(), true);
     AddProfile(BluetoothA2dpManager::Get(), true);
     AddProfile(BluetoothHfpManager::Get(), true);
     return;
@@ -143,28 +138,29 @@ BluetoothProfileController::SetupProfiles(bool aAssignServiceClass)
    * all of them sequencely.
    */
   bool hasAudio = HAS_AUDIO(mTarget.cod);
-  bool hasObjectTransfer = HAS_OBJECT_TRANSFER(mTarget.cod);
   bool hasRendering = HAS_RENDERING(mTarget.cod);
   bool isPeripheral = IS_PERIPHERAL(mTarget.cod);
+  bool isRemoteControl = IS_REMOTE_CONTROL(mTarget.cod);
+  bool isKeyboard = IS_KEYBOARD(mTarget.cod);
+  bool isPointingDevice = IS_POINTING_DEVICE(mTarget.cod);
 
-  NS_ENSURE_TRUE_VOID(hasAudio || hasObjectTransfer ||
-                      hasRendering || isPeripheral);
+  NS_ENSURE_TRUE_VOID(hasAudio || hasRendering || isPeripheral);
 
-  /**
-   * Connect to HFP/HSP first. Then, connect A2DP if Rendering bit is set.
-   * It's almost impossible to send file to a remote device which is an Audio
-   * device or a Rendering device, so we won't connect OPP in that case.
-   */
+  // Audio bit should be set if remote device supports HFP/HSP.
   if (hasAudio) {
     AddProfile(BluetoothHfpManager::Get());
   }
-  if (hasRendering) {
+
+  // Rendering bit should be set if remote device supports A2DP.
+  // A device which supports AVRCP should claim that it's a peripheral and it's
+  // a remote control.
+  if (hasRendering || (isPeripheral && isRemoteControl)) {
     AddProfile(BluetoothA2dpManager::Get());
   }
-  if (hasObjectTransfer && !hasAudio && !hasRendering) {
-    AddProfile(BluetoothOppManager::Get());
-  }
-  if (isPeripheral) {
+
+  // A device which supports HID should claim that it's a peripheral and it's
+  // either a keyboard, a pointing device, or both.
+  if (isPeripheral && (isKeyboard || isPointingDevice)) {
     AddProfile(BluetoothHidManager::Get());
   }
 }
@@ -175,6 +171,7 @@ BluetoothProfileController::Start()
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(!mDeviceAddress.IsEmpty());
   MOZ_ASSERT(mProfilesIndex == -1);
+  NS_ENSURE_TRUE_VOID(mProfiles.Length() > 0);
 
   ++mProfilesIndex;
   BT_LOGR_PROFILE(mProfiles[mProfilesIndex], "");

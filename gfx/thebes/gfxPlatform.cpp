@@ -231,7 +231,7 @@ MemoryPressureObserver::Observe(nsISupports *aSubject,
                                 const PRUnichar *someData)
 {
     NS_ASSERTION(nsCRT::strcmp(aTopic, "memory-pressure") == 0, "unexpected event topic");
-    Factory::PurgeTextureCaches();
+    Factory::PurgeAllCaches();
     return NS_OK;
 }
 
