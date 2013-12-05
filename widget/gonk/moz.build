@@ -49,6 +49,7 @@ CPP_SOURCES += [
     'GfxInfo.cpp',
     'HwcUtils.cpp',
     'GonkMemoryPressureMonitoring.cpp',
+    'GonkPermission.cpp',
     'OrientationObserver.cpp',
     'ProcessOrientation.cpp',
     'nsAppShell.cpp',
