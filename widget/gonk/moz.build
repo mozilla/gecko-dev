@@ -17,6 +17,7 @@
 MODULE = 'widget'
 
 EXPORTS += [
+    'GonkPermission.h',
     'OrientationObserver.h',
 ]
 
@@ -49,6 +50,7 @@ CPP_SOURCES += [
     'GfxInfo.cpp',
     'HwcUtils.cpp',
     'GonkMemoryPressureMonitoring.cpp',
+    'GonkPermission.cpp',
     'OrientationObserver.cpp',
     'ProcessOrientation.cpp',
     'nsAppShell.cpp',

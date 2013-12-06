@@ -37,6 +37,9 @@ BEGIN_BLUETOOTH_NAMESPACE
 // Audio: Major service class = 0x100 (Bit 21 is set)
 #define HAS_AUDIO(cod)               (cod & 0x200000)
 
+// Object Transfer: Major service class = 0x80 (Bit 20 is set)
+#define HAS_OBJECT_TRANSFER(cod)     (cod & 0x100000)
+
 // Rendering: Major service class = 0x20 (Bit 18 is set)
 #define HAS_RENDERING(cod)           (cod & 0x40000)
 

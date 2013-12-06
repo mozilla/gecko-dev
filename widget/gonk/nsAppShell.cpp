@@ -29,6 +29,7 @@
 #include <unistd.h>
 
 #include "base/basictypes.h"
+#include "GonkPermission.h"
 #include "nscore.h"
 #ifdef MOZ_OMX_DECODER
 #include "MediaResourceManagerService.h"
@@ -721,11 +722,12 @@ nsAppShell::Init()
 
     InitGonkMemoryPressureMonitoring();
 
-#ifdef MOZ_OMX_DECODER
     if (XRE_GetProcessType() == GeckoProcessType_Default) {
+#ifdef MOZ_OMX_DECODER
       android::MediaResourceManagerService::instantiate();
-    }
 #endif
+      GonkPermissionService::instantiate();
+    }
     nsCOMPtr<nsIObserverService> obsServ = GetObserverService();
     if (obsServ) {
         obsServ->AddObserver(this, "browser-ui-startup-complete", false);

@@ -10,6 +10,7 @@
 #include "BluetoothA2dpManager.h"
 #include "BluetoothHfpManager.h"
 #include "BluetoothHidManager.h"
+#include "BluetoothOppManager.h"
 
 #include "BluetoothUtils.h"
 #include "mozilla/dom/bluetooth/BluetoothTypes.h"
@@ -79,6 +80,9 @@ BluetoothProfileController::AddProfileWithServiceClass(
     case BluetoothServiceClass::A2DP:
       profile = BluetoothA2dpManager::Get();
       break;
+    case BluetoothServiceClass::OBJECT_PUSH:
+      profile = BluetoothOppManager::Get();
+      break;
     case BluetoothServiceClass::HID:
       profile = BluetoothHidManager::Get();
       break;
@@ -128,6 +132,7 @@ BluetoothProfileController::SetupProfiles(bool aAssignServiceClass)
   // For a disconnect request, all connected profiles are put into array.
   if (!mConnect) {
     AddProfile(BluetoothHidManager::Get(), true);
+    AddProfile(BluetoothOppManager::Get(), true);
     AddProfile(BluetoothA2dpManager::Get(), true);
     AddProfile(BluetoothHfpManager::Get(), true);
     return;
@@ -138,17 +143,23 @@ BluetoothProfileController::SetupProfiles(bool aAssignServiceClass)
    * all of them sequencely.
    */
   bool hasAudio = HAS_AUDIO(mTarget.cod);
+  bool hasObjectTransfer = HAS_OBJECT_TRANSFER(mTarget.cod);
   bool hasRendering = HAS_RENDERING(mTarget.cod);
   bool isPeripheral = IS_PERIPHERAL(mTarget.cod);
   bool isRemoteControl = IS_REMOTE_CONTROL(mTarget.cod);
   bool isKeyboard = IS_KEYBOARD(mTarget.cod);
   bool isPointingDevice = IS_POINTING_DEVICE(mTarget.cod);
 
-  NS_ENSURE_TRUE_VOID(hasAudio || hasRendering || isPeripheral);
+  NS_ENSURE_TRUE_VOID(hasAudio || hasObjectTransfer ||
+                      hasRendering || isPeripheral);
 
   // Audio bit should be set if remote device supports HFP/HSP.
   if (hasAudio) {
     AddProfile(BluetoothHfpManager::Get());
+  }
+
+  if (hasObjectTransfer && !hasAudio && !hasRendering) {
+    AddProfile(BluetoothOppManager::Get());
   }
 
   // Rendering bit should be set if remote device supports A2DP.
