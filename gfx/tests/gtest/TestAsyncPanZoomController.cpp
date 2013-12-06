@@ -21,6 +21,7 @@ using namespace mozilla;
 using namespace mozilla::gfx;
 using namespace mozilla::layers;
 using ::testing::_;
+using ::testing::AtLeast;
 
 class MockContentController : public GeckoContentController {
 public:
@@ -245,7 +246,7 @@ TEST(AsyncPanZoomController, Pan) {
   apzc->SetFrameMetrics(TestFrameMetrics());
   apzc->NotifyLayersUpdated(TestFrameMetrics(), true);
 
-  EXPECT_CALL(*mcc, SendAsyncScrollDOMEvent(_,_,_)).Times(4);
+  EXPECT_CALL(*mcc, SendAsyncScrollDOMEvent(_,_,_)).Times(AtLeast(1));
   EXPECT_CALL(*mcc, RequestContentRepaint(_)).Times(1);
 
   int time = 0;
@@ -277,7 +278,7 @@ TEST(AsyncPanZoomController, Fling) {
   apzc->SetFrameMetrics(TestFrameMetrics());
   apzc->NotifyLayersUpdated(TestFrameMetrics(), true);
 
-  EXPECT_CALL(*mcc, SendAsyncScrollDOMEvent(_,_,_)).Times(2);
+  EXPECT_CALL(*mcc, SendAsyncScrollDOMEvent(_,_,_)).Times(AtLeast(1));
   EXPECT_CALL(*mcc, RequestContentRepaint(_)).Times(1);
 
   int time = 0;
@@ -306,7 +307,7 @@ TEST(AsyncPanZoomController, OverScrollPanning) {
   apzc->SetFrameMetrics(TestFrameMetrics());
   apzc->NotifyLayersUpdated(TestFrameMetrics(), true);
 
-  EXPECT_CALL(*mcc, SendAsyncScrollDOMEvent(_,_,_)).Times(3);
+  EXPECT_CALL(*mcc, SendAsyncScrollDOMEvent(_,_,_)).Times(AtLeast(1));
   EXPECT_CALL(*mcc, RequestContentRepaint(_)).Times(1);
 
   // Pan sufficiently to hit overscroll behavior
