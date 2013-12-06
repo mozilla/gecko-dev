@@ -138,17 +138,17 @@ let clone = function clone(object, refs = noRefs) {
   return result;
 };
 
-let worker = null;
+let worker = new PromiseWorker(
+  "resource://gre/modules/osfile/osfile_async_worker.js", LOG);
 let Scheduler = {
   /**
    * |true| once we have sent at least one message to the worker.
-   * This field is unaffected by resetting the worker.
    */
-   launched: false,
+  launched: false,
 
   /**
    * |true| once shutdown has begun i.e. we should reject any
-   * message, including resets.
+   * message
    */
   shutdown: false,
 
@@ -159,15 +159,12 @@ let Scheduler = {
 
   post: function post(...args) {
     this.launched = true;
+
     if (this.shutdown) {
       LOG("OS.File is not available anymore. The following request has been rejected.", args);
       return Promise.reject(new Error("OS.File has been shut down."));
     }
-    if (!worker) {
-      // Either the worker has never been created or it has been reset
-      worker = new PromiseWorker(
-        "resource://gre/modules/osfile/osfile_async_worker.js", LOG);
-    }
+
     // By convention, the last argument of any message may be an |options| object.
     let methodArgs = args[1];
     let options = methodArgs ? methodArgs[methodArgs.length - 1] : null;
@@ -997,51 +994,14 @@ DirectoryIterator.Entry.fromMsg = function fromMsg(value) {
   return new DirectoryIterator.Entry(value);
 };
 
-/**
- * Flush all operations currently queued, then kill the underlying
- * worker to save memory.
- *
- * @return {Promise}
- * @reject {Error} If at least one file or directory iterator instance
- * is still open and the worker cannot be killed safely.
- */
-File.resetWorker = function() {
-  if (!Scheduler.launched || Scheduler.shutdown) {
-    // No need to reset
-    return Promise.resolve();
-  }
-  return Scheduler.post("Meta_reset").then(
-    function(wouldLeak) {
-      if (!wouldLeak) {
-        // No resource would leak, the worker was stopped.
-        worker = null;
-        return;
-      }
-      // Otherwise, resetting would be unsafe and has been canceled.
-      // Turn this into an error
-      let msg = "Cannot reset worker: ";
-      let {openedFiles, openedDirectoryIterators} = wouldLeak;
-      if (openedFiles.length > 0) {
-        msg += "The following files are still open:\n" +
-          openedFiles.join("\n");
-      }
-      if (openedDirectoryIterators.length > 0) {
-        msg += "The following directory iterators are still open:\n" +
-          openedDirectoryIterators.join("\n");
-      }
-      throw new Error(msg);
-    }
-  );
-};
-
 // Constants
 Object.defineProperty(File, "POS_START", {value: OS.Shared.POS_START});
 Object.defineProperty(File, "POS_CURRENT", {value: OS.Shared.POS_CURRENT});
 Object.defineProperty(File, "POS_END", {value: OS.Shared.POS_END});
 
-this.OS.File = File;
-this.OS.File.Error = OSError;
-this.OS.File.DirectoryIterator = DirectoryIterator;
+OS.File = File;
+OS.File.Error = OSError;
+OS.File.DirectoryIterator = DirectoryIterator;
 
 
 // Auto-flush OS.File during profile-before-change. This ensures that any I/O
