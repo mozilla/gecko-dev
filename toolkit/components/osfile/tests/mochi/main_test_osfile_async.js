@@ -160,6 +160,7 @@ let test = maketest("Main", function main(test) {
     yield test_iter();
     yield test_exists();
     yield test_debug_test();
+    yield test_system_shutdown();
     yield test_duration();
     info("Test is over");
     SimpleTest.finish();
