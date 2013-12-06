@@ -923,6 +923,9 @@ int32_t checkHandshake(int32_t bytesTransfered, bool wasReading,
                        PRFileDesc* ssl_layer_fd,
                        nsNSSSocketInfo *socketInfo)
 {
+  const PRErrorCode originalError = PR_GetError();
+  PRErrorCode err = originalError;
+
   // This is where we work around all of those SSL servers that don't 
   // conform to the SSL spec and shutdown a connection when we request
   // SSL v3.1 (aka TLS).  The spec says the client says what version
@@ -960,11 +963,11 @@ int32_t checkHandshake(int32_t bytesTransfered, bool wasReading,
   bool wantRetry = false;
 
   if (0 > bytesTransfered) {
-    int32_t err = PR_GetError();
 
     if (handleHandshakeResultNow) {
       if (PR_WOULD_BLOCK_ERROR == err) {
         socketInfo->SetHandshakeInProgress(true);
+        PR_SetError(err, 0);
         return bytesTransfered;
       }
 
@@ -1008,7 +1011,7 @@ int32_t checkHandshake(int32_t bytesTransfered, bool wasReading,
 
   if (wantRetry) {
     // We want to cause the network layer to retry the connection.
-    PR_SetError(PR_CONNECT_RESET_ERROR, 0);
+    err = PR_CONNECT_RESET_ERROR;
     if (wasReading)
       bytesTransfered = -1;
   }
@@ -1020,7 +1023,19 @@ int32_t checkHandshake(int32_t bytesTransfered, bool wasReading,
     socketInfo->SetHandshakePending(false);
     socketInfo->SetHandshakeInProgress(false);
   }
-  
+
+  if (bytesTransfered < 0) {
+    // Remember that we encountered an error so that getSocketInfoIfRunning
+    // will correctly cause us to fail if another part of Gecko
+    // (erroneously) calls an I/O function (PR_Send/PR_Recv/etc.) again on
+    // this socket. Note that we use the original error because if we use
+    // PR_CONNECT_RESET_ERROR, we'll repeated try to reconnect.
+    if (originalError != PR_WOULD_BLOCK_ERROR && !socketInfo->GetErrorCode()) {
+      socketInfo->SetCanceled(originalError, PlainErrorMessage);
+    }
+    PR_SetError(err, 0);
+  }
+
   return bytesTransfered;
 }
 
