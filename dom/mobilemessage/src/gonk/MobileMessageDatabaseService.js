@@ -852,6 +852,7 @@ MobileMessageDatabaseService.prototype = {
       // Participant store cursor iteration done.
       if (!invalidParticipantIds.length) {
         next();
+        return;
       }
 
       // Find affected thread.
