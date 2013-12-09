@@ -45,7 +45,7 @@ if (!('BrowserElementIsPreloaded' in this)) {
   if (isTopBrowserElement(docShell) &&
       Services.prefs.getBoolPref("dom.mozInputMethod.enabled")) {
     try {
-      Services.scriptloader.loadSubScript("chrome://global/content/forms.js");
+      Services.scriptloader.loadSubScript("chrome://browser/content/forms.js");
     } catch (e) {
     }
   }
