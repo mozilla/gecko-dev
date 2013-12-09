@@ -198,6 +198,9 @@ public:
   void SetFiles(const nsTArray<nsCOMPtr<nsIDOMFile> >& aFiles, bool aSetValueChanged);
   void SetFiles(nsIDOMFileList* aFiles, bool aSetValueChanged);
 
+  // Called when a nsIFilePicker or a nsIColorPicker terminate.
+  void PickerClosed();
+
   void SetCheckedChangedInternal(bool aCheckedChanged);
   bool GetCheckedChanged() const {
     return mCheckedChanged;
@@ -1228,6 +1231,7 @@ protected:
   bool                     mHasRange            : 1;
   bool                     mIsDraggingRange     : 1;
   bool                     mProgressTimerIsActive : 1;
+  bool                     mPickerRunning : 1;
 
 private:
 

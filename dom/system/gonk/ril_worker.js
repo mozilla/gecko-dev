@@ -895,6 +895,7 @@ let RIL = {
    */
   updateICCContact: function updateICCContact(options) {
     let onsuccess = function onsuccess() {
+      contact.id = this.iccInfo.iccid + contact.id;
       // Reuse 'options' to get 'requestId' and 'contactType'.
       RIL.sendChromeMessage(options);
     }.bind(this);
@@ -911,7 +912,8 @@ let RIL = {
 
     let contact = options.contact;
     let iccid = RIL.iccInfo.iccid;
-    if (contact.id.startsWith(iccid)) {
+    if (typeof contact.id === "string" &&
+        contact.id.startsWith(iccid)) {
       contact.recordId = contact.id.substring(iccid.length);
     }
 
@@ -12593,7 +12595,10 @@ let ICCContactHelper = {
       let pbr = pbrs[pbrIndex];
       ICCRecordHelper.findFreeRecordId(
         pbr.adn.fileId,
-        onsuccess,
+        function (recordId) {
+          recordId += pbrIndex * ICC_MAX_LINEAR_FIXED_RECORDS;
+          onsuccess(recordId);
+        },
         function (errorMsg) {
           findFreeRecordId.bind(this, pbrIndex + 1);
         }.bind(this));
