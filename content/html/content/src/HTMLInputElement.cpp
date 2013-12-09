@@ -1053,7 +1053,6 @@ HTMLInputElement::HTMLInputElement(already_AddRefed<nsINodeInfo> aNodeInfo,
   , mHasRange(false)
   , mIsDraggingRange(false)
   , mProgressTimerIsActive(false)
-  , mNumberControlSpinnerSpinsUp(false)
   , mPickerRunning(false)
 {
   // We are in a type=text so we now we currenty need a nsTextEditorState.
