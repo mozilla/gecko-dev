@@ -131,6 +131,10 @@ NSSCleanupAutoPtrClass_WithParam(PRArenaPool, PORT_FreeArena, FalseParam, false)
 
 // do not use a nsCOMPtr to avoid static initializer/destructor
 nsIThreadPool * gCertVerificationThreadPool = nullptr;
+
+// We add a mutex to serialize PKCS11 database operations
+Mutex *gSSLVerificationPK11Mutex = nullptr;
+
 } // unnamed namespace
 
 // Called when the socket transport thread starts, to initialize the SSL cert
@@ -146,6 +150,7 @@ nsIThreadPool * gCertVerificationThreadPool = nullptr;
 void
 InitializeSSLServerCertVerificationThreads()
 {
+  gSSLVerificationPK11Mutex = new Mutex("SSLVerificationPK11Mutex");
   // TODO: tuning, make parameters preferences
   // XXX: instantiate nsThreadPool directly, to make this more bulletproof.
   // Currently, the nsThreadPool.h header isn't exported for us to do so.
@@ -177,6 +182,10 @@ void StopSSLServerCertVerificationThreads()
   if (gCertVerificationThreadPool) {
     gCertVerificationThreadPool->Shutdown();
     NS_RELEASE(gCertVerificationThreadPool);
+  }
+  if (gSSLVerificationPK11Mutex) {
+    delete gSSLVerificationPK11Mutex;
+    gSSLVerificationPK11Mutex = nullptr;
   }
 }
 
@@ -944,6 +953,10 @@ AuthCertificate(TransportSecurityInfo * infoObject, CERTCertificate * cert)
       // We have found a signer cert that we want to remember.
       char* nickname = nsNSSCertificate::defaultServerNickname(node->cert);
       if (nickname && *nickname) {
+        // There is a suspicion that there is some thread safety issues
+        // in PK11_importCert and the mutex is a way to serialize until
+        // this issue has been cleared.
+        MutexAutoLock PK11Mutex(*gSSLVerificationPK11Mutex);
         PK11SlotInfo *slot = PK11_GetInternalKeySlot();
         if (slot) {
           PK11_ImportCert(slot, node->cert, CK_INVALID_HANDLE, 
