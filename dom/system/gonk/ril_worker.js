@@ -895,7 +895,7 @@ let RIL = {
    */
   updateICCContact: function updateICCContact(options) {
     let onsuccess = function onsuccess() {
-      contact.id = this.iccInfo.iccid + contact.id;
+      contact.id = this.iccInfo.iccid + contact.recordId;
       // Reuse 'options' to get 'requestId' and 'contactType'.
       RIL.sendChromeMessage(options);
     }.bind(this);

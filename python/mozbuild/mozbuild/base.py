@@ -511,11 +511,19 @@ class MachCommandConditions(object):
     """A series of commonly used condition functions which can be applied to
     mach commands with providers deriving from MachCommandBase.
     """
+    @staticmethod
+    def is_firefox(cls):
+        """Must have a Firefox build."""
+        if hasattr(cls, 'substs'):
+            return cls.substs.get('MOZ_BUILD_APP') == 'browser'
+        return False
 
     @staticmethod
     def is_b2g(cls):
         """Must have a Boot to Gecko build."""
-        return cls.substs.get('MOZ_WIDGET_TOOLKIT') == 'gonk'
+        if hasattr(cls, 'substs'):
+            return cls.substs.get('MOZ_WIDGET_TOOLKIT') == 'gonk'
+        return False
 
 
 class PathArgument(object):

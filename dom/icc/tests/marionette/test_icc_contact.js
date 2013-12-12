@@ -58,6 +58,9 @@ function testAddContact(type, pin2) {
     ok(updatedContact, "updateContact should have retuend a mozContact.");
     ok(updatedContact.id.startsWith(EMULATOR_ICCID),
        "The returned mozContact has wrong id.");
+    let recordIndex = parseInt(updatedContact.id.substring(EMULATOR_ICCID.length));
+    ok(!isNaN(recordIndex), "Should be a number " + recordIndex);
+    ok(0 < recordIndex && recordIndex < 0xff, "is not a valid record");
 
     // Get ICC contact for checking new contact
 
