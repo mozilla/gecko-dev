@@ -954,7 +954,7 @@ AsyncPanZoomController::CalculateCompositedRectInCssPixels(const FrameMetrics& a
                  aMetrics.mCompositionBounds.y,
                  aMetrics.mCompositionBounds.width,
                  aMetrics.mCompositionBounds.height);
-  rect.ScaleInverseRoundIn(resolution.width, resolution.height);
+  rect.Scale(1/resolution.width, 1/resolution.height);
   return rect;
 }
 
