@@ -9,7 +9,6 @@
 
 class imgDecoderObserver;
 class imgIContainer;
-class imgRequestProxy;
 class imgStatusNotifyRunnable;
 class imgRequestNotifyRunnable;
 class imgStatusTrackerObserver;
@@ -20,6 +19,7 @@ class nsIRunnable;
 #include "nsCOMPtr.h"
 #include "nsTObserverArray.h"
 #include "nsRect.h"
+#include "imgRequestProxy.h"
 
 namespace mozilla {
 namespace image {
@@ -158,9 +158,7 @@ public:
   // This is intentionally non-general because its sole purpose is to support an
   // some obscure network priority logic in imgRequest. That stuff could probably
   // be improved, but it's too scary to mess with at the moment.
-  bool FirstConsumerIs(imgRequestProxy* aConsumer) {
-    return mConsumers.SafeElementAt(0, nullptr) == aConsumer;
-  }
+  bool FirstConsumerIs(imgRequestProxy* aConsumer);
 
   void AdoptConsumers(imgStatusTracker* aTracker) { mConsumers = aTracker->mConsumers; }
 
@@ -260,6 +258,7 @@ public:
 
   nsIntRect GetInvalidRect() const { return mInvalidRect; }
 
+  typedef nsTObserverArray<mozilla::WeakPtr<imgRequestProxy>> ProxyArray;
 private:
   friend class imgStatusNotifyRunnable;
   friend class imgRequestNotifyRunnable;
