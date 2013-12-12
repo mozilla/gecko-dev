@@ -8,7 +8,6 @@
 #define imgStatusTracker_h__
 
 class imgIContainer;
-class imgRequestProxy;
 class imgStatusNotifyRunnable;
 class imgRequestNotifyRunnable;
 class imgStatusTrackerObserver;
@@ -28,6 +27,7 @@ class Image;
 #include "nscore.h"
 #include "imgDecoderObserver.h"
 #include "nsISupportsImpl.h"
+#include "imgRequestProxy.h"
 
 enum {
   stateRequestStarted    = 1u << 0,
@@ -110,9 +110,7 @@ public:
   // This is intentionally non-general because its sole purpose is to support an
   // some obscure network priority logic in imgRequest. That stuff could probably
   // be improved, but it's too scary to mess with at the moment.
-  bool FirstConsumerIs(imgRequestProxy* aConsumer) {
-    return mConsumers.SafeElementAt(0, nullptr) == aConsumer;
-  }
+  bool FirstConsumerIs(imgRequestProxy* aConsumer);
 
   void AdoptConsumers(imgStatusTracker* aTracker) { mConsumers = aTracker->mConsumers; }
 
@@ -214,6 +212,7 @@ public:
 
   nsIntRect GetInvalidRect() const { return mInvalidRect; }
 
+  typedef nsTObserverArray<mozilla::WeakPtr<imgRequestProxy>> ProxyArray;
 private:
   friend class imgStatusNotifyRunnable;
   friend class imgRequestNotifyRunnable;
@@ -223,7 +222,7 @@ private:
 
   void FireFailureNotification();
 
-  static void SyncNotifyState(nsTObserverArray<imgRequestProxy*>& proxies,
+  static void SyncNotifyState(ProxyArray& proxies,
                               bool hasImage, uint32_t state,
                               nsIntRect& dirtyRect, bool hadLastPart);
 
@@ -238,7 +237,7 @@ private:
 
   // List of proxies attached to the image. Each proxy represents a consumer
   // using the image.
-  nsTObserverArray<imgRequestProxy*> mConsumers;
+  ProxyArray mConsumers;
 
   mozilla::RefPtr<imgDecoderObserver> mTrackerObserver;
 
