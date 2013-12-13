@@ -18,6 +18,7 @@
 #include "nsIDOMNode.h"
 #include "nsXBLPrototypeBinding.h"
 #include "nsXBLProtoImplProperty.h"
+#include "js/CharacterEncoding.h"
 
 using namespace mozilla;
 using js::GetGlobalForObjectCrossCompartment;
@@ -116,14 +117,22 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
   JSAutoCompartment ac2(cx, targetClassObject);
 
   // Now, if we're using a separate XBL scope, enter the compartment of the
-  // bound node and copy the properties to the prototype there. This rewraps
-  // them appropriately, which should result in cross-compartment function
-  // wrappers.
+  // bound node and copy exposable properties to the prototype there. This
+  // rewraps them appropriately, which should result in cross-compartment
+  // function wrappers.
   if (propertyHolder != targetClassObject) {
     AssertSameCompartment(propertyHolder, scopeObject);
     AssertSameCompartment(targetClassObject, globalObject);
-    bool ok = JS_CopyPropertiesFrom(cx, targetClassObject, propertyHolder);
-    NS_ENSURE_TRUE(ok, NS_ERROR_UNEXPECTED);
+    for (nsXBLProtoImplMember* curr = mMembers; curr; curr = curr->GetNext()) {
+      if (curr->ShouldExposeToUntrustedContent()) {
+        JS::Rooted<jsid> id(cx);
+        JS::TwoByteChars chars(curr->GetName(), NS_strlen(curr->GetName()));
+        bool ok = JS_CharsToId(cx, chars, id.address());
+        NS_ENSURE_TRUE(ok, NS_ERROR_UNEXPECTED);
+        JS_CopyPropertyFrom(cx, id, targetClassObject, propertyHolder);
+        NS_ENSURE_TRUE(ok, NS_ERROR_UNEXPECTED);
+      }
+    }
   }
 
   // Install all of our field accessors.
