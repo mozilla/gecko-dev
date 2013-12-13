@@ -307,6 +307,7 @@ nsIPrincipal *GetCompartmentPrincipal(JSCompartment *compartment);
 nsIPrincipal *GetObjectPrincipal(JSObject *obj);
 
 bool IsXBLScope(JSCompartment *compartment);
+bool IsInXBLScope(JSObject *obj);
 
 void SetLocationForGlobal(JSObject *global, const nsACString& location);
 void SetLocationForGlobal(JSObject *global, nsIURI *locationURI);
