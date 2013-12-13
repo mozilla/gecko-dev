@@ -24,6 +24,7 @@ this.EXPORTED_SYMBOLS = ["OS"];
 let SharedAll = {};
 Components.utils.import("resource://gre/modules/osfile/osfile_shared_allthreads.jsm", SharedAll);
 Components.utils.import("resource://gre/modules/Deprecated.jsm", this);
+Components.utils.import("resource://gre/modules/Timer.jsm", this);
 
 // Boilerplate, to simplify the transition to require()
 let OS = SharedAll.OS;
@@ -138,8 +139,7 @@ let clone = function clone(object, refs = noRefs) {
   return result;
 };
 
-let worker = new PromiseWorker(
-  "resource://gre/modules/osfile/osfile_async_worker.js", LOG);
+let worker = null;
 let Scheduler = {
   /**
    * |true| once we have sent at least one message to the worker.
@@ -157,12 +157,37 @@ let Scheduler = {
    */
   latestPromise: Promise.resolve("OS.File scheduler hasn't been launched yet"),
 
+  /**
+   * A timer used to automatically shut down the worker after some time.
+   */
+  resetTimer: null,
+
+  restartTimer: function(arg) {
+    let delay;
+    try {
+      delay = Services.prefs.getIntPref("osfile.reset_worker_delay");
+    } catch(e) {
+      // Don't auto-shutdown if we don't have a delay preference set.
+      return;
+    }
+
+    if (this.resetTimer) {
+      clearTimeout(this.resetTimer);
+    }
+    this.resetTimer = setTimeout(File.resetWorker, delay);
+  },
+
   post: function post(...args) {
     this.launched = true;
-
     if (this.shutdown) {
       LOG("OS.File is not available anymore. The following request has been rejected.", args);
       return Promise.reject(new Error("OS.File has been shut down."));
+    }
+
+    if (!worker) {
+      // Either the worker has never been created or it has been reset
+      worker = new PromiseWorker(
+        "resource://gre/modules/osfile/osfile_async_worker.js", LOG);
     }
 
     // By convention, the last argument of any message may be an |options| object.
@@ -171,6 +196,12 @@ let Scheduler = {
     let promise = worker.post.apply(worker, args);
     return this.latestPromise = promise.then(
       function onSuccess(data) {
+        // Don't restart the timer when reseting the worker, since that will
+        // lead to an endless "resetWorker()" loop.
+        if (args[0] != "Meta_reset") {
+          Scheduler.restartTimer();
+        }
+
         // Check for duration and return result.
         if (!options) {
           return data.ok;
@@ -199,6 +230,12 @@ let Scheduler = {
         return data.ok;
       },
       function onError(error) {
+        // Don't restart the timer when reseting the worker, since that will
+        // lead to an endless "resetWorker()" loop.
+        if (args[0] != "Meta_reset") {
+          Scheduler.restartTimer();
+        }
+
         // Decode any serialized error
         if (error instanceof PromiseWorker.WorkerError) {
           throw OS.File.Error.fromMsg(error.data);
@@ -994,14 +1031,51 @@ DirectoryIterator.Entry.fromMsg = function fromMsg(value) {
   return new DirectoryIterator.Entry(value);
 };
 
+/**
+ * Flush all operations currently queued, then kill the underlying
+ * worker to save memory.
+ *
+ * @return {Promise}
+ * @reject {Error} If at least one file or directory iterator instance
+ * is still open and the worker cannot be killed safely.
+ */
+File.resetWorker = function() {
+  if (!Scheduler.launched || Scheduler.shutdown) {
+    // No need to reset
+    return Promise.resolve();
+  }
+  return Scheduler.post("Meta_reset").then(
+    function(wouldLeak) {
+      if (!wouldLeak) {
+        // No resource would leak, the worker was stopped.
+        worker = null;
+        return;
+      }
+      // Otherwise, resetting would be unsafe and has been canceled.
+      // Turn this into an error
+      let msg = "Cannot reset worker: ";
+      let {openedFiles, openedDirectoryIterators} = wouldLeak;
+      if (openedFiles.length > 0) {
+        msg += "The following files are still open:\n" +
+          openedFiles.join("\n");
+      }
+      if (openedDirectoryIterators.length > 0) {
+        msg += "The following directory iterators are still open:\n" +
+          openedDirectoryIterators.join("\n");
+      }
+      throw new Error(msg);
+    }
+  );
+};
+
 // Constants
 Object.defineProperty(File, "POS_START", {value: OS.Shared.POS_START});
 Object.defineProperty(File, "POS_CURRENT", {value: OS.Shared.POS_CURRENT});
 Object.defineProperty(File, "POS_END", {value: OS.Shared.POS_END});
 
-OS.File = File;
-OS.File.Error = OSError;
-OS.File.DirectoryIterator = DirectoryIterator;
+this.OS.File = File;
+this.OS.File.Error = OSError;
+this.OS.File.DirectoryIterator = DirectoryIterator;
 
 
 // Auto-flush OS.File during profile-before-change. This ensures that any I/O
