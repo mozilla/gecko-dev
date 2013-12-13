@@ -1436,6 +1436,7 @@ public:
 
     bool IsXBLScope() { return mIsXBLScope; }
     bool AllowXBLScope() { return mAllowXBLScope; }
+    bool UseXBLScope() { return mUseXBLScope; }
 
 protected:
     virtual ~XPCWrappedNativeScope();
