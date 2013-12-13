@@ -17,10 +17,8 @@ _CHROME_FILES = \
 		$(NULL)
 
 MOCHITEST_FILES =	\
-		test_contextmenu_nested.xul \
 		tree_shared.js \
 		test_mousecapture_area.html \
-		popup_shared.js \
 		test_videocontrols.html \
 		test_videocontrols_video_direction.html \
 		test_videocontrols_audio_direction.html \
@@ -46,18 +44,22 @@ MOCHITEST_FILES =	\
 
 MOCHITEST_CHROME_FILES = \
 		tree_shared.js \
+		popup_shared.js \
 		test_tree_column_reorder.xul \
 		test_editor_currentURI.xul \
+		test_contextmenu_nested.xul \
 		$(NULL)
 
 ifneq (cocoa,$(MOZ_WIDGET_TOOLKIT))
-MOCHITEST_FILES += test_menubar.xul \
-               window_menubar.xul
+MOCHITEST_CHROME_FILES += \
+		test_menubar.xul \
+		window_menubar.xul \
+		$(NULL)
 endif
 
 # popup anchor tests don't work on android.
 ifneq (android,$(MOZ_WIDGET_TOOLKIT))
-MOCHITEST_FILES += \
+MOCHITEST_CHROME_FILES += \
 		test_popupanchor.xul \
 		$(NULL)
 endif
