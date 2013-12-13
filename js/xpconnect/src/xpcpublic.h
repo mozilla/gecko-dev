@@ -62,6 +62,8 @@ AllowXBLScope(JSCompartment *c);
 bool
 IsSandboxPrototypeProxy(JSObject *obj);
 
+bool
+IsXrayWrapper(JSObject *obj);
 } /* namespace xpc */
 
 #define XPCONNECT_GLOBAL_FLAGS                                                \

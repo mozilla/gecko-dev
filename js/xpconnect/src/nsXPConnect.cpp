@@ -1697,3 +1697,13 @@ JS_EXPORT_API(void) DumpCompleteHeap()
 
 JS_END_EXTERN_C
 
+namespace xpc {
+
+bool
+IsXrayWrapper(JSObject *obj)
+{
+    return WrapperFactory::IsXrayWrapper(obj);
+}
+
+} // namespace xpc
+
