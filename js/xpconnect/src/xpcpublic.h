@@ -333,6 +333,7 @@ nsIPrincipal *GetCompartmentPrincipal(JSCompartment *compartment);
 nsIPrincipal *GetObjectPrincipal(JSObject *obj);
 
 bool IsXBLScope(JSCompartment *compartment);
+bool IsInXBLScope(JSObject *obj);
 
 void DumpJSHeap(FILE* file);
 
