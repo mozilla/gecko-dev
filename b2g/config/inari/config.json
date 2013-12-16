@@ -24,7 +24,7 @@
         "B2GUPDATER": "1"
     },
     "b2g_manifest": "inari.xml",
-    "b2g_manifest_branch": "v1.2",
+    "b2g_manifest_branch": "v1.2f",
     "additional_source_tarballs": ["backup-inari.tar.xz"],
     "gecko_l10n_root": "https://hg.mozilla.org/releases/l10n/mozilla-aurora",
     "gaia": {
