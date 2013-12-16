@@ -198,6 +198,7 @@ static void ReadPipe()
          numBytesRead) {
     buffer[numBytesRead] = '\0';
     printf("%s", buffer);
+    fflush(stdout);
   }
 }
 
