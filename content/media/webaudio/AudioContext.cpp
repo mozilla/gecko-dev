@@ -543,7 +543,12 @@ GetHashtableElements(nsTHashtable<nsPtrHashKey<T> >& aHashtable, nsTArray<T*>& a
 void
 AudioContext::Shutdown()
 {
-  Suspend();
+  // We mute rather than suspending, because the delay between the ::Shutdown
+  // call and the CC would make us overbuffer in the MediaStreamGraph.
+  // See bug 936784 for details.
+  if (!mIsOffline) {
+    Mute();
+  }
 
   // Release references to active nodes.
   // Active AudioNodes don't unregister in destructors, at which point the
