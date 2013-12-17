@@ -292,7 +292,6 @@ MOCHITEST_BROWSER_FILES = \
                  dummy_page.html \
                  file_bug550565_popup.html \
                  file_bug550565_favicon.ico \
-                 browser_aboutHome.js \
                  app_bug575561.html \
                  app_subframe_bug575561.html \
                  browser_contentAreaClick.js \
@@ -361,10 +360,12 @@ MOCHITEST_BROWSER_FILES += \
 endif
 
 # browser_aboutHealthReport.js disabled for frequent failures on Linux (bug 924307)
+# browser_aboutHome.js disabled for frequent failures on Linux (bug 945667)
 # browser_CTP_context_menu.js fails intermittently on Linux (bug 909342)
 ifndef MOZ_WIDGET_GTK
 MOCHITEST_BROWSER_FILES += \
   browser_aboutHealthReport.js \
+  browser_aboutHome.js \
   browser_CTP_context_menu.js \
   $(NULL)
 endif
