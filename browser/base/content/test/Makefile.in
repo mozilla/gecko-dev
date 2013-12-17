@@ -65,7 +65,6 @@ MOCHITEST_BROWSER_FILES = \
                  blockPluginHard.xml \
                  blockPluginVulnerableNoUpdate.xml \
                  blockPluginVulnerableUpdatable.xml \
-                 browser_aboutHome.js \
                  browser_aboutSyncProgress.js \
                  browser_addKeywordSearch.js \
                  browser_addon_bar_aomlistener.js \
@@ -381,10 +380,12 @@ MOCHITEST_BROWSER_FILES += \
 endif
 
 # browser_aboutHealthReport.js disabled for frequent failures on Linux (bug 924307)
+# browser_aboutHome.js disabled for frequent failures on Linux (bug 945667)
 # browser_CTP_context_menu.js fails intermittently on Linux (bug 909342)
 ifndef MOZ_WIDGET_GTK
 MOCHITEST_BROWSER_FILES += \
   browser_aboutHealthReport.js \
+  browser_aboutHome.js \
   browser_CTP_context_menu.js \
   $(NULL)
 endif
