@@ -1421,10 +1421,7 @@ gfxPangoFontGroup::GetFontAt(int32_t i)
 void
 gfxPangoFontGroup::UpdateFontList()
 {
-    if (!mUserFontSet)
-        return;
-
-    uint64_t newGeneration = mUserFontSet->GetGeneration();
+    uint64_t newGeneration = GetGeneration();
     if (newGeneration == mCurrGeneration)
         return;
 
