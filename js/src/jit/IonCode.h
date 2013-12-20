@@ -321,7 +321,6 @@ struct IonScript
             }
         }
     }
-    void detachDependentAsmJSModules(FreeOp *fop);
 
   private:
     void trace(JSTracer *trc);
@@ -495,7 +494,7 @@ struct IonScript
     void toggleBarriers(bool enabled);
     void purgeCaches(JS::Zone *zone);
     void destroyCaches();
-    void destroyBackedges(JSRuntime *rt);
+    void unlinkFromRuntime(FreeOp *fop);
     void copySnapshots(const SnapshotWriter *writer);
     void copyBailoutTable(const SnapshotOffset *table);
     void copyConstants(const Value *vp);
