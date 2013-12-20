@@ -1681,6 +1681,16 @@ JS_EXPORT_API(void) DumpCompleteHeap()
 
 } // extern "C"
 
+namespace xpc {
+
+bool
+IsXrayWrapper(JSObject *obj)
+{
+    return WrapperFactory::IsXrayWrapper(obj);
+}
+
+} // namespace xpc
+
 
 namespace mozilla {
 namespace dom {
