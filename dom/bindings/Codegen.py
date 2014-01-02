@@ -2419,18 +2419,9 @@ class CallbackObjectUnwrapper:
                 ).substitute(self.substitution)
 
         return checkObjectType + string.Template(
-            """nsISupports* supp = nullptr;
-if (XPCConvert::GetISupportsFromJSObject(${source}, &supp)) {
-  nsCOMPtr<nsIXPConnectWrappedNative> xpcwn = do_QueryInterface(supp);
-  if (xpcwn) {
-    supp = xpcwn->Native();
-  }
-}
-
-const nsIID& iid = NS_GET_IID(${nativeType});
+            """const nsIID& iid = NS_GET_IID(${nativeType});
 nsRefPtr<nsXPCWrappedJS> wrappedJS;
-nsresult rv = nsXPCWrappedJS::GetNewOrUsed(${source}, iid,
-                                           supp, getter_AddRefs(wrappedJS));
+nsresult rv = nsXPCWrappedJS::GetNewOrUsed(${source}, iid, nullptr, getter_AddRefs(wrappedJS));
 if (NS_FAILED(rv) || !wrappedJS) {
 ${codeOnFailure}
 }
