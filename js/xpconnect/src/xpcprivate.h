@@ -2805,12 +2805,6 @@ public:
     JSBool IsAggregatedToNative() const {return mRoot->mOuter != nullptr;}
     nsISupports* GetAggregatedNativeObject() const {return mRoot->mOuter;}
 
-    void SetIsMainThreadOnly() {
-        MOZ_ASSERT(mMainThread);
-        mMainThreadOnly = true;
-    }
-    bool IsMainThreadOnly() const {return mMainThreadOnly;}
-
     void TraceJS(JSTracer* trc);
     static void GetTraceName(JSTracer* trc, char *buf, size_t bufsize);
 
@@ -2831,8 +2825,6 @@ private:
     nsXPCWrappedJS* mRoot;
     nsXPCWrappedJS* mNext;
     nsISupports* mOuter;    // only set in root
-    bool mMainThread;
-    bool mMainThreadOnly;
 };
 
 /***************************************************************************/
