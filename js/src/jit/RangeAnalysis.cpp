@@ -1108,7 +1108,6 @@ MToDouble::computeRange()
 void
 MToFloat32::computeRange()
 {
-    setRange(new Range(getOperand(0)));
 }
 
 void
