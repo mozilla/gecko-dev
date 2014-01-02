@@ -2421,7 +2421,7 @@ class CallbackObjectUnwrapper:
         return checkObjectType + string.Template(
             """const nsIID& iid = NS_GET_IID(${nativeType});
 nsRefPtr<nsXPCWrappedJS> wrappedJS;
-nsresult rv = nsXPCWrappedJS::GetNewOrUsed(${source}, iid, nullptr, getter_AddRefs(wrappedJS));
+nsresult rv = nsXPCWrappedJS::GetNewOrUsed(${source}, iid, getter_AddRefs(wrappedJS));
 if (NS_FAILED(rv) || !wrappedJS) {
 ${codeOnFailure}
 }
