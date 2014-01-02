@@ -2947,6 +2947,10 @@ nsCanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
     processor.mFontgrp = GetCurrentFontStyle();
     NS_ASSERTION(processor.mFontgrp, "font group is null");
 
+    // ensure user font set is up to date
+    processor.mFontgrp->
+        SetUserFontSet(presShell->GetPresContext()->GetUserFontSet());
+
     nscoord totalWidthCoord;
 
     // calls bidi algo twice since it needs the full text width and the
@@ -3173,6 +3177,11 @@ nsCanvasRenderingContext2D::MakeTextRun(const PRUnichar* aText,
     gfxFontGroup* currentFontStyle = GetCurrentFontStyle();
     if (!currentFontStyle)
         return nullptr;
+
+    // ensure user font set is up to date
+    currentFontStyle->
+        SetUserFontSet(presShell->GetPresContext()->GetUserFontSet());
+
     currentFontStyle->UpdateFontList(); // ensure user font generation is current
     return currentFontStyle->MakeTextRun(aText, aLength,
                                          mThebes, aAppUnitsPerDevUnit, aFlags);

@@ -3114,14 +3114,16 @@ gfxGlyphExtents::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
 }
 
 gfxFontGroup::gfxFontGroup(const nsAString& aFamilies, const gfxFontStyle *aStyle, gfxUserFontSet *aUserFontSet)
-    : mFamilies(aFamilies), mStyle(*aStyle), mUnderlineOffset(UNDERLINE_OFFSET_NOT_SET)
+    : mFamilies(aFamilies)
+    , mStyle(*aStyle)
+    , mUnderlineOffset(UNDERLINE_OFFSET_NOT_SET)
+    , mUserFontSet(aUserFontSet)
+    , mPageLang(gfxPlatform::GetFontPrefLangFor(aStyle->language))
+    , mSkipDrawing(false)
 {
-    mUserFontSet = nullptr;
-    SetUserFontSet(aUserFontSet);
-
-    mSkipDrawing = false;
-
-    mPageLang = gfxPlatform::GetFontPrefLangFor(mStyle.language);
+    // We don't use SetUserFontSet() here, as we want to unconditionally call
+    // BuildFontList() rather than only do UpdateFontList() if it changed.
+    mCurrGeneration = GetGeneration();
     BuildFontList();
 }
 
@@ -3255,9 +3257,9 @@ gfxFontGroup::HasFont(const gfxFontEntry *aFontEntry)
     return false;
 }
 
-gfxFontGroup::~gfxFontGroup() {
+gfxFontGroup::~gfxFontGroup()
+{
     mFonts.Clear();
-    SetUserFontSet(nullptr);
 }
 
 gfxFontGroup *
@@ -4084,10 +4086,12 @@ gfxFontGroup::GetUserFontSet()
 void 
 gfxFontGroup::SetUserFontSet(gfxUserFontSet *aUserFontSet)
 {
-    NS_IF_RELEASE(mUserFontSet);
+    if (aUserFontSet == mUserFontSet) {
+        return;
+    }
     mUserFontSet = aUserFontSet;
-    NS_IF_ADDREF(mUserFontSet);
-    mCurrGeneration = GetGeneration();
+    mCurrGeneration = GetGeneration() - 1;
+    UpdateFontList();
 }
 
 uint64_t
@@ -4101,7 +4105,7 @@ gfxFontGroup::GetGeneration()
 void
 gfxFontGroup::UpdateFontList()
 {
-    if (mUserFontSet && mCurrGeneration != GetGeneration()) {
+    if (mCurrGeneration != GetGeneration()) {
         // xxx - can probably improve this to detect when all fonts were found, so no need to update list
         mFonts.Clear();
         mUnderlineOffset = UNDERLINE_OFFSET_NOT_SET;
