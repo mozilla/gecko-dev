@@ -1585,11 +1585,6 @@ struct JSJitInfo {
         Method
     };
 
-    bool isDOMJitInfo() const
-    {
-        return type != OpType_None;
-    }
-
     union {
         JSJitGetterOp getter;
         JSJitSetterOp setter;
@@ -1597,9 +1592,6 @@ struct JSJitInfo {
     };
     uint32_t protoID;
     uint32_t depth;
-    // type not being OpType_None means this is a DOM method.  If you
-    // change that, come up with a different way of implementing
-    // isDOMJitInfo().
     OpType type;
     bool isInfallible;      /* Is op fallible? False in setters. */
     bool isConstant;        /* Getting a construction-time constant? */
