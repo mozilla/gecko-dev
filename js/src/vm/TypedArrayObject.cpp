@@ -627,31 +627,8 @@ ArrayBufferObject::stealContents(JSContext *cx, JSObject *obj, void **contents,
     // Neuter the donor ArrayBufferObject and all views of it
     ArrayBufferObject::setElementsHeader(header, 0);
     InitViewList(&buffer, views);
-    size_t numViews = 0;
-    for (ArrayBufferViewObject *view = views; view; view = view->nextView()) {
+    for (ArrayBufferViewObject *view = views; view; view = view->nextView())
         view->neuter();
-        numViews++;
-    }
-
-    // remove buffer from the list of buffers with > 1 view
-    if (numViews > 1) {
-        JSCompartment *comp = buffer.compartment();
-        ArrayBufferObject *prev = comp->gcLiveArrayBuffers;
-        if (prev == &buffer) {
-            comp->gcLiveArrayBuffers = GetViewList(prev)->bufferLink();
-        } else {
-            for (ArrayBufferObject *buf = GetViewList(prev)->bufferLink();
-                 buf;
-                 buf = GetViewList(buf)->bufferLink())
-            {
-                if (buf == &buffer) {
-                    GetViewList(prev)->setBufferLink(GetViewList(buf)->bufferLink());
-                    break;
-                }
-                prev = buf;
-            }
-        }
-    }
 
     return true;
 }
