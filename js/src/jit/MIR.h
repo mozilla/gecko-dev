@@ -3724,6 +3724,10 @@ class MMul : public MBinaryArithInstruction
         return canBeNegativeZero_ || canOverflow();
     }
 
+    void setSpecialization(MIRType type) {
+        specialization_ = type;
+    }
+
     bool isFloat32Commutative() const { return true; }
 
     void computeRange();
