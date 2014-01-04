@@ -5649,7 +5649,8 @@ CodeGenerator::visitGetElementCacheV(LGetElementCacheV *ins)
     ConstantOrRegister index = TypedOrValueRegister(ToValue(ins, LGetElementCacheV::Index));
     TypedOrValueRegister output = TypedOrValueRegister(GetValueOutput(ins));
 
-    GetElementIC cache(obj, index, output, ins->mir()->monitoredResult());
+    GetElementIC cache(obj, index, output, ins->mir()->monitoredResult(),
+                       ins->mir()->allowDoubleResult());
 
     return addCache(ins, allocateCache(cache));
 }
@@ -5661,7 +5662,8 @@ CodeGenerator::visitGetElementCacheT(LGetElementCacheT *ins)
     ConstantOrRegister index = TypedOrValueRegister(MIRType_Int32, ToAnyRegister(ins->index()));
     TypedOrValueRegister output(ins->mir()->type(), ToAnyRegister(ins->output()));
 
-    GetElementIC cache(obj, index, output, ins->mir()->monitoredResult());
+    GetElementIC cache(obj, index, output, ins->mir()->monitoredResult(),
+                       ins->mir()->allowDoubleResult());
 
     return addCache(ins, allocateCache(cache));
 }

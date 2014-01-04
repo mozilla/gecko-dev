@@ -2361,7 +2361,7 @@ GetElementIC::attachTypedArrayElement(JSContext *cx, IonScript *ion, JSObject *o
     int width = TypedArray::slotWidth(arrayType);
     BaseIndex source(elementReg, indexReg, ScaleFromElemWidth(width));
     if (output().hasValue())
-        masm.loadFromTypedArray(arrayType, source, output().valueReg(), true,
+        masm.loadFromTypedArray(arrayType, source, output().valueReg(), allowDoubleResult(),
                                 elementReg, &popAndFail);
     else
         masm.loadFromTypedArray(arrayType, source, output().typedReg(),

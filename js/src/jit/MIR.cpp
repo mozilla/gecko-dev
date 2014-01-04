@@ -2332,6 +2332,15 @@ MStoreTypedArrayElementStatic::length() const
 }
 
 bool
+MGetElementCache::allowDoubleResult() const
+{
+    if (!resultTypeSet())
+        return true;
+
+    return resultTypeSet()->hasType(types::Type::DoubleType());
+}
+
+bool
 MGetPropertyPolymorphic::mightAlias(MDefinition *store)
 {
     // Allow hoisting this instruction if the store does not write to a
