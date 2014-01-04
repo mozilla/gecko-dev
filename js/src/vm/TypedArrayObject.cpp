@@ -599,6 +599,30 @@ ArrayBufferObject::stealContents(JSContext *cx, JSObject *obj, void **contents,
 {
     ArrayBufferObject &buffer = obj->as<ArrayBufferObject>();
     ArrayBufferViewObject *views = GetViewList(&buffer);
+
+    // remove buffer from the list of buffers with > 1 view, if it is there yet
+    // (the list is only built during tracing)
+    if (views && views->nextView() &&
+        GetViewList(&buffer)->bufferLink() != UNSET_BUFFER_LINK)
+    {
+        JSCompartment *comp = buffer.compartment();
+        ArrayBufferObject *prev = comp->gcLiveArrayBuffers;
+        if (prev == &buffer) {
+            comp->gcLiveArrayBuffers = GetViewList(prev)->bufferLink();
+        } else {
+            for (ArrayBufferObject *buf = GetViewList(prev)->bufferLink();
+                 buf;
+                 buf = GetViewList(buf)->bufferLink())
+            {
+                if (buf == &buffer) {
+                    GetViewList(prev)->setBufferLink(GetViewList(buf)->bufferLink());
+                    break;
+                }
+                prev = buf;
+            }
+        }
+    }
+
     js::ObjectElements *header = js::ObjectElements::fromElements((js::HeapSlot*)buffer.dataPointer());
     if (buffer.hasDynamicElements() && !buffer.isAsmJSArrayBuffer()) {
         SetViewList(&buffer, NULL);
