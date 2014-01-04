@@ -325,7 +325,8 @@ class CodeGenerator : public CodeGeneratorSpecific
                              PropertyName *name, TypedOrValueRegister output,
                              bool allowGetters);
     bool addGetElementCache(LInstruction *ins, Register obj, ConstantOrRegister index,
-                            TypedOrValueRegister output, bool monitoredResult);
+                            TypedOrValueRegister output, bool monitoredResult,
+                            bool allowDoubleResult);
     bool checkForAbortPar(LInstruction *lir);
 
     bool generateBranchV(const ValueOperand &value, Label *ifTrue, Label *ifFalse, FloatRegister fr);
