@@ -849,6 +849,7 @@ BluetoothDBusService::AddReservedServicesInternal(const nsAString& aAdapterPath,
   int length = aServices.Length();
   if (length == 0) return false;
 
+  NS_ENSURE_TRUE(gThreadConnection->GetConnection(), false);
   const uint32_t* services = aServices.Elements();
   DBusMessage* reply =
     dbus_func_args(gThreadConnection->GetConnection(),
