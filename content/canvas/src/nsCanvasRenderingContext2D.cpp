@@ -3178,7 +3178,11 @@ nsCanvasRenderingContext2D::MakeTextRun(const PRUnichar* aText,
     if (!currentFontStyle)
         return nullptr;
 
-    // ensure user font set is up to date
+    nsCOMPtr<nsIPresShell> presShell = GetPresShell();
+    if (!presShell)
+        return NS_ERROR_FAILURE;
+
+   // ensure user font set is up to date
     currentFontStyle->
         SetUserFontSet(presShell->GetPresContext()->GetUserFontSet());
 
