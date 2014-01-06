@@ -1957,7 +1957,10 @@ gfxPangoFontGroup::GetFontAt(int32_t i) {
 void
 gfxPangoFontGroup::UpdateFontList()
 {
-    uint64_t newGeneration = GetGeneration();
+    if (!mUserFontSet)
+        return;
+
+    uint64_t newGeneration = mUserFontSet->GetGeneration();
     if (newGeneration == mCurrGeneration)
         return;
 
