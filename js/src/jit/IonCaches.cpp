@@ -604,8 +604,19 @@ IsCacheableGetPropCallNative(JSObject *obj, JSObject *holder, Shape *shape)
     if (!shape->hasGetterValue() || !shape->getterValue().isObject())
         return false;
 
-    return shape->getterValue().toObject().is<JSFunction>() &&
-           shape->getterValue().toObject().as<JSFunction>().isNative();
+    if (!shape->getterValue().toObject().is<JSFunction>())
+        return false;
+
+    JSFunction& getter = shape->getterValue().toObject().as<JSFunction>();
+    if (!getter.isNative())
+        return false;
+
+    // Check for a DOM method; those are OK with both inner and outer objects.
+    if (getter.jitInfo())
+        return true;
+
+    // For non-DOM methods, don't cache if obj has an outerObject hook.
+    return !obj->getClass()->ext.outerObject;
 }
 
 static bool
@@ -2971,16 +2982,21 @@ GetElementIC::canAttachTypedArrayElement(JSObject *obj, const Value &idval,
 
     // The output register is not yet specialized as a float register, the only
     // way to accept float typed arrays for now is to return a Value type.
-    int arrayType = obj->as<TypedArrayObject>().type();
-    bool floatOutput = arrayType == ScalarTypeRepresentation::TYPE_FLOAT32 ||
-                       arrayType == ScalarTypeRepresentation::TYPE_FLOAT64;
-    return !floatOutput || output.hasValue();
+    uint32_t arrayType = obj->as<TypedArrayObject>().type();
+    if (arrayType == ScalarTypeRepresentation::TYPE_FLOAT32 ||
+        arrayType == ScalarTypeRepresentation::TYPE_FLOAT64)
+    {
+        return output.hasValue();
+    }
+
+    return output.hasValue() || !output.typedReg().isFloat();
 }
 
 static void
 GenerateGetTypedArrayElement(JSContext *cx, MacroAssembler &masm, IonCache::StubAttacher &attacher,
                              TypedArrayObject *tarr, const Value &idval, Register object,
-                             ConstantOrRegister index, TypedOrValueRegister output)
+                             ConstantOrRegister index, TypedOrValueRegister output,
+                             bool allowDoubleResult)
 {
     JS_ASSERT(GetElementIC::canAttachTypedArrayElement(tarr, idval, output));
 
@@ -3062,12 +3078,12 @@ GenerateGetTypedArrayElement(JSContext *cx, MacroAssembler &masm, IonCache::Stub
     // register is necessary a non double register.
     int width = TypedArrayObject::slotWidth(arrayType);
     BaseIndex source(elementReg, indexReg, ScaleFromElemWidth(width));
-    if (output.hasValue())
-        masm.loadFromTypedArray(arrayType, source, output.valueReg(), true,
+    if (output.hasValue()) {
+        masm.loadFromTypedArray(arrayType, source, output.valueReg(), allowDoubleResult,
                                 elementReg, &popAndFail);
-    else
-        masm.loadFromTypedArray(arrayType, source, output.typedReg(),
-                                elementReg, &popAndFail);
+    } else {
+        masm.loadFromTypedArray(arrayType, source, output.typedReg(), elementReg, &popAndFail);
+    }
 
     masm.pop(object);
     attacher.jumpRejoin(masm);
@@ -3086,7 +3102,8 @@ GetElementIC::attachTypedArrayElement(JSContext *cx, IonScript *ion, TypedArrayO
 {
     MacroAssembler masm(cx);
     RepatchStubAppender attacher(*this);
-    GenerateGetTypedArrayElement(cx, masm, attacher, tarr, idval, object(), index(), output());
+    GenerateGetTypedArrayElement(cx, masm, attacher, tarr, idval, object(), index(), output(),
+                                 allowDoubleResult());
     return linkAndAttachStub(cx, masm, attacher, ion, "typed array");
 }
 
@@ -3576,7 +3593,8 @@ GetElementParIC::attachTypedArrayElement(LockedJSContext &cx, IonScript *ion,
 {
     MacroAssembler masm(cx);
     DispatchStubPrepender attacher(*this);
-    GenerateGetTypedArrayElement(cx, masm, attacher, tarr, idval, object(), index(), output());
+    GenerateGetTypedArrayElement(cx, masm, attacher, tarr, idval, object(), index(), output(),
+                                 allowDoubleResult());
     return linkAndAttachStub(cx, masm, attacher, ion, "parallel typed array");
 }
 

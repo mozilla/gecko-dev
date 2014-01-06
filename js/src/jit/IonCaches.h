@@ -703,6 +703,7 @@ class GetElementIC : public RepatchIonCache
     TypedOrValueRegister output_;
 
     bool monitoredResult_ : 1;
+    bool allowDoubleResult_ : 1;
     bool hasDenseStub_ : 1;
     bool hasStrictArgumentsStub_ : 1;
     bool hasNormalArgumentsStub_ : 1;
@@ -713,11 +714,12 @@ class GetElementIC : public RepatchIonCache
 
   public:
     GetElementIC(Register object, ConstantOrRegister index,
-                 TypedOrValueRegister output, bool monitoredResult)
+                 TypedOrValueRegister output, bool monitoredResult, bool allowDoubleResult)
       : object_(object),
         index_(index),
         output_(output),
         monitoredResult_(monitoredResult),
+        allowDoubleResult_(allowDoubleResult),
         hasDenseStub_(false),
         hasStrictArgumentsStub_(false),
         hasNormalArgumentsStub_(false),
@@ -740,6 +742,9 @@ class GetElementIC : public RepatchIonCache
     }
     bool monitoredResult() const {
         return monitoredResult_;
+    }
+    bool allowDoubleResult() const {
+        return allowDoubleResult_;
     }
     bool hasDenseStub() const {
         return hasDenseStub_;
@@ -1062,14 +1067,16 @@ class GetElementParIC : public ParallelIonCache
     TypedOrValueRegister output_;
 
     bool monitoredResult_ : 1;
+    bool allowDoubleResult_ : 1;
 
   public:
     GetElementParIC(Register object, ConstantOrRegister index,
-                    TypedOrValueRegister output, bool monitoredResult)
+                    TypedOrValueRegister output, bool monitoredResult, bool allowDoubleResult)
       : object_(object),
         index_(index),
         output_(output),
-        monitoredResult_(monitoredResult)
+        monitoredResult_(monitoredResult),
+        allowDoubleResult_(allowDoubleResult)
     {
     }
 
@@ -1092,6 +1099,9 @@ class GetElementParIC : public ParallelIonCache
     }
     bool monitoredResult() const {
         return monitoredResult_;
+    }
+    bool allowDoubleResult() const {
+        return allowDoubleResult_;
     }
 
     // CanAttachNativeGetProp Helpers

@@ -1407,6 +1407,14 @@ IonBuilder::inspectOpcode(JSOp op)
                             // Update both the original and cloned type set.
                             argTypes->addType(cx, types::Type::UnknownType());
                             op->resultTypeSet()->addType(cx, types::Type::UnknownType());
+
+                            if (value->isMul()) {
+                                value->setResultType(MIRType_Double);
+                                value->toMul()->setSpecialization(MIRType_Double);
+                            } else {
+                                JS_ASSERT(value->type() == MIRType_Int32);
+                            }
+                            value->setResultTypeSet(nullptr);
                         }
                     }
                 }
