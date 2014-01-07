@@ -60,8 +60,6 @@ class MIRGenerator
 
     template <typename T>
     T * allocate(size_t count = 1) {
-        if (count & tl::MulOverflowMask<sizeof(T)>::value)
-            return NULL;
         return reinterpret_cast<T *>(temp().allocate(sizeof(T) * count));
     }
 
