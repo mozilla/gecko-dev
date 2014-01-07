@@ -466,7 +466,7 @@ ArrayBufferObject::stealContents(JSContext *cx, JSObject *obj, void **contents,
     JSObject *views = *GetViewList(&buffer);
 
     // remove buffer from the list of buffers with > 1 view
-    if (views && NextView(&buffer) && BufferLink(*GetViewList(&buffer)) != UNSET_BUFFER_LINK)
+    if (views && NextView(views) && BufferLink(*GetViewList(&buffer)) != UNSET_BUFFER_LINK)
     {
         ArrayBufferObject *prev = &cx->runtime->liveArrayBuffers->asArrayBuffer();
         if (prev == &buffer) {
