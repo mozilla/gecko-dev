@@ -1182,6 +1182,15 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
     }
   }
 
+  // If the scrollable rect has changed since the last paint request, and the display port
+  // we are receiving here is the one calculated based on the old scrollable rect, that
+  // display port will be incorrect. Force a content repaint to force a recalculation
+  // of the display port.
+  if (!(mLastPaintRequestMetrics.mScrollableRect.IsEqualEdges(mFrameMetrics.mScrollableRect))
+      && aLayerMetrics.mDisplayPort.IsEqualEdges(mLastPaintRequestMetrics.mDisplayPort)) {
+      needContentRepaint = true;
+  }
+
   if (aIsFirstPaint || isDefault) {
     mPaintThrottler.ClearHistory();
     mPaintThrottler.SetMaxDurations(gNumPaintDurationSamples);
