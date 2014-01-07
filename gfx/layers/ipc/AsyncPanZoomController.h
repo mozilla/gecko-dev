@@ -242,8 +242,17 @@ public:
 
   /**
    * Returns true if this APZC instance is for the layer identified by the guid.
+   * This one does not compare pres shell ids because they are not set correctly 
+   * everywhere.
    */
   bool Matches(const ScrollableLayerGuid& aGuid);
+
+  /**
+   * Returns true if this APZC instance is for the layer identified by the guid.
+   * This one compares pres shell ids because in some cases we know they are
+   * set correctly and it's important that they are equal.
+   */
+  bool FullyMatches(const ScrollableLayerGuid& aGuid);
 
   /**
    * Sync panning and zooming animation using a fixed frame time.

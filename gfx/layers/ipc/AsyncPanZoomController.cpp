@@ -1449,5 +1449,12 @@ bool AsyncPanZoomController::Matches(const ScrollableLayerGuid& aGuid)
   return aGuid.mLayersId == mLayersId && aGuid.mScrollId == mFrameMetrics.mScrollId;
 }
 
+bool AsyncPanZoomController::FullyMatches(const ScrollableLayerGuid& aGuid)
+{
+  return aGuid.mLayersId == mLayersId
+      && aGuid.mPresShellId == mFrameMetrics.mPresShellId
+      && aGuid.mScrollId == mFrameMetrics.mScrollId;
+}
+
 }
 }
