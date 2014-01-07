@@ -24,7 +24,7 @@ class FixedList
 
   public:
     FixedList()
-      : length_(0), list_(NULL)
+      : length_(0)
     { }
 
     // Dynamic memory allocation requires the ability to report failure.
@@ -33,8 +33,6 @@ class FixedList
         if (length == 0)
             return true;
 
-        if (length & tl::MulOverflowMask<sizeof(T)>::result)
-            return false;
         list_ = (T *)GetIonContext()->temp->allocate(length * sizeof(T));
         return list_ != NULL;
     }
