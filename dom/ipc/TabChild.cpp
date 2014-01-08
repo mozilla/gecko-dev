@@ -1678,6 +1678,19 @@ TabChild::ProcessUpdateSubframe(nsIContent* aContent,
   nsCOMPtr<nsIDOMWindowUtils> utils(::GetDOMWindowUtils(aContent));
   nsCOMPtr<nsIDOMElement> element = do_QueryInterface(aContent);
   if (utils && element) {
+    gfxSize resolution(1.0, 1.0);
+    if (aContent->GetPrimaryFrame()) {
+      resolution = aContent->GetPrimaryFrame()->PresContext()->PresShell()->GetCumulativeResolution();
+    }
+    if (aMetrics.mDisplayPort.width * aMetrics.mDevPixelsPerCSSPixel.scale * resolution.width > 4096 ||
+        aMetrics.mDisplayPort.height * aMetrics.mDevPixelsPerCSSPixel.scale * resolution.height > 4096) {
+      // The displayport is too big. At this size we can't even turn it into a GL texture
+      // and all it's going to do is OOM the phone so we are better off if we just crash
+      // this child process now. See bug 947523.
+      printf_stderr("!!! Oversized displayport - going to crash the content process to avoid OOM. Bye!");
+      MOZ_CRASH();
+    }
+
     // and set the display port
     utils->SetDisplayPortForElement(
       aMetrics.mDisplayPort.x, aMetrics.mDisplayPort.y,
