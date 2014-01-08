@@ -126,10 +126,10 @@ typedef struct CapturingContentInfo {
 } CapturingContentInfo;
 
 
-// d39cd4ce-6b38-4793-8c1a-00985c56d931
+// acda9632-67e9-4f0d-b50a-6f8ca9fa5703
 #define NS_IPRESSHELL_IID \
-{ 0xd39cd4ce, 0x6b38, 0x4793, \
-  { 0x8c, 0x1a, 0x00, 0x98, 0x5c, 0x56, 0xd9, 0x31 } }
+{ 0xacda9632, 0x67e9, 0x4f0d, \
+  { 0xb5, 0x0a, 0x6f, 0x8c, 0xa9, 0xfa, 0x57, 0x03 } }
 
 // debug VerifyReflow flags
 #define VERIFY_REFLOW_ON                    0x01
@@ -1225,6 +1225,7 @@ public:
   gfxSize GetResolution() { return gfxSize(mXResolution, mYResolution); }
   float GetXResolution() { return mXResolution; }
   float GetYResolution() { return mYResolution; }
+  virtual gfxSize GetCumulativeResolution() = 0;
 
   /**
    * Returns whether we are in a DrawWindow() call that used the
