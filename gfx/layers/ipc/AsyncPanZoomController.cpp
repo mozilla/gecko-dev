@@ -894,6 +894,22 @@ bool AsyncPanZoomController::EnlargeDisplayPortAlongAxis(float aSkateSizeMultipl
   return false;
 }
 
+static float
+ScaleDisplayPortMultiplier(float aMultiplier, const FrameMetrics& aMetrics)
+{
+  // This will only have an effect on subframes where the parent frame
+  // is zoomed in to > 1.0 (for the root frame GetParentResolution() will
+  // return 1.0). The effect is to scale down the given displayport multiplier
+  // to approach 1.0 at higher zooms. This is purely a memory-saving device
+  // as we do not want to allocate giant textures for subframe displayports
+  // at high zooms.
+  float parentScale = aMetrics.GetParentResolution().scale;
+  if (parentScale > 1) {
+    return 1.0 + ((aMultiplier - 1.0) / parentScale);
+  }
+  return aMultiplier;
+}
+
 const CSSRect AsyncPanZoomController::CalculatePendingDisplayPort(
   const FrameMetrics& aFrameMetrics,
   const gfx::Point& aVelocity,
@@ -932,17 +948,20 @@ const CSSRect AsyncPanZoomController::CalculatePendingDisplayPort(
 
   CSSRect displayPort = CSSRect(compositionBounds);
   displayPort.MoveTo(0, 0);
-  displayPort.Scale(gXStationarySizeMultiplier, gYStationarySizeMultiplier);
+  displayPort.Scale(ScaleDisplayPortMultiplier(gXStationarySizeMultiplier, aFrameMetrics),
+                    ScaleDisplayPortMultiplier(gYStationarySizeMultiplier, aFrameMetrics));
 
   // If there's motion along an axis of movement, and it's above a threshold,
   // then we want to paint a larger area in the direction of that motion so that
   // it's less likely to checkerboard.
   bool enlargedX = EnlargeDisplayPortAlongAxis(
-    gXSkateSizeMultiplier, estimatedPaintDuration,
+    ScaleDisplayPortMultiplier(gXSkateSizeMultiplier, aFrameMetrics),
+    estimatedPaintDuration,
     compositionBounds.width, aVelocity.x, aAcceleration.x,
     &displayPort.x, &displayPort.width);
   bool enlargedY = EnlargeDisplayPortAlongAxis(
-    gYSkateSizeMultiplier, estimatedPaintDuration,
+    ScaleDisplayPortMultiplier(gYSkateSizeMultiplier, aFrameMetrics),
+    estimatedPaintDuration,
     compositionBounds.height, aVelocity.y, aAcceleration.y,
     &displayPort.y, &displayPort.height);
 
