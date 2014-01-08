@@ -16,6 +16,11 @@ interface Window;
 
 enum CanvasWindingRule { "nonzero", "evenodd" };
 
+dictionary ContextAttributes2D {
+  // whether or not we're planning to do a lot of readback operations
+  boolean willReadFrequently = false;
+};
+
 interface CanvasRenderingContext2D {
 
   // back-reference to the canvas.  Might be null if we're not

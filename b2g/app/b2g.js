@@ -814,3 +814,13 @@ pref("ril.cellbroadcast.disabled", false);
 
 // Inactivity time in milliseconds after which we shut down the OS.File worker.
 pref("osfile.reset_worker_delay", 5000);
+
+// This preference allows FirefoxOS apps (and content, I think) to force
+// the use of software (instead of hardware accelerated) 2D canvases by
+// creating a context like this:
+//
+//   canvas.getContext('2d', { willReadFrequently: true })
+//
+// Using a software canvas can save memory when JS calls getImageData()
+// on the canvas frequently. See bug 884226.
+pref("gfx.canvas.willReadFrequently.enable", true);

@@ -1182,6 +1182,15 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
     }
   }
 
+  // If the scrollable rect has changed since the last paint request, and the display port
+  // we are receiving here is the one calculated based on the old scrollable rect, that
+  // display port will be incorrect. Force a content repaint to force a recalculation
+  // of the display port.
+  if (!(mLastPaintRequestMetrics.mScrollableRect.IsEqualEdges(mFrameMetrics.mScrollableRect))
+      && aLayerMetrics.mDisplayPort.IsEqualEdges(mLastPaintRequestMetrics.mDisplayPort)) {
+      needContentRepaint = true;
+  }
+
   if (aIsFirstPaint || isDefault) {
     mPaintThrottler.ClearHistory();
     mPaintThrottler.SetMaxDurations(gNumPaintDurationSamples);
@@ -1447,6 +1456,13 @@ bool AsyncPanZoomController::Matches(const ScrollableLayerGuid& aGuid)
   // TODO: also check the presShellId, once that is fully propagated
   // everywhere in RenderFrameParent and AndroidJNI.
   return aGuid.mLayersId == mLayersId && aGuid.mScrollId == mFrameMetrics.mScrollId;
+}
+
+bool AsyncPanZoomController::FullyMatches(const ScrollableLayerGuid& aGuid)
+{
+  return aGuid.mLayersId == mLayersId
+      && aGuid.mPresShellId == mFrameMetrics.mPresShellId
+      && aGuid.mScrollId == mFrameMetrics.mScrollId;
 }
 
 }
