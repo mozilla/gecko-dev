@@ -542,7 +542,18 @@ nsLayoutUtils::GetDisplayPort(nsIContent* aContent, nsRect *aResult)
   }
 
   if (aResult) {
-    *aResult = *static_cast<nsRect*>(property);
+    // For B2G 1.2 only. See corresponding code and comments
+    // in nsDOMWindowUtils::SetDisplayPortForElement
+    gfxSize resolution(1.0, 1.0);
+    if (aContent->GetPrimaryFrame()) {
+      resolution = aContent->GetPrimaryFrame()->PresContext()->PresShell()->GetCumulativeResolution();
+    }
+
+    gfx::Rect* rect = static_cast<gfx::Rect*>(property);
+    aResult->x = nsPresContext::CSSPixelsToAppUnits(float(rect->x / resolution.width));
+    aResult->y = nsPresContext::CSSPixelsToAppUnits(float(rect->y / resolution.height));
+    aResult->width = nsPresContext::CSSPixelsToAppUnits(float(rect->width / resolution.width));
+    aResult->height = nsPresContext::CSSPixelsToAppUnits(float(rect->height / resolution.height));
   }
   return true;
 }

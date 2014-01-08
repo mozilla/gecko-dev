@@ -302,6 +302,13 @@ static void DestroyNsRect(void* aObject, nsIAtom* aPropertyName,
   delete rect;
 }
 
+static void DestroyGfxRect(void* aObject, nsIAtom* aPropertyName,
+                           void* aPropertyValue, void* aData)
+{
+  mozilla::gfx::Rect* rect = static_cast<mozilla::gfx::Rect*>(aPropertyValue);
+  delete rect;
+}
+
 static void
 MaybeReflowForInflationScreenWidthChange(nsPresContext *aPresContext)
 {
@@ -379,8 +386,18 @@ nsDOMWindowUtils::SetDisplayPortForElement(float aXPx, float aYPx,
     return NS_ERROR_INVALID_ARG;
   }
 
-  content->SetProperty(nsGkAtoms::DisplayPort, new nsRect(displayport),
-                       DestroyNsRect);
+  // For B2G 1.2 only. We want to store the displayport in a set of
+  // units that maps to the texture size that will be created. That way
+  // if the resolution changes but this displayport does not, we don't
+  // end up using a gigantic texture and OOMing. See corresponding code
+  // in nsLayoutUtils::GetDisplayPort
+  gfxSize resolution = presShell->GetCumulativeResolution();
+  content->SetProperty(nsGkAtoms::DisplayPort,
+                       new mozilla::gfx::Rect(aXPx * resolution.width,
+                                              aYPx * resolution.height,
+                                              aWidthPx * resolution.width,
+                                              aHeightPx * resolution.height),
+                       DestroyGfxRect);
 
   nsIFrame* rootScrollFrame = presShell->GetRootScrollFrame();
   if (rootScrollFrame) {
