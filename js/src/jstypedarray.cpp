@@ -464,6 +464,27 @@ ArrayBufferObject::stealContents(JSContext *cx, JSObject *obj, void **contents,
 {
     ArrayBufferObject &buffer = obj->asArrayBuffer();
     JSObject *views = *GetViewList(&buffer);
+
+    // remove buffer from the list of buffers with > 1 view
+    if (views && NextView(views) && BufferLink(*GetViewList(&buffer)) != UNSET_BUFFER_LINK)
+    {
+        ArrayBufferObject *prev = &cx->runtime->liveArrayBuffers->asArrayBuffer();
+        if (prev == &buffer) {
+            cx->runtime->liveArrayBuffers = BufferLink(*GetViewList(prev));
+        } else {
+            for (ArrayBufferObject *buf = &BufferLink(*GetViewList(prev))->asArrayBuffer();
+                 buf;
+                 buf = &BufferLink(*GetViewList(buf))->asArrayBuffer())
+            {
+                if (buf == &buffer) {
+                    SetBufferLink(*GetViewList(prev), BufferLink(*GetViewList(buf)));
+                    break;
+                }
+                prev = buf;
+            }
+        }
+    }
+
     js::ObjectElements *header = js::ObjectElements::fromElements((js::HeapSlot*)buffer.dataPointer());
     if (buffer.hasDynamicElements()) {
         *GetViewList(&buffer) = NULL;
