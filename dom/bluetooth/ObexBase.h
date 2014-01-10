@@ -243,10 +243,8 @@ public:
   }
 };
 
-int AppendHeaderName(uint8_t* aRetBuf, int aBufferSize, const char* aName,
-                     int aLength);
-int AppendHeaderBody(uint8_t* aRetBuf, int aBufferSize, const uint8_t* aData,
-                     int aLength);
+int AppendHeaderName(uint8_t* aRetBuf, const char* aName, int aLength);
+int AppendHeaderBody(uint8_t* aRetBuf, uint8_t* aData, int aLength);
 int AppendHeaderEndOfBody(uint8_t* aRetBuf);
 int AppendHeaderLength(uint8_t* aRetBuf, int aObjectLength);
 int AppendHeaderConnectionId(uint8_t* aRetBuf, int aConnectionId);
