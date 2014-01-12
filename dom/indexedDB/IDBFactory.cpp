@@ -133,6 +133,9 @@ IDBFactory::Create(nsPIDOMWindow* aWindow,
   factory->mWindow = aWindow;
   factory->mContentParent = aContentParent;
 
+  NS_HOLD_JS_OBJECTS(factory, IDBFactory);
+  factory->mRootedOwningObject = true;
+
   if (!IndexedDatabaseManager::IsMainProcess()) {
     TabChild* tabChild = GetTabChildFrom(aWindow);
     NS_ENSURE_TRUE(tabChild, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
