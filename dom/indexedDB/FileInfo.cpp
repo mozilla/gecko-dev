@@ -10,28 +10,11 @@
 
 USING_INDEXEDDB_NAMESPACE
 
-namespace {
-
-class CleanupFileRunnable MOZ_FINAL : public nsIRunnable
-{
-public:
-  NS_DECL_THREADSAFE_ISUPPORTS
-  NS_DECL_NSIRUNNABLE
-
-  CleanupFileRunnable(FileManager* aFileManager, int64_t aFileId);
-
-private:
-  nsRefPtr<FileManager> mFileManager;
-  int64_t mFileId;
-};
-
-} // anonymous namespace
-
 // static
 FileInfo*
 FileInfo::Create(FileManager* aFileManager, int64_t aId)
 {
-  MOZ_ASSERT(aId > 0, "Wrong id!");
+  NS_ASSERTION(aId > 0, "Wrong id!");
 
   if (aId <= INT16_MAX) {
     return new FileInfo16(aFileManager, aId);
@@ -115,40 +98,16 @@ FileInfo::UpdateReferences(nsAutoRefCnt& aRefCount, int32_t aDelta,
 void
 FileInfo::Cleanup()
 {
-  nsRefPtr<CleanupFileRunnable> cleaner =
-    new CleanupFileRunnable(mFileManager, Id());
+  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
-  // IndexedDatabaseManager is main-thread only.
-  if (!NS_IsMainThread()) {
-    NS_DispatchToMainThread(cleaner);
+  if (quota::QuotaManager::IsShuttingDown()) {
     return;
   }
 
-  cleaner->Run();
-}
-
-CleanupFileRunnable::CleanupFileRunnable(FileManager* aFileManager,
-                                         int64_t aFileId)
-: mFileManager(aFileManager), mFileId(aFileId)
-{
-}
-
-NS_IMPL_ISUPPORTS1(CleanupFileRunnable,
-                   nsIRunnable)
-
-NS_IMETHODIMP
-CleanupFileRunnable::Run()
-{
-  if (mozilla::dom::quota::QuotaManager::IsShuttingDown()) {
-    return NS_OK;
-  }
-
   nsRefPtr<IndexedDatabaseManager> mgr = IndexedDatabaseManager::Get();
-  MOZ_ASSERT(mgr);
+  NS_ASSERTION(mgr, "Shouldn't be null!");
 
-  if (NS_FAILED(mgr->AsyncDeleteFile(mFileManager, mFileId))) {
+  if (NS_FAILED(mgr->AsyncDeleteFile(mFileManager, Id()))) {
     NS_WARNING("Failed to delete file asynchronously!");
   }
-
-  return NS_OK;
 }
