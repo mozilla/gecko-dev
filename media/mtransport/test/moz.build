@@ -12,6 +12,7 @@ if CONFIG['OS_TARGET'] != 'WINNT' and CONFIG['MOZ_WIDGET_TOOLKIT'] != 'gonk':
         'ice_unittest.cpp',
         'nrappkit_unittest.cpp',
         'runnable_utils_unittest.cpp',
+        'simpletokenbucket_unittest.cpp',
         'sockettransportservice_unittest.cpp',
         'transport_unittests.cpp',
         'turn_unittest.cpp',
