@@ -6594,6 +6594,11 @@ function AddonWrapper(aAddon) {
     return ops;
   });
 
+  this.__defineGetter__("isDebuggable", function AddonWrapper_isDebuggable() {
+    return this.isActive &&
+             this.operationsRequiringRestart == AddonManager.OP_NEEDS_RESTART_NONE;
+  });
+
   this.__defineGetter__("permissions", function AddonWrapper_permisionsGetter() {
     let permissions = 0;
 

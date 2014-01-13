@@ -34,6 +34,7 @@ MOCHITEST_BROWSER_MAIN_FILES = \
   browser_bug679604.js \
   browser_bug714593.js \
   browser_bug590347.js \
+	browser_debug_button.js \
   browser_details.js \
   browser_discovery.js \
   browser_dragdrop.js \

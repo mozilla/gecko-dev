@@ -949,6 +949,7 @@ function MockAddon(aId, aName, aType, aOperationsRequiringRestart) {
   this.type = aType || "extension";
   this.version = "";
   this.isCompatible = true;
+  this.isDebuggable = false;
   this.providesUpdatesSecurely = true;
   this.blocklistState = 0;
   this._appDisabled = false;
