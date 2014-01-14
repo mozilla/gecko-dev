@@ -4,8 +4,15 @@
  */
 
 var ADDONS = [
-  "test_bootstrap2_1", // this test is restartless and therefore should be debuggable
-  "test_bootstrap1_4", // an opposite of the above
+  "test_bootstrap2_1", // restartless addon
+  "test_bootstrap1_4", // old-school addon
+  "test_jetpack"       // sdk addon
+];
+
+var IDS = [
+  "bootstrap1@tests.mozilla.org",
+  "bootstrap2@tests.mozilla.org",
+  "jetpacktest@tests.mozilla.org"
 ];
 
 function run_test() {
@@ -18,11 +25,10 @@ function run_test() {
   installAllFiles([do_get_addon(a) for each (a in ADDONS)], function() {
     restartManager();
 
-    AddonManager.getAddonsByIDs(["bootstrap1@tests.mozilla.org",
-                                 "bootstrap2@tests.mozilla.org"],
-                               function([a1, a2]) {
+    AddonManager.getAddonsByIDs(IDS, function([a1, a2, a3]) {
       do_check_eq(a1.isDebuggable, false);
-      do_check_eq(a2.isDebuggable, true);
+      do_check_eq(a2.isDebuggable, false);
+      do_check_eq(a3.isDebuggable, true);
       do_test_finished();
     });
   }, true);

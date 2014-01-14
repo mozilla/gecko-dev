@@ -16,6 +16,10 @@ Cu.import("resource://gre/modules/PluralForm.jsm");
 Cu.import("resource://gre/modules/DownloadUtils.jsm");
 Cu.import("resource://gre/modules/AddonManager.jsm");
 Cu.import("resource://gre/modules/AddonRepository.jsm");
+XPCOMUtils.defineLazyGetter(this, "BrowserDebuggerProcess", function() {
+  return Cu.import("resource:///modules/devtools/DebuggerProcess.jsm", {}).
+         BrowserDebuggerProcess;
+});
 
 
 const PREF_DISCOVERURL = "extensions.webservice.discoverURL";
@@ -913,17 +917,13 @@ var gViewController = {
 
     cmd_debugItem: {
       doCommand: function cmd_debugItem_doCommand(aAddon) {
-        let { BrowserDebuggerProcess } =
-          Cu.import("resource:///modules/devtools/DebuggerProcess.jsm", {});
-
-        BrowserDebuggerProcess.init({
-          addonID: aAddon.id
-        });
+        BrowserDebuggerProcess.init({ addonID: aAddon.id });
       },
 
       isEnabled: function cmd_debugItem_isEnabled(aAddon) {
-        return Services.prefs.getBoolPref('devtools.debugger.addon-enabled')
-                 && aAddon && aAddon.isDebuggable;
+        let debuggerEnabled = Services.prefs.
+                              getBoolPref("devtools.debugger.addon-enabled");
+        return aAddon && aAddon.isDebuggable && debuggerEnabled;
       }
     },
 
