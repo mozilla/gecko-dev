@@ -2068,6 +2068,10 @@ jit::AnalyzeNewScriptProperties(JSContext *cx, JSFunction *fun,
     if (!fun->nonLazyScript()->ensureHasTypes(cx))
         return false;
 
+    static const uint32_t MAX_SCRIPT_SIZE = 2000;
+    if (fun->nonLazyScript()->length() > MAX_SCRIPT_SIZE)
+        return true;
+
     types::TypeScript::SetThis(cx, fun->nonLazyScript(), types::Type::ObjectType(type));
 
     Vector<jsid> accessedProperties(cx);
