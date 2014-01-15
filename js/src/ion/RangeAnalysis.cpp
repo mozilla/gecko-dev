@@ -273,7 +273,9 @@ Range::intersect(const Range *lhs, const Range *rhs, bool *nullRange)
     // Instead, we should use it to eliminate the dead block.
     // (Bug 765127)
     if (r.upper_ < r.lower_) {
-        *nullRange = true;
+        // If both ranges can be NaN, the result can still be NaN.
+        if (lhs->isFinite() || rhs->isFinite())
+            *nullRange = true;
         r.makeRangeInfinite();
     }
     return r;
