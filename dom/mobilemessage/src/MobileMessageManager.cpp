@@ -148,24 +148,27 @@ MobileMessageManager::Send(JSContext* aCx, JSObject* aGlobal, JSString* aNumber,
 }
 
 NS_IMETHODIMP
-MobileMessageManager::Send(const jsval& aNumber, const nsAString& aMessage, jsval* aReturn)
+MobileMessageManager::Send(const jsval& aNumber, const nsAString& aMessage,
+                           JSContext* cx, jsval* aReturn)
 {
   nsresult rv;
   nsIScriptContext* sc = GetContextForEventHandlers(&rv);
   NS_ENSURE_STATE(sc);
-  JSContext* cx = sc->GetNativeContext();
-  NS_ASSERTION(cx, "Failed to get a context!");
 
   if (!aNumber.isString() &&
       !(aNumber.isObject() && JS_IsArrayObject(cx, &aNumber.toObject()))) {
     return NS_ERROR_INVALID_ARG;
   }
 
-  JSObject* global = sc->GetNativeGlobal();
-  NS_ASSERTION(global, "Failed to get global object!");
+  JSObject* global = JS_GetGlobalForScopeChain(cx);
 
-  JSAutoRequest ar(cx);
-  JSAutoCompartment ac(cx, global);
+  mozilla::Maybe<JSAutoRequest> ar;
+  mozilla::Maybe<JSAutoCompartment> ac;
+  if (!global) {
+    global = sc->GetNativeGlobal();
+    ar.construct(cx);
+    ac.construct(cx, global);
+  }
 
   if (aNumber.isString()) {
     return Send(cx, global, aNumber.toString(), aMessage, aReturn);
@@ -240,26 +243,27 @@ MobileMessageManager::GetMessageMoz(int32_t aId, nsIDOMDOMRequest** aRequest)
 }
 
 nsresult
-MobileMessageManager::GetMessageId(JSContext* aCx, const JS::Value &aMessage,
-                                   int32_t &aId)
+MobileMessageManager::GetMessageId(JSContext* aCx,
+                                   const JS::Value& aMessage, int32_t* aId)
 {
   nsCOMPtr<nsIDOMMozSmsMessage> smsMessage =
     do_QueryInterface(nsContentUtils::XPConnect()->GetNativeOfWrapper(aCx, &aMessage.toObject()));
   if (smsMessage) {
-    return smsMessage->GetId(&aId);
+    return smsMessage->GetId(aId);
   }
 
   nsCOMPtr<nsIDOMMozMmsMessage> mmsMessage =
     do_QueryInterface(nsContentUtils::XPConnect()->GetNativeOfWrapper(aCx, &aMessage.toObject()));
   if (mmsMessage) {
-    return mmsMessage->GetId(&aId);
+    return mmsMessage->GetId(aId);
   }
 
   return NS_ERROR_INVALID_ARG;
 }
 
 NS_IMETHODIMP
-MobileMessageManager::Delete(const JS::Value& aParam, nsIDOMDOMRequest** aRequest)
+MobileMessageManager::Delete(const JS::Value& aParam, JSContext* cx,
+                             nsIDOMDOMRequest** aRequest)
 {
   // We expect Int32, SmsMessage, MmsMessage, Int32[], SmsMessage[], MmsMessage[]
   if (!aParam.isObject() && !aParam.isInt32()) {
@@ -267,11 +271,6 @@ MobileMessageManager::Delete(const JS::Value& aParam, nsIDOMDOMRequest** aReques
   }
 
   nsresult rv;
-  nsIScriptContext* sc = GetContextForEventHandlers(&rv);
-  NS_ENSURE_STATE(sc);
-  JSContext* cx = sc->GetNativeContext();
-  NS_ASSERTION(cx, "Failed to get a context!");
-
   int32_t id, *idArray;
   uint32_t size;
 
@@ -283,7 +282,7 @@ MobileMessageManager::Delete(const JS::Value& aParam, nsIDOMDOMRequest** aReques
     idArray = &id;
   } else if (!JS_IsArrayObject(cx, &aParam.toObject())) {
     // Single SmsMessage/MmsMessage object
-    rv = GetMessageId(cx, aParam, id);
+    rv = GetMessageId(cx, aParam, &id);
     NS_ENSURE_SUCCESS(rv, rv);
 
     size = 1;
@@ -304,7 +303,7 @@ MobileMessageManager::Delete(const JS::Value& aParam, nsIDOMDOMRequest** aReques
       if (idJsValue.isInt32()) {
         idAutoArray[i] = idJsValue.toInt32();
       } else if (idJsValue.isObject()) {
-        rv = GetMessageId(cx, idJsValue, id);
+        rv = GetMessageId(cx, idJsValue, &id);
         NS_ENSURE_SUCCESS(rv, rv);
 
         idAutoArray[i] = id;
