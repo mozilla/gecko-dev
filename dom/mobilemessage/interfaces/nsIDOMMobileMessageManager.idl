@@ -19,7 +19,7 @@ dictionary MmsParameters
   jsval      attachments; // MmsAttachment[]
 };
 
-[scriptable, builtinclass, uuid(efff5276-0f3f-4137-9b16-66e894400e01)]
+[scriptable, builtinclass, uuid(291257a9-e4c6-4a8e-bfff-dc84f9545ce5)]
 interface nsIDOMMozMobileMessageManager : nsIDOMEventTarget
 {
   nsIDOMMozSmsSegmentInfo getSegmentInfoForText(in DOMString text);
@@ -28,6 +28,7 @@ interface nsIDOMMozMobileMessageManager : nsIDOMEventTarget
   // of DOMStrings.
   // The method returns a DOMRequest object if one number has been passed.
   // An array of DOMRequest objects otherwise.
+  [implicit_jscontext]
   jsval send(in jsval number, in DOMString message);
 
   nsIDOMDOMRequest sendMMS(in jsval parameters /* MmsParameters */);
@@ -36,6 +37,7 @@ interface nsIDOMMozMobileMessageManager : nsIDOMEventTarget
   nsIDOMDOMRequest getMessage(in long id);
 
   // The parameter can be either a message id or a nsIDOMMoz{Mms,Sms}Message.
+  [implicit_jscontext]
   nsIDOMDOMRequest delete(in jsval param);
 
   // Iterates through nsIDOMMoz{Mms,Sms}Message.
