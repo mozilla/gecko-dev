@@ -10,6 +10,7 @@ XPIDL_MODULE = 'dom_devicestorage'
 
 EXPORTS += [
     'DeviceStorage.h',
+    'DeviceStorageFileDescriptor.h',
     'nsDeviceStorage.h',
 ]
 
