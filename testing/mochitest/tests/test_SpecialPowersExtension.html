@@ -166,12 +166,7 @@ function starttest(){
 
   // bug 855192
   ok(SpecialPowers.MockPermissionPrompt, "check mock permission prompt");
-
-  // Set a pref using pushPrefEnv to make sure that flushPrefEnv is
-  // automatically called before we invoke
-  // test_SpecialPowersExtension2.html.
-  SpecialPowers.pushPrefEnv({set: [['testing.some_arbitrary_pref', true]]},
-                            function() { SimpleTest.finish(); });
+  SimpleTest.finish();
 }
 </script>
 </pre>
