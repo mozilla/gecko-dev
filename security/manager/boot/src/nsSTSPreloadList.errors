@@ -1,4 +1,3 @@
-accounts.google.com: max-age too low: 2592000
 alpha.irccloud.com: could not connect to host
 api.mega.co.nz: could not connect to host
 api.recurly.com: did not receive HSTS header
@@ -8,11 +7,10 @@ appengine.google.com: did not receive HSTS header
 bcrook.com: max-age too low: 86400
 betnet.fr: could not connect to host
 bigshinylock.minazo.net: could not connect to host
-bitbucket.org: max-age too low: 2592000
-blog.lookout.com: did not receive HSTS header
 braintreegateway.com: did not receive HSTS header
 braintreepayments.com: did not receive HSTS header
 browserid.org: did not receive HSTS header
+business.medbank.com.mt: did not receive HSTS header
 carlolly.co.uk: did not receive HSTS header
 cert.se: max-age too low: 2628001
 checkout.google.com: did not receive HSTS header
@@ -21,6 +19,7 @@ chrome.google.com: did not receive HSTS header
 cloud.google.com: did not receive HSTS header
 code.google.com: did not receive HSTS header
 codereview.chromium.org: did not receive HSTS header
+crate.io: did not receive HSTS header
 crowdcurity.com: did not receive HSTS header
 crypto.is: did not receive HSTS header
 csawctf.poly.edu: did not receive HSTS header
@@ -31,11 +30,12 @@ dropcam.com: did not receive HSTS header
 email.lookout.com: could not connect to host
 emailprivacytester.com: did not receive HSTS header
 encrypted.google.com: did not receive HSTS header
-epoxate.com: max-age too low: 259200
+espra.com: could not connect to host
 factor.cc: could not connect to host
 fatzebra.com.au: did not receive HSTS header
 fj.simple.com: did not receive HSTS header
 get.zenpayroll.com: did not receive HSTS header
+getcloak.com: max-age too low: 2678400
 glass.google.com: did not receive HSTS header
 gmail.com: did not receive HSTS header
 googlemail.com: did not receive HSTS header
@@ -47,6 +47,7 @@ groups.google.com: did not receive HSTS header
 history.google.com: did not receive HSTS header
 hostedtalkgadget.google.com: did not receive HSTS header
 id.atlassian.com: did not receive HSTS header
+in.xero.com: max-age too low: 3600
 iop.intuit.com: max-age too low: 86400
 irccloud.com: did not receive HSTS header
 jitsi.org: did not receive HSTS header
@@ -66,7 +67,14 @@ neonisi.com: could not connect to host
 openshift.redhat.com: did not receive HSTS header
 ottospora.nl: could not connect to host
 packagist.org: max-age too low: 2592000
+passport.yandex.by: did not receive HSTS header
+passport.yandex.com: did not receive HSTS header
+passport.yandex.com.tr: did not receive HSTS header
+passport.yandex.kz: did not receive HSTS header
+passport.yandex.ru: did not receive HSTS header
+passport.yandex.ua: did not receive HSTS header
 paypal.com: max-age too low: 14400
+payroll.xero.com: max-age too low: 3600
 platform.lookout.com: could not connect to host
 play.google.com: did not receive HSTS header
 plus.google.com: did not receive HSTS header
@@ -92,7 +100,6 @@ sunshinepress.org: could not connect to host
 surfeasy.com: did not receive HSTS header
 talk.google.com: did not receive HSTS header
 talkgadget.google.com: did not receive HSTS header
-torproject.org: did not receive HSTS header
 translate.googleapis.com: did not receive HSTS header
 uprotect.it: could not connect to host
 wallet.google.com: did not receive HSTS header
@@ -101,6 +108,7 @@ www.cueup.com: did not receive HSTS header
 www.developer.mydigipass.com: could not connect to host
 www.dropcam.com: max-age too low: 2592000
 www.elanex.biz: did not receive HSTS header
+www.getcloak.com: max-age too low: 2678400
 www.gmail.com: did not receive HSTS header
 www.googlemail.com: did not receive HSTS header
 www.greplin.com: could not connect to host
