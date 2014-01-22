@@ -105,6 +105,7 @@ private:
   void ReplyToConnect();
   void ReplyToDisconnect();
   void ReplyToPut(bool aFinal, bool aContinue);
+  void ReplyError(uint8_t aError);
   void AfterOppConnected();
   void AfterFirstPut();
   void AfterOppDisconnected();

@@ -82,7 +82,7 @@ SetObexPacketInfo(uint8_t* aRetBuf, uint8_t aOpcode, int aPacketLength)
   aRetBuf[2] = aPacketLength & 0x00FF;
 }
 
-void
+bool
 ParseHeaders(const uint8_t* aHeaderStart,
              int aTotalLength,
              ObexHeaderSet* aRetHandlerSet)
@@ -92,7 +92,7 @@ ParseHeaders(const uint8_t* aHeaderStart,
   while (ptr - aHeaderStart < aTotalLength) {
     ObexHeaderId headerId = (ObexHeaderId)*ptr++;
 
-    int contentLength = 0;
+    uint16_t contentLength = 0;
     uint8_t highByte, lowByte;
 
     // Defined in 2.1 OBEX Headers, IrOBEX 1.2
@@ -105,7 +105,7 @@ ParseHeaders(const uint8_t* aHeaderStart,
         // byte sequence, length prefixed with 2 byte unsigned integer.
         highByte = *ptr++;
         lowByte = *ptr++;
-        contentLength = (((int)highByte << 8) | lowByte) - 3;
+        contentLength = (((uint16_t)highByte << 8) | lowByte) - 3;
         break;
 
       case 0x02:
@@ -119,6 +119,15 @@ ParseHeaders(const uint8_t* aHeaderStart,
         break;
     }
 
+    // Length check to prevent from memory pollusion.
+    if (ptr + contentLength > aHeaderStart + aTotalLength) {
+      // Severe error occurred. We can't even believe the received data, so
+      // clear all headers.
+      MOZ_ASSERT(false);
+      aRetHandlerSet->ClearHeaders();
+      return false;
+    }
+
     uint8_t* content = new uint8_t[contentLength];
     memcpy(content, ptr, contentLength);
     aRetHandlerSet->AddHeader(new ObexHeader(headerId, contentLength, content));
@@ -126,6 +135,8 @@ ParseHeaders(const uint8_t* aHeaderStart,
 
     ptr += contentLength;
   }
+
+  return true;
 }
 
 END_BLUETOOTH_NAMESPACE
