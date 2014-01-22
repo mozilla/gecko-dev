@@ -32,6 +32,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=932906
       ok(/denied/.test(e), "Threw correct exception: " + e);
     }
   }
+  var pref = 'dom.use_xbl_scopes_for_remote_xul';
 
   var gLoadCount = 0;
   function loaded() {
@@ -47,23 +48,24 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=932906
   function part1() {
 
     // Make sure that the pref is what we expect for mochitests.
-    is(Services.prefs.getBoolPref('dom.use_xbl_scopes_for_remote_xul'), true,
+    is(Services.prefs.getBoolPref(pref), true,
        "Test harness set up like we expect");
 
 
     // First, test that we can't normally pass non-DOM XPCWNs to content.
     passToContent(/* shouldThrow = */ true);
 
-    // Now, make sure we _can_ for the remote xul case. We use SpecialPowers
-    // for the pref munging because it cleans up after us.
-    SpecialPowers.pushPrefEnv({set: [['dom.use_xbl_scopes_for_remote_xul', false]]}, function() {
-      $('ifr').contentWindow.location.reload();
-    });
+    // Now, make sure we _can_ for the remote xul case.
+    //
+    // On esr24, SpecialPowers.pushPrefEnv doesn't work for some reason.
+    Services.prefs.setBoolPref(pref, false);
+    SimpleTest.executeSoon(function() { $('ifr').contentWindow.location.reload(); });
   }
 
   function part2() {
       passToContent(/* shouldThrow = */ false);
-      SpecialPowers.flushPrefEnv(function() { SimpleTest.finish(); });
+      Services.prefs.setBoolPref(pref, true);
+      SimpleTest.finish();
   }
 
   ]]>
