@@ -39,7 +39,9 @@ function setCachePref(enabled) {
 }
 
 
-/** Test for Bug 608669 **/
+SimpleTest.expectAssertions(1);
+
+    /** Test for Bug 608669 **/
 SimpleTest.waitForExplicitFinish();
 
 addLoadEvent(nextTest);
