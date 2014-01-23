@@ -283,7 +283,7 @@ private:
 
   // List of proxies attached to the image. Each proxy represents a consumer
   // using the image.
-  nsTObserverArray<imgRequestProxy*> mConsumers;
+  ProxyArray mConsumers;
 
   mozilla::RefPtr<imgDecoderObserver> mTrackerObserver;
 
