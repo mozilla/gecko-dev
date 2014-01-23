@@ -651,7 +651,9 @@ ArrayBufferObject::stealContents(JSContext *cx, JSObject *obj, void **contents,
     }
 
     // Neuter the donor ArrayBuffer and all views of it
+    uint32_t flags = header->flags;
     ArrayBufferObject::setElementsHeader(header, 0);
+    header->flags = flags;
     GetViewList(&buffer)->init(views);
     for (JSObject *view = views; view; view = NextView(view))
         TypedArray::neuter(view);
