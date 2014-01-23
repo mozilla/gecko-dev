@@ -47,6 +47,13 @@ static const uint32_t kUpdateProgressBase = 50 * 1024;
  */
 static const uint32_t kPutRequestHeaderSize = 6;
 
+/*
+ * The format of the appended header of an PUT request is
+ * [headerId:1][header length:4]
+ * P.S. Length of name header is 4 since unicode is 2 bytes per char.
+ */
+static const uint32_t kPutRequestAppendHeaderSize = 5;
+
 StaticRefPtr<BluetoothOppManager> sBluetoothOppManager;
 static bool sInShutdown = false;
 }
@@ -758,25 +765,31 @@ BluetoothOppManager::ServerDataHandler(UnixSocketRawData* aMessage)
     // Section 3.3.1 "Connect", IrOBEX 1.2
     // [opcode:1][length:2][version:1][flags:1][MaxPktSizeWeCanReceive:2]
     // [Headers:var]
-    ParseHeaders(&aMessage->mData[7],
-                 receivedLength - 7,
-                 &pktHeaders);
+    if (!ParseHeaders(&aMessage->mData[7], receivedLength - 7, &pktHeaders)) {
+      ReplyError(ObexResponseCode::BadRequest);
+      return;
+    }
+
     ReplyToConnect();
     AfterOppConnected();
   } else if (opCode == ObexRequestCode::Abort) {
     // Section 3.3.5 "Abort", IrOBEX 1.2
     // [opcode:1][length:2][Headers:var]
-    ParseHeaders(&aMessage->mData[3],
-                receivedLength - 3,
-                &pktHeaders);
+    if (!ParseHeaders(&aMessage->mData[3], receivedLength - 3, &pktHeaders)) {
+      ReplyError(ObexResponseCode::BadRequest);
+      return;
+    }
+
     ReplyToDisconnectOrAbort();
     DeleteReceivedFile();
   } else if (opCode == ObexRequestCode::Disconnect) {
     // Section 3.3.2 "Disconnect", IrOBEX 1.2
     // [opcode:1][length:2][Headers:var]
-    ParseHeaders(&aMessage->mData[3],
-                receivedLength - 3,
-                &pktHeaders);
+    if (!ParseHeaders(&aMessage->mData[3], receivedLength - 3, &pktHeaders)) {
+      ReplyError(ObexResponseCode::BadRequest);
+      return;
+    }
+
     ReplyToDisconnectOrAbort();
     AfterOppDisconnected();
     FileTransferComplete();
@@ -927,6 +940,15 @@ BluetoothOppManager::ClientDataHandler(UnixSocketRawData* aMessage)
     mRemoteMaxPacketLength =
       (((int)(aMessage->mData[5]) << 8) | aMessage->mData[6]);
 
+    // The length of file name exceeds maximum length.
+    int fileNameByteLen = (mFileName.Length() + 1) * 2;
+    int headerLen = kPutRequestHeaderSize + kPutRequestAppendHeaderSize;
+    if (fileNameByteLen > mRemoteMaxPacketLength - headerLen) {
+      BT_WARNING("The length of file name is aberrant.");
+      SendDisconnectRequest();
+      return;
+    }
+
     sBluetoothOppManager->SendPutHeaderRequest(mFileName, mFileLength);
   } else if (mLastCommand == ObexRequestCode::Put) {
     if (mWaitingToSendPutFinal) {
@@ -1018,7 +1040,8 @@ BluetoothOppManager::SendPutHeaderRequest(const nsAString& aFileName,
   fileName[len * 2 + 1] = 0x00;
 
   int index = 3;
-  index += AppendHeaderName(&req[index], (char*)fileName, (len + 1) * 2);
+  index += AppendHeaderName(&req[index], mRemoteMaxPacketLength - index,
+                            (char*)fileName, (len + 1) * 2);
   index += AppendHeaderLength(&req[index], aFileSize);
 
   SendObexData(req, ObexRequestCode::Put, index);
@@ -1031,9 +1054,8 @@ void
 BluetoothOppManager::SendPutRequest(uint8_t* aFileBody,
                                     int aFileBodyLength)
 {
-  int packetLeftSpace = mRemoteMaxPacketLength - kPutRequestHeaderSize;
-
   if (!mConnected) return;
+  int packetLeftSpace = mRemoteMaxPacketLength - kPutRequestHeaderSize;
   if (aFileBodyLength > packetLeftSpace) {
     BT_WARNING("Not allowed such a small MaxPacketLength value");
     return;
@@ -1044,11 +1066,11 @@ BluetoothOppManager::SendPutRequest(uint8_t* aFileBody,
   uint8_t* req = new uint8_t[mRemoteMaxPacketLength];
 
   int index = 3;
-  index += AppendHeaderBody(&req[index], aFileBody, aFileBodyLength);
+  index += AppendHeaderBody(&req[index], mRemoteMaxPacketLength - index,
+                            aFileBody, aFileBodyLength);
 
   SendObexData(req, ObexRequestCode::Put, index);
   delete [] req;
-
   mSentFileLength += aFileBodyLength;
 }
 
@@ -1179,7 +1201,7 @@ BluetoothOppManager::ReplyToPut(bool aFinal, bool aContinue)
 void
 BluetoothOppManager::ReplyError(uint8_t aError)
 {
-  if (!mConnected) return;
+  BT_LOGR("error: %d", aError);
 
   // Section 3.2 "Response Format", IrOBEX 1.2
   // [opcode:1][length:2][Headers:var]
