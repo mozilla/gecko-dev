@@ -268,7 +268,7 @@ private:
 
   void FireFailureNotification();
 
-  static void SyncNotifyState(nsTObserverArray<imgRequestProxy*>& proxies,
+  static void SyncNotifyState(ProxyArray& proxies,
                               bool hasImage, uint32_t state,
                               nsIntRect& dirtyRect, bool hadLastPart);
 
