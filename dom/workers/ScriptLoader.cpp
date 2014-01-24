@@ -616,8 +616,7 @@ ScriptExecutorRunnable::WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
           break;
 
         default:
-          JS_ReportError(aCx, "Failed to load script: %s (nsresult = 0x%x)",
-                         url.get(), loadInfo.mLoadResult);
+          JS_ReportError(aCx, "Failed to load script (nsresult = 0x%x)", loadInfo.mLoadResult);
       }
       return true;
     }
