@@ -159,7 +159,7 @@ function test_part1() {
 function test_private_browsing1() {
   clearStsState();
   // sanity - bugzilla.mozilla.org is preloaded, includeSubdomains set
-  do_check_true(gSTSService.isStsHost("bugzilla.mozilla.org");
+  do_check_true(gSTSService.isStsHost("bugzilla.mozilla.org"));
   do_check_true(gSTSService.isStsHost("a.b.c.subdomain.bugzilla.mozilla.org"));
 
   var uri = Services.io.newURI("http://bugzilla.mozilla.org", null, null);
