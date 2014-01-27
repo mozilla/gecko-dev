@@ -82,7 +82,7 @@ class Wait(object):
                 exceptions.append(ignored_exceptions)
         self.exceptions = tuple(set(exceptions))
 
-    def until(self, condition, is_true=None):
+    def until(self, condition, is_true=None, message=""):
         """Repeatedly runs condition until its return value evaluates to true,
         or its timeout expires or the predicate evaluates to true.
 
@@ -101,11 +101,14 @@ class Wait(object):
         :param condition: A callable function whose return value will
             be returned by this function if it evaluates to true.
 
-        :param is_true: A predicate that will terminate and return
-            when it evaluates to False.  It should be a function that
-            will be passed clock and an end time.  The default
-            predicate will terminate a wait when the clock elapses the
-            timeout.
+        :param is_true: An optional predicate that will terminate and
+            return when it evaluates to False.  It should be a
+            function that will be passed clock and an end time.  The
+            default predicate will terminate a wait when the clock
+            elapses the timeout.
+
+        :param message: An optional message to include in the
+            exception's message if this function times out.
 
         """
 
@@ -131,8 +134,12 @@ class Wait(object):
 
             self.clock.sleep(self.interval)
 
+        if message:
+            message = " with message: %s" % message
+
         raise errors.TimeoutException(
-            "Timed out after %s seconds" % (self.clock.now - start),
+            "Timed out after %s seconds%s" %
+            ((self.clock.now - start), message),
             cause=last_exc)
 
 def until_pred(clock, end):
