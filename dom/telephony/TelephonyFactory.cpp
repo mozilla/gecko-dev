@@ -5,7 +5,7 @@
 
 #include "mozilla/dom/telephony/TelephonyFactory.h"
 #if defined(MOZ_WIDGET_GONK) && defined(MOZ_B2G_RIL)
-#include "nsIGonkTelephonyProvider.h"
+#include "nsIGonkTelephonyService.h"
 #endif
 #include "nsServiceManagerUtils.h"
 #include "nsXULAppAPI.h"
@@ -13,10 +13,10 @@
 
 USING_TELEPHONY_NAMESPACE
 
-/* static */ already_AddRefed<nsITelephonyProvider>
+/* static */ already_AddRefed<nsITelephonyService>
 TelephonyFactory::CreateTelephonyProvider()
 {
-  nsCOMPtr<nsITelephonyProvider> provider;
+  nsCOMPtr<nsITelephonyService> provider;
 
   if (XRE_GetProcessType() == GeckoProcessType_Content) {
     provider = new TelephonyIPCProvider();

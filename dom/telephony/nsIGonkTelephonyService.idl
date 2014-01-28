@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "nsITelephonyProvider.idl"
+#include "nsITelephonyService.idl"
 
 %{C++
 #define GONK_TELEPHONY_PROVIDER_CONTRACTID \
@@ -11,7 +11,7 @@
 %}
 
 [scriptable, uuid(2ff3dcbb-ae63-443e-9c5d-76811f2f9b42)]
-interface nsIGonkTelephonyProvider : nsITelephonyProvider
+interface nsIGonkTelephonyService : nsITelephonyService
 {
   void notifyCallDisconnected(in unsigned long clientId, in jsval call);
 

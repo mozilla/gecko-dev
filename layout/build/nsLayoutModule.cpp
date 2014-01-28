@@ -232,7 +232,7 @@ static void Shutdown();
 #include "StreamingProtocolService.h"
 
 #include "mozilla/dom/telephony/TelephonyFactory.h"
-#include "nsITelephonyProvider.h"
+#include "nsITelephonyService.h"
 
 #ifdef MOZ_WIDGET_GONK
 #include "GonkGPSGeolocationProvider.h"
@@ -347,8 +347,8 @@ NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsVolumeService,
 #endif
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsIMediaManagerService,
                                          MediaManager::GetInstance)
-NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsITelephonyProvider,
-                                         TelephonyFactory::CreateTelephonyProvider)
+NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsITelephonyService,
+                                         TelephonyFactory::CreateTelephonyService)
 
 //-----------------------------------------------------------------------------
 
@@ -1111,7 +1111,7 @@ static const mozilla::Module::CIDEntry kLayoutCIDs[] = {
 #ifdef ACCESSIBILITY
   { &kNS_ACCESSIBILITY_SERVICE_CID, false, nullptr, CreateA11yService },
 #endif
-  { &kTELEPHONY_PROVIDER_CID, false, nullptr, nsITelephonyProviderConstructor },
+  { &kTELEPHONY_PROVIDER_CID, false, nullptr, nsITelephonyServiceConstructor },
   { nullptr }
 };
 
