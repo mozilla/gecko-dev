@@ -10,7 +10,7 @@
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/telephony/TelephonyCommon.h"
 
-#include "nsITelephonyProvider.h"
+#include "nsITelephonyService.h"
 
 // Need to include TelephonyCall.h because we have inline methods that
 // assume they see the definition of TelephonyCall.
@@ -28,7 +28,7 @@ class Telephony MOZ_FINAL : public nsDOMEventTargetHelper
   /**
    * Class Telephony doesn't actually inherit nsITelephonyListener.
    * Instead, it owns an nsITelephonyListener derived instance mListener
-   * and passes it to nsITelephonyProvider. The onreceived events are first
+   * and passes it to nsITelephonyService. The onreceived events are first
    * delivered to mListener and then forwarded to its owner, Telephony. See
    * also bug 775997 comment #51.
    */
@@ -37,7 +37,7 @@ class Telephony MOZ_FINAL : public nsDOMEventTargetHelper
   class EnumerationAck;
   friend class EnumerationAck;
 
-  nsCOMPtr<nsITelephonyProvider> mProvider;
+  nsCOMPtr<nsITelephonyService> mProvider;
   nsRefPtr<Listener> mListener;
 
   TelephonyCall* mActiveCall;
@@ -128,7 +128,7 @@ public:
     NotifyCallsChanged(aCall);
   }
 
-  nsITelephonyProvider*
+  nsITelephonyService*
   Provider() const
   {
     return mProvider;

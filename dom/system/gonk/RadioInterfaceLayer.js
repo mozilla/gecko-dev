@@ -198,7 +198,7 @@ XPCOMUtils.defineLazyServiceGetter(this, "gSystemWorkerManager",
 
 XPCOMUtils.defineLazyServiceGetter(this, "gTelephonyProvider",
                                    "@mozilla.org/telephony/telephonyprovider;1",
-                                   "nsIGonkTelephonyProvider");
+                                   "nsIGonkTelephonyService");
 
 XPCOMUtils.defineLazyGetter(this, "WAP", function() {
   let wap = {};

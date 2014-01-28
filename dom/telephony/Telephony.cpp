@@ -132,7 +132,7 @@ Telephony::Create(nsPIDOMWindow* aOwner, ErrorResult& aRv)
 {
   NS_ASSERTION(aOwner, "Null owner!");
 
-  nsCOMPtr<nsITelephonyProvider> ril =
+  nsCOMPtr<nsITelephonyService> ril =
     do_GetService(TELEPHONY_PROVIDER_CONTRACTID);
   if (!ril) {
     aRv.Throw(NS_ERROR_UNEXPECTED);
@@ -196,9 +196,9 @@ Telephony::IsValidServiceId(uint32_t aServiceId)
 // static
 bool
 Telephony::IsActiveState(uint16_t aCallState) {
-  return aCallState == nsITelephonyProvider::CALL_STATE_DIALING ||
-      aCallState == nsITelephonyProvider::CALL_STATE_ALERTING ||
-      aCallState == nsITelephonyProvider::CALL_STATE_CONNECTED;
+  return aCallState == nsITelephonyService::CALL_STATE_DIALING ||
+      aCallState == nsITelephonyService::CALL_STATE_ALERTING ||
+      aCallState == nsITelephonyService::CALL_STATE_CONNECTED;
 }
 
 uint32_t
@@ -219,8 +219,8 @@ Telephony::HasDialingCall()
   for (uint32_t i = 0; i < mCalls.Length(); i++) {
     const nsRefPtr<TelephonyCall>& call = mCalls[i];
     if (call->IsOutgoing() &&
-        call->CallState() > nsITelephonyProvider::CALL_STATE_UNKNOWN &&
-        call->CallState() < nsITelephonyProvider::CALL_STATE_CONNECTED) {
+        call->CallState() > nsITelephonyService::CALL_STATE_UNKNOWN &&
+        call->CallState() < nsITelephonyService::CALL_STATE_CONNECTED) {
       return true;
     }
   }
@@ -277,7 +277,7 @@ Telephony::CreateNewDialingCall(uint32_t aServiceId, const nsAString& aNumber)
 {
   nsRefPtr<TelephonyCall> call =
     TelephonyCall::Create(this, aServiceId, aNumber,
-                          nsITelephonyProvider::CALL_STATE_DIALING);
+                          nsITelephonyService::CALL_STATE_DIALING);
   NS_ASSERTION(call, "This should never fail!");
 
   NS_ASSERTION(mCalls.Contains(call), "Should have auto-added new call!");
@@ -335,7 +335,7 @@ Telephony::GetOutgoingCall()
     nsRefPtr<TelephonyCall>& tempCall = mCalls[i];
     if (tempCall->CallIndex() == kOutgoingPlaceholderCallIndex) {
       NS_ASSERTION(!call, "More than one outgoing call not supported!");
-      NS_ASSERTION(tempCall->CallState() == nsITelephonyProvider::CALL_STATE_DIALING,
+      NS_ASSERTION(tempCall->CallState() == nsITelephonyService::CALL_STATE_DIALING,
                    "Something really wrong here!");
 
       call = tempCall;
@@ -473,7 +473,7 @@ Telephony::GetActive(Nullable<OwningTelephonyCallOrTelephonyCallGroup>& aValue)
 {
   if (mActiveCall) {
     aValue.SetValue().SetAsTelephonyCall() = mActiveCall;
-  } else if (mGroup->CallState() == nsITelephonyProvider::CALL_STATE_CONNECTED) {
+  } else if (mGroup->CallState() == nsITelephonyService::CALL_STATE_CONNECTED) {
     aValue.SetValue().SetAsTelephonyCallGroup() = mGroup;
   } else {
     aValue.SetNull();
@@ -526,7 +526,7 @@ Telephony::CallStateChanged(uint32_t aServiceId, uint32_t aCallIndex,
     // If the call state isn't incoming but we do have an outgoing call then
     // we must be seeing a status update for our outgoing call.
     if (outgoingCall &&
-        aCallState != nsITelephonyProvider::CALL_STATE_INCOMING) {
+        aCallState != nsITelephonyService::CALL_STATE_INCOMING) {
       outgoingCall->UpdateCallIndex(aCallIndex);
       outgoingCall->UpdateEmergency(aIsEmergency);
       modifiedCall.swap(outgoingCall);
@@ -567,7 +567,7 @@ Telephony::CallStateChanged(uint32_t aServiceId, uint32_t aCallIndex,
 
   // Do nothing since we didn't know anything about it before now and it's
   // ended already.
-  if (aCallState == nsITelephonyProvider::CALL_STATE_DISCONNECTED) {
+  if (aCallState == nsITelephonyService::CALL_STATE_DISCONNECTED) {
     return NS_OK;
   }
 
@@ -581,7 +581,7 @@ Telephony::CallStateChanged(uint32_t aServiceId, uint32_t aCallIndex,
                                mCalls.Contains(call),
                "Should have auto-added new call!");
 
-  if (aCallState == nsITelephonyProvider::CALL_STATE_INCOMING) {
+  if (aCallState == nsITelephonyService::CALL_STATE_INCOMING) {
     nsresult rv = DispatchCallEvent(NS_LITERAL_STRING("incoming"), call);
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -651,10 +651,10 @@ Telephony::SupplementaryServiceNotification(uint32_t aServiceId,
 
   nsresult rv;
   switch (aNotification) {
-    case nsITelephonyProvider::NOTIFICATION_REMOTE_HELD:
+    case nsITelephonyService::NOTIFICATION_REMOTE_HELD:
       rv = DispatchCallEvent(NS_LITERAL_STRING("remoteheld"), associatedCall);
       break;
-    case nsITelephonyProvider::NOTIFICATION_REMOTE_RESUMED:
+    case nsITelephonyService::NOTIFICATION_REMOTE_RESUMED:
       rv = DispatchCallEvent(NS_LITERAL_STRING("remoteresumed"), associatedCall);
       break;
     default:

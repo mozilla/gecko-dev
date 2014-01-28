@@ -122,6 +122,6 @@ function verify(contractId, ifaceName, attrName, prefKey, numRil) {
 }
 
 getNumRadioInterfaces()
-  .then(verify.bind(null, TELEPHONY_PROVIDER_CONTRACTID, "nsITelephonyProvider",
+  .then(verify.bind(null, TELEPHONY_PROVIDER_CONTRACTID, "nsITelephonyService",
                     "defaultServiceId", PREF_DEFAULT_SERVICE_ID))
   .then(finish);

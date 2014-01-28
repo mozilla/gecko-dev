@@ -22,7 +22,7 @@
 #include "nsIMobileConnectionProvider.h"
 #include "nsIObserverService.h"
 #include "nsISettingsService.h"
-#include "nsITelephonyProvider.h"
+#include "nsITelephonyService.h"
 #include "nsRadioInterfaceLayer.h"
 #include "nsServiceManagerUtils.h"
 #include "nsThreadUtils.h"
@@ -323,7 +323,7 @@ Call::Call()
 void
 Call::Reset()
 {
-  mState = nsITelephonyProvider::CALL_STATE_DISCONNECTED;
+  mState = nsITelephonyService::CALL_STATE_DISCONNECTED;
   mDirection = BTHF_CALL_DIRECTION_OUTGOING;
   mNumber.Truncate();
   mType = BTHF_CALL_ADDRTYPE_UNKNOWN;
@@ -332,7 +332,7 @@ Call::Reset()
 bool
 Call::IsActive()
 {
-  return (mState == nsITelephonyProvider::CALL_STATE_CONNECTED);
+  return (mState == nsITelephonyService::CALL_STATE_CONNECTED);
 }
 
 /**
@@ -368,7 +368,7 @@ BluetoothHfpManager::Reset()
 
   // Phone & Device CIND
   ResetCallArray();
-  mCallSetupState = nsITelephonyProvider::CALL_STATE_DISCONNECTED;
+  mCallSetupState = nsITelephonyService::CALL_STATE_DISCONNECTED;
   mBattChg = 5;
   mService = 0;
   mRoam = 0;
@@ -661,8 +661,8 @@ BluetoothHfpManager::ProcessAtCind()
 {
   NS_ENSURE_TRUE_VOID(sBluetoothHfpInterface);
 
-  int numActive = GetNumberOfCalls(nsITelephonyProvider::CALL_STATE_CONNECTED);
-  int numHeld = GetNumberOfCalls(nsITelephonyProvider::CALL_STATE_HELD);
+  int numActive = GetNumberOfCalls(nsITelephonyService::CALL_STATE_CONNECTED);
+  int numHeld = GetNumberOfCalls(nsITelephonyService::CALL_STATE_HELD);
 
   bt_status_t status = sBluetoothHfpInterface->cind_response(
                           mService,
@@ -911,7 +911,7 @@ void
 BluetoothHfpManager::SendCLCC(Call& aCall, int aIndex)
 {
   NS_ENSURE_TRUE_VOID(aCall.mState !=
-                        nsITelephonyProvider::CALL_STATE_DISCONNECTED);
+                        nsITelephonyService::CALL_STATE_DISCONNECTED);
   NS_ENSURE_TRUE_VOID(sBluetoothHfpInterface);
 
   bthf_call_state_t callState = ConvertToBthfCallState(aCall.mState);
@@ -953,17 +953,17 @@ BluetoothHfpManager::UpdatePhoneCIND(uint32_t aCallIndex, bool aSend)
 {
   // Update callsetup state
   uint16_t callState = mCurrentCallArray[aCallIndex].mState;
-  if (callState == nsITelephonyProvider::CALL_STATE_CONNECTED ||
-      callState == nsITelephonyProvider::CALL_STATE_HELD) {
-    mCallSetupState = nsITelephonyProvider::CALL_STATE_DISCONNECTED;
+  if (callState == nsITelephonyService::CALL_STATE_CONNECTED ||
+      callState == nsITelephonyService::CALL_STATE_HELD) {
+    mCallSetupState = nsITelephonyService::CALL_STATE_DISCONNECTED;
   } else {
     mCallSetupState = callState;
   }
 
   NS_ENSURE_TRUE_VOID(sBluetoothHfpInterface);
 
-  int numActive = GetNumberOfCalls(nsITelephonyProvider::CALL_STATE_CONNECTED);
-  int numHeld = GetNumberOfCalls(nsITelephonyProvider::CALL_STATE_HELD);
+  int numActive = GetNumberOfCalls(nsITelephonyService::CALL_STATE_CONNECTED);
+  int numHeld = GetNumberOfCalls(nsITelephonyService::CALL_STATE_HELD);
   bthf_call_state_t bthfCallState = ConvertToBthfCallState(mCallSetupState);
   nsAutoCString number = NS_ConvertUTF16toUTF8(mCurrentCallArray[aCallIndex].mNumber);
   bthf_call_addrtype_t type = mCurrentCallArray[aCallIndex].mType;
@@ -1023,17 +1023,17 @@ BluetoothHfpManager::ConvertToBthfCallState(int aCallState)
   bthf_call_state_t state;
 
   // Refer to AOSP BluetoothPhoneService.convertCallState
-  if (aCallState == nsITelephonyProvider::CALL_STATE_INCOMING) {
-    state = (FindFirstCall(nsITelephonyProvider::CALL_STATE_CONNECTED)) ?
+  if (aCallState == nsITelephonyService::CALL_STATE_INCOMING) {
+    state = (FindFirstCall(nsITelephonyService::CALL_STATE_CONNECTED)) ?
               BTHF_CALL_STATE_WAITING :
               BTHF_CALL_STATE_INCOMING;
-  } else if (aCallState == nsITelephonyProvider::CALL_STATE_DIALING) {
+  } else if (aCallState == nsITelephonyService::CALL_STATE_DIALING) {
     state = BTHF_CALL_STATE_DIALING;
-  } else if (aCallState == nsITelephonyProvider::CALL_STATE_ALERTING) {
+  } else if (aCallState == nsITelephonyService::CALL_STATE_ALERTING) {
     state = BTHF_CALL_STATE_ALERTING;
-  } else if (aCallState == nsITelephonyProvider::CALL_STATE_CONNECTED) {
+  } else if (aCallState == nsITelephonyService::CALL_STATE_CONNECTED) {
     state = BTHF_CALL_STATE_ACTIVE;
-  } else if (aCallState == nsITelephonyProvider::CALL_STATE_HELD) {
+  } else if (aCallState == nsITelephonyService::CALL_STATE_HELD) {
     state = BTHF_CALL_STATE_HELD;
   } else { // disconnected
     state = BTHF_CALL_STATE_IDLE;
@@ -1074,17 +1074,17 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
   UpdatePhoneCIND(aCallIndex, aSend);
 
   switch (aCallState) {
-    case nsITelephonyProvider::CALL_STATE_DIALING:
+    case nsITelephonyService::CALL_STATE_DIALING:
       // We've send Dialer a dialing request and this is the response.
       if (!mDialingRequestProcessed) {
         SendResponse(BTHF_AT_RESPONSE_OK);
         mDialingRequestProcessed = true;
       }
       break;
-    case nsITelephonyProvider::CALL_STATE_DISCONNECTED:
+    case nsITelephonyService::CALL_STATE_DISCONNECTED:
       // -1 is necessary because call 0 is an invalid (padding) call object.
       if (mCurrentCallArray.Length() - 1 ==
-          GetNumberOfCalls(nsITelephonyProvider::CALL_STATE_DISCONNECTED)) {
+          GetNumberOfCalls(nsITelephonyService::CALL_STATE_DISCONNECTED)) {
         // In order to let user hear busy tone via connected Bluetooth headset,
         // we postpone the timing of dropping SCO.
         if (aError.Equals(NS_LITERAL_STRING("BusyError"))) {
@@ -1144,7 +1144,7 @@ BluetoothHfpManager::AnswerWaitingCall()
   MOZ_ASSERT(mPhoneType == PhoneType::CDMA);
 
   // Pick up second call. First call is held now.
-  mCdmaSecondCall.mState = nsITelephonyProvider::CALL_STATE_CONNECTED;
+  mCdmaSecondCall.mState = nsITelephonyService::CALL_STATE_CONNECTED;
   // FIXME: check CDMA + bluedroid
   //UpdateCIND(CINDType::CALLSETUP, CallSetupState::NO_CALLSETUP, true);
 
@@ -1171,8 +1171,8 @@ BluetoothHfpManager::ToggleCalls()
 
   // Toggle acitve and held calls
   mCdmaSecondCall.mState = (mCdmaSecondCall.IsActive()) ?
-                             nsITelephonyProvider::CALL_STATE_HELD :
-                             nsITelephonyProvider::CALL_STATE_CONNECTED;
+                             nsITelephonyService::CALL_STATE_HELD :
+                             nsITelephonyService::CALL_STATE_CONNECTED;
 }
 
 bool

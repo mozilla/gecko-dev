@@ -28,13 +28,13 @@ const kPrefRilDebuggingEnabled = "ril.debugging.enabled";
 const kPrefDefaultServiceId = "dom.telephony.defaultServiceId";
 
 const nsIAudioManager = Ci.nsIAudioManager;
-const nsITelephonyProvider = Ci.nsITelephonyProvider;
+const nsITelephonyService = Ci.nsITelephonyService;
 
 const CALL_WAKELOCK_TIMEOUT = 5000;
 
 let DEBUG;
 function debug(s) {
-  dump("TelephonyProvider: " + s + "\n");
+  dump("TelephonyService: " + s + "\n");
 }
 
 XPCOMUtils.defineLazyGetter(this, "gAudioManager", function getAudioManager() {
@@ -109,7 +109,7 @@ ConferenceCall.prototype = {
   state: null
 };
 
-function TelephonyProvider() {
+function TelephonyService() {
   this._numClients = gRadioInterfaceLayer.numRadioInterfaces;
   this._listeners = [];
   this._updateDebugFlag();
@@ -120,16 +120,16 @@ function TelephonyProvider() {
 
   Services.obs.addObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false);
 }
-TelephonyProvider.prototype = {
+TelephonyService.prototype = {
   classID: GONK_TELEPHONYPROVIDER_CID,
   classInfo: XPCOMUtils.generateCI({classID: GONK_TELEPHONYPROVIDER_CID,
                                     contractID: GONK_TELEPHONYPROVIDER_CONTRACTID,
-                                    classDescription: "TelephonyProvider",
-                                    interfaces: [Ci.nsITelephonyProvider,
-                                                 Ci.nsIGonkTelephonyProvider],
+                                    classDescription: "TelephonyService",
+                                    interfaces: [Ci.nsITelephonyService,
+                                                 Ci.nsIGonkTelephonyService],
                                     flags: Ci.nsIClassInfo.SINGLETON}),
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsITelephonyProvider,
-                                         Ci.nsIGonkTelephonyProvider,
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsITelephonyService,
+                                         Ci.nsIGonkTelephonyService,
                                          Ci.nsIObserver]),
 
   // The following attributes/functions are used for acquiring/releasing the
@@ -200,7 +200,7 @@ TelephonyProvider.prototype = {
    */
   _activeCall: null,
   _updateCallAudioState: function(aCall, aConferenceState) {
-    if (aConferenceState === nsITelephonyProvider.CALL_STATE_CONNECTED) {
+    if (aConferenceState === nsITelephonyService.CALL_STATE_CONNECTED) {
       this._activeCall = new ConferenceCall(aConferenceState);
       gAudioManager.phoneState = nsIAudioManager.PHONE_STATE_IN_CALL;
       if (this.speakerEnabled) {
@@ -214,8 +214,8 @@ TelephonyProvider.prototype = {
       return;
     }
 
-    if (aConferenceState === nsITelephonyProvider.CALL_STATE_UNKNOWN ||
-        aConferenceState === nsITelephonyProvider.CALL_STATE_HELD) {
+    if (aConferenceState === nsITelephonyService.CALL_STATE_UNKNOWN ||
+        aConferenceState === nsITelephonyService.CALL_STATE_HELD) {
       if (this._activeCall instanceof ConferenceCall) {
         this._activeCall = null;
         gAudioManager.phoneState = nsIAudioManager.PHONE_STATE_NORMAL;
@@ -239,9 +239,9 @@ TelephonyProvider.prototype = {
     }
 
     switch (aCall.state) {
-      case nsITelephonyProvider.CALL_STATE_DIALING: // Fall through...
-      case nsITelephonyProvider.CALL_STATE_ALERTING:
-      case nsITelephonyProvider.CALL_STATE_CONNECTED:
+      case nsITelephonyService.CALL_STATE_DIALING: // Fall through...
+      case nsITelephonyService.CALL_STATE_ALERTING:
+      case nsITelephonyService.CALL_STATE_CONNECTED:
         aCall.isActive = true;
         this._activeCall = new SingleCall(aCall);
         gAudioManager.phoneState = nsIAudioManager.PHONE_STATE_IN_CALL;
@@ -255,7 +255,7 @@ TelephonyProvider.prototype = {
         }
         break;
 
-      case nsITelephonyProvider.CALL_STATE_INCOMING:
+      case nsITelephonyService.CALL_STATE_INCOMING:
         aCall.isActive = false;
         if (!this._activeCall) {
           // We can change the phone state into RINGTONE only when there's
@@ -268,8 +268,8 @@ TelephonyProvider.prototype = {
         }
         break;
 
-      case nsITelephonyProvider.CALL_STATE_HELD: // Fall through...
-      case nsITelephonyProvider.CALL_STATE_DISCONNECTED:
+      case nsITelephonyService.CALL_STATE_HELD: // Fall through...
+      case nsITelephonyService.CALL_STATE_DISCONNECTED:
         aCall.isActive = false;
         if (this._matchActiveSingleCall(aCall)) {
           // Previously active call is not active now.
@@ -291,18 +291,18 @@ TelephonyProvider.prototype = {
   _convertRILCallState: function(aState) {
     switch (aState) {
       case RIL.CALL_STATE_UNKNOWN:
-        return nsITelephonyProvider.CALL_STATE_UNKNOWN;
+        return nsITelephonyService.CALL_STATE_UNKNOWN;
       case RIL.CALL_STATE_ACTIVE:
-        return nsITelephonyProvider.CALL_STATE_CONNECTED;
+        return nsITelephonyService.CALL_STATE_CONNECTED;
       case RIL.CALL_STATE_HOLDING:
-        return nsITelephonyProvider.CALL_STATE_HELD;
+        return nsITelephonyService.CALL_STATE_HELD;
       case RIL.CALL_STATE_DIALING:
-        return nsITelephonyProvider.CALL_STATE_DIALING;
+        return nsITelephonyService.CALL_STATE_DIALING;
       case RIL.CALL_STATE_ALERTING:
-        return nsITelephonyProvider.CALL_STATE_ALERTING;
+        return nsITelephonyService.CALL_STATE_ALERTING;
       case RIL.CALL_STATE_INCOMING:
       case RIL.CALL_STATE_WAITING:
-        return nsITelephonyProvider.CALL_STATE_INCOMING;
+        return nsITelephonyService.CALL_STATE_INCOMING;
       default:
         throw new Error("Unknown rilCallState: " + aState);
     }
@@ -311,9 +311,9 @@ TelephonyProvider.prototype = {
   _convertRILSuppSvcNotification: function(aNotification) {
     switch (aNotification) {
       case RIL.GECKO_SUPP_SVC_NOTIFICATION_REMOTE_HELD:
-        return nsITelephonyProvider.NOTIFICATION_REMOTE_HELD;
+        return nsITelephonyService.NOTIFICATION_REMOTE_HELD;
       case RIL.GECKO_SUPP_SVC_NOTIFICATION_REMOTE_RESUMED:
-        return nsITelephonyProvider.NOTIFICATION_REMOTE_RESUMED;
+        return nsITelephonyService.NOTIFICATION_REMOTE_RESUMED;
       default:
         throw new Error("Unknown rilSuppSvcNotification: " + aNotification);
     }
@@ -355,7 +355,7 @@ TelephonyProvider.prototype = {
   },
 
   /**
-   * nsITelephonyProvider interface.
+   * nsITelephonyService interface.
    */
 
   defaultServiceId: 0,
@@ -507,7 +507,7 @@ TelephonyProvider.prototype = {
   },
 
   /**
-   * nsIGonkTelephonyProvider interface.
+   * nsIGonkTelephonyService interface.
    */
 
   /**
@@ -516,7 +516,7 @@ TelephonyProvider.prototype = {
   notifyCallDisconnected: function(aClientId, aCall) {
     if (DEBUG) debug("handleCallDisconnected: " + JSON.stringify(aCall));
 
-    aCall.state = nsITelephonyProvider.CALL_STATE_DISCONNECTED;
+    aCall.state = nsITelephonyService.CALL_STATE_DISCONNECTED;
     let duration = ("started" in aCall && typeof aCall.started == "number") ?
       new Date().getTime() - aCall.started : 0;
     let data = {
@@ -574,7 +574,7 @@ TelephonyProvider.prototype = {
     if (DEBUG) debug("handleCallStateChange: " + JSON.stringify(aCall));
 
     aCall.state = this._convertRILCallState(aCall.state);
-    if (aCall.state == nsITelephonyProvider.CALL_STATE_DIALING) {
+    if (aCall.state == nsITelephonyService.CALL_STATE_DIALING) {
       gSystemMessenger.broadcastMessage("telephony-new-call", {});
     }
 
@@ -643,4 +643,4 @@ TelephonyProvider.prototype = {
   }
 };
 
-this.NSGetFactory = XPCOMUtils.generateNSGetFactory([TelephonyProvider]);
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory([TelephonyService]);

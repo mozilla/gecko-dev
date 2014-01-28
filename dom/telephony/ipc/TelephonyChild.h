@@ -9,7 +9,7 @@
 #include "mozilla/dom/telephony/TelephonyCommon.h"
 #include "mozilla/dom/telephony/PTelephonyChild.h"
 #include "mozilla/dom/telephony/PTelephonyRequestChild.h"
-#include "nsITelephonyProvider.h"
+#include "nsITelephonyService.h"
 
 BEGIN_TELEPHONY_NAMESPACE
 

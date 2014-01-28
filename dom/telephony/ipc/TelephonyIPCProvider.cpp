@@ -37,7 +37,7 @@ getDefaultServiceId()
 } // Anonymous namespace
 
 NS_IMPL_ISUPPORTS3(TelephonyIPCProvider,
-                   nsITelephonyProvider,
+                   nsITelephonyService,
                    nsITelephonyListener,
                    nsIObserver)
 
@@ -79,7 +79,7 @@ TelephonyIPCProvider::Observe(nsISupports* aSubject,
 }
 
 /*
- * Implementation of nsITelephonyProvider.
+ * Implementation of nsITelephonyService.
  */
 
 NS_IMETHODIMP

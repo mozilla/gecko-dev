@@ -9,13 +9,13 @@
 #include "mozilla/dom/telephony/TelephonyCommon.h"
 #include "mozilla/Attributes.h"
 #include "nsIObserver.h"
-#include "nsITelephonyProvider.h"
+#include "nsITelephonyService.h"
 
 BEGIN_TELEPHONY_NAMESPACE
 
 class PTelephonyChild;
 
-class TelephonyIPCProvider MOZ_FINAL : public nsITelephonyProvider
+class TelephonyIPCProvider MOZ_FINAL : public nsITelephonyService
                                      , public nsITelephonyListener
                                      , public nsIObserver
 {
