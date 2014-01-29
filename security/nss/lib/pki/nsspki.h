@@ -5,10 +5,6 @@
 #ifndef NSSPKI_H
 #define NSSPKI_H
 
-#ifdef DEBUG
-static const char NSSPKI_CVS_ID[] = "@(#) $RCSfile: nsspki.h,v $ $Revision: 1.14 $ $Date: 2012/04/25 14:50:07 $";
-#endif /* DEBUG */
-
 /*
  * nsspki.h
  *

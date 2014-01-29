@@ -3,8 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 /*
  * certt.h - public data structures for the certificate library
- *
- * $Id: certt.h,v 1.58 2013/01/07 03:56:12 ryan.sleevi%gmail.com Exp $
  */
 #ifndef _CERTT_H_
 #define _CERTT_H_
@@ -1043,8 +1041,8 @@ typedef enum {
  * Whether or not to use a method for revocation testing.
  * If set to "do not test", then all other flags are ignored.
  */
-#define CERT_REV_M_DO_NOT_TEST_USING_THIS_METHOD     0L
-#define CERT_REV_M_TEST_USING_THIS_METHOD            1L
+#define CERT_REV_M_DO_NOT_TEST_USING_THIS_METHOD     0UL
+#define CERT_REV_M_TEST_USING_THIS_METHOD            1UL
 
 /*
  * Whether or not NSS is allowed to attempt to fetch fresh information
@@ -1052,8 +1050,8 @@ typedef enum {
  * (Although fetching will never happen if fresh information for the
  *           method is already locally available.)
  */
-#define CERT_REV_M_ALLOW_NETWORK_FETCHING            0L
-#define CERT_REV_M_FORBID_NETWORK_FETCHING           2L
+#define CERT_REV_M_ALLOW_NETWORK_FETCHING            0UL
+#define CERT_REV_M_FORBID_NETWORK_FETCHING           2UL
 
 /*
  * Example for an implicit default source:
@@ -1067,8 +1065,8 @@ typedef enum {
  *          then we continue to use what's available (or not available) 
  *          in the certs.
  */ 
-#define CERT_REV_M_ALLOW_IMPLICIT_DEFAULT_SOURCE     0L
-#define CERT_REV_M_IGNORE_IMPLICIT_DEFAULT_SOURCE    4L
+#define CERT_REV_M_ALLOW_IMPLICIT_DEFAULT_SOURCE     0UL
+#define CERT_REV_M_IGNORE_IMPLICIT_DEFAULT_SOURCE    4UL
 
 /*
  * Defines the behavior if no fresh information is available,
@@ -1082,8 +1080,8 @@ typedef enum {
  *          We still require that fresh information is available.
  *          Other flags define what happens on missing fresh info.
  */
-#define CERT_REV_M_SKIP_TEST_ON_MISSING_SOURCE       0L
-#define CERT_REV_M_REQUIRE_INFO_ON_MISSING_SOURCE    8L
+#define CERT_REV_M_SKIP_TEST_ON_MISSING_SOURCE       0UL
+#define CERT_REV_M_REQUIRE_INFO_ON_MISSING_SOURCE    8UL
 
 /*
  * Defines the behavior if we are unable to obtain fresh information.
@@ -1092,8 +1090,8 @@ typedef enum {
  * FAIL means:
  *      Return "cert revoked".
  */
-#define CERT_REV_M_IGNORE_MISSING_FRESH_INFO         0L
-#define CERT_REV_M_FAIL_ON_MISSING_FRESH_INFO        16L
+#define CERT_REV_M_IGNORE_MISSING_FRESH_INFO         0UL
+#define CERT_REV_M_FAIL_ON_MISSING_FRESH_INFO        16UL
 
 /*
  * What should happen if we were able to find fresh information using
@@ -1105,8 +1103,13 @@ typedef enum {
  *                  We will continue and test the next allowed
  *                  specified method.
  */
-#define CERT_REV_M_STOP_TESTING_ON_FRESH_INFO        0L
-#define CERT_REV_M_CONTINUE_TESTING_ON_FRESH_INFO    32L
+#define CERT_REV_M_STOP_TESTING_ON_FRESH_INFO        0UL
+#define CERT_REV_M_CONTINUE_TESTING_ON_FRESH_INFO    32UL
+
+/* When this flag is used, libpkix will never attempt to use the GET HTTP
+ * method for OCSP requests; it will always use POST.
+ */
+#define CERT_REV_M_FORCE_POST_METHOD_FOR_OCSP 64UL
 
 /*
  * The following flags are supposed to be used to control bits in
@@ -1127,8 +1130,8 @@ typedef enum {
  *      which are already locally available. Only after that is done
  *      consider to fetch from the network (as allowed by other flags).
  */
-#define CERT_REV_MI_TEST_EACH_METHOD_SEPARATELY       0L
-#define CERT_REV_MI_TEST_ALL_LOCAL_INFORMATION_FIRST  1L
+#define CERT_REV_MI_TEST_EACH_METHOD_SEPARATELY       0UL
+#define CERT_REV_MI_TEST_ALL_LOCAL_INFORMATION_FIRST  1UL
 
 /*
  * Use this flag to specify that it's necessary that fresh information
@@ -1143,8 +1146,8 @@ typedef enum {
  *     This setting overrides the CERT_REV_M_FAIL_ON_MISSING_FRESH_INFO
  *     flag on all methods.
  */
-#define CERT_REV_MI_NO_OVERALL_INFO_REQUIREMENT       0L
-#define CERT_REV_MI_REQUIRE_SOME_FRESH_INFO_AVAILABLE 2L
+#define CERT_REV_MI_NO_OVERALL_INFO_REQUIREMENT       0UL
+#define CERT_REV_MI_REQUIRE_SOME_FRESH_INFO_AVAILABLE 2UL
 
 
 typedef struct {

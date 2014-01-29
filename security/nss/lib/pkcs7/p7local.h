@@ -12,8 +12,6 @@
  * of pkcs7 code, first try to add a PKCS7 interface which will do it for
  * you.  If that has a problem, then just move out what you need, changing
  * its name as appropriate!
- *
- * $Id: p7local.h,v 1.4 2012/04/25 14:50:06 gerv%gerv.net Exp $
  */
 
 #ifndef _P7LOCAL_H_
@@ -51,7 +49,7 @@ extern SECItem *sec_PKCS7AttributeValue (SEC_PKCS7Attribute *attr);
 /*
  * Encode a set of attributes (found in "src").
  */
-extern SECItem *sec_PKCS7EncodeAttributes (PRArenaPool *poolp,
+extern SECItem *sec_PKCS7EncodeAttributes (PLArenaPool *poolp,
 					   SECItem *dest, void *src);
 
 /*
@@ -73,7 +71,7 @@ sec_PKCS7CreateDecryptObject (PK11SymKey *key, SECAlgorithmID *algid);
  * and fill in the algorithm id.
  */
 extern sec_PKCS7CipherObject *
-sec_PKCS7CreateEncryptObject (PRArenaPool *poolp, PK11SymKey *key,
+sec_PKCS7CreateEncryptObject (PLArenaPool *poolp, PK11SymKey *key,
 			      SECOidTag algtag, SECAlgorithmID *algid);
 
 /*

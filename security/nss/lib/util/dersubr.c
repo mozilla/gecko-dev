@@ -76,7 +76,7 @@ DER_StoreHeader(unsigned char *buf, unsigned int code, PRUint32 len)
  * of a PRInt32.
  */
 SECStatus
-DER_SetInteger(PRArenaPool *arena, SECItem *it, PRInt32 i)
+DER_SetInteger(PLArenaPool *arena, SECItem *it, PRInt32 i)
 {
     unsigned char bb[4];
     unsigned len;
@@ -127,7 +127,7 @@ DER_SetInteger(PRArenaPool *arena, SECItem *it, PRInt32 i)
  * of a PRUint32.
  */
 SECStatus
-DER_SetUInteger(PRArenaPool *arena, SECItem *it, PRUint32 ui)
+DER_SetUInteger(PLArenaPool *arena, SECItem *it, PRUint32 ui)
 {
     unsigned char bb[5];
     int len;
@@ -176,7 +176,7 @@ DER_SetUInteger(PRArenaPool *arena, SECItem *it, PRUint32 ui)
 ** If an underflow/overflow occurs, sets error code and returns min/max.
 */
 long
-DER_GetInteger(SECItem *it)
+DER_GetInteger(const SECItem *it)
 {
     long ival = 0;
     unsigned len = it->len;

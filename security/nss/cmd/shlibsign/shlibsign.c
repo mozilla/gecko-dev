@@ -13,8 +13,6 @@
  * When in FIPS 140 mode, the NSS Internal FIPS PKCS #11 Module will
  * compute the checksum for the NSS cryptographic boundary libraries
  * and compare the checksum with the value in .chk file.
- *
- * $Id: shlibsign.c,v 1.21 2012/09/25 22:21:12 rrelyea%redhat.com Exp $
  */
 
 #ifdef XP_UNIX
@@ -703,6 +701,7 @@ int main(int argc, char **argv)
     int i;
     PRBool verify = PR_FALSE;
     static PRBool FIPSMODE = PR_FALSE;
+    PRBool successful = PR_FALSE;
 
 #ifdef USES_LINKS
     int ret;
@@ -1247,6 +1246,8 @@ int main(int argc, char **argv)
     }
 #endif
 
+    successful = PR_TRUE;
+
 cleanup:
     if (pFunctionList) {
         /* C_Finalize will automatically logout, close session, */
@@ -1283,5 +1284,8 @@ cleanup:
     }
     PR_Cleanup();
 
-    return crv;
+    if (crv != CKR_OK)
+	return crv;
+    
+    return (successful) ? 0 : 1;
 }

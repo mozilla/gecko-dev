@@ -6,7 +6,6 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-/* $Id: preenc.h,v 1.7 2012/04/25 14:50:12 gerv%gerv.net Exp $ */
 
 /* Fortezza support is removed.
  * This file remains so that old programs will continue to compile,

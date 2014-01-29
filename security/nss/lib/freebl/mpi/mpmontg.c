@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-/* $Id: mpmontg.c,v 1.25 2012/11/14 01:14:11 wtc%google.com Exp $ */
 
 /* This file implements moduluar exponentiation using Montgomery's
  * method for modular reduction.  This file implements the method
@@ -627,9 +626,9 @@ typedef unsigned int mp_weave_word;
  * mp_digits where each digit is stored in big endian order.
  * 
  * since we need to interleave on a byte by byte basis, we need to collect 
- * several mpi structures together into a single uint32 before we write. We
- * also need to make sure the uint32 is arranged so that the first value of 
- * the first array winds up in b[0]. This means construction of that uint32
+ * several mpi structures together into a single PRUint32 before we write. We
+ * also need to make sure the PRUint32 is arranged so that the first value of
+ * the first array winds up in b[0]. This means construction of that PRUint32
  * is endian specific (even though the layout of the mp_digits in the array 
  * is always big endian).
  *

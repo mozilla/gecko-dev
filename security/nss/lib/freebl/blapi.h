@@ -4,7 +4,6 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-/* $Id: blapi.h,v 1.51 2013/02/14 21:20:46 wtc%google.com Exp $ */
 
 #ifndef _BLAPI_H_
 #define _BLAPI_H_
@@ -107,6 +106,174 @@ extern SECStatus RSA_PrivateKeyCheck(RSAPrivateKey *key);
 ** ignored in this implementation.
 */
 extern SECStatus RSA_PopulatePrivateKey(RSAPrivateKey *key);
+
+/********************************************************************
+** RSA algorithm
+*/
+
+/********************************************************************
+** Raw signing/encryption/decryption operations.
+**
+** No padding or formatting will be applied.
+** inputLen MUST be equivalent to the modulus size (in bytes).
+*/
+extern SECStatus
+RSA_SignRaw(RSAPrivateKey       * key,
+            unsigned char       * output,
+            unsigned int        * outputLen,
+            unsigned int          maxOutputLen,
+            const unsigned char * input,
+            unsigned int          inputLen);
+
+extern SECStatus
+RSA_CheckSignRaw(RSAPublicKey        * key,
+                 const unsigned char * sig,
+                 unsigned int          sigLen,
+                 const unsigned char * hash,
+                 unsigned int          hashLen);
+
+extern SECStatus
+RSA_CheckSignRecoverRaw(RSAPublicKey        * key,
+                        unsigned char       * data,
+                        unsigned int        * dataLen,
+                        unsigned int          maxDataLen,
+                        const unsigned char * sig,
+                        unsigned int          sigLen);
+
+extern SECStatus
+RSA_EncryptRaw(RSAPublicKey        * key,
+               unsigned char       * output,
+               unsigned int        * outputLen,
+               unsigned int          maxOutputLen,
+               const unsigned char * input,
+               unsigned int          inputLen);
+
+extern SECStatus
+RSA_DecryptRaw(RSAPrivateKey       * key,
+               unsigned char       * output,
+               unsigned int        * outputLen,
+               unsigned int          maxOutputLen,
+               const unsigned char * input,
+               unsigned int          inputLen);
+
+/********************************************************************
+** RSAES-OAEP encryption/decryption, as defined in RFC 3447, Section 7.1.
+**
+** Note: Only MGF1 is supported as the mask generation function. It will be
+** used with maskHashAlg as the inner hash function.
+**
+** Unless performing Known Answer Tests, "seed" should be NULL, indicating that
+** freebl should generate a random value. Otherwise, it should be an octet
+** string of seedLen bytes, which should be the same size as the output of
+** hashAlg.
+*/
+extern SECStatus
+RSA_EncryptOAEP(RSAPublicKey        * key,
+                HASH_HashType         hashAlg,
+                HASH_HashType         maskHashAlg,
+                const unsigned char * label,
+                unsigned int          labelLen,
+                const unsigned char * seed,
+                unsigned int          seedLen,
+                unsigned char       * output,
+                unsigned int        * outputLen,
+                unsigned int          maxOutputLen,
+                const unsigned char * input,
+                unsigned int          inputLen);
+
+extern SECStatus
+RSA_DecryptOAEP(RSAPrivateKey       * key,
+                HASH_HashType         hashAlg,
+                HASH_HashType         maskHashAlg,
+                const unsigned char * label,
+                unsigned int          labelLen,
+                unsigned char       * output,
+                unsigned int        * outputLen,
+                unsigned int          maxOutputLen,
+                const unsigned char * input,
+                unsigned int          inputLen);
+
+/********************************************************************
+** RSAES-PKCS1-v1_5 encryption/decryption, as defined in RFC 3447, Section 7.2.
+*/
+extern SECStatus
+RSA_EncryptBlock(RSAPublicKey        * key,
+                 unsigned char       * output,
+                 unsigned int        * outputLen,
+                 unsigned int          maxOutputLen,
+                 const unsigned char * input,
+                 unsigned int          inputLen);
+
+extern SECStatus
+RSA_DecryptBlock(RSAPrivateKey       * key,
+                 unsigned char       * output,
+                 unsigned int        * outputLen,
+                 unsigned int          maxOutputLen,
+                 const unsigned char * input,
+                 unsigned int          inputLen);
+
+/********************************************************************
+** RSASSA-PSS signing/verifying, as defined in RFC 3447, Section 8.1.
+**
+** Note: Only MGF1 is supported as the mask generation function. It will be
+** used with maskHashAlg as the inner hash function.
+**
+** Unless performing Known Answer Tests, "salt" should be NULL, indicating that
+** freebl should generate a random value.
+*/
+extern SECStatus
+RSA_SignPSS(RSAPrivateKey       * key,
+            HASH_HashType         hashAlg,
+            HASH_HashType         maskHashAlg,
+            const unsigned char * salt,
+            unsigned int          saltLen,
+            unsigned char       * output,
+            unsigned int        * outputLen,
+            unsigned int          maxOutputLen,
+            const unsigned char * input,
+            unsigned int          inputLen);
+
+extern SECStatus
+RSA_CheckSignPSS(RSAPublicKey        * key,
+                 HASH_HashType         hashAlg,
+                 HASH_HashType         maskHashAlg,
+                 unsigned int          saltLen,
+                 const unsigned char * sig,
+                 unsigned int          sigLen,
+                 const unsigned char * hash,
+                 unsigned int          hashLen);
+
+/********************************************************************
+** RSASSA-PKCS1-v1_5 signing/verifying, as defined in RFC 3447, Section 8.2.
+**
+** These functions expect as input to be the raw value to be signed. For most
+** cases using PKCS1-v1_5, this should be the value of T, the DER-encoded
+** DigestInfo structure defined in Section 9.2, Step 2.
+** Note: This can also be used for signatures that use PKCS1-v1_5 padding, such
+** as the signatures used in SSL/TLS, which sign a raw hash.
+*/
+extern SECStatus
+RSA_Sign(RSAPrivateKey       * key,
+         unsigned char       * output,
+         unsigned int        * outputLen,
+         unsigned int          maxOutputLen,
+         const unsigned char * data,
+         unsigned int          dataLen);
+
+extern SECStatus
+RSA_CheckSign(RSAPublicKey        * key,
+              const unsigned char * sig,
+              unsigned int          sigLen,
+              const unsigned char * data,
+              unsigned int          dataLen);
+
+extern SECStatus
+RSA_CheckSignRecover(RSAPublicKey        * key,
+                     unsigned char       * output,
+                     unsigned int        * outputLen,
+                     unsigned int          maxOutputLen,
+                     const unsigned char * sig,
+                     unsigned int          sigLen);
 
 /********************************************************************
 ** DSA signing algorithm
@@ -834,7 +1001,7 @@ extern SECStatus MD5_Hash(unsigned char *dest, const char *src);
 ** Hash a non-null terminated string "src" into "dest" using MD5
 */
 extern SECStatus MD5_HashBuf(unsigned char *dest, const unsigned char *src,
-			     uint32 src_length);
+			     PRUint32 src_length);
 
 /*
 ** Create a new MD5 context
@@ -1002,7 +1169,7 @@ extern SECStatus SHA1_Hash(unsigned char *dest, const char *src);
 ** Hash a non-null terminated string "src" into "dest" using SHA-1
 */
 extern SECStatus SHA1_HashBuf(unsigned char *dest, const unsigned char *src,
-			      uint32 src_length);
+			      PRUint32 src_length);
 
 /*
 ** Create a new SHA-1 context
@@ -1104,7 +1271,7 @@ extern void SHA224_End(SHA224Context *cx, unsigned char *digest,
 extern void SHA224_EndRaw(SHA224Context *cx, unsigned char *digest,
 			  unsigned int *digestLen, unsigned int maxDigestLen);
 extern SECStatus SHA224_HashBuf(unsigned char *dest, const unsigned char *src,
-			      uint32 src_length);
+				PRUint32 src_length);
 extern SECStatus SHA224_Hash(unsigned char *dest, const char *src);
 extern void SHA224_TraceState(SHA224Context *cx);
 extern unsigned int SHA224_FlattenSize(SHA224Context *cx);
@@ -1133,7 +1300,7 @@ extern void SHA256_End(SHA256Context *cx, unsigned char *digest,
 extern void SHA256_EndRaw(SHA256Context *cx, unsigned char *digest,
 			  unsigned int *digestLen, unsigned int maxDigestLen);
 extern SECStatus SHA256_HashBuf(unsigned char *dest, const unsigned char *src,
-			      uint32 src_length);
+				PRUint32 src_length);
 extern SECStatus SHA256_Hash(unsigned char *dest, const char *src);
 extern void SHA256_TraceState(SHA256Context *cx);
 extern unsigned int SHA256_FlattenSize(SHA256Context *cx);
@@ -1162,7 +1329,7 @@ extern void SHA512_EndRaw(SHA512Context *cx, unsigned char *digest,
 extern void SHA512_End(SHA512Context *cx, unsigned char *digest,
 		     unsigned int *digestLen, unsigned int maxDigestLen);
 extern SECStatus SHA512_HashBuf(unsigned char *dest, const unsigned char *src,
-			      uint32 src_length);
+				PRUint32 src_length);
 extern SECStatus SHA512_Hash(unsigned char *dest, const char *src);
 extern void SHA512_TraceState(SHA512Context *cx);
 extern unsigned int SHA512_FlattenSize(SHA512Context *cx);
@@ -1191,7 +1358,7 @@ extern void SHA384_End(SHA384Context *cx, unsigned char *digest,
 extern void SHA384_EndRaw(SHA384Context *cx, unsigned char *digest,
 			  unsigned int *digestLen, unsigned int maxDigestLen);
 extern SECStatus SHA384_HashBuf(unsigned char *dest, const unsigned char *src,
-			      uint32 src_length);
+				PRUint32 src_length);
 extern SECStatus SHA384_Hash(unsigned char *dest, const char *src);
 extern void SHA384_TraceState(SHA384Context *cx);
 extern unsigned int SHA384_FlattenSize(SHA384Context *cx);

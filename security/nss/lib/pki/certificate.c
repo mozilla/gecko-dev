@@ -2,10 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: certificate.c,v $ $Revision: 1.70 $ $Date: 2012/05/17 21:39:40 $";
-#endif /* DEBUG */
-
 #ifndef NSSPKI_H
 #include "nsspki.h"
 #endif /* NSSPKI_H */

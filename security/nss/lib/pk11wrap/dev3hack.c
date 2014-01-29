@@ -2,10 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: dev3hack.c,v $ $Revision: 1.27 $ $Date: 2012/04/25 14:50:04 $";
-#endif /* DEBUG */
-
 #ifndef PKIT_H
 #include "pkit.h"
 #endif /* PKIT_H */

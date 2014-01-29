@@ -4,8 +4,6 @@
 
 /*
  * CMS User Define Types
- *
- * $Id: cmsudf.c,v 1.4 2012/04/25 14:50:09 gerv%gerv.net Exp $
  */
 
 #include "cmslocal.h"
@@ -42,7 +40,7 @@ static PRLock *nsscmstypeHashLock;
 /* the hash table itself */
 static PLHashTable *nsscmstypeHash;
 /* arena to hold all the hash table data */
-static PRArenaPool *nsscmstypeArena;
+static PLArenaPool *nsscmstypeArena;
 
 /*
  * clean up our global tables

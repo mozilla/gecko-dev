@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "cert.h"
-#include "secpkcs7.h"
 #include "base64.h"
 #include "secitem.h"
 #include "secder.h"
@@ -12,26 +11,137 @@
 #include "secerr.h"
 
 SEC_ASN1_MKSUB(SEC_AnyTemplate)
+SEC_ASN1_MKSUB(SEC_SetOfAnyTemplate)
 
-SECStatus
+typedef struct ContentInfoStr ContentInfo;
+typedef struct DegenerateSignedDataStr DegenerateSignedData;
+
+struct ContentInfoStr {
+    SECOidTag contentTypeTag;   /* local; not part of encoding */
+    SECItem contentType;
+    union {
+        SECItem *data;
+        DegenerateSignedData *signedData;
+    } content;
+};
+
+struct DegenerateSignedDataStr {
+    SECItem version;
+    SECItem **digestAlgorithms;
+    ContentInfo contentInfo;
+    SECItem **certificates;
+    SECItem **crls;
+    SECItem **signerInfos;
+};
+
+static const SEC_ASN1Template *
+choose_content_template(void *src_or_dest, PRBool encoding);
+
+static const SEC_ASN1TemplateChooserPtr template_chooser
+        = choose_content_template;
+
+static const SEC_ASN1Template ContentInfoTemplate[] = {
+    { SEC_ASN1_SEQUENCE,
+          0, NULL, sizeof(ContentInfo) },
+    { SEC_ASN1_OBJECT_ID,
+          offsetof(ContentInfo,contentType) },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_DYNAMIC |
+      SEC_ASN1_EXPLICIT | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC | 0,
+          offsetof(ContentInfo,content),
+          &template_chooser },
+    { 0 }
+};
+
+static const SEC_ASN1Template DegenerateSignedDataTemplate[] = {
+    { SEC_ASN1_SEQUENCE,
+          0, NULL, sizeof(DegenerateSignedData) },
+    { SEC_ASN1_INTEGER,
+          offsetof(DegenerateSignedData,version) },
+    { SEC_ASN1_SET_OF | SEC_ASN1_XTRN,
+          offsetof(DegenerateSignedData,digestAlgorithms),
+          SEC_ASN1_SUB(SEC_AnyTemplate) },
+    { SEC_ASN1_INLINE,
+          offsetof(DegenerateSignedData,contentInfo),
+          ContentInfoTemplate },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC |
+      SEC_ASN1_XTRN | 0,
+          offsetof(DegenerateSignedData,certificates),
+          SEC_ASN1_SUB(SEC_SetOfAnyTemplate) },
+    { SEC_ASN1_OPTIONAL | SEC_ASN1_CONSTRUCTED | SEC_ASN1_CONTEXT_SPECIFIC |
+      SEC_ASN1_XTRN | 1,
+          offsetof(DegenerateSignedData,crls),
+          SEC_ASN1_SUB(SEC_SetOfAnyTemplate) },
+    { SEC_ASN1_SET_OF | SEC_ASN1_XTRN,
+          offsetof(DegenerateSignedData,signerInfos),
+          SEC_ASN1_SUB(SEC_AnyTemplate) },
+    { 0 }
+};
+
+static const SEC_ASN1Template PointerToDegenerateSignedDataTemplate[] = {
+    { SEC_ASN1_POINTER, 0, DegenerateSignedDataTemplate }
+};
+
+static SECOidTag
+GetContentTypeTag(ContentInfo *cinfo)
+{
+    if (cinfo->contentTypeTag == SEC_OID_UNKNOWN)
+        cinfo->contentTypeTag = SECOID_FindOIDTag(&cinfo->contentType);
+    return cinfo->contentTypeTag;
+}
+
+static const SEC_ASN1Template *
+choose_content_template(void *src_or_dest, PRBool encoding)
+{
+    const SEC_ASN1Template *theTemplate;
+    ContentInfo *cinfo;
+    SECOidTag kind;
+
+    PORT_Assert(src_or_dest != NULL);
+    if (src_or_dest == NULL)
+        return NULL;
+
+    cinfo = (ContentInfo*)src_or_dest;
+    kind = GetContentTypeTag(cinfo);
+    switch (kind) {
+      default:
+        theTemplate = SEC_ASN1_GET(SEC_PointerToAnyTemplate);
+        break;
+      case SEC_OID_PKCS7_DATA:
+        theTemplate = SEC_ASN1_GET(SEC_PointerToOctetStringTemplate);
+        break;
+      case SEC_OID_PKCS7_SIGNED_DATA:
+        theTemplate = PointerToDegenerateSignedDataTemplate;
+        break;
+    }
+    return theTemplate;
+}
+
+static SECStatus
 SEC_ReadPKCS7Certs(SECItem *pkcs7Item, CERTImportCertificateFunc f, void *arg)
 {
-    SEC_PKCS7ContentInfo *contentInfo = NULL;
+    ContentInfo contentInfo;
     SECStatus rv;
     SECItem **certs;
     int count;
+    PLArenaPool *arena;
 
-    contentInfo = SEC_PKCS7DecodeItem(pkcs7Item, NULL, NULL, NULL, NULL, NULL, 
-				      NULL, NULL);
-    if ( contentInfo == NULL ) {
+    arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+    if ( arena == NULL ) {
+	return SECFailure;
+    }
+
+    PORT_Memset(&contentInfo, 0, sizeof(contentInfo));
+    rv = SEC_ASN1DecodeItem(arena, &contentInfo, ContentInfoTemplate,
+			    pkcs7Item);
+    if ( rv != SECSuccess ) {
 	goto loser;
     }
 
-    if ( SEC_PKCS7ContentType (contentInfo) != SEC_OID_PKCS7_SIGNED_DATA ) {
+    if ( GetContentTypeTag(&contentInfo) != SEC_OID_PKCS7_SIGNED_DATA ) {
 	goto loser;
     }
 
-    certs = contentInfo->content.signedData->rawCerts;
+    certs = contentInfo.content.signedData->certificates;
     if ( certs ) {
 	count = 0;
 	
@@ -39,7 +149,7 @@ SEC_ReadPKCS7Certs(SECItem *pkcs7Item, CERTImportCertificateFunc f, void *arg)
 	    count++;
 	    certs++;
 	}
-	rv = (* f)(arg, contentInfo->content.signedData->rawCerts, count);
+	rv = (* f)(arg, contentInfo.content.signedData->certificates, count);
     }
     
     rv = SECSuccess;
@@ -49,8 +159,8 @@ loser:
     rv = SECFailure;
     
 done:
-    if ( contentInfo ) {
-	SEC_PKCS7DestroyContentInfo(contentInfo);
+    if ( arena ) {
+	PORT_FreeArena(arena, PR_FALSE);
     }
 
     return(rv);
@@ -60,34 +170,34 @@ const SEC_ASN1Template SEC_CertSequenceTemplate[] = {
     { SEC_ASN1_SEQUENCE_OF | SEC_ASN1_XTRN, 0, SEC_ASN1_SUB(SEC_AnyTemplate) }
 };
 
-SECStatus
+static SECStatus
 SEC_ReadCertSequence(SECItem *certsItem, CERTImportCertificateFunc f, void *arg)
 {
     SECStatus rv;
     SECItem **certs;
     int count;
     SECItem **rawCerts = NULL;
-    PRArenaPool *arena;
-    SEC_PKCS7ContentInfo *contentInfo = NULL;
+    PLArenaPool *arena;
+    ContentInfo contentInfo;
 
     arena = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
-    if (arena == NULL) {
+    if ( arena == NULL ) {
 	return SECFailure;
     }
 
-    contentInfo = SEC_PKCS7DecodeItem(certsItem, NULL, NULL, NULL, NULL, NULL, 
-				      NULL, NULL);
-    if ( contentInfo == NULL ) {
+    PORT_Memset(&contentInfo, 0, sizeof(contentInfo));
+    rv = SEC_ASN1DecodeItem(arena, &contentInfo, ContentInfoTemplate,
+			    certsItem);
+    if ( rv != SECSuccess ) {
 	goto loser;
     }
 
-    if ( SEC_PKCS7ContentType (contentInfo) != SEC_OID_NS_TYPE_CERT_SEQUENCE ) {
+    if ( GetContentTypeTag(&contentInfo) != SEC_OID_NS_TYPE_CERT_SEQUENCE ) {
 	goto loser;
     }
-
 
     rv = SEC_QuickDERDecodeItem(arena, &rawCerts, SEC_CertSequenceTemplate,
-		    contentInfo->content.data);
+		    contentInfo.content.data);
 
     if (rv != SECSuccess) {
 	goto loser;
@@ -111,10 +221,6 @@ loser:
     rv = SECFailure;
     
 done:
-    if ( contentInfo ) {
-	SEC_PKCS7DestroyContentInfo(contentInfo);
-    }
-
     if ( arena ) {
 	PORT_FreeArena(arena, PR_FALSE);
     }
@@ -168,6 +274,7 @@ CERT_DecodeCertPackage(char *certbuf,
      * reference in the code below:
      * 0x30 0x84 l1 l2 l3 l4  +
      *                       tag 9 o1 o2 o3 o4 o5 o6 o7 o8 o9
+     * where 9 is the longest length of the expected oids we are testing.
      *   6 + 11 = 17. 17 bytes is clearly too small to code any kind of
      *  certificate (a 128 bit ECC certificate contains at least an 8 byte
      * key and a 16 byte signature, plus coding overhead). Typically a cert
@@ -258,9 +365,11 @@ CERT_DecodeCertPackage(char *certbuf,
 	    
 	    switch ( oiddata->offset ) {
 	      case SEC_OID_PKCS7_SIGNED_DATA:
+		/* oid: 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x07, 0x02 */
 		return(SEC_ReadPKCS7Certs(&certitem, f, arg));
 		break;
 	      case SEC_OID_NS_TYPE_CERT_SEQUENCE:
+		/* oid: 0x60, 0x86, 0x48, 0x01, 0x86, 0xf8, 0x42, 0x02, 0x05 */
 		return(SEC_ReadCertSequence(&certitem, f, arg));
 		break;
 	      default:
@@ -390,7 +499,7 @@ loser:
 }
 
 typedef struct {
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     SECItem cert;
 } collect_args;
 

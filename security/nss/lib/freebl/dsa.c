@@ -3,7 +3,6 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-/* $Id: dsa.c,v 1.23 2012/06/12 16:39:00 rrelyea%redhat.com Exp $ */
 
 #ifdef FREEBL_NO_DEPEND
 #include "stubs.h"
@@ -159,7 +158,7 @@ dsa_NewKeyExtended(const PQGParams *params, const SECItem * seed,
     mp_int p, g;
     mp_int x, y;
     mp_err err;
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     DSAPrivateKey *key;
     /* Check args. */
     if (!params || !privKey || !seed || !seed->data) {

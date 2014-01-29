@@ -5,8 +5,6 @@
 /*
  * PKCS7 implementation -- the exported parts that are used whether
  * creating or decoding.
- *
- * $Id: p7common.c,v 1.9 2012/04/25 14:50:06 gerv%gerv.net Exp $
  */
 
 #include "p7local.h"
@@ -404,7 +402,7 @@ loser:
  * indicates a success.
  */
 SECStatus 
-SEC_PKCS7EncryptContents(PRArenaPool *poolp,
+SEC_PKCS7EncryptContents(PLArenaPool *poolp,
 			 SEC_PKCS7ContentInfo *cinfo,
 			 SECItem *key,
 			 void *wincx)
@@ -561,7 +559,7 @@ loser:
  * indicates a success.
  */
 SECStatus 
-SEC_PKCS7DecryptContents(PRArenaPool *poolp,
+SEC_PKCS7DecryptContents(PLArenaPool *poolp,
 			 SEC_PKCS7ContentInfo *cinfo,
 			 SECItem *key,
 			 void *wincx)

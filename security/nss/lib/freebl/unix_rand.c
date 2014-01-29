@@ -33,7 +33,7 @@ size_t RNG_FileUpdate(const char *fileName, size_t limit);
 static size_t CopyLowBits(void *dst, size_t dstlen, void *src, size_t srclen)
 {
     union endianness {
-	int32 i;
+	PRInt32 i;
 	char c[4];
     } u;
 
@@ -601,7 +601,7 @@ GiveSystemInfo(void)
 static size_t
 GetHighResClock(void *buf, size_t maxbytes)
 {
-    bigtime_t bigtime; /* Actually an int64 */
+    bigtime_t bigtime; /* Actually a int64 */
 
     bigtime = real_time_clock_usecs();
     return CopyLowBits(buf, maxbytes, &bigtime, sizeof(bigtime));
@@ -611,7 +611,7 @@ static void
 GiveSystemInfo(void)
 {
     system_info *info = NULL;
-    int32 val;                     
+    PRInt32 val;
     get_system_info(info);
     if (info) {
         val = info->boot_time;
@@ -959,7 +959,8 @@ void RNG_SystemInfoForRNG(void)
 size_t RNG_FileUpdate(const char *fileName, size_t limit)
 {
     FILE *        file;
-    size_t        bytes;
+    int           fd;
+    int           bytes;
     size_t        fileBytes = 0;
     struct stat   stat_buf;
     unsigned char buffer[BUFSIZ];
@@ -972,12 +973,22 @@ size_t RNG_FileUpdate(const char *fileName, size_t limit)
 	return fileBytes;
     RNG_RandomUpdate(&stat_buf, sizeof(stat_buf));
     
-    file = fopen((char *)fileName, "r");
+    file = fopen(fileName, "r");
     if (file != NULL) {
+	/* Read from the underlying file descriptor directly to bypass stdio
+	 * buffering and avoid reading more bytes than we need from
+	 * /dev/urandom. NOTE: we can't use fread with unbuffered I/O because
+	 * fread may return EOF in unbuffered I/O mode on Android.
+	 *
+	 * Moreover, we read into a buffer of size BUFSIZ, so buffered I/O
+	 * has no performance advantage. */
+	fd = fileno(file);
+	/* 'file' was just opened, so this should not fail. */
+	PORT_Assert(fd != -1);
 	while (limit > fileBytes) {
 	    bytes = PR_MIN(sizeof buffer, limit - fileBytes);
-	    bytes = fread(buffer, 1, bytes, file);
-	    if (bytes == 0) 
+	    bytes = read(fd, buffer, bytes);
+	    if (bytes <= 0)
 		break;
 	    RNG_RandomUpdate(buffer, bytes);
 	    fileBytes      += bytes;
@@ -1009,7 +1020,7 @@ void ReadSingleFile(const char *fileName)
     FILE *        file;
     unsigned char buffer[BUFSIZ];
     
-    file = fopen((char *)fileName, "rb");
+    file = fopen(fileName, "rb");
     if (file != NULL) {
 	while (fread(buffer, 1, sizeof(buffer), file) > 0)
 	    ;
@@ -1126,7 +1137,8 @@ static void rng_systemJitter(void)
 size_t RNG_SystemRNG(void *dest, size_t maxLen)
 {
     FILE *file;
-    size_t bytes;
+    int fd;
+    int bytes;
     size_t fileBytes = 0;
     unsigned char *buffer = dest;
 
@@ -1134,10 +1146,18 @@ size_t RNG_SystemRNG(void *dest, size_t maxLen)
     if (file == NULL) {
 	return rng_systemFromNoise(dest, maxLen);
     }
+    /* Read from the underlying file descriptor directly to bypass stdio
+     * buffering and avoid reading more bytes than we need from /dev/urandom.
+     * NOTE: we can't use fread with unbuffered I/O because fread may return
+     * EOF in unbuffered I/O mode on Android.
+     */
+    fd = fileno(file);
+    /* 'file' was just opened, so this should not fail. */
+    PORT_Assert(fd != -1);
     while (maxLen > fileBytes) {
 	bytes = maxLen - fileBytes;
-	bytes = fread(buffer, 1, bytes, file);
-	if (bytes == 0) 
+	bytes = read(fd, buffer, bytes);
+	if (bytes <= 0)
 	    break;
 	fileBytes += bytes;
 	buffer += bytes;

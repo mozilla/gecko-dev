@@ -1027,3 +1027,21 @@ PK11_SignWithSymKey;
 ;+    local:
 ;+       *;
 ;+};
+;+NSS_3.15 { 	# NSS 3.15 release
+;+    global:
+CERT_EncodeNameConstraintsExtension;
+PK11_Decrypt;
+PK11_Encrypt;
+CERT_PostOCSPRequest;
+CERT_AddCertToListHead;
+;+    local:
+;+       *;
+;+};
+;+NSS_3.15.4 { 	# NSS 3.15.4 release
+;+    global:
+CERT_ForcePostMethodForOCSP;
+CERT_GetSubjectNameDigest;
+CERT_GetSubjectPublicKeyDigest;
+;+    local:
+;+       *;
+;+};

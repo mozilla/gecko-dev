@@ -58,7 +58,7 @@ ssl_init()
 
   PORT=${PORT-8443}
   NSS_SSL_TESTS=${NSS_SSL_TESTS:-normal_normal}
-  nss_ssl_run="cov auth stress"
+  nss_ssl_run="stapling cov auth stress"
   NSS_SSL_RUN=${NSS_SSL_RUN:-$nss_ssl_run}
 
   # Test case files
@@ -88,8 +88,8 @@ ssl_init()
       ECC_STRING=""
   fi
 
-  CSHORT="-c ABCDEF:0041:0084cdefgijklmnvyz"
-  CLONG="-c ABCDEF:C001:C002:C003:C004:C005:C006:C007:C008:C009:C00A:C00B:C00C:C00D:C00E:C00F:C010:C011:C012:C013:C014:0041:0084cdefgijklmnvyz"
+  CSHORT="-c ABCDEF:003B:003C:003D:0041:0084:009Ccdefgijklmnvyz"
+  CLONG="-c ABCDEF:C001:C002:C003:C004:C005:C006:C007:C008:C009:C00A:C00B:C00C:C00D:C00E:C00F:C010:C011:C012:C013:C014:C023:C027:C02B:C02F:003B:003C:003D:0041:0084:009Ccdefgijklmnvyz"
 
   if [ "${OS_ARCH}" != "WINNT" ]; then
       ulimit -n 1000 # make sure we have enough file descriptors
@@ -305,6 +305,9 @@ ssl_cov()
           if [ "$testmax" = "TLS11" ]; then
               VMAX="tls1.1"
           fi
+          if [ "$testmax" = "TLS12" ]; then
+              VMAX="tls1.2"
+          fi
 
 # These five tests need an EC cert signed with RSA
 # This requires a different certificate loaded in selfserv
@@ -400,6 +403,131 @@ ssl_auth()
           kill_selfserv
       fi
   done
+
+  html "</TABLE><BR>"
+}
+
+ssl_stapling_sub()
+{
+    testname=$1
+    SO=$2
+    value=$3
+
+    if [ "$NORM_EXT" = "Extended Test" ] ; then
+	# these tests use the ext_client directory for tstclnt,
+	# which doesn't contain the required "TestCA" for server cert
+	# verification, I don't know if it would be OK to add it...
+	echo "$SCRIPTNAME: skipping  $testname for $NORM_EXT"
+	return 0
+    fi
+    if [ "$SERVER_MODE" = "fips" -o "$CLIENT_MODE" = "fips" ] ; then
+          echo "$SCRIPTNAME: skipping  $testname (non-FIPS only)"
+	return 0
+    fi
+
+    SAVE_SERVER_OPTIONS=${SERVER_OPTIONS}
+    SERVER_OPTIONS="${SERVER_OPTIONS} ${SO}"
+
+    SAVE_P_R_SERVERDIR=${P_R_SERVERDIR}
+    P_R_SERVERDIR=${P_R_SERVERDIR}/../stapling/
+
+    echo "${testname}"
+
+    start_selfserv
+
+    echo "tstclnt -p ${PORT} -h ${HOSTADDR} -f -d ${P_R_CLIENTDIR} -v ${CLIENT_OPTIONS} \\"
+    echo "        -T -O -F -M 1 -V ssl3: < ${REQUEST_FILE}"
+    rm ${TMP}/$HOST.tmp.$$ 2>/dev/null
+    ${PROFTOOL} ${BINDIR}/tstclnt -p ${PORT} -h ${HOSTADDR} -f ${CLIENT_OPTIONS} \
+	    -d ${P_R_CLIENTDIR} -v -T -O -F -M 1 -V ssl3: < ${REQUEST_FILE} \
+	    >${TMP}/$HOST.tmp.$$  2>&1
+    ret=$?
+    cat ${TMP}/$HOST.tmp.$$
+    rm ${TMP}/$HOST.tmp.$$ 2>/dev/null
+
+    # hopefully no workaround for bug #402058 needed here?
+    # (see commands in ssl_auth
+
+    html_msg $ret $value "${testname}" \
+	    "produced a returncode of $ret, expected is $value"
+    kill_selfserv
+
+    SERVER_OPTIONS=${SAVE_SERVER_OPTIONS}
+    P_R_SERVERDIR=${SAVE_P_R_SERVERDIR}
+}
+
+ssl_stapling_stress()
+{
+    testname="Stress OCSP stapling, server uses random status"
+    SO="-A TestCA -T random"
+    value=0
+
+    if [ "$NORM_EXT" = "Extended Test" ] ; then
+	# these tests use the ext_client directory for tstclnt,
+	# which doesn't contain the required "TestCA" for server cert
+	# verification, I don't know if it would be OK to add it...
+	echo "$SCRIPTNAME: skipping  $testname for $NORM_EXT"
+	return 0
+    fi
+    if [ "$SERVER_MODE" = "fips" -o "$CLIENT_MODE" = "fips" ] ; then
+          echo "$SCRIPTNAME: skipping  $testname (non-FIPS only)"
+	return 0
+    fi
+
+    SAVE_SERVER_OPTIONS=${SERVER_OPTIONS}
+    SERVER_OPTIONS="${SERVER_OPTIONS} ${SO}"
+
+    SAVE_P_R_SERVERDIR=${P_R_SERVERDIR}
+    P_R_SERVERDIR=${P_R_SERVERDIR}/../stapling/
+
+    echo "${testname}"
+    start_selfserv
+
+    echo "strsclnt -q -p ${PORT} -d ${P_R_CLIENTDIR} ${CLIENT_OPTIONS} -w nss \\"
+    echo "         -c 1000 -V ssl3: -N -T $verbose ${HOSTADDR}"
+    echo "strsclnt started at `date`"
+    ${PROFTOOL} ${BINDIR}/strsclnt -q -p ${PORT} -d ${P_R_CLIENTDIR} ${CLIENT_OPTIONS} -w nss \
+	    -c 1000 -V ssl3: -N -T $verbose ${HOSTADDR}
+    ret=$?
+
+    echo "strsclnt completed at `date`"
+    html_msg $ret $value \
+	    "${testname}" \
+	    "produced a returncode of $ret, expected is $value."
+    kill_selfserv
+
+    SERVER_OPTIONS=${SAVE_SERVER_OPTIONS}
+    P_R_SERVERDIR=${SAVE_P_R_SERVERDIR}
+}
+
+############################ ssl_stapling ##############################
+# local shell function to perform SSL Cert Status (OCSP Stapling) tests
+########################################################################
+ssl_stapling()
+{
+  html_head "SSL Cert Status (OCSP Stapling) $NORM_EXT - server $SERVER_MODE/client $CLIENT_MODE $ECC_STRING"
+
+  # tstclnt Exit code:
+  # 0: have fresh and valid revocation data, status good
+  # 1: cert failed to verify, prior to revocation checking
+  # 2: missing, old or invalid revocation data
+  # 3: have fresh and valid revocation data, status revoked
+
+  # selfserv modes
+  # good, revoked, unkown: Include locally signed response. Requires: -A
+  # failure: Include OCSP failure status, such as "try later" (unsigned)
+  # badsig: use a good status but with an invalid signature
+  # corrupted: stapled cert status is an invalid block of data
+
+  ssl_stapling_sub "OCSP stapling, signed response, good status"     "-A TestCA -T good"      0
+  ssl_stapling_sub "OCSP stapling, signed response, revoked status"  "-A TestCA -T revoked"   3
+  ssl_stapling_sub "OCSP stapling, signed response, unknown status"  "-A TestCA -T unknown"   2
+  ssl_stapling_sub "OCSP stapling, unsigned failure response"        "-A TestCA -T failure"   2
+  ssl_stapling_sub "OCSP stapling, good status, bad signature"       "-A TestCA -T badsig"    2
+  ssl_stapling_sub "OCSP stapling, invalid cert status data"         "-A TestCA -T corrupted" 2
+  ssl_stapling_sub "Valid cert, Server doesn't staple"               ""                       2
+
+  ssl_stapling_stress
 
   html "</TABLE><BR>"
 }
@@ -801,6 +929,9 @@ ssl_run()
     for SSL_RUN in ${NSS_SSL_RUN}
     do
         case "${SSL_RUN}" in
+        "stapling")
+            ssl_stapling
+            ;;
         "cov")
             ssl_cov
             ;;

@@ -3,8 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 /*
  * certt.h - public data structures for the certificate library
- *
- * $Id: pcertt.h,v 1.5 2012/04/25 14:50:11 gerv%gerv.net Exp $
  */
 #ifndef _PCERTT_H_
 #define _PCERTT_H_
@@ -36,7 +34,7 @@ typedef struct NSSLOWCERTValidityStr                   NSSLOWCERTValidity;
 ** An X.509 validity object
 */
 struct NSSLOWCERTValidityStr {
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     SECItem notBefore;
     SECItem notAfter;
 };
@@ -63,7 +61,7 @@ struct NSSLOWCERTSignedDataStr {
 ** An X.509 subject-public-key-info object
 */
 struct NSSLOWCERTSubjectPublicKeyInfoStr {
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     SECAlgorithmID algorithm;
     SECItem subjectPublicKey;
 };
@@ -192,7 +190,7 @@ typedef struct {
     certDBEntryType type;
     unsigned int version;
     unsigned int flags;
-    PRArenaPool *arena;
+    PLArenaPool *arena;
 } certDBEntryCommon;
 
 /*

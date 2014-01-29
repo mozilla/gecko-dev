@@ -261,3 +261,13 @@ NSSUTIL_QuoteSize;
 ;+    local:
 ;+       *;
 ;+};
+;+NSSUTIL_3.15 {         # NSS Utilities 3.15 release
+;+    global:
+SECITEM_AllocArray;
+SECITEM_DupArray;
+SECITEM_FreeArray;
+SECITEM_ReallocItemV2;
+SECITEM_ZfreeArray;
+;+    local:
+;+       *;
+;+};

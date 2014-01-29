@@ -4,8 +4,6 @@
 
 /*
  * Test program for client-side OCSP.
- *
- * $Id: ocspclnt.c,v 1.14 2013/01/23 23:05:50 kaie%kuix.de Exp $
  */
 
 #include "secutil.h"
@@ -256,7 +254,7 @@ create_request (FILE *out_file, CERTCertDBHandle *handle, CERTCertificate *cert,
     CERTCertList *certs = NULL;
     CERTCertificate *myCert = NULL;
     CERTOCSPRequest *request = NULL;
-    int64 now = PR_Now();
+    PRTime now = PR_Now();
     SECItem *encoding = NULL;
     SECStatus rv = SECFailure;
 
@@ -331,7 +329,7 @@ dump_response (FILE *out_file, CERTCertDBHandle *handle, CERTCertificate *cert,
     CERTCertList *certs = NULL;
     CERTCertificate *myCert = NULL;
     char *loc = NULL;
-    int64 now = PR_Now();
+    PRTime now = PR_Now();
     SECItem *response = NULL;
     SECStatus rv = SECFailure;
     PRBool includeServiceLocator;
@@ -402,7 +400,7 @@ loser:
 static SECStatus
 get_cert_status (FILE *out_file, CERTCertDBHandle *handle,
 		 CERTCertificate *cert, const char *cert_name,
-                 int64 verify_time)
+		 PRTime verify_time)
 {
     SECStatus rv = SECFailure;
 
@@ -438,7 +436,7 @@ loser:
  */
 static SECStatus
 verify_cert (FILE *out_file, CERTCertDBHandle *handle, CERTCertificate *cert,
-	     const char *cert_name, SECCertUsage cert_usage, int64 verify_time)
+	     const char *cert_name, SECCertUsage cert_usage, PRTime verify_time)
 {
     SECStatus rv = SECFailure;
 
@@ -487,7 +485,7 @@ find_certificate(CERTCertDBHandle *handle, const char *name, PRBool ascii)
         return NULL;
     }
 
-    if (SECU_ReadDERFromFile(&der, certFile, ascii) == SECSuccess) {
+    if (SECU_ReadDERFromFile(&der, certFile, ascii, PR_FALSE) == SECSuccess) {
         cert = CERT_DecodeCertFromPackage((char*)der.data, der.len);
         SECITEM_FreeItem(&der, PR_FALSE);
     }
@@ -967,7 +965,7 @@ main (int argc, char **argv)
     SECStatus	 rv;
     CERTCertDBHandle *handle = NULL;
     SECCertUsage cert_usage;
-    int64	 verify_time;
+    PRTime	 verify_time;
     CERTCertificate *cert = NULL;
     PRBool ascii = PR_FALSE;
 

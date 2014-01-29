@@ -4,8 +4,6 @@
 
 /*
  * Public header for exported OCSP types.
- *
- * $Id: ocspt.h,v 1.12 2012/12/12 16:03:44 wtc%google.com Exp $
  */
 
 #ifndef _OCSPT_H_

@@ -26,7 +26,7 @@
 extern SECStatus
 EC_DecodeParams(const SECItem *encodedParams, ECParams **ecparams);
 extern SECStatus
-EC_CopyParams(PRArenaPool *arena, ECParams *dstParams,
+EC_CopyParams(PLArenaPool *arena, ECParams *dstParams,
               const ECParams *srcParams);
 #endif
 
@@ -3311,19 +3311,19 @@ sha_get_hashType(int hashbits)
 
     switch (hashbits) {
     case 1:
-    case (SHA1_LENGTH*BITS_PER_BYTE): 
+    case (SHA1_LENGTH*PR_BITS_PER_BYTE):
 	hashType = HASH_AlgSHA1;
 	break;
-    case (SHA224_LENGTH*BITS_PER_BYTE): 
+    case (SHA224_LENGTH*PR_BITS_PER_BYTE):
 	hashType = HASH_AlgSHA224;
 	break;
-    case (SHA256_LENGTH*BITS_PER_BYTE): 
+    case (SHA256_LENGTH*PR_BITS_PER_BYTE):
 	hashType = HASH_AlgSHA256;
 	break;
-    case (SHA384_LENGTH*BITS_PER_BYTE): 
+    case (SHA384_LENGTH*PR_BITS_PER_BYTE):
 	hashType = HASH_AlgSHA384;
 	break;
-    case (SHA512_LENGTH*BITS_PER_BYTE): 
+    case (SHA512_LENGTH*PR_BITS_PER_BYTE):
 	hashType = HASH_AlgSHA512;
 	break;
     default:
@@ -3342,7 +3342,7 @@ sha_get_hashType(int hashbits)
  */
 SECStatus sha_calcMD(unsigned char *MD, unsigned int MDLen, unsigned char *msg, unsigned int msgLen) 
 {    
-    HASH_HashType  hashType = sha_get_hashType(MDLen*BITS_PER_BYTE);
+    HASH_HashType  hashType = sha_get_hashType(MDLen*PR_BITS_PER_BYTE);
 
     return fips_hashBuf(hashType, MD, msg, msgLen);
 }
@@ -3616,7 +3616,6 @@ void hmac_test(char *reqfn)
         goto loser;
     }      
     msg = PORT_ZAlloc(msgLen);
-    memset(msg, 0, msgLen);
     if (msg == NULL) {
         goto loser;
     } 
@@ -3661,7 +3660,7 @@ void hmac_test(char *reqfn)
                 }
                 /* HMACLen will get reused for Tlen */
                 HMACLen = atoi(&buf[i]);
-		hash_alg = sha_get_hashType(HMACLen*BITS_PER_BYTE);
+		hash_alg = sha_get_hashType(HMACLen*PR_BITS_PER_BYTE);
 		if (hash_alg == HASH_AlgNULL) {
 		    goto loser;
 		}
@@ -3677,7 +3676,7 @@ void hmac_test(char *reqfn)
             keyLen = 0; 
             TLen = 0;
             memset(key, 0, sizeof key);     
-            memset(msg, 0, sizeof msg);  
+            memset(msg, 0, msgLen);
             memset(HMAC, 0, sizeof HMAC);
             continue;
         }

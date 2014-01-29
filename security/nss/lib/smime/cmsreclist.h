@@ -2,10 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/*
- * $Id: cmsreclist.h,v 1.5 2012/04/25 14:50:09 gerv%gerv.net Exp $
- */
-
 #ifndef _CMSRECLIST_H
 #define _CMSRECLIST_H
 

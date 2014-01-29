@@ -129,6 +129,7 @@ static PRBool ignoreErrors    = PR_FALSE;
 static PRBool enableSessionTickets = PR_FALSE;
 static PRBool enableCompression    = PR_FALSE;
 static PRBool enableFalseStart     = PR_FALSE;
+static PRBool enableCertStatus     = PR_FALSE;
 
 PRIntervalTime maxInterval    = PR_INTERVAL_NO_TIMEOUT;
 
@@ -162,10 +163,11 @@ Usage(const char *progName)
 	"       -P means do a specified percentage of full handshakes (0-100)\n"
         "       -V [min]:[max] restricts the set of enabled SSL/TLS protocols versions.\n"
         "          All versions are enabled by default.\n"
-        "          Possible values for min/max: ssl2 ssl3 tls1.0 tls1.1\n"
+        "          Possible values for min/max: ssl2 ssl3 tls1.0 tls1.1 tls1.2\n"
         "          Example: \"-V ssl3:\" enables SSL 3 and newer.\n"
         "       -U means enable throttling up threads\n"
 	"       -B bypasses the PKCS11 layer for SSL encryption and MACing\n"
+	"       -T enable the cert_status extension (OCSP stapling)\n"
 	"       -u enable TLS Session Ticket extension\n"
 	"       -z enable compression\n"
 	"       -g enable false start\n",
@@ -178,10 +180,11 @@ static void
 errWarn(char * funcString)
 {
     PRErrorCode  perr      = PR_GetError();
+    PRInt32      oserr     = PR_GetOSError();
     const char * errString = SECU_Strerror(perr);
 
-    fprintf(stderr, "strsclnt: %s returned error %d:\n%s\n",
-            funcString, perr, errString);
+    fprintf(stderr, "strsclnt: %s returned error %d, OS error %d: %s\n",
+            funcString, perr, oserr, errString);
 }
 
 static void
@@ -226,6 +229,7 @@ mySSLAuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig,
 {
     SECStatus rv;
     CERTCertificate *    peerCert;
+    const SECItemArray *csa;
 
     if (MakeCertOK>=2) {
         return SECSuccess;
@@ -234,6 +238,11 @@ mySSLAuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig,
 
     PRINTF("strsclnt: Subject: %s\nstrsclnt: Issuer : %s\n", 
            peerCert->subjectName, peerCert->issuerName); 
+    csa = SSL_PeerStapledOCSPResponses(fd);
+    if (csa) {
+        PRINTF("Received %d Cert Status items (OCSP stapled data)\n",
+               csa->len);
+    }
     /* invoke the "default" AuthCert handler. */
     rv = SSL_AuthCertificate(arg, fd, checkSig, isServer);
 
@@ -757,11 +766,13 @@ retry:
     prStatus = PR_Connect(tcp_sock, addr, PR_INTERVAL_NO_TIMEOUT);
     if (prStatus != PR_SUCCESS) {
         PRErrorCode err = PR_GetError(); /* save error code */
+        PRInt32 oserr = PR_GetOSError();
         if (ThrottleUp) {
             PRTime now = PR_Now();
             PR_Lock(threadLock);
             lastConnectFailure = PR_MAX(now, lastConnectFailure);
             PR_Unlock(threadLock);
+            PR_SetError(err, oserr); /* restore error code */
         }
         if ((err == PR_CONNECT_REFUSED_ERROR) || 
 	    (err == PR_CONNECT_RESET_ERROR)      ) {
@@ -1220,6 +1231,12 @@ client_main(
 	    errExit("SSL_OptionSet SSL_ENABLE_FALSE_START");
     }
 
+    if (enableCertStatus) {
+	rv = SSL_OptionSet(model_sock, SSL_ENABLE_OCSP_STAPLING, PR_TRUE);
+	if (rv != SECSuccess)
+	    errExit("SSL_OptionSet SSL_ENABLE_OCSP_STAPLING");
+    }
+
     SSL_SetPKCS11PinArg(model_sock, &pwdata);
 
     SSL_SetURL(model_sock, hostName);
@@ -1332,7 +1349,7 @@ main(int argc, char **argv)
  
 
     optstate = PL_CreateOptState(argc, argv,
-                                 "BC:DNP:UV:W:a:c:d:f:gin:op:qst:uvw:z");
+                                 "BC:DNP:TUV:W:a:c:d:f:gin:op:qst:uvw:z");
     while ((status = PL_GetNextOpt(optstate)) == PL_OPT_OK) {
 	switch(optstate->option) {
 	case 'B': bypassPKCS11 = PR_TRUE; break;
@@ -1341,9 +1358,13 @@ main(int argc, char **argv)
 
 	case 'D': NoDelay = PR_TRUE; break;
 
+	case 'I': /* reserved for OCSP multi-stapling */ break;
+
 	case 'N': NoReuse = 1; break;
         
 	case 'P': fullhs = PORT_Atoi(optstate->value); break;
+
+	case 'T': enableCertStatus = PR_TRUE; break;
 
 	case 'U': ThrottleUp = PR_TRUE; break;
         

@@ -156,3 +156,18 @@ SSL_SetSRTPCiphers;
 ;+    local:
 ;+*;
 ;+};
+;+NSS_3.15 {      # NSS 3.15 release
+;+    global:
+SSL_PeerStapledOCSPResponses;
+SSL_SetStapledOCSPResponses;
+;+    local:
+;+*;
+;+};
+;+NSS_3.15.4 {    # NSS 3.15.4 release
+;+    global:
+SSL_PeerCertificateChain;
+SSL_RecommendedCanFalseStart;
+SSL_SetCanFalseStartCallback;
+;+    local:
+;+*;
+;+};

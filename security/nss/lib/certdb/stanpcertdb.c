@@ -32,7 +32,7 @@
 #include "dev.h"
 
 PRBool
-SEC_CertNicknameConflict(const char *nickname, SECItem *derSubject,
+SEC_CertNicknameConflict(const char *nickname, const SECItem *derSubject,
 			 CERTCertDBHandle *handle)
 {
     CERTCertificate *cert;
@@ -87,7 +87,7 @@ SEC_DeletePermCertificate(CERTCertificate *cert)
 }
 
 SECStatus
-CERT_GetCertTrust(CERTCertificate *cert, CERTCertTrust *trust)
+CERT_GetCertTrust(const CERTCertificate *cert, CERTCertTrust *trust)
 {
     SECStatus rv;
     CERT_LockCertTrust(cert);
@@ -693,7 +693,7 @@ CERT_FindCertByNicknameOrEmailAddrForUsage(CERTCertDBHandle *handle,
 
 static void 
 add_to_subject_list(CERTCertList *certList, CERTCertificate *cert,
-                    PRBool validOnly, int64 sorttime)
+                    PRBool validOnly, PRTime sorttime)
 {
     SECStatus secrv;
     if (!validOnly ||
@@ -712,7 +712,8 @@ add_to_subject_list(CERTCertList *certList, CERTCertificate *cert,
 
 CERTCertList *
 CERT_CreateSubjectCertList(CERTCertList *certList, CERTCertDBHandle *handle,
-			   SECItem *name, int64 sorttime, PRBool validOnly)
+			   const SECItem *name, PRTime sorttime,
+			   PRBool validOnly)
 {
     NSSCryptoContext *cc;
     NSSCertificate **tSubjectCerts, **pSubjectCerts;
@@ -809,8 +810,8 @@ SECStatus
 certdb_SaveSingleProfile(CERTCertificate *cert, const char *emailAddr, 
 				SECItem *emailProfile, SECItem *profileTime)
 {
-    int64 oldtime;
-    int64 newtime;
+    PRTime oldtime;
+    PRTime newtime;
     SECStatus rv = SECFailure;
     PRBool saveit;
     SECItem oldprof, oldproftime;

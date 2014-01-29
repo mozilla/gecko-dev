@@ -4,8 +4,6 @@
 
 /*
  * Header for pkcs7 types.
- *
- * $Id: pkcs7t.h,v 1.8 2012/04/25 14:50:06 gerv%gerv.net Exp $
  */
 
 #ifndef _PKCS7T_H_

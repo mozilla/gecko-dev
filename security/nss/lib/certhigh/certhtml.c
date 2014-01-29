@@ -4,8 +4,6 @@
 
 /*
  * certhtml.c --- convert a cert to html
- *
- * $Id: certhtml.c,v 1.11 2012/04/25 14:49:27 gerv%gerv.net Exp $
  */
 
 #include "seccomon.h"

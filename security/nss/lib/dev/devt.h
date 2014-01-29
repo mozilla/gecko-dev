@@ -5,10 +5,6 @@
 #ifndef DEVT_H
 #define DEVT_H
 
-#ifdef DEBUG
-static const char DEVT_CVS_ID[] = "@(#) $RCSfile: devt.h,v $ $Revision: 1.26 $ $Date: 2012/04/25 14:49:42 $";
-#endif /* DEBUG */
-
 /*
  * devt.h
  *

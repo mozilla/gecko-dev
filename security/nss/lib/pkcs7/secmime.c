@@ -5,8 +5,6 @@
 /*
  * Stuff specific to S/MIME policy and interoperability.
  * Depends on PKCS7, but there should be no dependency the other way around.
- *
- * $Id: secmime.c,v 1.6 2012/04/25 14:50:06 gerv%gerv.net Exp $
  */
 
 #include "secmime.h"
@@ -363,7 +361,7 @@ smime_fill_capability (smime_capability *cap)
 static long
 smime_choose_cipher (CERTCertificate *scert, CERTCertificate **rcerts)
 {
-    PRArenaPool *poolp;
+    PLArenaPool *poolp;
     long chosen_cipher;
     int *cipher_abilities;
     int *cipher_votes;

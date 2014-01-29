@@ -2,10 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: bfind.c,v $ $Revision: 1.7 $ $Date: 2012/04/25 14:49:29 $";
-#endif /* DEBUG */
-
 #ifndef BUILTINS_H
 #include "builtins.h"
 #endif /* BUILTINS_H */
@@ -119,11 +115,12 @@ builtins_attrmatch
     /* match a decoded serial number */
     if ((a->type == CKA_SERIAL_NUMBER) && (a->ulValueLen < b->size)) {
 	int len;
-	unsigned char *data;
+	unsigned char *data = NULL;
 
 	len = builtins_derUnwrapInt(b->data,b->size,&data);
-	if ((len == a->ulValueLen) && 
-		nsslibc_memequal(a->pValue, data, len, (PRStatus *)NULL)) {
+	if (data &&
+	    (len == a->ulValueLen) && 
+	    nsslibc_memequal(a->pValue, data, len, (PRStatus *)NULL)) {
 	    return CK_TRUE;
 	}
     }

@@ -4,7 +4,6 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-/* $Id: loader.c,v 1.60 2013/02/06 22:20:22 wtc%google.com Exp $ */
 
 #include "loader.h"
 #include "prmem.h"
@@ -36,7 +35,8 @@ const static char fpu_hybrid_isa[] = "sparcv9+vis";
 
 const static char fpu_hybrid_shared_lib[] = "libfreebl_32fpu_3.so";
 const static char int_hybrid_shared_lib[] = "libfreebl_32int64_3.so";
-const static char non_hybrid_shared_lib[] = "libfreebl_32int_3.so";
+/* This was for SPARC V8, now obsolete. */
+const static char *const non_hybrid_shared_lib = NULL;
 
 const static char int_hybrid_isa[] = "sparcv8plus";
 const static char fpu_hybrid_isa[] = "sparcv8plus+vis";
@@ -557,7 +557,7 @@ MD5_Hash(unsigned char *dest, const char *src)
 }
 
 SECStatus 
-MD5_HashBuf(unsigned char *dest, const unsigned char *src, uint32 src_length)
+MD5_HashBuf(unsigned char *dest, const unsigned char *src, PRUint32 src_length)
 {
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
       return SECFailure;
@@ -720,7 +720,7 @@ SHA1_Hash(unsigned char *dest, const char *src)
 }
 
 SECStatus 
-SHA1_HashBuf(unsigned char *dest, const unsigned char *src, uint32 src_length)
+SHA1_HashBuf(unsigned char *dest, const unsigned char *src, PRUint32 src_length)
 {
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
       return SECFailure;
@@ -918,7 +918,7 @@ SHA256_Hash(unsigned char *dest, const char *src)
 }
 
 SECStatus 
-SHA256_HashBuf(unsigned char *dest, const unsigned char *src, uint32 src_length)
+SHA256_HashBuf(unsigned char *dest, const unsigned char *src, PRUint32 src_length)
 {
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
       return SECFailure;
@@ -1008,7 +1008,7 @@ SHA512_Hash(unsigned char *dest, const char *src)
 }
 
 SECStatus 
-SHA512_HashBuf(unsigned char *dest, const unsigned char *src, uint32 src_length)
+SHA512_HashBuf(unsigned char *dest, const unsigned char *src, PRUint32 src_length)
 {
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
       return SECFailure;
@@ -1099,7 +1099,7 @@ SHA384_Hash(unsigned char *dest, const char *src)
 }
 
 SECStatus 
-SHA384_HashBuf(unsigned char *dest, const unsigned char *src, uint32 src_length)
+SHA384_HashBuf(unsigned char *dest, const unsigned char *src, PRUint32 src_length)
 {
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
       return SECFailure;
@@ -1744,7 +1744,7 @@ SHA224_Hash(unsigned char *dest, const char *src)
 }
 
 SECStatus
-SHA224_HashBuf(unsigned char *dest, const unsigned char *src, uint32 src_length)
+SHA224_HashBuf(unsigned char *dest, const unsigned char *src, PRUint32 src_length)
 {
   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
       return SECFailure;
@@ -1905,4 +1905,189 @@ HMAC_ConstantTime(
       secret, secretLen,
       header, headerLen,
       body, bodyLen, bodyTotalLen);
+}
+
+SECStatus RSA_SignRaw(RSAPrivateKey *key,
+                      unsigned char *output,
+                      unsigned int *outputLen,
+                      unsigned int maxOutputLen,
+                      const unsigned char *input,
+                      unsigned int inputLen) {
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_RSA_SignRaw)(key, output, outputLen, maxOutputLen, input,
+                                 inputLen);
+}
+
+SECStatus RSA_CheckSignRaw(RSAPublicKey *key,
+                           const unsigned char *sig,
+                           unsigned int sigLen,
+                           const unsigned char *hash,
+                           unsigned int hashLen) {
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_RSA_CheckSignRaw)(key, sig, sigLen, hash, hashLen);
+}
+
+SECStatus RSA_CheckSignRecoverRaw(RSAPublicKey *key,
+                                  unsigned char *data,
+                                  unsigned int *dataLen,
+                                  unsigned int maxDataLen,
+                                  const unsigned char *sig,
+                                  unsigned int sigLen) {
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_RSA_CheckSignRecoverRaw)(key, data, dataLen, maxDataLen,
+                                             sig, sigLen);
+}
+
+SECStatus RSA_EncryptRaw(RSAPublicKey *key,
+                         unsigned char *output,
+                         unsigned int *outputLen,
+                         unsigned int maxOutputLen,
+                         const unsigned char *input,
+                         unsigned int inputLen) {
+   if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+   return (vector->p_RSA_EncryptRaw)(key, output, outputLen, maxOutputLen,
+                                     input, inputLen);
+}
+
+SECStatus RSA_DecryptRaw(RSAPrivateKey *key,
+                         unsigned char *output,
+                         unsigned int *outputLen,
+                         unsigned int maxOutputLen,
+                         const unsigned char *input,
+                         unsigned int inputLen) {
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_RSA_DecryptRaw)(key, output, outputLen, maxOutputLen,
+                                    input, inputLen);
+
+}
+
+SECStatus RSA_EncryptOAEP(RSAPublicKey *key,
+                          HASH_HashType hashAlg,
+                          HASH_HashType maskHashAlg,
+                          const unsigned char *label,
+                          unsigned int labelLen,
+                          const unsigned char *seed,
+                          unsigned int seedLen,
+                          unsigned char *output,
+                          unsigned int *outputLen,
+                          unsigned int maxOutputLen,
+                          const unsigned char *input,
+                          unsigned int inputLen) {
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_RSA_EncryptOAEP)(key, hashAlg, maskHashAlg, label,
+                                     labelLen, seed, seedLen, output,
+                                     outputLen, maxOutputLen, input, inputLen);
+}
+
+SECStatus RSA_DecryptOAEP(RSAPrivateKey *key,
+                          HASH_HashType hashAlg,
+                          HASH_HashType maskHashAlg,
+                          const unsigned char *label,
+                          unsigned int labelLen,
+                          unsigned char *output,
+                          unsigned int *outputLen,
+                          unsigned int maxOutputLen,
+                          const unsigned char *input,
+                          unsigned int inputLen) {
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_RSA_DecryptOAEP)(key, hashAlg, maskHashAlg, label,
+                                     labelLen, output, outputLen,
+                                     maxOutputLen, input, inputLen);
+}
+
+SECStatus RSA_EncryptBlock(RSAPublicKey *key,
+                           unsigned char *output,
+                           unsigned int *outputLen,
+                           unsigned int maxOutputLen,
+                           const unsigned char *input,
+                           unsigned int inputLen) {
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_RSA_EncryptBlock)(key, output, outputLen, maxOutputLen,
+                                      input, inputLen);
+}
+
+SECStatus RSA_DecryptBlock(RSAPrivateKey *key,
+                           unsigned char *output,
+                           unsigned int *outputLen,
+                           unsigned int maxOutputLen,
+                           const unsigned char *input,
+                           unsigned int inputLen) {
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_RSA_DecryptBlock)(key, output, outputLen, maxOutputLen,
+                                      input, inputLen);
+}
+
+SECStatus RSA_SignPSS(RSAPrivateKey *key,
+                      HASH_HashType hashAlg,
+                      HASH_HashType maskHashAlg,
+                      const unsigned char *salt,
+                      unsigned int saltLen,
+                      unsigned char *output,
+                      unsigned int *outputLen,
+                      unsigned int maxOutputLen,
+                      const unsigned char *input,
+                      unsigned int inputLen) {
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_RSA_SignPSS)(key, hashAlg, maskHashAlg, salt, saltLen,
+                                 output, outputLen, maxOutputLen, input,
+                                 inputLen);
+}
+
+SECStatus RSA_CheckSignPSS(RSAPublicKey *key,
+                           HASH_HashType hashAlg,
+                           HASH_HashType maskHashAlg,
+                           unsigned int saltLen,
+                           const unsigned char *sig,
+                           unsigned int sigLen,
+                           const unsigned char *hash,
+                           unsigned int hashLen) {
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_RSA_CheckSignPSS)(key, hashAlg, maskHashAlg, saltLen,
+                                      sig, sigLen, hash, hashLen);
+}
+
+SECStatus RSA_Sign(RSAPrivateKey *key,
+                   unsigned char *output,
+                   unsigned int *outputLen,
+                   unsigned int maxOutputLen,
+                   const unsigned char *input,
+                   unsigned int inputLen) {
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_RSA_Sign)(key, output, outputLen, maxOutputLen, input,
+                              inputLen);
+}
+
+SECStatus RSA_CheckSign(RSAPublicKey *key,
+                        const unsigned char *sig,
+                        unsigned int sigLen,
+                        const unsigned char *data,
+                        unsigned int dataLen) {
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_RSA_CheckSign)(key, sig, sigLen, data, dataLen);
+
+}
+
+SECStatus RSA_CheckSignRecover(RSAPublicKey *key,
+                               unsigned char *output,
+                               unsigned int *outputLen,
+                               unsigned int maxOutputLen,
+                               const unsigned char *sig,
+                               unsigned int sigLen) {
+  if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+      return SECFailure;
+  return (vector->p_RSA_CheckSignRecover)(key, output, outputLen, maxOutputLen,
+                                          sig, sigLen);
 }

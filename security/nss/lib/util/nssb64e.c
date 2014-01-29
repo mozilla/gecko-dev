@@ -4,8 +4,6 @@
 
 /*
  * Base64 encoding (binary to ascii).
- *
- * $Id: nssb64e.c,v 1.4 2012/04/25 14:50:16 gerv%gerv.net Exp $
  */
 
 #include "nssb64.h"
@@ -629,7 +627,7 @@ NSSBase64Encoder_Destroy (NSSBase64Encoder *data, PRBool abort_p)
  * otherwise.
  */
 char *
-NSSBase64_EncodeItem (PRArenaPool *arenaOpt, char *outStrOpt,
+NSSBase64_EncodeItem (PLArenaPool *arenaOpt, char *outStrOpt,
 		      unsigned int maxOutLen, SECItem *inItem)
 {
     char *out_string = outStrOpt;

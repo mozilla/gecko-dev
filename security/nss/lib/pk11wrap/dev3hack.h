@@ -5,10 +5,6 @@
 #ifndef DEVNSS3HACK_H
 #define DEVNSS3HACK_H
 
-#ifdef DEBUG
-static const char DEVNSS3HACK_CVS_ID[] = "@(#) $RCSfile: dev3hack.h,v $ $Revision: 1.10 $ $Date: 2012/04/25 14:50:04 $";
-#endif /* DEBUG */
-
 #include "cert.h"
 
 PR_BEGIN_EXTERN_C

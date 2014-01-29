@@ -236,7 +236,7 @@ void PK11_DestroyMergeLog(PK11MergeLog *log);
 /*********************************************************************
  *       Mechanism Mapping functions
  *********************************************************************/
-CK_MECHANISM_TYPE PK11_GetKeyType(CK_MECHANISM_TYPE type,unsigned long len);
+CK_KEY_TYPE PK11_GetKeyType(CK_MECHANISM_TYPE type,unsigned long len);
 CK_MECHANISM_TYPE PK11_GetKeyGen(CK_MECHANISM_TYPE type);
 int PK11_GetBlockSize(CK_MECHANISM_TYPE type,SECItem *params);
 int PK11_GetIVLength(CK_MECHANISM_TYPE type);
@@ -266,7 +266,7 @@ CK_MECHANISM_TYPE PK11_GetPadMechanism(CK_MECHANISM_TYPE);
 CK_MECHANISM_TYPE PK11_MapSignKeyType(KeyType keyType);
 
 /**********************************************************************
- *                   Symetric, Public, and Private Keys 
+ *                   Symmetric, Public, and Private Keys 
  **********************************************************************/
 void PK11_FreeSymKey(PK11SymKey *key);
 PK11SymKey *PK11_ReferenceSymKey(PK11SymKey *symKey);
@@ -508,6 +508,17 @@ SECKEYPrivateKey * PK11_FindKeyByKeyID(PK11SlotInfo *slot, SECItem *keyID,
 				       void *wincx);
 int PK11_GetPrivateModulusLen(SECKEYPrivateKey *key); 
 
+SECStatus PK11_Decrypt(PK11SymKey *symkey,
+		       CK_MECHANISM_TYPE mechanism, SECItem *param,
+		       unsigned char *out, unsigned int *outLen,
+		       unsigned int maxLen,
+		       const unsigned char *enc, unsigned int encLen);
+SECStatus PK11_Encrypt(PK11SymKey *symKey,
+		       CK_MECHANISM_TYPE mechanism, SECItem *param,
+		       unsigned char *out, unsigned int *outLen,
+		       unsigned int maxLen,
+		       const unsigned char *data, unsigned int dataLen);
+
 /* note: despite the name, this function takes a private key. */
 SECStatus PK11_PubDecryptRaw(SECKEYPrivateKey *key, unsigned char *data,
    unsigned *outLen, unsigned int maxLen, unsigned char *enc, unsigned encLen);
@@ -691,6 +702,7 @@ SECStatus PK11_CipherOp(PK11Context *context, unsigned char * out, int *outlen,
 SECStatus PK11_Finalize(PK11Context *context);
 SECStatus PK11_DigestFinal(PK11Context *context, unsigned char *data, 
 				unsigned int *outLen, unsigned int length);
+#define PK11_CipherFinal PK11_DigestFinal
 SECStatus PK11_SaveContext(PK11Context *cx,unsigned char *save,
 						int *len, int saveLength);
 
@@ -758,9 +770,9 @@ PK11_GetPBECryptoMechanism(SECAlgorithmID *algid,
 /**********************************************************************
  * Functions to manage secmod flags
  **********************************************************************/
-PK11DefaultArrayEntry * PK11_GetDefaultArray(int *);
-SECStatus PK11_UpdateSlotAttribute(PK11SlotInfo *, PK11DefaultArrayEntry *,
-							PRBool );
+PK11DefaultArrayEntry *PK11_GetDefaultArray(int *size);
+SECStatus PK11_UpdateSlotAttribute(PK11SlotInfo *slot,
+				   PK11DefaultArrayEntry *entry, PRBool add);
 
 /**********************************************************************
  * Functions to look at PKCS #11 dependent data

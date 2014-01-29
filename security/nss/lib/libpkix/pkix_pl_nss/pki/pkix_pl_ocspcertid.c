@@ -113,7 +113,7 @@ PKIX_PL_OcspCertID_Create(
         void *plContext)
 {
         PKIX_PL_OcspCertID *cid = NULL;
-        int64 time = 0;
+        PRTime time = 0;
 
         PKIX_ENTER(DATE, "PKIX_PL_OcspCertID_Create");
         PKIX_NULLCHECK_TWO(cert, object);
@@ -181,9 +181,10 @@ PKIX_PL_OcspCertID_GetFreshCacheStatus(
         SECErrorCodes *missingResponseError,
         void *plContext)
 {
-        int64 time = 0;
+        PRTime time = 0;
         SECStatus rv;
         SECStatus rvOcsp;
+        OCSPFreshness freshness;
 
         PKIX_ENTER(DATE, "PKIX_PL_OcspCertID_GetFreshCacheStatus");
         PKIX_NULLCHECK_THREE(cid, hasFreshStatus, statusIsGood);
@@ -195,11 +196,11 @@ PKIX_PL_OcspCertID_GetFreshCacheStatus(
                 time = PR_Now();
         }
 
-        rv = ocsp_GetCachedOCSPResponseStatusIfFresh(
+        rv = ocsp_GetCachedOCSPResponseStatus(
                 cid->certID, time, PR_TRUE, /*ignoreGlobalOcspFailureSetting*/
-                &rvOcsp, missingResponseError);
+                &rvOcsp, missingResponseError, &freshness);
 
-        *hasFreshStatus = (rv == SECSuccess);
+        *hasFreshStatus = (rv == SECSuccess && freshness == ocspFresh);
         if (*hasFreshStatus) {
                 *statusIsGood = (rvOcsp == SECSuccess);
         }

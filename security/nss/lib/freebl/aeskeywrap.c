@@ -4,9 +4,6 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-/* $Id: aeskeywrap.c,v 1.6 2012/04/25 14:49:43 gerv%gerv.net Exp $ */
-
-/* $Id: aeskeywrap.c,v 1.6 2012/04/25 14:49:43 gerv%gerv.net Exp $ */
 
 #ifdef FREEBL_NO_DEPEND
 #include "stubs.h"

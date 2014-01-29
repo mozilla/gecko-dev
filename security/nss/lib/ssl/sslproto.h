@@ -6,7 +6,6 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-/* $Id: sslproto.h,v 1.20 2012/06/07 02:06:19 wtc%google.com Exp $ */
 
 #ifndef __sslproto_h_
 #define __sslproto_h_
@@ -16,6 +15,7 @@
 #define SSL_LIBRARY_VERSION_3_0			0x0300
 #define SSL_LIBRARY_VERSION_TLS_1_0		0x0301
 #define SSL_LIBRARY_VERSION_TLS_1_1		0x0302
+#define SSL_LIBRARY_VERSION_TLS_1_2		0x0303
 /* Note: this is the internal format, not the wire format */
 #define SSL_LIBRARY_VERSION_DTLS_1_0		0x0302
 
@@ -133,6 +133,9 @@
 #define TLS_DHE_DSS_WITH_AES_256_CBC_SHA  	0x0038
 #define TLS_DHE_RSA_WITH_AES_256_CBC_SHA  	0x0039
 #define TLS_DH_ANON_WITH_AES_256_CBC_SHA  	0x003A
+#define TLS_RSA_WITH_NULL_SHA256		0x003B
+#define TLS_RSA_WITH_AES_128_CBC_SHA256  	0x003C
+#define TLS_RSA_WITH_AES_256_CBC_SHA256  	0x003D
 
 #define TLS_RSA_WITH_CAMELLIA_128_CBC_SHA      	0x0041
 #define TLS_DH_DSS_WITH_CAMELLIA_128_CBC_SHA   	0x0042
@@ -147,6 +150,8 @@
 #define TLS_DHE_DSS_EXPORT1024_WITH_DES_CBC_SHA 0x0063
 #define TLS_DHE_DSS_EXPORT1024_WITH_RC4_56_SHA  0x0065
 #define TLS_DHE_DSS_WITH_RC4_128_SHA            0x0066
+#define TLS_DHE_RSA_WITH_AES_128_CBC_SHA256     0x0067
+#define TLS_DHE_RSA_WITH_AES_256_CBC_SHA256     0x006B
 
 #define TLS_RSA_WITH_CAMELLIA_256_CBC_SHA      	0x0084
 #define TLS_DH_DSS_WITH_CAMELLIA_256_CBC_SHA   	0x0085
@@ -156,6 +161,10 @@
 #define TLS_DH_ANON_WITH_CAMELLIA_256_CBC_SHA  	0x0089
 
 #define TLS_RSA_WITH_SEED_CBC_SHA		0x0096
+
+#define TLS_RSA_WITH_AES_128_GCM_SHA256         0x009C
+#define TLS_DHE_RSA_WITH_AES_128_GCM_SHA256     0x009E
+#define TLS_DHE_DSS_WITH_AES_128_GCM_SHA256     0x00A2
 
 /* TLS "Signaling Cipher Suite Value" (SCSV). May be requested by client.
  * Must NEVER be chosen by server.  SSL 3.0 server acknowledges by sending
@@ -195,6 +204,14 @@
 #define TLS_ECDH_anon_WITH_3DES_EDE_CBC_SHA     0xC017
 #define TLS_ECDH_anon_WITH_AES_128_CBC_SHA      0xC018
 #define TLS_ECDH_anon_WITH_AES_256_CBC_SHA      0xC019
+
+#define TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 0xC023
+#define TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256   0xC027
+
+#define TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 0xC02B
+#define TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256  0xC02D
+#define TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256   0xC02F
+#define TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256    0xC031
 
 /* Netscape "experimental" cipher suites. */
 #define SSL_RSA_OLDFIPS_WITH_3DES_EDE_CBC_SHA	0xffe0

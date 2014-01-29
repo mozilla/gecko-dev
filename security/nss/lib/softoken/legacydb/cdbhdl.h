@@ -4,8 +4,6 @@
 /*
  * cdbhdl.h - certificate database handle
  *   private to the certdb module
- *
- * $Id: cdbhdl.h,v 1.3 2012/04/25 14:50:11 gerv%gerv.net Exp $
  */
 #ifndef _CDBHDL_H_
 #define _CDBHDL_H_
