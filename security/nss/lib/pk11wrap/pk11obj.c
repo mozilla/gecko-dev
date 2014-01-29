@@ -84,7 +84,7 @@ PK11_DestroyTokenObject(PK11SlotInfo *slot,CK_OBJECT_HANDLE object) {
  */
 SECStatus
 PK11_ReadAttribute(PK11SlotInfo *slot, CK_OBJECT_HANDLE id,
-	 CK_ATTRIBUTE_TYPE type, PRArenaPool *arena, SECItem *result) {
+	 CK_ATTRIBUTE_TYPE type, PLArenaPool *arena, SECItem *result) {
     CK_ATTRIBUTE attr = { 0, NULL, 0 };
     CK_RV crv;
 
@@ -173,7 +173,7 @@ PK11_HasAttributeSet( PK11SlotInfo *slot, CK_OBJECT_HANDLE id,
  * provided, allocate space out of the arena.
  */
 CK_RV
-PK11_GetAttributes(PRArenaPool *arena,PK11SlotInfo *slot,
+PK11_GetAttributes(PLArenaPool *arena,PK11SlotInfo *slot,
 			CK_OBJECT_HANDLE obj,CK_ATTRIBUTE *attr, int count)
 {
     int i;
@@ -685,6 +685,8 @@ PK11_Verify(SECKEYPublicKey *key, const SECItem *sig, const SECItem *hash,
 	    if (key->u.dsa.params.prime.data[0] == 0) {
 		length --;
 	    }
+	    /* convert keysize to bits for slot lookup */
+	    length *= 8;
 	}
 	slot = PK11_GetBestSlotWithAttributes(mech.mechanism,
 						CKF_VERIFY,length,wincx);
@@ -815,6 +817,93 @@ PK11_SignWithSymKey(PK11SymKey *symKey, CK_MECHANISM_TYPE mechanism,
     if (haslock) PK11_ExitSlotMonitor(slot);
     pk11_CloseSession(slot,session,owner);
     sig->len = len;
+    if (crv != CKR_OK) {
+	PORT_SetError( PK11_MapError(crv) );
+	return SECFailure;
+    }
+    return SECSuccess;
+}
+
+SECStatus
+PK11_Decrypt(PK11SymKey *symKey,
+             CK_MECHANISM_TYPE mechanism, SECItem *param,
+             unsigned char *out, unsigned int *outLen,
+             unsigned int maxLen,
+             const unsigned char *enc, unsigned encLen)
+{
+    PK11SlotInfo *slot = symKey->slot;
+    CK_MECHANISM mech = {0, NULL, 0 };
+    CK_ULONG len = maxLen;
+    PRBool owner = PR_TRUE;
+    CK_SESSION_HANDLE session;
+    PRBool haslock = PR_FALSE;
+    CK_RV crv;
+
+    mech.mechanism = mechanism;
+    if (param) {
+	mech.pParameter = param->data;
+	mech.ulParameterLen = param->len;
+    }
+
+    session = pk11_GetNewSession(slot, &owner);
+    haslock = (!owner || !slot->isThreadSafe);
+    if (haslock) PK11_EnterSlotMonitor(slot);
+    crv = PK11_GETTAB(slot)->C_DecryptInit(session, &mech, symKey->objectID);
+    if (crv != CKR_OK) {
+	if (haslock) PK11_ExitSlotMonitor(slot);
+	pk11_CloseSession(slot, session, owner);
+	PORT_SetError( PK11_MapError(crv) );
+	return SECFailure;
+    }
+
+    crv = PK11_GETTAB(slot)->C_Decrypt(session, (unsigned char *)enc, encLen,
+                                       out, &len);
+    if (haslock) PK11_ExitSlotMonitor(slot);
+    pk11_CloseSession(slot, session, owner);
+    *outLen = len;
+    if (crv != CKR_OK) {
+	PORT_SetError( PK11_MapError(crv) );
+	return SECFailure;
+    }
+    return SECSuccess;
+}
+
+SECStatus
+PK11_Encrypt(PK11SymKey *symKey,
+             CK_MECHANISM_TYPE mechanism, SECItem *param,
+             unsigned char *out, unsigned int *outLen,
+             unsigned int maxLen,
+             const unsigned char *data, unsigned int dataLen)
+{
+    PK11SlotInfo *slot = symKey->slot;
+    CK_MECHANISM mech = {0, NULL, 0 };
+    CK_ULONG len = maxLen;
+    PRBool owner = PR_TRUE;
+    CK_SESSION_HANDLE session;
+    PRBool haslock = PR_FALSE;
+    CK_RV crv;
+
+    mech.mechanism = mechanism;
+    if (param) {
+	mech.pParameter = param->data;
+	mech.ulParameterLen = param->len;
+    }
+
+    session = pk11_GetNewSession(slot, &owner);
+    haslock = (!owner || !slot->isThreadSafe);
+    if (haslock) PK11_EnterSlotMonitor(slot);
+    crv = PK11_GETTAB(slot)->C_EncryptInit(session, &mech, symKey->objectID);
+    if (crv != CKR_OK) {
+	if (haslock) PK11_ExitSlotMonitor(slot);
+	pk11_CloseSession(slot,session,owner);
+	PORT_SetError( PK11_MapError(crv) );
+	return SECFailure;
+    }
+    crv = PK11_GETTAB(slot)->C_Encrypt(session, (unsigned char *)data,
+                                       dataLen, out, &len);
+    if (haslock) PK11_ExitSlotMonitor(slot);
+    pk11_CloseSession(slot,session,owner);
+    *outLen = len;
     if (crv != CKR_OK) {
 	PORT_SetError( PK11_MapError(crv) );
 	return SECFailure;
@@ -1647,7 +1736,7 @@ PK11_MatchItem(PK11SlotInfo *slot, CK_OBJECT_HANDLE searchID,
     /* if you change the array, change the variable below as well */
     CK_OBJECT_HANDLE peerID;
     CK_OBJECT_HANDLE parent;
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     CK_RV crv;
 
     /* now we need to create space for the public key */

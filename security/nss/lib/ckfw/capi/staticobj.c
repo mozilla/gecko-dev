@@ -2,10 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: staticobj.c,v $ $Revision: 1.4 $ $Date: 2012/04/25 14:49:30 $""; @(#) $RCSfile: staticobj.c,v $ $Revision: 1.4 $ $Date: 2012/04/25 14:49:30 $";
-#endif /* DEBUG */
-
 #ifndef CKCAPI_H
 #include "ckcapi.h"
 #endif /* CKCAPI_H */

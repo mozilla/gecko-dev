@@ -1,13 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-/* $Id: sslauth.c,v 1.18 2012/04/25 14:50:12 gerv%gerv.net Exp $ */
 #include "cert.h"
 #include "secitem.h"
 #include "ssl.h"
 #include "sslimpl.h"
 #include "sslproto.h"
 #include "pk11func.h"
+#include "ocsp.h"
 
 /* NEED LOCKS IN HERE.  */
 CERTCertificate *
@@ -25,6 +25,46 @@ SSL_PeerCertificate(PRFileDesc *fd)
 	return CERT_DupCertificate(ss->sec.peerCert);
     }
     return 0;
+}
+
+/* NEED LOCKS IN HERE.  */
+CERTCertList *
+SSL_PeerCertificateChain(PRFileDesc *fd)
+{
+    sslSocket *ss;
+    CERTCertList *chain = NULL;
+    CERTCertificate *cert;
+    ssl3CertNode *cur;
+
+    ss = ssl_FindSocket(fd);
+    if (!ss) {
+	SSL_DBG(("%d: SSL[%d]: bad socket in PeerCertificateChain",
+		 SSL_GETPID(), fd));
+	return NULL;
+    }
+    if (!ss->opt.useSecurity || !ss->sec.peerCert) {
+	PORT_SetError(SSL_ERROR_NO_CERTIFICATE);
+	return NULL;
+    }
+    chain = CERT_NewCertList();
+    if (!chain) {
+	return NULL;
+    }
+    cert = CERT_DupCertificate(ss->sec.peerCert);
+    if (CERT_AddCertToListTail(chain, cert) != SECSuccess) {
+	goto loser;
+    }
+    for (cur = ss->ssl3.peerCertChain; cur; cur = cur->next) {
+	cert = CERT_DupCertificate(cur->cert);
+	if (CERT_AddCertToListTail(chain, cert) != SECSuccess) {
+	    goto loser;
+	}
+    }
+    return chain;
+
+loser:
+    CERT_DestroyCertList(chain);
+    return NULL;
 }
 
 /* NEED LOCKS IN HERE.  */
@@ -60,7 +100,6 @@ SSL_SecurityStatus(PRFileDesc *fd, int *op, char **cp, int *kp0, int *kp1,
     sslSocket *ss;
     const char *cipherName;
     PRBool isDes = PR_FALSE;
-    PRBool enoughFirstHsDone = PR_FALSE;
 
     ss = ssl_FindSocket(fd);
     if (!ss) {
@@ -78,14 +117,7 @@ SSL_SecurityStatus(PRFileDesc *fd, int *op, char **cp, int *kp0, int *kp1,
 	*op = SSL_SECURITY_STATUS_OFF;
     }
 
-    if (ss->firstHsDone) {
-	enoughFirstHsDone = PR_TRUE;
-    } else if (ss->version >= SSL_LIBRARY_VERSION_3_0 &&
-	       ssl3_CanFalseStart(ss)) {
-	enoughFirstHsDone = PR_TRUE;
-    }
-
-    if (ss->opt.useSecurity && enoughFirstHsDone) {
+    if (ss->opt.useSecurity && ss->enoughFirstHsDone) {
 	if (ss->version < SSL_LIBRARY_VERSION_3_0) {
 	    cipherName = ssl_cipherName[ss->sec.cipherType];
 	} else {
@@ -213,7 +245,9 @@ SSL_AuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig, PRBool isServer)
     CERTCertDBHandle * handle;
     sslSocket *        ss;
     SECCertUsage       certUsage;
-    const char *             hostname    = NULL;
+    const char *       hostname    = NULL;
+    PRTime             now = PR_Now();
+    SECItemArray *     certStatusArray;
     
     ss = ssl_FindSocket(fd);
     PORT_Assert(ss != NULL);
@@ -222,12 +256,24 @@ SSL_AuthCertificate(void *arg, PRFileDesc *fd, PRBool checkSig, PRBool isServer)
     }
 
     handle = (CERTCertDBHandle *)arg;
+    certStatusArray = &ss->sec.ci.sid->peerCertStatus;
+
+    if (certStatusArray->len) {
+	PORT_SetError(0);
+	if (CERT_CacheOCSPResponseFromSideChannel(handle, ss->sec.peerCert, now,
+						  &certStatusArray->items[0],
+						  ss->pkcs11PinArg)
+		!= SECSuccess) {
+	    PRErrorCode error = PR_GetError();
+	    PORT_Assert(error != 0);
+	}
+    }
 
     /* this may seem backwards, but isn't. */
     certUsage = isServer ? certUsageSSLClient : certUsageSSLServer;
 
-    rv = CERT_VerifyCertNow(handle, ss->sec.peerCert, checkSig, certUsage,
-			    ss->pkcs11PinArg);
+    rv = CERT_VerifyCert(handle, ss->sec.peerCert, checkSig, certUsage,
+			 now, ss->pkcs11PinArg, NULL);
 
     if ( rv != SECSuccess || isServer )
 	return rv;

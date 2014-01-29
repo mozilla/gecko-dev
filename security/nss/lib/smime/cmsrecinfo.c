@@ -4,8 +4,6 @@
 
 /*
  * CMS recipientInfo methods.
- *
- * $Id: cmsrecinfo.c,v 1.22 2012/04/25 14:50:08 gerv%gerv.net Exp $
  */
 
 #include "cmslocal.h"
@@ -666,7 +664,7 @@ SECStatus NSS_CMSRecipientInfo_GetCertAndKey(NSSCMSRecipientInfo *ri,
     return rv;
 }
 
-SECStatus NSS_CMSRecipientInfo_Encode(PRArenaPool* poolp,
+SECStatus NSS_CMSRecipientInfo_Encode(PLArenaPool* poolp,
                                       const NSSCMSRecipientInfo *src,
                                       SECItem* returned)
 {

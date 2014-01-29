@@ -4,7 +4,6 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-/* $Id: softoken.h,v 1.29 2013/02/05 02:19:52 ryan.sleevi%gmail.com Exp $ */
 
 #ifndef _SOFTOKEN_H_
 #define _SOFTOKEN_H_
@@ -19,130 +18,32 @@
 SEC_BEGIN_PROTOS
 
 /*
-** RSA encryption/decryption. When encrypting/decrypting the output
-** buffer must be at least the size of the public key modulus.
-*/
-
-/*
-** Format some data into a PKCS#1 encryption block, preparing the
-** data for RSA encryption.
-**	"result" where the formatted block is stored (memory is allocated)
-**	"modulusLen" the size of the formatted block
-**	"blockType" what block type to use (SEC_RSABlock*)
-**	"data" the data to format
-*/
-extern SECStatus RSA_FormatBlock(SECItem *result,
-				 unsigned int modulusLen,
-				 RSA_BlockType blockType,
-				 SECItem *data);
-/*
-** Similar, but just returns a pointer to the allocated memory, *and*
-** will *only* format one block, even if we (in the future) modify
-** RSA_FormatBlock() to loop over multiples of modulusLen.
-*/
-extern unsigned char *RSA_FormatOneBlock(unsigned int modulusLen,
-					 RSA_BlockType blockType,
-					 SECItem *data);
-
-
-
-/*
- * convenience wrappers for doing single RSA operations. They create the
- * RSA context internally and take care of the formatting
- * requirements. Blinding happens automagically within RSA_Sign and
- * RSA_DecryptBlock.
+ * Convenience wrapper for doing a single PKCS#1 v1.5 RSA operations where the
+ * encoded digest info is computed internally, rather than by the caller.
+ *
+ * The HashSign variants expect as input the value of H, the computed hash
+ * from RFC 3447, Section 9.2, Step 1, and will compute the DER-encoded
+ * DigestInfo structure internally prior to signing/verifying.
  */
-extern
-SECStatus RSA_Sign(NSSLOWKEYPrivateKey *key, unsigned char *output,
-		       unsigned int *outputLen, unsigned int maxOutputLen,
-		       unsigned char *input, unsigned int inputLen);
-extern
-SECStatus RSA_HashSign(SECOidTag hashOid,
-			NSSLOWKEYPrivateKey *key, unsigned char *sig,
-			unsigned int *sigLen, unsigned int maxLen,
-			unsigned char *hash, unsigned int hashLen);
-extern
-SECStatus RSA_SignPSS(CK_RSA_PKCS_PSS_PARAMS *pss_params,
-		      NSSLOWKEYPrivateKey *key, 
-		      unsigned char *output, unsigned int *output_len, 
-		      unsigned int max_output_len, const unsigned char *input,
-		      unsigned int input_len);
-extern
-SECStatus RSA_CheckSign(NSSLOWKEYPublicKey *key, unsigned char *sign,
-			    unsigned int signLength, unsigned char *hash,
-			    unsigned int hashLength);
-extern
-SECStatus RSA_HashCheckSign(SECOidTag hashOid,
-			    NSSLOWKEYPublicKey *key, unsigned char *sig,
-			    unsigned int sigLen, unsigned char *digest,
-			    unsigned int digestLen);
-extern
-SECStatus RSA_CheckSignPSS(CK_RSA_PKCS_PSS_PARAMS *pss_params,
-			   NSSLOWKEYPublicKey *key,
-			   const unsigned char *sign, unsigned int sign_len,
-			   const unsigned char *hash, unsigned int hash_len);
-extern
-SECStatus RSA_CheckSignRecover(NSSLOWKEYPublicKey *key, unsigned char *data,
-    			    unsigned int *data_len,unsigned int max_output_len, 
-			    unsigned char *sign, unsigned int sign_len);
-extern
-SECStatus RSA_EncryptBlock(NSSLOWKEYPublicKey *key, unsigned char *output,
-			   unsigned int *outputLen, unsigned int maxOutputLen,
-			   unsigned char *input, unsigned int inputLen);
-extern
-SECStatus RSA_DecryptBlock(NSSLOWKEYPrivateKey *key, unsigned char *output,
-			   unsigned int *outputLen, unsigned int maxOutputLen,
-			   unsigned char *input, unsigned int inputLen);
+extern SECStatus
+RSA_HashSign(SECOidTag hashOid, NSSLOWKEYPrivateKey *key,
+             unsigned char *sig, unsigned int *sigLen, unsigned int maxLen,
+             const unsigned char *hash, unsigned int hashLen);
 
-extern
-SECStatus RSA_EncryptOAEP(CK_RSA_PKCS_OAEP_PARAMS *oaepParams,
-                          NSSLOWKEYPublicKey *key,
-                          unsigned char *output, unsigned int *outputLen,
-                          unsigned int maxOutputLen,
-                          const unsigned char *input, unsigned int inputLen);
+extern SECStatus
+RSA_HashCheckSign(SECOidTag hashOid, NSSLOWKEYPublicKey *key,
+                  const unsigned char *sig, unsigned int sigLen,
+                  const unsigned char *hash, unsigned int hashLen);
 
-extern
-SECStatus RSA_DecryptOAEP(CK_RSA_PKCS_OAEP_PARAMS *oaepParams,
-                          NSSLOWKEYPrivateKey *key,
-                          unsigned char *output, unsigned int *outputLen,
-                          unsigned int maxOutputLen,
-                          const unsigned char *input, unsigned int inputLen);
-
-/*
- * added to make pkcs #11 happy
- *   RAW is RSA_X_509
- */
-extern
-SECStatus RSA_SignRaw( NSSLOWKEYPrivateKey *key, unsigned char *output,
-			 unsigned int *output_len, unsigned int maxOutputLen,
-			 unsigned char *input, unsigned int input_len);
-extern
-SECStatus RSA_CheckSignRaw( NSSLOWKEYPublicKey *key, unsigned char *sign, 
-			    unsigned int sign_len, unsigned char *hash, 
-			    unsigned int hash_len);
-extern
-SECStatus RSA_CheckSignRecoverRaw( NSSLOWKEYPublicKey *key, unsigned char *data,
-			    unsigned int *data_len, unsigned int max_output_len,
-			    unsigned char *sign, unsigned int sign_len);
-extern
-SECStatus RSA_EncryptRaw( NSSLOWKEYPublicKey *key, unsigned char *output,
-			    unsigned int *output_len,
-			    unsigned int max_output_len, 
-			    unsigned char *input, unsigned int input_len);
-extern
-SECStatus RSA_DecryptRaw(NSSLOWKEYPrivateKey *key, unsigned char *output,
-			     unsigned int *output_len,
-    			     unsigned int max_output_len,
-			     unsigned char *input, unsigned int input_len);
 #ifdef NSS_ENABLE_ECC
 /*
 ** pepare an ECParam structure from DEREncoded params
  */
-extern SECStatus EC_FillParams(PRArenaPool *arena,
+extern SECStatus EC_FillParams(PLArenaPool *arena,
                                const SECItem *encodedParams, ECParams *params);
 extern SECStatus EC_DecodeParams(const SECItem *encodedParams, 
 				ECParams **ecparams);
-extern SECStatus EC_CopyParams(PRArenaPool *arena, ECParams *dstParams,
+extern SECStatus EC_CopyParams(PLArenaPool *arena, ECParams *dstParams,
               			const ECParams *srcParams);
 #endif
 
@@ -160,7 +61,7 @@ extern SECStatus EC_CopyParams(PRArenaPool *arena, ECParams *dstParams,
 ** NOTE: If arena is non-NULL, we re-allocate from there, otherwise
 ** we assume (and use) PR memory (re)allocation.
 */
-extern unsigned char * CBC_PadBuffer(PRArenaPool *arena, unsigned char *inbuf, 
+extern unsigned char * CBC_PadBuffer(PLArenaPool *arena, unsigned char *inbuf,
                                      unsigned int inlen, unsigned int *outlen,
 				     int blockSize);
 

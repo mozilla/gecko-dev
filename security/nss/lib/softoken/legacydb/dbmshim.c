@@ -4,8 +4,6 @@
 
 /*
  * Berkeley DB 1.85 Shim code to handle blobs.
- *
- * $Id: dbmshim.c,v 1.3 2012/04/25 14:50:11 gerv%gerv.net Exp $
  */
 #include "mcom_db.h"
 #include "secitem.h"

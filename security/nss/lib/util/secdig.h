@@ -4,7 +4,6 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-/* $Id: secdig.h,v 1.10 2012/04/25 14:50:16 gerv%gerv.net Exp $ */
 
 #ifndef _SECDIG_H_
 #define _SECDIG_H_
@@ -41,7 +40,7 @@ SEC_ASN1_CHOOSER_DECLARE(sgn_DigestInfoTemplate)
 ** I think that is all anybody ever wants to do anyway.
 */
 extern SGNDigestInfo *SGN_CreateDigestInfo(SECOidTag algorithm,
-					   unsigned char *sig,
+					   const unsigned char *sig,
 					   unsigned int sigLen);
 
 /*

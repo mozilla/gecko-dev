@@ -4,8 +4,6 @@
 
 /*
  * CMS signerInfo methods.
- *
- * $Id: cmssiginfo.c,v 1.37 2012/04/25 14:50:09 gerv%gerv.net Exp $
  */
 
 #include "cmslocal.h"
@@ -273,7 +271,7 @@ NSS_CMSSignerInfo_VerifyCertificate(NSSCMSSignerInfo *signerinfo, CERTCertDBHand
 			    SECCertUsage certusage)
 {
     CERTCertificate *cert;
-    int64 stime;
+    PRTime stime;
 
     if ((cert = NSS_CMSSignerInfo_GetSigningCertificate(signerinfo, certdb)) == NULL) {
 	signerinfo->verificationStatus = NSSCMSVS_SigningCertNotFound;
@@ -347,13 +345,6 @@ NSS_CMSSignerInfo_Verify(NSSCMSSignerInfo *signerinfo,
 	vs = NSSCMSVS_SignatureAlgorithmUnknown;
 	goto loser;
     }
-
-#ifndef NSS_ECC_MORE_THAN_SUITE_B
-    if (pubkAlgTag == SEC_OID_ANSIX962_EC_PUBLIC_KEY) {
-	vs = NSSCMSVS_SignatureAlgorithmUnknown;
-	goto loser;
-    }
-#endif
 
     if (!NSS_CMSArray_IsEmpty((void **)signerinfo->authAttr)) {
 	if (contentType) {

@@ -4,14 +4,24 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-CORE_DEPTH = ../..
-DEPTH = ../..
+CORE_DEPTH = ..
+DEPTH = ..
 
 include manifest.mn
 include $(CORE_DEPTH)/coreconf/config.mk
 
 ifdef BUILD_LIBPKIX_TESTS
 DIRS += libpkix
+endif
+
+ifeq ($(NSS_BUILD_WITHOUT_SOFTOKEN),1)
+BLTEST_SRCDIR =
+FIPSTEST_SRCDIR =
+SHLIBSIGN_SRCDIR =
+else
+BLTEST_SRCDIR = bltest
+FIPSTEST_SRCDIR = fipstest
+SHLIBSIGN_SRCDIR = shlibsign
 endif
 
 LOWHASHTEST_SRCDIR=

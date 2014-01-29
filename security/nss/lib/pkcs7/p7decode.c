@@ -4,8 +4,6 @@
 
 /*
  * PKCS7 decoding, verification.
- *
- * $Id: p7decode.c,v 1.31 2012/12/12 19:25:36 wtc%google.com Exp $
  */
 
 #include "p7local.h"
@@ -46,7 +44,7 @@ struct SEC_PKCS7DecoderContextStr {
     SECKEYGetPasswordKey pwfn;
     void *pwfn_arg;
     struct sec_pkcs7_decoder_worker worker;
-    PRArenaPool *tmp_poolp;
+    PLArenaPool *tmp_poolp;
     int error;
     SEC_PKCS7GetDecryptKeyCallback dkcb;
     void *dkcb_arg;
@@ -308,7 +306,7 @@ sec_pkcs7_decoder_start_digests (SEC_PKCS7DecoderContext *p7dcx, int depth,
  */
 static SECStatus
 sec_pkcs7_decoder_finish_digests (SEC_PKCS7DecoderContext *p7dcx,
-				  PRArenaPool *poolp,
+				  PLArenaPool *poolp,
 				  SECItem ***digestsp)
 {
     struct sec_pkcs7_decoder_worker *worker;
@@ -585,7 +583,7 @@ no_decryption:
 
 static SECStatus
 sec_pkcs7_decoder_finish_decrypt (SEC_PKCS7DecoderContext *p7dcx,
-				  PRArenaPool *poolp,
+				  PLArenaPool *poolp,
 				  SEC_PKCS7EncryptedContentInfo *enccinfo)
 {
     struct sec_pkcs7_decoder_worker *worker;
@@ -960,7 +958,7 @@ SEC_PKCS7DecoderStart(SEC_PKCS7DecoderContentCallback cb, void *cb_arg,
     SEC_PKCS7DecoderContext *p7dcx;
     SEC_ASN1DecoderContext *dcx;
     SEC_PKCS7ContentInfo *cinfo;
-    PRArenaPool *poolp;
+    PLArenaPool *poolp;
 
     poolp = PORT_NewArena (1024);		/* XXX what is right value? */
     if (poolp == NULL)
@@ -1246,13 +1244,17 @@ SEC_PKCS7ContentIsSigned(SEC_PKCS7ContentInfo *cinfo)
 
 
 /*
- * SEC_PKCS7ContentVerifySignature
+ * sec_pkcs7_verify_signature
+ *
  *	Look at a PKCS7 contentInfo and check if the signature is good.
  *	The digest was either calculated earlier (and is stored in the
  *	contentInfo itself) or is passed in via "detached_digest".
  *
  *	The verification checks that the signing cert is valid and trusted
- *	for the purpose specified by "certusage".
+ *	for the purpose specified by "certusage" at
+ * 	- "*atTime" if "atTime" is not null, or
+ * 	- the signing time if the signing time is available in "cinfo", or
+ *	- the current time (as returned by PR_Now).
  *
  *	In addition, if "keepcerts" is true, add any new certificates found
  *	into our local database.
@@ -1282,7 +1284,7 @@ sec_pkcs7_verify_signature(SEC_PKCS7ContentInfo *cinfo,
 			   const SECItem *detached_digest,
 			   HASH_HashType digest_type,
 			   PRBool keepcerts,
-			   PRTime atTime)
+			   const PRTime *atTime)
 {
     SECAlgorithmID **digestalgs, *bulkid;
     const SECItem *digest;
@@ -1438,10 +1440,14 @@ sec_pkcs7_verify_signature(SEC_PKCS7ContentInfo *cinfo,
      * in a time (and for non-S/MIME callers to pass in nothing, or
      * maybe make them pass in the current time, always?).
      */
-    verificationTime = atTime ? atTime
-			      : (encoded_stime ? stime : PR_Now());
-    if (CERT_VerifyCert (certdb, cert, PR_TRUE, certusage,
-			 verificationTime,
+    if (atTime) {
+	verificationTime = *atTime;
+    } else if (encoded_stime != NULL) {
+	verificationTime = stime;
+    } else {
+	verificationTime = PR_Now();
+    }
+    if (CERT_VerifyCert (certdb, cert, PR_TRUE, certusage, verificationTime,
 			 cinfo->pwfn_arg, NULL) != SECSuccess)
 	{
 	/*
@@ -1522,14 +1528,6 @@ sec_pkcs7_verify_signature(SEC_PKCS7ContentInfo *cinfo,
 	goto done;
     }
 
-#ifndef NSS_ECC_MORE_THAN_SUITE_B
-    if (encTag == SEC_OID_ANSIX962_EC_PUBLIC_KEY) {
-	PORT_SetError(SEC_ERROR_PKCS7_BAD_SIGNATURE);
-	goto done;
-    }
-#endif
-
-
     if (signerinfo->authAttr != NULL) {
 	SEC_PKCS7Attribute *attr;
 	SECItem *value;
@@ -1593,7 +1591,6 @@ sec_pkcs7_verify_signature(SEC_PKCS7ContentInfo *cinfo,
 	    PORT_SetError (SEC_ERROR_PKCS7_BAD_SIGNATURE);
 	    goto done;
 	}
-
 
 	goodsig = (PRBool)(VFY_VerifyDataDirect(encoded_attrs.data, 
 				   encoded_attrs.len,
@@ -1761,7 +1758,7 @@ SEC_PKCS7VerifySignature(SEC_PKCS7ContentInfo *cinfo,
 			 PRBool keepcerts)
 {
     return sec_pkcs7_verify_signature (cinfo, certusage,
-				       NULL, HASH_AlgNULL, keepcerts, 0);
+				       NULL, HASH_AlgNULL, keepcerts, NULL);
 }
 
 /*
@@ -1783,7 +1780,7 @@ SEC_PKCS7VerifyDetachedSignature(SEC_PKCS7ContentInfo *cinfo,
 {
     return sec_pkcs7_verify_signature (cinfo, certusage,
 				       detached_digest, digest_type,
-				       keepcerts, 0);
+				       keepcerts, NULL);
 }
 
 /*
@@ -1791,9 +1788,10 @@ SEC_PKCS7VerifyDetachedSignature(SEC_PKCS7ContentInfo *cinfo,
  *      Look at a PKCS7 contentInfo and check if the signature matches
  *      a passed-in digest (calculated, supposedly, from detached contents).
  *      The verification checks that the signing cert is valid and trusted
- *      for the purpose specified by "certusage" at time "atTime"
- *      if "atTime" is non-zero, or at the current time (as returned by
- *      PR_Now) otherwise.
+ *      for the purpose specified by "certusage" at time "atTime".
+ *
+ *	In addition, if "keepcerts" is true, add any new certificates found
+ *	into our local database.
  */
 PRBool
 SEC_PKCS7VerifyDetachedSignatureAtTime(SEC_PKCS7ContentInfo *cinfo,
@@ -1803,13 +1801,9 @@ SEC_PKCS7VerifyDetachedSignatureAtTime(SEC_PKCS7ContentInfo *cinfo,
 				       PRBool keepcerts,
 				       PRTime atTime)
 {
-    if (!atTime) {
-	atTime = PR_Now();
-    }
-
     return sec_pkcs7_verify_signature (cinfo, certusage,
 				       detached_digest, digest_type,
-				       keepcerts, atTime);
+				       keepcerts, &atTime);
 }
 
 /*
@@ -1873,7 +1867,7 @@ sec_pkcs7_get_signer_cert_info(SEC_PKCS7ContentInfo *cinfo, int selector)
 	 * some valid usage to pass in.
 	 */
 	(void) sec_pkcs7_verify_signature (cinfo, certUsageEmailSigner,
-					   NULL, HASH_AlgNULL, PR_FALSE, 0);
+					   NULL, HASH_AlgNULL, PR_FALSE, NULL);
 	signercert = signerinfos[0]->cert;
 	if (signercert == NULL)
 	    return NULL;

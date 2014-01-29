@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-/* $Id: keyhi.h,v 1.21 2012/04/25 14:49:41 gerv%gerv.net Exp $ */
 
 #ifndef _KEYHI_H_
 #define _KEYHI_H_
@@ -96,12 +95,12 @@ SECKEY_CreateSubjectPublicKeyInfo(SECKEYPublicKey *k);
 /*
 ** Decode a DER encoded public key into an SECKEYPublicKey structure.
 */
-extern SECKEYPublicKey *SECKEY_DecodeDERPublicKey(SECItem *pubkder);
+extern SECKEYPublicKey *SECKEY_DecodeDERPublicKey(const SECItem *pubkder);
 
 /*
 ** Convert a base64 ascii encoded DER public key to our internal format.
 */
-extern SECKEYPublicKey *SECKEY_ConvertAndDecodePublicKey(char *pubkstr);
+extern SECKEYPublicKey *SECKEY_ConvertAndDecodePublicKey(const char *pubkstr);
 
 /*
 ** Convert a base64 ascii encoded DER public key and challenge to spki,
@@ -123,21 +122,21 @@ SECKEY_EncodeDERSubjectPublicKeyInfo(SECKEYPublicKey *pubk);
 ** CERTSubjectPublicKeyInfo structure.
 */
 extern CERTSubjectPublicKeyInfo *
-SECKEY_DecodeDERSubjectPublicKeyInfo(SECItem *spkider);
+SECKEY_DecodeDERSubjectPublicKeyInfo(const SECItem *spkider);
 
 /*
 ** Convert a base64 ascii encoded DER subject public key info to our
 ** internal format.
 */
 extern CERTSubjectPublicKeyInfo *
-SECKEY_ConvertAndDecodeSubjectPublicKeyInfo(char *spkistr);
+SECKEY_ConvertAndDecodeSubjectPublicKeyInfo(const char *spkistr);
 
 /*
  * extract the public key from a subject Public Key info structure.
  * (used by JSS).
  */
 extern SECKEYPublicKey *
-SECKEY_ExtractPublicKey(CERTSubjectPublicKeyInfo *);
+SECKEY_ExtractPublicKey(const CERTSubjectPublicKeyInfo *);
 
 /*
 ** Destroy a private key object.
@@ -184,7 +183,7 @@ SECKEY_DestroyEncryptedPrivateKeyInfo(SECKEYEncryptedPrivateKeyInfo *epki,
 extern SECStatus
 SECKEY_CopyPrivateKeyInfo(PLArenaPool *poolp,
 			  SECKEYPrivateKeyInfo *to,
-			  SECKEYPrivateKeyInfo *from);
+			  const SECKEYPrivateKeyInfo *from);
 
 extern SECStatus
 SECKEY_CacheStaticFlags(SECKEYPrivateKey* key);
@@ -200,19 +199,19 @@ SECKEY_CacheStaticFlags(SECKEYPrivateKey* key);
 extern SECStatus
 SECKEY_CopyEncryptedPrivateKeyInfo(PLArenaPool *poolp,
 				   SECKEYEncryptedPrivateKeyInfo *to,
-				   SECKEYEncryptedPrivateKeyInfo *from);
+				   const SECKEYEncryptedPrivateKeyInfo *from);
 /*
  * Accessor functions for key type of public and private keys.
  */
-KeyType SECKEY_GetPrivateKeyType(SECKEYPrivateKey *privKey);
-KeyType SECKEY_GetPublicKeyType(SECKEYPublicKey *pubKey);
+KeyType SECKEY_GetPrivateKeyType(const SECKEYPrivateKey *privKey);
+KeyType SECKEY_GetPublicKeyType(const SECKEYPublicKey *pubKey);
 
 /*
  * Creates a PublicKey from its DER encoding.
  * Currently only supports RSA and DSA keys.
  */
 SECKEYPublicKey*
-SECKEY_ImportDERPublicKey(SECItem *derKey, CK_KEY_TYPE type);
+SECKEY_ImportDERPublicKey(const SECItem *derKey, CK_KEY_TYPE type);
 
 SECKEYPrivateKeyList*
 SECKEY_NewPrivateKeyList(void);

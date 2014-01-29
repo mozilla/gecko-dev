@@ -20,6 +20,9 @@
 	0	aes_ecb_-D	AES_ECB_Decrypt
 	0	aes_cbc_-E	AES_CBC_Encrypt
 	0	aes_cbc_-D	AES_CBC_Decrypt
+	0	aes_ctr		AES_CTR
+	0	aes_cts		AES_CTS
+	0	aes_gcm		AES_GCM
 	0	camellia_ecb_-E	Camellia_ECB_Encrypt
 	0	camellia_ecb_-D	Camellia_ECB_Decrypt
 	0	camellia_cbc_-E	Camellia_CBC_Encrypt
@@ -36,6 +39,10 @@
 	0	rc4_-D		RC4_Decrypt
 	0	rsa_-E		RSA_Encrypt
 	0	rsa_-D		RSA_Decrypt
+	0	rsa_oaep_-E	RSA_EncryptOAEP
+	0	rsa_oaep_-D	RSA_DecryptOAEP
+	0	rsa_pss_-S	RSA_SignPSS
+	0	rsa_pss_-V	RSA_CheckSignPSS
 	0	dsa_-S		DSA_Sign
 	0	dsa_-V		DSA_Verify
 	0	md2_-H		MD2_Hash

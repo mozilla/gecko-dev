@@ -4,8 +4,6 @@
 
 /*
  * CMS ASN.1 templates
- *
- * $Id: cmsasn1.c,v 1.12 2012/12/13 22:46:04 wtc%google.com Exp $
  */
 
 #include "cmslocal.h"

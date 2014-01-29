@@ -7,8 +7,6 @@
  * This file should only contain things that are needed by both the
  * encoding/creation side *and* the decoding/decryption side.  Anything
  * else should be static routines in the appropriate file.
- *
- * $Id: p7local.c,v 1.16 2012/04/25 14:50:06 gerv%gerv.net Exp $
  */
 
 #include "p7local.h"
@@ -142,7 +140,7 @@ sec_PKCS7CreateDecryptObject (PK11SymKey *key, SECAlgorithmID *algid)
  * have two simple cover functions which call it. 
  */
 sec_PKCS7CipherObject *
-sec_PKCS7CreateEncryptObject (PRArenaPool *poolp, PK11SymKey *key,
+sec_PKCS7CreateEncryptObject (PLArenaPool *poolp, PK11SymKey *key,
 			      SECOidTag algtag, SECAlgorithmID *algid)
 {
     sec_PKCS7CipherObject *result;
@@ -925,7 +923,7 @@ static const SEC_ASN1Template sec_pkcs7_set_of_attribute_template[] = {
  * do the reordering.)
  */
 SECItem *
-sec_PKCS7EncodeAttributes (PRArenaPool *poolp, SECItem *dest, void *src)
+sec_PKCS7EncodeAttributes (PLArenaPool *poolp, SECItem *dest, void *src)
 {
     return SEC_ASN1EncodeItem (poolp, dest, src,
 			       sec_pkcs7_set_of_attribute_template);
@@ -939,7 +937,7 @@ sec_PKCS7EncodeAttributes (PRArenaPool *poolp, SECItem *dest, void *src)
 SECStatus
 sec_PKCS7ReorderAttributes (SEC_PKCS7Attribute **attrs)
 {
-    PRArenaPool *poolp;
+    PLArenaPool *poolp;
     int num_attrs, i, pass, besti;
     unsigned int j;
     SECItem **enc_attrs;

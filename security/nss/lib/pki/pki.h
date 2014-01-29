@@ -5,10 +5,6 @@
 #ifndef PKI_H
 #define PKI_H
 
-#ifdef DEBUG
-static const char PKI_CVS_ID[] = "@(#) $RCSfile: pki.h,v $ $Revision: 1.15 $ $Date: 2012/05/17 21:39:40 $";
-#endif /* DEBUG */
-
 #ifndef NSSDEVT_H
 #include "nssdevt.h"
 #endif /* NSSDEVT_H */

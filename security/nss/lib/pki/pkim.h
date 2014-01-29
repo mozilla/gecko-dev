@@ -5,10 +5,6 @@
 #ifndef PKIM_H
 #define PKIM_H
 
-#ifdef DEBUG
-static const char PKIM_CVS_ID[] = "@(#) $RCSfile: pkim.h,v $ $Revision: 1.31 $ $Date: 2012/04/25 14:50:07 $";
-#endif /* DEBUG */
-
 #ifndef BASE_H
 #include "base.h"
 #endif /* BASE_H */

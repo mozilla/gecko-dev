@@ -8,8 +8,6 @@
  * This file abstracts out libc functionality that libsec depends on
  * 
  * NOTE - These are not public interfaces
- *
- * $Id: secport.c,v 1.31 2012/11/14 01:14:12 wtc%google.com Exp $
  */
 
 #include "seccomon.h"
@@ -71,13 +69,22 @@ PORTCharConversionFunc ucs4Utf8ConvertFunc;
 PORTCharConversionFunc ucs2Utf8ConvertFunc;
 PORTCharConversionWSwapFunc  ucs2AsciiConvertFunc;
 
+/* NSPR memory allocation functions (PR_Malloc, PR_Calloc, and PR_Realloc)
+ * use the PRUint32 type for the size parameter. Before we pass a size_t or
+ * unsigned long size to these functions, we need to ensure it is <= half of
+ * the maximum PRUint32 value to avoid truncation and catch a negative size.
+ */
+#define MAX_SIZE (PR_UINT32_MAX >> 1)
+
 void *
 PORT_Alloc(size_t bytes)
 {
-    void *rv;
+    void *rv = NULL;
 
-    /* Always allocate a non-zero amount of bytes */
-    rv = (void *)PR_Malloc(bytes ? bytes : 1);
+    if (bytes <= MAX_SIZE) {
+	/* Always allocate a non-zero amount of bytes */
+	rv = PR_Malloc(bytes ? bytes : 1);
+    }
     if (!rv) {
 	++port_allocFailures;
 	PORT_SetError(SEC_ERROR_NO_MEMORY);
@@ -88,9 +95,11 @@ PORT_Alloc(size_t bytes)
 void *
 PORT_Realloc(void *oldptr, size_t bytes)
 {
-    void *rv;
+    void *rv = NULL;
 
-    rv = (void *)PR_Realloc(oldptr, bytes);
+    if (bytes <= MAX_SIZE) {
+	rv = PR_Realloc(oldptr, bytes);
+    }
     if (!rv) {
 	++port_allocFailures;
 	PORT_SetError(SEC_ERROR_NO_MEMORY);
@@ -101,10 +110,12 @@ PORT_Realloc(void *oldptr, size_t bytes)
 void *
 PORT_ZAlloc(size_t bytes)
 {
-    void *rv;
+    void *rv = NULL;
 
-    /* Always allocate a non-zero amount of bytes */
-    rv = (void *)PR_Calloc(1, bytes ? bytes : 1);
+    if (bytes <= MAX_SIZE) {
+	/* Always allocate a non-zero amount of bytes */
+	rv = PR_Calloc(1, bytes ? bytes : 1);
+    }
     if (!rv) {
 	++port_allocFailures;
 	PORT_SetError(SEC_ERROR_NO_MEMORY);
@@ -211,6 +222,10 @@ PORT_NewArena(unsigned long chunksize)
 {
     PORTArenaPool *pool;
     
+    if (chunksize > MAX_SIZE) {
+	PORT_SetError(SEC_ERROR_NO_MEMORY);
+	return NULL;
+    }
     pool = PORT_ZNew(PORTArenaPool);
     if (!pool) {
 	return NULL;
@@ -225,8 +240,6 @@ PORT_NewArena(unsigned long chunksize)
     PL_InitArenaPool(&pool->arena, "security", chunksize, sizeof(double));
     return(&pool->arena);
 }
-
-#define MAX_SIZE 0x7fffffffUL
 
 void *
 PORT_ArenaAlloc(PLArenaPool *arena, size_t size)
@@ -332,6 +345,11 @@ PORT_ArenaGrow(PLArenaPool *arena, void *ptr, size_t oldsize, size_t newsize)
     PORTArenaPool *pool = (PORTArenaPool *)arena;
     PORT_Assert(newsize >= oldsize);
     
+    if (newsize > MAX_SIZE) {
+	PORT_SetError(SEC_ERROR_NO_MEMORY);
+	return NULL;
+    }
+
     if (ARENAPOOL_MAGIC == pool->magic ) {
 	PZ_Lock(pool->lock);
 	/* Do we do a THREADMARK check here? */
@@ -396,18 +414,35 @@ PORT_ArenaMark(PLArenaPool *arena)
     return result;
 }
 
+/*
+ * This function accesses the internals of PLArena, which is why it needs
+ * to use the NSPR internal macro PL_MAKE_MEM_UNDEFINED before the memset
+ * calls.
+ *
+ * We should move this function to NSPR as PL_ClearArenaAfterMark or add
+ * a PL_ARENA_CLEAR_AND_RELEASE macro.
+ *
+ * TODO: remove the #ifdef PL_MAKE_MEM_UNDEFINED tests when NSPR 4.10+ is
+ * widely available.
+ */
 static void
 port_ArenaZeroAfterMark(PLArenaPool *arena, void *mark)
 {
     PLArena *a = arena->current;
     if (a->base <= (PRUword)mark && (PRUword)mark <= a->avail) {
 	/* fast path: mark falls in the current arena */
+#ifdef PL_MAKE_MEM_UNDEFINED
+	PL_MAKE_MEM_UNDEFINED(mark, a->avail - (PRUword)mark);
+#endif
 	memset(mark, 0, a->avail - (PRUword)mark);
     } else {
 	/* slow path: need to find the arena that mark falls in */
 	for (a = arena->first.next; a; a = a->next) {
 	    PR_ASSERT(a->base <= a->avail && a->avail <= a->limit);
 	    if (a->base <= (PRUword)mark && (PRUword)mark <= a->avail) {
+#ifdef PL_MAKE_MEM_UNDEFINED
+		PL_MAKE_MEM_UNDEFINED(mark, a->avail - (PRUword)mark);
+#endif
 		memset(mark, 0, a->avail - (PRUword)mark);
 		a = a->next;
 		break;
@@ -415,6 +450,9 @@ port_ArenaZeroAfterMark(PLArenaPool *arena, void *mark)
 	}
 	for (; a; a = a->next) {
 	    PR_ASSERT(a->base <= a->avail && a->avail <= a->limit);
+#ifdef PL_MAKE_MEM_UNDEFINED
+	    PL_MAKE_MEM_UNDEFINED((void *)a->base, a->avail - a->base);
+#endif
 	    memset((void *)a->base, 0, a->avail - a->base);
 	}
     }

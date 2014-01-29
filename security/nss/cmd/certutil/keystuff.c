@@ -205,7 +205,7 @@ decode_pqg_params(const char *str)
 {
     char *buf;
     unsigned int len;
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     SECKEYPQGParams *params;
     SECStatus status;
  
@@ -490,7 +490,8 @@ SECKEYPrivateKey *
 CERTUTIL_GeneratePrivateKey(KeyType keytype, PK11SlotInfo *slot, int size,
 			    int publicExponent, const char *noise, 
 			    SECKEYPublicKey **pubkeyp, const char *pqgFile,
-                            secuPWData *pwdata)
+			    PK11AttrFlags attrFlags, CK_FLAGS opFlagsOn,
+			    CK_FLAGS opFlagsOff, secuPWData *pwdata)
 {
     CK_MECHANISM_TYPE  mechanism;
     SECOidTag          algtag;
@@ -559,8 +560,8 @@ CERTUTIL_GeneratePrivateKey(KeyType keytype, PK11SlotInfo *slot, int size,
     fprintf(stderr, "\n\n");
     fprintf(stderr, "Generating key.  This may take a few moments...\n\n");
 
-    privKey = PK11_GenerateKeyPair(slot, mechanism, params, pubkeyp,
-				PR_TRUE /*isPerm*/, PR_TRUE /*isSensitive*/, 
+    privKey = PK11_GenerateKeyPairWithOpFlags(slot, mechanism, params, pubkeyp,
+				attrFlags, opFlagsOn, opFlagsOn|opFlagsOff,
 				pwdata /*wincx*/);
     /* free up the params */
     switch (keytype) {

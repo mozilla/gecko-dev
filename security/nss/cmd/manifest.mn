@@ -3,7 +3,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-DEPTH	= ../..
+DEPTH	= ..
 # MODULE	= seccmd
 
 REQUIRES = nss nspr libdbm
@@ -11,7 +11,7 @@ REQUIRES = nss nspr libdbm
 DIRS = lib  \
  addbuiltin \
  atob  \
- bltest \
+ $(BLTEST_SRCDIR) \
  btoa  \
  certcgi \
  certutil  \
@@ -23,7 +23,7 @@ DIRS = lib  \
  derdump  \
  digest  \
  httpserv  \
- fipstest  \
+ $(FIPSTEST_SRCDIR)  \
  $(LOWHASHTEST_SRCDIR)  \
  listsuites \
  makepqg  \
@@ -36,6 +36,7 @@ DIRS = lib  \
  p7sign  \
  p7verify  \
  pk12util \
+ pk11gcmtest \
  pk11mode \
  pk1sign  \
  pkix-errcodes \
@@ -46,7 +47,7 @@ DIRS = lib  \
  selfserv  \
  signtool \
  signver \
- shlibsign \
+ $(SHLIBSIGN_SRCDIR) \
  smimetools  \
  ssltap  \
  strsclnt \

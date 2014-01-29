@@ -4,8 +4,6 @@
 
 /*
  * Support for various policy related extensions
- *
- * $Id: pppolicy.c,v 1.6 2012/03/20 14:47:00 gerv%gerv.net Exp $
  */
 
 #include "seccomon.h"
@@ -61,7 +59,7 @@ static const SEC_ASN1Template secu_CertificatePoliciesTemplate[] = {
 static CERTCertificatePolicies *
 secu_DecodeCertificatePoliciesExtension(SECItem *extnValue)
 {
-    PRArenaPool *arena = NULL;
+    PLArenaPool *arena = NULL;
     SECStatus rv;
     CERTCertificatePolicies *policies;
     CERTPolicyInfo **policyInfos, *policyInfo;

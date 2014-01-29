@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-/* $Id: lowkeyi.h,v 1.5 2012/04/25 14:50:11 gerv%gerv.net Exp $ */
 
 #ifndef _LOWKEYI_H_
 #define _LOWKEYI_H_
@@ -141,11 +140,11 @@ nsslowkey_FindKeyNicknameByPublicKey(NSSLOWKEYDBHandle *handle,
  * smaller version of EC_FillParams. In this code, we only need
  * oid and DER data.
  */
-SECStatus LGEC_FillParams(PRArenaPool *arena, const SECItem *encodedParams, 
+SECStatus LGEC_FillParams(PLArenaPool *arena, const SECItem *encodedParams,
     ECParams *params);
 
 /* Copy all of the fields from srcParams into dstParams */
-SECStatus LGEC_CopyParams(PRArenaPool *arena, ECParams *dstParams,
+SECStatus LGEC_CopyParams(PLArenaPool *arena, ECParams *dstParams,
 	      const ECParams *srcParams);
 #endif
 SEC_END_PROTOS

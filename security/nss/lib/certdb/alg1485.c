@@ -83,6 +83,9 @@ static const NameToKind name2kinds[] = {
                                                     SEC_ASN1_PRINTABLE_STRING},
     { "businessCategory",       64, SEC_OID_BUSINESS_CATEGORY, SEC_ASN1_DS},
 
+/* values defined in X.520 */
+    { "name",           64, SEC_OID_AVA_NAME,           SEC_ASN1_DS},
+
     { 0,               256, SEC_OID_UNKNOWN,            0},
 };
 
@@ -360,7 +363,7 @@ loser:
  * points to first character after separator.
  */
 static CERTAVA *
-ParseRFC1485AVA(PRArenaPool *arena, const char **pbp, const char *endptr)
+ParseRFC1485AVA(PLArenaPool *arena, const char **pbp, const char *endptr)
 {
     CERTAVA *a;
     const NameToKind *n2k;
@@ -1033,8 +1036,10 @@ AppendAVA(stringBuf *bufp, CERTAVA *ava, CertStrictnessLevel strict)
     } else {
 	/* must truncate the escaped and quoted value */
 	char bigTmpBuf[TMPBUF_LEN * 3 + 3];
+	PORT_Assert(valueLen < sizeof tmpBuf);
 	rv = escapeAndQuote(bigTmpBuf, sizeof bigTmpBuf,
-			    (char *)avaValue->data, valueLen, &mode);
+			    (char *)avaValue->data,
+			    PR_MIN(avaValue->len, valueLen), &mode);
 
 	bigTmpBuf[valueLen--] = '\0'; /* hard stop here */
 	/* See if we're in the middle of a multi-byte UTF8 character */
@@ -1134,7 +1139,7 @@ char *
 CERT_DerNameToAscii(SECItem *dername)
 {
     int rv;
-    PRArenaPool *arena = NULL;
+    PLArenaPool *arena = NULL;
     CERTName name;
     char *retstr = NULL;
     
@@ -1161,7 +1166,7 @@ loser:
 }
 
 static char *
-avaToString(PRArenaPool *arena, CERTAVA *ava)
+avaToString(PLArenaPool *arena, CERTAVA *ava)
 {
     char *    buf       = NULL;
     SECItem*  avaValue;
@@ -1195,7 +1200,7 @@ avaToString(PRArenaPool *arena, CERTAVA *ava)
  * This code returns the FIRST one found, the most general one found.
  */
 static char *
-CERT_GetNameElement(PRArenaPool *arena, CERTName *name, int wantedTag)
+CERT_GetNameElement(PLArenaPool *arena, const CERTName *name, int wantedTag)
 {
     CERTRDN** rdns = name->rdns;
     CERTRDN*  rdn;
@@ -1219,7 +1224,7 @@ CERT_GetNameElement(PRArenaPool *arena, CERTName *name, int wantedTag)
  * This is particularly appropriate for Common Name.  See RFC 2818.
  */
 static char *
-CERT_GetLastNameElement(PRArenaPool *arena, CERTName *name, int wantedTag)
+CERT_GetLastNameElement(PLArenaPool *arena, const CERTName *name, int wantedTag)
 {
     CERTRDN** rdns    = name->rdns;
     CERTRDN*  rdn;
@@ -1246,7 +1251,7 @@ CERT_GetCertificateEmailAddress(CERTCertificate *cert)
     SECStatus rv;
     CERTGeneralName *nameList = NULL;
     CERTGeneralName *current;
-    PRArenaPool *arena = NULL;
+    PLArenaPool *arena = NULL;
     int i;
     
     subAltName.data = NULL;
@@ -1378,7 +1383,7 @@ cert_GetCertificateEmailAddresses(CERTCertificate *cert)
     char *           rawEmailAddr = NULL;
     char *           addrBuf      = NULL;
     char *           pBuf         = NULL;
-    PRArenaPool *    tmpArena     = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
+    PLArenaPool *    tmpArena     = PORT_NewArena(DER_DEFAULT_CHUNKSIZE);
     PRUint32         maxLen       = 0;
     PRInt32          finalLen     = 0;
     SECStatus        rv;
@@ -1481,7 +1486,7 @@ CERT_GetNextEmailAddress(CERTCertificate * cert, const char * prev)
 ** Returns a string allocated by PORT_StrDup, which the caller must free.
 */
 char *
-CERT_GetCertEmailAddress(CERTName *name)
+CERT_GetCertEmailAddress(const CERTName *name)
 {
     char *rawEmailAddr;
     char *emailAddr;
@@ -1500,55 +1505,55 @@ CERT_GetCertEmailAddress(CERTName *name)
 
 /* The return value must be freed with PORT_Free. */
 char *
-CERT_GetCommonName(CERTName *name)
+CERT_GetCommonName(const CERTName *name)
 {
     return(CERT_GetLastNameElement(NULL, name, SEC_OID_AVA_COMMON_NAME));
 }
 
 char *
-CERT_GetCountryName(CERTName *name)
+CERT_GetCountryName(const CERTName *name)
 {
     return(CERT_GetNameElement(NULL, name, SEC_OID_AVA_COUNTRY_NAME));
 }
 
 char *
-CERT_GetLocalityName(CERTName *name)
+CERT_GetLocalityName(const CERTName *name)
 {
     return(CERT_GetNameElement(NULL, name, SEC_OID_AVA_LOCALITY));
 }
 
 char *
-CERT_GetStateName(CERTName *name)
+CERT_GetStateName(const CERTName *name)
 {
     return(CERT_GetNameElement(NULL, name, SEC_OID_AVA_STATE_OR_PROVINCE));
 }
 
 char *
-CERT_GetOrgName(CERTName *name)
+CERT_GetOrgName(const CERTName *name)
 {
     return(CERT_GetNameElement(NULL, name, SEC_OID_AVA_ORGANIZATION_NAME));
 }
 
 char *
-CERT_GetDomainComponentName(CERTName *name)
+CERT_GetDomainComponentName(const CERTName *name)
 {
     return(CERT_GetNameElement(NULL, name, SEC_OID_AVA_DC));
 }
 
 char *
-CERT_GetOrgUnitName(CERTName *name)
+CERT_GetOrgUnitName(const CERTName *name)
 {
     return(CERT_GetNameElement(NULL, name, SEC_OID_AVA_ORGANIZATIONAL_UNIT_NAME));
 }
 
 char *
-CERT_GetDnQualifier(CERTName *name)
+CERT_GetDnQualifier(const CERTName *name)
 {
     return(CERT_GetNameElement(NULL, name, SEC_OID_AVA_DN_QUALIFIER));
 }
 
 char *
-CERT_GetCertUid(CERTName *name)
+CERT_GetCertUid(const CERTName *name)
 {
     return(CERT_GetNameElement(NULL, name, SEC_OID_RFC1274_UID));
 }

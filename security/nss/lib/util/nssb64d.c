@@ -4,8 +4,6 @@
 
 /*
  * Base64 decoding (ascii to binary).
- *
- * $Id: nssb64d.c,v 1.10 2012/11/27 22:48:09 bsmith%mozilla.com Exp $
  */
 
 #include "nssb64.h"
@@ -714,7 +712,7 @@ NSSBase64Decoder_Destroy (NSSBase64Decoder *data, PRBool abort_p)
  * Return value is NULL on error, the Item (allocated or provided) otherwise.
  */
 SECItem *
-NSSBase64_DecodeBuffer (PRArenaPool *arenaOpt, SECItem *outItemOpt,
+NSSBase64_DecodeBuffer (PLArenaPool *arenaOpt, SECItem *outItemOpt,
 			const char *inStr, unsigned int inLen)
 {
     SECItem *out_item = NULL;

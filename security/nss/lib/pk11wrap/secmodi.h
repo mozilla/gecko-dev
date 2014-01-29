@@ -81,7 +81,7 @@ char *secmod_ParseModuleSpecForTokens(PRBool convert,
 				      char ***children, 
 				      CK_SLOT_ID **ids);
 void secmod_FreeChildren(char **children, CK_SLOT_ID *ids);
-char *secmod_MkAppendTokensList(PRArenaPool *arena, char *origModuleSpec, 
+char *secmod_MkAppendTokensList(PLArenaPool *arena, char *origModuleSpec,
 				char *newModuleSpec, CK_SLOT_ID newID,
 				char **children, CK_SLOT_ID *ids);
 
@@ -94,8 +94,6 @@ CK_OBJECT_HANDLE pk11_FindObjectByTemplate(PK11SlotInfo *slot,
 					CK_ATTRIBUTE *inTemplate,int tsize);
 CK_OBJECT_HANDLE *pk11_FindObjectsByTemplate(PK11SlotInfo *slot,
 			CK_ATTRIBUTE *inTemplate,int tsize, int *objCount);
-SECStatus PK11_UpdateSlotAttribute(PK11SlotInfo *slot,
-				 PK11DefaultArrayEntry *entry, PRBool add);
 
 #define PK11_GETTAB(x) ((CK_FUNCTION_LIST_PTR)((x)->functionList))
 #define PK11_SETATTRS(x,id,v,l) (x)->type = (id); \
@@ -106,7 +104,7 @@ SECStatus PK11_CreateNewObject(PK11SlotInfo *slot, CK_SESSION_HANDLE session,
 
 SECStatus pbe_PK11AlgidToParam(SECAlgorithmID *algid,SECItem *mech);
 SECStatus PBE_PK11ParamToAlgid(SECOidTag algTag, SECItem *param, 
-				PRArenaPool *arena, SECAlgorithmID *algId);
+				PLArenaPool *arena, SECAlgorithmID *algId);
 
 PK11SymKey *pk11_TokenKeyGenWithFlagsAndKeyType(PK11SlotInfo *slot,
 	CK_MECHANISM_TYPE type, SECItem *param, CK_KEY_TYPE keyType, 

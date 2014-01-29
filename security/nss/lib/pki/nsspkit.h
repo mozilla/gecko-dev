@@ -5,10 +5,6 @@
 #ifndef NSSPKIT_H
 #define NSSPKIT_H
 
-#ifdef DEBUG
-static const char NSSPKIT_CVS_ID[] = "@(#) $RCSfile: nsspkit.h,v $ $Revision: 1.9 $ $Date: 2012/04/25 14:50:07 $";
-#endif /* DEBUG */
-
 /*
  * nsspkit.h
  *

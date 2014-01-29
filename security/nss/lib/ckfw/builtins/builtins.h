@@ -2,10 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifdef DEBUG
-static const char BUILTINS_CVS_ID[] = "@(#) $RCSfile: builtins.h,v $ $Revision: 1.7 $ $Date: 2012/04/25 14:49:29 $";
-#endif /* DEBUG */
-
 #include "nssckmdt.h"
 #include "nssckfw.h"
 

@@ -5,10 +5,6 @@
 #ifndef _PKCS11N_H_
 #define _PKCS11N_H_
 
-#ifdef DEBUG
-static const char CKT_CVS_ID[] = "@(#) $RCSfile: pkcs11n.h,v $ $Revision: 1.32 $ $Date: 2013/02/12 22:33:53 $";
-#endif /* DEBUG */
-
 /*
  * pkcs11n.h
  *
@@ -211,6 +207,12 @@ static const char CKT_CVS_ID[] = "@(#) $RCSfile: pkcs11n.h,v $ $Revision: 1.32 $
  */
 #define CKM_NSS_HMAC_CONSTANT_TIME      (CKM_NSS + 19)
 #define CKM_NSS_SSL3_MAC_CONSTANT_TIME  (CKM_NSS + 20)
+
+/* TLS 1.2 mechanisms */
+#define CKM_NSS_TLS_PRF_GENERAL_SHA256          (CKM_NSS + 21)
+#define CKM_NSS_TLS_MASTER_KEY_DERIVE_SHA256    (CKM_NSS + 22)
+#define CKM_NSS_TLS_KEY_AND_MAC_DERIVE_SHA256   (CKM_NSS + 23)
+#define CKM_NSS_TLS_MASTER_KEY_DERIVE_DH_SHA256 (CKM_NSS + 24)
 
 /*
  * HISTORICAL:

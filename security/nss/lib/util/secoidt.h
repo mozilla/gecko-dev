@@ -9,8 +9,6 @@
 
 /*
  * secoidt.h - public data structures for ASN.1 OID functions
- *
- * $Id: secoidt.h,v 1.37 2012/12/19 02:10:42 emaldona%redhat.com Exp $
  */
 
 #include "secitem.h"
@@ -441,6 +439,9 @@ typedef enum {
      * where KP stands for Key Purpose
      */
     SEC_OID_MS_EXT_KEY_USAGE_CTL_SIGNING    = 316,
+
+    /* The 'name' attribute type in X.520 */
+    SEC_OID_AVA_NAME                        = 317,
 
     SEC_OID_TOTAL
 } SECOidTag;

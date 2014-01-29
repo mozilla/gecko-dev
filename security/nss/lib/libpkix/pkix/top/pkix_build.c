@@ -836,7 +836,8 @@ pkix_Build_VerifyCertificate(
         PKIX_PL_PublicKey *candidatePubKey = NULL;
         PKIX_CertChainChecker *userChecker = NULL;
         PKIX_CertChainChecker_CheckCallback checkerCheck = NULL;
-        PKIX_Boolean trustOnlyUserAnchors = PKIX_FALSE;
+        PKIX_PL_TrustAnchorMode trustAnchorMode =
+                PKIX_PL_TrustAnchorMode_Ignore;
         void *nbioContext = NULL;
         
         PKIX_ENTER(BUILD, "pkix_Build_VerifyCertificate");
@@ -850,12 +851,17 @@ pkix_Build_VerifyCertificate(
         candidateCert = state->candidateCert;
 
         if (state->buildConstants.numAnchors) {
-            trustOnlyUserAnchors = state->buildConstants.trustOnlyUserAnchors;
+            if (state->buildConstants.trustOnlyUserAnchors) {
+                trustAnchorMode = PKIX_PL_TrustAnchorMode_Exclusive;
+            } else {
+                trustAnchorMode = PKIX_PL_TrustAnchorMode_Additive;
+            }
+        } else {
+            trustAnchorMode = PKIX_PL_TrustAnchorMode_Ignore;
         }
 
         PKIX_CHECK(
-            PKIX_PL_Cert_IsCertTrusted(candidateCert,
-                                       trustOnlyUserAnchors,
+            PKIX_PL_Cert_IsCertTrusted(candidateCert, trustAnchorMode,
                                        &trusted, plContext),
             PKIX_CERTISCERTTRUSTEDFAILED);
 
@@ -1015,9 +1021,11 @@ pkix_Build_ValidationCheckers(
         PKIX_ProcessingParams *procParams = NULL;
         PKIX_PL_Cert *trustedCert = NULL;
         PKIX_PL_PublicKey *trustedPubKey = NULL;
+        PKIX_PL_CertNameConstraints *trustedNC = NULL;
         PKIX_CertChainChecker *sigChecker = NULL;
         PKIX_CertChainChecker *policyChecker = NULL;
         PKIX_CertChainChecker *userChecker = NULL;
+        PKIX_CertChainChecker *nameConstraintsChecker = NULL;
         PKIX_CertChainChecker *checker = NULL;
         PKIX_CertSelector *certSelector = NULL;
         PKIX_List *userCheckerExtOIDs = NULL;
@@ -1186,7 +1194,7 @@ pkix_Build_ValidationCheckers(
                 }
         }
 
-        /* Inabling post chain building signature check on the certs. */
+        /* Enabling post chain building signature check on the certs. */
         PKIX_CHECK(PKIX_TrustAnchor_GetTrustedCert
                    (anchor, &trustedCert, plContext),
                    PKIX_TRUSTANCHORGETTRUSTEDCERTFAILED);
@@ -1207,6 +1215,23 @@ pkix_Build_ValidationCheckers(
                     (PKIX_PL_Object *)sigChecker,
                     plContext),
                    PKIX_LISTAPPENDITEMFAILED);
+
+        /* Enabling post chain building name constraints check on the certs. */
+        PKIX_CHECK(PKIX_TrustAnchor_GetNameConstraints
+                  (anchor, &trustedNC, plContext),
+                  PKIX_TRUSTANCHORGETNAMECONSTRAINTSFAILED);
+
+        PKIX_CHECK(pkix_NameConstraintsChecker_Initialize
+                  (trustedNC, numChainCerts, &nameConstraintsChecker,
+                   plContext),
+                  PKIX_NAMECONSTRAINTSCHECKERINITIALIZEFAILED);
+
+        PKIX_CHECK(PKIX_List_AppendItem
+                  (checkers,
+                   (PKIX_PL_Object *)nameConstraintsChecker,
+                   plContext),
+                  PKIX_LISTAPPENDITEMFAILED);
+
 
         PKIX_DECREF(state->reversedCertChain);
         PKIX_INCREF(reversedCertChain);
@@ -1234,6 +1259,8 @@ cleanup:
         PKIX_DECREF(trustedPubKey);
         PKIX_DECREF(certSelector);
         PKIX_DECREF(sigChecker);
+        PKIX_DECREF(trustedNC);
+        PKIX_DECREF(nameConstraintsChecker);
         PKIX_DECREF(policyChecker);
         PKIX_DECREF(userChecker);
         PKIX_DECREF(userCheckerExtOIDs);
@@ -3041,19 +3068,27 @@ pkix_Build_CheckInCache(
                    (matchingAnchor, &trustedCert, plContext),
                    PKIX_TRUSTANCHORGETTRUSTEDCERTFAILED);
         
-        if (state->buildConstants.anchors &&
-            state->buildConstants.anchors->length) {
+        if (anchors && state->buildConstants.numAnchors) {
             /* Check if it is one of the trust anchors */
             PKIX_CHECK(
-                pkix_List_Contains(state->buildConstants.anchors,
+                pkix_List_Contains(anchors,
                                    (PKIX_PL_Object *)matchingAnchor,
                                    &trusted,
                                    plContext),
                 PKIX_LISTCONTAINSFAILED);
-        } else {
-            PKIX_CHECK(PKIX_PL_Cert_IsCertTrusted
-                       (trustedCert, PKIX_FALSE, &trusted, plContext),
-                       PKIX_CERTISCERTTRUSTEDFAILED);
+        }
+
+        if ((!trusted && !state->buildConstants.trustOnlyUserAnchors) ||
+            !state->buildConstants.numAnchors) {
+            /* If it is not one of the trust anchors and the trust anchors
+             * are supplemental, or if there are no trust anchors, then check
+             * if the cert is trusted directly.
+             */
+            PKIX_CHECK(
+                PKIX_PL_Cert_IsCertTrusted(trustedCert,
+                                           PKIX_PL_TrustAnchorMode_Ignore,
+                                           &trusted, plContext),
+                PKIX_CERTISCERTTRUSTEDFAILED);
         }
 
         if (!trusted) {

@@ -4,8 +4,6 @@
 
 /*
  * CMS attributes.
- *
- * $Id: cmsattr.c,v 1.10 2012/04/25 14:50:08 gerv%gerv.net Exp $
  */
 
 #include "cmslocal.h"
@@ -35,7 +33,7 @@
  * with NSS_CMSAttribute_AddValue.
  */
 NSSCMSAttribute *
-NSS_CMSAttribute_Create(PRArenaPool *poolp, SECOidTag oidtag, SECItem *value, PRBool encoded)
+NSS_CMSAttribute_Create(PLArenaPool *poolp, SECOidTag oidtag, SECItem *value, PRBool encoded)
 {
     NSSCMSAttribute *attr;
     SECItem *copiedvalue;
@@ -292,7 +290,7 @@ const SEC_ASN1Template nss_cms_set_of_attribute_template[] = {
  * do the reordering.)
  */
 SECItem *
-NSS_CMSAttributeArray_Encode(PRArenaPool *poolp, NSSCMSAttribute ***attrs, SECItem *dest)
+NSS_CMSAttributeArray_Encode(PLArenaPool *poolp, NSSCMSAttribute ***attrs, SECItem *dest)
 {
     return SEC_ASN1EncodeItem (poolp, dest, (void *)attrs, nss_cms_set_of_attribute_template);
 }

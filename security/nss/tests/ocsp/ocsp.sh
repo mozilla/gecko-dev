@@ -44,6 +44,8 @@ ocsp_init()
   SCRIPTNAME=ocsp.sh
   echo "$SCRIPTNAME: OCSP tests ==============================="
 
+  REQF=${QADIR}/ssl/sslreq.dat
+
   cd ${CLIENTDIR}
 }
 

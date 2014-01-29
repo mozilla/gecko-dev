@@ -4,25 +4,9 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-/* $Id: softoknt.h,v 1.8 2013/02/05 02:19:52 ryan.sleevi%gmail.com Exp $ */
 
 #ifndef _SOFTOKNT_H_
 #define _SOFTOKNT_H_
-
-/*
- * RSA block types
- *
- * The actual values are important -- they are fixed, *not* arbitrary.
- * The explicit value assignments are not needed (because C would give
- * us those same values anyway) but are included as a reminder...
- */
-typedef enum {
-    RSA_BlockPrivate0 = 0,	/* unused, really */
-    RSA_BlockPrivate = 1,	/* pad for a private-key operation */
-    RSA_BlockPublic = 2,	/* pad for a public-key operation */
-    RSA_BlockRaw = 4,		/* simply justify the block appropriately */
-    RSA_BlockTotal
-} RSA_BlockType;
 
 #define NSS_SOFTOKEN_DEFAULT_CHUNKSIZE   2048
 

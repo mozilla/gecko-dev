@@ -142,7 +142,7 @@ PK11_AddMechanismEntry(CK_MECHANISM_TYPE type, CK_KEY_TYPE key,
 }
 
 /*
- * Get the key type needed for the given mechanism
+ * Get the mechanism needed for the given key type
  */
 CK_MECHANISM_TYPE
 PK11_GetKeyMechanism(CK_KEY_TYPE type)
@@ -201,7 +201,7 @@ PK11_GetKeyMechanism(CK_KEY_TYPE type)
 /*
  * Get the key type needed for the given mechanism
  */
-CK_MECHANISM_TYPE
+CK_KEY_TYPE
 PK11_GetKeyType(CK_MECHANISM_TYPE type,unsigned long len)
 {
     switch (type) {
@@ -221,6 +221,10 @@ PK11_GetKeyType(CK_MECHANISM_TYPE type,unsigned long len)
 	return CKK_CAMELLIA;
     case CKM_AES_ECB:
     case CKM_AES_CBC:
+    case CKM_AES_CCM:
+    case CKM_AES_CTR:
+    case CKM_AES_CTS:
+    case CKM_AES_GCM:
     case CKM_AES_MAC:
     case CKM_AES_MAC_GENERAL:
     case CKM_AES_CBC_PAD:
@@ -370,8 +374,11 @@ PK11_GetKeyType(CK_MECHANISM_TYPE type,unsigned long len)
     case CKM_SSL3_SHA1_MAC:
     case CKM_SSL3_MD5_MAC:
     case CKM_TLS_MASTER_KEY_DERIVE:
+    case CKM_NSS_TLS_MASTER_KEY_DERIVE_SHA256:
     case CKM_TLS_MASTER_KEY_DERIVE_DH:
+    case CKM_NSS_TLS_MASTER_KEY_DERIVE_DH_SHA256:
     case CKM_TLS_KEY_AND_MAC_DERIVE:
+    case CKM_NSS_TLS_KEY_AND_MAC_DERIVE_SHA256:
     case CKM_SHA_1_HMAC:
     case CKM_SHA_1_HMAC_GENERAL:
     case CKM_SHA224_HMAC:
@@ -387,6 +394,7 @@ PK11_GetKeyType(CK_MECHANISM_TYPE type,unsigned long len)
     case CKM_MD5_HMAC:
     case CKM_MD5_HMAC_GENERAL:
     case CKM_TLS_PRF_GENERAL:
+    case CKM_NSS_TLS_PRF_GENERAL_SHA256:
 	return CKK_GENERIC_SECRET;
     default:
 	return pk11_lookup(type)->keyType;
@@ -423,6 +431,10 @@ PK11_GetKeyGenWithSize(CK_MECHANISM_TYPE type, int size)
 	return CKM_CAMELLIA_KEY_GEN;
     case CKM_AES_ECB:
     case CKM_AES_CBC:
+    case CKM_AES_CCM:
+    case CKM_AES_CTR:
+    case CKM_AES_CTS:
+    case CKM_AES_GCM:
     case CKM_AES_MAC:
     case CKM_AES_MAC_GENERAL:
     case CKM_AES_CBC_PAD:
@@ -560,6 +572,7 @@ PK11_GetKeyGenWithSize(CK_MECHANISM_TYPE type, int size)
     case CKM_SSL3_MD5_MAC:
     case CKM_TLS_MASTER_KEY_DERIVE:
     case CKM_TLS_KEY_AND_MAC_DERIVE:
+    case CKM_NSS_TLS_KEY_AND_MAC_DERIVE_SHA256:
 	return CKM_SSL3_PRE_MASTER_KEY_GEN;
     case CKM_SHA_1_HMAC:
     case CKM_SHA_1_HMAC_GENERAL:
@@ -576,6 +589,7 @@ PK11_GetKeyGenWithSize(CK_MECHANISM_TYPE type, int size)
     case CKM_MD5_HMAC:
     case CKM_MD5_HMAC_GENERAL:
     case CKM_TLS_PRF_GENERAL:
+    case CKM_NSS_TLS_PRF_GENERAL_SHA256:
     case CKM_GENERIC_SECRET_KEY_GEN:
 	return CKM_GENERIC_SECRET_KEY_GEN;
     case CKM_PBE_MD2_DES_CBC:
@@ -1121,7 +1135,7 @@ PK11_ParamFromAlgid(SECAlgorithmID *algid)
     CK_RC2_PARAMS *     rc2_ecb_params = NULL;
     CK_RC5_CBC_PARAMS * rc5_cbc_params = NULL;
     CK_RC5_PARAMS *     rc5_ecb_params = NULL;
-    PRArenaPool *       arena          = NULL;
+    PLArenaPool *       arena          = NULL;
     SECItem *           mech           = NULL;
     SECOidTag           algtag;
     SECStatus           rv;
@@ -1504,7 +1518,7 @@ PK11_GenerateNewParam(CK_MECHANISM_TYPE type, PK11SymKey *key)
 /* turn a PKCS #11 parameter into a DER Encoded Algorithm ID */
 SECStatus
 PK11_ParamToAlgid(SECOidTag algTag, SECItem *param, 
-				PRArenaPool *arena, SECAlgorithmID *algid) {
+				PLArenaPool *arena, SECAlgorithmID *algid) {
     CK_RC2_CBC_PARAMS *rc2_params;
     sec_rc2cbcParameter rc2;
     CK_RC5_CBC_PARAMS *rc5_params;

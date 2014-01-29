@@ -4,8 +4,6 @@
 
 /*
  * CMS miscellaneous utility functions.
- *
- * $Id: cmsutil.c,v 1.18 2012/04/25 14:50:09 gerv%gerv.net Exp $
  */
 
 #include "cmslocal.h"
@@ -29,7 +27,7 @@
 SECStatus
 NSS_CMSArray_SortByDER(void **objs, const SEC_ASN1Template *objtemplate, void **objs2)
 {
-    PRArenaPool *poolp;
+    PLArenaPool *poolp;
     int num_objs;
     SECItem **enc_objs;
     SECStatus rv = SECFailure;

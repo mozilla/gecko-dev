@@ -4,8 +4,6 @@
 
 /*
  * Certificate handling code
- *
- * $Id: lowcert.c,v 1.7 2012/04/25 14:50:11 gerv%gerv.net Exp $
  */
 
 #include "seccomon.h"
@@ -347,7 +345,7 @@ nsslowcert_IsNewer(NSSLOWCERTCertificate *certa, NSSLOWCERTCertificate *certb)
 #define SOFT_DEFAULT_CHUNKSIZE 2048
 
 static SECStatus
-nsslowcert_KeyFromIssuerAndSN(PRArenaPool *arena, 
+nsslowcert_KeyFromIssuerAndSN(PLArenaPool *arena,
 			      SECItem *issuer, SECItem *sn, SECItem *key)
 {
     unsigned int len = sn->len + issuer->len;
@@ -704,7 +702,7 @@ nsslowcert_FixupEmailAddr(char *emailAddr)
  * DER certificate.
  */
 SECStatus
-nsslowcert_KeyFromDERCert(PRArenaPool *arena, SECItem *derCert, SECItem *key)
+nsslowcert_KeyFromDERCert(PLArenaPool *arena, SECItem *derCert, SECItem *key)
 {
     int rv;
     NSSLOWCERTCertKey certkey;
@@ -732,7 +730,7 @@ nsslowcert_ExtractPublicKey(NSSLOWCERTCertificate *cert)
     NSSLOWKEYPublicKey *pubk;
     SECItem os;
     SECStatus rv;
-    PRArenaPool *arena;
+    PLArenaPool *arena;
     SECOidTag tag;
     SECItem newDerSubjKeyInfo;
 

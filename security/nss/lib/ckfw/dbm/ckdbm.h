@@ -2,10 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifdef DEBUG
-static const char CKDBM_CVS_ID[] = "@(#) $RCSfile: ckdbm.h,v $ $Revision: 1.4 $ $Date: 2012/04/25 14:49:30 $";
-#endif /* DEBUG */
-
 #ifndef CKDBM_H
 #define CKDBM_H
 

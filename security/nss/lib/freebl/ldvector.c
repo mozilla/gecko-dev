@@ -4,7 +4,6 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-/* $Id: ldvector.c,v 1.33 2013/02/05 18:10:42 wtc%google.com Exp $ */
 
 #ifdef FREEBL_NO_DEPEND
 extern int FREEBL_InitStubs(void);
@@ -264,9 +263,26 @@ static const struct FREEBLVectorStr vector =
     /* End of Version 3.014 */
 
     HMAC_ConstantTime,
-    SSLv3_MAC_ConstantTime
+    SSLv3_MAC_ConstantTime,
 
     /* End of Version 3.015 */
+
+    RSA_SignRaw,
+    RSA_CheckSignRaw,
+    RSA_CheckSignRecoverRaw,
+    RSA_EncryptRaw,
+    RSA_DecryptRaw,
+    RSA_EncryptOAEP,
+    RSA_DecryptOAEP,
+    RSA_EncryptBlock,
+    RSA_DecryptBlock,
+    RSA_SignPSS,
+    RSA_CheckSignPSS,
+    RSA_Sign,
+    RSA_CheckSign,
+    RSA_CheckSignRecover
+
+    /* End of Version 3.016 */
 };
 
 const FREEBLVector * 

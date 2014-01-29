@@ -5,10 +5,6 @@
 #ifndef PKISTORE_H
 #define PKISTORE_H
 
-#ifdef DEBUG
-static const char PKISTORE_CVS_ID[] = "@(#) $RCSfile: pkistore.h,v $ $Revision: 1.13 $ $Date: 2012/04/25 14:50:07 $";
-#endif /* DEBUG */
-
 #ifndef NSSPKIT_H
 #include "nsspkit.h"
 #endif /* NSSPKIT_H */

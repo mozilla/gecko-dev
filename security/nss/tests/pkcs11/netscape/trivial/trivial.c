@@ -2,10 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifdef DEBUG
-static const char CVS_ID[] = "@(#) $RCSfile: trivial.c,v $ $Revision: 1.6 $ $Date: 2012/03/20 14:47:45 $";
-#endif /* DEBUG */
-
 /*
  * This is a very trivial program I wrote for testing out a 
  * couple data-only Cryptoki modules for NSS.  It's not a "real"

@@ -5,10 +5,6 @@
 #ifndef NSSCKMDT_H
 #define NSSCKMDT_H
 
-#ifdef DEBUG
-static const char NSSCKMDT_CVS_ID[] = "@(#) $RCSfile: nssckmdt.h,v $ $Revision: 1.7 $ $Date: 2012/04/25 14:49:28 $";
-#endif /* DEBUG */
-
 /*
  * nssckmdt.h
  *
