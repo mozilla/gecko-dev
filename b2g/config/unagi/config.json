@@ -27,13 +27,13 @@
     "b2g_manifest": "unagi.xml",
     "b2g_manifest_branch": "v1-train",
     "additional_source_tarballs": ["backup-unagi.tar.bz2"],
-    "gecko_l10n_root": "http://hg.mozilla.org/releases/l10n/mozilla-beta",
+    "gecko_l10n_root": "https://hg.mozilla.org/releases/l10n/mozilla-beta",
     "gaia_l10n_git_root": "https://git.mozilla.org/releases/l10n/%(locale)s/gaia.git",
     "gecko_l10n_git_root": "https://git.mozilla.org/releases/l10n/%(locale)s/gecko.git",
     "gaia": {
         "l10n": {
             "vcs": "hgtool",
-            "root": "http://hg.mozilla.org/releases/gaia-l10n/v1_1"
+            "root": "https://hg.mozilla.org/releases/gaia-l10n/v1_1"
         }
     }
 }
