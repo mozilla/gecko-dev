@@ -4,7 +4,7 @@
         "path": ""
     },
     "global": {
-        "talos_repo": "http://hg.mozilla.org/build/talos",
+        "talos_repo": "https://hg.mozilla.org/build/talos",
         "talos_revision": "a11542b55a70"
     },
     "suites": {
