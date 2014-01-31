@@ -26,11 +26,11 @@
     "b2g_manifest": "nexus-4.xml",
     "b2g_manifest_branch": "v1.2",
     "additional_source_tarballs": [],
-    "gecko_l10n_root": "http://hg.mozilla.org/l10n-central",
+    "gecko_l10n_root": "https://hg.mozilla.org/releases/l10n/mozilla-beta",
     "gaia": {
         "l10n": {
             "vcs": "hgtool",
-            "root": "http://hg.mozilla.org/gaia-l10n"
+            "root": "https://hg.mozilla.org/releases/gaia-l10n/v1_2"
         }
     }
 }
