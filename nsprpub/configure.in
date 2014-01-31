@@ -14,8 +14,8 @@ dnl ========================================================
 dnl = Defaults
 dnl ========================================================
 MOD_MAJOR_VERSION=4
-MOD_MINOR_VERSION=9
-MOD_PATCH_VERSION=5
+MOD_MINOR_VERSION=10
+MOD_PATCH_VERSION=2
 NSPR_MODNAME=nspr20
 _HAVE_PTHREADS=
 USE_PTHREADS=
@@ -111,11 +111,20 @@ AC_ARG_WITH(android-toolchain,
                           location of the Android toolchain],
     android_toolchain=$withval)
 
+dnl The default android_version is different for each target cpu.
+case "$target_cpu" in
+arm)
+    android_version=5
+    ;;
+i?86|mipsel)
+    android_version=9
+    ;;
+esac
+
 AC_ARG_WITH(android-version,
 [  --with-android-version=VER
-                          Android platform version, default 5],
-    android_version=$withval,
-    android_version=5)
+                          Android platform version, default 5 for arm, 9 for x86/mips],
+    android_version=$withval)
 
 AC_ARG_WITH(android-platform,
 [  --with-android-platform=DIR
@@ -262,7 +271,6 @@ case "$target" in
     fi
 
     AC_DEFINE(ANDROID)
-    AC_DEFINE_UNQUOTED(ANDROID_VERSION, $android_version)
     ;;
 esac
 fi
@@ -584,9 +592,9 @@ if test "$target" != "$host" -o -n "$CROSS_COMPILE"; then
     LDFLAGS="$HOST_LDFLAGS"
 
     AC_MSG_CHECKING([whether the $host compiler ($HOST_CC $HOST_CFLAGS $HOST_LDFLAGS) works])
-    AC_TRY_COMPILE([], [return(0);], 
-        [ac_cv_prog_host_cc_works=1 AC_MSG_RESULT([yes])],
-        AC_MSG_ERROR([installation or configuration problem: $host compiler $HOST_CC cannot create executables.]) )
+    AC_TRY_COMPILE([], [return 0;],
+        [AC_MSG_RESULT([yes])],
+        [AC_MSG_ERROR([installation or configuration problem: $host compiler $HOST_CC cannot create executables.])] )
 
     CC=$_SAVE_CC
     CFLAGS=$_SAVE_CFLAGS
@@ -1948,6 +1956,17 @@ tools are selected during the Xcode/Developer Tools installation.])
         PROFILE_USE_CFLAGS="-GL -wd4624 -wd4952"
         PROFILE_USE_LDFLAGS="-LTCG:PGUPDATE"
 
+        if test "$MSC_VER" -ge "1800"; then
+            dnl Visual C++ 2013 requires -FS when parallel building with
+            dnl make -jN. If not specified, compiler sometimes emits C1041
+            dnl error.
+            CFLAGS="$CFLAGS -FS"
+            dnl -Gw can benefit when using linker optimization on PGO.
+            dnl http://blogs.msdn.com/b/vcblog/archive/2013/09/11/introducing-gw-compiler-switch.aspx
+            PROFILE_GEN_CFLAGS="$PROFILE_GEN_CFLAGS -Gw"
+            PROFILE_USE_CFLAGS="$PROFILE_USE_CFLAGS -Gw"
+        fi
+
         if test -z "$MOZ_OPTIMIZE"; then
             CFLAGS="$CFLAGS -Od"
         fi
@@ -2544,8 +2563,8 @@ case $target in
     ;;
 *)
     AC_CHECK_LIB(dl, dlopen,
-        AC_CHECK_HEADER(dlfcn.h,
-            OS_LIBS="-ldl $OS_LIBS"))
+        [AC_CHECK_HEADER(dlfcn.h,
+            OS_LIBS="-ldl $OS_LIBS")])
     ;;
 esac
 

@@ -80,7 +80,7 @@ static PRIntn pt_PriorityMap(PRThreadPriority pri)
 #elif defined(_PR_NICE_PRIORITY_SCHEDULING)
 /*
  * This functions maps higher priorities to lower nice values relative to the
- * priority specified in the |pri| parameter. The corresponding relative
+ * nice value specified in the |nice| parameter. The corresponding relative
  * adjustments are:
  *
  * PR_PRIORITY_LOW    +1
@@ -145,9 +145,11 @@ static void *_pt_root(void *arg)
     errno = 0;
     rv = getpriority(PRIO_PROCESS, 0);
 
-    /* If we cannot read the main thread nice value don't try to change it. */
+    /* If we cannot read the main thread's nice value don't try to change the
+     * new thread's nice value. */
     if (errno == 0) {
-        setpriority(PRIO_PROCESS, tid, pt_RelativePriority(rv, thred->priority));
+        setpriority(PRIO_PROCESS, tid,
+                    pt_RelativePriority(rv, thred->priority));
     }
 
     PR_Lock(pt_book.ml);
@@ -704,15 +706,17 @@ PR_IMPLEMENT(void) PR_SetThreadPriority(PRThread *thred, PRThreadPriority newPri
 
     /* Do not proceed unless we know the main thread's nice value. */
     if (errno == 0) {
-        rv = setpriority(PRIO_PROCESS, thred->tid, pt_RelativePriority(rv, newPri));
+        rv = setpriority(PRIO_PROCESS, thred->tid,
+                         pt_RelativePriority(rv, newPri));
 
         if (rv == -1)
         {
-            /* We don't set pt_schedpriv to EPERM in case errno == EPERM because
-             * adjusting the nice value might be permitted for certain ranges but
-             * not for others. */
+            /* We don't set pt_schedpriv to EPERM in case errno == EPERM
+             * because adjusting the nice value might be permitted for certain
+             * ranges but not for others. */
             PR_LOG(_pr_thread_lm, PR_LOG_MIN,
-                ("PR_SetThreadPriority: no thread scheduling privilege"));
+                ("PR_SetThreadPriority: setpriority failed with error %d",
+                 errno));
         }
     }
 #endif
@@ -887,6 +891,8 @@ void _PR_InitThreads(
     int rv;
     PRThread *thred;
 
+    PR_ASSERT(priority == PR_PRIORITY_NORMAL);
+
 #ifdef _PR_NEED_PTHREAD_INIT
     /*
      * On BSD/OS (3.1 and 4.0), the pthread subsystem is lazily
@@ -976,7 +982,6 @@ void _PR_InitThreads(
     PR_ASSERT(0 == rv);
     rv = pthread_setspecific(pt_book.key, thred);
     PR_ASSERT(0 == rv);    
-    PR_SetThreadPriority(thred, priority);
 }  /* _PR_InitThreads */
 
 #ifdef __GNUC__
