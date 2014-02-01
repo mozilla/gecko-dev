@@ -47,6 +47,9 @@ PR_EXTERN(void) PL_CompactArenaPool(PLArenaPool *pool);
 
 /*
 ** Friend functions used by the PL_ARENA_*() macros.
+**
+** WARNING: do not call these functions directly. Always use the
+** PL_ARENA_*() macros.
 **/
 PR_EXTERN(void *) PL_ArenaAllocate(PLArenaPool *pool, PRUint32 nb);
 
@@ -59,6 +62,19 @@ PR_EXTERN(void) PL_ArenaRelease(PLArenaPool *pool, char *mark);
 ** memset contents of all arenas in pool to pattern
 */
 PR_EXTERN(void) PL_ClearArenaPool(PLArenaPool *pool, PRInt32 pattern);
+
+/*
+** A function like malloc_size() or malloc_usable_size() that measures the
+** size of a heap block.
+*/
+typedef size_t (*PLMallocSizeFn)(const void *ptr);
+
+/*
+** Measure all memory used by a PLArenaPool, excluding the PLArenaPool
+** structure.
+*/
+PR_EXTERN(size_t) PL_SizeOfArenaPoolExcludingPool(
+    const PLArenaPool *pool, PLMallocSizeFn mallocSizeOf);
 
 PR_END_EXTERN_C
 
