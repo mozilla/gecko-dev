@@ -15,6 +15,22 @@ let { ctypes } = Cu.import("resource://gre/modules/ctypes.jsm");
 
 let gIsWindows = ("@mozilla.org/windows-registry-key;1" in Cc);
 
+const SEC_ERROR_BASE = Ci.nsINSSErrorsService.NSS_SEC_ERROR_BASE;
+
+// Sort in numerical order
+const SEC_ERROR_REVOKED_CERTIFICATE                     = SEC_ERROR_BASE +  12;
+const SEC_ERROR_BAD_DATABASE                            = SEC_ERROR_BASE +  18;
+const SEC_ERROR_OCSP_MALFORMED_REQUEST                  = SEC_ERROR_BASE + 120;
+const SEC_ERROR_OCSP_SERVER_ERROR                       = SEC_ERROR_BASE + 121;
+const SEC_ERROR_OCSP_TRY_SERVER_LATER                   = SEC_ERROR_BASE + 122;
+const SEC_ERROR_OCSP_REQUEST_NEEDS_SIG                  = SEC_ERROR_BASE + 123;
+const SEC_ERROR_OCSP_UNAUTHORIZED_REQUEST               = SEC_ERROR_BASE + 124;
+const SEC_ERROR_OCSP_UNKNOWN_CERT                       = SEC_ERROR_BASE + 126;
+const SEC_ERROR_OCSP_MALFORMED_RESPONSE                 = SEC_ERROR_BASE + 129;
+const SEC_ERROR_OCSP_UNAUTHORIZED_RESPONSE              = SEC_ERROR_BASE + 130;
+const SEC_ERROR_OCSP_OLD_RESPONSE                       = SEC_ERROR_BASE + 132;
+const SEC_ERROR_OCSP_INVALID_SIGNING_CERT               = SEC_ERROR_BASE + 144;
+
 function readFile(file) {
   let fstream = Cc["@mozilla.org/network/file-input-stream;1"]
                   .createInstance(Ci.nsIFileInputStream);
@@ -30,10 +46,9 @@ function addCertFromFile(certdb, filename, trustString) {
   certdb.addCert(der, trustString, null);
 }
 
-function getXPCOMStatusFromNSS(offset) {
+function getXPCOMStatusFromNSS(statusNSS) {
   let nssErrorsService = Cc["@mozilla.org/nss_errors_service;1"]
                            .getService(Ci.nsINSSErrorsService);
-  let statusNSS = Ci.nsINSSErrorsService.NSS_SEC_ERROR_BASE + offset;
   return nssErrorsService.getXPCOMFromNSSError(statusNSS);
 }
 
@@ -213,6 +228,26 @@ function add_connection_test(aHost, aExpectedResult,
   });
 }
 
+function _getBinaryUtil(binaryUtilName) {
+  let directoryService = Cc["@mozilla.org/file/directory_service;1"]
+                           .getService(Ci.nsIProperties);
+
+  let utilBin = directoryService.get("CurProcD", Ci.nsILocalFile);
+  utilBin.append(binaryUtilName + (gIsWindows ? ".exe" : ""));
+  // If we're testing locally, the above works. If not, the server executable
+  // is in another location.
+  if (!utilBin.exists()) {
+    utilBin = directoryService.get("CurWorkD", Ci.nsILocalFile);
+    while (utilBin.path.indexOf("xpcshell") != -1) {
+      utilBin = utilBin.parent;
+    }
+    utilBin.append("bin");
+    utilBin.append(binaryUtilName + (gIsWindows ? ".exe" : ""));
+  }
+  do_check_true(utilBin.exists());
+  return utilBin;
+}
+
 // Do not call this directly; use add_tls_server_setup
 function _setupTLSServerTest(serverBinName)
 {
@@ -246,19 +281,7 @@ function _setupTLSServerTest(serverBinName)
       });
   httpServer.start(CALLBACK_PORT);
 
-  let serverBin = directoryService.get("CurProcD", Ci.nsILocalFile);
-  serverBin.append(serverBinName + (gIsWindows ? ".exe" : ""));
-  // If we're testing locally, the above works. If not, the server executable
-  // is in another location.
-  if (!serverBin.exists()) {
-    serverBin = directoryService.get("CurWorkD", Ci.nsILocalFile);
-    while (serverBin.path.indexOf("xpcshell") != -1) {
-      serverBin = serverBin.parent;
-    }
-    serverBin.append("bin");
-    serverBin.append(serverBinName + (gIsWindows ? ".exe" : ""));
-  }
-  do_check_true(serverBin.exists());
+  let serverBin = _getBinaryUtil(serverBinName);
   let process = Cc["@mozilla.org/process/util;1"].createInstance(Ci.nsIProcess);
   process.init(serverBin);
   let certDir = directoryService.get("CurWorkD", Ci.nsILocalFile);
@@ -269,4 +292,37 @@ function _setupTLSServerTest(serverBinName)
   do_register_cleanup(function() {
     process.kill();
   });
+}
+
+// Returns an Array of OCSP responses for a given ocspRespArray and a location
+// for a nssDB where the certs and public keys are prepopulated.
+// ocspRespArray is an array of arrays like:
+// [ [typeOfResponse, certnick, extracertnick]...]
+function generateOCSPResponses(ocspRespArray, nssDBlocation)
+{
+  let utilBinName =  "GenerateOCSPResponse";
+  let ocspGenBin = _getBinaryUtil(utilBinName);
+  let retArray = new Array();
+
+  for (let i = 0; i < ocspRespArray.length; i++) {
+    let argArray = new Array();
+    let ocspFilepre = do_get_file(i.toString() + ".ocsp", true);
+    let filename = ocspFilepre.path;
+    argArray.push(nssDBlocation);
+    argArray.push(ocspRespArray[i][0]); // ocsRespType;
+    argArray.push(ocspRespArray[i][1]); // nick;
+    argArray.push(ocspRespArray[i][2]); // extranickname
+    argArray.push(filename);
+    do_print("arg_array ="+argArray);
+
+    let process = Cc["@mozilla.org/process/util;1"]
+                    .createInstance(Ci.nsIProcess);
+    process.init(ocspGenBin);
+    process.run(true, argArray, 5);
+    do_check_eq(0, process.exitValue);
+    let ocspFile = do_get_file(i.toString() + ".ocsp", false);
+    retArray.push(readFile(ocspFile));
+    ocspFile.remove(false);
+  }
+  return retArray;
 }
