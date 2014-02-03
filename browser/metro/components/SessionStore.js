@@ -272,7 +272,7 @@ SessionStore.prototype = {
           this.saveState();
         }
         break;
-      case "browser:purge-session-history": // catch sanitization 
+      case "browser:purge-session-history": // catch sanitization
         this._clearDisk();
 
         // If the browser is shutting down, simply return after clearing the
@@ -338,6 +338,7 @@ SessionStore.prototype = {
     // Assign it a unique identifier and create its data object
     aWindow.__SSID = "window" + gUUIDGenerator.generateUUID().toString();
     this._windows[aWindow.__SSID] = { tabs: [], selected: 0, _closedTabs: [] };
+    this._orderedWindows.push(aWindow.__SSID);
 
     // Perform additional initialization when the first window is loading
     if (this._loadState == STATE_STOPPED) {
@@ -348,9 +349,6 @@ SessionStore.prototype = {
       if (!this.shouldRestore()) {
         this._clearCache();
         Services.obs.notifyObservers(null, "sessionstore-windows-restored", "");
-
-        // If nothing is being restored, we only have our single Metro window.
-        this._orderedWindows.push(aWindow.__SSID);
       }
     }
 
@@ -514,9 +512,14 @@ SessionStore.prototype = {
 
   saveState: function ss_saveState() {
     let data = this._getCurrentState();
-    this._writeFile(this._sessionFile, JSON.stringify(data));
+    // sanity check before we overwrite the session file
+    if (data.windows && data.windows.length && data.selectedWindow) {
+      this._writeFile(this._sessionFile, JSON.stringify(data));
 
-    this._lastSaveTime = Date.now();
+      this._lastSaveTime = Date.now();
+    } else {
+      dump("SessionStore: Not saving state with invalid data: " + JSON.stringify(data) + "\n");
+    }
   },
 
   _getCurrentState: function ss_getCurrentState() {
@@ -548,15 +551,15 @@ SessionStore.prototype = {
   },
 
   _getTabData: function(aWindow) {
-    return aWindow.Browser.tabs.map(tab => {
-      let browser = tab.browser;
-      if (browser.__SS_data) {
+    return aWindow.Browser.tabs
+      .filter(tab => tab.browser.__SS_data)
+      .map(tab => {
+        let browser = tab.browser;
         let tabData = browser.__SS_data;
         if (browser.__SS_extdata)
           tabData.extData = browser.__SS_extdata;
         return tabData;
-      }
-    });
+      });
   },
 
   _collectWindowData: function ss__collectWindowData(aWindow) {
@@ -794,6 +797,7 @@ SessionStore.prototype = {
         } catch (ex) { /* currentGroupId is undefined if user has no tab groups */ }
 
         // Move all window data from sessionstore.js to this._windows.
+        this._orderedWindows = [];
         for (let i = 0; i < data.windows.length; i++) {
           let SSID;
           if (i != windowIndex) {
@@ -847,7 +851,7 @@ SessionStore.prototype = {
 
           tab.browser.__SS_extdata = tabData.extData;
         }
-    
+
         notifyObservers();
       }.bind(this));
     } catch (ex) {

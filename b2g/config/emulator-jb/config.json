@@ -13,7 +13,7 @@
         "{workdir}/sources.xml"
     ],
     "upload_platform": "emulator-jb",
-    "gecko_l10n_root": "http://hg.mozilla.org/releases/l10n/mozilla-aurora",
+    "gecko_l10n_root": "http://hg.mozilla.org/releases/l10n/mozilla-beta",
     "gaia": {
         "l10n": {
             "vcs": "hgtool",
