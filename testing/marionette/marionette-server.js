@@ -1040,17 +1040,37 @@ MarionetteServerConnection.prototype = {
   },
 
   /**
-   * Navigates to given url
+   * Navigate to to given URL.
    *
-   * @param object aRequest
-   *        'url' member holds the url to navigate to
+   * This will follow redirects issued by the server.  When the method
+   * returns is based on the page load strategy that the user has
+   * selected.
+   *
+   * Documents that contain a META tag with the "http-equiv" attribute
+   * set to "refresh" will return if the timeout is greater than 1
+   * second and the other criteria for determining whether a page is
+   * loaded are met.  When the refresh period is 1 second or less and
+   * the page load strategy is "normal" or "conservative", it will
+   * wait for the page to complete loading before returning.
+   *
+   * If any modal dialog box, such as those opened on
+   * window.onbeforeunload or window.alert, is opened at any point in
+   * the page load, it will return immediately.
+   *
+   * If a 401 response is seen by the browser, it will return
+   * immediately.  That is, if BASIC, DIGEST, NTLM or similar
+   * authentication is required, the page load is assumed to be
+   * complete.  This does not include FORM-based authentication.
+   *
+   * @param object aRequest where <code>url</code> property holds the
+   *        URL to navigate to
    */
-  goUrl: function MDA_goUrl(aRequest) {
+  get: function MDA_get(aRequest) {
     let command_id = this.command_id = this.getCommandId();
     if (this.context != "chrome") {
       aRequest.command_id = command_id;
       aRequest.parameters.pageTimeout = this.pageTimeout;
-      this.sendAsync("goUrl", aRequest.parameters, command_id);
+      this.sendAsync("get", aRequest.parameters, command_id);
       return;
     }
 
@@ -1058,6 +1078,7 @@ MarionetteServerConnection.prototype = {
     let checkTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
     let start = new Date().getTime();
     let end = null;
+
     function checkLoad() {
       end = new Date().getTime();
       let elapse = end - start;
@@ -1074,20 +1095,27 @@ MarionetteServerConnection.prototype = {
         sendError("Error loading page", 13, null, command_id);
         return;
       }
-    }//end
+    }
     checkTimer.initWithCallback(checkLoad, 100, Ci.nsITimer.TYPE_ONE_SHOT);
   },
 
   /**
-   * Gets current url
+   * Get a string representing the current URL.
+   *
+   * On Desktop this returns a string representation of the URL of the
+   * current top level browsing context.  This is equivalent to
+   * document.location.href.
+   *
+   * When in the context of the chrome, this returns the canonical URL
+   * of the current resource.
    */
-  getUrl: function MDA_getUrl() {
+  getCurrentUrl: function MDA_getCurrentUrl() {
     this.command_id = this.getCommandId();
     if (this.context == "chrome") {
       this.sendResponse(this.getCurrentWindow().location.href, this.command_id);
     }
     else {
-      this.sendAsync("getUrl", {}, this.command_id);
+      this.sendAsync("getCurrentUrl", {}, this.command_id);
     }
   },
 
@@ -1157,9 +1185,15 @@ MarionetteServerConnection.prototype = {
   },
 
   /**
-   * Get the current window's server-assigned ID
+   * Get the current window's handle.
+   *
+   * Return an opaque server-assigned identifier to this window that
+   * uniquely identifies it within this Marionette instance.  This can
+   * be used to switch to this window at a later point.
+   *
+   * @return unique window handle (string)
    */
-  getWindow: function MDA_getWindow() {
+  getWindowHandle: function MDA_getWindowHandle() {
     this.command_id = this.getCommandId();
     for (let i in this.browsers) {
       if (this.curBrowser == this.browsers[i]) {
@@ -1169,17 +1203,28 @@ MarionetteServerConnection.prototype = {
   },
 
   /**
-   * Get the server-assigned IDs of all available windows
+   * Get list of windows in the current context.
+   *
+   * If called in the content context it will return a list of
+   * references to all available browser windows.  Called in the
+   * chrome context, it will list all available windows, not just
+   * browser windows (e.g. not just navigator.browser).
+   *
+   * Each window handle is assigned by the server, and the array of
+   * strings returned does not have a guaranteed ordering.
+   *
+   * @return unordered array of unique window handles as strings
    */
-  getWindows: function MDA_getWindows() {
+  getWindowHandles: function MDA_getWindowHandles() {
     this.command_id = this.getCommandId();
     let res = [];
     let winEn = this.getWinEnumerator();
-    while(winEn.hasMoreElements()) {
+    while (winEn.hasMoreElements()) {
       let foundWin = winEn.getNext();
-      let winId = foundWin.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils).outerWindowID;
-      winId = winId + ((appName == "B2G") ? '-b2g' : '');
-      res.push(winId)
+      let winId = foundWin.QueryInterface(Ci.nsIInterfaceRequestor)
+            .getInterface(Ci.nsIDOMWindowUtils).outerWindowID;
+      winId = winId + ((appName == "B2G") ? "-b2g" : "");
+      res.push(winId);
     }
     this.sendResponse(res, this.command_id);
   },
@@ -1894,10 +1939,18 @@ MarionetteServerConnection.prototype = {
     }
   },
 
-  getElementPosition: function MDA_getElementPosition(aRequest) {
+  /**
+   * Get an element's location on the page.
+   *
+   * The returned point will contain the x and y coordinates of the
+   * top left-hand corner of the given element.  The point (0,0)
+   * refers to the upper-left corner of the document.
+   *
+   * @return a point containing x and y coordinates as properties
+   */
+  getElementLocation: function MDA_getElementLocation(aRequest) {
     this.command_id = this.getCommandId();
-    this.sendAsync("getElementPosition",
-                   { id:aRequest.parameters.id },
+    this.sendAsync("getElementLocation", {id: aRequest.parameters.id},
                    this.command_id);
   },
 
@@ -1912,11 +1965,14 @@ MarionetteServerConnection.prototype = {
   },
 
   /**
-   * Get all visible cookies for a document
+   * Get all the cookies for the current domain.
+   *
+   * This is the equivalent of calling "document.cookie" and parsing
+   * the result.
    */
-  getAllCookies: function MDA_getAllCookies() {
+  getCookies: function MDA_getCookies() {
     this.command_id = this.getCommandId();
-    this.sendAsync("getAllCookies", {}, this.command_id);
+    this.sendAsync("getCookies", {}, this.command_id);
   },
 
   /**
@@ -2151,16 +2207,25 @@ MarionetteServerConnection.prototype = {
   },
 
   /**
-   * Takes a screenshot of a DOM node. If there is no node given a screenshot
-   * of the window will be taken.
-   */
-  screenShot: function MDA_saveScreenshot(aRequest) {
+   * Takes a screenshot of a web element or the current frame.
+   *
+   * The screen capture is returned as a lossless PNG image encoded as
+   * a base 64 string.  If the <code>id</code> argument is not null
+   * and refers to a present and visible web element's ID, the capture
+   * area will be limited to the bounding box of that element.
+   * Otherwise, the capture area will be the bounding box of the
+   * current frame.
+   *
+   * @param id an optional reference to a web element
+   * @param highlights an optional list of web elements to draw a red
+   *                   box around in the returned capture
+   * @return PNG image encoded as base 64 string
+    */
+  takeScreenshot: function MDA_takeScreenshot(aRequest) {
     this.command_id = this.getCommandId();
-    this.sendAsync("screenShot",
-                   {
-                     id: aRequest.parameters.id,
-                     highlights: aRequest.parameters.highlights
-                   },
+    this.sendAsync("takeScreenshot",
+                   {id: aRequest.parameters.id,
+                    highlights: aRequest.parameters.highlights},
                    this.command_id);
   },
 
@@ -2199,13 +2264,15 @@ MarionetteServerConnection.prototype = {
 
     let mozOr = or.toLowerCase();
     if (ors.indexOf(mozOr) < 0) {
-      this.sendError("Unknown screen orientation: " + or, 500, null, this.command_id);
+      this.sendError("Unknown screen orientation: " + or, 500, null,
+                     this.command_id);
       return;
     }
 
     let curWindow = this.getCurrentWindow();
     if (!curWindow.screen.mozLockOrientation(mozOr)) {
-      this.sendError("Unable to set screen orientation: " + or, 500, null, this.command_id);
+      this.sendError("Unable to set screen orientation: " + or, 500,
+                     null, this.command_id);
     }
     this.sendOk(this.command_id);
   },
@@ -2360,18 +2427,25 @@ MarionetteServerConnection.prototype.requestTypes = {
   "isElementEnabled": MarionetteServerConnection.prototype.isElementEnabled,
   "isElementSelected": MarionetteServerConnection.prototype.isElementSelected,
   "sendKeysToElement": MarionetteServerConnection.prototype.sendKeysToElement,
-  "getElementPosition": MarionetteServerConnection.prototype.getElementPosition,
+  "getElementLocation": MarionetteServerConnection.prototype.getElementLocation,
+  "getElementPosition": MarionetteServerConnection.prototype.getElementLocation,  // deprecated
   "clearElement": MarionetteServerConnection.prototype.clearElement,
   "getTitle": MarionetteServerConnection.prototype.getTitle,
   "getWindowType": MarionetteServerConnection.prototype.getWindowType,
   "getPageSource": MarionetteServerConnection.prototype.getPageSource,
-  "goUrl": MarionetteServerConnection.prototype.goUrl,
-  "getUrl": MarionetteServerConnection.prototype.getUrl,
+  "get": MarionetteServerConnection.prototype.get,
+  "goUrl": MarionetteServerConnection.prototype.get,  // deprecated
+  "getCurrentUrl": MarionetteServerConnection.prototype.getCurrentUrl,
+  "getUrl": MarionetteServerConnection.prototype.getCurrentUrl,  // deprecated
   "goBack": MarionetteServerConnection.prototype.goBack,
   "goForward": MarionetteServerConnection.prototype.goForward,
   "refresh":  MarionetteServerConnection.prototype.refresh,
-  "getWindow":  MarionetteServerConnection.prototype.getWindow,
-  "getWindows":  MarionetteServerConnection.prototype.getWindows,
+  "getWindowHandle": MarionetteServerConnection.prototype.getWindowHandle,
+  "getCurrentWindowHandle":  MarionetteServerConnection.prototype.getWindowHandle,  // Selenium 2 compat
+  "getWindow":  MarionetteServerConnection.prototype.getWindowHandle,  // deprecated
+  "getWindowHandles": MarionetteServerConnection.prototype.getWindowHandles,
+  "getCurrentWindowHandles": MarionetteServerConnection.prototype.getWindowHandles,  // Selenium 2 compat
+  "getWindows":  MarionetteServerConnection.prototype.getWindowHandles,  // deprecated
   "getActiveFrame": MarionetteServerConnection.prototype.getActiveFrame,
   "switchToFrame": MarionetteServerConnection.prototype.switchToFrame,
   "switchToWindow": MarionetteServerConnection.prototype.switchToWindow,
@@ -2383,9 +2457,11 @@ MarionetteServerConnection.prototype.requestTypes = {
   "close": MarionetteServerConnection.prototype.close,
   "closeWindow": MarionetteServerConnection.prototype.close,  // deprecated
   "setTestName": MarionetteServerConnection.prototype.setTestName,
-  "screenShot": MarionetteServerConnection.prototype.screenShot,
+  "takeScreenshot": MarionetteServerConnection.prototype.takeScreenshot,
+  "screenShot": MarionetteServerConnection.prototype.takeScreenshot,  // deprecated
   "addCookie": MarionetteServerConnection.prototype.addCookie,
-  "getAllCookies": MarionetteServerConnection.prototype.getAllCookies,
+  "getCookies": MarionetteServerConnection.prototype.getCookies,
+  "getAllCookies": MarionetteServerConnection.prototype.getCookies,  // deprecated
   "deleteAllCookies": MarionetteServerConnection.prototype.deleteAllCookies,
   "deleteCookie": MarionetteServerConnection.prototype.deleteCookie,
   "getActiveElement": MarionetteServerConnection.prototype.getActiveElement,
