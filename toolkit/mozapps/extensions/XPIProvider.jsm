@@ -6631,6 +6631,22 @@ function AddonWrapper(aAddon) {
     return ops;
   });
 
+  this.__defineGetter__("isBootstrapped", function AddonWrapper_isBootstrapped() {
+    return this.operationsRequiringRestart === AddonManager.OP_NEEDS_RESTART_NONE;
+  });
+
+  this.__defineGetter__("isJetpack", function AddonWrapper_isJetpack() {
+    // Assume that if there's a `harness-options.json` file in restartless add-on
+    // it's a jetpack.
+    return this.isBootstrapped && this.hasResource("harness-options.json");
+  });
+
+
+  this.__defineGetter__("isDebuggable", function AddonWrapper_isDebuggable() {
+    // At the moment only jetpacks are debuggable.
+    return this.isActive && this.isJetpack;
+  });
+
   this.__defineGetter__("permissions", function AddonWrapper_permisionsGetter() {
     let permissions = 0;
 

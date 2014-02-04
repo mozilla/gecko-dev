@@ -16,6 +16,10 @@ Cu.import("resource://gre/modules/PluralForm.jsm");
 Cu.import("resource://gre/modules/DownloadUtils.jsm");
 Cu.import("resource://gre/modules/AddonManager.jsm");
 Cu.import("resource://gre/modules/AddonRepository.jsm");
+XPCOMUtils.defineLazyGetter(this, "BrowserDebuggerProcess", function() {
+  return Cu.import("resource:///modules/devtools/DebuggerProcess.jsm", {}).
+         BrowserDebuggerProcess;
+});
 
 
 const PREF_DISCOVERURL = "extensions.webservice.discoverURL";
@@ -26,6 +30,7 @@ const PREF_GETADDONS_CACHE_ENABLED = "extensions.getAddons.cache.enabled";
 const PREF_GETADDONS_CACHE_ID_ENABLED = "extensions.%ID%.getAddons.cache.enabled";
 const PREF_UI_TYPE_HIDDEN = "extensions.ui.%TYPE%.hidden";
 const PREF_UI_LASTCATEGORY = "extensions.ui.lastCategory";
+const PREF_ADDON_DEBUGGING_ENABLED = "devtools.debugger.addon-enabled";
 
 const LOADING_MSG_DELAY = 100;
 
@@ -107,6 +112,14 @@ function initialize(event) {
   }
 
   gViewController.loadInitialView(view);
+
+  Services.prefs.addObserver(PREF_ADDON_DEBUGGING_ENABLED, {
+    observe: function() {
+      gViewController.updateState();
+      gViewController.updateCommands();
+      gViewController.notifyViewChanged();
+    }
+  }, false);
 }
 
 function notifyInitialized() {
@@ -899,6 +912,18 @@ var gViewController = {
         };
         gEventManager.delegateAddonEvent("onCheckingUpdate", [aAddon]);
         aAddon.findUpdates(listener, AddonManager.UPDATE_WHEN_USER_REQUESTED);
+      }
+    },
+
+    cmd_debugItem: {
+      doCommand: function cmd_debugItem_doCommand(aAddon) {
+        BrowserDebuggerProcess.init({ addonID: aAddon.id });
+      },
+
+      isEnabled: function cmd_debugItem_isEnabled(aAddon) {
+        let debuggerEnabled = Services.prefs.
+                              getBoolPref("devtools.debugger.addon-enabled");
+        return aAddon && aAddon.isDebuggable && debuggerEnabled;
       }
     },
 
