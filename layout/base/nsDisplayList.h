@@ -2747,6 +2747,7 @@ public:
   // after merging, all the nsDisplayScrollLayers should flatten away.
   intptr_t GetScrollLayerCount();
 
+  virtual nsIFrame* GetScrollFrame() { return mScrollFrame; }
   virtual nsIFrame* GetScrolledFrame() { return mScrolledFrame; }
 
 protected:
