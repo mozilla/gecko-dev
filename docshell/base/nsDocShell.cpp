@@ -6819,9 +6819,15 @@ nsDocShell::OnRedirectStateChange(nsIChannel* aOldChannel,
             // Permission will be checked in the parent process.
             appCacheChannel->SetChooseApplicationCache(true);
         } else {
-            appCacheChannel->SetChooseApplicationCache(
-                                NS_ShouldCheckAppCache(newURI,
-                                                       mInPrivateBrowsing));
+            nsCOMPtr<nsIScriptSecurityManager> secMan =
+                do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID);
+
+            if (secMan) {
+                nsCOMPtr<nsIPrincipal> principal;
+                secMan->GetDocShellCodebasePrincipal(newURI, this, getter_AddRefs(principal));
+                appCacheChannel->SetChooseApplicationCache(NS_ShouldCheckAppCache(principal,
+                    mInPrivateBrowsing));
+            }
         }
     }
 
@@ -9736,8 +9742,15 @@ nsDocShell::DoURILoad(nsIURI * aURI,
             // Permission will be checked in the parent process
             appCacheChannel->SetChooseApplicationCache(true);
         } else {
-            appCacheChannel->SetChooseApplicationCache(
-                NS_ShouldCheckAppCache(aURI, mInPrivateBrowsing));
+            nsCOMPtr<nsIScriptSecurityManager> secMan =
+                do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID);
+
+            if (secMan) {
+                nsCOMPtr<nsIPrincipal> principal;
+                secMan->GetDocShellCodebasePrincipal(aURI, this, getter_AddRefs(principal));
+                appCacheChannel->SetChooseApplicationCache(
+                    NS_ShouldCheckAppCache(principal, mInPrivateBrowsing));
+            }
         }
     }
 
