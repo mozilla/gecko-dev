@@ -147,10 +147,17 @@ class HTMLElement(object):
 
     @property
     def location(self):
-        '''
-        A dictionary with the x and y location of an element
-        '''
-        return self.marionette._send_message('getElementPosition', 'value', id=self.id)
+        """Get an element's location on the page.
+
+        The returned point will contain the x and y coordinates of the
+        top left-hand corner of the given element.  The point (0,0)
+        refers to the upper-left corner of the document.
+
+        :returns: a dictionary containing x and y as entries
+
+        """
+
+        return self.marionette._send_message("getElementLocation", "value", id=self.id)
 
     def value_of_css_property(self, property_name):
         '''
@@ -749,10 +756,18 @@ class Marionette(object):
 
     @property
     def current_window_handle(self):
-        '''
-        A reference to the current window.
-        '''
-        self.window = self._send_message('getWindow', 'value')
+        """Get the current window's handle.
+
+        Return an opaque server-assigned identifier to this window
+        that uniquely identifies it within this Marionette instance.
+        This can be used to switch to this window at a later point.
+
+        :returns: unique window handle
+        :rtype: string
+
+        """
+
+        self.window = self._send_message("getWindowHandle", "value")
         return self.window
 
     @property
@@ -765,13 +780,21 @@ class Marionette(object):
 
     @property
     def window_handles(self):
-        '''
-        A list of references to all available browser windows if called in
-        content context. If called while in the chrome context, it will list
-        all available windows, not just browser windows (ie: not just
-        'navigator:browser';).
-        '''
-        response = self._send_message('getWindows', 'value')
+        """Get list of windows in the current context.
+
+        If called in the content context it will return a list of
+        references to all available browser windows.  Called in the
+        chrome context, it will list all available windows, not just
+        browser windows (e.g. not just navigator.browser).
+
+        Each window handle is assigned by the server, and the list of
+        strings returned does not have a guaranteed ordering.
+
+        :returns: unordered list of unique window handles as strings
+
+        """
+
+        response = self._send_message("getWindowHandles", "value")
         return response
 
     @property
@@ -848,10 +871,20 @@ class Marionette(object):
         return response
 
     def get_url(self):
-        '''
-        Returns the url of the active page in the browser.
-        '''
-        response = self._send_message('getUrl', 'value')
+        """Get a string representing the current URL.
+
+        On Desktop this returns a string representation of the URL of
+        the current top level browsing context.  This is equivalent to
+        document.location.href.
+
+        When in the context of the chrome, this returns the canonical
+        URL of the current resource.
+
+        :returns: string representation of URL
+
+        """
+
+        response = self._send_message("getCurrentUrl", "value")
         return response
 
     def get_window_type(self):
@@ -865,12 +898,34 @@ class Marionette(object):
         return response
 
     def navigate(self, url):
-        '''
-        Causes the browser to navigate to the specified url.
+        """Navigate to to given URL.
+
+        This will follow redirects issued by the server.  When the
+        method returns is based on the page load strategy that the
+        user has selected.
+
+        Documents that contain a META tag with the "http-equiv"
+        attribute set to "refresh" will return if the timeout is
+        greater than 1 second and the other criteria for determining
+        whether a page is loaded are met.  When the refresh period is
+        1 second or less and the page load strategy is "normal" or
+        "conservative", it will wait for the page to complete loading
+        before returning.
+
+        If any modal dialog box, such as those opened on
+        window.onbeforeunload or window.alert, is opened at any point
+        in the page load, it will return immediately.
+
+        If a 401 response is seen by the browser, it will return
+        immediately.  That is, if BASIC, DIGEST, NTLM or similar
+        authentication is required, the page load is assumed to be
+        complete.  This does not include FORM-based authentication.
 
         :param url: The url to navigate to.
-        '''
-        response = self._send_message('goUrl', 'ok', url=url)
+
+        """
+
+        response = self._send_message("get", "ok", url=url)
         return response
 
     def timeouts(self, timeout_type, ms):
@@ -1263,30 +1318,45 @@ class Marionette(object):
         return None
 
     def get_cookies(self):
-        '''
-        Gets all cookies in the scope of the current session.
-        '''
-        return self._send_message("getAllCookies", "value")
+        """Get all the cookies for the current domain.
+
+        This is the equivalent of calling `document.cookie` and
+        parsing the result.
+
+        :returns: A set of cookies for the current domain.
+
+        """
+
+        return self._send_message("getCookies", "value")
 
     @property
     def application_cache(self):
         return ApplicationCache(self)
 
     def screenshot(self, element=None, highlights=None):
-        '''
-        Creates a base64-encoded screenshot of the element, or the current frame if no element is specified.
+        """Takes a screenshot of a web element or the current frame.
 
-        :param element: The element to take a screenshot of. If None, will
-         take a screenshot of the current frame.
-        :param highlights: A list of HTMLElement objects to draw a red box around in the
-         returned screenshot.
-        '''
-        if element is not None:
+        The screen capture is returned as a lossless PNG image encoded
+        as a base 64 string.  If the `element` argument is defined the
+        capture area will be limited to the bounding box of that
+        element.  Otherwise, the capture area will be the bounding box
+        of the current frame.
+
+        :param element: The element to take a screenshot of.  If None, will
+            take a screenshot of the current frame.
+
+        :param highlights: A list of HTMLElement objects to draw a red
+            box around in the returned screenshot.
+
+        """
+
+        if element:
             element = element.id
         lights = None
-        if highlights is not None:
-            lights = [highlight.id for highlight in highlights if highlights]
-        return self._send_message("screenShot", 'value', id=element, highlights=lights)
+        if highlights:
+            lights = [highlight.id for highlight in highlights]
+        return self._send_message("takeScreenshot", "value",
+                                  id=element, highlights=lights)
 
     @property
     def orientation(self):
