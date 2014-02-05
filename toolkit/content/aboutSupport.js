@@ -592,3 +592,18 @@ function populateResetBox() {
   if (ResetProfile.resetSupported())
     $("reset-box").style.visibility = "visible";
 }
+
+var reset-box-button = document.getElementById("reset-box-button");
+reset-box-button.addEventListener("click",ResetProfile.openConfirmationDialog(window));
+
+var copy-raw-data-to-clipboard = document.getElementById("copy-raw-data-to-clipboard");
+copy-raw-data-to-clipboard.addEventListener("click",copyRawDataToClipboard(this));
+
+var copy-to-clipboard = document.getElementById("copy-to-clipboard");
+copy-to-clipboard.addEventListener("click",copyContentsToClipboard());
+
+var ShowUpdateHistory-button = document.getElementById("ShowUpdateHistory-button");
+ShowUpdateHistory-button.addEventListener("click",showUpdateHistory());
+
+var ProfileDir-button = document.getElementById("ProfileDir-button");
+ProfileDir-button.addEventListener("click",openProfileDirectory());
