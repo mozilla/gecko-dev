@@ -21,7 +21,6 @@ const {UndoStack} = require("devtools/shared/undo");
 const {editableField, InplaceEditor} = require("devtools/shared/inplace-editor");
 const {gDevTools} = Cu.import("resource:///modules/devtools/gDevTools.jsm", {});
 const {HTMLEditor} = require("devtools/markupview/html-editor");
-const {OutputParser} = require("devtools/output-parser");
 const promise = require("sdk/core/promise");
 const {Tooltip} = require("devtools/shared/widgets/Tooltip");
 const EventEmitter = require("devtools/shared/event-emitter");
@@ -29,6 +28,7 @@ const EventEmitter = require("devtools/shared/event-emitter");
 Cu.import("resource://gre/modules/devtools/LayoutHelpers.jsm");
 Cu.import("resource://gre/modules/devtools/Templater.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 loader.lazyGetter(this, "DOMParser", function() {
  return Cc["@mozilla.org/xmlextras/domparser;1"].createInstance(Ci.nsIDOMParser);
@@ -54,10 +54,6 @@ loader.lazyGetter(this, "AutocompletePopup", () => {
  *        The inspector we're watching.
  * @param iframe aFrame
  *        An iframe in which the caller has kindly loaded markup-view.xhtml.
- *
- * Fires the following events:
- * - node-highlight: When a node in the markup-view is hovered and the
- *   corresponding node in the content gets highlighted
  */
 function MarkupView(aInspector, aFrame, aControllerWindow) {
   this._inspector = aInspector;
@@ -65,7 +61,6 @@ function MarkupView(aInspector, aFrame, aControllerWindow) {
   this._frame = aFrame;
   this.doc = this._frame.contentDocument;
   this._elt = this.doc.querySelector("#root");
-  this._outputParser = new OutputParser();
   this.htmlEditor = new HTMLEditor(this.doc);
 
   this.layoutHelpers = new LayoutHelpers(this.doc.defaultView);
@@ -78,7 +73,6 @@ function MarkupView(aInspector, aFrame, aControllerWindow) {
 
   // Creating the popup to be used to show CSS suggestions.
   let options = {
-    fixedWidth: true,
     autoSelect: true,
     theme: "auto"
   };
@@ -101,9 +95,6 @@ function MarkupView(aInspector, aFrame, aControllerWindow) {
 
   this._boundFocus = this._onFocus.bind(this);
   this._frame.addEventListener("focus", this._boundFocus, false);
-
-  this._handlePrefChange = this._handlePrefChange.bind(this);
-  gDevTools.on("pref-changed", this._handlePrefChange);
 
   this._initPreview();
   this._initTooltips();
@@ -179,41 +170,11 @@ MarkupView.prototype = {
   },
 
   _showBoxModel: function(nodeFront, options={}) {
-    let toolbox = this._inspector.toolbox;
-
-    // If the remote highlighter exists on the target, use it
-    if (toolbox.isRemoteHighlightable) {
-      toolbox.initInspector().then(() => {
-        toolbox.highlighter.showBoxModel(nodeFront, options).then(() => {
-          this.emit("node-highlight", nodeFront);
-        });
-      });
-    }
-    // Else, revert to the "older" version of the highlighter in the walker
-    // actor
-    else {
-      this.walker.highlight(nodeFront).then(() => {
-        this.emit("node-highlight", nodeFront);
-      });
-    }
+    this._inspector.toolbox.highlighterUtils.highlightNodeFront(nodeFront, options);
   },
 
   _hideBoxModel: function() {
-    let deferred = promise.defer();
-    let toolbox = this._inspector.toolbox;
-
-    // If the remote highlighter exists on the target, use it
-    if (toolbox.isRemoteHighlightable) {
-      toolbox.initInspector().then(() => {
-        toolbox.highlighter.hideBoxModel().then(deferred.resolve);
-      });
-    } else {
-      deferred.resolve();
-    }
-    // If not, no need to unhighlight as the older highlight method uses a
-    // setTimeout to hide itself
-
-    return deferred.promise;
+    this._inspector.toolbox.highlighterUtils.unhighlight();
   },
 
   _briefBoxModelTimer: null,
@@ -245,12 +206,6 @@ MarkupView.prototype = {
    */
   getContainer: function(aNode) {
     return this._containers.get(aNode);
-  },
-
-  _handlePrefChange: function(event, data) {
-    if (data.pref == "devtools.defaultColorUnit") {
-      this.update();
-    }
   },
 
   update: function() {
@@ -294,6 +249,23 @@ MarkupView.prototype = {
   },
 
   /**
+   * Given the known reason, should the current selection be briefly highlighted
+   * In a few cases, we don't want to highlight the node:
+   * - If the reason is null (used to reset the selection),
+   * - if it's "inspector-open" (when the inspector opens up, let's not highlight
+   * the default node)
+   * - if it's "navigateaway" (since the page is being navigated away from)
+   * - if it's "test" (this is a special case for mochitest. In tests, we often
+   * need to select elements but don't necessarily want the highlighter to come
+   * and go after a delay as this might break test scenarios)
+   */
+  _shouldNewSelectionBeHighlighted: function() {
+    let reason = this._inspector.selection.reason;
+    let unwantedReasons = ["inspector-open", "navigateaway", "test"];
+    return reason && unwantedReasons.indexOf(reason) === -1;
+  },
+
+  /**
    * Highlight the inspector selected node.
    */
   _onNewSelection: function() {
@@ -302,8 +274,7 @@ MarkupView.prototype = {
     this.htmlEditor.hide();
     let done = this._inspector.updating("markup-view");
     if (selection.isNode()) {
-      let reason = selection.reason;
-      if (reason && reason !== "inspector-open" && reason !== "navigateaway") {
+      if (this._shouldNewSelectionBeHighlighted()) {
         this._brieflyShowBoxModel(selection.nodeFront, {
           scrollIntoView: true
         });
@@ -676,8 +647,10 @@ MarkupView.prototype = {
    * node is scrolled on to screen.
    */
   showNode: function(aNode, centered) {
-    let container = this.importNode(aNode);
     let parent = aNode;
+
+    this.importNode(aNode);
+
     while ((parent = parent.parentNode())) {
       this.importNode(parent);
       this.expandNode(parent);
@@ -1065,16 +1038,12 @@ MarkupView.prototype = {
    * Tear down the markup panel.
    */
   destroy: function() {
-    gDevTools.off("pref-changed", this._handlePrefChange);
-
     // Note that if the toolbox is closed, this will work fine, but will fail
     // in case the browser is closed and will trigger a noSuchActor message.
     this._hideBoxModel();
 
     this._hoveredNode = null;
     this._inspector.toolbox.off("picker-node-hovered", this._onToolboxPickerHover);
-
-    this._outputParser = null;
 
     this.htmlEditor.destroy();
     this.htmlEditor = null;
@@ -1277,36 +1246,54 @@ MarkupContainer.prototype = {
     return "[MarkupContainer for " + this.node + "]";
   },
 
-  _prepareImagePreview: function() {
+  isPreviewable: function() {
     if (this.node.tagName) {
       let tagName = this.node.tagName.toLowerCase();
       let srcAttr = this.editor.getAttributeElement("src");
       let isImage = tagName === "img" && srcAttr;
       let isCanvas = tagName === "canvas";
 
+      return isImage || isCanvas;
+    } else {
+      return false;
+    }
+  },
+
+  _prepareImagePreview: function() {
+    if (this.isPreviewable()) {
       // Get the image data for later so that when the user actually hovers over
       // the element, the tooltip does contain the image
-      if (isImage || isCanvas) {
-        let def = promise.defer();
+      let def = promise.defer();
 
-        this.tooltipData = {
-          target: isImage ? srcAttr : this.editor.tag,
-          data: def.promise
-        };
+      this.tooltipData = {
+        target: this.editor.getAttributeElement("src") || this.editor.tag,
+        data: def.promise
+      };
 
-        this.node.getImageData(IMAGE_PREVIEW_MAX_DIM).then(data => {
-          if (data) {
-            data.data.string().then(str => {
-              let res = {data: str, size: data.size};
-              // Resolving the data promise and, to always keep tooltipData.data
-              // as a promise, create a new one that resolves immediately
-              def.resolve(res);
-              this.tooltipData.data = promise.resolve(res);
-            });
-          }
+      this.node.getImageData(IMAGE_PREVIEW_MAX_DIM).then(data => {
+        if (data) {
+          data.data.string().then(str => {
+            let res = {data: str, size: data.size};
+            // Resolving the data promise and, to always keep tooltipData.data
+            // as a promise, create a new one that resolves immediately
+            def.resolve(res);
+            this.tooltipData.data = promise.resolve(res);
+          });
+        }
+      });
+    }
+  },
+
+  copyImageDataUri: function() {
+    // We need to send again a request to gettooltipData even if one was sent for
+    // the tooltip, because we want the full-size image
+    this.node.getImageData().then(data => {
+      if (data) {
+        data.data.string().then(str => {
+          clipboardHelper.copyString(str, this.markup.doc);
         });
       }
-    }
+    });
   },
 
   _buildTooltipContent: function(target, tooltip) {
@@ -1907,104 +1894,17 @@ ElementEditor.prototype = {
 
     this.attrs[aAttr.name] = attr;
 
-    name.textContent = aAttr.name;
-
-    if (typeof aAttr.value !== "undefined") {
-      let outputParser = this.markup._outputParser;
-      let frag = outputParser.parseHTMLAttribute(aAttr.value, {
-        urlClass: "theme-link",
-        baseURI: this.node.baseURI
-      });
-      frag = this._truncateFrag(frag);
-      val.appendChild(frag);
+    let collapsedValue;
+    if (aAttr.value.match(COLLAPSE_DATA_URL_REGEX)) {
+      collapsedValue = truncateString(aAttr.value, COLLAPSE_DATA_URL_LENGTH);
+    } else {
+      collapsedValue = truncateString(aAttr.value, COLLAPSE_ATTRIBUTE_LENGTH);
     }
+
+    name.textContent = aAttr.name;
+    val.textContent = collapsedValue;
 
     return attr;
-  },
-
-  /**
-   * We truncate HTML attributes to a text length defined by
-   * COLLAPSE_DATA_URL_LENGTH and COLLAPSE_ATTRIBUTE_LENGTH. Because we parse
-   * text into document fragments we need to process each fragment and truncate
-   * according to the fragment's textContent length.
-   *
-   * @param  {DocumentFragment} frag
-   *         The fragment to truncate.
-   * @return {[DocumentFragment]}
-   *         Truncated fragment.
-   */
-  _truncateFrag: function(frag) {
-    let text = frag.textContent;
-
-    if (!text) {
-      return frag;
-    }
-
-    let chars = 0;
-    let maxWidth = text.match(COLLAPSE_DATA_URL_REGEX) ?
-                            COLLAPSE_DATA_URL_LENGTH : COLLAPSE_ATTRIBUTE_LENGTH;
-    let overBy = text.length - maxWidth;
-    let children = frag.childNodes;
-    let croppedNode = null;
-
-    if (overBy <= 0) {
-      return frag;
-    }
-
-    // For fragments containing only one single node we just need to truncate
-    // frag.textContent.
-    if (children.length === 1) {
-      let length = text.length;
-      let start = text.substr(0, maxWidth / 2);
-      let end = text.substr(length - maxWidth / 2, length - 1);
-
-      frag.textContent = start + "…" + end;
-      return frag;
-    }
-
-    // First maxWidth / 2 chars plus &hellip;
-    for (let i = 0; i < children.length; i++) {
-      let node = children[i];
-      let text = node.textContent;
-
-      let numChars = text.length;
-      if (chars + numChars > maxWidth / 2) {
-        let insertionPoint = maxWidth / 2 - chars;
-        let start = text.substr(0, insertionPoint) + "…";
-        let end = text.substr(insertionPoint);
-
-        if (end.length > maxWidth / 2) {
-          end = end.substr(end.length - maxWidth / 2);
-        }
-
-        node.textContent = start + end;
-        croppedNode = node;
-        break;
-      } else {
-        chars += numChars;
-      }
-    }
-
-    // Last maxWidth / two chars.
-    chars = 0;
-    for (let i = children.length - 1; i >= 0; i--) {
-      let node = children[i];
-      let text = node.textContent;
-
-      let numChars = text.length;
-      if (chars + numChars > maxWidth / 2) {
-        if (node !== croppedNode) {
-          node.parentNode.removeChild(node);
-          chars += numChars;
-        } else {
-          break;
-        }
-      } else {
-        chars += numChars;
-      }
-    }
-
-    return frag;
   },
 
   /**
@@ -2153,3 +2053,8 @@ function parseAttributeValues(attr, doc) {
 loader.lazyGetter(MarkupView.prototype, "strings", () => Services.strings.createBundle(
   "chrome://browser/locale/devtools/inspector.properties"
 ));
+
+XPCOMUtils.defineLazyGetter(this, "clipboardHelper", function() {
+  return Cc["@mozilla.org/widget/clipboardhelper;1"].
+    getService(Ci.nsIClipboardHelper);
+});

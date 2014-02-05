@@ -10,11 +10,11 @@
 #include "mozilla/Array.h"
 
 #include "jit/IonTypes.h"
-#if defined(JS_CPU_X86)
+#if defined(JS_CODEGEN_X86)
 # include "jit/x86/Architecture-x86.h"
-#elif defined(JS_CPU_X64)
+#elif defined(JS_CODEGEN_X64)
 # include "jit/x64/Architecture-x64.h"
-#elif defined(JS_CPU_ARM)
+#elif defined(JS_CODEGEN_ARM)
 # include "jit/arm/Architecture-arm.h"
 #endif
 
@@ -29,6 +29,11 @@ struct Register {
     static Register FromCode(uint32_t i) {
         JS_ASSERT(i < Registers::Total);
         Register r = { (Registers::Code)i };
+        return r;
+    }
+    static Register FromName(const char *name) {
+        Registers::Code code = Registers::FromName(name);
+        Register r = { code };
         return r;
     }
     Code code() const {
@@ -58,6 +63,11 @@ struct FloatRegister {
     static FloatRegister FromCode(uint32_t i) {
         JS_ASSERT(i < FloatRegisters::Total);
         FloatRegister r = { (FloatRegisters::Code)i };
+        return r;
+    }
+    static FloatRegister FromName(const char *name) {
+        FloatRegisters::Code code = FloatRegisters::FromName(name);
+        FloatRegister r = { code };
         return r;
     }
     Code code() const {

@@ -721,10 +721,11 @@ XPCConvert::JSData2Native(void* d, HandleValue s,
         MOZ_ASSERT(iid,"can't do interface conversions without iid");
 
         if (iid->Equals(NS_GET_IID(nsIVariant))) {
-            XPCVariant* variant = XPCVariant::newVariant(cx, s);
+            nsCOMPtr<nsIVariant> variant = XPCVariant::newVariant(cx, s);
             if (!variant)
                 return false;
-            *((nsISupports**)d) = static_cast<nsIVariant*>(variant);
+
+            variant.forget(static_cast<nsISupports**>(d));
             return true;
         } else if (iid->Equals(NS_GET_IID(nsIAtom)) &&
                    JSVAL_IS_STRING(s)) {
@@ -771,11 +772,11 @@ CreateHolderIfNeeded(HandleObject obj, MutableHandleValue d,
                      nsIXPConnectJSObjectHolder** dest)
 {
     if (dest) {
-        XPCJSObjectHolder* objHolder = XPCJSObjectHolder::newHolder(obj);
+        nsRefPtr<XPCJSObjectHolder> objHolder = XPCJSObjectHolder::newHolder(obj);
         if (!objHolder)
             return false;
 
-        NS_ADDREF(*dest = objHolder);
+        objHolder.forget(dest);
     }
 
     d.setObjectOrNull(obj);
@@ -1070,7 +1071,6 @@ XPCConvert::ConstructException(nsresult rv, const char* message,
 
     static const char format[] = "\'%s\' when calling method: [%s::%s]";
     const char * msg = message;
-    char* sz = nullptr;
     nsXPIDLString xmsg;
     nsAutoCString sxmsg;
 
@@ -1084,19 +1084,18 @@ XPCConvert::ConstructException(nsresult rv, const char* message,
     if (!msg)
         if (!nsXPCException::NameAndFormatForNSResult(rv, nullptr, &msg) || ! msg)
             msg = "<error>";
-    if (ifaceName && methodName)
-        msg = sz = JS_smprintf(format, msg, ifaceName, methodName);
 
-    nsRefPtr<Exception> e = new Exception(msg, rv, nullptr, nullptr, data);
+    nsCString msgStr(msg);
+    if (ifaceName && methodName)
+        msgStr.AppendPrintf(format, msg, ifaceName, methodName);
+
+    nsRefPtr<Exception> e = new Exception(msgStr, rv, EmptyCString(), nullptr, data);
 
     if (cx && jsExceptionPtr) {
         e->StowJSVal(*jsExceptionPtr);
     }
 
     e.forget(exceptn);
-
-    if (sz)
-        JS_smprintf_free(sz);
     return NS_OK;
 }
 
@@ -1151,9 +1150,8 @@ XPCConvert::JSValToXPCException(MutableHandleValue s,
             nsCOMPtr<nsIException> iface = do_QueryInterface(supports);
             if (iface) {
                 // just pass through the exception (with extra ref and all)
-                nsIException* temp = iface;
-                NS_ADDREF(temp);
-                *exceptn = temp;
+                nsCOMPtr<nsIException> temp = iface;
+                temp.forget(exceptn);
                 return NS_OK;
             } else {
                 // it is a wrapped native, but not an exception!
@@ -1167,7 +1165,7 @@ XPCConvert::JSValToXPCException(MutableHandleValue s,
             // If it is an engine Error with an error report then let's
             // extract the report and build an xpcexception from that
             const JSErrorReport* report;
-            if (nullptr != (report = JS_ErrorFromException(cx, s))) {
+            if (nullptr != (report = JS_ErrorFromException(cx, obj))) {
                 JSAutoByteString message;
                 JSString* str;
                 if (nullptr != (str = ToString(cx, s)))
@@ -1378,7 +1376,7 @@ XPCConvert::NativeArray2JS(MutableHandleValue d, const void** s,
     PR_BEGIN_MACRO                                                                      \
         for (i = 0; i < count; i++) {                                                   \
             if (!NativeData2JS(&current, ((_t*)*s)+i, type, iid, pErr) ||               \
-                !JS_SetElement(cx, array, i, &current))                                 \
+                !JS_SetElement(cx, array, i, current))                                  \
                 goto failure;                                                           \
         }                                                                               \
     PR_END_MACRO

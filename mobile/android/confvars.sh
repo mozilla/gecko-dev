@@ -5,7 +5,7 @@
 MOZ_APP_BASENAME=Fennec
 MOZ_APP_VENDOR=Mozilla
 
-MOZ_APP_VERSION=29.0a1
+MOZ_APP_VERSION=30.0a1
 MOZ_APP_UA_NAME=Firefox
 
 MOZ_BRANDING_DIRECTORY=mobile/android/branding/unofficial
@@ -65,3 +65,6 @@ fi
 
 # Enable the production cert for verifying signed packaged apps.
 MOZ_B2G_CERTDATA=1
+
+# Enable the "synthetic APKs" implementation of Open Web Apps.
+MOZ_ANDROID_SYNTHAPKS=1

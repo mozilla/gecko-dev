@@ -28,19 +28,20 @@ public:
     virtual ~mozJSSubScriptLoader();
 
     // all the interface method declarations...
-    NS_DECL_THREADSAFE_ISUPPORTS
+    NS_DECL_ISUPPORTS
     NS_DECL_MOZIJSSUBSCRIPTLOADER
 
 private:
     nsresult ReadScript(nsIURI *uri, JSContext *cx, JSObject *target_obj,
-                        const nsAString& charset, const char *uriStr,
+                        const nsAString &charset, const char *uriStr,
                         nsIIOService *serv, nsIPrincipal *principal,
                         bool reuseGlobal, JSScript **scriptp,
                         JSFunction **functionp);
 
-    nsresult DoLoadSubScriptWithOptions(const nsAString& url,
-                                        LoadSubScriptOptions& options,
-                                        JSContext* cx, JS::Value* retval);
+    nsresult DoLoadSubScriptWithOptions(const nsAString &url,
+                                        LoadSubScriptOptions  &options,
+                                        JSContext *cx,
+                                        JS::MutableHandle<JS::Value> retval);
 
     nsCOMPtr<nsIPrincipal> mSystemPrincipal;
 };

@@ -65,6 +65,38 @@ const {HighlighterActor} = require("devtools/server/actors/highlighter");
 
 const PSEUDO_CLASSES = [":hover", ":active", ":focus"];
 const HIDDEN_CLASS = "__fx-devtools-hide-shortcut__";
+// The possible completions to a ':' with added score to give certain values
+// some preference.
+const PSEUDO_SELECTORS = [
+  [":active", 1],
+  [":hover", 1],
+  [":focus", 1],
+  [":visited", 0],
+  [":link", 0],
+  [":first-letter", 0],
+  [":first-child", 2],
+  [":before", 2],
+  [":after", 2],
+  [":lang(", 0],
+  [":not(", 3],
+  [":first-of-type", 0],
+  [":last-of-type", 0],
+  [":only-of-type", 0],
+  [":only-child", 2],
+  [":nth-child(", 3],
+  [":nth-last-child(", 0],
+  [":nth-of-type(", 0],
+  [":nth-last-of-type(", 0],
+  [":last-child", 2],
+  [":root", 0],
+  [":empty", 0],
+  [":target", 0],
+  [":enabled", 0],
+  [":disabled", 0],
+  [":checked", 1],
+  ["::selection", 0]
+];
+
 
 let HELPER_SHEET = ".__fx-devtools-hide-shortcut__ { visibility: hidden !important } ";
 HELPER_SHEET += ":-moz-devtools-highlighted { outline: 2px dashed #F06!important; outline-offset: -2px!important } ";
@@ -1403,6 +1435,136 @@ var WalkerActor = protocol.ActorClass({
   }),
 
   /**
+   * Returns a list of matching results for CSS selector autocompletion.
+   *
+   * @param string query
+   *        The selector query being completed
+   * @param string completing
+   *        The exact token being completed out of the query
+   * @param string selectorState
+   *        One of "pseudo", "id", "tag", "class", "null"
+   */
+  getSuggestionsForQuery: method(function(query, completing, selectorState) {
+    let sugs = {
+      classes: new Map,
+      tags: new Map
+    };
+    let result = [];
+    let nodes = null;
+    // Filtering and sorting the results so that protocol transfer is miminal.
+    switch (selectorState) {
+      case "pseudo":
+        result = PSEUDO_SELECTORS.filter(item => {
+          return item[0].startsWith(":" + completing);
+        });
+        break;
+
+      case "class":
+        if (!query) {
+          nodes = this.rootDoc.querySelectorAll("[class]");
+        }
+        else {
+          nodes = this.rootDoc.querySelectorAll(query);
+        }
+        for (let node of nodes) {
+          for (let className of node.className.split(" ")) {
+            sugs.classes.set(className, (sugs.classes.get(className)|0) + 1);
+          }
+        }
+        sugs.classes.delete("");
+        // Editing the style editor may make the stylesheet have errors and
+        // thus the page's elements' styles start changing with a transition.
+        // That transition comes from the `moz-styleeditor-transitioning` class.
+        sugs.classes.delete("moz-styleeditor-transitioning");
+        sugs.classes.delete(HIDDEN_CLASS);
+        for (let [className, count] of sugs.classes) {
+          if (className.startsWith(completing)) {
+            result.push(["." + className, count]);
+          }
+        }
+        break;
+
+      case "id":
+        if (!query) {
+          nodes = this.rootDoc.querySelectorAll("[id]");
+        }
+        else {
+          nodes = this.rootDoc.querySelectorAll(query);
+        }
+        for (let node of nodes) {
+          if (node.id.startsWith(completing)) {
+            result.push(["#" + node.id, 1]);
+          }
+        }
+        break;
+
+      case "tag":
+        if (!query) {
+          nodes = this.rootDoc.getElementsByTagName("*");
+        }
+        else {
+          nodes = this.rootDoc.querySelectorAll(query);
+        }
+        for (let node of nodes) {
+          let tag = node.tagName.toLowerCase();
+          sugs.tags.set(tag, (sugs.tags.get(tag)|0) + 1);
+        }
+        for (let [tag, count] of sugs.tags) {
+          if ((new RegExp("^" + completing + ".*", "i")).test(tag)) {
+            result.push([tag, count]);
+          }
+        }
+        break;
+
+      case "null":
+        nodes = this.rootDoc.querySelectorAll(query);
+        for (let node of nodes) {
+          node.id && result.push(["#" + node.id, 1]);
+          let tag = node.tagName.toLowerCase();
+          sugs.tags.set(tag, (sugs.tags.get(tag)|0) + 1);
+          for (let className of node.className.split(" ")) {
+            sugs.classes.set(className, (sugs.classes.get(className)|0) + 1);
+          }
+        }
+        for (let [tag, count] of sugs.tags) {
+          tag && result.push([tag, count]);
+        }
+        sugs.classes.delete("");
+        // Editing the style editor may make the stylesheet have errors and
+        // thus the page's elements' styles start changing with a transition.
+        // That transition comes from the `moz-styleeditor-transitioning` class.
+        sugs.classes.delete("moz-styleeditor-transitioning");
+        sugs.classes.delete(HIDDEN_CLASS);
+        for (let [className, count] of sugs.classes) {
+          className && result.push(["." + className, count]);
+        }
+    }
+
+    // Sort alphabetically in increaseing order.
+    result = result.sort();
+    // Sort based on count in decreasing order.
+    result = result.sort(function(a, b) {
+      return b[1] - a[1];
+    });
+
+    result.slice(0, 25);
+
+    return {
+      query: query,
+      suggestions: result
+    };
+  }, {
+    request: {
+      query: Arg(0),
+      completing: Arg(1),
+      selectorState: Arg(2)
+    },
+    response: {
+      list: RetVal("array:array:string")
+    }
+  }),
+
+  /**
    * Add a pseudo-class lock to a node.
    *
    * @param NodeActor node
@@ -1924,7 +2086,31 @@ var WalkerActor = protocol.ActorClass({
     // Need to force a release of this node, because those nodes can't
     // be accessed anymore.
     this.releaseNode(documentActor, { force: true });
-  }
+  },
+
+  /**
+   * Given an ObjectActor (identified by its ID), commonly used in the debugger,
+   * webconsole and variablesView, return the corresponding inspector's NodeActor
+   */
+  getNodeActorFromObjectActor: method(function(objectActorID) {
+    let debuggerObject = this.conn.poolFor(objectActorID).get(objectActorID).obj;
+    let rawNode = debuggerObject.unsafeDereference();
+
+    // This is a special case for the document object whereby it is considered
+    // as document.documentElement (the <html> node)
+    if (rawNode.defaultView && rawNode === rawNode.defaultView.document) {
+      rawNode = rawNode.documentElement;
+    }
+
+    return this.attachElement(rawNode);
+  }, {
+    request: {
+      objectActorID: Arg(0, "string")
+    },
+    response: {
+      nodeFront: RetVal("disconnectedNode")
+    }
+  }),
 });
 
 /**
@@ -2056,6 +2242,14 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
     });
   }, {
     impl: "_querySelector"
+  }),
+
+  getNodeActorFromObjectActor: protocol.custom(function(objectActorID) {
+    return this._getNodeActorFromObjectActor(objectActorID).then(response => {
+      return response.node;
+    });
+  }, {
+    impl: "_getNodeActorFromObjectActor"
   }),
 
   _releaseFront: function(node, force) {

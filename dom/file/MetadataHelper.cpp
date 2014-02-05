@@ -26,9 +26,10 @@ MetadataHelper::DoAsyncRun(nsISupports* aStream)
 
 nsresult
 MetadataHelper::GetSuccessResult(JSContext* aCx,
-                                 JS::Value* aVal)
+                                 JS::MutableHandle<JS::Value> aVal)
 {
-  JS::Rooted<JSObject*> obj(aCx, JS_NewObject(aCx, nullptr, nullptr, nullptr));
+  JS::Rooted<JSObject*> obj(aCx, JS_NewObject(aCx, nullptr, JS::NullPtr(),
+                                              JS::NullPtr()));
   NS_ENSURE_TRUE(obj, NS_ERROR_OUT_OF_MEMORY);
 
   if (mParams->SizeRequested()) {
@@ -51,8 +52,7 @@ MetadataHelper::GetSuccessResult(JSContext* aCx,
     }
   }
 
-  *aVal = OBJECT_TO_JSVAL(obj);
-
+  aVal.setObject(*obj);
   return NS_OK;
 }
 

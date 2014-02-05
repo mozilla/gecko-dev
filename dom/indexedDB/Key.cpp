@@ -7,6 +7,8 @@
 #include "mozilla/FloatingPoint.h"
 
 #include "Key.h"
+#include "ReportInternalError.h"
+
 #include "jsfriendapi.h"
 #include "nsAlgorithm.h"
 #include "nsJSUtils.h"
@@ -101,7 +103,7 @@ const int MaxArrayCollapse = 3;
 const int MaxRecursionDepth = 256;
 
 nsresult
-Key::EncodeJSValInternal(JSContext* aCx, const jsval aVal,
+Key::EncodeJSValInternal(JSContext* aCx, JS::Handle<JS::Value> aVal,
                          uint8_t aTypeOffset, uint16_t aRecursionDepth)
 {
   NS_ENSURE_TRUE(aRecursionDepth < MaxRecursionDepth, NS_ERROR_DOM_INDEXEDDB_DATA_ERR);
@@ -109,22 +111,18 @@ Key::EncodeJSValInternal(JSContext* aCx, const jsval aVal,
   static_assert(eMaxType * MaxArrayCollapse < 256,
                 "Unable to encode jsvals.");
 
-  if (JSVAL_IS_STRING(aVal)) {
+  if (aVal.isString()) {
     nsDependentJSString str;
     if (!str.init(aCx, aVal)) {
+      IDB_REPORT_INTERNAL_ERR();
       return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
     }
     EncodeString(str, aTypeOffset);
     return NS_OK;
   }
 
-  if (JSVAL_IS_INT(aVal)) {
-    EncodeNumber((double)JSVAL_TO_INT(aVal), eFloat + aTypeOffset);
-    return NS_OK;
-  }
-
-  if (JSVAL_IS_DOUBLE(aVal)) {
-    double d = JSVAL_TO_DOUBLE(aVal);
+  if (aVal.isNumber()) {
+    double d = aVal.toNumber();
     if (mozilla::IsNaN(d)) {
       return NS_ERROR_DOM_INDEXEDDB_DATA_ERR;
     }
@@ -132,8 +130,8 @@ Key::EncodeJSValInternal(JSContext* aCx, const jsval aVal,
     return NS_OK;
   }
 
-  if (!JSVAL_IS_PRIMITIVE(aVal)) {
-    JS::Rooted<JSObject*> obj(aCx, JSVAL_TO_OBJECT(aVal));
+  if (aVal.isObject()) {
+    JS::Rooted<JSObject*> obj(aCx, &aVal.toObject());
     if (JS_IsArrayObject(aCx, obj)) {
       aTypeOffset += eMaxType;
 
@@ -147,12 +145,14 @@ Key::EncodeJSValInternal(JSContext* aCx, const jsval aVal,
 
       uint32_t length;
       if (!JS_GetArrayLength(aCx, obj, &length)) {
+        IDB_REPORT_INTERNAL_ERR();
         return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
       }
 
       for (uint32_t index = 0; index < length; index++) {
         JS::Rooted<JS::Value> val(aCx);
         if (!JS_GetElement(aCx, obj, index, &val)) {
+          IDB_REPORT_INTERNAL_ERR();
           return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
         }
 
@@ -194,6 +194,7 @@ Key::DecodeJSValInternal(const unsigned char*& aPos, const unsigned char* aEnd,
     JS::Rooted<JSObject*> array(aCx, JS_NewArrayObject(aCx, 0, nullptr));
     if (!array) {
       NS_WARNING("Failed to make array!");
+      IDB_REPORT_INTERNAL_ERR();
       return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
     }
 
@@ -213,8 +214,9 @@ Key::DecodeJSValInternal(const unsigned char*& aPos, const unsigned char* aEnd,
 
       aTypeOffset = 0;
 
-      if (!JS_SetElement(aCx, array, index++, &val)) {
+      if (!JS_SetElement(aCx, array, index++, val)) {
         NS_WARNING("Failed to set array element!");
+        IDB_REPORT_INTERNAL_ERR();
         return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
       }
     }
@@ -229,6 +231,7 @@ Key::DecodeJSValInternal(const unsigned char*& aPos, const unsigned char* aEnd,
     nsString key;
     DecodeString(aPos, aEnd, key);
     if (!xpc::StringToJsval(aCx, key, aVal)) {
+      IDB_REPORT_INTERNAL_ERR();
       return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
     }
   }
@@ -236,7 +239,7 @@ Key::DecodeJSValInternal(const unsigned char*& aPos, const unsigned char* aEnd,
     double msec = static_cast<double>(DecodeNumber(aPos, aEnd));
     JSObject* date = JS_NewDateObjectMsec(aCx, msec);
     if (!date) {
-      NS_WARNING("Failed to make date!");
+      IDB_WARNING("Failed to make date!");
       return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
     }
 

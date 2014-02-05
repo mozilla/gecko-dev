@@ -27,7 +27,6 @@ user_pref("devtools.errorconsole.enabled", true);
 user_pref("devtools.debugger.remote-port", 6023);
 user_pref("layout.debug.enable_data_xbl", true);
 user_pref("browser.EULA.override", true);
-user_pref("javascript.options.jit_hardening", true);
 user_pref("gfx.color_management.force_srgb", true);
 user_pref("network.manage-offline-status", false);
 user_pref("dom.min_background_timeout_value", 1000);
@@ -70,7 +69,6 @@ user_pref("camino.warn_when_closing", false); // Camino-only, harmless to others
 user_pref("urlclassifier.updateinterval", 172800);
 // Point the url-classifier to the local testing server for fast failures
 user_pref("browser.safebrowsing.gethashURL", "http://%(server)s/safebrowsing-dummy/gethash");
-user_pref("browser.safebrowsing.keyURL", "http://%(server)s/safebrowsing-dummy/newkey");
 user_pref("browser.safebrowsing.updateURL", "http://%(server)s/safebrowsing-dummy/update");
 // Point update checks to the local testing server for fast failures
 user_pref("extensions.update.url", "http://%(server)s/extensions-dummy/updateURL");
@@ -158,3 +156,9 @@ user_pref("browser.download.panel.shown", true);
 // prefs for firefox metro.
 // Disable first-tun tab
 user_pref("browser.firstrun.count", 0);
+
+// Enable webapps testing mode, which bypasses native installation.
+user_pref("browser.webapps.testing", true);
+
+// Disable android snippets
+user_pref("browser.snippets.enabled", false);

@@ -13,7 +13,15 @@ class gfxASurface;
 class gfxPattern;
 class gfxImageSurface;
 
+namespace mozilla {
+namespace gfx {
+class SourceSurface;
+}
+}
+
 class nsImageToPixbuf MOZ_FINAL : public nsIImageToPixbuf {
+    typedef mozilla::gfx::SourceSurface SourceSurface;
+
     public:
         NS_DECL_ISUPPORTS
         NS_IMETHOD_(GdkPixbuf*) ConvertImageToPixbuf(imgIContainer* aImage);
@@ -25,11 +33,11 @@ class nsImageToPixbuf MOZ_FINAL : public nsIImageToPixbuf {
          * released as needed by the caller using g_object_unref.
          */
         static GdkPixbuf* ImageToPixbuf(imgIContainer * aImage);
-        static GdkPixbuf* SurfaceToPixbuf(gfxASurface* aSurface,
-                                          int32_t aWidth, int32_t aHeight);
+        static GdkPixbuf* SourceSurfaceToPixbuf(SourceSurface* aSurface,
+                                                int32_t aWidth,
+                                                int32_t aHeight);
+
     private:
-        static GdkPixbuf* ImgSurfaceToPixbuf(gfxImageSurface* aImgSurface,
-                                             int32_t aWidth, int32_t aHeight);
         ~nsImageToPixbuf() {}
 };
 

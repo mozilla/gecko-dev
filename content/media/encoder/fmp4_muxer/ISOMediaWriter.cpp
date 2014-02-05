@@ -9,6 +9,7 @@
 #include "ISOTrackMetadata.h"
 #include "nsThreadUtils.h"
 #include "MediaEncoder.h"
+#include "VideoUtils.h"
 
 #undef LOG
 #ifdef MOZ_WIDGET_GONK
@@ -20,7 +21,7 @@
 
 namespace mozilla {
 
-const static uint32_t FRAG_DURATION = 2000000;    // microsecond per unit
+const static uint32_t FRAG_DURATION = 2 * USECS_PER_S;    // microsecond per unit
 
 ISOMediaWriter::ISOMediaWriter(uint32_t aType)
   : ContainerWriter()
@@ -28,11 +29,10 @@ ISOMediaWriter::ISOMediaWriter(uint32_t aType)
   , mBlobReady(false)
   , mType(0)
 {
-  // TODO: replace Audio_Track/Video_Track with HAS_AUDIO/HAS_VIDEO
-  if (aType & HAS_AUDIO) {
+  if (aType & CREATE_AUDIO_TRACK) {
     mType |= Audio_Track;
   }
-  if (aType & HAS_VIDEO) {
+  if (aType & CREATE_VIDEO_TRACK) {
     mType |= Video_Track;
   }
   mControl = new ISOControl();
@@ -118,10 +118,12 @@ ISOMediaWriter::WriteEncodedTrack(const EncodedFrameContainer& aData,
   // audio/video frames. When CSD data is ready, it is sufficient to generate a
   // moov data. If encoder doesn't send CSD yet, muxer needs to wait before
   // generating anything.
-  if (mType & Audio_Track && !mAudioFragmentBuffer->HasCSD()) {
+  if (mType & Audio_Track && (!mAudioFragmentBuffer ||
+                              !mAudioFragmentBuffer->HasCSD())) {
     return NS_OK;
   }
-  if (mType & Video_Track && !mVideoFragmentBuffer->HasCSD()) {
+  if (mType & Video_Track && (!mVideoFragmentBuffer ||
+                              !mVideoFragmentBuffer->HasCSD())) {
     return NS_OK;
   }
 
@@ -176,7 +178,7 @@ ISOMediaWriter::ReadyToRunState(bool& aEOS)
     if (!mVideoFragmentBuffer->HasEnoughData()) {
       bReadyToMux = false;
     }
-    if (mAudioFragmentBuffer->EOS()) {
+    if (mVideoFragmentBuffer->EOS()) {
       aEOS = true;
       bReadyToMux = true;
     }
@@ -194,8 +196,7 @@ ISOMediaWriter::GetContainerData(nsTArray<nsTArray<uint8_t>>* aOutputBufs,
       mIsWritingComplete = true;
     }
     mBlobReady = false;
-    aOutputBufs->AppendElement();
-    return mControl->GetBuf(aOutputBufs->LastElement());
+    return mControl->GetBufs(aOutputBufs);
   }
   return NS_OK;
 }

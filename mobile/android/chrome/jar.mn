@@ -16,8 +16,9 @@ chrome.jar:
   content/aboutDownloads.xhtml         (content/aboutDownloads.xhtml)
   content/aboutDownloads.js            (content/aboutDownloads.js)
   content/aboutFeedback.xhtml          (content/aboutFeedback.xhtml)
-  content/aboutFeedback.js	       (content/aboutFeedback.js)
+  content/aboutFeedback.js             (content/aboutFeedback.js)
   content/aboutPrivateBrowsing.xhtml   (content/aboutPrivateBrowsing.xhtml)
+  content/aboutPrivateBrowsing.js      (content/aboutPrivateBrowsing.js)
   content/aboutReader.html             (content/aboutReader.html)
   content/aboutReader.js               (content/aboutReader.js)
   content/Readability.js               (content/Readability.js)
@@ -25,8 +26,8 @@ chrome.jar:
   content/readerWorker.js              (content/readerWorker.js)
   content/aboutHome.xhtml              (content/aboutHome.xhtml)
   content/aboutRights.xhtml            (content/aboutRights.xhtml)
-  content/aboutApps.xhtml              (content/aboutApps.xhtml)
-  content/aboutApps.js                 (content/aboutApps.js)
+* content/aboutApps.xhtml              (content/aboutApps.xhtml)
+* content/aboutApps.js                 (content/aboutApps.js)
   content/blockedSite.xhtml            (content/blockedSite.xhtml)
   content/languages.properties         (content/languages.properties)
   content/browser.xul                  (content/browser.xul)
@@ -39,7 +40,7 @@ chrome.jar:
   content/SelectHelper.js              (content/SelectHelper.js)
   content/SelectionHandler.js          (content/SelectionHandler.js)
   content/dbg-browser-actors.js        (content/dbg-browser-actors.js)
-  content/WebAppRT.js                  (content/WebAppRT.js)
+* content/WebAppRT.js                  (content/WebAppRT.js)
   content/InputWidgetHelper.js         (content/InputWidgetHelper.js)
   content/WebrtcUI.js                  (content/WebrtcUI.js)
   content/MemoryObserver.js            (content/MemoryObserver.js)
@@ -52,12 +53,11 @@ chrome.jar:
   content/FeedHandler.js               (content/FeedHandler.js)
   content/Feedback.js                  (content/Feedback.js)
   content/Linkify.js                   (content/Linkify.js)
+  content/CastingApps.js               (content/CastingApps.js)
 #ifdef MOZ_SERVICES_HEALTHREPORT
   content/aboutHealthReport.xhtml      (content/aboutHealthReport.xhtml)
 * content/aboutHealthReport.js         (content/aboutHealthReport.js)
 #endif
-  content/aboutAccounts.xhtml          (content/aboutAccounts.xhtml)
-* content/aboutAccounts.js             (content/aboutAccounts.js)
 
 % content branding %content/branding/
 

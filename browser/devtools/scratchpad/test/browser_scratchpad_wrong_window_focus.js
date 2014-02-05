@@ -3,6 +3,7 @@
    http://creativecommons.org/publicdomain/zero/1.0/ */
 /* Bug 661762 */
 
+
 function test()
 {
   waitForExplicitFinish();
@@ -25,22 +26,15 @@ function test()
 
     openScratchpad(function () {
       let sw = gScratchpadWindow;
+      let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 
       openScratchpad(function () {
-        function onWebConsoleOpen(subj) {
-          Services.obs.removeObserver(onWebConsoleOpen,
-            "web-console-created");
-          subj.QueryInterface(Ci.nsISupportsString);
-
-          let hud = HUDService.getHudReferenceById(subj.data);
+        let target = devtools.TargetFactory.forTab(gBrowser.selectedTab);
+        gDevTools.showToolbox(target, "webconsole").then((toolbox) => {
+          let hud = toolbox.getCurrentPanel().hud;
           hud.jsterm.clearOutput(true);
-          executeSoon(testFocus.bind(null, sw, hud));
-        }
-
-        Services.obs.
-          addObserver(onWebConsoleOpen, "web-console-created", false);
-
-        HUDService.toggleWebConsole();
+          testFocus(sw, hud);
+        });
       });
     });
   }, true);
@@ -54,7 +48,7 @@ function testFocus(sw, hud) {
   function onMessage(event, messages) {
     let msg = [...messages][0];
 
-    var loc = msg.querySelector(".location");
+    var loc = msg.querySelector(".message-location");
     ok(loc, "location element exists");
     is(loc.textContent.trim(), sw.Scratchpad.uniqueName + ":1",
         "location value is correct");

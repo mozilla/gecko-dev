@@ -54,13 +54,6 @@ self.onmessage = function (msg) {
 };
 
 let Agent = {
-  // The initial session string as read from disk.
-  initialState: null,
-
-  // Boolean that tells whether we already wrote
-  // the loadState to disk once after startup.
-  hasWrittenLoadStateOnce: false,
-
   // Boolean that tells whether we already made a
   // call to write(). We will only attempt to move
   // sessionstore.js to sessionstore.bak on the
@@ -74,28 +67,10 @@ let Agent = {
   backupPath: OS.Path.join(OS.Constants.Path.profileDir, "sessionstore.bak"),
 
   /**
-   * Read the session from disk.
-   * In case sessionstore.js does not exist, attempt to read sessionstore.bak.
+   * NO-OP to start the worker.
    */
-  read: function () {
-    for (let path of [this.path, this.backupPath]) {
-      try {
-        let durationMs = Date.now();
-        let bytes = File.read(path);
-        durationMs = Date.now() - durationMs;
-        this.initialState = Decoder.decode(bytes);
-
-        return {
-          result: this.initialState,
-          telemetry: {FX_SESSION_RESTORE_READ_FILE_MS: durationMs,
-                      FX_SESSION_RESTORE_FILE_SIZE_BYTES: bytes.byteLength}
-        };
-      } catch (ex if isNoSuchFileEx(ex)) {
-        // Ignore exceptions about non-existent files.
-      }
-    }
-    // No sessionstore data files found. Return an empty string.
-    return {result: ""};
+  init: function () {
+    return {result: true};
   },
 
   /**
@@ -138,37 +113,6 @@ let Agent = {
    */
   gatherTelemetry: function (stateString) {
     return Statistics.collect(stateString);
-  },
-
-  /**
-   * Writes the session state to disk again but changes session.state to
-   * 'running' before doing so. This is intended to be called only once, shortly
-   * after startup so that we detect crashes on startup correctly.
-   */
-  writeLoadStateOnceAfterStartup: function (loadState) {
-    if (this.hasWrittenLoadStateOnce) {
-      throw new Error("writeLoadStateOnceAfterStartup() must only be called once.");
-    }
-
-    if (!this.initialState) {
-      throw new Error("writeLoadStateOnceAfterStartup() must not be called " +
-                      "without a valid session state or before it has been " +
-                      "read from disk.");
-    }
-
-    // Make sure we can't call this function twice.
-    this.hasWrittenLoadStateOnce = true;
-
-    let state;
-    try {
-      state = JSON.parse(this.initialState);
-    } finally {
-      this.initialState = null;
-    }
-
-    state.session = state.session || {};
-    state.session.state = loadState;
-    return this._write(JSON.stringify(state));
   },
 
   /**
@@ -352,8 +296,6 @@ let Statistics = {
     subsets.DOM_STORAGE = [];
     // The subset of sessionstore.js storing form data
     subsets.FORMDATA = [];
-    // The subset of sessionstore.js storing POST data in history
-    subsets.POSTDATA = [];
     // The subset of sessionstore.js storing history
     subsets.HISTORY = [];
 
@@ -372,9 +314,6 @@ let Statistics = {
           subsets.FORMDATA.push(value);
           // Never visit formdata, it's full of weird stuff
           return false;
-        case "postdata_b64":
-          subsets.POSTDATA.push(value);
-          return false; // Nothing to visit anyway
         case "cookies": // Don't visit these places, they are full of weird stuff
         case "extData":
           return false;

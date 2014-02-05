@@ -9,6 +9,7 @@ const Ci = Components.interfaces;
 const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+const { DevToolsUtils } = Cu.import("resource://gre/modules/devtools/DevToolsUtils.jsm", {});
 
 XPCOMUtils.defineLazyModuleGetter(this,
   "Reflect", "resource://gre/modules/reflect.jsm");
@@ -65,7 +66,7 @@ Parser.prototype = {
         syntaxTrees.push(new SyntaxTree(nodes, aUrl, length));
       } catch (e) {
         this.errors.push(e);
-        log(aUrl, e);
+        DevToolsUtils.reportException(aUrl, e);
       }
     }
     // Generate the AST nodes for each script.
@@ -79,12 +80,12 @@ Parser.prototype = {
           syntaxTrees.push(new SyntaxTree(nodes, aUrl, length, offset));
         } catch (e) {
           this.errors.push(e);
-          log(aUrl, e);
+          DevToolsUtils.reportException(aUrl, e);
         }
       }
     }
 
-    let pool = new SyntaxTreesPool(syntaxTrees);
+    let pool = new SyntaxTreesPool(syntaxTrees, aUrl);
 
     // Cache the syntax trees pool by the specified url. This is entirely
     // optional, but it's strongly encouraged to cache ASTs because
@@ -122,9 +123,12 @@ Parser.prototype = {
  *
  * @param object aSyntaxTrees
  *        A collection of AST nodes generated for a source.
+ * @param string aUrl [optional]
+ *        The source url.
  */
-function SyntaxTreesPool(aSyntaxTrees) {
+function SyntaxTreesPool(aSyntaxTrees, aUrl = "<unknown>") {
   this._trees = aSyntaxTrees;
+  this._url = aUrl;
   this._cache = new Map();
 }
 
@@ -133,7 +137,7 @@ SyntaxTreesPool.prototype = {
    * @see SyntaxTree.prototype.getIdentifierAt
    */
   getIdentifierAt: function({ line, column, scriptIndex }) {
-    return this._first(this._call("getIdentifierAt", scriptIndex, line, column));
+    return this._call("getIdentifierAt", scriptIndex, line, column)[0];
   },
 
   /**
@@ -177,18 +181,6 @@ SyntaxTreesPool.prototype = {
   },
 
   /**
-   * Gets the first script results from a source results set.
-   * If no results are found, null is returned.
-   *
-   * @return array
-   *         A collection of parse results for the first script in a source.
-   */
-  _first: function(aSourceResults) {
-    let scriptResult = aSourceResults.filter(e => !!e.parseResults)[0];
-    return scriptResult ? scriptResult.parseResults : null;
-  },
-
-  /**
    * Handles a request for a specific or all known syntax trees.
    *
    * @param string aFunction
@@ -215,17 +207,18 @@ SyntaxTreesPool.prototype = {
 
     for (let syntaxTree of targettedTrees) {
       try {
-        results.push({
-          sourceUrl: syntaxTree.url,
-          scriptLength: syntaxTree.length,
-          scriptOffset: syntaxTree.offset,
-          parseResults: syntaxTree[aFunction].apply(syntaxTree, aParams)
-        });
+        let parseResults = syntaxTree[aFunction].apply(syntaxTree, aParams);
+        if (parseResults) {
+          parseResults.sourceUrl = syntaxTree.url;
+          parseResults.scriptLength = syntaxTree.length;
+          parseResults.scriptOffset = syntaxTree.offset;
+          results.push(parseResults);
+        }
       } catch (e) {
         // Can't guarantee that the tree traversal logic is forever perfect :)
         // Language features may be added, in which case the recursive methods
         // need to be updated. If an exception is thrown here, file a bug.
-        log("syntax tree", e);
+        DevToolsUtils.reportException("Syntax tree visitor for " + aUrl, e);
       }
     }
     this._cache.set(requestId, results);
@@ -2339,28 +2332,6 @@ let SyntaxTreeVisitor = {
       aCallbacks.onLiteral(aNode);
     }
   }
-};
-
-/**
- * Logs a warning.
- *
- * @param string aStr
- *        The message to be displayed.
- * @param Exception aEx
- *        The thrown exception.
- */
-function log(aStr, aEx) {
-  let msg = "Warning: " + aStr + ", " + aEx.message;
-
-  if ("lineNumber" in aEx && "columnNumber" in aEx) {
-    msg += ", line: " + aEx.lineNumber + ", column: " + aEx.columnNumber;
-  }
-  if ("stack" in aEx) {
-    msg += "\n" + aEx.stack;
-  }
-
-  Cu.reportError(msg);
-  dump(msg + "\n");
 };
 
 XPCOMUtils.defineLazyGetter(Parser, "reflectionAPI", () => Reflect);

@@ -1,8 +1,9 @@
 #!/usr/bin/env python
-
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
+
+import os
 import subprocess
 import traceback
 
@@ -38,7 +39,6 @@ class Runner(object):
         self.log = mozlog.getLogger('MozRunner')
         self.symbols_path = symbols_path
 
-    @abstractmethod
     def start(self, *args, **kwargs):
         """
         Run the process
@@ -70,17 +70,25 @@ class Runner(object):
         """
         Wait for the process to exit.
         Returns the process return code if the process exited,
-        returns None otherwise.
+        returns -<signal> if the process was killed (Unix only)
+        returns None if the process is still running.
 
-        If timeout is not None, will return after timeout seconds.
-        Use is_running() to determine whether or not a timeout occured.
-        Timeout is ignored if interactive was set to True.
+        :param timeout: if not None, will return after timeout seconds.
+                        Use is_running() to determine whether or not a
+                        timeout occured. Timeout is ignored if
+                        interactive was set to True.
         """
         if self.process_handler is not None:
             if isinstance(self.process_handler, subprocess.Popen):
                 self.returncode = self.process_handler.wait()
             else:
                 self.process_handler.wait(timeout)
+
+                if not self.process_handler:
+                    # the process was killed by another thread
+                    return self.returncode
+
+                # the process terminated, retrieve the return code
                 self.returncode = self.process_handler.proc.poll()
                 if self.returncode is not None:
                     self.process_handler = None
@@ -96,13 +104,16 @@ class Runner(object):
         return self.process_handler is not None
 
 
-    def stop(self):
+    def stop(self, sig=None):
         """
         Kill the process
+
+        :param sig: Signal used to kill the process, defaults to SIGKILL
+                    (has no effect on Windows).
         """
         if self.process_handler is None:
             return
-        self.process_handler.kill()
+        self.returncode = self.process_handler.kill(sig=sig)
         self.process_handler = None
 
     def reset(self):
@@ -112,7 +123,10 @@ class Runner(object):
         if getattr(self, 'profile', False):
             self.profile.reset()
 
-    def check_for_crashes(self, dump_directory, test_name=None):
+    def check_for_crashes(self, dump_directory=None, test_name=None):
+        if not dump_directory:
+            dump_directory = os.path.join(self.profile.profile, 'minidumps')
+
         crashed = False
         try:
             crashed = mozcrash.check_for_crashes(dump_directory,

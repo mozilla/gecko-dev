@@ -231,8 +231,8 @@ FPSState::DrawFPS(TimeStamp aNow,
   aProgram->SetTextureUnit(0);
   aProgram->SetLayerQuadRect(gfx::Rect(0.f, 0.f, viewport[2], viewport[3]));
   aProgram->SetLayerOpacity(1.f);
-  aProgram->SetTextureTransform(gfx3DMatrix());
-  aProgram->SetLayerTransform(gfx3DMatrix());
+  aProgram->SetTextureTransform(Matrix4x4());
+  aProgram->SetLayerTransform(Matrix4x4());
   aProgram->SetRenderOffset(0, 0);
 
   aContext->fBlendFuncSeparate(LOCAL_GL_ONE, LOCAL_GL_ZERO,
@@ -253,7 +253,7 @@ CompositorOGL::CompositorOGL(nsIWidget *aWidget, int aSurfaceWidth,
   , mHeight(0)
 {
   MOZ_COUNT_CTOR(CompositorOGL);
-  sBackend = LAYERS_OPENGL;
+  sBackend = LayersBackend::LAYERS_OPENGL;
 }
 
 CompositorOGL::~CompositorOGL()
@@ -628,17 +628,21 @@ CompositorOGL::BindAndDrawQuadWithTextureRect(ShaderProgramOGL *aProg,
 
   gfx3DMatrix textureTransform;
   if (rects.IsSimpleQuad(textureTransform)) {
-    aProg->SetTextureTransform(aTextureTransform * textureTransform);
+    Matrix4x4 transform;
+    ToMatrix4x4(aTextureTransform * textureTransform, transform);
+    aProg->SetTextureTransform(transform);
     BindAndDrawQuad(aProg, false);
   } else {
-    aProg->SetTextureTransform(aTextureTransform);
+    Matrix4x4 transform;
+    ToMatrix4x4(aTextureTransform, transform);
+    aProg->SetTextureTransform(transform);
     DrawQuads(mGLContext, mVBOs, aProg, rects);
   }
 }
 
 void
 CompositorOGL::PrepareViewport(const gfx::IntSize& aSize,
-                               const gfxMatrix& aWorldTransform)
+                               const Matrix& aWorldTransform)
 {
   // Set the viewport correctly.
   mGLContext->fViewport(0, 0, aSize.width, aSize.height);
@@ -655,29 +659,31 @@ CompositorOGL::PrepareViewport(const gfx::IntSize& aSize,
 
   // Matrix to transform (0, 0, aWidth, aHeight) to viewport space (-1.0, 1.0,
   // 2, 2) and flip the contents.
-  gfxMatrix viewMatrix;
-  viewMatrix.Translate(-gfxPoint(1.0, -1.0));
+  Matrix viewMatrix;
+  viewMatrix.Translate(-1.0, 1.0);
   viewMatrix.Scale(2.0f / float(aSize.width), 2.0f / float(aSize.height));
   viewMatrix.Scale(1.0f, -1.0f);
   if (!mTarget) {
-    viewMatrix.Translate(gfxPoint(mRenderOffset.x, mRenderOffset.y));
+    viewMatrix.Translate(mRenderOffset.x, mRenderOffset.y);
   }
 
   viewMatrix = aWorldTransform * viewMatrix;
 
-  gfx3DMatrix matrix3d = gfx3DMatrix::From2D(viewMatrix);
+  Matrix4x4 matrix3d = Matrix4x4::From2D(viewMatrix);
   matrix3d._33 = 0.0f;
 
   SetLayerProgramProjectionMatrix(matrix3d);
 }
 
 void
-CompositorOGL::SetLayerProgramProjectionMatrix(const gfx3DMatrix& aMatrix)
+CompositorOGL::SetLayerProgramProjectionMatrix(const Matrix4x4& aMatrix)
 {
+  // Update the projection matrix in all of the programs, without activating them.
+  // The uniform will actually be set the next time the program is activated.
   for (unsigned int i = 0; i < mPrograms.Length(); ++i) {
     for (uint32_t mask = MaskNone; mask < NumMaskTypes; ++mask) {
       if (mPrograms[i].mVariations[mask]) {
-        mPrograms[i].mVariations[mask]->CheckAndSetProjectionMatrix(aMatrix);
+        mPrograms[i].mVariations[mask]->DelayedSetProjectionMatrix(aMatrix);
       }
     }
   }
@@ -768,9 +774,21 @@ CalculatePOTSize(const IntSize& aSize, GLContext* gl)
 }
 
 void
+CompositorOGL::clearFBRect(const gfx::Rect* aRect)
+{
+  if (!aRect) {
+    return;
+  }
+
+  ScopedScissorRect autoScissorRect(mGLContext, aRect->x, aRect->y, aRect->width, aRect->height);
+  mGLContext->fClearColor(0.0, 0.0, 0.0, 0.0);
+  mGLContext->fClear(LOCAL_GL_COLOR_BUFFER_BIT | LOCAL_GL_DEPTH_BUFFER_BIT);
+}
+
+void
 CompositorOGL::BeginFrame(const nsIntRegion& aInvalidRegion,
                           const Rect *aClipRectIn,
-                          const gfxMatrix& aTransform,
+                          const gfx::Matrix& aTransform,
                           const Rect& aRenderBounds,
                           Rect *aClipRectOut,
                           Rect *aRenderBoundsOut)
@@ -783,11 +801,11 @@ CompositorOGL::BeginFrame(const nsIntRegion& aInvalidRegion,
   mVBOs.Reset();
 
   mFrameInProgress = true;
-  gfxRect rect;
+  gfx::Rect rect;
   if (mUseExternalSurfaceSize) {
-    rect = gfxRect(0, 0, mSurfaceSize.width, mSurfaceSize.height);
+    rect = gfx::Rect(0, 0, mSurfaceSize.width, mSurfaceSize.height);
   } else {
-    rect = gfxRect(aRenderBounds.x, aRenderBounds.y, aRenderBounds.width, aRenderBounds.height);
+    rect = gfx::Rect(aRenderBounds.x, aRenderBounds.y, aRenderBounds.width, aRenderBounds.height);
     // If render bounds is not updated explicitly, try to infer it from widget
     if (rect.width == 0 || rect.height == 0) {
       // FIXME/bug XXXXXX this races with rotation changes on the main
@@ -795,13 +813,13 @@ CompositorOGL::BeginFrame(const nsIntRegion& aInvalidRegion,
       // sent atomically with rotation changes
       nsIntRect intRect;
       mWidget->GetClientBounds(intRect);
-      rect = gfxRect(0, 0, intRect.width, intRect.height);
+      rect = gfx::Rect(0, 0, intRect.width, intRect.height);
     }
   }
 
   rect = aTransform.TransformBounds(rect);
   if (aRenderBoundsOut) {
-    *aRenderBoundsOut = Rect(rect.x, rect.y, rect.width, rect.height);
+    *aRenderBoundsOut = rect;
   }
 
   GLint width = rect.width;
@@ -891,7 +909,7 @@ CompositorOGL::CreateFBOWithTexture(const IntRect& aRect, bool aCopyFromSource,
       mGLContext->fCopyTexImage2D(mFBOTextureTarget,
                                   0,
                                   LOCAL_GL_RGBA,
-                                  aRect.x, aRect.y,
+                                  aRect.x, FlipY(aRect.y + aRect.height),
                                   aRect.width, aRect.height,
                                   0);
     } else {
@@ -1203,7 +1221,8 @@ CompositorOGL::DrawQuadInternal(const Rect& aRect,
       AutoBindTexture bindSource(mGLContext, source->AsSourceOGL(), LOCAL_GL_TEXTURE0);
 
       GraphicsFilter filter = ThebesFilter(texturedEffect->mFilter);
-      gfx3DMatrix textureTransform = source->AsSourceOGL()->GetTextureTransform();
+      gfx3DMatrix textureTransform;
+      gfx::To3DMatrix(source->AsSourceOGL()->GetTextureTransform(), textureTransform);
 
 #ifdef MOZ_WIDGET_ANDROID
       gfxMatrix textureTransform2D;
@@ -1286,7 +1305,7 @@ CompositorOGL::DrawQuadInternal(const Rect& aRect,
       program->Activate();
       program->SetTextureUnit(0);
       program->SetLayerOpacity(aOpacity);
-      program->SetTextureTransform(gfx3DMatrix());
+      program->SetTextureTransform(Matrix4x4());
 
       AutoSaveTexture bindMask(mGLContext, LOCAL_GL_TEXTURE1);
       if (maskType != MaskNone) {
@@ -1427,7 +1446,7 @@ CompositorOGL::EndFrame()
 }
 
 void
-CompositorOGL::EndFrameForExternalComposition(const gfxMatrix& aTransform)
+CompositorOGL::EndFrameForExternalComposition(const gfx::Matrix& aTransform)
 {
   if (sDrawFPS) {
     if (!mFPS) {
@@ -1461,7 +1480,7 @@ CompositorOGL::SetDestinationSurfaceSize(const gfx::IntSize& aSize)
 }
 
 void
-CompositorOGL::CopyToTarget(DrawTarget *aTarget, const gfxMatrix& aTransform)
+CompositorOGL::CopyToTarget(DrawTarget *aTarget, const gfx::Matrix& aTransform)
 {
   IntRect rect;
   if (mUseExternalSurfaceSize) {
@@ -1487,17 +1506,20 @@ CompositorOGL::CopyToTarget(DrawTarget *aTarget, const gfxMatrix& aTransform)
 
   RefPtr<DataSourceSurface> source =
         Factory::CreateDataSourceSurface(rect.Size(), gfx::SurfaceFormat::B8G8R8A8);
+
+  DataSourceSurface::MappedSurface map;
+  source->Map(DataSourceSurface::MapType::WRITE, &map);
   // XXX we should do this properly one day without using the gfxImageSurface
   nsRefPtr<gfxImageSurface> surf =
-    new gfxImageSurface(source->GetData(),
+    new gfxImageSurface(map.mData,
                         gfxIntSize(width, height),
-                        source->Stride(),
-                        gfxImageFormatARGB32);
+                        map.mStride,
+                        gfxImageFormat::ARGB32);
   ReadPixelsIntoImageSurface(mGLContext, surf);
-  source->MarkDirty();
+  source->Unmap();
 
   // Map from GL space to Cairo space and reverse the world transform.
-  Matrix glToCairoTransform = ToMatrix(aTransform);
+  Matrix glToCairoTransform = aTransform;
   glToCairoTransform.Invert();
   glToCairoTransform.Scale(1.0, -1.0);
   glToCairoTransform.Translate(0.0, -height);
@@ -1537,6 +1559,10 @@ void
 CompositorOGL::Pause()
 {
 #ifdef MOZ_WIDGET_ANDROID
+  if (!gl() || gl()->IsDestroyed())
+    return;
+
+  // ReleaseSurface internally calls MakeCurrent.
   gl()->ReleaseSurface();
 #endif
 }
@@ -1545,6 +1571,10 @@ bool
 CompositorOGL::Resume()
 {
 #ifdef MOZ_WIDGET_ANDROID
+  if (!gl() || gl()->IsDestroyed())
+    return false;
+
+  // RenewSurface internally calls MakeCurrent.
   return gl()->RenewSurface();
 #endif
   return true;

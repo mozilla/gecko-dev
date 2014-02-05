@@ -121,7 +121,7 @@ TCPSocketParent::RecvOpen(const nsString& aHost, const uint16_t& aPort, const bo
 }
 
 NS_IMETHODIMP
-TCPSocketParent::InitJS(const JS::Value& aIntermediary, JSContext* aCx)
+TCPSocketParent::InitJS(JS::Handle<JS::Value> aIntermediary, JSContext* aCx)
 {
   MOZ_ASSERT(aIntermediary.isObject());
   mIntermediaryObj = &aIntermediary.toObject();
@@ -195,7 +195,7 @@ TCPSocketParent::RecvClose()
 }
 
 NS_IMETHODIMP
-TCPSocketParent::SendEvent(const nsAString& aType, const JS::Value& aDataVal,
+TCPSocketParent::SendEvent(const nsAString& aType, JS::Handle<JS::Value> aDataVal,
                            const nsAString& aReadyState, JSContext* aCx)
 {
   if (!mIPCOpen) {
@@ -217,7 +217,7 @@ TCPSocketParent::SendEvent(const nsAString& aType, const JS::Value& aDataVal,
     data = mozilla::void_t();
 
   } else if (aDataVal.isObject()) {
-    JSObject* obj = &aDataVal.toObject();
+    JS::Rooted<JSObject *> obj(aCx, &aDataVal.toObject());
     if (JS_IsArrayBufferObject(obj)) {
       uint32_t nbytes = JS_GetArrayBufferByteLength(obj);
       uint8_t* buffer = JS_GetArrayBufferData(obj);

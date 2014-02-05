@@ -7,6 +7,8 @@
 
 #include "vm/ErrorObject.h"
 
+#include "jsexn.h"
+
 #include "vm/GlobalObject.h"
 
 #include "jsobjinlines.h"
@@ -14,6 +16,7 @@
 #include "vm/Shape-inl.h"
 
 using namespace js;
+using mozilla::PodZero;
 
 /* static */ Shape *
 js::ErrorObject::assignInitialShape(ExclusiveContext *cx, Handle<ErrorObject*> obj)
@@ -84,7 +87,7 @@ js::ErrorObject::create(JSContext *cx, JSExnType errorType, HandleString stack,
                         HandleString fileName, uint32_t lineNumber, uint32_t columnNumber,
                         ScopedJSFreePtr<JSErrorReport> *report, HandleString message)
 {
-    Rooted<JSObject*> proto(cx, cx->global()->getOrCreateCustomErrorPrototype(cx, errorType));
+    Rooted<JSObject*> proto(cx, GlobalObject::getOrCreateCustomErrorPrototype(cx, cx->global(), errorType));
     if (!proto)
         return nullptr;
 
@@ -103,4 +106,46 @@ js::ErrorObject::create(JSContext *cx, JSExnType errorType, HandleString stack,
     }
 
     return errObject;
+}
+
+JSErrorReport *
+js::ErrorObject::getOrCreateErrorReport(JSContext *cx)
+{
+    if (JSErrorReport *r = getErrorReport())
+        return r;
+
+    // We build an error report on the stack and then use CopyErrorReport to do
+    // the nitty-gritty malloc stuff.
+    JSErrorReport report;
+    PodZero(&report);
+
+    // Type.
+    JSExnType type_ = type();
+    report.exnType = type_;
+
+    // Filename.
+    JSAutoByteString filenameStr;
+    if (!filenameStr.encodeLatin1(cx, fileName()))
+        return nullptr;
+    report.filename = filenameStr.ptr();
+
+    // Coordinates.
+    report.lineno = lineNumber();
+    report.column = columnNumber();
+
+    // Message. Note that |new Error()| will result in an undefined |message|
+    // slot, so we need to explicitly substitute the empty string in that case.
+    RootedString message(cx, getMessage());
+    if (!message)
+        message = cx->runtime()->emptyString;
+    if (!message->ensureFlat(cx))
+        return nullptr;
+    report.ucmessage = message->asFlat().chars();
+
+    // Cache and return.
+    JSErrorReport *copy = CopyErrorReport(cx, &report);
+    if (!copy)
+        return nullptr;
+    setReservedSlot(ERROR_REPORT_SLOT, PrivateValue(copy));
+    return copy;
 }

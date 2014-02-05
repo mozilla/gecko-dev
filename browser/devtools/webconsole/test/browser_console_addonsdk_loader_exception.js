@@ -11,6 +11,8 @@ const TEST_URI = "data:text/html;charset=utf8,<p>hello world from bug 866950";
 
 function test()
 {
+  requestLongerTimeout(2);
+
   let webconsole, browserconsole;
 
   addTab(TEST_URI);
@@ -68,7 +70,7 @@ function test()
   {
     let msg = [...results[0].matched][0];
     ok(msg, "message element found");
-    let locationNode = msg.querySelector(".location");
+    let locationNode = msg.querySelector(".message-location");
     ok(locationNode, "message location element found");
 
     let title = locationNode.getAttribute("title");

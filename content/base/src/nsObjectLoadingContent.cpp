@@ -75,6 +75,7 @@
 #include "nsDOMClassInfo.h"
 #include "nsWrapperCacheInlines.h"
 #include "nsDOMJSUtils.h"
+#include "nsDOMEvent.h"
 
 #include "nsWidgetsCID.h"
 #include "nsContentCID.h"
@@ -297,17 +298,16 @@ nsPluginCrashedEvent::Run()
   LOG(("OBJLC [%p]: Firing plugin crashed event\n",
        mContent.get()));
 
-  nsCOMPtr<nsIDOMDocument> domDoc =
-    do_QueryInterface(mContent->GetDocument());
-  if (!domDoc) {
+  nsCOMPtr<nsIDocument> doc = mContent->GetDocument();
+  if (!doc) {
     NS_WARNING("Couldn't get document for PluginCrashed event!");
     return NS_OK;
   }
 
-  nsCOMPtr<nsIDOMEvent> event;
-  domDoc->CreateEvent(NS_LITERAL_STRING("datacontainerevents"),
-                      getter_AddRefs(event));
-  nsCOMPtr<nsIDOMDataContainerEvent> containerEvent(do_QueryInterface(event));
+  ErrorResult rv;
+  nsRefPtr<nsDOMEvent> event =
+    doc->CreateEvent(NS_LITERAL_STRING("datacontainerevents"), rv);
+  nsCOMPtr<nsIDOMDataContainerEvent> containerEvent(do_QueryObject(event));
   if (!containerEvent) {
     NS_WARNING("Couldn't QI event for PluginCrashed event!");
     return NS_OK;
@@ -3221,7 +3221,7 @@ nsObjectLoadingContent::LegacyCall(JSContext* aCx,
   }
 
   JS::Rooted<JS::Value> retval(aCx);
-  bool ok = JS::Call(aCx, thisVal, pi_obj, args.Length(), rooter.array,
+  bool ok = JS::Call(aCx, thisVal, pi_obj, rooter.length(), rooter.start(),
                      &retval);
   if (!ok) {
     aRv.Throw(NS_ERROR_FAILURE);
@@ -3429,7 +3429,7 @@ nsObjectLoadingContent::TeardownProtoChain()
 bool
 nsObjectLoadingContent::DoNewResolve(JSContext* aCx, JS::Handle<JSObject*> aObject,
                                      JS::Handle<jsid> aId,
-                                     JS::MutableHandle<JS::Value> aValue)
+                                     JS::MutableHandle<JSPropertyDescriptor> aDesc)
 {
   // We don't resolve anything; we just try to make sure we're instantiated
 

@@ -73,12 +73,6 @@ public:
   NS_IMETHOD
   TransmitAutomaticData() MOZ_OVERRIDE;
 
-  NS_IMETHOD
-  UpdatePresentationDataFromChildAt(int32_t         aFirstIndex,
-                                    int32_t         aLastIndex,
-                                    uint32_t        aFlagsValues,
-                                    uint32_t        aFlagsToUpdate) MOZ_OVERRIDE;
-
   // override the base method so that we can deal with the fraction line
   virtual nscoord
   FixInterFrameSpacing(nsHTMLReflowMetrics& aDesiredSize) MOZ_OVERRIDE;
@@ -90,6 +84,9 @@ public:
                     nsString&        aThicknessAttribute,
                     nscoord          onePixel,
                     nscoord          aDefaultRuleThickness);
+
+  uint8_t
+  ScriptIncrement(nsIFrame* aFrame) MOZ_OVERRIDE;
 
 protected:
   nsMathMLmfracFrame(nsStyleContext* aContext) : nsMathMLContainerFrame(aContext) {}

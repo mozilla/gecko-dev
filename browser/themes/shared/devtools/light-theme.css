@@ -7,8 +7,13 @@
  * https://bugzilla.mozilla.org/show_bug.cgi?id=715472#c17
  */
 .theme-body {
-  background: white;
-  color: black;
+  background: #fcfcfc; /* Background - Editor */
+  color: #18191a;
+}
+
+.theme-sidebar {
+  background: #f7f7f7; /* Background - Sidebars */
+  color: #18191a;
 }
 
 ::-moz-selection {
@@ -142,8 +147,13 @@
 .cm-s-mozilla .cm-quote,
 .cm-s-mozilla .cm-error,
 .variable-or-property .token-boolean,
+.variable-or-property .token-domnode,
 .variable-or-property[exception] > .title > .name { /* Red */
   color: #bf5656;
+}
+
+.variable-or-property .token-domnode {
+  font-weight: bold;
 }
 
 .theme-fg-contrast { /* To be used for text on theme-bg-contrast */
@@ -151,10 +161,11 @@
 }
 
 .theme-toolbar,
-.devtools-toolbar { /* General toolbar styling */
-  color: hsl(210,30%,85%);
-  background-color: #343c45;
-  border-color: #060a0d;
+.devtools-toolbar,
+.devtools-sidebar-tabs > tabs { /* General toolbar styling */
+  color: #585959;
+  background-color: #f0f1f2;
+  border-color: #aaa;
 }
 
 .ruleview-colorswatch,
@@ -165,8 +176,8 @@
 
 .variables-view-scope:focus > .title,
 .variable-or-property:focus > .title {
-  background:  hsl(208,56%,40%); /* fg-color2 */
-  color: white;
+  background:  #4c9ed9; /* fg-color2 */
+  color: #f5f7fa;
 }
 
 /* CodeMirror specific styles.
@@ -299,6 +310,14 @@ div.CodeMirror span.eval-text {
 
 .theme-tooltip-panel .devtools-tooltip-simple-text:last-child {
   border-bottom: 0;
+}
+
+.devtools-horizontal-splitter {
+  border-bottom: 1px solid #aaa;
+}
+
+.devtools-side-splitter {
+  -moz-border-end: 1px solid #aaa;
 }
 
 %include toolbars.inc.css

@@ -106,10 +106,9 @@ TraceCycleDetectionSet(JSTracer *trc, ObjectSet &set);
 
 struct AutoResolving;
 class DtoaCache;
-class ForkJoinSlice;
+class ForkJoinContext;
 class RegExpCompartment;
 class RegExpStatics;
-class ForkJoinSlice;
 
 namespace frontend { struct CompileError; }
 
@@ -139,7 +138,7 @@ namespace frontend { struct CompileError; }
  * to an ExclusiveContext or ThreadSafeContext.
  *
  * Contexts which are a ThreadSafeContext but not an ExclusiveContext are used
- * to represent a ForkJoinSlice, the per-thread parallel context used in PJS.
+ * to represent a ForkJoinContext, the per-thread parallel context used in PJS.
  */
 
 struct ThreadSafeContext : ContextFriendFields,
@@ -213,8 +212,8 @@ struct ThreadSafeContext : ContextFriendFields,
         return maybeExclusiveContext();
     }
 
-    bool isForkJoinSlice() const;
-    ForkJoinSlice *asForkJoinSlice();
+    bool isForkJoinContext() const;
+    ForkJoinContext *asForkJoinContext();
 
     // The generational GC nursery may only be used on the main thread.
 #ifdef JSGC_GENERATIONAL
@@ -287,6 +286,7 @@ struct ThreadSafeContext : ContextFriendFields,
     size_t workerThreadCount() { return runtime_->workerThreadCount(); }
     void *runtimeAddressForJit() { return runtime_; }
     void *stackLimitAddress(StackKind kind) { return &runtime_->mainThread.nativeStackLimit[kind]; }
+    void *stackLimitAddressForJitCode(StackKind kind);
     size_t gcSystemPageSize() { return runtime_->gcSystemPageSize; }
     bool signalHandlersInstalled() const { return runtime_->signalHandlersInstalled(); }
     bool jitSupportsFloatingPoint() const { return runtime_->jitSupportsFloatingPoint; }
@@ -580,6 +580,7 @@ struct JSContext : public js::ExclusiveContext,
         return throwing;
     }
 
+    MOZ_WARN_UNUSED_RESULT
     bool getPendingException(JS::MutableHandleValue rval);
 
     void setPendingException(js::Value v);
@@ -918,13 +919,19 @@ class AutoValueArray : public AutoGCRooter
     Value *start() { return start_; }
     unsigned length() const { return length_; }
 
-    MutableHandleValue handleAt(unsigned i)
-    {
+    MutableHandleValue handleAt(unsigned i) {
         JS_ASSERT(i < length_);
         return MutableHandleValue::fromMarkedLocation(&start_[i]);
     }
-    HandleValue handleAt(unsigned i) const
-    {
+    HandleValue handleAt(unsigned i) const {
+        JS_ASSERT(i < length_);
+        return HandleValue::fromMarkedLocation(&start_[i]);
+    }
+    MutableHandleValue operator[](unsigned i) {
+        JS_ASSERT(i < length_);
+        return MutableHandleValue::fromMarkedLocation(&start_[i]);
+    }
+    HandleValue operator[](unsigned i) const {
         JS_ASSERT(i < length_);
         return HandleValue::fromMarkedLocation(&start_[i]);
     }

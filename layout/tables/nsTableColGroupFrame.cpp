@@ -27,7 +27,7 @@ nsTableColGroupFrame::GetColType() const
 void nsTableColGroupFrame::SetColType(nsTableColGroupType aType) 
 {
   uint32_t type = aType - eColGroupContent;
-  mState |= (type << COL_GROUP_TYPE_OFFSET);
+  mState |= nsFrameState(type << COL_GROUP_TYPE_OFFSET);
 }
 
 void nsTableColGroupFrame::ResetColIndices(nsIFrame*       aFirstColGroup,
@@ -377,7 +377,7 @@ NS_METHOD nsTableColGroupFrame::Reflow(nsPresContext*          aPresContext,
 
     nsReflowStatus status;
     ReflowChild(kidFrame, aPresContext, kidSize, kidReflowState, 0, 0, 0, status);
-    FinishReflowChild(kidFrame, aPresContext, nullptr, kidSize, 0, 0, 0);
+    FinishReflowChild(kidFrame, aPresContext, kidSize, nullptr, 0, 0, 0);
   }
 
   aDesiredSize.Width() = 0;

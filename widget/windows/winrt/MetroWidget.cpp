@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "ContentHelper.h"
 #include "LayerManagerD3D10.h"
 #include "MetroWidget.h"
 #include "MetroApp.h"
@@ -25,6 +26,7 @@
 #include "ClientLayerManager.h"
 #include "BasicLayers.h"
 #include "FrameMetrics.h"
+#include <windows.devices.input.h>
 #include "Windows.Graphics.Display.h"
 #include "DisplayInfo_sdk81.h"
 #include "nsNativeDragTarget.h"
@@ -54,6 +56,7 @@ using namespace ABI::Windows::Devices::Input;
 using namespace ABI::Windows::UI::Core;
 using namespace ABI::Windows::System;
 using namespace ABI::Windows::Foundation;
+using namespace ABI::Windows::Foundation::Collections;
 using namespace ABI::Windows::Graphics::Display;
 
 #ifdef PR_LOGGING
@@ -323,6 +326,52 @@ NS_IMETHODIMP
 MetroWidget::Show(bool bState)
 {
   return NS_OK;
+}
+
+uint32_t
+MetroWidget::GetMaxTouchPoints() const
+{
+  ComPtr<IPointerDeviceStatics> deviceStatics;
+
+  HRESULT hr = GetActivationFactory(
+    HStringReference(RuntimeClass_Windows_Devices_Input_PointerDevice).Get(),
+    deviceStatics.GetAddressOf());
+
+  if (FAILED(hr)) {
+    return 0;
+  }
+
+  ComPtr< IVectorView<PointerDevice*> > deviceList;
+  hr = deviceStatics->GetPointerDevices(&deviceList);
+
+  if (FAILED(hr)) {
+    return 0;
+  }
+
+  uint32_t deviceNum = 0;
+  deviceList->get_Size(&deviceNum);
+
+  uint32_t maxTouchPoints = 0;
+  for (uint32_t index = 0; index < deviceNum; ++index) {
+    ComPtr<IPointerDevice> device;
+    PointerDeviceType deviceType;
+
+    if (FAILED(deviceList->GetAt(index, device.GetAddressOf()))) {
+      continue;
+    }
+
+    if (FAILED(device->get_PointerDeviceType(&deviceType)))  {
+      continue;
+    }
+
+    if (deviceType == PointerDeviceType_Touch) {
+      uint32_t deviceMaxTouchPoints = 0;
+      device->get_MaxContacts(&deviceMaxTouchPoints);
+      maxTouchPoints = std::max(maxTouchPoints, deviceMaxTouchPoints);
+    }
+  }
+
+  return maxTouchPoints;
 }
 
 NS_IMETHODIMP
@@ -686,7 +735,7 @@ MetroWidget::DeliverNextKeyboardEvent()
     delete event;
     return;
   }
-  
+
   if (DispatchWindowEvent(event) && event->message == NS_KEY_DOWN) {
     // keydown events may be followed by multiple keypress events which
     // shouldn't be sent if preventDefault is called on keydown.
@@ -738,6 +787,11 @@ MetroWidget::WindowProcedure(HWND aWnd, UINT aMsg, WPARAM aWParam, LPARAM aLPara
 
   MSGResult msgResult(&processResult);
   MouseScrollHandler::ProcessMessage(this, aMsg, aWParam, aLParam, msgResult);
+  if (msgResult.mConsumed) {
+    return processResult;
+  }
+
+  nsTextStore::ProcessMessage(this, aMsg, aWParam, aLParam, msgResult);
   if (msgResult.mConsumed) {
     return processResult;
   }
@@ -862,9 +916,6 @@ MetroWidget::WindowProcedure(HWND aWnd, UINT aMsg, WPARAM aWParam, LPARAM aLPara
 
     default:
     {
-      if (aWParam == WM_USER_TSF_TEXTCHANGE) {
-        nsTextStore::OnTextChangeMsg();
-      }
       break;
     }
   }
@@ -1017,6 +1068,31 @@ CompositorParent* MetroWidget::NewCompositorParent(int aSurfaceWidth, int aSurfa
   return compositor;
 }
 
+MetroWidget::TouchBehaviorFlags
+MetroWidget::ContentGetAllowedTouchBehavior(const nsIntPoint& aPoint)
+{
+  return ContentHelper::GetAllowedTouchBehavior(this, aPoint);
+}
+
+void
+MetroWidget::ApzcGetAllowedTouchBehavior(WidgetInputEvent* aTransformedEvent,
+                                         nsTArray<TouchBehaviorFlags>& aOutBehaviors)
+{
+  LogFunction();
+  return APZController::sAPZC->GetAllowedTouchBehavior(aTransformedEvent, aOutBehaviors);
+}
+
+void
+MetroWidget::ApzcSetAllowedTouchBehavior(const ScrollableLayerGuid& aGuid,
+                                         nsTArray<TouchBehaviorFlags>& aBehaviors)
+{
+  LogFunction();
+  if (!APZController::sAPZC) {
+    return;
+  }
+  APZController::sAPZC->SetAllowedTouchBehavior(aGuid, aBehaviors);
+}
+
 void
 MetroWidget::ApzContentConsumingTouch(const ScrollableLayerGuid& aGuid)
 {
@@ -1103,7 +1179,7 @@ MetroWidget::GetLayerManager(PLayerTransactionChild* aShadowManager,
 
   // If the backend device has changed, create a new manager (pulled from nswindow)
   if (mLayerManager) {
-    if (mLayerManager->GetBackendType() == LAYERS_D3D10) {
+    if (mLayerManager->GetBackendType() == LayersBackend::LAYERS_D3D10) {
       LayerManagerD3D10 *layerManagerD3D10 =
         static_cast<LayerManagerD3D10*>(mLayerManager.get());
       if (layerManagerD3D10->device() !=

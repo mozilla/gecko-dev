@@ -30,7 +30,7 @@ specialpowers.specialPowersObserver = new specialpowers.SpecialPowersObserver();
 specialpowers.specialPowersObserver.init();
 
 Cu.import("resource://gre/modules/FileUtils.jsm");
-Cu.import("resource://gre/modules/NetUtil.jsm");  
+Cu.import("resource://gre/modules/NetUtil.jsm");
 
 Services.prefs.setBoolPref("marionette.contentListener", false);
 let appName = Services.appinfo.name;
@@ -308,7 +308,7 @@ MarionetteServerConnection.prototype = {
 
   /**
    * Send ack to client
-   * 
+   *
    * @param string command_id
    *        Unique identifier assigned to the client's request.
    *        Used to distinguish the asynchronous responses.
@@ -337,7 +337,7 @@ MarionetteServerConnection.prototype = {
 
   /**
    * Gets the current active window
-   * 
+   *
    * @return nsIDOMWindow
    */
   getCurrentWindow: function MDA_getCurrentWindow() {
@@ -373,7 +373,7 @@ MarionetteServerConnection.prototype = {
 
   /**
    * Create a new BrowserObj for window and add to known browsers
-   * 
+   *
    * @param nsIDOMWindow win
    *        Window for which we will create a BrowserObj
    *
@@ -394,10 +394,10 @@ MarionetteServerConnection.prototype = {
   },
 
   /**
-   * Start a new session in a new browser. 
+   * Start a new session in a new browser.
    *
-   * If newSession is true, we will switch focus to the start frame 
-   * when it registers. Also, if it is in desktop, then a new tab 
+   * If newSession is true, we will switch focus to the start frame
+   * when it registers. Also, if it is in desktop, then a new tab
    * with the start page uri (about:blank) will be opened.
    *
    * @param nsIDOMWindow win
@@ -491,7 +491,7 @@ MarionetteServerConnection.prototype = {
   /**
    * Create a new session. This creates a BrowserObj.
    *
-   * In a desktop environment, this opens a new 'about:blank' tab for 
+   * In a desktop environment, this opens a new 'about:blank' tab for
    * the client to test in.
    *
    */
@@ -506,7 +506,7 @@ MarionetteServerConnection.prototype = {
       let win = this.getCurrentWindow();
       if (!win ||
           (appName == "Firefox" && !win.gBrowser) ||
-          (appName == "Fennec" && !win.BrowserApp)) { 
+          (appName == "Fennec" && !win.BrowserApp)) {
         checkTimer.initWithCallback(waitForWindow.bind(this), 100, Ci.nsITimer.TYPE_ONE_SHOT);
       }
       else {
@@ -543,10 +543,13 @@ MarionetteServerConnection.prototype = {
           'handlesAlerts': false,
           'javascriptEnabled': true,
           'nativeEvents': false,
-          'platform': Services.appinfo.OS,
+          'platformName': Services.appinfo.OS,
+          'platformVersion': Services.appinfo.platformVersion,
+          'secureSsl': false,
           'device': qemu == "1" ? "qemu" : (!device ? "desktop" : device),
           'rotatable': rotatable,
-          'takesScreenshot': false,
+          'takesScreenshot': true,
+          'takesElementScreenshot': true,
           'version': Services.appinfo.version
     };
 
@@ -695,7 +698,7 @@ MarionetteServerConnection.prototype = {
     }
 
     if (this.importedScripts.exists()) {
-      let stream = Cc["@mozilla.org/network/file-input-stream;1"].  
+      let stream = Cc["@mozilla.org/network/file-input-stream;1"].
                     createInstance(Ci.nsIFileInputStream);
       stream.init(this.importedScripts, -1, 0, 0);
       let data = NetUtil.readInputStreamToString(stream, stream.available());
@@ -724,7 +727,7 @@ MarionetteServerConnection.prototype = {
    *        'script' member is the script to run
    *        'args' member holds the arguments to the script
    * @param boolean directInject
-   *        if true, it will be run directly and not as a 
+   *        if true, it will be run directly and not as a
    *        function body
    */
   execute: function MDA_execute(aRequest, directInject) {
@@ -734,7 +737,7 @@ MarionetteServerConnection.prototype = {
     let script;
     this.logRequest("execute", aRequest);
     if (aRequest.parameters.newSandbox == undefined) {
-      //if client does not send a value in newSandbox, 
+      //if client does not send a value in newSandbox,
       //then they expect the same behaviour as webdriver
       aRequest.parameters.newSandbox = true;
     }
@@ -801,7 +804,7 @@ MarionetteServerConnection.prototype = {
       }
       else {
         script = "let func = function() {" +
-                       aRequest.parameters.script + 
+                       aRequest.parameters.script +
                      "};" +
                      "func.apply(null, __marionetteParams);";
       }
@@ -850,7 +853,7 @@ MarionetteServerConnection.prototype = {
 
     //all pure JS scripts will need to call Marionette.finish() to complete the test.
     if (aRequest.newSandbox == undefined) {
-      //if client does not send a value in newSandbox, 
+      //if client does not send a value in newSandbox,
       //then they expect the same behaviour as webdriver
       aRequest.newSandbox = true;
     }
@@ -881,17 +884,17 @@ MarionetteServerConnection.prototype = {
 
   /**
    * This function is used by executeAsync and executeJSScript to execute a script
-   * in a sandbox. 
-   * 
+   * in a sandbox.
+   *
    * For executeJSScript, it will return a message only when the finish() method is called.
-   * For executeAsync, it will return a response when marionetteScriptFinished/arguments[arguments.length-1] 
+   * For executeAsync, it will return a response when marionetteScriptFinished/arguments[arguments.length-1]
    * method is called, or if it times out.
    *
    * @param object aRequest
    *        'script' member holds the script to execute
    *        'args' member holds the arguments for the script
    * @param boolean directInject
-   *        if true, it will be run directly and not as a 
+   *        if true, it will be run directly and not as a
    *        function body
    */
   executeWithCallback: function MDA_executeWithCallback(aRequest, directInject) {
@@ -901,7 +904,7 @@ MarionetteServerConnection.prototype = {
     let script;
     this.logRequest("executeWithCallback", aRequest);
     if (aRequest.parameters.newSandbox == undefined) {
-      //if client does not send a value in newSandbox, 
+      //if client does not send a value in newSandbox,
       //then they expect the same behaviour as webdriver
       aRequest.parameters.newSandbox = true;
     }
@@ -1036,17 +1039,37 @@ MarionetteServerConnection.prototype = {
   },
 
   /**
-   * Navigates to given url
+   * Navigate to to given URL.
    *
-   * @param object aRequest
-   *        'url' member holds the url to navigate to
+   * This will follow redirects issued by the server.  When the method
+   * returns is based on the page load strategy that the user has
+   * selected.
+   *
+   * Documents that contain a META tag with the "http-equiv" attribute
+   * set to "refresh" will return if the timeout is greater than 1
+   * second and the other criteria for determining whether a page is
+   * loaded are met.  When the refresh period is 1 second or less and
+   * the page load strategy is "normal" or "conservative", it will
+   * wait for the page to complete loading before returning.
+   *
+   * If any modal dialog box, such as those opened on
+   * window.onbeforeunload or window.alert, is opened at any point in
+   * the page load, it will return immediately.
+   *
+   * If a 401 response is seen by the browser, it will return
+   * immediately.  That is, if BASIC, DIGEST, NTLM or similar
+   * authentication is required, the page load is assumed to be
+   * complete.  This does not include FORM-based authentication.
+   *
+   * @param object aRequest where <code>url</code> property holds the
+   *        URL to navigate to
    */
-  goUrl: function MDA_goUrl(aRequest) {
+  get: function MDA_get(aRequest) {
     let command_id = this.command_id = this.getCommandId();
     if (this.context != "chrome") {
       aRequest.command_id = command_id;
       aRequest.parameters.pageTimeout = this.pageTimeout;
-      this.sendAsync("goUrl", aRequest.parameters, command_id);
+      this.sendAsync("get", aRequest.parameters, command_id);
       return;
     }
 
@@ -1054,6 +1077,7 @@ MarionetteServerConnection.prototype = {
     let checkTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
     let start = new Date().getTime();
     let end = null;
+
     function checkLoad() {
       end = new Date().getTime();
       let elapse = end - start;
@@ -1062,7 +1086,7 @@ MarionetteServerConnection.prototype = {
           sendOk(command_id);
           return;
         }
-        else{ 
+        else{
           checkTimer.initWithCallback(checkLoad, 100, Ci.nsITimer.TYPE_ONE_SHOT);
         }
       }
@@ -1070,20 +1094,27 @@ MarionetteServerConnection.prototype = {
         sendError("Error loading page", 13, null, command_id);
         return;
       }
-    }//end
+    }
     checkTimer.initWithCallback(checkLoad, 100, Ci.nsITimer.TYPE_ONE_SHOT);
   },
 
   /**
-   * Gets current url
+   * Get a string representing the current URL.
+   *
+   * On Desktop this returns a string representation of the URL of the
+   * current top level browsing context.  This is equivalent to
+   * document.location.href.
+   *
+   * When in the context of the chrome, this returns the canonical URL
+   * of the current resource.
    */
-  getUrl: function MDA_getUrl() {
+  getCurrentUrl: function MDA_getCurrentUrl() {
     this.command_id = this.getCommandId();
     if (this.context == "chrome") {
       this.sendResponse(this.getCurrentWindow().location.href, this.command_id);
     }
     else {
-      this.sendAsync("getUrl", {}, this.command_id);
+      this.sendAsync("getCurrentUrl", {}, this.command_id);
     }
   },
 
@@ -1119,7 +1150,7 @@ MarionetteServerConnection.prototype = {
     this.command_id = this.getCommandId();
     if (this.context == "chrome"){
       let curWindow = this.getCurrentWindow();
-      let XMLSerializer = curWindow.XMLSerializer; 
+      let XMLSerializer = curWindow.XMLSerializer;
       let pageSource = new XMLSerializer().serializeToString(curWindow.document);
       this.sendResponse(pageSource, this.command_id);
     }
@@ -1153,29 +1184,47 @@ MarionetteServerConnection.prototype = {
   },
 
   /**
-   * Get the current window's server-assigned ID
+   * Get the current window's handle.
+   *
+   * Return an opaque server-assigned identifier to this window that
+   * uniquely identifies it within this Marionette instance.  This can
+   * be used to switch to this window at a later point.
+   *
+   * @return unique window handle (string)
    */
-  getWindow: function MDA_getWindow() {
+  getWindowHandle: function MDA_getWindowHandle() {
     this.command_id = this.getCommandId();
     for (let i in this.browsers) {
       if (this.curBrowser == this.browsers[i]) {
         this.sendResponse(i, this.command_id);
+        return;
       }
     }
   },
 
   /**
-   * Get the server-assigned IDs of all available windows
+   * Get list of windows in the current context.
+   *
+   * If called in the content context it will return a list of
+   * references to all available browser windows.  Called in the
+   * chrome context, it will list all available windows, not just
+   * browser windows (e.g. not just navigator.browser).
+   *
+   * Each window handle is assigned by the server, and the array of
+   * strings returned does not have a guaranteed ordering.
+   *
+   * @return unordered array of unique window handles as strings
    */
-  getWindows: function MDA_getWindows() {
+  getWindowHandles: function MDA_getWindowHandles() {
     this.command_id = this.getCommandId();
     let res = [];
-    let winEn = this.getWinEnumerator(); 
-    while(winEn.hasMoreElements()) {
+    let winEn = this.getWinEnumerator();
+    while (winEn.hasMoreElements()) {
       let foundWin = winEn.getNext();
-      let winId = foundWin.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils).outerWindowID;
-      winId = winId + ((appName == "B2G") ? '-b2g' : '');
-      res.push(winId)
+      let winId = foundWin.QueryInterface(Ci.nsIInterfaceRequestor)
+            .getInterface(Ci.nsIDOMWindowUtils).outerWindowID;
+      winId = winId + ((appName == "B2G") ? "-b2g" : "");
+      res.push(winId);
     }
     this.sendResponse(res, this.command_id);
   },
@@ -1189,7 +1238,7 @@ MarionetteServerConnection.prototype = {
    */
   switchToWindow: function MDA_switchToWindow(aRequest) {
     let command_id = this.command_id = this.getCommandId();
-    let winEn = this.getWinEnumerator(); 
+    let winEn = this.getWinEnumerator();
     while(winEn.hasMoreElements()) {
       let foundWin = winEn.getNext();
       let winId = foundWin.QueryInterface(Ci.nsIInterfaceRequestor)
@@ -1236,7 +1285,7 @@ MarionetteServerConnection.prototype = {
    * @param object aRequest
    *        'element' is the element to switch to
    *        'id' if element is not set, then this
-   *                holds either the id, name or index 
+   *                holds either the id, name or index
    *                of the frame to switch to
    */
   switchToFrame: function MDA_switchToFrame(aRequest) {
@@ -1273,7 +1322,7 @@ MarionetteServerConnection.prototype = {
           let numFrames = curWindow.frames.length;
           for (let i = 0; i < numFrames; i++) {
             if (curWindow.frames[i].frameElement == wantedFrame) {
-              curWindow = curWindow.frames[i]; 
+              curWindow = curWindow.frames[i];
               this.curFrame = curWindow;
               if (aRequest.parameters.focus) {
                 this.curFrame.focus();
@@ -1615,7 +1664,7 @@ MarionetteServerConnection.prototype = {
    *
    * @param object aRequest
    *        'id' member holds the reference id to
-   *        the element that will be inspected 
+   *        the element that will be inspected
    */
   getElementText: function MDA_getElementText(aRequest) {
     let command_id = this.command_id = this.getCommandId();
@@ -1645,7 +1694,7 @@ MarionetteServerConnection.prototype = {
    *
    * @param object aRequest
    *        'id' member holds the reference id to
-   *        the element that will be inspected 
+   *        the element that will be inspected
    */
   getElementTagName: function MDA_getElementTagName(aRequest) {
     let command_id = this.command_id = this.getCommandId();
@@ -1671,7 +1720,7 @@ MarionetteServerConnection.prototype = {
    *
    * @param object aRequest
    *        'id' member holds the reference id to
-   *        the element that will be checked 
+   *        the element that will be checked
    */
   isElementDisplayed: function MDA_isElementDisplayed(aRequest) {
     let command_id = this.command_id = this.getCommandId();
@@ -1862,7 +1911,7 @@ MarionetteServerConnection.prototype = {
    *
    * @param object aRequest
    *        'id' member holds the reference id to
-   *        the element that will be cleared 
+   *        the element that will be cleared
    */
   clearElement: function MDA_clearElement(aRequest) {
     let command_id = this.command_id = this.getCommandId();
@@ -1890,10 +1939,18 @@ MarionetteServerConnection.prototype = {
     }
   },
 
-  getElementPosition: function MDA_getElementPosition(aRequest) {
+  /**
+   * Get an element's location on the page.
+   *
+   * The returned point will contain the x and y coordinates of the
+   * top left-hand corner of the given element.  The point (0,0)
+   * refers to the upper-left corner of the document.
+   *
+   * @return a point containing x and y coordinates as properties
+   */
+  getElementLocation: function MDA_getElementLocation(aRequest) {
     this.command_id = this.getCommandId();
-    this.sendAsync("getElementPosition",
-                   { id:aRequest.parameters.id },
+    this.sendAsync("getElementLocation", {id: aRequest.parameters.id},
                    this.command_id);
   },
 
@@ -1908,11 +1965,14 @@ MarionetteServerConnection.prototype = {
   },
 
   /**
-   * Get all visible cookies for a document
+   * Get all the cookies for the current domain.
+   *
+   * This is the equivalent of calling "document.cookie" and parsing
+   * the result.
    */
-  getAllCookies: function MDA_getAllCookies() {
+  getCookies: function MDA_getCookies() {
     this.command_id = this.getCommandId();
-    this.sendAsync("getAllCookies", {}, this.command_id);
+    this.sendAsync("getCookies", {}, this.command_id);
   },
 
   /**
@@ -1934,14 +1994,12 @@ MarionetteServerConnection.prototype = {
   },
 
   /**
-   * Closes the Browser Window.
+   * Close the current window, ending the session if it's the last
+   * window currently open.
    *
-   * If it is B2G it returns straight away and does not do anything
-   *
-   * If is desktop it calculates how many windows are open and if there is only 
-   * 1 then it deletes the session otherwise it closes the window
+   * On B2G this method is a noop and will return immediately.
    */
-  closeWindow: function MDA_closeWindow() {
+  close: function MDA_close() {
     let command_id = this.command_id = this.getCommandId();
     if (appName == "B2G") {
       // We can't close windows so just return
@@ -1957,20 +2015,21 @@ MarionetteServerConnection.prototype = {
       }
 
       // if there is only 1 window left, delete the session
-      if (numOpenWindows === 1){
+      if (numOpenWindows === 1) {
         try {
           this.sessionTearDown();
         }
         catch (e) {
-          this.sendError("Could not clear session", 500, e.name + ": " + e.message, command_id);
+          this.sendError("Could not clear session", 500,
+                         e.name + ": " + e.message, command_id);
           return;
         }
         this.sendOk(command_id);
         return;
       }
 
-      try{
-        this.messageManager.removeDelayedFrameScript(FRAME_SCRIPT); 
+      try {
+        this.messageManager.removeDelayedFrameScript(FRAME_SCRIPT);
         this.getCurrentWindow().close();
         this.sendOk(command_id);
       }
@@ -1979,11 +2038,11 @@ MarionetteServerConnection.prototype = {
                        command_id);
       }
     }
-  }, 
+  },
 
   /**
    * Deletes the session.
-   * 
+   *
    * If it is a desktop environment, it will close the session's tab and close all listeners
    *
    * If it is a B2G environment, it will make the main content listener sleep, and close
@@ -2011,7 +2070,7 @@ MarionetteServerConnection.prototype = {
       }
       let winEnum = this.getWinEnumerator();
       while (winEnum.hasMoreElements()) {
-        winEnum.getNext().messageManager.removeDelayedFrameScript(FRAME_SCRIPT); 
+        winEnum.getNext().messageManager.removeDelayedFrameScript(FRAME_SCRIPT);
       }
       this.curBrowser.frameManager.removeMessageManagerListeners(this.globalMessageManager);
     }
@@ -2085,7 +2144,7 @@ MarionetteServerConnection.prototype = {
       return;
     }
   },
-  
+
   importScript: function MDA_importScript(aRequest) {
     let command_id = this.command_id = this.getCommandId();
     let converter =
@@ -2148,16 +2207,25 @@ MarionetteServerConnection.prototype = {
   },
 
   /**
-   * Takes a screenshot of a DOM node. If there is no node given a screenshot
-   * of the window will be taken.
-   */
-  screenShot: function MDA_saveScreenshot(aRequest) {
+   * Takes a screenshot of a web element or the current frame.
+   *
+   * The screen capture is returned as a lossless PNG image encoded as
+   * a base 64 string.  If the <code>id</code> argument is not null
+   * and refers to a present and visible web element's ID, the capture
+   * area will be limited to the bounding box of that element.
+   * Otherwise, the capture area will be the bounding box of the
+   * current frame.
+   *
+   * @param id an optional reference to a web element
+   * @param highlights an optional list of web elements to draw a red
+   *                   box around in the returned capture
+   * @return PNG image encoded as base 64 string
+    */
+  takeScreenshot: function MDA_takeScreenshot(aRequest) {
     this.command_id = this.getCommandId();
-    this.sendAsync("screenShot",
-                   {
-                     id: aRequest.parameters.id,
-                     highlights: aRequest.parameters.highlights
-                   },
+    this.sendAsync("takeScreenshot",
+                   {id: aRequest.parameters.id,
+                    highlights: aRequest.parameters.highlights},
                    this.command_id);
   },
 
@@ -2196,13 +2264,15 @@ MarionetteServerConnection.prototype = {
 
     let mozOr = or.toLowerCase();
     if (ors.indexOf(mozOr) < 0) {
-      this.sendError("Unknown screen orientation: " + or, 500, null, this.command_id);
+      this.sendError("Unknown screen orientation: " + or, 500, null,
+                     this.command_id);
       return;
     }
 
     let curWindow = this.getCurrentWindow();
     if (!curWindow.screen.mozLockOrientation(mozOr)) {
-      this.sendError("Unable to set screen orientation: " + or, 500, null, this.command_id);
+      this.sendError("Unable to set screen orientation: " + or, 500,
+                     null, this.command_id);
     }
     this.sendOk(this.command_id);
   },
@@ -2277,7 +2347,7 @@ MarionetteServerConnection.prototype = {
         // This code processes the content listener's registration information
         // and either accepts the listener, or ignores it
         let nullPrevious = (this.curBrowser.curFrameId == null);
-        let listenerWindow = 
+        let listenerWindow =
                             Services.wm.getOuterWindowWithId(message.json.value);
 
         //go in here if we're already in a remote frame.
@@ -2287,7 +2357,7 @@ MarionetteServerConnection.prototype = {
           // the parent process here, since each process maintains its own
           // independent window list.  So, it will either be null (!listenerWindow)
           // if we're already in a remote frame,
-          // or it will point to some random window, which will hopefully 
+          // or it will point to some random window, which will hopefully
           // cause an href mismatch.  Currently this only happens
           // in B2G for OOP frames registered in Marionette:switchToFrame, so
           // we'll acknowledge the switchToFrame message here.
@@ -2357,18 +2427,25 @@ MarionetteServerConnection.prototype.requestTypes = {
   "isElementEnabled": MarionetteServerConnection.prototype.isElementEnabled,
   "isElementSelected": MarionetteServerConnection.prototype.isElementSelected,
   "sendKeysToElement": MarionetteServerConnection.prototype.sendKeysToElement,
-  "getElementPosition": MarionetteServerConnection.prototype.getElementPosition,
+  "getElementLocation": MarionetteServerConnection.prototype.getElementLocation,
+  "getElementPosition": MarionetteServerConnection.prototype.getElementLocation,  // deprecated
   "clearElement": MarionetteServerConnection.prototype.clearElement,
   "getTitle": MarionetteServerConnection.prototype.getTitle,
   "getWindowType": MarionetteServerConnection.prototype.getWindowType,
   "getPageSource": MarionetteServerConnection.prototype.getPageSource,
-  "goUrl": MarionetteServerConnection.prototype.goUrl,
-  "getUrl": MarionetteServerConnection.prototype.getUrl,
+  "get": MarionetteServerConnection.prototype.get,
+  "goUrl": MarionetteServerConnection.prototype.get,  // deprecated
+  "getCurrentUrl": MarionetteServerConnection.prototype.getCurrentUrl,
+  "getUrl": MarionetteServerConnection.prototype.getCurrentUrl,  // deprecated
   "goBack": MarionetteServerConnection.prototype.goBack,
   "goForward": MarionetteServerConnection.prototype.goForward,
   "refresh":  MarionetteServerConnection.prototype.refresh,
-  "getWindow":  MarionetteServerConnection.prototype.getWindow,
-  "getWindows":  MarionetteServerConnection.prototype.getWindows,
+  "getWindowHandle": MarionetteServerConnection.prototype.getWindowHandle,
+  "getCurrentWindowHandle":  MarionetteServerConnection.prototype.getWindowHandle,  // Selenium 2 compat
+  "getWindow":  MarionetteServerConnection.prototype.getWindowHandle,  // deprecated
+  "getWindowHandles": MarionetteServerConnection.prototype.getWindowHandles,
+  "getCurrentWindowHandles": MarionetteServerConnection.prototype.getWindowHandles,  // Selenium 2 compat
+  "getWindows":  MarionetteServerConnection.prototype.getWindowHandles,  // deprecated
   "getActiveFrame": MarionetteServerConnection.prototype.getActiveFrame,
   "switchToFrame": MarionetteServerConnection.prototype.switchToFrame,
   "switchToWindow": MarionetteServerConnection.prototype.switchToWindow,
@@ -2377,11 +2454,14 @@ MarionetteServerConnection.prototype.requestTypes = {
   "importScript": MarionetteServerConnection.prototype.importScript,
   "clearImportedScripts": MarionetteServerConnection.prototype.clearImportedScripts,
   "getAppCacheStatus": MarionetteServerConnection.prototype.getAppCacheStatus,
-  "closeWindow": MarionetteServerConnection.prototype.closeWindow,
+  "close": MarionetteServerConnection.prototype.close,
+  "closeWindow": MarionetteServerConnection.prototype.close,  // deprecated
   "setTestName": MarionetteServerConnection.prototype.setTestName,
-  "screenShot": MarionetteServerConnection.prototype.screenShot,
+  "takeScreenshot": MarionetteServerConnection.prototype.takeScreenshot,
+  "screenShot": MarionetteServerConnection.prototype.takeScreenshot,  // deprecated
   "addCookie": MarionetteServerConnection.prototype.addCookie,
-  "getAllCookies": MarionetteServerConnection.prototype.getAllCookies,
+  "getCookies": MarionetteServerConnection.prototype.getCookies,
+  "getAllCookies": MarionetteServerConnection.prototype.getCookies,  // deprecated
   "deleteAllCookies": MarionetteServerConnection.prototype.deleteAllCookies,
   "deleteCookie": MarionetteServerConnection.prototype.deleteCookie,
   "getActiveElement": MarionetteServerConnection.prototype.getActiveElement,
@@ -2436,7 +2516,7 @@ BrowserObj.prototype = {
   /**
    * Called when we start a session with this browser.
    *
-   * In a desktop environment, if newTab is true, it will start 
+   * In a desktop environment, if newTab is true, it will start
    * a new 'about:blank' tab and change focus to this tab.
    *
    * This will also set the active messagemanager for this object
@@ -2503,7 +2583,7 @@ BrowserObj.prototype = {
 
   /**
    * Registers a new frame, and sets its current frame id to this frame
-   * if it is not already assigned, and if a) we already have a session 
+   * if it is not already assigned, and if a) we already have a session
    * or b) we're starting a new session and it is the right start frame.
    *
    * @param string uid

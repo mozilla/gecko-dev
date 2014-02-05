@@ -45,7 +45,7 @@ interface Document : Node {
   readonly attribute Element? documentElement;
   [Pure]
   HTMLCollection getElementsByTagName(DOMString localName);
-  [Pure]
+  [Pure, Throws]
   HTMLCollection getElementsByTagNameNS(DOMString? namespace, DOMString localName);
   [Pure]
   HTMLCollection getElementsByClassName(DOMString classNames);
@@ -341,6 +341,8 @@ partial interface Document {
   void obsoleteSheet(DOMString sheetURI);
 
   [ChromeOnly] readonly attribute nsIDocShell? docShell;
+
+  [ChromeOnly] readonly attribute DOMString contentLanguage;
 };
 
 // Extension to give chrome JS the ability to determine when a document was

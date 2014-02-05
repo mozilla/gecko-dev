@@ -63,10 +63,6 @@ CanvasLayerD3D10::Initialize(const Data& aData)
         factory = SurfaceFactory_ANGLEShareHandle::Create(mGLContext,
                                                           device(),
                                                           screen->Caps());
-      } else {
-        factory = new SurfaceFactory_GLTexture(mGLContext,
-                                               nullptr,
-                                               screen->Caps());
       }
     }
 
@@ -99,14 +95,14 @@ CanvasLayerD3D10::Initialize(const Data& aData)
 
   mBounds.SetRect(0, 0, aData.mSize.width, aData.mSize.height);
 
-  if (mSurface && mSurface->GetType() == gfxSurfaceTypeD2D) {
+  if (mSurface && mSurface->GetType() == gfxSurfaceType::D2D) {
     void *data = mSurface->GetData(&gKeyD3D10Texture);
     if (data) {
       mTexture = static_cast<ID3D10Texture2D*>(data);
       mIsD2DTexture = true;
       device()->CreateShaderResourceView(mTexture, nullptr, getter_AddRefs(mSRView));
       mHasAlpha =
-        mSurface->GetContentType() == GFX_CONTENT_COLOR_ALPHA;
+        mSurface->GetContentType() == gfxContentType::COLOR_ALPHA;
       return;
     }
   }
@@ -166,25 +162,17 @@ CanvasLayerD3D10::UpdateSurface()
         }
 
         DataSourceSurface* frameData = shareSurf->GetData();
-        // Scope for gfxContext, so it's destroyed before Unmap.
+        // Scope for DrawTarget, so it's destroyed before Unmap.
         {
           RefPtr<DrawTarget> mapDt = Factory::CreateDrawTargetForData(BackendType::CAIRO,
                                                                       (uint8_t*)map.pData,
-                                                                      shareSurf->Size(),
+                                                                      frameData->GetSize(),
                                                                       map.RowPitch,
                                                                       SurfaceFormat::B8G8R8A8);
 
-          nsRefPtr<gfxImageSurface> thebesFrameData =
-              new gfxImageSurface(frameData->GetData(),
-                                  ThebesIntSize(frameData->GetSize()),
-                                  frameData->Stride(),
-                                  SurfaceFormatToImageFormat(frameData->GetFormat()));
-
-          nsRefPtr<gfxContext> ctx = new gfxContext(mapDt);
-          ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
-          ctx->SetSource(thebesFrameData);
-          ctx->Paint();
-
+          Rect drawRect(0, 0, frameData->GetSize().width, frameData->GetSize().height);
+          mapDt->DrawSurface(frameData, drawRect, drawRect,
+                             DrawSurfaceOptions(),  DrawOptions(1.0F, CompositionOp::OP_SOURCE));
           mapDt->Flush();
         }
 
@@ -216,7 +204,7 @@ CanvasLayerD3D10::UpdateSurface()
     dstSurface = new gfxImageSurface((unsigned char*)map.pData,
                                      gfxIntSize(mBounds.width, mBounds.height),
                                      map.RowPitch,
-                                     gfxImageFormatARGB32);
+                                     gfxImageFormat::ARGB32);
     nsRefPtr<gfxContext> ctx = new gfxContext(dstSurface);
     ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
     ctx->SetSource(mSurface);

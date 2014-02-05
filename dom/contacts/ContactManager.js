@@ -34,11 +34,26 @@ const PROPERTIES = [
   "url", "impp", "tel"
 ];
 
+let mozContactInitWarned = false;
+
 function Contact() { }
 
 Contact.prototype = {
   __init: function(aProp) {
     for (let prop in aProp) {
+      this[prop] = aProp[prop];
+    }
+  },
+
+  init: function(aProp) {
+    // init is deprecated, warn once in the console if it's used
+    if (!mozContactInitWarned) {
+      mozContactInitWarned = true;
+      Cu.reportError("mozContact.init is DEPRECATED. Use the mozContact constructor instead. " +
+                     "See https://developer.mozilla.org/docs/WebAPI/Contacts for details.");
+    }
+
+    for (let prop of PROPERTIES) {
       this[prop] = aProp[prop];
     }
   },
@@ -376,14 +391,19 @@ ContactManager.prototype = {
     }
   },
 
-  remove: function removeContact(aRecord) {
+  remove: function removeContact(aRecordOrId) {
     let request = this.createRequest();
-    if (!aRecord || !aRecord.id) {
+    let id;
+    if (typeof aRecordOrId === "string") {
+      id = aRecordOrId;
+    } else if (!aRecordOrId || !aRecordOrId.id) {
       Services.DOMRequest.fireErrorAsync(request, true);
       return request;
+    } else {
+      id = aRecordOrId.id;
     }
 
-    let options = { id: aRecord.id };
+    let options = { id: id };
     let allowCallback = function() {
       cpmm.sendAsyncMessage("Contact:Remove", {requestID: this.getRequestId({request: request, reason: "remove"}), options: options});
     }.bind(this);

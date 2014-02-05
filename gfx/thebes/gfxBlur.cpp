@@ -71,7 +71,7 @@ gfxAlphaBoxBlur::Init(const gfxRect& aRect,
             new gfxImageSurface(mData,
                                 gfxIntSize(size.width, size.height),
                                 mBlur->GetStride(),
-                                gfxImageFormatA8);
+                                gfxImageFormat::A8);
         dt = Factory::CreateDrawTargetForCairoSurface(image->CairoSurface(), size);
         if (!dt) {
             return nullptr;
@@ -99,7 +99,7 @@ gfxAlphaBoxBlur::Paint(gfxContext* aDestinationCtx)
 
     DrawTarget *dest = aDestinationCtx->GetDrawTarget();
     if (!dest) {
-      NS_ERROR("Blurring not supported for Thebes contexts!");
+      NS_WARNING("Blurring not supported for Thebes contexts!");
       return;
     }
 

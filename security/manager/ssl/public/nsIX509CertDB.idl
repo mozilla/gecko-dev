@@ -19,7 +19,7 @@ interface nsIX509CertList;
 #define NS_X509CERTDB_CONTRACTID "@mozilla.org/security/x509certdb;1"
 %}
 
-[scriptable, function, uuid(48411e2d-85a9-4b16-bec8-e30cde801f9e)]
+[scriptable, function, uuid(25a048e8-bb1c-4c33-ad3a-eacf2ad9e9ee)]
 interface nsIOpenSignedJARFileCallback : nsISupports
 {
   void openSignedJARFileFinished(in nsresult rv,
@@ -31,7 +31,7 @@ interface nsIOpenSignedJARFileCallback : nsISupports
  * This represents a service to access and manipulate 
  * X.509 certificates stored in a database.
  */
-[scriptable, uuid(3c2a5658-466a-11e3-a244-180373d97f23)]
+[scriptable, uuid(38463592-8527-11e3-b240-180373d97f23)]
 interface nsIX509CertDB : nsISupports {
 
   /**
@@ -262,6 +262,16 @@ interface nsIX509CertDB : nsISupports {
   nsIX509Cert constructX509FromBase64(in string base64);
 
   /*
+   *  Decode a raw data presentation and instantiate an object in memory.
+   *
+   *  @param certDER The raw representation of a certificate,
+   *                 encoded as raw DER.
+   *  @param length  The length of the DER string.
+   *  @return The new certificate object.
+   */
+  nsIX509Cert constructX509(in string certDER, in unsigned long length);
+
+  /*
    *  Obtain a reference to the appropriate service for recent
    *  bad certificates. May only be called on the main thread.
    *
@@ -300,6 +310,14 @@ interface nsIX509CertDB : nsISupports {
    */
   void addCert(in ACString certDER, in string aTrust, in string aName);
 
+  // Flags for verifyCertNow (these must match the values in CertVerifier.cpp):
+  // Prevent network traffic. Doesn't work with classic verification.
+  const uint32_t FLAG_LOCAL_ONLY = 1 << 0;
+  // Do not fall back to DV verification after attempting EV validation.
+  // Actually does prevent network traffic, but can cause a valid EV
+  // certificate to not be considered valid.
+  const uint32_t FLAG_MUST_BE_EV = 1 << 1;
+
   /** Warning: This interface is inteded to use only for testing only as:
    *    1. It can create IO on the main thread.
    *    2. It is in constant change, so in/out can change at any release.
@@ -311,7 +329,7 @@ interface nsIX509CertDB : nsISupports {
    *
    *  @param aCert Obtain the stored trust of this certificate
    *  @param aUsage a integer representing the usage from NSS
-   *  @param aLocalOnly prevent network activity for revocation
+   *  @param aFlags flags as described above
    *  @param verifedChain chain of verification up to the root if success
    *  @param aHasEVPolicy bool that signified that the cert was an EV cert
    *  @return 0 if success or the value or the error code for the verification
@@ -320,7 +338,7 @@ interface nsIX509CertDB : nsISupports {
   int32_t /*PRErrorCode*/
     verifyCertNow(in nsIX509Cert aCert,
                   in int64_t /*SECCertificateUsage*/ aUsage,
-                  in bool aLocalOnly,
+                  in uint32_t aFlags,
                   out nsIX509CertList verifiedChain,
                   out bool aHasEVPolicy);
 

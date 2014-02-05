@@ -22,6 +22,8 @@ class PlanarYCbCrData;
 
 class gfxUtils {
 public:
+    typedef mozilla::gfx::IntPoint IntPoint;
+    typedef mozilla::gfx::Matrix Matrix;
     /*
      * Premultiply or Unpremultiply aSourceSurface, writing the result
      * to aDestSurface or back into aSourceSurface if aDestSurface is null.
@@ -29,7 +31,7 @@ public:
      * If aDestSurface is given, it must have identical format, dimensions, and
      * stride as the source.
      *
-     * If the source is not gfxImageFormatARGB32, no operation is performed.  If
+     * If the source is not gfxImageFormat::ARGB32, no operation is performed.  If
      * aDestSurface is given, the data is copied over.
      */
     static void PremultiplyImageSurface(gfxImageSurface *aSourceSurface,
@@ -109,6 +111,11 @@ public:
                                          const gfxPoint& aToTopRight,
                                          const gfxPoint& aToBottomRight);
 
+    static Matrix TransformRectToRect(const gfxRect& aFrom,
+                                      const IntPoint& aToTopLeft,
+                                      const IntPoint& aToTopRight,
+                                      const IntPoint& aToBottomRight);
+
     /**
      * If aIn can be represented exactly using an nsIntRect (i.e.
      * integer-aligned edges and coordinates in the int32_t range) then we
@@ -125,7 +132,7 @@ public:
     /**
      * Helper function for ConvertYCbCrToRGB that finds the
      * RGB buffer size and format for given YCbCrImage.
-     * @param aSuggestedFormat will be set to gfxImageFormatRGB24
+     * @param aSuggestedFormat will be set to gfxImageFormat::RGB24
      *   if the desired format is not supported.
      * @param aSuggestedSize will be set to the picture size from aData
      *   if either the suggested size was {0,0}

@@ -140,8 +140,7 @@ void nsMathMLmencloseFrame::InitNotations()
 
   nsAutoString value;
 
-  if (GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::notation_,
-                   value)) {
+  if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::notation_, value)) {
     // parse the notation attribute
     nsWhitespaceTokenizer tokenizer(value);
 
@@ -351,7 +350,7 @@ nsMathMLmencloseFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
       nscoord phi;
       // Rule 11, App. G, TeXbook
       // psi = clearance between rule and content
-      if (NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags))
+      if (StyleFont()->mMathDisplay == NS_MATHML_DISPLAYSTYLE_BLOCK)
         phi = fm->XHeight();
       else
         phi = mRuleThickness;
@@ -800,7 +799,7 @@ void nsDisplayNotation::Paint(nsDisplayListBuilder* aBuilder,
         rect.TopRight() + gfxPoint(std::min(e / 2.0, -w + .4*h), h + .4*w),
         rect.TopRight()
       };
-      gfxCtx->Polygon(p, sizeof(p));
+      gfxCtx->Polygon(p, MOZ_ARRAY_LENGTH(p));
       gfxCtx->Fill();
     }
       break;

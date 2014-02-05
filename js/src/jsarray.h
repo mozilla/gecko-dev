@@ -27,7 +27,7 @@ js_IdIsIndex(jsid id, uint32_t *indexp)
         return true;
     }
 
-    if (JS_UNLIKELY(!JSID_IS_STRING(id)))
+    if (MOZ_UNLIKELY(!JSID_IS_STRING(id)))
         return false;
 
     return js::StringIsArrayIndex(JSID_TO_ATOM(id), indexp);
@@ -140,13 +140,6 @@ ArrayShiftMoveElements(JSObject *obj);
 extern bool
 array_shift(JSContext *cx, unsigned argc, js::Value *vp);
 
-} /* namespace js */
-
-#ifdef DEBUG
-extern bool
-js_ArrayInfo(JSContext *cx, unsigned argc, js::Value *vp);
-#endif
-
 /*
  * Append the given (non-hole) value to the end of an array.  The array must be
  * a newborn array -- that is, one which has not been exposed to script for
@@ -155,7 +148,14 @@ js_ArrayInfo(JSContext *cx, unsigned argc, js::Value *vp);
  * sparse, which requires that the array be completely filled.)
  */
 extern bool
-js_NewbornArrayPush(JSContext *cx, js::HandleObject obj, const js::Value &v);
+NewbornArrayPush(JSContext *cx, HandleObject obj, const Value &v);
+
+} /* namespace js */
+
+#ifdef DEBUG
+extern bool
+js_ArrayInfo(JSContext *cx, unsigned argc, js::Value *vp);
+#endif
 
 /* Array constructor native. Exposed only so the JIT can know its address. */
 bool

@@ -120,7 +120,7 @@ public:
     CreateDrawTarget(const gfx::IntSize &aSize,
                      mozilla::gfx::SurfaceFormat aFormat);
 
-  virtual LayersBackend GetBackendType() { return LAYERS_D3D10; }
+  virtual LayersBackend GetBackendType() { return LayersBackend::LAYERS_D3D10; }
   virtual void GetBackendName(nsAString& name) { name.AssignLiteral("Direct3D 10"); }
 
   virtual const char* Name() const { return "D3D10"; }
@@ -238,8 +238,8 @@ public:
   void SetEffectTransformAndOpacity()
   {
     Layer* layer = GetLayer();
-    const gfx3DMatrix& transform = layer->GetEffectiveTransform();
-    void* raw = &const_cast<gfx3DMatrix&>(transform)._11;
+    const gfx::Matrix4x4& transform = layer->GetEffectiveTransform();
+    void* raw = &const_cast<gfx::Matrix4x4&>(transform)._11;
     effect()->GetVariableByName("mLayerTransform")->SetRawValue(raw, 0, 64);
     effect()->GetVariableByName("fLayerOpacity")->AsScalar()->SetFloat(layer->GetEffectiveOpacity());
   }

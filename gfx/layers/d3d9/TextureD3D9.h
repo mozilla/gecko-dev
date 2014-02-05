@@ -107,9 +107,10 @@ public:
   DataTextureSourceD3D9(gfx::SurfaceFormat aFormat,
                         CompositorD3D9* aCompositor,
                         TextureFlags aFlags = TEXTURE_FLAGS_DEFAULT,
-                        StereoMode aStereoMode = STEREO_MODE_MONO);
+                        StereoMode aStereoMode = StereoMode::MONO);
 
   DataTextureSourceD3D9(gfx::SurfaceFormat aFormat,
+                        gfx::IntSize aSize,
                         CompositorD3D9* aCompositor,
                         IDirect3DTexture9* aTexture,
                         TextureFlags aFlags = TEXTURE_FLAGS_DEFAULT);
@@ -156,6 +157,11 @@ public:
     mCurrentTile = 0;
   }
 
+  /**
+   * Copy the content of aTexture using the GPU.
+   */
+  bool UpdateFromTexture(IDirect3DTexture9* aTexture, const nsIntRegion* aRegion);
+
   // To use with DIBTextureHostD3D9
 
   bool Update(gfxWindowsSurface* aSurface);
@@ -194,6 +200,8 @@ public:
 
   virtual void Unlock() MOZ_OVERRIDE;
 
+  virtual bool IsLocked() const MOZ_OVERRIDE { return mIsLocked; }
+
   virtual bool ToSurfaceDescriptor(SurfaceDescriptor& aOutDescriptor) MOZ_OVERRIDE;
 
   virtual gfx::IntSize GetSize() const { return mSize; }
@@ -219,6 +227,7 @@ private:
   gfx::IntSize mSize;
   gfx::SurfaceFormat mFormat;
   bool mIsLocked;
+  bool mNeedsClear;
 };
 
 /**
@@ -241,6 +250,8 @@ public:
   virtual bool Lock(OpenMode aOpenMode) MOZ_OVERRIDE;
 
   virtual void Unlock() MOZ_OVERRIDE;
+
+  virtual bool IsLocked() const MOZ_OVERRIDE { return mIsLocked; }
 
   virtual bool ToSurfaceDescriptor(SurfaceDescriptor& aOutDescriptor) MOZ_OVERRIDE;
 
@@ -287,6 +298,8 @@ public:
 
   virtual void Unlock() MOZ_OVERRIDE;
 
+  virtual bool IsLocked() const MOZ_OVERRIDE { return mIsLocked; }
+
   virtual bool ToSurfaceDescriptor(SurfaceDescriptor& aOutDescriptor) MOZ_OVERRIDE;
 
   void InitWith(IDirect3DTexture9* aTexture, HANDLE aSharedHandle, D3DSURFACE_DESC aDesc)
@@ -329,6 +342,8 @@ public:
   virtual bool Lock() MOZ_OVERRIDE;
 
   virtual void Unlock() MOZ_OVERRIDE;
+
+  virtual void Updated(const nsIntRegion* aRegion) MOZ_OVERRIDE;
 
   virtual gfx::IntSize GetSize() const MOZ_OVERRIDE { return mSize; }
 

@@ -30,6 +30,21 @@ nsMathMLmmultiscriptsFrame::~nsMathMLmmultiscriptsFrame()
 {
 }
 
+uint8_t
+nsMathMLmmultiscriptsFrame::ScriptIncrement(nsIFrame* aFrame)
+{
+  if (!aFrame)
+    return 0;
+  if (mFrames.ContainsFrame(aFrame)) {
+    if (mFrames.FirstChild() == aFrame ||
+        aFrame->GetContent()->Tag() == nsGkAtoms::mprescripts_) {
+      return 0; // No script increment for base frames or prescript markers
+    }
+    return 1;
+  }
+  return 0; //not a child
+}
+
 NS_IMETHODIMP
 nsMathMLmmultiscriptsFrame::TransmitAutomaticData()
 {
@@ -37,21 +52,12 @@ nsMathMLmmultiscriptsFrame::TransmitAutomaticData()
   mPresentationData.baseFrame = mFrames.FirstChild();
   GetEmbellishDataFrom(mPresentationData.baseFrame, mEmbellishData);
 
-  // The REC says:
-  // The script element increments scriptlevel by 1, and sets
-  // displaystyle to "false", within each of its arguments except base
-  UpdatePresentationDataFromChildAt(1, -1,
-    ~NS_MATHML_DISPLAYSTYLE, NS_MATHML_DISPLAYSTYLE);
-
   // The TeXbook (Ch 17. p.141) says the superscript inherits the compression
   // while the subscript is compressed. So here we collect subscripts and set
   // the compression flag in them.
 
-  if (mContent->Tag() == nsGkAtoms::msup_)
-    return NS_OK;
-
   int32_t count = 0;
-  bool isSubScript = true;
+  bool isSubScript = mContent->Tag() != nsGkAtoms::msup_;
 
   nsAutoTArray<nsIFrame*, 8> subScriptFrames;
   nsIFrame* childFrame = mFrames.FirstChild();
@@ -68,6 +74,7 @@ nsMathMLmmultiscriptsFrame::TransmitAutomaticData()
       } else {
         // superscript
       }
+      PropagateFrameFlagFor(childFrame, NS_FRAME_MATHML_SCRIPT_DESCENDANT);
       isSubScript = !isSubScript;
     }
     count++;
@@ -104,8 +111,7 @@ nsMathMLmmultiscriptsFrame::Place(nsRenderingContext& aRenderingContext,
   //
   nsAutoString value;
   if (tag != nsGkAtoms::msup_) {
-    GetAttribute(mContent, mPresentationData.mstyle,
-                 nsGkAtoms::subscriptshift_, value);
+    mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::subscriptshift_, value);
     if (!value.IsEmpty()) {
       ParseNumericValue(value, &subScriptShift, 0, PresContext(),
                         mStyleContext);
@@ -123,8 +129,7 @@ nsMathMLmmultiscriptsFrame::Place(nsRenderingContext& aRenderingContext,
   // As a minimum, negative values can be ignored.
   //
   if (tag != nsGkAtoms::msub_) {
-    GetAttribute(mContent, mPresentationData.mstyle,
-                 nsGkAtoms::superscriptshift_, value);
+    mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::superscriptshift_, value);
     if (!value.IsEmpty()) {
       ParseNumericValue(value, &supScriptShift, 0, PresContext(),
                         mStyleContext);
@@ -238,8 +243,8 @@ nsMathMLmmultiscriptsFrame::PlaceMultiScript(nsPresContext*      aPresContext,
   nsPresentationData presentationData;
   aFrame->GetPresentationData(presentationData);
   nscoord supScriptShift;
-  if ( font->mScriptLevel == 0 &&
-       NS_MATHML_IS_DISPLAYSTYLE(presentationData.flags) &&
+  if (font->mScriptLevel == 0 &&
+      font->mMathDisplay == NS_MATHML_DISPLAYSTYLE_BLOCK &&
       !NS_MATHML_IS_COMPRESSED(presentationData.flags)) {
     // Style D in TeXbook
     supScriptShift = supScriptShift1;
@@ -352,8 +357,7 @@ nsMathMLmmultiscriptsFrame::PlaceMultiScript(nsPresContext*      aPresContext,
 
       // we update boundingMetrics.{ascent,descent} with that
       // of the baseFrame only after processing all the sup/sub pairs
-      // XXX need italic correction only *if* there are postscripts ?
-      boundingMetrics.width = bmBase.width + italicCorrection;
+      boundingMetrics.width = bmBase.width;
       boundingMetrics.rightBearing = bmBase.rightBearing;
       boundingMetrics.leftBearing = bmBase.leftBearing; // until overwritten
     } else {
@@ -420,9 +424,10 @@ nsMathMLmmultiscriptsFrame::PlaceMultiScript(nsPresContext*      aPresContext,
 
         if (bmSupScript.width)
           width = std::max(width, bmSupScript.width + aScriptSpace);
-        rightBearing = std::max(rightBearing, bmSupScript.rightBearing);
 
         if (!prescriptsFrame) { // we are still looping over base & postscripts
+          rightBearing = std::max(rightBearing,
+                                  italicCorrection + bmSupScript.rightBearing);
           boundingMetrics.rightBearing = boundingMetrics.width + rightBearing;
           boundingMetrics.width += width;
         } else {
@@ -560,12 +565,12 @@ nsMathMLmmultiscriptsFrame::PlaceMultiScript(nsPresContext*      aPresContext,
         // place the base ...
         childFrame = baseFrame;
         dy = aDesiredSize.TopAscent() - baseSize.TopAscent();
-        FinishReflowChild (baseFrame, aPresContext, nullptr, baseSize,
+        FinishReflowChild (baseFrame, aPresContext, baseSize, nullptr,
                            aFrame->MirrorIfRTL(aDesiredSize.Width(),
                                                baseSize.Width(),
                                                dx),
                            dy, 0);
-        dx += bmBase.width + italicCorrection;
+        dx += bmBase.width;
       } else if (prescriptsFrame != childFrame) {
         // process each sup/sub pair
         if (0 == count) {
@@ -593,8 +598,8 @@ nsMathMLmmultiscriptsFrame::PlaceMultiScript(nsPresContext*      aPresContext,
               x += width - subScriptSize.Width();
             dy = aDesiredSize.TopAscent() - subScriptSize.TopAscent() +
               maxSubScriptShift;
-            FinishReflowChild (subScriptFrame, aPresContext, nullptr,
-                               subScriptSize,
+            FinishReflowChild (subScriptFrame, aPresContext, subScriptSize,
+                               nullptr,
                                aFrame->MirrorIfRTL(aDesiredSize.Width(),
                                                    subScriptSize.Width(),
                                                    x),
@@ -603,12 +608,16 @@ nsMathMLmmultiscriptsFrame::PlaceMultiScript(nsPresContext*      aPresContext,
 
           if (supScriptFrame) {
             nscoord x = dx;
-            if (isPreScript)
+            if (isPreScript) {
               x += width - supScriptSize.Width();
+            } else {
+              // post superscripts are shifted by the italic correction value
+              x += italicCorrection;
+            }
             dy = aDesiredSize.TopAscent() - supScriptSize.TopAscent() -
               maxSupScriptShift;
-            FinishReflowChild (supScriptFrame, aPresContext, nullptr,
-                               supScriptSize,
+            FinishReflowChild (supScriptFrame, aPresContext, supScriptSize,
+                               nullptr,
                                aFrame->MirrorIfRTL(aDesiredSize.Width(),
                                                    supScriptSize.Width(),
                                                    x),

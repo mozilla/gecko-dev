@@ -521,23 +521,6 @@ date_convert(JSContext *cx, HandleObject obj, JSType hint, MutableHandleValue vp
     return DefaultValue(cx, obj, (hint == JSTYPE_VOID) ? JSTYPE_STRING : hint, vp);
 }
 
-/*
- * Other Support routines and definitions
- */
-
-const Class DateObject::class_ = {
-    js_Date_str,
-    JSCLASS_HAS_RESERVED_SLOTS(RESERVED_SLOTS) |
-    JSCLASS_HAS_CACHED_PROTO(JSProto_Date),
-    JS_PropertyStub,         /* addProperty */
-    JS_DeletePropertyStub,   /* delProperty */
-    JS_PropertyStub,         /* getProperty */
-    JS_StrictPropertyStub,   /* setProperty */
-    JS_EnumerateStub,
-    JS_ResolveStub,
-    date_convert
-};
-
 /* for use by date_parse */
 
 static const char* const wtb[] = {
@@ -1386,7 +1369,7 @@ DateObject::cachedLocalTime(DateTimeInfo *dtInfo)
     return getReservedSlot(LOCAL_TIME_SLOT).toDouble();
 }
 
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 IsDate(HandleValue v)
 {
     return v.isObject() && v.toObject().is<DateObject>();
@@ -1395,7 +1378,7 @@ IsDate(HandleValue v)
 /*
  * See ECMA 15.9.5.4 thru 15.9.5.23
  */
-/* static */ JS_ALWAYS_INLINE bool
+/* static */ MOZ_ALWAYS_INLINE bool
 DateObject::getTime_impl(JSContext *cx, CallArgs args)
 {
     args.rval().set(args.thisv().toObject().as<DateObject>().UTCTime());
@@ -1409,7 +1392,7 @@ date_getTime(JSContext *cx, unsigned argc, Value *vp)
     return CallNonGenericMethod<IsDate, DateObject::getTime_impl>(cx, args);
 }
 
-/* static */ JS_ALWAYS_INLINE bool
+/* static */ MOZ_ALWAYS_INLINE bool
 DateObject::getYear_impl(JSContext *cx, CallArgs args)
 {
     DateObject *dateObj = &args.thisv().toObject().as<DateObject>();
@@ -1434,7 +1417,7 @@ date_getYear(JSContext *cx, unsigned argc, Value *vp)
     return CallNonGenericMethod<IsDate, DateObject::getYear_impl>(cx, args);
 }
 
-/* static */ JS_ALWAYS_INLINE bool
+/* static */ MOZ_ALWAYS_INLINE bool
 DateObject::getFullYear_impl(JSContext *cx, CallArgs args)
 {
     DateObject *dateObj = &args.thisv().toObject().as<DateObject>();
@@ -1451,7 +1434,7 @@ date_getFullYear(JSContext *cx, unsigned argc, Value *vp)
     return CallNonGenericMethod<IsDate, DateObject::getFullYear_impl>(cx, args);
 }
 
-/* static */ JS_ALWAYS_INLINE bool
+/* static */ MOZ_ALWAYS_INLINE bool
 DateObject::getUTCFullYear_impl(JSContext *cx, CallArgs args)
 {
     double result = args.thisv().toObject().as<DateObject>().UTCTime().toNumber();
@@ -1469,7 +1452,7 @@ date_getUTCFullYear(JSContext *cx, unsigned argc, Value *vp)
     return CallNonGenericMethod<IsDate, DateObject::getUTCFullYear_impl>(cx, args);
 }
 
-/* static */ JS_ALWAYS_INLINE bool
+/* static */ MOZ_ALWAYS_INLINE bool
 DateObject::getMonth_impl(JSContext *cx, CallArgs args)
 {
     DateObject *dateObj = &args.thisv().toObject().as<DateObject>();
@@ -1486,7 +1469,7 @@ date_getMonth(JSContext *cx, unsigned argc, Value *vp)
     return CallNonGenericMethod<IsDate, DateObject::getMonth_impl>(cx, args);
 }
 
-/* static */ JS_ALWAYS_INLINE bool
+/* static */ MOZ_ALWAYS_INLINE bool
 DateObject::getUTCMonth_impl(JSContext *cx, CallArgs args)
 {
     double d = args.thisv().toObject().as<DateObject>().UTCTime().toNumber();
@@ -1501,7 +1484,7 @@ date_getUTCMonth(JSContext *cx, unsigned argc, Value *vp)
     return CallNonGenericMethod<IsDate, DateObject::getUTCMonth_impl>(cx, args);
 }
 
-/* static */ JS_ALWAYS_INLINE bool
+/* static */ MOZ_ALWAYS_INLINE bool
 DateObject::getDate_impl(JSContext *cx, CallArgs args)
 {
     DateObject *dateObj = &args.thisv().toObject().as<DateObject>();
@@ -1518,7 +1501,7 @@ date_getDate(JSContext *cx, unsigned argc, Value *vp)
     return CallNonGenericMethod<IsDate, DateObject::getDate_impl>(cx, args);
 }
 
-/* static */ JS_ALWAYS_INLINE bool
+/* static */ MOZ_ALWAYS_INLINE bool
 DateObject::getUTCDate_impl(JSContext *cx, CallArgs args)
 {
     double result = args.thisv().toObject().as<DateObject>().UTCTime().toNumber();
@@ -1536,7 +1519,7 @@ date_getUTCDate(JSContext *cx, unsigned argc, Value *vp)
     return CallNonGenericMethod<IsDate, DateObject::getUTCDate_impl>(cx, args);
 }
 
-/* static */ JS_ALWAYS_INLINE bool
+/* static */ MOZ_ALWAYS_INLINE bool
 DateObject::getDay_impl(JSContext *cx, CallArgs args)
 {
     DateObject *dateObj = &args.thisv().toObject().as<DateObject>();
@@ -1553,7 +1536,7 @@ date_getDay(JSContext *cx, unsigned argc, Value *vp)
     return CallNonGenericMethod<IsDate, DateObject::getDay_impl>(cx, args);
 }
 
-/* static */ JS_ALWAYS_INLINE bool
+/* static */ MOZ_ALWAYS_INLINE bool
 DateObject::getUTCDay_impl(JSContext *cx, CallArgs args)
 {
     double result = args.thisv().toObject().as<DateObject>().UTCTime().toNumber();
@@ -1571,7 +1554,7 @@ date_getUTCDay(JSContext *cx, unsigned argc, Value *vp)
     return CallNonGenericMethod<IsDate, DateObject::getUTCDay_impl>(cx, args);
 }
 
-/* static */ JS_ALWAYS_INLINE bool
+/* static */ MOZ_ALWAYS_INLINE bool
 DateObject::getHours_impl(JSContext *cx, CallArgs args)
 {
     DateObject *dateObj = &args.thisv().toObject().as<DateObject>();
@@ -1588,7 +1571,7 @@ date_getHours(JSContext *cx, unsigned argc, Value *vp)
     return CallNonGenericMethod<IsDate, DateObject::getHours_impl>(cx, args);
 }
 
-/* static */ JS_ALWAYS_INLINE bool
+/* static */ MOZ_ALWAYS_INLINE bool
 DateObject::getUTCHours_impl(JSContext *cx, CallArgs args)
 {
     double result = args.thisv().toObject().as<DateObject>().UTCTime().toNumber();
@@ -1606,7 +1589,7 @@ date_getUTCHours(JSContext *cx, unsigned argc, Value *vp)
     return CallNonGenericMethod<IsDate, DateObject::getUTCHours_impl>(cx, args);
 }
 
-/* static */ JS_ALWAYS_INLINE bool
+/* static */ MOZ_ALWAYS_INLINE bool
 DateObject::getMinutes_impl(JSContext *cx, CallArgs args)
 {
     DateObject *dateObj = &args.thisv().toObject().as<DateObject>();
@@ -1623,7 +1606,7 @@ date_getMinutes(JSContext *cx, unsigned argc, Value *vp)
     return CallNonGenericMethod<IsDate, DateObject::getMinutes_impl>(cx, args);
 }
 
-/* static */ JS_ALWAYS_INLINE bool
+/* static */ MOZ_ALWAYS_INLINE bool
 DateObject::getUTCMinutes_impl(JSContext *cx, CallArgs args)
 {
     double result = args.thisv().toObject().as<DateObject>().UTCTime().toNumber();
@@ -1643,7 +1626,7 @@ date_getUTCMinutes(JSContext *cx, unsigned argc, Value *vp)
 
 /* Date.getSeconds is mapped to getUTCSeconds */
 
-/* static */ JS_ALWAYS_INLINE bool
+/* static */ MOZ_ALWAYS_INLINE bool
 DateObject::getUTCSeconds_impl(JSContext *cx, CallArgs args)
 {
     DateObject *dateObj = &args.thisv().toObject().as<DateObject>();
@@ -1662,7 +1645,7 @@ date_getUTCSeconds(JSContext *cx, unsigned argc, Value *vp)
 
 /* Date.getMilliseconds is mapped to getUTCMilliseconds */
 
-/* static */ JS_ALWAYS_INLINE bool
+/* static */ MOZ_ALWAYS_INLINE bool
 DateObject::getUTCMilliseconds_impl(JSContext *cx, CallArgs args)
 {
     double result = args.thisv().toObject().as<DateObject>().UTCTime().toNumber();
@@ -1680,7 +1663,7 @@ date_getUTCMilliseconds(JSContext *cx, unsigned argc, Value *vp)
     return CallNonGenericMethod<IsDate, DateObject::getUTCMilliseconds_impl>(cx, args);
 }
 
-/* static */ JS_ALWAYS_INLINE bool
+/* static */ MOZ_ALWAYS_INLINE bool
 DateObject::getTimezoneOffset_impl(JSContext *cx, CallArgs args)
 {
     DateObject *dateObj = &args.thisv().toObject().as<DateObject>();
@@ -1704,7 +1687,7 @@ date_getTimezoneOffset(JSContext *cx, unsigned argc, Value *vp)
     return CallNonGenericMethod<IsDate, DateObject::getTimezoneOffset_impl>(cx, args);
 }
 
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 date_setTime_impl(JSContext *cx, CallArgs args)
 {
     Rooted<DateObject*> dateObj(cx, &args.thisv().toObject().as<DateObject>());
@@ -1759,7 +1742,7 @@ GetMinsOrDefault(JSContext *cx, const CallArgs &args, unsigned i, double t, doub
 }
 
 /* ES5 15.9.5.28. */
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 date_setMilliseconds_impl(JSContext *cx, CallArgs args)
 {
     Rooted<DateObject*> dateObj(cx, &args.thisv().toObject().as<DateObject>());
@@ -1789,7 +1772,7 @@ date_setMilliseconds(JSContext *cx, unsigned argc, Value *vp)
 }
 
 /* ES5 15.9.5.29. */
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 date_setUTCMilliseconds_impl(JSContext *cx, CallArgs args)
 {
     Rooted<DateObject*> dateObj(cx, &args.thisv().toObject().as<DateObject>());
@@ -1819,7 +1802,7 @@ date_setUTCMilliseconds(JSContext *cx, unsigned argc, Value *vp)
 }
 
 /* ES5 15.9.5.30. */
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 date_setSeconds_impl(JSContext *cx, CallArgs args)
 {
     Rooted<DateObject*> dateObj(cx, &args.thisv().toObject().as<DateObject>());
@@ -1856,7 +1839,7 @@ date_setSeconds(JSContext *cx, unsigned argc, Value *vp)
     return CallNonGenericMethod<IsDate, date_setSeconds_impl>(cx, args);
 }
 
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 date_setUTCSeconds_impl(JSContext *cx, CallArgs args)
 {
     Rooted<DateObject*> dateObj(cx, &args.thisv().toObject().as<DateObject>());
@@ -1893,7 +1876,7 @@ date_setUTCSeconds(JSContext *cx, unsigned argc, Value *vp)
     return CallNonGenericMethod<IsDate, date_setUTCSeconds_impl>(cx, args);
 }
 
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 date_setMinutes_impl(JSContext *cx, CallArgs args)
 {
     Rooted<DateObject*> dateObj(cx, &args.thisv().toObject().as<DateObject>());
@@ -1935,7 +1918,7 @@ date_setMinutes(JSContext *cx, unsigned argc, Value *vp)
     return CallNonGenericMethod<IsDate, date_setMinutes_impl>(cx, args);
 }
 
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 date_setUTCMinutes_impl(JSContext *cx, CallArgs args)
 {
     Rooted<DateObject*> dateObj(cx, &args.thisv().toObject().as<DateObject>());
@@ -1977,7 +1960,7 @@ date_setUTCMinutes(JSContext *cx, unsigned argc, Value *vp)
     return CallNonGenericMethod<IsDate, date_setUTCMinutes_impl>(cx, args);
 }
 
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 date_setHours_impl(JSContext *cx, CallArgs args)
 {
     Rooted<DateObject*> dateObj(cx, &args.thisv().toObject().as<DateObject>());
@@ -2024,7 +2007,7 @@ date_setHours(JSContext *cx, unsigned argc, Value *vp)
     return CallNonGenericMethod<IsDate, date_setHours_impl>(cx, args);
 }
 
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 date_setUTCHours_impl(JSContext *cx, CallArgs args)
 {
     Rooted<DateObject*> dateObj(cx, &args.thisv().toObject().as<DateObject>());
@@ -2071,7 +2054,7 @@ date_setUTCHours(JSContext *cx, unsigned argc, Value *vp)
     return CallNonGenericMethod<IsDate, date_setUTCHours_impl>(cx, args);
 }
 
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 date_setDate_impl(JSContext *cx, CallArgs args)
 {
     Rooted<DateObject*> dateObj(cx, &args.thisv().toObject().as<DateObject>());
@@ -2103,7 +2086,7 @@ date_setDate(JSContext *cx, unsigned argc, Value *vp)
     return CallNonGenericMethod<IsDate, date_setDate_impl>(cx, args);
 }
 
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 date_setUTCDate_impl(JSContext *cx, CallArgs args)
 {
     Rooted<DateObject*> dateObj(cx, &args.thisv().toObject().as<DateObject>());
@@ -2155,7 +2138,7 @@ GetMonthOrDefault(JSContext *cx, const CallArgs &args, unsigned i, double t, dou
 }
 
 /* ES5 15.9.5.38. */
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 date_setMonth_impl(JSContext *cx, CallArgs args)
 {
     Rooted<DateObject*> dateObj(cx, &args.thisv().toObject().as<DateObject>());
@@ -2192,7 +2175,7 @@ date_setMonth(JSContext *cx, unsigned argc, Value *vp)
 }
 
 /* ES5 15.9.5.39. */
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 date_setUTCMonth_impl(JSContext *cx, CallArgs args)
 {
     Rooted<DateObject*> dateObj(cx, &args.thisv().toObject().as<DateObject>());
@@ -2245,7 +2228,7 @@ ThisUTCTimeOrZero(Handle<DateObject*> dateObj)
 }
 
 /* ES5 15.9.5.40. */
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 date_setFullYear_impl(JSContext *cx, CallArgs args)
 {
     Rooted<DateObject*> dateObj(cx, &args.thisv().toObject().as<DateObject>());
@@ -2287,7 +2270,7 @@ date_setFullYear(JSContext *cx, unsigned argc, Value *vp)
 }
 
 /* ES5 15.9.5.41. */
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 date_setUTCFullYear_impl(JSContext *cx, CallArgs args)
 {
     Rooted<DateObject*> dateObj(cx, &args.thisv().toObject().as<DateObject>());
@@ -2329,7 +2312,7 @@ date_setUTCFullYear(JSContext *cx, unsigned argc, Value *vp)
 }
 
 /* ES5 Annex B.2.5. */
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 date_setYear_impl(JSContext *cx, CallArgs args)
 {
     Rooted<DateObject*> dateObj(cx, &args.thisv().toObject().as<DateObject>());
@@ -2414,7 +2397,7 @@ print_iso_string(char* buf, size_t size, double utctime)
 }
 
 /* ES5 B.2.6. */
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 date_toGMTString_impl(JSContext *cx, CallArgs args)
 {
     double utctime = args.thisv().toObject().as<DateObject>().UTCTime().toNumber();
@@ -2440,7 +2423,7 @@ date_toGMTString(JSContext *cx, unsigned argc, Value *vp)
     return CallNonGenericMethod<IsDate, date_toGMTString_impl>(cx, args);
 }
 
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 date_toISOString_impl(JSContext *cx, CallArgs args)
 {
     double utctime = args.thisv().toObject().as<DateObject>().UTCTime().toNumber();
@@ -2720,7 +2703,7 @@ ToLocaleStringHelper(JSContext *cx, Handle<DateObject*> dateObj, MutableHandleVa
 }
 
 /* ES5 15.9.5.5. */
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 date_toLocaleString_impl(JSContext *cx, CallArgs args)
 {
     Rooted<DateObject*> dateObj(cx, &args.thisv().toObject().as<DateObject>());
@@ -2735,7 +2718,7 @@ date_toLocaleString(JSContext *cx, unsigned argc, Value *vp)
 }
 
 /* ES5 15.9.5.6. */
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 date_toLocaleDateString_impl(JSContext *cx, CallArgs args)
 {
     /*
@@ -2762,7 +2745,7 @@ date_toLocaleDateString(JSContext *cx, unsigned argc, Value *vp)
 }
 
 /* ES5 15.9.5.7. */
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 date_toLocaleTimeString_impl(JSContext *cx, CallArgs args)
 {
     Rooted<DateObject*> dateObj(cx, &args.thisv().toObject().as<DateObject>());
@@ -2777,7 +2760,7 @@ date_toLocaleTimeString(JSContext *cx, unsigned argc, Value *vp)
 }
 #endif /* !EXPOSE_INTL_API */
 
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 date_toLocaleFormat_impl(JSContext *cx, CallArgs args)
 {
     Rooted<DateObject*> dateObj(cx, &args.thisv().toObject().as<DateObject>());
@@ -2815,7 +2798,7 @@ date_toLocaleFormat(JSContext *cx, unsigned argc, Value *vp)
 }
 
 /* ES5 15.9.5.4. */
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 date_toTimeString_impl(JSContext *cx, CallArgs args)
 {
     return date_format(cx, args.thisv().toObject().as<DateObject>().UTCTime().toNumber(),
@@ -2830,7 +2813,7 @@ date_toTimeString(JSContext *cx, unsigned argc, Value *vp)
 }
 
 /* ES5 15.9.5.3. */
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 date_toDateString_impl(JSContext *cx, CallArgs args)
 {
     return date_format(cx, args.thisv().toObject().as<DateObject>().UTCTime().toNumber(),
@@ -2845,7 +2828,7 @@ date_toDateString(JSContext *cx, unsigned argc, Value *vp)
 }
 
 #if JS_HAS_TOSOURCE
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 date_toSource_impl(JSContext *cx, CallArgs args)
 {
     StringBuffer sb(cx);
@@ -2871,7 +2854,7 @@ date_toSource(JSContext *cx, unsigned argc, Value *vp)
 }
 #endif
 
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 date_toString_impl(JSContext *cx, CallArgs args)
 {
     return date_format(cx, args.thisv().toObject().as<DateObject>().UTCTime().toNumber(),
@@ -2885,7 +2868,7 @@ date_toString(JSContext *cx, unsigned argc, Value *vp)
     return CallNonGenericMethod<IsDate, date_toString_impl>(cx, args);
 }
 
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 date_valueOf_impl(JSContext *cx, CallArgs args)
 {
     Rooted<DateObject*> dateObj(cx, &args.thisv().toObject().as<DateObject>());
@@ -3027,51 +3010,47 @@ js_Date(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
-JSObject *
-js_InitDateClass(JSContext *cx, HandleObject obj)
+static bool
+FinishDateClassInit(JSContext *cx, HandleObject ctor, HandleObject proto)
 {
-    JS_ASSERT(obj->isNative());
-
-    Rooted<GlobalObject*> global(cx, &obj->as<GlobalObject>());
-
-    RootedObject dateProto(cx, global->createBlankPrototype(cx, &DateObject::class_));
-    if (!dateProto)
-        return nullptr;
-    dateProto->as<DateObject>().setUTCTime(GenericNaN());
-
-    RootedFunction ctor(cx);
-    ctor = global->createConstructor(cx, js_Date, cx->names().Date, MAXARGS);
-    if (!ctor)
-        return nullptr;
-
-    if (!LinkConstructorAndPrototype(cx, ctor, dateProto))
-        return nullptr;
-
-    if (!DefinePropertiesAndBrand(cx, ctor, nullptr, date_static_methods))
-        return nullptr;
+    proto->as<DateObject>().setUTCTime(GenericNaN());
 
     /*
-     * Define all Date.prototype.* functions, then brand for trace-jitted code.
      * Date.prototype.toGMTString has the same initial value as
      * Date.prototype.toUTCString.
      */
-    if (!JS_DefineFunctions(cx, dateProto, date_methods))
-        return nullptr;
     RootedValue toUTCStringFun(cx);
     RootedId toUTCStringId(cx, NameToId(cx->names().toUTCString));
     RootedId toGMTStringId(cx, NameToId(cx->names().toGMTString));
-    if (!baseops::GetProperty(cx, dateProto, toUTCStringId, &toUTCStringFun) ||
-        !baseops::DefineGeneric(cx, dateProto, toGMTStringId, toUTCStringFun,
-                                JS_PropertyStub, JS_StrictPropertyStub, 0))
-    {
-        return nullptr;
-    }
-
-    if (!DefineConstructorAndPrototype(cx, global, JSProto_Date, ctor, dateProto))
-        return nullptr;
-
-    return dateProto;
+    return baseops::GetProperty(cx, proto, toUTCStringId, &toUTCStringFun) &&
+           baseops::DefineGeneric(cx, proto, toGMTStringId, toUTCStringFun,
+                                  JS_PropertyStub, JS_StrictPropertyStub, 0);
 }
+
+const Class DateObject::class_ = {
+    js_Date_str,
+    JSCLASS_HAS_RESERVED_SLOTS(RESERVED_SLOTS) |
+    JSCLASS_HAS_CACHED_PROTO(JSProto_Date),
+    JS_PropertyStub,         /* addProperty */
+    JS_DeletePropertyStub,   /* delProperty */
+    JS_PropertyStub,         /* getProperty */
+    JS_StrictPropertyStub,   /* setProperty */
+    JS_EnumerateStub,
+    JS_ResolveStub,
+    date_convert,
+    nullptr,                 /* finalize */
+    nullptr,                 /* call */
+    nullptr,                 /* hasInstance */
+    nullptr,                 /* construct */
+    nullptr,                 /* trace */
+    {
+        GenericCreateConstructor<js_Date, NAME_OFFSET(Date), MAXARGS>,
+        GenericCreatePrototype<&DateObject::class_>,
+        date_static_methods,
+        date_methods,
+        FinishDateClassInit
+    }
+};
 
 JS_FRIEND_API(JSObject *)
 js_NewDateObjectMsec(JSContext *cx, double msec_time)

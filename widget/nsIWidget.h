@@ -214,36 +214,46 @@ enum nsTopLevelWidgetZPlacement { // for PlaceBehind()
  * If the IME implementation on a particular platform doesn't care about
  * NotifyIMEOfTextChange() and/or NotifyIME(NOTIFY_IME_OF_SELECTION_CHANGE),
  * they should set mWantUpdates to NOTIFY_NOTHING to avoid the cost.
- *
- * If mWantHints is true, PuppetWidget will forward the content of text fields
- * to the chrome process to be cached. This way we return the cached content
- * during query events. (see comments in bug 583976). This only makes sense
- * for IME implementations that do use query events, otherwise there's a
- * significant overhead. Platforms that don't use query events should set
- * mWantHints to false.
+ * If the IME implementation needs notifications even while our process is
+ * deactive, it should also set NOTIFY_DURING_DEACTIVE.
  */
 struct nsIMEUpdatePreference {
 
-  typedef int8_t Notifications;
+  typedef uint8_t Notifications;
 
   enum
   {
-    NOTIFY_NOTHING           = 0x0000,
-    NOTIFY_SELECTION_CHANGE  = 0x0001,
-    NOTIFY_TEXT_CHANGE       = 0x0002
+    NOTIFY_NOTHING           = 0x00,
+    NOTIFY_SELECTION_CHANGE  = 0x01,
+    NOTIFY_TEXT_CHANGE       = 0x02,
+    NOTIFY_DURING_DEACTIVE   = 0x80
   };
 
   nsIMEUpdatePreference()
-    : mWantUpdates(NOTIFY_NOTHING), mWantHints(false)
+    : mWantUpdates(NOTIFY_NOTHING)
   {
   }
-  nsIMEUpdatePreference(Notifications aWantUpdates, bool aWantHints)
-    : mWantUpdates(aWantUpdates), mWantHints(aWantHints)
+  nsIMEUpdatePreference(Notifications aWantUpdates)
+    : mWantUpdates(aWantUpdates)
   {
   }
 
+  bool WantSelectionChange() const
+  {
+    return !!(mWantUpdates & NOTIFY_SELECTION_CHANGE);
+  }
+
+  bool WantTextChange() const
+  {
+    return !!(mWantUpdates & NOTIFY_TEXT_CHANGE);
+  }
+
+  bool WantDuringDeactive() const
+  {
+    return !!(mWantUpdates & NOTIFY_DURING_DEACTIVE);
+  }
+
   Notifications mWantUpdates;
-  bool mWantHints;
 };
 
 
@@ -450,7 +460,9 @@ enum NotificationToIME {
   // Selection in the focused editable content is changed
   NOTIFY_IME_OF_SELECTION_CHANGE,
   REQUEST_TO_COMMIT_COMPOSITION,
-  REQUEST_TO_CANCEL_COMPOSITION
+  REQUEST_TO_CANCEL_COMPOSITION,
+  // Composition string has been updated
+  NOTIFY_IME_OF_COMPOSITION_UPDATE
 };
 
 } // namespace widget
@@ -730,6 +742,14 @@ class nsIWidget : public nsISupports {
      *
      */
     NS_IMETHOD SetModal(bool aModal) = 0;
+
+    /**
+     * The maximum number of simultaneous touch contacts supported by the device.
+     * In the case of devices with multiple digitizers (e.g. multiple touch screens),
+     * the value will be the maximum of the set of maximum supported contacts by
+     * each individual digitizer.
+     */
+    virtual uint32_t GetMaxTouchPoints() const = 0;
 
     /**
      * Returns whether the window is visible
@@ -1192,21 +1212,21 @@ class nsIWidget : public nsISupports {
      */
     inline LayerManager* GetLayerManager(bool* aAllowRetaining = nullptr)
     {
-        return GetLayerManager(nullptr, mozilla::layers::LAYERS_NONE,
+        return GetLayerManager(nullptr, mozilla::layers::LayersBackend::LAYERS_NONE,
                                LAYER_MANAGER_CURRENT, aAllowRetaining);
     }
 
     inline LayerManager* GetLayerManager(LayerManagerPersistence aPersistence,
                                          bool* aAllowRetaining = nullptr)
     {
-        return GetLayerManager(nullptr, mozilla::layers::LAYERS_NONE,
+        return GetLayerManager(nullptr, mozilla::layers::LayersBackend::LAYERS_NONE,
                                aPersistence, aAllowRetaining);
     }
 
     /**
      * Like GetLayerManager(), but prefers creating a layer manager of
      * type |aBackendHint| instead of what would normally be created.
-     * LAYERS_NONE means "no hint".
+     * LayersBackend::LAYERS_NONE means "no hint".
      */
     virtual LayerManager* GetLayerManager(PLayerTransactionChild* aShadowManager,
                                           LayersBackend aBackendHint,

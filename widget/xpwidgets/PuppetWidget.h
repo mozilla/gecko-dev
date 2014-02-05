@@ -144,7 +144,7 @@ public:
 
   virtual LayerManager*
   GetLayerManager(PLayerTransactionChild* aShadowManager = nullptr,
-                  LayersBackend aBackendHint = mozilla::layers::LAYERS_NONE,
+                  LayersBackend aBackendHint = mozilla::layers::LayersBackend::LAYERS_NONE,
                   LayerManagerPersistence aPersistence = LAYER_MANAGER_CURRENT,
                   bool* aAllowRetaining = nullptr);
   virtual gfxASurface*      GetThebesSurface();
@@ -155,7 +155,7 @@ public:
   NS_IMETHOD_(InputContext) GetInputContext();
   NS_IMETHOD NotifyIMEOfTextChange(uint32_t aOffset, uint32_t aEnd,
                                    uint32_t aNewEnd) MOZ_OVERRIDE;
-  virtual nsIMEUpdatePreference GetIMEUpdatePreference();
+  virtual nsIMEUpdatePreference GetIMEUpdatePreference() MOZ_OVERRIDE;
 
   NS_IMETHOD SetCursor(nsCursor aCursor);
   NS_IMETHOD SetCursor(imgIContainer* aCursor,
@@ -183,6 +183,7 @@ private:
   nsresult IMEEndComposition(bool aCancel);
   nsresult NotifyIMEOfFocusChange(bool aFocus);
   nsresult NotifyIMEOfSelectionChange();
+  nsresult NotifyIMEOfUpdateComposition();
 
   class PaintTask : public nsRunnable {
   public:
@@ -211,7 +212,7 @@ private:
   // retained-content-only transactions
   nsRefPtr<gfxASurface> mSurface;
   // IME
-  nsIMEUpdatePreference mIMEPreference;
+  nsIMEUpdatePreference mIMEPreferenceOfParent;
   bool mIMEComposing;
   // Latest seqno received through events
   uint32_t mIMELastReceivedSeqno;

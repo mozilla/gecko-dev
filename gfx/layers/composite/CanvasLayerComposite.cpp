@@ -22,6 +22,7 @@
 
 using namespace mozilla;
 using namespace mozilla::layers;
+using namespace mozilla::gfx;
 
 CanvasLayerComposite::CanvasLayerComposite(LayerManagerComposite* aManager)
   : CanvasLayer(aManager, nullptr)
@@ -80,9 +81,9 @@ CanvasLayerComposite::RenderLayer(const nsIntRect& aClipRect)
   // Bug 691354
   // Using the LINEAR filter we get unexplained artifacts.
   // Use NEAREST when no scaling is required.
-  gfxMatrix matrix;
+  Matrix matrix;
   bool is2D = GetEffectiveTransform().Is2D(&matrix);
-  if (is2D && !matrix.HasNonTranslationOrFlip()) {
+  if (is2D && !ThebesMatrix(matrix).HasNonTranslationOrFlip()) {
     filter = GraphicsFilter::FILTER_NEAREST;
   }
 #endif
@@ -90,13 +91,11 @@ CanvasLayerComposite::RenderLayer(const nsIntRect& aClipRect)
   EffectChain effectChain(this);
 
   LayerManagerComposite::AutoAddMaskEffect autoMaskEffect(mMaskLayer, effectChain);
-  gfx::Matrix4x4 transform;
-  ToMatrix4x4(GetEffectiveTransform(), transform);
   gfx::Rect clipRect(aClipRect.x, aClipRect.y, aClipRect.width, aClipRect.height);
 
   mImageHost->Composite(effectChain,
                         GetEffectiveOpacity(),
-                        transform,
+                        GetEffectiveTransform(),
                         gfx::ToFilter(filter),
                         clipRect);
 }

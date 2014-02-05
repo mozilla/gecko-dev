@@ -171,7 +171,6 @@ private: // data
   uint8_t      mPaletteDepth;
   int8_t       mBlendMethod;
   bool mSinglePixel;
-  bool mNeverUseDeviceSurface;
   bool mFormatChanged;
   bool mCompositingFailed;
   bool mNonPremult;
@@ -179,9 +178,6 @@ private: // data
   /** Have we called DiscardTracker::InformAllocation()? */
   bool mInformedDiscardTracker;
 
-#ifdef XP_WIN
-  bool mIsDDBSurface;
-#endif
   bool mDirty;
 };
 

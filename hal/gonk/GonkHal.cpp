@@ -43,6 +43,7 @@
 
 #include "Hal.h"
 #include "HalImpl.h"
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/dom/battery/Constants.h"
 #include "mozilla/FileUtils.h"
 #include "mozilla/Monitor.h"
@@ -759,10 +760,38 @@ GetTimezoneOffset()
   return -(offset / 60);
 }
 
+static int32_t sKernelTimezoneOffset = 0;
+
+static void
+UpdateKernelTimezone(int32_t timezoneOffset)
+{
+  if (sKernelTimezoneOffset == timezoneOffset) {
+    return;
+  }
+
+  // Tell the kernel about the new time zone as well, so that FAT filesystems
+  // will get local timestamps rather than UTC timestamps.
+  //
+  // We assume that /init.rc has a sysclktz entry so that settimeofday has
+  // already been called once before we call it (there is a side-effect in
+  // the kernel the very first time settimeofday is called where it does some
+  // special processing if you only set the timezone).
+  struct timezone tz;
+  memset(&tz, 0, sizeof(tz));
+  tz.tz_minuteswest = timezoneOffset;
+  settimeofday(nullptr, &tz);
+  sKernelTimezoneOffset = timezoneOffset;
+}
+
 void
 SetTimezone(const nsCString& aTimezoneSpec)
 {
   if (aTimezoneSpec.Equals(GetTimezone())) {
+    // Even though the timezone hasn't changed, we still need to tell the
+    // kernel what the current timezone is. The timezone is persisted in
+    // a property and doesn't change across reboots, but the kernel still
+    // needs to be updated on every boot.
+    UpdateKernelTimezone(GetTimezoneOffset());
     return;
   }
 
@@ -772,6 +801,7 @@ SetTimezone(const nsCString& aTimezoneSpec)
   // functions that depend on the timezone. To be safe, we call it manually.
   tzset();
   int32_t newTimezoneOffsetMinutes = GetTimezoneOffset();
+  UpdateKernelTimezone(newTimezoneOffsetMinutes);
   hal::NotifySystemTimezoneChange(
     hal::SystemTimezoneChangeInformation(
       oldTimezoneOffsetMinutes, newTimezoneOffsetMinutes));
@@ -1079,7 +1109,7 @@ OomVictimLogger::Observe(
     ".*send sigkill to.*",
     ".*lowmem_shrink.*, return",
     ".*lowmem_shrink.*, ofree.*"};
-  const size_t regex_count = NS_ARRAY_LENGTH(regexes_raw);
+  const size_t regex_count = ArrayLength(regexes_raw);
 
   // Compile our regex just in time
   if (!mRegexes) {

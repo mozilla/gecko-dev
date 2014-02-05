@@ -100,7 +100,7 @@ public class WebAppImpl extends GeckoApp implements InstallCallback {
         mTitlebar = findViewById(R.id.webapp_titlebar);
         mSplashscreen = findViewById(R.id.splashscreen);
 
-        String origin = WebAppAllocator.getInstance(this).getOrigin(getIndex());
+        String origin = Allocator.getInstance(this).getOrigin(getIndex());
         boolean isInstallCompleting = (origin == null);
 
         if (!GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning) || !isInstalled || isInstallCompleting) {
@@ -154,7 +154,7 @@ public class WebAppImpl extends GeckoApp implements InstallCallback {
     private void showSplash(boolean isApk) {
 
         // get the favicon dominant color, stored when the app was installed
-        int dominantColor = WebAppAllocator.getInstance().getColor(getIndex());
+        int dominantColor = Allocator.getInstance().getColor(getIndex());
 
         setBackgroundGradient(dominantColor);
 
@@ -292,9 +292,7 @@ public class WebAppImpl extends GeckoApp implements InstallCallback {
 
         if (event.equals("WebApps:PostInstall")) {
             String origin = message.optString("origin");
-            String manifestUrl = message.optString("manifestURL");
-            String name = message.optString("name", "WebApp");
-            launchWebApp(origin, manifestUrl, name);
+            launchWebApp(origin, mApkResources.getManifestUrl(), mApkResources.getAppName());
         }
     }
 
@@ -332,5 +330,10 @@ public class WebAppImpl extends GeckoApp implements InstallCallback {
         } catch (JSONException e) {
             Log.e(LOGTAG, "Error populating launch message", e);
         }
+    }
+
+    @Override
+    protected boolean getIsDebuggable() {
+        return mApkResources.isDebuggable();
     }
 }

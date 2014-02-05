@@ -334,6 +334,8 @@ nsWindow::nsWindow() : nsWindowBase()
   mFullscreenMode       = false;
   mMousePresent         = false;
   mDestroyCalled        = false;
+  mHasTaskbarIconBeenCreated = false;
+  mMouseTransparent     = false;
   mPickerDisplayCount   = 0;
   mWindowType           = eWindowType_child;
   mBorderStyle          = eBorderStyle_default;
@@ -362,7 +364,6 @@ nsWindow::nsWindow() : nsWindowBase()
   mForeground           = ::GetSysColor(COLOR_WINDOWTEXT);
 
   mTaskbarPreview = nullptr;
-  mHasTaskbarIconBeenCreated = false;
 
   // Global initialization
   if (!sInstanceCount) {
@@ -490,8 +491,9 @@ nsWindow::Create(nsIWidget *aParent,
       extendedStyle |= WS_EX_COMPOSITED;
     }
 
-    if (aInitData->mIsDragPopup) {
+    if (aInitData->mMouseTransparent) {
       // This flag makes the window transparent to mouse events
+      mMouseTransparent = true;
       extendedStyle |= WS_EX_TRANSPARENT;
     }
   } else if (mWindowType == eWindowType_invisible) {
@@ -1379,7 +1381,7 @@ NS_METHOD nsWindow::Move(double aX, double aY)
     // region, some drivers or OSes may incorrectly copy into the clipped-out
     // area.
     if (mWindowType == eWindowType_plugin &&
-        (!mLayerManager || mLayerManager->GetBackendType() == LAYERS_D3D9) &&
+        (!mLayerManager || mLayerManager->GetBackendType() == LayersBackend::LAYERS_D3D9) &&
         mClipRects &&
         (mClipRectCount != 1 || !mClipRects[0].IsEqualInterior(nsIntRect(0, 0, mBounds.width, mBounds.height)))) {
       flags |= SWP_NOCOPYBITS;
@@ -3244,7 +3246,7 @@ nsWindow::GetLayerManager(PLayerTransactionChild* aShadowManager,
 
 #ifdef MOZ_ENABLE_D3D10_LAYER
   if (mLayerManager) {
-    if (mLayerManager->GetBackendType() == LAYERS_D3D10)
+    if (mLayerManager->GetBackendType() == LayersBackend::LAYERS_D3D10)
     {
       LayerManagerD3D10 *layerManagerD3D10 =
         static_cast<LayerManagerD3D10*>(mLayerManager.get());
@@ -3273,7 +3275,7 @@ nsWindow::GetLayerManager(PLayerTransactionChild* aShadowManager,
 
   if (!mLayerManager ||
       (!sAllowD3D9 && aPersistence == LAYER_MANAGER_PERSISTENT &&
-        mLayerManager->GetBackendType() == LAYERS_BASIC &&
+        mLayerManager->GetBackendType() == LayersBackend::LAYERS_BASIC &&
         !ShouldUseOffMainThreadCompositing())) {
     // If D3D9 is not currently allowed but the permanent manager is required,
     // -and- we're currently using basic layers, run through this check.
@@ -3352,10 +3354,10 @@ gfxASurface *nsWindow::GetThebesSurface()
 #ifdef CAIRO_HAS_D2D_SURFACE
   if (gfxWindowsPlatform::GetPlatform()->GetRenderMode() ==
       gfxWindowsPlatform::RENDER_DIRECT2D) {
-    gfxContentType content = GFX_CONTENT_COLOR;
+    gfxContentType content = gfxContentType::COLOR;
 #if defined(MOZ_XUL)
     if (mTransparencyMode != eTransparencyOpaque) {
-      content = GFX_CONTENT_COLOR_ALPHA;
+      content = gfxContentType::COLOR_ALPHA;
     }
 #endif
     return (new gfxD2DSurface(mWnd, content));
@@ -4673,6 +4675,13 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
 
     case WM_NCHITTEST:
     {
+      if (mMouseTransparent) {
+        // Treat this window as transparent.
+        *aRetValue = HTTRANSPARENT;
+        result = true;
+        break;
+      }
+
       /*
        * If an nc client area margin has been moved, we are responsible
        * for calculating where the resize margins are and returning the
@@ -6364,7 +6373,7 @@ nsWindow::ConfigureChildren(const nsTArray<Configuration>& aConfigurations)
 
       if (gfxWindowsPlatform::GetPlatform()->GetRenderMode() ==
           gfxWindowsPlatform::RENDER_DIRECT2D ||
-          GetLayerManager()->GetBackendType() != LAYERS_BASIC) {
+          GetLayerManager()->GetBackendType() != LayersBackend::LAYERS_BASIC) {
         // XXX - Workaround for Bug 587508. This will invalidate the part of the
         // plugin window that might be touched by moving content somehow. The
         // underlying problem should be found and fixed!
@@ -6665,14 +6674,14 @@ nsWindow::GetPreferredCompositorBackends(nsTArray<LayersBackend>& aHints)
   if (!(prefs.mDisableAcceleration ||
         mTransparencyMode == eTransparencyTransparent)) {
     if (prefs.mPreferOpenGL) {
-      aHints.AppendElement(LAYERS_OPENGL);
+      aHints.AppendElement(LayersBackend::LAYERS_OPENGL);
     }
     if (!prefs.mPreferD3D9) {
-      aHints.AppendElement(LAYERS_D3D11);
+      aHints.AppendElement(LayersBackend::LAYERS_D3D11);
     }
-    aHints.AppendElement(LAYERS_D3D9);
+    aHints.AppendElement(LayersBackend::LAYERS_D3D9);
   }
-  aHints.AppendElement(LAYERS_BASIC);
+  aHints.AppendElement(LayersBackend::LAYERS_BASIC);
 }
 
 void
@@ -6872,14 +6881,14 @@ void nsWindow::ResizeTranslucentWindow(int32_t aNewWidth, int32_t aNewHeight, bo
   if (gfxWindowsPlatform::GetPlatform()->GetRenderMode() ==
       gfxWindowsPlatform::RENDER_DIRECT2D) {
     nsRefPtr<gfxD2DSurface> newSurface =
-      new gfxD2DSurface(gfxIntSize(aNewWidth, aNewHeight), gfxImageFormatARGB32);
+      new gfxD2DSurface(gfxIntSize(aNewWidth, aNewHeight), gfxImageFormat::ARGB32);
     mTransparentSurface = newSurface;
     mMemoryDC = nullptr;
   } else
 #endif
   {
     nsRefPtr<gfxWindowsSurface> newSurface =
-      new gfxWindowsSurface(gfxIntSize(aNewWidth, aNewHeight), gfxImageFormatARGB32);
+      new gfxWindowsSurface(gfxIntSize(aNewWidth, aNewHeight), gfxImageFormat::ARGB32);
     mTransparentSurface = newSurface;
     mMemoryDC = newSurface->GetDC();
   }
@@ -7245,7 +7254,7 @@ nsWindow::ClearCachedResources()
     mD2DWindowSurface = nullptr;
 #endif
     if (mLayerManager &&
-        mLayerManager->GetBackendType() == LAYERS_BASIC) {
+        mLayerManager->GetBackendType() == LayersBackend::LAYERS_BASIC) {
       mLayerManager->ClearCachedResources();
     }
     ::EnumChildWindows(mWnd, nsWindow::ClearResourcesCallback, 0);
@@ -7390,25 +7399,39 @@ nsWindow::DealWithPopups(HWND aWnd, UINT aMessage,
           ::PostMessageW(aWnd, MOZ_WM_REACTIVATE, aWParam, aLParam);
           return true;
         }
-      } else if (sPendingNCACTIVATE && LOWORD(aWParam) == WA_INACTIVE &&
-                 NeedsToHandleNCActivateDelayed(aWnd)) {
-        // If focus moves to non-popup widget or focusable popup, the window
-        // needs to update its nonclient area.
+        // Don't rollup the popup when focus moves back to the parent window
+        // from a popup because such case is caused by strange mouse drivers.
+        nsWindow* prevWindow =
+          WinUtils::GetNSWindowPtr(reinterpret_cast<HWND>(aLParam));
+        if (prevWindow && prevWindow->IsPopup()) {
+          return false;
+        }
+      } else if (LOWORD(aWParam) == WA_INACTIVE) {
         nsWindow* activeWindow =
           WinUtils::GetNSWindowPtr(reinterpret_cast<HWND>(aLParam));
-        if (!activeWindow || !activeWindow->IsPopup()) {
-          sSendingNCACTIVATE = true;
-          ::SendMessageW(aWnd, WM_NCACTIVATE, false, 0);
-          sSendingNCACTIVATE = false;
+        if (sPendingNCACTIVATE && NeedsToHandleNCActivateDelayed(aWnd)) {
+          // If focus moves to non-popup widget or focusable popup, the window
+          // needs to update its nonclient area.
+          if (!activeWindow || !activeWindow->IsPopup()) {
+            sSendingNCACTIVATE = true;
+            ::SendMessageW(aWnd, WM_NCACTIVATE, false, 0);
+            sSendingNCACTIVATE = false;
+          }
+          sPendingNCACTIVATE = false;
         }
-        sPendingNCACTIVATE = false;
+        // If focus moves from/to popup, we don't need to rollup the popup
+        // because such case is caused by strange mouse drivers.
+        if (activeWindow) {
+          if (activeWindow->IsPopup()) {
+            return false;
+          }
+          nsWindow* deactiveWindow = WinUtils::GetNSWindowPtr(aWnd);
+          if (deactiveWindow && deactiveWindow->IsPopup()) {
+            return false;
+          }
+        }
       }
-      // XXX Why do we need to check the message pos?
-      if (!EventIsInsideWindow(popupWindow) &&
-          GetPopupsToRollup(rollupListener, &popupsToRollup)) {
-        break;
-      }
-      return false;
+      break;
 
     case MOZ_WM_REACTIVATE:
       // The previous active window should take back focus.
@@ -7432,7 +7455,6 @@ nsWindow::DealWithPopups(HWND aWnd, UINT aMessage,
       return false;
 
     case WM_MOUSEACTIVATE:
-      // XXX Why do we need to check the message pos?
       if (!EventIsInsideWindow(popupWindow) &&
           GetPopupsToRollup(rollupListener, &popupsToRollup)) {
         // WM_MOUSEACTIVATE may be caused by moving the mouse (e.g., X-mouse
@@ -7456,23 +7478,14 @@ nsWindow::DealWithPopups(HWND aWnd, UINT aMessage,
       // If focus moves to other window created in different process/thread,
       // e.g., a plugin window, popups should be rolled up.
       if (IsDifferentThreadWindow(reinterpret_cast<HWND>(aWParam))) {
-        // XXX Why do we need to check the message pos?
-        if (!EventIsInsideWindow(popupWindow) &&
-            GetPopupsToRollup(rollupListener, &popupsToRollup)) {
-          break;
-        }
+        break;
       }
       return false;
 
     case WM_MOVING:
     case WM_SIZING:
     case WM_MENUSELECT:
-      // XXX Why do we need to check the message pos?
-      if (!EventIsInsideWindow(popupWindow) &&
-          GetPopupsToRollup(rollupListener, &popupsToRollup)) {
-        break;
-      }
-      return false;
+      break;
 
     default:
       return false;

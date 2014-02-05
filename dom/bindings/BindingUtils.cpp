@@ -951,21 +951,21 @@ XrayResolveAttribute(JSContext* cx, JS::Handle<JSObject*> wrapper,
           // They all have getters, so we can just make it.
           JS::Rooted<JSObject*> global(cx, JS_GetGlobalForObject(cx, wrapper));
           JS::Rooted<JSFunction*> fun(cx,
-                                      JS_NewFunctionById(cx, (JSNative)attrSpec.getter.op,
+                                      JS_NewFunctionById(cx, (JSNative)attrSpec.getter.propertyOp.op,
                                                          0, 0, global, id));
           if (!fun)
             return false;
-          SET_JITINFO(fun, attrSpec.getter.info);
+          SET_JITINFO(fun, attrSpec.getter.propertyOp.info);
           JSObject *funobj = JS_GetFunctionObject(fun);
           desc.setGetterObject(funobj);
           desc.attributesRef() |= JSPROP_GETTER;
-          if (attrSpec.setter.op) {
+          if (attrSpec.setter.propertyOp.op) {
             // We have a setter! Make it.
-            fun = JS_NewFunctionById(cx, (JSNative)attrSpec.setter.op, 1, 0,
+            fun = JS_NewFunctionById(cx, (JSNative)attrSpec.setter.propertyOp.op, 1, 0,
                                      global, id);
             if (!fun)
               return false;
-            SET_JITINFO(fun, attrSpec.setter.info);
+            SET_JITINFO(fun, attrSpec.setter.propertyOp.info);
             funobj = JS_GetFunctionObject(fun);
             desc.setSetterObject(funobj);
             desc.attributesRef() |= JSPROP_SETTER;
@@ -1479,7 +1479,7 @@ AppendNamedPropertyIds(JSContext* cx, JS::Handle<JSObject*> proxy,
     }
 
     JS::Rooted<jsid> id(cx);
-    if (!JS_ValueToId(cx, v, id.address())) {
+    if (!JS_ValueToId(cx, v, &id)) {
       return false;
     }
 
@@ -1498,9 +1498,9 @@ GetXrayExpandoChain(JSObject* obj)
 {
   const js::Class* clasp = js::GetObjectClass(obj);
   JS::Value v;
-  if (IsDOMClass(clasp) || IsDOMIfaceAndProtoClass(clasp)) {
+  if (IsNonProxyDOMClass(clasp) || IsDOMIfaceAndProtoClass(clasp)) {
     v = js::GetReservedSlot(obj, DOM_XRAY_EXPANDO_SLOT);
-  } else if (js::IsProxyClass(clasp)) {
+  } else if (clasp->isProxy()) {
     MOZ_ASSERT(js::GetProxyHandler(obj)->family() == ProxyFamily());
     v = js::GetProxyExtra(obj, JSPROXYSLOT_XRAY_EXPANDO);
   } else {
@@ -1515,9 +1515,9 @@ SetXrayExpandoChain(JSObject* obj, JSObject* chain)
 {
   JS::Value v = chain ? JS::ObjectValue(*chain) : JSVAL_VOID;
   const js::Class* clasp = js::GetObjectClass(obj);
-  if (IsDOMClass(clasp) || IsDOMIfaceAndProtoClass(clasp)) {
+  if (IsNonProxyDOMClass(clasp) || IsDOMIfaceAndProtoClass(clasp)) {
     js::SetReservedSlot(obj, DOM_XRAY_EXPANDO_SLOT, v);
-  } else if (js::IsProxyClass(clasp)) {
+  } else if (clasp->isProxy()) {
     MOZ_ASSERT(js::GetProxyHandler(obj)->family() == ProxyFamily());
     js::SetProxyExtra(obj, JSPROXYSLOT_XRAY_EXPANDO, v);
   } else {
@@ -1596,21 +1596,18 @@ NativeToString(JSContext* cx, JS::Handle<JSObject*> wrapper,
         str = nullptr;
       }
     } else {
-      if (IsDOMProxy(obj)) {
-        str = JS_BasicObjectToString(cx, obj);
+      const js::Class* clasp = js::GetObjectClass(obj);
+      if (IsDOMClass(clasp)) {
+        str = JS_NewStringCopyZ(cx, clasp->name);
+        str = ConcatJSString(cx, "[object ", str, "]");
+      } else if (IsDOMIfaceAndProtoClass(clasp)) {
+        const DOMIfaceAndProtoJSClass* ifaceAndProtoJSClass =
+          DOMIfaceAndProtoJSClass::FromJSClass(clasp);
+        str = JS_NewStringCopyZ(cx, ifaceAndProtoJSClass->mToString);
       } else {
-        const js::Class* clasp = js::GetObjectClass(obj);
-        if (IsDOMClass(clasp)) {
-          str = JS_NewStringCopyZ(cx, clasp->name);
-          str = ConcatJSString(cx, "[object ", str, "]");
-        } else if (IsDOMIfaceAndProtoClass(clasp)) {
-          const DOMIfaceAndProtoJSClass* ifaceAndProtoJSClass =
-            DOMIfaceAndProtoJSClass::FromJSClass(clasp);
-          str = JS_NewStringCopyZ(cx, ifaceAndProtoJSClass->mToString);
-        } else {
-          MOZ_ASSERT(JS_IsNativeFunction(obj, Constructor));
-          str = JS_DecompileFunction(cx, JS_GetObjectFunction(obj), 0);
-        }
+        MOZ_ASSERT(JS_IsNativeFunction(obj, Constructor));
+        JS::Rooted<JSFunction*> fun(cx, JS_GetObjectFunction(obj));
+        str = JS_DecompileFunction(cx, fun, 0);
       }
       str = ConcatJSString(cx, pre, str, post);
     }
@@ -1727,7 +1724,7 @@ ReparentWrapper(JSContext* aCx, JS::Handle<JSObject*> aObjArg)
 
     JS::Rooted<JSObject*> copyFrom(aCx, isProxy ? expandoObject : aObj);
     if (copyFrom) {
-      propertyHolder = JS_NewObjectWithGivenProto(aCx, nullptr, nullptr,
+      propertyHolder = JS_NewObjectWithGivenProto(aCx, nullptr, JS::NullPtr(),
                                                   newParent);
       if (!propertyHolder) {
         return NS_ERROR_OUT_OF_MEMORY;
@@ -2034,7 +2031,7 @@ ConstructJSImplementation(JSContext* aCx, const char* aContractId,
       do_QueryInterface(implISupports);
     if (gpi) {
       JS::Rooted<JS::Value> initReturn(aCx);
-      nsresult rv = gpi->Init(window, initReturn.address());
+      nsresult rv = gpi->Init(window, &initReturn);
       if (NS_FAILED(rv)) {
         aRv.Throw(rv);
         return nullptr;
@@ -2167,7 +2164,7 @@ FinalizeGlobal(JSFreeOp* aFreeOp, JSObject* aObj)
 
 bool
 ResolveGlobal(JSContext* aCx, JS::Handle<JSObject*> aObj,
-              JS::MutableHandle<jsid> aId, unsigned aFlags,
+              JS::Handle<jsid> aId, unsigned aFlags,
               JS::MutableHandle<JSObject*> aObjp)
 {
   bool resolved;

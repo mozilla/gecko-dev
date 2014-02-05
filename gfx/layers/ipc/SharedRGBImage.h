@@ -60,7 +60,8 @@ public:
   size_t GetBufferSize();
 
   static uint8_t BytesPerPixel(gfxImageFormat aImageFormat);
-  already_AddRefed<gfxASurface> GetAsSurface();
+  already_AddRefed<gfxASurface> DeprecatedGetAsSurface();
+  virtual TemporaryRef<gfx::SourceSurface> GetAsSourceSurface() MOZ_OVERRIDE;
 
   /**
    * Setup the Surface descriptor to contain this image's shmem, while keeping
@@ -117,7 +118,9 @@ public:
 
   size_t GetBufferSize();
 
-  already_AddRefed<gfxASurface> GetAsSurface();
+  already_AddRefed<gfxASurface> DeprecatedGetAsSurface();
+
+  TemporaryRef<gfx::SourceSurface> GetAsSourceSurface();
 
   bool Allocate(gfx::IntSize aSize, gfx::SurfaceFormat aFormat);
 private:

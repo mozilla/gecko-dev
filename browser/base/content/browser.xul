@@ -129,6 +129,7 @@
                oncommand="gotoHistoryIndex(event); event.stopPropagation();"
                onclick="checkForMiddleClick(this, event);"/>
     <tooltip id="aHTMLTooltip" page="true"/>
+    <tooltip id="remoteBrowserTooltip"/>
 
     <!-- for search and content formfill/pw manager -->
     <panel type="autocomplete" id="PopupAutoComplete" noautofocus="true" hidden="true"/>
@@ -202,14 +203,28 @@
            align="start"
            orient="vertical"
            role="alert">
-      <label id="UITourTooltipTitle" flex="1"/>
-      <description id="UITourTooltipDescription" flex="1"/>
+      <hbox>
+        <vbox>
+          <image id="UITourTooltipIcon"/>
+        </vbox>
+        <vbox flex="1">
+          <label id="UITourTooltipTitle" flex="1"/>
+          <description id="UITourTooltipDescription" flex="1"/>
+          <hbox id="UITourTooltipButtons" flex="1" align="center"/>
+        </vbox>
+        <vbox align="start">
+          <toolbarbutton id="UITourTooltipClose" class="close-icon"
+                         tooltiptext="&uiTour.infoPanel.close;"/>
+        </vbox>
+      </hbox>
     </panel>
     <panel id="UITourHighlightContainer"
            hidden="true"
            noautofocus="true"
            noautohide="true"
-           consumeoutsideclicks="false">
+           flip="none"
+           consumeoutsideclicks="false"
+           mousethrough="always">
       <box id="UITourHighlight"></box>
     </panel>
 
@@ -372,6 +387,48 @@
       </hbox>
     </panel>
 
+    <!-- Sync Panel -->
+    <panel id="sync-start-panel" class="sync-panel" type="arrow" hidden="true"
+           noautofocus="true" level="top" onclick="this.hidePopup();"
+           flip="slide">
+      <hbox class="sync-panel-outer">
+        <image class="sync-panel-icon"/>
+        <vbox class="sync-panel-inner">
+          <description id="sync-start-panel-title"
+                       value="&syncStartPanel.heading;"/>
+          <description id="sync-start-panel-subtitle">
+#ifdef XP_UNIX
+            &syncStartPanel.subTitleUnix;
+#else
+            &syncStartPanel.subTitle;
+#endif
+          </description>
+        </vbox>
+      </hbox>
+    </panel>
+
+    <!-- Sync Error Panel -->
+    <panel id="sync-error-panel" class="sync-panel" type="arrow" hidden="true"
+           noautofocus="true" level="top" onclick="this.hidePopup();"
+           flip="slide">
+      <hbox class="sync-panel-outer">
+        <image class="sync-panel-icon"/>
+        <vbox class="sync-panel-inner">
+          <description id="sync-error-panel-title"
+                       value="&syncErrorPanel.heading;"/>
+          <description id="sync-error-panel-subtitle"
+                       value="&syncErrorPanel.subTitle;"/>
+          <hbox class="sync-panel-button-box">
+            <spacer flex="1"/>
+            <button class="sync-panel-button"
+                    label="&syncErrorPanel.signInButton.label;"
+                    accesskey="&syncErrorPanel.signInButton.accesskey;"
+                    onclick="gFxAccounts.openSignInAgainPage();"/>
+          </hbox>
+        </vbox>
+      </hbox>
+    </panel>
+
     <!-- Bookmarks and history tooltip -->
     <tooltip id="bhTooltip"/>
 
@@ -404,6 +461,17 @@
         <vbox id="downloads-indicator-notification"/>
       </vbox>
     </hbox>
+
+    <hbox id="bookmarked-notification-container" mousethrough="always">
+      <vbox id="bookmarked-notification-anchor">
+        <vbox id="bookmarked-notification"/>
+      </vbox>
+    </hbox>
+
+    <tooltip id="dynamic-shortcut-tooltip"
+             onpopupshowing="UpdateDynamicShortcutTooltipText(this.triggerNode)">
+      <label id="dynamic-shortcut-tooltip-label"/>
+    </tooltip>
   </popupset>
 
 #ifdef CAN_DRAW_IN_TITLEBAR
@@ -685,7 +753,8 @@
                        removable="true"
                        type="menu-button"
                        label="&bookmarksMenuButton.label;"
-                       tooltiptext="&bookmarksMenuButton.tooltip;"
+                       tooltip="dynamic-shortcut-tooltip"
+                       anchor="dropmarker"
                        ondragenter="PlacesMenuDNDHandler.onDragEnter(event);"
                        ondragover="PlacesMenuDNDHandler.onDragOver(event);"
                        ondragleave="PlacesMenuDNDHandler.onDragLeave(event);"
@@ -693,21 +762,17 @@
                        cui-areatype="toolbar"
                        oncommand="BookmarkingUI.onCommand(event);">
           <menupopup id="BMB_bookmarksPopup"
+                     class="cui-widget-panel cui-widget-panelview cui-widget-panelWithFooter"
                      placespopup="true"
                      context="placesContext"
                      openInTabs="children"
-                     anonanchorclass="toolbarbutton-menubutton-dropmarker"
                      oncommand="BookmarksEventHandler.onCommand(event, this.parentNode._placesView);"
                      onclick="BookmarksEventHandler.onClick(event, this.parentNode._placesView);"
                      onpopupshowing="BookmarkingUI.onPopupShowing(event);
-                                     if (!this.parentNode._placesView)
-                                       new PlacesMenu(event, 'place:folder=BOOKMARKS_MENU');"
+                                     BookmarkingUI.attachPlacesView(event, this);"
                      tooltip="bhTooltip" popupsinherittooltip="true">
-            <menuitem id="BMB_bookmarksShowAll"
-                      label="&showAllBookmarks2.label;"
-                      command="Browser:ShowAllBookmarks"
-                      key="manBookmarkKb"/>
             <menuitem id="BMB_viewBookmarksSidebar"
+                      class="subviewbutton"
                       label="&viewBookmarksSidebar2.label;"
                       type="checkbox"
                       oncommand="toggleSidebar('viewBookmarksSidebar');">
@@ -716,7 +781,9 @@
             <menuseparator/>
             <menuitem id="BMB_subscribeToPageMenuitem"
 #ifndef XP_MACOSX
-                      class="menuitem-iconic"
+                      class="menuitem-iconic subviewbutton"
+#else
+                      class="subviewbutton"
 #endif
                       label="&subscribeToPageMenuitem.label;"
                       oncommand="return FeedHandler.subscribeToFeed(null, event);"
@@ -724,7 +791,9 @@
                       observes="singleFeedMenuitemState"/>
             <menu id="BMB_subscribeToPageMenupopup"
 #ifndef XP_MACOSX
-                  class="menu-iconic"
+                  class="menu-iconic subviewbutton"
+#else
+                  class="subviewbutton"
 #endif
                   label="&subscribeToPageMenupopup.label;"
                   observes="multipleFeedsMenuState">
@@ -735,7 +804,7 @@
             </menu>
             <menuseparator/>
             <menu id="BMB_bookmarksToolbar"
-                  class="menu-iconic bookmark-item"
+                  class="menu-iconic bookmark-item subviewbutton"
                   label="&personalbarCmd.label;"
                   container="true">
               <menupopup id="BMB_bookmarksToolbarPopup"
@@ -754,7 +823,7 @@
               </menupopup>
             </menu>
             <menu id="BMB_unsortedBookmarks"
-                  class="menu-iconic bookmark-item"
+                  class="menu-iconic bookmark-item subviewbutton"
                   label="&bookmarksMenuButton.unsorted.label;"
                   container="true">
               <menupopup id="BMB_unsortedBookmarksPopup"
@@ -764,7 +833,12 @@
                                            new PlacesMenu(event, 'place:folder=UNFILED_BOOKMARKS');"/>
             </menu>
             <menuseparator/>
-            <!-- Bookmarks menu items -->
+            <!-- Bookmarks menu items will go here -->
+            <menuitem id="BMB_bookmarksShowAll"
+                      class="subviewbutton panel-subview-footer"
+                      label="&showAllBookmarks2.label;"
+                      command="Browser:ShowAllBookmarks"
+                      key="manBookmarkKb"/>
           </menupopup>
         </toolbarbutton>
 
@@ -810,12 +884,11 @@
 
       <toolbaritem id="PanelUI-button"
                    class="chromeclass-toolbar-additional"
-                   removable="false"
-                   title="&appmenu.title;">
+                   removable="false">
         <toolbarbutton id="PanelUI-menu-button"
                        class="toolbarbutton-1"
                        label="&brandShortName;"
-                       tooltiptext="&appmenu.title;"/>
+                       tooltiptext="&appmenu.tooltip;"/>
       </toolbaritem>
 
       <hbox id="window-controls" hidden="true" pack="end" skipintoolbarset="true"
@@ -850,7 +923,6 @@
                    cui-areatype="toolbar"
                    removable="true">
         <toolbarbutton id="bookmarks-toolbar-placeholder"
-                       type="wrap"
                        mousethrough="never"
                        label="&bookmarksToolbarItem.label;"
                        oncommand="PlacesToolbarHelper.onPlaceholderCommand();"/>
@@ -901,17 +973,17 @@
 
       <toolbarbutton id="print-button" class="toolbarbutton-1 chromeclass-toolbar-additional"
 #ifdef XP_MACOSX
-                     command="cmd_print"
+                     command="cmd_print" tooltip="dynamic-shortcut-tooltip"
 #else
-                     command="cmd_printPreview"
+                     command="cmd_printPreview" tooltiptext="&printButton.tooltip;"
 #endif
-                     label="&printButton.label;" tooltiptext="&printButton.tooltip;"/>
+                     label="&printButton.label;"/>
 
 
       <toolbarbutton id="new-window-button" class="toolbarbutton-1 chromeclass-toolbar-additional"
                      label="&newNavigatorCmd.label;"
                      command="key_newNavigator"
-                     tooltiptext="&newWindowButton.tooltip;"
+                     tooltip="dynamic-shortcut-tooltip"
                      ondrop="newWindowButtonObserver.onDrop(event)"
                      ondragover="newWindowButtonObserver.onDragOver(event)"
                      ondragenter="newWindowButtonObserver.onDragOver(event)"
@@ -921,7 +993,7 @@
                      observes="View:FullScreen"
                      type="checkbox"
                      label="&fullScreenCmd.label;"
-                     tooltiptext="&fullScreenButton.tooltip;"/>
+                     tooltip="dynamic-shortcut-tooltip"/>
 
 #ifdef MOZ_SERVICES_SYNC
       <toolbarbutton id="sync-button"
@@ -933,7 +1005,7 @@
       <toolbarbutton id="tabview-button" class="toolbarbutton-1 chromeclass-toolbar-additional"
                      label="&tabGroupsButton.label;"
                      command="Browser:ToggleTabView"
-                     tooltiptext="&tabGroupsButton.tooltip;"
+                     tooltip="dynamic-shortcut-tooltip"
                      observes="tabviewGroupsNumber"/>
     </toolbarpalette>
   </toolbox>

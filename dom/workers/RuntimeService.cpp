@@ -135,7 +135,6 @@ static_assert(MAX_WORKERS_PER_DOMAIN >= 1,
 #define PREF_JS_OPTIONS_PREFIX "javascript.options."
 #define PREF_WORKERS_OPTIONS_PREFIX PREF_WORKERS_PREFIX "options."
 #define PREF_MEM_OPTIONS_PREFIX "mem."
-#define PREF_JIT_HARDENING "jit_hardening"
 #define PREF_GCZEAL "gcZeal"
 
 #if !(defined(DEBUG) || defined(MOZ_ENABLE_JS_DUMP))
@@ -143,7 +142,6 @@ static_assert(MAX_WORKERS_PER_DOMAIN >= 1,
 #define PREF_DOM_WINDOW_DUMP_ENABLED "browser.dom.window.dump.enabled"
 #endif
 
-#define PREF_PROMISE_ENABLED "dom.promise.enabled"
 #define PREF_WORKERS_LATEST_JS_VERSION "dom.workers.latestJSVersion"
 
 namespace {
@@ -186,7 +184,7 @@ const char* gStringChars[] = {
   // thread.
 };
 
-static_assert(NS_ARRAY_LENGTH(gStringChars) == ID_COUNT,
+static_assert(MOZ_ARRAY_LENGTH(gStringChars) == ID_COUNT,
               "gStringChars should have the right length.");
 
 class LiteralRebindingCString : public nsDependentCString
@@ -297,9 +295,7 @@ LoadJSContextOptions(const char* aPrefName, void* /* aClosure */)
                                           PREF_MEM_OPTIONS_PREFIX)) ||
       StringBeginsWith(prefName,
                        NS_LITERAL_CSTRING(PREF_WORKERS_OPTIONS_PREFIX
-                                          PREF_MEM_OPTIONS_PREFIX)) ||
-      prefName.EqualsLiteral(PREF_JS_OPTIONS_PREFIX PREF_JIT_HARDENING) ||
-      prefName.EqualsLiteral(PREF_WORKERS_OPTIONS_PREFIX PREF_JIT_HARDENING)) {
+                                          PREF_MEM_OPTIONS_PREFIX))) {
     return;
   }
 
@@ -575,27 +571,6 @@ LoadJSGCMemoryOptions(const char* aPrefName, void* /* aClosure */)
 }
 
 void
-LoadJITHardeningOption(const char* /* aPrefName */, void* /* aClosure */)
-{
-  AssertIsOnMainThread();
-
-  RuntimeService* rts = RuntimeService::GetService();
-
-  if (!rts && !gRuntimeServiceDuringInit) {
-    // May be shutting down, just bail.
-    return;
-  }
-
-  bool value = GetWorkerPref(NS_LITERAL_CSTRING(PREF_JIT_HARDENING), false);
-
-  RuntimeService::SetDefaultJITHardening(value);
-
-  if (rts) {
-    rts->UpdateAllWorkerJITHardening(value);
-  }
-}
-
-void
 ErrorReporter(JSContext* aCx, const char* aMessage, JSErrorReport* aReport)
 {
   WorkerPrivate* worker = GetWorkerPrivateFromContext(aCx);
@@ -791,7 +766,6 @@ CreateJSContextForWorker(WorkerPrivate* aWorkerPrivate, JSRuntime* aRuntime)
 
   // Security policy:
   static JSSecurityCallbacks securityCallbacks = {
-    nullptr,
     ContentSecurityPolicyAllows
   };
   JS_SetSecurityCallbacks(aRuntime, &securityCallbacks);
@@ -832,8 +806,6 @@ CreateJSContextForWorker(WorkerPrivate* aWorkerPrivate, JSRuntime* aRuntime)
   JS::ContextOptionsRef(workerCx) =
     aWorkerPrivate->IsChromeWorker() ? settings.chrome.contextOptions
                                      : settings.content.contextOptions;
-
-  JS_SetJitHardening(aRuntime, settings.jitHardening);
 
 #ifdef JS_GC_ZEAL
   JS_SetGCZeal(workerCx, settings.gcZeal, settings.gcZealFrequency);
@@ -1675,14 +1647,6 @@ RuntimeService::Init()
                             LoadJSGCMemoryOptions,
                             PREF_WORKERS_OPTIONS_PREFIX PREF_MEM_OPTIONS_PREFIX,
                             nullptr)) ||
-      NS_FAILED(Preferences::RegisterCallback(
-                                      LoadJITHardeningOption,
-                                      PREF_JS_OPTIONS_PREFIX PREF_JIT_HARDENING,
-                                      nullptr)) ||
-      NS_FAILED(Preferences::RegisterCallbackAndCall(
-                                 LoadJITHardeningOption,
-                                 PREF_WORKERS_OPTIONS_PREFIX PREF_JIT_HARDENING,
-                                 nullptr)) ||
 #ifdef JS_GC_ZEAL
       NS_FAILED(Preferences::RegisterCallback(
                                              LoadGCZealOptions,
@@ -1699,10 +1663,6 @@ RuntimeService::Init()
                                   PREF_DOM_WINDOW_DUMP_ENABLED,
                                   reinterpret_cast<void *>(WORKERPREF_DUMP))) ||
 #endif
-      NS_FAILED(Preferences::RegisterCallbackAndCall(
-                               WorkerPrefChanged,
-                               PREF_PROMISE_ENABLED,
-                               reinterpret_cast<void *>(WORKERPREF_PROMISE))) ||
       NS_FAILED(Preferences::RegisterCallback(LoadJSContextOptions,
                                               PREF_JS_OPTIONS_PREFIX,
                                               nullptr)) ||
@@ -1862,10 +1822,6 @@ RuntimeService::Cleanup()
         NS_FAILED(Preferences::UnregisterCallback(LoadJSContextOptions,
                                                   PREF_WORKERS_OPTIONS_PREFIX,
                                                   nullptr)) ||
-        NS_FAILED(Preferences::UnregisterCallback(
-                               WorkerPrefChanged,
-                               PREF_PROMISE_ENABLED,
-                               reinterpret_cast<void *>(WORKERPREF_PROMISE))) ||
 #if DUMP_CONTROLLED_BY_PREF
         NS_FAILED(Preferences::UnregisterCallback(
                                   WorkerPrefChanged,
@@ -1889,15 +1845,7 @@ RuntimeService::Cleanup()
         NS_FAILED(Preferences::UnregisterCallback(
                             LoadJSGCMemoryOptions,
                             PREF_WORKERS_OPTIONS_PREFIX PREF_MEM_OPTIONS_PREFIX,
-                            nullptr)) ||
-        NS_FAILED(Preferences::UnregisterCallback(
-                                      LoadJITHardeningOption,
-                                      PREF_JS_OPTIONS_PREFIX PREF_JIT_HARDENING,
-                                      nullptr)) ||
-        NS_FAILED(Preferences::UnregisterCallback(
-                                 LoadJITHardeningOption,
-                                 PREF_WORKERS_OPTIONS_PREFIX PREF_JIT_HARDENING,
-                                 nullptr))) {
+                            nullptr))) {
       NS_WARNING("Failed to unregister pref callbacks!");
     }
 
@@ -2279,12 +2227,6 @@ RuntimeService::UpdateAllWorkerGCZeal()
 #endif
 
 void
-RuntimeService::UpdateAllWorkerJITHardening(bool aJITHardening)
-{
-  BROADCAST_ALL_WORKERS(UpdateJITHardening, aJITHardening);
-}
-
-void
 RuntimeService::GarbageCollectAllWorkers(bool aShrinking)
 {
   BROADCAST_ALL_WORKERS(GarbageCollect, aShrinking);
@@ -2351,16 +2293,13 @@ RuntimeService::WorkerPrefChanged(const char* aPrefName, void* aClosure)
   MOZ_ASSERT(tmp < WORKERPREF_COUNT);
   WorkerPreference key = static_cast<WorkerPreference>(tmp);
 
-  if (key == WORKERPREF_PROMISE) {
-    sDefaultPreferences[WORKERPREF_PROMISE] =
-      Preferences::GetBool(PREF_PROMISE_ENABLED, false);
 #ifdef DUMP_CONTROLLED_BY_PREF
-  } else if (key == WORKERPREF_DUMP) {
+  if (key == WORKERPREF_DUMP) {
     key = WORKERPREF_DUMP;
     sDefaultPreferences[WORKERPREF_DUMP] =
       Preferences::GetBool(PREF_DOM_WINDOW_DUMP_ENABLED, false);
-#endif
   }
+#endif
 
   // This function should never be registered as a callback for a preference it
   // does not handle.
@@ -2523,7 +2462,7 @@ LogViolationDetailsRunnable::Run()
     if (mWorkerPrivate->GetReportCSPViolations()) {
       csp->LogViolationDetails(nsIContentSecurityPolicy::VIOLATION_TYPE_EVAL,
                                mFileName, scriptSample, mLineNum,
-                               EmptyString());
+                               EmptyString(), EmptyString());
     }
   }
 

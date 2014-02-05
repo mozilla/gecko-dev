@@ -5,12 +5,28 @@
 
 package org.mozilla.gecko.fxa;
 
+import org.mozilla.gecko.background.common.log.Logger;
+
 public class FxAccountConstants {
   public static final String GLOBAL_LOG_TAG = "FxAccounts";
   public static final String ACCOUNT_TYPE = "@MOZ_ANDROID_SHARED_FXACCOUNT_TYPE@";
 
-  public static final String DEFAULT_IDP_ENDPOINT = "https://api-accounts-onepw.dev.lcip.org";
-  public static final String DEFAULT_AUTH_ENDPOINT = "http://auth.oldsync.dev.lcip.org";
+  public static final String DEFAULT_AUTH_SERVER_ENDPOINT = "https://api.accounts.firefox.com/v1";
+  public static final String DEFAULT_TOKEN_SERVER_ENDPOINT = "https://token.services.mozilla.com/1.0/sync/1.5";
 
-  public static final String PREFS_PATH = "fxa.v1";
+  // For extra debugging.  Not final so it can be changed from Fennec, or from
+  // an add-on.
+  public static boolean LOG_PERSONAL_INFORMATION = false;
+
+  public static void pii(String tag, String message) {
+    if (LOG_PERSONAL_INFORMATION) {
+      Logger.info(tag, "$$FxA PII$$: " + message);
+    }
+  }
+
+  // You must be at least 14 years old to create a Firefox Account.
+  public static final int MINIMUM_AGE_TO_CREATE_AN_ACCOUNT = 14;
+
+  // You must wait 15 minutes after failing an age check before trying to create a different account.
+  public static final long MINIMUM_TIME_TO_WAIT_AFTER_AGE_CHECK_FAILED_IN_MILLISECONDS = 15 * 60 * 1000;
 }

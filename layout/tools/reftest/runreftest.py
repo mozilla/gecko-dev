@@ -6,23 +6,112 @@
 Runs the reftest test harness.
 """
 
-import re, sys, shutil, os, os.path
+from optparse import OptionParser
+import collections
+import json
+import multiprocessing
+import os
+import re
+import shutil
+import subprocess
+import sys
+import threading
+
 SCRIPT_DIRECTORY = os.path.abspath(os.path.realpath(os.path.dirname(sys.argv[0])))
 sys.path.insert(0, SCRIPT_DIRECTORY)
 
 from automation import Automation
-from automationutils import *
-from optparse import OptionParser
-from tempfile import mkdtemp
-
+from automationutils import (
+        addCommonOptions,
+        getDebuggerInfo,
+        isURL,
+        processLeakLog
+)
 import mozprofile
+
+def categoriesToRegex(categoryList):
+  return "\\(" + ', '.join(["(?P<%s>\\d+) %s" % c for c in categoryList]) + "\\)"
+summaryLines = [('Successful', [('pass', 'pass'), ('loadOnly', 'load only')]),
+                ('Unexpected', [('fail', 'unexpected fail'),
+                                ('pass', 'unexpected pass'),
+                                ('asserts', 'unexpected asserts'),
+                                ('fixedAsserts', 'unexpected fixed asserts'),
+                                ('failedLoad', 'failed load'),
+                                ('exception', 'exception')]),
+                ('Known problems', [('knownFail', 'known fail'),
+                                    ('knownAsserts', 'known asserts'),
+                                    ('random', 'random'),
+                                    ('skipped', 'skipped'),
+                                    ('slow', 'slow')])]
+
+# Python's print is not threadsafe.
+printLock = threading.Lock()
+
+class ReftestThread(threading.Thread):
+  def __init__(self, cmdlineArgs):
+    threading.Thread.__init__(self)
+    self.cmdlineArgs = cmdlineArgs
+    self.summaryMatches = {}
+    self.retcode = -1
+    for text, _ in summaryLines:
+      self.summaryMatches[text] = None
+
+  def run(self):
+    with printLock:
+      print "Starting thread with", self.cmdlineArgs
+      sys.stdout.flush()
+    process = subprocess.Popen(self.cmdlineArgs, stdout=subprocess.PIPE)
+    for chunk in self.chunkForMergedOutput(process.stdout):
+      with printLock:
+        print chunk,
+        sys.stdout.flush()
+    self.retcode = process.wait()
+
+  def chunkForMergedOutput(self, logsource):
+    """Gather lines together that should be printed as one atomic unit.
+    Individual test results--anything between 'REFTEST TEST-START' and
+    'REFTEST TEST-END' lines--are an atomic unit.  Lines with data from
+    summaries are parsed and the data stored for later aggregation.
+    Other lines are considered their own atomic units and are permitted
+    to intermix freely."""
+    testStartRegex = re.compile("^REFTEST TEST-START")
+    testEndRegex = re.compile("^REFTEST TEST-END")
+    summaryHeadRegex = re.compile("^REFTEST INFO \\| Result summary:")
+    summaryRegexFormatString = "^REFTEST INFO \\| (?P<message>{text}): (?P<total>\\d+) {regex}"
+    summaryRegexStrings = [summaryRegexFormatString.format(text=text,
+                                                           regex=categoriesToRegex(categories))
+                           for (text, categories) in summaryLines]
+    summaryRegexes = [re.compile(regex) for regex in summaryRegexStrings]
+
+    for line in logsource:
+      if testStartRegex.search(line) is not None:
+        chunkedLines = [line]
+        for lineToBeChunked in logsource:
+          chunkedLines.append(lineToBeChunked)
+          if testEndRegex.search(lineToBeChunked) is not None:
+            break
+        yield ''.join(chunkedLines)
+        continue
+
+      haveSuppressedSummaryLine = False
+      for regex in summaryRegexes:
+        match = regex.search(line)
+        if match is not None:
+          self.summaryMatches[match.group('message')] = match
+          haveSuppressedSummaryLine = True
+          break
+      if haveSuppressedSummaryLine:
+        continue
+
+      if summaryHeadRegex.search(line) is None:
+        yield line
 
 class RefTest(object):
 
   oldcwd = os.getcwd()
 
-  def __init__(self, automation):
-    self.automation = automation
+  def __init__(self, automation=None):
+    self.automation = automation or Automation()
 
   def getFullPath(self, path):
     "Get an absolute path relative to self.oldcwd."
@@ -45,11 +134,11 @@ class RefTest(object):
     return '"%s"' % re.sub(r'([\\"])', r'\\\1', s)
 
   def createReftestProfile(self, options, manifest, server='localhost',
-                           special_powers=True):
+                           special_powers=True, profile_to_clone=None):
     """
       Sets up a profile for reftest.
       'manifest' is the path to the reftest.list file we want to test with.  This is used in
-      the remote subclass in remotereftest.py so we can write it to a preference for the 
+      the remote subclass in remotereftest.py so we can write it to a preference for the
       bootstrap extension.
     """
 
@@ -100,11 +189,14 @@ class RefTest(object):
     for f in options.extensionsToInstall:
       addons.append(self.getFullPath(f))
 
-    profile = mozprofile.profile.Profile(
-        addons=addons,
-        preferences=prefs,
-        locations=locations,
-    )
+    kwargs = { 'addons': addons,
+               'preferences': prefs,
+               'locations': locations }
+    if profile_to_clone:
+        profile = mozprofile.Profile.clone(profile_to_clone, **kwargs)
+    else:
+        profile = mozprofile.Profile(**kwargs)
+
     self.copyExtraFilesToProfile(options, profile)
     return profile
 
@@ -117,7 +209,7 @@ class RefTest(object):
       if ix <= 0:
         print "Error: syntax error in --setenv=" + v
         return None
-      browserEnv[v[:ix]] = v[ix + 1:]    
+      browserEnv[v[:ix]] = v[ix + 1:]
 
     # Enable leaks detection to its own log file.
     self.leakLogFile = os.path.join(profileDir, "runreftest_leaks.log")
@@ -129,6 +221,80 @@ class RefTest(object):
       shutil.rmtree(profileDir, True)
 
   def runTests(self, testPath, options, cmdlineArgs = None):
+    if not options.runTestsInParallel:
+      return self.runSerialTests(testPath, options, cmdlineArgs)
+
+    cpuCount = multiprocessing.cpu_count()
+
+    # We have the directive, technology, and machine to run multiple test instances.
+    # Experimentation says that reftests are not overly CPU-intensive, so we can run
+    # multiple jobs per CPU core.
+    #
+    # Our Windows machines in automation seem to get upset when we run a lot of
+    # simultaneous tests on them, so tone things down there.
+    if sys.platform == 'win32':
+      jobsWithoutFocus = cpuCount
+    else:
+      jobsWithoutFocus = 2 * cpuCount
+      
+    totalJobs = jobsWithoutFocus + 1
+    perProcessArgs = [sys.argv[:] for i in range(0, totalJobs)]
+
+    # First job is only needs-focus tests.  Remaining jobs are non-needs-focus and chunked.
+    perProcessArgs[0].insert(-1, "--focus-filter-mode=needs-focus")
+    for (chunkNumber, jobArgs) in enumerate(perProcessArgs[1:], start=1):
+      jobArgs[-1:-1] = ["--focus-filter-mode=non-needs-focus",
+                        "--total-chunks=%d" % jobsWithoutFocus,
+                        "--this-chunk=%d" % chunkNumber]
+
+    for jobArgs in perProcessArgs:
+      try:
+        jobArgs.remove("--run-tests-in-parallel")
+      except:
+        pass
+      jobArgs.insert(-1, "--no-run-tests-in-parallel")
+      jobArgs[0:0] = [sys.executable, "-u"]
+
+    threads = [ReftestThread(args) for args in perProcessArgs[1:]]
+    for t in threads:
+      t.start()
+
+    while True:
+      # The test harness in each individual thread will be doing timeout
+      # handling on its own, so we shouldn't need to worry about any of
+      # the threads hanging for arbitrarily long.
+      for t in threads:
+        t.join(10)
+      if not any(t.is_alive() for t in threads):
+        break
+
+    # Run the needs-focus tests serially after the other ones, so we don't
+    # have to worry about races between the needs-focus tests *actually*
+    # needing focus and the dummy windows in the non-needs-focus tests
+    # trying to focus themselves.
+    focusThread = ReftestThread(perProcessArgs[0])
+    focusThread.start()
+    focusThread.join()
+
+    # Output the summaries that the ReftestThread filters suppressed.
+    summaryObjects = [collections.defaultdict(int) for s in summaryLines]
+    for t in threads:
+      for (summaryObj, (text, categories)) in zip(summaryObjects, summaryLines):
+        threadMatches = t.summaryMatches[text]
+        for (attribute, description) in categories:
+          amount = int(threadMatches.group(attribute) if threadMatches else 0)
+          summaryObj[attribute] += amount
+        amount = int(threadMatches.group('total') if threadMatches else 0)
+        summaryObj['total'] += amount
+
+    print 'REFTEST INFO | Result summary:'
+    for (summaryObj, (text, categories)) in zip(summaryObjects, summaryLines):
+      details = ', '.join(["%d %s" % (summaryObj[attribute], description) for (attribute, description) in categories])
+      print 'REFTEST INFO | ' + text + ': ' + str(summaryObj['total']) + ' (' +  details + ')'
+
+    return int(any(t.retcode != 0 for t in threads))
+
+  def runSerialTests(self, testPath, options, cmdlineArgs = None):
     debuggerInfo = getDebuggerInfo(self.oldcwd, options.debugger, options.debuggerArgs,
         options.debuggerInteractive);
 
@@ -180,16 +346,16 @@ class RefTest(object):
 
 class ReftestOptions(OptionParser):
 
-  def __init__(self, automation):
-    self._automation = automation
+  def __init__(self, automation=None):
+    self.automation = automation or Automation()
     OptionParser.__init__(self)
     defaults = {}
 
     # we want to pass down everything from automation.__all__
-    addCommonOptions(self, 
-                     defaults=dict(zip(self._automation.__all__, 
-                            [getattr(self._automation, x) for x in self._automation.__all__])))
-    self._automation.addCommonOptions(self)
+    addCommonOptions(self,
+                     defaults=dict(zip(self.automation.__all__,
+                            [getattr(self.automation, x) for x in self.automation.__all__])))
+    self.automation.addCommonOptions(self)
     self.add_option("--appname",
                     action = "store", type = "string", dest = "app",
                     default = os.path.join(SCRIPT_DIRECTORY, automation.DEFAULT_APP),
@@ -198,8 +364,8 @@ class ReftestOptions(OptionParser):
                     action = "append", dest = "extraProfileFiles",
                     default = [],
                     help = "copy specified files/dirs to testing profile")
-    self.add_option("--timeout",              
-                    action = "store", dest = "timeout", type = "int", 
+    self.add_option("--timeout",
+                    action = "store", dest = "timeout", type = "int",
                     default = 5 * 60, # 5 minutes per bug 479518
                     help = "reftest will timeout in specified number of seconds. [default %default s].")
     self.add_option("--leak-threshold",
@@ -211,10 +377,10 @@ class ReftestOptions(OptionParser):
                            "than the given number")
     self.add_option("--utility-path",
                     action = "store", type = "string", dest = "utilityPath",
-                    default = self._automation.DIST_BIN,
+                    default = self.automation.DIST_BIN,
                     help = "absolute path to directory containing utility "
                            "programs (xpcshell, ssltunnel, certutil)")
-    defaults["utilityPath"] = self._automation.DIST_BIN
+    defaults["utilityPath"] = self.automation.DIST_BIN
 
     self.add_option("--total-chunks",
                     type = "int", dest = "totalChunks",
@@ -231,7 +397,7 @@ class ReftestOptions(OptionParser):
                     default = None,
                     help = "file to log output to in addition to stdout")
     defaults["logFile"] = None
- 
+
     self.add_option("--skip-slow-tests",
                     dest = "skipSlowTests", action = "store_true",
                     help = "skip tests marked as slow when running")
@@ -249,6 +415,14 @@ class ReftestOptions(OptionParser):
                            "the extension's id as indicated in its install.rdf. "
                            "An optional path can be specified too.")
     defaults["extensionsToInstall"] = []
+
+    self.add_option("--run-tests-in-parallel",
+                    action = "store_true", dest = "runTestsInParallel",
+                    help = "run tests in parallel if possible")
+    self.add_option("--no-run-tests-in-parallel",
+                    action = "store_false", dest = "runTestsInParallel",
+                    help = "do not run tests in parallel")
+    defaults["runTestsInParallel"] = False
 
     self.add_option("--setenv",
                     action = "append", type = "string",
@@ -290,6 +464,16 @@ class ReftestOptions(OptionParser):
       if not os.path.isdir(options.xrePath):
         self.error("--xre-path '%s' is not a directory" % options.xrePath)
       options.xrePath = reftest.getFullPath(options.xrePath)
+
+    if options.runTestsInParallel:
+      if options.logFile is not None:
+        self.error("cannot specify logfile with parallel tests")
+      if options.totalChunks is not None and options.thisChunk is None:
+        self.error("cannot specify thisChunk or totalChunks with parallel tests")
+      if options.focusFilterMode != "all":
+        self.error("cannot specify focusFilterMode with parallel tests")
+      if options.debugger is not None:
+        self.error("cannot specify a debugger with parallel tests")
 
     return options
 

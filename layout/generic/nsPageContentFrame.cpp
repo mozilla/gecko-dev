@@ -49,8 +49,6 @@ nsPageContentFrame::Reflow(nsPresContext*           aPresContext,
     nsHTMLReflowState kidReflowState(aPresContext, aReflowState, frame, maxSize);
     kidReflowState.SetComputedHeight(maxSize.height);
 
-    mPD->mPageContentSize = maxSize.width;
-
     // Reflow the page content area
     rv = ReflowChild(frame, aPresContext, aDesiredSize, kidReflowState, 0, 0, 0, aStatus);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -73,15 +71,16 @@ nsPageContentFrame::Reflow(nsPresContext*           aPresContext,
       // for children sticking outside the child frame's padding edge
       nscoord xmost = aDesiredSize.ScrollableOverflow().XMost();
       if (xmost > aDesiredSize.Width()) {
-        mPD->mPageContentXMost =
-          xmost +
-          kidReflowState.mStyleBorder->GetComputedBorderWidth(NS_SIDE_RIGHT) +
-          padding.right;
+        nscoord widthToFit = xmost + padding.right +
+          kidReflowState.mStyleBorder->GetComputedBorderWidth(NS_SIDE_RIGHT);
+        float ratio = float(maxSize.width) / widthToFit;
+        NS_ASSERTION(ratio >= 0.0 && ratio < 1.0, "invalid shrink-to-fit ratio");
+        mPD->mShrinkToFitRatio = std::min(mPD->mShrinkToFitRatio, ratio);
       }
     }
 
     // Place and size the child
-    FinishReflowChild(frame, aPresContext, &kidReflowState, aDesiredSize, 0, 0, 0);
+    FinishReflowChild(frame, aPresContext, aDesiredSize, &kidReflowState, 0, 0, 0);
 
     NS_ASSERTION(aPresContext->IsDynamic() || !NS_FRAME_IS_FULLY_COMPLETE(aStatus) ||
                   !frame->GetNextInFlow(), "bad child flow list");

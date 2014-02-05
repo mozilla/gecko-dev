@@ -35,7 +35,6 @@ public:
 
   virtual void DeallocateSharedData(ISurfaceAllocator*) MOZ_OVERRIDE
   {
-    mBufferLocked->Unlock();
     mBufferLocked = nullptr;
   }
 
@@ -129,9 +128,7 @@ GrallocTextureClientOGL::~GrallocTextureClientOGL()
     if (ShouldDeallocateInDestructor()) {
     // If the buffer has never been shared we must deallocate it or it would
     // leak.
-    if (mBufferLocked) {
-      mBufferLocked->Unlock();
-    } else {
+    if (!mBufferLocked) {
       // We just need to wrap the actor in a SurfaceDescriptor because that's what
       // ISurfaceAllocator uses as input, we don't care about the other parameters.
       SurfaceDescriptor sd = SurfaceDescriptorGralloc(nullptr, mGrallocActor,
@@ -177,6 +174,9 @@ bool
 GrallocTextureClientOGL::Lock(OpenMode aMode)
 {
   MOZ_ASSERT(IsValid());
+  if (!IsValid() || !IsAllocated()) {
+    return false;
+  }
   // XXX- it would be cleaner to take the openMode into account or to check
   // that aMode is coherent with mGrallocFlags (which carries more information
   // than OpenMode).
@@ -267,9 +267,6 @@ GrallocTextureClientOGL::AllocateForGLRendering(gfx::IntSize aSize)
     break;
   case gfx::SurfaceFormat::R5G6B5:
     format = android::PIXEL_FORMAT_RGB_565;
-    break;
-  case gfx::SurfaceFormat::A8:
-    format = android::PIXEL_FORMAT_A_8;
     break;
   default:
     NS_WARNING("Unsupported surface format");

@@ -223,7 +223,7 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
     // max width then center it horizontally
     ReflowChild(kidFrame, aPresContext, kidSize, kidReflowState, x, y, 0, status);
 
-    FinishReflowChild(kidFrame, aPresContext, nullptr, kidSize, x, y, 0);
+    FinishReflowChild(kidFrame, aPresContext, kidSize, nullptr, x, y, 0);
     y += kidSize.Height();
     y += pageCSSMargin.bottom;
 
@@ -605,7 +605,7 @@ nsSimplePageSequenceFrame::PrePrintNextPage(nsITimerCallback* aCallback, bool* a
 
         nsRefPtr<gfxASurface> printSurface = renderingSurface->
            CreateSimilarSurface(
-             GFX_CONTENT_COLOR_ALPHA,
+             gfxContentType::COLOR_ALPHA,
              size
            );
 
@@ -841,9 +841,6 @@ NS_IMETHODIMP
 nsSimplePageSequenceFrame::GetSTFPercent(float& aSTFPercent)
 {
   NS_ENSURE_TRUE(mPageData, NS_ERROR_UNEXPECTED);
-  aSTFPercent = 1.0f;
-  if (mPageData && (mPageData->mPageContentXMost > mPageData->mPageContentSize)) {
-    aSTFPercent = float(mPageData->mPageContentSize) / float(mPageData->mPageContentXMost);
-  }
+  aSTFPercent = mPageData->mShrinkToFitRatio;
   return NS_OK;
 }

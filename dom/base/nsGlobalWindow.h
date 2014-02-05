@@ -417,7 +417,6 @@ public:
   virtual NS_HIDDEN_(void) ActivateOrDeactivate(bool aActivate);
   virtual NS_HIDDEN_(void) SetActive(bool aActive);
   virtual NS_HIDDEN_(void) SetIsBackground(bool aIsBackground);
-
   virtual NS_HIDDEN_(void) SetChromeEventHandler(mozilla::dom::EventTarget* aChromeEventHandler);
 
   virtual NS_HIDDEN_(void) SetInitialPrincipalToSubject();
@@ -475,6 +474,13 @@ public:
   already_AddRefed<nsIDOMWindow> IndexedGetter(uint32_t aIndex, bool& aFound);
 
   void GetSupportedNames(nsTArray<nsString>& aNames);
+
+  bool DoNewResolve(JSContext* aCx, JS::Handle<JSObject*> aObj,
+                    JS::Handle<jsid> aId,
+                    JS::MutableHandle<JSPropertyDescriptor> aDesc);
+
+  void GetOwnPropertyNames(JSContext* aCx, nsTArray<nsString>& aNames,
+                           mozilla::ErrorResult& aRv);
 
   // Object Management
   nsGlobalWindow(nsGlobalWindow *aOuterWindow);
@@ -541,17 +547,6 @@ public:
 
   nsIScriptContext *GetContextInternal()
   {
-    if (mOuterWindow) {
-      return GetOuterWindowInternal()->mContext;
-    }
-
-    return mContext;
-  }
-
-  nsIScriptContext *GetScriptContextInternal(uint32_t aLangID)
-  {
-    NS_ASSERTION(aLangID == nsIProgrammingLanguage::JAVASCRIPT,
-                 "We don't support this language ID");
     if (mOuterWindow) {
       return GetOuterWindowInternal()->mContext;
     }
@@ -816,6 +811,12 @@ public:
                                       mozilla::ErrorResult& aError);
   mozilla::dom::Navigator* GetNavigator(mozilla::ErrorResult& aError);
   nsIDOMOfflineResourceList* GetApplicationCache(mozilla::ErrorResult& aError);
+
+protected:
+  bool AlertOrConfirm(bool aAlert, const nsAString& aMessage,
+                      mozilla::ErrorResult& aError);
+
+public:
   void Alert(const nsAString& aMessage, mozilla::ErrorResult& aError);
   bool Confirm(const nsAString& aMessage, mozilla::ErrorResult& aError);
   void Prompt(const nsAString& aMessage, const nsAString& aInitial,
@@ -914,10 +915,6 @@ public:
   int64_t GetMozAnimationStartTime(mozilla::ErrorResult& aError);
   void SizeToContent(mozilla::ErrorResult& aError);
   nsIDOMCrypto* GetCrypto(mozilla::ErrorResult& aError);
-  nsIDOMPkcs11* GetPkcs11()
-  {
-    return nullptr;
-  }
   nsIControllers* GetControllers(mozilla::ErrorResult& aError);
   float GetMozInnerScreenX(mozilla::ErrorResult& aError);
   float GetMozInnerScreenY(mozilla::ErrorResult& aError);

@@ -14,6 +14,8 @@
 #include "nsIWebVTTParserWrapper.h"
 #include "mozilla/StaticPtr.h"
 #include "nsIDocument.h"
+#include "mozilla/dom/HTMLDivElement.h"
+#include "mozilla/dom/UnionTypes.h"
 
 namespace mozilla {
 namespace dom {
@@ -87,6 +89,7 @@ public:
     }
 
     mStartTime = aStartTime;
+    mReset = true;
     CueChanged();
   }
 
@@ -102,6 +105,7 @@ public:
     }
 
     mEndTime = aEndTime;
+    mReset = true;
     CueChanged();
   }
 
@@ -167,16 +171,30 @@ public:
     CueChanged();
   }
 
-  double Line() const
+  void GetLine(OwningLongOrAutoKeyword& aLine) const
   {
-    return mLine;
+    if (mLineIsAutoKeyword) {
+      aLine.SetAsAutoKeyword() = AutoKeyword::Auto;
+      return;
+    }
+    aLine.SetAsLong() = mLineLong;
   }
 
-  void SetLine(double aLine)
+  void SetLine(const LongOrAutoKeyword& aLine)
   {
-    //XXX: TODO Line position can be a keyword auto. bug882299
-    mReset = true;
-    mLine = aLine;
+    if (aLine.IsLong() &&
+        (mLineIsAutoKeyword || (aLine.GetAsLong() != mLineLong))) {
+      mLineIsAutoKeyword = false;
+      mLineLong = aLine.GetAsLong();
+      CueChanged();
+      mReset = true;
+      return;
+    }
+    if (aLine.IsAutoKeyword() && !mLineIsAutoKeyword) {
+      mLineIsAutoKeyword = true;
+      CueChanged();
+      mReset = true;
+    }
   }
 
   AlignSetting LineAlign() const
@@ -296,6 +314,21 @@ public:
   IMPL_EVENT_HANDLER(enter)
   IMPL_EVENT_HANDLER(exit)
 
+  HTMLDivElement* GetDisplayState()
+  {
+    return static_cast<HTMLDivElement*>(mDisplayState.get());
+  }
+
+  void SetDisplayState(HTMLDivElement* aDisplayState)
+  {
+    mDisplayState = aDisplayState;
+  }
+
+  bool HasBeenReset()
+  {
+    return mReset;
+  }
+
   // Helper functions for implementation.
   bool
   operator==(const TextTrackCue& rhs) const
@@ -307,36 +340,6 @@ public:
   {
     return mId;
   }
-
-  /**
-   * Overview of WebVTT cuetext and anonymous content setup.
-   *
-   * WebVTT nodes are the parsed version of WebVTT cuetext. WebVTT cuetext is
-   * the portion of a WebVTT cue that specifies what the caption will actually
-   * show up as on screen.
-   *
-   * WebVTT cuetext can contain markup that loosely relates to HTML markup. It
-   * can contain tags like <b>, <u>, <i>, <c>, <v>, <ruby>, <rt>, <lang>,
-   * including timestamp tags.
-   *
-   * When the caption is ready to be displayed the WebVTT nodes are converted
-   * over to anonymous DOM content. <i>, <u>, <b>, <ruby>, and <rt> all become
-   * HTMLElements of their corresponding HTML markup tags. <c> and <v> are
-   * converted to <span> tags. Timestamp tags are converted to XML processing
-   * instructions. Additionally, all cuetext tags support specifying of classes.
-   * This takes the form of <foo.class.subclass>. These classes are then parsed
-   * and set as the anonymous content's class attribute.
-   *
-   * Rules on constructing DOM objects from WebVTT nodes can be found here
-   * http://dev.w3.org/html5/webvtt/#webvtt-cue-text-dom-construction-rules.
-   * Current rules are taken from revision on April 15, 2013.
-   */
-
-  /**
-   * Converts the TextTrackCue's cuetext into a tree of DOM objects and attaches
-   * it to a div on it's owning TrackElement's MediaElement's caption overlay.
-   */
-  void RenderCue();
 
   /**
    * Produces a tree of anonymous content based on the tree of the processed
@@ -352,7 +355,6 @@ public:
 private:
   void CueChanged();
   void SetDefaultCueSettings();
-  void CreateCueOverlay();
   nsresult StashDocument(nsISupports* aGlobal);
 
   nsRefPtr<nsIDocument> mDocument;
@@ -370,13 +372,14 @@ private:
   bool mSnapToLines;
   nsString mRegionId;
   DirectionSetting mVertical;
-  int mLine;
+  bool mLineIsAutoKeyword;
+  long mLineLong;
   AlignSetting mAlign;
   AlignSetting mLineAlign;
 
   // Holds the computed DOM elements that represent the parsed cue text.
   // http://www.whatwg.org/specs/web-apps/current-work/#text-track-cue-display-state
-  nsCOMPtr<nsIContent> mDisplayState;
+  nsRefPtr<nsGenericHTMLElement> mDisplayState;
   // Tells whether or not we need to recompute mDisplayState. This is set
   // anytime a property that relates to the display of the TextTrackCue is
   // changed.

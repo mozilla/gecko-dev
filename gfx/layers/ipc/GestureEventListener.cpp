@@ -104,8 +104,7 @@ nsEventStatus GestureEventListener::HandleInputEvent(const InputData& aEvent)
     // If we move too much, bail out of the tap.
     ScreenIntPoint delta = event.mTouches[0].mScreenPoint - mTouchStartPosition;
     if (mTouches.Length() == 1 &&
-        NS_hypot(delta.x, delta.y) >
-          APZCTreeManager::GetDPI() * mAsyncPanZoomController->GetTouchStartTolerance())
+        NS_hypot(delta.x, delta.y) > AsyncPanZoomController::GetTouchStartTolerance())
     {
       HandleTapCancel(event);
     }
@@ -215,7 +214,7 @@ nsEventStatus GestureEventListener::HandlePinchGestureEvent(const MultiTouchInpu
 
   if (mTouches.Length() > 1 && !aClearTouches) {
     const ScreenIntPoint& firstTouch = mTouches[0].mScreenPoint,
-                         secondTouch = mTouches[mTouches.Length() - 1].mScreenPoint;
+                         secondTouch = mTouches[1].mScreenPoint;
     ScreenPoint focusPoint = ScreenPoint(firstTouch + secondTouch) / 2;
     ScreenIntPoint delta = secondTouch - firstTouch;
     float currentSpan = float(NS_hypot(delta.x, delta.y));
@@ -267,24 +266,23 @@ nsEventStatus GestureEventListener::HandlePinchGestureEvent(const MultiTouchInpu
   } else if (mState == GESTURE_PINCH) {
     PinchGestureInput pinchEvent(PinchGestureInput::PINCHGESTURE_END,
                                  aEvent.mTime,
-                                 ScreenPoint(),  // may change below
-                                 1.0f,           // may change below
-                                 1.0f,           // may change below
+                                 ScreenPoint(),
+                                 1.0f,
+                                 1.0f,
                                  aEvent.modifiers);
-
-    if (mTouches.Length() > 0) {
-      // Pinch is changing to pan. APZC will start a pan at mFocusPoint
-      // (which isn't really a focus point in this case...).
-      pinchEvent.mFocusPoint = mTouches[0].mScreenPoint;
-    } else {
-      // Pinch is ending, no pan to follow. APZC will check for the spans
-      // being negative.
-      pinchEvent.mCurrentSpan = pinchEvent.mPreviousSpan = -1.0f;
-    }
-
     mAsyncPanZoomController->HandleInputEvent(pinchEvent);
 
     mState = GESTURE_NONE;
+
+    // If the user left a finger on the screen, spoof a touch start event and
+    // send it to APZC so that they can continue panning from that point.
+    if (mTouches.Length() == 1) {
+      MultiTouchInput touchEvent(MultiTouchInput::MULTITOUCH_START,
+                                 aEvent.mTime,
+                                 aEvent.modifiers);
+      touchEvent.mTouches.AppendElement(mTouches[0]);
+      mAsyncPanZoomController->HandleInputEvent(touchEvent);
+    }
 
     rv = nsEventStatus_eConsumeNoDefault;
   } else if (mState == GESTURE_WAITING_PINCH) {

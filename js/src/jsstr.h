@@ -20,7 +20,6 @@
 class JSAutoByteString;
 class JSFlatString;
 class JSLinearString;
-class JSStableString;
 
 namespace js {
 
@@ -100,7 +99,7 @@ extern const char js_encodeURIComponent_str[];
 
 /* GC-allocate a string descriptor for the given malloc-allocated chars. */
 template <js::AllowGC allowGC>
-extern JSStableString *
+extern JSFlatString *
 js_NewString(js::ThreadSafeContext *cx, jschar *chars, size_t length);
 
 extern JSLinearString *
@@ -147,7 +146,7 @@ ToStringSlow(ExclusiveContext *cx, typename MaybeRooted<Value, allowGC>::HandleT
  * known not to be a string, use ToStringSlow instead.
  */
 template <AllowGC allowGC>
-static JS_ALWAYS_INLINE JSString *
+static MOZ_ALWAYS_INLINE JSString *
 ToString(JSContext *cx, JS::HandleValue v)
 {
 #ifdef DEBUG
@@ -232,7 +231,7 @@ js_strcmp(const jschar *lhs, const jschar *rhs);
 extern jschar *
 js_strchr_limit(const jschar *s, jschar c, const jschar *limit);
 
-static JS_ALWAYS_INLINE void
+static MOZ_ALWAYS_INLINE void
 js_strncpy(jschar *dst, const jschar *src, size_t nelem)
 {
     return mozilla::PodCopy(dst, src, nelem);
@@ -368,6 +367,10 @@ str_resolve(JSContext *cx, HandleObject obj, HandleId id, unsigned flags,
 
 bool
 str_replace_regexp_raw(JSContext *cx, HandleString string, HandleObject regexp,
+                       HandleString replacement, MutableHandleValue rval);
+
+bool
+str_replace_string_raw(JSContext *cx, HandleString string, HandleString pattern,
                        HandleString replacement, MutableHandleValue rval);
 
 } /* namespace js */

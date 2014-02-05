@@ -60,7 +60,10 @@ GetEnabledStateName(uint32_t aState)
 }
 #endif
 
+const static bool kUseSimpleContextDefault = MOZ_WIDGET_GTK == 2;
+
 nsGtkIMModule* nsGtkIMModule::sLastFocusedModule = nullptr;
+bool nsGtkIMModule::sUseSimpleContext;
 
 nsGtkIMModule::nsGtkIMModule(nsWindow* aOwnerWindow) :
     mOwnerWindow(aOwnerWindow), mLastFocusedWindow(nullptr),
@@ -68,6 +71,7 @@ nsGtkIMModule::nsGtkIMModule(nsWindow* aOwnerWindow) :
     mSimpleContext(nullptr),
     mDummyContext(nullptr),
     mCompositionStart(UINT32_MAX), mProcessingKeyEvent(nullptr),
+    mCompositionTargetOffset(UINT32_MAX),
     mCompositionState(eCompositionState_NotComposing),
     mIsIMFocused(false), mIgnoreNativeCompositionEvent(false)
 {
@@ -76,6 +80,14 @@ nsGtkIMModule::nsGtkIMModule(nsWindow* aOwnerWindow) :
         gGtkIMLog = PR_NewLogModule("nsGtkIMModuleWidgets");
     }
 #endif
+    static bool sFirstInstance = true;
+    if (sFirstInstance) {
+        sFirstInstance = false;
+        sUseSimpleContext =
+            Preferences::GetBool(
+                "intl.ime.use_simple_context_on_password_field",
+                kUseSimpleContextDefault);
+    }
     Init();
 }
 
@@ -116,26 +128,28 @@ nsGtkIMModule::Init()
                      this);
 
     // Simple context
-    mSimpleContext = gtk_im_context_simple_new();
-    gtk_im_context_set_client_window(mSimpleContext, gdkWindow);
-    g_signal_connect(mSimpleContext, "preedit_changed",
-                     G_CALLBACK(&nsGtkIMModule::OnChangeCompositionCallback),
-                     this);
-    g_signal_connect(mSimpleContext, "retrieve_surrounding",
-                     G_CALLBACK(&nsGtkIMModule::OnRetrieveSurroundingCallback),
-                     this);
-    g_signal_connect(mSimpleContext, "delete_surrounding",
-                     G_CALLBACK(&nsGtkIMModule::OnDeleteSurroundingCallback),
-                     this);
-    g_signal_connect(mSimpleContext, "commit",
-                     G_CALLBACK(&nsGtkIMModule::OnCommitCompositionCallback),
-                     this);
-    g_signal_connect(mSimpleContext, "preedit_start",
-                     G_CALLBACK(nsGtkIMModule::OnStartCompositionCallback),
-                     this);
-    g_signal_connect(mSimpleContext, "preedit_end",
-                     G_CALLBACK(nsGtkIMModule::OnEndCompositionCallback),
-                     this);
+    if (sUseSimpleContext) {
+        mSimpleContext = gtk_im_context_simple_new();
+        gtk_im_context_set_client_window(mSimpleContext, gdkWindow);
+        g_signal_connect(mSimpleContext, "preedit_changed",
+            G_CALLBACK(&nsGtkIMModule::OnChangeCompositionCallback),
+            this);
+        g_signal_connect(mSimpleContext, "retrieve_surrounding",
+            G_CALLBACK(&nsGtkIMModule::OnRetrieveSurroundingCallback),
+            this);
+        g_signal_connect(mSimpleContext, "delete_surrounding",
+            G_CALLBACK(&nsGtkIMModule::OnDeleteSurroundingCallback),
+            this);
+        g_signal_connect(mSimpleContext, "commit",
+            G_CALLBACK(&nsGtkIMModule::OnCommitCompositionCallback),
+            this);
+        g_signal_connect(mSimpleContext, "preedit_start",
+            G_CALLBACK(nsGtkIMModule::OnStartCompositionCallback),
+            this);
+        g_signal_connect(mSimpleContext, "preedit_end",
+            G_CALLBACK(nsGtkIMModule::OnEndCompositionCallback),
+            this);
+    }
 
     // Dummy context
     mDummyContext = gtk_im_multicontext_new();
@@ -503,6 +517,16 @@ nsGtkIMModule::CancelIMEComposition(nsWindow* aCaller)
 }
 
 void
+nsGtkIMModule::OnUpdateComposition(void)
+{
+    if (MOZ_UNLIKELY(IsDestroyed())) {
+        return;
+    }
+
+    SetCursorPosition(mCompositionTargetOffset);
+}
+
+void
 nsGtkIMModule::SetInputContext(nsWindow* aCaller,
                                const InputContext* aContext,
                                const InputContextAction* aAction)
@@ -538,7 +562,8 @@ nsGtkIMModule::SetInputContext(nsWindow* aCaller,
     }
 
     bool changingEnabledState =
-        aContext->mIMEState.mEnabled != mInputContext.mIMEState.mEnabled;
+        aContext->mIMEState.mEnabled != mInputContext.mIMEState.mEnabled ||
+        aContext->mHTMLInputType != mInputContext.mHTMLInputType;
 
     // Release current IME focus if IME is enabled.
     if (changingEnabledState && IsEditable()) {
@@ -548,12 +573,57 @@ nsGtkIMModule::SetInputContext(nsWindow* aCaller,
 
     mInputContext = *aContext;
 
-    // Even when aState is not enabled state, we need to set IME focus.
-    // Because some IMs are updating the status bar of them at this time.
-    // Be aware, don't use aWindow here because this method shouldn't move
-    // focus actually.
     if (changingEnabledState) {
+#if (MOZ_WIDGET_GTK == 3)
+        static bool sInputPurposeSupported = !gtk_check_version(3, 6, 0);
+        if (sInputPurposeSupported && IsEditable()) {
+            GtkIMContext* context = GetContext();
+            if (context) {
+                GtkInputPurpose purpose = GTK_INPUT_PURPOSE_FREE_FORM;
+                const nsString& inputType = mInputContext.mHTMLInputType;
+                // Password case has difficult issue.  Desktop IMEs disable
+                // composition if input-purpose is password.
+                // For disabling IME on |ime-mode: disabled;|, we need to check
+                // mEnabled value instead of inputType value.  This hack also
+                // enables composition on
+                // <input type="password" style="ime-mode: enabled;">.
+                // This is right behavior of ime-mode on desktop.
+                //
+                // On the other hand, IME for tablet devices may provide a
+                // specific software keyboard for password field.  If so,
+                // the behavior might look strange on both:
+                //   <input type="text" style="ime-mode: disabled;">
+                //   <input type="password" style="ime-mode: enabled;">
+                //
+                // Temporarily, we should focus on desktop environment for now.
+                // I.e., let's ignore tablet devices for now.  When somebody
+                // reports actual trouble on tablet devices, we should try to
+                // look for a way to solve actual problem.
+                if (mInputContext.mIMEState.mEnabled == IMEState::PASSWORD) {
+                    purpose = GTK_INPUT_PURPOSE_PASSWORD;
+                } else if (inputType.EqualsLiteral("email")) {
+                    purpose = GTK_INPUT_PURPOSE_EMAIL;
+                } else if (inputType.EqualsLiteral("url")) {
+                    purpose = GTK_INPUT_PURPOSE_URL;
+                } else if (inputType.EqualsLiteral("tel")) {
+                    purpose = GTK_INPUT_PURPOSE_PHONE;
+                } else if (inputType.EqualsLiteral("number")) {
+                    purpose = GTK_INPUT_PURPOSE_NUMBER;
+                }
+
+                g_object_set(context, "input-purpose", purpose, nullptr);
+            }
+        }
+#endif // #if (MOZ_WIDGET_GTK == 3)
+
+        // Even when aState is not enabled state, we need to set IME focus.
+        // Because some IMs are updating the status bar of them at this time.
+        // Be aware, don't use aWindow here because this method shouldn't move
+        // focus actually.
         Focus();
+
+        // XXX Should we call Blur() when it's not editable?  E.g., it might be
+        //     better to close VKB automatically.
     }
 }
 
@@ -587,7 +657,9 @@ bool
 nsGtkIMModule::IsEnabled()
 {
     return mInputContext.mIMEState.mEnabled == IMEState::ENABLED ||
-           mInputContext.mIMEState.mEnabled == IMEState::PLUGIN;
+           mInputContext.mIMEState.mEnabled == IMEState::PLUGIN ||
+           (!sUseSimpleContext &&
+            mInputContext.mIMEState.mEnabled == IMEState::PASSWORD);
 }
 
 bool
@@ -682,7 +754,7 @@ nsGtkIMModule::OnStartCompositionNative(GtkIMContext *aContext)
     if (!DispatchCompositionStart()) {
         return;
     }
-    SetCursorPosition(mCompositionStart);
+    mCompositionTargetOffset = mCompositionStart;
 }
 
 /* static */
@@ -1049,6 +1121,7 @@ nsGtkIMModule::DispatchCompositionEnd()
     mLastFocusedWindow->DispatchEvent(&compEvent, status);
     mCompositionState = eCompositionState_NotComposing;
     mCompositionStart = UINT32_MAX;
+    mCompositionTargetOffset = UINT32_MAX;
     mDispatchedCompositionString.Truncate();
     if (static_cast<nsWindow*>(kungFuDeathGrip.get())->IsDestroyed() ||
         kungFuDeathGrip != mLastFocusedWindow) {
@@ -1151,7 +1224,10 @@ nsGtkIMModule::DispatchTextEvent(const nsAString &aCompositionString,
         return false;
     }
 
-    SetCursorPosition(targetOffset);
+    // We cannot call SetCursorPosition for e10s-aware.
+    // DispatchEvent is async on e10s, so composition rect isn't updated now
+    // on tab parent.
+    mCompositionTargetOffset = targetOffset;
 
     return true;
 }

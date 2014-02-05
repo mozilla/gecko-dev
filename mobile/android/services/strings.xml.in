@@ -18,7 +18,7 @@
   <string name="sync_link_advancedsetup"><u>&sync.link.advancedsetup.label;</u></string>
 
   <!-- J-PAKE Waiting Screen -->
-  
+
   <string name="sync_jpake_subtitle_waiting">&sync.jpake.subtitle.waiting.label;</string>
 
   <!-- Account Login Screen -->
@@ -28,7 +28,7 @@
   <string name="sync_input_key">&sync.input.key.label;</string>
   <string name="sync_checkbox_server">&sync.checkbox.server.label;</string>
   <string name="sync_input_server">&sync.input.server.label;</string>
-  
+
   <!-- Setup Fail -->
   <string name="sync_title_fail">&sync.title.fail.label;</string>
   <string name="sync_subtitle_fail">&sync.subtitle.fail.label;</string>
@@ -37,13 +37,13 @@
   <string name="sync_subtitle_nointernet">&sync.subtitle.nointernet.label;</string>
   <string name="sync_subtitle_failaccount">&sync.subtitle.failaccount.label;</string>
   <string name="sync_subtitle_failmultiple">&sync.subtitle.failmultiple.label;</string>
-  
+
   <!-- Setup Success -->
   <string name="sync_title_success">&sync.title.success.label;</string>
   <string name="sync_subtitle_success">&sync.subtitle.success.label1;</string>
   <string name="sync_settings">&sync.settings.label;</string>
   <string name="sync_subtitle_manage">&sync.subtitle.manage.label1;</string>
-  
+
   <!-- Pair Device -->
   <string name="sync_pair_tryagain">&sync.pair.tryagain.label;</string>
 
@@ -63,10 +63,10 @@
   <string name="sync_button_cancel">&sync.button.cancel.label;</string>
   <string name="sync_button_connect">&sync.button.connect.label;</string>
   <string name="sync_button_ok">&sync.button.ok.label;</string>
-  
+
   <!-- Account strings -->
-  <string name="sync_account_label">&sync.account.label.label;</string>
-  
+  <string name="sync_account_label">&sync.account.label;</string>
+
   <!-- Bookmark folder strings -->
   <string name="bookmarks_folder_menu">&bookmarks.folder.menu.label;</string>
   <string name="bookmarks_folder_places">&bookmarks.folder.places.label;</string>
@@ -98,5 +98,96 @@
   <string name="sync_text_tab_sent">&sync.text.tab.sent.label;</string>
   <string name="sync_text_tab_not_sent">&sync.text.tab.not.sent.label;</string>
 
-  <!-- Firefox Account strings -->
-  <string name="fxaccount_label">&fxaccount.label;</string>
+<!-- Firefox account strings. -->
+
+<!-- Firefox account links. -->
+<!-- https://support.mozilla.org/1/mobile/%VERSION%/%OS%/%LOCALE%/old-sync -->
+<string name="fxaccount_link_old_firefox">https://support.mozilla.org/1/mobile/&formatS1;/&formatS2;/&formatS3;/old-sync</string>
+<string name="fxaccount_link_create_not_allowed">http://www.consumer.ftc.gov/articles/0031-protecting-your-childs-privacy-online</string>
+<string name="fxaccount_link_tos">https://accounts.firefox.com/legal/terms</string>
+<string name="fxaccount_link_pn">https://accounts.firefox.com/legal/privacy</string>
+<string name="fxaccount_link_forgot_password">https://accounts.firefox.com/reset_password</string>
+
+<string name="fxaccount_checkbox_contentDescription">&fxaccount_checkbox_contentDescription2;</string>
+<string name="fxaccount_icon_contentDescription">&fxaccount_icon_contentDescription2;</string>
+<string name="fxaccount_intro_contentDescription">&fxaccount_intro_contentDescription2;</string>
+<string name="fxaccount_mail_contentDescription">&fxaccount_mail_contentDescription2;</string>
+
+<string name="fxaccount_email_hint">&fxaccount_email_hint;</string>
+<string name="fxaccount_password_hint">&fxaccount_password_hint;</string>
+<string name="fxaccount_password_hide">&fxaccount_password_hide;</string>
+<string name="fxaccount_password_show">&fxaccount_password_show;</string>
+
+<string name="fxaccount_back_to_browsing">&fxaccount_back_to_browsing;</string>
+
+<string name="fxaccount_policy_linktos">&fxaccount_policy_linktos;</string>
+<string name="fxaccount_policy_linkprivacy">&fxaccount_policy_linkprivacy;</string>
+
+<string name="fxaccount_getting_started_welcome_to_sync">&fxaccount_getting_started_welcome_to_sync;</string>
+<string name="fxaccount_getting_started_description">&fxaccount_getting_started_description;</string>
+<string name="fxaccount_getting_started_get_started">&fxaccount_getting_started_get_started;</string>
+<string name="fxaccount_getting_started_old_firefox">&fxaccount_getting_started_old_firefox;</string>
+
+<string name="fxaccount_create_account_header">&fxaccount_create_account_header;</string>
+<string name="fxaccount_create_account_password_length_restriction">&fxaccount_create_account_password_length_restriction;</string>
+<string name="fxaccount_create_account_year_of_birth">&fxaccount_create_account_year_of_birth;</string>
+
+<string name="fxaccount_create_account_policy_text">&fxaccount_create_account_policy_text;</string>
+<string name="fxaccount_create_account_button">&fxaccount_create_account_button;</string>
+<string name="fxaccount_create_account_choose_what_to_sync">&fxaccount_create_account_choose_what_to_sync;</string>
+<string name="fxaccount_create_account_sign_in_instead">&fxaccount_create_account_sign_in_instead;</string>
+<string name="fxaccount_create_account_1990_or_earlier">&fxaccount_create_account_1990_or_earlier;</string>
+<string name="fxaccount_create_account_unknown_error">&fxaccount_create_account_unknown_error;</string>
+
+<string name="fxaccount_account_create_not_allowed">&fxaccount_account_create_not_allowed;</string>
+<string name="fxaccount_account_create_not_allowed_you_must_meet_certain_age_requirements">&fxaccount_account_create_not_allowed_you_must_meet_certain_age_requirements;</string>
+<string name="fxaccount_account_create_not_allowed_learn_more">&fxaccount_account_create_not_allowed_learn_more;</string>
+
+<string name="fxaccount_confirm_account_header">&fxaccount_confirm_account_header;</string>
+<string name="fxaccount_confirm_account_verification_link">&fxaccount_confirm_account_verification_link;</string>
+<string name="fxaccount_confirm_account_resend_email">&fxaccount_confirm_account_resend_email;</string>
+<string name="fxaccount_confirm_account_verification_link_sent">&fxaccount_confirm_account_verification_link_sent2;</string>
+<string name="fxaccount_confirm_account_verification_link_not_sent">&fxaccount_confirm_account_verification_link_not_sent2;</string>
+
+<string name="fxaccount_sign_in_sub_header">&fxaccount_sign_in_sub_header;</string>
+<string name="fxaccount_sign_in_button_label">&fxaccount_sign_in_button_label;</string>
+<string name="fxaccount_sign_in_forgot_password">&fxaccount_sign_in_forgot_password;</string>
+<string name="fxaccount_sign_in_create_account_instead">&fxaccount_sign_in_create_account_instead;</string>
+<string name="fxaccount_sign_in_unknown_error">&fxaccount_sign_in_unknown_error;</string>
+
+<string name="fxaccount_account_verified_sub_header">&fxaccount_account_verified_sub_header;</string>
+<string name="fxaccount_account_verified_description">&fxaccount_account_verified_description2;</string>
+
+<string name="fxaccount_update_credentials_header">&fxaccount_update_credentials_header;</string>
+<string name="fxaccount_update_credentials_button_label">&fxaccount_update_credentials_button_label;</string>
+<string name="fxaccount_update_credentials_unknown_error">&fxaccount_update_credentials_unknown_error;</string>
+
+<string name="fxaccount_status_header">&fxaccount_status_header;</string>
+<string name="fxaccount_status_sync">&fxaccount_status_sync;</string>
+<string name="fxaccount_status_sync_enabled">&fxaccount_status_sync_enabled;</string>
+<string name="fxaccount_status_needs_verification">&fxaccount_status_needs_verification2;</string>
+<string name="fxaccount_status_needs_credentials">&fxaccount_status_needs_credentials;</string>
+<string name="fxaccount_status_needs_upgrade">&fxaccount_status_needs_upgrade;</string>
+<string name="fxaccount_status_bookmarks">&fxaccount_status_bookmarks;</string>
+<string name="fxaccount_status_history">&fxaccount_status_history;</string>
+<string name="fxaccount_status_passwords">&fxaccount_status_passwords;</string>
+<string name="fxaccount_status_tabs">&fxaccount_status_tabs;</string>
+<string name="fxaccount_status_legal">&fxaccount_status_legal;</string>
+
+<string name="fxaccount_label">&fxaccount_account_type_label;</string>
+
+<string name="fxaccount_options_title">&fxaccount_options_title;</string>
+<string name="fxaccount_options_configure_title">&fxaccount_options_configure_title;</string>
+
+<string name="fxaccount_remote_error_UPGRADE_REQUIRED">&fxaccount_remote_error_UPGRADE_REQUIRED;</string>
+<string name="fxaccount_remote_error_ATTEMPT_TO_CREATE_AN_ACCOUNT_THAT_ALREADY_EXISTS">&fxaccount_remote_error_ATTEMPT_TO_CREATE_AN_ACCOUNT_THAT_ALREADY_EXISTS_2;</string>
+<string name="fxaccount_remote_error_ATTEMPT_TO_ACCESS_AN_ACCOUNT_THAT_DOES_NOT_EXIST">&fxaccount_remote_error_ATTEMPT_TO_ACCESS_AN_ACCOUNT_THAT_DOES_NOT_EXIST;</string>
+<string name="fxaccount_remote_error_INCORRECT_PASSWORD">&fxaccount_remote_error_INCORRECT_PASSWORD;</string>
+<string name="fxaccount_remote_error_ATTEMPT_TO_OPERATE_ON_AN_UNVERIFIED_ACCOUNT">&fxaccount_remote_error_ATTEMPT_TO_OPERATE_ON_AN_UNVERIFIED_ACCOUNT;</string>
+<string name="fxaccount_remote_error_CLIENT_HAS_SENT_TOO_MANY_REQUESTS">&fxaccount_remote_error_CLIENT_HAS_SENT_TOO_MANY_REQUESTS;</string>
+<string name="fxaccount_remote_error_SERVICE_TEMPORARILY_UNAVAILABLE_TO_DUE_HIGH_LOAD">&fxaccount_remote_error_SERVICE_TEMPORARILY_UNAVAILABLE_TO_DUE_HIGH_LOAD;</string>
+<string name="fxaccount_remote_error_UNKNOWN_ERROR">&fxaccount_remote_error_UNKNOWN_ERROR;</string>
+<string name="fxaccount_remote_error_COULD_NOT_CONNECT">&fxaccount_remote_error_COULD_NOT_CONNECT;</string>
+
+<string name="fxaccount_sync_sign_in_error_notification_title">&fxaccount_sync_sign_in_error_notification_title2;</string>
+<string name="fxaccount_sync_sign_in_error_notification_text">&fxaccount_sync_sign_in_error_notification_text2;</string>

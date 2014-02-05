@@ -196,6 +196,8 @@ PopupNotifications.prototype = {
    *          - accessKey (string): the button's accessKey.
    *          - callback (function): a callback to be invoked when the button is
    *            pressed.
+   *          - [optional] dismiss (boolean): If this is true, the notification
+   *            will be dismissed instead of removed after running the callback.
    *        If null, the notification will not have a button, and
    *        secondaryActions will be ignored.
    * @param secondaryActions
@@ -249,6 +251,11 @@ PopupNotifications.prototype = {
    *                     removed when they would have otherwise been dismissed
    *                     (i.e. any time the popup is closed due to user
    *                     interaction).
+   *        hideNotNow:  If true, indicates that the 'Not Now' menuitem should
+   *                     not be shown. If 'Not Now' is hidden, it needs to be
+   *                     replaced by another 'do nothing' item, so providing at
+   *                     least one secondary action is required; and one of the
+   *                     actions needs to have the 'dismiss' property set to true.
    *        popupIconURL:
    *                     A string. URL of the image to be displayed in the popup.
    *                     Normally specified in CSS using list-style-image and the
@@ -269,6 +276,10 @@ PopupNotifications.prototype = {
       throw "PopupNotifications_show: invalid mainAction";
     if (secondaryActions && secondaryActions.some(isInvalidAction))
       throw "PopupNotifications_show: invalid secondaryActions";
+    if (options && options.hideNotNow &&
+        (!secondaryActions || !secondaryActions.length ||
+         !secondaryActions.concat(mainAction).some(action => action.dismiss)))
+      throw "PopupNotifications_show: 'Not Now' item hidden without replacement";
 
     let notification = new Notification(id, message, anchorID, mainAction,
                                         secondaryActions, browser, this, options);
@@ -302,7 +313,7 @@ PopupNotifications.prototype = {
       if (!notification.dismissed && isActive) {
         this.window.getAttention();
         if (notification.anchorElement.parentNode != this.iconBox) {
-          notification.anchorElement.setAttribute(ICON_ATTRIBUTE_SHOWING, "true");
+          this._updateAnchorIcon(notifications, notification.anchorElement);
         }
       }
 
@@ -549,7 +560,10 @@ PopupNotifications.prototype = {
           popupnotification.appendChild(item);
         }, this);
 
-        if (n.secondaryActions.length) {
+        if (n.options.hideNotNow) {
+          popupnotification.setAttribute("hidenotnow", "true");
+        }
+        else if (n.secondaryActions.length) {
           let closeItemSeparator = doc.createElementNS(XUL_NS, "menuseparator");
           popupnotification.appendChild(closeItemSeparator);
         }
@@ -640,20 +654,7 @@ PopupNotifications.prototype = {
         this._showIcons(notifications);
         this.iconBox.hidden = false;
       } else if (anchorElement) {
-        anchorElement.setAttribute(ICON_ATTRIBUTE_SHOWING, "true");
-        // use the anchorID as a class along with the default icon class as a
-        // fallback if anchorID is not defined in CSS. We always use the first
-        // notifications icon, so in the case of multiple notifications we'll
-        // only use the default icon
-        if (anchorElement.classList.contains("notification-anchor-icon")) {
-          // remove previous icon classes
-          let className = anchorElement.className.replace(/([-\w]+-notification-icon\s?)/g,"")
-          className = "default-notification-icon " + className;
-          if (notifications.length == 1) {
-            className = notifications[0].anchorID + " " + className;
-          }
-          anchorElement.className = className;
-        }
+        this._updateAnchorIcon(notifications, anchorElement);
       }
 
       // Also filter out notifications that have been dismissed.
@@ -684,6 +685,24 @@ PopupNotifications.prototype = {
         else if (anchorElement)
           anchorElement.removeAttribute(ICON_ATTRIBUTE_SHOWING);
       }
+    }
+  },
+
+  _updateAnchorIcon: function PopupNotifications_updateAnchorIcon(notifications,
+                                                                  anchorElement) {
+    anchorElement.setAttribute(ICON_ATTRIBUTE_SHOWING, "true");
+    // Use the anchorID as a class along with the default icon class as a
+    // fallback if anchorID is not defined in CSS. We always use the first
+    // notifications icon, so in the case of multiple notifications we'll
+    // only use the default icon.
+    if (anchorElement.classList.contains("notification-anchor-icon")) {
+      // remove previous icon classes
+      let className = anchorElement.className.replace(/([-\w]+-notification-icon\s?)/g,"")
+      className = "default-notification-icon " + className;
+      if (notifications.length == 1) {
+        className = notifications[0].anchorID + " " + className;
+      }
+      anchorElement.className = className;
     }
   },
 
@@ -889,6 +908,11 @@ PopupNotifications.prototype = {
       Cu.reportError(error);
     }
 
+    if (notification.mainAction.dismiss) {
+      this._dismiss();
+      return;
+    }
+
     this._remove(notification);
     this._update();
   },
@@ -903,6 +927,11 @@ PopupNotifications.prototype = {
       target.action.callback.call();
     } catch(error) {
       Cu.reportError(error);
+    }
+
+    if (target.action.dismiss) {
+      this._dismiss();
+      return;
     }
 
     this._remove(target.notification);

@@ -5,9 +5,24 @@
 Components.utils.import("resource://services-sync/main.js");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
+XPCOMUtils.defineLazyGetter(this, "FxAccountsCommon", function () {
+  return Components.utils.import("resource://gre/modules/FxAccountsCommon.js", {});
+});
+
 const PAGE_NO_ACCOUNT = 0;
 const PAGE_HAS_ACCOUNT = 1;
 const PAGE_NEEDS_UPDATE = 2;
+const PAGE_PLEASE_WAIT = 3;
+const FXA_PAGE_LOGGED_OUT = 4;
+const FXA_PAGE_LOGGED_IN = 5;
+
+// Indexes into the "login status" deck.
+// We are in a successful verified state - everything should work!
+const FXA_LOGIN_VERIFIED = 0;
+// We have logged in to an unverified account.
+const FXA_LOGIN_UNVERIFIED = 1;
+// We are logged in locally, but the server rejected our credentials.
+const FXA_LOGIN_FAILED = 2;
 
 let gSyncPane = {
   _stringBundle: null,
@@ -44,6 +59,10 @@ let gSyncPane = {
       return;
     }
 
+    // it may take some time before we can determine what provider to use
+    // and the state of that provider, so show the "please wait" page.
+    this.page = PAGE_PLEASE_WAIT;
+
     let onUnload = function () {
       window.removeEventListener("unload", onUnload, false);
       try {
@@ -68,7 +87,8 @@ let gSyncPane = {
                   "weave:service:login:finish",
                   "weave:service:start-over",
                   "weave:service:setup-complete",
-                  "weave:service:logout:finish"];
+                  "weave:service:logout:finish",
+                  FxAccountsCommon.ONVERIFIED_NOTIFICATION];
 
     // Add the observers now and remove them on unload
     //XXXzpao This should use Services.obs.* but Weave's Obs does nice handling
@@ -88,16 +108,62 @@ let gSyncPane = {
   },
 
   updateWeavePrefs: function () {
-    if (Weave.Status.service == Weave.CLIENT_NOT_CONFIGURED ||
-        Weave.Svc.Prefs.get("firstSync", "") == "notReady") {
+    let service = Components.classes["@mozilla.org/weave/service;1"]
+                  .getService(Components.interfaces.nsISupports)
+                  .wrappedJSObject;
+    // service.fxAccountsEnabled is false iff sync is already configured for
+    // the legacy provider.
+    if (service.fxAccountsEnabled) {
+      // determine the fxa status...
+      this.page = PAGE_PLEASE_WAIT;
+      Components.utils.import("resource://gre/modules/FxAccounts.jsm");
+      fxAccounts.getSignedInUser().then(data => {
+        if (!data) {
+          this.page = FXA_PAGE_LOGGED_OUT;
+          return;
+        }
+        this.page = FXA_PAGE_LOGGED_IN;
+        // We are logged in locally, but maybe we are in a state where the
+        // server rejected our credentials (eg, password changed on the server)
+        let fxaLoginStatus = document.getElementById("fxaLoginStatus");
+        let enginesListDisabled;
+        // Not Verfied implies login error state, so check that first.
+        if (!data.verified) {
+          fxaLoginStatus.selectedIndex = FXA_LOGIN_UNVERIFIED;
+          enginesListDisabled = true;
+        // So we think we are logged in, so login problems are next.
+        // (Although if the Sync identity manager is still initializing, we
+        // ignore login errors and assume all will eventually be good.)
+        } else if (Weave.Service.identity.readyToAuthenticate &&
+                   Weave.Status.login != Weave.LOGIN_SUCCEEDED) {
+          fxaLoginStatus.selectedIndex = FXA_LOGIN_FAILED;
+          enginesListDisabled = true;
+        // Else we must be golden!
+        } else {
+          fxaLoginStatus.selectedIndex = FXA_LOGIN_VERIFIED;
+          enginesListDisabled = false;
+        }
+        document.getElementById("fxaEmailAddress1").textContent = data.email;
+        document.getElementById("fxaEmailAddress2").textContent = data.email;
+        document.getElementById("fxaEmailAddress3").textContent = data.email;
+        document.getElementById("fxaSyncComputerName").value = Weave.Service.clientsEngine.localName;
+        let enginesList = document.getElementById("fxaSyncEnginesList")
+        enginesList.disabled = enginesListDisabled;
+        // *sigh* - disabling the <richlistbox> draws each item as if it is disabled,
+        // but doesn't disable the checkboxes.
+        for (let checkbox of enginesList.querySelectorAll("checkbox")) {
+          checkbox.disabled = enginesListDisabled;
+        }
+      });
+    // If fxAccountEnabled is false and we are in a "not configured" state,
+    // then fxAccounts is probably fully disabled rather than just unconfigured,
+    // so handle this case.  This block can be removed once we remove support
+    // for fxAccounts being disabled.
+    } else if (Weave.Status.service == Weave.CLIENT_NOT_CONFIGURED ||
+               Weave.Svc.Prefs.get("firstSync", "") == "notReady") {
       this.page = PAGE_NO_ACCOUNT;
-      let service = Components.classes["@mozilla.org/weave/service;1"]
-                    .getService(Components.interfaces.nsISupports)
-                    .wrappedJSObject;
-      // no concept of "pair" in an fxAccounts world.
-      if (service.fxAccountsEnabled) {
-        document.getElementById("pairDevice").hidden = true;
-      }
+    // else: sync was previously configured for the legacy provider, so we
+    // make the "old" panels available.
     } else if (Weave.Status.login == Weave.LOGIN_FAILED_INVALID_PASSPHRASE ||
                Weave.Status.login == Weave.LOGIN_FAILED_LOGIN_REJECTED) {
       this.needsUpdate();
@@ -163,10 +229,7 @@ let gSyncPane = {
                   .wrappedJSObject;
 
     if (service.fxAccountsEnabled) {
-      let win = Services.wm.getMostRecentWindow("navigator:browser");
-      win.switchToTabHavingURI("about:accounts", true);
-      // seeing as we are doing this in a tab we close the prefs dialog.
-      window.close();
+      this.openContentInBrowser("about:accounts");
     } else {
       let win = Services.wm.getMostRecentWindow("Weave:AccountSetup");
       if (win) {
@@ -177,6 +240,81 @@ let gSyncPane = {
                           wizardType);
       }
     }
+  },
+
+  openContentInBrowser: function(url) {
+    let win = Services.wm.getMostRecentWindow("navigator:browser");
+    if (!win) {
+      // no window to use, so use _openLink to create a new one.  We don't
+      // always use that as it prefers to open a new window rather than use
+      // an existing one.
+      gSyncUtils._openLink(url);
+      return;
+    }
+    win.switchToTabHavingURI(url, true);
+    // seeing as we are doing this in a tab we close the prefs dialog.
+    window.close();
+  },
+
+  signIn: function() {
+    this.openContentInBrowser("about:accounts?action=signin");
+  },
+
+  reSignIn: function() {
+    this.openContentInBrowser("about:accounts?action=reauth");
+  },
+
+  manageFirefoxAccount: function() {
+    let url = Services.prefs.getCharPref("identity.fxaccounts.settings.uri");
+    this.openContentInBrowser(url);
+  },
+
+  verifyFirefoxAccount: function() {
+    Components.utils.import("resource://gre/modules/FxAccounts.jsm");
+    fxAccounts.resendVerificationEmail().then(() => {
+      fxAccounts.getSignedInUser().then(data => {
+        let sb = this._stringBundle;
+        let title = sb.GetStringFromName("firefoxAccountsVerificationSentTitle");
+        let heading = sb.formatStringFromName("firefoxAccountsVerificationSentHeading",
+                                              [data.email], 1);
+        let description = sb.GetStringFromName("firefoxAccountVerificationSentDescription");
+
+        Services.prompt.alert(window, title, heading + "\n\n" + description);
+      });
+    });
+  },
+
+  openOldSyncSupportPage: function() {
+    let url = Services.urlFormatter.formatURLPref('app.support.baseURL') + "old-sync"
+    this.openContentInBrowser(url);
+  },
+
+  unlinkFirefoxAccount: function(confirm) {
+    if (confirm) {
+      // We use a string bundle shared with aboutAccounts.
+      let sb = Services.strings.createBundle("chrome://browser/locale/syncSetup.properties");
+      let continueLabel = sb.GetStringFromName("continue.label");
+      let title = sb.GetStringFromName("disconnect.verify.title");
+      let brandBundle = Services.strings.createBundle("chrome://branding/locale/brand.properties");
+      let brandShortName = brandBundle.GetStringFromName("brandShortName");
+      let body = sb.GetStringFromName("disconnect.verify.heading") +
+                 "\n\n" +
+                 sb.formatStringFromName("disconnect.verify.description",
+                                         [brandShortName], 1);
+      let ps = Services.prompt;
+      let buttonFlags = (ps.BUTTON_POS_0 * ps.BUTTON_TITLE_IS_STRING) +
+                        (ps.BUTTON_POS_1 * ps.BUTTON_TITLE_CANCEL) +
+                        ps.BUTTON_POS_1_DEFAULT;
+      let pressed = Services.prompt.confirmEx(window, title, body, buttonFlags,
+                                              continueLabel, null, null, null, {});
+      if (pressed != 0) { // 0 is the "continue" button
+        return;
+      }
+    }
+    Components.utils.import('resource://gre/modules/FxAccounts.jsm');
+    fxAccounts.signOut().then(() => {
+      this.updateWeavePrefs();
+    });
   },
 
   openQuotaDialog: function () {

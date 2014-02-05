@@ -89,6 +89,40 @@ void VectorRemove(std::vector<T>& vector, const T& element)
 
 } // anonymous namespace
 
+IOInterposeObserver::Observation::Observation(Operation aOperation,
+                                              const char* aReference,
+                                              bool aShouldReport)
+  : mOperation(aOperation)
+  , mReference(aReference)
+  , mShouldReport(IOInterposer::IsObservedOperation(aOperation) &&
+                  aShouldReport)
+{
+  if (mShouldReport) {
+    mStart = TimeStamp::Now();
+  }
+}
+
+IOInterposeObserver::Observation::Observation(Operation aOperation,
+                                              const TimeStamp& aStart,
+                                              const TimeStamp& aEnd,
+                                              const char* aReference)
+  : mOperation(aOperation)
+  , mStart(aStart)
+  , mEnd(aEnd)
+  , mReference(aReference)
+  , mShouldReport(false)
+{
+}
+
+void
+IOInterposeObserver::Observation::Report()
+{
+  if (mShouldReport) {
+    mEnd = TimeStamp::Now();
+    IOInterposer::Report(*this);
+  }
+}
+
 // Flags tracking which operations are being observed
 IOInterposeObserver::Operation IOInterposer::sObservedOperations =
                                                   IOInterposeObserver::OpNone;
@@ -246,6 +280,14 @@ IOInterposeObserver::Operation IOInterposer::sObservedOperations =
 
   AutoPRLock listLock(sObserverLists->mObserverListsLock);
 
+  if (aOp & IOInterposeObserver::OpCreateOrOpen) {
+    VectorRemove(sObserverLists->mCreateObservers, aObserver);
+    if (sObserverLists->mCreateObservers.empty()) {
+      sObservedOperations = (IOInterposeObserver::Operation)
+                       (sObservedOperations &
+                        ~IOInterposeObserver::OpCreateOrOpen);
+    }
+  }
   if (aOp & IOInterposeObserver::OpRead) {
     VectorRemove(sObserverLists->mReadObservers, aObserver);
     if (sObserverLists->mReadObservers.empty()) {
@@ -265,6 +307,20 @@ IOInterposeObserver::Operation IOInterposer::sObservedOperations =
     if (sObserverLists->mFSyncObservers.empty()) {
       sObservedOperations = (IOInterposeObserver::Operation)
                        (sObservedOperations & ~IOInterposeObserver::OpFSync);
+    }
+  }
+  if (aOp & IOInterposeObserver::OpStat) {
+    VectorRemove(sObserverLists->mStatObservers, aObserver);
+    if (sObserverLists->mStatObservers.empty()) {
+      sObservedOperations = (IOInterposeObserver::Operation)
+                       (sObservedOperations & ~IOInterposeObserver::OpStat);
+    }
+  }
+  if (aOp & IOInterposeObserver::OpClose) {
+    VectorRemove(sObserverLists->mCloseObservers, aObserver);
+    if (sObserverLists->mCloseObservers.empty()) {
+      sObservedOperations = (IOInterposeObserver::Operation)
+                       (sObservedOperations & ~IOInterposeObserver::OpClose);
     }
   }
 }

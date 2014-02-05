@@ -64,6 +64,18 @@ void debug_phdr(const char *type, const Phdr *phdr)
             phdr->p_flags & PF_W ? 'w' : '-', phdr->p_flags & PF_X ? 'x' : '-');
 }
 
+static int p_flags_to_mprot(Word flags)
+{
+  return ((flags & PF_X) ? PROT_EXEC : 0) |
+         ((flags & PF_W) ? PROT_WRITE : 0) |
+         ((flags & PF_R) ? PROT_READ : 0);
+}
+
+void
+__void_stub(void)
+{
+}
+
 } /* anonymous namespace */
 
 /**
@@ -220,6 +232,28 @@ CustomElf::Load(Mappable *mappable, const char *path, int flags)
   if (!elf->InitDyn(dyn))
     return nullptr;
 
+  if (elf->has_text_relocs) {
+    for (std::vector<const Phdr *>::iterator it = pt_loads.begin();
+         it < pt_loads.end(); ++it)
+      mprotect(PageAlignedPtr(elf->GetPtr((*it)->p_vaddr)),
+               PageAlignedEndPtr((*it)->p_memsz),
+               p_flags_to_mprot((*it)->p_flags) | PROT_WRITE);
+  }
+
+  if (!elf->Relocate() || !elf->RelocateJumps())
+    return nullptr;
+
+  if (elf->has_text_relocs) {
+    for (std::vector<const Phdr *>::iterator it = pt_loads.begin();
+         it < pt_loads.end(); ++it)
+      mprotect(PageAlignedPtr(elf->GetPtr((*it)->p_vaddr)),
+               PageAlignedEndPtr((*it)->p_memsz),
+               p_flags_to_mprot((*it)->p_flags));
+  }
+
+  if (!elf->CallInit())
+    return nullptr;
+
 #ifdef __ARM_EABI__
   if (arm_exidx_phdr)
     elf->arm_exidx.InitSize(elf->GetPtr(arm_exidx_phdr->p_vaddr),
@@ -321,6 +355,16 @@ CustomElf::GetSymbolPtrInDeps(const char *symbol) const
 #endif
   }
 
+#define MISSING_FLASH_SYMNAME_START "_ZN7android10VectorImpl19reservedVectorImpl"
+
+  // Android changed some symbols that Flash depended on in 4.4,
+  // so stub those out here
+  if (strncmp(symbol,
+              MISSING_FLASH_SYMNAME_START,
+              sizeof(MISSING_FLASH_SYMNAME_START) - 1) == 0) {
+    return FunctionPtr(__void_stub);
+  }
+
   void *sym;
   /* Search the symbol in the main program. Note this also tries all libraries
    * the system linker will have loaded RTLD_GLOBAL. Unfortunately, that doesn't
@@ -408,9 +452,7 @@ CustomElf::LoadSegment(const Phdr *pt_load) const
     return false;;
   }
 
-  int prot = ((pt_load->p_flags & PF_X) ? PROT_EXEC : 0) |
-             ((pt_load->p_flags & PF_W) ? PROT_WRITE : 0) |
-             ((pt_load->p_flags & PF_R) ? PROT_READ : 0);
+  int prot = p_flags_to_mprot(pt_load->p_flags);
 
   /* Mmap at page boundary */
   Addr align = PageSize();
@@ -534,8 +576,13 @@ CustomElf::InitDyn(const Phdr *pt_dyn)
         }
         break;
       case DT_TEXTREL:
-        LOG("%s: Text relocations are not supported", GetPath());
-        return false;
+        if (strcmp("libflashplayer.so", GetName()) == 0) {
+          has_text_relocs = true;
+        } else {
+          LOG("%s: Text relocations are not supported", GetPath());
+          return false;
+        }
+        break;
       case DT_STRSZ: /* Ignored */
         debug_dyn("DT_STRSZ", dyn);
         break;
@@ -605,8 +652,12 @@ CustomElf::InitDyn(const Phdr *pt_dyn)
            Addr flags = dyn->d_un.d_val;
            /* Treat as a DT_TEXTREL tag */
            if (flags & DF_TEXTREL) {
-             LOG("%s: Text relocations are not supported", GetPath());
-             return false;
+             if (strcmp("libflashplayer.so", GetName()) == 0) {
+               has_text_relocs = true;
+             } else {
+               LOG("%s: Text relocations are not supported", GetPath());
+               return false;
+             }
            }
            /* we can treat this like having a DT_SYMBOLIC tag */
            flags &= ~DF_SYMBOLIC;
@@ -662,8 +713,7 @@ CustomElf::InitDyn(const Phdr *pt_dyn)
     dependencies.push_back(handle);
   }
 
-  /* Finish initialization */
-  return Relocate() && RelocateJumps() && CallInit();
+  return true;
 }
 
 bool

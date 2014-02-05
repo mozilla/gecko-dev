@@ -531,7 +531,8 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
      * pending exception. (This ordinarily returns true even if the ok argument
      * is false.)
      */
-    bool receiveCompletionValue(mozilla::Maybe<AutoCompartment> &ac, bool ok, Value val,
+    bool receiveCompletionValue(mozilla::Maybe<AutoCompartment> &ac, bool ok,
+                                HandleValue val,
                                 MutableHandleValue vp);
 
     /*
@@ -730,7 +731,7 @@ Debugger::onNewGlobalObject(JSContext *cx, Handle<GlobalObject *> global)
 
 extern bool
 EvaluateInEnv(JSContext *cx, Handle<Env*> env, HandleValue thisv, AbstractFramePtr frame,
-              StableCharPtr chars, unsigned length, const char *filename, unsigned lineno,
+              ConstTwoByteChars chars, unsigned length, const char *filename, unsigned lineno,
               MutableHandleValue rval);
 
 }

@@ -36,7 +36,7 @@ class Shape;
  * in debug builds and crash in release builds. Instead, we use a safe-for-crash
  * pointer.
  */
-static JS_ALWAYS_INLINE void
+static MOZ_ALWAYS_INLINE void
 Debug_SetValueRangeToCrashOnTouch(Value *beg, Value *end)
 {
 #ifdef DEBUG
@@ -45,7 +45,7 @@ Debug_SetValueRangeToCrashOnTouch(Value *beg, Value *end)
 #endif
 }
 
-static JS_ALWAYS_INLINE void
+static MOZ_ALWAYS_INLINE void
 Debug_SetValueRangeToCrashOnTouch(Value *vec, size_t len)
 {
 #ifdef DEBUG
@@ -53,7 +53,7 @@ Debug_SetValueRangeToCrashOnTouch(Value *vec, size_t len)
 #endif
 }
 
-static JS_ALWAYS_INLINE void
+static MOZ_ALWAYS_INLINE void
 Debug_SetValueRangeToCrashOnTouch(HeapValue *vec, size_t len)
 {
 #ifdef DEBUG
@@ -1521,6 +1521,9 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
         return privateRef(nfixed);
     }
 
+    /* GC Accessors */
+    void setInitialSlots(HeapSlot *newSlots) { slots = newSlots; }
+
     /* JIT Accessors */
     static size_t offsetOfShape() { return offsetof(ObjectImpl, shape_); }
     HeapPtrShape *addressOfShape() { return &shape_; }
@@ -1543,7 +1546,7 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
 namespace gc {
 
 template <>
-JS_ALWAYS_INLINE Zone *
+MOZ_ALWAYS_INLINE Zone *
 BarrieredCell<ObjectImpl>::zone() const
 {
     const ObjectImpl* obj = static_cast<const ObjectImpl*>(this);
@@ -1553,7 +1556,7 @@ BarrieredCell<ObjectImpl>::zone() const
 }
 
 template <>
-JS_ALWAYS_INLINE Zone *
+MOZ_ALWAYS_INLINE Zone *
 BarrieredCell<ObjectImpl>::zoneFromAnyThread() const
 {
     const ObjectImpl* obj = static_cast<const ObjectImpl*>(this);
@@ -1607,7 +1610,7 @@ inline void
 ObjectImpl::privateWriteBarrierPre(void **oldval)
 {
 #ifdef JSGC_INCREMENTAL
-    JS::shadow::Zone *shadowZone = this->shadowZone();
+    JS::shadow::Zone *shadowZone = this->shadowZoneFromAnyThread();
     if (shadowZone->needsBarrier()) {
         if (*oldval && getClass()->trace)
             getClass()->trace(shadowZone->barrierTracer(), this->asObjectPtr());

@@ -2538,7 +2538,7 @@ void nsTableFrame::PlaceChild(nsTableReflowState&  aReflowState,
     (aKidFrame->GetStateBits() & NS_FRAME_FIRST_REFLOW) != 0;
 
   // Place and size the child
-  FinishReflowChild(aKidFrame, PresContext(), nullptr, aKidDesiredSize,
+  FinishReflowChild(aKidFrame, PresContext(), aKidDesiredSize, nullptr,
                     aReflowState.x, aReflowState.y, 0);
 
   InvalidateTableFrame(aKidFrame, aOriginalKidRect, aOriginalKidVisualOverflow,
@@ -2956,7 +2956,14 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
           mFrames.InsertFrame(nullptr, kidFrame, kidNextInFlow);
           // and in rowGroups after childX so that it will get pushed below.
           rowGroups.InsertElementAt(childX + 1,
-                      static_cast <nsTableRowGroupFrame*>(kidNextInFlow));
+                      static_cast<nsTableRowGroupFrame*>(kidNextInFlow));
+        } else if (kidNextInFlow == kidFrame->GetNextSibling()) {
+          // OrderRowGroups excludes NIFs in the child list from 'rowGroups'
+          // so we deal with that here to make sure they get pushed.
+          MOZ_ASSERT(!rowGroups.Contains(kidNextInFlow),
+                     "OrderRowGroups must not put our NIF in 'rowGroups'");
+          rowGroups.InsertElementAt(childX + 1,
+                      static_cast<nsTableRowGroupFrame*>(kidNextInFlow));
         }
 
         // We've used up all of our available space so push the remaining
@@ -3020,7 +3027,7 @@ nsTableFrame::ReflowColGroups(nsRenderingContext *aRenderingContext)
         nsReflowStatus cgStatus;
         ReflowChild(kidFrame, presContext, kidMet, kidReflowState, 0, 0, 0,
                     cgStatus);
-        FinishReflowChild(kidFrame, presContext, nullptr, kidMet, 0, 0, 0);
+        FinishReflowChild(kidFrame, presContext, kidMet, nullptr, 0, 0, 0);
       }
     }
     SetHaveReflowedColGroups(true);

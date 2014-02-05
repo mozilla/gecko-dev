@@ -43,6 +43,7 @@
 #include "libdisplay/GonkDisplay.h"
 #include "pixelflinger/format.h"
 #include "mozilla/BasicEvents.h"
+#include "mozilla/layers/APZCTreeManager.h"
 #include "mozilla/layers/CompositorParent.h"
 #include "ParentProcessController.h"
 #include "nsThreadUtils.h"
@@ -68,6 +69,7 @@ static nsIntRect sVirtualBounds;
 
 static nsRefPtr<GLContext> sGLContext;
 static nsTArray<nsWindow *> sTopWindows;
+static nsWindow *gWindowToRedraw = nullptr;
 static nsWindow *gFocusedWindow = nullptr;
 static bool sFramebufferOpen;
 static bool sUsingOMTC;
@@ -167,7 +169,7 @@ nsWindow::nsWindow()
 
         if (sUsingOMTC) {
           sOMTCSurface = new gfxImageSurface(gfxIntSize(1, 1),
-                                             gfxImageFormatRGB24);
+                                             gfxImageFormat::RGB24);
         }
     }
 }
@@ -184,27 +186,23 @@ nsWindow::DoDraw(void)
         return;
     }
 
-    if (sTopWindows.IsEmpty()) {
+    if (!gWindowToRedraw) {
         LOG("  no window to draw, bailing");
         return;
     }
 
-    nsWindow *targetWindow = (nsWindow *)sTopWindows[0];
-    while (targetWindow->GetLastChild())
-        targetWindow = (nsWindow *)targetWindow->GetLastChild();
+    nsIntRegion region = gWindowToRedraw->mDirtyRegion;
+    gWindowToRedraw->mDirtyRegion.SetEmpty();
 
-    nsIntRegion region = sTopWindows[0]->mDirtyRegion;
-    sTopWindows[0]->mDirtyRegion.SetEmpty();
-
-    nsIWidgetListener* listener = targetWindow->GetWidgetListener();
+    nsIWidgetListener* listener = gWindowToRedraw->GetWidgetListener();
     if (listener) {
-        listener->WillPaintWindow(targetWindow);
+        listener->WillPaintWindow(gWindowToRedraw);
     }
 
-    LayerManager* lm = targetWindow->GetLayerManager();
-    if (mozilla::layers::LAYERS_CLIENT == lm->GetBackendType()) {
+    LayerManager* lm = gWindowToRedraw->GetLayerManager();
+    if (mozilla::layers::LayersBackend::LAYERS_CLIENT == lm->GetBackendType()) {
       // No need to do anything, the compositor will handle drawing
-    } else if (mozilla::layers::LAYERS_BASIC == lm->GetBackendType()) {
+    } else if (mozilla::layers::LayersBackend::LAYERS_BASIC == lm->GetBackendType()) {
         MOZ_ASSERT(sFramebufferOpen || sUsingOMTC);
         nsRefPtr<gfxASurface> targetSurface;
 
@@ -220,12 +218,12 @@ nsWindow::DoDraw(void)
 
             // No double-buffering needed.
             AutoLayerManagerSetup setupLayerManager(
-                targetWindow, ctx, mozilla::layers::BUFFER_NONE,
+                gWindowToRedraw, ctx, mozilla::layers::BufferMode::BUFFER_NONE,
                 ScreenRotation(EffectiveScreenRotation()));
 
-            listener = targetWindow->GetWidgetListener();
+            listener = gWindowToRedraw->GetWidgetListener();
             if (listener) {
-                listener->PaintWindow(targetWindow, region);
+                listener->PaintWindow(gWindowToRedraw, region);
             }
         }
 
@@ -237,7 +235,7 @@ nsWindow::DoDraw(void)
         NS_RUNTIMEABORT("Unexpected layer manager type");
     }
 
-    listener = targetWindow->GetWidgetListener();
+    listener = gWindowToRedraw->GetWidgetListener();
     if (listener) {
         listener->DidPaintWindow();
     }
@@ -284,10 +282,11 @@ nsWindow::Create(nsIWidget *aParent,
 
     mBounds = aRect;
 
-    mParent = (nsWindow *)aParent;
+    nsWindow *parent = (nsWindow *)aNativeParent;
+    mParent = parent;
     mVisible = false;
 
-    if (!aParent) {
+    if (!aNativeParent) {
         mBounds = sVirtualBounds;
     }
 
@@ -305,6 +304,8 @@ nsWindow::Destroy(void)
 {
     mOnDestroyCalled = true;
     sTopWindows.RemoveElement(this);
+    if (this == gWindowToRedraw)
+        gWindowToRedraw = nullptr;
     if (this == gFocusedWindow)
         gFocusedWindow = nullptr;
     nsBaseWidget::OnDestroy();
@@ -381,8 +382,8 @@ nsWindow::Resize(double aX,
     if (mWidgetListener)
         mWidgetListener->WindowResized(this, mBounds.width, mBounds.height);
 
-    if (aRepaint)
-        Invalidate(sVirtualBounds);
+    if (aRepaint && gWindowToRedraw)
+        gWindowToRedraw->Invalidate(sVirtualBounds);
 
     return NS_OK;
 }
@@ -418,13 +419,14 @@ nsWindow::ConfigureChildren(const nsTArray<nsIWidget::Configuration>&)
 NS_IMETHODIMP
 nsWindow::Invalidate(const nsIntRect &aRect)
 {
-    nsWindow *top = mParent;
-    while (top && top->mParent)
-        top = top->mParent;
-    if (top != sTopWindows[0] && this != sTopWindows[0])
+    nsWindow *parent = mParent;
+    while (parent && parent != sTopWindows[0])
+        parent = parent->mParent;
+    if (parent != sTopWindows[0])
         return NS_OK;
 
     mDirtyRegion.Or(mDirtyRegion, aRect);
+    gWindowToRedraw = this;
     gDrawRequest = true;
     mozilla::NotifyEvent();
     return NS_OK;
@@ -452,6 +454,8 @@ nsWindow::GetNativeData(uint32_t aDataType)
     switch (aDataType) {
     case NS_NATIVE_WINDOW:
         return GetGonkDisplay()->GetNativeWindow();
+    case NS_NATIVE_WIDGET:
+        return this;
     }
     return nullptr;
 }
@@ -527,7 +531,7 @@ nsWindow::GetDefaultScaleInternal()
         return 1.5; // hdpi devices.
     }
     // xhdpi devices and beyond.
-    return floor(dpi / 150.0);
+    return floor(dpi / 150.0 + 0.5);
 }
 
 LayerManager *
@@ -541,15 +545,15 @@ nsWindow::GetLayerManager(PLayerTransactionChild* aShadowManager,
     if (mLayerManager) {
         // This layer manager might be used for painting outside of DoDraw(), so we need
         // to set the correct rotation on it.
-        if (mLayerManager->GetBackendType() == LAYERS_BASIC) {
+        if (mLayerManager->GetBackendType() == LayersBackend::LAYERS_BASIC) {
             BasicLayerManager* manager =
                 static_cast<BasicLayerManager*>(mLayerManager.get());
-            manager->SetDefaultTargetConfiguration(mozilla::layers::BUFFER_NONE,
+            manager->SetDefaultTargetConfiguration(mozilla::layers::BufferMode::BUFFER_NONE,
                                                    ScreenRotation(EffectiveScreenRotation()));
-        } else if (mLayerManager->GetBackendType() == LAYERS_CLIENT) {
+        } else if (mLayerManager->GetBackendType() == LayersBackend::LAYERS_CLIENT) {
             ClientLayerManager* manager =
                 static_cast<ClientLayerManager*>(mLayerManager.get());
-            manager->SetDefaultTargetConfiguration(mozilla::layers::BUFFER_NONE,
+            manager->SetDefaultTargetConfiguration(mozilla::layers::BufferMode::BUFFER_NONE,
                                                    ScreenRotation(EffectiveScreenRotation()));
         }
         return mLayerManager;
@@ -570,6 +574,7 @@ nsWindow::GetLayerManager(PLayerTransactionChild* aShadowManager,
         if (mCompositorParent) {
             uint64_t rootLayerTreeId = mCompositorParent->RootLayerTreeId();
             CompositorParent::SetControllerForLayerTree(rootLayerTreeId, new ParentProcessController());
+            CompositorParent::GetAPZCTreeManager(rootLayerTreeId)->SetDPI(GetDPI());
         }
         if (mLayerManager)
             return mLayerManager;
@@ -608,7 +613,7 @@ nsWindow::GetThebesSurface()
 
     // XXX this really wants to return already_AddRefed, but this only really gets used
     // on direct assignment to a gfxASurface
-    return new gfxImageSurface(gfxIntSize(5,5), gfxImageFormatRGB24);
+    return new gfxImageSurface(gfxIntSize(5,5), gfxImageFormat::RGB24);
 }
 
 void
@@ -643,7 +648,7 @@ uint32_t
 nsWindow::GetGLFrameBufferFormat()
 {
     if (mLayerManager &&
-        mLayerManager->GetBackendType() == mozilla::layers::LAYERS_OPENGL) {
+        mLayerManager->GetBackendType() == mozilla::layers::LayersBackend::LAYERS_OPENGL) {
         // We directly map the hardware fb on Gonk.  The hardware fb
         // has RGB format.
         return LOCAL_GL_RGB;
@@ -763,12 +768,12 @@ nsScreenGonk::SetRotation(uint32_t aRotation)
         sVirtualBounds = gScreenBounds;
     }
 
-    nsAppShell::NotifyScreenRotation();
-
     for (unsigned int i = 0; i < sTopWindows.Length(); i++)
         sTopWindows[i]->Resize(sVirtualBounds.width,
                                sVirtualBounds.height,
-                               true);
+                               !i);
+
+    nsAppShell::NotifyScreenRotation();
 
     return NS_OK;
 }

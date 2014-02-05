@@ -64,7 +64,7 @@ static void do_qt_pixmap_unref (void *data)
     delete pmap;
 }
 
-static gfxImageFormat sOffscreenFormat = gfxImageFormatRGB24;
+static gfxImageFormat sOffscreenFormat = gfxImageFormat::RGB24;
 
 gfxQtPlatform::gfxQtPlatform()
 {
@@ -102,13 +102,17 @@ gfxQtPlatform::gfxQtPlatform()
     // around this by checking what type of graphicssystem a test QPixmap uses.
     QPixmap pixmap(1, 1);
     if (pixmap.depth() == 16) {
-        sOffscreenFormat = gfxImageFormatRGB16_565;
+        sOffscreenFormat = gfxImageFormat::RGB16_565;
     }
     mScreenDepth = pixmap.depth();
 #if (QT_VERSION < QT_VERSION_CHECK(4,8,0))
     if (pixmap.paintEngine())
         sDefaultQtPaintEngineType = pixmap.paintEngine()->type();
 #endif
+    uint32_t canvasMask = BackendTypeBit(BackendType::CAIRO) | BackendTypeBit(BackendType::SKIA);
+    uint32_t contentMask = BackendTypeBit(BackendType::CAIRO) | BackendTypeBit(BackendType::SKIA);
+    InitBackendPrefs(canvasMask, BackendType::CAIRO,
+                     contentMask, BackendType::CAIRO);
 }
 
 gfxQtPlatform::~gfxQtPlatform()
@@ -306,3 +310,8 @@ gfxQtPlatform::GetScreenDepth() const
     return mScreenDepth;
 }
 
+TemporaryRef<ScaledFont>
+gfxQtPlatform::GetScaledFontForFont(DrawTarget* aTarget, gfxFont* aFont)
+{
+    return GetScaledFontForFontWithCairoSkia(aTarget, aFont);
+}

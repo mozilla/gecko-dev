@@ -28,7 +28,7 @@ DumpAsPNG(SourceSurface* aSurface)
   nsRefPtr<gfxImageSurface> imageSurface =
     new gfxImageSurface(dataSource->GetData(), gfxIntSize(size.width, size.height),
                         dataSource->Stride(),
-                        aSurface->GetFormat() == SurfaceFormat::A8 ? gfxImageFormatA8 : gfxImageFormatARGB32);
+                        aSurface->GetFormat() == SurfaceFormat::A8 ? gfxImageFormat::A8 : gfxImageFormat::ARGB32);
   imageSurface->PrintAsDataURL();
 }
 } // namespace gfx
@@ -235,7 +235,9 @@ CloneAligned(DataSourceSurface* aSource)
 {
   RefPtr<DataSourceSurface> copy =
     Factory::CreateDataSourceSurface(aSource->GetSize(), aSource->GetFormat());
-  CopyRect(aSource, copy, IntRect(IntPoint(), aSource->GetSize()), IntPoint());
+  if (copy) {
+    CopyRect(aSource, copy, IntRect(IntPoint(), aSource->GetSize()), IntPoint());
+  }
   return copy;
 }
 
@@ -591,9 +593,19 @@ FilterNodeSoftware::Draw(DrawTarget* aDrawTarget,
   Point sourceToDestOffset = aDestPoint - aSourceRect.TopLeft();
   Rect renderedSourceRect = Rect(outputRect).Intersect(aSourceRect);
   Rect renderedDestRect = renderedSourceRect + sourceToDestOffset;
-  aDrawTarget->DrawSurface(result, renderedDestRect,
-                           renderedSourceRect - Point(outputRect.TopLeft()),
-                           DrawSurfaceOptions(), aOptions);
+  if (result->GetFormat() == SurfaceFormat::A8) {
+    // Interpret the result as having implicitly black color channels.
+    aDrawTarget->PushClipRect(renderedDestRect);
+    aDrawTarget->MaskSurface(ColorPattern(Color(0.0, 0.0, 0.0, 1.0)),
+                             result,
+                             Point(outputRect.TopLeft()) + sourceToDestOffset,
+                             aOptions);
+    aDrawTarget->PopClip();
+  } else {
+    aDrawTarget->DrawSurface(result, renderedDestRect,
+                             renderedSourceRect - Point(outputRect.TopLeft()),
+                             DrawSurfaceOptions(), aOptions);
+  }
 }
 
 TemporaryRef<DataSourceSurface>
@@ -720,17 +732,18 @@ FilterNodeSoftware::GetInputDataSourceSurface(uint32_t aInputEnumIndex,
   RefPtr<DataSourceSurface> result =
     GetDataSurfaceInRect(surface, surfaceRect, aRect, aEdgeMode);
 
+  if (result &&
+      (result->Stride() != GetAlignedStride<16>(result->Stride()) ||
+       reinterpret_cast<uintptr_t>(result->GetData()) % 16 != 0)) {
+    // Align unaligned surface.
+    result = CloneAligned(result);
+  }
+
   if (!result) {
 #ifdef DEBUG_DUMP_SURFACES
     printf(" -- no input --</section>\n\n");
 #endif
     return nullptr;
-  }
-
-  if (result->Stride() != GetAlignedStride<16>(result->Stride()) ||
-      reinterpret_cast<uintptr_t>(result->GetData()) % 16 != 0) {
-    // Align unaligned surface.
-    result = CloneAligned(result);
   }
 
   SurfaceFormat currentFormat = result->GetFormat();

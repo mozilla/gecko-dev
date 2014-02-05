@@ -188,7 +188,6 @@ audiounit_get_acceptable_latency_range(AudioValueRange * latency_range)
   return CUBEB_OK;
 }
 
-
 int
 audiounit_get_max_channel_count(cubeb * ctx, uint32_t * max_channels)
 {
@@ -273,7 +272,6 @@ audiounit_get_preferred_sample_rate(cubeb * ctx, uint32_t * rate)
   return CUBEB_OK;
 }
 
-
 static void
 audiounit_destroy(cubeb * ctx)
 {
@@ -303,7 +301,6 @@ audiounit_stream_init(cubeb * context, cubeb_stream ** stream, char const * stre
   UInt32 size;
   AudioDeviceID output_device_id;
   AudioValueRange latency_range;
-
 
   assert(context);
   *stream = NULL;
@@ -420,6 +417,9 @@ audiounit_stream_init(cubeb * context, cubeb_stream ** stream, char const * stre
     return CUBEB_ERROR;
   }
 
+  // Setting the latency doesn't work well for USB headsets (eg. plantronics).
+  // Keep the default latency for now.
+#if 0
   if (buffer_size < default_buffer_size) {
     /* Set the maximum number of frame that the render callback will ask for,
      * effectively setting the latency of the stream. This is process-wide. */
@@ -430,6 +430,7 @@ audiounit_stream_init(cubeb * context, cubeb_stream ** stream, char const * stre
       return CUBEB_ERROR;
     }
   }
+#endif
 
   r = AudioUnitSetProperty(stm->unit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input,
                            0, &ss, sizeof(ss));

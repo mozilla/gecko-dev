@@ -9,6 +9,7 @@ const Cr = Components.results;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/WindowsPrefSync.jsm");
 
 #ifdef MOZ_CRASHREPORTER
 XPCOMUtils.defineLazyServiceGetter(this, "CrashReporter",
@@ -199,6 +200,10 @@ SessionStore.prototype = {
         break;
       case "final-ui-startup":
         observerService.removeObserver(this, "final-ui-startup");
+        if (WindowsPrefSync) {
+          // Pulls in Desktop controlled prefs and pushes out Metro controlled prefs
+          WindowsPrefSync.init();
+        }
         this.init();
         break;
       case "domwindowopened":
@@ -267,7 +272,7 @@ SessionStore.prototype = {
           this.saveState();
         }
         break;
-      case "browser:purge-session-history": // catch sanitization 
+      case "browser:purge-session-history": // catch sanitization
         this._clearDisk();
 
         // If the browser is shutting down, simply return after clearing the
@@ -333,6 +338,7 @@ SessionStore.prototype = {
     // Assign it a unique identifier and create its data object
     aWindow.__SSID = "window" + gUUIDGenerator.generateUUID().toString();
     this._windows[aWindow.__SSID] = { tabs: [], selected: 0, _closedTabs: [] };
+    this._orderedWindows.push(aWindow.__SSID);
 
     // Perform additional initialization when the first window is loading
     if (this._loadState == STATE_STOPPED) {
@@ -340,7 +346,7 @@ SessionStore.prototype = {
       this._lastSaveTime = Date.now();
 
       // Nothing to restore, notify observers things are complete
-      if (!this._shouldRestore) {
+      if (!this.shouldRestore()) {
         this._clearCache();
         Services.obs.notifyObservers(null, "sessionstore-windows-restored", "");
       }
@@ -506,9 +512,14 @@ SessionStore.prototype = {
 
   saveState: function ss_saveState() {
     let data = this._getCurrentState();
-    this._writeFile(this._sessionFile, JSON.stringify(data));
+    // sanity check before we overwrite the session file
+    if (data.windows && data.windows.length && data.selectedWindow) {
+      this._writeFile(this._sessionFile, JSON.stringify(data));
 
-    this._lastSaveTime = Date.now();
+      this._lastSaveTime = Date.now();
+    } else {
+      dump("SessionStore: Not saving state with invalid data: " + JSON.stringify(data) + "\n");
+    }
   },
 
   _getCurrentState: function ss_getCurrentState() {
@@ -540,15 +551,15 @@ SessionStore.prototype = {
   },
 
   _getTabData: function(aWindow) {
-    return aWindow.Browser.tabs.map(tab => {
-      let browser = tab.browser;
-      if (browser.__SS_data) {
+    return aWindow.Browser.tabs
+      .filter(tab => !tab.isPrivate && tab.browser.__SS_data)
+      .map(tab => {
+        let browser = tab.browser;
         let tabData = browser.__SS_data;
         if (browser.__SS_extdata)
           tabData.extData = browser.__SS_extdata;
         return tabData;
-      }
-    });
+      });
   },
 
   _collectWindowData: function ss__collectWindowData(aWindow) {
@@ -726,7 +737,7 @@ SessionStore.prototype = {
   },
 
   shouldRestore: function ss_shouldRestore() {
-    return this._shouldRestore;
+    return this._shouldRestore || (3 == Services.prefs.getIntPref("browser.startup.page"));
   },
 
   restoreLastSession: function ss_restoreLastSession(aBringToFront) {
@@ -773,7 +784,9 @@ SessionStore.prototype = {
 
         let window = Services.wm.getMostRecentWindow("navigator:browser");
 
-        this._selectedWindow = data.selectedWindow;
+        if (typeof data.selectedWindow == "number") {
+          this._selectedWindow = data.selectedWindow;
+        }
         let windowIndex = this._selectedWindow - 1;
         let tabs = data.windows[windowIndex].tabs;
         let selected = data.windows[windowIndex].selected;
@@ -784,6 +797,7 @@ SessionStore.prototype = {
         } catch (ex) { /* currentGroupId is undefined if user has no tab groups */ }
 
         // Move all window data from sessionstore.js to this._windows.
+        this._orderedWindows = [];
         for (let i = 0; i < data.windows.length; i++) {
           let SSID;
           if (i != windowIndex) {
@@ -837,7 +851,7 @@ SessionStore.prototype = {
 
           tab.browser.__SS_extdata = tabData.extData;
         }
-    
+
         notifyObservers();
       }.bind(this));
     } catch (ex) {

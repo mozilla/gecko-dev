@@ -17,6 +17,7 @@ EXPORTS += [
     'nsCrossSiteListenerProxy.h',
     'nsDOMAttributeMap.h',
     'nsFrameMessageManager.h',
+    'nsGenericDOMDataNode.h',
     'nsGkAtomList.h',
     'nsGkAtoms.h',
     'nsImageLoadingContent.h',
@@ -31,6 +32,7 @@ EXPORTS += [
     'nsStubMutationObserver.h',
     'nsStyledElement.h',
     'nsTextFragment.h',
+    'nsTraversal.h',
 ]
 
 if CONFIG['MOZ_WEBRTC']:
@@ -194,7 +196,6 @@ include('/ipc/chromium/chromium-config.mozbuild')
 FINAL_LIBRARY = 'gklayout'
 LOCAL_INCLUDES += [
     '/caps/include',
-    '/content/events/src',
     '/content/html/content/src',
     '/content/html/document/src',
     '/content/xml/content/src',
@@ -203,6 +204,7 @@ LOCAL_INCLUDES += [
     '/content/xul/document/src',
     '/docshell/base',
     '/dom/base',
+    '/dom/events',
     '/dom/ipc',
     '/dom/workers',
     '/dom/xbl',

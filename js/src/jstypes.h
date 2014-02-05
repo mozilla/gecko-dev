@@ -77,8 +77,13 @@
 #  define JS_PUBLIC_DATA(t)  MOZ_IMPORT_DATA t
 #endif
 
-#define JS_FRIEND_API(t)    JS_PUBLIC_API(t)
-#define JS_FRIEND_DATA(t)   JS_PUBLIC_DATA(t)
+#if defined(STATIC_JS_API) || defined(EXPORT_JS_API) || defined(STATIC_EXPORTABLE_JS_API)
+#  define JS_FRIEND_API(t)    MOZ_EXPORT t
+#  define JS_FRIEND_DATA(t)   MOZ_EXPORT t
+#else
+#  define JS_FRIEND_API(t)   MOZ_IMPORT_API t
+#  define JS_FRIEND_DATA(t)  MOZ_IMPORT_DATA t
+#endif
 
 #if defined(_MSC_VER) && defined(_M_IX86)
 #define JS_FASTCALL __fastcall
@@ -87,22 +92,6 @@
 #else
 #define JS_FASTCALL
 #define JS_NO_FASTCALL
-#endif
-
-#ifndef JS_ALWAYS_INLINE
-#define JS_ALWAYS_INLINE MOZ_ALWAYS_INLINE
-#endif
-
-#ifndef JS_NEVER_INLINE
-#define JS_NEVER_INLINE MOZ_NEVER_INLINE
-#endif
-
-#ifndef JS_WARN_UNUSED_RESULT
-# if defined __GNUC__
-#  define JS_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
-# else
-#  define JS_WARN_UNUSED_RESULT
-# endif
 #endif
 
 /***********************************************************************
@@ -121,15 +110,6 @@
 #else
 # define JS_END_MACRO   } while (0)
 #endif
-
-/***********************************************************************
-** MACROS:      JS_BEGIN_EXTERN_C
-**              JS_END_EXTERN_C
-** DESCRIPTION:
-**      Macro shorthands for conditional C++ extern block delimiters.
-***********************************************************************/
-#define JS_BEGIN_EXTERN_C      MOZ_BEGIN_EXTERN_C
-#define JS_END_EXTERN_C        MOZ_END_EXTERN_C
 
 /***********************************************************************
 ** MACROS:      JS_BIT
@@ -181,34 +161,6 @@
 # endif
 #else
 # error "Implement me"
-#endif
-
-/***********************************************************************
-** MACROS:      JS_LIKELY
-**              JS_UNLIKELY
-** DESCRIPTION:
-**      These macros allow you to give a hint to the compiler about branch
-**      probability so that it can better optimize.  Use them like this:
-**
-**      if (JS_LIKELY(v == 1)) {
-**          ... expected code path ...
-**      }
-**
-**      if (JS_UNLIKELY(v == 0)) {
-**          ... non-expected code path ...
-**      }
-**
-***********************************************************************/
-#ifdef __GNUC__
-
-# define JS_LIKELY(x)   (__builtin_expect((x), 1))
-# define JS_UNLIKELY(x) (__builtin_expect((x), 0))
-
-#else
-
-# define JS_LIKELY(x)   (x)
-# define JS_UNLIKELY(x) (x)
-
 #endif
 
 /***********************************************************************

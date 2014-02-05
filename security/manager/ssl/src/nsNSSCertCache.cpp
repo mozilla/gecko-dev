@@ -21,9 +21,9 @@ nsNSSCertCache::nsNSSCertCache()
 nsNSSCertCache::~nsNSSCertCache()
 {
   nsNSSShutDownPreventionLock locker;
-  if (isAlreadyShutDown())
+  if (isAlreadyShutDown()) {
     return;
-
+  }
   destructorSafeDestroyNSSReference();
   shutdown(calledFromObject);
 }
@@ -35,8 +35,7 @@ void nsNSSCertCache::virtualDestroyNSSReference()
 
 void nsNSSCertCache::destructorSafeDestroyNSSReference()
 {
-  if (isAlreadyShutDown())
-    return;
+  mCertList = nullptr;
 }
 
 NS_IMETHODIMP
@@ -48,7 +47,8 @@ nsNSSCertCache::CacheAllCerts()
 
   nsCOMPtr<nsIInterfaceRequestor> cxt = new PipUIContext();
   
-  CERTCertList *newList = PK11_ListCerts(PK11CertListUnique, cxt);
+  insanity::pkix::ScopedCERTCertList newList(
+    PK11_ListCerts(PK11CertListUnique, cxt));
 
   if (newList) {
     MutexAutoLock lock(mutex);

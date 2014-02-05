@@ -56,10 +56,16 @@ Finder.prototype = {
       linkURL = this._textToSubURIService.unEscapeURIForUI(docCharset, foundLink.href);
     }
 
-    let rect = this._getResultRect();
+    let data = {
+      result: aResult,
+      findBackwards: aFindBackwards,
+      linkURL: linkURL,
+      rect: this._getResultRect(),
+      searchString: this._searchString,
+    };
 
     for (let l of this._listeners) {
-      l.onFindResult(aResult, aFindBackwards, linkURL, rect);
+      l.onFindResult(data);
     }
   },
 
@@ -110,15 +116,12 @@ Finder.prototype = {
 
   enableSelection: function() {
     this._fastFind.setSelectionModeAndRepaint(Ci.nsISelectionController.SELECTION_ON);
+    this._restoreOriginalOutline();
   },
 
   removeSelection: function() {
-    let fastFind = this._fastFind;
-
-    fastFind.collapseSelection();
+    this._fastFind.collapseSelection();
     this.enableSelection();
-
-    this._restoreOriginalOutline();
   },
 
   focusContent: function() {

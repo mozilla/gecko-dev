@@ -91,6 +91,8 @@ interface mozContact {
   [Cached, Pure] attribute sequence<DOMString>?       note;
   [Cached, Pure] attribute sequence<DOMString>?       key;
 
+  void init(optional ContactProperties properties);
+
   [ChromeOnly]
   void setMetadata(DOMString id, Date? published, Date? updated);
 
@@ -116,7 +118,7 @@ interface ContactManager : EventTarget {
   DOMCursor  getAll(optional ContactFindSortOptions options);
   DOMRequest clear();
   DOMRequest save(mozContact contact);
-  DOMRequest remove(mozContact contact);
+  DOMRequest remove((mozContact or DOMString) contactOrId);
   DOMRequest getRevision();
   DOMRequest getCount();
 

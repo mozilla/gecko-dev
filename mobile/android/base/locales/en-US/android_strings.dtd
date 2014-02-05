@@ -66,7 +66,7 @@
 <!ENTITY settings_title "Settings">
 <!ENTITY pref_category_advanced "Advanced">
 <!ENTITY pref_category_customize "Customize">
-<!ENTITY pref_category_search2 "Search settings">
+<!ENTITY pref_category_search3 "Search">
 <!ENTITY pref_category_display "Display">
 <!ENTITY pref_category_privacy_short "Privacy">
 <!ENTITY pref_category_vendor "&vendorShortName;">
@@ -84,6 +84,9 @@
 <!ENTITY pref_developer_remotedebugging "Remote debugging">
 <!ENTITY pref_developer_remotedebugging_docs "Learn more">
 <!ENTITY pref_remember_signons "Remember passwords">
+
+<!ENTITY pref_category_home "Home">
+<!ENTITY pref_category_home_panels "Panels">
 
 <!-- Localization note: These are shown in the left sidebar on tablets -->
 <!ENTITY pref_header_customize "Customize">
@@ -151,10 +154,15 @@ size. -->
 <!ENTITY pref_about_firefox "About &brandShortName;">
 <!ENTITY pref_vendor_faqs "FAQs">
 <!ENTITY pref_vendor_feedback "Give feedback">
-<!ENTITY pref_search_set_default "Set as default">
-<!ENTITY pref_search_default "Default">
-<!ENTITY pref_search_remove "Remove">
+
+<!ENTITY pref_dialog_set_default "Set as default">
+<!ENTITY pref_dialog_default "Default">
+<!ENTITY pref_dialog_remove "Remove">
+
 <!ENTITY pref_search_last_toast "You can\'t remove or disable your last search engine.">
+
+<!ENTITY pref_panels_show "Show">
+<!ENTITY pref_panels_hide "Hide">
 
 <!ENTITY datareporting_notification_title "&brandShortName; stats &amp; data">
 <!ENTITY datareporting_notification_action_long "Choose what information to share">
@@ -219,6 +227,13 @@ size. -->
 <!ENTITY find_next "Next">
 <!ENTITY find_close "Close">
 
+<!-- Localization note (media_casting_to, media_play, media_pause, media_stop) : These strings are used
+     as alternate text for accessibility. They are not visible in the UI. -->
+<!ENTITY media_casting_to "Casting to Device">
+<!ENTITY media_play "Play">
+<!ENTITY media_pause "Pause">
+<!ENTITY media_stop "Stop">
+
 <!ENTITY contextmenu_open_new_tab "Open in New Tab">
 <!ENTITY contextmenu_open_private_tab "Open in Private Tab">
 <!ENTITY contextmenu_open_in_reader "Open in Reader">
@@ -240,7 +255,9 @@ size. -->
 <!ENTITY pref_titlebar_mode_title "Show page title">
 <!ENTITY pref_titlebar_mode_url "Show page address">
 
-<!ENTITY pref_dynamic_toolbar "Hide title bar when scrolling">
+<!-- Localization note (pref_scroll_title_bar): Label for setting that controls
+     whether or not the dynamic toolbar is enabled. -->
+<!ENTITY pref_scroll_title_bar "Scroll title bar">
 
 <!ENTITY history_removed "Page removed">
 

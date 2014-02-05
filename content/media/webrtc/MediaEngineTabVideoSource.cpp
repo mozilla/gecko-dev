@@ -238,7 +238,7 @@ MediaEngineTabVideoSource::Draw() {
            nsPresContext::CSSPixelsToAppUnits(srcW / scale),
            nsPresContext::CSSPixelsToAppUnits(srcH / scale));
 
-  gfxImageFormat format = gfxImageFormatRGB24;
+  gfxImageFormat format = gfxImageFormat::RGB24;
   uint32_t stride = gfxASurface::FormatStrideForWidth(format, size.width);
 
   nsRefPtr<layers::ImageContainer> container = layers::LayerManager::CreateImageContainer();
@@ -257,8 +257,9 @@ MediaEngineTabVideoSource::Draw() {
   NS_ENSURE_SUCCESS_VOID(rv);
 
   layers::CairoImage::Data cairoData;
-  cairoData.mSurface = surf;
+  cairoData.mDeprecatedSurface = surf;
   cairoData.mSize = size;
+  cairoData.mSourceSurface = gfxPlatform::GetPlatform()->GetSourceSurfaceForSurface(nullptr, surf);
 
   nsRefPtr<layers::CairoImage> image = new layers::CairoImage();
 

@@ -109,6 +109,11 @@ public class BrowserToolbar extends GeckoRelativeLayout
         public void onStopEditing();
     }
 
+    private enum UIMode {
+        EDIT,
+        DISPLAY
+    }
+
     enum ForwardButtonAnimation {
         SHOW,
         HIDE
@@ -123,6 +128,7 @@ public class BrowserToolbar extends GeckoRelativeLayout
     private ImageButton mBack;
     private ImageButton mForward;
 
+    private ToolbarProgressView mProgressBar;
     private TabCounter mTabsCounter;
     private GeckoImageButton mMenu;
     private GeckoImageView mMenuIcon;
@@ -140,7 +146,7 @@ public class BrowserToolbar extends GeckoRelativeLayout
     final private BrowserApp mActivity;
     private boolean mHasSoftMenuButton;
 
-    private boolean mIsEditing;
+    private UIMode mUIMode;
     private boolean mAnimatingEntry;
 
     private int mUrlBarViewOffset;
@@ -190,6 +196,9 @@ public class BrowserToolbar extends GeckoRelativeLayout
 
         mTabs = (ShapedButton) findViewById(R.id.tabs);
         mTabsCounter = (TabCounter) findViewById(R.id.tabs_counter);
+        if (Build.VERSION.SDK_INT >= 11) {
+            mTabsCounter.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+        }
 
         mBack = (ImageButton) findViewById(R.id.back);
         setButtonEnabled(mBack, false);
@@ -200,6 +209,8 @@ public class BrowserToolbar extends GeckoRelativeLayout
         mMenuIcon = (GeckoImageView) findViewById(R.id.menu_icon);
         mActionItemBar = (LinearLayout) findViewById(R.id.menu_items);
         mHasSoftMenuButton = !HardwareUtils.hasMenuButton();
+
+        mProgressBar = (ToolbarProgressView) findViewById(R.id.progress);
 
         // We use different layouts on phones and tablets, so adjust the focus
         // order appropriately.
@@ -214,7 +225,7 @@ public class BrowserToolbar extends GeckoRelativeLayout
             mFocusOrder.addAll(Arrays.asList(mTabs, mMenu));
         }
 
-        setIsEditing(false);
+        setUIMode(UIMode.DISPLAY);
     }
 
     @Override
@@ -359,6 +370,11 @@ public class BrowserToolbar extends GeckoRelativeLayout
     }
 
     public boolean onBackPressed() {
+        if (isEditing()) {
+            stopEditing();
+            return true;
+        }
+
         return mUrlDisplayLayout.dismissSiteIdentityPopup();
     }
 
@@ -441,33 +457,44 @@ public class BrowserToolbar extends GeckoRelativeLayout
                 mUrlDisplayLayout.dismissSiteIdentityPopup();
                 updateTabCount(tabs.getDisplayCount());
                 mSwitchingTabs = true;
-                // Fall through.
+                break;
         }
 
         if (tabs.isSelectedTab(tab)) {
             final EnumSet<UpdateFlags> flags = EnumSet.noneOf(UpdateFlags.class);
 
+            // Progress-related handling
             switch (msg) {
-                case TITLE:
-                    flags.add(UpdateFlags.TITLE);
-                    break;
-
                 case START:
-                    updateBackButton(tab);
-                    updateForwardButton(tab);
-
+                    updateProgressVisibility(tab, 0);
+                    // Fall through.
+                case LOCATION_CHANGE:
+                case LOAD_ERROR:
+                case LOADED:
                     flags.add(UpdateFlags.PROGRESS);
+                    if (mProgressBar.getVisibility() == View.VISIBLE) {
+                        mProgressBar.animateProgress(tab.getLoadProgress());
+                    }
                     break;
 
                 case STOP:
-                    updateBackButton(tab);
-                    updateForwardButton(tab);
-
+                case SELECTED:
                     flags.add(UpdateFlags.PROGRESS);
+                    updateProgressVisibility();
+                    break;
+            }
 
+            switch (msg) {
+                case STOP:
                     // Reset the title in case we haven't navigated
                     // to a new page yet.
                     flags.add(UpdateFlags.TITLE);
+                    // Fall through.
+                case START:
+                case CLOSED:
+                case ADDED:
+                    updateBackButton(tab);
+                    updateForwardButton(tab);
                     break;
 
                 case SELECTED:
@@ -477,13 +504,18 @@ public class BrowserToolbar extends GeckoRelativeLayout
                 case LOCATION_CHANGE:
                     // A successful location change will cause Tab to notify
                     // us of a title change, so we don't update the title here.
-                    refreshState();
-                    break;
+                    flags.add(UpdateFlags.FAVICON);
+                    flags.add(UpdateFlags.SITE_IDENTITY);
+                    flags.add(UpdateFlags.PRIVATE_MODE);
 
-                case CLOSED:
-                case ADDED:
                     updateBackButton(tab);
                     updateForwardButton(tab);
+
+                    setPrivateMode(tab.isPrivate());
+                    break;
+
+                case TITLE:
+                    flags.add(UpdateFlags.TITLE);
                     break;
 
                 case FAVICON:
@@ -505,6 +537,20 @@ public class BrowserToolbar extends GeckoRelativeLayout
             case LOAD_ERROR:
             case LOCATION_CHANGE:
                 mSwitchingTabs = false;
+        }
+    }
+
+    private void updateProgressVisibility() {
+        final Tab selectedTab = Tabs.getInstance().getSelectedTab();
+        updateProgressVisibility(selectedTab, selectedTab.getLoadProgress());
+    }
+
+    private void updateProgressVisibility(Tab selectedTab, int progress) {
+        if (!isEditing() && selectedTab.getState() == Tab.STATE_LOADING) {
+            mProgressBar.setProgress(progress);
+            mProgressBar.setVisibility(View.VISIBLE);
+        } else {
+            mProgressBar.setVisibility(View.GONE);
         }
     }
 
@@ -531,11 +577,11 @@ public class BrowserToolbar extends GeckoRelativeLayout
     }
 
     private boolean canDoBack(Tab tab) {
-        return (tab.canDoBack() && !mIsEditing);
+        return (tab.canDoBack() && !isEditing());
     }
 
     private boolean canDoForward(Tab tab) {
-        return (tab.canDoForward() && !mIsEditing);
+        return (tab.canDoForward() && !isEditing());
     }
 
     private void addTab() {
@@ -592,7 +638,7 @@ public class BrowserToolbar extends GeckoRelativeLayout
         }
 
         // Set TabCounter based on visibility
-        if (isVisible() && ViewHelper.getAlpha(mTabsCounter) != 0) {
+        if (isVisible() && ViewHelper.getAlpha(mTabsCounter) != 0 && !isEditing()) {
             mTabsCounter.setCountWithAnimation(count);
         } else {
             mTabsCounter.setCount(count);
@@ -811,11 +857,15 @@ public class BrowserToolbar extends GeckoRelativeLayout
         }
 
         // Disable toolbar elemens while in editing mode
-        final boolean enabled = !mIsEditing;
+        final boolean enabled = !isEditing();
 
         // This alpha value has to be in sync with the one used
         // in setButtonEnabled().
         final float alpha = (enabled ? 1.0f : 0.24f);
+
+        if (!enabled) {
+            mTabsCounter.onEnterEditingMode();
+        }
 
         mTabs.setEnabled(enabled);
         ViewHelper.setAlpha(mTabsCounter, alpha);
@@ -837,16 +887,16 @@ public class BrowserToolbar extends GeckoRelativeLayout
             // forward button slides away if necessary. This is because we might
             // have only disabled it (without hiding it) when the toolbar entered
             // editing mode.
-            if (!mIsEditing) {
+            if (!isEditing()) {
                 animateForwardButton(canDoForward(tab) ?
                                      ForwardButtonAnimation.SHOW : ForwardButtonAnimation.HIDE);
             }
         }
     }
 
-    private void setIsEditing(boolean isEditing) {
-        mIsEditing = isEditing;
-        mUrlEditLayout.setEnabled(isEditing);
+    private void setUIMode(final UIMode uiMode) {
+        mUIMode = uiMode;
+        mUrlEditLayout.setEnabled(uiMode == UIMode.EDIT);
     }
 
     /**
@@ -854,7 +904,7 @@ public class BrowserToolbar extends GeckoRelativeLayout
      * tab button). Note that selection state is independent of editing mode.
      */
     public boolean isEditing() {
-        return mIsEditing;
+        return (mUIMode == UIMode.EDIT);
     }
 
     public void startEditing(String url, PropertyAnimator animator) {
@@ -864,8 +914,10 @@ public class BrowserToolbar extends GeckoRelativeLayout
 
         mUrlEditLayout.setText(url != null ? url : "");
 
-        setIsEditing(true);
+        setUIMode(UIMode.EDIT);
         updateChildrenForEditing();
+
+        updateProgressVisibility();
 
         if (mStartEditingListener != null) {
             mStartEditingListener.onStartEditing();
@@ -979,13 +1031,15 @@ public class BrowserToolbar extends GeckoRelativeLayout
         if (!isEditing()) {
             return url;
         }
-        setIsEditing(false);
+        setUIMode(UIMode.DISPLAY);
 
         updateChildrenForEditing();
 
         if (mStopEditingListener != null) {
             mStopEditingListener.onStopEditing();
         }
+
+        updateProgressVisibility();
 
         if (HardwareUtils.isTablet() || Build.VERSION.SDK_INT < 11) {
             hideUrlEditLayout();
@@ -1198,37 +1252,30 @@ public class BrowserToolbar extends GeckoRelativeLayout
         mActionItemBar.removeView(actionItem);
     }
 
+    @Override
+    public void setPrivateMode(boolean isPrivate) {
+        super.setPrivateMode(isPrivate);
+
+        mTabs.setPrivateMode(isPrivate);
+        mMenu.setPrivateMode(isPrivate);
+        mMenuIcon.setPrivateMode(isPrivate);
+        mUrlEditLayout.setPrivateMode(isPrivate);
+
+        if (mBack instanceof BackButton) {
+            ((BackButton) mBack).setPrivateMode(isPrivate);
+        }
+
+        if (mForward instanceof ForwardButton) {
+            ((ForwardButton) mForward).setPrivateMode(isPrivate);
+        }
+    }
+
     public void show() {
         setVisibility(View.VISIBLE);
     }
 
     public void hide() {
         setVisibility(View.GONE);
-    }
-
-    private void refreshState() {
-        Tab tab = Tabs.getInstance().getSelectedTab();
-        if (tab != null) {
-            updateDisplayLayout(tab, EnumSet.of(UpdateFlags.FAVICON,
-                                                UpdateFlags.SITE_IDENTITY,
-                                                UpdateFlags.PROGRESS,
-                                                UpdateFlags.PRIVATE_MODE));
-            updateBackButton(tab);
-            updateForwardButton(tab);
-
-            final boolean isPrivate = tab.isPrivate();
-            setPrivateMode(isPrivate);
-            mTabs.setPrivateMode(isPrivate);
-            mMenu.setPrivateMode(isPrivate);
-            mMenuIcon.setPrivateMode(isPrivate);
-            mUrlEditLayout.setPrivateMode(isPrivate);
-
-            if (mBack instanceof BackButton)
-                ((BackButton) mBack).setPrivateMode(isPrivate);
-
-            if (mForward instanceof ForwardButton)
-                ((ForwardButton) mForward).setPrivateMode(isPrivate);
-        }
     }
 
     public View getDoorHangerAnchor() {

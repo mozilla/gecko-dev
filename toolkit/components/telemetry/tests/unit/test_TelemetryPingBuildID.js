@@ -13,61 +13,57 @@
  *     -> previousBuildID in telemetry, new value set in prefs.
  */
 
-Components.utils.import("resource://gre/modules/Services.jsm");
+"use strict"
 
-// Get the TelemetryPing definitions directly so we can test it without going through xpcom.
-Services.scriptloader.loadSubScript("resource://gre/components/TelemetryPing.js");
+const Cu = Components.utils;
 
-// Force the Telemetry enabled preference so that TelemetryPing.setup() doesn't exit early.
-Services.prefs.setBoolPref(PREF_ENABLED, true);
+Cu.import("resource://gre/modules/Services.jsm", this);
+Cu.import("resource://gre/modules/TelemetryPing.jsm", this);
+
+// Force the Telemetry enabled preference so that TelemetryPing.reset() doesn't exit early.
+Services.prefs.setBoolPref(TelemetryPing.Constants.PREF_ENABLED, true);
 
 // Set up our dummy AppInfo object so we can control the appBuildID.
-Cu.import("resource://testing-common/AppInfo.jsm");
+Cu.import("resource://testing-common/AppInfo.jsm", this);
 updateAppInfo();
 
 // Check that when run with no previous build ID stored, we update the pref but do not
 // put anything into the metadata.
-function testFirstRun() {
-  let ping = new TelemetryPing();
-  ping.setup();
-  let metadata = ping.getMetadata();
+add_task(function* test_firstRun() {
+  yield TelemetryPing.reset();
+  let metadata = TelemetryPing.getMetadata();
   do_check_false("previousBuildID" in metadata);
   let appBuildID = getAppInfo().appBuildID;
-  let buildIDPref = Services.prefs.getCharPref(PREF_PREVIOUS_BUILDID);
+  let buildIDPref = Services.prefs.getCharPref(TelemetryPing.Constants.PREF_PREVIOUS_BUILDID);
   do_check_eq(appBuildID, buildIDPref);
-}
+});
 
 // Check that a subsequent run with the same build ID does not put prev build ID in
 // metadata. Assumes testFirstRun() has already been called to set the previousBuildID pref.
-function testSecondRun() {
-  let ping = new TelemetryPing();
-  ping.setup();
-  let metadata = ping.getMetadata();
+add_task(function* test_secondRun() {
+  yield TelemetryPing.reset();
+  let metadata = TelemetryPing.getMetadata();
   do_check_false("previousBuildID" in metadata);
-}
-
+});
 
 // Set up telemetry with a different app build ID and check that the old build ID
 // is returned in the metadata and the pref is updated to the new build ID.
 // Assumes testFirstRun() has been called to set the previousBuildID pref.
 const NEW_BUILD_ID = "20130314";
-function testNewBuild() {
+add_task(function* test_newBuild() {
   let info = getAppInfo();
   let oldBuildID = info.appBuildID;
   info.appBuildID = NEW_BUILD_ID;
-  let ping = new TelemetryPing();
-  ping.setup();
-  let metadata = ping.getMetadata();
+  yield TelemetryPing.reset();
+  let metadata = TelemetryPing.getMetadata();
   do_check_eq(metadata.previousBuildID, oldBuildID);
-  let buildIDPref = Services.prefs.getCharPref(PREF_PREVIOUS_BUILDID);
+  let buildIDPref = Services.prefs.getCharPref(TelemetryPing.Constants.PREF_PREVIOUS_BUILDID);
   do_check_eq(NEW_BUILD_ID, buildIDPref);
-}
+});
 
 
 function run_test() {
   // Make sure we have a profile directory.
   do_get_profile();
-  testFirstRun();
-  testSecondRun();
-  testNewBuild();
+  run_next_test();
 }

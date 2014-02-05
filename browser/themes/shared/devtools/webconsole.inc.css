@@ -46,7 +46,7 @@ a {
 }
 
 /* The red bubble that shows the number of times a message is repeated */
-.message > .repeats {
+.message-repeats {
   -moz-user-select: none;
   flex: 0 0 auto;
   margin: 2px 6px;
@@ -60,11 +60,11 @@ a {
   font-weight: 600;
 }
 
-.message > .repeats[value="1"] {
+.message-repeats[value="1"] {
   display: none;
 }
 
-.message > .location {
+.message-location {
   -moz-margin-start: 6px;
   display: flex;
   flex: 0 0 auto;
@@ -74,21 +74,21 @@ a {
   margin-top: 4px;
   color: -moz-nativehyperlinktext;
   text-decoration: none;
-}
-
-.message > .location:hover,
-.message > .location:focus {
-  text-decoration: underline;
-}
-
-.message > .location > .filename {
-  text-overflow: ellipsis;
-  text-align: end;
-  overflow: hidden;
   white-space: nowrap;
 }
 
-.message > .location > .line-number {
+.message-location:hover,
+.message-location:focus {
+  text-decoration: underline;
+}
+
+.message-location > .filename {
+  text-overflow: ellipsis;
+  text-align: end;
+  overflow: hidden;
+}
+
+.message-location > .line-number {
   flex: 0 0 auto;
 }
 
@@ -303,6 +303,10 @@ a {
   border: none;
 }
 
+.devtools-side-splitter ~ #webconsole-sidebar[hidden] {
+  display: none;
+}
+
 /* Security styles */
 
 .message[category=security] > .icon {
@@ -336,6 +340,37 @@ a {
   text-decoration: none;
 }
 
+.consoleTrace .body > div {
+  display: flex;
+  margin-bottom: 5px;
+}
+
+.consoleTrace .title {
+  display: block;
+  flex: 1 1 auto;
+}
+
+.stacktrace {
+  list-style: none;
+  padding: 0 1em 0 1.5em;
+  margin: 0;
+  max-height: 10em;
+  overflow-y: auto;
+
+  border: 1px solid rgba(128, 128, 128, .5);
+  border-radius: 3px;
+}
+
+.stacktrace li {
+  display: flex;
+  margin: 0;
+}
+
+.stacktrace .function {
+  display: block;
+  flex: 1 1 auto;
+}
+
 /* Replace these values with CSS variables as available */
 .theme-dark .jsterm-input-container {
   background-color: #252c33; /* tabToolbarBackgroundColor */
@@ -355,6 +390,10 @@ a {
 }
 
 .theme-dark .inlined-variables-view iframe {
+  border-color: #333;
+}
+
+.theme-dark .stacktrace {
   border-color: #333;
 }
 
@@ -379,3 +418,45 @@ a {
   border-color: #ccc;
 }
 
+.theme-light .stacktrace {
+  border-color: #ccc;
+}
+
+@media (max-width: 500px) {
+  .message > .timestamp {
+    display: none;
+  }
+  .toolbarbutton-text {
+    display: none;
+  }
+  .hud-console-filter-toolbar .webconsole-filter-button {
+    min-width: 40px;
+  }
+  .hud-console-filter-toolbar .webconsole-clear-console-button {
+    min-width: 25px;
+  }
+  .webconsole-filter-button > .toolbarbutton-menubutton-button:before {
+    width: 16px;
+    height: 16px;
+    margin-left: 1px;
+  }
+  .toolbarbutton-menubutton-dropmarker {
+    margin: 0px;
+  }
+}
+
+@media (max-width: 300px) {
+  .hud-console-filter-toolbar {
+    -moz-box-orient: vertical;
+  }
+  .toolbarbutton-text {
+    display: -moz-box;
+  }
+  .devtools-toolbarbutton {
+    margin-top: 3px;
+  }
+  .hud-console-filter-toolbar .hud-filter-box,
+  .hud-console-filter-toolbar .devtools-toolbarbutton {
+    margin-top: 5px;
+  }
+}

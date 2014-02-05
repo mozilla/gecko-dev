@@ -364,8 +364,8 @@ js_ReportOutOfMemory(ThreadSafeContext *cxArg)
     fprintf(stderr, "js_ReportOutOfMemory called\n");
 #endif
 
-    if (cxArg->isForkJoinSlice()) {
-        cxArg->asForkJoinSlice()->setPendingAbortFatal(ParallelBailoutOutOfMemory);
+    if (cxArg->isForkJoinContext()) {
+        cxArg->asForkJoinContext()->setPendingAbortFatal(ParallelBailoutOutOfMemory);
         return;
     }
 
@@ -444,8 +444,8 @@ js_ReportAllocationOverflow(ThreadSafeContext *cxArg)
     if (!cxArg)
         return;
 
-    if (cxArg->isForkJoinSlice()) {
-        cxArg->asForkJoinSlice()->setPendingAbortFatal(ParallelBailoutOutOfMemory);
+    if (cxArg->isForkJoinContext()) {
+        cxArg->asForkJoinContext()->setPendingAbortFatal(ParallelBailoutOutOfMemory);
         return;
     }
 
@@ -1058,16 +1058,16 @@ js::ThreadSafeContext::ThreadSafeContext(JSRuntime *rt, PerThreadData *pt, Conte
 }
 
 bool
-ThreadSafeContext::isForkJoinSlice() const
+ThreadSafeContext::isForkJoinContext() const
 {
     return contextKind_ == Context_ForkJoin;
 }
 
-ForkJoinSlice *
-ThreadSafeContext::asForkJoinSlice()
+ForkJoinContext *
+ThreadSafeContext::asForkJoinContext()
 {
-    JS_ASSERT(isForkJoinSlice());
-    return reinterpret_cast<ForkJoinSlice *>(this);
+    JS_ASSERT(isForkJoinContext());
+    return reinterpret_cast<ForkJoinContext *>(this);
 }
 
 JSContext::JSContext(JSRuntime *rt)
@@ -1289,6 +1289,15 @@ JSContext::mark(JSTracer *trc)
     TraceCycleDetectionSet(trc, cycleDetectorSet);
 
     MarkValueRoot(trc, &iterValue, "iterValue");
+}
+
+void *
+ThreadSafeContext::stackLimitAddressForJitCode(StackKind kind)
+{
+#ifdef JS_ARM_SIMULATOR
+    return runtime_->mainThread.addressOfSimulatorStackLimit();
+#endif
+    return stackLimitAddress(kind);
 }
 
 JSVersion

@@ -327,7 +327,7 @@ HTMLCanvasElement::ParseAttribute(int32_t aNamespaceID,
 // HTMLCanvasElement::toDataURL
 
 NS_IMETHODIMP
-HTMLCanvasElement::ToDataURL(const nsAString& aType, const JS::Value& aParams,
+HTMLCanvasElement::ToDataURL(const nsAString& aType, JS::Handle<JS::Value> aParams,
                              JSContext* aCx, nsAString& aDataURL)
 {
   // do a trust check if this is a write-only canvas
@@ -685,8 +685,7 @@ static bool
 IsContextIdWebGL(const nsAString& str)
 {
   return str.EqualsLiteral("webgl") ||
-         str.EqualsLiteral("experimental-webgl") ||
-         str.EqualsLiteral("moz-webgl");
+         str.EqualsLiteral("experimental-webgl");
 }
 
 already_AddRefed<nsISupports>

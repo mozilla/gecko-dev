@@ -3,9 +3,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "nsISupports.h"
 #include "nsCMS.h"
+
 #include "CertVerifier.h"
+#include "insanity/pkixtypes.h"
+#include "nsISupports.h"
 #include "nsNSSHelper.h"
 #include "nsNSSCertificate.h"
 #include "smime.h"
@@ -14,7 +16,6 @@
 #include "nsIArray.h"
 #include "nsArrayUtils.h"
 #include "nsCertVerificationThread.h"
-#include "ScopedNSSTypes.h"
 
 #include "prlog.h"
 
@@ -41,9 +42,9 @@ nsCMSMessage::nsCMSMessage(NSSCMSMessage *aCMSMsg)
 nsCMSMessage::~nsCMSMessage()
 {
   nsNSSShutDownPreventionLock locker;
-  if (isAlreadyShutDown())
+  if (isAlreadyShutDown()) {
     return;
-
+  }
   destructorSafeDestroyNSSReference();
   shutdown(calledFromObject);
 }
@@ -55,9 +56,6 @@ void nsCMSMessage::virtualDestroyNSSReference()
 
 void nsCMSMessage::destructorSafeDestroyNSSReference()
 {
-  if (isAlreadyShutDown())
-    return;
-
   if (m_cmsMsg) {
     NSS_CMSMessage_Destroy(m_cmsMsg);
   }
@@ -216,7 +214,7 @@ nsresult nsCMSMessage::CommonVerifySignature(unsigned char* aDigestData, uint32_
   NSSCMSSignedData *sigd = nullptr;
   NSSCMSSignerInfo *si;
   int32_t nsigners;
-  RefPtr<CertVerifier> certVerifier;
+  RefPtr<SharedCertVerifier> certVerifier;
   nsresult rv = NS_ERROR_FAILURE;
 
   if (!NSS_CMSMessage_IsSigned(m_cmsMsg)) {
@@ -266,7 +264,7 @@ nsresult nsCMSMessage::CommonVerifySignature(unsigned char* aDigestData, uint32_
   NS_ENSURE_TRUE(certVerifier, NS_ERROR_UNEXPECTED);
 
   {
-    SECStatus srv = certVerifier->VerifyCert(si->cert,
+    SECStatus srv = certVerifier->VerifyCert(si->cert, nullptr,
                                              certificateUsageEmailSigner,
                                              PR_Now(), nullptr /*XXX pinarg*/);
     if (srv != SECSuccess) {
@@ -384,9 +382,9 @@ public:
   ~nsZeroTerminatedCertArray()
   {
     nsNSSShutDownPreventionLock locker;
-    if (isAlreadyShutDown())
+    if (isAlreadyShutDown()) {
       return;
-
+    }
     destructorSafeDestroyNSSReference();
     shutdown(calledFromObject);
   }
@@ -398,9 +396,6 @@ public:
 
   void destructorSafeDestroyNSSReference()
   {
-    if (isAlreadyShutDown())
-      return;
-
     if (mCerts)
     {
       for (uint32_t i=0; i < mSize; i++) {
@@ -520,8 +515,8 @@ NS_IMETHODIMP nsCMSMessage::CreateEncrypted(nsIArray * aRecipientCerts)
     if (!nssRecipientCert)
       return NS_ERROR_FAILURE;
 
-    ScopedCERTCertificate c(nssRecipientCert->GetCert());
-    recipientCerts.set(i, c);
+    insanity::pkix::ScopedCERTCertificate c(nssRecipientCert->GetCert());
+    recipientCerts.set(i, c.get());
   }
   
   // Find a bulk key algorithm //
@@ -558,8 +553,8 @@ NS_IMETHODIMP nsCMSMessage::CreateEncrypted(nsIArray * aRecipientCerts)
 
   // Create and attach recipient information //
   for (i=0; i < recipientCertCount; i++) {
-    ScopedCERTCertificate rc(recipientCerts.get(i));
-    if ((recipientInfo = NSS_CMSRecipientInfo_Create(m_cmsMsg, rc)) == nullptr) {
+    insanity::pkix::ScopedCERTCertificate rc(recipientCerts.get(i));
+    if ((recipientInfo = NSS_CMSRecipientInfo_Create(m_cmsMsg, rc.get())) == nullptr) {
       PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("nsCMSMessage::CreateEncrypted - can't create recipient info\n"));
       goto loser;
     }
@@ -589,8 +584,8 @@ NS_IMETHODIMP nsCMSMessage::CreateSigned(nsIX509Cert* aSigningCert, nsIX509Cert*
   NSSCMSContentInfo *cinfo;
   NSSCMSSignedData *sigd;
   NSSCMSSignerInfo *signerinfo;
-  ScopedCERTCertificate scert;
-  ScopedCERTCertificate ecert;
+  insanity::pkix::ScopedCERTCertificate scert;
+  insanity::pkix::ScopedCERTCertificate ecert;
   nsCOMPtr<nsIX509Cert2> aSigningCert2 = do_QueryInterface(aSigningCert);
   nsresult rv = NS_ERROR_FAILURE;
 
@@ -645,7 +640,7 @@ NS_IMETHODIMP nsCMSMessage::CreateSigned(nsIX509Cert* aSigningCert, nsIX509Cert*
   /* 
    * create & attach signer information
    */
-  if ((signerinfo = NSS_CMSSignerInfo_Create(m_cmsMsg, scert, SEC_OID_SHA1)) 
+  if ((signerinfo = NSS_CMSSignerInfo_Create(m_cmsMsg, scert.get(), SEC_OID_SHA1)) 
           == nullptr) {
     PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("nsCMSMessage::CreateSigned - can't create signer info\n"));
     goto loser;
@@ -671,15 +666,15 @@ NS_IMETHODIMP nsCMSMessage::CreateSigned(nsIX509Cert* aSigningCert, nsIX509Cert*
   }
 
   if (ecert) {
-    if (NSS_CMSSignerInfo_AddSMIMEEncKeyPrefs(signerinfo, ecert, 
-	                                    CERT_GetDefaultCertDB())
+    if (NSS_CMSSignerInfo_AddSMIMEEncKeyPrefs(signerinfo, ecert.get(),
+	                                      CERT_GetDefaultCertDB())
 	  != SECSuccess) {
       PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("nsCMSMessage::CreateSigned - can't add smime enc key prefs\n"));
       goto loser;
     }
 
-    if (NSS_CMSSignerInfo_AddMSSMIMEEncKeyPrefs(signerinfo, ecert, 
-	                                    CERT_GetDefaultCertDB())
+    if (NSS_CMSSignerInfo_AddMSSMIMEEncKeyPrefs(signerinfo, ecert.get(),
+	                                        CERT_GetDefaultCertDB())
 	  != SECSuccess) {
       PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("nsCMSMessage::CreateSigned - can't add MS smime enc key prefs\n"));
       goto loser;
@@ -687,10 +682,10 @@ NS_IMETHODIMP nsCMSMessage::CreateSigned(nsIX509Cert* aSigningCert, nsIX509Cert*
 
     // If signing and encryption cert are identical, don't add it twice.
     bool addEncryptionCert =
-      (ecert && (!scert || !CERT_CompareCerts(ecert, scert)));
+      (ecert && (!scert || !CERT_CompareCerts(ecert.get(), scert.get())));
 
     if (addEncryptionCert &&
-        NSS_CMSSignedData_AddCertificate(sigd, ecert) != SECSuccess) {
+        NSS_CMSSignedData_AddCertificate(sigd, ecert.get()) != SECSuccess) {
       PR_LOG(gPIPNSSLog, PR_LOG_DEBUG, ("nsCMSMessage::CreateSigned - can't add own encryption certificate\n"));
       goto loser;
     }
@@ -733,9 +728,9 @@ nsCMSDecoder::nsCMSDecoder()
 nsCMSDecoder::~nsCMSDecoder()
 {
   nsNSSShutDownPreventionLock locker;
-  if (isAlreadyShutDown())
+  if (isAlreadyShutDown()) {
     return;
-
+  }
   destructorSafeDestroyNSSReference();
   shutdown(calledFromObject);
 }
@@ -747,9 +742,6 @@ void nsCMSDecoder::virtualDestroyNSSReference()
 
 void nsCMSDecoder::destructorSafeDestroyNSSReference()
 {
-  if (isAlreadyShutDown())
-    return;
-
   if (m_dcx) {
     NSS_CMSDecoder_Cancel(m_dcx);
     m_dcx = nullptr;
@@ -819,9 +811,9 @@ nsCMSEncoder::nsCMSEncoder()
 nsCMSEncoder::~nsCMSEncoder()
 {
   nsNSSShutDownPreventionLock locker;
-  if (isAlreadyShutDown())
+  if (isAlreadyShutDown()) {
     return;
-
+  }
   destructorSafeDestroyNSSReference();
   shutdown(calledFromObject);
 }
@@ -833,10 +825,6 @@ void nsCMSEncoder::virtualDestroyNSSReference()
 
 void nsCMSEncoder::destructorSafeDestroyNSSReference()
 {
-  nsNSSShutDownPreventionLock locker;
-  if (isAlreadyShutDown())
-    return;
-
   if (m_ecx)
     NSS_CMSEncoder_Cancel(m_ecx);
 }

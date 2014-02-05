@@ -621,7 +621,7 @@ WebGLContext::Render(gfxContext *ctx, GraphicsFilter f, uint32_t aFlags)
         return NS_OK;
 
     nsRefPtr<gfxImageSurface> surf = new gfxImageSurface(gfxIntSize(mWidth, mHeight),
-                                                         gfxImageFormatARGB32);
+                                                         gfxImageFormat::ARGB32);
     if (surf->CairoStatus() != 0)
         return NS_ERROR_FAILURE;
 
@@ -749,7 +749,7 @@ WebGLContext::GetImageBuffer(uint8_t** aImageBuffer, int32_t* aFormat)
 
     nsRefPtr<gfxImageSurface> imgsurf =
         new gfxImageSurface(gfxIntSize(mWidth, mHeight),
-                            gfxImageFormatARGB32);
+                            gfxImageFormat::ARGB32);
 
     if (!imgsurf || imgsurf->CairoStatus()) {
         return;
@@ -1043,50 +1043,55 @@ WebGLContext::ForceClearFramebufferWithDefaultValues(GLbitfield mask, const bool
         // Dither shouldn't matter when we're clearing to {0,0,0,0}.
         MOZ_ASSERT(gl->fIsEnabled(LOCAL_GL_SCISSOR_TEST) == mScissorTestEnabled);
 
-        realGLboolean colorWriteMask[4] = {2, 2, 2, 2};
-        GLfloat colorClearValue[4] = {-1.0f, -1.0f, -1.0f, -1.0f};
+        if (initializeColorBuffer) {
+            realGLboolean colorWriteMask[4] = {2, 2, 2, 2};
+            GLfloat colorClearValue[4] = {-1.0f, -1.0f, -1.0f, -1.0f};
 
-        gl->fGetBooleanv(LOCAL_GL_COLOR_WRITEMASK, colorWriteMask);
-        gl->fGetFloatv(LOCAL_GL_COLOR_CLEAR_VALUE, colorClearValue);
+            gl->fGetBooleanv(LOCAL_GL_COLOR_WRITEMASK, colorWriteMask);
+            gl->fGetFloatv(LOCAL_GL_COLOR_CLEAR_VALUE, colorClearValue);
 
-        MOZ_ASSERT(colorWriteMask[0] == mColorWriteMask[0] &&
-                   colorWriteMask[1] == mColorWriteMask[1] &&
-                   colorWriteMask[2] == mColorWriteMask[2] &&
-                   colorWriteMask[3] == mColorWriteMask[3]);
-        MOZ_ASSERT(IsShadowCorrect(mColorClearValue[0], colorClearValue[0]) &&
-                   IsShadowCorrect(mColorClearValue[1], colorClearValue[1]) &&
-                   IsShadowCorrect(mColorClearValue[2], colorClearValue[2]) &&
-                   IsShadowCorrect(mColorClearValue[3], colorClearValue[3]));
+            MOZ_ASSERT(colorWriteMask[0] == mColorWriteMask[0] &&
+                       colorWriteMask[1] == mColorWriteMask[1] &&
+                       colorWriteMask[2] == mColorWriteMask[2] &&
+                       colorWriteMask[3] == mColorWriteMask[3]);
+            MOZ_ASSERT(IsShadowCorrect(mColorClearValue[0], colorClearValue[0]) &&
+                       IsShadowCorrect(mColorClearValue[1], colorClearValue[1]) &&
+                       IsShadowCorrect(mColorClearValue[2], colorClearValue[2]) &&
+                       IsShadowCorrect(mColorClearValue[3], colorClearValue[3]));
+        }
 
-
-        realGLboolean depthWriteMask = 2;
-        GLfloat depthClearValue = -1.0f;
-
-        gl->fGetBooleanv(LOCAL_GL_DEPTH_WRITEMASK, &depthWriteMask);
-        gl->fGetFloatv(LOCAL_GL_DEPTH_CLEAR_VALUE, &depthClearValue);
-
-        MOZ_ASSERT(depthWriteMask == mDepthWriteMask);
-        MOZ_ASSERT(IsShadowCorrect(mDepthClearValue, depthClearValue));
+        if (initializeDepthBuffer) {
+            realGLboolean depthWriteMask = 2;
+            GLfloat depthClearValue = -1.0f;
 
 
-        GLuint stencilWriteMaskFront = 0xdeadbad1;
-        GLuint stencilWriteMaskBack  = 0xdeadbad1;
-        GLuint stencilClearValue     = 0xdeadbad1;
+            gl->fGetBooleanv(LOCAL_GL_DEPTH_WRITEMASK, &depthWriteMask);
+            gl->fGetFloatv(LOCAL_GL_DEPTH_CLEAR_VALUE, &depthClearValue);
 
-        gl->GetUIntegerv(LOCAL_GL_STENCIL_WRITEMASK,      &stencilWriteMaskFront);
-        gl->GetUIntegerv(LOCAL_GL_STENCIL_BACK_WRITEMASK, &stencilWriteMaskBack);
-        gl->GetUIntegerv(LOCAL_GL_STENCIL_CLEAR_VALUE,    &stencilClearValue);
+            MOZ_ASSERT(depthWriteMask == mDepthWriteMask);
+            MOZ_ASSERT(IsShadowCorrect(mDepthClearValue, depthClearValue));
+        }
 
-        GLuint stencilBits = 0;
-        gl->GetUIntegerv(LOCAL_GL_STENCIL_BITS, &stencilBits);
-        GLuint stencilMask = (GLuint(1) << stencilBits) - 1;
+        if (initializeStencilBuffer) {
+            GLuint stencilWriteMaskFront = 0xdeadbad1;
+            GLuint stencilWriteMaskBack  = 0xdeadbad1;
+            GLuint stencilClearValue     = 0xdeadbad1;
 
-        MOZ_ASSERT( ( stencilWriteMaskFront & stencilMask) ==
-                    (mStencilWriteMaskFront & stencilMask) );
-        MOZ_ASSERT( ( stencilWriteMaskBack & stencilMask) ==
-                    (mStencilWriteMaskBack & stencilMask) );
-        MOZ_ASSERT( ( stencilClearValue & stencilMask) ==
-                    (mStencilClearValue & stencilMask) );
+            gl->GetUIntegerv(LOCAL_GL_STENCIL_WRITEMASK,      &stencilWriteMaskFront);
+            gl->GetUIntegerv(LOCAL_GL_STENCIL_BACK_WRITEMASK, &stencilWriteMaskBack);
+            gl->GetUIntegerv(LOCAL_GL_STENCIL_CLEAR_VALUE,    &stencilClearValue);
+
+            GLuint stencilBits = 0;
+            gl->GetUIntegerv(LOCAL_GL_STENCIL_BITS, &stencilBits);
+            GLuint stencilMask = (GLuint(1) << stencilBits) - 1;
+
+            MOZ_ASSERT( ( stencilWriteMaskFront & stencilMask) ==
+                        (mStencilWriteMaskFront & stencilMask) );
+            MOZ_ASSERT( ( stencilWriteMaskBack & stencilMask) ==
+                        (mStencilWriteMaskBack & stencilMask) );
+            MOZ_ASSERT( ( stencilClearValue & stencilMask) ==
+                        (mStencilClearValue & stencilMask) );
+        }
     }
 #endif
 

@@ -54,36 +54,53 @@
   pointer-events: none;
 }
 
+#tabs > .tabs-scrollbox > .scrollbutton-down:-moz-locale-dir(rtl),
 #tabs > .tabs-scrollbox > .scrollbutton-up {
   list-style-image: url("images/tab-arrows.png") !important;
   -moz-image-region: rect(15px 58px 63px 14px) !important;
   padding-right: 15px;
   width: @tabs_scrollarrow_width@;
 }
+#tabs > .tabs-scrollbox > .scrollbutton-down:hover:-moz-locale-dir(rtl),
 #tabs > .tabs-scrollbox > .scrollbutton-up:hover {
   -moz-image-region: rect(14px 102px 62px 58px) !important;
 }
+#tabs > .tabs-scrollbox > .scrollbutton-down:active:-moz-locale-dir(rtl),
 #tabs > .tabs-scrollbox > .scrollbutton-up:active {
   -moz-image-region: rect(14px 152px 62px 108px) !important;
 }
+#tabs > .tabs-scrollbox > .scrollbutton-down[disabled]:-moz-locale-dir(rtl),
 #tabs > .tabs-scrollbox > .scrollbutton-up[disabled] {
   -moz-image-region: rect(15px 196px 63px 152px) !important;
 }
 
+#tabs > .tabs-scrollbox > .scrollbutton-up:-moz-locale-dir(rtl),
 #tabs > .tabs-scrollbox > .scrollbutton-down {
   list-style-image: url("images/tab-arrows.png") !important;
   -moz-image-region: rect(73px 58px 121px 14px) !important;
   padding-left: 15px;
   width: @tabs_scrollarrow_width@;
 }
+#tabs > .tabs-scrollbox > .scrollbutton-up:hover:-moz-locale-dir(rtl),
 #tabs > .tabs-scrollbox > .scrollbutton-down:hover {
   -moz-image-region: rect(72px 102px 120px 58px) !important;
 }
+#tabs > .tabs-scrollbox > .scrollbutton-up:active:-moz-locale-dir(rtl),
 #tabs > .tabs-scrollbox > .scrollbutton-down:active {
   -moz-image-region: rect(72px 152px 120px 108px) !important;
 }
+#tabs > .tabs-scrollbox > .scrollbutton-up[disabled]:-moz-locale-dir(rtl),
 #tabs > .tabs-scrollbox > .scrollbutton-down[disabled] {
   -moz-image-region: rect(73px 196px 121px 152px) !important;
+}
+
+.tabs-scrollbox > .scrollbutton-up:not([disabled]):not([collapsed]):-moz-locale-dir(rtl)::after {
+  right: calc(@tabs_scrollarrow_width@ + @metro_spacing_normal@);
+}
+
+.tabs-scrollbox > .scrollbutton-down:not([disabled]):not([collapsed]):-moz-locale-dir(rtl)::before {
+  right: auto;
+  left: calc(@tabs_scrollarrow_width@ + @newtab_button_width@);
 }
 
 .tabs-scrollbox > .scrollbutton-up:not([disabled]):not([collapsed])::after {
@@ -163,6 +180,12 @@ documenttab[closing] > .documenttab-container {
   background-image: none!important;
 }
 
+/* TODO: Decide how and where to display private tabs.
+ * For now, display them in the main tab strip but hide the thumbnail. */
+documenttab[private] .documenttab-thumbnail {
+  background-color: purple;
+}
+
 .documenttab-title {
   margin: @metro_spacing_normal@ @metro_spacing_snormal@;
   margin-top: 0;
@@ -186,6 +209,12 @@ documenttab[closing] > .documenttab-container {
 
 documenttab[selected] .documenttab-selection {
   background: transparent -moz-image-rect(url("chrome://browser/skin/images/tab-overlay.png"), 50%, 100%, 100%, 0%) 50% 50% no-repeat;
+}
+
+.documenttab-crop:-moz-locale-dir(rtl),
+.documenttab-selection:-moz-locale-dir(rtl),
+documenttab[selected] .documenttab-selection:-moz-locale-dir(rtl) {
+  transform: scaleX(-1);
 }
 
 .documenttab-close {
@@ -216,45 +245,13 @@ documenttab[selected] .documenttab-selection {
 
 /* Start UI ----------------------------------------------------------------- */
 
-#content-viewport[startpage] browser {
+#content-viewport[startpage] .active-tab-notificationbox {
   padding-bottom: @toolbar_height@;
-}
-
-#startui-page {
-  overflow-x: scroll;
-  overflow-y: hidden;
-  height: 100%;
-}
-
-#startui-page[viewstate="snapped"],
-#startui-page[viewstate="portrait"] {
-  overflow-x: hidden;
-  overflow-y: scroll;
-}
-
-#startui-body {
-  height: 100%;
-  margin: 0;
-}
-
-#start-container {
-  height: 100%;
 }
 
 #urlbar-autocomplete[viewstate="snapped"],
 #urlbar-autocomplete[viewstate="portrait"]{
   -moz-box-orient: vertical;
-}
-
-#start-container[viewstate="snapped"],
-#start-container[viewstate="portrait"] {
-  width: 100%;
-  max-width: 100%; /* ensure page doesn't expand, messing up @media rules */
-  height: auto;
-}
-
-#start-container[viewstate="snapped"] .meta-section:not([expanded]) > richgrid {
-  visibility: collapse;
 }
 
 #autocomplete-overlay {
@@ -389,14 +386,33 @@ documenttab[selected] .documenttab-selection {
   background-image: url(chrome://browser/skin/images/overlay-plus.png);
 }
 
+@media (min-resolution: @min_res_140pc@) {
+  #overlay-back {
+    background-image: url(chrome://browser/skin/images/overlay-back@1.4x.png);
+  }
+
+  #overlay-plus {
+    background-image: url(chrome://browser/skin/images/overlay-plus@1.4x.png);
+  }
+}
+
+@media (min-resolution: @min_res_180pc@) {
+  #overlay-back {
+    background-image: url(chrome://browser/skin/images/overlay-back@1.8x.png);
+  }
+
+  #overlay-plus {
+    background-image: url(chrome://browser/skin/images/overlay-plus@1.8x.png);
+  }
+}
+
 #overlay-back:-moz-locale-dir(ltr),
 #overlay-plus:-moz-locale-dir(rtl) {
   left: -70px;
   background-position: right 6px center;
 }
 
-#overlay-plus:-moz-locale-dir(ltr),
-#overlay-back:-moz-locale-dir(rtl) {
+#overlay-plus:-moz-locale-dir(ltr) {
   right: -70px;
   background-position: left 6px center;
 }
@@ -449,10 +465,19 @@ documenttab[selected] .documenttab-selection {
   transform: translateX(40px) scale(1.2);
 }
 
-#overlay-plus:-moz-locale-dir(ltr):hover,
-#overlay-back:-moz-locale-dir(rtl):hover {
+#overlay-plus:-moz-locale-dir(ltr):hover {
   background-position: left 12px center;
   transform: translateX(-40px) scale(1.2);
+}
+
+#overlay-back:-moz-locale-dir(rtl):hover {
+  transform: translateX(-40px) scale(1.2) scaleX(-1);
+}
+
+#overlay-back:-moz-locale-dir(rtl) {
+  transform: scaleX(-1);
+  right: -70px;
+  background-position: right 9px center;
 }
 
 #overlay-back[mousedrag],
@@ -539,6 +564,11 @@ documenttab[selected] .documenttab-selection {
   position: relative;
   z-index: 1;
   transition: opacity @forward_transition_length@ ease-out;
+}
+
+#back-button:-moz-locale-dir(rtl),
+#forward-button:-moz-locale-dir(rtl) {
+  transform: scaleX(-1);
 }
 
 #back-button[disabled] {
@@ -776,6 +806,10 @@ documenttab[selected] .documenttab-selection {
   list-style-image: url(chrome://browser/skin/images/navbar-download.png);
 }
 
+#download-progress[progress="100"] {
+  list-style-image: url(chrome://browser/skin/images/navbar-download-finished.png);
+}
+
 #pin-button {
   list-style-image: url(chrome://browser/skin/images/navbar-pin.png);
 }
@@ -788,9 +822,17 @@ documenttab[selected] .documenttab-selection {
   list-style-image: url(chrome://browser/skin/images/navbar-menu.png);
 }
 
+#close-button {
+  list-style-image: url(chrome://browser/skin/images/navbar-close.png);
+}
+
 @media (min-resolution: @min_res_140pc@) {
   #download-progress {
     list-style-image: url(chrome://browser/skin/images/navbar-download@1.4x.png);
+  }
+
+  #download-progress[progress="100"] {
+    list-style-image: url(chrome://browser/skin/images/navbar-download-finished@1.4x.png);
   }
 
   #pin-button {
@@ -804,11 +846,19 @@ documenttab[selected] .documenttab-selection {
   #menu-button {
     list-style-image: url(chrome://browser/skin/images/navbar-menu@1.4x.png);
   }
+
+  #close-button {
+    list-style-image: url(chrome://browser/skin/images/navbar-close@1.4x.png);
+  }
 }
 
 @media (min-resolution: @min_res_180pc@) {
   #download-progress {
     list-style-image: url(chrome://browser/skin/images/navbar-download@1.8x.png);
+  }
+
+  #download-progress[progress="100"] {
+    list-style-image: url(chrome://browser/skin/images/navbar-download-finished@1.8x.png);
   }
 
   #pin-button {
@@ -822,18 +872,10 @@ documenttab[selected] .documenttab-selection {
   #menu-button {
     list-style-image: url(chrome://browser/skin/images/navbar-menu@1.8x.png);
   }
-}
 
-#close-button {
-  -moz-image-region: rect(0px, 480px, 40px, 440px);
-}
-
-#close-button:hover:not(:active) {
-  -moz-image-region: rect(40px, 480px, 80px, 440px);
-}
-
-#close-button:active {
-  -moz-image-region: rect(80px, 480px, 120px, 440px);
+  #close-button {
+    list-style-image: url(chrome://browser/skin/images/navbar-close@1.8x.png);
+  }
 }
 
 /* Panel UI ================================================================ */
@@ -850,6 +892,10 @@ documenttab[selected] .documenttab-selection {
   -moz-margin-end: 40px;
   list-style-image: url(chrome://browser/skin/images/navbar-back.png);
   -moz-box-pack: center;
+}
+
+#panel-close-button:-moz-locale-dir(rtl) {
+  transform: scaleX(-1);
 }
 
 @media (min-resolution: @min_res_140pc@) {

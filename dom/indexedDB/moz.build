@@ -62,6 +62,7 @@ SOURCES += [
     'IDBCursor.cpp',
     'IDBIndex.cpp',
     'IDBObjectStore.cpp',
+    'ReportInternalError.cpp',
 ]
 
 FAIL_ON_WARNINGS = True
@@ -72,9 +73,9 @@ FINAL_LIBRARY = 'gklayout'
 LOCAL_INCLUDES += [
     '/caps/include',
     '/content/base/src',
-    '/content/events/src',
     '/db/sqlite3/src',
     '/dom/base',
+    '/dom/events',
     '/dom/quota',
     '/dom/src/storage',
     '/xpcom/build',

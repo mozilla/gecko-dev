@@ -16,15 +16,16 @@
 #include "NamespaceImports.h"
 
 #include "frontend/SourceNotes.h"
+#include "vm/Opcodes.h"
 
 /*
  * JS operation bytecodes.
  */
 typedef enum JSOp {
-#define OPDEF(op,val,name,token,length,nuses,ndefs,format) \
-    op = val,
-#include "jsopcode.tbl"
-#undef OPDEF
+#define ENUMERATE_OPCODE(op, val, ...) op = val,
+FOR_EACH_OPCODE(ENUMERATE_OPCODE)
+#undef ENUMERATE_OPCODE
+
     JSOP_LIMIT,
 
     /*
@@ -55,12 +56,12 @@ typedef enum JSOp {
                                      atom index */
 #define JOF_INT32         14      /* int32_t immediate operand */
 #define JOF_OBJECT        15      /* unsigned 16-bit object index */
-#define JOF_SLOTOBJECT    16      /* uint16_t slot index + object index */
+/* 16 is unused */
 #define JOF_REGEXP        17      /* unsigned 32-bit regexp index */
 #define JOF_INT8          18      /* int8_t immediate operand */
 #define JOF_ATOMOBJECT    19      /* uint16_t constant index + object index */
-#define JOF_UINT16PAIR    20      /* pair of uint16_t immediates */
-#define JOF_SCOPECOORD    21      /* pair of uint16_t immediates followed by block index */
+/* 20 is unused */
+#define JOF_SCOPECOORD    21      /* embedded ScopeCoordinate immediate */
 #define JOF_TYPEMASK      0x001f  /* mask for above immediate types */
 
 #define JOF_NAME          (1U<<5) /* name operation */
@@ -109,13 +110,13 @@ typedef enum JSOp {
  * Immediate operand getters, setters, and bounds.
  */
 
-static JS_ALWAYS_INLINE uint8_t
+static MOZ_ALWAYS_INLINE uint8_t
 GET_UINT8(jsbytecode *pc)
 {
     return (uint8_t) pc[1];
 }
 
-static JS_ALWAYS_INLINE void
+static MOZ_ALWAYS_INLINE void
 SET_UINT8(jsbytecode *pc, uint8_t u)
 {
     pc[1] = (jsbytecode) u;
@@ -134,13 +135,13 @@ SET_UINT8(jsbytecode *pc, uint8_t u)
 #define JUMP_OFFSET_MIN         INT32_MIN
 #define JUMP_OFFSET_MAX         INT32_MAX
 
-static JS_ALWAYS_INLINE int32_t
+static MOZ_ALWAYS_INLINE int32_t
 GET_JUMP_OFFSET(jsbytecode *pc)
 {
     return (pc[1] << 24) | (pc[2] << 16) | (pc[3] << 8) | pc[4];
 }
 
-static JS_ALWAYS_INLINE void
+static MOZ_ALWAYS_INLINE void
 SET_JUMP_OFFSET(jsbytecode *pc, int32_t off)
 {
     pc[1] = (jsbytecode)(off >> 24);
@@ -151,13 +152,13 @@ SET_JUMP_OFFSET(jsbytecode *pc, int32_t off)
 
 #define UINT32_INDEX_LEN        4
 
-static JS_ALWAYS_INLINE uint32_t
+static MOZ_ALWAYS_INLINE uint32_t
 GET_UINT32_INDEX(const jsbytecode *pc)
 {
     return (pc[1] << 24) | (pc[2] << 16) | (pc[3] << 8) | pc[4];
 }
 
-static JS_ALWAYS_INLINE void
+static MOZ_ALWAYS_INLINE void
 SET_UINT32_INDEX(jsbytecode *pc, uint32_t index)
 {
     pc[1] = (jsbytecode)(index >> 24);
@@ -187,26 +188,47 @@ SET_UINT32_INDEX(jsbytecode *pc, uint32_t index)
                                  (pc)[3] = (jsbytecode)(uint32_t(i) >> 8),    \
                                  (pc)[4] = (jsbytecode)uint32_t(i))
 
-/* Index limit is determined by SN_3BYTE_OFFSET_FLAG, see frontend/BytecodeEmitter.h. */
-#define INDEX_LIMIT_LOG2        23
+/* Index limit is determined by SN_4BYTE_OFFSET_FLAG, see frontend/BytecodeEmitter.h. */
+#define INDEX_LIMIT_LOG2        31
 #define INDEX_LIMIT             (uint32_t(1) << INDEX_LIMIT_LOG2)
 
-/* Actual argument count operand format helpers. */
 #define ARGC_HI(argc)           UINT16_HI(argc)
 #define ARGC_LO(argc)           UINT16_LO(argc)
 #define GET_ARGC(pc)            GET_UINT16(pc)
 #define ARGC_LIMIT              UINT16_LIMIT
 
-/* Synonyms for quick JOF_QARG and JOF_LOCAL bytecodes. */
 #define GET_ARGNO(pc)           GET_UINT16(pc)
 #define SET_ARGNO(pc,argno)     SET_UINT16(pc,argno)
 #define ARGNO_LEN               2
 #define ARGNO_LIMIT             UINT16_LIMIT
 
-#define GET_SLOTNO(pc)          GET_UINT16(pc)
-#define SET_SLOTNO(pc,varno)    SET_UINT16(pc,varno)
-#define SLOTNO_LEN              2
-#define SLOTNO_LIMIT            UINT16_LIMIT
+#define GET_LOCALNO(pc)         GET_UINT24(pc)
+#define SET_LOCALNO(pc,varno)   SET_UINT24(pc,varno)
+#define LOCALNO_LEN             3
+#define LOCALNO_BITS            24
+#define LOCALNO_LIMIT           (1 << LOCALNO_BITS)
+
+/*
+ * Describes the 'hops' component of a JOF_SCOPECOORD opcode.
+ *
+ * Note: this component is only 8 bits wide, limiting the maximum number of
+ * scopes between a use and def to roughly 255. This is a pretty small limit but
+ * note that SpiderMonkey's recursive descent parser can only parse about this
+ * many functions before hitting the C-stack recursion limit so this shouldn't
+ * be a significant limitation in practice.
+ */
+#define GET_SCOPECOORD_HOPS(pc) GET_UINT8(pc)
+#define SET_SCOPECOORD_HOPS(pc,hops) SET_UINT8(pc,hops)
+#define SCOPECOORD_HOPS_LEN     1
+#define SCOPECOORD_HOPS_BITS    8
+#define SCOPECOORD_HOPS_LIMIT   (1 << SCOPECOORD_HOPS_BITS)
+
+/* Describes the 'slot' component of a JOF_SCOPECOORD opcode. */
+#define GET_SCOPECOORD_SLOT(pc) GET_UINT24(pc)
+#define SET_SCOPECOORD_SLOT(pc,slot) SET_UINT24(pc,slot)
+#define SCOPECOORD_SLOT_LEN     3
+#define SCOPECOORD_SLOT_BITS    24
+#define SCOPECOORD_SLOT_LIMIT   (1 << SCOPECOORD_SLOT_BITS)
 
 struct JSCodeSpec {
     int8_t              length;         /* length including opcode byte */

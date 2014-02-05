@@ -173,10 +173,10 @@ var FindHelperUI = {
     this.searchAgain(this._searchString, false);
   },
 
-  onFindResult: function(aResult, aFindBackwards, aLinkURL, aRect) {
-    this._status = aResult;
-    if (aRect) {
-      this._zoom(aRect, Browser.selectedBrowser.contentDocumentHeight);
+  onFindResult: function(aData) {
+    this._status = aData.result;
+    if (aData.rect) {
+      this._zoom(aData.rect, Browser.selectedBrowser.contentDocumentHeight);
     }
     this.updateCommands();
   },
@@ -199,6 +199,14 @@ var FindHelperUI = {
       browserShift += this._container.boxObject.height;
     }
     browserShift += Services.metro.keyboardHeight;
+
+    // If the rect top of the selection is above the view, don't shift content
+    // (or if it's already shifted, shift it back down).
+    if (aElementRect.y < browserShift) {
+      browserShift = 0;
+    }
+
+    // Shift the deck so that the selection is within the visible view.
     ContentAreaObserver.shiftBrowserDeck(browserShift);
 
     // Adjust for keyboad display and position the text selection rect in

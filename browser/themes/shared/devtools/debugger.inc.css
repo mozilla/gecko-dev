@@ -5,17 +5,27 @@
 
 /* Sources and breakpoints pane */
 
-#sources-pane > tabs {
-  -moz-border-end: 1px solid #222426; /* Match the sources list's dark margin. */
-}
-
 #sources-pane[selectedIndex="0"] + #sources-and-editor-splitter {
   border-color: transparent;
 }
 
+#sources-pane > tabs {
+  -moz-border-end: 1px solid;
+}
+
 #sources-pane .devtools-toolbar {
-  border: none; /* Remove the devtools-toolbar's black bottom border. */
-  -moz-border-end: 1px solid #222426; /* Match the sources list's dark margin. */
+  border: none; /* Remove the devtools-toolbar bottom border. */
+  -moz-border-end: 1px solid;
+}
+
+.theme-dark #sources-pane > tabs,
+.theme-dark #sources-pane .devtools-toolbar {
+  -moz-border-end-color: black; /* Match the splitter color. */
+}
+
+.theme-light #sources-pane > tabs,
+.theme-light #sources-pane .devtools-toolbar {
+  -moz-border-end-color: #aaa; /* Match the splitter color. */
 }
 
 /* Sources and breakpoints list */
@@ -68,6 +78,10 @@
 }
 
 #sources .black-boxed {
+  color: rgba(128,128,128,0.4);
+}
+
+#sources .selected > .black-boxed {
   color: rgba(255,255,255,0.4);
 }
 
@@ -102,10 +116,6 @@
 }
 
 /* Breadcrumbs stack frames view */
-
-.breadcrumbs-widget-item {
-  max-width: none;
-}
 
 .dbg-stackframe-details {
   -moz-padding-start: 4px;
@@ -280,6 +290,22 @@
   color: inherit;
 }
 
+.dbg-expression-button {
+  -moz-appearance: none;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.theme-dark .dbg-expression-button {
+  color: #46afe3; /* Blue highlight color */
+}
+
+.theme-light .dbg-expression-button {
+  color: #0088cc; /* Blue highlight color */
+}
+
 /* Event listeners view */
 
 .dbg-event-listener-type {
@@ -452,6 +478,14 @@
   transform: scale(1.75, 1.75);
 }
 
+.theme-dark .dbg-source-results:not(.selected):hover {
+  background-color: #181d20; /* Sidebar background */
+}
+
+.theme-light .dbg-source-results:not(.selected):hover {
+  background-color: #f7f7f7; /* Sidebar background */
+}
+
 .theme-dark .dbg-results-header {
   background-color: #252c33; /* Tab toolbar */
   color: #b8c8d9; /* Light content text */
@@ -541,31 +575,6 @@
 
 #step-out {
   list-style-image: url(debugger-step-out.png);
-}
-
-#debugger-controls > toolbarbutton,
-#sources-controls > toolbarbutton {
-  margin: 0;
-  box-shadow: none;
-  border-radius: 0;
-  border-width: 0;
-  -moz-border-end-width: 1px;
-  outline-offset: -3px;
-}
-
-#debugger-controls > toolbarbutton:last-of-type,
-#sources-controls > toolbarbutton:last-of-type {
-  -moz-border-end-width: 0;
-}
-
-#debugger-controls,
-#sources-controls {
-  box-shadow: 0 1px 0 hsla(210,16%,76%,.15) inset,
-              0 0 0 1px hsla(210,16%,76%,.15) inset,
-              0 1px 0 hsla(210,16%,76%,.15);
-  border: 1px solid hsla(210,8%,5%,.45);
-  border-radius: 3px;
-  margin: 0 3px;
 }
 
 #instruments-pane-toggle {

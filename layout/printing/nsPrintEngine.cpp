@@ -1558,7 +1558,6 @@ nsPrintEngine::ShowPrintErrorDialog(nsresult aPrintError, bool aIsPrinting)
     ENTITY_FOR_ERROR(GFX_PRINTER_ENDDOC);
     ENTITY_FOR_ERROR(GFX_PRINTER_STARTPAGE);
     ENTITY_FOR_ERROR(GFX_PRINTER_DOC_IS_BUSY);
-    ENTITY_FOR_ERROR(GFX_PRINTER_NO_XUL);  // bug 136185 / bug 240490
 
     ENTITY_FOR_ERROR(ABORT);
     ENTITY_FOR_ERROR(NOT_AVAILABLE);
@@ -2034,6 +2033,22 @@ nsPrintEngine::UpdateSelectionAndShrinkPrintObject(nsPrintObject* aPO,
     nsIPageSequenceFrame* pageSequence = aPO->mPresShell->GetPageSequenceFrame();
     NS_ENSURE_STATE(pageSequence);
     pageSequence->GetSTFPercent(aPO->mShrinkRatio);
+    // Limit the shrink-to-fit scaling for some text-ish type of documents.
+    nsAutoString contentType;
+    aPO->mPresShell->GetDocument()->GetContentType(contentType);
+    bool applyLimit = contentType.EqualsLiteral("application/xhtml+xml");
+    if (contentType.Length() > 5) {
+      contentType.Truncate(5);
+    }
+    applyLimit = applyLimit || contentType.EqualsLiteral("text/");
+    if (applyLimit) {
+      int32_t limitPercent = 
+        Preferences::GetInt("print.shrink-to-fit.scale-limit-percent", 20);
+      limitPercent = std::max(0, limitPercent);
+      limitPercent = std::min(100, limitPercent);
+      float minShrinkRatio = float(limitPercent) / 100;
+      aPO->mShrinkRatio = std::max(aPO->mShrinkRatio, minShrinkRatio);
+    }
   }
   return NS_OK;
 }

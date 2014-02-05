@@ -102,6 +102,7 @@ nsStyleFont::nsStyleFont(const nsStyleFont& aSrc)
   , mGenericID(aSrc.mGenericID)
   , mScriptLevel(aSrc.mScriptLevel)
   , mMathVariant(aSrc.mMathVariant)
+  , mMathDisplay(aSrc.mMathDisplay)
   , mExplicitLanguage(aSrc.mExplicitLanguage)
   , mAllowZoom(aSrc.mAllowZoom)
   , mScriptUnconstrainedSize(aSrc.mScriptUnconstrainedSize)
@@ -133,6 +134,7 @@ nsStyleFont::Init(nsPresContext* aPresContext)
   mScriptLevel = 0;
   mScriptSizeMultiplier = NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER;
   mMathVariant = NS_MATHML_MATHVARIANT_NONE;
+  mMathDisplay = NS_MATHML_DISPLAYSTYLE_INLINE;
   mAllowZoom = true;
 
   nsAutoString language;
@@ -194,7 +196,8 @@ nsChangeHint nsStyleFont::CalcDifference(const nsStyleFont& aOther) const
   if (mSize != aOther.mSize ||
       mLanguage != aOther.mLanguage ||
       mExplicitLanguage != aOther.mExplicitLanguage ||
-      mMathVariant != aOther.mMathVariant) {
+      mMathVariant != aOther.mMathVariant ||
+      mMathDisplay != aOther.mMathDisplay) {
     return NS_STYLE_HINT_REFLOW;
   }
   return CalcFontDifference(mFont, aOther.mFont);
@@ -381,10 +384,6 @@ nsChangeHint nsStylePadding::CalcDifference(const nsStylePadding& aOther) const
 nsStyleBorder::nsStyleBorder(nsPresContext* aPresContext)
   : mBorderColors(nullptr),
     mBoxShadow(nullptr),
-#ifdef DEBUG
-    mImageTracked(false),
-#endif
-    mBorderImageSource(nullptr),
     mBorderImageFill(NS_STYLE_BORDER_IMAGE_SLICE_NOFILL),
     mBorderImageRepeatH(NS_STYLE_BORDER_IMAGE_REPEAT_STRETCH),
     mBorderImageRepeatV(NS_STYLE_BORDER_IMAGE_REPEAT_STRETCH),
@@ -431,11 +430,8 @@ nsBorderColors::Clone(bool aDeep) const
 nsStyleBorder::nsStyleBorder(const nsStyleBorder& aSrc)
   : mBorderColors(nullptr),
     mBoxShadow(aSrc.mBoxShadow),
-#ifdef DEBUG
-    mImageTracked(false),
-#endif
-    mBorderImageSource(aSrc.mBorderImageSource),
     mBorderRadius(aSrc.mBorderRadius),
+    mBorderImageSource(aSrc.mBorderImageSource),
     mBorderImageSlice(aSrc.mBorderImageSlice),
     mBorderImageWidth(aSrc.mBorderImageWidth),
     mBorderImageOutset(aSrc.mBorderImageOutset),
@@ -465,8 +461,6 @@ nsStyleBorder::nsStyleBorder(const nsStyleBorder& aSrc)
 
 nsStyleBorder::~nsStyleBorder()
 {
-  NS_ABORT_IF_FALSE(!mImageTracked,
-                    "nsStyleBorder being destroyed while still tracking image!");
   MOZ_COUNT_DTOR(nsStyleBorder);
   if (mBorderColors) {
     for (int32_t i = 0; i < 4; i++)
@@ -512,8 +506,7 @@ nsStyleBorder::GetImageOutset() const
 
 void
 nsStyleBorder::Destroy(nsPresContext* aContext) {
-  if (mBorderImageSource)
-    UntrackImage(aContext);
+  UntrackImage(aContext);
   this->~nsStyleBorder();
   aContext->FreeToShell(sizeof(nsStyleBorder), this);
 }
@@ -587,42 +580,6 @@ nsChangeHint nsStyleBorder::CalcDifference(const nsStyleBorder& aOther) const
   }
 
   return shadowDifference;
-}
-
-void
-nsStyleBorder::TrackImage(nsPresContext* aContext)
-{
-  // Sanity
-  NS_ABORT_IF_FALSE(!mImageTracked, "Already tracking image!");
-  NS_ABORT_IF_FALSE(mBorderImageSource, "Can't track null image!");
-
-  // Register the image with the document
-  nsIDocument* doc = aContext->Document();
-  if (doc)
-    doc->AddImage(mBorderImageSource);
-
-  // Mark state
-#ifdef DEBUG
-  mImageTracked = true;
-#endif
-}
-
-void
-nsStyleBorder::UntrackImage(nsPresContext* aContext)
-{
-  // Sanity
-  NS_ABORT_IF_FALSE(mImageTracked, "Image not tracked!");
-  NS_ABORT_IF_FALSE(mBorderImageSource, "Can't track null image!");
-
-  // Unregister the image with the document
-  nsIDocument* doc = aContext->Document();
-  if (doc)
-    doc->RemoveImage(mBorderImageSource, nsIDocument::REQUEST_DISCARD);
-
-  // Mark state
-#ifdef DEBUG
-  mImageTracked = false;
-#endif
 }
 
 nsStyleOutline::nsStyleOutline(nsPresContext* aPresContext)
@@ -1679,6 +1636,7 @@ nsStyleImage::SetImageData(imgIRequest* aImage)
     mImage = aImage;
     mType = eStyleImageType_Image;
   }
+  mSubImages.Clear();
 }
 
 void
@@ -2305,6 +2263,7 @@ nsAnimation::SetInitialValues()
 }
 
 nsStyleDisplay::nsStyleDisplay()
+  : mWillChangeBitField(0)
 {
   MOZ_COUNT_CTOR(nsStyleDisplay);
   mAppearance = NS_THEME_NONE;
@@ -2334,6 +2293,7 @@ nsStyleDisplay::nsStyleDisplay()
   mTransformStyle = NS_STYLE_TRANSFORM_STYLE_FLAT;
   mOrient = NS_STYLE_ORIENT_AUTO;
   mMixBlendMode = NS_STYLE_BLEND_NORMAL;
+  mTouchAction = NS_STYLE_TOUCH_ACTION_AUTO;
 
   mTransitions.AppendElement();
   NS_ABORT_IF_FALSE(mTransitions.Length() == 1,
@@ -2378,6 +2338,9 @@ nsStyleDisplay::nsStyleDisplay(const nsStyleDisplay& aSource)
   , mClipFlags(aSource.mClipFlags)
   , mOrient(aSource.mOrient)
   , mMixBlendMode(aSource.mMixBlendMode)
+  , mWillChangeBitField(aSource.mWillChangeBitField)
+  , mWillChange(aSource.mWillChange)
+  , mTouchAction(aSource.mTouchAction)
   , mBackfaceVisibility(aSource.mBackfaceVisibility)
   , mTransformStyle(aSource.mTransformStyle)
   , mSpecifiedTransform(aSource.mSpecifiedTransform)
@@ -2502,6 +2465,10 @@ nsChangeHint nsStyleDisplay::CalcDifference(const nsStyleDisplay& aOther) const
 
     if (mBackfaceVisibility != aOther.mBackfaceVisibility)
       NS_UpdateHint(hint, nsChangeHint_RepaintFrame);
+  }
+
+  if (mWillChangeBitField != aOther.mWillChangeBitField) {
+    NS_UpdateHint(hint, nsChangeHint_ReconstructFrame);
   }
 
   // Note:  Our current behavior for handling changes to the

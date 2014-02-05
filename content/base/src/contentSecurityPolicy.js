@@ -11,6 +11,10 @@
  * that ContentSecurityPolicy has to do.
  */
 
+// these identifiers are also defined in contentSecurityPolicy.manifest.
+const CSP_CLASS_ID = Components.ID("{d1680bb4-1ac0-4772-9437-1188375e44f2}");
+const CSP_CONTRACT_ID = "@mozilla.org/contentsecuritypolicy;1";
+
 /* :::::::: Constants and Helpers ::::::::::::::: */
 
 const Cc = Components.classes;
@@ -33,6 +37,8 @@ const INLINE_SCRIPT_VIOLATION_OBSERVER_SUBJECT = 'violated base restriction: Inl
 const EVAL_VIOLATION_OBSERVER_SUBJECT = 'violated base restriction: Code will not be created from strings';
 const SCRIPT_NONCE_VIOLATION_OBSERVER_SUBJECT = 'Inline Script had invalid nonce'
 const STYLE_NONCE_VIOLATION_OBSERVER_SUBJECT = 'Inline Style had invalid nonce'
+const SCRIPT_HASH_VIOLATION_OBSERVER_SUBJECT = 'Inline Script had invalid hash';
+const STYLE_HASH_VIOLATION_OBSERVER_SUBJECT = 'Inline Style had invalid hash';
 
 // The cutoff length of content location in creating CSP cache key.
 const CSP_CACHE_URI_CUTOFF_SIZE = 512;
@@ -121,8 +127,17 @@ function ContentSecurityPolicy() {
 }
 
 ContentSecurityPolicy.prototype = {
-  classID:          Components.ID("{d1680bb4-1ac0-4772-9437-1188375e44f2}"),
-  QueryInterface:   XPCOMUtils.generateQI([Ci.nsIContentSecurityPolicy]),
+  classID:          CSP_CLASS_ID,
+  QueryInterface:   XPCOMUtils.generateQI([Ci.nsIContentSecurityPolicy,
+                                           Ci.nsISerializable,
+                                           Ci.nsISupports]),
+
+  // Class info is required to be able to serialize
+  classInfo: XPCOMUtils.generateCI({classID: CSP_CLASS_ID,
+                                    contractID: CSP_CONTRACT_ID,
+                                    interfaces: [Ci.nsIContentSecurityPolicy,
+                                                 Ci.nsISerializable],
+                                    flags: Ci.nsIClassInfo.MAIN_THREAD_ONLY}),
 
   get isInitialized() {
     return this._isInitialized;
@@ -200,16 +215,44 @@ ContentSecurityPolicy.prototype = {
       CSPdebug("Nonce check requested for an invalid content type (not script or style): " + aContentType);
       return false;
     }
-    let ct = ContentSecurityPolicy._MAPPINGS[aContentType];
 
-    // allow it to execute?
-    let policyAllowsNonce = [ policy.permits(null, ct, aNonce) for (policy of this._policies) ];
+    let directive = ContentSecurityPolicy._MAPPINGS[aContentType];
+    let policyAllowsNonce = [ policy.permitsNonce(aNonce, directive)
+                              for (policy of this._policies) ];
 
-    shouldReportViolation.value = policyAllowsNonce.some(function(a) { return !a; });
+    shouldReportViolation.value = this._policies.some(function(policy, i) {
+      // Don't report a violation if the policy didn't use nonce-source
+      return policy._directives[directive]._hasNonceSource && !policyAllowsNonce[i];
+    });
 
     // allow it to execute?  (Do all the policies allow it to execute)?
     return this._policies.every(function(policy, i) {
       return policy._reportOnlyMode || policyAllowsNonce[i];
+    });
+  },
+
+  getAllowsHash: function(aContent, aContentType, shouldReportViolation) {
+    if (!CSPPrefObserver.experimentalEnabled)
+      return false;
+
+    if (!(aContentType == Ci.nsIContentPolicy.TYPE_SCRIPT ||
+          aContentType == Ci.nsIContentPolicy.TYPE_STYLESHEET)) {
+      CSPdebug("Hash check requested for an invalid content type (not script or style): " + aContentType);
+      return false;
+    }
+
+    let directive = ContentSecurityPolicy._MAPPINGS[aContentType];
+    let policyAllowsHash = [ policy.permitsHash(aContent, directive)
+                             for (policy of this._policies) ];
+
+    shouldReportViolation.value = this._policies.some(function(policy, i) {
+      // Don't report a violation if the policy didn't use hash-source
+      return policy._directives[directive]._hasHashSource && !policyAllowsHash[i];
+    });
+
+    // allow it to execute?  (Do all the policies allow it to execute)?
+    return this._policies.every(function(policy, i) {
+      return policy._reportOnlyMode || policyAllowsHash[i];
     });
   },
 
@@ -226,12 +269,17 @@ ContentSecurityPolicy.prototype = {
    * @param aLineNum
    *     source line number of the violation (if available)
    * @param aNonce
-   *     (optional) If this is a nonce violation, include the nonce should we
-   *     can recheck to determine which policies were violated and send the
+   *     (optional) If this is a nonce violation, include the nonce so we can
+   *     recheck to determine which policies were violated and send the
    *     appropriate reports.
+   * @param aContent
+   *     (optional) If this is a hash violation, include contents of the inline
+   *     resource in the question so we can recheck the hash in order to
+   *     determine which policies were violated and send the appropriate
+   *     reports.
    */
   logViolationDetails:
-  function(aViolationType, aSourceFile, aScriptSample, aLineNum, aNonce) {
+  function(aViolationType, aSourceFile, aScriptSample, aLineNum, aNonce, aContent) {
     for (let policyIndex=0; policyIndex < this._policies.length; policyIndex++) {
       let policy = this._policies[policyIndex];
 
@@ -266,8 +314,8 @@ ContentSecurityPolicy.prototype = {
         }
         break;
       case Ci.nsIContentSecurityPolicy.VIOLATION_TYPE_NONCE_SCRIPT:
-        let scriptType = ContentSecurityPolicy._MAPPINGS[Ci.nsIContentPolicy.TYPE_SCRIPT];
-        if (!policy.permits(null, scriptType, aNonce)) {
+        var scriptType = ContentSecurityPolicy._MAPPINGS[Ci.nsIContentPolicy.TYPE_SCRIPT];
+        if (!policy.permitsNonce(aNonce, scriptType)) {
           var violatedDirective = this._buildViolatedDirectiveString('SCRIPT_SRC', policy);
           this._asyncReportViolation('self', null, violatedDirective, policyIndex,
                                      SCRIPT_NONCE_VIOLATION_OBSERVER_SUBJECT,
@@ -275,11 +323,29 @@ ContentSecurityPolicy.prototype = {
         }
         break;
       case Ci.nsIContentSecurityPolicy.VIOLATION_TYPE_NONCE_STYLE:
-        let styleType = ContentSecurityPolicy._MAPPINGS[Ci.nsIContentPolicy.TYPE_STYLE];
-        if (!policy.permits(null, styleType, aNonce)) {
+        var styleType = ContentSecurityPolicy._MAPPINGS[Ci.nsIContentPolicy.TYPE_STYLE];
+        if (!policy.permitsNonce(aNonce, styleType)) {
           var violatedDirective = this._buildViolatedDirectiveString('STYLE_SRC', policy);
           this._asyncReportViolation('self', null, violatedDirective, policyIndex,
                                      STYLE_NONCE_VIOLATION_OBSERVER_SUBJECT,
+                                     aSourceFile, aScriptSample, aLineNum);
+        }
+        break;
+      case Ci.nsIContentSecurityPolicy.VIOLATION_TYPE_HASH_SCRIPT:
+        var scriptType = ContentSecurityPolicy._MAPPINGS[Ci.nsIContentPolicy.TYPE_SCRIPT];
+        if (!policy.permitsHash(aContent, scriptType)) {
+          var violatedDirective = this._buildViolatedDirectiveString('SCRIPT_SRC', policy);
+          this._asyncReportViolation('self', null, violatedDirective, policyIndex,
+                                     SCRIPT_HASH_VIOLATION_OBSERVER_SUBJECT,
+                                     aSourceFile, aScriptSample, aLineNum);
+        }
+        break;
+      case Ci.nsIContentSecurityPolicy.VIOLATION_TYPE_HASH_STYLE:
+        var styleType = ContentSecurityPolicy._MAPPINGS[Ci.nsIContentPolicy.TYPE_STYLE];
+        if (!policy.permitsHash(aContent, styleType)) {
+          var violatedDirective = this._buildViolatedDirectiveString('STYLE_SRC', policy);
+          this._asyncReportViolation('self', null, violatedDirective, policyIndex,
+                                     STYLE_HASH_VIOLATION_OBSERVER_SUBJECT,
                                      aSourceFile, aScriptSample, aLineNum);
         }
         break;
@@ -290,28 +356,45 @@ ContentSecurityPolicy.prototype = {
   /**
    * Given an nsIHttpChannel, fill out the appropriate data.
    */
-  scanRequestData:
-  function(aChannel) {
-    if (!aChannel)
+  setRequestContext:
+  function(aSelfURI, aReferrerURI, aPrincipal, aChannel) {
+
+    // this requires either a self URI or a http channel.
+    if (!aSelfURI && !aChannel)
       return;
 
-    // Save the docRequest for fetching a policy-uri
-    this._weakDocRequest = Cu.getWeakReference(aChannel);
+    if (aChannel) {
+      // Save the docRequest for fetching a policy-uri
+      this._weakDocRequest = Cu.getWeakReference(aChannel);
+    }
 
     // save the document URI (minus <fragment>) and referrer for reporting
-    let uri = aChannel.URI.cloneIgnoringRef();
+    let uri = aSelfURI ? aSelfURI.cloneIgnoringRef() : aChannel.URI.cloneIgnoringRef();
     try { // GetUserPass throws for some protocols without userPass
       uri.userPass = '';
     } catch (ex) {}
     this._request = uri.asciiSpec;
     this._requestOrigin = uri;
 
-    //store a reference to the principal, that can later be used in shouldLoad
-    this._weakRequestPrincipal = Cu.getWeakReference(Cc["@mozilla.org/scriptsecuritymanager;1"]
-                                                       .getService(Ci.nsIScriptSecurityManager)
-                                                       .getChannelPrincipal(aChannel));
+    // store a reference to the principal, that can later be used in shouldLoad
+    if (aPrincipal) {
+      this._weakRequestPrincipal = Cu.getWeakReference(aPrincipal);
+    } else if (aChannel) {
+      this._weakRequestPrincipal = Cu.getWeakReference(Cc["@mozilla.org/scriptsecuritymanager;1"]
+                                                         .getService(Ci.nsIScriptSecurityManager)
+                                                         .getChannelPrincipal(aChannel));
+    } else {
+      CSPdebug("No principal or channel for document context; violation reports may not work.");
+    }
 
-    if (aChannel.referrer) {
+    // pick one: referrerURI, channel's referrer, or null (first available)
+    let ref = null;
+    if (aReferrerURI)
+      ref = aReferrerURI;
+    else if (aChannel instanceof Ci.nsIHttpChannel)
+      ref = aChannel.referrer;
+
+    if (ref) {
       let referrer = aChannel.referrer.cloneIgnoringRef();
       try { // GetUserPass throws for some protocols without userPass
         referrer.userPass = '';
@@ -330,7 +413,7 @@ ContentSecurityPolicy.prototype = {
   function csp_appendPolicy(aPolicy, selfURI, aReportOnly, aSpecCompliant) {
 #ifndef MOZ_B2G
     CSPdebug("APPENDING POLICY: " + aPolicy);
-    CSPdebug("            SELF: " + selfURI.asciiSpec);
+    CSPdebug("            SELF: " + (selfURI ? selfURI.asciiSpec : " null"));
     CSPdebug("CSP 1.0 COMPLIANT : " + aSpecCompliant);
 #endif
 
@@ -679,9 +762,10 @@ ContentSecurityPolicy.prototype = {
     // for preloads, aContext is the document and not the element associated
     // with the resource, we cannot determine the nonce. See Bug 612921 and
     // Bug 855326.
-    var possiblePreloadNonceConflict =
-      (aContentType == cp.TYPE_SCRIPT || aContentType == cp.TYPE_STYLESHEET) &&
-      aContext instanceof Ci.nsIDOMHTMLDocument;
+    let nonceSourceValid = aContentType == cp.TYPE_SCRIPT ||
+                           aContentType == cp.TYPE_STYLESHEET;
+    var possiblePreloadNonceConflict = nonceSourceValid &&
+                                       aContext instanceof Ci.nsIDOMHTMLDocument;
 
     // iterate through all the _policies and send reports where a policy is
     // violated.  After the check, determine the overall effect (blocked or
@@ -714,20 +798,27 @@ ContentSecurityPolicy.prototype = {
         return Ci.nsIContentPolicy.ACCEPT;
       }
 
-      // otherwise, honor the translation
-      // var source = aContentLocation.scheme + "://" + aContentLocation.hostPort;
-      let context = CSPPrefObserver.experimentalEnabled ? aContext : null;
-      var res = policy.permits(aContentLocation, cspContext, context) ?
-                cp.ACCEPT : cp.REJECT_SERVER;
+      // check if location is permitted
+      let permitted = policy.permits(aContentLocation, cspContext);
+
+      // check any valid content type for nonce if location is not permitted
+      if (!permitted && nonceSourceValid &&
+          aContext instanceof Ci.nsIDOMHTMLElement &&
+          aContext.hasAttribute('nonce')) {
+        permitted = policy.permitsNonce(aContext.getAttribute('nonce'),
+                                        cspContext);
+      }
+
       // record whether the thing should be blocked or just reported.
-      policyAllowsLoadArray.push(res == cp.ACCEPT || policy._reportOnlyMode);
+      policyAllowsLoadArray.push(permitted || policy._reportOnlyMode);
+      let res = permitted ? cp.ACCEPT : cp.REJECT_SERVER;
 
       // frame-ancestors is taken care of early on (as this document is loaded)
 
       // If the result is *NOT* ACCEPT, then send report
       // Do not send report if this is a nonce-source preload - the decision may
       // be wrong and will incorrectly fail the unit tests.
-      if (res != Ci.nsIContentPolicy.ACCEPT && !possiblePreloadNonceConflict) {
+      if (res != cp.ACCEPT && !possiblePreloadNonceConflict) {
         CSPdebug("blocking request for " + aContentLocation.asciiSpec);
         try {
           let directive = "unknown directive",
@@ -748,8 +839,10 @@ ContentSecurityPolicy.prototype = {
                     'CSP is not sure which part of the policy caused this block');
           }
 
-          this._asyncReportViolation(aContentLocation, aOriginalUri,
-                                     violatedPolicy, policyIndex);
+          this._asyncReportViolation(aContentLocation,
+                                     aOriginalUri,
+                                     violatedPolicy,
+                                     policyIndex);
         } catch(e) {
           CSPdebug('---------------- ERROR: ' + e);
         }
@@ -841,6 +934,51 @@ ContentSecurityPolicy.prototype = {
                                   aLineNum, aObserverSubject);
 
       }, Ci.nsIThread.DISPATCH_NORMAL);
+  },
+
+/* ........ nsISerializable Methods: .............. */
+
+  read:
+  function(aStream) {
+
+    this._requestOrigin = aStream.readObject(true);
+    this._requestOrigin.QueryInterface(Ci.nsIURI);
+
+    for (let pCount = aStream.read32(); pCount > 0; pCount--) {
+      let polStr        = aStream.readString();
+      let reportOnly    = aStream.readBoolean();
+      let specCompliant = aStream.readBoolean();
+      // don't need self info because when the policy is turned back into a
+      // string, 'self' is replaced with the explicit source expression.
+      this.appendPolicy(polStr, null, reportOnly, specCompliant);
+    }
+
+    // NOTE: the document instance that's deserializing this object (via its
+    // principal) should hook itself into this._principal manually.  If they
+    // don't, the CSP reports will likely be blocked by nsMixedContentBlocker.
+  },
+
+  write:
+  function(aStream) {
+    // need to serialize the context: request origin and such. They are
+    // used when sending reports.  Since _request and _requestOrigin are just
+    // different representations of the same thing, only save _requestOrigin
+    // (an nsIURI).
+    aStream.writeCompoundObject(this._requestOrigin, Ci.nsIURI, true);
+
+    // we can't serialize a reference to the principal that triggered this
+    // instance to serialize, so when this is deserialized by the principal the
+    // caller must hook it up manually by calling setRequestContext on this
+    // instance with the appropriate nsIChannel.
+
+    // Finally, serialize all the policies.
+    aStream.write32(this._policies.length);
+
+    for each (var policy in this._policies) {
+      aStream.writeWStringZ(policy.toString());
+      aStream.writeBoolean(policy._reportOnlyMode);
+      aStream.writeBoolean(policy._specCompliant);
+    }
   },
 };
 

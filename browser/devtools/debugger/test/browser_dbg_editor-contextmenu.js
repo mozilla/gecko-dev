@@ -20,7 +20,7 @@ function test() {
     gSources = gDebugger.DebuggerView.Sources;
     gContextMenu = gDebugger.document.getElementById("sourceEditorContextMenu");
 
-    waitForSourceAndCaretAndScopes(gPanel, "-02.js", 6).then(performTest).then(null, info);
+    waitForSourceAndCaretAndScopes(gPanel, "-02.js", 1).then(performTest).then(null, info);
     gDebuggee.firstCall();
   });
 
@@ -39,7 +39,7 @@ function test() {
 
     ok(gContextMenu,
       "The source editor's context menupopup is available.");
-    ok(gEditor.isReadOnly(),
+    ok(gEditor.getOption("readOnly"),
       "The source editor is read only.");
 
     gEditor.focus();

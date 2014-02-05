@@ -12,6 +12,7 @@ import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.favicons.Favicons;
 import org.mozilla.gecko.favicons.OnFaviconLoadedListener;
 import org.mozilla.gecko.favicons.LoadFaviconTask;
+import org.mozilla.gecko.favicons.decoders.IconDirectoryEntry;
 import org.mozilla.gecko.gfx.BitmapUtils;
 import org.mozilla.gecko.gfx.GeckoLayerClient;
 import org.mozilla.gecko.gfx.ImmutableViewportMetrics;
@@ -121,6 +122,7 @@ abstract public class BrowserApp extends GeckoApp
     private View mHomePagerContainer;
     protected Telemetry.Timer mAboutHomeStartupTimer = null;
     private ActionModeCompat mActionMode;
+    private boolean mShowActionModeEndAnimation = false;
 
     private static final int GECKO_TOOLS_MENU = -1;
     private static final int ADDON_MENU_OFFSET = 1000;
@@ -154,6 +156,7 @@ abstract public class BrowserApp extends GeckoApp
     };
 
     private FindInPageBar mFindInPageBar;
+    private MediaCastingBar mMediaCastingBar;
 
     private boolean mAccessibilityEnabled = false;
 
@@ -175,8 +178,6 @@ abstract public class BrowserApp extends GeckoApp
     private SharedPreferencesHelper mSharedPreferencesHelper;
 
     private OrderedBroadcastHelper mOrderedBroadcastHelper;
-
-    private FirefoxAccountsHelper mFirefoxAccountsHelper;
 
     private BrowserHealthReporter mBrowserHealthReporter;
 
@@ -485,7 +486,7 @@ abstract public class BrowserApp extends GeckoApp
 
         mBrowserToolbar.setOnDismissListener(new BrowserToolbar.OnDismissListener() {
             public void onDismiss() {
-                dismissEditingMode();
+                mBrowserToolbar.cancelEdit();
             }
         });
 
@@ -528,6 +529,7 @@ abstract public class BrowserApp extends GeckoApp
         }
 
         mFindInPageBar = (FindInPageBar) findViewById(R.id.find_in_page);
+        mMediaCastingBar = (MediaCastingBar) findViewById(R.id.media_casting);
 
         registerEventListener("CharEncoding:Data");
         registerEventListener("CharEncoding:State");
@@ -542,7 +544,6 @@ abstract public class BrowserApp extends GeckoApp
         JavaAddonManager.getInstance().init(getApplicationContext());
         mSharedPreferencesHelper = new SharedPreferencesHelper(getApplicationContext());
         mOrderedBroadcastHelper = new OrderedBroadcastHelper(getApplicationContext());
-        mFirefoxAccountsHelper = new FirefoxAccountsHelper(getApplicationContext());
         mBrowserHealthReporter = new BrowserHealthReporter();
 
         if (AppConstants.MOZ_ANDROID_BEAM && Build.VERSION.SDK_INT >= 14) {
@@ -594,16 +595,15 @@ abstract public class BrowserApp extends GeckoApp
                 return true;
             }
         });
+
+        // Set the maximum bits-per-pixel the favicon system cares about.
+        IconDirectoryEntry.setMaxBPP(GeckoAppShell.getScreenDepth());
     }
 
     @Override
     public void onBackPressed() {
         if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
             super.onBackPressed();
-            return;
-        }
-
-        if (dismissEditingMode()) {
             return;
         }
 
@@ -787,10 +787,10 @@ abstract public class BrowserApp extends GeckoApp
 
             final OnFaviconLoadedListener listener = new GeckoAppShell.CreateShortcutFaviconLoadedListener(url, title);
             Favicons.getSizedFavicon(url,
-                                     tab.getFaviconURL(),
-                                     Integer.MAX_VALUE,
-                                     LoadFaviconTask.FLAG_PERSIST,
-                                     listener);
+                    tab.getFaviconURL(),
+                    Integer.MAX_VALUE,
+                    LoadFaviconTask.FLAG_PERSIST,
+                    listener);
             return true;
         }
 
@@ -825,6 +825,11 @@ abstract public class BrowserApp extends GeckoApp
             mFindInPageBar = null;
         }
 
+        if (mMediaCastingBar != null) {
+            mMediaCastingBar.onDestroy();
+            mMediaCastingBar = null;
+        }
+
         if (mSharedPreferencesHelper != null) {
             mSharedPreferencesHelper.uninit();
             mSharedPreferencesHelper = null;
@@ -833,11 +838,6 @@ abstract public class BrowserApp extends GeckoApp
         if (mOrderedBroadcastHelper != null) {
             mOrderedBroadcastHelper.uninit();
             mOrderedBroadcastHelper = null;
-        }
-
-        if (mFirefoxAccountsHelper != null) {
-            mFirefoxAccountsHelper.uninit();
-            mFirefoxAccountsHelper = null;
         }
 
         if (mBrowserHealthReporter != null) {
@@ -1354,15 +1354,15 @@ abstract public class BrowserApp extends GeckoApp
         }
 
         final Tabs tabs = Tabs.getInstance();
-        final int tabId = tabs.getTabIdForUrl(url, tabs.getSelectedTab().isPrivate());
-        if (tabId < 0) {
+        final Tab tab = tabs.getFirstTabForUrl(url, tabs.getSelectedTab().isPrivate());
+        if (tab == null) {
             return false;
         }
 
         // Set the target tab to null so it does not get selected (on editing
         // mode exit) in lieu of the tab we are about to select.
         mTargetTabForEditingMode = null;
-        Tabs.getInstance().selectTab(tabId);
+        tabs.selectTab(tab.getId());
 
         mBrowserToolbar.cancelEdit();
 
@@ -1416,14 +1416,6 @@ abstract public class BrowserApp extends GeckoApp
         int id = Favicons.getSizedFavicon(tab.getURL(), tab.getFaviconURL(), tabFaviconSize, flags, sFaviconLoadedListener);
 
         tab.setFaviconLoadId(id);
-
-        final Tabs tabs = Tabs.getInstance();
-        if (id != Favicons.LOADED && tabs.isSelectedTab(tab)) {
-            // We're loading the current tab's favicon from somewhere
-            // other than the cache. Display the globe favicon until then.
-            tab.updateFavicon(Favicons.sDefaultFavicon);
-            tabs.notifyListeners(tab, Tabs.TabEvents.FAVICON);
-        }
     }
 
     private void maybeCancelFaviconLoad(Tab tab) {
@@ -1568,16 +1560,6 @@ abstract public class BrowserApp extends GeckoApp
         } catch (Exception e) {
             Log.w(LOGTAG, "Error recording search.", e);
         }
-    }
-
-    private boolean dismissEditingMode() {
-        if (!mBrowserToolbar.isEditing()) {
-            return false;
-        }
-
-        mBrowserToolbar.cancelEdit();
-
-        return true;
     }
 
     void filterEditingMode(String searchTerm, AutocompleteHandler handler) {
@@ -2049,6 +2031,8 @@ abstract public class BrowserApp extends GeckoApp
                     if (isDynamicToolbarEnabled()) {
                         mLayerView.getLayerMarginsAnimator().hideMargins(true);
                         mLayerView.getLayerMarginsAnimator().setMaxMargins(0, 0, 0, 0);
+                    } else {
+                        setToolbarMargin(0);
                     }
                 } else {
                     mViewFlipper.setVisibility(View.VISIBLE);
@@ -2394,7 +2378,7 @@ abstract public class BrowserApp extends GeckoApp
 
         // Dismiss editing mode if the user is loading a URL from an external app.
         if (Intent.ACTION_VIEW.equals(action)) {
-            dismissEditingMode();
+            mBrowserToolbar.cancelEdit();
             return;
         }
 
@@ -2489,7 +2473,11 @@ abstract public class BrowserApp extends GeckoApp
     // HomePager.OnUrlOpenListener
     @Override
     public void onUrlOpen(String url, EnumSet<OnUrlOpenListener.Flags> flags) {
-        if (!maybeSwitchToTab(url, flags)) {
+        if (flags.contains(OnUrlOpenListener.Flags.OPEN_WITH_INTENT)) {
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setData(Uri.parse(url));
+            startActivity(intent);
+        } else if (!maybeSwitchToTab(url, flags)) {
             openUrlAndStopEditing(url);
         }
     }
@@ -2513,7 +2501,7 @@ abstract public class BrowserApp extends GeckoApp
     @Override
     protected String getDefaultProfileName() {
         String profile = GeckoProfile.findDefaultProfile(this);
-        return (profile != null ? profile : "default");
+        return (profile != null ? profile : GeckoProfile.DEFAULT_PROFILE);
     }
 
     /**
@@ -2556,6 +2544,7 @@ abstract public class BrowserApp extends GeckoApp
             if (isDynamicToolbarEnabled() && !margins.areMarginsShown()) {
                 margins.setMaxMargins(0, mViewFlipper.getHeight(), 0, 0);
                 margins.showMargins(false);
+                mShowActionModeEndAnimation = true;
             } else {
                 // Otherwise, we animate the actionbar itself
                 mActionBar.animateIn();
@@ -2582,7 +2571,16 @@ abstract public class BrowserApp extends GeckoApp
 
         mActionMode.finish();
         mActionMode = null;
-        mLayerView.getLayerMarginsAnimator().setMarginsPinned(false);
+        final LayerMarginsAnimator margins = mLayerView.getLayerMarginsAnimator();
+        margins.setMarginsPinned(false);
+
         mViewFlipper.showPrevious();
+
+        // Only slide the urlbar out if it was hidden when the action mode started
+        // Don't animate hiding it so that there's no flash as we switch back to url mode
+        if (mShowActionModeEndAnimation) {
+            margins.hideMargins(true);
+            mShowActionModeEndAnimation = false;
+        }
     }
 }

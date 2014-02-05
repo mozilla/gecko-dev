@@ -10,7 +10,6 @@ const Cr = Components.results;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/DOMRequestHelper.jsm");
-Cu.import("resource://gre/modules/ObjectWrapper.jsm");
 Cu.import("resource://gre/modules/AppsUtils.jsm");
 Cu.import("resource://gre/modules/BrowserElementPromptService.jsm");
 
@@ -277,7 +276,7 @@ let manifestCache = {
 
     let winObjs = this._cache[aManifestURL];
     if (!(aInnerWindowID in winObjs)) {
-      winObjs[aInnerWindowID] = ObjectWrapper.wrap(aManifest, aWindow);
+      winObjs[aInnerWindowID] = Cu.cloneInto(aManifest, aWindow);
     }
 
     return winObjs[aInnerWindowID];
@@ -381,8 +380,7 @@ WebappsApplication.prototype = {
 
   get updateManifest() {
     return this.updateManifest =
-      this._updateManifest ? ObjectWrapper.wrap(this._updateManifest,
-                                                this._window)
+      this._updateManifest ? Cu.cloneInto(this._updateManifest, this._window)
                            : null;
   },
 
@@ -506,6 +504,49 @@ WebappsApplication.prototype = {
                                 reject: aReject
                               })});
     }.bind(this));
+  },
+
+  addReceipt: function(receipt) {
+    let request = this.createRequest();
+
+    this.addMessageListeners(["Webapps:AddReceipt:Return:OK",
+                              "Webapps:AddReceipt:Return:KO"]);
+
+    cpmm.sendAsyncMessage("Webapps:AddReceipt", { manifestURL: this.manifestURL,
+                                                  receipt: receipt,
+                                                  oid: this._id,
+                                                  requestID: this.getRequestId(request) });
+
+    return request;
+  },
+
+  removeReceipt: function(receipt) {
+    let request = this.createRequest();
+
+    this.addMessageListeners(["Webapps:RemoveReceipt:Return:OK",
+                              "Webapps:RemoveReceipt:Return:KO"]);
+
+    cpmm.sendAsyncMessage("Webapps:RemoveReceipt", { manifestURL: this.manifestURL,
+                                                     receipt: receipt,
+                                                     oid: this._id,
+                                                     requestID: this.getRequestId(request) });
+
+    return request;
+  },
+
+  replaceReceipt: function(oldReceipt, newReceipt) {
+    let request = this.createRequest();
+
+    this.addMessageListeners(["Webapps:ReplaceReceipt:Return:OK",
+                              "Webapps:ReplaceReceipt:Return:KO"]);
+
+    cpmm.sendAsyncMessage("Webapps:ReplaceReceipt", { manifestURL: this.manifestURL,
+                                                      newReceipt: newReceipt,
+                                                      oldReceipt: oldReceipt,
+                                                      oid: this._id,
+                                                      requestID: this.getRequestId(request) });
+
+    return request;
   },
 
   uninit: function() {
@@ -637,6 +678,39 @@ WebappsApplication.prototype = {
           connections.push(connection);
         });
         req.resolve(connections);
+        break;
+      case "Webapps:AddReceipt:Return:OK":
+        this.removeMessageListeners(["Webapps:AddReceipt:Return:OK",
+                                     "Webapps:AddReceipt:Return:KO"]);
+        this.receipts = msg.receipts;
+        Services.DOMRequest.fireSuccess(req, null);
+        break;
+      case "Webapps:AddReceipt:Return:KO":
+        this.removeMessageListeners(["Webapps:AddReceipt:Return:OK",
+                                     "Webapps:AddReceipt:Return:KO"]);
+        Services.DOMRequest.fireError(req, msg.error);
+        break;
+      case "Webapps:RemoveReceipt:Return:OK":
+        this.removeMessageListeners(["Webapps:RemoveReceipt:Return:OK",
+                                     "Webapps:RemoveReceipt:Return:KO"]);
+        this.receipts = msg.receipts;
+        Services.DOMRequest.fireSuccess(req, null);
+        break;
+      case "Webapps:RemoveReceipt:Return:KO":
+        this.removeMessageListeners(["Webapps:RemoveReceipt:Return:OK",
+                                     "Webapps:RemoveReceipt:Return:KO"]);
+        Services.DOMRequest.fireError(req, msg.error);
+        break;
+      case "Webapps:ReplaceReceipt:Return:OK":
+        this.removeMessageListeners(["Webapps:ReplaceReceipt:Return:OK",
+                                     "Webapps:ReplaceReceipt:Return:KO"]);
+        this.receipts = msg.receipts;
+        Services.DOMRequest.fireSuccess(req, null);
+        break;
+      case "Webapps:ReplaceReceipt:Return:KO":
+        this.removeMessageListeners(["Webapps:ReplaceReceipt:Return:OK",
+                                     "Webapps:ReplaceReceipt:Return:KO"]);
+        Services.DOMRequest.fireError(req, msg.error);
         break;
     }
   },

@@ -9,6 +9,9 @@ const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/FxAccounts.jsm");
 
+const PREF_LAST_FXA_USER = "identity.fxaccounts.lastSignedInUserHash";
+const PREF_SYNC_SHOW_CUSTOMIZATION = "services.sync.ui.showCustomizationDialog";
+
 function log(msg) {
   //dump("FXA: " + msg + "\n");
 };
@@ -17,16 +20,79 @@ function error(msg) {
   console.log("Firefox Account Error: " + msg + "\n");
 };
 
+function getPreviousAccountNameHash() {
+  try {
+    return Services.prefs.getComplexValue(PREF_LAST_FXA_USER, Ci.nsISupportsString).data;
+  } catch (_) {
+    return "";
+  }
+}
+
+function setPreviousAccountNameHash(acctName) {
+  let string = Cc["@mozilla.org/supports-string;1"]
+               .createInstance(Ci.nsISupportsString);
+  string.data = sha256(acctName);
+  Services.prefs.setComplexValue(PREF_LAST_FXA_USER, Ci.nsISupportsString, string);
+}
+
+function needRelinkWarning(acctName) {
+  let prevAcctHash = getPreviousAccountNameHash();
+  return prevAcctHash && prevAcctHash != sha256(acctName);
+}
+
+// Given a string, returns the SHA265 hash in base64
+function sha256(str) {
+  let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+                    .createInstance(Ci.nsIScriptableUnicodeConverter);
+  converter.charset = "UTF-8";
+  // Data is an array of bytes.
+  let data = converter.convertToByteArray(str, {});
+  let hasher = Cc["@mozilla.org/security/hash;1"]
+                 .createInstance(Ci.nsICryptoHash);
+  hasher.init(hasher.SHA256);
+  hasher.update(data, data.length);
+
+  return hasher.finish(true);
+}
+
+function promptForRelink(acctName) {
+  let sb = Services.strings.createBundle("chrome://browser/locale/syncSetup.properties");
+  let continueLabel = sb.GetStringFromName("continue.label");
+  let title = sb.GetStringFromName("relinkVerify.title");
+  let description = sb.formatStringFromName("relinkVerify.description",
+                                            [acctName], 1);
+  let body = sb.GetStringFromName("relinkVerify.heading") +
+             "\n\n" + description;
+  let ps = Services.prompt;
+  let buttonFlags = (ps.BUTTON_POS_0 * ps.BUTTON_TITLE_IS_STRING) +
+                    (ps.BUTTON_POS_1 * ps.BUTTON_TITLE_CANCEL) +
+                    ps.BUTTON_POS_1_DEFAULT;
+  let pressed = Services.prompt.confirmEx(window, title, body, buttonFlags,
+                                     continueLabel, null, null, null,
+                                     {});
+  return pressed == 0; // 0 is the "continue" button
+}
+
 let wrapper = {
   iframe: null,
 
-  init: function () {
+  init: function (url=null) {
+    let weave = Cc["@mozilla.org/weave/service;1"]
+                  .getService(Ci.nsISupports)
+                  .wrappedJSObject;
+
+    // Don't show about:accounts with FxA disabled.
+    if (!weave.fxAccountsEnabled) {
+      document.body.remove();
+      return;
+    }
+
     let iframe = document.getElementById("remote");
     this.iframe = iframe;
     iframe.addEventListener("load", this);
 
     try {
-      iframe.src = fxAccounts.getAccountsURI();
+      iframe.src = url || fxAccounts.getAccountsURI();
     } catch (e) {
       error("Couldn't init Firefox Account wrapper: " + e.message);
     }
@@ -52,6 +118,29 @@ let wrapper = {
    */
   onLogin: function (accountData) {
     log("Received: 'login'. Data:" + JSON.stringify(accountData));
+
+    if (accountData.customizeSync) {
+      Services.prefs.setBoolPref(PREF_SYNC_SHOW_CUSTOMIZATION, true);
+      delete accountData.customizeSync;
+    }
+
+    // If the last fxa account used for sync isn't this account, we display
+    // a modal dialog checking they really really want to do this...
+    // (This is sync-specific, so ideally would be in sync's identity module,
+    // but it's a little more seamless to do here, and sync is currently the
+    // only fxa consumer, so...
+    let newAccountEmail = accountData.email;
+    if (needRelinkWarning(newAccountEmail) && !promptForRelink(newAccountEmail)) {
+      // we need to tell the page we successfully received the message, but
+      // then bail without telling fxAccounts
+      this.injectData("message", { status: "login" });
+      // and reload the page or else it remains in a "signed in" state.
+      window.location.reload();
+      return;
+    }
+
+    // Remember who it was so we can log out next time.
+    setPreviousAccountNameHash(newAccountEmail);
 
     fxAccounts.setSignedInUser(accountData).then(
       () => {
@@ -129,5 +218,58 @@ let wrapper = {
   },
 };
 
-wrapper.init();
 
+// Button onclick handlers
+function handleOldSync() {
+  // we just want to navigate the current tab to the new location...
+  window.location = Services.urlFormatter.formatURLPref("app.support.baseURL") + "old-sync";
+}
+
+function getStarted() {
+  hide("intro");
+  hide("stage");
+  show("remote");
+}
+
+function openPrefs() {
+  window.openPreferences("paneSync");
+}
+
+function init() {
+  if (window.location.href.contains("action=signin")) {
+    show("remote");
+    wrapper.init();
+  } else if (window.location.href.contains("action=reauth")) {
+    fxAccounts.promiseAccountsForceSigninURI().then(url => {
+      show("remote");
+      wrapper.init(url);
+    });
+  } else {
+    // Check if we have a local account
+    fxAccounts.getSignedInUser().then(user => {
+      if (user) {
+        show("stage");
+        show("manage");
+        let sb = Services.strings.createBundle("chrome://browser/locale/syncSetup.properties");
+        document.title = sb.GetStringFromName("manage.pageTitle");
+      } else {
+        show("stage");
+        show("intro");
+        // load the remote frame in the background
+        wrapper.init();
+      }
+    });
+  }
+}
+
+function show(id) {
+  document.getElementById(id).style.display = 'block';
+}
+function hide(id) {
+  document.getElementById(id).style.display = 'none';
+}
+
+document.addEventListener("DOMContentLoaded", function onload() {
+  document.removeEventListener("DOMContentLoaded", onload, true);
+  init();
+}, true);

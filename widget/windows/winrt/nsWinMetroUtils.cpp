@@ -33,6 +33,8 @@ extern ComPtr<FrameworkView> sFrameworkView;
 namespace mozilla {
 namespace widget {
 
+bool nsWinMetroUtils::sUpdatePending = false;
+
 NS_IMPL_ISUPPORTS1(nsWinMetroUtils, nsIWinMetroUtils)
 
 nsWinMetroUtils::nsWinMetroUtils()
@@ -210,8 +212,13 @@ nsWinMetroUtils::ShowNativeToast(const nsAString &aTitle,
 
   HSTRING title = HStringReference(aTitle.BeginReading()).Get();
   HSTRING msg = HStringReference(aMessage.BeginReading()).Get();
-  HSTRING imagePath = HStringReference(anImage.BeginReading()).Get();
-  notification_handler->DisplayNotification(title, msg, imagePath, aCookie);
+
+  if (anImage.Length() > 0) {
+    HSTRING imagePath = HStringReference(anImage.BeginReading()).Get();
+    notification_handler->DisplayNotification(title, msg, imagePath, aCookie);
+  } else {
+    notification_handler->DisplayTextNotification(title, msg, aCookie);
+  }
 
   return NS_OK;
 }
@@ -309,6 +316,20 @@ NS_IMETHODIMP
 nsWinMetroUtils::SwapMouseButton(bool aValue, bool *aOriginalValue)
 {
   *aOriginalValue = ::SwapMouseButton(aValue);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWinMetroUtils::GetUpdatePending(bool *aUpdatePending)
+{
+  *aUpdatePending = sUpdatePending;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWinMetroUtils::SetUpdatePending(bool aUpdatePending)
+{
+  sUpdatePending = aUpdatePending;
   return NS_OK;
 }
 

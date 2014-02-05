@@ -35,6 +35,7 @@
 #include "nsIObserverService.h"
 #include "nsIObserver.h"
 #include "mozilla/Services.h"
+#include "nsThread.h"
 #include "nsThreadUtils.h"
 #include "nsAutoPtr.h"
 #include "nsNetUtil.h"
@@ -202,6 +203,7 @@ DataChannelConnection::DataChannelConnection(DataConnectionListener *listener) :
   mDeferTimeout = 10;
   mTimerRunning = false;
   LOG(("Constructor DataChannelConnection=%p, listener=%p", this, mListener.get()));
+  mInternalIOThread = nullptr;
 }
 
 DataChannelConnection::~DataChannelConnection()
@@ -214,10 +216,26 @@ DataChannelConnection::~DataChannelConnection()
 
   // Already disconnected from sigslot/mTransportFlow
   // TransportFlows must be released from the STS thread
-  if (mTransportFlow && !IsSTSThread()) {
-    ASSERT_WEBRTC(mSTS);
-    RUN_ON_THREAD(mSTS, WrapRunnableNM(ReleaseTransportFlow, mTransportFlow.forget()),
-                  NS_DISPATCH_NORMAL);
+  if (!IsSTSThread()) {
+    ASSERT_WEBRTC(NS_IsMainThread());
+    if (mTransportFlow) {
+      ASSERT_WEBRTC(mSTS);
+      RUN_ON_THREAD(mSTS, WrapRunnableNM(ReleaseTransportFlow, mTransportFlow.forget()),
+                    NS_DISPATCH_NORMAL);
+    }
+
+    if (mInternalIOThread) {
+      // Avoid spinning the event thread from here (which if we're mainthread
+      // is in the event loop already)
+      NS_DispatchToMainThread(WrapRunnable(nsCOMPtr<nsIThread>(mInternalIOThread),
+                                           &nsIThread::Shutdown),
+                              NS_DISPATCH_NORMAL);
+    }
+  } else {
+    // on STS, safe to call shutdown
+    if (mInternalIOThread) {
+      mInternalIOThread->Shutdown();
+    }
   }
 }
 
@@ -2252,14 +2270,59 @@ DataChannelConnection::SendBinary(DataChannel *channel, const char *data,
   return SendMsgInternal(channel, data, len, ppid_final);
 }
 
+class ReadBlobRunnable : public nsRunnable {
+public:
+  ReadBlobRunnable(DataChannelConnection* aConnection, uint16_t aStream,
+    nsIInputStream* aBlob) :
+    mConnection(aConnection),
+    mStream(aStream),
+    mBlob(aBlob)
+  { }
+
+  NS_IMETHODIMP Run() {
+    // ReadBlob() is responsible to releasing the reference
+    DataChannelConnection *self = mConnection;
+    self->ReadBlob(mConnection.forget(), mStream, mBlob);
+    return NS_OK;
+  }
+
+private:
+  // Make sure the Connection doesn't die while there are jobs outstanding.
+  // Let it die (if released by PeerConnectionImpl while we're running)
+  // when we send our runnable back to MainThread.  Then ~DataChannelConnection
+  // can send the IOThread to MainThread to die in a runnable, avoiding
+  // unsafe event loop recursion.  Evil.
+  nsRefPtr<DataChannelConnection> mConnection;
+  uint16_t mStream;
+  // Use RefCount for preventing the object is deleted when SendBlob returns.
+  nsRefPtr<nsIInputStream> mBlob;
+};
+
 int32_t
 DataChannelConnection::SendBlob(uint16_t stream, nsIInputStream *aBlob)
 {
   DataChannel *channel = mStreams[stream];
   NS_ENSURE_TRUE(channel, 0);
   // Spawn a thread to send the data
+  if (!mInternalIOThread) {
+    nsresult res = NS_NewThread(getter_AddRefs(mInternalIOThread));
+    if (NS_FAILED(res)) {
+      return -1;
+    }
+  }
 
-  LOG(("Sending blob to stream %u", stream));
+  nsCOMPtr<nsIRunnable> runnable = new ReadBlobRunnable(this, stream, aBlob);
+  mInternalIOThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
+  return 0;
+}
+
+void
+DataChannelConnection::ReadBlob(already_AddRefed<DataChannelConnection> aThis,
+                                uint16_t aStream, nsIInputStream* aBlob)
+{
+  // NOTE: 'aThis' has been forgotten by the caller to avoid releasing
+  // it off mainthread; if PeerConnectionImpl has released then we want
+  // ~DataChannelConnection() to run on MainThread
 
   // XXX to do this safely, we must enqueue these atomically onto the
   // output socket.  We need a sender thread(s?) to enque data into the
@@ -2269,29 +2332,24 @@ DataChannelConnection::SendBlob(uint16_t stream, nsIInputStream *aBlob)
 
   // For now as a hack, send as a single blast of queued packets which may
   // be deferred until buffer space is available.
-  nsAutoPtr<nsCString> temp(new nsCString());
+  nsCString temp;
   uint64_t len;
   aBlob->Available(&len);
-  nsresult rv = NS_ReadInputStreamToString(aBlob, *temp, len);
-
-  NS_ENSURE_SUCCESS(rv, 0);
-
+  nsresult rv = NS_ReadInputStreamToString(aBlob, temp, len);
+  if (NS_FAILED(rv)) {
+    // Bug 966602:  Doesn't return an error to the caller via onerror.
+    // Let aThis (aka this) be released when we exit out of paranoia
+    // instead of calling Release()
+    nsRefPtr<DataChannelConnection> self(aThis);
+    return;
+  }
   aBlob->Close();
-  //aBlob->Release(); We didn't AddRef() the way WebSocket does in OutboundMessage (yet)
-
-  // Consider if it makes sense to split the message ourselves for
-  // transmission, at least on RELIABLE channels.  Sending large blobs via
-  // unreliable channels requires some level of application involvement, OR
-  // sending them at big, single messages, which if large will probably not
-  // get through.
-
-  // XXX For now, send as one large binary message.  We should also signal
-  // (via PPID) that it's a blob.
-  const char *data = temp.get()->BeginReading();
-  len              = temp.get()->Length();
-
-  return SendBinary(channel, data, len,
-                    DATA_CHANNEL_PPID_BINARY, DATA_CHANNEL_PPID_BINARY_LAST);
+  nsCOMPtr<nsIThread> mainThread;
+  NS_GetMainThread(getter_AddRefs(mainThread));
+  RUN_ON_THREAD(mainThread, WrapRunnable(nsRefPtr<DataChannelConnection>(aThis),
+                               &DataChannelConnection::SendBinaryMsg,
+                               aStream, temp),
+                NS_DISPATCH_NORMAL);
 }
 
 int32_t

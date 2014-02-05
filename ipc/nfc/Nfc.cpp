@@ -21,6 +21,7 @@
 #endif
 
 #include "jsfriendapi.h"
+#include "mozilla/ArrayUtils.h"
 #include "nsThreadUtils.h" // For NS_IsMainThread.
 
 USING_WORKERS_NAMESPACE
@@ -134,7 +135,7 @@ ConnectWorkerToNFC::RunTask(JSContext* aCx)
     // communication.
     NS_ASSERTION(!NS_IsMainThread(), "Expecting to be on the worker thread");
     NS_ASSERTION(!JS_IsRunning(aCx), "Are we being called somehow?");
-    JSObject* workerGlobal = JS::CurrentGlobalOrNull(aCx);
+    JS::Rooted<JSObject*> workerGlobal(aCx, JS::CurrentGlobalOrNull(aCx));
 
     return !!JS_DefineFunction(aCx, workerGlobal,
                                "postNfcMessage", PostToNFC, 1, 0);
@@ -165,8 +166,8 @@ DispatchNFCEvent::RunTask(JSContext* aCx)
 
     memcpy(JS_GetArrayBufferViewData(array), mMessage->mData, mMessage->mSize);
     JS::Value argv[] = { OBJECT_TO_JSVAL(array) };
-    return JS_CallFunctionName(aCx, obj, "onNfcMessage", NS_ARRAY_LENGTH(argv),
-                               argv, argv);
+    return JS_CallFunctionName(aCx, obj, "onNfcMessage",
+                               mozilla::ArrayLength(argv), argv, argv);
 }
 
 class NfcConnector : public mozilla::ipc::UnixSocketConnector

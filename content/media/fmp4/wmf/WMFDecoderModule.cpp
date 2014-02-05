@@ -7,40 +7,51 @@
 #include "WMF.h"
 #include "WMFDecoderModule.h"
 #include "WMFDecoder.h"
-#include "WMFVideoDecoder.h"
-#include "WMFAudioDecoder.h"
+#include "WMFVideoOutputSource.h"
+#include "WMFAudioOutputSource.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/DebugOnly.h"
+#include "mp4_demuxer/audio_decoder_config.h"
+#include "WMFMediaDataDecoder.h"
 
 namespace mozilla {
 
+bool WMFDecoderModule::sIsWMFEnabled = false;
+bool WMFDecoderModule::sDXVAEnabled = false;
+
 WMFDecoderModule::WMFDecoderModule()
-  : mDXVAEnabled(Preferences::GetBool("media.windows-media-foundation.use-dxva", false))
 {
-  MOZ_ASSERT(NS_IsMainThread(), "Must be on main thread.");
 }
 
 WMFDecoderModule::~WMFDecoderModule()
 {
-  MOZ_ASSERT(NS_IsMainThread(), "Must be on main thread.");
 }
 
-nsresult
+/* static */
+void
 WMFDecoderModule::Init()
 {
   MOZ_ASSERT(NS_IsMainThread(), "Must be on main thread.");
-  if (!Preferences::GetBool("media.windows-media-foundation.enabled", false)) {
+  sIsWMFEnabled = Preferences::GetBool("media.windows-media-foundation.enabled", false);
+  if (!sIsWMFEnabled) {
+    return;
+  }
+  if (NS_FAILED(WMFDecoder::LoadDLLs())) {
+    sIsWMFEnabled = false;
+  }
+  sDXVAEnabled = Preferences::GetBool("media.windows-media-foundation.use-dxva", false);
+}
+
+nsresult
+WMFDecoderModule::Startup()
+{
+  if (!sIsWMFEnabled) {
     return NS_ERROR_FAILURE;
   }
-
-  nsresult rv = WMFDecoder::LoadDLLs();
-  NS_ENSURE_SUCCESS(rv, rv);
-
   if (FAILED(wmf::MFStartup())) {
     NS_WARNING("Failed to initialize Windows Media Foundation");
     return NS_ERROR_FAILURE;
   }
-
   return NS_OK;
 }
 
@@ -56,49 +67,27 @@ WMFDecoderModule::Shutdown()
 }
 
 MediaDataDecoder*
-WMFDecoderModule::CreateH264Decoder(mozilla::layers::LayersBackend aLayersBackend,
-                                    mozilla::layers::ImageContainer* aImageContainer)
+WMFDecoderModule::CreateH264Decoder(const mp4_demuxer::VideoDecoderConfig& aConfig,
+                                    mozilla::layers::LayersBackend aLayersBackend,
+                                    mozilla::layers::ImageContainer* aImageContainer,
+                                    MediaTaskQueue* aVideoTaskQueue,
+                                    MediaDataDecoderCallback* aCallback)
 {
-  nsAutoPtr<WMFVideoDecoder> decoder(new WMFVideoDecoder(mDXVAEnabled));
-  nsresult rv = decoder->Init(aLayersBackend, aImageContainer);
-  NS_ENSURE_SUCCESS(rv, nullptr);
-  return decoder.forget();
+  return new WMFMediaDataDecoder(new WMFVideoOutputSource(aLayersBackend,
+                                                          aImageContainer,
+                                                          sDXVAEnabled),
+                                 aVideoTaskQueue,
+                                 aCallback);
 }
 
 MediaDataDecoder*
-WMFDecoderModule::CreateAACDecoder(uint32_t aChannelCount,
-                                   uint32_t aSampleRate,
-                                   uint16_t aBitsPerSample,
-                                   const uint8_t* aUserData,
-                                   uint32_t aUserDataLength)
+WMFDecoderModule::CreateAACDecoder(const mp4_demuxer::AudioDecoderConfig& aConfig,
+                                   MediaTaskQueue* aAudioTaskQueue,
+                                   MediaDataDecoderCallback* aCallback)
 {
-  nsAutoPtr<WMFAudioDecoder> decoder(new WMFAudioDecoder());
-  nsresult rv = decoder->Init(aChannelCount,
-                              aSampleRate,
-                              aBitsPerSample,
-                              aUserData,
-                              aUserDataLength);
-  NS_ENSURE_SUCCESS(rv, nullptr);
-  return decoder.forget();
-}
-
-void
-WMFDecoderModule::OnDecodeThreadStart()
-{
-  MOZ_ASSERT(!NS_IsMainThread(), "Must not be on main thread.");
-  // XXX WebAudio can call this on the main thread when using deprecated APIs.
-  // That should not happen. You cannot change the concurrency model once already set.
-  // The main thread will continue to be STA, which seems to work, but MSDN
-  // recommends that MTA be used.
-  // TODO: enforce that WebAudio stops doing that!
-  CoInitializeEx(0, COINIT_MULTITHREADED);
-}
-
-void
-WMFDecoderModule::OnDecodeThreadFinish()
-{
-  MOZ_ASSERT(!NS_IsMainThread(), "Must be on main thread.");
-  CoUninitialize();
+  return new WMFMediaDataDecoder(new WMFAudioOutputSource(aConfig),
+                                 aAudioTaskQueue,
+                                 aCallback);
 }
 
 } // namespace mozilla

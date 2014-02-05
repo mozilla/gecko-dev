@@ -342,7 +342,7 @@ nsXULPopupManager::AdjustPopupsOnWindowChange(nsPIDOMWindow* aWindow)
           if (window) {
             window = window->GetPrivateRoot();
             if (window == aWindow) {
-              frame->SetPopupPosition(nullptr, true);
+              frame->SetPopupPosition(nullptr, true, false);
             }
           }
         }
@@ -395,7 +395,7 @@ nsXULPopupManager::PopupMoved(nsIFrame* aFrame, nsIntPoint aPnt)
     // the specified screen coordinates.
     if (menuPopupFrame->IsAnchored() &&
         menuPopupFrame->PopupLevel() == ePopupLevelParent) {
-      menuPopupFrame->SetPopupPosition(nullptr, true);
+      menuPopupFrame->SetPopupPosition(nullptr, true, false);
     }
     else {
       menuPopupFrame->MoveTo(aPnt.x, aPnt.y, false);
@@ -605,7 +605,7 @@ nsXULPopupManager::ShowMenu(nsIContent *aMenu,
 
   // there is no trigger event for menus
   InitTriggerEvent(nullptr, nullptr, nullptr);
-  popupFrame->InitializePopup(aMenu, nullptr, position, 0, 0, true);
+  popupFrame->InitializePopup(menuFrame->GetAnchor(), nullptr, position, 0, 0, true);
 
   if (aAsynchronous) {
     nsCOMPtr<nsIRunnable> event =
@@ -1385,21 +1385,21 @@ nsXULPopupManager::GetVisiblePopups(nsTArray<nsIFrame *>& aPopups)
 {
   aPopups.Clear();
 
+  // Iterate over both lists of popups
   nsMenuChainItem* item = mPopups;
-  while (item) {
-    if (item->Frame()->PopupState() == ePopupOpenAndVisible)
-      aPopups.AppendElement(static_cast<nsIFrame*>(item->Frame()));
-    item = item->GetParent();
-  }
+  for (int32_t list = 0; list < 2; list++) {
+    while (item) {
+      // Skip panels which are not open and visible as well as popups that
+      // are transparent to mouse events.
+      if (item->Frame()->PopupState() == ePopupOpenAndVisible &&
+          !item->Frame()->IsMouseTransparent()) {
+        aPopups.AppendElement(item->Frame());
+      }
 
-  item = mNoHidePanels;
-  while (item) {
-    // skip panels which are not open and visible as well as draggable popups,
-    // as those don't respond to events.
-    if (item->Frame()->PopupState() == ePopupOpenAndVisible && !item->Frame()->IsDragPopup()) {
-      aPopups.AppendElement(static_cast<nsIFrame*>(item->Frame()));
+      item = item->GetParent();
     }
-    item = item->GetParent();
+
+    item = mNoHidePanels;
   }
 }
 

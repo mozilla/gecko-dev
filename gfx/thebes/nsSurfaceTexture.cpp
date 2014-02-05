@@ -13,6 +13,7 @@
 #include "gfxImageSurface.h"
 #include "AndroidBridge.h"
 #include "nsThreadUtils.h"
+#include "mozilla/gfx/Matrix.h"
 
 using namespace mozilla;
 
@@ -27,15 +28,12 @@ public:
   {
   }
 
-  
   bool EnsureInitialized()
   {
     if (mInitialized)
       return true;
 
     JNIEnv* env = GetJNIForThread();
-    if (!env)
-      return false;
 
     AutoLocalJNIFrame jniFrame(env);
 
@@ -54,8 +52,6 @@ public:
       return nullptr;
 
     JNIEnv* env = GetJNIForThread();
-    if (!env)
-      return nullptr;
 
     AutoLocalJNIFrame jniFrame(env);
 
@@ -65,8 +61,6 @@ public:
   void ReleaseSurfaceTexture(jobject aSurfaceTexture)
   {
     JNIEnv* env = GetJNIForThread();
-    if (!env)
-      return;
 
     env->DeleteGlobalRef(aSurfaceTexture);
   }
@@ -74,18 +68,14 @@ public:
   void UpdateTexImage(jobject aSurfaceTexture)
   {
     JNIEnv* env = GetJNIForThread();
-    if (!env)
-      return;
 
     AutoLocalJNIFrame jniFrame(env);
-    env->CallObjectMethod(aSurfaceTexture, jSurfaceTexture_updateTexImage);
+    env->CallVoidMethod(aSurfaceTexture, jSurfaceTexture_updateTexImage);
   }
 
-  bool GetTransformMatrix(jobject aSurfaceTexture, gfx3DMatrix& aMatrix)
+  bool GetTransformMatrix(jobject aSurfaceTexture, gfx::Matrix4x4& aMatrix)
   {
     JNIEnv* env = GetJNIForThread();
-    if (!env)
-      return false;
 
     AutoLocalJNIFrame jniFrame(env);
 
@@ -113,7 +103,7 @@ public:
     aMatrix._42 = array[13];
     aMatrix._43 = array[14];
     aMatrix._44 = array[15];
- 
+
     env->ReleaseFloatArrayElements(jarray, array, 0);
 
     return false;
@@ -172,8 +162,6 @@ nsSurfaceTexture::Init(GLuint aTexture)
     return false;
 
   JNIEnv* env = GetJNIForThread();
-  if (!env)
-    return false;
 
   mSurfaceTexture = sJNIFunctions.CreateSurfaceTexture(aTexture);
   if (!mSurfaceTexture)
@@ -204,10 +192,8 @@ nsSurfaceTexture::~nsSurfaceTexture()
   }
 
   JNIEnv* env = GetJNIForThread();
-  if (!env)
-    return;
 
-  if (mSurfaceTexture && env) {
+  if (mSurfaceTexture) {
     GeckoAppShell::UnregisterSurfaceTextureFrameListener(mSurfaceTexture);
 
     env->DeleteGlobalRef(mSurfaceTexture);
@@ -228,7 +214,7 @@ nsSurfaceTexture::UpdateTexImage()
 }
 
 bool
-nsSurfaceTexture::GetTransformMatrix(gfx3DMatrix& aMatrix)
+nsSurfaceTexture::GetTransformMatrix(gfx::Matrix4x4& aMatrix)
 {
   return sJNIFunctions.GetTransformMatrix(mSurfaceTexture, aMatrix);
 }

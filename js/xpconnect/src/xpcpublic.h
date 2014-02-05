@@ -119,9 +119,6 @@ struct RuntimeStats;
 
 #define XPCONNECT_GLOBAL_FLAGS XPCONNECT_GLOBAL_FLAGS_WITH_EXTRA_SLOTS(0)
 
-extern bool
-xpc_OkToHandOutWrapper(nsWrapperCache *cache);
-
 inline JSObject*
 xpc_FastGetCachedWrapper(nsWrapperCache *cache, JSObject *scope, JS::MutableHandleValue vp)
 {
@@ -129,8 +126,8 @@ xpc_FastGetCachedWrapper(nsWrapperCache *cache, JSObject *scope, JS::MutableHand
         JSObject* wrapper = cache->GetWrapper();
         if (wrapper &&
             js::GetObjectCompartment(wrapper) == js::GetObjectCompartment(scope) &&
-            (cache->IsDOMBinding() ? !cache->HasSystemOnlyWrapper() :
-                                     xpc_OkToHandOutWrapper(cache))) {
+            !(cache->IsDOMBinding() && cache->HasSystemOnlyWrapper()))
+        {
             vp.setObject(*wrapper);
             return wrapper;
         }
@@ -250,8 +247,8 @@ private:
 namespace xpc {
 
 // If these functions return false, then an exception will be set on cx.
-NS_EXPORT_(bool) Base64Encode(JSContext *cx, JS::Value val, JS::Value *out);
-NS_EXPORT_(bool) Base64Decode(JSContext *cx, JS::Value val, JS::Value *out);
+NS_EXPORT_(bool) Base64Encode(JSContext *cx, JS::HandleValue val, JS::MutableHandleValue out);
+NS_EXPORT_(bool) Base64Decode(JSContext *cx, JS::HandleValue val, JS::MutableHandleValue out);
 
 /**
  * Convert an nsString to jsval, returning true on success.

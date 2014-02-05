@@ -50,6 +50,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "PlacesDBUtils",
                                   "resource://gre/modules/PlacesDBUtils.jsm");
 
 
+const LAST_NUMERIC_FIELD = {type: Metrics.Storage.FIELD_LAST_NUMERIC};
 const LAST_TEXT_FIELD = {type: Metrics.Storage.FIELD_LAST_TEXT};
 const DAILY_DISCRETE_NUMERIC_FIELD = {type: Metrics.Storage.FIELD_DAILY_DISCRETE_NUMERIC};
 const DAILY_LAST_NUMERIC_FIELD = {type: Metrics.Storage.FIELD_DAILY_LAST_NUMERIC};
@@ -415,7 +416,7 @@ SysInfoMeasurement.prototype = Object.freeze({
   __proto__: Metrics.Measurement.prototype,
 
   name: "sysinfo",
-  version: 1,
+  version: 2,
 
   fields: {
     cpuCount: {type: Metrics.Storage.FIELD_LAST_NUMERIC},
@@ -426,6 +427,7 @@ SysInfoMeasurement.prototype = Object.freeze({
     name: LAST_TEXT_FIELD,
     version: LAST_TEXT_FIELD,
     architecture: LAST_TEXT_FIELD,
+    isWow64: LAST_NUMERIC_FIELD,
   },
 });
 
@@ -452,6 +454,7 @@ SysInfoProvider.prototype = Object.freeze({
     name: "name",
     version: "version",
     arch: "architecture",
+    isWOW64: "isWow64",
   },
 
   collectConstantData: function () {
@@ -485,9 +488,16 @@ SysInfoProvider.prototype = Object.freeze({
           method = "setLastNumeric";
         }
 
-        // Round memory to mebibytes.
-        if (k == "memsize") {
-          value = Math.round(value / 1048576);
+        switch (k) {
+          case "memsize":
+            // Round memory to mebibytes.
+            value = Math.round(value / 1048576);
+            break;
+          case "isWow64":
+            // Property is only present on Windows. hasKey() skipping from
+            // above ensures undefined or null doesn't creep in here.
+            value = value ? 1 : 0;
+            break;
         }
 
         yield m[method](v, value);
@@ -686,8 +696,8 @@ function ActiveAddonsMeasurement() {
 ActiveAddonsMeasurement.prototype = Object.freeze({
   __proto__: Metrics.Measurement.prototype,
 
-  name: "active",
-  version: 1,
+  name: "addons",
+  version: 2,
 
   fields: {
     addons: LAST_TEXT_FIELD,
@@ -695,12 +705,51 @@ ActiveAddonsMeasurement.prototype = Object.freeze({
 
   _serializeJSONSingular: function (data) {
     if (!data.has("addons")) {
-      this._log.warn("Don't have active addons info. Weird.");
+      this._log.warn("Don't have addons info. Weird.");
       return null;
     }
 
     // Exceptions are caught in the caller.
     let result = JSON.parse(data.get("addons")[1]);
+    result._v = this.version;
+    return result;
+  },
+});
+
+/**
+ * Stores the set of active plugins in storage.
+ *
+ * This stores the data in a JSON blob in a text field similar to the
+ * ActiveAddonsMeasurement.
+ */
+function ActivePluginsMeasurement() {
+  Metrics.Measurement.call(this);
+
+  this._serializers = {};
+  this._serializers[this.SERIALIZE_JSON] = {
+    singular: this._serializeJSONSingular.bind(this),
+    // We don't need a daily serializer because we have none of this data.
+  };
+}
+
+ActivePluginsMeasurement.prototype = Object.freeze({
+  __proto__: Metrics.Measurement.prototype,
+
+  name: "plugins",
+  version: 1,
+
+  fields: {
+    plugins: LAST_TEXT_FIELD,
+  },
+
+  _serializeJSONSingular: function (data) {
+    if (!data.has("plugins")) {
+      this._log.warn("Don't have plugins info. Weird.");
+      return null;
+    }
+
+    // Exceptions are caught in the caller.
+    let result = JSON.parse(data.get("plugins")[1]);
     result._v = this.version;
     return result;
   },
@@ -773,7 +822,6 @@ AddonsProvider.prototype = Object.freeze({
   // Add-on types for which full details are uploaded in the
   // ActiveAddonsMeasurement. All other types are ignored.
   FULL_DETAIL_TYPES: [
-    "plugin",
     "extension",
     "service",
   ],
@@ -782,6 +830,7 @@ AddonsProvider.prototype = Object.freeze({
 
   measurementTypes: [
     ActiveAddonsMeasurement,
+    ActivePluginsMeasurement,
     AddonCountsMeasurement1,
     AddonCountsMeasurement,
   ],
@@ -816,9 +865,11 @@ AddonsProvider.prototype = Object.freeze({
     AddonManager.getAllAddons(function onAllAddons(addons) {
       let data;
       let addonsField;
+      let pluginsField;
       try {
         data = this._createDataStructure(addons);
         addonsField = JSON.stringify(data.addons);
+        pluginsField = JSON.stringify(data.plugins);
       } catch (ex) {
         this._log.warn("Exception when populating add-ons data structure: " +
                        CommonUtils.exceptionStr(ex));
@@ -827,7 +878,8 @@ AddonsProvider.prototype = Object.freeze({
       }
 
       let now = new Date();
-      let active = this.getMeasurement("active", 1);
+      let addons = this.getMeasurement("addons", 2);
+      let plugins = this.getMeasurement("plugins", 1);
       let counts = this.getMeasurement(AddonCountsMeasurement.prototype.name,
                                        AddonCountsMeasurement.prototype.version);
 
@@ -843,8 +895,13 @@ AddonsProvider.prototype = Object.freeze({
           counts.setDailyLastNumeric(type, data.counts[type], now);
         }
 
-        return active.setLastText("addons", addonsField).then(
-          function onSuccess() { deferred.resolve(); },
+        return addons.setLastText("addons", addonsField).then(
+          function onSuccess() {
+            return plugins.setLastText("plugins", pluginsField).then(
+              function onSuccess() { deferred.resolve(); },
+              function onError(error) { deferred.reject(error); }
+            );
+          },
           function onError(error) { deferred.reject(error); }
         );
       }.bind(this));
@@ -853,21 +910,41 @@ AddonsProvider.prototype = Object.freeze({
     return deferred.promise;
   },
 
-  COPY_FIELDS: [
+  COPY_ADDON_FIELDS: [
     "userDisabled",
     "appDisabled",
+    "name",
     "version",
     "type",
     "scope",
+    "description",
     "foreignInstall",
     "hasBinaryComponents",
   ],
 
+  COPY_PLUGIN_FIELDS: [
+    "name",
+    "version",
+    "description",
+    "blocklisted",
+    "disabled",
+    "clicktoplay",
+  ],
+
   _createDataStructure: function (addons) {
-    let data = {addons: {}, counts: {}};
+    let data = {
+      addons: {},
+      plugins: {},
+      counts: {}
+    };
 
     for (let addon of addons) {
       let type = addon.type;
+
+      // We count plugins separately below.
+      if (addon.type == "plugin")
+        continue;
+
       data.counts[type] = (data.counts[type] || 0) + 1;
 
       if (this.FULL_DETAIL_TYPES.indexOf(addon.type) == -1) {
@@ -875,7 +952,7 @@ AddonsProvider.prototype = Object.freeze({
       }
 
       let obj = {};
-      for (let field of this.COPY_FIELDS) {
+      for (let field of this.COPY_ADDON_FIELDS) {
         obj[field] = addon[field];
       }
 
@@ -888,8 +965,28 @@ AddonsProvider.prototype = Object.freeze({
       }
 
       data.addons[addon.id] = obj;
-
     }
+
+    let pluginTags = Cc["@mozilla.org/plugin/host;1"].
+                       getService(Ci.nsIPluginHost).
+                       getPluginTags({});
+
+    for (let tag of pluginTags) {
+      let obj = {
+        mimeTypes: tag.getMimeTypes({}),
+      };
+
+      for (let field of this.COPY_PLUGIN_FIELDS) {
+        obj[field] = tag[field];
+      }
+
+      // Plugins need to have a filename and a name, so this can't be empty.
+      let id = tag.filename + ":" + tag.name + ":" + tag.version + ":"
+               + tag.description;
+      data.plugins[id] = obj;
+    }
+
+    data.counts["plugin"] = pluginTags.length;
 
     return data;
   },
@@ -1357,6 +1454,27 @@ HealthReportSubmissionMeasurement1.prototype = Object.freeze({
   },
 });
 
+function HealthReportSubmissionMeasurement2() {
+  Metrics.Measurement.call(this);
+}
+
+HealthReportSubmissionMeasurement2.prototype = Object.freeze({
+  __proto__: Metrics.Measurement.prototype,
+
+  name: "submissions",
+  version: 2,
+
+  fields: {
+    firstDocumentUploadAttempt: DAILY_COUNTER_FIELD,
+    continuationUploadAttempt: DAILY_COUNTER_FIELD,
+    uploadSuccess: DAILY_COUNTER_FIELD,
+    uploadTransportFailure: DAILY_COUNTER_FIELD,
+    uploadServerFailure: DAILY_COUNTER_FIELD,
+    uploadClientFailure: DAILY_COUNTER_FIELD,
+    uploadAlreadyInProgress: DAILY_COUNTER_FIELD,
+  },
+});
+
 this.HealthReportProvider = function () {
   Metrics.Provider.call(this);
 }
@@ -1366,10 +1484,13 @@ HealthReportProvider.prototype = Object.freeze({
 
   name: "org.mozilla.healthreport",
 
-  measurementTypes: [HealthReportSubmissionMeasurement1],
+  measurementTypes: [
+    HealthReportSubmissionMeasurement1,
+    HealthReportSubmissionMeasurement2,
+  ],
 
   recordEvent: function (event, date=new Date()) {
-    let m = this.getMeasurement("submissions", 1);
+    let m = this.getMeasurement("submissions", 2);
     return this.enqueueStorageOperation(function recordCounter() {
       return m.incrementDailyCounter(event, date);
     });

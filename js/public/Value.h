@@ -456,7 +456,7 @@ static inline jsval_layout
 STRING_TO_JSVAL_IMPL(JSString *str)
 {
     jsval_layout l;
-    MOZ_ASSERT(str);
+    MOZ_ASSERT(uintptr_t(str) > 0x1000);
     l.s.tag = JSVAL_TAG_STRING;
     l.s.payload.str = str;
     return l;
@@ -524,7 +524,7 @@ static inline jsval_layout
 OBJECT_TO_JSVAL_IMPL(JSObject *obj)
 {
     jsval_layout l;
-    MOZ_ASSERT(obj);
+    MOZ_ASSERT(uintptr_t(obj) > 0x1000 || uintptr_t(obj) == 0x42);
     l.s.tag = JSVAL_TAG_OBJECT;
     l.s.payload.obj = obj;
     return l;
@@ -678,7 +678,7 @@ STRING_TO_JSVAL_IMPL(JSString *str)
 {
     jsval_layout l;
     uint64_t strBits = (uint64_t)str;
-    MOZ_ASSERT(str);
+    MOZ_ASSERT(uintptr_t(str) > 0x1000);
     MOZ_ASSERT((strBits >> JSVAL_TAG_SHIFT) == 0);
     l.asBits = strBits | JSVAL_SHIFTED_TAG_STRING;
     return l;
@@ -749,7 +749,7 @@ OBJECT_TO_JSVAL_IMPL(JSObject *obj)
 {
     jsval_layout l;
     uint64_t objBits = (uint64_t)obj;
-    MOZ_ASSERT(obj);
+    MOZ_ASSERT(uintptr_t(obj) > 0x1000 || uintptr_t(obj) == 0x42);
     MOZ_ASSERT((objBits >> JSVAL_TAG_SHIFT) == 0);
     l.asBits = objBits | JSVAL_SHIFTED_TAG_OBJECT;
     return l;
@@ -896,7 +896,7 @@ CanonicalizeNaN(double d)
  *       !JSVAL_IS_PRIMITIVE(v) === v.isObject()
  *
  *   Also, to help prevent mistakenly boxing a nullable JSObject* as an object,
- *   Value::setObject takes a JSObject&. (Conversely, Value::asObject returns a
+ *   Value::setObject takes a JSObject&. (Conversely, Value::toObject returns a
  *   JSObject&.)  A convenience member Value::setObjectOrNull is provided.
  *
  * - JSVAL_VOID is the same as the singleton value of the Undefined type.
@@ -1951,8 +1951,8 @@ extern JS_PUBLIC_DATA(const jsval) JSVAL_VOID;
 
 namespace JS {
 
-extern JS_PUBLIC_DATA(const Handle<Value>) NullHandleValue;
-extern JS_PUBLIC_DATA(const Handle<Value>) UndefinedHandleValue;
+extern JS_PUBLIC_DATA(const HandleValue) NullHandleValue;
+extern JS_PUBLIC_DATA(const HandleValue) UndefinedHandleValue;
 
 }
 

@@ -257,6 +257,14 @@ BluetoothA2dpManager::HandleSinkPropertyChanged(const BluetoothSignal& aSignal)
   MOZ_ASSERT(aSignal.value().type() == BluetoothValue::TArrayOfBluetoothNamedValue);
 
   const nsString& address = aSignal.path();
+  /**
+   * Update sink property only if
+   * - mDeviceAddress is empty (A2dp is disconnected), or
+   * - this property change is from the connected sink.
+   */
+  NS_ENSURE_TRUE_VOID(mDeviceAddress.IsEmpty() ||
+                      mDeviceAddress.Equals(address));
+
   const InfallibleTArray<BluetoothNamedValue>& arr =
     aSignal.value().get_ArrayOfBluetoothNamedValue();
   MOZ_ASSERT(arr.Length() == 1);
@@ -390,8 +398,8 @@ void
 BluetoothA2dpManager::UpdateMetaData(const nsAString& aTitle,
                                      const nsAString& aArtist,
                                      const nsAString& aAlbum,
-                                     uint32_t aMediaNumber,
-                                     uint32_t aTotalMediaCount,
+                                     uint64_t aMediaNumber,
+                                     uint64_t aTotalMediaCount,
                                      uint32_t aDuration)
 {
   mTitle.Assign(aTitle);
@@ -436,7 +444,7 @@ BluetoothA2dpManager::GetPosition()
   return mPosition;
 }
 
-uint32_t
+uint64_t
 BluetoothA2dpManager::GetMediaNumber()
 {
   return mMediaNumber;

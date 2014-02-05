@@ -1356,6 +1356,12 @@ const int32_t nsCSSProps::kMathVariantKTable[] = {
   eCSSKeyword_UNKNOWN,-1
 };
 
+const int32_t nsCSSProps::kMathDisplayKTable[] = {
+  eCSSKeyword_inline, NS_MATHML_DISPLAYSTYLE_INLINE,
+  eCSSKeyword_block, NS_MATHML_DISPLAYSTYLE_BLOCK,
+  eCSSKeyword_UNKNOWN,-1
+};
+
 const int32_t nsCSSProps::kContextOpacityKTable[] = {
   eCSSKeyword_context_fill_opacity, NS_STYLE_CONTEXT_FILL_OPACITY,
   eCSSKeyword_context_stroke_opacity, NS_STYLE_CONTEXT_STROKE_OPACITY,
@@ -1588,6 +1594,12 @@ const int32_t nsCSSProps::kTextTransformKTable[] = {
   eCSSKeyword_uppercase, NS_STYLE_TEXT_TRANSFORM_UPPERCASE,
   eCSSKeyword_full_width, NS_STYLE_TEXT_TRANSFORM_FULLWIDTH,
   eCSSKeyword_UNKNOWN,-1
+};
+
+const int32_t nsCSSProps::kTouchActionKTable[] = {
+  eCSSKeyword_pan_x, NS_STYLE_TOUCH_ACTION_PAN_X,
+  eCSSKeyword_pan_y, NS_STYLE_TOUCH_ACTION_PAN_Y,
+  eCSSKeyword_UNKNOWN, -1
 };
 
 const int32_t nsCSSProps::kTransitionTimingFunctionKTable[] = {

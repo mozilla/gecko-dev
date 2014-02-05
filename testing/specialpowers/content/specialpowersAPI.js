@@ -42,6 +42,13 @@ function bindDOMWindowUtils(aWindow) {
 }
 
 function getRawComponents(aWindow) {
+  // If we're running in automation that supports enablePrivilege, then we also
+  // provided access to the privileged Components.
+  try {
+    let win = Cu.waiveXrays(aWindow);
+    if (typeof win.netscape.security.PrivilegeManager == 'object')
+      Cu.forcePrivilegedComponentsForScope(aWindow);
+  } catch (e) {}
   return Cu.getComponentsForScope(aWindow);
 }
 
@@ -549,20 +556,42 @@ SpecialPowersAPI.prototype = {
   },
 
   /*
+   * In general, any Components object created for unprivileged scopes is
+   * neutered (it implements nsIXPCComponentsBase, but not nsIXPCComponents).
+   * We override this in certain legacy automation configurations (see the
+   * implementation of getRawComponents() above), but don't want to support
+   * it in cases where it isn't already required.
+   *
+   * In scopes with neutered Components, we don't have a natural referent for
+   * things like SpecialPowers.Cc. So in those cases, we fall back to the
+   * Components object from the SpecialPowers scope. This doesn't quite behave
+   * the same way (in particular, SpecialPowers.Cc[foo].createInstance() will
+   * create an instance in the SpecialPowers scope), but SpecialPowers wrapping
+   * is already a YMMV / Whatever-It-Takes-To-Get-TBPL-Green sort of thing.
+   *
+   * It probably wouldn't be too much work to just make SpecialPowers.Components
+   * unconditionally point to the Components object in the SpecialPowers scope.
+   * Try will tell what needs to be fixed up.
+   */
+  getFullComponents: function() {
+    return typeof this.Components.classes == 'object' ? this.Components
+                                                      : Components;
+  },
+
+  /*
    * Convenient shortcuts to the standard Components abbreviations. Note that
    * we don't SpecialPowers-wrap Components.interfaces, because it's available
    * to untrusted content, and wrapping it confuses QI and identity checks.
    */
-  get Cc() { return wrapPrivileged(this.Components).classes; },
+  get Cc() { return wrapPrivileged(this.getFullComponents()).classes; },
   get Ci() { return this.Components.interfaces; },
-  get Cu() { return wrapPrivileged(this.Components).utils; },
+  get Cu() { return wrapPrivileged(this.getFullComponents()).utils; },
   get Cr() { return wrapPrivileged(this.Components).results; },
 
   /*
-   * SpecialPowers.getRawComponents() allows content to get a reference to the
-   * naked (non-SpecialPowers-wrapped) Components object for its scope. This
-   * object is normally hidden away on a scope chain available only to XBL
-   * functions.
+   * SpecialPowers.getRawComponents() allows content to get a reference to a
+   * naked (and, in certain automation configurations, privileged) Components
+   * object for its scope.
    *
    * SpecialPowers.getRawComponents(window) is defined as the global property
    * window.SpecialPowers.Components for convenience.
@@ -602,6 +631,16 @@ SpecialPowersAPI.prototype = {
       self._unexpectedCrashDumpFiles[aFilename] = true;
     });
     return crashDumpFiles;
+  },
+
+  _delayCallbackTwice: function(callback) {
+    function delayedCallback() {
+      function delayAgain() {
+	content.window.setTimeout(callback, 0);
+      }
+      content.window.setTimeout(delayAgain, 0);
+    }
+    return delayedCallback;
   },
 
   /* apply permissions to the system and when the test case is finished (SimpleTest.finish())
@@ -676,14 +715,9 @@ SpecialPowersAPI.prototype = {
       // that the callback checks for. The second delay is because pref
       // observers often defer making their changes by posting an event to the
       // event loop.
-      function delayedCallback() {
-        function delayAgain() {
-          content.window.setTimeout(callback, 0);
-        }
-        content.window.setTimeout(delayAgain, 0);
-      }
       this._permissionsUndoStack.push(cleanupPermissions);
-      this._pendingPermissions.push([pendingPermissions, delayedCallback]);
+      this._pendingPermissions.push([pendingPermissions,
+				     this._delayCallbackTwice(callback)]);
       this._applyPermissions();
     } else {
       content.window.setTimeout(callback, 0);
@@ -693,13 +727,7 @@ SpecialPowersAPI.prototype = {
   popPermissions: function(callback) {
     if (this._permissionsUndoStack.length > 0) {
       // See pushPermissions comment regarding delay.
-      function delayedCallback() {
-        function delayAgain() {
-          content.window.setTimeout(callback, 0);
-        }
-        content.window.setTimeout(delayAgain, 0);
-      }
-      let cb = callback ? delayedCallback : null;
+      let cb = callback ? this._delayCallbackTwice(callback) : null;
       /* Each pop from the stack will yield an object {op/type/permission/value/url/appid/isInBrowserElement} or null */
       this._pendingPermissions.push([this._permissionsUndoStack.pop(), cb]);
       this._applyPermissions();
@@ -876,14 +904,9 @@ SpecialPowersAPI.prototype = {
       // that the callback checks for. The second delay is because pref
       // observers often defer making their changes by posting an event to the
       // event loop.
-      function delayedCallback() {
-        function delayAgain() {
-          content.window.setTimeout(callback, 0);
-        }
-        content.window.setTimeout(delayAgain, 0);
-      }
       this._prefEnvUndoStack.push(cleanupActions);
-      this._pendingPrefs.push([pendingActions, delayedCallback]);
+      this._pendingPrefs.push([pendingActions,
+			       this._delayCallbackTwice(callback)]);
       this._applyPrefs();
     } else {
       content.window.setTimeout(callback, 0);
@@ -893,13 +916,7 @@ SpecialPowersAPI.prototype = {
   popPrefEnv: function(callback) {
     if (this._prefEnvUndoStack.length > 0) {
       // See pushPrefEnv comment regarding delay.
-      function delayedCallback() {
-        function delayAgain() {
-          content.window.setTimeout(callback, 0);
-        }
-        content.window.setTimeout(delayAgain, 0);
-      }
-      let cb = callback ? delayedCallback : null;
+      let cb = callback ? this._delayCallbackTwice(callback) : null;
       /* Each pop will have a valid block of preferences */
       this._pendingPrefs.push([this._prefEnvUndoStack.pop(), cb]);
       this._applyPrefs();
@@ -1662,7 +1679,8 @@ SpecialPowersAPI.prototype = {
       throw new Error("Can't send subject to another process!");
     }
     if (this.isMainProcess()) {
-      return this.notifyObservers(subject, topic, data);
+      this.notifyObservers(subject, topic, data);
+      return;
     }
     var msg = {
       'op': 'notify',

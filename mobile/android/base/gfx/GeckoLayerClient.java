@@ -121,8 +121,15 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
         DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
         mViewportMetrics = new ImmutableViewportMetrics(displayMetrics)
                            .setViewportSize(view.getWidth(), view.getHeight());
-        mFrameMetrics = mViewportMetrics;
         mZoomConstraints = new ZoomConstraints(false);
+
+        Tab tab = Tabs.getInstance().getSelectedTab();
+        if (tab != null) {
+            mZoomConstraints = tab.getZoomConstraints();
+            mViewportMetrics = mViewportMetrics.setIsRTL(tab.getIsRTL());
+        }
+
+        mFrameMetrics = mViewportMetrics;
 
         mPanZoomController = PanZoomController.Factory.create(this, view, eventDispatcher);
         mMarginsAnimator = new LayerMarginsAnimator(this, view);
@@ -291,6 +298,15 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
         // The maximum margins are determined by the scrollable area of the page.
         float maxMarginWidth = Math.max(0, metrics.getPageWidth() - metrics.getWidthWithoutMargins());
         float maxMarginHeight = Math.max(0, metrics.getPageHeight() - metrics.getHeightWithoutMargins());
+
+        // If the margins can't fully hide, they're pinned on - in which case,
+        // fixed margins should always be zero.
+        if (maxMarginWidth < metrics.marginLeft + metrics.marginRight) {
+          maxMarginWidth = 0;
+        }
+        if (maxMarginHeight < metrics.marginTop + metrics.marginBottom) {
+          maxMarginHeight = 0;
+        }
 
         PointF offset = metrics.getMarginOffset();
         RectF overscroll = metrics.getOverscroll();

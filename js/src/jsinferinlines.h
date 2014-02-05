@@ -22,7 +22,6 @@
 #include "vm/StringObject.h"
 #include "vm/TypedArrayObject.h"
 
-#include "jsanalyzeinlines.h"
 #include "jscntxtinlines.h"
 
 namespace js {
@@ -388,8 +387,10 @@ EnsureTrackPropertyTypes(JSContext *cx, JSObject *obj, jsid id)
             cx->clearPendingException();
             return;
         }
-        if (!obj->type()->unknownProperties())
-            obj->type()->getProperty(cx, id);
+        if (!obj->type()->unknownProperties() && !obj->type()->getProperty(cx, id)) {
+            cx->compartment()->types.setPendingNukeTypes(cx);
+            return;
+        }
     }
 
     JS_ASSERT(obj->type()->unknownProperties() || TrackPropertyTypes(cx, obj, id));
@@ -1428,7 +1429,7 @@ JSScript::ensureRanAnalysis(JSContext *cx)
         return false;
     if (!hasAnalysis() && !makeAnalysis(cx))
         return false;
-    JS_ASSERT(analysis()->ranBytecode());
+    JS_ASSERT(hasAnalysis());
     return true;
 }
 

@@ -171,6 +171,9 @@ pref("browser.chrome.image_icons.max_size", 1024);
 
 pref("browser.triple_click_selects_paragraph", true);
 
+// Print/Preview Shrink-To-Fit won't shrink below 20% for text-ish documents.
+pref("print.shrink-to-fit.scale-limit-percent", 20);
+
 // Media cache size in kilobytes
 pref("media.cache_size", 512000);
 
@@ -229,8 +232,8 @@ pref("media.navigator.video.default_height",480);
 pref("media.navigator.video.default_fps",30);
 pref("media.navigator.video.default_minfps",10);
 #ifdef MOZ_WIDGET_GONK
-pref("media.peerconnection.enabled", false);
-pref("media.peerconnection.video.enabled", false);
+pref("media.peerconnection.enabled", true);
+pref("media.peerconnection.video.enabled", true);
 pref("media.navigator.video.max_fs", 1200); // 640x480 == 1200mb
 pref("media.navigator.video.max_fr", 30);
 #else
@@ -271,6 +274,12 @@ pref("media.mediasource.enabled", false);
 
 #ifdef MOZ_WEBSPEECH
 pref("media.webspeech.recognition.enable", false);
+#endif
+#ifdef MOZ_WEBM_ENCODER
+pref("media.encoder.webm.enabled", true);
+#endif
+#ifdef MOZ_OMX_ENCODER
+pref("media.encoder.omx.enabled", true);
 #endif
 
 // Whether to enable Web Audio support
@@ -359,17 +368,9 @@ pref("gfx.font_rendering.graphite.enabled", true);
 // (see http://mxr.mozilla.org/mozilla-central/ident?i=ShapingType)
 // Scripts not listed are grouped in the default category.
 // Set the pref to 255 to have all text shaped via the harfbuzz backend.
-#ifdef XP_WIN
-// Use harfbuzz for everything except Hangul (0x08). Harfbuzz doesn't yet
-// have a Hangul shaper, which means that the marks U+302E/302F would not
-// reorder properly in Malgun Gothic or similar fonts.
-pref("gfx.font_rendering.harfbuzz.scripts", 247);
-#else
-// Use harfbuzz for all scripts (except when using AAT fonts on OS X).
-// AFAICT, Core Text doesn't support full OpenType Hangul shaping anyway,
-// so there's no benefit to excluding it here.
+// Default setting:
+// We use harfbuzz for all scripts (except when using AAT fonts on OS X).
 pref("gfx.font_rendering.harfbuzz.scripts", 255);
-#endif
 
 #ifdef XP_WIN
 pref("gfx.font_rendering.directwrite.enabled", false);
@@ -430,6 +431,7 @@ pref("accessibility.tabfocus_applies_to_xul", true);
 
 // provide ability to turn on support for canvas focus rings
 pref("canvas.focusring.enabled", false);
+pref("canvas.customfocusring.enabled", false);
 
 // We want the ability to forcibly disable platform a11y, because
 // some non-a11y-related components attempt to bring it up.  See bug
@@ -742,7 +744,6 @@ pref("javascript.options.ion.chrome",       false);
 pref("javascript.options.asmjs",            true);
 pref("javascript.options.parallel_parsing", true);
 pref("javascript.options.ion.parallel_compilation", true);
-pref("javascript.options.jit_hardening", true);
 pref("javascript.options.typeinference.content", true);
 pref("javascript.options.typeinference.chrome", false);
 // This preference limits the memory usage of javascript.
@@ -1267,6 +1268,8 @@ pref("network.seer.preconnect-min-confidence", 90);
 pref("network.seer.preresolve-min-confidence", 60);
 pref("network.seer.redirect-likely-confidence", 75);
 pref("network.seer.max-queue-size", 50);
+pref("network.seer.max-db-size", 157286400); // bytes
+pref("network.seer.preserve", 80); // percentage of seer data to keep when cleaning up
 
 
 // The following prefs pertain to the negotiate-auth extension (see bug 17578),
@@ -1755,6 +1758,9 @@ pref("layout.css.sticky.enabled", false);
 pref("layout.css.sticky.enabled", true);
 #endif
 
+// Is support for CSS "will-change" enabled?
+pref("layout.css.will-change.enabled", false);
+
 // Is support for CSS "text-align: true X" enabled?
 pref("layout.css.text-align-true-value.enabled", false);
 
@@ -1779,6 +1785,7 @@ pref("layout.css.prefixes.border-image", true);
 pref("layout.css.prefixes.transforms", true);
 pref("layout.css.prefixes.transitions", true);
 pref("layout.css.prefixes.animations", true);
+pref("layout.css.prefixes.box-sizing", true);
 
 // Is support for the :scope selector enabled?
 #ifdef RELEASE_BUILD
@@ -1868,13 +1875,6 @@ pref("dom.max_script_run_time", 10);
 
 // If true, ArchiveReader will be enabled
 pref("dom.archivereader.enabled", false);
-
-// If true, Promise will be enabled
-#ifdef RELEASE_BUILD
-pref("dom.promise.enabled", false);
-#else
-pref("dom.promise.enabled", true);
-#endif
 
 // Hang monitor timeout after which we kill the browser, in seconds
 // (0 is disabled)
@@ -2552,11 +2552,19 @@ pref("intl.keyboard.per_window_layout", false);
 
 #ifdef NS_ENABLE_TSF
 // Enable/Disable TSF support
-pref("intl.enable_tsf_support", false);
+pref("intl.tsf.enable", false);
+
+// Support IMEs implemented with IMM in TSF mode.
+pref("intl.tsf.support_imm", true);
 
 // We need to notify the layout change to TSF, but we cannot check the actual
 // change now, therefore, we always notify it by this fequency.
 pref("intl.tsf.on_layout_change_interval", 100);
+
+// Enables/Disables hack for specific TIP.
+
+// Whether creates native caret for ATOK or not.
+pref("intl.tsf.hack.atok.create_native_caret", true);
 #endif
 
 // See bug 448927, on topmost panel, some IMEs are not usable on Windows.
@@ -3836,6 +3844,12 @@ pref("mousewheel.system_scroll_override_on_root_content.enabled", false);
 
 pref("ui.key.menuAccessKeyFocuses", true);
 
+#if MOZ_WIDGET_GTK == 2
+pref("intl.ime.use_simple_context_on_password_field", true);
+#else
+pref("intl.ime.use_simple_context_on_password_field", false);
+#endif
+
 # XP_UNIX
 #endif
 #endif
@@ -4073,25 +4087,33 @@ pref("layers.scroll-graph", false);
 
 // Set the default values, and then override per-platform as needed
 pref("layers.offmainthreadcomposition.enabled", false);
+// Compositor target frame rate. NOTE: If vsync is enabled the compositor
+// frame rate will still be capped.
+// -1 -> default (match layout.frame_rate or 60 FPS)
+// 0  -> full-tilt mode: Recomposite even if not transaction occured.
+pref("layers.offmainthreadcomposition.frame-rate", -1);
 // Whether to use the deprecated texture architecture rather than the new one.
-pref("layers.use-deprecated-textures", true);
 #ifndef XP_WIN
 // Asynchonous video compositing using the ImageBridge IPDL protocol.
 // requires off-main-thread compositing.
 // Never works on Windows, so no point pref'ing it on.
 pref("layers.async-video.enabled",false);
+pref("layers.use-deprecated-textures", true);
+#endif
+
+#ifdef MOZ_X11
+// OMTC off by default on Linux, but if activated, use new textures and async-video.
+pref("layers.async-video.enabled", true);
 #endif
 
 #ifdef XP_MACOSX
 pref("layers.offmainthreadcomposition.enabled", true);
-pref("layers.use-deprecated-textures", false);
 pref("layers.async-video.enabled",true);
 #endif
 
 // ANDROID covers android and b2g
 #ifdef ANDROID
 pref("layers.offmainthreadcomposition.enabled", true);
-pref("layers.use-deprecated-textures", false);
 pref("layers.async-video.enabled",true);
 #endif
 
@@ -4104,8 +4126,6 @@ pref("layers.offmainthreadcomposition.force-basic", false);
 
 // Whether to animate simple opacity and transforms on the compositor
 pref("layers.offmainthreadcomposition.async-animations", false);
-// Whether to prefer normal memory over shared memory. Ignored with cross-process compositing
-pref("layers.prefer-memory-over-shmem", true);
 
 pref("layers.bufferrotation.enabled", true);
 
@@ -4238,6 +4258,9 @@ pref("dom.w3c_touch_events.enabled", 2);
 // W3C draft pointer events
 pref("dom.w3c_pointer_events.enabled", false);
 
+// W3C touch-action css property (related to touch and pointer events)
+pref("layout.css.touch_action.enabled", false);
+
 // enable JS dump() function.
 pref("browser.dom.window.dump.enabled", false);
 
@@ -4281,6 +4304,9 @@ pref("memory.free_dirty_pages", false);
 #ifdef XP_LINUX
 pref("memory.system_memory_reporter", false);
 #endif
+
+// Number of stack frames to capture in createObjectURL for about:memory.
+pref("memory.blob_report.stack_frames", 0);
 
 pref("social.enabled", false);
 // comma separated list of domain origins (e.g. https://domain.com) for

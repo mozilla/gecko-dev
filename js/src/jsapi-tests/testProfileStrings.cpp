@@ -40,9 +40,9 @@ test_fn(JSContext *cx, unsigned argc, jsval *vp)
 static bool
 test_fn2(JSContext *cx, unsigned argc, jsval *vp)
 {
-    jsval r;
+    JS::RootedValue r(cx);
     JS::RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
-    return JS_CallFunctionName(cx, global, "d", 0, nullptr, &r);
+    return JS_CallFunctionName(cx, global, "d", 0, nullptr, r.address());
 }
 
 static bool
@@ -82,7 +82,7 @@ initialize(JSContext *cx)
 {
     js::SetRuntimeProfilingStack(cx->runtime(), pstack, &psize, 10);
     JS::RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
-    return JS_InitClass(cx, global, nullptr, &ptestClass, Prof, 0,
+    return JS_InitClass(cx, global, js::NullPtr(), &ptestClass, Prof, 0,
                         nullptr, ptestFunctions, nullptr, nullptr);
 }
 

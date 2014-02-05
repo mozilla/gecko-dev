@@ -313,6 +313,56 @@ toolbarbutton.bookmark-item[open="true"] {
   list-style-image: url("chrome://browser/skin/places/bookmarksToolbar.png") !important;
 }
 
+toolbarpaletteitem[place="palette"] > #personal-bookmarks > #bookmarks-toolbar-placeholder,
+#personal-bookmarks[cui-areatype="menu-panel"] > #bookmarks-toolbar-placeholder {
+  list-style-image: url("chrome://browser/skin/places/bookmarksToolbar-menuPanel.png") !important;
+}
+
+/* ----- BOOKMARK STAR ANIMATION ----- */
+
+@keyframes animation-bookmarkAdded {
+  from { transform: rotate(0deg) translateX(-16px) rotate(0deg) scale(1); opacity: 0; }
+  60%  { transform: rotate(180deg) translateX(-16px) rotate(-180deg) scale(2.2); opacity: 1; }
+  80%  { opacity: 1; }
+  to   { transform: rotate(180deg) translateX(-16px) rotate(-180deg) scale(1); opacity: 0; }
+}
+
+@keyframes animation-bookmarkPulse {
+  from { transform: scale(1); }
+  50%  { transform: scale(1.3); }
+  to   { transform: scale(1); }
+}
+
+#bookmarked-notification-container {
+  min-height: 1px;
+  min-width: 1px;
+  height: 1px;
+  margin-bottom: -1px;
+  z-index: 5;
+  position: relative;
+}
+
+#bookmarked-notification {
+  background-size: 16px;
+  background-position: center;
+  background-repeat: no-repeat;
+  width: 16px;
+  height: 16px;
+  opacity: 0;
+}
+
+#bookmarked-notification-anchor[notification="finish"] > #bookmarked-notification {
+  background-image: url("chrome://browser/skin/places/bookmarks-notification-finish.png");
+  animation: animation-bookmarkAdded 800ms;
+  animation-timing-function: ease ease ease linear;
+}
+
+#bookmarks-menu-button[notification="finish"] > .toolbarbutton-menubutton-dropmarker > .dropmarker-icon {
+  animation: animation-bookmarkPulse 300ms;
+  animation-delay: 600ms;
+  animation-timing-function: ease-out;
+}
+
 /* ::::: bookmark menus ::::: */
 
 menu.bookmark-item,
@@ -720,43 +770,18 @@ menuitem.bookmark-item {
   list-style-image: url("chrome://browser/skin/Toolbar-inverted.png");
 }
 
-#sync-button[status="active"] {
-  list-style-image: url("chrome://browser/skin/sync-throbber.png");
+#sync-button[cui-areatype="toolbar"][status="active"] {
+  /* !important because we need to override the glass selectors that trigger
+   * use of the Toolbar-inverted image. Those use a list of all primary toolbar
+   * buttons, so we can't easily fix those selectors. */
+  list-style-image: url("chrome://browser/skin/sync-throbber.png") !important;
   -moz-image-region: rect(0, 18px, 18px, 0);
 }
 
 /* tabview button & menu item */
 
-#tabview-button,
 #menu_tabview {
   list-style-image: url(chrome://browser/skin/tabview/tabview.png);
-}
-
-#tabview-button:-moz-lwtheme-brighttext {
-  list-style-image: url(chrome://browser/skin/tabview/tabview-inverted.png);
-}
-
-#tabview-button {
-  -moz-image-region: rect(0, 90px, 18px, 72px);
-}
-
-#tabview-button[groups="0"] {
-  -moz-image-region: rect(0, 18px, 18px, 0);
-}
-
-#tabview-button[groups="1"] {
-  -moz-image-region: rect(0, 36px, 18px, 18px);
-}
-
-#tabview-button[groups="2"] {
-  -moz-image-region: rect(0, 54px, 18px, 36px);
-}
-
-#tabview-button[groups="3"] {
-  -moz-image-region: rect(0, 72px, 18px, 54px);
-}
-
-#menu_tabview {
   -moz-image-region: rect(1px, 89px, 17px, 73px);
 }
 
@@ -833,7 +858,6 @@ menuitem.bookmark-item {
 }
 
 #urlbar {
-  width: 7em;
   -moz-padding-end: 2px;
 }
 
@@ -1398,7 +1422,7 @@ toolbarbutton[type="socialmark"] > .toolbarbutton-icon {
   -moz-margin-start: 5px;
 }
 
-#bookmarks-menu-button[cui-areatype="toolbar"] > .toolbarbutton-menubutton-dropmarker > .dropmarker-icon {
+#bookmarks-menu-button[cui-areatype="toolbar"]:not(.bookmark-item):not(.overflowedItem) > .toolbarbutton-menubutton-dropmarker > .dropmarker-icon {
   padding-top: 2px;
   padding-bottom: 2px;
 }
@@ -1500,7 +1524,7 @@ toolbarbutton[type="socialmark"] > .toolbarbutton-icon {
   padding: 0;
 }
 
-#TabsToolbar:not(:-moz-lwtheme) {
+#main-window:not([customizing]) #TabsToolbar:not(:-moz-lwtheme) {
   background-image: linear-gradient(to top, @toolbarShadowColor@ 2px, rgba(0,0,0,.05) 2px, transparent 50%);
 }
 
@@ -1535,10 +1559,6 @@ toolbarbutton[type="socialmark"] > .toolbarbutton-icon {
 
   #main-window[tabsintitlebar]:not([inFullscreen]) #alltabs-button {
     list-style-image: url("chrome://browser/skin/toolbarbutton-dropdown-arrow-inverted.png");
-  }
-
-  #main-window[tabsintitlebar]:not([inFullscreen]) #TabsToolbar > #tabview-button {
-    list-style-image: url(chrome://browser/skin/tabview/tabview-inverted.png);
   }
 
   #main-window[tabsintitlebar]:not([inFullscreen]) .tab-close-button:not(:-moz-any(:hover,:-moz-lwtheme,[selected="true"])) {
@@ -2167,6 +2187,32 @@ toolbarbutton.bookmark-item[dragover="true"][open="true"] {
   margin-top: .5em;
 }
 
+/* Sync Panel */
+
+.sync-panel-icon {
+  width: 32px;
+  background: url("chrome://browser/content/abouthome/sync.png") top left no-repeat;
+}
+
+.sync-panel-inner {
+  width: 0;
+  padding-left: 10px;
+}
+
+.sync-panel-button-box {
+  margin-top: 1em;
+}
+
+#sync-error-panel-title,
+#sync-start-panel-title {
+  font-weight: bold;
+}
+
+#sync-start-panel-subtitle,
+#sync-error-panel-subtitle {
+  margin: 0;
+}
+
 /* Status panel */
 
 .statuspanel-label {
@@ -2437,14 +2483,15 @@ chatbox {
   background-attachment: fixed;
 }
 
-#main-window:-moz-any([customize-entering],[customize-entered]) #tab-view-deck {
-  padding: 0 2em 2em;
-}
-
 #customization-container {
   border-left: 1px solid @toolbarShadowColor@;
   border-right: 1px solid @toolbarShadowColor@;
   background-clip: padding-box;
+}
+
+#main-window[customizing] #navigator-toolbox::after {
+  margin-left: 2em;
+  margin-right: 2em;
 }
 
 /* End customization mode */

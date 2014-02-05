@@ -329,7 +329,7 @@ nsresult WebMReader::ReadMetadata(MediaInfo* aInfo,
       // that our video frame creation code doesn't overflow.
       nsIntSize displaySize(params.display_width, params.display_height);
       nsIntSize frameSize(params.width, params.height);
-      if (!VideoInfo::ValidateVideoRegion(frameSize, pictureRect, displaySize)) {
+      if (!IsValidVideoRegion(frameSize, pictureRect, displaySize)) {
         // Video track's frame sizes will overflow. Ignore the video track.
         continue;
       }
@@ -344,19 +344,19 @@ nsresult WebMReader::ReadMetadata(MediaInfo* aInfo,
 
       switch (params.stereo_mode) {
       case NESTEGG_VIDEO_MONO:
-        mInfo.mVideo.mStereoMode = STEREO_MODE_MONO;
+        mInfo.mVideo.mStereoMode = StereoMode::MONO;
         break;
       case NESTEGG_VIDEO_STEREO_LEFT_RIGHT:
-        mInfo.mVideo.mStereoMode = STEREO_MODE_LEFT_RIGHT;
+        mInfo.mVideo.mStereoMode = StereoMode::LEFT_RIGHT;
         break;
       case NESTEGG_VIDEO_STEREO_BOTTOM_TOP:
-        mInfo.mVideo.mStereoMode = STEREO_MODE_BOTTOM_TOP;
+        mInfo.mVideo.mStereoMode = StereoMode::BOTTOM_TOP;
         break;
       case NESTEGG_VIDEO_STEREO_TOP_BOTTOM:
-        mInfo.mVideo.mStereoMode = STEREO_MODE_TOP_BOTTOM;
+        mInfo.mVideo.mStereoMode = StereoMode::TOP_BOTTOM;
         break;
       case NESTEGG_VIDEO_STEREO_RIGHT_LEFT:
-        mInfo.mVideo.mStereoMode = STEREO_MODE_RIGHT_LEFT;
+        mInfo.mVideo.mStereoMode = StereoMode::RIGHT_LEFT;
         break;
       }
     }
@@ -372,7 +372,7 @@ nsresult WebMReader::ReadMetadata(MediaInfo* aInfo,
       mHasAudio = true;
       mInfo.mAudio.mHasAudio = true;
       mAudioCodec = nestegg_track_codec_id(mContext, track);
-      mCodecDelay = params.codec_delay;
+      mCodecDelay = params.codec_delay / NS_PER_USEC;
 
       if (mAudioCodec == NESTEGG_CODEC_VORBIS) {
         // Get the Vorbis header data
@@ -435,6 +435,13 @@ nsresult WebMReader::ReadMetadata(MediaInfo* aInfo,
         }
 
         if (!InitOpusDecoder()) {
+          Cleanup();
+          return NS_ERROR_FAILURE;
+        }
+
+        if (static_cast<int64_t>(mCodecDelay) != FramesToUsecs(mOpusParser->mPreSkip, mOpusParser->mRate).value()) {
+          LOG(PR_LOG_WARNING,
+              ("Invalid Opus header: CodecDelay and pre-skip do not match!\n"));
           Cleanup();
           return NS_ERROR_FAILURE;
         }
@@ -718,7 +725,7 @@ bool WebMReader::DecodeAudioPacket(nestegg_packet* aPacket, int64_t aOffset)
         NS_WARNING("Int overflow converting WebM audio duration");
         return false;
       }
-      CheckedInt64 time = startTime - (mCodecDelay / NS_PER_USEC);
+      CheckedInt64 time = startTime - mCodecDelay;
       if (!time.isValid()) {
         NS_WARNING("Int overflow shifting tstamp by codec delay");
         nestegg_free_packet(aPacket);

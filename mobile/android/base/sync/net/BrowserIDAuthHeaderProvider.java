@@ -12,7 +12,7 @@ import ch.boye.httpclientandroidlib.protocol.BasicHttpContext;
 
 /**
  * An <code>AuthHeaderProvider</code> that returns an Authorization header for
- * Browser-ID assertions in the format expected by a Mozilla Services Token
+ * BrowserID assertions in the format expected by a Mozilla Services Token
  * Server.
  * <p>
  * See <a href="http://docs.services.mozilla.com/token/apis.html">http://docs.services.mozilla.com/token/apis.html</a>.
@@ -30,7 +30,7 @@ public class BrowserIDAuthHeaderProvider implements AuthHeaderProvider {
 
   @Override
   public Header getAuthHeader(HttpRequestBase request, BasicHttpContext context, DefaultHttpClient client) {
-    Header header = new BasicHeader("Authorization", "Browser-ID " + assertion);
+    Header header = new BasicHeader("Authorization", "BrowserID " + assertion);
 
     return header;
   }

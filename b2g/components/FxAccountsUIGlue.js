@@ -8,7 +8,6 @@ const { interfaces: Ci, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/ObjectWrapper.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/FxAccountsCommon.js");
 
@@ -56,11 +55,11 @@ FxAccountsUIGlue.prototype = {
     });
 
     let detail = {
-       method: "openFlow",
+       eventName: "openFlow",
        id: id
     };
     log.debug("Send chrome event " + JSON.stringify(detail));
-    this._browser.shell.sendCustomEvent("mozFxAccountsRPChromeEvent", detail);
+    this._browser.shell.sendCustomEvent("mozFxAccountsUnsolChromeEvent", detail);
 
     return deferred.promise;
   },

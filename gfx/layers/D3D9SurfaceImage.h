@@ -28,7 +28,7 @@ public:
     nsIntRect mRegion;
   };
 
-  D3D9SurfaceImage() : Image(nullptr, D3D9_RGB32_TEXTURE), mSize(0, 0) {}
+  D3D9SurfaceImage() : Image(nullptr, ImageFormat::D3D9_RGB32_TEXTURE), mSize(0, 0) {}
   virtual ~D3D9SurfaceImage() {}
 
   // Copies the surface into a sharable texture's surface, and initializes
@@ -46,7 +46,8 @@ public:
 
   gfx::IntSize GetSize() MOZ_OVERRIDE;
 
-  already_AddRefed<gfxASurface> GetAsSurface() MOZ_OVERRIDE;
+  already_AddRefed<gfxASurface> DeprecatedGetAsSurface() MOZ_OVERRIDE;
+  virtual TemporaryRef<gfx::SourceSurface> GetAsSourceSurface() MOZ_OVERRIDE;
 
 private:
 

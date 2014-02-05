@@ -35,11 +35,16 @@ public:
 
   gfx::IntSize GetSize() { return mData.mSize; }
 
-  virtual already_AddRefed<gfxASurface> GetAsSurface() {
+  virtual already_AddRefed<gfxASurface> DeprecatedGetAsSurface() {
     return nullptr;
   }
 
-  SharedTextureImage() : Image(nullptr, SHARED_TEXTURE) {}
+  virtual TemporaryRef<gfx::SourceSurface> GetAsSourceSurface() MOZ_OVERRIDE
+  {
+    return nullptr;
+  }
+
+  SharedTextureImage() : Image(nullptr, ImageFormat::SHARED_TEXTURE) {}
 
 private:
   Data mData;

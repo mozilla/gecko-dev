@@ -6,10 +6,12 @@ XPCOMUtils.defineLazyModuleGetter(this, "Promise",
   "resource://gre/modules/Promise.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
   "resource://gre/modules/Task.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "fxAccounts",
+  "resource://gre/modules/FxAccounts.jsm");
 
 registerCleanupFunction(function() {
   // Ensure we don't pollute prefs for next tests.
-  Services.prefs.clearUserPref("firefox.accounts.remoteUrl");
+  Services.prefs.clearUserPref("identity.fxaccounts.remote.uri");
 });
 
 let gTests = [
@@ -18,7 +20,7 @@ let gTests = [
   desc: "Test the remote commands",
   setup: function ()
   {
-    Services.prefs.setCharPref("firefox.accounts.remoteUrl",
+    Services.prefs.setCharPref("identity.fxaccounts.remote.uri",
                                "https://example.com/browser/browser/base/content/test/general/accounts_testRemoteCommands.html");
   },
   run: function ()
@@ -45,7 +47,7 @@ let gTests = [
       ok(false, "Failed to get all commands");
       deferred.reject();
     }
-    return deferred.promise;
+    return deferred.promise.then(() => fxAccounts.signOut());
   }
 },
 
@@ -72,18 +74,19 @@ function test()
   });
 }
 
-function promiseNewTabLoadEvent(aUrl, aEventType="load")
+function promiseNewTabLoadEvent(aUrl)
 {
   let deferred = Promise.defer();
   let tab = gBrowser.selectedTab = gBrowser.addTab(aUrl);
-  tab.linkedBrowser.addEventListener(aEventType, function load(event) {
-    tab.linkedBrowser.removeEventListener(aEventType, load, true);
-    let iframe = tab.linkedBrowser.contentDocument.getElementById("remote");
-      iframe.addEventListener("load", function frameLoad(e) {
-        iframe.removeEventListener("load", frameLoad, false);
-        deferred.resolve();
-      }, false);
-    }, true);
+  let browser = tab.linkedBrowser;
+
+  browser.addEventListener("load", function onLoad(event) {
+    let iframe = browser.contentDocument.getElementById("remote");
+    if (iframe && event.target == iframe.contentDocument) {
+      browser.removeEventListener("load", onLoad, true);
+      deferred.resolve();
+    }
+  }, true);
+
   return deferred.promise;
 }
-

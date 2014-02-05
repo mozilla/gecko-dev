@@ -58,9 +58,10 @@ struct TextureD3D10BackendData : public ImageBackendData
 
 class RemoteDXGITextureImage : public Image {
 public:
-  RemoteDXGITextureImage() : Image(nullptr, REMOTE_IMAGE_DXGI_TEXTURE) {}
+  RemoteDXGITextureImage() : Image(nullptr, ImageFormat::REMOTE_IMAGE_DXGI_TEXTURE) {}
 
-  already_AddRefed<gfxASurface> GetAsSurface();
+  already_AddRefed<gfxASurface> DeprecatedGetAsSurface();
+  virtual TemporaryRef<gfx::SourceSurface> GetAsSourceSurface() MOZ_OVERRIDE;
 
   IntSize GetSize() { return mSize; }
 

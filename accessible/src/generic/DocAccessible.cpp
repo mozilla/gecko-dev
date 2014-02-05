@@ -22,7 +22,6 @@
 #include "nsIDOMAttr.h"
 #include "nsIDOMCharacterData.h"
 #include "nsIDOMDocument.h"
-#include "nsIDOMDocumentType.h"
 #include "nsIDOMXULDocument.h"
 #include "nsIDOMMutationEvent.h"
 #include "nsPIDOMWindow.h"
@@ -41,7 +40,9 @@
 #include "nsIURI.h"
 #include "nsIWebNavigation.h"
 #include "nsFocusManager.h"
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/dom/DocumentType.h"
 #include "mozilla/dom/Element.h"
 
 #ifdef MOZ_XUL
@@ -65,7 +66,7 @@ static nsIAtom** kRelationAttrs[] =
   &nsGkAtoms::control
 };
 
-static const uint32_t kRelationAttrsLen = NS_ARRAY_LENGTH(kRelationAttrs);
+static const uint32_t kRelationAttrsLen = ArrayLength(kRelationAttrs);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Constructor/desctructor
@@ -189,8 +190,7 @@ DocAccessible::NativeRole()
   if (docShell) {
     nsCOMPtr<nsIDocShellTreeItem> sameTypeRoot;
     docShell->GetSameTypeRootTreeItem(getter_AddRefs(sameTypeRoot));
-    int32_t itemType;
-    docShell->GetItemType(&itemType);
+    int32_t itemType = docShell->ItemType();
     if (sameTypeRoot == docShell) {
       // Root of content or chrome tree
       if (itemType == nsIDocShellTreeItem::typeChrome)
@@ -353,29 +353,27 @@ DocAccessible::GetURL(nsAString& aURL)
 NS_IMETHODIMP
 DocAccessible::GetTitle(nsAString& aTitle)
 {
-  nsCOMPtr<nsIDOMDocument> domDocument = do_QueryInterface(mDocumentNode);
-  if (!domDocument) {
+  if (!mDocumentNode) {
     return NS_ERROR_FAILURE;
   }
-  return domDocument->GetTitle(aTitle);
+  nsString title;
+  mDocumentNode->GetTitle(title);
+  aTitle = title;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 DocAccessible::GetMimeType(nsAString& aMimeType)
 {
-  nsCOMPtr<nsIDOMDocument> domDocument = do_QueryInterface(mDocumentNode);
-  if (!domDocument) {
+  if (!mDocumentNode) {
     return NS_ERROR_FAILURE;
   }
-  return domDocument->GetContentType(aMimeType);
+  return mDocumentNode->GetContentType(aMimeType);
 }
 
 NS_IMETHODIMP
 DocAccessible::GetDocType(nsAString& aDocType)
 {
-  nsCOMPtr<nsIDOMDocument> domDoc(do_QueryInterface(mDocumentNode));
-  nsCOMPtr<nsIDOMDocumentType> docType;
-
 #ifdef MOZ_XUL
   nsCOMPtr<nsIXULDocument> xulDoc(do_QueryInterface(mDocumentNode));
   if (xulDoc) {
@@ -383,8 +381,11 @@ DocAccessible::GetDocType(nsAString& aDocType)
     return NS_OK;
   } else
 #endif
-  if (domDoc && NS_SUCCEEDED(domDoc->GetDoctype(getter_AddRefs(docType))) && docType) {
-    return docType->GetPublicId(aDocType);
+  if (mDocumentNode) {
+    dom::DocumentType* docType = mDocumentNode->GetDoctype();
+    if (docType) {
+      return docType->GetPublicId(aDocType);
+    }
   }
 
   return NS_ERROR_FAILURE;
@@ -692,9 +693,7 @@ DocAccessible::AddEventListeners()
 
   // We want to add a command observer only if the document is content and has
   // an editor.
-  int32_t itemType;
-  docShellTreeItem->GetItemType(&itemType);
-  if (itemType == nsIDocShellTreeItem::typeContent) {
+  if (docShellTreeItem->ItemType() == nsIDocShellTreeItem::typeContent) {
     nsCOMPtr<nsICommandManager> commandManager = do_GetInterface(docShellTreeItem);
     if (commandManager)
       commandManager->AddCommandObserver(this, "obs_documentCreated");
@@ -724,9 +723,7 @@ DocAccessible::RemoveEventListeners()
     NS_ASSERTION(docShellTreeItem, "doc should support nsIDocShellTreeItem.");
 
     if (docShellTreeItem) {
-      int32_t itemType;
-      docShellTreeItem->GetItemType(&itemType);
-      if (itemType == nsIDocShellTreeItem::typeContent) {
+      if (docShellTreeItem->ItemType() == nsIDocShellTreeItem::typeContent) {
         nsCOMPtr<nsICommandManager> commandManager = do_GetInterface(docShellTreeItem);
         if (commandManager) {
           commandManager->RemoveCommandObserver(this, "obs_documentCreated");
@@ -1921,8 +1918,10 @@ DocAccessible::UpdateTreeInternal(Accessible* aChild, bool aIsInsert,
 
   // XXX: do we really want to send focus to focused DOM node not taking into
   // account active item?
-  if (focusedAcc)
+  if (focusedAcc) {
     FocusMgr()->DispatchFocusEvent(this, focusedAcc);
+    SelectionMgr()->SetControlSelectionListener(focusedAcc->GetNode()->AsElement());
+  }
 
   return updateFlags;
 }
@@ -2028,9 +2027,7 @@ DocAccessible::IsLoadEventTarget() const
   }
 
   // It's content (not chrome) root document.
-  int32_t contentType;
-  treeItem->GetItemType(&contentType);
-  return (contentType == nsIDocShellTreeItem::typeContent);
+  return (treeItem->ItemType() == nsIDocShellTreeItem::typeContent);
 }
 
 PLDHashOperator

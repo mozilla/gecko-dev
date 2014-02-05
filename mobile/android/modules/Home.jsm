@@ -143,68 +143,107 @@ function Panel(options) {
 
   if ("title" in options)
     this.title = options.title;
+
+  if ("layout" in options)
+    this.layout = options.layout;
+
+  if ("views" in options)
+    this.views = options.views;
 }
 
-function HomePanels() {
-  // XXX: Not renaming this because it is going away in bug 958192
-  this.PREF_KEY = "home_lists";
+let HomePanels = {
+  // Valid layouts for a panel.
+  Layout: {
+    FRAME: "frame"
+  },
 
-  this._sharedPrefs = new SharedPreferences();
-  this._panels = {};
+  // Valid types of views for a dataset.
+  View: {
+    LIST: "list",
+    GRID: "grid"
+  },
 
-  let prefValue = this._sharedPrefs.getCharPref(this.PREF_KEY);
-  if (!prefValue) {
-    return;
-  }
+  // Holds the currrent set of registered panels.
+  _panels: {},
 
-  JSON.parse(prefValue).forEach(data => {
-    let panel = new Panel(data);
-    this._panels[panel.id] = panel;
-  });
-}
+  _handleGet: function(requestId) {
+    let panels = [];
+    for (let id in this._panels) {
+      let panel = this._panels[id];
+      panels.push({
+        id: panel.id,
+        title: panel.title,
+        layout: panel.layout,
+        views: panel.views
+      });
+    }
 
-HomePanels.prototype = {
+    sendMessageToJava({
+      type: "HomePanels:Data",
+      panels: panels,
+      requestId: requestId
+    });
+  },
+
   add: function(options) {
     let panel = new Panel(options);
     if (!panel.id || !panel.title) {
-      throw "Can't create a home panel without an id and title!";
+      throw "Home.panels: Can't create a home panel without an id and title!";
     }
 
     // Bail if the panel already exists
     if (panel.id in this._panels) {
-      throw "Panel already exists: " + panel.id;
+      throw "Home.panels: Panel already exists: id = " + panel.id;
+    }
+
+    if (!this._valueExists(this.Layout, panel.layout)) {
+      throw "Home.panels: Invalid layout for panel: panel.id = " + panel.id + ", panel.layout =" + panel.layout;
+    }
+
+    for (let view of panel.views) {
+      if (!this._valueExists(this.View, view.type)) {
+        throw "Home.panels: Invalid view type: panel.id = " + panel.id + ", view.type = " + view.type;
+      }
+
+      if (!view.dataset) {
+        throw "Home.panels: No dataset provided for view: panel.id = " + panel.id + ", view.type = " + view.type;
+      }
     }
 
     this._panels[panel.id] = panel;
-    this._updateSharedPref();
-
-    // Send a message to Java to update the home pager if it's currently showing
-    sendMessageToJava({
-      type: "HomePanels:Added",
-      id: panel.id,
-      title: panel.title
-    });
   },
 
   remove: function(id) {
     delete this._panels[id];
-    this._updateSharedPref();
+
+    sendMessageToJava({
+      type: "HomePanels:Remove",
+      id: id
+    });
   },
 
-  // Set a shared pref so that Java can know about this panel before Gecko is running
-  _updateSharedPref: function() {
-    let panels = [];
-    for (let id in this._panels) {
-      let panel = this._panels[id];
-      panels.push({ id: panel.id, title: panel.title});
+  // Helper function used to see if a value is in an object.
+  _valueExists: function(obj, value) {
+    for (let key in obj) {
+      if (obj[key] == value) {
+        return true;
+      }
     }
-    this._sharedPrefs.setCharPref(this.PREF_KEY, JSON.stringify(panels));
+    return false;
   }
-
 };
 
 // Public API
 this.Home = {
   banner: HomeBanner,
-  panels: new HomePanels()
+  panels: HomePanels,
+
+  // Lazy notification observer registered in browser.js
+  observe: function(subject, topic, data) {
+    switch(topic) {
+      case "HomePanels:Get":
+        HomePanels._handleGet(data);
+        break;
+    }
+  }
 }

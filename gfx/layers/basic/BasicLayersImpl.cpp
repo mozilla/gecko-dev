@@ -7,7 +7,6 @@
 #include <new>                          // for operator new
 #include "Layers.h"                     // for Layer, etc
 #include "basic/BasicImplData.h"        // for BasicImplData
-#include "gfx3DMatrix.h"                // for gfx3DMatrix
 #include "mozilla/Assertions.h"         // for MOZ_ASSERT, etc
 #include "mozilla/DebugOnly.h"          // for DebugOnly
 #include "mozilla/layers/CompositorTypes.h"
@@ -20,7 +19,7 @@ namespace mozilla {
 namespace layers {
 
 void
-AutoMaskData::Construct(const gfxMatrix& aTransform,
+AutoMaskData::Construct(const gfx::Matrix& aTransform,
                         gfxASurface* aSurface)
 {
   MOZ_ASSERT(!IsConstructed());
@@ -29,7 +28,7 @@ AutoMaskData::Construct(const gfxMatrix& aTransform,
 }
 
 void
-AutoMaskData::Construct(const gfxMatrix& aTransform,
+AutoMaskData::Construct(const gfx::Matrix& aTransform,
                         const SurfaceDescriptor& aSurface)
 {
   MOZ_ASSERT(!IsConstructed());
@@ -47,7 +46,7 @@ AutoMaskData::GetSurface()
   return mSurfaceOpener.ref().Get();
 }
 
-const gfxMatrix&
+const gfx::Matrix&
 AutoMaskData::GetTransform()
 {
   MOZ_ASSERT(IsConstructed());
@@ -70,9 +69,9 @@ GetMaskData(Layer* aMaskLayer, AutoMaskData* aMaskData)
     if (static_cast<BasicImplData*>(aMaskLayer->ImplData())
         ->GetAsSurface(getter_AddRefs(surface), &descriptor) &&
         (surface || IsSurfaceDescriptorValid(descriptor))) {
-      gfxMatrix transform;
-      DebugOnly<bool> maskIs2D =
-        aMaskLayer->GetEffectiveTransform().CanDraw2D(&transform);
+      Matrix transform;
+      Matrix4x4 effectiveTransform = aMaskLayer->GetEffectiveTransform();
+      DebugOnly<bool> maskIs2D = effectiveTransform.CanDraw2D(&transform);
       NS_ASSERTION(maskIs2D, "How did we end up with a 3D transform here?!");
       if (surface) {
         aMaskData->Construct(transform, surface);
@@ -91,11 +90,11 @@ PaintWithMask(gfxContext* aContext, float aOpacity, Layer* aMaskLayer)
   AutoMaskData mask;
   if (GetMaskData(aMaskLayer, &mask)) {
     if (aOpacity < 1.0) {
-      aContext->PushGroup(GFX_CONTENT_COLOR_ALPHA);
+      aContext->PushGroup(gfxContentType::COLOR_ALPHA);
       aContext->Paint(aOpacity);
       aContext->PopGroupToSource();
     }
-    aContext->SetMatrix(mask.GetTransform());
+    aContext->SetMatrix(ThebesMatrix(mask.GetTransform()));
     aContext->Mask(mask.GetSurface());
     return;
   }
@@ -110,15 +109,15 @@ FillWithMask(gfxContext* aContext, float aOpacity, Layer* aMaskLayer)
   AutoMaskData mask;
   if (GetMaskData(aMaskLayer, &mask)) {
     if (aOpacity < 1.0) {
-      aContext->PushGroup(GFX_CONTENT_COLOR_ALPHA);
+      aContext->PushGroup(gfxContentType::COLOR_ALPHA);
       aContext->FillWithOpacity(aOpacity);
       aContext->PopGroupToSource();
-      aContext->SetMatrix(mask.GetTransform());
+      aContext->SetMatrix(ThebesMatrix(mask.GetTransform()));
       aContext->Mask(mask.GetSurface());
     } else {
       aContext->Save();
       aContext->Clip();
-      aContext->SetMatrix(mask.GetTransform());
+      aContext->SetMatrix(ThebesMatrix(mask.GetTransform()));
       aContext->Mask(mask.GetSurface());
       aContext->NewPath();
       aContext->Restore();

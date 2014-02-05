@@ -40,6 +40,7 @@
 #include "gfxImageSurface.h"
 #include "libyuv/convert.h"
 #include "mozilla/gfx/Point.h"
+#include "mozilla/gfx/Types.h"
 
 using namespace mozilla;
 using namespace mozilla::gfx;
@@ -896,7 +897,7 @@ void MediaPipelineTransmit::PipelineListener::ProcessVideoChunk(
 
   ImageFormat format = img->GetFormat();
 #ifdef MOZ_WIDGET_GONK
-  if (format == GRALLOC_PLANAR_YCBCR) {
+  if (format == ImageFormat::GRALLOC_PLANAR_YCBCR) {
     layers::GrallocImage *nativeImage = static_cast<layers::GrallocImage*>(img);
     layers::SurfaceDescriptor handle = nativeImage->GetSurfaceDescriptor();
     layers::SurfaceDescriptorGralloc grallocHandle = handle.get_SurfaceDescriptorGralloc();
@@ -912,7 +913,7 @@ void MediaPipelineTransmit::PipelineListener::ProcessVideoChunk(
     graphicBuffer->unlock();
   } else
 #endif
-  if (format == PLANAR_YCBCR) {
+  if (format == ImageFormat::PLANAR_YCBCR) {
     // Cast away constness b/c some of the accessors are non-const
     layers::PlanarYCbCrImage* yuv =
     const_cast<layers::PlanarYCbCrImage *>(
@@ -945,7 +946,7 @@ void MediaPipelineTransmit::PipelineListener::ProcessVideoChunk(
     MOZ_MTLOG(ML_DEBUG, "Sending a video frame");
     // Not much for us to do with an error
     conduit->SendVideoFrame(y, length, width, height, mozilla::kVideoI420, 0);
-  } else if(format == CAIRO_SURFACE) {
+  } else if(format == ImageFormat::CAIRO_SURFACE) {
     layers::CairoImage* rgb =
     const_cast<layers::CairoImage *>(
           static_cast<const layers::CairoImage *>(img));
@@ -961,27 +962,25 @@ void MediaPipelineTransmit::PipelineListener::ProcessVideoChunk(
 
     int cb_offset = size.width * size.height;
     int cr_offset = cb_offset + c_size;
-    nsRefPtr<gfxImageSurface> surf = rgb->mSurface->GetAsImageSurface();
+    RefPtr<gfx::SourceSurface> tempSurf = rgb->GetAsSourceSurface();
+    RefPtr<gfx::DataSourceSurface> surf = tempSurf->GetDataSurface();
 
-    switch (surf->Format()) {
-      case gfxImageFormatARGB32:
-      case gfxImageFormatRGB24:
-        libyuv::ARGBToI420(static_cast<uint8*>(surf->Data()), surf->Stride(),
+    switch (surf->GetFormat()) {
+      case gfx::SurfaceFormat::B8G8R8A8:
+      case gfx::SurfaceFormat::B8G8R8X8:
+        libyuv::ARGBToI420(static_cast<uint8*>(surf->GetData()), surf->Stride(),
                            yuv, size.width,
                            yuv + cb_offset, half_width,
                            yuv + cr_offset, half_width,
                            size.width, size.height);
         break;
-      case gfxImageFormatRGB16_565:
-        libyuv::RGB565ToI420(static_cast<uint8*>(surf->Data()), surf->Stride(),
+      case gfx::SurfaceFormat::R5G6B5:
+        libyuv::RGB565ToI420(static_cast<uint8*>(surf->GetData()), surf->Stride(),
                              yuv, size.width,
                              yuv + cb_offset, half_width,
                              yuv + cr_offset, half_width,
                              size.width, size.height);
         break;
-      case gfxImageFormatA1:
-      case gfxImageFormatA8:
-      case gfxImageFormatUnknown:
       default:
         MOZ_MTLOG(ML_ERROR, "Unsupported RGB video format");
         MOZ_ASSERT(PR_FALSE);
@@ -1200,11 +1199,11 @@ void MediaPipelineReceiveVideo::PipelineListener::RenderVideoFrame(
 
   // Create a video frame and append it to the track.
 #ifdef MOZ_WIDGET_GONK
-  ImageFormat format = GRALLOC_PLANAR_YCBCR;
+  ImageFormat format = ImageFormat::GRALLOC_PLANAR_YCBCR;
 #else
-  ImageFormat format = PLANAR_YCBCR;
+  ImageFormat format = ImageFormat::PLANAR_YCBCR;
 #endif
-  nsRefPtr<layers::Image> image = image_container_->CreateImage(&format, 1);
+  nsRefPtr<layers::Image> image = image_container_->CreateImage(format);
 
   layers::PlanarYCbCrImage* videoImage = static_cast<layers::PlanarYCbCrImage*>(image.get());
   uint8_t* frame = const_cast<uint8_t*>(static_cast<const uint8_t*> (buffer));
@@ -1222,7 +1221,7 @@ void MediaPipelineReceiveVideo::PipelineListener::RenderVideoFrame(
   data.mPicX = 0;
   data.mPicY = 0;
   data.mPicSize = IntSize(width_, height_);
-  data.mStereoMode = STEREO_MODE_MONO;
+  data.mStereoMode = StereoMode::MONO;
 
   videoImage->SetData(data);
 

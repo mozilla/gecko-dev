@@ -22,6 +22,7 @@
 #include "webrtc/voice_engine/include/voe_external_media.h"
 #include "webrtc/voice_engine/include/voe_audio_processing.h"
 #include "webrtc/voice_engine/include/voe_video_sync.h"
+#include "webrtc/voice_engine/include/voe_rtp_rtcp.h"
 
 //Some WebRTC types for short notations
  using webrtc::VoEBase;
@@ -36,6 +37,11 @@
  */
 
 namespace mozilla {
+
+// Helper function
+
+DOMHighResTimeStamp
+NTPtoDOMHighResTimeStamp(uint32_t ntpHigh, uint32_t ntpLow);
 
 /**
  * Concrete class for Audio session. Hooks up
@@ -149,6 +155,7 @@ public:
                       mShutDown(false),
                       mVoiceEngine(nullptr),
                       mTransport(nullptr),
+                      mPtrRTP(nullptr),
                       mEngineTransmitting(false),
                       mEngineReceiving(false),
                       mChannel(-1),
@@ -168,6 +175,16 @@ public:
 
   int GetChannel() { return mChannel; }
   webrtc::VoiceEngine* GetVoiceEngine() { return mVoiceEngine; }
+  bool GetLocalSSRC(unsigned int* ssrc);
+  bool GetRemoteSSRC(unsigned int* ssrc);
+  bool GetRTPJitter(unsigned int* jitterMs);
+  bool GetRTCPReceiverReport(DOMHighResTimeStamp* timestamp,
+                             unsigned int* jitterMs,
+                             unsigned int* packetsReceived,
+                             uint64_t* bytesReceived);
+  bool GetRTCPSenderReport(DOMHighResTimeStamp* timestamp,
+                           unsigned int* packetsSent,
+                           uint64_t* bytesSent);
 
 private:
   WebrtcAudioConduit(const WebrtcAudioConduit& other) MOZ_DELETE;
@@ -217,6 +234,7 @@ private:
   webrtc::VoEExternalMedia* mPtrVoEXmedia;
   webrtc::VoEAudioProcessing* mPtrVoEProcessing;
   webrtc::VoEVideoSync* mPtrVoEVideoSync;
+  webrtc::VoERTP_RTCP* mPtrRTP;
 
   //engine states of our interets
   bool mEngineTransmitting; // If true => VoiceEngine Send-subsystem is up

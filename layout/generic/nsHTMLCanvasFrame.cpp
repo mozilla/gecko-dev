@@ -214,8 +214,8 @@ nsHTMLCanvasFrame::Reflow(nsPresContext*           aPresContext,
                                      availSize);
   ReflowChild(childFrame, aPresContext, childDesiredSize, childReflowState,
               0, 0, 0, childStatus, nullptr);
-  FinishReflowChild(childFrame, aPresContext, &childReflowState,
-                    childDesiredSize, 0, 0, 0);
+  FinishReflowChild(childFrame, aPresContext, childDesiredSize,
+                    &childReflowState, 0, 0, 0);
 
   NS_FRAME_TRACE(NS_FRAME_TRACE_CALLS,
                   ("exit nsHTMLCanvasFrame::Reflow: size=%d,%d",
@@ -266,10 +266,11 @@ nsHTMLCanvasFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
                       presContext->AppUnitsToGfxUnits(area.height));
 
   // Transform the canvas into the right place
-  gfxMatrix transform;
-  transform.Translate(r.TopLeft() + aContainerParameters.mOffset);
+  gfx::Matrix transform;
+  gfxPoint p = r.TopLeft() + aContainerParameters.mOffset;
+  transform.Translate(p.x, p.y);
   transform.Scale(r.Width()/canvasSize.width, r.Height()/canvasSize.height);
-  layer->SetBaseTransform(gfx3DMatrix::From2D(transform));
+  layer->SetBaseTransform(gfx::Matrix4x4::From2D(transform));
   layer->SetFilter(nsLayoutUtils::GetGraphicsFilterForFrame(this));
   layer->SetVisibleRegion(nsIntRect(0, 0, canvasSize.width, canvasSize.height));
 

@@ -4,6 +4,9 @@
 
 <!ENTITY charsetMenu.label             "Character Encoding">
 <!ENTITY charsetMenu.accesskey         "C">
+
+
+<!-- The strings below are unused on m-c. They will be removed post-Australis -->
 <!ENTITY charsetMenuAutodet.label      "Auto-Detect">
 <!ENTITY charsetMenuAutodet.accesskey  "D"><!-- A reserved for Arabic -->
 

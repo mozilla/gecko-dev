@@ -29,8 +29,6 @@
 #include "AutoMaskData.h"
 #include "gfx2DGlue.h"
 
-struct gfxMatrix;
-
 using namespace mozilla::gfx;
 
 namespace mozilla {
@@ -99,7 +97,7 @@ BasicThebesLayer::PaintThebes(gfxContext* aContext,
         groupContext = aContext;
       }
       SetAntialiasingFlags(this, groupContext);
-      aCallback(this, groupContext, toDraw, CLIP_NONE, nsIntRegion(), aCallbackData);
+      aCallback(this, groupContext, toDraw, DrawRegionClip::CLIP_NONE, nsIntRegion(), aCallbackData);
       if (needsGroup) {
         BasicManager()->PopGroupToSourceWithCachedSurface(aContext, groupContext);
         if (needsClipToVisibleRegion) {
@@ -126,16 +124,16 @@ BasicThebesLayer::PaintThebes(gfxContext* aContext,
   // is internal to basic layers
   AutoMaskData mask;
   gfxASurface* maskSurface = nullptr;
-  const gfxMatrix* maskTransform = nullptr;
+  Matrix maskTransform;
   if (GetMaskData(aMaskLayer, &mask)) {
     maskSurface = mask.GetSurface();
-    maskTransform = &mask.GetTransform();
+    maskTransform = mask.GetTransform();
   }
 
   if (!IsHidden() && !clipExtents.IsEmpty()) {
     mContentClient->DrawTo(this, aContext->GetDrawTarget(), opacity,
                            CompositionOpForOp(GetOperator()),
-                           maskSurface, maskTransform);
+                           maskSurface, &maskTransform);
   }
 
   for (uint32_t i = 0; i < readbackUpdates.Length(); ++i) {
@@ -149,7 +147,7 @@ BasicThebesLayer::PaintThebes(gfxContext* aContext,
       ctx->Translate(gfxPoint(offset.x, offset.y));
       mContentClient->DrawTo(this, ctx->GetDrawTarget(), 1.0,
                              CompositionOpForOp(ctx->CurrentOperator()),
-                             maskSurface, maskTransform);
+                             maskSurface, &maskTransform);
       update.mLayer->GetSink()->EndUpdate(ctx, update.mUpdateRect + offset);
     }
   }
@@ -207,7 +205,7 @@ BasicThebesLayer::Validate(LayerManager::DrawThebesLayerCallback aCallback,
     MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) PaintThebes", this));
     Mutated();
     ctx = nullptr;
-    mContentClient->ReturnDrawTarget(target);
+    mContentClient->ReturnDrawTargetToBuffer(target);
 
     RenderTraceInvalidateEnd(this, "FFFF00");
   } else {

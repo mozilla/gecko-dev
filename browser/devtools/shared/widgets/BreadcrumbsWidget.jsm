@@ -46,6 +46,17 @@ this.BreadcrumbsWidget = function BreadcrumbsWidget(aNode) {
   this._list.addEventListener("underflow", this._onUnderflow.bind(this), false);
   this._list.addEventListener("overflow", this._onOverflow.bind(this), false);
 
+
+  // These separators are used for CSS purposes only, and are positioned
+  // off screen, but displayed with -moz-element.
+  this._separators = this.document.createElement("box");
+  this._separators.className = "breadcrumb-separator-container";
+  this._separators.innerHTML =
+                    "<box id='breadcrumb-separator-before'></box>" +
+                    "<box id='breadcrumb-separator-after'></box>" +
+                    "<box id='breadcrumb-separator-normal'></box>";
+  this._parent.appendChild(this._separators);
+
   // This widget emits events that can be handled in a MenuContainer.
   EventEmitter.decorate(this);
 
@@ -167,7 +178,9 @@ BreadcrumbsWidget.prototype = {
     // Repeated calls to ensureElementIsVisible would interfere with each other
     // and may sometimes result in incorrect scroll positions.
     setNamedTimeout("breadcrumb-select", ENSURE_SELECTION_VISIBLE_DELAY, () => {
-      this._list.ensureElementIsVisible(aElement);
+      if (this._list.ensureElementIsVisible) {
+        this._list.ensureElementIsVisible(aElement);
+      }
     });
   },
 

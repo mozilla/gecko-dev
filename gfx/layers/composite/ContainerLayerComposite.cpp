@@ -10,7 +10,6 @@
 #include "gfx2DGlue.h"                  // for ToMatrix4x4
 #include "gfx3DMatrix.h"                // for gfx3DMatrix
 #include "gfxImageSurface.h"            // for gfxImageSurface
-#include "gfxMatrix.h"                  // for gfxMatrix
 #include "gfxPlatform.h"                // for gfxPlatform
 #include "gfxUtils.h"                   // for gfxUtils, etc
 #include "mozilla/Assertions.h"         // for MOZ_ASSERT, etc
@@ -101,23 +100,36 @@ public:
   std::vector<VelocityData> mData;
 };
 
+static gfx::Point GetScrollData(Layer* aLayer) {
+  gfx::Matrix matrix;
+  if (aLayer->GetLocalTransform().Is2D(&matrix)) {
+    return matrix.GetTranslation();
+  }
+
+  gfx::Point origin;
+  return origin;
+}
+
+static LayerVelocityUserData* GetVelocityData(Layer* aLayer) {
+  static char sLayerVelocityUserDataKey;
+  void* key = reinterpret_cast<void*>(&sLayerVelocityUserDataKey);
+  if (!aLayer->HasUserData(key)) {
+    LayerVelocityUserData* newData = new LayerVelocityUserData();
+    aLayer->SetUserData(key, newData);
+  }
+
+  return static_cast<LayerVelocityUserData*>(aLayer->GetUserData(key));
+}
+
 static void DrawVelGraph(const nsIntRect& aClipRect,
                          LayerManagerComposite* aManager,
                          Layer* aLayer) {
-  static char sLayerVelocityUserDataKey;
   Compositor* compositor = aManager->GetCompositor();
   gfx::Rect clipRect(aClipRect.x, aClipRect.y,
                      aClipRect.width, aClipRect.height);
 
   TimeStamp now = TimeStamp::Now();
-
-  void* key = reinterpret_cast<void*>(&sLayerVelocityUserDataKey);
-  if (!aLayer->HasUserData(key)) {
-    aLayer->SetUserData(key, new LayerVelocityUserData());
-  }
-
-  LayerVelocityUserData* velocityData =
-    static_cast<LayerVelocityUserData*>(aLayer->GetUserData(key));
+  LayerVelocityUserData* velocityData = GetVelocityData(aLayer);
 
   if (velocityData->mData.size() >= 1 &&
     now > velocityData->mData[velocityData->mData.size() - 1].mFrameTime +
@@ -126,17 +138,17 @@ static void DrawVelGraph(const nsIntRect& aClipRect,
     velocityData->mData.clear();
   }
 
-  nsIntPoint scrollOffset =
-    aLayer->GetEffectiveVisibleRegion().GetBounds().TopLeft();
+  const gfx::Point layerTransform = GetScrollData(aLayer);
   velocityData->mData.push_back(
-    LayerVelocityUserData::VelocityData(now, scrollOffset.x, scrollOffset.y));
+    LayerVelocityUserData::VelocityData(now,
+      static_cast<int>(layerTransform.x), static_cast<int>(layerTransform.y)));
 
-
+  // TODO: dump to file
   // XXX: Uncomment these lines to enable ScrollGraph logging. This is
   //      useful for HVGA phones or to output the data to accurate
   //      graphing software.
-  //printf_stderr("ScrollGraph (%p): %i, %i\n",
-  //  aLayer, scrollOffset.x, scrollOffset.y);
+  // printf_stderr("ScrollGraph (%p): %f, %f\n",
+  // aLayer, layerTransform.x, layerTransform.y);
 
   // Keep a circular buffer of 100.
   size_t circularBufferSize = 100;
@@ -167,8 +179,7 @@ static void DrawVelGraph(const nsIntRect& aClipRect,
 
   aManager->SetDebugOverlayWantsNextFrame(true);
 
-  gfx::Matrix4x4 transform;
-  ToMatrix4x4(aLayer->GetEffectiveTransform(), transform);
+  const gfx::Matrix4x4& transform = aLayer->GetEffectiveTransform();
   nsIntRect bounds = aLayer->GetEffectiveVisibleRegion().GetBounds();
   gfx::Rect graphBounds = gfx::Rect(bounds.x, bounds.y,
                                     bounds.width, bounds.height);
@@ -197,7 +208,6 @@ static void DrawVelGraph(const nsIntRect& aClipRect,
 
   compositor->DrawLines(graph, clipRect, gfx::Color(0,1,0,1),
                         opacity, transform);
-
 }
 
 template<class ContainerT> void
@@ -243,17 +253,17 @@ ContainerRender(ContainerT* aContainer,
       aContainer->mSupportsComponentAlphaChildren = true;
       mode = INIT_MODE_NONE;
     } else {
-      const gfx3DMatrix& transform3D = aContainer->GetEffectiveTransform();
-      gfxMatrix transform;
+      const gfx::Matrix4x4& transform3D = aContainer->GetEffectiveTransform();
+      gfx::Matrix transform;
       // If we have an opaque ancestor layer, then we can be sure that
       // all the pixels we draw into are either opaque already or will be
       // covered by something opaque. Otherwise copying up the background is
       // not safe.
       if (HasOpaqueAncestorLayer(aContainer) &&
-          transform3D.Is2D(&transform) && !transform.HasNonIntegerTranslation()) {
+          transform3D.Is2D(&transform) && !ThebesMatrix(transform).HasNonIntegerTranslation()) {
         surfaceCopyNeeded = gfxPlatform::ComponentAlphaEnabled();
-        sourcePoint.x += transform.x0;
-        sourcePoint.y += transform.y0;
+        sourcePoint.x += transform._31;
+        sourcePoint.y += transform._32;
         aContainer->mSupportsComponentAlphaChildren
           = gfxPlatform::ComponentAlphaEnabled();
       }
@@ -318,6 +328,12 @@ ContainerRender(ContainerT* aContainer,
       // Composer2D will compose this layer so skip GPU composition
       // this time & reset composition flag for next composition phase
       layerToRender->SetLayerComposited(false);
+      if (layerToRender->GetClearFB()) {
+        // Clear layer's visible rect on FrameBuffer with transparent pixels
+        gfx::Rect aRect(clipRect.x, clipRect.y, clipRect.width, clipRect.height);
+        compositor->clearFBRect(&aRect);
+        layerToRender->SetClearFB(false);
+      }
     } else {
       layerToRender->RenderLayer(clipRect);
     }
@@ -346,26 +362,20 @@ ContainerRender(ContainerT* aContainer,
 
     effectChain.mPrimaryEffect = new EffectRenderTarget(surface);
 
-    gfx::Matrix4x4 transform;
-    ToMatrix4x4(aContainer->GetEffectiveTransform(), transform);
-
     gfx::Rect rect(visibleRect.x, visibleRect.y, visibleRect.width, visibleRect.height);
     gfx::Rect clipRect(aClipRect.x, aClipRect.y, aClipRect.width, aClipRect.height);
     aManager->GetCompositor()->DrawQuad(rect, clipRect, effectChain, opacity,
-                                        transform);
+                                        aContainer->GetEffectiveTransform());
   }
 
   if (aContainer->GetFrameMetrics().IsScrollable()) {
-    gfx::Matrix4x4 transform;
-    ToMatrix4x4(aContainer->GetEffectiveTransform(), transform);
-
     const FrameMetrics& frame = aContainer->GetFrameMetrics();
     LayerRect layerBounds = ScreenRect(frame.mCompositionBounds) * ScreenToLayerScale(1.0);
     gfx::Rect rect(layerBounds.x, layerBounds.y, layerBounds.width, layerBounds.height);
     gfx::Rect clipRect(aClipRect.x, aClipRect.y, aClipRect.width, aClipRect.height);
     aManager->GetCompositor()->DrawDiagnostics(DIAGNOSTIC_CONTAINER,
                                                rect, clipRect,
-                                               transform);
+                                               aContainer->GetEffectiveTransform());
   }
 }
 

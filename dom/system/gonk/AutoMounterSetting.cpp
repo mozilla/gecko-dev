@@ -41,7 +41,7 @@ public:
 
   SettingsServiceCallback() {}
 
-  NS_IMETHOD Handle(const nsAString& aName, const JS::Value& aResult)
+  NS_IMETHOD Handle(const nsAString& aName, JS::Handle<JS::Value> aResult)
   {
     if (JSVAL_IS_INT(aResult)) {
       int32_t mode = JSVAL_TO_INT(aResult);
@@ -67,7 +67,7 @@ public:
   CheckVolumeSettingsCallback(const nsACString& aVolumeName)
   : mVolumeName(aVolumeName) {}
 
-  NS_IMETHOD Handle(const nsAString& aName, const JS::Value& aResult)
+  NS_IMETHOD Handle(const nsAString& aName, JS::Handle<JS::Value> aResult)
   {
     if (JSVAL_IS_BOOLEAN(aResult)) {
       bool isSharingEnabled = JSVAL_TO_BOOLEAN(aResult);
@@ -119,8 +119,12 @@ AutoMounterSetting::AutoMounterSetting()
   nsCOMPtr<nsISettingsServiceLock> lock;
   settingsService->CreateLock(getter_AddRefs(lock));
   nsCOMPtr<nsISettingsServiceCallback> callback = new SettingsServiceCallback();
-  lock->Set(UMS_MODE, INT_TO_JSVAL(AUTOMOUNTER_DISABLE), callback, nullptr);
-  lock->Set(UMS_STATUS, INT_TO_JSVAL(mStatus), nullptr, nullptr);
+  mozilla::AutoSafeJSContext cx;
+  JS::Rooted<JS::Value> value(cx);
+  value.setInt32(AUTOMOUNTER_DISABLE);
+  lock->Set(UMS_MODE, value, callback, nullptr);
+  value.setInt32(mStatus);
+  lock->Set(UMS_STATUS, value, nullptr, nullptr);
 }
 
 AutoMounterSetting::~AutoMounterSetting()
@@ -193,7 +197,9 @@ public:
     settingsService->CreateLock(getter_AddRefs(lock));
     // lock may be null if this gets called during shutdown.
     if (lock) {
-      lock->Set(UMS_STATUS, INT_TO_JSVAL(mStatus), nullptr, nullptr);
+      mozilla::AutoSafeJSContext cx;
+      JS::Rooted<JS::Value> value(cx, JS::Int32Value(mStatus));
+      lock->Set(UMS_STATUS, value, nullptr, nullptr);
     }
     return NS_OK;
   }
@@ -236,9 +242,9 @@ AutoMounterSetting::Observe(nsISupports* aSubject,
       !val.isObject()) {
     return NS_OK;
   }
-  JSObject& obj(val.toObject());
+  JS::Rooted<JSObject*> obj(cx, &val.toObject());
   JS::Rooted<JS::Value> key(cx);
-  if (!JS_GetProperty(cx, &obj, "key", &key) ||
+  if (!JS_GetProperty(cx, obj, "key", &key) ||
       !key.isString()) {
     return NS_OK;
   }
@@ -250,7 +256,7 @@ AutoMounterSetting::Observe(nsISupports* aSubject,
   }
 
   JS::Rooted<JS::Value> value(cx);
-  if (!JS_GetProperty(cx, &obj, "value", &value)) {
+  if (!JS_GetProperty(cx, obj, "value", &value)) {
     return NS_OK;
   }
 

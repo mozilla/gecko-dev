@@ -31,9 +31,10 @@ public class testSettingsMenuItems extends PixelTest {
 
     // Customize menu items.
     String[][] OPTIONS_CUSTOMIZE = {
-        { "Search settings", "", "Show search suggestions", "Installed search engines"},
-        { "Import from Android", "", "Bookmarks", "History", "Import" },
+        { "Home", "", "Panels" },
+        { "Search", "", "Show search suggestions", "Installed search engines"},
         { "Tabs", "Don't restore after quitting " + BRAND_NAME, "Always restore", "Don't restore after quitting " + BRAND_NAME },
+        { "Import from Android", "", "Bookmarks", "History", "Import" },
     };
 
     // Display menu items.

@@ -604,11 +604,14 @@ nsDOMWindowUtils::SendMouseEvent(const nsAString& aType,
                                  bool aIgnoreRootScrollFrame,
                                  float aPressure,
                                  unsigned short aInputSourceArg,
+                                 bool aIsSynthesized,
+                                 uint8_t aOptionalArgCount,
                                  bool *aPreventDefault)
 {
   return SendMouseEventCommon(aType, aX, aY, aButton, aClickCount, aModifiers,
                               aIgnoreRootScrollFrame, aPressure,
-                              aInputSourceArg, false, aPreventDefault);
+                              aInputSourceArg, false, aPreventDefault,
+                              aOptionalArgCount >= 4 ? aIsSynthesized : true);
 }
 
 NS_IMETHODIMP
@@ -620,12 +623,15 @@ nsDOMWindowUtils::SendMouseEventToWindow(const nsAString& aType,
                                          int32_t aModifiers,
                                          bool aIgnoreRootScrollFrame,
                                          float aPressure,
-                                         unsigned short aInputSourceArg)
+                                         unsigned short aInputSourceArg,
+                                         bool aIsSynthesized,
+                                         uint8_t aOptionalArgCount)
 {
   PROFILER_LABEL("nsDOMWindowUtils", "SendMouseEventToWindow");
   return SendMouseEventCommon(aType, aX, aY, aButton, aClickCount, aModifiers,
                               aIgnoreRootScrollFrame, aPressure,
-                              aInputSourceArg, true, nullptr);
+                              aInputSourceArg, true, nullptr,
+                              aOptionalArgCount >= 4 ? aIsSynthesized : true);
 }
 
 static LayoutDeviceIntPoint
@@ -668,7 +674,8 @@ nsDOMWindowUtils::SendMouseEventCommon(const nsAString& aType,
                                        float aPressure,
                                        unsigned short aInputSourceArg,
                                        bool aToWindow,
-                                       bool *aPreventDefault)
+                                       bool *aPreventDefault,
+                                       bool aIsSynthesized)
 {
   if (!nsContentUtils::IsCallerChrome()) {
     return NS_ERROR_DOM_SECURITY_ERR;
@@ -715,7 +722,7 @@ nsDOMWindowUtils::SendMouseEventCommon(const nsAString& aType,
   event.inputSource = aInputSourceArg;
   event.clickCount = aClickCount;
   event.time = PR_IntervalNow();
-  event.mFlags.mIsSynthesizedForTests = true;
+  event.mFlags.mIsSynthesizedForTests = aIsSynthesized;
 
   nsPresContext* presContext = GetPresContext();
   if (!presContext)
@@ -2128,7 +2135,8 @@ nsDOMWindowUtils::SendContentCommandEvent(const nsAString& aType,
 }
 
 NS_IMETHODIMP
-nsDOMWindowUtils::GetClassName(const JS::Value& aObject, JSContext* aCx, char** aName)
+nsDOMWindowUtils::GetClassName(JS::Handle<JS::Value> aObject, JSContext* aCx,
+                               char** aName)
 {
   if (!nsContentUtils::IsCallerChrome()) {
     return NS_ERROR_DOM_SECURITY_ERR;
@@ -2213,29 +2221,29 @@ nsDOMWindowUtils::IsInModalState(bool *retval)
 }
 
 NS_IMETHODIMP
-nsDOMWindowUtils::GetParent(const JS::Value& aObject,
+nsDOMWindowUtils::GetParent(JS::Handle<JS::Value> aObject,
                             JSContext* aCx,
-                            JS::Value* aParent)
+                            JS::MutableHandle<JS::Value> aParent)
 {
   if (!nsContentUtils::IsCallerChrome()) {
     return NS_ERROR_DOM_SECURITY_ERR;
   }
 
   // First argument must be an object.
-  if (JSVAL_IS_PRIMITIVE(aObject)) {
+  if (aObject.isPrimitive()) {
     return NS_ERROR_XPC_BAD_CONVERT_JS;
   }
 
-  JS::Rooted<JSObject*> parent(aCx, JS_GetParent(JSVAL_TO_OBJECT(aObject)));
-  *aParent = OBJECT_TO_JSVAL(parent);
+  JS::Rooted<JSObject*> parent(aCx, JS_GetParent(&aObject.toObject()));
 
   // Outerize if necessary.
   if (parent) {
     if (JSObjectOp outerize = js::GetObjectClass(parent)->ext.outerObject) {
-      *aParent = OBJECT_TO_JSVAL(outerize(aCx, parent));
+      parent = outerize(aCx, parent);
     }
   }
 
+  aParent.setObject(*parent);
   return NS_OK;
 }
 
@@ -2394,7 +2402,7 @@ nsDOMWindowUtils::StopFrameTimeRecording(uint32_t   startIndex,
   mgr->StopFrameTimeRecording(startIndex, tmpFrameIntervals);
   *frameCount = tmpFrameIntervals.Length();
 
-  *frameIntervals = (float*)nsMemory::Alloc(*frameCount * sizeof(float*));
+  *frameIntervals = (float*)nsMemory::Alloc(*frameCount * sizeof(float));
 
   /* copy over the frame intervals and paint times into the arrays we just allocated */
   for (uint32_t i = 0; i < *frameCount; i++) {
@@ -2674,12 +2682,12 @@ nsDOMWindowUtils::WrapDOMFile(nsIFile *aFile,
 static bool
 CheckLeafLayers(Layer* aLayer, const nsIntPoint& aOffset, nsIntRegion* aCoveredRegion)
 {
-  gfxMatrix transform;
+  gfx::Matrix transform;
   if (!aLayer->GetTransform().Is2D(&transform) ||
       transform.HasNonIntegerTranslation())
     return false;
   transform.NudgeToIntegers();
-  nsIntPoint offset = aOffset + nsIntPoint(transform.x0, transform.y0);
+  nsIntPoint offset = aOffset + nsIntPoint(transform._31, transform._32);
 
   Layer* child = aLayer->GetFirstChild();
   if (child) {
@@ -2827,8 +2835,8 @@ GetXPConnectNative(JSContext* aCx, JSObject* aObj) {
 }
 
 static nsresult
-GetFileOrBlob(const nsAString& aName, const JS::Value& aBlobParts,
-              const JS::Value& aParameters, JSContext* aCx,
+GetFileOrBlob(const nsAString& aName, JS::Handle<JS::Value> aBlobParts,
+              JS::Handle<JS::Value> aParameters, JSContext* aCx,
               uint8_t aOptionalArgCount, nsISupports** aResult)
 {
   if (!nsContentUtils::IsCallerChrome()) {
@@ -2850,9 +2858,12 @@ GetFileOrBlob(const nsAString& aName, const JS::Value& aBlobParts,
   nsDOMMultipartFile* domFile =
     static_cast<nsDOMMultipartFile*>(static_cast<nsIDOMFile*>(file.get()));
 
-  JS::Value args[2] = { aBlobParts, aParameters };
+  JS::AutoValueVector args(aCx);
+  MOZ_ALWAYS_TRUE(args.resize(2));
+  args[0] = aBlobParts;
+  args[1] = aParameters;
 
-  rv = domFile->InitBlob(aCx, aOptionalArgCount, args, GetXPConnectNative);
+  rv = domFile->InitBlob(aCx, aOptionalArgCount, args.begin(), GetXPConnectNative);
   NS_ENSURE_SUCCESS(rv, rv);
 
   file.forget(aResult);
@@ -2860,8 +2871,8 @@ GetFileOrBlob(const nsAString& aName, const JS::Value& aBlobParts,
 }
 
 NS_IMETHODIMP
-nsDOMWindowUtils::GetFile(const nsAString& aName, const JS::Value& aBlobParts,
-                          const JS::Value& aParameters, JSContext* aCx,
+nsDOMWindowUtils::GetFile(const nsAString& aName, JS::Handle<JS::Value> aBlobParts,
+                          JS::Handle<JS::Value> aParameters, JSContext* aCx,
                           uint8_t aOptionalArgCount, nsIDOMFile** aResult)
 {
   if (!nsContentUtils::IsCallerChrome()) {
@@ -2880,8 +2891,8 @@ nsDOMWindowUtils::GetFile(const nsAString& aName, const JS::Value& aBlobParts,
 }
 
 NS_IMETHODIMP
-nsDOMWindowUtils::GetBlob(const JS::Value& aBlobParts,
-                          const JS::Value& aParameters, JSContext* aCx,
+nsDOMWindowUtils::GetBlob(JS::Handle<JS::Value> aBlobParts,
+                          JS::Handle<JS::Value> aParameters, JSContext* aCx,
                           uint8_t aOptionalArgCount, nsIDOMBlob** aResult)
 {
   if (!nsContentUtils::IsCallerChrome()) {
@@ -2900,7 +2911,7 @@ nsDOMWindowUtils::GetBlob(const JS::Value& aBlobParts,
 }
 
 NS_IMETHODIMP
-nsDOMWindowUtils::GetFileId(const JS::Value& aFile, JSContext* aCx,
+nsDOMWindowUtils::GetFileId(JS::Handle<JS::Value> aFile, JSContext* aCx,
                             int64_t* aResult)
 {
   if (!nsContentUtils::IsCallerChrome()) {
@@ -2932,7 +2943,7 @@ nsDOMWindowUtils::GetFileId(const JS::Value& aFile, JSContext* aCx,
 
 NS_IMETHODIMP
 nsDOMWindowUtils::GetFileReferences(const nsAString& aDatabaseName, int64_t aId,
-                                    const jsval& aOptions,
+                                    JS::Handle<JS::Value> aOptions,
                                     int32_t* aRefCnt, int32_t* aDBRefCnt,
                                     int32_t* aSliceRefCnt, JSContext* aCx,
                                     bool* aResult)
@@ -3090,7 +3101,7 @@ nsDOMWindowUtils::GetPaintingSuppressed(bool *aPaintingSuppressed)
 }
 
 NS_IMETHODIMP
-nsDOMWindowUtils::GetPlugins(JSContext* cx, JS::Value* aPlugins)
+nsDOMWindowUtils::GetPlugins(JSContext* cx, JS::MutableHandle<JS::Value> aPlugins)
 {
   if (!nsContentUtils::IsCallerChrome()) {
     return NS_ERROR_DOM_SECURITY_ERR;
@@ -3108,7 +3119,7 @@ nsDOMWindowUtils::GetPlugins(JSContext* cx, JS::Value* aPlugins)
   nsresult rv = nsTArrayToJSArray(cx, plugins, jsPlugins.address());
   NS_ENSURE_SUCCESS(rv, rv);
 
-  *aPlugins = OBJECT_TO_JSVAL(jsPlugins);
+  aPlugins.setObject(*jsPlugins);
   return NS_OK;
 }
 

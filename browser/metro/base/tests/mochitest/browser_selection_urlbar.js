@@ -102,6 +102,11 @@ gTests.push({
     edit.select();
 
     let editCoords = logicalCoordsForElement(edit);
+
+    // wait for popup animation to complete, it interferes with edit selection testing
+    let autocompletePopup = document.getElementById("urlbar-autocomplete-scroll");
+    yield waitForEvent(autocompletePopup, "transitionend");
+
     SelectionHelperUI.attachEditSession(ChromeSelectionHandler, editCoords.x, editCoords.y);
     ok(SelectionHelperUI.isSelectionUIVisible, "selection enabled");
 
@@ -169,8 +174,59 @@ gTests.push({
     let promise = waitForCondition(condition);
     sendElementTap(window, copy);
     ok((yield promise), "copy text onto clipboard")
+
+    clearSelection(edit);
+    edit.blur();
   }
 })
+
+gTests.push({
+  desc: "bug 965832 - selection monocles move with the nav bar",
+  run: function() {
+    yield showNavBar();
+
+    let originalUtils = Services.metro;
+    Services.metro = {
+      keyboardHeight: 0,
+      keyboardVisible: false
+    };
+    registerCleanupFunction(function() {
+      Services.metro = originalUtils;
+    });
+
+    let edit = document.getElementById("urlbar-edit");
+    edit.value = "http://www.wikipedia.org/";
+
+    sendElementTap(window, edit);
+    
+    let promise = waitForEvent(window, "MozDeckOffsetChanged");
+    Services.metro.keyboardHeight = 300;
+    Services.metro.keyboardVisible = true;
+    Services.obs.notifyObservers(null, "metro_softkeyboard_shown", null);
+    yield promise;
+
+    yield waitForCondition(function () {
+      return SelectionHelperUI.isSelectionUIVisible;
+    });
+
+    promise = waitForEvent(window, "MozDeckOffsetChanged");
+    Services.metro.keyboardHeight = 0;
+    Services.metro.keyboardVisible = false;
+    Services.obs.notifyObservers(null, "metro_softkeyboard_hidden", null);
+    yield promise;
+
+    yield waitForCondition(function () {
+      return SelectionHelperUI.isSelectionUIVisible;
+    });
+
+    clearSelection(edit);
+    edit.blur();
+
+    yield waitForCondition(function () {
+      return !SelectionHelperUI.isSelectionUIVisible;
+    });
+  }
+});
 
 function test() {
   if (!isLandscapeMode()) {

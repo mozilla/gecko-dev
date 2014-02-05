@@ -102,26 +102,18 @@ CanvasLayerD3D9::UpdateSurface()
     D3DLOCKED_RECT rect = textureLock.GetLockRect();
     
     DataSourceSurface* frameData = shareSurf->GetData();
-    // Scope for gfxContext, so it's destroyed early.
+    // Scope for DrawTarget, so it's destroyed early.
     {
-      RefPtr<DrawTarget> mapDt = Factory::CreateDrawTargetForData(BackendType::CAIRO,
-                                                                  (uint8_t*)rect.pBits,
-                                                                  shareSurf->Size(),
-                                                                  rect.Pitch,
-                                                                  SurfaceFormat::B8G8R8A8);
+      RefPtr<DrawTarget> rectDt = Factory::CreateDrawTargetForData(BackendType::CAIRO,
+                                                                   (uint8_t*)rect.pBits,
+                                                                   frameData->GetSize(),
+                                                                   rect.Pitch,
+                                                                   SurfaceFormat::B8G8R8A8);
 
-      nsRefPtr<gfxImageSurface> thebesFrameData =
-          new gfxImageSurface(frameData->GetData(),
-                              ThebesIntSize(frameData->GetSize()),
-                              frameData->Stride(),
-                              SurfaceFormatToImageFormat(frameData->GetFormat()));
-
-      nsRefPtr<gfxContext> ctx = new gfxContext(mapDt);
-      ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
-      ctx->SetSource(thebesFrameData);
-      ctx->Paint();
-
-      mapDt->Flush();
+      Rect drawRect(0, 0, frameData->GetSize().width, frameData->GetSize().height);
+      rectDt->DrawSurface(frameData, drawRect, drawRect,
+                          DrawSurfaceOptions(),  DrawOptions(1.0F, CompositionOp::OP_SOURCE));
+      rectDt->Flush();
     }
   } else {
     RECT r;
@@ -140,18 +132,18 @@ CanvasLayerD3D9::UpdateSurface()
 
     nsRefPtr<gfxImageSurface> sourceSurface;
 
-    if (mSurface->GetType() == gfxSurfaceTypeWin32) {
+    if (mSurface->GetType() == gfxSurfaceType::Win32) {
       sourceSurface = mSurface->GetAsImageSurface();
-    } else if (mSurface->GetType() == gfxSurfaceTypeImage) {
+    } else if (mSurface->GetType() == gfxSurfaceType::Image) {
       sourceSurface = static_cast<gfxImageSurface*>(mSurface.get());
-      if (sourceSurface->Format() != gfxImageFormatARGB32 &&
-          sourceSurface->Format() != gfxImageFormatRGB24)
+      if (sourceSurface->Format() != gfxImageFormat::ARGB32 &&
+          sourceSurface->Format() != gfxImageFormat::RGB24)
       {
         return;
       }
     } else {
       sourceSurface = new gfxImageSurface(gfxIntSize(mBounds.width, mBounds.height),
-                                          gfxImageFormatARGB32);
+                                          gfxImageFormat::ARGB32);
       nsRefPtr<gfxContext> ctx = new gfxContext(sourceSurface);
       ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
       ctx->SetSource(mSurface);
@@ -161,7 +153,7 @@ CanvasLayerD3D9::UpdateSurface()
     uint8_t *startBits = sourceSurface->Data();
     uint32_t sourceStride = sourceSurface->Stride();
 
-    if (sourceSurface->Format() != gfxImageFormatARGB32) {
+    if (sourceSurface->Format() != gfxImageFormat::ARGB32) {
       mHasAlpha = false;
     } else {
       mHasAlpha = true;

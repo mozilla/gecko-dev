@@ -28,6 +28,7 @@ import android.view.MotionEvent;
 import android.view.ViewGroup;
 import android.view.View;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 
@@ -62,7 +63,8 @@ public class HomePager extends ViewPager {
 
     public interface OnUrlOpenListener {
         public enum Flags {
-            ALLOW_SWITCH_TO_TAB
+            ALLOW_SWITCH_TO_TAB,
+            OPEN_WITH_INTENT
         }
 
         public void onUrlOpen(String url, EnumSet<Flags> flags);
@@ -292,17 +294,28 @@ public class HomePager extends ViewPager {
 
         final HomeAdapter adapter = (HomeAdapter) getAdapter();
 
-        // Disable loading until the final current item is defined
-        // after loading the panel configs. This is to stop any temporary
-        // active item from loading.
-        boolean originalCanLoadHint = adapter.getCanLoadHint();
-        adapter.setCanLoadHint(false);
+        // Destroy any existing panels currently loaded
+        // in the pager.
+        setAdapter(null);
+
+        // Only keep enabled panels.
+        final List<PanelConfig> enabledPanels = new ArrayList<PanelConfig>();
+
+        for (PanelConfig panelConfig : panelConfigs) {
+            if (!panelConfig.isDisabled()) {
+                enabledPanels.add(panelConfig);
+            }
+        }
 
         // Update the adapter with the new panel configs
-        adapter.update(panelConfigs);
+        adapter.update(enabledPanels);
 
-        final int count = (panelConfigs != null ? panelConfigs.size() : 0);
+        // Hide the tab strip if the new configuration contains no panels.
+        final int count = enabledPanels.size();
         mTabStrip.setVisibility(count > 0 ? View.VISIBLE : View.INVISIBLE);
+        // Re-install the adapter with the final state
+        // in the pager.
+        setAdapter(adapter);
 
         // Use the default panel as defined in the HomePager's configuration
         // if the initial panel wasn't explicitly set by the show() caller.
@@ -312,17 +325,13 @@ public class HomePager extends ViewPager {
             mInitialPanelId = null;
         } else {
             for (int i = 0; i < count; i++) {
-                final PanelConfig panelConfig = panelConfigs.get(i);
+                final PanelConfig panelConfig = enabledPanels.get(i);
                 if (panelConfig.isDefault()) {
                     setCurrentItem(i, false);
                     break;
                 }
             }
         }
-
-        // Restore canLoadHint now that we have the final
-        // state in HomePager.
-        adapter.setCanLoadHint(originalCanLoadHint);
     }
 
     private class ConfigLoaderCallbacks implements LoaderCallbacks<List<PanelConfig>> {
@@ -338,7 +347,6 @@ public class HomePager extends ViewPager {
 
         @Override
         public void onLoaderReset(Loader<List<PanelConfig>> loader) {
-            updateUiFromPanelConfigs(null);
         }
     }
 }

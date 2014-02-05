@@ -120,7 +120,7 @@ IonBuilder::inlineNativeCall(CallInfo &callInfo, JSNative native)
     if (native == js_str_charAt)
         return inlineStrCharAt(callInfo);
     if (native == str_replace)
-        return inlineStrReplaceRegExp(callInfo);
+        return inlineStrReplace(callInfo);
 
     // RegExp natives.
     if (native == regexp_exec && CallResultEscapes(pc))
@@ -196,6 +196,7 @@ IonBuilder::inlineMathFunction(CallInfo &callInfo, MMathFunction::Function funct
     if (!cache)
         return InliningStatus_NotInlined;
 
+    callInfo.fun()->setImplicitlyUsedUnchecked();
     callInfo.thisArg()->setImplicitlyUsedUnchecked();
 
     MMathFunction *ins = MMathFunction::New(alloc(), callInfo.getArg(0), function, cache);
@@ -246,6 +247,9 @@ IonBuilder::inlineArray(CallInfo &callInfo)
         initLength = arg->toConstant()->value().toInt32();
         if (initLength >= JSObject::NELEMENTS_LIMIT)
             return InliningStatus_NotInlined;
+
+        if (initLength <= ArrayObject::EagerAllocationMaxLength)
+            allocating = MNewArray::NewArray_Allocating;
     }
 
     callInfo.setImplicitlyUsedUnchecked();
@@ -969,9 +973,8 @@ IonBuilder::inlineStringObject(CallInfo &callInfo)
     if (callInfo.argc() != 1 || !callInfo.constructing())
         return InliningStatus_NotInlined;
 
-    // MToString only supports int32 or string values.
-    MIRType type = callInfo.getArg(0)->type();
-    if (type != MIRType_Int32 && type != MIRType_String)
+    // ConvertToString doesn't support objects.
+    if (callInfo.getArg(0)->mightBeType(MIRType_Object))
         return InliningStatus_NotInlined;
 
     JSObject *templateObj = inspector->getTemplateObjectForNative(pc, js_String);
@@ -1129,7 +1132,7 @@ IonBuilder::inlineRegExpExec(CallInfo &callInfo)
     if (clasp != &RegExpObject::class_)
         return InliningStatus_NotInlined;
 
-    if (callInfo.getArg(0)->type() != MIRType_String)
+    if (callInfo.getArg(0)->mightBeType(MIRType_Object))
         return InliningStatus_NotInlined;
 
     callInfo.setImplicitlyUsedUnchecked();
@@ -1137,7 +1140,11 @@ IonBuilder::inlineRegExpExec(CallInfo &callInfo)
     MInstruction *exec = MRegExpExec::New(alloc(), callInfo.thisArg(), callInfo.getArg(0));
     current->add(exec);
     current->push(exec);
+
     if (!resumeAfter(exec))
+        return InliningStatus_Error;
+
+    if (!pushTypeBarrier(exec, getInlineReturnTypeSet(), true))
         return InliningStatus_Error;
 
     return InliningStatus_Inlined;
@@ -1159,7 +1166,7 @@ IonBuilder::inlineRegExpTest(CallInfo &callInfo)
     const Class *clasp = thisTypes ? thisTypes->getKnownClass() : nullptr;
     if (clasp != &RegExpObject::class_)
         return InliningStatus_NotInlined;
-    if (callInfo.getArg(0)->type() != MIRType_String)
+    if (callInfo.getArg(0)->mightBeType(MIRType_Object))
         return InliningStatus_NotInlined;
 
     callInfo.setImplicitlyUsedUnchecked();
@@ -1174,7 +1181,7 @@ IonBuilder::inlineRegExpTest(CallInfo &callInfo)
 }
 
 IonBuilder::InliningStatus
-IonBuilder::inlineStrReplaceRegExp(CallInfo &callInfo)
+IonBuilder::inlineStrReplace(CallInfo &callInfo)
 {
     if (callInfo.argc() != 2 || callInfo.constructing())
         return InliningStatus_NotInlined;
@@ -1190,7 +1197,7 @@ IonBuilder::inlineStrReplaceRegExp(CallInfo &callInfo)
     // Arg 0: RegExp.
     types::TemporaryTypeSet *arg0Type = callInfo.getArg(0)->resultTypeSet();
     const Class *clasp = arg0Type ? arg0Type->getKnownClass() : nullptr;
-    if (clasp != &RegExpObject::class_)
+    if (clasp != &RegExpObject::class_ && callInfo.getArg(0)->type() != MIRType_String)
         return InliningStatus_NotInlined;
 
     // Arg 1: String.
@@ -1199,13 +1206,18 @@ IonBuilder::inlineStrReplaceRegExp(CallInfo &callInfo)
 
     callInfo.setImplicitlyUsedUnchecked();
 
-    MInstruction *cte = MRegExpReplace::New(alloc(), callInfo.thisArg(), callInfo.getArg(0),
-                                            callInfo.getArg(1));
+    MInstruction *cte;
+    if (callInfo.getArg(0)->type() == MIRType_String) {
+        cte = MStringReplace::New(alloc(), callInfo.thisArg(), callInfo.getArg(0),
+                                  callInfo.getArg(1));
+    } else {
+        cte = MRegExpReplace::New(alloc(), callInfo.thisArg(), callInfo.getArg(0),
+                                  callInfo.getArg(1));
+    }
     current->add(cte);
     current->push(cte);
-    if (!resumeAfter(cte))
+    if (cte->isEffectful() && !resumeAfter(cte))
         return InliningStatus_Error;
-
     return InliningStatus_Inlined;
 }
 
@@ -1405,7 +1417,7 @@ IonBuilder::inlineNewDenseArrayForParallelExecution(CallInfo &callInfo)
     callInfo.setImplicitlyUsedUnchecked();
 
     MNewDenseArrayPar *newObject = MNewDenseArrayPar::New(alloc(),
-                                                          graph().forkJoinSlice(),
+                                                          graph().forkJoinContext(),
                                                           callInfo.getArg(0),
                                                           templateObject);
     current->add(newObject);

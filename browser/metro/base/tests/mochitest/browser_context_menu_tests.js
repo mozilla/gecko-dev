@@ -709,6 +709,208 @@ gTests.push({
   run: getReopenTest(sendContextMenuClickToElement, sendTap)
 });
 
+gTests.push({
+  desc: "Bug 947505 - Right-click in a designMode document should display a " +
+        "context menu",
+  run: function test() {
+    info(chromeRoot + "browser_context_menu_tests_02.html");
+    yield addTab(chromeRoot + "browser_context_menu_tests_02.html");
+
+    purgeEventQueue();
+    emptyClipboard();
+    ContextUI.dismiss();
+
+    yield waitForCondition(() => !ContextUI.navbarVisible);
+
+    let tabWindow = Browser.selectedTab.browser.contentWindow;
+    let testSpan = tabWindow.document.getElementById("text1");
+
+    // Case #1: Document isn't in design mode and nothing is selected.
+    tabWindow.document.designMode = "off";
+
+    // Simulate right mouse click to reproduce the same step as noted in the
+    // appropriate bug. It's valid for non-touch case only.
+    synthesizeNativeMouseRDown(Browser.selectedTab.browser, 10, 10);
+    synthesizeNativeMouseRUp(Browser.selectedTab.browser, 10, 10);
+
+    yield waitForCondition(() => ContextUI.navbarVisible);
+
+    ok(ContextUI.navbarVisible, "Navbar is visible on context menu action.");
+    ok(ContextUI.tabbarVisible, "Tabbar is visible on context menu action.");
+
+    ContextUI.dismiss();
+    yield waitForCondition(() => !ContextUI.navbarVisible);
+
+    // Case #2: Document isn't in design mode and text is selected.
+    tabWindow.getSelection().selectAllChildren(testSpan);
+
+    let promise = waitForEvent(document, "popupshown");
+    sendContextMenuClickToSelection(tabWindow);
+    yield promise;
+
+    checkContextUIMenuItemVisibility(["context-copy", "context-search"]);
+
+    promise = waitForEvent(document, "popuphidden");
+    ContextMenuUI.hide();
+    yield promise;
+
+    // Case #3: Document is in design mode and nothing is selected.
+    tabWindow.document.designMode = "on";
+    tabWindow.getSelection().removeAllRanges();
+
+    promise = waitForEvent(document, "popupshown");
+    sendContextMenuClickToElement(tabWindow, testSpan);
+    yield promise;
+
+    checkContextUIMenuItemVisibility(["context-select-all", "context-select"]);
+
+    promise = waitForEvent(document, "popuphidden");
+    ContextMenuUI.hide();
+    yield promise;
+
+    // Case #4: Document is in design mode and text is selected.
+    tabWindow.getSelection().selectAllChildren(testSpan);
+
+    promise = waitForEvent(document, "popupshown");
+    sendContextMenuClickToSelection(tabWindow);
+    yield promise;
+
+    checkContextUIMenuItemVisibility(["context-cut", "context-copy",
+                                      "context-select-all", "context-select",
+                                      "context-search"]);
+
+    promise = waitForEvent(document, "popuphidden");
+    ContextMenuUI.hide();
+    yield promise;
+
+    Browser.closeTab(Browser.selectedTab, { forceClose: true });
+  }
+});
+
+gTests.push({
+  desc: "Bug 961702 - 'Copy' context menu action does not copy rich content " +
+        "while document in design mode (or inside container that allows to " +
+        "edit its content)",
+  run: function test() {
+    info(chromeRoot + "browser_context_menu_tests_05.html");
+    yield addTab(chromeRoot + "browser_context_menu_tests_05.html");
+
+    purgeEventQueue();
+    emptyClipboard();
+    ContextUI.dismiss();
+
+    yield waitForCondition(() => !ContextUI.navbarVisible);
+
+    let tabWindow = Browser.selectedTab.browser.contentWindow;
+    let testDiv = tabWindow.document.getElementById("div1");
+
+    // Case #1: Document is in design mode.
+    tabWindow.document.designMode = "on";
+
+    let promise = waitForEvent(document, "popupshown");
+    sendContextMenuClickToElement(tabWindow, testDiv);
+    yield promise;
+
+    let selectAllMenuItem = document.getElementById("context-select-all");
+    promise = waitForEvent(document, "popuphidden");
+    sendNativeTap(selectAllMenuItem);
+    yield promise;
+
+    promise = waitForEvent(document, "popupshown");
+    sendContextMenuClickToSelection(tabWindow);
+    yield promise;
+
+    let copyMenuItem = document.getElementById("context-copy");
+    promise = waitForEvent(document, "popuphidden");
+    sendNativeTap(copyMenuItem);
+    yield promise;
+
+    // The wait is needed to give time to populate the clipboard.
+    let clipboardContent = "";
+    let contentToCopy = tabWindow.document.body.innerHTML;
+    yield waitForCondition(function () {
+      clipboardContent = SpecialPowers.getClipboardData("text/html");
+      return clipboardContent == contentToCopy;
+    });
+    ok(clipboardContent == contentToCopy, "Rich content copied.");
+
+    // Case #2: Container with editable content.
+    emptyClipboard();
+    tabWindow.document.designMode = "off";
+    tabWindow.getSelection().removeAllRanges();
+
+    promise = waitForEvent(tabWindow.document.body, "focus");
+    sendNativeTap(testDiv);
+    yield promise;
+
+    promise = waitForEvent(document, "popupshown");
+    sendContextMenuClickToElement(tabWindow, testDiv);
+    yield promise;
+
+    selectAllMenuItem = document.getElementById("context-select-all");
+    promise = waitForEvent(document, "popuphidden");
+    sendNativeTap(selectAllMenuItem);
+    yield promise;
+
+    promise = waitForEvent(document, "popupshown");
+    sendContextMenuClickToSelection(tabWindow);
+    yield promise;
+
+    copyMenuItem = document.getElementById("context-copy");
+    promise = waitForEvent(document, "popuphidden");
+    sendNativeTap(copyMenuItem);
+    yield promise;
+
+     // The wait is needed to give time to populate the clipboard.
+    clipboardContent = "";
+    contentToCopy = testDiv.innerHTML;
+    yield waitForCondition(function () {
+      clipboardContent = SpecialPowers.getClipboardData("text/html");
+      return clipboardContent == contentToCopy;
+    });
+    ok(clipboardContent == contentToCopy, "Rich content copied.");
+
+    Browser.closeTab(Browser.selectedTab, { forceClose: true });
+  }
+});
+
+gTests.push({
+  desc: "Bug 963067 - 'Cut' in the cut, copy, paste menu is always active " +
+        "after a browser launch.",
+  run: function test() {
+    info(chromeRoot + "browser_context_menu_tests_02.html");
+    yield addTab(chromeRoot + "browser_context_menu_tests_02.html");
+
+    purgeEventQueue();
+    emptyClipboard();
+
+    ContextUI.dismiss();
+    yield waitForCondition(() => !ContextUI.navbarVisible);
+
+    let tabWindow = Browser.selectedTab.browser.contentWindow;
+    let input = tabWindow.document.getElementById("text3-input");
+    let cutMenuItem = document.getElementById("context-cut");
+
+    input.select();
+
+    // Emulate RichListBox's behavior and set first item selected by default.
+    cutMenuItem.selected = true;
+
+    let promise = waitForEvent(document, "popupshown");
+    sendContextMenuClickToElement(tabWindow, input);
+    yield promise;
+
+    ok(!cutMenuItem.hidden && !cutMenuItem.selected,
+       "Cut menu item is visible and not selected.");
+
+    promise = waitForEvent(document, "popuphidden");
+    ContextMenuUI.hide();
+    yield promise;
+
+    Browser.closeTab(Browser.selectedTab, { forceClose: true });
+  }
+});
+
 function test() {
   setDevPixelEqualToPx();
   runTests();

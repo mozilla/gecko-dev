@@ -539,6 +539,12 @@ MConstant::canProduceFloat32() const
     return true;
 }
 
+MCloneLiteral *
+MCloneLiteral::New(TempAllocator &alloc, MDefinition *obj)
+{
+    return new(alloc) MCloneLiteral(obj);
+}
+
 void
 MControlInstruction::printOpcode(FILE *fp) const
 {
@@ -666,20 +672,19 @@ MCall::New(TempAllocator &alloc, JSFunction *target, size_t maxArgc, size_t numA
 AliasSet
 MCallDOMNative::getAliasSet() const
 {
-    JS_ASSERT(getSingleTarget() && getSingleTarget()->isNative());
+    const JSJitInfo *jitInfo = getJitInfo();
 
-    const JSJitInfo *jitInfo = getSingleTarget()->jitInfo();
-    JS_ASSERT(jitInfo);
-
-    JS_ASSERT(jitInfo->aliasSet != JSJitInfo::AliasNone);
+    JS_ASSERT(jitInfo->aliasSet() != JSJitInfo::AliasNone);
     // If we don't know anything about the types of our arguments, we have to
     // assume that type-coercions can have side-effects, so we need to alias
     // everything.
-    if (jitInfo->aliasSet != JSJitInfo::AliasDOMSets || !jitInfo->argTypes)
+    if (jitInfo->aliasSet() != JSJitInfo::AliasDOMSets || !jitInfo->isTypedMethodJitInfo())
         return AliasSet::Store(AliasSet::Any);
 
     uint32_t argIndex = 0;
-    for (const JSJitInfo::ArgType *argType = jitInfo->argTypes;
+    const JSTypedMethodJitInfo *methodInfo =
+        reinterpret_cast<const JSTypedMethodJitInfo*>(jitInfo);
+    for (const JSJitInfo::ArgType *argType = methodInfo->argTypes;
          *argType != JSJitInfo::ArgTypeListEnd;
          ++argType, ++argIndex)
     {
@@ -715,13 +720,10 @@ MCallDOMNative::computeMovable()
     // We are movable if the jitinfo says we can be and if we're also not
     // effectful.  The jitinfo can't check for the latter, since it depends on
     // the types of our arguments.
-    JS_ASSERT(getSingleTarget() && getSingleTarget()->isNative());
-
-    const JSJitInfo *jitInfo = getSingleTarget()->jitInfo();
-    JS_ASSERT(jitInfo);
+    const JSJitInfo *jitInfo = getJitInfo();
 
     JS_ASSERT_IF(jitInfo->isMovable,
-                 jitInfo->aliasSet != JSJitInfo::AliasEverything);
+                 jitInfo->aliasSet() != JSJitInfo::AliasEverything);
 
     if (jitInfo->isMovable && !isEffectful())
         setMovable();
@@ -760,6 +762,17 @@ MCallDOMNative::congruentTo(MDefinition *ins) const
     JS_ASSERT(call->isMovable());
 
     return true;
+}
+
+const JSJitInfo *
+MCallDOMNative::getJitInfo() const
+{
+    JS_ASSERT(getSingleTarget() && getSingleTarget()->isNative());
+
+    const JSJitInfo *jitInfo = getSingleTarget()->jitInfo();
+    JS_ASSERT(jitInfo);
+
+    return jitInfo;
 }
 
 MApplyArgs *
@@ -1912,11 +1925,11 @@ MCompare::infer(BaselineInspector *inspector, jsbytecode *pc)
     }
 
     // Any comparison is allowed except strict eq.
-    if (!strictEq && lhs == MIRType_Double && SafelyCoercesToDouble(getOperand(1))) {
+    if (!strictEq && IsFloatingPointType(lhs) && SafelyCoercesToDouble(getOperand(1))) {
         compareType_ = Compare_DoubleMaybeCoerceRHS;
         return;
     }
-    if (!strictEq && rhs == MIRType_Double && SafelyCoercesToDouble(getOperand(0))) {
+    if (!strictEq && IsFloatingPointType(rhs) && SafelyCoercesToDouble(getOperand(0))) {
         compareType_ = Compare_DoubleMaybeCoerceLHS;
         return;
     }
@@ -2528,9 +2541,6 @@ MCompare::trySpecializeFloat32(TempAllocator &alloc)
 {
     MDefinition *lhs = getOperand(0);
     MDefinition *rhs = getOperand(1);
-
-    if (compareType_ == Compare_Float32)
-        return;
 
     if (lhs->canProduceFloat32() && rhs->canProduceFloat32() && compareType_ == Compare_Double) {
         compareType_ = Compare_Float32;

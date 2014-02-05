@@ -42,6 +42,7 @@ namespace winrt {
 ComPtr<FrameworkView> sFrameworkView;
 ComPtr<MetroApp> sMetroApp;
 ComPtr<ICoreApplication> sCoreApp;
+bool MetroApp::sGeckoShuttingDown = false;
 
 ////////////////////////////////////////////////////
 // IFrameworkViewSource impl.
@@ -84,9 +85,9 @@ MetroApp::Run()
     this, &MetroApp::OnResuming).Get(), &mResumeEvent);
   AssertHRESULT(hr);
 
-  WinUtils::Log("XPCOM startup initialization began");
+  WinUtils::Log("Calling XRE_metroStartup.");
   nsresult rv = XRE_metroStartup(true);
-  WinUtils::Log("XPCOM startup initialization complete");
+  WinUtils::Log("Exiting XRE_metroStartup.");
   if (NS_FAILED(rv)) {
     WinUtils::Log("XPCOM startup initialization failed, bailing. rv=%X", rv);
     CoreExit();
@@ -96,7 +97,7 @@ MetroApp::Run()
 // Free all xpcom related resources before calling the xre shutdown call.
 // Must be called on the metro main thread. Currently called from appshell.
 void
-MetroApp::ShutdownXPCOM()
+MetroApp::Shutdown()
 {
   LogThread();
 
@@ -106,8 +107,10 @@ MetroApp::ShutdownXPCOM()
   }
 
   if (sFrameworkView) {
-    sFrameworkView->ShutdownXPCOM();
+    sFrameworkView->Shutdown();
   }
+
+  MetroApp::sGeckoShuttingDown = true;
 
   // Shut down xpcom
   XRE_metroShutdown();
@@ -155,6 +158,7 @@ MetroApp::OnAsyncTileCreated(ABI::Windows::Foundation::IAsyncOperation<bool>* aO
                              AsyncStatus aStatus)
 {
   WinUtils::Log("Async operation status: %d", aStatus);
+  MetroUtils::FireObserver("metro_on_async_tile_created");
   return S_OK;
 }
 

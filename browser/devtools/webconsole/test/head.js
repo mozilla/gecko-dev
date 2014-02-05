@@ -3,19 +3,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-let WebConsoleUtils, TargetFactory, require;
 let {gDevTools} = Cu.import("resource:///modules/devtools/gDevTools.jsm", {});
 let {console} = Cu.import("resource://gre/modules/devtools/Console.jsm", {});
-let {Promise: promise} = Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js", {});
+let {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 let {Task} = Cu.import("resource://gre/modules/Task.jsm", {});
+let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+let {require, TargetFactory} = devtools;
+let {Utils: WebConsoleUtils} = require("devtools/toolkit/webconsole/utils");
+let {Messages} = require("devtools/webconsole/console-output");
 
-(() => {
-  let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
-  let utils = devtools.require("devtools/toolkit/webconsole/utils");
-  TargetFactory = devtools.TargetFactory;
-  WebConsoleUtils = utils.Utils;
-  require = devtools.require;
-})();
 // promise._reportErrors = true; // please never leave me.
 
 let gPendingOutputTest = 0;
@@ -65,6 +61,20 @@ function addTab(aURL)
   gBrowser.selectedTab = gBrowser.addTab(aURL);
   tab = gBrowser.selectedTab;
   browser = gBrowser.getBrowserForTab(tab);
+}
+
+function loadTab(url) {
+  let deferred = promise.defer();
+
+  let tab = gBrowser.selectedTab = gBrowser.addTab(url);
+  let browser = gBrowser.getBrowserForTab(tab);
+
+  browser.addEventListener("load", function onLoad() {
+    browser.removeEventListener("load", onLoad, true);
+    deferred.resolve({tab: tab, browser: browser});
+  }, true);
+
+  return deferred.promise;
 }
 
 function afterAllTabsLoaded(callback, win) {
@@ -177,6 +187,8 @@ function openConsole(aTab, aCallback = function() { })
  * @param function [aCallback]
  *        Optional function to invoke after the Web Console completes
  *        closing (web-console-destroyed).
+ * @return object
+ *         A promise that is resolved once the web console is closed.
  */
 function closeConsole(aTab, aCallback = function() { })
 {
@@ -186,15 +198,13 @@ function closeConsole(aTab, aCallback = function() { })
     let panel = toolbox.getPanel("webconsole");
     if (panel) {
       let hudId = panel.hud.hudId;
-      toolbox.destroy().then(aCallback.bind(null, hudId)).then(null, console.debug);
+      return toolbox.destroy().then(aCallback.bind(null, hudId)).then(null, console.debug);
     }
-    else {
-      toolbox.destroy().then(aCallback.bind(null));
-    }
+    return toolbox.destroy().then(aCallback.bind(null));
   }
-  else {
-    aCallback();
-  }
+
+  aCallback();
+  return promise.resolve(null);
 }
 
 /**
@@ -269,7 +279,7 @@ function dumpConsoles()
 function dumpMessageElement(aMessage)
 {
   let text = aMessage.textContent;
-  let repeats = aMessage.querySelector(".repeats");
+  let repeats = aMessage.querySelector(".message-repeats");
   if (repeats) {
     repeats = repeats.getAttribute("value");
   }
@@ -918,44 +928,44 @@ function waitForMessages(aOptions)
     let elemText = aElement.textContent;
     let trace = aRule.consoleTrace;
 
-    if (!checkText("Stack trace from ", elemText)) {
+    if (!checkText("console.trace():", elemText)) {
       return false;
     }
 
-    let clickable = aElement.querySelector(".body a");
-    if (!clickable) {
-      ok(false, "console.trace() message is missing .hud-clickable");
-      displayErrorContext(aRule, aElement);
-      return false;
-    }
-    aRule.clickableElements = [clickable];
-
-    if (trace.file &&
-        !checkText("from " + trace.file + ", ", elemText)) {
-      ok(false, "console.trace() message is missing the file name: " +
-                trace.file);
-      displayErrorContext(aRule, aElement);
-      return false;
+    let frame = aElement.querySelector(".stacktrace li:first-child");
+    if (trace.file) {
+      let file = frame.querySelector(".message-location").title;
+      if (!checkText(trace.file, file)) {
+        ok(false, "console.trace() message is missing the file name: " +
+                  trace.file);
+        displayErrorContext(aRule, aElement);
+        return false;
+      }
     }
 
-    if (trace.fn &&
-        !checkText(", function " + trace.fn + ", ", elemText)) {
-      ok(false, "console.trace() message is missing the function name: " +
-                trace.fn);
-      displayErrorContext(aRule, aElement);
-      return false;
+    if (trace.fn) {
+      let fn = frame.querySelector(".function").textContent;
+      if (!checkText(trace.fn, fn)) {
+        ok(false, "console.trace() message is missing the function name: " +
+                  trace.fn);
+        displayErrorContext(aRule, aElement);
+        return false;
+      }
     }
 
-    if (trace.line &&
-        !checkText(", line " + trace.line + ".", elemText)) {
-      ok(false, "console.trace() message is missing the line number: " +
-                trace.line);
-      displayErrorContext(aRule, aElement);
-      return false;
+    if (trace.line) {
+      let line = frame.querySelector(".message-location").sourceLine;
+      if (!checkText(trace.line, line)) {
+        ok(false, "console.trace() message is missing the line number: " +
+                  trace.line);
+        displayErrorContext(aRule, aElement);
+        return false;
+      }
     }
 
     aRule.category = CATEGORY_WEBDEV;
     aRule.severity = SEVERITY_LOG;
+    aRule.type = Messages.ConsoleTrace;
 
     return true;
   }
@@ -979,7 +989,7 @@ function waitForMessages(aOptions)
   {
     let elemText = aElement.textContent;
     let time = aRule.consoleTimeEnd;
-    let regex = new RegExp(time + ": -?\\d+ms");
+    let regex = new RegExp(time + ": -?\\d+([,.]\\d+)?ms");
 
     if (!checkText(regex, elemText)) {
       return false;
@@ -1024,7 +1034,7 @@ function waitForMessages(aOptions)
 
   function checkSource(aRule, aElement)
   {
-    let location = aElement.querySelector(".location");
+    let location = aElement.querySelector(".message-location");
     if (!location) {
       return false;
     }
@@ -1076,15 +1086,22 @@ function waitForMessages(aOptions)
       return false;
     }
 
+    let partialMatch = !!(aRule.consoleTrace || aRule.consoleTime ||
+                          aRule.consoleTimeEnd);
+
     // The rule tries to match the newer types of messages, based on their
     // object constructor.
-    if (aRule.type && (!aElement._messageObject ||
-                       !(aElement._messageObject instanceof aRule.type))) {
-      return false;
+    if (aRule.type) {
+      if (!aElement._messageObject ||
+          !(aElement._messageObject instanceof aRule.type)) {
+        if (partialMatch) {
+          ok(false, "message type for rule: " + displayRule(aRule));
+          displayErrorContext(aRule, aElement);
+        }
+        return false;
+      }
+      partialMatch = true;
     }
-
-    let partialMatch = !!(aRule.consoleTrace || aRule.consoleTime ||
-                          aRule.consoleTimeEnd || aRule.type);
 
     if ("category" in aRule && aElement.category != aRule.category) {
       if (partialMatch) {
@@ -1110,7 +1127,7 @@ function waitForMessages(aOptions)
     }
 
     if ("repeats" in aRule) {
-      let repeats = aElement.querySelector(".repeats");
+      let repeats = aElement.querySelector(".message-repeats");
       if (!repeats || repeats.getAttribute("value") != aRule.repeats) {
         return false;
       }
@@ -1166,7 +1183,7 @@ function waitForMessages(aOptions)
   function onMessagesAdded(aEvent, aNewElements)
   {
     for (let elem of aNewElements) {
-      let location = elem.querySelector(".location");
+      let location = elem.querySelector(".message-location");
       if (location) {
         let url = location.title;
         // Prevent recursion with the browser console and any potential

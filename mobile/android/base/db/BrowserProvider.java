@@ -1439,6 +1439,7 @@ public class BrowserProvider extends ContentProvider {
             db.execSQL("DROP VIEW IF EXISTS " + Obsolete.VIEW_BOOKMARKS_WITH_IMAGES);
 
             db.execSQL("DROP INDEX IF EXISTS bookmarks_url_index");
+            db.execSQL("DROP INDEX IF EXISTS bookmarks_type_deleted_index");
             db.execSQL("DROP INDEX IF EXISTS bookmarks_guid_index");
             db.execSQL("DROP INDEX IF EXISTS bookmarks_modified_index");
 
@@ -2974,7 +2975,7 @@ public class BrowserProvider extends ContentProvider {
 
         // If no URL is provided, insert using the default one.
         if (TextUtils.isEmpty(faviconUrl) && !TextUtils.isEmpty(pageUrl)) {
-            values.put(Favicons.URL, org.mozilla.gecko.favicons.Favicons.guessDefaultFaviconUrl(pageUrl));
+            values.put(Favicons.URL, org.mozilla.gecko.favicons.Favicons.guessDefaultFaviconURL(pageUrl));
         }
 
         long now = System.currentTimeMillis();

@@ -8,6 +8,7 @@
 #define jsfriendapi_h
 
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/TypedEnum.h"
 
 #include "jsbytecode.h"
 #include "jspubtd.h"
@@ -124,11 +125,11 @@ JS_SetCompartmentPrincipals(JSCompartment *compartment, JSPrincipals *principals
 
 /* Safe to call with input obj == nullptr. Returns non-nullptr iff obj != nullptr. */
 extern JS_FRIEND_API(JSObject *)
-JS_ObjectToInnerObject(JSContext *cx, JSObject *obj);
+JS_ObjectToInnerObject(JSContext *cx, JS::HandleObject obj);
 
 /* Requires obj != nullptr. */
 extern JS_FRIEND_API(JSObject *)
-JS_ObjectToOuterObject(JSContext *cx, JSObject *obj);
+JS_ObjectToOuterObject(JSContext *cx, JS::HandleObject obj);
 
 extern JS_FRIEND_API(JSObject *)
 JS_CloneObject(JSContext *cx, JSObject *obj, JSObject *proto, JSObject *parent);
@@ -224,6 +225,174 @@ extern JS_FRIEND_API(bool)
 JS_DefineFunctionsWithHelp(JSContext *cx, JSObject *obj, const JSFunctionSpecWithHelp *fs);
 
 namespace js {
+
+/*
+ * Helper Macros for creating JSClasses that function as proxies.
+ *
+ * NB: The macro invocation must be surrounded by braces, so as to
+ *     allow for potention JSClass extensions.
+ */
+#define PROXY_MAKE_EXT(outerObject, innerObject, iteratorObject,        \
+                       isWrappedNative)                                 \
+    {                                                                   \
+        outerObject,                                                    \
+        innerObject,                                                    \
+        iteratorObject,                                                 \
+        isWrappedNative,                                                \
+        js::proxy_WeakmapKeyDelegate                                    \
+    }
+
+#define PROXY_CLASS_WITH_EXT(name, extraSlots, flags, callOp, constructOp, ext)         \
+    {                                                                                   \
+        name,                                                                           \
+        js::Class::NON_NATIVE |                                                         \
+            JSCLASS_IS_PROXY |                                                          \
+            JSCLASS_IMPLEMENTS_BARRIERS |                                               \
+            JSCLASS_HAS_RESERVED_SLOTS(js::PROXY_MINIMUM_SLOTS + (extraSlots)) |        \
+            flags,                                                                      \
+        JS_PropertyStub,         /* addProperty */                                      \
+        JS_DeletePropertyStub,   /* delProperty */                                      \
+        JS_PropertyStub,         /* getProperty */                                      \
+        JS_StrictPropertyStub,   /* setProperty */                                      \
+        JS_EnumerateStub,                                                               \
+        JS_ResolveStub,                                                                 \
+        js::proxy_Convert,                                                              \
+        js::proxy_Finalize,      /* finalize    */                                      \
+        callOp,                  /* call        */                                      \
+        js::proxy_HasInstance,   /* hasInstance */                                      \
+        constructOp,             /* construct   */                                      \
+        js::proxy_Trace,         /* trace       */                                      \
+        JS_NULL_CLASS_SPEC,                                                             \
+        ext,                                                                            \
+        {                                                                               \
+            js::proxy_LookupGeneric,                                                    \
+            js::proxy_LookupProperty,                                                   \
+            js::proxy_LookupElement,                                                    \
+            js::proxy_LookupSpecial,                                                    \
+            js::proxy_DefineGeneric,                                                    \
+            js::proxy_DefineProperty,                                                   \
+            js::proxy_DefineElement,                                                    \
+            js::proxy_DefineSpecial,                                                    \
+            js::proxy_GetGeneric,                                                       \
+            js::proxy_GetProperty,                                                      \
+            js::proxy_GetElement,                                                       \
+            js::proxy_GetSpecial,                                                       \
+            js::proxy_SetGeneric,                                                       \
+            js::proxy_SetProperty,                                                      \
+            js::proxy_SetElement,                                                       \
+            js::proxy_SetSpecial,                                                       \
+            js::proxy_GetGenericAttributes,                                             \
+            js::proxy_SetGenericAttributes,                                             \
+            js::proxy_DeleteProperty,                                                   \
+            js::proxy_DeleteElement,                                                    \
+            js::proxy_DeleteSpecial,                                                    \
+            js::proxy_Watch, js::proxy_Unwatch,                                         \
+            js::proxy_Slice,                                                            \
+            nullptr,             /* enumerate       */                                  \
+            nullptr,             /* thisObject      */                                  \
+        }                                                                               \
+    }
+
+#define PROXY_CLASS_DEF(name, extraSlots, flags, callOp, constructOp)   \
+  PROXY_CLASS_WITH_EXT(name, extraSlots, flags, callOp, constructOp,    \
+                       PROXY_MAKE_EXT(                                  \
+                         nullptr, /* outerObject */                     \
+                         nullptr, /* innerObject */                     \
+                         nullptr, /* iteratorObject */                  \
+                         false    /* isWrappedNative */                 \
+                       ))
+
+/*
+ * Proxy stubs, similar to JS_*Stub, for embedder proxy class definitions.
+ *
+ * NB: Should not be called directly.
+ */
+
+extern JS_FRIEND_API(bool)
+proxy_LookupGeneric(JSContext *cx, JS::HandleObject obj, JS::HandleId id, JS::MutableHandleObject objp,
+                    JS::MutableHandle<Shape*> propp);
+extern JS_FRIEND_API(bool)
+proxy_LookupProperty(JSContext *cx, JS::HandleObject obj, JS::Handle<PropertyName*> name,
+                     JS::MutableHandleObject objp, JS::MutableHandle<Shape*> propp);
+extern JS_FRIEND_API(bool)
+proxy_LookupElement(JSContext *cx, JS::HandleObject obj, uint32_t index, JS::MutableHandleObject objp,
+                    JS::MutableHandle<Shape*> propp);
+extern JS_FRIEND_API(bool)
+proxy_LookupSpecial(JSContext *cx, JS::HandleObject obj, HandleSpecialId sid,
+                    JS::MutableHandleObject objp, JS::MutableHandle<Shape*> propp);
+extern JS_FRIEND_API(bool)
+proxy_DefineGeneric(JSContext *cx, JS::HandleObject obj, JS::HandleId id, JS::HandleValue value,
+                    JSPropertyOp getter, JSStrictPropertyOp setter, unsigned attrs);
+extern JS_FRIEND_API(bool)
+proxy_DefineProperty(JSContext *cx, JS::HandleObject obj, JS::Handle<PropertyName*> name,
+                     JS::HandleValue value, JSPropertyOp getter, JSStrictPropertyOp setter,
+                     unsigned attrs);
+extern JS_FRIEND_API(bool)
+proxy_DefineElement(JSContext *cx, JS::HandleObject obj, uint32_t index, JS::HandleValue value,
+                    JSPropertyOp getter, JSStrictPropertyOp setter, unsigned attrs);
+extern JS_FRIEND_API(bool)
+proxy_DefineSpecial(JSContext *cx, JS::HandleObject obj, HandleSpecialId sid,
+                    JS::HandleValue value, JSPropertyOp getter, JSStrictPropertyOp setter,
+                    unsigned attrs);
+extern JS_FRIEND_API(bool)
+proxy_GetGeneric(JSContext *cx, JS::HandleObject obj, JS::HandleObject receiver, JS::HandleId id,
+                 JS::MutableHandleValue vp);
+extern JS_FRIEND_API(bool)
+proxy_GetProperty(JSContext *cx, JS::HandleObject obj, JS::HandleObject receiver,
+                  JS::Handle<PropertyName*> name, JS::MutableHandleValue vp);
+extern JS_FRIEND_API(bool)
+proxy_GetElement(JSContext *cx, JS::HandleObject obj, JS::HandleObject receiver, uint32_t index,
+                 JS::MutableHandleValue vp);
+extern JS_FRIEND_API(bool)
+proxy_GetSpecial(JSContext *cx, JS::HandleObject obj, JS::HandleObject receiver,
+                 HandleSpecialId sid, JS::MutableHandleValue vp);
+extern JS_FRIEND_API(bool)
+proxy_SetGeneric(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
+                 JS::MutableHandleValue bp, bool strict);
+extern JS_FRIEND_API(bool)
+proxy_SetProperty(JSContext *cx, JS::HandleObject obj, JS::Handle<PropertyName*> name,
+                  JS::MutableHandleValue bp, bool strict);
+extern JS_FRIEND_API(bool)
+proxy_SetElement(JSContext *cx, JS::HandleObject obj, uint32_t index, JS::MutableHandleValue vp,
+                 bool strict);
+extern JS_FRIEND_API(bool)
+proxy_SetSpecial(JSContext *cx, JS::HandleObject obj, HandleSpecialId sid,
+                 JS::MutableHandleValue vp, bool strict);
+extern JS_FRIEND_API(bool)
+proxy_GetGenericAttributes(JSContext *cx, JS::HandleObject obj, JS::HandleId id, unsigned *attrsp);
+extern JS_FRIEND_API(bool)
+proxy_SetGenericAttributes(JSContext *cx, JS::HandleObject obj, JS::HandleId id, unsigned *attrsp);
+extern JS_FRIEND_API(bool)
+proxy_DeleteProperty(JSContext *cx, JS::HandleObject obj, JS::Handle<PropertyName*> name,
+                     bool *succeeded);
+extern JS_FRIEND_API(bool)
+proxy_DeleteElement(JSContext *cx, JS::HandleObject obj, uint32_t index, bool *succeeded);
+extern JS_FRIEND_API(bool)
+proxy_DeleteSpecial(JSContext *cx, JS::HandleObject obj, HandleSpecialId sid, bool *succeeded);
+
+extern JS_FRIEND_API(void)
+proxy_Trace(JSTracer *trc, JSObject *obj);
+extern JS_FRIEND_API(JSObject *)
+proxy_WeakmapKeyDelegate(JSObject *obj);
+extern JS_FRIEND_API(bool)
+proxy_Convert(JSContext *cx, JS::HandleObject proxy, JSType hint, JS::MutableHandleValue vp);
+extern JS_FRIEND_API(void)
+proxy_Finalize(FreeOp *fop, JSObject *obj);
+extern JS_FRIEND_API(bool)
+proxy_HasInstance(JSContext *cx, JS::HandleObject proxy, JS::MutableHandleValue v, bool *bp);
+extern JS_FRIEND_API(bool)
+proxy_Call(JSContext *cx, unsigned argc, JS::Value *vp);
+extern JS_FRIEND_API(bool)
+proxy_Construct(JSContext *cx, unsigned argc, JS::Value *vp);
+extern JS_FRIEND_API(JSObject *)
+proxy_innerObject(JSContext *cx, JS::HandleObject obj);
+extern JS_FRIEND_API(bool)
+proxy_Watch(JSContext *cx, JS::HandleObject obj, JS::HandleId id, JS::HandleObject callable);
+extern JS_FRIEND_API(bool)
+proxy_Unwatch(JSContext *cx, JS::HandleObject obj, JS::HandleId id);
+extern JS_FRIEND_API(bool)
+proxy_Slice(JSContext *cx, JS::HandleObject proxy, uint32_t begin, uint32_t end,
+            JS::HandleObject result);
 
 /*
  * A class of objects that return source code on demand.
@@ -480,7 +649,7 @@ GetObjectParent(JSObject *obj)
     return reinterpret_cast<shadow::Object*>(obj)->shape->base->parent;
 }
 
-static JS_ALWAYS_INLINE JSCompartment *
+static MOZ_ALWAYS_INLINE JSCompartment *
 GetObjectCompartment(JSObject *obj)
 {
     return reinterpret_cast<shadow::Object*>(obj)->shape->base->compartment;
@@ -549,7 +718,7 @@ JS_FRIEND_API(void)
 SetFunctionNativeReserved(JSObject *fun, size_t which, const JS::Value &val);
 
 JS_FRIEND_API(bool)
-GetObjectProto(JSContext *cx, JS::Handle<JSObject*> obj, JS::MutableHandle<JSObject*> proto);
+GetObjectProto(JSContext *cx, JS::HandleObject obj, JS::MutableHandleObject proto);
 
 JS_FRIEND_API(bool)
 GetOriginalEval(JSContext *cx, JS::HandleObject scope,
@@ -640,14 +809,6 @@ SetPreserveWrapperCallback(JSRuntime *rt, PreserveWrapperCallback callback);
 
 JS_FRIEND_API(bool)
 IsObjectInContextCompartment(JSObject *obj, const JSContext *cx);
-
-/*
- * ErrorFromException takes a raw Value so that it's possible to call it during
- * GC/CC/whatever, when it may not be possible to get a JSContext to create a
- * Rooted.  It promises to never ever GC.
- */
-JS_FRIEND_API(JSErrorReport*)
-ErrorFromException(JS::Value val);
 
 /*
  * NB: these flag bits are encoded into the bytecode stream in the immediate
@@ -943,6 +1104,16 @@ typedef enum JSErrNum {
 extern JS_FRIEND_API(const JSErrorFormatString *)
 js_GetErrorMessage(void *userRef, const char *locale, const unsigned errorNumber);
 
+namespace js {
+
+// Creates a string of the form |ErrorType: ErrorMessage| for a JSErrorReport,
+// which generally matches the toString() behavior of an ErrorObject.
+extern JS_FRIEND_API(JSString *)
+ErrorReportToString(JSContext *cx, JSErrorReport *reportp);
+
+} /* namespace js */
+
+
 /* Implemented in jsclone.cpp. */
 
 extern JS_FRIEND_API(uint64_t)
@@ -1019,23 +1190,23 @@ JS_NewFloat64Array(JSContext *cx, uint32_t nelements);
  */
 
 extern JS_FRIEND_API(JSObject *)
-JS_NewInt8ArrayFromArray(JSContext *cx, JSObject *array);
+JS_NewInt8ArrayFromArray(JSContext *cx, JS::HandleObject array);
 extern JS_FRIEND_API(JSObject *)
-JS_NewUint8ArrayFromArray(JSContext *cx, JSObject *array);
+JS_NewUint8ArrayFromArray(JSContext *cx, JS::HandleObject array);
 extern JS_FRIEND_API(JSObject *)
-JS_NewUint8ClampedArrayFromArray(JSContext *cx, JSObject *array);
+JS_NewUint8ClampedArrayFromArray(JSContext *cx, JS::HandleObject array);
 extern JS_FRIEND_API(JSObject *)
-JS_NewInt16ArrayFromArray(JSContext *cx, JSObject *array);
+JS_NewInt16ArrayFromArray(JSContext *cx, JS::HandleObject array);
 extern JS_FRIEND_API(JSObject *)
-JS_NewUint16ArrayFromArray(JSContext *cx, JSObject *array);
+JS_NewUint16ArrayFromArray(JSContext *cx, JS::HandleObject array);
 extern JS_FRIEND_API(JSObject *)
-JS_NewInt32ArrayFromArray(JSContext *cx, JSObject *array);
+JS_NewInt32ArrayFromArray(JSContext *cx, JS::HandleObject array);
 extern JS_FRIEND_API(JSObject *)
-JS_NewUint32ArrayFromArray(JSContext *cx, JSObject *array);
+JS_NewUint32ArrayFromArray(JSContext *cx, JS::HandleObject array);
 extern JS_FRIEND_API(JSObject *)
-JS_NewFloat32ArrayFromArray(JSContext *cx, JSObject *array);
+JS_NewFloat32ArrayFromArray(JSContext *cx, JS::HandleObject array);
 extern JS_FRIEND_API(JSObject *)
-JS_NewFloat64ArrayFromArray(JSContext *cx, JSObject *array);
+JS_NewFloat64ArrayFromArray(JSContext *cx, JS::HandleObject array);
 
 /*
  * Create a new typed array using the given ArrayBuffer for storage.  The
@@ -1044,31 +1215,31 @@ JS_NewFloat64ArrayFromArray(JSContext *cx, JSObject *array);
  */
 
 extern JS_FRIEND_API(JSObject *)
-JS_NewInt8ArrayWithBuffer(JSContext *cx, JSObject *arrayBuffer,
+JS_NewInt8ArrayWithBuffer(JSContext *cx, JS::HandleObject arrayBuffer,
                           uint32_t byteOffset, int32_t length);
 extern JS_FRIEND_API(JSObject *)
-JS_NewUint8ArrayWithBuffer(JSContext *cx, JSObject *arrayBuffer,
+JS_NewUint8ArrayWithBuffer(JSContext *cx, JS::HandleObject arrayBuffer,
                            uint32_t byteOffset, int32_t length);
 extern JS_FRIEND_API(JSObject *)
-JS_NewUint8ClampedArrayWithBuffer(JSContext *cx, JSObject *arrayBuffer,
+JS_NewUint8ClampedArrayWithBuffer(JSContext *cx, JS::HandleObject arrayBuffer,
                                   uint32_t byteOffset, int32_t length);
 extern JS_FRIEND_API(JSObject *)
-JS_NewInt16ArrayWithBuffer(JSContext *cx, JSObject *arrayBuffer,
+JS_NewInt16ArrayWithBuffer(JSContext *cx, JS::HandleObject arrayBuffer,
                            uint32_t byteOffset, int32_t length);
 extern JS_FRIEND_API(JSObject *)
-JS_NewUint16ArrayWithBuffer(JSContext *cx, JSObject *arrayBuffer,
+JS_NewUint16ArrayWithBuffer(JSContext *cx, JS::HandleObject arrayBuffer,
                             uint32_t byteOffset, int32_t length);
 extern JS_FRIEND_API(JSObject *)
-JS_NewInt32ArrayWithBuffer(JSContext *cx, JSObject *arrayBuffer,
+JS_NewInt32ArrayWithBuffer(JSContext *cx, JS::HandleObject arrayBuffer,
                            uint32_t byteOffset, int32_t length);
 extern JS_FRIEND_API(JSObject *)
-JS_NewUint32ArrayWithBuffer(JSContext *cx, JSObject *arrayBuffer,
+JS_NewUint32ArrayWithBuffer(JSContext *cx, JS::HandleObject arrayBuffer,
                             uint32_t byteOffset, int32_t length);
 extern JS_FRIEND_API(JSObject *)
-JS_NewFloat32ArrayWithBuffer(JSContext *cx, JSObject *arrayBuffer,
+JS_NewFloat32ArrayWithBuffer(JSContext *cx, JS::HandleObject arrayBuffer,
                              uint32_t byteOffset, int32_t length);
 extern JS_FRIEND_API(JSObject *)
-JS_NewFloat64ArrayWithBuffer(JSContext *cx, JSObject *arrayBuffer,
+JS_NewFloat64ArrayWithBuffer(JSContext *cx, JS::HandleObject arrayBuffer,
                              uint32_t byteOffset, int32_t length);
 
 /*
@@ -1360,7 +1531,7 @@ class JSJitGetterCallArgs : protected JS::MutableHandleValue
       : JS::MutableHandleValue(args.rval())
     {}
 
-    explicit JSJitGetterCallArgs(JS::Rooted<JS::Value>* rooted)
+    explicit JSJitGetterCallArgs(JS::RootedValue* rooted)
       : JS::MutableHandleValue(rooted)
     {}
 
@@ -1451,7 +1622,9 @@ struct JSJitInfo {
         Getter,
         Setter,
         Method,
-        OpType_None
+        ParallelNative,
+        // Must be last
+        OpTypeCount
     };
 
     enum ArgType {
@@ -1475,6 +1648,13 @@ struct JSJitInfo {
         ArgTypeListEnd = (1 << 31)
     };
 
+    static_assert(Any & String, "Any must include String.");
+    static_assert(Any & Integer, "Any must include Integer.");
+    static_assert(Any & Double, "Any must include Double.");
+    static_assert(Any & Boolean, "Any must include Boolean.");
+    static_assert(Any & Object, "Any must include Object.");
+    static_assert(Any & Null, "Any must include Null.");
+
     enum AliasSet {
         // An enum that describes what this getter/setter/method aliases.  This
         // determines what things can be hoisted past this call, and if this
@@ -1490,69 +1670,166 @@ struct JSJitInfo {
 
         // Alias the world.  Calling this can change arbitrary values anywhere
         // in the system.  Most things fall in this bucket.
-        AliasEverything
+        AliasEverything,
+
+        // Must be last.
+        AliasSetCount
     };
+
+    bool hasParallelNative() const
+    {
+        return type() == ParallelNative;
+    }
 
     bool isDOMJitInfo() const
     {
-        return type != OpType_None;
+        return type() != ParallelNative;
+    }
+
+    bool isTypedMethodJitInfo() const
+    {
+        return isTypedMethod;
+    }
+
+    OpType type() const
+    {
+        return OpType(type_);
+    }
+
+    AliasSet aliasSet() const
+    {
+        return AliasSet(aliasSet_);
+    }
+
+    JSValueType returnType() const
+    {
+        return JSValueType(returnType_);
     }
 
     union {
         JSJitGetterOp getter;
         JSJitSetterOp setter;
         JSJitMethodOp method;
+        /* An alternative native that's safe to call in parallel mode. */
+        JSParallelNative parallelNative;
     };
 
-    uint32_t protoID;
-    uint32_t depth;
-    // type not being OpType_None means this is a DOM method.  If you
-    // change that, come up with a different way of implementing
+    uint16_t protoID;
+    uint16_t depth;
+
+    // These fields are carefully packed to take up 4 bytes.  If you need more
+    // bits for whatever reason, please see if you can steal bits from existing
+    // fields before adding more members to this structure.
+
+#define JITINFO_OP_TYPE_BITS 4
+#define JITINFO_ALIAS_SET_BITS 4
+#define JITINFO_RETURN_TYPE_BITS 8
+
+    // If this field is not ParallelNative, then this is a DOM method.
+    // If you change that, come up with a different way of implementing
     // isDOMJitInfo().
-    OpType type;
-    bool isInfallible;      /* Is op fallible? False in setters. */
-    bool isMovable;         /* Is op movable?  To be movable the op must not
-                               AliasEverything, but even that might not be
-                               enough (e.g. in cases when it can throw). */
-    AliasSet aliasSet;      /* The alias set for this op.  This is a _minimal_
-                               alias set; in particular for a method it does not
-                               include whatever argument conversions might do.
-                               That's covered by argTypes and runtime analysis
-                               of the actual argument types being passed in. */
-    // XXXbz should we have a JSGetterJitInfo subclass or something?
+    uint32_t type_ : JITINFO_OP_TYPE_BITS;
+
+    // The alias set for this op.  This is a _minimal_ alias set; in
+    // particular for a method it does not include whatever argument
+    // conversions might do.  That's covered by argTypes and runtime
+    // analysis of the actual argument types being passed in.
+    uint32_t aliasSet_ : JITINFO_ALIAS_SET_BITS;
+
+    // The return type tag.  Might be JSVAL_TYPE_UNKNOWN.
+    uint32_t returnType_ : JITINFO_RETURN_TYPE_BITS;
+
+    static_assert(OpTypeCount <= (1 << JITINFO_OP_TYPE_BITS),
+                  "Not enough space for OpType");
+    static_assert(AliasSetCount <= (1 << JITINFO_ALIAS_SET_BITS),
+                  "Not enough space for AliasSet");
+    static_assert((sizeof(JSValueType) * 8) <= JITINFO_RETURN_TYPE_BITS,
+                  "Not enough space for JSValueType");
+
+#undef JITINFO_RETURN_TYPE_BITS
+#undef JITINFO_ALIAS_SET_BITS
+#undef JITINFO_OP_TYPE_BITS
+
+    uint32_t isInfallible : 1; /* Is op fallible? False in setters. */
+    uint32_t isMovable : 1;    /* Is op movable?  To be movable the op must
+                                  not AliasEverything, but even that might
+                                  not be enough (e.g. in cases when it can
+                                  throw). */
     // XXXbz should we have a JSValueType for the type of the member?
-    bool isInSlot;          /* True if this is a getter that can get a member
-                               from a slot of the "this" object directly. */
-    size_t slotIndex;       /* If isMember is true, the index of the slot to get
-                               the value from.  Otherwise 0. */
-    JSValueType returnType; /* The return type tag.  Might be JSVAL_TYPE_UNKNOWN */
-
-    const ArgType* const argTypes; /* For a method, a list of sets of types that
-                                      the function expects.  This can be used,
-                                      for example, to figure out when argument
-                                      coercions can have side-effects. nullptr
-                                      if we have no type information for
-                                      arguments. */
-
-    /* An alternative native that's safe to call in parallel mode. */
-    JSParallelNative parallelNative;
-
-private:
-    static void staticAsserts()
-    {
-        JS_STATIC_ASSERT(Any & String);
-        JS_STATIC_ASSERT(Any & Integer);
-        JS_STATIC_ASSERT(Any & Double);
-        JS_STATIC_ASSERT(Any & Boolean);
-        JS_STATIC_ASSERT(Any & Object);
-        JS_STATIC_ASSERT(Any & Null);
-    }
+    uint32_t isInSlot : 1;     /* True if this is a getter that can get a member
+                                  from a slot of the "this" object directly. */
+    uint32_t isTypedMethod : 1; /* True if this is an instance of
+                                   JSTypedMethodJitInfo. */
+    uint32_t slotIndex : 12;   /* If isInSlot is true, the index of the slot to
+                                  get the value from.  Otherwise 0. */
 };
 
-#define JS_JITINFO_NATIVE_PARALLEL(op)                                         \
-    {{nullptr},0,0,JSJitInfo::OpType_None,false,false,JSJitInfo::AliasEverything,false,0,JSVAL_TYPE_MISSING,nullptr,op}
+static_assert(sizeof(JSJitInfo) == (sizeof(void*) + 2 * sizeof(uint32_t)),
+              "There are several thousand instances of JSJitInfo stored in "
+              "a binary. Please don't increase its space requirements without "
+              "verifying that there is no other way forward (better packing, "
+              "smaller datatypes for fields, subclassing, etc.).");
 
-static JS_ALWAYS_INLINE const JSJitInfo *
+struct JSTypedMethodJitInfo
+{
+    // We use C-style inheritance here, rather than C++ style inheritance
+    // because not all compilers support brace-initialization for non-aggregate
+    // classes. Using C++ style inheritance and constructors instead of
+    // brace-initialization would also force the creation of static
+    // constructors (on some compilers) when JSJitInfo and JSTypedMethodJitInfo
+    // structures are declared. Since there can be several thousand of these
+    // structures present and we want to have roughly equivalent performance
+    // across a range of compilers, we do things manually.
+    JSJitInfo base;
+
+    const JSJitInfo::ArgType* const argTypes; /* For a method, a list of sets of
+                                                 types that the function
+                                                 expects.  This can be used,
+                                                 for example, to figure out
+                                                 when argument coercions can
+                                                 have side-effects. */
+};
+
+namespace JS {
+namespace detail {
+
+/* NEVER DEFINED, DON'T USE.  For use by JS_CAST_PARALLEL_NATIVE_TO only. */
+inline int CheckIsParallelNative(JSParallelNative parallelNative);
+
+} // namespace detail
+} // namespace JS
+
+#define JS_CAST_PARALLEL_NATIVE_TO(v, To) \
+    (static_cast<void>(sizeof(JS::detail::CheckIsParallelNative(v))), \
+     reinterpret_cast<To>(v))
+
+/*
+ * You may ask yourself: why do we define a wrapper around a wrapper here?
+ * The answer is that some compilers don't understand initializing a union
+ * as we do below with a construct like:
+ *
+ * reinterpret_cast<JSJitGetterOp>(JSParallelNativeThreadSafeWrapper<op>)
+ *
+ * (We need the reinterpret_cast because we must initialize the union with
+ * a datum of the type of the union's first member.)
+ *
+ * Presumably this has something to do with template instantiation.
+ * Initializing with a normal function pointer seems to work fine. Hence
+ * the ugliness that you see before you.
+ */
+#define JS_JITINFO_NATIVE_PARALLEL(infoName, parallelOp)                \
+    const JSJitInfo infoName =                                          \
+        {{JS_CAST_PARALLEL_NATIVE_TO(parallelOp, JSJitGetterOp)},0,0,JSJitInfo::ParallelNative,JSJitInfo::AliasEverything,JSVAL_TYPE_MISSING,false,false,false,false,0}
+
+#define JS_JITINFO_NATIVE_PARALLEL_THREADSAFE(infoName, wrapperName, serialOp) \
+    bool wrapperName##_ParallelNativeThreadSafeWrapper(js::ForkJoinContext *cx, unsigned argc, \
+                                                       JS::Value *vp)   \
+    {                                                                   \
+        return JSParallelNativeThreadSafeWrapper<serialOp>(cx, argc, vp); \
+    }                                                                   \
+    JS_JITINFO_NATIVE_PARALLEL(infoName, wrapperName##_ParallelNativeThreadSafeWrapper)
+
+static MOZ_ALWAYS_INLINE const JSJitInfo *
 FUNCTION_VALUE_TO_JITINFO(const JS::Value& v)
 {
     JS_ASSERT(js::GetObjectClass(&v.toObject()) == js::FunctionClassPtr);
@@ -1562,7 +1839,7 @@ FUNCTION_VALUE_TO_JITINFO(const JS::Value& v)
 /* Statically asserted in jsfun.h. */
 static const unsigned JS_FUNCTION_INTERPRETED_BIT = 0x1;
 
-static JS_ALWAYS_INLINE void
+static MOZ_ALWAYS_INLINE void
 SET_JITINFO(JSFunction * func, const JSJitInfo *info)
 {
     js::shadow::Function *fun = reinterpret_cast<js::shadow::Function *>(func);
@@ -1575,7 +1852,7 @@ SET_JITINFO(JSFunction * func, const JSJitInfo *info)
  * eliminate Gecko's dependencies on it!
  */
 
-static JS_ALWAYS_INLINE jsid
+static MOZ_ALWAYS_INLINE jsid
 JSID_FROM_BITS(size_t bits)
 {
     jsid id;
@@ -1610,7 +1887,7 @@ bool IdMatchesAtom(jsid id, JSAtom *atom);
  * Thus, it is only the rare third case which needs this function, which
  * handles any JSAtom* that is known not to be representable with an int jsid.
  */
-static JS_ALWAYS_INLINE jsid
+static MOZ_ALWAYS_INLINE jsid
 NON_INTEGER_ATOM_TO_JSID(JSAtom *atom)
 {
     JS_ASSERT(((size_t)atom & 0x7) == 0);
@@ -1620,19 +1897,19 @@ NON_INTEGER_ATOM_TO_JSID(JSAtom *atom)
 }
 
 /* All strings stored in jsids are atomized, but are not necessarily property names. */
-static JS_ALWAYS_INLINE bool
+static MOZ_ALWAYS_INLINE bool
 JSID_IS_ATOM(jsid id)
 {
     return JSID_IS_STRING(id);
 }
 
-static JS_ALWAYS_INLINE bool
+static MOZ_ALWAYS_INLINE bool
 JSID_IS_ATOM(jsid id, JSAtom *atom)
 {
     return id == JSID_FROM_BITS((size_t)atom);
 }
 
-static JS_ALWAYS_INLINE JSAtom *
+static MOZ_ALWAYS_INLINE JSAtom *
 JSID_TO_ATOM(jsid id)
 {
     return (JSAtom *)JSID_TO_STRING(id);
@@ -1642,23 +1919,17 @@ JS_STATIC_ASSERT(sizeof(jsid) == sizeof(void*));
 
 namespace js {
 
-static JS_ALWAYS_INLINE JS::Value
+static MOZ_ALWAYS_INLINE JS::Value
 IdToValue(jsid id)
 {
     if (JSID_IS_STRING(id))
         return JS::StringValue(JSID_TO_STRING(id));
-    if (JS_LIKELY(JSID_IS_INT(id)))
+    if (MOZ_LIKELY(JSID_IS_INT(id)))
         return JS::Int32Value(JSID_TO_INT(id));
-    if (JS_LIKELY(JSID_IS_OBJECT(id)))
+    if (MOZ_LIKELY(JSID_IS_OBJECT(id)))
         return JS::ObjectValue(*JSID_TO_OBJECT(id));
     JS_ASSERT(JSID_IS_VOID(id));
     return JS::UndefinedValue();
-}
-
-static JS_ALWAYS_INLINE jsval
-IdToJsval(jsid id)
-{
-    return IdToValue(id);
 }
 
 extern JS_FRIEND_API(bool)
@@ -1782,27 +2053,27 @@ js_DefineOwnProperty(JSContext *cx, JSObject *objArg, jsid idArg,
                      JS::Handle<JSPropertyDescriptor> descriptor, bool *bp);
 
 extern JS_FRIEND_API(bool)
-js_ReportIsNotFunction(JSContext *cx, const JS::Value& v);
+js_ReportIsNotFunction(JSContext *cx, JS::HandleValue v);
 
 #ifdef JSGC_GENERATIONAL
 extern JS_FRIEND_API(void)
 JS_StoreObjectPostBarrierCallback(JSContext* cx,
-                                  void (*callback)(JSTracer *trc, void *key, void *data),
+                                  void (*callback)(JSTracer *trc, JSObject *key, void *data),
                                   JSObject *key, void *data);
 
 extern JS_FRIEND_API(void)
 JS_StoreStringPostBarrierCallback(JSContext* cx,
-                                  void (*callback)(JSTracer *trc, void *key, void *data),
+                                  void (*callback)(JSTracer *trc, JSString *key, void *data),
                                   JSString *key, void *data);
 #else
 inline void
 JS_StoreObjectPostBarrierCallback(JSContext* cx,
-                                  void (*callback)(JSTracer *trc, void *key, void *data),
+                                  void (*callback)(JSTracer *trc, JSObject *key, void *data),
                                   JSObject *key, void *data) {}
 
 inline void
 JS_StoreStringPostBarrierCallback(JSContext* cx,
-                                  void (*callback)(JSTracer *trc, void *key, void *data),
+                                  void (*callback)(JSTracer *trc, JSString *key, void *data),
                                   JSString *key, void *data) {}
 #endif /* JSGC_GENERATIONAL */
 

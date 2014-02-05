@@ -213,11 +213,22 @@ function hideContextUI()
 
 function showNavBar()
 {
-  let promise = waitForEvent(Elements.navbar, "transitionend");
   if (!ContextUI.navbarVisible) {
+    let promise = waitForEvent(Elements.navbar, "transitionend");
     ContextUI.displayNavbar();
     return promise;
   }
+  return Promise.resolve(null);
+}
+
+function hideNavBar()
+{
+  if (ContextUI.navbarVisible) {
+    let promise = waitForEvent(Elements.navbar, "transitionend");
+    ContextUI.dismissNavbar();
+    return promise;
+  }
+  return Promise.resolve(null);
 }
 
 function fireAppBarDisplayEvent()
@@ -508,7 +519,7 @@ function waitForImageLoad(aWindow, aImageId) {
  * @param aTimeoutMs the number of miliseconds to wait before giving up
  * @returns a Promise that resolves to true, or to an Error
  */
-function waitForObserver(aObsEvent, aTimeoutMs) {
+function waitForObserver(aObsEvent, aTimeoutMs, aObsData) {
   try {
 
   let deferred = Promise.defer();
@@ -529,7 +540,8 @@ function waitForObserver(aObsEvent, aTimeoutMs) {
     },
 
     observe: function (aSubject, aTopic, aData) {
-      if (aTopic == aObsEvent) {
+      if (aTopic == aObsEvent &&
+        (!aObsData || (aObsData == aData))) {
         this.onEvent();
       }
     },
@@ -827,6 +839,14 @@ TouchDragAndHold.prototype = {
     this._native = aValue;
   },
 
+  set stepTimeout(aValue) {
+    this._timeoutStep = aValue;
+  },
+
+  set numSteps(aValue) {
+    this._numSteps = aValue;
+  },
+
   set nativePointerId(aValue) {
     this._pointerId = aValue;
   },
@@ -882,6 +902,8 @@ TouchDragAndHold.prototype = {
     if (this._debug) {
       info("[0] touchstart " + aStartX + " x " + aStartY);
     }
+    // flush layout, bug 914847
+    this._utils.elementFromPoint(aStartX, aStartY, false, true);
     if (this._native) {
       this._utils.sendNativeTouchPoint(this._pointerId, this._dui.TOUCH_CONTACT,
                                        aStartX, aStartY, 1, 90);
@@ -909,7 +931,7 @@ TouchDragAndHold.prototype = {
     return this._defer.promise;
   },
 
-  end: function start() {
+  end: function end() {
     if (this._debug) {
       info("[" + this._step.steps + "] touchend " + this._endPoint.xPos + " x " + this._endPoint.yPos);
       SelectionHelperUI.debugClearDebugPoints();

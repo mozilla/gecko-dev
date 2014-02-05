@@ -10,6 +10,11 @@
         "{objdir}/dist/b2g-*.tar.gz",
         "{workdir}/sources.xml"
     ],
+    "public_upload_files": [
+        "{objdir}/dist/b2g-*.crashreporter-symbols.zip",
+        "{objdir}/dist/b2g-*.tar.gz",
+        "{workdir}/sources.xml"
+    ],
     "zip_files": [
         ["{workdir}/out/target/product/hamachi/*.img", "out/target/product/hamachi/"],
         ["{workdir}/boot.img", "out/target/product/hamachi/"],
@@ -24,12 +29,13 @@
     },
     "b2g_manifest": "hamachi.xml",
     "b2g_manifest_branch": "master",
+    "b2g_manifest_intree": true,
     "additional_source_tarballs": ["backup-hamachi.tar.xz"],
-    "gecko_l10n_root": "http://hg.mozilla.org/l10n-central",
+    "gecko_l10n_root": "https://hg.mozilla.org/l10n-central",
     "gaia": {
         "l10n": {
             "vcs": "hgtool",
-            "root": "http://hg.mozilla.org/gaia-l10n"
+            "root": "https://hg.mozilla.org/gaia-l10n"
         }
     }
 }

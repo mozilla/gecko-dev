@@ -215,10 +215,11 @@ nsVideoFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
   layer->SetFilter(nsLayoutUtils::GetGraphicsFilterForFrame(this));
   layer->SetContentFlags(Layer::CONTENT_OPAQUE);
   // Set a transform on the layer to draw the video in the right place
-  gfxMatrix transform;
-  transform.Translate(r.TopLeft() + aContainerParameters.mOffset);
+  gfx::Matrix transform;
+  gfxPoint p = r.TopLeft() + aContainerParameters.mOffset;
+  transform.Translate(p.x, p.y);
   transform.Scale(r.Width()/frameSize.width, r.Height()/frameSize.height);
-  layer->SetBaseTransform(gfx3DMatrix::From2D(transform));
+  layer->SetBaseTransform(gfx::Matrix4x4::From2D(transform));
   layer->SetVisibleRegion(nsIntRect(0, 0, frameSize.width, frameSize.height));
   nsRefPtr<Layer> result = layer.forget();
   return result.forget();
@@ -306,7 +307,7 @@ nsVideoFrame::Reflow(nsPresContext*           aPresContext,
 
       ReflowChild(imageFrame, aPresContext, kidDesiredSize, kidReflowState,
                         posterTopLeft.x, posterTopLeft.y, 0, aStatus);
-      FinishReflowChild(imageFrame, aPresContext, &kidReflowState, kidDesiredSize,
+      FinishReflowChild(imageFrame, aPresContext, kidDesiredSize, &kidReflowState,
                         posterTopLeft.x, posterTopLeft.y, 0);
     } else if (child->GetContent() == mVideoControls) {
       // Reflow the video controls frame.
@@ -343,7 +344,7 @@ nsVideoFrame::Reflow(nsPresContext*           aPresContext,
       ReflowChild(child, aPresContext, kidDesiredSize, kidReflowState,
                   mBorderPadding.left, mBorderPadding.top, 0, aStatus);
       FinishReflowChild(child, aPresContext,
-                        &kidReflowState, kidDesiredSize,
+                        kidDesiredSize, &kidReflowState,
                         mBorderPadding.left, mBorderPadding.top, 0);
     }
   }

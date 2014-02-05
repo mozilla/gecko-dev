@@ -28,7 +28,7 @@ namespace mozilla {
 namespace layers {
 
 DeprecatedSharedRGBImage::DeprecatedSharedRGBImage(ISurfaceAllocator *aAllocator) :
-  Image(nullptr, SHARED_RGB),
+  Image(nullptr, ImageFormat::SHARED_RGB),
   mSize(0, 0),
   mSurfaceAllocator(aAllocator),
   mAllocated(false),
@@ -54,9 +54,9 @@ CreateSharedRGBImage(ImageContainer *aImageContainer,
                      nsIntSize aSize,
                      gfxImageFormat aImageFormat)
 {
-  NS_ASSERTION(aImageFormat == gfxImageFormatARGB32 ||
-               aImageFormat == gfxImageFormatRGB24 ||
-               aImageFormat == gfxImageFormatRGB16_565,
+  NS_ASSERTION(aImageFormat == gfxImageFormat::ARGB32 ||
+               aImageFormat == gfxImageFormat::RGB24 ||
+               aImageFormat == gfxImageFormat::RGB16_565,
                "RGB formats supported only");
 
   if (!aImageContainer) {
@@ -64,8 +64,7 @@ CreateSharedRGBImage(ImageContainer *aImageContainer,
     return nullptr;
   }
 
-  ImageFormat format = SHARED_RGB;
-  nsRefPtr<Image> image = aImageContainer->CreateImage(&format, 1);
+  nsRefPtr<Image> image = aImageContainer->CreateImage(ImageFormat::SHARED_RGB);
 
   if (!image) {
     NS_WARNING("Failed to create DeprecatedSharedRGBImage");
@@ -131,7 +130,13 @@ DeprecatedSharedRGBImage::AllocateBuffer(nsIntSize aSize, gfxImageFormat aImageF
 }
 
 already_AddRefed<gfxASurface>
-DeprecatedSharedRGBImage::GetAsSurface()
+DeprecatedSharedRGBImage::DeprecatedGetAsSurface()
+{
+  return nullptr;
+}
+
+TemporaryRef<gfx::SourceSurface>
+DeprecatedSharedRGBImage::GetAsSourceSurface()
 {
   return nullptr;
 }
@@ -179,7 +184,7 @@ DeprecatedSharedRGBImage::FromSurfaceDescriptor(const SurfaceDescriptor& aDescri
 }
 
 SharedRGBImage::SharedRGBImage(ImageClient* aCompositable)
-: Image(nullptr, SHARED_RGB)
+: Image(nullptr, ImageFormat::SHARED_RGB)
 , mCompositable(aCompositable)
 {
   MOZ_COUNT_CTOR(SharedRGBImage);
@@ -235,7 +240,13 @@ SharedRGBImage::GetTextureClient()
 }
 
 already_AddRefed<gfxASurface>
-SharedRGBImage::GetAsSurface()
+SharedRGBImage::DeprecatedGetAsSurface()
+{
+  return nullptr;
+}
+
+TemporaryRef<gfx::SourceSurface>
+SharedRGBImage::GetAsSourceSurface()
 {
   return nullptr;
 }

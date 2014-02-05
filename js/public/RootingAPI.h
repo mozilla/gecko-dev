@@ -138,6 +138,8 @@ struct NullPtr
 
 namespace gc {
 struct Cell;
+template<typename T>
+struct PersistentRootedMarker;
 } /* namespace gc */
 
 } /* namespace js */
@@ -557,8 +559,8 @@ class MOZ_STACK_CLASS MutableHandle : public js::MutableHandleBase<T>
 };
 
 #ifdef JSGC_GENERATIONAL
-JS_PUBLIC_API(void) HeapCellPostBarrier(js::gc::Cell **cellp);
-JS_PUBLIC_API(void) HeapCellRelocate(js::gc::Cell **cellp);
+JS_FRIEND_API(void) HeapCellPostBarrier(js::gc::Cell **cellp);
+JS_FRIEND_API(void) HeapCellRelocate(js::gc::Cell **cellp);
 #endif
 
 } /* namespace JS */
@@ -830,12 +832,6 @@ class MOZ_STACK_CLASS Rooted : public js::RootedBase<T>
     Rooted(const Rooted &) MOZ_DELETE;
 };
 
-#if !(defined(JSGC_ROOT_ANALYSIS) || defined(JSGC_USE_EXACT_ROOTING))
-// Defined in vm/String.h.
-template <>
-class Rooted<JSStableString *>;
-#endif
-
 } /* namespace JS */
 
 namespace js {
@@ -915,6 +911,61 @@ class SkipRoot
 
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
+
+/*
+ * RootedGeneric<T> allows a class to instantiate its own Rooted type by
+ * including the following two methods:
+ *
+ *    static inline js::ThingRootKind rootKind() { return js::THING_ROOT_CUSTOM; }
+ *    void trace(JSTracer *trc);
+ *
+ * The trace() method must trace all of the class's fields.
+ *
+ * Implementation:
+ *
+ * RootedGeneric<T> works by placing a pointer to its 'rooter' field into the
+ * usual list of rooters when it is instantiated. When marking, it backs up
+ * from this pointer to find a vtable containing a type-appropriate trace()
+ * method.
+ */
+template <typename GCType>
+class JS_PUBLIC_API(RootedGeneric)
+{
+  public:
+    JS::Rooted<GCType> rooter;
+    SkipRoot skip;
+
+    RootedGeneric(js::ContextFriendFields *cx)
+        : rooter(cx), skip(cx, rooter.address())
+    {
+    }
+
+    RootedGeneric(js::ContextFriendFields *cx, const GCType &initial)
+        : rooter(cx, initial), skip(cx, rooter.address())
+    {
+    }
+
+    virtual inline void trace(JSTracer *trc);
+
+    operator const GCType&() const { return rooter.get(); }
+    GCType operator->() const { return rooter.get(); }
+};
+
+template <typename GCType>
+inline void RootedGeneric<GCType>::trace(JSTracer *trc)
+{
+    rooter->trace(trc);
+}
+
+// We will instantiate RootedGeneric<void*> in RootMarking.cpp, and MSVC will
+// notice that void*s have no trace() method defined on them and complain (even
+// though it's never called.) MSVC's complaint is not unreasonable, so
+// specialize for void*.
+template <>
+inline void RootedGeneric<void*>::trace(JSTracer *trc)
+{
+    MOZ_ASSUME_UNREACHABLE("RootedGeneric<void*>::trace()");
+}
 
 /* Interface substitute for Rooted<T> which does not root the variable's memory. */
 template <typename T>
@@ -1098,7 +1149,6 @@ MutableHandle<T>::MutableHandle(PersistentRooted<T> *root)
     ptr = root->address();
 }
 
-
 /*
  * A copyable, assignable global GC root type with arbitrary lifetime, an
  * infallible constructor, and automatic unrooting on destruction.
@@ -1132,9 +1182,11 @@ MutableHandle<T>::MutableHandle(PersistentRooted<T> *root)
  * marked when the object itself is marked.
  */
 template<typename T>
-class PersistentRooted : public mozilla::LinkedListElement<PersistentRooted<T> > {
-    typedef mozilla::LinkedList<PersistentRooted> List;
-    typedef mozilla::LinkedListElement<PersistentRooted> Element;
+class PersistentRooted : private mozilla::LinkedListElement<PersistentRooted<T> > {
+    friend class mozilla::LinkedList<PersistentRooted>;
+    friend class mozilla::LinkedListElement<PersistentRooted>;
+
+    friend class js::gc::PersistentRootedMarker<T>;
 
     void registerWithRuntime(JSRuntime *rt) {
         JS::shadow::Runtime *srt = JS::shadow::Runtime::asShadowRuntime(rt);

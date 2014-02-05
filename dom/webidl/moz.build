@@ -209,6 +209,7 @@ WEBIDL_FILES = [
     'LinkStyle.webidl',
     'LocalMediaStream.webidl',
     'Location.webidl',
+    'LockedFile.webidl',
     'MediaElementAudioSourceNode.webidl',
     'MediaError.webidl',
     'MediaList.webidl',
@@ -229,6 +230,7 @@ WEBIDL_FILES = [
     'MouseEvent.webidl',
     'MouseScrollEvent.webidl',
     'MozActivity.webidl',
+    'MozConnection.webidl',
     'MozMmsMessage.webidl',
     'MozNamedAttrMap.webidl',
     'MozPowerManager.webidl',
@@ -237,6 +239,7 @@ WEBIDL_FILES = [
     'MutationEvent.webidl',
     'MutationObserver.webidl',
     'NetDashboard.webidl',
+    'NetworkOptions.webidl',
     'Node.webidl',
     'NodeFilter.webidl',
     'NodeIterator.webidl',
@@ -426,6 +429,7 @@ WEBIDL_FILES = [
     'WheelEvent.webidl',
     'WifiOptions.webidl',
     'Worker.webidl',
+    'WorkerConsole.webidl',
     'WorkerGlobalScope.webidl',
     'WorkerLocation.webidl',
     'WorkerNavigator.webidl',
@@ -509,9 +513,7 @@ if CONFIG['MOZ_B2G_BT']:
     WEBIDL_FILES += [
         'BluetoothAdapter.webidl',
         'BluetoothDevice.webidl',
-        'BluetoothDeviceEvent.webidl',
         'BluetoothManager.webidl',
-        'BluetoothStatusChangedEvent.webidl',
     ]
 
 if CONFIG['MOZ_B2G_RIL']:
@@ -537,6 +539,8 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
     WEBIDL_FILES += [
         'MozSpeakerManager.webidl',
         'MozWifiConnectionInfoEvent.webidl',
+        'MozWifiP2pManager.webidl',
+        'MozWifiP2pStatusChangeEvent.webidl',
         'MozWifiStatusChangeEvent.webidl',
     ]
 
@@ -549,6 +553,11 @@ if CONFIG['MOZ_WEBSPEECH']:
 if CONFIG['MOZ_B2G_FM']:
     WEBIDL_FILES += [
         'FMRadio.webidl',
+    ]
+
+if not CONFIG['MOZ_DISABLE_CRYPTOLEGACY']:
+    WEBIDL_FILES += [
+        'CRMFObject.webidl',
     ]
 
 GENERATED_EVENTS_WEBIDL_FILES = [
@@ -581,3 +590,10 @@ if CONFIG['MOZ_GAMEPAD']:
         'GamepadButtonEvent.webidl',
         'GamepadEvent.webidl',
     ]
+
+if CONFIG['MOZ_B2G_BT']:
+    GENERATED_EVENTS_WEBIDL_FILES += [
+        'BluetoothDeviceEvent.webidl',
+        'BluetoothStatusChangedEvent.webidl',
+    ]
+

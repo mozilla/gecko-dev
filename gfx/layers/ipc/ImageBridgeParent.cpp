@@ -71,7 +71,7 @@ ImageBridgeParent::RecvUpdate(const EditArray& aEdits, EditReplyArray* aReply)
 {
   // If we don't actually have a compositor, then don't bother
   // creating any textures.
-  if (Compositor::GetBackend() == LAYERS_NONE) {
+  if (Compositor::GetBackend() == LayersBackend::LAYERS_NONE) {
     return true;
   }
 
@@ -191,9 +191,10 @@ bool ImageBridgeParent::DeallocPCompositableParent(PCompositableParent* aActor)
 }
 
 PTextureParent*
-ImageBridgeParent::AllocPTextureParent()
+ImageBridgeParent::AllocPTextureParent(const SurfaceDescriptor& aSharedData,
+                                       const TextureFlags& aFlags)
 {
-  return TextureHost::CreateIPDLActor(this);
+  return TextureHost::CreateIPDLActor(this, aSharedData, aFlags);
 }
 
 bool

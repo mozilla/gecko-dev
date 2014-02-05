@@ -36,8 +36,8 @@ public:
 
   ~TextureParent();
 
-  bool RecvInit(const SurfaceDescriptor& aSharedData,
-                const TextureFlags& aFlags) MOZ_OVERRIDE;
+  bool Init(const SurfaceDescriptor& aSharedData,
+            const TextureFlags& aFlags);
 
   virtual bool RecvRemoveTexture() MOZ_OVERRIDE;
 
@@ -53,9 +53,14 @@ public:
 
 // static
 PTextureParent*
-TextureHost::CreateIPDLActor(ISurfaceAllocator* aAllocator)
+TextureHost::CreateIPDLActor(ISurfaceAllocator* aAllocator,
+                             const SurfaceDescriptor& aSharedData,
+                             TextureFlags aFlags)
 {
-  return new TextureParent(aAllocator);
+  TextureParent* actor = new TextureParent(aAllocator);
+  DebugOnly<bool> status = actor->Init(aSharedData, aFlags);
+  MOZ_ASSERT(status);
+  return actor;
 }
 
 // static
@@ -106,7 +111,7 @@ DeprecatedTextureHost::CreateDeprecatedTextureHost(SurfaceDescriptorType aDescri
                                            CompositableHost* aCompositableHost)
 {
   switch (Compositor::GetBackend()) {
-    case LAYERS_OPENGL:
+    case LayersBackend::LAYERS_OPENGL:
       {
       RefPtr<DeprecatedTextureHost> result;
       result = CreateDeprecatedTextureHostOGL(aDescriptorType,
@@ -118,16 +123,16 @@ DeprecatedTextureHost::CreateDeprecatedTextureHost(SurfaceDescriptorType aDescri
       return result;
       }
 #ifdef XP_WIN
-    case LAYERS_D3D9:
+    case LayersBackend::LAYERS_D3D9:
       return CreateDeprecatedTextureHostD3D9(aDescriptorType,
                                          aDeprecatedTextureHostFlags,
                                          aTextureFlags);
-    case LAYERS_D3D11:
+    case LayersBackend::LAYERS_D3D11:
       return CreateDeprecatedTextureHostD3D11(aDescriptorType,
                                           aDeprecatedTextureHostFlags,
                                           aTextureFlags);
 #endif
-    case LAYERS_BASIC:
+    case LayersBackend::LAYERS_BASIC:
       return CreateBasicDeprecatedTextureHost(aDescriptorType,
                                           aDeprecatedTextureHostFlags,
                                           aTextureFlags);
@@ -163,21 +168,21 @@ TextureHost::Create(const SurfaceDescriptor& aDesc,
                     TextureFlags aFlags)
 {
   switch (Compositor::GetBackend()) {
-    case LAYERS_OPENGL:
+    case LayersBackend::LAYERS_OPENGL:
       return CreateTextureHostOGL(aDesc, aDeallocator, aFlags);
-    case LAYERS_BASIC:
+    case LayersBackend::LAYERS_BASIC:
       return CreateTextureHostBasic(aDesc, aDeallocator, aFlags);
 #ifdef MOZ_WIDGET_GONK
-    case LAYERS_NONE:
+    case LayersBackend::LAYERS_NONE:
       // Power on video reqests to allocate TextureHost,
       // when Compositor is still not present. This is a very hacky workaround.
       // See Bug 944420.
       return CreateTextureHostOGL(aDesc, aDeallocator, aFlags);
 #endif
 #ifdef XP_WIN
-    case LAYERS_D3D11:
+    case LayersBackend::LAYERS_D3D11:
       return CreateTextureHostD3D11(aDesc, aDeallocator, aFlags);
-    case LAYERS_D3D9:
+    case LayersBackend::LAYERS_D3D9:
       return CreateTextureHostD3D9(aDesc, aDeallocator, aFlags);
 #endif
     default:
@@ -244,8 +249,13 @@ TextureHost::PrintInfo(nsACString& aTo, const char* aPrefix)
 {
   aTo += aPrefix;
   aTo += nsPrintfCString("%s (0x%p)", Name(), this);
-  AppendToString(aTo, GetSize(), " [size=", "]");
-  AppendToString(aTo, GetFormat(), " [format=", "]");
+  // Note: the TextureHost needs to be locked before it is safe to call
+  //       GetSize() and GetFormat() on it.
+  if (Lock()) {
+    AppendToString(aTo, GetSize(), " [size=", "]");
+    AppendToString(aTo, GetFormat(), " [format=", "]");
+    Unlock();
+  }
   AppendToString(aTo, mFlags, " [flags=", "]");
 }
 
@@ -679,8 +689,8 @@ TextureParent::~TextureParent()
 }
 
 bool
-TextureParent::RecvInit(const SurfaceDescriptor& aSharedData,
-                        const TextureFlags& aFlags)
+TextureParent::Init(const SurfaceDescriptor& aSharedData,
+                    const TextureFlags& aFlags)
 {
   mTextureHost = TextureHost::Create(aSharedData,
                                      mAllocator,
@@ -709,13 +719,13 @@ TextureParent::ActorDestroy(ActorDestroyReason why)
     return;
   }
 
+  bool isDeffered = mTextureHost->GetFlags() & TEXTURE_DEALLOCATE_DEFERRED;
   switch (why) {
   case AncestorDeletion:
     NS_WARNING("PTexture deleted after ancestor");
     // fall-through to deletion path
   case Deletion:
-    if (!(mTextureHost->GetFlags() & TEXTURE_DEALLOCATE_CLIENT) &&
-        !(mTextureHost->GetFlags() & TEXTURE_DEALLOCATE_DEFERRED)) {
+    if (!(mTextureHost->GetFlags() & TEXTURE_DEALLOCATE_CLIENT) && !isDeffered) {
       mTextureHost->DeallocateSharedData();
     }
     break;
@@ -728,7 +738,10 @@ TextureParent::ActorDestroy(ActorDestroyReason why)
   case FailedConstructor:
     NS_RUNTIMEABORT("FailedConstructor isn't possible in PTexture");
   }
-  mTextureHost->ForgetSharedData();
+
+  if (!isDeffered) {
+    mTextureHost->ForgetSharedData();
+  }
   mTextureHost = nullptr;
 }
 

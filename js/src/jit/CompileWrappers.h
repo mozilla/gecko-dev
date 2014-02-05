@@ -113,7 +113,30 @@ class CompileCompartment
     const JitCompartment *jitCompartment();
 
     bool hasObjectMetadataCallback();
+
+    // Mirror CompartmentOptions.
+    void setSingletonsAsValues();
 };
+
+class JitCompileOptions
+{
+  public:
+    JitCompileOptions();
+    JitCompileOptions(JSContext *cx);
+
+    bool cloneSingletons() const {
+        return cloneSingletons_;
+    }
+
+    bool spsSlowAssertionsEnabled() const {
+        return spsSlowAssertionsEnabled_;
+    }
+
+  private:
+    bool cloneSingletons_;
+    bool spsSlowAssertionsEnabled_;
+};
+
 
 } // namespace jit
 } // namespace js

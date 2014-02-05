@@ -1448,6 +1448,12 @@
     "n_values": 5,
     "description": "HTTP Disk Cache Hit, Reval, Failed-Reval, Miss"
   },
+  "HTTP_CACHE_MISS_HALFLIFE_EXPERIMENT": {
+    "expires_in_version": "never",
+    "kind": "enumerated",
+    "n_values": 4,
+    "description": "HTTP Cache v2 Miss by half-life value (6h, 1d, 7d, 50d)"
+  },
   "HTTP_MEMORY_CACHE_DISPOSITION_2": {
     "expires_in_version": "never",
     "kind": "enumerated",
@@ -2224,6 +2230,30 @@
     "high": "3000",
     "n_buckets": 10,
     "description": "How long it takes from the time Predict() is called to the time we figure out there's nothing to do"
+  },
+  "SEER_CLEANUP_DELTA": {
+      "expires_in_version": "never",
+      "kind": "exponential",
+      "high": "60000",
+      "n_buckets": 50,
+      "description": "How long between seer db cleanups, in ms"
+  },
+  "SEER_CLEANUP_SUCCEEDED": {
+      "expires_in_version": "never",
+      "kind": "boolean",
+      "description": "Whether or not the seer cleanup succeeded"
+  },
+  "SEER_CLEANUP_TIME": {
+      "expires_in_version": "never",
+      "kind": "exponential",
+      "high": "5000",
+      "n_buckets": 10,
+      "description": "How long it takes to run the seer cleanup"
+  },
+  "SEER_CLEANUP_SCHEDULED": {
+      "expires_in_version": "never",
+      "kind": "boolean",
+      "description": "Whether or not we actually try the cleanup method when we think about it"
   },
   "FIND_PLUGINS": {
     "expires_in_version": "never",
@@ -3287,6 +3317,22 @@
     "extended_statistics_ok": true,
     "description": "Session restore: Time to read the session data from the file on disk (ms)"
   },
+  "FX_SESSION_RESTORE_SEND_SERIALIZED_STATE_LONGEST_OP_MS": {
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": "3000",
+    "n_buckets": 10,
+    "extended_statistics_ok": true,
+    "description": "Session restore: Time spent on the main thread sending the session data off the main thread for writing (ms)"
+  },
+  "FX_SESSION_RESTORE_WRITE_STATE_LONGEST_OP_MS": {
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": "3000",
+    "n_buckets": 10,
+    "extended_statistics_ok": true,
+    "description": "Session restore: Time spent on the main thread serializing, broadcasting and sending the session data for writing (ms)"
+  },
   "FX_SESSION_RESTORE_WRITE_FILE_MS": {
     "expires_in_version": "never",
     "kind": "exponential",
@@ -3338,18 +3384,6 @@
     "high": "365",
     "n_buckets": 15,
     "description": "Session restore: Days elapsed since the session was first started"
-  },
-  "FX_SESSION_RESTORE_TABSTATECACHE_HIT_RATE": {
-    "expires_in_version": "never",
-    "kind": "enumerated",
-    "n_values": 101,
-    "description": "Session restore: Percentage of tab state cache hits in all tab state cache accesses"
-  },
-  "FX_SESSION_RESTORE_TABSTATECACHE_CLEAR_RATIO": {
-    "expires_in_version": "never",
-    "kind": "enumerated",
-    "n_values": 101,
-    "description": "Session restore: Number of times the tab state cache has been cleared during a session divided by number of total accesses during the session (percentage)"
   },
   "FX_SESSION_RESTORE_EXTRACTING_STATISTICS_DURATION_MS": {
     "expires_in_version": "never",
@@ -3408,13 +3442,6 @@
     "n_buckets": 30,
     "description": "The subset of sessionstore.js dealing with storing history (total size, in bytes)"
   },
-  "FX_SESSION_RESTORE_TOTAL_POSTDATA_SIZE_BYTES": {
-    "expires_in_version": "never",
-    "kind": "exponential",
-    "high": "50000000",
-    "n_buckets": 30,
-    "description": "The subset of sessionstore.js dealing with storing POST data (total size, in bytes)"
-  },
   "FX_SESSION_RESTORE_INDIVIDUAL_OPEN_WINDOWS_SIZE_BYTES": {
     "expires_in_version": "never",
     "kind": "exponential",
@@ -3463,13 +3490,6 @@
     "high": "5000000",
     "n_buckets": 30,
     "description": "The subset of sessionstore.js dealing with storing history (item size, in bytes)"
-  },
-  "FX_SESSION_RESTORE_INDIVIDUAL_POSTDATA_SIZE_BYTES": {
-    "expires_in_version": "never",
-    "kind": "exponential",
-    "high": "5000000",
-    "n_buckets": 30,
-    "description": "The subset of sessionstore.js dealing with storing history POST data (item size, in bytes)"
   },
   "INNERWINDOWS_WITH_MUTATION_LISTENERS": {
     "expires_in_version": "never",
@@ -4850,6 +4870,34 @@
     "n_buckets": "1000",
     "description": "The time (in milliseconds) that it took to display a selected source to the user."
   },
+  "DEVTOOLS_DEBUGGER_RDP_LOCAL_RECONFIGURETAB_MS": {
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": "10000",
+    "n_buckets": "1000",
+    "description": "The time (in milliseconds) that it took a 'reconfigure tab' request to go round trip."
+  },
+  "DEVTOOLS_DEBUGGER_RDP_REMOTE_RECONFIGURETAB_MS": {
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": "10000",
+    "n_buckets": "1000",
+    "description": "The time (in milliseconds) that it took a 'reconfigure tab' request to go round trip."
+  },
+  "DEVTOOLS_DEBUGGER_RDP_LOCAL_RECONFIGURETHREAD_MS": {
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": "10000",
+    "n_buckets": "1000",
+    "description": "The time (in milliseconds) that it took a 'reconfigure thread' request to go round trip."
+  },
+  "DEVTOOLS_DEBUGGER_RDP_REMOTE_RECONFIGURETHREAD_MS": {
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": "10000",
+    "n_buckets": "1000",
+    "description": "The time (in milliseconds) that it took a 'reconfigure thread' request to go round trip."
+  },
   "WEBRTC_ICE_SUCCESS_RATE": {
     "expires_in_version": "never",
     "kind": "boolean",
@@ -5584,6 +5632,12 @@
     "n_values": 8,
     "description": "Status of OCSP stapling on this handshake (1=present, good; 2=none; 3=present, expired; 4=present, other error)"
   },
+  "SSL_OCSP_MAY_FETCH": {
+    "expires_in_version": "never",
+    "kind": "enumerated",
+    "n_values": 8,
+    "description": "For non-stapling cases, is OCSP fetching a possibility? (0=yes, 1=no because missing/invalid OCSP URI, 2=no because fetching disabled, 3=no because both)"
+  },
   "TELEMETRY_TEST_EXPIRED": {
     "expires_in_version": "4.0a1",
     "kind": "flag",
@@ -5598,5 +5652,29 @@
     "expires_in_version": "never",
     "kind": "boolean",
     "description": "Is OCSP required when the cert has an OCSP URI? (pref security.OCSP.require)"
+  },
+  "OSFILE_WORKER_LAUNCH_MS": {
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "description": "The duration between the instant the first message is sent to OS.File and the moment the OS.File worker starts executing JavaScript, in milliseconds",
+    "high": "5000",
+    "n_buckets": 10,
+    "extended_statistics_ok": true
+  },
+  "OSFILE_WORKER_READY_MS": {
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "description": "The duration between the instant the first message is sent to OS.File and the moment the OS.File worker has finished executing its startup JavaScript and is ready to receive requests, in milliseconds",
+    "high": "5000",
+    "n_buckets": 10,
+    "extended_statistics_ok": true
+  },
+  "OSFILE_WRITEATOMIC_JANK_MS": {
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "description": "The duration during which the main thread is blocked during a call to OS.File.writeAtomic, in milliseconds",
+    "high": "5000",
+    "n_buckets": 10,
+    "extended_statistics_ok": true
   }
 }

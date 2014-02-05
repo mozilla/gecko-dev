@@ -1,3 +1,5 @@
+/* -*- js-indent-level: 4; tab-width: 4; indent-tabs-mode: nil -*- */
+/* vim:set ts=4 sw=4 sts=4 et: */
 /**
  * SimpleTest, a partial Test.Simple/Test.More API compatible test library.
  *
@@ -51,7 +53,7 @@ var isPrimaryTestWindow = !!parent.TestRunner || (parent == window && !opener);
 
 /* Helper functions pulled out of various MochiKit modules */
 if (typeof(repr) == 'undefined') {
-    function repr(o) {
+    this.repr = function(o) {
         if (typeof(o) == "undefined") {
             return "undefined";
         } else if (o === null) {
@@ -94,7 +96,7 @@ if (typeof(repr) == 'undefined') {
  * This is used by SimpleTest.showReport
  */
 if (typeof(partial) == 'undefined') {
-    function partial(func) {
+    this.partial = function(func) {
         var args = [];
         for (var i = 1; i < arguments.length; i++) {
             args.push(arguments[i]);
@@ -111,7 +113,7 @@ if (typeof(partial) == 'undefined') {
 }
 
 if (typeof(getElement) == 'undefined') {
-    function getElement(id) {
+    this.getElement = function(id) {
         return ((typeof(id) == "string") ?
             document.getElementById(id) : id); 
     };
@@ -137,7 +139,7 @@ SimpleTest._newCallStack = function(path) {
 };
 
 if (typeof(addLoadEvent) == 'undefined') {
-    function addLoadEvent(func) {
+    this.addLoadEvent = function(func) {
         var existing = window["onload"];
         var regfunc = existing;
         if (!(typeof(existing) == 'function'
@@ -175,7 +177,7 @@ function createEl(type, attrs, html) {
 
 /* lots of tests use this as a helper to get css properties */
 if (typeof(computedStyle) == 'undefined') {
-    function computedStyle(elem, cssProperty) {
+    this.computedStyle = function(elem, cssProperty) {
         elem = getElement(elem);
         if (elem.currentStyle) {
             return elem.currentStyle[cssProperty];
@@ -310,25 +312,52 @@ SimpleTest._getCurrentTestURL = function() {
            "unknown test url";
 };
 
-SimpleTest._logResult = function(test, passString, failString) {
-    var isError = !test.result == !test.todo;
-    var resultString = test.result ? passString : failString;
-    var url = SimpleTest._getCurrentTestURL();
-    var diagnostic = test.name + (test.diag ? " - " + test.diag : "");
-    var msg = [resultString, url, diagnostic].join(" | ");
-    if (parentRunner) {
-        if (isError) {
-            parentRunner.addFailedTest(url);
-            parentRunner.error(msg);
-        } else {
-            parentRunner.log(msg);
+SimpleTest._logResult = (function () {
+    var numCoalescedMessages = 1;
+    var coalesceThreshold = 100;
+
+    function logResult(test, passString, failString) {
+        var isError = !test.result == !test.todo;
+        var outputCoalescedMessage = numCoalescedMessages == coalesceThreshold;
+
+        // We want to eliminate mundane TEST-PASS/TEST-KNOWN-FAIL output,
+        // since some tests produce tens of thousands of
+        // TEST-PASS/TEST-KNOWN-FAIL messages.  But we always want to log
+        // errors and informative messages.  We also want to output messages
+        // every so often to let the user know the test is still running.
+        var shouldLog = (isError ||
+                         passString == "TEST-INFO" ||
+                         outputCoalescedMessage);
+
+        if (!shouldLog) {
+            ++numCoalescedMessages;
+            return;
         }
-    } else if (typeof dump === "function") {
-        dump(msg + "\n");
-    } else {
-        // Non-Mozilla browser?  Just do nothing.
+
+        var resultString = test.result ? passString : failString;
+        var url = SimpleTest._getCurrentTestURL();
+        var diagnostic = test.name + (test.diag ? " - " + test.diag : "");
+        if (outputCoalescedMessage) {
+            diagnostic += " (elided " + numCoalescedMessages + " passes or known failures)";
+            numCoalescedMessages = 1;
+        }
+        var msg = [resultString, url, diagnostic].join(" | ");
+        if (parentRunner) {
+            if (isError) {
+                parentRunner.addFailedTest(url);
+                parentRunner.error(msg);
+            } else {
+                parentRunner.log(msg);
+            }
+        } else if (typeof dump === "function") {
+            dump(msg + "\n");
+        } else {
+            // Non-Mozilla browser?  Just do nothing.
+        }
     }
-};
+
+    return logResult;
+})();
 
 SimpleTest.info = function(name, message) {
     SimpleTest._logResult({result:true, name:name, diag:message}, "TEST-INFO");
@@ -730,6 +759,7 @@ SimpleTest.executeSoon = function(aFunc) {
         return SpecialPowers.executeSoon(aFunc, window);
     }
     setTimeout(aFunc, 0);
+    return null;		// Avoid warning.
 };
 
 SimpleTest.registerCleanupFunction = function(aFunc) {
@@ -891,7 +921,8 @@ SimpleTest.monitorConsole = function (continuation, msgs, forbidUnexpectedMsgs) 
       info("monitorConsole | [" + counter + "] " +
            (matches ? "matched " : "did not match ") + JSON.stringify(msg));
     }
-    counter++;
+    if (matches)
+      counter++;
   }
   SpecialPowers.registerConsoleListener(listener);
 };

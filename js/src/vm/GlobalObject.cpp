@@ -12,6 +12,7 @@
 #include "jsfriendapi.h"
 #include "jsmath.h"
 #include "json.h"
+#include "jsprototypes.h"
 #include "jsweakmap.h"
 
 #include "builtin/Eval.h"
@@ -21,8 +22,11 @@
 #include "builtin/MapObject.h"
 #include "builtin/Object.h"
 #include "builtin/RegExp.h"
+#include "builtin/SIMD.h"
 #include "builtin/TypedObject.h"
 #include "vm/RegExpStatics.h"
+#include "vm/StopIterationObject.h"
+#include "vm/WeakMapObject.h"
 
 #include "jscompartmentinlines.h"
 #include "jsobjinlines.h"
@@ -31,6 +35,37 @@
 #include "vm/ObjectImpl-inl.h"
 
 using namespace js;
+
+struct ProtoTableEntry {
+    const Class *clasp;
+    ClassInitializerOp init;
+};
+
+#define DECLARE_PROTOTYPE_CLASS_INIT(name,code,init,clasp) \
+    extern JSObject *init(JSContext *cx, Handle<JSObject*> obj);
+JS_FOR_EACH_PROTOTYPE(DECLARE_PROTOTYPE_CLASS_INIT)
+#undef DECLARE_PROTOTYPE_CLASS_INIT
+
+JSObject *
+js_InitViaClassSpec(JSContext *cx, Handle<JSObject*> obj)
+{
+    MOZ_ASSUME_UNREACHABLE();
+}
+
+static const ProtoTableEntry protoTable[JSProto_LIMIT] = {
+#define INIT_FUNC(name,code,init,clasp) { clasp, init },
+#define INIT_FUNC_DUMMY(name,code,init,clasp) { nullptr, nullptr },
+    JS_FOR_PROTOTYPES(INIT_FUNC, INIT_FUNC_DUMMY)
+#undef INIT_FUNC_DUMMY
+#undef INIT_FUNC
+};
+
+const js::Class *
+js::ProtoKeyToClass(JSProtoKey key)
+{
+    MOZ_ASSERT(key < JSProto_LIMIT);
+    return protoTable[key].clasp;
+}
 
 // This method is not in the header file to avoid having to include
 // TypedObject.h from GlobalObject.h. It is not generally perf
@@ -82,14 +117,11 @@ ProtoGetterImpl(JSContext *cx, CallArgs args)
     if (thisv.isPrimitive() && !BoxNonStrictThis(cx, args))
         return false;
 
-    unsigned dummy;
     RootedObject obj(cx, &args.thisv().toObject());
-    RootedId nid(cx, NameToId(cx->names().proto));
-    RootedValue v(cx);
-    if (!CheckAccess(cx, obj, nid, JSACC_PROTO, &v, &dummy))
+    RootedObject proto(cx);
+    if (!JSObject::getProto(cx, obj, &proto))
         return false;
-
-    args.rval().set(v);
+    args.rval().setObjectOrNull(proto);
     return true;
 }
 
@@ -123,17 +155,6 @@ ProtoSetterImpl(JSContext *cx, CallArgs args)
 
     Rooted<JSObject*> obj(cx, &args.thisv().toObject());
 
-    /*
-     * Disallow mutating the [[Prototype]] on ArrayBuffer objects, which
-     * due to their complicated delegate-object shenanigans can't easily
-     * have a mutable [[Prototype]].
-     */
-    if (obj->is<ArrayBufferObject>()) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_INCOMPATIBLE_PROTO,
-                             "Object", "__proto__ setter", "ArrayBuffer");
-        return false;
-    }
-
     /* Do nothing if __proto__ isn't being set to an object or null. */
     if (args.length() == 0 || !args[0].isObjectOrNull()) {
         args.rval().setUndefined();
@@ -142,18 +163,12 @@ ProtoSetterImpl(JSContext *cx, CallArgs args)
 
     Rooted<JSObject*> newProto(cx, args[0].toObjectOrNull());
 
-    unsigned dummy;
-    RootedId nid(cx, NameToId(cx->names().proto));
-    RootedValue v(cx);
-    if (!CheckAccess(cx, obj, nid, JSAccessMode(JSACC_PROTO | JSACC_WRITE), &v, &dummy))
-        return false;
-
     bool success;
     if (!JSObject::setProto(cx, obj, newProto, &success))
         return false;
 
     if (!success) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_SETPROTOTYPEOF_FAIL);
+        js_ReportValueError(cx, JSMSG_SETPROTOTYPEOF_FAIL, JSDVG_IGNORE_STACK, thisv, js::NullPtr());
         return false;
     }
 
@@ -165,6 +180,14 @@ static bool
 ProtoSetter(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
+
+    // Do this here, rather than in |ProtoSetterImpl|, so even likely-buggy
+    // use of the __proto__ setter on unacceptable values, where no subsequent
+    // use occurs on an acceptable value, will trigger a warning.
+    RootedObject callee(cx, &args.callee());
+    if (!GlobalObject::warnOnceAboutPrototypeMutation(cx, callee))
+        return false;
+
     return CallNonGenericMethod(cx, TestProtoThis, ProtoSetterImpl, args);
 }
 
@@ -419,6 +442,86 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
     return functionProto;
 }
 
+bool
+GlobalObject::ensureConstructor(JSContext *cx, JSProtoKey key)
+{
+    if (getConstructor(key).isObject())
+        return true;
+    return initConstructor(cx, key);
+}
+
+bool
+GlobalObject::initConstructor(JSContext *cx, JSProtoKey key)
+{
+    MOZ_ASSERT(getConstructor(key).isUndefined());
+    Rooted<GlobalObject*> self(cx, this);
+
+    // There are two different kinds of initialization hooks. One of them is
+    // the class js_InitFoo hook, defined in a JSProtoKey-keyed table at the
+    // top of this file. The other lives in the ClassSpec for classes that
+    // define it. Classes may use one or the other, but not both.
+    ClassInitializerOp init = protoTable[key].init;
+    if (init == js_InitViaClassSpec)
+        init = nullptr;
+
+    const Class *clasp = ProtoKeyToClass(key);
+
+    // Some classes have no init routine, which means that they're disabled at
+    // compile-time. We could try to enforce that callers never pass such keys
+    // to initConstructor, but that would cramp the style of consumers like
+    // GlobalObject::initStandardClasses that want to just carpet-bomb-call
+    // ensureConstructor with every JSProtoKey. So it's easier to just handle
+    // it here.
+    bool haveSpec = clasp && clasp->spec.defined();
+    if (!init && !haveSpec)
+        return true;
+
+    // See if there's an old-style initialization hook.
+    if (init) {
+        MOZ_ASSERT(!haveSpec);
+        return init(cx, self);
+    }
+
+    //
+    // Ok, we're doing it with a class spec.
+    //
+
+    // Create the constructor.
+    RootedObject ctor(cx, clasp->spec.createConstructor(cx, key));
+    if (!ctor)
+        return false;
+
+    // Define any specified functions.
+    if (const JSFunctionSpec *funs = clasp->spec.constructorFunctions) {
+        if (!JS_DefineFunctions(cx, ctor, funs))
+            return false;
+    }
+
+    // We don't always have a prototype (i.e. Math and JSON). If we don't,
+    // |createPrototype| and |prototypeFunctions| should both be null.
+    RootedObject proto(cx);
+    if (clasp->spec.createPrototype) {
+        proto = clasp->spec.createPrototype(cx, key);
+        if (!proto)
+            return false;
+    }
+    if (const JSFunctionSpec *funs = clasp->spec.prototypeFunctions) {
+        if (!JS_DefineFunctions(cx, proto, funs))
+            return false;
+    }
+
+    // If the prototype exists, link it with the constructor.
+    if (proto && !LinkConstructorAndPrototype(cx, ctor, proto))
+        return false;
+
+    // Call the post-initialization hook, if provided.
+    if (clasp->spec.finishInit && !clasp->spec.finishInit(cx, ctor, proto))
+        return false;
+
+    // Stash things in the right slots and define the constructor on the global.
+    return DefineConstructorAndPrototype(cx, self, key, ctor, proto);
+}
+
 GlobalObject *
 GlobalObject::create(JSContext *cx, const Class *clasp)
 {
@@ -474,31 +577,11 @@ GlobalObject::initStandardClasses(JSContext *cx, Handle<GlobalObject*> global)
         return false;
     }
 
-    if (!global->initFunctionAndObjectClasses(cx))
-        return false;
-
-    /* Initialize the rest of the standard objects and functions. */
-    return js_InitArrayClass(cx, global) &&
-           js_InitBooleanClass(cx, global) &&
-           js_InitExceptionClasses(cx, global) &&
-           js_InitMathClass(cx, global) &&
-           js_InitNumberClass(cx, global) &&
-           js_InitJSONClass(cx, global) &&
-           js_InitRegExpClass(cx, global) &&
-           js_InitStringClass(cx, global) &&
-           js_InitTypedArrayClasses(cx, global) &&
-           js_InitIteratorClasses(cx, global) &&
-           js_InitDateClass(cx, global) &&
-           js_InitWeakMapClass(cx, global) &&
-           js_InitProxyClass(cx, global) &&
-           js_InitMapClass(cx, global) &&
-           GlobalObject::initMapIteratorProto(cx, global) &&
-           js_InitSetClass(cx, global) &&
-           GlobalObject::initSetIteratorProto(cx, global) &&
-#if EXPOSE_INTL_API
-           js_InitIntlClass(cx, global) &&
-#endif
-           true;
+    for (size_t k = 0; k < JSProto_LIMIT; ++k) {
+        if (!global->ensureConstructor(cx, static_cast<JSProtoKey>(k)))
+            return false;
+    }
+    return true;
 }
 
 /* static */ bool
@@ -518,18 +601,17 @@ GlobalObject::isRuntimeCodeGenEnabled(JSContext *cx, Handle<GlobalObject*> globa
 }
 
 /* static */ bool
-GlobalObject::warnOnceAboutWatch(JSContext *cx, HandleObject obj)
+GlobalObject::warnOnceAbout(JSContext *cx, HandleObject obj, uint32_t slot, unsigned errorNumber)
 {
     Rooted<GlobalObject*> global(cx, &obj->global());
-    HeapSlot &v = global->getSlotRef(WARNED_WATCH_DEPRECATED);
+    HeapSlot &v = global->getSlotRef(slot);
     if (v.isUndefined()) {
-        // Warn only once per global object.
         if (!JS_ReportErrorFlagsAndNumber(cx, JSREPORT_WARNING, js_GetErrorMessage, nullptr,
-                                          JSMSG_OBJECT_WATCH_DEPRECATED))
+                                          errorNumber))
         {
             return false;
         }
-        v.init(global, HeapSlot::Slot, WARNED_WATCH_DEPRECATED, BooleanValue(true));
+        v.init(global, HeapSlot::Slot, slot, BooleanValue(true));
     }
     return true;
 }
@@ -701,8 +783,8 @@ GlobalObject::addIntrinsicValue(JSContext *cx, HandleId id, HandleValue value)
     RootedShape last(cx, holder->lastProperty());
     Rooted<UnownedBaseShape*> base(cx, last->base()->unowned());
 
-    StackShape child(base, id, slot, holder->numFixedSlots(), 0, 0, 0);
-    RootedShape shape(cx, cx->compartment()->propertyTree.getChild(cx, last, holder->numFixedSlots(), child));
+    StackShape child(base, id, slot, 0, 0, 0);
+    RootedShape shape(cx, cx->compartment()->propertyTree.getChild(cx, last, child));
     if (!shape)
         return false;
 

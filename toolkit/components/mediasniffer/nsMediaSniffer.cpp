@@ -5,10 +5,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsMediaSniffer.h"
-#include "nsMemory.h"
 #include "nsIHttpChannel.h"
 #include "nsString.h"
 #include "nsMimeTypes.h"
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/ModuleUtils.h"
 #include "mp3sniff.h"
 #ifdef MOZ_WEBM
@@ -22,6 +22,10 @@
 static const unsigned MP4_MIN_BYTES_COUNT = 12;
 // The maximum number of bytes to consider when attempting to sniff a file.
 static const uint32_t MAX_BYTES_SNIFFED = 512;
+// The maximum number of bytes to consider when attempting to sniff for a mp3
+// bitstream.
+// This is 320kbps * 144 / 32kHz + 1 padding byte + 4 bytes of capture pattern.
+static const uint32_t MAX_BYTES_SNIFFED_MP3 = 320 * 144 / 32 + 1 + 4;
 
 NS_IMPL_ISUPPORTS1(nsMediaSniffer, nsIContentSniffer)
 
@@ -114,7 +118,7 @@ nsMediaSniffer::GetMIMETypeFromContent(nsIRequest* aRequest,
 
   const uint32_t clampedLength = std::min(aLength, MAX_BYTES_SNIFFED);
 
-  for (uint32_t i = 0; i < NS_ARRAY_LENGTH(sSnifferEntries); ++i) {
+  for (uint32_t i = 0; i < mozilla::ArrayLength(sSnifferEntries); ++i) {
     const nsMediaSnifferEntry& currentEntry = sSnifferEntries[i];
     if (clampedLength < currentEntry.mLength || currentEntry.mLength == 0) {
       continue;
@@ -142,7 +146,8 @@ nsMediaSniffer::GetMIMETypeFromContent(nsIRequest* aRequest,
     return NS_OK;
   }
 
-  if (MatchesMP3(aData, clampedLength)) {
+  // Bug 950023: 512 bytes are often not enough to sniff for mp3.
+  if (MatchesMP3(aData, std::min(aLength, MAX_BYTES_SNIFFED_MP3))) {
     aSniffedType.AssignLiteral(AUDIO_MP3);
     return NS_OK;
   }

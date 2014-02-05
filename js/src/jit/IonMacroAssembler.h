@@ -11,11 +11,11 @@
 
 #include "jscompartment.h"
 
-#if defined(JS_CPU_X86)
+#if defined(JS_CODEGEN_X86)
 # include "jit/x86/MacroAssembler-x86.h"
-#elif defined(JS_CPU_X64)
+#elif defined(JS_CODEGEN_X64)
 # include "jit/x64/MacroAssembler-x64.h"
-#elif defined(JS_CPU_ARM)
+#elif defined(JS_CODEGEN_ARM)
 # include "jit/arm/MacroAssembler-arm.h"
 #endif
 #include "jit/IonInstrumentation.h"
@@ -204,7 +204,7 @@ class MacroAssembler : public MacroAssemblerSpecific
         }
 
         moveResolver_.setAllocator(*icx->temp);
-#ifdef JS_CPU_ARM
+#ifdef JS_CODEGEN_ARM
         initWithAllocator();
         m_buffer.id = icx->getNextAssemblerId();
 #endif
@@ -221,7 +221,7 @@ class MacroAssembler : public MacroAssemblerSpecific
         ionContext_.construct(cx, (js::jit::TempAllocator *)nullptr);
         alloc_.construct(cx);
         moveResolver_.setAllocator(*ionContext_.ref().temp);
-#ifdef JS_CPU_ARM
+#ifdef JS_CODEGEN_ARM
         initWithAllocator();
         m_buffer.id = GetIonContext()->getNextAssemblerId();
 #endif
@@ -236,7 +236,7 @@ class MacroAssembler : public MacroAssemblerSpecific
         embedsNurseryPointers_(false),
         sps_(nullptr)
     {
-#ifdef JS_CPU_ARM
+#ifdef JS_CODEGEN_ARM
         initWithAllocator();
         m_buffer.id = 0;
 #endif
@@ -776,16 +776,16 @@ class MacroAssembler : public MacroAssemblerSpecific
     void newGCString(const Register &result, Label *fail);
     void newGCShortString(const Register &result, Label *fail);
 
-    void newGCThingPar(const Register &result, const Register &slice,
+    void newGCThingPar(const Register &result, const Register &cx,
                        const Register &tempReg1, const Register &tempReg2,
                        gc::AllocKind allocKind, Label *fail);
-    void newGCThingPar(const Register &result, const Register &slice,
+    void newGCThingPar(const Register &result, const Register &cx,
                        const Register &tempReg1, const Register &tempReg2,
                        JSObject *templateObject, Label *fail);
-    void newGCStringPar(const Register &result, const Register &slice,
+    void newGCStringPar(const Register &result, const Register &cx,
                         const Register &tempReg1, const Register &tempReg2,
                         Label *fail);
-    void newGCShortStringPar(const Register &result, const Register &slice,
+    void newGCShortStringPar(const Register &result, const Register &cx,
                              const Register &tempReg1, const Register &tempReg2,
                              Label *fail);
     void initGCThing(const Register &obj, JSObject *templateObject);
@@ -819,16 +819,16 @@ class MacroAssembler : public MacroAssemblerSpecific
         Push(ImmPtr(nullptr));
     }
 
-    void loadForkJoinSlice(Register slice, Register scratch);
+    void loadForkJoinContext(Register cx, Register scratch);
     void loadContext(Register cxReg, Register scratch, ExecutionMode executionMode);
 
-    void enterParallelExitFrameAndLoadSlice(const VMFunction *f, Register slice,
-                                            Register scratch);
+    void enterParallelExitFrameAndLoadContext(const VMFunction *f, Register cx,
+                                              Register scratch);
 
     void enterExitFrameAndLoadContext(const VMFunction *f, Register cxReg, Register scratch,
                                       ExecutionMode executionMode);
 
-    void enterFakeParallelExitFrame(Register slice, Register scratch,
+    void enterFakeParallelExitFrame(Register cx, Register scratch,
                                     JitCode *codeVal = nullptr);
 
     void enterFakeExitFrame(Register cxReg, Register scratch,
@@ -912,11 +912,11 @@ class MacroAssembler : public MacroAssemblerSpecific
         // of the JSObject::isWrapper test performed in EmulatesUndefined.  If none
         // of the branches are taken, we can check class flags directly.
         loadObjClass(objReg, scratch);
-        branchPtr(Assembler::Equal, scratch, ImmPtr(&ProxyObject::callableClass_), slowCheck);
-        branchPtr(Assembler::Equal, scratch, ImmPtr(&ProxyObject::uncallableClass_), slowCheck);
-        branchPtr(Assembler::Equal, scratch, ImmPtr(&OuterWindowProxyObject::class_), slowCheck);
+        Address flags(scratch, Class::offsetOfFlags());
 
-        test32(Address(scratch, Class::offsetOfFlags()), Imm32(JSCLASS_EMULATES_UNDEFINED));
+        branchTest32(Assembler::NonZero, flags, Imm32(JSCLASS_IS_PROXY), slowCheck);
+
+        test32(flags, Imm32(JSCLASS_EMULATES_UNDEFINED));
         return truthy ? Assembler::Zero : Assembler::NonZero;
     }
 

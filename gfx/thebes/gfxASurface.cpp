@@ -5,6 +5,7 @@
 
 #include "nsIMemoryReporter.h"
 #include "nsMemory.h"
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/Base64.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/Attributes.h"
@@ -328,7 +329,7 @@ gfxASurface::CreateSimilarSurface(gfxContentType aContent,
     }
     
     cairo_surface_t *surface =
-        cairo_surface_create_similar(mSurface, cairo_content_t(aContent),
+        cairo_surface_create_similar(mSurface, cairo_content_t(int(aContent)),
                                      aSize.width, aSize.height);
     if (cairo_surface_status(surface)) {
         cairo_surface_destroy(surface);
@@ -344,7 +345,7 @@ already_AddRefed<gfxImageSurface>
 gfxASurface::GetAsReadableARGB32ImageSurface()
 {
     nsRefPtr<gfxImageSurface> imgSurface = GetAsImageSurface();
-    if (!imgSurface || imgSurface->Format() != gfxImageFormatARGB32) {
+    if (!imgSurface || imgSurface->Format() != gfxImageFormat::ARGB32) {
       imgSurface = CopyToARGB32ImageSurface();
     }
     return imgSurface.forget();
@@ -359,7 +360,7 @@ gfxASurface::CopyToARGB32ImageSurface()
 
     const nsIntSize size = GetSize();
     nsRefPtr<gfxImageSurface> imgSurface =
-        new gfxImageSurface(size, gfxImageFormatARGB32);
+        new gfxImageSurface(size, gfxImageFormat::ARGB32);
 
     if (gfxPlatform::GetPlatform()->SupportsAzureContent()) {
         RefPtr<DrawTarget> dt = gfxPlatform::GetPlatform()->CreateDrawTargetForSurface(imgSurface, IntSize(size.width, size.height));
@@ -432,7 +433,7 @@ gfxASurface::CheckSurfaceSize(const nsIntSize& sz, int32_t limit)
 int32_t
 gfxASurface::FormatStrideForWidth(gfxImageFormat format, int32_t width)
 {
-    return cairo_format_stride_for_width((cairo_format_t)format, (int)width);
+    return cairo_format_stride_for_width((cairo_format_t)(int)format, (int)width);
 }
 
 nsresult
@@ -469,18 +470,18 @@ gfxContentType
 gfxASurface::ContentFromFormat(gfxImageFormat format)
 {
     switch (format) {
-        case gfxImageFormatARGB32:
-            return GFX_CONTENT_COLOR_ALPHA;
-        case gfxImageFormatRGB24:
-        case gfxImageFormatRGB16_565:
-            return GFX_CONTENT_COLOR;
-        case gfxImageFormatA8:
-        case gfxImageFormatA1:
-            return GFX_CONTENT_ALPHA;
+        case gfxImageFormat::ARGB32:
+            return gfxContentType::COLOR_ALPHA;
+        case gfxImageFormat::RGB24:
+        case gfxImageFormat::RGB16_565:
+            return gfxContentType::COLOR;
+        case gfxImageFormat::A8:
+        case gfxImageFormat::A1:
+            return gfxContentType::ALPHA;
 
-        case gfxImageFormatUnknown:
+        case gfxImageFormat::Unknown:
         default:
-            return GFX_CONTENT_COLOR;
+            return gfxContentType::COLOR;
     }
 }
 
@@ -510,19 +511,19 @@ gfxASurface::GetSubpixelAntialiasingEnabled()
 gfxMemoryLocation
 gfxASurface::GetMemoryLocation() const
 {
-    return GFX_MEMORY_IN_PROCESS_HEAP;
+    return gfxMemoryLocation::IN_PROCESS_HEAP;
 }
 
 int32_t
 gfxASurface::BytePerPixelFromFormat(gfxImageFormat format)
 {
     switch (format) {
-        case gfxImageFormatARGB32:
-        case gfxImageFormatRGB24:
+        case gfxImageFormat::ARGB32:
+        case gfxImageFormat::RGB24:
             return 4;
-        case gfxImageFormatRGB16_565:
+        case gfxImageFormat::RGB16_565:
             return 2;
-        case gfxImageFormatA8:
+        case gfxImageFormat::A8:
             return 1;
         default:
             NS_WARNING("Unknown byte per pixel value for Image format");
@@ -618,18 +619,18 @@ static const SurfaceMemoryReporterAttrs sSurfaceMemoryReporterAttrs[] = {
     {"gfx-surface-d2d", nullptr},
 };
 
-PR_STATIC_ASSERT(NS_ARRAY_LENGTH(sSurfaceMemoryReporterAttrs) ==
-                 gfxSurfaceTypeMax);
+PR_STATIC_ASSERT(MOZ_ARRAY_LENGTH(sSurfaceMemoryReporterAttrs) ==
+                 size_t(gfxSurfaceType::Max));
 #ifdef CAIRO_HAS_D2D_SURFACE
 PR_STATIC_ASSERT(uint32_t(CAIRO_SURFACE_TYPE_D2D) ==
-                 uint32_t(gfxSurfaceTypeD2D));
+                 uint32_t(gfxSurfaceType::D2D));
 #endif
 PR_STATIC_ASSERT(uint32_t(CAIRO_SURFACE_TYPE_SKIA) ==
-                 uint32_t(gfxSurfaceTypeSkia));
+                 uint32_t(gfxSurfaceType::Skia));
 
 /* Surface size memory reporting */
 
-static int64_t gSurfaceMemoryUsed[gfxSurfaceTypeMax] = { 0 };
+static int64_t gSurfaceMemoryUsed[size_t(gfxSurfaceType::Max)] = { 0 };
 
 class SurfaceMemoryReporter MOZ_FINAL : public nsIMemoryReporter
 {
@@ -639,7 +640,7 @@ public:
     NS_IMETHOD CollectReports(nsIMemoryReporterCallback *aCb,
                               nsISupports *aClosure)
     {
-        size_t len = NS_ARRAY_LENGTH(sSurfaceMemoryReporterAttrs);
+        const size_t len = ArrayLength(sSurfaceMemoryReporterAttrs);
         for (size_t i = 0; i < len; i++) {
             int64_t amount = gSurfaceMemoryUsed[i];
 
@@ -668,7 +669,7 @@ void
 gfxASurface::RecordMemoryUsedForSurfaceType(gfxSurfaceType aType,
                                             int32_t aBytes)
 {
-    if (aType < 0 || aType >= gfxSurfaceTypeMax) {
+    if (int(aType) < 0 || aType >= gfxSurfaceType::Max) {
         NS_WARNING("Invalid type to RecordMemoryUsedForSurfaceType!");
         return;
     }
@@ -679,7 +680,7 @@ gfxASurface::RecordMemoryUsedForSurfaceType(gfxSurfaceType aType,
         registered = true;
     }
 
-    gSurfaceMemoryUsed[aType] += aBytes;
+    gSurfaceMemoryUsed[size_t(aType)] += aBytes;
 }
 
 void
@@ -715,17 +716,17 @@ gfxASurface::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
 gfxASurface::BytesPerPixel(gfxImageFormat aImageFormat)
 {
   switch (aImageFormat) {
-    case gfxImageFormatARGB32:
+    case gfxImageFormat::ARGB32:
       return 4;
-    case gfxImageFormatRGB24:
+    case gfxImageFormat::RGB24:
       return 4;
-    case gfxImageFormatRGB16_565:
+    case gfxImageFormat::RGB16_565:
       return 2;
-    case gfxImageFormatA8:
+    case gfxImageFormat::A8:
       return 1;
-    case gfxImageFormatA1:
+    case gfxImageFormat::A1:
       return 1; // Close enough
-    case gfxImageFormatUnknown:
+    case gfxImageFormat::Unknown:
     default:
       NS_NOTREACHED("Not really sure what you want me to say here");
       return 0;
@@ -775,7 +776,7 @@ gfxASurface::WriteAsPNG_internal(FILE* aFile, bool aBinary)
   nsIntSize size;
 
   // FIXME/bug 831898: hack r5g6b5 for now.
-  if (!imgsurf || imgsurf->Format() == gfxImageFormatRGB16_565) {
+  if (!imgsurf || imgsurf->Format() == gfxImageFormat::RGB16_565) {
     size = GetSize();
     if (size.width == -1 && size.height == -1) {
       printf("Could not determine surface size\n");
@@ -784,7 +785,7 @@ gfxASurface::WriteAsPNG_internal(FILE* aFile, bool aBinary)
 
     imgsurf =
       new gfxImageSurface(nsIntSize(size.width, size.height),
-                          gfxImageFormatARGB32);
+                          gfxImageFormat::ARGB32);
 
     if (!imgsurf || imgsurf->CairoStatus()) {
       printf("Could not allocate image surface\n");

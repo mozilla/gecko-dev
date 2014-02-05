@@ -153,17 +153,16 @@ class NodeBuilder
     bool        saveLoc;               /* save source location information?     */
     char const  *src;                  /* source filename or null               */
     RootedValue srcval;                /* source filename JS value or null      */
-    Value       callbacks[AST_LIMIT];  /* user-specified callbacks              */
-    AutoValueArray callbacksRoots;     /* for rooting |callbacks|               */
+    Value       callbacks_[AST_LIMIT]; /* user-specified callbacks              */
+    AutoValueArray callbacks;          /* for rooting |callbacks|               */
     RootedValue userv;                 /* user-specified builder object or null */
-    RootedValue undefinedVal;          /* a rooted undefined val, used by opt() */
 
   public:
     NodeBuilder(JSContext *c, bool l, char const *s)
         : cx(c), tokenStream(nullptr), saveLoc(l), src(s), srcval(c),
-          callbacksRoots(c, callbacks, AST_LIMIT), userv(c), undefinedVal(c, UndefinedValue())
+          callbacks(c, callbacks_, AST_LIMIT), userv(c)
     {
-        MakeRangeGCSafe(callbacks, mozilla::ArrayLength(callbacks));
+        MakeRangeGCSafe(callbacks.start(), callbacks.length());
     }
 
     bool init(HandleObject userobj = js::NullPtr()) {
@@ -206,7 +205,7 @@ class NodeBuilder
                 return false;
             }
 
-            callbacks[i] = funv;
+            callbacks[i].set(funv);
         }
 
         return true;
@@ -312,12 +311,12 @@ class NodeBuilder
     }
 
     // WARNING: Returning a Handle is non-standard, but it works in this case
-    // because both |v| and |undefinedVal| are definitely rooted on a previous
-    // stack frame (i.e. we're just choosing between two already-rooted
-    // values).
+    // because both |v| and |UndefinedHandleValue| are definitely rooted on a
+    // previous stack frame (i.e. we're just choosing between two
+    // already-rooted values).
     HandleValue opt(HandleValue v) {
         JS_ASSERT_IF(v.isMagic(), v.whyMagic() == JS_SERIALIZE_NO_NODE);
-        return v.isMagic(JS_SERIALIZE_NO_NODE) ? undefinedVal : v;
+        return v.isMagic(JS_SERIALIZE_NO_NODE) ? JS::UndefinedHandleValue : v;
     }
 
     bool atomValue(const char *s, MutableHandleValue dst) {
@@ -3272,17 +3271,15 @@ reflect_parse(JSContext *cx, uint32_t argc, jsval *vp)
     if (!serialize.init(builder))
         return false;
 
-    JSStableString *stable = src->ensureStable(cx);
-    if (!stable)
+    JSFlatString *flat = src->ensureFlat(cx);
+    if (!flat)
         return false;
 
-    const StableCharPtr chars = stable->chars();
-    size_t length = stable->length();
     CompileOptions options(cx);
     options.setFileAndLine(filename, lineno);
     options.setCanLazilyParse(false);
-    Parser<FullParseHandler> parser(cx, &cx->tempLifoAlloc(), options, chars.get(), length,
-                                    /* foldConstants = */ false, nullptr, nullptr);
+    Parser<FullParseHandler> parser(cx, &cx->tempLifoAlloc(), options, flat->chars(),
+                                    flat->length(), /* foldConstants = */ false, nullptr, nullptr);
 
     serialize.setParser(&parser);
 
@@ -3301,14 +3298,13 @@ reflect_parse(JSContext *cx, uint32_t argc, jsval *vp)
 }
 
 JS_PUBLIC_API(JSObject *)
-JS_InitReflect(JSContext *cx, JSObject *objArg)
+JS_InitReflect(JSContext *cx, HandleObject obj)
 {
     static const JSFunctionSpec static_methods[] = {
         JS_FN("parse", reflect_parse, 1, 0),
         JS_FS_END
     };
 
-    RootedObject obj(cx, objArg);
     RootedObject proto(cx, obj->as<GlobalObject>().getOrCreateObjectPrototype(cx));
     if (!proto)
         return nullptr;

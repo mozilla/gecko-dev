@@ -35,6 +35,7 @@
 #include "nsITheme.h"
 #include "gfx3DMatrix.h"
 #include "nsLayoutUtils.h"
+#include "nsFrameState.h"
 
 #ifdef ACCESSIBILITY
 #include "mozilla/a11y/AccTypes.h"
@@ -128,221 +129,6 @@ typedef uint32_t nsSplittableType;
 
 //----------------------------------------------------------------------
 
-/**
- * Frame state bits. Any bits not listed here are reserved for future
- * extensions, but must be stored by the frames.
- */
-typedef uint64_t nsFrameState;
-
-#define NS_FRAME_STATE_BIT(n_) (nsFrameState(1) << (n_))
-
-#define NS_FRAME_IN_REFLOW                          NS_FRAME_STATE_BIT(0)
-
-// This bit is set when a frame is created. After it has been reflowed
-// once (during the DidReflow with a finished state) the bit is
-// cleared.
-#define NS_FRAME_FIRST_REFLOW                       NS_FRAME_STATE_BIT(1)
-
-// For a continuation frame, if this bit is set, then this a "fluid" 
-// continuation, i.e., across a line boundary. Otherwise it's a "hard"
-// continuation, e.g. a bidi continuation.
-#define NS_FRAME_IS_FLUID_CONTINUATION              NS_FRAME_STATE_BIT(2)
-
-// For nsIAnonymousContentCreator content that's created using ContentInfo.
-#define NS_FRAME_ANONYMOUSCONTENTCREATOR_CONTENT    NS_FRAME_STATE_BIT(3)
-
-// If this bit is set, then a reference to the frame is being held
-// elsewhere.  The frame may want to send a notification when it is
-// destroyed to allow these references to be cleared.
-#define NS_FRAME_EXTERNAL_REFERENCE                 NS_FRAME_STATE_BIT(4)
-
-// If this bit is set, this frame or one of its descendants has a
-// percentage height that depends on an ancestor of this frame.
-// (Or it did at one point in the past, since we don't necessarily clear
-// the bit when it's no longer needed; it's an optimization.)
-#define  NS_FRAME_CONTAINS_RELATIVE_HEIGHT          NS_FRAME_STATE_BIT(5)
-
-// If this bit is set, then the frame corresponds to generated content
-#define NS_FRAME_GENERATED_CONTENT                  NS_FRAME_STATE_BIT(6)
-
-// If this bit is set the frame is a continuation that is holding overflow,
-// i.e. it is a next-in-flow created to hold overflow after the box's
-// height has ended. This means the frame should be a) at the top of the
-// page and b) invisible: no borders, zero height, ignored in margin
-// collapsing, etc. See nsContainerFrame.h
-#define NS_FRAME_IS_OVERFLOW_CONTAINER              NS_FRAME_STATE_BIT(7)
-
-// If this bit is set, then the frame has been moved out of the flow,
-// e.g., it is absolutely positioned or floated
-#define NS_FRAME_OUT_OF_FLOW                        NS_FRAME_STATE_BIT(8)
-
-// Frame can be an abs/fixed pos. container, if its style says so.
-// MarkAs[Not]AbsoluteContainingBlock will assert that this bit is set.
-// NS_FRAME_HAS_ABSPOS_CHILDREN must not be set when this bit is unset.
-#define NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN           NS_FRAME_STATE_BIT(9)
-
-// If this bit is set, then the frame and _all_ of its descendant frames need
-// to be reflowed.
-// This bit is set when the frame is first created.
-// This bit is cleared by DidReflow after the required call to Reflow has
-// finished.
-// Do not set this bit yourself if you plan to pass the frame to
-// nsIPresShell::FrameNeedsReflow.  Pass the right arguments instead.
-#define NS_FRAME_IS_DIRTY                           NS_FRAME_STATE_BIT(10)
-
-// If this bit is set then the frame is too deep in the frame tree, and
-// we'll stop updating it and its children, to prevent stack overflow
-// and the like.
-#define NS_FRAME_TOO_DEEP_IN_FRAME_TREE             NS_FRAME_STATE_BIT(11)
-
-// If this bit is set, then either:
-//  1. the frame has at least one child that has the NS_FRAME_IS_DIRTY bit or
-//     NS_FRAME_HAS_DIRTY_CHILDREN bit set, or
-//  2. the frame has had at least one child removed since the last reflow, or
-//  3. the frame has had a style change that requires the frame to be reflowed
-//     but does not _necessarily_ require its descendants to be reflowed (e.g.,
-//     for a 'height', 'width', 'margin', etc. change, it's up to the
-//     applicable Reflow methods to decide whether the frame's children
-//     _actually_ need to be reflowed).
-// If this bit is set but the NS_FRAME_IS_DIRTY is not set, then Reflow still
-// needs to be called on the frame, but Reflow will likely not do as much work
-// as it would if NS_FRAME_IS_DIRTY were set. See the comment documenting
-// nsFrame::Reflow for more.
-// This bit is cleared by DidReflow after the required call to Reflow has
-// finished.
-// Do not set this bit yourself if you plan to pass the frame to
-// nsIPresShell::FrameNeedsReflow.  Pass the right arguments instead.
-#define NS_FRAME_HAS_DIRTY_CHILDREN                 NS_FRAME_STATE_BIT(12)
-
-// If this bit is set, the frame has an associated view
-#define NS_FRAME_HAS_VIEW                           NS_FRAME_STATE_BIT(13)
-
-// If this bit is set, the frame was created from anonymous content.
-#define NS_FRAME_INDEPENDENT_SELECTION              NS_FRAME_STATE_BIT(14)
-
-// If this bit is set, the frame is "special" (lame term, I know),
-// which means that it is part of the mangled frame hierarchy that
-// results when an inline has been split because of a nested block.
-// See the comments in nsCSSFrameConstructor::ConstructInline for
-// more details.
-#define NS_FRAME_IS_SPECIAL                         NS_FRAME_STATE_BIT(15)
-
-// If this bit is set, then transforms (e.g. CSS or SVG transforms) are allowed
-// to affect the frame, and a transform may currently be in affect. If this bit
-// is not set, then any transforms on the frame will be ignored.
-// This is used primarily in GetTransformMatrix to optimize for the
-// common case.
-#define  NS_FRAME_MAY_BE_TRANSFORMED                NS_FRAME_STATE_BIT(16)
-
-#ifdef IBMBIDI
-// If this bit is set, the frame itself is a bidi continuation,
-// or is incomplete (its next sibling is a bidi continuation)
-#define NS_FRAME_IS_BIDI                            NS_FRAME_STATE_BIT(17)
-#endif
-
-// If this bit is set the frame has descendant with a view
-#define NS_FRAME_HAS_CHILD_WITH_VIEW                NS_FRAME_STATE_BIT(18)
-
-// If this bit is set, then reflow may be dispatched from the current
-// frame instead of the root frame.
-#define NS_FRAME_REFLOW_ROOT                        NS_FRAME_STATE_BIT(19)
-
-// Bits 20-31 and 60-63 of the frame state are reserved for implementations.
-#define NS_FRAME_IMPL_RESERVED                      nsFrameState(0xF0000000FFF00000)
-#define NS_FRAME_RESERVED                           ~NS_FRAME_IMPL_RESERVED
-
-// This bit is set on floats whose parent does not contain their
-// placeholder.  This can happen for two reasons:  (1) the float was
-// split, and this piece is the continuation, or (2) the entire float
-// didn't fit on the page.
-// Note that this bit is also shared by text frames for
-// TEXT_FORCE_TRIM_WHITESPACE.  That's OK because we only check the
-// NS_FRAME_IS_PUSHED_FLOAT bit on frames which we already know are
-// out-of-flow.
-#define NS_FRAME_IS_PUSHED_FLOAT                    NS_FRAME_STATE_BIT(32)
-
-// This bit acts as a loop flag for recursive paint server drawing.
-#define NS_FRAME_DRAWING_AS_PAINTSERVER             NS_FRAME_STATE_BIT(33)
-
-// Frame is a display root and the retained layer tree needs to be updated
-// at the next paint via display list construction.
-// Only meaningful for display roots, so we don't really need a global state
-// bit; we could free up this bit with a little extra complexity.
-#define NS_FRAME_UPDATE_LAYER_TREE                  NS_FRAME_STATE_BIT(36)
-
-// Frame can accept absolutely positioned children.
-#define NS_FRAME_HAS_ABSPOS_CHILDREN                NS_FRAME_STATE_BIT(37)
-
-// A display item for this frame has been painted as part of a ThebesLayer.
-#define NS_FRAME_PAINTED_THEBES                     NS_FRAME_STATE_BIT(38)
-
-// Frame is or is a descendant of something with a fixed height, unless that
-// ancestor is a body or html element, and has no closer ancestor that is
-// overflow:auto or overflow:scroll.
-#define NS_FRAME_IN_CONSTRAINED_HEIGHT              NS_FRAME_STATE_BIT(39)
-
-// This is only set during painting
-#define NS_FRAME_FORCE_DISPLAY_LIST_DESCEND_INTO    NS_FRAME_STATE_BIT(40)
-
-// Is this frame a container for font size inflation, i.e., is it a
-// frame whose width is used to determine the inflation factor for
-// everything whose nearest ancestor container for this frame?
-#define NS_FRAME_FONT_INFLATION_CONTAINER           NS_FRAME_STATE_BIT(41)
-
-// Does this frame manage a region in which we do font size inflation,
-// i.e., roughly, is it an element establishing a new block formatting
-// context?
-#define NS_FRAME_FONT_INFLATION_FLOW_ROOT           NS_FRAME_STATE_BIT(42)
-
-// This bit is set on SVG frames that are laid out using SVG's coordinate
-// system based layout (as opposed to any of the CSS layout models). Note that
-// this does not include nsSVGOuterSVGFrame since it takes part is CSS layout.
-#define NS_FRAME_SVG_LAYOUT                         NS_FRAME_STATE_BIT(43)
-
-// Is this frame allowed to have generated (::before/::after) content?
-#define NS_FRAME_MAY_HAVE_GENERATED_CONTENT         NS_FRAME_STATE_BIT(44)
-
-// This bit is set on frames that create ContainerLayers with component
-// alpha children. With BasicLayers we avoid creating these, so we mark
-// the frames for future reference.
-#define NS_FRAME_NO_COMPONENT_ALPHA                 NS_FRAME_STATE_BIT(45)
-
-// The frame is a descendant of SVGTextFrame and is thus used for SVG
-// text layout.
-#define NS_FRAME_IS_SVG_TEXT                        NS_FRAME_STATE_BIT(47)
-
-// Frame is marked as needing painting
-#define NS_FRAME_NEEDS_PAINT                        NS_FRAME_STATE_BIT(48)
-
-// Frame has a descendant frame that needs painting - This includes
-// cross-doc children.
-#define NS_FRAME_DESCENDANT_NEEDS_PAINT             NS_FRAME_STATE_BIT(49)
-
-// Frame is a descendant of a popup
-#define NS_FRAME_IN_POPUP                           NS_FRAME_STATE_BIT(50)
-
-// Frame has only descendant frames that needs painting - This includes
-// cross-doc children. This guarantees that all descendents have 
-// NS_FRAME_NEEDS_PAINT and NS_FRAME_ALL_DESCENDANTS_NEED_PAINT, or they 
-// have no display items.
-#define NS_FRAME_ALL_DESCENDANTS_NEED_PAINT         NS_FRAME_STATE_BIT(51)
-
-// Frame is marked as NS_FRAME_NEEDS_PAINT and also has an explicit
-// rect stored to invalidate.
-#define NS_FRAME_HAS_INVALID_RECT                   NS_FRAME_STATE_BIT(52)
-
-// Frame is not displayed directly due to it being, or being under, an SVG
-// <defs> element or an SVG resource element (<mask>, <pattern>, etc.)
-#define NS_FRAME_IS_NONDISPLAY                      NS_FRAME_STATE_BIT(53)
-
-// Frame has a LayerActivityProperty property
-#define NS_FRAME_HAS_LAYER_ACTIVITY_PROPERTY        NS_FRAME_STATE_BIT(54)
-
-// Box layout bits
-#define NS_STATE_IS_HORIZONTAL                      NS_FRAME_STATE_BIT(22)
-#define NS_STATE_IS_DIRECTION_NORMAL                NS_FRAME_STATE_BIT(31)
-
-// Helper macros
 #define NS_SUBTREE_DIRTY(_frame)  \
   (((_frame)->GetStateBits() &      \
     (NS_FRAME_IS_DIRTY | NS_FRAME_HAS_DIRTY_CHILDREN)) != 0)
@@ -2219,12 +2005,6 @@ public:
   virtual bool IsLeaf() const;
 
   /**
-   * Is this a flex item? (Is the parent a flex container frame?)
-   */
-  bool IsFlexItem() const
-  { return mParent && mParent->GetType() == nsGkAtoms::flexContainerFrame; }
-
-  /**
    * Marks all display items created by this frame as needing a repaint,
    * and calls SchedulePaint() if requested and one is not already pending.
    *
@@ -2325,15 +2105,18 @@ public:
    * do not trigger a reflow should have this called for them by
    * DoApplyRenderingChangeToTree.
    *
-   * @param aFlags PAINT_COMPOSITE_ONLY : No changes have been made
+   * @param aType PAINT_COMPOSITE_ONLY : No changes have been made
    * that require a layer tree update, so only schedule a layer
    * tree composite.
+   * PAINT_DELAYED_COMPRESS : Schedule a paint to be executed after a delay, and
+   * put FrameLayerBuilder in 'compressed' mode that avoids short cut optimizations.
    */
-  enum {
+  enum PaintType {
     PAINT_DEFAULT = 0,
-    PAINT_COMPOSITE_ONLY = 1 << 0
+    PAINT_COMPOSITE_ONLY,
+    PAINT_DELAYED_COMPRESS
   };
-  void SchedulePaint(uint32_t aFlags = PAINT_DEFAULT);
+  void SchedulePaint(PaintType aType = PAINT_DEFAULT);
 
   /**
    * Checks if the layer tree includes a dedicated layer for this 
@@ -2963,6 +2746,11 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
   virtual void FindCloserFrameForSelection(nsPoint aPoint,
                                            FrameWithDistance* aCurrentBestFrame);
 
+  /**
+   * Is this a flex item? (i.e. a non-abs-pos child of a flex container)
+   */
+  inline bool IsFlexItem() const;
+
   inline bool IsBlockInside() const;
   inline bool IsBlockOutside() const;
   inline bool IsInlineOutside() const;
@@ -3244,23 +3032,25 @@ public:
     ListTag(out, this);
   }
   static void ListTag(FILE* out, const nsIFrame* aFrame) {
-    nsAutoString tmp;
-    aFrame->GetFrameName(tmp);
-    fputs(NS_LossyConvertUTF16toASCII(tmp).get(), out);
-    fprintf(out, "@%p", static_cast<const void*>(aFrame));
+    nsAutoCString t;
+    ListTag(t, aFrame);
+    fputs(t.get(), out);
   }
-  void ListGeneric(FILE* out, int32_t aIndent, uint32_t aFlags) const;
+  void ListTag(nsACString& aTo) const;
+  static void ListTag(nsACString& aTo, const nsIFrame* aFrame);
+  void ListGeneric(nsACString& aTo, const char* aPrefix = "", uint32_t aFlags = 0) const;
   enum {
     TRAVERSE_SUBDOCUMENT_FRAMES = 0x01
   };
-  virtual void List(FILE* out, int32_t aIndent, uint32_t aFlags = 0) const;
+  virtual void List(FILE* out = stderr, const char* aPrefix = "", uint32_t aFlags = 0) const;
   /**
    * lists the frames beginning from the root frame
    * - calls root frame's List(...)
    */
   static void RootFrameList(nsPresContext* aPresContext,
-                            FILE* out, int32_t aIndent);
+                            FILE* out = stderr, const char* aPrefix = "");
   virtual void DumpFrameTree();
+  void DumpFrameTreeLimited();
 
   NS_IMETHOD  GetFrameName(nsAString& aResult) const = 0;
 #endif

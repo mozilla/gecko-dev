@@ -8,6 +8,11 @@ fails == dir-6.html dir-6-ref.html
 fails == dir-8.html dir-8-ref.html
 fails == dir-9.html dir-9-ref.html # Bug 787215
 == dir-10.html dir-10-ref.html
+== dir-11.html dir-11-ref.html
+== displaystyle-1.html displaystyle-1-ref.html
+== displaystyle-2.html displaystyle-2-ref.html
+== displaystyle-3.html displaystyle-3-ref.html
+== displaystyle-4.html displaystyle-4-ref.html
 skip-if(B2G) fails-if(smallScreen&&Android) fuzzy(255,200) == mirror-op-1.html mirror-op-1-ref.html
 != mirror-op-2.html mirror-op-2-ref.html
 != mirror-op-3.html mirror-op-3-ref.html
@@ -39,8 +44,8 @@ skip-if(B2G) == quotes-1.xhtml quotes-1-ref.xhtml
 != stretchy-underbar-1.xhtml stretchy-underbar-1-ref.xhtml 
 == table-width-1.xhtml table-width-1-ref.xhtml
 == table-width-2.html table-width-2-ref.html
-fails-if(OSX||/^Windows\x20NT\x206\.[^0]/.test(http.oscpu)||Android) == table-width-3.html table-width-3-ref.html
-fails-if((OSX&&(OSX<10.8))||/^Windows\x20NT\x206\.[^0]/.test(http.oscpu)||Android) == table-width-4.html table-width-4-ref.html
+== table-width-3.html table-width-3-ref.html
+== table-width-4.html table-width-4-ref.html
 == underbar-width-1.xhtml underbar-width-1-ref.xhtml
 == mathml-type-supported.xhtml mathml-type-supported-ref.xml
 == mtable-align-negative-rownumber.html mtable-align-negative-rownumber-ref.html
@@ -78,14 +83,13 @@ fails-if((OSX&&(OSX<10.8))||/^Windows\x20NT\x206\.[^0]/.test(http.oscpu)||Androi
 == mstyle-2.xhtml mstyle-2-ref.xhtml
 == mstyle-3.xhtml mstyle-3-ref.xhtml
 == mstyle-4.xhtml mstyle-4-ref.xhtml
-fails == mstyle-5.xhtml mstyle-5-ref.xhtml # Bug 787215
+== mstyle-5.xhtml mstyle-5-ref.xhtml # Bug 787215
 == scale-stretchy-1.xhtml scale-stretchy-1-ref.xhtml
 != scale-stretchy-2.xhtml scale-stretchy-2-ref.xhtml
 == scale-stretchy-3.xhtml scale-stretchy-3-ref.xhtml
 != scale-stretchy-4.xhtml scale-stretchy-4-ref.xhtml
 != scale-stretchy-5.xhtml scale-stretchy-5-ref.xhtml
 != stretchy-1.html stretchy-1-ref.html
-== math-as-mstyle-1.xhtml math-as-mstyle-1-ref.xhtml
 == mspace-1.html mspace-1-ref.html
 == mpadded-1.html mpadded-1-ref.html
 == mpadded-2.html mpadded-2-ref.html
@@ -98,6 +102,7 @@ fails == mstyle-5.xhtml mstyle-5-ref.xhtml # Bug 787215
 == mpadded-8.html mpadded-8-ref.html
 == mpadded-9.html mpadded-9-ref.html
 == math-display.html math-display-ref.html
+== scriptlevel-1.html scriptlevel-1-ref.html
 == scriptlevel-movablelimits-1.html scriptlevel-movablelimits-1-ref.html
 == munderover-align-accent-false.html munderover-align-accent-false-ref.html
 == munderover-align-accent-true.html munderover-align-accent-true-ref.html
@@ -150,6 +155,7 @@ fails == whitespace-trim-4.html whitespace-trim-4-ref.html # Bug 787215
 == mathml-mmultiscript-mprescript.html mathml-mmultiscript-mprescript-ref.html
 != menclose-1.html menclose-1-ref.html
 == mmultiscript-align.html mmultiscript-align-ref.html
+== subscript-italic-correction.html subscript-italic-correction-ref.html
 == mathvariant-1a.html mathvariant-1a-ref.html
 == mathvariant-1b.html mathvariant-1b-ref.html
 == mathvariant-1c.html mathvariant-1c-ref.html
@@ -158,3 +164,9 @@ fails == whitespace-trim-4.html whitespace-trim-4-ref.html # Bug 787215
 == mathvariant-3.html mathvariant-3-ref.html
 == mathvariant-4.html mathvariant-4-ref.html
 == mathvariant-5.html mathvariant-5-ref.html
+== ssty-1.html ssty-1-ref.html
+== ssty-2.html ssty-2-ref.html
+== ssty-3.html ssty-3-ref.html
+== ssty-4.html ssty-4-ref.html
+== mathscript-1.html mathscript-1-ref.html
+== mathscript-2.html mathscript-2-ref.html

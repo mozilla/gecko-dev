@@ -34,7 +34,6 @@
 
 class gfx3DMatrix;
 class nsIWidget;
-struct gfxMatrix;
 
 namespace mozilla {
 class TimeStamp;
@@ -76,7 +75,7 @@ public:
 
   virtual TextureFactoryIdentifier GetTextureFactoryIdentifier() MOZ_OVERRIDE
   {
-    return TextureFactoryIdentifier(LAYERS_OPENGL,
+    return TextureFactoryIdentifier(LayersBackend::LAYERS_OPENGL,
                                     XRE_GetProcessType(),
                                     GetMaxTextureSize(),
                                     mFBOTextureTarget == LOCAL_GL_TEXTURE_2D,
@@ -112,7 +111,7 @@ public:
 
 
   virtual void EndFrame() MOZ_OVERRIDE;
-  virtual void EndFrameForExternalComposition(const gfxMatrix& aTransform) MOZ_OVERRIDE;
+  virtual void EndFrameForExternalComposition(const gfx::Matrix& aTransform) MOZ_OVERRIDE;
   virtual void AbortFrame() MOZ_OVERRIDE;
 
   virtual bool SupportsPartialTextureUpdate() MOZ_OVERRIDE;
@@ -145,7 +144,7 @@ public:
   }
 
   virtual void PrepareViewport(const gfx::IntSize& aSize,
-                               const gfxMatrix& aWorldTransform) MOZ_OVERRIDE;
+                               const gfx::Matrix& aWorldTransform) MOZ_OVERRIDE;
 
 
 #ifdef MOZ_DUMP_PAINTING
@@ -252,13 +251,18 @@ private:
    */
   bool mFrameInProgress;
 
+  /*
+   * Clear aRect on FrameBuffer.
+   */
+  virtual void clearFBRect(const gfx::Rect* aRect);
+
   /* Start a new frame. If aClipRectIn is null and aClipRectOut is non-null,
    * sets *aClipRectOut to the screen dimensions.
    */
   virtual void BeginFrame(const nsIntRegion& aInvalidRegion,
                           const gfx::Rect *aClipRectIn,
-                          const gfxMatrix& aTransform,
-                          const gfx::Rect& aRenderBounds, 
+                          const gfx::Matrix& aTransform,
+                          const gfx::Rect& aRenderBounds,
                           gfx::Rect *aClipRectOut = nullptr,
                           gfx::Rect *aRenderBoundsOut = nullptr) MOZ_OVERRIDE;
 
@@ -267,7 +271,7 @@ private:
   /**
    * Updates all layer programs with a new projection matrix.
    */
-  void SetLayerProgramProjectionMatrix(const gfx3DMatrix& aMatrix);
+  void SetLayerProgramProjectionMatrix(const gfx::Matrix4x4& aMatrix);
 
   /**
    * Helper method for Initialize, creates all valid variations of a program
@@ -319,7 +323,7 @@ private:
    * Copies the content of our backbuffer to the set transaction target.
    * Does not restore the target FBO, so only call from EndFrame.
    */
-  void CopyToTarget(gfx::DrawTarget* aTarget, const gfxMatrix& aWorldMatrix);
+  void CopyToTarget(gfx::DrawTarget* aTarget, const gfx::Matrix& aWorldMatrix);
 
   /**
    * Records the passed frame timestamp and returns the current estimated FPS.

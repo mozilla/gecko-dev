@@ -6,6 +6,7 @@
 
 /* parsing of CSS stylesheets, based on a token stream from the CSS scanner */
 
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/DebugOnly.h"
 
 #include "nsCSSParser.h"
@@ -651,6 +652,7 @@ protected:
   bool ParseTextDecorationLine(nsCSSValue& aValue);
   bool ParseTextCombineHorizontal(nsCSSValue& aValue);
   bool ParseTextOverflow(nsCSSValue& aValue);
+  bool ParseTouchAction(nsCSSValue& aValue);
 
   bool ParseShadowItem(nsCSSValue& aValue, bool aIsBoxShadow);
   bool ParseShadowList(nsCSSProperty aProperty);
@@ -672,6 +674,7 @@ protected:
                                         size_t aNumProperties);
   bool ParseTransition();
   bool ParseAnimation();
+  bool ParseWillChange();
 
   bool ParsePaint(nsCSSProperty aPropID);
   bool ParseDasharray();
@@ -6747,7 +6750,7 @@ CSSParserImpl::ParseFlexFlow()
     eCSSProperty_flex_direction,
     eCSSProperty_flex_wrap
   };
-  const size_t numProps = NS_ARRAY_LENGTH(kFlexFlowSubprops);
+  const size_t numProps = MOZ_ARRAY_LENGTH(kFlexFlowSubprops);
   nsCSSValue values[numProps];
 
   int32_t found = ParseChoice(values, kFlexFlowSubprops, numProps);
@@ -7828,6 +7831,8 @@ CSSParserImpl::ParsePropertyByFunction(nsCSSProperty aPropID)
     return ParseSize();
   case eCSSProperty_text_decoration:
     return ParseTextDecoration();
+  case eCSSProperty_will_change:
+    return ParseWillChange();
   case eCSSProperty_transform:
     return ParseTransform(false);
   case eCSSProperty__moz_transform:
@@ -7919,6 +7924,8 @@ CSSParserImpl::ParseSingleValueProperty(nsCSSValue& aValue,
         return ParseTextCombineHorizontal(aValue);
       case eCSSProperty_text_overflow:
         return ParseTextOverflow(aValue);
+      case eCSSProperty_touch_action:
+        return ParseTouchAction(aValue);
       default:
         NS_ABORT_IF_FALSE(false, "should not reach here");
         return false;
@@ -7933,8 +7940,11 @@ CSSParserImpl::ParseSingleValueProperty(nsCSSValue& aValue,
 
   // We only allow 'script-level' when unsafe rules are enabled, because
   // otherwise it could interfere with rulenode optimizations if used in
-  // a non-MathML-enabled document.
-  if (aPropID == eCSSProperty_script_level && !mUnsafeRulesEnabled)
+  // a non-MathML-enabled document. We also only allow math-display when
+  // unsafe rules are enabled.
+  if (!mUnsafeRulesEnabled &&
+      (aPropID == eCSSProperty_script_level ||
+       aPropID == eCSSProperty_math_display))
     return false;
 
   const int32_t *kwtable = nsCSSProps::kKeywordTableTable[aPropID];
@@ -9052,7 +9062,7 @@ CSSParserImpl::ParseBorderImage()
   nsCSSValue imageSourceValue;
   while (!CheckEndProperty()) {
     // <border-image-source>
-    if (!foundSource && ParseVariant(imageSourceValue, VARIANT_UO, nullptr)) {
+    if (!foundSource && ParseVariant(imageSourceValue, VARIANT_IMAGE, nullptr)) {
       AppendValue(eCSSProperty_border_image_source, imageSourceValue);
       foundSource = true;
       continue;
@@ -9668,7 +9678,7 @@ CSSParserImpl::ParseColumns()
     eCSSProperty__moz_column_count,
     eCSSProperty__moz_column_width
   };
-  const int32_t numProps = NS_ARRAY_LENGTH(columnIDs);
+  const int32_t numProps = MOZ_ARRAY_LENGTH(columnIDs);
 
   nsCSSValue values[numProps];
   int32_t found = ParseChoice(values, columnIDs, numProps);
@@ -10215,7 +10225,7 @@ static const int32_t maskEastAsian[] = {
 bool
 CSSParserImpl::ParseFontVariantEastAsian(nsCSSValue& aValue)
 {
-  NS_ASSERTION(maskEastAsian[NS_ARRAY_LENGTH(maskEastAsian) - 1] ==
+  NS_ASSERTION(maskEastAsian[ArrayLength(maskEastAsian) - 1] ==
                  MASK_END_VALUE,
                "incorrectly terminated array");
 
@@ -10234,7 +10244,7 @@ static const int32_t maskLigatures[] = {
 bool
 CSSParserImpl::ParseFontVariantLigatures(nsCSSValue& aValue)
 {
-  NS_ASSERTION(maskLigatures[NS_ARRAY_LENGTH(maskLigatures) - 1] ==
+  NS_ASSERTION(maskLigatures[ArrayLength(maskLigatures) - 1] ==
                  MASK_END_VALUE,
                "incorrectly terminated array");
 
@@ -10264,7 +10274,7 @@ static const int32_t maskNumeric[] = {
 bool
 CSSParserImpl::ParseFontVariantNumeric(nsCSSValue& aValue)
 {
-  NS_ASSERTION(maskNumeric[NS_ARRAY_LENGTH(maskNumeric) - 1] ==
+  NS_ASSERTION(maskNumeric[ArrayLength(maskNumeric) - 1] ==
                  MASK_END_VALUE,
                "incorrectly terminated array");
 
@@ -10667,7 +10677,7 @@ CSSParserImpl::ParseListStyle()
     eCSSProperty_list_style_image
   };
 
-  nsCSSValue values[NS_ARRAY_LENGTH(listStyleIDs)];
+  nsCSSValue values[MOZ_ARRAY_LENGTH(listStyleIDs)];
   int32_t found =
     ParseChoice(values, listStyleIDs, ArrayLength(listStyleIDs));
   if (found < 1 || !ExpectEndProperty()) {
@@ -11085,6 +11095,36 @@ CSSParserImpl::ParseTextOverflow(nsCSSValue& aValue)
 }
 
 bool
+CSSParserImpl::ParseTouchAction(nsCSSValue& aValue)
+{
+  if (!ParseVariant(aValue, VARIANT_HK | VARIANT_NONE | VARIANT_AUTO,
+                    nsCSSProps::kTouchActionKTable)) {
+    return false;
+  }
+
+  // Auto and None keywords aren't allowed in conjunction with others.
+  // Also inherit, initial and unset values are available.
+  if (eCSSUnit_Enumerated != aValue.GetUnit()) {
+    return true;
+  }
+
+  int32_t intValue = aValue.GetIntValue();
+  nsCSSValue nextValue;
+  if (ParseEnum(nextValue, nsCSSProps::kTouchActionKTable)) {
+    int32_t nextIntValue = nextValue.GetIntValue();
+
+    // duplicates aren't allowed.
+    if (nextIntValue & intValue) {
+      return false;
+    }
+
+    aValue.SetIntValue(nextIntValue | intValue, eCSSUnit_Enumerated);
+  }
+
+  return true;
+}
+
+bool
 CSSParserImpl::ParseTextCombineHorizontal(nsCSSValue& aValue)
 {
   if (!ParseVariant(aValue, VARIANT_HK,
@@ -11414,6 +11454,61 @@ static bool GetFunctionParseInformation(nsCSSKeyword aToken,
   // Convert the index into a mask.
   aVariantMask = kVariantMasks[variantIndex];
 
+  return true;
+}
+
+bool CSSParserImpl::ParseWillChange()
+{
+  nsCSSValue listValue;
+  nsCSSValueList* currentListValue = listValue.SetListValue();
+  bool first = true;
+  for (;;) {
+    const uint32_t variantMask = VARIANT_IDENTIFIER |
+                                 VARIANT_INHERIT |
+                                 VARIANT_NONE |
+                                 VARIANT_ALL |
+                                 VARIANT_AUTO;
+    nsCSSValue value;
+    if (!ParseVariant(value, variantMask, nullptr)) {
+      return false;
+    }
+
+    if (value.GetUnit() == eCSSUnit_None ||
+        value.GetUnit() == eCSSUnit_All)
+    {
+      return false;
+    }
+
+    if (value.GetUnit() != eCSSUnit_Ident) {
+      if (first) {
+        AppendValue(eCSSProperty_will_change, value);
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    nsString str;
+    value.GetStringValue(str);
+    if (str.LowerCaseEqualsLiteral("default")) {
+      return false;
+    }
+
+    currentListValue->mValue = value;
+
+    if (CheckEndProperty()) {
+      break;
+    }
+    if (!ExpectSymbol(',', true)) {
+      REPORT_UNEXPECTED_TOKEN(PEExpectedComma);
+      return false;
+    }
+    currentListValue->mNext = new nsCSSValueList;
+    currentListValue = currentListValue->mNext;
+    first = false;
+  }
+
+  AppendValue(eCSSProperty_will_change, listValue);
   return true;
 }
 
@@ -11950,7 +12045,7 @@ CSSParserImpl::ParseTransition()
     // any keyword.
     eCSSProperty_transition_property
   };
-  static const uint32_t numProps = NS_ARRAY_LENGTH(kTransitionProperties);
+  static const uint32_t numProps = MOZ_ARRAY_LENGTH(kTransitionProperties);
   // this is a shorthand property that accepts -property, -delay,
   // -duration, and -timing-function with some components missing.
   // there can be multiple transitions, separated with commas
@@ -12032,7 +12127,7 @@ CSSParserImpl::ParseAnimation()
     // 'animation-name' accepts any keyword.
     eCSSProperty_animation_name
   };
-  static const uint32_t numProps = NS_ARRAY_LENGTH(kAnimationProperties);
+  static const uint32_t numProps = MOZ_ARRAY_LENGTH(kAnimationProperties);
   // this is a shorthand property that accepts -property, -delay,
   // -duration, and -timing-function with some components missing.
   // there can be multiple animations, separated with commas
@@ -12302,7 +12397,7 @@ CSSParserImpl::ParsePaintOrder()
     eCSSKeyword_UNKNOWN,-1
   };
 
-  static_assert(NS_ARRAY_LENGTH(kPaintOrderKTable) ==
+  static_assert(MOZ_ARRAY_LENGTH(kPaintOrderKTable) ==
                   2 * (NS_STYLE_PAINT_ORDER_LAST_VALUE + 2),
                 "missing paint-order values in kPaintOrderKTable");
 

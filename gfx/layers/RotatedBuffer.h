@@ -19,10 +19,8 @@
 #include "nsRect.h"                     // for nsIntRect
 #include "nsRegion.h"                   // for nsIntRegion
 #include "nsTraceRefcnt.h"              // for MOZ_COUNT_CTOR, etc
-#include "Layers.h"                     // for Layer::SurfaceMode
 #include "LayersTypes.h"
 
-struct gfxMatrix;
 struct nsIntSize;
 
 namespace mozilla {
@@ -34,6 +32,7 @@ namespace layers {
 
 class DeprecatedTextureClient;
 class TextureClient;
+class ThebesLayer;
 
 /**
  * This is a cairo/Thebes surface, but with a literal twist. Scrolling
@@ -214,14 +213,16 @@ public:
    */
   struct PaintState {
     PaintState()
-      : mMode(Layer::SURFACE_NONE)
+      : mMode(SurfaceMode::SURFACE_NONE)
+      , mContentType(gfxContentType::SENTINEL)
       , mDidSelfCopy(false)
     {}
 
     nsIntRegion mRegionToDraw;
     nsIntRegion mRegionToInvalidate;
-    Layer::SurfaceMode mMode;
+    SurfaceMode mMode;
     DrawRegionClip mClip;
+    ContentType mContentType;
     bool mDidSelfCopy;
   };
 
@@ -292,7 +293,7 @@ public:
               float aOpacity,
               gfx::CompositionOp aOp,
               gfxASurface* aMask,
-              const gfxMatrix* aMaskTransform);
+              const gfx::Matrix* aMaskTransform);
 
 protected:
   TemporaryRef<gfx::DrawTarget>
@@ -391,7 +392,6 @@ protected:
   gfx::DrawTarget*
   BorrowDrawTargetForQuadrantUpdate(const nsIntRect& aBounds,
                                     ContextSource aSource);
-  void ReturnDrawTarget(gfx::DrawTarget* aReturned);
 
   static bool IsClippingCheap(gfx::DrawTarget* aTarget, const nsIntRegion& aRegion);
 

@@ -26,6 +26,7 @@
 #include "nsSVGIntegrationUtils.h"
 #include "nsLayoutUtils.h"
 #include "nsIScrollableFrame.h"
+#include "nsIFrameInlines.h"
 #include "nsThemeConstants.h"
 #include "LayerTreeInvalidation.h"
 
@@ -49,6 +50,7 @@
 #include "mozilla/Preferences.h"
 #include "ActiveLayerTracker.h"
 #include "nsContentUtils.h"
+#include "nsPrintfCString.h"
 
 #include <stdint.h>
 #include <algorithm>
@@ -223,7 +225,7 @@ static void AddTransformFunctions(nsCSSValueList* aList,
       }
       case eCSSKeyword_matrix:
       {
-        gfx3DMatrix matrix;
+        gfx::Matrix4x4 matrix;
         matrix._11 = array->Item(1).GetFloatValue();
         matrix._12 = array->Item(2).GetFloatValue();
         matrix._13 = 0;
@@ -245,7 +247,7 @@ static void AddTransformFunctions(nsCSSValueList* aList,
       }
       case eCSSKeyword_matrix3d:
       {
-        gfx3DMatrix matrix;
+        gfx::Matrix4x4 matrix;
         matrix._11 = array->Item(1).GetFloatValue();
         matrix._12 = array->Item(2).GetFloatValue();
         matrix._13 = array->Item(3).GetFloatValue();
@@ -274,7 +276,9 @@ static void AddTransformFunctions(nsCSSValueList* aList,
                                                          canStoreInRuleTree,
                                                          aBounds,
                                                          aAppUnitsPerPixel);
-        aFunctions.AppendElement(TransformMatrix(matrix));
+        gfx::Matrix4x4 transform;
+        gfx::ToMatrix4x4(matrix, transform);
+        aFunctions.AppendElement(TransformMatrix(transform));
         break;
       }
       case eCSSKeyword_perspective:
@@ -623,10 +627,10 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
   if (scrollableFrame) {
     nsRect contentBounds = scrollableFrame->GetScrollRange();
     if (scrollableFrame->GetScrollbarStyles().mVertical == NS_STYLE_OVERFLOW_HIDDEN) {
-      contentBounds.height = 0;
+      metrics.SetDisableScrollingY(true);
     }
     if (scrollableFrame->GetScrollbarStyles().mHorizontal == NS_STYLE_OVERFLOW_HIDDEN) {
-      contentBounds.width = 0;
+      metrics.SetDisableScrollingX(true);
     }
     contentBounds.width += scrollableFrame->GetScrollPortRect().width;
     contentBounds.height += scrollableFrame->GetScrollPortRect().height;
@@ -1121,6 +1125,10 @@ void nsDisplayList::PaintForFrame(nsDisplayListBuilder* aBuilder,
   FrameLayerBuilder *layerBuilder = new FrameLayerBuilder();
   layerBuilder->Init(aBuilder, layerManager);
 
+  if (aFlags & PAINT_COMPRESSED) {
+    layerBuilder->SetLayerTreeCompressionMode();
+  }
+
   if (aFlags & PAINT_FLUSH_LAYERS) {
     FrameLayerBuilder::InvalidateAllLayers(layerManager);
   }
@@ -1393,7 +1401,7 @@ void nsDisplayList::HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
           if (aRect.width != 1 || aRect.height != 1) {
             point = aRect.Center();
           }
-          temp.AppendElement(FramesWithDepth(transform->GetHitDepthAtPoint(point)));
+          temp.AppendElement(FramesWithDepth(transform->GetHitDepthAtPoint(aBuilder, point)));
           writeFrames = &temp[temp.Length() - 1].mFrames;
         }
       } else {
@@ -1594,6 +1602,16 @@ nsDisplaySolidColor::Paint(nsDisplayListBuilder* aBuilder,
   aCtx->SetColor(mColor);
   aCtx->FillRect(mVisibleRect);
 }
+
+#ifdef MOZ_DUMP_PAINTING
+void
+nsDisplaySolidColor::WriteDebugInfo(nsACString& aTo)
+{
+  aTo += nsPrintfCString(" (rgba %d,%d,%d,%d)",
+                 NS_GET_R(mColor), NS_GET_G(mColor),
+                 NS_GET_B(mColor), NS_GET_A(mColor));
+}
+#endif
 
 static void
 RegisterThemeGeometry(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
@@ -1956,11 +1974,12 @@ nsDisplayBackgroundImage::ConfigureLayer(ImageLayer* aLayer, const nsIntPoint& a
   mozilla::gfx::IntSize imageSize = mImageContainer->GetCurrentSize();
   NS_ASSERTION(imageSize.width != 0 && imageSize.height != 0, "Invalid image size!");
 
-  gfxMatrix transform;
-  transform.Translate(mDestRect.TopLeft() + aOffset);
+  gfxPoint p = mDestRect.TopLeft() + aOffset;
+  gfx::Matrix transform;
+  transform.Translate(p.x, p.y);
   transform.Scale(mDestRect.width/imageSize.width,
                   mDestRect.height/imageSize.height);
-  aLayer->SetBaseTransform(gfx3DMatrix::From2D(transform));
+  aLayer->SetBaseTransform(gfx::Matrix4x4::From2D(transform));
   aLayer->SetVisibleRegion(nsIntRect(0, 0, imageSize.width, imageSize.height));
 }
 
@@ -2261,9 +2280,9 @@ nsDisplayThemedBackground::~nsDisplayThemedBackground()
 
 #ifdef MOZ_DUMP_PAINTING
 void
-nsDisplayThemedBackground::WriteDebugInfo(FILE *aOutput)
+nsDisplayThemedBackground::WriteDebugInfo(nsACString& aTo)
 {
-  fprintf_stderr(aOutput, "(themed, appearance:%d) ", mAppearance);
+  aTo += nsPrintfCString(" (themed, appearance:%d)", mAppearance);
 }
 #endif
 
@@ -2445,6 +2464,16 @@ nsDisplayBackgroundColor::HitTest(nsDisplayListBuilder* aBuilder,
 
   aOutFrames->AppendElement(mFrame);
 }
+
+#ifdef MOZ_DUMP_PAINTING
+void
+nsDisplayBackgroundColor::WriteDebugInfo(nsACString& aTo)
+{
+  aTo += nsPrintfCString(" (rgba %d,%d,%d,%d)", 
+          NS_GET_R(mColor), NS_GET_G(mColor),
+          NS_GET_B(mColor), NS_GET_A(mColor));
+}
+#endif
 
 nsRect
 nsDisplayOutline::GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) {
@@ -3195,6 +3224,14 @@ bool nsDisplayOpacity::TryMerge(nsDisplayListBuilder* aBuilder, nsDisplayItem* a
   return true;
 }
 
+#ifdef MOZ_DUMP_PAINTING
+void
+nsDisplayOpacity::WriteDebugInfo(nsACString& aTo)
+{
+  aTo += nsPrintfCString(" (opacity %f)", mFrame->StyleDisplay()->mOpacity);
+}
+#endif
+
 nsDisplayMixBlendMode::nsDisplayMixBlendMode(nsDisplayListBuilder* aBuilder,
                                              nsIFrame* aFrame, nsDisplayList* aList,
                                              uint32_t aFlags)
@@ -3381,10 +3418,9 @@ nsDisplayResolution::BuildLayer(nsDisplayListBuilder* aBuilder,
 
 nsDisplayStickyPosition::nsDisplayStickyPosition(nsDisplayListBuilder* aBuilder,
                                                  nsIFrame* aFrame,
-                                                 nsIFrame* aStickyPosFrame,
                                                  nsDisplayList* aList)
   : nsDisplayOwnLayer(aBuilder, aFrame, aList)
-  , mStickyPosFrame(aStickyPosFrame) {
+{
   MOZ_COUNT_CTOR(nsDisplayStickyPosition);
 }
 
@@ -3419,9 +3455,9 @@ nsDisplayStickyPosition::BuildLayer(nsDisplayListBuilder* aBuilder,
       GetScrollPositionClampingScrollPortSize();
   }
 
-  nsLayoutUtils::SetFixedPositionLayerData(layer, scrollFrame, scrollFrameSize,
-                                           mStickyPosFrame,
-                                           presContext, aContainerParameters);
+  nsLayoutUtils::SetFixedPositionLayerData(layer, scrollFrame,
+    nsRect(scrollFrame->GetOffsetToCrossDoc(ReferenceFrame()), scrollFrameSize),
+    mFrame, presContext, aContainerParameters);
 
   ViewID scrollId = nsLayoutUtils::FindOrCreateIDFor(
     stickyScrollContainer->ScrollFrame()->GetScrolledFrame()->GetContent());
@@ -3456,7 +3492,7 @@ bool nsDisplayStickyPosition::TryMerge(nsDisplayListBuilder* aBuilder, nsDisplay
     return false;
   // Items with the same fixed position frame can be merged.
   nsDisplayStickyPosition* other = static_cast<nsDisplayStickyPosition*>(aItem);
-  if (other->mStickyPosFrame != mStickyPosFrame)
+  if (other->mFrame != mFrame)
     return false;
   if (aItem->GetClip() != GetClip())
     return false;
@@ -3617,6 +3653,30 @@ nsDisplayScrollLayer::GetLayerState(nsDisplayListBuilder* aBuilder,
   return LAYER_ACTIVE_FORCE;
 }
 
+// Check if we are going to clip an abs pos item that we don't contain.
+// Root scroll frames clip all their descendants, so we don't need to worry
+// about them.
+bool
+WouldCauseIncorrectClippingOnAbsPosItem(nsDisplayListBuilder* aBuilder,
+                                        nsDisplayScrollLayer* aItem)
+{
+  nsIFrame* scrollFrame = aItem->GetScrollFrame();
+  nsIPresShell* presShell = scrollFrame->PresContext()->PresShell();
+  if (scrollFrame == presShell->GetRootScrollFrame()) {
+    return false;
+  }
+  nsIFrame* scrolledFrame = aItem->GetScrolledFrame();
+  nsIFrame* frame = aItem->Frame();
+  if (frame == scrolledFrame || !frame->IsAbsolutelyPositioned() ||
+      nsLayoutUtils::IsAncestorFrameCrossDoc(scrollFrame, frame, presShell->GetRootFrame())) {
+    return false;
+  }
+  if (!aItem->GetClip().IsRectAffectedByClip(aItem->GetChildren()->GetBounds(aBuilder))) {
+    return false;
+  }
+  return true;
+}
+
 bool
 nsDisplayScrollLayer::TryMerge(nsDisplayListBuilder* aBuilder,
                                nsDisplayItem* aItem)
@@ -3629,6 +3689,11 @@ nsDisplayScrollLayer::TryMerge(nsDisplayListBuilder* aBuilder,
     return false;
   }
   if (aItem->GetClip() != GetClip()) {
+    return false;
+  }
+
+  if (WouldCauseIncorrectClippingOnAbsPosItem(aBuilder, this) ||
+      WouldCauseIncorrectClippingOnAbsPosItem(aBuilder, other)) {
     return false;
   }
 
@@ -3669,13 +3734,21 @@ PropagateClip(nsDisplayListBuilder* aBuilder, const DisplayItemClip& aClip,
 bool
 nsDisplayScrollLayer::ShouldFlattenAway(nsDisplayListBuilder* aBuilder)
 {
-  if (GetScrollLayerCount() > 1) {
+  bool badAbsPosClip = WouldCauseIncorrectClippingOnAbsPosItem(aBuilder, this);
+  if (GetScrollLayerCount() > 1 || badAbsPosClip) {
     // Propagate our clip to our children. The clip for the scroll frame is
     // on this item, but not our child items so that they can draw non-visible
     // parts of the display port. But if we are flattening we failed and can't
     // draw the extra content, so it needs to be clipped.
-    PropagateClip(aBuilder, GetClip(), &mList);
+    // But don't induce our clip on abs pos frames that we shouldn't be clipping.
+    if (!badAbsPosClip) {
+      PropagateClip(aBuilder, GetClip(), &mList);
+    }
     return true;
+  }
+  if (mFrame != mScrolledFrame) {
+    mMergedFrames.AppendElement(mFrame);
+    mFrame = mScrolledFrame;
   }
   return false;
 }
@@ -3698,6 +3771,15 @@ nsDisplayScrollLayer::GetScrollLayerCount()
   return reinterpret_cast<intptr_t>(props.Get(nsIFrame::ScrollLayerCount()));
 #endif
 }
+
+#ifdef MOZ_DUMP_PAINTING
+void
+nsDisplayScrollLayer::WriteDebugInfo(nsACString& aTo)
+{
+  aTo += nsPrintfCString(" (scrollframe %p scrolledframe %p)",
+                         mScrollFrame, mScrolledFrame);
+}
+#endif
 
 nsDisplayScrollInfoLayer::nsDisplayScrollInfoLayer(
   nsDisplayListBuilder* aBuilder,
@@ -4291,20 +4373,20 @@ static bool IsFrameVisible(nsIFrame* aFrame, const gfx3DMatrix& aMatrix)
 }
 
 const gfx3DMatrix&
-nsDisplayTransform::GetTransform(float aAppUnitsPerPixel)
+nsDisplayTransform::GetTransform()
 {
-  if (mTransform.IsIdentity() || mCachedAppUnitsPerPixel != aAppUnitsPerPixel) {
+  if (mTransform.IsIdentity()) {
+    float scale = mFrame->PresContext()->AppUnitsPerDevPixel();
     gfxPoint3D newOrigin =
-      gfxPoint3D(NSAppUnitsToFloatPixels(mToReferenceFrame.x, aAppUnitsPerPixel),
-                 NSAppUnitsToFloatPixels(mToReferenceFrame.y, aAppUnitsPerPixel),
+      gfxPoint3D(NSAppUnitsToFloatPixels(mToReferenceFrame.x, scale),
+                 NSAppUnitsToFloatPixels(mToReferenceFrame.y, scale),
                   0.0f);
     if (mTransformGetter) {
-      mTransform = mTransformGetter(mFrame, aAppUnitsPerPixel);
+      mTransform = mTransformGetter(mFrame, scale);
       mTransform = nsLayoutUtils::ChangeMatrixBasis(newOrigin, mTransform);
     } else {
       mTransform =
-        GetResultingTransformMatrix(mFrame, ToReferenceFrame(),
-                                    aAppUnitsPerPixel);
+        GetResultingTransformMatrix(mFrame, ToReferenceFrame(), scale);
 
       /**
        * Shift the coorindates to be relative to our reference frame instead of relative to this frame.
@@ -4316,7 +4398,6 @@ nsDisplayTransform::GetTransform(float aAppUnitsPerPixel)
                          hasSVGTransforms ? newOrigin.y : NS_round(newOrigin.y), 
                          0);
       mTransform.Translate(rounded);
-      mCachedAppUnitsPerPixel = aAppUnitsPerPixel;
     }
   }
   return mTransform;
@@ -4332,8 +4413,7 @@ already_AddRefed<Layer> nsDisplayTransform::BuildLayer(nsDisplayListBuilder *aBu
                                                        LayerManager *aManager,
                                                        const ContainerLayerParameters& aContainerParameters)
 {
-  const gfx3DMatrix& newTransformMatrix =
-    GetTransform(mFrame->PresContext()->AppUnitsPerDevPixel());
+  const gfx3DMatrix& newTransformMatrix = GetTransform();
 
   if (mFrame->StyleDisplay()->mBackfaceVisibility == NS_STYLE_BACKFACE_VISIBILITY_HIDDEN &&
       newTransformMatrix.IsBackfaceVisible()) {
@@ -4377,8 +4457,7 @@ nsDisplayTransform::GetLayerState(nsDisplayListBuilder* aBuilder,
                                   const ContainerLayerParameters& aParameters) {
   // If the transform is 3d, or the layer takes part in preserve-3d sorting
   // then we *always* want this to be an active layer.
-  if (!GetTransform(mFrame->PresContext()->AppUnitsPerDevPixel()).Is2D() || 
-      mFrame->Preserves3D()) {
+  if (!GetTransform().Is2D() || mFrame->Preserves3D()) {
     return LAYER_ACTIVE_FORCE;
   }
   // Here we check if the *post-transform* bounds of this item are big enough
@@ -4392,6 +4471,12 @@ nsDisplayTransform::GetLayerState(nsDisplayListBuilder* aBuilder,
       return LAYER_ACTIVE;
     }
   }
+
+  const nsStyleDisplay* disp = mFrame->StyleDisplay();
+  if ((disp->mWillChangeBitField & NS_STYLE_WILL_CHANGE_TRANSFORM)) {
+    return LAYER_ACTIVE;
+  }
+
   return mStoredList.RequiredLayerStateForChildren(aBuilder,
                                                    aManager,
                                                    aParameters,
@@ -4408,12 +4493,8 @@ bool nsDisplayTransform::ComputeVisibility(nsDisplayListBuilder *aBuilder,
    * think that it's painting in its original rectangular coordinate space.
    * If we can't untransform, take the entire overflow rect */
   nsRect untransformedVisibleRect;
-  float factor = nsPresContext::AppUnitsPerCSSPixel();
   if (ShouldPrerenderTransformedContent(aBuilder, mFrame) ||
-      !UntransformRectMatrix(mVisibleRect,
-                             GetTransform(factor),
-                             factor,
-                             &untransformedVisibleRect))
+      !UntransformVisibleRect(aBuilder, &untransformedVisibleRect))
   {
     untransformedVisibleRect = mFrame->GetVisualOverflowRectRelativeToSelf();
   }
@@ -4442,8 +4523,9 @@ void nsDisplayTransform::HitTest(nsDisplayListBuilder *aBuilder,
    * 3. Use it to transform the rect into the correct space.
    * 4. Pass that rect down through to the list's version of HitTest.
    */
-  float factor = nsPresContext::AppUnitsPerCSSPixel();
-  gfx3DMatrix matrix = GetTransform(factor);
+  // GetTransform always operates in dev pixels.
+  float factor = mFrame->PresContext()->AppUnitsPerDevPixel();
+  gfx3DMatrix matrix = GetTransform();
 
   if (!IsFrameVisible(mFrame, matrix)) {
     return;
@@ -4453,14 +4535,24 @@ void nsDisplayTransform::HitTest(nsDisplayListBuilder *aBuilder,
    * Thus we have to invert the matrix, which normally does
    * the reverse operation (e.g. regular->transformed)
    */
+  bool snap;
+  nsRect childBounds = mStoredList.GetBounds(aBuilder, &snap);
+  gfxRect childGfxBounds(NSAppUnitsToFloatPixels(childBounds.x, factor),
+                         NSAppUnitsToFloatPixels(childBounds.y, factor),
+                         NSAppUnitsToFloatPixels(childBounds.width, factor),
+                         NSAppUnitsToFloatPixels(childBounds.height, factor));
 
   /* Now, apply the transform and pass it down the channel. */
   nsRect resultingRect;
   if (aRect.width == 1 && aRect.height == 1) {
     // Magic width/height indicating we're hit testing a point, not a rect
-    gfxPoint point = matrix.Inverse().ProjectPoint(
-                       gfxPoint(NSAppUnitsToFloatPixels(aRect.x, factor),
-                                NSAppUnitsToFloatPixels(aRect.y, factor)));
+    gfxPoint point;
+    if (!matrix.UntransformPoint(gfxPoint(NSAppUnitsToFloatPixels(aRect.x, factor),
+                                          NSAppUnitsToFloatPixels(aRect.y, factor)),
+                                 childGfxBounds,
+                                 &point)) {
+      return;
+    }
 
     resultingRect = nsRect(NSFloatPixelsToAppUnits(float(point.x), factor),
                            NSFloatPixelsToAppUnits(float(point.y), factor),
@@ -4472,12 +4564,16 @@ void nsDisplayTransform::HitTest(nsDisplayListBuilder *aBuilder,
                          NSAppUnitsToFloatPixels(aRect.width, factor),
                          NSAppUnitsToFloatPixels(aRect.height, factor));
 
-    gfxRect rect = matrix.Inverse().ProjectRectBounds(originalRect);;
+    gfxRect rect = matrix.UntransformBounds(originalRect, childGfxBounds);
 
     resultingRect = nsRect(NSFloatPixelsToAppUnits(float(rect.X()), factor),
                            NSFloatPixelsToAppUnits(float(rect.Y()), factor),
                            NSFloatPixelsToAppUnits(float(rect.Width()), factor),
                            NSFloatPixelsToAppUnits(float(rect.Height()), factor));
+  }
+
+  if (resultingRect.IsEmpty()) {
+    return;
   }
 
 
@@ -4499,16 +4595,27 @@ void nsDisplayTransform::HitTest(nsDisplayListBuilder *aBuilder,
 }
 
 float
-nsDisplayTransform::GetHitDepthAtPoint(const nsPoint& aPoint)
+nsDisplayTransform::GetHitDepthAtPoint(nsDisplayListBuilder* aBuilder, const nsPoint& aPoint)
 {
-  float factor = nsPresContext::AppUnitsPerCSSPixel();
-  gfx3DMatrix matrix = GetTransform(factor);
+  // GetTransform always operates in dev pixels.
+  float factor = mFrame->PresContext()->AppUnitsPerDevPixel();
+  gfx3DMatrix matrix = GetTransform();
 
   NS_ASSERTION(IsFrameVisible(mFrame, matrix), "We can't have hit a frame that isn't visible!");
 
-  gfxPoint point =
-    matrix.Inverse().ProjectPoint(gfxPoint(NSAppUnitsToFloatPixels(aPoint.x, factor),
-                                           NSAppUnitsToFloatPixels(aPoint.y, factor)));
+  bool snap;
+  nsRect childBounds = mStoredList.GetBounds(aBuilder, &snap);
+  gfxRect childGfxBounds(NSAppUnitsToFloatPixels(childBounds.x, factor),
+                         NSAppUnitsToFloatPixels(childBounds.y, factor),
+                         NSAppUnitsToFloatPixels(childBounds.width, factor),
+                         NSAppUnitsToFloatPixels(childBounds.height, factor));
+
+  gfxPoint point;
+  DebugOnly<bool> result = matrix.UntransformPoint(gfxPoint(NSAppUnitsToFloatPixels(aPoint.x, factor),
+                                                            NSAppUnitsToFloatPixels(aPoint.y, factor)),
+                                                   childGfxBounds,
+                                                   &point);
+  NS_ASSERTION(result, "Why are we trying to get the depth for a point we didn't hit?");
 
   gfxPoint3D transformed = matrix.Transform3D(gfxPoint3D(point.x, point.y, 0));
   return transformed.z;
@@ -4524,9 +4631,10 @@ nsRect nsDisplayTransform::GetBounds(nsDisplayListBuilder *aBuilder, bool* aSnap
     mFrame->GetVisualOverflowRectRelativeToSelf() :
     mStoredList.GetBounds(aBuilder, aSnap);
   *aSnap = false;
-  float factor = nsPresContext::AppUnitsPerCSSPixel();
+  // GetTransform always operates in dev pixels.
+  float factor = mFrame->PresContext()->AppUnitsPerDevPixel();
   return nsLayoutUtils::MatrixTransformRect(untransformedBounds,
-                                            GetTransform(factor),
+                                            GetTransform(),
                                             factor);
 }
 
@@ -4551,7 +4659,6 @@ nsRegion nsDisplayTransform::GetOpaqueRegion(nsDisplayListBuilder *aBuilder,
 {
   *aSnap = false;
   nsRect untransformedVisible;
-  float factor = nsPresContext::AppUnitsPerCSSPixel();
   // If we're going to prerender all our content, pretend like we
   // don't have opqaue content so that everything under us is rendered
   // as well.  That will increase graphics memory usage if our frame
@@ -4559,11 +4666,11 @@ nsRegion nsDisplayTransform::GetOpaqueRegion(nsDisplayListBuilder *aBuilder,
   // updated extremely cheaply, without invalidating any other
   // content.
   if (ShouldPrerenderTransformedContent(aBuilder, mFrame) ||
-      !UntransformRectMatrix(mVisibleRect, GetTransform(factor), factor, &untransformedVisible)) {
+      !UntransformVisibleRect(aBuilder, &untransformedVisible)) {
       return nsRegion();
   }
 
-  const gfx3DMatrix& matrix = GetTransform(nsPresContext::AppUnitsPerCSSPixel());
+  const gfx3DMatrix& matrix = GetTransform();
 
   nsRegion result;
   gfxMatrix matrix2d;
@@ -4583,11 +4690,10 @@ nsRegion nsDisplayTransform::GetOpaqueRegion(nsDisplayListBuilder *aBuilder,
 bool nsDisplayTransform::IsUniform(nsDisplayListBuilder *aBuilder, nscolor* aColor)
 {
   nsRect untransformedVisible;
-  float factor = nsPresContext::AppUnitsPerCSSPixel();
-  if (!UntransformRectMatrix(mVisibleRect, GetTransform(factor), factor, &untransformedVisible)) {
+  if (!UntransformVisibleRect(aBuilder, &untransformedVisible)) {
     return false;
   }
-  const gfx3DMatrix& matrix = GetTransform(nsPresContext::AppUnitsPerCSSPixel());
+  const gfx3DMatrix& matrix = GetTransform();
 
   gfxMatrix matrix2d;
   return matrix.Is2D(&matrix2d) &&
@@ -4659,7 +4765,7 @@ nsRect nsDisplayTransform::TransformRect(const nsRect &aUntransformedBounds,
 {
   NS_PRECONDITION(aFrame, "Can't take the transform based on a null frame!");
 
-  float factor = nsPresContext::AppUnitsPerCSSPixel();
+  float factor = aFrame->PresContext()->AppUnitsPerDevPixel();
   return nsLayoutUtils::MatrixTransformRect
     (aUntransformedBounds,
      GetResultingTransformMatrix(aFrame, aOrigin, factor, aBoundsOverride),
@@ -4673,48 +4779,40 @@ nsRect nsDisplayTransform::TransformRectOut(const nsRect &aUntransformedBounds,
 {
   NS_PRECONDITION(aFrame, "Can't take the transform based on a null frame!");
 
-  float factor = nsPresContext::AppUnitsPerCSSPixel();
+  float factor = aFrame->PresContext()->AppUnitsPerDevPixel();
   return nsLayoutUtils::MatrixTransformRectOut
     (aUntransformedBounds,
      GetResultingTransformMatrix(aFrame, aOrigin, factor, aBoundsOverride),
      factor);
 }
 
-bool nsDisplayTransform::UntransformRectMatrix(const nsRect &aUntransformedBounds,
-                                               const gfx3DMatrix& aMatrix,
-                                               float aAppUnitsPerPixel,
-                                               nsRect *aOutRect)
+bool nsDisplayTransform::UntransformVisibleRect(nsDisplayListBuilder* aBuilder,
+                                                nsRect *aOutRect)
 {
-  if (aMatrix.IsSingular())
+  const gfx3DMatrix& matrix = GetTransform();
+  if (matrix.IsSingular())
     return false;
 
-  gfxRect result(NSAppUnitsToFloatPixels(aUntransformedBounds.x, aAppUnitsPerPixel),
-                 NSAppUnitsToFloatPixels(aUntransformedBounds.y, aAppUnitsPerPixel),
-                 NSAppUnitsToFloatPixels(aUntransformedBounds.width, aAppUnitsPerPixel),
-                 NSAppUnitsToFloatPixels(aUntransformedBounds.height, aAppUnitsPerPixel));
+  // GetTransform always operates in dev pixels.
+  float factor = mFrame->PresContext()->AppUnitsPerDevPixel();
+  gfxRect result(NSAppUnitsToFloatPixels(mVisibleRect.x, factor),
+                 NSAppUnitsToFloatPixels(mVisibleRect.y, factor),
+                 NSAppUnitsToFloatPixels(mVisibleRect.width, factor),
+                 NSAppUnitsToFloatPixels(mVisibleRect.height, factor));
+
+  bool snap;
+  nsRect childBounds = mStoredList.GetBounds(aBuilder, &snap);
+  gfxRect childGfxBounds(NSAppUnitsToFloatPixels(childBounds.x, factor),
+                         NSAppUnitsToFloatPixels(childBounds.y, factor),
+                         NSAppUnitsToFloatPixels(childBounds.width, factor),
+                         NSAppUnitsToFloatPixels(childBounds.height, factor));
 
   /* We want to untransform the matrix, so invert the transformation first! */
-  result = aMatrix.Inverse().ProjectRectBounds(result);
+  result = matrix.UntransformBounds(result, childGfxBounds);
 
-  *aOutRect = nsLayoutUtils::RoundGfxRectToAppRect(result, aAppUnitsPerPixel);
+  *aOutRect = nsLayoutUtils::RoundGfxRectToAppRect(result, factor);
 
   return true;
-}
-
-bool nsDisplayTransform::UntransformRect(const nsRect &aUntransformedBounds,
-                                           const nsIFrame* aFrame,
-                                           const nsPoint &aOrigin,
-                                           nsRect* aOutRect)
-{
-  NS_PRECONDITION(aFrame, "Can't take the transform based on a null frame!");
-
-  /* Grab the matrix.  If the transform is degenerate, just hand back the
-   * empty rect.
-   */
-  float factor = nsPresContext::AppUnitsPerCSSPixel();
-  gfx3DMatrix matrix = GetResultingTransformMatrix(aFrame, aOrigin, factor);
-
-  return UntransformRectMatrix(aUntransformedBounds, matrix, factor, aOutRect);
 }
 
 nsDisplaySVGEffects::nsDisplaySVGEffects(nsDisplayListBuilder* aBuilder,
@@ -4853,7 +4951,7 @@ bool nsDisplaySVGEffects::TryMerge(nsDisplayListBuilder* aBuilder, nsDisplayItem
 
 #ifdef MOZ_DUMP_PAINTING
 void
-nsDisplaySVGEffects::PrintEffects(FILE* aOutput)
+nsDisplaySVGEffects::PrintEffects(nsACString& aTo)
 {
   nsIFrame* firstFrame =
     nsLayoutUtils::FirstContinuationOrSpecialSibling(mFrame);
@@ -4862,32 +4960,32 @@ nsDisplaySVGEffects::PrintEffects(FILE* aOutput)
   bool isOK = true;
   nsSVGClipPathFrame *clipPathFrame = effectProperties.GetClipPathFrame(&isOK);
   bool first = true;
-  fprintf_stderr(aOutput, " effects=(");
+  aTo += " effects=(";
   if (mFrame->StyleDisplay()->mOpacity != 1.0f) {
     first = false;
-    fprintf_stderr(aOutput, "opacity(%f)", mFrame->StyleDisplay()->mOpacity);
+    aTo += nsPrintfCString("opacity(%f)", mFrame->StyleDisplay()->mOpacity);
   }
   if (clipPathFrame) {
     if (!first) {
-      fprintf_stderr(aOutput, ", ");
+      aTo += ", ";
     }
-    fprintf_stderr(aOutput, "clip(%s)", clipPathFrame->IsTrivial() ? "trivial" : "non-trivial");
+    aTo += nsPrintfCString("clip(%s)", clipPathFrame->IsTrivial() ? "trivial" : "non-trivial");
     first = false;
   }
   if (effectProperties.GetFilterFrame(&isOK)) {
     if (!first) {
-      fprintf_stderr(aOutput, ", ");
+      aTo += ", ";
     }
-    fprintf_stderr(aOutput, "filter");
+    aTo += "filter";
     first = false;
   }
   if (effectProperties.GetMaskFrame(&isOK)) {
     if (!first) {
-      fprintf_stderr(aOutput, ", ");
+      aTo += ", ";
     }
-    fprintf_stderr(aOutput, "mask");
+    aTo += "mask";
   }
-  fprintf_stderr(aOutput, ")");
+  aTo += ")";
 }
 #endif
 

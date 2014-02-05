@@ -218,8 +218,7 @@ Telephony::HasDialingCall()
 {
   for (uint32_t i = 0; i < mCalls.Length(); i++) {
     const nsRefPtr<TelephonyCall>& call = mCalls[i];
-    if (call->IsOutgoing() &&
-        call->CallState() > nsITelephonyProvider::CALL_STATE_UNKNOWN &&
+    if (call->CallState() > nsITelephonyProvider::CALL_STATE_UNKNOWN &&
         call->CallState() < nsITelephonyProvider::CALL_STATE_CONNECTED) {
       return true;
     }
@@ -697,11 +696,11 @@ Telephony::NotifyError(uint32_t aServiceId,
 NS_IMETHODIMP
 Telephony::NotifyCdmaCallWaiting(uint32_t aServiceId, const nsAString& aNumber)
 {
-  MOZ_ASSERT(mActiveCall &&
-             mActiveCall->ServiceId() == aServiceId &&
-             mActiveCall->CallState() == nsITelephonyProvider::CALL_STATE_CONNECTED);
+  MOZ_ASSERT(mCalls.Length() == 1);
 
-  nsRefPtr<TelephonyCall> callToNotify = mActiveCall;
+  nsRefPtr<TelephonyCall> callToNotify = mCalls[0];
+  MOZ_ASSERT(callToNotify && callToNotify->ServiceId() == aServiceId);
+
   callToNotify->UpdateSecondNumber(aNumber);
   DispatchCallEvent(NS_LITERAL_STRING("callschanged"), callToNotify);
   return NS_OK;

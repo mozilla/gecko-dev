@@ -523,13 +523,13 @@ ReferenceFinder::addReferrer(jsval referrerArg, Path *path)
     /* Append our referrer to this array. */
     uint32_t length;
     return JS_GetArrayLength(context, array, &length) &&
-           JS_SetElement(context, array, length, &referrer);
+           JS_SetElement(context, array, length, referrer);
 }
 
 JSObject *
 ReferenceFinder::findReferences(HandleObject target)
 {
-    result = JS_NewObject(context, nullptr, nullptr, nullptr);
+    result = JS_NewObject(context, nullptr, JS::NullPtr(), JS::NullPtr());
     if (!result)
         return nullptr;
     if (!visit(target, nullptr))

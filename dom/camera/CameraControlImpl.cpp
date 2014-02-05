@@ -9,6 +9,7 @@
 #include "CameraControlImpl.h"
 #include "CameraCommon.h"
 #include "nsGlobalWindow.h"
+#include "DeviceStorageFileDescriptor.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -157,7 +158,7 @@ CameraControlImpl::Get(JSContext* aCx, uint32_t aKey, JS::Value* aValue)
     CameraRegion* r = &regionArray[i];
     JS::Rooted<JS::Value> v(aCx);
 
-    JS::Rooted<JSObject*> o(aCx, JS_NewObject(aCx, nullptr, nullptr, nullptr));
+    JS::Rooted<JSObject*> o(aCx, JS_NewObject(aCx, nullptr, JS::NullPtr(), JS::NullPtr()));
     if (!o) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
@@ -188,8 +189,7 @@ CameraControlImpl::Get(JSContext* aCx, uint32_t aKey, JS::Value* aValue)
       return NS_ERROR_FAILURE;
     }
 
-    v = OBJECT_TO_JSVAL(o);
-    if (!JS_SetElement(aCx, array, i, &v)) {
+    if (!JS_SetElement(aCx, array, i, o)) {
       return NS_ERROR_FAILURE;
     }
   }
@@ -450,12 +450,9 @@ CameraControlImpl::TakePicture(const CameraSize& aSize, int32_t aRotation, const
 }
 
 nsresult
-CameraControlImpl::StartRecording(CameraStartRecordingOptions* aOptions, nsIFile* aFolder, const nsAString& aFilename, nsICameraStartRecordingCallback* onSuccess, nsICameraErrorCallback* onError)
+CameraControlImpl::StartRecording(CameraStartRecordingOptions* aOptions, DeviceStorageFileDescriptor* aFileDescriptor, nsICameraStartRecordingCallback* onSuccess, nsICameraErrorCallback* onError)
 {
-  nsCOMPtr<nsIFile> clone;
-  aFolder->Clone(getter_AddRefs(clone));
-
-  nsCOMPtr<nsIRunnable> startRecordingTask = new StartRecordingTask(this, *aOptions, clone, aFilename, onSuccess, onError, mWindowId);
+  nsCOMPtr<nsIRunnable> startRecordingTask = new StartRecordingTask(this, *aOptions, aFileDescriptor, onSuccess, onError, mWindowId);
   return mCameraThread->Dispatch(startRecordingTask, NS_DISPATCH_NORMAL);
 }
 

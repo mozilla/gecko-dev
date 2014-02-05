@@ -19,9 +19,10 @@ BEGIN_TEST(testStructuredClone_object)
         JSAutoCompartment ac(cx, g1);
         JS::RootedValue prop(cx, JS::Int32Value(1337));
 
-        v1 = JS::ObjectOrNullValue(JS_NewObject(cx, nullptr, nullptr, nullptr));
+        JS::RootedObject obj(cx, JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr()));
+        v1 = JS::ObjectOrNullValue(obj);
         CHECK(v1.isObject());
-        CHECK(JS_SetProperty(cx, &v1.toObject(), "prop", prop));
+        CHECK(JS_SetProperty(cx, obj, "prop", prop));
     }
 
     {
@@ -30,11 +31,12 @@ BEGIN_TEST(testStructuredClone_object)
 
         CHECK(JS_StructuredClone(cx, v1, &v2, nullptr, nullptr));
         CHECK(v2.isObject());
+        JS::RootedObject obj(cx, &v2.toObject());
 
         JS::RootedValue prop(cx);
-        CHECK(JS_GetProperty(cx, &v2.toObject(), "prop", &prop));
+        CHECK(JS_GetProperty(cx, obj, "prop", &prop));
         CHECK(prop.isInt32());
-        CHECK(&v1.toObject() != &v2.toObject());
+        CHECK(&v1.toObject() != obj);
         CHECK_EQUAL(prop.toInt32(), 1337);
     }
 

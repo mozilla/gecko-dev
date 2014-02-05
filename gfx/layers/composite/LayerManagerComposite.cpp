@@ -20,7 +20,6 @@
 #include "Units.h"                      // for ScreenIntRect
 #include "gfx2DGlue.h"                  // for ToMatrix4x4
 #include "gfx3DMatrix.h"                // for gfx3DMatrix
-#include "gfxMatrix.h"                  // for gfxMatrix
 #include "gfxPlatform.h"                // for gfxPlatform
 #ifdef XP_MACOSX
 #include "gfxPlatformMac.h"
@@ -153,7 +152,7 @@ LayerManagerComposite::BeginTransaction()
   
   mIsCompositorReady = true;
 
-  if (Compositor::GetBackend() == LAYERS_BASIC) {
+  if (Compositor::GetBackend() == LayersBackend::LAYERS_BASIC) {
     mClonedLayerTreeProperties = LayerProperties::CloneFrom(GetRoot());
   }
 }
@@ -237,7 +236,7 @@ LayerManagerComposite::EndTransaction(DrawThebesLayerCallback aCallback,
 
     // The results of our drawing always go directly into a pixel buffer,
     // so we don't need to pass any global transform here.
-    mRoot->ComputeEffectiveTransforms(gfx3DMatrix());
+    mRoot->ComputeEffectiveTransforms(gfx::Matrix4x4());
 
     Render();
   }
@@ -416,7 +415,7 @@ LayerManagerComposite::Render()
 }
 
 void
-LayerManagerComposite::SetWorldTransform(const gfxMatrix& aMatrix)
+LayerManagerComposite::SetWorldTransform(const gfx::Matrix& aMatrix)
 {
   NS_ASSERTION(aMatrix.PreservesAxisAlignedRectangles(),
                "SetWorldTransform only accepts matrices that satisfy PreservesAxisAlignedRectangles");
@@ -426,7 +425,7 @@ LayerManagerComposite::SetWorldTransform(const gfxMatrix& aMatrix)
   mWorldMatrix = aMatrix;
 }
 
-gfxMatrix&
+gfx::Matrix&
 LayerManagerComposite::GetWorldTransform(void)
 {
   return mWorldMatrix;
@@ -435,7 +434,7 @@ LayerManagerComposite::GetWorldTransform(void)
 void
 LayerManagerComposite::WorldTransformRect(nsIntRect& aRect)
 {
-  gfxRect grect(aRect.x, aRect.y, aRect.width, aRect.height);
+  gfx::Rect grect(aRect.x, aRect.y, aRect.width, aRect.height);
   grect = mWorldMatrix.TransformBounds(grect);
   aRect.SetRect(grect.X(), grect.Y(), grect.Width(), grect.Height());
 }
@@ -478,7 +477,7 @@ LayerManagerComposite::ComputeRenderIntegrityInternal(Layer* aLayer,
     // Accumulate the transform of intermediate surfaces
     gfx3DMatrix transform = aTransform;
     if (container->UseIntermediateSurface()) {
-      transform = aLayer->GetEffectiveTransform();
+      gfx::To3DMatrix(aLayer->GetEffectiveTransform(), transform);
       transform.PreMultiply(aTransform);
     }
     for (Layer* child = aLayer->GetFirstChild(); child;
@@ -500,7 +499,8 @@ LayerManagerComposite::ComputeRenderIntegrityInternal(Layer* aLayer,
 
   if (!incompleteRegion.IsEmpty()) {
     // Calculate the transform to get between screen and layer space
-    gfx3DMatrix transformToScreen = aLayer->GetEffectiveTransform();
+    gfx3DMatrix transformToScreen;
+    To3DMatrix(aLayer->GetEffectiveTransform(), transformToScreen);
     transformToScreen.PreMultiply(aTransform);
 
     SubtractTransformedRegion(aScreenRegion, incompleteRegion, transformToScreen);
@@ -578,7 +578,8 @@ LayerManagerComposite::ComputeRenderIntegrity()
     // This is derived from the code in
     // AsyncCompositionManager::TransformScrollableLayer
     const FrameMetrics& metrics = primaryScrollable->AsContainerLayer()->GetFrameMetrics();
-    gfx3DMatrix transform = primaryScrollable->GetEffectiveTransform();
+    gfx3DMatrix transform;
+    gfx::To3DMatrix(primaryScrollable->GetEffectiveTransform(), transform);
     transform.ScalePost(metrics.mResolution.scale, metrics.mResolution.scale, 1);
 
     // Clip the screen rect to the document bounds
@@ -721,9 +722,7 @@ LayerManagerComposite::AutoAddMaskEffect::AutoAddMaskEffect(Layer* aMaskLayer,
     return;
   }
 
-  gfx::Matrix4x4 transform;
-  ToMatrix4x4(aMaskLayer->GetEffectiveTransform(), transform);
-  if (!mCompositable->AddMaskEffect(aEffects, transform, aIs3D)) {
+  if (!mCompositable->AddMaskEffect(aEffects, aMaskLayer->GetEffectiveTransform(), aIs3D)) {
     mCompositable = nullptr;
   }
 }
@@ -765,6 +764,7 @@ LayerComposite::LayerComposite(LayerManagerComposite *aManager)
   , mShadowTransformSetByAnimation(false)
   , mDestroyed(false)
   , mLayerComposited(false)
+  , mClearFB(false)
 { }
 
 LayerComposite::~LayerComposite()

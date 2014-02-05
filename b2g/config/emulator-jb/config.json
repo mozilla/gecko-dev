@@ -12,14 +12,21 @@
         "{objdir}/dist/b2g-*.crashreporter-symbols.zip",
         "{workdir}/sources.xml"
     ],
+    "public_upload_files": [
+        "{workdir}/out/target/product/generic/*.tar.bz2",
+        "{workdir}/out/target/product/generic/tests/*.zip",
+        "{objdir}/dist/b2g-*.crashreporter-symbols.zip",
+        "{workdir}/sources.xml"
+    ],
     "upload_platform": "emulator-jb",
-    "gecko_l10n_root": "http://hg.mozilla.org/l10n-central",
+    "gecko_l10n_root": "https://hg.mozilla.org/l10n-central",
     "gaia": {
         "l10n": {
             "vcs": "hgtool",
-            "root": "http://hg.mozilla.org/gaia-l10n"
+            "root": "https://hg.mozilla.org/gaia-l10n"
         }
     },
     "b2g_manifest": "emulator-jb.xml",
-    "b2g_manifest_branch": "master"
+    "b2g_manifest_branch": "master",
+    "b2g_manifest_intree": true
 }

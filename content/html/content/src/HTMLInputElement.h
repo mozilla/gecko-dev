@@ -257,6 +257,7 @@ public:
   bool     IsRangeOverflow() const;
   bool     IsRangeUnderflow() const;
   bool     HasStepMismatch() const;
+  bool     HasBadInput() const;
   void     UpdateTooLongValidityState();
   void     UpdateValueMissingValidityState();
   void     UpdateTypeMismatchValidityState();
@@ -264,6 +265,7 @@ public:
   void     UpdateRangeOverflowValidityState();
   void     UpdateRangeUnderflowValidityState();
   void     UpdateStepMismatchValidityState();
+  void     UpdateBadInputValidityState();
   void     UpdateAllValidityStates(bool aNotify);
   void     UpdateBarredFromConstraintValidation();
   nsresult GetValidationMessage(nsAString& aValidationMessage,
@@ -715,6 +717,17 @@ public:
 
   // XPCOM GetPhonetic() is OK
 
+  /**
+   * If aValue contains a valid floating-point number in the format specified
+   * by the HTML 5 spec:
+   *
+   *   http://www.whatwg.org/specs/web-apps/current-work/multipage/common-microsyntaxes.html#floating-point-numbers
+   *
+   * then this function will return the number parsed as a Decimal, otherwise
+   * it will return a Decimal for which Decimal::isFinite() will return false.
+   */
+  static Decimal StringToDecimal(const nsAString& aValue);
+
 protected:
   virtual JSObject* WrapNode(JSContext* aCx,
                              JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
@@ -1112,6 +1125,11 @@ protected:
    */
   Decimal GetDefaultStep() const;
 
+  enum StepCallerType {
+    CALLED_FOR_USER_EVENT,
+    CALLED_FOR_SCRIPT
+  };
+
   /**
    * Sets the aValue outparam to the value that this input would take if
    * someone tries to step aStep steps and this input's value would change as
@@ -1124,7 +1142,9 @@ protected:
    * was initiated by a stepUp()/stepDown() call from script under conditions
    * that such a call should throw.
    */
-  nsresult GetValueIfStepped(int32_t aStep, Decimal* aNextStep);
+  nsresult GetValueIfStepped(int32_t aStepCount,
+                             StepCallerType aCallerType,
+                             Decimal* aNextStep);
 
   /**
    * Apply a step change from stepUp or stepDown by multiplying aStep by the

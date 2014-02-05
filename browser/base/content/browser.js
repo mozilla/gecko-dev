@@ -15,6 +15,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "CharsetMenu",
                                   "resource://gre/modules/CharsetMenu.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "ShortcutUtils",
+                                  "resource://gre/modules/ShortcutUtils.jsm");
 
 const nsIWebNavigation = Ci.nsIWebNavigation;
 
@@ -146,6 +148,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "SitePermissions",
 XPCOMUtils.defineLazyModuleGetter(this, "SessionStore",
   "resource:///modules/sessionstore/SessionStore.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "fxAccounts",
+  "resource://gre/modules/FxAccounts.jsm");
+
 #ifdef MOZ_CRASHREPORTER
 XPCOMUtils.defineLazyModuleGetter(this, "TabCrashReporter",
   "resource:///modules/TabCrashReporter.jsm");
@@ -182,6 +187,8 @@ let gInitialPages = [
 #ifdef MOZ_SERVICES_SYNC
 #include browser-syncui.js
 #endif
+
+#include browser-fxaccounts.js
 
 XPCOMUtils.defineLazyGetter(this, "Win7Features", function () {
 #ifdef XP_WIN
@@ -1044,19 +1051,17 @@ var gBrowserInit = {
     if (!isLoadingBlank || !focusAndSelectUrlBar())
       gBrowser.selectedBrowser.focus();
 
-    gNavToolbox.customizeDone = BrowserToolboxCustomizeDone;
-    gNavToolbox.customizeChange = BrowserToolboxCustomizeChange;
-
     // Set up Sanitize Item
     this._initializeSanitizer();
 
     // Enable/Disable auto-hide tabbar
     gBrowser.tabContainer.updateVisibility();
 
+    BookmarkingUI.init();
+
     gPrefService.addObserver(gHomeButton.prefDomain, gHomeButton, false);
 
     var homeButton = document.getElementById("home-button");
-    gHomeButton.init();
     gHomeButton.updateTooltip(homeButton);
     gHomeButton.updatePersonalToolbarStyle(homeButton);
 
@@ -1136,6 +1141,7 @@ var gBrowserInit = {
 #ifdef MOZ_SERVICES_SYNC
     // initialize the sync UI
     gSyncUI.init();
+    gFxAccounts.init();
 #endif
 
 #ifdef MOZ_DATA_REPORTING
@@ -1151,6 +1157,7 @@ var gBrowserInit = {
     window.addEventListener("dragover", MousePosTracker, false);
 
     gNavToolbox.addEventListener("customizationstarting", CustomizationHandler);
+    gNavToolbox.addEventListener("customizationchange", CustomizationHandler);
     gNavToolbox.addEventListener("customizationending", CustomizationHandler);
 
     // End startup crash tracking after a delay to catch crashes while restoring
@@ -1239,6 +1246,10 @@ var gBrowserInit = {
 
     FullScreen.cleanup();
 
+#ifdef MOZ_SERVICES_SYNC
+    gFxAccounts.uninit();
+#endif
+
     Services.obs.removeObserver(gPluginHandler.pluginCrashed, "plugin-crashed");
 
     try {
@@ -1248,7 +1259,6 @@ var gBrowserInit = {
     }
 
     BookmarkingUI.uninit();
-    gHomeButton.uninit();
 
     TabsInTitlebar.uninit();
 
@@ -1704,21 +1714,11 @@ function openLocation() {
     }
     else {
       // If there are no open browser windows, open a new one
-      win = window.openDialog("chrome://browser/content/", "_blank",
-                              "chrome,all,dialog=no", BROWSER_NEW_TAB_URL);
-      win.addEventListener("load", openLocationCallback, false);
+      window.openDialog("chrome://browser/content/", "_blank",
+                        "chrome,all,dialog=no", BROWSER_NEW_TAB_URL);
     }
-    return;
   }
 #endif
-  openDialog("chrome://browser/content/openLocation.xul", "_blank",
-             "chrome,modal,titlebar", window);
-}
-
-function openLocationCallback()
-{
-  // make sure the DOM is ready
-  setTimeout(function() { this.openLocation(); }, 0);
 }
 
 function BrowserOpenTab()
@@ -2122,6 +2122,13 @@ function UpdateUrlbarSearchSplitterState()
   var splitter = document.getElementById("urlbar-search-splitter");
   var urlbar = document.getElementById("urlbar-container");
   var searchbar = document.getElementById("search-container");
+
+  if (document.documentElement.getAttribute("customizing") == "true") {
+    if (splitter) {
+      splitter.remove();
+    }
+    return;
+  }
 
   // If the splitter is already in the right place, we don't need to do anything:
   if (splitter &&
@@ -2530,8 +2537,7 @@ function getWebNavigation()
 
 function BrowserReloadWithFlags(reloadFlags) {
   let url = gBrowser.currentURI.spec;
-  if (gBrowser._updateBrowserRemoteness(gBrowser.selectedBrowser,
-                                        gBrowser._shouldBrowserBeRemote(url))) {
+  if (gBrowser.updateBrowserRemoteness(gBrowser.selectedBrowser, url)) {
     // If the remoteness has changed, the new browser doesn't have any
     // information of what was loaded before, so we need to load the previous
     // URL again.
@@ -3279,18 +3285,9 @@ function OpenBrowserWindow(options)
   return win;
 }
 
-//XXXunf Are these still useful to keep around?
+// Only here for backwards compat, we should remove this soon
 function BrowserCustomizeToolbar() {
   gCustomizeMode.enter();
-}
-
-function BrowserToolboxCustomizeDone(aToolboxChanged) {
-  gCustomizeMode.exit(aToolboxChanged);
-}
-
-function BrowserToolboxCustomizeChange(aType) {
-  gHomeButton.updatePersonalToolbarStyle();
-  BookmarksMenuButton.customizeChange();
 }
 
 /**
@@ -3458,6 +3455,21 @@ var XULBrowserWindow = {
 
     this.overLink = url;
     LinkTargetDisplay.update();
+  },
+
+  showTooltip: function (x, y, tooltip) {
+    // The x,y coordinates are relative to the <browser> element using
+    // the chrome zoom level.
+    let elt = document.getElementById("remoteBrowserTooltip");
+    elt.label = tooltip;
+
+    let anchor = gBrowser.selectedBrowser;
+    elt.openPopupAtScreen(anchor.boxObject.screenX + x, anchor.boxObject.screenY + y, false, null);
+  },
+
+  hideTooltip: function () {
+    let elt = document.getElementById("remoteBrowserTooltip");
+    elt.hidePopup();
   },
 
   updateStatusField: function () {
@@ -3710,11 +3722,11 @@ var XULBrowserWindow = {
       // Try not to instantiate gCustomizeMode as much as possible,
       // so don't use CustomizeMode.jsm to check for URI or customizing.
       let customizingURI = "about:customizing";
-      if (location == customizingURI &&
-          !CustomizationHandler.isCustomizing()) {
+      if (location == customizingURI) {
         gCustomizeMode.enter();
       } else if (location != customizingURI &&
-                 CustomizationHandler.isCustomizing()) {
+                 (CustomizationHandler.isEnteringCustomizeMode ||
+                  CustomizationHandler.isCustomizing())) {
         gCustomizeMode.exit();
       }
     }
@@ -3728,6 +3740,22 @@ var XULBrowserWindow = {
       setTimeout(function () { XULBrowserWindow.asyncUpdateUI(); }, 0);
     else
       this.asyncUpdateUI();
+
+#ifdef MOZ_CRASHREPORTER
+    if (aLocationURI) {
+      let uri = aLocationURI.clone();
+      try {
+        // If the current URI contains a username/password, remove it.
+        uri.userPass = "";
+      } catch (ex) { /* Ignore failures on about: URIs. */ }
+
+      try {
+        gCrashReporter.annotateCrashReport("URL", uri.spec);
+      } catch (ex if ex.result == Components.results.NS_ERROR_NOT_INITIALIZED) {
+        // Don't make noise when the crash reporter is built but not enabled.
+      }
+    }
+#endif
   },
 
   asyncUpdateUI: function () {
@@ -3987,15 +4015,6 @@ var CombinedStopReload = {
 
 var TabsProgressListener = {
   onStateChange: function (aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
-#ifdef MOZ_CRASHREPORTER
-    if (aRequest instanceof Ci.nsIChannel &&
-        aStateFlags & Ci.nsIWebProgressListener.STATE_START &&
-        aStateFlags & Ci.nsIWebProgressListener.STATE_IS_DOCUMENT &&
-        gCrashReporter.enabled) {
-      gCrashReporter.annotateCrashReport("URL", aRequest.URI.spec);
-    }
-#endif
-
     // Collect telemetry data about tab load times.
     if (aWebProgress.isTopLevel) {
       if (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW) {
@@ -4229,6 +4248,13 @@ nsBrowserAccess.prototype = {
   }
 }
 
+function getTogglableToolbars() {
+  let toolbarNodes = Array.slice(gNavToolbox.childNodes);
+  toolbarNodes = toolbarNodes.concat(gNavToolbox.externalToolbars);
+  toolbarNodes = toolbarNodes.filter(node => node.getAttribute("toolbarname"));
+  return toolbarNodes;
+}
+
 function onViewToolbarsPopupShowing(aEvent, aInsertPoint) {
   var popup = aEvent.target;
   if (popup != aEvent.currentTarget)
@@ -4243,28 +4269,24 @@ function onViewToolbarsPopupShowing(aEvent, aInsertPoint) {
 
   var firstMenuItem = aInsertPoint || popup.firstChild;
 
-  let toolbarNodes = Array.slice(gNavToolbox.childNodes);
-  toolbarNodes = toolbarNodes.concat(gNavToolbox.externalToolbars);
+  let toolbarNodes = getTogglableToolbars();
 
   for (let toolbar of toolbarNodes) {
-    let toolbarName = toolbar.getAttribute("toolbarname");
-    if (toolbarName) {
-      let menuItem = document.createElement("menuitem");
-      let hidingAttribute = toolbar.getAttribute("type") == "menubar" ?
-                            "autohide" : "collapsed";
-      menuItem.setAttribute("id", "toggle_" + toolbar.id);
-      menuItem.setAttribute("toolbarId", toolbar.id);
-      menuItem.setAttribute("type", "checkbox");
-      menuItem.setAttribute("label", toolbarName);
-      menuItem.setAttribute("checked", toolbar.getAttribute(hidingAttribute) != "true");
-      menuItem.setAttribute("accesskey", toolbar.getAttribute("accesskey"));
-      if (popup.id != "toolbar-context-menu")
-        menuItem.setAttribute("key", toolbar.getAttribute("key"));
+    let menuItem = document.createElement("menuitem");
+    let hidingAttribute = toolbar.getAttribute("type") == "menubar" ?
+                          "autohide" : "collapsed";
+    menuItem.setAttribute("id", "toggle_" + toolbar.id);
+    menuItem.setAttribute("toolbarId", toolbar.id);
+    menuItem.setAttribute("type", "checkbox");
+    menuItem.setAttribute("label", toolbar.getAttribute("toolbarname"));
+    menuItem.setAttribute("checked", toolbar.getAttribute(hidingAttribute) != "true");
+    menuItem.setAttribute("accesskey", toolbar.getAttribute("accesskey"));
+    if (popup.id != "toolbar-context-menu")
+      menuItem.setAttribute("key", toolbar.getAttribute("key"));
 
-      popup.insertBefore(menuItem, firstMenuItem);
+    popup.insertBefore(menuItem, firstMenuItem);
 
-      menuItem.addEventListener("command", onViewToolbarCommand, false);
-    }
+    menuItem.addEventListener("command", onViewToolbarCommand, false);
   }
 
 
@@ -4353,8 +4375,6 @@ var TabsInTitlebar = {
     this._menuObserver = new MutationObserver(this._onMenuMutate);
     this._menuObserver.observe(menu, {attributes: true});
 
-    gNavToolbox.addEventListener("customization-transitionend", this);
-
     this.onAreaReset = function(aArea) {
       if (aArea == CustomizableUI.AREA_TABSTRIP || aArea == CustomizableUI.AREA_MENUBAR)
         this._update(true);
@@ -4399,12 +4419,6 @@ var TabsInTitlebar = {
   observe: function (subject, topic, data) {
     if (topic == "nsPref:changed")
       this._readPref();
-  },
-
-  handleEvent: function(ev) {
-    if (ev.type == "customization-transitionend") {
-      this._update(true);
-    }
   },
 
   _onMenuMutate: function (aMutations) {
@@ -4467,6 +4481,9 @@ var TabsInTitlebar = {
       // Try to avoid reflows in this code by calculating dimensions first and
       // then later set the properties affecting layout together in a batch.
 
+      // Get the full height of the tabs toolbar:
+      let tabsToolbar = $("TabsToolbar");
+      let fullTabsHeight = rect(tabsToolbar).height;
       // Buttons first:
       let captionButtonsBoxWidth = rect($("titlebar-buttonbox")).width;
 #ifdef XP_MACOSX
@@ -4481,11 +4498,9 @@ var TabsInTitlebar = {
       let menuHeight = rect(menubar).height;
       let menuStyles = window.getComputedStyle(menubar);
       let fullMenuHeight = verticalMargins(menuStyles) + menuHeight;
-#endif
-      // Get the full height of the tabs toolbar:
-      let tabsToolbar = $("TabsToolbar");
       let tabsStyles = window.getComputedStyle(tabsToolbar);
-      let fullTabsHeight = rect(tabsToolbar).height + verticalMargins(tabsStyles);
+      fullTabsHeight += verticalMargins(tabsStyles);
+#endif
 
       // If the navbar overlaps the tabbar using negative margins, we need to take those into
       // account so we don't overlap it
@@ -4494,16 +4509,6 @@ var TabsInTitlebar = {
 
       // And get the height of what's in the titlebar:
       let titlebarContentHeight = rect(titlebarContent).height;
-
-      // Padding surrounds the tab-view-deck when we are in customization mode,
-      // so take that into account:
-      let areCustomizing = document.documentElement.hasAttribute("customizing") ||
-                           document.documentElement.hasAttribute("customize-exiting");
-      let customizePadding = 0;
-      if (areCustomizing) {
-        let deckStyle = window.getComputedStyle($("tab-view-deck"));
-        customizePadding = parseFloat(deckStyle.paddingTop);
-      }
 
       // Begin setting CSS properties which will cause a reflow
 
@@ -4537,10 +4542,6 @@ var TabsInTitlebar = {
       // Next, we calculate how much we need to stretch the titlebar down to
       // go all the way to the bottom of the tab strip, if necessary.
       let tabAndMenuHeight = fullTabsHeight + fullMenuHeight;
-      // Oh, and don't forget customization mode:
-      if (areCustomizing) {
-        tabAndMenuHeight += customizePadding;
-      }
 
       if (tabAndMenuHeight > titlebarContentHeight) {
         // We need to increase the titlebar content's outer height (ie including margins)
@@ -4552,12 +4553,6 @@ var TabsInTitlebar = {
         // On non-OSX, we can just use bottom margin:
 #ifndef XP_MACOSX
         titlebarContent.style.marginBottom = extraMargin + "px";
-#else
-        // Otherwise, center the content. This means taking the titlebar's
-        // padding into account:
-        let halfMargin = (extraMargin - titlebarPadding) / 2;
-        titlebarContent.style.marginTop =  halfMargin + "px";
-        titlebarContent.style.marginBottom =  (titlebarPadding + halfMargin) + "px";
 #endif
         titlebarContentHeight += extraMargin;
       }
@@ -4592,6 +4587,7 @@ var TabsInTitlebar = {
       updateTitlebarDisplay();
 
       // Reset the margins and padding that might have been modified:
+      titlebarContent.style.marginTop = "";
       titlebarContent.style.marginBottom = "";
       titlebar.style.marginBottom = "";
       menubar.style.paddingBottom = "";
@@ -4616,16 +4612,37 @@ var TabsInTitlebar = {
 
 #ifdef CAN_DRAW_IN_TITLEBAR
 function updateTitlebarDisplay() {
-  document.getElementById("titlebar").hidden = !TabsInTitlebar.enabled;
+
+#ifdef XP_MACOSX
+  // OS X and the other platforms differ enough to necessitate this kind of
+  // special-casing. Like the other platforms where we CAN_DRAW_IN_TITLEBAR,
+  // we draw in the OS X titlebar when putting the tabs up there. However, OS X
+  // also draws in the titlebar when a lightweight theme is applied, regardless
+  // of whether or not the tabs are drawn in the titlebar.
+  if (TabsInTitlebar.enabled) {
+    document.documentElement.setAttribute("chromemargin-nonlwtheme", "0,-1,-1,-1");
+    document.documentElement.setAttribute("chromemargin", "0,-1,-1,-1");
+    document.documentElement.removeAttribute("drawtitle");
+  } else {
+    // We set chromemargin-nonlwtheme to "" instead of removing it as a way of
+    // making sure that LightweightThemeConsumer doesn't take it upon itself to
+    // detect this value again if and when we do a lwtheme state change.
+    document.documentElement.setAttribute("chromemargin-nonlwtheme", "");
+    let isCustomizing = document.documentElement.hasAttribute("customizing");
+    let hasLWTheme = document.documentElement.hasAttribute("lwtheme");
+    if (!hasLWTheme || isCustomizing) {
+      document.documentElement.removeAttribute("chromemargin");
+    }
+    document.documentElement.setAttribute("drawtitle", "true");
+  }
+
+#else
 
   if (TabsInTitlebar.enabled)
-#ifdef XP_WIN
     document.documentElement.setAttribute("chromemargin", "0,2,2,2");
-#else
-    document.documentElement.setAttribute("chromemargin", "0,-1,-1,-1");
-#endif
   else
     document.documentElement.removeAttribute("chromemargin");
+#endif
 }
 #endif
 
@@ -4760,16 +4777,6 @@ function fireSidebarFocusedEvent() {
 
 
 var gHomeButton = {
-  init: function() {
-    gNavToolbox.addEventListener("customizationchange",
-                                 this.onCustomizationChange);
-  },
-
-  uninit: function() {
-    gNavToolbox.removeEventListener("customizationchange",
-                                    this.onCustomizationChange);
-  },
-
   prefDomain: "browser.startup.homepage",
   observe: function (aSubject, aTopic, aPrefName)
   {
@@ -4822,11 +4829,45 @@ var gHomeButton = {
                              homeButton.className.replace("toolbarbutton-1", "bookmark-item") :
                              homeButton.className.replace("bookmark-item", "toolbarbutton-1");
   },
-
-  onCustomizationChange: function(aEvent) {
-    gHomeButton.updatePersonalToolbarStyle();
-  },
 };
+
+const nodeToTooltipMap = {
+  "bookmarks-menu-button": "bookmarksMenuButton.tooltip",
+#ifdef XP_MACOSX
+  "print-button": "printButton.tooltip",
+#endif
+  "new-window-button": "newWindowButton.tooltip",
+  "fullscreen-button": "fullscreenButton.tooltip",
+  "tabview-button": "tabviewButton.tooltip",
+};
+const nodeToShortcutMap = {
+  "bookmarks-menu-button": "manBookmarkKb",
+#ifdef XP_MACOSX
+  "print-button": "printKb",
+#endif
+  "new-window-button": "key_newNavigator",
+  "fullscreen-button": "key_fullScreen",
+  "tabview-button": "key_tabview",
+};
+const gDynamicTooltipCache = new Map();
+function UpdateDynamicShortcutTooltipText(popupTriggerNode) {
+  let label = document.getElementById("dynamic-shortcut-tooltip-label");
+  let nodeId = popupTriggerNode.id;
+  if (!gDynamicTooltipCache.has(nodeId) && nodeId in nodeToTooltipMap) {
+    let strId = nodeToTooltipMap[nodeId];
+    let args = [];
+    if (nodeId in nodeToShortcutMap) {
+      let shortcutId = nodeToShortcutMap[nodeId];
+      let shortcut = document.getElementById(shortcutId);
+      if (shortcut) {
+        args.push(ShortcutUtils.prettifyShortcut(shortcut));
+      }
+    }
+    gDynamicTooltipCache.set(nodeId, gNavigatorBundle.getFormattedString(strId, args));
+  }
+  let desiredLabel = gDynamicTooltipCache.get(nodeId);
+  label.setAttribute("value", desiredLabel);
+}
 
 /**
  * Gets the selected text in the active browser. Leading and trailing
@@ -5229,10 +5270,21 @@ function UpdateCurrentCharset(target) {
           pref_item.setAttribute('checked', 'false');
     }
 
-    var menuitem = charsetMenuGetElement(target, "charset." + wnd.document.characterSet);
+    var menuitem = charsetMenuGetElement(target, "charset." + FoldCharset(wnd.document.characterSet));
     if (menuitem) {
         menuitem.setAttribute('checked', 'true');
     }
+}
+
+function FoldCharset(charset) {
+  // For substantially similar encodings, treat two encodings as the same
+  // for the purpose of the check mark.
+  if (charset == "ISO-8859-8-I") {
+    return "windows-1255";
+  } else if (charset == "gb18030") {
+    return "gbk";
+  }
+  return charset;
 }
 
 function UpdateCharsetDetector(target) {
@@ -5257,7 +5309,7 @@ function UpdateMenus(event) {
 }
 
 function charsetLoadListener() {
-  var charset = window.content.document.characterSet;
+  var charset = FoldCharset(window.content.document.characterSet);
 
   if (charset.length > 0 && (charset != gLastBrowserCharset)) {
     gPrevCharset = gLastBrowserCharset;
@@ -5891,6 +5943,10 @@ function WindowIsClosing()
   if (!closeWindow(false, warnAboutClosingWindow))
     return false;
 
+  // Bug 967873 - Proxy nsDocumentViewer::PermitUnload to the child process
+  if (gMultiProcessBrowser)
+    return true;
+
   for (let browser of gBrowser.browsers) {
     let ds = browser.docShell;
     if (ds.contentViewer && !ds.contentViewer.permitUnload())
@@ -6441,10 +6497,10 @@ var gIdentityHandler = {
     // Chrome URIs however get special treatment. Some chrome URIs are
     // whitelisted to provide a positive security signal to the user.
     let chromeWhitelist = ["about:addons", "about:app-manager", "about:config",
-                           "about:crashes", "about:healthreport", "about:home",
-                           "about:newaddon", "about:permissions", "about:preferences",
-                           "about:privatebrowsing", "about:sessionstore",
-                           "about:support", "about:welcomeback"];
+                           "about:crashes", "about:customizing", "about:healthreport",
+                           "about:home", "about:newaddon", "about:permissions",
+                           "about:preferences", "about:privatebrowsing",
+                           "about:sessionstore", "about:support", "about:welcomeback"];
     let lowercaseSpec = uri.spec.toLowerCase();
     if (chromeWhitelist.some(function(whitelistedSpec) lowercaseSpec.startsWith(whitelistedSpec))) {
       this.setMode(this.IDENTITY_MODE_CHROMEUI);

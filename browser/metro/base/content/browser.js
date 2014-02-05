@@ -183,8 +183,10 @@ var Browser = {
       }
 
       // Should we restore the previous session (crash or some other event)
-      let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
-      if (ss.shouldRestore() || Services.prefs.getBoolPref("browser.startup.sessionRestore")) {
+      let ss = Cc["@mozilla.org/browser/sessionstore;1"]
+               .getService(Ci.nsISessionStore);
+      let shouldRestore = ss.shouldRestore();
+      if (shouldRestore) {
         let bringFront = false;
         // First open any commandline URLs, except the homepage
         if (activationURI && activationURI != kStartURI) {
@@ -474,6 +476,7 @@ var Browser = {
    *   is closed, we will return to a parent or "sibling" tab if possible.
    * @param aParams Object (optional) with optional properties:
    *   index: Number specifying where in the tab list to insert the new tab.
+   *   private: If true, the new tab should be have Private Browsing active.
    *   flags, postData, charset, referrerURI: See loadURIWithFlags.
    */
   addTab: function browser_addTab(aURI, aBringFront, aOwner, aParams) {
@@ -744,7 +747,7 @@ var Browser = {
     Services.metro.pinTileAsync(this._currentPageTileID,
                                 Browser.selectedBrowser.contentTitle, // short name
                                 Browser.selectedBrowser.contentTitle, // display name
-                                "metrobrowser -url " + Browser.selectedBrowser.currentURI.spec,
+                                "-url " + Browser.selectedBrowser.currentURI.spec,
                             uriSpec, uriSpec);
   },
 
@@ -1253,6 +1256,13 @@ function Tab(aURI, aParams, aOwner) {
   this._eventDeferred = null;
   this._updateThumbnailTimeout = null;
 
+  this._private = false;
+  if ("private" in aParams) {
+    this._private = aParams.private;
+  } else if (aOwner) {
+    this._private = aOwner._private;
+  }
+
   this.owner = aOwner || null;
 
   // Set to 0 since new tabs that have not been viewed yet are good tabs to
@@ -1280,6 +1290,10 @@ Tab.prototype = {
     return this._chromeTab;
   },
 
+  get isPrivate() {
+    return this._private;
+  },
+
   get pageShowPromise() {
     return this._eventDeferred ? this._eventDeferred.promise : null;
   },
@@ -1305,6 +1319,10 @@ Tab.prototype = {
     this._eventDeferred = Promise.defer();
 
     this._chromeTab = Elements.tabList.addTab(aParams.index);
+    if (this.isPrivate) {
+      this._chromeTab.setAttribute("private", "true");
+    }
+
     this._id = Browser.createTabId();
     let browser = this._createBrowser(aURI, null);
 
@@ -1459,6 +1477,11 @@ Tab.prototype = {
      // let the content area manager know about this browser.
     ContentAreaObserver.onBrowserCreated(browser);
 
+    if (this.isPrivate) {
+      let ctx = browser.docShell.QueryInterface(Ci.nsILoadContext);
+      ctx.usePrivateBrowsing = true;
+    }
+
     // stop about:blank from loading
     browser.stop();
 
@@ -1483,7 +1506,9 @@ Tab.prototype = {
   },
 
   updateThumbnail: function updateThumbnail() {
-    PageThumbs.captureToCanvas(this.browser.contentWindow, this._chromeTab.thumbnailCanvas);
+    if (!this.isPrivate) {
+      PageThumbs.captureToCanvas(this.browser.contentWindow, this._chromeTab.thumbnailCanvas);
+    }
   },
 
   updateFavicon: function updateFavicon() {
@@ -1498,12 +1523,14 @@ Tab.prototype = {
     let browser = this._browser;
 
     if (aActive) {
+      notification.classList.add("active-tab-notificationbox");
       browser.setAttribute("type", "content-primary");
       Elements.browsers.selectedPanel = notification;
       browser.active = true;
       Elements.tabList.selectedTab = this._chromeTab;
       browser.focus();
     } else {
+      notification.classList.remove("active-tab-notificationbox");
       browser.messageManager.sendAsyncMessage("Browser:Blur", { });
       browser.setAttribute("type", "content");
       browser.active = false;

@@ -6,6 +6,7 @@
 #include "CacheStorage.h"
 #include "CacheStorageService.h"
 #include "CacheEntry.h"
+#include "CacheObserver.h"
 
 #include "OldWrappers.h"
 
@@ -43,6 +44,16 @@ NS_IMETHODIMP CacheStorage::AsyncOpenURI(nsIURI *aURI,
   if (!CacheStorageService::Self())
     return NS_ERROR_NOT_INITIALIZED;
 
+  if (MOZ_UNLIKELY(!CacheObserver::UseDiskCache()) && mWriteToDisk) {
+    aCallback->OnCacheEntryAvailable(nullptr, false, nullptr, NS_ERROR_NOT_AVAILABLE);
+    return NS_OK;
+  }
+
+  if (MOZ_UNLIKELY(!CacheObserver::UseMemoryCache()) && !mWriteToDisk) {
+    aCallback->OnCacheEntryAvailable(nullptr, false, nullptr, NS_ERROR_NOT_AVAILABLE);
+    return NS_OK;
+  }
+
   NS_ENSURE_ARG(aURI);
   NS_ENSURE_ARG(aCallback);
 
@@ -56,8 +67,6 @@ NS_IMETHODIMP CacheStorage::AsyncOpenURI(nsIURI *aURI,
 
   nsCOMPtr<nsIApplicationCache> appCache;
   if (LookupAppCache()) {
-    MOZ_ASSERT(!truncate);
-
     rv = ChooseApplicationCache(noRefURI, getter_AddRefs(appCache));
     NS_ENSURE_SUCCESS(rv, rv);
   }

@@ -17,6 +17,7 @@
 #include "builtin/Intl.h"
 #include "builtin/TypedObject.h"
 #include "gc/Marking.h"
+#include "vm/Compression.h"
 #include "vm/ForkJoin.h"
 #include "vm/Interpreter.h"
 
@@ -266,8 +267,8 @@ intrinsic_Dump(ThreadSafeContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
-const JSJitInfo intrinsic_Dump_jitInfo =
-    JS_JITINFO_NATIVE_PARALLEL(JSParallelNativeThreadSafeWrapper<intrinsic_Dump>);
+JS_JITINFO_NATIVE_PARALLEL_THREADSAFE(intrinsic_Dump_jitInfo, intrinsic_Dump_jitInfo,
+                                      intrinsic_Dump);
 
 bool
 intrinsic_ParallelSpew(ThreadSafeContext *cx, unsigned argc, Value *vp)
@@ -287,8 +288,8 @@ intrinsic_ParallelSpew(ThreadSafeContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
-const JSJitInfo intrinsic_ParallelSpew_jitInfo =
-    JS_JITINFO_NATIVE_PARALLEL(JSParallelNativeThreadSafeWrapper<intrinsic_ParallelSpew>);
+JS_JITINFO_NATIVE_PARALLEL_THREADSAFE(intrinsic_ParallelSpew_jitInfo, intrinsic_ParallelSpew_jitInfo,
+                                      intrinsic_ParallelSpew);
 #endif
 
 /*
@@ -468,7 +469,7 @@ intrinsic_GetIteratorPrototype(JSContext *cx, unsigned argc, Value *vp)
     CallArgs args = CallArgsFromVp(argc, vp);
     JS_ASSERT(args.length() == 0);
 
-    JSObject *obj = cx->global()->getOrCreateIteratorPrototype(cx);
+    JSObject *obj = GlobalObject::getOrCreateIteratorPrototype(cx, cx->global());
     if (!obj)
         return false;
 
@@ -482,7 +483,7 @@ intrinsic_NewArrayIterator(JSContext *cx, unsigned argc, Value *vp)
     CallArgs args = CallArgsFromVp(argc, vp);
     JS_ASSERT(args.length() == 0);
 
-    RootedObject proto(cx, cx->global()->getOrCreateArrayIteratorPrototype(cx));
+    RootedObject proto(cx, GlobalObject::getOrCreateArrayIteratorPrototype(cx, cx->global()));
     if (!proto)
         return false;
 
@@ -511,7 +512,7 @@ intrinsic_NewStringIterator(JSContext *cx, unsigned argc, Value *vp)
     CallArgs args = CallArgsFromVp(argc, vp);
     JS_ASSERT(args.length() == 0);
 
-    RootedObject proto(cx, cx->global()->getOrCreateStringIteratorPrototype(cx));
+    RootedObject proto(cx, GlobalObject::getOrCreateStringIteratorPrototype(cx, cx->global()));
     if (!proto)
         return false;
 
@@ -626,6 +627,9 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("NewDenseArray",           intrinsic_NewDenseArray,           1,0),
     JS_FN("ShouldForceSequential",   intrinsic_ShouldForceSequential,   0,0),
     JS_FN("ParallelTestsShouldPass", intrinsic_ParallelTestsShouldPass, 0,0),
+    JS_FNINFO("SetForkJoinTargetRegion",
+              intrinsic_SetForkJoinTargetRegion,
+              &intrinsic_SetForkJoinTargetRegionInfo, 2, 0),
 
     // See builtin/TypedObject.h for descriptors of the typedobj functions.
     JS_FN("NewTypedHandle",
@@ -637,9 +641,9 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_FNINFO("AttachHandle",
               JSNativeThreadSafeWrapper<js::AttachHandle>,
               &js::AttachHandleJitInfo, 5, 0),
-    JS_FNINFO("ObjectIsTypeObject",
-              JSNativeThreadSafeWrapper<js::ObjectIsTypeObject>,
-              &js::ObjectIsTypeObjectJitInfo, 5, 0),
+    JS_FNINFO("ObjectIsTypeDescr",
+              JSNativeThreadSafeWrapper<js::ObjectIsTypeDescr>,
+              &js::ObjectIsTypeDescrJitInfo, 5, 0),
     JS_FNINFO("ObjectIsTypeRepresentation",
               JSNativeThreadSafeWrapper<js::ObjectIsTypeRepresentation>,
               &js::ObjectIsTypeRepresentationJitInfo, 5, 0),
@@ -659,8 +663,8 @@ static const JSFunctionSpec intrinsic_functions[] = {
               JSNativeThreadSafeWrapper<js::Memcpy>,
               &js::MemcpyJitInfo, 5, 0),
     JS_FN("GetTypedObjectModule", js::GetTypedObjectModule, 0, 0),
-    JS_FN("GetFloat32x4TypeObject", js::GetFloat32x4TypeObject, 0, 0),
-    JS_FN("GetInt32x4TypeObject", js::GetInt32x4TypeObject, 0, 0),
+    JS_FN("GetFloat32x4TypeDescr", js::GetFloat32x4TypeDescr, 0, 0),
+    JS_FN("GetInt32x4TypeDescr", js::GetInt32x4TypeDescr, 0, 0),
 
 #define LOAD_AND_STORE_SCALAR_FN_DECLS(_constant, _type, _name)               \
     JS_FNINFO("Store_" #_name,                                                \
@@ -776,14 +780,14 @@ JSRuntime::initSelfHosting(JSContext *cx)
      * and we don't want errors in self-hosted code to be silently swallowed.
      */
     JSErrorReporter oldReporter = JS_SetErrorReporter(cx, selfHosting_ErrorReporter);
-    Value rv;
+    RootedValue rv(cx);
     bool ok = false;
 
     char *filename = getenv("MOZ_SELFHOSTEDJS");
     if (filename) {
         RootedScript script(cx, Compile(cx, shg, options, filename));
         if (script)
-            ok = Execute(cx, script, *shg.get(), &rv);
+            ok = Execute(cx, script, *shg.get(), rv.address());
     } else {
         uint32_t srcLen = GetRawScriptsSize();
 
@@ -800,7 +804,7 @@ JSRuntime::initSelfHosting(JSContext *cx)
         const char *src = rawSources;
 #endif
 
-        ok = Evaluate(cx, shg, options, src, srcLen, &rv);
+        ok = Evaluate(cx, shg, options, src, srcLen, rv.address());
     }
     JS_SetErrorReporter(cx, oldReporter);
     if (receivesDefaultObject)
@@ -905,10 +909,10 @@ CloneObject(JSContext *cx, HandleObject srcObj, CloneMemory &clonedObjects)
     } else if (srcObj->is<NumberObject>()) {
         clone = NumberObject::create(cx, srcObj->as<NumberObject>().unbox());
     } else if (srcObj->is<StringObject>()) {
-        Rooted<JSStableString*> str(cx, srcObj->as<StringObject>().unbox()->ensureStable(cx));
+        Rooted<JSFlatString*> str(cx, srcObj->as<StringObject>().unbox()->ensureFlat(cx));
         if (!str)
             return nullptr;
-        str = js_NewStringCopyN<CanGC>(cx, str->chars().get(), str->length())->ensureStable(cx);
+        str = js_NewStringCopyN<CanGC>(cx, str->chars(), str->length());
         if (!str)
             return nullptr;
         clone = StringObject::create(cx, str);
@@ -943,10 +947,10 @@ CloneValue(JSContext *cx, MutableHandleValue vp, CloneMemory &clonedObjects)
     } else if (vp.isBoolean() || vp.isNumber() || vp.isNullOrUndefined()) {
         // Nothing to do here: these are represented inline in the value
     } else if (vp.isString()) {
-        Rooted<JSStableString*> str(cx, vp.toString()->ensureStable(cx));
+        Rooted<JSFlatString*> str(cx, vp.toString()->ensureFlat(cx));
         if (!str)
             return false;
-        RootedString clone(cx, js_NewStringCopyN<CanGC>(cx, str->chars().get(), str->length()));
+        RootedString clone(cx, js_NewStringCopyN<CanGC>(cx, str->chars(), str->length()));
         if (!clone)
             return false;
         vp.setString(clone);

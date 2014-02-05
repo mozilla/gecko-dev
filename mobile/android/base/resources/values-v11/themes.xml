@@ -47,16 +47,18 @@
         <item name="bookmarksListViewStyle">@style/Widget.BookmarksListView</item>
         <item name="topSitesGridItemViewStyle">@style/Widget.TopSitesGridItemView</item>
         <item name="topSitesGridViewStyle">@style/Widget.TopSitesGridView</item>
+        <item name="panelGridViewStyle">@style/Widget.PanelGridView</item>
+        <item name="panelGridItemViewStyle">@style/Widget.PanelGridItemView</item>
         <item name="topSitesThumbnailViewStyle">@style/Widget.TopSitesThumbnailView</item>
         <item name="homeListViewStyle">@style/Widget.HomeListView</item>
         <item name="geckoMenuListViewStyle">@style/Widget.GeckoMenuListView</item>
         <item name="menuItemActionModeStyle">@style/GeckoActionBar.Button</item>
         <item name="android:actionModeStyle">@style/GeckoActionBar</item>
         <item name="android:actionButtonStyle">@style/GeckoActionBar.Button</item>
-        <item name="android:actionModeCutDrawable">@drawable/cut</item>
-        <item name="android:actionModeCopyDrawable">@drawable/copy</item>
-        <item name="android:actionModePasteDrawable">@drawable/paste</item>
-        <item name="android:actionModeSelectAllDrawable">@drawable/select_all</item>
+        <item name="android:actionModeCutDrawable">@drawable/ab_cut</item>
+        <item name="android:actionModeCopyDrawable">@drawable/ab_copy</item>
+        <item name="android:actionModePasteDrawable">@drawable/ab_paste</item>
+        <item name="android:actionModeSelectAllDrawable">@drawable/ab_select_all</item>
     </style>
 
 </resources>

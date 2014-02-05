@@ -255,20 +255,30 @@ static bool
 Print(JSContext *cx, unsigned argc, jsval *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
+    args.rval().setUndefined();
 
     RootedString str(cx);
+    nsAutoCString utf8str;
+    size_t length;
+    const jschar *chars;
+
     for (unsigned i = 0; i < args.length(); i++) {
         str = ToString(cx, args[i]);
         if (!str)
             return false;
-        JSAutoByteString strBytes(cx, str);
-        if (!strBytes)
+        chars = JS_GetStringCharsAndLength(cx, str, &length);
+        if (!chars)
             return false;
-        fprintf(gOutFile, "%s%s", i ? " " : "", strBytes.ptr());
-        fflush(gOutFile);
+
+        if (i)
+            utf8str.Append(' ');
+        AppendUTF16toUTF8(Substring(reinterpret_cast<const char16_t*>(chars),
+                                    length),
+                          utf8str);
     }
-    fputc('\n', gOutFile);
-    args.rval().setUndefined();
+    utf8str.Append('\n');
+    fputs(utf8str.get(), gOutFile);
+    fflush(gOutFile);
     return true;
 }
 
@@ -276,7 +286,6 @@ static bool
 Dump(JSContext *cx, unsigned argc, jsval *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
-
     args.rval().setUndefined();
 
     if (!args.length())
@@ -286,14 +295,22 @@ Dump(JSContext *cx, unsigned argc, jsval *vp)
     if (!str)
         return false;
 
-    JSAutoByteString bytes(cx, str);
-    if (!bytes)
+    size_t length;
+    const jschar *chars = JS_GetStringCharsAndLength(cx, str, &length);
+    if (!chars)
         return false;
 
+    NS_ConvertUTF16toUTF8 utf8str(reinterpret_cast<const char16_t*>(chars),
+                                  length);
 #ifdef ANDROID
-    __android_log_print(ANDROID_LOG_INFO, "Gecko", "%s", bytes.ptr());
+    __android_log_print(ANDROID_LOG_INFO, "Gecko", "%s", utf8str.get());
 #endif
-    fputs(bytes.ptr(), gOutFile);
+#ifdef XP_WIN
+    if (IsDebuggerPresent()) {
+      OutputDebugStringW(reinterpret_cast<const wchar_t*>(chars));
+    }
+#endif
+    fputs(utf8str.get(), gOutFile);
     fflush(gOutFile);
     return true;
 }
@@ -538,25 +555,27 @@ Parent(JSContext *cx, unsigned argc, jsval *vp)
 }
 
 static bool
-Atob(JSContext *cx, unsigned argc, jsval *vp)
+Atob(JSContext *cx, unsigned argc, Value *vp)
 {
-    if (!argc)
+    CallArgs args = CallArgsFromVp(argc, vp);
+    if (!args.length())
         return true;
 
-    return xpc::Base64Decode(cx, JS_ARGV(cx, vp)[0], &JS_RVAL(cx, vp));
+    return xpc::Base64Decode(cx, args[0], args.rval());
 }
 
 static bool
-Btoa(JSContext *cx, unsigned argc, jsval *vp)
+Btoa(JSContext *cx, unsigned argc, Value *vp)
 {
-  if (!argc)
-      return true;
+    CallArgs args = CallArgsFromVp(argc, vp);
+    if (!args.length())
+        return true;
 
-  return xpc::Base64Encode(cx, JS_ARGV(cx, vp)[0], &JS_RVAL(cx, vp));
+  return xpc::Base64Encode(cx, args[0], args.rval());
 }
 
 static bool
-Blob(JSContext *cx, unsigned argc, jsval *vp)
+Blob(JSContext *cx, unsigned argc, Value *vp)
 {
   JS::CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -582,10 +601,10 @@ Blob(JSContext *cx, unsigned argc, jsval *vp)
     return false;
   }
 
-  JSObject* global = JS::CurrentGlobalOrNull(cx);
+  JSObject *global = JS::CurrentGlobalOrNull(cx);
   rv = xpc->WrapNativeToJSVal(cx, global, native, nullptr,
                               &NS_GET_IID(nsISupports), true,
-                              args.rval().address());
+                              args.rval());
   if (NS_FAILED(rv)) {
     JS_ReportError(cx, "Could not wrap native object!");
     return false;
@@ -595,7 +614,7 @@ Blob(JSContext *cx, unsigned argc, jsval *vp)
 }
 
 static bool
-File(JSContext *cx, unsigned argc, jsval *vp)
+File(JSContext *cx, unsigned argc, Value *vp)
 {
   JS::CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -621,10 +640,10 @@ File(JSContext *cx, unsigned argc, jsval *vp)
     return false;
   }
 
-  JSObject* global = JS::CurrentGlobalOrNull(cx);
+  JSObject *global = JS::CurrentGlobalOrNull(cx);
   rv = xpc->WrapNativeToJSVal(cx, global, native, nullptr,
                               &NS_GET_IID(nsISupports), true,
-                              args.rval().address());
+                              args.rval());
   if (NS_FAILED(rv)) {
     JS_ReportError(cx, "Could not wrap native object!");
     return false;
@@ -731,7 +750,7 @@ env_setProperty(JSContext *cx, HandleObject obj, HandleId id, bool strict, Mutab
     int rv;
 
     RootedValue idval(cx);
-    if (!JS_IdToValue(cx, id, idval.address()))
+    if (!JS_IdToValue(cx, id, &idval))
         return false;
 
     idstr = ToString(cx, idval);
@@ -814,7 +833,7 @@ env_resolve(JSContext *cx, HandleObject obj, HandleId id, unsigned flags,
     JSString *idstr, *valstr;
 
     RootedValue idval(cx);
-    if (!JS_IdToValue(cx, id, idval.address()))
+    if (!JS_IdToValue(cx, id, &idval))
         return false;
 
     idstr = ToString(cx, idval);
@@ -1134,14 +1153,15 @@ ProcessArgs(JSContext *cx, JS::Handle<JSObject*> obj, char **argv, int argc, XPC
             break;
         case 'e':
         {
-            jsval rval;
+            RootedValue rval(cx);
 
             if (++i == argc) {
                 return usage();
             }
 
             JS_EvaluateScriptForPrincipals(cx, obj, gJSPrincipals, argv[i],
-                                           strlen(argv[i]), "-e", 1, &rval);
+                                           strlen(argv[i]), "-e", 1,
+                                           rval.address());
 
             isInteractive = false;
             break;
@@ -1246,8 +1266,8 @@ NS_IMETHODIMP
 nsXPCFunctionThisTranslator::TranslateThis(nsISupports *aInitialThis,
                                            nsISupports **_retval)
 {
-    NS_IF_ADDREF(aInitialThis);
-    *_retval = aInitialThis;
+    nsCOMPtr<nsISupports> temp = aInitialThis;
+    temp.forget(_retval);
     return NS_OK;
 }
 
@@ -1454,6 +1474,9 @@ XRE_XPCShellMain(int argc, char **argv, char **envp)
             printf("JS_NewContext failed!\n");
             return 1;
         }
+
+        // Ion not enabled yet here because of bug 931861.
+        JS::ContextOptionsRef(cx).setBaseline(true);
 
         argc--;
         argv++;
@@ -1664,7 +1687,7 @@ XPCShellDirProvider::GetFile(const char *prop, bool *persistent,
             NS_FAILED(file->AppendNative(NS_LITERAL_CSTRING("defaults"))) ||
             NS_FAILED(file->AppendNative(NS_LITERAL_CSTRING("pref"))))
             return NS_ERROR_FAILURE;
-        NS_ADDREF(*result = file);
+        file.forget(result);
         return NS_OK;
     }
 

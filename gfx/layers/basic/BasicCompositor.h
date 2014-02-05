@@ -51,7 +51,7 @@ public:
 
   virtual TextureFactoryIdentifier GetTextureFactoryIdentifier() MOZ_OVERRIDE
   {
-    return TextureFactoryIdentifier(LAYERS_BASIC,
+    return TextureFactoryIdentifier(LayersBackend::LAYERS_BASIC,
                                     XRE_GetProcessType(),
                                     GetMaxTextureSize());
   }
@@ -86,12 +86,12 @@ public:
 
   virtual void BeginFrame(const nsIntRegion& aInvalidRegion,
                           const gfx::Rect *aClipRectIn,
-                          const gfxMatrix& aTransform,
+                          const gfx::Matrix& aTransform,
                           const gfx::Rect& aRenderBounds,
                           gfx::Rect *aClipRectOut = nullptr,
                           gfx::Rect *aRenderBoundsOut = nullptr) MOZ_OVERRIDE;
   virtual void EndFrame() MOZ_OVERRIDE;
-  virtual void EndFrameForExternalComposition(const gfxMatrix& aTransform) MOZ_OVERRIDE
+  virtual void EndFrameForExternalComposition(const gfx::Matrix& aTransform) MOZ_OVERRIDE
   {
     NS_RUNTIMEABORT("We shouldn't ever hit this");
   }
@@ -112,7 +112,7 @@ public:
   virtual void MakeCurrent(MakeCurrentFlags aFlags = 0) { }
 
   virtual void PrepareViewport(const gfx::IntSize& aSize,
-                               const gfxMatrix& aWorldTransform) MOZ_OVERRIDE { }
+                               const gfx::Matrix& aWorldTransform) MOZ_OVERRIDE { }
 
   virtual void NotifyLayersTransaction() MOZ_OVERRIDE { }
 

@@ -111,9 +111,8 @@ ObjectIdCache::add(JSContext *cx, JSObject *obj, ObjectId id)
  * been moved.
  */
 /* static */ void
-ObjectIdCache::keyMarkCallback(JSTracer *trc, void *keyArg, void *dataArg) {
-    JSObject *key = static_cast<JSObject*>(keyArg);
-    ObjectIdTable* table = static_cast<ObjectIdTable*>(dataArg);
+ObjectIdCache::keyMarkCallback(JSTracer *trc, JSObject *key, void *data) {
+    ObjectIdTable* table = static_cast<ObjectIdTable*>(data);
     JSObject *prior = key;
     JS_CallObjectTracer(trc, &key, "ObjectIdCache::table_ key");
     table->rekeyIfMoved(prior, key);
@@ -137,7 +136,7 @@ bool
 JavaScriptShared::convertIdToGeckoString(JSContext *cx, JS::HandleId id, nsString *to)
 {
     RootedValue idval(cx);
-    if (!JS_IdToValue(cx, id, idval.address()))
+    if (!JS_IdToValue(cx, id, &idval))
         return false;
 
     RootedString str(cx, ToString(cx, idval));
@@ -159,7 +158,7 @@ JavaScriptShared::convertGeckoStringToId(JSContext *cx, const nsString &from, JS
     if (!str)
         return false;
 
-    return JS_ValueToId(cx, StringValue(str), to.address());
+    return JS_ValueToId(cx, StringValue(str), to);
 }
 
 bool
@@ -441,7 +440,7 @@ JavaScriptShared::Unwrap(JSContext *cx, const InfallibleTArray<CpowEntry> &aCpow
     if (!aCpows.Length())
         return true;
 
-    RootedObject obj(cx, JS_NewObject(cx, nullptr, nullptr, nullptr));
+    RootedObject obj(cx, JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr()));
     if (!obj)
         return false;
 

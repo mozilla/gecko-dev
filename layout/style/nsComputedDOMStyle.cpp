@@ -3334,15 +3334,9 @@ nsComputedDOMStyle::DoGetBorderImageSource()
 {
   const nsStyleBorder* border = StyleBorder();
 
-  imgIRequest* imgSrc = border->GetBorderImage();
   nsROCSSPrimitiveValue* val = new nsROCSSPrimitiveValue;
-  if (imgSrc) {
-    nsCOMPtr<nsIURI> uri;
-    imgSrc->GetURI(getter_AddRefs(uri));
-    val->SetURI(uri);
-  } else {
-    val->SetIdent(eCSSKeyword_none);
-  }
+  const nsStyleImage& image = border->mBorderImageSource;
+  SetValueToStyleImage(image, val);
 
   return val;
 }
@@ -3700,6 +3694,28 @@ nsComputedDOMStyle::DoGetClip()
 }
 
 CSSValue*
+nsComputedDOMStyle::DoGetWillChange()
+{
+  const nsTArray<nsString>& willChange = StyleDisplay()->mWillChange;
+
+  if (willChange.IsEmpty()) {
+    nsROCSSPrimitiveValue *val = new nsROCSSPrimitiveValue;
+    val->SetIdent(eCSSKeyword_auto);
+    return val;
+  }
+
+  nsDOMCSSValueList *valueList = GetROCSSValueList(true);
+  for (size_t i = 0; i < willChange.Length(); i++) {
+    const nsString& willChangeIdentifier = willChange[i];
+    nsROCSSPrimitiveValue* property = new nsROCSSPrimitiveValue;
+    valueList->AppendCSSValue(property);
+    property->SetString(willChangeIdentifier);
+  }
+
+  return valueList;
+}
+
+CSSValue*
 nsComputedDOMStyle::DoGetOverflow()
 {
   const nsStyleDisplay* display = StyleDisplay();
@@ -3784,6 +3800,30 @@ nsComputedDOMStyle::DoGetPageBreakInside()
   nsROCSSPrimitiveValue *val = new nsROCSSPrimitiveValue;
   val->SetIdent(nsCSSProps::ValueToKeywordEnum(StyleDisplay()->mBreakInside,
                                                nsCSSProps::kPageBreakInsideKTable));
+  return val;
+}
+
+CSSValue*
+nsComputedDOMStyle::DoGetTouchAction()
+{
+  nsROCSSPrimitiveValue *val = new nsROCSSPrimitiveValue;
+
+  int32_t intValue = StyleDisplay()->mTouchAction;
+
+  // None and Auto values aren't allowed to be in conjunction with
+  // other values.
+  if (NS_STYLE_TOUCH_ACTION_AUTO == intValue) {
+    val->SetIdent(eCSSKeyword_auto);
+  } else if (NS_STYLE_TOUCH_ACTION_NONE == intValue) {
+    val->SetIdent(eCSSKeyword_none);
+  } else {
+    nsAutoString valueStr;
+    nsStyleUtil::AppendBitmaskCSSValue(eCSSProperty_touch_action,
+      intValue, NS_STYLE_TOUCH_ACTION_PAN_X,
+      NS_STYLE_TOUCH_ACTION_PAN_Y, valueStr);
+    val->SetString(valueStr);
+  }
+
   return val;
 }
 

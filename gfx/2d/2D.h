@@ -23,6 +23,8 @@
 // solution.
 #include "mozilla/RefPtr.h"
 
+#include "mozilla/DebugOnly.h"
+
 #ifdef MOZ_ENABLE_FREETYPE
 #include <string>
 #endif
@@ -337,31 +339,57 @@ public:
 class DataSourceSurface : public SourceSurface
 {
 public:
+  DataSourceSurface()
+    : mIsMapped(false)
+  {
+  }
+
+  struct MappedSurface {
+    uint8_t *mData;
+    int32_t mStride;
+  };
+
+  enum MapType {
+    READ,
+    WRITE,
+    READ_WRITE
+  };
+
   virtual SurfaceType GetType() const { return SurfaceType::DATA; }
-  /*
+  /* [DEPRECATED]
    * Get the raw bitmap data of the surface.
    * Can return null if there was OOM allocating surface data.
    */
   virtual uint8_t *GetData() = 0;
 
-  /*
+  /* [DEPRECATED]
    * Stride of the surface, distance in bytes between the start of the image
    * data belonging to row y and row y+1. This may be negative.
    * Can return 0 if there was OOM allocating surface data.
    */
   virtual int32_t Stride() = 0;
 
-  /*
-   * This function is called after modifying the data on the source surface
-   * directly through the data pointer.
-   */
-  virtual void MarkDirty() {}
+  virtual bool Map(MapType, MappedSurface *aMappedSurface)
+  {
+    aMappedSurface->mData = GetData();
+    aMappedSurface->mStride = Stride();
+    mIsMapped = true;
+    return true;
+  }
+
+  virtual void Unmap()
+  {
+    MOZ_ASSERT(mIsMapped);
+    mIsMapped = false;
+  }
 
   /*
    * Returns a DataSourceSurface with the same data as this one, but
    * guaranteed to have surface->GetType() == SurfaceType::DATA.
    */
   virtual TemporaryRef<DataSourceSurface> GetDataSurface();
+
+  DebugOnly<bool> mIsMapped;
 };
 
 /* This is an abstract object that accepts path segments. */
@@ -968,6 +996,12 @@ class GFX2D_API Factory
 {
 public:
   static bool HasSSE2();
+
+  /* Make sure that the given dimensions don't overflow a 32-bit signed int
+   * using 4 bytes per pixel; optionally, make sure that either dimension
+   * doesn't exceed the given limit.
+   */
+  static bool CheckSurfaceSize(const IntSize &sz, int32_t limit = 0);
 
   static TemporaryRef<DrawTarget> CreateDrawTargetForCairoSurface(cairo_surface_t* aSurface, const IntSize& aSize);
 

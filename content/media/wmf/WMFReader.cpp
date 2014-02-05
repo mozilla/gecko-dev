@@ -9,6 +9,7 @@
 #include "WMFUtils.h"
 #include "WMFByteStream.h"
 #include "WMFSourceReaderCallback.h"
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/dom/TimeRanges.h"
 #include "mozilla/dom/HTMLMediaElement.h"
 #include "mozilla/Preferences.h"
@@ -313,7 +314,7 @@ WMFReader::ConfigureVideoFrameGeometry(IMFMediaType* aMediaType)
   nsIntSize frameSize = nsIntSize(width, height);
   nsIntSize displaySize = nsIntSize(pictureRegion.width, pictureRegion.height);
   ScaleDisplayByAspectRatio(displaySize, float(aspectNum) / float(aspectDenom));
-  if (!VideoInfo::ValidateVideoRegion(frameSize, pictureRegion, displaySize)) {
+  if (!IsValidVideoRegion(frameSize, pictureRegion, displaySize)) {
     // Video track's frame sizes will overflow. Ignore the video track.
     return E_FAIL;
   }
@@ -359,7 +360,7 @@ WMFReader::ConfigureVideoDecoder()
                                            MF_SOURCE_READER_FIRST_VIDEO_STREAM,
                                            mUseHwAccel ? MFVideoFormat_NV12 : MFVideoFormat_YV12,
                                            MP4VideoTypes,
-                                           NS_ARRAY_LENGTH(MP4VideoTypes));
+                                           ArrayLength(MP4VideoTypes));
   if (FAILED(hr)) {
     DECODER_LOG("Failed to configured video output");
     return hr;
@@ -400,13 +401,13 @@ WMFReader::GetSupportedAudioCodecs(const GUID** aCodecs, uint32_t* aNumCodecs)
       aacOrMp3
     };
     *aCodecs = codecs;
-    *aNumCodecs = NS_ARRAY_LENGTH(codecs);
+    *aNumCodecs = ArrayLength(codecs);
   } else {
     static const GUID codecs[] = {
       MFAudioFormat_AAC
     };
     *aCodecs = codecs;
-    *aNumCodecs = NS_ARRAY_LENGTH(codecs);
+    *aNumCodecs = ArrayLength(codecs);
   }
 }
 

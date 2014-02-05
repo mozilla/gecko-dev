@@ -26,11 +26,13 @@
   
   var EXPORTED_SYMBOLS = ['NetworkManager'];
   
-  function log(aMsg) {
-    var msg = 'network.js: ' + (aMsg.join ? aMsg.join('') : aMsg);
-    Services.console.logStringMessage(msg);
-    // TODO(mack): dump() doesn't seem to work here...
-    dump(msg + '\n');
+  var console = {
+    log: function console_log(aMsg) {
+      var msg = 'network.js: ' + (aMsg.join ? aMsg.join('') : aMsg);
+      Services.console.logStringMessage(msg);
+      // TODO(mack): dump() doesn't seem to work here...
+      dump(msg + '\n');
+    }
   }
 
 var NetworkManager = (function NetworkManagerClosure() {
@@ -41,7 +43,9 @@ var NetworkManager = (function NetworkManagerClosure() {
   function NetworkManager(url, args) {
     this.url = url;
     args = args || {};
-    this.httpHeaders = args.httpHeaders || {};
+    this.isHttp = /^https?:/i.test(url);
+    this.httpHeaders = (this.isHttp && args.httpHeaders) || {};
+    this.withCredentials = args.withCredentials || false;
     this.getXhr = args.getXhr ||
       function NetworkManager_getXhr() {
         return new XMLHttpRequest();
@@ -90,6 +94,7 @@ var NetworkManager = (function NetworkManagerClosure() {
       };
 
       xhr.open('GET', this.url);
+      xhr.withCredentials = this.withCredentials;
       for (var property in this.httpHeaders) {
         var value = this.httpHeaders[property];
         if (typeof value === 'undefined') {
@@ -97,7 +102,7 @@ var NetworkManager = (function NetworkManagerClosure() {
         }
         xhr.setRequestHeader(property, value);
       }
-      if ('begin' in args && 'end' in args) {
+      if (this.isHttp && 'begin' in args && 'end' in args) {
         var rangeStr = args.begin + '-' + (args.end - 1);
         xhr.setRequestHeader('Range', 'bytes=' + rangeStr);
         pendingRequest.expectedStatus = 206;
@@ -152,7 +157,7 @@ var NetworkManager = (function NetworkManagerClosure() {
       delete this.pendingRequests[xhrId];
 
       // success status == 0 can be on ftp, file and other protocols
-      if (xhr.status === 0 && /^https?:/i.test(this.url)) {
+      if (xhr.status === 0 && this.isHttp) {
         if (pendingRequest.onError) {
           pendingRequest.onError(xhr.status);
         }

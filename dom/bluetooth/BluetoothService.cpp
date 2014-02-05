@@ -246,7 +246,7 @@ class BluetoothService::StartupTask : public nsISettingsServiceCallback
 public:
   NS_DECL_ISUPPORTS
 
-  NS_IMETHOD Handle(const nsAString& aName, const JS::Value& aResult)
+  NS_IMETHOD Handle(const nsAString& aName, JS::Handle<JS::Value> aResult)
   {
     MOZ_ASSERT(NS_IsMainThread());
 
@@ -605,10 +605,10 @@ BluetoothService::HandleSettingsChanged(const nsAString& aData)
     return NS_OK;
   }
 
-  JSObject& obj(val.toObject());
+  JS::Rooted<JSObject*> obj(cx, &val.toObject());
 
   JS::Rooted<JS::Value> key(cx);
-  if (!JS_GetProperty(cx, &obj, "key", &key)) {
+  if (!JS_GetProperty(cx, obj, "key", &key)) {
     MOZ_ASSERT(!JS_IsExceptionPending(cx));
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -626,7 +626,7 @@ BluetoothService::HandleSettingsChanged(const nsAString& aData)
 
   if (match) {
     JS::Rooted<JS::Value> value(cx);
-    if (!JS_GetProperty(cx, &obj, "value", &value)) {
+    if (!JS_GetProperty(cx, obj, "value", &value)) {
       MOZ_ASSERT(!JS_IsExceptionPending(cx));
       return NS_ERROR_OUT_OF_MEMORY;
     }
@@ -649,7 +649,7 @@ BluetoothService::HandleSettingsChanged(const nsAString& aData)
 
   if (match) {
     JS::Rooted<JS::Value> value(cx);
-    if (!JS_GetProperty(cx, &obj, "value", &value)) {
+    if (!JS_GetProperty(cx, obj, "value", &value)) {
       MOZ_ASSERT(!JS_IsExceptionPending(cx));
       return NS_ERROR_OUT_OF_MEMORY;
     }
@@ -818,7 +818,8 @@ BluetoothService::Notify(const BluetoothSignal& aData)
   nsString type = NS_LITERAL_STRING("bluetooth-pairing-request");
 
   AutoSafeJSContext cx;
-  JS::Rooted<JSObject*> obj(cx, JS_NewObject(cx, nullptr, nullptr, nullptr));
+  JS::Rooted<JSObject*> obj(cx, JS_NewObject(cx, nullptr, JS::NullPtr(),
+                                             JS::NullPtr()));
   NS_ENSURE_TRUE_VOID(obj);
 
   if (!SetJsObject(cx, aData.value(), obj)) {
@@ -857,7 +858,7 @@ BluetoothService::Notify(const BluetoothSignal& aData)
     do_GetService("@mozilla.org/system-message-internal;1");
   NS_ENSURE_TRUE_VOID(systemMessenger);
 
-  systemMessenger->BroadcastMessage(type,
-                                    OBJECT_TO_JSVAL(obj),
-                                    JS::UndefinedValue());
+  JS::Rooted<JS::Value> value(cx, JS::ObjectValue(*obj));
+  systemMessenger->BroadcastMessage(type, value,
+                                    JS::UndefinedHandleValue);
 }

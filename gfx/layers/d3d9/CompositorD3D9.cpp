@@ -26,7 +26,7 @@ CompositorD3D9::CompositorD3D9(PCompositorParent* aParent, nsIWidget *aWidget)
   , mWidget(aWidget)
   , mDeviceResetCount(0)
 {
-  sBackend = LAYERS_D3D9;
+  sBackend = LayersBackend::LAYERS_D3D9;
 }
 
 CompositorD3D9::~CompositorD3D9()
@@ -63,7 +63,7 @@ CompositorD3D9::GetTextureFactoryIdentifier()
 {
   TextureFactoryIdentifier ident;
   ident.mMaxTextureSize = GetMaxTextureSize();
-  ident.mParentBackend = LAYERS_D3D9;
+  ident.mParentBackend = LayersBackend::LAYERS_D3D9;
   ident.mParentProcessId = XRE_GetProcessType();
   return ident;
 }
@@ -188,7 +188,7 @@ CompositorD3D9::SetRenderTarget(CompositingRenderTarget *aRenderTarget)
   RefPtr<CompositingRenderTargetD3D9> oldRT = mCurrentRT;
   mCurrentRT = static_cast<CompositingRenderTargetD3D9*>(aRenderTarget);
   mCurrentRT->BindRenderTarget(device());
-  PrepareViewport(mCurrentRT->GetSize(), gfxMatrix());
+  PrepareViewport(mCurrentRT->GetSize(), Matrix());
 }
 
 static DeviceManagerD3D9::ShaderMode
@@ -360,19 +360,19 @@ CompositorD3D9::DrawQuad(const gfx::Rect &aRect,
       if (mDeviceManager->GetNv3DVUtils()) {
         Nv_Stereo_Mode mode;
         switch (source->AsSourceD3D9()->GetStereoMode()) {
-        case STEREO_MODE_LEFT_RIGHT:
+        case StereoMode::LEFT_RIGHT:
           mode = NV_STEREO_MODE_LEFT_RIGHT;
           break;
-        case STEREO_MODE_RIGHT_LEFT:
+        case StereoMode::RIGHT_LEFT:
           mode = NV_STEREO_MODE_RIGHT_LEFT;
           break;
-        case STEREO_MODE_BOTTOM_TOP:
+        case StereoMode::BOTTOM_TOP:
           mode = NV_STEREO_MODE_BOTTOM_TOP;
           break;
-        case STEREO_MODE_TOP_BOTTOM:
+        case StereoMode::TOP_BOTTOM:
           mode = NV_STEREO_MODE_TOP_BOTTOM;
           break;
-        case STEREO_MODE_MONO:
+        case StereoMode::MONO:
           mode = NV_STEREO_MODE_MONO;
           break;
         }
@@ -380,7 +380,7 @@ CompositorD3D9::DrawQuad(const gfx::Rect &aRect,
         // Send control data even in mono case so driver knows to leave stereo mode.
         mDeviceManager->GetNv3DVUtils()->SendNv3DVControl(mode, true, FIREFOX_3DV_APP_HANDLE);
 
-        if (source->AsSourceD3D9()->GetStereoMode() != STEREO_MODE_MONO) {
+        if (source->AsSourceD3D9()->GetStereoMode() != StereoMode::MONO) {
           mDeviceManager->GetNv3DVUtils()->SendNv3DVControl(mode, true, FIREFOX_3DV_APP_HANDLE);
 
           nsRefPtr<IDirect3DSurface9> renderTarget;
@@ -511,29 +511,29 @@ CompositorD3D9::EnsureSwapChain()
   if (!mSwapChain) {
     mSwapChain = mDeviceManager->
       CreateSwapChain((HWND)mWidget->GetNativeData(NS_NATIVE_WINDOW));
+    // We could not create a swap chain, return false
     if (!mSwapChain) {
+      // Check the state of the device too
       DeviceManagerState state = mDeviceManager->VerifyReadyForRendering();
       if (state == DeviceMustRecreate) {
         mDeviceManager = nullptr;
-        mParent->SendInvalidateAll();
-      } else if (state == DeviceRetry) {
-        mParent->SendInvalidateAll();
       }
+      mParent->SendInvalidateAll();
       return false;
     }
   }
 
+  // We have a swap chain, lets initialise it
   DeviceManagerState state = mSwapChain->PrepareForRendering();
   if (state == DeviceOK) {
     return true;
   }
+  // Swap chain could not be initialised, handle the failure
   if (state == DeviceMustRecreate) {
     mDeviceManager = nullptr;
     mSwapChain = nullptr;
-    mParent->SendInvalidateAll();
-  } else if (state == DeviceRetry) {
-    mParent->SendInvalidateAll();
   }
+  mParent->SendInvalidateAll();
   return false;
 }
 
@@ -553,6 +553,7 @@ CompositorD3D9::Ready()
     if (EnsureSwapChain()) {
       // We don't need to call VerifyReadyForRendering because that is
       // called by mSwapChain->PrepareForRendering() via EnsureSwapChain().
+
       CheckResetCount();
       return true;
     }
@@ -560,7 +561,7 @@ CompositorD3D9::Ready()
   }
 
   NS_ASSERTION(!mCurrentRT && !mDefaultRT,
-                "Shouldn't have any render targets around, they must be released before our device");
+               "Shouldn't have any render targets around, they must be released before our device");
   mSwapChain = nullptr;
 
   mDeviceManager = gfxWindowsPlatform::GetPlatform()->GetD3D9DeviceManager();
@@ -586,7 +587,7 @@ CancelCompositing(Rect* aRenderBoundsOut)
 void
 CompositorD3D9::BeginFrame(const nsIntRegion& aInvalidRegion,
                            const Rect *aClipRectIn,
-                           const gfxMatrix& aTransform,
+                           const gfx::Matrix& aTransform,
                            const Rect& aRenderBounds,
                            Rect *aClipRectOut,
                            Rect *aRenderBoundsOut)
@@ -650,9 +651,9 @@ CompositorD3D9::EndFrame()
 
 void
 CompositorD3D9::PrepareViewport(const gfx::IntSize& aSize,
-                                const gfxMatrix &aWorldTransform)
+                                const Matrix &aWorldTransform)
 {
-  gfx3DMatrix viewMatrix;
+  Matrix4x4 viewMatrix;
   /*
    * Matrix to transform to viewport space ( <-1.0, 1.0> topleft,
    * <1.0, -1.0> bottomright)
@@ -662,7 +663,7 @@ CompositorD3D9::PrepareViewport(const gfx::IntSize& aSize,
   viewMatrix._41 = -1.0f;
   viewMatrix._42 = 1.0f;
 
-  viewMatrix = gfx3DMatrix::From2D(aWorldTransform) * viewMatrix;
+  viewMatrix = Matrix4x4::From2D(aWorldTransform) * viewMatrix;
 
   HRESULT hr = device()->SetVertexShaderConstantF(CBmProjection, &viewMatrix._11, 4);
 

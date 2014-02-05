@@ -10,6 +10,7 @@
 # include <sys/mman.h>
 #endif
 
+#include "mozilla/Compression.h"
 #include "mozilla/PodOperations.h"
 
 #include "jslibmath.h"
@@ -32,6 +33,7 @@ using namespace js;
 using namespace jit;
 using namespace frontend;
 using mozilla::PodEqual;
+using mozilla::Compression::LZ4;
 
 void
 AsmJSModule::initHeap(Handle<ArrayBufferObject*> heap, JSContext *cx)
@@ -42,7 +44,7 @@ AsmJSModule::initHeap(Handle<ArrayBufferObject*> heap, JSContext *cx)
     heapDatum() = heap->dataPointer();
 
     JS_ASSERT(IsValidAsmJSHeapLength(heap->byteLength()));
-#if defined(JS_CPU_X86)
+#if defined(JS_CODEGEN_X86)
     uint8_t *heapOffset = heap->dataPointer();
     void *heapLength = (void*)heap->byteLength();
     for (unsigned i = 0; i < heapAccesses_.length(); i++) {
@@ -54,7 +56,7 @@ AsmJSModule::initHeap(Handle<ArrayBufferObject*> heap, JSContext *cx)
         JS_ASSERT(disp <= INT32_MAX);
         JSC::X86Assembler::setPointer(addr, (void *)(heapOffset + disp));
     }
-#elif defined(JS_CPU_ARM)
+#elif defined(JS_CODEGEN_ARM)
     uint32_t heapLength = heap->byteLength();
     for (unsigned i = 0; i < heapAccesses_.length(); i++) {
         jit::Assembler::updateBoundsCheck(heapLength,
@@ -178,13 +180,13 @@ InvokeFromAsmJS_ToNumber(JSContext *cx, int32_t exitIndex, int32_t argc, Value *
 
 }
 
-#if defined(JS_CPU_ARM)
+#if defined(JS_CODEGEN_ARM)
 extern "C" {
 
-extern int
+extern int64_t
 __aeabi_idivmod(int, int);
 
-extern int
+extern int64_t
 __aeabi_uidivmod(int, int);
 
 }
@@ -198,85 +200,94 @@ FuncCast(F *pf)
 }
 
 static void *
+RedirectCall(void *fun, ABIFunctionType type)
+{
+#ifdef JS_ARM_SIMULATOR
+    fun = Simulator::RedirectNativeFunction(fun, type);
+#endif
+    return fun;
+}
+
+static void *
 AddressOf(AsmJSImmKind kind, ExclusiveContext *cx)
 {
     switch (kind) {
       case AsmJSImm_Runtime:
         return cx->runtimeAddressForJit();
       case AsmJSImm_StackLimit:
-        return cx->stackLimitAddress(StackForUntrustedScript);
+        return cx->stackLimitAddressForJitCode(StackForUntrustedScript);
       case AsmJSImm_ReportOverRecursed:
-        return FuncCast<void (JSContext*)>(js_ReportOverRecursed);
+        return RedirectCall(FuncCast<void (JSContext*)>(js_ReportOverRecursed), Args_General1);
       case AsmJSImm_HandleExecutionInterrupt:
-        return FuncCast(js_HandleExecutionInterrupt);
+        return RedirectCall(FuncCast(js_HandleExecutionInterrupt), Args_General1);
       case AsmJSImm_InvokeFromAsmJS_Ignore:
-        return FuncCast(InvokeFromAsmJS_Ignore);
+        return RedirectCall(FuncCast(InvokeFromAsmJS_Ignore), Args_General4);
       case AsmJSImm_InvokeFromAsmJS_ToInt32:
-        return FuncCast(InvokeFromAsmJS_ToInt32);
+        return RedirectCall(FuncCast(InvokeFromAsmJS_ToInt32), Args_General4);
       case AsmJSImm_InvokeFromAsmJS_ToNumber:
-        return FuncCast(InvokeFromAsmJS_ToNumber);
+        return RedirectCall(FuncCast(InvokeFromAsmJS_ToNumber), Args_General4);
       case AsmJSImm_CoerceInPlace_ToInt32:
-        return FuncCast(CoerceInPlace_ToInt32);
+        return RedirectCall(FuncCast(CoerceInPlace_ToInt32), Args_General2);
       case AsmJSImm_CoerceInPlace_ToNumber:
-        return FuncCast(CoerceInPlace_ToNumber);
+        return RedirectCall(FuncCast(CoerceInPlace_ToNumber), Args_General2);
       case AsmJSImm_ToInt32:
-        return FuncCast<int32_t (double)>(js::ToInt32);
+        return RedirectCall(FuncCast<int32_t (double)>(js::ToInt32), Args_Int_Double);
       case AsmJSImm_EnableActivationFromAsmJS:
-        return FuncCast(EnableActivationFromAsmJS);
+        return RedirectCall(FuncCast(EnableActivationFromAsmJS), Args_General1);
       case AsmJSImm_DisableActivationFromAsmJS:
-        return FuncCast(DisableActivationFromAsmJS);
-#if defined(JS_CPU_ARM)
+        return RedirectCall(FuncCast(DisableActivationFromAsmJS), Args_General1);
+#if defined(JS_CODEGEN_ARM)
       case AsmJSImm_aeabi_idivmod:
-        return FuncCast(__aeabi_idivmod);
+        return RedirectCall(FuncCast(__aeabi_idivmod), Args_General2);
       case AsmJSImm_aeabi_uidivmod:
-        return FuncCast(__aeabi_uidivmod);
+        return RedirectCall(FuncCast(__aeabi_uidivmod), Args_General2);
 #endif
       case AsmJSImm_ModD:
-        return FuncCast(NumberMod);
+        return RedirectCall(FuncCast(NumberMod), Args_Double_DoubleDouble);
       case AsmJSImm_SinD:
-        return FuncCast<double (double)>(sin);
+        return RedirectCall(FuncCast<double (double)>(sin), Args_Double_Double);
       case AsmJSImm_SinF:
-        return FuncCast<float (float)>(sinf);
+        return RedirectCall(FuncCast<float (float)>(sinf), Args_Float32_Float32);
       case AsmJSImm_CosD:
-        return FuncCast<double (double)>(cos);
+        return RedirectCall(FuncCast<double (double)>(cos), Args_Double_Double);
       case AsmJSImm_CosF:
-        return FuncCast<float (float)>(cosf);
+        return RedirectCall(FuncCast<float (float)>(cosf), Args_Float32_Float32);
       case AsmJSImm_TanD:
-        return FuncCast<double (double)>(tan);
+        return RedirectCall(FuncCast<double (double)>(tan), Args_Double_Double);
       case AsmJSImm_TanF:
-        return FuncCast<float (float)>(tanf);
+        return RedirectCall(FuncCast<float (float)>(tanf), Args_Float32_Float32);
       case AsmJSImm_ASinD:
-        return FuncCast<double (double)>(asin);
+        return RedirectCall(FuncCast<double (double)>(asin), Args_Double_Double);
       case AsmJSImm_ASinF:
-        return FuncCast<float (float)>(asinf);
+        return RedirectCall(FuncCast<float (float)>(asinf), Args_Float32_Float32);
       case AsmJSImm_ACosD:
-        return FuncCast<double (double)>(acos);
+        return RedirectCall(FuncCast<double (double)>(acos), Args_Double_Double);
       case AsmJSImm_ACosF:
-        return FuncCast<float (float)>(acosf);
+        return RedirectCall(FuncCast<float (float)>(acosf), Args_Float32_Float32);
       case AsmJSImm_ATanD:
-        return FuncCast<double (double)>(atan);
+        return RedirectCall(FuncCast<double (double)>(atan), Args_Double_Double);
       case AsmJSImm_ATanF:
-        return FuncCast<float (float)>(atanf);
+        return RedirectCall(FuncCast<float (float)>(atanf), Args_Float32_Float32);
       case AsmJSImm_CeilD:
-        return FuncCast<double (double)>(ceil);
+        return RedirectCall(FuncCast<double (double)>(ceil), Args_Double_Double);
       case AsmJSImm_CeilF:
-        return FuncCast<float (float)>(ceilf);
+        return RedirectCall(FuncCast<float (float)>(ceilf), Args_Float32_Float32);
       case AsmJSImm_FloorD:
-        return FuncCast<double (double)>(floor);
+        return RedirectCall(FuncCast<double (double)>(floor), Args_Double_Double);
       case AsmJSImm_FloorF:
-        return FuncCast<float (float)>(floorf);
+        return RedirectCall(FuncCast<float (float)>(floorf), Args_Float32_Float32);
       case AsmJSImm_ExpD:
-        return FuncCast<double (double)>(exp);
+        return RedirectCall(FuncCast<double (double)>(exp), Args_Double_Double);
       case AsmJSImm_ExpF:
-        return FuncCast<float (float)>(expf);
+        return RedirectCall(FuncCast<float (float)>(expf), Args_Float32_Float32);
       case AsmJSImm_LogD:
-        return FuncCast<double (double)>(log);
+        return RedirectCall(FuncCast<double (double)>(log), Args_Double_Double);
       case AsmJSImm_LogF:
-        return FuncCast<float (float)>(logf);
+        return RedirectCall(FuncCast<float (float)>(logf), Args_Float32_Float32);
       case AsmJSImm_PowD:
-        return FuncCast(ecmaPow);
+        return RedirectCall(FuncCast(ecmaPow), Args_Double_DoubleDouble);
       case AsmJSImm_ATan2D:
-        return FuncCast(ecmaAtan2);
+        return RedirectCall(FuncCast(ecmaAtan2), Args_Double_DoubleDouble);
       case AsmJSImm_Invalid:
         break;
     }
@@ -400,7 +411,6 @@ const Class AsmJSModuleObject::class_ = {
     JS_ResolveStub,
     nullptr,                 /* convert     */
     AsmJSModuleObject_finalize,
-    nullptr,                 /* checkAccess */
     nullptr,                 /* call        */
     nullptr,                 /* hasInstance */
     nullptr,                 /* construct   */
@@ -731,15 +741,15 @@ GetCPUID(uint32_t *cpuId)
         ARCH_BITS = 2
     };
 
-#if defined(JS_CPU_X86)
+#if defined(JS_CODEGEN_X86)
     JS_ASSERT(uint32_t(JSC::MacroAssembler::getSSEState()) <= (UINT32_MAX >> ARCH_BITS));
     *cpuId = X86 | (JSC::MacroAssembler::getSSEState() << ARCH_BITS);
     return true;
-#elif defined(JS_CPU_X64)
+#elif defined(JS_CODEGEN_X64)
     JS_ASSERT(uint32_t(JSC::MacroAssembler::getSSEState()) <= (UINT32_MAX >> ARCH_BITS));
     *cpuId = X64 | (JSC::MacroAssembler::getSSEState() << ARCH_BITS);
     return true;
-#elif defined(JS_CPU_ARM)
+#elif defined(JS_CODEGEN_ARM)
     JS_ASSERT(GetARMFlags() <= (UINT32_MAX >> ARCH_BITS));
     *cpuId = ARM | (GetARMFlags() << ARCH_BITS);
     return true;
@@ -814,8 +824,7 @@ struct PropertyNameWrapper
 
 class ModuleChars
 {
-    uint32_t length_;
-    const jschar *begin_;
+  protected:
     uint32_t isFunCtor_;
     js::Vector<PropertyNameWrapper, 0, SystemAllocPolicy> funCtorArgs_;
 
@@ -827,8 +836,34 @@ class ModuleChars
     static uint32_t endOffset(AsmJSParser &parser) {
       return parser.tokenStream.peekTokenPos().end;
     }
+};
 
-    bool initFromParsedModule(AsmJSParser &parser, const AsmJSModule &module) {
+class ModuleCharsForStore : ModuleChars
+{
+    uint32_t uncompressedSize_;
+    uint32_t compressedSize_;
+    js::Vector<char, 0, SystemAllocPolicy> compressedBuffer_;
+
+  public:
+    bool init(AsmJSParser &parser, const AsmJSModule &module) {
+        JS_ASSERT(beginOffset(parser) < endOffset(parser));
+
+        uncompressedSize_ = (endOffset(parser) - beginOffset(parser)) * sizeof(jschar);
+        size_t maxCompressedSize = LZ4::maxCompressedSize(uncompressedSize_);
+        if (maxCompressedSize < uncompressedSize_)
+            return false;
+
+        if (!compressedBuffer_.resize(maxCompressedSize))
+            return false;
+
+        const jschar *chars = parser.tokenStream.rawBase() + beginOffset(parser);
+        const char *source = reinterpret_cast<const char*>(chars);
+        size_t compressedSize = LZ4::compress(source, uncompressedSize_, compressedBuffer_.begin());
+        if (!compressedSize || compressedSize > UINT32_MAX)
+            return false;
+
+        compressedSize_ = compressedSize;
+
         // For a function statement or named function expression:
         //   function f(x,y,z) { abc }
         // the range [beginOffset, endOffset) captures the source:
@@ -841,9 +876,6 @@ class ModuleChars
         // For functions created with 'new Function', function arguments are
         // not present in the source so we must manually explicitly serialize
         // and match the formals as a Vector of PropertyName.
-        JS_ASSERT(beginOffset(parser) < endOffset(parser));
-        begin_ = parser.tokenStream.rawBase() + beginOffset(parser);
-        length_ = endOffset(parser) - beginOffset(parser);
         isFunCtor_ = parser.pc->isFunctionConstructorBody();
         if (isFunCtor_) {
             unsigned numArgs;
@@ -853,42 +885,65 @@ class ModuleChars
                     return false;
             }
         }
+
         return true;
     }
 
     size_t serializedSize() const {
         return sizeof(uint32_t) +
-               length_ * sizeof(jschar) +
+               sizeof(uint32_t) +
+               compressedSize_ +
                sizeof(uint32_t) +
                (isFunCtor_ ? SerializedVectorSize(funCtorArgs_) : 0);
     }
 
     uint8_t *serialize(uint8_t *cursor) const {
-        cursor = WriteScalar<uint32_t>(cursor, length_);
-        cursor = WriteBytes(cursor, begin_, length_ * sizeof(jschar));
+        cursor = WriteScalar<uint32_t>(cursor, uncompressedSize_);
+        cursor = WriteScalar<uint32_t>(cursor, compressedSize_);
+        cursor = WriteBytes(cursor, compressedBuffer_.begin(), compressedSize_);
         cursor = WriteScalar<uint32_t>(cursor, isFunCtor_);
         if (isFunCtor_)
             cursor = SerializeVector(cursor, funCtorArgs_);
         return cursor;
     }
+};
 
+class ModuleCharsForLookup : ModuleChars
+{
+    js::Vector<jschar, 0, SystemAllocPolicy> chars_;
+
+  public:
     const uint8_t *deserialize(ExclusiveContext *cx, const uint8_t *cursor) {
-        cursor = ReadScalar<uint32_t>(cursor, &length_);
-        begin_ = reinterpret_cast<const jschar *>(cursor);
-        cursor += length_ * sizeof(jschar);
+        uint32_t uncompressedSize;
+        cursor = ReadScalar<uint32_t>(cursor, &uncompressedSize);
+
+        uint32_t compressedSize;
+        cursor = ReadScalar<uint32_t>(cursor, &compressedSize);
+
+        if (!chars_.resize(uncompressedSize / sizeof(jschar)))
+            return nullptr;
+
+        const char *source = reinterpret_cast<const char*>(cursor);
+        char *dest = reinterpret_cast<char*>(chars_.begin());
+        if (!LZ4::decompress(source, dest, uncompressedSize))
+            return nullptr;
+
+        cursor += compressedSize;
+
         cursor = ReadScalar<uint32_t>(cursor, &isFunCtor_);
         if (isFunCtor_)
             cursor = DeserializeVector(cx, cursor, &funCtorArgs_);
+
         return cursor;
     }
 
-    bool matchUnparsedModule(AsmJSParser &parser) const {
+    bool match(AsmJSParser &parser) const {
         const jschar *parseBegin = parser.tokenStream.rawBase() + beginOffset(parser);
         const jschar *parseLimit = parser.tokenStream.rawLimit();
         JS_ASSERT(parseLimit >= parseBegin);
-        if (uint32_t(parseLimit - parseBegin) < length_)
+        if (uint32_t(parseLimit - parseBegin) < chars_.length())
             return false;
-        if (!PodEqual(begin_, parseBegin, length_))
+        if (!PodEqual(chars_.begin(), parseBegin, chars_.length()))
             return false;
         if (isFunCtor_ != parser.pc->isFunctionConstructorBody())
             return false;
@@ -900,7 +955,7 @@ class ModuleChars
             //   new Function('"use asm"; function f() {} return f')
             // from incorrectly matching
             //   new Function('"use asm"; function f() {} return ff')
-            if (parseBegin + length_ != parseLimit)
+            if (parseBegin + chars_.length() != parseLimit)
                 return false;
             unsigned numArgs;
             ParseNode *arg = FunctionArgsList(parser.pc->maybeFunction, &numArgs);
@@ -942,8 +997,8 @@ js::StoreAsmJSModuleInCache(AsmJSParser &parser,
     if (!machineId.extractCurrentState(cx))
         return false;
 
-    ModuleChars moduleChars;
-    if (!moduleChars.initFromParsedModule(parser, module))
+    ModuleCharsForStore moduleChars;
+    if (!moduleChars.init(parser, module))
         return false;
 
     size_t serializedSize = machineId.serializedSize() +
@@ -1021,9 +1076,9 @@ js::LookupAsmJSModuleInCache(ExclusiveContext *cx,
     if (machineId != cachedMachineId)
         return true;
 
-    ModuleChars moduleChars;
+    ModuleCharsForLookup moduleChars;
     cursor = moduleChars.deserialize(cx, cursor);
-    if (!moduleChars.matchUnparsedModule(parser))
+    if (!moduleChars.match(parser))
         return true;
 
     ScopedJSDeletePtr<AsmJSModule> module(

@@ -112,9 +112,13 @@ public:
 
   void SetHash(const nsAString& aHash);
 
+  void Stringify(nsString& aRetval) const
+  {
+    GetHref(aRetval);
+  }
+
   // IURLSearchParamsObserver
   void URLSearchParamsUpdated() MOZ_OVERRIDE;
-  void URLSearchParamsNeedsUpdates() MOZ_OVERRIDE;
 
 private:
   URLProxy* GetURLProxy() const
@@ -125,6 +129,8 @@ private:
   void CreateSearchParamsIfNeeded();
 
   void SetSearchInternal(const nsAString& aSearch);
+
+  void UpdateURLSearchParams();
 
   WorkerPrivate* mWorkerPrivate;
   nsRefPtr<URLProxy> mURLProxy;

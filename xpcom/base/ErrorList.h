@@ -108,8 +108,6 @@
   ERROR(NS_ERROR_GFX_PRINTER_STARTPAGE,                   FAILURE(6)),
   /* The document is still being loaded */
   ERROR(NS_ERROR_GFX_PRINTER_DOC_IS_BUSY,                 FAILURE(7)),
-  /* Cannot Print or Print Preview XUL Documents (bug 136185 / bug 240490) */
-  ERROR(NS_ERROR_GFX_PRINTER_NO_XUL,                      FAILURE(8)),
 
   /* Font cmap is strangely structured - avoid this font! */
   ERROR(NS_ERROR_GFX_CMAP_MALFORMED,                      FAILURE(51)),
@@ -600,10 +598,6 @@
   /* any new errors here should have an associated entry added in xpc.msg */
 
   ERROR(NS_SUCCESS_I_DID_SOMETHING,      SUCCESS(1)),
-  /* Classes that want to only be touched by chrome (or from code whose
-   * filename begins with chrome://global/) shoudl return this from their
-   * scriptable helper's PreCreate hook. */
-  ERROR(NS_SUCCESS_CHROME_ACCESS_ONLY,   SUCCESS(2)),
 #undef MODULE
 
 

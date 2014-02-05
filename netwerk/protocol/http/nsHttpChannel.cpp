@@ -92,6 +92,12 @@ AccumulateCacheHitTelemetry(CacheDisposition hitOrMiss)
     }
     else {
         Telemetry::Accumulate(Telemetry::HTTP_CACHE_DISPOSITION_2_V2, hitOrMiss);
+
+        int32_t experiment = CacheObserver::HalfLifeExperiment();
+        if (experiment > 0 && hitOrMiss == kCacheMissed) {
+            Telemetry::Accumulate(Telemetry::HTTP_CACHE_MISS_HALFLIFE_EXPERIMENT,
+                                  experiment - 1);
+        }
     }
 }
 
@@ -266,12 +272,12 @@ nsHttpChannel::Connect()
         rv = sss->IsSecureURI(nsISiteSecurityService::HEADER_HSTS, mURI, flags,
                               &isStsHost);
 
-        // if SSS fails, there's no reason to cancel the load, but it's
-        // worrisome.
-        NS_ASSERTION(NS_SUCCEEDED(rv),
-                     "Something is wrong with SSS: IsSecureURI failed.");
+        // if the SSS check fails, it's likely because this load is on a
+        // malformed URI or something else in the setup is wrong, so any error
+        // should be reported.
+        NS_ENSURE_SUCCESS(rv, rv);
 
-        if (NS_SUCCEEDED(rv) && isStsHost) {
+        if (isStsHost) {
             LOG(("nsHttpChannel::Connect() STS permissions found\n"));
             return AsyncCall(&nsHttpChannel::HandleAsyncRedirectChannelToHttps);
         }
@@ -796,6 +802,8 @@ CallTypeSniffers(void *aClosure, const uint8_t *aData, uint32_t aCount)
 nsresult
 nsHttpChannel::CallOnStartRequest()
 {
+    nsresult rv;
+
     mTracingEnabled = false;
 
     // Allow consumers to override our content type
@@ -836,7 +844,7 @@ nsHttpChannel::CallOnStartRequest()
             // neither does applying the conversion from the URILoader
 
             nsCOMPtr<nsIStreamConverterService> serv;
-            nsresult rv = gHttpHandler->
+            rv = gHttpHandler->
                 GetStreamConverterService(getter_AddRefs(serv));
             // If we failed, we just fall through to the "normal" case
             if (NS_SUCCEEDED(rv)) {
@@ -859,15 +867,19 @@ nsHttpChannel::CallOnStartRequest()
     if (mResponseHead && mCacheEntry) {
         // If we have a cache entry, set its predicted size to ContentLength to
         // avoid caching an entry that will exceed the max size limit.
-        nsresult rv = mCacheEntry->SetPredictedDataSize(
+        rv = mCacheEntry->SetPredictedDataSize(
             mResponseHead->ContentLength());
-        NS_ENSURE_SUCCESS(rv, rv);
+        if (NS_ERROR_FILE_TOO_BIG == rv) {
+          mCacheEntry = nullptr;
+          LOG(("  entry too big, throwing away"));
+        } else {
+          NS_ENSURE_SUCCESS(rv, rv);
+        }
     }
 
     LOG(("  calling mListener->OnStartRequest\n"));
-    nsresult rv;
     if (mListener) {
-        nsresult rv = mListener->OnStartRequest(this, mListenerContext);
+        rv = mListener->OnStartRequest(this, mListenerContext);
         if (NS_FAILED(rv))
             return rv;
     } else {
@@ -2012,7 +2024,7 @@ nsHttpChannel::MaybeSetupByteRangeRequest(int64_t partialLen, int64_t contentLen
     mIsPartialRequest = false;
 
     if (!IsResumable(partialLen, contentLength))
-      return NS_OK;
+      return NS_ERROR_NOT_RESUMABLE;
 
     // looks like a partial entry we can reuse; add If-Range
     // and Range headers.
@@ -2550,10 +2562,11 @@ nsHttpChannel::OpenCacheEntry(bool usingSSL)
     }
     NS_ENSURE_SUCCESS(rv, rv);
 
-    if (mLoadAsBlocking || mLoadUnblocked ||
-        (mLoadFlags & LOAD_INITIAL_DOCUMENT_URI)) {
+    // Don't consider mLoadUnblocked here, since it's not indication of a demand
+    // to load prioritly. It's mostly used to load XHR requests, but those should
+    // not be considered as influencing the page load performance.
+    if (mLoadAsBlocking || (mLoadFlags & LOAD_INITIAL_DOCUMENT_URI))
         cacheEntryOpenFlags |= nsICacheStorage::OPEN_PRIORITY;
-    }
 
     // Only for backward compatibility with the old cache back end.
     // When removed, remove the flags and related code snippets.
@@ -2751,7 +2764,7 @@ nsHttpChannel::OnCacheEntryCheck(nsICacheEntry* entry, nsIApplicationCache* appC
                  "[content-length=%lld size=%lld]\n", contentLength, size));
 
             rv = MaybeSetupByteRangeRequest(size, contentLength);
-            mCachedContentIsPartial = NS_SUCCEEDED(rv);
+            mCachedContentIsPartial = NS_SUCCEEDED(rv) && mIsPartialRequest;
             if (mCachedContentIsPartial) {
                 rv = OpenCacheInputStream(entry, false);
                 *aResult = ENTRY_NEEDS_REVALIDATION;
@@ -3633,22 +3646,28 @@ nsHttpChannel::InitCacheEntry()
     LOG(("nsHttpChannel::InitCacheEntry [this=%p entry=%p]\n",
         this, mCacheEntry.get()));
 
-    if (!mCacheEntryIsWriteOnly) {
+    bool recreate = !mCacheEntryIsWriteOnly;
+    bool dontPersist = mLoadFlags & INHIBIT_PERSISTENT_CACHING;
+
+    if (!recreate && dontPersist) {
+        // If the current entry is persistent but we inhibit peristence
+        // then force recreation of the entry as memory/only.
+        rv = mCacheEntry->GetPersistent(&recreate);
+        if (NS_FAILED(rv))
+            return rv;
+    }
+
+    if (recreate) {
         LOG(("  we have a ready entry, but reading it again from the server -> recreating cache entry\n"));
         nsCOMPtr<nsICacheEntry> currentEntry;
         currentEntry.swap(mCacheEntry);
-        rv = currentEntry->Recreate(getter_AddRefs(mCacheEntry));
+        rv = currentEntry->Recreate(dontPersist, getter_AddRefs(mCacheEntry));
         if (NS_FAILED(rv)) {
           LOG(("  recreation failed, the response will not be cached"));
           return NS_OK;
         }
 
         mCacheEntryIsWriteOnly = true;
-    }
-
-    if (mLoadFlags & INHIBIT_PERSISTENT_CACHING) {
-        rv = mCacheEntry->SetPersistToDisk(false);
-        if (NS_FAILED(rv)) return rv;
     }
 
     // Set the expiration time for this cache entry
@@ -5296,13 +5315,42 @@ nsHttpChannel::OnDataAvailable(nsIRequest *request, nsISupports *ctxt,
         if (!mLogicalOffset)
             MOZ_EVENT_TRACER_EXEC(this, "net::http::channel");
 
+        int64_t offsetBefore = 0;
+        nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(input);
+        if (seekable && NS_FAILED(seekable->Tell(&offsetBefore))) {
+            seekable = nullptr;
+        }
+
         nsresult rv =  mListener->OnDataAvailable(this,
                                                   mListenerContext,
                                                   input,
                                                   mLogicalOffset,
                                                   count);
-        if (NS_SUCCEEDED(rv))
-            mLogicalOffset = progress;
+        if (NS_SUCCEEDED(rv)) {
+            // by contract mListener must read all of "count" bytes, but
+            // nsInputStreamPump is tolerant to seekable streams that violate that
+            // and it will redeliver incompletely read data. So we need to do
+            // the same thing when updating the progress counter to stay in sync.
+            int64_t offsetAfter, delta;
+            if (seekable && NS_SUCCEEDED(seekable->Tell(&offsetAfter))) {
+                delta = offsetAfter - offsetBefore;
+                if (delta != count) {
+                    count = delta;
+
+                    NS_WARNING("Listener OnDataAvailable contract violation");
+                    nsCOMPtr<nsIConsoleService> consoleService =
+                        do_GetService(NS_CONSOLESERVICE_CONTRACTID);
+                    nsAutoString message
+                        (NS_LITERAL_STRING(
+                        "http channel Listener OnDataAvailable contract violation"));
+                    if (consoleService) {
+                        consoleService->LogStringMessage(message.get());
+                    }
+                }
+            }
+            mLogicalOffset += count;
+        }
+        
         return rv;
     }
 

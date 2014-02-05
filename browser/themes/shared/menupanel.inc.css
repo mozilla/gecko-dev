@@ -15,13 +15,17 @@ toolbarpaletteitem[place="palette"] > #bookmarks-menu-button {
   -moz-image-region: rect(0px, 160px, 32px, 128px);
 }
 
-#bookmarks-menu-button[starred][cui-areatype="menu-panel"] {
-  -moz-image-region: rect(0px, 192px, 32px, 160px);
+#bookmarks-menu-button[cui-areatype="menu-panel"].panel-multiview-anchor {
+  -moz-image-region: rect(32px, 160px, 64px, 128px);
 }
 
 #history-panelmenu[cui-areatype="menu-panel"],
 toolbarpaletteitem[place="palette"] > #history-panelmenu {
   -moz-image-region: rect(0px, 224px, 32px, 192px);
+}
+
+#history-panelmenu[cui-areatype="menu-panel"].panel-multiview-anchor {
+  -moz-image-region: rect(32px, 224px, 64px, 192px);
 }
 
 #downloads-button[cui-areatype="menu-panel"],
@@ -59,20 +63,13 @@ toolbarpaletteitem[place="palette"] > #social-share-button {
   -moz-image-region: rect(0px, 448px, 32px, 416px);
 }
 
-#email-link-button[cui-areatype="menu-panel"],
-toolbarpaletteitem[place="palette"] > #email-link-button {
-  -moz-image-region: rect(0, 448px, 32px, 416px);
-}
-
-/* This is temporary until we have an email-link icon (Bug 932235) */
-#email-link-button[cui-areatype="menu-panel"] > image,
-toolbarpaletteitem[place="palette"] > #email-link-button > image {
-  transform: scale(-1, -1);
-}
-
 #characterencoding-button[cui-areatype="menu-panel"],
 toolbarpaletteitem[place="palette"] > #characterencoding-button {
   -moz-image-region: rect(0px, 480px, 32px, 448px);
+}
+
+#characterencoding-button[cui-areatype="menu-panel"].panel-multiview-anchor {
+  -moz-image-region: rect(32px, 480px, 64px, 448px);
 }
 
 #new-window-button[cui-areatype="menu-panel"],
@@ -88,6 +85,11 @@ toolbarpaletteitem[place="palette"] > #new-tab-button {
 #privatebrowsing-button[cui-areatype="menu-panel"],
 toolbarpaletteitem[place="palette"] > #privatebrowsing-button {
   -moz-image-region: rect(0px, 576px, 32px, 544px);
+}
+
+#tabview-button[cui-areatype="menu-panel"],
+toolbarpaletteitem[place="palette"] > #tabview-button {
+  -moz-image-region: rect(0px, 608px, 32px, 576px);
 }
 
 #find-button[cui-areatype="menu-panel"],
@@ -110,9 +112,18 @@ toolbarpaletteitem[place="palette"] > #developer-button {
   -moz-image-region: rect(0px, 736px, 32px, 704px);
 }
 
+#developer-button[cui-areatype="menu-panel"].panel-multiview-anchor {
+  -moz-image-region: rect(32px, 736px, 64px, 704px);
+}
+
 #preferences-button[cui-areatype="menu-panel"],
 toolbarpaletteitem[place="palette"] > #preferences-button {
   -moz-image-region: rect(0px, 768px, 32px, 736px);
+}
+
+#email-link-button[cui-areatype="menu-panel"],
+toolbarpaletteitem[place="palette"] > #email-link-button {
+  -moz-image-region: rect(0, 800px, 32px, 768px);
 }
 
 /* Wide panel control icons */

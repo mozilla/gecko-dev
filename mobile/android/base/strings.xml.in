@@ -13,6 +13,7 @@
 <!ENTITY formatS "&#037;s">
 <!ENTITY formatS1 "&#037;1&#036;s">
 <!ENTITY formatS2 "&#037;2&#036;s">
+<!ENTITY formatS3 "&#037;3&#036;s">
 <!ENTITY formatD "&#037;d">
 ]>
 
@@ -26,6 +27,7 @@
   <string name="content_authority_db_tabs">@ANDROID_PACKAGE_NAME@.db.tabs</string>
   <string name="moz_android_shared_account_type">@MOZ_ANDROID_SHARED_ACCOUNT_TYPE@</string>
   <string name="moz_android_shared_fxaccount_type">@MOZ_ANDROID_SHARED_FXACCOUNT_TYPE@</string>
+  <string name="android_package_name_for_ui">@ANDROID_PACKAGE_NAME@</string>
 #include ../services/strings.xml.in
   <string name="no_space_to_start_error">&no_space_to_start_error;</string>
   <string name="error_loading_file">&error_loading_file;</string>
@@ -82,11 +84,16 @@
   <string name="find_next">&find_next;</string>
   <string name="find_close">&find_close;</string>
 
+  <string name="media_casting_to">&media_casting_to;</string>
+  <string name="media_play">&media_play;</string>
+  <string name="media_pause">&media_pause;</string>
+  <string name="media_stop">&media_stop;</string>
+
   <string name="settings">&settings;</string>
   <string name="settings_title">&settings_title;</string>
   <string name="pref_category_advanced">&pref_category_advanced;</string>
   <string name="pref_category_customize">&pref_category_customize;</string>
-  <string name="pref_category_search">&pref_category_search2;</string>
+  <string name="pref_category_search">&pref_category_search3;</string>
   <string name="pref_category_display">&pref_category_display;</string>
   <string name="pref_category_privacy_short">&pref_category_privacy_short;</string>
   <string name="pref_category_vendor">&pref_category_vendor;</string>
@@ -101,6 +108,9 @@
   <string name="pref_category_devtools">&pref_category_devtools;</string>
   <string name="pref_developer_remotedebugging">&pref_developer_remotedebugging;</string>
   <string name="pref_developer_remotedebugging_docs">&pref_developer_remotedebugging_docs;</string>
+
+  <string name="pref_category_home">&pref_category_home;</string>
+  <string name="pref_category_home_panels">&pref_category_home_panels;</string>
 
   <string name="pref_header_customize">&pref_header_customize;</string>
   <string name="pref_header_display">&pref_header_display;</string>
@@ -163,11 +173,14 @@
   <string name="pref_vendor_faqs">&pref_vendor_faqs;</string>
   <string name="pref_vendor_feedback">&pref_vendor_feedback;</string>
 
-  <!-- Strings used in default search provider config preferences menu -->
-  <string name="pref_search_set_default">&pref_search_set_default;</string>
-  <string name="pref_search_default">&pref_search_default;</string>
-  <string name="pref_search_remove">&pref_search_remove;</string>
+  <string name="pref_dialog_set_default">&pref_dialog_set_default;</string>
+  <string name="pref_default">&pref_dialog_default;</string>
+  <string name="pref_dialog_remove">&pref_dialog_remove;</string>
+
   <string name="pref_search_last_toast">&pref_search_last_toast;</string>
+
+  <string name="pref_panels_show">&pref_panels_show;</string>
+  <string name="pref_panels_hide">&pref_panels_hide;</string>
 
   <string name="datareporting_notification_title">&datareporting_notification_title;</string>
   <string name="datareporting_notification_action_long">&datareporting_notification_action_long;</string>
@@ -242,7 +255,7 @@
   <string name="pref_titlebar_mode_title">&pref_titlebar_mode_title;</string>
   <string name="pref_titlebar_mode_url">&pref_titlebar_mode_url;</string>
 
-  <string name="pref_dynamic_toolbar">&pref_dynamic_toolbar;</string>
+  <string name="pref_scroll_title_bar">&pref_scroll_title_bar;</string>
 
   <string name="history_removed">&history_removed;</string>
 
@@ -284,18 +297,23 @@
   <string name="filepicker_image_title">&filepicker_image_title;</string>
   <string name="filepicker_video_title">&filepicker_video_title;</string>
 
-  <!-- Default bookmarks. Use bookmarks titles shared with XUL from mobile's
-       profile/bookmarks.inc. Don't expose the URLs to L10N. -->
+  <!-- Default bookmarks. We used to use bookmark titles shared with XUL from mobile's
+       profile/bookmarks.inc (see bug 964946). Don't expose the URLs to L10N. -->
   <string name="bookmarkdefaults_title_aboutfirefox">@bookmarks_aboutBrowser@</string>
   <string name="bookmarkdefaults_url_aboutfirefox">about:firefox</string>
   <string name="bookmarkdefaults_favicon_aboutfirefox">chrome/chrome/content/branding/favicon64.png</string>
 
+  <!-- Icon is automatically generated from R.drawable.bookmarkdefaults_favicon_addons -->
   <string name="bookmarkdefaults_title_addons">@bookmarks_addons@</string>
   <string name="bookmarkdefaults_url_addons">https://addons.mozilla.org/@AB_CD@/android/</string>
 
   <string name="bookmarkdefaults_title_support">@bookmarks_support@</string>
   <string name="bookmarkdefaults_url_support">http://support.mozilla.org/@AB_CD@/products/mobile</string>
   <string name="bookmarkdefaults_favicon_abouthome">chrome/chrome/content/branding/favicon64.png</string>
+
+  <!-- Icon is automatically generated from R.drawable.bookmarkdefaults_favicon_marketplace -->
+  <string name="bookmarkdefaults_title_marketplace">@bookmarks_marketplace@</string>
+  <string name="bookmarkdefaults_url_marketplace">https://marketplace.firefox.com/</string>
 
   <!-- Site identity popup -->
   <string name="identity_connected_to">&identity_connected_to;</string>

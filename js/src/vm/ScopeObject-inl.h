@@ -19,7 +19,7 @@ ScopeObject::setAliasedVar(JSContext *cx, ScopeCoordinate sc, PropertyName *name
     JS_ASSERT(is<CallObject>() || is<ClonedBlockObject>());
     JS_STATIC_ASSERT(CallObject::RESERVED_SLOTS == BlockObject::RESERVED_SLOTS);
 
-    setSlot(sc.slot, v);
+    setSlot(sc.slot(), v);
 
     // name may be null if we don't need to track side effects on the object.
     if (hasSingletonType() && !hasLazyType()) {
@@ -48,8 +48,8 @@ template <AllowGC allowGC>
 inline void
 StaticScopeIter<allowGC>::operator++(int)
 {
-    if (obj->template is<StaticBlockObject>()) {
-        obj = obj->template as<StaticBlockObject>().enclosingStaticScope();
+    if (obj->template is<NestedScopeObject>()) {
+        obj = obj->template as<NestedScopeObject>().enclosingScopeForStaticScopeIter();
     } else if (onNamedLambda || !obj->template as<JSFunction>().isNamedLambda()) {
         onNamedLambda = false;
         obj = obj->template as<JSFunction>().nonLazyScript()->enclosingStaticScope();

@@ -26,6 +26,7 @@ const SEARCH_FUNCTION_FLAG = "@";
 const SEARCH_TOKEN_FLAG = "#";
 const SEARCH_LINE_FLAG = ":";
 const SEARCH_VARIABLE_FLAG = "*";
+const SEARCH_AUTOFILL = [SEARCH_GLOBAL_FLAG, SEARCH_FUNCTION_FLAG, SEARCH_TOKEN_FLAG];
 const EDITOR_VARIABLE_HOVER_DELAY = 350; // ms
 const EDITOR_VARIABLE_POPUP_POSITION = "topcenter bottomleft";
 const TOOLBAR_ORDER_POPUP_POSITION = "topcenter bottomleft";
@@ -167,6 +168,10 @@ let DebuggerView = {
       },
       lazyEmpty: true
     });
+
+    // Attach the current toolbox to the VView so it can link DOMNodes to
+    // the inspector/highlighter
+    this.Variables.toolbox = DebuggerController._toolbox;
 
     // Attach a controller that handles interfacing with the debugger protocol.
     VariablesViewController.attach(this.Variables, {

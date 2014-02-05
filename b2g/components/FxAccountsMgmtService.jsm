@@ -24,7 +24,6 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/ObjectWrapper.jsm");
 Cu.import("resource://gre/modules/FxAccountsCommon.js");
 
 XPCOMUtils.defineLazyModuleGetter(this, "FxAccountsManager",
@@ -32,22 +31,23 @@ XPCOMUtils.defineLazyModuleGetter(this, "FxAccountsManager",
 
 this.FxAccountsMgmtService = {
 
-  _sendChromeEvent: function(aMsg) {
+  _sendChromeEvent: function(aEventName, aMsg) {
     if (!this._shell) {
       return;
     }
-    this._shell.sendCustomEvent("mozFxAccountsChromeEvent", aMsg);
+    log.debug("Chrome event " + JSON.stringify(aMsg));
+    this._shell.sendCustomEvent(aEventName, aMsg);
   },
 
   _onFullfill: function(aMsgId, aData) {
-    this._sendChromeEvent({
+    this._sendChromeEvent("mozFxAccountsChromeEvent", {
       id: aMsgId,
       data: aData ? aData : null
     });
   },
 
   _onReject: function(aMsgId, aReason) {
-    this._sendChromeEvent({
+    this._sendChromeEvent("mozFxAccountsChromeEvent", {
       id: aMsgId,
       error: aReason ? aReason : null
     });
@@ -55,14 +55,30 @@ this.FxAccountsMgmtService = {
 
   init: function() {
     Services.obs.addObserver(this, "content-start", false);
+    Services.obs.addObserver(this, ONLOGIN_NOTIFICATION, false);
+    Services.obs.addObserver(this, ONVERIFIED_NOTIFICATION, false);
+    Services.obs.addObserver(this, ONLOGOUT_NOTIFICATION, false);
   },
 
   observe: function(aSubject, aTopic, aData) {
-    this._shell = Services.wm.getMostRecentWindow("navigator:browser").shell;
-    let content = this._shell.contentBrowser.contentWindow;
-    content.addEventListener("mozFxAccountsContentEvent",
-                             FxAccountsMgmtService);
-    Services.obs.removeObserver(this, "content-start");
+    log.debug("Observed " + aTopic);
+    switch (aTopic) {
+      case "content-start":
+        this._shell = Services.wm.getMostRecentWindow("navigator:browser").shell;
+        let content = this._shell.contentBrowser.contentWindow;
+        content.addEventListener("mozFxAccountsContentEvent",
+                                 FxAccountsMgmtService);
+        Services.obs.removeObserver(this, "content-start");
+        break;
+      case ONLOGIN_NOTIFICATION:
+      case ONVERIFIED_NOTIFICATION:
+      case ONLOGOUT_NOTIFICATION:
+        // FxAccounts notifications have the form of fxaccounts:*
+        this._sendChromeEvent("mozFxAccountsUnsolChromeEvent", {
+          eventName: aTopic.substring(aTopic.indexOf(":") + 1)
+        });
+        break;
+    }
   },
 
   handleEvent: function(aEvent) {

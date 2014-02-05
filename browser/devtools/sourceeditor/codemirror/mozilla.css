@@ -74,10 +74,39 @@ selector in floating-scrollbar-light.css across all platforms. */
   font: message-box;
 }
 
-.CodeMirror-code > div > div:first-child {
-  top: 50%;
+.cm-trailingspace {
+  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAACCAYAAAB/qH1jAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3QUXCToH00Y1UgAAACFJREFUCNdjPMDBUc/AwNDAAAFMTAwMDA0OP34wQgX/AQBYgwYEx4f9lQAAAABJRU5ErkJggg==");
+  opacity: 0.75;
+  background-position: left bottom;
+  background-repeat: repeat-x;
 }
 
-.CodeMirror-gutter-elt {
-  transform: translate(0,-50%);
+/* Fold addon */
+
+.CodeMirror-foldmarker {
+  color: blue;
+  text-shadow: #b9f 1px 1px 2px, #b9f -1px -1px 2px, #b9f 1px -1px 2px, #b9f -1px 1px 2px;
+  font-family: sans-serif;
+  line-height: .3;
+  cursor: pointer;
+}
+
+.CodeMirror-foldgutter {
+  width: 16px; /* Same as breakpoints gutter above */
+}
+
+.CodeMirror-foldgutter-open,
+.CodeMirror-foldgutter-folded {
+  color: #555;
+  cursor: pointer;
+}
+
+.CodeMirror-foldgutter-open:after {
+  font-size: 120%;
+  content: "\25BE";
+}
+
+.CodeMirror-foldgutter-folded:after {
+  font-size: 120%;
+  content: "\25B8";
 }

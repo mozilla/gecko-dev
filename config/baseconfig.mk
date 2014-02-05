@@ -1,8 +1,23 @@
+# This file is normally included by autoconf.mk, but it is also used
+# directly in python/mozbuild/mozbuild/base.py for gmake validation.
+# We thus use INCLUDED_AUTOCONF_MK to enable/disable some parts depending
+# whether a normal build is happening or whether the check is running.
 includedir := $(includedir)/$(MOZ_APP_NAME)-$(MOZ_APP_VERSION)
 idldir = $(datadir)/idl/$(MOZ_APP_NAME)-$(MOZ_APP_VERSION)
 installdir = $(libdir)/$(MOZ_APP_NAME)-$(MOZ_APP_VERSION)
 sdkdir = $(libdir)/$(MOZ_APP_NAME)-devel-$(MOZ_APP_VERSION)
-DIST = $(DEPTH)/dist
+ifndef TOP_DIST
+TOP_DIST = dist
+endif
+ifneq (,$(filter /%,$(TOP_DIST)))
+DIST = $(TOP_DIST)
+else
+ifeq (.,$(DEPTH))
+DIST = $(TOP_DIST)
+else
+DIST = $(DEPTH)/$(TOP_DIST)
+endif
+endif
 
 # We do magic with OBJ_SUFFIX in config.mk, the following ensures we don't
 # manually use it before config.mk inclusion
@@ -23,8 +38,10 @@ ifneq (4.0-,$(firstword $(sort 4.0- $(MAKE_VERSION))))
 $(error Make version too old. Only versions strictly greater than 4.0 are supported.)
 endif
 endif
+ifdef INCLUDED_AUTOCONF_MK
 ifeq (a,$(firstword a$(subst /, ,$(srcdir))))
 $(error MSYS-style srcdir are not supported for Windows builds.)
+endif
 endif
 endif # WINNT
 
@@ -32,4 +49,8 @@ ifdef .PYMAKE
 include_deps = $(eval $(if $(2),,-)includedeps $(1))
 else
 include_deps = $(eval $(if $(2),,-)include $(1))
+endif
+
+ifndef INCLUDED_AUTOCONF_MK
+default::
 endif

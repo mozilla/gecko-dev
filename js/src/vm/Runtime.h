@@ -40,6 +40,7 @@
 #include "js/Vector.h"
 #include "vm/CommonPropertyNames.h"
 #include "vm/DateTime.h"
+#include "vm/MallocProvider.h"
 #include "vm/SPSProfiler.h"
 #include "vm/Stack.h"
 #include "vm/ThreadPool.h"
@@ -89,6 +90,8 @@ namespace jit {
 class JitRuntime;
 class JitActivation;
 struct PcScriptCache;
+class Simulator;
+class SimulatorRuntime;
 }
 
 /*
@@ -169,7 +172,7 @@ struct ConservativeGCData
 #endif
     }
 
-    JS_NEVER_INLINE void recordStackTop();
+    MOZ_NEVER_INLINE void recordStackTop();
 
 #ifdef JS_THREADSAFE
     void updateForRequestEnd() {
@@ -546,6 +549,11 @@ class PerThreadData : public PerThreadDataFriendFields,
     /* See AsmJSActivation comment. Protected by rt->operationCallbackLock. */
     js::AsmJSActivation *asmJSActivationStack_;
 
+#ifdef JS_ARM_SIMULATOR
+    js::jit::Simulator *simulator_;
+    uintptr_t simulatorStackLimit_;
+#endif
+
   public:
     js::Activation *const *addressOfActivation() const {
         return &activation_;
@@ -600,80 +608,13 @@ class PerThreadData : public PerThreadDataFriendFields,
     inline bool exclusiveThreadsPresent();
     inline void addActiveCompilation();
     inline void removeActiveCompilation();
-};
 
-template<class Client>
-struct MallocProvider
-{
-    void *malloc_(size_t bytes) {
-        Client *client = static_cast<Client *>(this);
-        client->updateMallocCounter(bytes);
-        void *p = js_malloc(bytes);
-        return JS_LIKELY(!!p) ? p : client->onOutOfMemory(nullptr, bytes);
-    }
-
-    void *calloc_(size_t bytes) {
-        Client *client = static_cast<Client *>(this);
-        client->updateMallocCounter(bytes);
-        void *p = js_calloc(bytes);
-        return JS_LIKELY(!!p) ? p : client->onOutOfMemory(reinterpret_cast<void *>(1), bytes);
-    }
-
-    void *realloc_(void *p, size_t oldBytes, size_t newBytes) {
-        Client *client = static_cast<Client *>(this);
-        /*
-         * For compatibility we do not account for realloc that decreases
-         * previously allocated memory.
-         */
-        if (newBytes > oldBytes)
-            client->updateMallocCounter(newBytes - oldBytes);
-        void *p2 = js_realloc(p, newBytes);
-        return JS_LIKELY(!!p2) ? p2 : client->onOutOfMemory(p, newBytes);
-    }
-
-    void *realloc_(void *p, size_t bytes) {
-        Client *client = static_cast<Client *>(this);
-        /*
-         * For compatibility we do not account for realloc that increases
-         * previously allocated memory.
-         */
-        if (!p)
-            client->updateMallocCounter(bytes);
-        void *p2 = js_realloc(p, bytes);
-        return JS_LIKELY(!!p2) ? p2 : client->onOutOfMemory(p, bytes);
-    }
-
-    template <class T>
-    T *pod_malloc() {
-        return (T *)malloc_(sizeof(T));
-    }
-
-    template <class T>
-    T *pod_calloc() {
-        return (T *)calloc_(sizeof(T));
-    }
-
-    template <class T>
-    T *pod_malloc(size_t numElems) {
-        if (numElems & mozilla::tl::MulOverflowMask<sizeof(T)>::value) {
-            Client *client = static_cast<Client *>(this);
-            client->reportAllocationOverflow();
-            return nullptr;
-        }
-        return (T *)malloc_(numElems * sizeof(T));
-    }
-
-    template <class T>
-    T *pod_calloc(size_t numElems, JSCompartment *comp = nullptr, JSContext *cx = nullptr) {
-        if (numElems & mozilla::tl::MulOverflowMask<sizeof(T)>::value) {
-            Client *client = static_cast<Client *>(this);
-            client->reportAllocationOverflow();
-            return nullptr;
-        }
-        return (T *)calloc_(numElems * sizeof(T));
-    }
-
-    JS_DECLARE_NEW_METHODS(new_, malloc_, JS_ALWAYS_INLINE)
+#ifdef JS_ARM_SIMULATOR
+    js::jit::Simulator *simulator() const;
+    void setSimulator(js::jit::Simulator *sim);
+    js::jit::SimulatorRuntime *simulatorRuntime() const;
+    uintptr_t *addressOfSimulatorStackLimit();
+#endif
 };
 
 namespace gc {
@@ -1336,6 +1277,10 @@ struct JSRuntime : public JS::shadow::Runtime,
      */
     mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> gcMallocGCTriggered;
 
+#ifdef JS_ARM_SIMULATOR
+    js::jit::SimulatorRuntime *simulatorRuntime_;
+#endif
+
   public:
     void setNeedsBarrier(bool needs) {
         needsBarrier_ = needs;
@@ -1352,6 +1297,11 @@ struct JSRuntime : public JS::shadow::Runtime,
           : op(op), data(data)
         {}
     };
+
+#ifdef JS_ARM_SIMULATOR
+    js::jit::SimulatorRuntime *simulatorRuntime() const;
+    void setSimulatorRuntime(js::jit::SimulatorRuntime *srt);
+#endif
 
     /*
      * The trace operations to trace embedding-specific GC roots. One is for
@@ -1647,16 +1597,11 @@ struct JSRuntime : public JS::shadow::Runtime,
     size_t              noGCOrAllocationCheck;
 #endif
 
-    bool                jitHardening;
-
     bool                jitSupportsFloatingPoint;
 
     // Used to reset stack limit after a signaled interrupt (i.e. ionStackLimit_ = -1)
     // has been noticed by Ion/Baseline.
-    void resetIonStackLimit() {
-        AutoLockForOperationCallback lock(this);
-        mainThread.setIonStackLimit(mainThread.nativeStackLimit[js::StackForUntrustedScript]);
-    }
+    void resetIonStackLimit();
 
     // Cache for jit::GetPcScript().
     js::jit::PcScriptCache *ionPcScriptCache;
@@ -1766,11 +1711,6 @@ struct JSRuntime : public JS::shadow::Runtime,
     };
 
     void triggerOperationCallback(OperationCallbackTrigger trigger);
-
-    void setJitHardening(bool enabled);
-    bool getJitHardening() const {
-        return jitHardening;
-    }
 
     void addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf, JS::RuntimeSizes *runtime);
 
@@ -2030,64 +1970,64 @@ PerThreadData::removeActiveCompilation()
 
 /************************************************************************/
 
-static JS_ALWAYS_INLINE void
+static MOZ_ALWAYS_INLINE void
 MakeRangeGCSafe(Value *vec, size_t len)
 {
     mozilla::PodZero(vec, len);
 }
 
-static JS_ALWAYS_INLINE void
+static MOZ_ALWAYS_INLINE void
 MakeRangeGCSafe(Value *beg, Value *end)
 {
     mozilla::PodZero(beg, end - beg);
 }
 
-static JS_ALWAYS_INLINE void
+static MOZ_ALWAYS_INLINE void
 MakeRangeGCSafe(jsid *beg, jsid *end)
 {
     for (jsid *id = beg; id != end; ++id)
         *id = INT_TO_JSID(0);
 }
 
-static JS_ALWAYS_INLINE void
+static MOZ_ALWAYS_INLINE void
 MakeRangeGCSafe(jsid *vec, size_t len)
 {
     MakeRangeGCSafe(vec, vec + len);
 }
 
-static JS_ALWAYS_INLINE void
+static MOZ_ALWAYS_INLINE void
 MakeRangeGCSafe(Shape **beg, Shape **end)
 {
     mozilla::PodZero(beg, end - beg);
 }
 
-static JS_ALWAYS_INLINE void
+static MOZ_ALWAYS_INLINE void
 MakeRangeGCSafe(Shape **vec, size_t len)
 {
     mozilla::PodZero(vec, len);
 }
 
-static JS_ALWAYS_INLINE void
+static MOZ_ALWAYS_INLINE void
 SetValueRangeToUndefined(Value *beg, Value *end)
 {
     for (Value *v = beg; v != end; ++v)
         v->setUndefined();
 }
 
-static JS_ALWAYS_INLINE void
+static MOZ_ALWAYS_INLINE void
 SetValueRangeToUndefined(Value *vec, size_t len)
 {
     SetValueRangeToUndefined(vec, vec + len);
 }
 
-static JS_ALWAYS_INLINE void
+static MOZ_ALWAYS_INLINE void
 SetValueRangeToNull(Value *beg, Value *end)
 {
     for (Value *v = beg; v != end; ++v)
         v->setNull();
 }
 
-static JS_ALWAYS_INLINE void
+static MOZ_ALWAYS_INLINE void
 SetValueRangeToNull(Value *vec, size_t len)
 {
     SetValueRangeToNull(vec, vec + len);

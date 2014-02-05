@@ -68,7 +68,7 @@ MaybeAlignAndClampDisplayPort(mozilla::layers::FrameMetrics& aFrameMetrics,
   // Correct the display-port by the difference between the requested scroll
   // offset and the resulting scroll offset after setting the requested value.
   CSSRect& displayPort = aFrameMetrics.mDisplayPort;
-  displayPort += aActualScrollOffset - aFrameMetrics.mScrollOffset;
+  displayPort += aFrameMetrics.mScrollOffset - aActualScrollOffset;
 
   // Expand the display port to the next tile boundaries, if tiled thebes layers
   // are enabled.
@@ -92,10 +92,19 @@ ScrollFrameTo(nsIScrollableFrame* aFrame, const CSSPoint& aPoint)
     return CSSPoint();
   }
 
-  // If the scrollable frame got a scroll request from something other than us
+  // If the scrollable frame is currently in the middle of an async or smooth
+  // scroll then we don't want to interrupt it (see bug 961280).
+  // Also if the scrollable frame got a scroll request from something other than us
   // since the last layers update, then we don't want to push our scroll request
   // because we'll clobber that one, which is bad.
-  if (!aFrame->OriginOfLastScroll() || aFrame->OriginOfLastScroll() == nsGkAtoms::apz) {
+  // Note that content may have just finished sending a layers update with a scroll
+  // offset update to the APZ, in which case the origin will be reset to null and we
+  // might actually be clobbering the content-side scroll offset with a stale APZ
+  // scroll offset. This is unavoidable because of the async communication between
+  // APZ and content; however the code in NotifyLayersUpdated should reissue a new
+  // repaint request to bring everything back into sync.
+  if (!aFrame->IsProcessingAsyncScroll() &&
+     (!aFrame->OriginOfLastScroll() || aFrame->OriginOfLastScroll() == nsGkAtoms::apz)) {
     aFrame->ScrollToCSSPixelsApproximate(aPoint, nsGkAtoms::apz);
   }
   // Return the final scroll position after setting it so that anything that relies

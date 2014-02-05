@@ -217,6 +217,24 @@ Components.utils.import('resource://gre/modules/ctypes.jsm');
   window.navigator.mozSettings.createLock().set(setting);
 })();
 
+// =================== DevTools ====================
+
+let devtoolsWidgetPanel;
+SettingsListener.observe('devtools.overlay', false, (value) => {
+  if (value) {
+    if (!devtoolsWidgetPanel) {
+      let scope = {};
+      Services.scriptloader.loadSubScript('chrome://browser/content/devtools.js', scope);
+      devtoolsWidgetPanel = scope.devtoolsWidgetPanel;
+    }
+    devtoolsWidgetPanel.init();
+  } else {
+    if (devtoolsWidgetPanel) {
+      devtoolsWidgetPanel.uninit();
+    }
+  }
+});
+
 // =================== Debugger / ADB ====================
 
 #ifdef MOZ_WIDGET_GONK
@@ -597,9 +615,38 @@ SettingsListener.observe("debug.paint-flashing.enabled", false, function(value) 
 SettingsListener.observe("layers.draw-borders", false, function(value) {
   Services.prefs.setBoolPref("layers.draw-borders", value);
 });
-SettingsListener.observe("layers.composer2d.enabled", true, function(value) {
-  Services.prefs.setBoolPref("layers.composer2d.enabled", value);
-});
+
+(function Composer2DSettingToPref() {
+  //layers.composer.enabled can be enabled in three ways
+  //In order of precedence they are:
+  //
+  //1. mozSettings "layers.composer.enabled"
+  //2. a gecko pref "layers.composer.enabled"
+  //3. presence of ro.display.colorfill at the Gonk level
+
+  var req = navigator.mozSettings.createLock().get('layers.composer2d.enabled');
+  req.onsuccess = function() {
+    if (typeof(req.result['layers.composer2d.enabled']) === 'undefined') {
+      var enabled = false;
+      if (Services.prefs.getPrefType('layers.composer2d.enabled') == Ci.nsIPrefBranch.PREF_BOOL) {
+        enabled = Services.prefs.getBoolPref('layers.composer2d.enabled');
+      } else {
+#ifdef MOZ_WIDGET_GONK
+        enabled = (libcutils.property_get('ro.display.colorfill') === '1');
+#endif
+      }
+      navigator.mozSettings.createLock().set({'layers.composer2d.enabled': enabled });
+    }
+
+    SettingsListener.observe("layers.composer2d.enabled", true, function(value) {
+      Services.prefs.setBoolPref("layers.composer2d.enabled", value);
+    });
+  };
+  req.onerror = function() {
+    dump("Error configuring layers.composer2d.enabled setting");
+  };
+
+})();
 
 // ================ Accessibility ============
 SettingsListener.observe("accessibility.screenreader", false, function(value) {
@@ -608,3 +655,63 @@ SettingsListener.observe("accessibility.screenreader", false, function(value) {
     AccessFu.attach(window);
   }
 });
+
+// ================ Theming ============
+(function themingSettingsListener() {
+  let themingPrefs = ['ui.menu', 'ui.menutext', 'ui.infobackground', 'ui.infotext',
+                      'ui.window', 'ui.windowtext', 'ui.highlight'];
+
+  themingPrefs.forEach(function(pref) {
+    SettingsListener.observe('gaia.' + pref, null, function(value) {
+      if (value) {
+        Services.prefs.setCharPref(pref, value);
+      }
+    });
+  });
+})();
+
+// =================== AsyncPanZoom ======================
+
+SettingsListener.observe('apz.force-enable', false, function(value) {
+  Services.prefs.setBoolPref('dom.browser_frames.useAsyncPanZoom', value);
+});
+
+SettingsListener.observe('apz.displayport.heuristics', 'default', function(value) {
+  // first reset everything to default
+  Services.prefs.setCharPref('apz.velocity_bias', '1.0');
+  Services.prefs.setBoolPref('apz.use_paint_duration', true);
+  Services.prefs.setCharPref('apz.x_skate_size_multiplier', '1.5');
+  Services.prefs.setCharPref('apz.y_skate_size_multiplier', '2.5');
+  // and then set the things that we want to change
+  switch (value) {
+  case 'default':
+    break;
+  case 'center-displayport':
+    Services.prefs.setCharPref('apz.velocity_bias', '0.0');
+    break;
+  case 'perfect-paint-times':
+    Services.prefs.setBoolPref('apz.use_paint_duration', false);
+    Services.prefs.setCharPref('apz.velocity_bias', '0.32'); // 16/50 (assumes 16ms paint times instead of 50ms)
+    break;
+  case 'taller-displayport':
+    Services.prefs.setCharPref('apz.y_skate_size_multiplier', '3.5');
+    break;
+  case 'faster-paint':
+    Services.prefs.setCharPref('apz.x_skate_size_multiplier', '1.0');
+    Services.prefs.setCharPref('apz.y_skate_size_multiplier', '1.5');
+    break;
+  }
+});
+
+SettingsListener.observe('layers.enable-tiles', false, function(value) {
+  Services.prefs.setBoolPref('layers.enable-tiles', value);
+});
+
+SettingsListener.observe('layers.progressive-paint', false, function(value) {
+  Services.prefs.setBoolPref('layers.progressive-paint', value);
+});
+
+SettingsListener.observe('layers.draw-tile-borders', false, function(value) {
+  Services.prefs.setBoolPref('layers.draw-tile-borders', value);
+});
+

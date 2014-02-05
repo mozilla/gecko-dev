@@ -735,6 +735,7 @@ NS_INTERFACE_MAP_BEGIN(TabChild)
   NS_INTERFACE_MAP_ENTRY(nsIDialogCreator)
   NS_INTERFACE_MAP_ENTRY(nsIObserver)
   NS_INTERFACE_MAP_ENTRY(nsSupportsWeakReference)
+  NS_INTERFACE_MAP_ENTRY(nsITooltipListener)
 NS_INTERFACE_MAP_END
 
 NS_IMPL_ADDREF(TabChild)
@@ -1623,8 +1624,9 @@ TabChild::RecvHandleLongTap(const CSSIntPoint& aPoint)
     return true;
   }
 
-  DispatchMouseEvent(NS_LITERAL_STRING("contextmenu"), aPoint, 2, 1, 0, false,
-                     nsIDOMMouseEvent::MOZ_SOURCE_TOUCH);
+  mContextMenuHandled =
+      DispatchMouseEvent(NS_LITERAL_STRING("contextmenu"), aPoint, 2, 1, 0, false,
+                         nsIDOMMouseEvent::MOZ_SOURCE_TOUCH);
 
   return true;
 }
@@ -1761,6 +1763,10 @@ TabChild::UpdateTapState(const WidgetTouchEvent& aEvent, nsEventStatus aStatus)
                                 "ui.dragThresholdY", 25);
     Preferences::AddIntVarCache(&sContextMenuDelayMs,
                                 "ui.click_hold_context_menus.delay", 500);
+  }
+
+  if (aEvent.touches.Length() == 0) {
+    return;
   }
 
   bool currentlyTrackingTouch = (mActivePointerId >= 0);
@@ -2190,9 +2196,7 @@ TabChild::RecvSetUpdateHitRegion(const bool& aEnabled)
 }
 
 PRenderFrameChild*
-TabChild::AllocPRenderFrameChild(ScrollingBehavior* aScrolling,
-                            TextureFactoryIdentifier* aTextureFactoryIdentifier,
-                            uint64_t* aLayersId)
+TabChild::AllocPRenderFrameChild()
 {
     return new RenderFrameChild();
 }
@@ -2249,12 +2253,18 @@ TabChild::InitRenderingState()
     static_cast<PuppetWidget*>(mWidget.get())->InitIMEState();
 
     uint64_t id;
+    bool success;
     RenderFrameChild* remoteFrame =
-        static_cast<RenderFrameChild*>(SendPRenderFrameConstructor(
-                                         &mScrolling, &mTextureFactoryIdentifier, &id));
+        static_cast<RenderFrameChild*>(SendPRenderFrameConstructor());
     if (!remoteFrame) {
-      NS_WARNING("failed to construct RenderFrame");
-      return false;
+        NS_WARNING("failed to construct RenderFrame");
+        return false;
+    }
+    SendInitRenderFrame(remoteFrame, &mScrolling, &mTextureFactoryIdentifier, &id, &success);
+    if (!success) {
+        NS_WARNING("failed to construct RenderFrame");
+        PRenderFrameChild::Send__delete__(remoteFrame);
+        return false;
     }
 
     PLayerTransactionChild* shadowManager = nullptr;
@@ -2356,7 +2366,7 @@ TabChild::NotifyPainted()
     // we need to notify content every change so that it can compute an invalidation
     // region and send that to the widget.
     if (UseDirectCompositor() &&
-        (!mNotified || mTextureFactoryIdentifier.mParentBackend == LAYERS_BASIC)) {
+        (!mNotified || mTextureFactoryIdentifier.mParentBackend == LayersBackend::LAYERS_BASIC)) {
         mRemoteFrame->SendNotifyCompositorTransaction();
         mNotified = true;
     }
@@ -2382,7 +2392,7 @@ TabChild::DispatchMouseEvent(const nsString&       aType,
   
   bool defaultPrevented = false;
   utils->SendMouseEvent(aType, aPoint.x, aPoint.y, aButton, aClickCount, aModifiers,
-                        aIgnoreRootScrollFrame, 0, aInputSourceArg, &defaultPrevented);
+                        aIgnoreRootScrollFrame, 0, aInputSourceArg, false, 4, &defaultPrevented);
   return defaultPrevented;
 }
 
@@ -2503,6 +2513,20 @@ TabChild::GetFrom(nsIPresShell* aPresShell)
   return GetFrom(docShell);
 }
 
+NS_IMETHODIMP
+TabChild::OnShowTooltip(int32_t aXCoords, int32_t aYCoords, const char16_t *aTipText)
+{
+    nsString str(aTipText);
+    SendShowTooltip(aXCoords, aYCoords, str);
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+TabChild::OnHideTooltip()
+{
+    SendHideTooltip();
+    return NS_OK;
+}
 
 TabChildGlobal::TabChildGlobal(TabChild* aTabChild)
 : mTabChild(aTabChild)

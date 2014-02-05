@@ -58,7 +58,7 @@ function test()
 
   function runTests()
   {
-    inspector.toolbox.startPicker().then(() => {
+    inspector.toolbox.highlighterUtils.startPicker().then(() => {
       moveMouseOver(iframeNode, 1, 1, isTheIframeHighlighted);
     });
   }
@@ -68,7 +68,8 @@ function test()
     let outlineRect = getHighlighterOutlineRect();
     let iframeRect = iframeNode.getBoundingClientRect();
     for (let dim of ["width", "height", "top", "left"]) {
-      is(Math.floor(outlineRect[dim]), Math.floor(iframeRect[dim]), "Outline dimension is correct");
+      is(Math.floor(outlineRect[dim]), Math.floor(iframeRect[dim]),
+         "Outline dimension is correct " + outlineRect[dim]);
     }
 
     iframeNode.style.marginBottom = doc.defaultView.innerHeight + "px";
@@ -85,7 +86,7 @@ function test()
     let outlineRect = getHighlighterOutlineRect();
     is(outlineRect.height, 184, "highlighter height");
 
-    inspector.toolbox.stopPicker().then(() => {
+    inspector.toolbox.highlighterUtils.stopPicker().then(() => {
       let target = TargetFactory.forTab(gBrowser.selectedTab);
       gDevTools.closeToolbox(target);
       finishUp();
@@ -101,8 +102,8 @@ function test()
 
   function moveMouseOver(aElement, x, y, cb)
   {
+    inspector.toolbox.once("picker-node-hovered", cb);
     EventUtils.synthesizeMouse(aElement, x, y, {type: "mousemove"},
                                aElement.ownerDocument.defaultView);
-    inspector.toolbox.once("picker-node-hovered", cb);
   }
 }

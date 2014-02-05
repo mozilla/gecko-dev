@@ -430,6 +430,7 @@ JavaScriptParent::call(JSContext *cx, HandleObject proxy, const CallArgs &args)
     if (outparams.Length() != outobjects.length())
         return ipcfail(cx);
 
+    RootedObject obj(cx);
     for (size_t i = 0; i < outparams.Length(); i++) {
         // Don't bother doing anything for outparams that weren't set.
         if (outparams[i].type() == JSParam::Tvoid_t)
@@ -440,7 +441,7 @@ JavaScriptParent::call(JSContext *cx, HandleObject proxy, const CallArgs &args)
         if (!toValue(cx, outparams[i], &v))
             return false;
 
-        JSObject *obj = &outobjects[i].toObject();
+        obj = &outobjects[i].toObject();
         if (!JS_SetProperty(cx, obj, "value", v))
             return false;
     }
@@ -573,7 +574,7 @@ JavaScriptParent::unwrap(JSContext *cx, ObjectId objId)
 
     RootedValue v(cx, UndefinedValue());
     ProxyOptions options;
-    options.setCallable(callable);
+    options.selectDefaultClass(callable);
     obj = NewProxyObject(cx,
                          &CPOWProxyHandler::singleton,
                          v,

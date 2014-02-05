@@ -34,12 +34,11 @@ class HomeConfigPrefsBackend implements HomeConfigBackend {
 
     private static final String PREFS_KEY = "home_panels";
 
-    private static final String JSON_KEY_TYPE = "type";
-    private static final String JSON_KEY_TITLE = "title";
-    private static final String JSON_KEY_ID = "id";
-    private static final String JSON_KEY_DEFAULT = "default";
-
-    private static final int IS_DEFAULT = 1;
+    // UUIDs used to create PanelConfigs for default built-in panels 
+    private static final String TOP_SITES_PANEL_ID = "4becc86b-41eb-429a-a042-88fe8b5a094e";
+    private static final String BOOKMARKS_PANEL_ID = "7f6d419a-cd6c-4e34-b26f-f68b1b551907";
+    private static final String READING_LIST_PANEL_ID = "20f4549a-64ad-4c32-93e4-1dcef792733b";
+    private static final String HISTORY_PANEL_ID = "f134bf20-11f7-4867-ab8b-e8e705d7fbe8";
 
     private final Context mContext;
     private PrefsListener mPrefsListener;
@@ -57,21 +56,25 @@ class HomeConfigPrefsBackend implements HomeConfigBackend {
         final ArrayList<PanelConfig> panelConfigs = new ArrayList<PanelConfig>();
 
         panelConfigs.add(new PanelConfig(PanelType.TOP_SITES,
-                                      mContext.getString(R.string.home_top_sites_title),
-                                      EnumSet.of(PanelConfig.Flags.DEFAULT_PANEL)));
+                                         mContext.getString(R.string.home_top_sites_title),
+                                         TOP_SITES_PANEL_ID,
+                                         EnumSet.of(PanelConfig.Flags.DEFAULT_PANEL)));
 
         panelConfigs.add(new PanelConfig(PanelType.BOOKMARKS,
-                                      mContext.getString(R.string.bookmarks_title)));
+                                         mContext.getString(R.string.bookmarks_title),
+                                         BOOKMARKS_PANEL_ID));
 
         // We disable reader mode support on low memory devices. Hence the
         // reading list panel should not show up on such devices.
         if (!HardwareUtils.isLowMemoryPlatform()) {
             panelConfigs.add(new PanelConfig(PanelType.READING_LIST,
-                                          mContext.getString(R.string.reading_list_title)));
+                                             mContext.getString(R.string.reading_list_title),
+                                             READING_LIST_PANEL_ID));
         }
 
         final PanelConfig historyEntry = new PanelConfig(PanelType.HISTORY,
-                                                     mContext.getString(R.string.home_history_title));
+                                                         mContext.getString(R.string.home_history_title),
+                                                         HISTORY_PANEL_ID);
 
         // On tablets, the history panel is the last.
         // On phones, the history panel is the first one.
@@ -101,8 +104,7 @@ class HomeConfigPrefsBackend implements HomeConfigBackend {
         for (int i = 0; i < count; i++) {
             try {
                 final JSONObject jsonPanelConfig = jsonPanelConfigs.getJSONObject(i);
-
-                final PanelConfig panelConfig = loadPanelConfigFromJSON(jsonPanelConfig);
+                final PanelConfig panelConfig = new PanelConfig(jsonPanelConfig);
                 panelConfigs.add(panelConfig);
             } catch (Exception e) {
                 Log.e(LOGTAG, "Exception loading PanelConfig from JSON", e);
@@ -110,21 +112,6 @@ class HomeConfigPrefsBackend implements HomeConfigBackend {
         }
 
         return panelConfigs;
-    }
-
-    private PanelConfig loadPanelConfigFromJSON(JSONObject jsonPanelConfig)
-            throws JSONException, IllegalArgumentException {
-        final PanelType type = PanelType.fromId(jsonPanelConfig.getString(JSON_KEY_TYPE));
-        final String title = jsonPanelConfig.getString(JSON_KEY_TITLE);
-        final String id = jsonPanelConfig.getString(JSON_KEY_ID);
-
-        final EnumSet<PanelConfig.Flags> flags = EnumSet.noneOf(PanelConfig.Flags.class);
-        final boolean isDefault = (jsonPanelConfig.optInt(JSON_KEY_DEFAULT, -1) == IS_DEFAULT);
-        if (isDefault) {
-            flags.add(PanelConfig.Flags.DEFAULT_PANEL);
-        }
-
-        return new PanelConfig(type, title, id, flags);
     }
 
     @Override
@@ -142,20 +129,6 @@ class HomeConfigPrefsBackend implements HomeConfigBackend {
         return Collections.unmodifiableList(panelConfigs);
     }
 
-    private JSONObject convertPanelConfigToJSON(PanelConfig PanelConfig) throws JSONException {
-        final JSONObject jsonPanelConfig = new JSONObject();
-
-        jsonPanelConfig.put(JSON_KEY_TYPE, PanelConfig.getType().toString());
-        jsonPanelConfig.put(JSON_KEY_TITLE, PanelConfig.getTitle());
-        jsonPanelConfig.put(JSON_KEY_ID, PanelConfig.getId());
-
-        if (PanelConfig.isDefault()) {
-            jsonPanelConfig.put(JSON_KEY_DEFAULT, IS_DEFAULT);
-        }
-
-        return jsonPanelConfig;
-    }
-
     @Override
     public void save(List<PanelConfig> panelConfigs) {
         final JSONArray jsonPanelConfigs = new JSONArray();
@@ -163,9 +136,8 @@ class HomeConfigPrefsBackend implements HomeConfigBackend {
         final int count = panelConfigs.size();
         for (int i = 0; i < count; i++) {
             try {
-                final PanelConfig PanelConfig = panelConfigs.get(i);
-
-                final JSONObject jsonPanelConfig = convertPanelConfigToJSON(PanelConfig);
+                final PanelConfig panelConfig = panelConfigs.get(i);
+                final JSONObject jsonPanelConfig = panelConfig.toJSON();
                 jsonPanelConfigs.put(jsonPanelConfig);
             } catch (Exception e) {
                 Log.e(LOGTAG, "Exception converting PanelConfig to JSON", e);

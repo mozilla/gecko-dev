@@ -52,7 +52,8 @@ public:
   virtual void SetData(const Data& aData);
   virtual void SetDelayedConversion(bool aDelayed) { mDelayedConversion = aDelayed; }
 
-  already_AddRefed<gfxASurface> GetAsSurface();
+  already_AddRefed<gfxASurface> DeprecatedGetAsSurface();
+  TemporaryRef<gfx::SourceSurface> GetAsSourceSurface();
 
 private:
   nsAutoArrayPtr<uint8_t> mDecodedBuffer;
@@ -66,22 +67,17 @@ class BasicImageFactory : public ImageFactory
 public:
   BasicImageFactory() {}
 
-  virtual already_AddRefed<Image> CreateImage(const ImageFormat* aFormats,
-                                              uint32_t aNumFormats,
+  virtual already_AddRefed<Image> CreateImage(ImageFormat aFormat,
                                               const gfx::IntSize &aScaleHint,
                                               BufferRecycleBin *aRecycleBin)
   {
-    if (!aNumFormats) {
-      return nullptr;
-    }
-
     nsRefPtr<Image> image;
-    if (aFormats[0] == PLANAR_YCBCR) {
+    if (aFormat == ImageFormat::PLANAR_YCBCR) {
       image = new BasicPlanarYCbCrImage(aScaleHint, gfxPlatform::GetPlatform()->GetOffscreenFormat(), aRecycleBin);
       return image.forget();
     }
 
-    return ImageFactory::CreateImage(aFormats, aNumFormats, aScaleHint, aRecycleBin);
+    return ImageFactory::CreateImage(aFormat, aScaleHint, aRecycleBin);
   }
 };
 
@@ -133,17 +129,17 @@ DestroyBuffer(void* aBuffer)
 }
 
 already_AddRefed<gfxASurface>
-BasicPlanarYCbCrImage::GetAsSurface()
+BasicPlanarYCbCrImage::DeprecatedGetAsSurface()
 {
   NS_ASSERTION(NS_IsMainThread(), "Must be main thread");
 
-  if (mSurface) {
-    nsRefPtr<gfxASurface> result = mSurface.get();
+  if (mDeprecatedSurface) {
+    nsRefPtr<gfxASurface> result = mDeprecatedSurface.get();
     return result.forget();
   }
 
   if (!mDecodedBuffer) {
-    return PlanarYCbCrImage::GetAsSurface();
+    return PlanarYCbCrImage::DeprecatedGetAsSurface();
   }
 
   gfxImageFormat format = GetOffscreenFormat();
@@ -166,10 +162,49 @@ BasicPlanarYCbCrImage::GetAsSurface()
   }
 #endif
 
-  mSurface = result;
+  mDeprecatedSurface = result;
 
   return result.forget();
 }
+
+TemporaryRef<gfx::SourceSurface>
+BasicPlanarYCbCrImage::GetAsSourceSurface()
+{
+  NS_ASSERTION(NS_IsMainThread(), "Must be main thread");
+
+  if (mSourceSurface) {
+    return mSourceSurface.get();
+  }
+
+  if (!mDecodedBuffer) {
+    return PlanarYCbCrImage::GetAsSourceSurface();
+  }
+
+  gfxImageFormat format = GetOffscreenFormat();
+
+  RefPtr<gfx::SourceSurface> surface;
+  {
+    // Create a DrawTarget so that we can own the data inside mDecodeBuffer.
+    // We create the target out of mDecodedBuffer, and get a snapshot from it.
+    // The draw target is destroyed on scope exit and the surface owns the data.
+    RefPtr<gfx::DrawTarget> drawTarget
+      = gfxPlatform::GetPlatform()->CreateDrawTargetForData(mDecodedBuffer,
+                                                            mSize,
+                                                            mStride,
+                                                            gfx::ImageFormatToSurfaceFormat(format));
+    if (!drawTarget) {
+      return nullptr;
+    }
+
+    surface = drawTarget->Snapshot();
+  }
+
+  mRecycleBin->RecycleBuffer(mDecodedBuffer.forget(), mSize.height * mStride);
+
+  mSourceSurface = surface;
+  return mSourceSurface.get();
+}
+
 
 ImageFactory*
 BasicLayerManager::GetImageFactory()

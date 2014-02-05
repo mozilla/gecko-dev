@@ -443,12 +443,27 @@ ImageBridgeChild::BeginTransaction()
   mTxn->Begin();
 }
 
+class MOZ_STACK_CLASS AutoForceRemoveTextures
+{
+public:
+  AutoForceRemoveTextures(ImageBridgeChild* aImageBridge)
+    : mImageBridge(aImageBridge) {}
+
+  ~AutoForceRemoveTextures()
+  {
+    mImageBridge->ForceRemoveTexturesIfNecessary();
+  }
+private:
+  ImageBridgeChild* mImageBridge;
+};
+
 void
 ImageBridgeChild::EndTransaction()
 {
   MOZ_ASSERT(!mTxn->Finished(), "forgot BeginTransaction?");
 
   AutoEndTransaction _(mTxn);
+  AutoForceRemoveTextures autoForceRemoveTextures(this);
 
   if (mTxn->IsEmpty()) {
     return;
@@ -897,7 +912,8 @@ ImageBridgeChild::AllocGrallocBuffer(const IntSize& aSize,
 }
 
 PTextureChild*
-ImageBridgeChild::AllocPTextureChild()
+ImageBridgeChild::AllocPTextureChild(const SurfaceDescriptor&,
+                                     const TextureFlags&)
 {
   return TextureClient::CreateIPDLActor();
 }
@@ -909,9 +925,10 @@ ImageBridgeChild::DeallocPTextureChild(PTextureChild* actor)
 }
 
 PTextureChild*
-ImageBridgeChild::CreateEmptyTextureChild()
+ImageBridgeChild::CreateTexture(const SurfaceDescriptor& aSharedData,
+                                TextureFlags aFlags)
 {
-  return SendPTextureConstructor();
+  return SendPTextureConstructor(aSharedData, aFlags);
 }
 
 static void RemoveTextureSync(TextureClient* aTexture, ReentrantMonitor* aBarrier, bool* aDone)

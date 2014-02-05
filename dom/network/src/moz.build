@@ -5,6 +5,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 EXPORTS.mozilla.dom.network += [
+    'Connection.h',
     'Constants.h',
     'TCPServerSocketChild.h',
     'TCPServerSocketParent.h',
@@ -24,16 +25,6 @@ UNIFIED_SOURCES += [
     'UDPSocketChild.cpp',
     'UDPSocketParent.cpp',
 ]
-
-if CONFIG['MOZ_B2G_RIL']:
-    EXPORTS.mozilla.dom.network += [
-        'MobileConnection.h',
-        'MobileConnectionArray.h',
-    ]
-    UNIFIED_SOURCES += [
-        'MobileConnection.cpp',
-        'MobileConnectionArray.cpp',
-    ]
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
     EXTRA_JS_MODULES = [
@@ -58,6 +49,12 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
         'NetworkStatsServiceProxy.js',
         'NetworkStatsServiceProxy.manifest',
     ]
+    EXPORTS.mozilla.dom.network += [
+        'NetUtils.h',
+    ]
+    UNIFIED_SOURCES += [
+        'NetUtils.cpp',
+    ]
 
 IPDL_SOURCES += [
     'PTCPServerSocket.ipdl',
@@ -70,7 +67,7 @@ FAIL_ON_WARNINGS = True
 include('/ipc/chromium/chromium-config.mozbuild')
 
 FINAL_LIBRARY = 'gklayout'
-LOCAL_INCLUDES += [
-    '/content/events/src',
-]
 
+LOCAL_INCLUDES += [
+    '/dom/events',
+]

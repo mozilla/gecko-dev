@@ -11,7 +11,6 @@
 #include "mozilla/PodOperations.h"
 
 #include "jsapi.h"
-#include "jsautooplen.h"
 #include "jscntxt.h"
 #include "jsgc.h"
 #include "jshashutil.h"
@@ -30,6 +29,7 @@
 #include "jit/JitCompartment.h"
 #endif
 #include "js/MemoryMetrics.h"
+#include "vm/Opcodes.h"
 #include "vm/Shape.h"
 
 #include "jsatominlines.h"
@@ -1724,7 +1724,7 @@ TemporaryTypeSet::isDOMClass()
     unsigned count = getObjectCount();
     for (unsigned i = 0; i < count; i++) {
         const Class *clasp = getObjectClass(i);
-        if (clasp && !(clasp->flags & JSCLASS_IS_DOMJSCLASS))
+        if (clasp && (!(clasp->flags & JSCLASS_IS_DOMJSCLASS) || clasp->isProxy()))
             return false;
     }
 
@@ -1765,7 +1765,7 @@ TemporaryTypeSet::maybeEmulatesUndefined()
         // it's a WrapperObject, see EmulatesUndefined. Since all wrappers are
         // proxies, we can just check for that.
         const Class *clasp = getObjectClass(i);
-        if (clasp && (clasp->emulatesUndefined() || IsProxyClass(clasp)))
+        if (clasp && (clasp->emulatesUndefined() || clasp->isProxy()))
             return true;
     }
 
@@ -1861,8 +1861,7 @@ TypeCompartment::newTypeObject(ExclusiveContext *cx, const Class *clasp, Handle<
             initialFlags |= OBJECT_FLAG_NURSERY_PROTO;
     }
 
-    TypeObject *object = gc::NewGCThing<TypeObject, CanGC>(cx, gc::FINALIZE_TYPE_OBJECT,
-                                                           sizeof(TypeObject), gc::TenuredHeap);
+    TypeObject *object = js::NewTypeObject(cx);
     if (!object)
         return nullptr;
     new(object) TypeObject(clasp, proto, initialFlags);
@@ -1874,13 +1873,13 @@ static inline jsbytecode *
 PreviousOpcode(HandleScript script, jsbytecode *pc)
 {
     ScriptAnalysis *analysis = script->analysis();
-    JS_ASSERT(analysis->maybeCode(pc));
+    JS_ASSERT(analysis->isReachable(pc));
 
     if (pc == script->code())
         return nullptr;
 
     for (pc--;; pc--) {
-        if (analysis->maybeCode(pc))
+        if (analysis->isReachable(pc))
             break;
     }
 
@@ -1897,7 +1896,7 @@ FindPreviousInnerInitializer(HandleScript script, jsbytecode *initpc)
     if (!script->hasAnalysis())
         return nullptr;
 
-    if (!script->analysis()->maybeCode(initpc))
+    if (!script->analysis()->isReachable(initpc))
         return nullptr;
 
     /*
@@ -1984,7 +1983,7 @@ TypeCompartment::addAllocationSiteTypeObject(JSContext *cx, AllocationSiteKey ke
 
     if (!res) {
         RootedObject proto(cx);
-        if (!js_GetClassPrototype(cx, key.kind, &proto, nullptr))
+        if (!js_GetClassPrototype(cx, key.kind, &proto))
             return nullptr;
 
         Rooted<TaggedProto> tagged(cx, TaggedProto(proto));
@@ -3728,9 +3727,7 @@ JSScript::makeAnalysis(JSContext *cx)
 
     RootedScript self(cx, this);
 
-    self->types->analysis->analyzeBytecode(cx);
-
-    if (self->types->analysis->OOM()) {
+    if (!self->types->analysis->analyzeBytecode(cx)) {
         self->types->analysis = nullptr;
         return false;
     }
@@ -4073,7 +4070,7 @@ ExclusiveContext::getNewType(const Class *clasp, TaggedProto proto, JSFunction *
     return type;
 }
 
-#if defined(DEBUG) && defined(JSGC_GENERATIONAL)
+#if defined(JSGC_GENERATIONAL) && defined(JS_GC_ZEAL)
 void
 JSCompartment::checkNewTypeObjectTableAfterMovingGC()
 {

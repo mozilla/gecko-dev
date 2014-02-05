@@ -46,6 +46,11 @@ function debug(s) {
 let RILQUIRKS_DATA_REGISTRATION_ON_DEMAND =
   libcutils.property_get("ro.moz.ril.data_reg_on_demand", "false") == "true";
 
+// Ril quirk to always turn the radio off for the client without SIM card
+// except hw default client.
+let RILQUIRKS_RADIO_OFF_WO_CARD =
+  libcutils.property_get("ro.moz.ril.radio_off_wo_card", "false") == "true";
+
 const RADIOINTERFACELAYER_CID =
   Components.ID("{2d831c8d-6017-435b-a80c-e5d422810cea}");
 const RADIOINTERFACE_CID =
@@ -90,6 +95,7 @@ const DOM_MOBILE_MESSAGE_DELIVERY_ERROR    = "error";
 
 const RADIO_POWER_OFF_TIMEOUT = 30000;
 const SMS_HANDLED_WAKELOCK_TIMEOUT = 5000;
+const HW_DEFAULT_CLIENT_ID = 0;
 
 const RIL_IPC_MOBILECONNECTION_MSG_NAMES = [
   "RIL:GetRilContext",
@@ -115,7 +121,8 @@ const RIL_IPC_MOBILECONNECTION_MSG_NAMES = [
   "RIL:ExitEmergencyCbMode",
   "RIL:SetRadioEnabled",
   "RIL:SetVoicePrivacyMode",
-  "RIL:GetVoicePrivacyMode"
+  "RIL:GetVoicePrivacyMode",
+  "RIL:GetSupportedNetworkTypes"
 ];
 
 const RIL_IPC_MOBILENETWORK_MSG_NAMES = [
@@ -137,7 +144,8 @@ const RIL_IPC_ICCMANAGER_MSG_NAMES = [
   "RIL:IccCloseChannel",
   "RIL:ReadIccContacts",
   "RIL:UpdateIccContact",
-  "RIL:RegisterIccMsg"
+  "RIL:RegisterIccMsg",
+  "RIL:MatchMvno"
 ];
 
 const RIL_IPC_VOICEMAIL_MSG_NAMES = [
@@ -540,9 +548,47 @@ XPCOMUtils.defineLazyGetter(this, "gRadioEnabledController", function() {
       this._handleMessage(msg);
     },
 
+    _getNumCards: function() {
+      let numCards = 0;
+      for (let i = 0, N = this.ril.numRadioInterfaces; i < N; ++i) {
+        if (this._isCardPresentAtClient(i)) {
+          numCards++;
+        }
+      }
+      return numCards;
+    },
+
+    _isCardPresentAtClient: function(clientId) {
+      let cardState = this.ril.getRadioInterface(clientId).rilContext.cardState;
+      return cardState !== RIL.GECKO_CARDSTATE_UNDETECTED &&
+        cardState !== RIL.GECKO_CARDSTATE_UNKNOWN;
+    },
+
+    _isRadioAbleToEnableAtClient: function(clientId, numCards) {
+      if (!RILQUIRKS_RADIO_OFF_WO_CARD) {
+        return true;
+      }
+
+      // We could only turn on the radio for clientId if
+      // 1. a SIM card is presented or
+      // 2. it is the default clientId and there is no any SIM card at any client.
+
+      if (this._isCardPresentAtClient(clientId)) {
+        return true;
+      }
+
+      numCards = numCards == null ? this._getNumCards() : numCards;
+      if (clientId === HW_DEFAULT_CLIENT_ID && numCards === 0) {
+        return true;
+      }
+
+      return false;
+    },
+
     _handleMessage: function(msg) {
       if (DEBUG) debug("setRadioEnabled: handleMessage: " + JSON.stringify(msg));
-      let radioInterface = this.ril.getRadioInterface(msg.json.clientId || 0);
+      let clientId = msg.json.clientId || 0;
+      let radioInterface = this.ril.getRadioInterface(clientId);
 
       if (!radioInterface.isValidStateForSetRadioEnabled()) {
         radioInterface.setRadioEnabledResponse(msg.target, msg.json.data,
@@ -558,7 +604,13 @@ XPCOMUtils.defineLazyGetter(this, "gRadioEnabledController", function() {
       }
 
       if (msg.json.data.enabled) {
-        radioInterface.receiveMessage(msg);
+        if (this._isRadioAbleToEnableAtClient(clientId)) {
+          radioInterface.receiveMessage(msg);
+        } else {
+          // Not really do it but respond success.
+          radioInterface.setRadioEnabledResponse(msg.target, msg.json.data);
+        }
+
         this._processNextMessage();
       } else {
         this.request = (function() {
@@ -619,7 +671,7 @@ XPCOMUtils.defineLazyGetter(this, "gRadioEnabledController", function() {
         this.request = null;
       }
       this._processNextMessage();
-    }
+    },
   };
 });
 
@@ -727,7 +779,7 @@ function RadioInterfaceLayer() {
   } catch(e) {}
 
   let numIfaces = this.numRadioInterfaces;
-  debug(numIfaces + " interfaces");
+  if (DEBUG) debug(numIfaces + " interfaces");
   this.radioInterfaces = [];
   for (let clientId = 0; clientId < numIfaces; clientId++) {
     options.clientId = clientId;
@@ -792,7 +844,7 @@ RadioInterfaceLayer.prototype = {
         if (network.state == Ci.nsINetworkInterface.NETWORK_STATE_UNKNOWN) {
           let oldRadioInterface =
             this.radioInterfaces[this._currentDataClientId];
-          if (!oldRadioInterface.anyDataConnected() &&
+          if (oldRadioInterface.allDataDisconnected() &&
               typeof this._pendingDataCallRequest === "function") {
             if (RILQUIRKS_DATA_REGISTRATION_ON_DEMAND) {
               oldRadioInterface.setDataRegistration(false);
@@ -1112,6 +1164,8 @@ function RadioInterface(options) {
     byApn: {}
   };
 
+  this.supportedNetworkTypes = this.getSupportedNetworkTypes();
+
   this.rilContext = {
     radioState:     RIL.GECKO_RADIOSTATE_UNAVAILABLE,
     detailedRadioState: null,
@@ -1178,7 +1232,6 @@ function RadioInterface(options) {
 
   Services.obs.addObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false);
   Services.obs.addObserver(this, kMozSettingsChangedObserverTopic, false);
-  Services.obs.addObserver(this, kSysMsgListenerReadyObserverTopic, false);
   Services.obs.addObserver(this, kSysClockChangeObserverTopic, false);
   Services.obs.addObserver(this, kScreenStateChangedTopic, false);
 
@@ -1246,6 +1299,26 @@ RadioInterface.prototype = {
     }
 
     return false;
+  },
+
+  /**
+   * A utility function to get supportedNetworkTypes from system property
+   */
+  getSupportedNetworkTypes: function() {
+    let key = "ro.moz.ril." + this.clientId + ".network_types";
+    let supportedNetworkTypes = libcutils.property_get(key, "").split(",");
+    for (let type of supportedNetworkTypes) {
+      // If the value in system property is not valid, use the default one which
+      // is defined in ril_consts.js.
+      if (RIL.GECKO_SUPPORTED_NETWORK_TYPES.indexOf(type) < 0) {
+        if (DEBUG) this.debug("Unknown network type: " + type);
+        supportedNetworkTypes =
+          RIL.GECKO_SUPPORTED_NETWORK_TYPES_DEFAULT.split(",");
+        break;
+      }
+    }
+    if (DEBUG) this.debug("Supported Network Types: " + supportedNetworkTypes);
+    return supportedNetworkTypes;
   },
 
   /**
@@ -1326,6 +1399,9 @@ RadioInterface.prototype = {
       case "RIL:UpdateIccContact":
         this.workerMessenger.sendWithIPCMessage(msg, "updateICCContact");
         break;
+      case "RIL:MatchMvno":
+        this.matchMvno(msg.target, msg.json.data);
+        break;
       case "RIL:SetCallForwardingOptions":
         this.setCallForwardingOptions(msg.target, msg.json.data);
         break;
@@ -1374,6 +1450,9 @@ RadioInterface.prototype = {
       case "RIL:GetVoicePrivacyMode":
         this.workerMessenger.sendWithIPCMessage(msg, "queryVoicePrivacyMode");
         break;
+      case "RIL:GetSupportedNetworkTypes":
+        // This message is sync.
+        return this.supportedNetworkTypes;
     }
     return null;
   },
@@ -1457,6 +1536,17 @@ RadioInterface.prototype = {
                                                  this.clientId, message);
         break;
       case "datacallstatechange":
+        message.ip = null;
+        message.netmask = null;
+        message.broadcast = null;
+        if (message.ipaddr) {
+          message.ip = message.ipaddr.split("/")[0];
+          let ip_value = netHelpers.stringToIP(message.ip);
+          let prefix_len = message.ipaddr.split("/")[1];
+          let mask_value = netHelpers.makeMask(prefix_len);
+          message.netmask = netHelpers.ipToString(mask_value);
+          message.broadcast = netHelpers.ipToString((ip_value & mask_value) + ~mask_value);
+        }
         this.handleDataCallState(message);
         break;
       case "datacalllist":
@@ -1553,6 +1643,52 @@ RadioInterface.prototype = {
     return iccId;
   },
 
+  // Matches the mvnoData pattern with imsi. Characters 'x' and 'X' are skipped
+  // and not compared. E.g., if the mvnoData passed is '310260x10xxxxxx',
+  // then the function returns true only if imsi has the same first 6 digits,
+  // 8th and 9th digit.
+  isImsiMatches: function(mvnoData) {
+    let imsi = this.rilContext.imsi;
+
+    // This should not be an error, but a mismatch.
+    if (mvnoData.length > imsi.length) {
+      return false;
+    }
+
+    for (let i = 0; i < mvnoData.length; i++) {
+      let c = mvnoData[i];
+      if ((c !== 'x') && (c !== 'X') && (c !== imsi[i])) {
+        return false;
+      }
+    }
+    return true;
+  },
+
+  matchMvno: function(target, message) {
+    if (DEBUG) this.debug("matchMvno: " + JSON.stringify(message));
+
+    if (!message || !message.mvnoType || !message.mvnoData) {
+      message.errorMsg = RIL.GECKO_ERROR_INVALID_PARAMETER;
+    }
+    // Currently we only support imsi matching.
+    if (message.mvnoType != "imsi") {
+      message.errorMsg = RIL.GECKO_ERROR_MODE_NOT_SUPPORTED;
+    }
+    // Fire error if mvnoType is imsi but imsi is not available.
+    if (!this.rilContext.imsi) {
+      message.errorMsg = RIL.GECKO_ERROR_GENERIC_FAILURE;
+    }
+
+    if (!message.errorMsg) {
+      message.result = this.isImsiMatches(message.mvnoData);
+    }
+
+    target.sendAsyncMessage("RIL:MatchMvno", {
+      clientId: this.clientId,
+      data: message
+    });
+  },
+
   updateNetworkInfo: function(message) {
     let voiceMessage = message[RIL.NETWORK_INFO_VOICE_REGISTRATION_STATE];
     let dataMessage = message[RIL.NETWORK_INFO_DATA_REGISTRATION_STATE];
@@ -1606,12 +1742,15 @@ RadioInterface.prototype = {
     */
   checkRoamingBetweenOperators: function(registration) {
     let iccInfo = this.rilContext.iccInfo;
-    if (!iccInfo || !registration.connected) {
+    let operator = registration.network;
+    let state = registration.state;
+
+    if (!iccInfo || !operator ||
+        state != RIL.GECKO_MOBILE_CONNECTION_STATE_REGISTERED) {
       return;
     }
 
     let spn = iccInfo.spn && iccInfo.spn.toLowerCase();
-    let operator = registration.network;
     let longName = operator.longName && operator.longName.toLowerCase();
     let shortName = operator.shortName && operator.shortName.toLowerCase();
 
@@ -1870,7 +2009,6 @@ RadioInterface.prototype = {
       // Update lastKnownNetwork
       if (message.mcc && message.mnc) {
         this._lastKnownNetwork = message.mcc + "-" + message.mnc;
-        if (DEBUG) this.debug("_lastKnownNetwork: " + this._lastKnownNetwork);
       }
 
       // If the voice is unregistered, no need to send RIL:VoiceInfoChanged.
@@ -1949,6 +2087,36 @@ RadioInterface.prototype = {
     }
   },
 
+  updateApnSettings: function(allApnSettings) {
+    let simApnSettings = allApnSettings[this.clientId];
+    if (!simApnSettings) {
+      return;
+    }
+    if (this._pendingApnSettings) {
+      // Change of apn settings in process, just update to the newest.
+      this._pengingApnSettings = simApnSettings;
+      return;
+    }
+
+    let isDeactivatingDataCalls = false;
+    // Clear all existing connections based on APN types.
+    for each (let apnSetting in this.apnSettings.byApn) {
+      for each (let type in apnSetting.types) {
+        if (this.getDataCallStateByType(type) ==
+            RIL.GECKO_NETWORK_STATE_CONNECTED) {
+          this.deactivateDataCallByType(type);
+          isDeactivatingDataCalls = true;
+        }
+      }
+    }
+    if (isDeactivatingDataCalls) {
+      // Defer apn settings setup until all data calls are cleared.
+      this._pendingApnSettings = simApnSettings;
+      return;
+    }
+    this.setupApnSettings(simApnSettings);
+  },
+
   /**
    * This function will do the following steps:
    *   1. Clear the cached APN settings in the RIL.
@@ -1958,21 +2126,14 @@ RadioInterface.prototype = {
    *      corresponding APN setting.
    *   4. Create RilNetworkInterface for each APN setting created at step 2.
    */
-  updateApnSettings: function(allApnSettings) {
-    let simApnSettings = allApnSettings[this.clientId];
+  setupApnSettings: function(simApnSettings) {
     if (!simApnSettings) {
       return;
     }
+    if (DEBUG) this.debug("setupApnSettings: " + JSON.stringify(simApnSettings));
 
-    // Clear the cached APN settings in the RIL.
+    // Unregister anything from iface and delete it.
     for each (let apnSetting in this.apnSettings.byApn) {
-      // Clear all existing connections based on APN types.
-      for each (let type in apnSetting.types) {
-        if (this.getDataCallStateByType(type) ==
-            RIL.GECKO_NETWORK_STATE_CONNECTED) {
-          this.deactivateDataCallByType(type);
-        }
-      }
       if (apnSetting.iface.name in gNetworkManager.networkInterfaces) {
         gNetworkManager.unregisterNetworkInterface(apnSetting.iface);
       }
@@ -2015,13 +2176,22 @@ RadioInterface.prototype = {
     }
   },
 
+  allDataDisconnected: function() {
+    for each (let apnSetting in this.apnSettings.byApn) {
+      let iface = apnSetting.iface;
+      if (iface && iface.state != RIL.GECKO_NETWORK_STATE_UNKNOWN &&
+          iface.state != RIL.GECKO_NETWORK_STATE_DISCONNECTED) {
+        return false;
+      }
+    }
+    return true;
+  },
+
   anyDataConnected: function() {
     for each (let apnSetting in this.apnSettings.byApn) {
-      for each (let type in apnSetting.types) {
-        if (this.getDataCallStateByType(type) ==
-            RIL.GECKO_NETWORK_STATE_CONNECTED) {
-          return true;
-        }
+      let iface = apnSetting.iface;
+      if (iface && iface.state == RIL.GECKO_NETWORK_STATE_CONNECTED) {
+        return true;
       }
     }
     return false;
@@ -2124,6 +2294,10 @@ RadioInterface.prototype = {
     }
     if (wifi_active) {
       if (DEBUG) this.debug("Don't connect data call when Wifi is connected.");
+      return;
+    }
+    if (this._pendingApnSettings) {
+      if (DEBUG) this.debug("We're changing apn settings, ignore any changes.");
       return;
     }
 
@@ -2412,22 +2586,17 @@ RadioInterface.prototype = {
     // Process pending radio power off request after all data calls
     // are disconnected.
     if (datacall.state == RIL.GECKO_NETWORK_STATE_UNKNOWN &&
-        gRadioEnabledController.isDeactivatingDataCalls()) {
-      let anyDataConnected = false;
-      for each (let apnSetting in this.apnSettings.byApn) {
-        for each (let type in apnSetting.types) {
-          if (this.getDataCallStateByType(type) == RIL.GECKO_NETWORK_STATE_CONNECTED) {
-            anyDataConnected = true;
-            break;
-          }
-        }
-        if (anyDataConnected) {
-          break;
-        }
-      }
-      if (!anyDataConnected) {
+        this.allDataDisconnected()) {
+      if (gRadioEnabledController.isDeactivatingDataCalls()) {
         if (DEBUG) this.debug("All data connections are disconnected.");
         gRadioEnabledController.finishDeactivatingDataCalls(this.clientId);
+      }
+
+      if (this._pendingApnSettings) {
+        if (DEBUG) this.debug("Setup pending apn settings.");
+        this.setupApnSettings(this._pendingApnSettings);
+        this._pendingApnSettings = null;
+        this.updateRILNetworkInterface();
       }
     }
   },
@@ -2518,7 +2687,7 @@ RadioInterface.prototype = {
       return;
     }
     if (this._lastNitzMessage) {
-      debug("SNTP: NITZ available, discard SNTP");
+      if (DEBUG) debug("SNTP: NITZ available, discard SNTP");
       return;
     }
     gTimeService.set(Date.now() + offset);
@@ -2573,7 +2742,6 @@ RadioInterface.prototype = {
     // Update lastKnownHomeNetwork.
     if (message.mcc && message.mnc) {
       this._lastKnownHomeNetwork = message.mcc + "-" + message.mnc;
-      this.debug("_lastKnownHomeNetwork: " + this._lastKnownHomeNetwork);
     }
 
     // If spn becomes available, we should check roaming again.
@@ -2622,9 +2790,6 @@ RadioInterface.prototype = {
 
   observe: function(subject, topic, data) {
     switch (topic) {
-      case kSysMsgListenerReadyObserverTopic:
-        this.setRadioEnabledInternal({enabled: true}, null);
-        break;
       case kMozSettingsChangedObserverTopic:
         let setting = JSON.parse(data);
         this.handleSettingsChange(setting.key, setting.value, setting.message);
@@ -2664,12 +2829,27 @@ RadioInterface.prototype = {
         break;
       case kNetworkInterfaceStateChangedTopic:
         let network = subject.QueryInterface(Ci.nsINetworkInterface);
-        if (network.state == Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED) {
-          // Check SNTP when we have data connection, this may not take
-          // effect immediately before the setting get enabled.
-          if (this._sntp.isExpired()) {
-            this._sntp.request();
+        if (network.state != Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED) {
+          return;
+        }
+
+        // SNTP can only update when we have mobile or Wifi connections.
+        if (network.type != Ci.nsINetworkInterface.NETWORK_TYPE_WIFI &&
+            network.type != Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE) {
+          return;
+        }
+
+        // If the network comes from RIL, make sure the RIL service is matched.
+        if (subject instanceof Ci.nsIRilNetworkInterface) {
+          network = subject.QueryInterface(Ci.nsIRilNetworkInterface);
+          if (network.serviceId != this.clientId) {
+            return;
           }
+        }
+
+        // SNTP won't update unless the SNTP is already expired.
+        if (this._sntp.isExpired()) {
+          this._sntp.request();
         }
         break;
       case kScreenStateChangedTopic:
@@ -2678,10 +2858,15 @@ RadioInterface.prototype = {
     }
   },
 
+  supportedNetworkTypes: null,
+
   // Data calls setting.
   dataCallSettings: null,
 
   apnSettings: null,
+
+  // Apn settings to be setup after data call are cleared.
+  _pendingApnSettings: null,
 
   // Flag to determine whether to update system clock automatically. It
   // corresponds to the "time.clock.automatic-update.enabled" setting.
@@ -2715,7 +2900,9 @@ RadioInterface.prototype = {
       let isClockAutoUpdateAvailable = this._lastNitzMessage !== null ||
                                        this._sntp.isAvailable();
       if (aResult !== isClockAutoUpdateAvailable) {
-        debug("Content processes cannot modify 'time.clock.automatic-update.available'. Restore!");
+        if (DEBUG) {
+          debug("Content processes cannot modify 'time.clock.automatic-update.available'. Restore!");
+        }
         // Restore the setting to the current value.
         this.setClockAutoUpdateAvailable(isClockAutoUpdateAvailable);
       }
@@ -3209,6 +3396,15 @@ RadioInterface.prototype = {
   _fragmentText7Bit: function(text, langTable, langShiftTable, segmentSeptets, strict7BitEncoding) {
     let ret = [];
     let body = "", len = 0;
+    // If the message is empty, we only push the empty message to ret.
+    if (text.length === 0) {
+      ret.push({
+        body: text,
+        encodedBodyLength: text.length,
+      });
+      return ret;
+    }
+
     for (let i = 0, inc = 0; i < text.length; i++) {
       let c = text.charAt(i);
       if (strict7BitEncoding) {
@@ -3278,6 +3474,15 @@ RadioInterface.prototype = {
    */
   _fragmentTextUCS2: function(text, segmentChars) {
     let ret = [];
+    // If the message is empty, we only push the empty message to ret.
+    if (text.length === 0) {
+      ret.push({
+        body: text,
+        encodedBodyLength: text.length,
+      });
+      return ret;
+    }
+
     for (let offset = 0; offset < text.length; offset += segmentChars) {
       let str = text.substr(offset, segmentChars);
       ret.push({
@@ -3640,8 +3845,12 @@ RadioInterface.prototype = {
   },
 
   setupDataCallByType: function(apntype) {
+    if (DEBUG) this.debug("setupDataCallByType: " + apntype);
     let apnSetting = this.apnSettings.byType[apntype];
     if (!apnSetting) {
+      if (DEBUG) {
+        this.debug("No apn setting for type: " + apntype);
+      }
       return;
     }
 
@@ -3680,8 +3889,12 @@ RadioInterface.prototype = {
   },
 
   deactivateDataCallByType: function(apntype) {
+    if (DEBUG) this.debug("deactivateDataCallByType: " + apntype);
     let apnSetting = this.apnSettings.byType[apntype];
     if (!apnSetting) {
+      if (DEBUG) {
+        this.debug("No apn setting for type: " + apntype);
+      }
       return;
     }
 
@@ -3982,6 +4195,19 @@ RILNetworkInterface.prototype = {
 
     this.state = datacall.state;
 
+    Services.obs.notifyObservers(this,
+                                 kNetworkInterfaceStateChangedTopic,
+                                 null);
+
+    if ((this.state == RIL.GECKO_NETWORK_STATE_UNKNOWN ||
+         this.state == RIL.GECKO_NETWORK_STATE_DISCONNECTED) &&
+        this.registeredAsNetworkInterface) {
+      gNetworkManager.unregisterNetworkInterface(this);
+      this.registeredAsNetworkInterface = false;
+      this.cid = null;
+      this.connectedTypes = [];
+    }
+
     // In case the data setting changed while the datacall was being started or
     // ended, let's re-check the setting and potentially adjust the datacall
     // state again.
@@ -3989,18 +4215,6 @@ RILNetworkInterface.prototype = {
         (this.radioInterface.apnSettings.byType.default.apn ==
          this.apnSetting.apn)) {
       this.radioInterface.updateRILNetworkInterface();
-    }
-
-    Services.obs.notifyObservers(this,
-                                 kNetworkInterfaceStateChangedTopic,
-                                 null);
-
-    if (this.state == RIL.GECKO_NETWORK_STATE_UNKNOWN &&
-        this.registeredAsNetworkInterface) {
-      gNetworkManager.unregisterNetworkInterface(this);
-      this.registeredAsNetworkInterface = false;
-      this.cid = null;
-      this.connectedTypes = [];
     }
   },
 

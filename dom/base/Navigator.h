@@ -72,9 +72,6 @@ class MozGetUserMediaDevicesSuccessCallback;
 
 namespace network {
 class Connection;
-#ifdef MOZ_B2G_RIL
-class MobileConnectionArray;
-#endif
 } // namespace Connection;
 
 #ifdef MOZ_B2G_BT
@@ -86,6 +83,7 @@ class BluetoothManager;
 #ifdef MOZ_B2G_RIL
 class CellBroadcast;
 class IccManager;
+class MobileConnectionArray;
 class Voicemail;
 #endif
 
@@ -159,6 +157,7 @@ public:
                                           ErrorResult& aRv);
   bool Vibrate(uint32_t aDuration);
   bool Vibrate(const nsTArray<uint32_t>& aDuration);
+  uint32_t MaxTouchPoints();
   void GetAppCodeName(nsString& aAppCodeName, ErrorResult& aRv)
   {
     aRv = GetAppCodeName(aAppCodeName);
@@ -195,14 +194,14 @@ public:
                              ErrorResult& aRv);
   nsIDOMMozMobileMessageManager* GetMozMobileMessage();
   Telephony* GetMozTelephony(ErrorResult& aRv);
-  nsIDOMMozConnection* GetMozConnection();
+  network::Connection* GetMozConnection();
   nsDOMCameraManager* GetMozCameras(ErrorResult& aRv);
   void MozSetMessageHandler(const nsAString& aType,
                             systemMessageCallback* aCallback,
                             ErrorResult& aRv);
   bool MozHasPendingMessage(const nsAString& aType, ErrorResult& aRv);
 #ifdef MOZ_B2G_RIL
-  network::MobileConnectionArray* GetMozMobileConnections(ErrorResult& aRv);
+  MobileConnectionArray* GetMozMobileConnections(ErrorResult& aRv);
   CellBroadcast* GetMozCellBroadcast(ErrorResult& aRv);
   Voicemail* GetMozVoicemail(ErrorResult& aRv);
   nsIDOMMozIccManager* GetMozIccManager(ErrorResult& aRv);
@@ -234,7 +233,8 @@ public:
                               ErrorResult& aRv);
 #endif // MOZ_MEDIA_NAVIGATOR
   bool DoNewResolve(JSContext* aCx, JS::Handle<JSObject*> aObject,
-                    JS::Handle<jsid> aId, JS::MutableHandle<JS::Value> aValue);
+                    JS::Handle<jsid> aId,
+                    JS::MutableHandle<JSPropertyDescriptor> aDesc);
   void GetOwnPropertyNames(JSContext* aCx, nsTArray<nsString>& aNames,
                            ErrorResult& aRv);
 
@@ -264,6 +264,8 @@ public:
                                   JSObject* aGlobal);
   static bool HasIccManagerSupport(JSContext* /* unused */,
                                    JSObject* aGlobal);
+  static bool HasWifiManagerSupport(JSContext* /* unused */,
+                                    JSObject* aGlobal);
 #endif // MOZ_B2G_RIL
 #ifdef MOZ_B2G_BT
   static bool HasBluetoothSupport(JSContext* /* unused */, JSObject* aGlobal);
@@ -273,6 +275,8 @@ public:
 #endif // MOZ_B2G_FM
 #ifdef MOZ_NFC
   static bool HasNfcSupport(JSContext* /* unused */, JSObject* aGlobal);
+  static bool HasNfcPeerSupport(JSContext* /* unused */, JSObject* aGlobal);
+  static bool HasNfcManagerSupport(JSContext* /* unused */, JSObject* aGlobal);
 #endif // MOZ_NFC
 #ifdef MOZ_TIME_MANAGER
   static bool HasTimeSupport(JSContext* /* unused */, JSObject* aGlobal);
@@ -288,6 +292,8 @@ public:
   static bool HasInputMethodSupport(JSContext* /* unused */, JSObject* aGlobal);
 
   static bool HasDataStoreSupport(JSContext* cx, JSObject* aGlobal);
+
+  static bool HasDownloadsSupport(JSContext* aCx, JSObject* aGlobal);
 
   nsPIDOMWindow* GetParentObject() const
   {
@@ -317,7 +323,7 @@ private:
   nsRefPtr<Telephony> mTelephony;
   nsRefPtr<network::Connection> mConnection;
 #ifdef MOZ_B2G_RIL
-  nsRefPtr<network::MobileConnectionArray> mMobileConnections;
+  nsRefPtr<MobileConnectionArray> mMobileConnections;
   nsRefPtr<CellBroadcast> mCellBroadcast;
   nsRefPtr<IccManager> mIccManager;
   nsRefPtr<Voicemail> mVoicemail;

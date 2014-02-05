@@ -15,8 +15,6 @@
 #include "nsISupportsImpl.h"            // for Layer::AddRef, etc
 #include "nsPoint.h"                    // for nsIntPoint
 #include "nsRect.h"                     // for nsIntRect
-#include "gfx3DMatrix.h"                // for gfx3DMatrix
-#include "gfxMatrix.h"                  // for gfxMatrix
 #include "nsRegion.h"                   // for nsIntRegion
 
 using namespace mozilla::gfx;
@@ -34,19 +32,19 @@ BasicContainerLayer::~BasicContainerLayer()
 }
 
 void
-BasicContainerLayer::ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface)
+BasicContainerLayer::ComputeEffectiveTransforms(const Matrix4x4& aTransformToSurface)
 {
   // We push groups for container layers if we need to, which always
   // are aligned in device space, so it doesn't really matter how we snap
   // containers.
-  gfxMatrix residual;
-  gfx3DMatrix idealTransform = GetLocalTransform()*aTransformToSurface;
+  Matrix residual;
+  Matrix4x4 idealTransform = GetLocalTransform() * aTransformToSurface;
   idealTransform.ProjectTo2D();
 
   if (!idealTransform.CanDraw2D()) {
     mEffectiveTransform = idealTransform;
-    ComputeEffectiveTransformsForChildren(gfx3DMatrix());
-    ComputeEffectiveTransformForMaskLayer(gfx3DMatrix());
+    ComputeEffectiveTransformsForChildren(Matrix4x4());
+    ComputeEffectiveTransformForMaskLayer(Matrix4x4());
     mUseIntermediateSurface = true;
     return;
   }
@@ -57,7 +55,7 @@ BasicContainerLayer::ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToS
   ComputeEffectiveTransformsForChildren(idealTransform);
 
   ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
-  
+
   Layer* child = GetFirstChild();
   bool hasSingleBlendingChild = false;
   if (!HasMultipleChildren() && child) {
@@ -81,12 +79,12 @@ BasicContainerLayer::ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToS
 bool
 BasicContainerLayer::ChildrenPartitionVisibleRegion(const nsIntRect& aInRect)
 {
-  gfxMatrix transform;
+  Matrix transform;
   if (!GetEffectiveTransform().CanDraw2D(&transform) ||
-      transform.HasNonIntegerTranslation())
+      ThebesMatrix(transform).HasNonIntegerTranslation())
     return false;
 
-  nsIntPoint offset(int32_t(transform.x0), int32_t(transform.y0));
+  nsIntPoint offset(int32_t(transform._31), int32_t(transform._32));
   nsIntRect rect = aInRect.Intersect(GetEffectiveVisibleRegion().GetBounds() + offset);
   nsIntRegion covered;
 
@@ -94,13 +92,13 @@ BasicContainerLayer::ChildrenPartitionVisibleRegion(const nsIntRect& aInRect)
     if (ToData(l)->IsHidden())
       continue;
 
-    gfxMatrix childTransform;
+    Matrix childTransform;
     if (!l->GetEffectiveTransform().CanDraw2D(&childTransform) ||
-        childTransform.HasNonIntegerTranslation() ||
+        ThebesMatrix(childTransform).HasNonIntegerTranslation() ||
         l->GetEffectiveOpacity() != 1.0)
       return false;
     nsIntRegion childRegion = l->GetEffectiveVisibleRegion();
-    childRegion.MoveBy(int32_t(childTransform.x0), int32_t(childTransform.y0));
+    childRegion.MoveBy(int32_t(childTransform._31), int32_t(childTransform._32));
     childRegion.And(childRegion, rect);
     if (l->GetClipRect()) {
       childRegion.And(childRegion, *l->GetClipRect() + offset);

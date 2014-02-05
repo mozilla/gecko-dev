@@ -5,6 +5,7 @@
 
 /* a presentation of a document, part 1 */
 
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/DebugOnly.h"
 
 #include "base/basictypes.h"
@@ -600,7 +601,7 @@ nsPresContext::GetFontPrefsForLang(nsIAtom *aLanguage) const
     &prefs->mDefaultCursiveFont,
     &prefs->mDefaultFantasyFont
   };
-  static_assert(NS_ARRAY_LENGTH(fontTypes) == eDefaultFont_COUNT,
+  static_assert(MOZ_ARRAY_LENGTH(fontTypes) == eDefaultFont_COUNT,
                 "FontTypes array count is not correct");
 
   // Get attributes specific to each generic font. We do not get the user's
@@ -691,12 +692,9 @@ nsPresContext::GetDocumentColorPreferences()
   bool usePrefColors = true;
   nsCOMPtr<nsIDocShellTreeItem> docShell(mContainer);
   if (docShell) {
-    int32_t docShellType;
-    docShell->GetItemType(&docShellType);
-    if (nsIDocShellTreeItem::typeChrome == docShellType) {
+    if (nsIDocShellTreeItem::typeChrome == docShell->ItemType()) {
       usePrefColors = false;
-    }
-    else {
+    } else {
       useAccessibilityTheme =
         LookAndFeel::GetInt(LookAndFeel::eIntID_UseAccessibilityTheme, 0);
       usePrefColors = !useAccessibilityTheme;
@@ -963,11 +961,8 @@ nsPresContext::UpdateAfterPreferencesChanged()
   mPrefChangedTimer = nullptr;
 
   nsCOMPtr<nsIDocShellTreeItem> docShell(mContainer);
-  if (docShell) {
-    int32_t docShellType;
-    docShell->GetItemType(&docShellType);
-    if (nsIDocShellTreeItem::typeChrome == docShellType)
-      return;
+  if (docShell && nsIDocShellTreeItem::typeChrome == docShell->ItemType()) {
+    return;
   }
 
   // Initialize our state from the user preferences
@@ -1055,7 +1050,8 @@ nsPresContext::Init(nsDeviceContext* aDeviceContext)
 
   // Initialise refresh tick counters for OMTA
   mLastStyleUpdateForAllAnimations =
-    mLastUpdateThrottledStyle = mRefreshDriver->MostRecentRefresh();
+    mLastUpdateThrottledAnimationStyle =
+    mLastUpdateThrottledTransitionStyle = mRefreshDriver->MostRecentRefresh();
 
   mLangService = do_GetService(NS_LANGUAGEATOMSERVICE_CONTRACTID);
 
@@ -1578,16 +1574,37 @@ nsPresContext::GetDocShell() const
   return mContainer;
 }
 
-bool
-nsPresContext::ThrottledStyleIsUpToDate() const
+/* virtual */ void
+nsPresContext::Detach()
 {
-  return mLastUpdateThrottledStyle == mRefreshDriver->MostRecentRefresh();
+  SetContainer(nullptr);
+  SetLinkHandler(nullptr);
+}
+
+bool
+nsPresContext::ThrottledTransitionStyleIsUpToDate() const
+{
+  return
+    mLastUpdateThrottledTransitionStyle == mRefreshDriver->MostRecentRefresh();
 }
 
 void
-nsPresContext::TickLastUpdateThrottledStyle()
+nsPresContext::TickLastUpdateThrottledTransitionStyle()
 {
-  mLastUpdateThrottledStyle = mRefreshDriver->MostRecentRefresh();
+  mLastUpdateThrottledTransitionStyle = mRefreshDriver->MostRecentRefresh();
+}
+
+bool
+nsPresContext::ThrottledAnimationStyleIsUpToDate() const
+{
+  return
+    mLastUpdateThrottledAnimationStyle == mRefreshDriver->MostRecentRefresh();
+}
+
+void
+nsPresContext::TickLastUpdateThrottledAnimationStyle()
+{
+  mLastUpdateThrottledAnimationStyle = mRefreshDriver->MostRecentRefresh();
 }
 
 bool
@@ -2029,16 +2046,8 @@ nsPresContext::CountReflows(const char * aName, nsIFrame * aFrame)
 bool
 nsPresContext::IsChromeSlow() const
 {
-  bool isChrome = false;
-  nsCOMPtr<nsIDocShellTreeItem> docShell(mContainer);
-  if (docShell) {
-    int32_t docShellType;
-    nsresult result = docShell->GetItemType(&docShellType);
-    if (NS_SUCCEEDED(result)) {
-      isChrome = nsIDocShellTreeItem::typeChrome == docShellType;
-    }
-  }
-  mIsChrome = isChrome;
+  mIsChrome = mContainer &&
+              nsIDocShellTreeItem::typeChrome == mContainer->ItemType();
   mIsChromeIsCached = true;
   return mIsChrome;
 }
@@ -2353,6 +2362,9 @@ nsPresContext::NotifyInvalidation(const nsIntRect& aRect, uint32_t aFlags)
 void
 nsPresContext::NotifyInvalidation(const nsRect& aRect, uint32_t aFlags)
 {
+  // Disabled temporarily for happening too frequently. (bug 967758)
+  //MOZ_ASSERT(GetContainerWeak(), "Invalidation in detached pres context");
+
   // If there is no paint event listener, then we don't need to fire
   // the asynchronous event. We don't even need to record invalidation.
   // MayHavePaintEventListener is pretty cheap and we could make it
@@ -2452,11 +2464,17 @@ public:
                            nsInvalidateRequestList* aList)
     : mPresContext(aPresContext)
   {
+    MOZ_ASSERT(mPresContext->GetContainerWeak(),
+               "DOMPaintEvent requested for a detached pres context");
     mList.TakeFrom(aList);
   }
   NS_IMETHOD Run()
   {
-    mPresContext->FireDOMPaintEvent(&mList);
+    // The pres context might have been detached during the delay -
+    // that's fine, just don't fire the event.
+    if (mPresContext->GetContainerWeak()) {
+      mPresContext->FireDOMPaintEvent(&mList);
+    }
     return NS_OK;
   }
 
@@ -2791,6 +2809,14 @@ nsRootPresContext::~nsRootPresContext()
                "All plugins should have been unregistered");
   CancelDidPaintTimer();
   CancelApplyPluginGeometryTimer();
+}
+
+/* virtual */ void
+nsRootPresContext::Detach()
+{
+  CancelDidPaintTimer();
+  // XXXmats maybe also CancelApplyPluginGeometryTimer(); ?
+  nsPresContext::Detach();
 }
 
 void

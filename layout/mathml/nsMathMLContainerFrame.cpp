@@ -1325,8 +1325,8 @@ nsMathMLContainerFrame::PositionRowChildFrames(nscoord aOffsetX,
   while (child.Frame()) {
     nscoord dx = aOffsetX + child.X();
     nscoord dy = aBaseline - child.Ascent();
-    FinishReflowChild(child.Frame(), PresContext(), nullptr,
-                      child.ReflowMetrics(), dx, dy, 0);
+    FinishReflowChild(child.Frame(), PresContext(), child.ReflowMetrics(),
+                      nullptr, dx, dy, 0);
     ++child;
   }
 }
@@ -1530,6 +1530,21 @@ nsMathMLContainerFrame::TransmitAutomaticDataForMrowLikeElement()
   return NS_OK;
 }
 
+/*static*/ void
+nsMathMLContainerFrame::PropagateFrameFlagFor(nsIFrame* aFrame,
+                                              nsFrameState  aFlags)
+{
+  if (!aFrame || !aFlags)
+    return;
+
+  aFrame->AddStateBits(aFlags);
+  nsIFrame* childFrame = aFrame->GetFirstPrincipalChild();
+  while (childFrame) {
+    PropagateFrameFlagFor(childFrame, aFlags);
+    childFrame = childFrame->GetNextSibling();
+  }
+}
+
 nsresult
 nsMathMLContainerFrame::ReportErrorToConsole(const char*       errorMsgId,
                                              const char16_t** aParams,
@@ -1569,7 +1584,7 @@ nsMathMLContainerFrame::ReportInvalidChildError(nsIAtom* aChildTag)
 
 nsIFrame*
 NS_NewMathMLmathBlockFrame(nsIPresShell* aPresShell, nsStyleContext* aContext,
-                           uint32_t aFlags)
+                           nsFrameState aFlags)
 {
   nsMathMLmathBlockFrame* it = new (aPresShell) nsMathMLmathBlockFrame(aContext);
   it->SetFlags(aFlags);

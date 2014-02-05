@@ -1021,15 +1021,6 @@ class Imm16
     }
 };
 
-// FP Instructions use a different set of registers,
-// with a different encoding, so this calls for a different class.
-// which will be implemented later
-// IIRC, this has been subsumed by vfpreg.
-class FloatOp
-{
-    uint32_t data;
-};
-
 /* I would preffer that these do not exist, since there are essentially
 * no instructions that would ever take more than one of these, however,
 * the MIR wants to only have one type of arguments to functions, so bugger.
@@ -2102,7 +2093,7 @@ class InstructionIterator {
 static const uint32_t NumIntArgRegs = 4;
 static const uint32_t NumFloatArgRegs = 8;
 
-#ifdef JS_CPU_ARM_HARDFP
+#ifdef JS_CODEGEN_ARM_HARDFP
 static inline bool
 GetIntArgReg(uint32_t usedIntArgs, uint32_t usedFloatArgs, Register *out)
 {

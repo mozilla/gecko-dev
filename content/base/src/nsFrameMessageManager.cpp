@@ -447,7 +447,7 @@ nsFrameMessageManager::RemoveDelayedFrameScript(const nsAString& aURL)
 }
 
 NS_IMETHODIMP
-nsFrameMessageManager::GetDelayedFrameScripts(JSContext* aCx, JS::Value* aList)
+nsFrameMessageManager::GetDelayedFrameScripts(JSContext* aCx, JS::MutableHandle<JS::Value> aList)
 {
   // Frame message managers may return an incomplete list because scripts
   // that were loaded after it was connected are not added to the list.
@@ -462,7 +462,6 @@ nsFrameMessageManager::GetDelayedFrameScripts(JSContext* aCx, JS::Value* aList)
 
   JS::Rooted<JSString*> url(aCx);
   JS::Rooted<JSObject*> pair(aCx);
-  JS::Rooted<JS::Value> pairVal(aCx);
   for (uint32_t i = 0; i < mPendingScripts.Length(); ++i) {
     url = JS_NewUCStringCopyN(aCx, mPendingScripts[i].get(), mPendingScripts[i].Length());
     NS_ENSURE_TRUE(url, NS_ERROR_OUT_OF_MEMORY);
@@ -473,13 +472,11 @@ nsFrameMessageManager::GetDelayedFrameScripts(JSContext* aCx, JS::Value* aList)
     pair = JS_NewArrayObject(aCx, 2, pairElts);
     NS_ENSURE_TRUE(pair, NS_ERROR_OUT_OF_MEMORY);
 
-    pairVal = JS::ObjectValue(*pair);
-    NS_ENSURE_TRUE(JS_SetElement(aCx, array, i, &pairVal),
+    NS_ENSURE_TRUE(JS_SetElement(aCx, array, i, pair),
                    NS_ERROR_OUT_OF_MEMORY);
   }
 
-  *aList = JS::ObjectValue(*array);
-
+  aList.setObject(*array);
   return NS_OK;
 }
 
@@ -527,12 +524,12 @@ static bool sSendingSyncMessage = false;
 
 NS_IMETHODIMP
 nsFrameMessageManager::SendSyncMessage(const nsAString& aMessageName,
-                                       const JS::Value& aJSON,
-                                       const JS::Value& aObjects,
+                                       JS::Handle<JS::Value> aJSON,
+                                       JS::Handle<JS::Value> aObjects,
                                        nsIPrincipal* aPrincipal,
                                        JSContext* aCx,
                                        uint8_t aArgc,
-                                       JS::Value* aRetval)
+                                       JS::MutableHandle<JS::Value> aRetval)
 {
   return SendMessage(aMessageName, aJSON, aObjects, aPrincipal, aCx, aArgc,
                      aRetval, true);
@@ -540,12 +537,12 @@ nsFrameMessageManager::SendSyncMessage(const nsAString& aMessageName,
 
 NS_IMETHODIMP
 nsFrameMessageManager::SendRpcMessage(const nsAString& aMessageName,
-                                      const JS::Value& aJSON,
-                                      const JS::Value& aObjects,
+                                      JS::Handle<JS::Value> aJSON,
+                                      JS::Handle<JS::Value> aObjects,
                                       nsIPrincipal* aPrincipal,
                                       JSContext* aCx,
                                       uint8_t aArgc,
-                                      JS::Value* aRetval)
+                                      JS::MutableHandle<JS::Value> aRetval)
 {
   return SendMessage(aMessageName, aJSON, aObjects, aPrincipal, aCx, aArgc,
                      aRetval, false);
@@ -553,19 +550,19 @@ nsFrameMessageManager::SendRpcMessage(const nsAString& aMessageName,
 
 nsresult
 nsFrameMessageManager::SendMessage(const nsAString& aMessageName,
-                                   const JS::Value& aJSON,
-                                   const JS::Value& aObjects,
+                                   JS::Handle<JS::Value> aJSON,
+                                   JS::Handle<JS::Value> aObjects,
                                    nsIPrincipal* aPrincipal,
                                    JSContext* aCx,
                                    uint8_t aArgc,
-                                   JS::Value* aRetval,
+                                   JS::MutableHandle<JS::Value> aRetval,
                                    bool aIsSync)
 {
   NS_ASSERTION(!IsGlobal(), "Should not call SendSyncMessage in chrome");
   NS_ASSERTION(!IsWindowLevel(), "Should not call SendSyncMessage in chrome");
   NS_ASSERTION(!mParentManager, "Should not have parent manager in content!");
 
-  *aRetval = JSVAL_VOID;
+  aRetval.setUndefined();
   NS_ENSURE_TRUE(mCallback, NS_ERROR_NOT_INITIALIZED);
 
   if (sSendingSyncMessage && aIsSync) {
@@ -614,11 +611,11 @@ nsFrameMessageManager::SendMessage(const nsAString& aMessageName,
                       retval[i].Length(), &ret)) {
       return NS_ERROR_UNEXPECTED;
     }
-    NS_ENSURE_TRUE(JS_SetElement(aCx, dataArray, i, &ret),
+    NS_ENSURE_TRUE(JS_SetElement(aCx, dataArray, i, ret),
                    NS_ERROR_OUT_OF_MEMORY);
   }
 
-  *aRetval = OBJECT_TO_JSVAL(dataArray);
+  aRetval.setObject(*dataArray);
   return NS_OK;
 }
 
@@ -678,8 +675,8 @@ nsFrameMessageManager::DispatchAsyncMessage(const nsAString& aMessageName,
 
 NS_IMETHODIMP
 nsFrameMessageManager::SendAsyncMessage(const nsAString& aMessageName,
-                                        const JS::Value& aJSON,
-                                        const JS::Value& aObjects,
+                                        JS::Handle<JS::Value> aJSON,
+                                        JS::Handle<JS::Value> aObjects,
                                         nsIPrincipal* aPrincipal,
                                         JSContext* aCx,
                                         uint8_t aArgc)
@@ -693,8 +690,8 @@ nsFrameMessageManager::SendAsyncMessage(const nsAString& aMessageName,
 
 NS_IMETHODIMP
 nsFrameMessageManager::BroadcastAsyncMessage(const nsAString& aMessageName,
-                                             const JS::Value& aJSON,
-                                             const JS::Value& aObjects,
+                                             JS::Handle<JS::Value> aJSON,
+                                             JS::Handle<JS::Value> aObjects,
                                              JSContext* aCx,
                                              uint8_t aArgc)
 {
@@ -885,7 +882,7 @@ nsFrameMessageManager::ReceiveMessage(nsISupports* aTarget,
                                       nsIPrincipal* aPrincipal,
                                       InfallibleTArray<nsString>* aJSONRetVal)
 {
-  AutoSafeJSContext ctx;
+  AutoSafeJSContext cx;
   nsAutoTObserverArray<nsMessageListenerInfo, 1>* listeners =
     mListeners.Get(aMessage);
   if (listeners) {
@@ -916,98 +913,98 @@ nsFrameMessageManager::ReceiveMessage(nsISupports* aTarget,
       if (!wrappedJS) {
         continue;
       }
-      JS::Rooted<JSObject*> object(ctx, wrappedJS->GetJSObject());
+      JS::Rooted<JSObject*> object(cx, wrappedJS->GetJSObject());
       if (!object) {
         continue;
       }
-      JSAutoCompartment ac(ctx, object);
+      JSAutoCompartment ac(cx, object);
 
       // The parameter for the listener function.
-      JS::Rooted<JSObject*> param(ctx,
-        JS_NewObject(ctx, nullptr, nullptr, nullptr));
+      JS::Rooted<JSObject*> param(cx,
+        JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr()));
       NS_ENSURE_TRUE(param, NS_ERROR_OUT_OF_MEMORY);
 
-      JS::Rooted<JS::Value> targetv(ctx);
-      JS::Rooted<JSObject*> global(ctx, JS_GetGlobalForObject(ctx, object));
-      nsresult rv = nsContentUtils::WrapNative(ctx, global, aTarget, &targetv, true);
+      JS::Rooted<JS::Value> targetv(cx);
+      JS::Rooted<JSObject*> global(cx, JS_GetGlobalForObject(cx, object));
+      nsresult rv = nsContentUtils::WrapNative(cx, global, aTarget, &targetv, true);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      JS::Rooted<JSObject*> cpows(ctx);
+      JS::Rooted<JSObject*> cpows(cx);
       if (aCpows) {
-        if (!aCpows->ToObject(ctx, &cpows)) {
+        if (!aCpows->ToObject(cx, &cpows)) {
           return NS_ERROR_UNEXPECTED;
         }
       }
 
       if (!cpows) {
-        cpows = JS_NewObject(ctx, nullptr, nullptr, nullptr);
+        cpows = JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr());
         if (!cpows) {
           return NS_ERROR_UNEXPECTED;
         }
       }
 
-      JS::Rooted<JS::Value> cpowsv(ctx, JS::ObjectValue(*cpows));
+      JS::Rooted<JS::Value> cpowsv(cx, JS::ObjectValue(*cpows));
 
-      JS::Rooted<JS::Value> json(ctx, JS::NullValue());
+      JS::Rooted<JS::Value> json(cx, JS::NullValue());
       if (aCloneData && aCloneData->mDataLength &&
-          !ReadStructuredClone(ctx, *aCloneData, &json)) {
-        JS_ClearPendingException(ctx);
+          !ReadStructuredClone(cx, *aCloneData, &json)) {
+        JS_ClearPendingException(cx);
         return NS_OK;
       }
-      JS::Rooted<JSString*> jsMessage(ctx,
-        JS_NewUCStringCopyN(ctx,
+      JS::Rooted<JSString*> jsMessage(cx,
+        JS_NewUCStringCopyN(cx,
                             static_cast<const jschar*>(aMessage.BeginReading()),
                             aMessage.Length()));
       NS_ENSURE_TRUE(jsMessage, NS_ERROR_OUT_OF_MEMORY);
-      JS_DefineProperty(ctx, param, "target", targetv, nullptr, nullptr, JSPROP_ENUMERATE);
-      JS_DefineProperty(ctx, param, "name",
+      JS_DefineProperty(cx, param, "target", targetv, nullptr, nullptr, JSPROP_ENUMERATE);
+      JS_DefineProperty(cx, param, "name",
                         STRING_TO_JSVAL(jsMessage), nullptr, nullptr, JSPROP_ENUMERATE);
-      JS_DefineProperty(ctx, param, "sync",
+      JS_DefineProperty(cx, param, "sync",
                         BOOLEAN_TO_JSVAL(aIsSync), nullptr, nullptr, JSPROP_ENUMERATE);
-      JS_DefineProperty(ctx, param, "json", json, nullptr, nullptr, JSPROP_ENUMERATE); // deprecated
-      JS_DefineProperty(ctx, param, "data", json, nullptr, nullptr, JSPROP_ENUMERATE);
-      JS_DefineProperty(ctx, param, "objects", cpowsv, nullptr, nullptr, JSPROP_ENUMERATE);
+      JS_DefineProperty(cx, param, "json", json, nullptr, nullptr, JSPROP_ENUMERATE); // deprecated
+      JS_DefineProperty(cx, param, "data", json, nullptr, nullptr, JSPROP_ENUMERATE);
+      JS_DefineProperty(cx, param, "objects", cpowsv, nullptr, nullptr, JSPROP_ENUMERATE);
 
       // message.principal == null
       if (!aPrincipal) {
-        JS::Rooted<JS::Value> nullValue(ctx);
-        JS_DefineProperty(ctx, param, "principal", nullValue, nullptr, nullptr, JSPROP_ENUMERATE);
+        JS::Rooted<JS::Value> nullValue(cx);
+        JS_DefineProperty(cx, param, "principal", nullValue, nullptr, nullptr, JSPROP_ENUMERATE);
       }
 
       // message.principal = { appId: <id>, origin: <origin>, isInBrowserElement: <something> }
       else {
-        JS::Rooted<JSObject*> principalObj(ctx,
-          JS_NewObject(ctx, nullptr, nullptr, nullptr));
+        JS::Rooted<JSObject*> principalObj(cx,
+          JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr()));
 
         uint32_t appId;
         nsresult rv = aPrincipal->GetAppId(&appId);
         NS_ENSURE_SUCCESS(rv, rv);
 
-        JS::Rooted<JS::Value> appIdValue(ctx, INT_TO_JSVAL(appId));
-        JS_DefineProperty(ctx, principalObj, "appId", appIdValue, nullptr, nullptr, JSPROP_ENUMERATE);
+        JS::Rooted<JS::Value> appIdValue(cx, INT_TO_JSVAL(appId));
+        JS_DefineProperty(cx, principalObj, "appId", appIdValue, nullptr, nullptr, JSPROP_ENUMERATE);
 
         nsCString origin;
         rv = aPrincipal->GetOrigin(getter_Copies(origin));
         NS_ENSURE_SUCCESS(rv, rv);
 
-        JS::Rooted<JSString*> originValue(ctx, JS_InternString(ctx, origin.get()));
-        JS_DefineProperty(ctx, principalObj, "origin", STRING_TO_JSVAL(originValue), nullptr, nullptr, JSPROP_ENUMERATE);
+        JS::Rooted<JSString*> originValue(cx, JS_NewStringCopyN(cx, origin.get(), origin.Length()));
+        JS_DefineProperty(cx, principalObj, "origin", STRING_TO_JSVAL(originValue), nullptr, nullptr, JSPROP_ENUMERATE);
 
         bool browser;
         rv = aPrincipal->GetIsInBrowserElement(&browser);
         NS_ENSURE_SUCCESS(rv, rv);
 
-        JS::Rooted<JS::Value> browserValue(ctx, BOOLEAN_TO_JSVAL(browser));
-        JS_DefineProperty(ctx, principalObj, "isInBrowserElement", browserValue, nullptr, nullptr, JSPROP_ENUMERATE);
+        JS::Rooted<JS::Value> browserValue(cx, BOOLEAN_TO_JSVAL(browser));
+        JS_DefineProperty(cx, principalObj, "isInBrowserElement", browserValue, nullptr, nullptr, JSPROP_ENUMERATE);
 
-        JS::Rooted<JS::Value> principalValue(ctx, JS::ObjectValue(*principalObj));
-        JS_DefineProperty(ctx, param, "principal", principalValue, nullptr, nullptr, JSPROP_ENUMERATE);
+        JS::Rooted<JS::Value> principalValue(cx, JS::ObjectValue(*principalObj));
+        JS_DefineProperty(cx, param, "principal", principalValue, nullptr, nullptr, JSPROP_ENUMERATE);
       }
 
-      JS::Rooted<JS::Value> thisValue(ctx, JS::UndefinedValue());
+      JS::Rooted<JS::Value> thisValue(cx, JS::UndefinedValue());
 
-      JS::Rooted<JS::Value> funval(ctx);
-      if (JS_ObjectIsCallable(ctx, object)) {
+      JS::Rooted<JS::Value> funval(cx);
+      if (JS_ObjectIsCallable(cx, object)) {
         // If the listener is a JS function:
         funval.setObject(*object);
 
@@ -1019,39 +1016,44 @@ nsFrameMessageManager::ReceiveMessage(nsISupports* aTarget,
         } else {
           defaultThisValue = aTarget;
         }
-        JS::Rooted<JSObject*> global(ctx, JS_GetGlobalForObject(ctx, object));
-        nsresult rv = nsContentUtils::WrapNative(ctx, global, defaultThisValue, &thisValue, true);
+        JS::Rooted<JSObject*> global(cx, JS_GetGlobalForObject(cx, object));
+        nsresult rv = nsContentUtils::WrapNative(cx, global, defaultThisValue, &thisValue, true);
         NS_ENSURE_SUCCESS(rv, rv);
       } else {
         // If the listener is a JS object which has receiveMessage function:
-        if (!JS_GetProperty(ctx, object, "receiveMessage", &funval) ||
+        if (!JS_GetProperty(cx, object, "receiveMessage", &funval) ||
             !funval.isObject())
           return NS_ERROR_UNEXPECTED;
 
         // Check if the object is even callable.
-        NS_ENSURE_STATE(JS_ObjectIsCallable(ctx, &funval.toObject()));
+        NS_ENSURE_STATE(JS_ObjectIsCallable(cx, &funval.toObject()));
         thisValue.setObject(*object);
       }
 
-      JS::Rooted<JS::Value> rval(ctx, JSVAL_VOID);
-      JS::Rooted<JS::Value> argv(ctx, JS::ObjectValue(*param));
+      JS::Rooted<JS::Value> rval(cx, JSVAL_VOID);
+      JS::Rooted<JS::Value> argv(cx, JS::ObjectValue(*param));
 
       {
-        JS::Rooted<JSObject*> thisObject(ctx, thisValue.toObjectOrNull());
+        JS::Rooted<JSObject*> thisObject(cx, thisValue.toObjectOrNull());
 
-        JSAutoCompartment tac(ctx, thisObject);
-        if (!JS_WrapValue(ctx, &argv)) {
+        JSAutoCompartment tac(cx, thisObject);
+        if (!JS_WrapValue(cx, &argv)) {
           return NS_ERROR_UNEXPECTED;
         }
 
-        JS_CallFunctionValue(ctx, thisObject,
-                             funval, 1, argv.address(), rval.address());
+        if (!JS_CallFunctionValue(cx, thisObject,
+                                  funval, 1, argv.address(), rval.address())) {
+          nsJSUtils::ReportPendingException(cx);
+          continue;
+        }
         if (aJSONRetVal) {
           nsString json;
-          if (JS_Stringify(ctx, &rval, JS::NullPtr(), JS::NullHandleValue,
+          if (!JS_Stringify(cx, &rval, JS::NullPtr(), JS::NullHandleValue,
                            JSONCreator, &json)) {
-            aJSONRetVal->AppendElement(json);
+            nsJSUtils::ReportPendingException(cx);
+            continue;
           }
+          aJSONRetVal->AppendElement(json);
         }
       }
     }
@@ -1064,49 +1066,58 @@ nsFrameMessageManager::ReceiveMessage(nsISupports* aTarget,
 }
 
 void
-nsFrameMessageManager::AddChildManager(nsFrameMessageManager* aManager,
-                                       bool aLoadScripts)
+nsFrameMessageManager::AddChildManager(nsFrameMessageManager* aManager)
 {
   mChildManagers.AppendObject(aManager);
-  if (aLoadScripts) {
-    nsRefPtr<nsFrameMessageManager> kungfuDeathGrip = this;
-    nsRefPtr<nsFrameMessageManager> kungfuDeathGrip2 = aManager;
-    // We have parent manager if we're a window message manager.
-    // In that case we want to load the pending scripts from global
-    // message manager.
-    if (mParentManager) {
-      nsRefPtr<nsFrameMessageManager> globalMM = mParentManager;
-      for (uint32_t i = 0; i < globalMM->mPendingScripts.Length(); ++i) {
-        aManager->LoadFrameScript(globalMM->mPendingScripts[i], false,
-                                  globalMM->mPendingScriptsGlobalStates[i]);
-      }
+
+  nsRefPtr<nsFrameMessageManager> kungfuDeathGrip = this;
+  nsRefPtr<nsFrameMessageManager> kungfuDeathGrip2 = aManager;
+  // We have parent manager if we're a window message manager.
+  // In that case we want to load the pending scripts from global
+  // message manager.
+  if (mParentManager) {
+    nsRefPtr<nsFrameMessageManager> globalMM = mParentManager;
+    for (uint32_t i = 0; i < globalMM->mPendingScripts.Length(); ++i) {
+      aManager->LoadFrameScript(globalMM->mPendingScripts[i], false,
+                                globalMM->mPendingScriptsGlobalStates[i]);
     }
-    for (uint32_t i = 0; i < mPendingScripts.Length(); ++i) {
-      aManager->LoadFrameScript(mPendingScripts[i], false,
-                                mPendingScriptsGlobalStates[i]);
-    }
+  }
+  for (uint32_t i = 0; i < mPendingScripts.Length(); ++i) {
+    aManager->LoadFrameScript(mPendingScripts[i], false,
+                              mPendingScriptsGlobalStates[i]);
   }
 }
 
 void
-nsFrameMessageManager::SetCallback(MessageManagerCallback* aCallback, bool aLoadScripts)
+nsFrameMessageManager::SetCallback(MessageManagerCallback* aCallback)
 {
-  NS_ASSERTION(!mIsBroadcaster || !mCallback,
-               "Broadcasters cannot have callbacks!");
+  MOZ_ASSERT(!mIsBroadcaster || !mCallback,
+             "Broadcasters cannot have callbacks!");
   if (aCallback && mCallback != aCallback) {
     mCallback = aCallback;
     if (mOwnsCallback) {
       mOwnedCallback = aCallback;
     }
-    // First load global scripts by adding this to parent manager.
-    if (mParentManager) {
-      mParentManager->AddChildManager(this, aLoadScripts);
-    }
-    if (aLoadScripts) {
-      for (uint32_t i = 0; i < mPendingScripts.Length(); ++i) {
-        LoadFrameScript(mPendingScripts[i], false, mPendingScriptsGlobalStates[i]);
-      }
-    }
+  }
+}
+
+void
+nsFrameMessageManager::InitWithCallback(MessageManagerCallback* aCallback)
+{
+  if (mCallback) {
+    // Initialization should only happen once.
+    return;
+  }
+
+  SetCallback(aCallback);
+
+  // First load global scripts by adding this to parent manager.
+  if (mParentManager) {
+    mParentManager->AddChildManager(this);
+  }
+
+  for (uint32_t i = 0; i < mPendingScripts.Length(); ++i) {
+    LoadFrameScript(mPendingScripts[i], false, mPendingScriptsGlobalStates[i]);
   }
 }
 
@@ -1410,6 +1421,7 @@ nsFrameScriptExecutor::LoadFrameScriptInternal(const nsAString& aURL,
   JS::Rooted<JSObject*> global(cx, mGlobal->GetJSObject());
   if (global) {
     JSAutoCompartment ac(cx, global);
+    bool ok = true;
     if (funobj) {
       JS::Rooted<JSObject*> method(cx, JS_CloneFunctionObject(cx, funobj, global));
       if (!method) {
@@ -1417,10 +1429,14 @@ nsFrameScriptExecutor::LoadFrameScriptInternal(const nsAString& aURL,
       }
       JS::Rooted<JS::Value> rval(cx);
       JS::Rooted<JS::Value> methodVal(cx, JS::ObjectValue(*method));
-      (void) JS_CallFunctionValue(cx, global, methodVal,
-                                  0, nullptr, rval.address());
+      ok = JS_CallFunctionValue(cx, global, methodVal,
+                                0, nullptr, rval.address());
     } else if (script) {
-      (void) JS_ExecuteScript(cx, global, script, nullptr);
+      ok = JS_ExecuteScript(cx, global, script, nullptr);
+    }
+
+    if (!ok) {
+      nsJSUtils::ReportPendingException(cx);
     }
   }
 }

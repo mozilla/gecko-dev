@@ -7,9 +7,9 @@
 
 #main-window:not([chromehidden~="toolbar"]) {
 %ifdef XP_MACOSX
-  min-width: 425px;
+  min-width: 335px;
 %else
-  min-width: 390px;
+  min-width: 300px;
 %endif
 }
 
@@ -173,6 +173,7 @@ toolbar[customizing] > .overflow-button {
 }
 
 %ifdef CAN_DRAW_IN_TITLEBAR
+#main-window:not([chromemargin]) > #titlebar,
 #main-window[inFullscreen] > #titlebar,
 #main-window[inFullscreen] .titlebar-placeholder,
 #main-window:not([tabsintitlebar]) .titlebar-placeholder {
@@ -265,7 +266,6 @@ toolbarpaletteitem > #personal-bookmarks > #bookmarks-toolbar-placeholder,
   display: -moz-box;
 }
 
-#wrapper-urlbar-container > #urlbar-container > #urlbar-wrapper > #urlbar > toolbarbutton,
 #urlbar-reload-button:not([displaystop]) + #urlbar-stop-button,
 #urlbar-reload-button[displaystop] {
   visibility: collapse;
@@ -284,11 +284,19 @@ toolbarpaletteitem > #personal-bookmarks > #bookmarks-toolbar-placeholder,
 }
 
 #urlbar-container {
-  min-width: 50ch;
+  min-width: 28ch;
 }
 
 #search-container {
   min-width: 25ch;
+}
+
+#urlbar,
+.searchbar-textbox {
+  /* Setting a width and min-width to let the location & search bars maintain
+     a constant width in case they haven't be resized manually. (bug 965772) */
+  width: 1px;
+  min-width: 1px;
 }
 
 #main-window:-moz-lwtheme {
@@ -380,7 +388,7 @@ panel[noactions] > richlistbox > richlistitem[type~="action"] > .ac-url-box > .a
 }
 
 #identity-icon-labels {
-  max-width: 18em;
+  max-width: 12vw;
 }
 
 #identity-icon-country-label {
@@ -747,6 +755,14 @@ toolbarpaletteitem[place="palette"] > toolbarbutton[type="badged"] > .toolbarbut
   max-height: 32px;
 }
 
+toolbarbutton[sdk-button="true"] > .toolbarbutton-icon {
+  max-height: 32px;
+}
+
+toolbarbutton[sdk-button="true"][cui-areatype="toolbar"] > .toolbarbutton-icon {
+  max-height: 18px;
+}
+
 panelview > .social-panel-frame {
   width: auto;
   height: auto;
@@ -779,7 +795,11 @@ chatbar {
 
 /*** Visibility of downloads indicator controls ***/
 
-#downloads-button[indicator] > image.toolbarbutton-icon {
+/* Bug 924050: If we've loaded the indicator, for now we hide it in the menu panel,
+   and just show the icon. This is a hack to side-step very weird layout bugs that
+   seem to be caused by the indicator stack interacting with the menu panel. */
+#downloads-button[indicator]:not([cui-areatype="menu-panel"]) > image.toolbarbutton-icon,
+#downloads-button[indicator][cui-areatype="menu-panel"] > #downloads-indicator-anchor {
   display: none;
 }
 
@@ -877,13 +897,15 @@ chatbox:-moz-full-screen-ancestor > .chat-titlebar {
 }
 
 /* Customize mode */
-#tab-view-deck {
-  transition-property: padding;
+#navigator-toolbox > toolbar:not(#TabsToolbar),
+#content-deck {
+  transition-property: margin-left, margin-right;
   transition-duration: 150ms;
   transition-timing-function: ease-out;
 }
 
-#tab-view-deck[fastcustomizeanimation] {
+#tab-view-deck[fastcustomizeanimation] #navigator-toolbox > toolbar:not(#TabsToolbar),
+#tab-view-deck[fastcustomizeanimation] #content-deck {
   transition-duration: 1ms;
   transition-timing-function: linear;
 }
@@ -903,6 +925,7 @@ chatbox:-moz-full-screen-ancestor > .chat-titlebar {
 
 #customization-panelWrapper > .panel-arrowcontent {
   padding: 0 !important;
+  overflow: hidden;
 }
 
 #customization-panelHolder > #PanelUI-mainView {
@@ -936,9 +959,14 @@ toolbarpaletteitem[dragover] {
   min-height: 3em;
 }
 
+#customization-toolbar-visibility-button > .box-inherit > .button-menu-dropmarker {
+  display: -moz-box;
+}
+
 toolbarpaletteitem[place="palette"] {
-  width: 110px;
-  height: 94px;
+  width: 10em;
+  height: calc(40px + 2em);
+  margin-bottom: 5px;
   overflow: hidden;
   display: inline-block;
 }
@@ -950,8 +978,8 @@ toolbarpaletteitem[place="palette"][hidden] {
 #customization-palette .toolbarpaletteitem-box {
   -moz-box-pack: center;
   -moz-box-flex: 1;
-  width: 110px;
-  max-width: 110px;
+  width: 10em;
+  max-width: 10em;
 }
 
 /* UI Tour */

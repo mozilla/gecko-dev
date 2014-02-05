@@ -11,7 +11,6 @@
 #include "BufferUnrotate.h"             // for BufferUnrotate
 #include "GeckoProfiler.h"              // for PROFILER_LABEL
 #include "Layers.h"                     // for ThebesLayer, Layer, etc
-#include "gfxMatrix.h"                  // for gfxMatrix
 #include "gfxPlatform.h"                // for gfxPlatform
 #include "gfxUtils.h"                   // for gfxUtils
 #include "mozilla/ArrayUtils.h"         // for ArrayLength
@@ -188,7 +187,7 @@ RotatedContentBuffer::DrawTo(ThebesLayer* aLayer,
                              float aOpacity,
                              CompositionOp aOp,
                              gfxASurface* aMask,
-                             const gfxMatrix* aMaskTransform)
+                             const Matrix* aMaskTransform)
 {
   if (!EnsureBuffer()) {
     return;
@@ -220,7 +219,7 @@ RotatedContentBuffer::DrawTo(ThebesLayer* aLayer,
 
   Matrix maskTransform;
   if (aMaskTransform) {
-    maskTransform = ToMatrix(*aMaskTransform);
+    maskTransform = *aMaskTransform;
   }
 
   DrawBufferWithRotation(aTarget, BUFFER_BLACK, aOpacity, aOp, mask, &maskTransform);
@@ -296,7 +295,7 @@ RotatedContentBuffer::BufferContentType()
 
     return ContentForFormat(format);
   }
-  return GFX_CONTENT_SENTINEL;
+  return gfxContentType::SENTINEL;
 }
 
 bool
@@ -413,11 +412,11 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
   nsIntRegion validRegion = aLayer->GetValidRegion();
 
   bool canUseOpaqueSurface = aLayer->CanUseOpaqueSurface();
-  ContentType contentType =
-    canUseOpaqueSurface ? GFX_CONTENT_COLOR :
-                          GFX_CONTENT_COLOR_ALPHA;
+  ContentType layerContentType =
+    canUseOpaqueSurface ? gfxContentType::COLOR :
+                          gfxContentType::COLOR_ALPHA;
 
-  Layer::SurfaceMode mode;
+  SurfaceMode mode;
   nsIntRegion neededRegion;
   bool canReuseBuffer;
   nsIntRect destBufferRect;
@@ -426,6 +425,7 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
     mode = aLayer->GetSurfaceMode();
     neededRegion = aLayer->GetVisibleRegion();
     canReuseBuffer = HaveBuffer() && BufferSizeOkFor(neededRegion.GetBounds().Size());
+    result.mContentType = layerContentType;
 
     if (canReuseBuffer) {
       if (mBufferRect.Contains(neededRegion.GetBounds())) {
@@ -443,9 +443,9 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
       destBufferRect = ComputeBufferRect(neededRegion.GetBounds());
     }
 
-    if (mode == Layer::SURFACE_COMPONENT_ALPHA) {
+    if (mode == SurfaceMode::SURFACE_COMPONENT_ALPHA) {
 #if defined(MOZ_GFX_OPTIMIZE_MOBILE) || defined(MOZ_WIDGET_GONK)
-      mode = Layer::SURFACE_SINGLE_CHANNEL_ALPHA;
+      mode = SurfaceMode::SURFACE_SINGLE_CHANNEL_ALPHA;
 #else
       if (!aLayer->GetParent() ||
           !aLayer->GetParent()->SupportsComponentAlphaChildren() ||
@@ -453,9 +453,9 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
           !aLayer->AsShadowableLayer() ||
           !aLayer->AsShadowableLayer()->HasShadow() ||
           !gfxPlatform::ComponentAlphaEnabled()) {
-        mode = Layer::SURFACE_SINGLE_CHANNEL_ALPHA;
+        mode = SurfaceMode::SURFACE_SINGLE_CHANNEL_ALPHA;
       } else {
-        contentType = GFX_CONTENT_COLOR;
+        result.mContentType = gfxContentType::COLOR;
       }
 #endif
     }
@@ -464,9 +464,9 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
         (!neededRegion.GetBounds().IsEqualInterior(destBufferRect) ||
          neededRegion.GetNumRects() > 1)) {
       // The area we add to neededRegion might not be painted opaquely
-      if (mode == Layer::SURFACE_OPAQUE) {
-        contentType = GFX_CONTENT_COLOR_ALPHA;
-        mode = Layer::SURFACE_SINGLE_CHANNEL_ALPHA;
+      if (mode == SurfaceMode::SURFACE_OPAQUE) {
+        result.mContentType = gfxContentType::COLOR_ALPHA;
+        mode = SurfaceMode::SURFACE_SINGLE_CHANNEL_ALPHA;
       }
 
       // We need to validate the entire buffer, to make sure that only valid
@@ -477,8 +477,8 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
     // If we have an existing buffer, but the content type has changed or we
     // have transitioned into/out of component alpha, then we need to recreate it.
     if (HaveBuffer() &&
-        (contentType != BufferContentType() ||
-        (mode == Layer::SURFACE_COMPONENT_ALPHA) != HaveBufferOnWhite())) {
+        (result.mContentType != BufferContentType() ||
+        (mode == SurfaceMode::SURFACE_COMPONENT_ALPHA) != HaveBufferOnWhite())) {
 
       // We're effectively clearing the valid region, so we need to draw
       // the entire needed region now.
@@ -498,7 +498,7 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
 
   result.mRegionToDraw.Sub(neededRegion, validRegion);
 
-  // Do not modify result.mRegionToDraw after this call.
+  // Do not modify result.mRegionToDraw or result.mContentType after this call.
   // Do not modify mBufferRect, mBufferRotation, or mDidSelfCopy,
   // or call CreateBuffer before this call.
   FinalizeFrame(result.mRegionToDraw);
@@ -510,7 +510,7 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
   RefPtr<DrawTarget> destDTBuffer;
   RefPtr<DrawTarget> destDTBufferOnWhite;
   uint32_t bufferFlags = canHaveRotation ? ALLOW_REPEAT : 0;
-  if (mode == Layer::SURFACE_COMPONENT_ALPHA) {
+  if (mode == SurfaceMode::SURFACE_COMPONENT_ALPHA) {
     bufferFlags |= BUFFER_COMPONENT_ALPHA;
   }
   if (canReuseBuffer) {
@@ -542,7 +542,7 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
           MOZ_ASSERT(mDTBuffer);
           mDTBuffer->CopyRect(IntRect(srcRect.x, srcRect.y, srcRect.width, srcRect.height),
                               IntPoint(dest.x, dest.y));
-          if (mode == Layer::SURFACE_COMPONENT_ALPHA) {
+          if (mode == SurfaceMode::SURFACE_COMPONENT_ALPHA) {
             if (!EnsureBufferOnWhite()) {
               return result;
             }
@@ -571,7 +571,7 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
                            newRotation.x * bytesPerPixel, newRotation.y);
             mDTBuffer->ReleaseBits(data);
 
-            if (mode == Layer::SURFACE_COMPONENT_ALPHA) {
+            if (mode == SurfaceMode::SURFACE_COMPONENT_ALPHA) {
               if (!EnsureBufferOnWhite()) {
                 return result;
               }
@@ -595,7 +595,7 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
 
           if (!result.mDidSelfCopy) {
             destBufferRect = ComputeBufferRect(neededRegion.GetBounds());
-            CreateBuffer(contentType, destBufferRect, bufferFlags,
+            CreateBuffer(result.mContentType, destBufferRect, bufferFlags,
                          &destDTBuffer, &destDTBufferOnWhite);
             if (!destDTBuffer) {
               return result;
@@ -615,7 +615,7 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
     }
   } else {
     // The buffer's not big enough, so allocate a new one
-    CreateBuffer(contentType, destBufferRect, bufferFlags,
+    CreateBuffer(result.mContentType, destBufferRect, bufferFlags,
                  &destDTBuffer, &destDTBufferOnWhite);
     if (!destDTBuffer) {
       return result;
@@ -630,7 +630,7 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
   bool isClear = !HaveBuffer();
 
   if (destDTBuffer) {
-    if (!isClear && (mode != Layer::SURFACE_COMPONENT_ALPHA || HaveBufferOnWhite())) {
+    if (!isClear && (mode != SurfaceMode::SURFACE_COMPONENT_ALPHA || HaveBufferOnWhite())) {
       // Copy the bits
       nsIntPoint offset = -destBufferRect.TopLeft();
       Matrix mat;
@@ -643,7 +643,7 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
       DrawBufferWithRotation(destDTBuffer, BUFFER_BLACK, 1.0, CompositionOp::OP_SOURCE);
       destDTBuffer->SetTransform(Matrix());
 
-      if (mode == Layer::SURFACE_COMPONENT_ALPHA) {
+      if (mode == SurfaceMode::SURFACE_COMPONENT_ALPHA) {
         NS_ASSERTION(destDTBufferOnWhite, "Must have a white buffer!");
         destDTBufferOnWhite->SetTransform(mat);
         if (!EnsureBufferOnWhite()) {
@@ -666,7 +666,7 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
   nsIntRegion invalidate;
   invalidate.Sub(aLayer->GetValidRegion(), destBufferRect);
   result.mRegionToInvalidate.Or(result.mRegionToInvalidate, invalidate);
-  result.mClip = CLIP_DRAW_SNAPPED;
+  result.mClip = DrawRegionClip::DRAW_SNAPPED;
   result.mMode = mode;
 
   return result;
@@ -676,19 +676,14 @@ DrawTarget*
 RotatedContentBuffer::BorrowDrawTargetForPainting(ThebesLayer* aLayer,
                                                   const PaintState& aPaintState)
 {
-  if (!aPaintState.mMode) {
+  if (aPaintState.mMode == SurfaceMode::SURFACE_NONE) {
     return nullptr;
   }
 
   DrawTarget* result = BorrowDrawTargetForQuadrantUpdate(aPaintState.mRegionToDraw.GetBounds(),
                                                          BUFFER_BOTH);
 
-  bool canUseOpaqueSurface = aLayer->CanUseOpaqueSurface();
-  ContentType contentType =
-    canUseOpaqueSurface ? GFX_CONTENT_COLOR :
-                          GFX_CONTENT_COLOR_ALPHA;
-
-  if (aPaintState.mMode == Layer::SURFACE_COMPONENT_ALPHA) {
+  if (aPaintState.mMode == SurfaceMode::SURFACE_COMPONENT_ALPHA) {
     MOZ_ASSERT(mDTBuffer && mDTBufferOnWhite);
     nsIntRegionRectIterator iter(aPaintState.mRegionToDraw);
     const nsIntRect *iterRect;
@@ -698,7 +693,7 @@ RotatedContentBuffer::BorrowDrawTargetForPainting(ThebesLayer* aLayer,
       mDTBufferOnWhite->FillRect(Rect(iterRect->x, iterRect->y, iterRect->width, iterRect->height),
                                  ColorPattern(Color(1.0, 1.0, 1.0, 1.0)));
     }
-  } else if (contentType == GFX_CONTENT_COLOR_ALPHA && HaveBuffer()) {
+  } else if (aPaintState.mContentType == gfxContentType::COLOR_ALPHA && HaveBuffer()) {
     // HaveBuffer() => we have an existing buffer that we must clear
     nsIntRegionRectIterator iter(aPaintState.mRegionToDraw);
     const nsIntRect *iterRect;

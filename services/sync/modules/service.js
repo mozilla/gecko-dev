@@ -30,7 +30,6 @@ Cu.import("resource://services-sync/policies.js");
 Cu.import("resource://services-sync/record.js");
 Cu.import("resource://services-sync/resource.js");
 Cu.import("resource://services-sync/rest.js");
-Cu.import("resource://services-sync/stages/cluster.js");
 Cu.import("resource://services-sync/stages/enginesync.js");
 Cu.import("resource://services-sync/status.js");
 Cu.import("resource://services-sync/userapi.js");
@@ -61,7 +60,6 @@ Sync11Service.prototype = {
   _locked: false,
   _loggedIn: false,
 
-  userBaseURL: null,
   infoURL: null,
   storageURL: null,
   metaURL: null,
@@ -157,13 +155,18 @@ Sync11Service.prototype = {
     return Utils.catch.call(this, func, lockExceptions);
   },
 
+  get userBaseURL() {
+    if (!this._clusterManager) {
+      return null;
+    }
+    return this._clusterManager.getUserBaseURL();
+  },
+
   _updateCachedURLs: function _updateCachedURLs() {
     // Nothing to cache yet if we don't have the building blocks
     if (this.clusterURL == "" || this.identity.username == "")
       return;
 
-    let storageAPI = this.clusterURL + SYNC_API_VERSION + "/";
-    this.userBaseURL = storageAPI + this.identity.username + "/";
     this._log.debug("Caching URLs under storage user base: " + this.userBaseURL);
 
     // Generate and cache various URLs under the storage API for this user
@@ -323,7 +326,7 @@ Sync11Service.prototype = {
 
     this._log.info("Loading Weave " + WEAVE_VERSION);
 
-    this._clusterManager = new ClusterManager(this);
+    this._clusterManager = this.identity.createClusterManager(this);
     this.recordManager = new RecordManager(this);
 
     this.enabled = true;
@@ -649,6 +652,13 @@ Sync11Service.prototype = {
   },
 
   verifyLogin: function verifyLogin() {
+    // If the identity isn't ready it  might not know the username...
+    if (!this.identity.readyToAuthenticate) {
+      this._log.info("Not ready to authenticate in verifyLogin.");
+      this.status.login = LOGIN_FAILED_NOT_READY;
+      return false;
+    }
+
     if (!this.identity.username) {
       this._log.warn("No username in verifyLogin.");
       this.status.login = LOGIN_FAILED_NO_USERNAME;

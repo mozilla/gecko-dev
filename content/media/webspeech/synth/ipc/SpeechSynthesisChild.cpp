@@ -112,14 +112,6 @@ SpeechSynthesisRequestChild::RecvOnResume(const float& aElapsedTime,
 }
 
 bool
-SpeechSynthesisRequestChild::RecvOnError(const float& aElapsedTime,
-                                         const uint32_t& aCharIndex)
-{
-  mTask->DispatchErrorImpl(aElapsedTime, aCharIndex);
-  return true;
-}
-
-bool
 SpeechSynthesisRequestChild::RecvOnBoundary(const nsString& aName,
                                             const float& aElapsedTime,
                                             const uint32_t& aCharIndex)
@@ -152,7 +144,7 @@ SpeechTaskChild::Setup(nsISpeechTaskCallback* aCallback,
 }
 
 NS_IMETHODIMP
-SpeechTaskChild::SendAudio(const JS::Value& aData, const JS::Value& aLandmarks,
+SpeechTaskChild::SendAudio(JS::Handle<JS::Value> aData, JS::Handle<JS::Value> aLandmarks,
                            JSContext* aCx)
 {
   MOZ_CRASH("Should never be called from child");

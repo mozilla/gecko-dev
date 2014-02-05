@@ -109,32 +109,34 @@
         <item name="android:ellipsize">middle</item>
     </style>
 
-    <style name="Widget.TwoLinePageRow" />
+    <style name="Widget.TwoLineRow" />
 
-    <style name="Widget.TwoLinePageRow.Title">
-        <item name="android:textAppearance">@style/TextAppearance.Widget.TwoLinePageRow.Title</item>
+    <style name="Widget.TwoLineRow.PrimaryText">
+        <item name="android:textAppearance">@style/TextAppearance.Widget.TwoLineRow.PrimaryText</item>
         <item name="android:singleLine">true</item>
         <item name="android:ellipsize">none</item>
     </style>
 
-    <style name="Widget.TwoLinePageRow.Url">
-        <item name="android:textAppearance">@style/TextAppearance.Widget.TwoLinePageRow.Url</item>
+    <style name="Widget.TwoLineRow.SecondaryText">
+        <item name="android:textAppearance">@style/TextAppearance.Widget.TwoLineRow.SecondaryText</item>
         <item name="android:includeFontPadding">false</item>
         <item name="android:singleLine">true</item>
         <item name="android:ellipsize">middle</item>
     </style>
 
-    <style name="Widget.BookmarkFolderView" parent="Widget.TwoLinePageRow.Title">
+    <style name="Widget.BookmarkFolderView" parent="Widget.TwoLineRow.PrimaryText">
         <item name="android:paddingLeft">10dip</item>
         <item name="android:drawablePadding">10dip</item>
         <item name="android:drawableLeft">@drawable/bookmark_folder</item>
     </style>
 
-    <style name="Widget.TopSitesGridView" parent="Widget.GridView">
+    <style name="Widget.HomeGridView" parent="Widget.GridView">
         <item name="android:padding">7dp</item>
         <item name="android:horizontalSpacing">0dp</item>
         <item name="android:verticalSpacing">7dp</item>
     </style>
+
+    <style name="Widget.TopSitesGridView" parent="Widget.HomeGridView" />
 
     <style name="Widget.TopSitesGridItemView">
       <item name="android:layout_width">fill_parent</item>
@@ -143,7 +145,30 @@
       <item name="android:orientation">vertical</item>
     </style>
 
-    <style name="Widget.BookmarkItemView" parent="Widget.TwoLinePageRow"/>
+    <style name="Widget.PanelGridView" parent="Widget.GridView">
+        <item name="android:layout_width">fill_parent</item>
+        <item name="android:layout_height">fill_parent</item>
+        <item name="android:paddingTop">0dp</item>
+        <item name="android:stretchMode">columnWidth</item>
+        <item name="android:columnWidth">@dimen/panel_grid_view_column_width</item>
+        <item name="android:horizontalSpacing">2dp</item>
+        <item name="android:verticalSpacing">2dp</item>
+    </style>
+
+    <style name="Widget.PanelGridItemView">
+      <item name="android:layout_height">wrap_content</item>
+      <item name="android:layout_width">wrap_content</item>
+    </style>
+
+    <style name="Widget.PanelGridItemImageView">
+      <item name="android:layout_height">@dimen/panel_grid_view_column_width</item>
+      <item name="android:layout_width">fill_parent</item>
+      <item name="android:scaleType">centerCrop</item>
+      <item name="android:adjustViewBounds">true</item>
+      <item name="android:background">@color/panel_grid_item_image_background</item>
+    </style>
+
+    <style name="Widget.BookmarkItemView" parent="Widget.TwoLineRow"/>
 
     <style name="Widget.BookmarksListView" parent="Widget.HomeListView"/>
 
@@ -317,11 +342,11 @@
         <item name="android:textSize">14sp</item>
     </style>
 
-    <style name="TextAppearance.Widget.TwoLinePageRow" />
+    <style name="TextAppearance.Widget.TwoLineRow" />
 
-    <style name="TextAppearance.Widget.TwoLinePageRow.Title" parent="TextAppearance.Medium"/>
+    <style name="TextAppearance.Widget.TwoLineRow.PrimaryText" parent="TextAppearance.Medium"/>
 
-    <style name="TextAppearance.Widget.TwoLinePageRow.Url" parent="TextAppearance.Micro">
+    <style name="TextAppearance.Widget.TwoLineRow.SecondaryText" parent="TextAppearance.Micro">
         <item name="android:textColor">?android:attr/textColorSecondary</item>
     </style>
 

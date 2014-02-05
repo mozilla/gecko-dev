@@ -443,8 +443,9 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     // The actual number of arguments that were passed, used to assert that
     // the initial number of arguments declared was correct.
     uint32_t passedArgs_;
+    uint32_t passedArgTypes_;
 
-#ifdef JS_CPU_ARM_HARDFP
+#ifdef JS_CODEGEN_ARM_HARDFP
     uint32_t usedIntSlots_;
     uint32_t usedFloatSlots_;
     uint32_t padding_;

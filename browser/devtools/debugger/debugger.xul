@@ -177,7 +177,7 @@
       <menuitem id="auto-pretty-print"
                 type="checkbox"
                 label="&debuggerUI.autoPrettyPrint;"
-                accesskey="&debuggerUI.autoPrettyPrint.key;"
+                accesskey="&debuggerUI.autoPrettyPrint.accesskey;"
                 command="toggleAutoPrettyPrint"/>
       <menuitem id="pause-on-exceptions"
                 type="checkbox"
@@ -306,7 +306,8 @@
         flex="1">
     <toolbar id="debugger-toolbar"
              class="devtools-toolbar">
-      <hbox id="debugger-controls">
+      <hbox id="debugger-controls"
+            class="devtools-toolbarbutton-group">
         <toolbarbutton id="resume"
                        class="devtools-toolbarbutton"
                        tabindex="0"/>
@@ -354,7 +355,8 @@
           <tabpanel id="sources-tabpanel">
             <vbox id="sources" flex="1"/>
             <toolbar id="sources-toolbar" class="devtools-toolbar">
-              <hbox id="sources-controls">
+              <hbox id="sources-controls"
+                    class="devtools-toolbarbutton-group">
                 <toolbarbutton id="black-box"
                                class="devtools-toolbarbutton"
                                tooltiptext="&debuggerUI.sources.blackBoxTooltip;"
@@ -410,7 +412,7 @@
           <button id="black-boxed-message-button"
                   class="devtools-toolbarbutton"
                   label="&debuggerUI.blackBoxMessage.unBlackBoxButton;"
-                  image="chrome://browser/skin/devtools/debugger-blackboxMessageEye.png"
+                  image="chrome://browser/skin/devtools/debugger-blackbox-eye.png"
                   command="unBlackBoxCommand"/>
         </vbox>
         <vbox id="source-progress-container"
@@ -432,7 +434,7 @@
         <tabpanels flex="1">
           <tabpanel id="variables-tabpanel">
             <vbox id="expressions"/>
-            <splitter class="devtools-horizontal-splitter"/>
+            <splitter class="devtools-horizontal-splitter devtools-invisible splitter"/>
             <vbox id="variables" flex="1"/>
           </tabpanel>
           <tabpanel id="events-tabpanel">

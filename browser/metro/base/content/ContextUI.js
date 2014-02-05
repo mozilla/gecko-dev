@@ -112,7 +112,7 @@ var ContextUI = {
     }
 
     if (shown) {
-      ContentAreaObserver.update(window.innerWidth, window.innerHeight);
+      ContentAreaObserver.updateContentArea();
     }
 
     return shown;
@@ -144,7 +144,7 @@ var ContextUI = {
     }
 
     if (dismissed) {
-      ContentAreaObserver.update(window.innerWidth, window.innerHeight);
+      ContentAreaObserver.updateContentArea();
     }
 
     return dismissed;
@@ -316,7 +316,9 @@ var ContextUI = {
   handleEvent: function handleEvent(aEvent) {
     switch (aEvent.type) {
       case "URLChanged":
-        if (aEvent.target == Browser.selectedBrowser) {
+        // "aEvent.detail" is a boolean value that indicates whether actual URL
+        // has changed ignoring URL fragment changes.
+        if (aEvent.target == Browser.selectedBrowser && aEvent.detail) {
           this.displayNavbar();
         }
         break;

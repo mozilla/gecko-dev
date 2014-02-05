@@ -70,7 +70,7 @@ ClientThebesLayer::PaintThebes()
       MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) PaintThebes", this));
       Mutated();
       ctx = nullptr;
-      mContentClient->ReturnDrawTarget(target);
+      mContentClient->ReturnDrawTargetToBuffer(target);
     } else {
       // It's possible that state.mRegionToInvalidate is nonempty here,
       // if we are shrinking the valid region to nothing. So use mRegionToDraw
@@ -133,8 +133,8 @@ ClientThebesLayer::PaintBuffer(gfxContext* aContext,
     ClientManager()->SetTransactionIncomplete();
     return;
   }
-  ClientManager()->GetThebesLayerCallback()(this, 
-                                            aContext, 
+  ClientManager()->GetThebesLayerCallback()(this,
+                                            aContext,
                                             aExtendedRegionToDraw,
                                             aClip,
                                             aRegionToInvalidate,
@@ -171,7 +171,7 @@ ClientLayerManager::CreateThebesLayerWithHint(ThebesLayerCreationHint aHint)
 #ifdef MOZ_B2G
       aHint == SCROLLABLE &&
 #endif
-      gfxPlatform::GetPrefLayersEnableTiles() && AsShadowForwarder()->GetCompositorBackendType() == LAYERS_OPENGL) {
+      gfxPlatform::GetPrefLayersEnableTiles() && AsShadowForwarder()->GetCompositorBackendType() == LayersBackend::LAYERS_OPENGL) {
     nsRefPtr<ClientTiledThebesLayer> layer =
       new ClientTiledThebesLayer(this);
     CREATE_SHADOW(Thebes);

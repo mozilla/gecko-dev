@@ -15,10 +15,12 @@ Cu.import("resource://gre/modules/Services.jsm", this);
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 Cu.import("resource://gre/modules/TelemetryStopwatch.jsm", this);
 
-XPCOMUtils.defineLazyModuleGetter(this, "SessionStore",
-  "resource:///modules/sessionstore/SessionStore.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "console",
   "resource://gre/modules/devtools/Console.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PrivacyFilter",
+  "resource:///modules/sessionstore/PrivacyFilter.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "SessionStore",
+  "resource:///modules/sessionstore/SessionStore.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "SessionFile",
   "resource:///modules/sessionstore/SessionFile.jsm");
 
@@ -192,39 +194,7 @@ let SessionSaverInternal = {
 
     stopWatchStart("COLLECT_DATA_MS", "COLLECT_DATA_LONGEST_OP_MS");
     let state = SessionStore.getCurrentState(forceUpdateAllWindows);
-
-    // Forget about private windows and tabs.
-    for (let i = state.windows.length - 1; i >= 0; i--) {
-      let win = state.windows[i];
-      if (win.isPrivate || false) { // The whole window is private, remove it
-         state.windows.splice(i, 1);
-         if (state.selectedWindow >= i) {
-           state.selectedWindow--;
-         }
-        continue;
-      }
-      // The window is not private, but its tabs still might
-      for (let j = win.tabs.length - 1; j >= 0 ; --j) {
-        let tab = win.tabs[j];
-        if (tab.isPrivate || false) {
-          win.tabs.splice(j, 1);
-          if (win.selected >= j) {
-            win.selected--;
-          }
-        }
-      }
-    }
-
-    // Remove private windows from the list of closed windows.
-    for (let i = state._closedWindows.length - 1; i >= 0; i--) {
-      if (state._closedWindows[i].isPrivate) {
-        state._closedWindows.splice(i, 1);
-      }
-    }
-
-    // Note that closed private tabs are never stored (see
-    // SessionStoreInternal.onTabClose), so we do not need to remove
-    // them.
+    PrivacyFilter.filterPrivateWindowsAndTabs(state);
 
     // Make sure that we keep the previous session if we started with a single
     // private window and no non-private windows have been opened, yet.
@@ -264,29 +234,15 @@ let SessionSaverInternal = {
     // Allow scheduling delayed saves again.
     this._timeoutID = null;
 
-    // Check whether asynchronous data collection is disabled.
-    if (!Services.prefs.getBoolPref("browser.sessionstore.async")) {
-      this._saveState();
-      return;
-    }
-
-    // Update the last save time to make sure we wait at least another interval
-    // length until we call _saveStateAsync() again.
-    this.updateLastSaveTime();
-
-    // Save state synchronously after all tab caches have been filled. The data
-    // for the tab caches is collected asynchronously. We will reuse this
-    // cached data if the tab hasn't been invalidated in the meantime. In that
-    // case we will just fall back to synchronous data collection for single
-    // tabs.
-    SessionStore.fillTabCachesAsynchronously().then(() => this._saveState());
+    // Write to disk.
+    this._saveState();
   },
 
   /**
    * Write the given state object to disk.
    */
   _writeState: function (state) {
-    stopWatchStart("SERIALIZE_DATA_MS", "SERIALIZE_DATA_LONGEST_OP_MS");
+    stopWatchStart("SERIALIZE_DATA_MS", "SERIALIZE_DATA_LONGEST_OP_MS", "WRITE_STATE_LONGEST_OP_MS");
     let data = JSON.stringify(state);
     stopWatchFinish("SERIALIZE_DATA_MS", "SERIALIZE_DATA_LONGEST_OP_MS");
 
@@ -295,6 +251,7 @@ let SessionSaverInternal = {
 
     // Don't touch the file if an observer has deleted all state data.
     if (!data) {
+      stopWatchCancel("WRITE_STATE_LONGEST_OP_MS");
       return Promise.resolve();
     }
 
@@ -307,10 +264,16 @@ let SessionSaverInternal = {
     // Write (atomically) to a session file, using a tmp file. Once the session
     // file is successfully updated, save the time stamp of the last save and
     // notify the observers.
-    return SessionFile.write(data).then(() => {
+    stopWatchStart("SEND_SERIALIZED_STATE_LONGEST_OP_MS");
+    let promise = SessionFile.write(data);
+    stopWatchFinish("WRITE_STATE_LONGEST_OP_MS",
+                    "SEND_SERIALIZED_STATE_LONGEST_OP_MS");
+    promise = promise.then(() => {
       this.updateLastSaveTime();
       notify(null, "sessionstore-state-write-complete");
     }, console.error);
+
+    return promise;
   },
 
   /**

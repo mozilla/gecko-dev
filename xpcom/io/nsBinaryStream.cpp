@@ -261,9 +261,21 @@ nsBinaryOutputStream::WriteCompoundObject(nsISupports* aObject,
         return NS_ERROR_NOT_AVAILABLE;
 
     nsCID cid;
-    classInfo->GetClassIDNoAlloc(&cid);
+    nsresult rv = classInfo->GetClassIDNoAlloc(&cid);
+    if (NS_SUCCEEDED(rv)) {
+        rv = WriteID(cid);
+    } else {
+        nsCID *cidptr = nullptr;
+        rv = classInfo->GetClassID(&cidptr);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+            return rv;
+        }
 
-    nsresult rv = WriteID(cid);
+        rv = WriteID(*cidptr);
+
+        NS_Free(cidptr);
+    }
+
     if (NS_WARN_IF(NS_FAILED(rv)))
         return rv;
 
@@ -730,7 +742,7 @@ nsBinaryInputStream::ReadByteArray(uint32_t aLength, uint8_t* *_rval)
 }
 
 NS_IMETHODIMP
-nsBinaryInputStream::ReadArrayBuffer(uint32_t aLength, const JS::Value& aBuffer, JSContext* cx)
+nsBinaryInputStream::ReadArrayBuffer(uint32_t aLength, JS::Handle<JS::Value> aBuffer, JSContext* cx)
 {
     if (!aBuffer.isObject()) {
         return NS_ERROR_FAILURE;

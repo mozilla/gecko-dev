@@ -8,11 +8,6 @@ function is(a, b, msg) {
   postMessage({type: 'status', status: a === b, msg: a + " === " + b + ": " + msg });
 }
 
-function isnot(a, b, msg) {
-  dump("ISNOT: " + (a!==b) + "  =>  " + a + " | " + b + " " + msg + "\n");
-  postMessage({type: 'status', status: a !== b, msg: a + " !== " + b + ": " + msg });
-}
-
 onmessage = function() {
   status = false;
   try {
@@ -29,21 +24,19 @@ onmessage = function() {
     is(u.has('foo'), false, 'URLSearchParams.has(foo)');
     is(u.get('foo'), '', 'URLSearchParams.get(foo)');
     is(u.getAll('foo').length, 0, 'URLSearchParams.getAll(foo)');
-    is(u.size, 0, 'URLSearchParams.size()');
 
     u.append('foo', 'bar');
     is(u.has('foo'), true, 'URLSearchParams.has(foo)');
     is(u.get('foo'), 'bar', 'URLSearchParams.get(foo)');
     is(u.getAll('foo').length, 1, 'URLSearchParams.getAll(foo)');
-    is(u.size, 1, 'URLSearchParams.size()');
 
     u.set('foo', 'bar2');
     is(u.get('foo'), 'bar2', 'URLSearchParams.get(foo)');
     is(u.getAll('foo').length, 1, 'URLSearchParams.getAll(foo)');
-    is(u.size, 1, 'URLSearchParams.size()');
+
+    is(u + "", "foo=bar2", "stringify");
 
     u.delete('foo');
-    is(u.size, 0, 'URLSearchParams.size()');
 
     runTest();
   }
@@ -52,10 +45,8 @@ onmessage = function() {
     var u = new URLSearchParams();
     ok(u, "URLSearchParams created");
     u.append('foo', 'bar');
-    is(u.size, 1, "u.size()");
 
     var uu = new URLSearchParams(u);
-    is(uu.size, 1, "uu.size()");
     is(uu.get('foo'), 'bar', 'uu.get()');
 
     u.append('foo', 'bar2');
@@ -109,8 +100,6 @@ onmessage = function() {
           is(all[k], checks[i].data[key][k], "value matches");
         }
       }
-
-      is(u.size, count, "size matches");
     }
 
     runTest();
@@ -140,7 +129,7 @@ onmessage = function() {
 
     var url2 = new URL('http://www.example.net?e=f');
     url.searchParams = url2.searchParams;
-    isnot(url.searchParams, url2.searchParams, "URL.searchParams is not the same object");
+    is(url.searchParams, url2.searchParams, "URL.searchParams is not the same object");
     is(url.searchParams.get('e'), 'f', "URL.searchParams.get('e')");
 
     url.href = "http://www.example.net?bar=foo";
@@ -170,12 +159,39 @@ onmessage = function() {
     runTest();
   }
 
+  function testMultiURL() {
+    var a = new URL('http://www.example.net?a=b&c=d');
+    var b = new URL('http://www.example.net?e=f');
+    ok(a.searchParams.has('a'), "a.searchParams.has('a')");
+    ok(a.searchParams.has('c'), "a.searchParams.has('c')");
+    ok(b.searchParams.has('e'), "b.searchParams.has('e')");
+
+    var u = new URLSearchParams();
+    a.searchParams = b.searchParams = u;
+    is(a.searchParams, u, "a.searchParams === u");
+    is(b.searchParams, u, "b.searchParams === u");
+    ok(!a.searchParams.has('a'), "!a.searchParams.has('a')");
+    ok(!a.searchParams.has('c'), "!a.searchParams.has('c')");
+    ok(!b.searchParams.has('e'), "!b.searchParams.has('e')");
+
+    u.append('foo', 'bar');
+    is(a.searchParams.get('foo'), 'bar', "a has foo=bar");
+    is(b.searchParams.get('foo'), 'bar', "b has foo=bar");
+    is(a + "", b + "", "stringify a == b");
+
+    a.search = "?bar=foo";
+    is(a.searchParams.get('bar'), 'foo', "a has bar=foo");
+    is(b.searchParams.get('bar'), 'foo', "b has bar=foo");
+
+    runTest();
+  }
   var tests = [
     testSimpleURLSearchParams,
     testCopyURLSearchParams,
     testParserURLSearchParams,
     testURL,
-    testEncoding
+    testEncoding,
+    testMultiURL
   ];
 
   function runTest() {

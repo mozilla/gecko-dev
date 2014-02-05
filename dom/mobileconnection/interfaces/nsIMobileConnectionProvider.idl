@@ -1,0 +1,133 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+interface nsIDOMDOMRequest;
+interface nsIDOMMozMobileCFInfo;
+interface nsIDOMMozMobileConnectionInfo;
+interface nsIDOMMozMobileNetworkInfo;
+interface nsIDOMWindow;
+interface nsIVariant;
+
+[scriptable, uuid(5013f5cc-24f9-45dc-ba03-f5dc031a3a6b)]
+interface nsIMobileConnectionListener : nsISupports
+{
+  void notifyVoiceChanged();
+  void notifyDataChanged();
+  void notifyUssdReceived(in DOMString message,
+                          in boolean sessionEnded);
+  void notifyDataError(in DOMString message);
+  void notifyCFStateChange(in boolean success,
+                           in unsigned short action,
+                           in unsigned short reason,
+                           in DOMString number,
+                           in unsigned short timeSeconds,
+                           in unsigned short serviceClass);
+  void notifyEmergencyCbModeChanged(in boolean active,
+                                    in unsigned long timeoutMs);
+  void notifyOtaStatusChanged(in DOMString status);
+  void notifyIccChanged();
+  void notifyRadioStateChanged();
+};
+
+/**
+ * XPCOM component (in the content process) that provides the mobile
+ * network information.
+ */
+[scriptable, uuid(987fc93a-e538-4fd3-9e4d-0e0f0934f019)]
+interface nsIMobileConnectionProvider : nsISupports
+{
+  /**
+   * Called when a content process registers receiving unsolicited messages from
+   * RadioInterfaceLayer in the chrome process. Only a content process that has
+   * the 'mobileconnection' permission is allowed to register.
+   */
+  void registerMobileConnectionMsg(in unsigned long clientId,
+                                   in nsIMobileConnectionListener listener);
+  void unregisterMobileConnectionMsg(in unsigned long clientId,
+                                     in nsIMobileConnectionListener listener);
+
+  /**
+   * These two fields require the 'mobilenetwork' permission.
+   */
+  DOMString getLastKnownNetwork(in unsigned long clientId);
+  DOMString getLastKnownHomeNetwork(in unsigned long clientId);
+
+  /**
+   * All fields below require the 'mobileconnection' permission.
+   */
+  nsIDOMMozMobileConnectionInfo getVoiceConnectionInfo(in unsigned long clientId);
+  nsIDOMMozMobileConnectionInfo getDataConnectionInfo(in unsigned long clientId);
+  DOMString getIccId(in unsigned long clientId);
+  DOMString getNetworkSelectionMode(in unsigned long clientId);
+  DOMString getRadioState(in unsigned long clientId);
+  nsIVariant getSupportedNetworkTypes(in unsigned long clientId);
+
+  nsIDOMDOMRequest getNetworks(in unsigned long clientId,
+                               in nsIDOMWindow window);
+  nsIDOMDOMRequest selectNetwork(in unsigned long clientId,
+                                 in nsIDOMWindow window,
+                                 in nsIDOMMozMobileNetworkInfo network);
+  nsIDOMDOMRequest selectNetworkAutomatically(in unsigned long clientId,
+                                              in nsIDOMWindow window);
+
+  nsIDOMDOMRequest setPreferredNetworkType(in unsigned long clientId,
+                                           in nsIDOMWindow window,
+                                           in DOMString type);
+  nsIDOMDOMRequest getPreferredNetworkType(in unsigned long clientId,
+                                           in nsIDOMWindow window);
+
+  nsIDOMDOMRequest setRoamingPreference(in unsigned long clientId,
+                                        in nsIDOMWindow window,
+                                        in DOMString mode);
+  nsIDOMDOMRequest getRoamingPreference(in unsigned long clientId,
+                                        in nsIDOMWindow window);
+
+  nsIDOMDOMRequest setVoicePrivacyMode(in unsigned long clientId,
+                                       in nsIDOMWindow window,
+                                       in bool enabled);
+  nsIDOMDOMRequest getVoicePrivacyMode(in unsigned long clientId,
+                                       in nsIDOMWindow window);
+
+  nsIDOMDOMRequest sendMMI(in unsigned long clientId,
+                           in nsIDOMWindow window,
+                           in DOMString mmi);
+  nsIDOMDOMRequest cancelMMI(in unsigned long clientId,
+                             in nsIDOMWindow window);
+
+  nsIDOMDOMRequest getCallForwardingOption(in unsigned long clientId,
+                                           in nsIDOMWindow window,
+                                           in unsigned short reason);
+  nsIDOMDOMRequest setCallForwardingOption(in unsigned long clientId,
+                                           in nsIDOMWindow window,
+                                           in nsIDOMMozMobileCFInfo CFInfo);
+
+  nsIDOMDOMRequest getCallBarringOption(in unsigned long clientId,
+                                        in nsIDOMWindow window,
+                                        in jsval option);
+  nsIDOMDOMRequest setCallBarringOption(in unsigned long clientId,
+                                        in nsIDOMWindow window,
+                                        in jsval option);
+  nsIDOMDOMRequest changeCallBarringPassword(in unsigned long clientId,
+                                             in nsIDOMWindow window,
+                                             in jsval info);
+
+  nsIDOMDOMRequest setCallWaitingOption(in unsigned long clientId,
+                                        in nsIDOMWindow window,
+                                        in bool enabled);
+  nsIDOMDOMRequest getCallWaitingOption(in unsigned long clientId,
+                                        in nsIDOMWindow window);
+
+  nsIDOMDOMRequest setCallingLineIdRestriction(in unsigned long clientId,
+                                               in nsIDOMWindow window,
+                                               in unsigned short clirMode);
+  nsIDOMDOMRequest getCallingLineIdRestriction(in unsigned long clientId,
+                                               in nsIDOMWindow window);
+
+  nsIDOMDOMRequest exitEmergencyCbMode(in unsigned long clientId,
+                                       in nsIDOMWindow window);
+
+  nsIDOMDOMRequest setRadioEnabled(in unsigned long clientId, in nsIDOMWindow window, in bool enabled);
+};

@@ -127,8 +127,7 @@ gfxPlatformMac::OptimizeImage(gfxImageSurface *aSurface,
         }
     }
 
-    nsRefPtr<gfxASurface> ret = new gfxQuartzImageSurface(isurf);
-    return ret.forget();
+    return nullptr;
 }
 
 TemporaryRef<ScaledFont>
@@ -372,8 +371,8 @@ gfxPlatformMac::CreateThebesSurfaceAliasForDrawTarget_hack(mozilla::gfx::DrawTar
     size_t stride = CGBitmapContextGetBytesPerRow(cg);
     gfxIntSize size(aTarget->GetSize().width, aTarget->GetSize().height);
     nsRefPtr<gfxImageSurface> imageSurface = new gfxImageSurface(data, size, stride, bpp == 2
-                                                                                     ? gfxImageFormatRGB16_565
-                                                                                     : gfxImageFormatARGB32);
+                                                                                     ? gfxImageFormat::RGB16_565
+                                                                                     : gfxImageFormat::ARGB32);
     // Here we should return a gfxQuartzImageSurface but quartz will assumes that image surfaces
     // don't change which wont create a proper alias to the draw target, therefore we have to
     // return a plain image surface.
@@ -391,9 +390,9 @@ gfxPlatformMac::GetThebesSurfaceForDrawTarget(DrawTarget *aTarget)
     RefPtr<DataSourceSurface> sourceData = source->GetDataSurface();
     unsigned char* data = sourceData->GetData();
     nsRefPtr<gfxImageSurface> surf = new gfxImageSurface(data, ThebesIntSize(sourceData->GetSize()), sourceData->Stride(),
-                                                         gfxImageFormatARGB32);
+                                                         gfxImageFormat::ARGB32);
     // We could fix this by telling gfxImageSurface it owns data.
-    nsRefPtr<gfxImageSurface> cpy = new gfxImageSurface(ThebesIntSize(sourceData->GetSize()), gfxImageFormatARGB32);
+    nsRefPtr<gfxImageSurface> cpy = new gfxImageSurface(ThebesIntSize(sourceData->GetSize()), gfxImageFormat::ARGB32);
     cpy->CopyFrom(surf);
     return cpy.forget();
   } else if (aTarget->GetType() == BackendType::COREGRAPHICS) {
@@ -425,15 +424,18 @@ gfxPlatformMac::SupportsOffMainThreadCompositing()
   return true;
 }
 
-qcms_profile *
-gfxPlatformMac::GetPlatformCMSOutputProfile()
+void
+gfxPlatformMac::GetPlatformCMSOutputProfile(void* &mem, size_t &size)
 {
+    mem = nullptr;
+    size = 0;
+
     CGColorSpaceRef cspace = ::CGDisplayCopyColorSpace(::CGMainDisplayID());
     if (!cspace) {
         cspace = ::CGColorSpaceCreateDeviceRGB();
     }
     if (!cspace) {
-        return nullptr;
+        return;
     }
 
     CFDataRef iccp = ::CGColorSpaceCopyICCProfile(cspace);
@@ -441,12 +443,20 @@ gfxPlatformMac::GetPlatformCMSOutputProfile()
     ::CFRelease(cspace);
 
     if (!iccp) {
-        return nullptr;
+        return;
     }
 
-    qcms_profile* profile = qcms_profile_from_memory(::CFDataGetBytePtr(iccp), static_cast<size_t>(::CFDataGetLength(iccp)));
+    // copy to external buffer
+    size = static_cast<size_t>(::CFDataGetLength(iccp));
+    if (size > 0) {
+        void *data = malloc(size);
+        if (data) {
+            memcpy(data, ::CFDataGetBytePtr(iccp), size);
+            mem = data;
+        } else {
+            size = 0;
+        }
+    }
 
     ::CFRelease(iccp);
-
-    return profile;
 }

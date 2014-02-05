@@ -38,10 +38,11 @@
 #include "nsLayoutUtils.h"
 #include "nsDisplayList.h"
 #include "nsFrame.h"
+#include "nsIMathMLFrame.h"
 #include "nsPlaceholderFrame.h"
 #include "nsTextFrameUtils.h"
 #include "nsTextRunTransformations.h"
-#include "MathVariantTextRunFactory.h"
+#include "MathMLTextRunFactory.h"
 #include "nsExpirationTracker.h"
 #include "nsUnicodeProperties.h"
 
@@ -202,69 +203,13 @@ static void DestroyGlyphObserverList(void* aPropertyValue)
  */
 NS_DECLARE_FRAME_PROPERTY(TextFrameGlyphObservers, DestroyGlyphObserverList);
 
-// The following flags are set during reflow
-
-// This bit is set on the first frame in a continuation indicating
-// that it was chopped short because of :first-letter style.
-#define TEXT_FIRST_LETTER    NS_FRAME_STATE_BIT(20)
-// This bit is set on frames that are logically adjacent to the start of the
-// line (i.e. no prior frame on line with actual displayed in-flow content).
-#define TEXT_START_OF_LINE   NS_FRAME_STATE_BIT(21)
-// This bit is set on frames that are logically adjacent to the end of the
-// line (i.e. no following on line with actual displayed in-flow content).
-#define TEXT_END_OF_LINE     NS_FRAME_STATE_BIT(22)
-// This bit is set on frames that end with a hyphenated break.
-#define TEXT_HYPHEN_BREAK    NS_FRAME_STATE_BIT(23)
-// This bit is set on frames that trimmed trailing whitespace characters when
-// calculating their width during reflow.
-#define TEXT_TRIMMED_TRAILING_WHITESPACE NS_FRAME_STATE_BIT(24)
-// This bit is set on frames that have justification enabled. We record
-// this in a state bit because we don't always have the containing block
-// easily available to check text-align on.
-#define TEXT_JUSTIFICATION_ENABLED       NS_FRAME_STATE_BIT(25)
-// Set this bit if the textframe has overflow area for IME/spellcheck underline.
-#define TEXT_SELECTION_UNDERLINE_OVERFLOWED NS_FRAME_STATE_BIT(26)
-
 #define TEXT_REFLOW_FLAGS    \
   (TEXT_FIRST_LETTER|TEXT_START_OF_LINE|TEXT_END_OF_LINE|TEXT_HYPHEN_BREAK| \
    TEXT_TRIMMED_TRAILING_WHITESPACE|TEXT_JUSTIFICATION_ENABLED| \
    TEXT_HAS_NONCOLLAPSED_CHARACTERS|TEXT_SELECTION_UNDERLINE_OVERFLOWED)
 
-// Cache bits for IsEmpty().
-// Set this bit if the textframe is known to be only collapsible whitespace.
-#define TEXT_IS_ONLY_WHITESPACE    NS_FRAME_STATE_BIT(27)
-// Set this bit if the textframe is known to be not only collapsible whitespace.
-#define TEXT_ISNOT_ONLY_WHITESPACE NS_FRAME_STATE_BIT(28)
-
 #define TEXT_WHITESPACE_FLAGS      (TEXT_IS_ONLY_WHITESPACE | \
                                     TEXT_ISNOT_ONLY_WHITESPACE)
-
-// Set when this text frame is mentioned in the userdata for mTextRun
-#define TEXT_IN_TEXTRUN_USER_DATA  NS_FRAME_STATE_BIT(29)
-
-// nsTextFrame.h has
-// #define TEXT_HAS_NONCOLLAPSED_CHARACTERS NS_FRAME_STATE_BIT(31)
-
-// nsTextFrame.h has
-// #define TEXT_IS_IN_TOKEN_MATHML          NS_FRAME_STATE_BIT(32)
-
-// nsTextFrame.h has
-// #define TEXT_IS_IN_SINGLE_CHAR_MI        NS_FRAME_STATE_BIT(59)
-
-// Set when this text frame is mentioned in the userdata for the
-// uninflated textrun property
-#define TEXT_IN_UNINFLATED_TEXTRUN_USER_DATA NS_FRAME_STATE_BIT(60)
-
-// nsTextFrame.h has
-// #define TEXT_HAS_FONT_INFLATION          NS_FRAME_STATE_BIT(61)
-
-// If true, then this frame is being removed due to a SetLength() on a
-// previous continuation and the style context of that previous
-// continuation is the same as this frame's
-#define TEXT_STYLE_MATCHES_PREV_CONTINUATION NS_FRAME_STATE_BIT(62)
-
-// Whether this frame is cached in the Offset Frame Cache (OffsetToFrameProperty)
-#define TEXT_IN_OFFSET_CACHE       NS_FRAME_STATE_BIT(63)
 
 /*
  * Some general notes
@@ -1326,8 +1271,16 @@ BuildTextRuns(gfxContext* aContext, nsTextFrame* aForFrame,
                  "Wrong line container hint");
   }
 
-  if (aForFrame && aForFrame->HasAnyStateBits(TEXT_IS_IN_SINGLE_CHAR_MI)) {
-    aLineContainer->AddStateBits(TEXT_IS_IN_SINGLE_CHAR_MI);
+  if (aForFrame) {
+    if (aForFrame->HasAnyStateBits(TEXT_IS_IN_TOKEN_MATHML)) {
+      aLineContainer->AddStateBits(TEXT_IS_IN_TOKEN_MATHML);
+      if (aForFrame->HasAnyStateBits(NS_FRAME_IS_IN_SINGLE_CHAR_MI)) {
+        aLineContainer->AddStateBits(NS_FRAME_IS_IN_SINGLE_CHAR_MI);
+      }
+    }
+    if (aForFrame->HasAnyStateBits(NS_FRAME_MATHML_SCRIPT_DESCENDANT)) {
+      aLineContainer->AddStateBits(NS_FRAME_MATHML_SCRIPT_DESCENDANT);
+    }
   }
 
   nsPresContext* presContext = aLineContainer->PresContext();
@@ -1893,7 +1846,8 @@ BuildTextRunsScanner::BuildTextRunForFrames(void* aTextBuffer)
   const void* textPtr = aTextBuffer;
   bool anySmallcapsStyle = false;
   bool anyTextTransformStyle = false;
-  bool anyMathVariantStyle = false;
+  bool anyMathMLStyling = false;
+  uint8_t sstyScriptLevel = 0;
   uint32_t textFlags = nsTextFrameUtils::TEXT_NO_BREAKS;
 
   if (mCurrentRunContextInfo & nsTextFrameUtils::INCOMING_WHITESPACE) {
@@ -1972,10 +1926,42 @@ BuildTextRunsScanner::BuildTextRunForFrames(void* aTextBuffer)
       anySmallcapsStyle = true;
     }
     if (NS_MATHML_MATHVARIANT_NONE != fontStyle->mMathVariant) {
-      anyMathVariantStyle = true;
-    } else if (mLineContainer->GetStateBits() & TEXT_IS_IN_SINGLE_CHAR_MI) {
+      anyMathMLStyling = true;
+    } else if (mLineContainer->GetStateBits() & NS_FRAME_IS_IN_SINGLE_CHAR_MI) {
       textFlags |= nsTextFrameUtils::TEXT_IS_SINGLE_CHAR_MI;
-      anyMathVariantStyle = true;
+      anyMathMLStyling = true;
+    }
+    nsIFrame* parent = mLineContainer->GetParent();
+    if (mLineContainer->HasAnyStateBits(TEXT_IS_IN_TOKEN_MATHML)) {
+      // All MathML tokens except <mtext> use 'math' script.
+      if (!(parent && parent->GetContent() &&
+          parent->GetContent()->Tag() == nsGkAtoms::mtext_)) {
+        textFlags |= gfxTextRunFactory::TEXT_USE_MATH_SCRIPT;
+      }
+    }
+    nsIFrame* child = mLineContainer;
+    uint8_t oldScriptLevel = 0;
+    while (parent && 
+           child->HasAnyStateBits(NS_FRAME_MATHML_SCRIPT_DESCENDANT)) {
+      // Reconstruct the script level ignoring any user overrides. It is
+      // calculated this way instead of using scriptlevel to ensure the 
+      // correct ssty font feature setting is used even if the user sets a
+      // different (especially negative) scriptlevel.
+      nsIMathMLFrame* mathFrame= do_QueryFrame(parent);
+      if (mathFrame) {
+        sstyScriptLevel += mathFrame->ScriptIncrement(child);
+      }
+      if (sstyScriptLevel < oldScriptLevel) {
+        // overflow
+        sstyScriptLevel = UINT8_MAX;
+        break;
+      }
+      child = parent;
+      parent = parent->GetParent();
+      oldScriptLevel = sstyScriptLevel;
+    }
+    if (sstyScriptLevel) {
+      anyMathMLStyling = true;
     }
 
     // Figure out what content is included in this flow.
@@ -2110,9 +2096,9 @@ BuildTextRunsScanner::BuildTextRunForFrames(void* aTextBuffer)
     transformingFactory =
       new nsCaseTransformTextRunFactory(transformingFactory.forget());
   }
-  if (anyMathVariantStyle) {
+  if (anyMathMLStyling) {
     transformingFactory =
-      new nsMathVariantTextRunFactory(transformingFactory.forget());
+      new MathMLTextRunFactory(transformingFactory.forget(), sstyScriptLevel);
   }
   nsTArray<nsStyleContext*> styles;
   if (transformingFactory) {
@@ -7355,8 +7341,9 @@ nsTextFrame::GetPrefWidthTightBounds(nsRenderingContext* aContext,
                               ComputeTransformedLength(provider),
                               gfxFont::TIGHT_HINTED_OUTLINE_EXTENTS,
                               aContext->ThebesContext(), &provider);
-  *aX = metrics.mBoundingBox.x;
-  *aXMost = metrics.mBoundingBox.XMost();
+  // Round it like nsTextFrame::ComputeTightBounds() to ensure consistency.
+  *aX = NSToCoordFloor(metrics.mBoundingBox.x);
+  *aXMost = NSToCoordCeil(metrics.mBoundingBox.XMost());
 
   return NS_OK;
 }
@@ -8065,7 +8052,7 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
     // Record a potential break after final soft hyphen
     aLineLayout.NotifyOptionalBreakPosition(mContent, offset + length,
         textMetrics.mAdvanceWidth + provider.GetHyphenWidth() <= availWidth,
-                                           eNormalBreak);
+                                           gfxBreakPriority::eNormalBreak);
   }
   bool breakAfter = forceBreakAfter;
   // length == 0 means either the text is empty or it's all collapsed away
@@ -8085,7 +8072,7 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
       breakAfter = true;
     } else {
       aLineLayout.NotifyOptionalBreakPosition(mContent, offset + length,
-                                              true, eNormalBreak);
+                                              true, gfxBreakPriority::eNormalBreak);
     }
   }
 
@@ -8476,21 +8463,22 @@ nsTextFrame::GetFrameName(nsAString& aResult) const
 }
 
 void
-nsTextFrame::List(FILE* out, int32_t aIndent, uint32_t aFlags) const
+nsTextFrame::List(FILE* out, const char* aPrefix, uint32_t aFlags) const
 {
-  ListGeneric(out, aIndent, aFlags);
+  nsCString str;
+  ListGeneric(str, aPrefix, aFlags);
 
-  fprintf(out, " [run=%p]", static_cast<void*>(mTextRun));
+  str += nsPrintfCString(" [run=%p]", static_cast<void*>(mTextRun));
 
   // Output the first/last content offset and prev/next in flow info
   bool isComplete = uint32_t(GetContentEnd()) == GetContent()->TextLength();
-  fprintf(out, "[%d,%d,%c] ", GetContentOffset(), GetContentLength(),
+  str += nsPrintfCString("[%d,%d,%c] ", GetContentOffset(), GetContentLength(),
           isComplete ? 'T':'F');
   
   if (IsSelected()) {
-    fprintf(out, " SELECTED");
+    str += " SELECTED";
   }
-  fputs("\n", out);
+  fprintf_stderr(out, "%s\n", str.get());
 }
 #endif
 

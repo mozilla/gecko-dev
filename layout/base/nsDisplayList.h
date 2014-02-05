@@ -373,18 +373,6 @@ public:
   void SetInTransform(bool aInTransform) { mInTransform = aInTransform; }
 
   /**
-   * Determines if this item is scrolled by content-document display-port
-   * scrolling. aAnimatedGeometryRoot will be set to the animated geometry root
-   * of the item. This may not necessarily correspond to the animated geometry
-   * root of the item's underlying frame.
-   * If specified, aOverrideAnimatedGeometryRoot will be treated as the active
-   * scrolled root.
-   */
-  bool IsFixedItem(nsDisplayItem* aItem,
-                   const nsIFrame** aAnimatedGeometryRoot = nullptr,
-                   const nsIFrame* aOverrideAnimatedGeometryScrolledRoot = nullptr);
-
-  /**
    * @return true if images have been set to decode synchronously.
    */
   bool ShouldSyncDecodeImages() { return mSyncDecodeImages; }
@@ -1178,7 +1166,7 @@ public:
    */
   virtual const char* Name() = 0;
 
-  virtual void WriteDebugInfo(FILE *aOutput) {}
+  virtual void WriteDebugInfo(nsACString& aTo) {}
 #endif
 
   nsDisplayItem* GetAbove() { return mAbove; }
@@ -1512,6 +1500,9 @@ public:
    * layer manager has already had BeginTransaction() called on it and
    * we should not call it again.
    *
+   * If PAINT_COMPRESSED is set, the FrameLayerBuilder should be set to compressed mode
+   * to avoid short cut optimizations.
+   *
    * ComputeVisibility must be called before Paint.
    * 
    * This must only be called on the root display list of the display list
@@ -1522,7 +1513,8 @@ public:
     PAINT_USE_WIDGET_LAYERS = 0x01,
     PAINT_FLUSH_LAYERS = 0x02,
     PAINT_EXISTING_TRANSACTION = 0x04,
-    PAINT_NO_COMPOSITE = 0x08
+    PAINT_NO_COMPOSITE = 0x08,
+    PAINT_COMPRESSED = 0x10
   };
   void PaintRoot(nsDisplayListBuilder* aBuilder, nsRenderingContext* aCtx,
                  uint32_t aFlags) const;
@@ -1990,12 +1982,7 @@ public:
   }
 
 #ifdef MOZ_DUMP_PAINTING
-  virtual void WriteDebugInfo(FILE *aOutput) MOZ_OVERRIDE
-  {
-    fprintf_stderr(aOutput, "(rgba %d,%d,%d,%d)",
-                   NS_GET_R(mColor), NS_GET_G(mColor),
-                   NS_GET_B(mColor), NS_GET_A(mColor));
-  }
+  virtual void WriteDebugInfo(nsACString& aTo) MOZ_OVERRIDE;
 #endif
 
   NS_DISPLAY_DECL_NAME("SolidColor", TYPE_SOLID_COLOR)
@@ -2154,7 +2141,7 @@ public:
                                          nsRegion* aInvalidRegion) MOZ_OVERRIDE;
 
 #ifdef MOZ_DUMP_PAINTING
-  virtual void WriteDebugInfo(FILE *aOutput) MOZ_OVERRIDE;
+  virtual void WriteDebugInfo(nsACString& aTo) MOZ_OVERRIDE;
 #endif
 protected:
   nsRect GetBoundsInternal();
@@ -2207,12 +2194,7 @@ public:
 
   NS_DISPLAY_DECL_NAME("BackgroundColor", TYPE_BACKGROUND_COLOR)
 #ifdef MOZ_DUMP_PAINTING
-  virtual void WriteDebugInfo(FILE *aOutput) MOZ_OVERRIDE {
-    fprintf_stderr(aOutput, "(rgba %d,%d,%d,%d)", 
-            NS_GET_R(mColor), NS_GET_G(mColor),
-            NS_GET_B(mColor), NS_GET_A(mColor));
-
-  }
+  virtual void WriteDebugInfo(nsACString& aTo) MOZ_OVERRIDE;
 #endif
 
 protected:
@@ -2601,9 +2583,7 @@ public:
   bool NeedsActiveLayer();
   NS_DISPLAY_DECL_NAME("Opacity", TYPE_OPACITY)
 #ifdef MOZ_DUMP_PAINTING
-  virtual void WriteDebugInfo(FILE *aOutput) MOZ_OVERRIDE {
-    fprintf_stderr(aOutput, "(opacity %f)", mFrame->StyleDisplay()->mOpacity);
-  }
+  virtual void WriteDebugInfo(nsACString& aTo) MOZ_OVERRIDE;
 #endif
 
   bool CanUseAsyncAnimations(nsDisplayListBuilder* aBuilder) MOZ_OVERRIDE;
@@ -2740,7 +2720,7 @@ public:
 class nsDisplayStickyPosition : public nsDisplayOwnLayer {
 public:
   nsDisplayStickyPosition(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
-                          nsIFrame* aStickyPosFrame, nsDisplayList* aList);
+                          nsDisplayList* aList);
 #ifdef NS_BUILD_REFCNT_LOGGING
   virtual ~nsDisplayStickyPosition();
 #endif
@@ -2756,9 +2736,6 @@ public:
     return mozilla::LAYER_ACTIVE;
   }
   virtual bool TryMerge(nsDisplayListBuilder* aBuilder, nsDisplayItem* aItem) MOZ_OVERRIDE;
-
-protected:
-  nsIFrame* mStickyPosFrame;
 };
 
 /**
@@ -2833,7 +2810,12 @@ public:
   // after merging, all the nsDisplayScrollLayers should flatten away.
   intptr_t GetScrollLayerCount();
 
+  virtual nsIFrame* GetScrollFrame() { return mScrollFrame; }
   virtual nsIFrame* GetScrolledFrame() { return mScrolledFrame; }
+
+#ifdef MOZ_DUMP_PAINTING
+  virtual void WriteDebugInfo(nsACString& aTo) MOZ_OVERRIDE;
+#endif
 
 protected:
   nsIFrame* mScrollFrame;
@@ -2967,7 +2949,7 @@ public:
                     LayerManager* aManager);
 
 #ifdef MOZ_DUMP_PAINTING
-  void PrintEffects(FILE* aOutput);
+  void PrintEffects(nsACString& aTo);
 #endif
 
 private:
@@ -3068,9 +3050,9 @@ public:
     INDEX_MAX = UINT32_MAX >> nsDisplayItem::TYPE_BITS
   };
 
-  const gfx3DMatrix& GetTransform(float aAppUnitsPerPixel);
+  const gfx3DMatrix& GetTransform();
 
-  float GetHitDepthAtPoint(const nsPoint& aPoint);
+  float GetHitDepthAtPoint(nsDisplayListBuilder* aBuilder, const nsPoint& aPoint);
 
   /**
    * TransformRect takes in as parameters a rectangle (in aFrame's coordinate
@@ -3103,15 +3085,8 @@ public:
   /* UntransformRect is like TransformRect, except that it inverts the
    * transform.
    */
-  static bool UntransformRect(const nsRect &aUntransformedBounds, 
-                                const nsIFrame* aFrame,
-                                const nsPoint &aOrigin,
-                                nsRect* aOutRect);
-  
-  static bool UntransformRectMatrix(const nsRect &aUntransformedBounds, 
-                                    const gfx3DMatrix& aMatrix,
-                                    float aAppUnitsPerPixel,
-                                    nsRect* aOutRect);
+  bool UntransformVisibleRect(nsDisplayListBuilder* aBuilder,
+                              nsRect* aOutRect);
 
   static gfxPoint3D GetDeltaToTransformOrigin(const nsIFrame* aFrame,
                                               float aAppUnitsPerPixel,
@@ -3201,7 +3176,6 @@ private:
   nsDisplayWrapList mStoredList;
   gfx3DMatrix mTransform;
   ComputeTransformFunction mTransformGetter;
-  float mCachedAppUnitsPerPixel;
   uint32_t mIndex;
 };
 

@@ -42,6 +42,7 @@
 #include "GonkRecorderProfiles.h"
 #include "GonkCameraControl.h"
 #include "CameraCommon.h"
+#include "DeviceStorageFileDescriptor.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -967,6 +968,30 @@ nsGonkCameraControl::SetPictureSize(uint32_t aWidth, uint32_t aHeight)
   UpdateThumbnailSize();
 }
 
+int32_t
+nsGonkCameraControl::RationalizeRotation(int32_t aRotation)
+{
+  int32_t r = aRotation;
+
+  // The result of this operation is an angle from 0..270 degrees,
+  // in steps of 90 degrees. Angles are rounded to the nearest
+  // magnitude, so 45 will be rounded to 90, and -45 will be rounded
+  // to -90 (not 0).
+  if (r >= 0) {
+    r += 45;
+  } else {
+    r -= 45;
+  }
+  r /= 90;
+  r %= 4;
+  r *= 90;
+  if (r < 0) {
+    r += 360;
+  }
+
+  return r;
+}
+
 nsresult
 nsGonkCameraControl::TakePictureImpl(TakePictureTask* aTakePicture)
 {
@@ -990,13 +1015,10 @@ nsGonkCameraControl::TakePictureImpl(TakePictureTask* aTakePicture)
   mFileFormat = aTakePicture->mFileFormat;
   SetParameter(CameraParameters::KEY_PICTURE_FORMAT, NS_ConvertUTF16toUTF8(mFileFormat).get());
 
-  // Convert 'rotation' to a positive value from 0..270 degrees, in steps of 90.
-  uint32_t r = static_cast<uint32_t>(aTakePicture->mRotation);
+  // Round 'rotation' up to a positive value from 0..270 degrees, in steps of 90.
+  int32_t r = static_cast<uint32_t>(aTakePicture->mRotation);
   r += mCameraHw->GetSensorOrientation(GonkCameraHardware::OFFSET_SENSOR_ORIENTATION);
-  r %= 360;
-  r += 45;
-  r /= 90;
-  r *= 90;
+  r = RationalizeRotation(r);
   DOM_CAMERA_LOGI("setting picture rotation to %d degrees (mapped from %d)\n", r, aTakePicture->mRotation);
   SetParameter(CameraParameters::KEY_ROTATION, nsPrintfCString("%u", r).get());
 
@@ -1023,7 +1045,7 @@ nsGonkCameraControl::TakePictureImpl(TakePictureTask* aTakePicture)
   // is meant to be stored as a local time.  Since we are given seconds from
   // Epoch GMT, we use localtime_r() to handle the conversion.
   time_t time = aTakePicture->mDateTime;
-  if (time != aTakePicture->mDateTime) {
+  if ((uint64_t)time != aTakePicture->mDateTime) {
     DOM_CAMERA_LOGE("picture date/time '%llu' is too far in the future\n", aTakePicture->mDateTime);
   } else {
     struct tm t;
@@ -1097,42 +1119,24 @@ nsGonkCameraControl::StartRecordingImpl(StartRecordingTask* aStartRecording)
    * The camera app needs to provide the file extension '.3gp' for now.
    * See bug 795202.
    */
-  nsCOMPtr<nsIFile> filename = aStartRecording->mFolder;
-  filename->AppendRelativePath(aStartRecording->mFilename);
-
-  nsString fullpath;
-  filename->GetPath(fullpath);
-
-  nsCOMPtr<nsIVolumeService> vs = do_GetService(NS_VOLUMESERVICE_CONTRACTID);
-  NS_ENSURE_TRUE(vs, NS_ERROR_FAILURE);
-
-  nsCOMPtr<nsIVolume> vol;
-  nsresult rv = vs->GetVolumeByPath(fullpath, getter_AddRefs(vol));
-  NS_ENSURE_SUCCESS(rv, NS_ERROR_INVALID_ARG);
-
-  nsString volName;
-  vol->GetName(volName);
-
-  mVideoFile = new DeviceStorageFile(NS_LITERAL_STRING("videos"),
-                                     volName,
-                                     aStartRecording->mFilename);
-
-  nsAutoCString nativeFilename;
-  filename->GetNativePath(nativeFilename);
-  DOM_CAMERA_LOGI("Video filename is '%s'\n", nativeFilename.get());
+  nsRefPtr<DeviceStorageFileDescriptor> dsfd = aStartRecording->mDSFileDescriptor;
+  NS_ENSURE_TRUE(dsfd, NS_ERROR_FAILURE);
+  nsAutoString fullPath;
+  mVideoFile = dsfd->mDSFile;
+  mVideoFile->GetFullPath(fullPath);
+  DOM_CAMERA_LOGI("Video filename is '%s'\n",
+                  NS_LossyConvertUTF16toASCII(fullPath).get());
 
   if (!mVideoFile->IsSafePath()) {
     DOM_CAMERA_LOGE("Invalid video file name\n");
     return NS_ERROR_INVALID_ARG;
   }
 
-  ScopedClose fd(open(nativeFilename.get(), O_RDWR | O_CREAT, 0644));
-  if (fd < 0) {
-    DOM_CAMERA_LOGE("Couldn't create file '%s': (%d) %s\n", nativeFilename.get(), errno, strerror(errno));
-    return NS_ERROR_FAILURE;
-  }
-
-  rv = SetupRecording(fd, aStartRecording->mOptions.rotation, aStartRecording->mOptions.maxFileSizeBytes, aStartRecording->mOptions.maxVideoLengthMs);
+  nsresult rv;
+  rv = SetupRecording(dsfd->mFileDescriptor.PlatformHandle(),
+                      aStartRecording->mOptions.rotation,
+                      aStartRecording->mOptions.maxFileSizeBytes,
+                      aStartRecording->mOptions.maxVideoLengthMs);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (mRecorder->start() != OK) {
@@ -1534,14 +1538,7 @@ nsGonkCameraControl::SetupRecording(int aFd, int aRotation, int64_t aMaxFileSize
   // adjust rotation by camera sensor offset
   int r = aRotation;
   r += mCameraHw->GetSensorOrientation();
-  r %= 360;
-  r += 45;
-  r /= 90;
-  r *= 90;
-  if (r < 0) {
-    // the video recorder only supports positive rotations
-    r += 360;
-  }
+  r = RationalizeRotation(r);
   DOM_CAMERA_LOGI("setting video rotation to %d degrees (mapped from %d)\n", r, aRotation);
   snprintf(buffer, SIZE, "video-param-rotation-angle-degrees=%d", r);
   CHECK_SETARG(mRecorder->setParameters(String8(buffer)));
@@ -1701,9 +1698,7 @@ GonkFrameBuilder(Image* aImage, void* aBuffer, uint32_t aWidth, uint32_t aHeight
 void
 ReceiveFrame(nsGonkCameraControl* gc, layers::GraphicBufferLocked* aBuffer)
 {
-  if (!gc->ReceiveFrame(aBuffer, ImageFormat::GRALLOC_PLANAR_YCBCR, GonkFrameBuilder)) {
-    aBuffer->Unlock();
-  }
+  gc->ReceiveFrame(aBuffer, ImageFormat::GRALLOC_PLANAR_YCBCR, GonkFrameBuilder);
 }
 
 void

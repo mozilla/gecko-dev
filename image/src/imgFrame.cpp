@@ -28,13 +28,6 @@ static bool gDisableOptimize = false;
 /* Whether to use the windows surface; only for desktop win32 */
 #define USE_WIN_SURFACE 1
 
-static uint32_t gTotalDDBs = 0;
-static uint32_t gTotalDDBSize = 0;
-// only use up a maximum of 64MB in DDBs
-#define kMaxDDBSize (64*1024*1024)
-// and don't let anything in that's bigger than 4MB
-#define kMaxSingleDDBSize (4*1024*1024)
-
 #endif
 
 using namespace mozilla;
@@ -110,13 +103,9 @@ imgFrame::imgFrame() :
   mLockCount(0),
   mBlendMethod(1), /* imgIContainer::kBlendOver */
   mSinglePixel(false),
-  mNeverUseDeviceSurface(false),
   mFormatChanged(false),
   mCompositingFailed(false),
   mNonPremult(false),
-#ifdef USE_WIN_SURFACE
-  mIsDDBSurface(false),
-#endif
   mInformedDiscardTracker(false),
   mDirty(false)
 {
@@ -133,12 +122,6 @@ imgFrame::~imgFrame()
 {
   moz_free(mPalettedImageData);
   mPalettedImageData = nullptr;
-#ifdef USE_WIN_SURFACE
-  if (mIsDDBSurface) {
-      gTotalDDBs--;
-      gTotalDDBSize -= mSize.width * mSize.height * 4;
-  }
-#endif
 
   if (mInformedDiscardTracker) {
     DiscardTracker::InformAllocation(-4 * mSize.height * mSize.width);
@@ -178,7 +161,7 @@ nsresult imgFrame::Init(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight,
     // going to) so that the image surface can wrap it.  Can't be done
     // the other way around.
 #ifdef USE_WIN_SURFACE
-    if (!mNeverUseDeviceSurface && !ShouldUseImageSurfaces()) {
+    if (!ShouldUseImageSurfaces()) {
       mWinSurface = new gfxWindowsSurface(gfxIntSize(mSize.width, mSize.height), mFormat);
       if (mWinSurface && mWinSurface->CairoStatus() == 0) {
         // no error
@@ -208,7 +191,7 @@ nsresult imgFrame::Init(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight,
     }
 
 #ifdef XP_MACOSX
-    if (!mNeverUseDeviceSurface && !ShouldUseImageSurfaces()) {
+    if (!ShouldUseImageSurfaces()) {
       mQuartzSurface = new gfxQuartzImageSurface(mImageSurface);
     }
 #endif
@@ -253,12 +236,12 @@ nsresult imgFrame::Optimize()
 
     if (pixelCount == 0) {
       // all pixels were the same
-      if (mFormat == gfxImageFormatARGB32 ||
-          mFormat == gfxImageFormatRGB24)
+      if (mFormat == gfxImageFormat::ARGB32 ||
+          mFormat == gfxImageFormat::RGB24)
       {
         // Should already be premult if desired.
         gfxRGBA::PackedColorType inputType = gfxRGBA::PACKED_XRGB;
-        if (mFormat == gfxImageFormatARGB32)
+        if (mFormat == gfxImageFormat::ARGB32)
           inputType = gfxRGBA::PACKED_ARGB_PREMULTIPLIED;
 
         mSinglePixelColor = gfxRGBA(firstPixel, inputType);
@@ -291,46 +274,14 @@ nsresult imgFrame::Optimize()
 
   // if we're being forced to use image surfaces due to
   // resource constraints, don't try to optimize beyond same-pixel.
-  if (mNeverUseDeviceSurface || ShouldUseImageSurfaces())
+  if (ShouldUseImageSurfaces())
     return NS_OK;
 
   mOptSurface = nullptr;
 
 #ifdef USE_WIN_SURFACE
-  // we need to special-case windows here, because windows has
-  // a distinction between DIB and DDB and we want to use DDBs as much
-  // as we can.
   if (mWinSurface) {
-    // Don't do DDBs for large images; see bug 359147
-    // Note that we bother with DDBs at all because they are much faster
-    // on some systems; on others there isn't much of a speed difference
-    // between DIBs and DDBs.
-    //
-    // Originally this just limited to 1024x1024; but that still
-    // had us hitting overall total memory usage limits (which was
-    // around 220MB on my intel shared memory system with 2GB RAM
-    // and 16-128mb in use by the video card, so I can't make
-    // heads or tails out of this limit).
-    //
-    // So instead, we clamp the max size to 64MB (this limit shuld
-    // be made dynamic based on.. something.. as soon a we figure
-    // out that something) and also limit each individual image to
-    // be less than 4MB to keep very large images out of DDBs.
-
-    // assume (almost -- we don't quadword-align) worst-case size
-    uint32_t ddbSize = mSize.width * mSize.height * 4;
-    if (ddbSize <= kMaxSingleDDBSize &&
-        ddbSize + gTotalDDBSize <= kMaxDDBSize)
-    {
-      nsRefPtr<gfxWindowsSurface> wsurf = mWinSurface->OptimizeToDDB(nullptr, gfxIntSize(mSize.width, mSize.height), mFormat);
-      if (wsurf) {
-        gTotalDDBs++;
-        gTotalDDBSize += ddbSize;
-        mIsDDBSurface = true;
-        mOptSurface = wsurf;
-      }
-    }
-    if (!mOptSurface && !mFormatChanged) {
+    if (!mFormatChanged) {
       // just use the DIB if the format has not changed
       mOptSurface = mWinSurface;
     }
@@ -340,7 +291,6 @@ nsresult imgFrame::Optimize()
 #ifdef XP_MACOSX
   if (mQuartzSurface) {
     mQuartzSurface->Flush();
-    mOptSurface = mQuartzSurface;
   }
 #endif
 
@@ -405,7 +355,7 @@ imgFrame::SurfaceForDrawing(bool               aDoPadding,
     // Create a temporary surface.
     // Give this surface an alpha channel because there are
     // transparent pixels in the padding or undecoded area
-    gfxImageFormat format = gfxImageFormatARGB32;
+    gfxImageFormat format = gfxImageFormat::ARGB32;
     nsRefPtr<gfxASurface> surface =
       gfxPlatform::GetPlatform()->CreateOffscreenSurface(size, gfxImageSurface::ContentFromFormat(format));
     if (!surface || surface->CairoStatus())
@@ -523,7 +473,7 @@ gfxImageFormat imgFrame::GetFormat() const
 bool imgFrame::GetNeedsBackground() const
 {
   // We need a background painted if we have alpha or we're incomplete.
-  return (mFormat == gfxImageFormatARGB32 || !ImageComplete());
+  return (mFormat == gfxImageFormat::ARGB32 || !ImageComplete());
 }
 
 uint32_t imgFrame::GetImageBytesPerRow() const
@@ -573,7 +523,7 @@ bool imgFrame::GetIsPaletted() const
 
 bool imgFrame::GetHasAlpha() const
 {
-  return mFormat == gfxImageFormatARGB32;
+  return mFormat == gfxImageFormat::ARGB32;
 }
 
 void imgFrame::GetPaletteData(uint32_t **aPalette, uint32_t *length) const
@@ -620,7 +570,7 @@ nsresult imgFrame::LockImageData()
   if ((mOptSurface || mSinglePixel) && !mImageSurface) {
     // Recover the pixels
     mImageSurface = new gfxImageSurface(gfxIntSize(mSize.width, mSize.height),
-                                        gfxImageFormatARGB32);
+                                        gfxImageFormat::ARGB32);
     if (!mImageSurface || mImageSurface->CairoStatus())
       return NS_ERROR_OUT_OF_MEMORY;
 
@@ -791,8 +741,8 @@ bool imgFrame::ImageComplete() const
 // set to 0xff.
 void imgFrame::SetHasNoAlpha()
 {
-  if (mFormat == gfxImageFormatARGB32) {
-      mFormat = gfxImageFormatRGB24;
+  if (mFormat == gfxImageFormat::ARGB32) {
+      mFormat = gfxImageFormat::RGB24;
       mFormatChanged = true;
       ThebesSurface()->SetOpaqueRect(gfxRect(0, 0, mSize.width, mSize.height));
   }
@@ -819,16 +769,16 @@ void imgFrame::SetCompositingFailed(bool val)
 size_t
 imgFrame::SizeOfExcludingThisWithComputedFallbackIfHeap(gfxMemoryLocation aLocation, mozilla::MallocSizeOf aMallocSizeOf) const
 {
-  // aMallocSizeOf is only used if aLocation==GFX_MEMORY_IN_PROCESS_HEAP.  It
+  // aMallocSizeOf is only used if aLocation==gfxMemoryLocation::IN_PROCESS_HEAP.  It
   // should be nullptr otherwise.
   NS_ABORT_IF_FALSE(
-    (aLocation == GFX_MEMORY_IN_PROCESS_HEAP &&  aMallocSizeOf) ||
-    (aLocation != GFX_MEMORY_IN_PROCESS_HEAP && !aMallocSizeOf),
+    (aLocation == gfxMemoryLocation::IN_PROCESS_HEAP &&  aMallocSizeOf) ||
+    (aLocation != gfxMemoryLocation::IN_PROCESS_HEAP && !aMallocSizeOf),
     "mismatch between aLocation and aMallocSizeOf");
 
   size_t n = 0;
 
-  if (mPalettedImageData && aLocation == GFX_MEMORY_IN_PROCESS_HEAP) {
+  if (mPalettedImageData && aLocation == gfxMemoryLocation::IN_PROCESS_HEAP) {
     size_t n2 = aMallocSizeOf(mPalettedImageData);
     if (n2 == 0) {
       n2 = GetImageDataLength() + PaletteDataLength();
@@ -842,13 +792,13 @@ imgFrame::SizeOfExcludingThisWithComputedFallbackIfHeap(gfxMemoryLocation aLocat
   } else
 #endif
 #ifdef XP_MACOSX
-  if (mQuartzSurface && aLocation == GFX_MEMORY_IN_PROCESS_HEAP) {
+  if (mQuartzSurface && aLocation == gfxMemoryLocation::IN_PROCESS_HEAP) {
     n += mSize.width * mSize.height * 4;
   } else
 #endif
   if (mImageSurface && aLocation == mImageSurface->GetMemoryLocation()) {
     size_t n2 = 0;
-    if (aLocation == GFX_MEMORY_IN_PROCESS_HEAP) { // HEAP: measure
+    if (aLocation == gfxMemoryLocation::IN_PROCESS_HEAP) { // HEAP: measure
       n2 = mImageSurface->SizeOfIncludingThis(aMallocSizeOf);
     }
     if (n2 == 0) {  // non-HEAP or computed fallback for HEAP
@@ -859,7 +809,7 @@ imgFrame::SizeOfExcludingThisWithComputedFallbackIfHeap(gfxMemoryLocation aLocat
 
   if (mOptSurface && aLocation == mOptSurface->GetMemoryLocation()) {
     size_t n2 = 0;
-    if (aLocation == GFX_MEMORY_IN_PROCESS_HEAP &&
+    if (aLocation == gfxMemoryLocation::IN_PROCESS_HEAP &&
         mOptSurface->SizeOfIsMeasured()) {
       // HEAP: measure (but only if the sub-class is capable of measuring)
       n2 = mOptSurface->SizeOfIncludingThis(aMallocSizeOf);

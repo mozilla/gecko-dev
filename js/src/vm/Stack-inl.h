@@ -97,7 +97,7 @@ StackFrame::initVarsToUndefined()
 }
 
 inline Value &
-StackFrame::unaliasedVar(unsigned i, MaybeCheckAliasing checkAliasing)
+StackFrame::unaliasedVar(uint32_t i, MaybeCheckAliasing checkAliasing)
 {
     JS_ASSERT_IF(checkAliasing, !script()->varIsAliased(i));
     JS_ASSERT(i < script()->nfixed());
@@ -105,7 +105,7 @@ StackFrame::unaliasedVar(unsigned i, MaybeCheckAliasing checkAliasing)
 }
 
 inline Value &
-StackFrame::unaliasedLocal(unsigned i, MaybeCheckAliasing checkAliasing)
+StackFrame::unaliasedLocal(uint32_t i, MaybeCheckAliasing checkAliasing)
 {
 #ifdef DEBUG
     CheckLocalUnaliased(checkAliasing, script(), i);
@@ -177,7 +177,7 @@ inline ScopeObject &
 StackFrame::aliasedVarScope(ScopeCoordinate sc) const
 {
     JSObject *scope = &scopeChain()->as<ScopeObject>();
-    for (unsigned i = sc.hops; i; i--)
+    for (unsigned i = sc.hops(); i; i--)
         scope = &scope->as<ScopeObject>().enclosingScope();
     return scope->as<ScopeObject>();
 }
@@ -211,7 +211,7 @@ StackFrame::callObj() const
     JS_ASSERT(fun()->isHeavyweight());
 
     JSObject *pobj = scopeChain();
-    while (JS_UNLIKELY(!pobj->is<CallObject>()))
+    while (MOZ_UNLIKELY(!pobj->is<CallObject>()))
         pobj = pobj->enclosingScope();
     return pobj->as<CallObject>();
 }
@@ -233,7 +233,7 @@ InterpreterStack::allocateFrame(JSContext *cx, size_t size)
     else
         maxFrames = MAX_FRAMES;
 
-    if (JS_UNLIKELY(frameCount_ >= maxFrames)) {
+    if (MOZ_UNLIKELY(frameCount_ >= maxFrames)) {
         js_ReportOverRecursed(cx);
         return nullptr;
     }
@@ -246,7 +246,7 @@ InterpreterStack::allocateFrame(JSContext *cx, size_t size)
     return buffer;
 }
 
-JS_ALWAYS_INLINE StackFrame *
+MOZ_ALWAYS_INLINE StackFrame *
 InterpreterStack::getCallFrame(JSContext *cx, const CallArgs &args, HandleScript script,
                                StackFrame::Flags *flags, Value **pargv)
 {
@@ -280,7 +280,7 @@ InterpreterStack::getCallFrame(JSContext *cx, const CallArgs &args, HandleScript
     return reinterpret_cast<StackFrame *>(argv + 2 + nformal);
 }
 
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 InterpreterStack::pushInlineFrame(JSContext *cx, FrameRegs &regs, const CallArgs &args,
                                   HandleScript script, InitialFrameFlags initial)
 {
@@ -312,7 +312,7 @@ InterpreterStack::pushInlineFrame(JSContext *cx, FrameRegs &regs, const CallArgs
     return true;
 }
 
-JS_ALWAYS_INLINE void
+MOZ_ALWAYS_INLINE void
 InterpreterStack::popInlineFrame(FrameRegs &regs)
 {
     StackFrame *fp = regs.fp();
@@ -363,13 +363,13 @@ AbstractFramePtr::setHookData(void *data) const
 #endif
 }
 
-inline Value
+inline HandleValue
 AbstractFramePtr::returnValue() const
 {
     if (isStackFrame())
         return asStackFrame()->returnValue();
 #ifdef JS_ION
-    return *asBaselineFrame()->returnValue();
+    return asBaselineFrame()->returnValue();
 #else
     MOZ_ASSUME_UNREACHABLE("Invalid frame");
 #endif
@@ -469,7 +469,7 @@ AbstractFramePtr::numFormalArgs() const
 }
 
 inline Value &
-AbstractFramePtr::unaliasedVar(unsigned i, MaybeCheckAliasing checkAliasing)
+AbstractFramePtr::unaliasedVar(uint32_t i, MaybeCheckAliasing checkAliasing)
 {
     if (isStackFrame())
         return asStackFrame()->unaliasedVar(i, checkAliasing);
@@ -481,7 +481,7 @@ AbstractFramePtr::unaliasedVar(unsigned i, MaybeCheckAliasing checkAliasing)
 }
 
 inline Value &
-AbstractFramePtr::unaliasedLocal(unsigned i, MaybeCheckAliasing checkAliasing)
+AbstractFramePtr::unaliasedLocal(uint32_t i, MaybeCheckAliasing checkAliasing)
 {
     if (isStackFrame())
         return asStackFrame()->unaliasedLocal(i, checkAliasing);

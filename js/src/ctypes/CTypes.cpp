@@ -485,7 +485,7 @@ static const JSClass sCTypeProtoClass = {
   JSCLASS_HAS_RESERVED_SLOTS(CTYPEPROTO_SLOTS),
   JS_PropertyStub, JS_DeletePropertyStub, JS_PropertyStub, JS_StrictPropertyStub,
   JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, nullptr,
-  nullptr, ConstructAbstract, nullptr, ConstructAbstract
+  ConstructAbstract, nullptr, ConstructAbstract
 };
 
 // Class representing ctypes.CData.prototype and the 'prototype' properties
@@ -502,7 +502,7 @@ static const JSClass sCTypeClass = {
   JSCLASS_IMPLEMENTS_BARRIERS | JSCLASS_HAS_RESERVED_SLOTS(CTYPE_SLOTS),
   JS_PropertyStub, JS_DeletePropertyStub, JS_PropertyStub, JS_StrictPropertyStub,
   JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, CType::Finalize,
-  nullptr, CType::ConstructData, CType::HasInstance, CType::ConstructData,
+  CType::ConstructData, CType::HasInstance, CType::ConstructData,
   CType::Trace
 };
 
@@ -511,7 +511,7 @@ static const JSClass sCDataClass = {
   JSCLASS_HAS_RESERVED_SLOTS(CDATA_SLOTS),
   JS_PropertyStub, JS_DeletePropertyStub, ArrayType::Getter, ArrayType::Setter,
   JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, CData::Finalize,
-  nullptr, FunctionType::Call, nullptr, FunctionType::Call
+  FunctionType::Call, nullptr, FunctionType::Call
 };
 
 static const JSClass sCClosureClass = {
@@ -519,7 +519,7 @@ static const JSClass sCClosureClass = {
   JSCLASS_IMPLEMENTS_BARRIERS | JSCLASS_HAS_RESERVED_SLOTS(CCLOSURE_SLOTS),
   JS_PropertyStub, JS_DeletePropertyStub, JS_PropertyStub, JS_StrictPropertyStub,
   JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, CClosure::Finalize,
-  nullptr, nullptr, nullptr, nullptr, CClosure::Trace
+  nullptr, nullptr, nullptr, CClosure::Trace
 };
 
 /*
@@ -577,7 +577,7 @@ static const JSPropertySpec sCTypeProps[] = {
   JS_PSG("prototype",
          (Property<CType::IsCTypeOrProto, CType::PrototypeGetter>::Fun),
          CTYPESACC_FLAGS),
-  { 0, 0, 0, JSOP_NULLWRAPPER, JSOP_NULLWRAPPER }
+  JS_PS_END
 };
 
 static const JSFunctionSpec sCTypeFunctions[] = {
@@ -608,10 +608,6 @@ static const JSFunctionSpec sCDataFunctions[] = {
   JS_FN("toSource", CData::ToSource, 0, CDATAFN_FLAGS),
   JS_FN("toString", CData::ToSource, 0, CDATAFN_FLAGS),
   JS_FS_END
-};
-
-static const JSPropertySpec sCDataFinalizerProps[] = {
-  { 0, 0, 0, JSOP_NULLWRAPPER, JSOP_NULLWRAPPER }
 };
 
 static const JSFunctionSpec sCDataFinalizerFunctions[] = {
@@ -795,7 +791,7 @@ static const JSFunctionSpec sModuleFunctions[] = {
   JS_FS_END
 };
 
-static JS_ALWAYS_INLINE JSString*
+static MOZ_ALWAYS_INLINE JSString*
 NewUCString(JSContext* cx, const AutoString& from)
 {
   return JS_NewUCStringCopyN(cx, from.begin(), from.length());
@@ -806,7 +802,7 @@ NewUCString(JSContext* cx, const AutoString& from)
  *
  * Note: |align| must be a power of 2.
  */
-static JS_ALWAYS_INLINE size_t
+static MOZ_ALWAYS_INLINE size_t
 Align(size_t val, size_t align)
 {
   // Ensure that align is a power of two.
@@ -842,7 +838,7 @@ GetErrorMessage(void* userRef, const char* locale, const unsigned errorNumber)
 }
 
 static bool
-TypeError(JSContext* cx, const char* expected, jsval actual)
+TypeError(JSContext* cx, const char* expected, HandleValue actual)
 {
   JSString* str = JS_ValueToSource(cx, actual);
   JSAutoByteString bytes;
@@ -903,7 +899,7 @@ InitCTypeClass(JSContext* cx, HandleObject parent)
 static JSObject*
 InitABIClass(JSContext* cx, JSObject* parent)
 {
-  RootedObject obj(cx, JS_NewObject(cx, nullptr, nullptr, nullptr));
+  RootedObject obj(cx, JS_NewObject(cx, nullptr, NullPtr(), NullPtr()));
 
   if (!obj)
     return nullptr;
@@ -933,7 +929,7 @@ InitCDataClass(JSContext* cx, HandleObject parent, HandleObject CTypeProto)
     return nullptr;
 
   // Set up ctypes.CData.prototype.
-  RootedObject prototype(cx, JS_NewObject(cx, &sCDataProtoClass, nullptr, parent));
+  RootedObject prototype(cx, JS_NewObject(cx, &sCDataProtoClass, NullPtr(), parent));
   if (!prototype)
     return nullptr;
 
@@ -1057,7 +1053,7 @@ InitInt64Class(JSContext* cx,
                const JSFunctionSpec* static_fs)
 {
   // Init type class and constructor
-  RootedObject prototype(cx, JS_InitClass(cx, parent, nullptr, clasp, construct,
+  RootedObject prototype(cx, JS_InitClass(cx, parent, js::NullPtr(), clasp, construct,
                                           0, nullptr, fs, nullptr, static_fs));
   if (!prototype)
     return nullptr;
@@ -1322,12 +1318,10 @@ using namespace js;
 using namespace js::ctypes;
 
 JS_PUBLIC_API(bool)
-JS_InitCTypesClass(JSContext* cx, JSObject *globalArg)
+JS_InitCTypesClass(JSContext* cx, HandleObject global)
 {
-  RootedObject global(cx, globalArg);
-
   // attach ctypes property to global object
-  RootedObject ctypes(cx, JS_NewObject(cx, &sCTypesGlobalClass, nullptr, nullptr));
+  RootedObject ctypes(cx, JS_NewObject(cx, &sCTypesGlobalClass, NullPtr(), NullPtr()));
   if (!ctypes)
     return false;
 
@@ -1349,12 +1343,11 @@ JS_InitCTypesClass(JSContext* cx, JSObject *globalArg)
   if (!GetObjectProperty(cx, ctypes, "CDataFinalizer", &ctor))
     return false;
 
-  RootedObject prototype(cx, JS_NewObject(cx, &sCDataFinalizerProtoClass, nullptr, ctypes));
+  RootedObject prototype(cx, JS_NewObject(cx, &sCDataFinalizerProtoClass, NullPtr(), ctypes));
   if (!prototype)
     return false;
 
-  if (!JS_DefineProperties(cx, prototype, sCDataFinalizerProps) ||
-      !JS_DefineFunctions(cx, prototype, sCDataFinalizerFunctions))
+  if (!JS_DefineFunctions(cx, prototype, sCDataFinalizerFunctions))
     return false;
 
   if (!JS_DefineProperty(cx, ctor, "prototype", OBJECT_TO_JSVAL(prototype),
@@ -1430,7 +1423,7 @@ JS_STATIC_ASSERT(NumericLimits<double>::is_signed);
 // where the trivial POD constructor will do.
 template<class TargetType, class FromType>
 struct ConvertImpl {
-  static JS_ALWAYS_INLINE TargetType Convert(FromType d) {
+  static MOZ_ALWAYS_INLINE TargetType Convert(FromType d) {
     return TargetType(d);
   }
 };
@@ -1440,7 +1433,7 @@ struct ConvertImpl {
 // double is greater than 2^63 - 1. Help it along a little.
 template<>
 struct ConvertImpl<uint64_t, double> {
-  static JS_ALWAYS_INLINE uint64_t Convert(double d) {
+  static MOZ_ALWAYS_INLINE uint64_t Convert(double d) {
     return d > 0x7fffffffffffffffui64 ?
            uint64_t(d - 0x8000000000000000ui64) + 0x8000000000000000ui64 :
            uint64_t(d);
@@ -1456,7 +1449,7 @@ struct ConvertImpl<uint64_t, double> {
 // Simulate x86 overflow behavior
 template<>
 struct ConvertImpl<uint64_t, double> {
-  static JS_ALWAYS_INLINE uint64_t Convert(double d) {
+  static MOZ_ALWAYS_INLINE uint64_t Convert(double d) {
     return d >= 0xffffffffffffffff ?
            0x8000000000000000 : uint64_t(d);
   }
@@ -1464,7 +1457,7 @@ struct ConvertImpl<uint64_t, double> {
 
 template<>
 struct ConvertImpl<int64_t, double> {
-  static JS_ALWAYS_INLINE int64_t Convert(double d) {
+  static MOZ_ALWAYS_INLINE int64_t Convert(double d) {
     return d >= 0x7fffffffffffffff ?
            0x8000000000000000 : int64_t(d);
   }
@@ -1472,13 +1465,13 @@ struct ConvertImpl<int64_t, double> {
 #endif
 
 template<class TargetType, class FromType>
-static JS_ALWAYS_INLINE TargetType Convert(FromType d)
+static MOZ_ALWAYS_INLINE TargetType Convert(FromType d)
 {
   return ConvertImpl<TargetType, FromType>::Convert(d);
 }
 
 template<class TargetType, class FromType>
-static JS_ALWAYS_INLINE bool IsAlwaysExact()
+static MOZ_ALWAYS_INLINE bool IsAlwaysExact()
 {
   // Return 'true' if TargetType can always exactly represent FromType.
   // This means that:
@@ -1507,7 +1500,7 @@ static JS_ALWAYS_INLINE bool IsAlwaysExact()
 // TargetType 'j'. Default case where both types are the same signedness.
 template<class TargetType, class FromType, bool TargetSigned, bool FromSigned>
 struct IsExactImpl {
-  static JS_ALWAYS_INLINE bool Test(FromType i, TargetType j) {
+  static MOZ_ALWAYS_INLINE bool Test(FromType i, TargetType j) {
     JS_STATIC_ASSERT(NumericLimits<TargetType>::is_exact);
     return FromType(j) == i;
   }
@@ -1516,7 +1509,7 @@ struct IsExactImpl {
 // Specialization where TargetType is unsigned, FromType is signed.
 template<class TargetType, class FromType>
 struct IsExactImpl<TargetType, FromType, false, true> {
-  static JS_ALWAYS_INLINE bool Test(FromType i, TargetType j) {
+  static MOZ_ALWAYS_INLINE bool Test(FromType i, TargetType j) {
     JS_STATIC_ASSERT(NumericLimits<TargetType>::is_exact);
     return i >= 0 && FromType(j) == i;
   }
@@ -1525,7 +1518,7 @@ struct IsExactImpl<TargetType, FromType, false, true> {
 // Specialization where TargetType is signed, FromType is unsigned.
 template<class TargetType, class FromType>
 struct IsExactImpl<TargetType, FromType, true, false> {
-  static JS_ALWAYS_INLINE bool Test(FromType i, TargetType j) {
+  static MOZ_ALWAYS_INLINE bool Test(FromType i, TargetType j) {
     JS_STATIC_ASSERT(NumericLimits<TargetType>::is_exact);
     return TargetType(i) >= 0 && FromType(j) == i;
   }
@@ -1534,7 +1527,7 @@ struct IsExactImpl<TargetType, FromType, true, false> {
 // Convert FromType 'i' to TargetType 'result', returning true iff 'result'
 // is an exact representation of 'i'.
 template<class TargetType, class FromType>
-static JS_ALWAYS_INLINE bool ConvertExact(FromType i, TargetType* result)
+static MOZ_ALWAYS_INLINE bool ConvertExact(FromType i, TargetType* result)
 {
   // Require that TargetType is integral, to simplify conversion.
   JS_STATIC_ASSERT(NumericLimits<TargetType>::is_exact);
@@ -1556,7 +1549,7 @@ static JS_ALWAYS_INLINE bool ConvertExact(FromType i, TargetType* result)
 // where IntegerType is unsigned.
 template<class Type, bool IsSigned>
 struct IsNegativeImpl {
-  static JS_ALWAYS_INLINE bool Test(Type i) {
+  static MOZ_ALWAYS_INLINE bool Test(Type i) {
     return false;
   }
 };
@@ -1564,14 +1557,14 @@ struct IsNegativeImpl {
 // Specialization where Type is signed.
 template<class Type>
 struct IsNegativeImpl<Type, true> {
-  static JS_ALWAYS_INLINE bool Test(Type i) {
+  static MOZ_ALWAYS_INLINE bool Test(Type i) {
     return i < 0;
   }
 };
 
 // Determine whether Type 'i' is negative.
 template<class Type>
-static JS_ALWAYS_INLINE bool IsNegative(Type i)
+static MOZ_ALWAYS_INLINE bool IsNegative(Type i)
 {
   return IsNegativeImpl<Type, NumericLimits<Type>::is_signed>::Test(i);
 }
@@ -3010,7 +3003,8 @@ BuildDataSource(JSContext* cx,
       return false;
 
     // Escape characters, and quote as necessary.
-    JSString* src = JS_ValueToSource(cx, STRING_TO_JSVAL(str));
+    RootedValue valStr(cx, StringValue(str));
+    JSString* src = JS_ValueToSource(cx, valStr);
     if (!src)
       return false;
 
@@ -4700,7 +4694,7 @@ AddFieldToArray(JSContext* cx,
 {
   RootedObject typeObj(cx, typeObj_);
   Rooted<JSFlatString*> name(cx, name_);
-  RootedObject fieldObj(cx, JS_NewObject(cx, nullptr, nullptr, nullptr));
+  RootedObject fieldObj(cx, JS_NewObject(cx, nullptr, NullPtr(), NullPtr()));
   if (!fieldObj)
     return false;
 
@@ -4760,16 +4754,15 @@ StructType::Create(JSContext* cx, unsigned argc, jsval* vp)
 }
 
 static void
-PostBarrierCallback(JSTracer *trc, void *k, void *d)
+PostBarrierCallback(JSTracer *trc, JSString *key, void *data)
 {
     typedef HashMap<JSFlatString*,
                     UnbarrieredFieldInfo,
                     FieldHashPolicy,
                     SystemAllocPolicy> UnbarrieredFieldInfoHash;
 
-    JSString *prior = static_cast<JSString*>(k);
-    UnbarrieredFieldInfoHash *table = reinterpret_cast<UnbarrieredFieldInfoHash*>(d);
-    JSString *key = prior;
+    UnbarrieredFieldInfoHash *table = reinterpret_cast<UnbarrieredFieldInfoHash*>(data);
+    JSString *prior = key;
     JS_CallStringTracer(trc, &key, "CType fieldName");
     table->rekeyIfMoved(JS_ASSERT_STRING_IS_FLAT(prior), JS_ASSERT_STRING_IS_FLAT(key));
 }
@@ -4792,7 +4785,7 @@ StructType::DefineInternal(JSContext* cx, JSObject* typeObj_, JSObject* fieldsOb
   // Set up the 'prototype' and 'prototype.constructor' properties.
   // The prototype will reflect the struct fields as properties on CData objects
   // created from this type.
-  RootedObject prototype(cx, JS_NewObject(cx, &sCDataProtoClass, dataProto, nullptr));
+  RootedObject prototype(cx, JS_NewObject(cx, &sCDataProtoClass, dataProto, NullPtr()));
   if (!prototype)
     return false;
 
@@ -4827,10 +4820,7 @@ StructType::DefineInternal(JSContext* cx, JSObject* typeObj_, JSObject* fieldsOb
         return false;
 
       RootedObject fieldType(cx, nullptr);
-      JSFlatString* flat = ExtractStructField(cx, item, fieldType.address());
-      if (!flat)
-        return false;
-      Rooted<JSStableString*> name(cx, flat->ensureStable(cx));
+      Rooted<JSFlatString*> name(cx, ExtractStructField(cx, item, fieldType.address()));
       if (!name)
         return false;
       fieldRoots[i] = JS::ObjectValue(*fieldType);
@@ -4844,7 +4834,7 @@ StructType::DefineInternal(JSContext* cx, JSObject* typeObj_, JSObject* fieldsOb
 
       // Add the field to the StructType's 'prototype' property.
       if (!JS_DefineUCProperty(cx, prototype,
-             name->chars().get(), name->length(), JSVAL_VOID,
+             name->chars(), name->length(), JSVAL_VOID,
              StructType::FieldGetter, StructType::FieldSetter,
              JSPROP_SHARED | JSPROP_ENUMERATE | JSPROP_PERMANENT))
         return false;
@@ -5189,7 +5179,7 @@ StructType::FieldsArrayGetter(JSContext* cx, JS::CallArgs args)
   }
 
   MOZ_ASSERT(args.rval().isObject());
-  MOZ_ASSERT(JS_IsArrayObject(cx, &args.rval().toObject()));
+  MOZ_ASSERT(JS_IsArrayObject(cx, args.rval()));
   return true;
 }
 
@@ -5412,7 +5402,7 @@ PrepareReturnType(JSContext* cx, jsval type)
   return result;
 }
 
-static JS_ALWAYS_INLINE bool
+static MOZ_ALWAYS_INLINE bool
 IsEllipsis(JSContext* cx, jsval v, bool* isEllipsis)
 {
   *isEllipsis = false;
@@ -6006,7 +5996,7 @@ CClosure::Create(JSContext* cx,
   RootedValue errVal(cx, errVal_);
   JS_ASSERT(fnObj);
 
-  RootedObject result(cx, JS_NewObject(cx, &sCClosureClass, nullptr, nullptr));
+  RootedObject result(cx, JS_NewObject(cx, &sCClosureClass, NullPtr(), NullPtr()));
   if (!result)
     return nullptr;
 
@@ -6892,7 +6882,7 @@ CDataFinalizer::Construct(JSContext* cx, unsigned argc, jsval *vp)
 
   // Get arguments
   if (args.length() == 0) { // Special case: the empty (already finalized) object
-    JSObject *objResult = JS_NewObject(cx, &sCDataFinalizerClass, objProto, nullptr);
+    JSObject *objResult = JS_NewObject(cx, &sCDataFinalizerClass, objProto, NullPtr());
     args.rval().setObject(*objResult);
     return true;
   }
@@ -6902,7 +6892,7 @@ CDataFinalizer::Construct(JSContext* cx, unsigned argc, jsval *vp)
     return false;
   }
 
-  JS::Value valCodePtr = args[1];
+  JS::HandleValue valCodePtr = args[1];
   if (!valCodePtr.isObject()) {
     return TypeError(cx, "_a CData object_ of a function pointer type",
                      valCodePtr);
@@ -6918,12 +6908,13 @@ CDataFinalizer::Construct(JSContext* cx, unsigned argc, jsval *vp)
                      valCodePtr);
   }
   RootedObject objCodePtrType(cx, CData::GetCType(objCodePtr));
+  RootedValue valCodePtrType(cx, ObjectValue(*objCodePtrType));
   MOZ_ASSERT(objCodePtrType);
 
   TypeCode typCodePtr = CType::GetTypeCode(objCodePtrType);
   if (typCodePtr != TYPE_pointer) {
     return TypeError(cx, "a CData object of a function _pointer_ type",
-                     OBJECT_TO_JSVAL(objCodePtrType));
+                     valCodePtrType);
   }
 
   JSObject *objCodeType = PointerType::GetBaseType(objCodePtrType);
@@ -6932,12 +6923,12 @@ CDataFinalizer::Construct(JSContext* cx, unsigned argc, jsval *vp)
   TypeCode typCode = CType::GetTypeCode(objCodeType);
   if (typCode != TYPE_function) {
     return TypeError(cx, "a CData object of a _function_ pointer type",
-                     OBJECT_TO_JSVAL(objCodePtrType));
+                     valCodePtrType);
   }
   uintptr_t code = *reinterpret_cast<uintptr_t*>(CData::GetData(objCodePtr));
   if (!code) {
     return TypeError(cx, "a CData object of a _non-NULL_ function pointer type",
-                     OBJECT_TO_JSVAL(objCodePtrType));
+                     valCodePtrType);
   }
 
   FunctionInfo* funInfoFinalizer =
@@ -6946,8 +6937,9 @@ CDataFinalizer::Construct(JSContext* cx, unsigned argc, jsval *vp)
 
   if ((funInfoFinalizer->mArgTypes.length() != 1)
       || (funInfoFinalizer->mIsVariadic)) {
+    RootedValue valCodeType(cx, ObjectValue(*objCodeType));
     return TypeError(cx, "a function accepting exactly one argument",
-                     OBJECT_TO_JSVAL(objCodeType));
+                     valCodeType);
   }
   RootedObject objArgType(cx, funInfoFinalizer->mArgTypes[0]);
   RootedObject returnType(cx, funInfoFinalizer->mReturnType);
@@ -6969,8 +6961,9 @@ CDataFinalizer::Construct(JSContext* cx, unsigned argc, jsval *vp)
 
   if (!ImplicitConvert(cx, valData, objArgType, cargs.get(),
                        false, &freePointer)) {
+    RootedValue valArgType(cx, ObjectValue(*objArgType));
     return TypeError(cx, "(an object that can be converted to the following type)",
-                     OBJECT_TO_JSVAL(objArgType));
+                     valArgType);
   }
   if (freePointer) {
     // Note: We could handle that case, if necessary.
@@ -6988,7 +6981,7 @@ CDataFinalizer::Construct(JSContext* cx, unsigned argc, jsval *vp)
 
   // 5. Create |objResult|
 
-  JSObject *objResult = JS_NewObject(cx, &sCDataFinalizerClass, objProto, nullptr);
+  JSObject *objResult = JS_NewObject(cx, &sCDataFinalizerClass, objProto, NullPtr());
   if (!objResult) {
     return false;
   }
@@ -7116,7 +7109,8 @@ CDataFinalizer::Methods::Forget(JSContext* cx, unsigned argc, jsval *vp)
   if (!obj)
     return false;
   if (!CDataFinalizer::IsCDataFinalizer(obj)) {
-    return TypeError(cx, "a CDataFinalizer", OBJECT_TO_JSVAL(obj));
+    RootedValue val(cx, ObjectValue(*obj));
+    return TypeError(cx, "a CDataFinalizer", val);
   }
 
   CDataFinalizer::Private *p = (CDataFinalizer::Private *)
@@ -7163,7 +7157,8 @@ CDataFinalizer::Methods::Dispose(JSContext* cx, unsigned argc, jsval *vp)
   if (!obj)
     return false;
   if (!CDataFinalizer::IsCDataFinalizer(obj)) {
-    return TypeError(cx, "a CDataFinalizer", OBJECT_TO_JSVAL(obj));
+    RootedValue val(cx, ObjectValue(*obj));
+    return TypeError(cx, "a CDataFinalizer", val);
   }
 
   CDataFinalizer::Private *p = (CDataFinalizer::Private *)

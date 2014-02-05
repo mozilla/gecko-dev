@@ -88,13 +88,13 @@ PlaceInfo::GetFrecency(int64_t* _frecency)
 
 NS_IMETHODIMP
 PlaceInfo::GetVisits(JSContext* aContext,
-                     JS::Value* _visits)
+                     JS::MutableHandle<JS::Value> _visits)
 {
   // If the visits data was not provided, return null rather
   // than an empty array to distinguish this case from the case
   // of a place without any visit.
   if (!mVisitsAvailable) {
-    *_visits = JSVAL_NULL;
+    _visits.setNull();
     return NS_OK;
   }
 
@@ -118,14 +118,12 @@ PlaceInfo::GetVisits(JSContext* aContext,
 
     JS::Rooted<JSObject*> jsobj(aContext, wrapper->GetJSObject());
     NS_ENSURE_STATE(jsobj);
-    JS::Rooted<JS::Value> wrappedVisit(aContext, OBJECT_TO_JSVAL(jsobj));
 
-    bool rc = JS_SetElement(aContext, visits, idx, &wrappedVisit);
+    bool rc = JS_SetElement(aContext, visits, idx, jsobj);
     NS_ENSURE_TRUE(rc, NS_ERROR_UNEXPECTED);
   }
 
-  *_visits = OBJECT_TO_JSVAL(visits);
-
+  _visits.setObject(*visits);
   return NS_OK;
 }
 

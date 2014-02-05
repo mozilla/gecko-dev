@@ -34,8 +34,11 @@ MOCHITEST_FILES = \
 		test_browserElement_inproc_BrowserWindowNamespace.html \
 		file_browserElement_BrowserWindowNamespace.html \
 		browserElement_Iconchange.js \
+		browserElement_Metachange.js \
+		file_browserElement_Metachange.sjs \
 		browserElement_Opensearch.js \
 		test_browserElement_inproc_Iconchange.html \
+		test_browserElement_inproc_Metachange.html \
 		test_browserElement_inproc_Opensearch.html \
 		browserElement_GetScreenshot.js \
 		test_browserElement_inproc_GetScreenshot.html \
@@ -182,7 +185,16 @@ MOCHITEST_FILES = \
 # Both the "inproc" and "oop" versions of OpenMixedProcess open remote frames,
 # so we don't run that test on platforms which don't support OOP tests.
 
+
+# Bug 960345 - Disabled on OSX debug for frequent crashes.
+ifeq ($(MOZ_WIDGET_TOOLKIT),cocoa)
+ifdef MOZ_DEBUG
+OSX_DEBUG=1
+endif
+endif
+
 ifndef MOZ_ANDROID_OMTC #{
+ifndef OSX_DEBUG
 MOCHITEST_FILES += \
 		browserElement_OpenMixedProcess.js \
 		file_browserElement_OpenMixedProcess.html \
@@ -197,6 +209,7 @@ MOCHITEST_FILES += \
 		test_browserElement_oop_BrowserWindowNamespace.html \
 		test_browserElement_oop_TopBarrier.html \
 		test_browserElement_oop_Iconchange.html \
+		test_browserElement_oop_Metachange.html \
 		test_browserElement_oop_Opensearch.html \
 		test_browserElement_oop_GetScreenshot.html \
 		test_browserElement_oop_BadScreenshot.html \
@@ -208,10 +221,10 @@ MOCHITEST_FILES += \
 		test_browserElement_oop_SetVisible.html \
 		test_browserElement_oop_SetVisibleFrames.html \
 		test_browserElement_oop_SetVisibleFrames2.html \
-		test_browserElement_oop_FirstPaint.html \
 		test_browserElement_oop_Alert.html \
 		test_browserElement_oop_AlertInFrame.html \
 		test_browserElement_oop_TargetTop.html \
+		test_browserElement_oop_FirstPaint.html \
 		test_browserElement_oop_ForwardName.html \
 		test_browserElement_oop_TargetBlank.html \
 		test_browserElement_oop_PromptCheck.html \
@@ -251,4 +264,5 @@ MOCHITEST_FILES += \
 # Disabled until we fix bug 906096.
 #		test_browserElement_oop_SetInputMethodActive.html \
 
+endif # OSX_DEBUG
 endif #}

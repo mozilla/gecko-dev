@@ -180,6 +180,7 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
                                      NS_ConvertUTF8toUTF16(asciiSpec),
                                      NS_ConvertUTF8toUTF16(mURL),
                                      0,
+                                     EmptyString(),
                                      EmptyString());
         }
 
@@ -292,7 +293,7 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
         pusher.Push(cx);
         rv = xpc->EvalInSandboxObject(NS_ConvertUTF8toUTF16(script),
                                       /* filename = */ nullptr, cx,
-                                      sandboxObj, true, v.address());
+                                      sandboxObj, true, &v);
 
         // Propagate and report exceptions that happened in the
         // sandbox.

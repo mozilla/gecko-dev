@@ -182,14 +182,14 @@ template <typename T>
 class BarrieredCell : public gc::Cell
 {
   public:
-    JS_ALWAYS_INLINE JS::Zone *zone() const { return tenuredZone(); }
-    JS_ALWAYS_INLINE JS::shadow::Zone *shadowZone() const { return JS::shadow::Zone::asShadowZone(zone()); }
-    JS_ALWAYS_INLINE JS::Zone *zoneFromAnyThread() const { return tenuredZoneFromAnyThread(); }
-    JS_ALWAYS_INLINE JS::shadow::Zone *shadowZoneFromAnyThread() const {
+    MOZ_ALWAYS_INLINE JS::Zone *zone() const { return tenuredZone(); }
+    MOZ_ALWAYS_INLINE JS::shadow::Zone *shadowZone() const { return JS::shadow::Zone::asShadowZone(zone()); }
+    MOZ_ALWAYS_INLINE JS::Zone *zoneFromAnyThread() const { return tenuredZoneFromAnyThread(); }
+    MOZ_ALWAYS_INLINE JS::shadow::Zone *shadowZoneFromAnyThread() const {
         return JS::shadow::Zone::asShadowZone(zoneFromAnyThread());
     }
 
-    static JS_ALWAYS_INLINE void readBarrier(T *thing) {
+    static MOZ_ALWAYS_INLINE void readBarrier(T *thing) {
 #ifdef JSGC_INCREMENTAL
         // Off thread Ion compilation never occurs when barriers are active.
         js::AutoThreadSafeAccess ts(thing);
@@ -204,7 +204,7 @@ class BarrieredCell : public gc::Cell
 #endif
     }
 
-    static JS_ALWAYS_INLINE bool needWriteBarrierPre(JS::Zone *zone) {
+    static MOZ_ALWAYS_INLINE bool needWriteBarrierPre(JS::Zone *zone) {
 #ifdef JSGC_INCREMENTAL
         return JS::shadow::Zone::asShadowZone(zone)->needsBarrier();
 #else
@@ -212,9 +212,9 @@ class BarrieredCell : public gc::Cell
 #endif
     }
 
-    static JS_ALWAYS_INLINE bool isNullLike(T *thing) { return !thing; }
+    static MOZ_ALWAYS_INLINE bool isNullLike(T *thing) { return !thing; }
 
-    static JS_ALWAYS_INLINE void writeBarrierPre(T *thing) {
+    static MOZ_ALWAYS_INLINE void writeBarrierPre(T *thing) {
 #ifdef JSGC_INCREMENTAL
         if (isNullLike(thing) || !thing->shadowRuntimeFromAnyThread()->needsBarrier())
             return;
@@ -254,7 +254,7 @@ ShadowZoneOfString(JSString *str)
     return JS::shadow::Zone::asShadowZone(reinterpret_cast<const js::gc::Cell *>(str)->tenuredZone());
 }
 
-JS_ALWAYS_INLINE JS::Zone *
+MOZ_ALWAYS_INLINE JS::Zone *
 ZoneOfValue(const JS::Value &value)
 {
     JS_ASSERT(value.isMarkable());
@@ -279,7 +279,7 @@ ShadowZoneOfStringFromAnyThread(JSString *str)
         reinterpret_cast<const js::gc::Cell *>(str)->tenuredZoneFromAnyThread());
 }
 
-JS_ALWAYS_INLINE JS::Zone *
+MOZ_ALWAYS_INLINE JS::Zone *
 ZoneOfValueFromAnyThread(const JS::Value &value)
 {
     JS_ASSERT(value.isMarkable());
@@ -371,7 +371,7 @@ class HeapPtr : public BarrieredPtr<T, Unioned>
   public:
     HeapPtr() : BarrieredPtr<T, Unioned>(nullptr) {}
     explicit HeapPtr(T *v) : BarrieredPtr<T, Unioned>(v) { post(); }
-    explicit HeapPtr(const HeapPtr<T> &v) : BarrieredPtr<T, Unioned>(v) { post(); }
+    explicit HeapPtr(const HeapPtr<T, Unioned> &v) : BarrieredPtr<T, Unioned>(v) { post(); }
 
     void init(T *v) {
         JS_ASSERT(!IsPoisonedPtr<T>(v));
@@ -387,7 +387,7 @@ class HeapPtr : public BarrieredPtr<T, Unioned>
         return *this;
     }
 
-    HeapPtr<T, Unioned> &operator=(const HeapPtr<T> &v) {
+    HeapPtr<T, Unioned> &operator=(const HeapPtr<T, Unioned> &v) {
         this->pre();
         JS_ASSERT(!IsPoisonedPtr<T>(v.value));
         this->value = v.value;
@@ -404,6 +404,11 @@ class HeapPtr : public BarrieredPtr<T, Unioned>
     BarrieredSetPair(Zone *zone,
                      HeapPtr<T1> &v1, T1 *val1,
                      HeapPtr<T2> &v2, T2 *val2);
+
+  private:
+    /* The default move construction and assignment operators would be incorrect. */
+    HeapPtr(HeapPtr<T> &&) MOZ_DELETE;
+    HeapPtr<T, Unioned> &operator=(HeapPtr<T, Unioned> &&) MOZ_DELETE;
 };
 
 /*
@@ -780,6 +785,10 @@ class HeapValue : public BarrieredValue
     void post(JSRuntime *rt) {
         writeBarrierPost(rt, value, &value);
     }
+
+    /* The default move construction and assignment operators would be incorrect. */
+    HeapValue(HeapValue &&) MOZ_DELETE;
+    HeapValue &operator=(HeapValue &&) MOZ_DELETE;
 };
 
 class RelocatableValue : public BarrieredValue
@@ -1120,6 +1129,10 @@ class HeapId : public BarrieredId
     void post() {};
 
     HeapId(const HeapId &v) MOZ_DELETE;
+
+    /* The default move construction and assignment operators would be incorrect. */
+    HeapId(HeapId &&) MOZ_DELETE;
+    HeapId &operator=(HeapId &&) MOZ_DELETE;
 };
 
 /*

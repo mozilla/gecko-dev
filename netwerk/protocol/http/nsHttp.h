@@ -17,6 +17,7 @@
 #define NS_HTTP_VERSION_0_9      9
 #define NS_HTTP_VERSION_1_0     10
 #define NS_HTTP_VERSION_1_1     11
+#define NS_HTTP_VERSION_2_0     20
 
 namespace mozilla {
 
@@ -31,13 +32,14 @@ namespace net {
         // leave room for official versions. telem goes to 48
         // 24 was a internal spdy/3.1
         // 25 was spdy/4a2
-        HTTP2_VERSION_DRAFT08 = 26
+        // 26 was http/2-draft08 and http/2-draft07 (they were the same)
+        HTTP2_VERSION_DRAFT09 = 27
     };
 
 typedef uint8_t nsHttpVersion;
 
-#define NS_HTTP2_DRAFT_VERSION HTTP2_VERSION_DRAFT08
-#define NS_HTTP2_DRAFT_TOKEN "HTTP-draft-08/2.0"
+#define NS_HTTP2_DRAFT_VERSION HTTP2_VERSION_DRAFT09
+#define NS_HTTP2_DRAFT_TOKEN "HTTP-draft-09/2.0"
 
 //-----------------------------------------------------------------------------
 // http connection capabilities

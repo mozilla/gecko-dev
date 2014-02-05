@@ -7,7 +7,6 @@
 #define ISOCOMPOSITOR_H_
 
 #include "mozilla/Endian.h"
-#include "TrackMetadataBase.h"
 #include "nsTArray.h"
 #include "ISOTrackMetadata.h"
 #include "EncodedFrameContainer.h"
@@ -73,6 +72,14 @@ public:
 
   uint32_t GetType() { return mTrackType; }
 
+  void SetLastFragmentLastFrameTime(uint32_t aTime) {
+    mLastFrameTimeOfLastFragment = aTime;
+  }
+
+  uint32_t GetLastFragmentLastFrameTime() {
+    return mLastFrameTimeOfLastFragment;
+  }
+
 private:
   uint32_t mTrackType;
 
@@ -92,6 +99,12 @@ private:
   //   It only means the fragment number of current accumulated frames, not
   //   the current 'creating' fragment mFragNum in ISOControl.
   uint32_t mFragmentNumber;
+
+  // The last frame time stamp of last fragment. It is for calculating the
+  // play duration of first frame in current fragment. The frame duration is
+  // defined as "current frame timestamp - last frame timestamp" here. So it
+  // needs to keep the last timestamp of last fragment.
+  uint32_t mLastFrameTimeOfLastFragment;
 
   // Array of fragments, each element has enough samples to form a
   // complete fragment.
@@ -130,6 +143,9 @@ public:
   nsresult GenerateMoov();
   nsresult GenerateMoof(uint32_t aTrackType);
 
+  // Swap elementary stream pointer to output buffers.
+  uint32_t WriteAVData(nsTArray<uint8_t>& aArray);
+
   uint32_t Write(uint8_t* aBuf, uint32_t aSize);
 
   uint32_t Write(uint8_t aData);
@@ -160,8 +176,8 @@ public:
   // others non-bit writing function.
   uint32_t WriteBits(uint64_t aBits, size_t aNumBits);
 
-  // This is called by GetContainerData and swap the buffer to aOutBuf.
-  nsresult GetBuf(nsTArray<uint8_t>& aOutBuf);
+  // This is called by GetContainerData and swap all the buffers to aOutputBuffers.
+  nsresult GetBufs(nsTArray<nsTArray<uint8_t>>* aOutputBufs);
 
   // Presentation time in seconds since midnight, Jan. 1, 1904, in UTC time.
   uint32_t GetTime();
@@ -184,7 +200,7 @@ public:
   bool HasVideoTrack();
 
 private:
-  uint32_t GetBufPos() { return mOutBuffer.Length(); }
+  uint32_t GetBufPos();
   nsresult FlushBuf();
 
   // Audio and video fragments are owned by ISOMediaWriter.
@@ -198,13 +214,23 @@ private:
   // The (index + 1) will be the track ID.
   nsTArray<nsRefPtr<TrackMetadataBase>> mMetaArray;
 
-  // TODO:
-  // ContainerWriter accepts a array of uint8_t array so it is possible to
-  // create a serial of small box header + swap the raw data pointer from
-  // WriteEncodedTrack to another array without any memory copy.
-  nsTArray<uint8_t> mOutBuffer;
+  // Array of output buffers.
+  // To save memory usage, audio/video sample will be swapped into a new element
+  // of this array.
+  //
+  // For example,
+  //   mOutBuffers[0] --> boxes (allocated by muxer)
+  //   mOutBuffers[1] --> video raw data (allocated by encoder)
+  //   mOutBuffers[2] --> video raw data (allocated by encoder)
+  //   mOutBuffers[3] --> video raw data (allocated by encoder)
+  //   mOutBuffers[4] --> boxes (allocated by muxer)
+  //   mOutBuffers[5] --> audio raw data (allocated by encoder)
+  //   ...etc.
+  //
+  nsTArray<nsTArray<uint8_t>> mOutBuffers;
 
-  // Last written position of current box, it is for box checking purpose.
+  // Last written position of current box, it is for box checking purpose and
+  // calculating the sample offset in moof.
   uint32_t mLastWrittenBoxPos;
 
   // Accumulate size of output fragments.

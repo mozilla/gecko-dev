@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+"use strict";
+
 let Cu = Components.utils;
 let Ci = Components.interfaces;
 
@@ -23,6 +25,10 @@ gFrameTree.addObserver({
  * to modify and query docShell data when running with multiple processes.
  */
 
+addEventListener("hashchange", function () {
+  sendAsyncMessage("ss-test:hashchange");
+});
+
 addEventListener("MozStorageChanged", function () {
   sendSyncMessage("ss-test:MozStorageChanged");
 });
@@ -39,16 +45,14 @@ addMessageListener("ss-test:modifySessionStorage2", function (msg) {
   }
 });
 
-addMessageListener("ss-test:modifyFormData", function (msg) {
-  for (let id of Object.keys(msg.data)) {
-    content.document.getElementById(id).value = msg.data[id];
-  }
-  sendSyncMessage("ss-test:modifyFormData:done");
-});
-
 addMessageListener("ss-test:purgeDomainData", function ({data: domain}) {
   Services.obs.notifyObservers(null, "browser:purge-domain-data", domain);
   content.setTimeout(() => sendAsyncMessage("ss-test:purgeDomainData"));
+});
+
+addMessageListener("ss-test:purgeSessionHistory", function () {
+  Services.obs.notifyObservers(null, "browser:purge-session-history", "");
+  content.setTimeout(() => sendAsyncMessage("ss-test:purgeSessionHistory"));
 });
 
 addMessageListener("ss-test:getStyleSheets", function (msg) {
@@ -153,4 +157,9 @@ addMessageListener("ss-test:removeLastFrame", function ({data}) {
 addMessageListener("ss-test:mapFrameTree", function (msg) {
   let result = gFrameTree.map(frame => ({href: frame.location.href}));
   sendAsyncMessage("ss-test:mapFrameTree", result);
+});
+
+addMessageListener("ss-test:click", function ({data}) {
+  content.document.getElementById(data.id).click();
+  sendAsyncMessage("ss-test:click");
 });

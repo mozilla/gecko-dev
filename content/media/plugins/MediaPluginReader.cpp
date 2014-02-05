@@ -73,7 +73,7 @@ nsresult MediaPluginReader::ReadMetadata(MediaInfo* aInfo,
     // that our video frame creation code doesn't overflow.
     nsIntSize displaySize(width, height);
     nsIntSize frameSize(width, height);
-    if (!VideoInfo::ValidateVideoRegion(frameSize, pictureRect, displaySize)) {
+    if (!IsValidVideoRegion(frameSize, pictureRect, displaySize)) {
       return NS_ERROR_FAILURE;
     }
 
@@ -353,7 +353,7 @@ MediaPluginReader::ImageBufferCallback::operator()(size_t aWidth, size_t aHeight
     case MPAPI::RGB565:
       image = mozilla::layers::CreateSharedRGBImage(mImageContainer,
                                                     nsIntSize(aWidth, aHeight),
-                                                    gfxImageFormatRGB16_565);
+                                                    gfxImageFormat::RGB16_565);
       if (!image) {
         NS_WARNING("Could not create rgb image");
         return nullptr;
@@ -373,9 +373,7 @@ uint8_t *
 MediaPluginReader::ImageBufferCallback::CreateI420Image(size_t aWidth,
                                                         size_t aHeight)
 {
-  ImageFormat format = PLANAR_YCBCR;
-
-  mImage = mImageContainer->CreateImage(&format, 1 /* numFormats */);
+  mImage = mImageContainer->CreateImage(ImageFormat::PLANAR_YCBCR);
   PlanarYCbCrImage *yuvImage = static_cast<PlanarYCbCrImage *>(mImage.get());
 
   if (!yuvImage) {

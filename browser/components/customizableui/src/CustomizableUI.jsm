@@ -477,10 +477,11 @@ let CustomizableUIInternal = {
         }
 
         this.ensureButtonContextMenu(node, aAreaNode);
-        if (node.localName == "toolbarbutton" && aArea == CustomizableUI.AREA_PANEL) {
-          node.setAttribute("tabindex", "0");
-          if (!node.hasAttribute("type")) {
-            node.setAttribute("type", "wrap");
+        if (node.localName == "toolbarbutton") {
+          if (aArea == CustomizableUI.AREA_PANEL) {
+            node.setAttribute("wrap", "true");
+          } else {
+            node.removeAttribute("wrap");
           }
         }
 
@@ -634,36 +635,33 @@ let CustomizableUIInternal = {
     return [null, null];
   },
 
-  registerMenuPanel: function(aPanel) {
+  registerMenuPanel: function(aPanelContents) {
     if (gBuildAreas.has(CustomizableUI.AREA_PANEL) &&
-        gBuildAreas.get(CustomizableUI.AREA_PANEL).has(aPanel)) {
+        gBuildAreas.get(CustomizableUI.AREA_PANEL).has(aPanelContents)) {
       return;
     }
 
-    let document = aPanel.ownerDocument;
+    let document = aPanelContents.ownerDocument;
 
-    aPanel.toolbox = document.getElementById("navigator-toolbox");
-    aPanel.customizationTarget = aPanel;
+    aPanelContents.toolbox = document.getElementById("navigator-toolbox");
+    aPanelContents.customizationTarget = aPanelContents;
 
-    this.addPanelCloseListeners(aPanel);
+    this.addPanelCloseListeners(this._getPanelForNode(aPanelContents));
 
     let placements = gPlacements.get(CustomizableUI.AREA_PANEL);
-    this.buildArea(CustomizableUI.AREA_PANEL, placements, aPanel);
-    for (let child of aPanel.children) {
+    this.buildArea(CustomizableUI.AREA_PANEL, placements, aPanelContents);
+    for (let child of aPanelContents.children) {
       if (child.localName != "toolbarbutton") {
         if (child.localName == "toolbaritem") {
-          this.ensureButtonContextMenu(child, aPanel);
+          this.ensureButtonContextMenu(child, aPanelContents);
         }
         continue;
       }
-      this.ensureButtonContextMenu(child, aPanel);
-      child.setAttribute("tabindex", "0");
-      if (!child.hasAttribute("type")) {
-        child.setAttribute("type", "wrap");
-      }
+      this.ensureButtonContextMenu(child, aPanelContents);
+      child.setAttribute("wrap", "true");
     }
 
-    this.registerBuildArea(CustomizableUI.AREA_PANEL, aPanel);
+    this.registerBuildArea(CustomizableUI.AREA_PANEL, aPanelContents);
   },
 
   onWidgetAdded: function(aWidgetId, aArea, aPosition) {
@@ -705,13 +703,12 @@ let CustomizableUIInternal = {
       // We remove location attributes here to make sure they're gone too when a
       // widget is removed from a toolbar to the palette. See bug 930950.
       this.removeLocationAttributes(widgetNode);
+      // We also need to remove the panel context menu if it's there:
+      this.ensureButtonContextMenu(widgetNode);
+      widgetNode.removeAttribute("wrap");
       if (gPalette.has(aWidgetId) || this.isSpecialWidget(aWidgetId)) {
         container.removeChild(widgetNode);
       } else {
-        widgetNode.removeAttribute("tabindex");
-        if (widgetNode.getAttribute("type") == "wrap") {
-          widgetNode.removeAttribute("type");
-        }
         areaNode.toolbox.palette.appendChild(widgetNode);
       }
       this.notifyListeners("onWidgetAfterDOMChange", widgetNode, null, container, true);
@@ -860,10 +857,7 @@ let CustomizableUIInternal = {
     if (isNew) {
       this.ensureButtonContextMenu(widgetNode, aAreaNode);
       if (widgetNode.localName == "toolbarbutton" && areaId == CustomizableUI.AREA_PANEL) {
-        widgetNode.setAttribute("tabindex", "0");
-        if (!widgetNode.hasAttribute("type")) {
-          widgetNode.setAttribute("type", "wrap");
-        }
+        widgetNode.setAttribute("wrap", "true");
       }
     }
 
@@ -1147,8 +1141,6 @@ let CustomizableUIInternal = {
     LOG("handleWidgetCommand");
 
     if (aWidget.type == "button") {
-      this.maybeAutoHidePanel(aEvent);
-
       if (aWidget.onCommand) {
         try {
           aWidget.onCommand.call(null, aEvent);
@@ -1170,10 +1162,6 @@ let CustomizableUIInternal = {
 
   handleWidgetClick: function(aWidget, aNode, aEvent) {
     LOG("handleWidgetClick");
-    if (aWidget.type == "button") {
-      this.maybeAutoHidePanel(aEvent);
-    }
-
     if (aWidget.onClick) {
       try {
         aWidget.onClick.call(null, aEvent);
@@ -1200,19 +1188,97 @@ let CustomizableUIInternal = {
    * part of the menu.
    */
   _isOnInteractiveElement: function(aEvent) {
+    function getMenuPopupForDescendant(aNode) {
+      let lastPopup = null;
+      while (aNode && aNode.parentNode &&
+             aNode.parentNode.localName.startsWith("menu")) {
+        lastPopup = aNode.localName == "menupopup" ? aNode : lastPopup;
+        aNode = aNode.parentNode;
+      }
+      return lastPopup;
+    }
+
     let target = aEvent.originalTarget;
     let panel = this._getPanelForNode(aEvent.currentTarget);
-    let inInput = false;
-    let inMenu = false;
-    let inItem = false;
-    while (!inInput && !inMenu && !inItem && target != panel) {
-      let tagName = target.localName;
-      inInput = tagName == "input";
-      inMenu = target.type == "menu";
-      inItem = tagName == "toolbaritem" || tagName == "toolbarbutton";
-      target = target.parentNode;
+    // This can happen in e.g. customize mode. If there's no panel,
+    // there's clearly nothing for us to close; pretend we're interactive.
+    if (!panel) {
+      return true;
     }
-    return inMenu || inInput || !inItem;
+    // We keep track of:
+    // whether we're in an input container (text field)
+    let inInput = false;
+    // whether we're in a popup/context menu
+    let inMenu = false;
+    // whether we're in a toolbarbutton/toolbaritem
+    let inItem = false;
+    // whether the current menuitem has a valid closemenu attribute
+    let menuitemCloseMenu = "auto";
+    // whether the toolbarbutton/item has a valid closemenu attribute.
+    let closemenu = "auto";
+
+    // While keeping track of that, we go from the original target back up,
+    // to the panel if we have to. We bail as soon as we find an input,
+    // a toolbarbutton/item, or the panel:
+    while (true) {
+      let tagName = target.localName;
+      inInput = tagName == "input" || tagName == "textbox";
+      inItem = tagName == "toolbaritem" || tagName == "toolbarbutton";
+      let isMenuItem = tagName == "menuitem";
+      inMenu = inMenu || isMenuItem;
+      if (inItem && target.hasAttribute("closemenu")) {
+        let closemenuVal = target.getAttribute("closemenu");
+        closemenu = (closemenuVal == "single" || closemenuVal == "none") ?
+                    closemenuVal : "auto";
+      }
+
+      if (isMenuItem && target.hasAttribute("closemenu")) {
+        let closemenuVal = target.getAttribute("closemenu");
+        menuitemCloseMenu = (closemenuVal == "single" || closemenuVal == "none") ?
+                            closemenuVal : "auto";
+      }
+      // This isn't in the loop condition because we want to break before
+      // changing |target| if any of these conditions are true
+      if (inInput || inItem || target == panel) {
+        break;
+      }
+      // We need specific code for popups: the item on which they were invoked
+      // isn't necessarily in their parentNode chain:
+      if (isMenuItem) {
+        let topmostMenuPopup = getMenuPopupForDescendant(target);
+        target = (topmostMenuPopup && topmostMenuPopup.triggerNode) ||
+                 target.parentNode;
+      } else {
+        target = target.parentNode;
+      }
+    }
+    // If the user clicked a menu item...
+    if (inMenu) {
+      // We care if we're in an input also,
+      // or if the user specified closemenu!="auto":
+      if (inInput || menuitemCloseMenu != "auto") {
+        return true;
+      }
+      // Otherwise, we're probably fine to close the panel
+      return false;
+    }
+    // If we're not in a menu, and we *are* in a type="menu" toolbarbutton,
+    // we'll now interact with the menu
+    if (inItem && target.getAttribute("type") == "menu") {
+      return true;
+    }
+    // If we're not in a menu, and we *are* in a type="menu-button" toolbarbutton,
+    // it depends whether we're in the dropmarker or the 'real' button:
+    if (inItem && target.getAttribute("type") == "menu-button") {
+      // 'real' button (which has a single action):
+      if (target.getAttribute("anonid") == "button") {
+        return closemenu != "none";
+      }
+      // otherwise, this is the outer button, and the user will now
+      // interact with the menu:
+      return true;
+    }
+    return inInput || !inItem;
   },
 
   hidePanelForNode: function(aNode) {
@@ -1230,7 +1296,8 @@ let CustomizableUIInternal = {
       }
       // If the user hit enter/return, we don't check preventDefault - it makes sense
       // that this was prevented, but we probably still want to close the panel.
-      // If consumers don't want this to happen, they should specify noautoclose.
+      // If consumers don't want this to happen, they should specify the closemenu
+      // attribute.
 
     } else if (aEvent.type != "command") { // mouse events:
       if (aEvent.defaultPrevented || aEvent.button != 0) {
@@ -1243,9 +1310,34 @@ let CustomizableUIInternal = {
       }
     }
 
-    if (aEvent.target.getAttribute("noautoclose") == "true" ||
-        aEvent.target.getAttribute("widget-type") == "view") {
+    // We can't use event.target because we might have passed a panelview
+    // anonymous content boundary as well, and so target points to the
+    // panelmultiview in that case. Unfortunately, this means we get
+    // anonymous child nodes instead of the real ones, so looking for the 
+    // 'stoooop, don't close me' attributes is more involved.
+    let target = aEvent.originalTarget;
+    let closemenu = "auto";
+    let widgetType = "button";
+    while (target.parentNode && target.localName != "panel") {
+      closemenu = target.getAttribute("closemenu");
+      widgetType = target.getAttribute("widget-type");
+      if (closemenu == "none" || closemenu == "single" ||
+          widgetType == "view") {
+        break;
+      }
+      target = target.parentNode;
+    }
+    if (closemenu == "none" || widgetType == "view") {
       return;
+    }
+
+    if (closemenu == "single") {
+      let panel = this._getPanelForNode(target);
+      let multiview = panel.querySelector("panelmultiview");
+      if (multiview.showingSubView) {
+        multiview.showMainView();
+        return;
+      }
     }
 
     // If we get here, we can actually hide the popup:
@@ -1887,7 +1979,12 @@ let CustomizableUIInternal = {
       let widgetNode = window.document.getElementById(aWidgetId) ||
                        window.gNavToolbox.palette.getElementsByAttribute("id", aWidgetId)[0];
       if (widgetNode) {
+        let container = widgetNode.parentNode
+        this.notifyListeners("onWidgetBeforeDOMChange", widgetNode, null,
+                             container, true);
         widgetNode.remove();
+        this.notifyListeners("onWidgetAfterDOMChange", widgetNode, null,
+                             container, true);
       }
       if (widget.type == "view") {
         let viewNode = window.document.getElementById(widget.viewId);
@@ -2227,6 +2324,13 @@ this.CustomizableUI = {
    *     Fired when opening customize mode in aWindow.
    *   - onCustomizeEnd(aWindow)
    *     Fired when exiting customize mode in aWindow.
+   *
+   *   - onWidgetOverflow(aNode, aContainer)
+   *     Fired when a widget's DOM node is overflowing its container, a toolbar,
+   *     and will be displayed in the overflow panel.
+   *   - onWidgetUnderflow(aNode, aContainer)
+   *     Fired when a widget's DOM node is *not* overflowing its container, a
+   *     toolbar, anymore.
    */
   addListener: function(aListener) {
     CustomizableUIInternal.addListener(aListener);
@@ -3234,6 +3338,7 @@ OverflowableToolbar.prototype = {
         this._collapsed.set(child.id, this._target.clientWidth);
         child.classList.add("overflowedItem");
         child.setAttribute("cui-anchorid", this._chevron.id);
+        CustomizableUIInternal.notifyListeners("onWidgetOverflow", child, this._target);
 
         this._list.insertBefore(child, this._list.firstChild);
         if (!this._toolbar.hasAttribute("overflowing")) {
@@ -3290,6 +3395,7 @@ OverflowableToolbar.prototype = {
       }
       child.removeAttribute("cui-anchorid");
       child.classList.remove("overflowedItem");
+      CustomizableUIInternal.notifyListeners("onWidgetUnderflow", child, this._target);
     }
 
     let win = this._target.ownerDocument.defaultView;
@@ -3322,7 +3428,7 @@ OverflowableToolbar.prototype = {
   },
 
   onWidgetBeforeDOMChange: function(aNode, aNextNode, aContainer) {
-    if (aContainer != this._target) {
+    if (aContainer != this._target && aContainer != this._list) {
       return;
     }
     // When we (re)move an item, update all the items that come after it in the list
@@ -3345,7 +3451,7 @@ OverflowableToolbar.prototype = {
   },
 
   onWidgetAfterDOMChange: function(aNode, aNextNode, aContainer) {
-    if (aContainer != this._target) {
+    if (aContainer != this._target && aContainer != this._list) {
       return;
     }
 
@@ -3364,6 +3470,7 @@ OverflowableToolbar.prototype = {
         this._collapsed.set(aNode.id, minSize);
         aNode.setAttribute("cui-anchorid", this._chevron.id);
         aNode.classList.add("overflowedItem");
+        CustomizableUIInternal.notifyListeners("onWidgetOverflow", aNode, this._target);
       }
       // If it is not overflowed and not in the toolbar, and was not overflowed
       // either, it moved out of the toolbar. That means there's now space in there!
@@ -3381,6 +3488,7 @@ OverflowableToolbar.prototype = {
         this._collapsed.delete(aNode.id);
         aNode.removeAttribute("cui-anchorid");
         aNode.classList.remove("overflowedItem");
+        CustomizableUIInternal.notifyListeners("onWidgetUnderflow", aNode, this._target);
 
         if (!this._collapsed.size) {
           this._toolbar.removeAttribute("overflowing");

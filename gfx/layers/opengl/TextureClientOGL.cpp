@@ -61,6 +61,24 @@ SharedTextureClientOGL::InitWith(gl::SharedTextureHandle aHandle,
 }
 
 bool
+SharedTextureClientOGL::Lock(OpenMode mode)
+{
+  MOZ_ASSERT(!mIsLocked);
+  if (!IsValid() || !IsAllocated()) {
+    return false;
+  }
+  mIsLocked = true;
+  return true;
+}
+
+void
+SharedTextureClientOGL::Unlock()
+{
+  MOZ_ASSERT(mIsLocked);
+  mIsLocked = false;
+}
+
+bool
 SharedTextureClientOGL::IsAllocated() const
 {
   return mHandle != 0;
@@ -69,12 +87,31 @@ SharedTextureClientOGL::IsAllocated() const
 StreamTextureClientOGL::StreamTextureClientOGL(TextureFlags aFlags)
   : TextureClient(aFlags)
   , mStream(0)
+  , mIsLocked(false)
 {
 }
 
 StreamTextureClientOGL::~StreamTextureClientOGL()
 {
   // the data is owned externally.
+}
+
+bool
+StreamTextureClientOGL::Lock(OpenMode mode)
+{
+  MOZ_ASSERT(!mIsLocked);
+  if (!IsValid() || !IsAllocated()) {
+    return false;
+  }
+  mIsLocked = true;
+  return true;
+}
+
+void
+StreamTextureClientOGL::Unlock()
+{
+  MOZ_ASSERT(mIsLocked);
+  mIsLocked = false;
 }
 
 bool
@@ -100,33 +137,6 @@ bool
 StreamTextureClientOGL::IsAllocated() const
 {
   return mStream != 0;
-}
-
-DeprecatedTextureClientSharedOGL::DeprecatedTextureClientSharedOGL(CompositableForwarder* aForwarder,
-                                               const TextureInfo& aTextureInfo)
-  : DeprecatedTextureClient(aForwarder, aTextureInfo)
-  , mGL(nullptr)
-{
-}
-
-void
-DeprecatedTextureClientSharedOGL::ReleaseResources()
-{
-  if (!IsSurfaceDescriptorValid(mDescriptor)) {
-    return;
-  }
-  MOZ_ASSERT(mDescriptor.type() == SurfaceDescriptor::TSharedTextureDescriptor);
-  mDescriptor = SurfaceDescriptor();
-  // It's important our handle gets released! SharedDeprecatedTextureHostOGL will take
-  // care of this for us though.
-}
-
-bool
-DeprecatedTextureClientSharedOGL::EnsureAllocated(gfx::IntSize aSize,
-                                        gfxContentType aContentType)
-{
-  mSize = aSize;
-  return true;
 }
 
 

@@ -89,7 +89,7 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
   if (scopeObject != globalObject) {
 
     // This is just a property holder, so it doesn't need any special JSClass.
-    propertyHolder = JS_NewObjectWithGivenProto(cx, nullptr, nullptr, scopeObject);
+    propertyHolder = JS_NewObjectWithGivenProto(cx, nullptr, JS::NullPtr(), scopeObject);
     NS_ENSURE_TRUE(propertyHolder, NS_ERROR_OUT_OF_MEMORY);
 
     // Define it as a property on the scopeObject, using the same name used on
@@ -172,13 +172,11 @@ nsXBLProtoImpl::InitTargetObjects(nsXBLPrototypeBinding* aBinding,
   JS::Rooted<JSObject*> global(cx, sgo->GetGlobalJSObject());
   JS::Rooted<JS::Value> v(cx);
 
-  {
-    JSAutoCompartment ac(cx, global);
-    // Make sure the interface object is created before the prototype object
-    // so that XULElement is hidden from content. See bug 909340.
-    bool defineOnGlobal = dom::XULElementBinding::ConstructorEnabled(cx, global);
-    dom::XULElementBinding::GetConstructorObject(cx, global, defineOnGlobal);
-  }
+  JSAutoCompartment ac(cx, global);
+  // Make sure the interface object is created before the prototype object
+  // so that XULElement is hidden from content. See bug 909340.
+  bool defineOnGlobal = dom::XULElementBinding::ConstructorEnabled(cx, global);
+  dom::XULElementBinding::GetConstructorObject(cx, global, defineOnGlobal);
 
   rv = nsContentUtils::WrapNative(cx, global, aBoundElement, &v);
   NS_ENSURE_SUCCESS(rv, rv);

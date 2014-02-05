@@ -212,6 +212,11 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_COLOR_CONTEXT_STROKE                 -8
 
 // See nsStyleDisplay
+#define NS_STYLE_WILL_CHANGE_TRANSFORM          (1<<0)
+#define NS_STYLE_WILL_CHANGE_SCROLL             (1<<1)
+#define NS_STYLE_WILL_CHANGE_OPACITY            (1<<2)
+
+// See nsStyleDisplay
 #define NS_STYLE_ANIMATION_DIRECTION_NORMAL       0
 #define NS_STYLE_ANIMATION_DIRECTION_REVERSE      1
 #define NS_STYLE_ANIMATION_DIRECTION_ALTERNATE    2
@@ -554,6 +559,10 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_MATHML_MATHVARIANT_LOOPED                  17
 #define NS_MATHML_MATHVARIANT_STRETCHED               18
 
+// See nsStyleFont::mMathDisplay
+#define NS_MATHML_DISPLAYSTYLE_INLINE           0
+#define NS_MATHML_DISPLAYSTYLE_BLOCK            1
+
 // See nsStylePosition::mWidth, mMinWidth, mMaxWidth
 #define NS_STYLE_WIDTH_MAX_CONTENT              0
 #define NS_STYLE_WIDTH_MIN_CONTENT              1
@@ -741,6 +750,12 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_STYLE_TEXT_TRANSFORM_LOWERCASE       2
 #define NS_STYLE_TEXT_TRANSFORM_UPPERCASE       3
 #define NS_STYLE_TEXT_TRANSFORM_FULLWIDTH       4
+
+// See nsStyleDisplay
+#define NS_STYLE_TOUCH_ACTION_NONE            (1 << 0)
+#define NS_STYLE_TOUCH_ACTION_AUTO            (1 << 1)
+#define NS_STYLE_TOUCH_ACTION_PAN_X           (1 << 2)
+#define NS_STYLE_TOUCH_ACTION_PAN_Y           (1 << 3)
 
 // See nsStyleDisplay
 #define NS_STYLE_TRANSITION_TIMING_FUNCTION_EASE         0

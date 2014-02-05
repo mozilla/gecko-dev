@@ -4,8 +4,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-DIRS += ['config']
-
 if CONFIG['DEHYDRA_PATH']:
     DIRS += ['analysis-tests']
 
@@ -18,15 +16,10 @@ if not CONFIG['JS_DISABLE_SHELL']:
 
 TEST_DIRS += ['jsapi-tests', 'tests', 'gdb']
 
-mfbt_root = '../../mfbt'
-LOCAL_INCLUDES += ['%s/double-conversion' % mfbt_root]
+LOCAL_INCLUDES += ['../../mfbt/double-conversion']
 
 if CONFIG['JS_STANDALONE']:
     LIBRARY_NAME = 'mozjs-%s' % CONFIG['MOZILLA_SYMBOLVERSION']
-
-    # When building standalone, we need to include mfbt sources, and to declare
-    # "exported" mfbt symbols on its behalf when we use its headers.
-    include('%s/common.mozbuild' % mfbt_root)
 else:
     LIBRARY_NAME = 'mozjs'
 
@@ -157,6 +150,7 @@ UNIFIED_SOURCES += [
     'vm/ArgumentsObject.cpp',
     'vm/CallNonGenericMethod.cpp',
     'vm/CharacterEncoding.cpp',
+    'vm/Compression.cpp',
     'vm/DateTime.cpp',
     'vm/Debugger.cpp',
     'vm/ErrorObject.cpp',
@@ -287,7 +281,7 @@ if CONFIG['ENABLE_ION']:
         'jit/ValueNumbering.cpp',
         'jit/VMFunctions.cpp',
     ]
-    if CONFIG['TARGET_CPU'].find('86') != -1:
+    if CONFIG['JS_CODEGEN_X86'] or CONFIG['JS_CODEGEN_X64']:
         UNIFIED_SOURCES += [
             'jit/shared/Assembler-x86-shared.cpp',
             'jit/shared/BaselineCompiler-x86-shared.cpp',
@@ -296,7 +290,7 @@ if CONFIG['ENABLE_ION']:
             'jit/shared/Lowering-x86-shared.cpp',
             'jit/shared/MoveEmitter-x86-shared.cpp',
         ]
-        if CONFIG['TARGET_CPU'] == 'x86_64':
+        if CONFIG['JS_CODEGEN_X64']:
             UNIFIED_SOURCES += [
                 'jit/x64/Assembler-x64.cpp',
                 'jit/x64/Bailouts-x64.cpp',
@@ -318,7 +312,7 @@ if CONFIG['ENABLE_ION']:
                 'jit/x86/MacroAssembler-x86.cpp',
                 'jit/x86/Trampoline-x86.cpp',
             ]
-    elif CONFIG['TARGET_CPU'].find('arm') != -1:
+    elif CONFIG['JS_CODEGEN_ARM']:
         UNIFIED_SOURCES += [
             'jit/arm/Architecture-arm.cpp',
             'jit/arm/Assembler-arm.cpp',
@@ -331,6 +325,10 @@ if CONFIG['ENABLE_ION']:
             'jit/arm/MoveEmitter-arm.cpp',
             'jit/arm/Trampoline-arm.cpp',
         ]
+        if CONFIG['JS_ARM_SIMULATOR']:
+            UNIFIED_SOURCES += [
+                'jit/arm/Simulator-arm.cpp'
+            ]
 
 if CONFIG['OS_ARCH'] == 'WINNT':
     SOURCES += [
@@ -349,11 +347,15 @@ else:
     ]
 
 if CONFIG['ENABLE_ION'] or CONFIG['ENABLE_YARR_JIT']:
-    SOURCES += [
-        'assembler/assembler/ARMAssembler.cpp',
-        'assembler/assembler/MacroAssemblerARM.cpp',
-        'assembler/assembler/MacroAssemblerX86Common.cpp',
-    ]
+    if CONFIG['JS_CODEGEN_X86'] or CONFIG['JS_CODEGEN_X64']:
+        SOURCES += [
+            'assembler/assembler/MacroAssemblerX86Common.cpp',
+        ]
+    elif CONFIG['JS_CODEGEN_ARM']:
+        SOURCES += [
+            'assembler/assembler/ARMAssembler.cpp',
+            'assembler/assembler/MacroAssemblerARM.cpp',
+        ]
 
 if CONFIG['ENABLE_YARR_JIT']:
     SOURCES += [
@@ -384,7 +386,6 @@ MSVC_ENABLE_PGO = True
 
 HOST_SOURCES += [
     'jskwgen.cpp',
-    'jsoplengen.cpp',
 ]
 
 HOST_SIMPLE_PROGRAMS += [

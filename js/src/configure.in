@@ -8,8 +8,8 @@ dnl Process this file with autoconf to produce a configure script.
 dnl ========================================================
 
 AC_PREREQ(2.13)
-AC_INIT(jsapi.h)
-AC_CONFIG_AUX_DIR(${srcdir}/../../build/autoconf)
+AC_INIT(js/src/jsapi.h)
+AC_CONFIG_AUX_DIR(${srcdir}/build/autoconf)
 AC_CANONICAL_SYSTEM
 TARGET_CPU="${target_cpu}"
 TARGET_VENDOR="${target_vendor}"
@@ -73,7 +73,7 @@ _PTHREAD_LDFLAGS=""
 
 dnl Do not allow a separate objdir build if a srcdir build exists.
 dnl ==============================================================
-_topsrcdir=`cd \`dirname $0\`; pwd`
+_topsrcdir=`cd $srcdir; pwd`
 _objdir=`pwd`
 
 if test "$_topsrcdir" != "$_objdir"
@@ -165,6 +165,8 @@ else
   AC_DEFINE(JS_STANDALONE)
 fi
 AC_SUBST(JS_STANDALONE)
+BUILDING_JS=1
+AC_SUBST(BUILDING_JS)
 
 MOZ_ARG_WITH_STRING(gonk,
 [  --with-gonk=DIR
@@ -779,11 +781,15 @@ if test -n "$CROSS_COMPILE"; then
     OS_RELEASE=
     case "${target_os}" in
         linux*)       OS_ARCH=Linux OS_TARGET=Linux ;;
-        kfreebsd*-gnu) OS_ARCH=GNU_kFreeBSD OS_TARGET=GNU_kFreeBSD ;;
+        kfreebsd*-gnu) OS_ARCH=GNU_kFreeBSD OS_TARGET=GNU/kFreeBSD ;;
         gnu*)         OS_ARCH=GNU ;;
         solaris*)     OS_ARCH=SunOS OS_RELEASE=5 ;;
         mingw*)       OS_ARCH=WINNT OS_TARGET=WINNT ;;
         darwin*)      OS_ARCH=Darwin OS_TARGET=Darwin ;;
+        dragonfly*)   OS_ARCH=DragonFly OS_TARGET=DragonFly ;;
+        freebsd*)     OS_ARCH=FreeBSD OS_TARGET=FreeBSD ;;
+        netbsd*)      OS_ARCH=NetBSD OS_TARGET=NetBSD ;;
+        openbsd*)     OS_ARCH=OpenBSD OS_TARGET=OpenBSD ;;
     esac
     case "${target}" in
         *-android*|*-linuxandroid*) OS_ARCH=Linux OS_TARGET=Android ;;
@@ -964,6 +970,11 @@ arm*)
 mips|mipsel)
     CPU_ARCH="mips"
     ;;
+
+aarch64*)
+    CPU_ARCH=aarch64
+    ;;
+
 esac
 
 if test -z "$OS_TARGET"; then
@@ -1131,12 +1142,14 @@ if test "$GNU_CC"; then
     # -Wpointer-arith - good to have
     # -Wdeclaration-after-statement - MSVC doesn't like these
     # -Werror=return-type - catches missing returns, zero false positives
+    # -Werror=int-to-pointer-cast - catches cast to pointer from integer of different size
     # -Wtype-limits - catches overflow bugs, few false positives
     # -Wempty-body - catches bugs, e.g. "if (c); foo();", few false positives
     # -Wsign-compare - catches comparison of signed and unsigned types
     #
     _WARNINGS_CFLAGS="${_WARNINGS_CFLAGS} -Wall -Wpointer-arith -Wdeclaration-after-statement"
     MOZ_C_SUPPORTS_WARNING(-W, error=return-type, ac_c_has_werror_return_type)
+    MOZ_C_SUPPORTS_WARNING(-W, error=int-to-pointer-cast, ac_c_has_werror_int_to_pointer_cast)
     MOZ_C_SUPPORTS_WARNING(-W, empty-body, ac_c_has_wempty_body)
     MOZ_C_SUPPORTS_WARNING(-W, sign-compare, ac_c_has_sign_compare)
 
@@ -1157,7 +1170,7 @@ if test "$GNU_CC"; then
        esac
     fi
 
-    _DEFINES_CFLAGS='-include $(DEPTH)/js-confdefs.h -DMOZILLA_CLIENT'
+    _DEFINES_CFLAGS='-include $(DEPTH)/js/src/js-confdefs.h -DMOZILLA_CLIENT'
     _USE_CPP_INCLUDE_FLAG=1
 
 elif test "$SOLARIS_SUNPRO_CC"; then
@@ -1190,6 +1203,7 @@ if test "$GNU_CXX"; then
     # -Wpointer-arith - good to have
     # -Woverloaded-virtual - ???
     # -Werror=return-type - catches missing returns, zero false positives
+    # -Werror=int-to-pointer-cast - catches cast to pointer from integer of different size
     # -Wtype-limits - catches overflow bugs, few false positives
     # -Wempty-body - catches bugs, e.g. "if (c); foo();", few false positives
     # -Werror=conversion-null - catches conversions between NULL and non-pointer types
@@ -1197,6 +1211,7 @@ if test "$GNU_CXX"; then
     #
     _WARNINGS_CXXFLAGS="${_WARNINGS_CXXFLAGS} -Wall -Wpointer-arith -Woverloaded-virtual"
     MOZ_CXX_SUPPORTS_WARNING(-W, error=return-type, ac_cxx_has_werror_return_type)
+    MOZ_CXX_SUPPORTS_WARNING(-W, error=int-to-pointer-cast, ac_cxx_has_werror_int_to_pointer_cast)
     MOZ_CXX_SUPPORTS_WARNING(-W, type-limits, ac_cxx_has_wtype_limits)
     MOZ_CXX_SUPPORTS_WARNING(-W, empty-body, ac_cxx_has_wempty_body)
     MOZ_CXX_SUPPORTS_WARNING(-W, error=conversion-null, ac_cxx_has_werror_conversion_null)
@@ -1219,7 +1234,7 @@ if test "$GNU_CXX"; then
        esac
     fi
 
-    _DEFINES_CXXFLAGS='-DMOZILLA_CLIENT -include $(DEPTH)/js-confdefs.h'
+    _DEFINES_CXXFLAGS='-DMOZILLA_CLIENT -include $(DEPTH)/js/src/js-confdefs.h'
     _USE_CPP_INCLUDE_FLAG=1
 
     # Recent clang and gcc support C++11 deleted functions without warnings if
@@ -1639,8 +1654,8 @@ ia64*-hpux*)
         MKSHLIB_UNFORCE_ALL=
         DSO_LDOPTS=-SUBSYSTEM:WINDOWS
         _USE_CPP_INCLUDE_FLAG=1
-        _DEFINES_CFLAGS='-FI $(DEPTH)/js-confdefs.h -DMOZILLA_CLIENT'
-        _DEFINES_CXXFLAGS='-FI $(DEPTH)/js-confdefs.h -DMOZILLA_CLIENT'
+        _DEFINES_CFLAGS='-FI $(DEPTH)/js/src/js-confdefs.h -DMOZILLA_CLIENT'
+        _DEFINES_CXXFLAGS='-FI $(DEPTH)/js/src/js-confdefs.h -DMOZILLA_CLIENT'
         CFLAGS="$CFLAGS -W3 -Gy -Fd\$(COMPILE_PDBFILE)"
         CXXFLAGS="$CXXFLAGS -W3 -Gy -Fd\$(COMPILE_PDBFILE)"
         if test "$_CC_SUITE" -ge "12"; then
@@ -2252,7 +2267,7 @@ EOF
                        ])
         if test "$ac_cv_have_visibility_builtin_bug" = "no" -a \
                 "$ac_cv_have_visibility_class_bug" = "no"; then
-          VISIBILITY_FLAGS='-I$(DIST)/system_wrappers_js -include $(topsrcdir)/config/gcc_hidden.h'
+          VISIBILITY_FLAGS='-I$(DIST)/system_wrappers -include $(topsrcdir)/config/gcc_hidden.h'
           WRAP_SYSTEM_INCLUDES=1
         else
           VISIBILITY_FLAGS='-fvisibility=hidden'
@@ -3371,10 +3386,14 @@ fi
 dnl ========================================================
 dnl = Use exact stack rooting for GC
 dnl ========================================================
-MOZ_ARG_ENABLE_BOOL(exact-rooting,
-[  --enable-exact-rooting  Enable use of exact stack roots for GC],
-    JSGC_USE_EXACT_ROOTING=1,
-    JSGC_USE_EXACT_ROOTING= )
+dnl Use exact rooting by default in all shell builds. The top-level mozilla
+dnl configure.in will configure SpiderMonkey with --disable-exact-rooting as
+dnl needed on a per-platform basis.
+JSGC_USE_EXACT_ROOTING=1
+MOZ_ARG_DISABLE_BOOL(exact-rooting,
+[  --disable-exact-rooting  Enable use of conservative stack scanning for GC],
+    JSGC_USE_EXACT_ROOTING= ,
+    JSGC_USE_EXACT_ROOTING=1 )
 if test -n "$JSGC_USE_EXACT_ROOTING"; then
     AC_DEFINE(JSGC_USE_EXACT_ROOTING)
 fi
@@ -3394,6 +3413,38 @@ if test -n "$MOZ_VALGRIND"; then
     MOZ_VALGRIND=1
 fi
 AC_SUBST(MOZ_VALGRIND)
+
+dnl ========================================================
+dnl = Use ARM JIT code simulator. Requires an x86 build.
+dnl ========================================================
+dnl Also define JS_CODEGEN_ARM in this case. If the simulator is not used,
+dnl JS_CODEGEN_foo is defined if JS_CPU_foo is defined.
+MOZ_ARG_ENABLE_BOOL(arm-simulator,
+[  --enable-arm-simulator Enable ARM simulator for JIT code],
+    JS_ARM_SIMULATOR=1,
+    JS_ARM_SIMULATOR= )
+if test -n "$JS_ARM_SIMULATOR"; then
+    if test "$CPU_ARCH" != "x86"; then
+        AC_MSG_ERROR([The ARM simulator only works on x86.])
+    fi
+    AC_DEFINE(JS_ARM_SIMULATOR)
+    AC_DEFINE(JS_CODEGEN_ARM)
+    JS_CODEGEN_ARM=1
+elif test "$CPU_ARCH" = "x86"; then
+    AC_DEFINE(JS_CODEGEN_X86)
+    JS_CODEGEN_X86=1
+elif test "$CPU_ARCH" = "x86_64"; then
+    AC_DEFINE(JS_CODEGEN_X64)
+    JS_CODEGEN_X64=1
+elif test "$CPU_ARCH" = "arm"; then
+    AC_DEFINE(JS_CODEGEN_ARM)
+    JS_CODEGEN_ARM=1
+fi
+
+AC_SUBST(JS_ARM_SIMULATOR)
+AC_SUBST(JS_CODEGEN_ARM)
+AC_SUBST(JS_CODEGEN_X86)
+AC_SUBST(JS_CODEGEN_X64)
 
 dnl ========================================================
 dnl jprof
@@ -3810,8 +3861,14 @@ else
   else
     echo '#include <stdio.h>' > dummy-hello.c
     changequote(,)
-    CL_INCLUDES_PREFIX=`${CC} -showIncludes -c -Fonul dummy-hello.c 2>&1 | sed -ne 's/^\([^:]*:[^:]*:\).*stdio.h$/\1/p'`
+    dnl This output is localized, split at the first double space or colon and space.
+    _CL_PREFIX_REGEX="^\([^:]*:.*[ :] \)\(.*stdio.h\)$"
+    CL_INCLUDES_PREFIX=`${CC} -showIncludes -c -Fonul dummy-hello.c 2>&1 | sed -ne 's/'"$_CL_PREFIX_REGEX"'/\1/p'`
+    _CL_STDIO_PATH=`${CC} -showIncludes -c -Fonul dummy-hello.c 2>&1 | sed -ne 's/'"$_CL_PREFIX_REGEX"'/\2/p'`
     changequote([,])
+    if ! test -e "$_CL_STDIO_PATH"; then
+        AC_MSG_ERROR([Unable to parse cl -showIncludes prefix. This compiler's locale has an unsupported formatting.])
+    fi
     if test -z "$CL_INCLUDES_PREFIX"; then
         AC_MSG_ERROR([Cannot find cl -showIncludes prefix.])
     fi
@@ -3866,7 +3923,7 @@ if test -z "$SKIP_LIBRARY_CHECKS" -a -z "$NO_EDITLINE"; then
   else
     dnl By default, we use editline
     JS_NATIVE_EDITLINE=1
-    EDITLINE_LIBS='$(DEPTH)/editline/$(LIB_PREFIX)editline.$(LIB_SUFFIX)'
+    EDITLINE_LIBS='$(DEPTH)/js/src/editline/$(LIB_PREFIX)editline.$(LIB_SUFFIX)'
   fi
 
   dnl Either way, we want to build with line editing support.
@@ -4172,6 +4229,9 @@ MOZ_ARG_WITH_BOOL(system-icu,
 if test -n "$MOZ_NATIVE_ICU"; then
     PKG_CHECK_MODULES(MOZ_ICU, icu-i18n >= 50.1)
     MOZ_SHARED_ICU=1
+else
+    MOZ_ICU_CFLAGS='-I$(topsrcdir)/intl/icu/source/common -I$(topsrcdir)/intl/icu/source/i18n'
+    AC_SUBST(MOZ_ICU_CFLAGS)
 fi
 
 MOZ_ARG_WITH_STRING(intl-api,
@@ -4277,7 +4337,7 @@ if test -n "$ENABLE_INTL_API" -a -z "$MOZ_NATIVE_ICU"; then
     ICU_CROSS_BUILD_OPT=""
     ICU_SRCDIR=""
     if test "$HOST_OS_ARCH" = "WINNT"; then
-        ICU_SRCDIR="--srcdir=$(cd $srcdir/../../intl/icu/source; pwd -W)"
+        ICU_SRCDIR="--srcdir=$(cd $srcdir/intl/icu/source; pwd -W)"
     fi
 
     if test "$CROSS_COMPILE"; then
@@ -4326,7 +4386,7 @@ if test -n "$ENABLE_INTL_API" -a -z "$MOZ_NATIVE_ICU"; then
          CPPFLAGS="$ICU_CPPFLAGS" \
          CXXFLAGS="$HOST_ICU_CXXFLAGS $HOST_OPTIMIZE_FLAGS" \
          LDFLAGS="$HOST_LDFLAGS" \
-                $SHELL $abs_srcdir/../../intl/icu/source/runConfigureICU \
+                $SHELL $abs_srcdir/intl/icu/source/runConfigureICU \
                 $HOST_ICU_BUILD_OPTS \
                 $ICU_TARGET \
         dnl Shell quoting is fun.
@@ -4436,7 +4496,7 @@ if test -n "$ENABLE_INTL_API" -a -z "$MOZ_NATIVE_ICU"; then
        CFLAGS="$ICU_CFLAGS" \
        CXXFLAGS="$ICU_CXXFLAGS" \
        LDFLAGS="$ICU_LDFLAGS $LDFLAGS" \
-       $SHELL $_topsrcdir/../../intl/icu/source/configure \
+       $SHELL $_topsrcdir/intl/icu/source/configure \
                 $ICU_BUILD_OPTS \
                 $ICU_CROSS_BUILD_OPT \
                 $ICU_LINK_OPTS \
@@ -4460,6 +4520,8 @@ AC_SUBST(MOZILLA_VERSION)
 
 AC_SUBST(ac_configure_args)
 
+AC_SUBST(TOOLCHAIN_PREFIX)
+
 dnl Spit out some output
 dnl ========================================================
 
@@ -4468,7 +4530,7 @@ AC_OUTPUT()
 # Produce the js-config script at configure time; see the comments for
 # 'js*-config' in Makefile.in.
 AC_MSG_RESULT(invoking $MAKE to create $JS_CONFIG_NAME script)
-$MAKE $JS_CONFIG_NAME
+$MAKE -C js/src $JS_CONFIG_NAME
 
 # Build jsctypes if it's enabled.
 if test "$JS_HAS_CTYPES" -a -z "$MOZ_NATIVE_FFI"; then
@@ -4494,10 +4556,10 @@ if test "$JS_HAS_CTYPES" -a -z "$MOZ_NATIVE_FFI"; then
     case "${target_cpu}" in
     x86_64)
       # Need target since MSYS tools into mozilla-build may be 32bit
-      ac_configure_args="$ac_configure_args CC=\"$_topsrcdir/ctypes/libffi/msvcc.sh -m64\" --build=$build --host=$target"
+      ac_configure_args="$ac_configure_args CC=\"$_topsrcdir/js/src/ctypes/libffi/msvcc.sh -m64\" --build=$build --host=$target"
       ;;
     *)
-      ac_configure_args="$ac_configure_args CC=$_topsrcdir/ctypes/libffi/msvcc.sh"
+      ac_configure_args="$ac_configure_args CC=$_topsrcdir/js/src/ctypes/libffi/msvcc.sh"
       ;;
     esac
   fi
@@ -4523,12 +4585,12 @@ if test "$JS_HAS_CTYPES" -a -z "$MOZ_NATIVE_FFI"; then
 
   # Use a separate cache file for libffi, since it does things differently
   # from our configure.
-  mkdir -p $_objdir/ctypes/libffi
+  mkdir -p $_objdir/js/src/ctypes/libffi
   old_cache_file=$cache_file
-  cache_file=$_objdir/ctypes/libffi/config.cache
+  cache_file=$_objdir/js/src/ctypes/libffi/config.cache
   old_config_files=$CONFIG_FILES
   unset CONFIG_FILES
-  AC_OUTPUT_SUBDIRS(ctypes/libffi)
+  AC_OUTPUT_SUBDIRS(js/src/ctypes/libffi)
   cache_file=$old_cache_file
   ac_configure_args="$_SUBDIR_CONFIG_ARGS"
   CONFIG_FILES=$old_config_files

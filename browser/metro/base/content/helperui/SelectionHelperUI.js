@@ -361,7 +361,9 @@ var SelectionHelperUI = {
         // clears the selection.
         if (this.isActive && this.layerMode == kContentLayer) {
           this._showAfterUpdate = true;
-          this._sendAsyncMessage("Browser:SelectionUpdate", {});
+          this._sendAsyncMessage("Browser:SelectionUpdate", {
+            isInitiatedByAPZC: true
+          });
         }
         break;
       }
@@ -611,8 +613,9 @@ var SelectionHelperUI = {
     Elements.browsers.addEventListener("URLChanged", this, true);
     Elements.browsers.addEventListener("SizeChanged", this, true);
 
+    Elements.tabList.addEventListener("TabSelect", this, true);
+
     Elements.navbar.addEventListener("transitionend", this, true);
-    Elements.navbar.addEventListener("MozAppbarDismissing", this, true);
 
     this.overlay.enabled = true;
   },
@@ -637,8 +640,9 @@ var SelectionHelperUI = {
     Elements.browsers.removeEventListener("URLChanged", this, true);
     Elements.browsers.removeEventListener("SizeChanged", this, true);
 
+    Elements.tabList.removeEventListener("TabSelect", this, true);
+
     Elements.navbar.removeEventListener("transitionend", this, true);
-    Elements.navbar.removeEventListener("MozAppbarDismissing", this, true);
 
     this._shutdownAllMarkers();
 
@@ -909,31 +913,21 @@ var SelectionHelperUI = {
   },
 
   /*
-   * Detects when the nav bar hides or shows, so we can enable
-   * selection at the appropriate location once the transition is
-   * complete, or shutdown selection down when the nav bar is hidden.
+   * Detects when the nav bar transitions, so we can enable selection at the
+   * appropriate location once the transition is complete, or shutdown
+   * selection down when the nav bar is hidden.
    */
   _onNavBarTransitionEvent: function _onNavBarTransitionEvent(aEvent) {
+    // Ignore when selection is in content
     if (this.layerMode == kContentLayer) {
       return;
     }
 
-    if (aEvent.propertyName == "bottom" && Elements.navbar.isShowing) {
+    // After tansitioning up, show the monocles
+    if (Elements.navbar.isShowing) {
+      this._showAfterUpdate = true;
       this._sendAsyncMessage("Browser:SelectionUpdate", {});
-      return;
     }
-    
-    if (aEvent.propertyName == "transform" && Elements.navbar.isShowing) {
-      this._sendAsyncMessage("Browser:SelectionUpdate", {});
-      this._showMonocles(ChromeSelectionHandler.hasSelection);
-    }
-  },
-
-  _onNavBarDismissEvent: function _onNavBarDismissEvent() {
-    if (!this.isActive || this.layerMode == kContentLayer) {
-      return;
-    }
-    this._hideMonocles();
   },
 
   _onKeyboardChangedEvent: function _onKeyboardChangedEvent() {
@@ -1064,6 +1058,7 @@ var SelectionHelperUI = {
         break;
 
       case "URLChanged":
+      case "TabSelect":
         this._shutdown();
         break;
 
@@ -1081,10 +1076,6 @@ var SelectionHelperUI = {
 
       case "transitionend":
         this._onNavBarTransitionEvent(aEvent);
-        break;
-
-      case "MozAppbarDismissing":
-        this._onNavBarDismissEvent();
         break;
 
       case "KeyboardChanged":

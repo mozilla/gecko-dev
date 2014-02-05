@@ -96,22 +96,34 @@ class StaticScopeIter
  * given lexically-enclosing variable. A scope coordinate has two dimensions:
  *  - hops: the number of scope objects on the scope chain to skip
  *  - slot: the slot on the scope object holding the variable's value
- * Additionally (as described in jsopcode.tbl) there is a 'block' index, but
- * this is only needed for decompilation/inference so it is not included in the
- * main ScopeCoordinate struct: use ScopeCoordinate{BlockChain,Name} instead.
  */
-struct ScopeCoordinate
+class ScopeCoordinate
 {
-    uint16_t hops;
-    uint16_t slot;
+    uint32_t hops_;
+    uint32_t slot_;
 
+    /*
+     * Technically, hops_/slot_ are SCOPECOORD_(HOPS|SLOT)_BITS wide.  Since
+     * ScopeCoordinate is a temporary value, don't bother with a bitfield as
+     * this only adds overhead.
+     */
+    static_assert(SCOPECOORD_HOPS_BITS <= 32, "We have enough bits below");
+    static_assert(SCOPECOORD_SLOT_BITS <= 32, "We have enough bits below");
+
+  public:
     inline ScopeCoordinate(jsbytecode *pc)
-      : hops(GET_UINT16(pc)), slot(GET_UINT16(pc + 2))
+      : hops_(GET_SCOPECOORD_HOPS(pc)), slot_(GET_SCOPECOORD_SLOT(pc + SCOPECOORD_HOPS_LEN))
     {
         JS_ASSERT(JOF_OPTYPE(*pc) == JOF_SCOPECOORD);
     }
 
     inline ScopeCoordinate() {}
+
+    void setHops(uint32_t hops) { JS_ASSERT(hops < SCOPECOORD_HOPS_LIMIT); hops_ = hops; }
+    void setSlot(uint32_t slot) { JS_ASSERT(slot < SCOPECOORD_SLOT_LIMIT); slot_ = slot; }
+
+    uint32_t hops() const { JS_ASSERT(hops_ < SCOPECOORD_HOPS_LIMIT); return hops_; }
+    uint32_t slot() const { JS_ASSERT(slot_ < SCOPECOORD_SLOT_LIMIT); return slot_; }
 };
 
 /*
@@ -297,6 +309,37 @@ class NestedScopeObject : public ScopeObject
     uint32_t stackDepth() const {
         return getReservedSlot(DEPTH_SLOT).toPrivateUint32();
     }
+
+    /*
+     * A refinement of enclosingScope that returns nullptr if the enclosing
+     * scope is not a NestedScopeObject.
+     */
+    inline NestedScopeObject *enclosingNestedScope() const;
+
+    // At compile-time it's possible for the scope chain to be null.
+    JSObject *enclosingScopeForStaticScopeIter() {
+        return getReservedSlot(SCOPE_CHAIN_SLOT).toObjectOrNull();
+    }
+
+    void initEnclosingNestedScope(JSObject *obj) {
+        JS_ASSERT(getReservedSlot(SCOPE_CHAIN_SLOT).isUndefined());
+        setReservedSlot(SCOPE_CHAIN_SLOT, ObjectOrNullValue(obj));
+    }
+
+    /*
+     * The parser uses 'enclosingNestedScope' as the prev-link in the
+     * pc->staticScope stack. Note: in the case of hoisting, this prev-link will
+     * not ultimately be the same as enclosingNestedScope;
+     * initEnclosingNestedScope must be called separately in the
+     * emitter. 'reset' is just for asserting stackiness.
+     */
+    void initEnclosingNestedScopeFromParser(NestedScopeObject *prev) {
+        setReservedSlot(SCOPE_CHAIN_SLOT, ObjectOrNullValue(prev));
+    }
+
+    void resetEnclosingNestedScopeFromParser() {
+        setReservedSlot(SCOPE_CHAIN_SLOT, UndefinedValue());
+    }
 };
 
 class WithObject : public NestedScopeObject
@@ -344,12 +387,12 @@ class BlockObject : public NestedScopeObject
      * range [0, slotCount()) and the return local index is in the range
      * [script->nfixed, script->nfixed + script->nslots).
      */
-    unsigned slotToLocalIndex(const Bindings &bindings, unsigned slot) {
+    uint32_t slotToLocalIndex(const Bindings &bindings, uint32_t slot) {
         JS_ASSERT(slot < RESERVED_SLOTS + slotCount());
         return bindings.numVars() + stackDepth() + (slot - RESERVED_SLOTS);
     }
 
-    unsigned localIndexToSlot(const Bindings &bindings, uint32_t i) {
+    uint32_t localIndexToSlot(const Bindings &bindings, uint32_t i) {
         return RESERVED_SLOTS + (i - (bindings.numVars() + stackDepth()));
     }
 
@@ -369,14 +412,8 @@ class StaticBlockObject : public BlockObject
   public:
     static StaticBlockObject *create(ExclusiveContext *cx);
 
-    /* See StaticScopeIter comment. */
-    JSObject *enclosingStaticScope() const {
-        AutoThreadSafeAccess ts(this);
-        return getFixedSlot(SCOPE_CHAIN_SLOT).toObjectOrNull();
-    }
-
     /*
-     * A refinement of enclosingStaticScope that returns nullptr if the enclosing
+     * A refinement of enclosingScope that returns nullptr if the enclosing
      * static scope is a JSFunction.
      */
     inline StaticBlockObject *enclosingBlock() const;
@@ -425,11 +462,6 @@ class StaticBlockObject : public BlockObject
         initReservedSlot(DEPTH_SLOT, PrivateUint32Value(depth));
     }
 
-    void initEnclosingStaticScope(JSObject *obj) {
-        JS_ASSERT(getReservedSlot(SCOPE_CHAIN_SLOT).isUndefined());
-        setReservedSlot(SCOPE_CHAIN_SLOT, ObjectOrNullValue(obj));
-    }
-
     /*
      * Frontend compilation temporarily uses the object's slots to link
      * a let var to its associated Definition parse node.
@@ -446,21 +478,15 @@ class StaticBlockObject : public BlockObject
     }
 
     /*
-     * The parser uses 'enclosingBlock' as the prev-link in the pc->blockChain
-     * stack. Note: in the case of hoisting, this prev-link will not ultimately
-     * be the same as enclosingBlock, initEnclosingStaticScope must be called
-     * separately in the emitter. 'reset' is just for asserting stackiness.
+     * While ScopeCoordinate can generally reference up to 2^24 slots, block objects have an
+     * additional limitation that all slot indices must be storable as uint16_t short-ids in the
+     * associated Shape. If we could remove the block dependencies on shape->shortid, we could
+     * remove INDEX_LIMIT.
      */
-    void initPrevBlockChainFromParser(StaticBlockObject *prev) {
-        setReservedSlot(SCOPE_CHAIN_SLOT, ObjectOrNullValue(prev));
-    }
-
-    void resetPrevBlockChainFromParser() {
-        setReservedSlot(SCOPE_CHAIN_SLOT, UndefinedValue());
-    }
+    static const unsigned VAR_INDEX_LIMIT = JS_BIT(16);
 
     static Shape *addVar(ExclusiveContext *cx, Handle<StaticBlockObject*> block, HandleId id,
-                         int index, bool *redeclared);
+                         unsigned index, bool *redeclared);
 };
 
 class ClonedBlockObject : public BlockObject
@@ -495,7 +521,7 @@ XDRStaticBlockObject(XDRState<mode> *xdr, HandleObject enclosingScope,
                      StaticBlockObject **objp);
 
 extern JSObject *
-CloneStaticBlockObject(JSContext *cx, HandleObject enclosingScope, Handle<StaticBlockObject*> src);
+CloneNestedScopeObject(JSContext *cx, HandleObject enclosingScope, Handle<NestedScopeObject*> src);
 
 /*****************************************************************************/
 
@@ -527,7 +553,7 @@ class ScopeIter
     JSContext *cx;
     AbstractFramePtr frame_;
     RootedObject cur_;
-    Rooted<StaticBlockObject *> block_;
+    Rooted<NestedScopeObject *> staticScope_;
     Type type_;
     bool hasScopeObject_;
 
@@ -555,10 +581,6 @@ class ScopeIter
     ScopeIter(JSObject &enclosingScope, JSContext *cx
               MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
 
-    /* Like ScopeIter(StackFrame *) except start at 'scope'. */
-    ScopeIter(AbstractFramePtr frame, jsbytecode *pc, ScopeObject &scope, JSContext *cx
-              MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
-
     ScopeIter(const ScopeIterVal &hashVal, JSContext *cx
               MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
 
@@ -577,7 +599,10 @@ class ScopeIter
     bool hasScopeObject() const { JS_ASSERT(!done()); return hasScopeObject_; }
     ScopeObject &scope() const;
 
-    StaticBlockObject &staticBlock() const { JS_ASSERT(type() == Block); return *block_; }
+    StaticBlockObject &staticBlock() const {
+        JS_ASSERT(type() == Block);
+        return staticScope_->as<StaticBlockObject>();
+    }
 
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
@@ -588,18 +613,18 @@ class ScopeIterKey
 
     AbstractFramePtr frame_;
     JSObject *cur_;
-    StaticBlockObject *block_;
+    NestedScopeObject *staticScope_;
     ScopeIter::Type type_;
     bool hasScopeObject_;
 
   public:
     ScopeIterKey(const ScopeIter &si)
-      : frame_(si.frame()), cur_(si.cur_), block_(si.block_), type_(si.type_),
+      : frame_(si.frame()), cur_(si.cur_), staticScope_(si.staticScope_), type_(si.type_),
         hasScopeObject_(si.hasScopeObject_) {}
 
     AbstractFramePtr frame() const { return frame_; }
     JSObject *cur() const { return cur_; }
-    StaticBlockObject *block() const { return block_; }
+    NestedScopeObject *staticScope() const { return staticScope_; }
     ScopeIter::Type type() const { return type_; }
     bool hasScopeObject() const { return hasScopeObject_; }
     JSObject *enclosingScope() const { return cur_; }
@@ -612,7 +637,7 @@ class ScopeIterKey
     bool operator!=(const ScopeIterKey &other) const {
         return frame_ != other.frame_ ||
                cur_ != other.cur_ ||
-               block_ != other.block_ ||
+               staticScope_ != other.staticScope_ ||
                type_ != other.type_;
     }
     static void rekey(ScopeIterKey &k, const ScopeIterKey& newKey) {
@@ -627,7 +652,7 @@ class ScopeIterVal
 
     AbstractFramePtr frame_;
     RelocatablePtr<JSObject> cur_;
-    RelocatablePtr<StaticBlockObject> block_;
+    RelocatablePtr<NestedScopeObject> staticScope_;
     ScopeIter::Type type_;
     bool hasScopeObject_;
 
@@ -635,7 +660,7 @@ class ScopeIterVal
 
   public:
     ScopeIterVal(const ScopeIter &si)
-      : frame_(si.frame()), cur_(si.cur_), block_(si.block_), type_(si.type_),
+      : frame_(si.frame()), cur_(si.cur_), staticScope_(si.staticScope_), type_(si.type_),
         hasScopeObject_(si.hasScopeObject_) {}
 
     AbstractFramePtr frame() const { return frame_; }
@@ -709,7 +734,7 @@ class DebugScopes
     /* The map from (non-debug) scopes to debug scopes. */
     typedef WeakMap<EncapsulatedPtrObject, RelocatablePtrObject> ObjectWeakMap;
     ObjectWeakMap proxiedScopes;
-    static JS_ALWAYS_INLINE void proxiedScopesPostWriteBarrier(JSRuntime *rt, ObjectWeakMap *map,
+    static MOZ_ALWAYS_INLINE void proxiedScopesPostWriteBarrier(JSRuntime *rt, ObjectWeakMap *map,
                                                                const EncapsulatedPtrObject &key);
 
     /*
@@ -722,7 +747,7 @@ class DebugScopes
                     RuntimeAllocPolicy> MissingScopeMap;
     MissingScopeMap missingScopes;
     class MissingScopesRef;
-    static JS_ALWAYS_INLINE void missingScopesPostWriteBarrier(JSRuntime *rt, MissingScopeMap *map,
+    static MOZ_ALWAYS_INLINE void missingScopesPostWriteBarrier(JSRuntime *rt, MissingScopeMap *map,
                                                                const ScopeIterKey &key);
 
     /*
@@ -737,7 +762,7 @@ class DebugScopes
                     DefaultHasher<ScopeObject *>,
                     RuntimeAllocPolicy> LiveScopeMap;
     LiveScopeMap liveScopes;
-    static JS_ALWAYS_INLINE void liveScopesPostWriteBarrier(JSRuntime *rt, LiveScopeMap *map,
+    static MOZ_ALWAYS_INLINE void liveScopesPostWriteBarrier(JSRuntime *rt, LiveScopeMap *map,
                                                             ScopeObject *key);
 
   public:
@@ -832,7 +857,14 @@ inline const Value &
 ScopeObject::aliasedVar(ScopeCoordinate sc)
 {
     JS_ASSERT(is<CallObject>() || is<ClonedBlockObject>());
-    return getSlot(sc.slot);
+    return getSlot(sc.slot());
+}
+
+inline NestedScopeObject *
+NestedScopeObject::enclosingNestedScope() const
+{
+    JSObject *obj = getReservedSlot(SCOPE_CHAIN_SLOT).toObjectOrNull();
+    return obj && obj->is<NestedScopeObject>() ? &obj->as<NestedScopeObject>() : nullptr;
 }
 
 inline StaticBlockObject *

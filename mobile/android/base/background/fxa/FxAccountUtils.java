@@ -6,6 +6,8 @@ package org.mozilla.gecko.background.fxa;
 
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -21,6 +23,9 @@ public class FxAccountUtils {
 
   public static final int HASH_LENGTH_BYTES = 16;
   public static final int HASH_LENGTH_HEX = 2 * HASH_LENGTH_BYTES;
+
+  public static final int CRYPTO_KEY_LENGTH_BYTES = 32;
+  public static final int CRYPTO_KEY_LENGTH_HEX = 2 * CRYPTO_KEY_LENGTH_BYTES;
 
   public static final String KW_VERSION_STRING = "identity.mozilla.com/picl/v1/";
 
@@ -118,5 +123,55 @@ public class FxAccountUtils {
    */
   public static byte[] generateUnwrapBKey(byte[] quickStretchedPW) throws GeneralSecurityException, UnsupportedEncodingException {
     return HKDF.derive(quickStretchedPW, new byte[0], FxAccountUtils.KW("unwrapBkey"), 32);
+  }
+
+  public static byte[] unwrapkB(byte[] unwrapkB, byte[] wrapkB) {
+    if (unwrapkB == null) {
+      throw new IllegalArgumentException("unwrapkB must not be null");
+    }
+    if (wrapkB == null) {
+      throw new IllegalArgumentException("wrapkB must not be null");
+    }
+    if (unwrapkB.length != CRYPTO_KEY_LENGTH_BYTES || wrapkB.length != CRYPTO_KEY_LENGTH_BYTES) {
+      throw new IllegalArgumentException("unwrapkB and wrapkB must be " + CRYPTO_KEY_LENGTH_BYTES + " bytes long");
+    }
+    byte[] kB = new byte[CRYPTO_KEY_LENGTH_BYTES];
+    for (int i = 0; i < wrapkB.length; i++) {
+      kB[i] = (byte) (wrapkB[i] ^ unwrapkB[i]);
+    }
+    return kB;
+  }
+
+  /**
+   * The token server accepts an X-Client-State header, which is the
+   * lowercase-hex-encoded first 16 bytes of the SHA-256 hash of the
+   * bytes of kB.
+   * @param kB a byte array, expected to be 32 bytes long.
+   * @return a 32-character string.
+   * @throws NoSuchAlgorithmException
+   */
+  public static String computeClientState(byte[] kB) throws NoSuchAlgorithmException {
+    if (kB == null ||
+        kB.length != 32) {
+      throw new IllegalArgumentException("Unexpected kB.");
+    }
+    byte[] sha256 = Utils.sha256(kB);
+    byte[] truncated = new byte[16];
+    System.arraycopy(sha256, 0, truncated, 0, 16);
+    return Utils.byte2Hex(truncated);    // This is automatically lowercase.
+  }
+
+  /**
+   * Given an endpoint, calculate the corresponding BrowserID audience.
+   * <p>
+   * This is the domain, in web parlance.
+   *
+   * @param serverURI endpoint.
+   * @return BrowserID audience.
+   * @throws URISyntaxException
+   */
+  public static String getAudienceForURL(String serverURI) throws URISyntaxException {
+    URI uri = new URI(serverURI);
+    return new URI(uri.getScheme(), uri.getHost(), null, null).toString();
   }
 }

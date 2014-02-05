@@ -15,7 +15,7 @@
 namespace js {
 
 class DeclEnvObject;
-class ForkJoinSlice;
+class ForkJoinContext;
 
 namespace jit {
 
@@ -113,7 +113,7 @@ struct VMFunction
     // The root type of the out param if outParam == Type_Handle.
     RootType outParamRootType;
 
-    // Does this function take a ForkJoinSlice * or a JSContext *?
+    // Does this function take a ForkJoinContext * or a JSContext *?
     ExecutionMode executionMode;
 
     // Number of Values the VM wrapper should pop from the stack when it returns.
@@ -386,7 +386,7 @@ template <> struct MatchContext<JSContext *> {
 template <> struct MatchContext<ExclusiveContext *> {
     static const ExecutionMode execMode = SequentialExecution;
 };
-template <> struct MatchContext<ForkJoinSlice *> {
+template <> struct MatchContext<ForkJoinContext *> {
     static const ExecutionMode execMode = ParallelExecution;
 };
 template <> struct MatchContext<ThreadSafeContext *> {
@@ -566,8 +566,7 @@ class AutoDetectInvalidation
 };
 
 bool InvokeFunction(JSContext *cx, HandleObject obj0, uint32_t argc, Value *argv, Value *rval);
-JSObject *NewGCThing(JSContext *cx, gc::AllocKind allocKind, size_t thingSize,
-                     gc::InitialHeap initialHeap);
+JSObject *NewGCObject(JSContext *cx, gc::AllocKind allocKind, gc::InitialHeap initialHeap);
 
 bool CheckOverRecursed(JSContext *cx);
 bool CheckOverRecursedWithExtra(JSContext *cx, BaselineFrame *frame,
@@ -575,6 +574,7 @@ bool CheckOverRecursedWithExtra(JSContext *cx, BaselineFrame *frame,
 
 bool DefVarOrConst(JSContext *cx, HandlePropertyName dn, unsigned attrs, HandleObject scopeChain);
 bool SetConst(JSContext *cx, HandlePropertyName name, HandleObject scopeChain, HandleValue rval);
+bool MutatePrototype(JSContext *cx, HandleObject obj, HandleValue value);
 bool InitProp(JSContext *cx, HandleObject obj, HandlePropertyName name, HandleValue value);
 
 template<bool Equal>
@@ -659,12 +659,14 @@ bool DebugLeaveBlock(JSContext *cx, BaselineFrame *frame, jsbytecode *pc);
 bool InitBaselineFrameForOsr(BaselineFrame *frame, StackFrame *interpFrame,
                              uint32_t numStackValues);
 
-JSObject *CreateDerivedTypedObj(JSContext *cx, HandleObject type,
+JSObject *CreateDerivedTypedObj(JSContext *cx, HandleObject descr,
                                 HandleObject owner, int32_t offset);
 
 bool Recompile(JSContext *cx);
-JSString *regexp_replace(JSContext *cx, HandleString string, HandleObject regexp,
-                         HandleString repl);
+JSString *RegExpReplace(JSContext *cx, HandleString string, HandleObject regexp,
+                        HandleString repl);
+JSString *StringReplace(JSContext *cx, HandleString string, HandleString pattern,
+                        HandleString repl);
 
 #ifdef DEBUG
 void AssertValidObjectPtr(JSContext *cx, JSObject *obj);

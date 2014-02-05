@@ -74,15 +74,15 @@ class Nursery
     bool isEmpty() const;
 
     template <typename T>
-    JS_ALWAYS_INLINE bool isInside(const T *p) const {
+    MOZ_ALWAYS_INLINE bool isInside(const T *p) const {
         return gc::IsInsideNursery((JS::shadow::Runtime *)runtime_, p);
     }
 
     /*
-     * Allocate and return a pointer to a new GC thing. Returns nullptr if the
-     * Nursery is full.
+     * Allocate and return a pointer to a new GC object with its |slots|
+     * pointer pre-filled. Returns nullptr if the Nursery is full.
      */
-    void *allocate(size_t size);
+    JSObject *allocateObject(JSContext *cx, size_t size, size_t numDynamic);
 
     /* Allocate a slots array for the given object. */
     HeapSlot *allocateSlots(JSContext *cx, JSObject *obj, uint32_t nslots);
@@ -104,6 +104,12 @@ class Nursery
     /* Add a slots to our tracking list if it is out-of-line. */
     void notifyInitialSlots(gc::Cell *cell, HeapSlot *slots);
 
+    /* Add elements to our tracking list if it is out-of-line. */
+    void notifyNewElements(gc::Cell *cell, ObjectElements *elements);
+
+    /* Remove elements to our tracking list if it is out-of-line. */
+    void notifyRemovedElements(gc::Cell *cell, ObjectElements *oldElements);
+
     typedef Vector<types::TypeObject *, 0, SystemAllocPolicy> TypeObjectList;
 
     /*
@@ -118,10 +124,12 @@ class Nursery
      * returns false and leaves |*ref| unset.
      */
     template <typename T>
-    JS_ALWAYS_INLINE bool getForwardedPointer(T **ref);
+    MOZ_ALWAYS_INLINE bool getForwardedPointer(T **ref);
 
     /* Forward a slots/elements pointer stored in an Ion frame. */
     void forwardBufferPointer(HeapSlot **pSlotsElems);
+
+    size_t sizeOfHeap() { return start() ? NurserySize : 0; }
 
 #ifdef JS_GC_ZEAL
     /*
@@ -175,7 +183,7 @@ class Nursery
     HugeSlotsSet hugeSlots;
 
     /* The maximum number of slots allowed to reside inline in the nursery. */
-    static const size_t MaxNurserySlots = 100;
+    static const size_t MaxNurserySlots = 128;
 
     /* The amount of space in the mapped nursery available to allocations. */
     static const size_t NurseryChunkUsableSize = gc::ChunkSize - sizeof(gc::ChunkTrailer);
@@ -194,17 +202,17 @@ class Nursery
         return reinterpret_cast<NurseryChunkLayout *>(start())[index];
     }
 
-    JS_ALWAYS_INLINE uintptr_t start() const {
+    MOZ_ALWAYS_INLINE uintptr_t start() const {
         JS_ASSERT(runtime_);
         return ((JS::shadow::Runtime *)runtime_)->gcNurseryStart_;
     }
 
-    JS_ALWAYS_INLINE uintptr_t heapEnd() const {
+    MOZ_ALWAYS_INLINE uintptr_t heapEnd() const {
         JS_ASSERT(runtime_);
         return ((JS::shadow::Runtime *)runtime_)->gcNurseryEnd_;
     }
 
-    JS_ALWAYS_INLINE void setCurrentChunk(int chunkno) {
+    MOZ_ALWAYS_INLINE void setCurrentChunk(int chunkno) {
         JS_ASSERT(chunkno < NumNurseryChunks);
         JS_ASSERT(chunkno < numActiveChunks_);
         currentChunk_ = chunkno;
@@ -213,16 +221,16 @@ class Nursery
         currentEnd_ = chunk(chunkno).end();
     }
 
-    JS_ALWAYS_INLINE uintptr_t allocationEnd() const {
+    MOZ_ALWAYS_INLINE uintptr_t allocationEnd() const {
         JS_ASSERT(numActiveChunks_ > 0);
         return chunk(numActiveChunks_ - 1).end();
     }
 
-    JS_ALWAYS_INLINE bool isFullyGrown() const {
+    MOZ_ALWAYS_INLINE bool isFullyGrown() const {
         return numActiveChunks_ == NumNurseryChunks;
     }
 
-    JS_ALWAYS_INLINE uintptr_t currentEnd() const {
+    MOZ_ALWAYS_INLINE uintptr_t currentEnd() const {
         JS_ASSERT(runtime_);
         JS_ASSERT(currentEnd_ == chunk(currentChunk_).end());
         return currentEnd_;
@@ -245,15 +253,18 @@ class Nursery
 
     struct TenureCountCache;
 
+    /* Common internal allocator function. */
+    void *allocate(size_t size);
+
     /*
      * Move the object at |src| in the Nursery to an already-allocated cell
      * |dst| in Tenured.
      */
     void collectToFixedPoint(gc::MinorCollectionTracer *trc, TenureCountCache &tenureCounts);
-    JS_ALWAYS_INLINE void traceObject(gc::MinorCollectionTracer *trc, JSObject *src);
-    JS_ALWAYS_INLINE void markSlots(gc::MinorCollectionTracer *trc, HeapSlot *vp, uint32_t nslots);
-    JS_ALWAYS_INLINE void markSlots(gc::MinorCollectionTracer *trc, HeapSlot *vp, HeapSlot *end);
-    JS_ALWAYS_INLINE void markSlot(gc::MinorCollectionTracer *trc, HeapSlot *slotp);
+    MOZ_ALWAYS_INLINE void traceObject(gc::MinorCollectionTracer *trc, JSObject *src);
+    MOZ_ALWAYS_INLINE void markSlots(gc::MinorCollectionTracer *trc, HeapSlot *vp, uint32_t nslots);
+    MOZ_ALWAYS_INLINE void markSlots(gc::MinorCollectionTracer *trc, HeapSlot *vp, HeapSlot *end);
+    MOZ_ALWAYS_INLINE void markSlot(gc::MinorCollectionTracer *trc, HeapSlot *slotp);
     void *moveToTenured(gc::MinorCollectionTracer *trc, JSObject *src);
     size_t moveObjectToTenured(JSObject *dst, JSObject *src, gc::AllocKind dstKind);
     size_t moveElementsToTenured(JSObject *dst, JSObject *src, gc::AllocKind dstKind);
@@ -264,10 +275,12 @@ class Nursery
     void setElementsForwardingPointer(ObjectElements *oldHeader, ObjectElements *newHeader,
                                       uint32_t nelems);
 
+    /* Free malloced pointers owned by freed things in the nursery. */
+    void freeHugeSlots(JSRuntime *rt);
+
     /*
      * Frees all non-live nursery-allocated things at the end of a minor
-     * collection. This operation takes time proportional to the number of
-     * dead things.
+     * collection.
      */
     void sweep(JSRuntime *rt);
 

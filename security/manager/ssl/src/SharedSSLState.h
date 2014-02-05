@@ -36,7 +36,10 @@ public:
   // Main-thread only
   void ResetStoredData();
   void NotePrivateBrowsingStatus();
-  void SetOCSPStaplingEnabled(bool enabled) { mOCSPStaplingEnabled = enabled; }
+  void SetOCSPStaplingEnabled(bool staplingEnabled)
+  {
+    mOCSPStaplingEnabled = staplingEnabled;
+  }
 
   // The following methods may be called from any thread
   bool SocketCreated();

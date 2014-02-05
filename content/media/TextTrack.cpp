@@ -69,15 +69,7 @@ TextTrack::SetDefaultSettings()
   mRegionList = new TextTrackRegionList(mParent);
   mCuePos = 0;
   mDirty = false;
-  mReadyState = HTMLTrackElement::NONE;
-}
-
-void
-TextTrack::Update(double aTime)
-{
-  if (mCueList) {
-    mCueList->Update(aTime);
-  }
+  mReadyState = HTMLTrackElement::READY_STATE_NONE;
 }
 
 JSObject*
@@ -101,7 +93,9 @@ void
 TextTrack::AddCue(TextTrackCue& aCue)
 {
   mCueList->AddCue(aCue);
-  mMediaElement->AddCue(aCue);
+  if (mMediaElement) {
+    mMediaElement->AddCue(aCue);
+  }
   SetDirty();
 }
 
@@ -142,11 +136,11 @@ TextTrack::RemoveRegion(const TextTrackRegion& aRegion, ErrorResult& aRv)
   mRegionList->RemoveTextTrackRegion(aRegion);
 }
 
-TextTrackCueList*
-TextTrack::GetActiveCues()
+void
+TextTrack::UpdateActiveCueList()
 {
   if (mMode == TextTrackMode::Disabled || !mMediaElement) {
-    return nullptr;
+    return;
   }
 
   // If we are dirty, i.e. an event happened that may cause the sorted mCueList
@@ -176,7 +170,19 @@ TextTrack::GetActiveCues()
       mActiveCueList->AddCue(*(*mCueList)[mCuePos]);
     }
   }
+}
+
+TextTrackCueList*
+TextTrack::GetActiveCues() {
+  UpdateActiveCueList();
   return mActiveCueList;
+}
+
+void
+TextTrack::GetActiveCueArray(nsTArray<nsRefPtr<TextTrackCue> >& aCues)
+{
+  UpdateActiveCueList();
+  mActiveCueList->GetArray(aCues);
 }
 
 uint16_t
@@ -189,8 +195,8 @@ void
 TextTrack::SetReadyState(uint16_t aState)
 {
   mReadyState = aState;
-  if (mMediaElement && (mReadyState == HTMLTrackElement::LOADED ||
-      mReadyState == HTMLTrackElement::ERROR)) {
+  if (mMediaElement && (mReadyState == HTMLTrackElement::READY_STATE_LOADED ||
+      mReadyState == HTMLTrackElement::READY_STATE_ERROR)) {
     mMediaElement->RemoveTextTrack(this, true);
   }
 }

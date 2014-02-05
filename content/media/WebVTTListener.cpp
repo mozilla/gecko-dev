@@ -78,7 +78,7 @@ WebVTTListener::LoadResource()
   rv = mParserWrapper->Watch(this);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  mElement->mTrack->SetReadyState(HTMLTrackElement::LOADING);
+  mElement->mTrack->SetReadyState(HTMLTrackElement::READY_STATE_LOADING);
   return NS_OK;
 }
 
@@ -106,9 +106,9 @@ WebVTTListener::OnStopRequest(nsIRequest* aRequest,
                               nsISupports* aContext,
                               nsresult aStatus)
 {
-  if (mElement->ReadyState() != HTMLTrackElement::ERROR) {
+  if (mElement->ReadyState() != HTMLTrackElement::READY_STATE_ERROR) {
     TextTrack* track = mElement->Track();
-    track->SetReadyState(HTMLTrackElement::LOADED);
+    track->SetReadyState(HTMLTrackElement::READY_STATE_LOADED);
   }
   // Attempt to parse any final data the parser might still have.
   mParserWrapper->Flush();
@@ -155,7 +155,7 @@ WebVTTListener::OnDataAvailable(nsIRequest* aRequest,
 }
 
 NS_IMETHODIMP
-WebVTTListener::OnCue(const JS::Value &aCue, JSContext* aCx)
+WebVTTListener::OnCue(JS::Handle<JS::Value> aCue, JSContext* aCx)
 {
   if (!aCue.isObject()) {
     return NS_ERROR_FAILURE;
@@ -173,7 +173,7 @@ WebVTTListener::OnCue(const JS::Value &aCue, JSContext* aCx)
 
 
 NS_IMETHODIMP
-WebVTTListener::OnRegion(const JS::Value &aRegion, JSContext* aCx)
+WebVTTListener::OnRegion(JS::Handle<JS::Value> aRegion, JSContext* aCx)
 {
   if (!aRegion.isObject()) {
     return NS_ERROR_FAILURE;

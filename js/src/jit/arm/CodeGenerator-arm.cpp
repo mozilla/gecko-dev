@@ -281,8 +281,8 @@ bool
 CodeGeneratorARM::visitOutOfLineBailout(OutOfLineBailout *ool)
 {
     masm.ma_mov(Imm32(ool->snapshot()->snapshotOffset()), ScratchRegister);
-    masm.ma_push(ScratchRegister);
-    masm.ma_push(ScratchRegister);
+    masm.ma_push(ScratchRegister); // BailoutStack::padding_
+    masm.ma_push(ScratchRegister); // BailoutStack::snapshotOffset_
     masm.ma_b(&deoptLabel_);
     return true;
 }
@@ -609,8 +609,8 @@ CodeGeneratorARM::visitDivI(LDivI *ins)
 }
 
 extern "C" {
-    extern int __aeabi_idivmod(int,int);
-    extern int __aeabi_uidivmod(int,int);
+    extern int64_t __aeabi_idivmod(int,int);
+    extern int64_t __aeabi_uidivmod(int,int);
 }
 
 bool

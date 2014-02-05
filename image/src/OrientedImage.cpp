@@ -101,18 +101,16 @@ OrientedImage::GetFrame(uint32_t aWhichFrame,
   gfxImageFormat imageFormat;
   if (InnerImage()->FrameIsOpaque(aWhichFrame)) {
     surfaceFormat = gfx::SurfaceFormat::B8G8R8X8;
-    imageFormat = gfxImageFormatARGB32;
+    imageFormat = gfxImageFormat::ARGB32;
   } else {
     surfaceFormat = gfx::SurfaceFormat::B8G8R8A8;
-    imageFormat = gfxImageFormatARGB32;
+    imageFormat = gfxImageFormat::ARGB32;
   }
 
   // Create a surface to draw into.
   mozilla::RefPtr<mozilla::gfx::DrawTarget> target;
   target = gfxPlatform::GetPlatform()->
-    CreateOffscreenCanvasDrawTarget(gfx::IntSize(width, height), surfaceFormat);
-  nsRefPtr<gfxASurface> surface = gfxPlatform::GetPlatform()->
-    GetThebesSurfaceForDrawTarget(target);
+    CreateOffscreenContentDrawTarget(gfx::IntSize(width, height), surfaceFormat);
 
   // Create our drawable.
   nsRefPtr<gfxASurface> innerSurface =
@@ -122,11 +120,14 @@ OrientedImage::GetFrame(uint32_t aWhichFrame,
     new gfxSurfaceDrawable(innerSurface, gfxIntSize(width, height));
 
   // Draw.
-  nsRefPtr<gfxContext> ctx = new gfxContext(surface);
+  nsRefPtr<gfxContext> ctx = new gfxContext(target);
   gfxRect imageRect(0, 0, width, height);
   gfxUtils::DrawPixelSnapped(ctx, drawable, OrientationMatrix(nsIntSize(width, height)),
                              imageRect, imageRect, imageRect, imageRect,
                              imageFormat, GraphicsFilter::FILTER_FAST);
+  
+  nsRefPtr<gfxASurface> surface = gfxPlatform::GetPlatform()->
+    GetThebesSurfaceForDrawTarget(target);
 
   return surface.forget();
 }

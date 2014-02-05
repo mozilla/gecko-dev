@@ -239,6 +239,10 @@ static nsCString* crashReporterAPIData = nullptr;
 static nsCString* notesField = nullptr;
 static bool isGarbageCollecting;
 
+// Avoid a race during application termination.
+static Mutex* dumpSafetyLock;
+static bool isSafeToDump = false;
+
 // OOP crash reporting
 static CrashGenerationServer* crashServer; // chrome process has this
 
@@ -318,8 +322,16 @@ nsTArray<nsAutoPtr<DelayedNote> >* gDelayedAnnotations;
 typedef LPTOP_LEVEL_EXCEPTION_FILTER (WINAPI *SetUnhandledExceptionFilter_func)
   (LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExceptionFilter);
 static SetUnhandledExceptionFilter_func stub_SetUnhandledExceptionFilter = 0;
+static LPTOP_LEVEL_EXCEPTION_FILTER previousUnhandledExceptionFilter = nullptr;
 static WindowsDllInterceptor gKernel32Intercept;
 static bool gBlockUnhandledExceptionFilter = true;
+
+static void NotePreviousUnhandledExceptionFilter()
+{
+  // Set a dummy value to get the previous filter, then restore
+  previousUnhandledExceptionFilter = SetUnhandledExceptionFilter(nullptr);
+  SetUnhandledExceptionFilter(previousUnhandledExceptionFilter);
+}
 
 static LPTOP_LEVEL_EXCEPTION_FILTER WINAPI
 patched_SetUnhandledExceptionFilter (LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExceptionFilter)
@@ -327,6 +339,13 @@ patched_SetUnhandledExceptionFilter (LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExce
   if (!gBlockUnhandledExceptionFilter) {
     // don't intercept
     return stub_SetUnhandledExceptionFilter(lpTopLevelExceptionFilter);
+  }
+
+  if (lpTopLevelExceptionFilter == previousUnhandledExceptionFilter) {
+    // OK to swap back and forth between the previous filter
+    previousUnhandledExceptionFilter =
+      stub_SetUnhandledExceptionFilter(lpTopLevelExceptionFilter);
+    return previousUnhandledExceptionFilter;
   }
 
   // intercept attempts to change the filter
@@ -1000,9 +1019,22 @@ nsresult SetExceptionHandler(nsIFile* aXREDirectory,
   androidUserSerial = getenv("MOZ_ANDROID_USER_SERIAL_NUMBER");
 #endif
 
+  // Initialize the flag and mutex used to avoid dump processing
+  // once browser termination has begun.
+  NS_ASSERTION(!dumpSafetyLock, "Shouldn't have a lock yet");
+  // Do not deallocate this lock while it is still possible for
+  // isSafeToDump to be tested on another thread.
+  dumpSafetyLock = new Mutex("dumpSafetyLock");
+  MutexAutoLock lock(*dumpSafetyLock);
+  isSafeToDump = true;
+
   // now set the exception handler
 #ifdef XP_LINUX
   MinidumpDescriptor descriptor(tempPath.get());
+#endif
+
+#ifdef XP_WIN
+  NotePreviousUnhandledExceptionFilter();
 #endif
 
   gExceptionHandler = new google_breakpad::
@@ -1345,6 +1377,11 @@ static void OOPDeinit();
 
 nsresult UnsetExceptionHandler()
 {
+  if (isSafeToDump) {
+    MutexAutoLock lock(*dumpSafetyLock);
+    isSafeToDump = false;
+  }
+
 #ifdef XP_WIN
   // allow SetUnhandledExceptionFilter
   gBlockUnhandledExceptionFilter = false;
@@ -1392,6 +1429,9 @@ nsresult UnsetExceptionHandler()
   gExceptionHandler = nullptr;
 
   OOPDeinit();
+
+  delete dumpSafetyLock;
+  dumpSafetyLock = nullptr;
 
   return NS_OK;
 }
@@ -2203,6 +2243,13 @@ OnChildProcessDumpRequested(void* aContext,
 {
   nsCOMPtr<nsIFile> minidump;
   nsCOMPtr<nsIFile> extraFile;
+
+  // Hold the mutex until the current dump request is complete, to
+  // prevent UnsetExceptionHandler() from pulling the rug out from
+  // under us.
+  MutexAutoLock lock(*dumpSafetyLock);
+  if (!isSafeToDump)
+    return;
 
   CreateFileFromPath(
 #ifdef XP_MACOSX

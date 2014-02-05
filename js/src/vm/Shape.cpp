@@ -28,9 +28,10 @@
 using namespace js;
 using namespace js::gc;
 
+using mozilla::CeilingLog2Size;
 using mozilla::DebugOnly;
 using mozilla::PodZero;
-using mozilla::CeilingLog2Size;
+using mozilla::RotateLeft;
 
 bool
 ShapeTable::init(ThreadSafeContext *cx, Shape *lastProp)
@@ -304,21 +305,8 @@ ShapeTable::grow(ThreadSafeContext *cx)
     return true;
 }
 
-Shape *
-Shape::getChildBinding(ExclusiveContext *cx, const StackShape &child)
-{
-    JS_ASSERT(!inDictionary());
-
-    /* Try to allocate all slots inline. */
-    uint32_t slots = child.slotSpan();
-    gc::AllocKind kind = gc::GetGCObjectKind(slots);
-    uint32_t nfixed = gc::GetGCKindSlots(kind);
-
-    return cx->compartment()->propertyTree.getChild(cx, this, nfixed, child);
-}
-
 /* static */ Shape *
-Shape::replaceLastProperty(ExclusiveContext *cx, const StackBaseShape &base,
+Shape::replaceLastProperty(ExclusiveContext *cx, StackBaseShape &base,
                            TaggedProto proto, HandleShape shape)
 {
     JS_ASSERT(!shape->inDictionary());
@@ -338,8 +326,7 @@ Shape::replaceLastProperty(ExclusiveContext *cx, const StackBaseShape &base,
     StackShape child(shape);
     child.base = nbase;
 
-    return cx->compartment()->propertyTree.getChild(cx, shape->parent,
-                                                    shape->numFixedSlots(), child);
+    return cx->compartment()->propertyTree.getChild(cx, shape->parent, child);
 }
 
 /*
@@ -376,15 +363,15 @@ JSObject::getChildPropertyOnDictionary(ThreadSafeContext *cx, JS::HandleObject o
 
     if (obj->inDictionaryMode()) {
         JS_ASSERT(parent == obj->lastProperty());
-        StackShape::AutoRooter childRoot(cx, &child);
+        RootedGeneric<StackShape*> childRoot(cx, &child);
         shape = js_NewGCShape(cx);
         if (!shape)
             return nullptr;
-        if (child.hasSlot() && child.slot() >= obj->lastProperty()->base()->slotSpan()) {
-            if (!JSObject::setSlotSpan(cx, obj, child.slot() + 1))
+        if (childRoot->hasSlot() && childRoot->slot() >= obj->lastProperty()->base()->slotSpan()) {
+            if (!JSObject::setSlotSpan(cx, obj, childRoot->slot() + 1))
                 return nullptr;
         }
-        shape->initDictionaryShape(child, obj->numFixedSlots(), &obj->shape_);
+        shape->initDictionaryShape(*childRoot, obj->numFixedSlots(), &obj->shape_);
     }
 
     return shape;
@@ -392,13 +379,13 @@ JSObject::getChildPropertyOnDictionary(ThreadSafeContext *cx, JS::HandleObject o
 
 /* static */ Shape *
 JSObject::getChildProperty(ExclusiveContext *cx,
-                           HandleObject obj, HandleShape parent, StackShape &child)
+                           HandleObject obj, HandleShape parent, StackShape &unrootedChild)
 {
-    StackShape::AutoRooter childRoot(cx, &child);
-    RootedShape shape(cx, getChildPropertyOnDictionary(cx, obj, parent, child));
+    RootedGeneric<StackShape*> child(cx, &unrootedChild);
+    RootedShape shape(cx, getChildPropertyOnDictionary(cx, obj, parent, *child));
 
     if (!obj->inDictionaryMode()) {
-        shape = cx->compartment()->propertyTree.getChild(cx, parent, obj->numFixedSlots(), child);
+        shape = cx->compartment()->propertyTree.getChild(cx, parent, *child);
         if (!shape)
             return nullptr;
         //JS_ASSERT(shape->parent == parent);
@@ -412,15 +399,15 @@ JSObject::getChildProperty(ExclusiveContext *cx,
 
 /* static */ Shape *
 JSObject::lookupChildProperty(ThreadSafeContext *cx,
-                              HandleObject obj, HandleShape parent, StackShape &child)
+                              HandleObject obj, HandleShape parent, StackShape &unrootedChild)
 {
-    StackShape::AutoRooter childRoot(cx, &child);
+    RootedGeneric<StackShape*> child(cx, &unrootedChild);
     JS_ASSERT(cx->isThreadLocal(obj));
 
-    RootedShape shape(cx, getChildPropertyOnDictionary(cx, obj, parent, child));
+    RootedShape shape(cx, getChildPropertyOnDictionary(cx, obj, parent, *child));
 
     if (!obj->inDictionaryMode()) {
-        shape = cx->compartment_->propertyTree.lookupChild(cx, parent, child);
+        shape = cx->compartment_->propertyTree.lookupChild(cx, parent, *child);
         if (!shape)
             return nullptr;
         if (!JSObject::setLastProperty(cx, obj, shape))
@@ -559,7 +546,7 @@ ShouldConvertToDictionary(JSObject *obj)
 template <ExecutionMode mode>
 static inline UnownedBaseShape *
 GetOrLookupUnownedBaseShape(typename ExecutionModeTraits<mode>::ExclusiveContextType cx,
-                            const StackBaseShape &base)
+                            StackBaseShape &base)
 {
     if (mode == ParallelExecution)
         return BaseShape::lookupUnowned(cx, base);
@@ -633,7 +620,7 @@ JSObject::addPropertyInternal(typename ExecutionModeTraits<mode>::ExclusiveConte
                 return nullptr;
         }
 
-        StackShape child(nbase, id, slot, obj->numFixedSlots(), attrs, flags, shortid);
+        StackShape child(nbase, id, slot, attrs, flags, shortid);
         shape = getOrLookupChildProperty<mode>(cx, obj, last, child);
     }
 
@@ -666,7 +653,7 @@ JSObject::addPropertyInternal<SequentialExecution>(ExclusiveContext *cx,
                                                    unsigned flags, int shortid, Shape **spp,
                                                    bool allowDictionary);
 template /* static */ Shape *
-JSObject::addPropertyInternal<ParallelExecution>(ForkJoinSlice *cx,
+JSObject::addPropertyInternal<ParallelExecution>(ForkJoinContext *cx,
                                                  HandleObject obj, HandleId id,
                                                  PropertyOp getter, StrictPropertyOp setter,
                                                  uint32_t slot, unsigned attrs,
@@ -717,8 +704,8 @@ js::NewReshapedObject(JSContext *cx, HandleTypeObject type, JSObject *parent,
                 return nullptr;
         }
 
-        StackShape child(nbase, id, i, res->numFixedSlots(), JSPROP_ENUMERATE, 0, 0);
-        newShape = cx->compartment()->propertyTree.getChild(cx, newShape, res->numFixedSlots(), child);
+        StackShape child(nbase, id, i, JSPROP_ENUMERATE, 0, 0);
+        newShape = cx->compartment()->propertyTree.getChild(cx, newShape, child);
         if (!newShape)
             return nullptr;
         if (!JSObject::setLastProperty(cx, res, newShape))
@@ -914,7 +901,7 @@ JSObject::putProperty(typename ExecutionModeTraits<mode>::ExclusiveContextType c
         JS_ASSERT(shape == obj->lastProperty());
 
         /* Find or create a property tree node labeled by our arguments. */
-        StackShape child(nbase, id, slot, obj->numFixedSlots(), attrs, flags, shortid);
+        StackShape child(nbase, id, slot, attrs, flags, shortid);
         RootedShape parent(cx, shape->parent);
         Shape *newShape = getOrLookupChildProperty<mode>(cx, obj, parent, child);
 
@@ -952,7 +939,7 @@ JSObject::putProperty<SequentialExecution>(ExclusiveContext *cx,
                                            uint32_t slot, unsigned attrs,
                                            unsigned flags, int shortid);
 template /* static */ Shape *
-JSObject::putProperty<ParallelExecution>(ForkJoinSlice *cx,
+JSObject::putProperty<ParallelExecution>(ForkJoinContext *cx,
                                          HandleObject obj, HandleId id,
                                          PropertyOp getter, StrictPropertyOp setter,
                                          uint32_t slot, unsigned attrs,
@@ -1012,7 +999,7 @@ JSObject::changeProperty<SequentialExecution>(ExclusiveContext *cx,
                                               unsigned attrs, unsigned mask,
                                               PropertyOp getter, StrictPropertyOp setter);
 template /* static */ Shape *
-JSObject::changeProperty<ParallelExecution>(ForkJoinSlice *slice,
+JSObject::changeProperty<ParallelExecution>(ForkJoinContext *cx,
                                             HandleObject obj, HandleShape shape,
                                             unsigned attrs, unsigned mask,
                                             PropertyOp getter, StrictPropertyOp setter);
@@ -1432,11 +1419,11 @@ Shape::setObjectFlag(ExclusiveContext *cx, BaseShape::Flag flag, TaggedProto pro
 StackBaseShape::hash(const StackBaseShape *base)
 {
     HashNumber hash = base->flags;
-    hash = JS_ROTATE_LEFT32(hash, 4) ^ (uintptr_t(base->clasp) >> 3);
-    hash = JS_ROTATE_LEFT32(hash, 4) ^ (uintptr_t(base->parent) >> 3);
-    hash = JS_ROTATE_LEFT32(hash, 4) ^ (uintptr_t(base->metadata) >> 3);
-    hash = JS_ROTATE_LEFT32(hash, 4) ^ uintptr_t(base->rawGetter);
-    hash = JS_ROTATE_LEFT32(hash, 4) ^ uintptr_t(base->rawSetter);
+    hash = RotateLeft(hash, 4) ^ (uintptr_t(base->clasp) >> 3);
+    hash = RotateLeft(hash, 4) ^ (uintptr_t(base->parent) >> 3);
+    hash = RotateLeft(hash, 4) ^ (uintptr_t(base->metadata) >> 3);
+    hash = RotateLeft(hash, 4) ^ uintptr_t(base->rawGetter);
+    hash = RotateLeft(hash, 4) ^ uintptr_t(base->rawSetter);
     return hash;
 }
 
@@ -1452,28 +1439,28 @@ StackBaseShape::match(UnownedBaseShape *key, const StackBaseShape *lookup)
 }
 
 void
-StackBaseShape::AutoRooter::trace(JSTracer *trc)
+StackBaseShape::trace(JSTracer *trc)
 {
-    if (base->parent) {
-        gc::MarkObjectRoot(trc, (JSObject**)&base->parent,
-                           "StackBaseShape::AutoRooter parent");
+    if (parent) {
+        gc::MarkObjectRoot(trc, (JSObject**)&parent,
+                           "StackBaseShape parent");
     }
-    if (base->metadata) {
-        gc::MarkObjectRoot(trc, (JSObject**)&base->metadata,
-                           "StackBaseShape::AutoRooter metadata");
+    if (metadata) {
+        gc::MarkObjectRoot(trc, (JSObject**)&metadata,
+                           "StackBaseShape metadata");
     }
-    if ((base->flags & BaseShape::HAS_GETTER_OBJECT) && base->rawGetter) {
-        gc::MarkObjectRoot(trc, (JSObject**)&base->rawGetter,
-                           "StackBaseShape::AutoRooter getter");
+    if ((flags & BaseShape::HAS_GETTER_OBJECT) && rawGetter) {
+        gc::MarkObjectRoot(trc, (JSObject**)&rawGetter,
+                           "StackBaseShape getter");
     }
-    if ((base->flags & BaseShape::HAS_SETTER_OBJECT) && base->rawSetter) {
-        gc::MarkObjectRoot(trc, (JSObject**)&base->rawSetter,
-                           "StackBaseShape::AutoRooter setter");
+    if ((flags & BaseShape::HAS_SETTER_OBJECT) && rawSetter) {
+        gc::MarkObjectRoot(trc, (JSObject**)&rawSetter,
+                           "StackBaseShape setter");
     }
 }
 
 /* static */ UnownedBaseShape*
-BaseShape::getUnowned(ExclusiveContext *cx, const StackBaseShape &base)
+BaseShape::getUnowned(ExclusiveContext *cx, StackBaseShape &base)
 {
     BaseShapeSet &table = cx->compartment()->baseShapes;
 
@@ -1484,17 +1471,17 @@ BaseShape::getUnowned(ExclusiveContext *cx, const StackBaseShape &base)
     if (p)
         return *p;
 
-    StackBaseShape::AutoRooter root(cx, &base);
+    RootedGeneric<StackBaseShape*> root(cx, &base);
 
     BaseShape *nbase_ = js_NewGCBaseShape<CanGC>(cx);
     if (!nbase_)
         return nullptr;
 
-    new (nbase_) BaseShape(base);
+    new (nbase_) BaseShape(*root);
 
     UnownedBaseShape *nbase = static_cast<UnownedBaseShape *>(nbase_);
 
-    if (!p.add(cx, table, &base, nbase))
+    if (!p.add(cx, table, root, nbase))
         return nullptr;
 
     return nbase;
@@ -1575,9 +1562,9 @@ InitialShapeEntry::getLookup() const
 InitialShapeEntry::hash(const Lookup &lookup)
 {
     HashNumber hash = uintptr_t(lookup.clasp) >> 3;
-    hash = JS_ROTATE_LEFT32(hash, 4) ^
+    hash = RotateLeft(hash, 4) ^
         (uintptr_t(lookup.hashProto.toWord()) >> 3);
-    hash = JS_ROTATE_LEFT32(hash, 4) ^
+    hash = RotateLeft(hash, 4) ^
         (uintptr_t(lookup.hashParent) >> 3) ^
         (uintptr_t(lookup.hashMetadata) >> 3);
     return hash + lookup.nfixed;
@@ -1634,7 +1621,8 @@ class InitialShapeSetRef : public BufferableRef
         JSObject *priorMetadata = metadata;
         if (proto.isObject())
             Mark(trc, reinterpret_cast<JSObject**>(&proto), "initialShapes set proto");
-        Mark(trc, &parent, "initialShapes set parent");
+        if (parent)
+            Mark(trc, &parent, "initialShapes set parent");
         if (metadata)
             Mark(trc, &metadata, "initialShapes set metadata");
         if (proto == priorProto && parent == priorParent && metadata == priorMetadata)
@@ -1660,7 +1648,7 @@ class InitialShapeSetRef : public BufferableRef
     }
 };
 
-#ifdef DEBUG
+#ifdef JS_GC_ZEAL
 void
 JSCompartment::checkInitialShapesTableAfterMovingGC()
 {

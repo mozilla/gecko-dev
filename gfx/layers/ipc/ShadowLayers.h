@@ -148,7 +148,8 @@ public:
    */
   void Connect(CompositableClient* aCompositable);
 
-  virtual PTextureChild* CreateEmptyTextureChild() MOZ_OVERRIDE;
+  virtual PTextureChild* CreateTexture(const SurfaceDescriptor& aSharedData,
+                                       TextureFlags aFlags) MOZ_OVERRIDE;
 
   virtual void CreatedSingleBuffer(CompositableClient* aCompositable,
                                    const SurfaceDescriptor& aDescriptor,
@@ -450,7 +451,7 @@ private:
                                    gfx::IntSize* aSize,
                                    gfxASurface** aSurface);
   // And again, for the image format.
-  // This function will return gfxImageFormatUnknown only if |aDescriptor|
+  // This function will return gfxImageFormat::Unknown only if |aDescriptor|
   // describes a non-ImageSurface.
   static gfxImageFormat
   GetDescriptorSurfaceImageFormat(const SurfaceDescriptor& aDescriptor,

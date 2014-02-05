@@ -1623,7 +1623,7 @@ HTMLMediaElement::MozGetMetadata(JSContext* cx, ErrorResult& aRv)
     return nullptr;
   }
 
-  JS::Rooted<JSObject*> tags(cx, JS_NewObject(cx, nullptr, nullptr, nullptr));
+  JS::Rooted<JSObject*> tags(cx, JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr()));
   if (!tags) {
     aRv.Throw(NS_ERROR_FAILURE);
     return nullptr;
@@ -1642,14 +1642,14 @@ HTMLMediaElement::MozGetMetadata(JSContext* cx, ErrorResult& aRv)
 }
 
 NS_IMETHODIMP
-HTMLMediaElement::MozGetMetadata(JSContext* cx, JS::Value* aValue)
+HTMLMediaElement::MozGetMetadata(JSContext* cx, JS::MutableHandle<JS::Value> aValue)
 {
   ErrorResult rv;
 
   JSObject* obj = MozGetMetadata(cx, rv);
   if (!rv.Failed()) {
     MOZ_ASSERT(obj);
-    *aValue = JS::ObjectValue(*obj);
+    aValue.setObject(*obj);
   }
 
   return rv.ErrorCode();
@@ -3294,6 +3294,13 @@ nsresult HTMLMediaElement::DispatchAsyncEvent(const nsAString& aName)
   LOG_EVENT(PR_LOG_DEBUG, ("%p Queuing event %s", this,
             NS_ConvertUTF16toUTF8(aName).get()));
 
+  // Save events that occur while in the bfcache. These will be dispatched
+  // if the page comes out of the bfcache.
+  if (mEventDeliveryPaused) {
+    mPendingEvents.AppendElement(aName);
+    return NS_OK;
+  }
+
   nsCOMPtr<nsIRunnable> event = new nsAsyncEventRunner(aName, this);
   NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
   return NS_OK;
@@ -3352,7 +3359,8 @@ void HTMLMediaElement::NotifyDecoderPrincipalChanged()
 
   bool subsumes;
   mDecoder->UpdateSameOriginStatus(
-    NS_SUCCEEDED(NodePrincipal()->Subsumes(principal, &subsumes)) && subsumes);
+    !principal ||
+    (NS_SUCCEEDED(NodePrincipal()->Subsumes(principal, &subsumes)) && subsumes));
 
   for (uint32_t i = 0; i < mOutputStreams.Length(); ++i) {
     OutputMediaStream* ms = &mOutputStreams[i];
@@ -3677,12 +3685,12 @@ void HTMLMediaElement::FireTimeUpdate(bool aPeriodic)
     mDecoder->SetFragmentEndTime(mFragmentEnd);
   }
 
-  // Update visible text tracks.
+  // Update the cues displaying on the video.
   // Here mTextTrackManager can be null if the cycle collector has unlinked
   // us before our parent. In that case UnbindFromTree will call us
   // when our parent is unlinked.
   if (mTextTrackManager) {
-    mTextTrackManager->Update(time);
+    mTextTrackManager->UpdateCueDisplay();
   }
 }
 

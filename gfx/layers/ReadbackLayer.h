@@ -8,7 +8,6 @@
 
 #include <stdint.h>                     // for uint64_t
 #include "Layers.h"                     // for Layer, etc
-#include "gfx3DMatrix.h"                // for gfx3DMatrix
 #include "gfxColor.h"                   // for gfxRGBA
 #include "gfxRect.h"                    // for gfxRect
 #include "mozilla/mozalloc.h"           // for operator delete
@@ -84,7 +83,7 @@ class ReadbackLayer : public Layer {
 public:
   MOZ_LAYER_DECL_NAME("ReadbackLayer", TYPE_READBACK)
 
-  virtual void ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface)
+  virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface)
   {
     // Snap our local transform first, and snap the inherited transform as well.
     // This makes our snapping equivalent to what would happen if our content

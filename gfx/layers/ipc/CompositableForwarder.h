@@ -13,6 +13,7 @@
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/ISurfaceAllocator.h"  // for ISurfaceAllocator
 #include "mozilla/layers/LayersTypes.h"  // for LayersBackend
+#include "mozilla/layers/TextureClient.h"  // for TextureClient
 #include "nsRegion.h"                   // for nsIntRegion
 
 struct nsIntPoint;
@@ -27,10 +28,8 @@ class SurfaceDescriptor;
 class SurfaceDescriptorTiles;
 class ThebesBufferData;
 class DeprecatedTextureClient;
-class TextureClient;
 class BasicTiledLayerBuffer;
 class PTextureChild;
-class TextureClientData;
 
 /**
  * A transaction is a set of changes that happenned on the content side, that
@@ -96,12 +95,9 @@ public:
                                        const SurfaceDescriptorTiles& aTiledDescriptor) = 0;
 
   /**
-   * Create an unitialized TextureChild.
-   *
-   * This does not trigger the the creation of a TextureHost on the compositor
-   * side (see PTexture::Init).
+   * Create a TextureChild/Parent pair as as well as the TextureHost on the parent side.
    */
-  virtual PTextureChild* CreateEmptyTextureChild() = 0;
+  virtual PTextureChild* CreateTexture(const SurfaceDescriptor& aSharedData, TextureFlags aFlags) = 0;
 
   /**
    * Communicate to the compositor that the texture identified by aCompositable
@@ -166,6 +162,29 @@ public:
   virtual void RemoveTexture(TextureClient* aTexture) = 0;
 
   /**
+   * Forcibly remove texture data from TextureClient
+   * after a tansaction with Compositor.
+   */
+  virtual void AddForceRemovingTexture(TextureClient* aClient)
+  {
+    if (aClient) {
+      mForceRemovingTextures.AppendElement(aClient);
+    }
+  }
+
+  /**
+   * Forcibly remove texture data from TextureClient
+   * This function needs to be called after a tansaction with Compositor.
+   */
+  virtual void ForceRemoveTexturesIfNecessary()
+  {
+    for (uint32_t i = 0; i < mForceRemovingTextures.Length(); i++) {
+       mForceRemovingTextures[i]->ForceRemove();
+    }
+    mForceRemovingTextures.Clear();
+  }
+
+  /**
    * Tell the CompositableHost on the compositor side what texture to use for
    * the next composition.
    */
@@ -222,6 +241,7 @@ public:
 protected:
   TextureFactoryIdentifier mTextureFactoryIdentifier;
   bool mMultiProcess;
+  nsTArray<RefPtr<TextureClient> > mForceRemovingTextures;
 };
 
 } // namespace

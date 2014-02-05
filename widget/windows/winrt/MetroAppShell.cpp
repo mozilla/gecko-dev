@@ -17,6 +17,11 @@
 #include "nsIAppStartup.h"
 #include "nsToolkitCompsCID.h"
 #include <shellapi.h>
+#include "nsIDOMWakeLockListener.h"
+#include "nsIPowerManagerService.h"
+#include "mozilla/StaticPtr.h"
+#include <windows.system.display.h>
+#include "nsWinMetroUtils.h"
 
 using namespace mozilla;
 using namespace mozilla::widget;
@@ -46,6 +51,33 @@ namespace widget {
 extern UINT sAppShellGeckoMsgId;
 } }
 
+class WakeLockListener : public nsIDOMMozWakeLockListener {
+public:
+  NS_DECL_ISUPPORTS;
+
+private:
+  ComPtr<ABI::Windows::System::Display::IDisplayRequest> mDisplayRequest;
+
+  NS_IMETHOD Callback(const nsAString& aTopic, const nsAString& aState) {
+    if (!mDisplayRequest) {
+      if (FAILED(ActivateGenericInstance(RuntimeClass_Windows_System_Display_DisplayRequest, mDisplayRequest))) {
+        NS_WARNING("Failed to instantiate IDisplayRequest, wakelocks will be broken!");
+        return NS_OK;
+      }
+    }
+
+    if (aState.Equals(NS_LITERAL_STRING("locked-foreground"))) {
+      mDisplayRequest->RequestActive();
+    } else {
+      mDisplayRequest->RequestRelease();
+    }
+
+    return NS_OK;
+  }
+};
+
+NS_IMPL_ISUPPORTS1(WakeLockListener, nsIDOMMozWakeLockListener)
+StaticRefPtr<WakeLockListener> sWakeLockListener;
 static ComPtr<ICoreWindowStatic> sCoreStatic;
 static bool sIsDispatching = false;
 static bool sShouldPurgeThreadQueue = false;
@@ -123,7 +155,7 @@ HRESULT SHCreateShellItemArrayFromShellItemDynamic(IShellItem *psi, REFIID riid,
 HRESULT
 WinLaunchDeferredMetroFirefox()
 {
-  // Create an instance of the Firefox Metro DEH which is used to launch the browser
+  // Create an instance of the Firefox Metro CEH which is used to launch the browser
   const CLSID CLSID_FirefoxMetroDEH = {0x5100FEC1,0x212B, 0x4BF5 ,{0x9B,0xF8, 0x3E,0x65, 0x0F,0xD7,0x94,0xA3}};
 
   nsRefPtr<IExecuteCommand> executeCommand;
@@ -167,11 +199,15 @@ WinLaunchDeferredMetroFirefox()
   if (FAILED(hr))
     return hr;
 
-  hr = executeCommand->SetParameters(L"--metro-restart");
+  if (nsWinMetroUtils::sUpdatePending) {
+    hr = executeCommand->SetParameters(L"--metro-update");
+  } else {
+    hr = executeCommand->SetParameters(L"--metro-restart");
+  }
   if (FAILED(hr))
     return hr;
 
-  // Run the default browser through the DEH
+  // Run the default browser through the CEH
   return executeCommand->Execute();
 }
 
@@ -196,10 +232,26 @@ MetroAppShell::Run(void)
       rv = NS_ERROR_NOT_IMPLEMENTED;
     break;
     case GeckoProcessType_Default: {
+      nsCOMPtr<nsIPowerManagerService> sPowerManagerService = do_GetService(POWERMANAGERSERVICE_CONTRACTID);
+      if (sPowerManagerService) {
+        sWakeLockListener = new WakeLockListener();
+        sPowerManagerService->AddWakeLockListener(sWakeLockListener);
+      }
+      else {
+        NS_WARNING("Failed to retrieve PowerManagerService, wakelocks will be broken!");
+      }
+
       mozilla::widget::StartAudioSession();
       sFrameworkView->ActivateView();
       rv = nsBaseAppShell::Run();
       mozilla::widget::StopAudioSession();
+
+      if (sPowerManagerService) {
+        sPowerManagerService->RemoveWakeLockListener(sWakeLockListener);
+
+        sPowerManagerService = nullptr;
+        sWakeLockListener = nullptr;
+      }
 
       nsCOMPtr<nsIAppStartup> appStartup (do_GetService(NS_APPSTARTUP_CONTRACTID));
       bool restartingInMetro = false, restartingInDesktop = false;
@@ -215,19 +267,22 @@ MetroAppShell::Run(void)
 
       // This calls XRE_metroShutdown() in xre. Shuts down gecko, including
       // releasing the profile, and destroys MessagePump.
-      sMetroApp->ShutdownXPCOM();
+      sMetroApp->Shutdown();
 
       // Handle update restart or browser switch requests
       if (restartingInDesktop) {
         WinUtils::Log("Relaunching desktop browser");
+        // We can't call into the ceh to do this. Microsoft prevents switching to
+        // desktop unless we go through shell execute.
         SHELLEXECUTEINFOW sinfo;
         memset(&sinfo, 0, sizeof(SHELLEXECUTEINFOW));
         sinfo.cbSize       = sizeof(SHELLEXECUTEINFOW);
-        // Per the Metro style enabled desktop browser, for some reason,
-        // SEE_MASK_FLAG_LOG_USAGE is needed to change from immersive mode
-        // to desktop.
+        // Per microsoft's metro style enabled desktop browser documentation
+        // SEE_MASK_FLAG_LOG_USAGE is needed if we want to change from immersive
+        // mode to desktop mode.
         sinfo.fMask        = SEE_MASK_FLAG_LOG_USAGE;
-        sinfo.lpFile       = L"http://-desktop";
+        // The ceh will filter out this fake target.
+        sinfo.lpFile       = L"http://-desktop/";
         sinfo.lpVerb       = L"open";
         sinfo.lpParameters = L"--desktop-restart";
         sinfo.nShow        = SW_SHOWNORMAL;
@@ -277,8 +332,8 @@ MetroAppShell::InputEventsDispatched()
 void
 MetroAppShell::DispatchAllGeckoEvents()
 {
-  // Only do this if requested
-  if (!sShouldPurgeThreadQueue) {
+  // Only do this if requested and when we're not shutting down
+  if (!sShouldPurgeThreadQueue || MetroApp::sGeckoShuttingDown) {
     return;
   }
 
@@ -367,6 +422,15 @@ void
 MetroAppShell::NativeCallback()
 {
   NS_ASSERTION(NS_IsMainThread(), "Native callbacks must be on the metro main thread");
+
+  // We shouldn't process native events during xpcom shutdown - this can
+  // trigger unexpected xpcom event dispatching for the main thread when
+  // the thread manager is in the process of shutting down non-main threads,
+  // resulting in shutdown hangs.
+  if (MetroApp::sGeckoShuttingDown) {
+    return;
+  }
+
   NativeEventCallback();
 }
 

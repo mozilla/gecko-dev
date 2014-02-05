@@ -309,7 +309,7 @@ PreallocatedProcessManagerImpl::PublishSpareProcess(ContentParent* aContent)
       do_GetService("@mozilla.org/parentprocessmessagemanager;1");
     nsresult rv = ppmm->BroadcastAsyncMessage(
       NS_LITERAL_STRING("TEST-ONLY:nuwa-add-new-process"),
-      JSVAL_NULL, JSVAL_NULL, cx, 1);
+      JS::NullHandleValue, JS::NullHandleValue, cx, 1);
   }
 
   if (!mNuwaForkWaitTasks.IsEmpty()) {
@@ -354,7 +354,7 @@ PreallocatedProcessManagerImpl::OnNuwaReady()
 {
   NS_ASSERTION(!mIsNuwaReady, "Multiple Nuwa processes created!");
   ProcessPriorityManager::SetProcessPriority(mPreallocatedAppProcess,
-                                             hal::PROCESS_PRIORITY_FOREGROUND);
+                                             hal::PROCESS_PRIORITY_MASTER);
   mIsNuwaReady = true;
   if (Preferences::GetBool("dom.ipc.processPriorityManager.testMode")) {
     AutoJSContext cx;
@@ -362,7 +362,7 @@ PreallocatedProcessManagerImpl::OnNuwaReady()
       do_GetService("@mozilla.org/parentprocessmessagemanager;1");
     nsresult rv = ppmm->BroadcastAsyncMessage(
       NS_LITERAL_STRING("TEST-ONLY:nuwa-ready"),
-      JSVAL_NULL, JSVAL_NULL, cx, 1);
+      JS::NullHandleValue, JS::NullHandleValue, cx, 1);
   }
   NuwaFork();
 }

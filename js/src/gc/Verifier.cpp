@@ -36,7 +36,7 @@ CheckNonAddressThing(uintptr_t *w, Rooted<T> *rootp)
     return w >= (uintptr_t*)rootp->address() && w < (uintptr_t*)(rootp->address() + 1);
 }
 
-static JS_ALWAYS_INLINE bool
+static MOZ_ALWAYS_INLINE bool
 CheckStackRootThing(uintptr_t *w, Rooted<void *> *rootp, ThingRootKind kind)
 {
     if (kind == THING_ROOT_BINDINGS)
@@ -769,7 +769,7 @@ js::gc::EndVerifyPostBarriers(JSRuntime *rt)
     if (!edges.init())
         goto oom;
     trc->edges = &edges;
-    rt->gcStoreBuffer.mark(trc);
+    rt->gcStoreBuffer.markAll(trc);
 
     /* Walk the heap to find any edges not the the |edges| set. */
     JS_TracerInit(trc, rt, PostVerifierVisitEdge);

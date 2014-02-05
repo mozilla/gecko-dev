@@ -28,7 +28,6 @@
 #include "nsTArray.h"                   // for nsTArray
 
 class gfxContext;
-struct gfxMatrix;
 class gfxASurface;
 
 namespace mozilla {
@@ -98,7 +97,7 @@ public:
                                                             uint32_t aFlags) = 0;
   virtual gfx::DrawTarget* BorrowDrawTargetForPainting(ThebesLayer* aLayer,
                                                        const RotatedContentBuffer::PaintState& aPaintState) = 0;
-  virtual void ReturnDrawTarget(gfx::DrawTarget* aReturned) = 0;
+  virtual void ReturnDrawTargetToBuffer(gfx::DrawTarget*& aReturned) = 0;
 
   virtual void PrepareFrame() {}
 
@@ -148,7 +147,7 @@ public:
   {
     return RotatedContentBuffer::BorrowDrawTargetForPainting(aLayer, aPaintState);
   }
-  virtual void ReturnDrawTarget(gfx::DrawTarget* aReturned) MOZ_OVERRIDE
+  virtual void ReturnDrawTargetToBuffer(gfx::DrawTarget*& aReturned) MOZ_OVERRIDE
   {
     BorrowDrawTarget::ReturnDrawTarget(aReturned);
   }
@@ -158,7 +157,7 @@ public:
               float aOpacity,
               gfx::CompositionOp aOp,
               gfxASurface* aMask,
-              const gfxMatrix* aMaskTransform)
+              const gfx::Matrix* aMaskTransform)
   {
     RotatedContentBuffer::DrawTo(aLayer, aTarget, aOpacity, aOp,
                                  aMask, aMaskTransform);
@@ -218,7 +217,7 @@ public:
   {
     return RotatedContentBuffer::BorrowDrawTargetForPainting(aLayer, aPaintState);
   }
-  virtual void ReturnDrawTarget(gfx::DrawTarget* aReturned) MOZ_OVERRIDE
+  virtual void ReturnDrawTargetToBuffer(gfx::DrawTarget*& aReturned) MOZ_OVERRIDE
   {
     BorrowDrawTarget::ReturnDrawTarget(aReturned);
   }
@@ -310,7 +309,7 @@ public:
     , mDeprecatedTextureClient(nullptr)
     , mIsNewBuffer(false)
     , mFrontAndBackBufferDiffer(false)
-    , mContentType(GFX_CONTENT_COLOR_ALPHA)
+    , mContentType(gfxContentType::COLOR_ALPHA)
   {}
 
   typedef RotatedContentBuffer::PaintState PaintState;
@@ -328,7 +327,7 @@ public:
   {
     return RotatedContentBuffer::BorrowDrawTargetForPainting(aLayer, aPaintState);
   }
-  virtual void ReturnDrawTarget(gfx::DrawTarget* aReturned) MOZ_OVERRIDE
+  virtual void ReturnDrawTargetToBuffer(gfx::DrawTarget*& aReturned) MOZ_OVERRIDE
   {
     BorrowDrawTarget::ReturnDrawTarget(aReturned);
   }
@@ -537,7 +536,7 @@ class ContentClientIncremental : public ContentClientRemote
 public:
   ContentClientIncremental(CompositableForwarder* aFwd)
     : ContentClientRemote(aFwd)
-    , mContentType(GFX_CONTENT_COLOR_ALPHA)
+    , mContentType(gfxContentType::COLOR_ALPHA)
     , mHasBuffer(false)
     , mHasBufferOnWhite(false)
   {
@@ -563,7 +562,7 @@ public:
                                       uint32_t aFlags) MOZ_OVERRIDE;
   virtual gfx::DrawTarget* BorrowDrawTargetForPainting(ThebesLayer* aLayer,
                                                        const PaintState& aPaintState) MOZ_OVERRIDE;
-  virtual void ReturnDrawTarget(gfx::DrawTarget* aReturned) MOZ_OVERRIDE
+  virtual void ReturnDrawTargetToBuffer(gfx::DrawTarget*& aReturned) MOZ_OVERRIDE
   {
     BorrowDrawTarget::ReturnDrawTarget(aReturned);
   }

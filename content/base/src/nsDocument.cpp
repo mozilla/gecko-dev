@@ -2591,15 +2591,16 @@ nsDocument::InitCSP(nsIChannel* aChannel)
     cspROHeaderValue.Truncate();
   }
 
-  // If the old header is present, warn that it will be deprecated.
-  if (!cspOldHeaderValue.IsEmpty() || !cspOldROHeaderValue.IsEmpty()) {
-    mCSPWebConsoleErrorQueue.Add("OldCSPHeaderDeprecated");
+  // If both the new header AND the old header are present, warn that
+  // the old header will be ignored. Otherwise, if the old header is
+  // present, warn that it will be deprecated.
+  bool oldHeaderIsPresent = !cspOldHeaderValue.IsEmpty() || !cspOldROHeaderValue.IsEmpty();
+  bool newHeaderIsPresent = !cspHeaderValue.IsEmpty() || !cspROHeaderValue.IsEmpty();
 
-    // Also, if the new headers AND the old headers were present, warn
-    // that the old headers will be ignored.
-    if (!cspHeaderValue.IsEmpty() || !cspROHeaderValue.IsEmpty()) {
-      mCSPWebConsoleErrorQueue.Add("BothCSPHeadersPresent");
-    }
+  if (oldHeaderIsPresent && newHeaderIsPresent) {
+    mCSPWebConsoleErrorQueue.Add("BothCSPHeadersPresent");
+  } else if (oldHeaderIsPresent) {
+    mCSPWebConsoleErrorQueue.Add("OldCSPHeaderDeprecated");
   }
 
   // Figure out if we need to apply an app default CSP or a CSP from an app manifest
@@ -2690,7 +2691,7 @@ nsDocument::InitCSP(nsIChannel* aChannel)
   aChannel->GetURI(getter_AddRefs(selfURI));
 
   // Store the request context for violation reports
-  csp->ScanRequestData(httpChannel);
+  csp->SetRequestContext(nullptr, nullptr, nullptr, aChannel);
 
   // ----- if the doc is an app and we want a default CSP, apply it.
   if (applyAppDefaultCSP) {
@@ -4257,10 +4258,7 @@ nsIDocument::SetContainer(nsDocShell* aContainer)
   }
 
   // Get the Docshell
-  int32_t itemType;
-  aContainer->GetItemType(&itemType);
-  // check itemtype
-  if (itemType == nsIDocShellTreeItem::typeContent) {
+  if (aContainer->ItemType() == nsIDocShellTreeItem::typeContent) {
     // check if same type root
     nsCOMPtr<nsIDocShellTreeItem> sameTypeRoot;
     aContainer->GetSameTypeRootTreeItem(getter_AddRefs(sameTypeRoot));
@@ -5286,7 +5284,7 @@ nsDocument::Register(JSContext* aCx, const nsAString& aName,
 
   JS::Rooted<JSObject*> protoObject(aCx);
   if (!aOptions.mPrototype) {
-    protoObject = JS_NewObject(aCx, nullptr, htmlProto, nullptr);
+    protoObject = JS_NewObject(aCx, nullptr, htmlProto, JS::NullPtr());
     if (!protoObject) {
       rv.Throw(NS_ERROR_UNEXPECTED);
       return nullptr;
@@ -5385,7 +5383,7 @@ nsDocument::Register(JSContext* aCx, const nsAString& aName,
   // Create constructor to return. Store the name of the custom element as the
   // name of the function.
   JSFunction* constructor = JS_NewFunction(aCx, CustomElementConstructor, 0,
-                                           JSFUN_CONSTRUCTOR, nullptr,
+                                           JSFUN_CONSTRUCTOR, JS::NullPtr(),
                                            NS_ConvertUTF16toUTF8(lcName).get());
   JSObject* constructorObject = JS_GetFunctionObject(constructor);
   return constructorObject;
@@ -5405,15 +5403,18 @@ nsDocument::GetElementsByTagName(const nsAString& aTagname,
 
 already_AddRefed<nsContentList>
 nsIDocument::GetElementsByTagNameNS(const nsAString& aNamespaceURI,
-                                    const nsAString& aLocalName)
+                                    const nsAString& aLocalName,
+                                    ErrorResult& aResult)
 {
   int32_t nameSpaceId = kNameSpaceID_Wildcard;
 
   if (!aNamespaceURI.EqualsLiteral("*")) {
-    nsresult rv =
+    aResult =
       nsContentUtils::NameSpaceManager()->RegisterNameSpace(aNamespaceURI,
                                                             nameSpaceId);
-    NS_ENSURE_SUCCESS(rv, nullptr);
+    if (aResult.Failed()) {
+      return nullptr;
+    }
   }
 
   NS_ASSERTION(nameSpaceId != kNameSpaceID_Unknown, "Unexpected namespace ID!");
@@ -5426,9 +5427,12 @@ nsDocument::GetElementsByTagNameNS(const nsAString& aNamespaceURI,
                                    const nsAString& aLocalName,
                                    nsIDOMNodeList** aReturn)
 {
+  ErrorResult rv;
   nsRefPtr<nsContentList> list =
-    nsIDocument::GetElementsByTagNameNS(aNamespaceURI, aLocalName);
-  NS_ENSURE_TRUE(list, NS_ERROR_OUT_OF_MEMORY);
+    nsIDocument::GetElementsByTagNameNS(aNamespaceURI, aLocalName, rv);
+  if (rv.Failed()) {
+    return rv.ErrorCode();
+  }
 
   // transfer ref to aReturn
   *aReturn = list.forget().get();
@@ -6911,6 +6915,14 @@ nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
       // app that does not use it.
       nsCOMPtr<nsIDocShell> docShell(mDocumentContainer);
       if (docShell && docShell->GetIsApp()) {
+        nsString uri;
+        GetDocumentURI(uri);
+        if (!uri.EqualsLiteral("about:blank")) {
+          nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
+                                          NS_LITERAL_CSTRING("DOM"), this,
+                                          nsContentUtils::eDOM_PROPERTIES,
+                                          "ImplicitMetaViewportTagFallback");
+        }
         mViewportType = DisplayWidthHeightNoZoom;
         return nsViewportInfo(aDisplaySize, /* allowZoom */ false);
       }

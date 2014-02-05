@@ -8,25 +8,19 @@ module.metadata = {
 };
 
 const { emit, off } = require("./event/core");
-const { when: unload } = require("./system/unload");
 const { PrefsTarget } = require("./preferences/event-target");
-const { id } = require("./self");
-const observers = require("./deprecated/observer-service");
+const { preferencesBranch, id } = require("./self");
+const { on } = require("./system/events");
 
-const ADDON_BRANCH = "extensions." + id + ".";
+const ADDON_BRANCH = "extensions." + preferencesBranch + ".";
 const BUTTON_PRESSED = id + "-cmdPressed";
 
 const target = PrefsTarget({ branchName: ADDON_BRANCH });
 
 // Listen to clicks on buttons
-function buttonClick(subject, data) {
+function buttonClick({ data }) {
   emit(target, data);
 }
-observers.add(BUTTON_PRESSED, buttonClick);
-
-// Make sure we cleanup listeners on unload.
-unload(function() {
-  observers.remove(BUTTON_PRESSED, buttonClick);
-});
+on(BUTTON_PRESSED, buttonClick);
 
 module.exports = target;

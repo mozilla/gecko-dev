@@ -21,7 +21,6 @@
 #include "nsIDOMEvent.h"
 #include "nsIDOMDragEvent.h"
 #include "nsPIDOMWindow.h"
-#include "nsIDOMDocument.h"
 #include "nsIDOMRange.h"
 #include "nsIFormControl.h"
 #include "nsIDOMHTMLAreaElement.h"
@@ -52,6 +51,7 @@
 #include "imgIRequest.h"
 #include "nsDOMDataTransfer.h"
 #include "nsIMIMEInfo.h"
+#include "nsRange.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/HTMLAreaElement.h"
 
@@ -339,20 +339,17 @@ void
 DragDataProducer::GetNodeString(nsIContent* inNode,
                                 nsAString & outNodeString)
 {
-  nsCOMPtr<nsIDOMNode> node = do_QueryInterface(inNode);
+  nsCOMPtr<nsINode> node = inNode;
 
   outNodeString.Truncate();
 
   // use a range to get the text-equivalent of the node
-  nsCOMPtr<nsIDOMDocument> doc;
-  node->GetOwnerDocument(getter_AddRefs(doc));
-  if (doc) {
-    nsCOMPtr<nsIDOMRange> range;
-    doc->CreateRange(getter_AddRefs(range));
-    if (range) {
-      range->SelectNode(node);
-      range->ToString(outNodeString);
-    }
+  nsCOMPtr<nsIDocument> doc = node->OwnerDoc();
+  mozilla::ErrorResult rv;
+  nsRefPtr<nsRange> range = doc->CreateRange(rv);
+  if (range) {
+    range->SelectNode(*node, rv);
+    range->ToString(outNodeString);
   }
 }
 
@@ -411,16 +408,10 @@ DragDataProducer::Produce(nsDOMDataTransfer* aDataTransfer,
   // if set, serialize the content under this node
   nsCOMPtr<nsIContent> nodeToSerialize;
 
-  bool isChromeShell = false;
   nsCOMPtr<nsIWebNavigation> webnav = do_GetInterface(mWindow);
   nsCOMPtr<nsIDocShellTreeItem> dsti = do_QueryInterface(webnav);
-  if (dsti) {
-    int32_t type = -1;
-    if (NS_SUCCEEDED(dsti->GetItemType(&type)) &&
-        type == nsIDocShellTreeItem::typeChrome) {
-      isChromeShell = true;
-    }
-  }
+  const bool isChromeShell =
+    dsti && dsti->ItemType() == nsIDocShellTreeItem::typeChrome;
 
   // In chrome shells, only allow dragging inside editable areas.
   if (isChromeShell && !editingElement)

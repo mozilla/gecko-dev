@@ -49,56 +49,14 @@ nsMathMLmunderoverFrame::UpdatePresentationData(uint32_t        aFlagsValues,
 {
   nsMathMLContainerFrame::UpdatePresentationData(aFlagsValues, aFlagsToUpdate);
   // disable the stretch-all flag if we are going to act like a subscript-superscript pair
-  if ( NS_MATHML_EMBELLISH_IS_MOVABLELIMITS(mEmbellishData.flags) &&
-      !NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags)) {
+  if (NS_MATHML_EMBELLISH_IS_MOVABLELIMITS(mEmbellishData.flags) &&
+      StyleFont()->mMathDisplay == NS_MATHML_DISPLAYSTYLE_INLINE) {
     mPresentationData.flags &= ~NS_MATHML_STRETCH_ALL_CHILDREN_HORIZONTALLY;
   }
   else {
     mPresentationData.flags |= NS_MATHML_STRETCH_ALL_CHILDREN_HORIZONTALLY;
   }
   return NS_OK;
-}
-
-NS_IMETHODIMP
-nsMathMLmunderoverFrame::UpdatePresentationDataFromChildAt(int32_t         aFirstIndex,
-                                                           int32_t         aLastIndex,
-                                                           uint32_t        aFlagsValues,
-                                                           uint32_t        aFlagsToUpdate)
-{
-  // munderover is special... The REC says:
-  // Within underscript, <munder> always sets displaystyle to "false", 
-  // but increments scriptlevel by 1 only when accentunder is "false".
-  // Within underscript, <munderover> always sets displaystyle to "false",
-  // but increments scriptlevel by 1 only when accentunder is "false". 
-  // This means that
-  // 1. don't allow displaystyle to change in the underscript & overscript
-  // 2a if the value of the accent is changed, we need to recompute the
-  //    scriptlevel of the underscript. The problem is that the accent
-  //    can change in the <mo> deep down the embellished hierarchy
-  // 2b if the value of the accent is changed, we need to recompute the
-  //    scriptlevel of the overscript. The problem is that the accent
-  //    can change in the <mo> deep down the embellished hierarchy
-
-  // Do #1 here, prevent displaystyle to be changed in the underscript & overscript
-  int32_t index = 0;
-  nsIFrame* childFrame = mFrames.FirstChild();
-  while (childFrame) {
-    if ((index >= aFirstIndex) &&
-        ((aLastIndex <= 0) || ((aLastIndex > 0) && (index <= aLastIndex)))) {
-      if (index > 0) {
-        // disable the flag
-        aFlagsToUpdate &= ~NS_MATHML_DISPLAYSTYLE;
-        aFlagsValues &= ~NS_MATHML_DISPLAYSTYLE;
-      }
-      PropagatePresentationDataFor(childFrame, aFlagsValues, aFlagsToUpdate);
-    }
-    index++;
-    childFrame = childFrame->GetNextSibling();
-  }
-  return NS_OK;
-
-  // For #2, changing the accent attribute will trigger a re-build of
-  // all automatic data in the embellished hierarchy
 }
 
 NS_IMETHODIMP
@@ -110,6 +68,27 @@ nsMathMLmunderoverFrame::InheritAutomaticData(nsIFrame* aParent)
   mPresentationData.flags |= NS_MATHML_STRETCH_ALL_CHILDREN_HORIZONTALLY;
 
   return NS_OK;
+}
+
+uint8_t
+nsMathMLmunderoverFrame::ScriptIncrement(nsIFrame* aFrame)
+{
+  nsIFrame* child = mFrames.FirstChild();
+  if (!aFrame || aFrame == child) {
+    return 0;
+  }
+  child = child->GetNextSibling();
+  if (aFrame == child) {
+    if (mContent->Tag() == nsGkAtoms::mover_) {
+      return mIncrementOver ? 1 : 0;
+    }
+    return mIncrementUnder ? 1 : 0;
+  }
+  if (child && aFrame == child->GetNextSibling()) {
+    // must be a over frame of munderover
+    return mIncrementOver ? 1 : 0;
+  }
+  return 0;  // frame not found
 }
 
 NS_IMETHODIMP
@@ -186,8 +165,7 @@ XXX The winner is the outermost setting in conflicting settings like these:
     }    
 
     // if we have an accentunder attribute, it overrides what the underscript said
-    if (GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::accentunder_,
-                     value)) {
+    if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::accentunder_, value)) {
       if (value.EqualsLiteral("true")) {
         mEmbellishData.flags |= NS_MATHML_EMBELLISH_ACCENTUNDER;
       } else if (value.EqualsLiteral("false")) {
@@ -208,8 +186,7 @@ XXX The winner is the outermost setting in conflicting settings like these:
     }
 
     // if we have an accent attribute, it overrides what the overscript said
-    if (GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::accent_,
-                     value)) {
+    if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::accent_, value)) {
       if (value.EqualsLiteral("true")) {
         mEmbellishData.flags |= NS_MATHML_EMBELLISH_ACCENTOVER;
       } else if (value.EqualsLiteral("false")) {
@@ -220,7 +197,7 @@ XXX The winner is the outermost setting in conflicting settings like these:
 
   bool subsupDisplay =
     NS_MATHML_EMBELLISH_IS_MOVABLELIMITS(mEmbellishData.flags) &&
-    !NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags);
+    StyleFont()->mMathDisplay == NS_MATHML_DISPLAYSTYLE_INLINE;
 
   // disable the stretch-all flag if we are going to act like a superscript
   if (subsupDisplay) {
@@ -251,11 +228,15 @@ XXX The winner is the outermost setting in conflicting settings like these:
       tag == nsGkAtoms::munderover_) {
     uint32_t compress = NS_MATHML_EMBELLISH_IS_ACCENTOVER(mEmbellishData.flags)
       ? NS_MATHML_COMPRESSED : 0;
-    SetIncrementScriptLevel(tag == nsGkAtoms::mover_ ? 1 : 2,
-                            !NS_MATHML_EMBELLISH_IS_ACCENTOVER(mEmbellishData.flags) || subsupDisplay);
-    PropagatePresentationDataFor(overscriptFrame,
-                                 ~NS_MATHML_DISPLAYSTYLE | compress,
-                                 NS_MATHML_DISPLAYSTYLE | compress);
+    mIncrementOver =
+      !NS_MATHML_EMBELLISH_IS_ACCENTOVER(mEmbellishData.flags) ||
+      subsupDisplay;
+    SetIncrementScriptLevel(tag == nsGkAtoms::mover_ ? 1 : 2, mIncrementOver);
+    if (mIncrementOver) {
+      PropagateFrameFlagFor(overscriptFrame,
+                            NS_FRAME_MATHML_SCRIPT_DESCENDANT);
+    }
+    PropagatePresentationDataFor(overscriptFrame, compress, compress);
   }
   /*
      The TeXBook treats 'under' like a subscript, so p.141 or Rule 13a 
@@ -263,10 +244,17 @@ XXX The winner is the outermost setting in conflicting settings like these:
   */
   if (tag == nsGkAtoms::munder_ ||
       tag == nsGkAtoms::munderover_) {
-    SetIncrementScriptLevel(1, !NS_MATHML_EMBELLISH_IS_ACCENTUNDER(mEmbellishData.flags) || subsupDisplay);
+    mIncrementUnder =
+      !NS_MATHML_EMBELLISH_IS_ACCENTUNDER(mEmbellishData.flags) ||
+      subsupDisplay;
+    SetIncrementScriptLevel(1, mIncrementUnder);
+    if (mIncrementUnder) {
+      PropagateFrameFlagFor(underscriptFrame,
+                            NS_FRAME_MATHML_SCRIPT_DESCENDANT);
+    }
     PropagatePresentationDataFor(underscriptFrame,
-                                 ~NS_MATHML_DISPLAYSTYLE | NS_MATHML_COMPRESSED,
-                                 NS_MATHML_DISPLAYSTYLE | NS_MATHML_COMPRESSED);
+                                 NS_MATHML_COMPRESSED,
+                                 NS_MATHML_COMPRESSED);
   }
   return NS_OK;
 }
@@ -281,8 +269,8 @@ The REC says:
    used for limits on symbols such as &sum;.
 
 i.e.,:
- if ( NS_MATHML_EMBELLISH_IS_MOVABLELIMITS(mEmbellishDataflags) &&
-     !NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags)) {
+ if (NS_MATHML_EMBELLISH_IS_MOVABLELIMITS(mEmbellishDataflags) &&
+     StyleFont()->mMathDisplay == NS_MATHML_DISPLAYSTYLE_INLINE) {
   // place like subscript-superscript pair
  }
  else {
@@ -296,8 +284,8 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
                                nsHTMLReflowMetrics& aDesiredSize)
 {
   nsIAtom* tag = mContent->Tag();
-  if ( NS_MATHML_EMBELLISH_IS_MOVABLELIMITS(mEmbellishData.flags) &&
-       !NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags)) {
+  if (NS_MATHML_EMBELLISH_IS_MOVABLELIMITS(mEmbellishData.flags) &&
+      StyleFont()->mMathDisplay == NS_MATHML_DISPLAYSTYLE_INLINE) {
     //place like sub sup or subsup
     nscoord scriptSpace = nsPresContext::CSSPointsToAppUnits(0.5f);
     if (tag == nsGkAtoms::munderover_) {
@@ -500,8 +488,7 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
     right
   } alignPosition = center;
 
-  if (GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::align,
-                   valueAlign)) {
+  if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::align, valueAlign)) {
     if (valueAlign.EqualsLiteral("left")) {
       alignPosition = left;
     } else if (valueAlign.EqualsLiteral("right")) {
@@ -620,16 +607,16 @@ nsMathMLmunderoverFrame::Place(nsRenderingContext& aRenderingContext,
     if (overFrame) {
       dy = aDesiredSize.TopAscent() - mBoundingMetrics.ascent + bmOver.ascent 
         - overSize.TopAscent();
-      FinishReflowChild (overFrame, PresContext(), nullptr, overSize, dxOver, dy, 0);
+      FinishReflowChild (overFrame, PresContext(), overSize, nullptr, dxOver, dy, 0);
     }
     // place base
     dy = aDesiredSize.TopAscent() - baseSize.TopAscent();
-    FinishReflowChild (baseFrame, PresContext(), nullptr, baseSize, dxBase, dy, 0);
+    FinishReflowChild (baseFrame, PresContext(), baseSize, nullptr, dxBase, dy, 0);
     // place underscript
     if (underFrame) {
       dy = aDesiredSize.TopAscent() + mBoundingMetrics.descent - bmUnder.descent 
         - underSize.TopAscent();
-      FinishReflowChild (underFrame, PresContext(), nullptr, underSize,
+      FinishReflowChild (underFrame, PresContext(), underSize, nullptr,
                          dxUnder, dy, 0);
     }
   }

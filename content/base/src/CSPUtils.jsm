@@ -54,10 +54,18 @@ const R_HOST       = new RegExp ("\\*|(((\\*\\.)?" + R_HOSTCHAR.source +
 // port            = ":" ( 1*DIGIT / "*" )
 const R_PORT       = new RegExp ("(\\:([0-9]+|\\*))", 'i');
 
-// host-source     = [ scheme "://" ] host [ port ]
-const R_HOSTSRC    = new RegExp ("^((" + R_SCHEME.source + "\\:\\/\\/)?("
-                                       +   R_HOST.source + ")"
-                                       +   R_PORT.source + "?)$", 'i');
+// path
+const R_PATH       = new RegExp("(\\/(([a-zA-Z0-9\\-\\_]+)\\/?)*)", 'i');
+
+// file
+const R_FILE       = new RegExp("(\\/([a-zA-Z0-9\\-\\_]+)\\.([a-zA-Z]+))", 'i');
+
+// host-source     = [ scheme "://" ] host [ port path file ]
+const R_HOSTSRC    = new RegExp ("^((((" + R_SCHEME.source + "\\:\\/\\/)?("
+                                         + R_HOST.source + ")"
+                                         + R_PORT.source + "?)"
+                                         + R_PATH.source + "?)"
+                                         + R_FILE.source + "?)$", 'i');
 
 // ext-host-source = host-source "/" *( <VCHAR except ";" and ","> )
 //                 ; ext-host-source is reserved for future use.
@@ -66,16 +74,28 @@ const R_EXTHOSTSRC = new RegExp ("^" + R_HOSTSRC.source + "\\/[:print:]+$", 'i')
 // keyword-source  = "'self'" / "'unsafe-inline'" / "'unsafe-eval'"
 const R_KEYWORDSRC = new RegExp ("^('self'|'unsafe-inline'|'unsafe-eval')$", 'i');
 
+const R_BASE64     = new RegExp ("([a-zA-Z0-9+/]+={0,2})");
+
 // nonce-source      = "'nonce-" nonce-value "'"
 // nonce-value       = 1*( ALPHA / DIGIT / "+" / "/" )
-const R_NONCESRC = new RegExp ("^'nonce-([a-zA-Z0-9\+\/]+)'$", 'i');
+const R_NONCESRC = new RegExp ("^'nonce-" + R_BASE64.source + "'$");
+
+// hash-source       = "'" hash-algo "-" hash-value "'"
+// hash-algo         = "sha256" / "sha384" / "sha512"
+// hash-value        = 1*( ALPHA / DIGIT / "+" / "/" / "=" )
+// Each algo must be a valid argument to nsICryptoHash.init
+const R_HASH_ALGOS = new RegExp ("(sha256|sha384|sha512)");
+const R_HASHSRC    = new RegExp ("^'" + R_HASH_ALGOS.source + "-" + R_BASE64.source + "'$");
 
 // source-exp      = scheme-source / host-source / keyword-source
 const R_SOURCEEXP  = new RegExp (R_SCHEMESRC.source + "|" +
                                    R_HOSTSRC.source + "|" +
                                 R_KEYWORDSRC.source + "|" +
-                                  R_NONCESRC.source,  'i');
+                                  R_NONCESRC.source + "|" +
+                                   R_HASHSRC.source,  'i');
 
+const R_QUOTELESS_KEYWORDS = new RegExp ("^(self|unsafe-inline|unsafe-eval|" +
+                                         "inline-script|eval-script|none)$", 'i');
 
 this.CSPPrefObserver = {
   get debugEnabled () {
@@ -294,7 +314,7 @@ CSPRep.fromString = function(aStr, self, reportOnly, docRequest, csp) {
     dir = dir.trim();
     if (dir.length < 1) continue;
 
-    var dirname = dir.split(/\s+/)[0];
+    var dirname = dir.split(/\s+/)[0].toLowerCase();
     var dirvalue = dir.substring(dirname.length).trim();
 
     if (aCSPR._directives.hasOwnProperty(dirname)) {
@@ -374,32 +394,17 @@ CSPRep.fromString = function(aStr, self, reportOnly, docRequest, csp) {
           // The resulting CSPRep instance will have only absolute URIs.
           uri = gIoService.newURI(uriStrings[i],null,selfUri);
 
-          // if there's no host, don't do the ETLD+ check.  This will throw
-          // NS_ERROR_FAILURE if the URI doesn't have a host, causing a parse
-          // failure.
+          // if there's no host, this will throw NS_ERROR_FAILURE, causing a
+          // parse failure.
           uri.host;
 
-          // Verify that each report URI is in the same etld + 1 and that the
-          // scheme and port match "self" if "self" is defined, and just that
-          // it's valid otherwise.
-          if (self) {
-            if (gETLDService.getBaseDomain(uri) !==
-                gETLDService.getBaseDomain(selfUri)) {
-              cspWarn(aCSPR,
-                      CSPLocalizer.getFormatStr("reportURInotETLDPlus1",
-                                                [gETLDService.getBaseDomain(uri)]));
-              continue;
-            }
-            if (!uri.schemeIs(selfUri.scheme)) {
-              cspWarn(aCSPR, CSPLocalizer.getFormatStr("reportURInotSameSchemeAsSelf",
-                                                       [uri.asciiSpec]));
-              continue;
-            }
-            if (uri.port && uri.port !== selfUri.port) {
-              cspWarn(aCSPR, CSPLocalizer.getFormatStr("reportURInotSamePortAsSelf",
-                                                       [uri.asciiSpec]));
-              continue;
-            }
+          // warn about, but do not prohibit non-http and non-https schemes for
+          // reporting URIs.  The spec allows unrestricted URIs resolved
+          // relative to "self", but we should let devs know if the scheme is
+          // abnormal and may fail a POST.
+          if (!uri.schemeIs("http") && !uri.schemeIs("https")) {
+            cspWarn(aCSPR, CSPLocalizer.getFormatStr("reportURInotHttpsOrHttp2",
+                                                     [uri.asciiSpec]));
           }
         } catch(e) {
           switch (e.result) {
@@ -419,7 +424,7 @@ CSPRep.fromString = function(aStr, self, reportOnly, docRequest, csp) {
               continue;
           }
         }
-        // all verification passed: same ETLD+1, scheme, and port.
+        // all verification passed
         okUriStrings.push(uri.asciiSpec);
       }
       aCSPR._directives[UD.REPORT_URI] = okUriStrings.join(' ');
@@ -552,7 +557,7 @@ CSPRep.fromStringSpecCompliant = function(aStr, self, reportOnly, docRequest, cs
     dir = dir.trim();
     if (dir.length < 1) continue;
 
-    var dirname = dir.split(/\s+/)[0];
+    var dirname = dir.split(/\s+/)[0].toLowerCase();
     var dirvalue = dir.substring(dirname.length).trim();
     dirs[dirname] = dirvalue;
   }
@@ -637,34 +642,17 @@ CSPRep.fromStringSpecCompliant = function(aStr, self, reportOnly, docRequest, cs
           // The resulting CSPRep instance will have only absolute URIs.
           uri = gIoService.newURI(uriStrings[i],null,selfUri);
 
-          // if there's no host, don't do the ETLD+ check.  This will throw
-          // NS_ERROR_FAILURE if the URI doesn't have a host, causing a parse
-          // failure.
+          // if there's no host, this will throw NS_ERROR_FAILURE, causing a
+          // parse failure.
           uri.host;
 
-          // Verify that each report URI is in the same etld + 1 and that the
-          // scheme and port match "self" if "self" is defined, and just that
-          // it's valid otherwise.
-          if (self) {
-            if (gETLDService.getBaseDomain(uri) !==
-                gETLDService.getBaseDomain(selfUri)) {
-              cspWarn(aCSPR, 
-                      CSPLocalizer.getFormatStr("reportURInotETLDPlus1",
-                                                [gETLDService.getBaseDomain(uri)]));
-              continue;
-            }
-            if (!uri.schemeIs(selfUri.scheme)) {
-              cspWarn(aCSPR,
-                      CSPLocalizer.getFormatStr("reportURInotSameSchemeAsSelf",
-                                                [uri.asciiSpec]));
-              continue;
-            }
-            if (uri.port && uri.port !== selfUri.port) {
-              cspWarn(aCSPR,
-                      CSPLocalizer.getFormatStr("reportURInotSamePortAsSelf",
-                                                [uri.asciiSpec]));
-              continue;
-            }
+          // warn about, but do not prohibit non-http and non-https schemes for
+          // reporting URIs.  The spec allows unrestricted URIs resolved
+          // relative to "self", but we should let devs know if the scheme is
+          // abnormal and may fail a POST.
+          if (!uri.schemeIs("http") && !uri.schemeIs("https")) {
+            cspWarn(aCSPR, CSPLocalizer.getFormatStr("reportURInotHttpsOrHttp2",
+                                                     [uri.asciiSpec]));
           }
         } catch(e) {
           switch (e.result) {
@@ -683,7 +671,7 @@ CSPRep.fromStringSpecCompliant = function(aStr, self, reportOnly, docRequest, cs
               continue;
           }
         }
-        // all verification passed: same ETLD+1, scheme, and port.
+        // all verification passed.
        okUriStrings.push(uri.asciiSpec);
       }
       aCSPR._directives[UD.REPORT_URI] = okUriStrings.join(' ');
@@ -806,30 +794,34 @@ CSPRep.prototype = {
     return dirs.join("; ");
   },
 
+  permitsNonce:
+  function csp_permitsNonce(aNonce, aDirective) {
+    if (!this._directives.hasOwnProperty(aDirective)) return false;
+    return this._directives[aDirective]._sources.some(function (source) {
+      return source instanceof CSPNonceSource && source.permits(aNonce);
+    });
+  },
+
+  permitsHash:
+  function csp_permitsHash(aContent, aDirective) {
+    if (!this._directives.hasOwnProperty(aDirective)) return false;
+    return this._directives[aDirective]._sources.some(function (source) {
+      return source instanceof CSPHashSource && source.permits(aContent);
+    });
+  },
+
   /**
    * Determines if this policy accepts a URI.
    * @param aURI
    *        URI of the requested resource
    * @param aDirective
    *        one of the SRC_DIRECTIVES defined above
-   * @param aContext
-   *        Context of the resource being requested. This is a type inheriting
-   *        from nsIDOMHTMLElement if this is called from shouldLoad to check
-   *        an external resource load, and refers to the HTML element that is
-   *        causing the resource load. Otherwise, it is a string containing
-   *        a nonce from a nonce="" attribute if it is called from
-   *        getAllowsNonce.
    * @returns
    *        true if the policy permits the URI in given context.
    */
   permits:
-  function csp_permits(aURI, aDirective, aContext) {
-    // In the case where permits is called from getAllowsNonce (for an inline
-    // element), aURI is null and aContext has a specific value. Otherwise,
-    // calling permits without aURI is invalid.
-    let checking_nonce = aContext instanceof Ci.nsIDOMHTMLElement ||
-                         typeof aContext === 'string';
-    if (!aURI && !checking_nonce) return false;
+  function csp_permits(aURI, aDirective) {
+    if (!aURI) return false;
 
     // GLOBALLY ALLOW "about:" SCHEME
     if (aURI instanceof String && aURI.substring(0,6) === "about:")
@@ -846,7 +838,7 @@ CSPRep.prototype = {
         // for catching calls with invalid contexts (below)
         directiveInPolicy = true;
         if (this._directives.hasOwnProperty(aDirective)) {
-          return this._directives[aDirective].permits(aURI, aContext);
+          return this._directives[aDirective].permits(aURI);
         }
         //found matching dir, can stop looking
         break;
@@ -871,7 +863,7 @@ CSPRep.prototype = {
     // indicates no relevant directives were present and the load should be
     // permitted).
     if (this._directives.hasOwnProperty(DIRS.DEFAULT_SRC)) {
-      return this._directives[DIRS.DEFAULT_SRC].permits(aURI, aContext);
+      return this._directives[DIRS.DEFAULT_SRC].permits(aURI);
     }
 
     // no relevant directives present -- this means for CSP 1.0 that the load
@@ -949,6 +941,12 @@ this.CSPSourceList = function CSPSourceList() {
 
   // When this is true, the source list contains 'unsafe-eval'.
   this._allowUnsafeEval = false;
+
+  // When this is true, the source list contains at least one nonce-source
+  this._hasNonceSource = false;
+
+  // When this is true, the source list contains at least one hash-source
+  this._hasHashSource = false;
 }
 
 /**
@@ -981,7 +979,7 @@ CSPSourceList.fromString = function(aStr, aCSPRep, self, enforceSelfChecks) {
   slObj._CSPRep = aCSPRep;
   aStr = aStr.trim();
   // w3 specifies case insensitive equality
-  if (aStr.toUpperCase() === "'NONE'") {
+  if (aStr.toLowerCase() === "'none'") {
     slObj._permitAllSources = false;
     return slObj;
   }
@@ -1009,6 +1007,12 @@ CSPSourceList.fromString = function(aStr, aCSPRep, self, enforceSelfChecks) {
     // if a source allows unsafe-eval, set our flag to indicate this.
     if (src._allowUnsafeEval)
       slObj._allowUnsafeEval = true;
+
+    if (src instanceof CSPNonceSource)
+      slObj._hasNonceSource = true;
+
+    if (src instanceof CSPHashSource)
+      slObj._hasHashSource = true;
 
     // if a source is a *, then we can permit all sources
     if (src.permitAll) {
@@ -1043,7 +1047,7 @@ CSPSourceList.prototype = {
     // sort both arrays and compare like a zipper
     // XXX (sid): I think we can make this more efficient
     var sortfn = function(a,b) {
-      return a.toString() > b.toString();
+      return a.toString.toLowerCase() > b.toString.toLowerCase();
     };
     var a_sorted = this._sources.sort(sortfn);
     var b_sorted = that._sources.sort(sortfn);
@@ -1110,12 +1114,12 @@ CSPSourceList.prototype = {
    *        true if the URI matches a source in this source list.
    */
   permits:
-  function cspsd_permits(aURI, aContext) {
+  function cspsd_permits(aURI) {
     if (this.isNone())    return false;
     if (this.isAll())     return true;
 
     for (var i in this._sources) {
-      if (this._sources[i].permits(aURI, aContext)) {
+      if (this._sources[i].permits(aURI)) {
         return true;
       }
     }
@@ -1131,7 +1135,6 @@ this.CSPSource = function CSPSource() {
   this._scheme = undefined;
   this._port = undefined;
   this._host = undefined;
-  this._nonce = undefined;
 
   //when set to true, this allows all source
   this._permitAll = false;
@@ -1351,6 +1354,11 @@ CSPSource.fromString = function(aStr, aCSPRep, self, enforceSelfChecks) {
     if (schemeMatch)
       hostMatch = R_HOSTSRC.exec(aStr.substring(schemeMatch[0].length + 3));
 
+    // Bug 916054: in CSP 1.0, source-expressions that are paths should have
+    // the path after the origin ignored and only the origin enforced.
+    hostMatch[0] = hostMatch[0].replace(R_FILE, "");
+    hostMatch[0] = hostMatch[0].replace(R_PATH, "");
+
     var portMatch = R_PORT.exec(hostMatch);
 
     // Host regex also gets port, so remove the port here.
@@ -1373,24 +1381,25 @@ CSPSource.fromString = function(aStr, aCSPRep, self, enforceSelfChecks) {
       // strip the ':' from the port
       sObj._port = portMatch[0].substr(1);
     }
+    // A CSP keyword without quotes is a valid hostname, but this can also be a mistake.
+    // Raise a CSP warning in the web console to developer to check his/her intent.
+    if (R_QUOTELESS_KEYWORDS.test(aStr)) {
+      cspWarn(aCSPRep, CSPLocalizer.getFormatStr("hostNameMightBeKeyword",
+                                                 [aStr, aStr.toLowerCase()]));
+    }
     return sObj;
   }
 
   // check for a nonce-source match
-  if (R_NONCESRC.test(aStr)) {
-    // We can't put this check outside of the regex test because R_NONCESRC is
-    // included in R_SOURCEEXP, which is const. By testing here, we can
-    // explicitly return null for nonces if experimental is not enabled,
-    // instead of letting it fall through and assuming it won't accidentally
-    // match something later in this function.
-    if (!CSPPrefObserver.experimentalEnabled) return null;
-    var nonceSrcMatch = R_NONCESRC.exec(aStr);
-    sObj._nonce = nonceSrcMatch[1];
-    return sObj;
-  }
+  if (R_NONCESRC.test(aStr))
+    return CSPNonceSource.fromString(aStr, aCSPRep);
+
+  // check for a hash-source match
+  if (R_HASHSRC.test(aStr))
+    return CSPHashSource.fromString(aStr, aCSPRep);
 
   // check for 'self' (case insensitive)
-  if (aStr.toUpperCase() === "'SELF'") {
+  if (aStr.toLowerCase() === "'self'") {
     if (!self) {
       cspError(aCSPRep, CSPLocalizer.getStr("selfKeywordNoSelfData"));
       return null;
@@ -1401,13 +1410,13 @@ CSPSource.fromString = function(aStr, aCSPRep, self, enforceSelfChecks) {
   }
 
   // check for 'unsafe-inline' (case insensitive)
-  if (aStr.toUpperCase() === "'UNSAFE-INLINE'"){
+  if (aStr.toLowerCase() === "'unsafe-inline'"){
     sObj._allowUnsafeInline = true;
     return sObj;
   }
 
   // check for 'unsafe-eval' (case insensitive)
-  if (aStr.toUpperCase() === "'UNSAFE-EVAL'"){
+  if (aStr.toLowerCase() === "'unsafe-eval'"){
     sObj._allowUnsafeEval = true;
     return sObj;
   }
@@ -1493,8 +1502,6 @@ CSPSource.prototype = {
       s = s + this._host;
     if (this.port)
       s = s + ":" + this.port;
-    if (this._nonce)
-      s = s + "'nonce-" + this._nonce + "'";
     return s;
   },
 
@@ -1510,7 +1517,6 @@ CSPSource.prototype = {
     aClone._scheme = this._scheme;
     aClone._port = this._port;
     aClone._host = this._host ? this._host.clone() : undefined;
-    aClone._nonce = this._nonce;
     aClone._isSelf = this._isSelf;
     aClone._CSPRep = this._CSPRep;
     return aClone;
@@ -1520,31 +1526,18 @@ CSPSource.prototype = {
    * Determines if this Source accepts a URI.
    * @param aSource
    *        the URI, or CSPSource in question
-   * @param aContext
-   *        the context of the resource being loaded
    * @returns
    *        true if the URI matches a source in this source list.
    */
   permits:
-  function(aSource, aContext) {
-    if (this._nonce && CSPPrefObserver.experimentalEnabled) {
-      if (aContext instanceof Ci.nsIDOMHTMLElement) {
-        return this._nonce === aContext.getAttribute('nonce');
-      } else if (typeof aContext === 'string') {
-        return this._nonce === aContext;
-      }
-    }
-    // We only use aContext for nonce checks. If it's otherwise provided,
-    // ignore it.
-    if (!CSPPrefObserver.experimentalEnabled && aContext) return false;
-
+  function(aSource) {
     if (!aSource) return false;
 
     if (!(aSource instanceof CSPSource))
       aSource = CSPSource.create(aSource, this._CSPRep);
 
     // verify scheme
-    if (this.scheme != aSource.scheme)
+    if (this.scheme.toLowerCase() != aSource.scheme.toLowerCase())
       return false;
 
     // port is defined in 'this' (undefined means it may not be relevant
@@ -1580,14 +1573,14 @@ CSPSource.prototype = {
     // 2. ports match
     // 3. either both hosts are undefined, or one equals the other.
     if (resolveSelf)
-      return this.scheme === that.scheme
-          && this.port   === that.port
+      return this.scheme.toLowerCase() === that.scheme.toLowerCase()
+          && this.port === that.port
           && (!(this.host || that.host) ||
                (this.host && this.host.equals(that.host)));
 
     // otherwise, compare raw (non-self-resolved values)
-    return this._scheme === that._scheme
-        && this._port   === that._port
+    return this._scheme.toLowerCase() === that._scheme.toLowerCase()
+        && this._port === that._port
         && (!(this._host || that._host) ||
               (this._host && this._host.equals(that._host)));
   },
@@ -1676,7 +1669,9 @@ CSPHost.prototype = {
    */
   permits:
   function(aHost) {
-    if (!aHost) aHost = CSPHost.fromString("*");
+    if (!aHost) {
+      aHost = CSPHost.fromString("*");
+    }
 
     if (!(aHost instanceof CSPHost)) {
       // -- compare CSPHost to String
@@ -1702,7 +1697,8 @@ CSPHost.prototype = {
     // * Compare from right to left.
     for (var i=1; i <= thislen; i++) {
       if (this._segments[thislen-i] != "*" &&
-          (this._segments[thislen-i] != aHost._segments[thatlen-i])) {
+          (this._segments[thislen-i].toLowerCase() !=
+           aHost._segments[thatlen-i].toLowerCase())) {
         return false;
       }
     }
@@ -1725,13 +1721,136 @@ CSPHost.prototype = {
       return false;
 
     for (var i=0; i<this._segments.length; i++) {
-      if (this._segments[i] != that._segments[i])
+      if (this._segments[i].toLowerCase() !=
+          that._segments[i].toLowerCase()) {
         return false;
+      }
     }
     return true;
   }
 };
 
+this.CSPNonceSource = function CSPNonceSource() {
+  this._nonce = undefined;
+}
+
+CSPNonceSource.fromString = function(aStr, aCSPRep) {
+  if (!CSPPrefObserver.experimentalEnabled)
+    return null;
+
+  let nonce = R_NONCESRC.exec(aStr)[1];
+  if (!nonce) {
+    cspError(aCSPRep, "Error in parsing nonce-source from string: nonce was empty");
+    return null;
+  }
+
+  let nonceSourceObj = new CSPNonceSource();
+  nonceSourceObj._nonce = nonce;
+  return nonceSourceObj;
+};
+
+CSPNonceSource.prototype = {
+
+  permits: function(aContext) {
+    if (!CSPPrefObserver.experimentalEnabled) return false;
+
+    if (aContext instanceof Ci.nsIDOMHTMLElement) {
+      return this._nonce === aContext.getAttribute('nonce');
+    } else if (typeof aContext === 'string') {
+      return this._nonce === aContext;
+    }
+    CSPdebug("permits called on nonce-source, but aContext was not nsIDOMHTMLElement or string (was " + typeof(aContext) + ")");
+    return false;
+  },
+
+  toString: function() {
+    return "'nonce-" + this._nonce + "'";
+  },
+
+  clone: function() {
+    let clone = new CSPNonceSource();
+    clone._nonce = this._nonce;
+    return clone;
+  },
+
+  equals: function(that) {
+    return this._nonce === that._nonce;
+  }
+
+};
+
+this.CSPHashSource = function CSPHashSource() {
+  this._algo = undefined;
+  this._hash = undefined;
+}
+
+CSPHashSource.fromString = function(aStr, aCSPRep) {
+  if (!CSPPrefObserver.experimentalEnabled)
+    return null;
+
+  let hashSrcMatch = R_HASHSRC.exec(aStr);
+  let algo = hashSrcMatch[1];
+  let hash = hashSrcMatch[2];
+  if (!algo) {
+    cspError(aCSPRep, "Error parsing hash-source from string: algo was empty");
+    return null;
+  }
+  if (!hash) {
+    cspError(aCSPRep, "Error parsing hash-source from string: hash was empty");
+    return null;
+  }
+
+  let hashSourceObj = new CSPHashSource();
+  hashSourceObj._algo = algo;
+  hashSourceObj._hash = hash;
+  return hashSourceObj;
+};
+
+CSPHashSource.prototype = {
+
+  permits: function(aContext) {
+    if (!CSPPrefObserver.experimentalEnabled) return false;
+
+    let ScriptableUnicodeConverter =
+      Components.Constructor("@mozilla.org/intl/scriptableunicodeconverter",
+                             "nsIScriptableUnicodeConverter");
+    let converter = new ScriptableUnicodeConverter();
+    converter.charset = 'utf8';
+    let utf8InnerHTML = converter.convertToByteArray(aContext);
+
+    let CryptoHash =
+      Components.Constructor("@mozilla.org/security/hash;1",
+                             "nsICryptoHash",
+                             "initWithString");
+    let hash = new CryptoHash(this._algo);
+    hash.update(utf8InnerHTML, utf8InnerHTML.length);
+    // passing true causes a base64-encoded hash to be returned
+    let contentHash = hash.finish(true);
+
+    // The NSS Base64 encoder automatically adds linebreaks "\r\n" every 64
+    // characters. We need to remove these so we can properly validate longer
+    // (SHA-512) base64-encoded hashes
+    contentHash = contentHash.replace('\r\n', '');
+
+    return contentHash === this._hash;
+  },
+
+  toString: function() {
+    return "'" + this._algo + '-' + this._hash + "'";
+  },
+
+  clone: function() {
+    let clone = new CSPHashSource();
+    clone._algo = this._algo;
+    clone._hash = this._hash;
+    return clone;
+  },
+
+  equals: function(that) {
+    return this._algo === that._algo && this._hash === that._hash;
+  }
+
+};
 
 //////////////////////////////////////////////////////////////////////
 /**

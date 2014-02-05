@@ -65,11 +65,13 @@ StyleEditorPanel.prototype = {
         this._debuggee = StyleEditorFront(this.target.client, this.target.form);
       }
       this.UI = new StyleEditorUI(this._debuggee, this.target, this._panelDoc);
-      this.UI.on("error", this._showError);
+      this.UI.initialize().then(() => {
+        this.UI.on("error", this._showError);
 
-      this.isReady = true;
+        this.isReady = true;
 
-      deferred.resolve(this);
+        deferred.resolve(this);
+      });
     }, console.error);
 
     return deferred.promise;
@@ -134,7 +136,6 @@ StyleEditorPanel.prototype = {
       this._toolbox = null;
       this._panelDoc = null;
 
-      this._debuggee.destroy();
       this.UI.destroy();
     }
 

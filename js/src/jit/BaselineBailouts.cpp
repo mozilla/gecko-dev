@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "jit/arm/Simulator-arm.h"
 #include "jit/BaselineIC.h"
 #include "jit/BaselineJIT.h"
 #include "jit/CompileInfo.h"
@@ -337,12 +338,12 @@ struct BaselineStackBuilder
         // so we can calculate it directly.  For other archs, the previous frame pointer
         // is stored on the stack in the frame that precedes the rectifier frame.
         size_t priorOffset = IonJSFrameLayout::Size() + topFrame->prevFrameLocalSize();
-#if defined(JS_CPU_X86)
+#if defined(JS_CODEGEN_X86)
         // On X86, the FramePointer is pushed as the first value in the Rectifier frame.
         JS_ASSERT(BaselineFrameReg == FramePointer);
         priorOffset -= sizeof(void *);
         return virtualPointerAtStackOffset(priorOffset);
-#elif defined(JS_CPU_X64) || defined(JS_CPU_ARM)
+#elif defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_ARM)
         // On X64 and ARM, the frame pointer save location depends on the caller of the
         // the rectifier frame.
         BufferPointer<IonRectifierFrameLayout> priorFrame =
@@ -964,7 +965,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
                     } else if (bailoutKind != Bailout_ArgumentCheck) {
                         IonSpew(IonSpew_BaselineBailouts,
                                 "      Popping SPS entry for innermost inlined frame's SPS entry");
-                        cx->runtime()->spsProfiler.exit(cx, script, fun);
+                        cx->runtime()->spsProfiler.exit(script, fun);
                     }
                 }
             } else {
@@ -1141,7 +1142,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     size_t startOfRectifierFrame = builder.framePushed();
 
     // On x86-only, the frame pointer is saved again in the rectifier frame.
-#if defined(JS_CPU_X86)
+#if defined(JS_CODEGEN_X86)
     if (!builder.writePtr(prevFramePtr, "PrevFramePtr-X86Only"))
         return false;
 #endif
@@ -1336,7 +1337,12 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIt
     // Do stack check.
     bool overRecursed = false;
     uint8_t *newsp = info->incomingStack - (info->copyStackTop - info->copyStackBottom);
+#ifdef JS_ARM_SIMULATOR
+    if (Simulator::Current()->overRecursed(uintptr_t(newsp)))
+        overRecursed = true;
+#else
     JS_CHECK_RECURSION_WITH_SP_DONT_REPORT(cx, newsp, overRecursed = true);
+#endif
     if (overRecursed) {
         IonSpew(IonSpew_BaselineBailouts, "  Overrecursion check failed!");
         return BAILOUT_RETURN_OVERRECURSED;

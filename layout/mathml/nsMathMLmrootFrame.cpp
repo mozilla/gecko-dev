@@ -70,10 +70,13 @@ nsMathMLmrootFrame::TransmitAutomaticData()
   //    "false", within index, but leaves both attributes unchanged within base.
   // 2. The TeXbook (Ch 17. p.141) says \sqrt is compressed
   UpdatePresentationDataFromChildAt(1, 1,
-    ~NS_MATHML_DISPLAYSTYLE | NS_MATHML_COMPRESSED,
-     NS_MATHML_DISPLAYSTYLE | NS_MATHML_COMPRESSED);
+                                    NS_MATHML_COMPRESSED,
+                                    NS_MATHML_COMPRESSED);
   UpdatePresentationDataFromChildAt(0, 0,
      NS_MATHML_COMPRESSED, NS_MATHML_COMPRESSED);
+
+  PropagateFrameFlagFor(mFrames.LastChild(),
+                        NS_FRAME_MATHML_SCRIPT_DESCENDANT);
 
   return NS_OK;
 }
@@ -233,7 +236,7 @@ nsMathMLmrootFrame::Reflow(nsPresContext*          aPresContext,
   // Rule 11, App. G, TeXbook
   // psi = clearance between rule and content
   nscoord phi = 0, psi = 0;
-  if (NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags))
+  if (StyleFont()->mMathDisplay == NS_MATHML_DISPLAYSTYLE_BLOCK)
     phi = fm->XHeight();
   else
     phi = ruleThickness;
@@ -324,7 +327,7 @@ nsMathMLmrootFrame::Reflow(nsPresContext*          aPresContext,
   // place the index
   nscoord dx = dxIndex;
   nscoord dy = aDesiredSize.TopAscent() - (indexRaisedAscent + indexSize.TopAscent() - bmIndex.ascent);
-  FinishReflowChild(indexFrame, aPresContext, nullptr, indexSize,
+  FinishReflowChild(indexFrame, aPresContext, indexSize, nullptr,
                     MirrorIfRTL(aDesiredSize.Width(), indexSize.Width(), dx),
                     dy, 0);
 
@@ -339,7 +342,7 @@ nsMathMLmrootFrame::Reflow(nsPresContext*          aPresContext,
 
   // place the base
   dy = aDesiredSize.TopAscent() - baseSize.TopAscent();
-  FinishReflowChild(baseFrame, aPresContext, nullptr, baseSize,
+  FinishReflowChild(baseFrame, aPresContext, baseSize, nullptr,
                     MirrorIfRTL(aDesiredSize.Width(), baseSize.Width(), dx),
                     dy, 0);
 

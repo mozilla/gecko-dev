@@ -4,7 +4,7 @@
     <script type="text/javascript" src="/tests/SimpleTest/EventUtils.js"></script>
   </head>
   <body onload="start()">
-    <iframe src="data:text/html,<body contenteditable>foo bar"></iframe>
+    <iframe src="data:text/html,<body contenteditable spellcheck=false>foo bar"></iframe>
     <script>
       function start() {
         var iframe = document.querySelector("iframe");
@@ -18,7 +18,7 @@
         document.body.clientWidth;
 
         setTimeout(function() {
-          synthesizeMouse(iframe, 10, 10, {});
+          doc.body.focus();
 
           // Now try to move the caret
           win.getSelection().collapse(doc.body.firstChild, 0);

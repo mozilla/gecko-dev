@@ -7,7 +7,6 @@
 #include "ClientCanvasLayer.h"          // for ClientCanvasLayer
 #include "GLContext.h"                  // for GLContext
 #include "GLScreenBuffer.h"             // for GLScreenBuffer
-#include "Layers.h"                     // for Layer, etc
 #include "SurfaceStream.h"              // for SurfaceStream
 #include "SurfaceTypes.h"               // for SurfaceStreamHandle
 #include "gfx2DGlue.h"                  // for ImageFormatToSurfaceFormat
@@ -38,7 +37,7 @@ CanvasClient::CreateCanvasClient(CanvasClientType aType,
                                  TextureFlags aFlags)
 {
   if (aType == CanvasClientGLContext &&
-      aForwarder->GetCompositorBackendType() == LAYERS_OPENGL) {
+      aForwarder->GetCompositorBackendType() == LayersBackend::LAYERS_OPENGL) {
     aFlags |= TEXTURE_DEALLOCATE_CLIENT;
     return new CanvasClientSurfaceStream(aForwarder, aFlags);
   }
@@ -54,7 +53,7 @@ CanvasClient2D::Update(gfx::IntSize aSize, ClientCanvasLayer* aLayer)
 {
   if (mBuffer &&
       (mBuffer->IsImmutable() || mBuffer->GetSize() != aSize)) {
-    mBuffer->ForceRemove();
+    GetForwarder()->AddForceRemovingTexture(mBuffer);
     mBuffer = nullptr;
   }
 
@@ -62,8 +61,8 @@ CanvasClient2D::Update(gfx::IntSize aSize, ClientCanvasLayer* aLayer)
   if (!mBuffer) {
     bool isOpaque = (aLayer->GetContentFlags() & Layer::CONTENT_OPAQUE);
     gfxContentType contentType = isOpaque
-                                                ? GFX_CONTENT_COLOR
-                                                : GFX_CONTENT_COLOR_ALPHA;
+                                                ? gfxContentType::COLOR
+                                                : gfxContentType::COLOR_ALPHA;
     gfxImageFormat format
       = gfxPlatform::GetPlatform()->OptimalFormatForContent(contentType);
     mBuffer = CreateBufferTextureClient(gfx::ImageFormatToSurfaceFormat(format));
@@ -188,8 +187,8 @@ DeprecatedCanvasClient2D::Update(gfx::IntSize aSize, ClientCanvasLayer* aLayer)
 {
   bool isOpaque = (aLayer->GetContentFlags() & Layer::CONTENT_OPAQUE);
   gfxContentType contentType = isOpaque
-                                              ? GFX_CONTENT_COLOR
-                                              : GFX_CONTENT_COLOR_ALPHA;
+                                              ? gfxContentType::COLOR
+                                              : gfxContentType::COLOR_ALPHA;
 
   if (!mDeprecatedTextureClient) {
     mDeprecatedTextureClient = CreateDeprecatedTextureClient(TEXTURE_CONTENT, contentType);
@@ -239,16 +238,16 @@ DeprecatedCanvasClientSurfaceStream::Update(gfx::IntSize aSize, ClientCanvasLaye
 {
   if (!mDeprecatedTextureClient) {
     mDeprecatedTextureClient = CreateDeprecatedTextureClient(TEXTURE_STREAM_GL,
-                                                             aLayer->GetSurfaceMode() == Layer::SURFACE_OPAQUE
-                                                               ? GFX_CONTENT_COLOR
-                                                               : GFX_CONTENT_COLOR_ALPHA);
+                                                             aLayer->GetSurfaceMode() == SurfaceMode::SURFACE_OPAQUE
+                                                               ? gfxContentType::COLOR
+                                                               : gfxContentType::COLOR_ALPHA);
     MOZ_ASSERT(mDeprecatedTextureClient, "Failed to create texture client");
   }
 
   NS_ASSERTION(aLayer->mGLContext, "CanvasClientSurfaceStream should only be used with GL canvases");
 
   // the content type won't be used
-  mDeprecatedTextureClient->EnsureAllocated(aSize, GFX_CONTENT_COLOR);
+  mDeprecatedTextureClient->EnsureAllocated(aSize, gfxContentType::COLOR);
 
   GLScreenBuffer* screen = aLayer->mGLContext->Screen();
   SurfaceStream* stream = screen->Stream();

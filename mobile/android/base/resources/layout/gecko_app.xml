@@ -48,6 +48,13 @@
                                          style="@style/FindBar"
                                          android:visibility="gone"/>
 
+        <org.mozilla.gecko.MediaCastingBar android:id="@+id/media_casting"
+                                           android:layout_width="fill_parent"
+                                           android:layout_height="wrap_content"
+                                           android:layout_alignParentBottom="true"
+                                           style="@style/FindBar"
+                                           android:visibility="gone"/>
+
         <RelativeLayout android:id="@+id/camera_layout"
                         android:layout_height="wrap_content"
                         android:layout_width="wrap_content"
@@ -68,7 +75,7 @@
              the root view, BrowserToolbar should be specified as low in the
              view hierarchy as possible. -->
 
-        <ViewFlipper android:id="@id/browser_actionbar"
+        <org.mozilla.gecko.widget.GeckoViewFlipper android:id="@id/browser_actionbar"
                 android:layout_width="fill_parent"
                 android:layout_height="@dimen/browser_toolbar_height"
                 android:clickable="true"
@@ -88,7 +95,7 @@
                                                     android:layout_width="fill_parent"
                                                     style="@style/GeckoActionBar"/>
 
-        </ViewFlipper>
+        </org.mozilla.gecko.widget.GeckoViewFlipper>
 
     </view>
 

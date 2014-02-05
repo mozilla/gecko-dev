@@ -14,6 +14,9 @@ let CustomizationHandler = {
       case "customizationstarting":
         this._customizationStarting();
         break;
+      case "customizationchange":
+        this._customizationChange();
+        break;
       case "customizationending":
         this._customizationEnding(aEvent.detail);
         break;
@@ -21,8 +24,7 @@ let CustomizationHandler = {
   },
 
   isCustomizing: function() {
-    return document.documentElement.hasAttribute("customizing") ||
-           document.documentElement.hasAttribute("customize-exiting");
+    return document.documentElement.hasAttribute("customizing");
   },
 
   _customizationStarting: function() {
@@ -34,10 +36,7 @@ let CustomizationHandler = {
     let cmd = document.getElementById("cmd_CustomizeToolbars");
     cmd.setAttribute("disabled", "true");
 
-    let splitter = document.getElementById("urlbar-search-splitter");
-    if (splitter) {
-      splitter.parentNode.removeChild(splitter);
-    }
+    UpdateUrlbarSearchSplitterState();
 
     CombinedStopReload.uninit();
     CombinedBackForward.uninit();
@@ -52,6 +51,12 @@ let CustomizationHandler = {
       let tabstrip = tabContainer.mTabstrip;
       tabstrip.ensureElementIsVisible(gBrowser.selectedTab, true);
     }
+  },
+
+  _customizationChange: function() {
+    gHomeButton.updatePersonalToolbarStyle();
+    BookmarkingUI.customizeChange();
+    PlacesToolbarHelper.customizeChange();
   },
 
   _customizationEnding: function(aDetails) {
@@ -92,7 +97,6 @@ let CustomizationHandler = {
     if (gURLBar) {
       URLBarSetURI();
       XULBrowserWindow.asyncUpdateUI();
-      BookmarkingUI.updateStarState();
     }
 
     // Re-enable parts of the UI we disabled during the dialog

@@ -28,7 +28,7 @@ public:
 
   virtual ISharedImage* AsSharedImage() MOZ_OVERRIDE { return this; }
 
-  virtual already_AddRefed<gfxASurface> GetAsSurface() {
+  virtual already_AddRefed<gfxASurface> DeprecatedGetAsSurface() {
     mSurface->Lock();
     size_t bytesPerRow = mSurface->GetBytesPerRow();
     size_t ioWidth = mSurface->GetDevicePixelWidth();
@@ -37,7 +37,7 @@ public:
     unsigned char* ioData = (unsigned char*)mSurface->GetBaseAddress();
 
     nsRefPtr<gfxImageSurface> imgSurface =
-      new gfxImageSurface(gfxIntSize(ioWidth, ioHeight), gfxImageFormatARGB32);
+      new gfxImageSurface(gfxIntSize(ioWidth, ioHeight), gfxImageFormat::ARGB32);
 
     for (size_t i = 0; i < ioHeight; i++) {
       memcpy(imgSurface->Data() + i * imgSurface->Stride(),
@@ -49,10 +49,12 @@ public:
     return imgSurface.forget();
   }
 
+  virtual TemporaryRef<gfx::SourceSurface> GetAsSourceSurface();
+
   virtual TextureClient* GetTextureClient() MOZ_OVERRIDE;
   virtual uint8_t* GetBuffer() MOZ_OVERRIDE { return nullptr; }
 
-  MacIOSurfaceImage() : Image(nullptr, MAC_IOSURFACE) {}
+  MacIOSurfaceImage() : Image(nullptr, ImageFormat::MAC_IOSURFACE) {}
 
 private:
   RefPtr<MacIOSurface> mSurface;

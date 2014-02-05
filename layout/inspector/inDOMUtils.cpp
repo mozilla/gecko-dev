@@ -3,6 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "mozilla/ArrayUtils.h"
+
 #include "inDOMUtils.h"
 #include "inLayoutUtils.h"
 
@@ -616,7 +618,7 @@ inDOMUtils::GetCSSValuesForProperty(const nsAString& aProperty,
 
 NS_IMETHODIMP
 inDOMUtils::ColorNameToRGB(const nsAString& aColorName, JSContext* aCx,
-                           JS::Value* aValue)
+                           JS::MutableHandle<JS::Value> aValue)
 {
   nscolor color;
   if (!NS_ColorNameToRGB(aColorName, &color)) {
@@ -628,8 +630,7 @@ inDOMUtils::ColorNameToRGB(const nsAString& aColorName, JSContext* aCx,
   triple.mG = NS_GET_G(color);
   triple.mB = NS_GET_B(color);
 
-  if (!triple.ToObject(aCx, JS::NullPtr(),
-                       JS::MutableHandle<JS::Value>::fromMarkedLocation(aValue))) {
+  if (!triple.ToObject(aCx, JS::NullPtr(), aValue)) {
     return NS_ERROR_FAILURE;
   }
 
@@ -762,7 +763,7 @@ GetStatesForPseudoClass(const nsAString& aStatePseudo)
     nsEventStates(),
     nsEventStates()
   };
-  static_assert(NS_ARRAY_LENGTH(sPseudoClassStates) ==
+  static_assert(MOZ_ARRAY_LENGTH(sPseudoClassStates) ==
                 nsCSSPseudoClasses::ePseudoClass_NotPseudoClass + 1,
                 "Length of PseudoClassStates array is incorrect");
 

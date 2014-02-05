@@ -237,14 +237,14 @@ WifiProxyService::Shutdown()
 }
 
 NS_IMETHODIMP
-WifiProxyService::SendCommand(const JS::Value& aOptions, const nsACString& aInterface,
+WifiProxyService::SendCommand(JS::Handle<JS::Value> aOptions,
+                              const nsACString& aInterface,
                               JSContext* aCx)
 {
   MOZ_ASSERT(NS_IsMainThread());
   WifiCommandOptions options;
 
-  if (!options.Init(aCx,
-                    JS::Handle<JS::Value>::fromMarkedLocation(&aOptions))) {
+  if (!options.Init(aCx, aOptions)) {
     NS_WARNING("Bad dictionary passed to WifiProxyService::SendCommand");
     return NS_ERROR_FAILURE;
   }
@@ -293,8 +293,16 @@ void
 WifiProxyService::DispatchWifiEvent(const nsAString& aEvent, const nsACString& aInterface)
 {
   MOZ_ASSERT(NS_IsMainThread());
+  nsAutoString event;
+  if (StringBeginsWith(aEvent, NS_LITERAL_STRING("IFNAME"))) {
+    // Jump over IFNAME for gonk-kk.
+    event = Substring(aEvent, aEvent.FindChar(' ') + 1);
+  }
+  else {
+    event = aEvent;
+  }
   // Call the listener.
-  mListener->OnWaitEvent(aEvent, aInterface);
+  mListener->OnWaitEvent(event, aInterface);
 }
 
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(WifiProxyService,

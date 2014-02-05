@@ -29,6 +29,17 @@ nestegg_tstamp_scale
 nestegg_has_cues
 nestegg_sniff
 #endif
+#ifdef MOZ_WEBM_ENCODER
+writeSimpleBlock
+writeHeader
+writeSegmentInformation
+writeVideoTrack
+writeAudioTrack
+Ebml_Serialize
+Ebml_SerializeUnsigned
+Ebml_StartSubElement
+Ebml_EndSubElement
+#endif
 #ifdef MOZ_VPX
 #ifndef MOZ_NATIVE_LIBVPX
 vpx_codec_control_
@@ -257,6 +268,8 @@ jpeg_abort_decompress
 jpeg_read_raw_data
 #endif
 qcms_enable_iccv4
+qcms_data_from_unicode_path
+qcms_data_from_path
 qcms_profile_create_rgb_with_gamma
 qcms_profile_from_memory
 qcms_profile_from_path
@@ -582,6 +595,7 @@ hb_ot_layout_script_get_language_tags
 hb_ot_layout_table_choose_script
 hb_ot_layout_table_get_script_tags
 hb_ot_tag_to_language
+hb_ot_tag_to_script
 hb_ot_tags_from_script
 hb_set_add
 hb_set_clear

@@ -22,6 +22,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "CustomizableUI",
 
 const UITOUR_PERMISSION   = "uitour";
 const PREF_PERM_BRANCH    = "browser.uitour.";
+const MAX_BUTTONS         = 4;
 
 
 this.UITour = {
@@ -32,6 +33,15 @@ this.UITour = {
 
   highlightEffects: ["random", "wobble", "zoom", "color"],
   targets: new Map([
+    ["accountStatus", {
+      query: (aDocument) => {
+        let statusButton = aDocument.getElementById("PanelUI-fxa-status");
+        return aDocument.getAnonymousElementByAttribute(statusButton,
+                                                        "class",
+                                                        "toolbarbutton-icon");
+      },
+      widgetName: "PanelUI-fxa-status",
+    }],
     ["addons",      {query: "#add-ons-button"}],
     ["appMenu",     {query: "#PanelUI-menu-button"}],
     ["backForward", {
@@ -137,7 +147,37 @@ this.UITour = {
             Cu.reportError("UITour: Target could not be resolved: " + data.target);
             return;
           }
-          this.showInfo(target, data.title, data.text);
+
+          let iconURL = null;
+          if (typeof data.icon == "string")
+            iconURL = this.resolveURL(contentDocument, data.icon);
+
+          let buttons = [];
+          if (Array.isArray(data.buttons) && data.buttons.length > 0) {
+            for (let buttonData of data.buttons) {
+              if (typeof buttonData == "object" &&
+                  typeof buttonData.label == "string" &&
+                  typeof buttonData.callbackID == "string") {
+                let button = {
+                  label: buttonData.label,
+                  callbackID: buttonData.callbackID,
+                };
+
+                if (typeof buttonData.icon == "string")
+                  button.iconURL = this.resolveURL(contentDocument, buttonData.icon);
+
+                if (typeof buttonData.style == "string")
+                  button.style = buttonData.style;
+
+                buttons.push(button);
+
+                if (buttons.length == MAX_BUTTONS)
+                  break;
+              }
+            }
+          }
+
+          this.showInfo(contentDocument, target, data.title, data.text, iconURL, buttons);
         }).then(null, Cu.reportError);
         break;
       }
@@ -207,6 +247,15 @@ this.UITour = {
         this.endUrlbarCapture(window);
         break;
       }
+
+      case "getConfiguration": {
+        if (typeof data.configuration != "string") {
+          return false;
+        }
+
+        this.getConfiguration(contentDocument, data.configuration, data.callbackID);
+        break;
+      }
     }
 
     let tab = window.gBrowser._getTabForContentWindow(contentDocument.defaultView);
@@ -258,6 +307,14 @@ this.UITour = {
         if (aEvent.target.id == "urlbar") {
           let window = aEvent.target.ownerDocument.defaultView;
           this.handleUrlbarInput(window);
+        }
+        break;
+      }
+
+      case "command": {
+        if (aEvent.target.id == "UITourTooltipClose") {
+          let window = aEvent.target.ownerDocument.defaultView;
+          this.hideInfo(window);
         }
         break;
       }
@@ -315,16 +372,56 @@ this.UITour = {
     if (uri.schemeIs("chrome"))
       return true;
 
-    let allowedSchemes = new Set(["https"]);
-    if (!Services.prefs.getBoolPref("browser.uitour.requireSecure"))
-      allowedSchemes.add("http");
-
-    if (!allowedSchemes.has(uri.scheme))
+    if (!this.isSafeScheme(uri))
       return false;
 
     this.importPermissions();
     let permission = Services.perms.testPermission(uri, UITOUR_PERMISSION);
     return permission == Services.perms.ALLOW_ACTION;
+  },
+
+  isSafeScheme: function(aURI) {
+    let allowedSchemes = new Set(["https"]);
+    if (!Services.prefs.getBoolPref("browser.uitour.requireSecure"))
+      allowedSchemes.add("http");
+
+    if (!allowedSchemes.has(aURI.scheme))
+      return false;
+
+    return true;
+  },
+
+  resolveURL: function(aDocument, aURL) {
+    try {
+      let uri = Services.io.newURI(aURL, null, aDocument.documentURIObject);
+
+      if (!this.isSafeScheme(uri))
+        return null;
+
+      return uri.spec;
+    } catch (e) {}
+
+    return null;
+  },
+
+  sendPageCallback: function(aDocument, aCallbackID, aData = {}) {
+    let detail = Cu.createObjectIn(aDocument.defaultView);
+    detail.data = Cu.createObjectIn(detail);
+
+    for (let key of Object.keys(aData))
+      detail.data[key] = aData[key];
+
+    Cu.makeObjectPropsNormal(detail.data);
+    Cu.makeObjectPropsNormal(detail);
+
+    detail.callbackID = aCallbackID;
+
+    let event = new aDocument.defaultView.CustomEvent("mozUITourResponse", {
+      bubbles: true,
+      detail: detail
+    });
+
+    aDocument.dispatchEvent(event);
   },
 
   getTarget: function(aWindow, aTargetName, aSticky = false) {
@@ -522,7 +619,7 @@ this.UITour = {
     this._setAppMenuStateForAnnotation(aWindow, "highlight", false);
   },
 
-  showInfo: function(aAnchor, aTitle, aDescription) {
+  showInfo: function(aContentDocument, aAnchor, aTitle = "", aDescription = "", aIconURL = "", aButtons = []) {
     function showInfoPanel(aAnchorEl) {
       aAnchorEl.focus();
 
@@ -530,13 +627,43 @@ this.UITour = {
       let tooltip = document.getElementById("UITourTooltip");
       let tooltipTitle = document.getElementById("UITourTooltipTitle");
       let tooltipDesc = document.getElementById("UITourTooltipDescription");
+      let tooltipIcon = document.getElementById("UITourTooltipIcon");
+      let tooltipButtons = document.getElementById("UITourTooltipButtons");
 
       if (tooltip.state == "open") {
         tooltip.hidePopup();
       }
 
-      tooltipTitle.textContent = aTitle;
-      tooltipDesc.textContent = aDescription;
+      tooltipTitle.textContent = aTitle || "";
+      tooltipDesc.textContent = aDescription || "";
+      tooltipIcon.src = aIconURL || "";
+      tooltipIcon.hidden = !aIconURL;
+
+      while (tooltipButtons.firstChild)
+        tooltipButtons.firstChild.remove();
+
+      for (let button of aButtons) {
+        let el = document.createElement("button");
+        el.setAttribute("label", button.label);
+        if (button.iconURL)
+          el.setAttribute("image", button.iconURL);
+
+        if (button.style == "link")
+          el.setAttribute("class", "button-link");
+
+        let callbackID = button.callbackID;
+        el.addEventListener("command", event => {
+          tooltip.hidePopup();
+          this.sendPageCallback(aContentDocument, callbackID);
+        });
+
+        tooltipButtons.appendChild(el);
+      }
+
+      tooltipButtons.hidden = !aButtons.length;
+
+      let tooltipClose = document.getElementById("UITourTooltipClose");
+      tooltipClose.addEventListener("command", this);
 
       tooltip.hidden = false;
       let alignment = "bottomcenter topright";
@@ -553,9 +680,15 @@ this.UITour = {
   },
 
   hideInfo: function(aWindow) {
-    let tooltip = aWindow.document.getElementById("UITourTooltip");
+    let document = aWindow.document;
+
+    let tooltip = document.getElementById("UITourTooltip");
     tooltip.hidePopup();
     this._setAppMenuStateForAnnotation(aWindow, "info", false);
+
+    let tooltipButtons = document.getElementById("UITourTooltipButtons");
+    while (tooltipButtons.firstChild)
+      tooltipButtons.firstChild.remove();
   },
 
   showMenu: function(aWindow, aMenuName, aOpenCallback = null) {
@@ -633,6 +766,21 @@ this.UITour = {
       relatedToCurrent: true
     });
     aWindow.gBrowser.selectedTab = tab;
+  },
+
+  getConfiguration: function(aContentDocument, aConfiguration, aCallbackId) {
+    let config = null;
+    switch (aConfiguration) {
+      case "sync":
+        config = {
+          setup: Services.prefs.prefHasUserValue("services.sync.username"),
+        };
+        break;
+      default:
+        Cu.reportError("getConfiguration: Unknown configuration requested: " + aConfiguration);
+        break;
+    }
+    this.sendPageCallback(aContentDocument, aCallbackId, config);
   },
 };
 

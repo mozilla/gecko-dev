@@ -45,7 +45,7 @@ public:
     TEXT_HAS_TRAILING_BREAK  = 0x4000000,
 
     // This is set if the textrun was created for a textframe whose
-    // TEXT_IS_IN_SINGLE_CHAR_MI flag is set.  This occurs if the textframe
+    // NS_FRAME_IS_IN_SINGLE_CHAR_MI flag is set.  This occurs if the textframe
     // belongs to a MathML <mi> element whose embedded text consists of a
     // single character.
     TEXT_IS_SINGLE_CHAR_MI   = 0x8000000
@@ -54,6 +54,9 @@ public:
     // so that it also has access to the _INCOMING flag
     // TEXT_TRAILING_ARABICCHAR
     // TEXT_INCOMING_ARABICCHAR
+
+    // This is defined in gfxTextRunFactory to allow access in gfxFont.
+    // TEXT_USE_MATH_SCRIPT
   };
 
   // These constants are used in TransformText to represent context information

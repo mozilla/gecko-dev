@@ -42,7 +42,7 @@ nsMathMLTokenFrame::GetMathMLFrameType()
   uint8_t mathVariant = StyleFont()->mMathVariant;
   if ((mathVariant == NS_MATHML_MATHVARIANT_NONE &&
        (StyleFont()->mFont.style == NS_STYLE_FONT_STYLE_ITALIC ||
-        HasAnyStateBits(TEXT_IS_IN_SINGLE_CHAR_MI))) ||
+        HasAnyStateBits(NS_FRAME_IS_IN_SINGLE_CHAR_MI))) ||
       mathVariant == NS_MATHML_MATHVARIANT_ITALIC ||
       mathVariant == NS_MATHML_MATHVARIANT_BOLD_ITALIC ||
       mathVariant == NS_MATHML_MATHVARIANT_SANS_SERIF_ITALIC ||
@@ -83,7 +83,7 @@ nsMathMLTokenFrame::MarkTextFramesAsTokenMathML()
       (length == 2 && NS_IS_HIGH_SURROGATE(data[0]));
 
     if (isSingleCharacter) {
-      child->AddStateBits(TEXT_IS_IN_SINGLE_CHAR_MI);
+      child->AddStateBits(NS_FRAME_IS_IN_SINGLE_CHAR_MI);
     }
   }
 }
@@ -215,7 +215,7 @@ nsMathMLTokenFrame::Place(nsRenderingContext& aRenderingContext,
 
       // place and size the child; (dx,0) makes the caret happy - bug 188146
       dy = childSize.Height() == 0 ? 0 : aDesiredSize.TopAscent() - childSize.TopAscent();
-      FinishReflowChild(childFrame, PresContext(), nullptr, childSize, dx, dy, 0);
+      FinishReflowChild(childFrame, PresContext(), childSize, nullptr, dx, dy, 0);
       dx += childSize.Width();
     }
   }
