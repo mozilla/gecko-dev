@@ -212,7 +212,7 @@ public:
 
   nsIntRect GetInvalidRect() const { return mInvalidRect; }
 
-  typedef nsTObserverArray<mozilla::WeakPtr<imgRequestProxy>> ProxyArray;
+  typedef nsTObserverArray<mozilla::WeakPtr<imgRequestProxy> > ProxyArray;
 private:
   friend class imgStatusNotifyRunnable;
   friend class imgRequestNotifyRunnable;
