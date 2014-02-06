@@ -14,6 +14,7 @@ namespace mozilla {
 
 class DOMCameraPreview;
 class RecorderProfileManager;
+class CameraPreviewMediaStream;
 
 class ICameraControl
 {
@@ -21,7 +22,7 @@ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ICameraControl)
 
   virtual nsresult GetPreviewStream(idl::CameraSize aSize, nsICameraPreviewStreamCallback* onSuccess, nsICameraErrorCallback* onError) = 0;
-  virtual nsresult StartPreview(DOMCameraPreview* aDOMPreview) = 0;
+  virtual nsresult StartPreview(DOMCameraPreview* aDOMPreview, CameraPreviewMediaStream* aPreviewStream) = 0;
   virtual void StopPreview() = 0;
   virtual nsresult AutoFocus(nsICameraAutoFocusCallback* onSuccess, nsICameraErrorCallback* onError) = 0;
   virtual nsresult TakePicture(const idl::CameraSize& aSize, int32_t aRotation, const nsAString& aFileFormat, idl::CameraPosition aPosition, uint64_t aDateTime, nsICameraTakePictureCallback* onSuccess, nsICameraErrorCallback* onError) = 0;

@@ -10,6 +10,7 @@
 #include "nsGlobalWindow.h"
 #include "nsIDocument.h"
 #include "nsPIDOMWindow.h"
+#include "nsProxyRelease.h"
 
 using namespace mozilla;
 using namespace mozilla::layers;
@@ -34,6 +35,10 @@ public:
     STOPPED
   };
   PreviewControl(DOMCameraPreview* aDOMPreview, uint32_t aControl)
+    : mDOMPreview(new nsMainThreadPtrHolder<DOMCameraPreview>(aDOMPreview))
+    , mControl(aControl)
+  { }
+  PreviewControl(nsMainThreadPtrHandle<DOMCameraPreview> aDOMPreview, uint32_t aControl)
     : mDOMPreview(aDOMPreview)
     , mControl(aControl)
   { }
@@ -68,13 +73,7 @@ public:
   }
 
 protected:
-  /**
-   * This must be a raw pointer because this class is not created on the
-   * main thread, and DOMCameraPreview is not threadsafe.  Prior to
-   * issuing a preview control event, the caller must ensure that
-   * mDOMPreview will not disappear.
-   */
-  DOMCameraPreview* mDOMPreview;
+  nsMainThreadPtrHandle<DOMCameraPreview> mDOMPreview;
   uint32_t mControl;
 };
 
@@ -82,15 +81,8 @@ class DOMCameraPreviewListener : public MediaStreamListener
 {
 public:
   DOMCameraPreviewListener(DOMCameraPreview* aDOMPreview) :
-    mDOMPreview(aDOMPreview)
-  {
-    DOM_CAMERA_LOGT("%s:%d : this=%p\n", __func__, __LINE__, this);
-  }
-
-  ~DOMCameraPreviewListener()
-  {
-    DOM_CAMERA_LOGT("%s:%d : this=%p\n", __func__, __LINE__, this);
-  }
+    mDOMPreview(new nsMainThreadPtrHolder<DOMCameraPreview>(aDOMPreview))
+  { }
 
   void NotifyConsumptionChanged(MediaStreamGraph* aGraph, Consumption aConsuming)
   {
@@ -138,24 +130,17 @@ public:
 
 protected:
   // Raw pointer; if we exist, 'mDOMPreview' exists as well
-  DOMCameraPreview* mDOMPreview;
+  nsMainThreadPtrHandle<DOMCameraPreview> mDOMPreview;
 };
 
 DOMCameraPreview::DOMCameraPreview(nsGlobalWindow* aWindow,
-                                   ICameraControl* aCameraControl,
-                                   uint32_t aWidth, uint32_t aHeight,
-                                   uint32_t aFrameRate)
+                                   ICameraControl* aCameraControl)
   : DOMMediaStream()
   , mState(STOPPED)
-  , mWidth(aWidth)
-  , mHeight(aHeight)
-  , mFramesPerSecond(aFrameRate)
-  , mFrameCount(0)
   , mCameraControl(aCameraControl)
 {
-  DOM_CAMERA_LOGT("%s:%d : this=%p : mWidth=%d, mHeight=%d, mFramesPerSecond=%d\n", __func__, __LINE__, this, mWidth, mHeight, mFramesPerSecond);
+  DOM_CAMERA_LOGT("%s:%d : this=%p\n", __func__, __LINE__, this);
 
-  mImageContainer = LayerManager::CreateImageContainer();
   mWindow = aWindow;
   mInput = new CameraPreviewMediaStream(this);
   mStream = mInput;
@@ -174,31 +159,6 @@ DOMCameraPreview::~DOMCameraPreview()
   mInput->RemoveListener(mListener);
 }
 
-bool
-DOMCameraPreview::HaveEnoughBuffered()
-{
-  return true;
-}
-
-bool
-DOMCameraPreview::ReceiveFrame(void* aBuffer, ImageFormat aFormat, FrameBuilder aBuilder)
-{
-  DOM_CAMERA_LOGT("%s:%d : this=%p\n", __func__, __LINE__, this);
-  if (!aBuffer || !aBuilder) {
-    return false;
-  }
-  if (mState != STARTED) {
-    return false;
-  }
-
-  ImageFormat format = aFormat;
-  nsRefPtr<Image> image = mImageContainer->CreateImage(&format, 1);
-  aBuilder(image, aBuffer, mWidth, mHeight);
-
-  mInput->SetCurrentFrame(gfxIntSize(mWidth, mHeight), image);
-  return true;
-}
-
 void
 DOMCameraPreview::Start()
 {
@@ -209,16 +169,8 @@ DOMCameraPreview::Start()
 
   DOM_CAMERA_LOGI("Starting preview stream\n");
 
-  /**
-   * Add a reference to ourselves to make sure we stay alive while
-   * the preview is running, as the CameraControlImpl object holds a
-   * weak reference to us.
-   *
-   * This reference is removed in SetStateStopped().
-   */
-  NS_ADDREF_THIS();
   DOM_CAMERA_SETSTATE(STARTING);
-  mCameraControl->StartPreview(this);
+  mCameraControl->StartPreview(this, mInput);
 }
 
 void
@@ -233,6 +185,7 @@ DOMCameraPreview::SetStateStarted()
 void
 DOMCameraPreview::Started()
 {
+  NS_ASSERTION(NS_IsMainThread(), "Started() not called from main thread");
   if (mState != STARTING) {
     return;
   }
@@ -256,8 +209,6 @@ DOMCameraPreview::StopPreview()
   DOM_CAMERA_LOGI("Stopping preview stream\n");
   DOM_CAMERA_SETSTATE(STOPPING);
   mCameraControl->StopPreview();
-  //mInput->EndTrack(TRACK_VIDEO);
-  //mInput->Finish();
 }
 
 void
@@ -265,24 +216,14 @@ DOMCameraPreview::SetStateStopped()
 {
   NS_ASSERTION(NS_IsMainThread(), "SetStateStopped() not called from main thread");
 
-  // see bug 809259 and bug 817367.
-  if (mState != STOPPING) {
-    //mInput->EndTrack(TRACK_VIDEO);
-    //mInput->Finish();
-  }
   DOM_CAMERA_SETSTATE(STOPPED);
   DOM_CAMERA_LOGI("Preview stream stopped\n");
-
-  /**
-   * Only remove the reference added in Start() once the preview
-   * has stopped completely.
-   */
-  NS_RELEASE_THIS();
 }
 
 void
 DOMCameraPreview::Stopped(bool aForced)
 {
+  NS_ASSERTION(NS_IsMainThread(), "Stopped() not called from main thread");
   if (mState != STOPPING && !aForced) {
     return;
   }
@@ -300,6 +241,7 @@ DOMCameraPreview::Stopped(bool aForced)
 void
 DOMCameraPreview::Error()
 {
+  NS_ASSERTION(NS_IsMainThread(), "Error() not called from main thread");
   DOM_CAMERA_LOGE("Error occurred changing preview state!\n");
   Stopped(true);
 }
