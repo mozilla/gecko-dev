@@ -313,7 +313,7 @@ WMFReader::ConfigureVideoFrameGeometry(IMFMediaType* aMediaType)
   nsIntSize frameSize = nsIntSize(width, height);
   nsIntSize displaySize = nsIntSize(pictureRegion.width, pictureRegion.height);
   ScaleDisplayByAspectRatio(displaySize, float(aspectNum) / float(aspectDenom));
-  if (!IsValidVideoRegion(frameSize, pictureRegion, displaySize)) {
+  if (!VideoInfo::ValidateVideoRegion(frameSize, pictureRegion, displaySize)) {
     // Video track's frame sizes will overflow. Ignore the video track.
     return E_FAIL;
   }
