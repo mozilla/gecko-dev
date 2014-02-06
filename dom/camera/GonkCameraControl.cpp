@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 Mozilla Foundation
+ * Copyright (C) 2012-2014 Mozilla Foundation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -227,6 +227,7 @@ nsGonkCameraControl::nsGonkCameraControl(uint32_t aCameraId, nsIThread* aCameraT
   // Constructor runs on the main thread...
   DOM_CAMERA_LOGT("%s:%d : this=%p\n", __func__, __LINE__, this);
   mRwLock = PR_NewRWLock(PR_RWLOCK_RANK_NONE, "GonkCameraControl.Parameters.Lock");
+  mImageContainer = LayerManager::CreateImageContainer();
 }
 
 void nsGonkCameraControl::DispatchInit(nsDOMCameraControl* aDOMCameraControl, nsICameraGetCameraCallback* onSuccess, nsICameraErrorCallback* onError, uint64_t aWindowId)
@@ -747,26 +748,70 @@ nsGonkCameraControl::GetPreviewStreamImpl(GetPreviewStreamTask* aGetPreviewStrea
   DOM_CAMERA_LOGI("picture preview: wanted %d x %d, got %d x %d (%d fps, format %d)\n", aGetPreviewStream->mSize.width, aGetPreviewStream->mSize.height, mWidth, mHeight, mFps, mFormat);
 
   nsMainThreadPtrHandle<nsICameraPreviewStreamCallback> onSuccess = aGetPreviewStream->mOnSuccessCb;
-  nsCOMPtr<GetPreviewStreamResult> getPreviewStreamResult = new GetPreviewStreamResult(this, mWidth, mHeight, mFps, onSuccess, mWindowId);
+  nsCOMPtr<GetPreviewStreamResult> getPreviewStreamResult = new GetPreviewStreamResult(this, onSuccess, mWindowId);
   return NS_DispatchToMainThread(getPreviewStreamResult);
 }
+
+class PreviewControl : public nsRunnable
+{
+public:
+  PreviewControl(nsMainThreadPtrHandle<DOMCameraPreview> aDOMPreview)
+    : mDOMPreview(aDOMPreview)
+  { }
+
+  virtual void RunImpl(DOMCameraPreview* aDOMPreview) = 0;
+
+  NS_IMETHODIMP
+  Run() MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    nsRefPtr<DOMCameraPreview> preview = mDOMPreview.get();
+    if (preview) {
+      RunImpl(preview);
+    }
+    return NS_OK;
+  }
+
+protected:
+  nsMainThreadPtrHandle<DOMCameraPreview> mDOMPreview;
+};
 
 nsresult
 nsGonkCameraControl::StartPreviewImpl(StartPreviewTask* aStartPreview)
 {
+  class PreviewStarted : public PreviewControl
+  {
+  public:
+    PreviewStarted(nsMainThreadPtrHandle<DOMCameraPreview> aDOMPreview)
+      : PreviewControl(aDOMPreview)
+    { }
+
+    void
+    RunImpl(DOMCameraPreview* aDOMPreview) MOZ_OVERRIDE
+    {
+      aDOMPreview->Started();
+    }
+
+  protected:
+    nsMainThreadPtrHandle<nsIWeakReference> mDOMPreview;
+  };
+
   /**
    * If 'aStartPreview->mDOMPreview' is null, we are just restarting
    * the preview after taking a picture.  No need to monkey with the
    * currently set DOM-facing preview object.
    */
-  if (aStartPreview->mDOMPreview) {
+  if (aStartPreview->mDOMPreviewWasPassed) {
     StopPreviewInternal(true /* forced */);
     mDOMPreview = aStartPreview->mDOMPreview;
-  } else if (!mDOMPreview) {
+    mPreviewStream = aStartPreview->mPreviewStream;
+    mDOMPreviewIsSet = true;
+  } else if (!mDOMPreviewIsSet) {
     return NS_ERROR_INVALID_ARG;
   }
 
-  DOM_CAMERA_LOGI("%s: starting preview (mDOMPreview=%p)\n", __func__, mDOMPreview);
+  DOM_CAMERA_LOGI("Starting preview\n");
 
   RETURN_IF_NO_CAMERA_HW();
   if (mCameraHw->StartPreview() != OK) {
@@ -774,8 +819,8 @@ nsGonkCameraControl::StartPreviewImpl(StartPreviewTask* aStartPreview)
     return NS_ERROR_FAILURE;
   }
 
-  if (aStartPreview->mDOMPreview) {
-    mDOMPreview->Started();
+  if (aStartPreview->mDOMPreviewWasPassed) {
+    NS_DispatchToMainThread(new PreviewStarted(mDOMPreview));
   }
 
   OnPreviewStateChange(PREVIEW_STARTED);
@@ -785,16 +830,35 @@ nsGonkCameraControl::StartPreviewImpl(StartPreviewTask* aStartPreview)
 nsresult
 nsGonkCameraControl::StopPreviewInternal(bool aForced)
 {
-  DOM_CAMERA_LOGI("%s: stopping preview (mDOMPreview=%p)\n", __func__, mDOMPreview);
+  class PreviewStopped : public PreviewControl
+  {
+  public:
+    PreviewStopped(nsMainThreadPtrHandle<DOMCameraPreview> aDOMPreview, bool aForced)
+      : PreviewControl(aDOMPreview)
+      , mForced(aForced)
+    { }
+
+    void
+    RunImpl(DOMCameraPreview* aDOMPreview) MOZ_OVERRIDE
+    {
+      aDOMPreview->Stopped(mForced);
+    }
+
+  protected:
+    bool mForced;
+  };
+
+  DOM_CAMERA_LOGI("Stopping preview\n");
 
   // StopPreview() is a synchronous call--it doesn't return
   // until the camera preview thread exits.
-  if (mDOMPreview) {
+  if (mDOMPreviewIsSet) {
     if (mCameraHw.get()) {
       mCameraHw->StopPreview();
     }
-    mDOMPreview->Stopped(aForced);
+    NS_DispatchToMainThread(new PreviewStopped(mDOMPreview, aForced));
     mDOMPreview = nullptr;
+    mDOMPreviewIsSet = false;
   }
 
   OnPreviewStateChange(PREVIEW_STOPPED);
@@ -1578,13 +1642,13 @@ nsGonkCameraControl::GetPreviewStreamVideoModeImpl(GetPreviewStreamVideoModeTask
   NS_ENSURE_SUCCESS(rv, rv);
   
   const RecorderVideoProfile* video = mRecorderProfile->GetVideoProfile();
-  int width = video->GetWidth();
-  int height = video->GetHeight();
-  int fps = video->GetFramerate();
-  DOM_CAMERA_LOGI("recording preview format: %d x %d (%d fps)\n", width, height, fps);
+  mWidth = video->GetWidth();
+  mHeight = video->GetHeight();
+  mFps = video->GetFramerate();
+  DOM_CAMERA_LOGI("recording preview format: %d x %d (%d fps)\n", mWidth, mHeight, mFps);
 
   // create and return new preview stream object
-  nsCOMPtr<GetPreviewStreamResult> getPreviewStreamResult = new GetPreviewStreamResult(this, width, height, fps, aGetPreviewStreamVideoMode->mOnSuccessCb, mWindowId);
+  nsCOMPtr<GetPreviewStreamResult> getPreviewStreamResult = new GetPreviewStreamResult(this, aGetPreviewStreamVideoMode->mOnSuccessCb, mWindowId);
   rv = NS_DispatchToMainThread(getPreviewStreamResult);
   if (NS_FAILED(rv)) {
     NS_WARNING("Failed to dispatch GetPreviewStreamVideoMode() onSuccess callback to main thread!");
@@ -1676,6 +1740,27 @@ nsGonkCameraControl::GetVideoSizes(nsTArray<idl::CameraSize>& aVideoSizes)
   return NS_OK;
 }
 
+void
+nsGonkCameraControl::ReceiveFrame(layers::GraphicBufferLocked* aBuffer)
+{
+  if (!mPreviewStream) {
+    aBuffer->Unlock();
+    return;
+  }
+
+  ImageFormat format = ImageFormat::GRALLOC_PLANAR_YCBCR;
+  nsRefPtr<Image> frame = mImageContainer->CreateImage(&format, 1);
+
+  GrallocImage* videoImage = static_cast<GrallocImage*>(frame.get());
+
+  GrallocImage::GrallocData data;
+  data.mGraphicBuffer = static_cast<layers::GraphicBufferLocked*>(aBuffer);
+  data.mPicSize = gfxIntSize(mWidth, mHeight);
+  videoImage->SetData(data);
+
+  mPreviewStream->SetCurrentFrame(gfxIntSize(mWidth, mHeight), frame);
+}
+
 // Gonk callback handlers.
 namespace mozilla {
 
@@ -1697,26 +1782,10 @@ AutoFocusComplete(nsGonkCameraControl* gc, bool aSuccess)
   gc->AutoFocusComplete(aSuccess);
 }
 
-static void
-GonkFrameBuilder(Image* aImage, void* aBuffer, uint32_t aWidth, uint32_t aHeight)
-{
-  /**
-   * Cast the generic Image back to our platform-specific type and
-   * populate it.
-   */
-  GrallocImage* videoImage = static_cast<GrallocImage*>(aImage);
-  GrallocImage::GrallocData data;
-  data.mGraphicBuffer = static_cast<layers::GraphicBufferLocked*>(aBuffer);
-  data.mPicSize = gfxIntSize(aWidth, aHeight);
-  videoImage->SetData(data);
-}
-
 void
 ReceiveFrame(nsGonkCameraControl* gc, layers::GraphicBufferLocked* aBuffer)
 {
-  if (!gc->ReceiveFrame(aBuffer, ImageFormat::GRALLOC_PLANAR_YCBCR, GonkFrameBuilder)) {
-    aBuffer->Unlock();
-  }
+  gc->ReceiveFrame(aBuffer);
 }
 
 void

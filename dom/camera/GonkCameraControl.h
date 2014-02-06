@@ -70,6 +70,7 @@ public:
   void TakePictureComplete(uint8_t* aData, uint32_t aLength);
   void TakePictureError();
   void HandleRecorderEvent(int msg, int ext1, int ext2);
+  void ReceiveFrame(layers::GraphicBufferLocked* aBuffer);
 
 protected:
   ~nsGonkCameraControl();
@@ -120,6 +121,8 @@ protected:
 
   uint32_t                  mFps;
   uint32_t                  mDiscardedFrameCount;
+
+  nsRefPtr<mozilla::layers::ImageContainer> mImageContainer;
 
   android::MediaProfiles*   mMediaProfiles;
   nsRefPtr<android::GonkRecorder> mRecorder;

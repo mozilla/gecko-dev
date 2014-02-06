@@ -50,7 +50,7 @@ public:
   CameraControlImpl(uint32_t aCameraId, nsIThread* aCameraThread, uint64_t aWindowId);
 
   nsresult GetPreviewStream(idl::CameraSize aSize, nsICameraPreviewStreamCallback* onSuccess, nsICameraErrorCallback* onError);
-  nsresult StartPreview(DOMCameraPreview* aDOMPreview);
+  nsresult StartPreview(DOMCameraPreview* aDOMPreview, CameraPreviewMediaStream* aPreviewStream);
   void StopPreview();
   nsresult AutoFocus(nsICameraAutoFocusCallback* onSuccess, nsICameraErrorCallback* onError);
   nsresult TakePicture(const idl::CameraSize& aSize, int32_t aRotation, const nsAString& aFileFormat, idl::CameraPosition aPosition, uint64_t aDateTime, nsICameraTakePictureCallback* onSuccess, nsICameraErrorCallback* onError);
@@ -105,7 +105,6 @@ public:
   virtual nsresult PushParameters() = 0;
   virtual void Shutdown();
 
-  bool ReceiveFrame(void* aBuffer, ImageFormat aFormat, FrameBuilder aBuilder);
   void OnShutter();
   void OnClosed();
   void OnRecorderStateChange(const nsString& aStateMsg, int32_t aStatus, int32_t aTrackNumber);
@@ -148,15 +147,13 @@ protected:
   uint32_t            mMaxFocusAreas;
   PreviewState        mPreviewState;
 
-  /**
-   * 'mDOMPreview' is a raw pointer to the object that will receive incoming
-   * preview frames.  This is guaranteed to be valid, or null.
-   *
-   * It is set by a call to StartPreview(), and set to null on StopPreview().
-   * It is up to the caller to ensure that the object will not disappear
-   * out from under this pointer--usually by calling NS_ADDREF().
-   */
-  DOMCameraPreview*   mDOMPreview;
+  // Hold an off-Main Thread reference to the preview object.  We need
+  // 'mDOMPreviewIsSet' because we can't even look into 'mDOMPreview'
+  // off the main thread. 'mPreviewStream' points to a threadsafe
+  // object so we can send frames to the preview from any thread.
+  nsMainThreadPtrHandle<DOMCameraPreview> mDOMPreview;
+  bool                                    mDOMPreviewIsSet;
+  nsRefPtr<CameraPreviewMediaStream>      mPreviewStream;
 
   nsMainThreadPtrHandle<nsICameraAutoFocusCallback>   mAutoFocusOnSuccessCb;
   nsMainThreadPtrHandle<nsICameraErrorCallback>       mAutoFocusOnErrorCb;
@@ -202,11 +199,8 @@ protected:
 class GetPreviewStreamResult : public nsRunnable
 {
 public:
-  GetPreviewStreamResult(CameraControlImpl* aCameraControl, uint32_t aWidth, uint32_t aHeight, uint32_t aFramesPerSecond, nsMainThreadPtrHandle<nsICameraPreviewStreamCallback>& onSuccess, uint64_t aWindowId)
+  GetPreviewStreamResult(CameraControlImpl* aCameraControl, nsMainThreadPtrHandle<nsICameraPreviewStreamCallback>& onSuccess, uint64_t aWindowId)
     : mCameraControl(aCameraControl)
-    , mWidth(aWidth)
-    , mHeight(aHeight)
-    , mFramesPerSecond(aFramesPerSecond)
     , mOnSuccessCb(onSuccess)
     , mWindowId(aWindowId)
   {
@@ -223,9 +217,6 @@ public:
 
 protected:
   nsRefPtr<CameraControlImpl> mCameraControl;
-  uint32_t mWidth;
-  uint32_t mHeight;
-  uint32_t mFramesPerSecond;
   nsMainThreadPtrHandle<nsICameraPreviewStreamCallback> mOnSuccessCb;
   uint64_t mWindowId;
 };
@@ -530,11 +521,18 @@ public:
 class StartPreviewTask : public nsRunnable
 {
 public:
-  StartPreviewTask(CameraControlImpl* aCameraControl, DOMCameraPreview* aDOMPreview)
+  StartPreviewTask(CameraControlImpl* aCameraControl,
+                   DOMCameraPreview* aDOMPreview,
+                   CameraPreviewMediaStream* aPreviewStream)
     : mCameraControl(aCameraControl)
-    , mDOMPreview(aDOMPreview)
+    , mDOMPreview(new nsMainThreadPtrHolder<DOMCameraPreview>(aDOMPreview))
+    , mPreviewStream(aPreviewStream)
+    , mDOMPreviewWasPassed(false)
   {
     DOM_CAMERA_LOGT("%s:%d : this=%p\n", __func__, __LINE__, this);
+    if (aDOMPreview) {
+      mDOMPreviewWasPassed = true;
+    }
   }
 
   virtual ~StartPreviewTask()
@@ -553,7 +551,9 @@ public:
   }
 
   nsRefPtr<CameraControlImpl> mCameraControl;
-  DOMCameraPreview* mDOMPreview; // DOMCameraPreview NS_ADDREFs itself for us
+  nsMainThreadPtrHandle<DOMCameraPreview> mDOMPreview;
+  nsRefPtr<CameraPreviewMediaStream> mPreviewStream;
+  bool mDOMPreviewWasPassed;
 };
 
 // Stop the preview.

@@ -23,6 +23,7 @@ CameraControlImpl::CameraControlImpl(uint32_t aCameraId, nsIThread* aCameraThrea
   , mMaxFocusAreas(0)
   , mPreviewState(PREVIEW_STOPPED)
   , mDOMPreview(nullptr)
+  , mDOMPreviewIsSet(false)
   , mAutoFocusOnSuccessCb(nullptr)
   , mAutoFocusOnErrorCb(nullptr)
   , mTakePictureOnSuccessCb(nullptr)
@@ -467,9 +468,9 @@ CameraControlImpl::StopRecording()
 }
 
 nsresult
-CameraControlImpl::StartPreview(DOMCameraPreview* aDOMPreview)
+CameraControlImpl::StartPreview(DOMCameraPreview* aDOMPreview, CameraPreviewMediaStream* aPreviewStream)
 {
-  nsCOMPtr<nsIRunnable> startPreviewTask = new StartPreviewTask(this, aDOMPreview);
+  nsCOMPtr<nsIRunnable> startPreviewTask = new StartPreviewTask(this, aDOMPreview, aPreviewStream);
   return mCameraThread->Dispatch(startPreviewTask, NS_DISPATCH_NORMAL);
 }
 
@@ -494,16 +495,6 @@ CameraControlImpl::ReleaseHardware(nsICameraReleaseCallback* onSuccess, nsICamer
   return mCameraThread->Dispatch(releaseHardwareTask, NS_DISPATCH_NORMAL);
 }
 
-bool
-CameraControlImpl::ReceiveFrame(void* aBuffer, ImageFormat aFormat, FrameBuilder aBuilder)
-{
-  if (!mDOMPreview) {
-    return false;
-  }
-
-  return mDOMPreview->ReceiveFrame(aBuffer, aFormat, aBuilder);
-}
-
 NS_IMETHODIMP
 GetPreviewStreamResult::Run()
 {
@@ -518,8 +509,7 @@ GetPreviewStreamResult::Run()
   nsGlobalWindow* window = nsGlobalWindow::GetInnerWindowWithId(mWindowId);
   if (onSuccess && nsDOMCameraManager::IsWindowStillActive(mWindowId) && window) {
     nsCOMPtr<nsIDOMMediaStream> stream =
-      new DOMCameraPreview(window, mCameraControl, mWidth, mHeight,
-	                         mFramesPerSecond);
+      new DOMCameraPreview(window, mCameraControl);
     onSuccess->HandleEvent(stream);
   }
   return NS_OK;
