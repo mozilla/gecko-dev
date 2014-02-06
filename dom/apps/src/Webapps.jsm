@@ -1560,9 +1560,8 @@ this.DOMApplicationRegistry = {
         },
         manifestURL: aApp.manifestURL
       });
-      let cacheUpdate = aProfileDir
-        ? updateSvc.scheduleCustomProfileUpdate(appcacheURI, docURI, aProfileDir)
-        : updateSvc.scheduleAppUpdate(appcacheURI, docURI, aApp.localId, false);
+      let cacheUpdate = updateSvc.scheduleAppUpdate(
+        appcacheURI, docURI, aApp.localId, false, aProfileDir);
 
       // We save the download details for potential further usage like
       // cancelling it.
@@ -2422,6 +2421,11 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
     app.downloadAvailable = false;
     this._saveApps((function() {
       this.updateAppHandlers(null, aManifest, aNewApp);
+      // Clear the manifest cache in case it holds the update manifest.
+      if (aId in this._manifestCache) {
+        delete this._manifestCache[aId];
+      }
+
       this.broadcastMessage("Webapps:AddApp", { id: aId, app: aNewApp });
       Services.obs.notifyObservers(null, "webapps-installed",
         JSON.stringify({ manifestURL: aNewApp.manifestURL }));
