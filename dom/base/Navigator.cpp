@@ -1855,6 +1855,11 @@ bool Navigator::HasInputMethodSupport(JSContext* /* unused */,
 bool
 Navigator::HasDataStoreSupport(JSContext* /* unused */, JSObject* aGlobal)
 {
+  // DataStore is enabled by default for chrome code.
+  if (nsContentUtils::IsCallerChrome()) {
+    return true;
+  }
+
   // First of all, the general pref has to be turned on.
   bool enabled = false;
   Preferences::GetBool("dom.datastore.enabled", &enabled);
