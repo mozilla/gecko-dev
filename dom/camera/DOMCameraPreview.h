@@ -17,6 +17,8 @@ class nsGlobalWindow;
 
 namespace mozilla {
 
+typedef void (*FrameBuilder)(mozilla::layers::Image* aImage, void* aBuffer, uint32_t aWidth, uint32_t aHeight);
+
 /**
  * DOMCameraPreview is only exposed to the DOM as an nsDOMMediaStream,
  * which is a cycle-collection participant already, and we don't
@@ -29,7 +31,11 @@ protected:
   enum { TRACK_VIDEO = 1 };
 
 public:
-  DOMCameraPreview(nsGlobalWindow* aWindow, ICameraControl* aCameraControl);
+  DOMCameraPreview(nsGlobalWindow* aWindow, ICameraControl* aCameraControl,
+                   uint32_t aWidth, uint32_t aHeight, uint32_t aFramesPerSecond = 30);
+
+  bool ReceiveFrame(void* aBuffer, ImageFormat aFormat, mozilla::FrameBuilder aBuilder);
+  bool HaveEnoughBuffered();
 
   void Start();   // called by the MediaStreamListener to start preview
   void Started(); // called by the CameraControl when preview is started
@@ -69,7 +75,13 @@ protected:
     mState = aNewState;
   }
 
-  nsRefPtr<CameraPreviewMediaStream> mInput;
+  uint32_t mWidth;
+  uint32_t mHeight;
+  uint32_t mFramesPerSecond;
+  CameraPreviewMediaStream* mInput;
+  nsRefPtr<mozilla::layers::ImageContainer> mImageContainer;
+  VideoSegment mVideoSegment;
+  uint32_t mFrameCount;
   nsRefPtr<ICameraControl> mCameraControl;
 
   // Raw pointer; AddListener() keeps the reference for us

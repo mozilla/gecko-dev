@@ -420,7 +420,7 @@ nsDOMCameraControl::GetPreviewStream(JSContext* aCx,
 void
 nsDOMCameraControl::ResumePreview(ErrorResult& aRv)
 {
-  aRv = mCameraControl->StartPreview(nullptr, nullptr);
+  aRv = mCameraControl->StartPreview(nullptr);
 }
 
 already_AddRefed<nsICameraPreviewStateChange>
