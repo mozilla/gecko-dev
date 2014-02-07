@@ -155,6 +155,23 @@ static bool sNuwaForking = false;
 #define STACK_SENTINEL_VALUE 0xdeadbeef
 #endif
 
+namespace {
+class EnableGCTimerCallback: public nsITimerCallback
+{
+public:
+    NS_DECL_ISUPPORTS
+    virtual ~EnableGCTimerCallback() {}
+
+private:
+    virtual nsresult Notify(nsITimer*) {
+        nsJSContext::EnableGC();
+        return NS_OK;
+    }
+};
+
+NS_IMPL_ISUPPORTS1(EnableGCTimerCallback, nsITimerCallback);
+}
+
 namespace mozilla {
 namespace dom {
 
@@ -1091,6 +1108,20 @@ ContentChild::RecvSetOffline(const bool& offline)
   io->SetOffline(offline);
 
   return true;
+}
+
+bool
+ContentChild::RecvSuppressCollect(const int& delay)
+{
+    nsJSContext::DisableGC();
+    if (mEnableGCTimer) {
+        mEnableGCTimer->Cancel();
+        mEnableGCTimer = nullptr;
+    }
+    mEnableGCTimer = do_CreateInstance("@mozilla.org/timer;1");
+    mEnableGCTimer->InitWithCallback(new EnableGCTimerCallback(),
+                                     delay, nsITimer::TYPE_ONE_SHOT);
+    return true;
 }
 
 void

@@ -10,6 +10,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/PContentChild.h"
 #include "mozilla/dom/ipc/Blob.h"
+#include "nsITimer.h"
 #include "nsWeakPtr.h"
 
 struct ChromePackage;
@@ -212,6 +213,7 @@ public:
 
     virtual bool RecvGarbageCollect();
     virtual bool RecvCycleCollect();
+    virtual bool RecvSuppressCollect(const int& delay);
 
     virtual bool RecvAppInfo(const nsCString& version, const nsCString& buildID,
                              const nsCString& name, const nsCString& UAName);
@@ -293,6 +295,7 @@ private:
     bool mIsForBrowser;
     nsString mProcessName;
     nsWeakPtr mMemoryMinimizerRunnable;
+    nsCOMPtr<nsITimer> mEnableGCTimer;
 
     static ContentChild* sSingleton;
 
