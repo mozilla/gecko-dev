@@ -513,7 +513,8 @@ public:
   }
 
   virtual void HandleDoubleTap(const CSSIntPoint& aPoint,
-                               int32_t aModifiers) MOZ_OVERRIDE
+                               int32_t aModifiers,
+                               const ScrollableLayerGuid& aGuid) MOZ_OVERRIDE
   {
     if (MessageLoop::current() != mUILoop) {
       // We have to send this message from the "UI thread" (main
@@ -521,17 +522,18 @@ public:
       mUILoop->PostTask(
         FROM_HERE,
         NewRunnableMethod(this, &RemoteContentController::HandleDoubleTap,
-                          aPoint, aModifiers));
+                          aPoint, aModifiers, aGuid));
       return;
     }
     if (mRenderFrame) {
       TabParent* browser = static_cast<TabParent*>(mRenderFrame->Manager());
-      browser->HandleDoubleTap(aPoint, aModifiers);
+      browser->HandleDoubleTap(aPoint, aModifiers, aGuid);
     }
   }
 
   virtual void HandleSingleTap(const CSSIntPoint& aPoint,
-                               int32_t aModifiers) MOZ_OVERRIDE
+                               int32_t aModifiers,
+                               const ScrollableLayerGuid& aGuid) MOZ_OVERRIDE
   {
     if (MessageLoop::current() != mUILoop) {
       // We have to send this message from the "UI thread" (main
@@ -539,17 +541,18 @@ public:
       mUILoop->PostTask(
         FROM_HERE,
         NewRunnableMethod(this, &RemoteContentController::HandleSingleTap,
-                          aPoint, aModifiers));
+                          aPoint, aModifiers, aGuid));
       return;
     }
     if (mRenderFrame) {
       TabParent* browser = static_cast<TabParent*>(mRenderFrame->Manager());
-      browser->HandleSingleTap(aPoint, aModifiers);
+      browser->HandleSingleTap(aPoint, aModifiers, aGuid);
     }
   }
 
   virtual void HandleLongTap(const CSSIntPoint& aPoint,
-                             int32_t aModifiers) MOZ_OVERRIDE
+                             int32_t aModifiers,
+                             const ScrollableLayerGuid& aGuid) MOZ_OVERRIDE
   {
     if (MessageLoop::current() != mUILoop) {
       // We have to send this message from the "UI thread" (main
@@ -557,17 +560,18 @@ public:
       mUILoop->PostTask(
         FROM_HERE,
         NewRunnableMethod(this, &RemoteContentController::HandleLongTap,
-                          aPoint, aModifiers));
+                          aPoint, aModifiers, aGuid));
       return;
     }
     if (mRenderFrame) {
       TabParent* browser = static_cast<TabParent*>(mRenderFrame->Manager());
-      browser->HandleLongTap(aPoint, aModifiers);
+      browser->HandleLongTap(aPoint, aModifiers, aGuid);
     }
   }
 
   virtual void HandleLongTapUp(const CSSIntPoint& aPoint,
-                             int32_t aModifiers) MOZ_OVERRIDE
+                               int32_t aModifiers,
+                               const ScrollableLayerGuid& aGuid) MOZ_OVERRIDE
   {
     if (MessageLoop::current() != mUILoop) {
       // We have to send this message from the "UI thread" (main
@@ -575,12 +579,12 @@ public:
       mUILoop->PostTask(
         FROM_HERE,
         NewRunnableMethod(this, &RemoteContentController::HandleLongTapUp,
-                          aPoint, aModifiers));
+                          aPoint, aModifiers, aGuid));
       return;
     }
     if (mRenderFrame) {
       TabParent* browser = static_cast<TabParent*>(mRenderFrame->Manager());
-      browser->HandleLongTapUp(aPoint, aModifiers);
+      browser->HandleLongTapUp(aPoint, aModifiers, aGuid);
     }
   }
 

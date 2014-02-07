@@ -14,16 +14,25 @@ namespace widget {
 class ParentProcessController : public mozilla::layers::GeckoContentController
 {
     typedef mozilla::layers::FrameMetrics FrameMetrics;
+    typedef mozilla::layers::ScrollableLayerGuid ScrollableLayerGuid;
 
 public:
     virtual void RequestContentRepaint(const FrameMetrics& aFrameMetrics) MOZ_OVERRIDE;
     virtual void PostDelayedTask(Task* aTask, int aDelayMs) MOZ_OVERRIDE;
 
     // No-ops
-    virtual void HandleDoubleTap(const CSSIntPoint& aPoint, int32_t aModifiers) MOZ_OVERRIDE {}
-    virtual void HandleSingleTap(const CSSIntPoint& aPoint, int32_t aModifiers) MOZ_OVERRIDE {}
-    virtual void HandleLongTap(const CSSIntPoint& aPoint, int32_t aModifiers) MOZ_OVERRIDE {}
-    virtual void HandleLongTapUp(const CSSIntPoint& aPoint, int32_t aModifiers) MOZ_OVERRIDE {}
+    virtual void HandleDoubleTap(const CSSIntPoint& aPoint,
+                                 int32_t aModifiers,
+                                 const ScrollableLayerGuid& aGuid) MOZ_OVERRIDE {}
+    virtual void HandleSingleTap(const CSSIntPoint& aPoint,
+                                 int32_t aModifiers,
+                                 const ScrollableLayerGuid& aGuid) MOZ_OVERRIDE {}
+    virtual void HandleLongTap(const CSSIntPoint& aPoint,
+                               int32_t aModifiers,
+                               const ScrollableLayerGuid& aGuid) MOZ_OVERRIDE {}
+    virtual void HandleLongTapUp(const CSSIntPoint& aPoint,
+                                 int32_t aModifiers,
+                                 const ScrollableLayerGuid& aGuid) MOZ_OVERRIDE {}
 
     virtual void SendAsyncScrollDOMEvent(bool aIsRoot,
                                          const CSSRect &aContentRect,
