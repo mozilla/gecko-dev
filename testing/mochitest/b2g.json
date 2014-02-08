@@ -196,6 +196,7 @@
     "content/html/document/test/test_bug741266.html":"needs control of popup window size",
     "docshell/test/navigation/test_popup-navigates-children.html":"Needs multiple window.open support, also uses docshelltreenode",
     "docshell/test/test_bug590573.html":"queryinterfaces into webnavigation, might suffer from something similar as bug 823022",
+    "docshell/test/navigation/test_bug430723.html":"apz race condition, see bug 965351",
     "dom/devicestorage/ipc/test_ipc.html":"nested ipc not working",
 
     "dom/indexedDB/ipc/test_ipc.html":"nested ipc not working",
@@ -249,6 +250,7 @@
     "content/events/test/test_bug574663.html":"",
     "content/events/test/test_bug607464.html":"",
     "content/events/test/test_wheel_default_action.html":"",
+    "dom/events/test/test_bug946632.html":"apz race condition, see bug 965351",
     "content/base/test/test_bug682592.html":"",	
     "content/html/document/test/test_bug369370.html":"",
     "content/svg/content/test/test_text_selection.html":"Mouse selection not workin on b2g",
@@ -271,7 +273,10 @@
     "docshell/test/navigation/test_reserved.html":"",
     "docshell/test/test_bug413310.html":"",
 
-    "dom/imptests/html/webgl":"",        
+    "dom/imptests/html/webgl":"",
+
+    "dom/apps/tests/test_packaged_app_update.html":"bug 915879",
+
     "dom/battery/test/test_battery_basics.html":"",
     "dom/browser-element/mochitest/test_browserElement_inproc_Alert.html":"",
     "dom/browser-element/mochitest/test_browserElement_inproc_AppFramePermission.html":"",
@@ -313,6 +318,10 @@
     "dom/media/tests/mochitest/test_peerConnection_offerRequiresReceiveVideo.html":"Bug 960442, video support for WebRTC is disabled on b2g",
     "dom/media/tests/mochitest/test_peerConnection_offerRequiresReceiveVideoAudio.html":"Bug 960442, video support for WebRTC is disabled on b2g",
     "dom/media/tests/mochitest/test_peerConnection_throwInCallbacks.html":"Bug 960442, video support for WebRTC is disabled on b2g",
+
+    "dom/media/tests/mochitest/test_peerConnection_bug825703.html":"Bug 950266, test is perma-fail with Nuwa enabled",
+    "dom/media/tests/mochitest/test_peerConnection_errorCallbacks.html":"Bug 950266, test is perma-fail with Nuwa enabled",
+
     "dom/media/tests/ipc/test_ipc.html":"nested ipc not working",
 
     "dom/network/tests/test_networkstats_basics.html":"Will be fixed in bug 858005",
@@ -332,6 +341,11 @@
     "dom/tests/mochitest/general/test_clipboard_events.html":"clipboard undefined",
     "content/base/test/test_copypaste.html":"clipboard undefined",
     "content/base/test/test_bug166235.html":"clipboard undefined",
+	
+    "dom/tests/mochitest/dom-level0": "Bug 932350 - Frequent timeouts",
+    "dom/tests/mochitest/dom-level1-core": "Bug 932350 - Frequent timeouts",
+    "dom/tests/mochitest/dom-level2-core": "Bug 932350 - Frequent timeouts",
+    "dom/tests/mochitest/dom-level2-html": "Bug 932350 - Frequent timeouts",
 
     "dom/tests/mochitest/general/test_idleapi_permissions.html":"",
     "dom/tests/mochitest/general/test_paste_selection.html":"No clipboard",
@@ -393,6 +407,7 @@
     "layout/forms/test/test_bug571352.html":"shift-click multi-select not working?",
     "layout/forms/test/test_textarea_resize.html":"resizing textarea not available in b2g",
     "layout/forms/test/test_bug903715.html":"select elements don't use an in-page popup in B2G",
+    "layout/forms/test/test_bug564115.html":"apz race condition, see bug 965351",
     "layout/forms/test/test_listcontrol_search.html" : "select elements don't use an in-page popup in B2G",
     "layout/generic/test/test_bug392746.html":"ctrl mouse select not working in b2g",
     "layout/generic/test/test_bug470212.html":"shift mouse select not working in b2g",
