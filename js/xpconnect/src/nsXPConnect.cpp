@@ -1707,3 +1707,16 @@ IsXrayWrapper(JSObject *obj)
 
 } // namespace xpc
 
+namespace mozilla {
+namespace dom {
+
+bool
+IsChromeOrXBL(JSContext* cx, JSObject* /* unused */)
+{
+  JSCompartment* compartment = js::GetContextCompartment(cx);
+  return AccessCheck::isChrome(compartment) ||
+         IsXBLScope(compartment);
+}
+
+} // namespace dom
+} // namespace mozilla
