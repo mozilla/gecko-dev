@@ -955,6 +955,8 @@ private:
       MOZ_ASSERT(!mSlice);
       MOZ_ASSERT(!mDone);
 
+      NS_ENSURE_TRUE_VOID(mActor->Manager());
+
       NormalBlobConstructorParams normalParams;
       normalParams.contentType() = mContentType;
       normalParams.length() = mLength;
@@ -1351,6 +1353,8 @@ Blob<ActorFlavor>::ActorDestroy(ActorDestroyReason aWhy)
   if (mBlob && mOwnsBlob) {
     mBlob->Release();
   }
+
+  mManager = nullptr;
 }
 
 template <ActorFlavorEnum ActorFlavor>
