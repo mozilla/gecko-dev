@@ -252,24 +252,14 @@ function updateBlocklist(aCallback) {
   blocklistNotifier.notify(null);
 }
 
-var _originalTestBlocklistURL = null;
 function setAndUpdateBlocklist(aURL, aCallback) {
-  if (!_originalTestBlocklistURL)
-    _originalTestBlocklistURL = Services.prefs.getCharPref("extensions.blocklist.url");
   Services.prefs.setCharPref("extensions.blocklist.url", aURL);
   updateBlocklist(aCallback);
 }
 
 function resetBlocklist(aCallback) {
-  // XXX - this has "forked" from the head.js helpers in our parent directory :(
-  // But let's reuse their blockNoPlugins.xml.  Later, we should arrange to
-  // use their head.js helpers directly
-  let noBlockedURL = "http://example.com/browser/browser/base/content/test/general/blockNoPlugins.xml";
-  setAndUpdateBlocklist(noBlockedURL, function() {
-    Services.prefs.setCharPref("extensions.blocklist.url", _originalTestBlocklistURL);
-    if (aCallback)
-      aCallback();
-  });
+  Services.prefs.clearUserPref("extensions.blocklist.url");
+  updateBlocklist(aCallback);
 }
 
 function setManifestPref(name, manifest) {
