@@ -22,9 +22,7 @@ XPCOMUtils.defineLazyServiceGetter(this, "ppmm",
                                    "@mozilla.org/parentprocessmessagemanager;1",
                                    "nsIMessageListenerManager");
 
-
-/* all exported symbols need to be bound to this on B2G - Bug 961777 */
-let ContactService = this.ContactService = {
+let ContactService = {
   init: function() {
     if (DEBUG) debug("Init");
     this._messages = ["Contacts:Find", "Contacts:GetAll", "Contacts:GetAll:SendNow",

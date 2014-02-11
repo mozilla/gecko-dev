@@ -295,8 +295,7 @@ var steps = [
   },
   function () {
     ok(true, "all done!\n");
-    SpecialPowers.clearUserPref("dom.phonenumber.substringmatching.BR");
-    SpecialPowers.clearUserPref("ril.lastKnownSimMcc");
+    SpecialPowers.setIntPref("dom.phonenumber.substringmatching.BR", -1);
     SimpleTest.finish();
   }
 ];
