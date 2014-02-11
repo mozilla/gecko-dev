@@ -492,10 +492,9 @@ this.NetworkStatsService = {
       }
 
       let networks = aResult;
-      self._db.clearStats(networks, function onDBCleared(aError, aResult) {
-        mm.sendAsyncMessage("NetworkStats:ClearAll:Return",
-                            { id: msg.id, error: aError, result: aResult });
-      });
+      networks.forEach(function(network, index) {
+        networks[index] = {network: network, networkId: self.getNetworkId(network.id, network.type)};
+      }, self);
 
       self.updateAllStats(function onUpdate(aResult, aMessage){
         if (!aResult) {
@@ -505,6 +504,9 @@ this.NetworkStatsService = {
         }
 
         self._db.clearStats(networks, function onDBCleared(aError, aResult) {
+          networks.forEach(function(network, index) {
+            self._updateCurrentAlarm(network.networkId);
+          }, self);
           mm.sendAsyncMessage("NetworkStats:ClearAll:Return",
                               { id: msg.id, error: aError, result: aResult });
         });
