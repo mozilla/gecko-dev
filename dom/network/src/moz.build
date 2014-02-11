@@ -58,6 +58,12 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
         'NetworkStatsServiceProxy.js',
         'NetworkStatsServiceProxy.manifest',
     ]
+    EXPORTS.mozilla.dom.network += [
+        'NetUtils.h',
+    ]
+    UNIFIED_SOURCES += [
+        'NetUtils.cpp',
+    ]
 
 IPDL_SOURCES += [
     'PTCPServerSocket.ipdl',

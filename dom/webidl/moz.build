@@ -233,6 +233,7 @@ WEBIDL_FILES = [
     'MutationEvent.webidl',
     'MutationObserver.webidl',
     'NetDashboard.webidl',
+    'NetworkOptions.webidl',
     'Node.webidl',
     'NodeFilter.webidl',
     'NodeIterator.webidl',
