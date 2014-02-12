@@ -5978,15 +5978,9 @@ RilObject.prototype[REQUEST_SET_PREFERRED_NETWORK_TYPE] = function REQUEST_SET_P
   this.sendChromeMessage(options);
 };
 RilObject.prototype[REQUEST_GET_PREFERRED_NETWORK_TYPE] = function REQUEST_GET_PREFERRED_NETWORK_TYPE(length, options) {
-  let networkType;
   if (!options.rilRequestError) {
-    networkType = RIL_PREFERRED_NETWORK_TYPE_TO_GECKO.indexOf(GECKO_PREFERRED_NETWORK_TYPE_DEFAULT);
-    let Buf = this.context.Buf;
-    let responseLen = Buf.readInt32(); // Number of INT32 responsed.
-    if (responseLen) {
-      this.preferredNetworkType = networkType = Buf.readInt32();
-    }
-    options.networkType = networkType;
+    let results = this.context.Buf.readInt32List();
+    options.networkType = this.preferredNetworkType = results[0];
   }
 
   options.success = (options.rilRequestError == ERROR_SUCCESS);
