@@ -29,10 +29,10 @@ class Task;
 class MockContentController : public GeckoContentController {
 public:
   MOCK_METHOD1(RequestContentRepaint, void(const FrameMetrics&));
-  MOCK_METHOD3(HandleDoubleTap, void(const CSSIntPoint&, int32_t, const ScrollableLayerGuid&));
-  MOCK_METHOD3(HandleSingleTap, void(const CSSIntPoint&, int32_t, const ScrollableLayerGuid&));
-  MOCK_METHOD3(HandleLongTap, void(const CSSIntPoint&, int32_t, const ScrollableLayerGuid&));
-  MOCK_METHOD3(HandleLongTapUp, void(const CSSIntPoint&, int32_t, const ScrollableLayerGuid&));
+  MOCK_METHOD2(HandleDoubleTap, void(const CSSIntPoint&, int32_t));
+  MOCK_METHOD2(HandleSingleTap, void(const CSSIntPoint&, int32_t));
+  MOCK_METHOD2(HandleLongTap, void(const CSSIntPoint&, int32_t));
+  MOCK_METHOD2(HandleLongTapUp, void(const CSSIntPoint&, int32_t));
   MOCK_METHOD3(SendAsyncScrollDOMEvent, void(bool aIsRoot, const CSSRect &aContentRect, const CSSSize &aScrollableSize));
   MOCK_METHOD2(PostDelayedTask, void(Task* aTask, int aDelayMs));
 };
@@ -492,9 +492,7 @@ TEST(AsyncPanZoomController, ShortPress) {
   apzc->NotifyLayersUpdated(TestFrameMetrics(), true);
   apzc->UpdateZoomConstraints(ZoomConstraints(false, CSSToScreenScale(1.0), CSSToScreenScale(1.0)));
 
-  ScrollableLayerGuid guid;
-  apzc->GetGuid(&guid);
-  EXPECT_CALL(*mcc, HandleSingleTap(CSSIntPoint(10, 10), 0, guid)).Times(1);
+  EXPECT_CALL(*mcc, HandleSingleTap(CSSIntPoint(10, 10), 0)).Times(1);
 
   int time = 0;
   nsEventStatus status = ApzcTap(apzc, 10, 10, time, 100);
@@ -513,9 +511,7 @@ TEST(AsyncPanZoomController, MediumPress) {
   apzc->NotifyLayersUpdated(TestFrameMetrics(), true);
   apzc->UpdateZoomConstraints(ZoomConstraints(false, CSSToScreenScale(1.0), CSSToScreenScale(1.0)));
 
-  ScrollableLayerGuid guid;
-  apzc->GetGuid(&guid);
-  EXPECT_CALL(*mcc, HandleSingleTap(CSSIntPoint(10, 10), 0, guid)).Times(1);
+  EXPECT_CALL(*mcc, HandleSingleTap(CSSIntPoint(10, 10), 0)).Times(1);
 
   int time = 0;
   nsEventStatus status = ApzcTap(apzc, 10, 10, time, 400);
@@ -541,11 +537,10 @@ TEST(AsyncPanZoomController, LongPress) {
 
   Task* t = mcc->GetDelayedTask();
 
-  ScrollableLayerGuid guid;
-  apzc->GetGuid(&guid);
-
   EXPECT_TRUE(nullptr != t);
-  EXPECT_CALL(*mcc, HandleLongTap(CSSIntPoint(10, 10), 0, guid)).Times(1);
+  EXPECT_CALL(*mcc, HandleLongTap(CSSIntPoint(10, 10), 0)).Times(1);
+  EXPECT_CALL(*mcc, HandleLongTapUp(CSSIntPoint(10, 10), 0)).Times(1);
+  EXPECT_CALL(*mcc, SendAsyncScrollDOMEvent(_,_,_)).Times(AtLeast(1));
 
   // Manually invoke the longpress while the touch is currently down.
   t->Run();
@@ -554,13 +549,6 @@ TEST(AsyncPanZoomController, LongPress) {
 
   status = ApzcUp(apzc, 10, 10, time);
   EXPECT_EQ(nsEventStatus_eIgnore, status);
-
-  EXPECT_CALL(*mcc, HandleLongTapUp(CSSIntPoint(10, 10), 0, guid)).Times(1);
-
-  // To get a LongTapUp event, we must kick APZC to flush its event queue. This
-  // would normally happen if we had a (Tab|RenderFrame)(Parent|Child)
-  // mechanism.
-  apzc->ContentReceivedTouch(false);
 
   apzc->Destroy();
 }

@@ -1581,7 +1581,7 @@ TabChild::ProcessUpdateFrame(const FrameMetrics& aFrameMetrics)
 }
 
 bool
-TabChild::RecvHandleDoubleTap(const CSSIntPoint& aPoint, const ScrollableLayerGuid& aGuid)
+TabChild::RecvHandleDoubleTap(const CSSIntPoint& aPoint)
 {
     if (!mGlobal || !mTabChildGlobal) {
         return true;
@@ -1598,7 +1598,7 @@ TabChild::RecvHandleDoubleTap(const CSSIntPoint& aPoint, const ScrollableLayerGu
 }
 
 bool
-TabChild::RecvHandleSingleTap(const CSSIntPoint& aPoint, const ScrollableLayerGuid& aGuid)
+TabChild::RecvHandleSingleTap(const CSSIntPoint& aPoint)
 {
   if (!mGlobal || !mTabChildGlobal) {
     return true;
@@ -1615,7 +1615,7 @@ TabChild::RecvHandleSingleTap(const CSSIntPoint& aPoint, const ScrollableLayerGu
 }
 
 bool
-TabChild::RecvHandleLongTap(const CSSIntPoint& aPoint, const ScrollableLayerGuid& aGuid)
+TabChild::RecvHandleLongTap(const CSSIntPoint& aPoint)
 {
   if (!mGlobal || !mTabChildGlobal) {
     return true;
@@ -1625,20 +1625,18 @@ TabChild::RecvHandleLongTap(const CSSIntPoint& aPoint, const ScrollableLayerGuid
       DispatchMouseEvent(NS_LITERAL_STRING("contextmenu"), aPoint, 2, 1, 0, false,
                          nsIDOMMouseEvent::MOZ_SOURCE_TOUCH);
 
-  SendContentReceivedTouch(aGuid, mContextMenuHandled);
-
   return true;
 }
 
 bool
-TabChild::RecvHandleLongTapUp(const CSSIntPoint& aPoint, const ScrollableLayerGuid& aGuid)
+TabChild::RecvHandleLongTapUp(const CSSIntPoint& aPoint)
 {
   if (mContextMenuHandled) {
     mContextMenuHandled = false;
     return true;
   }
 
-  RecvHandleSingleTap(aPoint, aGuid);
+  RecvHandleSingleTap(aPoint);
   return true;
 }
 

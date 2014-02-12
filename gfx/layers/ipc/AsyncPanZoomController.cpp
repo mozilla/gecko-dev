@@ -494,7 +494,12 @@ nsEventStatus AsyncPanZoomController::ReceiveInputEvent(const InputData& aEvent)
       const MultiTouchInput& multiTouchInput = aEvent.AsMultiTouchInput();
       mTouchQueue.AppendElement(multiTouchInput);
 
-      SetTouchListenerTimer();
+      if (!mTouchListenerTimeoutTask) {
+        mTouchListenerTimeoutTask =
+          NewRunnableMethod(this, &AsyncPanZoomController::TimeoutTouchListeners);
+
+        PostDelayedTask(mTouchListenerTimeoutTask, gTouchListenerTimeout);
+      }
     }
     return nsEventStatus_eIgnore;
   }
@@ -838,11 +843,7 @@ nsEventStatus AsyncPanZoomController::OnLongPress(const TapGestureInput& aEvent)
     int32_t modifiers = WidgetModifiersToDOMModifiers(aEvent.modifiers);
     CSSIntPoint geckoScreenPoint;
     if (ConvertToGecko(aEvent.mPoint, &geckoScreenPoint)) {
-      SetState(WAITING_LISTENERS);
-      SetTouchListenerTimer();
-      ScrollableLayerGuid guid;
-      GetGuid(&guid);
-      controller->HandleLongTap(geckoScreenPoint, modifiers, guid);
+      controller->HandleLongTap(geckoScreenPoint, modifiers);
       return nsEventStatus_eConsumeNoDefault;
     }
   }
@@ -856,9 +857,7 @@ nsEventStatus AsyncPanZoomController::OnLongPressUp(const TapGestureInput& aEven
     int32_t modifiers = WidgetModifiersToDOMModifiers(aEvent.modifiers);
     CSSIntPoint geckoScreenPoint;
     if (ConvertToGecko(aEvent.mPoint, &geckoScreenPoint)) {
-      ScrollableLayerGuid guid;
-      GetGuid(&guid);
-      controller->HandleLongTapUp(geckoScreenPoint, modifiers, guid);
+      controller->HandleLongTapUp(geckoScreenPoint, modifiers);
       return nsEventStatus_eConsumeNoDefault;
     }
   }
@@ -874,9 +873,7 @@ nsEventStatus AsyncPanZoomController::OnSingleTapUp(const TapGestureInput& aEven
     int32_t modifiers = WidgetModifiersToDOMModifiers(aEvent.modifiers);
     CSSIntPoint geckoScreenPoint;
     if (ConvertToGecko(aEvent.mPoint, &geckoScreenPoint)) {
-      ScrollableLayerGuid guid;
-      GetGuid(&guid);
-      controller->HandleSingleTap(geckoScreenPoint, modifiers, guid);
+      controller->HandleSingleTap(geckoScreenPoint, modifiers);
       return nsEventStatus_eConsumeNoDefault;
     }
   }
@@ -890,9 +887,7 @@ nsEventStatus AsyncPanZoomController::OnSingleTapConfirmed(const TapGestureInput
     int32_t modifiers = WidgetModifiersToDOMModifiers(aEvent.modifiers);
     CSSIntPoint geckoScreenPoint;
     if (ConvertToGecko(aEvent.mPoint, &geckoScreenPoint)) {
-      ScrollableLayerGuid guid;
-      GetGuid(&guid);
-      controller->HandleSingleTap(geckoScreenPoint, modifiers, guid);
+      controller->HandleSingleTap(geckoScreenPoint, modifiers);
       return nsEventStatus_eConsumeNoDefault;
     }
   }
@@ -907,9 +902,7 @@ nsEventStatus AsyncPanZoomController::OnDoubleTap(const TapGestureInput& aEvent)
       int32_t modifiers = WidgetModifiersToDOMModifiers(aEvent.modifiers);
       CSSIntPoint geckoScreenPoint;
       if (ConvertToGecko(aEvent.mPoint, &geckoScreenPoint)) {
-        ScrollableLayerGuid guid;
-        GetGuid(&guid);
-        controller->HandleDoubleTap(geckoScreenPoint, modifiers, guid);
+        controller->HandleDoubleTap(geckoScreenPoint, modifiers);
       }
     }
 
@@ -1721,15 +1714,6 @@ bool AsyncPanZoomController::AllowZoom() {
   ReentrantMonitorAutoEnter lock(mMonitor);
   return mZoomConstraints.mAllowZoom
       && !(mFrameMetrics.GetDisableScrollingX() || mFrameMetrics.GetDisableScrollingY());
-}
-
-void AsyncPanZoomController::SetTouchListenerTimer() {
-  if (!mTouchListenerTimeoutTask) {
-    mTouchListenerTimeoutTask =
-      NewRunnableMethod(this, &AsyncPanZoomController::TimeoutTouchListeners);
-
-    PostDelayedTask(mTouchListenerTimeoutTask, gTouchListenerTimeout);
-  }
 }
 
 void AsyncPanZoomController::TimeoutTouchListeners() {

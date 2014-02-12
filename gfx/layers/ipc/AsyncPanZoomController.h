@@ -455,15 +455,6 @@ protected:
    */
   const FrameMetrics& GetFrameMetrics();
 
-   /**
-    * Sets the timer for touch listeners for a series of touch events, if it
-    * hasn't been already. This is to prevent us from batching up touch events
-    * indefinitely in the case that content doesn't respond with whether or not
-    * it wants to preventDefault. When the timer is fired, the touch event queue
-    * will be flushed.
-    */
-   void SetTouchListenerTimer();
-
   /**
    * Timeout function for touch listeners. This should be called on a timer
    * after we get our first touch event in a batch, under the condition that we
