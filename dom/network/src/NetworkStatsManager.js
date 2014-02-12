@@ -86,15 +86,14 @@ NetworkStatsInterface.prototype = {
 
 // NetworkStats
 const NETWORKSTATS_CONTRACTID = "@mozilla.org/networkstats;1";
-const NETWORKSTATS_CID        = Components.ID("{f1996e44-1057-4d4b-8ff8-919e76c4cfa9}");
+const NETWORKSTATS_CID        = Components.ID("{b6fc4b14-628d-4c99-bf4e-e4ed56916cbe}");
 const nsIDOMMozNetworkStats   = Ci.nsIDOMMozNetworkStats;
 
 function NetworkStats(aWindow, aStats) {
   if (DEBUG) {
     debug("NetworkStats Constructor");
   }
-  this.appManifestURL = aStats.appManifestURL || null;
-  this.serviceType = aStats.serviceType || null;
+  this.manifestURL = aStats.manifestURL || null;
   this.network = new NetworkStatsInterface(aStats.network);
   this.start = aStats.start || null;
   this.end = aStats.end || null;
@@ -107,8 +106,7 @@ function NetworkStats(aWindow, aStats) {
 
 NetworkStats.prototype = {
   __exposedProps__: {
-    appManifestURL: 'r',
-    serviceType: 'r',
+    manifestURL: 'r',
     network: 'r',
     start: 'r',
     end:  'r',
@@ -159,7 +157,7 @@ NetworkStatsAlarm.prototype = {
 // NetworkStatsManager
 
 const NETWORKSTATSMANAGER_CONTRACTID = "@mozilla.org/networkStatsManager;1";
-const NETWORKSTATSMANAGER_CID        = Components.ID("{8a66f4c1-0c25-4a66-9fc5-0106947b91f9}");
+const NETWORKSTATSMANAGER_CID        = Components.ID("{50d109b8-0d7f-4208-81fe-5f07a759f159}");
 const nsIDOMMozNetworkStatsManager   = Ci.nsIDOMMozNetworkStatsManager;
 
 function NetworkStatsManager() {
@@ -177,23 +175,13 @@ NetworkStatsManager.prototype = {
     }
   },
 
-  getSamples: function getSamples(aNetwork, aStart, aEnd, aOptions) {
+  getSamples: function getSamples(aNetwork, aStart, aEnd, aManifestURL) {
     this.checkPrivileges();
 
     if (aStart.constructor.name !== "Date" ||
         aEnd.constructor.name !== "Date" ||
         aStart > aEnd) {
       throw Components.results.NS_ERROR_INVALID_ARG;
-    }
-
-    let appManifestURL = null;
-    let serviceType = null;
-    if (aOptions) {
-      if (aOptions.appManifestURL && aOptions.serviceType) {
-        throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
-      }
-      appManifestURL = aOptions.appManifestURL;
-      serviceType = aOptions.serviceType;
     }
 
     // TODO Bug 929410 Date object cannot correctly pass through cpmm/ppmm IPC
@@ -206,8 +194,7 @@ NetworkStatsManager.prototype = {
                           { network: aNetwork,
                             start: aStart,
                             end: aEnd,
-                            appManifestURL: appManifestURL,
-                            serviceType: serviceType,
+                            manifestURL: aManifestURL,
                             id: this.getRequestId(request) });
     return request;
   },
@@ -286,15 +273,6 @@ NetworkStatsManager.prototype = {
     return request;
   },
 
-  getAvailableServiceTypes: function getAvailableServiceTypes() {
-    this.checkPrivileges();
-
-    let request = this.createRequest();
-    cpmm.sendAsyncMessage("NetworkStats:GetAvailableServiceTypes",
-                          { id: this.getRequestId(request) });
-    return request;
-  },
-
   get sampleRate() {
     this.checkPrivileges();
     return cpmm.sendSyncMessage("NetworkStats:SampleRate")[0];
@@ -345,20 +323,6 @@ NetworkStatsManager.prototype = {
         }
 
         Services.DOMRequest.fireSuccess(req, networks);
-        break;
-
-      case "NetworkStats:GetAvailableServiceTypes:Return":
-        if (msg.error) {
-          Services.DOMRequest.fireError(req, msg.error);
-          return;
-        }
-
-        let serviceTypes = Cu.createArrayIn(this._window);
-        for (let i = 0; i < msg.result.length; i++) {
-          serviceTypes.push(msg.result[i]);
-        }
-
-        Services.DOMRequest.fireSuccess(req, serviceTypes);
         break;
 
       case "NetworkStats:Clear:Return":
@@ -427,7 +391,6 @@ NetworkStatsManager.prototype = {
 
     this.initDOMRequestHelper(aWindow, ["NetworkStats:Get:Return",
                                         "NetworkStats:GetAvailableNetworks:Return",
-                                        "NetworkStats:GetAvailableServiceTypes:Return",
                                         "NetworkStats:Clear:Return",
                                         "NetworkStats:ClearAll:Return",
                                         "NetworkStats:SetAlarm:Return",
