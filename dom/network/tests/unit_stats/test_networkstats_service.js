@@ -19,12 +19,8 @@ add_test(function test_clearDB() {
   getNetworks(function onGetNetworks(error, result) {
     do_check_eq(error, null);
     var networks = result;
-    networks.forEach(function(network, index) {
-      networks[index] = {network: network, networkId: NetworkStatsService.getNetworkId(network.id, network.type)};
-    }, this);
-
     NetworkStatsService._db.clearStats(networks, function onDBCleared(error, result) {
-      do_check_eq(error, null);
+      do_check_eq(result, null);
       run_next_test();
     });
   });

@@ -19,10 +19,6 @@ function clearStore(store, callback) {
   }, callback);
 }
 
-function getNetworkId(aIccId, aNetworkType) {
-  return aIccId + '' + aNetworkType;
-}
-
 add_test(function prepareDatabase() {
   // Clear whole database to avoid starting tests with unknown state
   // due to the previous tests.
@@ -125,10 +121,6 @@ add_test(function test_fillResultSamples_noEmptyData() {
 
 add_test(function test_clear() {
   var networks = getNetworks();
-  networks.forEach(function(network, index) {
-    networks[index] = {network: network, networkId: getNetworkId(network.id, network.type)};
-  }, this);
-
   netStatsDb.clearStats(networks, function (error, result) {
     do_check_eq(error, null);
     run_next_test();
@@ -137,10 +129,6 @@ add_test(function test_clear() {
 
 add_test(function test_clear_interface() {
   var networks = getNetworks();
-  networks.forEach(function(network, index) {
-    networks[index] = {network: network, networkId: getNetworkId(network.id, network.type)};
-  }, this);
-
   netStatsDb.clearInterfaceStats(networks[0], function (error, result) {
     do_check_eq(error, null);
     run_next_test();
