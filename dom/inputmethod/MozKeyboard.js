@@ -10,6 +10,7 @@ const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/ObjectWrapper.jsm");
 Cu.import("resource://gre/modules/DOMRequestHelper.jsm");
 
 XPCOMUtils.defineLazyServiceGetter(this, "cpmm",
@@ -174,7 +175,7 @@ MozKeyboard.prototype = {
       };
 
       let evt = new this._window.CustomEvent("focuschanged",
-          Cu.cloneInto(detail, this._window));
+          ObjectWrapper.wrap(detail, this._window));
       handler.handleEvent(evt);
     } else if (msg.name == "Keyboard:SelectionChange") {
       let msgJson = msg.json;
@@ -187,7 +188,7 @@ MozKeyboard.prototype = {
         return;
 
       let evt = new this._window.CustomEvent("selectionchange",
-          Cu.cloneInto({}, this._window));
+          ObjectWrapper.wrap({}, this._window));
       handler.handleEvent(evt);
     }
   },
@@ -329,7 +330,6 @@ MozInputMethod.prototype = {
   },
 
   uninit: function mozInputMethodUninit() {
-    this.setActive(false);
     Services.obs.removeObserver(this, "inner-window-destroyed");
     cpmm.removeMessageListener('Keyboard:FocusChange', this);
     cpmm.removeMessageListener('Keyboard:SelectionChange', this);
@@ -417,7 +417,7 @@ MozInputMethod.prototype = {
     }
 
     let event = new this._window.Event("inputcontextchange",
-                                       Cu.cloneInto({}, this._window));
+                                       ObjectWrapper.wrap({}, this._window));
     this.__DOM_IMPL__.dispatchEvent(event);
   },
 
@@ -433,11 +433,9 @@ MozInputMethod.prototype = {
       // If there is already an active context, then this will trigger
       // a GetContext:Result:OK event, and we can initialize ourselves.
       // Otherwise silently ignored.
-      cpmm.sendAsyncMessage('Keyboard:Register', {});
       cpmm.sendAsyncMessage("Keyboard:GetContext", {});
     } else {
       // Deactive current input method.
-      cpmm.sendAsyncMessage('Keyboard:Unregister', {});
       if (this._inputcontext) {
         this.setInputContext(null);
       }
@@ -554,7 +552,7 @@ MozInputContext.prototype = {
       case "Keyboard:SetSelectionRange:Result:OK":
       case "Keyboard:ReplaceSurroundingText:Result:OK":
         resolver.resolve(
-          Cu.cloneInto(json.selectioninfo, this._window));
+          ObjectWrapper.wrap(json.selectioninfo, this._window));
         break;
       case "Keyboard:SequenceError":
         // Occurs when a new element got focus, but the inputContext was
@@ -608,7 +606,7 @@ MozInputContext.prototype = {
     };
 
     let event = new this._window.Event(eventName,
-                                       Cu.cloneInto(aDetail, this._window));
+                                       ObjectWrapper.wrap(aDetail, this._window));
     this.__DOM_IMPL__.dispatchEvent(event);
   },
 
