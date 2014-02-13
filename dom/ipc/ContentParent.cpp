@@ -421,12 +421,31 @@ ContentParent::GetNewOrUsed(bool aForBrowserElement)
         return p.forget();
     }
 
-    nsRefPtr<ContentParent> p =
-        new ContentParent(/* app = */ nullptr,
-                          aForBrowserElement,
-                          /* isForPreallocated = */ false,
-                          base::PRIVILEGES_DEFAULT,
-                          PROCESS_PRIORITY_FOREGROUND);
+    // Try to take and transform the preallocated process into browser.
+    nsRefPtr<ContentParent> p = PreallocatedProcessManager::Take();
+    if (p) {
+        if (!p->TransformPreallocatedIntoBrowser()) {
+            p->KillHard();
+            p = nullptr;
+        }
+    }
+
+    // Failed in using the preallocated process: fork from the chrome process.
+    if (!p) {
+#ifdef MOZ_NUWA_PROCESS
+        if (Preferences::GetBool("dom.ipc.processPrelaunch.enabled", false)) {
+            // Wait until the Nuwa process forks a new process.
+            return nullptr;
+        }
+#else
+        p = new ContentParent(/* app = */ nullptr,
+                              aForBrowserElement,
+                              /* isForPreallocated = */ false,
+                              base::PRIVILEGES_DEFAULT,
+                              PROCESS_PRIORITY_FOREGROUND);
+#endif
+    }
+
     p->Init();
     sNonAppContentParents->AppendElement(p);
     return p.forget();
@@ -902,6 +921,20 @@ ContentParent::TransformPreallocatedIntoApp(const nsAString& aAppManifestURL,
     TryGetNameFromManifestURL(aAppManifestURL, mAppName);
 
     return SendSetProcessPrivileges(aPrivs);
+}
+
+bool
+ContentParent::TransformPreallocatedIntoBrowser()
+{
+    // Reset mAppManifestURL, mIsForBrowser and mOSPrivileges for browser.
+    mAppManifestURL.Truncate();
+    mIsForBrowser = true;
+    mOSPrivileges = base::PRIVILEGES_DEFAULT;
+
+    // Set priority and drop privileges.
+    ProcessPriorityManager::SetProcessPriority(this,
+                                               PROCESS_PRIORITY_FOREGROUND);
+    return SendSetProcessPrivileges(mOSPrivileges);
 }
 
 void

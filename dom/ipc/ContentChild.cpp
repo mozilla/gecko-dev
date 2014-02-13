@@ -378,14 +378,23 @@ ContentChild::Init(MessageLoop* aIOLoop,
                                   XRE_GetProcessType());
 #endif
 
-    SendGetProcessAttributes(&mID, &mIsForApp, &mIsForBrowser);
-
     GetCPOWManager();
+
+    InitProcessAttributes();
+
+    return true;
+}
+
+void
+ContentChild::InitProcessAttributes()
+{
+
+    SendGetProcessAttributes(&mID, &mIsForApp, &mIsForBrowser);
 
 #ifdef MOZ_NUWA_PROCESS
     if (IsNuwaProcess()) {
         SetProcessName(NS_LITERAL_STRING("(Nuwa)"), false);
-        return true;
+        return;
     }
 #endif
     if (mIsForApp && !mIsForBrowser) {
@@ -394,7 +403,7 @@ ContentChild::Init(MessageLoop* aIOLoop,
         SetProcessName(NS_LITERAL_STRING("Browser"), false);
     }
 
-    return true;
+    return;
 }
 
 void
@@ -723,6 +732,10 @@ ContentChild::RecvPBrowserConstructor(PBrowserChild* actor,
         MOZ_ASSERT(!sFirstIdleTask);
         sFirstIdleTask = NewRunnableFunction(FirstIdle);
         MessageLoop::current()->PostIdleTask(FROM_HERE, sFirstIdleTask);
+
+        // Redo InitProcessAttributes() when the app or browser is really
+        // launching so the attributes will be correct.
+        InitProcessAttributes();
     }
 
     return true;
