@@ -214,10 +214,14 @@ public:
     virtual bool RecvShow(const nsIntSize& size);
     virtual bool RecvUpdateDimensions(const nsRect& rect, const nsIntSize& size, const ScreenOrientation& orientation);
     virtual bool RecvUpdateFrame(const mozilla::layers::FrameMetrics& aFrameMetrics);
-    virtual bool RecvHandleDoubleTap(const CSSIntPoint& aPoint);
-    virtual bool RecvHandleSingleTap(const CSSIntPoint& aPoint);
-    virtual bool RecvHandleLongTap(const CSSIntPoint& aPoint);
-    virtual bool RecvHandleLongTapUp(const CSSIntPoint& aPoint);
+    virtual bool RecvHandleDoubleTap(const CSSIntPoint& aPoint,
+                                     const mozilla::layers::ScrollableLayerGuid& aGuid) MOZ_OVERRIDE;
+    virtual bool RecvHandleSingleTap(const CSSIntPoint& aPoint,
+                                     const mozilla::layers::ScrollableLayerGuid& aGuid) MOZ_OVERRIDE;
+    virtual bool RecvHandleLongTap(const CSSIntPoint& aPoint,
+                                   const mozilla::layers::ScrollableLayerGuid& aGuid) MOZ_OVERRIDE;
+    virtual bool RecvHandleLongTapUp(const CSSIntPoint& aPoint,
+                                     const mozilla::layers::ScrollableLayerGuid& aGuid) MOZ_OVERRIDE;
     virtual bool RecvNotifyTransformBegin(const ViewID& aViewId);
     virtual bool RecvNotifyTransformEnd(const ViewID& aViewId);
     virtual bool RecvActivate();
