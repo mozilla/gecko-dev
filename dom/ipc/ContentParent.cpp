@@ -512,6 +512,23 @@ ContentParent::CreateBrowserOrApp(const TabContext& aContext,
         return nullptr;
     }
 
+    nsTArray<ContentParent*> cp;
+    int gcDelay = Preferences::GetInt("dom.ipc.gcSuppressionPeriod", 3000); // ms
+    int gcInterval = Preferences::GetInt("dom.ipc.gcSuppressionInterval", 500); // ms
+    GetAll(cp);
+    for (int i = 0; i < cp.Length(); i++) {
+        ContentParent* p = cp[i];
+        if (!p->IsPreallocated()
+#ifdef MOZ_NUWA_PROCESS
+            && !p->IsNuwaProcess()
+#endif
+        ) {
+            p->SendSuppressCollect(gcDelay);
+            // Prevent many proesses from GCing at the same time.
+            gcDelay += gcInterval;
+        }
+    }
+
     if (aContext.IsBrowserElement() || !aContext.HasOwnApp()) {
         if (nsRefPtr<ContentParent> cp = GetNewOrUsed(aContext.IsBrowserElement())) {
             nsRefPtr<TabParent> tp(new TabParent(cp, aContext));
