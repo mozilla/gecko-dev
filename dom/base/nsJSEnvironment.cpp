@@ -204,7 +204,6 @@ static nsIScriptSecurityManager *sSecurityManager;
 // the appropriate pref is set.
 
 static bool sGCOnMemoryPressure;
-bool nsJSContext::sDisableCollect = false;
 
 static PRTime
 GetCollectionTimeDelta()
@@ -1894,10 +1893,6 @@ nsJSContext::GarbageCollectNow(JS::gcreason::Reason aReason,
 {
   PROFILER_LABEL("GC", "GarbageCollectNow");
 
-  if (sDisableCollect) {
-    return;
-  }
-
   MOZ_ASSERT_IF(aSliceMillis, aIncremental == IncrementalGC);
 
   KillGCTimer();
@@ -2070,10 +2065,6 @@ nsJSContext::CycleCollectNow(nsICycleCollectorListener *aListener,
                              int32_t aExtraForgetSkippableCalls)
 {
   if (!NS_IsMainThread()) {
-    return;
-  }
-
-  if (sDisableCollect) {
     return;
   }
 
@@ -2515,26 +2506,6 @@ void
 nsJSContext::GC(JS::gcreason::Reason aReason)
 {
   PokeGC(aReason);
-}
-
-//static
-void
-nsJSContext::DisableGC()
-{
-  if(!NS_IsMainThread()) {
-    return;
-  }
-  sDisableCollect = true;
-}
-
-//static
-void
-nsJSContext::EnableGC()
-{
-  if(!NS_IsMainThread()) {
-    return;
-  }
-  sDisableCollect = false;
 }
 
 class NotifyGCEndRunnable : public nsRunnable
