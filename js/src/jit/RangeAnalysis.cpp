@@ -536,15 +536,11 @@ MPhi::computeRange()
         return;
 
     Range *range = NULL;
-    JS_ASSERT(getOperand(0)->op() != MDefinition::Op_OsrValue);
     for (size_t i = 0; i < numOperands(); i++) {
         if (getOperand(i)->block()->earlyAbort()) {
             IonSpew(IonSpew_Range, "Ignoring unreachable input %d", getOperand(i)->id());
             continue;
         }
-
-        if (isOSRLikeValue(getOperand(i)))
-            continue;
 
         Range *input = getOperand(i)->range();
 
