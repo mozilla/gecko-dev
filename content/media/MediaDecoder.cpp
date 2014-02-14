@@ -24,6 +24,14 @@
 #include <algorithm>
 #include "MediaShutdownManager.h"
 
+#include "mozIGeckoMediaPluginService.h"
+#include "nsContentCID.h"
+#include "nsServiceManagerUtils.h"
+
+#include "gmp-video-host.h"
+#include "gmp-video-frame-i420.h"
+#include "gmp-video-frame-encoded.h"
+
 #ifdef MOZ_WMF
 #include "WMFDecoder.h"
 #endif
@@ -142,6 +150,11 @@ void MediaDecoder::SetDormantIfNecessary(bool aDormant)
 
 void MediaDecoder::Pause()
 {
+  if (mGMPVD) {
+    mGMPVD->DecodingComplete();
+    mGMPVD = nullptr;
+  }
+
   MOZ_ASSERT(NS_IsMainThread());
   ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
   if ((mPlayState == PLAY_STATE_LOADING && mIsDormant)  || mPlayState == PLAY_STATE_SEEKING || mPlayState == PLAY_STATE_ENDED) {
@@ -445,6 +458,55 @@ bool MediaDecoder::Init(MediaDecoderOwner* aOwner)
   mOwner = aOwner;
   mVideoFrameContainer = aOwner->GetVideoFrameContainer();
   MediaShutdownManager::Instance().Register(this);
+
+  // Everything from here on in this method is test code for GMP.
+
+  nsCOMPtr<mozIGeckoMediaPluginService> mps = do_GetService("@mozilla.org/gecko-media-plugin-service;1");
+  if (!mps) {
+    return false;
+  }
+
+  GMPVideoHost* videoHost = nullptr;
+  nsresult rv = mps->GetGMPVideoDecoderVP8(&videoHost, &mGMPVD);
+  if (NS_FAILED(rv) || !mGMPVD || !videoHost) {
+    return false;
+  }
+
+  GMPVideoCodec codec;
+  memset(&codec, 0, sizeof(codec));
+  codec.mCodecType = kGMPVideoCodecVP8;
+  GMPVideoErr err = mGMPVD->InitDecode(codec, this, 1);
+  if (err != GMPVideoNoErr) {
+    return false;
+  }
+
+  GMPVideoEncodedFrame* frame = nullptr;
+  err = videoHost->CreateEncodedFrame(&frame);
+  if (err != GMPVideoNoErr) {
+    return false;
+  }
+
+  err = frame->CreateEmptyFrame(1000);
+  if (err != GMPVideoNoErr) {
+    return false;
+  }
+
+  uint8_t* buffer = frame->Buffer();
+  if (!buffer) {
+    printf("No buffer for encoded frame!\n");
+    return false;
+  }
+  memset(buffer, 0x2, 1000);
+
+  GMPCodecSpecificInfo codecSpecificInfo;
+  memset(&codecSpecificInfo, 0, sizeof(codecSpecificInfo));
+  codecSpecificInfo.mCodecType = kGMPVideoCodecVP8;
+  err = mGMPVD->Decode(*frame, false, codecSpecificInfo);
+  frame->Destroy();
+  if (err != GMPVideoNoErr) {
+    return false;
+  }
+
   return true;
 }
 
@@ -859,6 +921,35 @@ void MediaDecoder::ResourceLoaded()
   if (mOwner) {
     mOwner->ResourceLoaded();
   }
+}
+
+void
+MediaDecoder::Decoded(GMPVideoi420Frame& decodedFrame)
+{
+  printf("XXXJOSH %s\n", __PRETTY_FUNCTION__);
+  const uint8_t* buffer = decodedFrame.Buffer(kGMPYPlane);
+  for (uint32_t i = 0; i < 1000; i++) {
+    printf("%i", buffer[i]);
+  }
+  printf("\n");
+}
+
+void
+MediaDecoder::ReceivedDecodedReferenceFrame(const uint64_t pictureId)
+{
+  printf("XXXJOSH %s\n", __PRETTY_FUNCTION__);
+}
+
+void
+MediaDecoder::ReceivedDecodedFrame(const uint64_t pictureId)
+{
+  printf("XXXJOSH %s\n", __PRETTY_FUNCTION__);
+}
+
+void
+MediaDecoder::InputDataExhausted()
+{
+  printf("XXXJOSH %s\n", __PRETTY_FUNCTION__);
 }
 
 void MediaDecoder::ResetConnectionState()
