@@ -45,6 +45,7 @@ class GMPVideoEncodedFrameImpl: public GMPVideoEncodedFrame
 public:
   GMPVideoEncodedFrameImpl();
   GMPVideoEncodedFrameImpl(uint32_t aAllocatedSize, uint32_t aSize);
+  virtual ~GMPVideoEncodedFrameImpl();
 
   // A host is required in order to alloc and dealloc shared memory.
   void SetHost(GMPVideoHostImpl* aHost);
@@ -81,8 +82,6 @@ public:
   virtual void     Destroy() MOZ_OVERRIDE;
 
 private:
-  virtual ~GMPVideoEncodedFrameImpl();
-
   void DestroyBuffer();
 
   uint32_t mEncodedWidth;

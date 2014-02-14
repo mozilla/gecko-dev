@@ -17,6 +17,7 @@ class GMPVideoi420FrameImpl : public GMPVideoi420Frame
   friend struct IPC::ParamTraits<mozilla::gmp::GMPVideoi420FrameImpl>;
 public:
   GMPVideoi420FrameImpl();
+  virtual ~GMPVideoi420FrameImpl();
 
   // A host is required in order to alloc and dealloc shared memory.
   void SetHost(GMPVideoHostImpl* aHost);
@@ -67,8 +68,6 @@ public:
   virtual void* NativeHandle() const MOZ_OVERRIDE;
 
 private:
-  virtual ~GMPVideoi420FrameImpl();
-
   bool CheckDimensions(int32_t aWidth, int32_t aHeight,
                        int32_t aStride_y, int32_t aStride_u, int32_t aStride_v);
   const GMPPlane* GetPlane(GMPPlaneType aType) const;
