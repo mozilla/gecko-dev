@@ -3297,6 +3297,7 @@ WebGLContext::CompressedTexImage2D(GLenum target, GLint level, GLenum internalfo
         return;
     }
 
+    MakeContextCurrent();
     gl->fCompressedTexImage2D(target, level, internalformat, width, height, border, byteLength, view.Data());
     tex->SetImageInfo(target, level, width, height, internalformat, LOCAL_GL_UNSIGNED_BYTE);
 
@@ -3398,6 +3399,7 @@ WebGLContext::CompressedTexSubImage2D(GLenum target, GLint level, GLint xoffset,
         }
     }
 
+    MakeContextCurrent();
     gl->fCompressedTexSubImage2D(target, level, xoffset, yoffset, width, height, format, byteLength, view.Data());
 
     return;
