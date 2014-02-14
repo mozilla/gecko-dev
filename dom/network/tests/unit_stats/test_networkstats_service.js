@@ -3,10 +3,6 @@
 
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
-const NETWORK_STATUS_READY   = 0;
-const NETWORK_STATUS_STANDBY = 1;
-const NETWORK_STATUS_AWAY    = 2;
-
 function getNetworks(callback) {
   NetworkStatsService._db.getAvailableNetworks(function onGetNetworks(aError, aResult) {
     callback(aError, aResult);
@@ -89,18 +85,9 @@ add_test(function test_updateQueueIndex() {
 });
 
 add_test(function test_updateAllStats() {
-  NetworkStatsService._networks[wifiId].status = NETWORK_STATUS_READY;
   NetworkStatsService.updateAllStats(function(success, msg) {
     do_check_eq(success, true);
-    NetworkStatsService._networks[wifiId].status = NETWORK_STATUS_STANDBY;
-    NetworkStatsService.updateAllStats(function(success, msg) {
-      do_check_eq(success, true);
-      NetworkStatsService._networks[wifiId].status = NETWORK_STATUS_AWAY;
-      NetworkStatsService.updateAllStats(function(success, msg) {
-        do_check_eq(success, true);
-        run_next_test();
-      });
-    });
+    run_next_test();
   });
 });
 
@@ -201,8 +188,6 @@ add_test(function test_setAlarm_invalid_threshold() {
                 data: null,
                 pageURL: testPageURL,
                 manifestURL: testManifestURL };
-
-  NetworkStatsService._networks[wifiId].status = NETWORK_STATUS_READY;
 
   NetworkStatsService._setAlarm(alarm, function onSet(error, result) {
     do_check_eq(error, "InvalidStateError");
