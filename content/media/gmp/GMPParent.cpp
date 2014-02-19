@@ -5,7 +5,6 @@
 
 #include "GMPParent.h"
 #include "nsComponentManagerUtils.h"
-#include "GMPVideoDecoderParent.h"
 #include "nsComponentManagerUtils.h"
 #include "nsIInputStream.h"
 #include "nsILineInputStream.h"
@@ -67,6 +66,15 @@ GMPParent::LoadProcess()
 }
 
 void
+GMPParent::MaybeUnloadProcess()
+{
+  if (mVideoDecoders.Length() == 0 &&
+      mVideoEncoders.Length() == 0) {
+    UnloadProcess();
+  }
+}
+
+void
 GMPParent::UnloadProcess()
 {
   if (mState == GMPStateNotLoaded) {
@@ -80,6 +88,11 @@ GMPParent::UnloadProcess()
     mVideoDecoders[i]->DecodingComplete();
   }
 
+  // Invalidate and remove any remaining API objects.
+  for (int32_t i = mVideoEncoders.Length() - 1; i >= 0; i--) {
+    mVideoEncoders[i]->EncodingComplete();
+  } 
+
   Close();
   if (mProcess) {
     mProcess->Delete();
@@ -91,9 +104,14 @@ void
 GMPParent::VideoDecoderDestroyed(GMPVideoDecoderParent* aDecoder)
 {
   mVideoDecoders.RemoveElement(aDecoder);
-  if (mVideoDecoders.Length() == 0) {
-    UnloadProcess();
-  }
+  MaybeUnloadProcess();
+}
+
+void
+GMPParent::VideoEncoderDestroyed(GMPVideoEncoderParent* aEncoder)
+{
+  mVideoEncoders.RemoveElement(aEncoder);
+  MaybeUnloadProcess();
 }
 
 bool
@@ -140,6 +158,24 @@ GMPParent::GetGMPVideoDecoder(GMPVideoDecoderParent** gmpVD)
   return NS_OK;
 }
 
+nsresult
+GMPParent::GetGMPVideoEncoder(GMPVideoEncoderParent** gmpVE)
+{
+  if (!EnsureProcessLoaded()) {
+    return NS_ERROR_FAILURE;
+  }
+
+  PGMPVideoEncoderParent* pvep = SendPGMPVideoEncoderConstructor();
+  if (!pvep) {
+    return NS_ERROR_FAILURE;
+  }
+  nsRefPtr<GMPVideoEncoderParent> vep = static_cast<GMPVideoEncoderParent*>(pvep);
+  mVideoEncoders.AppendElement(vep);
+  vep.forget(gmpVE);
+
+  return NS_OK;
+}
+
 void
 GMPParent::ActorDestroy(ActorDestroyReason why)
 {
@@ -159,6 +195,22 @@ GMPParent::DeallocPGMPVideoDecoderParent(PGMPVideoDecoderParent* actor)
 {
   GMPVideoDecoderParent* vdp = static_cast<GMPVideoDecoderParent*>(actor);
   NS_RELEASE(vdp);
+  return true;
+}
+
+PGMPVideoEncoderParent*
+GMPParent::AllocPGMPVideoEncoderParent()
+{
+  GMPVideoEncoderParent* vep = new GMPVideoEncoderParent(this);
+  NS_ADDREF(vep);
+  return vep;
+}
+
+bool
+GMPParent::DeallocPGMPVideoEncoderParent(PGMPVideoEncoderParent* actor)
+{
+  GMPVideoEncoderParent* vep = static_cast<GMPVideoEncoderParent*>(actor);
+  NS_RELEASE(vep);
   return true;
 }
 

@@ -7,10 +7,12 @@
 
 %{C++
 class GMPVideoDecoder;
+class GMPVideoEncoder;
 class GMPVideoHost;
 %}
 
 [ptr] native GMPVideoDecoder(GMPVideoDecoder);
+[ptr] native GMPVideoEncoder(GMPVideoEncoder);
 [ptr] native GMPVideoHost(GMPVideoHost);
 
 [scriptable, uuid(59C3E1B1-E6F0-4D92-A139-E30E188CE52F)]
@@ -18,4 +20,7 @@ interface mozIGeckoMediaPluginService : nsISupports
 {
   // Returns a video decoder API object that should support VP8.
   GMPVideoDecoder getGMPVideoDecoderVP8(out GMPVideoHost outVideoHost);
+
+  // Returns a video encoder API object that should support VP8.
+  GMPVideoEncoder getGMPVideoEncoderVP8(out GMPVideoHost outVideoHost);
 };

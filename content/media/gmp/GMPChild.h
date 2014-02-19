@@ -29,7 +29,10 @@ public:
 private:
   virtual PGMPVideoDecoderChild* AllocPGMPVideoDecoderChild() MOZ_OVERRIDE;
   virtual bool DeallocPGMPVideoDecoderChild(PGMPVideoDecoderChild* actor) MOZ_OVERRIDE;
+  virtual PGMPVideoEncoderChild* AllocPGMPVideoEncoderChild() MOZ_OVERRIDE;
+  virtual bool DeallocPGMPVideoEncoderChild(PGMPVideoEncoderChild* aActor) MOZ_OVERRIDE;
   virtual bool RecvPGMPVideoDecoderConstructor(PGMPVideoDecoderChild* actor) MOZ_OVERRIDE;
+  virtual bool RecvPGMPVideoEncoderConstructor(PGMPVideoEncoderChild* actor) MOZ_OVERRIDE;
   virtual void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
   virtual void ProcessingError(Result what) MOZ_OVERRIDE;
 

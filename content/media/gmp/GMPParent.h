@@ -15,6 +15,7 @@
 #include "mozilla/gmp/PGMPParent.h"
 #include "nsCOMPtr.h"
 #include "GMPVideoDecoderParent.h"
+#include "GMPVideoEncoderParent.h"
 
 class nsILineInputStream;
 
@@ -43,10 +44,13 @@ public:
 
   nsresult Init(nsIFile *pluginDir);
   nsresult LoadProcess();
+  void MaybeUnloadProcess();
   void UnloadProcess();
   bool SupportsAPI(const nsCString &aAPI, const nsCString &aTag);
   nsresult GetGMPVideoDecoder(GMPVideoDecoderParent** gmpVD);
   void VideoDecoderDestroyed(GMPVideoDecoderParent* aDecoder);
+  nsresult GetGMPVideoEncoder(GMPVideoEncoderParent** gmpVE);
+  void VideoEncoderDestroyed(GMPVideoEncoderParent* aEncoder);
 
 private:
   virtual ~GMPParent();
@@ -59,6 +63,8 @@ private:
   virtual void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
   virtual PGMPVideoDecoderParent* AllocPGMPVideoDecoderParent() MOZ_OVERRIDE;
   virtual bool DeallocPGMPVideoDecoderParent(PGMPVideoDecoderParent* actor) MOZ_OVERRIDE;
+  virtual PGMPVideoEncoderParent* AllocPGMPVideoEncoderParent() MOZ_OVERRIDE;
+  virtual bool DeallocPGMPVideoEncoderParent(PGMPVideoEncoderParent* actor) MOZ_OVERRIDE;
 
   GMPState           mState;
   nsCOMPtr<nsIFile>  mDirectory; // plugin directory on disk
@@ -70,6 +76,7 @@ private:
   GMPProcessParent*  mProcess;
 
   nsTArray<nsRefPtr<GMPVideoDecoderParent>> mVideoDecoders;
+  nsTArray<nsRefPtr<GMPVideoEncoderParent>> mVideoEncoders;
 };
 
 } // namespace gmp

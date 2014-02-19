@@ -5,11 +5,13 @@
 
 #include "GMPChild.h"
 #include "GMPVideoDecoderChild.h"
+#include "GMPVideoEncoderChild.h"
 #include "GMPVideoHost.h"
 #include "nsIFile.h"
 #include "nsXULAppAPI.h"
 #include <stdlib.h>
 #include "gmp-video-decode.h"
+#include "gmp-video-encode.h"
 
 namespace mozilla {
 namespace gmp {
@@ -128,12 +130,26 @@ GMPChild::ProcessingError(Result what)
 PGMPVideoDecoderChild*
 GMPChild::AllocPGMPVideoDecoderChild()
 {
-  GMPVideoDecoderChild *vdc = new GMPVideoDecoderChild();
+  GMPVideoDecoderChild* vdc = new GMPVideoDecoderChild();
   return vdc;
 }
 
 bool
 GMPChild::DeallocPGMPVideoDecoderChild(PGMPVideoDecoderChild* aActor)
+{
+  delete aActor;
+  return true;
+}
+
+PGMPVideoEncoderChild*
+GMPChild::AllocPGMPVideoEncoderChild()
+{
+  GMPVideoEncoderChild* vec = new GMPVideoEncoderChild();
+  return vec;
+}
+
+bool
+GMPChild::DeallocPGMPVideoEncoderChild(PGMPVideoEncoderChild* aActor)
 {
   delete aActor;
   return true;
@@ -152,6 +168,22 @@ GMPChild::RecvPGMPVideoDecoderConstructor(PGMPVideoDecoderChild* actor)
   auto vd = static_cast<GMPVideoDecoder*>(vdvoid);
 
   vdc->Init(vd);
+  return true;
+}
+
+bool
+GMPChild::RecvPGMPVideoEncoderConstructor(PGMPVideoEncoderChild* actor)
+{
+  auto vec = static_cast<GMPVideoEncoderChild*>(actor);
+
+  void* vevoid = nullptr;
+  GMPErr err = mGetAPIFunc("encode-video", &vec->Host(), &vevoid);
+  if (err != GMPNoErr || !vevoid) {
+    return false;
+  }
+  auto ve = static_cast<GMPVideoEncoder*>(vevoid);
+
+  vec->Init(ve);
   return true;
 }
 

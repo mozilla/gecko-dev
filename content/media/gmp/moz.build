@@ -14,6 +14,7 @@ EXPORTS += [
     'gmp-api/gmp-general.h',
     'gmp-api/gmp-video-codec.h',
     'gmp-api/gmp-video-decode.h',
+    'gmp-api/gmp-video-encode.h',
     'gmp-api/gmp-video-errors.h',
     'gmp-api/gmp-video-frame-encoded.h',
     'gmp-api/gmp-video-frame-i420.h',
@@ -30,6 +31,8 @@ EXPORTS += [
     'GMPVideoDecoderChild.h',
     'GMPVideoDecoderParent.h',
     'GMPVideoEncodedFrameImpl.h',
+    'GMPVideoEncoderChild.h',
+    'GMPVideoEncoderParent.h',
     'GMPVideoHost.h',
     'GMPVideoi420FrameImpl.h',
     'GMPVideoPlaneImpl.h',
@@ -44,6 +47,8 @@ UNIFIED_SOURCES += [
     'GMPVideoDecoderChild.cpp',
     'GMPVideoDecoderParent.cpp',
     'GMPVideoEncodedFrameImpl.cpp',
+    'GMPVideoEncoderChild.cpp',
+    'GMPVideoEncoderParent.cpp',
     'GMPVideoHost.cpp',
     'GMPVideoi420FrameImpl.cpp',
     'GMPVideoPlaneImpl.cpp',
@@ -52,6 +57,7 @@ UNIFIED_SOURCES += [
 IPDL_SOURCES += [
   'PGMP.ipdl',
   'PGMPVideoDecoder.ipdl',
+  'PGMPVideoEncoder.ipdl',
 ]
 
 LIBRARY_NAME = 'mozgmp'

@@ -4,6 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 include protocol PGMPVideoDecoder;
+include protocol PGMPVideoEncoder;
 
 namespace mozilla {
 namespace gmp {
@@ -11,8 +12,10 @@ namespace gmp {
 async protocol PGMP
 {
   manages PGMPVideoDecoder;
+  manages PGMPVideoEncoder; 
 child:
   PGMPVideoDecoder();
+  PGMPVideoEncoder();
 };
 
 } // namespace gmp

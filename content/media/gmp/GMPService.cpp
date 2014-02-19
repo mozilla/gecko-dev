@@ -61,6 +61,29 @@ GeckoMediaPluginService::GetGMPVideoDecoderVP8(GMPVideoHost** outVideoHost, GMPV
   return NS_OK;
 }
 
+NS_IMETHODIMP
+GeckoMediaPluginService::GetGMPVideoEncoderVP8(GMPVideoHost** outVideoHost, GMPVideoEncoder** gmpVE)
+{
+  *gmpVE = nullptr;
+
+  nsCOMPtr<GMPParent> gmp = SelectPluginForAPI(NS_LITERAL_CSTRING("encode-video"),
+                                               NS_LITERAL_CSTRING("vp8"));
+  if (!gmp) {
+    return NS_ERROR_FAILURE;
+  }
+
+  GMPVideoEncoderParent* gmpVEP;
+  nsresult rv = gmp->GetGMPVideoEncoder(&gmpVEP);
+  if (NS_FAILED(rv)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  *gmpVE = gmpVEP;
+  *outVideoHost = &gmpVEP->Host();
+
+  return NS_OK;
+}
+
 void
 GeckoMediaPluginService::UnloadPlugins()
 {

@@ -154,6 +154,10 @@ void MediaDecoder::Pause()
     mGMPVD->DecodingComplete();
     mGMPVD = nullptr;
   }
+  if (mGMPVE) {
+    mGMPVE->EncodingComplete();
+    mGMPVE = nullptr;
+  }
 
   MOZ_ASSERT(NS_IsMainThread());
   ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
@@ -466,43 +470,86 @@ bool MediaDecoder::Init(MediaDecoderOwner* aOwner)
     return false;
   }
 
+  GMPVideoCodec codec;
+  memset(&codec, 0, sizeof(codec));
+  codec.mCodecType = kGMPVideoCodecVP8;
+
+  GMPCodecSpecificInfo codecSpecificInfo;
+  memset(&codecSpecificInfo, 0, sizeof(codecSpecificInfo));
+  codecSpecificInfo.mCodecType = kGMPVideoCodecVP8;
+
   GMPVideoHost* videoHost = nullptr;
-  nsresult rv = mps->GetGMPVideoDecoderVP8(&videoHost, &mGMPVD);
+
+  // First encode something
+
+  nsresult rv = mps->GetGMPVideoEncoderVP8(&videoHost, &mGMPVE);
+  if (NS_FAILED(rv) || !mGMPVE || !videoHost) {
+    return false;
+  }
+
+  GMPVideoErr err = mGMPVE->InitEncode(codec, this, 1, 1);
+  if (err != GMPVideoNoErr) {
+    return false;
+  }
+
+  GMPVideoFrame* f = nullptr;
+  err = videoHost->CreateFrame(kGMPI420VideoFrame, &f);
+  if (err != GMPVideoNoErr) {
+    return false;
+  }
+  GMPVideoi420Frame* i420Frame = static_cast<GMPVideoi420Frame*>(f);
+
+  err = i420Frame->CreateEmptyFrame(100, 100, 100, 100, 100);
+  if (err != GMPVideoNoErr) {
+    return false;
+  }
+
+  uint8_t* buffer = i420Frame->Buffer(kGMPYPlane);
+  if (!buffer) {
+    printf("No buffer for i420 frame!\n");
+    return false;
+  }
+  memset(buffer, 0x3, 1000);
+
+  std::vector<GMPVideoFrameType> foo;
+  err = mGMPVE->Encode(*i420Frame, codecSpecificInfo, &foo);
+  i420Frame->Destroy();
+  if (err != GMPVideoNoErr) {
+    return false;
+  }
+
+  // Now decode something
+
+  rv = mps->GetGMPVideoDecoderVP8(&videoHost, &mGMPVD);
   if (NS_FAILED(rv) || !mGMPVD || !videoHost) {
     return false;
   }
 
-  GMPVideoCodec codec;
-  memset(&codec, 0, sizeof(codec));
-  codec.mCodecType = kGMPVideoCodecVP8;
-  GMPVideoErr err = mGMPVD->InitDecode(codec, this, 1);
+  err = mGMPVD->InitDecode(codec, this, 1);
   if (err != GMPVideoNoErr) {
     return false;
   }
 
-  GMPVideoEncodedFrame* frame = nullptr;
-  err = videoHost->CreateEncodedFrame(&frame);
+  GMPVideoEncodedFrame* encFrame = nullptr;
+  err = videoHost->CreateEncodedFrame(&encFrame);
   if (err != GMPVideoNoErr) {
     return false;
   }
 
-  err = frame->CreateEmptyFrame(1000);
+  err = encFrame->CreateEmptyFrame(1000);
   if (err != GMPVideoNoErr) {
     return false;
   }
 
-  uint8_t* buffer = frame->Buffer();
+  buffer = encFrame->Buffer();
   if (!buffer) {
     printf("No buffer for encoded frame!\n");
     return false;
   }
   memset(buffer, 0x2, 1000);
 
-  GMPCodecSpecificInfo codecSpecificInfo;
-  memset(&codecSpecificInfo, 0, sizeof(codecSpecificInfo));
-  codecSpecificInfo.mCodecType = kGMPVideoCodecVP8;
-  err = mGMPVD->Decode(*frame, false, codecSpecificInfo);
-  frame->Destroy();
+  err = mGMPVD->Decode(*encFrame, false, codecSpecificInfo);
+  encFrame->Destroy();
   if (err != GMPVideoNoErr) {
     return false;
   }
@@ -950,6 +997,18 @@ void
 MediaDecoder::InputDataExhausted()
 {
   printf("XXXJOSH %s\n", __PRETTY_FUNCTION__);
+}
+
+void
+MediaDecoder::Encoded(GMPVideoEncodedFrame& aEncodedFrame,
+                      const GMPCodecSpecificInfo& aCodecSpecificInfo)
+{
+  printf("XXXJOSH %s\n", __PRETTY_FUNCTION__);
+  const uint8_t* buffer = aEncodedFrame.Buffer();
+  for (uint32_t i = 0; i < 1000; i++) {
+    printf("%i", buffer[i]);
+  }
+  printf("\n");
 }
 
 void MediaDecoder::ResetConnectionState()
