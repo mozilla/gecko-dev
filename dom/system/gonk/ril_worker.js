@@ -13697,7 +13697,7 @@ let ICCContactHelper = {
 // re-initialize the buffers at will.
 Buf.init();
 
-function onRILMessage(data) {
+function onRILMessage(/*unused*/aClientId, data) {
   Buf.processIncoming(data);
 }
 
