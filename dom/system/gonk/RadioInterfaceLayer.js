@@ -778,13 +778,13 @@ function RadioInterfaceLayer() {
   gMessageManager.init(this);
   gRadioEnabledController.init(this);
 
+  let workerMessenger = new WorkerMessenger();
+  workerMessenger.init();
+
   let numIfaces = this.numRadioInterfaces;
   debug(numIfaces + " interfaces");
   this.radioInterfaces = [];
   for (let clientId = 0; clientId < numIfaces; clientId++) {
-    let workerMessenger = new WorkerMessenger();
-    workerMessenger.init();
-
     this.radioInterfaces.push(new RadioInterface(clientId, workerMessenger));
   }
 
