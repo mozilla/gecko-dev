@@ -94,11 +94,9 @@ let RILQUIRKS_SEND_STK_PROFILE_DOWNLOAD;
 // Ril quirk to attach data registration on demand.
 let RILQUIRKS_DATA_REGISTRATION_ON_DEMAND;
 
-let Buf = {
-  __proto__: (function(){
-    return require("resource://gre/modules/workers/worker_buf.js").Buf;
-  })(),
-
+function BufObject() {
+}
+BufObject.prototype = {
   mToken: 0,
   mTokenRequestMap: null,
 
@@ -188,6 +186,13 @@ let Buf = {
   }
 };
 
+(function() {
+  let base = require("resource://gre/modules/workers/worker_buf.js").Buf;
+  for (let p in base) {
+    BufObject.prototype[p] = base[p];
+  }
+})();
+
 /**
  * The RIL state machine.
  *
@@ -195,35 +200,44 @@ let Buf = {
  * via post messages. It maintains state about the radio, ICC, calls, etc.
  * and acts upon state changes accordingly.
  */
-let RIL = {
+function RilObject() {
+  this.currentCalls = {};
+  this.currentConference = {state: null, participants: {}};
+  this.currentDataCalls = {};
+  this._receivedSmsSegmentsMap = {};
+  this._pendingSentSmsMap = {};
+  this.pendingNetworkType = {};
+  this._receivedSmsCbPagesMap = {};
+}
+RilObject.prototype = {
   v5Legacy: null,
 
   /**
    * Valid calls.
    */
-  currentCalls: {},
+  currentCalls: null,
 
   /**
    * Existing conference call and its participants.
    */
-  currentConference: {state: null, participants: {}},
+  currentConference: null,
 
   /**
    * Existing data calls.
    */
-  currentDataCalls: {},
+  currentDataCalls: null,
 
   /**
    * Hash map for received multipart sms fragments. Messages are hashed with
    * its sender address and concatenation reference number. Three additional
    * attributes `segmentMaxSeq`, `receivedSegments`, `segments` are inserted.
    */
-  _receivedSmsSegmentsMap: {},
+  _receivedSmsSegmentsMap: null,
 
   /**
    * Outgoing messages waiting for SMS-STATUS-REPORT.
    */
-  _pendingSentSmsMap: {},
+  _pendingSentSmsMap: null,
 
   /**
    * Index of the RIL_PREFERRED_NETWORK_TYPE_TO_GECKO. Its value should be
@@ -234,7 +248,7 @@ let RIL = {
   /**
    * Marker object.
    */
-  pendingNetworkType: {},
+  pendingNetworkType: null,
 
   /**
    * Global Cell Broadcast switch.
@@ -253,7 +267,7 @@ let RIL = {
   cellBroadcastConfigs: null,
   mergedCellBroadcastConfig: null,
 
-  _receivedSmsCbPagesMap: {},
+  _receivedSmsCbPagesMap: null,
 
   initRILState: function initRILState() {
     /**
@@ -877,11 +891,11 @@ let RIL = {
         }
         // Reuse 'options' to get 'requestId' and 'contactType'.
         options.contacts = contacts;
-        RIL.sendChromeMessage(options);
+        this.sendChromeMessage(options);
       }.bind(this),
       function onerror(errorMsg) {
         options.errorMsg = errorMsg;
-        RIL.sendChromeMessage(options);
+        this.sendChromeMessage(options);
       }.bind(this));
   },
 
@@ -899,12 +913,12 @@ let RIL = {
         contact.pbrIndex * ICC_MAX_LINEAR_FIXED_RECORDS + contact.recordId;
       contact.contactId = this.iccInfo.iccid + recordIndex;
       // Reuse 'options' to get 'requestId' and 'contactType'.
-      RIL.sendChromeMessage(options);
+      this.sendChromeMessage(options);
     }.bind(this);
 
     let onerror = function onerror(errorMsg) {
       options.errorMsg = errorMsg;
-      RIL.sendChromeMessage(options);
+      this.sendChromeMessage(options);
     }.bind(this);
 
     if (!this.appType || !options.contact) {
@@ -913,7 +927,7 @@ let RIL = {
     }
 
     let contact = options.contact;
-    let iccid = RIL.iccInfo.iccid;
+    let iccid = this.iccInfo.iccid;
     let isValidRecordId = false;
     if (typeof contact.contactId === "string" &&
         contact.contactId.startsWith(iccid)) {
@@ -2069,7 +2083,7 @@ let RIL = {
     let mmiString = options.mmi;
     let mmi = this._parseMMI(mmiString);
 
-    let _sendMMIError = (function _sendMMIError(errorMsg, mmiServiceCode) {
+    let _sendMMIError = (function(errorMsg, mmiServiceCode) {
       options.success = false;
       options.errorMsg = errorMsg;
       if (mmiServiceCode) {
@@ -2107,13 +2121,13 @@ let RIL = {
       return true;
     }
 
-    function _isRadioAvailable(mmiServiceCode) {
-      if (RIL.radioState !== GECKO_RADIOSTATE_READY) {
+    let _isRadioAvailable = (function(mmiServiceCode) {
+      if (this.radioState !== GECKO_RADIOSTATE_READY) {
         _sendMMIError(GECKO_ERROR_RADIO_NOT_AVAILABLE, mmiServiceCode);
         return false;
       }
       return true;
-    }
+    }).bind(this);
 
     // If we couldn't parse the MMI code, we'll send it as an USSD request.
     if (mmi === null) {
@@ -3173,20 +3187,20 @@ let RIL = {
 
     // Send the message on the next tick of the worker's loop, so we give the
     // last message a chance to call _sendNetworkInfoMessage first.
-    setTimeout(this._sendPendingNetworkInfo, 0);
+    setTimeout(this._sendPendingNetworkInfo.bind(this), 0);
   },
 
   _sendPendingNetworkInfo: function _sendPendingNetworkInfo() {
-    RIL.sendChromeMessage(RIL._pendingNetworkInfo);
+    this.sendChromeMessage(this._pendingNetworkInfo);
 
-    RIL._processingNetworkInfo = false;
+    this._processingNetworkInfo = false;
     for (let i = 0; i < NETWORK_INFO_MESSAGE_TYPES.length; i++) {
-      delete RIL._pendingNetworkInfo[NETWORK_INFO_MESSAGE_TYPES[i]];
+      delete this._pendingNetworkInfo[NETWORK_INFO_MESSAGE_TYPES[i]];
     }
 
-    if (RIL._needRepollNetworkInfo) {
-      RIL._needRepollNetworkInfo = false;
-      RIL.requestNetworkInfo();
+    if (this._needRepollNetworkInfo) {
+      this._needRepollNetworkInfo = false;
+      this.requestNetworkInfo();
     }
   },
 
@@ -3293,7 +3307,7 @@ let RIL = {
   _processCREG: function _processCREG(curState, newState) {
     let changed = false;
 
-    let regState = RIL.parseInt(newState[0], NETWORK_CREG_STATE_UNKNOWN);
+    let regState = this.parseInt(newState[0], NETWORK_CREG_STATE_UNKNOWN);
     if (curState.regState === undefined || curState.regState !== regState) {
       changed = true;
       curState.regState = regState;
@@ -3311,14 +3325,14 @@ let RIL = {
 
     // From TS 23.003, 0000 and 0xfffe are indicated that no valid LAI exists
     // in MS. So we still need to report the '0000' as well.
-    let lac = RIL.parseInt(newState[1], -1, 16);
+    let lac = this.parseInt(newState[1], -1, 16);
     if (curState.cell.gsmLocationAreaCode === undefined ||
         curState.cell.gsmLocationAreaCode !== lac) {
       curState.cell.gsmLocationAreaCode = lac;
       changed = true;
     }
 
-    let cid = RIL.parseInt(newState[2], -1, 16);
+    let cid = this.parseInt(newState[2], -1, 16);
     if (curState.cell.gsmCellId === undefined ||
         curState.cell.gsmCellId !== cid) {
       curState.cell.gsmCellId = cid;
@@ -3327,7 +3341,7 @@ let RIL = {
 
     let radioTech = (newState[3] === undefined ?
                      NETWORK_CREG_TECH_UNKNOWN :
-                     RIL.parseInt(newState[3], NETWORK_CREG_TECH_UNKNOWN));
+                     this.parseInt(newState[3], NETWORK_CREG_TECH_UNKNOWN));
     if (curState.radioTech === undefined || curState.radioTech !== radioTech) {
       changed = true;
       curState.radioTech = radioTech;
@@ -3340,23 +3354,23 @@ let RIL = {
     let rs = this.voiceRegistrationState;
     let stateChanged = this._processCREG(rs, state);
     if (stateChanged && rs.connected) {
-      RIL.getSmscAddress();
+      this.getSmscAddress();
     }
 
     let cell = rs.cell;
     if (this._isCdma) {
       // Some variables below are not used. Comment them instead of removing to
       // keep the information about state[x].
-      let cdmaBaseStationId = RIL.parseInt(state[4], -1);
-      let cdmaBaseStationLatitude = RIL.parseInt(state[5], -2147483648);
-      let cdmaBaseStationLongitude = RIL.parseInt(state[6], -2147483648);
-      // let cssIndicator = RIL.parseInt(state[7]);
-      let cdmaSystemId = RIL.parseInt(state[8], -1);
-      let cdmaNetworkId = RIL.parseInt(state[9], -1);
-      // let roamingIndicator = RIL.parseInt(state[10]);
-      // let systemIsInPRL = RIL.parseInt(state[11]);
-      // let defaultRoamingIndicator = RIL.parseInt(state[12]);
-      // let reasonForDenial = RIL.parseInt(state[13]);
+      let cdmaBaseStationId = this.parseInt(state[4], -1);
+      let cdmaBaseStationLatitude = this.parseInt(state[5], -2147483648);
+      let cdmaBaseStationLongitude = this.parseInt(state[6], -2147483648);
+      // let cssIndicator = this.parseInt(state[7]);
+      let cdmaSystemId = this.parseInt(state[8], -1);
+      let cdmaNetworkId = this.parseInt(state[9], -1);
+      // let roamingIndicator = this.parseInt(state[10]);
+      // let systemIsInPRL = this.parseInt(state[11]);
+      // let defaultRoamingIndicator = this.parseInt(state[12]);
+      // let reasonForDenial = this.parseInt(state[13]);
 
       if (cell.cdmaBaseStationId !== cdmaBaseStationId ||
           cell.cdmaBaseStationLatitude !== cdmaBaseStationLatitude ||
@@ -4833,7 +4847,7 @@ let RIL = {
       berTlv = BerTlvHelper.decode(length / 2);
     } catch (e) {
       if (DEBUG) debug("processStkProactiveCommand : " + e);
-      RIL.sendStkTerminalResponse({
+      this.sendStkTerminalResponse({
         resultCode: STK_RESULT_CMD_DATA_NOT_UNDERSTOOD});
       return;
     }
@@ -4844,7 +4858,7 @@ let RIL = {
     let ctlv = StkProactiveCmdHelper.searchForTag(
         COMPREHENSIONTLV_TAG_COMMAND_DETAILS, ctlvs);
     if (!ctlv) {
-      RIL.sendStkTerminalResponse({
+      this.sendStkTerminalResponse({
         resultCode: STK_RESULT_CMD_DATA_NOT_UNDERSTOOD});
       throw new Error("Can't find COMMAND_DETAILS ComprehensionTlv");
     }
@@ -4858,7 +4872,7 @@ let RIL = {
 
     // STK_CMD_MORE_TIME need not to propagate event to chrome.
     if (cmdDetails.typeOfCommand == STK_CMD_MORE_TIME) {
-      RIL.sendStkTerminalResponse({
+      this.sendStkTerminalResponse({
         command: cmdDetails,
         resultCode: STK_RESULT_OK});
       return;
@@ -4866,7 +4880,7 @@ let RIL = {
 
     cmdDetails.rilMessageType = "stkcommand";
     cmdDetails.options = StkCommandParamsFactory.createParam(cmdDetails, ctlvs);
-    RIL.sendChromeMessage(cmdDetails);
+    this.sendChromeMessage(cmdDetails);
   },
 
   /**
@@ -4920,7 +4934,7 @@ let RIL = {
   }
 };
 
-RIL[REQUEST_GET_SIM_STATUS] = function REQUEST_GET_SIM_STATUS(length, options) {
+RilObject.prototype[REQUEST_GET_SIM_STATUS] = function REQUEST_GET_SIM_STATUS(length, options) {
   if (options.rilRequestError) {
     return;
   }
@@ -4962,29 +4976,29 @@ RIL[REQUEST_GET_SIM_STATUS] = function REQUEST_GET_SIM_STATUS(length, options) {
   if (DEBUG) debug("iccStatus: " + JSON.stringify(iccStatus));
   this._processICCStatus(iccStatus);
 };
-RIL[REQUEST_ENTER_SIM_PIN] = function REQUEST_ENTER_SIM_PIN(length, options) {
+RilObject.prototype[REQUEST_ENTER_SIM_PIN] = function REQUEST_ENTER_SIM_PIN(length, options) {
   this._processEnterAndChangeICCResponses(length, options);
 };
-RIL[REQUEST_ENTER_SIM_PUK] = function REQUEST_ENTER_SIM_PUK(length, options) {
+RilObject.prototype[REQUEST_ENTER_SIM_PUK] = function REQUEST_ENTER_SIM_PUK(length, options) {
   this._processEnterAndChangeICCResponses(length, options);
 };
-RIL[REQUEST_ENTER_SIM_PIN2] = function REQUEST_ENTER_SIM_PIN2(length, options) {
+RilObject.prototype[REQUEST_ENTER_SIM_PIN2] = function REQUEST_ENTER_SIM_PIN2(length, options) {
   this._processEnterAndChangeICCResponses(length, options);
 };
-RIL[REQUEST_ENTER_SIM_PUK2] = function REQUEST_ENTER_SIM_PUK(length, options) {
+RilObject.prototype[REQUEST_ENTER_SIM_PUK2] = function REQUEST_ENTER_SIM_PUK(length, options) {
   this._processEnterAndChangeICCResponses(length, options);
 };
-RIL[REQUEST_CHANGE_SIM_PIN] = function REQUEST_CHANGE_SIM_PIN(length, options) {
+RilObject.prototype[REQUEST_CHANGE_SIM_PIN] = function REQUEST_CHANGE_SIM_PIN(length, options) {
   this._processEnterAndChangeICCResponses(length, options);
 };
-RIL[REQUEST_CHANGE_SIM_PIN2] = function REQUEST_CHANGE_SIM_PIN2(length, options) {
+RilObject.prototype[REQUEST_CHANGE_SIM_PIN2] = function REQUEST_CHANGE_SIM_PIN2(length, options) {
   this._processEnterAndChangeICCResponses(length, options);
 };
-RIL[REQUEST_ENTER_NETWORK_DEPERSONALIZATION_CODE] =
+RilObject.prototype[REQUEST_ENTER_NETWORK_DEPERSONALIZATION_CODE] =
   function REQUEST_ENTER_NETWORK_DEPERSONALIZATION_CODE(length, options) {
   this._processEnterAndChangeICCResponses(length, options);
 };
-RIL[REQUEST_GET_CURRENT_CALLS] = function REQUEST_GET_CURRENT_CALLS(length, options) {
+RilObject.prototype[REQUEST_GET_CURRENT_CALLS] = function REQUEST_GET_CURRENT_CALLS(length, options) {
   if (options.rilRequestError) {
     return;
   }
@@ -5040,7 +5054,7 @@ RIL[REQUEST_GET_CURRENT_CALLS] = function REQUEST_GET_CURRENT_CALLS(length, opti
   }
   this._processCalls(calls);
 };
-RIL[REQUEST_DIAL] = function REQUEST_DIAL(length, options) {
+RilObject.prototype[REQUEST_DIAL] = function REQUEST_DIAL(length, options) {
   if (options.rilRequestError) {
     // The connection is not established yet.
     options.callIndex = -1;
@@ -5048,7 +5062,7 @@ RIL[REQUEST_DIAL] = function REQUEST_DIAL(length, options) {
                         RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError]);
   }
 };
-RIL[REQUEST_GET_IMSI] = function REQUEST_GET_IMSI(length, options) {
+RilObject.prototype[REQUEST_GET_IMSI] = function REQUEST_GET_IMSI(length, options) {
   if (options.rilRequestError) {
     return;
   }
@@ -5062,35 +5076,35 @@ RIL[REQUEST_GET_IMSI] = function REQUEST_GET_IMSI(length, options) {
   options.imsi = this.iccInfoPrivate.imsi;
   this.sendChromeMessage(options);
 };
-RIL[REQUEST_HANGUP] = function REQUEST_HANGUP(length, options) {
+RilObject.prototype[REQUEST_HANGUP] = function REQUEST_HANGUP(length, options) {
   if (options.rilRequestError) {
     return;
   }
 
   this.getCurrentCalls();
 };
-RIL[REQUEST_HANGUP_WAITING_OR_BACKGROUND] = function REQUEST_HANGUP_WAITING_OR_BACKGROUND(length, options) {
+RilObject.prototype[REQUEST_HANGUP_WAITING_OR_BACKGROUND] = function REQUEST_HANGUP_WAITING_OR_BACKGROUND(length, options) {
   if (options.rilRequestError) {
     return;
   }
 
   this.getCurrentCalls();
 };
-RIL[REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND] = function REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND(length, options) {
+RilObject.prototype[REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND] = function REQUEST_HANGUP_FOREGROUND_RESUME_BACKGROUND(length, options) {
   if (options.rilRequestError) {
     return;
   }
 
   this.getCurrentCalls();
 };
-RIL[REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE] = function REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE(length, options) {
+RilObject.prototype[REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE] = function REQUEST_SWITCH_WAITING_OR_HOLDING_AND_ACTIVE(length, options) {
   if (options.rilRequestError) {
     return;
   }
 
   this.getCurrentCalls();
 };
-RIL[REQUEST_SWITCH_HOLDING_AND_ACTIVE] = function REQUEST_SWITCH_HOLDING_AND_ACTIVE(length, options) {
+RilObject.prototype[REQUEST_SWITCH_HOLDING_AND_ACTIVE] = function REQUEST_SWITCH_HOLDING_AND_ACTIVE(length, options) {
   if (options.rilRequestError) {
     return;
   }
@@ -5100,7 +5114,7 @@ RIL[REQUEST_SWITCH_HOLDING_AND_ACTIVE] = function REQUEST_SWITCH_HOLDING_AND_ACT
   // this.getCurrentCalls() helps update the call state actively.
   this.getCurrentCalls();
 };
-RIL[REQUEST_CONFERENCE] = function REQUEST_CONFERENCE(length, options) {
+RilObject.prototype[REQUEST_CONFERENCE] = function REQUEST_CONFERENCE(length, options) {
   if (options.rilRequestError) {
     this._hasConferenceRequest = false;
     options = {rilMessageType: "conferenceError",
@@ -5110,8 +5124,8 @@ RIL[REQUEST_CONFERENCE] = function REQUEST_CONFERENCE(length, options) {
     return;
   }
 };
-RIL[REQUEST_UDUB] = null;
-RIL[REQUEST_LAST_CALL_FAIL_CAUSE] = function REQUEST_LAST_CALL_FAIL_CAUSE(length, options) {
+RilObject.prototype[REQUEST_UDUB] = null;
+RilObject.prototype[REQUEST_LAST_CALL_FAIL_CAUSE] = function REQUEST_LAST_CALL_FAIL_CAUSE(length, options) {
   let num = 0;
   if (length) {
     num = Buf.readInt32();
@@ -5127,7 +5141,7 @@ RIL[REQUEST_LAST_CALL_FAIL_CAUSE] = function REQUEST_LAST_CALL_FAIL_CAUSE(length
   options.failCause = RIL_CALL_FAILCAUSE_TO_GECKO_CALL_ERROR[failCause];
   this._handleDisconnectedCall(options);
 };
-RIL[REQUEST_SIGNAL_STRENGTH] = function REQUEST_SIGNAL_STRENGTH(length, options) {
+RilObject.prototype[REQUEST_SIGNAL_STRENGTH] = function REQUEST_SIGNAL_STRENGTH(length, options) {
   this._receivedNetworkInfo(NETWORK_INFO_SIGNAL);
 
   if (options.rilRequestError) {
@@ -5156,7 +5170,7 @@ RIL[REQUEST_SIGNAL_STRENGTH] = function REQUEST_SIGNAL_STRENGTH(length, options)
 
   this._processSignalStrength(signal);
 };
-RIL[REQUEST_VOICE_REGISTRATION_STATE] = function REQUEST_VOICE_REGISTRATION_STATE(length, options) {
+RilObject.prototype[REQUEST_VOICE_REGISTRATION_STATE] = function REQUEST_VOICE_REGISTRATION_STATE(length, options) {
   this._receivedNetworkInfo(NETWORK_INFO_VOICE_REGISTRATION_STATE);
 
   if (options.rilRequestError) {
@@ -5177,7 +5191,7 @@ RIL[REQUEST_VOICE_REGISTRATION_STATE] = function REQUEST_VOICE_REGISTRATION_STAT
     this.cachedDialRequest = null;
   }
 };
-RIL[REQUEST_DATA_REGISTRATION_STATE] = function REQUEST_DATA_REGISTRATION_STATE(length, options) {
+RilObject.prototype[REQUEST_DATA_REGISTRATION_STATE] = function REQUEST_DATA_REGISTRATION_STATE(length, options) {
   this._receivedNetworkInfo(NETWORK_INFO_DATA_REGISTRATION_STATE);
 
   if (options.rilRequestError) {
@@ -5187,7 +5201,7 @@ RIL[REQUEST_DATA_REGISTRATION_STATE] = function REQUEST_DATA_REGISTRATION_STATE(
   let state = Buf.readStringList();
   this._processDataRegistrationState(state);
 };
-RIL[REQUEST_OPERATOR] = function REQUEST_OPERATOR(length, options) {
+RilObject.prototype[REQUEST_OPERATOR] = function REQUEST_OPERATOR(length, options) {
   this._receivedNetworkInfo(NETWORK_INFO_OPERATOR);
 
   if (options.rilRequestError) {
@@ -5198,7 +5212,7 @@ RIL[REQUEST_OPERATOR] = function REQUEST_OPERATOR(length, options) {
   if (DEBUG) debug("Operator: " + operatorData);
   this._processOperator(operatorData);
 };
-RIL[REQUEST_RADIO_POWER] = function REQUEST_RADIO_POWER(length, options) {
+RilObject.prototype[REQUEST_RADIO_POWER] = function REQUEST_RADIO_POWER(length, options) {
   if (options.rilMessageType == null) {
     // The request was made by ril_worker itself.
     if (options.rilRequestError) {
@@ -5213,13 +5227,13 @@ RIL[REQUEST_RADIO_POWER] = function REQUEST_RADIO_POWER(length, options) {
 
   this.sendChromeMessage(options);
 };
-RIL[REQUEST_DTMF] = null;
-RIL[REQUEST_SEND_SMS] = function REQUEST_SEND_SMS(length, options) {
+RilObject.prototype[REQUEST_DTMF] = null;
+RilObject.prototype[REQUEST_SEND_SMS] = function REQUEST_SEND_SMS(length, options) {
   this._processSmsSendResult(length, options);
 };
-RIL[REQUEST_SEND_SMS_EXPECT_MORE] = null;
+RilObject.prototype[REQUEST_SEND_SMS_EXPECT_MORE] = null;
 
-RIL.readSetupDataCall_v5 = function readSetupDataCall_v5(options) {
+RilObject.prototype.readSetupDataCall_v5 = function readSetupDataCall_v5(options) {
   if (!options) {
     options = {};
   }
@@ -5234,7 +5248,7 @@ RIL.readSetupDataCall_v5 = function readSetupDataCall_v5(options) {
   return options;
 };
 
-RIL[REQUEST_SETUP_DATA_CALL] = function REQUEST_SETUP_DATA_CALL(length, options) {
+RilObject.prototype[REQUEST_SETUP_DATA_CALL] = function REQUEST_SETUP_DATA_CALL(length, options) {
   if (options.rilRequestError) {
     // On Data Call generic errors, we shall notify caller
     this._sendDataCallError(options, options.rilRequestError);
@@ -5257,7 +5271,7 @@ RIL[REQUEST_SETUP_DATA_CALL] = function REQUEST_SETUP_DATA_CALL(length, options)
   // how the data call was set up.
   this[REQUEST_DATA_CALL_LIST](length, options);
 };
-RIL[REQUEST_SIM_IO] = function REQUEST_SIM_IO(length, options) {
+RilObject.prototype[REQUEST_SIM_IO] = function REQUEST_SIM_IO(length, options) {
   if (!length) {
     ICCIOHelper.processICCIOError(options);
     return;
@@ -5273,7 +5287,7 @@ RIL[REQUEST_SIM_IO] = function REQUEST_SIM_IO(length, options) {
   }
   ICCIOHelper.processICCIO(options);
 };
-RIL[REQUEST_SEND_USSD] = function REQUEST_SEND_USSD(length, options) {
+RilObject.prototype[REQUEST_SEND_USSD] = function REQUEST_SEND_USSD(length, options) {
   if (DEBUG) {
     debug("REQUEST_SEND_USSD " + JSON.stringify(options));
   }
@@ -5281,7 +5295,7 @@ RIL[REQUEST_SEND_USSD] = function REQUEST_SEND_USSD(length, options) {
   options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
   this.sendChromeMessage(options);
 };
-RIL[REQUEST_CANCEL_USSD] = function REQUEST_CANCEL_USSD(length, options) {
+RilObject.prototype[REQUEST_CANCEL_USSD] = function REQUEST_CANCEL_USSD(length, options) {
   if (DEBUG) {
     debug("REQUEST_CANCEL_USSD" + JSON.stringify(options));
   }
@@ -5290,7 +5304,7 @@ RIL[REQUEST_CANCEL_USSD] = function REQUEST_CANCEL_USSD(length, options) {
   options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
   this.sendChromeMessage(options);
 };
-RIL[REQUEST_GET_CLIR] = function REQUEST_GET_CLIR(length, options) {
+RilObject.prototype[REQUEST_GET_CLIR] = function REQUEST_GET_CLIR(length, options) {
   options.success = (options.rilRequestError === 0);
   if (!options.success) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
@@ -5374,7 +5388,7 @@ RIL[REQUEST_GET_CLIR] = function REQUEST_GET_CLIR(length, options) {
 
   this.sendChromeMessage(options);
 };
-RIL[REQUEST_SET_CLIR] = function REQUEST_SET_CLIR(length, options) {
+RilObject.prototype[REQUEST_SET_CLIR] = function REQUEST_SET_CLIR(length, options) {
   if (options.rilMessageType == null) {
     // The request was made by ril_worker itself automatically. Don't report.
     return;
@@ -5395,7 +5409,7 @@ RIL[REQUEST_SET_CLIR] = function REQUEST_SET_CLIR(length, options) {
   this.sendChromeMessage(options);
 };
 
-RIL[REQUEST_QUERY_CALL_FORWARD_STATUS] =
+RilObject.prototype[REQUEST_QUERY_CALL_FORWARD_STATUS] =
   function REQUEST_QUERY_CALL_FORWARD_STATUS(length, options) {
     options.success = (options.rilRequestError === 0);
     if (!options.success) {
@@ -5435,7 +5449,7 @@ RIL[REQUEST_QUERY_CALL_FORWARD_STATUS] =
     }
     this.sendChromeMessage(options);
 };
-RIL[REQUEST_SET_CALL_FORWARD] =
+RilObject.prototype[REQUEST_SET_CALL_FORWARD] =
   function REQUEST_SET_CALL_FORWARD(length, options) {
     options.success = (options.rilRequestError === 0);
     if (!options.success) {
@@ -5458,7 +5472,7 @@ RIL[REQUEST_SET_CALL_FORWARD] =
     }
     this.sendChromeMessage(options);
 };
-RIL[REQUEST_QUERY_CALL_WAITING] =
+RilObject.prototype[REQUEST_QUERY_CALL_WAITING] =
   function REQUEST_QUERY_CALL_WAITING(length, options) {
   options.success = (options.rilRequestError === 0);
   if (!options.success) {
@@ -5478,7 +5492,7 @@ RIL[REQUEST_QUERY_CALL_WAITING] =
   this.sendChromeMessage(options);
 };
 
-RIL[REQUEST_SET_CALL_WAITING] = function REQUEST_SET_CALL_WAITING(length, options) {
+RilObject.prototype[REQUEST_SET_CALL_WAITING] = function REQUEST_SET_CALL_WAITING(length, options) {
   options.success = (options.rilRequestError === 0);
   if (!options.success) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
@@ -5493,8 +5507,8 @@ RIL[REQUEST_SET_CALL_WAITING] = function REQUEST_SET_CALL_WAITING(length, option
 
   this.sendChromeMessage(options);
 };
-RIL[REQUEST_SMS_ACKNOWLEDGE] = null;
-RIL[REQUEST_GET_IMEI] = function REQUEST_GET_IMEI(length, options) {
+RilObject.prototype[REQUEST_SMS_ACKNOWLEDGE] = null;
+RilObject.prototype[REQUEST_GET_IMEI] = function REQUEST_GET_IMEI(length, options) {
   this.IMEI = Buf.readString();
   let rilMessageType = options.rilMessageType;
   // So far we only send the IMEI back to chrome if it was requested via MMI.
@@ -5510,15 +5524,15 @@ RIL[REQUEST_GET_IMEI] = function REQUEST_GET_IMEI(length, options) {
   options.statusMessage = this.IMEI;
   this.sendChromeMessage(options);
 };
-RIL[REQUEST_GET_IMEISV] = function REQUEST_GET_IMEISV(length, options) {
+RilObject.prototype[REQUEST_GET_IMEISV] = function REQUEST_GET_IMEISV(length, options) {
   if (options.rilRequestError) {
     return;
   }
 
   this.IMEISV = Buf.readString();
 };
-RIL[REQUEST_ANSWER] = null;
-RIL[REQUEST_DEACTIVATE_DATA_CALL] = function REQUEST_DEACTIVATE_DATA_CALL(length, options) {
+RilObject.prototype[REQUEST_ANSWER] = null;
+RilObject.prototype[REQUEST_DEACTIVATE_DATA_CALL] = function REQUEST_DEACTIVATE_DATA_CALL(length, options) {
   if (options.rilRequestError) {
     return;
   }
@@ -5529,7 +5543,7 @@ RIL[REQUEST_DEACTIVATE_DATA_CALL] = function REQUEST_DEACTIVATE_DATA_CALL(length
   datacall.rilMessageType = "datacallstatechange";
   this.sendChromeMessage(datacall);
 };
-RIL[REQUEST_QUERY_FACILITY_LOCK] = function REQUEST_QUERY_FACILITY_LOCK(length, options) {
+RilObject.prototype[REQUEST_QUERY_FACILITY_LOCK] = function REQUEST_QUERY_FACILITY_LOCK(length, options) {
   options.success = (options.rilRequestError === 0);
   if (!options.success) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
@@ -5567,7 +5581,7 @@ RIL[REQUEST_QUERY_FACILITY_LOCK] = function REQUEST_QUERY_FACILITY_LOCK(length, 
   }
   this.sendChromeMessage(options);
 };
-RIL[REQUEST_SET_FACILITY_LOCK] = function REQUEST_SET_FACILITY_LOCK(length, options) {
+RilObject.prototype[REQUEST_SET_FACILITY_LOCK] = function REQUEST_SET_FACILITY_LOCK(length, options) {
   options.success = (options.rilRequestError === 0);
   if (!options.success) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
@@ -5587,14 +5601,14 @@ RIL[REQUEST_SET_FACILITY_LOCK] = function REQUEST_SET_FACILITY_LOCK(length, opti
   }
   this.sendChromeMessage(options);
 };
-RIL[REQUEST_CHANGE_BARRING_PASSWORD] =
+RilObject.prototype[REQUEST_CHANGE_BARRING_PASSWORD] =
   function REQUEST_CHANGE_BARRING_PASSWORD(length, options) {
   if (options.rilRequestError) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
   }
   this.sendChromeMessage(options);
 };
-RIL[REQUEST_SIM_OPEN_CHANNEL] = function REQUEST_SIM_OPEN_CHANNEL(length, options) {
+RilObject.prototype[REQUEST_SIM_OPEN_CHANNEL] = function REQUEST_SIM_OPEN_CHANNEL(length, options) {
   if (options.rilRequestError) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
     this.sendChromeMessage(options);
@@ -5605,7 +5619,7 @@ RIL[REQUEST_SIM_OPEN_CHANNEL] = function REQUEST_SIM_OPEN_CHANNEL(length, option
   if (DEBUG) debug("Setting channel number in options: " + options.channel);
   this.sendChromeMessage(options);
 };
-RIL[REQUEST_SIM_CLOSE_CHANNEL] = function REQUEST_SIM_CLOSE_CHANNEL(length, options) {
+RilObject.prototype[REQUEST_SIM_CLOSE_CHANNEL] = function REQUEST_SIM_CLOSE_CHANNEL(length, options) {
   if (options.rilRequestError) {
     options.error = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
     this.sendChromeMessage(options);
@@ -5615,7 +5629,7 @@ RIL[REQUEST_SIM_CLOSE_CHANNEL] = function REQUEST_SIM_CLOSE_CHANNEL(length, opti
   // No return value
   this.sendChromeMessage(options);
 };
-RIL[REQUEST_SIM_ACCESS_CHANNEL] = function REQUEST_SIM_ACCESS_CHANNEL(length, options) {
+RilObject.prototype[REQUEST_SIM_ACCESS_CHANNEL] = function REQUEST_SIM_ACCESS_CHANNEL(length, options) {
   if (options.rilRequestError) {
     options.error = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
     this.sendChromeMessage(options);
@@ -5630,7 +5644,7 @@ RIL[REQUEST_SIM_ACCESS_CHANNEL] = function REQUEST_SIM_ACCESS_CHANNEL(length, op
   }
   this.sendChromeMessage(options);
 };
-RIL[REQUEST_QUERY_NETWORK_SELECTION_MODE] = function REQUEST_QUERY_NETWORK_SELECTION_MODE(length, options) {
+RilObject.prototype[REQUEST_QUERY_NETWORK_SELECTION_MODE] = function REQUEST_QUERY_NETWORK_SELECTION_MODE(length, options) {
   this._receivedNetworkInfo(NETWORK_INFO_NETWORK_SELECTION_MODE);
 
   if (options.rilRequestError) {
@@ -5658,21 +5672,21 @@ RIL[REQUEST_QUERY_NETWORK_SELECTION_MODE] = function REQUEST_QUERY_NETWORK_SELEC
     this._sendNetworkInfoMessage(NETWORK_INFO_NETWORK_SELECTION_MODE, options);
   }
 };
-RIL[REQUEST_SET_NETWORK_SELECTION_AUTOMATIC] = function REQUEST_SET_NETWORK_SELECTION_AUTOMATIC(length, options) {
+RilObject.prototype[REQUEST_SET_NETWORK_SELECTION_AUTOMATIC] = function REQUEST_SET_NETWORK_SELECTION_AUTOMATIC(length, options) {
   if (options.rilRequestError) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
   }
 
   this.sendChromeMessage(options);
 };
-RIL[REQUEST_SET_NETWORK_SELECTION_MANUAL] = function REQUEST_SET_NETWORK_SELECTION_MANUAL(length, options) {
+RilObject.prototype[REQUEST_SET_NETWORK_SELECTION_MANUAL] = function REQUEST_SET_NETWORK_SELECTION_MANUAL(length, options) {
   if (options.rilRequestError) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
   }
 
   this.sendChromeMessage(options);
 };
-RIL[REQUEST_QUERY_AVAILABLE_NETWORKS] = function REQUEST_QUERY_AVAILABLE_NETWORKS(length, options) {
+RilObject.prototype[REQUEST_QUERY_AVAILABLE_NETWORKS] = function REQUEST_QUERY_AVAILABLE_NETWORKS(length, options) {
   if (options.rilRequestError) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
   } else {
@@ -5680,9 +5694,9 @@ RIL[REQUEST_QUERY_AVAILABLE_NETWORKS] = function REQUEST_QUERY_AVAILABLE_NETWORK
   }
   this.sendChromeMessage(options);
 };
-RIL[REQUEST_DTMF_START] = null;
-RIL[REQUEST_DTMF_STOP] = null;
-RIL[REQUEST_BASEBAND_VERSION] = function REQUEST_BASEBAND_VERSION(length, options) {
+RilObject.prototype[REQUEST_DTMF_START] = null;
+RilObject.prototype[REQUEST_DTMF_STOP] = null;
+RilObject.prototype[REQUEST_BASEBAND_VERSION] = function REQUEST_BASEBAND_VERSION(length, options) {
   if (options.rilRequestError) {
     return;
   }
@@ -5690,7 +5704,7 @@ RIL[REQUEST_BASEBAND_VERSION] = function REQUEST_BASEBAND_VERSION(length, option
   this.basebandVersion = Buf.readString();
   if (DEBUG) debug("Baseband version: " + this.basebandVersion);
 };
-RIL[REQUEST_SEPARATE_CONNECTION] = function REQUEST_SEPARATE_CONNECTION(length, options) {
+RilObject.prototype[REQUEST_SEPARATE_CONNECTION] = function REQUEST_SEPARATE_CONNECTION(length, options) {
   if (options.rilRequestError) {
     options = {rilMessageType: "conferenceError",
                errorName: "removeError",
@@ -5699,9 +5713,9 @@ RIL[REQUEST_SEPARATE_CONNECTION] = function REQUEST_SEPARATE_CONNECTION(length, 
     return;
   }
 };
-RIL[REQUEST_SET_MUTE] = null;
-RIL[REQUEST_GET_MUTE] = null;
-RIL[REQUEST_QUERY_CLIP] = function REQUEST_QUERY_CLIP(length, options) {
+RilObject.prototype[REQUEST_SET_MUTE] = null;
+RilObject.prototype[REQUEST_GET_MUTE] = null;
+RilObject.prototype[REQUEST_QUERY_CLIP] = function REQUEST_QUERY_CLIP(length, options) {
   options.success = (options.rilRequestError === 0);
   if (!options.success) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
@@ -5739,9 +5753,9 @@ RIL[REQUEST_QUERY_CLIP] = function REQUEST_QUERY_CLIP(length, options) {
   }
   this.sendChromeMessage(options);
 };
-RIL[REQUEST_LAST_DATA_CALL_FAIL_CAUSE] = null;
+RilObject.prototype[REQUEST_LAST_DATA_CALL_FAIL_CAUSE] = null;
 
-RIL.readDataCall_v5 = function(options) {
+RilObject.prototype.readDataCall_v5 = function(options) {
   if (!options) {
     options = {};
   }
@@ -5753,7 +5767,7 @@ RIL.readDataCall_v5 = function(options) {
   return options;
 };
 
-RIL.readDataCall_v6 = function(options) {
+RilObject.prototype.readDataCall_v6 = function(options) {
   if (!options) {
     options = {};
   }
@@ -5779,7 +5793,7 @@ RIL.readDataCall_v6 = function(options) {
   return options;
 };
 
-RIL[REQUEST_DATA_CALL_LIST] = function REQUEST_DATA_CALL_LIST(length, options) {
+RilObject.prototype[REQUEST_DATA_CALL_LIST] = function REQUEST_DATA_CALL_LIST(length, options) {
   if (options.rilRequestError) {
     return;
   }
@@ -5811,12 +5825,12 @@ RIL[REQUEST_DATA_CALL_LIST] = function REQUEST_DATA_CALL_LIST(length, options) {
   }
   this._processDataCallList(datacalls, newDataCallOptions);
 };
-RIL[REQUEST_RESET_RADIO] = null;
-RIL[REQUEST_OEM_HOOK_RAW] = null;
-RIL[REQUEST_OEM_HOOK_STRINGS] = null;
-RIL[REQUEST_SCREEN_STATE] = null;
-RIL[REQUEST_SET_SUPP_SVC_NOTIFICATION] = null;
-RIL[REQUEST_WRITE_SMS_TO_SIM] = function REQUEST_WRITE_SMS_TO_SIM(length, options) {
+RilObject.prototype[REQUEST_RESET_RADIO] = null;
+RilObject.prototype[REQUEST_OEM_HOOK_RAW] = null;
+RilObject.prototype[REQUEST_OEM_HOOK_STRINGS] = null;
+RilObject.prototype[REQUEST_SCREEN_STATE] = null;
+RilObject.prototype[REQUEST_SET_SUPP_SVC_NOTIFICATION] = null;
+RilObject.prototype[REQUEST_WRITE_SMS_TO_SIM] = function REQUEST_WRITE_SMS_TO_SIM(length, options) {
   if (options.rilRequestError) {
     // `The MS shall return a "protocol error, unspecified" error message if
     // the short message cannot be stored in the (U)SIM, and there is other
@@ -5827,16 +5841,16 @@ RIL[REQUEST_WRITE_SMS_TO_SIM] = function REQUEST_WRITE_SMS_TO_SIM(length, option
     this.acknowledgeGsmSms(true, PDU_FCS_OK);
   }
 };
-RIL[REQUEST_DELETE_SMS_ON_SIM] = null;
-RIL[REQUEST_SET_BAND_MODE] = null;
-RIL[REQUEST_QUERY_AVAILABLE_BAND_MODE] = null;
-RIL[REQUEST_STK_GET_PROFILE] = null;
-RIL[REQUEST_STK_SET_PROFILE] = null;
-RIL[REQUEST_STK_SEND_ENVELOPE_COMMAND] = null;
-RIL[REQUEST_STK_SEND_TERMINAL_RESPONSE] = null;
-RIL[REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM] = null;
-RIL[REQUEST_EXPLICIT_CALL_TRANSFER] = null;
-RIL[REQUEST_SET_PREFERRED_NETWORK_TYPE] = function REQUEST_SET_PREFERRED_NETWORK_TYPE(length, options) {
+RilObject.prototype[REQUEST_DELETE_SMS_ON_SIM] = null;
+RilObject.prototype[REQUEST_SET_BAND_MODE] = null;
+RilObject.prototype[REQUEST_QUERY_AVAILABLE_BAND_MODE] = null;
+RilObject.prototype[REQUEST_STK_GET_PROFILE] = null;
+RilObject.prototype[REQUEST_STK_SET_PROFILE] = null;
+RilObject.prototype[REQUEST_STK_SEND_ENVELOPE_COMMAND] = null;
+RilObject.prototype[REQUEST_STK_SEND_TERMINAL_RESPONSE] = null;
+RilObject.prototype[REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM] = null;
+RilObject.prototype[REQUEST_EXPLICIT_CALL_TRANSFER] = null;
+RilObject.prototype[REQUEST_SET_PREFERRED_NETWORK_TYPE] = function REQUEST_SET_PREFERRED_NETWORK_TYPE(length, options) {
   if (options.networkType == null) {
     // The request was made by ril_worker itself automatically. Don't report.
     return;
@@ -5845,7 +5859,7 @@ RIL[REQUEST_SET_PREFERRED_NETWORK_TYPE] = function REQUEST_SET_PREFERRED_NETWORK
   options.success = (options.rilRequestError == ERROR_SUCCESS);
   this.sendChromeMessage(options);
 };
-RIL[REQUEST_GET_PREFERRED_NETWORK_TYPE] = function REQUEST_GET_PREFERRED_NETWORK_TYPE(length, options) {
+RilObject.prototype[REQUEST_GET_PREFERRED_NETWORK_TYPE] = function REQUEST_GET_PREFERRED_NETWORK_TYPE(length, options) {
   let networkType;
   if (!options.rilRequestError) {
     networkType = RIL_PREFERRED_NETWORK_TYPE_TO_GECKO.indexOf(GECKO_PREFERRED_NETWORK_TYPE_DEFAULT);
@@ -5859,16 +5873,16 @@ RIL[REQUEST_GET_PREFERRED_NETWORK_TYPE] = function REQUEST_GET_PREFERRED_NETWORK
   options.success = (options.rilRequestError == ERROR_SUCCESS);
   this.sendChromeMessage(options);
 };
-RIL[REQUEST_GET_NEIGHBORING_CELL_IDS] = null;
-RIL[REQUEST_SET_LOCATION_UPDATES] = null;
-RIL[REQUEST_CDMA_SET_SUBSCRIPTION_SOURCE] = null;
-RIL[REQUEST_CDMA_SET_ROAMING_PREFERENCE] = function REQUEST_CDMA_SET_ROAMING_PREFERENCE(length, options) {
+RilObject.prototype[REQUEST_GET_NEIGHBORING_CELL_IDS] = null;
+RilObject.prototype[REQUEST_SET_LOCATION_UPDATES] = null;
+RilObject.prototype[REQUEST_CDMA_SET_SUBSCRIPTION_SOURCE] = null;
+RilObject.prototype[REQUEST_CDMA_SET_ROAMING_PREFERENCE] = function REQUEST_CDMA_SET_ROAMING_PREFERENCE(length, options) {
   if (options.rilRequestError) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
   }
   this.sendChromeMessage(options);
 };
-RIL[REQUEST_CDMA_QUERY_ROAMING_PREFERENCE] = function REQUEST_CDMA_QUERY_ROAMING_PREFERENCE(length, options) {
+RilObject.prototype[REQUEST_CDMA_QUERY_ROAMING_PREFERENCE] = function REQUEST_CDMA_QUERY_ROAMING_PREFERENCE(length, options) {
   if (options.rilRequestError) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
   } else {
@@ -5877,9 +5891,9 @@ RIL[REQUEST_CDMA_QUERY_ROAMING_PREFERENCE] = function REQUEST_CDMA_QUERY_ROAMING
   }
   this.sendChromeMessage(options);
 };
-RIL[REQUEST_SET_TTY_MODE] = null;
-RIL[REQUEST_QUERY_TTY_MODE] = null;
-RIL[REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE] = function REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE(length, options) {
+RilObject.prototype[REQUEST_SET_TTY_MODE] = null;
+RilObject.prototype[REQUEST_QUERY_TTY_MODE] = null;
+RilObject.prototype[REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE] = function REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE(length, options) {
   if (options.rilRequestError) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
     this.sendChromeMessage(options);
@@ -5888,7 +5902,7 @@ RIL[REQUEST_CDMA_SET_PREFERRED_VOICE_PRIVACY_MODE] = function REQUEST_CDMA_SET_P
 
   this.sendChromeMessage(options);
 };
-RIL[REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE] = function REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE(length, options) {
+RilObject.prototype[REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE] = function REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE(length, options) {
   if (options.rilRequestError) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
     this.sendChromeMessage(options);
@@ -5899,24 +5913,24 @@ RIL[REQUEST_CDMA_QUERY_PREFERRED_VOICE_PRIVACY_MODE] = function REQUEST_CDMA_QUE
   options.enabled = enabled[0] ? true : false;
   this.sendChromeMessage(options);
 };
-RIL[REQUEST_CDMA_FLASH] = null;
-RIL[REQUEST_CDMA_BURST_DTMF] = null;
-RIL[REQUEST_CDMA_VALIDATE_AND_WRITE_AKEY] = null;
-RIL[REQUEST_CDMA_SEND_SMS] = function REQUEST_CDMA_SEND_SMS(length, options) {
+RilObject.prototype[REQUEST_CDMA_FLASH] = null;
+RilObject.prototype[REQUEST_CDMA_BURST_DTMF] = null;
+RilObject.prototype[REQUEST_CDMA_VALIDATE_AND_WRITE_AKEY] = null;
+RilObject.prototype[REQUEST_CDMA_SEND_SMS] = function REQUEST_CDMA_SEND_SMS(length, options) {
   this._processSmsSendResult(length, options);
 };
-RIL[REQUEST_CDMA_SMS_ACKNOWLEDGE] = null;
-RIL[REQUEST_GSM_GET_BROADCAST_SMS_CONFIG] = null;
-RIL[REQUEST_GSM_SET_BROADCAST_SMS_CONFIG] = function REQUEST_GSM_SET_BROADCAST_SMS_CONFIG(length, options) {
+RilObject.prototype[REQUEST_CDMA_SMS_ACKNOWLEDGE] = null;
+RilObject.prototype[REQUEST_GSM_GET_BROADCAST_SMS_CONFIG] = null;
+RilObject.prototype[REQUEST_GSM_SET_BROADCAST_SMS_CONFIG] = function REQUEST_GSM_SET_BROADCAST_SMS_CONFIG(length, options) {
   if (options.rilRequestError == ERROR_SUCCESS) {
     this.setSmsBroadcastActivation(true);
   }
 };
-RIL[REQUEST_GSM_SMS_BROADCAST_ACTIVATION] = null;
-RIL[REQUEST_CDMA_GET_BROADCAST_SMS_CONFIG] = null;
-RIL[REQUEST_CDMA_SET_BROADCAST_SMS_CONFIG] = null;
-RIL[REQUEST_CDMA_SMS_BROADCAST_ACTIVATION] = null;
-RIL[REQUEST_CDMA_SUBSCRIPTION] = function REQUEST_CDMA_SUBSCRIPTION(length, options) {
+RilObject.prototype[REQUEST_GSM_SMS_BROADCAST_ACTIVATION] = null;
+RilObject.prototype[REQUEST_CDMA_GET_BROADCAST_SMS_CONFIG] = null;
+RilObject.prototype[REQUEST_CDMA_SET_BROADCAST_SMS_CONFIG] = null;
+RilObject.prototype[REQUEST_CDMA_SMS_BROADCAST_ACTIVATION] = null;
+RilObject.prototype[REQUEST_CDMA_SUBSCRIPTION] = function REQUEST_CDMA_SUBSCRIPTION(length, options) {
   if (options.rilRequestError) {
     return;
   }
@@ -5931,9 +5945,9 @@ RIL[REQUEST_CDMA_SUBSCRIPTION] = function REQUEST_CDMA_SUBSCRIPTION(length, opti
 
   ICCUtilsHelper.handleICCInfoChange();
 };
-RIL[REQUEST_CDMA_WRITE_SMS_TO_RUIM] = null;
-RIL[REQUEST_CDMA_DELETE_SMS_ON_RUIM] = null;
-RIL[REQUEST_DEVICE_IDENTITY] = function REQUEST_DEVICE_IDENTITY(length, options) {
+RilObject.prototype[REQUEST_CDMA_WRITE_SMS_TO_RUIM] = null;
+RilObject.prototype[REQUEST_CDMA_DELETE_SMS_ON_RUIM] = null;
+RilObject.prototype[REQUEST_DEVICE_IDENTITY] = function REQUEST_DEVICE_IDENTITY(length, options) {
   if (options.rilRequestError) {
     return;
   }
@@ -5946,7 +5960,7 @@ RIL[REQUEST_DEVICE_IDENTITY] = function REQUEST_DEVICE_IDENTITY(length, options)
   this.ESN = result[2];
   this.MEID = result[3];
 };
-RIL[REQUEST_EXIT_EMERGENCY_CALLBACK_MODE] = function REQUEST_EXIT_EMERGENCY_CALLBACK_MODE(length, options) {
+RilObject.prototype[REQUEST_EXIT_EMERGENCY_CALLBACK_MODE] = function REQUEST_EXIT_EMERGENCY_CALLBACK_MODE(length, options) {
   if (options.internal) {
     return;
   }
@@ -5957,7 +5971,7 @@ RIL[REQUEST_EXIT_EMERGENCY_CALLBACK_MODE] = function REQUEST_EXIT_EMERGENCY_CALL
   }
   this.sendChromeMessage(options);
 };
-RIL[REQUEST_GET_SMSC_ADDRESS] = function REQUEST_GET_SMSC_ADDRESS(length, options) {
+RilObject.prototype[REQUEST_GET_SMSC_ADDRESS] = function REQUEST_GET_SMSC_ADDRESS(length, options) {
   this.SMSC = options.rilRequestError ? null : Buf.readString();
 
   if (!options || options.rilMessageType !== "getSmscAddress") {
@@ -5968,11 +5982,11 @@ RIL[REQUEST_GET_SMSC_ADDRESS] = function REQUEST_GET_SMSC_ADDRESS(length, option
   options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
   this.sendChromeMessage(options);
 };
-RIL[REQUEST_SET_SMSC_ADDRESS] = null;
-RIL[REQUEST_REPORT_SMS_MEMORY_STATUS] = null;
-RIL[REQUEST_REPORT_STK_SERVICE_IS_RUNNING] = null;
-RIL[REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU] = null;
-RIL[REQUEST_STK_SEND_ENVELOPE_WITH_STATUS] = function REQUEST_STK_SEND_ENVELOPE_WITH_STATUS(length, options) {
+RilObject.prototype[REQUEST_SET_SMSC_ADDRESS] = null;
+RilObject.prototype[REQUEST_REPORT_SMS_MEMORY_STATUS] = null;
+RilObject.prototype[REQUEST_REPORT_STK_SERVICE_IS_RUNNING] = null;
+RilObject.prototype[REQUEST_ACKNOWLEDGE_INCOMING_GSM_SMS_WITH_PDU] = null;
+RilObject.prototype[REQUEST_STK_SEND_ENVELOPE_WITH_STATUS] = function REQUEST_STK_SEND_ENVELOPE_WITH_STATUS(length, options) {
   if (options.rilRequestError) {
     this.acknowledgeGsmSms(false, PDU_FCS_UNSPECIFIED);
     return;
@@ -5998,7 +6012,7 @@ RIL[REQUEST_STK_SEND_ENVELOPE_WITH_STATUS] = function REQUEST_STK_SEND_ENVELOPE_
 
   this.acknowledgeIncomingGsmSmsWithPDU(success, responsePduLen, options);
 };
-RIL[REQUEST_VOICE_RADIO_TECH] = function REQUEST_VOICE_RADIO_TECH(length, options) {
+RilObject.prototype[REQUEST_VOICE_RADIO_TECH] = function REQUEST_VOICE_RADIO_TECH(length, options) {
   if (options.rilRequestError) {
     if (DEBUG) {
       debug("Error when getting voice radio tech: " + options.rilRequestError);
@@ -6008,7 +6022,7 @@ RIL[REQUEST_VOICE_RADIO_TECH] = function REQUEST_VOICE_RADIO_TECH(length, option
   let radioTech = Buf.readInt32List();
   this._processRadioTech(radioTech[0]);
 };
-RIL[REQUEST_GET_UNLOCK_RETRY_COUNT] = function REQUEST_GET_UNLOCK_RETRY_COUNT(length, options) {
+RilObject.prototype[REQUEST_GET_UNLOCK_RETRY_COUNT] = function REQUEST_GET_UNLOCK_RETRY_COUNT(length, options) {
   options.success = (options.rilRequestError === 0);
   if (!options.success) {
     options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
@@ -6016,9 +6030,9 @@ RIL[REQUEST_GET_UNLOCK_RETRY_COUNT] = function REQUEST_GET_UNLOCK_RETRY_COUNT(le
   options.retryCount = length ? Buf.readInt32List()[0] : -1;
   this.sendChromeMessage(options);
 };
-RIL[RIL_REQUEST_GPRS_ATTACH] = null;
-RIL[RIL_REQUEST_GPRS_DETACH] = null;
-RIL[UNSOLICITED_RESPONSE_RADIO_STATE_CHANGED] = function UNSOLICITED_RESPONSE_RADIO_STATE_CHANGED() {
+RilObject.prototype[RIL_REQUEST_GPRS_ATTACH] = null;
+RilObject.prototype[RIL_REQUEST_GPRS_DETACH] = null;
+RilObject.prototype[UNSOLICITED_RESPONSE_RADIO_STATE_CHANGED] = function UNSOLICITED_RESPONSE_RADIO_STATE_CHANGED() {
   let radioState = Buf.readInt32();
   let newState;
   if (radioState == RADIO_STATE_UNAVAILABLE) {
@@ -6098,15 +6112,15 @@ RIL[UNSOLICITED_RESPONSE_RADIO_STATE_CHANGED] = function UNSOLICITED_RESPONSE_RA
   }
   this.getICCStatus();
 };
-RIL[UNSOLICITED_RESPONSE_CALL_STATE_CHANGED] = function UNSOLICITED_RESPONSE_CALL_STATE_CHANGED() {
+RilObject.prototype[UNSOLICITED_RESPONSE_CALL_STATE_CHANGED] = function UNSOLICITED_RESPONSE_CALL_STATE_CHANGED() {
   this.getCurrentCalls();
 };
-RIL[UNSOLICITED_RESPONSE_VOICE_NETWORK_STATE_CHANGED] = function UNSOLICITED_RESPONSE_VOICE_NETWORK_STATE_CHANGED() {
+RilObject.prototype[UNSOLICITED_RESPONSE_VOICE_NETWORK_STATE_CHANGED] = function UNSOLICITED_RESPONSE_VOICE_NETWORK_STATE_CHANGED() {
   if (DEBUG) debug("Network state changed, re-requesting phone state and ICC status");
   this.getICCStatus();
   this.requestNetworkInfo();
 };
-RIL[UNSOLICITED_RESPONSE_NEW_SMS] = function UNSOLICITED_RESPONSE_NEW_SMS(length) {
+RilObject.prototype[UNSOLICITED_RESPONSE_NEW_SMS] = function UNSOLICITED_RESPONSE_NEW_SMS(length) {
   let [message, result] = GsmPDUHelper.processReceivedSms(length);
 
   if (message) {
@@ -6120,11 +6134,11 @@ RIL[UNSOLICITED_RESPONSE_NEW_SMS] = function UNSOLICITED_RESPONSE_NEW_SMS(length
   // Not reserved FCS values, send ACK now.
   this.acknowledgeGsmSms(result == PDU_FCS_OK, result);
 };
-RIL[UNSOLICITED_RESPONSE_NEW_SMS_STATUS_REPORT] = function UNSOLICITED_RESPONSE_NEW_SMS_STATUS_REPORT(length) {
+RilObject.prototype[UNSOLICITED_RESPONSE_NEW_SMS_STATUS_REPORT] = function UNSOLICITED_RESPONSE_NEW_SMS_STATUS_REPORT(length) {
   let result = this._processSmsStatusReport(length);
   this.acknowledgeGsmSms(result == PDU_FCS_OK, result);
 };
-RIL[UNSOLICITED_RESPONSE_NEW_SMS_ON_SIM] = function UNSOLICITED_RESPONSE_NEW_SMS_ON_SIM(length) {
+RilObject.prototype[UNSOLICITED_RESPONSE_NEW_SMS_ON_SIM] = function UNSOLICITED_RESPONSE_NEW_SMS_ON_SIM(length) {
   let recordNumber = Buf.readInt32List()[0];
 
   ICCRecordHelper.readSMS(
@@ -6140,7 +6154,7 @@ RIL[UNSOLICITED_RESPONSE_NEW_SMS_ON_SIM] = function UNSOLICITED_RESPONSE_NEW_SMS
       }
     });
 };
-RIL[UNSOLICITED_ON_USSD] = function UNSOLICITED_ON_USSD() {
+RilObject.prototype[UNSOLICITED_ON_USSD] = function UNSOLICITED_ON_USSD() {
   let [typeCode, message] = Buf.readStringList();
   if (DEBUG) {
     debug("On USSD. Type Code: " + typeCode + " Message: " + message);
@@ -6152,7 +6166,7 @@ RIL[UNSOLICITED_ON_USSD] = function UNSOLICITED_ON_USSD() {
                           message: message,
                           sessionEnded: !this._ussdSession});
 };
-RIL[UNSOLICITED_NITZ_TIME_RECEIVED] = function UNSOLICITED_NITZ_TIME_RECEIVED() {
+RilObject.prototype[UNSOLICITED_NITZ_TIME_RECEIVED] = function UNSOLICITED_NITZ_TIME_RECEIVED() {
   let dateString = Buf.readString();
 
   // The data contained in the NITZ message is
@@ -6193,17 +6207,17 @@ RIL[UNSOLICITED_NITZ_TIME_RECEIVED] = function UNSOLICITED_NITZ_TIME_RECEIVED() 
                           receiveTimeInMS: now});
 };
 
-RIL[UNSOLICITED_SIGNAL_STRENGTH] = function UNSOLICITED_SIGNAL_STRENGTH(length) {
+RilObject.prototype[UNSOLICITED_SIGNAL_STRENGTH] = function UNSOLICITED_SIGNAL_STRENGTH(length) {
   this[REQUEST_SIGNAL_STRENGTH](length, {rilRequestError: ERROR_SUCCESS});
 };
-RIL[UNSOLICITED_DATA_CALL_LIST_CHANGED] = function UNSOLICITED_DATA_CALL_LIST_CHANGED(length) {
+RilObject.prototype[UNSOLICITED_DATA_CALL_LIST_CHANGED] = function UNSOLICITED_DATA_CALL_LIST_CHANGED(length) {
   if (this.v5Legacy) {
     this.getDataCallList();
     return;
   }
   this[REQUEST_DATA_CALL_LIST](length, {rilRequestError: ERROR_SUCCESS});
 };
-RIL[UNSOLICITED_SUPP_SVC_NOTIFICATION] = function UNSOLICITED_SUPP_SVC_NOTIFICATION(length) {
+RilObject.prototype[UNSOLICITED_SUPP_SVC_NOTIFICATION] = function UNSOLICITED_SUPP_SVC_NOTIFICATION(length) {
   let info = {};
   info.notificationType = Buf.readInt32();
   info.code = Buf.readInt32();
@@ -6214,19 +6228,19 @@ RIL[UNSOLICITED_SUPP_SVC_NOTIFICATION] = function UNSOLICITED_SUPP_SVC_NOTIFICAT
   this._processSuppSvcNotification(info);
 };
 
-RIL[UNSOLICITED_STK_SESSION_END] = function UNSOLICITED_STK_SESSION_END() {
+RilObject.prototype[UNSOLICITED_STK_SESSION_END] = function UNSOLICITED_STK_SESSION_END() {
   this.sendChromeMessage({rilMessageType: "stksessionend"});
 };
-RIL[UNSOLICITED_STK_PROACTIVE_COMMAND] = function UNSOLICITED_STK_PROACTIVE_COMMAND() {
+RilObject.prototype[UNSOLICITED_STK_PROACTIVE_COMMAND] = function UNSOLICITED_STK_PROACTIVE_COMMAND() {
   this.processStkProactiveCommand();
 };
-RIL[UNSOLICITED_STK_EVENT_NOTIFY] = function UNSOLICITED_STK_EVENT_NOTIFY() {
+RilObject.prototype[UNSOLICITED_STK_EVENT_NOTIFY] = function UNSOLICITED_STK_EVENT_NOTIFY() {
   this.processStkProactiveCommand();
 };
-RIL[UNSOLICITED_STK_CALL_SETUP] = null;
-RIL[UNSOLICITED_SIM_SMS_STORAGE_FULL] = null;
-RIL[UNSOLICITED_SIM_REFRESH] = null;
-RIL[UNSOLICITED_CALL_RING] = function UNSOLICITED_CALL_RING() {
+RilObject.prototype[UNSOLICITED_STK_CALL_SETUP] = null;
+RilObject.prototype[UNSOLICITED_SIM_SMS_STORAGE_FULL] = null;
+RilObject.prototype[UNSOLICITED_SIM_REFRESH] = null;
+RilObject.prototype[UNSOLICITED_CALL_RING] = function UNSOLICITED_CALL_RING() {
   let info = {rilMessageType: "callRing"};
   let isCDMA = false; //XXX TODO hard-code this for now
   if (isCDMA) {
@@ -6241,10 +6255,10 @@ RIL[UNSOLICITED_CALL_RING] = function UNSOLICITED_CALL_RING() {
   // dispatch DOM events etc.
   this.sendChromeMessage(info);
 };
-RIL[UNSOLICITED_RESPONSE_SIM_STATUS_CHANGED] = function UNSOLICITED_RESPONSE_SIM_STATUS_CHANGED() {
+RilObject.prototype[UNSOLICITED_RESPONSE_SIM_STATUS_CHANGED] = function UNSOLICITED_RESPONSE_SIM_STATUS_CHANGED() {
   this.getICCStatus();
 };
-RIL[UNSOLICITED_RESPONSE_CDMA_NEW_SMS] = function UNSOLICITED_RESPONSE_CDMA_NEW_SMS(length) {
+RilObject.prototype[UNSOLICITED_RESPONSE_CDMA_NEW_SMS] = function UNSOLICITED_RESPONSE_CDMA_NEW_SMS(length) {
   let [message, result] = CdmaPDUHelper.processReceivedSms(length);
 
   if (message) {
@@ -6262,7 +6276,7 @@ RIL[UNSOLICITED_RESPONSE_CDMA_NEW_SMS] = function UNSOLICITED_RESPONSE_CDMA_NEW_
   // Not reserved FCS values, send ACK now.
   this.acknowledgeCdmaSms(result == PDU_FCS_OK, result);
 };
-RIL[UNSOLICITED_RESPONSE_NEW_BROADCAST_SMS] = function UNSOLICITED_RESPONSE_NEW_BROADCAST_SMS(length) {
+RilObject.prototype[UNSOLICITED_RESPONSE_NEW_BROADCAST_SMS] = function UNSOLICITED_RESPONSE_NEW_BROADCAST_SMS(length) {
   let message;
   try {
     message = GsmPDUHelper.readCbMessage(Buf.readInt32());
@@ -6281,12 +6295,12 @@ RIL[UNSOLICITED_RESPONSE_NEW_BROADCAST_SMS] = function UNSOLICITED_RESPONSE_NEW_
   message.rilMessageType = "cellbroadcast-received";
   this.sendChromeMessage(message);
 };
-RIL[UNSOLICITED_CDMA_RUIM_SMS_STORAGE_FULL] = null;
-RIL[UNSOLICITED_RESTRICTED_STATE_CHANGED] = null;
-RIL[UNSOLICITED_ENTER_EMERGENCY_CALLBACK_MODE] = function UNSOLICITED_ENTER_EMERGENCY_CALLBACK_MODE() {
+RilObject.prototype[UNSOLICITED_CDMA_RUIM_SMS_STORAGE_FULL] = null;
+RilObject.prototype[UNSOLICITED_RESTRICTED_STATE_CHANGED] = null;
+RilObject.prototype[UNSOLICITED_ENTER_EMERGENCY_CALLBACK_MODE] = function UNSOLICITED_ENTER_EMERGENCY_CALLBACK_MODE() {
   this._handleChangedEmergencyCbMode(true);
 };
-RIL[UNSOLICITED_CDMA_CALL_WAITING] = function UNSOLICITED_CDMA_CALL_WAITING(length) {
+RilObject.prototype[UNSOLICITED_CDMA_CALL_WAITING] = function UNSOLICITED_CDMA_CALL_WAITING(length) {
   let call = {};
   call.number              = Buf.readString();
   call.numberPresentation  = Buf.readInt32();
@@ -6299,23 +6313,23 @@ RIL[UNSOLICITED_CDMA_CALL_WAITING] = function UNSOLICITED_CDMA_CALL_WAITING(leng
   this.sendChromeMessage({rilMessageType: "cdmaCallWaiting",
                           number: call.number});
 };
-RIL[UNSOLICITED_CDMA_OTA_PROVISION_STATUS] = function UNSOLICITED_CDMA_OTA_PROVISION_STATUS() {
+RilObject.prototype[UNSOLICITED_CDMA_OTA_PROVISION_STATUS] = function UNSOLICITED_CDMA_OTA_PROVISION_STATUS() {
   let status = Buf.readInt32List()[0];
   this.sendChromeMessage({rilMessageType: "otastatuschange",
                           status: status});
 };
-RIL[UNSOLICITED_CDMA_INFO_REC] = function UNSOLICITED_CDMA_INFO_REC(length) {
+RilObject.prototype[UNSOLICITED_CDMA_INFO_REC] = function UNSOLICITED_CDMA_INFO_REC(length) {
   let record = CdmaPDUHelper.decodeInformationRecord();
   record.rilMessageType = "cdma-info-rec-received";
   this.sendChromeMessage(record);
 };
-RIL[UNSOLICITED_OEM_HOOK_RAW] = null;
-RIL[UNSOLICITED_RINGBACK_TONE] = null;
-RIL[UNSOLICITED_RESEND_INCALL_MUTE] = null;
-RIL[UNSOLICITED_EXIT_EMERGENCY_CALLBACK_MODE] = function UNSOLICITED_EXIT_EMERGENCY_CALLBACK_MODE() {
+RilObject.prototype[UNSOLICITED_OEM_HOOK_RAW] = null;
+RilObject.prototype[UNSOLICITED_RINGBACK_TONE] = null;
+RilObject.prototype[UNSOLICITED_RESEND_INCALL_MUTE] = null;
+RilObject.prototype[UNSOLICITED_EXIT_EMERGENCY_CALLBACK_MODE] = function UNSOLICITED_EXIT_EMERGENCY_CALLBACK_MODE() {
   this._handleChangedEmergencyCbMode(false);
 };
-RIL[UNSOLICITED_RIL_CONNECTED] = function UNSOLICITED_RIL_CONNECTED(length) {
+RilObject.prototype[UNSOLICITED_RIL_CONNECTED] = function UNSOLICITED_RIL_CONNECTED(length) {
   // Prevent response id collision between UNSOLICITED_RIL_CONNECTED and
   // UNSOLICITED_VOICE_RADIO_TECH_CHANGED for Akami on gingerbread branch.
   if (!length) {
@@ -6344,7 +6358,9 @@ RIL[UNSOLICITED_RIL_CONNECTED] = function UNSOLICITED_RIL_CONNECTED(length) {
  * message text but information about the sender, the SMS service center,
  * timestamp, etc.
  */
-let GsmPDUHelper = {
+function GsmPDUHelperObject() {
+}
+GsmPDUHelperObject.prototype = {
 
   /**
    * Read one character (2 bytes) from a RIL string and decode as hex.
@@ -7962,7 +7978,7 @@ let GsmPDUHelper = {
     //        to the text string if this bit is true.
     // bit 1-3: number of spare bits in last octet.
 
-    let codingInfo = GsmPDUHelper.readHexOctet();
+    let codingInfo = this.readHexOctet();
     if (!(codingInfo & 0x80)) {
       return null;
     }
@@ -7975,7 +7991,7 @@ let GsmPDUHelper = {
     switch (textEncoding) {
     case 0:
       // GSM Default alphabet.
-      resultString = GsmPDUHelper.readSeptetsToString(
+      resultString = this.readSeptetsToString(
         ((len - 1) * 8 - spareBits) / 7, 0,
         PDU_NL_IDENTIFIER_DEFAULT,
         PDU_NL_IDENTIFIER_DEFAULT);
@@ -7998,14 +8014,18 @@ let GsmPDUHelper = {
 /**
  * Provide buffer with bitwise read/write function so make encoding/decoding easier.
  */
-let BitBufferHelper = {
+function BitBufferHelperObject() {
+  this.readBuffer = [];
+  this.writeBuffer = [];
+}
+BitBufferHelperObject.prototype = {
   readCache: 0,
   readCacheSize: 0,
-  readBuffer: [],
+  readBuffer: null,
   readIndex: 0,
   writeCache: 0,
   writeCacheSize: 0,
-  writeBuffer: [],
+  writeBuffer: null,
 
   // Max length is 32 because we use integer as read/write cache.
   // All read/write functions are implemented based on bitwise operation.
@@ -8122,7 +8142,9 @@ let BitBufferHelper = {
  * moved from GsmPDUHelper to a common object shared among GsmPDUHelper and
  * CdmaPDUHelper.
  */
-let CdmaPDUHelper = {
+function CdmaPDUHelperObject() {
+}
+CdmaPDUHelperObject.prototype = {
   //       1..........C
   // Only "1234567890*#" is defined in C.S0005-D v2.0
   dtmfChars: ".1234567890*#...",
@@ -9191,7 +9213,9 @@ let CdmaPDUHelper = {
 /**
  * Helper for processing ICC PDUs.
  */
-let ICCPDUHelper = {
+function ICCPDUHelperObject() {
+}
+ICCPDUHelperObject.prototype = {
   /**
    * Read GSM 8-bit unpacked octets,
    * which are default 7-bit alphabets with bit 8 set to 0.
@@ -9600,9 +9624,11 @@ let ICCPDUHelper = {
   }
 };
 
-let StkCommandParamsFactory = {
+function StkCommandParamsFactoryObject() {
+}
+StkCommandParamsFactoryObject.prototype = {
   createParam: function createParam(cmdDetails, ctlvs) {
-    let method = StkCommandParamsFactory[cmdDetails.typeOfCommand];
+    let method = this[cmdDetails.typeOfCommand];
     if (typeof method != "function") {
       if (DEBUG) {
         debug("Unknown proactive command " + cmdDetails.typeOfCommand.toString(16));
@@ -10042,79 +10068,81 @@ let StkCommandParamsFactory = {
     return bipMsg;
   }
 };
-StkCommandParamsFactory[STK_CMD_REFRESH] = function STK_CMD_REFRESH(cmdDetails, ctlvs) {
+StkCommandParamsFactoryObject.prototype[STK_CMD_REFRESH] = function STK_CMD_REFRESH(cmdDetails, ctlvs) {
   return this.processRefresh(cmdDetails, ctlvs);
 };
-StkCommandParamsFactory[STK_CMD_POLL_INTERVAL] = function STK_CMD_POLL_INTERVAL(cmdDetails, ctlvs) {
+StkCommandParamsFactoryObject.prototype[STK_CMD_POLL_INTERVAL] = function STK_CMD_POLL_INTERVAL(cmdDetails, ctlvs) {
   return this.processPollInterval(cmdDetails, ctlvs);
 };
-StkCommandParamsFactory[STK_CMD_POLL_OFF] = function STK_CMD_POLL_OFF(cmdDetails, ctlvs) {
+StkCommandParamsFactoryObject.prototype[STK_CMD_POLL_OFF] = function STK_CMD_POLL_OFF(cmdDetails, ctlvs) {
   return this.processPollOff(cmdDetails, ctlvs);
 };
-StkCommandParamsFactory[STK_CMD_PROVIDE_LOCAL_INFO] = function STK_CMD_PROVIDE_LOCAL_INFO(cmdDetails, ctlvs) {
+StkCommandParamsFactoryObject.prototype[STK_CMD_PROVIDE_LOCAL_INFO] = function STK_CMD_PROVIDE_LOCAL_INFO(cmdDetails, ctlvs) {
   return this.processProvideLocalInfo(cmdDetails, ctlvs);
 };
-StkCommandParamsFactory[STK_CMD_SET_UP_EVENT_LIST] = function STK_CMD_SET_UP_EVENT_LIST(cmdDetails, ctlvs) {
+StkCommandParamsFactoryObject.prototype[STK_CMD_SET_UP_EVENT_LIST] = function STK_CMD_SET_UP_EVENT_LIST(cmdDetails, ctlvs) {
   return this.processSetUpEventList(cmdDetails, ctlvs);
 };
-StkCommandParamsFactory[STK_CMD_SET_UP_MENU] = function STK_CMD_SET_UP_MENU(cmdDetails, ctlvs) {
+StkCommandParamsFactoryObject.prototype[STK_CMD_SET_UP_MENU] = function STK_CMD_SET_UP_MENU(cmdDetails, ctlvs) {
   return this.processSelectItem(cmdDetails, ctlvs);
 };
-StkCommandParamsFactory[STK_CMD_SELECT_ITEM] = function STK_CMD_SELECT_ITEM(cmdDetails, ctlvs) {
+StkCommandParamsFactoryObject.prototype[STK_CMD_SELECT_ITEM] = function STK_CMD_SELECT_ITEM(cmdDetails, ctlvs) {
   return this.processSelectItem(cmdDetails, ctlvs);
 };
-StkCommandParamsFactory[STK_CMD_DISPLAY_TEXT] = function STK_CMD_DISPLAY_TEXT(cmdDetails, ctlvs) {
+StkCommandParamsFactoryObject.prototype[STK_CMD_DISPLAY_TEXT] = function STK_CMD_DISPLAY_TEXT(cmdDetails, ctlvs) {
   return this.processDisplayText(cmdDetails, ctlvs);
 };
-StkCommandParamsFactory[STK_CMD_SET_UP_IDLE_MODE_TEXT] = function STK_CMD_SET_UP_IDLE_MODE_TEXT(cmdDetails, ctlvs) {
+StkCommandParamsFactoryObject.prototype[STK_CMD_SET_UP_IDLE_MODE_TEXT] = function STK_CMD_SET_UP_IDLE_MODE_TEXT(cmdDetails, ctlvs) {
   return this.processSetUpIdleModeText(cmdDetails, ctlvs);
 };
-StkCommandParamsFactory[STK_CMD_GET_INKEY] = function STK_CMD_GET_INKEY(cmdDetails, ctlvs) {
+StkCommandParamsFactoryObject.prototype[STK_CMD_GET_INKEY] = function STK_CMD_GET_INKEY(cmdDetails, ctlvs) {
   return this.processGetInkey(cmdDetails, ctlvs);
 };
-StkCommandParamsFactory[STK_CMD_GET_INPUT] = function STK_CMD_GET_INPUT(cmdDetails, ctlvs) {
+StkCommandParamsFactoryObject.prototype[STK_CMD_GET_INPUT] = function STK_CMD_GET_INPUT(cmdDetails, ctlvs) {
   return this.processGetInput(cmdDetails, ctlvs);
 };
-StkCommandParamsFactory[STK_CMD_SEND_SS] = function STK_CMD_SEND_SS(cmdDetails, ctlvs) {
+StkCommandParamsFactoryObject.prototype[STK_CMD_SEND_SS] = function STK_CMD_SEND_SS(cmdDetails, ctlvs) {
   return this.processEventNotify(cmdDetails, ctlvs);
 };
-StkCommandParamsFactory[STK_CMD_SEND_USSD] = function STK_CMD_SEND_USSD(cmdDetails, ctlvs) {
+StkCommandParamsFactoryObject.prototype[STK_CMD_SEND_USSD] = function STK_CMD_SEND_USSD(cmdDetails, ctlvs) {
   return this.processEventNotify(cmdDetails, ctlvs);
 };
-StkCommandParamsFactory[STK_CMD_SEND_SMS] = function STK_CMD_SEND_SMS(cmdDetails, ctlvs) {
+StkCommandParamsFactoryObject.prototype[STK_CMD_SEND_SMS] = function STK_CMD_SEND_SMS(cmdDetails, ctlvs) {
   return this.processEventNotify(cmdDetails, ctlvs);
 };
-StkCommandParamsFactory[STK_CMD_SEND_DTMF] = function STK_CMD_SEND_DTMF(cmdDetails, ctlvs) {
+StkCommandParamsFactoryObject.prototype[STK_CMD_SEND_DTMF] = function STK_CMD_SEND_DTMF(cmdDetails, ctlvs) {
   return this.processEventNotify(cmdDetails, ctlvs);
 };
-StkCommandParamsFactory[STK_CMD_SET_UP_CALL] = function STK_CMD_SET_UP_CALL(cmdDetails, ctlvs) {
+StkCommandParamsFactoryObject.prototype[STK_CMD_SET_UP_CALL] = function STK_CMD_SET_UP_CALL(cmdDetails, ctlvs) {
   return this.processSetupCall(cmdDetails, ctlvs);
 };
-StkCommandParamsFactory[STK_CMD_LAUNCH_BROWSER] = function STK_CMD_LAUNCH_BROWSER(cmdDetails, ctlvs) {
+StkCommandParamsFactoryObject.prototype[STK_CMD_LAUNCH_BROWSER] = function STK_CMD_LAUNCH_BROWSER(cmdDetails, ctlvs) {
   return this.processLaunchBrowser(cmdDetails, ctlvs);
 };
-StkCommandParamsFactory[STK_CMD_PLAY_TONE] = function STK_CMD_PLAY_TONE(cmdDetails, ctlvs) {
+StkCommandParamsFactoryObject.prototype[STK_CMD_PLAY_TONE] = function STK_CMD_PLAY_TONE(cmdDetails, ctlvs) {
   return this.processPlayTone(cmdDetails, ctlvs);
 };
-StkCommandParamsFactory[STK_CMD_TIMER_MANAGEMENT] = function STK_CMD_TIMER_MANAGEMENT(cmdDetails, ctlvs) {
+StkCommandParamsFactoryObject.prototype[STK_CMD_TIMER_MANAGEMENT] = function STK_CMD_TIMER_MANAGEMENT(cmdDetails, ctlvs) {
   return this.processTimerManagement(cmdDetails, ctlvs);
 };
-StkCommandParamsFactory[STK_CMD_OPEN_CHANNEL] = function STK_CMD_OPEN_CHANNEL(cmdDetails, ctlvs) {
+StkCommandParamsFactoryObject.prototype[STK_CMD_OPEN_CHANNEL] = function STK_CMD_OPEN_CHANNEL(cmdDetails, ctlvs) {
   return this.processBipMessage(cmdDetails, ctlvs);
 };
-StkCommandParamsFactory[STK_CMD_CLOSE_CHANNEL] = function STK_CMD_CLOSE_CHANNEL(cmdDetails, ctlvs) {
+StkCommandParamsFactoryObject.prototype[STK_CMD_CLOSE_CHANNEL] = function STK_CMD_CLOSE_CHANNEL(cmdDetails, ctlvs) {
   return this.processBipMessage(cmdDetails, ctlvs);
 };
-StkCommandParamsFactory[STK_CMD_RECEIVE_DATA] = function STK_CMD_RECEIVE_DATA(cmdDetails, ctlvs) {
+StkCommandParamsFactoryObject.prototype[STK_CMD_RECEIVE_DATA] = function STK_CMD_RECEIVE_DATA(cmdDetails, ctlvs) {
   return this.processBipMessage(cmdDetails, ctlvs);
 };
-StkCommandParamsFactory[STK_CMD_SEND_DATA] = function STK_CMD_SEND_DATA(cmdDetails, ctlvs) {
+StkCommandParamsFactoryObject.prototype[STK_CMD_SEND_DATA] = function STK_CMD_SEND_DATA(cmdDetails, ctlvs) {
   return this.processBipMessage(cmdDetails, ctlvs);
 };
 
-let StkProactiveCmdHelper = {
+function StkProactiveCmdHelperObject() {
+}
+StkProactiveCmdHelperObject.prototype = {
   retrieve: function retrieve(tag, length) {
-    let method = StkProactiveCmdHelper[tag];
+    let method = this[tag];
     if (typeof method != "function") {
       if (DEBUG) {
         debug("Unknown comprehension tag " + tag.toString(16));
@@ -10463,62 +10491,64 @@ let StkProactiveCmdHelper = {
     return null;
   },
 };
-StkProactiveCmdHelper[COMPREHENSIONTLV_TAG_COMMAND_DETAILS] = function COMPREHENSIONTLV_TAG_COMMAND_DETAILS(length) {
+StkProactiveCmdHelperObject.prototype[COMPREHENSIONTLV_TAG_COMMAND_DETAILS] = function COMPREHENSIONTLV_TAG_COMMAND_DETAILS(length) {
   return this.retrieveCommandDetails(length);
 };
-StkProactiveCmdHelper[COMPREHENSIONTLV_TAG_DEVICE_ID] = function COMPREHENSIONTLV_TAG_DEVICE_ID(length) {
+StkProactiveCmdHelperObject.prototype[COMPREHENSIONTLV_TAG_DEVICE_ID] = function COMPREHENSIONTLV_TAG_DEVICE_ID(length) {
   return this.retrieveDeviceId(length);
 };
-StkProactiveCmdHelper[COMPREHENSIONTLV_TAG_ALPHA_ID] = function COMPREHENSIONTLV_TAG_ALPHA_ID(length) {
+StkProactiveCmdHelperObject.prototype[COMPREHENSIONTLV_TAG_ALPHA_ID] = function COMPREHENSIONTLV_TAG_ALPHA_ID(length) {
   return this.retrieveAlphaId(length);
 };
-StkProactiveCmdHelper[COMPREHENSIONTLV_TAG_DURATION] = function COMPREHENSIONTLV_TAG_DURATION(length) {
+StkProactiveCmdHelperObject.prototype[COMPREHENSIONTLV_TAG_DURATION] = function COMPREHENSIONTLV_TAG_DURATION(length) {
   return this.retrieveDuration(length);
 };
-StkProactiveCmdHelper[COMPREHENSIONTLV_TAG_ADDRESS] = function COMPREHENSIONTLV_TAG_ADDRESS(length) {
+StkProactiveCmdHelperObject.prototype[COMPREHENSIONTLV_TAG_ADDRESS] = function COMPREHENSIONTLV_TAG_ADDRESS(length) {
   return this.retrieveAddress(length);
 };
-StkProactiveCmdHelper[COMPREHENSIONTLV_TAG_TEXT_STRING] = function COMPREHENSIONTLV_TAG_TEXT_STRING(length) {
+StkProactiveCmdHelperObject.prototype[COMPREHENSIONTLV_TAG_TEXT_STRING] = function COMPREHENSIONTLV_TAG_TEXT_STRING(length) {
   return this.retrieveTextString(length);
 };
-StkProactiveCmdHelper[COMPREHENSIONTLV_TAG_TONE] = function COMPREHENSIONTLV_TAG_TONE(length) {
+StkProactiveCmdHelperObject.prototype[COMPREHENSIONTLV_TAG_TONE] = function COMPREHENSIONTLV_TAG_TONE(length) {
   return this.retrieveTone(length);
 };
-StkProactiveCmdHelper[COMPREHENSIONTLV_TAG_ITEM] = function COMPREHENSIONTLV_TAG_ITEM(length) {
+StkProactiveCmdHelperObject.prototype[COMPREHENSIONTLV_TAG_ITEM] = function COMPREHENSIONTLV_TAG_ITEM(length) {
   return this.retrieveItem(length);
 };
-StkProactiveCmdHelper[COMPREHENSIONTLV_TAG_ITEM_ID] = function COMPREHENSIONTLV_TAG_ITEM_ID(length) {
+StkProactiveCmdHelperObject.prototype[COMPREHENSIONTLV_TAG_ITEM_ID] = function COMPREHENSIONTLV_TAG_ITEM_ID(length) {
   return this.retrieveItemId(length);
 };
-StkProactiveCmdHelper[COMPREHENSIONTLV_TAG_RESPONSE_LENGTH] = function COMPREHENSIONTLV_TAG_RESPONSE_LENGTH(length) {
+StkProactiveCmdHelperObject.prototype[COMPREHENSIONTLV_TAG_RESPONSE_LENGTH] = function COMPREHENSIONTLV_TAG_RESPONSE_LENGTH(length) {
   return this.retrieveResponseLength(length);
 };
-StkProactiveCmdHelper[COMPREHENSIONTLV_TAG_FILE_LIST] = function COMPREHENSIONTLV_TAG_FILE_LIST(length) {
+StkProactiveCmdHelperObject.prototype[COMPREHENSIONTLV_TAG_FILE_LIST] = function COMPREHENSIONTLV_TAG_FILE_LIST(length) {
   return this.retrieveFileList(length);
 };
-StkProactiveCmdHelper[COMPREHENSIONTLV_TAG_DEFAULT_TEXT] = function COMPREHENSIONTLV_TAG_DEFAULT_TEXT(length) {
+StkProactiveCmdHelperObject.prototype[COMPREHENSIONTLV_TAG_DEFAULT_TEXT] = function COMPREHENSIONTLV_TAG_DEFAULT_TEXT(length) {
   return this.retrieveDefaultText(length);
 };
-StkProactiveCmdHelper[COMPREHENSIONTLV_TAG_EVENT_LIST] = function COMPREHENSIONTLV_TAG_EVENT_LIST(length) {
+StkProactiveCmdHelperObject.prototype[COMPREHENSIONTLV_TAG_EVENT_LIST] = function COMPREHENSIONTLV_TAG_EVENT_LIST(length) {
   return this.retrieveEventList(length);
 };
-StkProactiveCmdHelper[COMPREHENSIONTLV_TAG_TIMER_IDENTIFIER] = function COMPREHENSIONTLV_TAG_TIMER_IDENTIFIER(length) {
+StkProactiveCmdHelperObject.prototype[COMPREHENSIONTLV_TAG_TIMER_IDENTIFIER] = function COMPREHENSIONTLV_TAG_TIMER_IDENTIFIER(length) {
   return this.retrieveTimerId(length);
 };
-StkProactiveCmdHelper[COMPREHENSIONTLV_TAG_TIMER_VALUE] = function COMPREHENSIONTLV_TAG_TIMER_VALUE(length) {
+StkProactiveCmdHelperObject.prototype[COMPREHENSIONTLV_TAG_TIMER_VALUE] = function COMPREHENSIONTLV_TAG_TIMER_VALUE(length) {
   return this.retrieveTimerValue(length);
 };
-StkProactiveCmdHelper[COMPREHENSIONTLV_TAG_IMMEDIATE_RESPONSE] = function COMPREHENSIONTLV_TAG_IMMEDIATE_RESPONSE(length) {
+StkProactiveCmdHelperObject.prototype[COMPREHENSIONTLV_TAG_IMMEDIATE_RESPONSE] = function COMPREHENSIONTLV_TAG_IMMEDIATE_RESPONSE(length) {
   return this.retrieveImmediaResponse(length);
 };
-StkProactiveCmdHelper[COMPREHENSIONTLV_TAG_URL] = function COMPREHENSIONTLV_TAG_URL(length) {
+StkProactiveCmdHelperObject.prototype[COMPREHENSIONTLV_TAG_URL] = function COMPREHENSIONTLV_TAG_URL(length) {
   return this.retrieveUrl(length);
 };
-StkProactiveCmdHelper[COMPREHENSIONTLV_TAG_NEXT_ACTION_IND] = function COMPREHENSIONTLV_TAG_NEXT_ACTION_IND(length) {
+StkProactiveCmdHelperObject.prototype[COMPREHENSIONTLV_TAG_NEXT_ACTION_IND] = function COMPREHENSIONTLV_TAG_NEXT_ACTION_IND(length) {
   return this.retrieveNextActionList(length);
 };
 
-let ComprehensionTlvHelper = {
+function ComprehensionTlvHelperObject() {
+}
+ComprehensionTlvHelperObject.prototype = {
   /**
    * Decode raw data to a Comprehension-TLV.
    */
@@ -10781,7 +10811,9 @@ let ComprehensionTlvHelper = {
   },
 };
 
-let BerTlvHelper = {
+function BerTlvHelperObject() {
+}
+BerTlvHelperObject.prototype = {
   /**
    * Decode Ber TLV.
    *
@@ -10967,26 +10999,28 @@ let BerTlvHelper = {
     return null;
   }
 };
-BerTlvHelper[BER_FCP_TEMPLATE_TAG] = function BER_FCP_TEMPLATE_TAG(length) {
+BerTlvHelperObject.prototype[BER_FCP_TEMPLATE_TAG] = function BER_FCP_TEMPLATE_TAG(length) {
   return this.processFcpTemplate(length);
 };
-BerTlvHelper[BER_PROACTIVE_COMMAND_TAG] = function BER_PROACTIVE_COMMAND_TAG(length) {
+BerTlvHelperObject.prototype[BER_PROACTIVE_COMMAND_TAG] = function BER_PROACTIVE_COMMAND_TAG(length) {
   return this.processProactiveCommand(length);
 };
-BerTlvHelper[BER_FCP_FILE_SIZE_DATA_TAG] = function BER_FCP_FILE_SIZE_DATA_TAG(length) {
+BerTlvHelperObject.prototype[BER_FCP_FILE_SIZE_DATA_TAG] = function BER_FCP_FILE_SIZE_DATA_TAG(length) {
   return this.retrieveFileSizeData(length);
 };
-BerTlvHelper[BER_FCP_FILE_DESCRIPTOR_TAG] = function BER_FCP_FILE_DESCRIPTOR_TAG(length) {
+BerTlvHelperObject.prototype[BER_FCP_FILE_DESCRIPTOR_TAG] = function BER_FCP_FILE_DESCRIPTOR_TAG(length) {
   return this.retrieveFileDescriptor(length);
 };
-BerTlvHelper[BER_FCP_FILE_IDENTIFIER_TAG] = function BER_FCP_FILE_IDENTIFIER_TAG(length) {
+BerTlvHelperObject.prototype[BER_FCP_FILE_IDENTIFIER_TAG] = function BER_FCP_FILE_IDENTIFIER_TAG(length) {
   return this.retrieveFileIdentifier(length);
 };
 
 /**
  * ICC Helper for getting EF path.
  */
-let ICCFileHelper = {
+function ICCFileHelperObject() {
+}
+ICCFileHelperObject.prototype = {
   /**
    * This function handles only EFs that are common to RUIM, SIM, USIM
    * and other types of ICC cards.
@@ -11108,7 +11142,9 @@ let ICCFileHelper = {
 /**
  * Helper for ICC IO functionalities.
  */
-let ICCIOHelper = {
+function ICCIOHelperObject() {
+}
+ICCIOHelperObject.prototype = {
   /**
    * Load EF with type 'Linear Fixed'.
    *
@@ -11389,25 +11425,27 @@ let ICCIOHelper = {
     onerror(requestError);
   },
 };
-ICCIOHelper[ICC_COMMAND_SEEK] = null;
-ICCIOHelper[ICC_COMMAND_READ_BINARY] = function ICC_COMMAND_READ_BINARY(options) {
+ICCIOHelperObject.prototype[ICC_COMMAND_SEEK] = null;
+ICCIOHelperObject.prototype[ICC_COMMAND_READ_BINARY] = function ICC_COMMAND_READ_BINARY(options) {
   this.processICCIOReadBinary(options);
 };
-ICCIOHelper[ICC_COMMAND_READ_RECORD] = function ICC_COMMAND_READ_RECORD(options) {
+ICCIOHelperObject.prototype[ICC_COMMAND_READ_RECORD] = function ICC_COMMAND_READ_RECORD(options) {
   this.processICCIOReadRecord(options);
 };
-ICCIOHelper[ICC_COMMAND_GET_RESPONSE] = function ICC_COMMAND_GET_RESPONSE(options) {
+ICCIOHelperObject.prototype[ICC_COMMAND_GET_RESPONSE] = function ICC_COMMAND_GET_RESPONSE(options) {
   this.processICCIOGetResponse(options);
 };
-ICCIOHelper[ICC_COMMAND_UPDATE_BINARY] = null;
-ICCIOHelper[ICC_COMMAND_UPDATE_RECORD] = function ICC_COMMAND_UPDATE_RECORD(options) {
+ICCIOHelperObject.prototype[ICC_COMMAND_UPDATE_BINARY] = null;
+ICCIOHelperObject.prototype[ICC_COMMAND_UPDATE_RECORD] = function ICC_COMMAND_UPDATE_RECORD(options) {
   this.processICCIOUpdateRecord(options);
 };
 
 /**
  * Helper for ICC records.
  */
-let ICCRecordHelper = {
+function ICCRecordHelperObject() {
+}
+ICCRecordHelperObject.prototype = {
   /**
    * Fetch ICC records.
    */
@@ -11884,7 +11922,9 @@ let ICCRecordHelper = {
 /**
  * Helper for (U)SIM Records.
  */
-let SimRecordHelper = {
+function SimRecordHelperObject() {
+}
+SimRecordHelperObject.prototype = {
   /**
    * Fetch (U)SIM records.
    */
@@ -12509,7 +12549,9 @@ let SimRecordHelper = {
   },
 };
 
-let RuimRecordHelper = {
+function RuimRecordHelperObject() {
+}
+RuimRecordHelperObject.prototype = {
   fetchRuimRecords: function fetchRuimRecords() {
     this.getIMSI_M();
     this.readCST();
@@ -12729,7 +12771,9 @@ let RuimRecordHelper = {
 /**
  * Helper functions for ICC utilities.
  */
-let ICCUtilsHelper = {
+function ICCUtilsHelperObject() {
+}
+ICCUtilsHelperObject.prototype = {
   /**
    * Get network names by using EF_OPL and EF_PNN
    *
@@ -13112,7 +13156,9 @@ let ICCUtilsHelper = {
 /**
  * Helper for ICC Contacts.
  */
-let ICCContactHelper = {
+function ICCContactHelperObject() {
+}
+ICCContactHelperObject.prototype = {
   /**
    * Helper function to check DF_PHONEBOOK.
    */
@@ -13227,14 +13273,14 @@ let ICCContactHelper = {
    * @param onerror       Callback to be called when error.
    */
   addICCContact: function addICCContact(appType, contactType, contact, pin2, onsuccess, onerror) {
-    let foundFreeCb = function foundFreeCb(pbrIndex, recordId) {
+    let foundFreeCb = (function foundFreeCb(pbrIndex, recordId) {
       contact.pbrIndex = pbrIndex;
       contact.recordId = recordId;
-      ICCContactHelper.updateICCContact(appType, contactType, contact, pin2, onsuccess, onerror);
-    };
+      this.updateICCContact(appType, contactType, contact, pin2, onsuccess, onerror);
+    }).bind(this);
 
     // Find free record first.
-    ICCContactHelper.findFreeICCContact(appType, contactType, foundFreeCb, onerror);
+    this.findFreeICCContact(appType, contactType, foundFreeCb, onerror);
   },
 
   /**
@@ -13354,8 +13400,8 @@ let ICCContactHelper = {
         return;
       }
 
-      ICCContactHelper.readPhonebookField(pbr, contacts, field, readField, onerror);
-    })();
+      this.readPhonebookField(pbr, contacts, field, readField.bind(this), onerror);
+    }).call(this);
   },
 
   /**
@@ -13385,9 +13431,9 @@ let ICCContactHelper = {
       }
 
       // get n-th contact's field.
-      ICCContactHelper.readContactField(
-        pbr, contacts[n], field, doReadContactField.bind(this, n + 1), onerror);
-    })(0);
+      this.readContactField(pbr, contacts[n], field,
+                            doReadContactField.bind(this, n + 1), onerror);
+    }).call(this, 0);
   },
 
   /**
@@ -13548,12 +13594,12 @@ let ICCContactHelper = {
 
       // Check if PBR has this field.
       if (!pbr[field]) {
-        updateField();
+        updateField.call(this);
         return;
       }
 
-      ICCContactHelper.updateContactField(pbr, contact, field, updateField, onerror);
-    })();
+      this.updateContactField(pbr, contact, field, updateField.bind(this), onerror);
+    }).call(this);
   },
 
   /**
@@ -13711,7 +13757,27 @@ let ICCContactHelper = {
 
 // Initialize buffers. This is a separate function so that unit tests can
 // re-initialize the buffers at will.
+let Buf = new BufObject();
 Buf.init();
+
+let RIL = new RilObject();
+RIL.initRILState();
+
+let GsmPDUHelper = new GsmPDUHelperObject();
+let BitBufferHelper = new BitBufferHelperObject();
+let CdmaPDUHelper = new CdmaPDUHelperObject();
+let ICCPDUHelper = new ICCPDUHelperObject();
+let StkCommandParamsFactory = new StkCommandParamsFactoryObject();
+let StkProactiveCmdHelper = new StkProactiveCmdHelperObject();
+let ComprehensionTlvHelper = new ComprehensionTlvHelperObject();
+let BerTlvHelper = new BerTlvHelperObject();
+let ICCFileHelper = new ICCFileHelperObject();
+let ICCIOHelper = new ICCIOHelperObject();
+let ICCRecordHelper = new ICCRecordHelperObject();
+let SimRecordHelper = new SimRecordHelperObject();
+let RuimRecordHelper = new RuimRecordHelperObject();
+let ICCUtilsHelper = new ICCUtilsHelperObject();
+let ICCContactHelper = new ICCContactHelperObject();
 
 function onRILMessage(/*unused*/aClientId, data) {
   Buf.processIncoming(data);
