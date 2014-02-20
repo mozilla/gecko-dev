@@ -32,10 +32,11 @@ function _getWorker() {
 add_test(function test_processCdmaSmsStatusReport() {
   let workerHelper = _getWorker();
   let worker = workerHelper.worker;
+  let context = worker.ContextPool._contexts[0];
 
   function test_StatusReport(errorClass, msgStatus) {
     let msgId = 0;
-    let sentSmsMap = worker.RIL._pendingSentSmsMap;
+    let sentSmsMap = context.RIL._pendingSentSmsMap;
 
     sentSmsMap[msgId] = {};
 
@@ -68,7 +69,7 @@ add_test(function test_processCdmaSmsStatusReport() {
       msgStatus:        msgStatus
     };
 
-    worker.RIL._processCdmaSmsStatusReport(message);
+    context.RIL._processCdmaSmsStatusReport(message);
 
     let postedMessage = workerHelper.postedMessage;
 
