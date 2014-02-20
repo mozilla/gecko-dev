@@ -4867,6 +4867,7 @@ let RIL = {
    * Send messages to the main thread.
    */
   sendChromeMessage: function sendChromeMessage(message) {
+    message.rilMessageClientId = CLIENT_ID;
     postMessage(message);
   },
 
@@ -4886,7 +4887,6 @@ let RIL = {
 
   setInitialOptions: function setInitialOptions(options) {
     DEBUG = DEBUG_WORKER || options.debug;
-    CLIENT_ID = options.clientId;
     this.cellBroadcastDisabled = options.cellBroadcastDisabled;
     this.clirMode = options.clirMode;
     RIL_EMERGENCY_NUMBERS = options.rilEmergencyNumbers;
@@ -4899,6 +4899,10 @@ let RIL = {
     RILQUIRKS_HAVE_QUERY_ICC_LOCK_RETRY_COUNT = quirks.haveQueryIccLockRetryCount;
     RILQUIRKS_SEND_STK_PROFILE_DOWNLOAD = quirks.sendStkProfileDownload;
     RILQUIRKS_DATA_REGISTRATION_ON_DEMAND = quirks.dataRegistrationOnDemand;
+  },
+
+  registerClient: function registerClient(aOptions) {
+    CLIENT_ID = aOptions.clientId;
   }
 };
 
