@@ -128,7 +128,8 @@ BufObject.prototype = {
       options = this.mTokenRequestMap.get(token);
       if (!options) {
         if (DEBUG) {
-          debug("Suspicious uninvited request found: " + token + ". Ignored!");
+          this.context.debug("Suspicious uninvited request found: " +
+                             token + ". Ignored!");
         }
         return;
       }
@@ -138,14 +139,18 @@ BufObject.prototype = {
 
       options.rilRequestError = error;
       if (DEBUG) {
-        debug("Solicited response for request type " + request_type +
-              ", token " + token + ", error " + error);
+        this.context.debug("Solicited response for request type " + request_type +
+                           ", token " + token + ", error " + error);
       }
     } else if (response_type == RESPONSE_TYPE_UNSOLICITED) {
       request_type = this.readInt32();
-      if (DEBUG) debug("Unsolicited response for request type " + request_type);
+      if (DEBUG) {
+        this.context.debug("Unsolicited response for request type " + request_type);
+      }
     } else {
-      if (DEBUG) debug("Unknown response type: " + response_type);
+      if (DEBUG) {
+        this.context.debug("Unknown response type: " + response_type);
+      }
       return;
     }
 
@@ -162,7 +167,7 @@ BufObject.prototype = {
    *        original main thread message object that led to the RIL request.
    */
   newParcel: function newParcel(type, options) {
-    if (DEBUG) debug("New outgoing parcel of type " + type);
+    if (DEBUG) this.context.debug("New outgoing parcel of type " + type);
 
     // We're going to leave room for the parcel size at the beginning.
     this.outgoingIndex = this.PARCEL_SIZE_SIZE;
@@ -957,7 +962,7 @@ RilObject.prototype = {
     }
 
     if (DEBUG) {
-      debug("Update ICC Contact " + JSON.stringify(contact));
+      this.context.debug("Update ICC Contact " + JSON.stringify(contact));
     }
 
     let ICCContactHelper = this.context.ICCContactHelper;
@@ -1172,12 +1177,15 @@ RilObject.prototype = {
    */
   requestNetworkInfo: function requestNetworkInfo() {
     if (this._processingNetworkInfo) {
-      if (DEBUG) debug("Network info requested, but we're already requesting network info.");
+      if (DEBUG) {
+        this.context.debug("Network info requested, but we're already " +
+                           "requesting network info.");
+      }
       this._needRepollNetworkInfo = true;
       return;
     }
 
-    if (DEBUG) debug("Requesting network info");
+    if (DEBUG) this.context.debug("Requesting network info");
 
     this._processingNetworkInfo = true;
     this.getVoiceRegistrationState();
@@ -1191,7 +1199,7 @@ RilObject.prototype = {
    * Get the available networks
    */
   getAvailableNetworks: function getAvailableNetworks(options) {
-    if (DEBUG) debug("Getting available networks");
+    if (DEBUG) this.context.debug("Getting available networks");
     let Buf = this.context.Buf;
     Buf.newParcel(REQUEST_QUERY_AVAILABLE_NETWORKS, options);
     Buf.sendParcel();
@@ -1201,7 +1209,7 @@ RilObject.prototype = {
    * Request the radio's network selection mode
    */
   getNetworkSelectionMode: function getNetworkSelectionMode() {
-    if (DEBUG) debug("Getting network selection mode");
+    if (DEBUG) this.context.debug("Getting network selection mode");
     this.context.Buf.simpleRequest(REQUEST_QUERY_NETWORK_SELECTION_MODE);
   },
 
@@ -1209,7 +1217,7 @@ RilObject.prototype = {
    * Tell the radio to automatically choose a voice/data network
    */
   selectNetworkAuto: function selectNetworkAuto(options) {
-    if (DEBUG) debug("Setting automatic network selection");
+    if (DEBUG) this.context.debug("Setting automatic network selection");
     this.context.Buf.simpleRequest(REQUEST_SET_NETWORK_SELECTION_AUTOMATIC, options);
   },
 
@@ -1262,7 +1270,7 @@ RilObject.prototype = {
    */
   iccOpenChannel: function iccOpenChannel(options) {
     if (DEBUG) {
-      debug("iccOpenChannel: " + JSON.stringify(options));
+      this.context.debug("iccOpenChannel: " + JSON.stringify(options));
     }
 
     let Buf = this.context.Buf;
@@ -1275,7 +1283,7 @@ RilObject.prototype = {
    * Exchange APDU data on an open Logical UICC channel
    */
   iccExchangeAPDU: function iccExchangeAPDU(options) {
-    if (DEBUG) debug("iccExchangeAPDU: " + JSON.stringify(options));
+    if (DEBUG) this.context.debug("iccExchangeAPDU: " + JSON.stringify(options));
 
     let cla = options.apdu.cla;
     let command = options.apdu.command;
@@ -1307,7 +1315,7 @@ RilObject.prototype = {
    * Close Logical UICC channel
    */
   iccCloseChannel: function iccCloseChannel(options) {
-    if (DEBUG) debug("iccCloseChannel: " + JSON.stringify(options));
+    if (DEBUG) this.context.debug("iccCloseChannel: " + JSON.stringify(options));
 
     let Buf = this.context.Buf;
     Buf.newParcel(REQUEST_SIM_CLOSE_CHANNEL, options);
@@ -1321,7 +1329,8 @@ RilObject.prototype = {
    */
   selectNetwork: function selectNetwork(options) {
     if (DEBUG) {
-      debug("Setting manual network selection: " + options.mcc + ", " + options.mnc);
+      this.context.debug("Setting manual network selection: " +
+                         options.mcc + ", " + options.mnc);
     }
 
     let numeric = (options.mcc && options.mnc) ? options.mcc + options.mnc : null;
@@ -1450,7 +1459,9 @@ RilObject.prototype = {
                       REQUEST_DIAL_EMERGENCY_CALL : REQUEST_DIAL;
 
     if (this.radioState == GECKO_RADIOSTATE_OFF) {
-      if (DEBUG) debug("Automatically enable radio for an emergency call.");
+      if (DEBUG) {
+        this.context.debug("Automatically enable radio for an emergency call.");
+      }
 
       if (!this.cachedDialRequest) {
         this.cachedDialRequest = {};
@@ -1744,7 +1755,7 @@ RilObject.prototype = {
       options.success = true;
     } catch (e) {
       if (DEBUG) {
-        debug("Invalid Cell Broadcast search list: " + e);
+        this.context.debug("Invalid Cell Broadcast search list: " + e);
       }
       options.success = false;
     }
@@ -2131,7 +2142,7 @@ RilObject.prototype = {
 
   sendMMI: function sendMMI(options) {
     if (DEBUG) {
-      debug("SendMMI " + JSON.stringify(options));
+      this.context.debug("SendMMI " + JSON.stringify(options));
     }
     let mmiString = options.mmi;
     let mmi = this._parseMMI(mmiString);
@@ -2198,7 +2209,7 @@ RilObject.prototype = {
     }
 
     if (DEBUG) {
-      debug("MMI " + JSON.stringify(mmi));
+      this.context.debug("MMI " + JSON.stringify(mmi));
     }
 
     // We check if the MMI service code is supported and in that case we
@@ -2714,7 +2725,7 @@ RilObject.prototype = {
       // IMEI
       if (localInfo.imei != null) {
         let imei = localInfo.imei;
-        if(imei.length == 15) {
+        if (imei.length == 15) {
           imei = imei + "0";
         }
 
@@ -2876,7 +2887,7 @@ RilObject.prototype = {
    */
   sendICCEnvelopeCommand: function sendICCEnvelopeCommand(options) {
     if (DEBUG) {
-      debug("Stk Envelope " + JSON.stringify(options));
+      this.context.debug("Stk Envelope " + JSON.stringify(options));
     }
 
     let Buf = this.context.Buf;
@@ -3218,12 +3229,15 @@ RilObject.prototype = {
       return;
     }
 
-    if (DEBUG) debug("Queuing " + type + " network info message: " + JSON.stringify(message));
+    if (DEBUG) {
+      this.context.debug("Queuing " + type + " network info message: " +
+                         JSON.stringify(message));
+    }
     this._pendingNetworkInfo[type] = message;
   },
 
   _receivedNetworkInfo: function _receivedNetworkInfo(type) {
-    if (DEBUG) debug("Received " + type + " network info.");
+    if (DEBUG) this.context.debug("Received " + type + " network info.");
     if (!this._processingNetworkInfo) {
       return;
     }
@@ -3240,7 +3254,10 @@ RilObject.prototype = {
     for (let i = 0; i < NETWORK_INFO_MESSAGE_TYPES.length; i++) {
       let msgType = NETWORK_INFO_MESSAGE_TYPES[i];
       if (!(msgType in pending)) {
-        if (DEBUG) debug("Still missing some more network info, not notifying main thread.");
+        if (DEBUG) {
+          this.context.debug("Still missing some more network info, not " +
+                             "notifying main thread.");
+        }
         return;
       }
     }
@@ -3254,7 +3271,10 @@ RilObject.prototype = {
       }
     }
 
-    if (DEBUG) debug("All pending network info has been received: " + JSON.stringify(pending));
+    if (DEBUG) {
+      this.context.debug("All pending network info has been received: " +
+                         JSON.stringify(pending));
+    }
 
     // Send the message on the next tick of the worker's loop, so we give the
     // last message a chance to call _sendNetworkInfoMessage first.
@@ -3475,7 +3495,7 @@ RilObject.prototype = {
   _processOperator: function _processOperator(operatorData) {
     if (operatorData.length < 3) {
       if (DEBUG) {
-        debug("Expected at least 3 strings for operator.");
+        this.context.debug("Expected at least 3 strings for operator.");
       }
     }
 
@@ -3501,14 +3521,14 @@ RilObject.prototype = {
         try {
           this._processNetworkTuple(networkTuple, this.operator);
         } catch (e) {
-          if (DEBUG) debug("Error processing operator tuple: " + e);
+          if (DEBUG) this.context.debug("Error processing operator tuple: " + e);
         }
       } else {
         // According to ril.h, the operator fields will be NULL when the operator
         // is not currently registered. We can avoid trying to parse the numeric
         // tuple in that case.
         if (DEBUG) {
-          debug("Operator is currently unregistered");
+          this.context.debug("Operator is currently unregistered");
         }
       }
 
@@ -3525,9 +3545,9 @@ RilObject.prototype = {
 
       if (networkName) {
         if (DEBUG) {
-          debug("Operator names will be overriden: " +
-                "longName = " + networkName.fullName + ", " +
-                "shortName = " + networkName.shortName);
+          this.context.debug("Operator names will be overriden: " +
+                             "longName = " + networkName.fullName + ", " +
+                             "shortName = " + networkName.shortName);
         }
 
         this.operator.longName = networkName.fullName;
@@ -3851,17 +3871,19 @@ RilObject.prototype = {
 
       // State not changed, now check links.
       if (this._compareDataCallLink(updatedDataCall, currentDataCall)) {
-        if(DEBUG) debug("No changes in data call.");
+        if (DEBUG) this.context.debug("No changes in data call.");
         continue;
       }
       if ((updatedDataCall.ifname != currentDataCall.ifname) ||
           (updatedDataCall.ipaddr != currentDataCall.ipaddr)) {
-        if(DEBUG) debug("Data link changed, cleanup.");
+        if (DEBUG) this.context.debug("Data link changed, cleanup.");
         this.deactivateDataCall(currentDataCall);
         continue;
       }
       // Minor change, just update and notify.
-      if(DEBUG) debug("Data link minor change, just update and notify.");
+      if (DEBUG) {
+        this.context.debug("Data link minor change, just update and notify.");
+      }
       currentDataCall.gw = updatedDataCall.gw;
       if (updatedDataCall.dns) {
         currentDataCall.dns[0] = updatedDataCall.dns[0];
@@ -3877,7 +3899,10 @@ RilObject.prototype = {
       }
 
       if (!newDataCallOptions) {
-        if (DEBUG) debug("Unexpected new data call: " + JSON.stringify(newDataCall));
+        if (DEBUG) {
+          this.context.debug("Unexpected new data call: " +
+                             JSON.stringify(newDataCall));
+        }
         continue;
       }
 
@@ -3910,7 +3935,9 @@ RilObject.prototype = {
   },
 
   _processSuppSvcNotification: function _processSuppSvcNotification(info) {
-    debug("handle supp svc notification: " + JSON.stringify(info));
+    if (DEBUG) {
+        this.context.debug("handle supp svc notification: " + JSON.stringify(info));
+    }
 
     let notification = null;
     let callIndex = -1;
@@ -3996,7 +4023,7 @@ RilObject.prototype = {
       try {
         this._processNetworkTuple(networkTuple, network);
       } catch (e) {
-        if (DEBUG) debug("Error processing operator tuple: " + e);
+        if (DEBUG) this.context.debug("Error processing operator tuple: " + e);
       }
 
       let state = strings[i + 3];
@@ -4053,8 +4080,8 @@ RilObject.prototype = {
     }
 
     if (DEBUG) {
-      debug("Radio tech is set to: " + GECKO_RADIO_TECH[radioTech] +
-            ", it is a " + (isCdma?"cdma":"gsm") + " technology");
+      this.context.debug("Radio tech is set to: " + GECKO_RADIO_TECH[radioTech] +
+                         ", it is a " + (isCdma?"cdma":"gsm") + " technology");
     }
 
     // We should request SIM information when
@@ -4346,13 +4373,13 @@ RilObject.prototype = {
   _processSmsStatusReport: function _processSmsStatusReport(length) {
     let [message, result] = this.context.GsmPDUHelper.processReceivedSms(length);
     if (!message) {
-      if (DEBUG) debug("invalid SMS-STATUS-REPORT");
+      if (DEBUG) this.context.debug("invalid SMS-STATUS-REPORT");
       return PDU_FCS_UNSPECIFIED;
     }
 
     let options = this._pendingSentSmsMap[message.messageRef];
     if (!options) {
-      if (DEBUG) debug("no pending SMS-SUBMIT message");
+      if (DEBUG) this.context.debug("no pending SMS-SUBMIT message");
       return PDU_FCS_OK;
     }
 
@@ -4375,7 +4402,7 @@ RilObject.prototype = {
 
     // Pending. Waiting for next status report.
     if ((status >>> 5) == 0x01) {
-      if (DEBUG) debug("SMS-STATUS-REPORT: delivery still pending");
+      if (DEBUG) this.context.debug("SMS-STATUS-REPORT: delivery still pending");
       return PDU_FCS_OK;
     }
 
@@ -4404,12 +4431,15 @@ RilObject.prototype = {
   _processCdmaSmsStatusReport: function _processCdmaSmsStatusReport(message) {
     let options = this._pendingSentSmsMap[message.msgId];
     if (!options) {
-      if (DEBUG) debug("no pending SMS-SUBMIT message");
+      if (DEBUG) this.context.debug("no pending SMS-SUBMIT message");
       return PDU_FCS_OK;
     }
 
     if (message.errorClass === 2) {
-      if (DEBUG) debug("SMS-STATUS-REPORT: delivery still pending, msgStatus: " + message.msgStatus);
+      if (DEBUG) {
+        this.context.debug("SMS-STATUS-REPORT: delivery still pending, " +
+                           "msgStatus: " + message.msgStatus);
+      }
       return PDU_FCS_OK;
     }
 
@@ -4454,8 +4484,8 @@ RilObject.prototype = {
     } else if (options.segments[seq]) {
       // Duplicated segment?
       if (DEBUG) {
-        debug("Got duplicated segment no." + seq + " of a multipart SMS: "
-              + JSON.stringify(original));
+        this.context.debug("Got duplicated segment no." + seq +
+                           " of a multipart SMS: " + JSON.stringify(original));
       }
       return null;
     }
@@ -4470,8 +4500,8 @@ RilObject.prototype = {
     options.receivedSegments++;
     if (options.receivedSegments < options.segmentMaxSeq) {
       if (DEBUG) {
-        debug("Got segment no." + seq + " of a multipart SMS: "
-              + JSON.stringify(options));
+        this.context.debug("Got segment no." + seq + " of a multipart SMS: " +
+                           JSON.stringify(options));
       }
       return null;
     }
@@ -4500,7 +4530,7 @@ RilObject.prototype = {
     }
 
     if (DEBUG) {
-      debug("Got full multipart SMS: " + JSON.stringify(options));
+      this.context.debug("Got full multipart SMS: " + JSON.stringify(options));
     }
 
     return options;
@@ -4529,7 +4559,10 @@ RilObject.prototype = {
    */
   _processSmsSendResult: function _processSmsSendResult(length, options) {
     if (options.rilRequestError) {
-      if (DEBUG) debug("_processSmsSendResult: rilRequestError = " + options.rilRequestError);
+      if (DEBUG) {
+        this.context.debug("_processSmsSendResult: rilRequestError = " +
+                           options.rilRequestError);
+      }
       switch (options.rilRequestError) {
         case ERROR_SMS_SEND_FAIL_RETRY:
           if (options.retryCount < SMS_RETRY_MAX) {
@@ -4563,7 +4596,10 @@ RilObject.prototype = {
     } else {
       // Last segment sent with success.
       if (options.requestStatusReport) {
-        if (DEBUG) debug("waiting SMS-STATUS-REPORT for messageRef " + options.messageRef);
+        if (DEBUG) {
+          this.context.debug("waiting SMS-STATUS-REPORT for messageRef " +
+                             options.messageRef);
+        }
         this._pendingSentSmsMap[options.messageRef] = options;
       }
 
@@ -4615,8 +4651,8 @@ RilObject.prototype = {
     } else if (options.pages[index]) {
       // Duplicated page?
       if (DEBUG) {
-        debug("Got duplicated page no." + index + " of a multipage SMSCB: "
-              + JSON.stringify(original));
+        this.context.debug("Got duplicated page no." + index +
+                           " of a multipage SMSCB: " + JSON.stringify(original));
       }
       return null;
     }
@@ -4631,8 +4667,8 @@ RilObject.prototype = {
     options.receivedPages++;
     if (options.receivedPages < options.numPages) {
       if (DEBUG) {
-        debug("Got page no." + index + " of a multipage SMSCB: "
-              + JSON.stringify(options));
+        this.context.debug("Got page no." + index + " of a multipage SMSCB: " +
+                           JSON.stringify(options));
       }
       return null;
     }
@@ -4660,7 +4696,7 @@ RilObject.prototype = {
     }
 
     if (DEBUG) {
-      debug("Got full multipage SMSCB: " + JSON.stringify(options));
+      this.context.debug("Got full multipage SMSCB: " + JSON.stringify(options));
     }
 
     return options;
@@ -4782,7 +4818,7 @@ RilObject.prototype = {
   _mergeAllCellBroadcastConfigs: function _mergeAllCellBroadcastConfigs() {
     if (!this._isCellBroadcastConfigReady()) {
       if (DEBUG) {
-        debug("cell broadcast configs not ready, waiting ...");
+        this.context.debug("cell broadcast configs not ready, waiting ...");
       }
       return;
     }
@@ -4796,7 +4832,8 @@ RilObject.prototype = {
     }
 
     if (DEBUG) {
-      debug("Cell Broadcast search lists: " + JSON.stringify(usedCellBroadcastConfigs));
+      this.context.debug("Cell Broadcast search lists: " +
+                         JSON.stringify(usedCellBroadcastConfigs));
     }
 
     let list = null;
@@ -4811,7 +4848,8 @@ RilObject.prototype = {
     }
 
     if (DEBUG) {
-      debug("Cell Broadcast search lists(merged): " + JSON.stringify(list));
+      this.context.debug("Cell Broadcast search lists(merged): " +
+                         JSON.stringify(list));
     }
     this.mergedCellBroadcastConfig = list;
     this.updateCellBroadcastConfig();
@@ -4883,11 +4921,14 @@ RilObject.prototype = {
    *        Object containing the message. Messages are supposed
    */
   handleChromeMessage: function handleChromeMessage(message) {
-    if (DEBUG) debug("Received chrome message " + JSON.stringify(message));
+    if (DEBUG) {
+      this.context.debug("Received chrome message " + JSON.stringify(message));
+    }
     let method = this[message.rilMessageType];
     if (typeof method != "function") {
       if (DEBUG) {
-        debug("Don't know what to do with message " + JSON.stringify(message));
+        this.context.debug("Don't know what to do with message " +
+                           JSON.stringify(message));
       }
       return;
     }
@@ -4898,7 +4939,7 @@ RilObject.prototype = {
    * Get a list of current voice calls.
    */
   enumerateCalls: function enumerateCalls(options) {
-    if (DEBUG) debug("Sending all current calls");
+    if (DEBUG) this.context.debug("Sending all current calls");
     let calls = [];
     for each (let call in this.currentCalls) {
       calls.push(call);
@@ -4929,7 +4970,7 @@ RilObject.prototype = {
     try {
       berTlv = this.context.BerTlvHelper.decode(length / 2);
     } catch (e) {
-      if (DEBUG) debug("processStkProactiveCommand : " + e);
+      if (DEBUG) this.context.debug("processStkProactiveCommand : " + e);
       this.sendStkTerminalResponse({
         resultCode: STK_RESULT_CMD_DATA_NOT_UNDERSTOOD});
       return;
@@ -4948,9 +4989,9 @@ RilObject.prototype = {
 
     let cmdDetails = ctlv.value;
     if (DEBUG) {
-      debug("commandNumber = " + cmdDetails.commandNumber +
-           " typeOfCommand = " + cmdDetails.typeOfCommand.toString(16) +
-           " commandQualifier = " + cmdDetails.commandQualifier);
+      this.context.debug("commandNumber = " + cmdDetails.commandNumber +
+                         " typeOfCommand = " + cmdDetails.typeOfCommand.toString(16) +
+                         " commandQualifier = " + cmdDetails.commandQualifier);
     }
 
     // STK_CMD_MORE_TIME need not to propagate event to chrome.
@@ -4984,7 +5025,7 @@ RilObject.prototype = {
   handleParcel: function handleParcel(request_type, length, options) {
     let method = this[request_type];
     if (typeof method == "function") {
-      if (DEBUG) debug("Handling parcel as " + method.name);
+      if (DEBUG) this.context.debug("Handling parcel as " + method.name);
       method.call(this, length, options);
     }
   },
@@ -5058,7 +5099,7 @@ RilObject.prototype[REQUEST_GET_SIM_STATUS] = function REQUEST_GET_SIM_STATUS(le
     }
   }
 
-  if (DEBUG) debug("iccStatus: " + JSON.stringify(iccStatus));
+  if (DEBUG) this.context.debug("iccStatus: " + JSON.stringify(iccStatus));
   this._processICCStatus(iccStatus);
 };
 RilObject.prototype[REQUEST_ENTER_SIM_PIN] = function REQUEST_ENTER_SIM_PIN(length, options) {
@@ -5155,7 +5196,7 @@ RilObject.prototype[REQUEST_GET_IMSI] = function REQUEST_GET_IMSI(length, option
 
   this.iccInfoPrivate.imsi = this.context.Buf.readString();
   if (DEBUG) {
-    debug("IMSI: " + this.iccInfoPrivate.imsi);
+    this.context.debug("IMSI: " + this.iccInfoPrivate.imsi);
   }
 
   options.rilMessageType = "iccimsi";
@@ -5254,7 +5295,7 @@ RilObject.prototype[REQUEST_SIGNAL_STRENGTH] = function REQUEST_SIGNAL_STRENGTH(
     signal.lteCQI =            Buf.readInt32();
   }
 
-  if (DEBUG) debug("signal strength: " + JSON.stringify(signal));
+  if (DEBUG) this.context.debug("signal strength: " + JSON.stringify(signal));
 
   this._processSignalStrength(signal);
 };
@@ -5266,7 +5307,7 @@ RilObject.prototype[REQUEST_VOICE_REGISTRATION_STATE] = function REQUEST_VOICE_R
   }
 
   let state = this.context.Buf.readStringList();
-  if (DEBUG) debug("voice registration state: " + state);
+  if (DEBUG) this.context.debug("voice registration state: " + state);
 
   this._processVoiceRegistrationState(state);
 
@@ -5297,7 +5338,7 @@ RilObject.prototype[REQUEST_OPERATOR] = function REQUEST_OPERATOR(length, option
   }
 
   let operatorData = this.context.Buf.readStringList();
-  if (DEBUG) debug("Operator: " + operatorData);
+  if (DEBUG) this.context.debug("Operator: " + operatorData);
   this._processOperator(operatorData);
 };
 RilObject.prototype[REQUEST_RADIO_POWER] = function REQUEST_RADIO_POWER(length, options) {
@@ -5379,7 +5420,7 @@ RilObject.prototype[REQUEST_SIM_IO] = function REQUEST_SIM_IO(length, options) {
 };
 RilObject.prototype[REQUEST_SEND_USSD] = function REQUEST_SEND_USSD(length, options) {
   if (DEBUG) {
-    debug("REQUEST_SEND_USSD " + JSON.stringify(options));
+    this.context.debug("REQUEST_SEND_USSD " + JSON.stringify(options));
   }
   options.success = (this._ussdSession = options.rilRequestError === 0);
   options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
@@ -5387,7 +5428,7 @@ RilObject.prototype[REQUEST_SEND_USSD] = function REQUEST_SEND_USSD(length, opti
 };
 RilObject.prototype[REQUEST_CANCEL_USSD] = function REQUEST_CANCEL_USSD(length, options) {
   if (DEBUG) {
-    debug("REQUEST_CANCEL_USSD" + JSON.stringify(options));
+    this.context.debug("REQUEST_CANCEL_USSD" + JSON.stringify(options));
   }
   options.success = (options.rilRequestError === 0);
   this._ussdSession = !options.success;
@@ -5709,7 +5750,9 @@ RilObject.prototype[REQUEST_SIM_OPEN_CHANNEL] = function REQUEST_SIM_OPEN_CHANNE
   }
 
   options.channel = this.context.Buf.readInt32();
-  if (DEBUG) debug("Setting channel number in options: " + options.channel);
+  if (DEBUG) {
+    this.context.debug("Setting channel number in options: " + options.channel);
+  }
   this.sendChromeMessage(options);
 };
 RilObject.prototype[REQUEST_SIM_CLOSE_CHANNEL] = function REQUEST_SIM_CLOSE_CHANNEL(length, options) {
@@ -5733,8 +5776,10 @@ RilObject.prototype[REQUEST_SIM_ACCESS_CHANNEL] = function REQUEST_SIM_ACCESS_CH
   options.sw2 = Buf.readInt32();
   options.simResponse = Buf.readString();
   if (DEBUG) {
-    debug("Setting return values for RIL[REQUEST_SIM_ACCESS_CHANNEL]: ["
-          + options.sw1 + "," + options.sw2 + ", " + options.simResponse + "]");
+    this.context.debug("Setting return values for RIL[REQUEST_SIM_ACCESS_CHANNEL]: [" +
+                       options.sw1 + "," +
+                       options.sw2 + ", " +
+                       options.simResponse + "]");
   }
   this.sendChromeMessage(options);
 };
@@ -5796,7 +5841,7 @@ RilObject.prototype[REQUEST_BASEBAND_VERSION] = function REQUEST_BASEBAND_VERSIO
   }
 
   this.basebandVersion = this.context.Buf.readString();
-  if (DEBUG) debug("Baseband version: " + this.basebandVersion);
+  if (DEBUG) this.context.debug("Baseband version: " + this.basebandVersion);
 };
 RilObject.prototype[REQUEST_SEPARATE_CONNECTION] = function REQUEST_SEPARATE_CONNECTION(length, options) {
   if (options.rilRequestError) {
@@ -6115,7 +6160,8 @@ RilObject.prototype[REQUEST_STK_SEND_ENVELOPE_WITH_STATUS] = function REQUEST_ST
 RilObject.prototype[REQUEST_VOICE_RADIO_TECH] = function REQUEST_VOICE_RADIO_TECH(length, options) {
   if (options.rilRequestError) {
     if (DEBUG) {
-      debug("Error when getting voice radio tech: " + options.rilRequestError);
+      this.context.debug("Error when getting voice radio tech: " +
+                         options.rilRequestError);
     }
     return;
   }
@@ -6144,8 +6190,8 @@ RilObject.prototype[UNSOLICITED_RESPONSE_RADIO_STATE_CHANGED] = function UNSOLIC
   }
 
   if (DEBUG) {
-    debug("Radio state changed from '" + this.radioState +
-          "' to '" + newState + "'");
+    this.context.debug("Radio state changed from '" + this.radioState +
+                       "' to '" + newState + "'");
   }
   if (this.radioState == newState) {
     return;
@@ -6216,7 +6262,10 @@ RilObject.prototype[UNSOLICITED_RESPONSE_CALL_STATE_CHANGED] = function UNSOLICI
   this.getCurrentCalls();
 };
 RilObject.prototype[UNSOLICITED_RESPONSE_VOICE_NETWORK_STATE_CHANGED] = function UNSOLICITED_RESPONSE_VOICE_NETWORK_STATE_CHANGED() {
-  if (DEBUG) debug("Network state changed, re-requesting phone state and ICC status");
+  if (DEBUG) {
+    this.context.debug("Network state changed, re-requesting phone state and " +
+                       "ICC status");
+  }
   this.getICCStatus();
   this.requestNetworkInfo();
 };
@@ -6250,14 +6299,15 @@ RilObject.prototype[UNSOLICITED_RESPONSE_NEW_SMS_ON_SIM] = function UNSOLICITED_
     }.bind(this),
     function onerror(errorMsg) {
       if (DEBUG) {
-        debug("Failed to Read NEW SMS on SIM #" + recordNumber + ", errorMsg: " + errorMsg);
+        this.context.debug("Failed to Read NEW SMS on SIM #" + recordNumber +
+                           ", errorMsg: " + errorMsg);
       }
     });
 };
 RilObject.prototype[UNSOLICITED_ON_USSD] = function UNSOLICITED_ON_USSD() {
   let [typeCode, message] = this.context.Buf.readStringList();
   if (DEBUG) {
-    debug("On USSD. Type Code: " + typeCode + " Message: " + message);
+    this.context.debug("On USSD. Type Code: " + typeCode + " Message: " + message);
   }
 
   this._ussdSession = (typeCode != "0" && typeCode != "2");
@@ -6277,7 +6327,7 @@ RilObject.prototype[UNSOLICITED_NITZ_TIME_RECEIVED] = function UNSOLICITED_NITZ_
   // send down the pipe (see bug XXX).
   // TODO once data is collected, add in |if (DEBUG)|
 
-  debug("DateTimeZone string " + dateString);
+  this.context.debug("DateTimeZone string " + dateString);
 
   let now = Date.now();
 
@@ -6296,7 +6346,7 @@ RilObject.prototype[UNSOLICITED_NITZ_TIME_RECEIVED] = function UNSOLICITED_NITZ_
                           hours, minutes, seconds);
 
   if (isNaN(timeInMS)) {
-    if (DEBUG) debug("NITZ failed to convert date");
+    if (DEBUG) this.context.debug("NITZ failed to convert date");
     return;
   }
 
@@ -6385,7 +6435,8 @@ RilObject.prototype[UNSOLICITED_RESPONSE_NEW_BROADCAST_SMS] = function UNSOLICIT
       this.context.GsmPDUHelper.readCbMessage(this.context.Buf.readInt32());
   } catch (e) {
     if (DEBUG) {
-      debug("Failed to parse Cell Broadcast message: " + JSON.stringify(e));
+      this.context.debug("Failed to parse Cell Broadcast message: " +
+                         JSON.stringify(e));
     }
     return;
   }
@@ -6443,8 +6494,8 @@ RilObject.prototype[UNSOLICITED_RIL_CONNECTED] = function UNSOLICITED_RIL_CONNEC
   let version = this.context.Buf.readInt32List()[0];
   this.v5Legacy = (version < 5);
   if (DEBUG) {
-    debug("Detected RIL version " + version);
-    debug("this.v5Legacy is " + this.v5Legacy);
+    this.context.debug("Detected RIL version " + version);
+    this.context.debug("this.v5Legacy is " + this.v5Legacy);
   }
 
   this.initRILState();
@@ -6833,7 +6884,7 @@ GsmPDUHelperObject.prototype = {
       str += String.fromCharCode(code);
     }
 
-    if (DEBUG) debug("Read UCS2 string: " + str);
+    if (DEBUG) this.context.debug("Read UCS2 string: " + str);
 
     return str;
   },
@@ -6879,13 +6930,13 @@ GsmPDUHelperObject.prototype = {
     };
 
     header.length = this.readHexOctet();
-    if (DEBUG) debug("Read UDH length: " + header.length);
+    if (DEBUG) this.context.debug("Read UDH length: " + header.length);
 
     let dataAvailable = header.length;
     while (dataAvailable >= 2) {
       let id = this.readHexOctet();
       let length = this.readHexOctet();
-      if (DEBUG) debug("Read UDH id: " + id + ", length: " + length);
+      if (DEBUG) this.context.debug("Read UDH id: " + id + ", length: " + length);
 
       dataAvailable -= 2;
 
@@ -6989,13 +7040,15 @@ GsmPDUHelperObject.prototype = {
           mwi.msgCount = msgCount & 0xFF;
           mwi.active = mwi.msgCount > 0;
 
-          if (DEBUG) debug("MWI in TP_UDH received: " + JSON.stringify(mwi));
+          if (DEBUG) {
+            this.context.debug("MWI in TP_UDH received: " + JSON.stringify(mwi));
+          }
 
           break;
         default:
           if (DEBUG) {
-            debug("readUserDataHeader: unsupported IEI(" + id
-                  + "), " + length + " bytes.");
+            this.context.debug("readUserDataHeader: unsupported IEI(" + id +
+                               "), " + length + " bytes.");
           }
 
           // Read out unsupported data
@@ -7009,7 +7062,9 @@ GsmPDUHelperObject.prototype = {
             }
             dataAvailable -= length;
 
-            if (DEBUG) debug("readUserDataHeader: " + Array.slice(octets));
+            if (DEBUG) {
+              this.context.debug("readUserDataHeader: " + Array.slice(octets));
+            }
           }
           break;
       }
@@ -7073,13 +7128,15 @@ GsmPDUHelperObject.prototype = {
   readAddress: function readAddress(len) {
     // Address Length
     if (!len || (len < 0)) {
-      if (DEBUG) debug("PDU error: invalid sender address length: " + len);
+      if (DEBUG) {
+        this.context.debug("PDU error: invalid sender address length: " + len);
+      }
       return null;
     }
     if (len % 2 == 1) {
       len += 1;
     }
-    if (DEBUG) debug("PDU: Going to read address: " + len);
+    if (DEBUG) this.context.debug("PDU: Going to read address: " + len);
 
     // Type-of-Address
     let toa = this.readHexOctet();
@@ -7092,7 +7149,7 @@ GsmPDUHelperObject.prototype = {
     }
     addr = this.readSwappedNibbleBcdString(len / 2);
     if (addr.length <= 0) {
-      if (DEBUG) debug("PDU error: no number provided");
+      if (DEBUG) this.context.debug("PDU error: no number provided");
       return null;
     }
     if ((toa & 0xF0) == (PDU_TOA_INTERNATIONAL)) {
@@ -7141,7 +7198,7 @@ GsmPDUHelperObject.prototype = {
    */
   readDataCodingScheme: function readDataCodingScheme(msg) {
     let dcs = this.readHexOctet();
-    if (DEBUG) debug("PDU: read SMS dcs: " + dcs);
+    if (DEBUG) this.context.debug("PDU: read SMS dcs: " + dcs);
 
     // No message class by default.
     let messageClass = PDU_DCS_MSG_CLASS_NORMAL;
@@ -7193,17 +7250,18 @@ GsmPDUHelperObject.prototype = {
             mwi.msgCount = active ? GECKO_VOICEMAIL_MESSAGE_COUNT_UNKNOWN : 0;
 
             if (DEBUG) {
-              debug("MWI in DCS received for voicemail: " + JSON.stringify(mwi));
+              this.context.debug("MWI in DCS received for voicemail: " +
+                                 JSON.stringify(mwi));
             }
             break;
           case PDU_DCS_MWI_TYPE_FAX:
-            if (DEBUG) debug("MWI in DCS received for fax");
+            if (DEBUG) this.context.debug("MWI in DCS received for fax");
             break;
           case PDU_DCS_MWI_TYPE_EMAIL:
-            if (DEBUG) debug("MWI in DCS received for email");
+            if (DEBUG) this.context.debug("MWI in DCS received for email");
             break;
           default:
-            if (DEBUG) debug("MWI in DCS received for \"other\"");
+            if (DEBUG) this.context.debug("MWI in DCS received for \"other\"");
             break;
         }
         break;
@@ -7224,7 +7282,7 @@ GsmPDUHelperObject.prototype = {
     msg.encoding = encoding;
     msg.messageClass = GECKO_SMS_MESSAGE_CLASSES[messageClass];
 
-    if (DEBUG) debug("PDU: message encoding is " + encoding + " bit.");
+    if (DEBUG) this.context.debug("PDU: message encoding is " + encoding + " bit.");
   },
 
   /**
@@ -7302,7 +7360,7 @@ GsmPDUHelperObject.prototype = {
    */
   readUserData: function readUserData(msg, length) {
     if (DEBUG) {
-      debug("Reading " + length + " bytes of user data.");
+      this.context.debug("Reading " + length + " bytes of user data.");
     }
 
     let paddingBits = 0;
@@ -7320,7 +7378,9 @@ GsmPDUHelperObject.prototype = {
       }
     }
 
-    if (DEBUG) debug("After header, " + length + " septets left of user data");
+    if (DEBUG) {
+      this.context.debug("After header, " + length + " septets left of user data");
+    }
 
     msg.body = null;
     msg.data = null;
@@ -7329,7 +7389,9 @@ GsmPDUHelperObject.prototype = {
         // 7 bit encoding allows 140 octets, which means 160 characters
         // ((140x8) / 7 = 160 chars)
         if (length > PDU_MAX_USER_DATA_7BIT) {
-          if (DEBUG) debug("PDU error: user data is too long: " + length);
+          if (DEBUG) {
+            this.context.debug("PDU error: user data is too long: " + length);
+          }
           break;
         }
 
@@ -7466,7 +7528,7 @@ GsmPDUHelperObject.prototype = {
    */
   processReceivedSms: function processReceivedSms(length) {
     if (!length) {
-      if (DEBUG) debug("Received empty SMS!");
+      if (DEBUG) this.context.debug("Received empty SMS!");
       return [null, PDU_FCS_UNSPECIFIED];
     }
 
@@ -7475,9 +7537,9 @@ GsmPDUHelperObject.prototype = {
     // An SMS is a string, but we won't read it as such, so let's read the
     // string length and then defer to PDU parsing helper.
     let messageStringLength = Buf.readInt32();
-    if (DEBUG) debug("Got new SMS, length " + messageStringLength);
+    if (DEBUG) this.context.debug("Got new SMS, length " + messageStringLength);
     let message = this.readMessage();
-    if (DEBUG) debug("Got new SMS: " + JSON.stringify(message));
+    if (DEBUG) this.context.debug("Got new SMS: " + JSON.stringify(message));
 
     // Read string delimiters. See Buf.readString().
     Buf.readStringDelimiter(length);
@@ -7622,7 +7684,7 @@ GsmPDUHelperObject.prototype = {
    */
   writeMessage: function writeMessage(options) {
     if (DEBUG) {
-      debug("writeMessage: " + JSON.stringify(options));
+      this.context.debug("writeMessage: " + JSON.stringify(options));
     }
     let Buf = this.context.Buf;
     let address = options.number;
@@ -7826,7 +7888,7 @@ GsmPDUHelperObject.prototype = {
    */
   readCbDataCodingScheme: function readCbDataCodingScheme(msg) {
     let dcs = this.context.Buf.readUint8();
-    if (DEBUG) debug("PDU: read CBS dcs: " + dcs);
+    if (DEBUG) this.context.debug("PDU: read CBS dcs: " + dcs);
 
     let language = null, hasLanguageIndicator = false;
     // `Any reserved codings shall be assumed to be the GSM 7bit default
@@ -7946,6 +8008,7 @@ GsmPDUHelperObject.prototype = {
   readGsmCbData: function readGsmCbData(msg, length) {
     let Buf = this.context.Buf;
     let bufAdapter = {
+      context: this.context,
       readHexOctet: function readHexOctet() {
         return Buf.readUint8();
       }
@@ -8295,7 +8358,7 @@ CdmaPDUHelperObject.prototype = {
    */
   writeMessage: function cdma_writeMessage(options) {
     if (DEBUG) {
-      debug("cdma_writeMessage: " + JSON.stringify(options));
+      this.context.debug("cdma_writeMessage: " + JSON.stringify(options));
     }
 
     // Get encoding
@@ -8698,12 +8761,12 @@ CdmaPDUHelperObject.prototype = {
    */
   processReceivedSms: function cdma_processReceivedSms(length) {
     if (!length) {
-      if (DEBUG) debug("Received empty SMS!");
+      if (DEBUG) this.context.debug("Received empty SMS!");
       return [null, PDU_FCS_UNSPECIFIED];
     }
 
     let message = this.readMessage();
-    if (DEBUG) debug("Got new SMS: " + JSON.stringify(message));
+    if (DEBUG) this.context.debug("Got new SMS: " + JSON.stringify(message));
 
     // Determine result
     if (!message) {
@@ -8938,7 +9001,9 @@ CdmaPDUHelperObject.prototype = {
           mwi.msgCount = msgCount & 0xFF;
           mwi.active = mwi.msgCount > 0;
 
-          if (DEBUG) debug("MWI in TP_UDH received: " + JSON.stringify(mwi));
+          if (DEBUG) {
+            this.context.debug("MWI in TP_UDH received: " + JSON.stringify(mwi));
+          }
           break;
         }
         default:
@@ -9109,7 +9174,7 @@ CdmaPDUHelperObject.prototype = {
         encoding = BitBufferHelper.readBits(5),
         msgType;
 
-    if(encoding === PDU_CDMA_MSG_CODING_IS_91) {
+    if (encoding === PDU_CDMA_MSG_CODING_IS_91) {
       msgType = BitBufferHelper.readBits(8);
     }
     result.encoding = this.getCdmaMsgEncoding(encoding);
@@ -9689,7 +9754,7 @@ ICCPDUHelperObject.prototype = {
    * "number of useful semi-octets within the Address-Value field".
    */
   readDiallingNumber: function readDiallingNumber(len) {
-    if (DEBUG) debug("PDU: Going to read Dialling number: " + len);
+    if (DEBUG) this.context.debug("PDU: Going to read Dialling number: " + len);
     if (len === 0) {
       return "";
     }
@@ -9701,7 +9766,7 @@ ICCPDUHelperObject.prototype = {
 
     let number = GsmPDUHelper.readSwappedNibbleBcdString(len - 1);
     if (number.length <= 0) {
-      if (DEBUG) debug("No number provided");
+      if (DEBUG) this.context.debug("No number provided");
       return "";
     }
     if ((toa >> 4) == (PDU_TOA_INTERNATIONAL >> 4)) {
@@ -9790,7 +9855,8 @@ StkCommandParamsFactoryObject.prototype = {
     let method = this[cmdDetails.typeOfCommand];
     if (typeof method != "function") {
       if (DEBUG) {
-        debug("Unknown proactive command " + cmdDetails.typeOfCommand.toString(16));
+        this.context.debug("Unknown proactive command " +
+                           cmdDetails.typeOfCommand.toString(16));
       }
       return null;
     }
@@ -9815,7 +9881,7 @@ StkCommandParamsFactoryObject.prototype = {
         if (ctlv) {
           let list = ctlv.value.fileList;
           if (DEBUG) {
-            debug("Refresh, list = " + list);
+            this.context.debug("Refresh, list = " + list);
           }
           this.context.ICCRecordHelper.fetchICCRecords();
         }
@@ -10317,7 +10383,7 @@ StkProactiveCmdHelperObject.prototype = {
     let method = this[tag];
     if (typeof method != "function") {
       if (DEBUG) {
-        debug("Unknown comprehension tag " + tag.toString(16));
+        this.context.debug("Unknown comprehension tag " + tag.toString(16));
       }
       let Buf = this.context.Buf;
       Buf.seekIncoming(length * Buf.PDU_HEX_OCTET_SIZE);
@@ -11123,7 +11189,7 @@ BerTlvHelperObject.prototype = {
     let method = this[tag];
     if (typeof method != "function") {
       if (DEBUG) {
-        debug("Unknown Ber tag : 0x" + tag.toString(16));
+        this.context.debug("Unknown Ber tag : 0x" + tag.toString(16));
       }
       let Buf = this.context.Buf;
       Buf.seekIncoming(length * Buf.PDU_HEX_OCTET_SIZE);
@@ -11644,7 +11710,7 @@ ICCIOHelperObject.prototype = {
         errorMsg += "(" + options.sw1.toString(16) +
                     "/" + options.sw2.toString(16) + ")";
       }
-      debug(errorMsg);
+      this.context.debug(errorMsg);
     }
     onerror(requestError);
   },
@@ -11702,7 +11768,7 @@ ICCRecordHelperObject.prototype = {
         this.context.GsmPDUHelper.readSwappedNibbleBcdString(octetLen);
       Buf.readStringDelimiter(strLen);
 
-      if (DEBUG) debug("ICCID: " + RIL.iccInfo.iccid);
+      if (DEBUG) this.context.debug("ICCID: " + RIL.iccInfo.iccid);
       if (RIL.iccInfo.iccid) {
         this.context.ICCUtilsHelper.handleICCInfoChange();
         RIL.reportStkServiceIsRunning();
@@ -11738,7 +11804,8 @@ ICCRecordHelperObject.prototype = {
       } else {
         if (DEBUG) {
           for (let i = 0; i < contacts.length; i++) {
-            debug("contact [" + i + "] " + JSON.stringify(contacts[i]));
+            this.context.debug("contact [" + i + "] " +
+                               JSON.stringify(contacts[i]));
           }
         }
         if (onsuccess) {
@@ -11776,8 +11843,7 @@ ICCRecordHelperObject.prototype = {
     }
 
     if (!contact || !contact.recordId) {
-      let error = onerror || debug;
-      error(GECKO_ERROR_INVALID_PARAMETER);
+      if (onerror) onerror(GECKO_ERROR_INVALID_PARAMETER);
       return;
     }
 
@@ -11831,8 +11897,7 @@ ICCRecordHelperObject.prototype = {
         let pbr = ICCUtilsHelper.parsePbrTlvs(pbrTlvs);
         // EF_ADN is mandatory if and only if DF_PHONEBOOK is present.
         if (!pbr.adn) {
-          let error = onerror || debug;
-          error("Cannot access ADN.");
+          if (onerror) onerror("Cannot access ADN.");
           return;
         }
         pbrs.push(pbr);
@@ -12183,7 +12248,7 @@ ICCRecordHelperObject.prototype = {
       } else {
         // No free record found.
         if (DEBUG) {
-          debug(CONTACT_ERR_NO_FREE_RECORD_FOUND);
+          this.context.debug(CONTACT_ERR_NO_FREE_RECORD_FOUND);
         }
         onerror(CONTACT_ERR_NO_FREE_RECORD_FOUND);
       }
@@ -12255,7 +12320,7 @@ SimRecordHelperObject.prototype = {
         return;
       }
       RIL.iccInfo.msisdn = contact.number;
-      if (DEBUG) debug("MSISDN: " + RIL.iccInfo.msisdn);
+      if (DEBUG) this.context.debug("MSISDN: " + RIL.iccInfo.msisdn);
       this.context.ICCUtilsHelper.handleICCInfoChange();
     }
 
@@ -12282,7 +12347,7 @@ SimRecordHelperObject.prototype = {
         for (let i = 0; i < ad.length; i++) {
           str += ad[i] + ", ";
         }
-        debug("AD: " + str);
+        this.context.debug("AD: " + str);
       }
 
       let ICCUtilsHelper = this.context.ICCUtilsHelper;
@@ -12318,8 +12383,8 @@ SimRecordHelperObject.prototype = {
       Buf.readStringDelimiter(strLen);
 
       if (DEBUG) {
-        debug("SPN: spn = " + spn +
-              ", spnDisplayCondition = " + spnDisplayCondition);
+        this.context.debug("SPN: spn = " + spn +
+                           ", spnDisplayCondition = " + spnDisplayCondition);
       }
 
       let RIL = this.context.RIL;
@@ -12355,51 +12420,51 @@ SimRecordHelperObject.prototype = {
         for (let i = 0; i < sst.length; i++) {
           str += sst[i] + ", ";
         }
-        debug("SST: " + str);
+        this.context.debug("SST: " + str);
       }
 
       let ICCUtilsHelper = this.context.ICCUtilsHelper;
       if (ICCUtilsHelper.isICCServiceAvailable("MSISDN")) {
-        if (DEBUG) debug("MSISDN: MSISDN is available");
+        if (DEBUG) this.context.debug("MSISDN: MSISDN is available");
         this.readMSISDN();
       } else {
-        if (DEBUG) debug("MSISDN: MSISDN service is not available");
+        if (DEBUG) this.context.debug("MSISDN: MSISDN service is not available");
       }
 
       // Fetch SPN and PLMN list, if some of them are available.
       if (ICCUtilsHelper.isICCServiceAvailable("SPN")) {
-        if (DEBUG) debug("SPN: SPN is available");
+        if (DEBUG) this.context.debug("SPN: SPN is available");
         this.readSPN();
       } else {
-        if (DEBUG) debug("SPN: SPN service is not available");
+        if (DEBUG) this.context.debug("SPN: SPN service is not available");
       }
 
       if (ICCUtilsHelper.isICCServiceAvailable("MDN")) {
-        if (DEBUG) debug("MDN: MDN available.");
+        if (DEBUG) this.context.debug("MDN: MDN available.");
         this.readMBDN();
       } else {
-        if (DEBUG) debug("MDN: MDN service is not available");
+        if (DEBUG) this.context.debug("MDN: MDN service is not available");
       }
 
       if (ICCUtilsHelper.isICCServiceAvailable("SPDI")) {
-        if (DEBUG) debug("SPDI: SPDI available.");
+        if (DEBUG) this.context.debug("SPDI: SPDI available.");
         this.readSPDI();
       } else {
-        if (DEBUG) debug("SPDI: SPDI service is not available");
+        if (DEBUG) this.context.debug("SPDI: SPDI service is not available");
       }
 
       if (ICCUtilsHelper.isICCServiceAvailable("PNN")) {
-        if (DEBUG) debug("PNN: PNN is available");
+        if (DEBUG) this.context.debug("PNN: PNN is available");
         this.readPNN();
       } else {
-        if (DEBUG) debug("PNN: PNN is not available");
+        if (DEBUG) this.context.debug("PNN: PNN is not available");
       }
 
       if (ICCUtilsHelper.isICCServiceAvailable("OPL")) {
-        if (DEBUG) debug("OPL: OPL is available");
+        if (DEBUG) this.context.debug("OPL: OPL is available");
         this.readOPL();
       } else {
-        if (DEBUG) debug("OPL: OPL is not available");
+        if (DEBUG) this.context.debug("OPL: OPL is not available");
       }
 
       if (ICCUtilsHelper.isICCServiceAvailable("CBMI")) {
@@ -12444,7 +12509,8 @@ SimRecordHelperObject.prototype = {
       }
       RIL.iccInfoPrivate.mbdn = contact.number;
       if (DEBUG) {
-        debug("MBDN, alphaId="+contact.alphaId+" number="+contact.number);
+        this.context.debug("MBDN, alphaId=" + contact.alphaId +
+                           " number=" + contact.number);
       }
       contact.rilMessageType = "iccmbdn";
       RIL.sendChromeMessage(contact);
@@ -12500,7 +12566,9 @@ SimRecordHelperObject.prototype = {
       Buf.seekIncoming((octetLen - readLen) * Buf.PDU_HEX_OCTET_SIZE);
       Buf.readStringDelimiter(strLen);
 
-      if (DEBUG) debug("SPDI: " + JSON.stringify(RIL.iccInfoPrivate.SPDI));
+      if (DEBUG) {
+        this.context.debug("SPDI: " + JSON.stringify(RIL.iccInfoPrivate.SPDI));
+      }
       let ICCUtilsHelper = this.context.ICCUtilsHelper;
       if (ICCUtilsHelper.updateDisplayCondition()) {
         ICCUtilsHelper.handleICCInfoChange();
@@ -12537,7 +12605,7 @@ SimRecordHelperObject.prototype = {
         }
       }
       if (DEBUG) {
-        debug(which + ": " + JSON.stringify(list));
+        this.context.debug(which + ": " + JSON.stringify(list));
       }
 
       Buf.readStringDelimiter(strLength);
@@ -12612,7 +12680,7 @@ SimRecordHelperObject.prototype = {
         }
       }
       if (DEBUG) {
-        debug("CBMIR: " + JSON.stringify(list));
+        this.context.debug("CBMIR: " + JSON.stringify(list));
       }
 
       Buf.readStringDelimiter(strLength);
@@ -12688,7 +12756,8 @@ SimRecordHelperObject.prototype = {
         // PLMN Network Name Record Identifier
         oplElement.pnnRecordId = GsmPDUHelper.readHexOctet();
         if (DEBUG) {
-          debug("OPL: [" + (opl.length + 1) + "]: " + JSON.stringify(oplElement));
+          this.context.debug("OPL: [" + (opl.length + 1) + "]: " +
+                             JSON.stringify(oplElement));
         }
         opl.push(oplElement);
       } else {
@@ -12764,7 +12833,7 @@ SimRecordHelperObject.prototype = {
       } else {
         if (DEBUG) {
           for (let i = 0; i < pnn.length; i++) {
-            debug("PNN: [" + i + "]: " + JSON.stringify(pnn[i]));
+            this.context.debug("PNN: [" + i + "]: " + JSON.stringify(pnn[i]));
           }
         }
         this.context.RIL.iccInfoPrivate.PNN = pnn;
@@ -12788,7 +12857,9 @@ SimRecordHelperObject.prototype = {
   readPLMNEntries: function readPLMNEntries(length) {
     let plmnList = [];
     // Each PLMN entry has 3 bytes.
-    if (DEBUG) debug("readPLMNEntries: PLMN entries length = " + length);
+    if (DEBUG) {
+      this.context.debug("PLMN entries length = " + length);
+    }
     let GsmPDUHelper = this.context.GsmPDUHelper;
     let index = 0;
     while (index < length) {
@@ -12798,8 +12869,9 @@ SimRecordHelperObject.prototype = {
         let plmn = [GsmPDUHelper.readHexOctet(),
                     GsmPDUHelper.readHexOctet(),
                     GsmPDUHelper.readHexOctet()];
-        if (DEBUG) debug("readPLMNEntries: Reading PLMN entry: [" + index +
-                         "]: '" + plmn + "'");
+        if (DEBUG) {
+          this.context.debug("Reading PLMN entry: [" + index + "]: '" + plmn + "'");
+        }
         if (plmn[0] != 0xFF &&
             plmn[1] != 0xFF &&
             plmn[2] != 0xFF) {
@@ -12832,11 +12904,15 @@ SimRecordHelperObject.prototype = {
               plmnEntry.mnc = buf;
             }
           }
-          if (DEBUG) debug("readPLMNEntries: PLMN = " + plmnEntry.mcc + ", " + plmnEntry.mnc);
+          if (DEBUG) {
+            this.context.debug("PLMN = " + plmnEntry.mcc + ", " + plmnEntry.mnc);
+          }
           plmnList.push(plmnEntry);
         }
       } catch (e) {
-        if (DEBUG) debug("readPLMNEntries: PLMN entry " + index + " is invalid.");
+        if (DEBUG) {
+          this.context.debug("PLMN entry " + index + " is invalid.");
+        }
         break;
       }
       index ++;
@@ -13026,8 +13102,10 @@ RuimRecordHelperObject.prototype = {
         ICCIOHelper.loadNextRecord(options);
       } else {
         if (DEBUG) {
-          debug("CDMAHome system id: " + JSON.stringify(cdmaHomeSystemId));
-          debug("CDMAHome network id: " + JSON.stringify(cdmaHomeNetworkId));
+          this.context.debug("CDMAHome system id: " +
+                             JSON.stringify(cdmaHomeSystemId));
+          this.context.debug("CDMAHome network id: " +
+                             JSON.stringify(cdmaHomeNetworkId));
         }
         this.context.RIL.cdmaHome = {
           systemId: cdmaHomeSystemId,
@@ -13061,11 +13139,11 @@ RuimRecordHelperObject.prototype = {
         for (let i = 0; i < RIL.iccInfoPrivate.cst.length; i++) {
           str += RIL.iccInfoPrivate.cst[i] + ", ";
         }
-        debug("CST: " + str);
+        this.context.debug("CST: " + str);
       }
 
       if (this.context.ICCUtilsHelper.isICCServiceAvailable("SPN")) {
-        if (DEBUG) debug("SPN: SPN is available");
+        if (DEBUG) this.context.debug("SPN: SPN is available");
         this.readSPN();
       }
     }
@@ -13119,8 +13197,8 @@ RuimRecordHelperObject.prototype = {
       let RIL = this.context.RIL;
       RIL.iccInfo.spn = CdmaPDUHelper.decodeCdmaPDUMsg(codingScheme, null, msgLen);
       if (DEBUG) {
-        debug("CDMA SPN: " + RIL.iccInfo.spn +
-              ", Display condition: " + displayCondition);
+        this.context.debug("CDMA SPN: " + RIL.iccInfo.spn +
+                           ", Display condition: " + displayCondition);
       }
       RIL.iccInfoPrivate.spnDisplayCondition = displayCondition;
       Buf.seekIncoming((octetLen - readLen) * Buf.PDU_HEX_OCTET_SIZE);
@@ -13314,7 +13392,9 @@ ICCUtilsHelperObject.prototype = {
       if (isOnMatchingPlmn) {
         // The first bit of display condition tells us if we should display
         // registered PLMN.
-        if (DEBUG) debug("updateDisplayCondition: PLMN is HPLMN or PLMN is in PLMN list");
+        if (DEBUG) {
+          this.context.debug("PLMN is HPLMN or PLMN " + "is in PLMN list");
+        }
 
         // TS 31.102 Sec. 4.2.66 and TS 51.011 Sec. 10.3.50
         // EF_SPDI contains a list of PLMNs in which the Service Provider Name
@@ -13324,7 +13404,9 @@ ICCUtilsHelperObject.prototype = {
       } else {
         // The second bit of display condition tells us if we should display
         // registered PLMN.
-        if (DEBUG) debug("updateICCDisplayName: PLMN isn't HPLMN and PLMN isn't in PLMN list");
+        if (DEBUG) {
+          this.context.debug("PLMN isn't HPLMN and PLMN isn't in PLMN list");
+        }
 
         // We didn't found the requirement of displaying network name if
         // current PLMN isn't HPLMN nor one of PLMN in SPDI. So we keep
@@ -13335,8 +13417,9 @@ ICCUtilsHelperObject.prototype = {
     }
 
     if (DEBUG) {
-      debug("updateDisplayCondition: isDisplayNetworkNameRequired = " + iccInfo.isDisplayNetworkNameRequired);
-      debug("updateDisplayCondition: isDisplaySpnRequired = " + iccInfo.isDisplaySpnRequired);
+      this.context.debug("isDisplayNetworkNameRequired = " +
+                         iccInfo.isDisplayNetworkNameRequired);
+      this.context.debug("isDisplaySpnRequired = " + iccInfo.isDisplaySpnRequired);
     }
 
     return ((origIsDisplayNetworkNameRequired !== iccInfo.isDisplayNetworkNameRequired) ||
@@ -13523,7 +13606,9 @@ ICCUtilsHelperObject.prototype = {
       mncLength = (index !== -1) ? 3 : 2;
     }
     let mnc = imsi.substr(3, mncLength);
-    if (DEBUG) debug("IMSI: " + imsi + " MCC: " + mcc + " MNC: " + mnc);
+    if (DEBUG) {
+      this.context.debug("IMSI: " + imsi + " MCC: " + mcc + " MNC: " + mnc);
+    }
 
     return { mcc: mcc, mnc: mnc};
   },
@@ -13579,7 +13664,7 @@ ICCContactHelperObject.prototype = {
         break;
       default:
         if (DEBUG) {
-          debug("Unsupported contactType :" + contactType);
+          this.context.debug("Unsupported contactType :" + contactType);
         }
         onerror(CONTACT_ERR_CONTACT_TYPE_NOT_SUPPORTED);
         break;
@@ -13614,7 +13699,7 @@ ICCContactHelperObject.prototype = {
         break;
       default:
         if (DEBUG) {
-          debug("Unsupported contactType :" + contactType);
+          this.context.debug("Unsupported contactType :" + contactType);
         }
         onerror(CONTACT_ERR_CONTACT_TYPE_NOT_SUPPORTED);
         break;
@@ -13634,7 +13719,7 @@ ICCContactHelperObject.prototype = {
     (function findFreeRecordId(pbrIndex) {
       if (pbrIndex >= pbrs.length) {
         if (DEBUG) {
-          debug(CONTACT_ERR_NO_FREE_RECORD_FOUND);
+          this.context.debug(CONTACT_ERR_NO_FREE_RECORD_FOUND);
         }
         onerror(CONTACT_ERR_NO_FREE_RECORD_FOUND);
         return;
@@ -13699,7 +13784,7 @@ ICCContactHelperObject.prototype = {
         break;
       default:
         if (DEBUG) {
-          debug("Unsupported contactType :" + contactType);
+          this.context.debug("Unsupported contactType :" + contactType);
         }
         onerror(CONTACT_ERR_CONTACT_TYPE_NOT_SUPPORTED);
         break;
@@ -13875,7 +13960,7 @@ ICCContactHelperObject.prototype = {
           break;
         default:
           if (DEBUG) {
-            debug("Unsupported field :" + field);
+            this.context.debug("Unsupported field :" + field);
           }
           onerror(CONTACT_ERR_FIELD_NOT_SUPPORTED);
           break;
@@ -13919,7 +14004,7 @@ ICCContactHelperObject.prototype = {
                                            gotIapCb, onerror);
     } else {
       if (DEBUG) {
-        debug("USIM PBR files in Type 3 format are not supported.");
+        this.context.debug("USIM PBR files in Type 3 format are not supported.");
       }
       onerror(CONTACT_ERR_REQUEST_NOT_SUPPORTED);
     }
@@ -13937,7 +14022,7 @@ ICCContactHelperObject.prototype = {
       let pbr = pbrs[contact.pbrIndex];
       if (!pbr) {
         if (DEBUG) {
-          debug(CONTACT_ERR_CANNOT_ACCESS_PHONEBOOK);
+          this.context.debug(CONTACT_ERR_CANNOT_ACCESS_PHONEBOOK);
         }
         onerror(CONTACT_ERR_CANNOT_ACCESS_PHONEBOOK);
         return;
@@ -14010,7 +14095,7 @@ ICCContactHelperObject.prototype = {
       this.updateContactFieldType2(pbr, contact, field, onsuccess, onerror);
     } else {
       if (DEBUG) {
-        debug("USIM PBR files in Type 3 format are not supported.");
+        this.context.debug("USIM PBR files in Type 3 format are not supported.");
       }
       onerror(CONTACT_ERR_REQUEST_NOT_SUPPORTED);
     }
@@ -14035,7 +14120,7 @@ ICCContactHelperObject.prototype = {
       ICCRecordHelper.updateANR(pbr, contact.recordId, anr, null, onsuccess, onerror);
     } else {
      if (DEBUG) {
-       debug("Unsupported field :" + field);
+       this.context.debug("Unsupported field :" + field);
      }
      onerror(CONTACT_ERR_FIELD_NOT_SUPPORTED);
     }
@@ -14085,7 +14170,7 @@ ICCContactHelperObject.prototype = {
         ICCRecordHelper.updateANR(pbr, recordId, anr, contact.recordId, onsuccess, onerror);
       } else {
         if (DEBUG) {
-          debug("Unsupported field :" + field);
+          this.context.debug("Unsupported field :" + field);
         }
         onerror(CONTACT_ERR_FIELD_NOT_SUPPORTED);
       }
@@ -14121,7 +14206,7 @@ ICCContactHelperObject.prototype = {
 
     let errorCb = function errorCb(errorMsg) {
       if (DEBUG) {
-        debug(errorMsg + " USIM field " + field);
+        this.context.debug(errorMsg + " USIM field " + field);
       }
       onerror(errorMsg);
     }.bind(this);
