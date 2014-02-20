@@ -778,47 +778,11 @@ function RadioInterfaceLayer() {
   gMessageManager.init(this);
   gRadioEnabledController.init(this);
 
-  let options = {
-    debug: debugPref,
-    cellBroadcastDisabled: false,
-    clirMode: RIL.CLIR_DEFAULT,
-    quirks: {
-      callstateExtraUint32:
-        libcutils.property_get("ro.moz.ril.callstate_extra_int", "false") === "true",
-      v5Legacy:
-        libcutils.property_get("ro.moz.ril.v5_legacy", "true") === "true",
-      requestUseDialEmergencyCall:
-        libcutils.property_get("ro.moz.ril.dial_emergency_call", "false") === "true",
-      simAppStateExtraFields:
-        libcutils.property_get("ro.moz.ril.simstate_extra_field", "false") === "true",
-      extraUint2ndCall:
-        libcutils.property_get("ro.moz.ril.extra_int_2nd_call", "false") == "true",
-      haveQueryIccLockRetryCount:
-        libcutils.property_get("ro.moz.ril.query_icc_count", "false") == "true",
-      sendStkProfileDownload:
-        libcutils.property_get("ro.moz.ril.send_stk_profile_dl", "false") == "true",
-      dataRegistrationOnDemand:
-        libcutils.property_get("ro.moz.ril.data_reg_on_demand", "false") == "true"
-    },
-    rilEmergencyNumbers: libcutils.property_get("ril.ecclist") ||
-                         libcutils.property_get("ro.ril.ecclist")
-  };
-
-  try {
-    options.cellBroadcastDisabled =
-      Services.prefs.getBoolPref(kPrefCellBroadcastDisabled);
-  } catch(e) {}
-
-  try {
-    options.clirMode = Services.prefs.getIntPref(kPrefClirModePreference);
-  } catch(e) {}
-
   let numIfaces = this.numRadioInterfaces;
   debug(numIfaces + " interfaces");
   this.radioInterfaces = [];
   for (let clientId = 0; clientId < numIfaces; clientId++) {
-    options.clientId = clientId;
-    this.radioInterfaces.push(new RadioInterface(options));
+    this.radioInterfaces.push(new RadioInterface(clientId));
   }
 
   // TODO: Move 'ril.data.*' settings handler to DataConnectionManager,
@@ -1050,7 +1014,7 @@ XPCOMUtils.defineLazyGetter(RadioInterfaceLayer.prototype,
   return 1;
 });
 
-function WorkerMessenger(radioInterface, options) {
+function WorkerMessenger(radioInterface) {
   // Initial owning attributes.
   this.radioInterface = radioInterface;
   this.tokenCallbackMap = {};
@@ -1058,14 +1022,9 @@ function WorkerMessenger(radioInterface, options) {
   // Add a convenient alias to |radioInterface.debug()|.
   this.debug = radioInterface.debug.bind(radioInterface);
 
-  if (DEBUG) this.debug("Starting RIL Worker[" + options.clientId + "]");
   this.worker = new ChromeWorker("resource://gre/modules/ril_worker.js");
   this.worker.onerror = this.onerror.bind(this);
   this.worker.onmessage = this.onmessage.bind(this);
-
-  this.send("setInitialOptions", options);
-
-  gSystemWorkerManager.registerRilWorker(options.clientId, this.worker);
 }
 WorkerMessenger.prototype = {
   radioInterface: null,
@@ -1076,6 +1035,49 @@ WorkerMessenger.prototype = {
 
   // Maps tokens we send out with messages to the message callback.
   tokenCallbackMap: null,
+
+  init: function init() {
+    let options = {
+      debug: DEBUG,
+      cellBroadcastDisabled: false,
+      clirMode: RIL.CLIR_DEFAULT,
+      quirks: {
+        callstateExtraUint32:
+          libcutils.property_get("ro.moz.ril.callstate_extra_int", "false") === "true",
+        v5Legacy:
+          libcutils.property_get("ro.moz.ril.v5_legacy", "true") === "true",
+        requestUseDialEmergencyCall:
+          libcutils.property_get("ro.moz.ril.dial_emergency_call", "false") === "true",
+        simAppStateExtraFields:
+          libcutils.property_get("ro.moz.ril.simstate_extra_field", "false") === "true",
+        extraUint2ndCall:
+          libcutils.property_get("ro.moz.ril.extra_int_2nd_call", "false") == "true",
+        haveQueryIccLockRetryCount:
+          libcutils.property_get("ro.moz.ril.query_icc_count", "false") == "true",
+        sendStkProfileDownload:
+          libcutils.property_get("ro.moz.ril.send_stk_profile_dl", "false") == "true",
+        dataRegistrationOnDemand:
+          libcutils.property_get("ro.moz.ril.data_reg_on_demand", "false") == "true"
+      },
+      rilEmergencyNumbers: libcutils.property_get("ril.ecclist") ||
+                           libcutils.property_get("ro.ril.ecclist")
+    };
+
+    try {
+      options.cellBroadcastDisabled =
+        Services.prefs.getBoolPref(kPrefCellBroadcastDisabled);
+    } catch(e) {}
+
+    try {
+      options.clirMode = Services.prefs.getIntPref(kPrefClirModePreference);
+    } catch(e) {}
+
+    if (DEBUG) this.debug("Starting RIL Worker");
+    let clientId = this.radioInterface.clientId;
+    options.clientId = clientId;
+    this.send("setInitialOptions", options);
+    gSystemWorkerManager.registerRilWorker(clientId, this.worker);
+  },
 
   onerror: function onerror(event) {
     if (DEBUG) {
@@ -1179,9 +1181,10 @@ WorkerMessenger.prototype = {
   }
 };
 
-function RadioInterface(options) {
-  this.clientId = options.clientId;
-  this.workerMessenger = new WorkerMessenger(this, options);
+function RadioInterface(aClientId) {
+  this.clientId = aClientId;
+  this.workerMessenger = new WorkerMessenger(this);
+  this.workerMessenger.init();
 
   this.dataCallSettings = {
     oldEnabled: false,
