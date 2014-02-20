@@ -5930,9 +5930,7 @@ nsContentUtils::IsUserFocusIgnored(nsINode* aNode)
       return true;
     }
     nsPIDOMWindow* win = aNode->OwnerDoc()->GetWindow();
-    if (win) {
-      aNode = win->GetFrameElementInternal();
-    }
+    aNode = win ? win->GetFrameElementInternal() : nullptr;
   }
 
   return false;
