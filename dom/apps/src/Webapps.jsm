@@ -46,6 +46,7 @@ Cu.import("resource://gre/modules/WebappOSUtils.jsm");
 Cu.import("resource://gre/modules/osfile.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
+Cu.import("resource://gre/modules/UserCustomization.jsm");
 
 #ifdef MOZ_WIDGET_GONK
 XPCOMUtils.defineLazyGetter(this, "libcutils", function() {
@@ -311,6 +312,7 @@ this.DOMApplicationRegistry = {
           if (app.appStatus >= Ci.nsIPrincipal.APP_STATUS_PRIVILEGED) {
             app.redirects = this.sanitizeRedirects(aResult.redirects);
           }
+          UserCustomization.register(aResult.manifest, app);
         });
       });
 
@@ -924,6 +926,7 @@ this.DOMApplicationRegistry = {
         this._registerSystemMessages(manifest, app);
         this._registerInterAppConnections(manifest, app);
         appsToRegister.push({ manifest: manifest, app: app });
+        UserCustomization.register(manifest, app);
       });
       this._registerActivitiesForApps(appsToRegister, aRunUpdate);
     });
@@ -1580,10 +1583,12 @@ this.DOMApplicationRegistry = {
     if (supportSystemMessages()) {
       if (aOldManifest) {
         this._unregisterActivities(aOldManifest, aApp);
+        UserCustomization.unregister(aOldManifest, aApp);
       }
       this._registerSystemMessages(aNewManifest, aApp);
       this._registerActivities(aNewManifest, aApp, true);
       this._registerInterAppConnections(aNewManifest, aApp);
+      UserCustomization.register(aNewManifest, app);
     } else {
       // Nothing else to do but notifying we're ready.
       this.notifyAppsRegistryReady();
@@ -3401,6 +3406,7 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
     if (supportSystemMessages()) {
       this._readManifests([{ id: id }]).then((aResult) => {
         this._unregisterActivities(aResult[0].manifest, app);
+        UserCustomization.unregister(aResult[0].manifest, app);
       });
     }
 

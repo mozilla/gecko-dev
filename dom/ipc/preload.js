@@ -29,6 +29,7 @@ const BrowserElementIsPreloaded = true;
   Cu.import("resource://gre/modules/SettingsDB.jsm");
   Cu.import("resource://gre/modules/SettingsQueue.jsm");
   Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+  Cu.import("resource://gre/modules/UserCustomization.jsm")
 
   Cc["@mozilla.org/appshell/appShellService;1"].getService(Ci["nsIAppShellService"]);
   Cc["@mozilla.org/appshell/window-mediator;1"].getService(Ci["nsIWindowMediator"]);
