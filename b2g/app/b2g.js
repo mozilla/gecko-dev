@@ -888,3 +888,6 @@ pref("browser.autofocus", false);
 
 // Enable wakelock
 pref("dom.wakelock.enabled", true);
+
+// Enable webapps add-ons
+pref("dom.apps.customization.enabled", true);
