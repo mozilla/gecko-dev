@@ -544,6 +544,11 @@ this.AppsUtils = {
 
     // Convert the binary hash data to a hex string.
     return [toHexString(hash.charCodeAt(i)) for (i in hash)].join("");
+  },
+
+  // Returns the hash for a JS object.
+  computeObjectHash: function(aObject) {
+    return this.computeHash(JSON.stringify(aObject));
   }
 }
 
