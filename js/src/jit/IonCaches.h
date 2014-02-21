@@ -530,6 +530,7 @@ class GetPropertyIC : public RepatchIonCache
     size_t numLocations_;
 
     bool allowGetters_ : 1;
+    bool monitoredResult_ : 1;
     bool hasTypedArrayLengthStub_ : 1;
     bool hasStrictArgumentsLengthStub_ : 1;
     bool hasNormalArgumentsLengthStub_ : 1;
@@ -539,7 +540,7 @@ class GetPropertyIC : public RepatchIonCache
     GetPropertyIC(RegisterSet liveRegs,
                   Register object, PropertyName *name,
                   TypedOrValueRegister output,
-                  bool allowGetters)
+                  bool allowGetters, bool monitoredResult)
       : liveRegs_(liveRegs),
         object_(object),
         name_(name),
@@ -547,6 +548,7 @@ class GetPropertyIC : public RepatchIonCache
         locationsIndex_(0),
         numLocations_(0),
         allowGetters_(allowGetters),
+        monitoredResult_(monitoredResult),
         hasTypedArrayLengthStub_(false),
         hasStrictArgumentsLengthStub_(false),
         hasNormalArgumentsLengthStub_(false),
@@ -569,6 +571,9 @@ class GetPropertyIC : public RepatchIonCache
     }
     bool allowGetters() const {
         return allowGetters_ && !idempotent();
+    }
+    bool monitoredResult() const {
+        return monitoredResult_;
     }
     bool hasTypedArrayLengthStub() const {
         return hasTypedArrayLengthStub_;

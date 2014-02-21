@@ -4602,7 +4602,8 @@ IonBuilder::createThisScripted(MDefinition *callee)
     //       and thus invalidation.
     MInstruction *getProto;
     if (!invalidatedIdempotentCache()) {
-        MGetPropertyCache *getPropCache = MGetPropertyCache::New(callee, cx->names().classPrototype);
+        MGetPropertyCache *getPropCache = MGetPropertyCache::New(callee, cx->names().classPrototype,
+                                                                 /* monitoredResult = */ false);
         getPropCache->setIdempotent();
         getProto = getPropCache;
     } else {
@@ -8432,8 +8433,14 @@ IonBuilder::getPropTryCache(bool *emitted, HandlePropertyName name, HandleId id,
             return true;
     }
 
+    if (accessGetter)
+        barrier = true;
+
+    if (needsToMonitorMissingProperties(types))
+        barrier = true;
+
     current->pop();
-    MGetPropertyCache *load = MGetPropertyCache::New(obj, name);
+    MGetPropertyCache *load = MGetPropertyCache::New(obj, name, barrier);
 
     // Try to mark the cache as idempotent. We only do this if JM is enabled
     // (its ICs are used to mark property reads as likely non-idempotent) or
@@ -8468,12 +8475,6 @@ IonBuilder::getPropTryCache(bool *emitted, HandlePropertyName name, HandleId id,
 
     if (load->isEffectful() && !resumeAfter(load))
         return false;
-
-    if (accessGetter)
-        barrier = true;
-
-    if (needsToMonitorMissingProperties(types))
-        barrier = true;
 
     MIRType rvalType = MIRTypeFromValueType(types->getKnownTypeTag());
     if (barrier || IsNullOrUndefined(rvalType))

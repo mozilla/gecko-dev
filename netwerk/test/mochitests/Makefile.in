@@ -7,6 +7,7 @@
 MOCHITEST_FILES = \
   partial_content.sjs \
   test_partially_cached_content.html \
+  test_uri_scheme.html \
   user_agent.sjs \
   test_user_agent_overrides.html \
   $(NULL)

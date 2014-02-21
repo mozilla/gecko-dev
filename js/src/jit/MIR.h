@@ -81,8 +81,6 @@ class MUse;
 class MIRGraph;
 class MResumePoint;
 
-static inline bool isOSRLikeValue (MDefinition *def);
-
 // Represents a use of a node.
 class MUse : public TempObject, public InlineListNode<MUse>
 {
@@ -5930,16 +5928,18 @@ class MGetPropertyCache
     CompilerRootPropertyName name_;
     bool idempotent_;
     bool allowGetters_;
+    bool monitoredResult_;
 
     CacheLocationList location_;
 
     InlinePropertyTable *inlinePropertyTable_;
 
-    MGetPropertyCache(MDefinition *obj, HandlePropertyName name)
+    MGetPropertyCache(MDefinition *obj, HandlePropertyName name, bool monitoredResult)
       : MUnaryInstruction(obj),
         name_(name),
         idempotent_(false),
         allowGetters_(false),
+        monitoredResult_(monitoredResult),
         location_(),
         inlinePropertyTable_(NULL)
     {
@@ -5954,8 +5954,9 @@ class MGetPropertyCache
   public:
     INSTRUCTION_HEADER(GetPropertyCache)
 
-    static MGetPropertyCache *New(MDefinition *obj, HandlePropertyName name) {
-        return new MGetPropertyCache(obj, name);
+    static MGetPropertyCache *New(MDefinition *obj, HandlePropertyName name,
+                                  bool monitoredResult) {
+        return new MGetPropertyCache(obj, name, monitoredResult);
     }
 
     InlinePropertyTable *initInlinePropertyTable(jsbytecode *pc) {
@@ -5987,6 +5988,9 @@ class MGetPropertyCache
     }
     bool allowGetters() const {
         return allowGetters_;
+    }
+    bool monitoredResult() const {
+        return monitoredResult_;
     }
     void setAllowGetters() {
         allowGetters_ = true;
@@ -8747,17 +8751,6 @@ MInstruction *MDefinition::toInstruction()
 {
     JS_ASSERT(!isPhi());
     return (MInstruction *)this;
-}
-
-static inline bool isOSRLikeValue (MDefinition *def) {
-    if (def->isOsrValue())
-        return true;
-
-    if (def->isUnbox())
-        if (def->getOperand(0)->isOsrValue())
-            return true;
-
-    return false;
 }
 
 typedef Vector<MDefinition *, 8, IonAllocPolicy> MDefinitionVector;
