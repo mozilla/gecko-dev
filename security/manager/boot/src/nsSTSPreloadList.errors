@@ -37,7 +37,6 @@ factor.cc: could not connect to host
 fatzebra.com.au: did not receive HSTS header
 fj.simple.com: did not receive HSTS header
 get.zenpayroll.com: did not receive HSTS header
-getcloak.com: max-age too low: 2678400
 glass.google.com: did not receive HSTS header
 gmail.com: did not receive HSTS header
 googlemail.com: did not receive HSTS header
@@ -107,7 +106,6 @@ www.cueup.com: did not receive HSTS header
 www.developer.mydigipass.com: could not connect to host
 www.dropcam.com: max-age too low: 2592000
 www.elanex.biz: did not receive HSTS header
-www.getcloak.com: max-age too low: 2678400
 www.gmail.com: did not receive HSTS header
 www.googlemail.com: did not receive HSTS header
 www.greplin.com: could not connect to host
