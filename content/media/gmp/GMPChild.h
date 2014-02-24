@@ -18,7 +18,7 @@ class GMPChild : public PGMPChild
 {
 public:
   GMPChild();
-  ~GMPChild();
+  virtual ~GMPChild();
 
   bool Init(const std::string& aPluginPath,
             base::ProcessHandle aParentProcessHandle,
