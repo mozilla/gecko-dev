@@ -8,7 +8,7 @@
 
 #include "GMPVideoHost.h"
 #include "GMPVideoPlaneImpl.h"
-#include "GMPVideoI420FrameImpl.h"
+#include "GMPVideoi420FrameImpl.h"
 #include "gmp-video-codec.h"
 #include "mozilla/ipc/Shmem.h"
 #include "GMPVideoEncodedFrameImpl.h"
