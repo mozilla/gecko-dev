@@ -973,7 +973,7 @@ void MediaDecoder::ResourceLoaded()
 void
 MediaDecoder::Decoded(GMPVideoi420Frame& decodedFrame)
 {
-  printf("XXXJOSH %s\n", __PRETTY_FUNCTION__);
+  printf("XXXJOSH MediaDecoder::Decoded\n");
   const uint8_t* buffer = decodedFrame.Buffer(kGMPYPlane);
   for (uint32_t i = 0; i < 1000; i++) {
     printf("%i", buffer[i]);
@@ -984,26 +984,26 @@ MediaDecoder::Decoded(GMPVideoi420Frame& decodedFrame)
 void
 MediaDecoder::ReceivedDecodedReferenceFrame(const uint64_t pictureId)
 {
-  printf("XXXJOSH %s\n", __PRETTY_FUNCTION__);
+  printf("XXXJOSH MediaDecoder::ReceivedDecodedReferenceFrame\n");
 }
 
 void
 MediaDecoder::ReceivedDecodedFrame(const uint64_t pictureId)
 {
-  printf("XXXJOSH %s\n", __PRETTY_FUNCTION__);
+  printf("XXXJOSH MediaDecoder::ReceivedDecodedFrame\n");
 }
 
 void
 MediaDecoder::InputDataExhausted()
 {
-  printf("XXXJOSH %s\n", __PRETTY_FUNCTION__);
+  printf("XXXJOSH MediaDecoder::InputDataExhausted\n");
 }
 
 void
 MediaDecoder::Encoded(GMPVideoEncodedFrame& aEncodedFrame,
                       const GMPCodecSpecificInfo& aCodecSpecificInfo)
 {
-  printf("XXXJOSH %s\n", __PRETTY_FUNCTION__);
+  printf("XXXJOSH MediaDecoder::Encoded\n");
   const uint8_t* buffer = aEncodedFrame.Buffer();
   for (uint32_t i = 0; i < 1000; i++) {
     printf("%i", buffer[i]);
