@@ -10,6 +10,8 @@
 #include "nsILineInputStream.h"
 #include "nsNetUtil.h"
 #include "nsCharSeparatedTokenizer.h"
+#include "nsThreadUtils.h"
+#include "nsIRunnable.h"
 
 namespace mozilla {
 namespace gmp {
@@ -104,14 +106,22 @@ void
 GMPParent::VideoDecoderDestroyed(GMPVideoDecoderParent* aDecoder)
 {
   mVideoDecoders.RemoveElement(aDecoder);
-  MaybeUnloadProcess();
+
+  // Recv__delete__ is on the stack, don't potentially destroy the top-level actor
+  // until after this has completed.
+  nsCOMPtr<nsIRunnable> event = NS_NewRunnableMethod(this, &GMPParent::MaybeUnloadProcess);
+  NS_DispatchToMainThread(event);
 }
 
 void
 GMPParent::VideoEncoderDestroyed(GMPVideoEncoderParent* aEncoder)
 {
   mVideoEncoders.RemoveElement(aEncoder);
-  MaybeUnloadProcess();
+
+  // Recv__delete__ is on the stack, don't potentially destroy the top-level actor
+  // until after this has completed.
+  nsCOMPtr<nsIRunnable> event = NS_NewRunnableMethod(this, &GMPParent::MaybeUnloadProcess);
+  NS_DispatchToMainThread(event);
 }
 
 bool

@@ -19,7 +19,6 @@ async protocol PGMPVideoDecoder
 {
   manager PGMP;
 child:
-  __delete__();
   InitDecode(GMPVideoCodec aCodecSettings,
              int32_t aCoreCount);
   Decode(GMPVideoEncodedFrameImpl aInputFrame,
@@ -31,6 +30,7 @@ child:
   Drain();
   DecodingComplete();
 parent:
+  __delete__();
   // We have to pass Shmem objects as individual parameters or serialization won't
   // work properly. Can't just serialize them like anything else. Stupid.
   Decoded(GMPVideoi420FrameImpl aDecodedFrame, Shmem yShmem, Shmem uShmem, Shmem vShmem);

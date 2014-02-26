@@ -145,6 +145,8 @@ GMPVideoDecoderChild::RecvDecodingComplete()
 
   mVideoHost.InvalidateShmem();
 
+  unused << Send__delete__(this);
+
   return true;
 }
 

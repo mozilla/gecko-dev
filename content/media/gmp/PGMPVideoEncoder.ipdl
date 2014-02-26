@@ -19,7 +19,6 @@ async protocol PGMPVideoEncoder
 {
   manager PGMP;
 child:
-  __delete__();
   InitEncode(GMPVideoCodec aCodecSettings,
              int32_t aNumberOfCores,
              uint32_t aMaxPayloadSize);
@@ -33,6 +32,7 @@ child:
   EncodingComplete();
 
 parent:
+  __delete__();
   // We have to pass Shmem objects as individual parameters or serialization won't
   // work properly. Can't just serialize them like anything else. Stupid.
   Encoded(GMPVideoEncodedFrameImpl aEncodedFrame,

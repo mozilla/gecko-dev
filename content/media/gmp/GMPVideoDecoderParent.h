@@ -55,7 +55,9 @@ private:
   virtual bool RecvReceivedDecodedReferenceFrame(const uint64_t& aPictureId) MOZ_OVERRIDE;
   virtual bool RecvReceivedDecodedFrame(const uint64_t& aPictureId) MOZ_OVERRIDE;
   virtual bool RecvInputDataExhausted() MOZ_OVERRIDE;
+  virtual bool Recv__delete__() MOZ_OVERRIDE;
 
+  bool mCanSendMessages;
   GMPParent* mPlugin;
   GMPDecoderCallback* mObserver;
   GMPVideoHostImpl mVideoHost;

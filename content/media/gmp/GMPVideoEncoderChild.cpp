@@ -140,6 +140,8 @@ GMPVideoEncoderChild::RecvEncodingComplete()
 
   mVideoEncoder->EncodingComplete();
 
+  unused << Send__delete__(this);
+
   return true;
 }
 

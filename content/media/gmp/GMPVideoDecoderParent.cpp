@@ -12,7 +12,8 @@ namespace mozilla {
 namespace gmp {
 
 GMPVideoDecoderParent::GMPVideoDecoderParent(GMPParent *aPlugin)
-: mPlugin(aPlugin),
+: mCanSendMessages(true),
+  mPlugin(aPlugin),
   mObserver(nullptr),
   mVideoHost(this)
 {
@@ -48,7 +49,7 @@ GMPVideoDecoderParent::InitDecode(const GMPVideoCodec& aCodecSettings,
                                   GMPDecoderCallback* aCallback,
                                   int32_t aCoreCount)
 {
-  if (!mPlugin) {
+  if (!mCanSendMessages) {
     NS_WARNING("Trying to use an invalid GMP video decoder!");
     return GMPVideoGenericErr;
   }
@@ -73,7 +74,7 @@ GMPVideoDecoderParent::Decode(GMPVideoEncodedFrame& aInputFrame,
                               const GMPCodecSpecificInfo& aCodecSpecificInfo,
                               int64_t aRenderTimeMs)
 {
-  if (!mPlugin) {
+  if (!mCanSendMessages) {
     NS_WARNING("Trying to use an invalid GMP video decoder!");
     return GMPVideoGenericErr;
   }
@@ -102,7 +103,7 @@ GMPVideoDecoderParent::Decode(GMPVideoEncodedFrame& aInputFrame,
 GMPVideoErr
 GMPVideoDecoderParent::Reset()
 {
-  if (!mPlugin) {
+  if (!mCanSendMessages) {
     NS_WARNING("Trying to use an invalid GMP video decoder!");
     return GMPVideoGenericErr;
   }
@@ -119,7 +120,7 @@ GMPVideoDecoderParent::Reset()
 GMPVideoErr
 GMPVideoDecoderParent::Drain()
 {
-  if (!mPlugin) {
+  if (!mCanSendMessages) {
     NS_WARNING("Trying to use an invalid GMP video decoder!");
     return GMPVideoGenericErr;
   }
@@ -136,23 +137,18 @@ GMPVideoDecoderParent::Drain()
 void
 GMPVideoDecoderParent::DecodingComplete()
 {
-  if (!mPlugin) {
+  if (!mCanSendMessages) {
     NS_WARNING("Trying to use an invalid GMP video decoder!");
     return;
   }
+
+  mCanSendMessages = false;
 
   mObserver = nullptr;
 
   mVideoHost.InvalidateShmem();
 
-  //XXXJOSH
-  // After we send this the process can get shut down from our side,
-  // before the child has processed it. We need the child to process it
-  // so that the child can release any outstanding shared memory.
   unused << SendDecodingComplete();
-
-  mPlugin->VideoDecoderDestroyed(this);
-  mPlugin = nullptr;
 }
 
 bool
@@ -161,11 +157,6 @@ GMPVideoDecoderParent::RecvDecoded(const GMPVideoi420FrameImpl& aDecodedFrame,
                                    Shmem& aUShmem,
                                    Shmem& aVShmem)
 {
-  if (!mPlugin) {
-    NS_WARNING("Trying to use a destroyed GMP API object!");
-    return false;
-  }
-
   if (!mObserver) {
     return false;
   }
@@ -190,11 +181,6 @@ GMPVideoDecoderParent::RecvDecoded(const GMPVideoi420FrameImpl& aDecodedFrame,
 bool
 GMPVideoDecoderParent::RecvReceivedDecodedReferenceFrame(const uint64_t& aPictureId)
 {
-  if (!mPlugin) {
-    NS_WARNING("Trying to use a destroyed GMP API object!");
-    return false;
-  }
-
   if (!mObserver) {
     return false;
   }
@@ -207,11 +193,6 @@ GMPVideoDecoderParent::RecvReceivedDecodedReferenceFrame(const uint64_t& aPictur
 bool
 GMPVideoDecoderParent::RecvReceivedDecodedFrame(const uint64_t& aPictureId)
 {
-  if (!mPlugin) {
-    NS_WARNING("Trying to use a destroyed GMP API object!");
-    return false;
-  }
-
   if (!mObserver) {
     return false;
   }
@@ -224,17 +205,22 @@ GMPVideoDecoderParent::RecvReceivedDecodedFrame(const uint64_t& aPictureId)
 bool
 GMPVideoDecoderParent::RecvInputDataExhausted()
 {
-  if (!mPlugin) {
-    NS_WARNING("Trying to use a destroyed GMP API object!");
-    return false;
-  }
-
   if (!mObserver) {
     return false;
   }
 
   mObserver->InputDataExhausted();
 
+  return true;
+}
+
+bool
+GMPVideoDecoderParent::Recv__delete__()
+{
+  if (mPlugin) {
+    mPlugin->VideoDecoderDestroyed(this);
+    mPlugin = nullptr;
+  }
   return true;
 }
 

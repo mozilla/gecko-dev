@@ -52,7 +52,9 @@ private:
   virtual bool RecvEncoded(const GMPVideoEncodedFrameImpl& aEncodedFrame,
                            Shmem& aEncodedFrameBuffer,
                            const GMPCodecSpecificInfo& aCodecSpecificInfo) MOZ_OVERRIDE;
+  virtual bool Recv__delete__() MOZ_OVERRIDE;
 
+  bool mCanSendMessages;
   GMPParent* mPlugin;
   GMPEncoderCallback* mObserver;
   GMPVideoHostImpl mVideoHost;

@@ -12,7 +12,8 @@ namespace mozilla {
 namespace gmp {
 
 GMPVideoEncoderParent::GMPVideoEncoderParent(GMPParent *aPlugin)
-: mPlugin(aPlugin),
+: mCanSendMessages(true),
+  mPlugin(aPlugin),
   mObserver(nullptr),
   mVideoHost(this)
 {
@@ -49,7 +50,7 @@ GMPVideoEncoderParent::InitEncode(const GMPVideoCodec& aCodecSettings,
                                   int32_t aNumberOfCores,
                                   uint32_t aMaxPayloadSize)
 {
-  if (!mPlugin) {
+  if (!mCanSendMessages) {
     NS_WARNING("Trying to use an invalid GMP video encoder!");
     return GMPVideoGenericErr;
   }
@@ -73,7 +74,7 @@ GMPVideoEncoderParent::Encode(GMPVideoi420Frame& aInputFrame,
                               const GMPCodecSpecificInfo& aCodecSpecificInfo,
                               const std::vector<GMPVideoFrameType>* aFrameTypes)
 {
-  if (!mPlugin) {
+  if (!mCanSendMessages) {
     NS_WARNING("Trying to use an invalid GMP video encoder!");
     return GMPVideoGenericErr;
   }
@@ -106,7 +107,7 @@ GMPVideoEncoderParent::Encode(GMPVideoi420Frame& aInputFrame,
 GMPVideoErr
 GMPVideoEncoderParent::SetChannelParameters(uint32_t aPacketLoss, uint32_t aRTT)
 {
-  if (!mPlugin) {
+  if (!mCanSendMessages) {
     NS_WARNING("Trying to use an invalid GMP video encoder!");
     return GMPVideoGenericErr;
   }
@@ -123,7 +124,7 @@ GMPVideoEncoderParent::SetChannelParameters(uint32_t aPacketLoss, uint32_t aRTT)
 GMPVideoErr
 GMPVideoEncoderParent::SetRates(uint32_t aNewBitRate, uint32_t aFrameRate)
 {
-  if (!mPlugin) {
+  if (!mCanSendMessages) {
     NS_WARNING("Trying to use an invalid GMP video encoder!");
     return GMPVideoGenericErr;
   }
@@ -140,7 +141,7 @@ GMPVideoEncoderParent::SetRates(uint32_t aNewBitRate, uint32_t aFrameRate)
 GMPVideoErr
 GMPVideoEncoderParent::SetPeriodicKeyFrames(bool aEnable)
 {
-  if (!mPlugin) {
+  if (!mCanSendMessages) {
     NS_WARNING("Trying to use an invalid GMP video encoder!");
     return GMPVideoGenericErr;
   }
@@ -157,23 +158,18 @@ GMPVideoEncoderParent::SetPeriodicKeyFrames(bool aEnable)
 void
 GMPVideoEncoderParent::EncodingComplete()
 {
-  if (!mPlugin) {
+  if (!mCanSendMessages) {
     NS_WARNING("Trying to use an invalid GMP video encoder!");
     return;
   }
+
+  mCanSendMessages = false;
 
   mObserver = nullptr;
 
   mVideoHost.InvalidateShmem();
 
-  //XXXJOSH
-  // After we send this the process can get shut down from our side,
-  // before the child has processed it. We need the child to process it
-  // so that the child can release any outstanding shared memory.
   unused << SendEncodingComplete();
-
-  mPlugin->VideoEncoderDestroyed(this);
-  mPlugin = nullptr;
 }
 
 bool
@@ -181,11 +177,6 @@ GMPVideoEncoderParent::RecvEncoded(const GMPVideoEncodedFrameImpl& aEncodedFrame
                                    Shmem& aEncodedFrameBuffer,
                                    const GMPCodecSpecificInfo& aCodecSpecificInfo)
 {
-  if (!mPlugin) {
-    NS_WARNING("Trying to use a destroyed GMP API object!");
-    return false;
-  }
-
   if (!mObserver) {
     return false;
   }
@@ -204,6 +195,16 @@ GMPVideoEncoderParent::RecvEncoded(const GMPVideoEncodedFrameImpl& aEncodedFrame
 
   f->Destroy();
 
+  return true;
+}
+
+bool
+GMPVideoEncoderParent::Recv__delete__()
+{
+  if (mPlugin) {
+    mPlugin->VideoEncoderDestroyed(this);
+    mPlugin = nullptr;
+  }
   return true;
 }
 
