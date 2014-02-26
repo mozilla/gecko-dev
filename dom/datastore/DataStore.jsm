@@ -308,6 +308,12 @@ this.DataStore.prototype = {
       return;
     }
 
+    // If this message is not for this DataStore, let's ignore it.
+    if (aMessage.data.owner != this._owner ||
+        aMessage.data.store != this._name) {
+      return;
+    }
+
     let self = this;
 
     this.retrieveRevisionId(
@@ -317,7 +323,8 @@ this.DataStore.prototype = {
           return;
         }
 
-        let event = new self._window.DataStoreChangeEvent('change', aMessage.data);
+        let event = new self._window.DataStoreChangeEvent('change',
+                                                          aMessage.data.message);
         self.__DOM_IMPL__.dispatchEvent(event);
       }
     );
