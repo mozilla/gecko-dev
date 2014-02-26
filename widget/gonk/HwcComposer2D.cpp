@@ -271,6 +271,7 @@ HwcComposer2D::PrepareLayerList(Layer* aLayer,
                           transform * aGLWorldTransform,
                           clip,
                           bufferRect,
+                          state.YFlipped(),
                           &(hwcLayer.sourceCrop),
                           &(hwcLayer.displayFrame)))
     {
