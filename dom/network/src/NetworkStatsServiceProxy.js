@@ -43,6 +43,10 @@ NetworkStatsServiceProxy.prototype = {
             " " + aTimeStamp + " " + aRxBytes + " " + aTxBytes);
     }
 
+    if (aCallback) {
+      aCallback = aCallback.notify;
+    }
+
     NetworkStatsService.saveAppStats(aAppId, aNetwork, aTimeStamp,
                                      aRxBytes, aTxBytes, aCallback);
   },
