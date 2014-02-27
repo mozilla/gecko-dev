@@ -46,9 +46,13 @@ typedef enum {
 typedef GMPErr (*GMPInitFunc)(void);
 
 // GMPGetAPI
-// Called when host wants an API object. API object's lifetime is defined by the API in question.
-// Host API object can be deleted by plugin whenever, host does not keep a reference.
-typedef GMPErr (*GMPGetAPIFunc)(const char* aAPIName, void* aHostAPI, void** aPluginApi);
+// aAPIName: Name of API being requested.
+// aHostAPI: A host API object. Owned by host, becomes invalid whenever the API object
+//           being requested from the plugin becomes invalid on the host side. Plugin
+//           should not attempt to delete.
+// aPluginAPI: Plugin API object being requested from plugin. Ownership defined by the
+//             API in question.
+typedef GMPErr (*GMPGetAPIFunc)(const char* aAPIName, void* aHostAPI, void** aPluginAPI);
 
 // GMPShutdown
 // Called once before exiting process (unloading library).

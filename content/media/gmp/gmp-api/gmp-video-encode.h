@@ -55,6 +55,8 @@ public:
   //
   // Input:
   // - codecSettings : Codec settings
+  // - aCallback: Subclass should retain reference to it until EncodingComplete
+  //              is called. Do not attempt to delete it, host retains ownership.
   // - numberOfCores : Number of cores available for the encoder
   // - maxPayloadSize : The maximum size each payload is allowed
   //                    to have. Usually MTU - overhead.

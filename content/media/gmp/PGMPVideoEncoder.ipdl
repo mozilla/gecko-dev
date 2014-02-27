@@ -34,7 +34,7 @@ child:
 parent:
   __delete__();
   // We have to pass Shmem objects as individual parameters or serialization won't
-  // work properly. Can't just serialize them like anything else. Stupid.
+  // work properly. Can't just serialize them like anything else.
   Encoded(GMPVideoEncodedFrameImpl aEncodedFrame,
           Shmem aEncodedFrameBuffer,
           GMPCodecSpecificInfo aCodecSpecificInfo);
