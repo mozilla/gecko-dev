@@ -11377,7 +11377,9 @@ let ICCIOHelper = {
       }
       debug(errorMsg);
     }
-    onerror(requestError);
+    if (options.onerror) {
+      options.onerror(requestError);
+    }
   },
 };
 ICCIOHelper[ICC_COMMAND_SEEK] = null;
@@ -11725,7 +11727,7 @@ let ICCRecordHelper = {
                                      dataWriter: dataWriter,
                                      callback: onsuccess,
                                      onerror: onerror});
- },
+  },
 
   /**
    * Cache EF_ANR record size.
