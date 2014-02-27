@@ -1657,12 +1657,11 @@ ContainerState::FindFixedPosFrameForLayerData(const nsIFrame* aAnimatedGeometryR
     // Never attach any fixed-pos metadata to inactive layers, it's pointless!
     return nullptr;
   }
-  
+
   nsPresContext* presContext = mContainerFrame->PresContext();
   nsIFrame* viewport = presContext->PresShell()->GetRootFrame();
   const nsIFrame* result = nullptr;
   nsRect displayPort;
-
 
   if (viewport == aAnimatedGeometryRoot && aDisplayItemFixedToViewport &&
       nsLayoutUtils::ViewportHasDisplayPort(presContext, &displayPort)) {
@@ -1677,6 +1676,10 @@ ContainerState::FindFixedPosFrameForLayerData(const nsIFrame* aAnimatedGeometryR
       if (nsLayoutUtils::IsFixedPosFrameInDisplayPort(f, &displayPort)) {
         result = f;
         break;
+      }
+      if (f == mContainerReferenceFrame) {
+        // The metadata will go on an ancestor layer if necessary.
+        return nullptr;
       }
     }
     if (!result) {
@@ -1714,10 +1717,6 @@ ContainerState::AdjustLayerDataForFixedPositioning(const nsIFrame* aFixedPosFram
     }
     *aVisibleRegion = newVisibleRegion;
   }
-    }
-    if (f == mContainerReferenceFrame) {
-      // The metadata will go on an ancestor layer if necessary.
-      return nullptr;
 }
 
 void
