@@ -642,6 +642,7 @@ handle_channel_layout(cubeb_stream * stm,  WAVEFORMATEX ** mix_format, const cub
   }
 
   /* Otherwise, the hardware supports more than two channels. */
+  WAVEFORMATEX hw_mixformat = **mix_format;
 
   /* The docs say that GetMixFormat is always of type WAVEFORMATEXTENSIBLE [1],
    * so the reinterpret_cast below should be safe. In practice, this is not
@@ -688,8 +689,10 @@ handle_channel_layout(cubeb_stream * stm,  WAVEFORMATEX ** mix_format, const cub
     CoTaskMemFree(*mix_format);
     *mix_format = closest;
   } else if (hr == AUDCLNT_E_UNSUPPORTED_FORMAT) {
-    /* Not supported, no suggestion, there is a bug somewhere. */
-    assert(false && "Format not supported, and no suggestion from WASAPI.");
+    /* Not supported, no suggestion. This should not happen, but it does in the
+     * field with some sound cards. We restore the mix format, and let the rest
+     * of the code figure out the right conversion path. */
+    **mix_format = hw_mixformat;
   } else if (hr == S_OK) {
     LOG("Requested format accepted by WASAPI.");
   }
