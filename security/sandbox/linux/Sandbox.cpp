@@ -30,6 +30,8 @@
 #endif
 #include "seccomp_filter.h"
 
+#include "nsThreadUtils.h"
+
 #include "linux_seccomp.h"
 #ifdef MOZ_LOGGING
 #define FORCE_PR_LOG 1
