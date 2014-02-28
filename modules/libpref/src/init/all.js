@@ -4635,3 +4635,6 @@ pref("urlclassifier.download_allow_table", "");
 
 // Turn off Spatial navigation by default.
 pref("snav.enabled", false);
+
+// disable mozsample size for now
+pref("image.mozsamplesize.enabled", false);
