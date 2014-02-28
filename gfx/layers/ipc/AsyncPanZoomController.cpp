@@ -668,17 +668,8 @@ nsEventStatus AsyncPanZoomController::OnTouchEnd(const MultiTouchInput& aEvent) 
   case PANNING_LOCKED_X:
   case PANNING_LOCKED_Y:
     {
-      // Make a local copy of the tree manager pointer and check if it's not
-      // null before calling HandleOverscroll(). This is necessary because
-      // Destroy(), which nulls out mTreeManager, could be called concurrently.
-      APZCTreeManager* treeManagerLocal = mTreeManager;
-      if (treeManagerLocal) {
-        if (!treeManagerLocal->FlushRepaintsForOverscrollHandoffChain()) {
-          NS_WARNING("Overscroll handoff chain was empty during panning! This should not be the case.");
-          // Graceful handling of error condition
-          FlushRepaintForOverscrollHandoff();
-        }
-      }
+      ReentrantMonitorAutoEnter lock(mMonitor);
+      RequestContentRepaint();
     }
     mX.EndTouch();
     mY.EndTouch();
@@ -1275,12 +1266,6 @@ void AsyncPanZoomController::ScheduleComposite() {
   if (mCompositorParent) {
     mCompositorParent->ScheduleRenderOnCompositorThread();
   }
-}
-
-void AsyncPanZoomController::FlushRepaintForOverscrollHandoff() {
-  ReentrantMonitorAutoEnter lock(mMonitor);
-  RequestContentRepaint();
-  UpdateSharedCompositorFrameMetrics();
 }
 
 void AsyncPanZoomController::RequestContentRepaint() {

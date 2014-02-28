@@ -292,8 +292,6 @@ public:
    */
   bool HasScrollgrab() const { return mFrameMetrics.mHasScrollgrab; }
 
-  void FlushRepaintForOverscrollHandoff();
-
 protected:
   /**
    * Helper method for touches beginning. Sets everything up for panning and any
