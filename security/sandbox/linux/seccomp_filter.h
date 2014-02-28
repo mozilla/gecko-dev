@@ -13,8 +13,8 @@
 /* Architecture-specific frequently used syscalls */
 #if defined(__arm__)
 #define SECCOMP_WHITELIST_ARCH_HIGH \
-  ALLOW_SYSCALL(msgget), \
-  ALLOW_SYSCALL(recv), \
+  ALLOW_SYSCALL(recvmsg), \
+  ALLOW_SYSCALL(sendmsg), \
   ALLOW_SYSCALL(mmap2),
 #elif defined(__i386__)
 #define SECCOMP_WHITELIST_ARCH_HIGH \
@@ -22,7 +22,8 @@
   ALLOW_SYSCALL(mmap2),
 #elif defined(__x86_64__)
 #define SECCOMP_WHITELIST_ARCH_HIGH \
-  ALLOW_SYSCALL(msgget),
+  ALLOW_SYSCALL(recvmsg), \
+  ALLOW_SYSCALL(sendmsg),
 #else
 #define SECCOMP_WHITELIST_ARCH_HIGH
 #endif
@@ -113,10 +114,12 @@
   ALLOW_SYSCALL(clock_gettime), \
   ALLOW_SYSCALL(getpid), \
   ALLOW_SYSCALL(rt_sigreturn), \
-  ALLOW_SYSCALL(epoll_wait),
+  ALLOW_SYSCALL(epoll_wait), \
+  ALLOW_SYSCALL(poll),
 
 #define SECCOMP_WHITELIST_B2G_LOW \
   ALLOW_SYSCALL(getdents64), \
+  ALLOW_SYSCALL(epoll_ctl), \
   ALLOW_SYSCALL(sched_setscheduler),
 
 #else
@@ -153,7 +156,6 @@
   ALLOW_SYSCALL(fstat), \
   ALLOW_SYSCALL(readlink), \
   ALLOW_SYSCALL(getsockname), \
-  ALLOW_SYSCALL(recvmsg), \
   ALLOW_SYSCALL(uname), \
   /* duplicate rt_sigaction in SECCOMP_WHITELIST_PROFILING */ \
   ALLOW_SYSCALL(rt_sigaction), \
@@ -253,7 +255,6 @@
   ALLOW_SYSCALL(unlink), \
   ALLOW_SYSCALL(fsync), \
   ALLOW_SYSCALL(socketpair), \
-  ALLOW_SYSCALL(sendmsg), \
   /* Should remove all of the following in the future, if possible */ \
   ALLOW_SYSCALL(getpriority), \
   ALLOW_SYSCALL(setpriority), \
