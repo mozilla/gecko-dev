@@ -30,7 +30,7 @@
 #include "mozilla/layers/PCompositorChild.h"
 #include "mozilla/net/NeckoChild.h"
 #include "mozilla/Preferences.h"
-#if defined(MOZ_CONTENT_SANDBOX) && defined(XP_UNIX) && !defined(XP_MACOSX)
+#if defined(XP_LINUX)
 #include "mozilla/Sandbox.h"
 #endif
 #include "mozilla/unused.h"
@@ -610,14 +610,14 @@ ContentChild::RecvSetProcessPrivileges(const ChildPrivileges& aPrivs)
   ChildPrivileges privs = (aPrivs == PRIVILEGES_DEFAULT) ?
                           GeckoChildProcessHost::DefaultChildPrivileges() :
                           aPrivs;
+#if defined(XP_LINUX)
+  // SetCurrentProcessSandbox includes SetCurrentProcessPrivileges.
+  // But we may want to move the sandbox initialization somewhere else
+  // at some point; see bug 880808.
+  SetCurrentProcessSandbox(privs);
+#else
   // If this fails, we die.
   SetCurrentProcessPrivileges(privs);
-#if defined(MOZ_CONTENT_SANDBOX) && defined(XP_UNIX) && !defined(XP_MACOSX)
-  // SetCurrentProcessSandbox should be moved close to process initialization
-  // time if/when possible. SetCurrentProcessPrivileges should probably be
-  // moved as well. Right now this is set ONLY if we receive the
-  // RecvSetProcessPrivileges message. See bug 880808.
-  SetCurrentProcessSandbox();
 #endif
   return true;
 }
