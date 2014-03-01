@@ -4,3 +4,5 @@
 
 browser.jar:
   content/browser/loop/panel.html                          (content/panel.html)
+  content/browser/loop/wrapper.js                          (content/wrapper.js)
+  content/browser/loop/panel.js                            (content/panel.js)
