@@ -38,6 +38,7 @@ MOCHITEST_FILES = \
 		file_bug462076_3.html \
 		file_bug508537_1.html \
 		file_document_write_1.html \
+		file_fragment_handling_during_load.html \
 		file_static_and_dynamic_1.html \
 		frame0.html \
 		frame1.html \
