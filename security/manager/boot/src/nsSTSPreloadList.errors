@@ -21,6 +21,7 @@ chrome.google.com: did not receive HSTS header
 cloud.google.com: did not receive HSTS header
 code.google.com: did not receive HSTS header
 codereview.chromium.org: did not receive HSTS header
+conformal.com: could not connect to host
 crate.io: did not receive HSTS header
 crowdcurity.com: did not receive HSTS header
 crypto.is: did not receive HSTS header
@@ -77,6 +78,7 @@ platform.lookout.com: could not connect to host
 play.google.com: did not receive HSTS header
 plus.google.com: did not receive HSTS header
 plus.sandbox.google.com: did not receive HSTS header
+prodpad.com: did not receive HSTS header
 profiles.google.com: did not receive HSTS header
 rapidresearch.me: did not receive HSTS header
 sah3.net: could not connect to host
