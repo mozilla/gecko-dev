@@ -11,6 +11,7 @@ PARALLEL_DIRS += [
     'dirprovider',
     'downloads',
     'feeds',
+    'loop',
     'places',
     'preferences',
     'privatebrowsing',
