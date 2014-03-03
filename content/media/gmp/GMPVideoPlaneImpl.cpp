@@ -66,12 +66,12 @@ GMPPlaneImpl::ReceiveShmem(ipc::Shmem& aShmem)
 
 GMPVideoErr
 GMPPlaneImpl::MaybeResize(int32_t aNewSize) {
-  if (!mHost) {
-    return GMPVideoGenericErr;
-  }
-
   if (aNewSize <= mAllocatedSize) {
     return GMPVideoNoErr;
+  }
+
+  if (!mHost) {
+    return GMPVideoGenericErr;
   }
 
   ipc::Shmem* new_mem = new ipc::Shmem();
@@ -142,8 +142,8 @@ GMPPlaneImpl::Copy(const GMPPlane& aPlane)
     memcpy(mBuffer->get<uint8_t>(), planeimpl.mBuffer->get<uint8_t>(), planeimpl.mSize);
   }
 
-  mStride = planeimpl.mStride;
   mSize = planeimpl.mSize;
+  mStride = planeimpl.mStride;
 
   return GMPVideoNoErr;
 }
@@ -151,16 +151,15 @@ GMPPlaneImpl::Copy(const GMPPlane& aPlane)
 GMPVideoErr
 GMPPlaneImpl::Copy(int32_t aSize, int32_t aStride, const uint8_t* aBuffer)
 {
-  if (!aBuffer) {
-    return GMPVideoGenericErr;
-  }
-
   GMPVideoErr err = MaybeResize(aSize);
   if (err != GMPVideoNoErr) {
     return err;
   }
 
-  memcpy(mBuffer->get<uint8_t>(), aBuffer, aSize);
+  if (aBuffer && mBuffer) {
+    memcpy(mBuffer->get<uint8_t>(), aBuffer, aSize);
+  }
+
   mSize = aSize;
   mStride = aStride;
 

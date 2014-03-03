@@ -175,19 +175,24 @@ GMPVideoErr
 GMPVideoi420FrameImpl::CopyFrame(const GMPVideoi420Frame& aFrame)
 {
   auto& f = static_cast<const GMPVideoi420FrameImpl&>(aFrame);
-  GMPVideoErr err = CreateFrame(f.AllocatedSize(kGMPYPlane),
-                                f.Buffer(kGMPYPlane),
-                                f.AllocatedSize(kGMPUPlane),
-                                f.Buffer(kGMPUPlane),
-                                f.AllocatedSize(kGMPVPlane),
-                                f.Buffer(kGMPVPlane),
-                                f.mWidth, f.mHeight,
-                                f.Stride(kGMPYPlane), f.Stride(kGMPUPlane),
-                                f.Stride(kGMPVPlane));
+
+  GMPVideoErr err = mYPlane.Copy(f.mYPlane);
   if (err != GMPVideoNoErr) {
     return err;
   }
 
+  err = mUPlane.Copy(f.mUPlane);
+  if (err != GMPVideoNoErr) {
+    return err;
+  }
+
+  err = mVPlane.Copy(f.mVPlane);
+  if (err != GMPVideoNoErr) {
+    return err;
+  }
+
+  mWidth = f.mWidth;
+  mHeight = f.mHeight;
   mTimestamp = f.mTimestamp;
   mRenderTime_ms = f.mRenderTime_ms;
 

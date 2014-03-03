@@ -188,7 +188,11 @@ GMPVideoEncoderParent::RecvEncoded(const GMPVideoEncodedFrameImpl& aEncodedFrame
     return false;
   }
 
-  f->CopyFrame(aEncodedFrame);
+  GMPVideoErr err = f->CopyFrame(aEncodedFrame);
+  if (err != GMPVideoNoErr) {
+    return false;
+  }
+
   f->ReceiveShmem(aEncodedFrameBuffer);
 
   mObserver->Encoded(*f, aCodecSpecificInfo);

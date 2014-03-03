@@ -103,7 +103,12 @@ GMPVideoDecoderChild::RecvDecode(const GMPVideoEncodedFrameImpl& inputFrame,
   // We need a mutable copy of the decoded frame, into which we can inject
   // the shared memory backing.
   auto frame = new GMPVideoEncodedFrameImpl();
-  frame->CopyFrame(inputFrame);
+
+  GMPVideoErr err = frame->CopyFrame(inputFrame);
+  if (err != GMPVideoNoErr) {
+    return false;
+  }
+
   frame->ReceiveShmem(aEncodedFrameShmem);
 
   mVideoDecoder->Decode(*frame, missingFrames, codecSpecificInfo, renderTimeMs);

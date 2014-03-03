@@ -111,9 +111,12 @@ GMPVideoEncodedFrameImpl::CopyFrame(const GMPVideoEncodedFrame& aFrame)
 {
   auto& f = static_cast<const GMPVideoEncodedFrameImpl&>(aFrame);
 
-  // Don't copy host, that should have been set properly on object creation via host.
   if (f.mBuffer) {
-    if (CreateEmptyFrame(f.mSize) == GMPVideoNoErr && mBuffer) {
+    GMPVideoErr err = CreateEmptyFrame(f.mSize);
+    if (err != GMPVideoNoErr) {
+      return err;
+    }
+    if (mBuffer) {
       memcpy(mBuffer->get<uint8_t>(), f.mBuffer->get<uint8_t>(), mSize);
     }
   }
@@ -122,7 +125,9 @@ GMPVideoEncodedFrameImpl::CopyFrame(const GMPVideoEncodedFrame& aFrame)
   mTimeStamp = f.mTimeStamp;
   mCaptureTime_ms = f.mCaptureTime_ms;
   mFrameType = f.mFrameType;
+  mSize = f.mSize;
   mCompleteFrame = f.mCompleteFrame;
+  // Don't copy host, that should have been set properly on object creation via host.
 
   return GMPVideoNoErr;
 }

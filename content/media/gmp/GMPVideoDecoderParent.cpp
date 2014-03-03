@@ -168,7 +168,11 @@ GMPVideoDecoderParent::RecvDecoded(const GMPVideoi420FrameImpl& aDecodedFrame,
     return false;
   }
 
-  f->CopyFrame(aDecodedFrame);
+  GMPVideoErr err = f->CopyFrame(aDecodedFrame);
+  if (err != GMPVideoNoErr) {
+    return false;
+  }
+
   f->ReceiveShmem(aYShmem, aUShmem, aVShmem);
 
   mObserver->Decoded(*f);
