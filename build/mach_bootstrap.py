@@ -55,7 +55,6 @@ SEARCH_PATHS = [
     'testing/mozbase/mozsystemmonitor',
     'testing/mozbase/mozinfo',
     'testing/mozbase/moztest',
-    'testing/mozbase/mozversion',
     'testing/mozbase/manifestdestiny',
     'xpcom/idl-parser',
 ]
@@ -79,6 +78,7 @@ MACH_MODULES = [
     'testing/xpcshell/mach_commands.py',
     'tools/docs/mach_commands.py',
     'tools/mercurial/mach_commands.py',
+    'tools/community/mach_commands.py',
     'tools/mach_commands.py',
 ]
 
@@ -117,7 +117,7 @@ CATEGORIES = {
     'disabled': {
         'short': 'Disabled',
         'long': 'These commands are unavailable for your current context, run "mach <command>" to see why.',
-        'priority': 0,
+        'priority': 0
     }
 }
 
