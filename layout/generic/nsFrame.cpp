@@ -4804,7 +4804,7 @@ nsIFrame::InvalidateFrameWithRect(const nsRect& aRect, uint32_t aDisplayItemKey)
 /*static*/ uint8_t nsIFrame::sLayerIsPrerenderedDataKey;
 
 bool
-nsIFrame::TryUpdateTransformOnly()
+nsIFrame::TryUpdateTransformOnly(Layer** aLayerResult)
 {
   Layer* layer = FrameLayerBuilder::GetDedicatedLayer(
     this, nsDisplayItem::TYPE_TRANSFORM);
@@ -4840,6 +4840,7 @@ nsIFrame::TryUpdateTransformOnly()
     return false;
   }
   layer->SetBaseTransformForNextTransaction(transform3d);
+  *aLayerResult = layer;
   return true;
 }
 
