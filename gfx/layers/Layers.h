@@ -907,6 +907,13 @@ public:
   // layout code.  To add an animation to this layer, use AddAnimation.
   void SetAnimations(const AnimationArray& aAnimations);
 
+  // These are a parallel to AddAnimation and clearAnimations, except
+  // they add pending animations that apply only when the next
+  // transaction is begun.  (See also
+  // SetBaseTransformForNextTransaction.)
+  Animation* AddAnimationForNextTransaction();
+  void ClearAnimationsForNextTransaction();
+
   /**
    * CONSTRUCTION PHASE ONLY
    * If a layer is "fixed position", this determines which point on the layer
@@ -1369,6 +1376,8 @@ protected:
   float mPostYScale;
   gfx3DMatrix mEffectiveTransform;
   AnimationArray mAnimations;
+  // See mPendingTransform above.
+  nsAutoPtr<AnimationArray> mPendingAnimations;
   InfallibleTArray<AnimData> mAnimationData;
   float mOpacity;
   gfxContext::GraphicsOperator mMixBlendMode;

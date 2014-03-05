@@ -198,6 +198,8 @@ Layer::AddAnimation()
 {
   MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) AddAnimation", this));
 
+  MOZ_ASSERT(!mPendingAnimations, "should have called ClearAnimations first");
+
   Animation* anim = mAnimations.AppendElement();
 
   Mutated();
@@ -207,6 +209,8 @@ Layer::AddAnimation()
 void
 Layer::ClearAnimations()
 {
+  mPendingAnimations = nullptr;
+
   if (mAnimations.IsEmpty() && mAnimationData.IsEmpty()) {
     return;
   }
@@ -215,6 +219,28 @@ Layer::ClearAnimations()
   mAnimations.Clear();
   mAnimationData.Clear();
   Mutated();
+}
+
+Animation*
+Layer::AddAnimationForNextTransaction()
+{
+  MOZ_ASSERT(mPendingAnimations,
+             "should have called ClearAnimationsForNextTransaction first");
+
+  Animation* anim = mPendingAnimations->AppendElement();
+
+  return anim;
+}
+
+void
+Layer::ClearAnimationsForNextTransaction()
+{
+  // Ensure we have a non-null mPendingAnimations to mark a future clear.
+  if (!mPendingAnimations) {
+    mPendingAnimations = new AnimationArray;
+  }
+
+  mPendingAnimations->Clear();
 }
 
 static nsCSSValueList*
@@ -652,6 +678,13 @@ Layer::ApplyPendingUpdatesForThisTransaction()
     Mutated();
   }
   mPendingTransform = nullptr;
+
+  if (mPendingAnimations) {
+    MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) PendingUpdatesForThisTransaction", this));
+    mPendingAnimations->SwapElements(mAnimations);
+    mPendingAnimations = nullptr;
+    Mutated();
+  }
 }
 
 const float
