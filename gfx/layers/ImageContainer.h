@@ -26,6 +26,7 @@
 #include "nsSize.h"                     // for nsIntSize
 #include "nsTArray.h"                   // for nsTArray
 #include "mozilla/Atomics.h"
+#include "mozilla/WeakPtr.h"
 #include "nsThreadUtils.h"
 
 #ifndef XPCOM_GLUE_AVOID_NSPR
@@ -344,7 +345,7 @@ struct RemoteImageData {
  * updates the shared state to point to the new image and the old image
  * is immediately released (not true in Normal or Asynchronous modes).
  */
-class ImageContainer {
+class ImageContainer : public SupportsWeakPtr<ImageContainer> {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ImageContainer)
 public:
 
