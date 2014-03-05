@@ -2,17 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-body {
-  min-width: 330px;
-  max-width: 100%;
-  min-height: 330px;
-  max-height: 100%;
+html {
+  background:none;
+  padding:0px;
+  font:message-box;
+  background-color:#D9E5F0;
 }
 
-#menu {
-  position: absolute;
-  top: 5px;
-  color: gray;
+body {
+  border:0px;
+  overflow:auto;
+  margin:0px; 
+  width:100%;
+  min-height:100%;
+  
+
 }
 
 .warningBackground {
@@ -50,11 +54,65 @@ body {
 }
 
 #menu .selected {
- color: blue;
+  background-color: #EFF4F8;
+  border:1px solid #CCD6DE; 
 }
 
-#refreshdiv {
-  top: 5px;
-  position: absolute;
-  right: 30px;
+table thead th {
+  padding:10px;
+  text-align:left;
+}
+
+table tbody tr {
+  border-bottom:2px solid gray;
+}
+
+table td {
+  
+  padding:0px;
+  border-bottom:1px solid gray;
+  padding:10px;
+  margin:0px;
+}
+
+table tbody tr:hover {
+  background-color:#D9E5F0;
+}
+
+div#sidebar {
+  height:auto;
+  min-height:100%;
+  float:left;
+  width:15%;
+  margin:2.5%;
+} 
+
+div#http,div#dns,div#sockets,div#websockets {
+  float:right;
+  width:69%;
+  min-height:100%;
+  height:auto;
+  padding:2.5%;
+  margin:2.5%;
+  background-color:#E8EFF6;
+  border:1px solid #C7D3DE;
+}
+
+div#menu button {
+  clear:both;
+  background:none;
+  border:none;
+  content:left;
+  padding:10px;
+  display:block;
+  margin:0px 0px 5px 0px;
+  width:100%;
+  cursor:pointer;
+  text-align:left;
+}
+
+
+div#menu button:hover {
+  background-color: #EFF4F8;
+  border:1px solid #CCD6DE;
 }
