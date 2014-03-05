@@ -543,7 +543,7 @@ private:
   nsresult FinishedSomeDecoding(eShutdownIntent intent = eShutdownIntent_Done,
                                 DecodeRequest* request = nullptr);
 
-  void DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
+  bool DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
                                     gfxContext *aContext,
                                     GraphicsFilter aFilter,
                                     const gfxMatrix &aUserSpaceToImageSpace,
