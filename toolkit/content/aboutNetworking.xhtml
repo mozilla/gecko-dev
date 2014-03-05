@@ -14,7 +14,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
     <head>
         <title>&aboutNetworking.title;</title>
-        <link rel="stylesheet" href="chrome://global/skin/about.css" type="text/css" />
+        
         <link rel="stylesheet" href="chrome://mozapps/skin/aboutNetworking.css" type="text/css" />
         <script type="application/javascript;version=1.7" src="chrome://global/content/aboutNetworking.js" />
     </head>
@@ -26,19 +26,26 @@
                 <button id="confpref">&aboutNetworking.ok;</button>
             </div>
         </div>
-        <div id="menu">
-            <button class="selected" value="http">&aboutNetworking.http;</button>
-            <button value="sockets">&aboutNetworking.sockets;</button>
-            <button value="dns">&aboutNetworking.dns;</button>
-            <button value="websockets">&aboutNetworking.websockets;</button>
-        </div>
-        <div id="refreshdiv">
-            <button id="refreshButton">&aboutNetworking.refresh;</button>
-            <input id="autorefcheck" type="checkbox" name="Autorefresh" />&aboutNetworking.autoRefresh;
-        </div>
+
+        <div id="sidebar">
+	    <div id="menu">		
+            	<button class="selected" value="http">&aboutNetworking.http;</button>
+            	<button value="sockets">&aboutNetworking.sockets;</button>
+            	<button value="dns">&aboutNetworking.dns;</button>
+            	<button value="websockets">&aboutNetworking.websockets;</button>
+	    </div>
+	    	
+	    <div id="refreshdiv">
+          	<button id="refreshButton">&aboutNetworking.refresh;</button>
+		<br/>
+            	<input id="autorefcheck" type="checkbox" name="Autorefresh" />&aboutNetworking.autoRefresh;
+            </div>	
+        
+	</div>
+       
 
         <div id="http" class="tab active">
-            <table border="1" width="100%">
+            <table width="100%">
                 <thead>
                     <tr>
                         <th>&aboutNetworking.hostname;</th>
@@ -54,7 +61,7 @@
         </div>
 
         <div id="sockets" class="tab">
-            <table border="1" width="100%">
+            <table width="100%">
                 <thead>
                     <tr>
                         <th>&aboutNetworking.host;</th>
@@ -70,7 +77,7 @@
         </div>
 
         <div id="dns" class="tab">
-            <table border="1" width="100%">
+            <table width="100%">
                 <thead>
                     <tr>
                         <th>&aboutNetworking.hostname;</th>
@@ -84,7 +91,7 @@
         </div>
 
         <div id="websockets" class="tab">
-            <table border="1" width="100%">
+            <table width="100%">
                 <thead>
                     <tr>
                         <th>&aboutNetworking.hostname;</th>
