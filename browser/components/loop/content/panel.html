@@ -4,20 +4,48 @@
    - file, You can obtain one at http://mozilla.org/MPL/2.0/.  -->
 <html>
   <head>
+    <meta charset="utf-8">
     <title>Loop Panel</title>
+    <link rel="stylesheet" type="text/css" href="css/common.css">
+    <link rel="stylesheet" type="text/css" href="css/panel.css">
+  </head>
+  <body onload="loop.panel.init();">
+    <!-- XXX (n1k0): i10n tbd later as these are temporary texts. -->
+    <div id="default-view" class="share generate-url">
+      <div class="description">
+        <p>Get a link to share with a friend to Video Chat.</p>
+      </div>
+      <div class="action">
+        <div class="messages"></div>
+        <p class="invite">
+          <a class="get-url btn btn-success" href="">Get a call url</a>
+        </p>
+        <p class="result hide">
+          <input id="call-url" type="url" readonly>
+          <a class="get-url btn btn-info" href="">Renew</a>
+        </p>
+      </div>
+    </div>
+
+    <!-- Error notification template -->
+    <template id="error-notification">
+      <div class="alert alert-danger">
+        <button class="close"
+                onclick="var el=this.parentNode;el.classList.add('fade-out');setTimeout(el.remove.bind(el), 500);"></button>
+        <p class="message"></p>
+      </div>
+    </template>
+
     <!-- XXX (adam): Should we import our own version of Webl10n?
          What we have here is a copy of the version from pdf.js
          (which I can't seem to reference directly, so we've copied
          it here). At the very least, if we're using the same
          library as pdf.js, we should be referring to the same
          file. -->
-    <script type="text/javascript" src="libs/l10n.js"></script>
-    <script type="text/javascript" src="libs/zepto.min.js"></script>
-    <script type="text/javascript" src="libs/lodash.min.js"></script>
-    <script type="text/javascript" src="libs/backbone-min.js"></script>
-  </head>
-  <body>
-    <!-- Intentionally not localisable as this is a temporary page -->
-    <p>Soon you'll be able to get a url to share with your friends and chat with them</p>
+    <!-- XXX (n1k0): commented out for now as it triggers a "FirefoxCom is
+         missing" error (to be investigated). -->
+    <!-- <script type="text/javascript" src="libs/l10n.js"></script> -->
+    <script type="text/javascript" src="js/dom.js"></script>
+    <script type="text/javascript" src="js/panel.js"></script>
   </body>
 </html>

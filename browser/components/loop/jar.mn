@@ -3,4 +3,13 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 browser.jar:
-  content/browser/loop/panel.html                          (content/panel.html)
+  content/browser/loop/panel.html           (content/panel.html)
+  content/browser/loop/css/common.css       (content/css/common.css)
+  content/browser/loop/css/panel.css        (content/css/panel.css)
+  content/browser/loop/css/conversation.css (content/css/conversation.css)
+  content/browser/loop/img/icon_32.png      (content/img/icon_32.png)
+  content/browser/loop/img/icon_64.png      (content/img/icon_64.png)
+  content/browser/loop/libs/l10n.js         (content/libs/l10n.js)
+  content/browser/loop/js/dom.js            (content/js/dom.js)
+  content/browser/loop/js/panel.js          (content/js/panel.js)
+
