@@ -55,6 +55,13 @@ public:
   virtual void Initialize(const Data& aData);
 
   virtual void RenderLayer();
+
+  virtual void ClearCachedResources()
+  {
+    if (mCanvasClient) {
+      mCanvasClient->Clear();
+    }
+  }
   
   virtual void FillSpecificAttributes(SpecificLayerAttributes& aAttrs)
   {
