@@ -153,6 +153,7 @@ function getTabActorForUrl(aClient, aUrl) {
 }
 
 function getAddonActorForUrl(aClient, aUrl) {
+  info("Get addon actor for URL: " + aUrl);
   let deferred = promise.defer();
 
   aClient.listAddons(aResponse => {
@@ -660,3 +661,14 @@ function filterTraces(aPanel, f) {
   return Array.filter(traces, f);
 }
 
+function attachAddonActorForUrl(aClient, aUrl) {
+  let deferred = promise.defer();
+
+  getAddonActorForUrl(aClient, aUrl).then(aGrip => {
+    aClient.attachAddon(aGrip.actor, aResponse => {
+      deferred.resolve([aGrip, aResponse]);
+    });
+  });
+
+  return deferred.promise;
+}
