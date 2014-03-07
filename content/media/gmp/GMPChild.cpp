@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include "gmp-video-decode.h"
 #include "gmp-video-encode.h"
+#include "GMPPlatform.h"
 
 namespace mozilla {
 namespace gmp {
@@ -74,7 +75,14 @@ GMPChild::LoadPluginLibrary(const std::string& aPluginPath)
   if (!initFunc) {
     return false;
   }
-  if (initFunc() != GMPNoErr) {
+
+  auto platformAPI = new GMPPlatformAPI();
+  if (!platformAPI) {
+    return false;
+  }
+  InitPlatformAPI(*platformAPI);
+
+  if (initFunc(platformAPI) != GMPNoErr) {
     return false;
   }
 

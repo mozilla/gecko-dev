@@ -168,6 +168,8 @@ GMPVideoDecoderParent::RecvDecoded(const GMPVideoi420FrameImpl& aDecodedFrame,
     return false;
   }
 
+  f->SetHost(&mVideoHost);
+
   GMPVideoErr err = f->CopyFrame(aDecodedFrame);
   if (err != GMPVideoNoErr) {
     return false;

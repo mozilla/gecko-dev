@@ -31,19 +31,17 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef GMP_GENERAL_h_
-#define GMP_GENERAL_h_
+#ifndef GMP_ENTRYPOINTS_h_
+#define GMP_ENTRYPOINTS_h_
 
-typedef enum {
-  GMPNoErr = 0,
-  GMPGenericErr = 1
-} GMPErr;
+#include "gmp-errors.h"
+#include "gmp-platform.h"
 
 /* C functions exposed by Gecko Media Plugin shared library. */
 
 // GMPInit
 // Called once after plugin library is loaded, before GMPGetAPI or GMPShutdown are called.
-typedef GMPErr (*GMPInitFunc)(void);
+typedef GMPErr (*GMPInitFunc)(const GMPPlatformAPI* aPlatformAPI);
 
 // GMPGetAPI
 // aAPIName: Name of API being requested.
@@ -58,4 +56,4 @@ typedef GMPErr (*GMPGetAPIFunc)(const char* aAPIName, void* aHostAPI, void** aPl
 // Called once before exiting process (unloading library).
 typedef void   (*GMPShutdownFunc)(void);
 
-#endif // GMP_GENERAL_h_
+#endif // GMP_ENTRYPOINTS_h_

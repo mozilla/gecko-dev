@@ -8,7 +8,7 @@
 
 #include "nsString.h"
 #include "mozilla/gmp/PGMPChild.h"
-#include "gmp-general.h"
+#include "gmp-entrypoints.h"
 #include "prlink.h"
 
 namespace mozilla {

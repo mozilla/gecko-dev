@@ -104,6 +104,8 @@ GMPVideoDecoderChild::RecvDecode(const GMPVideoEncodedFrameImpl& inputFrame,
   // the shared memory backing.
   auto frame = new GMPVideoEncodedFrameImpl();
 
+  frame->SetHost(&mVideoHost);
+
   GMPVideoErr err = frame->CopyFrame(inputFrame);
   if (err != GMPVideoNoErr) {
     return false;

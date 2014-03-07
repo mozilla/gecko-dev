@@ -11,7 +11,9 @@ XPIDL_SOURCES += [
 ]
 
 EXPORTS += [
-    'gmp-api/gmp-general.h',
+    'gmp-api/gmp-entrypoints.h',
+    'gmp-api/gmp-errors.h',
+    'gmp-api/gmp-platform.h',
     'gmp-api/gmp-video-codec.h',
     'gmp-api/gmp-video-decode.h',
     'gmp-api/gmp-video-encode.h',
@@ -24,6 +26,7 @@ EXPORTS += [
     'GMPChild.h',
     'GMPMessageUtils.h',
     'GMPParent.h',
+    'GMPPlatform.h',
     'GMPProcessChild.h',
     'GMPProcessParent.h',
     'GMPService.h',
@@ -41,6 +44,7 @@ EXPORTS += [
 UNIFIED_SOURCES += [
     'GMPChild.cpp',
     'GMPParent.cpp',
+    'GMPPlatform.cpp',
     'GMPProcessChild.cpp',
     'GMPProcessParent.cpp',
     'GMPService.cpp',
