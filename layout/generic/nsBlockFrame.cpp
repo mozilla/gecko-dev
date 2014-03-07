@@ -48,6 +48,7 @@
 #include "nsRenderingContext.h"
 #include "TextOverflow.h"
 #include "nsIFrameInlines.h"
+#include "nsTextFrame.h"
 
 #ifdef IBMBIDI
 #include "nsBidiPresUtils.h"
@@ -4772,9 +4773,9 @@ ShouldPutNextSiblingOnNewLine(nsIFrame* aLastFrame)
   if (type == nsGkAtoms::brFrame) {
     return true;
   }
-  // XXX the IS_DIRTY check is a wallpaper for bug 822910.
+  // XXX the TEXT_OFFSETS_NEED_FIXING check is a wallpaper for bug 822910.
   if (type == nsGkAtoms::textFrame &&
-      !(aLastFrame->GetStateBits() & NS_FRAME_IS_DIRTY)) {
+      !(aLastFrame->GetStateBits() & TEXT_OFFSETS_NEED_FIXING)) {
     return aLastFrame->HasTerminalNewline() &&
       aLastFrame->StyleText()->NewlineIsSignificant();
   }
