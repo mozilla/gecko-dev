@@ -110,6 +110,12 @@
   height: @tabs_height@;
 }
 
+/* Hack for bug 965550 */
+.tabs-scrollbox > .arrowscrollbox-scrollbox > .scrollbox-innerbox {
+  -moz-padding-start: calc(2 * @tabs_scrollarrow_width@);
+  -moz-margin-start: calc(-2 * @tabs_scrollarrow_width@);
+}
+
 #tabs-container[viewstate="snapped"] {
   visibility: hidden;
 }
@@ -221,10 +227,6 @@ documenttab[selected] .documenttab-selection:-moz-locale-dir(rtl) {
 }
 
 /* Start UI ----------------------------------------------------------------- */
-
-#content-viewport[startpage] .active-tab-notificationbox {
-  padding-bottom: @toolbar_height@;
-}
 
 #startui-page {
   overflow-x: scroll;
@@ -523,6 +525,11 @@ documenttab[selected] .documenttab-selection:-moz-locale-dir(rtl) {
 #navbar:not([hiding]):not([visible]) > #toolbar-overlay {
   visibility: hidden;
 }
+
+#content-viewport[navbar="visible"] .active-tab-notificationbox:not([count="0"]):not([notificationsVisible="false"]) {
+  padding-bottom: @toolbar_height@;
+}
+
 
 /* Progress meter ---------------------------------------------------------- */
 
