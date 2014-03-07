@@ -1532,6 +1532,12 @@ bool GrGpuGL::onReadPixels(GrRenderTarget* target,
                 top += rowBytes;
                 bottom -= rowBytes;
             }
+            if (needSwizzle && (height % 2 != 0)) {
+                // We're an odd height, so the middle row doesn't
+                // need swapping as it stays in the centre, but
+                // it still needs to be swizzled
+                swizzleRow(top, tightRowBytes);
+            }
         }
     } else {
         GrAssert(readDst != buffer);

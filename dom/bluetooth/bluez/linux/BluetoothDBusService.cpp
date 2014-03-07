@@ -675,6 +675,7 @@ GetProperty(DBusMessageIter aIter, Properties* aPropertyTypes,
   }
 
   if (i == aPropertyTypeLen) {
+    BT_LOGR("unknown property: %s", property);
     return false;
   }
 
@@ -1559,6 +1560,11 @@ EventFilter(DBusConnection* aConn, DBusMessage* aMsg, void* aData)
                         sAdapterProperties,
                         ArrayLength(sAdapterProperties));
 
+    if (v.type() == BluetoothValue::T__None) {
+      BT_WARNING("PropertyChanged event couldn't be parsed.");
+      return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+    }
+
     BluetoothNamedValue& property = v.get_ArrayOfBluetoothNamedValue()[0];
     if (property.name().EqualsLiteral("Discovering")) {
       bool isDiscovering = property.value();
@@ -1579,6 +1585,11 @@ EventFilter(DBusConnection* aConn, DBusMessage* aMsg, void* aData)
                         errorStr,
                         sDeviceProperties,
                         ArrayLength(sDeviceProperties));
+
+    if (v.type() == BluetoothValue::T__None) {
+      BT_WARNING("PropertyChanged event couldn't be parsed.");
+      return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+    }
 
     BluetoothNamedValue& property = v.get_ArrayOfBluetoothNamedValue()[0];
     if (property.name().EqualsLiteral("Paired")) {
