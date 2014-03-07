@@ -287,7 +287,7 @@
 /* ::::: bookmark buttons ::::: */
 
 toolbarbutton.bookmark-item,
-#personal-bookmarks[cui-areatype="toolbar"] > #bookmarks-toolbar-placeholder {
+#personal-bookmarks[cui-areatype="toolbar"]:not([overflowedItem=true]) > #bookmarks-toolbar-placeholder {
   margin: 0;
   padding: 2px 3px;
 }
@@ -362,6 +362,10 @@ toolbarpaletteitem[place="palette"] > #personal-bookmarks > #bookmarks-toolbar-p
   background-image: url("chrome://browser/skin/places/bookmarks-notification-finish.png");
   animation: animation-bookmarkAdded 800ms;
   animation-timing-function: ease, ease, ease;
+}
+
+#bookmarks-menu-button[notification="finish"] {
+  pointer-events: none;
 }
 
 #bookmarks-menu-button[notification="finish"] > .toolbarbutton-menubutton-dropmarker > .dropmarker-icon {

@@ -465,7 +465,7 @@ Toolbox.prototype = {
   fireCustomKey: function(toolId) {
     let toolDefinition = gDevTools.getToolDefinition(toolId);
 
-    if (toolDefinition.onkey && 
+    if (toolDefinition.onkey &&
         ((this.currentToolId === toolId) ||
           (toolId == "webconsole" && this.splitConsole))) {
       toolDefinition.onkey(this.getCurrentPanel(), this);
@@ -543,6 +543,7 @@ Toolbox.prototype = {
                                              this.doc, this._requisition);
     let container = this.doc.getElementById("toolbox-buttons");
     buttons.forEach(container.appendChild.bind(container));
+    this.setToolboxButtonsVisibility();
   },
 
   /**
@@ -560,6 +561,57 @@ Toolbox.prototype = {
 
     this._togglePicker = this.highlighterUtils.togglePicker.bind(this.highlighterUtils);
     this._pickerButton.addEventListener("command", this._togglePicker, false);
+  },
+
+  /**
+   * Return all toolbox buttons (command buttons, plus any others that were
+   * added manually).
+   */
+  get toolboxButtons() {
+    // White-list buttons that can be toggled to prevent adding prefs for
+    // addons that have manually inserted toolbarbuttons into DOM.
+    return [
+      "command-button-pick",
+      "command-button-splitconsole",
+      "command-button-responsive",
+      "command-button-paintflashing",
+      "command-button-tilt",
+      "command-button-scratchpad"
+    ].map(id => {
+      let button = this.doc.getElementById(id);
+      // Some buttons may not exist inside of Browser Toolbox
+      if (!button) {
+        return false;
+      }
+      return {
+        id: id,
+        button: button,
+        label: button.getAttribute("tooltiptext"),
+        visibilityswitch: "devtools." + id + ".enabled"
+      }
+    }).filter(button=>button);
+  },
+
+  /**
+   * Ensure the visibility of each toolbox button matches the
+   * preference value.  Simply hide buttons that are preffed off.
+   */
+  setToolboxButtonsVisibility: function() {
+    this.toolboxButtons.forEach(buttonSpec => {
+      let {visibilityswitch, id, button}=buttonSpec;
+      let on = true;
+      try {
+        on = Services.prefs.getBoolPref(visibilityswitch);
+      } catch (ex) { }
+
+      if (button) {
+        if (on) {
+          button.removeAttribute("hidden");
+        } else {
+          button.setAttribute("hidden", "true");
+        }
+      }
+    });
   },
 
   /**
@@ -1041,27 +1093,17 @@ Toolbox.prototype = {
    * Returns a promise that resolves when the fronts are initialized
    */
   initInspector: function() {
-    let deferred = promise.defer();
-
-    if (!this._inspector) {
-      this._inspector = InspectorFront(this._target.client, this._target.form);
-      this._inspector.getWalker().then(walker => {
-        this._walker = walker;
+    if (!this._initInspector) {
+      this._initInspector = Task.spawn(function*() {
+        this._inspector = InspectorFront(this._target.client, this._target.form);
+        this._walker = yield this._inspector.getWalker();
         this._selection = new Selection(this._walker);
         if (this.highlighterUtils.isRemoteHighlightable) {
-          this._inspector.getHighlighter().then(highlighter => {
-            this._highlighter = highlighter;
-            deferred.resolve();
-          });
-        } else {
-          deferred.resolve();
+          this._highlighter = yield this._inspector.getHighlighter();
         }
-      });
-    } else {
-      deferred.resolve();
+      }.bind(this));
     }
-
-    return deferred.promise;
+    return this._initInspector;
   },
 
   /**
