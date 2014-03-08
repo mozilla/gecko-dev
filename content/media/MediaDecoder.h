@@ -191,6 +191,9 @@ destroying the MediaDecoder object.
 #include "AbstractMediaDecoder.h"
 #include "necko-config.h"
 
+#include "gmp-video-decode.h"
+#include "gmp-video-encode.h"
+
 class nsIStreamListener;
 class nsIPrincipal;
 class nsITimer;
@@ -227,7 +230,9 @@ static const uint32_t FRAMEBUFFER_LENGTH_MAX = 16384;
 #endif
 
 class MediaDecoder : public nsIObserver,
-                     public AbstractMediaDecoder
+                     public AbstractMediaDecoder,
+                     public GMPDecoderCallback,
+                     public GMPEncoderCallback
 {
 public:
   class DecodedStreamGraphListener;
@@ -248,6 +253,16 @@ public:
 
   MediaDecoder();
   virtual ~MediaDecoder();
+
+  // GMPDecoderCallback
+  virtual void Decoded(GMPVideoi420Frame* decodedFrame) MOZ_OVERRIDE;
+  virtual void ReceivedDecodedReferenceFrame(const uint64_t pictureId) MOZ_OVERRIDE;
+  virtual void ReceivedDecodedFrame(const uint64_t pictureId) MOZ_OVERRIDE;
+  virtual void InputDataExhausted() MOZ_OVERRIDE;
+
+  // GMPEncoderCallback
+  virtual void Encoded(GMPVideoEncodedFrame* aEncodedFrame,
+                       const GMPCodecSpecificInfo& aCodecSpecificInfo) MOZ_OVERRIDE;
 
   // Reset the decoder and notify the media element that
   // server connection is closed.
@@ -1039,6 +1054,9 @@ protected:
   // The wrapper |RestrictedAccessMonitor| restricts use to the getter
   // function rather than the object itself.
 private:
+  GMPVideoDecoder* mGMPVD;
+  GMPVideoEncoder* mGMPVE;
+
   class RestrictedAccessMonitor
   {
   public:

@@ -1,0 +1,26 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+%{C++
+class GMPVideoDecoder;
+class GMPVideoEncoder;
+class GMPVideoHost;
+%}
+
+[ptr] native GMPVideoDecoder(GMPVideoDecoder);
+[ptr] native GMPVideoEncoder(GMPVideoEncoder);
+[ptr] native GMPVideoHost(GMPVideoHost);
+
+[scriptable, uuid(59C3E1B1-E6F0-4D92-A139-E30E188CE52F)]
+interface mozIGeckoMediaPluginService : nsISupports
+{
+  // Returns a video decoder API object that should support VP8.
+  GMPVideoDecoder getGMPVideoDecoderVP8(out GMPVideoHost outVideoHost);
+
+  // Returns a video encoder API object that should support VP8.
+  GMPVideoEncoder getGMPVideoEncoderVP8(out GMPVideoHost outVideoHost);
+};

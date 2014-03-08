@@ -24,6 +24,14 @@
 #include <algorithm>
 #include "MediaShutdownManager.h"
 
+#include "mozIGeckoMediaPluginService.h"
+#include "nsContentCID.h"
+#include "nsServiceManagerUtils.h"
+
+#include "gmp-video-host.h"
+#include "gmp-video-frame-i420.h"
+#include "gmp-video-frame-encoded.h"
+
 #ifdef MOZ_WMF
 #include "WMFDecoder.h"
 #endif
@@ -142,6 +150,15 @@ void MediaDecoder::SetDormantIfNecessary(bool aDormant)
 
 void MediaDecoder::Pause()
 {
+  if (mGMPVD) {
+    mGMPVD->DecodingComplete();
+    mGMPVD = nullptr;
+  }
+  if (mGMPVE) {
+    mGMPVE->EncodingComplete();
+    mGMPVE = nullptr;
+  }
+
   MOZ_ASSERT(NS_IsMainThread());
   ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
   if ((mPlayState == PLAY_STATE_LOADING && mIsDormant)  || mPlayState == PLAY_STATE_SEEKING || mPlayState == PLAY_STATE_ENDED) {
@@ -445,6 +462,97 @@ bool MediaDecoder::Init(MediaDecoderOwner* aOwner)
   mOwner = aOwner;
   mVideoFrameContainer = aOwner->GetVideoFrameContainer();
   MediaShutdownManager::Instance().Register(this);
+
+  // Everything from here on in this method is test code for GMP.
+
+  nsCOMPtr<mozIGeckoMediaPluginService> mps = do_GetService("@mozilla.org/gecko-media-plugin-service;1");
+  if (!mps) {
+    return false;
+  }
+
+  GMPVideoCodec codec;
+  memset(&codec, 0, sizeof(codec));
+  codec.mCodecType = kGMPVideoCodecVP8;
+
+  GMPCodecSpecificInfo codecSpecificInfo;
+  memset(&codecSpecificInfo, 0, sizeof(codecSpecificInfo));
+  codecSpecificInfo.mCodecType = kGMPVideoCodecVP8;
+
+  GMPVideoHost* videoHost = nullptr;
+
+  // First encode something
+
+  nsresult rv = mps->GetGMPVideoEncoderVP8(&videoHost, &mGMPVE);
+  if (NS_FAILED(rv) || !mGMPVE || !videoHost) {
+    return false;
+  }
+
+  GMPVideoErr err = mGMPVE->InitEncode(codec, this, 1, 1);
+  if (err != GMPVideoNoErr) {
+    return false;
+  }
+
+  GMPVideoFrame* f = nullptr;
+  err = videoHost->CreateFrame(kGMPI420VideoFrame, &f);
+  if (err != GMPVideoNoErr) {
+    return false;
+  }
+  GMPVideoi420Frame* i420Frame = static_cast<GMPVideoi420Frame*>(f);
+
+  err = i420Frame->CreateEmptyFrame(100, 100, 100, 100, 100);
+  if (err != GMPVideoNoErr) {
+    return false;
+  }
+
+  uint8_t* buffer = i420Frame->Buffer(kGMPYPlane);
+  if (!buffer) {
+    printf("No buffer for i420 frame!\n");
+    return false;
+  }
+  memset(buffer, 0x3, 1000);
+
+  std::vector<GMPVideoFrameType> foo;
+  err = mGMPVE->Encode(i420Frame, codecSpecificInfo, &foo);
+  i420Frame->Destroy();
+  if (err != GMPVideoNoErr) {
+    return false;
+  }
+
+  // Now decode something
+
+  rv = mps->GetGMPVideoDecoderVP8(&videoHost, &mGMPVD);
+  if (NS_FAILED(rv) || !mGMPVD || !videoHost) {
+    return false;
+  }
+
+  err = mGMPVD->InitDecode(codec, this, 1);
+  if (err != GMPVideoNoErr) {
+    return false;
+  }
+
+  GMPVideoEncodedFrame* encFrame = nullptr;
+  err = videoHost->CreateEncodedFrame(&encFrame);
+  if (err != GMPVideoNoErr) {
+    return false;
+  }
+
+  err = encFrame->CreateEmptyFrame(1000);
+  if (err != GMPVideoNoErr) {
+    return false;
+  }
+
+  buffer = encFrame->Buffer();
+  if (!buffer) {
+    printf("No buffer for encoded frame!\n");
+    return false;
+  }
+  memset(buffer, 0x2, 1000);
+
+  err = mGMPVD->Decode(encFrame, false, codecSpecificInfo);
+  if (err != GMPVideoNoErr) {
+    return false;
+  }
+
   return true;
 }
 
@@ -859,6 +967,46 @@ void MediaDecoder::ResourceLoaded()
   if (mOwner) {
     mOwner->ResourceLoaded();
   }
+}
+
+void
+MediaDecoder::Decoded(GMPVideoi420Frame* decodedFrame)
+{
+  if (!decodedFrame) {
+    return;
+  }
+
+  const uint8_t* buffer = decodedFrame->Buffer(kGMPYPlane);
+  for (uint32_t i = 0; i < 1000; i++) {
+    printf("%i", buffer[i]);
+  }
+  printf("\n");
+}
+
+void
+MediaDecoder::ReceivedDecodedReferenceFrame(const uint64_t pictureId)
+{
+}
+
+void
+MediaDecoder::ReceivedDecodedFrame(const uint64_t pictureId)
+{
+}
+
+void
+MediaDecoder::InputDataExhausted()
+{
+}
+
+void
+MediaDecoder::Encoded(GMPVideoEncodedFrame* aEncodedFrame,
+                      const GMPCodecSpecificInfo& aCodecSpecificInfo)
+{
+  const uint8_t* buffer = aEncodedFrame->Buffer();
+  for (uint32_t i = 0; i < 1000; i++) {
+    printf("%i", buffer[i]);
+  }
+  printf("\n");
 }
 
 void MediaDecoder::ResetConnectionState()

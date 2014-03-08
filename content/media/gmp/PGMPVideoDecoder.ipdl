@@ -1,0 +1,43 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+include protocol PGMP;
+
+using GMPVideoCodec from "gmp-video-codec.h";
+using GMPCodecSpecificInfo from "gmp-video-codec.h";
+using mozilla::gmp::GMPVideoi420FrameImpl from "GMPVideoi420FrameImpl.h";
+using mozilla::gmp::GMPVideoEncodedFrameImpl from "GMPVideoEncodedFrameImpl.h";
+
+include "GMPMessageUtils.h";
+
+namespace mozilla {
+namespace gmp {
+
+async protocol PGMPVideoDecoder
+{
+  manager PGMP;
+child:
+  InitDecode(GMPVideoCodec aCodecSettings,
+             int32_t aCoreCount);
+  Decode(GMPVideoEncodedFrameImpl aInputFrame,
+         bool aMissingFrames,
+         GMPCodecSpecificInfo aCodecSpecificInfo,
+         int64_t aRenderTimeMs,
+         Shmem aEncodedFrameShmem);
+  Reset();
+  Drain();
+  DecodingComplete();
+parent:
+  __delete__();
+  // We have to pass Shmem objects as individual parameters or serialization won't
+  // work properly. Can't just serialize them like anything else.
+  Decoded(GMPVideoi420FrameImpl aDecodedFrame, Shmem yShmem, Shmem uShmem, Shmem vShmem);
+  ReceivedDecodedReferenceFrame(uint64_t aPictureId);
+  ReceivedDecodedFrame(uint64_t aPictureId);
+  InputDataExhausted();
+};
+
+} // namespace gmp
+} // namespace mozilla
