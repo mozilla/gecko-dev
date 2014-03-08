@@ -512,7 +512,7 @@ bool MediaDecoder::Init(MediaDecoderOwner* aOwner)
   memset(buffer, 0x3, 1000);
 
   std::vector<GMPVideoFrameType> foo;
-  err = mGMPVE->Encode(*i420Frame, codecSpecificInfo, &foo);
+  err = mGMPVE->Encode(i420Frame, codecSpecificInfo, &foo);
   i420Frame->Destroy();
   if (err != GMPVideoNoErr) {
     return false;
@@ -999,10 +999,10 @@ MediaDecoder::InputDataExhausted()
 }
 
 void
-MediaDecoder::Encoded(GMPVideoEncodedFrame& aEncodedFrame,
+MediaDecoder::Encoded(GMPVideoEncodedFrame* aEncodedFrame,
                       const GMPCodecSpecificInfo& aCodecSpecificInfo)
 {
-  const uint8_t* buffer = aEncodedFrame.Buffer();
+  const uint8_t* buffer = aEncodedFrame->Buffer();
   for (uint32_t i = 0; i < 1000; i++) {
     printf("%i", buffer[i]);
   }

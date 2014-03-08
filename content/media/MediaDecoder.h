@@ -261,7 +261,7 @@ public:
   virtual void InputDataExhausted() MOZ_OVERRIDE;
 
   // GMPEncoderCallback
-  virtual void Encoded(GMPVideoEncodedFrame& aEncodedFrame,
+  virtual void Encoded(GMPVideoEncodedFrame* aEncodedFrame,
                        const GMPCodecSpecificInfo& aCodecSpecificInfo) MOZ_OVERRIDE;
 
   // Reset the decoder and notify the media element that
