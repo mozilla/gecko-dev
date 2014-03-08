@@ -39,7 +39,7 @@ public:
                                  GMPEncoderCallback* aCallback,
                                  int32_t aNumberOfCores,
                                  uint32_t aMaxPayloadSize) MOZ_OVERRIDE;
-  virtual GMPVideoErr Encode(GMPVideoi420Frame& aInputFrame,
+  virtual GMPVideoErr Encode(GMPVideoi420Frame* aInputFrame,
                              const GMPCodecSpecificInfo& aCodecSpecificInfo,
                              const std::vector<GMPVideoFrameType>* aFrameTypes) MOZ_OVERRIDE;
   virtual GMPVideoErr SetChannelParameters(uint32_t aPacketLoss, uint32_t aRTT) MOZ_OVERRIDE;

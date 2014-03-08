@@ -26,7 +26,7 @@ public:
   GMPVideoHostImpl& Host();
 
   // GMPEncoderCallback
-  virtual void Encoded(GMPVideoEncodedFrame& aEncodedFrame,
+  virtual void Encoded(GMPVideoEncodedFrame* aEncodedFrame,
                        const GMPCodecSpecificInfo& aCodecSpecificInfo) MOZ_OVERRIDE;
 
   // GMPSharedMemManager

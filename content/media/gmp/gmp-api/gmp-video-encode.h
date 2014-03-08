@@ -44,7 +44,7 @@
 class GMPEncoderCallback
 {
 public:
-  virtual void Encoded(GMPVideoEncodedFrame& aEncodedFrame,
+  virtual void Encoded(GMPVideoEncodedFrame* aEncodedFrame,
                        const GMPCodecSpecificInfo& aCodecSpecificInfo) = 0;
 };
 
@@ -72,7 +72,7 @@ public:
   // - inputFrame : Frame to be encoded
   // - codecSpecificInfo : Pointer to codec specific data
   // - frame_types : The frame type to encode
-  virtual GMPVideoErr Encode(GMPVideoi420Frame& aInputFrame,
+  virtual GMPVideoErr Encode(GMPVideoi420Frame* aInputFrame,
                              const GMPCodecSpecificInfo& aCodecSpecificInfo,
                              const std::vector<GMPVideoFrameType>* aFrameTypes) = 0;
 

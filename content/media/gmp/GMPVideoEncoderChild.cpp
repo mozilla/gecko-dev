@@ -34,13 +34,13 @@ GMPVideoEncoderChild::Host()
 }
 
 void
-GMPVideoEncoderChild::Encoded(GMPVideoEncodedFrame& aEncodedFrame,
+GMPVideoEncoderChild::Encoded(GMPVideoEncodedFrame* aEncodedFrame,
                               const GMPCodecSpecificInfo& aCodecSpecificInfo)
 {
-  auto& ef = static_cast<GMPVideoEncodedFrameImpl&>(aEncodedFrame);
+  auto ef = static_cast<GMPVideoEncodedFrameImpl*>(aEncodedFrame);
   ipc::Shmem* sm = nullptr;
-  ef.ExtractShmem(&sm);
-  SendEncoded(ef, *sm, aCodecSpecificInfo);
+  ef->ExtractShmem(&sm);
+  SendEncoded(*ef, *sm, aCodecSpecificInfo);
 }
 
 bool
@@ -95,7 +95,7 @@ GMPVideoEncoderChild::RecvEncode(const GMPVideoi420FrameImpl& aInputFrame,
   frame->ReceiveShmem(aYShmem, aUShmem, aVShmem);
 
   //XXXJOSH convert aFrameTypes to std:: array and pass it through
-  mVideoEncoder->Encode(*frame, aCodecSpecificInfo, nullptr);
+  mVideoEncoder->Encode(frame, aCodecSpecificInfo, nullptr);
 
   return true;
 }

@@ -70,7 +70,7 @@ GMPVideoEncoderParent::InitEncode(const GMPVideoCodec& aCodecSettings,
 }
 
 GMPVideoErr
-GMPVideoEncoderParent::Encode(GMPVideoi420Frame& aInputFrame,
+GMPVideoEncoderParent::Encode(GMPVideoi420Frame* aInputFrame,
                               const GMPCodecSpecificInfo& aCodecSpecificInfo,
                               const std::vector<GMPVideoFrameType>* aFrameTypes)
 {
@@ -79,12 +79,12 @@ GMPVideoEncoderParent::Encode(GMPVideoi420Frame& aInputFrame,
     return GMPVideoGenericErr;
   }
 
-  auto& inputFrameImpl = static_cast<GMPVideoi420FrameImpl&>(aInputFrame);
+  auto inputFrameImpl = static_cast<GMPVideoi420FrameImpl*>(aInputFrame);
 
   ipc::Shmem* yShmem = nullptr;
   ipc::Shmem* uShmem = nullptr;
   ipc::Shmem* vShmem = nullptr;
-  inputFrameImpl.ExtractShmem(&yShmem, &uShmem, &vShmem);
+  inputFrameImpl->ExtractShmem(&yShmem, &uShmem, &vShmem);
   if (!yShmem || !uShmem || !vShmem) {
     return GMPVideoGenericErr;
   }
@@ -92,7 +92,7 @@ GMPVideoEncoderParent::Encode(GMPVideoi420Frame& aInputFrame,
   //XXXJOSH create proper array here
   InfallibleTArray<int> foo;
 
-  if (!SendEncode(inputFrameImpl,
+  if (!SendEncode(*inputFrameImpl,
                   *yShmem, *uShmem, *vShmem,
                   aCodecSpecificInfo,
                   foo)) {
@@ -197,7 +197,7 @@ GMPVideoEncoderParent::RecvEncoded(const GMPVideoEncodedFrameImpl& aEncodedFrame
 
   f->ReceiveShmem(aEncodedFrameBuffer);
 
-  mObserver->Encoded(*f, aCodecSpecificInfo);
+  mObserver->Encoded(f, aCodecSpecificInfo);
 
   f->Destroy();
 
