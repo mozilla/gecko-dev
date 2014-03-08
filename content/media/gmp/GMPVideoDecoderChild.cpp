@@ -34,14 +34,15 @@ GMPVideoDecoderChild::Host()
 }
 
 void
-GMPVideoDecoderChild::Decoded(GMPVideoi420Frame& decodedFrame)
+GMPVideoDecoderChild::Decoded(GMPVideoi420Frame* decodedFrame)
 {
-  auto& df = static_cast<GMPVideoi420FrameImpl&>(decodedFrame);
+  auto df = static_cast<GMPVideoi420FrameImpl*>(decodedFrame);
   ipc::Shmem* yShmem = nullptr;
   ipc::Shmem* uShmem = nullptr;
   ipc::Shmem* vShmem = nullptr;
-  df.ExtractShmem(&yShmem, &uShmem, &vShmem);
-  SendDecoded(df, *yShmem, *uShmem, *vShmem);
+  df->ExtractShmem(&yShmem, &uShmem, &vShmem);
+  SendDecoded(*df, *yShmem, *uShmem, *vShmem);
+  decodedFrame->Destroy();
 }
 
 void
@@ -103,6 +104,9 @@ GMPVideoDecoderChild::RecvDecode(const GMPVideoEncodedFrameImpl& inputFrame,
   // We need a mutable copy of the decoded frame, into which we can inject
   // the shared memory backing.
   auto frame = new GMPVideoEncodedFrameImpl();
+  if (!frame) {
+    return false;
+  }
 
   frame->SetHost(&mVideoHost);
 
@@ -113,7 +117,7 @@ GMPVideoDecoderChild::RecvDecode(const GMPVideoEncodedFrameImpl& inputFrame,
 
   frame->ReceiveShmem(aEncodedFrameShmem);
 
-  mVideoDecoder->Decode(*frame, missingFrames, codecSpecificInfo, renderTimeMs);
+  mVideoDecoder->Decode(frame, missingFrames, codecSpecificInfo, renderTimeMs);
 
   return true;
 }

@@ -4,6 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "GMPPlatform.h"
+#include "mozilla/Monitor.h"
 
 namespace mozilla {
 namespace gmp {
@@ -33,6 +34,40 @@ private:
   nsAutoPtr<GMPTask> mTask;
 };
 
+class SyncRunnable : public RefCounted<Runnable>
+{
+public:
+  SyncRunnable(GMPTask* aTask, MessageLoop* aMessageLoop)
+  : mTask(aTask),
+    mMessageLoop(aMessageLoop),
+    mMonitor("GMPSyncRunnable")
+  {
+    MOZ_ASSERT(mTask);
+  }
+
+  virtual ~SyncRunnable()
+  {
+  }
+
+  void Post()
+  {
+    mozilla::MonitorAutoLock lock(mMonitor);
+    mMessageLoop->PostTask(FROM_HERE, NewRunnableMethod(this, &SyncRunnable::Run));
+    lock.Wait();
+  }
+
+  void Run()
+  {
+    mTask->Run();
+    mozilla::MonitorAutoLock(mMonitor).Notify();
+  }
+
+private:
+  nsAutoPtr<GMPTask> mTask;
+  MessageLoop* mMessageLoop;
+  mozilla::Monitor mMonitor;
+};
+
 GMPErr
 CreateThread(GMPThread** aThread)
 {
@@ -58,8 +93,20 @@ RunOnMainThread(GMPTask* aTask)
   }
 
   nsRefPtr<Runnable> r = new Runnable(aTask);
-
   sMainLoop->PostTask(FROM_HERE, NewRunnableMethod(r.get(), &Runnable::Run));
+
+  return GMPNoErr;
+}
+
+GMPErr
+SyncRunOnMainThread(GMPTask* aTask)
+{
+  if (!aTask || !sMainLoop) {
+    return GMPGenericErr;
+  }
+
+  nsRefPtr<SyncRunnable> r = new SyncRunnable(aTask, sMainLoop);
+  r->Post();
 
   return GMPNoErr;
 }
@@ -87,6 +134,7 @@ InitPlatformAPI(GMPPlatformAPI& aPlatformAPI)
   aPlatformAPI.version = 0;
   aPlatformAPI.createthread = &CreateThread;
   aPlatformAPI.runonmainthread = &RunOnMainThread;
+  aPlatformAPI.syncrunonmainthread = &SyncRunOnMainThread;
   aPlatformAPI.createmutex = &CreateMutex;
 }
 
@@ -115,8 +163,8 @@ GMPThreadImpl::Post(GMPTask* aTask)
     }
   }
 
+//XXXJOSH seems like this is not resulting in the event being run
   nsRefPtr<Runnable> r = new Runnable(aTask);
-
   mThread.message_loop()->PostTask(FROM_HERE, NewRunnableMethod(r.get(), &Runnable::Run));
 }
 

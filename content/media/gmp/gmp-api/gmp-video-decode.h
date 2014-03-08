@@ -42,7 +42,7 @@
 class GMPDecoderCallback
 {
 public:
-  virtual void Decoded(GMPVideoi420Frame& aDecodedFrame) = 0;
+  virtual void Decoded(GMPVideoi420Frame* aDecodedFrame) = 0;
 
   virtual void ReceivedDecodedReferenceFrame(const uint64_t aPictureId) = 0;
 
@@ -75,7 +75,7 @@ public:
   //
   // renderTimeMs :     System time to render in milliseconds. Only used by decoders with internal
   //                    rendering.
-  virtual GMPVideoErr Decode(GMPVideoEncodedFrame& aInputFrame,
+  virtual GMPVideoErr Decode(GMPVideoEncodedFrame* aInputFrame,
                              bool aMissingFrames,
                              const GMPCodecSpecificInfo& aCodecSpecificInfo,
                              int64_t aRenderTimeMs = -1) = 0;

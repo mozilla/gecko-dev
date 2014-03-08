@@ -59,6 +59,7 @@ public:
 
 typedef GMPErr (*GMPCreateThreadPtr)(GMPThread** aThread);
 typedef GMPErr (*GMPRunOnMainThreadPtr)(GMPTask* aTask);
+typedef GMPErr (*GMPSyncRunOnMainThreadPtr)(GMPTask* aTask);
 typedef GMPErr (*GMPCreateMutexPtr)(GMPMutex** aMutex);
 
 struct GMPPlatformAPI {
@@ -70,6 +71,7 @@ struct GMPPlatformAPI {
 
   GMPCreateThreadPtr createthread;
   GMPRunOnMainThreadPtr runonmainthread;
+  GMPSyncRunOnMainThreadPtr syncrunonmainthread;
   GMPCreateMutexPtr createmutex;
 };
 

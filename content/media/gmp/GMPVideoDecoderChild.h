@@ -26,7 +26,7 @@ public:
   GMPVideoHostImpl& Host();
 
   // GMPDecoderCallback
-  virtual void Decoded(GMPVideoi420Frame& decodedFrame) MOZ_OVERRIDE;
+  virtual void Decoded(GMPVideoi420Frame* decodedFrame) MOZ_OVERRIDE;
   virtual void ReceivedDecodedReferenceFrame(const uint64_t pictureId) MOZ_OVERRIDE;
   virtual void ReceivedDecodedFrame(const uint64_t pictureId) MOZ_OVERRIDE;
   virtual void InputDataExhausted() MOZ_OVERRIDE;

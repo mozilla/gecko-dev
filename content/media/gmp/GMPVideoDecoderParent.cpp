@@ -69,7 +69,7 @@ GMPVideoDecoderParent::InitDecode(const GMPVideoCodec& aCodecSettings,
 }
 
 GMPVideoErr
-GMPVideoDecoderParent::Decode(GMPVideoEncodedFrame& aInputFrame,
+GMPVideoDecoderParent::Decode(GMPVideoEncodedFrame* aInputFrame,
                               bool aMissingFrames,
                               const GMPCodecSpecificInfo& aCodecSpecificInfo,
                               int64_t aRenderTimeMs)
@@ -79,21 +79,23 @@ GMPVideoDecoderParent::Decode(GMPVideoEncodedFrame& aInputFrame,
     return GMPVideoGenericErr;
   }
 
-  auto& inputFrameImpl = static_cast<GMPVideoEncodedFrameImpl&>(aInputFrame);
+  auto inputFrameImpl = static_cast<GMPVideoEncodedFrameImpl*>(aInputFrame);
 
   ipc::Shmem* encodedFrameShmem = nullptr;
-  inputFrameImpl.ExtractShmem(&encodedFrameShmem);
+  inputFrameImpl->ExtractShmem(&encodedFrameShmem);
   if (!encodedFrameShmem) {
     return GMPVideoGenericErr;
   }
 
-  if (!SendDecode(inputFrameImpl,
+  if (!SendDecode(*inputFrameImpl,
                   aMissingFrames,
                   aCodecSpecificInfo,
                   aRenderTimeMs,
                   *encodedFrameShmem)) {
     return GMPVideoGenericErr;
   }
+
+  aInputFrame->Destroy();
 
   // Async IPC, always return no error here. A real failure will
   // terminate subprocess.
@@ -177,9 +179,7 @@ GMPVideoDecoderParent::RecvDecoded(const GMPVideoi420FrameImpl& aDecodedFrame,
 
   f->ReceiveShmem(aYShmem, aUShmem, aVShmem);
 
-  mObserver->Decoded(*f);
-
-  f->Destroy();
+  mObserver->Decoded(f);
 
   return true;
 }

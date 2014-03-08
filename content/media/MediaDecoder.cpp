@@ -548,8 +548,7 @@ bool MediaDecoder::Init(MediaDecoderOwner* aOwner)
   }
   memset(buffer, 0x2, 1000);
 
-  err = mGMPVD->Decode(*encFrame, false, codecSpecificInfo);
-  encFrame->Destroy();
+  err = mGMPVD->Decode(encFrame, false, codecSpecificInfo);
   if (err != GMPVideoNoErr) {
     return false;
   }
@@ -971,10 +970,13 @@ void MediaDecoder::ResourceLoaded()
 }
 
 void
-MediaDecoder::Decoded(GMPVideoi420Frame& decodedFrame)
+MediaDecoder::Decoded(GMPVideoi420Frame* decodedFrame)
 {
-  printf("XXXJOSH MediaDecoder::Decoded\n");
-  const uint8_t* buffer = decodedFrame.Buffer(kGMPYPlane);
+  if (!decodedFrame) {
+    return;
+  }
+
+  const uint8_t* buffer = decodedFrame->Buffer(kGMPYPlane);
   for (uint32_t i = 0; i < 1000; i++) {
     printf("%i", buffer[i]);
   }
@@ -984,26 +986,22 @@ MediaDecoder::Decoded(GMPVideoi420Frame& decodedFrame)
 void
 MediaDecoder::ReceivedDecodedReferenceFrame(const uint64_t pictureId)
 {
-  printf("XXXJOSH MediaDecoder::ReceivedDecodedReferenceFrame\n");
 }
 
 void
 MediaDecoder::ReceivedDecodedFrame(const uint64_t pictureId)
 {
-  printf("XXXJOSH MediaDecoder::ReceivedDecodedFrame\n");
 }
 
 void
 MediaDecoder::InputDataExhausted()
 {
-  printf("XXXJOSH MediaDecoder::InputDataExhausted\n");
 }
 
 void
 MediaDecoder::Encoded(GMPVideoEncodedFrame& aEncodedFrame,
                       const GMPCodecSpecificInfo& aCodecSpecificInfo)
 {
-  printf("XXXJOSH MediaDecoder::Encoded\n");
   const uint8_t* buffer = aEncodedFrame.Buffer();
   for (uint32_t i = 0; i < 1000; i++) {
     printf("%i", buffer[i]);

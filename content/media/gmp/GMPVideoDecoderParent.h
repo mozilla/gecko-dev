@@ -38,7 +38,7 @@ public:
   virtual GMPVideoErr InitDecode(const GMPVideoCodec& aCodecSettings,
                                  GMPDecoderCallback* aCallback,
                                  int32_t aCoreCount) MOZ_OVERRIDE;
-  virtual GMPVideoErr Decode(GMPVideoEncodedFrame& aInputFrame,
+  virtual GMPVideoErr Decode(GMPVideoEncodedFrame* aInputFrame,
                              bool aMissingFrames,
                              const GMPCodecSpecificInfo& aCodecSpecificInfo,
                              int64_t aRenderTimeMs = -1) MOZ_OVERRIDE;
