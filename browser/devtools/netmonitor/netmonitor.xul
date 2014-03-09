@@ -508,14 +508,7 @@
 
     </vbox>
 
-    <box id="network-statistics-view">
-      <toolbar id="network-statistics-toolbar"
-               class="devtools-toolbar">
-        <button id="network-statistics-back-button"
-                class="devtools-toolbarbutton"
-                onclick="NetMonitorView.toggleFrontendMode()"
-                label="&netmonitorUI.backButton;"/>
-      </toolbar>
+    
       <box id="network-statistics-charts"
            class="devtools-responsive-container"
            flex="1">
@@ -524,7 +517,7 @@
                   class="devtools-side-splitter"/>
         <vbox id="empty-cache-chart" pack="center" flex="1"/>
       </box>
-    </box>
+    
 
   </deck>
 
