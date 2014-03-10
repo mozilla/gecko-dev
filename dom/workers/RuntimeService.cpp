@@ -843,11 +843,13 @@ class WorkerJSRuntime : public mozilla::CycleCollectedJSRuntime
 public:
   // The heap size passed here doesn't matter, we will change it later in the
   // call to JS_SetGCParameter inside CreateJSContextForWorker.
-  WorkerJSRuntime(WorkerPrivate* aWorkerPrivate)
-  : CycleCollectedJSRuntime(WORKER_DEFAULT_RUNTIME_HEAPSIZE,
-                            JS_NO_HELPER_THREADS),
+  WorkerJSRuntime(WorkerPrivate* aWorkerPrivate, JSRuntime* aParentRuntime)
+    : CycleCollectedJSRuntime(aParentRuntime,
+                              WORKER_DEFAULT_RUNTIME_HEAPSIZE,
+                              JS_NO_HELPER_THREADS),
     mWorkerPrivate(aWorkerPrivate)
-  { }
+  {
+  }
 
   ~WorkerJSRuntime()
   {
@@ -911,10 +913,11 @@ private:
 class WorkerThreadRunnable : public nsRunnable
 {
   WorkerPrivate* mWorkerPrivate;
+  JSRuntime* mParentRuntime;
 
 public:
-  WorkerThreadRunnable(WorkerPrivate* aWorkerPrivate)
-  : mWorkerPrivate(aWorkerPrivate)
+  WorkerThreadRunnable(WorkerPrivate* aWorkerPrivate, JSRuntime *aParentRuntime)
+  : mWorkerPrivate(aWorkerPrivate), mParentRuntime(aParentRuntime)
   {
     NS_ASSERTION(mWorkerPrivate, "This should never be null!");
   }
@@ -938,7 +941,7 @@ public:
     {
       nsCycleCollector_startup();
 
-      WorkerJSRuntime runtime(workerPrivate);
+      WorkerJSRuntime runtime(workerPrivate, mParentRuntime);
       JSRuntime* rt = runtime.Runtime();
       JSContext* cx = CreateJSContextForWorker(workerPrivate, rt);
       if (!cx) {
@@ -1464,7 +1467,7 @@ RuntimeService::ScheduleWorker(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
   aWorkerPrivate->SetThread(thread);
 #endif
 
-  nsCOMPtr<nsIRunnable> runnable = new WorkerThreadRunnable(aWorkerPrivate);
+  nsCOMPtr<nsIRunnable> runnable = new WorkerThreadRunnable(aWorkerPrivate, JS_GetParentRuntime(aCx));
   if (NS_FAILED(thread->Dispatch(runnable, NS_DISPATCH_NORMAL))) {
     UnregisterWorker(aCx, aWorkerPrivate);
     JS_ReportError(aCx, "Could not dispatch to thread!");

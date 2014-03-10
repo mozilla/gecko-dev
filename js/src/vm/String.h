@@ -218,7 +218,10 @@ class JSString : public js::gc::BarrieredCell<JSString>
     static const size_t INT32_FLAGS           = JS_BIT(1) | JS_BIT(2);
 
     static const size_t HAS_BASE_BIT          = JS_BIT(0);
+    static const size_t PERMANENT_BIT         = JS_BIT(2);
     static const size_t ATOM_BIT              = JS_BIT(3);
+
+    static const size_t PERMANENT_ATOM_FLAGS  = JS_BIT(2) | JS_BIT(3);
 
     static const size_t MAX_LENGTH            = JS_BIT(32 - LENGTH_SHIFT) - 1;
 
@@ -393,6 +396,11 @@ class JSString : public js::gc::BarrieredCell<JSString>
     }
 
     JS_ALWAYS_INLINE
+    bool isPermanentAtom() const {
+        return (d.lengthAndFlags & FLAGS_MASK) == PERMANENT_ATOM_FLAGS;
+    }
+
+    JS_ALWAYS_INLINE
     JSAtom &asAtom() const {
         JS_ASSERT(isAtom());
         return *(JSAtom *)this;
@@ -436,6 +444,24 @@ class JSString : public js::gc::BarrieredCell<JSString>
     static void dumpChars(const jschar *s, size_t len);
     bool equals(const char *s);
 #endif
+
+    static MOZ_ALWAYS_INLINE void readBarrier(JSString *thing) {
+#ifdef JSGC_INCREMENTAL
+        if (thing->isPermanentAtom())
+            return;
+
+        js::gc::BarrieredCell<JSString>::readBarrier(thing);
+#endif
+    }
+
+    static MOZ_ALWAYS_INLINE void writeBarrierPre(JSString *thing) {
+#ifdef JSGC_INCREMENTAL
+        if (isNullLike(thing) || thing->isPermanentAtom())
+            return;
+
+        js::gc::BarrieredCell<JSString>::writeBarrierPre(thing);
+#endif
+    }
 
   private:
     JSString() MOZ_DELETE;
@@ -574,6 +600,11 @@ class JSFlatString : public JSLinearString
      */
     JS_ALWAYS_INLINE JSAtom *morphAtomizedStringIntoAtom() {
         d.lengthAndFlags = buildLengthAndFlags(length(), ATOM_BIT);
+        return &asAtom();
+    }
+
+    JS_ALWAYS_INLINE JSAtom *morphAtomizedStringIntoPermanentAtom() {
+        d.lengthAndFlags = buildLengthAndFlags(length(), PERMANENT_ATOM_FLAGS);
         return &asAtom();
     }
 
@@ -786,6 +817,17 @@ class JSAtom : public JSFlatString
 
     inline void finalize(js::FreeOp *fop);
 
+    MOZ_ALWAYS_INLINE
+    bool isPermanent() const {
+        return (d.lengthAndFlags & PERMANENT_BIT);
+    }
+
+    // Transform this atom into a permanent atom. This is only done during
+    // initialization of the runtime.
+    MOZ_ALWAYS_INLINE void morphIntoPermanentAtom() {
+        d.lengthAndFlags = buildLengthAndFlags(length(), PERMANENT_ATOM_FLAGS);
+    }
+
 #ifdef DEBUG
     void dump();
 #endif
@@ -841,12 +883,6 @@ class StaticStrings
 
     JSAtom *length2StaticTable[NUM_SMALL_CHARS * NUM_SMALL_CHARS];
 
-    void clear() {
-        mozilla::PodArrayZero(unitStaticTable);
-        mozilla::PodArrayZero(length2StaticTable);
-        mozilla::PodArrayZero(intStaticTable);
-    }
-
   public:
     /* We keep these public for the JITs. */
     static const size_t UNIT_STATIC_LIMIT   = 256U;
@@ -856,14 +892,11 @@ class StaticStrings
     JSAtom *intStaticTable[INT_STATIC_LIMIT];
 
     StaticStrings() {
-        clear();
+        mozilla::PodZero(this);
     }
 
     bool init(JSContext *cx);
     void trace(JSTracer *trc);
-    void finish() {
-        clear();
-    }
 
     static bool hasUint(uint32_t u) { return u < INT_STATIC_LIMIT; }
 

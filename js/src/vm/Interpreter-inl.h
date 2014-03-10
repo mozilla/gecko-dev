@@ -440,7 +440,7 @@ GetElementOperation(JSContext *cx, JSOp op, MutableHandleValue lref, HandleValue
     if (lref.isString() && IsDefinitelyIndex(rref, &index)) {
         JSString *str = lref.toString();
         if (index < str->length()) {
-            str = cx->runtime()->staticStrings.getUnitStringForElement(cx, str, index);
+            str = cx->staticStrings().getUnitStringForElement(cx, str, index);
             if (!str)
                 return false;
             res.setString(str);
@@ -459,14 +459,14 @@ static JS_ALWAYS_INLINE JSString *
 TypeOfOperation(const Value &v, JSRuntime *rt)
 {
     JSType type = js::TypeOfValue(v);
-    return TypeName(type, rt->atomState);
+    return TypeName(type, *rt->commonNames);
 }
 
 static inline JSString *
 TypeOfObjectOperation(JSObject *obj, JSRuntime *rt)
 {
     JSType type = js::TypeOfObject(obj);
-    return TypeName(type, rt->atomState);
+    return TypeName(type, *rt->commonNames);
 }
 
 static JS_ALWAYS_INLINE bool

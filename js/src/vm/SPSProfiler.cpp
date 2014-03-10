@@ -29,6 +29,12 @@ SPSProfiler::SPSProfiler(JSRuntime *rt)
     JS_ASSERT(rt != nullptr);
 }
 
+bool
+SPSProfiler::init()
+{
+    return true;
+}
+
 SPSProfiler::~SPSProfiler()
 {
     if (strings.initialized()) {

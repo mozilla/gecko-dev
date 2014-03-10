@@ -1301,7 +1301,8 @@ extern JS_PUBLIC_API(void)
 JS_ShutDown(void);
 
 extern JS_PUBLIC_API(JSRuntime *)
-JS_NewRuntime(uint32_t maxbytes, JSUseHelperThreads useHelperThreads);
+JS_NewRuntime(uint32_t maxbytes, JSUseHelperThreads useHelperThreads,
+              JSRuntime *parentRuntime = nullptr);
 
 extern JS_PUBLIC_API(void)
 JS_DestroyRuntime(JSRuntime *rt);
@@ -1323,6 +1324,9 @@ JS_GetRuntimePrivate(JSRuntime *rt);
 
 extern JS_PUBLIC_API(JSRuntime *)
 JS_GetRuntime(JSContext *cx);
+
+extern JS_PUBLIC_API(JSRuntime *)
+JS_GetParentRuntime(JSContext *cx);
 
 JS_PUBLIC_API(void)
 JS_SetRuntimePrivate(JSRuntime *rt, void *data);

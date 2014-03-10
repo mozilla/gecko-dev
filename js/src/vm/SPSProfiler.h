@@ -133,6 +133,8 @@ class SPSProfiler
     SPSProfiler(JSRuntime *rt);
     ~SPSProfiler();
 
+    bool init();
+
     uint32_t **addressOfSizePointer() {
         return &size_;
     }
