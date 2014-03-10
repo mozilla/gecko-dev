@@ -187,6 +187,22 @@ DisableGenerationalGC(JSRuntime *rt);
 extern JS_FRIEND_API(void)
 EnableGenerationalGC(JSRuntime *rt);
 
+/* Ensure that generational GC is disabled within some scope. */
+class JS_FRIEND_API(AutoDisableGenerationalGC)
+{
+    JSRuntime *runtime;
+
+  public:
+    AutoDisableGenerationalGC(JSRuntime *rt)
+      : runtime(rt)
+    {
+        DisableGenerationalGC(rt);
+    }
+    ~AutoDisableGenerationalGC() {
+        EnableGenerationalGC(runtime);
+    }
+};
+
 extern JS_FRIEND_API(bool)
 IsIncrementalBarrierNeeded(JSRuntime *rt);
 

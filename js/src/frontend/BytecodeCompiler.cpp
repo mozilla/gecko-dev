@@ -160,6 +160,18 @@ frontend::MaybeCallSourceHandler(JSContext *cx, const ReadOnlyCompileOptions &op
     }
 }
 
+ScriptSourceObject *
+frontend::CreateScriptSourceObject(ExclusiveContext *cx, const ReadOnlyCompileOptions &options)
+{
+    ScriptSource *ss = cx->new_<ScriptSource>(options.originPrincipals());
+    if (!ss)
+        return nullptr;
+    if (options.filename() && !ss->setFilename(cx, options.filename()))
+        return nullptr;
+
+    return ScriptSourceObject::create(cx, ss, options);
+}
+
 JSScript *
 frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject scopeChain,
                         HandleScript evalCaller,
@@ -193,15 +205,11 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
     if (!CheckLength(cx, length))
         return nullptr;
     JS_ASSERT_IF(staticLevel != 0, options.sourcePolicy != CompileOptions::LAZY_SOURCE);
-    ScriptSource *ss = cx->new_<ScriptSource>(options.originPrincipals());
-    if (!ss)
-        return nullptr;
-    if (options.filename() && !ss->setFilename(cx, options.filename()))
-        return nullptr;
 
-    RootedScriptSource sourceObject(cx, ScriptSourceObject::create(cx, ss, options));
+    RootedScriptSource sourceObject(cx, CreateScriptSourceObject(cx, options));
     if (!sourceObject)
         return nullptr;
+    ScriptSource *ss = sourceObject->source();
 
     SourceCompressionTask mysct(cx);
     SourceCompressionTask *sct = extraSct ? extraSct : &mysct;
@@ -490,14 +498,12 @@ CompileFunctionBody(JSContext *cx, MutableHandleFunction fun, const ReadOnlyComp
 
     if (!CheckLength(cx, length))
         return false;
-    ScriptSource *ss = cx->new_<ScriptSource>(options.originPrincipals());
-    if (!ss)
-        return false;
-    if (options.filename() && !ss->setFilename(cx, options.filename()))
-        return false;
-    RootedScriptSource sourceObject(cx, ScriptSourceObject::create(cx, ss, options));
+
+    RootedScriptSource sourceObject(cx, CreateScriptSourceObject(cx, options));
     if (!sourceObject)
-        return false;
+        return nullptr;
+    ScriptSource *ss = sourceObject->source();
+
     SourceCompressionTask sct(cx);
     JS_ASSERT(options.sourcePolicy != CompileOptions::LAZY_SOURCE);
     if (options.sourcePolicy == CompileOptions::SAVE_SOURCE) {
