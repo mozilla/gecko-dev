@@ -534,6 +534,16 @@ private:
 
   static AxisLockMode GetAxisLockMode();
 
+  // Convert a point from local screen coordinates to parent layer coordinates.
+  // This is a common operation as inputs from the tree manager are in screen
+  // coordinates but the composition bounds is in parent layer coordinates.
+  ParentLayerPoint ToParentLayerCoords(const ScreenPoint& aPoint);
+
+  // Update mFrameMetrics.mTransformScale. This should be called whenever
+  // our CSS transform or the non-transient part of our async transform
+  // changes, as it corresponds to the scale portion of those transforms.
+  void UpdateTransformScale();
+
   uint64_t mLayersId;
   nsRefPtr<CompositorParent> mCompositorParent;
   TaskThrottler mPaintThrottler;
@@ -598,7 +608,7 @@ private:
 
   // Stores the previous focus point if there is a pinch gesture happening. Used
   // to allow panning by moving multiple fingers (thus moving the focus point).
-  ScreenPoint mLastZoomFocus;
+  ParentLayerPoint mLastZoomFocus;
 
   // Stores the state of panning and zooming this frame. This is protected by
   // |mMonitor|; that is, it should be held whenever this is updated.
@@ -679,11 +689,12 @@ private:
    * hit-testing to see which APZC instance should handle touch events.
    */
 public:
-  void SetLayerHitTestData(const ScreenRect& aRect, const gfx3DMatrix& aTransformToLayer,
+  void SetLayerHitTestData(const ParentLayerRect& aRect, const gfx3DMatrix& aTransformToLayer,
                            const gfx3DMatrix& aTransformForLayer) {
     mVisibleRect = aRect;
     mAncestorTransform = aTransformToLayer;
     mCSSTransform = aTransformForLayer;
+    UpdateTransformScale();
   }
 
   gfx3DMatrix GetAncestorTransform() const {
@@ -694,7 +705,7 @@ public:
     return mCSSTransform;
   }
 
-  bool VisibleRegionContains(const ScreenPoint& aPoint) const {
+  bool VisibleRegionContains(const ParentLayerPoint& aPoint) const {
     return mVisibleRect.Contains(aPoint);
   }
 
@@ -702,7 +713,7 @@ private:
   /* This is the visible region of the layer that this APZC corresponds to, in
    * that layer's screen pixels (the same coordinate system in which this APZC
    * receives events in ReceiveInputEvent()). */
-  ScreenRect mVisibleRect;
+  ParentLayerRect mVisibleRect;
   /* This is the cumulative CSS transform for all the layers between the parent
    * APZC and this one (not inclusive) */
   gfx3DMatrix mAncestorTransform;
