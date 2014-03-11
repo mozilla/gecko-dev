@@ -420,8 +420,8 @@ BasicTiledLayerBuffer::ValidateTile(BasicTiledLayerTile aTile,
 }
 
 static LayoutDeviceRect
-TransformCompositionBounds(const ScreenRect& aCompositionBounds,
-                           const CSSToScreenScale& aZoom,
+TransformCompositionBounds(const ParentLayerRect& aCompositionBounds,
+                           const CSSToParentLayerScale& aZoom,
                            const ScreenPoint& aScrollOffset,
                            const CSSToScreenScale& aResolution,
                            const gfx3DMatrix& aTransformScreenToLayout)
@@ -472,8 +472,8 @@ BasicTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInvali
   // Find out the current view transform to determine which tiles to draw
   // first, and see if we should just abort this paint. Aborting is usually
   // caused by there being an incoming, more relevant paint.
-  ScreenRect compositionBounds;
-  CSSToScreenScale zoom;
+  ParentLayerRect compositionBounds;
+  CSSToParentLayerScale zoom;
   if (mManager->ProgressiveUpdateCallback(!staleRegion.Contains(aInvalidRegion),
                                           compositionBounds, zoom,
                                           !drawingLowPrecision)) {
@@ -490,7 +490,7 @@ BasicTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInvali
   // Transform the screen coordinates into transformed layout device coordinates.
   LayoutDeviceRect transformedCompositionBounds =
     TransformCompositionBounds(compositionBounds, zoom, aPaintData->mScrollOffset,
-                            aPaintData->mResolution, aPaintData->mTransformScreenToLayout);
+                               aPaintData->mResolution, aPaintData->mTransformParentLayerToLayout);
 
   // Paint tiles that have stale content or that intersected with the screen
   // at the time of issuing the draw command in a single transaction first.
