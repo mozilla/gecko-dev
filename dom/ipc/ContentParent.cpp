@@ -1826,6 +1826,12 @@ bool
 ContentParent::RecvNuwaReady()
 {
 #ifdef MOZ_NUWA_PROCESS
+    if (!IsNuwaProcess()) {
+        printf_stderr("Terminating child process %d for unauthorized IPC message: "
+                      "NuwaReady", Pid());
+        KillHard();
+        return false;
+    }
     PreallocatedProcessManager::OnNuwaReady();
     return true;
 #else
@@ -1839,6 +1845,12 @@ ContentParent::RecvAddNewProcess(const uint32_t& aPid,
                                  const InfallibleTArray<ProtocolFdMapping>& aFds)
 {
 #ifdef MOZ_NUWA_PROCESS
+    if (!IsNuwaProcess()) {
+        printf_stderr("Terminating child process %d for unauthorized IPC message: "
+                      "AddNewProcess(%d)", Pid(), aPid);
+        KillHard();
+        return false;
+    }
     nsRefPtr<ContentParent> content;
     content = new ContentParent(this,
                                 MAGIC_PREALLOCATED_APP_MANIFEST_URL,
