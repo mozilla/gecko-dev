@@ -13,16 +13,19 @@
     <!-- XXX (n1k0): i10n tbd later as these are temporary texts. -->
     <div id="default-view" class="share generate-url">
       <div class="description">
-        <p>Get a link to share with a friend to Video Chat.</p>
+        <p data-l10n-id="get_link_to_share">
+          Get a link to share with a friend to Video Chat.
+        </p>
       </div>
       <div class="action">
         <div class="messages"></div>
         <p class="invite">
-          <a class="get-url btn btn-success" href="">Get a call url</a>
+          <a class="get-url btn btn-success" href=""
+             data-l10n-id="get_a_call_url">Get a call url</a>
         </p>
         <p class="result hide">
           <input id="call-url" type="url" readonly>
-          <a class="get-url btn btn-info" href="">Renew</a>
+          <a class="get-url btn btn-info" href="" data-l10n-id="renew">Renew</a>
         </p>
       </div>
     </div>
@@ -42,9 +45,8 @@
          it here). At the very least, if we're using the same
          library as pdf.js, we should be referring to the same
          file. -->
-    <!-- XXX (n1k0): commented out for now as it triggers a "FirefoxCom is
-         missing" error (to be investigated). -->
-    <!-- <script type="text/javascript" src="libs/l10n.js"></script> -->
+    <script type="text/javascript" src="libs/fxcom.js"></script>
+    <script type="text/javascript" src="libs/l10n.js"></script>
     <script type="text/javascript" src="js/dom.js"></script>
     <script type="text/javascript" src="js/panel.js"></script>
   </body>

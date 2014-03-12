@@ -63,7 +63,7 @@ loop.panel = (function(dom) {
     dom.setElValue(".share .action .result input", callUrl);
     dom.showEl(".share .action .result");
     dom.setElText(".share .description p",
-                  "Share the link below with your friend to start your call!");
+                  document.mozL10n.get("share_link_url"));
   }
 
   function init() {
@@ -73,13 +73,13 @@ loop.panel = (function(dom) {
         requestCallUrl(function(err, callUrlData) {
           if (err) {
             console.error("Unable to retrieve call url", err);
-            notifyError("Sorry, we were unable to retrieve a call url.");
+            notifyError(document.mozL10n.get("unable_retrieve_url"));
             return;
           }
           if (typeof callUrlData !== "object" ||
               !callUrlData.hasOwnProperty("call_url")) {
             console.error("Invalid call url data received", callUrlData);
-            notifyError("Sorry, we were unable to retrieve a call url.");
+            notifyError(document.mozL10n.get("unable_retrieve_url"));
             return;
           }
           onCallUrlReceived(callUrlData.call_url);

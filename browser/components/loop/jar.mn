@@ -11,5 +11,6 @@ browser.jar:
   content/browser/loop/img/icon_64.png      (content/img/icon_64.png)
   content/browser/loop/libs/l10n.js         (content/libs/l10n.js)
   content/browser/loop/js/dom.js            (content/js/dom.js)
+  content/browser/loop/js/fxcom.js          (content/js/fxcom.js)
   content/browser/loop/js/panel.js          (content/js/panel.js)
 
