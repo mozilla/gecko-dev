@@ -5,11 +5,19 @@
 /*global loop*/
 
 var loop = loop || {};
-loop.panel = (function(dom) {
+loop.panel = (function() {
   "use strict";
 
   // XXX: baseApiUrl should be configurable (browser pref)
   var baseApiUrl = "http://localhost:5000";
+
+  function show(el) {
+    el.classList.remove("hide");
+  }
+
+  function hide(el) {
+    el.classList.add("hide");
+  }
 
   function  httpError(req) {
     var reason = req.responseText || "Unknown reason.";
@@ -22,11 +30,11 @@ loop.panel = (function(dom) {
                   .content
                   .cloneNode(true);
     errEl.querySelector("p").textContent = msg;
-    dom.appendEl(errEl, ".share .messages");
+    document.querySelector(".share .messages").appendChild(errEl);
   }
 
   function clearNotifications() {
-    dom.removeEl(".share .messages .alert");
+    document.querySelector(".share .messages .alert").remove();
   }
 
   // XXX: abstract XHR for further reusability or YAGNI?
@@ -58,12 +66,14 @@ loop.panel = (function(dom) {
   }
 
   function onCallUrlReceived(callUrl) {
+    var shareEl = document.querySelector(".share"),
+        actionEl = shareEl.querySelector(".action")
     clearNotifications();
-    dom.hideEl(".share .action .invite");
-    dom.setElValue(".share .action .result input", callUrl);
-    dom.showEl(".share .action .result");
-    dom.setElText(".share .description p",
-                  document.mozL10n.get("share_link_url"));
+    hide(actionEl.querySelector(".invite"));
+    actionEl.querySelector(".result input").value = callUrl;
+    show(actionEl.querySelector(".result"));
+    shareEl.querySelector(".description p").textContent =
+      document.mozL10n.get("share_link_url");
   }
 
   function init() {
@@ -91,4 +101,4 @@ loop.panel = (function(dom) {
     init: init,
     requestCallUrl: requestCallUrl
   };
-})(loop.dom || {});
+})();
