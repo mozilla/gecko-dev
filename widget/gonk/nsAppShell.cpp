@@ -94,7 +94,16 @@ static bool sDevInputAudioJack;
 static int32_t sHeadphoneState;
 static int32_t sMicrophoneState;
 
+// Amount of time in MS before an input is considered expired.
+static const uint64_t kInputExpirationThresholdMs = 1000;
+
 NS_IMPL_ISUPPORTS_INHERITED1(nsAppShell, nsBaseAppShell, nsIObserver)
+
+static uint64_t
+nanosecsToMillisecs(nsecs_t nsecs)
+{
+    return nsecs / 1000000;
+}
 
 namespace mozilla {
 
@@ -404,6 +413,10 @@ public:
     GeckoInputDispatcher(sp<EventHub> &aEventHub)
         : mQueueLock("GeckoInputDispatcher::mQueueMutex")
         , mEventHub(aEventHub)
+        , mTouchDownCount(0)
+        , mKeyDownCount(0)
+        , mTouchEventsFiltered(false)
+        , mKeyEventsFiltered(false)
     {}
 
     virtual void dump(String8& dump);
@@ -448,6 +461,11 @@ private:
     mozilla::Mutex mQueueLock;
     std::queue<UserInputData> mEventQueue;
     sp<EventHub> mEventHub;
+
+    int mTouchDownCount;
+    int mKeyDownCount;
+    bool mTouchEventsFiltered;
+    bool mKeyEventsFiltered;
 };
 
 // GeckoInputReaderPolicy
@@ -495,6 +513,14 @@ GeckoInputDispatcher::dump(String8& dump)
 {
 }
 
+static bool
+isExpired(const UserInputData& data)
+{
+    uint64_t timeNowMs =
+        nanosecsToMillisecs(systemTime(SYSTEM_TIME_MONOTONIC));
+    return (timeNowMs - data.timeMs) > kInputExpirationThresholdMs;
+}
+
 void
 GeckoInputDispatcher::dispatchOnce()
 {
@@ -511,9 +537,37 @@ GeckoInputDispatcher::dispatchOnce()
 
     switch (data.type) {
     case UserInputData::MOTION_DATA: {
+        if (!mTouchDownCount) {
+            // No pending events, the filter state can be updated.
+            mTouchEventsFiltered = isExpired(data);
+        }
+
+        int32_t action = data.action & AMOTION_EVENT_ACTION_MASK;
+        switch (action) {
+        case AMOTION_EVENT_ACTION_DOWN:
+        case AMOTION_EVENT_ACTION_POINTER_DOWN:
+            mTouchDownCount++;
+            break;
+        case AMOTION_EVENT_ACTION_MOVE:
+        case AMOTION_EVENT_ACTION_HOVER_MOVE:
+            // No need to update the count on move.
+            break;
+        case AMOTION_EVENT_ACTION_UP:
+        case AMOTION_EVENT_ACTION_POINTER_UP:
+        case AMOTION_EVENT_ACTION_OUTSIDE:
+        case AMOTION_EVENT_ACTION_CANCEL:
+            mTouchDownCount--;
+            break;
+        default:
+            break;
+        }
+
+        if (mTouchEventsFiltered) {
+            return;
+        }
+
         nsEventStatus status = nsEventStatus_eIgnore;
-        if ((data.action & AMOTION_EVENT_ACTION_MASK) !=
-            AMOTION_EVENT_ACTION_HOVER_MOVE) {
+        if (action != AMOTION_EVENT_ACTION_HOVER_MOVE) {
             bool captured;
             status = sendTouchEvent(data, &captured);
             if (captured) {
@@ -522,7 +576,7 @@ GeckoInputDispatcher::dispatchOnce()
         }
 
         uint32_t msg;
-        switch (data.action & AMOTION_EVENT_ACTION_MASK) {
+        switch (action) {
         case AMOTION_EVENT_ACTION_DOWN:
             msg = NS_MOUSE_BUTTON_DOWN;
             break;
@@ -546,6 +600,16 @@ GeckoInputDispatcher::dispatchOnce()
         break;
     }
     case UserInputData::KEY_DATA: {
+        if (!mKeyDownCount) {
+            // No pending events, the filter state can be updated.
+            mKeyEventsFiltered = isExpired(data);
+        }
+
+        mKeyDownCount += (data.action == AKEY_EVENT_ACTION_DOWN) ? 1 : -1;
+        if (mKeyEventsFiltered) {
+            return;
+        }
+
         uint32_t DOMKeyCode =
             (data.key.keyCode < ArrayLength(kKeyMapping)) ?
             kKeyMapping[data.key.keyCode] : 0;
@@ -578,12 +642,6 @@ GeckoInputDispatcher::dispatchOnce()
 void
 GeckoInputDispatcher::notifyConfigurationChanged(const NotifyConfigurationChangedArgs*)
 {
-}
-
-static uint64_t
-nanosecsToMillisecs(nsecs_t nsecs)
-{
-    return nsecs / 1000000;
 }
 
 void
