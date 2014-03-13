@@ -801,9 +801,8 @@ protected:
   nsresult GetTreeOwner(nsIBaseWindow** aTreeOwner);
   nsresult GetWebBrowserChrome(nsIWebBrowserChrome** aBrowserChrome);
   nsresult SecurityCheckURL(const char *aURL);
-  nsresult BuildURIfromBase(const char *aURL,
-                            nsIURI **aBuiltURI,
-                            bool *aFreeSecurityPass, JSContext **aCXused);
+  nsresult BuildURIfromBase(const char *aURL, nsIURI **aBuiltURI,
+                            JSContext **aCXused);
   bool PopupWhitelisted();
   PopupControlState RevisePopupAbuseLevel(PopupControlState);
   void     FireAbuseEvents(bool aBlocked, bool aWindow,
