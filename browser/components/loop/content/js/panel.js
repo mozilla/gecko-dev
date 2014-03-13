@@ -104,26 +104,15 @@ loop.panel = (function(_, __) {
 
     getCallUrl: function(event) {
       event.preventDefault();
-
-      requestCallUrl(function(err, callUrlData) {
+      requestCallUrl(function(err, callUrl) {
         if (err) {
-          console.error("Unable to retrieve call url", err);
           notificationCollection.add({
             level: "error",
             message: __("unable_retrieve_url")
           });
           return;
         }
-        if (typeof callUrlData !== "object" ||
-            !callUrlData.hasOwnProperty("call_url")) {
-          console.error("Invalid call url data received", callUrlData);
-          notificationCollection.add({
-            level: "error",
-            message: __("unable_retrieve_url")
-          });
-          return;
-        }
-        this.onCallUrlReceived(callUrlData.call_url);
+        this.onCallUrlReceived(callUrl);
       }.bind(this));
     },
 
@@ -136,37 +125,34 @@ loop.panel = (function(_, __) {
     }
   });
 
-  function  httpError(req) {
-    var reason = req.responseText || "Unknown reason.";
-    return new Error("Failed HTTP request: " + req.status + "; " + reason);
-  }
-
-  // XXX: abstract XHR for further reusability or YAGNI?
   function requestCallUrl(cb) {
-    var request = new XMLHttpRequest();
+    var endpoint = baseApiUrl + "/call-url/",
+        reqData = {simplepushUrl: "xxx"};
 
-    request.onload = function(event) {
-      if (request.readyState === 4  && request.status === 200) {
-        try {
-          cb(null, JSON.parse(request.responseText));
-        } catch (err) {
-          cb(new Error("Invalid JSON received; " + err));
-        }
-        return;
-      } else {
-        cb(httpError(request));
+    function validate(callUrlData) {
+      if (typeof callUrlData !== "object" ||
+          !callUrlData.hasOwnProperty("call_url")) {
+        console.error("Invalid call url data received", callUrlData);
+        throw new Error("Invalid call url data received");
       }
-    };
+      return callUrlData.call_url;
+    }
 
-    request.onerror = request.ontimeout = function(event) {
-      cb(httpError(event.target));
-    };
+    var req = $.post(endpoint, reqData, function(callUrlData) {
+      try {
+        cb(null, validate(callUrlData));
+      } catch (err) {
+        cb(err);
+      }
+    }, "json");
 
-    request.open("POST", baseApiUrl + "/call-url/", true);
-    request.setRequestHeader("Content-Type", "application/json");
-    request.send(JSON.stringify({
-      simplepushUrl: "temporarily_invalid" // XXX: waiting for simplepush impl.
-    }));
+    req.fail(function(xhr, type, err) {
+      var error = "Unknown error.";
+      if (xhr && xhr.responseJSON && xhr.responseJSON.error) {
+        error = xhr.responseJSON.error;
+      }
+      cb(new Error("HTTP error " + xhr.status + ": " + err + "; " + error));
+    });
   }
 
   return {

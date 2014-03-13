@@ -33,8 +33,8 @@ describe("loop.panel", function() {
       expect(requests).to.have.length.of(1);
 
       requests[0].respond(200, {"Content-Type": "application/json"},
-                               '{"call_url": "foo"}');
-      sinon.assert.calledWithExactly(callback, null, {call_url: "foo"});
+                               '{"call_url": "fakeCallUrl"}');
+      sinon.assert.calledWithExactly(callback, null, "fakeCallUrl");
     });
 
     it("should send an error when the request fails", function() {
@@ -44,9 +44,9 @@ describe("loop.panel", function() {
       expect(requests).to.have.length.of(1);
 
       requests[0].respond(400, {"Content-Type": "application/json"},
-                               '{"error": "foo"}');
+                               '{"error": "my error"}');
       sinon.assert.calledWithMatch(callback, sinon.match(function(err) {
-          return /Failed HTTP request: 400.*foo/.test(err.message);
+        return /HTTP error 400: Bad Request; my error/.test(err.message);
       }));
     });
   });
