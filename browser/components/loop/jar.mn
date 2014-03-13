@@ -14,5 +14,6 @@ browser.jar:
   content/browser/loop/libs/jquery.min.js   (content/libs/jquery.min.js)
   content/browser/loop/libs/backbone-min.js (content/libs/backbone-min.js)
   content/browser/loop/js/fxcom.js          (content/js/fxcom.js)
+  content/browser/loop/js/client.js         (content/js/client.js)
   content/browser/loop/js/panel.js          (content/js/panel.js)
 

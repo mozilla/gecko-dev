@@ -26,32 +26,6 @@ describe("loop.panel", function() {
     sandbox.restore();
   });
 
-  describe("#loop.panel.requestCallUrl", function() {
-    it("should request for a call url", function() {
-      var callback = sinon.spy();
-      loop.panel.requestCallUrl(callback);
-
-      expect(requests).to.have.length.of(1);
-
-      requests[0].respond(200, {"Content-Type": "application/json"},
-                               '{"call_url": "fakeCallUrl"}');
-      sinon.assert.calledWithExactly(callback, null, "fakeCallUrl");
-    });
-
-    it("should send an error when the request fails", function() {
-      var callback = sinon.spy();
-      loop.panel.requestCallUrl(callback);
-
-      expect(requests).to.have.length.of(1);
-
-      requests[0].respond(400, {"Content-Type": "application/json"},
-                               '{"error": "my error"}');
-      sinon.assert.calledWithMatch(callback, sinon.match(function(err) {
-        return /HTTP error 400: Bad Request; my error/.test(err.message);
-      }));
-    });
-  });
-
   describe("loop.panel.NotificationView", function() {
     describe("#render", function() {
       it("should render template with model attribute values", function() {
@@ -126,6 +100,18 @@ describe("loop.panel", function() {
         '  </div>',
         '</div>'
       ].join(""));
+    });
+
+    describe("#getCallurl", function() {
+      it("should request a call url to the server", function() {
+        var requestCallUrl = sandbox.stub(loop.Client.prototype,
+                                          "requestCallUrl");
+        var view = new loop.panel.PanelView();
+
+        view.getCallUrl({preventDefault: sandbox.spy()});
+
+        sinon.assert.calledOnce(requestCallUrl);
+      });
     });
 
     describe("#onCallUrlReceived", function() {

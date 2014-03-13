@@ -39,8 +39,6 @@ loop.panel = (function(_, __) {
 
   /**
    * Notification view.
-   *
-   * XXX: removal on close btn click
    */
   var NotificationView = Backbone.View.extend({
     template: _.template([
@@ -98,6 +96,9 @@ loop.panel = (function(_, __) {
     },
 
     initialize: function() {
+      this.client = new loop.Client({
+        baseApiUrl: baseApiUrl
+      });
       this.notificationCollection = new NotificationCollection();
       this.notificationListView = new NotificationListView({
         el: this.$(".messages"),
@@ -115,7 +116,8 @@ loop.panel = (function(_, __) {
 
     getCallUrl: function(event) {
       event.preventDefault();
-      requestCallUrl(function(err, callUrl) {
+      var simplepushUrl = "http://fake.url/"; // XXX: send a real simplepush url
+      this.client.requestCallUrl(simplepushUrl, function(err, callUrl) {
         if (err) {
           this.notify(__("unable_retrieve_url"), "error");
           return;
@@ -133,45 +135,8 @@ loop.panel = (function(_, __) {
     }
   });
 
-  /**
-   * Requests a call URL to the Loop server.
-   *
-   * @param  {Function} cb Callback(err, callUrl)
-   */
-  function requestCallUrl(cb) {
-    var endpoint = baseApiUrl + "/call-url/",
-        reqData = {simplepushUrl: "xxx"};
-
-    function validate(callUrlData) {
-      if (typeof callUrlData !== "object" ||
-          !callUrlData.hasOwnProperty("call_url")) {
-        var message = "Invalid call url data received";
-        console.error(message, callUrlData);
-        throw new Error(message);
-      }
-      return callUrlData.call_url;
-    }
-
-    var req = $.post(endpoint, reqData, function(callUrlData) {
-      try {
-        cb(null, validate(callUrlData));
-      } catch (err) {
-        cb(err);
-      }
-    }, "json");
-
-    req.fail(function(xhr, type, err) {
-      var error = "Unknown error.";
-      if (xhr && xhr.responseJSON && xhr.responseJSON.error) {
-        error = xhr.responseJSON.error;
-      }
-      cb(new Error("HTTP error " + xhr.status + ": " + err + "; " + error));
-    });
-  }
-
   return {
     init: init,
-    requestCallUrl: requestCallUrl,
     NotificationModel: NotificationModel,
     NotificationCollection: NotificationCollection,
     NotificationView: NotificationView,
