@@ -406,6 +406,8 @@ public:
     NativePanZoomController* SetNativePanZoomController(jobject obj);
     // GeckoContentController methods
     void RequestContentRepaint(const mozilla::layers::FrameMetrics& aFrameMetrics) MOZ_OVERRIDE;
+    void AcknowledgeScrollUpdate(const mozilla::layers::FrameMetrics::ViewID& aScrollId,
+                                 const uint32_t& aScrollGeneration) MOZ_OVERRIDE;
     void HandleDoubleTap(const CSSIntPoint& aPoint,
                          int32_t aModifiers,
                          const mozilla::layers::ScrollableLayerGuid& aGuid) MOZ_OVERRIDE;
