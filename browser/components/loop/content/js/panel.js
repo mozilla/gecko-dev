@@ -10,9 +10,7 @@ loop.panel = (function(_, __) {
 
   // XXX: baseApiUrl should be configurable (browser pref)
   var baseApiUrl = "http://localhost:5000",
-      panelView,
-      notificationCollection,
-      notificationListView;
+      panelView;
 
   /**
    * Panel initialisation.
@@ -20,11 +18,6 @@ loop.panel = (function(_, __) {
   function init() {
     panelView = new PanelView();
     panelView.render();
-    notificationCollection = new NotificationCollection();
-    notificationListView = new NotificationListView({
-      collection: notificationCollection
-    });
-    notificationListView.render();
   }
 
   /**
@@ -64,7 +57,7 @@ loop.panel = (function(_, __) {
     dismiss: function() {
       this.$el.addClass("fade-out");
       setTimeout(function() {
-        notificationCollection.remove(this.model);
+        this.collection.remove(this.model);
         this.remove();
       }.bind(this), 500);
     },
@@ -79,16 +72,17 @@ loop.panel = (function(_, __) {
    * Notification list view.
    */
   var NotificationListView = Backbone.View.extend({
-    el: ".share .messages",
-
     initialize: function() {
       this.listenTo(this.collection, "reset add remove", this.render);
     },
 
     render: function() {
       this.$el.html(this.collection.map(function(notification) {
-        return new NotificationView({model: notification}).render().$el;
-      }));
+        return new NotificationView({
+          model: notification,
+          collection: this.collection
+        }).render().$el;
+      }.bind(this)));
       return this;
     }
   });
@@ -103,14 +97,27 @@ loop.panel = (function(_, __) {
       "click a.get-url": "getCallUrl"
     },
 
+    initialize: function() {
+      this.notificationCollection = new NotificationCollection();
+      this.notificationListView = new NotificationListView({
+        el: this.$(".messages"),
+        collection: this.notificationCollection
+      });
+      this.notificationListView.render();
+    },
+
+    notify: function(message, level) {
+      this.notificationCollection.add({
+        level: level || "info",
+        message: message
+      });
+    },
+
     getCallUrl: function(event) {
       event.preventDefault();
       requestCallUrl(function(err, callUrl) {
         if (err) {
-          notificationCollection.add({
-            level: "error",
-            message: __("unable_retrieve_url")
-          });
+          this.notify(__("unable_retrieve_url"), "error");
           return;
         }
         this.onCallUrlReceived(callUrl);
@@ -118,7 +125,7 @@ loop.panel = (function(_, __) {
     },
 
     onCallUrlReceived: function(callUrl) {
-      notificationCollection.reset();
+      this.notificationCollection.reset();
       this.$(".action .invite").hide();
       this.$(".action .result input").val(callUrl);
       this.$(".action .result").show();
@@ -126,6 +133,11 @@ loop.panel = (function(_, __) {
     }
   });
 
+  /**
+   * Requests a call URL to the Loop server.
+   *
+   * @param  {Function} cb Callback(err, callUrl)
+   */
   function requestCallUrl(cb) {
     var endpoint = baseApiUrl + "/call-url/",
         reqData = {simplepushUrl: "xxx"};
@@ -133,8 +145,9 @@ loop.panel = (function(_, __) {
     function validate(callUrlData) {
       if (typeof callUrlData !== "object" ||
           !callUrlData.hasOwnProperty("call_url")) {
-        console.error("Invalid call url data received", callUrlData);
-        throw new Error("Invalid call url data received");
+        var message = "Invalid call url data received";
+        console.error(message, callUrlData);
+        throw new Error(message);
       }
       return callUrlData.call_url;
     }

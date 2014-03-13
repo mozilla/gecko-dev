@@ -15,7 +15,24 @@
   <div id="messages"></div>
   <div id="fixtures"></div>
   <!-- libs -->
-  <script src="../../content/js/fxcom.js"></script>
+  <script>
+  // Components won't load in unprivileged space, faking this one.
+  var FirefoxCom = {
+    requestSync: function(action) {
+      if (action === 'getLocale')
+        return "en-US";
+
+      if (action === 'getStrings')
+        return '{}';
+    },
+    getLocale: function() {
+      return "en-US";
+    },
+    getStrings: function() {
+      return [];
+    },
+  };
+  </script>
   <script src="../../content/libs/l10n.js"></script>
   <script src="../../content/libs/jquery.min.js"></script>
   <script src="../../content/libs/lodash.min.js"></script>

@@ -106,4 +106,37 @@ describe("loop.panel", function() {
         });
     });
   });
+
+  describe("loop.panel.PanelView", function() {
+    beforeEach(function() {
+      $("#fixtures").append([
+        '<div id="default-view" class="share generate-url">',
+        '  <div class="description">',
+        '    <p>Get a link to share with a friend to Video Chat.</p>',
+        '  </div>',
+        '  <div class="action">',
+        '    <div class="messages"></div>',
+        '    <p class="invite">',
+        '      <a class="get-url" href="">Get a call url</a>',
+        '    </p>',
+        '    <p class="result hide">',
+        '      <input id="call-url" type="url" readonly>',
+        '      <a class="get-url" href="">Renew</a>',
+        '    </p>',
+        '  </div>',
+        '</div>'
+      ].join(""));
+    });
+
+    describe("#onCallUrlReceived", function() {
+      it("should update the text field with the call url", function() {
+        var view = new loop.panel.PanelView();
+        view.render();
+
+        view.onCallUrlReceived("http://call.me/");
+
+        expect(view.$("input").val()).eql("http://call.me/");
+      });
+    });
+  });
 });
