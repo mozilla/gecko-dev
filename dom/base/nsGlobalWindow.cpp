@@ -407,6 +407,14 @@ nsGlobalWindow::DOMMinTimeoutValue() const {
   }                                                                           \
   PR_END_MACRO
 
+#define NS_ENSURE_OUTER_WINDOW_OR_ACTIVE_DOCUMENT                              \
+  NS_ENSURE_TRUE(!IsInnerWindow() ||                                           \
+                 (mOuterWindow &&                                              \
+                  ((mOuterWindow->GetCurrentInnerWindow() == this) ||          \
+                   (mOuterWindow->GetCurrentInnerWindow() &&                   \
+                    mOuterWindow->GetCurrentInnerWindow()->GetDoc() == mDoc))),\
+                 NS_ERROR_NOT_INITIALIZED);
+
 // CIDs
 static NS_DEFINE_CID(kXULControllersCID, NS_XULCONTROLLERS_CID);
 
@@ -5957,6 +5965,7 @@ NS_IMETHODIMP
 nsGlobalWindow::OpenJS(const nsAString& aUrl, const nsAString& aName,
                        const nsAString& aOptions, nsIDOMWindow **_retval)
 {
+  NS_ENSURE_OUTER_WINDOW_OR_ACTIVE_DOCUMENT
   return OpenInternal(aUrl, aName, aOptions,
                       false,          // aDialog
                       false,          // aContentModal
@@ -7252,6 +7261,7 @@ nsGlobalWindow::ShowModalDialog(const nsAString& aURI, nsIVariant *aArgs,
                                 const nsAString& aOptions,
                                 nsIVariant **aRetVal)
 {
+  NS_ENSURE_OUTER_WINDOW_OR_ACTIVE_DOCUMENT
   FORWARD_TO_OUTER(ShowModalDialog, (aURI, aArgs, aOptions, aRetVal),
                    NS_ERROR_NOT_INITIALIZED);
 

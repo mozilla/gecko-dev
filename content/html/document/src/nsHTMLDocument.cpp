@@ -1307,7 +1307,7 @@ nsHTMLDocument::Open(const nsAString& aContentTypeOrUrl,
 
   // When called with 3 or more arguments, document.open() calls window.open().
   if (aOptionalArgCount > 2) {
-    nsCOMPtr<nsIDOMWindow> window = GetWindowInternal();
+    nsCOMPtr<nsIDOMWindow> window = GetInnerWindow();
     if (!window) {
       return NS_OK;
     }
