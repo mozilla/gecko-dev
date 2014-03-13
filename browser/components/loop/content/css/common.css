@@ -77,7 +77,7 @@ img {
   background: #f0ad4e;
 }
 
-.btn-danger {
+.btn-error {
   background: #d9534f;
 }
 
@@ -93,7 +93,7 @@ img {
   margin: 0;
 }
 
-.alert.alert-danger {
+.alert.alert-error {
   background: #f99;
   border: 1px solid #f77;
 }

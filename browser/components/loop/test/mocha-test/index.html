@@ -11,10 +11,15 @@
 <body>
   <div id="mocha">
     <p><a href=".">Index</a></p>
-    <div id="status">Running…</div>
   </div>
   <div id="messages"></div>
   <div id="fixtures"></div>
+  <!-- libs -->
+  <script src="../../content/js/fxcom.js"></script>
+  <script src="../../content/libs/l10n.js"></script>
+  <script src="../../content/libs/jquery.min.js"></script>
+  <script src="../../content/libs/lodash.min.js"></script>
+  <script src="../../content/libs/backbone-min.js"></script>
   <!-- test dependencies -->
   <script src="../vendor/mocha-1.17.1.js"></script>
   <script src="../vendor/chai-1.9.0.js"></script>
@@ -27,7 +32,7 @@
   <script src="panel_test.js"></script>
   <script>
     mocha.run(function () {
-      document.querySelector("#status").textContent = "Complete."
+      $("#mocha").append("<p>Complete.</p>");
     });
 </script>
 </body>

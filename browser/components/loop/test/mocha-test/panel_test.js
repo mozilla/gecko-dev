@@ -43,10 +43,10 @@ describe("loop.panel", function() {
 
       expect(requests).to.have.length.of(1);
 
-      requests[0].respond(406, {"Content-Type": "application/json"},
+      requests[0].respond(400, {"Content-Type": "application/json"},
                                '{"error": "foo"}');
       sinon.assert.calledWithMatch(callback, sinon.match(function(err) {
-          return /Failed HTTP request: 406.*foo/.test(err.message);
+          return /Failed HTTP request: 400.*foo/.test(err.message);
       }));
     });
   });

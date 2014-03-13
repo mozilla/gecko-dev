@@ -10,6 +10,9 @@ browser.jar:
   content/browser/loop/img/icon_32.png      (content/img/icon_32.png)
   content/browser/loop/img/icon_64.png      (content/img/icon_64.png)
   content/browser/loop/libs/l10n.js         (content/libs/l10n.js)
+  content/browser/loop/libs/lodash.min.js   (content/libs/lodash.min.js)
+  content/browser/loop/libs/jquery.min.js   (content/libs/jquery.min.js)
+  content/browser/loop/libs/backbone-min.js (content/libs/backbone-min.js)
   content/browser/loop/js/fxcom.js          (content/js/fxcom.js)
   content/browser/loop/js/panel.js          (content/js/panel.js)
 

@@ -30,14 +30,13 @@
       </div>
     </div>
 
-    <!-- Error notification template -->
-    <template id="error-notification">
-      <div class="alert alert-danger">
-        <button class="close"
-                onclick="var el=this.parentNode;el.classList.add('fade-out');setTimeout(el.remove.bind(el), 500);"></button>
-        <p class="message"></p>
+    <!-- Notification template -->
+    <script type="text/template" id="notification-tpl">
+      <div class="alert alert-<%- level %>">
+        <button class="close"></button>
+        <p class="message"><%- message %></p>
       </div>
-    </template>
+    </script>
 
     <!-- XXX (adam): Should we import our own version of Webl10n?
          What we have here is a copy of the version from pdf.js
@@ -47,6 +46,9 @@
          file. -->
     <script type="text/javascript" src="js/fxcom.js"></script>
     <script type="text/javascript" src="libs/l10n.js"></script>
+    <script type="text/javascript" src="libs/jquery.min.js"></script>
+    <script type="text/javascript" src="libs/lodash.min.js"></script>
+    <script type="text/javascript" src="libs/backbone-min.js"></script>
     <script type="text/javascript" src="js/panel.js"></script>
   </body>
 </html>

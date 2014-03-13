@@ -5,36 +5,140 @@
 /*global loop*/
 
 var loop = loop || {};
-loop.panel = (function() {
+loop.panel = (function(_, __) {
   "use strict";
 
   // XXX: baseApiUrl should be configurable (browser pref)
-  var baseApiUrl = "http://localhost:5000";
+  var baseApiUrl = "http://localhost:5000",
+      panelView,
+      notificationCollection,
+      notificationListView;
 
-  function show(el) {
-    el.classList.remove("hide");
+  /**
+   * Panel initialisation.
+   */
+  function init() {
+    panelView = new PanelView();
+    panelView.render();
+    notificationCollection = new NotificationCollection();
+    notificationListView = new NotificationListView({
+      collection: notificationCollection
+    });
+    notificationListView.render();
   }
 
-  function hide(el) {
-    el.classList.add("hide");
-  }
+  /**
+   * Notification model.
+   */
+  var NotificationModel = Backbone.Model.extend({
+    defaults: {
+      level: "info",
+      message: ""
+    }
+  });
+
+  /**
+   * Notification collection
+   */
+  var NotificationCollection = Backbone.Collection.extend({
+    model: NotificationModel
+  });
+
+  /**
+   * Notification view.
+   *
+   * XXX: removal on close btn click
+   */
+  var NotificationView = Backbone.View.extend({
+    template: _.template($("#notification-tpl").html()),
+
+    events: {
+      "click .close": "dismiss"
+    },
+
+    dismiss: function() {
+      this.$el.addClass("fade-out");
+      setTimeout(function() {
+        notificationCollection.remove(this.model);
+        this.remove();
+      }.bind(this), 500);
+    },
+
+    render: function() {
+      this.$el.html(this.template(this.model.toJSON()));
+      return this;
+    }
+  });
+
+  /**
+   * Notification list view.
+   */
+  var NotificationListView = Backbone.View.extend({
+    el: ".share .messages",
+
+    initialize: function(options) {
+      if (!options.collection)
+        throw new Error("missing required collection");
+
+      this.collection = options.collection;
+      this.listenTo(this.collection, "reset add remove", this.render);
+    },
+
+    render: function() {
+      this.$el.html(this.collection.map(function(notification) {
+        return new NotificationView({model: notification}).render().$el;
+      }));
+      return this;
+    }
+  });
+
+  /**
+   * Panel view.
+   */
+  var PanelView = Backbone.View.extend({
+    el: "#default-view",
+
+    events: {
+      "click a.get-url": "getCallUrl"
+    },
+
+    getCallUrl: function(event) {
+      event.preventDefault();
+
+      requestCallUrl(function(err, callUrlData) {
+        if (err) {
+          console.error("Unable to retrieve call url", err);
+          notificationCollection.add({
+            level: "error",
+            message: __("unable_retrieve_url")
+          });
+          return;
+        }
+        if (typeof callUrlData !== "object" ||
+            !callUrlData.hasOwnProperty("call_url")) {
+          console.error("Invalid call url data received", callUrlData);
+          notificationCollection.add({
+            level: "error",
+            message: __("unable_retrieve_url")
+          });
+          return;
+        }
+        this.onCallUrlReceived(callUrlData.call_url);
+      }.bind(this));
+    },
+
+    onCallUrlReceived: function(callUrl) {
+      notificationCollection.reset();
+      this.$(".action .invite").hide();
+      this.$(".action .result input").val(callUrl);
+      this.$(".action .result").show();
+      this.$(".description p").text(__("share_link_url"));
+    }
+  });
 
   function  httpError(req) {
     var reason = req.responseText || "Unknown reason.";
     return new Error("Failed HTTP request: " + req.status + "; " + reason);
-  }
-
-  function notifyError(msg) {
-    var errEl = document
-                  .querySelector("#error-notification")
-                  .content
-                  .cloneNode(true);
-    errEl.querySelector("p").textContent = msg;
-    document.querySelector(".share .messages").appendChild(errEl);
-  }
-
-  function clearNotifications() {
-    document.querySelector(".share .messages .alert").remove();
   }
 
   // XXX: abstract XHR for further reusability or YAGNI?
@@ -65,40 +169,13 @@ loop.panel = (function() {
     }));
   }
 
-  function onCallUrlReceived(callUrl) {
-    var shareEl = document.querySelector(".share"),
-        actionEl = shareEl.querySelector(".action")
-    clearNotifications();
-    hide(actionEl.querySelector(".invite"));
-    actionEl.querySelector(".result input").value = callUrl;
-    show(actionEl.querySelector(".result"));
-    shareEl.querySelector(".description p").textContent =
-      document.mozL10n.get("share_link_url");
-  }
-
-  function init() {
-    document.querySelector(".get-url").addEventListener("click",
-      function(event) {
-        event.preventDefault();
-        requestCallUrl(function(err, callUrlData) {
-          if (err) {
-            console.error("Unable to retrieve call url", err);
-            notifyError(document.mozL10n.get("unable_retrieve_url"));
-            return;
-          }
-          if (typeof callUrlData !== "object" ||
-              !callUrlData.hasOwnProperty("call_url")) {
-            console.error("Invalid call url data received", callUrlData);
-            notifyError(document.mozL10n.get("unable_retrieve_url"));
-            return;
-          }
-          onCallUrlReceived(callUrlData.call_url);
-        });
-      });
-  }
-
   return {
     init: init,
-    requestCallUrl: requestCallUrl
+    requestCallUrl: requestCallUrl,
+    NotificationModel: NotificationModel,
+    NotificationCollection: NotificationCollection,
+    NotificationView: NotificationView,
+    NotificationListView: NotificationListView,
+    PanelView: PanelView
   };
-})();
+})(_, document.mozL10n.get);
