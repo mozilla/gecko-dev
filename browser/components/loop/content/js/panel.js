@@ -50,7 +50,12 @@ loop.panel = (function(_, __) {
    * XXX: removal on close btn click
    */
   var NotificationView = Backbone.View.extend({
-    template: _.template($("#notification-tpl").html()),
+    template: _.template([
+      '<div class="alert alert-<%- level %>">',
+      '  <button class="close"></button>',
+      '  <p class="message"><%- message %></p>',
+      '</div>'
+    ].join("")),
 
     events: {
       "click .close": "dismiss"
@@ -76,11 +81,7 @@ loop.panel = (function(_, __) {
   var NotificationListView = Backbone.View.extend({
     el: ".share .messages",
 
-    initialize: function(options) {
-      if (!options.collection)
-        throw new Error("missing required collection");
-
-      this.collection = options.collection;
+    initialize: function() {
       this.listenTo(this.collection, "reset add remove", this.render);
     },
 

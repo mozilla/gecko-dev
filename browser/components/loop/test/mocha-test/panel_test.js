@@ -22,10 +22,11 @@ describe("loop.panel", function() {
   });
 
   afterEach(function() {
+    $("#fixtures").empty();
     sandbox.restore();
   });
 
-  describe("#requestCallUrl", function() {
+  describe("#loop.panel.requestCallUrl", function() {
     it("should request for a call url", function() {
       var callback = sinon.spy();
       loop.panel.requestCallUrl(callback);
@@ -48,6 +49,61 @@ describe("loop.panel", function() {
       sinon.assert.calledWithMatch(callback, sinon.match(function(err) {
         return /HTTP error 400: Bad Request; my error/.test(err.message);
       }));
+    });
+  });
+
+  describe("loop.panel.NotificationView", function() {
+    describe("#render", function() {
+      it("should render template with model attribute values", function() {
+        var view = new loop.panel.NotificationView({
+          el: $("#fixtures"),
+          model: new loop.panel.NotificationModel({
+            level: "error",
+            message: "plop"
+          })
+        });
+
+        view.render();
+
+        expect(view.$(".message").text()).eql("plop");
+      });
+    });
+  });
+
+  describe("loop.panel.NotificationListView", function() {
+    describe("Collection events", function() {
+      var coll, testNotif, view;
+
+      beforeEach(function() {
+        sandbox.stub(loop.panel.NotificationListView.prototype, "render");
+        testNotif = new loop.panel.NotificationModel({
+          level: "error",
+          message: "plop"
+        });
+        coll = new loop.panel.NotificationCollection();
+        view = new loop.panel.NotificationListView({collection: coll});
+      });
+
+      it("should render on notification added to the collection", function() {
+        coll.add(testNotif);
+
+        sinon.assert.calledOnce(view.render);
+      });
+
+      it("should render on notification removed from the collection",
+        function() {
+          coll.add(testNotif);
+          coll.remove(testNotif);
+
+          sinon.assert.calledTwice(view.render);
+        });
+
+      it("should render on collection reset",
+        function() {
+          coll.reset();
+
+          sinon.assert.calledOnce(view.render);
+        });
     });
   });
 });
