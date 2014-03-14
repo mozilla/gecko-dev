@@ -2273,6 +2273,10 @@ class TypedArrayObjectTemplate : public TypedArrayObject
     copyFromArray(JSContext *cx, HandleObject thisTypedArrayObj,
                   HandleObject ar, uint32_t len, uint32_t offset = 0)
     {
+        // Exit early if nothing to copy, to simplify loop conditions below.
+        if (len == 0)
+            return true;
+
         Rooted<TypedArrayObject*> thisTypedArray(cx, &thisTypedArrayObj->as<TypedArrayObject>());
         JS_ASSERT(offset <= thisTypedArray->length());
         JS_ASSERT(len <= thisTypedArray->length() - offset);
@@ -2282,34 +2286,47 @@ class TypedArrayObjectTemplate : public TypedArrayObject
         const Value *src = NULL;
         NativeType *dest = static_cast<NativeType*>(thisTypedArray->viewData()) + offset;
 
-        // The only way the code below can GC is if nativeFromValue fails, but
-        // in that case we return false immediately, so we do not need to root
-        // |src| and |dest|. These SkipRoots are to protect from the
-        // unconditional MaybeCheckStackRoots done by ToNumber.
+        // These SkipRoots are to protect from the unconditional
+        // MaybeCheckStackRoots done by ToNumber.
         SkipRoot skipDest(cx, &dest);
         SkipRoot skipSrc(cx, &src);
+
+        JSRuntime *runtime = cx->runtime();
+#ifdef DEBUG
+        uint64_t gcNumber = runtime->gcNumber;
+#endif
 
         if (ar->is<ArrayObject>() && !ar->isIndexed() && ar->getDenseInitializedLength() >= len) {
             JS_ASSERT(ar->as<ArrayObject>().length() == len);
 
             src = ar->getDenseElements();
-            for (uint32_t i = 0; i < len; ++i) {
+            uint32_t i = 0;
+            do {
                 NativeType n;
                 if (!nativeFromValue(cx, src[i], &n))
                     return false;
                 dest[i] = n;
-            }
+            } while (++i < len);
+            JS_ASSERT(runtime->gcNumber == gcNumber);
         } else {
             RootedValue v(cx);
 
-            for (uint32_t i = 0; i < len; ++i) {
+            uint32_t i = 0;
+            do {
                 if (!JSObject::getElement(cx, ar, ar, i, &v))
                     return false;
                 NativeType n;
                 if (!nativeFromValue(cx, v, &n))
                     return false;
+
+                len = Min(len, thisTypedArray->length());
+                if (i >= len)
+                    break;
+
+                // Compute every iteration in case getElement acts wacky.
+                dest = static_cast<NativeType*>(thisTypedArray->viewData()) + offset;
                 dest[i] = n;
-            }
+            } while (++i < len);
         }
 
         return true;
