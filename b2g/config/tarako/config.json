@@ -25,7 +25,7 @@
     "b2g_manifest": "tarako.xml",
     "b2g_manifest_branch": "v1.3t",
     "b2g_manifest_intree": true,
-    "additional_source_tarballs": ["backup-tarako.tar.xz"],
+    "additional_source_tarballs": [],
     "gecko_l10n_root": "https://hg.mozilla.org/releases/l10n/mozilla-beta",
     "gaia": {
         "l10n": {
