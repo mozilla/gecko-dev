@@ -582,7 +582,7 @@ TEST(AsyncPanZoomController, LongPress) {
   mcc->CheckHasDelayedTask();
   ScrollableLayerGuid guid;
   apzc->GetGuid(&guid);
-  EXPECT_CALL(*mcc, HandleLongTap(CSSIntPoint(10, 10), 0, guid)).Times(1);
+  EXPECT_CALL(*mcc, HandleLongTap(CSSPoint(10, 10), 0, guid)).Times(1);
   EXPECT_CALL(*mcc, SendAsyncScrollDOMEvent(_,_,_)).Times(AtLeast(1));
 
   // Manually invoke the longpress while the touch is currently down.
@@ -593,7 +593,7 @@ TEST(AsyncPanZoomController, LongPress) {
   status = ApzcUp(apzc, 10, 10, time);
   EXPECT_EQ(nsEventStatus_eIgnore, status);
 
-  EXPECT_CALL(*mcc, HandleLongTapUp(CSSIntPoint(10, 10), 0, guid)).Times(1);
+  EXPECT_CALL(*mcc, HandleLongTapUp(CSSPoint(10, 10), 0, guid)).Times(1);
 
   // To get a LongTapUp event, we must kick APZC to flush its event queue. This
   // would normally happen if we had a (Tab|RenderFrame)(Parent|Child)
