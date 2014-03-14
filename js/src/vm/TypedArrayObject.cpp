@@ -2291,8 +2291,8 @@ class TypedArrayObjectTemplate : public TypedArrayObject
         SkipRoot skipDest(cx, &dest);
         SkipRoot skipSrc(cx, &src);
 
-        JSRuntime *runtime = cx->runtime();
 #ifdef DEBUG
+        JSRuntime *runtime = cx->runtime();
         uint64_t gcNumber = runtime->gcNumber;
 #endif
 
