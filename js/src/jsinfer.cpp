@@ -5972,6 +5972,15 @@ JSCompartment::getLazyType(JSContext *cx, Handle<TaggedProto> proto)
 // Tracing
 /////////////////////////////////////////////////////////////////////
 
+static void
+CrashAtUnhandlableOOM(const char *reason)
+{
+    char msgbuf[1024];
+    JS_snprintf(msgbuf, sizeof(msgbuf), "[unhandlable oom] %s", reason);
+    MOZ_ReportAssertionFailure(msgbuf, __FILE__, __LINE__);
+    MOZ_CRASH();
+}
+
 void
 TypeSet::sweep(JSCompartment *compartment)
 {
@@ -5996,10 +6005,9 @@ TypeSet::sweep(JSCompartment *compartment)
                 TypeObjectKey **pentry =
                     HashSetInsert<TypeObjectKey *,TypeObjectKey,TypeObjectKey>
                         (compartment->typeLifoAlloc, objectSet, objectCount, object);
-                if (pentry)
-                    *pentry = object;
-                else
-                    compartment->types.setPendingNukeTypesNoReport();
+                if (!pentry)
+                    CrashAtUnhandlableOOM("OOM in ConstraintTypeSet::sweep");
+                *pentry = object;
             }
         }
         setBaseObjectCount(objectCount);
@@ -6079,19 +6087,17 @@ TypeObject::sweep(FreeOp *fop)
             Property *prop = oldArray[i];
             if (prop && prop->types.ownProperty(false)) {
                 Property *newProp = compartment->typeLifoAlloc.new_<Property>(*prop);
-                if (newProp) {
-                    Property **pentry =
-                        HashSetInsert<jsid,Property,Property>
-                            (compartment->typeLifoAlloc, propertySet, propertyCount, prop->id);
-                    if (pentry) {
-                        *pentry = newProp;
-                        newProp->types.sweep(compartment);
-                    } else {
-                        compartment->types.setPendingNukeTypesNoReport();
-                    }
-                } else {
-                    compartment->types.setPendingNukeTypesNoReport();
-                }
+                if (!newProp)
+                    CrashAtUnhandlableOOM("OOM in TypeObject::sweep");
+
+                Property **pentry =
+                    HashSetInsert<jsid,Property,Property>
+                        (compartment->typeLifoAlloc, propertySet, propertyCount, prop->id);
+                if (!pentry)
+                    CrashAtUnhandlableOOM("OOM in TypeObject::sweep");
+
+                *pentry = newProp;
+                newProp->types.sweep(compartment);
             }
         }
         setBasePropertyCount(propertyCount);
@@ -6099,12 +6105,11 @@ TypeObject::sweep(FreeOp *fop)
         Property *prop = (Property *) propertySet;
         if (prop->types.ownProperty(false)) {
             Property *newProp = compartment->typeLifoAlloc.new_<Property>(*prop);
-            if (newProp) {
-                propertySet = (Property **) newProp;
-                newProp->types.sweep(compartment);
-            } else {
-                compartment->types.setPendingNukeTypesNoReport();
-            }
+            if (!newProp)
+                CrashAtUnhandlableOOM("OOM in TypeObject::sweep");
+
+            propertySet = (Property **) newProp;
+            newProp->types.sweep(compartment);
         } else {
             propertySet = NULL;
             setBasePropertyCount(0);
