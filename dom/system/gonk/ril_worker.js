@@ -14157,6 +14157,10 @@ ICCContactHelperObject.prototype = {
              (Array.isArray(contact.anr) && contact.anr[0]))) {
           // Case 1.
           this.addContactFieldType2(pbr, contact, field, onsuccess, onerror);
+        } else {
+          if (onsuccess) {
+            onsuccess();
+          }
         }
         return;
       }

@@ -406,16 +406,18 @@ public:
     NativePanZoomController* SetNativePanZoomController(jobject obj);
     // GeckoContentController methods
     void RequestContentRepaint(const mozilla::layers::FrameMetrics& aFrameMetrics) MOZ_OVERRIDE;
-    void HandleDoubleTap(const CSSIntPoint& aPoint,
+    void AcknowledgeScrollUpdate(const mozilla::layers::FrameMetrics::ViewID& aScrollId,
+                                 const uint32_t& aScrollGeneration) MOZ_OVERRIDE;
+    void HandleDoubleTap(const CSSPoint& aPoint,
                          int32_t aModifiers,
                          const mozilla::layers::ScrollableLayerGuid& aGuid) MOZ_OVERRIDE;
-    void HandleSingleTap(const CSSIntPoint& aPoint,
+    void HandleSingleTap(const CSSPoint& aPoint,
                          int32_t aModifiers,
                          const mozilla::layers::ScrollableLayerGuid& aGuid) MOZ_OVERRIDE;
-    void HandleLongTap(const CSSIntPoint& aPoint,
+    void HandleLongTap(const CSSPoint& aPoint,
                        int32_t aModifiers,
                        const mozilla::layers::ScrollableLayerGuid& aGuid) MOZ_OVERRIDE;
-    void HandleLongTapUp(const CSSIntPoint& aPoint,
+    void HandleLongTapUp(const CSSPoint& aPoint,
                          int32_t aModifiers,
                          const mozilla::layers::ScrollableLayerGuid& aGuid) MOZ_OVERRIDE;
     void SendAsyncScrollDOMEvent(bool aIsRoot,

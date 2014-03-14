@@ -8,7 +8,7 @@
 #define mozilla_layers_GeckoContentController_h
 
 #include "FrameMetrics.h"               // for FrameMetrics, etc
-#include "Units.h"                      // for CSSIntPoint, CSSRect, etc
+#include "Units.h"                      // for CSSPoint, CSSRect, etc
 #include "mozilla/Assertions.h"         // for MOZ_ASSERT_HELPER2
 #include "nsISupportsImpl.h"
 
@@ -29,12 +29,20 @@ public:
   virtual void RequestContentRepaint(const FrameMetrics& aFrameMetrics) = 0;
 
   /**
+   * Acknowledges the recipt of a scroll offset update for the scrollable
+   * frame with the given scroll id. This is used to maintain consistency
+   * between APZ and other sources of scroll changes.
+   */
+  virtual void AcknowledgeScrollUpdate(const FrameMetrics::ViewID& aScrollId,
+                                       const uint32_t& aScrollGeneration) = 0;
+
+  /**
    * Requests handling of a double tap. |aPoint| is in CSS pixels, relative to
    * the current scroll offset. This should eventually round-trip back to
    * AsyncPanZoomController::ZoomToRect with the dimensions that we want to zoom
    * to.
    */
-  virtual void HandleDoubleTap(const CSSIntPoint& aPoint,
+  virtual void HandleDoubleTap(const CSSPoint& aPoint,
                                int32_t aModifiers,
                                const ScrollableLayerGuid& aGuid) = 0;
 
@@ -43,7 +51,7 @@ public:
    * current scroll offset. This should simulate and send to content a mouse
    * button down, then mouse button up at |aPoint|.
    */
-  virtual void HandleSingleTap(const CSSIntPoint& aPoint,
+  virtual void HandleSingleTap(const CSSPoint& aPoint,
                                int32_t aModifiers,
                                const ScrollableLayerGuid& aGuid) = 0;
 
@@ -51,7 +59,7 @@ public:
    * Requests handling a long tap. |aPoint| is in CSS pixels, relative to the
    * current scroll offset.
    */
-  virtual void HandleLongTap(const CSSIntPoint& aPoint,
+  virtual void HandleLongTap(const CSSPoint& aPoint,
                              int32_t aModifiers,
                              const ScrollableLayerGuid& aGuid) = 0;
 
@@ -60,7 +68,7 @@ public:
    * relative to the current scroll offset. HandleLongTapUp will always be
    * preceeded by HandleLongTap
    */
-  virtual void HandleLongTapUp(const CSSIntPoint& aPoint,
+  virtual void HandleLongTapUp(const CSSPoint& aPoint,
                                int32_t aModifiers,
                                const ScrollableLayerGuid& aGuid) = 0;
 

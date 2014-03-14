@@ -64,6 +64,7 @@ const CDMAICCINFO_CID =
 
 const NS_XPCOM_SHUTDOWN_OBSERVER_ID      = "xpcom-shutdown";
 const kNetworkInterfaceStateChangedTopic = "network-interface-state-changed";
+const kNetworkConnStateChangedTopic      = "network-connection-state-changed";
 const kSmsReceivedObserverTopic          = "sms-received";
 const kSilentSmsReceivedObserverTopic    = "silent-sms-received";
 const kSmsSendingObserverTopic           = "sms-sending";
@@ -1295,7 +1296,7 @@ function RadioInterface(aClientId, aWorkerMessenger) {
   Services.obs.addObserver(this, kSysClockChangeObserverTopic, false);
   Services.obs.addObserver(this, kScreenStateChangedTopic, false);
 
-  Services.obs.addObserver(this, kNetworkInterfaceStateChangedTopic, false);
+  Services.obs.addObserver(this, kNetworkConnStateChangedTopic, false);
   Services.prefs.addObserver(kPrefCellBroadcastDisabled, this, false);
 
   this.portAddressedSmsApps = {};
@@ -2879,7 +2880,7 @@ RadioInterface.prototype = {
         Services.obs.removeObserver(this, kMozSettingsChangedObserverTopic);
         Services.obs.removeObserver(this, kSysClockChangeObserverTopic);
         Services.obs.removeObserver(this, kScreenStateChangedTopic);
-        Services.obs.removeObserver(this, kNetworkInterfaceStateChangedTopic);
+        Services.obs.removeObserver(this, kNetworkConnStateChangedTopic);
         break;
       case kSysClockChangeObserverTopic:
         let offset = parseInt(data, 10);
@@ -2888,7 +2889,7 @@ RadioInterface.prototype = {
         }
         this._sntp.updateOffset(offset);
         break;
-      case kNetworkInterfaceStateChangedTopic:
+      case kNetworkConnStateChangedTopic:
         let network = subject.QueryInterface(Ci.nsINetworkInterface);
         if (network.state == Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED) {
           // Check SNTP when we have data connection, this may not take

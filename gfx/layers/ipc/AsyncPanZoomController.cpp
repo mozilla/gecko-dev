@@ -70,7 +70,7 @@
            fm.mScrollOffset.x, fm.mScrollOffset.y, \
            fm.mScrollableRect.x, fm.mScrollableRect.y, fm.mScrollableRect.width, fm.mScrollableRect.height, \
            fm.mDevPixelsPerCSSPixel.scale, fm.mResolution.scale, fm.mCumulativeResolution.scale, fm.mZoom.scale, \
-           fm.mUpdateScrollOffset); \
+           fm.GetScrollOffsetUpdated()); \
 
 // Static helper functions
 namespace {
@@ -708,7 +708,7 @@ nsEventStatus AsyncPanZoomController::OnTouchCancel(const MultiTouchInput& aEven
 
 nsEventStatus AsyncPanZoomController::OnScaleBegin(const PinchGestureInput& aEvent) {
   APZC_LOG("%p got a scale-begin in state %d\n", this, mState);
-  if (!AllowZoom()) {
+  if (!mZoomConstraints.mAllowZoom) {
     return nsEventStatus_eConsumeNoDefault;
   }
 
@@ -819,7 +819,7 @@ nsEventStatus AsyncPanZoomController::OnScaleEnd(const PinchGestureInput& aEvent
 }
 
 bool
-AsyncPanZoomController::ConvertToGecko(const ScreenPoint& aPoint, CSSIntPoint* aOut)
+AsyncPanZoomController::ConvertToGecko(const ScreenPoint& aPoint, CSSPoint* aOut)
 {
   APZCTreeManager* treeManagerLocal = mTreeManager;
   if (treeManagerLocal) {
@@ -832,8 +832,7 @@ AsyncPanZoomController::ConvertToGecko(const ScreenPoint& aPoint, CSSIntPoint* a
     LayoutDevicePoint layoutPoint = LayoutDevicePoint(result.x, result.y);
     { // scoped lock to access mFrameMetrics
       ReentrantMonitorAutoEnter lock(mMonitor);
-      CSSPoint cssPoint = layoutPoint / mFrameMetrics.mDevPixelsPerCSSPixel;
-      *aOut = gfx::RoundedToInt(cssPoint);
+      *aOut = layoutPoint / mFrameMetrics.mDevPixelsPerCSSPixel;
     }
     return true;
   }
@@ -845,7 +844,7 @@ nsEventStatus AsyncPanZoomController::OnLongPress(const TapGestureInput& aEvent)
   nsRefPtr<GeckoContentController> controller = GetGeckoContentController();
   if (controller) {
     int32_t modifiers = WidgetModifiersToDOMModifiers(aEvent.modifiers);
-    CSSIntPoint geckoScreenPoint;
+    CSSPoint geckoScreenPoint;
     if (ConvertToGecko(aEvent.mPoint, &geckoScreenPoint)) {
       SetState(WAITING_LISTENERS);
       SetTouchListenerTimer();
@@ -863,7 +862,7 @@ nsEventStatus AsyncPanZoomController::OnLongPressUp(const TapGestureInput& aEven
   nsRefPtr<GeckoContentController> controller = GetGeckoContentController();
   if (controller) {
     int32_t modifiers = WidgetModifiersToDOMModifiers(aEvent.modifiers);
-    CSSIntPoint geckoScreenPoint;
+    CSSPoint geckoScreenPoint;
     if (ConvertToGecko(aEvent.mPoint, &geckoScreenPoint)) {
       ScrollableLayerGuid guid;
       GetGuid(&guid);
@@ -879,9 +878,9 @@ nsEventStatus AsyncPanZoomController::OnSingleTapUp(const TapGestureInput& aEven
   nsRefPtr<GeckoContentController> controller = GetGeckoContentController();
   // If mZoomConstraints.mAllowZoom is true we wait for a call to OnSingleTapConfirmed before
   // sending event to content
-  if (controller && !AllowZoom()) {
+  if (controller && !mZoomConstraints.mAllowZoom) {
     int32_t modifiers = WidgetModifiersToDOMModifiers(aEvent.modifiers);
-    CSSIntPoint geckoScreenPoint;
+    CSSPoint geckoScreenPoint;
     if (ConvertToGecko(aEvent.mPoint, &geckoScreenPoint)) {
       ScrollableLayerGuid guid;
       GetGuid(&guid);
@@ -905,7 +904,7 @@ nsEventStatus AsyncPanZoomController::OnSingleTapConfirmed(const TapGestureInput
   nsRefPtr<GeckoContentController> controller = GetGeckoContentController();
   if (controller) {
     int32_t modifiers = WidgetModifiersToDOMModifiers(aEvent.modifiers);
-    CSSIntPoint geckoScreenPoint;
+    CSSPoint geckoScreenPoint;
     if (ConvertToGecko(aEvent.mPoint, &geckoScreenPoint)) {
       ScrollableLayerGuid guid;
       GetGuid(&guid);
@@ -924,9 +923,9 @@ nsEventStatus AsyncPanZoomController::OnDoubleTap(const TapGestureInput& aEvent)
   APZC_LOG("%p got a double-tap in state %d\n", this, mState);
   nsRefPtr<GeckoContentController> controller = GetGeckoContentController();
   if (controller) {
-    if (AllowZoom()) {
+    if (mZoomConstraints.mAllowZoom) {
       int32_t modifiers = WidgetModifiersToDOMModifiers(aEvent.modifiers);
-      CSSIntPoint geckoScreenPoint;
+      CSSPoint geckoScreenPoint;
       if (ConvertToGecko(aEvent.mPoint, &geckoScreenPoint)) {
         ScrollableLayerGuid guid;
         GetGuid(&guid);
@@ -1036,11 +1035,9 @@ void AsyncPanZoomController::AttemptScroll(const ScreenPoint& aStartPoint,
 
     CSSPoint cssOverscroll;
     gfx::Point scrollOffset(mX.AdjustDisplacement(cssDisplacement.x,
-                                                  cssOverscroll.x,
-                                                  mFrameMetrics.GetDisableScrollingX()),
+                                                  cssOverscroll.x),
                             mY.AdjustDisplacement(cssDisplacement.y,
-                                                  cssOverscroll.y,
-                                                  mFrameMetrics.GetDisableScrollingY()));
+                                                  cssOverscroll.y));
     overscroll = cssOverscroll * zoom;
 
     if (fabs(scrollOffset.x) > EPSILON || fabs(scrollOffset.y) > EPSILON) {
@@ -1135,10 +1132,8 @@ bool FlingAnimation::Sample(FrameMetrics& aFrameMetrics,
   // a larger swipe should move you a shorter distance).
   CSSPoint cssOffset = offset / aFrameMetrics.mZoom;
   aFrameMetrics.mScrollOffset += CSSPoint::FromUnknownPoint(gfx::Point(
-    mX.AdjustDisplacement(cssOffset.x, overscroll.x,
-                          aFrameMetrics.GetDisableScrollingX()),
-    mY.AdjustDisplacement(cssOffset.y, overscroll.y,
-                          aFrameMetrics.GetDisableScrollingY())
+    mX.AdjustDisplacement(cssOffset.x, overscroll.x),
+    mY.AdjustDisplacement(cssOffset.y, overscroll.y)
   ));
 
   return true;
@@ -1227,28 +1222,17 @@ const CSSRect AsyncPanZoomController::CalculatePendingDisplayPort(
     // Check if the displayport, without being enlarged, fits tightly inside the
     // scrollable rect. If so, we're not going to be able to enlarge it, so we
     // should consider enlarging the opposite axis.
-    if (scrollableRect.width - compositionBounds.width <= EPSILON ||
-        aFrameMetrics.GetDisableScrollingX()) {
+    if (scrollableRect.width - compositionBounds.width <= EPSILON) {
       xSkateSizeMultiplier = 1.f;
       ySkateSizeMultiplier = gYStationarySizeMultiplier;
     }
     // Even if we end up overwriting the previous multipliers, it doesn't
     // matter, since this frame's scrollable rect fits within its composition
     // bounds on both axes and we won't be enlarging either displayport axis.
-    if (scrollableRect.height - compositionBounds.height <= EPSILON ||
-        aFrameMetrics.GetDisableScrollingY()) {
+    if (scrollableRect.height - compositionBounds.height <= EPSILON) {
       ySkateSizeMultiplier = 1.f;
       xSkateSizeMultiplier = gXSkateSizeMultiplier;
     }
-  }
-
-  // If scrolling is disabled here then our actual velocity is going
-  // to be zero, so treat the displayport accordingly.
-  if (aFrameMetrics.GetDisableScrollingX()) {
-    velocity.x = 0;
-  }
-  if (aFrameMetrics.GetDisableScrollingY()) {
-    velocity.y = 0;
   }
 
   // Enlarge the displayport along both axes depending on how fast we're moving
@@ -1499,7 +1483,8 @@ gfx3DMatrix AsyncPanZoomController::GetNontransientAsyncTransform() {
 
 gfx3DMatrix AsyncPanZoomController::GetTransformToLastDispatchedPaint() {
   ReentrantMonitorAutoEnter lock(mMonitor);
-  CSSPoint scrollChange = mLastContentPaintMetrics.mScrollOffset - mLastDispatchedPaintMetrics.mScrollOffset;
+  LayerPoint scrollChange = (mLastContentPaintMetrics.mScrollOffset - mLastDispatchedPaintMetrics.mScrollOffset)
+                          * mLastContentPaintMetrics.LayersPixelsPerCSSPixel();
   float zoomChange = mLastContentPaintMetrics.mZoom.scale / mLastDispatchedPaintMetrics.mZoom.scale;
   return gfx3DMatrix::Translation(scrollChange.x, scrollChange.y, 0) *
          gfx3DMatrix::ScalingMatrix(zoomChange, zoomChange, 1);
@@ -1554,28 +1539,31 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
     mFrameMetrics.mZoom.scale *= parentResolutionChange;
     mFrameMetrics.mResolution = aLayerMetrics.mResolution;
     mFrameMetrics.mCumulativeResolution = aLayerMetrics.mCumulativeResolution;
-    mFrameMetrics.SetDisableScrollingX(aLayerMetrics.GetDisableScrollingX());
-    mFrameMetrics.SetDisableScrollingY(aLayerMetrics.GetDisableScrollingY());
 
     // If the layers update was not triggered by our own repaint request, then
     // we want to take the new scroll offset.
-    if (aLayerMetrics.mUpdateScrollOffset) {
+    if (aLayerMetrics.GetScrollOffsetUpdated()) {
       APZC_LOG("Updating scroll offset from (%f, %f) to (%f, %f)\n",
         mFrameMetrics.mScrollOffset.x, mFrameMetrics.mScrollOffset.y,
         aLayerMetrics.mScrollOffset.x, aLayerMetrics.mScrollOffset.y);
 
       mFrameMetrics.mScrollOffset = aLayerMetrics.mScrollOffset;
 
-      // It is possible that when we receive this mUpdateScrollOffset flag, we have
-      // just sent a content repaint request, and it is pending inflight. That repaint
-      // request would have our old scroll offset, and will get processed on the content
-      // thread as we're processing this mUpdateScrollOffset flag. This would leave
-      // things in a state where content has the old APZC scroll offset and the APZC
-      // has the new content-specified scroll offset. In such a case we want to trigger
-      // another repaint request to bring things back in sync. In most cases this repaint
-      // request will be a no-op and get filtered out in RequestContentRepaint, so it
-      // shouldn't have bad performance implications.
-      needContentRepaint = true;
+      // Once layout issues a scroll offset update, it becomes impervious to
+      // scroll offset updates from APZ until we acknowledge the update it sent.
+      // This prevents APZ updates from clobbering scroll updates from other
+      // more "legitimate" sources like content scripts.
+      // Furthermore, any inflight paint requests we have already dispatched are
+      // going to be ignored by layout, and so mLastDispatchedPaintMetrics
+      // becomes incorrect for the purposes of calculating the LD transform. To
+      // correct this we need to update mLastDispatchedPaintMetrics to be the
+      // last thing we know was painted by Gecko.
+      mLastDispatchedPaintMetrics = aLayerMetrics;
+      nsRefPtr<GeckoContentController> controller = GetGeckoContentController();
+      if (controller) {
+        controller->AcknowledgeScrollUpdate(aLayerMetrics.mScrollId,
+                                            aLayerMetrics.GetScrollGeneration());
+      }
     }
   }
 
@@ -1739,14 +1727,6 @@ bool AsyncPanZoomController::IsTransformingState(PanZoomState aState) {
 
 bool AsyncPanZoomController::IsPanningState(PanZoomState aState) {
   return (aState == PANNING || aState == PANNING_LOCKED_X || aState == PANNING_LOCKED_Y);
-}
-
-bool AsyncPanZoomController::AllowZoom() {
-  // In addition to looking at the zoom constraints, which comes from the meta
-  // viewport tag, disallow zooming if we are overflow:hidden in either direction.
-  ReentrantMonitorAutoEnter lock(mMonitor);
-  return mZoomConstraints.mAllowZoom
-      && !(mFrameMetrics.GetDisableScrollingX() || mFrameMetrics.GetDisableScrollingY());
 }
 
 void AsyncPanZoomController::SetTouchListenerTimer() {

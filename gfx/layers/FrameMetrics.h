@@ -61,8 +61,7 @@ public:
     , mIsRoot(false)
     , mHasScrollgrab(false)
     , mUpdateScrollOffset(false)
-    , mDisableScrollingX(false)
-    , mDisableScrollingY(false)
+    , mScrollGeneration(0)
   {}
 
   // Default copy ctor and operator= are fine
@@ -83,8 +82,6 @@ public:
            mPresShellId == aOther.mPresShellId &&
            mIsRoot == aOther.mIsRoot &&
            mHasScrollgrab == aOther.mHasScrollgrab &&
-           mDisableScrollingX == aOther.mDisableScrollingX &&
-           mDisableScrollingY == aOther.mDisableScrollingY &&
            mUpdateScrollOffset == aOther.mUpdateScrollOffset;
   }
   bool operator!=(const FrameMetrics& aOther) const
@@ -298,39 +295,32 @@ public:
   // Whether or not this frame is for an element marked 'scrollgrab'.
   bool mHasScrollgrab;
 
-  // Whether mScrollOffset was updated by something other than the APZ code, and
-  // if the APZC receiving this metrics should update its local copy.
-  bool mUpdateScrollOffset;
-
 public:
-  bool GetDisableScrollingX() const
+  void SetScrollOffsetUpdated(uint32_t aScrollGeneration)
   {
-    return mDisableScrollingX;
+    mUpdateScrollOffset = true;
+    mScrollGeneration = aScrollGeneration;
   }
 
-  void SetDisableScrollingX(bool aDisableScrollingX)
+  bool GetScrollOffsetUpdated() const
   {
-    mDisableScrollingX = aDisableScrollingX;
+    return mUpdateScrollOffset;
   }
 
-  bool GetDisableScrollingY() const
+  uint32_t GetScrollGeneration() const
   {
-    return mDisableScrollingY;
-  }
-
-  void SetDisableScrollingY(bool aDisableScrollingY)
-  {
-    mDisableScrollingY = aDisableScrollingY;
+    return mScrollGeneration;
   }
 
 private:
   // New fields from now on should be made private and old fields should
   // be refactored to be private.
 
-  // Allow disabling scrolling in individual axis to support
-  // |overflow: hidden|.
-  bool mDisableScrollingX;
-  bool mDisableScrollingY;
+  // Whether mScrollOffset was updated by something other than the APZ code, and
+  // if the APZC receiving this metrics should update its local copy.
+  bool mUpdateScrollOffset;
+  // The scroll generation counter used to acknowledge the scroll offset update.
+  uint32_t mScrollGeneration;
 };
 
 /**
