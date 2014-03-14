@@ -30,10 +30,10 @@ class MockContentController : public GeckoContentController {
 public:
   MOCK_METHOD1(RequestContentRepaint, void(const FrameMetrics&));
   MOCK_METHOD2(AcknowledgeScrollUpdate, void(const FrameMetrics::ViewID&, const uint32_t& aScrollGeneration));
-  MOCK_METHOD3(HandleDoubleTap, void(const CSSIntPoint&, int32_t, const ScrollableLayerGuid&));
-  MOCK_METHOD3(HandleSingleTap, void(const CSSIntPoint&, int32_t, const ScrollableLayerGuid&));
-  MOCK_METHOD3(HandleLongTap, void(const CSSIntPoint&, int32_t, const ScrollableLayerGuid&));
-  MOCK_METHOD3(HandleLongTapUp, void(const CSSIntPoint&, int32_t, const ScrollableLayerGuid&));
+  MOCK_METHOD3(HandleDoubleTap, void(const CSSPoint&, int32_t, const ScrollableLayerGuid&));
+  MOCK_METHOD3(HandleSingleTap, void(const CSSPoint&, int32_t, const ScrollableLayerGuid&));
+  MOCK_METHOD3(HandleLongTap, void(const CSSPoint&, int32_t, const ScrollableLayerGuid&));
+  MOCK_METHOD3(HandleLongTapUp, void(const CSSPoint&, int32_t, const ScrollableLayerGuid&));
   MOCK_METHOD3(SendAsyncScrollDOMEvent, void(bool aIsRoot, const CSSRect &aContentRect, const CSSSize &aScrollableSize));
   MOCK_METHOD2(PostDelayedTask, void(Task* aTask, int aDelayMs));
 };
@@ -532,7 +532,7 @@ TEST(AsyncPanZoomController, ShortPress) {
 
   ScrollableLayerGuid guid;
   apzc->GetGuid(&guid);
-  EXPECT_CALL(*mcc, HandleSingleTap(CSSIntPoint(10, 10), 0, guid)).Times(1);
+  EXPECT_CALL(*mcc, HandleSingleTap(CSSPoint(10, 10), 0, guid)).Times(1);
   mcc->RunDelayedTask();
 
   apzc->Destroy();
@@ -558,7 +558,7 @@ TEST(AsyncPanZoomController, MediumPress) {
 
   ScrollableLayerGuid guid;
   apzc->GetGuid(&guid);
-  EXPECT_CALL(*mcc, HandleSingleTap(CSSIntPoint(10, 10), 0, guid)).Times(1);
+  EXPECT_CALL(*mcc, HandleSingleTap(CSSPoint(10, 10), 0, guid)).Times(1);
   mcc->RunDelayedTask();
 
   apzc->Destroy();
