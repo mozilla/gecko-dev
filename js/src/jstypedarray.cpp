@@ -511,6 +511,7 @@ ArrayBufferObject::stealContents(JSContext *cx, JSObject *obj, void **contents,
         if (!headerCopy)
             return false;
 
+        ArrayBufferObject::setElementsHeader(headerCopy, byteLen);
         *contents = headerCopy;
         *data = reinterpret_cast<uint8_t *>(headerCopy + 1);
 
