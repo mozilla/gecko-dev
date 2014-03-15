@@ -137,6 +137,24 @@ class ArrayBufferObject : public JSObject
     static bool saveArrayBufferList(JSCompartment *c, ArrayBufferVector &vector);
     static void restoreArrayBufferLists(ArrayBufferVector &vector);
 
+    bool hasStealableContents() const {
+        // Inline elements strictly adhere to the corresponding buffer.
+        if (!hasDynamicElements())
+            return false;
+
+        // asm.js buffer contents are transferred by copying, just like inline
+        // elements.
+        if (isAsmJSArrayBuffer())
+            return false;
+
+        // Neutered contents aren't transferrable because we want a neutered
+        // array's contents to be backed by zeroed memory equal in length to
+        // the original buffer contents.  Transferring these contents would
+        // allocate new ones based on the current byteLength, which is 0 for a
+        // neutered array -- not the original byteLength.
+        return !isNeutered();
+    }
+
     static bool stealContents(JSContext *cx, JSObject *obj, void **contents,
                               uint8_t **data);
 
@@ -164,10 +182,17 @@ class ArrayBufferObject : public JSObject
      */
     inline bool hasData() const;
 
-    inline bool isAsmJSArrayBuffer() const;
+    bool isAsmJSArrayBuffer() const {
+        return getElementsHeader()->isAsmJSArrayBuffer();
+    }
+
     static bool prepareForAsmJS(JSContext *cx, Handle<ArrayBufferObject*> buffer);
     static void neuterAsmJSArrayBuffer(ArrayBufferObject &buffer);
     static void releaseAsmJSArrayBuffer(FreeOp *fop, JSObject *obj);
+
+    bool isNeutered() const {
+        return getElementsHeader()->isNeuteredBuffer();
+    }
 };
 
 /*

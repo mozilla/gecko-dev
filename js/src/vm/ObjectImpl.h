@@ -979,10 +979,11 @@ class ObjectElements
     enum Flags {
         CONVERT_DOUBLE_ELEMENTS = 0x1,
         ASMJS_ARRAY_BUFFER = 0x2,
+        NEUTERED_BUFFER = 0x4,
 
         // Present only if these elements correspond to an array with
         // non-writable length; never present for non-arrays.
-        NONWRITABLE_ARRAY_LENGTH = 0x4
+        NONWRITABLE_ARRAY_LENGTH = 0x8
     };
 
   private:
@@ -1035,6 +1036,12 @@ class ObjectElements
     }
     void setIsAsmJSArrayBuffer() {
         flags |= ASMJS_ARRAY_BUFFER;
+    }
+    bool isNeuteredBuffer() const {
+        return flags & NEUTERED_BUFFER;
+    }
+    void setIsNeuteredBuffer() {
+        flags |= NEUTERED_BUFFER;
     }
     bool hasNonwritableArrayLength() const {
         return flags & NONWRITABLE_ARRAY_LENGTH;

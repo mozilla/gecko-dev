@@ -623,41 +623,57 @@ bool
 ArrayBufferObject::stealContents(JSContext *cx, JSObject *obj, void **contents,
                                  uint8_t **data)
 {
+    MOZ_ASSERT(cx);
+
     ArrayBufferObject &buffer = obj->as<ArrayBufferObject>();
     JSObject *views = *GetViewList(&buffer);
-    js::ObjectElements *header = js::ObjectElements::fromElements((js::HeapSlot*)buffer.dataPointer());
-    if (buffer.hasDynamicElements() && !buffer.isAsmJSArrayBuffer()) {
+
+    uint32_t byteLen = buffer.byteLength();
+
+    js::ObjectElements *oldHeader = buffer.getElementsHeader();
+    js::ObjectElements *newHeader;
+
+    // If the ArrayBuffer's elements are transferrable, transfer ownership
+    // directly.  Otherwise we have to copy the data into new elements.
+    bool stolen = buffer.hasStealableContents();
+    if (stolen) {
+        newHeader = AllocateArrayBufferContents(cx, byteLen, NULL);
+        if (!newHeader)
+            return false;
+
         *GetViewList(&buffer) = NULL;
-        *contents = header;
+        *contents = oldHeader;
         *data = buffer.dataPointer();
 
-        buffer.setFixedElements();
-        header = js::ObjectElements::fromElements((js::HeapSlot*)buffer.dataPointer());
-    } else {
-        uint32_t length = buffer.byteLength();
-        js::ObjectElements *newheader =
-            AllocateArrayBufferContents(cx, length, buffer.dataPointer());
-        if (!newheader) {
-            js_ReportOutOfMemory(cx);
-            return false;
-        }
+        MOZ_ASSERT(!buffer.isAsmJSArrayBuffer(),
+                   "buffer won't be neutered by neuterAsmJSArrayBuffer");
 
-        ArrayBufferObject::setElementsHeader(newheader, length);
-        *contents = newheader;
-        *data = reinterpret_cast<uint8_t *>(newheader + 1);
+        buffer.elements = newHeader->elements();
+    } else {
+        js::ObjectElements *headerCopy =
+            AllocateArrayBufferContents(cx, byteLen, buffer.dataPointer());
+        if (!headerCopy)
+            return false;
+
+        *contents = headerCopy;
+        *data = reinterpret_cast<uint8_t *>(headerCopy + 1);
 
         if (buffer.isAsmJSArrayBuffer())
             ArrayBufferObject::neuterAsmJSArrayBuffer(buffer);
+
+        // Keep using the current elements.
+        newHeader = oldHeader;
     }
 
     // Neuter the donor ArrayBuffer and all views of it
-    uint32_t flags = header->flags;
-    ArrayBufferObject::setElementsHeader(header, 0);
-    header->flags = flags;
+    uint32_t flags = newHeader->flags;
+    ArrayBufferObject::setElementsHeader(newHeader, 0);
+    newHeader->flags = flags;
     GetViewList(&buffer)->init(views);
     for (JSObject *view = views; view; view = NextView(view))
         TypedArray::neuter(view);
 
+    newHeader->setIsNeuteredBuffer();
     return true;
 }
 
