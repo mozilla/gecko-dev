@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include "mozilla/StandardInteger.h"
-const PRTime gPreloadListExpirationTime = INT64_C(1403348761145000);
+const PRTime gPreloadListExpirationTime = INT64_C(1405764333793000);
 
 class nsSTSPreload
 {
@@ -19,6 +19,7 @@ class nsSTSPreload
 
 static const nsSTSPreload kSTSPreloadList[] = {
   { "accounts.google.com", true },
+  { "aclu.org", false },
   { "aladdinschools.appspot.com", false },
   { "alpha.irccloud.com", false },
   { "api.intercom.io", false },
@@ -72,6 +73,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "forum.linode.com", false },
   { "forum.quantifiedself.com", true },
   { "gernert-server.de", true },
+  { "getcloak.com", false },
   { "getlantern.org", false },
   { "go.xero.com", false },
   { "grc.com", false },
@@ -100,6 +102,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "lumi.do", false },
   { "luneta.nearbuysystems.com", false },
   { "mail.de", true },
+  { "mailbox.org", false },
   { "makeyourlaws.org", false },
   { "manage.zenpayroll.com", false },
   { "manager.linode.com", false },
@@ -129,8 +132,11 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "paymill.de", false },
   { "piratenlogin.de", true },
   { "pixi.me", true },
+  { "plus.google.com", false },
+  { "plus.sandbox.google.com", false },
   { "publications.qld.gov.au", false },
   { "riseup.net", true },
+  { "roddis.net", false },
   { "romab.com", true },
   { "roundcube.mayfirst.org", false },
   { "sandbox.mydigipass.com", false },
@@ -156,11 +162,13 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "wiki.python.org", true },
   { "wiz.biz", true },
   { "writeapp.me", false },
+  { "www.aclu.org", false },
   { "www.apollo-auto.com", true },
   { "www.braintreepayments.com", false },
   { "www.cyveillance.com", true },
   { "www.entropia.de", false },
   { "www.evernote.com", false },
+  { "www.getcloak.com", false },
   { "www.gov.uk", false },
   { "www.grc.com", false },
   { "www.heliosnet.com", true },
@@ -169,9 +177,11 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "www.linode.com", false },
   { "www.lookout.com", false },
   { "www.makeyourlaws.org", false },
+  { "www.mydigipass.com", false },
   { "www.mylookout.com", false },
   { "www.noisebridge.net", false },
   { "www.opsmate.com", true },
+  { "www.roddis.net", false },
   { "www.simbolo.co.uk", false },
   { "www.simple.com", false },
   { "www.therapynotes.com", false },
