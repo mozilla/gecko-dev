@@ -862,10 +862,6 @@ class ObjectElements
     friend class ObjectImpl;
     friend class ArrayBufferObject;
 
-    enum Flags {
-        NEUTERED_BUFFER = 0x1
-    };
-
     /* Number of allocated slots. */
     uint32_t capacity;
 
@@ -877,14 +873,11 @@ class ObjectElements
      */
     uint32_t initializedLength;
 
-    /*
-     * 'length' property of array objects, views for ArrayBuffer objects,
-     * unused for other objects.
-     */
+    /* 'length' property of array objects, unused for other objects. */
     uint32_t length;
 
     /* :XXX: bug 586842 store state about sparse slots. */
-    uint32_t flags;
+    uint32_t unused;
 
     void staticAsserts() {
         MOZ_STATIC_ASSERT(sizeof(ObjectElements) == VALUES_PER_HEADER * sizeof(Value),
@@ -894,7 +887,7 @@ class ObjectElements
   public:
 
     ObjectElements(uint32_t capacity, uint32_t length)
-      : capacity(capacity), initializedLength(0), length(length), flags(0)
+      : capacity(capacity), initializedLength(0), length(length)
     {}
 
     HeapSlot *elements() { return (HeapSlot *)(uintptr_t(this) + sizeof(ObjectElements)); }
@@ -913,13 +906,6 @@ class ObjectElements
     }
 
     static const size_t VALUES_PER_HEADER = 2;
-
-    bool isNeuteredBuffer() const {
-        return flags & NEUTERED_BUFFER;
-    }
-    void setIsNeuteredBuffer() {
-        flags |= NEUTERED_BUFFER;
-    }
 };
 
 /* Shared singleton for objects with no elements. */

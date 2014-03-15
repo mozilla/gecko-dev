@@ -132,19 +132,6 @@ class ArrayBufferObject : public JSObject
 
     static void sweepAll(JSRuntime *rt);
 
-    bool hasStealableContents() const {
-        // Inline elements strictly adhere to the corresponding buffer.
-        if (!hasDynamicElements())
-            return false;
-
-        // Neutered contents aren't transferrable because we want a neutered
-        // array's contents to be backed by zeroed memory equal in length to
-        // the original buffer contents.  Transferring these contents would
-        // allocate new ones based on the current byteLength, which is 0 for a
-        // neutered array -- not the original byteLength.
-        return !isNeutered();
-    }
-
     static bool stealContents(JSContext *cx, JSObject *obj, void **contents,
                               uint8_t **data);
 
@@ -170,9 +157,6 @@ class ArrayBufferObject : public JSObject
      */
     inline bool hasData() const;
 
-    bool isNeutered() const {
-        return getElementsHeader()->isNeuteredBuffer();
-    }
 };
 
 /*
