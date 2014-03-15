@@ -32,7 +32,6 @@ dropcam.com: did not receive HSTS header
 email.lookout.com: could not connect to host
 emailprivacytester.com: did not receive HSTS header
 encrypted.google.com: did not receive HSTS header
-errors.zenpayroll.com: could not connect to host
 espra.com: could not connect to host
 factor.cc: could not connect to host
 fatzebra.com.au: did not receive HSTS header
@@ -76,8 +75,6 @@ paypal.com: max-age too low: 14400
 payroll.xero.com: max-age too low: 3600
 platform.lookout.com: could not connect to host
 play.google.com: did not receive HSTS header
-plus.google.com: did not receive HSTS header
-plus.sandbox.google.com: did not receive HSTS header
 prodpad.com: did not receive HSTS header
 profiles.google.com: did not receive HSTS header
 rapidresearch.me: did not receive HSTS header
