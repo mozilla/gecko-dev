@@ -862,22 +862,33 @@ class ObjectElements
     friend class ObjectImpl;
     friend class ArrayBufferObject;
 
-    /* Number of allocated slots. */
-    uint32_t capacity;
+    enum Flags {
+        NEUTERED_BUFFER = 0x1
+    };
+
+    /* See Flags enum above. */
+    uint32_t flags;
 
     /*
      * Number of initialized elements. This is <= the capacity, and for arrays
      * is <= the length. Memory for elements above the initialized length is
      * uninitialized, but values between the initialized length and the proper
      * length are conceptually holes.
+     *
+     * If this pairs with an ArrayBuffer, it instead stores byteLength.
      */
     uint32_t initializedLength;
 
+    /*
+     * Beware!  The next one or two fields (32-bit or 64-bit) are punned by
+     * ArrayBuffers to store their view list.  Overwrite with care!
+     */
+
+    /* Number of allocated slots. */
+    uint32_t capacity;
+
     /* 'length' property of array objects, unused for other objects. */
     uint32_t length;
-
-    /* :XXX: bug 586842 store state about sparse slots. */
-    uint32_t unused;
 
     void staticAsserts() {
         MOZ_STATIC_ASSERT(sizeof(ObjectElements) == VALUES_PER_HEADER * sizeof(Value),
@@ -887,7 +898,7 @@ class ObjectElements
   public:
 
     ObjectElements(uint32_t capacity, uint32_t length)
-      : capacity(capacity), initializedLength(0), length(length)
+      : flags(0), initializedLength(0), capacity(capacity), length(length)
     {}
 
     HeapSlot *elements() { return (HeapSlot *)(uintptr_t(this) + sizeof(ObjectElements)); }
@@ -906,6 +917,13 @@ class ObjectElements
     }
 
     static const size_t VALUES_PER_HEADER = 2;
+
+    bool isNeuteredBuffer() const {
+        return flags & NEUTERED_BUFFER;
+    }
+    void setIsNeuteredBuffer() {
+        flags |= NEUTERED_BUFFER;
+    }
 };
 
 /* Shared singleton for objects with no elements. */
