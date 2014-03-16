@@ -597,6 +597,8 @@ bool
 ArrayBufferObject::stealContents(JSContext *cx, JSObject *obj, void **contents,
                                  uint8_t **data)
 {
+    MOZ_ASSERT(cx);
+
     ArrayBufferObject &buffer = obj->as<ArrayBufferObject>();
     ArrayBufferViewObject *views = GetViewList(&buffer);
 
@@ -623,37 +625,52 @@ ArrayBufferObject::stealContents(JSContext *cx, JSObject *obj, void **contents,
         }
     }
 
-    js::ObjectElements *header = js::ObjectElements::fromElements((js::HeapSlot*)buffer.dataPointer());
-    if (buffer.hasDynamicElements() && !buffer.isAsmJSArrayBuffer()) {
+    uint32_t byteLen = buffer.byteLength();
+
+    js::ObjectElements *oldHeader = buffer.getElementsHeader();
+    js::ObjectElements *newHeader;
+
+    // If the ArrayBuffer's elements are transferrable, transfer ownership
+    // directly.  Otherwise we have to copy the data into new elements.
+    bool stolen = buffer.hasStealableContents();
+    if (stolen) {
+        newHeader = AllocateArrayBufferContents(cx, byteLen, NULL);
+        if (!newHeader)
+            return false;
+
         SetViewList(&buffer, NULL);
-        *contents = header;
+        *contents = oldHeader;
         *data = buffer.dataPointer();
 
-        buffer.setFixedElements();
-        header = js::ObjectElements::fromElements((js::HeapSlot*)buffer.dataPointer());
-    } else {
-        uint32_t length = buffer.byteLength();
-        js::ObjectElements *newheader =
-            AllocateArrayBufferContents(cx, length, buffer.dataPointer());
-        if (!newheader) {
-            js_ReportOutOfMemory(cx);
-            return false;
-        }
+        MOZ_ASSERT(!buffer.isAsmJSArrayBuffer(),
+                   "buffer won't be neutered by neuterAsmJSArrayBuffer");
 
-        ArrayBufferObject::setElementsHeader(newheader, length);
-        *contents = newheader;
-        *data = reinterpret_cast<uint8_t *>(newheader + 1);
+        buffer.elements = newHeader->elements();
+    } else {
+        js::ObjectElements *headerCopy =
+            AllocateArrayBufferContents(cx, byteLen, buffer.dataPointer());
+        if (!headerCopy)
+            return false;
+
+        *contents = headerCopy;
+        *data = reinterpret_cast<uint8_t *>(headerCopy + 1);
 
         if (buffer.isAsmJSArrayBuffer())
             ArrayBufferObject::neuterAsmJSArrayBuffer(buffer);
+
+        // Keep using the current elements.
+        newHeader = oldHeader;
     }
 
     // Neuter the donor ArrayBufferObject and all views of it
-    ArrayBufferObject::setElementsHeader(header, 0);
+    uint32_t flags = newHeader->flags;
+    ArrayBufferObject::setElementsHeader(newHeader, 0);
+    newHeader->flags = flags;
     InitViewList(&buffer, views);
     for (ArrayBufferViewObject *view = views; view; view = view->nextView())
         view->neuter();
 
+    newHeader->setIsNeuteredBuffer();
     return true;
 }
 
@@ -2273,6 +2290,10 @@ class TypedArrayObjectTemplate : public TypedArrayObject
     copyFromArray(JSContext *cx, HandleObject thisTypedArrayObj,
                   HandleObject ar, uint32_t len, uint32_t offset = 0)
     {
+        // Exit early if nothing to copy, to simplify loop conditions below.
+        if (len == 0)
+            return true;
+
         Rooted<TypedArrayObject*> thisTypedArray(cx, &thisTypedArrayObj->as<TypedArrayObject>());
         JS_ASSERT(offset <= thisTypedArray->length());
         JS_ASSERT(len <= thisTypedArray->length() - offset);
@@ -2282,34 +2303,47 @@ class TypedArrayObjectTemplate : public TypedArrayObject
         const Value *src = NULL;
         NativeType *dest = static_cast<NativeType*>(thisTypedArray->viewData()) + offset;
 
-        // The only way the code below can GC is if nativeFromValue fails, but
-        // in that case we return false immediately, so we do not need to root
-        // |src| and |dest|. These SkipRoots are to protect from the
-        // unconditional MaybeCheckStackRoots done by ToNumber.
+        // These SkipRoots are to protect from the unconditional
+        // MaybeCheckStackRoots done by ToNumber.
         SkipRoot skipDest(cx, &dest);
         SkipRoot skipSrc(cx, &src);
+
+#ifdef DEBUG
+        JSRuntime *runtime = cx->runtime();
+        uint64_t gcNumber = runtime->gcNumber;
+#endif
 
         if (ar->is<ArrayObject>() && !ar->isIndexed() && ar->getDenseInitializedLength() >= len) {
             JS_ASSERT(ar->as<ArrayObject>().length() == len);
 
             src = ar->getDenseElements();
-            for (uint32_t i = 0; i < len; ++i) {
+            uint32_t i = 0;
+            do {
                 NativeType n;
                 if (!nativeFromValue(cx, src[i], &n))
                     return false;
                 dest[i] = n;
-            }
+            } while (++i < len);
+            JS_ASSERT(runtime->gcNumber == gcNumber);
         } else {
             RootedValue v(cx);
 
-            for (uint32_t i = 0; i < len; ++i) {
+            uint32_t i = 0;
+            do {
                 if (!JSObject::getElement(cx, ar, ar, i, &v))
                     return false;
                 NativeType n;
                 if (!nativeFromValue(cx, v, &n))
                     return false;
+
+                len = Min(len, thisTypedArray->length());
+                if (i >= len)
+                    break;
+
+                // Compute every iteration in case getElement acts wacky.
+                dest = static_cast<NativeType*>(thisTypedArray->viewData()) + offset;
                 dest[i] = n;
-            }
+            } while (++i < len);
         }
 
         return true;
