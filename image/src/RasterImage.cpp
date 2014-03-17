@@ -931,7 +931,7 @@ RasterImage::GetFrame(uint32_t aWhichFrame,
     if (!framesurf && !frame->IsSinglePixel()) {
       // No reason to be optimized away here - the OS threw out the data
       if (!(aFlags & FLAG_SYNC_DECODE))
-        return nullptr;
+        return NS_ERROR_FAILURE;
 
       // Unconditionally call ForceDiscard() here because GetSurface can only
       // return null when we can forcibly discard and redecode. There are two
