@@ -56,7 +56,6 @@ EXPORTS += [
     'ScrollbarStyles.h',
     'StackArena.h',
     'Units.h',
-    'UnitTransforms.h',
 ]
 
 EXPORTS.mozilla += [

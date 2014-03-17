@@ -135,8 +135,8 @@ public:
    * true.
    */
   bool ProgressiveUpdateCallback(bool aHasPendingNewThebesContent,
-                                 ParentLayerRect& aCompositionBounds,
-                                 CSSToParentLayerScale& aZoom,
+                                 ScreenRect& aCompositionBounds,
+                                 CSSToScreenScale& aZoom,
                                  bool aDrawingCritical);
 
 #ifdef DEBUG
