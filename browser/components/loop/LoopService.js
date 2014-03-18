@@ -31,7 +31,7 @@ LoopService.prototype = {
     }
 
     this.startupTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-    this.startupTimer.initWithCallback(this, 20000, Ci.nsITimer.TYPE_ONE_SHOT);
+    this.startupTimer.initWithCallback(this, 500, Ci.nsITimer.TYPE_ONE_SHOT);
   },
 
   notify: function LS_notify(aTimer) {
