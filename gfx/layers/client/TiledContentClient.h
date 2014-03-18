@@ -118,10 +118,10 @@ struct BasicTiledLayerPaintData {
   ScreenPoint mLastScrollOffset;
 
   /*
-   * The transform matrix to go from Screen units to transformed LayoutDevice
-   * units.
+   * The transform matrix to go from ParentLayer units to transformed
+   * LayoutDevice units.
    */
-  gfx3DMatrix mTransformScreenToLayout;
+  gfx3DMatrix mTransformParentLayerToLayout;
 
   /*
    * The critical displayport of the content from the nearest ancestor layer

@@ -20,6 +20,7 @@
 #include "nsPoint.h"                    // for nsIntPoint
 #include "nsTArray.h"                   // for nsTArray, nsTArray_Impl, etc
 #include "nsThreadUtils.h"              // for NS_IsMainThread
+#include "UnitTransforms.h"             // for ViewAs
 
 #include <algorithm>                    // for std::stable_sort
 
@@ -114,7 +115,8 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
   ContainerLayer* container = aLayer->AsContainerLayer();
   AsyncPanZoomController* apzc = nullptr;
   if (container) {
-    if (container->GetFrameMetrics().IsScrollable()) {
+    const FrameMetrics& metrics = container->GetFrameMetrics();
+    if (metrics.IsScrollable()) {
       const CompositorParent::LayerTreeState* state = CompositorParent::GetIndirectShadowTree(aLayersId);
       if (state && state->mController.get()) {
         // If we get here, aLayer is a scrollable container layer and somebody
@@ -127,7 +129,8 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
         // be possible because of DLBI heuristics) then we don't want to keep using
         // the same old APZC for the new content. Null it out so we run through the
         // code to find another one or create one.
-        if (apzc && !apzc->Matches(ScrollableLayerGuid(aLayersId, container->GetFrameMetrics()))) {
+        ScrollableLayerGuid guid(aLayersId, metrics);
+        if (apzc && !apzc->Matches(guid)) {
           apzc = nullptr;
         }
 
@@ -168,19 +171,22 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
         }
         APZC_LOG("Using APZC %p for layer %p with identifiers %lld %lld\n", apzc, aLayer, aLayersId, container->GetFrameMetrics().mScrollId);
 
-        apzc->NotifyLayersUpdated(container->GetFrameMetrics(),
+        apzc->NotifyLayersUpdated(metrics,
                                   aIsFirstPaint && (aLayersId == aFirstPaintLayersId));
 
         // Use the composition bounds as the hit test region.
         // Optionally, the GeckoContentController can provide a touch-sensitive
         // region that constrains all frames associated with the controller.
         // In this case we intersect the composition bounds with that region.
-        ScreenRect visible(container->GetFrameMetrics().mCompositionBounds);
+        ParentLayerRect visible(metrics.mCompositionBounds);
         CSSRect touchSensitiveRegion;
         if (state->mController->GetTouchSensitiveRegion(&touchSensitiveRegion)) {
+          // Note: we assume here that touchSensitiveRegion is in the CSS pixels
+          // of our parent layer, which makes this coordinate conversion
+          // correct.
           visible = visible.Intersect(touchSensitiveRegion
-                                      * container->GetFrameMetrics().LayersPixelsPerCSSPixel()
-                                      * LayerToScreenScale(1.0));
+                                      * metrics.mDevPixelsPerCSSPixel
+                                      * metrics.GetParentResolution());
         }
         apzc->SetLayerHitTestData(visible, aTransform, aLayer->GetTransform());
         APZC_LOG("Setting rect(%f %f %f %f) as visible region for APZC %p\n", visible.x, visible.y,
@@ -816,25 +822,21 @@ APZCTreeManager::GetAPZCAtPoint(AsyncPanZoomController* aApzc, const gfxPoint& a
   // use standard matrix notation where the leftmost matrix in a multiplication is applied first.
 
   // ancestorUntransform takes points from aApzc's parent APZC's layer coordinates
-  // to aApzc's screen coordinates.
+  // to aApzc's parent layer's layer coordinates.
   // It is OC.Inverse() * NC.Inverse() * MC.Inverse() at recursion level for L,
   //   and RC.Inverse() * QC.Inverse()                at recursion level for P.
   gfx3DMatrix ancestorUntransform = aApzc->GetAncestorTransform().Inverse();
 
-  // hitTestTransform takes points from aApzc's parent APZC's layer coordinates to
-  // the hit test space (which is aApzc's transient coordinates).
-  // It is OC.Inverse() * NC.Inverse() * MC.Inverse() * LC.Inverse() * LN.Inverse() at L,
-  //   and RC.Inverse() * QC.Inverse() * PC.Inverse() * PN.Inverse()                at P.
-  gfx3DMatrix hitTestTransform = ancestorUntransform
-                               * aApzc->GetCSSTransform().Inverse()
-                               * aApzc->GetNontransientAsyncTransform().Inverse();
-  gfxPoint hitTestPointForThisLayer = hitTestTransform.ProjectPoint(aHitTestPoint);
+  // Hit testing for this layer takes place in our parent layer coordinates,
+  // since the composition bounds (used to initialize the visible rect against
+  // which we hit test are in those coordinates).
+  gfxPoint hitTestPointForThisLayer = ancestorUntransform.ProjectPoint(aHitTestPoint);
   APZC_LOG("Untransformed %f %f to transient coordinates %f %f for hit-testing APZC %p\n",
            aHitTestPoint.x, aHitTestPoint.y,
            hitTestPointForThisLayer.x, hitTestPointForThisLayer.y, aApzc);
 
   // childUntransform takes points from aApzc's parent APZC's layer coordinates
-  // to aApzc's layer coordinates (which are aApzc's children's screen coordinates).
+  // to aApzc's layer coordinates (which are aApzc's children's ParentLayer coordinates).
   // It is OC.Inverse() * NC.Inverse() * MC.Inverse() * LC.Inverse() * LA.Inverse() at L
   //   and RC.Inverse() * QC.Inverse() * PC.Inverse() * PA.Inverse()                at P.
   gfx3DMatrix childUntransform = ancestorUntransform
@@ -853,7 +855,7 @@ APZCTreeManager::GetAPZCAtPoint(AsyncPanZoomController* aApzc, const gfxPoint& a
       return match;
     }
   }
-  if (aApzc->VisibleRegionContains(ScreenPoint(hitTestPointForThisLayer.x, hitTestPointForThisLayer.y))) {
+  if (aApzc->VisibleRegionContains(ViewAs<ParentLayerPixel>(hitTestPointForThisLayer))) {
     APZC_LOG("Successfully matched untransformed point %f %f to visible region for APZC %p\n",
              hitTestPointForThisLayer.x, hitTestPointForThisLayer.y, aApzc);
     return aApzc;
