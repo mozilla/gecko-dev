@@ -49,7 +49,6 @@ LoopService.prototype = {
   onStart: function() {
     var helloMsg = { messageType: "hello", uaid: "", channelIDs: []};
     this.websocket.sendMsg(JSON.stringify(helloMsg));
-    Cu.reportError("Web socket open");
   },
 
   onStop: function() {
@@ -62,15 +61,14 @@ LoopService.prototype = {
 
   onMessageAvailable: function(e, message) {
     var msg = JSON.parse(message);
-    Cu.reportError(message);
-    debugger;
+
     switch(msg.messageType) {
       case "hello":
         this.websocket.sendMsg(JSON.stringify({messageType: "register", channelID: channelID}));
         break;
       case "register":
-        dump(msg.pushEndpoint + "\n");
-        Cu.reportError(msg.pushEndpoint);
+        dump("\n\nPush url is: " + msg.pushEndpoint + "\n");
+        Cu.reportError("Push url is: " + msg.pushEndpoint);
 try {
 
         this.registerXhr = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]
