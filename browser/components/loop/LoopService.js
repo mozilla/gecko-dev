@@ -83,9 +83,9 @@ try {
         this.callXhr = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]
                              .createInstance(Ci.nsIXMLHttpRequest);
         // XXX Sync!
-        this.callXhr.open('POST', loopServerUri + "/call-url/", false);
-        this.callXhr.setRequestHeader('Content-Type', 'application/json');
-        this.callXhr.sendAsBinary(JSON.stringify({remote_id: "fake", valid_duration: 86400}));
+//        this.callXhr.open('POST', loopServerUri + "/call-url/", false);
+//        this.callXhr.setRequestHeader('Content-Type', 'application/json');
+//        this.callXhr.sendAsBinary(JSON.stringify({remote_id: "fake", valid_duration: 86400}));
 } catch (x) {
   Cu.reportError(x);
 }
