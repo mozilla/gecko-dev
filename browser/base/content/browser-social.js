@@ -222,7 +222,7 @@ SocialUI = {
     if (e.target instanceof HTMLDocument) {
       // version 0 support
       targetDoc = e.target;
-      node = targetDoc.documentElement
+      node = targetDoc.documentElement;
     } else {
       targetDoc = e.target.ownerDocument;
       node = e.target;
@@ -262,9 +262,14 @@ SocialUI = {
         return;
       }
     }
-    Social.installProvider(targetDoc, data, function(manifest) {
-      Social.activateFromOrigin(manifest.origin);
-    });
+    try {
+      Social.installProvider(targetDoc, data, function(manifest) {
+        Social.activateFromOrigin(manifest.origin);
+      });
+    } catch (x) {
+      Cu.reportError("attempt to activate provider failed: " + x);
+      return;
+    }
   },
 
   showLearnMore: function() {

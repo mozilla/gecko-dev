@@ -71,7 +71,11 @@ function injectController(doc, topic, data) {
     // still be in e.g. the share panel without having their worker enabled.
     handleWindowClose(window);
 
-    SocialService.getProvider(doc.nodePrincipal.origin, function(provider) {
+    // If we're a system principle, we don't have the origin, so use the one obtained above.
+    let providerOrigin = Services.scriptSecurityManager.isSystemPrincipal(doc.nodePrincipal) ?
+      origin : doc.nodePrincipal.origin;
+
+    SocialService.getProvider(providerOrigin, function(provider) {
       if (provider && provider.enabled) {
         attachToWindow(provider, window);
       }
@@ -202,13 +206,19 @@ function attachToWindow(provider, targetWindow) {
   Object.defineProperties(contentObj, mozSocialObj);
   Cu.makeObjectPropsNormal(contentObj);
 
-  targetWindow.navigator.wrappedJSObject.__defineGetter__("mozSocial", function() {
+  let navigatorObj = targetWindow.navigator.wrappedJSObject;
+  // If we're accessing a chrome uri, then the navigator object isn't wrapped
+  // and we need to access it raw.
+  if (!navigatorObj)
+    navigatorObj = targetWindow.navigator;
+
+  navigatorObj.__defineGetter__("mozSocial", function() {
     // We do this in a getter, so that we create these objects
     // only on demand (this is a potential concern, since
     // otherwise we might add one per iframe, and keep them
     // alive for as long as the window is alive).
-    delete targetWindow.navigator.wrappedJSObject.mozSocial;
-    return targetWindow.navigator.wrappedJSObject.mozSocial = contentObj;
+    delete navigatorObj.mozSocial;
+    return navigatorObj.mozSocial = contentObj;
   });
 
   if (port) {
