@@ -46,6 +46,12 @@ BluetoothA2dpManager::Observe(nsISupports* aSubject,
 
 BluetoothA2dpManager::BluetoothA2dpManager()
 {
+  Reset();
+}
+
+void
+BluetoothA2dpManager::Reset()
+{
   ResetA2dp();
   ResetAvrcp();
 }
@@ -249,6 +255,9 @@ BluetoothA2dpManager::OnDisconnect(const nsAString& aErrorStr)
  * 6. "connected" -> "disconnected"
  *    "playing" -> "disconnected"
  *    Disconnected from local or the remote device
+ * 7. "disconnected" -> "connected"
+ *    Successfully connected but bluetooth is already disabled
+ *    (See Bug 984284 for more information about this edge case)
  */
 void
 BluetoothA2dpManager::HandleSinkPropertyChanged(const BluetoothSignal& aSignal)
@@ -296,10 +305,14 @@ BluetoothA2dpManager::HandleSinkPropertyChanged(const BluetoothSignal& aSignal)
       if (prevState == SinkState::SINK_PLAYING) {
         break;
       }
-      
-      // case 3: Successfully connected
-      MOZ_ASSERT(prevState == SinkState::SINK_CONNECTING);
 
+      // case 7: Successfully connected but bluetooth is already disabled
+      if (prevState != SinkState::SINK_CONNECTING) {
+        mSinkState = SinkState::SINK_DISCONNECTED;
+        break;
+      }
+
+      // case 3: Successfully connected
       mA2dpConnected = true;
       mDeviceAddress = address;
       NotifyConnectionStatusChanged();

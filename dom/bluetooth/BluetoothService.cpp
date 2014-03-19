@@ -491,16 +491,24 @@ BluetoothService::StartStopBluetooth(bool aStart, bool aIsStartup)
       profile->Disconnect(nullptr);
     }
 
-    profile = BluetoothA2dpManager::Get();
+    profile = BluetoothHidManager::Get();
     NS_ENSURE_TRUE(profile, NS_ERROR_FAILURE);
     if (profile->IsConnected()) {
       profile->Disconnect(nullptr);
     }
 
-    profile = BluetoothHidManager::Get();
-    NS_ENSURE_TRUE(profile, NS_ERROR_FAILURE);
-    if (profile->IsConnected()) {
-      profile->Disconnect(nullptr);
+    BluetoothA2dpManager* a2dp = BluetoothA2dpManager::Get();
+    NS_ENSURE_TRUE(a2dp, NS_ERROR_FAILURE);
+    if (a2dp->IsConnected()) {
+      a2dp->Disconnect(nullptr);
+    } else {
+      /**
+       * Reset A2DP manager to reject 'connected' sink state change after
+       * blueooth is disabled.
+       *
+       * See Bug 984284 for more information.
+       */
+      a2dp->Reset();
     }
   }
 
