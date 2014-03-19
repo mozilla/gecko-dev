@@ -18,6 +18,7 @@ pref("browser.ignoreNativeFrameTextSelection", true);
 pref("browser.cache.disk.enable", true);
 pref("browser.cache.disk.capacity", 55000); // kilobytes
 pref("browser.cache.disk.parent_directory", "/cache");
+pref("browser.cache.disk.no_prealloc", true);
 #endif
 pref("browser.cache.disk.smart_size.enabled", false);
 pref("browser.cache.disk.smart_size.first_run", false);

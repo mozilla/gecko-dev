@@ -9,6 +9,7 @@
 #include "nsDiskCacheBlockFile.h"
 #include "mozilla/FileUtils.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/Preferences.h"
 #include <algorithm>
 
 using namespace mozilla;
@@ -374,7 +375,9 @@ nsDiskCacheBlockFile::Write(int32_t offset, const void *buf, int32_t amount)
     // Use a conservative definition of 20MB
     const int32_t minPreallocate = 4*1024*1024;
     const int32_t maxPreallocate = 20*1000*1000;
-    if (mFileSize < upTo) {
+    bool doPrealloc = !Preferences::GetBool("browser.cache.disk.no_prealloc");
+
+    if (doPrealloc && mFileSize < upTo) {
         // maximal file size
         const int32_t maxFileSize = mBitMapWords * 4 * (mBlockSize * 8 + 1);
         if (upTo > maxPreallocate) {

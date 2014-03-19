@@ -59,7 +59,7 @@ struct nsDiskCacheEntry;
 #define kNumBlockFiles             3
 #define SIZE_SHIFT(idx)            (2 * ((idx) - 1))
 #define BLOCK_SIZE_FOR_INDEX(idx)  ((idx) ? (256    << SIZE_SHIFT(idx)) : 0)
-#define BITMAP_SIZE_FOR_INDEX(idx) ((idx) ? (131072 >> SIZE_SHIFT(idx)) : 0)
+#define BITMAP_SIZE_FOR_INDEX(idx) ((idx) ? (512 >> SIZE_SHIFT(idx)) : 0)
 
 // Min and max values for the number of records in the DiskCachemap
 #define kMinRecordCount    512
