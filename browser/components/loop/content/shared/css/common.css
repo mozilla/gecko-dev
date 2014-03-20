@@ -4,7 +4,11 @@
 
 /* Generic rules */
 
-* {
+/**
+ * "Fixes" the Box Model.
+ * @see http://www.paulirish.com/2012/box-sizing-border-box-ftw/
+ */
+*, *:before, *:after {
   box-sizing: border-box;
 }
 
@@ -27,7 +31,7 @@ img {
 /* Helpers */
 
 /**
- * For modern browsers
+ * Clearfix impl. for modern browsers
  * 1. The space content is one way to avoid an Opera bug when the
  *    contenteditable attribute is included anywhere else in the document.
  *    Otherwise it causes space to appear at the top and bottom of elements
@@ -116,6 +120,7 @@ img {
 }
 
 .close:before {
+  /* \2716 is unicode representation of the close button icon */
   content: '\2716';
 }
 
