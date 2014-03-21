@@ -2464,6 +2464,12 @@ BluetoothDBusService::CreatePairedDeviceInternal(
                                               int aTimeout,
                                               BluetoothReplyRunnable* aRunnable)
 {
+  if (!IsReady()) {
+    NS_NAMED_LITERAL_STRING(errorStr, "Bluetooth service is not ready yet!");
+    DispatchBluetoothReply(aRunnable, BluetoothValue(), errorStr);
+    return NS_OK;
+  }
+
   const char *capabilities = B2G_AGENT_CAPABILITIES;
   const char *deviceAgentPath = KEY_REMOTE_AGENT;
 
@@ -2561,6 +2567,12 @@ BluetoothDBusService::SetPinCodeInternal(const nsAString& aDeviceAddress,
                                          const nsAString& aPinCode,
                                          BluetoothReplyRunnable* aRunnable)
 {
+  if (!IsReady()) {
+    NS_NAMED_LITERAL_STRING(errorStr, "Bluetooth service is not ready yet!");
+    DispatchBluetoothReply(aRunnable, BluetoothValue(), errorStr);
+    return false;
+  }
+
   nsAutoString errorStr;
   BluetoothValue v = true;
   DBusMessage *msg;
@@ -2609,6 +2621,12 @@ BluetoothDBusService::SetPasskeyInternal(const nsAString& aDeviceAddress,
                                          uint32_t aPasskey,
                                          BluetoothReplyRunnable* aRunnable)
 {
+  if (!IsReady()) {
+    NS_NAMED_LITERAL_STRING(errorStr, "Bluetooth service is not ready yet!");
+    DispatchBluetoothReply(aRunnable, BluetoothValue(), errorStr);
+    return false;
+  }
+
   nsAutoString errorStr;
   BluetoothValue v = true;
   DBusMessage *msg;
@@ -2656,6 +2674,12 @@ BluetoothDBusService::SetPairingConfirmationInternal(
                                               bool aConfirm,
                                               BluetoothReplyRunnable* aRunnable)
 {
+  if (!IsReady()) {
+    NS_NAMED_LITERAL_STRING(errorStr, "Bluetooth service is not ready yet!");
+    DispatchBluetoothReply(aRunnable, BluetoothValue(), errorStr);
+    return false;
+  }
+
   nsAutoString errorStr;
   BluetoothValue v = true;
   DBusMessage *msg;
