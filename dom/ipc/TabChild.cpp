@@ -99,6 +99,8 @@ static const char BROWSER_ZOOM_TO_RECT[] = "browser-zoom-to-rect";
 static const char BEFORE_FIRST_PAINT[] = "before-first-paint";
 
 static bool sCpowsEnabled = false;
+static int32_t sActiveDurationMs = 10;
+static bool sActiveDurationMsSet = false;
 
 NS_IMETHODIMP
 ContentListener::HandleEvent(nsIDOMEvent* aEvent)
@@ -289,6 +291,12 @@ TabChild::TabChild(ContentChild* aManager, const TabContext& aContext, uint32_t 
   , mContextMenuHandled(false)
   , mWaitingTouchListeners(false)
 {
+  if (!sActiveDurationMsSet) {
+    Preferences::AddIntVarCache(&sActiveDurationMs,
+                                "ui.touch_activation.duration_ms",
+                                sActiveDurationMs);
+    sActiveDurationMsSet = true;
+  }
 }
 
 NS_IMETHODIMP
@@ -1603,15 +1611,23 @@ TabChild::RecvHandleSingleTap(const CSSPoint& aPoint, const ScrollableLayerGuid&
     return true;
   }
 
-  LayoutDevicePoint currentPoint = APZCCallbackHelper::ApplyCallbackTransform(aPoint, aGuid) * mWidget->GetDefaultScale();;
+  LayoutDevicePoint currentPoint = CSSPoint(aPoint) * mWidget->GetDefaultScale();;
 
-  int time = 0;
-  DispatchSynthesizedMouseEvent(NS_MOUSE_MOVE, time, currentPoint);
-  DispatchSynthesizedMouseEvent(NS_MOUSE_BUTTON_DOWN, time, currentPoint);
-  DispatchSynthesizedMouseEvent(NS_MOUSE_BUTTON_UP, time, currentPoint);
-
+  MessageLoop::current()->PostDelayedTask(
+    FROM_HERE,
+    NewRunnableMethod(this, &TabChild::FireSingleTapEvent, currentPoint),
+    sActiveDurationMs);
   return true;
 }
+
+void
+TabChild::FireSingleTapEvent(LayoutDevicePoint aPoint)
+{
+  int time = 0;
+  DispatchSynthesizedMouseEvent(NS_MOUSE_MOVE, time, aPoint);
+  DispatchSynthesizedMouseEvent(NS_MOUSE_BUTTON_DOWN, time, aPoint);
+  DispatchSynthesizedMouseEvent(NS_MOUSE_BUTTON_UP, time, aPoint);
+ }
 
 bool
 TabChild::RecvHandleLongTap(const CSSPoint& aPoint, const ScrollableLayerGuid& aGuid)

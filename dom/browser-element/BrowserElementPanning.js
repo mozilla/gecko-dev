@@ -76,8 +76,6 @@ const ContentPanning = {
   },
 
   handleEvent: function cp_handleEvent(evt) {
-    this._tryDelayMouseEvents();
-
     if (evt.defaultPrevented || evt.multipleActionsPrevented) {
       // clean up panning state even if touchend/mouseup has been preventDefault.
       if(evt.type === 'touchend' || evt.type === 'mouseup') {
@@ -186,6 +184,7 @@ const ContentPanning = {
     }
 
     this.position.set(screenX, screenY);
+    KineticPanning.reset();
     KineticPanning.record(new Point(0, 0), evt.timeStamp);
 
     // We prevent start events to avoid sending a focus event at the end of this
@@ -236,9 +235,6 @@ const ContentPanning = {
       }
     } else if (this.target && click && !this.panning) {
       this.notify(this._activationTimer);
-
-      this._delayEvents = true;
-      this._tryDelayMouseEvents();
     }
 
     this._finishPanning();
@@ -450,21 +446,6 @@ const ContentPanning = {
     return this._activationDelayMs = delay;
   },
 
-  get _activeDurationMs() {
-    let duration = Services.prefs.getIntPref('ui.touch_activation.duration_ms');
-    delete this._activeDurationMs;
-    return this._activeDurationMs = duration;
-  },
-
-  _tryDelayMouseEvents: function cp_tryDelayMouseEvents() {
-    let start = Date.now();
-    let thread = Services.tm.currentThread;
-    while (this._delayEvents && (Date.now() - start) < this._activeDurationMs) {
-      thread.processNextEvent(true);
-    }
-    this._delayEvents = false;
-  },
-
   _resetActive: function cp_resetActive() {
     let elt = this.pointerDownTarget || this.target;
     let root = elt.ownerDocument || elt.document;
@@ -600,7 +581,6 @@ const ContentPanning = {
   },
 
   _finishPanning: function() {
-    this._resetActive();
     this.dragging = false;
     delete this.primaryPointerId;
     this._activationTimer.cancel();
@@ -698,14 +678,18 @@ const KineticPanning = {
   },
 
   stop: function kp_stop() {
+    this.reset();
+
     if (!this.target)
       return;
 
-    this.momentums = [];
-    this.distance.set(0, 0);
-
     this.target.onKineticEnd();
     this.target = null;
+  },
+
+  reset: function kp_reset() {
+    this.momentums = [];
+    this.distance.set(0, 0);
   },
 
   momentums: [],
