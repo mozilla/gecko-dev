@@ -489,7 +489,7 @@ JSCompartment::markAllCrossCompartmentWrappers(JSTracer *trc)
 }
 
 void
-JSCompartment::mark(JSTracer *trc)
+JSCompartment::markRoots(JSTracer *trc)
 {
     JS_ASSERT(!trc->runtime->isHeapMinorCollecting());
 
