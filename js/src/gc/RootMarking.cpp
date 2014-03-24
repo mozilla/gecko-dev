@@ -744,7 +744,7 @@ js::gc::MarkRuntime(JSTracer *trc, bool useSavedRoots)
 #endif
 
     for (CompartmentsIter c(rt); !c.done(); c.next())
-        c->mark(trc);
+        c->markRoots(trc);
 
     /* The embedding can register additional roots here. */
     for (size_t i = 0; i < rt->gcBlackRootTracers.length(); i++) {
