@@ -23,7 +23,6 @@ using namespace js::gc;
 JS::Zone::Zone(JSRuntime *rt)
   : rt(rt),
     allocator(this),
-    hold(false),
     ionUsingBarriers_(false),
     active(false),
     gcScheduled(false),
