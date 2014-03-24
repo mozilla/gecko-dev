@@ -2,7 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import ConfigParser
 import datetime
 import os
 import socket
@@ -334,9 +333,9 @@ class Actions(object):
          corner of the element.
         :param y1: Starting y-coordinate of flick, relative to the top left
          corner of the element.
-        :param x2: Ending x-coordinate of flick, relative to the top left
+        :param x1: Ending x-coordinate of flick, relative to the top left
          corner of the element.
-        :param y2: Ending y-coordinate of flick, relative to the top left
+        :param x1: Ending y-coordinate of flick, relative to the top left
          corner of the element.
         :param duration: Time needed for the flick gesture for complete (in
          milliseconds).
@@ -473,15 +472,7 @@ class Marionette(object):
                     msg = 'Application "%s" unknown (should be one of %s)'
                     raise NotImplementedError(msg % (app, geckoinstance.apps.keys()))
             else:
-                try:
-                    config = ConfigParser.RawConfigParser()
-                    config.read(os.path.join(os.path.dirname(bin), 'application.ini'))
-                    app = config.get('App', 'Name')
-                    instance_class = geckoinstance.apps[app.lower()]
-                except (ConfigParser.NoOptionError,
-                        ConfigParser.NoSectionError,
-                        KeyError):
-                    instance_class = geckoinstance.GeckoInstance
+                instance_class = geckoinstance.GeckoInstance
             self.instance = instance_class(host=self.host, port=self.port,
                                            bin=self.bin, profile=self.profile, app_args=app_args)
             self.instance.start()
@@ -515,25 +506,13 @@ class Marionette(object):
                                 gecko_path=gecko_path,
                                 busybox=busybox)
 
-    def cleanup(self):
-        if self.session:
-            try:
-                self.delete_session()
-            except (MarionetteException, socket.error):
-                # These exceptions get thrown if the Marionette server
-                # hit an exception/died or the connection died. We can
-                # do no further server-side cleanup in this case.
-                pass
-            self.session = None
+    def __del__(self):
         if self.emulator:
             self.emulator.close()
         if self.instance:
             self.instance.close()
         for qemu in self.extra_emulators:
             qemu.emulator.close()
-
-    def __del__(self):
-        self.cleanup()
 
     @staticmethod
     def is_port_available(port, host=''):
@@ -584,7 +563,7 @@ class Marionette(object):
         return False
 
     def _send_message(self, command, response_key, **kwargs):
-        if not self.session and command != "newSession":
+        if not self.session and command not in ('newSession', 'getStatus'):
             raise MarionetteException(message="Please start a session")
 
         message = { 'name': command }
@@ -702,6 +681,9 @@ class Marionette(object):
         '''
         return "%s%s" % (self.baseurl, relative_url)
 
+    def status(self):
+        return self._send_message('getStatus', 'value')
+
     def start_session(self, desired_capabilities=None):
         '''
         Creates a new Marionette session.
@@ -729,9 +711,6 @@ class Marionette(object):
             self._test_name = test_name
 
     def delete_session(self):
-        """
-        Close the current session and disconnect from the server.
-        """
         response = self._send_message('deleteSession', 'ok')
         self.session = None
         self.window = None

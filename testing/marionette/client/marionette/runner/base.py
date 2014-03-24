@@ -12,7 +12,6 @@ import sys
 import time
 import traceback
 import random
-import mozinfo
 import moznetwork
 import xml.dom.minidom as dom
 
@@ -20,7 +19,6 @@ from manifestparser import TestManifest
 from mozhttpd import MozHttpd
 from marionette import Marionette
 from moztest.results import TestResultCollection, TestResult, relevant_line
-from mixins.b2g import B2GTestResultMixin, get_b2g_pid, get_dm
 
 
 class MarionetteTest(TestResult):
@@ -42,17 +40,10 @@ class MarionetteTestResult(unittest._TextTestResult, TestResultCollection):
     def __init__(self, *args, **kwargs):
         self.marionette = kwargs.pop('marionette')
         TestResultCollection.__init__(self, 'MarionetteTest')
+        unittest._TextTestResult.__init__(self, *args, **kwargs)
         self.passed = 0
         self.testsRun = 0
         self.result_modifiers = [] # used by mixins to modify the result
-        pid = kwargs.pop('b2g_pid')
-        if pid:
-            if B2GTestResultMixin not in self.__class__.__bases__:
-                bases = [b for b in self.__class__.__bases__]
-                bases.append(B2GTestResultMixin)
-                self.__class__.__bases__ = tuple(bases)
-            B2GTestResultMixin.__init__(self, b2g_pid=pid)
-        unittest._TextTestResult.__init__(self, *args, **kwargs)
 
     @property
     def skipped(self):
@@ -121,7 +112,7 @@ class MarionetteTestResult(unittest._TextTestResult, TestResultCollection):
                        context=context, **kwargs)
         # call any registered result modifiers
         for modifier in self.result_modifiers:
-            result_expected, result_actual, output, context = modifier(t, result_expected, result_actual, output, context)
+            modifier(t, result_expected, result_actual, output, context)
         t.finish(result_actual,
                  time_end=time.time() if test.start_time else 0,
                  reason=relevant_line(output),
@@ -246,31 +237,17 @@ class MarionetteTextTestRunner(unittest.TextTestRunner):
 
     def __init__(self, **kwargs):
         self.marionette = kwargs['marionette']
-        self.capabilities = kwargs.pop('capabilities')
-        self.pre_run_functions = []
-        self.b2g_pid = None
         del kwargs['marionette']
-
-        if self.capabilities['device'] != 'desktop' and self.capabilities['b2g']:
-            def b2g_pre_run():
-                dm_type = os.environ.get('DM_TRANS', 'adb')
-                if dm_type == 'adb':
-                    self.b2g_pid = get_b2g_pid(get_dm(self.marionette))
-            self.pre_run_functions.append(b2g_pre_run)
-
         unittest.TextTestRunner.__init__(self, **kwargs)
 
     def _makeResult(self):
         return self.resultclass(self.stream,
                                 self.descriptions,
                                 self.verbosity,
-                                marionette=self.marionette,
-                                b2g_pid=self.b2g_pid)
+                                marionette=self.marionette)
 
     def run(self, test):
         "Run the given test case or test suite."
-        for pre_run_func in self.pre_run_functions:
-            pre_run_func()
         result = self._makeResult()
         if hasattr(self, 'failfast'):
             result.failfast = self.failfast
@@ -554,20 +531,14 @@ class BaseMarionetteTestRunner(object):
         self.shuffle = shuffle
         self.sdcard = sdcard
         self.mixin_run_tests = []
-        self.manifest_skipped_tests = []
 
         if testvars:
             if not os.path.exists(testvars):
-                raise IOError('--testvars file does not exist')
+                raise Exception('--testvars file does not exist')
 
             import json
-            try:
-                with open(testvars) as f:
-                    self.testvars = json.loads(f.read())
-            except ValueError as e:
-                json_path = os.path.abspath(testvars)
-                raise Exception("JSON file (%s) is not properly "
-                                "formatted: %s" % (json_path, e.message))
+            with open(testvars) as f:
+                self.testvars = json.loads(f.read())
 
         # set up test handlers
         self.test_handlers = []
@@ -653,7 +624,7 @@ class BaseMarionetteTestRunner(object):
                 connection.connect((host,int(port)))
                 connection.close()
             except Exception, e:
-                raise Exception("Connection attempt to %s:%s failed with error: %s" %(host,port,e))
+                raise Exception("Could not connect to given marionette host:port: %s" % e)
             if self.emulator:
                 self.marionette = Marionette.getMarionetteOrExit(
                                              host=host, port=int(port),
@@ -663,14 +634,12 @@ class BaseMarionetteTestRunner(object):
                                              logcat_dir=self.logcat_dir,
                                              gecko_path=self.gecko_path,
                                              symbols_path=self.symbols_path,
-                                             timeout=self.timeout,
-                                             device_serial=self.device_serial)
+                                             timeout=self.timeout)
             else:
                 self.marionette = Marionette(host=host,
                                              port=int(port),
                                              baseurl=self.baseurl,
-                                             timeout=self.timeout,
-                                             device_serial=self.device_serial)
+                                             timeout=self.timeout)
         elif self.emulator:
             self.marionette = Marionette.getMarionetteOrExit(
                                          emulator=self.emulator,
@@ -684,8 +653,7 @@ class BaseMarionetteTestRunner(object):
                                          gecko_path=self.gecko_path,
                                          symbols_path=self.symbols_path,
                                          timeout=self.timeout,
-                                         sdcard=self.sdcard,
-                                         device_serial=self.device_serial)
+                                         sdcard=self.sdcard)
         else:
             raise Exception("must specify binary, address or emulator")
 
@@ -775,9 +743,7 @@ class BaseMarionetteTestRunner(object):
         if self.marionette.instance:
             self.marionette.instance.close()
             self.marionette.instance = None
-
-        self.marionette.cleanup()
-
+        del self.marionette
         for run_tests in self.mixin_run_tests:
             run_tests(tests)
 
@@ -790,9 +756,6 @@ class BaseMarionetteTestRunner(object):
             self.start_marionette()
             if self.emulator:
                 self.marionette.emulator.wait_for_homescreen(self.marionette)
-            # Retrieve capabilities for later use
-            if not self._capabilities:
-                self.capabilities
 
         testargs = {}
         if self.type is not None:
@@ -832,35 +795,24 @@ class BaseMarionetteTestRunner(object):
             manifest = TestManifest()
             manifest.read(filepath)
 
+            all_tests = manifest.active_tests(exists=False, disabled=False)
             manifest_tests = manifest.active_tests(exists=False,
-                                                   disabled=True,
+                                                   disabled=False,
                                                    device=self.device,
-                                                   app=self.appName,
-                                                   **mozinfo.info)
-            unfiltered_tests = []
-            for test in manifest_tests:
-                if test.get('disabled'):
-                    self.manifest_skipped_tests.append(test)
-                else:
-                    unfiltered_tests.append(test)
-
-            target_tests = manifest.get(tests=unfiltered_tests, **testargs)
-            for test in unfiltered_tests:
-                if test['path'] not in [x['path'] for x in target_tests]:
-                    test.setdefault('disabled', 'filtered by type (%s)' % self.type)
-                    self.manifest_skipped_tests.append(test)
-
-            for test in self.manifest_skipped_tests:
-                self.logger.info('TEST-SKIP | %s | %s' % (
-                    os.path.basename(test['path']),
-                    test['disabled']))
+                                                   app=self.appName)
+            skip_tests = list(set([x['path'] for x in all_tests]) -
+                              set([x['path'] for x in manifest_tests]))
+            for skipped in skip_tests:
+                self.logger.info('TEST-SKIP | %s | device=%s, app=%s' %
+                                 (os.path.basename(skipped),
+                                  self.device,
+                                  self.appName))
                 self.todo += 1
 
+            target_tests = manifest.get(tests=manifest_tests, **testargs)
             if self.shuffle:
                 random.shuffle(target_tests)
             for i in target_tests:
-                if not os.path.exists(i["path"]):
-                    raise IOError("test file: %s does not exist" % i["path"])
                 self.run_test(i["path"], i["expected"])
                 if self.marionette.check_for_crash():
                     return
@@ -883,8 +835,7 @@ class BaseMarionetteTestRunner(object):
 
         if suite.countTestCases():
             runner = self.textrunnerclass(verbosity=3,
-                                          marionette=self.marionette,
-                                          capabilities=self.capabilities)
+                                          marionette=self.marionette)
             results = runner.run(suite)
             self.results.append(results)
 
@@ -909,32 +860,17 @@ class BaseMarionetteTestRunner(object):
 
     def generate_xml(self, results_list):
 
-        def _extract_xml_from_result(test_result, result='passed'):
-            _extract_xml(
-                test_name=unicode(test_result.name).split()[0],
-                test_class=test_result.test_class,
-                duration=test_result.duration,
-                result=result,
-                output='\n'.join(test_result.output))
-
-        def _extract_xml_from_skipped_manifest_test(test):
-            _extract_xml(
-                test_name=test['name'],
-                result='skipped',
-                output=test['disabled'])
-
-        def _extract_xml(test_name, test_class='', duration=0,
-                         result='passed', output=''):
+        def _extract_xml(test, result='passed'):
             testcase = doc.createElement('testcase')
-            testcase.setAttribute('classname', test_class)
-            testcase.setAttribute('name', test_name)
-            testcase.setAttribute('time', str(duration))
+            testcase.setAttribute('classname', test.test_class)
+            testcase.setAttribute('name', unicode(test.name).split()[0])
+            testcase.setAttribute('time', str(test.duration))
             testsuite.appendChild(testcase)
 
             if result in ['failure', 'error', 'skipped']:
                 f = doc.createElement(result)
                 f.setAttribute('message', 'test %s' % result)
-                f.appendChild(doc.createTextNode(output))
+                f.appendChild(doc.createTextNode(test.reason))
                 testcase.appendChild(f)
 
         doc = dom.Document()
@@ -955,38 +891,33 @@ class BaseMarionetteTestRunner(object):
                                                for results in results_list])))
         testsuite.setAttribute('errors', str(sum([len(results.errors)
                                              for results in results_list])))
-        testsuite.setAttribute(
-            'skips', str(sum([len(results.skipped) +
-                         len(results.expectedFailures)
-                         for results in results_list]) +
-                         len(self.manifest_skipped_tests)))
+        testsuite.setAttribute('skips', str(sum([len(results.skipped) +
+                                                     len(results.expectedFailures)
+                                                     for results in results_list])))
 
         for results in results_list:
 
             for result in results.errors:
-                _extract_xml_from_result(result, result='error')
+                _extract_xml(result, result='error')
 
             for result in results.failures:
-                _extract_xml_from_result(result, result='failure')
+                _extract_xml(result, result='failure')
 
             if hasattr(results, 'unexpectedSuccesses'):
                 for test in results.unexpectedSuccesses:
                     # unexpectedSuccesses is a list of Testcases only, no tuples
-                    _extract_xml_from_result(test, result='failure')
+                    _extract_xml(test, result='failure')
 
             if hasattr(results, 'skipped'):
                 for result in results.skipped:
-                    _extract_xml_from_result(result, result='skipped')
+                    _extract_xml(result, result='skipped')
 
             if hasattr(results, 'expectedFailures'):
                 for result in results.expectedFailures:
-                    _extract_xml_from_result(result, result='skipped')
+                    _extract_xml(result, result='skipped')
 
             for result in results.tests_passed:
-                _extract_xml_from_result(result)
-
-        for test in self.manifest_skipped_tests:
-            _extract_xml_from_skipped_manifest_test(test)
+                _extract_xml(result)
 
         doc.appendChild(testsuite)
         return doc.toprettyxml(encoding='utf-8')

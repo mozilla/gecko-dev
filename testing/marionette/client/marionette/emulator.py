@@ -23,22 +23,16 @@ from emulator_geo import EmulatorGeo
 from emulator_screen import EmulatorScreen
 
 
-class LogOutputProc(ProcessHandlerMixin):
-    """
-    Process handler for processes which save all output to a logfile.
-    If no logfile is specified, output will still be consumed to prevent
-    the output pipe's from overflowing.
+class LogcatProc(ProcessHandlerMixin):
+    """Process handler for logcat which saves all output to a logfile.
     """
 
-    def __init__(self, cmd, logfile=None,  **kwargs):
+    def __init__(self, logfile, cmd, **kwargs):
         self.logfile = logfile
         kwargs.setdefault('processOutputLine', []).append(self.log_output)
         ProcessHandlerMixin.__init__(self, cmd, **kwargs)
 
     def log_output(self, line):
-        if not self.logfile:
-            return
-
         f = open(self.logfile, 'a')
         f.write(line + "\n")
         f.flush()
@@ -216,7 +210,8 @@ class Emulator(object):
 
     def close(self):
         if self.is_running and self._emulator_launched:
-            self.proc.kill()
+            self.proc.terminate()
+            self.proc.wait()
         if self._adb_started:
             self._run_adb(['kill-server'])
             self._adb_started = False
@@ -322,14 +317,9 @@ waitFor(
 
         original_online, original_offline = self._get_adb_devices()
 
-        filename = None
-        if self.logcat_dir:
-            filename = os.path.join(self.logcat_dir, 'qemu.log')
-            if os.path.isfile(filename):
-                self.rotate_log(filename)
-
-        self.proc = LogOutputProc(qemu_args, filename)
-        self.proc.run()
+        self.proc = subprocess.Popen(qemu_args,
+                                     stdout=subprocess.PIPE,
+                                     stderr=subprocess.PIPE)
 
         online, offline = self._get_adb_devices()
         now = datetime.datetime.now()
@@ -365,14 +355,12 @@ waitFor(
 
         marionette.set_context(marionette.CONTEXT_CONTENT)
         marionette.execute_async_script("""
-log('waiting for mozbrowserloadend');
 window.addEventListener('mozbrowserloadend', function loaded(aEvent) {
-  log('received mozbrowserloadend for ' + aEvent.target.src);
   if (aEvent.target.src.indexOf('ftu') != -1 || aEvent.target.src.indexOf('homescreen') != -1) {
     window.removeEventListener('mozbrowserloadend', loaded);
     marionetteScriptFinished();
   }
-});""", script_timeout=120000)
+});""", script_timeout=60000)
         print '...done'
         if created_session:
             marionette.delete_session()
@@ -473,14 +461,8 @@ window.addEventListener('mozbrowserloadend', function loaded(aEvent) {
         """ Rotate a logfile, by recursively rotating logs further in the sequence,
             deleting the last file if necessary.
         """
-        basename = os.path.basename(srclog)
-        basename = basename[:-len('.log')]
-        if index > 1:
-            basename = basename[:-len('.1')]
-        basename = '%s.%d.log' % (basename, index)
-
-        destlog = os.path.join(self.logcat_dir, basename)
-        if os.path.isfile(destlog):
+        destlog = os.path.join(self.logcat_dir, 'emulator-%d.%d.log' % (self.port, index))
+        if os.access(destlog, os.F_OK):
             if index == 3:
                 os.remove(destlog)
             else:
@@ -491,11 +473,11 @@ window.addEventListener('mozbrowserloadend', function loaded(aEvent) {
         """ Save the output of logcat to a file.
         """
         filename = os.path.join(self.logcat_dir, "emulator-%d.log" % self.port)
-        if os.path.isfile(filename):
+        if os.access(filename, os.F_OK):
             self.rotate_log(filename)
         cmd = [self.adb, '-s', 'emulator-%d' % self.port, 'logcat', '-v', 'threadtime']
 
-        self.logcat_proc = LogOutputProc(cmd, filename)
+        self.logcat_proc = LogcatProc(filename, cmd)
         self.logcat_proc.run()
 
     def setup_port_forwarding(self, remote_port):

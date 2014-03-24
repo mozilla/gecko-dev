@@ -557,6 +557,33 @@ MarionetteServerConnection.prototype = {
     this.sendResponse(value, this.command_id);
   },
 
+  getStatus: function MDA_getStatus(){
+    this.command_id = this.getCommandId();
+
+    let arch;
+    try {
+      arch = (Services.appinfo.XPCOMABI || 'unknown').split('-')[0]
+    }
+    catch (ignored) {
+      arch = 'unknown'
+    };
+
+    let value = {
+          'os': {
+            'arch': arch,
+            'name': Services.appinfo.OS,
+            'version': 'unknown'
+          },
+          'build': {
+            'revision': 'unknown',
+            'time': Services.appinfo.platformBuildID,
+            'version': Services.appinfo.version
+          }
+    };
+
+    this.sendResponse(value, this.command_id);
+  },
+
   /**
    * Log message. Accepts user defined log-level.
    *
@@ -1171,7 +1198,6 @@ MarionetteServerConnection.prototype = {
     for (let i in this.browsers) {
       if (this.curBrowser == this.browsers[i]) {
         this.sendResponse(i, this.command_id);
-        return;
       }
     }
   },
@@ -2375,6 +2401,7 @@ MarionetteServerConnection.prototype.requestTypes = {
   "sayHello": MarionetteServerConnection.prototype.sayHello,
   "newSession": MarionetteServerConnection.prototype.newSession,
   "getSessionCapabilities": MarionetteServerConnection.prototype.getSessionCapabilities,
+  "getStatus": MarionetteServerConnection.prototype.getStatus,
   "log": MarionetteServerConnection.prototype.log,
   "getLogs": MarionetteServerConnection.prototype.getLogs,
   "setContext": MarionetteServerConnection.prototype.setContext,
@@ -2432,7 +2459,6 @@ MarionetteServerConnection.prototype.requestTypes = {
   "setTestName": MarionetteServerConnection.prototype.setTestName,
   "takeScreenshot": MarionetteServerConnection.prototype.takeScreenshot,
   "screenShot": MarionetteServerConnection.prototype.takeScreenshot,  // deprecated
-  "screenshot": MarionetteServerConnection.prototype.takeScreenshot,  // Selenium 2 compat
   "addCookie": MarionetteServerConnection.prototype.addCookie,
   "getCookies": MarionetteServerConnection.prototype.getCookies,
   "getAllCookies": MarionetteServerConnection.prototype.getCookies,  // deprecated

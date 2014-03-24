@@ -10,8 +10,8 @@ import os
 import pkg_resources
 import sys
 
-from xmlgen import html
-from xmlgen import raw
+from py.xml import html
+from py.xml import raw
 
 
 class HTMLReportingTestRunnerMixin(object):
@@ -41,44 +41,26 @@ class HTMLReportingTestRunnerMixin(object):
                 f.write(self.generate_html(self.results))
 
     def generate_html(self, results_list):
+
         tests = sum([results.testsRun for results in results_list])
         failures = sum([len(results.failures) for results in results_list])
         expected_failures = sum([len(results.expectedFailures) for results in results_list])
-        skips = sum([len(results.skipped) for results in results_list]) + len(self.manifest_skipped_tests)
+        skips = sum([len(results.skipped) for results in results_list])
         errors = sum([len(results.errors) for results in results_list])
         passes = sum([results.passed for results in results_list])
         unexpected_passes = sum([len(results.unexpectedSuccesses) for results in results_list])
         test_time = self.elapsedtime.total_seconds()
         test_logs = []
 
-        def _extract_html_from_result(result):
-            _extract_html(
-                result=result.result,
-                test_name=result.name,
-                test_class=result.test_class,
-                duration=round(result.duration, 1),
-                debug=result.debug,
-                output='\n'.join(result.output))
-
-        def _extract_html_from_skipped_manifest_test(test):
-            _extract_html(
-                result='skipped',
-                test_name=test['name'],
-                output=test.get('disabled'))
-
-        def _extract_html(result, test_name, test_class='', duration=0,
-                          debug=None, output=''):
+        def _extract_html(test, class_name, duration=0, text='', result='passed', debug=None):
+            cls_name = class_name
+            tc_name = unicode(test)
+            tc_time = duration
             additional_html = []
             debug = debug or {}
             links_html = []
 
-            result_map = {
-                'KNOWN-FAIL': 'expected failure',
-                'PASS': 'passed',
-                'UNEXPECTED-FAIL': 'failure',
-                'UNEXPECTED-PASS': 'unexpected pass'}
-
-            if result.upper() in ['SKIPPED', 'UNEXPECTED-FAIL', 'KNOWN-FAIL', 'ERROR']:
+            if result in ['skipped', 'failure', 'expected failure', 'error']:
                 if debug.get('screenshot'):
                     screenshot = 'data:image/png;base64,%s' % debug['screenshot']
                     additional_html.append(html.div(
@@ -103,7 +85,7 @@ class HTMLReportingTestRunnerMixin(object):
                         pass
 
                 log = html.div(class_='log')
-                for line in output.splitlines():
+                for line in text.splitlines():
                     separator = line.startswith(' ' * 10)
                     if separator:
                         log.append(line[:80])
@@ -116,19 +98,27 @@ class HTMLReportingTestRunnerMixin(object):
                 additional_html.append(log)
 
             test_logs.append(html.tr([
-                html.td(result_map.get(result, result).title(), class_='col-result'),
-                html.td(test_class, class_='col-class'),
-                html.td(test_name, class_='col-name'),
-                html.td(str(duration), class_='col-duration'),
+                html.td(result.title(), class_='col-result'),
+                html.td(cls_name, class_='col-class'),
+                html.td(tc_name, class_='col-name'),
+                html.td(tc_time, class_='col-duration'),
                 html.td(links_html, class_='col-links'),
                 html.td(additional_html, class_='debug')],
-                class_=result_map.get(result, result).lower() + ' results-table-row'))
+                class_=result.lower() + ' results-table-row'))
 
         for results in results_list:
-            [_extract_html_from_result(test) for test in results.tests]
-
-        for test in self.manifest_skipped_tests:
-            _extract_html_from_skipped_manifest_test(test)
+            for test in results.tests_passed:
+                _extract_html(test.name, test.test_class)
+            for result in results.skipped:
+                _extract_html(result.name, result.test_class, text='\n'.join(result.output), result='skipped')
+            for result in results.failures:
+                _extract_html(result.name, result.test_class, text='\n'.join(result.output), result='failure', debug=result.debug)
+            for result in results.expectedFailures:
+                _extract_html(result.name, result.test_class, text='\n'.join(result.output), result='expected failure', debug=result.debug)
+            for test in results.unexpectedSuccesses:
+                _extract_html(test.name, test.test_class, result='unexpected pass')
+            for result in results.errors:
+                _extract_html(result.name, result.test_class, text='\n'.join(result.output), result='error', debug=result.debug)
 
         generated = datetime.datetime.now()
         doc = html.html(
@@ -194,7 +184,6 @@ class HTMLReportingTestResultMixin(object):
         test.debug = None
         if result_actual is not 'PASS':
             test.debug = self.gather_debug()
-        return result_expected, result_actual, output, context
 
     def gather_debug(self):
         debug = {}
