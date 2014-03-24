@@ -24,7 +24,6 @@ using namespace js::gc;
 JS::Zone::Zone(JSRuntime *rt)
   : JS::shadow::Zone(rt, &rt->gcMarker),
     allocator(this),
-    hold(false),
     ionUsingBarriers_(false),
     active(false),
     gcScheduled(false),
@@ -240,4 +239,12 @@ js::ZoneOfObject(const JSObject &obj)
     return obj.zone();
 }
 
-
+bool
+Zone::hasMarkedCompartments()
+{
+    for (CompartmentsInZoneIter comp(this); !comp.done(); comp.next()) {
+        if (comp->marked)
+            return true;
+    }
+    return false;
+}
