@@ -68,7 +68,8 @@ this.DataStore.prototype = {
   classDescription: "DataStore XPCOM Component",
   classID: Components.ID("{db5c9602-030f-4bff-a3de-881a8de370f2}"),
   contractID: "@mozilla.org/dom/datastore;1",
-  QueryInterface: XPCOMUtils.generateQI([Components.interfaces.nsISupports]),
+  QueryInterface: XPCOMUtils.generateQI([Components.interfaces.nsISupports,
+                                         Components.interfaces.nsIObserver]),
 
   callbacks: [],
 
@@ -79,6 +80,7 @@ this.DataStore.prototype = {
   _revisionId: null,
   _exposedObject: null,
   _cursor: null,
+  _shuttingdown: false,
 
   init: function(aWindow, aName, aOwner, aReadOnly) {
     debug("DataStore init");
@@ -91,14 +93,7 @@ this.DataStore.prototype = {
     this._db = new DataStoreDB();
     this._db.init(aOwner, aName);
 
-    let self = this;
-    Services.obs.addObserver(function(aSubject, aTopic, aData) {
-      let wId = aSubject.QueryInterface(Ci.nsISupportsPRUint64).data;
-      if (wId == self._innerWindowID) {
-        cpmm.removeMessageListener("DataStore:Changed:Return:OK", self);
-        self._db.close();
-      }
-    }, "inner-window-destroyed", false);
+    Services.obs.addObserver(this, "inner-window-destroyed", false);
 
     let util = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                       .getInterface(Ci.nsIDOMWindowUtils);
@@ -107,6 +102,18 @@ this.DataStore.prototype = {
     cpmm.addMessageListener("DataStore:Changed:Return:OK", this);
     cpmm.sendAsyncMessage("DataStore:RegisterForMessages",
                           { store: this._name, owner: this._owner });
+  },
+
+  observe: function(aSubject, aTopic, aData) {
+    let wId = aSubject.QueryInterface(Ci.nsISupportsPRUint64).data;
+    if (wId == this._innerWindowID) {
+      Services.obs.removeObserver(this, "inner-window-destroyed");
+
+      cpmm.removeMessageListener("DataStore:Changed:Return:OK", this);
+      cpmm.sendAsyncMessage("DataStore:UnregisterForMessages");
+      this._shuttingdown = true;
+      this._db.close();
+    }
   },
 
   newDBPromise: function(aTxnType, aFunction) {
@@ -308,16 +315,28 @@ this.DataStore.prototype = {
       return;
     }
 
+    // If this message is not for this DataStore, let's ignore it.
+    if (aMessage.data.owner != this._owner ||
+        aMessage.data.store != this._name) {
+      return;
+    }
+
     let self = this;
 
     this.retrieveRevisionId(
       function() {
+        // If the window has been destroyed we don't emit the events.
+        if (self._shuttingdown) {
+          return;
+        }
+
         // If we have an active cursor we don't emit events.
         if (self._cursor) {
           return;
         }
 
-        let event = new self._window.DataStoreChangeEvent('change', aMessage.data);
+        let event = new self._window.DataStoreChangeEvent('change',
+                                                          aMessage.data.message);
         self.__DOM_IMPL__.dispatchEvent(event);
       }
     );
