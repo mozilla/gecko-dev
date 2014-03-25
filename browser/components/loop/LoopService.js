@@ -99,7 +99,7 @@ try {
 
   openChat: function(provider) {
     let mostRecent = Services.wm.getMostRecentWindow("navigator:browser");
-    openChatWindow(mostRecent, provider, "chrome://browser/content/loop/chat.html");
+    openChatWindow(mostRecent, provider, "chrome://browser/content/loop/conversation.html");
   }
 };
 
