@@ -42,7 +42,6 @@
         iframe.setAttribute("mozbrowser", "true");
         iframe.setAttribute("ignoreuserfocus", "true");
         iframe.setAttribute("height", "300px");
-        iframe.setAttribute("src", "file_ignoreuserfocus.html");
 
         iframe.addEventListener('load', function (e) {
           // Get privileged iframe because mozbrowser iframe is not same origin
@@ -136,6 +135,8 @@
         document.body.appendChild(witness);
         document.body.appendChild(iframe);
         document.body.appendChild(witness2);
+
+        iframe.setAttribute("src", "file_ignoreuserfocus.html");
       }
       addEventListener("load", function() {
         SpecialPowers.addPermission("browser", true, document);
@@ -143,7 +144,9 @@
           "set": [
             ["dom.mozBrowserFramesEnabled", true]
           ]
-        }, runTest);
+        }, function() {
+          SimpleTest.waitForFocus(runTest);
+        });
       });
     </script>
   </body>
