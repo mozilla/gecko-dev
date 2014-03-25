@@ -1335,6 +1335,8 @@ pref("shumway.disabled", true);
 // (This is intentionally on the high side; see bug 746055.)
 pref("image.mem.max_decoded_image_kb", 256000);
 
+pref("loop.server", "http://localhost:5000");
+
 // Default social providers
 pref("social.enabled", true);
 pref("social.activeProviders", "{\"chrome://browser/content/loop/\":1}");

@@ -11,7 +11,7 @@ Cu.import("resource://gre/modules/MozSocialAPI.jsm");
 Cu.import("resource://gre/modules/SocialService.jsm");
 
 //const loopServerUri = "http://loop.dev.mozaws.net";
-const loopServerUri = "http://localhost:5000";
+const loopServerUri = Services.prefs.getCharPref("loop.server");
 const pushServerUri = "wss://push.services.mozilla.com";
 const channelID = "8b1081ce-9b35-42b5-b8f5-3ff8cb813a50";
 
@@ -67,10 +67,6 @@ LoopService.prototype = {
         this.websocket.sendMsg(JSON.stringify({messageType: "register", channelID: channelID}));
         break;
       case "register":
-        dump("\n\nPush url is: " + msg.pushEndpoint + "\n");
-        Cu.reportError("Push url is: " + msg.pushEndpoint);
-try {
-
         this.registerXhr = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]
                              .createInstance(Ci.nsIXMLHttpRequest);
         // XXX Sync!
@@ -80,26 +76,20 @@ try {
         this.registerXhr.sendAsBinary(JSON.stringify({simple_push_url: msg.pushEndpoint}));
         this.callXhr = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]
                              .createInstance(Ci.nsIXMLHttpRequest);
-        // XXX Sync!
-//        this.callXhr.open('POST', loopServerUri + "/call-url/", false);
-//        this.callXhr.setRequestHeader('Content-Type', 'application/json');
-//        this.callXhr.sendAsBinary(JSON.stringify({remote_id: "fake", valid_duration: 86400}));
-} catch (x) {
-  Cu.reportError(x);
-}
         break;
       case "notification":
-        if (channelID === channelID) {
-          Cu.reportError("Notification!");
-          SocialService.getProvider("chrome://browser/content/loop/", this.openChat.bind(this));
-        }
+        msg.updates.forEach(function(update) {
+          if (update.channelID === channelID) {
+            SocialService.getProvider("chrome://browser/content/loop/", this.openChat.bind(this, update.version));
+          }
+        }.bind(this));
         break;
     }
   },
 
-  openChat: function(provider) {
+  openChat: function(version, provider) {
     let mostRecent = Services.wm.getMostRecentWindow("navigator:browser");
-    openChatWindow(mostRecent, provider, "chrome://browser/content/loop/conversation.html");
+    openChatWindow(mostRecent, provider, "chrome://browser/content/loop/conversation.html#start/" + version);
   }
 };
 
