@@ -1236,7 +1236,7 @@ PeerConnectionWrapper.prototype = {
           self.attachMedia(stream, type, 'local');
 
           _getAllUserMedia(constraintsList, index + 1);
-        }, unexpectedCallbackAndFinish());
+        }, generateErrorCallback());
       } else {
         onSuccess();
       }
@@ -1285,7 +1285,7 @@ PeerConnectionWrapper.prototype = {
       info("Got offer: " + JSON.stringify(offer));
       self._last_offer = offer;
       onSuccess(offer);
-    }, unexpectedCallbackAndFinish(), this.offerConstraints);
+    }, generateErrorCallback(), this.offerConstraints);
   },
 
   /**
@@ -1301,7 +1301,7 @@ PeerConnectionWrapper.prototype = {
       info(self + ": Got answer: " + JSON.stringify(answer));
       self._last_answer = answer;
       onSuccess(answer);
-    }, unexpectedCallbackAndFinish());
+    }, generateErrorCallback());
   },
 
   /**
@@ -1317,7 +1317,7 @@ PeerConnectionWrapper.prototype = {
     this._pc.setLocalDescription(desc, function () {
       info(self + ": Successfully set the local description");
       onSuccess();
-    }, unexpectedCallbackAndFinish());
+    }, generateErrorCallback());
   },
 
   /**
@@ -1332,7 +1332,7 @@ PeerConnectionWrapper.prototype = {
   setLocalDescriptionAndFail : function PCW_setLocalDescriptionAndFail(desc, onFailure) {
     var self = this;
     this._pc.setLocalDescription(desc,
-      unexpectedCallbackAndFinish("setLocalDescription should have failed."),
+      generateErrorCallback("setLocalDescription should have failed."),
       function (err) {
         info(self + ": As expected, failed to set the local description");
         onFailure(err);
@@ -1352,7 +1352,7 @@ PeerConnectionWrapper.prototype = {
     this._pc.setRemoteDescription(desc, function () {
       info(self + ": Successfully set remote description");
       onSuccess();
-    }, unexpectedCallbackAndFinish());
+    }, generateErrorCallback());
   },
 
   /**
@@ -1367,7 +1367,7 @@ PeerConnectionWrapper.prototype = {
   setRemoteDescriptionAndFail : function PCW_setRemoteDescriptionAndFail(desc, onFailure) {
     var self = this;
     this._pc.setRemoteDescription(desc,
-      unexpectedCallbackAndFinish("setRemoteDescription should have failed."),
+      generateErrorCallback("setRemoteDescription should have failed."),
       function (err) {
         info(self + ": As expected, failed to set the remote description");
         onFailure(err);
@@ -1388,7 +1388,7 @@ PeerConnectionWrapper.prototype = {
     this._pc.addIceCandidate(candidate, function () {
       info(self + ": Successfully added an ICE candidate");
       onSuccess();
-    }, unexpectedCallbackAndFinish());
+    }, generateErrorCallback());
   },
 
   /**
@@ -1404,7 +1404,7 @@ PeerConnectionWrapper.prototype = {
     var self = this;
 
     this._pc.addIceCandidate(candidate,
-      unexpectedCallbackAndFinish("addIceCandidate should have failed."),
+      generateErrorCallback("addIceCandidate should have failed."),
       function (err) {
         info(self + ": As expected, failed to add an ICE candidate");
         onFailure(err);
