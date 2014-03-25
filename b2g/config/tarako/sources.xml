@@ -17,7 +17,7 @@
     <copyfile dest="Makefile" src="core/root.mk"/>
   </project>
   <project name="fake-dalvik" path="dalvik" remote="b2g" revision="5de4d379bb3c2f5f217bd8bebef95840f0de0f6a"/>
-  <project name="gaia.git" path="gaia" remote="mozillaorg" revision="8132b88334f61288060a2680857c54c7af82cdc5"/>
+  <project name="gaia.git" path="gaia" remote="mozillaorg" revision="616aec6e86e3ea3d29e620d43ad195eba1552f0e"/>
   <project name="gonk-misc" path="gonk-misc" remote="b2g" revision="575204d5d39f8b9329fb47a80db616c2362bf488"/>
   <project name="rilproxy" path="rilproxy" remote="b2g" revision="827214fcf38d6569aeb5c6d6f31cb296d1f09272"/>
   <project name="librecovery" path="librecovery" remote="b2g" revision="9c4d35857e6a2843aa240e1465aa51780eaf99f6"/>
@@ -94,7 +94,7 @@
   <project name="platform/system/netd" path="system/netd" revision="3d298fde142bee3fc4f07f63f16f2d8ce42339c0"/>
   <project name="platform/system/vold" path="system/vold" revision="919829940468066a32f403980b43f6ebfee5d314"/>
   <!-- sprd things -->
-  <project name="kernel/common" path="kernel" remote="sprd-aosp" revision="c2644713dda66b698ffec6307e66a0a4fe028d4f"/>
+  <project name="kernel/common" path="kernel" remote="sprd-aosp" revision="4745ecda9d7ce8c629b85b668a1a2b237dc0e44a"/>
   <project name="u-boot" path="u-boot" remote="sprd-aosp" revision="c0c826992f3ed92b2e8f60910099fbef4ccaf3a6"/>
   <project name="device/sprd" path="device/sprd" remote="sprd-aosp" revision="a192a7cad4fe870ac9462f0b2baae8db0035e557"/>
   <project name="vendor/sprd/proprietories" path="vendor/sprd/proprietories" remote="sprd-aosp" revision="2b6aeb2782d4103e4869967df8a41b46a94042a7"/>
