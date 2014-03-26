@@ -47,7 +47,7 @@
   <project name="platform/external/giflib" path="external/giflib" revision="6dbee1b36e184a0d39314254924a61837bd1ed3a"/>
   <project name="platform/external/gtest" path="external/gtest" revision="8c212ebe53bb2baab3575f03069016f1fb11e449"/>
   <project name="platform/external/harfbuzz" path="external/harfbuzz" revision="6b66309486b04d2107ab745a48d37c659da468fd"/>
-  <project name="platform/external/icu4c" path="external/icu4c" revision="a8ee9ed4f90880df4e5ef6167623526cde668de4"/>
+  <project name="platform/external/icu4c" path="external/icu4c" revision="e75e651bb07c60c92e508e9e35e887076000d63a"/>
   <project name="platform/external/iproute2" path="external/iproute2" revision="c66c5716d5335e450f7a7b71ccc6a604fb2f41d2"/>
   <project name="platform/external/iptables" path="external/iptables" revision="32e954f4bcb000ce8f3d8be13bce435eef0cb725"/>
   <project name="platform/external/jhead" path="external/jhead" revision="2089f1535d489eefd95632f0a6d05df544749dde"/>
