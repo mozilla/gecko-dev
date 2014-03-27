@@ -715,6 +715,8 @@ var WifiManager = (function() {
       if (manager.state !== "DISABLING" && manager.state !== "UNINITIALIZED") {
         notify("supplicantlost", { success: true });
       }
+      wifiCommand.closeSupplicantConnection(function() {
+      });
       return false;
     }
     if (eventData.indexOf("CTRL-EVENT-DISCONNECTED") === 0) {
@@ -924,11 +926,9 @@ var WifiManager = (function() {
       wifiCommand.terminateSupplicant(function (ok) {
         manager.connectionDropped(function () {
           wifiCommand.stopSupplicant(function (status) {
-            wifiCommand.closeSupplicantConnection(function () {
-              manager.state = "UNINITIALIZED";
-              netUtil.disableInterface(manager.ifname, function (ok) {
-                unloadDriver(WIFI_FIRMWARE_STATION, callback);
-              });
+            manager.state = "UNINITIALIZED";
+            netUtil.disableInterface(manager.ifname, function (ok) {
+              unloadDriver(WIFI_FIRMWARE_STATION, callback);
             });
           });
         });
