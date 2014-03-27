@@ -29,7 +29,7 @@
   <project name="platform/bootable/recovery" path="bootable/recovery" revision="425f8b5fadf5889834c5acd27d23c9e0b2129c28"/>
   <project name="device/common" path="device/common" revision="42b808b7e93d0619286ae8e59110b176b7732389"/>
   <project name="platform_external_apriori" path="external/apriori" remote="b2g" revision="11816ad0406744f963537b23d68ed9c2afb412bd"/>
-  <project name="platform/external/bluetooth/bluez" path="external/bluetooth/bluez" revision="25e557e17cb3c376d54a756e5289843aa8a136ca"/>
+  <project name="platform/external/bluetooth/bluez" path="external/bluetooth/bluez" revision="8e7f36d84b512b57229a0e50f78ae29c6e9b0fa4"/>
   <project name="platform/external/bluetooth/glib" path="external/bluetooth/glib" revision="1143b9918eab068401b604eb11c3f651f4e38b25"/>
   <project name="platform/external/bluetooth/hcidump" path="external/bluetooth/hcidump" revision="7322661808c2006b7848e79e6bb72b37fbcf6710"/>
   <project name="platform/external/bsdiff" path="external/bsdiff" revision="85a68103754b1e5473dca7becd76834848c77c35"/>
