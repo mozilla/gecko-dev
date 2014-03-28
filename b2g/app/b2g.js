@@ -176,8 +176,10 @@ pref("privacy.item.syncAccount", true);
 // URL to the Learn More link XXX this is the firefox one.  Bug 495578 fixes this.
 pref("browser.geolocation.warning.infoURL", "http://www.mozilla.com/%LOCALE%/firefox/geolocation/");
 
+pref("geo.cell.scan", true);
+pref("geo.wifi.logging.enabled", true);
 // base url for the wifi geolocation network provider
-pref("geo.wifi.uri", "https://maps.googleapis.com/maps/api/browserlocation/json");
+pref("geo.wifi.uri", "https://location.services.mozilla.com/v1/geolocate?key=%MOZ_MOZILLA_API_KEY%");
 
 // enable geo
 pref("geo.enabled", true);
