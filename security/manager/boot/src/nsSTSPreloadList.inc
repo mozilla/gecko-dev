@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include "mozilla/StandardInteger.h"
-const PRTime gPreloadListExpirationTime = INT64_C(1405764355403000);
+const PRTime gPreloadListExpirationTime = INT64_C(1406973929143000);
 
 class nsSTSPreload
 {
@@ -69,7 +69,10 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "espra.com", true },
   { "f-droid.org", true },
   { "factor.cc", false },
+  { "fairbill.com", true },
   { "faq.lookout.com", false },
+  { "feedbin.com", false },
+  { "fiken.no", true },
   { "forum.linode.com", false },
   { "forum.quantifiedself.com", true },
   { "gernert-server.de", true },
@@ -80,6 +83,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "grc.com", false },
   { "grepular.com", true },
   { "haste.ch", true },
+  { "heha.co", true },
   { "howrandom.org", true },
   { "id.mayfirst.org", false },
   { "inertianetworks.com", true },
@@ -109,6 +113,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "manager.linode.com", false },
   { "matteomarescotti.name", true },
   { "mattmccutchen.net", true },
+  { "mbp.banking.co.at", false },
   { "mediacru.sh", true },
   { "mega.co.nz", false },
   { "members.mayfirst.org", false },
@@ -117,7 +122,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "mudcrab.us", true },
   { "my.onlime.ch", false },
   { "my.xero.com", false },
-  { "mykolab.com", true },
   { "mylookout.com", false },
   { "neg9.org", false },
   { "neilwynne.com", false },
@@ -142,6 +146,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "roundcube.mayfirst.org", false },
   { "sandbox.mydigipass.com", false },
   { "securityheaders.com", true },
+  { "semenkovich.com", true },
   { "shodan.io", true },
   { "silentcircle.com", false },
   { "simbolo.co.uk", false },
@@ -165,6 +170,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "writeapp.me", false },
   { "www.aclu.org", false },
   { "www.apollo-auto.com", true },
+  { "www.banking.co.at", false },
   { "www.braintreepayments.com", false },
   { "www.calyxinstitute.org", false },
   { "www.cyveillance.com", true },
@@ -183,7 +189,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "www.mylookout.com", false },
   { "www.noisebridge.net", false },
   { "www.opsmate.com", true },
-  { "www.roddis.net", false },
   { "www.simbolo.co.uk", false },
   { "www.simple.com", false },
   { "www.therapynotes.com", false },
