@@ -7,6 +7,7 @@
 #ifndef jit_MoveEmitter_x86_shared_h
 #define jit_MoveEmitter_x86_shared_h
 
+
 #if defined(JS_CODEGEN_X86)
 # include "jit/x86/MacroAssembler-x86.h"
 #elif defined(JS_CODEGEN_X64)
@@ -28,6 +29,9 @@ class MoveEmitterX86
 
     // Original stack push value.
     uint32_t pushedAtStart_;
+    
+    //to be set to FALSE on path which are not performance sensitive.
+    bool asserNOInstructionAdded_;
 
     // This is a store stack offset for the cycle-break spill slot, snapshotting
     // codegen->framePushed_ at the time it is allocated. -1 if not allocated.
@@ -54,6 +58,7 @@ class MoveEmitterX86
     MoveEmitterX86(MacroAssemblerSpecific &masm);
     ~MoveEmitterX86();
     void emit(const MoveResolver &moves);
+    void MOZ_ASSERT_IF(MoveResolver &moves);
     void finish();
 };
 
@@ -63,3 +68,18 @@ typedef MoveEmitterX86 MoveEmitter;
 } // js
 
 #endif /* jit_MoveEmitter_x86_shared_h */
+
+namespace js{
+namespace jit{
+  
+  class AutoAcceptMovesForCalls{
+    
+    static bool efficient_;
+    
+  public:
+    
+    AutoAcceptMovesForCalls(const MoveResolver &moves);
+    ~AutoAcceptMovesForCalls();
+  };
+}
+}
