@@ -10,13 +10,18 @@ using namespace js;
 using namespace js::jit;
 
 MoveEmitterX86::MoveEmitterX86(MacroAssemblerSpecific &masm)
-  : inCycle_(false),
+  : inCycle_(false), assertNoInstructionAdded_(false),
     masm(masm),
     pushedAtCycle_(-1)
 {
     pushedAtStart_ = masm.framePushed();
 }
 
+void MOZ_ASSERT_IF(MoveResolver &moves){
+  
+  if(moves.numMoves==0) assertNoInstructionAdded_ = true;
+  
+}
 // Examine the cycle in moves starting at position i. Determine if it's a
 // simple cycle consisting of all register-to-register moves in a single class,
 // and whether it can be implemented entirely by swaps.
@@ -97,6 +102,7 @@ MoveEmitterX86::maybeEmitOptimizedCycle(const MoveResolver &moves, size_t i,
 void
 MoveEmitterX86::emit(const MoveResolver &moves)
 {
+    if(!assertNoInstructionAdded_){
     for (size_t i = 0; i < moves.numMoves(); i++) {
         const MoveOp &move = moves.getMove(i);
         const MoveOperand &from = move.from();
@@ -144,6 +150,7 @@ MoveEmitterX86::emit(const MoveResolver &moves)
           default:
             MOZ_ASSUME_UNREACHABLE("Unexpected move type");
         }
+    }
     }
 }
 
@@ -431,3 +438,12 @@ MoveEmitterX86::finish()
     masm.freeStack(masm.framePushed() - pushedAtStart_);
 }
 
+AutoAcceptMovesForCalls::AutoAcceptMovesForCalls(const MoveResolver &moves): efficient_(false){
+    
+    if(moves.numMoves == 0) efficient_ = true;
+}
+
+AutoAcceptMovesForCalls::~AutoAcceptMovesForCalls(){
+    
+    efficient_=(efficient_ == true)?true:false
+}  
