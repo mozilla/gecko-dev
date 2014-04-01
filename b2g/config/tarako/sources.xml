@@ -87,7 +87,7 @@
   <project name="platform/libcore" path="libcore" revision="027162a7afeec9f68a8e0b25bbf3c574ee4ed66d"/>
   <project name="platform/ndk" path="ndk" revision="ffbb37a4985ca4aa9ae11f5593e79efcabce5515"/>
   <project name="platform/prebuilt" path="prebuilt" revision="807791bf550d32568dbedce60a5ee6d1955b1acc"/>
-  <project name="platform/system/bluetooth" path="system/bluetooth" revision="d4ed4be37c00edf938cea778fc993a7c09f73787"/>
+  <project name="platform/system/bluetooth" path="system/bluetooth" revision="242522cc9ecb7e0705551b9e3a444b8b727397a9"/>
   <project name="platform/system/core" path="system/core" revision="e6e257d3ec7305b22f0815cde861e2b24e27546a"/>
   <project name="platform/system/extras" path="system/extras" revision="0205c49fedf29620165c6b4e6db3d13739c93396"/>
   <project name="platform/system/media" path="system/media" revision="882f981bb9c0fca7e585f31d07638d407b2885ed"/>
