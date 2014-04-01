@@ -1082,7 +1082,8 @@ void
 IonScript::Destroy(FreeOp *fop, IonScript *script)
 {
     script->destroyCaches();
-    script->unlinkFromRuntime(fop);
+    script->destroyBackedges(fop->runtime());
+    script->detachDependentAsmJSModules(fop);
     fop->free_(script);
 }
 
@@ -1129,24 +1130,20 @@ IonScript::addDependentAsmJSModule(JSContext *cx, DependentAsmJSModuleExit exit)
 }
 
 void
-+IonScript::unlinkFromRuntime(FreeOp *fop)
-{
-    // Remove any links from AsmJSModules that contain optimized FFI calls into
-    // this IonScript.
-    if (dependentAsmJSModules) {
-        for (size_t i = 0; i < dependentAsmJSModules->length(); i++) {
-            DependentAsmJSModuleExit exit = dependentAsmJSModules->begin()[i];
-            exit.module->detachIonCompilation(exit.exitIndex);
-        }
-
-        fop->delete_(dependentAsmJSModules);
-        dependentAsmJSModules = NULL;
+IonScript::detachDependentAsmJSModules(FreeOp *fop) {
+    if (!dependentAsmJSModules)
+        return;
+    for (size_t i = 0; i < dependentAsmJSModules->length(); i++) {
+        DependentAsmJSModuleExit exit = dependentAsmJSModules->begin()[i];
+        exit.module->detachIonCompilation(exit.exitIndex);
     }
+    fop->delete_(dependentAsmJSModules);
+    dependentAsmJSModules = NULL;
+}
 
-    // The writes to the executable buffer below may clobber backedge jumps, so
-    // make sure that those backedges are unlinked from the runtime and not
-    // reclobbered with garbage if an interrupt is triggered.
-    JSRuntime *rt = fop->runtime();
+void
+IonScript::destroyBackedges(JSRuntime *rt)
+{
     for (size_t i = 0; i < backedgeEntries_; i++) {
         PatchableBackedge *backedge = &backedgeList()[i];
         rt->ionRuntime()->removePatchableBackedge(backedge);
@@ -2287,9 +2284,11 @@ InvalidateActivation(FreeOp *fop, uint8_t *ionTop, bool invalidateAll)
         // in case anyone tries to read it.
         ionScript->purgeCaches(script->zone());
 
-        // Clean up any pointers from elsewhere in the runtime to this IonScript
-        // which is about to become disconnected from its JSScript.
-        ionScript->unlinkFromRuntime(fop);
+        // The writes to the executable buffer below may clobber backedge
+        // jumps, so make sure that those backedges are unlinked from the
+        // runtime and not reclobbered with garbage if an interrupt is
+        // triggered.
+        ionScript->destroyBackedges(fop->runtime());
 
         // This frame needs to be invalidated. We do the following:
         //
@@ -2423,6 +2422,7 @@ jit::Invalidate(types::TypeCompartment &types, FreeOp *fop,
         IonScript *ionScript = GetIonScript(script, executionMode);
 
         SetIonScript(script, executionMode, NULL);
+        ionScript->detachDependentAsmJSModules(fop);
         ionScript->decref(fop);
         co.invalidate();
 
