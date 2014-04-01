@@ -3,6 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 config = {
+    "use_puppetagain_packages": True,
     "jsreftest_options": [
         "--adbpath=%(adbpath)s", "--b2gpath=%(b2gpath)s", "--emulator=%(emulator)s",
         "--emulator-res=800x1000", "--logcat-dir=%(logcat_dir)s",
