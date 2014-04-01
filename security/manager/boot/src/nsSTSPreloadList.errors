@@ -1,3 +1,4 @@
+admin.google.com: did not receive HSTS header
 alpha.irccloud.com: could not connect to host
 api.mega.co.nz: could not connect to host
 api.recurly.com: did not receive HSTS header
@@ -84,7 +85,6 @@ play.google.com: did not receive HSTS header
 prodpad.com: did not receive HSTS header
 profiles.google.com: did not receive HSTS header
 rapidresearch.me: did not receive HSTS header
-riseup.net: could not connect to host
 sah3.net: could not connect to host
 saturngames.co.uk: did not receive HSTS header
 script.google.com: did not receive HSTS header
@@ -128,6 +128,7 @@ www.moneybookers.com: did not receive HSTS header
 www.neonisi.com: could not connect to host
 www.paycheckrecords.com: max-age too low: 86400
 www.paypal.com: did not receive HSTS header
+www.roddis.net: did not receive HSTS header
 www.sandbox.mydigipass.com: could not connect to host
 www.surfeasy.com: did not receive HSTS header
-zoo24.de: did not receive HSTS header
+zoo24.de: max-age too low: 2592000
