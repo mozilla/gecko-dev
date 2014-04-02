@@ -24,6 +24,7 @@ using namespace js::gc;
 JS::Zone::Zone(JSRuntime *rt)
   : JS::shadow::Zone(rt, &rt->gcMarker),
     allocator(this),
+    hold(false),
     ionUsingBarriers_(false),
     active(false),
     gcScheduled(false),
