@@ -108,6 +108,8 @@ struct Zone : private JS::shadow::Zone,
 
     js::CompartmentVector        compartments;
 
+    bool                         hold;
+
   private:
     bool                         ionUsingBarriers_;
 

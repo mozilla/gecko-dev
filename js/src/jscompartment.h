@@ -293,7 +293,7 @@ struct JSCompartment
         WrapperEnum(JSCompartment *c) : js::WrapperMap::Enum(c->crossCompartmentWrappers) {}
     };
 
-    void markRoots(JSTracer *trc);
+    void mark(JSTracer *trc);
     bool isDiscardingJitCode(JSTracer *trc);
     void sweep(js::FreeOp *fop, bool releaseTypes);
     void sweepCrossCompartmentWrappers();

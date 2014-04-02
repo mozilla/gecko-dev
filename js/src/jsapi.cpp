@@ -3171,32 +3171,23 @@ JS_GetObjectId(JSContext *cx, JSObject *obj, jsid *idp)
     return JS_TRUE;
 }
 
-class AutoCompartmentRooter : private JS::CustomAutoRooter
+class AutoHoldZone
 {
   public:
-    explicit AutoCompartmentRooter(JSContext *cx, JSCompartment *comp
-                                   MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : CustomAutoRooter(cx), compartment(comp)
+    explicit AutoHoldZone(Zone *zone
+                          MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+      : holdp(&zone->hold)
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+        *holdp = true;
     }
 
-    operator JSCompartment *() {
-        return compartment;
-    }
-
-    JSCompartment *operator->() {
-        return compartment;
-    }
-
-  protected:
-    virtual void trace(JSTracer *trc)
-    {
-        compartment->mark();
+    ~AutoHoldZone() {
+        *holdp = false;
     }
 
   private:
-    JSCompartment *compartment;
+    bool *holdp;
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
@@ -3218,7 +3209,7 @@ JS_NewGlobalObject(JSContext *cx, JSClass *clasp, JSPrincipals *principals,
     else
         zone = ((JSObject *)options.zoneSpec)->zone();
 
-    AutoCompartmentRooter compartment(cx, NewCompartment(cx, zone, principals, options));
+    JSCompartment *compartment = NewCompartment(cx, zone, principals, options);
     if (!compartment)
         return NULL;
 
@@ -3226,6 +3217,8 @@ JS_NewGlobalObject(JSContext *cx, JSClass *clasp, JSPrincipals *principals,
         rt->systemZone = compartment->zone();
         rt->systemZone->isSystem = true;
     }
+
+    AutoHoldZone hold(compartment->zone());
 
     Rooted<GlobalObject *> global(cx);
     {

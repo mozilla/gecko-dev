@@ -488,7 +488,7 @@ JSCompartment::markAllCrossCompartmentWrappers(JSTracer *trc)
 }
 
 void
-JSCompartment::markRoots(JSTracer *trc)
+JSCompartment::mark(JSTracer *trc)
 {
 #ifdef JS_ION
     if (ionCompartment_)
