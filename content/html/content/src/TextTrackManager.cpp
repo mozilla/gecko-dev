@@ -12,7 +12,8 @@
 namespace mozilla {
 namespace dom {
 
-NS_IMPL_CYCLE_COLLECTION_2(TextTrackManager, mTextTracks, mPendingTextTracks)
+NS_IMPL_CYCLE_COLLECTION_3(TextTrackManager, mMediaElement, mTextTracks,
+                           mPendingTextTracks)
 NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(TextTrackManager, AddRef)
 NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(TextTrackManager, Release)
 
