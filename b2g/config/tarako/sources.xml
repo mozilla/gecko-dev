@@ -78,7 +78,7 @@
   <project name="platform/external/wpa_supplicant_8" path="external/wpa_supplicant_8" revision="7a182ff25e44f2bc66448a9b9738a97ab43aaaaf"/>
   <project name="platform/external/yaffs2" path="external/yaffs2" revision="ccb649c33105a3f537dd4e71111d7afe0dd5e95c"/>
   <project name="platform/external/zlib" path="external/zlib" revision="d381d56e7dd4572a47935b353c8893727f5f50cb"/>
-  <project name="platform/frameworks/base" path="frameworks/base" revision="985a870e1b28b9eb0bc008cdfe0b2517f483ea46"/>
+  <project name="platform/frameworks/base" path="frameworks/base" revision="6624c7aa870d639a2f88c1b296775faf5d04adf1"/>
   <project name="platform/frameworks/opt/emoji" path="frameworks/opt/emoji" revision="7f2253709fc8ec200997a684b44ad946ba813f16"/>
   <project name="platform/frameworks/support" path="frameworks/support" revision="b0d785331d7dc80ac06daa12434830ddcea7cc52"/>
   <project name="platform/hardware/libhardware" path="hardware/libhardware" revision="41968dd3282c4629dcd78db8bc497a04690a8d24"/>
