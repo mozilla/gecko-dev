@@ -1155,7 +1155,7 @@ nsXBLBinding::DoInitJSClass(JSContext *cx, JS::Handle<JSObject*> global,
   if (!::JS_LookupPropertyWithFlags(cx, global, className.get(), 0, val.address()))
     return NS_ERROR_OUT_OF_MEMORY;
 
-  if (val.isObject()) {
+  if (val.isObject() && JS_GetClass(&val.toObject())->finalize == XBLFinalize) {
     *aNew = false;
     proto = &val.toObject();
   } else {
