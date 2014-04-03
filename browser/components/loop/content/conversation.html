@@ -11,6 +11,9 @@
  </head>
   <body onload="loop.conversation.init();">
     <div id="conversation" class="conversation">
+      <nav class="controls">
+        <button class="btn stop" data-l10n-id="stop">Stop</button>
+      </nav>
       <div class="media nested">
         <div class="remote">
           <div id="incoming"></div>
@@ -19,7 +22,9 @@
           <div id="outgoing"></div>
         </div>
       </div>
+      <p class="call-end" data-l10n-id="callEnded">The call has ended</p>
     </div>
+
     <script type="text/javascript" src="shared/libs/sdk.js"></script>
     <script type="text/javascript" src="shared/libs/jquery-2.1.0.js"></script>
     <script type="text/javascript" src="shared/libs/lodash-2.4.1.js"></script>

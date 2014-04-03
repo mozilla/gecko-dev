@@ -30,8 +30,7 @@ loop.conversation = (function(TB) {
 
     routes: {
       "start/:version": "start",
-      "call/ongoing": "conversation",
-      "call/ended": "ended"
+      "call/ongoing": "conversation"
     },
 
     /**
@@ -105,14 +104,6 @@ loop.conversation = (function(TB) {
           sdk: TB,
           model: this._conversation
       }));
-    },
-
-    /**
-     * ended does any necessary work to end the call.
-     */
-    ended: function() {
-      // XXX Later we implement the end-of call here (bug 974873)
-      window.close();
     }
   });
 
