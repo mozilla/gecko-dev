@@ -15,6 +15,8 @@
 #include "nsISettingsService.h"
 #include "nsJSUtils.h"
 #include "nsCxPusher.h"
+#include "nsIDOMWakeLock.h"
+#include "nsIPowerManagerService.h"
 
 #define BAND_87500_108000_kHz 1
 #define BAND_76000_108000_kHz 2
@@ -727,6 +729,10 @@ FMRadioService::Notify(const FMRadioOperationInformation& aInfo)
         DoDisable();
         return;
       }
+      // Bug 987085: acquire wake lock when we received
+      // FM_RADIO_OPERATION_ENABLE signal from gonk. It can make sure sound of
+      // FM is smooth when screen off.
+      AcquireWakeLock();
 
       // Fire success callback on the enable request.
       TransitionState(SuccessResponse(), Enabled);
@@ -756,6 +762,10 @@ FMRadioService::Notify(const FMRadioOperationInformation& aInfo)
 
       TransitionState(SuccessResponse(), Disabled);
       UpdatePowerState();
+
+      // Bug 987085: release wake lock when we received
+      // FM_RADIO_OPERATION_DISABLE signal from gonk.
+      ReleaseWakeLock();
       break;
     case FM_RADIO_OPERATION_SEEK:
 
@@ -792,6 +802,29 @@ FMRadioService::UpdateFrequency()
   if (mPendingFrequencyInKHz != frequency) {
     mPendingFrequencyInKHz = frequency;
     NotifyFMRadioEvent(FrequencyChanged);
+  }
+}
+
+void
+FMRadioService::AcquireWakeLock()
+{
+  if (!mWakeLock) {
+    nsCOMPtr<nsIPowerManagerService> pmService =
+      do_GetService(POWERMANAGERSERVICE_CONTRACTID);
+    NS_ENSURE_TRUE_VOID(pmService);
+
+    pmService->NewWakeLock(NS_LITERAL_STRING("cpu"),
+                           nullptr,
+                           getter_AddRefs(mWakeLock));
+  }
+}
+
+void
+FMRadioService::ReleaseWakeLock()
+{
+  if (mWakeLock) {
+    mWakeLock->Unlock();
+    mWakeLock = nullptr;
   }
 }
 

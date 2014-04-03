@@ -16,6 +16,8 @@
 #include "nsIObserver.h"
 #include "nsXULAppAPI.h"
 
+class nsIDOMMozWakeLock;
+
 BEGIN_FMRADIO_NAMESPACE
 
 class FMRadioReplyRunnable : public nsRunnable
@@ -186,6 +188,8 @@ private:
   void SetState(FMRadioState aState);
   void UpdatePowerState();
   void UpdateFrequency();
+  void AcquireWakeLock();
+  void ReleaseWakeLock();
 
 private:
   bool mEnabled;
@@ -206,6 +210,8 @@ private:
   FMRadioEventObserverList mObserverList;
 
   static StaticRefPtr<FMRadioService> sFMRadioService;
+
+  nsCOMPtr<nsIDOMMozWakeLock> mWakeLock;
 };
 
 END_FMRADIO_NAMESPACE
