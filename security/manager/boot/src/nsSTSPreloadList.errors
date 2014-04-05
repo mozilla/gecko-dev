@@ -34,7 +34,6 @@ email.lookout.com: could not connect to host
 emailprivacytester.com: did not receive HSTS header
 encrypted.google.com: did not receive HSTS header
 espra.com: could not connect to host
-factor.cc: could not connect to host
 fatzebra.com.au: did not receive HSTS header
 fj.simple.com: did not receive HSTS header
 get.zenpayroll.com: did not receive HSTS header
@@ -45,6 +44,7 @@ googleplex.com: could not connect to host
 goto.google.com: did not receive HSTS header
 greplin.com: did not receive HSTS header
 groups.google.com: did not receive HSTS header
+haste.ch: could not connect to host
 history.google.com: did not receive HSTS header
 hostedtalkgadget.google.com: did not receive HSTS header
 id.atlassian.com: did not receive HSTS header
