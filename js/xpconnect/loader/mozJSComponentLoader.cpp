@@ -614,7 +614,9 @@ mozJSComponentLoader::NoteSubScript(HandleScript aScript, HandleObject aThisObje
       MOZ_CRASH();
   }
 
-  mThisObjects.Put(aScript, aThisObject);
+  if (js::GetObjectJSClass(aThisObject) == &kFakeBackstagePassJSClass) {
+    mThisObjects.Put(aScript, aThisObject);
+  }
 }
 
 // Some stack based classes for cleaning up on early return
@@ -1024,7 +1026,10 @@ mozJSComponentLoader::ObjectForLocation(nsIFile *aComponentFile,
         MOZ_ASSERT(tableScript);
     }
 
-    mThisObjects.Put(tableScript, obj);
+    if (js::GetObjectJSClass(obj) == &kFakeBackstagePassJSClass) {
+        MOZ_ASSERT(mReuseLoaderGlobal);
+        mThisObjects.Put(tableScript, obj);
+    }
 
     uint32_t oldopts = JS_GetOptions(cx);
     JS_SetOptions(cx, oldopts | (aPropagateExceptions ? JSOPTION_DONT_REPORT_UNCAUGHT : 0));
