@@ -112,6 +112,7 @@ ConferenceCall.prototype = {
 function TelephonyProvider() {
   this._numClients = gRadioInterfaceLayer.numRadioInterfaces;
   this._listeners = [];
+  this._currentCalls = {};
   this._updateDebugFlag();
   this.defaultServiceId = this._getDefaultServiceId();
 
@@ -119,6 +120,10 @@ function TelephonyProvider() {
   Services.prefs.addObserver(kPrefDefaultServiceId, this, false);
 
   Services.obs.addObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false);
+
+  for (let i = 0; i < this._numClients; ++i) {
+    this._enumerateCallsForClient(i);
+  }
 }
 TelephonyProvider.prototype = {
   classID: GONK_TELEPHONYPROVIDER_CID,
@@ -355,6 +360,27 @@ TelephonyProvider.prototype = {
     return id;
   },
 
+  _currentCalls: null,
+  _enumerateCallsForClient: function(aClientId) {
+    if (DEBUG) debug("Enumeration of calls for client " + aClientId);
+
+    this._getClient(aClientId).sendWorkerMessage("enumerateCalls", null,
+                                                 (function(response) {
+      if (!this._currentCalls[aClientId]) {
+        this._currentCalls[aClientId] = {};
+      }
+      for (let call of response.calls) {
+        call.clientId = aClientId;
+        call.state = this._convertRILCallState(call.state);
+        call.isActive = this._matchActiveSingleCall(call);
+
+        this._currentCalls[aClientId][call.callIndex] = call;
+      }
+
+      return false;
+    }).bind(this));
+  },
+
   /**
    * nsITelephonyProvider interface.
    */
@@ -378,42 +404,23 @@ TelephonyProvider.prototype = {
     this._listeners.splice(index, 1);
   },
 
-  _enumerateCallsForClient: function _enumerateCallsForClient(aClientId,
-                                                              aListener) {
-    if (DEBUG) debug("Enumeration of calls for client " + aClientId);
+  enumerateCalls: function(aListener) {
+    if (DEBUG) debug("Requesting enumeration of calls for callback");
 
-    let deferred = Promise.defer();
-
-    this._getClient(aClientId).sendWorkerMessage("enumerateCalls", null,
-                                                 (function(response) {
-      for (let call of response.calls) {
-        call.clientId = aClientId;
-        call.state = this._convertRILCallState(call.state);
-        call.isActive = this._matchActiveSingleCall(call);
-
+    for (let cid = 0; cid < this._numClients; ++cid) {
+      let calls = this._currentCalls[cid];
+      if (!calls) {
+        continue;
+      }
+      for (let i = 0, indexes = Object.keys(calls); i < indexes.length; ++i) {
+        let call = calls[indexes[i]];
         aListener.enumerateCallState(call.clientId, call.callIndex,
                                      call.state, call.number,
                                      call.isActive, call.isOutgoing,
                                      call.isEmergency, call.isConference);
       }
-      deferred.resolve();
-
-      return false;
-    }).bind(this));
-
-    return deferred.promise;
-  },
-
-  enumerateCalls: function(aListener) {
-    if (DEBUG) debug("Requesting enumeration of calls for callback");
-
-    let promise = Promise.resolve();
-    for (let i = 0; i < this._numClients; ++i) {
-      promise = promise.then(this._enumerateCallsForClient.bind(this, i, aListener));
     }
-    promise.then(function() {
-      aListener.enumerateCallStateComplete();
-    });
+    aListener.enumerateCallStateComplete();
   },
 
   dial: function(aClientId, aNumber, aIsEmergency) {
@@ -541,10 +548,10 @@ TelephonyProvider.prototype = {
                                                     aCall.isOutgoing,
                                                     aCall.isEmergency,
                                                     aCall.isConference]);
-      return;
+    } else {
+      this.notifyCallError(aClientId, aCall.callIndex, aCall.failCause);
     }
-
-    this.notifyCallError(aClientId, aCall.callIndex, aCall.failCause);
+    delete this._currentCalls[aClientId][aCall.callIndex];
   },
 
   /**
@@ -582,6 +589,17 @@ TelephonyProvider.prototype = {
 
     aCall.clientId = aClientId;
     this._updateCallAudioState(aCall, null);
+
+    let call = this._currentCalls[aClientId][aCall.callIndex];
+    if (call) {
+      call.state = aCall.state;
+      call.isConference = aCall.isConference;
+      call.isEmergency = aCall.isEmergency;
+      call.isActive = aCall.isActive;
+    } else {
+      call = aCall;
+      this._currentCalls[aClientId][aCall.callIndex] = call;
+    }
 
     this._notifyAllListeners("callStateChanged", [aClientId,
                                                   aCall.callIndex,
