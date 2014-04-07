@@ -32,6 +32,9 @@ const nsITelephonyProvider = Ci.nsITelephonyProvider;
 
 const CALL_WAKELOCK_TIMEOUT = 5000;
 
+// Should match the value we set in dom/telephony/TelephonyCommon.h
+const OUTGOING_PLACEHOLDER_CALL_INDEX = 0xffffffff;
+
 let DEBUG;
 function debug(s) {
   dump("TelephonyProvider: " + s + "\n");
@@ -598,6 +601,14 @@ TelephonyProvider.prototype = {
       call.isActive = aCall.isActive;
     } else {
       call = aCall;
+
+      // Get the actual call for pending outgoing call. Remove the original one.
+      if (this._currentCalls[aClientId][OUTGOING_PLACEHOLDER_CALL_INDEX] &&
+          call.callIndex != OUTGOING_PLACEHOLDER_CALL_INDEX &&
+          call.isOutgoing) {
+        delete this._currentCalls[aClientId][OUTGOING_PLACEHOLDER_CALL_INDEX];
+      }
+
       this._currentCalls[aClientId][aCall.callIndex] = call;
     }
 
