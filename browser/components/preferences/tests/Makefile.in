@@ -13,7 +13,6 @@ include $(DEPTH)/config/autoconf.mk
 MOCHITEST_BROWSER_FILES := \
     head.js \
     browser_advanced_update.js \
-    browser_bug410900.js \
     browser_bug705422.js \
     browser_permissions.js \
     browser_chunk_permissions.js \
