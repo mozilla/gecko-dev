@@ -2058,7 +2058,8 @@ Parser<FullParseHandler>::functionArgsAndBody(ParseNode *pn, HandleFunction fun,
             // Move the syntax parser to the current position in the stream.
             TokenStream::Position position(keepAtoms);
             tokenStream.tell(&position);
-            parser->tokenStream.seek(position, tokenStream);
+            if (!parser->tokenStream.seek(position, tokenStream))
+                return false;
 
             ParseContext<SyntaxParseHandler> funpc(parser, outerpc, funbox,
                                                    outerpc->staticLevel + 1, outerpc->blockidGen);
@@ -2080,7 +2081,8 @@ Parser<FullParseHandler>::functionArgsAndBody(ParseNode *pn, HandleFunction fun,
 
             // Advance this parser over tokens processed by the syntax parser.
             parser->tokenStream.tell(&position);
-            tokenStream.seek(position, parser->tokenStream);
+            if (!tokenStream.seek(position, parser->tokenStream))
+                return false;
         }
 
         pn->pn_funbox = funbox;
