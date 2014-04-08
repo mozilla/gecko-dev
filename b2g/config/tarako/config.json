@@ -20,12 +20,13 @@
     ],
     "env": {
         "VARIANT": "user",
-        "MOZILLA_OFFICIAL": "1"
+        "MOZILLA_OFFICIAL": "1",
+        "JS_BINARY": "{workdir}/js"
     },
     "b2g_manifest": "tarako.xml",
     "b2g_manifest_branch": "v1.3t",
     "b2g_manifest_intree": true,
-    "additional_source_tarballs": [],
+    "additional_source_tarballs": ["js.tar.xz"],
     "gecko_l10n_root": "https://hg.mozilla.org/releases/l10n/mozilla-beta",
     "gaia": {
         "l10n": {
