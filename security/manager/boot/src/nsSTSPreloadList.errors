@@ -46,6 +46,7 @@ googleplex.com: could not connect to host
 goto.google.com: did not receive HSTS header
 greplin.com: did not receive HSTS header
 groups.google.com: did not receive HSTS header
+haste.ch: could not connect to host
 history.google.com: did not receive HSTS header
 hostedtalkgadget.google.com: did not receive HSTS header
 id.atlassian.com: did not receive HSTS header
