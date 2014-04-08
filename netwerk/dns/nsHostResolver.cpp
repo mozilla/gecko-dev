@@ -549,18 +549,22 @@ nsHostResolver::ResolveHost(const char            *host,
                 // For entries that are in the grace period with a failed connect,
                 // or all cached negative entries, use the cache but start a new lookup in
                 // the background
-                if ((((TimeStamp::NowLoRes() > he->rec->expiration) &&
-                      he->rec->mBlacklistedItems.Length()) ||
-                     he->rec->negative) && !he->rec->resolving) {
-                    LOG(("Using %s cache entry for host [%s] but starting async renewal.",
-                         he->rec->negative ? "negative" :"positive", host));
-                    IssueLookup(he->rec);
+                {
+                    MutexAutoLock lock(he->rec->addr_info_lock);
 
-                    if (!he->rec->negative) {
-                        // negative entries are constantly being refreshed, only
-                        // track positive grace period induced renewals
-                        Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD2,
-                                              METHOD_RENEWAL);
+                    if ((((TimeStamp::NowLoRes() > he->rec->expiration) &&
+                          he->rec->mBlacklistedItems.Length()) ||
+                         he->rec->negative) && !he->rec->resolving) {
+                        LOG(("Using %s cache entry for host [%s] but starting async renewal.",
+                             he->rec->negative ? "negative" :"positive", host));
+                        IssueLookup(he->rec);
+
+                        if (!he->rec->negative) {
+                            // negative entries are constantly being refreshed, only
+                            // track positive grace period induced renewals
+                            Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD2,
+                                                  METHOD_RENEWAL);
+                        }
                     }
                 }
                 
