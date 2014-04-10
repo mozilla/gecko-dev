@@ -133,6 +133,7 @@ var WifiManager = (function() {
   }
 
   manager.ifname = ifname;
+  manager.connectToSupplicant = false;
   // Emulator build runs to here.
   // The debug() should only be used after WifiManager.
   if (!ifname) {
@@ -525,6 +526,7 @@ var WifiManager = (function() {
       // Tell the event worker to start waiting for events.
       retryTimer = null;
       connectTries = 0;
+      manager.connectToSupplicant = true;
       didConnectSupplicant(function(){});
       return;
     }
@@ -716,6 +718,7 @@ var WifiManager = (function() {
         notify("supplicantlost", { success: true });
       }
       wifiCommand.closeSupplicantConnection(function() {
+        manager.connectToSupplicant = false;
       });
       return false;
     }
@@ -890,8 +893,7 @@ var WifiManager = (function() {
               return;
             }
 
-            function doStartSupplicant() {
-              cancelWaitForDriverReadyTimer();
+            function startSupplicantInternal() {
               wifiCommand.startSupplicant(function (status) {
                 if (status < 0) {
                   unloadDriver(WIFI_FIRMWARE_STATION, function() {
@@ -905,6 +907,19 @@ var WifiManager = (function() {
                 netUtil.enableInterface(manager.ifname, function (ok) {
                   callback(ok ? 0 : -1);
                 });
+              });
+            }
+
+            function doStartSupplicant() {
+              cancelWaitForDriverReadyTimer();
+
+              if (!manager.connectToSupplicant) {
+                startSupplicantInternal();
+                return;
+              }
+              wifiCommand.closeSupplicantConnection(function () {
+                manager.connectToSupplicant = false;
+                startSupplicantInternal();
               });
             }
             // Driver startup on certain platforms takes longer than it takes for us
