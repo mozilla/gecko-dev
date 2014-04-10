@@ -2521,7 +2521,7 @@ nsJSContext::GC(JS::gcreason::Reason aReason)
 void
 nsJSContext::DisableGC()
 {
-  MOZ_ASSERT(!NS_IsMainThread());
+  MOZ_ASSERT(NS_IsMainThread());
   sDisableCollect = true;
 }
 
@@ -2529,7 +2529,7 @@ nsJSContext::DisableGC()
 void
 nsJSContext::EnableGC()
 {
-  MOZ_ASSERT(!NS_IsMainThread());
+  MOZ_ASSERT(NS_IsMainThread());
   sDisableCollect = false;
 }
 
