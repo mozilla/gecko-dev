@@ -155,6 +155,8 @@
         # Media pipeline
         './src/mediapipeline/MediaPipeline.h',
         './src/mediapipeline/MediaPipeline.cpp',
+        './src/mediapipeline/MediaPipelineFilter.h',
+        './src/mediapipeline/MediaPipelineFilter.cpp',
         './src/mediapipeline/SrtpFlow.h',
         './src/mediapipeline/SrtpFlow.cpp',
       ],
@@ -192,6 +194,10 @@
         ['build_for_test==0', {
           'defines' : [
             'MOZILLA_INTERNAL_API'
+          ],
+          'sources': [
+            './src/peerconnection/WebrtcGlobalInformation.cpp',
+            './src/peerconnection/WebrtcGlobalInformation.h',
           ],
         }],
         ['build_for_test!=0', {

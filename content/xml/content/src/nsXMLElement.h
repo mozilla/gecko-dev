@@ -15,7 +15,7 @@ class nsXMLElement : public mozilla::dom::Element,
                      public nsIDOMElement
 {
 public:
-  nsXMLElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+  nsXMLElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
     : mozilla::dom::Element(aNodeInfo)
   {
   }
@@ -37,10 +37,6 @@ public:
   // nsIContent interface methods
   virtual nsIAtom *GetIDAttributeName() const MOZ_OVERRIDE;
   virtual nsIAtom* DoGetID() const MOZ_OVERRIDE;
-  virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
-                              nsIContent* aBindingParent,
-                              bool aCompileEventHandlers) MOZ_OVERRIDE;
-  virtual void UnbindFromTree(bool aDeep, bool aNullParent) MOZ_OVERRIDE;
   virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
                              bool aNotify) MOZ_OVERRIDE;
   virtual bool ParseAttribute(int32_t aNamespaceID,
@@ -52,8 +48,7 @@ public:
   virtual void NodeInfoChanged(nsINodeInfo* aOldNodeInfo) MOZ_OVERRIDE;
 
 protected:
-  virtual JSObject* WrapNode(JSContext *aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext *aCx) MOZ_OVERRIDE;
 };
 
 #endif // nsXMLElement_h___

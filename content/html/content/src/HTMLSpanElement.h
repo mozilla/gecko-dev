@@ -20,7 +20,7 @@ namespace dom {
 class HTMLSpanElement MOZ_FINAL : public nsGenericHTMLElement
 {
 public:
-  HTMLSpanElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+  HTMLSpanElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
     : nsGenericHTMLElement(aNodeInfo)
   {
   }
@@ -29,8 +29,7 @@ public:
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const MOZ_OVERRIDE;
 
 protected:
-  virtual JSObject* WrapNode(JSContext *aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext *aCx) MOZ_OVERRIDE;
 };
 
 } // namespace dom

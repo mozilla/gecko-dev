@@ -45,7 +45,8 @@ let WebProgressListener = {
       isTopLevel: aWebProgress.isTopLevel,
       isLoadingDocument: aWebProgress.isLoadingDocument,
       requestURI: this._requestSpec(aRequest),
-      loadType: aWebProgress.loadType
+      loadType: aWebProgress.loadType,
+      documentContentType: content.document && content.document.contentType
     };
   },
 
@@ -233,6 +234,13 @@ addEventListener("DOMTitleChanged", function (aEvent) {
   }
 }, false);
 
+addEventListener("DOMWindowClose", function (aEvent) {
+  if (!aEvent.isTrusted)
+    return;
+  sendAsyncMessage("DOMWindowClose");
+  aEvent.preventDefault();
+}, false);
+
 addEventListener("ImageContentLoaded", function (aEvent) {
   if (content.document instanceof Ci.nsIImageDocument) {
     let req = content.document.imageRequest;
@@ -259,30 +267,86 @@ let DocumentObserver = {
 };
 DocumentObserver.init();
 
-function _getMarkupViewer() {
-  return docShell.contentViewer.QueryInterface(Ci.nsIMarkupDocumentViewer);
-}
+const ZoomManager = {
+  get fullZoom() {
+    return this._cache.fullZoom;
+  },
+
+  get textZoom() {
+    return this._cache.textZoom;
+  },
+
+  set fullZoom(value) {
+    this._cache.fullZoom = value;
+    this._markupViewer.fullZoom = value;
+  },
+
+  set textZoom(value) {
+    this._cache.textZoom = value;
+    this._markupViewer.textZoom = value;
+  },
+
+  refreshFullZoom: function() {
+    return this._refreshZoomValue('fullZoom');
+  },
+
+  refreshTextZoom: function() {
+    return this._refreshZoomValue('textZoom');
+  },
+
+  /**
+   * Retrieves specified zoom property value from markupViewer and refreshes
+   * cache if needed.
+   * @param valueName Either 'fullZoom' or 'textZoom'.
+   * @returns Returns true if cached value was actually refreshed.
+   * @private
+   */
+  _refreshZoomValue: function(valueName) {
+    let actualZoomValue = this._markupViewer[valueName];
+    if (actualZoomValue != this._cache[valueName]) {
+      this._cache[valueName] = actualZoomValue;
+      return true;
+    }
+    return false;
+  },
+
+  get _markupViewer() {
+    return docShell.contentViewer.QueryInterface(Ci.nsIMarkupDocumentViewer);
+  },
+
+  _cache: {
+    fullZoom: NaN,
+    textZoom: NaN
+  }
+};
 
 addMessageListener("FullZoom", function (aMessage) {
-  _getMarkupViewer().fullZoom = aMessage.data.value;
+  ZoomManager.fullZoom = aMessage.data.value;
 });
 
 addMessageListener("TextZoom", function (aMessage) {
-  _getMarkupViewer().textZoom = aMessage.data.value;
+  ZoomManager.textZoom = aMessage.data.value;
 });
 
-addEventListener("FullZoomChange", function (aEvent) {
-  sendAsyncMessage("FullZoomChange", { value: _getMarkupViewer().fullZoom });
+addEventListener("FullZoomChange", function () {
+  if (ZoomManager.refreshFullZoom()) {
+    sendAsyncMessage("FullZoomChange", { value:  ZoomManager.fullZoom});
+  }
 }, false);
 
 addEventListener("TextZoomChange", function (aEvent) {
-  sendAsyncMessage("TextZoomChange", { value: _getMarkupViewer().textZoom });
+  if (ZoomManager.refreshTextZoom()) {
+    sendAsyncMessage("TextZoomChange", { value:  ZoomManager.textZoom});
+  }
 }, false);
 
 RemoteAddonsChild.init(this);
 
-addMessageListener("History:UseGlobalHistory", function (aMessage) {
-  docShell.useGlobalHistory = aMessage.data.enabled;
+addMessageListener("NetworkPrioritizer:AdjustPriority", (msg) => {
+  let webNav = docShell.QueryInterface(Ci.nsIWebNavigation);
+  let loadGroup = webNav.QueryInterface(Ci.nsIDocumentLoader)
+                        .loadGroup.QueryInterface(Ci.nsISupportsPriority);
+  loadGroup.adjustPriority(msg.data.adjustment);
 });
 
 let AutoCompletePopup = {
@@ -344,6 +408,8 @@ let AutoCompletePopup = {
   }
 }
 
-addMessageListener("FormAutoComplete:InitPopup", function (aMessage) {
+let [initData] = sendSyncMessage("Browser:Init");
+docShell.useGlobalHistory = initData.useGlobalHistory;
+if (initData.initPopup) {
   setTimeout(function() AutoCompletePopup.init(), 0);
-});
+}

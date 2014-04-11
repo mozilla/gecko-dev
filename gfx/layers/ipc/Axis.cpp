@@ -8,6 +8,7 @@
 #include <math.h>                       // for fabsf, pow, powf
 #include <algorithm>                    // for max
 #include "AsyncPanZoomController.h"     // for AsyncPanZoomController
+#include "mozilla/layers/APZCTreeManager.h" // for APZCTreeManager
 #include "FrameMetrics.h"               // for FrameMetrics
 #include "mozilla/Attributes.h"         // for MOZ_FINAL
 #include "mozilla/Preferences.h"        // for Preferences
@@ -16,75 +17,10 @@
 #include "nsMathUtils.h"                // for NS_lround
 #include "nsThreadUtils.h"              // for NS_DispatchToMainThread, etc
 #include "nscore.h"                     // for NS_IMETHOD
+#include "gfxPrefs.h"                   // for the preferences
 
 namespace mozilla {
 namespace layers {
-
-/**
- * Maximum acceleration that can happen between two frames. Velocity is
- * throttled if it's above this. This may happen if a time delta is very low,
- * or we get a touch point very far away from the previous position for some
- * reason.
- */
-static float gMaxEventAcceleration = 999.0f;
-
-/**
- * Amount of friction applied during flings.
- */
-static float gFlingFriction = 0.002f;
-
-/**
- * When flinging, if the velocity goes below this number, we just stop the
- * animation completely. This is to prevent asymptotically approaching 0
- * velocity and rerendering unnecessarily.
- */
-static float gFlingStoppedThreshold = 0.01f;
-
-/**
- * Maximum size of velocity queue. The queue contains last N velocity records.
- * On touch end we calculate the average velocity in order to compensate
- * touch/mouse drivers misbehaviour.
- */
-static uint32_t gMaxVelocityQueueSize = 5;
-
-/**
- * Maximum velocity in pixels per millisecond.  Velocity will be capped at this
- * value if a faster fling occurs.  Negative values indicate unlimited velocity.
- */
-static float gMaxVelocity = -1.0f;
-
-static void ReadAxisPrefs()
-{
-  Preferences::AddFloatVarCache(&gMaxEventAcceleration, "apz.max_event_acceleration", gMaxEventAcceleration);
-  Preferences::AddFloatVarCache(&gFlingFriction, "apz.fling_friction", gFlingFriction);
-  Preferences::AddFloatVarCache(&gFlingStoppedThreshold, "apz.fling_stopped_threshold", gFlingStoppedThreshold);
-  Preferences::AddUintVarCache(&gMaxVelocityQueueSize, "apz.max_velocity_queue_size", gMaxVelocityQueueSize);
-  Preferences::AddFloatVarCache(&gMaxVelocity, "apz.max_velocity_pixels_per_ms", gMaxVelocity);
-}
-
-class ReadAxisPref MOZ_FINAL : public nsRunnable {
-public:
-  NS_IMETHOD Run()
-  {
-    ReadAxisPrefs();
-    return NS_OK;
-  }
-};
-
-static void InitAxisPrefs()
-{
-  static bool sInitialized = false;
-  if (sInitialized)
-    return;
-
-  sInitialized = true;
-  if (NS_IsMainThread()) {
-    ReadAxisPrefs();
-  } else {
-    // We have to dispatch an event to the main thread to read the pref.
-    NS_DispatchToMainThread(new ReadAxisPref());
-  }
-}
 
 Axis::Axis(AsyncPanZoomController* aAsyncPanZoomController)
   : mPos(0),
@@ -92,21 +28,20 @@ Axis::Axis(AsyncPanZoomController* aAsyncPanZoomController)
     mAxisLocked(false),
     mAsyncPanZoomController(aAsyncPanZoomController)
 {
-  InitAxisPrefs();
 }
 
 void Axis::UpdateWithTouchAtDevicePoint(int32_t aPos, const TimeDuration& aTimeDelta) {
   float newVelocity = mAxisLocked ? 0 : (mPos - aPos) / aTimeDelta.ToMilliseconds();
-  if (gMaxVelocity > 0.0f) {
-    newVelocity = std::min(newVelocity, gMaxVelocity);
+  if (gfxPrefs::APZMaxVelocity() > 0.0f) {
+    newVelocity = std::min(newVelocity, gfxPrefs::APZMaxVelocity() * APZCTreeManager::GetDPI());
   }
 
   mVelocity = newVelocity;
   mPos = aPos;
 
-  // Keep last gMaxVelocityQueueSize or less velocities in the queue.
+  // Limit queue size pased on pref
   mVelocityQueue.AppendElement(mVelocity);
-  if (mVelocityQueue.Length() > gMaxVelocityQueueSize) {
+  if (mVelocityQueue.Length() > gfxPrefs::APZMaxVelocityQueueSize()) {
     mVelocityQueue.RemoveElementAt(0);
   }
 }
@@ -117,16 +52,9 @@ void Axis::StartTouch(int32_t aPos) {
   mAxisLocked = false;
 }
 
-float Axis::AdjustDisplacement(float aDisplacement, float& aOverscrollAmountOut,
-                               bool aScrollingDisabled) {
+float Axis::AdjustDisplacement(float aDisplacement, float& aOverscrollAmountOut) {
   if (mAxisLocked) {
     aOverscrollAmountOut = 0;
-    return 0;
-  }
-
-  if (aScrollingDisabled) {
-    // Scrolling is disabled on this axis, stop scrolling.
-    aOverscrollAmountOut = aDisplacement;
     return 0;
   }
 
@@ -180,14 +108,14 @@ bool Axis::Scrollable() {
 }
 
 bool Axis::FlingApplyFrictionOrCancel(const TimeDuration& aDelta) {
-  if (fabsf(mVelocity) <= gFlingStoppedThreshold) {
+  if (fabsf(mVelocity) <= gfxPrefs::APZFlingStoppedThreshold()) {
     // If the velocity is very low, just set it to 0 and stop the fling,
     // otherwise we'll just asymptotically approach 0 and the user won't
     // actually see any changes.
     mVelocity = 0.0f;
     return false;
   } else {
-    mVelocity *= pow(1.0f - gFlingFriction, float(aDelta.ToMilliseconds()));
+    mVelocity *= pow(1.0f - gfxPrefs::APZFlingFriction(), float(aDelta.ToMilliseconds()));
   }
   return true;
 }
@@ -275,6 +203,10 @@ float Axis::GetVelocity() {
   return mAxisLocked ? 0 : mVelocity;
 }
 
+void Axis::SetVelocity(float aVelocity) {
+  mVelocity = aVelocity;
+}
+
 float Axis::GetCompositionEnd() {
   return GetOrigin() + GetCompositionLength();
 }
@@ -284,14 +216,13 @@ float Axis::GetPageEnd() {
 }
 
 float Axis::GetOrigin() {
-  CSSPoint origin = mAsyncPanZoomController->GetFrameMetrics().mScrollOffset;
+  CSSPoint origin = mAsyncPanZoomController->GetFrameMetrics().GetScrollOffset();
   return GetPointOffset(origin);
 }
 
 float Axis::GetCompositionLength() {
   const FrameMetrics& metrics = mAsyncPanZoomController->GetFrameMetrics();
-  CSSRect cssCompositedRect = metrics.CalculateCompositedRectInCssPixels();
-  return GetRectLength(cssCompositedRect);
+  return GetRectLength(metrics.CalculateCompositedRectInCssPixels());
 }
 
 float Axis::GetPageStart() {
@@ -307,7 +238,7 @@ float Axis::GetPageLength() {
 bool Axis::ScaleWillOverscrollBothSides(float aScale) {
   const FrameMetrics& metrics = mAsyncPanZoomController->GetFrameMetrics();
 
-  CSSToScreenScale scale(metrics.mZoom.scale * aScale);
+  CSSToParentLayerScale scale(metrics.GetZoomToParent().scale * aScale);
   CSSRect cssCompositionBounds = metrics.mCompositionBounds / scale;
 
   return GetRectLength(metrics.mScrollableRect) < GetRectLength(cssCompositionBounds);

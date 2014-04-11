@@ -29,6 +29,8 @@ user_pref("layout.debug.enable_data_xbl", true);
 user_pref("browser.EULA.override", true);
 user_pref("gfx.color_management.force_srgb", true);
 user_pref("network.manage-offline-status", false);
+// Disable speculative connections so they aren't reported as leaking when they're hanging around.
+user_pref("network.http.speculative-parallel-limit", 0);
 user_pref("dom.min_background_timeout_value", 1000);
 user_pref("test.mousescroll", true);
 user_pref("security.default_personal_cert", "Select Automatically"); // Need to client auth test be w/o any dialogs
@@ -49,6 +51,11 @@ user_pref("toolkit.telemetry.notifiedOptOut", 999);
 user_pref("font.size.inflation.emPerLine", 0);
 user_pref("font.size.inflation.minTwips", 0);
 
+// AddonManager tests require that the experiments feature be enabled.
+user_pref("experiments.enabled", true);
+user_pref("experiments.supported", true);
+user_pref("experiments.logging.level", "Trace");
+
 // Only load extensions from the application and user profile
 // AddonManager.SCOPE_PROFILE + AddonManager.SCOPE_APPLICATION
 user_pref("extensions.enabledScopes", 5);
@@ -60,7 +67,8 @@ user_pref("extensions.installDistroAddons", false);
 user_pref("extensions.defaultProviders.enabled", true);
 
 user_pref("geo.wifi.uri", "http://%(server)s/tests/dom/tests/mochitest/geolocation/network_geolocation.sjs");
-user_pref("geo.wifi.testing", true);
+user_pref("geo.wifi.timeToWaitBeforeSending", 200);
+user_pref("geo.wifi.scan", false);
 user_pref("geo.wifi.logging.enabled", true);
 
 user_pref("camino.warn_when_closing", false); // Camino-only, harmless to others

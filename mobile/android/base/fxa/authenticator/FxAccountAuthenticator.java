@@ -4,7 +4,6 @@
 
 package org.mozilla.gecko.fxa.authenticator;
 
-import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.background.common.log.Logger;
 import org.mozilla.gecko.fxa.FxAccountConstants;
 import org.mozilla.gecko.fxa.activities.FxAccountGetStartedActivity;
@@ -14,7 +13,6 @@ import android.accounts.Account;
 import android.accounts.AccountAuthenticatorResponse;
 import android.accounts.AccountManager;
 import android.accounts.NetworkErrorException;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -29,23 +27,6 @@ public class FxAccountAuthenticator extends AbstractAccountAuthenticator {
     super(context);
     this.context = context;
     this.accountManager = AccountManager.get(context);
-  }
-
-  protected static void enableSyncing(Context context, Account account) {
-    for (String authority : new String[] {
-        AppConstants.ANDROID_PACKAGE_NAME + ".db.browser",
-    }) {
-      ContentResolver.setSyncAutomatically(account, authority, true);
-      ContentResolver.setIsSyncable(account, authority, 1);
-    }
-  }
-
-  protected static void disableSyncing(Context context, Account account) {
-    for (String authority : new String[] {
-        AppConstants.ANDROID_PACKAGE_NAME + ".db.browser",
-    }) {
-      ContentResolver.setSyncAutomatically(account, authority, false);
-    }
   }
 
   @Override
@@ -116,5 +97,48 @@ public class FxAccountAuthenticator extends AbstractAccountAuthenticator {
     Logger.debug(LOG_TAG, "updateCredentials");
 
     return null;
+  }
+
+  /**
+   * If the account is going to be removed, broadcast an "account deleted"
+   * intent. This allows us to clean up the account.
+   * <p>
+   * It is preferable to receive Android's LOGIN_ACCOUNTS_CHANGED_ACTION broadcast
+   * than to create our own hacky broadcast here, but that doesn't include enough
+   * information about which Accounts changed to correctly identify whether a Sync
+   * account has been removed (when some Firefox channels are installed on the SD
+   * card). We can work around this by storing additional state but it's both messy
+   * and expensive because the broadcast is noisy.
+   * <p>
+   * Note that this is <b>not</b> called when an Android Account is blown away
+   * due to the SD card being unmounted.
+   */
+  @Override
+  public Bundle getAccountRemovalAllowed(final AccountAuthenticatorResponse response, Account account)
+      throws NetworkErrorException {
+    Bundle result = super.getAccountRemovalAllowed(response, account);
+
+    if (result == null ||
+        !result.containsKey(AccountManager.KEY_BOOLEAN_RESULT) ||
+        result.containsKey(AccountManager.KEY_INTENT)) {
+      return result;
+    }
+
+    final boolean removalAllowed = result.getBoolean(AccountManager.KEY_BOOLEAN_RESULT);
+    if (!removalAllowed) {
+      return result;
+    }
+
+    // Broadcast a message to all Firefox channels sharing this Android
+    // Account type telling that this Firefox account has been deleted.
+    //
+    // Broadcast intents protected with permissions are secure, so it's okay
+    // to include private information such as a password.
+    final Intent intent = AndroidFxAccount.makeDeletedAccountIntent(context, account);
+    Logger.info(LOG_TAG, "Account named " + account.name + " being removed; " +
+        "broadcasting secure intent " + intent.getAction() + ".");
+    context.sendBroadcast(intent, FxAccountConstants.PER_ACCOUNT_TYPE_PERMISSION);
+
+    return result;
   }
 }

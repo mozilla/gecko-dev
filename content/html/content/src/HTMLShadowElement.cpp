@@ -13,7 +13,7 @@ NS_IMPL_NS_NEW_HTML_ELEMENT(Shadow)
 
 using namespace mozilla::dom;
 
-HTMLShadowElement::HTMLShadowElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+HTMLShadowElement::HTMLShadowElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo), mIsInsertionPoint(false)
 {
   SetIsDOMBinding();
@@ -50,9 +50,9 @@ NS_INTERFACE_MAP_END_INHERITING(nsGenericHTMLElement)
 NS_IMPL_ELEMENT_CLONE(HTMLShadowElement)
 
 JSObject*
-HTMLShadowElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+HTMLShadowElement::WrapNode(JSContext *aCx)
 {
-  return HTMLShadowElementBinding::Wrap(aCx, aScope, this);
+  return HTMLShadowElementBinding::Wrap(aCx, this);
 }
 
 void

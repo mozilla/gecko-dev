@@ -76,6 +76,9 @@
 #ifdef USE_SKIA
 #include "mozilla/Hal.h"
 #include "skia/SkGraphics.h"
+
+#include "SkiaGLGlue.h"
+
 #endif
 
 #include "mozilla/Preferences.h"
@@ -85,6 +88,14 @@
 
 #include "nsIGfxInfo.h"
 #include "nsIXULRuntime.h"
+
+#ifdef MOZ_WIDGET_GONK
+namespace mozilla {
+namespace layers {
+void InitGralloc();
+}
+}
+#endif
 
 using namespace mozilla;
 using namespace mozilla::layers;
@@ -104,10 +115,12 @@ static qcms_transform *gCMSRGBATransform = nullptr;
 
 static bool gCMSInitialized = false;
 static eCMSMode gCMSMode = eCMSMode_Off;
-static int gCMSIntent = -2;
+
+static bool gCMSIntentInitialized = false;
+static int gCMSIntent = QCMS_INTENT_DEFAULT;
+
 
 static void ShutdownCMS();
-static void MigratePrefs();
 
 #include "mozilla/gfx/2D.h"
 using namespace mozilla::gfx;
@@ -139,12 +152,7 @@ NS_IMPL_ISUPPORTS2(SRGBOverrideObserver, nsIObserver, nsISupportsWeakReference)
 
 #define BIDI_NUMERAL_PREF "bidi.numeral"
 
-#define GFX_PREF_CMS_RENDERING_INTENT "gfx.color_management.rendering_intent"
-#define GFX_PREF_CMS_DISPLAY_PROFILE "gfx.color_management.display_profile"
-#define GFX_PREF_CMS_ENABLED_OBSOLETE "gfx.color_management.enabled"
 #define GFX_PREF_CMS_FORCE_SRGB "gfx.color_management.force_srgb"
-#define GFX_PREF_CMS_ENABLEV4 "gfx.color_management.enablev4"
-#define GFX_PREF_CMS_MODE "gfx.color_management.mode"
 
 NS_IMETHODIMP
 SRGBOverrideObserver::Observe(nsISupports *aSubject,
@@ -205,6 +213,8 @@ MemoryPressureObserver::Observe(nsISupports *aSubject,
 {
     NS_ASSERTION(strcmp(aTopic, "memory-pressure") == 0, "unexpected event topic");
     Factory::PurgeAllCaches();
+
+    gfxPlatform::GetPlatform()->PurgeSkiaCache();
     return NS_OK;
 }
 
@@ -260,14 +270,7 @@ gfxPlatform::gfxPlatform()
 
     mLayersPreferMemoryOverShmem = XRE_GetProcessType() == GeckoProcessType_Default;
 
-#ifdef XP_WIN
-    // XXX - When 957560 is fixed, the pref can go away entirely
-    mLayersUseDeprecated =
-        Preferences::GetBool("layers.use-deprecated-textures", true)
-        && !gfxPrefs::LayersPreferOpenGL();
-#else
-    mLayersUseDeprecated = false;
-#endif
+    mSkiaGlue = nullptr;
 
     uint32_t canvasMask = BackendTypeBit(BackendType::CAIRO) | BackendTypeBit(BackendType::SKIA);
     uint32_t contentMask = BackendTypeBit(BackendType::CAIRO);
@@ -324,12 +327,8 @@ gfxPlatform::Init()
     }
     gEverInitialized = true;
 
-    /* Pref migration hook. */
-    MigratePrefs();
-
-    // Initialize the preferences by creating the singleton.  This should
-    // be done after the preference migration using MigratePrefs().
-    gfxPrefs::One();
+    // Initialize the preferences by creating the singleton.
+    gfxPrefs::GetSingleton();
 
     gGfxPlatformPrefsLock = new Mutex("gfxPlatform::gGfxPlatformPrefsLock");
 
@@ -392,13 +391,11 @@ gfxPlatform::Init()
         NS_RUNTIMEABORT("Could not initialize mScreenReferenceSurface");
     }
 
-    if (gPlatform->SupportsAzureContent()) {
-        gPlatform->mScreenReferenceDrawTarget =
-            gPlatform->CreateOffscreenContentDrawTarget(IntSize(1, 1),
-                                                        SurfaceFormat::B8G8R8A8);
-      if (!gPlatform->mScreenReferenceDrawTarget) {
-        NS_RUNTIMEABORT("Could not initialize mScreenReferenceDrawTarget");
-      }
+    gPlatform->mScreenReferenceDrawTarget =
+        gPlatform->CreateOffscreenContentDrawTarget(IntSize(1, 1),
+                                                    SurfaceFormat::B8G8R8A8);
+    if (!gPlatform->mScreenReferenceDrawTarget) {
+      NS_RUNTIMEABORT("Could not initialize mScreenReferenceDrawTarget");
     }
 
     rv = gfxFontCache::Init();
@@ -420,18 +417,13 @@ gfxPlatform::Init()
     mozilla::gl::TexturePoolOGL::Init();
 #endif
 
-    // Force registration of the gfx component, thus arranging for
-    // ::Shutdown to be called.
-    nsCOMPtr<nsISupports> forceReg
-        = do_CreateInstance("@mozilla.org/gfx/init;1");
+#ifdef MOZ_WIDGET_GONK
+    mozilla::layers::InitGralloc();
+#endif
 
     Preferences::RegisterCallbackAndCall(RecordingPrefChanged, "gfx.2d.recording", nullptr);
 
     CreateCMSOutputProfile();
-
-#ifdef USE_SKIA
-    gPlatform->InitializeSkiaCaches();
-#endif
 
     // Listen to memory pressure event so we can purge DrawTarget caches
     nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
@@ -478,6 +470,7 @@ gfxPlatform::Shutdown()
         }
 
         gPlatform->mMemoryPressureObserver = nullptr;
+        gPlatform->mSkiaGlue = nullptr;
     }
 
 #ifdef MOZ_WIDGET_ANDROID
@@ -506,7 +499,8 @@ gfxPlatform::Shutdown()
 
     delete gGfxPlatformPrefsLock;
 
-    gfxPrefs::Destroy();
+    gfxPrefs::DestroySingleton();
+    gfxFont::DestroySingletons();
 
     delete gPlatform;
     gPlatform = nullptr;
@@ -533,14 +527,6 @@ gfxPlatform::~gfxPlatform()
 #if MOZ_TREE_CAIRO
     cairo_debug_reset_static_data();
 #endif
-#endif
-
-#if 0
-    // It would be nice to do this (although it might need to be after
-    // the cairo shutdown that happens in ~gfxPlatform).  It even looks
-    // idempotent.  But it has fatal assertions that fire if stuff is
-    // leaked, and we hit them.
-    FcFini();
 #endif
 }
 
@@ -632,6 +618,18 @@ void SourceBufferDestroy(void *srcSurfUD)
   delete static_cast<SourceSurfaceUserData*>(srcSurfUD);
 }
 
+UserDataKey kThebesSurface;
+
+struct DependentSourceSurfaceUserData
+{
+  nsRefPtr<gfxASurface> mSurface;
+};
+
+void SourceSurfaceDestroyed(void *aData)
+{
+  delete static_cast<DependentSourceSurfaceUserData*>(aData);
+}
+
 #if MOZ_TREE_CAIRO
 void SourceSnapshotDetached(cairo_surface_t *nullSurf)
 {
@@ -652,6 +650,34 @@ void
 gfxPlatform::ClearSourceSurfaceForSurface(gfxASurface *aSurface)
 {
   aSurface->SetData(&kSourceSurface, nullptr, nullptr);
+}
+
+static TemporaryRef<DataSourceSurface>
+CopySurface(gfxASurface* aSurface)
+{
+  const nsIntSize size = aSurface->GetSize();
+  gfxImageFormat format = gfxPlatform::GetPlatform()->OptimalFormatForContent(aSurface->GetContentType());
+  RefPtr<DataSourceSurface> data =
+    Factory::CreateDataSourceSurface(ToIntSize(size),
+                                     ImageFormatToSurfaceFormat(format));
+  if (!data) {
+    return nullptr;
+  }
+
+  DataSourceSurface::MappedSurface map;
+  DebugOnly<bool> result = data->Map(DataSourceSurface::WRITE, &map);
+  MOZ_ASSERT(result, "Should always succeed mapping raw data surfaces!");
+
+  nsRefPtr<gfxImageSurface> image = new gfxImageSurface(map.mData, size, map.mStride, format);
+  nsRefPtr<gfxContext> ctx = new gfxContext(image);
+
+  ctx->SetSource(aSurface);
+  ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
+  ctx->Paint();
+
+  data->Unmap();
+
+  return data;
 }
 
 RefPtr<SourceSurface>
@@ -722,18 +748,24 @@ gfxPlatform::GetSourceSurfaceForSurface(DrawTarget *aTarget, gfxASurface *aSurfa
     }
   }
 
+  bool dependsOnData = false;
   if (!srcBuffer) {
     nsRefPtr<gfxImageSurface> imgSurface = aSurface->GetAsImageSurface();
 
-    bool isWin32ImageSurf = imgSurface &&
-                            aSurface->GetType() == gfxSurfaceType::Win32;
-
+    RefPtr<DataSourceSurface> copy;
     if (!imgSurface) {
-      imgSurface = new gfxImageSurface(aSurface->GetSize(), OptimalFormatForContent(aSurface->GetContentType()));
-      nsRefPtr<gfxContext> ctx = new gfxContext(imgSurface);
-      ctx->SetSource(aSurface);
-      ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
-      ctx->Paint();
+      copy = CopySurface(aSurface);
+
+      if (!copy) {
+        return nullptr;
+      }
+
+      DataSourceSurface::MappedSurface map;
+      DebugOnly<bool> result = copy->Map(DataSourceSurface::WRITE, &map);
+      MOZ_ASSERT(result, "Should always succeed mapping raw data surfaces!");
+
+      imgSurface = new gfxImageSurface(map.mData, aSurface->GetSize(), map.mStride,
+                                       SurfaceFormatToImageFormat(copy->GetFormat()));
     }
 
     gfxImageFormat cairoFormat = imgSurface->Format();
@@ -760,38 +792,56 @@ gfxPlatform::GetSourceSurfaceForSurface(DrawTarget *aTarget, gfxASurface *aSurfa
                                                      imgSurface->Stride(),
                                                      format);
 
-    if (!srcBuffer) {
-      // We need to check if our gfxASurface will keep the underlying data
-      // alive. This is true if gfxASurface actually -is- an ImageSurface or
-      // if it is a gfxWindowsSurface which supports GetAsImageSurface.
-      if (imgSurface != aSurface && !isWin32ImageSurf) {
-        return nullptr;
-      }
-
-      srcBuffer = Factory::CreateWrappingDataSourceSurface(imgSurface->Data(),
-                                                           imgSurface->Stride(),
-                                                           size, format);
-
+    if (copy) {
+      copy->Unmap();
     }
 
+    if (!srcBuffer) {
+      // If we had to make a copy, then just return that. Otherwise aSurface
+      // must have supported GetAsImageSurface, so we can just wrap that data.
+      if (copy) {
+        srcBuffer = copy;
+      } else {
+        srcBuffer = Factory::CreateWrappingDataSourceSurface(imgSurface->Data(),
+                                                             imgSurface->Stride(),
+                                                             size, format);
+        dependsOnData = true;
+      }
+    }
+
+    if (!srcBuffer) {
+      return nullptr;
+    }
+
+    if (!dependsOnData) {
 #if MOZ_TREE_CAIRO
-    cairo_surface_t *nullSurf =
-	cairo_null_surface_create(CAIRO_CONTENT_COLOR_ALPHA);
-    cairo_surface_set_user_data(nullSurf,
-                                &kSourceSurface,
-                                imgSurface,
-                                nullptr);
-    cairo_surface_attach_snapshot(imgSurface->CairoSurface(), nullSurf, SourceSnapshotDetached);
-    cairo_surface_destroy(nullSurf);
+      cairo_surface_t *nullSurf =
+      cairo_null_surface_create(CAIRO_CONTENT_COLOR_ALPHA);
+      cairo_surface_set_user_data(nullSurf,
+                                  &kSourceSurface,
+                                  imgSurface,
+                                  nullptr);
+      cairo_surface_attach_snapshot(imgSurface->CairoSurface(), nullSurf, SourceSnapshotDetached);
+      cairo_surface_destroy(nullSurf);
 #else
-    cairo_surface_set_mime_data(imgSurface->CairoSurface(), "mozilla/magic", (const unsigned char*) "data", 4, SourceSnapshotDetached, imgSurface.get());
+      cairo_surface_set_mime_data(imgSurface->CairoSurface(), "mozilla/magic", (const unsigned char*) "data", 4, SourceSnapshotDetached, imgSurface.get());
 #endif
+    }
   }
 
-  SourceSurfaceUserData *srcSurfUD = new SourceSurfaceUserData;
-  srcSurfUD->mBackendType = aTarget->GetType();
-  srcSurfUD->mSrcSurface = srcBuffer;
-  aSurface->SetData(&kSourceSurface, srcSurfUD, SourceBufferDestroy);
+  if (dependsOnData) {
+    // If we wrapped the underlying data of aSurface, then we need to add user data
+    // to make sure aSurface stays alive until we are done with the data.
+    DependentSourceSurfaceUserData *srcSurfUD = new DependentSourceSurfaceUserData;
+    srcSurfUD->mSurface = aSurface;
+    srcBuffer->AddUserData(&kThebesSurface, srcSurfUD, SourceSurfaceDestroyed);
+  } else {
+    // Otherwise add user data to aSurface so we can cache lookups in the future.
+    SourceSurfaceUserData *srcSurfUD = new SourceSurfaceUserData;
+    srcSurfUD->mBackendType = aTarget->GetType();
+    srcSurfUD->mSrcSurface = srcBuffer;
+    aSurface->SetData(&kSourceSurface, srcSurfUD, SourceBufferDestroy);
+  }
 
   return srcBuffer;
 }
@@ -840,9 +890,8 @@ gfxPlatform::UseAcceleratedSkiaCanvas()
 }
 
 void
-gfxPlatform::InitializeSkiaCaches()
+gfxPlatform::InitializeSkiaCacheLimits()
 {
-#ifdef USE_SKIA_GPU
   if (UseAcceleratedSkiaCanvas()) {
     bool usingDynamicCache = gfxPrefs::CanvasSkiaGLDynamicCache();
     int cacheItemLimit = gfxPrefs::CanvasSkiaGLCacheItems();
@@ -862,12 +911,47 @@ gfxPlatform::InitializeSkiaCaches()
       }
     }
 
-#ifdef DEBUG
+  #ifdef DEBUG
     printf_stderr("Determined SkiaGL cache limits: Size %i, Items: %i\n", cacheSizeLimit, cacheItemLimit);
+  #endif
+
+    mSkiaGlue->GetGrContext()->setTextureCacheLimits(cacheItemLimit, cacheSizeLimit);
+  }
+}
+
+mozilla::gl::SkiaGLGlue*
+gfxPlatform::GetSkiaGLGlue()
+{
+#ifdef USE_SKIA_GPU
+  if (!mSkiaGlue) {
+    /* Dummy context. We always draw into a FBO.
+     *
+     * FIXME: This should be stored in TLS or something, since there needs to be one for each thread using it. As it
+     * stands, this only works on the main thread.
+     */
+    mozilla::gfx::SurfaceCaps caps = mozilla::gfx::SurfaceCaps::ForRGBA();
+    nsRefPtr<mozilla::gl::GLContext> glContext = mozilla::gl::GLContextProvider::CreateOffscreen(gfxIntSize(16, 16), caps);
+    if (!glContext) {
+      printf_stderr("Failed to create GLContext for SkiaGL!\n");
+      return nullptr;
+    }
+    mSkiaGlue = new mozilla::gl::SkiaGLGlue(glContext);
+    MOZ_ASSERT(mSkiaGlue->GetGrContext(), "No GrContext");
+    InitializeSkiaCacheLimits();
+  }
 #endif
 
-    Factory::SetGlobalSkiaCacheLimits(cacheItemLimit, cacheSizeLimit);
-  }
+  return mSkiaGlue;
+}
+
+void
+gfxPlatform::PurgeSkiaCache()
+{
+#ifdef USE_SKIA_GPU
+  if (!mSkiaGlue)
+      return;
+
+  mSkiaGlue->GetGrContext()->freeGpuResources();
 #endif
 }
 
@@ -901,6 +985,10 @@ gfxPlatform::GetThebesSurfaceForDrawTarget(DrawTarget *aTarget)
   nsRefPtr<gfxASurface> surf =
     new gfxImageSurface(data->GetData(), gfxIntSize(size.width, size.height),
                         data->Stride(), format);
+
+  if (surf->CairoStatus()) {
+    return nullptr;
+  }
 
   surf->SetData(&kDrawSourceSurface, data.forget().drop(), DataSourceSurfaceDestroy);
   // keep the draw target alive as long as we need its data
@@ -1301,6 +1389,9 @@ gfxPlatform::GetLayerDiagnosticTypes()
   if (gfxPrefs::DrawBigImageBorders()) {
     type |= mozilla::layers::DIAGNOSTIC_BIGIMAGE_BORDERS;
   }
+  if (gfxPrefs::FlashLayerBorders()) {
+    type |= mozilla::layers::DIAGNOSTIC_FLASH_BORDERS;
+  }
   return type;
 }
 
@@ -1513,17 +1604,14 @@ gfxPlatform::GetCMSMode()
 {
     if (gCMSInitialized == false) {
         gCMSInitialized = true;
-        nsresult rv;
 
-        int32_t mode;
-        rv = Preferences::GetInt(GFX_PREF_CMS_MODE, &mode);
-        if (NS_SUCCEEDED(rv) && (mode >= 0) && (mode < eCMSMode_AllCount)) {
+        int32_t mode = gfxPrefs::CMSMode();
+        if (mode >= 0 && mode < eCMSMode_AllCount) {
             gCMSMode = static_cast<eCMSMode>(mode);
         }
 
-        bool enableV4;
-        rv = Preferences::GetBool(GFX_PREF_CMS_ENABLEV4, &enableV4);
-        if (NS_SUCCEEDED(rv) && enableV4) {
+        bool enableV4 = gfxPrefs::CMSEnableV4();
+        if (enableV4) {
             qcms_enable_iccv4();
         }
     }
@@ -1533,23 +1621,22 @@ gfxPlatform::GetCMSMode()
 int
 gfxPlatform::GetRenderingIntent()
 {
-    if (gCMSIntent == -2) {
+    if (!gCMSIntentInitialized) {
+        gCMSIntentInitialized = true;
+
+        // gfxPrefs.h is using 0 as the default for the rendering
+        // intent preference, based on that being the value for
+        // QCMS_INTENT_DEFAULT.  Assert here to catch if that ever
+        // changes and we can then figure out what to do about it.
+        MOZ_ASSERT(QCMS_INTENT_DEFAULT == 0);
 
         /* Try to query the pref system for a rendering intent. */
-        int32_t pIntent;
-        if (NS_SUCCEEDED(Preferences::GetInt(GFX_PREF_CMS_RENDERING_INTENT, &pIntent))) {
-            /* If the pref is within range, use it as an override. */
-            if ((pIntent >= QCMS_INTENT_MIN) && (pIntent <= QCMS_INTENT_MAX)) {
-                gCMSIntent = pIntent;
-            }
+        int32_t pIntent = gfxPrefs::CMSRenderingIntent();
+        if ((pIntent >= QCMS_INTENT_MIN) && (pIntent <= QCMS_INTENT_MAX)) {
+            gCMSIntent = pIntent;
+        } else {
             /* If the pref is out of range, use embedded profile. */
-            else {
-                gCMSIntent = -1;
-            }
-        }
-        /* If we didn't get a valid intent from prefs, use the default. */
-        else {
-            gCMSIntent = QCMS_INTENT_DEFAULT;
+            gCMSIntent = -1;
         }
     }
     return gCMSIntent;
@@ -1755,21 +1842,6 @@ static void ShutdownCMS()
     gCMSIntent = -2;
     gCMSMode = eCMSMode_Off;
     gCMSInitialized = false;
-}
-
-static void MigratePrefs()
-{
-    /* Migrate from the boolean color_management.enabled pref - we now use
-       color_management.mode.  These calls should be made before gfxPrefs
-       is initialized, otherwise we may not pick up the correct values
-       with the gfxPrefs functions.
-    */
-    if (Preferences::HasUserValue(GFX_PREF_CMS_ENABLED_OBSOLETE)) {
-        if (Preferences::GetBool(GFX_PREF_CMS_ENABLED_OBSOLETE, false)) {
-            Preferences::SetInt(GFX_PREF_CMS_MODE, static_cast<int32_t>(eCMSMode_All));
-        }
-        Preferences::ClearUser(GFX_PREF_CMS_ENABLED_OBSOLETE);
-    }
 }
 
 // default SetupClusterBoundaries, based on Unicode properties;

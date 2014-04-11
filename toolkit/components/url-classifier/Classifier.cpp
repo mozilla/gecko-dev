@@ -32,6 +32,28 @@ extern PRLogModuleInfo *gUrlClassifierDbServiceLog;
 namespace mozilla {
 namespace safebrowsing {
 
+void
+Classifier::SplitTables(const nsACString& str, nsTArray<nsCString>& tables)
+{
+  tables.Clear();
+
+  nsACString::const_iterator begin, iter, end;
+  str.BeginReading(begin);
+  str.EndReading(end);
+  while (begin != end) {
+    iter = begin;
+    FindCharInReadable(',', iter, end);
+    nsDependentCSubstring table = Substring(begin,iter);
+    if (!table.IsEmpty()) {
+      tables.AppendElement(Substring(begin, iter));
+    }
+    begin = iter;
+    if (begin != end) {
+      begin++;
+    }
+  }
+}
+
 Classifier::Classifier()
   : mFreshTime(45 * 60)
 {
@@ -195,7 +217,9 @@ Classifier::TableRequest(nsACString& aResult)
 }
 
 nsresult
-Classifier::Check(const nsACString& aSpec, LookupResultArray& aResults)
+Classifier::Check(const nsACString& aSpec,
+                  const nsACString& aTables,
+                  LookupResultArray& aResults)
 {
   Telemetry::AutoTimer<Telemetry::URLCLASSIFIER_CL_CHECK_TIME> timer;
 
@@ -207,10 +231,11 @@ Classifier::Check(const nsACString& aSpec, LookupResultArray& aResults)
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsTArray<nsCString> activeTables;
-  ActiveTables(activeTables);
+  SplitTables(aTables, activeTables);
 
   nsTArray<LookupCache*> cacheArray;
   for (uint32_t i = 0; i < activeTables.Length(); i++) {
+    LOG(("Checking table %s", activeTables[i].get()));
     LookupCache *cache = GetLookupCache(activeTables[i]);
     if (cache) {
       cacheArray.AppendElement(cache);
@@ -414,9 +439,11 @@ Classifier::ScanStoreDir(nsTArray<nsCString>& aTables)
 
   bool hasMore;
   while (NS_SUCCEEDED(rv = entries->HasMoreElements(&hasMore)) && hasMore) {
-    nsCOMPtr<nsIFile> file;
-    rv = entries->GetNext(getter_AddRefs(file));
+    nsCOMPtr<nsISupports> supports;
+    rv = entries->GetNext(getter_AddRefs(supports));
     NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<nsIFile> file = do_QueryInterface(supports);
 
     nsCString leafName;
     rv = file->GetNativeLeafName(leafName);

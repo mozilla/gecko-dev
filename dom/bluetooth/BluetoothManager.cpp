@@ -25,10 +25,10 @@ USING_BLUETOOTH_NAMESPACE
 
 // QueryInterface implementation for BluetoothManager
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(BluetoothManager)
-NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetHelper)
+NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
-NS_IMPL_ADDREF_INHERITED(BluetoothManager, nsDOMEventTargetHelper)
-NS_IMPL_RELEASE_INHERITED(BluetoothManager, nsDOMEventTargetHelper)
+NS_IMPL_ADDREF_INHERITED(BluetoothManager, DOMEventTargetHelper)
+NS_IMPL_RELEASE_INHERITED(BluetoothManager, DOMEventTargetHelper)
 
 class GetAdapterTask : public BluetoothReplyRunnable
 {
@@ -52,6 +52,15 @@ public:
       return false;
     }
 
+    if (!mManagerPtr->GetOwner()) {
+      BT_WARNING("Bluetooth manager was disconnected from owner window.");
+
+      // Stop to create adapter since owner window of Bluetooth manager was
+      // gone. These is no need to create a DOMEvent target which has no owner
+      // to reply to.
+      return false;
+    }
+
     const InfallibleTArray<BluetoothNamedValue>& values =
       v.get_ArrayOfBluetoothNamedValue();
     nsRefPtr<BluetoothAdapter> adapter =
@@ -67,8 +76,9 @@ public:
 
     AutoPushJSContext cx(sc->GetNativeContext());
 
-    JS::Rooted<JSObject*> global(cx, sc->GetWindowProxy());
-    rv = nsContentUtils::WrapNative(cx, global, adapter, aValue);
+    JS::Rooted<JSObject*> scope(cx, sc->GetWindowProxy());
+    JSAutoCompartment ac(cx, scope);
+    rv = nsContentUtils::WrapNative(cx, adapter, aValue);
     if (NS_FAILED(rv)) {
       BT_WARNING("Cannot create native object!");
       SetError(NS_LITERAL_STRING("BluetoothNativeObjectError"));
@@ -90,13 +100,12 @@ private:
 };
 
 BluetoothManager::BluetoothManager(nsPIDOMWindow *aWindow)
-  : nsDOMEventTargetHelper(aWindow)
+  : DOMEventTargetHelper(aWindow)
   , BluetoothPropertyContainer(BluetoothObjectType::TYPE_MANAGER)
 {
   MOZ_ASSERT(aWindow);
   MOZ_ASSERT(IsDOMBinding());
 
-  BindToOwner(aWindow);
   mPath.AssignLiteral("/");
 
   BluetoothService* bs = BluetoothService::Get();
@@ -106,6 +115,16 @@ BluetoothManager::BluetoothManager(nsPIDOMWindow *aWindow)
 
 BluetoothManager::~BluetoothManager()
 {
+  BluetoothService* bs = BluetoothService::Get();
+  NS_ENSURE_TRUE_VOID(bs);
+  bs->UnregisterBluetoothSignalHandler(NS_LITERAL_STRING(KEY_MANAGER), this);
+}
+
+void
+BluetoothManager::DisconnectFromOwner()
+{
+  DOMEventTargetHelper::DisconnectFromOwner();
+
   BluetoothService* bs = BluetoothService::Get();
   NS_ENSURE_TRUE_VOID(bs);
   bs->UnregisterBluetoothSignalHandler(NS_LITERAL_STRING(KEY_MANAGER), this);
@@ -227,7 +246,7 @@ BluetoothManager::IsConnected(uint16_t aProfileId, ErrorResult& aRv)
 }
 
 JSObject*
-BluetoothManager::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+BluetoothManager::WrapObject(JSContext* aCx)
 {
-  return BluetoothManagerBinding::Wrap(aCx, aScope, this);
+  return BluetoothManagerBinding::Wrap(aCx, this);
 }

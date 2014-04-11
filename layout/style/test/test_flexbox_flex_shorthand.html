@@ -23,8 +23,16 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=696253
 /** Test for Bug 696253 **/
 /* (Testing the 'flex' CSS shorthand property) */
 
+// The CSS property name for the shorthand we're testing:
 const gFlexPropName = "flex";
+
+// Info from property_database.js on this property:
 const gFlexPropInfo = gCSSProperties[gFlexPropName];
+
+// The name of the property in the DOM (i.e. in elem.style):
+// (NOTE: In this case it's actually the same as the CSS property name --
+// "flex" -- but that's not guaranteed in general.)
+const gFlexDOMName = gFlexPropInfo.domProp;
 
 // Default values for shorthand subproperties, when they're not specified
 // explicitly in a testcase.  This lets the testcases be more concise.
@@ -49,7 +57,7 @@ let gFlexShorthandTestcases = [
     "flex-grow":   "EXPECTED computed value for flex-grow property",
     "flex-shrink": "EXPECTED computed value for flex-shrink property",
     "flex-basis":  "EXPECTED computed value for flex-basis property",
-  }, 
+  },
 */
 
   // Initial values of subproperties:
@@ -241,8 +249,8 @@ function runFlexShorthandTest(aFlexShorthandTestcase)
 
   let elem = document.createElement("div");
 
-  elem.style[gFlexPropInfo.domProp] = aFlexShorthandTestcase[gFlexPropName];
-  content.appendChild(elem); 
+  elem.style[gFlexDOMName] = aFlexShorthandTestcase[gFlexPropName];
+  content.appendChild(elem);
 
   gFlexPropInfo.subproperties.forEach(function(aSubPropName) {
     var expectedVal = aSubPropName in aFlexShorthandTestcase ?

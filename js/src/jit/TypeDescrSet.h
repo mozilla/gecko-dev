@@ -85,7 +85,7 @@ class TypeDescrSet {
     //////////////////////////////////////////////////////////////////////
     // Query the set
 
-    bool empty();
+    bool empty() const;
     bool allOfKind(TypeDescr::Kind kind);
 
     // Returns true only when non-empty and `kind()` is
@@ -100,12 +100,20 @@ class TypeDescrSet {
     //
     // At the moment condition (2) trivially holds.  When Bug 922115
     // lands, some array types will be unsized.
-    bool allHaveSameSize(size_t *out);
+    bool allHaveSameSize(int32_t *out);
+
+    types::TemporaryTypeSet *suitableTypeSet(IonBuilder &builder,
+                                             const Class *knownClass);
 
     //////////////////////////////////////////////////////////////////////
     // The following operations are only valid on a non-empty set:
 
     TypeDescr::Kind kind();
+
+    // Returns the prototype that a typed object whose type is within
+    // this TypeDescrSet would have. Returns `null` if this cannot be
+    // predicted or instances of the type are not objects (e.g., uint8).
+    JSObject *knownPrototype() const;
 
     //////////////////////////////////////////////////////////////////////
     // Scalar operations
@@ -142,7 +150,7 @@ class TypeDescrSet {
     // Determines whether all arrays in this set have the same,
     // statically known, array length and return that length
     // (via `*length`) if so. Otherwise returns false.
-    bool hasKnownArrayLength(size_t *length);
+    bool hasKnownArrayLength(int32_t *length);
 
     // Returns a `TypeDescrSet` representing the element
     // types of the various array types in this set. The returned set
@@ -173,7 +181,7 @@ class TypeDescrSet {
     // uint16})` and `new StructType({a: uint16, c: uint16})`.
     bool fieldNamed(IonBuilder &builder,
                     jsid id,
-                    size_t *offset,
+                    int32_t *offset,
                     TypeDescrSet *out,
                     size_t *index);
 };

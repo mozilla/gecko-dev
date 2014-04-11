@@ -8,7 +8,7 @@
 #include <utility>                      // for pair
 #include "ContentHost.h"                // for ContentHostDoubleBuffered, etc
 #include "Effects.h"                    // for EffectMask, Effect, etc
-#include "ImageHost.h"                  // for DeprecatedImageHostBuffered, etc
+#include "ImageHost.h"                  // for ImageHostBuffered, etc
 #include "TiledContentHost.h"           // for TiledContentHost
 #include "mozilla/layers/LayersSurfaces.h"  // for SurfaceDescriptor
 #include "mozilla/layers/TextureHost.h"  // for TextureHost, etc
@@ -27,6 +27,7 @@ CompositableHost::CompositableHost(const TextureInfo& aTextureInfo)
   : mTextureInfo(aTextureInfo)
   , mCompositor(nullptr)
   , mLayer(nullptr)
+  , mFlashCounter(0)
   , mAttached(false)
   , mKeepAttached(false)
 {
@@ -76,34 +77,14 @@ CompositableHost::SetCompositor(Compositor* aCompositor)
 }
 
 bool
-CompositableHost::Update(const SurfaceDescriptor& aImage,
-                         SurfaceDescriptor* aResult)
-{
-  if (!GetDeprecatedTextureHost()) {
-    *aResult = aImage;
-    return false;
-  }
-  MOZ_ASSERT(!GetDeprecatedTextureHost()->GetBuffer(),
-             "This path not suitable for texture-level double buffering.");
-  GetDeprecatedTextureHost()->Update(aImage);
-  *aResult = aImage;
-  return GetDeprecatedTextureHost()->IsValid();
-}
-
-bool
 CompositableHost::AddMaskEffect(EffectChain& aEffects,
                                 const gfx::Matrix4x4& aTransform,
                                 bool aIs3D)
 {
   RefPtr<TextureSource> source;
-  RefPtr<DeprecatedTextureHost> oldHost = GetDeprecatedTextureHost();
-  if (oldHost && oldHost->Lock()) {
-    source = oldHost;
-  } else {
-    RefPtr<TextureHost> host = GetAsTextureHost();
-    if (host && host->Lock()) {
-      source = host->GetTextureSources();
-    }
+  RefPtr<TextureHost> host = GetAsTextureHost();
+  if (host && host->Lock()) {
+    source = host->GetTextureSources();
   }
 
   if (!source) {
@@ -122,14 +103,9 @@ CompositableHost::AddMaskEffect(EffectChain& aEffects,
 void
 CompositableHost::RemoveMaskEffect()
 {
-  RefPtr<DeprecatedTextureHost> oldHost = GetDeprecatedTextureHost();
-  if (oldHost) {
-    oldHost->Unlock();
-  } else {
-    RefPtr<TextureHost> host = GetAsTextureHost();
-    if (host) {
-      host->Unlock();
-    }
+  RefPtr<TextureHost> host = GetAsTextureHost();
+  if (host) {
+    host->Unlock();
   }
 }
 
@@ -141,25 +117,14 @@ CompositableHost::Create(const TextureInfo& aTextureInfo)
 {
   RefPtr<CompositableHost> result;
   switch (aTextureInfo.mCompositableType) {
-  case BUFFER_IMAGE_SINGLE:
-    result = new DeprecatedImageHostSingle(aTextureInfo);
-    break;
-  case BUFFER_IMAGE_BUFFERED:
-    result = new DeprecatedImageHostBuffered(aTextureInfo);
-    break;
   case BUFFER_BRIDGE:
     MOZ_CRASH("Cannot create an image bridge compositable this way");
-    break;
-  case BUFFER_CONTENT:
-    result = new DeprecatedContentHostSingleBuffered(aTextureInfo);
-    break;
-  case BUFFER_CONTENT_DIRECT:
-    result = new DeprecatedContentHostDoubleBuffered(aTextureInfo);
     break;
   case BUFFER_CONTENT_INC:
     result = new ContentHostIncremental(aTextureInfo);
     break;
   case BUFFER_TILED:
+  case BUFFER_SIMPLE_TILED:
     result = new TiledContentHost(aTextureInfo);
     break;
   case COMPOSITABLE_IMAGE:
@@ -174,7 +139,9 @@ CompositableHost::Create(const TextureInfo& aTextureInfo)
   default:
     MOZ_CRASH("Unknown CompositableType");
   }
-  if (result) {
+  // We know that Tiled buffers don't use the compositable backend-specific
+  // data, so don't bother creating it.
+  if (result && aTextureInfo.mCompositableType != BUFFER_TILED) {
     RefPtr<CompositableBackendSpecificData> data = CreateCompositableBackendSpecificDataOGL();
     result->SetCompositableBackendSpecificData(data);
   }
@@ -183,31 +150,15 @@ CompositableHost::Create(const TextureInfo& aTextureInfo)
 
 #ifdef MOZ_DUMP_PAINTING
 void
-CompositableHost::DumpDeprecatedTextureHost(FILE* aFile, DeprecatedTextureHost* aTexture)
-{
-  if (!aTexture) {
-    return;
-  }
-  RefPtr<gfx::DataSourceSurface> dSurf = aTexture->GetAsSurface();
-  gfxPlatform *platform = gfxPlatform::GetPlatform();
-  RefPtr<gfx::DrawTarget> dt = platform->CreateDrawTargetForData(dSurf->GetData(),
-                                                                 dSurf->GetSize(),
-                                                                 dSurf->Stride(),
-                                                                 dSurf->GetFormat());
-  nsRefPtr<gfxASurface> surf = platform->GetThebesSurfaceForDrawTarget(dt);
-  if (!surf) {
-    return;
-  }
-  surf->DumpAsDataURL(aFile ? aFile : stderr);
-}
-
-void
 CompositableHost::DumpTextureHost(FILE* aFile, TextureHost* aTexture)
 {
   if (!aTexture) {
     return;
   }
   RefPtr<gfx::DataSourceSurface> dSurf = aTexture->GetAsSurface();
+  if (!dSurf) {
+    return;
+  }
   gfxPlatform *platform = gfxPlatform::GetPlatform();
   RefPtr<gfx::DrawTarget> dt = platform->CreateDrawTargetForData(dSurf->GetData(),
                                                                  dSurf->GetSize(),

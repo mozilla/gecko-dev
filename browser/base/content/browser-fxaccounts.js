@@ -24,9 +24,10 @@ let gFxAccounts = {
     // Do all this dance to lazy-load FxAccountsCommon.
     delete this.topics;
     return this.topics = [
+      "weave:service:ready",
       "weave:service:sync:start",
       "weave:service:login:error",
-      FxAccountsCommon.ONLOGIN_NOTIFICATION,
+      "weave:service:setup-complete",
       FxAccountsCommon.ONVERIFIED_NOTIFICATION,
       FxAccountsCommon.ONLOGOUT_NOTIFICATION
     ];
@@ -56,8 +57,10 @@ let gFxAccounts = {
     if (!service.ready) {
       return false;
     }
-    return Weave.Service.identity.readyToAuthenticate &&
-           Weave.Status.login != Weave.LOGIN_SUCCEEDED;
+    // LOGIN_FAILED_LOGIN_REJECTED explicitly means "you must log back in".
+    // All other login failures are assumed to be transient and should go
+    // away by themselves, so aren't reflected here.
+    return Weave.Status.login == Weave.LOGIN_FAILED_LOGIN_REJECTED;
   },
 
   get isActiveWindow() {

@@ -24,7 +24,7 @@ using namespace js::gc;
 static void
 CopyStackFrameArguments(const AbstractFramePtr frame, HeapValue *dst, unsigned totalArgs)
 {
-    JS_ASSERT_IF(frame.isStackFrame(), !frame.asStackFrame()->runningInJit());
+    JS_ASSERT_IF(frame.isInterpreterFrame(), !frame.asInterpreterFrame()->runningInJit());
 
     JS_ASSERT(Max(frame.numActualArgs(), frame.numFormalArgs()) == totalArgs);
 
@@ -43,7 +43,7 @@ ArgumentsObject::MaybeForwardToCallObject(AbstractFramePtr frame, JSObject *obj,
     if (frame.fun()->isHeavyweight() && script->argsObjAliasesFormals()) {
         obj->initFixedSlot(MAYBE_CALL_SLOT, ObjectValue(frame.callObj()));
         for (AliasedFormalIter fi(script); fi; fi++)
-            data->args[fi.frameIndex()] = MagicValue(JS_FORWARD_TO_CALL_OBJECT);
+            data->args[fi.frameIndex()] = JS::MagicValueUint32(fi.scopeSlot());
     }
 }
 
@@ -58,7 +58,7 @@ ArgumentsObject::MaybeForwardToCallObject(jit::IonJSFrameLayout *frame, HandleOb
         JS_ASSERT(callObj && callObj->is<CallObject>());
         obj->initFixedSlot(MAYBE_CALL_SLOT, ObjectValue(*callObj.get()));
         for (AliasedFormalIter fi(script); fi; fi++)
-            data->args[fi.frameIndex()] = MagicValue(JS_FORWARD_TO_CALL_OBJECT);
+            data->args[fi.frameIndex()] = JS::MagicValueUint32(fi.scopeSlot());
     }
 }
 #endif
@@ -134,13 +134,8 @@ struct CopyScriptFrameIterArgs
     { }
 
     void copyArgs(JSContext *cx, HeapValue *dstBase, unsigned totalArgs) const {
-        if (!iter_.isJit()) {
-            CopyStackFrameArguments(iter_.abstractFramePtr(), dstBase, totalArgs);
-            return;
-        }
-
         /* Copy actual arguments. */
-        iter_.ionForEachCanonicalActualArg(cx, CopyToHeap(dstBase));
+        iter_.unaliasedForEachActual(cx, CopyToHeap(dstBase));
 
         /* Define formals which are not part of the actuals. */
         unsigned numActuals = iter_.numActualArgs();
@@ -203,6 +198,13 @@ ArgumentsObject::create(JSContext *cx, HandleScript script, HandleFunction calle
     if (!data)
         return nullptr;
 
+    JSObject *obj = JSObject::create(cx, FINALIZE_KIND, GetInitialHeap(GenericObject, clasp),
+                                     shape, type);
+    if (!obj) {
+        js_free(data);
+        return nullptr;
+    }
+
     data->numArgs = numArgs;
     data->callee.init(ObjectValue(*callee.get()));
     data->script = script;
@@ -213,13 +215,6 @@ ArgumentsObject::create(JSContext *cx, HandleScript script, HandleFunction calle
 
     data->deletedBits = reinterpret_cast<size_t *>(dstEnd);
     ClearAllBitArrayElements(data->deletedBits, numDeletedWords);
-
-    JSObject *obj = JSObject::create(cx, FINALIZE_KIND, GetInitialHeap(GenericObject, clasp),
-                                     shape, type);
-    if (!obj) {
-        js_free(data);
-        return nullptr;
-    }
 
     obj->initFixedSlot(INITIAL_LENGTH_SLOT, Int32Value(numActuals << PACKED_BITS_COUNT));
     obj->initFixedSlot(DATA_SLOT, PrivateValue(data));
@@ -573,7 +568,7 @@ ArgumentsObject::trace(JSTracer *trc, JSObject *obj)
 /*
  * The classes below collaborate to lazily reflect and synchronize actual
  * argument values, argument count, and callee function object stored in a
- * StackFrame with their corresponding property values in the frame's
+ * stack frame with their corresponding property values in the frame's
  * arguments object.
  */
 const Class NormalArgumentsObject::class_ = {

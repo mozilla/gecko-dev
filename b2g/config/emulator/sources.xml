@@ -15,17 +15,17 @@
   <remote fetch="https://git.mozilla.org/external/apitrace" name="apitrace"/>
   <default remote="caf" revision="refs/tags/android-4.0.4_r2.1" sync-j="4"/>
   <!-- Gonk specific things and forks -->
-  <project name="platform_build" path="build" remote="b2g" revision="59605a7c026ff06cc1613af3938579b1dddc6cfe">
+  <project name="platform_build" path="build" remote="b2g" revision="1ad48c4be51b279f7f63c1a13025b52fe087d231">
     <copyfile dest="Makefile" src="core/root.mk"/>
   </project>
   <project name="fake-dalvik" path="dalvik" remote="b2g" revision="ca1f327d5acc198bb4be62fa51db2c039032c9ce"/>
-  <project name="gaia.git" path="gaia" remote="mozillaorg" revision="a980b8f54956ed470667033630b02492efdf4a07"/>
-  <project name="gonk-misc" path="gonk-misc" remote="b2g" revision="15e8982284c4560f9c74c2b9fe8bb361ebfe0cb6"/>
+  <project name="gaia.git" path="gaia" remote="mozillaorg" revision="1368d716072adf308e1b435ac828f97545a045f1"/>
+  <project name="gonk-misc" path="gonk-misc" remote="b2g" revision="266bca6e60dad43e395f38b66edabe8bdc882334"/>
   <project name="rilproxy" path="rilproxy" remote="b2g" revision="827214fcf38d6569aeb5c6d6f31cb296d1f09272"/>
-  <project name="platform_hardware_ril" path="hardware/ril" remote="b2g" revision="d11f524d00cacf5ba0dfbf25e4aa2158b1c3a036"/>
-  <project name="platform_external_qemu" path="external/qemu" remote="b2g" revision="456499c44d1ef39b602ea02e9ed460b6aab85b44"/>
-  <project name="moztt" path="external/moztt" remote="b2g" revision="3d5c964015967ca8c86abe6dbbebee3cb82b1609"/>
-  <project name="apitrace" path="external/apitrace" remote="apitrace" revision="b2f773d8320d30648b89767dfe5b25ef94bc7e62"/>
+  <project name="platform_hardware_ril" path="hardware/ril" remote="b2g" revision="55bcc2d7e44dc805c24b57d1e783fc26e8a2ee86"/>
+  <project name="platform_external_qemu" path="external/qemu" remote="b2g" revision="99a67a75855d8ca077018c819aedd90bf0447d9b"/>
+  <project name="moztt" path="external/moztt" remote="b2g" revision="70b698c2e8d1764a1e27527a102df6452e405b9a"/>
+  <project name="apitrace" path="external/apitrace" remote="apitrace" revision="8d6c36d74ba9aefbc8c3618fc93dd4907a0dbf5e"/>
   <!-- Stock Android things -->
   <project name="platform/abi/cpp" path="abi/cpp" revision="dd924f92906085b831bf1cbbc7484d3c043d613c"/>
   <project name="platform/bionic" path="bionic" revision="c72b8f6359de7ed17c11ddc9dfdde3f615d188a9"/>
@@ -97,12 +97,12 @@
   <project name="platform/system/netd" path="system/netd" revision="3d298fde142bee3fc4f07f63f16f2d8ce42339c0"/>
   <project name="platform/system/vold" path="system/vold" revision="919829940468066a32f403980b43f6ebfee5d314"/>
   <!-- Emulator specific things -->
-  <project name="android-development" path="development" remote="b2g" revision="4e236e65a5d652a66ac32590f69f2123d17cb4ad"/>
-  <project name="device_generic_goldfish" path="device/generic/goldfish" remote="b2g" revision="e7e8734fdd8bf41e48a56c1c85e0f7dac60aaa9f"/>
+  <project name="android-development" path="development" remote="b2g" revision="9abf0ab68376afae3e1c7beefa3e9cbee2fde202"/>
+  <project name="device_generic_goldfish" path="device/generic/goldfish" remote="b2g" revision="aab7a70124d88092831b99f3619a6572dca05b8f"/>
   <project name="platform/external/iproute2" path="external/iproute2" revision="c66c5716d5335e450f7a7b71ccc6a604fb2f41d2"/>
   <project name="platform/prebuilts/gcc/linux-x86/host/i686-linux-glibc2.7-4.6" path="prebuilts/gcc/linux-x86/host/i686-linux-glibc2.7-4.6" revision="d2685281e2e54ca14d1df304867aa82c37b27162"/>
   <project name="platform/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.7-4.6" path="prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.7-4.6" revision="627f9b20fc518937b93747a7ff1ed4f5ed46e06f"/>
-  <project name="platform/prebuilts/tools" path="prebuilts/tools" revision="c16df012d9649be75d6590f93aeacbdc24b29d53"/>
+  <project name="platform/prebuilts/tools" path="prebuilts/tools" revision="97e75ff503cd285872d2ea3468edf2894e008244"/>
   <project name="platform_prebuilts_qemu-kernel" path="prebuilts/qemu-kernel" remote="b2g" revision="431afac2ebfdd9c1c8402b413ff5914ed448e961"/>
-  <project name="android-sdk" path="sdk" remote="b2g" revision="5701d3cb45c2e848cc57003cda2e1141288ecae4"/>
+  <project name="android-sdk" path="sdk" remote="b2g" revision="4f46930827957afbce500a4a920755a218bf3155"/>
 </manifest>

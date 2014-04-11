@@ -596,14 +596,14 @@ js::Int32ToString(ThreadSafeContext *cx, int32_t si)
     if (JSFlatString *str = LookupInt32ToString(cx, si))
         return str;
 
-    JSShortString *str = js_NewGCShortString<allowGC>(cx);
+    JSFatInlineString *str = js_NewGCFatInlineString<allowGC>(cx);
     if (!str)
         return nullptr;
 
-    jschar buffer[JSShortString::MAX_SHORT_LENGTH + 1];
+    jschar buffer[JSFatInlineString::MAX_FAT_INLINE_LENGTH + 1];
     size_t length;
     jschar *start = BackfillInt32InBuffer(si, buffer,
-                                          JSShortString::MAX_SHORT_LENGTH + 1, &length);
+                                          JSFatInlineString::MAX_FAT_INLINE_LENGTH + 1, &length);
 
     PodCopy(str->init(length), start, length + 1);
 
@@ -623,9 +623,9 @@ js::Int32ToAtom(ExclusiveContext *cx, int32_t si)
     if (JSFlatString *str = LookupInt32ToString(cx, si))
         return js::AtomizeString(cx, str);
 
-    char buffer[JSShortString::MAX_SHORT_LENGTH + 1];
+    char buffer[JSFatInlineString::MAX_FAT_INLINE_LENGTH + 1];
     size_t length;
-    char *start = BackfillInt32InBuffer(si, buffer, JSShortString::MAX_SHORT_LENGTH + 1, &length);
+    char *start = BackfillInt32InBuffer(si, buffer, JSFatInlineString::MAX_FAT_INLINE_LENGTH + 1, &length);
 
     JSAtom *atom = Atomize(cx, start, length);
     if (!atom)
@@ -1251,7 +1251,7 @@ js_InitNumberClass(JSContext *cx, HandleObject obj)
         return nullptr;
     }
 
-    if (!DefineConstructorAndPrototype(cx, global, JSProto_Number, ctor, numberProto))
+    if (!GlobalObject::initBuiltinConstructor(cx, global, JSProto_Number, ctor, numberProto))
         return nullptr;
 
     return numberProto;
@@ -1420,13 +1420,13 @@ js::IndexToString(JSContext *cx, uint32_t index)
     if (JSFlatString *str = c->dtoaCache.lookup(10, index))
         return str;
 
-    JSShortString *str = js_NewGCShortString<CanGC>(cx);
+    JSFatInlineString *str = js_NewGCFatInlineString<CanGC>(cx);
     if (!str)
         return nullptr;
 
-    jschar buffer[JSShortString::MAX_SHORT_LENGTH + 1];
-    RangedPtr<jschar> end(buffer + JSShortString::MAX_SHORT_LENGTH,
-                          buffer, JSShortString::MAX_SHORT_LENGTH + 1);
+    jschar buffer[JSFatInlineString::MAX_FAT_INLINE_LENGTH + 1];
+    RangedPtr<jschar> end(buffer + JSFatInlineString::MAX_FAT_INLINE_LENGTH,
+                          buffer, JSFatInlineString::MAX_FAT_INLINE_LENGTH + 1);
     *end = '\0';
     RangedPtr<jschar> start = BackfillIndexInCharBuffer(index, end);
 
@@ -1562,25 +1562,6 @@ js::NonObjectToNumberSlow(ThreadSafeContext *cx, Value v, double *out)
 bool
 js::ToNumberSlow(ExclusiveContext *cx, Value v, double *out)
 {
-#ifdef DEBUG
-    /*
-     * MSVC bizarrely miscompiles this, complaining about the first brace below
-     * being unmatched (!).  The error message points at both this opening brace
-     * and at the corresponding SkipRoot constructor.  The error seems to derive
-     * from the presence guard-object macros on the SkipRoot class/constructor,
-     * which seems well in the weeds for an unmatched-brace syntax error.
-     * Otherwise the problem is inscrutable, and I haven't found a workaround.
-     * So for now just disable it when compiling with MSVC -- not ideal, but at
-     * least Windows debug shell builds complete again.
-     */
-#ifndef _MSC_VER
-    {
-        SkipRoot skip(cx, &v);
-        MaybeCheckStackRoots(cx);
-    }
-#endif
-#endif
-
     JS_ASSERT(!v.isNumber());
     goto skip_int_double;
     for (;;) {

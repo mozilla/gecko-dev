@@ -30,7 +30,6 @@ class Matrix;
 
 namespace layers {
 
-class DeprecatedTextureClient;
 class TextureClient;
 class ThebesLayer;
 
@@ -174,9 +173,7 @@ public:
   };
 
   RotatedContentBuffer(BufferSizePolicy aBufferSizePolicy)
-    : mDeprecatedBufferProvider(nullptr)
-    , mDeprecatedBufferProviderOnWhite(nullptr)
-    , mBufferProvider(nullptr)
+    : mBufferProvider(nullptr)
     , mBufferProviderOnWhite(nullptr)
     , mBufferSizePolicy(aBufferSizePolicy)
   {
@@ -195,8 +192,6 @@ public:
   {
     mDTBuffer = nullptr;
     mDTBufferOnWhite = nullptr;
-    mDeprecatedBufferProvider = nullptr;
-    mDeprecatedBufferProviderOnWhite = nullptr;
     mBufferProvider = nullptr;
     mBufferProviderOnWhite = nullptr;
     mBufferRect.SetEmpty();
@@ -228,7 +223,8 @@ public:
 
   enum {
     PAINT_WILL_RESAMPLE = 0x01,
-    PAINT_NO_ROTATION = 0x02
+    PAINT_NO_ROTATION = 0x02,
+    PAINT_CAN_DRAW_ROTATED = 0x04
   };
   /**
    * Start a drawing operation. This returns a PaintState describing what
@@ -245,18 +241,44 @@ public:
    * make the entire buffer contents valid (since we don't want to sample
    * invalid pixels outside the visible region, if the visible region doesn't
    * fill the buffer bounds).
+   * PAINT_CAN_DRAW_ROTATED can be passed if the caller supports drawing
+   * rotated content that crosses the physical buffer boundary. The caller
+   * will need to call BorrowDrawTargetForPainting multiple times to achieve
+   * this.
    */
   PaintState BeginPaint(ThebesLayer* aLayer,
                         uint32_t aFlags);
+
+  struct DrawIterator {
+    friend class RotatedContentBuffer;
+    friend class ContentClientIncremental;
+    DrawIterator()
+      : mCount(0)
+    {}
+
+    nsIntRegion mDrawRegion;
+
+  private:
+    uint32_t mCount;
+  };
 
   /**
    * Fetch a DrawTarget for rendering. The DrawTarget remains owned by
    * this. See notes on BorrowDrawTargetForQuadrantUpdate.
    * May return null. If the return value is non-null, it must be
    * 'un-borrowed' using ReturnDrawTarget.
+   *
+   * If PAINT_CAN_DRAW_ROTATED was specified for BeginPaint, then the caller
+   * must call this function repeatedly (with an iterator) until it returns
+   * nullptr. The caller should draw the mDrawRegion of the iterator instead
+   * of mRegionToDraw in the PaintState.
+   *
+   * @param aPaintState Paint state data returned by a call to BeginPaint
+   * @param aIter Paint state iterator. Only required if PAINT_CAN_DRAW_ROTATED
+   * was specified to BeginPaint.
    */
-  gfx::DrawTarget* BorrowDrawTargetForPainting(ThebesLayer* aLayer,
-                                               const PaintState& aPaintState);
+  gfx::DrawTarget* BorrowDrawTargetForPainting(const PaintState& aPaintState,
+                                               DrawIterator* aIter = nullptr);
 
   enum {
     ALLOW_REPEAT = 0x01,
@@ -292,71 +314,16 @@ public:
               gfx::DrawTarget* aTarget,
               float aOpacity,
               gfx::CompositionOp aOp,
-              gfxASurface* aMask,
+              gfx::SourceSurface* aMask,
               const gfx::Matrix* aMaskTransform);
 
 protected:
-  TemporaryRef<gfx::DrawTarget>
-  SetDTBuffer(gfx::DrawTarget* aBuffer,
-              const nsIntRect& aBufferRect,
-              const nsIntPoint& aBufferRotation)
-  {
-    RefPtr<gfx::DrawTarget> tmp = mDTBuffer.forget();
-    mDTBuffer = aBuffer;
-    mBufferRect = aBufferRect;
-    mBufferRotation = aBufferRotation;
-    return tmp.forget();
-  }
-
-  TemporaryRef<gfx::DrawTarget>
-  SetDTBufferOnWhite(gfx::DrawTarget* aBuffer)
-  {
-    RefPtr<gfx::DrawTarget> tmp = mDTBufferOnWhite.forget();
-    mDTBufferOnWhite = aBuffer;
-    return tmp.forget();
-  }
-
-  /**
-   * Set the texture client only.  This is used with surfaces that
-   * require explicit lock/unlock, which |aClient| is used to do on
-   * demand in this code.
-   *
-   * It's the caller's responsibility to ensure |aClient| is valid
-   * for the duration of operations it requests of this
-   * RotatedContentBuffer.  It's also the caller's responsibility to
-   * unset the provider when inactive, by calling
-   * SetBufferProvider(nullptr).
-   */
-  void SetDeprecatedBufferProvider(DeprecatedTextureClient* aClient)
-  {
-    // Only this buffer provider can give us a buffer.  If we
-    // already have one, something has gone wrong.
-    MOZ_ASSERT((!aClient || !mDTBuffer) && !mBufferProvider);
-
-    mDeprecatedBufferProvider = aClient;
-    if (!mDeprecatedBufferProvider) {
-      mDTBuffer = nullptr;
-    } 
-  }
-  
-  void SetDeprecatedBufferProviderOnWhite(DeprecatedTextureClient* aClient)
-  {
-    // Only this buffer provider can give us a buffer.  If we
-    // already have one, something has gone wrong.
-    MOZ_ASSERT((!aClient || !mDTBufferOnWhite) && !mBufferProviderOnWhite);
-
-    mDeprecatedBufferProviderOnWhite = aClient;
-    if (!mDeprecatedBufferProviderOnWhite) {
-      mDTBufferOnWhite = nullptr;
-    }
-  }
-
   // new texture client versions
   void SetBufferProvider(TextureClient* aClient)
   {
     // Only this buffer provider can give us a buffer.  If we
     // already have one, something has gone wrong.
-    MOZ_ASSERT((!aClient || !mDTBuffer) && !mDeprecatedBufferProvider);
+    MOZ_ASSERT(!aClient || !mDTBuffer);
 
     mBufferProvider = aClient;
     if (!mBufferProvider) {
@@ -368,12 +335,12 @@ protected:
   {
     // Only this buffer provider can give us a buffer.  If we
     // already have one, something has gone wrong.
-    MOZ_ASSERT((!aClient || !mDTBufferOnWhite) && !mDeprecatedBufferProviderOnWhite);
+    MOZ_ASSERT(!aClient || !mDTBufferOnWhite);
 
     mBufferProviderOnWhite = aClient;
     if (!mBufferProviderOnWhite) {
       mDTBufferOnWhite = nullptr;
-    } 
+    }
   }
 
   /**
@@ -391,7 +358,8 @@ protected:
    */
   gfx::DrawTarget*
   BorrowDrawTargetForQuadrantUpdate(const nsIntRect& aBounds,
-                                    ContextSource aSource);
+                                    ContextSource aSource,
+                                    DrawIterator* aIter);
 
   static bool IsClippingCheap(gfx::DrawTarget* aTarget, const nsIntRegion& aRegion);
 
@@ -432,8 +400,6 @@ protected:
    * when we're using surfaces that require explicit map/unmap. Only one
    * may be used at a time.
    */
-  DeprecatedTextureClient* mDeprecatedBufferProvider;
-  DeprecatedTextureClient* mDeprecatedBufferProviderOnWhite;
   TextureClient* mBufferProvider;
   TextureClient* mBufferProviderOnWhite;
 

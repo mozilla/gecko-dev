@@ -16,7 +16,6 @@
 
 #include "nsTextFragment.h"
 #include "nsError.h"
-#include "nsEventListenerManager.h"
 #include "mozilla/dom/Element.h"
 #include "nsCycleCollectionParticipant.h"
 
@@ -70,7 +69,8 @@ public:
 
   NS_DECL_SIZEOF_EXCLUDING_THIS
 
-  nsGenericDOMDataNode(already_AddRefed<nsINodeInfo> aNodeInfo);
+  nsGenericDOMDataNode(already_AddRefed<nsINodeInfo>& aNodeInfo);
+  nsGenericDOMDataNode(already_AddRefed<nsINodeInfo>&& aNodeInfo);
   virtual ~nsGenericDOMDataNode();
 
   virtual void GetNodeValueInternal(nsAString& aNodeValue) MOZ_OVERRIDE;
@@ -145,7 +145,10 @@ public:
   virtual nsresult AppendText(const char16_t* aBuffer, uint32_t aLength,
                               bool aNotify) MOZ_OVERRIDE;
   virtual bool TextIsOnlyWhitespace() MOZ_OVERRIDE;
+  virtual bool HasTextForTranslation() MOZ_OVERRIDE;
   virtual void AppendTextTo(nsAString& aResult) MOZ_OVERRIDE;
+  virtual bool AppendTextTo(nsAString& aResult,
+                            const mozilla::fallible_t&) MOZ_OVERRIDE NS_WARN_UNUSED_RESULT;
   virtual void DestroyContent() MOZ_OVERRIDE;
   virtual void SaveSubtreeState() MOZ_OVERRIDE;
 

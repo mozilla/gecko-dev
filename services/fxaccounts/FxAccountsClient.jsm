@@ -23,6 +23,7 @@ this.FxAccountsClient = function(host = HOST) {
   // The FxA auth server expects requests to certain endpoints to be authorized
   // using Hawk.
   this.hawk = new HawkClient(host);
+  this.hawk.observerPrefix = "FxA:hawk";
 
   // Manage server backoff state. C.f.
   // https://github.com/mozilla/fxa-auth-server/blob/master/docs/api.md#backoff-protocol
@@ -86,26 +87,39 @@ this.FxAccountsClient.prototype = {
    *        The email address for the account (utf8)
    * @param password
    *        The user's password
+   * @param [getKeys=false]
+   *        If set to true the keyFetchToken will be retrieved
+   * @param [retryOK=true]
+   *        If capitalization of the email is wrong and retryOK is set to true,
+   *        we will retry with the suggested capitalization from the server
    * @return Promise
    *        Returns a promise that resolves to an object:
    *        {
-   *          uid: the user's unique ID (hex)
-   *          sessionToken: a session token (hex)
+   *          authAt: authentication time for the session (seconds since epoch)
+   *          email: the primary email for this account
    *          keyFetchToken: a key fetch token (hex)
+   *          sessionToken: a session token (hex)
+   *          uid: the user's unique ID (hex)
+   *          unwrapBKey: used to unwrap kB, derived locally from the
+   *                      password (not revealed to the FxA server)
    *          verified: flag indicating verification status of the email
    *        }
    */
-  signIn: function signIn(email, password, retryOK=true) {
+  signIn: function signIn(email, password, getKeys=false, retryOK=true) {
     return Credentials.setup(email, password).then((creds) => {
       let data = {
-        email: creds.emailUTF8,
         authPW: CommonUtils.bytesAsHex(creds.authPW),
+        email: creds.emailUTF8,
       };
-      return this._request("/account/login", "POST", null, data).then(
+      let keys = getKeys ? "?keys=true" : "";
+
+      return this._request("/account/login" + keys, "POST", null, data).then(
         // Include the canonical capitalization of the email in the response so
         // the caller can set its signed-in user state accordingly.
         result => {
           result.email = data.email;
+          result.unwrapBKey = CommonUtils.bytesAsHex(creds.unwrapBKey);
+
           return result;
         },
         error => {
@@ -126,7 +140,7 @@ this.FxAccountsClient.prototype = {
               log.error("Server returned errno 120 but did not provide email");
               throw error;
             }
-            return this.signIn(error.email, password, false);
+            return this.signIn(error.email, password, getKeys, false);
           }
           throw error;
         }

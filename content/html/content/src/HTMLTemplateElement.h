@@ -17,7 +17,7 @@ namespace dom {
 class HTMLTemplateElement MOZ_FINAL : public nsGenericHTMLElement
 {
 public:
-  HTMLTemplateElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  HTMLTemplateElement(already_AddRefed<nsINodeInfo>& aNodeInfo);
   virtual ~HTMLTemplateElement();
 
   // nsISupports
@@ -36,8 +36,7 @@ public:
   }
 
 protected:
-  virtual JSObject* WrapNode(JSContext *aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext *aCx) MOZ_OVERRIDE;
 
   nsRefPtr<DocumentFragment> mContent;
 };

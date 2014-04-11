@@ -22,7 +22,7 @@
  * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "assembler/jit/ExecutableAllocator.h"
@@ -38,6 +38,11 @@ size_t ExecutableAllocator::largeAllocSize = 0;
 
 ExecutablePool::~ExecutablePool()
 {
+    MOZ_ASSERT(m_ionCodeBytes == 0);
+    MOZ_ASSERT(m_baselineCodeBytes == 0);
+    MOZ_ASSERT(m_regexpCodeBytes == 0);
+    MOZ_ASSERT(m_otherCodeBytes == 0);
+
     m_allocator->releasePoolPages(this);
 }
 

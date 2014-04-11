@@ -5,9 +5,9 @@
 #ifndef mozilla_dom_notification_h__
 #define mozilla_dom_notification_h__
 
+#include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/dom/NotificationBinding.h"
 
-#include "nsDOMEventTargetHelper.h"
 #include "nsIObserver.h"
 
 #include "nsCycleCollectionParticipant.h"
@@ -21,7 +21,7 @@ namespace dom {
 class NotificationObserver;
 class Promise;
 
-class Notification : public nsDOMEventTargetHelper
+class Notification : public DOMEventTargetHelper
 {
   friend class NotificationTask;
   friend class NotificationPermissionRequest;
@@ -90,8 +90,7 @@ public:
     return GetOwner();
   }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
-                               JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 protected:
   Notification(const nsAString& aID, const nsAString& aTitle, const nsAString& aBody,
                NotificationDirection aDir, const nsAString& aLang,

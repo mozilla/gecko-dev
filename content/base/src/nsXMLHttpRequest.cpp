@@ -8,6 +8,8 @@
 
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/dom/XMLHttpRequestUploadBinding.h"
+#include "mozilla/EventDispatcher.h"
+#include "mozilla/EventListenerManager.h"
 #include "mozilla/MemoryReporting.h"
 #include "nsDOMBlobBuilder.h"
 #include "nsIDOMDocument.h"
@@ -35,7 +37,6 @@
 #include "nsICachingChannel.h"
 #include "nsContentUtils.h"
 #include "nsCxPusher.h"
-#include "nsEventDispatcher.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIContentPolicy.h"
 #include "nsContentPolicyUtils.h"
@@ -233,24 +234,24 @@ XMLHttpRequestAuthPrompt::PromptPassword(const char16_t* aDialogTitle,
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsXHREventTarget)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsXHREventTarget,
-                                                  nsDOMEventTargetHelper)
+                                                  DOMEventTargetHelper)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsXHREventTarget,
-                                                nsDOMEventTargetHelper)
+                                                DOMEventTargetHelper)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(nsXHREventTarget)
   NS_INTERFACE_MAP_ENTRY(nsIXMLHttpRequestEventTarget)
-NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetHelper)
+NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
-NS_IMPL_ADDREF_INHERITED(nsXHREventTarget, nsDOMEventTargetHelper)
-NS_IMPL_RELEASE_INHERITED(nsXHREventTarget, nsDOMEventTargetHelper)
+NS_IMPL_ADDREF_INHERITED(nsXHREventTarget, DOMEventTargetHelper)
+NS_IMPL_RELEASE_INHERITED(nsXHREventTarget, DOMEventTargetHelper)
 
 void
 nsXHREventTarget::DisconnectFromOwner()
 {
-  nsDOMEventTargetHelper::DisconnectFromOwner();
+  DOMEventTargetHelper::DisconnectFromOwner();
 }
 
 /////////////////////////////////////////////
@@ -263,9 +264,9 @@ NS_IMPL_ADDREF_INHERITED(nsXMLHttpRequestUpload, nsXHREventTarget)
 NS_IMPL_RELEASE_INHERITED(nsXMLHttpRequestUpload, nsXHREventTarget)
 
 /* virtual */ JSObject*
-nsXMLHttpRequestUpload::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+nsXMLHttpRequestUpload::WrapObject(JSContext* aCx)
 {
-  return XMLHttpRequestUploadBinding::Wrap(aCx, aScope, this);
+  return XMLHttpRequestUploadBinding::Wrap(aCx, this);
 }
 
 /////////////////////////////////////////////
@@ -449,7 +450,7 @@ NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_BEGIN(nsXMLHttpRequest)
   return tmp->
-    IsBlackAndDoesNotNeedTracing(static_cast<nsDOMEventTargetHelper*>(tmp));
+    IsBlackAndDoesNotNeedTracing(static_cast<DOMEventTargetHelper*>(tmp));
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_BEGIN(nsXMLHttpRequest)
@@ -990,9 +991,8 @@ nsXMLHttpRequest::GetResponse(JSContext* aCx, ErrorResult& aRv)
       return JSVAL_NULL;
     }
 
-    JS::Rooted<JS::Value> result(aCx, JSVAL_NULL);
-    JS::Rooted<JSObject*> scope(aCx, JS::CurrentGlobalOrNull(aCx));
-    aRv = nsContentUtils::WrapNative(aCx, scope, mResponseBlob, &result);
+    JS::Rooted<JS::Value> result(aCx);
+    aRv = nsContentUtils::WrapNative(aCx, mResponseBlob, &result);
     return result;
   }
   case XML_HTTP_RESPONSE_TYPE_DOCUMENT:
@@ -1001,9 +1001,8 @@ nsXMLHttpRequest::GetResponse(JSContext* aCx, ErrorResult& aRv)
       return JSVAL_NULL;
     }
 
-    JS::Rooted<JSObject*> scope(aCx, JS::CurrentGlobalOrNull(aCx));
-    JS::Rooted<JS::Value> result(aCx, JSVAL_NULL);
-    aRv = nsContentUtils::WrapNative(aCx, scope, mResponseXML, &result);
+    JS::Rooted<JS::Value> result(aCx);
+    aRv = nsContentUtils::WrapNative(aCx, mResponseXML, &result);
     return result;
   }
   case XML_HTTP_RESPONSE_TYPE_JSON:
@@ -1392,9 +1391,9 @@ nsXMLHttpRequest::GetLoadGroup() const
 nsresult
 nsXMLHttpRequest::CreateReadystatechangeEvent(nsIDOMEvent** aDOMEvent)
 {
-  nsresult rv = nsEventDispatcher::CreateEvent(this, nullptr, nullptr,
-                                               NS_LITERAL_STRING("Events"),
-                                               aDOMEvent);
+  nsresult rv = EventDispatcher::CreateEvent(this, nullptr, nullptr,
+                                             NS_LITERAL_STRING("Events"),
+                                             aDOMEvent);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -1409,7 +1408,7 @@ nsXMLHttpRequest::CreateReadystatechangeEvent(nsIDOMEvent** aDOMEvent)
 }
 
 void
-nsXMLHttpRequest::DispatchProgressEvent(nsDOMEventTargetHelper* aTarget,
+nsXMLHttpRequest::DispatchProgressEvent(DOMEventTargetHelper* aTarget,
                                         const nsAString& aType,
                                         bool aLengthComputable,
                                         uint64_t aLoaded, uint64_t aTotal)
@@ -1536,11 +1535,11 @@ nsXMLHttpRequest::Open(const nsACString& method, const nsACString& url,
 }
 
 nsresult
-nsXMLHttpRequest::Open(const nsACString& method, const nsACString& url,
+nsXMLHttpRequest::Open(const nsACString& inMethod, const nsACString& url,
                        bool async, const Optional<nsAString>& user,
                        const Optional<nsAString>& password)
 {
-  NS_ENSURE_ARG(!method.IsEmpty());
+  NS_ENSURE_ARG(!inMethod.IsEmpty());
 
   if (!async && !DontWarnAboutSyncXHR() && GetOwner() &&
       GetOwner()->GetExtantDoc()) {
@@ -1554,9 +1553,29 @@ nsXMLHttpRequest::Open(const nsACString& method, const nsACString& url,
 
   // Disallow HTTP/1.1 TRACE method (see bug 302489)
   // and MS IIS equivalent TRACK (see bug 381264)
-  if (method.LowerCaseEqualsLiteral("trace") ||
-      method.LowerCaseEqualsLiteral("track")) {
-    return NS_ERROR_INVALID_ARG;
+  // and CONNECT
+  if (inMethod.LowerCaseEqualsLiteral("trace") ||
+      inMethod.LowerCaseEqualsLiteral("connect") ||
+      inMethod.LowerCaseEqualsLiteral("track")) {
+    return NS_ERROR_DOM_SECURITY_ERR;
+  }
+
+  nsAutoCString method;
+  // GET, POST, DELETE, HEAD, OPTIONS, PUT methods normalized to upper case
+  if (inMethod.LowerCaseEqualsLiteral("get")) {
+    method.Assign(NS_LITERAL_CSTRING("GET"));
+  } else if (inMethod.LowerCaseEqualsLiteral("post")) {
+    method.Assign(NS_LITERAL_CSTRING("POST"));
+  } else if (inMethod.LowerCaseEqualsLiteral("delete")) {
+    method.Assign(NS_LITERAL_CSTRING("DELETE"));
+  } else if (inMethod.LowerCaseEqualsLiteral("head")) {
+    method.Assign(NS_LITERAL_CSTRING("HEAD"));
+  } else if (inMethod.LowerCaseEqualsLiteral("options")) {
+    method.Assign(NS_LITERAL_CSTRING("OPTIONS"));
+  } else if (inMethod.LowerCaseEqualsLiteral("put")) {
+    method.Assign(NS_LITERAL_CSTRING("PUT"));
+  } else {
+    method = inMethod; // other methods are not normalized
   }
 
   // sync request is not allowed using withCredential or responseType
@@ -1983,14 +2002,18 @@ nsXMLHttpRequest::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
 
   if (mState & XML_HTTP_REQUEST_PARSEBODY) {
     nsCOMPtr<nsIURI> baseURI, docURI;
+    rv = mChannel->GetURI(getter_AddRefs(docURI));
+    NS_ENSURE_SUCCESS(rv, rv);
+    baseURI = docURI;
+
     nsIScriptContext* sc = GetContextForEventHandlers(&rv);
     NS_ENSURE_SUCCESS(rv, rv);
     nsCOMPtr<nsIDocument> doc =
       nsContentUtils::GetDocumentFromScriptContext(sc);
-
+    nsCOMPtr<nsIURI> chromeXHRDocURI, chromeXHRDocBaseURI;
     if (doc) {
-      docURI = doc->GetDocumentURI();
-      baseURI = doc->GetBaseURI();
+      chromeXHRDocURI = doc->GetDocumentURI();
+      chromeXHRDocBaseURI = doc->GetBaseURI();
     }
 
     // Create an empty document from it.  Here we have to cheat a little bit...
@@ -1999,7 +2022,7 @@ nsXMLHttpRequest::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
     // principal.
     const nsAString& emptyStr = EmptyString();
     nsCOMPtr<nsIDOMDocument> responseDoc;
-    nsIGlobalObject* global = nsDOMEventTargetHelper::GetParentObject();
+    nsIGlobalObject* global = DOMEventTargetHelper::GetParentObject();
     rv = NS_NewDOMDocument(getter_AddRefs(responseDoc),
                            emptyStr, emptyStr, nullptr, docURI,
                            baseURI, mPrincipal, true, global,
@@ -2008,6 +2031,8 @@ nsXMLHttpRequest::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
     NS_ENSURE_SUCCESS(rv, rv);
     mResponseXML = do_QueryInterface(responseDoc);
     mResponseXML->SetPrincipal(documentPrincipal);
+    mResponseXML->SetChromeXHRDocURI(chromeXHRDocURI);
+    mResponseXML->SetChromeXHRDocBaseURI(chromeXHRDocBaseURI);
 
     if (nsContentUtils::IsSystemPrincipal(mPrincipal)) {
       mResponseXML->ForceEnableXULXBL();
@@ -2157,11 +2182,11 @@ nsXMLHttpRequest::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult
     NS_ASSERTION(!(mState & XML_HTTP_REQUEST_SYNCLOOPING),
       "We weren't supposed to support HTML parsing with XHR!");
     nsCOMPtr<EventTarget> eventTarget = do_QueryInterface(mResponseXML);
-    nsEventListenerManager* manager =
+    EventListenerManager* manager =
       eventTarget->GetOrCreateListenerManager();
     manager->AddEventListenerByType(new nsXHRParseEndListener(this),
                                     NS_LITERAL_STRING("DOMContentLoaded"),
-                                    dom::TrustedEventsAtSystemGroupBubble());
+                                    TrustedEventsAtSystemGroupBubble());
     return NS_OK;
   }
   // We might have been sent non-XML data. If that was the case,
@@ -3516,11 +3541,11 @@ nsXMLHttpRequest::GetInterface(const nsIID & aIID, void **aResult)
   // need to see these notifications for proper functioning.
   if (aIID.Equals(NS_GET_IID(nsIChannelEventSink))) {
     mChannelEventSink = do_GetInterface(mNotificationCallbacks);
-    *aResult = static_cast<nsIChannelEventSink*>(EnsureXPCOMifier().get());
+    *aResult = static_cast<nsIChannelEventSink*>(EnsureXPCOMifier().take());
     return NS_OK;
   } else if (aIID.Equals(NS_GET_IID(nsIProgressEventSink))) {
     mProgressEventSink = do_GetInterface(mNotificationCallbacks);
-    *aResult = static_cast<nsIProgressEventSink*>(EnsureXPCOMifier().get());
+    *aResult = static_cast<nsIProgressEventSink*>(EnsureXPCOMifier().take());
     return NS_OK;
   }
 
@@ -3619,15 +3644,15 @@ nsXMLHttpRequest::GetInterface(const nsIID & aIID, void **aResult)
   // nsIProgressEventSink and nsIChannelEventSink which we already
   // handled above.
   else if (aIID.Equals(NS_GET_IID(nsIStreamListener))) {
-    *aResult = static_cast<nsIStreamListener*>(EnsureXPCOMifier().get());
+    *aResult = static_cast<nsIStreamListener*>(EnsureXPCOMifier().take());
     return NS_OK;
   }
   else if (aIID.Equals(NS_GET_IID(nsIRequestObserver))) {
-    *aResult = static_cast<nsIRequestObserver*>(EnsureXPCOMifier().get());
+    *aResult = static_cast<nsIRequestObserver*>(EnsureXPCOMifier().take());
     return NS_OK;
   }
   else if (aIID.Equals(NS_GET_IID(nsITimerCallback))) {
-    *aResult = static_cast<nsITimerCallback*>(EnsureXPCOMifier().get());
+    *aResult = static_cast<nsITimerCallback*>(EnsureXPCOMifier().take());
     return NS_OK;
   }
 
@@ -3637,17 +3662,7 @@ nsXMLHttpRequest::GetInterface(const nsIID & aIID, void **aResult)
 JS::Value
 nsXMLHttpRequest::GetInterface(JSContext* aCx, nsIJSID* aIID, ErrorResult& aRv)
 {
-  const nsID* iid = aIID->GetID();
-  nsCOMPtr<nsISupports> result;
-  JS::Rooted<JS::Value> v(aCx, JSVAL_NULL);
-  aRv = GetInterface(*iid, getter_AddRefs(result));
-  NS_ENSURE_FALSE(aRv.Failed(), JSVAL_NULL);
-
-  JS::Rooted<JSObject*> wrapper(aCx, GetWrapper());
-  JSAutoCompartment ac(aCx, wrapper);
-  JS::Rooted<JSObject*> global(aCx, JS_GetGlobalForObject(aCx, wrapper));
-  aRv = nsContentUtils::WrapNative(aCx, global, result, iid, &v);
-  return aRv.Failed() ? JSVAL_NULL : v;
+  return dom::GetInterface(aCx, this, aIID, aRv);
 }
 
 nsXMLHttpRequestUpload*
@@ -3816,8 +3831,7 @@ nsXMLHttpRequestXPCOMifier::GetInterface(const nsIID & aIID, void **aResult)
 namespace mozilla {
 
 ArrayBufferBuilder::ArrayBufferBuilder()
-  : mRawContents(nullptr),
-    mDataPtr(nullptr),
+  : mDataPtr(nullptr),
     mCapacity(0),
     mLength(0)
 {
@@ -3831,20 +3845,22 @@ ArrayBufferBuilder::~ArrayBufferBuilder()
 void
 ArrayBufferBuilder::reset()
 {
-  if (mRawContents) {
-    JS_free(nullptr, mRawContents);
+  if (mDataPtr) {
+    JS_free(nullptr, mDataPtr);
   }
-  mRawContents = mDataPtr = nullptr;
+  mDataPtr = nullptr;
   mCapacity = mLength = 0;
 }
 
 bool
 ArrayBufferBuilder::setCapacity(uint32_t aNewCap)
 {
-  if (!JS_ReallocateArrayBufferContents(nullptr, aNewCap, &mRawContents, &mDataPtr)) {
+  uint8_t *newdata = (uint8_t *) JS_ReallocateArrayBufferContents(nullptr, aNewCap, mDataPtr, mCapacity);
+  if (!newdata) {
     return false;
   }
 
+  mDataPtr = newdata;
   mCapacity = aNewCap;
   if (mLength > aNewCap) {
     mLength = aNewCap;
@@ -3902,12 +3918,12 @@ ArrayBufferBuilder::getArrayBuffer(JSContext* aCx)
     }
   }
 
-  JSObject* obj = JS_NewArrayBufferWithContents(aCx, mRawContents);
+  JSObject* obj = JS_NewArrayBufferWithContents(aCx, mLength, mDataPtr);
   if (!obj) {
     return nullptr;
   }
 
-  mRawContents = mDataPtr = nullptr;
+  mDataPtr = nullptr;
   mLength = mCapacity = 0;
 
   return obj;

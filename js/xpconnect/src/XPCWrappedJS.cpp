@@ -218,7 +218,7 @@ nsXPCWrappedJS::QueryInterface(REFNSIID aIID, void** aInstancePtr)
 // For a description of nsXPCWrappedJS lifetime and reference counting, see
 // the comment at the top of this file.
 
-nsrefcnt
+MozExternalRefCountType
 nsXPCWrappedJS::AddRef(void)
 {
     if (!MOZ_LIKELY(NS_IsMainThread()))
@@ -237,7 +237,7 @@ nsXPCWrappedJS::AddRef(void)
     return cnt;
 }
 
-nsrefcnt
+MozExternalRefCountType
 nsXPCWrappedJS::Release(void)
 {
     if (!MOZ_LIKELY(NS_IsMainThread()))
@@ -450,7 +450,7 @@ nsXPCWrappedJS::Unlink()
     if (mOuter) {
         XPCJSRuntime* rt = nsXPConnect::GetRuntimeInstance();
         if (rt->GCIsRunning()) {
-            nsContentUtils::DeferredFinalize(mOuter.forget().get());
+            nsContentUtils::DeferredFinalize(mOuter.forget().take());
         } else {
             mOuter = nullptr;
         }

@@ -330,35 +330,29 @@ class MacroAssembler : public MacroAssemblerSpecific
     }
 
     template <typename Value>
-    Condition testMIRType(Condition cond, const Value &val, MIRType type) {
+    void branchTestMIRType(Condition cond, const Value &val, MIRType type, Label *label) {
         switch (type) {
-          case MIRType_Null:        return testNull(cond, val);
-          case MIRType_Undefined:   return testUndefined(cond, val);
-          case MIRType_Boolean:     return testBoolean(cond, val);
-          case MIRType_Int32:       return testInt32(cond, val);
-          case MIRType_String:      return testString(cond, val);
-          case MIRType_Object:      return testObject(cond, val);
-          case MIRType_Double:      return testDouble(cond, val);
-          case MIRType_Magic:       return testMagic(cond, val);
+          case MIRType_Null:        return branchTestNull(cond, val, label);
+          case MIRType_Undefined:   return branchTestUndefined(cond, val, label);
+          case MIRType_Boolean:     return branchTestBoolean(cond, val, label);
+          case MIRType_Int32:       return branchTestInt32(cond, val, label);
+          case MIRType_String:      return branchTestString(cond, val, label);
+          case MIRType_Object:      return branchTestObject(cond, val, label);
+          case MIRType_Double:      return branchTestDouble(cond, val, label);
+          case MIRType_Magic:       return branchTestMagic(cond, val, label);
           default:
             MOZ_ASSUME_UNREACHABLE("Bad MIRType");
         }
     }
 
-    template <typename Value>
-    void branchTestMIRType(Condition cond, const Value &val, MIRType type, Label *label) {
-        cond = testMIRType(cond, val, type);
-        j(cond, label);
-    }
-
     // Branches to |label| if |reg| is false. |reg| should be a C++ bool.
-    void branchIfFalseBool(const Register &reg, Label *label) {
+    void branchIfFalseBool(Register reg, Label *label) {
         // Note that C++ bool is only 1 byte, so ignore the higher-order bits.
         branchTest32(Assembler::Zero, reg, Imm32(0xFF), label);
     }
 
     // Branches to |label| if |reg| is true. |reg| should be a C++ bool.
-    void branchIfTrueBool(const Register &reg, Label *label) {
+    void branchIfTrueBool(Register reg, Label *label) {
         // Note that C++ bool is only 1 byte, so ignore the higher-order bits.
         branchTest32(Assembler::NonZero, reg, Imm32(0xFF), label);
     }
@@ -381,10 +375,10 @@ class MacroAssembler : public MacroAssemblerSpecific
         loadPtr(Address(worker, ThreadPoolWorker::offsetOfSliceBounds()), dest);
     }
 
-    void loadJSContext(const Register &dest) {
+    void loadJSContext(Register dest) {
         loadPtr(AbsoluteAddress(GetIonContext()->runtime->addressOfJSContext()), dest);
     }
-    void loadJitActivation(const Register &dest) {
+    void loadJitActivation(Register dest) {
         loadPtr(AbsoluteAddress(GetIonContext()->runtime->addressOfActivation()), dest);
     }
 
@@ -634,7 +628,7 @@ class MacroAssembler : public MacroAssemblerSpecific
             branch32(cond, length, Imm32(key.constant()), label);
     }
 
-    void branchTestNeedsBarrier(Condition cond, const Register &scratch, Label *label) {
+    void branchTestNeedsBarrier(Condition cond, Register scratch, Label *label) {
         JS_ASSERT(cond == Zero || cond == NonZero);
         CompileZone *zone = GetIonContext()->compartment->zone();
         movePtr(ImmPtr(zone->addressOfNeedsBarrier()), scratch);
@@ -690,7 +684,7 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     void branchNurseryPtr(Condition cond, const Address &ptr1, const ImmMaybeNurseryPtr &ptr2,
                           Label *label);
-    void moveNurseryPtr(const ImmMaybeNurseryPtr &ptr, const Register &reg);
+    void moveNurseryPtr(const ImmMaybeNurseryPtr &ptr, Register reg);
 
     void canonicalizeDouble(FloatRegister reg) {
         Label notNaN;
@@ -783,30 +777,31 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     // Emit type case branch on tag matching if the type tag in the definition
     // might actually be that type.
-    void branchEqualTypeIfNeeded(MIRType type, MDefinition *maybeDef, const Register &tag,
-                                 Label *label);
+    void branchEqualTypeIfNeeded(MIRType type, MDefinition *maybeDef, Register tag, Label *label);
 
     // Inline allocation.
-    void newGCThing(const Register &result, gc::AllocKind allocKind, Label *fail,
+    void newGCThing(Register result, Register temp, gc::AllocKind allocKind, Label *fail,
                     gc::InitialHeap initialHeap = gc::DefaultHeap);
-    void newGCThing(const Register &result, JSObject *templateObject, Label *fail,
+    void newGCThing(Register result, Register temp, JSObject *templateObject, Label *fail,
                     gc::InitialHeap initialHeap);
-    void newGCString(const Register &result, Label *fail);
-    void newGCShortString(const Register &result, Label *fail);
+    void newGCString(Register result, Register temp, Label *fail);
+    void newGCFatInlineString(Register result, Register temp, Label *fail);
 
-    void newGCThingPar(const Register &result, const Register &cx,
-                       const Register &tempReg1, const Register &tempReg2,
+    void newGCThingPar(Register result, Register cx, Register tempReg1, Register tempReg2,
                        gc::AllocKind allocKind, Label *fail);
-    void newGCThingPar(const Register &result, const Register &cx,
-                       const Register &tempReg1, const Register &tempReg2,
+    void newGCThingPar(Register result, Register cx, Register tempReg1, Register tempReg2,
                        JSObject *templateObject, Label *fail);
-    void newGCStringPar(const Register &result, const Register &cx,
-                        const Register &tempReg1, const Register &tempReg2,
+    void newGCStringPar(Register result, Register cx, Register tempReg1, Register tempReg2,
                         Label *fail);
-    void newGCShortStringPar(const Register &result, const Register &cx,
-                             const Register &tempReg1, const Register &tempReg2,
-                             Label *fail);
-    void initGCThing(const Register &obj, JSObject *templateObject);
+    void newGCFatInlineStringPar(Register result, Register cx, Register tempReg1, Register tempReg2,
+                                 Label *fail);
+
+    void copySlotsFromTemplate(Register obj, Register temp, const JSObject *templateObj,
+                               uint32_t start, uint32_t end);
+    void fillSlotsWithUndefined(Register obj, Register temp, const JSObject *templateObj,
+                                uint32_t start, uint32_t end);
+    void initGCSlots(Register obj, Register temp, JSObject *templateObj);
+    void initGCThing(Register obj, Register temp, JSObject *templateObj);
 
     // Compares two strings for equality based on the JSOP.
     // This checks for identical pointers, atoms and length and fails for everything else.
@@ -815,7 +810,7 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     // Checks the flags that signal that parallel code may need to interrupt or
     // abort.  Branches to fail in that case.
-    void checkInterruptFlagPar(const Register &tempReg, Label *fail);
+    void checkInterruptFlagPar(Register tempReg, Label *fail);
 
     // If the JitCode that created this assembler needs to transition into the VM,
     // we want to store the JitCode on the stack in order to mark it during a GC.
@@ -903,7 +898,7 @@ class MacroAssembler : public MacroAssemblerSpecific
     }
 
     // see above comment for what is returned
-    uint32_t callIon(const Register &callee) {
+    uint32_t callIon(Register callee) {
         leaveSPSFrame();
         MacroAssemblerSpecific::callIon(callee);
         uint32_t ret = currentOffset();
@@ -929,8 +924,8 @@ class MacroAssembler : public MacroAssemblerSpecific
         return ret;
     }
 
-    Condition branchTestObjectTruthy(bool truthy, Register objReg, Register scratch,
-                                     Label *slowCheck)
+    void branchTestObjectTruthy(bool truthy, Register objReg, Register scratch,
+                                Label *slowCheck, Label *checked)
     {
         // The branches to out-of-line code here implement a conservative version
         // of the JSObject::isWrapper test performed in EmulatesUndefined.  If none
@@ -940,8 +935,8 @@ class MacroAssembler : public MacroAssemblerSpecific
 
         branchTest32(Assembler::NonZero, flags, Imm32(JSCLASS_IS_PROXY), slowCheck);
 
-        test32(flags, Imm32(JSCLASS_EMULATES_UNDEFINED));
-        return truthy ? Assembler::Zero : Assembler::NonZero;
+        Condition cond = truthy ? Assembler::Zero : Assembler::NonZero;
+        branchTest32(cond, flags, Imm32(JSCLASS_EMULATES_UNDEFINED), checked);
     }
 
   private:
@@ -1020,7 +1015,6 @@ class MacroAssembler : public MacroAssemblerSpecific
     }
 
   public:
-
     // These functions are needed by the IonInstrumentation interface defined in
     // vm/SPSProfiler.h.  They will modify the pseudostack provided to SPS to
     // perform the actual instrumentation.
@@ -1091,6 +1085,10 @@ class MacroAssembler : public MacroAssemblerSpecific
         add32(Imm32(-1), Address(temp, 0));
     }
 
+    static const char enterJitLabel[];
+    void spsMarkJit(SPSProfiler *p, Register framePtr, Register temp);
+    void spsUnmarkJit(SPSProfiler *p, Register temp);
+
     void loadBaselineOrIonRaw(Register script, Register dest, ExecutionMode mode, Label *failure);
     void loadBaselineOrIonNoArgCheck(Register callee, Register dest, ExecutionMode mode, Label *failure);
 
@@ -1124,10 +1122,12 @@ class MacroAssembler : public MacroAssemblerSpecific
     void printf(const char *output);
     void printf(const char *output, Register value);
 
-#if JS_TRACE_LOGGING
-    void tracelogStart(JSScript *script);
-    void tracelogStop();
-    void tracelogLog(TraceLogging::Type type);
+#ifdef JS_TRACE_LOGGING
+    void tracelogStart(Register logger, uint32_t textId);
+    void tracelogStart(Register logger, Register textId);
+    void tracelogStop(Register logger, uint32_t textId);
+    void tracelogStop(Register logger, Register textId);
+    void tracelogStop(Register logger);
 #endif
 
 #define DISPATCH_FLOATING_POINT_OP(method, type, arg1d, arg1f, arg2)    \

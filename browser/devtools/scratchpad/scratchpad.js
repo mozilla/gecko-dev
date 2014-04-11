@@ -26,6 +26,10 @@ const BUTTON_POSITION_DONT_SAVE  = 2;
 const BUTTON_POSITION_REVERT     = 0;
 const EVAL_FUNCTION_TIMEOUT      = 1000; // milliseconds
 
+const MAXIMUM_FONT_SIZE = 96;
+const MINIMUM_FONT_SIZE = 6;
+const NORMAL_FONT_SIZE = 12;
+
 const SCRATCHPAD_L10N = "chrome://browser/locale/devtools/scratchpad.properties";
 const DEVTOOLS_CHROME_ENABLED = "devtools.chrome.enabled";
 const PREF_RECENT_FILES_MAX = "devtools.scratchpad.recentFilesMax";
@@ -128,6 +132,117 @@ var Scratchpad = {
     });
 
     return obj;
+  },
+
+  /**
+   * Add the event listeners for popupshowing events.
+   */
+  _setupPopupShowingListeners: function SP_setupPopupShowing() {
+    let elementIDs = ['sp-menu_editpopup', 'scratchpad-text-popup'];
+
+    for (let elementID of elementIDs) {
+      let elem = document.getElementById(elementID);
+      if (elem) {
+        elem.addEventListener("popupshowing", function () {
+          goUpdateGlobalEditMenuItems();
+          let commands = ['cmd_undo', 'cmd_redo', 'cmd_delete', 'cmd_findAgain'];
+          commands.forEach(goUpdateCommand);
+        });
+      }
+    }
+  },
+
+  /**
+   * Add the event event listeners for command events.
+   */
+  _setupCommandListeners: function SP_setupCommands() {
+    let commands = {
+      "cmd_gotoLine": () => {
+        goDoCommand('cmd_gotoLine');
+      },
+      "sp-cmd-newWindow": () => {
+        Scratchpad.openScratchpad();
+      },
+      "sp-cmd-openFile": () => {
+        Scratchpad.openFile();
+      },
+      "sp-cmd-clearRecentFiles": () => {
+        Scratchpad.clearRecentFiles();
+      },
+      "sp-cmd-save": () => {
+        Scratchpad.saveFile();
+      },
+      "sp-cmd-saveas": () => {
+        Scratchpad.saveFileAs();
+      },
+      "sp-cmd-revert": () => {
+        Scratchpad.promptRevert();
+      },
+      "sp-cmd-close": () => {
+        Scratchpad.close();
+      },
+      "sp-cmd-run": () => {
+        Scratchpad.run();
+      },
+      "sp-cmd-inspect": () => {
+        Scratchpad.inspect();
+      },
+      "sp-cmd-display": () => {
+        Scratchpad.display();
+      },
+      "sp-cmd-pprint": () => {
+        Scratchpad.prettyPrint();
+      },
+      "sp-cmd-contentContext": () => {
+        Scratchpad.setContentContext();
+      },
+      "sp-cmd-browserContext": () => {
+        Scratchpad.setBrowserContext();
+      },
+      "sp-cmd-reloadAndRun": () => {
+        Scratchpad.reloadAndRun();
+      },
+      "sp-cmd-evalFunction": () => {
+        Scratchpad.evalTopLevelFunction();
+      },
+      "sp-cmd-errorConsole": () => {
+        Scratchpad.openErrorConsole();
+      },
+      "sp-cmd-webConsole": () => {
+        Scratchpad.openWebConsole();
+      },
+      "sp-cmd-documentationLink": () => {
+        Scratchpad.openDocumentationPage();
+      },
+      "sp-cmd-hideSidebar": () => {
+        Scratchpad.sidebar.hide();
+      },
+      "sp-cmd-line-numbers": () => {
+        Scratchpad.toggleEditorOption('lineNumbers');
+      },
+      "sp-cmd-wrap-text": () => {
+        Scratchpad.toggleEditorOption('lineWrapping');
+      },
+      "sp-cmd-highlight-trailing-space": () => {
+        Scratchpad.toggleEditorOption('showTrailingSpace');
+      },
+      "sp-cmd-larger-font": () => {
+        Scratchpad.increaseFontSize();
+      },
+      "sp-cmd-smaller-font": () => {
+        Scratchpad.decreaseFontSize();
+      },
+      "sp-cmd-normal-font": () => {
+        Scratchpad.normalFontSize();
+      },
+    }
+
+    for (let command in commands) {
+      let elem = document.getElementById(command);
+      if (elem) {
+        elem.addEventListener("command", commands[command]);
+      }
+    }
   },
 
   /**
@@ -1168,7 +1283,7 @@ var Scratchpad = {
           menuitem.setAttribute("disabled", true);
         }
 
-        menuitem.setAttribute("oncommand", "Scratchpad.openFile(" + i + ");");
+        menuitem.addEventListener("command", Scratchpad.openFile.bind(Scratchpad, i));
         recentFilesPopup.appendChild(menuitem);
       }
 
@@ -1513,6 +1628,8 @@ var Scratchpad = {
       PreferenceObserver.init();
       CloseObserver.init();
     }).then(null, (err) => console.log(err.message));
+    this._setupCommandListeners();
+    this._setupPopupShowingListeners();
   },
 
   /**
@@ -1682,6 +1799,47 @@ var Scratchpad = {
     });
 
     return shouldClose;
+  },
+
+  /**
+   * Toggle a editor's boolean option.
+   */
+  toggleEditorOption: function SP_toggleEditorOption(optionName)
+  {
+    let newOptionValue = !this.editor.getOption(optionName);
+    this.editor.setOption(optionName, newOptionValue);
+  },
+
+  /**
+   * Increase the editor's font size by 1 px.
+   */
+  increaseFontSize: function SP_increaseFontSize()
+  {
+    let size = this.editor.getFontSize();
+
+    if (size < MAXIMUM_FONT_SIZE) {
+      this.editor.setFontSize(size + 1);
+    }
+  },
+
+  /**
+   * Decrease the editor's font size by 1 px.
+   */
+  decreaseFontSize: function SP_decreaseFontSize()
+  {
+    let size = this.editor.getFontSize();
+
+    if (size > MINIMUM_FONT_SIZE) {
+      this.editor.setFontSize(size - 1);
+    }
+  },
+
+  /**
+   * Restore the editor's original font size.
+   */
+  normalFontSize: function SP_normalFontSize()
+  {
+    this.editor.setFontSize(NORMAL_FONT_SIZE);
   },
 
   _observers: [],

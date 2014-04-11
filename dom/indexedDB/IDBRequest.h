@@ -23,6 +23,8 @@ class nsIScriptContext;
 class nsPIDOMWindow;
 
 namespace mozilla {
+class EventChainPostVisitor;
+class EventChainPreVisitor;
 namespace dom {
 class OwningIDBObjectStoreOrIDBIndexOrIDBCursor;
 class ErrorEventInit;
@@ -61,7 +63,7 @@ public:
                                       IDBTransaction* aTransaction);
 
   // nsIDOMEventTarget
-  virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
+  virtual nsresult PreHandleEvent(EventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
 
   void GetSource(Nullable<OwningIDBObjectStoreOrIDBIndexOrIDBCursor>& aSource) const;
 
@@ -120,7 +122,7 @@ public:
 
   // nsWrapperCache
   virtual JSObject*
-  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   // WebIDL
   nsPIDOMWindow*
@@ -191,7 +193,8 @@ public:
   void SetTransaction(IDBTransaction* aTransaction);
 
   // nsIDOMEventTarget
-  virtual nsresult PostHandleEvent(nsEventChainPostVisitor& aVisitor) MOZ_OVERRIDE;
+  virtual nsresult PostHandleEvent(
+                     EventChainPostVisitor& aVisitor) MOZ_OVERRIDE;
 
   DOMError* GetError(ErrorResult& aRv)
   {
@@ -206,7 +209,7 @@ public:
 
   // nsWrapperCache
   virtual JSObject*
-  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   // WebIDL
   IMPL_EVENT_HANDLER(blocked);

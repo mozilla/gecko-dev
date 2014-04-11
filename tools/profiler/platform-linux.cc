@@ -135,8 +135,7 @@ static void paf_parent(void) {
     Sampler::GetActiveSampler()->SetPaused(was_paused);
 }
 
-// Set up the fork handlers.  This is called just once, at the first
-// call to SenderEntry.
+// Set up the fork handlers.
 static void* setup_atfork() {
   pthread_atfork(paf_prepare, paf_parent, NULL);
   return NULL;
@@ -262,14 +261,6 @@ Sampler::FreePlatformData(PlatformData* aData)
 static void* SignalSender(void* arg) {
   // Taken from platform_thread_posix.cc
   prctl(PR_SET_NAME, "SamplerThread", 0, 0, 0);
-# if defined(ANDROID)
-  // pthread_atfork isn't available on Android.
-  void* initialize_atfork = NULL;
-# else
-  // This call is done just once, at the first call to SenderEntry.
-  // It returns NULL.
-  static void* initialize_atfork = setup_atfork();
-# endif
 
 #ifdef MOZ_NUWA_PROCESS
   // If the Nuwa process is enabled, we need to mark and freeze the sampler
@@ -300,6 +291,14 @@ static void* SignalSender(void* arg) {
         if (!info->Profile())
           continue;
 
+        PseudoStack::SleepState sleeping = info->Stack()->observeSleeping();
+        if (sleeping == PseudoStack::SLEEPING_AGAIN) {
+          info->Profile()->DuplicateLastSample();
+          //XXX: This causes flushes regardless of jank-only mode
+          info->Profile()->flush();
+          continue;
+        }
+
         // We use sCurrentThreadProfile the ThreadProfile for the
         // thread we're profiling to the signal handler
         sCurrentThreadProfile = info->Profile();
@@ -328,7 +327,7 @@ static void* SignalSender(void* arg) {
     }
     OS::SleepMicro(interval);
   }
-  return initialize_atfork; // which is guaranteed to be NULL
+  return 0;
 }
 
 Sampler::Sampler(double interval, bool profiling, int entrySize)
@@ -565,7 +564,7 @@ static void StartSignalHandler(int signal, siginfo_t* info, void* context) {
   freeArray(features, featureCount);
 }
 
-void OS::RegisterStartHandler()
+void OS::Startup()
 {
   LOG("Registering start signal");
   struct sigaction sa;
@@ -576,7 +575,17 @@ void OS::RegisterStartHandler()
     LOG("Error installing signal");
   }
 }
+
+#else
+
+void OS::Startup() {
+  // Set up the fork handlers.
+  setup_atfork();
+}
+
 #endif
+
+
 
 void TickSample::PopulateContext(void* aContext)
 {
@@ -588,8 +597,19 @@ void TickSample::PopulateContext(void* aContext)
   }
 }
 
+// WARNING: Works with values up to 1 second
 void OS::SleepMicro(int microseconds)
 {
-  usleep(microseconds);
+  struct timespec ts;
+  ts.tv_sec  = 0;
+  ts.tv_nsec = microseconds * 1000UL;
+
+  while (true) {
+    // in the case of interrupt we keep waiting
+    // nanosleep puts the remaining to back into ts
+    if (!nanosleep(&ts, &ts) || errno != EINTR) {
+      return;
+    }
+  }
 }
 

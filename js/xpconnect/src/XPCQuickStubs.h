@@ -506,12 +506,6 @@ xpc_qsGetWrapperCache(nsWrapperCache *cache)
     return cache;
 }
 
-// nsGlobalWindow implements nsWrapperCache, but doesn't always use it. Don't
-// try to use it without fixing that first.
-class nsGlobalWindow;
-inline nsWrapperCache*
-xpc_qsGetWrapperCache(nsGlobalWindow *not_allowed);
-
 inline nsWrapperCache*
 xpc_qsGetWrapperCache(void *p)
 {
@@ -601,14 +595,14 @@ PropertyOpForwarder(JSContext *cx, unsigned argc, jsval *vp)
     if (!obj)
         return false;
 
-    jsval v = js::GetFunctionNativeReserved(callee, 0);
+    JS::RootedValue v(cx, js::GetFunctionNativeReserved(callee, 0));
 
     JSObject *ptrobj = JSVAL_TO_OBJECT(v);
     Op *popp = static_cast<Op *>(JS_GetPrivate(ptrobj));
 
     v = js::GetFunctionNativeReserved(callee, 1);
 
-    JS::RootedValue argval(cx, (argc > 0) ? args.get(0) : JSVAL_VOID);
+    JS::RootedValue argval(cx, args.get(0));
     JS::RootedId id(cx);
     if (!JS_ValueToId(cx, v, &id))
         return false;

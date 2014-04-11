@@ -17,7 +17,6 @@ import org.mozilla.gecko.GeckoApplication;
 import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.gecko.LightweightTheme;
 import org.mozilla.gecko.R;
-import org.mozilla.gecko.ReaderModeUtils;
 import org.mozilla.gecko.Tab;
 import org.mozilla.gecko.Tabs;
 import org.mozilla.gecko.animation.PropertyAnimator;
@@ -32,9 +31,9 @@ import org.mozilla.gecko.util.Clipboard;
 import org.mozilla.gecko.util.GeckoEventListener;
 import org.mozilla.gecko.util.HardwareUtils;
 import org.mozilla.gecko.util.MenuUtils;
-import org.mozilla.gecko.widget.GeckoImageButton;
-import org.mozilla.gecko.widget.GeckoImageView;
-import org.mozilla.gecko.widget.GeckoRelativeLayout;
+import org.mozilla.gecko.widget.ThemedImageButton;
+import org.mozilla.gecko.widget.ThemedImageView;
+import org.mozilla.gecko.widget.ThemedRelativeLayout;
 
 import android.content.Context;
 import android.content.res.Resources;
@@ -76,7 +75,7 @@ import android.widget.PopupWindow;
 * as a set of listeners to allow {@code BrowserToolbar} users to react
 * to state changes accordingly.
 */
-public class BrowserToolbar extends GeckoRelativeLayout
+public class BrowserToolbar extends ThemedRelativeLayout
                             implements Tabs.OnTabsChangedListener,
                                        GeckoMenu.ActionItemBarPresenter,
                                        GeckoEventListener {
@@ -127,8 +126,8 @@ public class BrowserToolbar extends GeckoRelativeLayout
 
     private ToolbarProgressView mProgressBar;
     private TabCounter mTabsCounter;
-    private GeckoImageButton mMenu;
-    private GeckoImageView mMenuIcon;
+    private ThemedImageButton mMenu;
+    private ThemedImageView mMenuIcon;
     private LinearLayout mActionItemBar;
     private MenuPopup mMenuPopup;
     private List<View> mFocusOrder;
@@ -203,12 +202,10 @@ public class BrowserToolbar extends GeckoRelativeLayout
         mForward = (ImageButton) findViewById(R.id.forward);
         setButtonEnabled(mForward, false);
 
-        mMenu = (GeckoImageButton) findViewById(R.id.menu);
-        mMenuIcon = (GeckoImageView) findViewById(R.id.menu_icon);
+        mMenu = (ThemedImageButton) findViewById(R.id.menu);
+        mMenuIcon = (ThemedImageView) findViewById(R.id.menu_icon);
         mActionItemBar = (LinearLayout) findViewById(R.id.menu_items);
         mHasSoftMenuButton = !HardwareUtils.hasMenuButton();
-
-        mProgressBar = (ToolbarProgressView) findViewById(R.id.progress);
 
         // We use different layouts on phones and tablets, so adjust the focus
         // order appropriately.
@@ -369,6 +366,10 @@ public class BrowserToolbar extends GeckoRelativeLayout
         }
     }
 
+    public void setProgressBar(ToolbarProgressView progressBar) {
+        mProgressBar = progressBar;
+    }
+
     public void refresh() {
         mUrlDisplayLayout.dismissSiteIdentityPopup();
     }
@@ -503,6 +504,9 @@ public class BrowserToolbar extends GeckoRelativeLayout
                     break;
 
                 case SELECTED:
+                    flags.add(UpdateFlags.PRIVATE_MODE);
+                    setPrivateMode(tab.isPrivate());
+                    // Fall through.
                 case LOAD_ERROR:
                     flags.add(UpdateFlags.TITLE);
                     // Fall through.
@@ -511,12 +515,9 @@ public class BrowserToolbar extends GeckoRelativeLayout
                     // us of a title change, so we don't update the title here.
                     flags.add(UpdateFlags.FAVICON);
                     flags.add(UpdateFlags.SITE_IDENTITY);
-                    flags.add(UpdateFlags.PRIVATE_MODE);
 
                     updateBackButton(tab);
                     updateForwardButton(tab);
-
-                    setPrivateMode(tab.isPrivate());
                     break;
 
                 case TITLE:
@@ -1350,7 +1351,10 @@ public class BrowserToolbar extends GeckoRelativeLayout
                 tab.toggleReaderMode();
             }
         } else if (event.equals("Reader:LongClick")) {
-            ReaderModeUtils.addToReadingList(Tabs.getInstance().getSelectedTab());
+            Tab tab = Tabs.getInstance().getSelectedTab();
+            if (tab != null) {
+                tab.addToReadingList();
+            }
         }
     }
 

@@ -31,7 +31,7 @@ private:
   }
 
 public:
-  nsTextNode(already_AddRefed<nsINodeInfo> aNodeInfo)
+  nsTextNode(already_AddRefed<nsINodeInfo>& aNodeInfo)
     : mozilla::dom::Text(aNodeInfo)
   {
     Init();
@@ -81,8 +81,7 @@ public:
 #endif
 
 protected:
-  virtual JSObject* WrapNode(JSContext *aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext *aCx) MOZ_OVERRIDE;
 };
 
 #endif // nsTextNode_h

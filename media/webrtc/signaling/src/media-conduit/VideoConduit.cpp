@@ -12,6 +12,8 @@
 #include "AudioConduit.h"
 #include "nsThreadUtils.h"
 
+#include "LoadManager.h"
+
 #include "webrtc/video_engine/include/vie_errors.h"
 
 #ifdef MOZ_WIDGET_ANDROID
@@ -76,7 +78,6 @@ WebrtcVideoConduit::~WebrtcVideoConduit()
       if (mOtherDirection)
         mOtherDirection->mPtrExtCapture = nullptr;
     }
-    mPtrViECapture->Release();
   }
 
   //Deal with External Renderer
@@ -88,7 +89,6 @@ WebrtcVideoConduit::~WebrtcVideoConduit()
       }
       mPtrViERender->RemoveRenderer(mChannel);
     }
-    mPtrViERender->Release();
   }
 
   //Deal with the transport
@@ -97,12 +97,6 @@ WebrtcVideoConduit::~WebrtcVideoConduit()
     if (!mShutDown) {
       mPtrViENetwork->DeregisterSendTransport(mChannel);
     }
-    mPtrViENetwork->Release();
-  }
-
-  if(mPtrViECodec)
-  {
-    mPtrViECodec->Release();
   }
 
   if(mPtrViEBase)
@@ -113,12 +107,6 @@ WebrtcVideoConduit::~WebrtcVideoConduit()
       SyncTo(nullptr);
       mPtrViEBase->DeleteChannel(mChannel);
     }
-    mPtrViEBase->Release();
-  }
-
-  if (mPtrRTP)
-  {
-    mPtrRTP->Release();
   }
 
   if (mOtherDirection)
@@ -128,7 +116,16 @@ WebrtcVideoConduit::~WebrtcVideoConduit()
     // let other side we terminated the channel
     mOtherDirection->mShutDown = true;
     mVideoEngine = nullptr;
- } else {
+  } else {
+    // We can't delete the VideoEngine until all these are released!
+    // And we can't use a Scoped ptr, since the order is arbitrary
+    mPtrViEBase = nullptr;
+    mPtrViECapture = nullptr;
+    mPtrViECodec = nullptr;
+    mPtrViENetwork = nullptr;
+    mPtrViERender = nullptr;
+    mPtrRTP = nullptr;
+
     // only one opener can call Delete.  Have it be the last to close.
     if(mVideoEngine)
     {
@@ -145,17 +142,19 @@ bool WebrtcVideoConduit::GetRemoteSSRC(unsigned int* ssrc) {
   return !mPtrRTP->GetRemoteSSRC(mChannel, *ssrc);
 }
 
+bool WebrtcVideoConduit::GetAVStats(int32_t* jitterBufferDelayMs,
+                                    int32_t* playoutBufferDelayMs,
+                                    int32_t* avSyncOffsetMs) {
+  return false;
+}
+
 bool WebrtcVideoConduit::GetRTPStats(unsigned int* jitterMs,
                                      unsigned int* cumulativeLost) {
-  unsigned int ntpHigh, ntpLow;
-  unsigned int packetsSent, bytesSent;
   unsigned short fractionLost;
   unsigned extendedMax;
   int rttMs;
   // GetReceivedRTCPStatistics is a poorly named GetRTPStatistics variant
-  return !mPtrRTP->GetReceivedRTCPStatistics(mChannel, ntpHigh, ntpLow,
-                                             packetsSent, bytesSent,
-                                             fractionLost,
+  return !mPtrRTP->GetReceivedRTCPStatistics(mChannel, fractionLost,
                                              *cumulativeLost,
                                              extendedMax,
                                              *jitterMs,
@@ -163,29 +162,22 @@ bool WebrtcVideoConduit::GetRTPStats(unsigned int* jitterMs,
 }
 
 bool WebrtcVideoConduit::GetRTCPReceiverReport(DOMHighResTimeStamp* timestamp,
-                                               unsigned int* jitterMs,
-                                               unsigned int* packetsReceived,
+                                               uint32_t* jitterMs,
+                                               uint32_t* packetsReceived,
                                                uint64_t* bytesReceived,
-                                               unsigned int* cumulativeLost) {
-  unsigned int ntpHigh, ntpLow;
-  unsigned int packetsSent;
-  unsigned int bytesSent32;
-  unsigned short fractionLost;
-  unsigned extendedMax;
-  int rttMs;
-  bool result = !mPtrRTP->GetSentRTCPStatistics(mChannel, ntpHigh, ntpLow,
-                                                bytesSent32, packetsSent,
-                                                fractionLost,
-                                                *cumulativeLost,
-                                                extendedMax,
-                                                *jitterMs,
-                                                rttMs);
+                                               uint32_t* cumulativeLost,
+                                               int32_t* rttMs) {
+  uint32_t ntpHigh, ntpLow;
+  uint16_t fractionLost;
+  bool result = !mPtrRTP->GetRemoteRTCPReceiverInfo(mChannel, ntpHigh, ntpLow,
+                                                    *packetsReceived,
+                                                    *bytesReceived,
+                                                    jitterMs,
+                                                    &fractionLost,
+                                                    cumulativeLost,
+                                                    rttMs);
   if (result) {
     *timestamp = NTPtoDOMHighResTimeStamp(ntpHigh, ntpLow);
-    *packetsReceived = (packetsSent >= *cumulativeLost) ?
-                       (packetsSent - *cumulativeLost) : 0;
-    *bytesReceived = (packetsSent ?
-                      (bytesSent32 / packetsSent) : 0) * (*packetsReceived);
   }
   return result;
 }
@@ -193,22 +185,13 @@ bool WebrtcVideoConduit::GetRTCPReceiverReport(DOMHighResTimeStamp* timestamp,
 bool WebrtcVideoConduit::GetRTCPSenderReport(DOMHighResTimeStamp* timestamp,
                                              unsigned int* packetsSent,
                                              uint64_t* bytesSent) {
-  unsigned int ntpHigh, ntpLow;
-  unsigned int bytesSent32;
-  unsigned int jitterMs;
-  unsigned short fractionLost;
-  unsigned int cumulativeLost;
-  unsigned extendedMax;
-  int rttMs;
-  bool result = !mPtrRTP->GetReceivedRTCPStatistics(mChannel, ntpHigh, ntpLow,
-                                                    bytesSent32, *packetsSent,
-                                                    fractionLost,
-                                                    cumulativeLost,
-                                                    jitterMs, extendedMax,
-                                                    rttMs);
+  struct webrtc::SenderInfo senderInfo;
+  bool result = !mPtrRTP->GetRemoteRTCPSenderInfo(mChannel, &senderInfo);
   if (result) {
-    *timestamp = NTPtoDOMHighResTimeStamp(ntpHigh, ntpLow);
-    *bytesSent = bytesSent32;
+    *timestamp = NTPtoDOMHighResTimeStamp(senderInfo.NTP_timestamp_high,
+                                          senderInfo.NTP_timestamp_low);
+    *packetsSent = senderInfo.sender_packet_count;
+    *bytesSent = senderInfo.sender_octet_count;
   }
   return result;
 }
@@ -493,6 +476,11 @@ WebrtcVideoConduit::ConfigureSendMediaCodec(const VideoCodecConfig* codecConfig)
   }
 
   mEngineTransmitting = false;
+
+  if (codecConfig->mLoadManager) {
+    mPtrViEBase->RegisterCpuOveruseObserver(mChannel, codecConfig->mLoadManager);
+    mPtrViEBase->SetLoadManager(codecConfig->mLoadManager);
+  }
 
   // we should be good here to set the new codec.
   for(int idx=0; idx < mPtrViECodec->NumberOfCodecs(); idx++)

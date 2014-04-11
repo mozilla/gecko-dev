@@ -26,10 +26,7 @@ const observers = require('../system/events');
 const { Cortex } = require('./cortex');
 const { sandbox, evaluate, load } = require("../loader/sandbox");
 const { merge } = require('../util/object');
-const xulApp = require("../system/xul-app");
-const { getInnerId } = require("../window/utils")
-const USE_JS_PROXIES = !xulApp.versionInRange(xulApp.platformVersion,
-                                              "17.0a2", "*");
+const { getInnerId } = require("../window/utils");
 const { getTabForWindow } = require('../tabs/helpers');
 const { getTabForContentWindow } = require('../tabs/utils');
 
@@ -160,7 +157,10 @@ const WorkerSandbox = EventEmitter.compose({
       wantXrays: true,
       wantGlobalProperties: wantGlobalProperties,
       sameZoneAs: window,
-      metadata: { SDKContentScript: true }
+      metadata: {
+        SDKContentScript: true,
+        'inner-window-id': getInnerId(window)
+      }
     });
     // We have to ensure that window.top and window.parent are the exact same
     // object than window object, i.e. the sandbox global object. But not

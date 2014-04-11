@@ -30,6 +30,8 @@
 #include "nsISocketTransportService.h"
 #include <algorithm>
 #include "Http2Compression.h"
+#include "mozilla/ChaosMode.h"
+#include "mozilla/unused.h"
 
 // defined by the socket transport service while active
 extern PRThread *gSocketThread;
@@ -51,6 +53,16 @@ InsertTransactionSorted(nsTArray<nsHttpTransaction*> &pendingQ, nsHttpTransactio
     for (int32_t i=pendingQ.Length()-1; i>=0; --i) {
         nsHttpTransaction *t = pendingQ[i];
         if (trans->Priority() >= t->Priority()) {
+            if (ChaosMode::isActive()) {
+                int32_t samePriorityCount;
+                for (samePriorityCount = 0; i - samePriorityCount >= 0; ++samePriorityCount) {
+                    if (pendingQ[i - samePriorityCount]->Priority() != trans->Priority()) {
+                        break;
+                    }
+                }
+                // skip over 0...all of the elements with the same priority.
+                i -= ChaosMode::randomUint32LessThan(samePriorityCount + 1);
+            }
             pendingQ.InsertElementAt(i+1, trans);
             return;
         }
@@ -322,7 +334,7 @@ nsHttpConnectionMgr::DoShiftReloadConnectionCleanup(nsHttpConnectionInfo *aCI)
     nsresult rv = PostEvent(&nsHttpConnectionMgr::OnMsgDoShiftReloadConnectionCleanup,
                             0, connInfo);
     if (NS_SUCCEEDED(rv))
-        connInfo.forget();
+        unused << connInfo.forget();
     return rv;
 }
 
@@ -334,8 +346,8 @@ public:
 
     // Added manually so we can use nsRefPtr without inheriting from
     // nsISupports
-    NS_IMETHOD_(nsrefcnt) AddRef(void);
-    NS_IMETHOD_(nsrefcnt) Release(void);
+    NS_IMETHOD_(MozExternalRefCountType) AddRef(void);
+    NS_IMETHOD_(MozExternalRefCountType) Release(void);
 
 public: // intentional!
     nsRefPtr<NullHttpTransaction> mTrans;
@@ -397,7 +409,7 @@ nsHttpConnectionMgr::SpeculativeConnect(nsHttpConnectionInfo *ci,
     nsresult rv =
         PostEvent(&nsHttpConnectionMgr::OnMsgSpeculativeConnect, 0, args);
     if (NS_SUCCEEDED(rv))
-        args.forget();
+        unused << args.forget();
     return rv;
 }
 
@@ -492,9 +504,9 @@ nsHttpConnectionMgr::UpdateRequestTokenBucket(EventTokenBucket *aBucket)
     // Call From main thread when a new EventTokenBucket has been made in order
     // to post the new value to the socket thread.
     nsresult rv = PostEvent(&nsHttpConnectionMgr::OnMsgUpdateRequestTokenBucket,
-                            0, bucket.get());
+                            0, bucket);
     if (NS_SUCCEEDED(rv))
-        bucket.forget();
+        unused << bucket.forget();
     return rv;
 }
 
@@ -2132,6 +2144,10 @@ nsHttpConnectionMgr::OnMsgShutdown(int32_t, void *param)
         mTimeoutTick = nullptr;
         mTimeoutTickArmed = false;
     }
+    if (mTimer) {
+      mTimer->Cancel();
+      mTimer = nullptr;
+    }
 
     // signal shutdown complete
     nsRefPtr<nsIRunnable> runnable =
@@ -3090,7 +3106,7 @@ nsHalfOpenSocket::OnOutputStreamReady(nsIAsyncOutputStream *out)
             nsRefPtr<nsHttpConnection> copy(conn);
             // forget() to effectively addref because onmsg*() will drop a ref
             gHttpHandler->ConnMgr()->OnMsgReclaimConnection(
-                0, conn.forget().get());
+                0, conn.forget().take());
         }
     }
 

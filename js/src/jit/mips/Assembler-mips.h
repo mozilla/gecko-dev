@@ -55,6 +55,7 @@ static MOZ_CONSTEXPR_VAR Register fp = { Registers::fp };
 static MOZ_CONSTEXPR_VAR Register ra = { Registers::ra };
 
 static MOZ_CONSTEXPR_VAR Register ScratchRegister = at;
+static MOZ_CONSTEXPR_VAR Register SecondScratchReg = t8;
 
 // Use arg reg from EnterJIT function as OsrFrameReg.
 static MOZ_CONSTEXPR_VAR Register OsrFrameReg = a3;
@@ -860,7 +861,7 @@ class Assembler
     BufferOffset as_mfc1(Register rt, FloatRegister fs);
 
   protected:
-    // These instructions should only be used to access the odd part of 
+    // These instructions should only be used to access the odd part of
     // 64-bit register pair. Do not use odd registers as 32-bit registers.
     // :TODO: Bug 972836, Remove _Odd functions once we can use odd regs.
     BufferOffset as_ls_Odd(FloatRegister fd, Register base, int32_t off);

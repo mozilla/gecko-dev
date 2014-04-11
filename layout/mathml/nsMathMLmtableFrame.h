@@ -206,6 +206,8 @@ public:
     return nsTableCellFrame::IsFrameOfType(aFlags & ~(nsIFrame::eMathML));
   }
 
+  virtual nsMargin* GetBorderWidth(nsMargin& aBorder) const MOZ_OVERRIDE;
+
 protected:
   nsMathMLmtdFrame(nsStyleContext* aContext) : nsTableCellFrame(aContext) {}
   virtual ~nsMathMLmtdFrame();
@@ -248,6 +250,12 @@ public:
 
   virtual const nsStyleText* StyleTextForLineLayout() MOZ_OVERRIDE;
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) MOZ_OVERRIDE;
+
+  bool
+  IsMrowLike() MOZ_OVERRIDE {
+    return mFrames.FirstChild() != mFrames.LastChild() ||
+           !mFrames.FirstChild();
+  }
 
 protected:
   nsMathMLmtdInnerFrame(nsStyleContext* aContext);

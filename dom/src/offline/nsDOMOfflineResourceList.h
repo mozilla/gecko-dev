@@ -19,12 +19,11 @@
 #include "nsWeakReference.h"
 #include "nsCOMArray.h"
 #include "nsIDOMEventListener.h"
-#include "nsDOMEvent.h"
 #include "nsIObserver.h"
 #include "nsIScriptContext.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsPIDOMWindow.h"
-#include "nsDOMEventTargetHelper.h"
+#include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/ErrorResult.h"
 
 class nsIDOMWindow;
@@ -35,7 +34,7 @@ class DOMStringList;
 } // namespace dom
 } // namespace mozilla
 
-class nsDOMOfflineResourceList : public nsDOMEventTargetHelper,
+class nsDOMOfflineResourceList : public mozilla::DOMEventTargetHelper,
                                  public nsIDOMOfflineResourceList,
                                  public nsIObserver,
                                  public nsIOfflineCacheUpdateObserver,
@@ -50,7 +49,7 @@ public:
   NS_DECL_NSIOFFLINECACHEUPDATEOBSERVER
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsDOMOfflineResourceList,
-                                           nsDOMEventTargetHelper)
+                                           mozilla::DOMEventTargetHelper)
 
   nsDOMOfflineResourceList(nsIURI* aManifestURI,
                            nsIURI* aDocumentURI,
@@ -67,7 +66,7 @@ public:
     return GetOwner();
   }
   virtual JSObject*
-  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   uint16_t GetStatus(ErrorResult& aRv)
   {

@@ -20,6 +20,7 @@
 #include "mozIStorageFunction.h"
 #include "nsIObserverService.h"
 #include "nsIVariant.h"
+#include "mozilla/IOInterposer.h"
 #include "mozilla/Services.h"
 
 // How long we collect write oprerations
@@ -78,7 +79,7 @@ DOMStorageDBThread::Init()
   MonitorAutoLock monitor(mMonitor);
 
   mThread = PR_CreateThread(PR_USER_THREAD, &DOMStorageDBThread::ThreadFunc, this,
-                            PR_PRIORITY_LOW, PR_LOCAL_THREAD, PR_JOINABLE_THREAD,
+                            PR_PRIORITY_LOW, PR_GLOBAL_THREAD, PR_JOINABLE_THREAD,
                             262144);
   if (!mThread) {
     return NS_ERROR_OUT_OF_MEMORY;
@@ -279,9 +280,11 @@ void
 DOMStorageDBThread::ThreadFunc(void* aArg)
 {
   PR_SetCurrentThreadName("localStorage DB");
+  mozilla::IOInterposer::RegisterCurrentThread();
 
   DOMStorageDBThread* thread = static_cast<DOMStorageDBThread*>(aArg);
   thread->ThreadFunc();
+  mozilla::IOInterposer::UnregisterCurrentThread();
 }
 
 void

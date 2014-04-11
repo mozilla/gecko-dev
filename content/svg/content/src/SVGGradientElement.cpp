@@ -48,7 +48,7 @@ nsSVGElement::StringInfo SVGGradientElement::sStringInfo[1] =
 //----------------------------------------------------------------------
 // Implementation
 
-SVGGradientElement::SVGGradientElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+SVGGradientElement::SVGGradientElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : SVGGradientElementBase(aNodeInfo)
 {
 }
@@ -116,9 +116,9 @@ SVGGradientElement::IsAttributeMapped(const nsIAtom* name) const
 //---------------------Linear Gradients------------------------
 
 JSObject*
-SVGLinearGradientElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aScope)
+SVGLinearGradientElement::WrapNode(JSContext* aCx)
 {
-  return SVGLinearGradientElementBinding::Wrap(aCx, aScope, this);
+  return SVGLinearGradientElementBinding::Wrap(aCx, this);
 }
 
 nsSVGElement::LengthInfo SVGLinearGradientElement::sLengthInfo[4] =
@@ -132,7 +132,7 @@ nsSVGElement::LengthInfo SVGLinearGradientElement::sLengthInfo[4] =
 //----------------------------------------------------------------------
 // Implementation
 
-SVGLinearGradientElement::SVGLinearGradientElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+SVGLinearGradientElement::SVGLinearGradientElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : SVGLinearGradientElementBase(aNodeInfo)
 {
 }
@@ -190,9 +190,9 @@ SVGLinearGradientElement::GetLengthInfo()
 //-------------------------- Radial Gradients ----------------------------
 
 JSObject*
-SVGRadialGradientElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aScope)
+SVGRadialGradientElement::WrapNode(JSContext* aCx)
 {
-  return SVGRadialGradientElementBinding::Wrap(aCx, aScope, this);
+  return SVGRadialGradientElementBinding::Wrap(aCx, this);
 }
 
 nsSVGElement::LengthInfo SVGRadialGradientElement::sLengthInfo[5] =
@@ -207,7 +207,7 @@ nsSVGElement::LengthInfo SVGRadialGradientElement::sLengthInfo[5] =
 //----------------------------------------------------------------------
 // Implementation
 
-SVGRadialGradientElement::SVGRadialGradientElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+SVGRadialGradientElement::SVGRadialGradientElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : SVGRadialGradientElementBase(aNodeInfo)
 {
 }

@@ -12,15 +12,15 @@ namespace mozilla {
 namespace dom {
 
 JSObject*
-SVGMetadataElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+SVGMetadataElement::WrapNode(JSContext *aCx)
 {
-  return SVGMetadataElementBinding::Wrap(aCx, aScope, this);
+  return SVGMetadataElementBinding::Wrap(aCx, this);
 }
 
 //----------------------------------------------------------------------
 // Implementation
 
-SVGMetadataElement::SVGMetadataElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+SVGMetadataElement::SVGMetadataElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : SVGMetadataElementBase(aNodeInfo)
 {
 }

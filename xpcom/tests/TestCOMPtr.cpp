@@ -22,8 +22,8 @@ class IFoo : public nsISupports
       // virtual dtor because IBar uses our Release()
       virtual ~IFoo();
 
-      NS_IMETHOD_(nsrefcnt) AddRef();
-      NS_IMETHOD_(nsrefcnt) Release();
+      NS_IMETHOD_(MozExternalRefCountType) AddRef();
+      NS_IMETHOD_(MozExternalRefCountType) Release();
       NS_IMETHOD QueryInterface( const nsIID&, void** );
 
       static void print_totals();
@@ -101,7 +101,7 @@ IFoo::~IFoo()
            static_cast<void*>(this), total_destructions_);
   }
 
-nsrefcnt
+MozExternalRefCountType
 IFoo::AddRef()
   {
     ++refcount_;
@@ -110,7 +110,7 @@ IFoo::AddRef()
     return refcount_;
   }
 
-nsrefcnt
+MozExternalRefCountType
 IFoo::Release()
   {
     int newcount = --refcount_;
@@ -137,7 +137,7 @@ IFoo::QueryInterface( const nsIID& aIID, void** aResult )
 		nsISupports* rawPtr = 0;
 		nsresult status = NS_OK;
 
-		if ( aIID.Equals(GetIID()) )
+		if ( aIID.Equals(NS_GET_IID(IFoo)) )
 			rawPtr = this;
 		else
 			{
@@ -227,7 +227,7 @@ IBar::QueryInterface( const nsID& aIID, void** aResult )
 		nsISupports* rawPtr = 0;
 		nsresult status = NS_OK;
 
-		if ( aIID.Equals(GetIID()) )
+		if ( aIID.Equals(NS_GET_IID(IBar)) )
 			rawPtr = this;
 		else if ( aIID.Equals(NS_GET_IID(IFoo)) )
 			rawPtr = static_cast<IFoo*>(this);
@@ -543,7 +543,6 @@ main()
 
 			AnIFooPtrPtrContext( getter_AddRefs(fooP) );
 			AVoidPtrPtrContext( getter_AddRefs(fooP) );
-			AnISupportsPtrPtrContext( getter_AddRefs(fooP) );
 		}
 
 

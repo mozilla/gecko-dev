@@ -32,6 +32,8 @@ namespace mozilla {
 
 typedef nsTArray<nsRefPtr<mozilla::nsDOMCameraControl> > CameraControls;
 typedef nsClassHashtable<nsUint64HashKey, CameraControls> WindowTable;
+typedef mozilla::dom::Optional<mozilla::dom::OwningNonNull<mozilla::dom::CameraErrorCallback>>
+          OptionalNonNullCameraErrorCallback;
 
 class nsDOMCameraManager MOZ_FINAL
   : public nsIObserver
@@ -44,6 +46,13 @@ public:
                                                          nsIObserver)
   NS_DECL_NSIOBSERVER
 
+  // Because this header's filename doesn't match its C++ or DOM-facing
+  // classname, we can't rely on the [Func="..."] WebIDL tag to implicitly
+  // include the right header for us; instead we must explicitly include a
+  // HasSupport() method in each header. We can get rid of these with the
+  // Great Renaming proposed in bug 983177.
+  static bool HasSupport(JSContext* aCx, JSObject* aGlobal);
+
   static bool CheckPermission(nsPIDOMWindow* aWindow);
   static already_AddRefed<nsDOMCameraManager>
     CreateInstance(nsPIDOMWindow* aWindow);
@@ -52,16 +61,26 @@ public:
   void Register(mozilla::nsDOMCameraControl* aDOMCameraControl);
   void OnNavigation(uint64_t aWindowId);
 
+  void PermissionAllowed(uint32_t aCameraId,
+                         const mozilla::dom::CameraConfiguration& aOptions,
+                         mozilla::dom::GetCameraCallback* aOnSuccess,
+                         mozilla::dom::CameraErrorCallback* aOnError);
+
+  void PermissionCancelled(uint32_t aCameraId,
+                           const mozilla::dom::CameraConfiguration& aOptions,
+                           mozilla::dom::GetCameraCallback* aOnSuccess,
+                           mozilla::dom::CameraErrorCallback* aOnError);
+
   // WebIDL
   void GetCamera(const nsAString& aCamera,
                  const mozilla::dom::CameraConfiguration& aOptions,
                  mozilla::dom::GetCameraCallback& aOnSuccess,
-                 const mozilla::dom::Optional<mozilla::dom::OwningNonNull<mozilla::dom::CameraErrorCallback> >& aOnError,
+                 const OptionalNonNullCameraErrorCallback& aOnError,
                  mozilla::ErrorResult& aRv);
   void GetListOfCameras(nsTArray<nsString>& aList, mozilla::ErrorResult& aRv);
 
   nsPIDOMWindow* GetParentObject() const { return mWindow; }
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+  virtual JSObject* WrapObject(JSContext* aCx)
     MOZ_OVERRIDE;
 
 protected:
@@ -77,6 +96,7 @@ private:
 
 protected:
   uint64_t mWindowId;
+  uint32_t mPermission;
   nsCOMPtr<nsPIDOMWindow> mWindow;
   /**
    * 'sActiveWindows' is only ever accessed while in the Main Thread,

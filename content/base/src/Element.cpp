@@ -22,7 +22,6 @@
 #include "nsIDOMNodeList.h"
 #include "nsIDOMDocument.h"
 #include "nsIContentIterator.h"
-#include "nsEventListenerManager.h"
 #include "nsFocusManager.h"
 #include "nsILinkHandler.h"
 #include "nsIScriptGlobalObject.h"
@@ -35,7 +34,6 @@
 #include "nsStyleConsts.h"
 #include "nsString.h"
 #include "nsUnicharUtils.h"
-#include "nsEventStateManager.h"
 #include "nsIDOMEvent.h"
 #include "nsDOMCID.h"
 #include "nsIServiceManager.h"
@@ -49,7 +47,12 @@
 #include "nsDOMString.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsIDOMMutationEvent.h"
+#include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/ContentEvents.h"
+#include "mozilla/EventDispatcher.h"
+#include "mozilla/EventListenerManager.h"
+#include "mozilla/EventStateManager.h"
+#include "mozilla/EventStates.h"
 #include "mozilla/InternalMutationEvent.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/TextEvents.h"
@@ -90,7 +93,6 @@
 #include "nsGenericHTMLElement.h"
 #include "nsIEditor.h"
 #include "nsIEditorIMESupport.h"
-#include "nsEventDispatcher.h"
 #include "nsContentCreatorFunctions.h"
 #include "nsIControllers.h"
 #include "nsView.h"
@@ -99,7 +101,6 @@
 #include "mozilla/css/StyleRule.h" /* For nsCSSSelectorList */
 #include "nsCSSRuleProcessor.h"
 #include "nsRuleProcessorData.h"
-#include "nsAsyncDOMEvent.h"
 #include "nsTextNode.h"
 
 #ifdef MOZ_XUL
@@ -128,6 +129,7 @@
 #include "nsITextControlElement.h"
 #include "nsISupportsImpl.h"
 #include "mozilla/dom/DocumentFragment.h"
+#include "mozilla/IntegerPrintfMacros.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -147,7 +149,7 @@ Element::QueryInterface(REFNSIID aIID, void** aInstancePtr)
                                                                 aInstancePtr);
 }
 
-nsEventStates
+EventStates
 Element::IntrinsicState() const
 {
   return IsEditable() ? NS_EVENT_STATE_MOZ_READWRITE :
@@ -155,7 +157,7 @@ Element::IntrinsicState() const
 }
 
 void
-Element::NotifyStateChange(nsEventStates aStates)
+Element::NotifyStateChange(EventStates aStates)
 {
   nsIDocument* doc = GetCurrentDoc();
   if (doc) {
@@ -165,7 +167,7 @@ Element::NotifyStateChange(nsEventStates aStates)
 }
 
 void
-Element::UpdateLinkState(nsEventStates aState)
+Element::UpdateLinkState(EventStates aState)
 {
   NS_ABORT_IF_FALSE(!aState.HasAtLeastOneOfStates(~(NS_EVENT_STATE_VISITED |
                                                     NS_EVENT_STATE_UNVISITED)),
@@ -178,10 +180,10 @@ Element::UpdateLinkState(nsEventStates aState)
 void
 Element::UpdateState(bool aNotify)
 {
-  nsEventStates oldState = mState;
+  EventStates oldState = mState;
   mState = IntrinsicState() | (oldState & ESM_MANAGED_STATES);
   if (aNotify) {
-    nsEventStates changedStates = oldState ^ mState;
+    EventStates changedStates = oldState ^ mState;
     if (!changedStates.IsEmpty()) {
       nsIDocument* doc = GetCurrentDoc();
       if (doc) {
@@ -225,11 +227,11 @@ Element::UpdateEditableState(bool aNotify)
   }
 }
 
-nsEventStates
+EventStates
 Element::StyleStateFromLocks() const
 {
-  nsEventStates locks = LockedStyleStates();
-  nsEventStates state = mState | locks;
+  EventStates locks = LockedStyleStates();
+  EventStates state = mState | locks;
 
   if (locks.HasState(NS_EVENT_STATE_VISITED)) {
     return state & ~NS_EVENT_STATE_UNVISITED;
@@ -240,27 +242,19 @@ Element::StyleStateFromLocks() const
   return state;
 }
 
-nsEventStates
+EventStates
 Element::LockedStyleStates() const
 {
-  nsEventStates *locks =
-    static_cast<nsEventStates*> (GetProperty(nsGkAtoms::lockedStyleStates));
+  EventStates* locks =
+    static_cast<EventStates*>(GetProperty(nsGkAtoms::lockedStyleStates));
   if (locks) {
     return *locks;
   }
-  return nsEventStates();
-}
-
-static void
-nsEventStatesPropertyDtor(void *aObject, nsIAtom *aProperty,
-                          void *aPropertyValue, void *aData)
-{
-  nsEventStates *states = static_cast<nsEventStates*>(aPropertyValue);
-  delete states;
+  return EventStates();
 }
 
 void
-Element::NotifyStyleStateChange(nsEventStates aStates)
+Element::NotifyStyleStateChange(EventStates aStates)
 {
   nsIDocument* doc = GetCurrentDoc();
   if (doc) {
@@ -273,9 +267,9 @@ Element::NotifyStyleStateChange(nsEventStates aStates)
 }
 
 void
-Element::LockStyleStates(nsEventStates aStates)
+Element::LockStyleStates(EventStates aStates)
 {
-  nsEventStates *locks = new nsEventStates(LockedStyleStates());
+  EventStates* locks = new EventStates(LockedStyleStates());
 
   *locks |= aStates;
 
@@ -286,16 +280,17 @@ Element::LockStyleStates(nsEventStates aStates)
     *locks &= ~NS_EVENT_STATE_VISITED;
   }
 
-  SetProperty(nsGkAtoms::lockedStyleStates, locks, nsEventStatesPropertyDtor);
+  SetProperty(nsGkAtoms::lockedStyleStates, locks,
+              nsINode::DeleteProperty<EventStates>);
   SetHasLockedStyleStates();
 
   NotifyStyleStateChange(aStates);
 }
 
 void
-Element::UnlockStyleStates(nsEventStates aStates)
+Element::UnlockStyleStates(EventStates aStates)
 {
-  nsEventStates *locks = new nsEventStates(LockedStyleStates());
+  EventStates* locks = new EventStates(LockedStyleStates());
 
   *locks &= ~aStates;
 
@@ -305,7 +300,8 @@ Element::UnlockStyleStates(nsEventStates aStates)
     delete locks;
   }
   else {
-    SetProperty(nsGkAtoms::lockedStyleStates, locks, nsEventStatesPropertyDtor);
+    SetProperty(nsGkAtoms::lockedStyleStates, locks,
+                nsINode::DeleteProperty<EventStates>);
   }
 
   NotifyStyleStateChange(aStates);
@@ -314,7 +310,7 @@ Element::UnlockStyleStates(nsEventStates aStates)
 void
 Element::ClearStyleStateLocks()
 {
-  nsEventStates locks = LockedStyleStates();
+  EventStates locks = LockedStyleStates();
 
   DeleteProperty(nsGkAtoms::lockedStyleStates);
   ClearHasLockedStyleStates();
@@ -354,9 +350,9 @@ Element::GetBindingURL(nsIDocument *aDocument, css::URLValue **aResult)
 }
 
 JSObject*
-Element::WrapObject(JSContext *aCx, JS::Handle<JSObject*> aScope)
+Element::WrapObject(JSContext *aCx)
 {
-  JS::Rooted<JSObject*> obj(aCx, nsINode::WrapObject(aCx, aScope));
+  JS::Rooted<JSObject*> obj(aCx, nsINode::WrapObject(aCx));
   if (!obj) {
     return nullptr;
   }
@@ -478,7 +474,7 @@ void
 Element::GetElementsByTagName(const nsAString& aLocalName,
                               nsIDOMHTMLCollection** aResult)
 {
-  *aResult = GetElementsByTagName(aLocalName).get();
+  *aResult = GetElementsByTagName(aLocalName).take();
 }
 
 nsIFrame*
@@ -719,23 +715,29 @@ void
 Element::RemoveFromIdTable()
 {
   if (HasID()) {
-    if (HasFlag(NODE_IS_IN_SHADOW_TREE)) {
-      ShadowRoot* containingShadow = GetContainingShadow();
-      // Check for containingShadow because it may have
-      // been deleted during unlinking.
-      if (containingShadow) {
-        containingShadow->RemoveFromIdTable(this, DoGetID());
-      }
-    } else {
-      nsIDocument* doc = GetCurrentDoc();
-      if (doc) {
-        nsIAtom* id = DoGetID();
-        // id can be null during mutation events evilness. Also, XUL elements
-        // loose their proto attributes during cc-unlink, so this can happen
-        // during cc-unlink too.
-        if (id) {
-          doc->RemoveFromIdTable(this, DoGetID());
-        }
+    RemoveFromIdTable(DoGetID());
+  }
+}
+
+void
+Element::RemoveFromIdTable(nsIAtom* aId)
+{
+  NS_ASSERTION(HasID(), "Node doesn't have an ID?");
+  if (HasFlag(NODE_IS_IN_SHADOW_TREE)) {
+    ShadowRoot* containingShadow = GetContainingShadow();
+    // Check for containingShadow because it may have
+    // been deleted during unlinking.
+    if (containingShadow) {
+      containingShadow->RemoveFromIdTable(this, aId);
+    }
+  } else {
+    nsIDocument* doc = GetCurrentDoc();
+    if (doc && (!IsInAnonymousSubtree() || doc->IsXUL())) {
+      // id can be null during mutation events evilness. Also, XUL elements
+      // loose their proto attributes during cc-unlink, so this can happen
+      // during cc-unlink too.
+      if (aId) {
+        doc->RemoveFromIdTable(this, aId);
       }
     }
   }
@@ -1046,7 +1048,8 @@ nsresult
 Element::GetElementsByClassName(const nsAString& aClassNames,
                                 nsIDOMHTMLCollection** aResult)
 {
-  *aResult = nsContentUtils::GetElementsByClassName(this, aClassNames).get();
+  *aResult =
+    nsContentUtils::GetElementsByClassName(this, aClassNames).take();
   return NS_OK;
 }
 
@@ -1099,13 +1102,13 @@ Element::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
     }
   }
   NS_ASSERTION(!aBindingParent || IsRootOfNativeAnonymousSubtree() ||
-               !HasFlag(NODE_IS_IN_ANONYMOUS_SUBTREE) ||
+               !HasFlag(NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE) ||
                (aParent && aParent->IsInNativeAnonymousSubtree()),
                "Trying to re-bind content from native anonymous subtree to "
                "non-native anonymous parent!");
   if (aParent) {
     if (aParent->IsInNativeAnonymousSubtree()) {
-      SetFlags(NODE_IS_IN_ANONYMOUS_SUBTREE);
+      SetFlags(NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE);
     }
     if (aParent->HasFlag(NODE_CHROME_ONLY_ACCESS)) {
       SetFlags(NODE_CHROME_ONLY_ACCESS);
@@ -1158,8 +1161,8 @@ Element::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
     SetInDocument();
 
     if (GetCustomElementData()) {
-      // Enqueue an enteredView callback for the custom element.
-      aDocument->EnqueueLifecycleCallback(nsIDocument::eEnteredView, this);
+      // Enqueue an attached callback for the custom element.
+      aDocument->EnqueueLifecycleCallback(nsIDocument::eAttached, this);
     }
 
     // Unset this flag since we now really are in a document.
@@ -1258,7 +1261,17 @@ public:
 
   NS_IMETHOD Run()
   {
-    mManager->RemovedFromDocumentInternal(mElement, mDoc);
+    // It may be the case that the element was removed from the
+    // DOM, causing this runnable to be created, then inserted back
+    // into the document before the this runnable had a chance to
+    // tear down the binding. Only tear down the binding if the element
+    // is still no longer in the DOM. nsXBLService::LoadBinding tears
+    // down the old binding if the element is inserted back into the
+    // DOM and loads a different binding.
+    if (!mElement->IsInDoc()) {
+      mManager->RemovedFromDocumentInternal(mElement, mDoc);
+    }
+
     return NS_OK;
   }
 
@@ -1321,8 +1334,8 @@ Element::UnbindFromTree(bool aDeep, bool aNullParent)
     document->ClearBoxObjectFor(this);
 
     if (GetCustomElementData()) {
-      // Enqueue a leftView callback for the custom element.
-      document->EnqueueLifecycleCallback(nsIDocument::eLeftView, this);
+      // Enqueue a detached callback for the custom element.
+      document->EnqueueLifecycleCallback(nsIDocument::eDetached, this);
     }
   }
 
@@ -1643,8 +1656,8 @@ Element::SetEventHandler(nsIAtom* aEventName,
 
   NS_PRECONDITION(aEventName, "Must have event name!");
   bool defer = true;
-  nsEventListenerManager* manager = GetEventListenerManagerForAttr(aEventName,
-                                                                   &defer);
+  EventListenerManager* manager =
+    GetEventListenerManagerForAttr(aEventName, &defer);
   if (!manager) {
     return NS_OK;
   }
@@ -1929,7 +1942,7 @@ Element::SetAttrAndNotify(int32_t aNamespaceID,
     mutation.mAttrChange = aModType;
 
     mozAutoSubtreeModified subtree(OwnerDoc(), this);
-    (new nsAsyncDOMEvent(this, mutation))->RunDOMEventWhenSafe();
+    (new AsyncEventDispatcher(this, mutation))->RunDOMEventWhenSafe();
   }
 
   return NS_OK;
@@ -1954,7 +1967,7 @@ Element::SetMappedAttribute(nsIDocument* aDocument,
   return false;
 }
 
-nsEventListenerManager*
+EventListenerManager*
 Element::GetEventListenerManagerForAttr(nsIAtom* aAttrName,
                                         bool* aDefer)
 {
@@ -2114,7 +2127,7 @@ Element::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aName,
     mutation.mAttrChange = nsIDOMMutationEvent::REMOVAL;
 
     mozAutoSubtreeModified subtree(OwnerDoc(), this);
-    (new nsAsyncDOMEvent(this, mutation))->RunDOMEventWhenSafe();
+    (new AsyncEventDispatcher(this, mutation))->RunDOMEventWhenSafe();
   }
 
   return NS_OK;
@@ -2132,30 +2145,35 @@ Element::GetAttrCount() const
   return mAttrsAndChildren.AttrCount();
 }
 
+void
+Element::DescribeAttribute(uint32_t index, nsAString& aOutDescription) const
+{
+  // name
+  mAttrsAndChildren.AttrNameAt(index)->GetQualifiedName(aOutDescription);
+
+  // value
+  aOutDescription.AppendLiteral("=\"");
+  nsAutoString value;
+  mAttrsAndChildren.AttrAt(index)->ToString(value);
+  for (int i = value.Length(); i >= 0; --i) {
+    if (value[i] == char16_t('"'))
+      value.Insert(char16_t('\\'), uint32_t(i));
+  }
+  aOutDescription.Append(value);
+  aOutDescription.AppendLiteral("\"");
+}
+
 #ifdef DEBUG
 void
 Element::ListAttributes(FILE* out) const
 {
   uint32_t index, count = mAttrsAndChildren.AttrCount();
   for (index = 0; index < count; index++) {
-    nsAutoString buffer;
-
-    // name
-    mAttrsAndChildren.AttrNameAt(index)->GetQualifiedName(buffer);
-
-    // value
-    buffer.AppendLiteral("=\"");
-    nsAutoString value;
-    mAttrsAndChildren.AttrAt(index)->ToString(value);
-    for (int i = value.Length(); i >= 0; --i) {
-      if (value[i] == char16_t('"'))
-        value.Insert(char16_t('\\'), uint32_t(i));
-    }
-    buffer.Append(value);
-    buffer.AppendLiteral("\"");
+    nsAutoString attributeDescription;
+    DescribeAttribute(index, attributeDescription);
 
     fputs(" ", out);
-    fputs(NS_LossyConvertUTF16toASCII(buffer).get(), out);
+    fputs(NS_LossyConvertUTF16toASCII(attributeDescription).get(), out);
   }
 }
 
@@ -2183,7 +2201,7 @@ Element::List(FILE* out, int32_t aIndent,
     fprintf(out, " ranges:%d", ranges ? ranges->Count() : 0);
   }
   fprintf(out, " primaryframe=%p", static_cast<void*>(GetPrimaryFrame()));
-  fprintf(out, " refcount=%d<", mRefCnt.get());
+  fprintf(out, " refcount=%" PRIuPTR "<", mRefCnt.get());
 
   nsIContent* child = GetFirstChild();
   if (child) {
@@ -2279,8 +2297,23 @@ Element::DumpContent(FILE* out, int32_t aIndent,
 }
 #endif
 
+void
+Element::Describe(nsAString& aOutDescription) const
+{
+  aOutDescription.Append(mNodeInfo->QualifiedName());
+  aOutDescription.AppendPrintf("@%p", (void *)this);
+
+  uint32_t index, count = mAttrsAndChildren.AttrCount();
+  for (index = 0; index < count; index++) {
+    aOutDescription.Append(' ');
+    nsAutoString attributeDescription;
+    DescribeAttribute(index, attributeDescription);
+    aOutDescription.Append(attributeDescription);
+  }
+}
+
 bool
-Element::CheckHandleEventForLinksPrecondition(nsEventChainVisitor& aVisitor,
+Element::CheckHandleEventForLinksPrecondition(EventChainVisitor& aVisitor,
                                               nsIURI** aURI) const
 {
   if (aVisitor.mEventStatus == nsEventStatus_eConsumeNoDefault ||
@@ -2298,7 +2331,7 @@ Element::CheckHandleEventForLinksPrecondition(nsEventChainVisitor& aVisitor,
 }
 
 nsresult
-Element::PreHandleEventForLinks(nsEventChainPreVisitor& aVisitor)
+Element::PreHandleEventForLinks(EventChainPreVisitor& aVisitor)
 {
   // Optimisation: return early if this event doesn't interest us.
   // IMPORTANT: this switch and the switch below it must be kept in sync!
@@ -2359,7 +2392,7 @@ Element::PreHandleEventForLinks(nsEventChainPreVisitor& aVisitor)
 }
 
 nsresult
-Element::PostHandleEventForLinks(nsEventChainPostVisitor& aVisitor)
+Element::PostHandleEventForLinks(EventChainPostVisitor& aVisitor)
 {
   // Optimisation: return early if this event doesn't interest us.
   // IMPORTANT: this switch and the switch below it must be kept in sync!
@@ -2398,7 +2431,7 @@ Element::PostHandleEventForLinks(nsEventChainPostVisitor& aVisitor)
                                nsIFocusManager::FLAG_NOSCROLL);
           }
 
-          nsEventStateManager::SetActiveManager(
+          EventStateManager::SetActiveManager(
             aVisitor.mPresContext->EventStateManager(), this);
         }
       }
@@ -2581,12 +2614,12 @@ Element::MozRequestFullScreen()
                                     NS_LITERAL_CSTRING("DOM"), OwnerDoc(),
                                     nsContentUtils::eDOM_PROPERTIES,
                                     error);
-    nsRefPtr<nsAsyncDOMEvent> e =
-      new nsAsyncDOMEvent(OwnerDoc(),
-                          NS_LITERAL_STRING("mozfullscreenerror"),
-                          true,
-                          false);
-    e->PostDOMEvent();
+    nsRefPtr<AsyncEventDispatcher> asyncDispatcher =
+      new AsyncEventDispatcher(OwnerDoc(),
+                               NS_LITERAL_STRING("mozfullscreenerror"),
+                               true,
+                               false);
+    asyncDispatcher->PostDOMEvent();
     return;
   }
 

@@ -11,9 +11,13 @@
 #include "mozilla/dom/SVGGraphicsElement.h"
 
 nsresult NS_NewSVGAElement(nsIContent **aResult,
-                           already_AddRefed<nsINodeInfo> aNodeInfo);
+                           already_AddRefed<nsINodeInfo>&& aNodeInfo);
 
 namespace mozilla {
+
+class EventChainPostVisitor;
+class EventChainPreVisitor;
+
 namespace dom {
 
 typedef SVGGraphicsElement SVGAElementBase;
@@ -22,19 +26,19 @@ class SVGAElement MOZ_FINAL : public SVGAElementBase,
                               public Link
 {
 protected:
-  SVGAElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  SVGAElement(already_AddRefed<nsINodeInfo>& aNodeInfo);
   friend nsresult (::NS_NewSVGAElement(nsIContent **aResult,
-                                       already_AddRefed<nsINodeInfo> aNodeInfo));
-  virtual JSObject* WrapNode(JSContext *cx,
-                             JS::Handle<JSObject*> scope) MOZ_OVERRIDE;
+                                       already_AddRefed<nsINodeInfo>&& aNodeInfo));
+  virtual JSObject* WrapNode(JSContext *cx) MOZ_OVERRIDE;
 
 public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(SVGAElement, SVGAElementBase)
 
   // nsINode interface methods
-  virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
-  virtual nsresult PostHandleEvent(nsEventChainPostVisitor& aVisitor) MOZ_OVERRIDE;
+  virtual nsresult PreHandleEvent(EventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
+  virtual nsresult PostHandleEvent(
+                     EventChainPostVisitor& aVisitor) MOZ_OVERRIDE;
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const MOZ_OVERRIDE;
 
   // nsIContent
@@ -48,7 +52,7 @@ public:
   virtual bool IsLink(nsIURI** aURI) const MOZ_OVERRIDE;
   virtual void GetLinkTarget(nsAString& aTarget) MOZ_OVERRIDE;
   virtual already_AddRefed<nsIURI> GetHrefURI() const MOZ_OVERRIDE;
-  virtual nsEventStates IntrinsicState() const MOZ_OVERRIDE;
+  virtual EventStates IntrinsicState() const MOZ_OVERRIDE;
   nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
                    const nsAString& aValue, bool aNotify)
   {

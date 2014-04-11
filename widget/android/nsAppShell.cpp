@@ -82,20 +82,20 @@ public:
         nsCOMPtr<nsIBrowserTab> tab;
         mBrowserApp->GetBrowserTab(mTabId, getter_AddRefs(tab));
         if (!tab) {
-            ThumbnailHelper::SendThumbnail(buffer, mTabId, false);
+            mozilla::widget::android::ThumbnailHelper::SendThumbnail(buffer, mTabId, false);
             return NS_ERROR_FAILURE;
         }
 
         tab->GetWindow(getter_AddRefs(domWindow));
         if (!domWindow) {
-            ThumbnailHelper::SendThumbnail(buffer, mTabId, false);
+            mozilla::widget::android::ThumbnailHelper::SendThumbnail(buffer, mTabId, false);
             return NS_ERROR_FAILURE;
         }
 
         NS_ASSERTION(mPoints.Length() == 1, "Thumbnail event does not have enough coordinates");
 
         nsresult rv = AndroidBridge::Bridge()->CaptureThumbnail(domWindow, mPoints[0].x, mPoints[0].y, mTabId, buffer);
-        ThumbnailHelper::SendThumbnail(buffer, mTabId, NS_SUCCEEDED(rv));
+        mozilla::widget::android::ThumbnailHelper::SendThumbnail(buffer, mTabId, NS_SUCCEEDED(rv));
         return rv;
     }
 private:
@@ -110,7 +110,7 @@ class WakeLockListener MOZ_FINAL : public nsIDOMMozWakeLockListener {
   NS_DECL_ISUPPORTS;
 
   nsresult Callback(const nsAString& topic, const nsAString& state) {
-    GeckoAppShell::NotifyWakeLockChanged(topic, state);
+    mozilla::widget::android::GeckoAppShell::NotifyWakeLockChanged(topic, state);
     return NS_OK;
   }
 };
@@ -268,7 +268,7 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
           // in w3c spec
           case hal::SENSOR_ORIENTATION:
             values.AppendElement(360 -curEvent->X());
-            values.AppendElement(-curEvent->Y()); 
+            values.AppendElement(-curEvent->Y());
             values.AppendElement(-curEvent->Z());
             break;
           case hal::SENSOR_LINEAR_ACCELERATION:
@@ -276,7 +276,7 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
           case hal::SENSOR_GYROSCOPE:
           case hal::SENSOR_PROXIMITY:
             values.AppendElement(curEvent->X());
-            values.AppendElement(curEvent->Y()); 
+            values.AppendElement(curEvent->Y());
             values.AppendElement(curEvent->Z());
             break;
 
@@ -362,7 +362,7 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
         int32_t tabId = curEvent->MetaState();
         const nsTArray<nsIntPoint>& points = curEvent->Points();
         RefCountedJavaObject* buffer = curEvent->ByteBuffer();
-        nsCOMPtr<ThumbnailRunnable> sr = new ThumbnailRunnable(mBrowserApp, tabId, points, buffer);
+        nsRefPtr<ThumbnailRunnable> sr = new ThumbnailRunnable(mBrowserApp, tabId, points, buffer);
         MessageLoop::current()->PostIdleTask(FROM_HERE, NewRunnableMethod(sr.get(), &ThumbnailRunnable::Run));
         break;
     }
@@ -486,8 +486,7 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
     }
 
     case AndroidGeckoEvent::NETWORK_CHANGED: {
-        hal::NotifyNetworkChange(hal::NetworkInformation(curEvent->Bandwidth(),
-                                                         curEvent->CanBeMetered(),
+        hal::NotifyNetworkChange(hal::NetworkInformation(curEvent->ConnectionType(),
                                                          curEvent->IsWifi(),
                                                          curEvent->DHCPGateway()));
         break;
@@ -600,7 +599,7 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
     }
 
     if (curEvent->AckNeeded()) {
-        GeckoAppShell::AcknowledgeEvent();
+        mozilla::widget::android::GeckoAppShell::AcknowledgeEvent();
     }
 
     EVLOG("nsAppShell: -- done event %p %d", (void*)curEvent.get(), curEvent->Type());

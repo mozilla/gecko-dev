@@ -7,6 +7,7 @@
 #define WEBGLTEXTURE_H_
 
 #include "WebGLObjectModel.h"
+#include "WebGLFramebufferAttachable.h"
 
 #include "nsWrapperCache.h"
 
@@ -37,6 +38,7 @@ class WebGLTexture MOZ_FINAL
     , public WebGLRefCountedObject<WebGLTexture>
     , public LinkedListElement<WebGLTexture>
     , public WebGLContextBoundObject
+    , public WebGLFramebufferAttachable
 {
 public:
     WebGLTexture(WebGLContext *context);
@@ -56,8 +58,7 @@ public:
         return Context();
     }
 
-    virtual JSObject* WrapObject(JSContext *cx,
-                                 JS::Handle<JSObject*> scope) MOZ_OVERRIDE;
+    virtual JSObject* WrapObject(JSContext *cx) MOZ_OVERRIDE;
 
     NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(WebGLTexture)
     NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(WebGLTexture)

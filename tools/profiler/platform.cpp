@@ -7,8 +7,6 @@
 #include <sstream>
 #include <errno.h>
 
-#include "IOInterposer.h"
-#include "NSPRInterposer.h"
 #include "ProfilerIOInterposeObserver.h"
 #include "platform.h"
 #include "PlatformMacros.h"
@@ -478,13 +476,8 @@ void mozilla_sampler_init(void* stackTop)
   // from MOZ_PROFILER_STACK_SCAN.
   read_profiler_env_vars();
 
-  // Allow the profiler to be started using signals
-  OS::RegisterStartHandler();
-
-  // Initialize I/O interposing
-  mozilla::IOInterposer::Init();
-  // Initialize NSPR I/O Interposing
-  mozilla::InitNSPRIOInterposing();
+  // platform specific initialization
+  OS::Startup();
 
   // We can't open pref so we use an environment variable
   // to know if we should trigger the profiler on startup
@@ -532,16 +525,6 @@ void mozilla_sampler_shutdown()
   }
 
   profiler_stop();
-
-  // Unregister IO interpose observer
-  mozilla::IOInterposer::Unregister(mozilla::IOInterposeObserver::OpAll,
-                                    sInterposeObserver);
-  // mozilla_sampler_shutdown is only called at shutdown, and late-write checks
-  // might need the IO interposer, so we don't clear it. Don't worry it's
-  // designed not to report leaks.
-  // mozilla::IOInterposer::Clear();
-  mozilla::ClearNSPRIOInterposing();
-  sInterposeObserver = nullptr;
 
   Sampler::Shutdown();
 
@@ -668,6 +651,7 @@ void mozilla_sampler_start(int aProfileEntries, double aInterval,
         if (!thread_profile) {
           continue;
         }
+        thread_profile->GetPseudoStack()->reinitializeOnResume();
         if (t->ProfileJS()) {
           thread_profile->GetPseudoStack()->enableJSSampling();
         }
@@ -684,7 +668,7 @@ void mozilla_sampler_start(int aProfileEntries, double aInterval,
     if (javaInterval < 10) {
       aInterval = 10;
     }
-    GeckoJavaSampler::StartJavaProfiling(javaInterval, 1000);
+    mozilla::widget::android::GeckoJavaSampler::StartJavaProfiling(javaInterval, 1000);
   }
 #endif
 
@@ -741,12 +725,33 @@ void mozilla_sampler_stop()
 
   mozilla::IOInterposer::Unregister(mozilla::IOInterposeObserver::OpAll,
                                     sInterposeObserver);
+  sInterposeObserver = nullptr;
 
   sIsProfiling = false;
 
   nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
   if (os)
     os->NotifyObservers(nullptr, "profiler-stopped", nullptr);
+}
+
+bool mozilla_sampler_is_paused() {
+  if (Sampler::GetActiveSampler()) {
+    return Sampler::GetActiveSampler()->IsPaused();
+  } else {
+    return false;
+  }
+}
+
+void mozilla_sampler_pause() {
+  if (Sampler::GetActiveSampler()) {
+    Sampler::GetActiveSampler()->SetPaused(true);
+  }
+}
+
+void mozilla_sampler_resume() {
+  if (Sampler::GetActiveSampler()) {
+    Sampler::GetActiveSampler()->SetPaused(false);
+  }
 }
 
 bool mozilla_sampler_is_active()
@@ -830,6 +835,22 @@ void mozilla_sampler_unregister_thread()
   }
   delete stack;
   tlsPseudoStack.set(nullptr);
+}
+
+void mozilla_sampler_sleep_start() {
+    PseudoStack *stack = tlsPseudoStack.get();
+    if (stack == nullptr) {
+      return;
+    }
+    stack->setSleeping(1);
+}
+
+void mozilla_sampler_sleep_end() {
+    PseudoStack *stack = tlsPseudoStack.get();
+    if (stack == nullptr) {
+      return;
+    }
+    stack->setSleeping(0);
 }
 
 double mozilla_sampler_time(const TimeStamp& aTime)

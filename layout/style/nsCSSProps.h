@@ -16,6 +16,10 @@
 #include "nsStyleStructFwd.h"
 #include "nsCSSKeywords.h"
 
+// Length of the "--" prefix on custom names (such as custom property names,
+// and, in the future, custom media query names).
+#define CSS_CUSTOM_NAME_PREFIX_LENGTH 2
+
 // Flags for ParseVariant method
 #define VARIANT_KEYWORD         0x000001  // K
 #define VARIANT_LENGTH          0x000002  // L
@@ -201,6 +205,14 @@ static_assert((CSS_PROPERTY_PARSE_PROPERTY_MASK &
 // In other words, this bit has no effect on the use of aliases.
 #define CSS_PROPERTY_ALWAYS_ENABLED_IN_UA_SHEETS  (1<<22)
 
+// This property is always enabled in chrome and in certified apps. This is
+// meant to be used together with a pref that enables the property for
+// non-privileged content. Note that if such a property has an alias, then any
+// use of that alias in privileged content will still be ignored unless the
+// pref is enabled. In other words, this bit has no effect on the use of
+// aliases.
+#define CSS_PROPERTY_ALWAYS_ENABLED_IN_CHROME_OR_CERTIFIED_APP (1<<23)
+
 /**
  * Types of animatable values.
  */
@@ -258,12 +270,21 @@ public:
   static void AddRefTable(void);
   static void ReleaseTable(void);
 
-  // Given a property string, return the enum value
   enum EnabledState {
-    eEnabled,
-    eEnabledInUASheets,
-    eAny
+    // The default EnabledState: only enable what's enabled for all content,
+    // given the current values of preferences.
+    eEnabledForAllContent = 0,
+    // Enable a property in UA sheets.
+    eEnabledInUASheets    = 0x01,
+    // Enable a property in privileged content, i.e. chrome or Certified Apps
+    eEnabledInChromeOrCertifiedApp = 0x02,
+    // Special value to unconditionally enable a property. This implies all the
+    // bits above, but is strictly more than just their OR-ed union.
+    // This just skips any test so a property will be enabled even if it would
+    // have been disabled with all the bits above set.
+    eIgnoreEnabledState   = 0xff
   };
+
   // Looks up the property with name aProperty and returns its corresponding
   // nsCSSProperty value.  If aProperty is the name of a custom property,
   // then eCSSPropertyExtra_variable will be returned.
@@ -272,8 +293,7 @@ public:
   static nsCSSProperty LookupProperty(const nsACString& aProperty,
                                       EnabledState aEnabled);
   // Returns whether aProperty is a custom property name, i.e. begins with
-  // "var-" and has at least one more character.  This assumes that
-  // the CSS Variables pref has been enabled.
+  // "--".  This assumes that the CSS Variables pref has been enabled.
   static bool IsCustomPropertyName(const nsAString& aProperty);
   static bool IsCustomPropertyName(const nsACString& aProperty);
 
@@ -447,11 +467,25 @@ public:
     return gPropertyEnabled[aProperty];
   }
 
-  static bool IsEnabled(nsCSSProperty aProperty, EnabledState aEnabled) {
-    return IsEnabled(aProperty) ||
-      (aEnabled == eEnabledInUASheets &&
-       PropHasFlags(aProperty, CSS_PROPERTY_ALWAYS_ENABLED_IN_UA_SHEETS)) ||
-      aEnabled == eAny;
+  static bool IsEnabled(nsCSSProperty aProperty, EnabledState aEnabled)
+  {
+    if (IsEnabled(aProperty)) {
+      return true;
+    }
+    if (aEnabled == eIgnoreEnabledState) {
+      return true;
+    }
+    if ((aEnabled & eEnabledInUASheets) &&
+        PropHasFlags(aProperty, CSS_PROPERTY_ALWAYS_ENABLED_IN_UA_SHEETS))
+    {
+      return true;
+    }
+    if ((aEnabled & eEnabledInChromeOrCertifiedApp) &&
+        PropHasFlags(aProperty, CSS_PROPERTY_ALWAYS_ENABLED_IN_CHROME_OR_CERTIFIED_APP))
+    {
+      return true;
+    }
+    return false;
   }
 
 public:
@@ -541,6 +575,8 @@ public:
   static const KTableValue kFontVariantNumericKTable[];
   static const KTableValue kFontVariantPositionKTable[];
   static const KTableValue kFontWeightKTable[];
+  static const KTableValue kGridAutoFlowKTable[];
+  static const KTableValue kGridTrackBreadthKTable[];
   static const KTableValue kImageOrientationKTable[];
   static const KTableValue kImageOrientationFlipKTable[];
   static const KTableValue kIMEModeKTable[];
@@ -606,5 +642,29 @@ public:
   static const KTableValue kWritingModeKTable[];
   static const KTableValue kHyphensKTable[];
 };
+
+inline nsCSSProps::EnabledState operator|(nsCSSProps::EnabledState a,
+                                          nsCSSProps::EnabledState b)
+{
+  return nsCSSProps::EnabledState(int(a) | int(b));
+}
+
+inline nsCSSProps::EnabledState operator&(nsCSSProps::EnabledState a,
+                                          nsCSSProps::EnabledState b)
+{
+  return nsCSSProps::EnabledState(int(a) & int(b));
+}
+
+inline nsCSSProps::EnabledState& operator|=(nsCSSProps::EnabledState& a,
+                                            nsCSSProps::EnabledState b)
+{
+  return a = a | b;
+}
+
+inline nsCSSProps::EnabledState& operator&=(nsCSSProps::EnabledState& a,
+                                            nsCSSProps::EnabledState b)
+{
+  return a = a & b;
+}
 
 #endif /* nsCSSProps_h___ */

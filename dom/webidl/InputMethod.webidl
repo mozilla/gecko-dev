@@ -28,6 +28,35 @@ interface MozInputMethod : EventTarget {
   [ChromeOnly]
   // Activate or decactive current input method window.
   void setActive(boolean isActive);
+
+  // The following are internal methods for Firefox OS system app only.
+
+  // Set the value on the currently focused element. This has to be used
+  // for special situations where the value had to be chosen amongst a
+  // list (type=month) or a widget (type=date, time, etc.).
+  // If the value passed in parameter isn't valid (in the term of HTML5
+  // Forms Validation), the value will simply be ignored by the element.
+  [Throws]
+  void setValue(DOMString value);
+
+  // Select the <select> option specified by index.
+  // If this method is called on a <select> that support multiple
+  // selection, then the option specified by index will be added to
+  // the selection.
+  // If this method is called for a select that does not support multiple
+  // selection the previous element will be unselected.
+  [Throws]
+  void setSelectedOption(long index);
+
+  // Select the <select> options specified by indexes. All other options
+  // will be deselected.
+  // If this method is called for a <select> that does not support multiple
+  // selection, then the last index specified in indexes will be selected.
+  [Throws]
+  void setSelectedOptions(sequence<long> indexes);
+
+  [Throws]
+  void removeFocus();
 };
 
 // Manages the list of IMEs, enables/disables IME and switches to an
@@ -150,11 +179,15 @@ interface MozInputContext: EventTarget {
     /*
       * send a character with its key events.
       * @param modifiers see http://mxr.mozilla.org/mozilla-central/source/dom/interfaces/base/nsIDOMWindowUtils.idl#206
+      * @param repeat indicates whether a key would be sent repeatedly.
       * @return true if succeeds. Otherwise false if the input context becomes void.
       * Alternative: sendKey(KeyboardEvent event), but we will likely
       * waste memory for creating the KeyboardEvent object.
+      * Note that, if you want to send a key n times repeatedly, make sure set
+      * parameter repeat to true and invoke sendKey n-1 times, and then set
+      * repeat to false in the last invoke.
       */
-    Promise sendKey(long keyCode, long charCode, long modifiers);
+    Promise sendKey(long keyCode, long charCode, long modifiers, optional boolean repeat);
 
     /*
      * Set current composing text. This method will start composition or update

@@ -36,6 +36,9 @@ public:
   virtual void Init(nsIContent*      aContent,
                     nsIFrame*        aParent,
                     nsIFrame*        aPrevInFlow) MOZ_OVERRIDE;
+
+  virtual void DestroyFrom(nsIFrame* aDestructRoot) MOZ_OVERRIDE;
+
   /** @see nsIFrame::DidSetStyleContext */
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) MOZ_OVERRIDE;
   
@@ -240,7 +243,7 @@ protected:
                             bool                    aBorderCollapse,
                             nsTableCellReflowState& aReflowState);
   
-  virtual int GetSkipSides(const nsHTMLReflowState* aReflowState = nullptr) const MOZ_OVERRIDE;
+  virtual int GetLogicalSkipSides(const nsHTMLReflowState* aReflowState = nullptr) const MOZ_OVERRIDE;
 
   // row-specific methods
 

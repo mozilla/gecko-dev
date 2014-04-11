@@ -6,7 +6,7 @@
 
 this.EXPORTED_SYMBOLS = [ "BrowserUtils" ];
 
-const {interfaces: Ci, utils: Cu} = Components;
+const {interfaces: Ci, utils: Cu, classes: Cc} = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
 
@@ -62,6 +62,54 @@ this.BrowserUtils = {
 
   makeFileURI: function(aFile) {
     return Services.io.newFileURI(aFile);
+  },
+
+  /**
+   * Return the current focus element and window. If the current focus
+   * is in a content process, then this function returns CPOWs
+   * (cross-process object wrappers) that refer to the focused
+   * items. Note that calling this function synchronously contacts the
+   * content process, which may block for a long time.
+   *
+   * @param document The document in question.
+   * @return [focusedElement, focusedWindow]
+   */
+  getFocusSync: function(document) {
+    let elt = document.commandDispatcher.focusedElement;
+    var window = document.commandDispatcher.focusedWindow;
+
+    const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
+    if (elt instanceof window.XULElement &&
+        elt.localName == "browser" &&
+        elt.namespaceURI == XUL_NS &&
+        elt.getAttribute("remote")) {
+      [elt, window] = elt.syncHandler.getFocusedElementAndWindow();
+    }
+
+    return [elt, window];
+  },
+
+  /**
+   * For a given DOM element, returns its position in "screen"
+   * coordinates. In a content process, the coordinates returned will
+   * be relative to the left/top of the tab. In the chrome process,
+   * the coordinates are relative to the user's screen.
+   */
+  getElementBoundingScreenRect: function(aElement) {
+    let rect = aElement.getBoundingClientRect();
+    let window = aElement.ownerDocument.defaultView;
+
+    // We need to compensate for any iframes that might shift things
+    // over. We also need to compensate for zooming.
+    let fullZoom = window.getInterface(Ci.nsIDOMWindowUtils).fullZoom;
+    rect = {
+      left: (rect.left + window.mozInnerScreenX) * fullZoom,
+      top: (rect.top + window.mozInnerScreenY) * fullZoom,
+      width: rect.width * fullZoom,
+      height: rect.height * fullZoom
+    };
+
+    return rect;
   },
 
 };

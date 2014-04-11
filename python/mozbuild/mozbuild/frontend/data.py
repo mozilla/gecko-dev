@@ -423,6 +423,9 @@ class TestManifest(SandboxDerived):
         # The relative path of the parsed manifest within the srcdir.
         'manifest_relpath',
 
+        # The relative path of the parsed manifest within the objdir.
+        'manifest_obj_relpath',
+
         # If this manifest is a duplicate of another one, this is the
         # manifestparser.TestManifest of the other one.
         'dupe_manifest',
@@ -438,6 +441,7 @@ class TestManifest(SandboxDerived):
         self.flavor = flavor
         self.install_prefix = install_prefix
         self.manifest_relpath = relpath
+        self.manifest_obj_relpath = relpath
         self.dupe_manifest = dupe_manifest
         self.installs = {}
         self.pattern_installs = []
@@ -468,6 +472,21 @@ class GeneratedInclude(SandboxDerived):
         SandboxDerived.__init__(self, sandbox)
 
         self.path = path
+
+
+class PerSourceFlag(SandboxDerived):
+    """Describes compiler flags specified for individual source files."""
+
+    __slots__ = (
+        'file_name',
+        'flags',
+    )
+
+    def __init__(self, sandbox, file_name, flags):
+        SandboxDerived.__init__(self, sandbox)
+
+        self.file_name = file_name
+        self.flags = flags
 
 
 class JARManifest(SandboxDerived):

@@ -1248,6 +1248,20 @@ public:
 
   nsresult GetCachedRanges(nsTArray<MediaByteRange>& aRanges);
 
+  virtual size_t SizeOfExcludingThis(
+                        MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE
+  {
+    // Might be useful to track in the future:
+    // - mInput
+    return BaseMediaResource::SizeOfExcludingThis(aMallocSizeOf);
+  }
+
+  virtual size_t SizeOfIncludingThis(
+                        MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE
+  {
+    return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
+  }
+
 protected:
   // These Unsafe variants of Read and Seek perform their operations
   // without acquiring mLock. The caller must obtain the lock before
@@ -1643,6 +1657,9 @@ public:
 
 void BaseMediaResource::DispatchBytesConsumed(int64_t aNumBytes, int64_t aOffset)
 {
+  if (aNumBytes <= 0) {
+    return;
+  }
   RefPtr<nsIRunnable> event(new DispatchBytesConsumedEvent(mDecoder, aNumBytes, aOffset));
   NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
 }

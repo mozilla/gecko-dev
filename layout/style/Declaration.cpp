@@ -14,6 +14,7 @@
 #include "mozilla/css/Declaration.h"
 #include "nsPrintfCString.h"
 #include "gfxFontConstants.h"
+#include "nsStyleUtil.h"
 
 namespace mozilla {
 namespace css {
@@ -932,6 +933,172 @@ Declaration::GetValue(nsCSSProperty aProperty, nsAString& aValue,
       AppendValueToString(subprops[1], aValue, aSerialization);
       break;
     }
+    case eCSSProperty_grid_row:
+    case eCSSProperty_grid_column: {
+      // grid-{row,column}-start, grid-{row,column}-end, separated by a slash
+      const nsCSSProperty* subprops =
+        nsCSSProps::SubpropertyEntryFor(aProperty);
+      NS_ABORT_IF_FALSE(subprops[2] == eCSSProperty_UNKNOWN,
+                        "must have exactly two subproperties");
+
+      // TODO: should we simplify when possible?
+      AppendValueToString(subprops[0], aValue, aSerialization);
+      aValue.AppendLiteral(" / ");
+      AppendValueToString(subprops[1], aValue, aSerialization);
+      break;
+    }
+    case eCSSProperty_grid_area: {
+      const nsCSSProperty* subprops =
+        nsCSSProps::SubpropertyEntryFor(aProperty);
+      NS_ABORT_IF_FALSE(subprops[4] == eCSSProperty_UNKNOWN,
+                        "must have exactly four subproperties");
+
+      // TODO: should we simplify when possible?
+      AppendValueToString(subprops[0], aValue, aSerialization);
+      aValue.AppendLiteral(" / ");
+      AppendValueToString(subprops[1], aValue, aSerialization);
+      aValue.AppendLiteral(" / ");
+      AppendValueToString(subprops[2], aValue, aSerialization);
+      aValue.AppendLiteral(" / ");
+      AppendValueToString(subprops[3], aValue, aSerialization);
+      break;
+    }
+
+    // This can express either grid-template-{areas,columns,rows}
+    // or grid-auto-{flow,columns,rows}, but not both.
+    case eCSSProperty_grid: {
+      const nsCSSValue& areasValue =
+        *data->ValueFor(eCSSProperty_grid_template_areas);
+      const nsCSSValue& columnsValue =
+        *data->ValueFor(eCSSProperty_grid_template_columns);
+      const nsCSSValue& rowsValue =
+        *data->ValueFor(eCSSProperty_grid_template_rows);
+
+      const nsCSSValue& autoFlowValue =
+        *data->ValueFor(eCSSProperty_grid_auto_flow);
+      const nsCSSValue& autoColumnsValue =
+        *data->ValueFor(eCSSProperty_grid_auto_columns);
+      const nsCSSValue& autoRowsValue =
+        *data->ValueFor(eCSSProperty_grid_auto_rows);
+
+      if (areasValue.GetUnit() == eCSSUnit_None &&
+          columnsValue.GetUnit() == eCSSUnit_None &&
+          rowsValue.GetUnit() == eCSSUnit_None) {
+        AppendValueToString(eCSSProperty_grid_auto_flow,
+                            aValue, aSerialization);
+        aValue.Append(char16_t(' '));
+        AppendValueToString(eCSSProperty_grid_auto_columns,
+                            aValue, aSerialization);
+        aValue.AppendLiteral(" / ");
+        AppendValueToString(eCSSProperty_grid_auto_rows,
+                            aValue, aSerialization);
+        break;
+      } else if (!(autoFlowValue.GetUnit() == eCSSUnit_Enumerated &&
+                   autoFlowValue.GetIntValue() == NS_STYLE_GRID_AUTO_FLOW_NONE &&
+                   autoColumnsValue.GetUnit() == eCSSUnit_Auto &&
+                   autoRowsValue.GetUnit() == eCSSUnit_Auto)) {
+        // Not serializable, bail.
+        return;
+      }
+      // Fall through to eCSSProperty_grid_template
+    }
+    case eCSSProperty_grid_template: {
+      const nsCSSValue& areasValue =
+        *data->ValueFor(eCSSProperty_grid_template_areas);
+      const nsCSSValue& columnsValue =
+        *data->ValueFor(eCSSProperty_grid_template_columns);
+      const nsCSSValue& rowsValue =
+        *data->ValueFor(eCSSProperty_grid_template_rows);
+      if (areasValue.GetUnit() == eCSSUnit_None) {
+        AppendValueToString(eCSSProperty_grid_template_columns,
+                            aValue, aSerialization);
+        aValue.AppendLiteral(" / ");
+        AppendValueToString(eCSSProperty_grid_template_rows,
+                            aValue, aSerialization);
+        break;
+      }
+      if (columnsValue.GetUnit() == eCSSUnit_List ||
+          columnsValue.GetUnit() == eCSSUnit_ListDep) {
+        const nsCSSValueList* columnsItem = columnsValue.GetListValue();
+        if (columnsItem->mValue.GetUnit() == eCSSUnit_Enumerated &&
+            columnsItem->mValue.GetIntValue() == NS_STYLE_GRID_TEMPLATE_SUBGRID) {
+          // We have "grid-template-areas:[something]; grid-template-columns:subgrid"
+          // which isn't a value that the shorthand can express. Bail.
+          return;
+        }
+      }
+      if (rowsValue.GetUnit() != eCSSUnit_List &&
+          rowsValue.GetUnit() != eCSSUnit_ListDep) {
+        // We have "grid-template-areas:[something]; grid-template-rows:none"
+        // which isn't a value that the shorthand can express. Bail.
+        return;
+      }
+      const nsCSSValueList* rowsItem = rowsValue.GetListValue();
+      if (rowsItem->mValue.GetUnit() == eCSSUnit_Enumerated &&
+          rowsItem->mValue.GetIntValue() == NS_STYLE_GRID_TEMPLATE_SUBGRID) {
+        // We have "grid-template-areas:[something]; grid-template-rows:subgrid"
+        // which isn't a value that the shorthand can express. Bail.
+        return;
+      }
+      const GridTemplateAreasValue* areas = areasValue.GetGridTemplateAreas();
+      uint32_t nRowItems = 0;
+      while (rowsItem) {
+        nRowItems++;
+        rowsItem = rowsItem->mNext;
+      }
+      MOZ_ASSERT(nRowItems % 2 == 1, "expected an odd number of items");
+      if ((nRowItems - 1) / 2 != areas->NRows()) {
+        // Not serializable, bail.
+        return;
+      }
+      if (columnsValue.GetUnit() != eCSSUnit_None) {
+        AppendValueToString(eCSSProperty_grid_template_columns,
+                            aValue, aSerialization);
+        aValue.AppendLiteral(" / ");
+      }
+      rowsItem = rowsValue.GetListValue();
+      uint32_t row = 0;
+      for (;;) {
+        bool addSpaceSeparator = true;
+        nsCSSUnit unit = rowsItem->mValue.GetUnit();
+
+        if (unit == eCSSUnit_Null) {
+          // Empty or omitted <line-names>. Serializes to nothing.
+          addSpaceSeparator = false;  // Avoid a double space.
+
+        } else if (unit == eCSSUnit_List || unit == eCSSUnit_ListDep) {
+          // Non-empty <line-names>
+          aValue.AppendLiteral("(");
+          rowsItem->mValue.AppendToString(eCSSProperty_grid_template_rows,
+                                          aValue, aSerialization);
+          aValue.AppendLiteral(")");
+
+        } else {
+          nsStyleUtil::AppendEscapedCSSString(areas->mTemplates[row++], aValue);
+          aValue.Append(char16_t(' '));
+
+          // <track-size>
+          rowsItem->mValue.AppendToString(eCSSProperty_grid_template_rows,
+                                          aValue, aSerialization);
+          if (rowsItem->mNext &&
+              rowsItem->mNext->mValue.GetUnit() == eCSSUnit_Null &&
+              !rowsItem->mNext->mNext) {
+            // Break out of the loop early to avoid a trailing space.
+            break;
+          }
+        }
+
+        rowsItem = rowsItem->mNext;
+        if (!rowsItem) {
+          break;
+        }
+
+        if (addSpaceSeparator) {
+          aValue.Append(char16_t(' '));
+        }
+      }
+      break;
+    }
     case eCSSProperty__moz_transform: {
       // shorthands that are just aliases with different parsing rules
       const nsCSSProperty* subprops =
@@ -953,18 +1120,18 @@ Declaration::GetValue(nsCSSProperty aProperty, nsAString& aValue,
   }
 }
 
-// Length of the "var-" prefix of custom property names.
-#define VAR_PREFIX_LENGTH 4
-
 bool
 Declaration::GetValueIsImportant(const nsAString& aProperty) const
 {
-  nsCSSProperty propID = nsCSSProps::LookupProperty(aProperty, nsCSSProps::eAny);
+  nsCSSProperty propID =
+    nsCSSProps::LookupProperty(aProperty, nsCSSProps::eIgnoreEnabledState);
   if (propID == eCSSProperty_UNKNOWN) {
     return false;
   }
   if (propID == eCSSPropertyExtra_variable) {
-    return GetVariableValueIsImportant(Substring(aProperty, VAR_PREFIX_LENGTH));
+    const nsSubstring& variableName =
+      Substring(aProperty, CSS_CUSTOM_NAME_PREFIX_LENGTH);
+    return GetVariableValueIsImportant(variableName);
   }
   return GetValueIsImportant(propID);
 }
@@ -1019,7 +1186,7 @@ void
 Declaration::AppendVariableAndValueToString(const nsAString& aName,
                                             nsAString& aResult) const
 {
-  aResult.AppendLiteral("var-");
+  aResult.AppendLiteral("--");
   aResult.Append(aName);
   CSSVariableDeclarations::Type type;
   nsString value;
@@ -1341,7 +1508,7 @@ Declaration::AddVariableDeclaration(const nsAString& aName,
       break;
 
     default:
-      MOZ_ASSERT("unexpected aType value");
+      MOZ_ASSERT(false, "unexpected aType value");
   }
 
   uint32_t propertyIndex = index + eCSSProperty_COUNT;

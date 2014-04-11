@@ -15,6 +15,7 @@
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/TabChild.h"
+#include "mozilla/EventStateManager.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
 #include "mozilla/StartupTimeline.h"
@@ -67,6 +68,7 @@
 #include "nsITimedChannel.h"
 #include "nsIPrivacyTransitionObserver.h"
 #include "nsIReflowObserver.h"
+#include "nsIScrollObserver.h"
 #include "nsIDocShellTreeItem.h"
 #include "nsIChannel.h"
 #include "IHistory.h"
@@ -148,8 +150,6 @@
 #include "nsISelectionDisplay.h"
 
 #include "nsIGlobalHistory2.h"
-
-#include "nsEventStateManager.h"
 
 #include "nsIFrame.h"
 #include "nsSubDocumentFrame.h"
@@ -929,7 +929,7 @@ nsDocShell::Init()
 
     // We want to hold a strong ref to the loadgroup, so it better hold a weak
     // ref to us...  use an InterfaceRequestorProxy to do this.
-    nsCOMPtr<InterfaceRequestorProxy> proxy =
+    nsCOMPtr<nsIInterfaceRequestor> proxy =
         new InterfaceRequestorProxy(static_cast<nsIInterfaceRequestor*>
                                                (this));
     NS_ENSURE_TRUE(proxy, NS_ERROR_OUT_OF_MEMORY);
@@ -1516,9 +1516,9 @@ nsDocShell::LoadURI(nsIURI * aURI,
     // We need an owner (a referring principal).
     //
     // If ownerIsExplicit is not set there are 4 possibilities:
-    // (1) If the system principal was passed in and we're a typeContent
-    //     docshell, inherit the principal from the current document
-    //     instead.
+    // (1) If the system principal or an expanded principal was passed
+    //     in and we're a typeContent docshell, inherit the principal
+    //     from the current document instead.
     // (2) In all other cases when the principal passed in is not null,
     //     use that principal.
     // (3) If the caller has allowed inheriting from the current document,
@@ -1530,8 +1530,8 @@ nsDocShell::LoadURI(nsIURI * aURI,
     //     created later from the channel's internal data.
     //
     // If ownerIsExplicit *is* set, there are 4 possibilities
-    // (1) If the system principal was passed in and we're a typeContent
-    //     docshell, return an error.
+    // (1) If the system principal or an expanded principal was passed in
+    //     and we're a typeContent docshell, return an error.
     // (2) In all other cases when the principal passed in is not null,
     //     use that principal.
     // (3) If the caller has allowed inheriting from the current document,
@@ -1553,8 +1553,8 @@ nsDocShell::LoadURI(nsIURI * aURI,
         bool isSystem;
         rv = secMan->IsSystemPrincipal(ownerPrincipal, &isSystem);
         NS_ENSURE_SUCCESS(rv, rv);
-
-        if (isSystem) {
+        nsCOMPtr<nsIExpandedPrincipal> ep = do_QueryInterface(ownerPrincipal);
+        if (isSystem || ep) {
             if (ownerIsExplicit) {
                 return NS_ERROR_DOM_SECURITY_ERR;
             }
@@ -2857,6 +2857,39 @@ nsDocShell::GetCurrentDocChannel()
     return nullptr;
 }
 
+NS_IMETHODIMP
+nsDocShell::AddWeakScrollObserver(nsIScrollObserver* aObserver)
+{
+    nsWeakPtr weakObs = do_GetWeakReference(aObserver);
+    if (!weakObs) {
+        return NS_ERROR_FAILURE;
+    }
+    return mScrollObservers.AppendElement(weakObs) ? NS_OK : NS_ERROR_FAILURE;
+}
+
+NS_IMETHODIMP
+nsDocShell::RemoveWeakScrollObserver(nsIScrollObserver* aObserver)
+{
+    nsWeakPtr obs = do_GetWeakReference(aObserver);
+    return mScrollObservers.RemoveElement(obs) ? NS_OK : NS_ERROR_FAILURE;
+}
+
+NS_IMETHODIMP
+nsDocShell::NotifyScrollObservers()
+{
+    nsTObserverArray<nsWeakPtr>::ForwardIterator iter(mScrollObservers);
+    while (iter.HasMore()) {
+        nsWeakPtr ref = iter.GetNext();
+        nsCOMPtr<nsIScrollObserver> obs = do_QueryReferent(ref);
+        if (obs) {
+            obs->ScrollPositionChanged();
+        } else {
+            mScrollObservers.RemoveElement(ref);
+        }
+    }
+    return NS_OK;
+}
+
 //*****************************************************************************
 // nsDocShell::nsIDocShellTreeItem
 //*****************************************************************************   
@@ -2954,9 +2987,14 @@ nsDocShell::RecomputeCanExecuteScripts()
 
     // If we have no tree owner, that means that we've been detached from the
     // docshell tree (this is distinct from having no parent dochshell, which
-    // is the case for root docshells). In that case, don't allow script.
+    // is the case for root docshells). It would be nice to simply disallow
+    // script in detached docshells, but bug 986542 demonstrates that this
+    // behavior breaks at least one website.
+    //
+    // So instead, we use our previous value, unless mAllowJavascript has been
+    // explicitly set to false.
     if (!mTreeOwner) {
-        mCanExecuteScripts = false;
+        mCanExecuteScripts = mCanExecuteScripts && mAllowJavascript;
     // If scripting has been explicitly disabled on our docshell, we're done.
     } else if (!mAllowJavascript) {
         mCanExecuteScripts = false;
@@ -9280,19 +9318,6 @@ nsDocShell::InternalLoad(nsIURI * aURI,
            sameExceptHashes && !newHash.IsEmpty());
 
         if (doShortCircuitedLoad) {
-            // Cancel an outstanding new-document load if this is a history
-            // load.
-            //
-            // We can't cancel the oustanding load unconditionally, because if a
-            // page does
-            //   - load a.html
-            //   - start loading b.html
-            //   - load a.html#h
-            // we break the web if we cancel the load of b.html.
-            if (aSHEntry && mDocumentRequest) {
-                mDocumentRequest->Cancel(NS_BINDING_ABORTED);
-            }
-
             // Save the position of the scrollers.
             nscoord cx = 0, cy = 0;
             GetCurScrollPos(ScrollOrientation_X, &cx);
@@ -9323,6 +9348,8 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             }
 
             mURIResultedInDocument = true;
+
+            nsCOMPtr<nsISHEntry> oldLSHE = mLSHE;
 
             /* we need to assign mLSHE to aSHEntry right here, so that on History loads,
              * SetCurrentURI() called from OnNewURI() will send proper
@@ -9401,10 +9428,10 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                 SetCurScrollPosEx(bx, by);
             }
 
-            /* Clear out mLSHE so that further anchor visits get
-             * recorded in SH and SH won't misbehave. 
+            /* Restore the original LSHE if we were loading something
+             * while short-circuited load was initiated.
              */
-            SetHistoryEntry(&mLSHE, nullptr);
+            SetHistoryEntry(&mLSHE, oldLSHE);
             /* Set the title for the SH entry for this target url. so that
              * SH menus in go/back/forward buttons won't be empty for this.
              */
@@ -12754,7 +12781,7 @@ bool
 nsDocShell::ShouldBlockLoadingForBackButton()
 {
   if (!(mLoadType & LOAD_CMD_HISTORY) ||
-      nsEventStateManager::IsHandlingUserInput() ||
+      EventStateManager::IsHandlingUserInput() ||
       !Preferences::GetBool("accessibility.blockjsredirection")) {
     return false;
   }

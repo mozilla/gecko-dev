@@ -106,12 +106,6 @@
 
 namespace js {
 
-class TypeRepresentation;
-class ScalarTypeRepresentation;
-class ReferenceTypeRepresentation;
-class X4TypeRepresentation;
-class StructTypeDescr;
-
 /*
  * Helper method for converting a double into other scalar
  * types in the same way that JavaScript would. In particular,
@@ -132,9 +126,34 @@ static T ConvertScalar(double d)
     }
 }
 
+/*
+ * The prototype for a typed object. Currently, carries a link to the
+ * type descriptor. Eventually will carry most of the type information
+ * we want.
+ */
+class TypedProto : public JSObject
+{
+  public:
+    static const Class class_;
+
+    inline void initTypeDescrSlot(TypeDescr &descr);
+
+    TypeDescr &typeDescr() const {
+        return getReservedSlot(JS_TYPROTO_SLOT_DESCR).toObject().as<TypeDescr>();
+    }
+};
+
 class TypeDescr : public JSObject
 {
   public:
+    // This is *intentionally* not defined so as to produce link
+    // errors if a is<FooTypeDescr>() etc goes wrong. Otherwise, the
+    // default implementation resolves this to a reference to
+    // FooTypeDescr::class_ which resolves to
+    // JSObject::class_. Debugging the resulting errors leads to much
+    // fun and rejoicing.
+    static const Class class_;
+
     enum Kind {
         Scalar = JS_TYPEREPR_SCALAR_KIND,
         Reference = JS_TYPEREPR_REFERENCE_KIND,
@@ -148,17 +167,23 @@ class TypeDescr : public JSObject
         return kind > JS_TYPEREPR_MAX_UNSIZED_KIND;
     }
 
-    JSObject &typeRepresentationOwnerObj() const {
-        return getReservedSlot(JS_DESCR_SLOT_TYPE_REPR).toObject();
+    JSAtom &stringRepr() const {
+        return getReservedSlot(JS_DESCR_SLOT_STRING_REPR).toString()->asAtom();
     }
 
-    TypeRepresentation *typeRepresentation() const;
+    TypeDescr::Kind kind() const {
+        return (TypeDescr::Kind) getReservedSlot(JS_DESCR_SLOT_KIND).toInt32();
+    }
 
-    TypeDescr::Kind kind() const;
+    bool opaque() const {
+        return getReservedSlot(JS_DESCR_SLOT_OPAQUE).toBoolean();
+    }
 
-    bool opaque() const;
+    bool transparent() const {
+        return !opaque();
+    }
 
-    size_t alignment() {
+    int32_t alignment() {
         return getReservedSlot(JS_DESCR_SLOT_ALIGNMENT).toInt32();
     }
 };
@@ -168,9 +193,12 @@ typedef Handle<TypeDescr*> HandleTypeDescr;
 class SizedTypeDescr : public TypeDescr
 {
   public:
-    size_t size() {
+    int32_t size() {
         return getReservedSlot(JS_DESCR_SLOT_SIZE).toInt32();
     }
+
+    void initInstances(const JSRuntime *rt, uint8_t *mem, size_t length);
+    void traceInstances(JSTracer *trace, uint8_t *mem, size_t length);
 };
 
 typedef Handle<SizedTypeDescr*> HandleSizedTypeDescr;
@@ -205,13 +233,14 @@ class ScalarTypeDescr : public SimpleTypeDescr
     };
     static const int32_t TYPE_MAX = TYPE_UINT8_CLAMPED + 1;
 
-    static size_t size(Type t);
-    static size_t alignment(Type t);
+    static const TypeDescr::Kind Kind = TypeDescr::Scalar;
+    static const bool Opaque = false;
+    static int32_t size(Type t);
+    static int32_t alignment(Type t);
     static const char *typeName(Type type);
 
     static const Class class_;
     static const JSFunctionSpec typeObjectMethods[];
-    typedef ScalarTypeRepresentation TypeRepr;
 
     ScalarTypeDescr::Type type() const {
         return (ScalarTypeDescr::Type) getReservedSlot(JS_DESCR_SLOT_TYPE).toInt32();
@@ -253,12 +282,19 @@ class ReferenceTypeDescr : public SimpleTypeDescr
     static const int32_t TYPE_MAX = TYPE_STRING + 1;
     static const char *typeName(Type type);
 
+    static const TypeDescr::Kind Kind = TypeDescr::Reference;
+    static const bool Opaque = true;
     static const Class class_;
+    static int32_t size(Type t);
+    static int32_t alignment(Type t);
     static const JSFunctionSpec typeObjectMethods[];
-    typedef ReferenceTypeRepresentation TypeRepr;
 
     ReferenceTypeDescr::Type type() const {
         return (ReferenceTypeDescr::Type) getReservedSlot(JS_DESCR_SLOT_TYPE).toInt32();
+    }
+
+    const char *typeName() const {
+        return typeName(type());
     }
 
     static bool call(JSContext *cx, unsigned argc, Value *vp);
@@ -269,10 +305,22 @@ class ReferenceTypeDescr : public SimpleTypeDescr
     macro_(ReferenceTypeDescr::TYPE_OBJECT, HeapPtrObject, Object) \
     macro_(ReferenceTypeDescr::TYPE_STRING, HeapPtrString, string)
 
+// Type descriptors whose instances are objects and hence which have
+// an associated `prototype` property.
+class ComplexTypeDescr : public SizedTypeDescr
+{
+  public:
+    // Returns the prototype that instances of this type descriptor
+    // will have.
+    TypedProto &instancePrototype() const {
+        return getReservedSlot(JS_DESCR_SLOT_TYPROTO).toObject().as<TypedProto>();
+    }
+};
+
 /*
  * Type descriptors `float32x4` and `int32x4`
  */
-class X4TypeDescr : public SizedTypeDescr
+class X4TypeDescr : public ComplexTypeDescr
 {
   public:
     enum Type {
@@ -280,8 +328,11 @@ class X4TypeDescr : public SizedTypeDescr
         TYPE_FLOAT32 = JS_X4TYPEREPR_FLOAT32,
     };
 
+    static const TypeDescr::Kind Kind = TypeDescr::X4;
+    static const bool Opaque = false;
     static const Class class_;
-    typedef X4TypeRepresentation TypeRepr;
+    static int32_t size(Type t);
+    static int32_t alignment(Type t);
 
     X4TypeDescr::Type type() const {
         return (X4TypeDescr::Type) getReservedSlot(JS_DESCR_SLOT_TYPE).toInt32();
@@ -295,11 +346,10 @@ class X4TypeDescr : public SizedTypeDescr
     macro_(X4TypeDescr::TYPE_INT32, int32_t, int32)                  \
     macro_(X4TypeDescr::TYPE_FLOAT32, float, float32)
 
-bool IsTypedObjectClass(const Class *clasp); // Defined in TypedArrayObject.h
+bool IsTypedObjectClass(const Class *clasp); // Defined below
+bool IsTypedObjectArray(JSObject& obj);
 
-bool InitializeCommonTypeDescriptorProperties(JSContext *cx,
-                                              HandleTypeDescr obj,
-                                              HandleObject typeReprOwnerObj);
+bool CreateUserSizeAndAlignmentProperties(JSContext *cx, HandleTypeDescr obj);
 
 /*
  * Properties and methods of the `ArrayType` meta type object. There
@@ -319,13 +369,15 @@ class ArrayMetaTypeDescr : public JSObject
     //                          either ArrayType.prototype or
     //                          unsizedArrayType.__proto__ depending on
     //                          whether this is a sized or unsized array
-    // - `arrayTypeReprObj` - a type representation object for the array
     // - `elementType` - type object for the elements in the array
+    // - `stringRepr` - canonical string representation for the array
+    // - `size` - length of the array (0 if unsized)
     template<class T>
     static T *create(JSContext *cx,
                      HandleObject arrayTypePrototype,
-                     HandleObject arrayTypeReprObj,
-                     HandleSizedTypeDescr elementType);
+                     HandleSizedTypeDescr elementType,
+                     HandleAtom stringRepr,
+                     int32_t size);
 
   public:
     // Properties and methods to be installed on ArrayType.prototype,
@@ -345,11 +397,17 @@ class ArrayMetaTypeDescr : public JSObject
 
 /*
  * Type descriptor created by `new ArrayType(typeObj)`
+ *
+ * These have a prototype, and hence *could* be a subclass of
+ * `ComplexTypeDescr`, but it would require some reshuffling of the
+ * hierarchy, and it's not worth the trouble since they will be going
+ * away as part of bug 973238.
  */
 class UnsizedArrayTypeDescr : public TypeDescr
 {
   public:
     static const Class class_;
+    static const TypeDescr::Kind Kind = TypeDescr::UnsizedArray;
 
     // This is the sized method on unsized array type objects.  It
     // produces a sized variant.
@@ -363,17 +421,18 @@ class UnsizedArrayTypeDescr : public TypeDescr
 /*
  * Type descriptor created by `unsizedArrayTypeObj.dimension()`
  */
-class SizedArrayTypeDescr : public SizedTypeDescr
+class SizedArrayTypeDescr : public ComplexTypeDescr
 {
   public:
     static const Class class_;
+    static const TypeDescr::Kind Kind = TypeDescr::SizedArray;
 
     SizedTypeDescr &elementType() {
         return getReservedSlot(JS_DESCR_SLOT_ARRAY_ELEM_TYPE).toObject().as<SizedTypeDescr>();
     }
 
-    size_t length() {
-        return (size_t) getReservedSlot(JS_DESCR_SLOT_SIZED_ARRAY_LENGTH).toInt32();
+    int32_t length() {
+        return getReservedSlot(JS_DESCR_SLOT_SIZED_ARRAY_LENGTH).toInt32();
     }
 };
 
@@ -387,14 +446,6 @@ class StructMetaTypeDescr : public JSObject
   private:
     static JSObject *create(JSContext *cx, HandleObject structTypeGlobal,
                             HandleObject fields);
-
-    /*
-     * Sets up structType slots based on calculated memory size
-     * and alignment and stores fieldmap as well.
-     */
-    static bool layout(JSContext *cx,
-                       Handle<StructTypeDescr*> structType,
-                       HandleObject fields);
 
   public:
     // Properties and methods to be installed on StructType.prototype,
@@ -412,19 +463,26 @@ class StructMetaTypeDescr : public JSObject
     static bool construct(JSContext *cx, unsigned argc, Value *vp);
 };
 
-class StructTypeDescr : public SizedTypeDescr {
+class StructTypeDescr : public ComplexTypeDescr
+{
   public:
     static const Class class_;
+
+    // Returns the number of fields defined in this struct.
+    size_t fieldCount();
 
     // Set `*out` to the index of the field named `id` and returns true,
     // or return false if no such field exists.
     bool fieldIndex(jsid id, size_t *out);
 
+    // Return the name of the field at index `index`.
+    JSAtom &fieldName(size_t index);
+
     // Return the type descr of the field at index `index`.
     SizedTypeDescr &fieldDescr(size_t index);
 
     // Return the offset of the field at index `index`.
-    size_t fieldOffset(size_t index);
+    int32_t fieldOffset(size_t index);
 };
 
 typedef Handle<StructTypeDescr*> HandleStructTypeDescr;
@@ -443,11 +501,6 @@ class TypedObjectModuleObject : public JSObject {
     };
 
     static const Class class_;
-
-    static bool getSuitableClaspAndProto(JSContext *cx,
-                                         TypeDescr::Kind kind,
-                                         const Class **clasp,
-                                         MutableHandleObject proto);
 };
 
 /*
@@ -489,11 +542,6 @@ class TypedObject : public ArrayBufferViewObject
                                   uint32_t index, MutableHandleObject objp,
                                   MutableHandleShape propp);
 
-    static bool obj_lookupSpecial(JSContext *cx, HandleObject obj,
-                                  HandleSpecialId sid,
-                                  MutableHandleObject objp,
-                                  MutableHandleShape propp);
-
     static bool obj_defineGeneric(JSContext *cx, HandleObject obj, HandleId id, HandleValue v,
                                   PropertyOp getter, StrictPropertyOp setter, unsigned attrs);
 
@@ -502,9 +550,6 @@ class TypedObject : public ArrayBufferViewObject
                                    PropertyOp getter, StrictPropertyOp setter, unsigned attrs);
 
     static bool obj_defineElement(JSContext *cx, HandleObject obj, uint32_t index, HandleValue v,
-                                  PropertyOp getter, StrictPropertyOp setter, unsigned attrs);
-
-    static bool obj_defineSpecial(JSContext *cx, HandleObject obj, HandleSpecialId sid, HandleValue v,
                                   PropertyOp getter, StrictPropertyOp setter, unsigned attrs);
 
     static bool obj_getGeneric(JSContext *cx, HandleObject obj, HandleObject receiver,
@@ -519,17 +564,12 @@ class TypedObject : public ArrayBufferViewObject
     static bool obj_getUnsizedArrayElement(JSContext *cx, HandleObject obj, HandleObject receiver,
                                          uint32_t index, MutableHandleValue vp);
 
-    static bool obj_getSpecial(JSContext *cx, HandleObject obj, HandleObject receiver,
-                               HandleSpecialId sid, MutableHandleValue vp);
-
     static bool obj_setGeneric(JSContext *cx, HandleObject obj, HandleId id,
                                MutableHandleValue vp, bool strict);
     static bool obj_setProperty(JSContext *cx, HandleObject obj, HandlePropertyName name,
                                 MutableHandleValue vp, bool strict);
     static bool obj_setElement(JSContext *cx, HandleObject obj, uint32_t index,
                                MutableHandleValue vp, bool strict);
-    static bool obj_setSpecial(JSContext *cx, HandleObject obj,
-                               HandleSpecialId sid, MutableHandleValue vp, bool strict);
 
     static bool obj_getGenericAttributes(JSContext *cx, HandleObject obj,
                                          HandleId id, unsigned *attrsp);
@@ -540,20 +580,23 @@ class TypedObject : public ArrayBufferViewObject
                                    bool *succeeded);
     static bool obj_deleteElement(JSContext *cx, HandleObject obj, uint32_t index,
                                   bool *succeeded);
-    static bool obj_deleteSpecial(JSContext *cx, HandleObject obj, HandleSpecialId sid,
-                                  bool *succeeded);
 
     static bool obj_enumerate(JSContext *cx, HandleObject obj, JSIterateOp enum_op,
                               MutableHandleValue statep, MutableHandleId idp);
 
   public:
+    static size_t offsetOfOwnerSlot();
+
     // Each typed object contains a void* pointer pointing at the
     // binary data that it represents. (That data may be owned by this
     // object or this object may alias data owned by someone else.)
     // This function returns the offset in bytes within the object
     // where the `void*` pointer can be found. It is intended for use
     // by the JIT.
-    static size_t dataOffset();
+    static size_t offsetOfDataSlot();
+
+    // Offset of the byte offset slot.
+    static size_t offsetOfByteOffsetSlot();
 
     // Helper for createUnattached()
     static TypedObject *createUnattachedWithClass(JSContext *cx,
@@ -576,16 +619,16 @@ class TypedObject : public ArrayBufferViewObject
     // at the given offset. The typedObj will be a handle iff type is a
     // handle and a typed object otherwise.
     static TypedObject *createDerived(JSContext *cx,
-                                     HandleSizedTypeDescr type,
-                                     Handle<TypedObject*> typedContents,
-                                     size_t offset);
+                                      HandleSizedTypeDescr type,
+                                      Handle<TypedObject*> typedContents,
+                                      int32_t offset);
 
     // Creates a new typed object whose memory is freshly allocated
     // and initialized with zeroes (or, in the case of references, an
     // appropriate default value).
     static TypedObject *createZeroed(JSContext *cx,
-                                    HandleTypeDescr typeObj,
-                                    int32_t length);
+                                     HandleTypeDescr typeObj,
+                                     int32_t length);
 
     // User-accessible constructor (`new TypeDescriptor(...)`)
     // used for sized types. Note that the callee here is the *type descriptor*,
@@ -602,7 +645,7 @@ class TypedObject : public ArrayBufferViewObject
     void attach(TypedObject &typedObj, int32_t offset);
 
     // Invoked when array buffer is transferred elsewhere
-    void neuter(JSContext *cx);
+    void neuter(void *newData);
 
     int32_t offset() const {
         return getReservedSlot(JS_TYPEDOBJ_SLOT_BYTEOFFSET).toInt32();
@@ -616,19 +659,19 @@ class TypedObject : public ArrayBufferViewObject
         return getReservedSlot(JS_TYPEDOBJ_SLOT_TYPE_DESCR).toObject().as<TypeDescr>();
     }
 
-    TypeRepresentation *typeRepresentation() const {
-        return typeDescr().typeRepresentation();
-    }
-
     uint8_t *typedMem() const {
         return (uint8_t*) getPrivate();
     }
 
-    size_t length() const {
+    int32_t byteLength() const {
+        return getReservedSlot(JS_TYPEDOBJ_SLOT_BYTELENGTH).toInt32();
+    }
+
+    int32_t length() const {
         return getReservedSlot(JS_TYPEDOBJ_SLOT_LENGTH).toInt32();
     }
 
-    size_t size() const {
+    int32_t size() const {
         switch (typeDescr().kind()) {
           case TypeDescr::Scalar:
           case TypeDescr::X4:
@@ -651,7 +694,7 @@ class TypedObject : public ArrayBufferViewObject
         // 0-sized value. (In other words, we maintain the invariant
         // that `offset + size <= size()` -- this is always checked in
         // the caller's side.)
-        JS_ASSERT(offset <= size());
+        JS_ASSERT(offset <= (size_t) size());
         return typedMem() + offset;
     }
 };
@@ -702,8 +745,9 @@ extern const JSJitInfo AttachTypedObjectJitInfo;
  * Changes the offset for `typedObj` within its buffer to `offset`.
  * `typedObj` must already be attached.
  */
-bool SetTypedObjectOffset(ThreadSafeContext *cx, unsigned argc, Value *vp);
-extern const JSJitInfo SetTypedObjectOffsetJitInfo;
+bool intrinsic_SetTypedObjectOffset(JSContext *cx, unsigned argc, Value *vp);
+bool SetTypedObjectOffset(ThreadSafeContext *, unsigned argc, Value *vp);
+extern const JSJitInfo intrinsic_SetTypedObjectOffsetJitInfo;
 
 /*
  * Usage: ObjectIsTypeDescr(obj)
@@ -714,9 +758,17 @@ bool ObjectIsTypeDescr(ThreadSafeContext *cx, unsigned argc, Value *vp);
 extern const JSJitInfo ObjectIsTypeDescrJitInfo;
 
 /*
+ * Usage: ObjectIsTypedObject(obj)
+ *
+ * True if `obj` is a transparent or opaque typed object.
+ */
+bool ObjectIsTypedObject(ThreadSafeContext *cx, unsigned argc, Value *vp);
+extern const JSJitInfo ObjectIsTypedObjectJitInfo;
+
+/*
  * Usage: ObjectIsOpaqueTypedObject(obj)
  *
- * True if `obj` is a handle.
+ * True if `obj` is an opaque typed object.
  */
 bool ObjectIsOpaqueTypedObject(ThreadSafeContext *cx, unsigned argc, Value *vp);
 extern const JSJitInfo ObjectIsOpaqueTypedObjectJitInfo;
@@ -724,10 +776,24 @@ extern const JSJitInfo ObjectIsOpaqueTypedObjectJitInfo;
 /*
  * Usage: ObjectIsTransparentTypedObject(obj)
  *
- * True if `obj` is a typed object.
+ * True if `obj` is a transparent typed object.
  */
 bool ObjectIsTransparentTypedObject(ThreadSafeContext *cx, unsigned argc, Value *vp);
 extern const JSJitInfo ObjectIsTransparentTypedObjectJitInfo;
+
+/* Predicates on type descriptor objects.  In all cases, 'obj' must be a type descriptor. */
+
+bool TypeDescrIsSimpleType(ThreadSafeContext *, unsigned argc, Value *vp);
+extern const JSJitInfo TypeDescrIsSimpleTypeJitInfo;
+
+bool TypeDescrIsArrayType(ThreadSafeContext *, unsigned argc, Value *vp);
+extern const JSJitInfo TypeDescrIsArrayTypeJitInfo;
+
+bool TypeDescrIsSizedArrayType(ThreadSafeContext *, unsigned argc, Value *vp);
+extern const JSJitInfo TypeDescrIsSizedArrayTypeJitInfo;
+
+bool TypeDescrIsUnsizedArrayType(ThreadSafeContext *, unsigned argc, Value *vp);
+extern const JSJitInfo TypeDescrIsUnsizedArrayTypeJitInfo;
 
 /*
  * Usage: TypedObjectIsAttached(obj)
@@ -888,12 +954,18 @@ IsSimpleTypeDescrClass(const Class* clasp)
 }
 
 inline bool
+IsComplexTypeDescrClass(const Class* clasp)
+{
+    return clasp == &StructTypeDescr::class_ ||
+           clasp == &SizedArrayTypeDescr::class_ ||
+           clasp == &X4TypeDescr::class_;
+}
+
+inline bool
 IsSizedTypeDescrClass(const Class* clasp)
 {
     return IsSimpleTypeDescrClass(clasp) ||
-           clasp == &StructTypeDescr::class_ ||
-           clasp == &SizedArrayTypeDescr::class_ ||
-           clasp == &X4TypeDescr::class_;
+           IsComplexTypeDescrClass(clasp);
 }
 
 inline bool
@@ -924,6 +996,13 @@ JSObject::is<js::SizedTypeDescr>() const
 
 template <>
 inline bool
+JSObject::is<js::ComplexTypeDescr>() const
+{
+    return IsComplexTypeDescrClass(getClass());
+}
+
+template <>
+inline bool
 JSObject::is<js::TypeDescr>() const
 {
     return IsTypeDescrClass(getClass());
@@ -934,6 +1013,26 @@ inline bool
 JSObject::is<js::TypedObject>() const
 {
     return IsTypedObjectClass(getClass());
+}
+
+template<>
+inline bool
+JSObject::is<js::SizedArrayTypeDescr>() const
+{
+    return getClass() == &js::SizedArrayTypeDescr::class_;
+}
+
+template<>
+inline bool
+JSObject::is<js::UnsizedArrayTypeDescr>() const
+{
+    return getClass() == &js::UnsizedArrayTypeDescr::class_;
+}
+
+inline void
+js::TypedProto::initTypeDescrSlot(TypeDescr &descr)
+{
+    initReservedSlot(JS_TYPROTO_SLOT_DESCR, ObjectValue(descr));
 }
 
 #endif /* builtin_TypedObject_h */

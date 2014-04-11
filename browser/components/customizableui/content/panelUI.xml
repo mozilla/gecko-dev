@@ -249,11 +249,11 @@
               target = edge + center;
             }
             this._mainViewContainer.style.transform = "translateX(" + target + "px)";
-            aAnchor.classList.add("panel-multiview-anchor");
+            aAnchor.setAttribute("panel-multiview-anchor", true);
           } else {
             this._mainViewContainer.style.transform = "";
             if (this.anchorElement)
-              this.anchorElement.classList.remove("panel-multiview-anchor");
+              this.anchorElement.removeAttribute("panel-multiview-anchor");
           }
           this.anchorElement = aAnchor;
         ]]></body>
@@ -266,18 +266,20 @@
             // Shouldn't act on e.g. context menus being shown from within the panel.
             return;
           }
-          switch(aEvent.type) {
+          switch (aEvent.type) {
             case "click":
               if (aEvent.originalTarget == this._clickCapturer) {
                 this.showMainView();
               }
               break;
             case "overflow":
-              // Resize the right view on the next tick.
-              if (this.showingSubView) {
-                setTimeout(this._syncContainerWithSubView.bind(this), 0);
-              } else if (!this.transitioning) {
-                setTimeout(this._syncContainerWithMainView.bind(this), 0);
+              if (aEvent.target.localName == "vbox") {
+                // Resize the right view on the next tick.
+                if (this.showingSubView) {
+                  setTimeout(this._syncContainerWithSubView.bind(this), 0);
+                } else if (!this.transitioning) {
+                  setTimeout(this._syncContainerWithMainView.bind(this), 0);
+                }
               }
               break;
             case "popupshowing":
@@ -323,6 +325,11 @@
       </method>
       <method name="_syncContainerWithSubView">
         <body><![CDATA[
+          // Check that this panel is still alive:
+          if (!this._panel || !this._panel.parentNode) {
+            return;
+          }
+
           if (!this.ignoreMutations && this.showingSubView) {
             let newHeight = this._heightOfSubview(this._currentSubView, this._subViews);
             this._viewContainer.style.height = newHeight + "px";
@@ -331,6 +338,11 @@
       </method>
       <method name="_syncContainerWithMainView">
         <body><![CDATA[
+          // Check that this panel is still alive:
+          if (!this._panel || !this._panel.parentNode) {
+            return;
+          }
+
           if (!this.ignoreMutations && !this.showingSubView && !this._transitioning) {
             let height;
             if (this.showingSubViewAsMainView) {

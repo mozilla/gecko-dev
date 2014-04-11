@@ -32,6 +32,8 @@
 
 #include "jsobjinlines.h"
 
+#include "vm/ErrorObject-inl.h"
+
 using namespace js;
 using namespace js::gc;
 using namespace js::types;
@@ -210,17 +212,16 @@ js::ComputeStackString(JSContext *cx)
     {
         RootedAtom atom(cx);
         SuppressErrorsGuard seg(cx);
-        // We should get rid of the CURRENT_CONTEXT and STOP_AT_SAVED here.
-        // See bug 960820.
-        for (NonBuiltinScriptFrameIter i(cx, ScriptFrameIter::CURRENT_CONTEXT,
-                                         ScriptFrameIter::STOP_AT_SAVED,
-                                         cx->compartment()->principals);
-            !i.done(); ++i)
+        for (NonBuiltinFrameIter i(cx, FrameIter::ALL_CONTEXTS, FrameIter::GO_THROUGH_SAVED,
+                                   cx->compartment()->principals);
+             !i.done();
+             ++i)
         {
             /* First append the function name, if any. */
-            atom = nullptr;
-            if (i.isNonEvalFunctionFrame() && i.callee()->displayAtom())
-                atom = i.callee()->displayAtom();
+            if (i.isNonEvalFunctionFrame())
+                atom = i.functionDisplayAtom();
+            else
+                atom = nullptr;
             if (atom && !sb.append(atom))
                 return nullptr;
 
@@ -229,15 +230,14 @@ js::ComputeStackString(JSContext *cx)
                 return nullptr;
 
             /* Now the filename. */
-            RootedScript script(cx, i.script());
-            const char *cfilename = script->filename();
+            const char *cfilename = i.scriptFilename();
             if (!cfilename)
                 cfilename = "";
             if (!sb.appendInflated(cfilename, strlen(cfilename)))
                 return nullptr;
 
             uint32_t column = 0;
-            uint32_t line = PCToLineNumber(script, i.pc(), &column);
+            uint32_t line = i.computeLine(&column);
             // Now the line number
             if (!sb.append(':') || !NumberValueToStringBuffer(cx, NumberValue(line), sb))
                 return nullptr;
@@ -304,17 +304,16 @@ Error(JSContext *cx, unsigned argc, Value *vp)
     }
 
     /* Find the scripted caller. */
-    NonBuiltinScriptFrameIter iter(cx);
+    NonBuiltinFrameIter iter(cx);
 
     /* Set the 'fileName' property. */
-    RootedScript script(cx, iter.done() ? nullptr : iter.script());
     RootedString fileName(cx);
     if (args.length() > 1) {
         fileName = ToString<CanGC>(cx, args[1]);
     } else {
         fileName = cx->runtime()->emptyString;
         if (!iter.done()) {
-            if (const char *cfilename = script->filename())
+            if (const char *cfilename = iter.scriptFilename())
                 fileName = JS_NewStringCopyZ(cx, cfilename);
         }
     }
@@ -327,7 +326,7 @@ Error(JSContext *cx, unsigned argc, Value *vp)
         if (!ToUint32(cx, args[2], &lineNumber))
             return false;
     } else {
-        lineNumber = iter.done() ? 0 : PCToLineNumber(script, iter.pc(), &columnNumber);
+        lineNumber = iter.done() ? 0 : iter.computeLine(&columnNumber);
     }
 
     Rooted<JSString*> stack(cx, ComputeStackString(cx));
@@ -560,7 +559,7 @@ ErrorObject::createProto(JSContext *cx, JS::Handle<GlobalObject*> global, JSExnT
     if (!LinkConstructorAndPrototype(cx, ctor, err))
         return nullptr;
 
-    if (!DefineConstructorAndPrototype(cx, global, key, ctor, err))
+    if (!GlobalObject::initBuiltinConstructor(cx, global, key, ctor, err))
         return nullptr;
 
     return err;
@@ -895,10 +894,10 @@ js_CopyErrorObject(JSContext *cx, Handle<ErrorObject*> err, HandleObject scope)
     RootedString message(cx, err->getMessage());
     if (message && !cx->compartment()->wrap(cx, message.address()))
         return nullptr;
-    RootedString fileName(cx, err->fileName());
+    RootedString fileName(cx, err->fileName(cx));
     if (!cx->compartment()->wrap(cx, fileName.address()))
         return nullptr;
-    RootedString stack(cx, err->stack());
+    RootedString stack(cx, err->stack(cx));
     if (!cx->compartment()->wrap(cx, stack.address()))
         return nullptr;
     uint32_t lineNumber = err->lineNumber();

@@ -22,9 +22,9 @@ class JSObject;
 
 #ifdef PR_LOGGING
 extern PRLogModuleInfo* gMediaSourceLog;
-#define LOG(type, msg) PR_LOG(gMediaSourceLog, type, msg)
+#define MSE_DEBUG(...) PR_LOG(gMediaSourceLog, PR_LOG_DEBUG, (__VA_ARGS__))
 #else
-#define LOG(type, msg)
+#define MSE_DEBUG(...)
 #endif
 
 namespace mozilla {
@@ -122,20 +122,20 @@ SourceBufferList::Ended()
 void
 SourceBufferList::DispatchSimpleEvent(const char* aName)
 {
-  LOG(PR_LOG_DEBUG, ("%p Dispatching event %s to SourceBufferList", this, aName));
+  MSE_DEBUG("%p Dispatching event %s to SourceBufferList", this, aName);
   DispatchTrustedEvent(NS_ConvertUTF8toUTF16(aName));
 }
 
 void
 SourceBufferList::QueueAsyncSimpleEvent(const char* aName)
 {
-  LOG(PR_LOG_DEBUG, ("%p Queuing event %s to SourceBufferList", this, aName));
+  MSE_DEBUG("%p Queuing event %s to SourceBufferList", this, aName);
   nsCOMPtr<nsIRunnable> event = new AsyncEventRunner<SourceBufferList>(this, aName);
   NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
 }
 
 SourceBufferList::SourceBufferList(MediaSource* aMediaSource)
-  : nsDOMEventTargetHelper(aMediaSource->GetParentObject())
+  : DOMEventTargetHelper(aMediaSource->GetParentObject())
   , mMediaSource(aMediaSource)
 {
   MOZ_ASSERT(aMediaSource);
@@ -148,19 +148,19 @@ SourceBufferList::GetParentObject() const
 }
 
 JSObject*
-SourceBufferList::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+SourceBufferList::WrapObject(JSContext* aCx)
 {
-  return SourceBufferListBinding::Wrap(aCx, aScope, this);
+  return SourceBufferListBinding::Wrap(aCx, this);
 }
 
-NS_IMPL_CYCLE_COLLECTION_INHERITED_2(SourceBufferList, nsDOMEventTargetHelper,
+NS_IMPL_CYCLE_COLLECTION_INHERITED_2(SourceBufferList, DOMEventTargetHelper,
                                      mMediaSource, mSourceBuffers)
 
-NS_IMPL_ADDREF_INHERITED(SourceBufferList, nsDOMEventTargetHelper)
-NS_IMPL_RELEASE_INHERITED(SourceBufferList, nsDOMEventTargetHelper)
+NS_IMPL_ADDREF_INHERITED(SourceBufferList, DOMEventTargetHelper)
+NS_IMPL_RELEASE_INHERITED(SourceBufferList, DOMEventTargetHelper)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(SourceBufferList)
-NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetHelper)
+NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 } // namespace dom
 

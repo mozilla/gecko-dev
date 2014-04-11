@@ -189,9 +189,9 @@ HTMLBodyElement::~HTMLBodyElement()
 }
 
 JSObject*
-HTMLBodyElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+HTMLBodyElement::WrapNode(JSContext *aCx)
 {
-  return HTMLBodyElementBinding::Wrap(aCx, aScope, this);
+  return HTMLBodyElementBinding::Wrap(aCx, this);
 }
 
 NS_IMPL_ISUPPORTS_INHERITED1(HTMLBodyElement, nsGenericHTMLElement,
@@ -508,7 +508,7 @@ HTMLBodyElement::IsEventAttributeName(nsIAtom *aName)
   WINDOW_EVENT_HELPER(name_, EventHandlerNonNull)
 #define BEFOREUNLOAD_EVENT(name_, id_, type_, struct_)                         \
   WINDOW_EVENT_HELPER(name_, OnBeforeUnloadEventHandlerNonNull)
-#include "nsEventNameList.h" // IWYU pragma: keep
+#include "mozilla/EventNameList.h" // IWYU pragma: keep
 #undef BEFOREUNLOAD_EVENT
 #undef WINDOW_EVENT
 #undef WINDOW_EVENT_HELPER

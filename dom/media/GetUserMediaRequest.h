@@ -10,7 +10,6 @@
 #include "nsAutoPtr.h"
 #include "nsWrapperCache.h"
 #include "mozilla/dom/BindingUtils.h"
-#include "mozilla/dom/MediaStreamTrackBinding.h"
 #include "nsPIDOMWindow.h"
 
 namespace mozilla {
@@ -28,7 +27,7 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(GetUserMediaRequest)
 
-  virtual JSObject* WrapObject(JSContext* cx, JS::Handle<JSObject*> scope)
+  virtual JSObject* WrapObject(JSContext* cx)
     MOZ_OVERRIDE;
   nsISupports* GetParentObject();
 
@@ -40,7 +39,7 @@ public:
 private:
   uint64_t mInnerWindowID, mOuterWindowID;
   const nsString mCallID;
-  MediaStreamConstraintsInternal mConstraints;
+  nsAutoPtr<MediaStreamConstraintsInternal> mConstraints;
 };
 
 } // namespace dom

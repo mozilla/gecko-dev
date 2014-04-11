@@ -116,7 +116,6 @@ WebGLContext::WebGLContext()
     mOptionsFrozen = false;
 
     mActiveTexture = 0;
-    mWebGLError = LOCAL_GL_NO_ERROR;
     mPixelStoreFlipY = false;
     mPixelStorePremultiplyAlpha = false;
     mPixelStoreColorspaceConversion = BROWSER_DEFAULT_WEBGL;
@@ -288,6 +287,7 @@ WebGLContext::DestroyResourcesAndContext()
         if (!IsExtensionEnabled(extension) || (extension == WEBGL_lose_context))
             continue;
 
+        mExtensions[extension]->MarkLost();
         mExtensions[extension] = nullptr;
     }
 
@@ -1289,7 +1289,7 @@ WebGLContext::RobustnessTimerCallback(nsITimer* timer)
                                              true);
         // Set all flags back to the state they were in before the context was
         // lost.
-        mContextLostErrorSet = false;
+        mEmitContextLostErrorOnce = true;
         mAllowRestore = true;
     }
 

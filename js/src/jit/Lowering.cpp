@@ -174,21 +174,21 @@ LIRGenerator::visitNewSlots(MNewSlots *ins)
 bool
 LIRGenerator::visitNewArray(MNewArray *ins)
 {
-    LNewArray *lir = new(alloc()) LNewArray();
+    LNewArray *lir = new(alloc()) LNewArray(temp());
     return define(lir, ins) && assignSafepoint(lir, ins);
 }
 
 bool
 LIRGenerator::visitNewObject(MNewObject *ins)
 {
-    LNewObject *lir = new(alloc()) LNewObject();
+    LNewObject *lir = new(alloc()) LNewObject(temp());
     return define(lir, ins) && assignSafepoint(lir, ins);
 }
 
 bool
 LIRGenerator::visitNewDeclEnvObject(MNewDeclEnvObject *ins)
 {
-    LNewDeclEnvObject *lir = new(alloc()) LNewDeclEnvObject();
+    LNewDeclEnvObject *lir = new(alloc()) LNewDeclEnvObject(temp());
     return define(lir, ins) && assignSafepoint(lir, ins);
 }
 
@@ -201,7 +201,35 @@ LIRGenerator::visitNewCallObject(MNewCallObject *ins)
     else
         slots = LConstantIndex::Bogus();
 
-    LNewCallObject *lir = new(alloc()) LNewCallObject(slots);
+    LInstruction *lir;
+    if (ins->templateObject()->hasSingletonType()) {
+        LNewSingletonCallObject *singletonLir = new(alloc()) LNewSingletonCallObject(slots);
+        if (!define(singletonLir, ins))
+            return false;
+        lir = singletonLir;
+    } else {
+        LNewCallObject *normalLir = new(alloc()) LNewCallObject(slots, temp());
+        if (!define(normalLir, ins))
+            return false;
+        lir = normalLir;
+    }
+
+    if (!assignSafepoint(lir, ins))
+        return false;
+
+    return true;
+}
+
+bool
+LIRGenerator::visitNewRunOnceCallObject(MNewRunOnceCallObject *ins)
+{
+    LAllocation slots;
+    if (ins->slots()->type() == MIRType_Slots)
+        slots = useRegister(ins->slots());
+    else
+        slots = LConstantIndex::Bogus();
+
+    LNewSingletonCallObject *lir = new(alloc()) LNewSingletonCallObject(slots);
     if (!define(lir, ins))
         return false;
 
@@ -311,7 +339,7 @@ LIRGenerator::visitInitPropGetterSetter(MInitPropGetterSetter *ins)
 bool
 LIRGenerator::visitCreateThisWithTemplate(MCreateThisWithTemplate *ins)
 {
-    LCreateThisWithTemplate *lir = new(alloc()) LCreateThisWithTemplate();
+    LCreateThisWithTemplate *lir = new(alloc()) LCreateThisWithTemplate(temp());
     return define(lir, ins) && assignSafepoint(lir, ins);
 }
 
@@ -384,6 +412,16 @@ LIRGenerator::visitComputeThis(MComputeThis *ins)
         return false;
 
     return define(lir, ins) && assignSafepoint(lir, ins);
+}
+
+bool
+LIRGenerator::visitLoadArrowThis(MLoadArrowThis *ins)
+{
+    JS_ASSERT(ins->type() == MIRType_Value);
+    JS_ASSERT(ins->callee()->type() == MIRType_Object);
+
+    LLoadArrowThis *lir = new(alloc()) LLoadArrowThis(useRegister(ins->callee()));
+    return defineBox(lir, ins);
 }
 
 bool
@@ -2026,7 +2064,19 @@ LIRGenerator::visitLambda(MLambda *ins)
         return defineReturn(lir, ins) && assignSafepoint(lir, ins);
     }
 
-    LLambda *lir = new(alloc()) LLambda(useRegister(ins->scopeChain()));
+    LLambda *lir = new(alloc()) LLambda(useRegister(ins->scopeChain()), temp());
+    return define(lir, ins) && assignSafepoint(lir, ins);
+}
+
+bool
+LIRGenerator::visitLambdaArrow(MLambdaArrow *ins)
+{
+    MOZ_ASSERT(ins->scopeChain()->type() == MIRType_Object);
+    MOZ_ASSERT(ins->thisDef()->type() == MIRType_Value);
+
+    LLambdaArrow *lir = new(alloc()) LLambdaArrow(useRegister(ins->scopeChain()), temp());
+    if (!useBox(lir, LLambdaArrow::ThisValue, ins->thisDef()))
+        return false;
     return define(lir, ins) && assignSafepoint(lir, ins);
 }
 
@@ -2206,6 +2256,12 @@ LIRGenerator::visitStoreSlot(MStoreSlot *ins)
 }
 
 bool
+LIRGenerator::visitFilterTypeSet(MFilterTypeSet *ins)
+{
+    return redefine(ins, ins->input());
+}
+
+bool
 LIRGenerator::visitTypeBarrier(MTypeBarrier *ins)
 {
     // Requesting a non-GC pointer is safe here since we never re-enter C++
@@ -2332,6 +2388,16 @@ LIRGenerator::visitTypedObjectElements(MTypedObjectElements *ins)
 {
     JS_ASSERT(ins->type() == MIRType_Elements);
     return define(new(alloc()) LTypedObjectElements(useRegisterAtStart(ins->object())), ins);
+}
+
+bool
+LIRGenerator::visitSetTypedObjectOffset(MSetTypedObjectOffset *ins)
+{
+    return add(new(alloc()) LSetTypedObjectOffset(
+                   useRegister(ins->object()),
+                   useRegister(ins->offset()),
+                   temp()),
+               ins);
 }
 
 bool
@@ -3304,9 +3370,9 @@ LIRGenerator::visitCallInstanceOf(MCallInstanceOf *ins)
 }
 
 bool
-LIRGenerator::visitFunctionBoundary(MFunctionBoundary *ins)
+LIRGenerator::visitProfilerStackOp(MProfilerStackOp *ins)
 {
-    LFunctionBoundary *lir = new(alloc()) LFunctionBoundary(temp());
+    LProfilerStackOp *lir = new(alloc()) LProfilerStackOp(temp());
     if (!add(lir, ins))
         return false;
     // If slow assertions are enabled, then this node will result in a callVM
@@ -3478,8 +3544,11 @@ bool
 LIRGenerator::visitGetDOMMember(MGetDOMMember *ins)
 {
     MOZ_ASSERT(ins->isDomMovable(), "Members had better be movable");
-    MOZ_ASSERT(ins->domAliasSet() == JSJitInfo::AliasNone,
-               "Members had better not alias anything");
+    // We wish we could assert that ins->domAliasSet() == JSJitInfo::AliasNone,
+    // but some MGetDOMMembers are for [Pure], not [Constant] properties, whose
+    // value can in fact change as a result of DOM setters and method calls.
+    MOZ_ASSERT(ins->domAliasSet() != JSJitInfo::AliasEverything,
+               "Member gets had better not alias the world");
     LGetDOMMember *lir =
         new(alloc()) LGetDOMMember(useRegister(ins->object()));
     return defineBox(lir, ins);
@@ -3528,6 +3597,9 @@ LIRGenerator::visitInstruction(MInstruction *ins)
         return false;
     if (!ins->accept(this))
         return false;
+
+    if (ins->possiblyCalls())
+        gen->setPerformsCall();
 
     if (ins->resumePoint())
         updateResumeState(ins);

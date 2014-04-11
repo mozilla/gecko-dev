@@ -48,12 +48,14 @@ public:
                                  const gfx::IntPoint &aSourcePoint) MOZ_OVERRIDE;
 
   virtual void SetRenderTarget(CompositingRenderTarget *aSurface);
-  virtual CompositingRenderTarget* GetCurrentRenderTarget() MOZ_OVERRIDE
+  virtual CompositingRenderTarget* GetCurrentRenderTarget() const MOZ_OVERRIDE
   {
     return mCurrentRT;
   }
 
   virtual void SetDestinationSurfaceSize(const gfx::IntSize& aSize) MOZ_OVERRIDE {}
+
+  virtual void ClearRect(const gfx::Rect& aRect) MOZ_OVERRIDE;
 
   virtual void DrawQuad(const gfx::Rect &aRect,
                         const gfx::Rect &aClipRect,

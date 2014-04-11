@@ -9,6 +9,7 @@ this.EXPORTED_SYMBOLS = [ "HomeProvider" ];
 
 const { utils: Cu, classes: Cc, interfaces: Ci } = Components;
 
+Cu.import("resource://gre/modules/Messaging.jsm");
 Cu.import("resource://gre/modules/osfile.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
@@ -17,19 +18,18 @@ Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 /*
- * XXX: Add migration logic to getDatabaseConnection if you ever rev SCHEMA_VERSION.
- *
  * SCHEMA_VERSION history:
  *   1: Create HomeProvider (bug 942288)
+ *   2: Add filter column to items table (bug 942295/975841)
  */
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 XPCOMUtils.defineLazyGetter(this, "DB_PATH", function() {
   return OS.Path.join(OS.Constants.Path.profileDir, "home.sqlite");
 });
 
 const PREF_STORAGE_LAST_SYNC_TIME_PREFIX = "home.storage.lastSyncTime.";
-const PREF_SYNC_WIFI_ONLY = "home.sync.wifiOnly";
+const PREF_SYNC_UPDATE_MODE = "home.sync.updateMode";
 const PREF_SYNC_CHECK_INTERVAL_SECS = "home.sync.checkIntervalSecs";
 
 XPCOMUtils.defineLazyGetter(this, "gSyncCheckIntervalSecs", function() {
@@ -54,6 +54,9 @@ const SQL = {
       "filter TEXT," +
       "created INTEGER" +
     ")",
+
+  dropItemsTable:
+    "DROP TABLE items",
 
   insertItem:
     "INSERT INTO items (dataset_id, url, title, description, image_url, filter, created) " +
@@ -86,6 +89,10 @@ var gTimerRegistered = false;
 // Map of datasetId -> { interval: <integer>, callback: <function> }
 var gSyncCallbacks = {};
 
+// Whether or not writes to the provider are expected.
+// e.g. save() and deleteAll()
+var gWritesAreExpected = false;
+
 /**
  * nsITimerCallback implementation. Checks to see if it's time to sync any registered datasets.
  *
@@ -110,7 +117,20 @@ function syncTimerCallback(timer) {
   }
 }
 
+this.HomeStorage = function(datasetId) {
+  this.datasetId = datasetId;
+};
+
+this.ValidationError = function(message) {
+  this.name = "ValidationError";
+  this.message = message;
+};
+ValidationError.prototype = new Error();
+ValidationError.prototype.constructor = ValidationError;
+
 this.HomeProvider = Object.freeze({
+  ValidationError: ValidationError,
+
   /**
    * Returns a storage associated with a given dataset identifer.
    *
@@ -133,12 +153,15 @@ this.HomeProvider = Object.freeze({
    */
   requestSync: function(datasetId, callback) {
     // Make sure it's a good time to sync.
-    if (Services.prefs.getBoolPref(PREF_SYNC_WIFI_ONLY) && !isUsingWifi()) {
+    if ((Services.prefs.getIntPref(PREF_SYNC_UPDATE_MODE) === 1) && !isUsingWifi()) {
       Cu.reportError("HomeProvider: Failed to sync because device is not on a local network");
       return false;
     }
 
+    gWritesAreExpected = true;
     callback(datasetId);
+    gWritesAreExpected = false;
+
     return true;
   },
 
@@ -182,6 +205,33 @@ this.HomeProvider = Object.freeze({
 var gDatabaseEnsured = false;
 
 /**
+ * Creates the database schema.
+ */
+function createDatabase(db) {
+  return Task.spawn(function create_database_task() {
+    yield db.execute(SQL.createItemsTable);
+  });
+}
+
+/**
+ * Migrates the database schema to a new version.
+ */
+function upgradeDatabase(db, oldVersion, newVersion) {
+  return Task.spawn(function upgrade_database_task() {
+    for (let v = oldVersion + 1; v <= newVersion; v++) {
+      switch(v) {
+        case 2:
+          // Recreate the items table discarding any
+          // existing data.
+          yield db.execute(SQL.dropItemsTable);
+          yield db.execute(SQL.createItemsTable);
+          break;
+      }
+    }
+  });
+}
+
+/**
  * Opens a database connection and makes sure that the database schema version
  * is correct, performing migrations if necessary. Consumers should be sure
  * to close any database connections they open.
@@ -198,13 +248,17 @@ function getDatabaseConnection() {
 
     try {
       // Check to see if we need to perform any migrations.
-      // XXX: We will need to add migration logic if we ever rev SCHEMA_VERSION.
-      let dbVersion = yield db.getSchemaVersion();
-      if (parseInt(dbVersion) < SCHEMA_VERSION) {
-        // For schema v1, create the items table and set the schema version.
-        yield db.execute(SQL.createItemsTable);
-        yield db.setSchemaVersion(SCHEMA_VERSION);
+      let dbVersion = parseInt(yield db.getSchemaVersion());
+
+      // getSchemaVersion() returns a 0 int if the schema
+      // version is undefined.
+      if (dbVersion === 0) {
+        yield createDatabase(db);
+      } else if (dbVersion < SCHEMA_VERSION) {
+        yield upgradeDatabase(db, dbVersion, SCHEMA_VERSION);
       }
+
+      yield db.setSchemaVersion(SCHEMA_VERSION);
     } catch(e) {
       // Close the DB connection before passing the exception to the consumer.
       yield db.close();
@@ -216,9 +270,23 @@ function getDatabaseConnection() {
   });
 }
 
-this.HomeStorage = function(datasetId) {
-  this.datasetId = datasetId;
-};
+/**
+ * Validates an item to be saved to the DB.
+ *
+ * @param item
+ *        (object) item object to be validated.
+ */
+function validateItem(datasetId, item) {
+  if (!item.url) {
+    throw new ValidationError('HomeStorage: All rows must have an URL: datasetId = ' +
+                              datasetId);
+  }
+
+  if (!item.image_url && !item.title && !item.description) {
+    throw new ValidationError('HomeStorage: All rows must have at least an image URL, ' +
+                              'or a title or a description: datasetId = ' + datasetId);
+  }
+}
 
 HomeStorage.prototype = {
   /**
@@ -231,26 +299,39 @@ HomeStorage.prototype = {
    * @resolves When the operation has completed.
    */
   save: function(data) {
+    if (!gWritesAreExpected) {
+      Cu.reportError("HomeStorage: save() called outside of sync window");
+    }
+
     return Task.spawn(function save_task() {
       let db = yield getDatabaseConnection();
       try {
-        // Insert data into DB.
-        for (let item of data) {
-          // XXX: Directly pass item as params? More validation for item? Batch insert?
-          let params = {
-            dataset_id: this.datasetId,
-            url: item.url,
-            title: item.title,
-            description: item.description,
-            image_url: item.image_url,
-            filter: item.filter,
-            created: Date.now()
-          };
-          yield db.executeCached(SQL.insertItem, params);
-        }
+        yield db.executeTransaction(function save_transaction() {
+          // Insert data into DB.
+          for (let item of data) {
+            validateItem(this.datasetId, item);
+
+            // XXX: Directly pass item as params? More validation for item?
+            let params = {
+              dataset_id: this.datasetId,
+              url: item.url,
+              title: item.title,
+              description: item.description,
+              image_url: item.image_url,
+              filter: item.filter,
+              created: Date.now()
+            };
+            yield db.executeCached(SQL.insertItem, params);
+          }
+        }.bind(this));
       } finally {
         yield db.close();
       }
+
+      sendMessageToJava({
+        type: "HomePanels:RefreshDataset",
+        datasetId: this.datasetId,
+      });
     }.bind(this));
   },
 
@@ -261,6 +342,10 @@ HomeStorage.prototype = {
    * @resolves When the operation has completed.
    */
   deleteAll: function() {
+    if (!gWritesAreExpected) {
+      Cu.reportError("HomeStorage: deleteAll() called outside of sync window");
+    }
+
     return Task.spawn(function delete_all_task() {
       let db = yield getDatabaseConnection();
       try {
@@ -269,6 +354,11 @@ HomeStorage.prototype = {
       } finally {
         yield db.close();
       }
+
+      sendMessageToJava({
+        type: "HomePanels:RefreshDataset",
+        datasetId: this.datasetId,
+      });
     }.bind(this));
   }
 };

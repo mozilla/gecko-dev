@@ -3,9 +3,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-# Don't use STL wrappers; nptest isn't Gecko code
-STL_FLAGS =
-
 ifeq ($(MOZ_WIDGET_TOOLKIT),qt)
 include $(topsrcdir)/config/config.mk
 CXXFLAGS        += $(MOZ_QT_CFLAGS)
@@ -39,12 +36,6 @@ INSTALL_TARGETS += TEST_PLUGIN
 endif
 
 include $(topsrcdir)/config/rules.mk
-
-ifndef __LP64__
-ifeq ($(MOZ_WIDGET_TOOLKIT),cocoa)
-EXTRA_DSO_LDOPTS += -framework Carbon
-endif
-endif
 
 ifeq ($(MOZ_WIDGET_TOOLKIT),gtk2)
 CXXFLAGS        += $(MOZ_GTK2_CFLAGS)

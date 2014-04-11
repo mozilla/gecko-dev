@@ -62,7 +62,8 @@ XBLChildrenElement::ParseAttribute(int32_t aNamespaceID,
     nsCharSeparatedTokenizer tok(aValue, '|',
                                  nsCharSeparatedTokenizer::SEPARATOR_OPTIONAL);
     while (tok.hasMoreTokens()) {
-      mIncludes.AppendElement(do_GetAtom(tok.nextToken()));
+      nsCOMPtr<nsIAtom> atom = do_GetAtom(tok.nextToken());
+      mIncludes.AppendElement(atom);
     }
   }
 
@@ -81,9 +82,8 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(nsAnonymousContentList)
 
 NS_INTERFACE_TABLE_HEAD(nsAnonymousContentList)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
-  NS_INTERFACE_TABLE_INHERITED3(nsAnonymousContentList, nsINodeList,
-                                                        nsIDOMNodeList,
-                                                        nsAnonymousContentList)
+  NS_INTERFACE_TABLE_INHERITED2(nsAnonymousContentList, nsINodeList,
+                                                        nsIDOMNodeList)
   NS_INTERFACE_TABLE_TO_MAP_SEGUE
   NS_INTERFACE_MAP_ENTRIES_CYCLE_COLLECTION(nsAnonymousContentList)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
@@ -212,7 +212,7 @@ nsAnonymousContentList::IndexOf(nsIContent* aContent)
 }
 
 JSObject*
-nsAnonymousContentList::WrapObject(JSContext *cx, JS::Handle<JSObject*> scope)
+nsAnonymousContentList::WrapObject(JSContext *cx)
 {
-  return mozilla::dom::NodeListBinding::Wrap(cx, scope, this);
+  return mozilla::dom::NodeListBinding::Wrap(cx, this);
 }

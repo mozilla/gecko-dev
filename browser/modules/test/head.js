@@ -1,6 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
+Cu.import("resource://gre/modules/Promise.jsm");
+
 function waitForCondition(condition, nextTest, errorMsg) {
   var tries = 0;
   var interval = setInterval(function() {
@@ -72,6 +74,24 @@ function waitForPopupAtAnchor(popup, anchorNode, nextTest, msg) {
                    "Timeout waiting for popup at anchor: " + msg);
 }
 
+function promisePanelShown(win) {
+  let panelEl = win.PanelUI.panel;
+  return promisePanelElementShown(win, panelEl);
+}
+
+function promisePanelElementShown(win, aPanel) {
+  let deferred = Promise.defer();
+  let timeoutId = win.setTimeout(() => {
+    deferred.reject("Panel did not show within 5 seconds.");
+  }, 5000);
+  aPanel.addEventListener("popupshown", function onPanelOpen(e) {
+    aPanel.removeEventListener("popupshown", onPanelOpen);
+    win.clearTimeout(timeoutId);
+    deferred.resolve();
+  });
+  return deferred.promise;
+}
+
 function is_element_hidden(element, msg) {
   isnot(element, null, "Element should not be null, when checking visibility");
   ok(is_hidden(element), msg);
@@ -128,6 +148,9 @@ function UITourTest() {
       is_element_hidden(tooltip, "Tooltip should be closed/hidden after UITour tab is closed");
 
       ok(!PanelUI.panel.hasAttribute("noautohide"), "@noautohide on the menu panel should have been cleaned up");
+      ok(!PanelUI.panel.hasAttribute("panelopen"), "The panel shouldn't have @panelopen");
+      isnot(PanelUI.panel.state, "open", "The panel shouldn't be open");
+      is(document.getElementById("PanelUI-menu-button").hasAttribute("open"), false, "Menu button should know that the menu is closed");
 
       is(UITour.pinnedTabs.get(window), null, "Any pinned tab should be closed after UITour tab is closed");
 
@@ -142,8 +165,10 @@ function UITourTest() {
     }
     let test = tests.shift();
     info("Starting " + test.name);
-    loadUITourTestPage(function() {
-      test(done);
+    waitForFocus(function() {
+      loadUITourTestPage(function() {
+        test(done);
+      });
     });
   }
   nextTest();

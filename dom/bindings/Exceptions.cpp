@@ -56,11 +56,12 @@ ThrowExceptionObject(JSContext* aCx, nsIException* aException)
 
   JS::Rooted<JSObject*> glob(aCx, JS::CurrentGlobalOrNull(aCx));
   if (!glob) {
+    // XXXbz Can this really be null here?
     return false;
   }
 
   JS::Rooted<JS::Value> val(aCx);
-  if (!WrapObject(aCx, glob, aException, &NS_GET_IID(nsIException), &val)) {
+  if (!WrapObject(aCx, aException, &NS_GET_IID(nsIException), &val)) {
     return false;
   }
 
@@ -90,10 +91,11 @@ ThrowExceptionObject(JSContext* aCx, Exception* aException)
 
   JS::Rooted<JSObject*> glob(aCx, JS::CurrentGlobalOrNull(aCx));
   if (!glob) {
+    // XXXbz Can this actually be null here?
     return false;
   }
 
-  if (!WrapNewBindingObject(aCx, glob, aException, &thrown)) {
+  if (!WrapNewBindingObject(aCx, aException, &thrown)) {
     return false;
   }
 

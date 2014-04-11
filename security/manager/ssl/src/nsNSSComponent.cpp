@@ -809,7 +809,7 @@ static const CipherPref sCipherPrefs[] = {
    TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA, true },
 
  { "security.ssl3.dhe_rsa_des_ede3_sha",
-   SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA, true }, // deprecated (3DES)
+   TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA, true }, // deprecated (3DES)
 
  { "security.ssl3.dhe_dss_aes_128_sha",
    TLS_DHE_DSS_WITH_AES_128_CBC_SHA, true }, // deprecated (DSS)
@@ -830,12 +830,12 @@ static const CipherPref sCipherPrefs[] = {
  { "security.ssl3.rsa_camellia_256_sha",
    TLS_RSA_WITH_CAMELLIA_256_CBC_SHA, true }, // deprecated (RSA key exchange)
  { "security.ssl3.rsa_des_ede3_sha",
-   SSL_RSA_WITH_3DES_EDE_CBC_SHA, true }, // deprecated (RSA key exchange, 3DES)
+   TLS_RSA_WITH_3DES_EDE_CBC_SHA, true }, // deprecated (RSA key exchange, 3DES)
 
  { "security.ssl3.rsa_rc4_128_sha",
-   SSL_RSA_WITH_RC4_128_SHA, true }, // deprecated (RSA key exchange, RC4)
+   TLS_RSA_WITH_RC4_128_SHA, true }, // deprecated (RSA key exchange, RC4)
  { "security.ssl3.rsa_rc4_128_md5",
-   SSL_RSA_WITH_RC4_128_MD5, true }, // deprecated (RSA key exchange, RC4, HMAC-MD5)
+   TLS_RSA_WITH_RC4_128_MD5, true }, // deprecated (RSA key exchange, RC4, HMAC-MD5)
 
  // All the rest are disabled by default
 
@@ -971,15 +971,27 @@ void nsNSSComponent::setValidationOptions(bool isInitialSetting,
   CertVerifier::implementation_config certVerifierImplementation
     = CertVerifier::classic;
 
-  // The insanity::pkix pref overrides the libpkix pref
-  if (Preferences::GetBool("security.use_insanity_verification", false)) {
-    certVerifierImplementation = CertVerifier::insanity;
+  // The mozilla::pkix pref overrides the libpkix pref
+  if (Preferences::GetBool("security.use_mozillapkix_verification", false)) {
+    certVerifierImplementation = CertVerifier::mozillapkix;
   } else {
 #ifndef NSS_NO_LIBPKIX
   if (Preferences::GetBool("security.use_libpkix_verification", false)) {
     certVerifierImplementation = CertVerifier::libpkix;
   }
 #endif
+  }
+
+  if (isInitialSetting) {
+    if (certVerifierImplementation == CertVerifier::classic) {
+      Telemetry::Accumulate(Telemetry::CERT_VALIDATION_LIBRARY, 1);
+#ifndef NSS_NO_LIBPKIX
+    } else if (certVerifierImplementation == CertVerifier::libpkix) {
+      Telemetry::Accumulate(Telemetry::CERT_VALIDATION_LIBRARY, 2);
+#endif
+    } else if (certVerifierImplementation == CertVerifier::mozillapkix) {
+      Telemetry::Accumulate(Telemetry::CERT_VALIDATION_LIBRARY, 3);
+    }
   }
 
   CertVerifier::ocsp_download_config odc;
@@ -996,6 +1008,18 @@ void nsNSSComponent::setValidationOptions(bool isInitialSetting,
         CertVerifier::crl_download_allowed : CertVerifier::crl_local_only,
 #endif
       odc, osc, ogc);
+
+  // mozilla::pkix has its own OCSP cache, so disable the NSS cache
+  // if appropriate.
+  if (certVerifierImplementation == CertVerifier::mozillapkix) {
+    // Using -1 disables the cache. The other arguments are the default
+    // values and aren't exposed by the API.
+    CERT_OCSPCacheSettings(-1, 1*60*60L, 24*60*60L);
+  } else {
+    // Using 1000 enables the cache with the default size of 1000. Again,
+    // these values are not exposed by the API.
+    CERT_OCSPCacheSettings(1000, 1*60*60L, 24*60*60L);
+  }
 
   CERT_ClearOCSPCache();
 }
@@ -1605,7 +1629,7 @@ nsNSSComponent::Observe(nsISupports* aSubject, const char* aTopic,
                || prefName.Equals("security.OCSP.require")
                || prefName.Equals("security.OCSP.GET.enabled")
                || prefName.Equals("security.ssl.enable_ocsp_stapling")
-               || prefName.Equals("security.use_insanity_verification")
+               || prefName.Equals("security.use_mozillapkix_verification")
                || prefName.Equals("security.use_libpkix_verification")) {
       MutexAutoLock lock(mutex);
       setValidationOptions(false, lock);

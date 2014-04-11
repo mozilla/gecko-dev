@@ -4,10 +4,14 @@
 
 "use strict";
 
+let chromeGlobal = this;
+
 // Encapsulate in its own scope to allows loading this frame script
 // more than once.
 (function () {
-  const {DevToolsUtils} = Cu.import("resource://gre/modules/devtools/DevToolsUtils.jsm", {});
+  let Cu = Components.utils;
+  let { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+  const DevToolsUtils = devtools.require("devtools/toolkit/DevToolsUtils.js");
   const {DebuggerServer, ActorPool} = Cu.import("resource://gre/modules/devtools/dbg-server.jsm", {});
 
   if (!DebuggerServer.initialized) {
@@ -20,24 +24,33 @@
   // time we load child.js
   DebuggerServer.addChildActors();
 
+  let conn;
+
   let onConnect = DevToolsUtils.makeInfallible(function (msg) {
     removeMessageListener("debug:connect", onConnect);
 
     let mm = msg.target;
 
-    let prefix = msg.data.prefix + docShell.appId;
+    conn = DebuggerServer.connectToParent(msg.data.prefix, mm);
 
-    let conn = DebuggerServer.connectToParent(prefix, mm);
-
-    let actor = new DebuggerServer.ContentAppActor(conn, content);
+    let actor = new DebuggerServer.ContentActor(conn, chromeGlobal);
     let actorPool = new ActorPool(conn);
     actorPool.addActor(actor);
     conn.addActorPool(actorPool);
 
-    sendAsyncMessage("debug:actor", {actor: actor.grip(),
-                                     appId: docShell.appId,
-                                     prefix: prefix});
+    sendAsyncMessage("debug:actor", {actor: actor.grip()});
   });
 
   addMessageListener("debug:connect", onConnect);
+
+  let onDisconnect = DevToolsUtils.makeInfallible(function (msg) {
+    removeMessageListener("debug:disconnect", onDisconnect);
+
+    // Call DebuggerServerConnection.close to destroy all child actors
+    // (It should end up calling DebuggerServerConnection.onClosed
+    // that would actually cleanup all actor pools)
+    conn.close();
+    conn = null;
+  });
+  addMessageListener("debug:disconnect", onDisconnect);
 })();

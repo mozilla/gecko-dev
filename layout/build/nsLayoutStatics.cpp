@@ -24,7 +24,7 @@
 #include "mozilla/dom/Attr.h"
 #include "nsDOMClassInfo.h"
 #include "nsEditorEventListener.h"
-#include "nsEventListenerManager.h"
+#include "mozilla/EventListenerManager.h"
 #include "nsFrame.h"
 #include "nsGlobalWindow.h"
 #include "nsGkAtoms.h"
@@ -96,6 +96,10 @@
 #include "GStreamerFormatHelper.h"
 #endif
 
+#ifdef MOZ_FFMPEG
+#include "FFmpegRuntimeLinker.h"
+#endif
+
 #include "AudioStream.h"
 #include "Latency.h"
 #include "WebAudioUtils.h"
@@ -122,11 +126,10 @@ using namespace mozilla::system;
 #include "nsCookieService.h"
 #include "nsApplicationCacheService.h"
 #include "mozilla/dom/time/DateCacheCleaner.h"
-#include "nsIMEStateManager.h"
+#include "mozilla/EventDispatcher.h"
+#include "mozilla/IMEStateManager.h"
 #include "nsDocument.h"
 #include "mozilla/dom/HTMLVideoElement.h"
-
-extern void NS_ShutdownEventTargetChainRecycler();
 
 using namespace mozilla;
 using namespace mozilla::net;
@@ -306,8 +309,8 @@ nsLayoutStatics::Shutdown()
   DOMStorageObserver::Shutdown();
   txMozillaXSLTProcessor::Shutdown();
   Attr::Shutdown();
-  nsEventListenerManager::Shutdown();
-  nsIMEStateManager::Shutdown();
+  EventListenerManager::Shutdown();
+  IMEStateManager::Shutdown();
   nsComputedDOMStyle::Shutdown();
   nsCSSParser::Shutdown();
   nsCSSRuleProcessor::Shutdown();
@@ -352,7 +355,6 @@ nsLayoutStatics::Shutdown()
   nsGlobalWindow::ShutDown();
   nsDOMClassInfo::ShutDown();
   nsListControlFrame::Shutdown();
-  nsEditorEventListener::ShutDown();
   nsXBLService::Shutdown();
   nsAutoCopyListener::Shutdown();
   FrameLayerBuilder::Shutdown();
@@ -363,6 +365,10 @@ nsLayoutStatics::Shutdown()
 
 #ifdef MOZ_GSTREAMER
   GStreamerFormatHelper::Shutdown();
+#endif
+
+#ifdef MOZ_FFMPEG
+  FFmpegRuntimeLinker::Unlink();
 #endif
 
   AudioStream::ShutdownLibrary();
@@ -394,7 +400,7 @@ nsLayoutStatics::Shutdown()
 
   nsRegion::ShutdownStatic();
 
-  NS_ShutdownEventTargetChainRecycler();
+  mozilla::EventDispatcher::Shutdown();
 
   HTMLInputElement::DestroyUploadLastDir();
 

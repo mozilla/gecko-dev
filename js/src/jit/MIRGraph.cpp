@@ -27,6 +27,7 @@ MIRGenerator::MIRGenerator(CompileCompartment *compartment, const JitCompileOpti
     error_(false),
     cancelBuild_(false),
     maxAsmJSStackArgBytes_(0),
+    performsCall_(false),
     performsAsmJSCall_(false),
     asmJSHeapAccesses_(*alloc),
     asmJSGlobalAccesses_(*alloc),
@@ -211,9 +212,19 @@ MBasicBlock::NewWithResumePoint(MIRGraph &graph, CompileInfo &info,
 
 MBasicBlock *
 MBasicBlock::NewPendingLoopHeader(MIRGraph &graph, CompileInfo &info,
-                                  MBasicBlock *pred, jsbytecode *entryPc)
+                                  MBasicBlock *pred, jsbytecode *entryPc,
+                                  unsigned stackPhiCount)
 {
-    return MBasicBlock::New(graph, nullptr, info, pred, entryPc, PENDING_LOOP_HEADER);
+    JS_ASSERT(entryPc != nullptr);
+
+    MBasicBlock *block = new(graph.alloc()) MBasicBlock(graph, info, entryPc, PENDING_LOOP_HEADER);
+    if (!block->init())
+        return nullptr;
+
+    if (!block->inherit(graph.alloc(), nullptr, pred, 0, stackPhiCount))
+        return nullptr;
+
+    return block;
 }
 
 MBasicBlock *
@@ -304,7 +315,6 @@ MBasicBlock::MBasicBlock(MIRGraph &graph, CompileInfo &info, jsbytecode *pc, Kin
     immediatelyDominated_(graph.alloc()),
     immediateDominator_(nullptr),
     numDominated_(0),
-    loopHeader_(nullptr),
     trackedPc_(pc)
 #if defined (JS_ION_PERF)
     , lineno_(0u),
@@ -325,6 +335,17 @@ MBasicBlock::increaseSlots(size_t num)
     return slots_.growBy(graph_.alloc(), num);
 }
 
+bool
+MBasicBlock::ensureHasSlots(size_t num)
+{
+    size_t depth = stackDepth() + num;
+    if (depth > nslots()) {
+        if (!increaseSlots(depth - nslots()))
+            return false;
+    }
+    return true;
+}
+
 void
 MBasicBlock::copySlots(MBasicBlock *from)
 {
@@ -336,7 +357,7 @@ MBasicBlock::copySlots(MBasicBlock *from)
 
 bool
 MBasicBlock::inherit(TempAllocator &alloc, BytecodeAnalysis *analysis, MBasicBlock *pred,
-                     uint32_t popped)
+                     uint32_t popped, unsigned stackPhiCount)
 {
     if (pred) {
         stackPosition_ = pred->stackPosition_;
@@ -367,7 +388,29 @@ MBasicBlock::inherit(TempAllocator &alloc, BytecodeAnalysis *analysis, MBasicBlo
             return false;
 
         if (kind_ == PENDING_LOOP_HEADER) {
-            for (size_t i = 0; i < stackDepth(); i++) {
+            size_t i = 0;
+            for (i = 0; i < info().firstStackSlot(); i++) {
+                MPhi *phi = MPhi::New(alloc, i);
+                if (!phi->addInputSlow(pred->getSlot(i)))
+                    return false;
+                addPhi(phi);
+                setSlot(i, phi);
+                entryResumePoint()->setOperand(i, phi);
+            }
+
+            JS_ASSERT(stackPhiCount <= stackDepth());
+            JS_ASSERT(info().firstStackSlot() <= stackDepth() - stackPhiCount);
+
+            // Avoid creating new phis for stack values that aren't part of the
+            // loop.  Note that for loop headers that can OSR, all values on the
+            // stack are part of the loop.
+            for (; i < stackDepth() - stackPhiCount; i++) {
+                MDefinition *val = pred->getSlot(i);
+                setSlot(i, val);
+                entryResumePoint()->setOperand(i, val);
+            }
+
+            for (; i < stackDepth(); i++) {
                 MPhi *phi = MPhi::New(alloc, i);
                 if (!phi->addInputSlow(pred->getSlot(i)))
                     return false;
@@ -919,7 +962,7 @@ MBasicBlock::assertUsesAreNotWithin(MUseIterator use, MUseIterator end)
 }
 
 bool
-MBasicBlock::dominates(MBasicBlock *other)
+MBasicBlock::dominates(const MBasicBlock *other) const
 {
     uint32_t high = domIndex() + numDominated();
     uint32_t low  = domIndex();
@@ -1162,13 +1205,15 @@ MBasicBlock::inheritPhis(MBasicBlock *header)
     }
 }
 
-void
+bool
 MBasicBlock::specializePhis()
 {
     for (MPhiIterator iter = phisBegin(); iter != phisEnd(); iter++) {
         MPhi *phi = *iter;
-        phi->specializeType();
+        if (!phi->specializeType())
+            return false;
     }
+    return true;
 }
 
 void

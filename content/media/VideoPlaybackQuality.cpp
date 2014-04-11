@@ -18,14 +18,12 @@ VideoPlaybackQuality::VideoPlaybackQuality(HTMLMediaElement* aElement,
                                            DOMHighResTimeStamp aCreationTime,
                                            uint64_t aTotalFrames,
                                            uint64_t aDroppedFrames,
-                                           uint64_t aCorruptedFrames,
-                                           double aTotalFrameDelay)
+                                           uint64_t aCorruptedFrames)
   : mElement(aElement)
   , mCreationTime(aCreationTime)
   , mTotalFrames(aTotalFrames)
   , mDroppedFrames(aDroppedFrames)
   , mCorruptedFrames(aCorruptedFrames)
-  , mTotalFrameDelay(aTotalFrameDelay)
 {
   SetIsDOMBinding();
 }
@@ -37,9 +35,9 @@ VideoPlaybackQuality::GetParentObject() const
 }
 
 JSObject*
-VideoPlaybackQuality::WrapObject(JSContext *aCx, JS::Handle<JSObject*> aScope)
+VideoPlaybackQuality::WrapObject(JSContext *aCx)
 {
-  return VideoPlaybackQualityBinding::Wrap(aCx, aScope, this);
+  return VideoPlaybackQualityBinding::Wrap(aCx, this);
 }
 
 NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(VideoPlaybackQuality, AddRef)

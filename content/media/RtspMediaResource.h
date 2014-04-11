@@ -185,11 +185,19 @@ public:
     return NS_ERROR_FAILURE;
   }
 
+  virtual size_t SizeOfExcludingThis(
+                      MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE;
+
+  virtual size_t SizeOfIncludingThis(
+                      MallocSizeOf aMallocSizeOf) const MOZ_OVERRIDE {
+    return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
+  }
+
   // Listener implements nsIStreamingProtocolListener as
   // mMediaStreamController's callback function.
   // It holds RtspMediaResource reference to notify the connection status and
   // data arrival. The Revoke function releases the reference when
-  // RtspMediaResource is destroyed.
+  // RtspMediaResource::OnDisconnected is called.
   class Listener MOZ_FINAL : public nsIInterfaceRequestor,
                              public nsIStreamingProtocolListener
   {
@@ -201,10 +209,10 @@ public:
     NS_DECL_NSIINTERFACEREQUESTOR
     NS_DECL_NSISTREAMINGPROTOCOLLISTENER
 
-    void Revoke() { mResource = nullptr; }
+    void Revoke();
 
   private:
-    RtspMediaResource* mResource;
+    nsRefPtr<RtspMediaResource> mResource;
   };
   friend class Listener;
 

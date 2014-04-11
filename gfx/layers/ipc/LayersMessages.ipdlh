@@ -49,6 +49,7 @@ struct TargetConfig {
   ScreenRotation rotation;
   nsIntRect clientBounds;
   ScreenOrientation orientation;
+  nsIntRegion clearRegion;
 };
 
 // Create a shadow layer for |layer|
@@ -255,33 +256,49 @@ struct OpRaiseToTopChild  { PLayer container; PLayer childLayer; };
 
 struct OpSetDiagnosticTypes { DiagnosticTypes diagnostics; };
 
-// Paint (buffer update)
-struct OpPaintTiledLayerBuffer {
-  PCompositable compositable;
-  SurfaceDescriptorTiles tileLayerDescriptor;
+struct ShmemSection {
+  Shmem shmem;
+  uint32_t offset;
+  size_t size;
 };
 
-struct OpCreatedTexture {
+union TileLock {
+  ShmemSection;
+  uintptr_t;
+};
+
+struct TexturedTileDescriptor {
+  PTexture texture;
+  TileLock sharedLock;
+};
+
+struct PlaceholderTileDescriptor {
+};
+
+union TileDescriptor {
+  TexturedTileDescriptor;
+  PlaceholderTileDescriptor;
+};
+
+struct SurfaceDescriptorTiles {
+  nsIntRegion validRegion;
+  nsIntRegion paintedRegion;
+  TileDescriptor[] tiles;
+  int         retainedWidth;
+  int         retainedHeight;
+  float       resolution;
+  float       frameResolution;
+};
+
+struct OpUseTiledLayerBuffer {
   PCompositable compositable;
-  uint32_t textureId;
-  SurfaceDescriptor descriptor;
-  TextureInfo textureInfo;
+  SurfaceDescriptorTiles tileLayerDescriptor;
 };
 
 struct OpCreatedIncrementalTexture {
   PCompositable compositable;
   TextureInfo textureInfo;
   nsIntRect bufferRect;
-};
-
-struct OpDestroyThebesBuffer {
-  PCompositable compositable;
-};
-
-struct OpPaintTexture {
-  PCompositable compositable;
-  uint32_t textureId;
-  SurfaceDescriptor image;
 };
 
 struct OpPaintTextureRegion {
@@ -341,15 +358,12 @@ struct OpUpdateTexture {
 union CompositableOperation {
   OpUpdatePictureRect;
 
-  OpCreatedTexture;
   OpCreatedIncrementalTexture;
-  OpDestroyThebesBuffer;
 
-  OpPaintTexture;
   OpPaintTextureRegion;
   OpPaintTextureIncremental;
 
-  OpPaintTiledLayerBuffer;
+  OpUseTiledLayerBuffer;
 
   OpRemoveTexture;
 

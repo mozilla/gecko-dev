@@ -62,12 +62,19 @@ const Ci = Components.interfaces;
 const Cc = Components.classes;
 const Cu = Components.utils;
 
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
+Cu.import("resource://gre/modules/osfile.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/PlacesUtils.jsm");
+Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
-Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js");
+
+XPCOMUtils.defineLazyModuleGetter(this, "PlacesBackups",
+  "resource://gre/modules/PlacesBackups.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
+  "resource://gre/modules/Deprecated.jsm");
 
 const Container_Normal = 0;
 const Container_Toolbar = 1;
@@ -82,13 +89,8 @@ const MICROSEC_PER_SEC = 1000000;
 
 const EXPORT_INDENT = "    "; // four spaces
 
-#ifdef XP_WIN
-const EXPORT_NEWLINE = "\r\n";
-#else
-const EXPORT_NEWLINE = "\n";
-#endif
-
-let serialNumber = 0; // for favicons
+// Counter used to build fake favicon urls.
+let serialNumber = 0;
 
 function base64EncodeString(aString) {
   let stream = Cc["@mozilla.org/io/string-input-stream;1"]
@@ -99,11 +101,35 @@ function base64EncodeString(aString) {
   return encoder.encodeToString(stream, aString.length);
 }
 
+/**
+ * Provides HTML escaping for use in HTML attributes and body of the bookmarks
+ * file, compatible with the old bookmarks system.
+ */
+function escapeHtmlEntities(aText) {
+  return (aText || "").replace("&", "&amp;", "g")
+                      .replace("<", "&lt;", "g")
+                      .replace(">", "&gt;", "g")
+                      .replace("\"", "&quot;", "g")
+                      .replace("'", "&#39;", "g");
+}
+
+function notifyObservers(aTopic, aInitialImport) {
+  Services.obs.notifyObservers(null, aTopic, aInitialImport ? "html-initial"
+                                                            : "html");
+}
+
+function promiseSoon() {
+  let deferred = Promise.defer();
+  Services.tm.mainThread.dispatch(deferred.resolve,
+                                  Ci.nsIThread.DISPATCH_NORMAL);
+  return deferred.promise;
+}
+
 this.BookmarkHTMLUtils = Object.freeze({
   /**
    * Loads the current bookmarks hierarchy from a "bookmarks.html" file.
    *
-   * @param aUrlString
+   * @param aSpec
    *        String containing the "file:" URI for the existing "bookmarks.html"
    *        file to be loaded.
    * @param aInitialImport
@@ -113,42 +139,105 @@ this.BookmarkHTMLUtils = Object.freeze({
    * @resolves When the new bookmarks have been created.
    * @rejects JavaScript exception.
    */
-  importFromURL: function BHU_importFromURL(aUrlString, aInitialImport) {
-    let importer = new BookmarkImporter(aInitialImport);
-    return importer.importFromURL(aUrlString);
+  importFromURL: function BHU_importFromURL(aSpec, aInitialImport) {
+    return Task.spawn(function* () {
+      notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_BEGIN, aInitialImport);
+      try {
+        let importer = new BookmarkImporter(aInitialImport);
+        yield importer.importFromURL(aSpec);
+
+        notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_SUCCESS, aInitialImport);
+      } catch(ex) {
+        Cu.reportError("Failed to import bookmarks from " + aSpec + ": " + ex);
+        notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_FAILED, aInitialImport);
+        throw ex;
+      }
+    });
   },
 
   /**
    * Loads the current bookmarks hierarchy from a "bookmarks.html" file.
    *
-   * @param aLocalFile
-   *        nsIFile for the existing "bookmarks.html" file to be loaded.
+   * @param aFilePath
+   *        OS.File path string of the "bookmarks.html" file to be loaded.
    * @param aInitialImport
    *        Whether this is the initial import executed on a new profile.
    *
    * @return {Promise}
    * @resolves When the new bookmarks have been created.
    * @rejects JavaScript exception.
+   * @deprecated passing an nsIFile is deprecated
    */
-  importFromFile: function BHU_importFromFile(aLocalFile, aInitialImport) {
-    let importer = new BookmarkImporter(aInitialImport);
-    return importer.importFromURL(NetUtil.newURI(aLocalFile).spec);
+  importFromFile: function BHU_importFromFile(aFilePath, aInitialImport) {
+    if (aFilePath instanceof Ci.nsIFile) {
+      Deprecated.warning("Passing an nsIFile to BookmarksJSONUtils.importFromFile " +
+                         "is deprecated. Please use an OS.File path string instead.",
+                         "https://developer.mozilla.org/docs/JavaScript_OS.File");
+      aFilePath = aFilePath.path;
+    }
+
+    return Task.spawn(function* () {
+      notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_BEGIN, aInitialImport);
+      try {
+        if (!(yield OS.File.exists(aFilePath)))
+          throw new Error("Cannot import from nonexisting html file");
+
+        let importer = new BookmarkImporter(aInitialImport);
+        yield importer.importFromURL(OS.Path.toFileURI(aFilePath));
+
+        notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_SUCCESS, aInitialImport);
+      } catch(ex) {
+        Cu.reportError("Failed to import bookmarks from " + aFilePath + ": " + ex);
+        notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_FAILED, aInitialImport);
+        throw ex;
+      }
+    });
   },
 
   /**
    * Saves the current bookmarks hierarchy to a "bookmarks.html" file.
    *
-   * @param aLocalFile
-   *        nsIFile for the "bookmarks.html" file to be created.
+   * @param aFilePath
+   *        OS.File path string for the "bookmarks.html" file to be created.
    *
    * @return {Promise}
-   * @resolves When the file has been created.
+   * @resolves To the exported bookmarks count when the file has been created.
    * @rejects JavaScript exception.
+   * @deprecated passing an nsIFile is deprecated
    */
-  exportToFile: function BHU_exportToFile(aLocalFile) {
-    let exporter = new BookmarkExporter();
-    return exporter.exportToFile(aLocalFile);
+  exportToFile: function BHU_exportToFile(aFilePath) {
+    if (aFilePath instanceof Ci.nsIFile) {
+      Deprecated.warning("Passing an nsIFile to BookmarksHTMLUtils.exportToFile " +
+                         "is deprecated. Please use an OS.File path string instead.",
+                         "https://developer.mozilla.org/docs/JavaScript_OS.File");
+      aFilePath = aFilePath.path;
+    }
+    return Task.spawn(function* () {
+      let [bookmarks, count] = yield PlacesBackups.getBookmarksTree();
+      let startTime = Date.now();
+
+      // Report the time taken to convert the tree to HTML.
+      let exporter = new BookmarkExporter(bookmarks);
+      yield exporter.exportToFile(aFilePath);
+
+      try {
+        Services.telemetry
+                .getHistogramById("PLACES_EXPORT_TOHTML_MS")
+                .add(Date.now() - startTime);
+      } catch (ex) {
+        Components.utils.reportError("Unable to report telemetry.");
+      }
+
+      return count;
+    });
   },
+
+  get defaultPath() {
+    try {
+      return Services.prefs.getCharPref("browser.bookmarks.file");
+    } catch (ex) {}
+    return OS.Path.join(OS.Constants.Path.profileDir, "bookmarks.html")
+  }
 });
 
 function Frame(aFrameId) {
@@ -587,7 +676,7 @@ BookmarkImporter.prototype = {
           "index": PlacesUtils.bookmarks.DEFAULT_INDEX,
           "feedURI": frame.previousFeed,
           "siteURI": frame.previousLink,
-        });
+        }).then(null, Cu.reportError);
       } else if (frame.previousLink) {
         // This is a common bookmark.
         PlacesUtils.bookmarks.setItemTitle(frame.previousId,
@@ -837,39 +926,28 @@ BookmarkImporter.prototype = {
     PlacesUtils.bookmarks.runInBatchMode(this, aDoc);
   },
 
-  _notifyObservers: function notifyObservers(topic) {
-    Services.obs.notifyObservers(null,
-                                 topic,
-                                 this._isImportDefaults ? "html-initial"
-                                                        : "html");
-  },
-
-  importFromURL: function importFromURL(aUrlString, aCallback) {
+  importFromURL: function importFromURL(aSpec) {
     let deferred = Promise.defer();
-    let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(Ci.nsIXMLHttpRequest);
-    xhr.onload = (function onload() {
+    let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
+                .createInstance(Ci.nsIXMLHttpRequest);
+    xhr.onload = () => {
       try {
         this._walkTreeForImport(xhr.responseXML);
-        this._notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_SUCCESS);
         deferred.resolve();
       } catch(e) {
-        this._notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_FAILED);
         deferred.reject(e);
         throw e;
       }
-    }).bind(this);
-    xhr.onabort = xhr.onerror = xhr.ontimeout = (function handleFail() {
-      this._notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_FAILED);
+    };
+    xhr.onabort = xhr.onerror = xhr.ontimeout = () => {
       deferred.reject(new Error("xmlhttprequest failed"));
-    }).bind(this);
-    this._notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_BEGIN);
+    };
     try {
-      xhr.open("GET", aUrlString);
+      xhr.open("GET", aSpec);
       xhr.responseType = "document";
       xhr.overrideMimeType("text/html");
       xhr.send();
     } catch (e) {
-      this._notifyObservers(PlacesUtils.TOPIC_BOOKMARKS_RESTORE_FAILED);
       deferred.reject(e);
     }
     return deferred.promise;
@@ -877,299 +955,216 @@ BookmarkImporter.prototype = {
 
 };
 
-function BookmarkExporter() { }
+function BookmarkExporter(aBookmarksTree) {
+  // Create a map of the roots.
+  let rootsMap = new Map();
+  for (let child of aBookmarksTree.children) {
+    if (child.root)
+      rootsMap.set(child.root, child);
+  }
+
+  // For backwards compatibility reasons the bookmarks menu is the root, while
+  // the bookmarks toolbar and unfiled bookmarks will be child items.
+  this._root = rootsMap.get("bookmarksMenuFolder");
+
+  for (let key of [ "toolbarFolder", "unfiledBookmarksFolder" ]) {
+    let root = rootsMap.get(key);
+    if (root.children && root.children.length > 0) {
+      if (!this._root.children)
+        this._root.children = [];
+      this._root.children.push(root);
+    }
+  }
+}
 
 BookmarkExporter.prototype = {
-
-  /**
-   * Provides HTML escaping for use in HTML attributes and body of the bookmarks
-   * file, compatible with the old bookmarks system.
-   */
-  escapeHtml: function escapeHtml(aText) {
-    return (aText || "").replace("&", "&amp;", "g")
-                        .replace("<", "&lt;", "g")
-                        .replace(">", "&gt;", "g")
-                        .replace("\"", "&quot;", "g")
-                        .replace("'", "&#39;", "g");
-  },
-
-  /**
-   * Provides URL escaping for use in HTML attributes of the bookmarks file,
-   * compatible with the old bookmarks system.
-   */
-  escapeUrl: function escapeUrl(aText) {
-    return (aText || "").replace("\"", "%22", "g");
-  },
-
-  exportToFile: function exportToFile(aLocalFile) {
-    return Task.spawn(this._doExportToFile(aLocalFile));
-  },
-
-  _doExportToFile: function doExportToFile(aLocalFile) {
-    // Create a file that can be accessed by the current user only.
-    let safeFileOut = Cc["@mozilla.org/network/safe-file-output-stream;1"]
-                      .createInstance(Ci.nsIFileOutputStream);
-    safeFileOut.init(aLocalFile,
-                     FileUtils.MODE_WRONLY | FileUtils.MODE_CREATE
-                                           | FileUtils.MODE_TRUNCATE,
-                     parseInt("0600", 8), 0);
-    try {
-      // We need a buffered output stream for performance.  See bug 202477.
-      let bufferedOut = Cc["@mozilla.org/network/buffered-output-stream;1"]
-                        .createInstance(Ci.nsIBufferedOutputStream);
-      bufferedOut.init(safeFileOut, 4096);
+  exportToFile: function exportToFile(aFilePath) {
+    return Task.spawn(function* () {
+      // Create a file that can be accessed by the current user only.
+      let out = FileUtils.openAtomicFileOutputStream(new FileUtils.File(aFilePath));
       try {
-        // Write bookmarks in UTF-8.
-        this._converterOut = Cc["@mozilla.org/intl/converter-output-stream;1"]
-                             .createInstance(Ci.nsIConverterOutputStream);
-        this._converterOut.init(bufferedOut, "utf-8", 0, 0);
+        // We need a buffered output stream for performance.  See bug 202477.
+        let bufferedOut = Cc["@mozilla.org/network/buffered-output-stream;1"]
+                          .createInstance(Ci.nsIBufferedOutputStream);
+        bufferedOut.init(out, 4096);
         try {
-          yield this._doExport();
-
-          // Flush the buffer and retain the target file on success only.
-          bufferedOut.QueryInterface(Ci.nsISafeOutputStream).finish();
+          // Write bookmarks in UTF-8.
+          this._converterOut = Cc["@mozilla.org/intl/converter-output-stream;1"]
+                               .createInstance(Ci.nsIConverterOutputStream);
+          this._converterOut.init(bufferedOut, "utf-8", 0, 0);
+          try {
+            this._writeHeader();
+            yield this._writeContainer(this._root);
+            // Retain the target file on success only.
+            bufferedOut.QueryInterface(Ci.nsISafeOutputStream).finish();
+          } finally {
+            this._converterOut.close();
+            this._converterOut = null;
+          }
         } finally {
-          this._converterOut.close();
-          this._converterOut = null;
+          bufferedOut.close();
         }
       } finally {
-        bufferedOut.close();
+        out.close();
       }
-    } finally {
-      safeFileOut.close();
-    }
+    }.bind(this));
   },
 
   _converterOut: null,
 
-  _write: function write(aText) {
+  _write: function (aText) {
     this._converterOut.writeString(aText || "");
   },
 
-  _writeLine: function writeLine(aText) {
-    this._write(aText + EXPORT_NEWLINE);
+  _writeAttribute: function (aName, aValue) {
+    this._write(' ' +  aName + '="' + aValue + '"');
   },
 
-  _doExport: function doExport() {
+  _writeLine: function (aText) {
+    this._write(aText + "\n");
+  },
+
+  _writeHeader: function () {
     this._writeLine("<!DOCTYPE NETSCAPE-Bookmark-file-1>");
     this._writeLine("<!-- This is an automatically generated file.");
     this._writeLine("     It will be read and overwritten.");
     this._writeLine("     DO NOT EDIT! -->");
-    this._writeLine("<META HTTP-EQUIV=\"Content-Type\"" +
-                    " CONTENT=\"text/html; charset=UTF-8\">");
+    this._writeLine('<META HTTP-EQUIV="Content-Type" CONTENT="text/html; ' +
+                    'charset=UTF-8">');
     this._writeLine("<TITLE>Bookmarks</TITLE>");
+  },
 
-    // Write the Bookmarks Menu as the outer container.
-    let root = PlacesUtils.getFolderContents(
-                                    PlacesUtils.bookmarksMenuFolderId).root;
-    try {
-      this._writeLine("<H1>" + this.escapeHtml(root.title) + "</H1>");
+  _writeContainer: function (aItem, aIndent = "") {
+    if (aItem == this._root) {
+      this._writeLine("<H1>" + escapeHtmlEntities(this._root.title) + "</H1>");
       this._writeLine("");
-      this._writeLine("<DL><p>");
-      yield this._writeContainerContents(root, "");
-    } finally {
-      root.containerOpen = false;
+    }
+    else {
+      this._write(aIndent + "<DT><H3");
+      this._writeDateAttributes(aItem);
+
+      if (aItem.root === "toolbarFolder")
+        this._writeAttribute("PERSONAL_TOOLBAR_FOLDER", "true");
+      else if (aItem.root === "unfiledBookmarksFolder")
+        this._writeAttribute("UNFILED_BOOKMARKS_FOLDER", "true");
+      this._writeLine(">" + escapeHtmlEntities(aItem.title) + "</H3>");
     }
 
-    // Write the Bookmarks Toolbar as a child item for backwards compatibility.
-    root = PlacesUtils.getFolderContents(PlacesUtils.toolbarFolderId).root;
-    try {
-      if (root.childCount > 0) {
-        yield this._writeContainer(root, EXPORT_INDENT);
-      }
-    } finally {
-      root.containerOpen = false;
-    }
+    this._writeDescription(aItem, aIndent);
 
-    // Write the Unfiled Bookmarks as a child item for backwards compatibility.
-    root = PlacesUtils.getFolderContents(
-                                PlacesUtils.unfiledBookmarksFolderId).root;
-    try {
-      if (root.childCount > 0) {
-        yield this._writeContainer(root, EXPORT_INDENT);
-      }
-    } finally {
-      root.containerOpen = false;
-    }
-
-    this._writeLine("</DL><p>");
-  },
-
-  _writeContainer: function writeContainer(aItem, aIndent) {
-    this._write(aIndent + "<DT><H3");
-    yield this._writeDateAttributes(aItem);
-
-    if (aItem.itemId == PlacesUtils.placesRootId) {
-      this._write(" PLACES_ROOT=\"true\"");
-    } else if (aItem.itemId == PlacesUtils.bookmarksMenuFolderId) {
-      this._write(" BOOKMARKS_MENU=\"true\"");
-    } else if (aItem.itemId == PlacesUtils.unfiledBookmarksFolderId) {
-      this._write(" UNFILED_BOOKMARKS_FOLDER=\"true\"");
-    } else if (aItem.itemId == PlacesUtils.toolbarFolderId) {
-      this._write(" PERSONAL_TOOLBAR_FOLDER=\"true\"");
-    }
-
-    this._writeLine(">" + this.escapeHtml(aItem.title) + "</H3>");
-    yield this._writeDescription(aItem);
     this._writeLine(aIndent + "<DL><p>");
-    yield this._writeContainerContents(aItem, aIndent);
-    this._writeLine(aIndent + "</DL><p>");
+    if (aItem.children)
+      yield this._writeContainerContents(aItem, aIndent);
+    if (aItem == this._root)
+      this._writeLine(aIndent + "</DL>");
+    else
+      this._writeLine(aIndent + "</DL><p>");
   },
 
-  _writeContainerContents: function writeContainerContents(aItem, aIndent) {
+  _writeContainerContents: function (aItem, aIndent) {
     let localIndent = aIndent + EXPORT_INDENT;
 
-    for (let i = 0; i < aItem.childCount; ++i) {
-      let child = aItem.getChild(i);
-      if (child.type == Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER) {
-        // Since the livemarks service is asynchronous, use the annotations
-        // service to get the information for now.
-        if (PlacesUtils.annotations
-                       .itemHasAnnotation(child.itemId,
-                                          PlacesUtils.LMANNO_FEEDURI)) {
-          yield this._writeLivemark(child, localIndent);
-        } else {
-          // This is a normal folder, open it.
-          PlacesUtils.asContainer(child).containerOpen = true;
-          try {
-            yield this._writeContainer(child, localIndent);
-          } finally {
-            child.containerOpen = false;
-          }
-        }
-      } else if (child.type == Ci.nsINavHistoryResultNode.RESULT_TYPE_SEPARATOR) {
-        yield this._writeSeparator(child, localIndent);
-      } else {
+    for (let child of aItem.children) {
+      if (child.annos && child.annos.some(anno => anno.name == PlacesUtils.LMANNO_FEEDURI))
+          this._writeLivemark(child, localIndent);
+      else if (child.type == PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER)
+          yield this._writeContainer(child, localIndent);
+      else if (child.type == PlacesUtils.TYPE_X_MOZ_PLACE_SEPARATOR)
+        this._writeSeparator(child, localIndent);
+      else
         yield this._writeItem(child, localIndent);
-      }
     }
   },
 
-  _writeSeparator: function writeSeparator(aItem, aIndent) {
+  _writeSeparator: function (aItem, aIndent) {
     this._write(aIndent + "<HR");
-
     // We keep exporting separator titles, but don't support them anymore.
-    let title = null;
-    try {
-      title = PlacesUtils.bookmarks.getItemTitle(aItem.itemId);
-    } catch (ex) { }
-
-    if (title) {
-      this._write(" NAME=\"" + this.escapeHtml(title) + "\"");
-    }
-
+    if (aItem.title)
+      this._writeAttribute("NAME", escapeHtmlEntities(aItem.title));
     this._write(">");
   },
 
-  _writeLivemark: function writeLivemark(aItem, aIndent) {
+  _writeLivemark: function (aItem, aIndent) {
     this._write(aIndent + "<DT><A");
-    let feedSpec = PlacesUtils.annotations
-                              .getItemAnnotation(aItem.itemId,
-                                                 PlacesUtils.LMANNO_FEEDURI);
-    this._write(" FEEDURL=\"" + this.escapeUrl(feedSpec) + "\"");
-
-    // The site URI is optional.
-    try {
-      let siteSpec = PlacesUtils.annotations
-                                .getItemAnnotation(aItem.itemId,
-                                                   PlacesUtils.LMANNO_SITEURI);
-      if (siteSpec) {
-        this._write(" HREF=\"" + this.escapeUrl(siteSpec) + "\"");
-      }
-    } catch (ex) { }
-
-    this._writeLine(">" + this.escapeHtml(aItem.title) + "</A>");
-    yield this._writeDescription(aItem);
+    let feedSpec = aItem.annos.find(anno => anno.name == PlacesUtils.LMANNO_FEEDURI).value;
+    this._writeAttribute("FEEDURL", encodeURI(feedSpec));
+    let siteSpecAnno = aItem.annos.find(anno => anno.name == PlacesUtils.LMANNO_SITEURI);
+    if (siteSpecAnno)
+      this._writeAttribute("HREF", encodeURI(siteSpecAnno.value));
+    this._writeLine(">" + escapeHtmlEntities(aItem.title) + "</A>");
+    this._writeDescription(aItem, aIndent);
   },
 
-  _writeItem: function writeItem(aItem, aIndent) {
-    let itemUri = null;
+  _writeItem: function (aItem, aIndent) {
+    // This is a workaround for "too much recursion" error, due to the fact
+    // Task.jsm still uses old on-same-tick promises.  It may be removed as
+    // soon as bug 887923 is fixed.
+    yield promiseSoon();
+    let uri = null;
     try {
-      itemUri = NetUtil.newURI(aItem.uri);
+      uri = NetUtil.newURI(aItem.uri);
     } catch (ex) {
       // If the item URI is invalid, skip the item instead of failing later.
       return;
     }
 
-    this._write(aIndent + "<DT><A HREF=\"" + this.escapeUrl(aItem.uri) + "\"");
-    yield this._writeDateAttributes(aItem);
-    yield this._writeFaviconAttribute(itemUri);
+    this._write(aIndent + "<DT><A");
+    this._writeAttribute("HREF", encodeURI(aItem.uri));
+    this._writeDateAttributes(aItem);
+    yield this._writeFaviconAttribute(aItem);
 
-    let keyword = PlacesUtils.bookmarks.getKeywordForBookmark(aItem.itemId);
-    if (keyword) {
-      this._write(" SHORTCUTURL=\"" + this.escapeHtml(keyword) + "\"");
-    }
+    let keyword = PlacesUtils.bookmarks.getKeywordForBookmark(aItem.id);
+    if (aItem.keyword)
+      this._writeAttribute("SHORTCUTURL", escapeHtmlEntities(keyword));
 
-    if (PlacesUtils.annotations.itemHasAnnotation(aItem.itemId,
-                                                  PlacesUtils.POST_DATA_ANNO)) {
-      let postData = PlacesUtils.annotations
-                                .getItemAnnotation(aItem.itemId,
-                                                   PlacesUtils.POST_DATA_ANNO);
-      this._write(" POST_DATA=\"" + this.escapeHtml(postData) + "\"");
-    }
+    let postDataAnno = aItem.annos &&
+                       aItem.annos.find(anno => anno.name == PlacesUtils.POST_DATA_ANNO);
+    if (postDataAnno)
+      this._writeAttribute("POST_DATA", escapeHtmlEntities(postDataAnno.value));
 
-    if (PlacesUtils.annotations.itemHasAnnotation(aItem.itemId,
-                                                  LOAD_IN_SIDEBAR_ANNO)) {
-      this._write(" WEB_PANEL=\"true\"");
-    }
+    if (aItem.annos && aItem.annos.some(anno => anno.name == LOAD_IN_SIDEBAR_ANNO))
+      this._writeAttribute("WEB_PANEL", "true");
+    if (aItem.charset)
+      this._writeAttribute("LAST_CHARSET", escapeHtmlEntities(aItem.charset));
+    if (aItem.tags)
+      this._writeAttribute("TAGS", aItem.tags);
+    this._writeLine(">" + escapeHtmlEntities(aItem.title) + "</A>");
+    this._writeDescription(aItem, aIndent);
+  },
 
+  _writeDateAttributes: function (aItem) {
+    if (aItem.dateAdded)
+      this._writeAttribute("ADD_DATE",
+                           Math.floor(aItem.dateAdded / MICROSEC_PER_SEC));
+    if (aItem.lastModified)
+      this._writeAttribute("LAST_MODIFIED",
+                           Math.floor(aItem.lastModified / MICROSEC_PER_SEC));
+  },
+
+  _writeFaviconAttribute: function (aItem) {
+    if (!aItem.iconuri)
+      return;
+    let favicon;
     try {
-      let lastCharset = yield PlacesUtils.getCharsetForURI(itemUri);
-      if (lastCharset) {
-        this._write(" LAST_CHARSET=\"" + this.escapeHtml(lastCharset) + "\"");
-      }
-    } catch(ex) { }
-
-    this._writeLine(">" + this.escapeHtml(aItem.title) + "</A>");
-    yield this._writeDescription(aItem);
-  },
-
-  _writeDateAttributes: function writeDateAttributes(aItem) {
-    if (aItem.dateAdded) {
-      this._write(" ADD_DATE=\"" +
-                  Math.floor(aItem.dateAdded / MICROSEC_PER_SEC) + "\"");
-    }
-    if (aItem.lastModified) {
-      this._write(" LAST_MODIFIED=\"" +
-                  Math.floor(aItem.lastModified / MICROSEC_PER_SEC) + "\"");
-    }
-  },
-
-  _writeFaviconAttribute: function writeFaviconAttribute(aItemUri) {
-    let [faviconURI, dataLen, data] = yield this._promiseFaviconData(aItemUri);
-
-    if (!faviconURI) {
-      // Skip in case of errors.
+      favicon  = yield PlacesUtils.promiseFaviconData(aItem.uri);
+    } catch (ex) {
+      Components.utils.reportError("Unexpected Error trying to fetch icon data");
       return;
     }
 
-    this._write(" ICON_URI=\"" + this.escapeUrl(faviconURI.spec) + "\"");
+    this._writeAttribute("ICON_URI", encodeURI(favicon.uri.spec));
 
-    if (!faviconURI.schemeIs("chrome") && dataLen > 0) {
+    if (!favicon.uri.schemeIs("chrome") && favicon.dataLen > 0) {
       let faviconContents = "data:image/png;base64," +
-        base64EncodeString(String.fromCharCode.apply(String, data));
-      this._write(" ICON=\"" + faviconContents + "\"");
+        base64EncodeString(String.fromCharCode.apply(String, favicon.data));
+      this._writeAttribute("ICON", faviconContents);
     }
   },
 
-  _promiseFaviconData: function(aPageURI) {
-    var deferred = Promise.defer();
-    PlacesUtils.favicons.getFaviconDataForPage(aPageURI,
-      function (aURI, aDataLen, aData, aMimeType) {
-        deferred.resolve([aURI, aDataLen, aData, aMimeType]);
-      });
-    return deferred.promise;
-  },
-
-  _writeDescription: function writeDescription(aItem) {
-    if (PlacesUtils.annotations.itemHasAnnotation(aItem.itemId,
-                                                  DESCRIPTION_ANNO)) {
-      let description = PlacesUtils.annotations
-                                   .getItemAnnotation(aItem.itemId,
-                                                      DESCRIPTION_ANNO);
-      // The description is not indented.
-      this._writeLine("<DD>" + this.escapeHtml(description));
-    }
-  },
-
+  _writeDescription: function (aItem, aIndent) {
+    let descriptionAnno = aItem.annos &&
+                          aItem.annos.find(anno => anno.name == DESCRIPTION_ANNO);
+    if (descriptionAnno)
+      this._writeLine(aIndent + "<DD>" + escapeHtmlEntities(descriptionAnno.value));
+  }
 };

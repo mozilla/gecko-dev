@@ -8,6 +8,11 @@ const { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {})
 const { require } = devtools;
 const Editor  = require("devtools/sourceeditor/editor");
 
+gDevTools.testing = true;
+SimpleTest.registerCleanupFunction(() => {
+  gDevTools.testing = false;
+});
+
 function setup(cb) {
   const opt = "chrome,titlebar,toolbar,centerscreen,resizable,dialog=no";
   const url = "data:text/xml;charset=UTF-8,<?xml version='1.0'?>" +
@@ -69,9 +74,37 @@ function read(url) {
   let input = channel.open();
   scriptableStream.init(input);
 
-  let data = scriptableStream.read(input.available());
+  let data = "";
+  while (input.available()) {
+    data = data.concat(scriptableStream.read(input.available()));
+  }
   scriptableStream.close();
   input.close();
 
   return data;
+}
+
+/**
+ * This function is called by the CodeMirror test runner to report status
+ * messages from the CM tests.
+ * @see codemirror.html
+ */
+function codeMirror_setStatus(statusMsg, type, customMsg) {
+  switch (type) {
+    case "expected":
+    case "ok":
+      ok(1, statusMsg);
+      break;
+    case "error":
+    case "fail":
+      ok(0, statusMsg);
+      break;
+    default:
+      info(statusMsg);
+      break;
+  }
+
+  if (customMsg && typeof customMsg == "string" && customMsg != statusMsg) {
+    info(customMsg);
+  }
 }

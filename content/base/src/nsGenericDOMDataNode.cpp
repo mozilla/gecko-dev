@@ -11,11 +11,11 @@
 #include "mozilla/DebugOnly.h"
 
 #include "nsGenericDOMDataNode.h"
+#include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/ShadowRoot.h"
 #include "nsIDocument.h"
-#include "nsEventListenerManager.h"
 #include "nsIDOMDocument.h"
 #include "nsReadableUtils.h"
 #include "mozilla/InternalMutationEvent.h"
@@ -26,14 +26,12 @@
 #include "nsDOMString.h"
 #include "nsIDOMUserDataHandler.h"
 #include "nsChangeHint.h"
-#include "nsEventDispatcher.h"
 #include "nsCOMArray.h"
 #include "nsNodeUtils.h"
 #include "mozilla/dom/DirectionalityUtils.h"
 #include "nsBindingManager.h"
 #include "nsCCUncollectableMarker.h"
 #include "mozAutoDocUpdate.h"
-#include "nsAsyncDOMEvent.h"
 
 #include "pldhash.h"
 #include "prprf.h"
@@ -42,7 +40,19 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 
-nsGenericDOMDataNode::nsGenericDOMDataNode(already_AddRefed<nsINodeInfo> aNodeInfo)
+nsGenericDOMDataNode::nsGenericDOMDataNode(already_AddRefed<nsINodeInfo>& aNodeInfo)
+  : nsIContent(aNodeInfo)
+{
+  NS_ABORT_IF_FALSE(mNodeInfo->NodeType() == nsIDOMNode::TEXT_NODE ||
+                    mNodeInfo->NodeType() == nsIDOMNode::CDATA_SECTION_NODE ||
+                    mNodeInfo->NodeType() == nsIDOMNode::COMMENT_NODE ||
+                    mNodeInfo->NodeType() ==
+                      nsIDOMNode::PROCESSING_INSTRUCTION_NODE ||
+                    mNodeInfo->NodeType() == nsIDOMNode::DOCUMENT_TYPE_NODE,
+                    "Bad NodeType in aNodeInfo");
+}
+
+nsGenericDOMDataNode::nsGenericDOMDataNode(already_AddRefed<nsINodeInfo>&& aNodeInfo)
   : nsIContent(aNodeInfo)
 {
   NS_ABORT_IF_FALSE(mNodeInfo->NodeType() == nsIDOMNode::TEXT_NODE ||
@@ -376,7 +386,7 @@ nsGenericDOMDataNode::SetTextInternal(uint32_t aOffset, uint32_t aCount,
       }
 
       mozAutoSubtreeModified subtree(OwnerDoc(), this);
-      (new nsAsyncDOMEvent(this, mutation))->RunDOMEventWhenSafe();
+      (new AsyncEventDispatcher(this, mutation))->RunDOMEventWhenSafe();
     }
   }
 
@@ -472,13 +482,13 @@ nsGenericDOMDataNode::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   // First set the binding parent
   if (aBindingParent) {
     NS_ASSERTION(IsRootOfNativeAnonymousSubtree() ||
-                 !HasFlag(NODE_IS_IN_ANONYMOUS_SUBTREE) ||
+                 !HasFlag(NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE) ||
                  (aParent && aParent->IsInNativeAnonymousSubtree()),
                  "Trying to re-bind content from native anonymous subtree to "
                  "non-native anonymous parent!");
     DataSlots()->mBindingParent = aBindingParent; // Weak, so no addref happens.
     if (aParent->IsInNativeAnonymousSubtree()) {
-      SetFlags(NODE_IS_IN_ANONYMOUS_SUBTREE);
+      SetFlags(NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE);
     }
     if (aParent->HasFlag(NODE_CHROME_ONLY_ACCESS)) {
       SetFlags(NODE_CHROME_ONLY_ACCESS);
@@ -980,10 +990,51 @@ nsGenericDOMDataNode::TextIsOnlyWhitespace()
   return true;
 }
 
+bool
+nsGenericDOMDataNode::HasTextForTranslation()
+{
+  if (mText.Is2b()) {
+    // The fragment contains non-8bit characters which means there
+    // was at least one "interesting" character to trigger non-8bit.
+    return true;
+  }
+
+  if (HasFlag(NS_CACHED_TEXT_IS_ONLY_WHITESPACE) &&
+      HasFlag(NS_TEXT_IS_ONLY_WHITESPACE)) {
+    return false;
+  }
+
+  const char* cp = mText.Get1b();
+  const char* end = cp + mText.GetLength();
+
+  unsigned char ch;
+  for (; cp < end; cp++) {
+    ch = *cp;
+
+    // These are the characters that are letters
+    // in the first 256 UTF-8 codepoints.
+    if ((ch >= 'a' && ch <= 'z') ||
+       (ch >= 'A' && ch <= 'Z') ||
+       (ch >= 192 && ch <= 214) ||
+       (ch >= 216 && ch <= 246) ||
+       (ch >= 248)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 void
 nsGenericDOMDataNode::AppendTextTo(nsAString& aResult)
 {
   mText.AppendTo(aResult);
+}
+
+bool
+nsGenericDOMDataNode::AppendTextTo(nsAString& aResult, const mozilla::fallible_t&)
+{
+  return mText.AppendTo(aResult, mozilla::fallible_t());
 }
 
 already_AddRefed<nsIAtom>

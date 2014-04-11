@@ -10,8 +10,9 @@
 # instead of BrandFullName and typically should not be modified.
 !define BrandFullNameInternal "Mozilla Firefox"
 !define CompanyName           "Mozilla Corporation"
-!define URLInfoAbout          "https://www.mozilla.org/${AB_CD}/"
-!define URLUpdateInfo         "https://www.mozilla.org/${AB_CD}/firefox/"
+!define URLInfoAbout          "https://www.mozilla.org"
+!define URLUpdateInfo         "https://www.mozilla.org/firefox/${AppVersion}/releasenotes"
+!define HelpLink              "https://support.mozilla.org"
 
 ; The OFFICIAL define is a workaround to support different urls for Release and
 ; Beta since they share the same branding when building with other branches that
@@ -41,9 +42,8 @@
 !define FOOTER_CONTROL_TEXT_COLOR_FADED 0x666666
 !define FOOTER_BKGRD_COLOR 0xFFFFFF
 !define INTRO_BLURB_TEXT_COLOR 0x666666
-!define OPTIONS_TEXT_COLOR_NORMAL 0x000000
-!define OPTIONS_TEXT_COLOR_FADED 0x666666
-!define OPTIONS_BKGRD_COLOR 0xF0F0F0
 !define INSTALL_BLURB_TEXT_COLOR 0x666666
 !define INSTALL_PROGRESS_TEXT_COLOR_NORMAL 0x666666
-!define INSTALL_PROGRESS_TEXT_COLOR_FADED 0x999999
+!define COMMON_TEXT_COLOR_NORMAL 0x000000
+!define COMMON_TEXT_COLOR_FADED 0x666666
+!define COMMON_BKGRD_COLOR 0xF0F0F0

@@ -6,6 +6,29 @@
 #ifndef nsLayoutUtils_h__
 #define nsLayoutUtils_h__
 
+#include "mozilla/MemoryReporting.h"
+#include "nsChangeHint.h"
+#include "nsAutoPtr.h"
+#include "nsFrameList.h"
+#include "nsThreadUtils.h"
+#include "nsIPrincipal.h"
+#include "GraphicsFilter.h"
+#include "nsCSSPseudoElements.h"
+#include "FrameMetrics.h"
+#include "gfx3DMatrix.h"
+#include "nsIWidget.h"
+#include "nsCSSProperty.h"
+#include "nsStyleCoord.h"
+#include "nsStyleConsts.h"
+#include "nsGkAtoms.h"
+#include "nsRuleNode.h"
+#include "imgIContainer.h"
+#include "mozilla/gfx/2D.h"
+#include "Units.h"
+
+#include <limits>
+#include <algorithm>
+
 class nsIFormControlFrame;
 class nsPresContext;
 class nsIContent;
@@ -30,31 +53,10 @@ class gfxContext;
 class nsPIDOMWindow;
 class imgIRequest;
 class nsIDocument;
+class gfxPoint;
 struct nsStyleFont;
 struct nsStyleImageOrientation;
 struct nsOverflowAreas;
-
-#include "mozilla/MemoryReporting.h"
-#include "nsChangeHint.h"
-#include "nsAutoPtr.h"
-#include "nsFrameList.h"
-#include "nsThreadUtils.h"
-#include "nsIPrincipal.h"
-#include "GraphicsFilter.h"
-#include "nsCSSPseudoElements.h"
-#include "FrameMetrics.h"
-#include "gfx3DMatrix.h"
-#include "nsIWidget.h"
-#include "nsCSSProperty.h"
-#include "nsStyleCoord.h"
-#include "nsStyleConsts.h"
-#include "nsGkAtoms.h"
-#include "nsRuleNode.h"
-#include "imgIContainer.h"
-#include "mozilla/gfx/2D.h"
-
-#include <limits>
-#include <algorithm>
 
 namespace mozilla {
 class SVGImageContext;
@@ -70,6 +72,33 @@ class HTMLVideoElement;
 namespace layers {
 class Layer;
 }
+}
+
+namespace mozilla {
+
+struct DisplayPortPropertyData {
+  DisplayPortPropertyData(const nsRect& aRect, uint32_t aPriority)
+    : mRect(aRect)
+    , mPriority(aPriority)
+  {}
+  nsRect mRect;
+  uint32_t mPriority;
+};
+
+struct DisplayPortMarginsPropertyData {
+  DisplayPortMarginsPropertyData(const LayerMargin& aMargins,
+                                 uint32_t aAlignmentX, uint32_t aAlignmentY,
+                                 uint32_t aPriority)
+    : mMargins(aMargins)
+    , mAlignmentX(aAlignmentX)
+    , mAlignmentY(aAlignmentY)
+    , mPriority(aPriority)
+  {}
+  LayerMargin mMargins;
+  uint32_t mAlignmentX;
+  uint32_t mAlignmentY;
+  uint32_t mPriority;
+};
 
 template <class AnimationsOrTransitions>
 extern AnimationsOrTransitions* HasAnimationOrTransition(nsIContent* aContent,
@@ -91,10 +120,12 @@ class nsLayoutUtils
   typedef mozilla::ContainerLayerParameters ContainerLayerParameters;
   typedef mozilla::gfx::SourceSurface SourceSurface;
   typedef mozilla::gfx::DrawTarget DrawTarget;
+  typedef mozilla::gfx::Rect Rect;
 
 public:
   typedef mozilla::layers::FrameMetrics FrameMetrics;
   typedef FrameMetrics::ViewID ViewID;
+  typedef mozilla::CSSPoint CSSPoint;
 
   /**
    * Finds previously assigned ViewID for the given content element, if any.
@@ -122,6 +153,12 @@ public:
    * Get display port for the given element.
    */
   static bool GetDisplayPort(nsIContent* aContent, nsRect *aResult = nullptr);
+
+ /**
+  * Set the display port base rect for given element to be used with display
+  * port margins.
+  */
+ static void SetDisplayPortBase(nsIContent* aContent, const nsRect& aBase);
 
   /**
    * Get the critical display port for the given element.
@@ -672,6 +709,24 @@ public:
   static gfx3DMatrix GetTransformToAncestor(nsIFrame *aFrame, const nsIFrame *aAncestor);
 
   /**
+   * Transforms a list of CSSPoints from aFromFrame to aToFrame, taking into
+   * account all relevant transformations on the frames up to (but excluding)
+   * their nearest common ancestor.
+   * If we encounter a transform that we need to invert but which is
+   * non-invertible, we return NONINVERTIBLE_TRANSFORM. If the frames have
+   * no common ancestor, we return NO_COMMON_ANCESTOR.
+   * If this returns TRANSFORM_SUCCEEDED, the points in aPoints are transformed
+   * in-place, otherwise they are untouched.
+   */
+  enum TransformResult {
+    TRANSFORM_SUCCEEDED,
+    NO_COMMON_ANCESTOR,
+    NONINVERTIBLE_TRANSFORM
+  };
+  static TransformResult TransformPoints(nsIFrame* aFromFrame, nsIFrame* aToFrame,
+                                         uint32_t aPointCount, CSSPoint* aPoints);
+
+  /**
    * Return true if a "layer transform" could be computed for aFrame,
    * and optionally return the computed transform.  The returned
    * transform is what would be set on the layer currently if a layers
@@ -738,6 +793,16 @@ public:
    */
   static nsPoint MatrixTransformPoint(const nsPoint &aPoint,
                                       const gfx3DMatrix &aMatrix, float aFactor);
+
+  /**
+   * Given a graphics rectangle in graphics space, return a rectangle in
+   * app space that contains the graphics rectangle, rounding out as necessary.
+   *
+   * @param aRect The graphics rect to round outward.
+   * @param aFactor The number of app units per graphics unit.
+   * @return The smallest rectangle in app space that contains aRect.
+   */
+  static nsRect RoundGfxRectToAppRect(const Rect &aRect, float aFactor);
 
   /**
    * Given a graphics rectangle in graphics space, return a rectangle in
@@ -830,12 +895,6 @@ public:
                              uint32_t aFlags = 0);
 
   /**
-   * Compute the used z-index of aFrame; returns zero for elements to which
-   * z-index does not apply, and for z-index:auto
-   */
-  static int32_t GetZIndex(nsIFrame* aFrame);
-
-  /**
    * Uses a binary search for find where the cursor falls in the line of text
    * It also keeps track of the part of the string that has already been measured
    * so it doesn't have to keep measuring the same text over and over
@@ -870,6 +929,12 @@ public:
    * SVG frames return a single box, themselves.
    */
   static void GetAllInFlowBoxes(nsIFrame* aFrame, BoxCallback* aCallback);
+
+  /**
+   * Find the first frame descendant of aFrame (including aFrame) which is
+   * not an anonymous frame that getBoxQuads/getClientRects should ignore.
+   */
+  static nsIFrame* GetFirstNonAnonymousFrame(nsIFrame* aFrame);
 
   class RectCallback {
   public:
@@ -1144,6 +1209,8 @@ public:
             nsRuleNode::ComputeCoordPercentCalc(aCoord, nscoord_MAX) == 0 &&
             nsRuleNode::ComputeCoordPercentCalc(aCoord, 0) == 0);
   }
+
+  static void MarkDescendantsDirty(nsIFrame *aSubtreeRoot);
 
   /*
    * Calculate the used values for 'width' and 'height' for a replaced element.
@@ -1517,6 +1584,31 @@ public:
   static nsIFrame* GetDisplayRootFrame(nsIFrame* aFrame);
 
   /**
+   * Get the reference frame that would be used when constructing a
+   * display item for this frame.  (Note, however, that
+   * nsDisplayTransform use the reference frame appropriate for their
+   * GetTransformRootFrame(), rather than using their own frame as a
+   * reference frame.)
+   *
+   * This duplicates some of the logic of GetDisplayRootFrame above and
+   * of nsDisplayListBuilder::FindReferenceFrameFor.
+   *
+   * If you have an nsDisplayListBuilder, you should get the reference
+   * frame from it instead of calling this.
+   */
+  static nsIFrame* GetReferenceFrame(nsIFrame* aFrame);
+
+  /**
+   * Get the parent of this frame, except if that parent is part of a
+   * preserve-3d hierarchy, get the parent of the root of the
+   * preserve-3d hierarchy.
+   *
+   * (This is used as the starting point for reference frame computation
+   * for nsDisplayTransform display items.)
+   */
+  static nsIFrame* GetTransformRootFrame(nsIFrame* aFrame);
+
+  /**
    * Get textrun construction flags determined by a given style; in particular
    * some combination of:
    * -- TEXT_DISABLE_OPTIONAL_LIGATURES if letter-spacing is in use
@@ -1778,6 +1870,11 @@ public:
     return sCSSVariablesEnabled;
   }
 
+  static bool InterruptibleReflowEnabled()
+  {
+    return sInterruptibleReflowEnabled;
+  }
+
   /**
    * Unions the overflow areas of all non-popup children of aFrame with
    * aOverflowAreas.
@@ -1996,6 +2093,29 @@ public:
   static void
   UpdateImageVisibilityForFrame(nsIFrame* aImageFrame);
 
+ /**
+  * Calculate the compostion size for a frame. See FrameMetrics.h for
+  * defintion of composition size (or bounds).
+  */
+  static nsSize
+  CalculateCompositionSizeForFrame(nsIFrame* aFrame);
+
+ /**
+  * Calculate the scrollable rect for a frame. See FrameMetrics.h for
+  * defintion of scrollable rect. aScrollableFrame is the scroll frame to calculate
+  * the scrollable rect for. If it's null then we calculate the scrollable rect
+  * as the rect of the root frame.
+  */
+  static nsRect
+  CalculateScrollableRectForFrame(nsIScrollableFrame* aScrollableFrame, nsIFrame* aRootFrame);
+
+ /**
+  * Calculate the expanded scrollable rect for a frame. See FrameMetrics.h for
+  * defintion of expanded scrollable rect.
+  */
+  static nsRect
+  CalculateExpandedScrollableRect(nsIFrame* aFrame);
+
 private:
   static uint32_t sFontSizeInflationEmPerLine;
   static uint32_t sFontSizeInflationMinTwips;
@@ -2006,6 +2126,7 @@ private:
   static bool sFontSizeInflationDisabledInMasterProcess;
   static bool sInvalidationDebuggingIsEnabled;
   static bool sCSSVariablesEnabled;
+  static bool sInterruptibleReflowEnabled;
 };
 
 template<typename PointType, typename RectType, typename CoordType>

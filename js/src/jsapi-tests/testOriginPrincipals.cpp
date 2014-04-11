@@ -63,12 +63,14 @@ eval(const char *asciiChars, JSPrincipals *principals, JSPrincipals *originPrinc
     CHECK(global);
     JSAutoCompartment ac(cx, global);
     CHECK(JS_InitStandardClasses(cx, global));
-    bool ok = JS_EvaluateUCScriptForPrincipalsVersionOrigin(cx, global,
-                                                            principals,
-                                                            originPrincipals,
-                                                            chars, len, "", 0,
-                                                            rval,
-                                                            JSVERSION_DEFAULT);
+
+
+    JS::CompileOptions options(cx);
+    options.setOriginPrincipals(originPrincipals)
+           .setFileAndLine("", 0);
+
+    bool ok = JS::Evaluate(cx, global, options, chars, len, rval);
+
     delete[] chars;
     return ok;
 }
@@ -87,7 +89,8 @@ testInner(const char *asciiChars, JSPrincipals *principal, JSPrincipals *originP
     JS::RootedValue rval(cx);
     CHECK(eval(asciiChars, principal, originPrincipal, &rval));
 
-    JSScript *script = JS_GetFunctionScript(cx, &rval.toObject().as<JSFunction>());
+    JS::RootedFunction fun(cx, &rval.toObject().as<JSFunction>());
+    JSScript *script = JS_GetFunctionScript(cx, fun);
     CHECK(JS_GetScriptPrincipals(script) == principal);
     CHECK(JS_GetScriptOriginPrincipals(script) == originPrincipal);
 

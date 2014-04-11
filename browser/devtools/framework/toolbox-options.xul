@@ -20,9 +20,12 @@
         <vbox id="default-tools-box" class="options-groupbox" tabindex="0"/>
         <label value="&options.selectAdditionalTools.label;"/>
         <vbox id="additional-tools-box" class="options-groupbox"/>
+        <label value="&options.selectEnabledToolboxButtons.label;"/>
+        <vbox id="enabled-toolbox-buttons-box" class="options-groupbox"/>
         <label id="tools-not-supported-label"
                class="options-citation-label theme-comment"
                value="&options.toolNotSupported.label;"/>
+
       </vbox>
       <vbox class="options-vertical-pane" flex="1">
         <label value="&options.selectDevToolsTheme.label;"/>
@@ -33,6 +36,12 @@
           <radio value="light" label="&options.lightTheme.label;"/>
           <radio value="dark" label="&options.darkTheme.label;"/>
         </radiogroup>
+        <label value="&options.commonPrefs.label;"/>
+        <vbox id="commonprefs-options" class="options-groupbox">
+          <checkbox label="&options.enablePersistentLogging.label;"
+                    tooltiptext="&options.enablePersistentLogging.tooltip;"
+                    data-pref="devtools.webconsole.persistlog"/>
+        </vbox>
         <label value="&options.context.inspector;"/>
         <vbox id="inspector-options" class="options-groupbox">
           <hbox align="center">
@@ -53,9 +62,6 @@
         </vbox>
         <label value="&options.webconsole.label;"/>
         <vbox id="webconsole-options" class="options-groupbox">
-          <checkbox label="&options.enablePersistentLogging.label;"
-                    tooltiptext="&options.enablePersistentLogging.tooltip;"
-                    data-pref="devtools.webconsole.persistlog"/>
           <checkbox id="webconsole-timestamp-messages"
                     label="&options.timestampMessages.label;"
                     tooltiptext="&options.timestampMessages.tooltip;"
@@ -85,8 +91,8 @@
                     label="&options.disableJavaScript.label;"
                     tooltiptext="&options.disableJavaScript.tooltip;"/>
           <hbox class="hidden-labels-box">
-            <checkbox label="&options.enableChrome.label3;"
-                      tooltiptext="&options.enableChrome.tooltip;"
+            <checkbox label="&options.enableChrome.label4;"
+                      tooltiptext="&options.enableChrome.tooltip2;"
                       data-pref="devtools.chrome.enabled"/>
           </hbox>
           <hbox class="hidden-labels-box">

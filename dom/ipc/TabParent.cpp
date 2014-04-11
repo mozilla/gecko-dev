@@ -16,6 +16,7 @@
 #include "mozilla/docshell/OfflineCacheUpdateParent.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/PContentPermissionRequestParent.h"
+#include "mozilla/EventStateManager.h"
 #include "mozilla/Hal.h"
 #include "mozilla/ipc/DocumentRendererParent.h"
 #include "mozilla/layers/CompositorParent.h"
@@ -29,7 +30,6 @@
 #include "nsContentPermissionHelper.h"
 #include "nsContentUtils.h"
 #include "nsDebug.h"
-#include "nsEventStateManager.h"
 #include "nsFocusManager.h"
 #include "nsFrameLoader.h"
 #include "nsIContent.h"
@@ -38,7 +38,7 @@
 #include "nsIDOMElement.h"
 #include "nsIDOMEvent.h"
 #include "nsIDOMWindow.h"
-#include "nsIDialogCreator.h"
+#include "nsIDOMWindowUtils.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIPromptFactory.h"
 #include "nsIURI.h"
@@ -517,7 +517,7 @@ TabParent::AcknowledgeScrollUpdate(const ViewID& aScrollId, const uint32_t& aScr
   }
 }
 
-void TabParent::HandleDoubleTap(const CSSIntPoint& aPoint,
+void TabParent::HandleDoubleTap(const CSSPoint& aPoint,
                                 int32_t aModifiers,
                                 const ScrollableLayerGuid &aGuid)
 {
@@ -526,7 +526,7 @@ void TabParent::HandleDoubleTap(const CSSIntPoint& aPoint,
   }
 }
 
-void TabParent::HandleSingleTap(const CSSIntPoint& aPoint,
+void TabParent::HandleSingleTap(const CSSPoint& aPoint,
                                 int32_t aModifiers,
                                 const ScrollableLayerGuid &aGuid)
 {
@@ -536,7 +536,7 @@ void TabParent::HandleSingleTap(const CSSIntPoint& aPoint,
   }
 }
 
-void TabParent::HandleLongTap(const CSSIntPoint& aPoint,
+void TabParent::HandleLongTap(const CSSPoint& aPoint,
                               int32_t aModifiers,
                               const ScrollableLayerGuid &aGuid)
 {
@@ -545,7 +545,7 @@ void TabParent::HandleLongTap(const CSSIntPoint& aPoint,
   }
 }
 
-void TabParent::HandleLongTapUp(const CSSIntPoint& aPoint,
+void TabParent::HandleLongTapUp(const CSSPoint& aPoint,
                                 int32_t aModifiers,
                                 const ScrollableLayerGuid &aGuid)
 {
@@ -684,7 +684,8 @@ TabParent::MapEventCoordinatesForChildProcess(WidgetEvent* aEvent)
   if (!frameLoader) {
     return false;
   }
-  LayoutDeviceIntPoint offset = nsEventStateManager::GetChildProcessOffset(frameLoader, *aEvent);
+  LayoutDeviceIntPoint offset =
+    EventStateManager::GetChildProcessOffset(frameLoader, *aEvent);
   MapEventCoordinatesForChildProcess(offset, aEvent);
   return true;
 }
@@ -715,15 +716,14 @@ bool TabParent::SendRealMouseEvent(WidgetMouseEvent& event)
   if (mIsDestroyed) {
     return false;
   }
-  WidgetMouseEvent outEvent(event);
-  MaybeForwardEventToRenderFrame(event, nullptr, &outEvent);
-  if (!MapEventCoordinatesForChildProcess(&outEvent)) {
+  MaybeForwardEventToRenderFrame(event, nullptr);
+  if (!MapEventCoordinatesForChildProcess(&event)) {
     return false;
   }
-  return PBrowserParent::SendRealMouseEvent(outEvent);
+  return PBrowserParent::SendRealMouseEvent(event);
 }
 
-CSSIntPoint TabParent::AdjustTapToChildWidget(const CSSIntPoint& aPoint)
+CSSPoint TabParent::AdjustTapToChildWidget(const CSSPoint& aPoint)
 {
   nsCOMPtr<nsIContent> content = do_QueryInterface(mFrameElement);
 
@@ -737,12 +737,12 @@ CSSIntPoint TabParent::AdjustTapToChildWidget(const CSSIntPoint& aPoint)
   }
   nsPresContext* presContext = doc->GetShell()->GetPresContext();
 
-  return CSSIntPoint(
-    aPoint.x + presContext->DevPixelsToIntCSSPixels(mChildProcessOffsetAtTouchStart.x),
-    aPoint.y + presContext->DevPixelsToIntCSSPixels(mChildProcessOffsetAtTouchStart.y));
+  return aPoint + CSSPoint(
+    presContext->DevPixelsToFloatCSSPixels(mChildProcessOffsetAtTouchStart.x),
+    presContext->DevPixelsToFloatCSSPixels(mChildProcessOffsetAtTouchStart.y));
 }
 
-bool TabParent::SendHandleSingleTap(const CSSIntPoint& aPoint, const ScrollableLayerGuid& aGuid)
+bool TabParent::SendHandleSingleTap(const CSSPoint& aPoint, const ScrollableLayerGuid& aGuid)
 {
   if (mIsDestroyed) {
     return false;
@@ -751,7 +751,7 @@ bool TabParent::SendHandleSingleTap(const CSSIntPoint& aPoint, const ScrollableL
   return PBrowserParent::SendHandleSingleTap(AdjustTapToChildWidget(aPoint), aGuid);
 }
 
-bool TabParent::SendHandleLongTap(const CSSIntPoint& aPoint, const ScrollableLayerGuid& aGuid)
+bool TabParent::SendHandleLongTap(const CSSPoint& aPoint, const ScrollableLayerGuid& aGuid)
 {
   if (mIsDestroyed) {
     return false;
@@ -760,7 +760,7 @@ bool TabParent::SendHandleLongTap(const CSSIntPoint& aPoint, const ScrollableLay
   return PBrowserParent::SendHandleLongTap(AdjustTapToChildWidget(aPoint), aGuid);
 }
 
-bool TabParent::SendHandleLongTapUp(const CSSIntPoint& aPoint, const ScrollableLayerGuid& aGuid)
+bool TabParent::SendHandleLongTapUp(const CSSPoint& aPoint, const ScrollableLayerGuid& aGuid)
 {
   if (mIsDestroyed) {
     return false;
@@ -769,7 +769,7 @@ bool TabParent::SendHandleLongTapUp(const CSSIntPoint& aPoint, const ScrollableL
   return PBrowserParent::SendHandleLongTapUp(AdjustTapToChildWidget(aPoint), aGuid);
 }
 
-bool TabParent::SendHandleDoubleTap(const CSSIntPoint& aPoint, const ScrollableLayerGuid& aGuid)
+bool TabParent::SendHandleDoubleTap(const CSSPoint& aPoint, const ScrollableLayerGuid& aGuid)
 {
   if (mIsDestroyed) {
     return false;
@@ -783,12 +783,17 @@ bool TabParent::SendMouseWheelEvent(WidgetWheelEvent& event)
   if (mIsDestroyed) {
     return false;
   }
-  WidgetWheelEvent outEvent(event);
-  MaybeForwardEventToRenderFrame(event, nullptr, &outEvent);
-  if (!MapEventCoordinatesForChildProcess(&outEvent)) {
+  MaybeForwardEventToRenderFrame(event, nullptr);
+  if (!MapEventCoordinatesForChildProcess(&event)) {
     return false;
   }
-  return PBrowserParent::SendMouseWheelEvent(outEvent);
+  return PBrowserParent::SendMouseWheelEvent(event);
+}
+
+static void
+DoCommandCallback(mozilla::Command aCommand, void* aData)
+{
+  static_cast<InfallibleTArray<mozilla::CommandInt>*>(aData)->AppendElement(aCommand);
 }
 
 bool TabParent::SendRealKeyEvent(WidgetKeyboardEvent& event)
@@ -796,12 +801,34 @@ bool TabParent::SendRealKeyEvent(WidgetKeyboardEvent& event)
   if (mIsDestroyed) {
     return false;
   }
-  WidgetKeyboardEvent outEvent(event);
-  MaybeForwardEventToRenderFrame(event, nullptr, &outEvent);
-  if (!MapEventCoordinatesForChildProcess(&outEvent)) {
+  MaybeForwardEventToRenderFrame(event, nullptr);
+  if (!MapEventCoordinatesForChildProcess(&event)) {
     return false;
   }
-  return PBrowserParent::SendRealKeyEvent(outEvent);
+
+
+  MaybeNativeKeyBinding bindings;
+  bindings = void_t();
+  if (event.message == NS_KEY_PRESS) {
+    nsCOMPtr<nsIWidget> widget = GetWidget();
+
+    AutoInfallibleTArray<mozilla::CommandInt, 4> singleLine;
+    AutoInfallibleTArray<mozilla::CommandInt, 4> multiLine;
+    AutoInfallibleTArray<mozilla::CommandInt, 4> richText;
+
+    widget->ExecuteNativeKeyBinding(nsIWidget::NativeKeyBindingsForSingleLineEditor,
+                                    event, DoCommandCallback, &singleLine);
+    widget->ExecuteNativeKeyBinding(nsIWidget::NativeKeyBindingsForMultiLineEditor,
+                                    event, DoCommandCallback, &multiLine);
+    widget->ExecuteNativeKeyBinding(nsIWidget::NativeKeyBindingsForRichTextEditor,
+                                    event, DoCommandCallback, &richText);
+
+    if (!singleLine.IsEmpty() || !multiLine.IsEmpty() || !richText.IsEmpty()) {
+      bindings = NativeKeyBinding(singleLine, multiLine, richText);
+    }
+  }
+
+  return PBrowserParent::SendRealKeyEvent(event, bindings);
 }
 
 bool TabParent::SendRealTouchEvent(WidgetTouchEvent& event)
@@ -819,8 +846,7 @@ bool TabParent::SendRealTouchEvent(WidgetTouchEvent& event)
     }
 
     mChildProcessOffsetAtTouchStart =
-        nsEventStateManager::GetChildProcessOffset(frameLoader,
-                                                   event);
+      EventStateManager::GetChildProcessOffset(frameLoader, event);
 
     MOZ_ASSERT((!sEventCapturer && mEventCaptureDepth == 0) ||
                (sEventCapturer == this && mEventCaptureDepth > 0));
@@ -842,24 +868,18 @@ bool TabParent::SendRealTouchEvent(WidgetTouchEvent& event)
     }
   }
 
-  // Create an out event for remote content that is identical to the event that
-  // we send to the render frame. The out event will be transformed in such a
-  // way that its async transform in the compositor is unapplied. The event that
-  // it is created from does not get mutated.
-  WidgetTouchEvent outEvent(event);
-
   ScrollableLayerGuid guid;
-  MaybeForwardEventToRenderFrame(event, &guid, &outEvent);
+  MaybeForwardEventToRenderFrame(event, &guid);
 
   if (mIsDestroyed) {
     return false;
   }
 
-  MapEventCoordinatesForChildProcess(mChildProcessOffsetAtTouchStart, &outEvent);
+  MapEventCoordinatesForChildProcess(mChildProcessOffsetAtTouchStart, &event);
 
-  return (outEvent.message == NS_TOUCH_MOVE) ?
-    PBrowserParent::SendRealTouchMoveEvent(outEvent, guid) :
-    PBrowserParent::SendRealTouchEvent(outEvent, guid);
+  return (event.message == NS_TOUCH_MOVE) ?
+    PBrowserParent::SendRealTouchMoveEvent(event, guid) :
+    PBrowserParent::SendRealTouchEvent(event, guid);
 }
 
 /*static*/ TabParent*
@@ -1202,6 +1222,28 @@ TabParent::GetChildProcessOffset()
            pt, targetFrame->PresContext()->AppUnitsPerDevPixel()));
 }
 
+bool
+TabParent::RecvReplyKeyEvent(const WidgetKeyboardEvent& event)
+{
+  NS_ENSURE_TRUE(mFrameElement, true);
+
+  WidgetKeyboardEvent localEvent(event);
+  // Set mNoCrossProcessBoundaryForwarding to avoid this event from
+  // being infinitely redispatched and forwarded to the child again.
+  localEvent.mFlags.mNoCrossProcessBoundaryForwarding = true;
+
+  // Here we convert the WidgetEvent that we received to an nsIDOMEvent
+  // to be able to dispatch it to the <browser> element as the target element.
+  nsIDocument* doc = mFrameElement->OwnerDoc();
+  nsIPresShell* presShell = doc->GetShell();
+  NS_ENSURE_TRUE(presShell, true);
+  nsPresContext* presContext = presShell->GetPresContext();
+  NS_ENSURE_TRUE(presContext, true);
+
+  EventDispatcher::Dispatch(mFrameElement, presContext, &localEvent);
+  return true;
+}
+
 /**
  * Try to answer query event using cached text.
  *
@@ -1464,6 +1506,18 @@ TabParent::RecvSetInputContext(const int32_t& aIMEEnabled,
 }
 
 bool
+TabParent::RecvIsParentWindowMainWidgetVisible(bool* aIsVisible)
+{
+  nsCOMPtr<nsIContent> frame = do_QueryInterface(mFrameElement);
+  if (!frame)
+    return true;
+  nsCOMPtr<nsIDOMWindowUtils> windowUtils =
+    do_QueryInterface(frame->OwnerDoc()->GetWindow());
+  nsresult rv = windowUtils->GetIsParentWindowMainWidgetVisible(aIsVisible);
+  return NS_SUCCEEDED(rv);
+}
+
+bool
 TabParent::RecvGetDPI(float* aValue)
 {
   TryCacheDPIAndScale();
@@ -1656,80 +1710,6 @@ TabParent::DeallocPColorPickerParent(PColorPickerParent* actor)
   return true;
 }
 
-PContentDialogParent*
-TabParent::AllocPContentDialogParent(const uint32_t& aType,
-                                     const nsCString& aName,
-                                     const nsCString& aFeatures,
-                                     const InfallibleTArray<int>& aIntParams,
-                                     const InfallibleTArray<nsString>& aStringParams)
-{
-  ContentDialogParent* parent = new ContentDialogParent();
-  nsCOMPtr<nsIDialogParamBlock> params =
-    do_CreateInstance(NS_DIALOGPARAMBLOCK_CONTRACTID);
-  TabChild::ArraysToParams(aIntParams, aStringParams, params);
-  mDelayedDialogs.AppendElement(new DelayedDialogData(parent, aType, aName,
-                                                      aFeatures, params));
-  nsRefPtr<nsIRunnable> ev =
-    NS_NewRunnableMethod(this, &TabParent::HandleDelayedDialogs);
-  NS_DispatchToCurrentThread(ev);
-  return parent;
-}
-
-void
-TabParent::HandleDelayedDialogs()
-{
-  nsCOMPtr<nsIWindowWatcher> ww = do_GetService(NS_WINDOWWATCHER_CONTRACTID);
-  nsCOMPtr<nsIDOMWindow> window;
-  if (mFrameElement) {
-    window = do_QueryInterface(mFrameElement->OwnerDoc()->GetWindow());
-  }
-  nsCOMPtr<nsIDialogCreator> dialogCreator = do_QueryInterface(mBrowserDOMWindow);
-  while (!ShouldDelayDialogs() && mDelayedDialogs.Length()) {
-    uint32_t index = mDelayedDialogs.Length() - 1;
-    DelayedDialogData* data = mDelayedDialogs[index];
-    mDelayedDialogs.RemoveElementAt(index);
-    nsCOMPtr<nsIDialogParamBlock> params;
-    params.swap(data->mParams);
-    PContentDialogParent* dialog = data->mDialog;
-    if (dialogCreator) {
-      nsCOMPtr<nsIDOMElement> frame = do_QueryInterface(mFrameElement);
-      dialogCreator->OpenDialog(data->mType,
-                                data->mName, data->mFeatures,
-                                params, frame);
-    } else if (ww) {
-      nsAutoCString url;
-      if (data->mType) {
-        if (data->mType == nsIDialogCreator::SELECT_DIALOG) {
-          url.Assign("chrome://global/content/selectDialog.xul");
-        } else if (data->mType == nsIDialogCreator::GENERIC_DIALOG) {
-          url.Assign("chrome://global/content/commonDialog.xul");
-        }
-
-        nsCOMPtr<nsISupports> arguments(do_QueryInterface(params));
-        nsCOMPtr<nsIDOMWindow> dialog;
-        ww->OpenWindow(window, url.get(), data->mName.get(),
-                       data->mFeatures.get(), arguments, getter_AddRefs(dialog));
-      } else {
-        NS_WARNING("unknown dialog types aren't automatically supported in E10s yet!");
-      }
-    }
-
-    delete data;
-    if (dialog) {
-      InfallibleTArray<int32_t> intParams;
-      InfallibleTArray<nsString> stringParams;
-      TabChild::ParamsToArrays(params, intParams, stringParams);
-      unused << PContentDialogParent::Send__delete__(dialog,
-                                                     intParams, stringParams);
-    }
-  }
-  if (ShouldDelayDialogs() && mDelayedDialogs.Length()) {
-    nsContentUtils::DispatchTrustedEvent(mFrameElement->OwnerDoc(), mFrameElement,
-                                         NS_LITERAL_STRING("MozDelayedModalDialog"),
-                                         true, true);
-  }
-}
-
 bool
 TabParent::RecvInitRenderFrame(PRenderFrameParent* aFrame,
                                ScrollingBehavior* aScrolling,
@@ -1778,7 +1758,7 @@ TabParent::AllocPOfflineCacheUpdateParent(const URIParams& aManifestURI,
     new mozilla::docshell::OfflineCacheUpdateParent(OwnOrContainingAppId(),
                                                     IsBrowserElement());
   // Use this reference as the IPDL reference.
-  return update.forget().get();
+  return update.forget().take();
 }
 
 bool
@@ -1817,16 +1797,6 @@ TabParent::RecvSetOfflinePermission(const IPC::Principal& aPrincipal)
   nsIPrincipal* principal = aPrincipal;
   nsContentUtils::MaybeAllowOfflineAppByDefault(principal, nullptr);
   return true;
-}
-
-bool
-TabParent::ShouldDelayDialogs()
-{
-  nsRefPtr<nsFrameLoader> frameLoader = GetFrameLoader();
-  NS_ENSURE_TRUE(frameLoader, true);
-  bool delay = false;
-  frameLoader->GetDelayRemoteDialogs(&delay);
-  return delay;
 }
 
 bool
@@ -1896,12 +1866,11 @@ TabParent::UseAsyncPanZoom()
 }
 
 void
-TabParent::MaybeForwardEventToRenderFrame(const WidgetInputEvent& aEvent,
-                                          ScrollableLayerGuid* aOutTargetGuid,
-                                          WidgetInputEvent* aOutEvent)
+TabParent::MaybeForwardEventToRenderFrame(WidgetInputEvent& aEvent,
+                                          ScrollableLayerGuid* aOutTargetGuid)
 {
   if (RenderFrameParent* rfp = GetRenderFrame()) {
-    rfp->NotifyInputEvent(aEvent, aOutTargetGuid, aOutEvent);
+    rfp->NotifyInputEvent(aEvent, aOutTargetGuid);
   }
 }
 
@@ -2037,6 +2006,13 @@ NS_IMETHODIMP
 TabParent::GetUseAsyncPanZoom(bool* useAsyncPanZoom)
 {
   *useAsyncPanZoom = UseAsyncPanZoom();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+TabParent::SetIsDocShellActive(bool isActive)
+{
+  unused << SendSetIsDocShellActive(isActive);
   return NS_OK;
 }
 

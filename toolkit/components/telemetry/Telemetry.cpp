@@ -291,7 +291,6 @@ class TelemetryIOInterposeObserver : public IOInterposeObserver
     uint32_t  stats;        /** Number of stat operations */
     double    totalTime;    /** Accumulated duration of all operations */
   };
-  typedef nsBaseHashtableET<nsStringHashKey, FileStats> FileIOEntryType;
 
   struct SafeDir {
     SafeDir(const nsAString& aPath, const nsAString& aSubstName)
@@ -327,6 +326,24 @@ public:
    */
   void AddPath(const nsAString& aPath, const nsAString& aSubstName);
 
+  enum Stage
+  {
+    STAGE_STARTUP = 0,
+    STAGE_NORMAL,
+    STAGE_SHUTDOWN,
+    NUM_STAGES
+  };
+
+  /**
+   * Sets a new stage in the lifecycle of this process.
+   * @param aNewStage One of the STAGE_* enum values.
+   */
+  inline void SetStage(Stage aNewStage)
+  {
+    MOZ_ASSERT(aNewStage != NUM_STAGES);
+    mCurStage = aNewStage;
+  }
+
   /**
    * Get size of hash table with file stats
    */
@@ -347,10 +364,17 @@ public:
   }
 
 private:
+  struct FileStatsByStage
+  {
+    FileStats mStats[NUM_STAGES];
+  };
+  typedef nsBaseHashtableET<nsStringHashKey, FileStatsByStage> FileIOEntryType;
+
   // Statistics for each filename
   AutoHashtable<FileIOEntryType> mFileStats;
   // Container for whitelisted directories
   nsTArray<SafeDir> mSafeDirs;
+  Stage             mCurStage;
 
   /**
    * Reflect a FileIOEntryType object to a Javascript property on obj with
@@ -369,6 +393,7 @@ private:
 };
 
 TelemetryIOInterposeObserver::TelemetryIOInterposeObserver(nsIFile* aXreDir)
+  : mCurStage(STAGE_STARTUP)
 {
   nsAutoString xreDirPath;
   nsresult rv = aXreDir->GetPath(xreDirPath);
@@ -386,7 +411,7 @@ void TelemetryIOInterposeObserver::AddPath(const nsAString& aPath,
 void TelemetryIOInterposeObserver::Observe(Observation& aOb)
 {
   // We only report main-thread I/O
-  if (!NS_IsMainThread()) {
+  if (!IsMainThread()) {
     return;
   }
 
@@ -421,23 +446,24 @@ void TelemetryIOInterposeObserver::Observe(Observation& aOb)
   // Create a new entry or retrieve the existing one
   FileIOEntryType* entry = mFileStats.PutEntry(processedName);
   if (entry) {
+    FileStats& stats = entry->mData.mStats[mCurStage];
     // Update the statistics
-    entry->mData.totalTime += (double) aOb.Duration().ToMilliseconds();
+    stats.totalTime += (double) aOb.Duration().ToMilliseconds();
     switch (aOb.ObservedOperation()) {
       case OpCreateOrOpen:
-        entry->mData.creates += 1;
+        stats.creates++;
         break;
       case OpRead:
-        entry->mData.reads += 1;
+        stats.reads++;
         break;
       case OpWrite:
-        entry->mData.writes += 1;
+        stats.writes++;
         break;
       case OpFSync:
-        entry->mData.fsyncs += 1;
+        stats.fsyncs++;
         break;
       case OpStat:
-        entry->mData.stats += 1;
+        stats.stats++;
         break;
       default:
         break;
@@ -449,24 +475,39 @@ bool TelemetryIOInterposeObserver::ReflectFileStats(FileIOEntryType* entry,
                                                     JSContext *cx,
                                                     JS::Handle<JSObject*> obj)
 {
-  // Let's not report arrays containing [0, 0, 0, 0, 0, 0]
-  if (entry->mData.totalTime == 0 && entry->mData.creates == 0 &&
-      entry->mData.reads == 0 && entry->mData.writes == 0 &&
-      entry->mData.fsyncs == 0 && entry->mData.stats == 0) {
-    return true;
+  JS::AutoValueArray<NUM_STAGES> stages(cx);
+
+  FileStatsByStage& statsByStage = entry->mData;
+  for (int s = STAGE_STARTUP; s < NUM_STAGES; ++s) {
+    FileStats& fileStats = statsByStage.mStats[s];
+
+    if (fileStats.totalTime == 0 && fileStats.creates == 0 &&
+        fileStats.reads == 0 && fileStats.writes == 0 &&
+        fileStats.fsyncs == 0 && fileStats.stats == 0) {
+      // Don't add an array that contains no information
+      stages[s].setNull();
+      continue;
+    }
+
+    // Array we want to report
+    JS::AutoValueArray<6> stats(cx);
+    stats[0].setNumber(fileStats.totalTime);
+    stats[1].setNumber(fileStats.creates);
+    stats[2].setNumber(fileStats.reads);
+    stats[3].setNumber(fileStats.writes);
+    stats[4].setNumber(fileStats.fsyncs);
+    stats[5].setNumber(fileStats.stats);
+
+    // Create jsStats as array of elements above
+    JS::RootedObject jsStats(cx, JS_NewArrayObject(cx, stats));
+    if (!jsStats) {
+      continue;
+    }
+
+    stages[s].setObject(*jsStats);
   }
 
-  // Array we want to report
-  JS::AutoValueArray<6> stats(cx);
-  stats[0].setNumber(entry->mData.totalTime);
-  stats[1].setNumber(entry->mData.creates);
-  stats[2].setNumber(entry->mData.reads);
-  stats[3].setNumber(entry->mData.writes);
-  stats[4].setNumber(entry->mData.fsyncs);
-  stats[5].setNumber(entry->mData.stats);
-
-  // Create jsEntry as array of elements above
-  JS::RootedObject jsEntry(cx, JS_NewArrayObject(cx, stats));
+  JS::RootedObject jsEntry(cx, JS_NewArrayObject(cx, stages));
   if (!jsEntry) {
     return false;
   }
@@ -474,8 +515,8 @@ bool TelemetryIOInterposeObserver::ReflectFileStats(FileIOEntryType* entry,
   // Add jsEntry to top-level dictionary
   const nsAString& key = entry->GetKey();
   return JS_DefineUCProperty(cx, obj, key.Data(), key.Length(),
-                             OBJECT_TO_JSVAL(jsEntry), NULL, NULL,
-                             JSPROP_ENUMERATE);
+                             OBJECT_TO_JSVAL(jsEntry), nullptr, nullptr,
+                             JSPROP_ENUMERATE | JSPROP_READONLY);
 }
 
 bool TelemetryIOInterposeObserver::ReflectIntoJS(JSContext *cx,
@@ -882,6 +923,7 @@ JSHistogram_Add(JSContext *cx, unsigned argc, JS::Value *vp)
 bool
 JSHistogram_Snapshot(JSContext *cx, unsigned argc, JS::Value *vp)
 {
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
   JSObject *obj = JS_THIS_OBJECT(cx, vp);
   if (!obj) {
     return false;
@@ -899,7 +941,7 @@ JSHistogram_Snapshot(JSContext *cx, unsigned argc, JS::Value *vp)
     JS_ReportError(cx, "Histogram is corrupt");
     return false;
   case REFLECT_OK:
-    JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(snapshot));
+    args.rval().setObject(*snapshot);
     return true;
   default:
     MOZ_CRASH("unhandled reflection status");
@@ -2558,6 +2600,18 @@ TelemetryImpl::GetFileIOReports(JSContext *cx, JS::MutableHandleValue ret)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+TelemetryImpl::MsSinceProcessStart(double* aResult)
+{
+  bool error;
+  *aResult = (TimeStamp::NowLoRes() -
+              TimeStamp::ProcessCreation(error)).ToMilliseconds();
+  if (error) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  return NS_OK;
+}
+
 size_t
 TelemetryImpl::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
 {
@@ -2565,11 +2619,20 @@ TelemetryImpl::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
   // Ignore the hashtables in mAddonMap; they are not significant.
   n += mAddonMap.SizeOfExcludingThis(nullptr, aMallocSizeOf);
   n += mHistogramMap.SizeOfExcludingThis(nullptr, aMallocSizeOf);
-  n += mPrivateSQL.SizeOfExcludingThis(nullptr, aMallocSizeOf);
-  n += mSanitizedSQL.SizeOfExcludingThis(nullptr, aMallocSizeOf);
+  { // Scope for mHashMutex lock
+    MutexAutoLock lock(mHashMutex);
+    n += mPrivateSQL.SizeOfExcludingThis(nullptr, aMallocSizeOf);
+    n += mSanitizedSQL.SizeOfExcludingThis(nullptr, aMallocSizeOf);
+  }
   n += mTrackedDBs.SizeOfExcludingThis(nullptr, aMallocSizeOf);
-  n += mHangReports.SizeOfExcludingThis();
-  n += mThreadHangStats.sizeOfExcludingThis(aMallocSizeOf);
+  { // Scope for mHangReportsMutex lock
+    MutexAutoLock lock(mHangReportsMutex);
+    n += mHangReports.SizeOfExcludingThis();
+  }
+  { // Scope for mThreadHangStatsMutex lock
+    MutexAutoLock lock(mThreadHangStatsMutex);
+    n += mThreadHangStats.sizeOfExcludingThis(aMallocSizeOf);
+  }
 
   // It's a bit gross that we measure this other stuff that lives outside of
   // TelemetryImpl... oh well.
@@ -2956,10 +3019,6 @@ InitIOReporting(nsIFile* aXreDir)
     return;
   }
 
-  // Initialize IO interposing
-  IOInterposer::Init();
-  InitPoisonIOInterposer();
- 
   sTelemetryIOObserver = new TelemetryIOInterposeObserver(aXreDir);
   IOInterposer::Register(IOInterposeObserver::OpAll, sTelemetryIOObserver);
 }
@@ -2976,6 +3035,24 @@ SetProfileDir(nsIFile* aProfD)
     return;
   }
   sTelemetryIOObserver->AddPath(profDirPath, NS_LITERAL_STRING("{profile}"));
+}
+
+void
+LeavingStartupStage()
+{
+  if (!sTelemetryIOObserver) {
+    return;
+  }
+  sTelemetryIOObserver->SetStage(TelemetryIOInterposeObserver::STAGE_NORMAL);
+}
+
+void
+EnteringShutdownStage()
+{
+  if (!sTelemetryIOObserver) {
+    return;
+  }
+  sTelemetryIOObserver->SetStage(TelemetryIOInterposeObserver::STAGE_SHUTDOWN);
 }
 
 void

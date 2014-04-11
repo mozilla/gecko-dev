@@ -77,6 +77,8 @@ function MockFxAccountsClient() {
 
   this.signCertificate = function() { throw "no" };
 
+  this.signOut = function() { return Promise.resolve(); };
+
   FxAccountsClient.apply(this);
 }
 MockFxAccountsClient.prototype = {
@@ -122,13 +124,13 @@ function MockFxAccounts() {
 
 add_test(function test_non_https_remote_server_uri() {
   Services.prefs.setCharPref(
-    "identity.fxaccounts.remote.uri",
+    "identity.fxaccounts.remote.signup.uri",
     "http://example.com/browser/browser/base/content/test/general/accounts_testRemoteCommands.html");
   do_check_throws_message(function () {
-    fxAccounts.getAccountsURI();
+    fxAccounts.getAccountsSignUpURI();
   }, "Firefox Accounts server must use HTTPS");
 
-  Services.prefs.clearUserPref("identity.fxaccounts.remote.uri");
+  Services.prefs.clearUserPref("identity.fxaccounts.remote.signup.uri");
 
   run_next_test();
 });
@@ -402,8 +404,10 @@ add_task(function test_getAssertion() {
   _("ASSERTION: " + assertion + "\n");
   let pieces = assertion.split("~");
   do_check_eq(pieces[0], "cert1");
-  do_check_neq(fxa.internal.keyPair, undefined);
-  _(fxa.internal.keyPair.validUntil + "\n");
+  let keyPair = fxa.internal.currentAccountState.keyPair;
+  let cert = fxa.internal.currentAccountState.cert;
+  do_check_neq(keyPair, undefined);
+  _(keyPair.validUntil + "\n");
   let p2 = pieces[1].split(".");
   let header = JSON.parse(atob(p2[0]));
   _("HEADER: " + JSON.stringify(header) + "\n");
@@ -411,12 +415,12 @@ add_task(function test_getAssertion() {
   let payload = JSON.parse(atob(p2[1]));
   _("PAYLOAD: " + JSON.stringify(payload) + "\n");
   do_check_eq(payload.aud, "audience.example.com");
-  do_check_eq(fxa.internal.keyPair.validUntil, start + KEY_LIFETIME);
-  do_check_eq(fxa.internal.cert.validUntil, start + CERT_LIFETIME);
+  do_check_eq(keyPair.validUntil, start + KEY_LIFETIME);
+  do_check_eq(cert.validUntil, start + CERT_LIFETIME);
   _("delta: " + Date.parse(payload.exp - start) + "\n");
   let exp = Number(payload.exp);
 
-  do_check_eq(exp, now + TWO_MINUTES_MS);
+  do_check_eq(exp, now + ASSERTION_LIFETIME);
 
   // Reset for next call.
   fxa.internal._d_signCertificate = Promise.defer();
@@ -428,7 +432,7 @@ add_task(function test_getAssertion() {
   // There were no additional calls - same number of getcert calls as before
   do_check_eq(fxa.internal._getCertificateSigned_calls.length, 1);
 
-  // Wait an hour; assertion expires, but not the certificate
+  // Wait an hour; assertion use period expires, but not the certificate
   now += ONE_HOUR_MS;
   fxa.internal._now_is = now;
 
@@ -449,10 +453,12 @@ add_task(function test_getAssertion() {
   // the initial start time, to which they are relative, not the current value
   // of "now".
 
-  do_check_eq(fxa.internal.keyPair.validUntil, start + KEY_LIFETIME);
-  do_check_eq(fxa.internal.cert.validUntil, start + CERT_LIFETIME);
+  keyPair = fxa.internal.currentAccountState.keyPair;
+  cert = fxa.internal.currentAccountState.cert;
+  do_check_eq(keyPair.validUntil, start + KEY_LIFETIME);
+  do_check_eq(cert.validUntil, start + CERT_LIFETIME);
   exp = Number(payload.exp);
-  do_check_eq(exp, now + TWO_MINUTES_MS);
+  do_check_eq(exp, now + ASSERTION_LIFETIME);
 
   // Now we wait even longer, and expect both assertion and cert to expire.  So
   // we will have to get a new keypair and cert.
@@ -469,11 +475,13 @@ add_task(function test_getAssertion() {
   header = JSON.parse(atob(p2[0]));
   payload = JSON.parse(atob(p2[1]));
   do_check_eq(payload.aud, "fourth.example.com");
-  do_check_eq(fxa.internal.keyPair.validUntil, now + KEY_LIFETIME);
-  do_check_eq(fxa.internal.cert.validUntil, now + CERT_LIFETIME);
+  keyPair = fxa.internal.currentAccountState.keyPair;
+  cert = fxa.internal.currentAccountState.cert;
+  do_check_eq(keyPair.validUntil, now + KEY_LIFETIME);
+  do_check_eq(cert.validUntil, now + CERT_LIFETIME);
   exp = Number(payload.exp);
 
-  do_check_eq(exp, now + TWO_MINUTES_MS);
+  do_check_eq(exp, now + ASSERTION_LIFETIME);
   _("----- DONE ----\n");
 });
 
@@ -494,14 +502,15 @@ add_test(function test_resend_email() {
   let fxa = new MockFxAccounts();
   let alice = getTestUser("alice");
 
-  do_check_eq(fxa.internal.generationCount, 0);
+  let initialState = fxa.internal.currentAccountState;
 
   // Alice is the user signing in; her email is unverified.
   fxa.setSignedInUser(alice).then(() => {
     log.debug("Alice signing in");
 
     // We're polling for the first email
-    do_check_eq(fxa.internal.generationCount, 1);
+    do_check_true(fxa.internal.currentAccountState !== initialState);
+    let aliceState = fxa.internal.currentAccountState;
 
     // The polling timer is ticking
     do_check_true(fxa.internal.currentTimer > 0);
@@ -517,7 +526,7 @@ add_test(function test_resend_email() {
         do_check_eq(result, "alice's session token");
 
         // Timer was not restarted
-        do_check_eq(fxa.internal.generationCount, 1);
+        do_check_true(fxa.internal.currentAccountState === aliceState);
 
         // Timer is still ticking
         do_check_true(fxa.internal.currentTimer > 0);
@@ -528,6 +537,45 @@ add_test(function test_resend_email() {
       });
     });
   });
+});
+
+add_test(function test_sign_out() {
+  do_test_pending();
+  let fxa = new MockFxAccounts();
+  let remoteSignOutCalled = false;
+  let client = fxa.internal.fxAccountsClient;
+  client.signOut = function() { remoteSignOutCalled = true; return Promise.resolve(); };
+  makeObserver(ONLOGOUT_NOTIFICATION, function() {
+    log.debug("test_sign_out_with_remote_error observed onlogout");
+    // user should be undefined after sign out
+    fxa.internal.getUserAccountData().then(user => {
+      do_check_eq(user, null);
+      do_check_true(remoteSignOutCalled);
+      do_test_finished();
+      run_next_test();
+    });
+  });
+  fxa.signOut();
+});
+
+add_test(function test_sign_out_with_remote_error() {
+  do_test_pending();
+  let fxa = new MockFxAccounts();
+  let client = fxa.internal.fxAccountsClient;
+  let remoteSignOutCalled = false;
+  // Force remote sign out to trigger an error
+  client.signOut = function() { remoteSignOutCalled = true; throw "Remote sign out error"; };
+  makeObserver(ONLOGOUT_NOTIFICATION, function() {
+    log.debug("test_sign_out_with_remote_error observed onlogout");
+    // user should be undefined after sign out
+    fxa.internal.getUserAccountData().then(user => {
+      do_check_eq(user, null);
+      do_check_true(remoteSignOutCalled);
+      do_test_finished();
+      run_next_test();
+    });
+  });
+  fxa.signOut();
 });
 
 /*

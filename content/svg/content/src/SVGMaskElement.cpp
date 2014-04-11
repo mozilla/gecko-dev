@@ -16,9 +16,9 @@ namespace mozilla {
 namespace dom {
 
 JSObject*
-SVGMaskElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+SVGMaskElement::WrapNode(JSContext *aCx)
 {
-  return SVGMaskElementBinding::Wrap(aCx, aScope, this);
+  return SVGMaskElementBinding::Wrap(aCx, this);
 }
 
 //--------------------- Masks ------------------------
@@ -46,7 +46,7 @@ nsSVGElement::EnumInfo SVGMaskElement::sEnumInfo[2] =
 //----------------------------------------------------------------------
 // Implementation
 
-SVGMaskElement::SVGMaskElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+SVGMaskElement::SVGMaskElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : SVGMaskElementBase(aNodeInfo)
 {
 }

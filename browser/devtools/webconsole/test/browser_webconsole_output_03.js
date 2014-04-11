@@ -38,7 +38,7 @@ let inputTests = [
   // 3
   {
     input: "document.body.dataset",
-    output: "DOMStringMap {}",
+    output: "DOMStringMap {  }",
     printOutput: "[object DOMStringMap]",
     inspectable: true,
     variablesViewLabel: "DOMStringMap[0]",
@@ -47,7 +47,7 @@ let inputTests = [
   // 4
   {
     input: "document.body.classList",
-    output: "DOMTokenList []",
+    output: "DOMTokenList [  ]",
     printOutput: '""',
     inspectable: true,
     variablesViewLabel: "DOMTokenList[0]",
@@ -71,7 +71,7 @@ let inputTests = [
   // 7
   {
     input: "document.body.attributes",
-    output: "MozNamedAttrMap []",
+    output: "MozNamedAttrMap [  ]",
     printOutput: "[object MozNamedAttrMap]",
     inspectable: true,
     variablesViewLabel: "MozNamedAttrMap[0]",
@@ -80,7 +80,7 @@ let inputTests = [
   // 8
   {
     input: "document.styleSheets",
-    output: "StyleSheetList []",
+    output: "StyleSheetList [  ]",
     printOutput: "[object StyleSheetList",
     inspectable: true,
     variablesViewLabel: "StyleSheetList[0]",
@@ -107,7 +107,7 @@ let inputTests = [
   // 11
   {
     input: "document.body.classList",
-    output: 'DOMTokenList ["test1", "tezt2"]',
+    output: 'DOMTokenList [ "test1", "tezt2" ]',
     printOutput: '"test1 tezt2"',
     inspectable: true,
     variablesViewLabel: "DOMTokenList[2]",
@@ -126,7 +126,7 @@ let inputTests = [
   // 13
   {
     input: "document.body.dataset",
-    output: 'DOMStringMap {preview: "zuzu"<a>foo"}',
+    output: 'DOMStringMap { preview: "zuzu"<a>foo" }',
     printOutput: "[object DOMStringMap]",
     inspectable: true,
     variablesViewLabel: "DOMStringMap[1]",
@@ -135,8 +135,8 @@ let inputTests = [
   // 14
   {
     input: "document.body.attributes",
-    output: 'MozNamedAttrMap [class="test1 tezt2", id="foobarid", ' +
-            'data-preview="zuzu&quot;&lt;a&gt;foo"]',
+    output: 'MozNamedAttrMap [ class="test1 tezt2", id="foobarid", ' +
+            'data-preview="zuzu&quot;&lt;a&gt;foo" ]',
     printOutput: "[object MozNamedAttrMap]",
     inspectable: true,
     variablesViewLabel: "MozNamedAttrMap[3]",
@@ -153,12 +153,11 @@ let inputTests = [
 ];
 
 function test() {
-
-  addTab(TEST_URI);
-  browser.addEventListener("load", function onLoad() {
-    browser.removeEventListener("load", onLoad, true);
-    openConsole().then((hud) => {
-      return checkOutputForInputs(hud, inputTests);
-    }).then(finishTest);
-  }, true);
+  requestLongerTimeout(2);
+  Task.spawn(function*() {
+    const {tab} = yield loadTab(TEST_URI);
+    const hud = yield openConsole(tab);
+    yield checkOutputForInputs(hud, inputTests);
+    inputTests = null;
+  }).then(finishTest);
 }

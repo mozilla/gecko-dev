@@ -29,6 +29,9 @@
       <menuitem id="request-menu-context-copy-url"
                 label="&netmonitorUI.context.copyUrl;"
                 accesskey="&netmonitorUI.context.copyUrl.accesskey;"/>
+      <menuitem id="request-menu-context-copy-as-curl"
+                label="&netmonitorUI.context.copyAsCurl;"
+                oncommand="NetMonitorView.RequestsMenu.copyAsCurl();"/>
       <menuitem id="request-menu-context-copy-image-as-data-uri"
                 label="&netmonitorUI.context.copyImageAsDataUri;"
                 accesskey="&netmonitorUI.context.copyImageAsDataUri.accesskey;"/>
@@ -148,6 +151,8 @@
               <hbox class="requests-menu-subitem requests-menu-status-and-method"
                     align="center">
                 <box class="requests-menu-status"/>
+                <label class="plain requests-menu-status-code"
+                       crop="end"/>
                 <label class="plain requests-menu-method"
                        crop="end"
                        flex="1"/>

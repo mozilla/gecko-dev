@@ -80,7 +80,7 @@ NS_IMETHODIMP TreeWalker::GetFilter(nsIDOMNodeFilter * *aFilter)
 {
     NS_ENSURE_ARG_POINTER(aFilter);
 
-    *aFilter = mFilter.ToXPCOMCallback().get();
+    *aFilter = mFilter.ToXPCOMCallback().take();
 
     return NS_OK;
 }
@@ -451,9 +451,9 @@ TreeWalker::NextSiblingInternal(bool aReversed, ErrorResult& aResult)
 }
 
 JSObject*
-TreeWalker::WrapObject(JSContext *cx, JS::Handle<JSObject*> scope)
+TreeWalker::WrapObject(JSContext *cx)
 {
-    return TreeWalkerBinding::Wrap(cx, scope, this);
+    return TreeWalkerBinding::Wrap(cx, this);
 }
 
 } // namespace dom

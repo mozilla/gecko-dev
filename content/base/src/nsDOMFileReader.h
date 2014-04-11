@@ -43,7 +43,7 @@ public:
 
   NS_DECL_NSIDOMFILEREADER
 
-  NS_REALLY_FORWARD_NSIDOMEVENTTARGET(nsDOMEventTargetHelper)
+  NS_REALLY_FORWARD_NSIDOMEVENTTARGET(mozilla::DOMEventTargetHelper)
 
   // nsIInterfaceRequestor 
   NS_DECL_NSIINTERFACEREQUESTOR
@@ -61,8 +61,7 @@ public:
   {
     return GetOwner();
   }
-  virtual JSObject* WrapObject(JSContext* aCx,
-                               JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   // WebIDL
   static already_AddRefed<nsDOMFileReader>

@@ -15,6 +15,7 @@
 #include "frontend/Parser.h"
 #include "jit/AsmJSLink.h"
 #include "vm/GlobalObject.h"
+#include "vm/TraceLogging.h"
 
 #include "jsobjinlines.h"
 #include "jsscriptinlines.h"
@@ -188,14 +189,15 @@ frontend::CompileScript(ExclusiveContext *cx, LifoAlloc *alloc, HandleObject sco
                         SourceCompressionTask *extraSct /* = nullptr */)
 {
     RootedString source(cx, source_);
-    SkipRoot skip(cx, &chars);
 
-#if JS_TRACE_LOGGING
-        js::AutoTraceLog logger(js::TraceLogging::defaultLogger(),
-                                js::TraceLogging::PARSER_COMPILE_SCRIPT_START,
-                                js::TraceLogging::PARSER_COMPILE_SCRIPT_STOP,
-                                options);
-#endif
+    js::TraceLogger *logger = nullptr;
+    if (cx->isJSContext())
+        logger = TraceLoggerForMainThread(cx->asJSContext()->runtime());
+    else
+        logger = TraceLoggerForThread(PR_GetCurrentThread());
+    uint32_t logId = js::TraceLogCreateTextId(logger, options);
+    js::AutoTraceLog scriptLogger(logger, logId);
+    js::AutoTraceLog typeLogger(logger, TraceLogger::ParserCompileScript);
 
     if (cx->isJSContext())
         MaybeCallSourceHandler(cx->asJSContext(), options, chars, length);
@@ -431,20 +433,17 @@ frontend::CompileLazyFunction(JSContext *cx, Handle<LazyScript*> lazy, const jsc
     JS_ASSERT(cx->compartment() == lazy->functionNonDelazifying()->compartment());
 
     CompileOptions options(cx, lazy->version());
-    options.setPrincipals(cx->compartment()->principals)
-           .setOriginPrincipals(lazy->originPrincipals())
+    options.setOriginPrincipals(lazy->originPrincipals())
            .setFileAndLine(lazy->source()->filename(), lazy->lineno())
            .setColumn(lazy->column())
            .setCompileAndGo(true)
            .setNoScriptRval(false)
            .setSelfHostingMode(false);
 
-#if JS_TRACE_LOGGING
-        js::AutoTraceLog logger(js::TraceLogging::defaultLogger(),
-                                js::TraceLogging::PARSER_COMPILE_LAZY_START,
-                                js::TraceLogging::PARSER_COMPILE_LAZY_STOP,
-                                options);
-#endif
+    js::TraceLogger *logger = js::TraceLoggerForMainThread(cx->runtime());
+    uint32_t logId = js::TraceLogCreateTextId(logger, options);
+    js::AutoTraceLog scriptLogger(logger, logId);
+    js::AutoTraceLog typeLogger(logger, TraceLogger::ParserCompileLazy);
 
     Parser<FullParseHandler> parser(cx, &cx->tempLifoAlloc(), options, chars, length,
                                     /* foldConstants = */ true, nullptr, lazy);
@@ -499,16 +498,13 @@ CompileFunctionBody(JSContext *cx, MutableHandleFunction fun, const ReadOnlyComp
                     const AutoNameVector &formals, const jschar *chars, size_t length,
                     GeneratorKind generatorKind)
 {
-#if JS_TRACE_LOGGING
-        js::AutoTraceLog logger(js::TraceLogging::defaultLogger(),
-                                js::TraceLogging::PARSER_COMPILE_FUNCTION_START,
-                                js::TraceLogging::PARSER_COMPILE_FUNCTION_STOP,
-                                options);
-#endif
+    js::TraceLogger *logger = js::TraceLoggerForMainThread(cx->runtime());
+    uint32_t logId = js::TraceLogCreateTextId(logger, options);
+    js::AutoTraceLog scriptLogger(logger, logId);
+    js::AutoTraceLog typeLogger(logger, TraceLogger::ParserCompileFunction);
 
     // FIXME: make Function pass in two strings and parse them as arguments and
     // ProgramElements respectively.
-    SkipRoot skip(cx, &chars);
 
     MaybeCallSourceHandler(cx, options, chars, length);
 
@@ -601,7 +597,7 @@ CompileFunctionBody(JSContext *cx, MutableHandleFunction fun, const ReadOnlyComp
         /*
          * The reason for checking fun->environment() below is that certain
          * consumers of JS::CompileFunction, namely
-         * nsEventListenerManager::CompileEventHandlerInternal, passes in a
+         * EventListenerManager::CompileEventHandlerInternal, passes in a
          * nullptr environment. This compiled function is never used, but
          * instead is cloned immediately onto the right scope chain.
          */

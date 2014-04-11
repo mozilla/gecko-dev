@@ -7,6 +7,8 @@
 
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/DebugOnly.h"
+#include "mozilla/EventDispatcher.h"
+#include "mozilla/EventStateManager.h"
 
 #include "base/basictypes.h"
 
@@ -26,7 +28,6 @@
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIWeakReferenceUtils.h"
 #include "nsAutoPtr.h"
-#include "nsEventStateManager.h"
 #include "nsThreadUtils.h"
 #include "nsFrameManager.h"
 #include "nsLayoutUtils.h"
@@ -34,11 +35,10 @@
 #include "RestyleManager.h"
 #include "nsCSSRuleProcessor.h"
 #include "nsRuleNode.h"
-#include "nsEventDispatcher.h"
 #include "gfxPlatform.h"
 #include "nsCSSRules.h"
 #include "nsFontFaceLoader.h"
-#include "nsEventListenerManager.h"
+#include "mozilla/EventListenerManager.h"
 #include "prenv.h"
 #include "nsObjectFrame.h"
 #include "nsTransitionManager.h"
@@ -53,6 +53,7 @@
 #include "nsRefreshDriver.h"
 #include "Layers.h"
 #include "nsIDOMEvent.h"
+#include "gfxPrefs.h"
 
 #include "nsContentUtils.h"
 #include "nsCxPusher.h"
@@ -67,22 +68,11 @@
 #include "nsBidiUtils.h"
 #include "nsServiceManagerUtils.h"
 
+#include "URL.h"
+
 using namespace mozilla;
 using namespace mozilla::dom;
 using namespace mozilla::layers;
-
-// BEGIN temporary diagnostic stuff for bug 946929
-struct PCLink;
-static PCLink* sTopPCLink;
-struct PCLink {
-  PCLink(const char* w, nsPresContext* aPC)
-    : prev(sTopPCLink), pc(aPC), where(w) { sTopPCLink = this; }
-  ~PCLink() { sTopPCLink = prev; }
-  PCLink* prev;
-  nsPresContext* pc;
-  const char* where;
-};
-// END temporary diagnostic stuff for bug 946929
 
 uint8_t gNotifySubDocInvalidationData;
 
@@ -137,63 +127,11 @@ nsPresContext::MakeColorPref(const nsString& aColor)
     : NS_RGB(0, 0, 0);
 }
 
-static void DumpPresContextState(nsPresContext* aPC)
-{
-  printf_stderr("PresContext(%p) %s", aPC, aPC->IsRoot()?"ROOT ":"");
-  nsIURI* uri = aPC->Document()->GetDocumentURI();
-  if (uri) {
-    nsAutoCString uriSpec;
-    nsresult rv = uri->GetSpec(uriSpec);
-    if (NS_SUCCEEDED(rv)) {
-      printf_stderr("%s ", uriSpec.get());
-    }
-  }
-  nsIPresShell* shell = aPC->GetPresShell();
-  if (shell) {
-    printf_stderr("PresShell - IsDestroying(%i) IsFrozen(%i) IsActive(%i) IsVisible(%i) IsNeverPainting(%i) GetRootFrame(%p)",
-                  shell->IsDestroying(),
-                  shell->IsFrozen(),
-                  shell->IsActive(),
-                  shell->IsVisible(),
-                  shell->IsNeverPainting(),
-                  shell->GetRootFrame());
-  }
-  printf_stderr("\n");
-}
-
 bool
-nsPresContext::IsDOMPaintEventPending() 
+nsPresContext::IsDOMPaintEventPending()
 {
   if (mFireAfterPaintEvents) {
     return true;
-  }
-  if (!GetDisplayRootPresContext() ||
-      !GetDisplayRootPresContext()->GetRootPresContext()) {
-    printf_stderr("Failed to find root pres context, dumping pres context and ancestors\n");
-    for (PCLink* p = sTopPCLink; p; p = p->prev) {
-      printf_stderr("%s %p ", p->where, p->pc);
-    }
-    if (sTopPCLink) printf_stderr("\n");
-    nsPresContext* pc = this;
-    for (;;) {
-      DumpPresContextState(pc);
-      nsPresContext* parent = pc->GetParentPresContext();
-      if (!parent) {
-        nsIDocument* doc = pc->Document();
-        if (doc) {
-          doc = doc->GetParentDocument();
-          if (doc) {
-            nsIPresShell* shell = doc->GetShell();
-            if (shell) {
-              parent = shell->GetPresContext();
-            }
-          }
-        }
-      }
-      if (!parent || parent == pc)
-        break;
-      pc = parent;
-    }
   }
   if (GetDisplayRootPresContext()->GetRootPresContext()->mRefreshDriver->ViewManagerFlushIsPending()) {
     // Since we're promising that there will be a MozAfterPaint event
@@ -217,7 +155,6 @@ nsPresContext::PrefChangedCallback(const char* aPrefName, void* instance_data)
     presContext->PreferenceChanged(aPrefName);
   }
 }
-
 
 void
 nsPresContext::PrefChangedUpdateTimerCallback(nsITimer *aTimer, void *aClosure)
@@ -246,7 +183,7 @@ IsVisualCharset(const nsCString& aCharset)
   // bother initializing members to 0.
 
 nsPresContext::nsPresContext(nsIDocument* aDocument, nsPresContextType aType)
-  : mType(aType), mDocument(aDocument), mMinFontSize(0),
+  : mType(aType), mDocument(aDocument), mBaseMinFontSize(0),
     mTextZoom(1.0), mFullZoom(1.0), mLastFontInflationScreenWidth(-1.0),
     mPageSize(-1, -1), mPPScale(1.0f),
     mViewportStyleOverflow(NS_STYLE_OVERFLOW_AUTO, NS_STYLE_OVERFLOW_AUTO),
@@ -263,7 +200,7 @@ nsPresContext::nsPresContext(nsIDocument* aDocument, nsPresContextType aType)
   SetBackgroundColorDraw(true);
 
   mBackgroundColor = NS_RGB(0xFF, 0xFF, 0xFF);
-  
+
   mUseDocumentColors = true;
   mUseDocumentFonts = true;
 
@@ -311,9 +248,6 @@ nsPresContext::nsPresContext(nsIDocument* aDocument, nsPresContextType aType)
 
 nsPresContext::~nsPresContext()
 {
-  if (sTopPCLink) {
-    printf_stderr("~nsPresContext %p %p\n", this, mShell);
-  }
   NS_PRECONDITION(!mShell, "Presshell forgot to clear our mShell pointer");
   SetShell(nullptr);
 
@@ -468,8 +402,8 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 static const char* const kGenericFont[] = {
   ".variable.",
   ".fixed.",
-  ".serif.", 
-  ".sans-serif.", 
+  ".serif.",
+  ".sans-serif.",
   ".monospace.",
   ".cursive.",
   ".fantasy."
@@ -631,11 +565,11 @@ nsPresContext::GetFontPrefsForLang(nsIAtom *aLanguage) const
         if (!value.IsEmpty()) {
           prefs->mDefaultVariableFont.name.Assign(value);
         }
-      } 
+      }
     }
     else {
       if (eType == eDefaultFont_Monospace) {
-        // This takes care of the confusion whereby people often expect "monospace" 
+        // This takes care of the confusion whereby people often expect "monospace"
         // to have the same default font-size as "-moz-fixed" (this tentative
         // size may be overwritten with the specific value for "monospace" when
         // "font.size.monospace.[langGroup]" is read -- see below)
@@ -688,18 +622,35 @@ nsPresContext::GetFontPrefsForLang(nsIAtom *aLanguage) const
 void
 nsPresContext::GetDocumentColorPreferences()
 {
+  // Make sure the preferences are initialized.  In the normal run,
+  // they would already be, because gfxPlatform would have been created,
+  // but in some reference tests, that is not the case.
+  gfxPrefs::GetSingleton();
+
   int32_t useAccessibilityTheme = 0;
   bool usePrefColors = true;
-  nsCOMPtr<nsIDocShellTreeItem> docShell(mContainer);
-  if (docShell) {
-    if (nsIDocShellTreeItem::typeChrome == docShell->ItemType()) {
-      usePrefColors = false;
-    } else {
-      useAccessibilityTheme =
-        LookAndFeel::GetInt(LookAndFeel::eIntID_UseAccessibilityTheme, 0);
-      usePrefColors = !useAccessibilityTheme;
-    }
+  bool isChromeDocShell = false;
 
+  nsIDocument* doc = mDocument->GetDisplayDocument();
+  if (doc && doc->GetDocShell()) {
+    isChromeDocShell = nsIDocShellTreeItem::typeChrome ==
+                       doc->GetDocShell()->ItemType();
+  } else {
+    nsCOMPtr<nsIDocShellTreeItem> docShell(mContainer);
+    if (docShell) {
+      isChromeDocShell = nsIDocShellTreeItem::typeChrome == docShell->ItemType();
+    }
+  }
+
+  mIsChromeOriginImage = mDocument->IsBeingUsedAsImage() &&
+                         IsChromeURI(mDocument->GetDocumentURI());
+
+  if (isChromeDocShell || mIsChromeOriginImage) {
+    usePrefColors = false;
+  } else {
+    useAccessibilityTheme =
+      LookAndFeel::GetInt(LookAndFeel::eIntID_UseAccessibilityTheme, 0);
+    usePrefColors = !useAccessibilityTheme;
   }
   if (usePrefColors) {
     usePrefColors =
@@ -809,7 +760,7 @@ nsPresContext::GetUserPreferences()
     Preferences::GetInt("browser.display.focus_ring_style", mFocusRingStyle);
 
   mBodyTextColor = mDefaultColor;
-  
+
   // * use fonts?
   mUseDocumentFonts =
     Preferences::GetInt("browser.display.use_document_fonts") != 0;
@@ -997,7 +948,7 @@ nsPresContext::Init(nsDeviceContext* aDeviceContext)
     mDeviceContext->FlushFontCache();
   mCurAppUnitsPerDevPixel = AppUnitsPerDevPixel();
 
-  mEventManager = new nsEventStateManager();
+  mEventManager = new mozilla::EventStateManager();
 
   mTransitionManager = new nsTransitionManager(this);
 
@@ -1135,7 +1086,7 @@ nsPresContext::SetShell(nsIPresShell* aShell)
     if (doc) {
       doc->RemoveCharSetObserver(this);
     }
-  }    
+  }
 
   mShell = aShell;
 
@@ -1234,7 +1185,7 @@ nsPresContext::UpdateCharSet(const nsCString& aCharSet)
 }
 
 NS_IMETHODIMP
-nsPresContext::Observe(nsISupports* aSubject, 
+nsPresContext::Observe(nsISupports* aSubject,
                         const char* aTopic,
                         const char16_t* aData)
 {
@@ -1373,7 +1324,7 @@ static void SetImgAnimModeOnImgReq(imgIRequest* aImgReq, uint16_t aMode)
   }
 }
 
-// IMPORTANT: Assumption is that all images for a Presentation 
+// IMPORTANT: Assumption is that all images for a Presentation
 // have the same Animation Mode (pavlov said this was OK)
 //
 // Walks content and set the animation mode
@@ -1387,7 +1338,7 @@ void nsPresContext::SetImgAnimations(nsIContent *aParent, uint16_t aMode)
                            getter_AddRefs(imgReq));
     SetImgAnimModeOnImgReq(imgReq, aMode);
   }
-  
+
   uint32_t count = aParent->GetChildCount();
   for (uint32_t i = 0; i < count; ++i) {
     SetImgAnimations(aParent->GetChildAt(i), aMode);
@@ -1427,7 +1378,7 @@ nsPresContext::SetImageAnimationModeInternal(uint16_t aMode)
   if (!IsDynamic())
     return;
 
-  // Now walk the content tree and set the animation mode 
+  // Now walk the content tree and set the animation mode
   // on all the images.
   if (mShell != nullptr) {
     nsIDocument *doc = mShell->GetDocument();
@@ -1478,7 +1429,7 @@ nsPresContext::GetDefaultFont(uint8_t aFontID, nsIAtom *aLanguage) const
     case kGenericFont_cursive:
       font = &prefs->mDefaultCursiveFont;
       break;
-    case kGenericFont_fantasy: 
+    case kGenericFont_fantasy:
       font = &prefs->mDefaultFantasyFont;
       break;
     default:
@@ -1654,7 +1605,7 @@ nsPresContext::SetBidi(uint32_t aSource, bool aForceRestyle)
     return;
   }
 
-  NS_ASSERTION(!(aForceRestyle && (GetBidi() == 0)), 
+  NS_ASSERTION(!(aForceRestyle && (GetBidi() == 0)),
                "ForceReflow on new prescontext");
 
   Document()->SetBidiOptions(aSource);
@@ -1728,14 +1679,14 @@ nsPresContext::ThemeChanged()
     if (NS_SUCCEEDED(NS_DispatchToCurrentThread(ev))) {
       mPendingThemeChanged = true;
     }
-  }    
+  }
 }
 
 void
 nsPresContext::ThemeChangedInternal()
 {
   mPendingThemeChanged = false;
-  
+
   // Tell the theme that it changed, so it can flush any handles to stale theme
   // data.
   if (mTheme && sThemeChanged) {
@@ -1777,13 +1728,13 @@ void
 nsPresContext::SysColorChangedInternal()
 {
   mPendingSysColorChanged = false;
-  
+
   if (sLookAndFeelChanged) {
      // Don't use the cached values for the system colors
     LookAndFeel::Refresh();
     sLookAndFeelChanged = false;
   }
-   
+
   // Reset default background and foreground colors for the document since
   // they may be using system colors
   GetDocumentColorPreferences();
@@ -2178,7 +2129,7 @@ nsPresContext::RebuildUserFontSet()
     if (NS_SUCCEEDED(NS_DispatchToCurrentThread(ev))) {
       mPostedFlushUserFontSet = true;
     }
-  }    
+  }
 }
 
 void
@@ -2252,7 +2203,8 @@ nsPresContext::FireDOMPaintEvent(nsInvalidateRequestList* aList)
   // logically the event target.
   event->SetTarget(eventTarget);
   event->SetTrusted(true);
-  nsEventDispatcher::DispatchDOMEvent(dispatchTarget, nullptr, event, this, nullptr);
+  EventDispatcher::DispatchDOMEvent(dispatchTarget, nullptr, event, this,
+                                    nullptr);
 }
 
 static bool
@@ -2285,7 +2237,7 @@ MayHavePaintEventListener(nsPIDOMWindow* aInnerWindow)
   if (!parentTarget)
     return false;
 
-  nsEventListenerManager* manager = nullptr;
+  EventListenerManager* manager = nullptr;
   if ((manager = parentTarget->GetExistingListenerManager()) &&
       manager->MayHavePaintEventListener()) {
     return true;
@@ -2364,7 +2316,7 @@ nsPresContext::NotifyInvalidation(const nsRect& aRect, uint32_t aFlags)
   // MayHavePaintEventListener is pretty cheap and we could make it
   // even cheaper by providing a more efficient
   // nsPIDOMWindow::GetListenerManager.
-  
+
   if (mAllInvalidated) {
     return;
   }
@@ -2391,11 +2343,11 @@ nsPresContext::NotifyInvalidation(const nsRect& aRect, uint32_t aFlags)
   request->mFlags = aFlags;
 }
 
-/* static */ void 
+/* static */ void
 nsPresContext::NotifySubDocInvalidation(ContainerLayer* aContainer,
                                         const nsIntRegion& aRegion)
 {
-  ContainerLayerPresContext *data = 
+  ContainerLayerPresContext *data =
     static_cast<ContainerLayerPresContext*>(
       aContainer->GetUserData(&gNotifySubDocInvalidationData));
   if (!data) {
@@ -2442,7 +2394,6 @@ NotifyDidPaintSubdocumentCallback(nsIDocument* aDocument, void* aData)
   if (shell) {
     nsPresContext* pc = shell->GetPresContext();
     if (pc) {
-      PCLink pcl("NotifyDidPaintSubdocumentCallback", pc);
       pc->NotifyDidPaintForSubtree(closure->mFlags);
       if (pc->IsDOMPaintEventPending()) {
         closure->mNeedsAnotherDidPaintNotification = true;
@@ -2627,7 +2578,8 @@ nsPresContext::ReflowStarted(bool aInterruptible)
 #endif
   // We don't support interrupting in paginated contexts, since page
   // sequences only handle initial reflow
-  mInterruptsEnabled = aInterruptible && !IsPaginated();
+  mInterruptsEnabled = aInterruptible && !IsPaginated() &&
+                       nsLayoutUtils::InterruptibleReflowEnabled();
 
   // Don't set mHasPendingInterrupt based on HavePendingInputEvent() here.  If
   // we ever change that, then we need to update the code in
@@ -3039,7 +2991,6 @@ NotifyDidPaintForSubtreeCallback(nsITimer *aTimer, void *aClosure)
   nsAutoScriptBlocker blockScripts;
   // This is a fallback if we don't get paint events for some reason
   // so we'll just pretend both layer painting and compositing happened.
-  PCLink pcl("NotifyDidPaintForSubtreeCallback", presContext);
   presContext->NotifyDidPaintForSubtree(
       nsIPresShell::PAINT_LAYERS | nsIPresShell::PAINT_COMPOSITE);
 }

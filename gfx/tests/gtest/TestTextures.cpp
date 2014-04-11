@@ -30,6 +30,8 @@ using namespace mozilla::layers;
  * image formats.
  */
 
+namespace mozilla {
+namespace layers {
 
 // fills the surface with values betwee 0 and 100.
 void SetupSurface(gfxImageSurface* surface) {
@@ -203,6 +205,9 @@ void TestTextureClientYCbCr(TextureClient* client, PlanarYCbCrData& ycbcrData) {
   host->Unlock();
 }
 
+} // namespace
+} // namespace
+
 TEST(Layers, TextureSerialization) {
   // the test is run on all the following image formats
   gfxImageFormat formats[3] = {
@@ -219,6 +224,7 @@ TEST(Layers, TextureSerialization) {
     RefPtr<TextureClient> client
       = new MemoryTextureClient(nullptr,
                                 mozilla::gfx::ImageFormatToSurfaceFormat(surface->Format()),
+                                gfx::BackendType::CAIRO,
                                 TEXTURE_DEALLOCATE_CLIENT);
 
     TestTextureClientSurface(client, surface);
@@ -255,6 +261,7 @@ TEST(Layers, TextureYCbCrSerialization) {
   RefPtr<TextureClient> client
     = new MemoryTextureClient(nullptr,
                               mozilla::gfx::SurfaceFormat::YUV,
+                              gfx::BackendType::CAIRO,
                               TEXTURE_DEALLOCATE_CLIENT);
 
   TestTextureClientYCbCr(client, clientData);

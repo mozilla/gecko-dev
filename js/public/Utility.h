@@ -35,10 +35,18 @@ namespace mozilla {}
 namespace js {}
 
 /*
- * Pattern used to overwrite freed memory. If you are accessing an object with
- * this pattern, you probably have a dangling pointer.
+ * Patterns used by SpiderMonkey to overwrite unused memory. If you are
+ * accessing an object with one of these pattern, you probably have a dangling
+ * pointer.
  */
-#define JS_FREE_PATTERN 0xDA
+#define JS_FRESH_NURSERY_PATTERN 0x2F
+#define JS_SWEPT_NURSERY_PATTERN 0x2B
+#define JS_ALLOCATED_NURSERY_PATTERN 0x2D
+#define JS_FRESH_TENURED_PATTERN 0x4F
+#define JS_SWEPT_TENURED_PATTERN 0x4B
+#define JS_ALLOCATED_TENURED_PATTERN 0x4D
+#define JS_SWEPT_CODE_PATTERN 0x3b
+#define JS_SWEPT_FRAME_PATTERN 0x5b
 
 #define JS_ASSERT(expr)           MOZ_ASSERT(expr)
 #define JS_ASSERT_IF(cond, expr)  MOZ_ASSERT_IF(cond, expr)
@@ -62,71 +70,34 @@ extern JS_PUBLIC_API(void) JS_Abort(void);
 #if defined JS_USE_CUSTOM_ALLOCATOR
 # include "jscustomallocator.h"
 #else
-# ifdef JS_DEBUG
+# if defined(DEBUG) || defined(JS_OOM_BREAKPOINT)
 /*
  * In order to test OOM conditions, when the testing function
  * oomAfterAllocations COUNT is passed, we fail continuously after the NUM'th
  * allocation from now.
  */
-extern JS_PUBLIC_DATA(uint32_t) OOM_maxAllocations; /* set in builtins/TestingFunctions.cpp */
+extern JS_PUBLIC_DATA(uint32_t) OOM_maxAllocations; /* set in builtin/TestingFunctions.cpp */
 extern JS_PUBLIC_DATA(uint32_t) OOM_counter; /* data race, who cares. */
 
-#ifdef JS_OOM_DO_BACKTRACES
-#define JS_OOM_BACKTRACE_SIZE 32
-static MOZ_ALWAYS_INLINE void
-PrintBacktrace()
-{
-    void* OOM_trace[JS_OOM_BACKTRACE_SIZE];
-    char** OOM_traceSymbols = nullptr;
-    int32_t OOM_traceSize = 0;
-    int32_t OOM_traceIdx = 0;
-    OOM_traceSize = backtrace(OOM_trace, JS_OOM_BACKTRACE_SIZE);
-    OOM_traceSymbols = backtrace_symbols(OOM_trace, OOM_traceSize);
-
-    if (!OOM_traceSymbols)
-        return;
-
-    for (OOM_traceIdx = 0; OOM_traceIdx < OOM_traceSize; ++OOM_traceIdx) {
-        fprintf(stderr, "#%d %s\n", OOM_traceIdx, OOM_traceSymbols[OOM_traceIdx]);
-    }
-
-    // This must be free(), not js_free(), because backtrace_symbols()
-    // allocates with malloc().
-    free(OOM_traceSymbols);
-}
-
-#define JS_OOM_EMIT_BACKTRACE() \
-    do {\
-        fprintf(stderr, "Forcing artificial memory allocation function failure:\n");\
-	PrintBacktrace();\
-    } while (0)
-# else
-#  define JS_OOM_EMIT_BACKTRACE() do {} while(0)
-#endif /* JS_OOM_DO_BACKTRACES */
+#ifdef JS_OOM_BREAKPOINT
+static MOZ_NEVER_INLINE void js_failedAllocBreakpoint() { asm(""); }
+#define JS_OOM_CALL_BP_FUNC() js_failedAllocBreakpoint()
+#else
+#define JS_OOM_CALL_BP_FUNC() do {} while(0)
+#endif
 
 #  define JS_OOM_POSSIBLY_FAIL() \
     do \
     { \
         if (++OOM_counter > OOM_maxAllocations) { \
-            JS_OOM_EMIT_BACKTRACE();\
+            JS_OOM_CALL_BP_FUNC();\
             return nullptr; \
-        } \
-    } while (0)
-
-#  define JS_OOM_POSSIBLY_FAIL_REPORT(cx) \
-    do \
-    { \
-        if (++OOM_counter > OOM_maxAllocations) { \
-            JS_OOM_EMIT_BACKTRACE();\
-            js_ReportOutOfMemory(cx);\
-            return false; \
         } \
     } while (0)
 
 # else
 #  define JS_OOM_POSSIBLY_FAIL() do {} while(0)
-#  define JS_OOM_POSSIBLY_FAIL_REPORT(cx) do {} while(0)
-# endif /* JS_DEBUG */
+# endif /* DEBUG || JS_OOM_BREAKPOINT */
 
 static inline void* js_malloc(size_t bytes)
 {

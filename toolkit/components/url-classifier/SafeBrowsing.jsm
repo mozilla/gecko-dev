@@ -13,9 +13,9 @@ Cu.import("resource://gre/modules/Services.jsm");
 const phishingList = Services.prefs.getCharPref("urlclassifier.phish_table");
 const malwareList = Services.prefs.getCharPref("urlclassifier.malware_table");
 const downloadBlockList =
-  Services.prefs.getCharPref("urlclassifier.download_block_table");
+  Services.prefs.getCharPref("urlclassifier.downloadBlockTable");
 const downloadAllowList =
-  Services.prefs.getCharPref("urlclassifier.download_allow_table");
+  Services.prefs.getCharPref("urlclassifier.downloadAllowTable");
 
 var debug = false;
 function log(...stuff) {
@@ -149,8 +149,8 @@ this.SafeBrowsing = {
   addMozEntries: function() {
     // Add test entries to the DB.
     // XXX bug 779008 - this could be done by DB itself?
-    const phishURL   = "mozilla.org/firefox/its-a-trap.html";
-    const malwareURL = "mozilla.org/firefox/its-an-attack.html";
+    const phishURL   = "itisatrap.org/firefox/its-a-trap.html";
+    const malwareURL = "itisatrap.org/firefox/its-an-attack.html";
 
     let update = "n:1000\ni:test-malware-simple\nad:1\n" +
                  "a:1:32:" + malwareURL.length + "\n" +

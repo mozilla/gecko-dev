@@ -38,6 +38,7 @@ namespace jit {
     _(GetArgumentsObjectArg)                                                \
     _(SetArgumentsObjectArg)                                                \
     _(ComputeThis)                                                          \
+    _(LoadArrowThis)                                                        \
     _(Call)                                                                 \
     _(ApplyArgs)                                                            \
     _(Bail)                                                                 \
@@ -90,6 +91,7 @@ namespace jit {
     _(NewObject)                                                            \
     _(NewDeclEnvObject)                                                     \
     _(NewCallObject)                                                        \
+    _(NewRunOnceCallObject)                                                 \
     _(NewStringObject)                                                      \
     _(InitElem)                                                             \
     _(InitElemGetterSetter)                                                 \
@@ -105,6 +107,7 @@ namespace jit {
     _(RegExpReplace)                                                        \
     _(StringReplace)                                                        \
     _(Lambda)                                                               \
+    _(LambdaArrow)                                                          \
     _(ImplicitThis)                                                         \
     _(Slots)                                                                \
     _(Elements)                                                             \
@@ -114,6 +117,7 @@ namespace jit {
     _(LoadSlot)                                                             \
     _(StoreSlot)                                                            \
     _(FunctionEnvironment)                                                  \
+    _(FilterTypeSet)                                                        \
     _(TypeBarrier)                                                          \
     _(MonitorTypes)                                                         \
     _(PostWriteBarrier)                                                     \
@@ -132,6 +136,7 @@ namespace jit {
     _(TypedArrayLength)                                                     \
     _(TypedArrayElements)                                                   \
     _(TypedObjectElements)                                                  \
+    _(SetTypedObjectOffset)                                                 \
     _(InitializedLength)                                                    \
     _(SetInitializedLength)                                                 \
     _(Not)                                                                  \
@@ -183,7 +188,7 @@ namespace jit {
     _(InstanceOf)                                                           \
     _(CallInstanceOf)                                                       \
     _(InterruptCheck)                                                       \
-    _(FunctionBoundary)                                                     \
+    _(ProfilerStackOp)                                                      \
     _(GetDOMProperty)                                                       \
     _(GetDOMMember)                                                         \
     _(SetDOMProperty)                                                       \

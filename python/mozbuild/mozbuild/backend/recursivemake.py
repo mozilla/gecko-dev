@@ -37,6 +37,7 @@ from ..frontend.data import (
     JavaJarData,
     LibraryDefinition,
     LocalInclude,
+    PerSourceFlag,
     Program,
     Resources,
     SandboxDerived,
@@ -378,8 +379,8 @@ class RecursiveMakeBackend(CommonBackend):
                         # On Windows, path names have a maximum length of 255 characters,
                         # so avoid creating extremely long path names.
                         unified_prefix = backend_file.relobjdir
-                        if len(unified_prefix) > 30:
-                            unified_prefix = unified_prefix[-30:].split('/', 1)[-1]
+                        if len(unified_prefix) > 20:
+                            unified_prefix = unified_prefix[-20:].split('/', 1)[-1]
                         unified_prefix = unified_prefix.replace('/', '_')
 
                         self._add_unified_build_rules(backend_file, v,
@@ -441,6 +442,9 @@ class RecursiveMakeBackend(CommonBackend):
 
         elif isinstance(obj, GeneratedInclude):
             self._process_generated_include(obj.path, backend_file)
+
+        elif isinstance(obj, PerSourceFlag):
+            self._process_per_source_flag(obj, backend_file)
 
         elif isinstance(obj, InstallationTarget):
             self._process_installation_target(obj, backend_file)
@@ -1069,7 +1073,7 @@ class RecursiveMakeBackend(CommonBackend):
 
         m = self._test_manifests.setdefault(obj.flavor,
             (obj.install_prefix, set()))
-        m[1].add(obj.manifest_relpath)
+        m[1].add(obj.manifest_obj_relpath)
 
     def _process_local_include(self, local_include, backend_file):
         if local_include.startswith('/'):
@@ -1084,6 +1088,10 @@ class RecursiveMakeBackend(CommonBackend):
         else:
             path = ''
         backend_file.write('LOCAL_INCLUDES += -I%s%s\n' % (path, generated_include))
+
+    def _process_per_source_flag(self, per_source_flag, backend_file):
+        for flag in per_source_flag.flags:
+            backend_file.write('%s_FLAGS += %s\n' % (mozpath.basename(per_source_flag.file_name), flag))
 
     def _process_java_jar_data(self, jar, backend_file):
         target = jar.name

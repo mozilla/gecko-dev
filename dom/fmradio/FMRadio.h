@@ -6,12 +6,12 @@
 #ifndef mozilla_dom_FMRadio_h
 #define mozilla_dom_FMRadio_h
 
-#include "FMRadioCommon.h"
-#include "nsDOMEventTargetHelper.h"
-#include "nsCycleCollectionParticipant.h"
-#include "mozilla/HalTypes.h"
-#include "nsWeakReference.h"
 #include "AudioChannelAgent.h"
+#include "FMRadioCommon.h"
+#include "mozilla/DOMEventTargetHelper.h"
+#include "mozilla/HalTypes.h"
+#include "nsCycleCollectionParticipant.h"
+#include "nsWeakReference.h"
 
 class nsPIDOMWindow;
 class nsIScriptContext;
@@ -20,7 +20,7 @@ BEGIN_FMRADIO_NAMESPACE
 
 class DOMRequest;
 
-class FMRadio MOZ_FINAL : public nsDOMEventTargetHelper
+class FMRadio MOZ_FINAL : public DOMEventTargetHelper
                         , public hal::SwitchObserver
                         , public FMRadioEventObserver
                         , public nsSupportsWeakReference
@@ -34,8 +34,9 @@ public:
   FMRadio();
 
   NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_NSIAUDIOCHANNELAGENTCALLBACK
 
-  NS_REALLY_FORWARD_NSIDOMEVENTTARGET(nsDOMEventTargetHelper)
+  NS_REALLY_FORWARD_NSIDOMEVENTTARGET(DOMEventTargetHelper)
 
   void Init(nsPIDOMWindow *aWindow);
   void Shutdown();
@@ -50,8 +51,7 @@ public:
     return GetOwner();
   }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
-                               JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   static bool Enabled();
 
@@ -81,9 +81,6 @@ public:
   IMPL_EVENT_HANDLER(disabled);
   IMPL_EVENT_HANDLER(antennaavailablechange);
   IMPL_EVENT_HANDLER(frequencychange);
-
-  // nsIAudioChannelAgentCallback
-  NS_IMETHOD CanPlayChanged(int32_t aCanPlay);
 
   // nsIDOMEventListener
   NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);

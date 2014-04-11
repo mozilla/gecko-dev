@@ -314,7 +314,7 @@ xptiInterfaceEntry::GetInfoForParam(uint16_t methodIndex,
     if(NS_FAILED(rv))
         return rv;
 
-    *info = entry->InterfaceInfo().get();
+    *info = entry->InterfaceInfo().take();
 
     return NS_OK;
 }
@@ -570,7 +570,7 @@ xptiInterfaceInfo::BuildParent()
                  !mParent &&
                  mEntry->Parent(),
                 "bad BuildParent call");
-    mParent = mEntry->Parent()->InterfaceInfo().get();
+    mParent = mEntry->Parent()->InterfaceInfo().take();
     return true;
 }
 
@@ -591,7 +591,7 @@ xptiInterfaceInfo::~xptiInterfaceInfo()
     NS_ASSERTION(!mEntry, "bad state in dtor");
 }
 
-nsrefcnt
+MozExternalRefCountType
 xptiInterfaceInfo::AddRef(void)
 {
     nsrefcnt cnt = ++mRefCnt;
@@ -599,7 +599,7 @@ xptiInterfaceInfo::AddRef(void)
     return cnt;
 }
 
-nsrefcnt
+MozExternalRefCountType
 xptiInterfaceInfo::Release(void)
 {
     xptiInterfaceEntry* entry = mEntry;

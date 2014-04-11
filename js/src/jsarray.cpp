@@ -616,7 +616,7 @@ js::ArraySetLength(typename ExecutionModeTraits<mode>::ContextType cxArg,
                     return false;
 
                 for (size_t i = 0; i < props.length(); i++) {
-                    if (!JS_CHECK_OPERATION_LIMIT(cx))
+                    if (!CheckForInterrupt(cx))
                         return false;
 
                     uint32_t index;
@@ -823,6 +823,8 @@ js::ObjectMayHaveExtraIndexedProperties(JSObject *obj)
             return true;
         if (obj->getDenseInitializedLength() > 0)
             return true;
+        if (obj->is<TypedArrayObject>())
+            return true;
     }
 
     return false;
@@ -899,7 +901,7 @@ array_toSource_impl(JSContext *cx, CallArgs args)
 
     for (uint32_t index = 0; index < length; index++) {
         bool hole;
-        if (!JS_CHECK_OPERATION_LIMIT(cx) ||
+        if (!CheckForInterrupt(cx) ||
             !GetElement(cx, obj, index, &hole, &elt)) {
             return false;
         }
@@ -986,7 +988,7 @@ ArrayJoinKernel(JSContext *cx, SeparatorOp sepOp, HandleObject obj, uint32_t len
         // other elements.
         uint32_t initLength = obj->getDenseInitializedLength();
         while (i < initLength) {
-            if (!JS_CHECK_OPERATION_LIMIT(cx))
+            if (!CheckForInterrupt(cx))
                 return false;
 
             const Value &elem = obj->getDenseElement(i);
@@ -1019,7 +1021,7 @@ ArrayJoinKernel(JSContext *cx, SeparatorOp sepOp, HandleObject obj, uint32_t len
     if (i != length) {
         RootedValue v(cx);
         while (i < length) {
-            if (!JS_CHECK_OPERATION_LIMIT(cx))
+            if (!CheckForInterrupt(cx))
                 return false;
 
             bool hole;
@@ -1094,7 +1096,20 @@ ArrayJoin(JSContext *cx, CallArgs &args)
 
     JS::Anchor<JSString*> anchor(sepstr);
 
-    // Step 6 is implicit in the loops below
+    // Step 6 is implicit in the loops below.
+
+    // An optimized version of a special case of steps 7-11: when length==1 and
+    // the 0th element is a string, ToString() of that element is a no-op and
+    // so it can be immediately returned as the result.
+    if (length == 1 && !Locale && obj->is<ArrayObject>() &&
+        obj->getDenseInitializedLength() == 1)
+    {
+        const Value &elem0 = obj->getDenseElement(0);
+        if (elem0.isString()) {
+            args.rval().setString(elem0.toString());
+            return true;
+        }
+    }
 
     StringBuffer sb(cx);
 
@@ -1103,7 +1118,7 @@ ArrayJoin(JSContext *cx, CallArgs &args)
     if (length > 0 && !sb.reserve(seplen * (length - 1)))
         return false;
 
-    // Various optimized versions of steps 7-10
+    // Various optimized versions of steps 7-10.
     if (seplen == 0) {
         EmptySeparatorOp op;
         if (!ArrayJoinKernel<Locale>(cx, op, obj, length, sb))
@@ -1186,7 +1201,7 @@ array_join(JSContext *cx, unsigned argc, Value *vp)
 static inline bool
 InitArrayTypes(JSContext *cx, TypeObject *type, const Value *vector, unsigned count)
 {
-    if (cx->typeInferenceEnabled() && !type->unknownProperties()) {
+    if (!type->unknownProperties()) {
         AutoEnterAnalysis enter(cx);
 
         HeapTypeSet *types = type->getProperty(cx, JSID_VOID);
@@ -1263,7 +1278,7 @@ InitArrayElements(JSContext *cx, HandleObject obj, uint32_t start, uint32_t coun
 
     const Value* end = vector + count;
     while (vector < end && start <= MAX_ARRAY_INDEX) {
-        if (!JS_CHECK_OPERATION_LIMIT(cx) ||
+        if (!CheckForInterrupt(cx) ||
             !SetArrayElement(cx, obj, start++, HandleValue::fromMarkedLocation(vector++))) {
             return false;
         }
@@ -1365,7 +1380,7 @@ array_reverse(JSContext *cx, unsigned argc, Value *vp)
     RootedValue lowval(cx), hival(cx);
     for (uint32_t i = 0, half = len / 2; i < half; i++) {
         bool hole, hole2;
-        if (!JS_CHECK_OPERATION_LIMIT(cx) ||
+        if (!CheckForInterrupt(cx) ||
             !GetElement(cx, obj, i, &hole, &lowval) ||
             !GetElement(cx, obj, len - i - 1, &hole2, &hival))
         {
@@ -1400,7 +1415,7 @@ namespace {
 inline bool
 CompareStringValues(JSContext *cx, const Value &a, const Value &b, bool *lessOrEqualp)
 {
-    if (!JS_CHECK_OPERATION_LIMIT(cx))
+    if (!CheckForInterrupt(cx))
         return false;
 
     JSString *astr = a.toString();
@@ -1479,7 +1494,7 @@ static inline bool
 CompareSubStringValues(JSContext *cx, const jschar *s1, size_t l1,
                        const jschar *s2, size_t l2, bool *lessOrEqualp)
 {
-    if (!JS_CHECK_OPERATION_LIMIT(cx))
+    if (!CheckForInterrupt(cx))
         return false;
 
     if (!s1 || !s2)
@@ -1553,7 +1568,7 @@ SortComparatorFunction::operator()(const Value &a, const Value &b, bool *lessOrE
     JS_ASSERT(!a.isMagic() && !a.isUndefined());
     JS_ASSERT(!a.isMagic() && !b.isUndefined());
 
-    if (!JS_CHECK_OPERATION_LIMIT(cx))
+    if (!CheckForInterrupt(cx))
         return false;
 
     InvokeArgs &args = fig.args();
@@ -1762,7 +1777,7 @@ SortLexicographically(JSContext *cx, AutoValueVector *vec, size_t len)
     /* Convert Values to strings. */
     size_t cursor = 0;
     for (size_t i = 0; i < len; i++) {
-        if (!JS_CHECK_OPERATION_LIMIT(cx))
+        if (!CheckForInterrupt(cx))
             return false;
 
         if (!ValueToStringBuffer(cx, (*vec)[i], sb))
@@ -1800,7 +1815,7 @@ SortNumerically(JSContext *cx, AutoValueVector *vec, size_t len, ComparatorMatch
 
     /* Convert Values to numerics. */
     for (size_t i = 0; i < len; i++) {
-        if (!JS_CHECK_OPERATION_LIMIT(cx))
+        if (!CheckForInterrupt(cx))
             return false;
 
         double dv;
@@ -1893,7 +1908,7 @@ js::array_sort(JSContext *cx, unsigned argc, Value *vp)
         bool allInts = true;
         RootedValue v(cx);
         for (uint32_t i = 0; i < len; i++) {
-            if (!JS_CHECK_OPERATION_LIMIT(cx))
+            if (!CheckForInterrupt(cx))
                 return false;
 
             /* Clear vec[newlen] before including it in the rooted set. */
@@ -1976,13 +1991,13 @@ js::array_sort(JSContext *cx, unsigned argc, Value *vp)
     /* Set undefs that sorted after the rest of elements. */
     while (undefs != 0) {
         --undefs;
-        if (!JS_CHECK_OPERATION_LIMIT(cx) || !SetArrayElement(cx, obj, n++, UndefinedHandleValue))
+        if (!CheckForInterrupt(cx) || !SetArrayElement(cx, obj, n++, UndefinedHandleValue))
             return false;
     }
 
     /* Re-create any holes that sorted to the end of the array. */
     while (len > n) {
-        if (!JS_CHECK_OPERATION_LIMIT(cx) || !DeletePropertyOrThrow(cx, obj, --len))
+        if (!CheckForInterrupt(cx) || !DeletePropertyOrThrow(cx, obj, --len))
             return false;
     }
     args.rval().setObject(*obj);
@@ -2027,7 +2042,7 @@ js::array_push(JSContext *cx, unsigned argc, Value *vp)
 
     /* Fast path for native objects with dense elements. */
     do {
-        if (!obj->isNative())
+        if (!obj->isNative() || obj->is<TypedArrayObject>())
             break;
 
         if (obj->is<ArrayObject>() && !obj->as<ArrayObject>().lengthIsWritable())
@@ -2126,7 +2141,7 @@ js::ArrayShiftMoveElements(JSObject *obj)
      * themselves.
      */
     uint32_t initlen = obj->getDenseInitializedLength();
-    obj->moveDenseElementsUnbarriered(0, 1, initlen);
+    obj->moveDenseElementsNoPreBarrier(0, 1, initlen);
 }
 
 /* ES5 15.4.4.9 */
@@ -2185,7 +2200,7 @@ js::array_shift(JSContext *cx, unsigned argc, Value *vp)
     /* Steps 6-7. */
     RootedValue value(cx);
     for (uint32_t i = 0; i < newlen; i++) {
-        if (!JS_CHECK_OPERATION_LIMIT(cx))
+        if (!CheckForInterrupt(cx))
             return false;
         if (!GetElement(cx, obj, i + 1, &hole, &value))
             return false;
@@ -2250,7 +2265,7 @@ array_unshift(JSContext *cx, unsigned argc, Value *vp)
                 do {
                     --last, --upperIndex;
                     bool hole;
-                    if (!JS_CHECK_OPERATION_LIMIT(cx))
+                    if (!CheckForInterrupt(cx))
                         return false;
                     if (!GetElement(cx, obj, last, &hole, &value))
                         return false;
@@ -2367,9 +2382,9 @@ array_splice(JSContext *cx, unsigned argc, Value *vp)
 
     /* Step 7. */
     uint32_t actualDeleteCount;
-    if (argc != 1) {
+    if (args.length() != 1) {
         double deleteCountDouble;
-        RootedValue cnt(cx, argc >= 2 ? args[1] : Int32Value(0));
+        RootedValue cnt(cx, args.length() >= 2 ? args[1] : Int32Value(0));
         if (!ToInteger(cx, cnt, &deleteCountDouble))
             return false;
         actualDeleteCount = Min(Max(deleteCountDouble, 0.0), double(len - actualStart));
@@ -2399,7 +2414,7 @@ array_splice(JSContext *cx, unsigned argc, Value *vp)
         RootedValue fromValue(cx);
         for (uint32_t k = 0; k < actualDeleteCount; k++) {
             bool hole;
-            if (!JS_CHECK_OPERATION_LIMIT(cx) ||
+            if (!CheckForInterrupt(cx) ||
                 !GetElement(cx, obj, actualStart + k, &hole, &fromValue) ||
                 (!hole && !JSObject::defineElement(cx, arr, k, fromValue)))
             {
@@ -2409,7 +2424,7 @@ array_splice(JSContext *cx, unsigned argc, Value *vp)
     }
 
     /* Step 11. */
-    uint32_t itemCount = (argc >= 2) ? (argc - 2) : 0;
+    uint32_t itemCount = (args.length() >= 2) ? (args.length() - 2) : 0;
 
     if (itemCount < actualDeleteCount) {
         /* Step 12: the array is being shrunk. */
@@ -2425,8 +2440,7 @@ array_splice(JSContext *cx, unsigned argc, Value *vp)
              * Update the initialized length. Do so before shrinking so that we
              * can apply the write barrier to the old slots.
              */
-            if (cx->typeInferenceEnabled())
-                obj->setDenseInitializedLength(finalLength);
+            obj->setDenseInitializedLength(finalLength);
 
             /* Steps 12(c)-(d). */
             obj->shrinkElements(cx, finalLength);
@@ -2438,14 +2452,14 @@ array_splice(JSContext *cx, unsigned argc, Value *vp)
             /*
              * This is all very slow if the length is very large. We don't yet
              * have the ability to iterate in sorted order, so we just do the
-             * pessimistic thing and let JS_CHECK_OPERATION_LIMIT handle the
+             * pessimistic thing and let CheckForInterrupt handle the
              * fallout.
              */
 
             /* Steps 12(a)-(b). */
             RootedValue fromValue(cx);
             for (uint32_t from = sourceIndex, to = targetIndex; from < len; from++, to++) {
-                if (!JS_CHECK_OPERATION_LIMIT(cx))
+                if (!CheckForInterrupt(cx))
                     return false;
 
                 bool hole;
@@ -2507,13 +2521,11 @@ array_splice(JSContext *cx, unsigned argc, Value *vp)
             obj->moveDenseElements(actualStart + itemCount,
                                    actualStart + actualDeleteCount,
                                    len - (actualStart + actualDeleteCount));
-
-            if (cx->typeInferenceEnabled())
-                obj->setDenseInitializedLength(len + itemCount - actualDeleteCount);
+            obj->setDenseInitializedLength(len + itemCount - actualDeleteCount);
         } else {
             RootedValue fromValue(cx);
             for (double k = len - actualDeleteCount; k > actualStart; k--) {
-                if (!JS_CHECK_OPERATION_LIMIT(cx))
+                if (!CheckForInterrupt(cx))
                     return false;
 
                 double from = k + actualDeleteCount - 1;
@@ -2621,7 +2633,7 @@ js::array_concat(JSContext *cx, unsigned argc, Value *vp)
 
     /* Loop over [0, argc] to concat args into narr, expanding all Arrays. */
     for (unsigned i = 0; i <= argc; i++) {
-        if (!JS_CHECK_OPERATION_LIMIT(cx))
+        if (!CheckForInterrupt(cx))
             return false;
         HandleValue v = HandleValue::fromMarkedLocation(&p[i]);
         if (v.isObject()) {
@@ -2633,7 +2645,7 @@ js::array_concat(JSContext *cx, unsigned argc, Value *vp)
                 RootedValue tmp(cx);
                 for (uint32_t slot = 0; slot < alength; slot++) {
                     bool hole;
-                    if (!JS_CHECK_OPERATION_LIMIT(cx) || !GetElement(cx, obj, slot, &hole, &tmp))
+                    if (!CheckForInterrupt(cx) || !GetElement(cx, obj, slot, &hole, &tmp))
                         return false;
 
                     /*
@@ -2751,7 +2763,7 @@ js::SliceSlowly(JSContext* cx, HandleObject obj, HandleObject receiver,
     RootedValue value(cx);
     for (uint32_t slot = begin; slot < end; slot++) {
         bool hole;
-        if (!JS_CHECK_OPERATION_LIMIT(cx) ||
+        if (!CheckForInterrupt(cx) ||
             !GetElement(cx, obj, receiver, slot, &hole, &value))
         {
             return false;
@@ -2811,7 +2823,7 @@ array_filter(JSContext *cx, unsigned argc, Value *vp)
     InvokeArgs &args2 = fig.args();
     RootedValue kValue(cx);
     while (k < len) {
-        if (!JS_CHECK_OPERATION_LIMIT(cx))
+        if (!CheckForInterrupt(cx))
             return false;
 
         /* Step a, b, and c.i. */
@@ -2901,7 +2913,7 @@ array_of(JSContext *cx, unsigned argc, Value *vp)
     RootedObject obj(cx);
     {
         RootedValue v(cx);
-        Value argv[1] = {NumberValue(argc)};
+        Value argv[1] = {NumberValue(args.length())};
         if (!InvokeConstructor(cx, args.thisv(), 1, argv, v.address()))
             return false;
         obj = ToObject(cx, v);
@@ -2910,13 +2922,13 @@ array_of(JSContext *cx, unsigned argc, Value *vp)
     }
 
     // Step 8.
-    for (unsigned k = 0; k < argc; k++) {
+    for (unsigned k = 0; k < args.length(); k++) {
         if (!JSObject::defineElement(cx, obj, k, args[k]))
             return false;
     }
 
     // Steps 9-10.
-    RootedValue v(cx, NumberValue(argc));
+    RootedValue v(cx, NumberValue(args.length()));
     if (!JSObject::setProperty(cx, obj, obj, cx->names().length, &v, true))
         return false;
 
@@ -3071,6 +3083,8 @@ js_InitArrayClass(JSContext *cx, HandleObject obj)
     RootedShape shape(cx, EmptyShape::getInitialShape(cx, &ArrayObject::class_, TaggedProto(proto),
                                                       proto->getParent(), metadata,
                                                       gc::FINALIZE_OBJECT0));
+    if (!shape)
+        return nullptr;
 
     RootedObject arrayProto(cx, JSObject::createArray(cx, gc::FINALIZE_OBJECT4, gc::TenuredHeap, shape, type, 0));
     if (!arrayProto || !JSObject::setSingletonType(cx, arrayProto) || !AddLengthProperty(cx, arrayProto))
@@ -3099,7 +3113,7 @@ js_InitArrayClass(JSContext *cx, HandleObject obj)
         return nullptr;
     }
 
-    if (!DefineConstructorAndPrototype(cx, global, JSProto_Array, ctor, arrayProto))
+    if (!GlobalObject::initBuiltinConstructor(cx, global, JSProto_Array, ctor, arrayProto))
         return nullptr;
 
     return arrayProto;
@@ -3165,7 +3179,7 @@ NewArray(ExclusiveContext *cxArg, uint32_t length,
     if (protoArg)
         JS::PoisonPtr(&protoArg);
 
-    if (!proto && !FindProto(cxArg, &ArrayObject::class_, &proto))
+    if (!proto && !GetBuiltinPrototype(cxArg, JSProto_Array, &proto))
         return nullptr;
 
     RootedTypeObject type(cxArg, cxArg->getNewType(&ArrayObject::class_, proto.get()));

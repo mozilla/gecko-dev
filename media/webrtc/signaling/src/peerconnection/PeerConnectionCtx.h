@@ -25,6 +25,10 @@
 namespace mozilla {
 class PeerConnectionCtxShutdown;
 
+namespace dom {
+class WebrtcGlobalInformation;
+}
+
 // Unit-test helper, because cc_media_constraints_t is hard to forward-declare
 
 class MediaConstraintsExternal {
@@ -38,8 +42,6 @@ protected:
 }
 
 namespace sipcc {
-
-using namespace mozilla;
 
 class OnCallEventArgs {
 public:
@@ -76,6 +78,7 @@ class PeerConnectionCtx : public CSF::CC_Observer {
   // Make these classes friend so that they can access mPeerconnections.
   friend class PeerConnectionImpl;
   friend class PeerConnectionWrapper;
+  friend class mozilla::dom::WebrtcGlobalInformation;
 
  private:
   // We could make these available only via accessors but it's too much trouble.
@@ -106,7 +109,7 @@ class PeerConnectionCtx : public CSF::CC_Observer {
   static PeerConnectionCtx *gInstance;
 public:
   static nsIThread *gMainThread;
-  static StaticRefPtr<mozilla::PeerConnectionCtxShutdown> gPeerConnectionCtxShutdown;
+  static mozilla::StaticRefPtr<mozilla::PeerConnectionCtxShutdown> gPeerConnectionCtxShutdown;
 };
 
 }  // namespace sipcc

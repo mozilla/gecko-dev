@@ -10,78 +10,76 @@
 #include "mozilla/dom/TextTrackCue.h"
 #include "mozilla/dom/TextTrackCueList.h"
 #include "mozilla/dom/TextTrackRegion.h"
-#include "mozilla/dom/TextTrackRegionList.h"
 #include "mozilla/dom/HTMLMediaElement.h"
 #include "mozilla/dom/HTMLTrackElement.h"
 
 namespace mozilla {
 namespace dom {
 
-NS_IMPL_CYCLE_COLLECTION_INHERITED_5(TextTrack,
-                                     nsDOMEventTargetHelper,
-                                     mParent,
+NS_IMPL_CYCLE_COLLECTION_INHERITED_4(TextTrack,
+                                     DOMEventTargetHelper,
                                      mCueList,
                                      mActiveCueList,
-                                     mRegionList,
-                                     mTextTrackList)
+                                     mTextTrackList,
+                                     mTrackElement)
 
-NS_IMPL_ADDREF_INHERITED(TextTrack, nsDOMEventTargetHelper)
-NS_IMPL_RELEASE_INHERITED(TextTrack, nsDOMEventTargetHelper)
+NS_IMPL_ADDREF_INHERITED(TextTrack, DOMEventTargetHelper)
+NS_IMPL_RELEASE_INHERITED(TextTrack, DOMEventTargetHelper)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(TextTrack)
-NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetHelper)
+NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
-TextTrack::TextTrack(nsISupports* aParent)
-  : mParent(aParent)
-{
-  SetDefaultSettings();
-  SetIsDOMBinding();
-}
-
-TextTrack::TextTrack(nsISupports* aParent,
+TextTrack::TextTrack(nsPIDOMWindow* aOwnerWindow,
                      TextTrackKind aKind,
                      const nsAString& aLabel,
-                     const nsAString& aLanguage)
-  : mParent(aParent)
+                     const nsAString& aLanguage,
+                     TextTrackMode aMode,
+                     TextTrackReadyState aReadyState,
+                     TextTrackSource aTextTrackSource)
+  : DOMEventTargetHelper(aOwnerWindow)
+  , mKind(aKind)
+  , mLabel(aLabel)
+  , mLanguage(aLanguage)
+  , mMode(aMode)
+  , mReadyState(aReadyState)
+  , mTextTrackSource(aTextTrackSource)
 {
   SetDefaultSettings();
-  mKind = aKind;
-  mLabel = aLabel;
-  mLanguage = aLanguage;
-  SetIsDOMBinding();
 }
 
-TextTrack::TextTrack(nsISupports* aParent,
+TextTrack::TextTrack(nsPIDOMWindow* aOwnerWindow,
                      TextTrackList* aTextTrackList,
                      TextTrackKind aKind,
                      const nsAString& aLabel,
-                     const nsAString& aLanguage)
-  : mParent(aParent)
+                     const nsAString& aLanguage,
+                     TextTrackMode aMode,
+                     TextTrackReadyState aReadyState,
+                     TextTrackSource aTextTrackSource)
+  : DOMEventTargetHelper(aOwnerWindow)
   , mTextTrackList(aTextTrackList)
+  , mKind(aKind)
+  , mLabel(aLabel)
+  , mLanguage(aLanguage)
+  , mMode(aMode)
+  , mReadyState(aReadyState)
+  , mTextTrackSource(aTextTrackSource)
 {
   SetDefaultSettings();
-  mKind = aKind;
-  mLabel = aLabel;
-  mLanguage = aLanguage;
-  SetIsDOMBinding();
 }
 
 void
 TextTrack::SetDefaultSettings()
 {
-  mKind = TextTrackKind::Subtitles;
-  mMode = TextTrackMode::Hidden;
-  mCueList = new TextTrackCueList(mParent);
-  mActiveCueList = new TextTrackCueList(mParent);
-  mRegionList = new TextTrackRegionList(mParent);
+  nsPIDOMWindow* ownerWindow = GetOwner();
+  mCueList = new TextTrackCueList(ownerWindow);
+  mActiveCueList = new TextTrackCueList(ownerWindow);
   mCuePos = 0;
   mDirty = false;
-  mReadyState = HTMLTrackElement::READY_STATE_NONE;
 }
 
 JSObject*
-TextTrack::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+TextTrack::WrapObject(JSContext* aCx)
 {
-  return TextTrackBinding::Wrap(aCx, aScope, this);
+  return TextTrackBinding::Wrap(aCx, this);
 }
 
 void
@@ -96,9 +94,20 @@ TextTrack::SetMode(TextTrackMode aValue)
 }
 
 void
+TextTrack::GetId(nsAString& aId) const
+{
+  // If the track has a track element then its id should be the same as the
+  // track element's id.
+  if (mTrackElement) {
+    mTrackElement->GetAttribute(NS_LITERAL_STRING("id"), aId);
+  }
+}
+
+void
 TextTrack::AddCue(TextTrackCue& aCue)
 {
   mCueList->AddCue(aCue);
+  aCue.SetTrack(this);
   if (mTextTrackList) {
     HTMLMediaElement* mediaElement = mTextTrackList->GetMediaElement();
     if (mediaElement) {
@@ -113,36 +122,6 @@ TextTrack::RemoveCue(TextTrackCue& aCue, ErrorResult& aRv)
 {
   mCueList->RemoveCue(aCue, aRv);
   SetDirty();
-}
-
-void
-TextTrack::CueChanged(TextTrackCue& aCue)
-{
-  //XXX: Implement Cue changed. Bug 867823.
-}
-
-void
-TextTrack::AddRegion(TextTrackRegion& aRegion)
-{
-  TextTrackRegion* region = mRegionList->GetRegionById(aRegion.Id());
-  if (!region) {
-    aRegion.SetTextTrack(this);
-    mRegionList->AddTextTrackRegion(&aRegion);
-    return;
-  }
-
-  region->CopyValues(aRegion);
-}
-
-void
-TextTrack::RemoveRegion(const TextTrackRegion& aRegion, ErrorResult& aRv)
-{
-  if (!mRegionList->GetRegionById(aRegion.Id())) {
-    aRv.Throw(NS_ERROR_DOM_NOT_FOUND_ERR);
-    return;
-  }
-
-  mRegionList->RemoveTextTrackRegion(aRegion);
 }
 
 void
@@ -204,14 +183,22 @@ TextTrack::GetActiveCueArray(nsTArray<nsRefPtr<TextTrackCue> >& aCues)
   }
 }
 
-uint16_t
+TextTrackReadyState
 TextTrack::ReadyState() const
 {
   return mReadyState;
 }
 
 void
-TextTrack::SetReadyState(uint16_t aState)
+TextTrack::SetReadyState(uint32_t aReadyState)
+{
+  if (aReadyState <= TextTrackReadyState::FailedToLoad) {
+    SetReadyState(static_cast<TextTrackReadyState>(aReadyState));
+  }
+}
+
+void
+TextTrack::SetReadyState(TextTrackReadyState aState)
 {
   mReadyState = aState;
 
@@ -220,8 +207,8 @@ TextTrack::SetReadyState(uint16_t aState)
   }
 
   HTMLMediaElement* mediaElement = mTextTrackList->GetMediaElement();
-  if (mediaElement && (mReadyState == HTMLTrackElement::READY_STATE_LOADED ||
-      mReadyState == HTMLTrackElement::READY_STATE_ERROR)) {
+  if (mediaElement && (mReadyState == TextTrackReadyState::Loaded||
+      mReadyState == TextTrackReadyState::FailedToLoad)) {
     mediaElement->RemoveTextTrack(this, true);
   }
 }
@@ -236,6 +223,16 @@ void
 TextTrack::SetTextTrackList(TextTrackList* aTextTrackList)
 {
   mTextTrackList = aTextTrackList;
+}
+
+HTMLTrackElement*
+TextTrack::GetTrackElement() {
+  return mTrackElement;
+}
+
+void
+TextTrack::SetTrackElement(HTMLTrackElement* aTrackElement) {
+  mTrackElement = aTrackElement;
 }
 
 } // namespace dom

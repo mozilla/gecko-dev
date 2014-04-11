@@ -164,7 +164,7 @@ TypeDescrSet::TypeDescrSet()
 {}
 
 bool
-TypeDescrSet::empty()
+TypeDescrSet::empty() const
 {
     return length_ == 0;
 }
@@ -200,14 +200,14 @@ TypeDescrSet::allOfKind(TypeDescr::Kind aKind)
 }
 
 bool
-TypeDescrSet::allHaveSameSize(size_t *out)
+TypeDescrSet::allHaveSameSize(int32_t *out)
 {
     if (empty())
         return false;
 
     JS_ASSERT(TypeDescr::isSized(kind()));
 
-    size_t size = get(0)->as<SizedTypeDescr>().size();
+    int32_t size = get(0)->as<SizedTypeDescr>().size();
     for (size_t i = 1; i < length(); i++) {
         if (get(i)->as<SizedTypeDescr>().size() != size)
             return false;
@@ -215,6 +215,15 @@ TypeDescrSet::allHaveSameSize(size_t *out)
 
     *out = size;
     return true;
+}
+
+JSObject *
+TypeDescrSet::knownPrototype() const
+{
+    JS_ASSERT(!empty());
+    if (length() > 1 || !get(0)->is<ComplexTypeDescr>())
+        return nullptr;
+    return &get(0)->as<ComplexTypeDescr>().instancePrototype();
 }
 
 TypeDescr::Kind
@@ -259,7 +268,7 @@ TypeDescrSet::x4Type(X4TypeDescr::Type *out)
 }
 
 bool
-TypeDescrSet::hasKnownArrayLength(size_t *l)
+TypeDescrSet::hasKnownArrayLength(int32_t *l)
 {
     switch (kind()) {
       case TypeDescr::UnsizedArray:
@@ -308,7 +317,7 @@ TypeDescrSet::arrayElementType(IonBuilder &builder, TypeDescrSet *out)
 bool
 TypeDescrSet::fieldNamed(IonBuilder &builder,
                          jsid id,
-                         size_t *offset,
+                         int32_t *offset,
                          TypeDescrSet *out,
                          size_t *index)
 {
@@ -316,12 +325,12 @@ TypeDescrSet::fieldNamed(IonBuilder &builder,
 
     // Initialize `*offset` and `*out` for the case where incompatible
     // or absent fields are found.
-    *offset = SIZE_MAX;
+    *offset = -1;
     *index = SIZE_MAX;
     *out = TypeDescrSet();
 
     // Remember offset of the first field.
-    size_t offset0;
+    int32_t offset0;
     size_t index0;
     TypeDescrSetBuilder fieldTypes;
     {
@@ -337,7 +346,7 @@ TypeDescrSet::fieldNamed(IonBuilder &builder,
     // Check that all subsequent fields are at the same offset
     // and compute the union of their types.
     for (size_t i = 1; i < length(); i++) {
-        StructTypeDescr &descri = get(0)->as<StructTypeDescr>();
+        StructTypeDescr &descri = get(i)->as<StructTypeDescr>();
 
         size_t indexi;
         if (!descri.fieldIndex(id, &indexi))

@@ -151,7 +151,7 @@ function loadSnippetsFromCache() {
     updateBanner(messages);
   }, e => {
     if (e instanceof OS.File.Error && e.becauseNoSuchFile) {
-      Cu.reportError("Couldn't show snippets because cache does not exist yet.");
+      Services.console.logStringMessage("Couldn't show snippets because cache does not exist yet.");
     } else {
       Cu.reportError("Error loading snippets from cache: " + e);
     }
@@ -351,6 +351,8 @@ function loadSyncPromoBanner() {
         text: text + "<a href=\"#\">" + link + "</a>",
         icon: "drawable://sync_promo",
         onclick: function() {
+          // Remove the message, so that it won't show again for the rest of the app lifetime.
+          Home.banner.remove(id);
           Accounts.launchSetup();
         },
         ondismiss: function() {

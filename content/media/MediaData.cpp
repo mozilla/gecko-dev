@@ -7,9 +7,14 @@
 #include "MediaInfo.h"
 #ifdef MOZ_OMX_DECODER
 #include "GrallocImages.h"
+#include "mozilla/layers/TextureClient.h"
 #endif
 #include "VideoUtils.h"
 #include "ImageContainer.h"
+
+#ifdef MOZ_WIDGET_GONK
+#include <cutils/properties.h>
+#endif
 
 namespace mozilla {
 
@@ -56,6 +61,15 @@ IsYV12Format(const VideoData::YCbCrBuffer::Plane& aYPlane,
     aCbPlane.mWidth == aCrPlane.mWidth &&
     aCbPlane.mHeight == aCrPlane.mHeight;
 }
+
+static bool
+IsInEmulator()
+{
+  char propQemu[PROPERTY_VALUE_MAX];
+  property_get("ro.kernel.qemu", propQemu, "");
+  return !strncmp(propQemu, "1", 1);
+}
+
 #endif
 
 VideoData::VideoData(int64_t aOffset, int64_t aTime, int64_t aDuration, int64_t aTimecode)
@@ -89,6 +103,22 @@ VideoData::~VideoData()
   MOZ_COUNT_DTOR(VideoData);
 }
 
+size_t
+VideoData::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
+{
+  size_t size = aMallocSizeOf(this);
+
+  // Currently only PLANAR_YCBCR has a well defined function for determining
+  // it's size, so reporting is limited to that type.
+  if (mImage && mImage->GetFormat() == ImageFormat::PLANAR_YCBCR) {
+    const mozilla::layers::PlanarYCbCrImage* img =
+        static_cast<const mozilla::layers::PlanarYCbCrImage*>(mImage.get());
+    size += img->SizeOfIncludingThis(aMallocSizeOf);
+  }
+
+  return size;
+}
+
 /* static */
 VideoData* VideoData::ShallowCopyUpdateDuration(VideoData* aOther,
                                                 int64_t aDuration)
@@ -96,6 +126,21 @@ VideoData* VideoData::ShallowCopyUpdateDuration(VideoData* aOther,
   VideoData* v = new VideoData(aOther->mOffset,
                                aOther->mTime,
                                aDuration,
+                               aOther->mKeyframe,
+                               aOther->mTimecode,
+                               aOther->mDisplay);
+  v->mImage = aOther->mImage;
+  return v;
+}
+
+/* static */
+VideoData* VideoData::ShallowCopyUpdateTimestamp(VideoData* aOther,
+                                                 int64_t aTimestamp)
+{
+  NS_ENSURE_TRUE(aOther, nullptr);
+  VideoData* v = new VideoData(aOther->mOffset,
+                               aTimestamp,
+                               aOther->GetEndTime() - aTimestamp,
                                aOther->mKeyframe,
                                aOther->mTimecode,
                                aOther->mDisplay);
@@ -213,7 +258,7 @@ VideoData* VideoData::Create(VideoInfo& aInfo,
     // Currently our decoder only knows how to output to ImageFormat::PLANAR_YCBCR
     // format.
 #ifdef MOZ_WIDGET_GONK
-    if (IsYV12Format(Y, Cb, Cr)) {
+    if (IsYV12Format(Y, Cb, Cr) && !IsInEmulator()) {
       v->mImage = aContainer->CreateImage(ImageFormat::GRALLOC_PLANAR_YCBCR);
     }
 #endif
@@ -313,7 +358,7 @@ VideoData* VideoData::Create(VideoInfo& aInfo,
                              int64_t aOffset,
                              int64_t aTime,
                              int64_t aDuration,
-                             mozilla::layers::GraphicBufferLocked* aBuffer,
+                             mozilla::layers::TextureClient* aBuffer,
                              bool aKeyframe,
                              int64_t aTimecode,
                              const IntRect& aPicture)

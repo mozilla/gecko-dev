@@ -25,18 +25,16 @@ html|html {
 }
 
 %ifdef WINDOWS_AERO
-@media (-moz-windows-default-theme) {
+@media (-moz-windows-default-theme) and (-moz-os-version: windows-vista),
+       (-moz-windows-default-theme) and (-moz-os-version: windows-win7) {
   *|*:root {
     color: #000;
     background-color: #CCD9EA;
-    background-image: /* Texture */
-                      url("chrome://global/skin/inContentUI/background-texture.png");
   }
 }
 
-@media (-moz-windows-compositor) {
+@media (-moz-windows-glass) {
   *|*:root {
-    color: #000;
     /* Blame shorlander for this monstrosity. */
     background-image: /* Side gradients */
                       linear-gradient(to right,
@@ -70,11 +68,19 @@ html|html {
   background-image: linear-gradient(rgba(255, 255, 255, 0),
                                     rgba(255, 255, 255, 0.75));
   border: 1px solid #C3CEDF;
-  border-radius: 5px;
 }
 
 %ifdef WINDOWS_AERO
-@media (-moz-windows-compositor) {
+@media (-moz-os-version: windows-vista),
+       (-moz-os-version: windows-win7) {
+%endif
+  *|*.main-content {
+    border-radius: 5px;
+  }
+%ifdef WINDOWS_AERO
+}
+
+@media (-moz-windows-glass) {
   /* Buttons */
   *|button,
   menulist,

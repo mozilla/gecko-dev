@@ -11,7 +11,7 @@
 
 #include "nsIRunnable.h"
 
-#include "nsDOMEvent.h"
+#include "mozilla/dom/Event.h"
 #include "mozilla/dom/Nullable.h"
 #include "mozilla/dom/indexedDB/IDBObjectStore.h"
 #include "mozilla/dom/IDBVersionChangeEventBinding.h"
@@ -46,17 +46,16 @@ CreateGenericEvent(mozilla::dom::EventTarget* aOwner,
                    Bubbles aBubbles,
                    Cancelable aCancelable);
 
-class IDBVersionChangeEvent : public nsDOMEvent
+class IDBVersionChangeEvent : public Event
 {
 public:
   NS_DECL_ISUPPORTS_INHERITED
-  NS_FORWARD_TO_NSDOMEVENT
+  NS_FORWARD_TO_EVENT
   NS_DECLARE_STATIC_IID_ACCESSOR(IDBVERSIONCHANGEEVENT_IID)
 
-  virtual JSObject* WrapObject(JSContext* aCx,
-                               JS::Handle<JSObject*> aScope) MOZ_OVERRIDE
+  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE
   {
-    return mozilla::dom::IDBVersionChangeEventBinding::Wrap(aCx, aScope, this);
+    return mozilla::dom::IDBVersionChangeEventBinding::Wrap(aCx, this);
   }
 
   static already_AddRefed<IDBVersionChangeEvent>
@@ -85,7 +84,7 @@ public:
       : mozilla::dom::Nullable<uint64_t>();
   }
 
-  inline static already_AddRefed<nsDOMEvent>
+  inline static already_AddRefed<Event>
   Create(mozilla::dom::EventTarget* aOwner,
          int64_t aOldVersion,
          int64_t aNewVersion)
@@ -95,7 +94,7 @@ public:
                           aOldVersion, aNewVersion);
   }
 
-  inline static already_AddRefed<nsDOMEvent>
+  inline static already_AddRefed<Event>
   CreateBlocked(mozilla::dom::EventTarget* aOwner,
                 uint64_t aOldVersion,
                 uint64_t aNewVersion)
@@ -104,7 +103,7 @@ public:
                           aOldVersion, aNewVersion);
   }
 
-  inline static already_AddRefed<nsDOMEvent>
+  inline static already_AddRefed<Event>
   CreateUpgradeNeeded(mozilla::dom::EventTarget* aOwner,
                       uint64_t aOldVersion,
                       uint64_t aNewVersion)
@@ -136,7 +135,7 @@ public:
 
 protected:
   IDBVersionChangeEvent(mozilla::dom::EventTarget* aOwner)
-  : nsDOMEvent(aOwner, nullptr, nullptr)
+    : Event(aOwner, nullptr, nullptr)
   {
     SetIsDOMBinding();
   }
@@ -157,6 +156,8 @@ protected:
   uint64_t mOldVersion;
   uint64_t mNewVersion;
 };
+
+NS_DEFINE_STATIC_IID_ACCESSOR(IDBVersionChangeEvent, IDBVERSIONCHANGEEVENT_IID)
 
 END_INDEXEDDB_NAMESPACE
 

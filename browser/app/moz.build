@@ -12,9 +12,6 @@ SOURCES += [
     'nsBrowserApp.cpp',
 ]
 
-if CONFIG['ENABLE_MARIONETTE']:
-    DEFINES['ENABLE_MARIONETTE'] = 1
-
 DEFINES['APP_VERSION'] = CONFIG['MOZ_APP_VERSION']
 
 for var in ('MOZILLA_OFFICIAL', 'LIBXUL_SDK'):
@@ -39,6 +36,7 @@ if CONFIG['_MSC_VER']:
     WIN32_EXE_LDFLAGS += ['-ENTRY:wmainCRTStartup']
 
 if CONFIG['OS_ARCH'] == 'WINNT':
+    RCINCLUDE = 'splash.rc'
     DEFINES['MOZ_PHOENIX'] = True
 
 # Control the default heap size.
@@ -51,3 +49,5 @@ if CONFIG['OS_ARCH'] == 'WINNT':
 # Set it to 256k.  See bug 127069.
 if CONFIG['OS_ARCH'] == 'WINNT' and not CONFIG['GNU_CC']:
     LDFLAGS += ['/HEAP:0x40000']
+
+DISABLE_STL_WRAPPING = True

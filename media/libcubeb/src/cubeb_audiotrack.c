@@ -298,7 +298,7 @@ audiotrack_get_min_latency(cubeb * ctx, cubeb_stream_params params, uint32_t * l
    * audiotrack_stream_init), so this value is not going to be used. */
   int rv;
 
-  rv = audiotrack_get_min_frame_count(ctx, &params, latency_ms);
+  rv = audiotrack_get_min_frame_count(ctx, &params, (int *)latency_ms);
   if (rv != CUBEB_OK) {
     return CUBEB_ERROR;
   }
@@ -314,7 +314,7 @@ audiotrack_get_preferred_sample_rate(cubeb * ctx, uint32_t * rate)
 {
   status_t rv;
 
-  rv = ctx->klass.get_output_samplingrate(rate, 3 /* MUSIC */);
+  rv = ctx->klass.get_output_samplingrate((int32_t *)rate, 3 /* MUSIC */);
 
   return rv == 0 ? CUBEB_OK : CUBEB_ERROR;
 }
@@ -338,7 +338,7 @@ audiotrack_stream_init(cubeb * ctx, cubeb_stream ** stream, char const * stream_
 {
   cubeb_stream * stm;
   int32_t channels;
-  int32_t min_frame_count;
+  uint32_t min_frame_count;
 
   assert(ctx && stream);
 
@@ -347,7 +347,7 @@ audiotrack_stream_init(cubeb * ctx, cubeb_stream ** stream, char const * stream_
     return CUBEB_ERROR_INVALID_FORMAT;
   }
 
-  if (audiotrack_get_min_frame_count(ctx, &stream_params, &min_frame_count)) {
+  if (audiotrack_get_min_frame_count(ctx, &stream_params, (int *)&min_frame_count)) {
     return CUBEB_ERROR;
   }
 

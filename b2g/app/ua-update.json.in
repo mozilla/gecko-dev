@@ -5,8 +5,6 @@
 {
   // bug 826335, globo.com
   "globo.com": "\\(Mobile#(Android; Mobile",
-  // bug 826342, mercadolivre.com.br
-  "mercadolivre.com.br": "\\(Mobile#(Android; Mobile",
   // bug 826344, abril.com.br
   "abril.com.br": "\\(Mobile#(Android; Mobile",
   // bug 826347, msn.com
@@ -21,16 +19,10 @@
   "r7.com": "\\(Mobile#(Android; Mobile",
   // bug 826514, estadao.com.br
   "estadao.com.br": "\\(Mobile#(Android; Mobile",
-  // bug 826517, letras.mus.br
-  "letras.mus.br": "Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/535.19 (KHTML, like Gecko) Chrome/18.0.1025.133 Mobile Safari/535.19",
   // bug 826711, bb.com.br
   "bb.com.br": "\\(Mobile#(Android; Mobile",
   // bug 826712, orkut.com
   "orkut.com": "Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/535.19 (KHTML, like Gecko) Chrome/18.0.1025.133 Mobile Safari/535.19",
-  // bug 826715, noticias.uol.com.br
-  "noticias.uol.com.br": "\\(Mobile#(Android; Mobile",
-  // bug 826845, techtudo.com.br
-  "techtudo.com.br": "\\(Mobile#(Android; Mobile",
   // bug 826958, ebay.com
   "ebay.com": "\\(Mobile#(Android; Mobile",
   // bug 827622, bing.com
@@ -39,20 +31,12 @@
   "magazineluiza.com.br": "\\(Mobile#(Android; Mobile",
   // bug 827628, groupon.com.br
   "groupon.com.br": "\\(Mobile#(Android; Mobile",
-  // bug 827630, vagalume.com.br
-  "vagalume.com.br": "\\(Mobile#(Android; Mobile",
-  // bug 827631, climatempo.com.br
-  "climatempo.com.br": "\\(Mobile#(Android; Mobile",
   // bug 827632, tecmundo.com.br
   "tecmundo.com.br": "\\(Mobile#(Android; Mobile",
   // bug 827633, hao123.com
   "hao123.com": "\\(Mobile#(Android; Mobile",
-  // bug 827576, lancenet.com.br
-  "lancenet.com.br": "\\(Mobile#(Android; Mobile",
   // bug 827573, webmotors.com.br
   "webmotors.com.br": "\\(Mobile#(Android; Mobile",
-  // bug 827661, mercadolibre.com.co
-  "mercadolibre.com.co": "\\(Mobile#(Android; Mobile",
   // bug 827670, elpais.com.co
   "elpais.com.co": "Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/535.19 (KHTML, like Gecko) Chrome/18.0.1025.133 Mobile Safari/535.19",
   // bug 827674, avianca.com
@@ -63,10 +47,6 @@
   "gazeta.pl": "\\(Mobile#(Android; Mobile",
   // bug 828360, sport.pl
   "sport.pl": "\\(Mobile#(Android; Mobile",
-  // bug 828364, nk.pl
-  "nk.pl": "\\(Mobile#(Android; Mobile",
-  // bug 828369, money.pl
-  "money.pl": "\\(Mobile#(Android; Mobile",
   // bug 828371, ingbank.pl
   "ingbank.pl": "\\(Mobile#(Android; Mobile",
   // bug 828378, wyborcza.pl
@@ -79,78 +59,38 @@
   "infojobs.net": "\\(Mobile#(Android; Mobile",
   // bug 828399, antena3.com
   "antena3.com": "\\(Mobile#(Android; Mobile",
-  // bug 828403, fotocasa.es
-  "fotocasa.es": "\\(Mobile#(Android; Mobile",
-  // bug 828406, orange.es
-  "orange.es": "\\(Mobile#(Android; Mobile",
   // bug 828416, loteriasyapuestas.es
   "loteriasyapuestas.es": "\\(Mobile#(Android; Mobile",
   // bug 828418, bbva.es
   "bbva.es": "\\(Mobile#(Android; Mobile",
   // bug 828422, publico.es
   "publico.es": "\\(Mobile#(Android; Mobile",
-  // bug 828425, mercadolibre.com.ve
-  "mercadolibre.com.ve": "\\(Mobile#(Android; Mobile",
   // bug 828439, movistar.com.ve
   "movistar.com.ve": "\\(Mobile#(Android; Mobile",
-  // bug 828445, bumeran.com.ve
-  "bumeran.com.ve": "\\(Mobile#(Android; Mobile",
-  // bug 843112, movil.bankinter.es
-  "movil.bankinter.es": "\\(Mobile#(Android; Mobile",
-  // bug 843114, einforma.com
-  "einforma.com": "\\(Mobile#(Android; Mobile",
-  // bug 843119, askthebuilder.com
-  "askthebuilder.com": "\\(Mobile#(Android; Mobile",
-  // bug 843121, tor.com
-  "tor.com": "\\(Mobile#(Android; Mobile",
   // bug 843126, es.playstation.com
   "es.playstation.com": "Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/535.19 (KHTML, like Gecko) Chrome/18.0.1025.133 Mobile Safari/535.19",
   // bug 843129, 11870.com
-  "11870.com": "\\(Mobile#(Android; Mobile",
-  // bug 843200, iphonejuegosgratis.com
   "iphonejuegosgratis.com": "\\(Mobile#(Android; Mobile",
   // bug 843132, comunio.es
   "comunio.es": "\\(Mobile#(Android; Mobile",
-  // bug 843139, consumersearch.com
-  "consumersearch.com": "\\(Mobile#(Android; Mobile",
-  // bug 843141, foodily.com
-  "foodily.com": "\\(Mobile#(Android; Mobile",
   // bug 843151, citibank.com
   "citibank.com": "\\(Mobile#(Android; Mobile",
   // bug 843153, games.com
   "games.com": "\\(Mobile#(Android; Mobile",
   // bug 843160, ehow.com
   "ehow.com": "\\(Mobile#(Android; Mobile",
-  // bug 843165, virginatlantic.com
-  "virginatlantic.com": "\\(Mobile#(Android; Mobile",
-  // bug 843172, zimbio.com
-  "zimbio.com": "\\(Mobile#(Android; Mobile",
-  // bug 843178, txt2nite.com
-  "txt2nite.com": "\\(Mobile#(Android; Mobile",
-  // bug 843181, slashgear.com
-  "slashgear.com": "\\(Mobile#(Android; Mobile",
-  // bug 843186, chevrolet.com
-  "chevrolet.com": "\\(Mobile#(Android; Mobile",
   // bug 866577, 3g.qq.com
   "3g.qq.com": "\\(Mobile#(Android; Mobile",
-  // bug 878222, arukereso.hu
-  "arukereso.hu": "\\(Mobile#(Android; Mobile",
   // bug 878228, blikk.hu
   "blikk.hu": "\\(Mobile#(Android; Mobile",
-  // bug 878230, citromail.hu
-  "citromail.hu": "\\(Mobile#(Android; Mobile",
   // bug 878232, hazipatika.com
   "hazipatika.com": "\\(Mobile#(Android; Mobile",
-  // bug 878234, hvg.hu
-  "hvg.hu": "\\(Mobile#(Android; Mobile",
   // bug 878238, koponyeg.hu
   "koponyeg.hu": "\\(Mobile#(Android; Mobile",
   // bug 878240, kuruc.info
   "kuruc.info": "\\(Mobile#(Android; Mobile",
   // bug 878242, nemzetisport.hu
   "nemzetisport.hu": "\\(Mobile#(Android; Mobile",
-  // bug 878244, nlcafe.hu
-  "nlcafe.hu": "Mozilla/5.0 (Linux; Android 4.0.4; Galaxy Nexus Build/IMM76B) AppleWebKit/535.19 (KHTML, like Gecko) Chrome/18.0.1025.133 Mobile Safari/535.19",
   // bug 878246, port.hu
   "port.hu": "\\(Mobile#(Android; Mobile",
   // bug 878249, portfolio.hu
@@ -159,8 +99,6 @@
   "vatera.hu": "\\(Mobile#(Android; Mobile",
   // bug 878255, 24sata.hr
   "24sata.hr": "\\(Mobile#(Android; Mobile",
-  // bug 878258, blackhatteam.com
-  "blackhatteam.com": "\\(Mobile#(Android; Mobile",
   // bug 878260, cdm.me
   "cdm.me": "\\(Mobile#(Android; Mobile",
   // bug 878262, download.com
@@ -171,18 +109,12 @@
   "kurir-info.rs": "\\(Mobile#(Android; Mobile",
   // bug 878273, livescore.com
   "livescore.com": "\\(Mobile#(Android; Mobile",
-  // bug 878275, mondo.rs
-  "mondo.rs": "\\(Mobile#(Android; Mobile",
   // bug 878277, naslovi.net
   "naslovi.net": "\\(Mobile#(Android; Mobile",
   // bug 878630, ask.com
   "ask.com": "\\(Mobile#(Android; Mobile",
   // bug 878632, banorte.com
   "banorte.com": "\\(Mobile#(Android; Mobile",
-  // bug 878637, eluniversal.com.mx
-  "eluniversal.com.mx": "\\(Mobile#(Android; Mobile",
-  // bug 878642, mercadolibre.com.mx
-  "mercadolibre.com.mx": "\\(Mobile#(Android; Mobile",
   // bug 878649, univision.com
   "univision.com": "\\(Mobile#(Android; Mobile",
   // bug 878653, redstarbelgrade.info

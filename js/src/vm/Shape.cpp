@@ -1659,6 +1659,9 @@ class InitialShapeSetRef : public BufferableRef
 void
 JSCompartment::checkInitialShapesTableAfterMovingGC()
 {
+    if (!initialShapes.initialized())
+        return;
+
     /*
      * Assert that the postbarriers have worked and that nothing is left in
      * initialShapes that points into the nursery, and that the hash table
@@ -1707,7 +1710,6 @@ EmptyShape::getInitialShape(ExclusiveContext *cx, const Class *clasp, TaggedProt
     if (p)
         return p->shape;
 
-    SkipRoot skip(cx, &p); /* The hash may look like a GC pointer and get poisoned. */
     Rooted<TaggedProto> protoRoot(cx, proto);
     RootedObject parentRoot(cx, parent);
     RootedObject metadataRoot(cx, metadata);

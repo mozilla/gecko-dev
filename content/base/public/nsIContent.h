@@ -21,6 +21,7 @@ class nsIFrame;
 class nsXBLBinding;
 
 namespace mozilla {
+class EventChainPreVisitor;
 namespace dom {
 class ShadowRoot;
 struct CustomElementData;
@@ -38,8 +39,8 @@ enum nsLinkState {
 
 // IID for the nsIContent interface
 #define NS_ICONTENT_IID \
-{ 0x4b05faf2, 0x12e0, 0x4f56, \
-  { 0xb5, 0x2e, 0x3e, 0xb6, 0xad, 0x9c, 0x6e, 0xbe } }
+{ 0x1329e5b7, 0x4bcd, 0x450c, \
+  { 0xa2, 0x3a, 0x98, 0xc5, 0x85, 0xcd, 0x73, 0xf9 } }
 
 /**
  * A node of content in a document's content model. This interface
@@ -53,11 +54,10 @@ public:
   // If you're using the external API, the only thing you can know about
   // nsIContent is that it exists with an IID
 
-  nsIContent(already_AddRefed<nsINodeInfo> aNodeInfo)
+  nsIContent(already_AddRefed<nsINodeInfo>& aNodeInfo)
     : nsINode(aNodeInfo)
   {
-    NS_ASSERTION(mNodeInfo,
-                 "No nsINodeInfo passed to nsIContent, PREPARE TO CRASH!!!");
+    MOZ_ASSERT(mNodeInfo);
     SetNodeIsContent();
   }
 #endif // MOZILLA_INTERNAL_API
@@ -175,7 +175,7 @@ public:
   {
     NS_ASSERTION(!HasFlag(NODE_IS_NATIVE_ANONYMOUS_ROOT) ||
                  (HasFlag(NODE_IS_ANONYMOUS_ROOT) &&
-                  HasFlag(NODE_IS_IN_ANONYMOUS_SUBTREE)),
+                  HasFlag(NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE)),
                  "Some flags seem to be missing!");
     return HasFlag(NODE_IS_NATIVE_ANONYMOUS_ROOT);
   }
@@ -192,7 +192,7 @@ public:
    */
   void SetIsNativeAnonymousRoot()
   {
-    SetFlags(NODE_IS_ANONYMOUS_ROOT | NODE_IS_IN_ANONYMOUS_SUBTREE |
+    SetFlags(NODE_IS_ANONYMOUS_ROOT | NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE |
              NODE_IS_NATIVE_ANONYMOUS_ROOT);
   }
 
@@ -240,7 +240,7 @@ public:
                   static_cast<nsIContent*>(SubtreeRoot())->IsInNativeAnonymousSubtree()),
                  "Must have binding parent when in native anonymous subtree which is in document.\n"
                  "Native anonymous subtree which is not in document must have native anonymous root.");
-    return IsInNativeAnonymousSubtree() || GetBindingParent() != nullptr;
+    return IsInNativeAnonymousSubtree() || (!HasFlag(NODE_IS_IN_SHADOW_TREE) && GetBindingParent() != nullptr);
   }
 
   /**
@@ -534,10 +534,25 @@ public:
   virtual bool TextIsOnlyWhitespace() = 0;
 
   /**
+   * Method to see if the text node contains data that is useful
+   * for a translation: i.e., it consists of more than just whitespace,
+   * digits and punctuation.
+   * NOTE: Always returns false for elements.
+   */
+  virtual bool HasTextForTranslation() = 0;
+
+  /**
    * Append the text content to aResult.
    * NOTE: This asserts and returns for elements
    */
   virtual void AppendTextTo(nsAString& aResult) = 0;
+
+  /**
+   * Append the text content to aResult.
+   * NOTE: This asserts and returns for elements
+   */
+  virtual bool AppendTextTo(nsAString& aResult,
+                            const mozilla::fallible_t&) NS_WARN_UNUSED_RESULT = 0;
 
   /**
    * Check if this content is focusable and in the current tab order.
@@ -912,9 +927,10 @@ public:
   }
 
   // Overloaded from nsINode
-  virtual already_AddRefed<nsIURI> GetBaseURI() const MOZ_OVERRIDE;
+  virtual already_AddRefed<nsIURI> GetBaseURI(bool aTryUseXHRDocBaseURI = false) const MOZ_OVERRIDE;
 
-  virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
+  virtual nsresult PreHandleEvent(
+                     mozilla::EventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
 
   virtual bool IsPurple() = 0;
   virtual void RemovePurple() = 0;
@@ -949,6 +965,15 @@ public:
   virtual void DumpContent(FILE* out = stdout, int32_t aIndent = 0,
                            bool aDumpAll = true) const = 0;
 #endif
+
+  /**
+   * Append to aOutDescription a short (preferably one line) string
+   * describing the content.
+   * Currently implemented for elements only.
+   */
+  virtual void Describe(nsAString& aOutDescription) const {
+    aOutDescription = NS_LITERAL_STRING("(not an element)");
+  }
 
   enum ETabFocusType {
   //eTabFocus_textControlsMask = (1<<0),  // unused - textboxes always tabbable

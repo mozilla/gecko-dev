@@ -44,6 +44,9 @@ public:
     MOZ_COUNT_DTOR(RtspOmxReader);
   }
 
+  virtual nsresult ReadMetadata(MediaInfo* aInfo,
+                                MetadataTags** aTags) MOZ_OVERRIDE;
+
   // Implement a time-based seek instead of byte-based..
   virtual nsresult Seek(int64_t aTime, int64_t aStartTime, int64_t aEndTime,
                         int64_t aCurrentTime) MOZ_FINAL MOZ_OVERRIDE;
@@ -71,9 +74,8 @@ public:
     return nullptr;
   }
 
-  virtual void OnDecodeThreadStart() MOZ_OVERRIDE;
-
-  virtual void OnDecodeThreadFinish() MOZ_OVERRIDE;
+  virtual void SetIdle() MOZ_OVERRIDE;
+  virtual void SetActive() MOZ_OVERRIDE;
 
 private:
   // A pointer to RtspMediaResource for calling the Rtsp specific function.

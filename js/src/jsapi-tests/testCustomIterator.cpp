@@ -10,9 +10,10 @@ static int iterCount = 0;
 static bool
 IterNext(JSContext *cx, unsigned argc, jsval *vp)
 {
+    JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
     if (iterCount++ == 100)
         return JS_ThrowStopIteration(cx);
-    JS_SET_RVAL(cx, vp, INT_TO_JSVAL(iterCount));
+    args.rval().setInt32(iterCount);
     return true;
 }
 
@@ -54,10 +55,11 @@ const js::Class HasCustomIterClass = {
 static bool
 IterClassConstructor(JSContext *cx, unsigned argc, jsval *vp)
 {
-    JSObject *obj = JS_NewObjectForConstructor(cx, Jsvalify(&HasCustomIterClass), vp);
+    JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+    JSObject *obj = JS_NewObjectForConstructor(cx, Jsvalify(&HasCustomIterClass), args);
     if (!obj)
         return false;
-    JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(obj));
+    args.rval().setObject(*obj);
     return true;
 }
 
@@ -70,7 +72,7 @@ BEGIN_TEST(testCustomIterator_bug612523)
     EVAL("var o = new HasCustomIter(); \n"
          "var j = 0; \n"
          "for (var i in o) { ++j; }; \n"
-         "j;", result.address());
+         "j;", &result);
 
     CHECK(JSVAL_IS_INT(result));
     CHECK_EQUAL(JSVAL_TO_INT(result), 100);

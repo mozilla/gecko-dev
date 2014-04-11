@@ -9,6 +9,8 @@ let gContentWindow;
 
 Components.utils.import("resource:///modules/UITour.jsm");
 
+requestLongerTimeout(2);
+
 function test() {
   UITourTest();
 }
@@ -20,6 +22,10 @@ let tests = [
     let desc = document.getElementById("UITourTooltipDescription");
     let icon = document.getElementById("UITourTooltipIcon");
     let buttons = document.getElementById("UITourTooltipButtons");
+
+    // Disable the animation to prevent the mouse clicks from hitting the main
+    // window during the transition instead of the buttons in the popup.
+    popup.setAttribute("animate", "false");
 
     popup.addEventListener("popupshown", function onPopupShown() {
       popup.removeEventListener("popupshown", onPopupShown);
@@ -121,5 +127,39 @@ let tests = [
 
     let buttons = gContentWindow.makeButtons();
     gContentAPI.showInfo("urlbar", "another title", "moar text", "./image.png", buttons);
+  },
+
+  function test_info_close_button(done) {
+    let popup = document.getElementById("UITourTooltip");
+    let closeButton = document.getElementById("UITourTooltipClose");
+
+    popup.addEventListener("popupshown", function onPopupShown() {
+      popup.removeEventListener("popupshown", onPopupShown);
+      EventUtils.synthesizeMouseAtCenter(closeButton, {}, window);
+      executeSoon(function() {
+        is(gContentWindow.callbackResult, "closeButton", "Close button callback called");
+        done();
+      });
+    });
+
+    let infoOptions = gContentWindow.makeInfoOptions();
+    gContentAPI.showInfo("urlbar", "Close me", "X marks the spot", null, null, infoOptions);
+  },
+
+  function test_info_target_callback(done) {
+    let popup = document.getElementById("UITourTooltip");
+    popup.addEventListener("popupshown", function onPopupShown() {
+      popup.removeEventListener("popupshown", onPopupShown);
+      PanelUI.show().then(() => {
+        is(gContentWindow.callbackResult, "target", "target callback called");
+        is(gContentWindow.callbackData.target, "appMenu", "target callback was from the appMenu");
+        is(gContentWindow.callbackData.type, "popupshown", "target callback was from the mousedown");
+        popup.removeAttribute("animate");
+        done();
+      });
+    });
+
+    let infoOptions = gContentWindow.makeInfoOptions();
+    gContentAPI.showInfo("appMenu", "I want to know when the target is clicked", "*click*", null, null, infoOptions);
   },
 ];

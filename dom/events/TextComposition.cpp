@@ -4,16 +4,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "TextComposition.h"
-#include "nsContentEventHandler.h"
+#include "ContentEventHandler.h"
 #include "nsContentUtils.h"
-#include "nsEventDispatcher.h"
 #include "nsIContent.h"
 #include "nsIEditor.h"
-#include "nsIMEStateManager.h"
 #include "nsIPresShell.h"
 #include "nsPresContext.h"
+#include "mozilla/EventDispatcher.h"
+#include "mozilla/IMEStateManager.h"
 #include "mozilla/MiscEvents.h"
+#include "mozilla/TextComposition.h"
 #include "mozilla/TextEvents.h"
 
 using namespace mozilla::widget;
@@ -56,14 +56,14 @@ TextComposition::MatchesNativeContext(nsIWidget* aWidget) const
 void
 TextComposition::DispatchEvent(WidgetGUIEvent* aEvent,
                                nsEventStatus* aStatus,
-                               nsDispatchingCallback* aCallBack)
+                               EventDispatchingCallback* aCallBack)
 {
   if (aEvent->message == NS_COMPOSITION_UPDATE) {
     mLastData = aEvent->AsCompositionEvent()->data;
   }
 
-  nsEventDispatcher::Dispatch(mNode, mPresContext,
-                              aEvent, nullptr, aStatus, aCallBack);
+  EventDispatcher::Dispatch(mNode, mPresContext,
+                            aEvent, nullptr, aStatus, aCallBack);
 
   if (!mPresContext) {
     return;
@@ -113,17 +113,8 @@ TextComposition::NotityUpdateComposition(WidgetGUIEvent* aEvent)
   } else if (aEvent->eventStructType != NS_TEXT_EVENT) {
     return;
   } else {
-    WidgetTextEvent* textEvent = aEvent->AsTextEvent();
-    mCompositionTargetOffset = mCompositionStartOffset;
-
-    for (uint32_t i = 0; i < textEvent->rangeCount; i++) {
-      TextRange& range = textEvent->rangeArray[i];
-      if (range.mRangeType == NS_TEXTRANGE_SELECTEDRAWTEXT ||
-          range.mRangeType == NS_TEXTRANGE_SELECTEDCONVERTEDTEXT) {
-        mCompositionTargetOffset += range.mStartOffset;
-        break;
-      }
-    }
+    mCompositionTargetOffset =
+      mCompositionStartOffset + aEvent->AsTextEvent()->TargetClauseOffset();
   }
 
   NotifyIME(NOTIFY_IME_OF_COMPOSITION_UPDATE);
@@ -154,13 +145,14 @@ nsresult
 TextComposition::NotifyIME(IMEMessage aMessage)
 {
   NS_ENSURE_TRUE(mPresContext, NS_ERROR_NOT_AVAILABLE);
-  return nsIMEStateManager::NotifyIME(aMessage, mPresContext);
+  return IMEStateManager::NotifyIME(aMessage, mPresContext);
 }
 
 void
 TextComposition::EditorWillHandleTextEvent(const WidgetTextEvent* aTextEvent)
 {
   mIsComposing = aTextEvent->IsComposing();
+  mRanges = aTextEvent->mRanges;
   mIsEditorHandlingEvent = true;
 
   MOZ_ASSERT(mLastData == aTextEvent->theText,
@@ -235,27 +227,27 @@ TextComposition::CompositionEventDispatcher::Run()
       WidgetCompositionEvent compStart(true, NS_COMPOSITION_START, mWidget);
       WidgetQueryContentEvent selectedText(true, NS_QUERY_SELECTED_TEXT,
                                            mWidget);
-      nsContentEventHandler handler(mPresContext);
+      ContentEventHandler handler(mPresContext);
       handler.OnQuerySelectedText(&selectedText);
       NS_ASSERTION(selectedText.mSucceeded, "Failed to get selected text");
       compStart.data = selectedText.mReply.mString;
-      nsIMEStateManager::DispatchCompositionEvent(mEventTarget, mPresContext,
-                                                  &compStart, &status, nullptr);
+      IMEStateManager::DispatchCompositionEvent(mEventTarget, mPresContext,
+                                                &compStart, &status, nullptr);
       break;
     }
     case NS_COMPOSITION_UPDATE:
     case NS_COMPOSITION_END: {
       WidgetCompositionEvent compEvent(true, mEventMessage, mWidget);
       compEvent.data = mData;
-      nsIMEStateManager::DispatchCompositionEvent(mEventTarget, mPresContext,
-                                                  &compEvent, &status, nullptr);
+      IMEStateManager::DispatchCompositionEvent(mEventTarget, mPresContext,
+                                                &compEvent, &status, nullptr);
       break;
     }
     case NS_TEXT_TEXT: {
       WidgetTextEvent textEvent(true, NS_TEXT_TEXT, mWidget);
       textEvent.theText = mData;
-      nsIMEStateManager::DispatchCompositionEvent(mEventTarget, mPresContext,
-                                                  &textEvent, &status, nullptr);
+      IMEStateManager::DispatchCompositionEvent(mEventTarget, mPresContext,
+                                                &textEvent, &status, nullptr);
       break;
     }
     default:

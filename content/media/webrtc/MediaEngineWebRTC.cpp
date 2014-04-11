@@ -60,10 +60,6 @@ MediaEngineWebRTC::MediaEngineWebRTC(MediaEnginePrefs &aPrefs)
 #else
   AsyncLatencyLogger::Get()->AddRef();
 #endif
-  if (aPrefs.mLoadAdapt) {
-      mLoadMonitor = new LoadMonitor();
-      mLoadMonitor->Init(mLoadMonitor);
-  }
 }
 
 void
@@ -108,8 +104,9 @@ MediaEngineWebRTC::EnumerateVideoDevices(nsTArray<nsRefPtr<MediaEngineVideoSourc
 
   return;
 #else
-  webrtc::ViEBase* ptrViEBase;
-  webrtc::ViECapture* ptrViECapture;
+  ScopedCustomReleasePtr<webrtc::ViEBase> ptrViEBase;
+  ScopedCustomReleasePtr<webrtc::ViECapture> ptrViECapture;
+
   // We spawn threads to handle gUM runnables, so we must protect the member vars
   MutexAutoLock lock(mMutex);
 
@@ -124,10 +121,6 @@ MediaEngineWebRTC::EnumerateVideoDevices(nsTArray<nsRefPtr<MediaEngineVideoSourc
     return;
   }
 #endif
-
-  if (mHasTabVideoSource)
-    aVSources->AppendElement(new MediaEngineTabVideoSource());
-
   if (!mVideoEngine) {
     if (!(mVideoEngine = webrtc::VideoEngine::Create())) {
       return;
@@ -232,8 +225,8 @@ MediaEngineWebRTC::EnumerateVideoDevices(nsTArray<nsRefPtr<MediaEngineVideoSourc
     }
   }
 
-  ptrViEBase->Release();
-  ptrViECapture->Release();
+  if (mHasTabVideoSource)
+    aVSources->AppendElement(new MediaEngineTabVideoSource());
 
   return;
 #endif
@@ -242,8 +235,8 @@ MediaEngineWebRTC::EnumerateVideoDevices(nsTArray<nsRefPtr<MediaEngineVideoSourc
 void
 MediaEngineWebRTC::EnumerateAudioDevices(nsTArray<nsRefPtr<MediaEngineAudioSource> >* aASources)
 {
-  webrtc::VoEBase* ptrVoEBase = nullptr;
-  webrtc::VoEHardware* ptrVoEHw = nullptr;
+  ScopedCustomReleasePtr<webrtc::VoEBase> ptrVoEBase;
+  ScopedCustomReleasePtr<webrtc::VoEHardware> ptrVoEHw;
   // We spawn threads to handle gUM runnables, so we must protect the member vars
   MutexAutoLock lock(mMutex);
 
@@ -336,9 +329,6 @@ MediaEngineWebRTC::EnumerateAudioDevices(nsTArray<nsRefPtr<MediaEngineAudioSourc
       aASources->AppendElement(aSource);
     }
   }
-
-  ptrVoEHw->Release();
-  ptrVoEBase->Release();
 }
 
 void
@@ -359,9 +349,6 @@ MediaEngineWebRTC::Shutdown()
 
   mVideoEngine = nullptr;
   mVoiceEngine = nullptr;
-
-  if (mLoadMonitor)
-    mLoadMonitor->Shutdown();
 }
 
 }

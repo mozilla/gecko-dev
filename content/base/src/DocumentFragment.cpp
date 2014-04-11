@@ -18,14 +18,15 @@
 #include "mozilla/dom/DocumentFragmentBinding.h"
 #include "nsPIDOMWindow.h"
 #include "nsIDocument.h"
+#include "mozilla/IntegerPrintfMacros.h"
 
 namespace mozilla {
 namespace dom {
 
 JSObject*
-DocumentFragment::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+DocumentFragment::WrapNode(JSContext *aCx)
 {
-  return DocumentFragmentBinding::Wrap(aCx, aScope, this);
+  return DocumentFragmentBinding::Wrap(aCx, this);
 }
 
 bool
@@ -72,7 +73,7 @@ DocumentFragment::List(FILE* out, int32_t aIndent) const
   fprintf(out, "DocumentFragment@%p", (void *)this);
 
   fprintf(out, " flags=[%08x]", static_cast<unsigned int>(GetFlags()));
-  fprintf(out, " refcount=%d<", mRefCnt.get());
+  fprintf(out, " refcount=%" PRIuPTR "<", mRefCnt.get());
 
   nsIContent* child = GetFirstChild();
   if (child) {

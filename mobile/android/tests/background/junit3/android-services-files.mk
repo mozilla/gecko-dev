@@ -22,7 +22,9 @@ BACKGROUND_TESTS_JAVA_FILES := \
   src/db/TestFennecTabsStorage.java \
   src/db/TestFormHistoryRepositorySession.java \
   src/db/TestPasswordsRepository.java \
+  src/fxa/authenticator/TestAccountPickler.java \
   src/fxa/TestBrowserIDKeyPairGeneration.java \
+  src/fxa/TestFirefoxAccounts.java \
   src/healthreport/MockDatabaseEnvironment.java \
   src/healthreport/MockHealthReportDatabaseStorage.java \
   src/healthreport/MockHealthReportSQLiteOpenHelper.java \
@@ -30,6 +32,7 @@ BACKGROUND_TESTS_JAVA_FILES := \
   src/healthreport/prune/TestHealthReportPruneService.java \
   src/healthreport/prune/TestPrunePolicyDatabaseStorage.java \
   src/healthreport/TestEnvironmentBuilder.java \
+  src/healthreport/TestEnvironmentV1HashAppender.java \
   src/healthreport/TestHealthReportBroadcastService.java \
   src/healthreport/TestHealthReportDatabaseStorage.java \
   src/healthreport/TestHealthReportGenerator.java \
@@ -43,6 +46,7 @@ BACKGROUND_TESTS_JAVA_FILES := \
   src/helpers/DBHelpers.java \
   src/helpers/DBProviderTestCase.java \
   src/helpers/FakeProfileTestCase.java \
+  src/nativecode/test/TestNativeCrypto.java \
   src/sync/helpers/BookmarkHelpers.java \
   src/sync/helpers/DefaultBeginDelegate.java \
   src/sync/helpers/DefaultCleanDelegate.java \

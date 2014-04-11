@@ -15,12 +15,12 @@
 #include "nsNodeInfoManager.h"      // for use in NodePrincipal()
 #include "nsPropertyTable.h"        // for typedefs
 #include "nsTObserverArray.h"       // for member
-#include "nsWindowMemoryReporter.h" // for NS_DECL_SIZEOF_EXCLUDING_THIS
 #include "mozilla/ErrorResult.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/EventTarget.h" // for base class
 #include "js/TypeDecls.h"     // for Handle, Value, JSObject, JSContext
 #include "mozilla/dom/DOMString.h"
+#include "mozilla/dom/BindingDeclarations.h"
 
 // Including 'windows.h' will #define GetClassInfo to something else.
 #ifdef XP_WIN
@@ -51,6 +51,7 @@ class nsXPCClassInfo;
 class nsDOMMutationObserver;
 
 namespace mozilla {
+class EventListenerManager;
 namespace dom {
 /**
  * @return true if aChar is what the DOM spec defines as 'space character'.
@@ -64,10 +65,17 @@ inline bool IsSpaceCharacter(char aChar) {
   return aChar == ' ' || aChar == '\t' || aChar == '\n' || aChar == '\r' ||
          aChar == '\f';
 }
+struct BoxQuadOptions;
+struct ConvertCoordinateOptions;
+class DOMPoint;
+class DOMQuad;
+class DOMRectReadOnly;
 class Element;
 class EventHandlerNonNull;
 class OnErrorEventHandlerNonNull;
 template<typename T> class Optional;
+class TextOrElementOrDocument;
+struct DOMPointInit;
 } // namespace dom
 } // namespace mozilla
 
@@ -93,7 +101,7 @@ enum {
   // ancestor.  This flag is set-once: once a node has it, it must not be
   // removed.
   // NOTE: Should only be used on nsIContent nodes
-  NODE_IS_IN_ANONYMOUS_SUBTREE =          NODE_FLAG_BIT(3),
+  NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE =          NODE_FLAG_BIT(3),
 
   // Whether this node is the root of a native anonymous (from the perspective
   // of its parent) subtree.  This flag is set-once: once a node has it, it
@@ -244,12 +252,20 @@ private:
   // ever passed to Mutated().
   enum { eMaxMutations = 300 };
 
-  
+
   // sMutationCount is a global mutation counter which is decreased by one at
   // every mutation. It is capped at 0 to avoid wrapping.
   // Its value is always between 0 and 300, inclusive.
   static uint32_t sMutationCount;
 };
+
+// This should be used for any nsINode sub-class that has fields of its own
+// that it needs to measure;  any sub-class that doesn't use it will inherit
+// SizeOfExcludingThis from its super-class.  SizeOfIncludingThis() need not be
+// defined, it is inherited from nsINode.
+// This macro isn't actually specific to nodes, and bug 956400 will move it into MFBT.
+#define NS_DECL_SIZEOF_EXCLUDING_THIS \
+  virtual size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
 // Categories of node properties
 // 0 is global.
@@ -259,8 +275,8 @@ private:
 
 // IID for the nsINode interface
 #define NS_INODE_IID \
-{ 0xe24a9ddc, 0x2979, 0x40e3, \
-  { 0x82, 0xb0, 0x9d, 0xf8, 0xb0, 0x41, 0xe5, 0x6a } }
+{ 0x77a62cd0, 0xb34f, 0x42cb, \
+  { 0x94, 0x52, 0xae, 0xb2, 0x4d, 0x93, 0x2c, 0xb4 } }
 
 /**
  * An internal interface that abstracts some DOMNode-related parts that both
@@ -270,6 +286,15 @@ private:
 class nsINode : public mozilla::dom::EventTarget
 {
 public:
+  typedef mozilla::dom::BoxQuadOptions BoxQuadOptions;
+  typedef mozilla::dom::ConvertCoordinateOptions ConvertCoordinateOptions;
+  typedef mozilla::dom::DOMPoint DOMPoint;
+  typedef mozilla::dom::DOMPointInit DOMPointInit;
+  typedef mozilla::dom::DOMQuad DOMQuad;
+  typedef mozilla::dom::DOMRectReadOnly DOMRectReadOnly;
+  typedef mozilla::dom::TextOrElementOrDocument TextOrElementOrDocument;
+  typedef mozilla::ErrorResult ErrorResult;
+
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_INODE_IID)
 
   // Among the sub-classes that inherit (directly or indirectly) from nsINode,
@@ -312,7 +337,7 @@ public:
   friend class nsAttrAndChildArray;
 
 #ifdef MOZILLA_INTERNAL_API
-  nsINode(already_AddRefed<nsINodeInfo> aNodeInfo)
+  nsINode(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : mNodeInfo(aNodeInfo),
     mParent(nullptr),
     mBoolFlags(0),
@@ -369,8 +394,7 @@ public:
    */
   virtual bool IsNodeOfType(uint32_t aFlags) const = 0;
 
-  virtual JSObject* WrapObject(JSContext *aCx,
-                               JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext *aCx) MOZ_OVERRIDE;
 
 protected:
   /**
@@ -378,23 +402,25 @@ protected:
    * does some additional checks and fix-up that's common to all nodes. WrapNode
    * should just call the DOM binding's Wrap function.
    */
-  virtual JSObject* WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+  virtual JSObject* WrapNode(JSContext *aCx)
   {
     MOZ_ASSERT(!IsDOMBinding(), "Someone forgot to override WrapNode");
     return nullptr;
   }
 
-public:
-  nsIDocument* GetParentObject() const
-  {
-    // Make sure that we get the owner document of the content node, in case
-    // we're in document teardown.  If we are, it's important to *not* use
-    // globalObj as the node's parent since that would give the node the
-    // principal of globalObj (i.e. the principal of the document that's being
-    // loaded) and not the principal of the document that's being unloaded.
-    // See http://bugzilla.mozilla.org/show_bug.cgi?id=227417
-    return OwnerDoc();
+  // Subclasses that wish to override the parent behavior should return the
+  // result of GetParentObjectIntenral, which handles the XBL scope stuff.
+  //
+  mozilla::dom::ParentObject GetParentObjectInternal(nsINode* aNativeParent) const {
+    mozilla::dom::ParentObject p(aNativeParent);
+    // Note that mUseXBLScope is a no-op for chrome, and other places where we
+    // don't use XBL scopes.
+    p.mUseXBLScope = IsInAnonymousSubtree();
+    return p;
   }
+
+public:
+  mozilla::dom::ParentObject GetParentObject() const; // Implemented in nsIDocument.h
 
   /**
    * Return whether the node is an Element node
@@ -415,6 +441,10 @@ public:
    * IsContent() is true.  This is defined inline in nsIContent.h.
    */
   nsIContent* AsContent();
+  const nsIContent* AsContent() const
+  {
+    return const_cast<nsINode*>(this)->AsContent();
+  }
 
   virtual nsIDOMNode* AsDOMNode() = 0;
 
@@ -667,6 +697,15 @@ public:
                                void **aOldValue = nullptr);
 
   /**
+   * A generic destructor for property values allocated with new.
+   */
+  template<class T>
+  static void DeleteProperty(void *, nsIAtom *, void *aPropertyValue, void *)
+  {
+    delete static_cast<T *>(aPropertyValue);
+  }
+
+  /**
    * Destroys a property associated with this node. The value is destroyed
    * using the destruction function given when that value was set.
    *
@@ -798,10 +837,10 @@ public:
    */
   NS_DECL_NSIDOMEVENTTARGET
 
-  virtual nsEventListenerManager*
-  GetExistingListenerManager() const MOZ_OVERRIDE;
-  virtual nsEventListenerManager*
-  GetOrCreateListenerManager() MOZ_OVERRIDE;
+  virtual mozilla::EventListenerManager*
+    GetExistingListenerManager() const MOZ_OVERRIDE;
+  virtual mozilla::EventListenerManager*
+    GetOrCreateListenerManager() MOZ_OVERRIDE;
 
   using mozilla::dom::EventTarget::RemoveEventListener;
   using nsIDOMEventTarget::AddEventListener;
@@ -916,7 +955,7 @@ public:
   {
     NS_ASSERTION(!(aFlagsToSet & (NODE_IS_ANONYMOUS_ROOT |
                                   NODE_IS_NATIVE_ANONYMOUS_ROOT |
-                                  NODE_IS_IN_ANONYMOUS_SUBTREE |
+                                  NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE |
                                   NODE_ATTACH_BINDING_ON_POSTCREATE |
                                   NODE_DESCENDANTS_NEED_FRAMES |
                                   NODE_NEEDS_FRAME |
@@ -930,7 +969,7 @@ public:
   {
     NS_ASSERTION(!(aFlagsToUnset &
                    (NODE_IS_ANONYMOUS_ROOT |
-                    NODE_IS_IN_ANONYMOUS_SUBTREE |
+                    NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE |
                     NODE_IS_NATIVE_ANONYMOUS_ROOT)),
                  "Trying to unset write-only flags");
     nsWrapperCache::UnsetFlags(aFlagsToUnset);
@@ -961,21 +1000,23 @@ public:
   bool IsInNativeAnonymousSubtree() const
   {
 #ifdef DEBUG
-    if (HasFlag(NODE_IS_IN_ANONYMOUS_SUBTREE)) {
+    if (HasFlag(NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE)) {
       return true;
     }
     CheckNotNativeAnonymous();
     return false;
 #else
-    return HasFlag(NODE_IS_IN_ANONYMOUS_SUBTREE);
+    return HasFlag(NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE);
 #endif
   }
+
+  bool IsInAnonymousSubtree() const;
 
   // True for native anonymous content and for XBL content if the binging
   // has chromeOnlyContent="true".
   bool ChromeOnlyAccess() const
   {
-    return HasFlag(NODE_IS_IN_ANONYMOUS_SUBTREE | NODE_CHROME_ONLY_ACCESS);
+    return HasFlag(NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE | NODE_CHROME_ONLY_ACCESS);
   }
 
   /**
@@ -1033,11 +1074,8 @@ public:
    *
    * @return the base URI
    */
-  virtual already_AddRefed<nsIURI> GetBaseURI() const = 0;
-  already_AddRefed<nsIURI> GetBaseURIObject() const
-  {
-    return GetBaseURI();
-  }
+  virtual already_AddRefed<nsIURI> GetBaseURI(bool aTryUseXHRDocBaseURI = false) const = 0;
+  already_AddRefed<nsIURI> GetBaseURIObject() const;
 
   /**
    * Facility for explicitly setting a base URI on a node.
@@ -1510,6 +1548,11 @@ public:
                               nodeName.Length());
   }
   void GetBaseURI(nsAString& aBaseURI) const;
+  // Return the base URI for the document.
+  // The returned value may differ if the document is loaded via XHR, and
+  // when accessed from chrome privileged script and
+  // from content privileged script for compatibility.
+  void GetBaseURIFromJS(nsAString& aBaseURI) const;
   bool HasChildNodes() const
   {
     return HasChildren();
@@ -1600,6 +1643,23 @@ public:
   // ParentNode methods
   mozilla::dom::Element* GetFirstElementChild() const;
   mozilla::dom::Element* GetLastElementChild() const;
+
+  void GetBoxQuads(const BoxQuadOptions& aOptions,
+                   nsTArray<nsRefPtr<DOMQuad> >& aResult,
+                   mozilla::ErrorResult& aRv);
+
+  already_AddRefed<DOMQuad> ConvertQuadFromNode(DOMQuad& aQuad,
+                                                const TextOrElementOrDocument& aFrom,
+                                                const ConvertCoordinateOptions& aOptions,
+                                                ErrorResult& aRv);
+  already_AddRefed<DOMQuad> ConvertRectFromNode(DOMRectReadOnly& aRect,
+                                                const TextOrElementOrDocument& aFrom,
+                                                const ConvertCoordinateOptions& aOptions,
+                                                ErrorResult& aRv);
+  already_AddRefed<DOMPoint> ConvertPointFromNode(const DOMPointInit& aPoint,
+                                                  const TextOrElementOrDocument& aFrom,
+                                                  const ConvertCoordinateOptions& aOptions,
+                                                  ErrorResult& aRv);
 
 protected:
 
@@ -1729,7 +1789,7 @@ public:
   void SetOn##name_(mozilla::dom::EventHandlerNonNull* listener);
 #define TOUCH_EVENT EVENT
 #define DOCUMENT_ONLY_EVENT EVENT
-#include "nsEventNameList.h"
+#include "mozilla/EventNameList.h"
 #undef DOCUMENT_ONLY_EVENT
 #undef TOUCH_EVENT
 #undef EVENT
@@ -1875,7 +1935,7 @@ ToCanonicalSupports(nsINode* aPointer)
     if (rv.Failed()) { \
       return rv.ErrorCode(); \
     } \
-    *aResult = clone.forget().get()->AsDOMNode(); \
+    *aResult = clone.forget().take()->AsDOMNode(); \
     return NS_OK; \
   } \
   NS_IMETHOD Normalize() __VA_ARGS__ \

@@ -12,7 +12,7 @@
 #include "nsReferencedElement.h"
 
 nsresult NS_NewSVGMPathElement(nsIContent **aResult,
-                               already_AddRefed<nsINodeInfo> aNodeInfo);
+                               already_AddRefed<nsINodeInfo>&& aNodeInfo);
 
 typedef nsSVGElement SVGMPathElementBase;
 
@@ -25,12 +25,11 @@ class SVGMPathElement MOZ_FINAL : public SVGMPathElementBase,
 {
 protected:
   friend nsresult (::NS_NewSVGMPathElement(nsIContent **aResult,
-                                           already_AddRefed<nsINodeInfo> aNodeInfo));
-  SVGMPathElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+                                           already_AddRefed<nsINodeInfo>&& aNodeInfo));
+  SVGMPathElement(already_AddRefed<nsINodeInfo>& aNodeInfo);
   ~SVGMPathElement();
 
-  virtual JSObject* WrapNode(JSContext *aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext *aCx) MOZ_OVERRIDE;
 
 public:
   // interfaces:

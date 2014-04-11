@@ -18,7 +18,6 @@
 #include "nsXULPopupManager.h"
 #include "nsIPresShell.h"
 #include "nsPresContext.h"
-#include "nsEventStateManager.h"
 #include "mozilla/StartupTimeline.h"
 #include "GeckoProfiler.h"
 #include "nsRefreshDriver.h"
@@ -274,14 +273,10 @@ nsView* nsViewManager::GetDisplayRootFor(nsView* aView)
     // distinguish this situation. We do this by looking for a widget. Any view
     // with a widget is a display root, except for plugins.
     nsIWidget* widget = displayRoot->GetWidget();
-    if (widget) {
-      nsWindowType type;
-      widget->GetWindowType(type);
-      if (type == eWindowType_popup) {
-        NS_ASSERTION(displayRoot->GetFloating() && displayParent->GetFloating(),
-          "this should only happen with floating views that have floating parents");
-        return displayRoot;
-      }
+    if (widget && widget->WindowType() == eWindowType_popup) {
+      NS_ASSERTION(displayRoot->GetFloating() && displayParent->GetFloating(),
+        "this should only happen with floating views that have floating parents");
+      return displayRoot;
     }
 
     displayRoot = displayParent;
@@ -366,77 +361,111 @@ void nsViewManager::Refresh(nsView *aView, const nsIntRegion& aRegion)
   }
 }
 
-void nsViewManager::ProcessPendingUpdatesForView(nsView* aView,
-                                                 bool aFlushDirtyRegion)
+void
+nsViewManager::ProcessPendingUpdatesForView(nsView* aView,
+                                            bool aFlushDirtyRegion)
 {
   NS_ASSERTION(IsRootVM(), "Updates will be missed");
-
-  // Protect against a null-view.
   if (!aView) {
     return;
   }
 
+  nsCOMPtr<nsIPresShell> rootShell(mPresShell);
+  nsTArray<nsCOMPtr<nsIWidget> > widgets;
+  aView->GetViewManager()->ProcessPendingUpdatesRecurse(aView, widgets);
+  for (uint32_t i = 0; i < widgets.Length(); ++i) {
+    nsView* view = nsView::GetViewFor(widgets[i]);
+    if (view) {
+      view->ResetWidgetBounds(false, true);
+    }
+  }
+  if (rootShell->GetViewManager() != this) {
+    return; // 'this' might have been destroyed
+  }
+  if (aFlushDirtyRegion) {
+    nsAutoScriptBlocker scriptBlocker;
+    SetPainting(true);
+    for (uint32_t i = 0; i < widgets.Length(); ++i) {
+      nsIWidget* widget = widgets[i];
+      nsView* view = nsView::GetViewFor(widget);
+      if (view) {
+        view->GetViewManager()->ProcessPendingUpdatesPaint(widget);
+      }
+    }
+    SetPainting(false);
+  }
+}
+
+void
+nsViewManager::ProcessPendingUpdatesRecurse(nsView* aView,
+                                            nsTArray<nsCOMPtr<nsIWidget> >& aWidgets)
+{
   if (mPresShell && mPresShell->IsNeverPainting()) {
     return;
   }
 
-  if (aView->HasWidget()) {
-    aView->ResetWidgetBounds(false, true);
-  }
-
-  // process pending updates in child view.
   for (nsView* childView = aView->GetFirstChild(); childView;
        childView = childView->GetNextSibling()) {
-    ProcessPendingUpdatesForView(childView, aFlushDirtyRegion);
+    childView->GetViewManager()->
+      ProcessPendingUpdatesRecurse(childView, aWidgets);
   }
 
-  // Push out updates after we've processed the children; ensures that
-  // damage is applied based on the final widget geometry
-  if (aFlushDirtyRegion) {
-    nsIWidget *widget = aView->GetWidget();
-    if (widget && widget->NeedsPaint()) {
-      // If an ancestor widget was hidden and then shown, we could
-      // have a delayed resize to handle.
-      for (nsViewManager *vm = this; vm;
-           vm = vm->mRootView->GetParent()
-                  ? vm->mRootView->GetParent()->GetViewManager()
-                  : nullptr) {
-        if (vm->mDelayedResize != nsSize(NSCOORD_NONE, NSCOORD_NONE) &&
-            vm->mRootView->IsEffectivelyVisible() &&
-            mPresShell && mPresShell->IsVisible()) {
-          vm->FlushDelayedResize(true);
-        }
+  nsIWidget* widget = aView->GetWidget();
+  if (widget) {
+    aWidgets.AppendElement(widget);
+  } else {
+    FlushDirtyRegionToWidget(aView);
+  }
+}
+
+void
+nsViewManager::ProcessPendingUpdatesPaint(nsIWidget* aWidget)
+{
+  if (aWidget->NeedsPaint()) {
+    // If an ancestor widget was hidden and then shown, we could
+    // have a delayed resize to handle.
+    for (nsViewManager *vm = this; vm;
+         vm = vm->mRootView->GetParent()
+           ? vm->mRootView->GetParent()->GetViewManager()
+           : nullptr) {
+      if (vm->mDelayedResize != nsSize(NSCOORD_NONE, NSCOORD_NONE) &&
+          vm->mRootView->IsEffectivelyVisible() &&
+          vm->mPresShell && vm->mPresShell->IsVisible()) {
+        vm->FlushDelayedResize(true);
       }
+    }
+    nsView* view = nsView::GetViewFor(aWidget);
+    if (!view) {
+      NS_ERROR("FlushDelayedResize destroyed the nsView?");
+      return;
+    }
 
-      NS_ASSERTION(aView->HasWidget(), "Must have a widget!");
-
+    if (mPresShell) {
 #ifdef MOZ_DUMP_PAINTING
       if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
-        printf_stderr("---- PAINT START ----PresShell(%p), nsView(%p), nsIWidget(%p)\n", mPresShell, aView, widget);
+        printf_stderr("---- PAINT START ----PresShell(%p), nsView(%p), nsIWidget(%p)\n",
+                      mPresShell, view, aWidget);
       }
 #endif
-      nsAutoScriptBlocker scriptBlocker;
-      NS_ASSERTION(aView->HasWidget(), "Must have a widget!");
-      SetPainting(true);
-      mPresShell->Paint(aView, nsRegion(),
-                        nsIPresShell::PAINT_LAYERS);
+
+      mPresShell->Paint(view, nsRegion(), nsIPresShell::PAINT_LAYERS);
+      view->SetForcedRepaint(false);
+
 #ifdef MOZ_DUMP_PAINTING
       if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
         printf_stderr("---- PAINT END ----\n");
       }
 #endif
-
-      aView->SetForcedRepaint(false);
-      SetPainting(false);
-      FlushDirtyRegionToWidget(aView);
-    } else {
-      FlushDirtyRegionToWidget(aView);
     }
   }
+  FlushDirtyRegionToWidget(nsView::GetViewFor(aWidget));
 }
 
 void nsViewManager::FlushDirtyRegionToWidget(nsView* aView)
 {
+  NS_ASSERTION(aView->GetViewManager() == this,
+               "FlushDirtyRegionToWidget called on view we don't own");
+
   if (!aView->HasNonEmptyDirtyRegion())
     return;
 
@@ -530,8 +559,7 @@ nsViewManager::InvalidateWidgetArea(nsView *aWidgetView,
          childWidget = childWidget->GetNextSibling()) {
       nsView* view = nsView::GetViewFor(childWidget);
       NS_ASSERTION(view != aWidgetView, "will recur infinitely");
-      nsWindowType type;
-      childWidget->GetWindowType(type);
+      nsWindowType type = childWidget->WindowType();
       if (view && childWidget->IsVisible() && type != eWindowType_popup) {
         NS_ASSERTION(type == eWindowType_plugin,
                      "Only plugin or popup widgets can be children!");

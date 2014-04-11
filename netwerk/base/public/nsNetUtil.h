@@ -86,11 +86,6 @@
 
 #include <limits>
 
-#ifdef MOZ_WIDGET_GONK
-#include "nsINetworkManager.h"
-#include "nsThreadUtils.h" // for NS_IsMainThread
-#endif
-
 #ifdef MOZILLA_INTERNAL_API
 
 #include "nsReadableUtils.h"
@@ -98,23 +93,23 @@
 inline already_AddRefed<nsIIOService>
 do_GetIOService(nsresult* error = 0)
 {
-    already_AddRefed<nsIIOService> ret = mozilla::services::GetIOService();
+    nsCOMPtr<nsIIOService> io = mozilla::services::GetIOService();
     if (error)
-        *error = ret.get() ? NS_OK : NS_ERROR_FAILURE;
-    return ret;
+        *error = io ? NS_OK : NS_ERROR_FAILURE;
+    return io.forget();
 }
 
 inline already_AddRefed<nsINetUtil>
 do_GetNetUtil(nsresult *error = 0) 
 {
     nsCOMPtr<nsIIOService> io = mozilla::services::GetIOService();
-    already_AddRefed<nsINetUtil> ret = nullptr;
+    nsCOMPtr<nsINetUtil> util;
     if (io)
-        CallQueryInterface(io, &ret.mRawPtr);
+        util = do_QueryInterface(io);
 
     if (error)
-        *error = ret.get() ? NS_OK : NS_ERROR_FAILURE;
-    return ret;
+        *error = !!util ? NS_OK : NS_ERROR_FAILURE;
+    return util.forget();
 }
 #else
 // Helper, to simplify getting the I/O service.
@@ -2403,30 +2398,5 @@ NS_IsSrcdocChannel(nsIChannel *aChannel)
   }
   return false;
 }
-
-// The following members are used for network per-app metering.
-const static uint64_t NETWORK_STATS_THRESHOLD = 65536;
-const static char NETWORK_STATS_NO_SERVICE_TYPE[] = "";
-
-#ifdef MOZ_WIDGET_GONK
-inline nsresult
-NS_GetActiveNetworkInterface(nsCOMPtr<nsINetworkInterface> &aNetworkInterface)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-
-  nsresult rv;
-  nsCOMPtr<nsINetworkManager> networkManager =
-    do_GetService("@mozilla.org/network/manager;1", &rv);
-
-  if (NS_FAILED(rv) || !networkManager) {
-    aNetworkInterface = nullptr;
-    return rv;
-  }
-
-  networkManager->GetActive(getter_AddRefs(aNetworkInterface));
-
-  return NS_OK;
-}
-#endif
 
 #endif // !nsNetUtil_h__

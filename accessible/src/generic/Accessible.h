@@ -521,6 +521,8 @@ public:
   bool IsAutoCompletePopup() const
     { return HasGenericType(eAutoCompletePopup); }
 
+  bool IsButton() const { return HasGenericType(eButton); }
+
   bool IsCombobox() const { return HasGenericType(eCombobox); }
 
   bool IsDoc() const { return HasGenericType(eDocument); }
@@ -578,6 +580,8 @@ public:
 
   bool IsXULLabel() const { return mType == eXULLabelType; }
   XULLabelAccessible* AsXULLabel();
+
+  bool IsXULListItem() const { return mType == eXULListItemType; }
 
   bool IsXULTabpanels() const { return mType == eXULTabpanelsType; }
 
@@ -766,6 +770,11 @@ public:
     { return HasOwnContent() && !(mStateFlags & eNotNodeMapEntry); }
 
   /**
+   * Return true if the accessible's group info needs to be updated.
+   */
+  inline bool HasDirtyGroupInfo() const { return mStateFlags & eGroupInfoDirty; }
+
+  /**
    * Return true if the accessible has associated DOM content.
    */
   bool HasOwnContent() const
@@ -784,6 +793,13 @@ public:
    */
   bool NeedsDOMUIEvent() const
     { return !(mStateFlags & eIgnoreDOMUIEvent); }
+
+  /**
+   * Return true if this accessible has a parent whose name depends on this
+   * accessible.
+   */
+  bool HasNameDependentParent() const
+    { return mContextFlags & eHasNameDependentParent; }
 
 protected:
 
@@ -856,9 +872,19 @@ protected:
     eSharedNode = 1 << 2, // accessible shares DOM node from another accessible
     eNotNodeMapEntry = 1 << 3, // accessible shouldn't be in document node map
     eHasNumericValue = 1 << 4, // accessible has a numeric value
-    eIgnoreDOMUIEvent = 1 << 5, // don't process DOM UI events for a11y events
+    eGroupInfoDirty = 1 << 5, // accessible needs to update group info
+    eIgnoreDOMUIEvent = 1 << 6, // don't process DOM UI events for a11y events
 
-    eLastStateFlag = eHasNumericValue
+    eLastStateFlag = eIgnoreDOMUIEvent
+  };
+
+  /**
+   * Flags used for contextual information about the accessible.
+   */
+  enum ContextFlags {
+    eHasNameDependentParent = 1 << 0, // Parent's name depends on this accessible.
+
+    eLastContextFlag = eHasNameDependentParent
   };
 
 protected:
@@ -938,6 +964,22 @@ protected:
    */
   AccGroupInfo* GetGroupInfo();
 
+  /**
+   * Set dirty state of the accessible's group info.
+   */
+  inline void SetDirtyGroupInfo(bool aIsDirty)
+  {
+    if (aIsDirty)
+      mStateFlags |= eGroupInfoDirty;
+    else
+      mStateFlags &= ~eGroupInfoDirty;
+  }
+
+  /**
+   * Flag all children group info as needing to be updated.
+   */
+  void InvalidateChildrenGroupInfo();
+
   // Data Members
   nsCOMPtr<nsIContent> mContent;
   DocAccessible* mDoc;
@@ -947,15 +989,17 @@ protected:
   int32_t mIndexInParent;
 
   static const uint8_t kChildrenFlagsBits = 2;
-  static const uint8_t kStateFlagsBits = 5;
+  static const uint8_t kStateFlagsBits = 7;
+  static const uint8_t kContextFlagsBits = 1;
   static const uint8_t kTypeBits = 6;
-  static const uint8_t kGenericTypesBits = 12;
+  static const uint8_t kGenericTypesBits = 13;
 
   /**
-   * Keep in sync with ChildrenFlags, StateFlags and AccTypes.
+   * Keep in sync with ChildrenFlags, StateFlags, ContextFlags, and AccTypes.
    */
   uint32_t mChildrenFlags : kChildrenFlagsBits;
   uint32_t mStateFlags : kStateFlagsBits;
+  uint32_t mContextFlags : kContextFlagsBits;
   uint32_t mType : kTypeBits;
   uint32_t mGenericTypes : kGenericTypesBits;
 

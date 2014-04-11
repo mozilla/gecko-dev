@@ -341,31 +341,36 @@ function DBAddonInternal(aLoaded) {
     });
 }
 
-DBAddonInternal.prototype = {
-  applyCompatibilityUpdate: function DBA_applyCompatibilityUpdate(aUpdate, aSyncCompatibility) {
-    this.targetApplications.forEach(function(aTargetApp) {
-      aUpdate.targetApplications.forEach(function(aUpdateTarget) {
-        if (aTargetApp.id == aUpdateTarget.id && (aSyncCompatibility ||
-            Services.vc.compare(aTargetApp.maxVersion, aUpdateTarget.maxVersion) < 0)) {
-          aTargetApp.minVersion = aUpdateTarget.minVersion;
-          aTargetApp.maxVersion = aUpdateTarget.maxVersion;
-          XPIDatabase.saveChanges();
-        }
+function DBAddonInternalPrototype()
+{
+  this.applyCompatibilityUpdate =
+    function(aUpdate, aSyncCompatibility) {
+      this.targetApplications.forEach(function(aTargetApp) {
+        aUpdate.targetApplications.forEach(function(aUpdateTarget) {
+          if (aTargetApp.id == aUpdateTarget.id && (aSyncCompatibility ||
+              Services.vc.compare(aTargetApp.maxVersion, aUpdateTarget.maxVersion) < 0)) {
+            aTargetApp.minVersion = aUpdateTarget.minVersion;
+            aTargetApp.maxVersion = aUpdateTarget.maxVersion;
+            XPIDatabase.saveChanges();
+          }
+        });
       });
-    });
-    XPIProvider.updateAddonDisabledState(this);
-  },
+      XPIProvider.updateAddonDisabledState(this);
+    };
 
-  get inDatabase() {
-    return true;
-  },
+  this.toJSON =
+    function() {
+      return copyProperties(this, PROP_JSON_FIELDS);
+    };
 
-  toJSON: function() {
-    return copyProperties(this, PROP_JSON_FIELDS);
-  }
+  Object.defineProperty(this, "inDatabase",
+                        { get: function() { return true; },
+                          enumerable: true,
+                          configurable: true });
 }
+DBAddonInternalPrototype.prototype = AddonInternal.prototype;
 
-DBAddonInternal.prototype.__proto__ = AddonInternal.prototype;
+DBAddonInternal.prototype = new DBAddonInternalPrototype();
 
 /**
  * Internal interface: find an addon from an already loaded addonDB
@@ -1067,7 +1072,7 @@ this.XPIDatabase = {
       })
     .then(null,
         error => {
-          logger.error("getAddonList failed", e);
+          logger.error("getAddonList failed", error);
           makeSafe(aCallback)([]);
         });
   },
@@ -1311,8 +1316,6 @@ this.XPIDatabase = {
    *
    * @param  aAddon
    *         The DBAddonInternal to make visible
-   * @param  callback
-   *         A callback to pass the DBAddonInternal to
    */
   makeAddonVisible: function XPIDB_makeAddonVisible(aAddon) {
     logger.debug("Make addon " + aAddon._key + " visible");
@@ -1479,8 +1482,7 @@ this.XPIDatabase = {
         Services.prefs.setCharPref(PREF_EM_ENABLED_ADDONS, enabledAddons.join(","));
       }
       catch (e) {
-        logger.error("Failed to write add-ons list to " + addonsListTmp.parent + "/" +
-              FILE_XPI_ADDONS_LIST, e);
+        logger.error("Failed to write add-ons list to profile directory", e);
         return false;
       }
     }

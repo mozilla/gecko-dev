@@ -16,7 +16,7 @@ using namespace mozilla::gl;
 static GLenum
 DepthStencilDepthFormat(GLContext* gl) {
     // We might not be able to get 24-bit, so let's pretend!
-    if (gl->IsGLES2() && !gl->IsExtensionSupported(gl::GLContext::OES_depth24))
+    if (gl->IsGLES() && !gl->IsExtensionSupported(gl::GLContext::OES_depth24))
         return LOCAL_GL_DEPTH_COMPONENT16;
 
     return LOCAL_GL_DEPTH_COMPONENT24;
@@ -38,8 +38,8 @@ NeedsDepthStencilEmu(GLContext* gl, GLenum internalFormat) {
 }
 
 JSObject*
-WebGLRenderbuffer::WrapObject(JSContext *cx, JS::Handle<JSObject*> scope) {
-    return dom::WebGLRenderbufferBinding::Wrap(cx, scope, this);
+WebGLRenderbuffer::WrapObject(JSContext *cx) {
+    return dom::WebGLRenderbufferBinding::Wrap(cx, this);
 }
 
 WebGLRenderbuffer::WebGLRenderbuffer(WebGLContext *context)
@@ -95,13 +95,13 @@ WebGLRenderbuffer::MemoryUsage() const {
     int64_t primarySize = 0;
     switch (primaryFormat) {
         case LOCAL_GL_STENCIL_INDEX8:
-            primarySize = 1 * pixels;
+            primarySize = 1*pixels;
             break;
         case LOCAL_GL_RGBA4:
         case LOCAL_GL_RGB5_A1:
         case LOCAL_GL_RGB565:
         case LOCAL_GL_DEPTH_COMPONENT16:
-            primarySize = 2 * pixels;
+            primarySize = 2*pixels;
             break;
         case LOCAL_GL_RGB8:
         case LOCAL_GL_DEPTH_COMPONENT24:
@@ -112,6 +112,18 @@ WebGLRenderbuffer::MemoryUsage() const {
         case LOCAL_GL_DEPTH24_STENCIL8:
         case LOCAL_GL_DEPTH_COMPONENT32:
             primarySize = 4*pixels;
+            break;
+        case LOCAL_GL_RGB16F:
+            primarySize = 2*3*pixels;
+            break;
+        case LOCAL_GL_RGBA16F:
+            primarySize = 2*4*pixels;
+            break;
+        case LOCAL_GL_RGB32F:
+            primarySize = 4*3*pixels;
+            break;
+        case LOCAL_GL_RGBA32F:
+            primarySize = 4*4*pixels;
             break;
         default:
             MOZ_ASSERT(false, "Unknown `primaryFormat`.");

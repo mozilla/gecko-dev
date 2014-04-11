@@ -49,15 +49,15 @@ let WebappRT = {
     if (aStatus == "new") {
       this.getDefaultPrefs().forEach(this.addPref);
 
-      // prevent offering to use helper apps for things that this app handles
-      // i.e. don't show the "Open in market?" popup when we're showing the market app
-      let uri = Services.io.newURI(aUrl, null, null);
-
       // update the blocklist url to use a different app id
       let blocklist = Services.prefs.getCharPref("extensions.blocklist.url");
       blocklist = blocklist.replace(/%APP_ID%/g, "webapprt-mobile@mozilla.org");
       Services.prefs.setCharPref("extensions.blocklist.url", blocklist);
+    }
 
+    // On firstrun, set permissions to their default values.
+    // When the webapp runtime is updated, update the permissions.
+    if (aStatus == "new" || aStatus == "upgrade") {
       this.getManifestFor(aUrl, function (aManifest, aApp) {
         if (aManifest) {
           PermissionsInstaller.installPermissions(aApp, true);
@@ -67,11 +67,11 @@ let WebappRT = {
 
 #ifdef MOZ_ANDROID_SYNTHAPKS
     // If the app is in debug mode, configure and enable the remote debugger.
-    // sendMessageToJava can only return string values, so it returns the string
-    // "true" rather than boolean true if the app is in debug mode.
-    if (sendMessageToJava({ type: "NativeApp:IsDebuggable" }) === "true") {
-      this._enableRemoteDebugger(aUrl);
-    }
+    sendMessageToJava({ type: "NativeApp:IsDebuggable" }, (response) => {
+      if (response.isDebuggable) {
+        this._enableRemoteDebugger(aUrl);
+      }
+    });
 #endif
 
     this.findManifestUrlFor(aUrl, aCallback);

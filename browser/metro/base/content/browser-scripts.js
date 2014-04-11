@@ -38,7 +38,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "NewTabUtils",
                                   "resource://gre/modules/NewTabUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
-                                  "resource://gre/modules/commonjs/sdk/core/promise.js");
+                                  "resource://gre/modules/Promise.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "ColorUtils",
+                                  "resource:///modules/colorUtils.jsm");
 
 #ifdef NIGHTLY_BUILD
 XPCOMUtils.defineLazyModuleGetter(this, "ShumwayUtils",

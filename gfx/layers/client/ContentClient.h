@@ -19,7 +19,7 @@
 #include "mozilla/layers/CompositorTypes.h"  // for TextureInfo, etc
 #include "mozilla/layers/ISurfaceAllocator.h"
 #include "mozilla/layers/LayersSurfaces.h"  // for SurfaceDescriptor
-#include "mozilla/layers/TextureClient.h"  // for DeprecatedTextureClient
+#include "mozilla/layers/TextureClient.h"  // for TextureClient
 #include "mozilla/mozalloc.h"           // for operator delete
 #include "nsCOMPtr.h"                   // for already_AddRefed
 #include "nsPoint.h"                    // for nsIntPoint
@@ -63,7 +63,6 @@ class ThebesLayer;
  * it alive anymore, so we clear mOldTextures.
  *
  * The sequence for painting is: call BeginPaint on the content client;
- * call PrepareFrame on the content client;
  * call BeginPaintBuffer on the content client. That will initialise the buffer
  * for painting, by calling RotatedContentBuffer::BeginPaint (usually) which
  * will call back to ContentClient::FinalizeFrame to finalize update of the
@@ -71,7 +70,6 @@ class ThebesLayer;
  * BorrowDrawTargetForPainting to get a DrawTarget to paint into. Then paint.
  * Then return that DrawTarget using ReturnDrawTarget.
  * Call EndPaint on the content client;
- * call OnTransaction on the content client.
  *
  * SwapBuffers is called in response to the transaction reply from the compositor.
  */
@@ -95,11 +93,9 @@ public:
   virtual void Clear() = 0;
   virtual RotatedContentBuffer::PaintState BeginPaintBuffer(ThebesLayer* aLayer,
                                                             uint32_t aFlags) = 0;
-  virtual gfx::DrawTarget* BorrowDrawTargetForPainting(ThebesLayer* aLayer,
-                                                       const RotatedContentBuffer::PaintState& aPaintState) = 0;
+  virtual gfx::DrawTarget* BorrowDrawTargetForPainting(const RotatedContentBuffer::PaintState& aPaintState,
+                                                       RotatedContentBuffer::DrawIterator* aIter = nullptr) = 0;
   virtual void ReturnDrawTargetToBuffer(gfx::DrawTarget*& aReturned) = 0;
-
-  virtual void PrepareFrame() {}
 
   // Called as part of the layers transation reply. Conveys data about our
   // buffer(s) from the compositor. If appropriate we should swap references
@@ -108,8 +104,7 @@ public:
 
   // call before and after painting into this content client
   virtual void BeginPaint() {}
-  virtual void EndPaint() {}
-
+  virtual void EndPaint();
 };
 
 /**
@@ -143,10 +138,10 @@ public:
   {
     return RotatedContentBuffer::BeginPaint(aLayer, aFlags);
   }
-  virtual gfx::DrawTarget* BorrowDrawTargetForPainting(ThebesLayer* aLayer,
-                                                       const PaintState& aPaintState) MOZ_OVERRIDE
+  virtual gfx::DrawTarget* BorrowDrawTargetForPainting(const PaintState& aPaintState,
+                                                       RotatedContentBuffer::DrawIterator* aIter = nullptr) MOZ_OVERRIDE
   {
-    return RotatedContentBuffer::BorrowDrawTargetForPainting(aLayer, aPaintState);
+    return RotatedContentBuffer::BorrowDrawTargetForPainting(aPaintState, aIter);
   }
   virtual void ReturnDrawTargetToBuffer(gfx::DrawTarget*& aReturned) MOZ_OVERRIDE
   {
@@ -157,7 +152,7 @@ public:
               gfx::DrawTarget* aTarget,
               float aOpacity,
               gfx::CompositionOp aOp,
-              gfxASurface* aMask,
+              gfx::SourceSurface* aMask,
               const gfx::Matrix* aMaskTransform)
   {
     RotatedContentBuffer::DrawTo(aLayer, aTarget, aOpacity, aOp,
@@ -218,10 +213,10 @@ public:
   {
     return RotatedContentBuffer::BeginPaint(aLayer, aFlags);
   }
-  virtual gfx::DrawTarget* BorrowDrawTargetForPainting(ThebesLayer* aLayer,
-                                                       const PaintState& aPaintState) MOZ_OVERRIDE
+  virtual gfx::DrawTarget* BorrowDrawTargetForPainting(const PaintState& aPaintState,
+                                                       RotatedContentBuffer::DrawIterator* aIter = nullptr) MOZ_OVERRIDE
   {
-    return RotatedContentBuffer::BorrowDrawTargetForPainting(aLayer, aPaintState);
+    return RotatedContentBuffer::BorrowDrawTargetForPainting(aPaintState, aIter);
   }
   virtual void ReturnDrawTargetToBuffer(gfx::DrawTarget*& aReturned) MOZ_OVERRIDE
   {
@@ -303,116 +298,11 @@ protected:
   gfx::SurfaceFormat mSurfaceFormat;
 };
 
-class DeprecatedContentClientRemoteBuffer : public ContentClientRemote
-                                          , protected RotatedContentBuffer
-{
-  using RotatedContentBuffer::BufferRect;
-  using RotatedContentBuffer::BufferRotation;
-public:
-  DeprecatedContentClientRemoteBuffer(CompositableForwarder* aForwarder)
-    : ContentClientRemote(aForwarder)
-    , RotatedContentBuffer(ContainsVisibleBounds)
-    , mDeprecatedTextureClient(nullptr)
-    , mIsNewBuffer(false)
-    , mFrontAndBackBufferDiffer(false)
-    , mContentType(gfxContentType::COLOR_ALPHA)
-  {}
-
-  typedef RotatedContentBuffer::PaintState PaintState;
-  typedef RotatedContentBuffer::ContentType ContentType;
-
-  virtual void Clear() { RotatedContentBuffer::Clear(); }
-
-  virtual PaintState BeginPaintBuffer(ThebesLayer* aLayer,
-                                      uint32_t aFlags) MOZ_OVERRIDE
-  {
-    return RotatedContentBuffer::BeginPaint(aLayer, aFlags);
-  }
-  virtual gfx::DrawTarget* BorrowDrawTargetForPainting(ThebesLayer* aLayer,
-                                                       const PaintState& aPaintState) MOZ_OVERRIDE
-  {
-    return RotatedContentBuffer::BorrowDrawTargetForPainting(aLayer, aPaintState);
-  }
-  virtual void ReturnDrawTargetToBuffer(gfx::DrawTarget*& aReturned) MOZ_OVERRIDE
-  {
-    BorrowDrawTarget::ReturnDrawTarget(aReturned);
-  }
-
-  /**
-   * Begin/End Paint map a gfxASurface from the texture client
-   * into the buffer of RotatedContentBuffer. The surface is only
-   * valid when the texture client is locked, so is mapped out
-   * of RotatedContentBuffer when we are done painting.
-   * None of the underlying buffer attributes (rect, rotation)
-   * are affected by mapping/unmapping.
-   */
-  virtual void BeginPaint() MOZ_OVERRIDE;
-  virtual void EndPaint() MOZ_OVERRIDE;
-
-  virtual void Updated(const nsIntRegion& aRegionToDraw,
-                       const nsIntRegion& aVisibleRegion,
-                       bool aDidSelfCopy);
-
-  virtual void SwapBuffers(const nsIntRegion& aFrontUpdatedRegion) MOZ_OVERRIDE;
-
-  // Expose these protected methods from the superclass.
-  virtual const nsIntRect& BufferRect() const
-  {
-    return RotatedContentBuffer::BufferRect();
-  }
-  virtual const nsIntPoint& BufferRotation() const
-  {
-    return RotatedContentBuffer::BufferRotation();
-  }
-
-  virtual void CreateBuffer(ContentType aType, const nsIntRect& aRect, uint32_t aFlags,
-                            RefPtr<gfx::DrawTarget>* aBlackDT, RefPtr<gfx::DrawTarget>* aWhiteDT) MOZ_OVERRIDE;
-
-  virtual TextureInfo GetTextureInfo() const MOZ_OVERRIDE
-  {
-    return mTextureInfo;
-  }
-
-protected:
-  void DestroyBuffers();
-
-  virtual nsIntRegion GetUpdatedRegion(const nsIntRegion& aRegionToDraw,
-                                       const nsIntRegion& aVisibleRegion,
-                                       bool aDidSelfCopy);
-
-  // create and configure mDeprecatedTextureClient
-  void BuildDeprecatedTextureClients(ContentType aType,
-                                     const nsIntRect& aRect,
-                                     uint32_t aFlags);
-
-  // Create the front buffer for the ContentClient/Host pair if necessary
-  // and notify the compositor that we have created the buffer(s).
-  virtual void CreateFrontBufferAndNotify(const nsIntRect& aBufferRect) = 0;
-  virtual void DestroyFrontBuffer() {}
-  // We're about to hand off to the compositor, if you've got a back buffer,
-  // lock it now.
-  virtual void LockFrontBuffer() {}
-
-  bool CreateAndAllocateDeprecatedTextureClient(RefPtr<DeprecatedTextureClient>& aClient);
-
-  RefPtr<DeprecatedTextureClient> mDeprecatedTextureClient;
-  RefPtr<DeprecatedTextureClient> mDeprecatedTextureClientOnWhite;
-  // keep a record of texture clients we have created and need to keep
-  // around, then unlock when we are done painting
-  nsTArray<RefPtr<DeprecatedTextureClient> > mOldTextures;
-
-  TextureInfo mTextureInfo;
-  bool mIsNewBuffer;
-  bool mFrontAndBackBufferDiffer;
-  gfx::IntSize mSize;
-  ContentType mContentType;
-};
-
 /**
- * A double buffered ContentClient. mDeprecatedTextureClient is the back buffer, which
+ * A double buffered ContentClient. mTextureClient is the back buffer, which
  * we draw into. mFrontClient is the front buffer which we may read from, but
  * not write to, when the compositor does not have the 'soft' lock. We can write
- * into mDeprecatedTextureClient at any time.
+ * into mTextureClient at any time.
  *
  * The ContentHost keeps a reference to both corresponding texture hosts, in
  * response to our UpdateTextureRegion message, the compositor swaps its
@@ -438,7 +328,7 @@ public:
 
   virtual void SwapBuffers(const nsIntRegion& aFrontUpdatedRegion) MOZ_OVERRIDE;
 
-  virtual void PrepareFrame() MOZ_OVERRIDE;
+  virtual void BeginPaint() MOZ_OVERRIDE;
 
   virtual void FinalizeFrame(const nsIntRegion& aRegionToDraw) MOZ_OVERRIDE;
 
@@ -465,38 +355,6 @@ private:
   nsIntPoint mFrontBufferRotation;
 };
 
-class DeprecatedContentClientDoubleBuffered : public DeprecatedContentClientRemoteBuffer
-{
-public:
-  DeprecatedContentClientDoubleBuffered(CompositableForwarder* aFwd)
-    : DeprecatedContentClientRemoteBuffer(aFwd)
-  {
-    mTextureInfo.mCompositableType = BUFFER_CONTENT_DIRECT;
-  }
-  ~DeprecatedContentClientDoubleBuffered();
-
-  virtual void SwapBuffers(const nsIntRegion& aFrontUpdatedRegion) MOZ_OVERRIDE;
-
-  virtual void PrepareFrame() MOZ_OVERRIDE;
-
-  virtual void FinalizeFrame(const nsIntRegion& aRegionToDraw) MOZ_OVERRIDE;
-
-protected:
-  virtual void CreateFrontBufferAndNotify(const nsIntRect& aBufferRect) MOZ_OVERRIDE;
-  virtual void DestroyFrontBuffer() MOZ_OVERRIDE;
-  virtual void LockFrontBuffer() MOZ_OVERRIDE;
-
-private:
-  void UpdateDestinationFrom(const RotatedBuffer& aSource,
-                             const nsIntRegion& aUpdateRegion);
-
-  RefPtr<DeprecatedTextureClient> mFrontClient;
-  RefPtr<DeprecatedTextureClient> mFrontClientOnWhite;
-  nsIntRegion mFrontUpdatedRegion;
-  nsIntRect mFrontBufferRect;
-  nsIntPoint mFrontBufferRotation;
-};
-
 /**
  * A single buffered ContentClient. We have a single TextureClient/Host
  * which we update and then send a message to the compositor that we are
@@ -515,30 +373,14 @@ public:
   }
   virtual ~ContentClientSingleBuffered() {}
 
-  virtual void PrepareFrame() MOZ_OVERRIDE;
+  virtual void FinalizeFrame(const nsIntRegion& aRegionToDraw) MOZ_OVERRIDE;
 
 protected:
   virtual void CreateFrontBuffer(const nsIntRect& aBufferRect) MOZ_OVERRIDE {}
 };
 
-class DeprecatedContentClientSingleBuffered : public DeprecatedContentClientRemoteBuffer
-{
-public:
-  DeprecatedContentClientSingleBuffered(CompositableForwarder* aFwd)
-    : DeprecatedContentClientRemoteBuffer(aFwd)
-  {
-    mTextureInfo.mCompositableType = BUFFER_CONTENT;    
-  }
-  ~DeprecatedContentClientSingleBuffered();
-
-  virtual void PrepareFrame() MOZ_OVERRIDE;
-
-protected:
-  virtual void CreateFrontBufferAndNotify(const nsIntRect& aBufferRect) MOZ_OVERRIDE;
-};
-
 /**
- * A single buffered ContentClient that creates temporary buffers which are 
+ * A single buffered ContentClient that creates temporary buffers which are
  * used to update the host-side texture. The ownership of the buffers is
  * passed to the host side during the transaction, and we need to create
  * new ones each frame.
@@ -573,8 +415,8 @@ public:
 
   virtual PaintState BeginPaintBuffer(ThebesLayer* aLayer,
                                       uint32_t aFlags) MOZ_OVERRIDE;
-  virtual gfx::DrawTarget* BorrowDrawTargetForPainting(ThebesLayer* aLayer,
-                                                       const PaintState& aPaintState) MOZ_OVERRIDE;
+  virtual gfx::DrawTarget* BorrowDrawTargetForPainting(const PaintState& aPaintState,
+                                                       RotatedContentBuffer::DrawIterator* aIter = nullptr) MOZ_OVERRIDE;
   virtual void ReturnDrawTargetToBuffer(gfx::DrawTarget*& aReturned) MOZ_OVERRIDE
   {
     BorrowDrawTarget::ReturnDrawTarget(aReturned);
@@ -592,6 +434,7 @@ public:
     if (IsSurfaceDescriptorValid(mUpdateDescriptorOnWhite)) {
       mForwarder->DestroySharedSurface(&mUpdateDescriptorOnWhite);
     }
+    ContentClientRemote::EndPaint();
   }
 
 private:
@@ -612,7 +455,7 @@ private:
 
   }
 
-  already_AddRefed<gfxASurface> GetUpdateSurface(BufferType aType,
+  TemporaryRef<gfx::DrawTarget> GetUpdateSurface(BufferType aType,
                                                  const nsIntRegion& aUpdateRegion);
 
   TextureInfo mTextureInfo;

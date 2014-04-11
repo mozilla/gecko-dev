@@ -100,7 +100,8 @@ const JSClass nsXULPDGlobalObject::gSharedGlobalClass = {
     JSCLASS_IMPLEMENTS_BARRIERS | JSCLASS_GLOBAL_FLAGS_WITH_SLOTS(0),
     JS_PropertyStub,  JS_DeletePropertyStub, JS_PropertyStub, JS_StrictPropertyStub,
     JS_EnumerateStub, nsXULPDGlobalObject_resolve,  JS_ConvertStub,
-    nsXULPDGlobalObject_finalize, nullptr, nullptr, nullptr, nullptr
+    nsXULPDGlobalObject_finalize, nullptr, nullptr, nullptr,
+    JS_GlobalObjectTraceHook
 };
 
 
@@ -229,7 +230,9 @@ nsXULPrototypeDocument::Read(nsIObjectInputStream* aStream)
 {
     nsresult rv;
 
-    rv = aStream->ReadObject(true, getter_AddRefs(mURI));
+    nsCOMPtr<nsISupports> supports;
+    rv = aStream->ReadObject(true, getter_AddRefs(supports));
+    mURI = do_QueryInterface(supports);
 
     uint32_t count, i;
     nsCOMPtr<nsIURI> styleOverlayURI;
@@ -243,17 +246,19 @@ nsXULPrototypeDocument::Read(nsIObjectInputStream* aStream)
     }
 
     for (i = 0; i < count; ++i) {
-        tmp = aStream->ReadObject(true, getter_AddRefs(styleOverlayURI));
+        tmp = aStream->ReadObject(true, getter_AddRefs(supports));
         if (NS_FAILED(tmp)) {
           rv = tmp;
         }
+        styleOverlayURI = do_QueryInterface(supports);
         mStyleSheetReferences.AppendObject(styleOverlayURI);
     }
 
 
     // nsIPrincipal mNodeInfoManager->mPrincipal
     nsCOMPtr<nsIPrincipal> principal;
-    tmp = aStream->ReadObject(true, getter_AddRefs(principal));
+    tmp = aStream->ReadObject(true, getter_AddRefs(supports));
+    principal = do_QueryInterface(supports);
     if (NS_FAILED(tmp)) {
       rv = tmp;
     }

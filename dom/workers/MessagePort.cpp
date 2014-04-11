@@ -5,9 +5,9 @@
 
 #include "MessagePort.h"
 
+#include "mozilla/EventDispatcher.h"
 #include "mozilla/dom/MessagePortBinding.h"
-#include "nsDOMEvent.h"
-#include "nsEventDispatcher.h"
+#include "nsIDOMEvent.h"
 
 #include "SharedWorker.h"
 #include "WorkerPrivate.h"
@@ -17,6 +17,7 @@ using mozilla::dom::EventHandlerNonNull;
 using mozilla::dom::MessagePortBase;
 using mozilla::dom::Optional;
 using mozilla::dom::Sequence;
+using namespace mozilla;
 
 USING_WORKERS_NAMESPACE
 
@@ -216,35 +217,35 @@ MessagePort::AssertCorrectThread() const
 }
 #endif
 
-NS_IMPL_ADDREF_INHERITED(MessagePort, nsDOMEventTargetHelper)
-NS_IMPL_RELEASE_INHERITED(MessagePort, nsDOMEventTargetHelper)
+NS_IMPL_ADDREF_INHERITED(MessagePort, DOMEventTargetHelper)
+NS_IMPL_RELEASE_INHERITED(MessagePort, DOMEventTargetHelper)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(MessagePort)
-NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetHelper)
+NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(MessagePort)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(MessagePort,
-                                                  nsDOMEventTargetHelper)
+                                                  DOMEventTargetHelper)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSharedWorker)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mQueuedEvents)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(MessagePort,
-                                                nsDOMEventTargetHelper)
+                                                DOMEventTargetHelper)
   tmp->Close();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 JSObject*
-MessagePort::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+MessagePort::WrapObject(JSContext* aCx)
 {
   AssertCorrectThread();
 
-  return MessagePortBinding::Wrap(aCx, aScope, this);
+  return MessagePortBinding::Wrap(aCx, this);
 }
 
 nsresult
-MessagePort::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
+MessagePort::PreHandleEvent(EventChainPreVisitor& aVisitor)
 {
   AssertCorrectThread();
 
@@ -270,7 +271,7 @@ MessagePort::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
     }
   }
 
-  return nsDOMEventTargetHelper::PreHandleEvent(aVisitor);
+  return DOMEventTargetHelper::PreHandleEvent(aVisitor);
 }
 
 bool

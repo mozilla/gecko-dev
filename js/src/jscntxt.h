@@ -266,6 +266,9 @@ struct ThreadSafeContext : ContextFriendFields,
         return runtime_->onOutOfMemory(p, nbytes, maybeJSContext());
     }
 
+    /* Clear the pending exception (if any) due to OOM. */
+    void recoverFromOutOfMemory();
+
     inline void updateMallocCounter(size_t nbytes) {
         // Note: this is racy.
         runtime_->updateMallocCounter(zone_, nbytes);
@@ -320,7 +323,7 @@ class ExclusiveContext : public ThreadSafeContext
 
     /*
      * "Entering" a compartment changes cx->compartment (which changes
-     * cx->global). Note that this does not push any StackFrame which means
+     * cx->global). Note that this does not push any InterpreterFrame which means
      * that it is possible for cx->fp()->compartment() != cx->compartment.
      * This is not a problem since, in general, most places in the VM cannot
      * know that they were called from script (e.g., they may have been called
@@ -366,9 +369,8 @@ class ExclusiveContext : public ThreadSafeContext
     }
 
     // Zone local methods that can be used freely from an ExclusiveContext.
-    inline bool typeInferenceEnabled() const;
     types::TypeObject *getNewType(const Class *clasp, TaggedProto proto, JSFunction *fun = nullptr);
-    types::TypeObject *getLazyType(const Class *clasp, TaggedProto proto);
+    types::TypeObject *getSingletonType(const Class *clasp, TaggedProto proto);
     inline js::LifoAlloc &typeLifoAlloc();
 
     // Current global. This is only safe to use within the scope of the
@@ -393,12 +395,6 @@ class ExclusiveContext : public ThreadSafeContext
     frontend::CompileError &addPendingCompileError();
     void addPendingOverRecursed();
 };
-
-inline void
-MaybeCheckStackRoots(ExclusiveContext *cx)
-{
-    MaybeCheckStackRoots(cx->maybeJSContext());
-}
 
 } /* namespace js */
 
@@ -516,10 +512,10 @@ struct JSContext : public js::ExclusiveContext,
     bool currentlyRunningInJit() const {
         return mainThread().activation()->isJit();
     }
-    js::StackFrame *interpreterFrame() const {
+    js::InterpreterFrame *interpreterFrame() const {
         return mainThread().activation()->asInterpreter()->current();
     }
-    js::FrameRegs &interpreterRegs() const {
+    js::InterpreterRegs &interpreterRegs() const {
         return mainThread().activation()->asInterpreter()->regs();
     }
 
@@ -563,6 +559,8 @@ struct JSContext : public js::ExclusiveContext,
 
     MOZ_WARN_UNUSED_RESULT
     bool getPendingException(JS::MutableHandleValue rval);
+
+    bool isThrowingOutOfMemory();
 
     void setPendingException(js::Value v);
 
@@ -818,29 +816,36 @@ js_strdup(js::ExclusiveContext *cx, const char *s);
 # define JS_ASSERT_REQUEST_DEPTH(cx)  ((void) 0)
 #endif
 
+namespace js {
+
 /*
- * Invoke the operation callback and return false if the current execution
+ * Invoke the interrupt callback and return false if the current execution
  * is to be terminated.
  */
-extern bool
-js_InvokeOperationCallback(JSContext *cx);
+bool
+InvokeInterruptCallback(JSContext *cx);
 
-extern bool
-js_HandleExecutionInterrupt(JSContext *cx);
+bool
+HandleExecutionInterrupt(JSContext *cx);
 
 /*
- * If the operation callback flag was set, call the operation callback.
- * This macro can run the full GC. Return true if it is OK to continue and
- * false otherwise.
+ * Process any pending interrupt requests. Long-running inner loops in C++ must
+ * call this periodically to make sure they are interruptible --- that is, to
+ * make sure they do not prevent the slow script dialog from appearing.
+ *
+ * This can run a full GC or call the interrupt callback, which could do
+ * anything. In the browser, it displays the slow script dialog.
+ *
+ * If this returns true, the caller can continue; if false, the caller must
+ * break out of its loop. This happens if, for example, the user clicks "Stop
+ * script" on the slow script dialog; treat it as an uncatchable error.
  */
-static MOZ_ALWAYS_INLINE bool
-JS_CHECK_OPERATION_LIMIT(JSContext *cx)
+inline bool
+CheckForInterrupt(JSContext *cx)
 {
     JS_ASSERT_REQUEST_DEPTH(cx);
-    return !cx->runtime()->interrupt || js_InvokeOperationCallback(cx);
+    return !cx->runtime()->interrupt || InvokeInterruptCallback(cx);
 }
-
-namespace js {
 
 /************************************************************************/
 
@@ -928,7 +933,7 @@ class AutoArrayRooter : private AutoGCRooter
   public:
     AutoArrayRooter(JSContext *cx, size_t len, Value *vec
                     MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, len), array(vec), skip(cx, array, len)
+      : AutoGCRooter(cx, len), array(vec)
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
         JS_ASSERT(tag_ >= 0);
@@ -974,7 +979,6 @@ class AutoArrayRooter : private AutoGCRooter
 
   private:
     Value *array;
-    js::SkipRoot skip;
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
@@ -1024,6 +1028,7 @@ bool intrinsic_ThrowError(JSContext *cx, unsigned argc, Value *vp);
 bool intrinsic_NewDenseArray(JSContext *cx, unsigned argc, Value *vp);
 
 bool intrinsic_UnsafePutElements(JSContext *cx, unsigned argc, Value *vp);
+bool intrinsic_DefineValueProperty(JSContext *cx, unsigned argc, Value *vp);
 bool intrinsic_UnsafeSetReservedSlot(JSContext *cx, unsigned argc, Value *vp);
 bool intrinsic_UnsafeGetReservedSlot(JSContext *cx, unsigned argc, Value *vp);
 bool intrinsic_HaveSameClass(JSContext *cx, unsigned argc, Value *vp);
@@ -1034,9 +1039,14 @@ bool intrinsic_NewParallelArray(JSContext *cx, unsigned argc, Value *vp);
 bool intrinsic_ForkJoinGetSlice(JSContext *cx, unsigned argc, Value *vp);
 bool intrinsic_InParallelSection(JSContext *cx, unsigned argc, Value *vp);
 
+bool intrinsic_ObjectIsTypedObject(JSContext *cx, unsigned argc, Value *vp);
 bool intrinsic_ObjectIsTransparentTypedObject(JSContext *cx, unsigned argc, Value *vp);
 bool intrinsic_ObjectIsOpaqueTypedObject(JSContext *cx, unsigned argc, Value *vp);
 bool intrinsic_ObjectIsTypeDescr(JSContext *cx, unsigned argc, Value *vp);
+bool intrinsic_TypeDescrIsSimpleType(JSContext *cx, unsigned argc, Value *vp);
+bool intrinsic_TypeDescrIsArrayType(JSContext *cx, unsigned argc, Value *vp);
+bool intrinsic_TypeDescrIsUnsizedArrayType(JSContext *cx, unsigned argc, Value *vp);
+bool intrinsic_TypeDescrIsSizedArrayType(JSContext *cx, unsigned argc, Value *vp);
 
 class AutoLockForExclusiveAccess
 {
@@ -1092,6 +1102,9 @@ class AutoLockForExclusiveAccess
 
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
+
+void
+CrashAtUnhandlableOOM(const char *reason);
 
 } /* namespace js */
 

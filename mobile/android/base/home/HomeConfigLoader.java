@@ -6,49 +6,52 @@
 package org.mozilla.gecko.home;
 
 import org.mozilla.gecko.home.HomeConfig.PanelConfig;
-import org.mozilla.gecko.home.HomeConfig.OnChangeListener;
+import org.mozilla.gecko.home.HomeConfig.OnReloadListener;
 
 import android.content.Context;
 import android.support.v4.content.AsyncTaskLoader;
 
 import java.util.List;
 
-public class HomeConfigLoader extends AsyncTaskLoader<List<PanelConfig>> {
+public class HomeConfigLoader extends AsyncTaskLoader<HomeConfig.State> {
     private final HomeConfig mConfig;
-    private List<PanelConfig> mPanelConfigs;
+    private HomeConfig.State mConfigState;
+
+    private final Context mContext;
 
     public HomeConfigLoader(Context context, HomeConfig homeConfig) {
         super(context);
+        mContext = context;
         mConfig = homeConfig;
     }
 
     @Override
-    public List<PanelConfig> loadInBackground() {
+    public HomeConfig.State loadInBackground() {
         return mConfig.load();
     }
 
     @Override
-    public void deliverResult(List<PanelConfig> panelConfigs) {
+    public void deliverResult(HomeConfig.State configState) {
         if (isReset()) {
-            mPanelConfigs = null;
+            mConfigState = null;
             return;
         }
 
-        mPanelConfigs = panelConfigs;
-        mConfig.setOnChangeListener(new ForceLoadChangeListener());
+        mConfigState = configState;
+        mConfig.setOnReloadListener(new ForceReloadListener());
 
         if (isStarted()) {
-            super.deliverResult(panelConfigs);
+            super.deliverResult(configState);
         }
     }
 
     @Override
     protected void onStartLoading() {
-        if (mPanelConfigs != null) {
-            deliverResult(mPanelConfigs);
+        if (mConfigState != null) {
+            deliverResult(mConfigState);
         }
 
-        if (takeContentChanged() || mPanelConfigs == null) {
+        if (takeContentChanged() || mConfigState == null) {
             forceLoad();
         }
     }
@@ -59,8 +62,8 @@ public class HomeConfigLoader extends AsyncTaskLoader<List<PanelConfig>> {
     }
 
     @Override
-    public void onCanceled(List<PanelConfig> panelConfigs) {
-        mPanelConfigs = null;
+    public void onCanceled(HomeConfig.State configState) {
+        mConfigState = null;
     }
 
     @Override
@@ -70,13 +73,13 @@ public class HomeConfigLoader extends AsyncTaskLoader<List<PanelConfig>> {
         // Ensure the loader is stopped.
         onStopLoading();
 
-        mPanelConfigs = null;
-        mConfig.setOnChangeListener(null);
+        mConfigState = null;
+        mConfig.setOnReloadListener(null);
     }
 
-    private class ForceLoadChangeListener implements OnChangeListener {
+    private class ForceReloadListener implements OnReloadListener {
         @Override
-        public void onChange() {
+        public void onReload() {
             onContentChanged();
         }
     }

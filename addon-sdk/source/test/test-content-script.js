@@ -260,8 +260,7 @@ exports["test Object Listener 2"] = createProxyTest("", function (helper) {
 let html = '<input id="input" type="text" /><input id="input3" type="checkbox" />' +
              '<input id="input2" type="checkbox" />';
 
-/* Disable test to keep tree green until Bug 756214 is fixed.
-exports.testStringOverload = createProxyTest(html, function (helper, test) {
+exports.testStringOverload = createProxyTest(html, function (helper, assert) {
   // Proxy - toString error
   let originalString = "string";
   let p = Proxy.create({
@@ -271,10 +270,10 @@ exports.testStringOverload = createProxyTest(html, function (helper, test) {
       return originalString[name];
     }
   });
-  assert.okRaises(function () {
+  assert.throws(function () {
     p.toString();
   },
-  /String.prototype.toString called on incompatible Proxy/,
+  /toString method called on incompatible Proxy/,
   "toString can't be called with this being the proxy");
   assert.equal(p.binded(), "string", "but it works if we bind this to the original string");
 
@@ -296,7 +295,6 @@ exports.testStringOverload = createProxyTest(html, function (helper, test) {
     }
   );
 });
-*/
 
 exports["test MozMatchedSelector"] = createProxyTest("", function (helper) {
   helper.createWorker(
@@ -517,8 +515,6 @@ exports["test Window Frames"] = createProxyTest(html, function (helper) {
       let iframe = document.getElementById("iframe");
       //assert(window.frames.length == 1, "The iframe is reported in window.frames check1");
       //assert(window.frames[0] == iframe.contentWindow, "The iframe is reported in window.frames check2");
-      //console.log(window.test+ "-"+iframe.contentWindow);
-      //console.log(window);
       assert(window.test == iframe.contentWindow, "window[frameName] is valid");
       done();
     }
@@ -841,6 +837,32 @@ exports["test MutationObvserver"] = createProxyTest(html, function (helper) {
 
       // Modify the DOM
       link.setAttribute("href", "bar");
+    }
+  );
+
+});
+
+let html = '<script>' +
+  'var accessCheck = function() {' +
+  '  assert(true, "exporting function works");' +
+  '  try{' +
+  '    exportedObj.prop;' +
+  '    assert(false, "content should not have access to content-script");' +
+  '  } catch(e) {' +
+  '    assert(e.toString().indexOf("Permission denied") != -1,' +
+  '           "content should not have access to content-script");' +
+  '  }' +
+  '}</script>';
+exports["test nsEp for content-script"] = createProxyTest(html, function (helper) {
+
+  helper.createWorker(
+    'let glob = this; new ' + function ContentScriptScope() {
+
+      exportFunction(assert, unsafeWindow, { defineAs: "assert" });
+      window.wrappedJSObject.assert(true, "assert exported");
+      window.wrappedJSObject.exportedObj = { prop: 42 };
+      window.wrappedJSObject.accessCheck();
+      done();
     }
   );
 

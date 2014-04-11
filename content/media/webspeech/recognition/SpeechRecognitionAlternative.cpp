@@ -34,16 +34,15 @@ SpeechRecognitionAlternative::~SpeechRecognitionAlternative()
 }
 
 JSObject*
-SpeechRecognitionAlternative::WrapObject(JSContext* aCx,
-                                         JS::Handle<JSObject*> aScope)
+SpeechRecognitionAlternative::WrapObject(JSContext* aCx)
 {
-  return SpeechRecognitionAlternativeBinding::Wrap(aCx, aScope, this);
+  return SpeechRecognitionAlternativeBinding::Wrap(aCx, this);
 }
 
 nsISupports*
 SpeechRecognitionAlternative::GetParentObject() const
 {
-  return static_cast<nsDOMEventTargetHelper*>(mParent.get());
+  return static_cast<DOMEventTargetHelper*>(mParent.get());
 }
 
 void

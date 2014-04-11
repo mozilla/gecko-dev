@@ -14,7 +14,7 @@
 #include "DOMSVGPathSeg.h"
 
 nsresult NS_NewSVGPathElement(nsIContent **aResult,
-                              already_AddRefed<nsINodeInfo> aNodeInfo);
+                              already_AddRefed<nsINodeInfo>&& aNodeInfo);
 
 class gfxContext;
 
@@ -34,10 +34,9 @@ friend class nsSVGPathFrame;
 
 protected:
   friend nsresult (::NS_NewSVGPathElement(nsIContent **aResult,
-                                          already_AddRefed<nsINodeInfo> aNodeInfo));
-  virtual JSObject* WrapNode(JSContext *cx,
-                             JS::Handle<JSObject*> scope) MOZ_OVERRIDE;
-  SVGPathElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+                                          already_AddRefed<nsINodeInfo>&& aNodeInfo));
+  virtual JSObject* WrapNode(JSContext *cx) MOZ_OVERRIDE;
+  SVGPathElement(already_AddRefed<nsINodeInfo>& aNodeInfo);
 
 public:
   // nsIContent interface
@@ -82,7 +81,7 @@ public:
    * length (as provided by the <path> element's 'pathLength' attribute). This
    * is used to scale stroke dashing, and to scale offsets along a textPath.
    */
-  gfxFloat GetPathLengthScale(PathLengthScaleForType aFor);
+  float GetPathLengthScale(PathLengthScaleForType aFor);
 
   // WebIDL
   already_AddRefed<SVGAnimatedNumber> PathLength();

@@ -46,7 +46,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
                                   "resource://gre/modules/PlacesUtils.jsm");
 #endif
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
-                                  "resource://gre/modules/commonjs/sdk/core/promise.js");
+                                  "resource://gre/modules/Promise.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
                                   "resource://gre/modules/Services.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
@@ -121,6 +121,23 @@ const kSaveDelayMs = 1500;
  * the downloads database from the previous SQLite storage.
  */
 const kPrefImportedFromSqlite = "browser.download.importedFromSqlite";
+
+/**
+ * List of observers to listen against
+ */
+const kObserverTopics = [
+  "quit-application-requested",
+  "offline-requested",
+  "last-pb-context-exiting",
+  "last-pb-context-exited",
+  "sleep_notification",
+  "suspend_process_notification",
+  "wake_notification",
+  "resume_process_notification",
+  "network:offline-about-to-go-offline",
+  "network:offline-status-changed",
+  "xpcom-will-shutdown",
+];
 
 ////////////////////////////////////////////////////////////////////////////////
 //// DownloadIntegration
@@ -496,7 +513,7 @@ this.DownloadIntegration = {
     let sigInfo;
     try {
       hash = aDownload.saver.getSha256Hash();
-       sigInfo = aDownload.saver.getSignatureInfo();
+      sigInfo = aDownload.saver.getSignatureInfo();
     } catch (ex) {
       // Bail if DownloadSaver doesn't have a hash.
       return Promise.resolve(false);
@@ -505,8 +522,13 @@ this.DownloadIntegration = {
       return Promise.resolve(false);
     }
     let deferred = Promise.defer();
+    let aReferrer = null;
+    if (aDownload.source.referrer) {
+      aReferrer: NetUtil.newURI(aDownload.source.referrer);
+    }
     gApplicationReputationService.queryReputation({
       sourceURI: NetUtil.newURI(aDownload.source.url),
+      referrerURI: aReferrer,
       fileSize: aDownload.currentBytes,
       sha256Hash: hash,
       signatureInfo: sigInfo },
@@ -769,7 +791,13 @@ this.DownloadIntegration = {
 
     if (this.dontOpenFileAndFolder) {
       deferred.then((value) => { this._deferTestShowDir.resolve("success"); },
-                    (error) => { this._deferTestShowDir.reject(error); });
+                    (error) => {
+                      // Ensure that _deferTestShowDir has at least one consumer
+                      // for the error, otherwise the error will be reported as
+                      // uncaught.
+                      this._deferTestShowDir.promise.then(null, function() {});
+                      this._deferTestShowDir.reject(error);
+                    });
     }
 
     return deferred;
@@ -825,17 +853,9 @@ this.DownloadIntegration = {
     DownloadObserver.registerView(aList, aIsPrivate);
     if (!DownloadObserver.observersAdded) {
       DownloadObserver.observersAdded = true;
-      Services.obs.addObserver(DownloadObserver, "quit-application-requested", true);
-      Services.obs.addObserver(DownloadObserver, "offline-requested", true);
-      Services.obs.addObserver(DownloadObserver, "last-pb-context-exiting", true);
-      Services.obs.addObserver(DownloadObserver, "last-pb-context-exited", true);
-
-      Services.obs.addObserver(DownloadObserver, "sleep_notification", true);
-      Services.obs.addObserver(DownloadObserver, "suspend_process_notification", true);
-      Services.obs.addObserver(DownloadObserver, "wake_notification", true);
-      Services.obs.addObserver(DownloadObserver, "resume_process_notification", true);
-      Services.obs.addObserver(DownloadObserver, "network:offline-about-to-go-offline", true);
-      Services.obs.addObserver(DownloadObserver, "network:offline-status-changed", true);
+      for (let topic of kObserverTopics) {
+        Services.obs.addObserver(DownloadObserver, topic, false);
+      }
     }
     return Promise.resolve();
   },
@@ -1038,14 +1058,24 @@ this.DownloadObserver = {
           this._resumeOfflineDownloads();
         }
         break;
+      // We need to unregister observers explicitly before we reach the
+      // "xpcom-shutdown" phase, otherwise observers may be notified when some
+      // required services are not available anymore. We can't unregister
+      // observers on "quit-application", because this module is also loaded
+      // during "make package" automation, and the quit notification is not sent
+      // in that execution environment (bug 973637).
+      case "xpcom-will-shutdown":
+        for (let topic of kObserverTopics) {
+          Services.obs.removeObserver(this, topic);
+        }
+        break;
     }
   },
 
   ////////////////////////////////////////////////////////////////////////////
   //// nsISupports
 
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
-                                         Ci.nsISupportsWeakReference])
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver])
 };
 
 ////////////////////////////////////////////////////////////////////////////////

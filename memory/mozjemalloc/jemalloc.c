@@ -2714,10 +2714,11 @@ RETURN:
 static void *
 pages_trim(void *addr, size_t alloc_size, size_t leadsize, size_t size)
 {
+        size_t trailsize;
         void *ret = (void *)((uintptr_t)addr + leadsize);
 
         assert(alloc_size >= leadsize + size);
-        size_t trailsize = alloc_size - leadsize - size;
+        trailsize = alloc_size - leadsize - size;
 
         if (leadsize != 0)
                 pages_unmap(addr, leadsize);
@@ -7017,15 +7018,15 @@ ozone_free_definite_size(malloc_zone_t *zone, void *ptr, size_t size)
 static void
 ozone_force_lock(malloc_zone_t *zone)
 {
-	/* jemalloc locking is taken care of by the normal jemalloc zone. */
+	_malloc_prefork();
 	szone->introspect->force_lock(zone);
 }
 
 static void
 ozone_force_unlock(malloc_zone_t *zone)
 {
-	/* jemalloc locking is taken care of by the normal jemalloc zone. */
 	szone->introspect->force_unlock(zone);
+        _malloc_postfork();
 }
 
 static size_t

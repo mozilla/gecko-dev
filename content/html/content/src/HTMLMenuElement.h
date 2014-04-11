@@ -19,7 +19,7 @@ class HTMLMenuElement MOZ_FINAL : public nsGenericHTMLElement,
                                   public nsIHTMLMenu
 {
 public:
-  HTMLMenuElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  HTMLMenuElement(already_AddRefed<nsINodeInfo>& aNodeInfo);
   virtual ~HTMLMenuElement();
 
   NS_IMPL_FROMCONTENT_HTML_WITH_TAG(HTMLMenuElement, menu)
@@ -72,8 +72,7 @@ public:
   // The XPCOM Build is OK for us
 
 protected:
-  virtual JSObject* WrapNode(JSContext *aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext *aCx) MOZ_OVERRIDE;
 
 
 protected:

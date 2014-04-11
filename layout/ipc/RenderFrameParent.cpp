@@ -212,7 +212,7 @@ BuildListForLayer(Layer* aLayer,
   gfx3DMatrix transform;
 
   if (metrics && metrics->IsScrollable()) {
-    const ViewID scrollId = metrics->mScrollId;
+    const ViewID scrollId = metrics->GetScrollId();
 
     // We need to figure out the bounds of the scrollable region using the
     // shadow layer tree from the remote process. The metrics viewport is
@@ -280,7 +280,7 @@ TransformShadowTree(nsDisplayListBuilder* aBuilder, nsFrameLoader* aFrameLoader,
   ViewTransform layerTransform = aTransform;
 
   if (metrics && metrics->IsScrollable()) {
-    const ViewID scrollId = metrics->mScrollId;
+    const ViewID scrollId = metrics->GetScrollId();
     const nsContentView* view =
       aFrameLoader->GetCurrentRemoteFrame()->GetContentView(scrollId);
     NS_ABORT_IF_FALSE(view, "Array of views should be consistent with layer tree");
@@ -382,7 +382,7 @@ BuildViewMap(ViewMap& oldContentViews, ViewMap& newContentViews,
   if (!container)
     return;
   const FrameMetrics metrics = container->GetFrameMetrics();
-  const ViewID scrollId = metrics.mScrollId;
+  const ViewID scrollId = metrics.GetScrollId();
   gfx3DMatrix transform;
   To3DMatrix(aLayer->GetTransform(), transform);
   aXScale *= GetXScale(transform);
@@ -422,8 +422,8 @@ BuildViewMap(ViewMap& oldContentViews, ViewMap& newContentViews,
       // The default scale is 1, so no need to propagate scale down.
       ViewConfig config;
       config.mScrollOffset = nsPoint(
-        NSIntPixelsToAppUnits(metrics.mScrollOffset.x, auPerCSSPixel) * aXScale,
-        NSIntPixelsToAppUnits(metrics.mScrollOffset.y, auPerCSSPixel) * aYScale);
+        NSIntPixelsToAppUnits(metrics.GetScrollOffset().x, auPerCSSPixel) * aXScale,
+        NSIntPixelsToAppUnits(metrics.GetScrollOffset().y, auPerCSSPixel) * aYScale);
       view = new nsContentView(aFrameLoader, scrollId, metrics.mIsRoot, config);
       view->mParentScaleX = aAccConfigXScale;
       view->mParentScaleY = aAccConfigYScale;
@@ -539,7 +539,7 @@ public:
     }
   }
 
-  virtual void HandleDoubleTap(const CSSIntPoint& aPoint,
+  virtual void HandleDoubleTap(const CSSPoint& aPoint,
                                int32_t aModifiers,
                                const ScrollableLayerGuid& aGuid) MOZ_OVERRIDE
   {
@@ -558,7 +558,7 @@ public:
     }
   }
 
-  virtual void HandleSingleTap(const CSSIntPoint& aPoint,
+  virtual void HandleSingleTap(const CSSPoint& aPoint,
                                int32_t aModifiers,
                                const ScrollableLayerGuid& aGuid) MOZ_OVERRIDE
   {
@@ -577,7 +577,7 @@ public:
     }
   }
 
-  virtual void HandleLongTap(const CSSIntPoint& aPoint,
+  virtual void HandleLongTap(const CSSPoint& aPoint,
                              int32_t aModifiers,
                              const ScrollableLayerGuid& aGuid) MOZ_OVERRIDE
   {
@@ -596,7 +596,7 @@ public:
     }
   }
 
-  virtual void HandleLongTapUp(const CSSIntPoint& aPoint,
+  virtual void HandleLongTapUp(const CSSPoint& aPoint,
                                int32_t aModifiers,
                                const ScrollableLayerGuid& aGuid) MOZ_OVERRIDE
   {
@@ -744,7 +744,7 @@ RenderFrameParent::Init(nsFrameLoader* aFrameLoader,
   }
 
   if (lm && lm->GetRoot() && lm->GetRoot()->AsContainerLayer()) {
-    ViewID rootScrollId = lm->GetRoot()->AsContainerLayer()->GetFrameMetrics().mScrollId;
+    ViewID rootScrollId = lm->GetRoot()->AsContainerLayer()->GetFrameMetrics().GetScrollId();
     if (rootScrollId != FrameMetrics::NULL_SCROLL_ID) {
       mContentViews[rootScrollId] = new nsContentView(aFrameLoader, rootScrollId, true);
     }
@@ -943,12 +943,11 @@ RenderFrameParent::OwnerContentChanged(nsIContent* aContent)
 }
 
 void
-RenderFrameParent::NotifyInputEvent(const WidgetInputEvent& aEvent,
-                                    ScrollableLayerGuid* aOutTargetGuid,
-                                    WidgetInputEvent* aOutEvent)
+RenderFrameParent::NotifyInputEvent(WidgetInputEvent& aEvent,
+                                    ScrollableLayerGuid* aOutTargetGuid)
 {
   if (GetApzcTreeManager()) {
-    GetApzcTreeManager()->ReceiveInputEvent(aEvent, aOutTargetGuid, aOutEvent);
+    GetApzcTreeManager()->ReceiveInputEvent(aEvent, aOutTargetGuid);
   }
 }
 

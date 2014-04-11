@@ -116,7 +116,7 @@ class SamplerThread : public Thread {
         ::timeBeginPeriod(interval_);
 
     while (sampler_->IsActive()) {
-      {
+      if (!sampler_->IsPaused()) {
         mozilla::MutexAutoLock lock(*Sampler::sRegisteredThreadsMutex);
         std::vector<ThreadInfo*> threads =
           sampler_->GetRegisteredThreads();
@@ -127,11 +127,17 @@ class SamplerThread : public Thread {
           if (!info->Profile())
             continue;
 
+          PseudoStack::SleepState sleeping = info->Stack()->observeSleeping();
+          if (sleeping == PseudoStack::SLEEPING_AGAIN) {
+            info->Profile()->DuplicateLastSample();
+            //XXX: This causes flushes regardless of jank-only mode
+            info->Profile()->flush();
+            continue;
+          }
+
           ThreadProfile* thread_profile = info->Profile();
 
-          if (!sampler_->IsPaused()) {
-            SampleContext(sampler_, thread_profile);
-          }
+          SampleContext(sampler_, thread_profile);
         }
       }
       OS::Sleep(interval_);
@@ -268,6 +274,9 @@ void Thread::Join() {
 Thread::GetCurrentId()
 {
   return GetCurrentThreadId();
+}
+
+void OS::Startup() {
 }
 
 void OS::Sleep(int milliseconds) {

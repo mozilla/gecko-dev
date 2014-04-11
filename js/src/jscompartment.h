@@ -10,7 +10,6 @@
 #include "mozilla/MemoryReporting.h"
 
 #include "builtin/TypedObject.h"
-#include "builtin/TypeRepresentation.h"
 #include "gc/Zone.h"
 #include "vm/GlobalObject.h"
 #include "vm/PIC.h"
@@ -113,7 +112,6 @@ struct TypeInferenceSizes;
 
 namespace js {
 class AutoDebugModeInvalidation;
-class ArrayBufferObject;
 class DebugScopes;
 class WeakMapBase;
 }
@@ -208,9 +206,6 @@ struct JSCompartment
 
     js::RegExpCompartment        regExps;
 
-    /* Set of all currently living type representations. */
-    js::TypeRepresentationHash   typeReprs;
-
     /*
      * For generational GC, record whether a write barrier has added this
      * compartment's global to the store buffer since the last minor GC.
@@ -226,11 +221,10 @@ struct JSCompartment
                                 size_t *tiArrayTypeTables,
                                 size_t *tiObjectTypeTables,
                                 size_t *compartmentObject,
-                                size_t *compartmentTables,
+                                size_t *shapesCompartmentTables,
                                 size_t *crossCompartmentWrappers,
                                 size_t *regexpCompartment,
-                                size_t *debuggeesSet,
-                                size_t *baselineStubsOptimized);
+                                size_t *debuggeesSet);
 
     /*
      * Shared scope property tree, and arena-pool for allocating its nodes.
@@ -281,8 +275,8 @@ struct JSCompartment
      */
     JSObject                     *gcIncomingGrayPointers;
 
-    /* Linked list of live array buffers with >1 view. */
-    js::ArrayBufferObject        *gcLiveArrayBuffers;
+    /* During GC, list of live array buffers with >1 view accumulated during tracing. */
+    js::ArrayBufferVector        gcLiveArrayBuffers;
 
     /* Linked list of live weakmaps in this compartment. */
     js::WeakMapBase              *gcWeakMapList;
@@ -334,7 +328,8 @@ struct JSCompartment
         WrapperEnum(JSCompartment *c) : js::WrapperMap::Enum(c->crossCompartmentWrappers) {}
     };
 
-    void mark(JSTracer *trc);
+    void trace(JSTracer *trc);
+    void markRoots(JSTracer *trc);
     bool isDiscardingJitCode(JSTracer *trc);
     void sweep(js::FreeOp *fop, bool releaseTypes);
     void sweepCrossCompartmentWrappers();
@@ -518,12 +513,6 @@ class js::AutoDebugModeInvalidation
 
 namespace js {
 
-inline bool
-ExclusiveContext::typeInferenceEnabled() const
-{
-    return zone()->types.inferenceEnabled;
-}
-
 inline js::Handle<js::GlobalObject*>
 ExclusiveContext::global() const
 {
@@ -533,6 +522,7 @@ ExclusiveContext::global() const
      * barrier on it. Once the compartment is popped, the handle is no longer
      * safe to use.
      */
+    MOZ_ASSERT(compartment_, "Caller needs to enter a compartment first");
     return Handle<GlobalObject*>::fromMarkedLocation(compartment_->global_.unsafeGet());
 }
 

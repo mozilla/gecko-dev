@@ -3,6 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "mozilla/EventStates.h"
 #include "mozilla/dom/HTMLProgressElement.h"
 #include "mozilla/dom/HTMLProgressElementBinding.h"
 
@@ -16,7 +17,7 @@ const double HTMLProgressElement::kDefaultValue          =  0.0;
 const double HTMLProgressElement::kDefaultMax            =  1.0;
 
 
-HTMLProgressElement::HTMLProgressElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+HTMLProgressElement::HTMLProgressElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo)
 {
   // We start out indeterminate
@@ -30,10 +31,10 @@ HTMLProgressElement::~HTMLProgressElement()
 NS_IMPL_ELEMENT_CLONE(HTMLProgressElement)
 
 
-nsEventStates
+EventStates
 HTMLProgressElement::IntrinsicState() const
 {
-  nsEventStates state = nsGenericHTMLElement::IntrinsicState();
+  EventStates state = nsGenericHTMLElement::IntrinsicState();
 
   if (IsIndeterminate()) {
     state |= NS_EVENT_STATE_INDETERMINATE;
@@ -98,9 +99,9 @@ HTMLProgressElement::IsIndeterminate() const
 }
 
 JSObject*
-HTMLProgressElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aScope)
+HTMLProgressElement::WrapNode(JSContext* aCx)
 {
-  return HTMLProgressElementBinding::Wrap(aCx, aScope, this);
+  return HTMLProgressElementBinding::Wrap(aCx, this);
 }
 
 } // namespace dom

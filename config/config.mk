@@ -55,7 +55,6 @@ _MOZBUILD_EXTERNAL_VARIABLES := \
   JAVA_JAR_TARGETS \
   JS_MODULES_PATH \
   LIBRARY_NAME \
-  LIBXUL_LIBRARY \
   MODULE \
   MSVC_ENABLE_PGO \
   NO_DIST_INSTALL \
@@ -73,8 +72,15 @@ _MOZBUILD_EXTERNAL_VARIABLES := \
 
 _DEPRECATED_VARIABLES := \
   ANDROID_RESFILES \
-  MOCHITEST_FILES_PARTS \
+  LIBXUL_LIBRARY \
+  MOCHITEST_A11Y_FILES \
+  MOCHITEST_BROWSER_FILES \
   MOCHITEST_BROWSER_FILES_PARTS \
+  MOCHITEST_CHROME_FILES \
+  MOCHITEST_FILES \
+  MOCHITEST_FILES_PARTS \
+  MOCHITEST_METRO_FILES \
+  MOCHITEST_ROBOCOP_FILES \
   SHORT_LIBNAME \
   $(NULL)
 
@@ -334,10 +340,7 @@ _ENABLE_PIC=1
 # Determine if module being compiled is destined
 # to be merged into libxul
 
-ifneq (,$(filter xul,$(FINAL_LIBRARY) $(LIBRARY_NAME)))
-  ifdef LIBXUL_LIBRARY
-    $(error LIBRARY_NAME or FINAL_LIBRARY is "xul", LIBXUL_LIBRARY is implied)
-  endif
+ifneq (,$(filter xul xul-%,$(FINAL_LIBRARY) $(LIBRARY_NAME)))
   LIBXUL_LIBRARY := 1
 endif
 
@@ -345,7 +348,9 @@ ifdef LIBXUL_LIBRARY
 ifdef IS_COMPONENT
 $(error IS_COMPONENT is set, but is not compatible with LIBXUL_LIBRARY)
 endif
+ifeq (,$(filter xul xul-%,$(LIBRARY_NAME)))
 FORCE_STATIC_LIB=1
+endif
 endif
 
 # If we are building this component into an extension/xulapp, it cannot be
@@ -588,7 +593,7 @@ endif
 endif
 
 COMPILE_CFLAGS	= $(VISIBILITY_FLAGS) $(DEFINES) $(INCLUDES) $(DSO_CFLAGS) $(DSO_PIC_CFLAGS) $(RTL_FLAGS) $(OS_CPPFLAGS) $(OS_COMPILE_CFLAGS) $(CFLAGS) $(MOZBUILD_CFLAGS) $(EXTRA_COMPILE_FLAGS)
-COMPILE_CXXFLAGS = $(STL_FLAGS) $(VISIBILITY_FLAGS) $(DEFINES) $(INCLUDES) $(DSO_CFLAGS) $(DSO_PIC_CFLAGS) $(RTL_FLAGS) $(OS_CPPFLAGS) $(OS_COMPILE_CXXFLAGS) $(CXXFLAGS) $(MOZBUILD_CXXFLAGS) $(EXTRA_COMPILE_FLAGS)
+COMPILE_CXXFLAGS = $(if $(DISABLE_STL_WRAPPING),,$(STL_FLAGS)) $(VISIBILITY_FLAGS) $(DEFINES) $(INCLUDES) $(DSO_CFLAGS) $(DSO_PIC_CFLAGS) $(RTL_FLAGS) $(OS_CPPFLAGS) $(OS_COMPILE_CXXFLAGS) $(CXXFLAGS) $(MOZBUILD_CXXFLAGS) $(EXTRA_COMPILE_FLAGS)
 COMPILE_CMFLAGS = $(OS_COMPILE_CMFLAGS) $(MOZBUILD_CMFLAGS) $(EXTRA_COMPILE_FLAGS)
 COMPILE_CMMFLAGS = $(OS_COMPILE_CMMFLAGS) $(MOZBUILD_CMMFLAGS) $(EXTRA_COMPILE_FLAGS)
 ASFLAGS += $(EXTRA_ASSEMBLER_FLAGS)
@@ -841,7 +846,7 @@ OBJ_SUFFIX := $(_OBJ_SUFFIX)
 
 # PGO builds with GCC build objects with instrumentation in a first pass,
 # then objects optimized, without instrumentation, in a second pass. If
-# we overwrite the ojects from the first pass with those from the second,
+# we overwrite the objects from the first pass with those from the second,
 # we end up not getting instrumentation data for better optimization on
 # incremental builds. As a consequence, we use a different object suffix
 # for the first pass.
@@ -895,10 +900,9 @@ LOCAL_INCLUDES += \
 ifeq (WINNT,$(OS_TARGET))
 # These get set via VC project file settings for normal GYP builds.
 DEFINES += -DUNICODE -D_UNICODE
-LOCAL_INCLUDES += -I'$(MOZ_DIRECTX_SDK_PATH)/include'
 endif
 
-STL_FLAGS=
+DISABLE_STL_WRAPPING := 1
 # Skip most Mozilla-specific include locations.
 INCLUDES = -I. $(LOCAL_INCLUDES) -I$(DEPTH)/dist/include
 endif

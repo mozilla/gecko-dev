@@ -29,7 +29,7 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Downloads",
                                   "resource://gre/modules/Downloads.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
-                                  "resource://gre/modules/commonjs/sdk/core/promise.js");
+                                  "resource://gre/modules/Promise.jsm");
 
 ////////////////////////////////////////////////////////////////////////////////
 //// DownloadLegacyTransfer
@@ -89,9 +89,25 @@ DownloadLegacyTransfer.prototype = {
 
     if ((aStateFlags & Ci.nsIWebProgressListener.STATE_START) &&
         (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK)) {
+
+      // If the request's response has been blocked by Windows Parental Controls
+      // with an HTTP 450 error code, we must cancel the request synchronously.
+      let blockedByParentalControls = aRequest instanceof Ci.nsIHttpChannel &&
+                                      aRequest.responseStatus == 450;
+      if (blockedByParentalControls) {
+        aRequest.cancel(Cr.NS_BINDING_ABORTED);
+      }
+
       // The main request has just started.  Wait for the associated Download
       // object to be available before notifying.
       this._deferDownload.promise.then(download => {
+        // If the request was blocked, now that we have the download object we
+        // should set a flag that can be retrieved later when handling the
+        // cancellation so that the proper error can be thrown.
+        if (blockedByParentalControls) {
+          download._blockedByParentalControls = true;
+        }
+
         download.saver.onTransferStarted(
                          aRequest,
                          this._cancelable instanceof Ci.nsIHelperAppLauncher);
@@ -99,7 +115,8 @@ DownloadLegacyTransfer.prototype = {
         // To handle asynchronous cancellation properly, we should hook up the
         // handler only after we have been notified that the main request
         // started.  We will wait until the main request stopped before
-        // notifying that the download has been canceled.
+        // notifying that the download has been canceled.  Since the request has
+        // not completed yet, deferCanceled is guaranteed to be set.
         return download.saver.deferCanceled.promise.then(() => {
           // Only cancel if the object executing the download is still running.
           if (this._cancelable && !this._componentFailed) {
@@ -224,11 +241,8 @@ DownloadLegacyTransfer.prototype = {
         aDownload.tryToKeepPartialData = true;
       }
 
-      // Start the download before allowing it to be controlled.
-      aDownload.start().then(null, function () {
-        // In case the operation failed, ensure we stop downloading data.
-        aDownload.saver.deferCanceled.resolve();
-      });
+      // Start the download before allowing it to be controlled.  Ignore errors.
+      aDownload.start().then(null, () => {});
 
       // Start processing all the other events received through nsITransfer.
       this._deferDownload.resolve(aDownload);

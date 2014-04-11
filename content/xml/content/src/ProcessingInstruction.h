@@ -18,7 +18,7 @@ class ProcessingInstruction : public nsGenericDOMDataNode,
                               public nsIDOMProcessingInstruction
 {
 public:
-  ProcessingInstruction(already_AddRefed<nsINodeInfo> aNodeInfo,
+  ProcessingInstruction(already_AddRefed<nsINodeInfo>&& aNodeInfo,
                         const nsAString& aData);
   virtual ~ProcessingInstruction();
 
@@ -66,8 +66,7 @@ protected:
    */
   bool GetAttrValue(nsIAtom *aName, nsAString& aValue);
 
-  virtual JSObject* WrapNode(JSContext *aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext *aCx) MOZ_OVERRIDE;
 };
 
 } // namespace dom

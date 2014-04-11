@@ -14,15 +14,15 @@ namespace mozilla {
 namespace dom {
 
 JSObject*
-SVGPolygonElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+SVGPolygonElement::WrapNode(JSContext *aCx)
 {
-  return SVGPolygonElementBinding::Wrap(aCx, aScope, this);
+  return SVGPolygonElementBinding::Wrap(aCx, this);
 }
 
 //----------------------------------------------------------------------
 // Implementation
 
-SVGPolygonElement::SVGPolygonElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+SVGPolygonElement::SVGPolygonElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : SVGPolygonElementBase(aNodeInfo)
 {
 }

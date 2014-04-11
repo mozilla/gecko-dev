@@ -11,12 +11,14 @@ MOCHITEST_CHROME_MANIFESTS += ['tests/chrome/chrome.ini']
 
 EXTRA_JS_MODULES += [
     'AsyncShutdown.jsm',
+    'BinarySearch.jsm',
     'BrowserUtils.jsm',
     'CharsetMenu.jsm',
     'debug.js',
     'DeferredTask.jsm',
     'Deprecated.jsm',
     'Dict.jsm',
+    'DirectoryLinksProvider.jsm',
     'FileUtils.jsm',
     'Finder.jsm',
     'Geometry.jsm',
@@ -30,6 +32,7 @@ EXTRA_JS_MODULES += [
     'PopupNotifications.jsm',
     'Preferences.jsm',
     'PrivateBrowsingUtils.jsm',
+    'Promise-backend.js',
     'Promise.jsm',
     'PropertyListUtils.jsm',
     'RemoteAddonsChild.jsm',
@@ -51,6 +54,7 @@ EXTRA_JS_MODULES += [
     'Task.jsm',
     'TelemetryTimestamps.jsm',
     'Timer.jsm',
+    'ZipUtils.jsm',
 ]
 
 EXTRA_PP_JS_MODULES += [
@@ -66,6 +70,12 @@ EXTRA_PP_JS_MODULES += [
 if 'Android' != CONFIG['OS_TARGET']:
     EXTRA_PP_JS_MODULES += [
         'LightweightThemeConsumer.jsm',
+    ]
+
+
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
+    EXTRA_JS_MODULES += [
+        'WindowsRegistry.jsm',
     ]
 
 DEFINES['MOZ_APP_NAME'] = CONFIG['MOZ_APP_NAME']

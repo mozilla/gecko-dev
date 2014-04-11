@@ -17,6 +17,7 @@ using namespace mozilla::gl;
 
 // must match WebGLContext::WebGLExtensionID
 static const char *sExtensionNames[] = {
+    "EXT_color_buffer_half_float",
     "EXT_frag_depth",
     "EXT_sRGB",
     "EXT_texture_filter_anisotropic",
@@ -27,7 +28,9 @@ static const char *sExtensionNames[] = {
     "OES_texture_half_float",
     "OES_texture_half_float_linear",
     "OES_vertex_array_object",
+    "WEBGL_color_buffer_float",
     "WEBGL_compressed_texture_atc",
+    "WEBGL_compressed_texture_etc1",
     "WEBGL_compressed_texture_pvrtc",
     "WEBGL_compressed_texture_s3tc",
     "WEBGL_debug_renderer_info",
@@ -108,6 +111,10 @@ bool WebGLContext::IsExtensionSupported(WebGLExtensionID ext) const
                    gl->IsSupported(GLFeature::texture_half_float);
         case OES_texture_half_float_linear:
             return gl->IsSupported(GLFeature::texture_half_float_linear);
+        case WEBGL_color_buffer_float:
+            return WebGLExtensionColorBufferFloat::IsSupported(this);
+        case EXT_color_buffer_half_float:
+            return WebGLExtensionColorBufferHalfFloat::IsSupported(this);
         case OES_vertex_array_object:
             return WebGLExtensionVertexArray::IsSupported(this);
         case EXT_texture_filter_anisotropic:
@@ -125,6 +132,8 @@ bool WebGLContext::IsExtensionSupported(WebGLExtensionID ext) const
             return false;
         case WEBGL_compressed_texture_atc:
             return gl->IsExtensionSupported(GLContext::AMD_compressed_ATC_texture);
+        case WEBGL_compressed_texture_etc1:
+            return gl->IsExtensionSupported(GLContext::OES_compressed_ETC1_RGB8_texture);
         case WEBGL_compressed_texture_pvrtc:
             return gl->IsExtensionSupported(GLContext::IMG_texture_compression_pvrtc);
         case WEBGL_depth_texture:
@@ -262,6 +271,9 @@ WebGLContext::EnableExtension(WebGLExtensionID ext)
         case WEBGL_compressed_texture_atc:
             obj = new WebGLExtensionCompressedTextureATC(this);
             break;
+        case WEBGL_compressed_texture_etc1:
+            obj = new WebGLExtensionCompressedTextureETC1(this);
+            break;
         case WEBGL_compressed_texture_pvrtc:
             obj = new WebGLExtensionCompressedTexturePVRTC(this);
             break;
@@ -285,6 +297,12 @@ WebGLContext::EnableExtension(WebGLExtensionID ext)
             break;
         case OES_texture_half_float_linear:
             obj = new WebGLExtensionTextureHalfFloatLinear(this);
+            break;
+        case WEBGL_color_buffer_float:
+            obj = new WebGLExtensionColorBufferFloat(this);
+            break;
+        case EXT_color_buffer_half_float:
+            obj = new WebGLExtensionColorBufferHalfFloat(this);
             break;
         case WEBGL_draw_buffers:
             obj = new WebGLExtensionDrawBuffers(this);

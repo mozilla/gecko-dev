@@ -8,6 +8,8 @@
 
 #include <stdint.h>
 
+#include "mozilla/TypedEnum.h"
+
 /**
  * XXX Following enums should be in BasicEvents.h.  However, currently, it's
  *     impossible to use foward delearation for enum.
@@ -35,13 +37,24 @@ typedef uint16_t Modifiers;
 
 enum KeyNameIndex
 {
-#include "nsDOMKeyNameList.h"
+#include "mozilla/KeyNameList.h"
   // If a DOM keyboard event is synthesized by script, this is used.  Then,
   // specified key name should be stored and use it as .key value.
   KEY_NAME_INDEX_USE_STRING
 };
 
 #undef NS_DEFINE_KEYNAME
+
+#define NS_DEFINE_COMMAND(aName, aCommandStr) , Command##aName
+
+typedef int8_t CommandInt;
+enum Command MOZ_ENUM_TYPE(CommandInt)
+{
+  CommandDoNothing
+
+#include "mozilla/CommandList.h"
+};
+#undef NS_DEFINE_COMMAND
 
 } // namespace mozilla
 
@@ -69,7 +82,7 @@ struct AlternativeCharCode;
 struct TextRangeStyle;
 struct TextRange;
 
-typedef TextRange* TextRangeArray;
+class TextRangeArray;
 
 } // namespace mozilla
 

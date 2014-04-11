@@ -116,10 +116,9 @@
     <command id="History:UndoCloseTab" oncommand="undoCloseTab();"/>
     <command id="History:UndoCloseWindow" oncommand="undoCloseWindow();"/>
     <command id="Social:SharePage" oncommand="SocialShare.sharePage();" disabled="true"/>
-    <command id="Social:ToggleSidebar" oncommand="Social.toggleSidebar();" hidden="true"/>
+    <command id="Social:ToggleSidebar" oncommand="SocialSidebar.toggleSidebar();" hidden="true"/>
     <command id="Social:ToggleNotifications" oncommand="Social.toggleNotifications();" hidden="true"/>
     <command id="Social:FocusChat" oncommand="SocialChatBar.focus();" hidden="true" disabled="true"/>
-    <command id="Social:Toggle" oncommand="Social.toggle();" hidden="true"/>
     <command id="Social:Addons" oncommand="BrowserOpenAddonsMgr('addons://list/service');"/>
   </commandset>
 
@@ -176,7 +175,8 @@
     <broadcaster id="tabviewGroupsNumber" groups="1"/>
 #ifdef MOZ_SERVICES_SYNC
     <broadcaster id="sync-setup-state"/>
-    <broadcaster id="sync-syncnow-state"/>
+    <broadcaster id="sync-syncnow-state" hidden="true"/>
+    <broadcaster id="sync-reauth-state" hidden="true"/>
 #endif
     <broadcaster id="workOfflineMenuitemState"/>
     <broadcaster id="socialSidebarBroadcaster" hidden="true"/>

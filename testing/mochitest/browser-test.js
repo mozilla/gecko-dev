@@ -1,6 +1,6 @@
 /* -*- js-indent-level: 2; tab-width: 2; indent-tabs-mode: nil -*- */
 // Test timeout (seconds)
-var gTimeoutSeconds = 30;
+var gTimeoutSeconds = 45;
 var gConfig;
 
 if (Cc === undefined) {
@@ -58,9 +58,12 @@ function testOnLoad() {
       webNav.loadURI(url, null, null, null, null);
     };
 
-    var listener = 'data:,function doLoad(e) { var data=e.getData("data");removeEventListener("contentEvent", function (e) { doLoad(e); }, false, true);sendAsyncMessage("chromeEvent", {"data":data}); };addEventListener("contentEvent", function (e) { doLoad(e); }, false, true);';
+    var listener = 'data:,function doLoad(e) { var data=e.detail&&e.detail.data;removeEventListener("contentEvent", function (e) { doLoad(e); }, false, true);sendAsyncMessage("chromeEvent", {"data":data}); };addEventListener("contentEvent", function (e) { doLoad(e); }, false, true);';
     messageManager.loadFrameScript(listener, true);
     messageManager.addMessageListener("chromeEvent", messageHandler);
+  }
+  if (gConfig.e10s) {
+    e10s_init();
   }
 }
 
@@ -83,7 +86,7 @@ function Tester(aTests, aDumper, aCallback) {
   this.SimpleTest = simpleTestScope.SimpleTest;
   this.MemoryStats = simpleTestScope.MemoryStats;
   this.Task = Components.utils.import("resource://gre/modules/Task.jsm", null).Task;
-  this.Promise = Components.utils.import("resource://gre/modules/commonjs/sdk/core/promise.js", null).Promise;
+  this.Promise = Components.utils.import("resource://gre/modules/Promise.jsm", null).Promise;
   this.Assert = Components.utils.import("resource://testing-common/Assert.jsm", null).Assert;
 }
 Tester.prototype = {

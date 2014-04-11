@@ -335,9 +335,6 @@ LoadRuntimeAndContextOptions(const char* aPrefName, void* /* aClosure */)
   if (GetWorkerPref<bool>(NS_LITERAL_CSTRING("asmjs"))) {
     runtimeOptions.setAsmJS(true);
   }
-  if (GetWorkerPref<bool>(NS_LITERAL_CSTRING("typeinference"))) {
-    runtimeOptions.setTypeInference(true);
-  }
   if (GetWorkerPref<bool>(NS_LITERAL_CSTRING("baselinejit"))) {
     runtimeOptions.setBaseline(true);
   }
@@ -600,7 +597,7 @@ ErrorReporter(JSContext* aCx, const char* aMessage, JSErrorReport* aReport)
 }
 
 bool
-OperationCallback(JSContext* aCx)
+InterruptCallback(JSContext* aCx)
 {
   WorkerPrivate* worker = GetWorkerPrivateFromContext(aCx);
   MOZ_ASSERT(worker);
@@ -608,7 +605,7 @@ OperationCallback(JSContext* aCx)
   // Now is a good time to turn on profiling if it's pending.
   profiler_js_operation_callback();
 
-  return worker->OperationCallback(aCx);
+  return worker->InterruptCallback(aCx);
 }
 
 class LogViolationDetailsRunnable MOZ_FINAL : public nsRunnable
@@ -738,6 +735,7 @@ AsmJSCacheOpenEntryForRead(JS::Handle<JSObject*> aGlobal,
 
 static bool
 AsmJSCacheOpenEntryForWrite(JS::Handle<JSObject*> aGlobal,
+                            bool aInstalled,
                             const jschar* aBegin,
                             const jschar* aEnd,
                             size_t aSize,
@@ -749,8 +747,8 @@ AsmJSCacheOpenEntryForWrite(JS::Handle<JSObject*> aGlobal,
     return false;
   }
 
-  return asmjscache::OpenEntryForWrite(principal, aBegin, aEnd, aSize, aMemory,
-                                       aHandle);
+  return asmjscache::OpenEntryForWrite(principal, aInstalled, aBegin, aEnd,
+                                       aSize, aMemory, aHandle);
 }
 
 struct WorkerThreadRuntimePrivate : public PerThreadAtomCache
@@ -819,7 +817,7 @@ CreateJSContextForWorker(WorkerPrivate* aWorkerPrivate, JSRuntime* aRuntime)
 
   JS_SetErrorReporter(workerCx, ErrorReporter);
 
-  JS_SetOperationCallback(aRuntime, OperationCallback);
+  JS_SetInterruptCallback(aRuntime, InterruptCallback);
 
   js::SetCTypesActivityCallback(aRuntime, CTypesActivityCallback);
 
@@ -2583,7 +2581,7 @@ WorkerThreadPrimaryRunnable::Run()
 
   mThread->SetWorker(nullptr);
 
-  mWorkerPrivate->ScheduleDeletion();
+  mWorkerPrivate->ScheduleDeletion(WorkerPrivate::WorkerRan);
 
   // It is no longer safe to touch mWorkerPrivate.
   mWorkerPrivate = nullptr;

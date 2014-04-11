@@ -6,6 +6,7 @@
 // Keep in (case-insensitive) order:
 #include "gfxContext.h"
 #include "gfxPlatform.h"
+#include "mozilla/gfx/2D.h"
 #include "imgIContainer.h"
 #include "nsIImageLoadingContent.h"
 #include "nsLayoutUtils.h"
@@ -23,6 +24,7 @@
 
 using namespace mozilla;
 using namespace mozilla::dom;
+using namespace mozilla::gfx;
 
 class nsSVGImageFrame;
 
@@ -239,7 +241,7 @@ nsSVGImageFrame::GetRasterImageTransform(int32_t aNativeWidth,
                                          element->mPreserveAspectRatio);
 
   return viewBoxTM *
-         gfx::Matrix().Translate(x, y) *
+         gfx::Matrix::Translation(x, y) *
          gfx::ToMatrix(GetCanvasTM(aFor, aTransformRoot));
 }
 
@@ -255,7 +257,7 @@ nsSVGImageFrame::GetVectorImageTransform(uint32_t aFor,
   // "native size" that the SVG image has, and it will handle viewBox and
   // preserveAspectRatio on its own once we give it a region to draw into.
 
-  return gfx::Matrix().Translate(x, y) *
+  return gfx::Matrix::Translation(x, y) *
          gfx::ToMatrix(GetCanvasTM(aFor, aTransformRoot));
 }
 
@@ -469,32 +471,11 @@ nsSVGImageFrame::ReflowSVG()
     return;
   }
 
-  gfxContext tmpCtx(gfxPlatform::GetPlatform()->ScreenReferenceSurface());
+  float x, y, width, height;
+  SVGImageElement *element = static_cast<SVGImageElement*>(mContent);
+  element->GetAnimatedLengthValues(&x, &y, &width, &height, nullptr);
 
-  // We'd like to just pass the identity matrix to GeneratePath, but if
-  // this frame's user space size is _very_ large/small then the extents we
-  // obtain below might have overflowed or otherwise be broken. This would
-  // cause us to end up with a broken mRect and visual overflow rect and break
-  // painting of this frame. This is particularly noticeable if the transforms
-  // between us and our nsSVGOuterSVGFrame scale this frame to a reasonable
-  // size. To avoid this we sadly have to do extra work to account for the
-  // transforms between us and our nsSVGOuterSVGFrame, even though the
-  // overwhelming number of SVGs will never have this problem.
-  // XXX Will Azure eventually save us from having to do this?
-  gfxSize scaleFactors = GetCanvasTM(FOR_OUTERSVG_TM).ScaleFactors(true);
-  bool applyScaling = fabs(scaleFactors.width) >= 1e-6 &&
-                      fabs(scaleFactors.height) >= 1e-6;
-  Matrix scaling;
-  if (applyScaling) {
-    scaling.Scale(scaleFactors.width, scaleFactors.height);
-  }
-  tmpCtx.Save();
-  GeneratePath(&tmpCtx, scaling);
-  tmpCtx.Restore();
-  gfxRect extent = tmpCtx.GetUserPathExtent();
-  if (applyScaling) {
-    extent.Scale(1 / scaleFactors.width, 1 / scaleFactors.height);
-  }
+  Rect extent(x, y, width, height);
 
   if (!extent.IsEmpty()) {
     mRect = nsLayoutUtils::RoundGfxRectToAppRect(extent, 

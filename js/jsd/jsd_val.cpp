@@ -513,7 +513,7 @@ jsd_GetValueProperty(JSDContext* jsdc, JSDValue* jsdval, JSString* nameStr)
         JSAutoCompartment ac(cx, obj);
         JS::RootedId id(cx, nameid);
 
-        if(!JS_WrapId(cx, id.address()))
+        if(!JS_WrapId(cx, &id))
             return nullptr;
         if(!JS_GetOwnPropertyDescriptorById(cx, obj, id, 0, &desc))
             return nullptr;
@@ -678,7 +678,6 @@ jsd_GetScriptForValue(JSDContext* jsdc, JSDValue* jsdval)
 {
     AutoSafeJSContext cx;
     JS::RootedValue val(cx, jsdval->val);
-    JSFunction* fun = nullptr;
     JS::RootedScript script(cx);
     JSDScript* jsdscript;
 
@@ -688,7 +687,7 @@ jsd_GetScriptForValue(JSDContext* jsdc, JSDValue* jsdval)
     {
         JSAutoCompartment ac(cx, JSVAL_TO_OBJECT(val));
         AutoSaveExceptionState as(cx);
-        fun = JSD_GetValueFunction(jsdc, jsdval);
+        JS::RootedFunction fun(cx, JSD_GetValueFunction(jsdc, jsdval));
         if (fun)
             script = JS_GetFunctionScript(cx, fun);
     }

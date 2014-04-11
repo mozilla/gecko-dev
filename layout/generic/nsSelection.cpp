@@ -11,6 +11,7 @@
 #include "mozilla/Selection.h"
 
 #include "mozilla/Attributes.h"
+#include "mozilla/EventStates.h"
 
 #include "nsCOMPtr.h"
 #include "nsString.h"
@@ -3638,7 +3639,7 @@ Selection::GetRangesForInterval(nsIDOMNode* aBeginNode, int32_t aBeginOffset,
   NS_ENSURE_TRUE(*aResults, NS_ERROR_OUT_OF_MEMORY);
 
   for (uint32_t i = 0; i < *aResultCount; i++) {
-    (*aResults)[i] = results[i].forget().get(); // Already AddRefed
+    (*aResults)[i] = results[i].forget().take();
   }
   return NS_OK;
 }
@@ -3874,8 +3875,6 @@ Selection::GetPrimaryFrameForFocusNode(nsIFrame** aReturnFrame,
   if (!content || !mFrameSelection)
     return NS_ERROR_FAILURE;
   
-  nsIPresShell *presShell = mFrameSelection->GetShell();
-
   int32_t frameOffset = 0;
   *aReturnFrame = 0;
   if (!aOffsetUsed)
@@ -3884,6 +3883,10 @@ Selection::GetPrimaryFrameForFocusNode(nsIFrame** aReturnFrame,
   nsFrameSelection::HINT hint = mFrameSelection->GetHint();
 
   if (aVisual) {
+    nsIPresShell *presShell = mFrameSelection->GetShell();
+    if (!presShell)
+      return NS_ERROR_FAILURE;
+
     nsRefPtr<nsCaret> caret = presShell->GetCaret();
     if (!caret)
       return NS_ERROR_FAILURE;
@@ -5104,8 +5107,7 @@ Selection::Extend(nsINode& aParentNode, uint32_t aOffset, ErrorResult& aRv)
 #endif
   SetDirection(dir);
 #ifdef DEBUG_SELECTION
-  nsCOMPtr<nsIContent>content;
-  content = do_QueryInterface(aParentNode);
+  nsCOMPtr<nsIContent> content = do_QueryInterface(&aParentNode);
 
   printf ("Sel. Extend to %p %s %d\n", content.get(),
           nsAtomCString(content->Tag()).get(), aOffset);
@@ -5826,9 +5828,9 @@ Selection::SetSelectionDirection(nsDirection aDirection) {
 }
 
 JSObject*
-Selection::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+Selection::WrapObject(JSContext* aCx)
 {
-  return mozilla::dom::SelectionBinding::Wrap(aCx, aScope, this);
+  return mozilla::dom::SelectionBinding::Wrap(aCx, this);
 }
 
 // nsAutoCopyListener

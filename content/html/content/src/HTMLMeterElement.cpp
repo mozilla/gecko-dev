@@ -4,6 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "HTMLMeterElement.h"
+#include "mozilla/EventStates.h"
 #include "mozilla/dom/HTMLMeterElementBinding.h"
 
 NS_IMPL_NS_NEW_HTML_ELEMENT(Meter)
@@ -16,7 +17,7 @@ const double HTMLMeterElement::kDefaultMin   =  0.0;
 const double HTMLMeterElement::kDefaultMax   =  1.0;
 
 
-HTMLMeterElement::HTMLMeterElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+HTMLMeterElement::HTMLMeterElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo)
 {
 }
@@ -27,10 +28,10 @@ HTMLMeterElement::~HTMLMeterElement()
 
 NS_IMPL_ELEMENT_CLONE(HTMLMeterElement)
 
-nsEventStates
+EventStates
 HTMLMeterElement::IntrinsicState() const
 {
-  nsEventStates state = nsGenericHTMLElement::IntrinsicState();
+  EventStates state = nsGenericHTMLElement::IntrinsicState();
 
   state |= GetOptimumState();
 
@@ -211,7 +212,7 @@ HTMLMeterElement::Optimum() const
   return std::min(optimum, max);
 }
 
-nsEventStates
+EventStates
 HTMLMeterElement::GetOptimumState() const
 {
   /*
@@ -255,9 +256,9 @@ HTMLMeterElement::GetOptimumState() const
 }
 
 JSObject*
-HTMLMeterElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aScope)
+HTMLMeterElement::WrapNode(JSContext* aCx)
 {
-  return HTMLMeterElementBinding::Wrap(aCx, aScope, this);
+  return HTMLMeterElementBinding::Wrap(aCx, this);
 }
 
 } // namespace dom

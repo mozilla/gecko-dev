@@ -32,7 +32,6 @@
 #include "nsIGeolocationProvider.h"
 #include "nsIContentPermissionPrompt.h"
 #include "nsIDOMWindow.h"
-#include "DictionaryHelpers.h"
 #include "mozilla/Attributes.h"
 
 class nsGeolocationService;
@@ -136,8 +135,7 @@ public:
   nsresult Init(nsIDOMWindow* contentDom=nullptr);
 
   nsIDOMWindow* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext *aCtx,
-                               JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext *aCtx) MOZ_OVERRIDE;
 
   int32_t WatchPosition(PositionCallback& aCallback, PositionErrorCallback* aErrorCallback, const PositionOptions& aOptions, ErrorResult& aRv);
   void GetCurrentPosition(PositionCallback& aCallback, PositionErrorCallback* aErrorCallback, const PositionOptions& aOptions, ErrorResult& aRv);
@@ -226,8 +224,7 @@ public:
 
   Geolocation* GetParentObject() const;
 
-  virtual JSObject* WrapObject(JSContext* aCx,
-                               JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   int16_t Code() const {
     return mCode;

@@ -5,14 +5,11 @@
  * Tests that a chrome debugger can be created in a new process.
  */
 
-// Enable logging for this test, bug 860349.
-Services.prefs.setBoolPref("devtools.debugger.log", true);
-
 let gProcess;
 
 function test() {
-  // Windows XP test slaves are terribly slow at this test.
-  requestLongerTimeout(4);
+  // Windows XP and 8.1 test slaves are terribly slow at this test.
+  requestLongerTimeout(5);
 
   initChromeDebugger(aOnClose).then(aProcess => {
     gProcess = aProcess;

@@ -36,10 +36,10 @@ public:
     MOZ_ASSERT(mOutputStream);
   }
 
-  virtual void ProduceAudioBlock(AudioNodeStream* aStream,
-                                 const AudioChunk& aInput,
-                                 AudioChunk* aOutput,
-                                 bool* aFinished) MOZ_OVERRIDE
+  virtual void ProcessBlock(AudioNodeStream* aStream,
+                            const AudioChunk& aInput,
+                            AudioChunk* aOutput,
+                            bool* aFinished) MOZ_OVERRIDE
   {
     *aOutput = aInput;
     StreamBuffer::Track* track = mOutputStream->EnsureTrack(MEDIA_STREAM_DEST_TRACK_ID,
@@ -92,9 +92,9 @@ MediaStreamAudioDestinationNode::DestroyMediaStream()
 }
 
 JSObject*
-MediaStreamAudioDestinationNode::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+MediaStreamAudioDestinationNode::WrapObject(JSContext* aCx)
 {
-  return MediaStreamAudioDestinationNodeBinding::Wrap(aCx, aScope, this);
+  return MediaStreamAudioDestinationNodeBinding::Wrap(aCx, this);
 }
 
 }

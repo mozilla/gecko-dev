@@ -22,7 +22,7 @@
  * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #ifndef yarr_YarrParser_h
@@ -303,7 +303,7 @@ private:
 
                 unsigned backReference;
                 if (!consumeNumber(backReference))
-                    break; 
+                    break;
                 if (backReference <= m_backReferenceLimit) {
                     delegate.atomBackReference(backReference);
                     break;
@@ -311,7 +311,7 @@ private:
 
                 restoreState(state);
             }
-            
+
             // Not a backreference, and not octal.
             if (peek() >= '8') {
                 delegate.atomPatternCharacter('\\');
@@ -392,7 +392,7 @@ private:
         default:
             delegate.atomPatternCharacter(consume());
         }
-        
+
         return true;
     }
 
@@ -470,7 +470,7 @@ private:
             case ':':
                 m_delegate.atomParenthesesSubpatternBegin(false);
                 break;
-            
+
             case '=':
                 m_delegate.atomParentheticalAssertionBegin();
                 break;
@@ -478,7 +478,7 @@ private:
             case '!':
                 m_delegate.atomParentheticalAssertionBegin(true);
                 break;
-            
+
             default:
                 m_err = ParenthesesTypeInvalid;
             }
@@ -612,23 +612,12 @@ private:
                     unsigned min;
                     if (!consumeNumber(min))
                         break;
-                    // Clamping to INT_MAX is technically a spec deviation. In practice, it's
-                    // undetectable, because we can't even allocate strings large enough for
-                    // quantifiers this large to ever create different results than smaller ones.
-                    if (min > INT_MAX)
-                        min = INT_MAX;
 
                     unsigned max = min;
                     if (tryConsume(',')) {
                         if (peekIsDigit()) {
                             if (!consumeNumber(max))
                                 break;
-                            // Clamping to INT_MAX is technically a spec deviation. In practice,
-                            // it's undetectable, because we can't even allocate strings large
-                            // enough for quantifiers this large to ever create different results
-                            // than smaller ones.
-                            if (max > INT_MAX)
-                                max = INT_MAX;
                         } else {
                             max = quantifyInfinite;
                         }
@@ -680,7 +669,7 @@ private:
     // Misc helper functions:
 
     typedef unsigned ParseState;
-    
+
     ParseState saveState()
     {
         return m_index;

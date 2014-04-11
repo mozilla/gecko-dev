@@ -101,8 +101,7 @@ public:
   virtual void            AddChild(nsIWidget* aChild);
   virtual void            RemoveChild(nsIWidget* aChild);
 
-  NS_IMETHOD              SetZIndex(int32_t aZIndex);
-  NS_IMETHOD              GetZIndex(int32_t* aZIndex);
+  void                    SetZIndex(int32_t aZIndex);
   NS_IMETHOD              PlaceBehind(nsTopLevelWidgetZPlacement aPlacement,
                                       nsIWidget *aWidget, bool aActivate);
 
@@ -112,15 +111,10 @@ public:
     return mSizeMode;
   }
 
-  virtual nscolor         GetForegroundColor(void);
-  NS_IMETHOD              SetForegroundColor(const nscolor &aColor);
-  virtual nscolor         GetBackgroundColor(void);
-  NS_IMETHOD              SetBackgroundColor(const nscolor &aColor);
   virtual nsCursor        GetCursor();
   NS_IMETHOD              SetCursor(nsCursor aCursor);
   NS_IMETHOD              SetCursor(imgIContainer* aCursor,
                                     uint32_t aHotspotX, uint32_t aHotspotY);
-  NS_IMETHOD              GetWindowType(nsWindowType& aWindowType);
   virtual void            SetTransparencyMode(nsTransparencyMode aMode);
   virtual nsTransparencyMode GetTransparencyMode();
   virtual void            GetWindowClipRegion(nsTArray<nsIntRect>* aRects);
@@ -187,6 +181,11 @@ public:
   virtual nsresult        ActivateNativeMenuItemAt(const nsAString& indexString) { return NS_ERROR_NOT_IMPLEMENTED; }
   virtual nsresult        ForceUpdateNativeMenuAt(const nsAString& indexString) { return NS_ERROR_NOT_IMPLEMENTED; }
   NS_IMETHOD              NotifyIME(const IMENotification& aIMENotification) MOZ_OVERRIDE { return NS_ERROR_NOT_IMPLEMENTED; }
+  NS_IMETHOD_(bool)       ExecuteNativeKeyBinding(
+                            NativeKeyBindingsType aType,
+                            const mozilla::WidgetKeyboardEvent& aEvent,
+                            DoCommandCallback aCallback,
+                            void* aCallbackData) MOZ_OVERRIDE { return false; }
   NS_IMETHOD              SetLayersAcceleration(bool aEnabled);
   virtual bool            GetLayersAcceleration() { return mUseLayersAcceleration; }
   virtual bool            ComputeShouldAccelerate(bool aDefault);
@@ -210,6 +209,7 @@ public:
 
   void NotifyWindowDestroyed();
   void NotifySizeMoveDone();
+  void NotifyWindowMoved(int32_t aX, int32_t aY);
 
   // Should be called by derived implementations to notify on system color and
   // theme changes.
@@ -276,8 +276,6 @@ public:
     bool mPreviousTemporarilyUseBasicLayerManager;
   };
   friend class AutoUseBasicLayerManager;
-
-  nsWindowType            GetWindowType() { return mWindowType; }
 
   virtual bool            ShouldUseOffMainThreadCompositing();
 
@@ -400,11 +398,8 @@ protected:
   nsRefPtr<LayerManager> mBasicLayerManager;
   nsRefPtr<CompositorChild> mCompositorChild;
   nsRefPtr<CompositorParent> mCompositorParent;
-  nsCOMPtr<WidgetShutdownObserver> mShutdownObserver;
-  nscolor           mBackground;
-  nscolor           mForeground;
+  nsRefPtr<WidgetShutdownObserver> mShutdownObserver;
   nsCursor          mCursor;
-  nsWindowType      mWindowType;
   nsBorderStyle     mBorderStyle;
   bool              mUseLayersAcceleration;
   bool              mForceLayersAcceleration;
@@ -419,7 +414,6 @@ protected:
   // When this pointer is null, the widget is not clipped
   nsAutoArrayPtr<nsIntRect> mClipRects;
   uint32_t          mClipRectCount;
-  int32_t           mZIndex;
   nsSizeMode        mSizeMode;
   nsPopupLevel      mPopupLevel;
   nsPopupType       mPopupType;

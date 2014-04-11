@@ -8,7 +8,7 @@
 interface nsIDOMEventTarget;
 
 [ptr] native WidgetEventPtr(mozilla::WidgetEvent);
-[ptr] native nsDOMEventPtr(nsDOMEvent);
+[ptr] native DOMEventPtr(mozilla::dom::Event);
 [ptr] native IPCMessagePtr(IPC::Message);
 [ptr] native ConstIPCMessagePtr(const IPC::Message);
 [ptr] native EventTargetPtr(mozilla::dom::EventTarget);
@@ -18,7 +18,6 @@ interface nsIDOMEventTarget;
 #endif
 
 #include "mozilla/EventForwards.h"
-class nsDOMEvent;
 class nsPresContext;
 class nsInvalidateRequestList;
 namespace IPC {
@@ -26,6 +25,7 @@ class Message;
 }
 namespace mozilla {
 namespace dom {
+class Event;
 class EventTarget;
 } // namespace dom
 } // namespace mozilla
@@ -212,13 +212,7 @@ interface nsIDOMEvent : nsISupports
                             in boolean aSerializeInterfaceType);
   [notxpcom] boolean Deserialize(in ConstIPCMessagePtr aMsg, out voidPtr aIter);
   [noscript,notxpcom] void SetOwner(in EventTargetPtr aOwner);
-  [notxpcom] nsDOMEventPtr InternalDOMEvent();
-};
-
-dictionary EventInit
-{
-  boolean bubbles;
-  boolean cancelable;
+  [notxpcom] DOMEventPtr InternalDOMEvent();
 };
 
 %{C++
@@ -268,7 +262,11 @@ NS_NewDOMClipboardEvent(nsIDOMEvent** aInstancePtrResult,
                         mozilla::dom::EventTarget* aOwner,
                         nsPresContext* aPresContext,
                         mozilla::InternalClipboardEvent* aEvent);
-
+nsresult
+NS_NewDOMInputEvent(nsIDOMEvent** aInstancePtrResult,
+                    mozilla::dom::EventTarget* aOwner,
+                    nsPresContext* aPresContext,
+                    mozilla::InternalEditorInputEvent* aEvent);
 nsresult
 NS_NewDOMKeyboardEvent(nsIDOMEvent** aInstancePtrResult,
                        mozilla::dom::EventTarget* aOwner,
@@ -342,15 +340,6 @@ NS_NewDOMNotifyPaintEvent(nsIDOMEvent** aResult,
                           mozilla::WidgetEvent* aEvent,
                           uint32_t aEventType = 0,
                           nsInvalidateRequestList* aInvalidateRequests = nullptr);
-nsresult
-NS_NewDOMAudioAvailableEvent(nsIDOMEvent** aResult,
-                             mozilla::dom::EventTarget* aOwner,
-                             nsPresContext* aPresContext,
-                             mozilla::WidgetEvent* aEvent,
-                             uint32_t aEventType = 0,
-                             float* aFrameBuffer = nullptr,
-                             uint32_t aFrameBufferLength = 0,
-                             float aTime = 0);
 nsresult
 NS_NewDOMSimpleGestureEvent(nsIDOMEvent** aInstancePtrResult,
                             mozilla::dom::EventTarget* aOwner,

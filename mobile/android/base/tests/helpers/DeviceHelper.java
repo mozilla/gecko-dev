@@ -4,17 +4,16 @@
 
 package org.mozilla.gecko.tests.helpers;
 
-import static org.mozilla.gecko.tests.helpers.AssertionHelper.*;
+import static org.mozilla.gecko.tests.helpers.AssertionHelper.fAssertTrue;
 
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.tests.UITestContext;
 
-import com.jayway.android.robotium.solo.Solo;
-
 import android.app.Activity;
-import android.content.pm.ActivityInfo;
 import android.os.Build;
 import android.util.DisplayMetrics;
+
+import com.jayway.android.robotium.solo.Solo;
 
 /**
  * Provides general hardware (ex: configuration) and software (ex: version) information
@@ -44,7 +43,7 @@ public final class DeviceHelper {
     private DeviceHelper() { /* To disallow instantiation. */ }
 
     public static void assertIsTablet() {
-        assertTrue("The device is a tablet", isTablet());
+        fAssertTrue("The device is a tablet", isTablet());
     }
 
     protected static void init(final UITestContext context) {

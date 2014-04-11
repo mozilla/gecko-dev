@@ -30,7 +30,6 @@ nsMathMLmoFrame::~nsMathMLmoFrame()
 {
 }
 
-static const char16_t kInvisibleComma = char16_t(0x200B); // a.k.a. ZERO WIDTH SPACE
 static const char16_t kApplyFunction  = char16_t(0x2061);
 static const char16_t kInvisibleTimes = char16_t(0x2062);
 static const char16_t kInvisibleSeparator = char16_t(0x2063);
@@ -74,8 +73,7 @@ nsMathMLmoFrame::UseMathMLChar()
 {
   return (NS_MATHML_OPERATOR_GET_FORM(mFlags) &&
           NS_MATHML_OPERATOR_IS_MUTABLE(mFlags)) ||
-    NS_MATHML_OPERATOR_IS_CENTERED(mFlags) ||
-    NS_MATHML_OPERATOR_IS_INVISIBLE(mFlags);
+    NS_MATHML_OPERATOR_IS_CENTERED(mFlags);
 }
 
 void
@@ -117,24 +115,25 @@ nsMathMLmoFrame::ProcessTextData()
   mFlags = 0;
 
   nsAutoString data;
-  nsContentUtils::GetNodeTextContent(mContent, false, data);
+  if (!nsContentUtils::GetNodeTextContent(mContent, false, data)) {
+    NS_RUNTIMEABORT("OOM");
+  }
+
   data.CompressWhitespace();
   int32_t length = data.Length();
   char16_t ch = (length == 0) ? char16_t('\0') : data[0];
 
   if ((length == 1) && 
-      (ch == kInvisibleComma || 
-       ch == kApplyFunction  || 
+      (ch == kApplyFunction  ||
        ch == kInvisibleSeparator ||
        ch == kInvisiblePlus ||
        ch == kInvisibleTimes)) {
     mFlags |= NS_MATHML_OPERATOR_INVISIBLE;
   }
 
-  // don't bother doing anything special if we don't have a
-  // single child with a visible text content
+  // don't bother doing anything special if we don't have a single child
   nsPresContext* presContext = PresContext();
-  if (NS_MATHML_OPERATOR_IS_INVISIBLE(mFlags) || mFrames.GetLength() != 1) {
+  if (mFrames.GetLength() != 1) {
     data.Truncate(); // empty data to reset the char
     mMathMLChar.SetData(presContext, data);
     ResolveMathMLCharStyle(presContext, mContent, mStyleContext, &mMathMLChar, false);
@@ -311,11 +310,23 @@ nsMathMLmoFrame::ProcessOperatorData()
     nsIFrame* nextSibling = embellishAncestor->GetNextSibling();
     nsIFrame* prevSibling = embellishAncestor->GetPrevSibling();
 
-    // flag to distinguish from a real infix
-    if (!prevSibling && !nextSibling)
+    // flag to distinguish from a real infix.  Set for (embellished) operators
+    // that live in (inferred) mrows.
+    nsIMathMLFrame* mathAncestor = do_QueryFrame(parentAncestor);
+    bool zeroSpacing = false;
+    if (mathAncestor) {
+      zeroSpacing =  !mathAncestor->IsMrowLike();
+    } else {
+      nsMathMLmathBlockFrame* blockFrame = do_QueryFrame(parentAncestor);
+      if (blockFrame) {
+        zeroSpacing = !blockFrame->IsMrowLike();
+      }
+    }
+    if (zeroSpacing) {
       mFlags |= NS_MATHML_OPERATOR_EMBELLISH_ISOLATED;
-    else
+    } else {
       mFlags &= ~NS_MATHML_OPERATOR_EMBELLISH_ISOLATED;
+    }
 
     // find our form
     form = NS_MATHML_OPERATOR_FORM_INFIX;
@@ -341,18 +352,14 @@ nsMathMLmoFrame::ProcessOperatorData()
     // thickmathspace = 5/18em
     float lspace = 5.0f/18.0f;
     float rspace = 5.0f/18.0f;
-    if (NS_MATHML_OPERATOR_IS_INVISIBLE(mFlags)) {
-      // mMathMLChar has been reset in ProcessTextData so we can not find it
-      // in the operator dictionary. The operator dictionary always uses
-      // lspace = rspace = 0 for invisible operators.
-      lspace = rspace = 0;
-    } else {
-      // lookup the operator dictionary
-      nsAutoString data;
-      mMathMLChar.GetData(data);
-      nsMathMLOperators::LookupOperator(data, form, &mFlags, &lspace, &rspace);
-    }
-    if (lspace || rspace) {
+    // lookup the operator dictionary
+    nsAutoString data;
+    mMathMLChar.GetData(data);
+    nsMathMLOperators::LookupOperator(data, form, &mFlags, &lspace, &rspace);
+    // Spacing is zero if our outermost embellished operator is not in an
+    // inferred mrow.
+    if (!NS_MATHML_OPERATOR_EMBELLISH_IS_ISOLATED(mFlags) &&
+        (lspace || rspace)) {
       // Cache the default values of lspace and rspace.
       // since these values are relative to the 'em' unit, convert to twips now
       nscoord em;
@@ -366,16 +373,10 @@ nsMathMLmoFrame::ProcessOperatorData()
       // tuning if we don't want too much extra space when we are a script.
       // (with its fonts, TeX sets lspace=0 & rspace=0 as soon as scriptlevel>0.
       // Our fonts can be anything, so...)
-      if (StyleFont()->mScriptLevel > 0) {
-        if (NS_MATHML_OPERATOR_EMBELLISH_IS_ISOLATED(mFlags)) {
-          // could be an isolated accent or script, e.g., x^{+}, just zero out
-          mEmbellishData.leadingSpace = 0;
-          mEmbellishData.trailingSpace  = 0;
-        }
-        else if (!NS_MATHML_OPERATOR_HAS_EMBELLISH_ANCESTOR(mFlags)) {
-          mEmbellishData.leadingSpace /= 2;
-          mEmbellishData.trailingSpace  /= 2;
-        }
+      if (StyleFont()->mScriptLevel > 0 &&
+          !NS_MATHML_OPERATOR_HAS_EMBELLISH_ANCESTOR(mFlags)) {
+        mEmbellishData.leadingSpace /= 2;
+        mEmbellishData.trailingSpace /= 2;
       }
     }
   }
@@ -749,15 +750,12 @@ nsMathMLmoFrame::Stretch(nsRenderingContext& aRenderingContext,
     }
   }
 
-  // Child frames of invisble operators are not reflowed
-  if (!NS_MATHML_OPERATOR_IS_INVISIBLE(mFlags)) {
-    // Place our children using the default method
-    // This will allow our child text frame to get its DidReflow()
-    nsresult rv = Place(aRenderingContext, true, aDesiredStretchSize);
-    if (NS_MATHML_HAS_ERROR(mPresentationData.flags) || NS_FAILED(rv)) {
-      // Make sure the child frames get their DidReflow() calls.
-      DidReflowChildren(mFrames.FirstChild());
-    }
+  // Place our children using the default method
+  // This will allow our child text frame to get its DidReflow()
+  nsresult rv = Place(aRenderingContext, true, aDesiredStretchSize);
+  if (NS_MATHML_HAS_ERROR(mPresentationData.flags) || NS_FAILED(rv)) {
+    // Make sure the child frames get their DidReflow() calls.
+    DidReflowChildren(mFrames.FirstChild());
   }
 
   if (useMathMLChar) {
@@ -946,22 +944,6 @@ nsMathMLmoFrame::Reflow(nsPresContext*          aPresContext,
   // certain values use units that depend on our style context, so
   // it is safer to just process the whole lot here
   ProcessOperatorData();
-
-  // play safe by not passing invisible operators to the font subsystem because
-  // some platforms risk selecting strange glyphs for them and give bad inter-space
-  if (NS_MATHML_OPERATOR_IS_INVISIBLE(mFlags)) {
-    // return empty space for now, but this is not yet final since there
-    // can be lspace and rspace attributes that reclaim some room.
-    // These will be dealt with later in Stretch().
-    aDesiredSize.Width() = 0;
-    aDesiredSize.Height() = 0;
-    aDesiredSize.SetTopAscent(0);
-    aDesiredSize.mBoundingMetrics = nsBoundingMetrics();
-    aStatus = NS_FRAME_COMPLETE;
-
-    NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
-    return NS_OK;
-  }
 
   return nsMathMLTokenFrame::Reflow(aPresContext, aDesiredSize,
                                     aReflowState, aStatus);

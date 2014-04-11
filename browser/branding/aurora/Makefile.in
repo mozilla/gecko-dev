@@ -14,7 +14,6 @@ BRANDING_FILES := \
 	branding.nsi \
 	appname.bmp \
 	bgintro.bmp \
-	bgplain.bmp \
 	clock.bmp \
 	particles.bmp \
 	pencil.bmp \
@@ -38,7 +37,7 @@ BRANDING_FILES := \
 	$(NULL)
 endif
 
-ifeq ($(MOZ_WIDGET_TOOLKIT),gtk2)
+ifdef MOZ_WIDGET_GTK
 BRANDING_FILES := \
 	default16.png \
 	default32.png \

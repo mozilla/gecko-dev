@@ -10,7 +10,7 @@
 
   <binding id="remote-browser" extends="chrome://global/content/bindings/browser.xml#browser">
 
-    <implementation type="application/javascript" implements="nsIObserver, nsIDOMEventListener, nsIMessageListener, nsIMessageListener">
+    <implementation type="application/javascript" implements="nsIObserver, nsIDOMEventListener, nsIMessageListener">
 
       <field name="_securityUI">null</field>
 
@@ -30,6 +30,14 @@
           return ptr.data.QueryInterface(Ci.nsISecureBrowserUI);
         ]]></getter>
       </property>
+
+      <method name="adjustPriority">
+        <parameter name="adjustment"/>
+        <body><![CDATA[
+          this.messageManager.sendAsyncMessage("NetworkPrioritizer:AdjustPriority",
+                                               {adjustment: adjustment});
+        ]]></body>
+      </method>
 
       <field name="_remoteWebNavigation">null</field>
 
@@ -68,6 +76,8 @@
 
       <field name="_documentURI">null</field>
 
+      <field name="_documentContentType">null</field>
+
       <!--
         Used by session restore to ensure that currentURI is set so
         that switch-to-tab works before the tab is fully
@@ -83,6 +93,10 @@
 
       <property name="documentURI"
                 onget="return this._documentURI;"
+                readonly="true"/>
+
+      <property name="documentContentType"
+                onget="return this._documentContentType;"
                 readonly="true"/>
 
       <field name="_contentTitle">""</field>
@@ -125,6 +139,7 @@
           return this._fullZoom;
         ]]></getter>
         <setter><![CDATA[
+          this._fullZoom = val;
           this.messageManager.sendAsyncMessage("FullZoom", {value: val});
         ]]></setter>
       </property>
@@ -135,6 +150,7 @@
           return this._textZoom;
         ]]></getter>
         <setter><![CDATA[
+          this._textZoom = val;
           this.messageManager.sendAsyncMessage("TextZoom", {value: val});
         ]]></setter>
       </property>
@@ -150,12 +166,33 @@
                 onget="return document.getElementById(this.getAttribute('autocompletepopup'))"
                 readonly="true"/>
 
+      <property name="docShellIsActive">
+        <getter>
+          <![CDATA[
+            throw new Error("not supported");
+          ]]>
+        </getter>
+        <setter>
+          <![CDATA[
+            let {frameLoader} = this.QueryInterface(Ci.nsIFrameLoaderOwner);
+            frameLoader.tabParent.setIsDocShellActive(val);
+            return val;
+          ]]>
+        </setter>
+      </property>
+
       <constructor>
         <![CDATA[
+          /*
+           * Don't try to send messages from this function. The message manager for
+           * the <browser> element may not be initialized yet.
+           */
+
           let jsm = "resource://gre/modules/RemoteWebNavigation.jsm";
           let RemoteWebNavigation = Cu.import(jsm, {}).RemoteWebNavigation;
           this._remoteWebNavigation = new RemoteWebNavigation(this);
 
+          this.messageManager.addMessageListener("Browser:Init", this);
           this.messageManager.addMessageListener("DOMTitleChanged", this);
           this.messageManager.addMessageListener("ImageDocumentLoaded", this);
           this.messageManager.addMessageListener("SetSyncHandler", this);
@@ -178,14 +215,6 @@
           jsm = "resource://gre/modules/RemoteAddonsParent.jsm";
           let RemoteAddonsParent = Components.utils.import(jsm, {}).RemoteAddonsParent;
           RemoteAddonsParent.init();
-
-          if (!this.hasAttribute("disableglobalhistory")) {
-            this.messageManager.sendAsyncMessage("History:UseGlobalHistory", {enabled:true});
-          }
-
-          if (this.autoCompletePopup) {
-            this.messageManager.sendAsyncMessage("FormAutoComplete:InitPopup");
-          }
         ]]>
       </constructor>
 
@@ -194,6 +223,12 @@
         <body><![CDATA[
           let data = aMessage.data;
           switch (aMessage.name) {
+            case "Browser:Init":
+              let result = {};
+              result.useGlobalHistory = !this.hasAttribute("disableglobalhistory");
+              result.initPopup = this.autoCompletePopup;
+              return result;
+              break;
             case "DOMTitleChanged":
               this._contentTitle = data.title;
               break;
@@ -232,9 +267,36 @@
               Cu.import("resource://gre/modules/SelectParentHelper.jsm");
               let dropdown = document.getElementById(this.getAttribute("selectpopup"));
               SelectParentHelper.hide(dropdown);
+              break;
             }
+
+            default:
+              // Delegate to browser.xml.
+              return this._receiveMessage(aMessage);
+              break;
           }
         ]]></body>
+      </method>
+
+      <!--
+        For out-of-process code, event.screen[XY] is relative to the
+        left/top of the content view. For in-process code,
+        event.screen[XY] is relative to the left/top of the screen. We
+        use this method to map screen coordinates received from a
+        (possibly out-of-process) <browser> element to coordinates
+        that are relative to the screen. This code handles the
+        out-of-process case, where we need to translate by the screen
+        position of the <browser> element.
+      -->
+      <method name="mapScreenCoordinatesFromContent">
+        <parameter name="aScreenX"/>
+        <parameter name="aScreenY"/>
+        <body>
+        <![CDATA[
+          return { x: aScreenX + this.boxObject.screenX,
+                   y: aScreenY + this.boxObject.screenY };
+        ]]>
+        </body>
       </method>
 
     </implementation>

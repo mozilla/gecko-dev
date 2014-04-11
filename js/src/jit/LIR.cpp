@@ -20,6 +20,7 @@ using namespace js::jit;
 LIRGraph::LIRGraph(MIRGraph *mir)
   : blocks_(mir->alloc()),
     constantPool_(mir->alloc()),
+    constantPoolMap_(mir->alloc()),
     safepoints_(mir->alloc()),
     nonCallSafepoints_(mir->alloc()),
     numVirtualRegisters_(0),
@@ -35,8 +36,15 @@ LIRGraph::LIRGraph(MIRGraph *mir)
 bool
 LIRGraph::addConstantToPool(const Value &v, uint32_t *index)
 {
+    JS_ASSERT(constantPoolMap_.initialized());
+
+    ConstantPoolMap::AddPtr p = constantPoolMap_.lookupForAdd(v);
+    if (p) {
+        *index = p->value();
+        return true;
+    }
     *index = constantPool_.length();
-    return constantPool_.append(v);
+    return constantPool_.append(v) && constantPoolMap_.add(p, v, *index);
 }
 
 bool
@@ -111,10 +119,48 @@ TotalOperandCount(MResumePoint *mir)
     return accum;
 }
 
-LSnapshot::LSnapshot(MResumePoint *mir, BailoutKind kind)
-  : numSlots_(TotalOperandCount(mir) * BOX_PIECES),
+LRecoverInfo::LRecoverInfo(TempAllocator &alloc)
+  : instructions_(alloc),
+    recoverOffset_(INVALID_RECOVER_OFFSET)
+{ }
+
+LRecoverInfo *
+LRecoverInfo::New(MIRGenerator *gen, MResumePoint *mir)
+{
+    LRecoverInfo *recoverInfo = new(gen->alloc()) LRecoverInfo(gen->alloc());
+    if (!recoverInfo || !recoverInfo->init(mir))
+        return nullptr;
+
+    IonSpew(IonSpew_Snapshots, "Generating LIR recover info %p from MIR (%p)",
+            (void *)recoverInfo, (void *)mir);
+
+    return recoverInfo;
+}
+
+bool
+LRecoverInfo::init(MResumePoint *rp)
+{
+    MResumePoint *it = rp;
+
+    // Sort operations in the order in which we need to restore the stack. This
+    // implies that outer frames, as well as operations needed to recover the
+    // current frame, are located before the current frame. The inner-most
+    // resume point should be the last element in the list.
+    do {
+        if (!instructions_.append(it))
+            return false;
+        it = it->caller();
+    } while (it);
+
+    Reverse(instructions_.begin(), instructions_.end());
+    MOZ_ASSERT(mir() == rp);
+    return true;
+}
+
+LSnapshot::LSnapshot(LRecoverInfo *recoverInfo, BailoutKind kind)
+  : numSlots_(TotalOperandCount(recoverInfo->mir()) * BOX_PIECES),
     slots_(nullptr),
-    mir_(mir),
+    recoverInfo_(recoverInfo),
     snapshotOffset_(INVALID_SNAPSHOT_OFFSET),
     bailoutId_(INVALID_BAILOUT_ID),
     bailoutKind_(kind)
@@ -128,14 +174,14 @@ LSnapshot::init(MIRGenerator *gen)
 }
 
 LSnapshot *
-LSnapshot::New(MIRGenerator *gen, MResumePoint *mir, BailoutKind kind)
+LSnapshot::New(MIRGenerator *gen, LRecoverInfo *recover, BailoutKind kind)
 {
-    LSnapshot *snapshot = new(gen->alloc()) LSnapshot(mir, kind);
-    if (!snapshot->init(gen))
+    LSnapshot *snapshot = new(gen->alloc()) LSnapshot(recover, kind);
+    if (!snapshot || !snapshot->init(gen))
         return nullptr;
 
-    IonSpew(IonSpew_Snapshots, "Generating LIR snapshot %p from MIR (%p)",
-            (void *)snapshot, (void *)mir);
+    IonSpew(IonSpew_Snapshots, "Generating LIR snapshot %p from recover (%p)",
+            (void *)snapshot, (void *)recover);
 
     return snapshot;
 }
@@ -343,6 +389,7 @@ LInstruction::dump(FILE *fp)
         }
         fprintf(fp, ")");
     }
+    fprintf(stderr, "\n");
 }
 
 void

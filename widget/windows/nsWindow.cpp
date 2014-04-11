@@ -127,6 +127,7 @@
 #include "nsToolkitCompsCID.h"
 #include "nsIAppStartup.h"
 #include "mozilla/WindowsVersion.h"
+#include "nsThemeConstants.h"
 
 #ifdef MOZ_ENABLE_D3D9_LAYER
 #include "LayerManagerD3D9.h"
@@ -362,9 +363,8 @@ nsWindow::nsWindow() : nsWindowBase()
   mTransparencyMode     = eTransparencyOpaque;
   memset(&mGlassMargins, 0, sizeof mGlassMargins);
 #endif
-  mBackground           = ::GetSysColor(COLOR_BTNFACE);
-  mBrush                = ::CreateSolidBrush(NSRGB_2_COLOREF(mBackground));
-  mForeground           = ::GetSysColor(COLOR_WINDOWTEXT);
+  DWORD background      = ::GetSysColor(COLOR_BTNFACE);
+  mBrush                = ::CreateSolidBrush(NSRGB_2_COLOREF(background));
 
   mTaskbarPreview = nullptr;
 
@@ -494,7 +494,8 @@ nsWindow::Create(nsIWidget *aParent,
       parent = nullptr;
     }
 
-    if (IsVistaOrLater() && !IsWin8OrLater()) {
+    if (IsVistaOrLater() && !IsWin8OrLater() &&
+        HasBogusPopupsDropShadowOnMultiMonitor()) {
       extendedStyle |= WS_EX_COMPOSITED;
     }
 
@@ -2333,18 +2334,15 @@ nsWindow::ExcludeNonClientFromPaintRegion(HRGN aRegion)
  *
  **************************************************************/
 
-NS_METHOD nsWindow::SetBackgroundColor(const nscolor &aColor)
+void nsWindow::SetBackgroundColor(const nscolor &aColor)
 {
-  nsBaseWidget::SetBackgroundColor(aColor);
-
   if (mBrush)
     ::DeleteObject(mBrush);
 
-  mBrush = ::CreateSolidBrush(NSRGB_2_COLOREF(mBackground));
+  mBrush = ::CreateSolidBrush(NSRGB_2_COLOREF(aColor));
   if (mWnd != nullptr) {
     ::SetClassLongPtrW(mWnd, GCLP_HBRBACKGROUND, (LONG_PTR)mBrush);
   }
-  return NS_OK;
 }
 
 /**************************************************************
@@ -2598,9 +2596,7 @@ void nsWindow::UpdateOpaqueRegion(const nsIntRegion &aOpaqueRegion)
   if (!aOpaqueRegion.IsEmpty()) {
     nsIntRect pluginBounds;
     for (nsIWidget* child = GetFirstChild(); child; child = child->GetNextSibling()) {
-      nsWindowType type;
-      child->GetWindowType(type);
-      if (type == eWindowType_plugin) {
+      if (child->WindowType() == eWindowType_plugin) {
         // Collect the bounds of all plugins for GetLargestRectangle.
         nsIntRect childBounds;
         child->GetBounds(childBounds);
@@ -3556,6 +3552,28 @@ nsWindow::EndRemoteDrawing()
   mCompositeDC = nullptr;
 }
 
+void
+nsWindow::UpdateThemeGeometries(const nsTArray<ThemeGeometry>& aThemeGeometries)
+{
+  nsIntRegion clearRegion;
+  for (size_t i = 0; i < aThemeGeometries.Length(); i++) {
+    if ((aThemeGeometries[i].mWidgetType == NS_THEME_WINDOW_BUTTON_BOX ||
+         aThemeGeometries[i].mWidgetType == NS_THEME_WINDOW_BUTTON_BOX_MAXIMIZED) &&
+        nsUXThemeData::CheckForCompositor())
+    {
+      nsIntRect bounds = aThemeGeometries[i].mRect;
+      clearRegion = nsIntRect(bounds.X(), bounds.Y(), bounds.Width(), bounds.Height() - 2.0);
+      clearRegion.Or(clearRegion, nsIntRect(bounds.X() + 1.0, bounds.YMost() - 2.0, bounds.Width() - 1.0, 1.0));
+      clearRegion.Or(clearRegion, nsIntRect(bounds.X() + 2.0, bounds.YMost() - 1.0, bounds.Width() - 3.0, 1.0));
+    }
+  }
+
+  nsRefPtr<LayerManager> layerManager = GetLayerManager();
+  if (layerManager) {
+    layerManager->SetRegionToClear(clearRegion);
+  }
+}
+
 /**************************************************************
  **************************************************************
  **
@@ -3983,7 +4001,7 @@ bool nsWindow::DispatchMouseEvent(uint32_t aEventType, WPARAM wParam,
       nsToolkit::gMouseTrailer->Enable();
 
     // Release the widget with NS_IF_RELEASE() just in case
-    // the context menu key code in nsEventListenerManager::HandleEvent()
+    // the context menu key code in EventListenerManager::HandleEvent()
     // released it already.
     return result;
   }
@@ -4005,8 +4023,7 @@ void nsWindow::DispatchFocusToTopLevelWindow(bool aIsActivate)
 
     nsWindow *win = WinUtils::GetNSWindowPtr(curWnd);
     if (win) {
-      nsWindowType wintype;
-      win->GetWindowType(wintype);
+      nsWindowType wintype = win->WindowType();
       if (wintype == eWindowType_toplevel || wintype == eWindowType_dialog)
         break;
     }
@@ -5798,10 +5815,10 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS* wp)
         break;
       case nsSizeMode_Maximized:
           PR_LOG(gWindowsLog, PR_LOG_ALWAYS, 
-                 ("*** mSizeMode: nsSizeMode_Maximized\n");
+                 ("*** mSizeMode: nsSizeMode_Maximized\n"));
         break;
       default:
-          PR_LOG(gWindowsLog, PR_LOG_ALWAYS, ("*** mSizeMode: ??????\n");
+          PR_LOG(gWindowsLog, PR_LOG_ALWAYS, ("*** mSizeMode: ??????\n"));
         break;
     };
 #endif
@@ -5825,9 +5842,7 @@ void nsWindow::OnWindowPosChanged(WINDOWPOS* wp)
     mBounds.x = wp->x;
     mBounds.y = wp->y;
 
-    if (mWidgetListener) {
-      mWidgetListener->WindowMoved(this, wp->x, wp->y);
-    }
+    NotifyWindowMoved(wp->x, wp->y);
   }
 
   // Handle window size changes

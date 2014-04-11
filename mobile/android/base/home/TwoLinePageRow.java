@@ -30,7 +30,7 @@ import android.widget.TextView;
 public class TwoLinePageRow extends LinearLayout
                             implements Tabs.OnTabsChangedListener {
 
-    private static final int NO_ICON = 0;
+    protected static final int NO_ICON = 0;
 
     private final TextView mTitle;
     private final TextView mUrl;
@@ -102,14 +102,9 @@ public class TwoLinePageRow extends LinearLayout
 
     @Override
     protected void onDetachedFromWindow() {
-        // Delay removing the listener to avoid modifying mTabsChangedListeners
-        // while notifyListeners is iterating through the array.
-        ThreadUtils.postToUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Tabs.unregisterOnTabsChangedListener(TwoLinePageRow.this);
-            }
-        });
+        // Tabs' listener array is safe to modify during use: its
+        // iteration pattern is based on snapshots.
+        Tabs.unregisterOnTabsChangedListener(this);
     }
 
     @Override
@@ -127,15 +122,19 @@ public class TwoLinePageRow extends LinearLayout
         mTitle.setText(text);
     }
 
-    private void setUrl(String text) {
+    protected void setUrl(String text) {
         mUrl.setText(text);
     }
 
-    private void setUrl(int stringId) {
+    protected void setUrl(int stringId) {
         mUrl.setText(stringId);
     }
 
-    private void setSwitchToTabIcon(int iconId) {
+    protected String getUrl() {
+        return mPageUrl;
+    }
+
+    protected void setSwitchToTabIcon(int iconId) {
         if (mSwitchToTabIconId == iconId) {
             return;
         }
@@ -164,10 +163,10 @@ public class TwoLinePageRow extends LinearLayout
 
     /**
      * Replaces the page URL with "Switch to tab" if there is already a tab open with that URL.
-     * Only looks for tabs that are either private or non-private, depending on the current 
+     * Only looks for tabs that are either private or non-private, depending on the current
      * selected tab.
      */
-    private void updateDisplayedUrl() {
+    protected void updateDisplayedUrl() {
         boolean isPrivate = Tabs.getInstance().getSelectedTab().isPrivate();
         Tab tab = Tabs.getInstance().getFirstTabForUrl(mPageUrl, isPrivate);
         if (!mShowIcons || tab == null) {

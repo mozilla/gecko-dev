@@ -137,10 +137,10 @@ public:
     }
   }
 
-  virtual void ProduceAudioBlock(AudioNodeStream* aStream,
-                                 const AudioChunk& aInput,
-                                 AudioChunk* aOutput,
-                                 bool* aFinished) MOZ_OVERRIDE
+  virtual void ProcessBlock(AudioNodeStream* aStream,
+                            const AudioChunk& aInput,
+                            AudioChunk* aOutput,
+                            bool* aFinished) MOZ_OVERRIDE
   {
     float inputBuffer[WEBAUDIO_BLOCK_SIZE];
 
@@ -243,9 +243,9 @@ BiquadFilterNode::BiquadFilterNode(AudioContext* aContext)
 }
 
 JSObject*
-BiquadFilterNode::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+BiquadFilterNode::WrapObject(JSContext* aCx)
 {
-  return BiquadFilterNodeBinding::Wrap(aCx, aScope, this);
+  return BiquadFilterNodeBinding::Wrap(aCx, this);
 }
 
 void

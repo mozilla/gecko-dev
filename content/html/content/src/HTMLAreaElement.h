@@ -11,12 +11,15 @@
 #include "mozilla/dom/Link.h"
 #include "nsGenericHTMLElement.h"
 #include "nsGkAtoms.h"
+#include "nsDOMTokenList.h"
 #include "nsIDOMHTMLAreaElement.h"
 #include "nsIURL.h"
 
 class nsIDocument;
 
 namespace mozilla {
+class EventChainPostVisitor;
+class EventChainPreVisitor;
 namespace dom {
 
 class HTMLAreaElement MOZ_FINAL : public nsGenericHTMLElement,
@@ -24,7 +27,7 @@ class HTMLAreaElement MOZ_FINAL : public nsGenericHTMLElement,
                                   public Link
 {
 public:
-  HTMLAreaElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  HTMLAreaElement(already_AddRefed<nsINodeInfo>& aNodeInfo);
   virtual ~HTMLAreaElement();
 
   // nsISupports
@@ -42,8 +45,8 @@ public:
   // nsIDOMHTMLAreaElement
   NS_DECL_NSIDOMHTMLAREAELEMENT
 
-  virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
-  virtual nsresult PostHandleEvent(nsEventChainPostVisitor& aVisitor) MOZ_OVERRIDE;
+  virtual nsresult PreHandleEvent(EventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
+  virtual nsresult PostHandleEvent(EventChainPostVisitor& aVisitor) MOZ_OVERRIDE;
   virtual bool IsLink(nsIURI** aURI) const MOZ_OVERRIDE;
   virtual void GetLinkTarget(nsAString& aTarget) MOZ_OVERRIDE;
   virtual already_AddRefed<nsIURI> GetHrefURI() const MOZ_OVERRIDE;
@@ -66,7 +69,7 @@ public:
 
   virtual nsresult Clone(nsINodeInfo* aNodeInfo, nsINode** aResult) const MOZ_OVERRIDE;
 
-  virtual nsEventStates IntrinsicState() const MOZ_OVERRIDE;
+  virtual EventStates IntrinsicState() const MOZ_OVERRIDE;
 
   // WebIDL
 
@@ -111,7 +114,17 @@ public:
   {
     SetHTMLAttr(nsGkAtoms::ping, aPing, aError);
   }
+  
+  void GetRel(nsString& aValue)
+  {
+    GetHTMLAttr(nsGkAtoms::rel, aValue);
+  }
 
+  void SetRel(const nsAString& aRel, ErrorResult& aError)
+  {
+    SetHTMLAttr(nsGkAtoms::rel, aRel, aError);
+  } 
+  nsDOMTokenList* RelList();
   // The Link::GetOrigin is OK for us
 
   // The XPCOM GetProtocol is OK for us
@@ -160,11 +173,11 @@ public:
   }
 
 protected:
-  virtual JSObject* WrapNode(JSContext* aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext* aCx) MOZ_OVERRIDE;
 
   virtual void GetItemValueText(nsAString& text) MOZ_OVERRIDE;
   virtual void SetItemValueText(const nsAString& text) MOZ_OVERRIDE;
+  nsRefPtr<nsDOMTokenList > mRelList;
 };
 
 } // namespace dom

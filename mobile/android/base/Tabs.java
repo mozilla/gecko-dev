@@ -5,8 +5,6 @@
 
 package org.mozilla.gecko;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -106,6 +104,9 @@ public class Tabs implements GeckoEventListener {
         registerEventListener("Link:OpenSearch");
         registerEventListener("DesktopMode:Changed");
         registerEventListener("Tab:ViewportMetadata");
+        registerEventListener("Tab:StreamStart");
+        registerEventListener("Tab:StreamStop");
+
     }
 
     public synchronized void attachToContext(Context context) {
@@ -381,7 +382,6 @@ public class Tabs implements GeckoEventListener {
     }
 
     // GeckoEventListener implementation
-
     @Override
     public void handleMessage(String event, JSONObject message) {
         Log.d(LOGTAG, "handleMessage: " + event);
@@ -446,8 +446,8 @@ public class Tabs implements GeckoEventListener {
                 int state = message.getInt("state");
                 if ((state & GeckoAppShell.WPL_STATE_IS_NETWORK) != 0) {
                     if ((state & GeckoAppShell.WPL_STATE_START) != 0) {
-                        boolean showProgress = message.getBoolean("showProgress");
-                        tab.handleDocumentStart(showProgress, message.getString("uri"));
+                        boolean restoring = message.getBoolean("restoring");
+                        tab.handleDocumentStart(restoring, message.getString("uri"));
                         notifyListeners(tab, Tabs.TabEvents.START);
                     } else if ((state & GeckoAppShell.WPL_STATE_STOP) != 0) {
                         tab.handleDocumentStop(message.getBoolean("success"));
@@ -488,7 +488,14 @@ public class Tabs implements GeckoEventListener {
                 tab.setZoomConstraints(new ZoomConstraints(message));
                 tab.setIsRTL(message.getBoolean("isRTL"));
                 notifyListeners(tab, TabEvents.VIEWPORT_CHANGE);
+            } else if (event.equals("Tab:StreamStart")) {
+                tab.setRecording(true);
+                notifyListeners(tab, TabEvents.RECORDING_CHANGE);
+            } else if (event.equals("Tab:StreamStop")) {
+                tab.setRecording(false);
+                notifyListeners(tab, TabEvents.RECORDING_CHANGE);
             }
+
         } catch (Exception e) {
             Log.w(LOGTAG, "handleMessage threw for " + event, e);
         }
@@ -528,15 +535,14 @@ public class Tabs implements GeckoEventListener {
         public void onTabChanged(Tab tab, TabEvents msg, Object data);
     }
 
-    private static List<OnTabsChangedListener> mTabsChangedListeners =
-        Collections.synchronizedList(new ArrayList<OnTabsChangedListener>());
+    private static final List<OnTabsChangedListener> TABS_CHANGED_LISTENERS = new CopyOnWriteArrayList<OnTabsChangedListener>();
 
     public static void registerOnTabsChangedListener(OnTabsChangedListener listener) {
-        mTabsChangedListeners.add(listener);
+        TABS_CHANGED_LISTENERS.add(listener);
     }
 
     public static void unregisterOnTabsChangedListener(OnTabsChangedListener listener) {
-        mTabsChangedListeners.remove(listener);
+        TABS_CHANGED_LISTENERS.remove(listener);
     }
 
     public enum TabEvents {
@@ -560,14 +566,14 @@ public class Tabs implements GeckoEventListener {
         SECURITY_CHANGE,
         READER_ENABLED,
         DESKTOP_MODE_CHANGE,
-        VIEWPORT_CHANGE
+        VIEWPORT_CHANGE,
+        RECORDING_CHANGE
     }
 
     public void notifyListeners(Tab tab, TabEvents msg) {
         notifyListeners(tab, msg, "");
     }
 
-    // Throws if not initialized.
     public void notifyListeners(final Tab tab, final TabEvents msg, final Object data) {
         if (tab == null &&
             msg != TabEvents.RESTORED) {
@@ -579,15 +585,13 @@ public class Tabs implements GeckoEventListener {
             public void run() {
                 onTabChanged(tab, msg, data);
 
-                synchronized (mTabsChangedListeners) {
-                    if (mTabsChangedListeners.isEmpty()) {
-                        return;
-                    }
+                if (TABS_CHANGED_LISTENERS.isEmpty()) {
+                    return;
+                }
 
-                    Iterator<OnTabsChangedListener> items = mTabsChangedListeners.iterator();
-                    while (items.hasNext()) {
-                        items.next().onTabChanged(tab, msg, data);
-                    }
+                Iterator<OnTabsChangedListener> items = TABS_CHANGED_LISTENERS.iterator();
+                while (items.hasNext()) {
+                    items.next().onTabChanged(tab, msg, data);
                 }
             }
         });

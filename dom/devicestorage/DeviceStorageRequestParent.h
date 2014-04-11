@@ -24,8 +24,8 @@ class DeviceStorageRequestParent : public PDeviceStorageRequestParent
 public:
   DeviceStorageRequestParent(const DeviceStorageParams& aParams);
 
-  NS_IMETHOD_(nsrefcnt) AddRef();
-  NS_IMETHOD_(nsrefcnt) Release();
+  NS_IMETHOD_(MozExternalRefCountType) AddRef();
+  NS_IMETHOD_(MozExternalRefCountType) Release();
 
   bool EnsureRequiredPermissions(mozilla::dom::ContentParent* aParent);
   void Dispatch();
@@ -264,6 +264,26 @@ private:
     public:
       PostFormatResultEvent(DeviceStorageRequestParent* aParent, DeviceStorageFile* aFile);
       virtual ~PostFormatResultEvent();
+      virtual nsresult CancelableRun();
+    private:
+      nsRefPtr<DeviceStorageFile> mFile;
+ };
+
+ class PostMountResultEvent : public CancelableRunnable
+ {
+    public:
+      PostMountResultEvent(DeviceStorageRequestParent* aParent, DeviceStorageFile* aFile);
+      virtual ~PostMountResultEvent();
+      virtual nsresult CancelableRun();
+    private:
+      nsRefPtr<DeviceStorageFile> mFile;
+ };
+
+ class PostUnmountResultEvent : public CancelableRunnable
+ {
+    public:
+      PostUnmountResultEvent(DeviceStorageRequestParent* aParent, DeviceStorageFile* aFile);
+      virtual ~PostUnmountResultEvent();
       virtual nsresult CancelableRun();
     private:
       nsRefPtr<DeviceStorageFile> mFile;

@@ -16,7 +16,7 @@ namespace dom {
 class HTMLLegendElement MOZ_FINAL : public nsGenericHTMLElement
 {
 public:
-  HTMLLegendElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+  HTMLLegendElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
     : nsGenericHTMLElement(aNodeInfo)
   {
   }
@@ -78,15 +78,14 @@ public:
     SetHTMLAttr(nsGkAtoms::align, aAlign, aError);
   }
 
-  nsINode* GetParentObject() {
+  ParentObject GetParentObject() {
     Element* form = GetFormElement();
-    return form ? static_cast<nsINode*>(form)
+    return form ? GetParentObjectInternal(form)
                 : nsGenericHTMLElement::GetParentObject();
   }
 
 protected:
-  virtual JSObject* WrapNode(JSContext* aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext* aCx) MOZ_OVERRIDE;
 
   /**
    * Get the fieldset content element that contains this legend.

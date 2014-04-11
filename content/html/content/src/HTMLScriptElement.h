@@ -23,8 +23,8 @@ public:
   using Element::GetText;
   using Element::SetText;
 
-  HTMLScriptElement(already_AddRefed<nsINodeInfo> aNodeInfo,
-                      FromParser aFromParser);
+  HTMLScriptElement(already_AddRefed<nsINodeInfo>& aNodeInfo,
+                    FromParser aFromParser);
   virtual ~HTMLScriptElement();
 
   // nsISupports
@@ -74,8 +74,7 @@ public:
   void SetAsync(bool aValue, ErrorResult& rv);
 
 protected:
-  virtual JSObject* WrapNode(JSContext *aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext *aCx) MOZ_OVERRIDE;
   // nsScriptElement
   virtual bool HasScriptContent() MOZ_OVERRIDE;
 };

@@ -29,7 +29,7 @@ class HTMLSharedElement MOZ_FINAL : public nsGenericHTMLElement,
                                     public nsIDOMHTMLHtmlElement
 {
 public:
-  HTMLSharedElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+  HTMLSharedElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
     : nsGenericHTMLElement(aNodeInfo)
   {
     if (mNodeInfo->Equals(nsGkAtoms::head) ||
@@ -178,8 +178,7 @@ public:
   }
 
 protected:
-  virtual JSObject* WrapNode(JSContext* aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext* aCx) MOZ_OVERRIDE;
 };
 
 } // namespace mozilla

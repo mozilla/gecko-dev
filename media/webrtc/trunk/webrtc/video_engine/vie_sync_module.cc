@@ -26,8 +26,10 @@ enum { kSyncInterval = 1000};
 
 int UpdateMeasurements(StreamSynchronization::Measurements* stream,
                        const RtpRtcp& rtp_rtcp, const RtpReceiver& receiver) {
-  stream->latest_timestamp = receiver.Timestamp();
-  stream->latest_receive_time_ms = receiver.LastReceivedTimeMs();
+  if (!receiver.Timestamp(&stream->latest_timestamp))
+    return -1;
+  if (!receiver.LastReceivedTimeMs(&stream->latest_receive_time_ms))
+    return -1;
   synchronization::RtcpMeasurement measurement;
   if (0 != rtp_rtcp.RemoteNTP(&measurement.ntp_secs,
                               &measurement.ntp_frac,
@@ -119,9 +121,11 @@ int32_t ViESyncModule::Process() {
 
   int audio_jitter_buffer_delay_ms = 0;
   int playout_buffer_delay_ms = 0;
+  int avsync_offset_ms = 0;
   if (voe_sync_interface_->GetDelayEstimate(voe_channel_id_,
                                             &audio_jitter_buffer_delay_ms,
-                                            &playout_buffer_delay_ms) != 0) {
+                                            &playout_buffer_delay_ms,
+                                            &avsync_offset_ms) != 0) {
     // Could not get VoE delay value, probably not a valid channel Id or
     // the channel have not received enough packets.
     WEBRTC_TRACE(webrtc::kTraceStream, webrtc::kTraceVideo, vie_channel_->Id(),
@@ -152,11 +156,15 @@ int32_t ViESyncModule::Process() {
   }
 
   int relative_delay_ms;
+  int result;
   // Calculate how much later or earlier the audio stream is compared to video.
-  if (!sync_->ComputeRelativeDelay(audio_measurement_, video_measurement_,
-                                   &relative_delay_ms)) {
+
+  result = sync_->ComputeRelativeDelay(audio_measurement_, video_measurement_,
+                                       &relative_delay_ms);
+  if (!result) {
     return 0;
   }
+  voe_sync_interface_->SetCurrentSyncOffset(voe_channel_id_, relative_delay_ms);
 
   TRACE_COUNTER1("webrtc", "SyncCurrentVideoDelay", current_video_delay_ms);
   TRACE_COUNTER1("webrtc", "SyncCurrentAudioDelay", current_audio_delay_ms);

@@ -26,9 +26,9 @@ class JSObject;
 
 #ifdef PR_LOGGING
 extern PRLogModuleInfo* gMediaSourceLog;
-#define LOG(type, msg) PR_LOG(gMediaSourceLog, type, msg)
+#define MSE_DEBUG(...) PR_LOG(gMediaSourceLog, PR_LOG_DEBUG, (__VA_ARGS__))
 #else
-#define LOG(type, msg)
+#define MSE_DEBUG(...)
 #endif
 
 namespace mozilla {
@@ -253,7 +253,7 @@ SourceBuffer::Ended()
 }
 
 SourceBuffer::SourceBuffer(MediaSource* aMediaSource, const nsACString& aType)
-  : nsDOMEventTargetHelper(aMediaSource->GetParentObject())
+  : DOMEventTargetHelper(aMediaSource->GetParentObject())
   , mMediaSource(aMediaSource)
   , mAppendWindowStart(0)
   , mAppendWindowEnd(PositiveInfinity<double>())
@@ -281,22 +281,22 @@ SourceBuffer::GetParentObject() const
 }
 
 JSObject*
-SourceBuffer::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+SourceBuffer::WrapObject(JSContext* aCx)
 {
-  return SourceBufferBinding::Wrap(aCx, aScope, this);
+  return SourceBufferBinding::Wrap(aCx, this);
 }
 
 void
 SourceBuffer::DispatchSimpleEvent(const char* aName)
 {
-  LOG(PR_LOG_DEBUG, ("%p Dispatching event %s to SourceBuffer", this, aName));
+  MSE_DEBUG("%p Dispatching event %s to SourceBuffer", this, aName);
   DispatchTrustedEvent(NS_ConvertUTF8toUTF16(aName));
 }
 
 void
 SourceBuffer::QueueAsyncSimpleEvent(const char* aName)
 {
-  LOG(PR_LOG_DEBUG, ("%p Queuing event %s to SourceBuffer", this, aName));
+  MSE_DEBUG("%p Queuing event %s to SourceBuffer", this, aName);
   nsCOMPtr<nsIRunnable> event = new AsyncEventRunner<SourceBuffer>(this, aName);
   NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
 }
@@ -339,7 +339,7 @@ SourceBuffer::AppendData(const uint8_t* aData, uint32_t aLength, ErrorResult& aR
   }
   // TODO: Run coded frame eviction algorithm.
   // TODO: Test buffer full flag.
-  LOG(PR_LOG_DEBUG, ("%p Append(ArrayBuffer=%u)", this, aLength));
+  MSE_DEBUG("%p Append(ArrayBuffer=%u)", this, aLength);
   StartUpdating();
   // XXX: For future reference: NDA call must run on the main thread.
   mDecoder->NotifyDataArrived(reinterpret_cast<const char*>(aData),
@@ -399,13 +399,14 @@ SourceBuffer::Evict(double aStart, double aEnd)
   }
 }
 
-NS_IMPL_CYCLE_COLLECTION_INHERITED_1(SourceBuffer, nsDOMEventTargetHelper, mMediaSource)
+NS_IMPL_CYCLE_COLLECTION_INHERITED_1(SourceBuffer, DOMEventTargetHelper,
+                                     mMediaSource)
 
-NS_IMPL_ADDREF_INHERITED(SourceBuffer, nsDOMEventTargetHelper)
-NS_IMPL_RELEASE_INHERITED(SourceBuffer, nsDOMEventTargetHelper)
+NS_IMPL_ADDREF_INHERITED(SourceBuffer, DOMEventTargetHelper)
+NS_IMPL_RELEASE_INHERITED(SourceBuffer, DOMEventTargetHelper)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(SourceBuffer)
-NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetHelper)
+NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 } // namespace dom
 

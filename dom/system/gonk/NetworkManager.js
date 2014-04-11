@@ -40,6 +40,7 @@ const TOPIC_ACTIVE_CHANGED           = "network-active-changed";
 const TOPIC_MOZSETTINGS_CHANGED      = "mozsettings-changed";
 const TOPIC_PREF_CHANGED             = "nsPref:changed";
 const TOPIC_XPCOM_SHUTDOWN           = "xpcom-shutdown";
+const TOPIC_CONNECTION_STATE_CHANGED = "network-connection-state-changed";
 const PREF_MANAGE_OFFLINE_STATUS     = "network.gonk.manage-offline-status";
 
 const POSSIBLE_USB_INTERFACE_NAME = "rndis0,usb0";
@@ -106,6 +107,13 @@ const MOBILE_DUN_CONNECT_TIMEOUT       = 30000;
 const MOBILE_DUN_RETRY_INTERVAL        = 5000;
 const MOBILE_DUN_MAX_RETRIES           = 5;
 
+// Connection Type for Network Information API
+const CONNECTION_TYPE_CULLULAR  = 0;
+const CONNECTION_TYPE_BLUETOOTH = 1;
+const CONNECTION_TYPE_ETHERNET  = 2;
+const CONNECTION_TYPE_WIFI      = 3;
+const CONNECTION_TYPE_OTHER     = 4;
+const CONNECTION_TYPE_NONE      = 5;
 
 const DEBUG = false;
 
@@ -276,6 +284,12 @@ NetworkManager.prototype = {
 #endif
             break;
         }
+#ifdef MOZ_B2G_RIL
+        // Notify outer modules like MmsService to start the transaction after
+        // the configuration of the network interface is done.
+        Services.obs.notifyObservers(network, TOPIC_CONNECTION_STATE_CHANGED,
+                                     this.convertConnectionType(network));
+#endif
         break;
 #ifdef MOZ_B2G_RIL
       case TOPIC_INTERFACE_REGISTERED:
@@ -343,16 +357,18 @@ NetworkManager.prototype = {
             continue;
           }
 #endif
+          let ips = {};
+          let prefixLengths = {};
+          i.getAddresses(ips, prefixLengths);
+
           interfaces.push({
             state: i.state,
             type: i.type,
             name: i.name,
-            ip: i.ip,
-            prefixLength: i.prefixLength,
-            broadcast: i.broadcast,
-            gateway: i.gateway,
-            dns1: i.dns1,
-            dns2: i.dns2,
+            ips: ips.value,
+            prefixLengths: prefixLengths.value,
+            gateways: i.getGateways(),
+            dnses: i.getDnses(),
             httpProxyHost: i.httpProxyHost,
             httpProxyPort: i.httpProxyPort
           });
@@ -446,7 +462,8 @@ NetworkManager.prototype = {
   isNetworkTypeSecondaryMobile: function(type) {
     return (type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS ||
             type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_SUPL ||
-            type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_IMS);
+            type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_IMS ||
+            type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_DUN);
   },
 
   isNetworkTypeMobile: function(type) {
@@ -499,36 +516,44 @@ NetworkManager.prototype = {
   },
 
   setSecondaryDefaultRoute: function(network) {
-    // First, we need to add a host route to the gateway in the secondary
-    // routing table to make the gateway reachable. Host route takes the max
-    // prefix and gateway address 'any'.
-    let route = {
-      ip: network.gateway,
-      prefix: IPV4_MAX_PREFIX_LENGTH,
-      gateway: IPV4_ADDRESS_ANY
-    };
-    gNetworkService.addSecondaryRoute(network.name, route);
-    // Now we can add the default route through gateway. Default route takes the
-    // min prefix and destination ip 'any'.
-    route.ip = IPV4_ADDRESS_ANY;
-    route.prefix = 0;
-    route.gateway = network.gateway;
-    gNetworkService.addSecondaryRoute(network.name, route);
+    let gateways = network.getGateways();
+    for (let i = 0; i < gateways.length; i++) {
+      let isIPv6 = (gateways[i].indexOf(":") != -1) ? true : false;
+      // First, we need to add a host route to the gateway in the secondary
+      // routing table to make the gateway reachable. Host route takes the max
+      // prefix and gateway address 'any'.
+      let route = {
+        ip: gateways[i],
+        prefix: isIPv6 ? IPV6_MAX_PREFIX_LENGTH : IPV4_MAX_PREFIX_LENGTH,
+        gateway: isIPv6 ? IPV6_ADDRESS_ANY : IPV4_ADDRESS_ANY
+      };
+      gNetworkService.addSecondaryRoute(network.name, route);
+      // Now we can add the default route through gateway. Default route takes the
+      // min prefix and destination ip 'any'.
+      route.ip = isIPv6 ? IPV6_ADDRESS_ANY : IPV4_ADDRESS_ANY;
+      route.prefix = 0;
+      route.gateway = gateways[i];
+      gNetworkService.addSecondaryRoute(network.name, route);
+    }
   },
 
   removeSecondaryDefaultRoute: function(network) {
-    // Remove both host route and default route.
-    let route = {
-      ip: network.gateway,
-      prefix: IPV4_MAX_PREFIX_LENGTH,
-      gateway: IPV4_ADDRESS_ANY
-    };
-    gNetworkService.removeSecondaryRoute(network.name, route);
+    let gateways = network.getGateways();
+    for (let i = 0; i < gateways.length; i++) {
+      let isIPv6 = (gateways[i].indexOf(":") != -1) ? true : false;
+      // Remove both default route and host route.
+      let route = {
+        ip: isIPv6 ? IPV6_ADDRESS_ANY : IPV4_ADDRESS_ANY,
+        prefix: 0,
+        gateway: gateways[i]
+      };
+      gNetworkService.removeSecondaryRoute(network.name, route);
 
-    route.ip = IPV4_ADDRESS_ANY;
-    route.prefix = "0";
-    route.gateway = network.gateway;
-    gNetworkService.removeSecondaryRoute(network.name, route);
+      route.ip = gateways[i];
+      route.prefix = isIPv6 ? IPV6_MAX_PREFIX_LENGTH : IPV4_MAX_PREFIX_LENGTH;
+      route.gateway = isIPv6 ? IPV6_ADDRESS_ANY : IPV4_ADDRESS_ANY;
+      gNetworkService.removeSecondaryRoute(network.name, route);
+    }
   },
 #endif // MOZ_B2G_RIL
 
@@ -644,6 +669,27 @@ NetworkManager.prototype = {
     return retval;
   },
 #endif
+
+  convertConnectionType: function(network) {
+    // If there is internal interface change (e.g., MOBILE_MMS, MOBILE_SUPL),
+    // the function will return null so that it won't trigger type change event
+    // in NetworkInformation API.
+    if (network.type != Ci.nsINetworkInterface.NETWORK_TYPE_WIFI &&
+        network.type != Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE) {
+      return null;
+    }
+
+    if (network.state == Ci.nsINetworkInterface.NETWORK_STATE_DISCONNECTED) {
+      return CONNECTION_TYPE_NONE;
+    }
+
+    switch (network.type) {
+      case Ci.nsINetworkInterface.NETWORK_TYPE_WIFI:
+        return CONNECTION_TYPE_WIFI;
+      case Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE:
+        return CONNECTION_TYPE_CULLULAR;
+    }
+  },
 
   // nsISettingsServiceCallback
 

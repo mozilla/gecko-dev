@@ -42,7 +42,7 @@
 #define CPU(WTF_FEATURE) (defined WTF_CPU_##WTF_FEATURE  && WTF_CPU_##WTF_FEATURE)
 /* HAVE() - specific system features (headers, functions or similar) that are present or not */
 #define HAVE(WTF_FEATURE) (defined HAVE_##WTF_FEATURE  && HAVE_##WTF_FEATURE)
-/* OS() - underlying operating system; only to be used for mandated low-level services like 
+/* OS() - underlying operating system; only to be used for mandated low-level services like
    virtual memory, not to choose a GUI toolkit */
 #define OS(WTF_FEATURE) (defined WTF_OS_##WTF_FEATURE  && WTF_OS_##WTF_FEATURE)
 
@@ -165,15 +165,21 @@
     || defined(__POWERPC__) \
     || defined(_M_PPC)      \
     || defined(__PPC)
+#if !defined(__ppc64__) && !defined(__PPC64__)
 #define WTF_CPU_PPC 1
+#endif
+#if !defined(__LITTLE_ENDIAN__)
 #define WTF_CPU_BIG_ENDIAN 1
+#endif
 #endif
 
 /* WTF_CPU_PPC64 - PowerPC 64-bit */
 #if   defined(__ppc64__) \
     || defined(__PPC64__)
 #define WTF_CPU_PPC64 1
+#if !defined(__LITTLE_ENDIAN__)
 #define WTF_CPU_BIG_ENDIAN 1
+#endif
 #endif
 
 /* WTF_CPU_SH4 - SuperH SH-4 */
@@ -335,7 +341,7 @@
 
 
 /* WTF_CPU_ARMV5_OR_LOWER - ARM instruction set v5 or earlier */
-/* On ARMv5 and below the natural alignment is required. 
+/* On ARMv5 and below the natural alignment is required.
    And there are some other differences for v5 or earlier. */
 #if !defined(ARMV5_OR_LOWER) && WTF_CPU_ARM && !(WTF_ARM_ARCH_VERSION >= 6)
 #define WTF_CPU_ARMV5_OR_LOWER 1
@@ -377,7 +383,7 @@
 #define WTF_CPU_NEEDS_ALIGNED_ACCESS 1
 #endif
 
-/* ==== OS() - underlying operating system; only to be used for mandated low-level services like 
+/* ==== OS() - underlying operating system; only to be used for mandated low-level services like
    virtual memory, not to choose a GUI toolkit ==== */
 
 /* WTF_OS_ANDROID - Android */
@@ -1237,7 +1243,7 @@
 //#include "GTypedefs.h"
 #endif
 
-/* FIXME: This define won't be needed once #27551 is fully landed. However, 
+/* FIXME: This define won't be needed once #27551 is fully landed. However,
    since most ports try to support sub-project independence, adding new headers
    to WTF causes many ports to break, and so this way we can address the build
    breakages one port at a time. */

@@ -620,7 +620,7 @@ XPCWrappedNativeScope::SetExpandoChain(JSContext *cx, HandleObject target,
     MOZ_ASSERT_IF(chain, GetObjectScope(chain) == this);
     if (!mXrayExpandos.initialized() && !mXrayExpandos.init(cx))
         return false;
-    return mXrayExpandos.put(target, chain);
+    return mXrayExpandos.put(cx, target, chain);
 }
 
 /***************************************************************************/
@@ -715,8 +715,8 @@ XPCWrappedNativeScope::AddSizeOfIncludingThis(ScopeSizeInfo* scopeSizeInfo)
     scopeSizeInfo->mScopeAndMapSize +=
         mWrappedNativeProtoMap->SizeOfIncludingThis(scopeSizeInfo->mMallocSizeOf);
 
-    if (dom::HasProtoAndIfaceArray(mGlobalJSObject)) {
-        dom::ProtoAndIfaceArray* cache = dom::GetProtoAndIfaceArray(mGlobalJSObject);
+    if (dom::HasProtoAndIfaceCache(mGlobalJSObject)) {
+        dom::ProtoAndIfaceCache* cache = dom::GetProtoAndIfaceCache(mGlobalJSObject);
         scopeSizeInfo->mProtoAndIfaceCacheSize +=
             cache->SizeOfIncludingThis(scopeSizeInfo->mMallocSizeOf);
     }

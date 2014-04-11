@@ -7,12 +7,12 @@
 #define nsIHTMLCollection_h___
 
 #include "nsIDOMHTMLCollection.h"
+#include "nsTArrayForwardDeclare.h"
 #include "nsWrapperCache.h"
 #include "js/TypeDecls.h"
 
 class nsINode;
 class nsString;
-template<class> class nsTArray;
 
 namespace mozilla {
 class ErrorResult;
@@ -78,7 +78,7 @@ public:
   {
     return GetWrapperPreserveColorInternal();
   }
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope) = 0;
+  virtual JSObject* WrapObject(JSContext* aCx) = 0;
 protected:
   virtual JSObject* GetWrapperPreserveColorInternal() = 0;
 };

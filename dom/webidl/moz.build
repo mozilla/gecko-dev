@@ -16,6 +16,7 @@ PREPROCESSED_WEBIDL_FILES = [
 
 WEBIDL_FILES = [
     'AbstractWorker.webidl',
+    'ActivityRequestHandler.webidl',
     'AnalyserNode.webidl',
     'AnimationEvent.webidl',
     'AppInfo.webidl',
@@ -73,6 +74,7 @@ WEBIDL_FILES = [
     'DesktopNotification.webidl',
     'DeviceMotionEvent.webidl',
     'DeviceStorage.webidl',
+    'Directory.webidl',
     'Document.webidl',
     'DocumentFragment.webidl',
     'DocumentType.webidl',
@@ -82,6 +84,8 @@ WEBIDL_FILES = [
     'DOMImplementation.webidl',
     'DOMMMIError.webidl',
     'DOMParser.webidl',
+    'DOMPoint.webidl',
+    'DOMQuad.webidl',
     'DOMRect.webidl',
     'DOMRectList.webidl',
     'DOMRequest.webidl',
@@ -112,6 +116,7 @@ WEBIDL_FILES = [
     'Function.webidl',
     'GainNode.webidl',
     'Geolocation.webidl',
+    'GeometryUtils.webidl',
     'GetUserMediaRequest.webidl',
     'History.webidl',
     'HTMLAnchorElement.webidl',
@@ -202,6 +207,7 @@ WEBIDL_FILES = [
     'IDBVersionChangeEvent.webidl',
     'ImageData.webidl',
     'ImageDocument.webidl',
+    'InputEvent.webidl',
     'InputMethod.webidl',
     'InspectorUtils.webidl',
     'InterAppConnection.webidl',
@@ -234,22 +240,24 @@ WEBIDL_FILES = [
     'MouseEvent.webidl',
     'MouseScrollEvent.webidl',
     'MozActivity.webidl',
-    'MozConnection.webidl',
     'MozMmsMessage.webidl',
+    'MozMobileConnection.webidl',
     'MozNamedAttrMap.webidl',
+    'MozNetworkStats.webidl',
     'MozPowerManager.webidl',
     'MozTimeManager.webidl',
     'MozWakeLock.webidl',
     'MutationEvent.webidl',
     'MutationObserver.webidl',
+    'NativeOSFileInternals.webidl',
     'NetDashboard.webidl',
+    'NetworkInformation.webidl',
     'NetworkOptions.webidl',
     'Node.webidl',
     'NodeFilter.webidl',
     'NodeIterator.webidl',
     'NodeList.webidl',
     'Notification.webidl',
-    'NotifyAudioAvailableEvent.webidl',
     'NotifyPaintEvent.webidl',
     'OfflineAudioCompletionEvent.webidl',
     'OfflineAudioContext.webidl',
@@ -263,6 +271,7 @@ WEBIDL_FILES = [
     'PerformanceNavigation.webidl',
     'PerformanceTiming.webidl',
     'PeriodicWave.webidl',
+    'PermissionSettings.webidl',
     'PhoneNumberService.webidl',
     'Plugin.webidl',
     'PluginArray.webidl',
@@ -428,7 +437,6 @@ WEBIDL_FILES = [
     'VideoStreamTrack.webidl',
     'VTTCue.webidl',
     'VTTRegion.webidl',
-    'VTTRegionList.webidl',
     'WaveShaperNode.webidl',
     'WebComponents.webidl',
     'WebSocket.webidl',
@@ -469,6 +477,7 @@ if CONFIG['MOZ_WEBRTC']:
         'PeerConnectionImplEnums.webidl',
         'PeerConnectionObserver.webidl',
         'PeerConnectionObserverEnums.webidl',
+        'WebrtcGlobalInformation.webidl',
     ]
 
 if CONFIG['MOZ_WEBSPEECH']:
@@ -589,6 +598,7 @@ GENERATED_EVENTS_WEBIDL_FILES = [
     'MozStkCommandEvent.webidl',
     'RTCDataChannelEvent.webidl',
     'RTCPeerConnectionIceEvent.webidl',
+    'RTCPeerConnectionIdentityErrorEvent.webidl',
     'RTCPeerConnectionIdentityEvent.webidl',
     'TrackEvent.webidl',
     'UserProximityEvent.webidl',
@@ -608,3 +618,12 @@ if CONFIG['MOZ_B2G_BT']:
         'BluetoothStatusChangedEvent.webidl',
     ]
 
+if CONFIG['MOZ_BUILD_APP'] in ['browser', 'xulrunner']:
+    WEBIDL_FILES += [
+        'BrowserFeedWriter.webidl',
+    ]
+
+if CONFIG['MOZ_BUILD_APP'] in ['browser', 'mobile/android', 'xulrunner']:
+    WEBIDL_FILES += [
+        'External.webidl',
+    ]

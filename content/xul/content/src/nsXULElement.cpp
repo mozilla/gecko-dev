@@ -33,8 +33,9 @@
 #include "nsIDOMElementCSSInlineStyle.h"
 #include "nsIDOMXULSelectCntrlItemEl.h"
 #include "nsIDocument.h"
-#include "nsEventListenerManager.h"
-#include "nsEventStateManager.h"
+#include "mozilla/EventListenerManager.h"
+#include "mozilla/EventStateManager.h"
+#include "mozilla/EventStates.h"
 #include "nsFocusManager.h"
 #include "nsHTMLStyleSheet.h"
 #include "nsIJSRuntimeService.h"
@@ -58,7 +59,7 @@
 #include "nsIXULTemplateBuilder.h"
 #include "nsLayoutCID.h"
 #include "nsContentCID.h"
-#include "nsDOMEvent.h"
+#include "mozilla/dom/Event.h"
 #include "nsRDFCID.h"
 #include "nsStyleConsts.h"
 #include "nsXPIDLString.h"
@@ -75,7 +76,6 @@
 #include "nsContentList.h"
 #include "mozilla/InternalMutationEvent.h"
 #include "mozilla/MouseEvents.h"
-#include "nsAsyncDOMEvent.h"
 #include "nsIDOMMutationEvent.h"
 #include "nsPIDOMWindow.h"
 #include "nsJSPrincipals.h"
@@ -100,7 +100,7 @@
 #include "nsIFrame.h"
 #include "nsNodeInfoManager.h"
 #include "nsXBLBinding.h"
-#include "nsEventDispatcher.h"
+#include "mozilla/EventDispatcher.h"
 #include "mozAutoDocUpdate.h"
 #include "nsIDOMXULCommandEvent.h"
 #include "nsCCUncollectableMarker.h"
@@ -293,28 +293,31 @@ nsXULElement::Create(nsXULPrototypeElement* aPrototype,
 }
 
 nsresult
-NS_NewXULElement(Element** aResult, already_AddRefed<nsINodeInfo> aNodeInfo)
+NS_NewXULElement(Element** aResult, already_AddRefed<nsINodeInfo>&& aNodeInfo)
 {
-    NS_PRECONDITION(aNodeInfo.get(), "need nodeinfo for non-proto Create");
+    nsCOMPtr<nsINodeInfo> ni = aNodeInfo;
 
-    nsIDocument* doc = aNodeInfo.get()->GetDocument();
+    NS_PRECONDITION(ni, "need nodeinfo for non-proto Create");
+
+    nsIDocument* doc = ni->GetDocument();
     if (doc && !doc->AllowXULXBL()) {
-        nsCOMPtr<nsINodeInfo> ni = aNodeInfo;
         return NS_ERROR_NOT_AVAILABLE;
     }
 
-    NS_ADDREF(*aResult = new nsXULElement(aNodeInfo));
+    NS_ADDREF(*aResult = new nsXULElement(ni.forget()));
 
     return NS_OK;
 }
 
 void
-NS_TrustedNewXULElement(nsIContent** aResult, already_AddRefed<nsINodeInfo> aNodeInfo)
+NS_TrustedNewXULElement(nsIContent** aResult,
+                        already_AddRefed<nsINodeInfo>&& aNodeInfo)
 {
-    NS_PRECONDITION(aNodeInfo.get(), "need nodeinfo for non-proto Create");
+    nsCOMPtr<nsINodeInfo> ni = aNodeInfo;
+    NS_PRECONDITION(ni, "need nodeinfo for non-proto Create");
 
     // Create an nsXULElement with the specified namespace and tag.
-    NS_ADDREF(*aResult = new nsXULElement(aNodeInfo));
+    NS_ADDREF(*aResult = new nsXULElement(ni.forget()));
 }
 
 //----------------------------------------------------------------------
@@ -416,7 +419,7 @@ nsXULElement::GetElementsByAttribute(const nsAString& aAttribute,
                                      const nsAString& aValue,
                                      nsIDOMNodeList** aReturn)
 {
-    *aReturn = GetElementsByAttribute(aAttribute, aValue).get();
+    *aReturn = GetElementsByAttribute(aAttribute, aValue).take();
     return NS_OK;
 }
 
@@ -445,7 +448,7 @@ nsXULElement::GetElementsByAttributeNS(const nsAString& aNamespaceURI,
 {
     ErrorResult rv;
     *aReturn =
-        GetElementsByAttributeNS(aNamespaceURI, aAttribute, aValue, rv).get();
+        GetElementsByAttributeNS(aNamespaceURI, aAttribute, aValue, rv).take();
     return rv.ErrorCode();
 }
 
@@ -480,7 +483,7 @@ nsXULElement::GetElementsByAttributeNS(const nsAString& aNamespaceURI,
     return list.forget();
 }
 
-nsEventListenerManager*
+EventListenerManager*
 nsXULElement::GetEventListenerManagerForAttr(nsIAtom* aAttrName, bool* aDefer)
 {
     // XXXbz sXBL/XBL2 issue: should we instead use GetCurrentDoc()
@@ -550,7 +553,7 @@ nsXULElement::IsFocusableInternal(int32_t *aTabIndex, bool aWithMouse)
   // the focus.
   if (aWithMouse &&
       IsNonList(mNodeInfo) && 
-      !nsEventStateManager::IsRemoteTarget(this))
+      !EventStateManager::IsRemoteTarget(this))
   {
     return false;
   }
@@ -1137,7 +1140,7 @@ nsXULElement::List(FILE* out, int32_t aIndent) const
 #endif
 
 nsresult
-nsXULElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
+nsXULElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
 {
     aVisitor.mForceContentDispatch = true; //FIXME! Bug 329119
     nsIAtom* tag = Tag();
@@ -1185,7 +1188,7 @@ nsXULElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
                 // handling.
                 nsCOMPtr<nsIDOMEvent> domEvent = aVisitor.mDOMEvent;
                 while (domEvent) {
-                    nsDOMEvent* event = domEvent->InternalDOMEvent();
+                    Event* event = domEvent->InternalDOMEvent();
                     NS_ENSURE_STATE(!SameCOMIdentity(event->GetOriginalTarget(),
                                                      commandContent));
                     nsCOMPtr<nsIDOMXULCommandEvent> commandEvent =
@@ -1222,7 +1225,7 @@ NS_IMETHODIMP
 nsXULElement::GetResource(nsIRDFResource** aResource)
 {
     ErrorResult rv;
-    *aResource = GetResource(rv).get();
+    *aResource = GetResource(rv).take();
     return rv.ErrorCode();
 }
 
@@ -1248,7 +1251,7 @@ nsXULElement::GetResource(ErrorResult& rv)
 NS_IMETHODIMP
 nsXULElement::GetDatabase(nsIRDFCompositeDataSource** aDatabase)
 {
-    *aDatabase = GetDatabase().get();
+    *aDatabase = GetDatabase().take();
     return NS_OK;
 }
 
@@ -1269,7 +1272,7 @@ nsXULElement::GetDatabase()
 NS_IMETHODIMP
 nsXULElement::GetBuilder(nsIXULTemplateBuilder** aBuilder)
 {
-    *aBuilder = GetBuilder().get();
+    *aBuilder = GetBuilder().take();
     return NS_OK;
 }
 
@@ -1363,7 +1366,7 @@ NS_IMETHODIMP
 nsXULElement::GetBoxObject(nsIBoxObject** aResult)
 {
     ErrorResult rv;
-    *aResult = GetBoxObject(rv).get();
+    *aResult = GetBoxObject(rv).take();
     return rv.ErrorCode();
 }
 
@@ -1466,7 +1469,7 @@ nsXULElement::LoadSrc()
 nsresult
 nsXULElement::GetFrameLoader(nsIFrameLoader **aFrameLoader)
 {
-    *aFrameLoader = GetFrameLoader().get();
+    *aFrameLoader = GetFrameLoader().take();
     return NS_OK;
 }
 
@@ -1617,18 +1620,18 @@ nsXULElement::ClickWithInputSource(uint16_t aInputSource)
 
             // send mouse down
             nsEventStatus status = nsEventStatus_eIgnore;
-            nsEventDispatcher::Dispatch(static_cast<nsIContent*>(this),
-                                        context, &eventDown,  nullptr, &status);
+            EventDispatcher::Dispatch(static_cast<nsIContent*>(this),
+                                      context, &eventDown,  nullptr, &status);
 
             // send mouse up
             status = nsEventStatus_eIgnore;  // reset status
-            nsEventDispatcher::Dispatch(static_cast<nsIContent*>(this),
-                                        context, &eventUp, nullptr, &status);
+            EventDispatcher::Dispatch(static_cast<nsIContent*>(this),
+                                      context, &eventUp, nullptr, &status);
 
             // send mouse click
             status = nsEventStatus_eIgnore;  // reset status
-            nsEventDispatcher::Dispatch(static_cast<nsIContent*>(this),
-                                        context, &eventClick, nullptr, &status);
+            EventDispatcher::Dispatch(static_cast<nsIContent*>(this),
+                                      context, &eventClick, nullptr, &status);
         }
     }
 
@@ -1677,25 +1680,25 @@ nsXULElement::AddPopupListener(nsIAtom* aName)
       new nsXULPopupListener(this, isContext);
 
     // Add the popup as a listener on this element.
-    nsEventListenerManager* manager = GetOrCreateListenerManager();
+    EventListenerManager* manager = GetOrCreateListenerManager();
     SetFlags(listenerFlag);
 
     if (isContext) {
       manager->AddEventListenerByType(listener,
                                       NS_LITERAL_STRING("contextmenu"),
-                                      dom::TrustedEventsAtSystemGroupBubble());
+                                      TrustedEventsAtSystemGroupBubble());
     } else {
       manager->AddEventListenerByType(listener,
                                       NS_LITERAL_STRING("mousedown"),
-                                      dom::TrustedEventsAtSystemGroupBubble());
+                                      TrustedEventsAtSystemGroupBubble());
     }
     return NS_OK;
 }
 
-nsEventStates
+EventStates
 nsXULElement::IntrinsicState() const
 {
-    nsEventStates state = nsStyledElement::IntrinsicState();
+    EventStates state = nsStyledElement::IntrinsicState();
 
     if (IsReadWriteTextElement()) {
         state |= NS_EVENT_STATE_MOZ_READWRITE;
@@ -1946,9 +1949,9 @@ nsXULElement::IsEventAttributeName(nsIAtom *aName)
 }
 
 JSObject*
-nsXULElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+nsXULElement::WrapNode(JSContext *aCx)
 {
-    return dom::XULElementBinding::Wrap(aCx, aScope, this);
+    return dom::XULElementBinding::Wrap(aCx, this);
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsXULPrototypeNode)
@@ -2244,7 +2247,9 @@ nsXULPrototypeElement::Deserialize(nsIObjectInputStream* aStream,
                       rv = tmp;
                     }
                 } else {
-                    tmp = aStream->ReadObject(true, getter_AddRefs(script->mSrcURI));
+                    nsCOMPtr<nsISupports> supports;
+                    tmp = aStream->ReadObject(true, getter_AddRefs(supports));
+                    script->mSrcURI = do_QueryInterface(supports);
                     if (NS_FAILED(tmp)) {
                       rv = tmp;
                     }
@@ -2643,7 +2648,7 @@ nsXULPrototypeScript::Compile(const char16_t* aText,
     // Ok, compile it to create a prototype script object!
     NS_ENSURE_TRUE(JSVersion(mLangVersion) != JSVERSION_UNKNOWN, NS_OK);
     JS::CompileOptions options(cx);
-    options.setPrincipals(nsJSPrincipals::get(aDocument->NodePrincipal()))
+    options.setIntroductionType("scriptElement")
            .setFileAndLine(urlspec.get(), aLineNo)
            .setVersion(JSVersion(mLangVersion));
     // If the script was inline, tell the JS parser to save source for

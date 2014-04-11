@@ -20,6 +20,7 @@ UDPSocketChildBase::UDPSocketChildBase()
 UDPSocketChildBase::~UDPSocketChildBase()
 {
 }
+
 void
 UDPSocketChildBase::ReleaseIPDLReference()
 {
@@ -36,7 +37,7 @@ UDPSocketChildBase::AddIPDLReference()
   this->AddRef();
 }
 
-NS_IMETHODIMP_(nsrefcnt) UDPSocketChild::Release(void)
+NS_IMETHODIMP_(MozExternalRefCountType) UDPSocketChild::Release(void)
 {
   nsrefcnt refcnt = UDPSocketChildBase::Release();
   if (refcnt == 1 && mIPCOpen) {
@@ -198,7 +199,7 @@ UDPSocketChild::RecvCallback(const nsCString &aType,
     const UDPSendResult& returnValue(aData.get_UDPSendResult());
     rv = mSocket->CallListenerSent(aType, returnValue.value());
   } else {
-    MOZ_ASSERT("Invalid callback type!");
+    MOZ_ASSERT(false, "Invalid callback type!");
   }
 
   NS_ENSURE_SUCCESS(rv, true);

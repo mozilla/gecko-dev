@@ -37,14 +37,7 @@ ActivityWrapper.prototype = {
     // Activity workflow.
     cpmm.sendAsyncMessage("Activity:Ready", { id: aMessage.id });
 
-    let handler = Cc["@mozilla.org/dom/activities/request-handler;1"]
-                    .createInstance(Ci.nsIDOMMozActivityRequestHandler);
-    handler.wrappedJSObject._id = aMessage.id;
-
-    // options is an nsIDOMActivityOptions object.
-    var options = handler.wrappedJSObject._options;
-    options.wrappedJSObject._name = aMessage.payload.name;
-    options.wrappedJSObject._data = Cu.cloneInto(aMessage.payload.data, aWindow);
+    let handler = new aWindow.ActivityRequestHandler(aMessage.id, aMessage.payload);
 
     // When the activity window is closed, fire an error to notify the activity
     // caller of the situation.

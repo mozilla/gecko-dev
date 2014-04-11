@@ -51,6 +51,7 @@
 #include <android/log.h>
 #endif
 #include "GeckoProfiler.h"
+#include "TextRenderer.h"               // for TextRenderer
 
 class gfxASurface;
 class gfxContext;
@@ -103,7 +104,9 @@ LayerManagerComposite::LayerManagerComposite(Compositor* aCompositor)
 , mInTransaction(false)
 , mIsCompositorReady(false)
 , mDebugOverlayWantsNextFrame(false)
+, mGeometryChanged(true)
 {
+  mTextRenderer = new TextRenderer(aCompositor);
   MOZ_ASSERT(aCompositor);
 }
 
@@ -153,7 +156,8 @@ LayerManagerComposite::BeginTransaction()
   
   mIsCompositorReady = true;
 
-  if (Compositor::GetBackend() == LayersBackend::LAYERS_BASIC) {
+  if (Compositor::GetBackend() == LayersBackend::LAYERS_OPENGL ||
+      Compositor::GetBackend() == LayersBackend::LAYERS_BASIC) {
     mClonedLayerTreeProperties = LayerProperties::CloneFrom(GetRoot());
   }
 }
@@ -179,6 +183,7 @@ LayerManagerComposite::BeginTransactionWithDrawTarget(DrawTarget* aTarget)
 
   mIsCompositorReady = true;
   mCompositor->SetTargetContext(aTarget);
+  mTarget = aTarget;
 }
 
 bool
@@ -220,7 +225,8 @@ LayerManagerComposite::EndTransaction(DrawThebesLayerCallback aCallback,
   }
 
   if (mRoot && mClonedLayerTreeProperties) {
-    nsIntRegion invalid = mClonedLayerTreeProperties->ComputeDifferences(mRoot, nullptr);
+    nsIntRegion invalid =
+      mClonedLayerTreeProperties->ComputeDifferences(mRoot, nullptr, &mGeometryChanged);
     mClonedLayerTreeProperties = nullptr;
 
     mInvalidRegion.Or(mInvalidRegion, invalid);
@@ -240,9 +246,11 @@ LayerManagerComposite::EndTransaction(DrawThebesLayerCallback aCallback,
     mRoot->ComputeEffectiveTransforms(gfx::Matrix4x4());
 
     Render();
+    mGeometryChanged = false;
   }
 
   mCompositor->SetTargetContext(nullptr);
+  mTarget = nullptr;
 
 #ifdef MOZ_LAYERS_HAVE_LOG
   Log();
@@ -250,8 +258,8 @@ LayerManagerComposite::EndTransaction(DrawThebesLayerCallback aCallback,
 #endif
 }
 
-already_AddRefed<gfxASurface>
-LayerManagerComposite::CreateOptimalMaskSurface(const IntSize &aSize)
+TemporaryRef<DrawTarget>
+LayerManagerComposite::CreateOptimalMaskDrawTarget(const IntSize &aSize)
 {
   NS_RUNTIMEABORT("Should only be called on the drawing side");
   return nullptr;
@@ -444,7 +452,7 @@ LayerManagerComposite::Render()
   /** Our more efficient but less powerful alter ego, if one is available. */
   nsRefPtr<Composer2D> composer2D = mCompositor->GetWidget()->GetComposer2D();
 
-  if (composer2D && composer2D->TryRender(mRoot, mWorldMatrix)) {
+  if (!mTarget && composer2D && composer2D->TryRender(mRoot, mWorldMatrix, mGeometryChanged)) {
     if (mFPS) {
       double fps = mFPS->mCompositionFps.AddFrameAndGetFps(TimeStamp::Now());
       if (gfxPrefs::LayersDrawFPS()) {
@@ -493,6 +501,14 @@ LayerManagerComposite::Render()
   // Render our layers.
   RootLayer()->RenderLayer(clipRect);
 
+  if (!mRegionToClear.IsEmpty()) {
+    nsIntRegionRectIterator iter(mRegionToClear);
+    const nsIntRect *r;
+    while ((r = iter.Next())) {
+      mCompositor->ClearRect(Rect(r->x, r->y, r->width, r->height));
+    }
+  }
+
   // Allow widget to render a custom foreground.
   mCompositor->GetWidget()->DrawWindowOverlay(this, nsIntRect(actualBounds.x,
                                                               actualBounds.y,
@@ -505,6 +521,7 @@ LayerManagerComposite::Render()
   {
     PROFILER_LABEL("LayerManagerComposite", "EndFrame");
     mCompositor->EndFrame();
+    mCompositor->SetFBAcquireFence(mRoot);
   }
 
   mCompositor->GetWidget()->PostRender(this);
@@ -682,8 +699,8 @@ LayerManagerComposite::ComputeRenderIntegrity()
 
     // Clip the screen rect to the document bounds
     gfxRect documentBounds =
-      transform.TransformBounds(gfxRect(metrics.mScrollableRect.x - metrics.mScrollOffset.x,
-                                        metrics.mScrollableRect.y - metrics.mScrollOffset.y,
+      transform.TransformBounds(gfxRect(metrics.mScrollableRect.x - metrics.GetScrollOffset().x,
+                                        metrics.mScrollableRect.y - metrics.GetScrollOffset().y,
                                         metrics.mScrollableRect.width,
                                         metrics.mScrollableRect.height));
     documentBounds.RoundOut();

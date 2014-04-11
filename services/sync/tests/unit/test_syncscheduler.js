@@ -85,6 +85,13 @@ function run_test() {
   Log.repository.getLogger("Sync.Service").level = Log.Level.Trace;
   Log.repository.getLogger("Sync.scheduler").level = Log.Level.Trace;
 
+  // The scheduler checks Weave.fxaEnabled to determine whether to use
+  // FxA defaults or legacy defaults.  As .fxaEnabled checks the username, we
+  // set a username here then reset the default to ensure they are used.
+  ensureLegacyIdentityManager();
+  setBasicCredentials("johndoe");
+  scheduler.setDefaults();
+
   run_next_test();
 }
 
@@ -125,7 +132,7 @@ add_test(function test_prefAttributes() {
 
   _("Intervals correspond to default preferences.");
   do_check_eq(scheduler.singleDeviceInterval,
-              Svc.Prefs.get("scheduler.singleDeviceInterval") * 1000);
+              Svc.Prefs.get("scheduler.sync11.singleDeviceInterval") * 1000);
   do_check_eq(scheduler.idleInterval,
               Svc.Prefs.get("scheduler.idleInterval") * 1000);
   do_check_eq(scheduler.activeInterval,
@@ -134,7 +141,7 @@ add_test(function test_prefAttributes() {
               Svc.Prefs.get("scheduler.immediateInterval") * 1000);
 
   _("Custom values for prefs will take effect after a restart.");
-  Svc.Prefs.set("scheduler.singleDeviceInterval", 42);
+  Svc.Prefs.set("scheduler.sync11.singleDeviceInterval", 42);
   Svc.Prefs.set("scheduler.idleInterval", 23);
   Svc.Prefs.set("scheduler.activeInterval", 18);
   Svc.Prefs.set("scheduler.immediateInterval", 31415);

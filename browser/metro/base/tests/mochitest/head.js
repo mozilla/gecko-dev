@@ -6,7 +6,7 @@
 /*=============================================================================
   Globals
 =============================================================================*/
-XPCOMUtils.defineLazyModuleGetter(this, "Promise", "resource://gre/modules/commonjs/sdk/core/promise.js");
+XPCOMUtils.defineLazyModuleGetter(this, "Promise", "resource://gre/modules/Promise.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task", "resource://gre/modules/Task.jsm");
 
 /*=============================================================================
@@ -310,8 +310,14 @@ function addTab(aUrl) {
 function cleanUpOpenedTabs() {
   let tab;
   while(tab = gOpenedTabs.shift()) {
+    cleanupNotificationsForBrowser(tab.browser);
     Browser.closeTab(Browser.getTabFromChrome(tab.chromeTab), { forceClose: true })
   }
+}
+
+function cleanupNotificationsForBrowser(aBrowser) {
+  let notificationBox = Browser.getNotificationBox(aBrowser);
+  notificationBox && notificationBox.removeAllNotifications(true);
 }
 
 /**

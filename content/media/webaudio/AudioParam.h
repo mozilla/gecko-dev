@@ -31,8 +31,8 @@ public:
              float aDefaultValue);
   virtual ~AudioParam();
 
-  NS_IMETHOD_(nsrefcnt) AddRef(void);
-  NS_IMETHOD_(nsrefcnt) Release(void);
+  NS_IMETHOD_(MozExternalRefCountType) AddRef(void);
+  NS_IMETHOD_(MozExternalRefCountType) Release(void);
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(AudioParam)
 
   AudioContext* GetParentObject() const
@@ -45,8 +45,7 @@ public:
     return mNode->Context()->DOMTimeToStreamTime(aTime);
   }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
-                               JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   // We override SetValueCurveAtTime to convert the Float32Array to the wrapper
   // object.

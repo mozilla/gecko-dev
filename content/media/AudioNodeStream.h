@@ -33,6 +33,9 @@ class AudioNodeEngine;
  * integrates audio processing with the MediaStreamGraph.
  */
 class AudioNodeStream : public ProcessedMediaStream {
+  typedef dom::ChannelCountMode ChannelCountMode;
+  typedef dom::ChannelInterpretation ChannelInterpretation;
+
 public:
   typedef mozilla::dom::AudioContext AudioContext;
 
@@ -56,8 +59,8 @@ public:
       mMuted(false)
   {
     MOZ_ASSERT(NS_IsMainThread());
-    mChannelCountMode = dom::ChannelCountMode::Max;
-    mChannelInterpretation = dom::ChannelInterpretation::Speakers;
+    mChannelCountMode = ChannelCountMode::Max;
+    mChannelInterpretation = ChannelInterpretation::Speakers;
     // AudioNodes are always producing data
     mHasCurrentData = true;
     MOZ_COUNT_CTOR(AudioNodeStream);
@@ -75,12 +78,17 @@ public:
   void SetInt32Parameter(uint32_t aIndex, int32_t aValue);
   void SetTimelineParameter(uint32_t aIndex, const dom::AudioParamTimeline& aValue);
   void SetThreeDPointParameter(uint32_t aIndex, const dom::ThreeDPoint& aValue);
-  void SetBuffer(already_AddRefed<ThreadSharedFloatArrayBufferList> aBuffer);
+  void SetBuffer(already_AddRefed<ThreadSharedFloatArrayBufferList>&& aBuffer);
   // This consumes the contents of aData.  aData will be emptied after this returns.
   void SetRawArrayData(nsTArray<float>& aData);
   void SetChannelMixingParameters(uint32_t aNumberOfChannels,
-                                  dom::ChannelCountMode aChannelCountMoe,
-                                  dom::ChannelInterpretation aChannelInterpretation);
+                                  ChannelCountMode aChannelCountMoe,
+                                  ChannelInterpretation aChannelInterpretation);
+  ChannelInterpretation GetChannelInterpretation()
+  {
+    return mChannelInterpretation;
+  }
+
   void SetAudioParamHelperStream()
   {
     MOZ_ASSERT(!mAudioParamStream, "Can only do this once");
@@ -93,9 +101,9 @@ public:
   void SetStreamTimeParameterImpl(uint32_t aIndex, MediaStream* aRelativeToStream,
                                   double aStreamTime);
   void SetChannelMixingParametersImpl(uint32_t aNumberOfChannels,
-                                      dom::ChannelCountMode aChannelCountMoe,
-                                      dom::ChannelInterpretation aChannelInterpretation);
-  virtual void ProduceOutput(GraphTime aFrom, GraphTime aTo, uint32_t aFlags) MOZ_OVERRIDE;
+                                      ChannelCountMode aChannelCountMoe,
+                                      ChannelInterpretation aChannelInterpretation);
+  virtual void ProcessInput(GraphTime aFrom, GraphTime aTo, uint32_t aFlags) MOZ_OVERRIDE;
   TrackTicks GetCurrentPosition();
   bool IsAudioParamStream() const
   {
@@ -157,7 +165,7 @@ protected:
                          nsTArray<const void*>& aOutputChannels,
                          nsTArray<float>& aDownmixBuffer);
 
-  uint32_t ComputeFinalOuputChannelCount(uint32_t aInputChannelCount);
+  uint32_t ComputedNumberOfChannels(uint32_t aInputChannelCount);
   void ObtainInputBlock(AudioChunk& aTmpChunk, uint32_t aPortIndex);
 
   // The engine that will generate output for this node.
@@ -171,8 +179,8 @@ protected:
   // The number of input channels that this stream requires. 0 means don't care.
   uint32_t mNumberOfInputChannels;
   // The mixing modes
-  dom::ChannelCountMode mChannelCountMode;
-  dom::ChannelInterpretation mChannelInterpretation;
+  ChannelCountMode mChannelCountMode;
+  ChannelInterpretation mChannelInterpretation;
   // Whether the stream should be marked as finished as soon
   // as the current time range has been computed block by block.
   bool mMarkAsFinishedAfterThisBlock;

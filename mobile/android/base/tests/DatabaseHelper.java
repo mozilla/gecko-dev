@@ -1,14 +1,16 @@
 package org.mozilla.gecko.tests;
 
-import org.mozilla.gecko.*;
+import java.util.ArrayList;
+
+import org.mozilla.gecko.AppConstants;
+import org.mozilla.gecko.Assert;
+import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.gecko.db.BrowserDB;
 
 import android.app.Activity;
 import android.content.ContentResolver;
 import android.database.Cursor;
 import android.net.Uri;
-import android.test.ActivityInstrumentationTestCase2;
-import java.util.ArrayList;
 
 class DatabaseHelper {
     protected enum BrowserDataType {BOOKMARKS, HISTORY};
@@ -30,7 +32,7 @@ class DatabaseHelper {
     protected Uri buildUri(BrowserDataType dataType) {
         Uri uri = null;
         if (dataType == BrowserDataType.BOOKMARKS || dataType == BrowserDataType.HISTORY) {
-            uri = Uri.parse("content://" + TestConstants.ANDROID_PACKAGE_NAME + ".db.browser/" + dataType.toString().toLowerCase());
+            uri = Uri.parse("content://" + AppConstants.ANDROID_PACKAGE_NAME + ".db.browser/" + dataType.toString().toLowerCase());
         } else {
            mAsserter.ok(false, "The wrong data type has been provided = " + dataType.toString(), "Please provide the correct data type");
         }

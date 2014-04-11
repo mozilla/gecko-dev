@@ -93,6 +93,28 @@ static nsCSSProperty gAliases[eCSSAliasCount != 0 ? eCSSAliasCount : 1] = {
 #undef CSS_PROP_ALIAS
 };
 
+nsStaticCaseInsensitiveNameTable*
+CreateStaticTable(const char* const aRawTable[], int32_t aSize)
+{
+  auto table = new nsStaticCaseInsensitiveNameTable();
+  if (table) {
+#ifdef DEBUG
+    // let's verify the table...
+    for (int32_t index = 0; index < aSize; ++index) {
+      nsAutoCString temp1(aRawTable[index]);
+      nsAutoCString temp2(aRawTable[index]);
+      ToLowerCase(temp1);
+      NS_ABORT_IF_FALSE(temp1.Equals(temp2),
+                        "upper case char in case insensitive name table");
+      NS_ABORT_IF_FALSE(-1 == temp1.FindChar('_'),
+                        "underscore char in case insensitive name table");
+    }
+#endif
+    table->Init(aRawTable, aSize);
+  }
+  return table;
+}
+
 void
 nsCSSProps::AddRefTable(void)
 {
@@ -100,41 +122,9 @@ nsCSSProps::AddRefTable(void)
     NS_ABORT_IF_FALSE(!gPropertyTable, "pre existing array!");
     NS_ABORT_IF_FALSE(!gFontDescTable, "pre existing array!");
 
-    gPropertyTable = new nsStaticCaseInsensitiveNameTable();
-    if (gPropertyTable) {
-#ifdef DEBUG
-    {
-      // let's verify the table...
-      for (int32_t index = 0; index < eCSSProperty_COUNT_with_aliases; ++index) {
-        nsAutoCString temp1(kCSSRawProperties[index]);
-        nsAutoCString temp2(kCSSRawProperties[index]);
-        ToLowerCase(temp1);
-        NS_ABORT_IF_FALSE(temp1.Equals(temp2), "upper case char in prop table");
-        NS_ABORT_IF_FALSE(-1 == temp1.FindChar('_'),
-                          "underscore char in prop table");
-      }
-    }
-#endif
-      gPropertyTable->Init(kCSSRawProperties, eCSSProperty_COUNT_with_aliases);
-    }
-
-    gFontDescTable = new nsStaticCaseInsensitiveNameTable();
-    if (gFontDescTable) {
-#ifdef DEBUG
-    {
-      // let's verify the table...
-      for (int32_t index = 0; index < eCSSFontDesc_COUNT; ++index) {
-        nsAutoCString temp1(kCSSRawFontDescs[index]);
-        nsAutoCString temp2(kCSSRawFontDescs[index]);
-        ToLowerCase(temp1);
-        NS_ABORT_IF_FALSE(temp1.Equals(temp2), "upper case char in desc table");
-        NS_ABORT_IF_FALSE(-1 == temp1.FindChar('_'),
-                          "underscore char in desc table");
-      }
-    }
-#endif
-      gFontDescTable->Init(kCSSRawFontDescs, eCSSFontDesc_COUNT);
-    }
+    gPropertyTable = CreateStaticTable(
+        kCSSRawProperties, eCSSProperty_COUNT_with_aliases);
+    gFontDescTable = CreateStaticTable(kCSSRawFontDescs, eCSSFontDesc_COUNT);
 
     BuildShorthandsContainingTable();
 
@@ -348,9 +338,6 @@ nsCSSProps::ReleaseTable(void)
   }
 }
 
-// Length of the "var-" custom property name prefix.
-#define VAR_PREFIX_LENGTH 4
-
 /* static */ bool
 nsCSSProps::IsInherited(nsCSSProperty aProperty)
 {
@@ -363,16 +350,16 @@ nsCSSProps::IsInherited(nsCSSProperty aProperty)
 /* static */ bool
 nsCSSProps::IsCustomPropertyName(const nsACString& aProperty)
 {
-  // Custom properties must have at least one character after the "var-" prefix.
-  return aProperty.Length() >= (VAR_PREFIX_LENGTH + 1) &&
-         StringBeginsWith(aProperty, NS_LITERAL_CSTRING("var-"));
+  // Custom properties don't need to have a character after the "--" prefix.
+  return aProperty.Length() >= CSS_CUSTOM_NAME_PREFIX_LENGTH &&
+         StringBeginsWith(aProperty, NS_LITERAL_CSTRING("--"));
 }
 
 /* static */ bool
 nsCSSProps::IsCustomPropertyName(const nsAString& aProperty)
 {
-  return aProperty.Length() >= (VAR_PREFIX_LENGTH + 1) &&
-         StringBeginsWith(aProperty, NS_LITERAL_STRING("var-"));
+  return aProperty.Length() >= CSS_CUSTOM_NAME_PREFIX_LENGTH &&
+         StringBeginsWith(aProperty, NS_LITERAL_STRING("--"));
 }
 
 nsCSSProperty
@@ -395,13 +382,13 @@ nsCSSProps::LookupProperty(const nsACString& aProperty,
   }
   MOZ_ASSERT(eCSSAliasCount != 0,
              "'res' must be an alias at this point so we better have some!");
-  // We intentionally don't support eEnabledInUASheets for aliases yet
-  // because it's unlikely there will be a need for it.
-  if (IsEnabled(res) || aEnabled == eAny) {
+  // We intentionally don't support eEnabledInUASheets or eEnabledInChromeOrCertifiedApp
+  // for aliases yet because it's unlikely there will be a need for it.
+  if (IsEnabled(res) || aEnabled == eIgnoreEnabledState) {
     res = gAliases[res - eCSSProperty_COUNT];
     NS_ABORT_IF_FALSE(0 <= res && res < eCSSProperty_COUNT,
                       "aliases must not point to other aliases");
-    if (IsEnabled(res) || aEnabled == eAny) {
+    if (IsEnabled(res) || aEnabled == eIgnoreEnabledState) {
       return res;
     }
   }
@@ -431,11 +418,11 @@ nsCSSProps::LookupProperty(const nsAString& aProperty, EnabledState aEnabled)
              "'res' must be an alias at this point so we better have some!");
   // We intentionally don't support eEnabledInUASheets for aliases yet
   // because it's unlikely there will be a need for it.
-  if (IsEnabled(res) || aEnabled == eAny) {
+  if (IsEnabled(res) || aEnabled == eIgnoreEnabledState) {
     res = gAliases[res - eCSSProperty_COUNT];
     NS_ABORT_IF_FALSE(0 <= res && res < eCSSProperty_COUNT,
                       "aliases must not point to other aliases");
-    if (IsEnabled(res) || aEnabled == eAny) {
+    if (IsEnabled(res) || aEnabled == eIgnoreEnabledState) {
       return res;
     }
   }
@@ -835,7 +822,7 @@ const KTableValue nsCSSProps::kClearKTable[] = {
   eCSSKeyword_none, NS_STYLE_CLEAR_NONE,
   eCSSKeyword_left, NS_STYLE_CLEAR_LEFT,
   eCSSKeyword_right, NS_STYLE_CLEAR_RIGHT,
-  eCSSKeyword_both, NS_STYLE_CLEAR_LEFT_AND_RIGHT,
+  eCSSKeyword_both, NS_STYLE_CLEAR_BOTH,
   eCSSKeyword_UNKNOWN,-1
 };
 
@@ -1248,6 +1235,20 @@ const KTableValue nsCSSProps::kFontWeightKTable[] = {
   eCSSKeyword_bold, NS_STYLE_FONT_WEIGHT_BOLD,
   eCSSKeyword_bolder, NS_STYLE_FONT_WEIGHT_BOLDER,
   eCSSKeyword_lighter, NS_STYLE_FONT_WEIGHT_LIGHTER,
+  eCSSKeyword_UNKNOWN,-1
+};
+
+const KTableValue nsCSSProps::kGridAutoFlowKTable[] = {
+  eCSSKeyword_none, NS_STYLE_GRID_AUTO_FLOW_NONE,
+  eCSSKeyword_column, NS_STYLE_GRID_AUTO_FLOW_COLUMN,
+  eCSSKeyword_row, NS_STYLE_GRID_AUTO_FLOW_ROW,
+  eCSSKeyword_dense, NS_STYLE_GRID_AUTO_FLOW_DENSE,
+  eCSSKeyword_UNKNOWN,-1
+};
+
+const KTableValue nsCSSProps::kGridTrackBreadthKTable[] = {
+  eCSSKeyword_min_content, NS_STYLE_GRID_TRACK_BREADTH_MIN_CONTENT,
+  eCSSKeyword_max_content, NS_STYLE_GRID_TRACK_BREADTH_MAX_CONTENT,
   eCSSKeyword_UNKNOWN,-1
 };
 
@@ -2498,6 +2499,43 @@ static const nsCSSProperty gFlexSubpropTable[] = {
 static const nsCSSProperty gFlexFlowSubpropTable[] = {
   eCSSProperty_flex_direction,
   eCSSProperty_flex_wrap,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSProperty gGridTemplateSubpropTable[] = {
+  eCSSProperty_grid_template_areas,
+  eCSSProperty_grid_template_columns,
+  eCSSProperty_grid_template_rows,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSProperty gGridSubpropTable[] = {
+  eCSSProperty_grid_template_areas,
+  eCSSProperty_grid_template_columns,
+  eCSSProperty_grid_template_rows,
+  eCSSProperty_grid_auto_flow,
+  eCSSProperty_grid_auto_columns,
+  eCSSProperty_grid_auto_rows,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSProperty gGridColumnSubpropTable[] = {
+  eCSSProperty_grid_column_start,
+  eCSSProperty_grid_column_end,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSProperty gGridRowSubpropTable[] = {
+  eCSSProperty_grid_row_start,
+  eCSSProperty_grid_row_end,
+  eCSSProperty_UNKNOWN
+};
+
+static const nsCSSProperty gGridAreaSubpropTable[] = {
+  eCSSProperty_grid_row_start,
+  eCSSProperty_grid_column_start,
+  eCSSProperty_grid_row_end,
+  eCSSProperty_grid_column_end,
   eCSSProperty_UNKNOWN
 };
 

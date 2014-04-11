@@ -12,7 +12,9 @@
       <xul:panel anonid="panel" hidden="true" type="arrow" class="social-panel"/>
       <xul:image class="toolbarbutton-icon" xbl:inherits="validate,src=image,label"/>
       <xul:label class="toolbarbutton-text" crop="right" flex="1"
-                 xbl:inherits="value=label,accesskey,crop"/>
+                 xbl:inherits="value=label,accesskey,crop,wrap"/>
+      <xul:label class="toolbarbutton-multiline-text" flex="1"
+                 xbl:inherits="xbl:text=label,accesskey,wrap"/>
     </content>
     <implementation implements="nsIDOMEventListener, nsIObserver">
       <field name="inMenuPanel">false</field>
@@ -218,10 +220,11 @@
         }
         if (aResetOnClose) {
           let evName = inMenuPanel ? "ViewHiding": "popuphidden";
-          panel.addEventListener(evName, function _hidden() {
+          let _hidden = () => {
             panel.removeEventListener(evName, _hidden);
             this.update();
-          }.bind(this), false);
+          };
+          panel.addEventListener(evName, _hidden, false);
         }
          ]]></body>
        </method>
@@ -280,12 +283,13 @@
           if (!this.inMenuPanel)
             sizeSocialPanelToContent(this.panel, this.content);
         } else {
-          this.content.addEventListener("load", function panelBrowserOnload(e) {
+          let panelBrowserOnload = (e) => {
             this.content.removeEventListener("load", panelBrowserOnload, true);
             this.dispatchPanelEvent("socialFrameShow");
             if (!this.inMenuPanel)
               sizeSocialPanelToContent(this.panel, this.content);
-          }.bind(this), true);
+          };
+          this.content.addEventListener("load", panelBrowserOnload, true);
         }
         ]]></body>
       </method>

@@ -34,8 +34,6 @@ const PDF_CONTENT_TYPE = 'application/pdf';
 
 Cu.import('resource://gre/modules/XPCOMUtils.jsm');
 Cu.import('resource://gre/modules/Services.jsm');
-Cu.import('resource://pdf.js.components/PdfStreamConverter.js');
-Cu.import('resource://pdf.js.components/PdfRedirector.js');
 
 let Svc = {};
 XPCOMUtils.defineLazyServiceGetter(Svc, 'mime',
@@ -61,39 +59,52 @@ function getIntPref(aPref, aDefaultValue) {
   }
 }
 
-// Factory that registers/unregisters a constructor as a component.
+function initializeDefaultPreferences() {
+
+var DEFAULT_PREFERENCES = {
+  showPreviousViewOnLoad: true,
+  defaultZoomValue: '',
+  ifAvailableShowOutlineOnLoad: false
+};
+
+
+  var defaultBranch = Services.prefs.getDefaultBranch(PREF_PREFIX + '.');
+  var defaultValue;
+  for (var key in DEFAULT_PREFERENCES) {
+    defaultValue = DEFAULT_PREFERENCES[key];
+    switch (typeof defaultValue) {
+      case 'boolean':
+        defaultBranch.setBoolPref(key, defaultValue);
+        break;
+      case 'number':
+        defaultBranch.setIntPref(key, defaultValue);
+        break;
+      case 'string':
+        defaultBranch.setCharPref(key, defaultValue);
+        break;
+    }
+  }
+}
+
+// Register/unregister a constructor as a factory.
 function Factory() {}
-
 Factory.prototype = {
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIFactory]),
-  _targetConstructor: null,
-
   register: function register(targetConstructor) {
-    this._targetConstructor = targetConstructor;
     var proto = targetConstructor.prototype;
+    this._classID = proto.classID;
+
+    var factory = XPCOMUtils._getFactory(targetConstructor);
+    this._factory = factory;
+
     var registrar = Cm.QueryInterface(Ci.nsIComponentRegistrar);
     registrar.registerFactory(proto.classID, proto.classDescription,
-                              proto.contractID, this);
+                              proto.contractID, factory);
   },
 
   unregister: function unregister() {
-    var proto = this._targetConstructor.prototype;
     var registrar = Cm.QueryInterface(Ci.nsIComponentRegistrar);
-    registrar.unregisterFactory(proto.classID, this);
-    this._targetConstructor = null;
-  },
-
-  // nsIFactory
-  createInstance: function createInstance(aOuter, iid) {
-    if (aOuter !== null)
-      throw Cr.NS_ERROR_NO_AGGREGATION;
-    return (new (this._targetConstructor)).QueryInterface(iid);
-  },
-
-  // nsIFactory
-  lockFactory: function lockFactory(lock) { 
-    // No longer used as of gecko 1.7.
-    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+    registrar.unregisterFactory(this._classID, this._factory);
+    this._factory = null;
   }
 };
 
@@ -118,6 +129,8 @@ let PdfJs = {
     Services.obs.addObserver(this, TOPIC_PDFJS_HANDLER_CHANGED, false);
     Services.obs.addObserver(this, TOPIC_PLUGINS_LIST_UPDATED, false);
     Services.obs.addObserver(this, TOPIC_PLUGIN_INFO_UPDATED, false);
+
+    initializeDefaultPreferences();
   },
 
   _migrate: function migrate() {
@@ -237,10 +250,13 @@ let PdfJs = {
       return;
 
     this._pdfStreamConverterFactory = new Factory();
+    Cu.import('resource://pdf.js/PdfStreamConverter.jsm');
     this._pdfStreamConverterFactory.register(PdfStreamConverter);
 
     this._pdfRedirectorFactory = new Factory();
+    Cu.import('resource://pdf.js/PdfRedirector.jsm');
     this._pdfRedirectorFactory.register(PdfRedirector);
+
     Svc.pluginHost.registerPlayPreviewMimeType(PDF_CONTENT_TYPE, true,
       'data:application/x-moz-playpreview-pdfjs;,');
 
@@ -252,12 +268,16 @@ let PdfJs = {
       return;
 
     this._pdfStreamConverterFactory.unregister();
+    Cu.unload('resource://pdf.js/PdfStreamConverter.jsm');
     delete this._pdfStreamConverterFactory;
 
     this._pdfRedirectorFactory.unregister();
+    Cu.unload('resource://pdf.js/PdfRedirector.jsm');
     delete this._pdfRedirectorFactory;
+
     Svc.pluginHost.unregisterPlayPreviewMimeType(PDF_CONTENT_TYPE);
 
     this._registered = false;
   }
 };
+

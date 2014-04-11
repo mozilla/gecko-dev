@@ -3,12 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-let bridge = SpecialPowers.Cc["@mozilla.org/android/bridge;1"]
-                          .getService(SpecialPowers.Ci.nsIAndroidBridge);
-
 function sendMessageToJava(message) {
-  let data = JSON.stringify(message);
-  bridge.handleGeckoMessage(data);
+  SpecialPowers.Services.androidBridge.handleGeckoMessage(message);
 }
 
 function _evalURI(uri, sandbox) {
@@ -36,7 +32,7 @@ function _evalURI(uri, sandbox) {
  * absolute.
  *
  * The Javascript test harness sends all output to Java via
- * Robocop:Status messages.
+ * Robocop:JS messages.
  */
 function testOneFile(uri) {
   let HEAD_JS = "robocop_head.js";
@@ -59,7 +55,7 @@ function testOneFile(uri) {
   // Output from head.js is fed, line by line, to this function.  We
   // send any such output back to the Java Robocop harness.
   testScope.dump = function (str) {
-    let message = { type: "Robocop:Status",
+    let message = { type: "Robocop:JS",
                     innerType: "progress",
                     message: str,
                   };

@@ -10,7 +10,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/TypedEnum.h"
 
-// First time gfxPrefs::One() needs to be called on the main thread,
+// First time gfxPrefs::GetSingleton() needs to be called on the main thread,
 // before any of the methods accessing the values are used, but after
 // the Preferences system has been initialized.
 
@@ -53,10 +53,11 @@
 
 #define DECL_GFX_PREF(Update, Pref, Name, Type, Default)                     \
 public:                                                                       \
-static Type Name() { MOZ_ASSERT(Exists()); return One().mPref##Name.mValue; } \
+static Type Name() { MOZ_ASSERT(SingletonExists()); return GetSingleton().mPref##Name.mValue; } \
 private:                                                                      \
 static const char* Get##Name##PrefName() { return Pref; }                     \
-PrefTemplate<UpdatePolicy::Update, Type, Default, Get##Name##PrefName> mPref##Name
+static Type Get##Name##PrefDefault() { return Default; }                      \
+PrefTemplate<UpdatePolicy::Update, Type, Get##Name##PrefDefault, Get##Name##PrefName> mPref##Name
 
 class gfxPrefs;
 class gfxPrefs MOZ_FINAL
@@ -70,12 +71,12 @@ private:
   MOZ_END_NESTED_ENUM_CLASS(UpdatePolicy)
 
   // Since we cannot use const char*, use a function that returns it.
-    template <MOZ_ENUM_CLASS_ENUM_TYPE(UpdatePolicy) Update, class T, T Default, const char* Pref(void)>
+  template <MOZ_ENUM_CLASS_ENUM_TYPE(UpdatePolicy) Update, class T, T Default(void), const char* Pref(void)>
   class PrefTemplate
   {
   public:
     PrefTemplate()
-    : mValue(Default)
+    : mValue(Default())
     {
       Register(Update, Pref());
     }
@@ -102,19 +103,56 @@ private:
   // We will keep these in an alphabetical order to make it easier to see if
   // a method accessing a pref already exists. Just add yours in the list.
 
+  // The apz prefs are explained in AsyncPanZoomController.cpp
+  DECL_GFX_PREF(Live, "apz.allow-checkerboarding",             APZAllowCheckerboarding, bool, true);
+  DECL_GFX_PREF(Live, "apz.asyncscroll.throttle",              APZAsyncScrollThrottleTime, int32_t, 100);
+  DECL_GFX_PREF(Live, "apz.asyncscroll.timeout",               APZAsyncScrollTimeout, int32_t, 300);
+  DECL_GFX_PREF(Live, "apz.axis_lock_mode",                    APZAxisLockMode, int32_t, 0);
+  DECL_GFX_PREF(Live, "apz.content_response_timeout",          APZContentResponseTimeout, int32_t, 300);
+  DECL_GFX_PREF(Live, "apz.cross_slide.enabled",               APZCrossSlideEnabled, bool, false);
+  DECL_GFX_PREF(Live, "apz.enlarge_displayport_when_clipped",  APZEnlargeDisplayPortWhenClipped, bool, false);
+  DECL_GFX_PREF(Once, "apz.fling_friction",                    APZFlingFriction, float, 0.002f);
+  DECL_GFX_PREF(Live, "apz.fling_repaint_interval",            APZFlingRepaintInterval, int32_t, 75);
+  DECL_GFX_PREF(Once, "apz.fling_stopped_threshold",           APZFlingStoppedThreshold, float, 0.01f);
+  DECL_GFX_PREF(Once, "apz.max_velocity_inches_per_ms",        APZMaxVelocity, float, -1.0f);
+  DECL_GFX_PREF(Once, "apz.max_velocity_queue_size",           APZMaxVelocityQueueSize, uint32_t, 5);
+  DECL_GFX_PREF(Live, "apz.min_skate_speed",                   APZMinSkateSpeed, float, 1.0f);
+  DECL_GFX_PREF(Live, "apz.num_paint_duration_samples",        APZNumPaintDurationSamples, int32_t, 3);
+  DECL_GFX_PREF(Live, "apz.pan_repaint_interval",              APZPanRepaintInterval, int32_t, 250);
+  DECL_GFX_PREF(Live, "apz.subframe.enabled",                  APZSubframeEnabled, bool, false);
+  DECL_GFX_PREF(Live, "apz.touch_start_tolerance",             APZTouchStartTolerance, float, 1.0f/4.5f);
+  DECL_GFX_PREF(Live, "apz.use_paint_duration",                APZUsePaintDuration, bool, true);
+  DECL_GFX_PREF(Live, "apz.velocity_bias",                     APZVelocityBias, float, 1.0f);
+  DECL_GFX_PREF(Live, "apz.x_skate_size_multiplier",           APZXSkateSizeMultiplier, float, 1.5f);
+  DECL_GFX_PREF(Live, "apz.x_stationary_size_multiplier",      APZXStationarySizeMultiplier, float, 3.0f);
+  DECL_GFX_PREF(Live, "apz.y_skate_size_multiplier",           APZYSkateSizeMultiplier, float, 2.5f);
+  DECL_GFX_PREF(Live, "apz.y_stationary_size_multiplier",      APZYStationarySizeMultiplier, float, 3.5f);
+
+  DECL_GFX_PREF(Once, "gfx.android.rgb16.force",               AndroidRGB16Force, bool, false);
+#if defined(ANDROID)
+  DECL_GFX_PREF(Once, "gfx.apitrace.enabled",                  UseApitrace, bool, false);
+#endif
   DECL_GFX_PREF(Live, "gfx.canvas.azure.accelerated",          CanvasAzureAccelerated, bool, false);
   DECL_GFX_PREF(Once, "gfx.canvas.skiagl.dynamic-cache",       CanvasSkiaGLDynamicCache, bool, false);
   DECL_GFX_PREF(Once, "gfx.canvas.skiagl.cache-size",          CanvasSkiaGLCacheSize, int32_t, 96);
   DECL_GFX_PREF(Once, "gfx.canvas.skiagl.cache-items",         CanvasSkiaGLCacheItems, int32_t, 256);
 
+  DECL_GFX_PREF(Live, "gfx.color_management.enablev4",         CMSEnableV4, bool, false);
+  DECL_GFX_PREF(Live, "gfx.color_management.mode",             CMSMode, int32_t,-1);
+  // The zero default here should match QCMS_INTENT_DEFAULT from qcms.h
+  DECL_GFX_PREF(Live, "gfx.color_management.rendering_intent", CMSRenderingIntent, int32_t, 0);
+
   DECL_GFX_PREF(Once, "gfx.direct2d.disabled",                 Direct2DDisabled, bool, false);
   DECL_GFX_PREF(Once, "gfx.direct2d.force-enabled",            Direct2DForceEnabled, bool, false);
+  DECL_GFX_PREF(Live, "gfx.gralloc.fence-with-readpixels",     GrallocFenceWithReadPixels, bool, false);
+  DECL_GFX_PREF(Live, "gfx.layerscope.enabled",                LayerScopeEnabled, bool, false);
+  DECL_GFX_PREF(Live, "gfx.layerscope.port",                   LayerScopePort, int32_t, 23456);
   DECL_GFX_PREF(Once, "gfx.work-around-driver-bugs",           WorkAroundDriverBugs, bool, true);
 
   DECL_GFX_PREF(Live, "gl.msaa-level",                         MSAALevel, uint32_t, 2);
 
   DECL_GFX_PREF(Once, "layers.acceleration.disabled",          LayersAccelerationDisabled, bool, false);
-  DECL_GFX_PREF(Live, "layers.acceleration.draw-fps",          LayersDrawFPS, bool, true);
+  DECL_GFX_PREF(Live, "layers.acceleration.draw-fps",          LayersDrawFPS, bool, false);
   DECL_GFX_PREF(Once, "layers.acceleration.force-enabled",     LayersAccelerationForceEnabled, bool, false);
 #ifdef XP_WIN
   // On windows, ignore the preference value, forcing async video to false.
@@ -135,8 +173,19 @@ private:
   DECL_GFX_PREF(Live, "layers.draw-bigimage-borders",          DrawBigImageBorders, bool, false);
   DECL_GFX_PREF(Live, "layers.draw-borders",                   DrawLayerBorders, bool, false);
   DECL_GFX_PREF(Live, "layers.draw-tile-borders",              DrawTileBorders, bool, false);
+  DECL_GFX_PREF(Live, "layers.flash-borders",                  FlashLayerBorders, bool, false);
+  DECL_GFX_PREF(Live, "layers.draw-layer-info",                DrawLayerInfo, bool, false);
   DECL_GFX_PREF(Once, "layers.dump",                           LayersDump, bool, false);
   DECL_GFX_PREF(Once, "layers.enable-tiles",                   LayersTilesEnabled, bool, false);
+  DECL_GFX_PREF(Once, "layers.simple-tiles",                   LayersUseSimpleTiles, bool, false);
+  DECL_GFX_PREF(Once, "layers.force-per-tile-drawing",         PerTileDrawing, bool, false);
+  // We allow for configurable and rectangular tile size to avoid wasting memory on devices whose
+  // screen size does not align nicely to the default tile size. Although layers can be any size,
+  // they are often the same size as the screen, especially for width.
+  DECL_GFX_PREF(Once, "layers.tile-width",                     LayersTileWidth, int32_t, 256);
+  DECL_GFX_PREF(Once, "layers.tile-height",                    LayersTileHeight, int32_t, 256);
+  DECL_GFX_PREF(Once, "layers.overzealous-gralloc-unlocking",  OverzealousGrallocUnlocking, bool, false);
+  DECL_GFX_PREF(Once, "layers.force-shmem-tiles",              ForceShmemTiles, bool, false);
   DECL_GFX_PREF(Live, "layers.frame-counter",                  DrawFrameCounter, bool, false);
   DECL_GFX_PREF(Live, "layers.low-precision-buffer",           UseLowPrecisionBuffer, bool, false);
   DECL_GFX_PREF(Live, "layers.low-precision-resolution",       LowPrecisionResolution, int32_t, 250);
@@ -150,21 +199,26 @@ private:
   DECL_GFX_PREF(Once, "layers.progressive-paint",              UseProgressiveTilePainting, bool, false);
   DECL_GFX_PREF(Once, "layers.scroll-graph",                   LayersScrollGraph, bool, false);
 
+  DECL_GFX_PREF(Once, "layout.css.touch_action.enabled",       TouchActionEnabled, bool, false);
   DECL_GFX_PREF(Once, "layout.frame_rate",                     LayoutFrameRate, int32_t, -1);
 
   DECL_GFX_PREF(Live, "nglayout.debug.widget_update_flashing", WidgetUpdateFlashing, bool, false);
 
+  DECL_GFX_PREF(Live, "ui.click_hold_context_menus.delay",     UiClickHoldContextMenusDelay, int32_t, 500);
+
+  DECL_GFX_PREF(Once, "webgl.force-layers-readback",           WebGLForceLayersReadback, bool, false);
+
 public:
   // Manage the singleton:
-  static gfxPrefs& One()
+  static gfxPrefs& GetSingleton()
   {
     if (!sInstance) {
       sInstance = new gfxPrefs;
     }
     return *sInstance;
   }
-  static void Destroy();
-  static bool Exists();
+  static void DestroySingleton();
+  static bool SingletonExists();
 
 private:
   static gfxPrefs* sInstance;
@@ -174,9 +228,11 @@ private:
   static void PrefAddVarCache(bool*, const char*, bool);
   static void PrefAddVarCache(int32_t*, const char*, int32_t);
   static void PrefAddVarCache(uint32_t*, const char*, uint32_t);
+  static void PrefAddVarCache(float*, const char*, float);
   static bool PrefGet(const char*, bool);
   static int32_t PrefGet(const char*, int32_t);
   static uint32_t PrefGet(const char*, uint32_t);
+  static float PrefGet(const char*, float);
 
   gfxPrefs();
   ~gfxPrefs();

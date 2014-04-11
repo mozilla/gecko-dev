@@ -23,10 +23,10 @@ public:
     MOZ_ASSERT(NS_IsMainThread());
   }
 
-  virtual void ProduceAudioBlocksOnPorts(AudioNodeStream* aStream,
-                                         const OutputChunks& aInput,
-                                         OutputChunks& aOutput,
-                                         bool* aFinished) MOZ_OVERRIDE
+  virtual void ProcessBlocksOnPorts(AudioNodeStream* aStream,
+                                    const OutputChunks& aInput,
+                                    OutputChunks& aOutput,
+                                    bool* aFinished) MOZ_OVERRIDE
   {
     MOZ_ASSERT(aInput.Length() == 1, "Should only have one input port");
 
@@ -60,9 +60,9 @@ ChannelSplitterNode::ChannelSplitterNode(AudioContext* aContext,
 }
 
 JSObject*
-ChannelSplitterNode::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+ChannelSplitterNode::WrapObject(JSContext* aCx)
 {
-  return ChannelSplitterNodeBinding::Wrap(aCx, aScope, this);
+  return ChannelSplitterNodeBinding::Wrap(aCx, this);
 }
 
 }

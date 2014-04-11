@@ -68,7 +68,8 @@ this.DataStore.prototype = {
   classDescription: "DataStore XPCOM Component",
   classID: Components.ID("{db5c9602-030f-4bff-a3de-881a8de370f2}"),
   contractID: "@mozilla.org/dom/datastore;1",
-  QueryInterface: XPCOMUtils.generateQI([Components.interfaces.nsISupports]),
+  QueryInterface: XPCOMUtils.generateQI([Components.interfaces.nsISupports,
+                                         Components.interfaces.nsIObserver]),
 
   callbacks: [],
 
@@ -79,6 +80,7 @@ this.DataStore.prototype = {
   _revisionId: null,
   _exposedObject: null,
   _cursor: null,
+  _shuttingdown: false,
 
   init: function(aWindow, aName, aOwner, aReadOnly) {
     debug("DataStore init");
@@ -91,14 +93,7 @@ this.DataStore.prototype = {
     this._db = new DataStoreDB();
     this._db.init(aOwner, aName);
 
-    let self = this;
-    Services.obs.addObserver(function(aSubject, aTopic, aData) {
-      let wId = aSubject.QueryInterface(Ci.nsISupportsPRUint64).data;
-      if (wId == self._innerWindowID) {
-        cpmm.removeMessageListener("DataStore:Changed:Return:OK", self);
-        self._db.close();
-      }
-    }, "inner-window-destroyed", false);
+    Services.obs.addObserver(this, "inner-window-destroyed", false);
 
     let util = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                       .getInterface(Ci.nsIDOMWindowUtils);
@@ -107,6 +102,18 @@ this.DataStore.prototype = {
     cpmm.addMessageListener("DataStore:Changed:Return:OK", this);
     cpmm.sendAsyncMessage("DataStore:RegisterForMessages",
                           { store: this._name, owner: this._owner });
+  },
+
+  observe: function(aSubject, aTopic, aData) {
+    let wId = aSubject.QueryInterface(Ci.nsISupportsPRUint64).data;
+    if (wId == this._innerWindowID) {
+      Services.obs.removeObserver(this, "inner-window-destroyed");
+
+      cpmm.removeMessageListener("DataStore:Changed:Return:OK", this);
+      cpmm.sendAsyncMessage("DataStore:UnregisterForMessages");
+      this._shuttingdown = true;
+      this._db.close();
+    }
   },
 
   newDBPromise: function(aTxnType, aFunction) {
@@ -125,6 +132,32 @@ this.DataStore.prototype = {
         }
       );
     });
+  },
+
+  checkRevision: function(aReject, aRevisionStore, aRevisionId, aCallback) {
+    if (!aRevisionId) {
+      aCallback();
+      return;
+    }
+
+    let self = this;
+
+    let request = aRevisionStore.openCursor(null, 'prev');
+    request.onsuccess = function(aEvent) {
+      let cursor = aEvent.target.result;
+      if (!cursor) {
+        dump("This cannot really happen.");
+        return;
+      }
+
+      if (cursor.value.revisionId != aRevisionId) {
+        aReject(new self._window.DOMError("ConstraintError",
+                                          "RevisionId is not up-to-date"));
+        return;
+      }
+
+      aCallback();
+    }
   },
 
   getInternal: function(aStore, aIds, aCallback) {
@@ -320,6 +353,11 @@ this.DataStore.prototype = {
 
     this.retrieveRevisionId(
       function() {
+        // If the window has been destroyed we don't emit the events.
+        if (self._shuttingdown) {
+          return;
+        }
+
         // If we have an active cursor we don't emit events.
         if (self._cursor) {
           return;
@@ -384,7 +422,7 @@ this.DataStore.prototype = {
     );
   },
 
-  put: function(aObj, aId) {
+  put: function(aObj, aId, aRevisionId) {
     if (!validateId(aId)) {
       return throwInvalidArg(this._window);
     }
@@ -398,12 +436,14 @@ this.DataStore.prototype = {
     // Promise<void>
     return this.newDBPromise("readwrite",
       function(aResolve, aReject, aTxn, aStore, aRevisionStore) {
-        self.putInternal(aResolve, aStore, aRevisionStore, aObj, aId);
+        self.checkRevision(aReject, aRevisionStore, aRevisionId, function() {
+          self.putInternal(aResolve, aStore, aRevisionStore, aObj, aId);
+        });
       }
     );
   },
 
-  add: function(aObj, aId) {
+  add: function(aObj, aId, aRevisionId) {
     if (aId) {
       if (!validateId(aId)) {
         return throwInvalidArg(this._window);
@@ -419,12 +459,14 @@ this.DataStore.prototype = {
     // Promise<int>
     return this.newDBPromise("readwrite",
       function(aResolve, aReject, aTxn, aStore, aRevisionStore) {
-        self.addInternal(aResolve, aStore, aRevisionStore, aObj, aId);
+        self.checkRevision(aReject, aRevisionStore, aRevisionId, function() {
+          self.addInternal(aResolve, aStore, aRevisionStore, aObj, aId);
+        });
       }
     );
   },
 
-  remove: function(aId) {
+  remove: function(aId, aRevisionId) {
     if (!validateId(aId)) {
       return throwInvalidArg(this._window);
     }
@@ -438,12 +480,14 @@ this.DataStore.prototype = {
     // Promise<void>
     return this.newDBPromise("readwrite",
       function(aResolve, aReject, aTxn, aStore, aRevisionStore) {
-        self.removeInternal(aResolve, aStore, aRevisionStore, aId);
+        self.checkRevision(aReject, aRevisionStore, aRevisionId, function() {
+          self.removeInternal(aResolve, aStore, aRevisionStore, aId);
+        });
       }
     );
   },
 
-  clear: function() {
+  clear: function(aRevisionId) {
     if (this._readOnly) {
       return throwReadOnly(this._window);
     }
@@ -453,7 +497,9 @@ this.DataStore.prototype = {
     // Promise<void>
     return this.newDBPromise("readwrite",
       function(aResolve, aReject, aTxn, aStore, aRevisionStore) {
-        self.clearInternal(aResolve, aStore, aRevisionStore);
+        self.checkRevision(aReject, aRevisionStore, aRevisionId, function() {
+          self.clearInternal(aResolve, aStore, aRevisionStore);
+        });
       }
     );
   },

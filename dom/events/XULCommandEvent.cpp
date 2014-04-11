@@ -95,7 +95,8 @@ NS_IMETHODIMP
 XULCommandEvent::GetSourceEvent(nsIDOMEvent** aSourceEvent)
 {
   NS_ENSURE_ARG_POINTER(aSourceEvent);
-  *aSourceEvent = GetSourceEvent().get();
+  nsCOMPtr<nsIDOMEvent> event = GetSourceEvent();
+  event.forget(aSourceEvent);
   return NS_OK;
 }
 
@@ -135,5 +136,7 @@ NS_NewDOMXULCommandEvent(nsIDOMEvent** aInstancePtrResult,
                          WidgetInputEvent* aEvent) 
 {
   XULCommandEvent* it = new XULCommandEvent(aOwner, aPresContext, aEvent);
-  return CallQueryInterface(it, aInstancePtrResult);
+  NS_ADDREF(it);
+  *aInstancePtrResult = static_cast<Event*>(it);
+  return NS_OK;
 }

@@ -100,8 +100,8 @@ typedef void* nsNativeWidget;
 #endif
 
 #define NS_IWIDGET_IID \
-{ 0xb979c607, 0xf0aa, 0x4fee, \
-  { 0xb2, 0x7b, 0xd4, 0x46, 0xa2, 0xe, 0x8b, 0x27 } }
+{ 0x8e081187, 0xf123, 0x4572, \
+  { 0x82, 0xc6, 0x4c, 0xcd, 0xc2, 0x0e, 0xbd, 0xf9 } }
 
 /*
  * Window shadow styles
@@ -226,6 +226,7 @@ struct nsIMEUpdatePreference {
     NOTIFY_NOTHING                       = 0,
     NOTIFY_SELECTION_CHANGE              = 1 << 0,
     NOTIFY_TEXT_CHANGE                   = 1 << 1,
+    NOTIFY_POSITION_CHANGE               = 1 << 2,
     // Following values indicate when widget needs or doesn't need notification.
     NOTIFY_CHANGES_CAUSED_BY_COMPOSITION = 1 << 6,
     // NOTE: NOTIFY_DURING_DEACTIVE isn't supported in environments where two
@@ -262,6 +263,11 @@ struct nsIMEUpdatePreference {
   bool WantTextChange() const
   {
     return !!(mWantUpdates & NOTIFY_TEXT_CHANGE);
+  }
+
+  bool WantPositionChanged() const
+  {
+    return !!(mWantUpdates & NOTIFY_POSITION_CHANGE);
   }
 
   bool WantChanges() const
@@ -475,7 +481,8 @@ struct SizeConstraints {
   nsIntSize mMaxSize;
 };
 
-// IMEMessage is shared by nsIMEStateManager and TextComposition.
+// IMEMessage is shared by IMEStateManager and TextComposition.
+// Update values in GeckoEditable.java if you make changes here.
 // XXX Negative values are used in Android...
 enum IMEMessage MOZ_ENUM_TYPE(int8_t)
 {
@@ -492,6 +499,8 @@ enum IMEMessage MOZ_ENUM_TYPE(int8_t)
   NOTIFY_IME_OF_TEXT_CHANGE,
   // Composition string has been updated
   NOTIFY_IME_OF_COMPOSITION_UPDATE,
+  // Position or size of focused element may be changed.
+  NOTIFY_IME_OF_POSITION_CHANGE,
   // Request to commit current composition to IME
   // (some platforms may not support)
   REQUEST_TO_COMMIT_COMPOSITION,
@@ -614,6 +623,9 @@ class nsIWidget : public nsISupports {
       : mLastChild(nullptr)
       , mPrevSibling(nullptr)
       , mOnDestroyCalled(false)
+      , mWindowType(eWindowType_child)
+      , mZIndex(0)
+
     {
       ClearNativeTouchSequence();
     }
@@ -996,12 +1008,15 @@ class nsIWidget : public nsISupports {
     /**
      * Sets the widget's z-index.
      */
-    NS_IMETHOD SetZIndex(int32_t aZIndex) = 0;
+    virtual void SetZIndex(int32_t aZIndex) = 0;
 
     /**
      * Gets the widget's z-index. 
      */
-    NS_IMETHOD GetZIndex(int32_t* aZIndex) = 0;
+    int32_t GetZIndex()
+    {
+      return mZIndex;
+    }
 
     /**
      * Position this widget just behind the given widget. (Used to
@@ -1112,39 +1127,13 @@ class nsIWidget : public nsISupports {
     virtual nsIntPoint GetClientOffset() = 0;
 
     /**
-     * Get the foreground color for this widget
-     *
-     * @return this widget's foreground color
-     *
-     */
-    virtual nscolor GetForegroundColor(void) = 0;
-
-    /**
-     * Set the foreground color for this widget
-     *
-     * @param aColor the new foreground color
-     *
-     */
-
-    NS_IMETHOD SetForegroundColor(const nscolor &aColor) = 0;
-
-    /**
-     * Get the background color for this widget
-     *
-     * @return this widget's background color
-     *
-     */
-
-    virtual nscolor GetBackgroundColor(void) = 0;
-
-    /**
      * Set the background color for this widget
      *
      * @param aColor the new background color
      *
      */
 
-    NS_IMETHOD SetBackgroundColor(const nscolor &aColor) = 0;
+    virtual void SetBackgroundColor(const nscolor &aColor) { }
 
     /**
      * Get the cursor for this widget.
@@ -1175,11 +1164,9 @@ class nsIWidget : public nsISupports {
                          uint32_t aHotspotX, uint32_t aHotspotY) = 0;
 
     /** 
-     * Get the window type of this widget
-     *
-     * @param aWindowType the window type of the widget
+     * Get the window type of this widget.
      */
-    NS_IMETHOD GetWindowType(nsWindowType& aWindowType) = 0;
+    nsWindowType WindowType() { return mWindowType; }
 
     /**
      * Set the transparency mode of the top-level window containing this widget.
@@ -1824,6 +1811,22 @@ public:
      */
     NS_IMETHOD_(InputContext) GetInputContext() = 0;
 
+    /*
+     * Execute native key bindings for aType.
+     */
+    typedef void (*DoCommandCallback)(mozilla::Command, void*);
+    enum NativeKeyBindingsType
+    {
+      NativeKeyBindingsForSingleLineEditor,
+      NativeKeyBindingsForMultiLineEditor,
+      NativeKeyBindingsForRichTextEditor
+    };
+    NS_IMETHOD_(bool) ExecuteNativeKeyBinding(
+                        NativeKeyBindingsType aType,
+                        const mozilla::WidgetKeyboardEvent& aEvent,
+                        DoCommandCallback aCallback,
+                        void* aCallbackData) = 0;
+
     /**
      * Set layers acceleration to 'True' or 'False'
      */
@@ -2024,6 +2027,8 @@ protected:
     nsIWidget* mPrevSibling;
     // When Destroy() is called, the sub class should set this true.
     bool mOnDestroyCalled;
+    nsWindowType mWindowType;
+    int32_t mZIndex;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIWidget, NS_IWIDGET_IID)

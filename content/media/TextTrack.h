@@ -7,10 +7,10 @@
 #ifndef mozilla_dom_TextTrack_h
 #define mozilla_dom_TextTrack_h
 
+#include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/dom/TextTrackBinding.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsDOMEventTargetHelper.h"
 #include "nsString.h"
 
 namespace mozilla {
@@ -20,34 +20,47 @@ class TextTrackList;
 class TextTrackCue;
 class TextTrackCueList;
 class TextTrackRegion;
-class TextTrackRegionList;
+class HTMLTrackElement;
 
-class TextTrack MOZ_FINAL : public nsDOMEventTargetHelper
+enum TextTrackSource {
+  Track,
+  AddTextTrack,
+  MediaResourceSpecific
+};
+
+// Constants for numeric readyState property values.
+enum TextTrackReadyState {
+  NotLoaded = 0U,
+  Loading = 1U,
+  Loaded = 2U,
+  FailedToLoad = 3U
+};
+
+class TextTrack MOZ_FINAL : public DOMEventTargetHelper
 {
 public:
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(TextTrack, nsDOMEventTargetHelper)
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(TextTrack, DOMEventTargetHelper)
 
-  TextTrack(nsISupports* aParent);
-  TextTrack(nsISupports* aParent,
+  TextTrack(nsPIDOMWindow* aOwnerWindow,
             TextTrackKind aKind,
             const nsAString& aLabel,
-            const nsAString& aLanguage);
-  TextTrack(nsISupports* aParent,
+            const nsAString& aLanguage,
+            TextTrackMode aMode,
+            TextTrackReadyState aReadyState,
+            TextTrackSource aTextTrackSource);
+  TextTrack(nsPIDOMWindow* aOwnerWindow,
             TextTrackList* aTextTrackList,
             TextTrackKind aKind,
             const nsAString& aLabel,
-            const nsAString& aLanguage);
+            const nsAString& aLanguage,
+            TextTrackMode aMode,
+            TextTrackReadyState aReadyState,
+            TextTrackSource aTextTrackSource);
 
   void SetDefaultSettings();
 
-  virtual JSObject* WrapObject(JSContext* aCx,
-                               JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
-
-  nsISupports* GetParentObject() const
-  {
-    return mParent;
-  }
+  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   TextTrackKind Kind() const
   {
@@ -65,10 +78,7 @@ public:
   {
     aType = mType;
   }
-  void GetId(nsAString& aId) const
-  {
-    aId = mId;
-  }
+  void GetId(nsAString& aId) const;
 
   TextTrackMode Mode() const
   {
@@ -85,25 +95,15 @@ public:
   }
 
   TextTrackCueList* GetActiveCues();
+  void UpdateActiveCueList();
   void GetActiveCueArray(nsTArray<nsRefPtr<TextTrackCue> >& aCues);
 
-  TextTrackRegionList* GetRegions() const
-  {
-    if (mMode != TextTrackMode::Disabled) {
-      return mRegionList;
-    }
-    return nullptr;
-  }
-
-  uint16_t ReadyState() const;
-  void SetReadyState(uint16_t aState);
-
-  void AddRegion(TextTrackRegion& aRegion);
-  void RemoveRegion(const TextTrackRegion& aRegion, ErrorResult& aRv);
+  TextTrackReadyState ReadyState() const;
+  void SetReadyState(TextTrackReadyState aState);
+  void SetReadyState(uint32_t aReadyState);
 
   void AddCue(TextTrackCue& aCue);
   void RemoveCue(TextTrackCue& aCue, ErrorResult& aRv);
-  void CueChanged(TextTrackCue& aCue);
   void SetDirty() { mDirty = true; }
 
   TextTrackList* GetTextTrackList();
@@ -111,26 +111,32 @@ public:
 
   IMPL_EVENT_HANDLER(cuechange)
 
-private:
-  void UpdateActiveCueList();
+  HTMLTrackElement* GetTrackElement();
+  void SetTrackElement(HTMLTrackElement* aTrackElement);
 
-  nsCOMPtr<nsISupports> mParent;
+  TextTrackSource GetTextTrackSource() {
+    return mTextTrackSource;
+  }
+
+private:
   nsRefPtr<TextTrackList> mTextTrackList;
 
   TextTrackKind mKind;
   nsString mLabel;
   nsString mLanguage;
   nsString mType;
-  nsString mId;
   TextTrackMode mMode;
 
   nsRefPtr<TextTrackCueList> mCueList;
   nsRefPtr<TextTrackCueList> mActiveCueList;
-  nsRefPtr<TextTrackRegionList> mRegionList;
+  nsRefPtr<HTMLTrackElement> mTrackElement;
 
   uint32_t mCuePos;
-  uint16_t mReadyState;
+  TextTrackReadyState mReadyState;
   bool mDirty;
+
+  // An enum that represents where the track was sourced from.
+  TextTrackSource mTextTrackSource;
 };
 
 } // namespace dom

@@ -12,7 +12,7 @@ NS_IMPL_NS_NEW_HTML_ELEMENT(Source)
 namespace mozilla {
 namespace dom {
 
-HTMLSourceElement::HTMLSourceElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+HTMLSourceElement::HTMLSourceElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo)
 {
 }
@@ -65,9 +65,9 @@ HTMLSourceElement::BindToTree(nsIDocument *aDocument,
 }
 
 JSObject*
-HTMLSourceElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aScope)
+HTMLSourceElement::WrapNode(JSContext* aCx)
 {
-  return HTMLSourceElementBinding::Wrap(aCx, aScope, this);
+  return HTMLSourceElementBinding::Wrap(aCx, this);
 }
 
 } // namespace dom

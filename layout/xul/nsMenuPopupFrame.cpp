@@ -17,7 +17,6 @@
 #include "nsMenuFrame.h"
 #include "nsMenuBarFrame.h"
 #include "nsPopupSetFrame.h"
-#include "nsEventDispatcher.h"
 #include "nsPIDOMWindow.h"
 #include "nsIDOMKeyEvent.h"
 #include "nsIDOMScreen.h"
@@ -35,7 +34,6 @@
 #include "nsLayoutUtils.h"
 #include "nsContentUtils.h"
 #include "nsCSSFrameConstructor.h"
-#include "nsEventStateManager.h"
 #include "nsIPopupBoxObject.h"
 #include "nsPIWindowRoot.h"
 #include "nsIReflowCallback.h"
@@ -47,6 +45,9 @@
 #include "nsIServiceManager.h"
 #include "nsThemeConstants.h"
 #include "nsDisplayList.h"
+#include "mozilla/EventDispatcher.h"
+#include "mozilla/EventStateManager.h"
+#include "mozilla/EventStates.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/MouseEvents.h"
@@ -269,15 +270,12 @@ nsMenuPopupFrame::CreateWidgetForView(nsView* aView)
   }
 
   nsTransparencyMode mode = nsLayoutUtils::GetFrameTransparency(this, this);
-  bool viewHasTransparentContent = !mInContentShell &&
-                                     (eTransparencyTransparent ==
-                                      mode);
   nsIContent* parentContent = GetContent()->GetParent();
   nsIAtom *tag = nullptr;
   if (parentContent)
     tag = parentContent->Tag();
   widgetData.mSupportTranslucency = mode == eTransparencyTransparent;
-  widgetData.mDropShadow = !(viewHasTransparentContent || tag == nsGkAtoms::menulist);
+  widgetData.mDropShadow = !(mode == eTransparencyTransparent || tag == nsGkAtoms::menulist);
   widgetData.mPopupLevel = PopupLevel(widgetData.mNoAutoHide);
 
   // panels which have a parent level need a parent widget. This allows them to
@@ -345,7 +343,7 @@ public:
   {
     WidgetMouseEvent event(true, NS_XUL_POPUP_SHOWN, nullptr,
                            WidgetMouseEvent::eReal);
-    return nsEventDispatcher::Dispatch(mPopup, mPresContext, &event);                 
+    return EventDispatcher::Dispatch(mPopup, mPresContext, &event);                 
   }
 
 private:
@@ -838,10 +836,10 @@ nsMenuPopupFrame::HidePopup(bool aDeselectMenu, nsPopupState aNewState)
   // mouse_enter/mouse_exit event will be fired to clear current hover state, we should clear it manually.
   // This code may not the best solution, but we can leave it here until we find the better approach.
   NS_ASSERTION(mContent->IsElement(), "How do we have a non-element?");
-  nsEventStates state = mContent->AsElement()->State();
+  EventStates state = mContent->AsElement()->State();
 
   if (state.HasState(NS_EVENT_STATE_HOVER)) {
-    nsEventStateManager *esm = PresContext()->EventStateManager();
+    EventStateManager* esm = PresContext()->EventStateManager();
     esm->SetContentState(nullptr, NS_EVENT_STATE_HOVER);
   }
 
@@ -872,12 +870,8 @@ nsMenuPopupFrame::GetRootViewForPopup(nsIFrame* aStartFrame)
     // window type of eWindowType_popup - in other words a popup window
     // widget. If we find one, this is the view we want. 
     nsIWidget* widget = view->GetWidget();
-    if (widget) {
-      nsWindowType wtype;
-      widget->GetWindowType(wtype);
-      if (wtype == eWindowType_popup) {
-        return view;
-      }
+    if (widget && widget->WindowType() == eWindowType_popup) {
+      return view;
     }
 
     nsView* temp = view->GetParent();
@@ -1338,13 +1332,14 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove, bool aS
                  "Popup is offscreen");
   }
 
+  // snap the popup's position in screen coordinates to device pixels,
+  // see bug 622507, bug 961431
+  screenPoint.x = presContext->RoundAppUnitsToNearestDevPixels(screenPoint.x);
+  screenPoint.y = presContext->RoundAppUnitsToNearestDevPixels(screenPoint.y);
+
   // determine the x and y position of the view by subtracting the desired
   // screen position from the screen position of the root frame.
   nsPoint viewPoint = screenPoint - rootScreenRect.TopLeft();
-
-  // snap the view's position to device pixels, see bug 622507
-  viewPoint.x = presContext->RoundAppUnitsToNearestDevPixels(viewPoint.x);
-  viewPoint.y = presContext->RoundAppUnitsToNearestDevPixels(viewPoint.y);
 
   nsView* view = GetView();
   NS_ASSERTION(view, "popup with no view");

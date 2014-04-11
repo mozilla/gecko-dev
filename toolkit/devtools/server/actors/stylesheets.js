@@ -4,16 +4,16 @@
 
 "use strict";
 
-let { components, Cc, Ci, Cu } = require('chrome');
+let { components, Cc, Ci, Cu } = require("chrome");
+let Services = require("Services");
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/devtools/SourceMap.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 
-const promise = require("sdk/core/promise");
+const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 const events = require("sdk/event/core");
 const protocol = require("devtools/server/protocol");
 const {Arg, Option, method, RetVal, types} = protocol;
@@ -23,6 +23,7 @@ loader.lazyGetter(this, "CssLogic", () => require("devtools/styleinspector/css-l
 
 let TRANSITION_CLASS = "moz-styleeditor-transitioning";
 let TRANSITION_DURATION_MS = 500;
+let TRANSITION_BUFFER_MS = 1000;
 let TRANSITION_RULE = "\
 :root.moz-styleeditor-transitioning, :root.moz-styleeditor-transitioning * {\
 transition-duration: " + TRANSITION_DURATION_MS + "ms !important; \
@@ -128,7 +129,11 @@ let StyleSheetsActor = protocol.ActorClass({
 
         // Recursively handle style sheets of the documents in iframes.
         for (let iframe of doc.getElementsByTagName("iframe")) {
-          documents.push(iframe.contentDocument);
+          if (iframe.contentDocument) {
+            // Sometimes, iframes don't have any document, like the
+            // one that are over deeply nested (bug 285395)
+            documents.push(iframe.contentDocument);
+          }
         }
       }
       throw new Task.Result(actors);
@@ -751,10 +756,10 @@ let StyleSheetActor = protocol.ActorClass({
 
     this._transitionRefCount++;
 
-    // Set up clean up and commit after transition duration (+10% buffer)
+    // Set up clean up and commit after transition duration (+buffer)
     // @see _onTransitionEnd
     this.window.setTimeout(this._onTransitionEnd.bind(this),
-                           Math.floor(TRANSITION_DURATION_MS * 1.1));
+                           TRANSITION_DURATION_MS + TRANSITION_BUFFER_MS);
   },
 
   /**

@@ -8,10 +8,16 @@ import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
+import java.util.List;
 
 import org.mozilla.gecko.background.common.GlobalConstants;
+import org.mozilla.gecko.background.common.log.Logger;
 import org.mozilla.gecko.background.fxa.FxAccountUtils;
+import org.mozilla.gecko.db.BrowserContract;
+import org.mozilla.gecko.fxa.FirefoxAccounts;
 import org.mozilla.gecko.fxa.FxAccountConstants;
 import org.mozilla.gecko.fxa.login.State;
 import org.mozilla.gecko.fxa.login.State.StateLabel;
@@ -21,7 +27,9 @@ import org.mozilla.gecko.sync.Utils;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
+import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 
@@ -38,6 +46,7 @@ public class AndroidFxAccount {
 
   public static final int CURRENT_PREFS_VERSION = 1;
 
+  // When updating the account, do not forget to update AccountPickler.
   public static final int CURRENT_ACCOUNT_VERSION = 3;
   public static final String ACCOUNT_KEY_ACCOUNT_VERSION = "version";
   public static final String ACCOUNT_KEY_PROFILE = "profile";
@@ -52,6 +61,9 @@ public class AndroidFxAccount {
   public static final String BUNDLE_KEY_BUNDLE_VERSION = "version";
   public static final String BUNDLE_KEY_STATE_LABEL = "stateLabel";
   public static final String BUNDLE_KEY_STATE = "state";
+
+  protected static final List<String> ANDROID_AUTHORITIES = Collections.unmodifiableList(Arrays.asList(
+      new String[] { BrowserContract.AUTHORITY }));
 
   protected final Context context;
   protected final AccountManager accountManager;
@@ -79,6 +91,18 @@ public class AndroidFxAccount {
     this.accountManager = AccountManager.get(this.context);
   }
 
+  /**
+   * Persist the Firefox account to disk as a JSON object. Note that this is a wrapper around
+   * {@link AccountPickler#pickle}, and is identical to calling it directly.
+   * <p>
+   * Note that pickling is different from bundling, which involves operations on a
+   * {@link android.os.Bundle Bundle} object of miscellaenous data associated with the account.
+   * See {@link #persistBundle} and {@link #unbundle} for more.
+   */
+  public void pickle(final String filename) {
+    AccountPickler.pickle(this, filename);
+  }
+
   public Account getAndroidAccount() {
     return this.account;
   }
@@ -96,10 +120,18 @@ public class AndroidFxAccount {
     }
   }
 
+  /**
+   * Saves the given data as the internal bundle associated with this account.
+   * @param bundle to write to account.
+   */
   protected void persistBundle(ExtendedJSONObject bundle) {
     accountManager.setUserData(account, ACCOUNT_KEY_DESCRIPTOR, bundle.toJSONString());
   }
 
+  /**
+   * Retrieve the internal bundle associated with this account.
+   * @return bundle associated with account.
+   */
   protected ExtendedJSONObject unbundle() {
     final int version = getAccountVersion();
     if (version < CURRENT_ACCOUNT_VERSION) {
@@ -272,6 +304,22 @@ public class AndroidFxAccount {
       String tokenServerURI,
       State state)
           throws UnsupportedEncodingException, GeneralSecurityException, URISyntaxException {
+    return addAndroidAccount(context, email, profile, idpServerURI, tokenServerURI, state,
+        CURRENT_ACCOUNT_VERSION, true, false, null);
+  }
+
+  public static AndroidFxAccount addAndroidAccount(
+      Context context,
+      String email,
+      String profile,
+      String idpServerURI,
+      String tokenServerURI,
+      State state,
+      final int accountVersion,
+      final boolean syncEnabled,
+      final boolean fromPickle,
+      ExtendedJSONObject bundle)
+          throws UnsupportedEncodingException, GeneralSecurityException, URISyntaxException {
     if (email == null) {
       throw new IllegalArgumentException("email must not be null");
     }
@@ -285,6 +333,12 @@ public class AndroidFxAccount {
       throw new IllegalArgumentException("state must not be null");
     }
 
+    // TODO: Add migration code.
+    if (accountVersion != CURRENT_ACCOUNT_VERSION) {
+      throw new IllegalStateException("Could not create account of version " + accountVersion +
+          ". Current version is " + CURRENT_ACCOUNT_VERSION + ".");
+    }
+
     // Android has internal restrictions that require all values in this
     // bundle to be strings. *sigh*
     Bundle userdata = new Bundle();
@@ -294,13 +348,15 @@ public class AndroidFxAccount {
     userdata.putString(ACCOUNT_KEY_AUDIENCE, FxAccountUtils.getAudienceForURL(tokenServerURI));
     userdata.putString(ACCOUNT_KEY_PROFILE, profile);
 
-    ExtendedJSONObject descriptor = new ExtendedJSONObject();
+    if (bundle == null) {
+      bundle = new ExtendedJSONObject();
+      // TODO: How to upgrade?
+      bundle.put(BUNDLE_KEY_BUNDLE_VERSION, CURRENT_BUNDLE_VERSION);
+    }
+    bundle.put(BUNDLE_KEY_STATE_LABEL, state.getStateLabel().name());
+    bundle.put(BUNDLE_KEY_STATE, state.toJSONObject().toJSONString());
 
-    descriptor.put(BUNDLE_KEY_STATE_LABEL, state.getStateLabel().name());
-    descriptor.put(BUNDLE_KEY_STATE, state.toJSONObject().toJSONString());
-
-    descriptor.put(BUNDLE_KEY_BUNDLE_VERSION, CURRENT_BUNDLE_VERSION);
-    userdata.putString(ACCOUNT_KEY_DESCRIPTOR, descriptor.toJSONString());
+    userdata.putString(ACCOUNT_KEY_DESCRIPTOR, bundle.toJSONString());
 
     Account account = new Account(email, FxAccountConstants.ACCOUNT_TYPE);
     AccountManager accountManager = AccountManager.get(context);
@@ -313,8 +369,16 @@ public class AndroidFxAccount {
     }
 
     AndroidFxAccount fxAccount = new AndroidFxAccount(context, account);
-    fxAccount.clearSyncPrefs();
-    fxAccount.enableSyncing();
+
+    if (!fromPickle) {
+      fxAccount.clearSyncPrefs();
+    }
+
+    if (syncEnabled) {
+      fxAccount.enableSyncing();
+    } else {
+      fxAccount.disableSyncing();
+    }
 
     return fxAccount;
   }
@@ -323,18 +387,88 @@ public class AndroidFxAccount {
     getSyncPrefs().edit().clear().commit();
   }
 
+  public static Iterable<String> getAndroidAuthorities() {
+    return ANDROID_AUTHORITIES;
+  }
+
+  /**
+   * Return true if the underlying Android account is currently set to sync automatically.
+   * <p>
+   * This is, confusingly, not the same thing as "being syncable": that refers
+   * to whether this account can be synced, ever; this refers to whether Android
+   * will try to sync the account at appropriate times.
+   *
+   * @return true if the account is set to sync automatically.
+   */
+  public boolean isSyncing() {
+    boolean isSyncEnabled = true;
+    for (String authority : getAndroidAuthorities()) {
+      isSyncEnabled &= ContentResolver.getSyncAutomatically(account, authority);
+    }
+    return isSyncEnabled;
+  }
+
   public void enableSyncing() {
-    FxAccountAuthenticator.enableSyncing(context, account);
+    Logger.info(LOG_TAG, "Enabling sync for account named like " + getObfuscatedEmail());
+    for (String authority : getAndroidAuthorities()) {
+      ContentResolver.setSyncAutomatically(account, authority, true);
+      ContentResolver.setIsSyncable(account, authority, 1);
+    }
   }
 
   public void disableSyncing() {
-    FxAccountAuthenticator.disableSyncing(context, account);
+    Logger.info(LOG_TAG, "Disabling sync for account named like " + getObfuscatedEmail());
+    for (String authority : getAndroidAuthorities()) {
+      ContentResolver.setSyncAutomatically(account, authority, false);
+    }
+  }
+
+  /**
+   * Is a sync currently in progress?
+   *
+   * @return true if Android is currently syncing the underlying Android Account.
+   */
+  public boolean isCurrentlySyncing() {
+    boolean active = false;
+    for (String authority : AndroidFxAccount.getAndroidAuthorities()) {
+      active |= ContentResolver.isSyncActive(account, authority);
+    }
+    return active;
+  }
+
+  /**
+   * Request a sync.  See {@link FirefoxAccounts#requestSync(Account, EnumSet, String[], String[])}.
+   */
+  public void requestSync() {
+    requestSync(FirefoxAccounts.SOON, null, null);
+  }
+
+  /**
+   * Request a sync.  See {@link FirefoxAccounts#requestSync(Account, EnumSet, String[], String[])}.
+   *
+   * @param syncHints to pass to sync.
+   */
+  public void requestSync(EnumSet<FirefoxAccounts.SyncHint> syncHints) {
+    requestSync(syncHints, null, null);
+  }
+
+  /**
+   * Request a sync.  See {@link FirefoxAccounts#requestSync(Account, EnumSet, String[], String[])}.
+   *
+   * @param syncHints to pass to sync.
+   * @param stagesToSync stage names to sync.
+   * @param stagesToSkip stage names to skip.
+   */
+  public void requestSync(EnumSet<FirefoxAccounts.SyncHint> syncHints, String[] stagesToSync, String[] stagesToSkip) {
+    FirefoxAccounts.requestSync(getAndroidAccount(), syncHints, stagesToSync, stagesToSkip);
   }
 
   public synchronized void setState(State state) {
     if (state == null) {
       throw new IllegalArgumentException("state must not be null");
     }
+    Logger.info(LOG_TAG, "Moving account named like " + getObfuscatedEmail() +
+        " to state " + state.getStateLabel().toString());
     updateBundleValue(BUNDLE_KEY_STATE_LABEL, state.getStateLabel().name());
     updateBundleValue(BUNDLE_KEY_STATE, state.toJSONObject().toJSONString());
   }
@@ -382,5 +516,34 @@ public class AndroidFxAccount {
    */
   public String getEmail() {
     return account.name;
+  }
+
+  /**
+   * Return the Firefox Account's local email address, obfuscated.
+   * <p>
+   * Use this when logging.
+   *
+   * @return local email address, obfuscated.
+   */
+  public String getObfuscatedEmail() {
+    return Utils.obfuscateEmail(account.name);
+  }
+
+  /**
+   * Create an intent announcing that a Firefox account will be deleted.
+   *
+   * @param context
+   *          Android context.
+   * @param account
+   *          Android account being removed.
+   * @return <code>Intent</code> to broadcast.
+   */
+  public static Intent makeDeletedAccountIntent(final Context context, final Account account) {
+    final Intent intent = new Intent(FxAccountConstants.ACCOUNT_DELETED_ACTION);
+
+    intent.putExtra(FxAccountConstants.ACCOUNT_DELETED_INTENT_VERSION_KEY,
+        Long.valueOf(FxAccountConstants.ACCOUNT_DELETED_INTENT_VERSION));
+    intent.putExtra(FxAccountConstants.ACCOUNT_DELETED_INTENT_ACCOUNT_KEY, account.name);
+    return intent;
   }
 }

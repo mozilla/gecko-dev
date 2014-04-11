@@ -206,7 +206,7 @@ let NetMonitorView = {
     let requestsView = this.RequestsMenu;
     let statisticsView = this.PerformanceStatistics;
 
-    Task.spawn(function() {
+    Task.spawn(function*() {
       statisticsView.displayPlaceholderCharts();
       yield controller.triggerActivity(ACTIVITY_TYPE.RELOAD.WITH_CACHE_ENABLED);
 
@@ -374,16 +374,32 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
     $("#request-menu-context-newtab").addEventListener("command", this._onContextNewTabCommand, false);
     $("#request-menu-context-copy-url").addEventListener("command", this._onContextCopyUrlCommand, false);
     $("#request-menu-context-copy-image-as-data-uri").addEventListener("command", this._onContextCopyImageAsDataUriCommand, false);
-    $("#request-menu-context-resend").addEventListener("command", this._onContextResendCommand, false);
-    $("#request-menu-context-perf").addEventListener("command", this._onContextPerfCommand, false);
 
-    $("#requests-menu-perf-notice-button").addEventListener("command", this._onContextPerfCommand, false);
-    $("#requests-menu-network-summary-button").addEventListener("command", this._onContextPerfCommand, false);
-    $("#requests-menu-network-summary-label").addEventListener("click", this._onContextPerfCommand, false);
+    window.once("connected", this._onConnect.bind(this));
+  },
 
-    $("#custom-request-send-button").addEventListener("click", this.sendCustomRequestEvent, false);
-    $("#custom-request-close-button").addEventListener("click", this.closeCustomRequestEvent, false);
-    $("#headers-summary-resend").addEventListener("click", this.cloneSelectedRequestEvent, false);
+  _onConnect: function() {
+    if (NetMonitorController.supportsCustomRequest) {
+      $("#request-menu-context-resend").addEventListener("command", this._onContextResendCommand, false);
+      $("#custom-request-send-button").addEventListener("click", this.sendCustomRequestEvent, false);
+      $("#custom-request-close-button").addEventListener("click", this.closeCustomRequestEvent, false);
+      $("#headers-summary-resend").addEventListener("click", this.cloneSelectedRequestEvent, false);
+    } else {
+      $("#request-menu-context-resend").hidden = true;
+      $("#headers-summary-resend").hidden = true;
+    }
+
+    if (NetMonitorController.supportsPerfStats) {
+      $("#request-menu-context-perf").addEventListener("command", this._onContextPerfCommand, false);
+      $("#requests-menu-perf-notice-button").addEventListener("command", this._onContextPerfCommand, false);
+      $("#requests-menu-network-summary-button").addEventListener("command", this._onContextPerfCommand, false);
+      $("#requests-menu-network-summary-label").addEventListener("click", this._onContextPerfCommand, false);
+    } else {
+      $("#notice-perf-message").hidden = true;
+      $("#request-menu-context-perf").hidden = true;
+      $("#requests-menu-network-summary-button").hidden = true;
+      $("#requests-menu-network-summary-label").hidden = true;
+    }
   },
 
   /**
@@ -508,6 +524,38 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
   },
 
   /**
+   * Copy a cURL command from the currently selected item.
+   */
+  copyAsCurl: function() {
+    let selected = this.selectedItem.attachment;
+
+    Task.spawn(function*() {
+      // Create a sanitized object for the Curl command generator.
+      let data = {
+        url: selected.url,
+        method: selected.method,
+        headers: [],
+        httpVersion: selected.httpVersion,
+        postDataText: null
+      };
+
+      // Fetch header values.
+      for (let { name, value } of selected.requestHeaders.headers) {
+        let text = yield gNetwork.getString(value);
+        data.headers.push({ name: name, value: text });
+      }
+
+      // Fetch the request payload.
+      if (selected.requestPostData) {
+        let postData = selected.requestPostData.postData.text;
+        data.postDataText = yield gNetwork.getString(postData);
+      }
+
+      clipboardHelper.copyString(Curl.generateCommand(data), document);
+    });
+  },
+
+  /**
    * Copy image as data uri.
    */
   copyImageAsDataUri: function() {
@@ -546,8 +594,12 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
    */
   sendCustomRequest: function() {
     let selected = this.selectedItem.attachment;
-    let data = Object.create(selected);
 
+    let data = {
+      url: selected.url,
+      method: selected.method,
+      httpVersion: selected.httpVersion,
+    };
     if (selected.requestHeaders) {
       data.headers = selected.requestHeaders.headers;
     }
@@ -648,6 +700,11 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
    *        "flash" or "other".
    */
   _enableFilter: function (aType) {
+    // Make sure this is a valid filter type.
+    if (Object.keys(this._allFilterPredicates).indexOf(aType) == -1) {
+      return;
+    }
+
     // Add the filter to the list of active filters.
     this._activeFilters.push(aType);
 
@@ -666,18 +723,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
    * the active filters.
    */
   get _filterPredicate() {
-    let filterPredicates = {
-      "all": () => true,
-      "html": this.isHtml,
-      "css": this.isCss,
-      "js": this.isJs,
-      "xhr": this.isXHR,
-      "fonts": this.isFont,
-      "images": this.isImage,
-      "media": this.isMedia,
-      "flash": this.isFlash,
-      "other": this.isOther
-    };
+    let filterPredicates = this._allFilterPredicates;
 
      if (this._activeFilters.length === 1) {
        // The simplest case: only one filter active.
@@ -691,6 +737,22 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
        };
      }
   },
+
+  /**
+   * Returns an object with all the filter predicates as [key: function] pairs.
+   */
+  get _allFilterPredicates() ({
+    all: () => true,
+    html: this.isHtml,
+    css: this.isCss,
+    js: this.isJs,
+    xhr: this.isXHR,
+    fonts: this.isFont,
+    images: this.isImage,
+    media: this.isMedia,
+    flash: this.isFlash,
+    other: this.isOther
+  }),
 
   /**
    * Sorts all network requests in this container by a specified detail.
@@ -1007,7 +1069,28 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
             requestItem.attachment.requestCookies = value;
             break;
           case "requestPostData":
+            // Search the POST data upload stream for request headers and add
+            // them to a separate store, different from the classic headers.
+            // XXX: Be really careful here! We're creating a function inside
+            // a loop, so remember the actual request item we want to modify.
+            let currentItem = requestItem;
+            let currentStore = { headers: [], headersSize: 0 };
+
+            Task.spawn(function*() {
+              let postData = yield gNetwork.getString(value.postData.text);
+              let payloadHeaders = CurlUtils.getHeadersFromMultipartText(postData);
+
+              currentStore.headers = payloadHeaders;
+              currentStore.headersSize = payloadHeaders.reduce(
+                (acc, { name, value }) => acc + name.length + value.length + 2, 0);
+
+              // The `getString` promise is async, so we need to refresh the
+              // information displayed in the network details pane again here.
+              refreshNetworkDetailsPaneIfNecessary(currentItem);
+            });
+
             requestItem.attachment.requestPostData = value;
+            requestItem.attachment.requestHeadersFromUploadStream = currentStore;
             break;
           case "responseHeaders":
             requestItem.attachment.responseHeaders = value;
@@ -1061,10 +1144,21 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
             break;
         }
       }
-      // This update may have additional information about a request which
-      // isn't shown yet in the network details pane.
-      let selectedItem = this.selectedItem;
-      if (selectedItem && selectedItem.value == id) {
+      refreshNetworkDetailsPaneIfNecessary(requestItem);
+    }
+
+    /**
+     * Refreshes the information displayed in the sidebar, in case this update
+     * may have additional information about a request which isn't shown yet
+     * in the network details pane.
+     *
+     * @param object aRequestItem
+     *        The item to repopulate the sidebar with in case it's selected in
+     *        this requests menu.
+     */
+    function refreshNetworkDetailsPaneIfNecessary(aRequestItem) {
+      let selectedItem = NetMonitorView.RequestsMenu.selectedItem;
+      if (selectedItem == aRequestItem) {
         NetMonitorView.NetworkDetails.populate(selectedItem.attachment);
       }
     }
@@ -1123,8 +1217,10 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
    *        The type of information that is to be updated.
    * @param any aValue
    *        The new value to be shown.
+   * @return object
+   *         A promise that is resolved once the information is displayed.
    */
-  updateMenuView: function(aItem, aKey, aValue) {
+  updateMenuView: Task.async(function*(aItem, aKey, aValue) {
     let target = aItem.target || aItem;
 
     switch (aKey) {
@@ -1154,6 +1250,8 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
       }
       case "status": {
         let node = $(".requests-menu-status", target);
+        let codeNode = $(".requests-menu-status-code", target);
+        codeNode.setAttribute("value", aValue);
         node.setAttribute("code", aValue);
         break;
       }
@@ -1184,13 +1282,13 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
         let { text, encoding } = aValue.content;
 
         if (mimeType.contains("image/")) {
-          gNetwork.getString(text).then(aString => {
-            let node = $(".requests-menu-icon", aItem.target);
-            node.src = "data:" + mimeType + ";" + encoding + "," + aString;
-            node.setAttribute("type", "thumbnail");
-            node.removeAttribute("hidden");
-            window.emit(EVENTS.RESPONSE_IMAGE_THUMBNAIL_DISPLAYED);
-          });
+          let responseBody = yield gNetwork.getString(text);
+          let node = $(".requests-menu-icon", aItem.target);
+          node.src = "data:" + mimeType + ";" + encoding + "," + responseBody;
+          node.setAttribute("type", "thumbnail");
+          node.removeAttribute("hidden");
+
+          window.emit(EVENTS.RESPONSE_IMAGE_THUMBNAIL_DISPLAYED);
         }
         break;
       }
@@ -1202,7 +1300,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
         break;
       }
     }
-  },
+  }),
 
   /**
    * Creates a waterfall representing timing information in a network request item view.
@@ -1254,7 +1352,6 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
     // is resized, this needs to be invalidated.
     if (aReset) {
       this._cachedWaterfallWidth = 0;
-      this._hideOverflowingColumns();
     }
 
     // Determine the scaling to be applied to all the waterfalls so that
@@ -1431,35 +1528,6 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
   },
 
   /**
-   * Hides the overflowing columns in the requests table.
-   */
-  _hideOverflowingColumns: function() {
-    if (window.isRTL) {
-      return;
-    }
-    let table = $("#network-table");
-    let toolbar = $("#requests-menu-toolbar");
-    let columns = [
-      ["#requests-menu-waterfall-header-box", "waterfall-overflows"],
-      ["#requests-menu-size-header-box", "size-overflows"],
-      ["#requests-menu-type-header-box", "type-overflows"],
-      ["#requests-menu-domain-header-box", "domain-overflows"]
-    ];
-
-    // Flush headers.
-    columns.forEach(([, attribute]) => table.removeAttribute(attribute));
-    let availableWidth = toolbar.getBoundingClientRect().width;
-
-    // Hide the columns.
-    columns.forEach(([id, attribute]) => {
-      let bounds = $(id).getBoundingClientRect();
-      if (bounds.right > availableWidth - REQUESTS_HEADERS_SAFE_BOUNDS) {
-        table.setAttribute(attribute, "");
-      }
-    });
-  },
-
-  /**
    * The selection listener for this container.
    */
   _onSelect: function({ detail: item }) {
@@ -1530,10 +1598,14 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
     let selectedItem = this.selectedItem;
 
     let resendElement = $("#request-menu-context-resend");
-    resendElement.hidden = !selectedItem || selectedItem.attachment.isCustom;
+    resendElement.hidden = !NetMonitorController.supportsCustomRequest ||
+      !selectedItem || selectedItem.attachment.isCustom;
 
     let copyUrlElement = $("#request-menu-context-copy-url");
     copyUrlElement.hidden = !selectedItem;
+
+    let copyAsCurlElement = $("#request-menu-context-copy-as-curl");
+    copyAsCurlElement.hidden = !selectedItem || !selectedItem.attachment.responseContent;
 
     let copyImageAsDataUriElement = $("#request-menu-context-copy-image-as-data-uri");
     copyImageAsDataUriElement.hidden = !selectedItem ||
@@ -1708,17 +1780,17 @@ SidebarView.prototype = {
    * @return object
    *        Returns a promise that resolves upon population of the subview.
    */
-  populate: function(aData) {
+  populate: Task.async(function*(aData) {
     let isCustom = aData.isCustom;
     let view = isCustom ?
       NetMonitorView.CustomRequest :
       NetMonitorView.NetworkDetails;
 
-    return view.populate(aData).then(() => {
-      $("#details-pane").selectedIndex = isCustom ? 0 : 1;
-      window.emit(EVENTS.SIDEBAR_POPULATED);
-    });
-  }
+    yield view.populate(aData);
+    $("#details-pane").selectedIndex = isCustom ? 0 : 1;
+
+    window.emit(EVENTS.SIDEBAR_POPULATED);
+  })
 }
 
 /**
@@ -1756,29 +1828,22 @@ CustomRequestView.prototype = {
    * @return object
    *        Returns a promise that resolves upon population the view.
    */
-  populate: function(aData) {
+  populate: Task.async(function*(aData) {
     $("#custom-url-value").value = aData.url;
     $("#custom-method-value").value = aData.method;
-    $("#custom-headers-value").value =
-       writeHeaderText(aData.requestHeaders.headers);
+    this.updateCustomQuery(aData.url);
 
-    let view = this;
-    let postDataPromise = null;
-
+    if (aData.requestHeaders) {
+      let headers = aData.requestHeaders.headers;
+      $("#custom-headers-value").value = writeHeaderText(headers);
+    }
     if (aData.requestPostData) {
-      let body = aData.requestPostData.postData.text;
-
-      postDataPromise = gNetwork.getString(body).then(aString => {
-        $("#custom-postdata-value").value =  aString;
-      });
-    } else {
-      postDataPromise = promise.resolve();
+      let postData = aData.requestPostData.postData.text;
+      $("#custom-postdata-value").value = yield gNetwork.getString(postData);
     }
 
-    return postDataPromise
-      .then(() => view.updateCustomQuery(aData.url))
-      .then(() => window.emit(EVENTS.CUSTOMREQUESTVIEW_POPULATED));
-  },
+    window.emit(EVENTS.CUSTOMREQUESTVIEW_POPULATED);
+  }),
 
   /**
    * Handle user input in the custom request form.
@@ -1814,7 +1879,7 @@ CustomRequestView.prototype = {
         break;
       case 'headers':
         let headersText = $("#custom-headers-value").value;
-        value = parseHeaderText(headersText);
+        value = parseHeadersText(headersText);
         selectedItem.attachment.requestHeaders = { headers: value };
         break;
     }
@@ -1826,7 +1891,7 @@ CustomRequestView.prototype = {
    * Update the query string field based on the url.
    *
    * @param object aUrl
-   *        url to extract query string from.
+   *        The URL to extract query string from.
    */
   updateCustomQuery: function(aUrl) {
     let paramsArray = parseQueryString(nsIURL(aUrl).query);
@@ -1842,7 +1907,7 @@ CustomRequestView.prototype = {
    * Update the url based on the query string field.
    *
    * @param object aQueryText
-   *        contents of the query string field.
+   *        The contents of the query string field.
    */
   updateCustomUrl: function(aQueryText) {
     let params = parseQueryText(aQueryText);
@@ -1900,6 +1965,7 @@ NetworkDetailsView.prototype = {
     this._paramsFormData = L10N.getStr("paramsFormData");
     this._paramsPostPayload = L10N.getStr("paramsPostPayload");
     this._requestHeaders = L10N.getStr("requestHeaders");
+    this._requestHeadersFromUpload = L10N.getStr("requestHeadersFromUpload");
     this._responseHeaders = L10N.getStr("responseHeaders");
     this._requestCookies = L10N.getStr("requestCookies");
     this._responseCookies = L10N.getStr("responseCookies");
@@ -1973,7 +2039,9 @@ NetworkDetailsView.prototype = {
         case 0: // "Headers"
           yield view._setSummary(src);
           yield view._setResponseHeaders(src.responseHeaders);
-          yield view._setRequestHeaders(src.requestHeaders);
+          yield view._setRequestHeaders(
+            src.requestHeaders,
+            src.requestHeadersFromUploadStream);
           break;
         case 1: // "Cookies"
           yield view._setResponseCookies(src.responseCookies);
@@ -1981,7 +2049,10 @@ NetworkDetailsView.prototype = {
           break;
         case 2: // "Params"
           yield view._setRequestGetParams(src.url);
-          yield view._setRequestPostParams(src.requestHeaders, src.requestPostData);
+          yield view._setRequestPostParams(
+            src.requestHeaders,
+            src.requestHeadersFromUploadStream,
+            src.requestPostData);
           break;
         case 3: // "Response"
           yield view._setResponseBody(src.url, src.responseContent);
@@ -2041,17 +2112,21 @@ NetworkDetailsView.prototype = {
   /**
    * Sets the network request headers shown in this view.
    *
-   * @param object aResponse
-   *        The message received from the server.
+   * @param object aHeadersResponse
+   *        The "requestHeaders" message received from the server.
+   * @param object aHeadersFromUploadStream
+   *        The "requestHeadersFromUploadStream" inferred from the POST payload.
    * @return object
    *        A promise that resolves when request headers are set.
    */
-  _setRequestHeaders: function(aResponse) {
-    if (aResponse && aResponse.headers.length) {
-      return this._addHeaders(this._requestHeaders, aResponse);
+  _setRequestHeaders: Task.async(function*(aHeadersResponse, aHeadersFromUploadStream) {
+    if (aHeadersResponse && aHeadersResponse.headers.length) {
+      yield this._addHeaders(this._requestHeaders, aHeadersResponse);
     }
-    return promise.resolve();
-  },
+    if (aHeadersFromUploadStream && aHeadersFromUploadStream.headers.length) {
+      yield this._addHeaders(this._requestHeadersFromUpload, aHeadersFromUploadStream);
+    }
+  }),
 
   /**
    * Sets the network response headers shown in this view.
@@ -2061,13 +2136,12 @@ NetworkDetailsView.prototype = {
    * @return object
    *        A promise that resolves when response headers are set.
    */
-  _setResponseHeaders: function(aResponse) {
+  _setResponseHeaders: Task.async(function*(aResponse) {
     if (aResponse && aResponse.headers.length) {
       aResponse.headers.sort((a, b) => a.name > b.name);
-      return this._addHeaders(this._responseHeaders, aResponse);
+      yield this._addHeaders(this._responseHeaders, aResponse);
     }
-    return promise.resolve();
-  },
+  }),
 
   /**
    * Populates the headers container in this view with the specified data.
@@ -2079,18 +2153,20 @@ NetworkDetailsView.prototype = {
    * @return object
    *        A promise that resolves when headers are added.
    */
-  _addHeaders: function(aName, aResponse) {
+  _addHeaders: Task.async(function*(aName, aResponse) {
     let kb = aResponse.headersSize / 1024;
     let size = L10N.numberWithDecimals(kb, HEADERS_SIZE_DECIMALS);
     let text = L10N.getFormatStr("networkMenu.sizeKB", size);
+
     let headersScope = this._headers.addScope(aName + " (" + text + ")");
     headersScope.expanded = true;
 
-    return promise.all(aResponse.headers.map(header => {
+    for (let header of aResponse.headers) {
       let headerVar = headersScope.addItem(header.name, {}, true);
-      return gNetwork.getString(header.value).then(aString => headerVar.setGrip(aString));
-    }));
-  },
+      let headerValue = yield gNetwork.getString(header.value);
+      headerVar.setGrip(headerValue);
+    }
+  }),
 
   /**
    * Sets the network request cookies shown in this view.
@@ -2100,13 +2176,12 @@ NetworkDetailsView.prototype = {
    * @return object
    *        A promise that is resolved when the request cookies are set.
    */
-  _setRequestCookies: function(aResponse) {
+  _setRequestCookies: Task.async(function*(aResponse) {
     if (aResponse && aResponse.cookies.length) {
       aResponse.cookies.sort((a, b) => a.name > b.name);
-      return this._addCookies(this._requestCookies, aResponse);
+      yield this._addCookies(this._requestCookies, aResponse);
     }
-    return promise.resolve();
-  },
+  }),
 
   /**
    * Sets the network response cookies shown in this view.
@@ -2116,12 +2191,11 @@ NetworkDetailsView.prototype = {
    * @return object
    *        A promise that is resolved when the response cookies are set.
    */
-  _setResponseCookies: function(aResponse) {
+  _setResponseCookies: Task.async(function*(aResponse) {
     if (aResponse && aResponse.cookies.length) {
-      return this._addCookies(this._responseCookies, aResponse);
+      yield this._addCookies(this._responseCookies, aResponse);
     }
-    return promise.resolve();
-  },
+  }),
 
   /**
    * Populates the cookies container in this view with the specified data.
@@ -2133,35 +2207,34 @@ NetworkDetailsView.prototype = {
    * @return object
    *        Returns a promise that resolves upon the adding of cookies.
    */
-  _addCookies: function(aName, aResponse) {
+  _addCookies: Task.async(function*(aName, aResponse) {
     let cookiesScope = this._cookies.addScope(aName);
     cookiesScope.expanded = true;
 
-    return promise.all(aResponse.cookies.map(cookie => {
+    for (let cookie of aResponse.cookies) {
       let cookieVar = cookiesScope.addItem(cookie.name, {}, true);
-      return gNetwork.getString(cookie.value).then(aString => {
-        cookieVar.setGrip(aString);
+      let cookieValue = yield gNetwork.getString(cookie.value);
+      cookieVar.setGrip(cookieValue);
 
-        // By default the cookie name and value are shown. If this is the only
-        // information available, then nothing else is to be displayed.
-        let cookieProps = Object.keys(cookie);
-        if (cookieProps.length == 2) {
-          return;
-        }
+      // By default the cookie name and value are shown. If this is the only
+      // information available, then nothing else is to be displayed.
+      let cookieProps = Object.keys(cookie);
+      if (cookieProps.length == 2) {
+        return;
+      }
 
-        // Display any other information other than the cookie name and value
-        // which may be available.
-        let rawObject = Object.create(null);
-        let otherProps = cookieProps.filter(e => e != "name" && e != "value");
-        for (let prop of otherProps) {
-          rawObject[prop] = cookie[prop];
-        }
-        cookieVar.populate(rawObject);
-        cookieVar.twisty = true;
-        cookieVar.expanded = true;
-      });
-    }));
-  },
+      // Display any other information other than the cookie name and value
+      // which may be available.
+      let rawObject = Object.create(null);
+      let otherProps = cookieProps.filter(e => e != "name" && e != "value");
+      for (let prop of otherProps) {
+        rawObject[prop] = cookie[prop];
+      }
+      cookieVar.populate(rawObject);
+      cookieVar.twisty = true;
+      cookieVar.expanded = true;
+    }
+  }),
 
   /**
    * Sets the network request get params shown in this view.
@@ -2181,56 +2254,65 @@ NetworkDetailsView.prototype = {
    *
    * @param object aHeadersResponse
    *        The "requestHeaders" message received from the server.
+   * @param object aHeadersFromUploadStream
+   *        The "requestHeadersFromUploadStream" inferred from the POST payload.
    * @param object aPostDataResponse
    *        The "requestPostData" message received from the server.
    * @return object
    *        A promise that is resolved when the request post params are set.
    */
-  _setRequestPostParams: function(aHeadersResponse, aPostDataResponse) {
-    if (!aHeadersResponse || !aPostDataResponse) {
-      return promise.resolve();
+  _setRequestPostParams: Task.async(function*(aHeadersResponse, aHeadersFromUploadStream, aPostDataResponse) {
+    if (!aHeadersResponse || !aHeadersFromUploadStream || !aPostDataResponse) {
+      return;
     }
-    return gNetwork.getString(aPostDataResponse.postData.text).then(aPostData => {
-      let contentTypeHeader = aHeadersResponse.headers.filter(({ name }) => name == "Content-Type")[0];
-      let contentTypeLongString = contentTypeHeader ? contentTypeHeader.value : "";
 
-      return gNetwork.getString(contentTypeLongString).then(aContentType => {
-        let urlencoded = "x-www-form-urlencoded";
+    let { headers: requestHeaders } = aHeadersResponse;
+    let { headers: payloadHeaders } = aHeadersFromUploadStream;
+    let allHeaders = [...payloadHeaders, ...requestHeaders];
 
-        // Handle query strings (poor man's forms, e.g. "?foo=bar&baz=42").
-        if (aContentType.contains(urlencoded)) {
-          let formDataGroups = aPostData.split(/\r\n|\r|\n/);
-          for (let group of formDataGroups) {
-            this._addParams(this._paramsFormData, group);
-          }
+    let contentTypeHeader = allHeaders.find(e => e.name.toLowerCase() == "content-type");
+    let contentTypeLongString = contentTypeHeader ? contentTypeHeader.value : "";
+    let postDataLongString = aPostDataResponse.postData.text;
+
+    let postData = yield gNetwork.getString(postDataLongString);
+    let contentType = yield gNetwork.getString(contentTypeLongString);
+
+    // Handle query strings (e.g. "?foo=bar&baz=42").
+    if (contentType.contains("x-www-form-urlencoded")) {
+      for (let section of postData.split(/\r\n|\r|\n/)) {
+        // Before displaying it, make sure this section of the POST data
+        // isn't a line containing upload stream headers.
+        if (payloadHeaders.every(header => !section.startsWith(header.name))) {
+          this._addParams(this._paramsFormData, section);
         }
-        // Handle actual forms ("multipart/form-data" content type).
-        else {
-          // This is really awkward, but hey, it works. Let's show an empty
-          // scope in the params view and place the source editor containing
-          // the raw post data directly underneath.
-          $("#request-params-box").removeAttribute("flex");
-          let paramsScope = this._params.addScope(this._paramsPostPayload);
-          paramsScope.expanded = true;
-          paramsScope.locked = true;
+      }
+    }
+    // Handle actual forms ("multipart/form-data" content type).
+    else {
+      // This is really awkward, but hey, it works. Let's show an empty
+      // scope in the params view and place the source editor containing
+      // the raw post data directly underneath.
+      $("#request-params-box").removeAttribute("flex");
+      let paramsScope = this._params.addScope(this._paramsPostPayload);
+      paramsScope.expanded = true;
+      paramsScope.locked = true;
 
-          $("#request-post-data-textarea-box").hidden = false;
-          return NetMonitorView.editor("#request-post-data-textarea").then(aEditor => {
-            // Most POST bodies are usually JSON, so they can be neatly
-            // syntax highlighted as JS. Otheriwse, fall back to plain text.
-            try {
-              JSON.parse(aPostData);
-              aEditor.setMode(Editor.modes.js);
-            } catch (e) {
-              aEditor.setMode(Editor.modes.text);
-            } finally {
-              aEditor.setText(aPostData);
-            }
-          });
-        }
-      });
-    }).then(() => window.emit(EVENTS.REQUEST_POST_PARAMS_DISPLAYED));
-  },
+      $("#request-post-data-textarea-box").hidden = false;
+      let editor = yield NetMonitorView.editor("#request-post-data-textarea");
+      // Most POST bodies are usually JSON, so they can be neatly
+      // syntax highlighted as JS. Otheriwse, fall back to plain text.
+      try {
+        JSON.parse(postData);
+        editor.setMode(Editor.modes.js);
+      } catch (e) {
+        editor.setMode(Editor.modes.text);
+      } finally {
+        editor.setText(postData);
+      }
+    }
+
+    window.emit(EVENTS.REQUEST_POST_PARAMS_DISPLAYED);
+  }),
 
   /**
    * Populates the params container in this view with the specified data.
@@ -2262,118 +2344,112 @@ NetworkDetailsView.prototype = {
    * @param object aResponse
    *        The message received from the server.
    * @return object
-   *        A promise that is resolved when the response body is set
+   *         A promise that is resolved when the response body is set.
    */
-  _setResponseBody: function(aUrl, aResponse) {
+  _setResponseBody: Task.async(function*(aUrl, aResponse) {
     if (!aResponse) {
-      return promise.resolve();
+      return;
     }
     let { mimeType, text, encoding } = aResponse.content;
+    let responseBody = yield gNetwork.getString(text);
 
-    return gNetwork.getString(text).then(aString => {
-      // Handle json, which we tentatively identify by checking the MIME type
-      // for "json" after any word boundary. This works for the standard
-      // "application/json", and also for custom types like "x-bigcorp-json".
-      // Additionally, we also directly parse the response text content to
-      // verify whether it's json or not, to handle responses incorrectly
-      // labeled as text/plain instead.
-      let jsonMimeType, jsonObject, jsonObjectParseError;
-      try {
-        // Test the mime type *and* parse the string, because "JSONP" responses
-        // (json with callback) aren't actually valid json.
-        jsonMimeType = /\bjson/.test(mimeType);
-        jsonObject = JSON.parse(aString);
-      } catch (e) {
-        jsonObjectParseError = e;
-      }
-      if (jsonMimeType || jsonObject) {
-        // Extract the actual json substring in case this might be a "JSONP".
-        // This regex basically parses a function call and captures the
-        // function name and arguments in two separate groups.
-        let jsonpRegex = /^\s*([\w$]+)\s*\(\s*([^]*)\s*\)\s*;?\s*$/;
-        let [_, callbackPadding, jsonpString] = aString.match(jsonpRegex) || [];
+    // Handle json, which we tentatively identify by checking the MIME type
+    // for "json" after any word boundary. This works for the standard
+    // "application/json", and also for custom types like "x-bigcorp-json".
+    // Additionally, we also directly parse the response text content to
+    // verify whether it's json or not, to handle responses incorrectly
+    // labeled as text/plain instead.
+    let jsonMimeType, jsonObject, jsonObjectParseError;
+    try {
+      jsonMimeType = /\bjson/.test(mimeType);
+      jsonObject = JSON.parse(responseBody);
+    } catch (e) {
+      jsonObjectParseError = e;
+    }
+    if (jsonMimeType || jsonObject) {
+      // Extract the actual json substring in case this might be a "JSONP".
+      // This regex basically parses a function call and captures the
+      // function name and arguments in two separate groups.
+      let jsonpRegex = /^\s*([\w$]+)\s*\(\s*([^]*)\s*\)\s*;?\s*$/;
+      let [_, callbackPadding, jsonpString] = responseBody.match(jsonpRegex) || [];
 
-        // Make sure this is a valid JSON object first. If so, nicely display
-        // the parsing results in a variables view. Otherwise, simply show
-        // the contents as plain text.
-        if (callbackPadding && jsonpString) {
-          try {
-            jsonObject = JSON.parse(jsonpString);
-          } catch (e) {
-            jsonObjectParseError = e;
-          }
-        }
-
-        // Valid JSON or JSONP.
-        if (jsonObject) {
-          $("#response-content-json-box").hidden = false;
-          let jsonScopeName = callbackPadding
-            ? L10N.getFormatStr("jsonpScopeName", callbackPadding)
-            : L10N.getStr("jsonScopeName");
-
-          return this._json.controller.setSingleVariable({
-            label: jsonScopeName,
-            rawObject: jsonObject,
-          }).expanded;
-        }
-        // Malformed JSON.
-        else {
-          $("#response-content-textarea-box").hidden = false;
-          let infoHeader = $("#response-content-info-header");
-          infoHeader.setAttribute("value", jsonObjectParseError);
-          infoHeader.setAttribute("tooltiptext", jsonObjectParseError);
-          infoHeader.hidden = false;
-          return NetMonitorView.editor("#response-content-textarea").then(aEditor => {
-            aEditor.setMode(Editor.modes.js);
-            aEditor.setText(aString);
-          });
+      // Make sure this is a valid JSON object first. If so, nicely display
+      // the parsing results in a variables view. Otherwise, simply show
+      // the contents as plain text.
+      if (callbackPadding && jsonpString) {
+        try {
+          jsonObject = JSON.parse(jsonpString);
+        } catch (e) {
+          jsonObjectParseError = e;
         }
       }
-      // Handle images.
-      else if (mimeType.contains("image/")) {
-        $("#response-content-image-box").setAttribute("align", "center");
-        $("#response-content-image-box").setAttribute("pack", "center");
-        $("#response-content-image-box").hidden = false;
-        $("#response-content-image").src =
-          "data:" + mimeType + ";" + encoding + "," + aString;
 
-        // Immediately display additional information about the image:
-        // file name, mime type and encoding.
-        $("#response-content-image-name-value").setAttribute("value", nsIURL(aUrl).fileName);
-        $("#response-content-image-mime-value").setAttribute("value", mimeType);
-        $("#response-content-image-encoding-value").setAttribute("value", encoding);
+      // Valid JSON or JSONP.
+      if (jsonObject) {
+        $("#response-content-json-box").hidden = false;
+        let jsonScopeName = callbackPadding
+          ? L10N.getFormatStr("jsonpScopeName", callbackPadding)
+          : L10N.getStr("jsonScopeName");
 
-        // Wait for the image to load in order to display the width and height.
-        $("#response-content-image").onload = e => {
-          // XUL images are majestic so they don't bother storing their dimensions
-          // in width and height attributes like the rest of the folk. Hack around
-          // this by getting the bounding client rect and subtracting the margins.
-          let { width, height } = e.target.getBoundingClientRect();
-          let dimensions = (width - 2) + " x " + (height - 2);
-          $("#response-content-image-dimensions-value").setAttribute("value", dimensions);
-        };
+        let jsonVar = { label: jsonScopeName, rawObject: jsonObject };
+        yield this._json.controller.setSingleVariable(jsonVar).expanded;
       }
-      // Handle anything else.
+      // Malformed JSON.
       else {
         $("#response-content-textarea-box").hidden = false;
-        return NetMonitorView.editor("#response-content-textarea").then(aEditor => {
-          aEditor.setMode(Editor.modes.text);
-          aEditor.setText(aString);
+        let infoHeader = $("#response-content-info-header");
+        infoHeader.setAttribute("value", jsonObjectParseError);
+        infoHeader.setAttribute("tooltiptext", jsonObjectParseError);
+        infoHeader.hidden = false;
 
-          // Maybe set a more appropriate mode in the Source Editor if possible,
-          // but avoid doing this for very large files.
-          if (aString.length < SOURCE_SYNTAX_HIGHLIGHT_MAX_FILE_SIZE) {
-            for (let key in CONTENT_MIME_TYPE_MAPPINGS) {
-              if (mimeType.contains(key)) {
-                aEditor.setMode(CONTENT_MIME_TYPE_MAPPINGS[key]);
-                break;
-              }
-            }
-          }
-        });
+        let editor = yield NetMonitorView.editor("#response-content-textarea");
+        editor.setMode(Editor.modes.js);
+        editor.setText(responseBody);
       }
-    }).then(() => window.emit(EVENTS.RESPONSE_BODY_DISPLAYED));
-  },
+    }
+    // Handle images.
+    else if (mimeType.contains("image/")) {
+      $("#response-content-image-box").setAttribute("align", "center");
+      $("#response-content-image-box").setAttribute("pack", "center");
+      $("#response-content-image-box").hidden = false;
+      $("#response-content-image").src =
+        "data:" + mimeType + ";" + encoding + "," + responseBody;
+
+      // Immediately display additional information about the image:
+      // file name, mime type and encoding.
+      $("#response-content-image-name-value").setAttribute("value", nsIURL(aUrl).fileName);
+      $("#response-content-image-mime-value").setAttribute("value", mimeType);
+      $("#response-content-image-encoding-value").setAttribute("value", encoding);
+
+      // Wait for the image to load in order to display the width and height.
+      $("#response-content-image").onload = e => {
+        // XUL images are majestic so they don't bother storing their dimensions
+        // in width and height attributes like the rest of the folk. Hack around
+        // this by getting the bounding client rect and subtracting the margins.
+        let { width, height } = e.target.getBoundingClientRect();
+        let dimensions = (width - 2) + " x " + (height - 2);
+        $("#response-content-image-dimensions-value").setAttribute("value", dimensions);
+      };
+    }
+    // Handle anything else.
+    else {
+      $("#response-content-textarea-box").hidden = false;
+      let editor = yield NetMonitorView.editor("#response-content-textarea");
+      editor.setMode(Editor.modes.text);
+      editor.setText(responseBody);
+
+      // Maybe set a more appropriate mode in the Source Editor if possible,
+      // but avoid doing this for very large files.
+      if (responseBody.length < SOURCE_SYNTAX_HIGHLIGHT_MAX_FILE_SIZE) {
+        let mapping = Object.keys(CONTENT_MIME_TYPE_MAPPINGS).find(key => mimeType.contains(key));
+        if (mapping) {
+          editor.setMode(CONTENT_MIME_TYPE_MAPPINGS[mapping]);
+        }
+      }
+    }
+
+    window.emit(EVENTS.RESPONSE_BODY_DISPLAYED);
+  }),
 
   /**
    * Sets the timings information shown in this view.
@@ -2450,23 +2526,22 @@ NetworkDetailsView.prototype = {
    * @param object aResponse
    *        The message received from the server.
    * @return object
-   *        A promise that is resolved when the response body is set
+   *        A promise that is resolved when the html preview is rendered.
    */
-  _setHtmlPreview: function(aResponse) {
+  _setHtmlPreview: Task.async(function*(aResponse) {
     if (!aResponse) {
       return promise.resolve();
     }
     let { text } = aResponse.content;
+    let responseBody = yield gNetwork.getString(text);
+
+    // Always disable JS when previewing HTML responses.
     let iframe = $("#response-preview");
+    iframe.contentDocument.docShell.allowJavascript = false;
+    iframe.contentDocument.documentElement.innerHTML = responseBody;
 
-    return gNetwork.getString(text).then(aString => {
-      // Always disable JS when previewing HTML responses.
-      iframe.contentDocument.docShell.allowJavascript = false;
-      iframe.contentDocument.documentElement.innerHTML = aString;
-
-      window.emit(EVENTS.RESPONSE_HTML_PREVIEW_DISPLAYED);
-    });
-  },
+    window.emit(EVENTS.RESPONSE_HTML_PREVIEW_DISPLAYED);
+  }),
 
   _dataSrc: null,
   _headers: null,
@@ -2708,15 +2783,15 @@ function parseQueryString(aQueryString) {
 }
 
 /**
- * Parse text representation of HTTP headers.
+ * Parse text representation of multiple HTTP headers.
  *
  * @param string aText
  *        Text of headers
  * @return array
  *         Array of headers info {name, value}
  */
-function parseHeaderText(aText) {
-  return parseRequestText(aText, ":");
+function parseHeadersText(aText) {
+  return parseRequestText(aText, "\\S+?", ":");
 }
 
 /**
@@ -2728,20 +2803,20 @@ function parseHeaderText(aText) {
  *         Array of query params {name, value}
  */
 function parseQueryText(aText) {
-  return parseRequestText(aText, "=");
+  return parseRequestText(aText, ".+?", "=");
 }
 
 /**
- * Parse a text representation of a name:value list with
- * the given name:value divider character.
+ * Parse a text representation of a name[divider]value list with
+ * the given name regex and divider character.
  *
  * @param string aText
  *        Text of list
  * @return array
  *         Array of headers info {name, value}
  */
-function parseRequestText(aText, aDivider) {
-  let regex = new RegExp("(.+?)\\" + aDivider + "\\s*(.+)");
+function parseRequestText(aText, aName, aDivider) {
+  let regex = new RegExp("(" + aName + ")\\" + aDivider + "\\s*(.+)");
   let pairs = [];
   for (let line of aText.split("\n")) {
     let matches;

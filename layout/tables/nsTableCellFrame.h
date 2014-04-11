@@ -47,6 +47,8 @@ public:
                     nsIFrame*        aParent,
                     nsIFrame*        aPrevInFlow) MOZ_OVERRIDE;
 
+  virtual void DestroyFrom(nsIFrame* aDestructRoot) MOZ_OVERRIDE;
+
 #ifdef ACCESSIBILITY
   virtual mozilla::a11y::AccType AccessibleType() MOZ_OVERRIDE;
 #endif
@@ -219,7 +221,7 @@ public:
   virtual void InvalidateFrameForRemoval() MOZ_OVERRIDE { InvalidateFrameSubtree(); }
 
 protected:
-  virtual int GetSkipSides(const nsHTMLReflowState* aReflowState= nullptr) const MOZ_OVERRIDE;
+  virtual int GetLogicalSkipSides(const nsHTMLReflowState* aReflowState= nullptr) const MOZ_OVERRIDE;
 
   /**
    * GetBorderOverflow says how far the cell's own borders extend

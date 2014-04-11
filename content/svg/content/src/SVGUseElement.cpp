@@ -21,9 +21,9 @@ namespace mozilla {
 namespace dom {
 
 JSObject*
-SVGUseElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+SVGUseElement::WrapNode(JSContext *aCx)
 {
-  return SVGUseElementBinding::Wrap(aCx, aScope, this);
+  return SVGUseElementBinding::Wrap(aCx, this);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -71,7 +71,7 @@ NS_INTERFACE_TABLE_TAIL_INHERITING(SVGUseElementBase)
 //----------------------------------------------------------------------
 // Implementation
 
-SVGUseElement::SVGUseElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+SVGUseElement::SVGUseElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : SVGUseElementBase(aNodeInfo), mSource(MOZ_THIS_IN_INITIALIZER_LIST())
 {
 }
@@ -88,8 +88,8 @@ nsresult
 SVGUseElement::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
 {
   *aResult = nullptr;
-  nsCOMPtr<nsINodeInfo> ni = aNodeInfo;
-  SVGUseElement *it = new SVGUseElement(ni.forget());
+  already_AddRefed<nsINodeInfo> ni = nsCOMPtr<nsINodeInfo>(aNodeInfo).forget();
+  SVGUseElement *it = new SVGUseElement(ni);
 
   nsCOMPtr<nsINode> kungFuDeathGrip(it);
   nsresult rv1 = it->Init();

@@ -4,13 +4,14 @@
 
 package org.mozilla.gecko.tests.components;
 
-import static org.mozilla.gecko.tests.helpers.AssertionHelper.*;
+import static org.mozilla.gecko.tests.helpers.AssertionHelper.fAssertNotNull;
+import static org.mozilla.gecko.tests.helpers.AssertionHelper.fAssertNotSame;
+import static org.mozilla.gecko.tests.helpers.AssertionHelper.fAssertTrue;
 
-import org.mozilla.gecko.tests.helpers.*;
-import org.mozilla.gecko.tests.UITestContext;
 import org.mozilla.gecko.R;
-
-import com.jayway.android.robotium.solo.Condition;
+import org.mozilla.gecko.tests.UITestContext;
+import org.mozilla.gecko.tests.helpers.FrameworkHelper;
+import org.mozilla.gecko.tests.helpers.WaitHelper;
 
 import android.content.Context;
 import android.content.ContextWrapper;
@@ -20,6 +21,8 @@ import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
+
+import com.jayway.android.robotium.solo.Condition;
 
 /**
  * A class representing any interactions that take place on GeckoView.
@@ -63,7 +66,7 @@ public class GeckoViewComponent extends BaseComponent {
         private InputMethodManager getInputMethodManager() {
             final InputMethodManager imm = (InputMethodManager)
                 mActivity.getSystemService(Context.INPUT_METHOD_SERVICE);
-            assertNotNull("Must have an InputMethodManager", imm);
+            fAssertNotNull("Must have an InputMethodManager", imm);
             return imm;
         }
 
@@ -75,7 +78,7 @@ public class GeckoViewComponent extends BaseComponent {
         }
 
         public TextInput assertActive() {
-            assertTrue("Current view should be the active input view", isActive());
+            fAssertTrue("Current view should be the active input view", isActive());
             return this;
         }
 
@@ -101,7 +104,7 @@ public class GeckoViewComponent extends BaseComponent {
         }
 
         public TextInput assertInputConnection() {
-            assertTrue("Current view should have an active InputConnection", hasInputConnection());
+            fAssertTrue("Current view should have an active InputConnection", hasInputConnection());
             return this;
         }
 
@@ -127,7 +130,7 @@ public class GeckoViewComponent extends BaseComponent {
          */
         public TextInput testInputConnection(final InputConnectionTest test) {
 
-            assertNotNull("Test must not be null", test);
+            fAssertNotNull("Test must not be null", test);
             assertInputConnection();
 
             // GeckoInputConnection can run on another thread than the main thread,
@@ -165,7 +168,7 @@ public class GeckoViewComponent extends BaseComponent {
                 // InputConnection thread. Therefore, the InputConnection thread must not be
                 // the same as the instrumentation thread to avoid a deadlock. This should
                 // always be the case and we perform a sanity check to make sure.
-                assertNotSame("InputConnection should not be running on instrumentation thread",
+                fAssertNotSame("InputConnection should not be running on instrumentation thread",
                     Looper.myLooper(), inputConnectionHandler.getLooper());
 
                 mDone = false;
@@ -183,7 +186,7 @@ public class GeckoViewComponent extends BaseComponent {
             public void run() {
                 final EditorInfo info = new EditorInfo();
                 final InputConnection ic = getView().onCreateInputConnection(info);
-                assertNotNull("Must have an InputConnection", ic);
+                fAssertNotNull("Must have an InputConnection", ic);
                 // Restore the IC to a clean state
                 ic.clearMetaKeyStates(-1);
                 ic.finishComposingText();

@@ -9,7 +9,7 @@ const {Cc, Ci, Cu} = require("chrome");
 const ToolDefinitions = require("main").Tools;
 const {CssLogic} = require("devtools/styleinspector/css-logic");
 const {ELEMENT_STYLE} = require("devtools/server/actors/styles");
-const promise = require("sdk/core/promise");
+const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 const {EventEmitter} = require("devtools/toolkit/event-emitter");
 const {OutputParser} = require("devtools/output-parser");
 const {Tooltip} = require("devtools/shared/widgets/Tooltip");
@@ -531,13 +531,20 @@ CssHtmlTree.prototype = {
       }
     }
 
-    // Test for css transform
     if (target.classList.contains("property-value")) {
       let propValue = target;
       let propName = target.parentNode.querySelector(".property-name");
+
+      // Test for css transform
       if (propName.textContent === "transform") {
         return this.tooltip.setCssTransformContent(propValue.textContent,
           this.pageStyle, this.viewedElement);
+      }
+
+      // Test for font family
+      if (propName.textContent === "font-family") {
+        this.tooltip.setFontFamilyContent(propValue.textContent);
+        return true;
       }
     }
 

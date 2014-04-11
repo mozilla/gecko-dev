@@ -30,7 +30,7 @@
 
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/Exceptions.h"
-#include "mozilla/dom/indexedDB/IndexedDatabaseManager.h"
+#include "mozilla/dom/PromiseBinding.h"
 #include "mozilla/dom/TextDecoderBinding.h"
 #include "mozilla/dom/TextEncoderBinding.h"
 #include "mozilla/dom/DOMErrorBinding.h"
@@ -46,8 +46,6 @@ using namespace mozilla;
 using namespace mozilla::dom;
 using namespace xpc;
 using namespace JS;
-
-using mozilla::dom::indexedDB::IndexedDatabaseManager;
 
 NS_IMPL_ISUPPORTS4(nsXPConnect,
                    nsIXPConnect,
@@ -233,13 +231,6 @@ xpc::SystemErrorReporter(JSContext *cx, const char *message, JSErrorReport *rep)
 
 }
 
-NS_EXPORT_(void)
-xpc::SystemErrorReporterExternal(JSContext *cx, const char *message,
-                                 JSErrorReport *rep)
-{
-    return SystemErrorReporter(cx, message, rep);
-}
-
 
 /***************************************************************************/
 
@@ -300,7 +291,8 @@ xpc_TryUnmarkWrappedGrayObject(nsISupports* aWrappedJS)
 /***************************************************************************/
 // nsIXPConnect interface methods...
 
-static inline nsresult UnexpectedFailure(nsresult rv)
+template<typename T>
+static inline T UnexpectedFailure(T rv)
 {
     NS_ERROR("This is not supposed to fail!");
     return rv;
@@ -396,10 +388,49 @@ CreateGlobalObject(JSContext *cx, const JSClass *clasp, nsIPrincipal *principal,
 #endif
 
     if (clasp->flags & JSCLASS_DOM_GLOBAL) {
-        AllocateProtoAndIfaceCache(global);
+        const char* className = clasp->name;
+        AllocateProtoAndIfaceCache(global,
+                                   (strcmp(className, "Window") == 0 ||
+                                    strcmp(className, "ChromeWindow") == 0)
+                                   ? ProtoAndIfaceCache::WindowLike
+                                   : ProtoAndIfaceCache::NonWindowLike);
     }
 
     return global;
+}
+
+bool
+InitGlobalObject(JSContext* aJSContext, JS::Handle<JSObject*> aGlobal, uint32_t aFlags)
+{
+    // Immediately enter the global's compartment, so that everything else we
+    // create ends up there.
+    JSAutoCompartment ac(aJSContext, aGlobal);
+    if (!(aFlags & nsIXPConnect::OMIT_COMPONENTS_OBJECT)) {
+        // XPCCallContext gives us an active request needed to save/restore.
+        if (!GetCompartmentPrivate(aGlobal)->scope->AttachComponentsObject(aJSContext) ||
+            !XPCNativeWrapper::AttachNewConstructorObject(aJSContext, aGlobal)) {
+            return UnexpectedFailure(false);
+        }
+    }
+
+    // Stuff coming through this path always ends up as a DOM global.
+    MOZ_ASSERT(js::GetObjectClass(aGlobal)->flags & JSCLASS_DOM_GLOBAL);
+
+    // Init WebIDL binding constructors wanted on all XPConnect globals.
+    //
+    // XXX Please do not add any additional classes here without the approval of
+    //     the XPConnect module owner.
+    if (!PromiseBinding::GetConstructorObject(aJSContext, aGlobal) ||
+        !TextDecoderBinding::GetConstructorObject(aJSContext, aGlobal) ||
+        !TextEncoderBinding::GetConstructorObject(aJSContext, aGlobal) ||
+        !DOMErrorBinding::GetConstructorObject(aJSContext, aGlobal)) {
+        return UnexpectedFailure(false);
+    }
+
+    if (!(aFlags & nsIXPConnect::DONT_FIRE_ONNEWGLOBALHOOK))
+        JS_FireOnNewGlobalObject(aJSContext, aGlobal);
+
+    return true;
 }
 
 } // namespace xpc
@@ -428,38 +459,15 @@ nsXPConnect::InitClassesWithNewWrappedGlobal(JSContext * aJSContext,
     nsresult rv =
         XPCWrappedNative::WrapNewGlobal(helper, aPrincipal,
                                         aFlags & nsIXPConnect::INIT_JS_STANDARD_CLASSES,
-                                        !(aFlags & nsIXPConnect::DONT_FIRE_ONNEWGLOBALHOOK),
                                         aOptions, getter_AddRefs(wrappedGlobal));
     NS_ENSURE_SUCCESS(rv, rv);
 
     // Grab a copy of the global and enter its compartment.
     RootedObject global(aJSContext, wrappedGlobal->GetFlatJSObject());
     MOZ_ASSERT(!js::GetObjectParent(global));
-    JSAutoCompartment ac(aJSContext, global);
 
-    if (!(aFlags & nsIXPConnect::OMIT_COMPONENTS_OBJECT)) {
-        // XPCCallContext gives us an active request needed to save/restore.
-        if (!wrappedGlobal->GetScope()->AttachComponentsObject(aJSContext))
-            return UnexpectedFailure(NS_ERROR_FAILURE);
-
-        if (!XPCNativeWrapper::AttachNewConstructorObject(aJSContext, global))
-            return UnexpectedFailure(NS_ERROR_FAILURE);
-    }
-
-    // Stuff coming through this path always ends up as a DOM global.
-    // XXX Someone who knows why we can assert this should re-check
-    //     (after bug 720580).
-    MOZ_ASSERT(js::GetObjectClass(global)->flags & JSCLASS_DOM_GLOBAL);
-
-    // Init WebIDL binding constructors wanted on all XPConnect globals.
-    //
-    // XXX Please do not add any additional classes here without the approval of
-    //     the XPConnect module owner.
-    if (!TextDecoderBinding::GetConstructorObject(aJSContext, global) ||
-        !TextEncoderBinding::GetConstructorObject(aJSContext, global) ||
-        !DOMErrorBinding::GetConstructorObject(aJSContext, global)) {
+    if (!InitGlobalObject(aJSContext, global, aFlags))
         return UnexpectedFailure(NS_ERROR_FAILURE);
-    }
 
     wrappedGlobal.forget(_retval);
     return NS_OK;
@@ -1178,7 +1186,7 @@ nsXPConnect::CheckForDebugMode(JSRuntime *rt)
 #endif //#ifdef MOZ_JSDEBUGGER
 
 
-NS_EXPORT_(void)
+void
 xpc_ActivateDebugMode()
 {
     XPCJSRuntime* rt = nsXPConnect::GetRuntimeInstance();
@@ -1267,7 +1275,7 @@ nsXPConnect::HoldObject(JSContext *aJSContext, JSObject *aObjectArg,
 
 namespace xpc {
 
-NS_EXPORT_(bool)
+bool
 Base64Encode(JSContext *cx, HandleValue val, MutableHandleValue out)
 {
     MOZ_ASSERT(cx);
@@ -1293,7 +1301,7 @@ Base64Encode(JSContext *cx, HandleValue val, MutableHandleValue out)
     return true;
 }
 
-NS_EXPORT_(bool)
+bool
 Base64Decode(JSContext *cx, HandleValue val, MutableHandleValue out)
 {
     MOZ_ASSERT(cx);
@@ -1361,8 +1369,11 @@ WriteScriptOrFunction(nsIObjectOutputStream *stream, JSContext *cx,
     // Exactly one of script or functionObj must be given
     MOZ_ASSERT(!scriptArg != !functionObj);
 
-    RootedScript script(cx, scriptArg ? scriptArg :
-                                        JS_GetFunctionScript(cx, JS_GetObjectFunction(functionObj)));
+    RootedScript script(cx, scriptArg);
+    if (!script) {
+        RootedFunction fun(cx, JS_GetObjectFunction(functionObj));
+        script.set(JS_GetFunctionScript(cx, fun));
+    }
 
     nsIPrincipal *principal =
         nsJSPrincipals::get(JS_GetScriptPrincipals(script));
@@ -1430,18 +1441,22 @@ ReadScriptOrFunction(nsIObjectInputStream *stream, JSContext *cx,
     nsJSPrincipals* principal = nullptr;
     nsCOMPtr<nsIPrincipal> readPrincipal;
     if (flags & HAS_PRINCIPALS_FLAG) {
-        rv = stream->ReadObject(true, getter_AddRefs(readPrincipal));
+        nsCOMPtr<nsISupports> supports;
+        rv = stream->ReadObject(true, getter_AddRefs(supports));
         if (NS_FAILED(rv))
             return rv;
+        readPrincipal = do_QueryInterface(supports);
         principal = nsJSPrincipals::get(readPrincipal);
     }
 
     nsJSPrincipals* originPrincipal = nullptr;
     nsCOMPtr<nsIPrincipal> readOriginPrincipal;
     if (flags & HAS_ORIGIN_PRINCIPALS_FLAG) {
-        rv = stream->ReadObject(true, getter_AddRefs(readOriginPrincipal));
+        nsCOMPtr<nsISupports> supports;
+        rv = stream->ReadObject(true, getter_AddRefs(supports));
         if (NS_FAILED(rv))
             return rv;
+        readOriginPrincipal = do_QueryInterface(supports);
         originPrincipal = nsJSPrincipals::get(readOriginPrincipal);
     }
 

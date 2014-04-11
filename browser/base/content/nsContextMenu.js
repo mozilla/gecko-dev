@@ -32,7 +32,7 @@ nsContextMenu.prototype = {
       this.ellipsis = gPrefService.getComplexValue("intl.ellipsis",
                                                    Ci.nsIPrefLocalizedString).data;
     } catch (e) { }
-    this.isTextSelected = this.isTextSelection();
+
     this.isContentSelected = this.isContentSelection();
     this.onPlainTextLink = false;
 
@@ -80,8 +80,7 @@ nsContextMenu.prototype = {
     // isn't actually linked.
     if (this.isTextSelected && !this.onLink) {
       // Ok, we have some text, let's figure out if it looks like a URL.
-      let selection =  document.commandDispatcher.focusedWindow
-                               .getSelection();
+      let selection =  this.focusedWindow.getSelection();
       let linkText = selection.toString().trim();
       let uri;
       if (/^(?:https?|ftp):/i.test(linkText)) {
@@ -268,18 +267,21 @@ nsContextMenu.prototype = {
   },
 
   initMiscItems: function CM_initMiscItems() {
-    var isTextSelected = this.isTextSelected;
-
     // Use "Bookmark This Link" if on a link.
     this.showItem("context-bookmarkpage",
                   !(this.isContentSelected || this.onTextInput || this.onLink ||
                     this.onImage || this.onVideo || this.onAudio || this.onSocial));
     this.showItem("context-bookmarklink", (this.onLink && !this.onMailtoLink &&
                                            !this.onSocial) || this.onPlainTextLink);
-    this.showItem("context-searchselect", isTextSelected);
     this.showItem("context-keywordfield",
                   this.onTextInput && this.onKeywordField);
     this.showItem("frame", this.inFrame);
+
+    let showSearchSelect = (this.isTextSelected || this.onLink) && !this.onImage;
+    this.showItem("context-searchselect", showSearchSelect);
+    if (showSearchSelect) {
+      this.formatSearchContextItem();
+    }
 
     // srcdoc cannot be opened separately due to concerns about web
     // content with about:srcdoc in location bar masquerading as trusted
@@ -292,7 +294,7 @@ nsContextMenu.prototype = {
     this.showItem("context-bookmarkframe", !this.inSrcdocFrame);
     this.showItem("open-frame-sep", !this.inSrcdocFrame);
 
-    this.showItem("frame-sep", this.inFrame && isTextSelected);
+    this.showItem("frame-sep", this.inFrame && this.isTextSelected);
 
     // Hide menu entries for images, show otherwise
     if (this.inFrame) {
@@ -540,9 +542,15 @@ nsContextMenu.prototype = {
     this.isDesignMode      = false;
     this.onCTPPlugin       = false;
     this.canSpellCheck     = false;
+    this.textSelected      = getBrowserSelection();
+    this.isTextSelected    = this.textSelected.length != 0;
 
     // Remember the node that was clicked.
     this.target = aNode;
+
+    let [elt, win] = BrowserUtils.getFocusSync(document);
+    this.focusedWindow = win;
+    this.focusedElement = elt;
 
     // If this is a remote context menu event, use the information from
     // gContextMenuContentData instead.
@@ -1247,7 +1255,7 @@ nsContextMenu.prototype = {
     var linkText;
     // If selected text is found to match valid URL pattern.
     if (this.onPlainTextLink)
-      linkText = document.commandDispatcher.focusedWindow.getSelection().toString().trim();
+      linkText = this.focusedWindow.getSelection().toString().trim();
     else
       linkText = this.linkText();
     urlSecurityCheck(this.linkURL, this._unremotePrincipal(doc.nodePrincipal));
@@ -1442,42 +1450,9 @@ nsContextMenu.prototype = {
     return text;
   },
 
-  // Get selected text. Only display the first 15 chars.
-  isTextSelection: function() {
-    // Get 16 characters, so that we can trim the selection if it's greater
-    // than 15 chars
-    var selectedText = getBrowserSelection(16);
-
-    if (!selectedText)
-      return false;
-
-    if (selectedText.length > 15)
-      selectedText = selectedText.substr(0,15) + this.ellipsis;
-
-    // Use the current engine if the search bar is visible, the default
-    // engine otherwise.
-    var engineName = "";
-    var ss = Cc["@mozilla.org/browser/search-service;1"].
-             getService(Ci.nsIBrowserSearchService);
-    if (isElementVisible(BrowserSearch.searchBar))
-      engineName = ss.currentEngine.name;
-    else
-      engineName = ss.defaultEngine.name;
-
-    // format "Search <engine> for <selection>" string to show in menu
-    var menuLabel = gNavigatorBundle.getFormattedString("contextMenuSearch",
-                                                        [engineName,
-                                                         selectedText]);
-    document.getElementById("context-searchselect").label = menuLabel;
-    document.getElementById("context-searchselect").accessKey =
-             gNavigatorBundle.getString("contextMenuSearch.accesskey"); 
-
-    return true;
-  },
-
   // Returns true if anything is selected.
   isContentSelection: function() {
-    return !document.commandDispatcher.focusedWindow.getSelection().isCollapsed;
+    return !this.focusedWindow.getSelection().isCollapsed;
   },
 
   toString: function () {
@@ -1579,7 +1554,7 @@ nsContextMenu.prototype = {
     var linkText;
     // If selected text is found to match valid URL pattern.
     if (this.onPlainTextLink)
-      linkText = document.commandDispatcher.focusedWindow.getSelection().toString().trim();
+      linkText = this.focusedWindow.getSelection().toString().trim();
     else
       linkText = this.linkText();
     window.top.PlacesCommandHook.bookmarkLink(PlacesUtils.bookmarksMenuFolderId, this.linkURL,
@@ -1688,5 +1663,34 @@ nsContextMenu.prototype = {
     if (this.onImage)
       return this.mediaURL;
     return "";
+  },
+
+  // Formats the 'Search <engine> for "<selection or link text>"' context menu.
+  formatSearchContextItem: function() {
+    var menuItem = document.getElementById("context-searchselect");
+    var selectedText = this.isTextSelected ? this.textSelected : this.linkText();
+
+    // Store searchTerms in context menu item so we know what to search onclick
+    menuItem.searchTerms = selectedText;
+
+    if (selectedText.length > 15)
+      selectedText = selectedText.substr(0,15) + this.ellipsis;
+
+    // Use the current engine if the search bar is visible, the default
+    // engine otherwise.
+    var engineName = "";
+    var ss = Cc["@mozilla.org/browser/search-service;1"].
+             getService(Ci.nsIBrowserSearchService);
+    if (isElementVisible(BrowserSearch.searchBar))
+      engineName = ss.currentEngine.name;
+    else
+      engineName = ss.defaultEngine.name;
+
+    // format "Search <engine> for <selection>" string to show in menu
+    var menuLabel = gNavigatorBundle.getFormattedString("contextMenuSearch",
+                                                        [engineName,
+                                                         selectedText]);
+    menuItem.label = menuLabel;
+    menuItem.accessKey = gNavigatorBundle.getString("contextMenuSearch.accesskey");
   }
 };

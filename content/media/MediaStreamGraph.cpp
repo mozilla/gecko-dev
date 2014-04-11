@@ -5,6 +5,7 @@
 
 #include "MediaStreamGraphImpl.h"
 #include "mozilla/LinkedList.h"
+#include "mozilla/unused.h"
 
 #include "AudioSegment.h"
 #include "VideoSegment.h"
@@ -24,6 +25,7 @@
 #include <algorithm>
 #include "DOMMediaStream.h"
 #include "GeckoProfiler.h"
+#include "mozilla/unused.h"
 
 using namespace mozilla::layers;
 using namespace mozilla::dom;
@@ -1102,7 +1104,7 @@ MediaStreamGraphImpl::ProduceDataForStreamsBlockByBlock(uint32_t aStreamIndex,
     for (uint32_t i = aStreamIndex; i < mStreams.Length(); ++i) {
       ProcessedMediaStream* ps = mStreams[i]->AsProcessedStream();
       if (ps) {
-        ps->ProduceOutput(t, next, (next == aTo) ? ProcessedMediaStream::ALLOW_FINISH : 0);
+        ps->ProcessInput(t, next, (next == aTo) ? ProcessedMediaStream::ALLOW_FINISH : 0);
       }
     }
     t = next;
@@ -1144,6 +1146,19 @@ MediaStreamGraphImpl::ResumeAllAudioOutputs()
   }
 }
 
+struct AutoProfilerUnregisterThread
+{
+  // The empty ctor is used to silence a pre-4.8.0 GCC unused variable warning.
+  AutoProfilerUnregisterThread()
+  {
+  }
+
+  ~AutoProfilerUnregisterThread()
+  {
+    profiler_unregister_thread();
+  }
+};
+
 void
 MediaStreamGraphImpl::RunThread()
 {
@@ -1156,6 +1171,7 @@ MediaStreamGraphImpl::RunThread()
                "Shouldn't have started a graph with empty message queue!");
 
   uint32_t ticksProcessed = 0;
+  AutoProfilerUnregisterThread autoUnregister;
 
   for (;;) {
     // Update mCurrentTime to the min of the playing audio times, or using the
@@ -1205,13 +1221,23 @@ MediaStreamGraphImpl::RunThread()
       }
     }
 
+    // The loop is woken up so soon that mCurrentTime barely advances and we
+    // end up having endBlockingDecisions == mStateComputedTime.
+    // Since stream blocking is computed in the interval of
+    // [mStateComputedTime, endBlockingDecisions), it won't be computed at all.
+    // We should ensure next iteration so that pending blocking changes will be
+    // computed in next loop.
+    if (endBlockingDecisions == mStateComputedTime) {
+      ensureNextIteration = true;
+    }
+
     // Figure out which streams are blocked and when.
     GraphTime prevComputedTime = mStateComputedTime;
     RecomputeBlocking(endBlockingDecisions);
 
     // Play stream contents.
     bool allBlockedForever = true;
-    // True when we've done ProduceOutput for all processed streams.
+    // True when we've done ProcessInput for all processed streams.
     bool doneAllProducing = false;
     // Figure out what each stream wants to do
     for (uint32_t i = 0; i < mStreams.Length(); ++i) {
@@ -1237,8 +1263,8 @@ MediaStreamGraphImpl::RunThread()
             ticksProcessed += TimeToTicksRoundDown(n->SampleRate(), mStateComputedTime - prevComputedTime);
             doneAllProducing = true;
           } else {
-            ps->ProduceOutput(prevComputedTime, mStateComputedTime,
-                              ProcessedMediaStream::ALLOW_FINISH);
+            ps->ProcessInput(prevComputedTime, mStateComputedTime,
+                             ProcessedMediaStream::ALLOW_FINISH);
             NS_WARN_IF_FALSE(stream->mBuffer.GetEnd() >=
                              GraphTimeToStreamTime(stream, mStateComputedTime),
                              "Stream did not produce enough data");
@@ -1320,8 +1346,6 @@ MediaStreamGraphImpl::RunThread()
       messageQueue.SwapElements(mMessageQueue);
     }
   }
-
-  profiler_unregister_thread();
 }
 
 void
@@ -2375,7 +2399,7 @@ ProcessedMediaStream::AllocateInputPort(MediaStream* aStream, uint32_t aFlags,
       mPort->Init();
       // The graph holds its reference implicitly
       mPort->GraphImpl()->SetStreamOrderDirty();
-      mPort.forget();
+      unused << mPort.forget();
     }
     virtual void RunDuringShutdown()
     {

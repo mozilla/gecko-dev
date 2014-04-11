@@ -21,10 +21,11 @@ fi
 
 # B2G Options
 ac_add_options --enable-application=b2g
-ENABLE_MARIONETTE=1
-
 export CXXFLAGS=-DMOZ_ENABLE_JS_DUMP
 
 GAIADIR=$topsrcdir/gaia
+
+# Build simulator xpi and phone tweaks for b2g-desktop
+FXOS_SIMULATOR=1
 
 . "$topsrcdir/b2g/config/mozconfigs/common.override"

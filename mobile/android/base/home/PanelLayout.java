@@ -5,7 +5,9 @@
 
 package org.mozilla.gecko.home;
 
+import org.mozilla.gecko.R;
 import org.mozilla.gecko.home.HomePager.OnUrlOpenListener;
+import org.mozilla.gecko.home.HomeConfig.ItemHandler;
 import org.mozilla.gecko.home.HomeConfig.PanelConfig;
 import org.mozilla.gecko.home.HomeConfig.ViewConfig;
 import org.mozilla.gecko.util.StringUtils;
@@ -16,11 +18,12 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import android.text.TextUtils;
 import android.util.Log;
+import android.util.SparseArray;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.FrameLayout;
 
-import java.util.Deque;
+import java.lang.ref.SoftReference;
 import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.Map;
@@ -64,7 +67,8 @@ import java.util.WeakHashMap;
 abstract class PanelLayout extends FrameLayout {
     private static final String LOGTAG = "GeckoPanelLayout";
 
-    protected final Map<View, ViewState> mViewStateMap;
+    protected final SparseArray<ViewState> mViewStates;
+    private final PanelConfig mPanelConfig;
     private final DatasetHandler mDatasetHandler;
     private final OnUrlOpenListener mUrlOpenListener;
 
@@ -74,6 +78,7 @@ abstract class PanelLayout extends FrameLayout {
      */
     public interface DatasetBacked {
         public void setDataset(Cursor cursor);
+        public void setFilterManager(FilterManager manager);
     }
 
     /**
@@ -81,17 +86,75 @@ abstract class PanelLayout extends FrameLayout {
      * filter for queries on the database.
      */
     public static class DatasetRequest implements Parcelable {
-        public final String datasetId;
-        public final String filter;
+        public enum Type implements Parcelable {
+            DATASET_LOAD,
+            FILTER_PUSH,
+            FILTER_POP;
 
-        private DatasetRequest(Parcel in) {
-            this.datasetId = in.readString();
-            this.filter = in.readString();
+            @Override
+            public int describeContents() {
+                return 0;
+            }
+
+            @Override
+            public void writeToParcel(Parcel dest, int flags) {
+                dest.writeInt(ordinal());
+            }
+
+            public static final Creator<Type> CREATOR = new Creator<Type>() {
+                @Override
+                public Type createFromParcel(final Parcel source) {
+                    return Type.values()[source.readInt()];
+                }
+
+                @Override
+                public Type[] newArray(final int size) {
+                    return new Type[size];
+                }
+            };
         }
 
-        public DatasetRequest(String datasetId, String filter) {
-            this.datasetId = datasetId;
-            this.filter = filter;
+        private final int mViewIndex;
+        private final Type mType;
+        private final String mDatasetId;
+        private final FilterDetail mFilterDetail;
+
+        private DatasetRequest(Parcel in) {
+            this.mViewIndex = in.readInt();
+            this.mType = (Type) in.readParcelable(getClass().getClassLoader());
+            this.mDatasetId = in.readString();
+            this.mFilterDetail = (FilterDetail) in.readParcelable(getClass().getClassLoader());
+        }
+
+        public DatasetRequest(int index, String datasetId, FilterDetail filterDetail) {
+            this(index, Type.DATASET_LOAD, datasetId, filterDetail);
+        }
+
+        public DatasetRequest(int index, Type type, String datasetId, FilterDetail filterDetail) {
+            this.mViewIndex = index;
+            this.mType = type;
+            this.mDatasetId = datasetId;
+            this.mFilterDetail = filterDetail;
+        }
+
+        public int getViewIndex() {
+            return mViewIndex;
+        }
+
+        public Type getType() {
+            return mType;
+        }
+
+        public String getDatasetId() {
+            return mDatasetId;
+        }
+
+        public String getFilter() {
+            return (mFilterDetail != null ? mFilterDetail.filter : null);
+        }
+
+        public FilterDetail getFilterDetail() {
+            return mFilterDetail;
         }
 
         @Override
@@ -101,12 +164,18 @@ abstract class PanelLayout extends FrameLayout {
 
         @Override
         public void writeToParcel(Parcel dest, int flags) {
-            dest.writeString(datasetId);
-            dest.writeString(filter);
+            dest.writeInt(mViewIndex);
+            dest.writeParcelable(mType, 0);
+            dest.writeString(mDatasetId);
+            dest.writeParcelable(mFilterDetail, 0);
         }
 
         public String toString() {
-            return "{dataset: " + datasetId + ", filter: " + filter + "}";
+            return "{ index: " + mViewIndex +
+                   ", type: " + mType +
+                   ", dataset: " + mDatasetId +
+                   ", filter: " + mFilterDetail +
+                   " }";
         }
 
         public static final Creator<DatasetRequest> CREATOR = new Creator<DatasetRequest>() {
@@ -132,41 +201,90 @@ abstract class PanelLayout extends FrameLayout {
         public void requestDataset(DatasetRequest request);
 
         /**
-         * Releases any resources associated with a previously loaded
-         * dataset. It will do nothing if the dataset with the given ID
-         * hasn't been loaded before.
+         * Releases any resources associated with a panel view. It will
+         * do nothing if the view with the given index been created
+         * before.
          */
-        public void resetDataset(String datasetId);
+        public void resetDataset(int viewIndex);
     }
 
     public interface PanelView {
-        public void setOnUrlOpenListener(OnUrlOpenListener listener);
+        public void setOnItemOpenListener(OnItemOpenListener listener);
+        public void setOnKeyListener(OnKeyListener listener);
+    }
+
+    public interface FilterManager {
+        public FilterDetail getPreviousFilter();
+        public boolean canGoBack();
+        public void goBack();
     }
 
     public PanelLayout(Context context, PanelConfig panelConfig, DatasetHandler datasetHandler, OnUrlOpenListener urlOpenListener) {
         super(context);
-        mViewStateMap = new WeakHashMap<View, ViewState>();
+        mViewStates = new SparseArray<ViewState>();
+        mPanelConfig = panelConfig;
         mDatasetHandler = datasetHandler;
         mUrlOpenListener = urlOpenListener;
     }
 
+    @Override
+    public void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+
+        final int count = mViewStates.size();
+        for (int i = 0; i < count; i++) {
+            final ViewState viewState = mViewStates.valueAt(i);
+
+            final View view = viewState.getView();
+            if (view != null) {
+                maybeSetDataset(view, null);
+            }
+        }
+        mViewStates.clear();
+    }
+
     /**
      * Delivers the dataset as a {@code Cursor} to be bound to the
-     * panel views backed by it. This is used by the {@code DatasetHandler}
+     * panel view backed by it. This is used by the {@code DatasetHandler}
      * in response to a dataset request.
      */
     public final void deliverDataset(DatasetRequest request, Cursor cursor) {
         Log.d(LOGTAG, "Delivering request: " + request);
-        updateViewsWithDataset(request.datasetId, cursor);
+        final ViewState viewState = mViewStates.get(request.getViewIndex());
+        if (viewState == null) {
+            return;
+        }
+
+        switch (request.getType()) {
+            case FILTER_PUSH:
+                viewState.pushFilter(request.getFilterDetail());
+                break;
+            case FILTER_POP:
+                viewState.popFilter();
+                break;
+        }
+
+        final View view = viewState.getView();
+        if (view != null) {
+            maybeSetDataset(view, cursor);
+        }
     }
 
     /**
      * Releases any references to the given dataset from all
      * existing panel views.
      */
-    public final void releaseDataset(String datasetId) {
-        Log.d(LOGTAG, "Resetting dataset: " + datasetId);
-        updateViewsWithDataset(datasetId, null);
+    public final void releaseDataset(int viewIndex) {
+        Log.d(LOGTAG, "Releasing dataset: " + viewIndex);
+        final ViewState viewState = mViewStates.get(viewIndex);
+        if (viewState == null) {
+            return;
+        }
+
+        final View view = viewState.getView();
+        if (view != null) {
+            maybeSetDataset(view, null);
+        }
     }
 
     /**
@@ -175,15 +293,24 @@ abstract class PanelLayout extends FrameLayout {
      */
     protected final void requestDataset(DatasetRequest request) {
         Log.d(LOGTAG, "Requesting request: " + request);
+        if (mViewStates.get(request.getViewIndex()) == null) {
+            return;
+        }
+
         mDatasetHandler.requestDataset(request);
     }
 
     /**
-     * Releases any resources associated with a previously
-     * loaded dataset e.g. close any associated {@code Cursor}.
+     * Releases any resources associated with a panel view.
+     * e.g. close any associated {@code Cursor}.
      */
-    protected final void resetDataset(String datasetId) {
-        mDatasetHandler.resetDataset(datasetId);
+    protected final void resetDataset(int viewIndex) {
+        Log.d(LOGTAG, "Resetting view with index: " + viewIndex);
+        if (mViewStates.get(viewIndex) == null) {
+            return;
+        }
+
+        mDatasetHandler.resetDataset(viewIndex);
     }
 
     /**
@@ -193,29 +320,40 @@ abstract class PanelLayout extends FrameLayout {
      * keep track of panel views and their associated datasets.
      */
     protected final View createPanelView(ViewConfig viewConfig) {
-        final View view;
-
         Log.d(LOGTAG, "Creating panel view: " + viewConfig.getType());
 
-        switch(viewConfig.getType()) {
-            case LIST:
-                view = new PanelListView(getContext(), viewConfig);
-                break;
-
-            case GRID:
-                view = new PanelGridView(getContext(), viewConfig);
-                break;
-
-            default:
-                throw new IllegalStateException("Unrecognized view type in " + getClass().getSimpleName());
+        ViewState viewState = mViewStates.get(viewConfig.getIndex());
+        if (viewState == null) {
+            viewState = new ViewState(viewConfig);
+            mViewStates.put(viewConfig.getIndex(), viewState);
         }
 
-        final ViewState state = new ViewState(viewConfig);
-        // TODO: Push initial filter here onto ViewState
-        mViewStateMap.put(view, state);
+        View view = viewState.getView();
+        if (view == null) {
+            switch(viewConfig.getType()) {
+                case LIST:
+                    view = new PanelListView(getContext(), viewConfig);
+                    break;
 
-        ((PanelView) view).setOnUrlOpenListener(new PanelUrlOpenListener(state));
-        view.setOnKeyListener(new PanelKeyListener(state));
+                case GRID:
+                    view = new PanelGridView(getContext(), viewConfig);
+                    break;
+
+                default:
+                    throw new IllegalStateException("Unrecognized view type in " + getClass().getSimpleName());
+            }
+
+            PanelView panelView = (PanelView) view;
+            panelView.setOnItemOpenListener(new PanelOnItemOpenListener(viewState));
+            panelView.setOnKeyListener(new PanelKeyListener(viewState));
+
+            if (view instanceof DatasetBacked) {
+                DatasetBacked datasetBacked = (DatasetBacked) view;
+                datasetBacked.setFilterManager(new PanelFilterManager(viewState));
+            }
+
+            viewState.setView(view);
+        }
 
         return view;
     }
@@ -226,24 +364,14 @@ abstract class PanelLayout extends FrameLayout {
      */
     protected final void disposePanelView(View view) {
         Log.d(LOGTAG, "Disposing panel view");
-        if (mViewStateMap.containsKey(view)) {
-            // Release any Cursor references from the view
-            // if it's backed by a dataset.
-            maybeSetDataset(view, null);
+        final int count = mViewStates.size();
+        for (int i = 0; i < count; i++) {
+            final ViewState viewState = mViewStates.valueAt(i);
 
-            // Remove the view entry from the map
-            mViewStateMap.remove(view);
-        }
-    }
-
-    private void updateViewsWithDataset(String datasetId, Cursor cursor) {
-        for (Map.Entry<View, ViewState> entry : mViewStateMap.entrySet()) {
-            final ViewState detail = entry.getValue();
-
-            // Update any views associated with the given dataset ID
-            if (TextUtils.equals(detail.getDatasetId(), datasetId)) {
-                final View view = entry.getKey();
-                maybeSetDataset(view, cursor);
+            if (viewState.getView() == view) {
+                maybeSetDataset(view, null);
+                mViewStates.remove(viewState.getIndex());
+                break;
             }
         }
     }
@@ -266,22 +394,40 @@ abstract class PanelLayout extends FrameLayout {
      * Represents a 'live' instance of a panel view associated with
      * the {@code PanelLayout}. Is responsible for tracking the history stack of filters.
      */
-    protected static class ViewState {
+    protected class ViewState {
         private final ViewConfig mViewConfig;
-        private Deque<String> mFilterStack;
+        private SoftReference<View> mView;
+        private LinkedList<FilterDetail> mFilterStack;
 
         public ViewState(ViewConfig viewConfig) {
             mViewConfig = viewConfig;
+            mView = new SoftReference<View>(null);
+        }
+
+        public int getIndex() {
+            return mViewConfig.getIndex();
+        }
+
+        public View getView() {
+            return mView.get();
+        }
+
+        public void setView(View view) {
+            mView = new SoftReference<View>(view);
         }
 
         public String getDatasetId() {
             return mViewConfig.getDatasetId();
         }
 
+        public ItemHandler getItemHandler() {
+            return mViewConfig.getItemHandler();
+        }
+
         /**
-         * Used to find the current filter that this view is displaying, or null if none.
+         * Get the current filter that this view is displaying, or null if none.
          */
-        public String getCurrentFilter() {
+        public FilterDetail getCurrentFilter() {
             if (mFilterStack == null) {
                 return null;
             } else {
@@ -290,31 +436,97 @@ abstract class PanelLayout extends FrameLayout {
         }
 
         /**
+         * Get the previous filter that this view was displaying, or null if none.
+         */
+        public FilterDetail getPreviousFilter() {
+            if (!canPopFilter()) {
+                return null;
+            }
+
+            return mFilterStack.get(1);
+        }
+
+        /**
          * Adds a filter to the history stack for this view.
          */
-        public void pushFilter(String filter) {
+        public void pushFilter(FilterDetail filter) {
             if (mFilterStack == null) {
-                mFilterStack = new LinkedList<String>();
+                mFilterStack = new LinkedList<FilterDetail>();
+
+                // Initialize with the initial filter.
+                mFilterStack.push(new FilterDetail(mViewConfig.getFilter(),
+                                                   mPanelConfig.getTitle()));
             }
 
             mFilterStack.push(filter);
         }
 
-        public String popFilter() {
-            if (getCurrentFilter() != null) {
-                mFilterStack.pop();
+        /**
+         * Remove the most recent filter from the stack.
+         *
+         * @return whether the filter was popped
+         */
+        public boolean popFilter() {
+            if (!canPopFilter()) {
+                return false;
             }
 
-            return getCurrentFilter();
+            mFilterStack.pop();
+            return true;
         }
+
+        public boolean canPopFilter() {
+            return (mFilterStack != null && mFilterStack.size() > 1);
+        }
+    }
+
+    static class FilterDetail implements Parcelable {
+        final String filter;
+        final String title;
+
+        private FilterDetail(Parcel in) {
+            this.filter = in.readString();
+            this.title = in.readString();
+        }
+
+        public FilterDetail(String filter, String title) {
+            this.filter = filter;
+            this.title = title;
+        }
+
+        @Override
+        public int describeContents() {
+            return 0;
+        }
+
+        @Override
+        public void writeToParcel(Parcel dest, int flags) {
+            dest.writeString(filter);
+            dest.writeString(title);
+        }
+
+        public static final Creator<FilterDetail> CREATOR = new Creator<FilterDetail>() {
+            public FilterDetail createFromParcel(Parcel in) {
+                return new FilterDetail(in);
+            }
+
+            public FilterDetail[] newArray(int size) {
+                return new FilterDetail[size];
+            }
+        };
     }
 
     /**
      * Pushes filter to {@code ViewState}'s stack and makes request for new filter value.
      */
-    private void pushFilterOnView(ViewState viewState, String filter) {
-        viewState.pushFilter(filter);
-        mDatasetHandler.requestDataset(new DatasetRequest(viewState.getDatasetId(), filter));
+    private void pushFilterOnView(ViewState viewState, FilterDetail filterDetail) {
+        final int index = viewState.getIndex();
+        final String datasetId = viewState.getDatasetId();
+
+        mDatasetHandler.requestDataset(new DatasetRequest(index,
+                                                          DatasetRequest.Type.FILTER_PUSH,
+                                                          datasetId,
+                                                          filterDetail));
     }
 
     /**
@@ -323,33 +535,44 @@ abstract class PanelLayout extends FrameLayout {
      * @return whether the filter has changed
      */
     private boolean popFilterOnView(ViewState viewState) {
-        String currentFilter = viewState.getCurrentFilter();
-        String filter = viewState.popFilter();
+        if (viewState.canPopFilter()) {
+            final int index = viewState.getIndex();
+            final String datasetId = viewState.getDatasetId();
+            final FilterDetail filterDetail = viewState.getPreviousFilter();
 
-        if (!TextUtils.equals(currentFilter, filter)) {
-            mDatasetHandler.requestDataset(new DatasetRequest(viewState.getDatasetId(), filter));
+            mDatasetHandler.requestDataset(new DatasetRequest(index,
+                                                              DatasetRequest.Type.FILTER_POP,
+                                                              datasetId,
+                                                              filterDetail));
+
             return true;
         } else {
             return false;
         }
     }
 
-    /**
-     * Custom listener so that we can intercept any filter URLs and make a new dataset request
-     * rather than forwarding them to the default listener.
-     */
-    private class PanelUrlOpenListener implements OnUrlOpenListener {
+    public interface OnItemOpenListener {
+        public void onItemOpen(String url, String title);
+    }
+
+    private class PanelOnItemOpenListener implements OnItemOpenListener {
         private ViewState mViewState;
 
-        public PanelUrlOpenListener(ViewState viewState) {
+        public PanelOnItemOpenListener(ViewState viewState) {
             mViewState = viewState;
         }
 
         @Override
-        public void onUrlOpen(String url, EnumSet<Flags> flags) {
+        public void onItemOpen(String url, String title) {
             if (StringUtils.isFilterUrl(url)) {
-                pushFilterOnView(mViewState, StringUtils.getFilterFromUrl(url));
+                FilterDetail filterDetail = new FilterDetail(StringUtils.getFilterFromUrl(url), title);
+                pushFilterOnView(mViewState, filterDetail);
             } else {
+                EnumSet<OnUrlOpenListener.Flags> flags = EnumSet.noneOf(OnUrlOpenListener.Flags.class);
+                if (mViewState.getItemHandler() == ItemHandler.INTENT) {
+                    flags.add(OnUrlOpenListener.Flags.OPEN_WITH_INTENT);
+                }
+
                 mUrlOpenListener.onUrlOpen(url, flags);
             }
         }
@@ -369,6 +592,29 @@ abstract class PanelLayout extends FrameLayout {
             }
 
             return false;
+        }
+    }
+
+    private class PanelFilterManager implements FilterManager {
+        private final ViewState mViewState;
+
+        public PanelFilterManager(ViewState viewState) {
+            mViewState = viewState;
+        }
+
+        @Override
+        public FilterDetail getPreviousFilter() {
+            return mViewState.getPreviousFilter();
+        }
+
+        @Override
+        public boolean canGoBack() {
+            return mViewState.canPopFilter();
+        }
+
+        @Override
+        public void goBack() {
+            popFilterOnView(mViewState);
         }
     }
 }

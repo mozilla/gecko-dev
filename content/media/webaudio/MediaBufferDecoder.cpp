@@ -141,8 +141,10 @@ private:
   void Cleanup()
   {
     MOZ_ASSERT(NS_IsMainThread());
-    mBufferDecoder = nullptr;
+    // MediaDecoderReader expects that BufferDecoder is alive.
+    // Destruct MediaDecoderReader first.
     mDecoderReader = nullptr;
+    mBufferDecoder = nullptr;
   }
 
 private:
@@ -267,8 +269,6 @@ MediaDecodeTask::Decode()
   // bakend support.
   mDecoderReader->SetIgnoreAudioOutputFormat();
 
-  mDecoderReader->OnDecodeThreadStart();
-
   MediaInfo mediaInfo;
   nsAutoPtr<MetadataTags> tags;
   nsresult rv = mDecoderReader->ReadMetadata(&mediaInfo, getter_Transfers(tags));
@@ -286,8 +286,6 @@ MediaDecodeTask::Decode()
     // consume all of the buffer
     continue;
   }
-
-  mDecoderReader->OnDecodeThreadFinish();
 
   MediaQueue<AudioData>& audioQueue = mDecoderReader->AudioQueue();
   uint32_t frameCount = audioQueue.FrameCount();

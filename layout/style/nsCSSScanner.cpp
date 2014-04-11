@@ -1277,7 +1277,7 @@ nsCSSScanner::Next(nsCSSToken& aToken, bool aSkipWS)
   if (ch == '-') {
     int32_t c2 = Peek(1);
     int32_t c3 = Peek(2);
-    if (IsIdentStart(c2)) {
+    if (IsIdentStart(c2) || (c2 == '-' && c3 != '>')) {
       return ScanIdent(aToken);
     }
     if (IsDigit(c2) || (c2 == '.' && IsDigit(c3))) {
@@ -1325,5 +1325,46 @@ nsCSSScanner::Next(nsCSSToken& aToken, bool aSkipWS)
   // Otherwise, a symbol (DELIM).
   aToken.mSymbol = ch;
   Advance();
+  return true;
+}
+
+/* nsCSSGridTemplateAreaScanner methods. */
+
+nsCSSGridTemplateAreaScanner::nsCSSGridTemplateAreaScanner(const nsAString& aBuffer)
+  : mBuffer(aBuffer.BeginReading())
+  , mOffset(0)
+  , mCount(aBuffer.Length())
+{
+}
+
+bool
+nsCSSGridTemplateAreaScanner::Next(nsCSSGridTemplateAreaToken& aTokenResult)
+{
+  int32_t ch;
+  // Skip whitespace
+  do {
+    if (mOffset >= mCount) {
+      return false;
+    }
+    ch = mBuffer[mOffset];
+    mOffset++;
+  } while (IsWhitespace(ch));
+
+  if (IsOpenCharClass(ch, IS_IDCHAR)) {
+    // Named cell token
+    uint32_t start = mOffset - 1;  // offset of |ch|
+    while (mOffset < mCount && IsOpenCharClass(mBuffer[mOffset], IS_IDCHAR)) {
+      mOffset++;
+    }
+    aTokenResult.mName.Assign(&mBuffer[start], mOffset - start);
+    aTokenResult.isTrash = false;
+  } else if (ch == '.') {
+    // Null cell token
+    aTokenResult.mName.Truncate();
+    aTokenResult.isTrash = false;
+  } else {
+    // Trash token
+    aTokenResult.isTrash = true;
+  }
   return true;
 }

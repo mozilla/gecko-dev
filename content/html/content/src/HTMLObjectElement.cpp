@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "mozilla/EventStates.h"
 #include "mozilla/dom/HTMLObjectElement.h"
 #include "mozilla/dom/HTMLObjectElementBinding.h"
 #include "mozilla/dom/ElementInlines.h"
@@ -23,7 +24,7 @@
 namespace mozilla {
 namespace dom {
 
-HTMLObjectElement::HTMLObjectElement(already_AddRefed<nsINodeInfo> aNodeInfo,
+HTMLObjectElement::HTMLObjectElement(already_AddRefed<nsINodeInfo>& aNodeInfo,
                                      FromParser aFromParser)
   : nsGenericHTMLFormElement(aNodeInfo),
     mIsDoneAddingChildren(!aFromParser)
@@ -408,7 +409,7 @@ HTMLObjectElement::StartObjectLoad(bool aNotify)
   SetIsNetworkCreated(false);
 }
 
-nsEventStates
+EventStates
 HTMLObjectElement::IntrinsicState() const
 {
   return nsGenericHTMLFormElement::IntrinsicState() | ObjectState();
@@ -441,10 +442,10 @@ HTMLObjectElement::CopyInnerTo(Element* aDest)
 }
 
 JSObject*
-HTMLObjectElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aScope)
+HTMLObjectElement::WrapNode(JSContext* aCx)
 {
   JS::Rooted<JSObject*> obj(aCx,
-    HTMLObjectElementBinding::Wrap(aCx, aScope, this));
+    HTMLObjectElementBinding::Wrap(aCx, this));
   if (!obj) {
     return nullptr;
   }

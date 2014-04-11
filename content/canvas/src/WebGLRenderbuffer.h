@@ -7,6 +7,7 @@
 #define WEBGLRENDERBUFFER_H_
 
 #include "WebGLObjectModel.h"
+#include "WebGLFramebufferAttachable.h"
 
 #include "nsWrapperCache.h"
 
@@ -20,6 +21,7 @@ class WebGLRenderbuffer MOZ_FINAL
     , public LinkedListElement<WebGLRenderbuffer>
     , public WebGLRectangleObject
     , public WebGLContextBoundObject
+    , public WebGLFramebufferAttachable
 {
 public:
     WebGLRenderbuffer(WebGLContext *context);
@@ -59,8 +61,7 @@ public:
     // Only handles a subset of `pname`s.
     GLint GetRenderbufferParameter(GLenum target, GLenum pname) const;
 
-    virtual JSObject* WrapObject(JSContext *cx,
-                                 JS::Handle<JSObject*> scope) MOZ_OVERRIDE;
+    virtual JSObject* WrapObject(JSContext *cx) MOZ_OVERRIDE;
 
     NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(WebGLRenderbuffer)
     NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(WebGLRenderbuffer)

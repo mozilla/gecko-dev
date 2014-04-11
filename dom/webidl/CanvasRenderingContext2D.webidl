@@ -16,6 +16,8 @@ enum CanvasWindingRule { "nonzero", "evenodd" };
 dictionary ContextAttributes2D {
   // whether or not we're planning to do a lot of readback operations
   boolean willReadFrequently = false;
+  // signal if the canvas contains an alpha channel
+  boolean alpha = true;
 };
 
 dictionary HitRegionOptions {
@@ -82,9 +84,9 @@ interface CanvasRenderingContext2D {
   // path API (see also CanvasPathMethods)
   void beginPath();
   void fill(optional CanvasWindingRule winding = "nonzero");
-// NOT IMPLEMENTED  void fill(Path path);
+  void fill(Path2D path, optional CanvasWindingRule winding = "nonzero");
   void stroke();
-// NOT IMPLEMENTED  void stroke(Path path);
+  void stroke(Path2D path);
   [Pref="canvas.focusring.enabled"] void drawFocusIfNeeded(Element element);
 // NOT IMPLEMENTED  void drawSystemFocusRing(Path path, HTMLElement element);
   [Pref="canvas.customfocusring.enabled"] boolean drawCustomFocusRing(Element element);
@@ -92,11 +94,12 @@ interface CanvasRenderingContext2D {
 // NOT IMPLEMENTED  void scrollPathIntoView();
 // NOT IMPLEMENTED  void scrollPathIntoView(Path path);
   void clip(optional CanvasWindingRule winding = "nonzero");
-// NOT IMPLEMENTED  void clip(Path path);
+  void clip(Path2D path, optional CanvasWindingRule winding = "nonzero");
 // NOT IMPLEMENTED  void resetClip();
   boolean isPointInPath(unrestricted double x, unrestricted double y, optional CanvasWindingRule winding = "nonzero");
-// NOT IMPLEMENTED  boolean isPointInPath(Path path, unrestricted double x, unrestricted double y);
+  boolean isPointInPath(Path2D path, unrestricted double x, unrestricted double y, optional CanvasWindingRule winding = "nonzero");
   boolean isPointInStroke(double x, double y);
+  boolean isPointInStroke(Path2D path, unrestricted double x, unrestricted double y);
 
   // text (see also the CanvasDrawingStyles interface)
   [Throws, LenientFloat]
@@ -311,3 +314,10 @@ interface TextMetrics {
 
 };
 
+[Pref="canvas.path.enabled",
+ Constructor,
+ Constructor(Path2D other),
+ Constructor(DOMString pathString)]
+interface Path2D
+{};
+Path2D implements CanvasPathMethods;

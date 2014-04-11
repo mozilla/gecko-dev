@@ -798,18 +798,6 @@ MetroWidget::WindowProcedure(HWND aWnd, UINT aMsg, WPARAM aWParam, LPARAM aLPara
   }
 
   switch (aMsg) {
-    case WM_PAINT:
-    {
-      HRGN rgn = CreateRectRgn(0, 0, 0, 0);
-      GetUpdateRgn(mWnd, rgn, false);
-      nsIntRegion region = WinUtils::ConvertHRGNToRegion(rgn);
-      DeleteObject(rgn);
-      if (region.IsEmpty())
-        break;
-      Paint(region);
-      break;
-    }
-
     case WM_POWERBROADCAST:
     {
       switch (aWParam)
@@ -1149,22 +1137,6 @@ MetroWidget::ApzReceiveInputEvent(WidgetInputEvent* aEvent,
   return mController->ReceiveInputEvent(aEvent, aOutTargetGuid);
 }
 
-nsEventStatus
-MetroWidget::ApzReceiveInputEvent(WidgetInputEvent* aInEvent,
-                                  ScrollableLayerGuid* aOutTargetGuid,
-                                  WidgetInputEvent* aOutEvent)
-{
-  MOZ_ASSERT(aInEvent);
-  MOZ_ASSERT(aOutEvent);
-
-  if (!mController) {
-    return nsEventStatus_eIgnore;
-  }
-  return mController->ReceiveInputEvent(aInEvent,
-                                        aOutTargetGuid,
-                                        aOutEvent);
-}
-
 LayerManager*
 MetroWidget::GetLayerManager(PLayerTransactionChild* aShadowManager,
                              LayersBackend aBackendHint,
@@ -1484,9 +1456,7 @@ MetroWidget::Activated(bool aActiveated)
 NS_IMETHODIMP
 MetroWidget::Move(double aX, double aY)
 {
-  if (mWidgetListener) {
-    mWidgetListener->WindowMoved(this, aX, aY);
-  }
+  NotifyWindowMoved(aX, aY);
   return NS_OK;
 }
 
@@ -1606,6 +1576,8 @@ MetroWidget::NotifyIME(const IMENotification& aIMENotification)
       return nsTextStore::OnSelectionChange();
     case NOTIFY_IME_OF_TEXT_CHANGE:
       return nsTextStore::OnTextChange(aIMENotification);
+    case NOTIFY_IME_OF_POSITION_CHANGE:
+      return nsTextStore::OnLayoutChange();
     default:
       return NS_ERROR_NOT_IMPLEMENTED;
   }

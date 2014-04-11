@@ -78,16 +78,16 @@ public:
                         int64_t aEndTime,
                         int64_t aCurrentTime) = 0;
 
-  // Called when the decode thread is started, before calling any other
-  // decode, read metadata, or seek functions. Do any thread local setup
-  // in this function.
-  virtual void OnDecodeThreadStart() {}
-
-  // Called when the decode thread is about to finish, after all calls to
-  // any other decode, read metadata, or seek functions. Any backend specific
-  // thread local tear down must be done in this function. Note that another
-  // decode thread could start up and run in future.
-  virtual void OnDecodeThreadFinish() {}
+  // Called to move the reader into idle/active state. When the reader is
+  // created it is assumed to be active (i.e. not idle). When the media
+  // element is paused and we don't need to decode any more data, the state
+  // machine calls SetIdle() to inform the reader that its decoder won't be
+  // needed for a while. When we need to decode data again, the state machine
+  // calls SetActive() to activate the decoder. The reader can use these
+  // notifications to enter/exit a low power state when the decoder isn't
+  // needed, if desired. This is most useful on mobile.
+  virtual void SetIdle() { }
+  virtual void SetActive() { }
 
   // Tell the reader that the data decoded are not for direct playback, so it
   // can accept more files, in particular those which have more channels than
@@ -132,41 +132,13 @@ public:
   virtual nsresult GetBuffered(dom::TimeRanges* aBuffered,
                                int64_t aStartTime);
 
-  class VideoQueueMemoryFunctor : public nsDequeFunctor {
-  public:
-    VideoQueueMemoryFunctor() : mResult(0) {}
+  // Returns the number of bytes of memory allocated by structures/frames in
+  // the video queue.
+  size_t SizeOfVideoQueueInBytes() const;
 
-    virtual void* operator()(void* anObject);
-
-    int64_t mResult;
-  };
-
-  virtual int64_t VideoQueueMemoryInUse() {
-    VideoQueueMemoryFunctor functor;
-    mVideoQueue.LockedForEach(functor);
-    return functor.mResult;
-  }
-
-  class AudioQueueMemoryFunctor : public nsDequeFunctor {
-  public:
-    AudioQueueMemoryFunctor() : mSize(0) {}
-
-    MOZ_DEFINE_MALLOC_SIZE_OF(MallocSizeOf);
-
-    virtual void* operator()(void* anObject) {
-      const AudioData* audioData = static_cast<const AudioData*>(anObject);
-      mSize += audioData->SizeOfIncludingThis(MallocSizeOf);
-      return nullptr;
-    }
-
-    size_t mSize;
-  };
-
-  size_t SizeOfAudioQueue() {
-    AudioQueueMemoryFunctor functor;
-    mAudioQueue.LockedForEach(functor);
-    return functor.mSize;
-  }
+  // Returns the number of bytes of memory allocated by structures/frames in
+  // the audio queue.
+  size_t SizeOfAudioQueueInBytes() const;
 
   // Only used by WebMReader and MediaOmxReader for now, so stub here rather
   // than in every reader than inherits from MediaDecoderReader.
@@ -183,10 +155,12 @@ public:
   AudioData* DecodeToFirstAudioData();
   VideoData* DecodeToFirstVideoData();
 
-protected:
-  // Pumps the decode until we reach frames required to play at time aTarget
-  // (usecs).
+  // Decodes samples until we reach frames required to play at time aTarget
+  // (usecs). This also trims the samples to start exactly at aTarget,
+  // by discarding audio samples and adjusting start times of video frames.
   nsresult DecodeToTarget(int64_t aTarget);
+
+protected:
 
   // Reference to the owning decoder object.
   AbstractMediaDecoder* mDecoder;

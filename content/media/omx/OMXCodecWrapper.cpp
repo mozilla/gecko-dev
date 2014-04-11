@@ -17,6 +17,7 @@
 
 #include "AudioChannelFormat.h"
 #include <mozilla/Monitor.h>
+#include "mozilla/layers/GrallocTextureClient.h"
 
 using namespace mozilla;
 using namespace mozilla::gfx;
@@ -27,6 +28,8 @@ using namespace mozilla::layers;
 #define ENCODER_CONFIG_I_FRAME_INTERVAL 1
 // Wait up to 5ms for input buffers.
 #define INPUT_BUFFER_TIMEOUT_US (5 * 1000ll)
+// AMR NB kbps
+#define AMRNB_BITRATE 12200
 
 #define CODEC_ERROR(args...)                                                   \
   do {                                                                         \
@@ -45,6 +48,16 @@ OMXCodecWrapper::CreateAACEncoder()
   return aac.forget();
 }
 
+OMXAudioEncoder*
+OMXCodecWrapper::CreateAMRNBEncoder()
+{
+  nsAutoPtr<OMXAudioEncoder> amr(new OMXAudioEncoder(CodecType::AMR_NB_ENC));
+  // Return the object only when media codec is valid.
+  NS_ENSURE_TRUE(amr->IsValid(), nullptr);
+
+  return amr.forget();
+}
+
 OMXVideoEncoder*
 OMXCodecWrapper::CreateAVCEncoder()
 {
@@ -56,7 +69,9 @@ OMXCodecWrapper::CreateAVCEncoder()
 }
 
 OMXCodecWrapper::OMXCodecWrapper(CodecType aCodecType)
-  : mStarted(false)
+  : mCodecType(aCodecType)
+  , mStarted(false)
+  , mAMRCSDProvided(false)
 {
   ProcessState::self()->startThreadPool();
 
@@ -65,6 +80,8 @@ OMXCodecWrapper::OMXCodecWrapper(CodecType aCodecType)
 
   if (aCodecType == CodecType::AVC_ENC) {
     mCodec = MediaCodec::CreateByType(mLooper, MEDIA_MIMETYPE_VIDEO_AVC, true);
+  } else if (aCodecType == CodecType::AMR_NB_ENC) {
+    mCodec = MediaCodec::CreateByType(mLooper, MEDIA_MIMETYPE_AUDIO_AMR_NB, true);
   } else if (aCodecType == CodecType::AAC_ENC) {
     mCodec = MediaCodec::CreateByType(mLooper, MEDIA_MIMETYPE_AUDIO_AAC, true);
   } else {
@@ -230,6 +247,72 @@ ConvertPlanarYCbCrToNV12(const PlanarYCbCrData* aSource, uint8_t* aDestination)
   }
 }
 
+// Convert pixels in graphic buffer to NV12 format. aSource is the layer image
+// containing source graphic buffer, and aDestination is the destination of
+// conversion. Currently only 2 source format are supported:
+// - NV21/HAL_PIXEL_FORMAT_YCrCb_420_SP (from camera preview window).
+// - YV12/HAL_PIXEL_FORMAT_YV12 (from video decoder).
+static
+void
+ConvertGrallocImageToNV12(GrallocImage* aSource, uint8_t* aDestination)
+{
+  // Get graphic buffer.
+  GrallocTextureClientOGL* client =
+    static_cast<GrallocTextureClientOGL*>(aSource->GetTextureClient(nullptr));
+  sp<GraphicBuffer> graphicBuffer = client->GetGraphicBuffer();
+
+  int pixelFormat = graphicBuffer->getPixelFormat();
+  // Only support NV21 (from camera) or YV12 (from HW decoder output) for now.
+  NS_ENSURE_TRUE_VOID(pixelFormat == HAL_PIXEL_FORMAT_YCrCb_420_SP ||
+                      pixelFormat == HAL_PIXEL_FORMAT_YV12);
+
+  void* imgPtr = nullptr;
+  graphicBuffer->lock(GraphicBuffer::USAGE_SW_READ_MASK, &imgPtr);
+  // Build PlanarYCbCrData for NV21 or YV12 buffer.
+  PlanarYCbCrData yuv;
+  switch (pixelFormat) {
+    case HAL_PIXEL_FORMAT_YCrCb_420_SP: // From camera.
+      yuv.mYChannel = static_cast<uint8_t*>(imgPtr);
+      yuv.mYSkip = 0;
+      yuv.mYSize.width = graphicBuffer->getWidth();
+      yuv.mYSize.height = graphicBuffer->getHeight();
+      yuv.mYStride = graphicBuffer->getStride();
+      // 4:2:0.
+      yuv.mCbCrSize.width = yuv.mYSize.width / 2;
+      yuv.mCbCrSize.height = yuv.mYSize.height / 2;
+      // Interleaved VU plane.
+      yuv.mCrChannel = yuv.mYChannel + (yuv.mYStride * yuv.mYSize.height);
+      yuv.mCrSkip = 1;
+      yuv.mCbChannel = yuv.mCrChannel + 1;
+      yuv.mCbSkip = 1;
+      yuv.mCbCrStride = yuv.mYStride;
+      ConvertPlanarYCbCrToNV12(&yuv, aDestination);
+      break;
+    case HAL_PIXEL_FORMAT_YV12: // From video decoder.
+      // Android YV12 format is defined in system/core/include/system/graphics.h
+      yuv.mYChannel = static_cast<uint8_t*>(imgPtr);
+      yuv.mYSkip = 0;
+      yuv.mYSize.width = graphicBuffer->getWidth();
+      yuv.mYSize.height = graphicBuffer->getHeight();
+      yuv.mYStride = graphicBuffer->getStride();
+      // 4:2:0.
+      yuv.mCbCrSize.width = yuv.mYSize.width / 2;
+      yuv.mCbCrSize.height = yuv.mYSize.height / 2;
+      yuv.mCrChannel = yuv.mYChannel + (yuv.mYStride * yuv.mYSize.height);
+      // Aligned to 16 bytes boundary.
+      yuv.mCbCrStride = (yuv.mYStride / 2 + 15) & ~0x0F;
+      yuv.mCrSkip = 0;
+      yuv.mCbChannel = yuv.mCrChannel + (yuv.mCbCrStride * yuv.mCbCrSize.height);
+      yuv.mCbSkip = 0;
+      ConvertPlanarYCbCrToNV12(&yuv, aDestination);
+      break;
+    default:
+      NS_ERROR("Unsupported input gralloc image type. Should never be here.");
+  }
+
+  graphicBuffer->unlock();
+}
+
 nsresult
 OMXVideoEncoder::Encode(const Image* aImage, int aWidth, int aHeight,
                         int64_t aTimestamp, int aInputFlags)
@@ -252,7 +335,6 @@ OMXVideoEncoder::Encode(const Image* aImage, int aWidth, int aHeight,
 
   size_t yLen = aWidth * aHeight;
   size_t uvLen = yLen / 2;
-
   // Buffer should be large enough to hold input image data.
   MOZ_ASSERT(dstSize >= yLen + uvLen);
 
@@ -273,40 +355,7 @@ OMXVideoEncoder::Encode(const Image* aImage, int aWidth, int aHeight,
                aHeight == img->GetSize().height);
 
     if (format == ImageFormat::GRALLOC_PLANAR_YCBCR) {
-      // Get graphic buffer pointer.
-      void* imgPtr = nullptr;
-      GrallocImage* nativeImage = static_cast<GrallocImage*>(img);
-      SurfaceDescriptor handle = nativeImage->GetSurfaceDescriptor();
-      SurfaceDescriptorGralloc gralloc = handle.get_SurfaceDescriptorGralloc();
-      sp<GraphicBuffer> graphicBuffer = GrallocBufferActor::GetFrom(gralloc);
-      graphicBuffer->lock(GraphicBuffer::USAGE_SW_READ_MASK, &imgPtr);
-      uint8_t* src = static_cast<uint8_t*>(imgPtr);
-
-      // Only support NV21 for now.
-      MOZ_ASSERT(graphicBuffer->getPixelFormat() ==
-                 HAL_PIXEL_FORMAT_YCrCb_420_SP);
-
-      // Build PlanarYCbCrData for NV21 buffer.
-      PlanarYCbCrData nv21;
-      // Y plane.
-      nv21.mYChannel = src;
-      nv21.mYSize.width = aWidth;
-      nv21.mYSize.height = aHeight;
-      nv21.mYStride = aWidth;
-      nv21.mYSkip = 0;
-      // Interleaved VU plane.
-      nv21.mCrChannel = src + yLen;
-      nv21.mCrSkip = 1;
-      nv21.mCbChannel = nv21.mCrChannel + 1;
-      nv21.mCbSkip = 1;
-      nv21.mCbCrStride = aWidth;
-      // 4:2:0.
-      nv21.mCbCrSize.width = aWidth / 2;
-      nv21.mCbCrSize.height = aHeight / 2;
-
-      ConvertPlanarYCbCrToNV12(&nv21, dst);
-
-      graphicBuffer->unlock();
+      ConvertGrallocImageToNV12(static_cast<GrallocImage*>(img), dst);
     } else if (format == ImageFormat::PLANAR_YCBCR) {
       ConvertPlanarYCbCrToNV12(static_cast<PlanarYCbCrImage*>(img)->GetData(),
                              dst);
@@ -348,28 +397,53 @@ void OMXVideoEncoder::AppendFrame(nsTArray<uint8_t>* aOutputBuf,
 }
 
 nsresult
-OMXAudioEncoder::Configure(int aChannels, int aSamplingRate)
+OMXAudioEncoder::Configure(int aChannels, int aInputSampleRate,
+                           int aEncodedSampleRate)
 {
   MOZ_ASSERT(!mStarted);
 
-  NS_ENSURE_TRUE(aChannels > 0 && aSamplingRate > 0, NS_ERROR_INVALID_ARG);
+  NS_ENSURE_TRUE(aChannels > 0 && aInputSampleRate > 0 && aEncodedSampleRate >= 0,
+                 NS_ERROR_INVALID_ARG);
 
+  if (aInputSampleRate != aEncodedSampleRate) {
+    int error;
+    mResampler = speex_resampler_init(aChannels,
+                                      aInputSampleRate,
+                                      aEncodedSampleRate,
+                                      SPEEX_RESAMPLER_QUALITY_DEFAULT,
+                                      &error);
+
+    if (error != RESAMPLER_ERR_SUCCESS) {
+      return NS_ERROR_FAILURE;
+    }
+    speex_resampler_skip_zeros(mResampler);
+  }
   // Set up configuration parameters for AAC encoder.
   sp<AMessage> format = new AMessage;
   // Fixed values.
-  format->setString("mime", MEDIA_MIMETYPE_AUDIO_AAC);
-  format->setInt32("bitrate", kAACBitrate);
-  format->setInt32("aac-profile", OMX_AUDIO_AACObjectLC);
+  if (mCodecType == AAC_ENC) {
+    format->setString("mime", MEDIA_MIMETYPE_AUDIO_AAC);
+    format->setInt32("aac-profile", OMX_AUDIO_AACObjectLC);
+    format->setInt32("bitrate", kAACBitrate);
+    format->setInt32("sample-rate", aInputSampleRate);
+  } else if (mCodecType == AMR_NB_ENC) {
+    format->setString("mime", MEDIA_MIMETYPE_AUDIO_AMR_NB);
+    format->setInt32("bitrate", AMRNB_BITRATE);
+    format->setInt32("sample-rate", aEncodedSampleRate);
+  } else {
+    MOZ_ASSERT(false, "Can't support this codec type!!");
+  }
   // Input values.
   format->setInt32("channel-count", aChannels);
-  format->setInt32("sample-rate", aSamplingRate);
 
   status_t result = mCodec->configure(format, nullptr, nullptr,
                                       MediaCodec::CONFIGURE_FLAG_ENCODE);
   NS_ENSURE_TRUE(result == OK, NS_ERROR_FAILURE);
 
   mChannels = aChannels;
-  mSampleDuration = 1000000 / aSamplingRate;
+  mSampleDuration = 1000000 / aInputSampleRate;
+  mResamplingRatio = aEncodedSampleRate > 0 ? 1.0 *
+                      aEncodedSampleRate / aInputSampleRate : 1.0;
   result = Start();
 
   return result == OK ? NS_OK : NS_ERROR_FAILURE;
@@ -442,6 +516,14 @@ private:
   size_t mOffset;
 };
 
+OMXAudioEncoder::~OMXAudioEncoder()
+{
+  if (mResampler) {
+    speex_resampler_destroy(mResampler);
+    mResampler = nullptr;
+  }
+}
+
 nsresult
 OMXAudioEncoder::Encode(AudioSegment& aSegment, int aInputFlags)
 {
@@ -463,16 +545,16 @@ OMXAudioEncoder::Encode(AudioSegment& aSegment, int aInputFlags)
   }
   NS_ENSURE_TRUE(result == OK, NS_ERROR_FAILURE);
 
-  size_t samplesCopied = 0; // Number of copied samples.
+  size_t sourceSamplesCopied = 0; // Number of copied samples.
 
   if (numSamples > 0) {
     // Copy input PCM data to input buffer until queue is empty.
     AudioSegment::ChunkIterator iter(const_cast<AudioSegment&>(aSegment));
     while (!iter.IsEnded()) {
       AudioChunk chunk = *iter;
-      size_t samplesToCopy = chunk.GetDuration(); // Number of samples to copy.
-      size_t bytesToCopy = samplesToCopy * mChannels * sizeof(AudioDataValue);
-
+      size_t sourceSamplesToCopy = chunk.GetDuration(); // Number of samples to copy.
+      size_t bytesToCopy = sourceSamplesToCopy * mChannels *
+                           sizeof(AudioDataValue) * mResamplingRatio;
       if (bytesToCopy > buffer.AvailableSize()) {
         // Not enough space left in input buffer. Send it to encoder and get a
         // new one.
@@ -483,32 +565,47 @@ OMXAudioEncoder::Encode(AudioSegment& aSegment, int aInputFlags)
         if (result == -EAGAIN) {
           // All input buffers are full. Caller can try again later after
           // consuming some output buffers.
-          aSegment.RemoveLeading(samplesCopied);
+          aSegment.RemoveLeading(sourceSamplesCopied);
           return NS_OK;
         }
 
-        mTimestamp += samplesCopied * mSampleDuration;
-        samplesCopied = 0;
+        mTimestamp += sourceSamplesCopied * mSampleDuration;
+        sourceSamplesCopied = 0;
 
         NS_ENSURE_TRUE(result == OK, NS_ERROR_FAILURE);
       }
 
       AudioDataValue* dst = reinterpret_cast<AudioDataValue*>(buffer.GetPointer());
+      uint32_t dstSamplesCopied = sourceSamplesToCopy;
       if (!chunk.IsNull()) {
-        // Append the interleaved data to input buffer.
-        AudioTrackEncoder::InterleaveTrackData(chunk, samplesToCopy, mChannels,
-                                               dst);
+        if (mResampler) {
+          nsAutoTArray<AudioDataValue, 9600> pcm;
+          pcm.SetLength(bytesToCopy);
+          // Append the interleaved data to input buffer.
+          AudioTrackEncoder::InterleaveTrackData(chunk, sourceSamplesToCopy,
+                                                 mChannels,
+                                                 pcm.Elements());
+          uint32_t inframes = sourceSamplesToCopy;
+          short* in = reinterpret_cast<short*>(pcm.Elements());
+          speex_resampler_process_interleaved_int(mResampler, in, &inframes,
+                                                              dst, &dstSamplesCopied);
+        } else {
+          AudioTrackEncoder::InterleaveTrackData(chunk, sourceSamplesToCopy,
+                                                 mChannels,
+                                                 dst);
+          dstSamplesCopied = sourceSamplesToCopy * mChannels;
+        }
       } else {
         // Silence.
-        memset(dst, 0, bytesToCopy);
+        memset(dst, 0, mResamplingRatio * sourceSamplesToCopy * sizeof(AudioDataValue));
       }
 
-      samplesCopied += samplesToCopy;
-      buffer.IncreaseOffset(bytesToCopy);
+      sourceSamplesCopied += sourceSamplesToCopy;
+      buffer.IncreaseOffset(dstSamplesCopied * sizeof(AudioDataValue));
       iter.Next();
     }
-    if (samplesCopied > 0) {
-      aSegment.RemoveLeading(samplesCopied);
+    if (sourceSamplesCopied > 0) {
+      aSegment.RemoveLeading(sourceSamplesCopied);
     }
   } else if (aInputFlags & BUFFER_EOS) {
     // No audio data left in segment but we still have to feed something to
@@ -516,10 +613,10 @@ OMXAudioEncoder::Encode(AudioSegment& aSegment, int aInputFlags)
     size_t bytesToCopy = mChannels * sizeof(AudioDataValue);
     memset(buffer.GetPointer(), 0, bytesToCopy);
     buffer.IncreaseOffset(bytesToCopy);
-    samplesCopied = 1;
+    sourceSamplesCopied = 1;
   }
 
-  if (samplesCopied > 0) {
+  if (sourceSamplesCopied > 0) {
     int flags = aInputFlags;
     if (aSegment.GetDuration() > 0) {
       // Don't signal EOS until source segment is empty.
@@ -528,7 +625,7 @@ OMXAudioEncoder::Encode(AudioSegment& aSegment, int aInputFlags)
     result = buffer.Enqueue(mTimestamp, flags);
     NS_ENSURE_TRUE(result == OK, NS_ERROR_FAILURE);
 
-    mTimestamp += samplesCopied * mSampleDuration;
+    mTimestamp += sourceSamplesCopied * mSampleDuration;
   }
 
   return NS_OK;
@@ -631,6 +728,20 @@ OMXCodecWrapper::GetNextEncodedFrame(nsTArray<uint8_t>* aOutputBuf,
         mCodec->releaseOutputBuffer(index);
         return NS_ERROR_FAILURE;
       }
+    } else if ((mCodecType == AMR_NB_ENC) && !mAMRCSDProvided){
+      // OMX AMR codec won't provide csd data, need to generate a fake one.
+      nsRefPtr<EncodedFrame> audiodata = new EncodedFrame();
+      // Decoder config descriptor
+      const uint8_t decConfig[] = {
+        0x0, 0x0, 0x0, 0x0, // vendor: 4 bytes
+        0x0,                // decoder version
+        0x83, 0xFF,         // mode set: all enabled
+        0x00,               // mode change period
+        0x01,               // frames per sample
+      };
+      aOutputBuf->AppendElements(decConfig, sizeof(decConfig));
+      outFlags |= MediaCodec::BUFFER_FLAG_CODECCONFIG;
+      mAMRCSDProvided = true;
     } else {
       AppendFrame(aOutputBuf, omxBuf->data(), omxBuf->size());
     }

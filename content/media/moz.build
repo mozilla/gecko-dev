@@ -54,7 +54,6 @@ TEST_DIRS += [
 
 EXPORTS += [
     'AbstractMediaDecoder.h',
-    'AudioAvailableEventManager.h',
     'AudioChannelFormat.h',
     'AudioCompactor.h',
     'AudioEventTimeline.h',
@@ -106,13 +105,11 @@ EXPORTS.mozilla.dom += [
     'TextTrackCueList.h',
     'TextTrackList.h',
     'TextTrackRegion.h',
-    'TextTrackRegionList.h',
     'VideoPlaybackQuality.h',
     'VideoStreamTrack.h',
 ]
 
 UNIFIED_SOURCES += [
-    'AudioAvailableEventManager.cpp',
     'AudioChannelFormat.cpp',
     'AudioCompactor.cpp',
     'AudioNodeEngine.cpp',
@@ -145,7 +142,6 @@ UNIFIED_SOURCES += [
     'TextTrackCueList.cpp',
     'TextTrackList.cpp',
     'TextTrackRegion.cpp',
-    'TextTrackRegionList.cpp',
     'VideoFrameContainer.cpp',
     'VideoPlaybackQuality.cpp',
     'VideoSegment.cpp',
@@ -164,9 +160,8 @@ SOURCES += [
 FAIL_ON_WARNINGS = True
 
 if CONFIG['CPU_ARCH'] == 'arm' and CONFIG['BUILD_ARM_NEON']:
-    SOURCES += [
-        'AudioNodeEngineNEON.cpp',
-    ]
+    SOURCES += ['AudioNodeEngineNEON.cpp']
+    SOURCES['AudioNodeEngineNEON.cpp'].flags += ['-mfpu=neon']
 
 MSVC_ENABLE_PGO = True
 

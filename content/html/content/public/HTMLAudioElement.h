@@ -11,8 +11,6 @@
 #include "mozilla/dom/HTMLMediaElement.h"
 #include "mozilla/dom/TypedArray.h"
 
-class nsITimer;
-
 typedef uint16_t nsMediaNetworkState;
 typedef uint16_t nsMediaReadyState;
 
@@ -20,11 +18,10 @@ namespace mozilla {
 namespace dom {
 
 class HTMLAudioElement MOZ_FINAL : public HTMLMediaElement,
-                                   public nsITimerCallback,
                                    public nsIDOMHTMLAudioElement
 {
 public:
-  HTMLAudioElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  HTMLAudioElement(already_AddRefed<nsINodeInfo>& aNodeInfo);
   virtual ~HTMLAudioElement();
 
   // nsISupports
@@ -33,12 +30,6 @@ public:
   // nsIDOMHTMLMediaElement
   using HTMLMediaElement::GetPaused;
   NS_FORWARD_NSIDOMHTMLMEDIAELEMENT(HTMLMediaElement::)
-
-  // nsIAudioChannelAgentCallback
-  NS_DECL_NSIAUDIOCHANNELAGENTCALLBACK
-
-  // NS_DECL_NSITIMERCALLBACK
-  NS_DECL_NSITIMERCALLBACK
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
   virtual nsresult SetAcceptHeader(nsIHttpChannel* aChannel);
@@ -51,33 +42,8 @@ public:
   Audio(const GlobalObject& aGlobal,
         const Optional<nsAString>& aSrc, ErrorResult& aRv);
 
-  void MozSetup(uint32_t aChannels, uint32_t aRate, ErrorResult& aRv);
-
-  uint32_t MozWriteAudio(const Float32Array& aData, ErrorResult& aRv)
-  {
-    return MozWriteAudio(aData.Data(), aData.Length(), aRv);
-  }
-  uint32_t MozWriteAudio(const Sequence<float>& aData, ErrorResult& aRv)
-  {
-    return MozWriteAudio(aData.Elements(), aData.Length(), aRv);
-  }
-  uint32_t MozWriteAudio(const float* aData, uint32_t aLength,
-                         ErrorResult& aRv);
-
-  uint64_t MozCurrentSampleOffset(ErrorResult& aRv);
-
 protected:
-  virtual JSObject* WrapNode(JSContext* aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
-
-  // Update the audio channel playing state
-  virtual void UpdateAudioChannelPlayingState() MOZ_OVERRIDE;
-
-  // Due to that audio data API doesn't indicate the timing of pause or end,
-  // the timer is used to defer the timing of pause/stop after writing data.
-  nsCOMPtr<nsITimer> mDeferStopPlayTimer;
-  // To indicate mDeferStopPlayTimer is on fire or not.
-  bool mTimerActivated;
+  virtual JSObject* WrapNode(JSContext* aCx) MOZ_OVERRIDE;
 };
 
 } // namespace dom

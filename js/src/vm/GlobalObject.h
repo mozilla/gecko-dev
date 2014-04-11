@@ -15,6 +15,7 @@
 
 #include "builtin/RegExp.h"
 #include "js/Vector.h"
+#include "vm/ArrayBufferObject.h"
 #include "vm/ErrorObject.h"
 
 extern JSObject *
@@ -164,7 +165,9 @@ class GlobalObject : public JSObject
         return getSlot(APPLICATION_SLOTS + key);
     }
     static bool ensureConstructor(JSContext *cx, Handle<GlobalObject*> global, JSProtoKey key);
-    static bool initConstructor(JSContext *cx, Handle<GlobalObject*> global, JSProtoKey key);
+    static bool resolveConstructor(JSContext *cx, Handle<GlobalObject*> global, JSProtoKey key);
+    static bool initBuiltinConstructor(JSContext *cx, Handle<GlobalObject*> global,
+                                       JSProtoKey key, HandleObject ctor, HandleObject proto);
 
     void setConstructor(JSProtoKey key, const Value &v) {
         JS_ASSERT(key <= JSProto_LIMIT);
@@ -626,9 +629,7 @@ class GlobalObject : public JSObject
     // Warn about use of the given __proto__ setter to attempt to mutate an
     // object's [[Prototype]], if no prior warning was given.
     static bool warnOnceAboutPrototypeMutation(JSContext *cx, HandleObject protoSetter) {
-        // Temporarily disabled until the second half of bug 948583 lands.
-        //return warnOnceAbout(cx, protoSetter, WARNED_PROTO_SETTING_SLOW, JSMSG_PROTO_SETTING_SLOW);
-        return true;
+        return warnOnceAbout(cx, protoSetter, WARNED_PROTO_SETTING_SLOW, JSMSG_PROTO_SETTING_SLOW);
     }
 
     static bool getOrCreateEval(JSContext *cx, Handle<GlobalObject*> global,

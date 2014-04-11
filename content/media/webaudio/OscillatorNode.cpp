@@ -410,10 +410,10 @@ public:
     aOutput->SetNull(WEBAUDIO_BLOCK_SIZE);
   }
 
-  virtual void ProduceAudioBlock(AudioNodeStream* aStream,
-                                 const AudioChunk& aInput,
-                                 AudioChunk* aOutput,
-                                 bool* aFinished) MOZ_OVERRIDE
+  virtual void ProcessBlock(AudioNodeStream* aStream,
+                            const AudioChunk& aInput,
+                            AudioChunk* aOutput,
+                            bool* aFinished) MOZ_OVERRIDE
   {
     MOZ_ASSERT(mSource == aStream, "Invalid source stream");
 
@@ -513,9 +513,9 @@ OscillatorNode::~OscillatorNode()
 }
 
 JSObject*
-OscillatorNode::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+OscillatorNode::WrapObject(JSContext* aCx)
 {
-  return OscillatorNodeBinding::Wrap(aCx, aScope, this);
+  return OscillatorNodeBinding::Wrap(aCx, this);
 }
 
 void

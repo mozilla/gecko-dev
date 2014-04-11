@@ -23,10 +23,10 @@ public:
     MOZ_ASSERT(NS_IsMainThread());
   }
 
-  virtual void ProduceAudioBlocksOnPorts(AudioNodeStream* aStream,
-                                         const OutputChunks& aInput,
-                                         OutputChunks& aOutput,
-                                         bool* aFinished) MOZ_OVERRIDE
+  virtual void ProcessBlocksOnPorts(AudioNodeStream* aStream,
+                                    const OutputChunks& aInput,
+                                    OutputChunks& aOutput,
+                                    bool* aFinished) MOZ_OVERRIDE
   {
     MOZ_ASSERT(aInput.Length() >= 1, "Should have one or more input ports");
 
@@ -68,9 +68,9 @@ ChannelMergerNode::ChannelMergerNode(AudioContext* aContext,
 }
 
 JSObject*
-ChannelMergerNode::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+ChannelMergerNode::WrapObject(JSContext* aCx)
 {
-  return ChannelMergerNodeBinding::Wrap(aCx, aScope, this);
+  return ChannelMergerNodeBinding::Wrap(aCx, this);
 }
 
 }

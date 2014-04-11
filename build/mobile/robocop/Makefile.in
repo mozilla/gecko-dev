@@ -26,6 +26,8 @@ _JAVA_HARNESS := \
   FennecNativeDriver.java \
   FennecNativeElement.java \
   RoboCopException.java \
+  RobocopShare1.java \
+  RobocopShare2.java \
   RobocopUtils.java \
   PaintedSurface.java \
   $(NULL)
@@ -57,7 +59,7 @@ robocop_FILES   := \
   $(NULL)
 robocop-deps := $(notdir $(robocop_FILES))
 
-MOCHITEST_ROBOCOP_FILES := \
+ROBOCOP_FILES := \
   $(wildcard $(TESTPATH)/*.html) \
   $(wildcard $(TESTPATH)/*.jpg) \
   $(wildcard $(TESTPATH)/*.sjs) \
@@ -66,6 +68,9 @@ MOCHITEST_ROBOCOP_FILES := \
   $(wildcard $(TESTPATH)/*.xml) \
   $(wildcard $(TESTPATH)/*.swf) \
   $(NULL)
+
+ROBOCOP_DEST = $(DEPTH)/_tests/testing/mochitest/tests/robocop/
+INSTALL_TARGETS += ROBOCOP
 
 GARBAGE += \
   AndroidManifest.xml \

@@ -29,7 +29,7 @@ class DOMStorageDBBridge;
 class DOMStorageCacheBridge
 {
 public:
-  NS_IMETHOD_(nsrefcnt) AddRef(void);
+  NS_IMETHOD_(MozExternalRefCountType) AddRef(void);
   NS_IMETHOD_(void) Release(void);
 
   virtual ~DOMStorageCacheBridge() {}
@@ -234,10 +234,12 @@ class DOMStorageUsageBridge
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DOMStorageUsageBridge)
 
-  virtual ~DOMStorageUsageBridge() {}
-
   virtual const nsCString& Scope() = 0;
   virtual void LoadUsage(const int64_t aUsage) = 0;
+
+protected:
+  // Protected destructor, to discourage deletion outside of Release():
+  virtual ~DOMStorageUsageBridge() {}
 };
 
 class DOMStorageUsage : public DOMStorageUsageBridge

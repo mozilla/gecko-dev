@@ -50,38 +50,36 @@ DataToTexture(ID3D10Device *aDevice,
 
 static already_AddRefed<ID3D10Texture2D>
 SurfaceToTexture(ID3D10Device *aDevice,
-                 gfxASurface *aSurface,
+                 SourceSurface *aSurface,
                  const IntSize &aSize)
 {
   if (!aSurface) {
     return nullptr;
   }
 
-  if (aSurface->GetType() == gfxSurfaceType::D2D) {
-    void *data = aSurface->GetData(&gKeyD3D10Texture);
-    if (data) {
-      nsRefPtr<ID3D10Texture2D> texture = static_cast<ID3D10Texture2D*>(data);
-      ID3D10Device *dev;
-      texture->GetDevice(&dev);
-      if (dev == aDevice) {
-        return texture.forget();
-      }
+  void *nativeSurf =
+    aSurface->GetNativeSurface(NativeSurfaceType::D3D10_TEXTURE);
+  if (nativeSurf) {
+    nsRefPtr<ID3D10Texture2D> texture =
+      static_cast<ID3D10Texture2D*>(nativeSurf);
+    ID3D10Device *dev;
+    texture->GetDevice(&dev);
+    if (dev == aDevice) {
+      return texture.forget();
     }
   }
-
-  nsRefPtr<gfxImageSurface> imageSurface = aSurface->GetAsImageSurface();
-
-  if (!imageSurface) {
-    imageSurface = new gfxImageSurface(ThebesIntSize(aSize),
-                                       gfxImageFormat::ARGB32);
-
-    nsRefPtr<gfxContext> context = new gfxContext(imageSurface);
-    context->SetSource(aSurface);
-    context->SetOperator(gfxContext::OPERATOR_SOURCE);
-    context->Paint();
+  RefPtr<DataSourceSurface> dataSurface = aSurface->GetDataSurface();
+  if (!dataSurface) {
+    return nullptr;
   }
-
-  return DataToTexture(aDevice, imageSurface->Data(), imageSurface->Stride(), aSize);
+  DataSourceSurface::MappedSurface map;
+  if (!dataSurface->Map(DataSourceSurface::MapType::READ, &map)) {
+    return nullptr;
+  }
+  nsRefPtr<ID3D10Texture2D> texture =
+    DataToTexture(aDevice, map.mData, map.mStride, aSize);
+  dataSurface->Unmap();
+  return texture.forget();
 }
 
 Layer*
@@ -127,7 +125,7 @@ ImageLayerD3D10::GetImageSRView(Image* aImage, bool& aHasAlpha, IDXGIKeyedMutex 
     CairoImage *cairoImage =
       static_cast<CairoImage*>(aImage);
 
-    nsRefPtr<gfxASurface> surf = cairoImage->DeprecatedGetAsSurface();
+    RefPtr<SourceSurface> surf = cairoImage->GetAsSourceSurface();
     if (!surf) {
       return nullptr;
     }
@@ -142,7 +140,7 @@ ImageLayerD3D10::GetImageSRView(Image* aImage, bool& aHasAlpha, IDXGIKeyedMutex 
       }
     }
 
-    aHasAlpha = surf->GetContentType() == gfxContentType::COLOR_ALPHA;
+    aHasAlpha = surf->GetFormat() == SurfaceFormat::B8G8R8A8;
   } else if (aImage->GetFormat() == ImageFormat::D3D9_RGB32_TEXTURE) {
     if (!aImage->GetBackendData(mozilla::layers::LayersBackend::LAYERS_D3D10)) {
       // Use resource sharing to open the D3D9 texture as a D3D10 texture,
@@ -219,8 +217,8 @@ ImageLayerD3D10::RenderLayer()
       image->GetFormat() == ImageFormat::REMOTE_IMAGE_DXGI_TEXTURE ||
       image->GetFormat() == ImageFormat::D3D9_RGB32_TEXTURE) {
     NS_ASSERTION(image->GetFormat() != ImageFormat::CAIRO_SURFACE ||
-                 !static_cast<CairoImage*>(image)->mDeprecatedSurface ||
-                 static_cast<CairoImage*>(image)->mDeprecatedSurface->GetContentType() != gfxContentType::ALPHA,
+                 !static_cast<CairoImage*>(image)->mSourceSurface ||
+                 static_cast<CairoImage*>(image)->mSourceSurface->GetFormat() != SurfaceFormat::A8,
                  "Image layer has alpha image");
     bool hasAlpha = false;
 
@@ -419,79 +417,6 @@ ImageLayerD3D10::GetAsTexture(gfx::IntSize* aSize)
   bool dontCare;
   nsRefPtr<ID3D10ShaderResourceView> result = GetImageSRView(image, dontCare);
   return result.forget();
-}
-
-already_AddRefed<gfxASurface>
-RemoteDXGITextureImage::DeprecatedGetAsSurface()
-{
-  nsRefPtr<ID3D10Device1> device =
-    gfxWindowsPlatform::GetPlatform()->GetD3D10Device();
-  if (!device) {
-    NS_WARNING("Cannot readback from shared texture because no D3D10 device is available.");
-    return nullptr;
-  }
-
-  TextureD3D10BackendData* data = GetD3D10TextureBackendData(device);
-
-  if (!data) {
-    return nullptr;
-  }
-
-  nsRefPtr<IDXGIKeyedMutex> keyedMutex;
-
-  if (FAILED(data->mTexture->QueryInterface(IID_IDXGIKeyedMutex, getter_AddRefs(keyedMutex)))) {
-    NS_WARNING("Failed to QueryInterface for IDXGIKeyedMutex, strange.");
-    return nullptr;
-  }
-
-  if (FAILED(keyedMutex->AcquireSync(0, 0))) {
-    NS_WARNING("Failed to acquire sync for keyedMutex, plugin failed to release?");
-    return nullptr;
-  }
-
-  D3D10_TEXTURE2D_DESC desc;
-
-  data->mTexture->GetDesc(&desc);
-
-  desc.CPUAccessFlags = D3D10_CPU_ACCESS_READ;
-  desc.BindFlags = 0;
-  desc.MiscFlags = 0;
-  desc.Usage = D3D10_USAGE_STAGING;
-
-  nsRefPtr<ID3D10Texture2D> softTexture;
-  HRESULT hr = device->CreateTexture2D(&desc, nullptr, getter_AddRefs(softTexture));
-
-  if (FAILED(hr)) {
-    NS_WARNING("Failed to create 2D staging texture.");
-    return nullptr;
-  }
-
-  device->CopyResource(softTexture, data->mTexture);
-  keyedMutex->ReleaseSync(0);
-
-  nsRefPtr<gfxImageSurface> surface =
-    new gfxImageSurface(ThebesIntSize(mSize),
-      mFormat == RemoteImageData::BGRX32 ?
-                 gfxImageFormat::RGB24 :
-                 gfxImageFormat::ARGB32);
-
-  if (!surface->CairoSurface() || surface->CairoStatus()) {
-    NS_WARNING("Failed to created image surface for DXGI texture.");
-    return nullptr;
-  }
-
-  D3D10_MAPPED_TEXTURE2D mapped;
-  softTexture->Map(0, D3D10_MAP_READ, 0, &mapped);
-
-  for (int y = 0; y < mSize.height; y++) {
-    memcpy(surface->Data() + surface->Stride() * y,
-           (unsigned char*)(mapped.pData) + mapped.RowPitch * y,
-           mSize.width * 4);
-  }
-
-  softTexture->Unmap(0);
-
-  return surface.forget();
 }
 
 TemporaryRef<gfx::SourceSurface>

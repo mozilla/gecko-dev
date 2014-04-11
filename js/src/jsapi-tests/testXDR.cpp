@@ -14,7 +14,7 @@
 
 static JSScript *
 CompileScriptForPrincipalsVersionOrigin(JSContext *cx, JS::HandleObject obj,
-                                        JSPrincipals *principals, JSPrincipals *originPrincipals,
+                                        JSPrincipals *originPrincipals,
                                         const char *bytes, size_t nbytes,
                                         const char *filename, unsigned lineno,
                                         JSVersion version)
@@ -27,8 +27,7 @@ CompileScriptForPrincipalsVersionOrigin(JSContext *cx, JS::HandleObject obj,
         return nullptr;
     JS_ALWAYS_TRUE(JS_DecodeBytes(cx, bytes, nbytes, chars, &nchars));
     JS::CompileOptions options(cx);
-    options.setPrincipals(principals)
-           .setOriginPrincipals(originPrincipals)
+    options.setOriginPrincipals(originPrincipals)
            .setFileAndLine(filename, lineno)
            .setVersion(version);
     JSScript *script = JS::Compile(cx, obj, options, chars, nchars);
@@ -55,7 +54,8 @@ FreezeThaw(JSContext *cx, JS::HandleScript script)
 static JSScript *
 GetScript(JSContext *cx, JS::HandleObject funobj)
 {
-    return JS_GetFunctionScript(cx, JS_GetObjectFunction(funobj));
+    JS::RootedFunction fun(cx, JS_GetObjectFunction(funobj));
+    return JS_GetFunctionScript(cx, fun);
 }
 
 static JSObject *
@@ -87,17 +87,17 @@ BEGIN_TEST(testXDR_principals)
         // Appease the new JSAPI assertions. The stuff being tested here is
         // going away anyway.
         JS_SetCompartmentPrincipals(compartment, &testPrincipal0);
-        script = createScriptViaXDR(&testPrincipal0, nullptr, i);
+        script = createScriptViaXDR(nullptr, i);
         CHECK(script);
         CHECK(JS_GetScriptPrincipals(script) == &testPrincipal0);
         CHECK(JS_GetScriptOriginPrincipals(script) == &testPrincipal0);
 
-        script = createScriptViaXDR(&testPrincipal0, &testPrincipal0, i);
+        script = createScriptViaXDR(&testPrincipal0, i);
         CHECK(script);
         CHECK(JS_GetScriptPrincipals(script) == &testPrincipal0);
         CHECK(JS_GetScriptOriginPrincipals(script) == &testPrincipal0);
 
-        script = createScriptViaXDR(&testPrincipal0, &testPrincipal1, i);
+        script = createScriptViaXDR(&testPrincipal1, i);
         CHECK(script);
         CHECK(JS_GetScriptPrincipals(script) == &testPrincipal0);
         CHECK(JS_GetScriptOriginPrincipals(script) == &testPrincipal1);
@@ -114,14 +114,14 @@ enum TestCase {
     TEST_END
 };
 
-JSScript *createScriptViaXDR(JSPrincipals *prin, JSPrincipals *orig, int testCase)
+JSScript *createScriptViaXDR(JSPrincipals *orig, int testCase)
 {
     const char src[] =
         "function f() { return 1; }\n"
         "f;\n";
 
     JS::RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
-    JS::RootedScript script(cx, CompileScriptForPrincipalsVersionOrigin(cx, global, prin, orig,
+    JS::RootedScript script(cx, CompileScriptForPrincipalsVersionOrigin(cx, global, orig,
                                                                         src, strlen(src), "test", 1,
                                                                         JSVERSION_DEFAULT));
     if (!script)
@@ -136,7 +136,7 @@ JSScript *createScriptViaXDR(JSPrincipals *prin, JSPrincipals *orig, int testCas
     }
 
     JS::RootedValue v(cx);
-    bool ok = JS_ExecuteScript(cx, global, script, v.address());
+    bool ok = JS_ExecuteScript(cx, global, script, &v);
     if (!ok || !v.isObject())
         return nullptr;
     JS::RootedObject funobj(cx, &v.toObject());
@@ -172,13 +172,13 @@ BEGIN_TEST(testXDR_bug506491)
 
     // execute
     JS::RootedValue v2(cx);
-    CHECK(JS_ExecuteScript(cx, global, script, v2.address()));
+    CHECK(JS_ExecuteScript(cx, global, script, &v2));
 
     // try to break the Block object that is the parent of f
     JS_GC(rt);
 
     // confirm
-    EVAL("f() === 'ok';\n", v2.address());
+    EVAL("f() === 'ok';\n", &v2);
     JS::RootedValue trueval(cx, JSVAL_TRUE);
     CHECK_SAME(v2, trueval);
     return true;
@@ -197,7 +197,7 @@ BEGIN_TEST(testXDR_bug516827)
     CHECK(script);
 
     // execute with null result meaning no result wanted
-    CHECK(JS_ExecuteScript(cx, global, script, nullptr));
+    CHECK(JS_ExecuteScript(cx, global, script));
     return true;
 }
 END_TEST(testXDR_bug516827)

@@ -18,15 +18,21 @@ CRCCheck on
 
 RequestExecutionLevel user
 
+; The commands inside this ifdef require NSIS 3.0a2 or greater so the ifdef can
+; be removed after we require NSIS 3.0a2 or greater.
+!ifdef NSIS_PACKEDVERSION
+  Unicode true
+  ManifestSupportedOS all
+  ManifestDPIAware true
+!endif
+
 !addplugindir ./
 
 Var Dialog
-Var ProgressbarDownload
-Var ProgressbarInstall
-Var LabelDownloadingDown
-Var LabelDownloadingInProgress
-Var LabelInstallingInProgress
-Var LabelInstallingToBeDone
+Var Progressbar
+Var ProgressbarMarqueeIntervalMS
+Var LabelDownloading
+Var LabelInstalling
 Var LabelFreeSpace
 Var CheckboxSetAsDefault
 Var CheckboxShortcutOnBar ; Used for Quicklaunch or Taskbar as appropriate
@@ -63,6 +69,8 @@ Var InitialInstallDir
 Var HandleDownload
 Var CanSetAsDefault
 Var InstallCounterStep
+Var InstallStepSize
+Var InstallTotalSteps
 Var TmpVal
 
 Var ExitCode
@@ -77,21 +85,18 @@ Var StartDownloadPhaseTickCount
 ; seconds spent on each of these pages is reported.
 Var IntroPhaseSeconds
 Var OptionsPhaseSeconds
-; The tick count for the last download
+; The tick count for the last download.
 Var StartLastDownloadTickCount
 ; The number of seconds from the start of the download phase until the first
 ; bytes are received. This is only recorded for first request so it is possible
 ; to determine connection issues for the first request.
 Var DownloadFirstTransferSeconds
 ; The last four tick counts are for the end of a phase in the installation page.
-; the options phase when it isn't entered.
 Var EndDownloadPhaseTickCount
 Var EndPreInstallPhaseTickCount
 Var EndInstallPhaseTickCount
 Var EndFinishPhaseTickCount
 
-Var IntroPageShownCount
-Var OptionsPageShownCount
 Var InitialInstallRequirementsCode
 Var ExistingProfile
 Var ExistingVersion
@@ -108,7 +113,7 @@ Var ControlRightPX
 ; the stub installer
 ;!define STUB_DEBUG
 
-!define StubURLVersion "v5"
+!define StubURLVersion "v6"
 
 ; Successful install exit code
 !define ERR_SUCCESS 0
@@ -144,7 +149,7 @@ Var ControlRightPX
  * The following errors prefixed with ERR_INSTALL apply to the install phase.
  */
 ; The installation timed out. The installation timeout is defined by the number
-; of progress steps defined in InstallProgresSteps and the install timer
+; of progress steps defined in InstallTotalSteps and the install timer
 ; interval defined in InstallIntervalMS
 !define ERR_INSTALL_TIMEOUT 30
 
@@ -168,20 +173,28 @@ Var ControlRightPX
 ; Interval for the install timer
 !define InstallIntervalMS 100
 
-; Number of steps for the install progress.
-; This is 120 seconds with a 100 millisecond timer and a first step of 20 as
-; defined by InstallProgressFirstStep. This might not be enough when installing
-; on a slow network drive so it will fallback to downloading the full installer
-; if it reaches this number. The size of the install progress step increases
-; when the full installer finishes instead of waiting the entire 120 seconds.
-!define InstallProgresSteps 1220
-
 ; The first step for the install progress bar. By starting with a large step
 ; immediate feedback is given to the user.
 !define InstallProgressFirstStep 20
 
-; The interval in MS used for the progress bars set as marquee.
-!define ProgressbarMarqueeIntervalMS 10
+; The finish step size to quickly increment the progress bar after the
+; installation has finished.
+!define InstallProgressFinishStep 40
+
+; Number of steps for the install progress.
+; This might not be enough when installing on a slow network drive so it will
+; fallback to downloading the full installer if it reaches this number. The size
+; of the install progress step is increased when the full installer finishes
+; instead of waiting.
+
+; Approximately 150 seconds with a 100 millisecond timer and a first step of 20
+; as defined by InstallProgressFirstStep.
+!define /math InstallCleanTotalSteps ${InstallProgressFirstStep} + 1500
+
+; Approximately 165 seconds (minus 0.2 seconds for each file that is removed)
+; with a 100 millisecond timer and a first step of 20 as defined by
+; InstallProgressFirstStep .
+!define /math InstallPaveOverTotalSteps ${InstallProgressFirstStep} + 1800
 
 ; On Vista and above attempt to elevate Standard Users in addition to users that
 ; are a member of the Administrators group.
@@ -189,12 +202,18 @@ Var ControlRightPX
 
 !define CONFIG_INI "config.ini"
 
-!define MAX_PATH 260
-
-!define FILE_SHARE_READ 1
-!define GENERIC_READ 0x80000000
-!define OPEN_EXISTING 3
-!define INVALID_HANDLE_VALUE -1
+!ifndef FILE_SHARE_READ
+  !define FILE_SHARE_READ 1
+!endif
+!ifndef GENERIC_READ
+  !define GENERIC_READ 0x80000000
+!endif
+!ifndef OPEN_EXISTING
+  !define OPEN_EXISTING 3
+!endif
+!ifndef INVALID_HANDLE_VALUE
+  !define INVALID_HANDLE_VALUE -1
+!endif
 
 !include "nsDialogs.nsh"
 !include "LogicLib.nsh"
@@ -230,6 +249,7 @@ Var ControlRightPX
 !insertmacro ElevateUAC
 !insertmacro GetLongPath
 !insertmacro GetPathFromString
+!insertmacro GetParent
 !insertmacro GetSingleInstallPath
 !insertmacro GetTextWidthHeight
 !insertmacro IsUserAdmin
@@ -262,12 +282,7 @@ ChangeUI all "nsisui.exe"
 
 !if "${AB_CD}" == "en-US"
   ; Custom strings for en-US. This is done here so they aren't translated.
-  !define INDENT "     "
-  !define INTRO_BLURB "Thanks for choosing $BrandFullName. We’re not just designed to be different, we’re different by design."
-  !define INSTALL_BLURB1 "You're about to enjoy the very latest in speed, flexibility and security so you're always in control."
-  !define INSTALL_BLURB2 "And you're joining a global community of users, contributors and developers working to make the best browser in the world."
-  !define INSTALL_BLURB3 "You even get a haiku:$\n${INDENT}Proudly non-profit$\n${INDENT}Free to innovate for you$\n${INDENT}And a better Web"
-  !undef INDENT
+  !include oneoff_en-US.nsh
 !else
   !define INTRO_BLURB "$(INTRO_BLURB1)"
   !define INSTALL_BLURB1 "$(INSTALL_BLURB1)"
@@ -336,42 +351,13 @@ Function .onInit
   ; Require elevation if the user can elevate
   ${ElevateUAC}
 
+; The commands inside this ifndef are needed prior to NSIS 3.0a2 and can be
+; removed after we require NSIS 3.0a2 or greater.
+!ifndef NSIS_PACKEDVERSION
   ${If} ${AtLeastWinVista}
     System::Call 'user32::SetProcessDPIAware()'
   ${EndIf}
-
-  ; Create a mutex to prevent multiple launches of the same stub installer in
-  ; the same location on the file system. This intentionally won't handle the
-  ; case where someone runs multiple copies of the stub on the file system but
-  ; it does handle the important case which is a user launching the same stub
-  ; multiple times.
-  StrCpy $1 "$EXEPATH"
-  ; Backslashes are illegal in a mutex name so replace all occurences of a
-  ; backslash with a forward slash.
-  ${WordReplace} "$1" "\" "/" "+" $1
-  StrLen $2 "$1"
-
-  ; The lpName parameter for CreateMutexW is limited to MAX_PATH characters so
-  ; use the characters at the end since they are more likely to be unique.
-  ${If} $2 > ${MAX_PATH}
-    StrCpy $1 "$1" ${MAX_PATH} -${MAX_PATH}
-  ${EndIf}
-  System::Call "kernel32::CreateMutexW(i 0, i 0, w '$1') i .r0 ?e"
-  Pop $0
-
-  ${Unless} $0 == 0
-    ; The mutex is specific to this executable's path so we should be able to
-    ; find the Window with the same caption as this executable's and bring that
-    ; window to the front. This could find another instance of the same
-    ; executable but that is an uninteresting edge case.
-    FindWindow $1 "#32770" "$(WIN_CAPTION)" 0
-    ${If} $1 != 0
-      ; Restore the window if it is minimized and make it the foreground window
-      System::Call "user32::ShowWindow(i r1, i ${SW_RESTORE}) i."
-      System::Call "user32::SetForegroundWindow(i r1) i."
-    ${EndIf}
-    Abort
-  ${EndUnless}
+!endif
 
   SetShellVarContext all ; Set SHCTX to HKLM
   ${GetSingleInstallPath} "Software\Mozilla\${BrandFullNameInternal}" $R9
@@ -392,6 +378,8 @@ Function .onInit
   WriteRegStr HKLM "Software\Mozilla" "${BrandShortName}InstallerTest" \
                    "Write Test"
 
+  ; Only display set as default when there is write access to HKLM and on Win7
+  ; and below.
   ${If} ${Errors}
   ${OrIf} ${AtLeastWin8}
     StrCpy $CanSetAsDefault "false"
@@ -401,14 +389,19 @@ Function .onInit
     StrCpy $CanSetAsDefault "true"
   ${EndIf}
 
+  ; The interval in MS used for the progress bars set as marquee.
+  ${If} ${AtLeastWinVista}
+    StrCpy $ProgressbarMarqueeIntervalMS "10"
+  ${Else}
+    StrCpy $ProgressbarMarqueeIntervalMS "50"
+  ${EndIf}
+
   ; Initialize the majority of variables except those that need to be reset
   ; when a page is displayed.
   StrCpy $IntroPhaseSeconds "0"
   StrCpy $OptionsPhaseSeconds "0"
   StrCpy $EndPreInstallPhaseTickCount "0"
   StrCpy $EndInstallPhaseTickCount "0"
-  StrCpy $IntroPageShownCount "0"
-  StrCpy $OptionsPageShownCount "0"
   StrCpy $InitialInstallRequirementsCode ""
   StrCpy $IsDownloadFinished ""
   StrCpy $FirefoxLaunchCode "0"
@@ -429,7 +422,6 @@ Function .onInit
 
   InitPluginsDir
   File /oname=$PLUGINSDIR\bgintro.bmp "bgintro.bmp"
-  File /oname=$PLUGINSDIR\bgplain.bmp "bgplain.bmp"
   File /oname=$PLUGINSDIR\appname.bmp "appname.bmp"
   File /oname=$PLUGINSDIR\clock.bmp "clock.bmp"
   File /oname=$PLUGINSDIR\particles.bmp "particles.bmp"
@@ -463,9 +455,9 @@ FunctionEnd
 Function .onUserAbort
   ${NSD_KillTimer} StartDownload
   ${NSD_KillTimer} OnDownload
-  ${NSD_KillTimer} StartInstall
   ${NSD_KillTimer} CheckInstall
   ${NSD_KillTimer} FinishInstall
+  ${NSD_KillTimer} FinishProgressBar
   ${NSD_KillTimer} DisplayDownloadError
 
   ${If} "$IsDownloadFinished" != ""
@@ -473,7 +465,7 @@ Function .onUserAbort
     ; Aborting the abort will allow SendPing which is called by
     ; DisplayDownloadError to hide the installer window and close the installer
     ; after it sends the metrics ping.
-    Abort 
+    Abort
   ${EndIf}
 FunctionEnd
 
@@ -560,9 +552,17 @@ Function SendPing
       StrCpy $R1 "0"
     ${EndIf}
 
-    ${WinVerGetMajor} $R2
-    ${WinVerGetMinor} $R3
-    ${WinVerGetBuild} $R4
+    ; Though these values are sometimes incorrect due to bug 444664 it happens
+    ; so rarely it isn't worth working around it by reading the registry values.
+    ${WinVerGetMajor} $5
+    ${WinVerGetMinor} $6
+    ${WinVerGetBuild} $7
+    ${WinVerGetServicePackLevel} $8
+    ${If} ${IsServerOS}
+      StrCpy $9 "1"
+    ${Else}
+      StrCpy $9 "0"
+    ${EndIf}
 
     ${If} "$ExitCode" == "${ERR_SUCCESS}"
       ReadINIStr $R5 "$INSTDIR\application.ini" "App" "Version"
@@ -595,6 +595,74 @@ Function SendPing
       StrCpy $DownloadServerIP "Unknown"
     ${EndIf}
 
+    StrCpy $R2 ""
+    SetShellVarContext current ; Set SHCTX to the current user
+    ReadRegStr $R2 HKCU "Software\Classes\http\shell\open\command" ""
+    ${If} $R2 != ""
+      ${GetPathFromString} "$R2" $R2
+      ${GetParent} "$R2" $R3
+      ${GetLongPath} "$R3" $R3
+      ${If} $R3 == $INSTDIR
+        StrCpy $R2 "1" ; This Firefox install is set as default.
+      ${Else}
+        StrCpy $R2 "$R2" "" -11 # length of firefox.exe
+        ${If} "$R2" == "${FileMainEXE}"
+          StrCpy $R2 "2" ; Another Firefox install is set as default.
+        ${Else}
+          StrCpy $R2 "0"
+        ${EndIf}
+      ${EndIf}
+    ${Else}
+      StrCpy $R2 "0" ; Firefox is not set as default.
+    ${EndIf}
+
+    ${If} "$R2" == "0"
+    ${AndIf} ${AtLeastWinVista}
+      ; Check to see if this install location is currently set as the default
+      ; browser by Default Programs which is only available on Vista and above.
+      ClearErrors
+      ReadRegStr $R3 HKLM "Software\RegisteredApplications" "${AppRegName}"
+      ${Unless} ${Errors}
+        AppAssocReg::QueryAppIsDefaultAll "${AppRegName}" "effective"
+        Pop $R3
+        ${If} $R3 == "1"
+          StrCpy $R3 ""
+          ReadRegStr $R2 HKLM "Software\Classes\http\shell\open\command" ""
+          ${If} $R2 != ""
+            ${GetPathFromString} "$R2" $R2
+            ${GetParent} "$R2" $R3
+            ${GetLongPath} "$R3" $R3
+            ${If} $R3 == $INSTDIR
+              StrCpy $R2 "1" ; This Firefox install is set as default.
+            ${Else}
+              StrCpy $R2 "$R2" "" -11 # length of firefox.exe
+              ${If} "$R2" == "${FileMainEXE}"
+                StrCpy $R2 "2" ; Another Firefox install is set as default.
+              ${Else}
+                StrCpy $R2 "0"
+              ${EndIf}
+            ${EndIf}
+          ${Else}
+            StrCpy $R2 "0" ; Firefox is not set as default.
+          ${EndIf}
+        ${EndIf}
+      ${EndUnless}
+    ${EndIf}
+
+    ${If} $CanSetAsDefault == "true"
+      ${If} $CheckboxSetAsDefault == "1"
+        StrCpy $R3 "2"
+      ${Else}
+        StrCpy $R3 "3"
+      ${EndIf}
+    ${Else}
+      ${If} ${AtLeastWin8}
+        StrCpy $R3 "1"
+      ${Else}
+        StrCpy $R3 "0"
+      ${EndIf}
+    ${EndIf}
+
 !ifdef STUB_DEBUG
     MessageBox MB_OK "${BaseURLStubPing} \
                       $\nStub URL Version = ${StubURLVersion}${StubURLVersionAppend} \
@@ -603,13 +671,16 @@ Function SendPing
                       $\nLocale = ${AB_CD} \
                       $\nFirefox x64 = $R0 \
                       $\nRunning x64 Windows = $R1 \
-                      $\nMajor = $R2 \
-                      $\nMinor = $R3 \
-                      $\nBuild = $R4 \
+                      $\nMajor = $5 \
+                      $\nMinor = $6 \
+                      $\nBuild = $7 \
+                      $\nServicePack = $8 \
+                      $\nIsServer = $9 \
                       $\nExit Code = $ExitCode \
                       $\nFirefox Launch Code = $FirefoxLaunchCode \
                       $\nDownload Retry Count = $DownloadRetryCount \
                       $\nDownloaded Bytes = $DownloadedBytes \
+                      $\nDownload Size Bytes = $DownloadSizeBytes \
                       $\nIntroduction Phase Seconds = $IntroPhaseSeconds \
                       $\nOptions Phase Seconds = $OptionsPhaseSeconds \
                       $\nDownload Phase Seconds = $0 \
@@ -618,8 +689,6 @@ Function SendPing
                       $\nPreinstall Phase Seconds = $2 \
                       $\nInstall Phase Seconds = $3 \
                       $\nFinish Phase Seconds = $4 \
-                      $\nIntro Page Shown Count = $IntroPageShownCount \
-                      $\nOptions Page Shown Count = $OptionsPageShownCount \
                       $\nInitial Install Requirements Code = $InitialInstallRequirementsCode \
                       $\nOpened Download Page = $OpenedDownloadPage \
                       $\nExisting Profile = $ExistingProfile \
@@ -629,6 +698,8 @@ Function SendPing
                       $\nNew Build ID = $R6 \
                       $\nDefault Install Dir = $R7 \
                       $\nHas Admin = $R8 \
+                      $\nDefault Status = $R2 \
+                      $\nSet As Sefault Status = $R3 \
                       $\nDownload Server IP = $DownloadServerIP"
     ; The following will exit the installer
     SetAutoClose true
@@ -636,7 +707,7 @@ Function SendPing
     Call RelativeGotoPage
 !else
     ${NSD_CreateTimer} OnPing ${DownloadIntervalMS}
-    InetBgDL::Get "${BaseURLStubPing}/${StubURLVersion}${StubURLVersionAppend}/${Channel}/${UpdateChannel}/${AB_CD}/$R0/$R1/$R2/$R3/$R4/$ExitCode/$FirefoxLaunchCode/$DownloadRetryCount/$DownloadedBytes/$IntroPhaseSeconds/$OptionsPhaseSeconds/$0/$1/$DownloadFirstTransferSeconds/$2/$3/$4/$IntroPageShownCount/$OptionsPageShownCount/$InitialInstallRequirementsCode/$OpenedDownloadPage/$ExistingProfile/$ExistingVersion/$ExistingBuildID/$R5/$R6/$R7/$R8/$DownloadServerIP" \
+    InetBgDL::Get "${BaseURLStubPing}/${StubURLVersion}${StubURLVersionAppend}/${Channel}/${UpdateChannel}/${AB_CD}/$R0/$R1/$5/$6/$7/$8/$9/$ExitCode/$FirefoxLaunchCode/$DownloadRetryCount/$DownloadedBytes/$DownloadSizeBytes/$IntroPhaseSeconds/$OptionsPhaseSeconds/$0/$1/$DownloadFirstTransferSeconds/$2/$3/$4/$InitialInstallRequirementsCode/$OpenedDownloadPage/$ExistingProfile/$ExistingVersion/$ExistingBuildID/$R5/$R6/$R7/$R8/$R2/$R3/$DownloadServerIP" \
                   "$PLUGINSDIR\_temp" /END
 !endif
   ${Else}
@@ -675,8 +746,6 @@ Function createIntro
 
   SetCtlColors $HWNDPARENT ${FOOTER_CONTROL_TEXT_COLOR_NORMAL} ${FOOTER_BKGRD_COLOR}
   GetDlgItem $0 $HWNDPARENT 10 ; Default browser checkbox
-  ; Set as default is not supported in the installer for Win8 and above so
-  ; only display it on Windows 7 and below
   ${If} "$CanSetAsDefault" == "true"
     ; The uxtheme must be disabled on checkboxes in order to override the
     ; system font color.
@@ -714,8 +783,6 @@ Function createIntro
   GetDlgItem $0 $HWNDPARENT 3 ; Back button used for Options
   SendMessage $0 ${WM_SETTEXT} 0 "STR:$(OPTIONS_BUTTON)"
 
-  IntOp $IntroPageShownCount $IntroPageShownCount + 1
-
   System::Call "kernel32::GetTickCount()l .s"
   Pop $StartIntroPhaseTickCount
 
@@ -731,10 +798,12 @@ Function leaveIntro
 
   System::Call "kernel32::GetTickCount()l .s"
   Pop $0
-  ${GetSecondsElapsed} "$StartIntroPhaseTickCount" "$0" $1
-  ; This is added to the previous value of $IntroPhaseSeconds because the
-  ; introduction page can be displayed multiple times.
-  IntOp $IntroPhaseSeconds $IntroPhaseSeconds + $1
+  ${GetSecondsElapsed} "$StartIntroPhaseTickCount" "$0" $IntroPhaseSeconds
+  ; It is possible for this value to be 0 if the user clicks fast enough so
+  ; increment the value by 1 if it is 0.
+  ${If} $IntroPhaseSeconds == 0
+    IntOp $IntroPhaseSeconds $IntroPhaseSeconds + 1
+  ${EndIf}
 
   SetShellVarContext all ; Set SHCTX to All Users
   ; If the user doesn't have write access to the installation directory set
@@ -796,12 +865,12 @@ Function createOptions
   Pop $Dialog
   ; Since the text color for controls is set in this Dialog the foreground and
   ; background colors of the Dialog must also be hardcoded.
-  SetCtlColors $Dialog ${OPTIONS_TEXT_COLOR_NORMAL} ${OPTIONS_BKGRD_COLOR}
+  SetCtlColors $Dialog ${COMMON_TEXT_COLOR_NORMAL} ${COMMON_BKGRD_COLOR}
 
   ${NSD_CreateLabel} ${OPTIONS_ITEM_EDGE_DU} 18u ${OPTIONS_ITEM_WIDTH_DU} \
                      12u "$(CREATE_SHORTCUTS)"
   Pop $0
-  SetCtlColors $0 ${OPTIONS_TEXT_COLOR_NORMAL} ${OPTIONS_BKGRD_COLOR}
+  SetCtlColors $0 ${COMMON_TEXT_COLOR_NORMAL} ${COMMON_BKGRD_COLOR}
   SendMessage $0 ${WM_SETFONT} $FontNormal 0
 
   ${If} ${AtLeastWin7}
@@ -815,7 +884,7 @@ Function createOptions
   ; The uxtheme must be disabled on checkboxes in order to override the system
   ; font color.
   System::Call 'uxtheme::SetWindowTheme(i $CheckboxShortcutOnBar, w " ", w " ")'
-  SetCtlColors $CheckboxShortcutOnBar ${OPTIONS_TEXT_COLOR_NORMAL} ${OPTIONS_BKGRD_COLOR}
+  SetCtlColors $CheckboxShortcutOnBar ${COMMON_TEXT_COLOR_NORMAL} ${COMMON_BKGRD_COLOR}
   SendMessage $CheckboxShortcutOnBar ${WM_SETFONT} $FontNormal 0
   ${NSD_Check} $CheckboxShortcutOnBar
 
@@ -825,7 +894,7 @@ Function createOptions
   ; The uxtheme must be disabled on checkboxes in order to override the system
   ; font color.
   System::Call 'uxtheme::SetWindowTheme(i $CheckboxShortcutInStartMenu, w " ", w " ")'
-  SetCtlColors $CheckboxShortcutInStartMenu ${OPTIONS_TEXT_COLOR_NORMAL} ${OPTIONS_BKGRD_COLOR}
+  SetCtlColors $CheckboxShortcutInStartMenu ${COMMON_TEXT_COLOR_NORMAL} ${COMMON_BKGRD_COLOR}
   SendMessage $CheckboxShortcutInStartMenu ${WM_SETFONT} $FontNormal 0
   ${NSD_Check} $CheckboxShortcutInStartMenu
 
@@ -835,19 +904,19 @@ Function createOptions
   ; The uxtheme must be disabled on checkboxes in order to override the system
   ; font color.
   System::Call 'uxtheme::SetWindowTheme(i $CheckboxShortcutOnDesktop, w " ", w " ")'
-  SetCtlColors $CheckboxShortcutOnDesktop ${OPTIONS_TEXT_COLOR_NORMAL} ${OPTIONS_BKGRD_COLOR}
+  SetCtlColors $CheckboxShortcutOnDesktop ${COMMON_TEXT_COLOR_NORMAL} ${COMMON_BKGRD_COLOR}
   SendMessage $CheckboxShortcutOnDesktop ${WM_SETFONT} $FontNormal 0
   ${NSD_Check} $CheckboxShortcutOnDesktop
 
   ${NSD_CreateLabel} ${OPTIONS_ITEM_EDGE_DU} 100u ${OPTIONS_ITEM_WIDTH_DU} \
                      12u "$(DEST_FOLDER)"
   Pop $0
-  SetCtlColors $0 ${OPTIONS_TEXT_COLOR_NORMAL} ${OPTIONS_BKGRD_COLOR}
+  SetCtlColors $0 ${COMMON_TEXT_COLOR_NORMAL} ${COMMON_BKGRD_COLOR}
   SendMessage $0 ${WM_SETFONT} $FontNormal 0
 
   ${NSD_CreateDirRequest} ${OPTIONS_SUBITEM_EDGE_DU} 116u 159u 14u "$INSTDIR"
   Pop $DirRequest
-  SetCtlColors $DirRequest ${OPTIONS_TEXT_COLOR_NORMAL} ${OPTIONS_BKGRD_COLOR}
+  SetCtlColors $DirRequest ${COMMON_TEXT_COLOR_NORMAL} ${COMMON_BKGRD_COLOR}
   SendMessage $DirRequest ${WM_SETFONT} $FontNormal 0
   System::Call shlwapi::SHAutoComplete(i $DirRequest, i ${SHACF_FILESYSTEM})
   ${NSD_OnChange} $DirRequest OnChange_DirRequest
@@ -863,7 +932,7 @@ Function createOptions
 
   ${NSD_CreateBrowseButton} 280u 116u 50u 14u "$(BROWSE_BUTTON)"
   Pop $ButtonBrowse
-  SetCtlColors $ButtonBrowse "" ${OPTIONS_BKGRD_COLOR}
+  SetCtlColors $ButtonBrowse "" ${COMMON_BKGRD_COLOR}
   ${NSD_OnClick} $ButtonBrowse OnClick_ButtonBrowse
 
   ; Get the number of pixels from the left of the Dialog to the right side of
@@ -884,13 +953,13 @@ Function createOptions
   ; Make both controls the same width as the widest control
   ${NSD_CreateLabelCenter} ${OPTIONS_SUBITEM_EDGE_DU} 134u $0 $ControlHeightPX "$(SPACE_REQUIRED)"
   Pop $5
-  SetCtlColors $5 ${OPTIONS_TEXT_COLOR_FADED} ${OPTIONS_BKGRD_COLOR}
+  SetCtlColors $5 ${COMMON_TEXT_COLOR_FADED} ${COMMON_BKGRD_COLOR}
   SendMessage $5 ${WM_SETFONT} $FontItalic 0
 
   IntOp $2 $2 + 8 ; Add padding to the control's width
   ${NSD_CreateLabelCenter} ${OPTIONS_SUBITEM_EDGE_DU} 145u $2 $ControlHeightPX "$(SPACE_AVAILABLE)"
   Pop $6
-  SetCtlColors $6 ${OPTIONS_TEXT_COLOR_FADED} ${OPTIONS_BKGRD_COLOR}
+  SetCtlColors $6 ${COMMON_TEXT_COLOR_FADED} ${COMMON_BKGRD_COLOR}
   SendMessage $6 ${WM_SETFONT} $FontItalic 0
 
   ; Use the widest label for aligning the labels next to them
@@ -905,14 +974,14 @@ Function createOptions
   ${NSD_CreateLabel} $ControlRightPX 134u 100% $ControlHeightPX \
                      "${APPROXIMATE_REQUIRED_SPACE_MB} $(MEGA)$(BYTE)"
   Pop $7
-  SetCtlColors $7 ${OPTIONS_TEXT_COLOR_NORMAL} ${OPTIONS_BKGRD_COLOR}
+  SetCtlColors $7 ${COMMON_TEXT_COLOR_NORMAL} ${COMMON_BKGRD_COLOR}
   SendMessage $7 ${WM_SETFONT} $FontNormal 0
 
   ; Create the free space label with an empty string and update it by calling
   ; UpdateFreeSpaceLabel
   ${NSD_CreateLabel} $ControlRightPX 145u 100% $ControlHeightPX " "
   Pop $LabelFreeSpace
-  SetCtlColors $LabelFreeSpace ${OPTIONS_TEXT_COLOR_NORMAL} ${OPTIONS_BKGRD_COLOR}
+  SetCtlColors $LabelFreeSpace ${COMMON_TEXT_COLOR_NORMAL} ${COMMON_BKGRD_COLOR}
   SendMessage $LabelFreeSpace ${WM_SETFONT} $FontNormal 0
 
   Call UpdateFreeSpaceLabel
@@ -923,7 +992,7 @@ Function createOptions
   ; The uxtheme must be disabled on checkboxes in order to override the system
   ; font color.
   System::Call 'uxtheme::SetWindowTheme(i $CheckboxSendPing, w " ", w " ")'
-  SetCtlColors $CheckboxSendPing ${OPTIONS_TEXT_COLOR_NORMAL} ${OPTIONS_BKGRD_COLOR}
+  SetCtlColors $CheckboxSendPing ${COMMON_TEXT_COLOR_NORMAL} ${COMMON_BKGRD_COLOR}
   SendMessage $CheckboxSendPing ${WM_SETFONT} $FontNormal 0
   ${NSD_Check} $CheckboxSendPing
 
@@ -948,7 +1017,7 @@ Function createOptions
                             12u "$(INSTALL_MAINT_SERVICE)"
       Pop $CheckboxInstallMaintSvc
       System::Call 'uxtheme::SetWindowTheme(i $CheckboxInstallMaintSvc, w " ", w " ")'
-      SetCtlColors $CheckboxInstallMaintSvc ${OPTIONS_TEXT_COLOR_NORMAL} ${OPTIONS_BKGRD_COLOR}
+      SetCtlColors $CheckboxInstallMaintSvc ${COMMON_TEXT_COLOR_NORMAL} ${COMMON_BKGRD_COLOR}
       SendMessage $CheckboxInstallMaintSvc ${WM_SETFONT} $FontNormal 0
       ${NSD_Check} $CheckboxInstallMaintSvc
     ${EndIf}
@@ -979,8 +1048,6 @@ Function createOptions
       MessageBox MB_OK|MB_ICONEXCLAMATION "$(WARN_DISK_SPACE)"
     ${EndIf}
   ${EndIf}
-
-  StrCpy $OptionsPageShownCount "1"
 
   System::Call "kernel32::GetTickCount()l .s"
   Pop $StartOptionsPhaseTickCount
@@ -1017,10 +1084,12 @@ Function leaveOptions
 
   System::Call "kernel32::GetTickCount()l .s"
   Pop $0
-  ${GetSecondsElapsed} "$StartOptionsPhaseTickCount" "$0" $1
-  ; This is added to the previous value of $OptionsPhaseSeconds because the
-  ; options page can be displayed multiple times.
-  IntOp $OptionsPhaseSeconds $OptionsPhaseSeconds + $1
+  ${GetSecondsElapsed} "$StartOptionsPhaseTickCount" "$0" $OptionsPhaseSeconds
+  ; It is possible for this value to be 0 if the user clicks fast enough so
+  ; increment the value by 1 if it is 0.
+  ${If} $OptionsPhaseSeconds == 0
+    IntOp $OptionsPhaseSeconds $OptionsPhaseSeconds + 1
+  ${EndIf}
 
   ${NSD_GetState} $CheckboxShortcutOnBar $CheckboxShortcutOnBar
   ${NSD_GetState} $CheckboxShortcutInStartMenu $CheckboxShortcutInStartMenu
@@ -1035,6 +1104,9 @@ FunctionEnd
 Function createInstall
   nsDialogs::Create /NOUNLOAD 1018
   Pop $Dialog
+  ; Since the text color for controls is set in this Dialog the foreground and
+  ; background colors of the Dialog must also be hardcoded.
+  SetCtlColors $Dialog ${COMMON_TEXT_COLOR_NORMAL} ${COMMON_BKGRD_COLOR}
 
   ${NSD_CreateLabel} 0 0 49u 64u ""
   Pop $0
@@ -1101,49 +1173,31 @@ Function createInstall
   ShowWindow $BitmapBlurb3 ${SW_HIDE}
   ShowWindow $LabelBlurb3 ${SW_HIDE}
 
-  nsDialogs::CreateControl /NOUNLOAD STATIC ${DEFAULT_STYLES}|${SS_SUNKEN} 0 260u 166u 1u 30u ""
-  Pop $0
+  ${NSD_CreateProgressBar} 103u 166u 241u 9u ""
+  Pop $Progressbar
+  ${NSD_AddStyle} $Progressbar ${PBS_MARQUEE}
+  SendMessage $Progressbar ${PBM_SETMARQUEE} 1 \
+              $ProgressbarMarqueeIntervalMS ; start=1|stop=0 interval(ms)=+N
 
-  ${NSD_CreateLabelCenter} 103u 180u 157u 20u "$(DOWNLOADING_IN_PROGRESS)"
-  Pop $LabelDownloadingInProgress
-  SendMessage $LabelDownloadingInProgress ${WM_SETFONT} $FontNormal 0
-  SetCtlColors $LabelDownloadingInProgress ${INSTALL_PROGRESS_TEXT_COLOR_NORMAL} transparent
+  ${NSD_CreateLabelCenter} 103u 180u 241u 20u "$(DOWNLOADING_LABEL)"
+  Pop $LabelDownloading
+  SendMessage $LabelDownloading ${WM_SETFONT} $FontNormal 0
+  SetCtlColors $LabelDownloading ${INSTALL_PROGRESS_TEXT_COLOR_NORMAL} transparent
 
-  ${NSD_CreateLabelCenter} 103u 180u 157u 20u "$(DOWNLOADING_DONE)"
-  Pop $LabelDownloadingDown
-  SendMessage $LabelDownloadingDown ${WM_SETFONT} $FontItalic 0
-  SetCtlColors $LabelDownloadingDown ${INSTALL_PROGRESS_TEXT_COLOR_FADED} transparent
-  ShowWindow $LabelDownloadingDown ${SW_HIDE}
-
-  ${NSD_CreateLabelCenter} 260uu 180u 84u 20u "$(INSTALLING_TO_BE_DONE)"
-  Pop $LabelInstallingToBeDone
-  SendMessage $LabelInstallingToBeDone ${WM_SETFONT} $FontItalic 0
-  SetCtlColors $LabelInstallingToBeDone ${INSTALL_PROGRESS_TEXT_COLOR_FADED} transparent
-
-  ${NSD_CreateLabelCenter} 260uu 180u 84u 20u "$(INSTALLING_IN_PROGRESS)"
-  Pop $LabelInstallingInProgress
-  SendMessage $LabelInstallingInProgress ${WM_SETFONT} $FontNormal 0
-  SetCtlColors $LabelInstallingInProgress ${INSTALL_PROGRESS_TEXT_COLOR_NORMAL} transparent
-  ShowWindow $LabelInstallingInProgress ${SW_HIDE}
-
-  ${NSD_CreateProgressBar} 103u 166u 157u 9u ""
-  Pop $ProgressbarDownload
-  ${NSD_AddStyle} $ProgressbarDownload ${PBS_MARQUEE}
-  SendMessage $ProgressbarDownload ${PBM_SETMARQUEE} 1 \
-              ${ProgressbarMarqueeIntervalMS} ; start=1|stop=0 interval(ms)=+N
-
-  ${NSD_CreateProgressBar} 260u 166u 84u 9u ""
-  Pop $ProgressbarInstall
-  SendMessage $ProgressbarInstall ${PBM_SETRANGE32} 0 ${InstallProgresSteps}
+  ${If} ${FileExists} "$INSTDIR\${FileMainEXE}"
+    ${NSD_CreateLabelCenter} 103u 180u 241u 20u "$(UPGRADING_LABEL)"
+  ${Else}
+    ${NSD_CreateLabelCenter} 103u 180u 241u 20u "$(INSTALLING_LABEL)"
+  ${EndIf}
+  Pop $LabelInstalling
+  SendMessage $LabelInstalling ${WM_SETFONT} $FontNormal 0
+  SetCtlColors $LabelInstalling ${INSTALL_PROGRESS_TEXT_COLOR_NORMAL} transparent
+  ShowWindow $LabelInstalling ${SW_HIDE}
 
   ${NSD_CreateBitmap} ${APPNAME_BMP_EDGE_DU} ${APPNAME_BMP_TOP_DU} \
                       ${APPNAME_BMP_WIDTH_DU} ${APPNAME_BMP_HEIGHT_DU} ""
   Pop $2
   ${SetStretchedTransparentImage} $2 $PLUGINSDIR\appname.bmp $0
-
-  ${NSD_CreateBitmap} 0 0 100% 100% ""
-  Pop $3
-  ${NSD_SetStretchedImage} $3 $PLUGINSDIR\bgplain.bmp $1
 
   GetDlgItem $0 $HWNDPARENT 1 ; Install button
   EnableWindow $0 0
@@ -1161,7 +1215,6 @@ Function createInstall
   ; Kill the Cancel button's focus so pressing enter won't cancel the install.
   SendMessage $0 ${WM_KILLFOCUS} 0 0
 
-  ; Set as default is not supported in the installer for Win8 and above
   ${If} "$CanSetAsDefault" == "true"
     GetDlgItem $0 $HWNDPARENT 10 ; Default browser checkbox
     SendMessage $0 ${BM_GETCHECK} 0 0 $CheckboxSetAsDefault
@@ -1170,7 +1223,11 @@ Function createInstall
   ${EndIf}
 
   GetDlgItem $0 $HWNDPARENT 11
-  SendMessage $0 ${WM_SETTEXT} 0 "STR:$(ONE_MOMENT)"
+  ${If} ${FileExists} "$INSTDIR\${FileMainEXE}"
+    SendMessage $0 ${WM_SETTEXT} 0 "STR:$(ONE_MOMENT_UPGRADE)"
+  ${Else}
+    SendMessage $0 ${WM_SETTEXT} 0 "STR:$(ONE_MOMENT_INSTALL)"
+  ${EndIf}
   SendMessage $0 ${WM_SETFONT} $FontNormal 0
   SetCtlColors $0 ${FOOTER_CONTROL_TEXT_COLOR_FADED} ${FOOTER_BKGRD_COLOR}
   ShowWindow $0 ${SW_SHOW}
@@ -1209,13 +1266,18 @@ Function createInstall
   System::Call "kernel32::GetTickCount()l .s"
   Pop $StartDownloadPhaseTickCount
 
+  ${If} ${FileExists} "$INSTDIR\uninstall\uninstall.log"
+    StrCpy $InstallTotalSteps ${InstallPaveOverTotalSteps}
+  ${Else}
+    StrCpy $InstallTotalSteps ${InstallCleanTotalSteps}
+  ${EndIf}
+
   ${NSD_CreateTimer} StartDownload ${DownloadIntervalMS}
 
   LockWindow off
   nsDialogs::Show
 
   ${NSD_FreeImage} $0
-  ${NSD_FreeImage} $1
   ${NSD_FreeImage} $HwndBitmapBlurb1
   ${NSD_FreeImage} $HwndBitmapBlurb2
   ${NSD_FreeImage} $HWndBitmapBlurb3
@@ -1247,9 +1309,9 @@ Function OnDownload
     IntOp $DownloadRetryCount $DownloadRetryCount + 1
     ${If} "$DownloadReset" != "true"
       StrCpy $DownloadedBytes "0"
-      ${NSD_AddStyle} $ProgressbarDownload ${PBS_MARQUEE}
-      SendMessage $ProgressbarDownload ${PBM_SETMARQUEE} 1 \
-                  ${ProgressbarMarqueeIntervalMS} ; start=1|stop=0 interval(ms)=+N
+      ${NSD_AddStyle} $Progressbar ${PBS_MARQUEE}
+      SendMessage $Progressbar ${PBM_SETMARQUEE} 1 \
+                  $ProgressbarMarqueeIntervalMS ; start=1|stop=0 interval(ms)=+N
     ${EndIf}
     InetBgDL::Get /RESET /END
     StrCpy $DownloadSizeBytes ""
@@ -1302,9 +1364,13 @@ Function OnDownload
     StrCpy $DownloadSizeBytes "$4"
     System::Int64Op $4 / 2
     Pop $HalfOfDownload
-    SendMessage $ProgressbarDownload ${PBM_SETMARQUEE} 0 0 ; start=1|stop=0 interval(ms)=+N
-    ${RemoveStyle} $ProgressbarDownload ${PBS_MARQUEE}
-    SendMessage $ProgressbarDownload ${PBM_SETRANGE32} 0 $DownloadSizeBytes
+    System::Int64Op $HalfOfDownload / $InstallTotalSteps
+    Pop $InstallStepSize
+    SendMessage $Progressbar ${PBM_SETMARQUEE} 0 0 ; start=1|stop=0 interval(ms)=+N
+    ${RemoveStyle} $Progressbar ${PBS_MARQUEE}
+    System::Int64Op $HalfOfDownload + $DownloadSizeBytes
+    Pop $R9
+    SendMessage $Progressbar ${PBM_SETRANGE32} 0 $R9
   ${EndIf}
 
   ; Don't update the status until after the download starts
@@ -1361,12 +1427,14 @@ Function OnDownload
       LockWindow on
       ; Update the progress bars first in the UI change so they take affect
       ; before other UI changes.
-      SendMessage $ProgressbarDownload ${PBM_SETPOS} $DownloadSizeBytes 0
-      SendMessage $ProgressbarInstall ${PBM_SETPOS} $InstallCounterStep 0
-      ShowWindow $LabelDownloadingInProgress ${SW_HIDE}
-      ShowWindow $LabelInstallingToBeDone ${SW_HIDE}
-      ShowWindow $LabelInstallingInProgress ${SW_SHOW}
-      ShowWindow $LabelDownloadingDown ${SW_SHOW}
+      SendMessage $Progressbar ${PBM_SETPOS} $DownloadSizeBytes 0
+      System::Int64Op $InstallStepSize * ${InstallProgressFirstStep}
+      Pop $R9
+      SendMessage $Progressbar ${PBM_SETSTEP} $R9 0
+      SendMessage $Progressbar ${PBM_STEPIT} 0 0
+      SendMessage $Progressbar ${PBM_SETSTEP} $InstallStepSize 0
+      ShowWindow $LabelDownloading ${SW_HIDE}
+      ShowWindow $LabelInstalling ${SW_SHOW}
       ShowWindow $LabelBlurb2 ${SW_HIDE}
       ShowWindow $BitmapBlurb2 ${SW_HIDE}
       ShowWindow $LabelBlurb3 ${SW_SHOW}
@@ -1451,7 +1519,7 @@ Function OnDownload
         WriteIniStr "$0" "TASKBAR" "Migrated" "true"
       ${EndIf}
 
-      ${OnStubInstallUninstall}
+      ${OnStubInstallUninstall} $Progressbar $InstallCounterStep
 
       ; Delete the install.log and let the full installer create it. When the
       ; installer closes it we can detect that it has completed.
@@ -1461,9 +1529,11 @@ Function OnDownload
       ; require an OS restart for the full installer.
       Delete "$INSTDIR\${FileMainEXE}.moz-upgrade"
 
-      ; Flicker happens less often if a timer is used between updates of the
-      ; progress bar.
-      ${NSD_CreateTimer} StartInstall ${InstallIntervalMS}
+      System::Call "kernel32::GetTickCount()l .s"
+      Pop $EndPreInstallPhaseTickCount
+
+      Exec "$\"$PLUGINSDIR\download.exe$\" /INI=$PLUGINSDIR\${CONFIG_INI}"
+      ${NSD_CreateTimer} CheckInstall ${InstallIntervalMS}
     ${Else}
       ${If} $HalfOfDownload != "true"
       ${AndIf} $3 > $HalfOfDownload
@@ -1476,7 +1546,7 @@ Function OnDownload
         LockWindow off
       ${EndIf}
       StrCpy $DownloadedBytes "$3"
-      SendMessage $ProgressbarDownload ${PBM_SETPOS} $3 0
+      SendMessage $Progressbar ${PBM_SETPOS} $3 0
     ${EndIf}
   ${EndIf}
 FunctionEnd
@@ -1503,24 +1573,9 @@ Function OnPing
   ${EndIf}
 FunctionEnd
 
-Function StartInstall
-  ${NSD_KillTimer} StartInstall
-
-  System::Call "kernel32::GetTickCount()l .s"
-  Pop $EndPreInstallPhaseTickCount
-
-  IntOp $InstallCounterStep $InstallCounterStep + 1
-  LockWindow on
-  SendMessage $ProgressbarInstall ${PBM_SETPOS} $InstallCounterStep 0
-  LockWindow off
-
-  Exec "$\"$PLUGINSDIR\download.exe$\" /INI=$PLUGINSDIR\${CONFIG_INI}"
-  ${NSD_CreateTimer} CheckInstall ${InstallIntervalMS}
-FunctionEnd
-
 Function CheckInstall
   IntOp $InstallCounterStep $InstallCounterStep + 1
-  ${If} $InstallCounterStep >= ${InstallProgresSteps}
+  ${If} $InstallCounterStep >= $InstallTotalSteps
     ${NSD_KillTimer} CheckInstall
     ; Close the handle that prevents modification of the full installer
     System::Call 'kernel32::CloseHandle(i $HandleDownload)'
@@ -1530,11 +1585,14 @@ Function CheckInstall
     Return
   ${EndIf}
 
-  SendMessage $ProgressbarInstall ${PBM_SETPOS} $InstallCounterStep 0
+  SendMessage $Progressbar ${PBM_STEPIT} 0 0
 
   ${If} ${FileExists} "$INSTDIR\install.log"
     Delete "$INSTDIR\install.tmp"
     CopyFiles /SILENT "$INSTDIR\install.log" "$INSTDIR\install.tmp"
+
+    ; The unfocus and refocus that happens approximately here is caused by the
+    ; installer calling SHChangeNotify to refresh the shortcut icons.
 
     ; When the full installer completes the installation the install.log will no
     ; longer be in use.
@@ -1549,25 +1607,31 @@ Function CheckInstall
       Delete "$PLUGINSDIR\${CONFIG_INI}"
       System::Call "kernel32::GetTickCount()l .s"
       Pop $EndInstallPhaseTickCount
+      System::Int64Op $InstallStepSize * ${InstallProgressFinishStep}
+      Pop $InstallStepSize
+      SendMessage $Progressbar ${PBM_SETSTEP} $InstallStepSize 0
       ${NSD_CreateTimer} FinishInstall ${InstallIntervalMS}
     ${EndUnless}
   ${EndIf}
 FunctionEnd
 
 Function FinishInstall
-  ; The full installer has complete but we still need to finish the progress
-  ; bar so increase the size of the step
-  IntOp $InstallCounterStep $InstallCounterStep + 20
-  ${If} ${InstallProgresSteps} < $InstallCounterStep
-    StrCpy $InstallCounterStep "${InstallProgresSteps}"
+  ; The full installer has completed but the progress bar still needs to finish
+  ; so increase the size of the step.
+  IntOp $InstallCounterStep $InstallCounterStep + ${InstallProgressFinishStep}
+  ${If} $InstallTotalSteps < $InstallCounterStep
+    StrCpy $InstallCounterStep "$InstallTotalSteps"
   ${EndIf}
 
-  SendMessage $ProgressbarInstall ${PBM_SETPOS} $InstallCounterStep 0
-  ${If} ${InstallProgresSteps} != $InstallCounterStep
+  ${If} $InstallTotalSteps != $InstallCounterStep
+    SendMessage $Progressbar ${PBM_STEPIT} 0 0
     Return
   ${EndIf}
 
   ${NSD_KillTimer} FinishInstall
+
+  SendMessage $Progressbar ${PBM_GETRANGE} 0 0 $R9
+  SendMessage $Progressbar ${PBM_SETPOS} $R9 0
 
   ${If} "$CheckboxSetAsDefault" == "1"
     ${GetParameters} $0
@@ -1602,6 +1666,19 @@ Function FinishInstall
   ${EndIf}
 
   StrCpy $ExitCode "${ERR_SUCCESS}"
+
+  StrCpy $InstallCounterStep 0
+  ${NSD_CreateTimer} FinishProgressBar ${InstallIntervalMS}
+FunctionEnd
+
+Function FinishProgressBar
+  IntOp $InstallCounterStep $InstallCounterStep + 1
+
+  ${If} $InstallCounterStep < 10
+    Return
+  ${EndIf}
+
+  ${NSD_KillTimer} FinishProgressBar
 
   Call LaunchApp
 
@@ -1690,6 +1767,15 @@ FunctionEnd
 Function OnChange_DirRequest
   Pop $0
   System::Call 'user32::GetWindowTextW(i $DirRequest, w .r0, i ${NSIS_MAX_STRLEN})'
+  StrCpy $1 "$0" 1 ; the first character
+  ${If} "$1" == "$\""
+    StrCpy $1 "$0" "" -1 ; the last character
+    ${If} "$1" == "$\""
+      StrCpy $0 "$0" "" 1 ; all but the first character
+      StrCpy $0 "$0" -1 ; all but the last character
+    ${EndIf}
+  ${EndIf}
+
   StrCpy $INSTDIR "$0"
   Call UpdateFreeSpaceLabel
 
@@ -1702,17 +1788,7 @@ Function OnChange_DirRequest
 FunctionEnd
 
 Function OnClick_ButtonBrowse
-  ; The call to GetLongPath returns a long path without a trailing
-  ; back-slash. Append a \ to the path to prevent the directory
-  ; name from being appended when using the NSIS create new folder.
-  ; http://www.nullsoft.com/free/nsis/makensis.htm#InstallDir
-  StrCpy $0 "$INSTDIR" "" -1 ; the last character
-  ${If} "$0" == "\"
-    StrCpy $0 "$INSTDIR"
-  ${Else}
-    StrCpy $0 "$INSTDIR"
-  ${EndIf}
-
+  StrCpy $0 "$INSTDIR"
   nsDialogs::SelectFolderDialog /NOUNLOAD "$(SELECT_FOLDER_TEXT)" $0
   Pop $0
   ${If} $0 == "error" ; returns 'error' if 'cancel' was pressed?
@@ -1721,7 +1797,7 @@ Function OnClick_ButtonBrowse
 
   ${If} $0 != ""
     StrCpy $INSTDIR "$0"
-    system::Call 'user32::SetWindowTextW(i $DirRequest, w "$INSTDIR")'
+    System::Call 'user32::SetWindowTextW(i $DirRequest, w "$INSTDIR")'
   ${EndIf}
 FunctionEnd
 
@@ -1749,10 +1825,9 @@ Function CheckSpace
 
   ${GetLongPath} "$ExistingTopDir" $ExistingTopDir
 
-  ; GetDiskFreeSpaceExW can require a backslash
+  ; GetDiskFreeSpaceExW requires a backslash.
   StrCpy $0 "$ExistingTopDir" "" -1 ; the last character
   ${If} "$0" != "\"
-    ; A backslash is required for 
     StrCpy $0 "\"
   ${Else}
     StrCpy $0 ""

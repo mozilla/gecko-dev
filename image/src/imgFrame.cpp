@@ -12,6 +12,7 @@
 #include "gfx2DGlue.h"
 #include "gfxPlatform.h"
 #include "gfxUtils.h"
+#include "gfxAlphaRecovery.h"
 
 static bool gDisableOptimize = false;
 
@@ -34,6 +35,48 @@ static bool gDisableOptimize = false;
 using namespace mozilla;
 using namespace mozilla::gfx;
 using namespace mozilla::image;
+
+static cairo_user_data_key_t kVolatileBuffer;
+
+static void
+VolatileBufferRelease(void *vbuf)
+{
+  delete static_cast<VolatileBufferPtr<unsigned char>*>(vbuf);
+}
+
+gfxImageSurface *
+LockedImageSurface::CreateSurface(VolatileBuffer *vbuf,
+                                  const gfxIntSize& size,
+                                  gfxImageFormat format)
+{
+  VolatileBufferPtr<unsigned char> *vbufptr =
+    new VolatileBufferPtr<unsigned char>(vbuf);
+  MOZ_ASSERT(!vbufptr->WasBufferPurged(), "Expected image data!");
+
+  long stride = gfxImageSurface::ComputeStride(size, format);
+  gfxImageSurface *img = new gfxImageSurface(*vbufptr, size, stride, format);
+  if (!img || img->CairoStatus()) {
+    delete img;
+    delete vbufptr;
+    return nullptr;
+  }
+
+  img->SetData(&kVolatileBuffer, vbufptr, VolatileBufferRelease);
+  return img;
+}
+
+TemporaryRef<VolatileBuffer>
+LockedImageSurface::AllocateBuffer(const gfxIntSize& size,
+                                   gfxImageFormat format)
+{
+  long stride = gfxImageSurface::ComputeStride(size, format);
+  RefPtr<VolatileBuffer> buf = new VolatileBuffer();
+  if (buf->Init(stride * size.height,
+                1 << gfxAlphaRecovery::GoodAlignmentLog2()))
+    return buf;
+
+  return nullptr;
+}
 
 // Returns true if an image of aWidth x aHeight is allowed and legal.
 static bool AllowedImageSize(int32_t aWidth, int32_t aHeight)
@@ -108,6 +151,7 @@ imgFrame::imgFrame() :
   mFormatChanged(false),
   mCompositingFailed(false),
   mNonPremult(false),
+  mDiscardable(false),
   mInformedDiscardTracker(false),
   mDirty(false)
 {
@@ -174,12 +218,17 @@ nsresult imgFrame::Init(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight,
     }
 #endif
 
-    // For other platforms we create the image surface first and then
-    // possibly wrap it in a device surface.  This branch is also used
-    // on Windows if we're not using device surfaces or if we couldn't
-    // create one.
-    if (!mImageSurface)
-      mImageSurface = new gfxImageSurface(gfxIntSize(mSize.width, mSize.height), mFormat);
+    // For other platforms, space for the image surface is first allocated in
+    // a volatile buffer and then wrapped by a LockedImageSurface.
+    // This branch is also used on Windows if we're not using device surfaces
+    // or if we couldn't create one.
+    if (!mImageSurface) {
+      mVBuf = LockedImageSurface::AllocateBuffer(mSize, mFormat);
+      if (!mVBuf) {
+        return NS_ERROR_OUT_OF_MEMORY;
+      }
+      mImageSurface = LockedImageSurface::CreateSurface(mVBuf, mSize, mFormat);
+    }
 
     if (!mImageSurface || mImageSurface->CairoStatus()) {
       mImageSurface = nullptr;
@@ -251,6 +300,7 @@ nsresult imgFrame::Optimize()
         mSinglePixel = true;
 
         // blow away the older surfaces (if they exist), to release their memory
+        mVBuf = nullptr;
         mImageSurface = nullptr;
         mOptSurface = nullptr;
 #ifdef USE_WIN_SURFACE
@@ -259,6 +309,7 @@ nsresult imgFrame::Optimize()
 #ifdef XP_MACOSX
         mQuartzSurface = nullptr;
 #endif
+        mDrawSurface = nullptr;
 
         // We just dumped most of our allocated memory, so tell the discard
         // tracker that we're not using any at all.
@@ -296,10 +347,37 @@ nsresult imgFrame::Optimize()
   }
 #endif
 
+#ifdef ANDROID
+  gfxImageFormat optFormat =
+    gfxPlatform::GetPlatform()->
+      OptimalFormatForContent(gfxASurface::ContentFromFormat(mFormat));
+
+  if (optFormat == gfxImageFormat::RGB16_565) {
+    RefPtr<VolatileBuffer> buf =
+      LockedImageSurface::AllocateBuffer(mSize, optFormat);
+    if (!buf)
+      return NS_OK;
+
+    nsRefPtr<gfxImageSurface> surf =
+      LockedImageSurface::CreateSurface(buf, mSize, optFormat);
+
+    gfxContext ctx(surf);
+    ctx.SetOperator(gfxContext::OPERATOR_SOURCE);
+    ctx.SetSource(mImageSurface);
+    ctx.Paint();
+
+    mImageSurface = surf;
+    mVBuf = buf;
+    mFormat = optFormat;
+    mDrawSurface = nullptr;
+  }
+#else
   if (mOptSurface == nullptr)
     mOptSurface = gfxPlatform::GetPlatform()->OptimizeImage(mImageSurface, mFormat);
+#endif
 
   if (mOptSurface) {
+    mVBuf = nullptr;
     mImageSurface = nullptr;
 #ifdef USE_WIN_SURFACE
     mWinSurface = nullptr;
@@ -307,6 +385,7 @@ nsresult imgFrame::Optimize()
 #ifdef XP_MACOSX
     mQuartzSurface = nullptr;
 #endif
+    mDrawSurface = nullptr;
   }
 
   return NS_OK;
@@ -343,12 +422,13 @@ imgFrame::SurfaceForDrawing(bool               aDoPadding,
                             gfxRect&           aFill,
                             gfxRect&           aSubimage,
                             gfxRect&           aSourceRect,
-                            gfxRect&           aImageRect)
+                            gfxRect&           aImageRect,
+                            gfxASurface*       aSurface)
 {
   IntSize size(int32_t(aImageRect.Width()), int32_t(aImageRect.Height()));
   if (!aDoPadding && !aDoPartialDecode) {
     NS_ASSERTION(!mSinglePixel, "This should already have been handled");
-    return SurfaceWithFormat(new gfxSurfaceDrawable(ThebesSurface(), ThebesIntSize(size)), mFormat);
+    return SurfaceWithFormat(new gfxSurfaceDrawable(aSurface, ThebesIntSize(size)), mFormat);
   }
 
   gfxRect available = gfxRect(mDecoded.x, mDecoded.y, mDecoded.width, mDecoded.height);
@@ -369,7 +449,7 @@ imgFrame::SurfaceForDrawing(bool               aDoPadding,
     if (mSinglePixel) {
       tmpCtx.SetDeviceColor(mSinglePixelColor);
     } else {
-      tmpCtx.SetSource(ThebesSurface(), gfxPoint(aPadding.left, aPadding.top));
+      tmpCtx.SetSource(aSurface, gfxPoint(aPadding.left, aPadding.top));
     }
     tmpCtx.Rectangle(available);
     tmpCtx.Fill();
@@ -391,12 +471,11 @@ imgFrame::SurfaceForDrawing(bool               aDoPadding,
   aImageRect = gfxRect(0, 0, mSize.width, mSize.height);
 
   gfxIntSize availableSize(mDecoded.width, mDecoded.height);
-  return SurfaceWithFormat(new gfxSurfaceDrawable(ThebesSurface(),
-                                                  availableSize),
+  return SurfaceWithFormat(new gfxSurfaceDrawable(aSurface, availableSize),
                            mFormat);
 }
 
-void imgFrame::Draw(gfxContext *aContext, GraphicsFilter aFilter,
+bool imgFrame::Draw(gfxContext *aContext, GraphicsFilter aFilter,
                     const gfxMatrix &aUserSpaceToImageSpace, const gfxRect& aFill,
                     const nsIntMargin &aPadding, const nsIntRect &aSubimage,
                     uint32_t aImageFlags)
@@ -411,7 +490,7 @@ void imgFrame::Draw(gfxContext *aContext, GraphicsFilter aFilter,
 
   if (mSinglePixel && !doPadding && !doPartialDecode) {
     DoSingleColorFastPath(aContext, mSinglePixelColor, aFill);
-    return;
+    return true;
   }
 
   gfxMatrix userSpaceToImageSpace = aUserSpaceToImageSpace;
@@ -424,12 +503,36 @@ void imgFrame::Draw(gfxContext *aContext, GraphicsFilter aFilter,
   NS_ASSERTION(!sourceRect.Intersect(subimage).IsEmpty(),
                "We must be allowed to sample *some* source pixels!");
 
+  nsRefPtr<gfxASurface> surf = CachedThebesSurface();
+  VolatileBufferPtr<unsigned char> ref(mVBuf);
+  if (!mSinglePixel && !surf) {
+    if (ref.WasBufferPurged()) {
+      return false;
+    }
+
+    surf = mDrawSurface;
+    if (!surf) {
+      long stride = gfxImageSurface::ComputeStride(mSize, mFormat);
+      nsRefPtr<gfxImageSurface> imgSurf =
+        new gfxImageSurface(ref, mSize, stride, mFormat);
+#if defined(XP_MACOSX)
+      surf = mDrawSurface = new gfxQuartzImageSurface(imgSurf);
+#else
+      surf = mDrawSurface = imgSurf;
+#endif
+    }
+    if (!surf || surf->CairoStatus()) {
+      mDrawSurface = nullptr;
+      return true;
+    }
+  }
+
   bool doTile = !imageRect.Contains(sourceRect) &&
                 !(aImageFlags & imgIContainer::FLAG_CLAMP);
   SurfaceWithFormat surfaceResult =
     SurfaceForDrawing(doPadding, doPartialDecode, doTile, aPadding,
                       userSpaceToImageSpace, fill, subimage, sourceRect,
-                      imageRect);
+                      imageRect, surf);
 
   if (surfaceResult.IsValid()) {
     gfxUtils::DrawPixelSnapped(aContext, surfaceResult.mDrawable,
@@ -437,6 +540,7 @@ void imgFrame::Draw(gfxContext *aContext, GraphicsFilter aFilter,
                                subimage, sourceRect, imageRect, fill,
                                surfaceResult.mFormat, aFilter, aImageFlags);
   }
+  return true;
 }
 
 // This can be called from any thread, but not simultaneously.
@@ -483,10 +587,13 @@ uint32_t imgFrame::GetImageBytesPerRow() const
   if (mImageSurface)
     return mImageSurface->Stride();
 
+  if (mVBuf)
+    return gfxImageSurface::ComputeStride(mSize, mFormat);
+
   if (mPaletteDepth)
     return mSize.width;
 
-  NS_ERROR("GetImageBytesPerRow called with mImageSurface == null and mPaletteDepth == 0");
+  NS_ERROR("GetImageBytesPerRow called with mImageSurface == null, mVBuf == null and mPaletteDepth == 0");
 
   return 0;
 }
@@ -569,28 +676,54 @@ nsresult imgFrame::LockImageData()
   if (mPalettedImageData)
     return NS_OK;
 
-  if ((mOptSurface || mSinglePixel) && !mImageSurface) {
-    // Recover the pixels
-    mImageSurface = new gfxImageSurface(gfxIntSize(mSize.width, mSize.height),
-                                        gfxImageFormat::ARGB32);
-    if (!mImageSurface || mImageSurface->CairoStatus())
-      return NS_ERROR_OUT_OF_MEMORY;
+  if (!mImageSurface) {
+    if (mVBuf) {
+      VolatileBufferPtr<uint8_t> ref(mVBuf);
+      if (ref.WasBufferPurged())
+        return NS_ERROR_FAILURE;
 
-    gfxContext context(mImageSurface);
-    context.SetOperator(gfxContext::OPERATOR_SOURCE);
-    if (mSinglePixel)
-      context.SetDeviceColor(mSinglePixelColor);
-    else
-      context.SetSource(mOptSurface);
-    context.Paint();
+      mImageSurface = LockedImageSurface::CreateSurface(mVBuf, mSize, mFormat);
+      if (!mImageSurface || mImageSurface->CairoStatus())
+        return NS_ERROR_OUT_OF_MEMORY;
+    }
+    if (mOptSurface || mSinglePixel || mFormat == gfxImageFormat::RGB16_565) {
+      gfxImageFormat format = mFormat;
+      if (mFormat == gfxImageFormat::RGB16_565)
+        format = gfxImageFormat::ARGB32;
 
-    mOptSurface = nullptr;
+      // Recover the pixels
+      RefPtr<VolatileBuffer> buf =
+        LockedImageSurface::AllocateBuffer(mSize, format);
+      if (!buf) {
+        return NS_ERROR_OUT_OF_MEMORY;
+      }
+
+      RefPtr<gfxImageSurface> surf =
+        LockedImageSurface::CreateSurface(buf, mSize, mFormat);
+      if (!surf || surf->CairoStatus())
+        return NS_ERROR_OUT_OF_MEMORY;
+
+      gfxContext context(surf);
+      context.SetOperator(gfxContext::OPERATOR_SOURCE);
+      if (mSinglePixel)
+        context.SetDeviceColor(mSinglePixelColor);
+      else if (mFormat == gfxImageFormat::RGB16_565)
+        context.SetSource(mImageSurface);
+      else
+        context.SetSource(mOptSurface);
+      context.Paint();
+
+      mFormat = format;
+      mVBuf = buf;
+      mImageSurface = surf;
+      mOptSurface = nullptr;
 #ifdef USE_WIN_SURFACE
-    mWinSurface = nullptr;
+      mWinSurface = nullptr;
 #endif
 #ifdef XP_MACOSX
-    mQuartzSurface = nullptr;
+      mQuartzSurface = nullptr;
 #endif
+    }
   }
 
   // We might write to the bits in this image surface, so we need to make the
@@ -601,6 +734,12 @@ nsresult imgFrame::LockImageData()
 #ifdef USE_WIN_SURFACE
   if (mWinSurface)
     mWinSurface->Flush();
+#endif
+
+#ifdef XP_MACOSX
+  if (!mQuartzSurface && !ShouldUseImageSurfaces()) {
+    mQuartzSurface = new gfxQuartzImageSurface(mImageSurface);
+  }
 #endif
 
   return NS_OK;
@@ -658,6 +797,13 @@ nsresult imgFrame::UnlockImageData()
     mQuartzSurface->Flush();
 #endif
 
+  if (mVBuf && mDiscardable) {
+    mImageSurface = nullptr;
+#ifdef XP_MACOSX
+    mQuartzSurface = nullptr;
+#endif
+  }
+
   return NS_OK;
 }
 
@@ -695,6 +841,12 @@ void imgFrame::ApplyDirtToSurfaces()
 
     mDirty = false;
   }
+}
+
+void imgFrame::SetDiscardable()
+{
+  MOZ_ASSERT(mLockCount, "Expected to be locked when SetDiscardable is called");
+  mDiscardable = true;
 }
 
 int32_t imgFrame::GetRawTimeout() const
@@ -795,8 +947,8 @@ imgFrame::SizeOfExcludingThisWithComputedFallbackIfHeap(gfxMemoryLocation aLocat
 #endif
 #ifdef XP_MACOSX
   if (mQuartzSurface && aLocation == gfxMemoryLocation::IN_PROCESS_HEAP) {
-    n += mSize.width * mSize.height * 4;
-  } else
+    n += aMallocSizeOf(mQuartzSurface);
+  }
 #endif
   if (mImageSurface && aLocation == mImageSurface->GetMemoryLocation()) {
     size_t n2 = 0;
@@ -807,6 +959,11 @@ imgFrame::SizeOfExcludingThisWithComputedFallbackIfHeap(gfxMemoryLocation aLocat
       n2 = mImageSurface->KnownMemoryUsed();
     }
     n += n2;
+  }
+
+  if (mVBuf && aLocation == gfxMemoryLocation::IN_PROCESS_HEAP) {
+    n += aMallocSizeOf(mVBuf);
+    n += mVBuf->HeapSizeOfExcludingThis(aMallocSizeOf);
   }
 
   if (mOptSurface && aLocation == mOptSurface->GetMemoryLocation()) {

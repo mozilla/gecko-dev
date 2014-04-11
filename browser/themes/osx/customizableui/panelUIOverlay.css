@@ -5,10 +5,17 @@
 %include ../../shared/customizableui/panelUIOverlay.inc.css
 
 @media (min-resolution: 2dppx) {
-  toolbarbutton.panel-multiview-anchor {
+  #PanelUI-help[panel-multiview-anchor="true"]::after,
+  toolbarbutton[panel-multiview-anchor="true"] {
     background-image: url(chrome://browser/skin/customizableui/subView-arrow-back-inverted@2x.png),
                       linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0));
     background-size: 16px, auto;
+  }
+
+  #PanelUI-help[panel-multiview-anchor="true"]:-moz-locale-dir(rtl)::after,
+  toolbarbutton[panel-multiview-anchor="true"]:-moz-locale-dir(rtl) {
+    background-image: url(chrome://browser/skin/customizableui/subView-arrow-back-inverted-rtl@2x.png),
+                      linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0));
   }
 
   #PanelUI-fxa-status {
@@ -53,6 +60,16 @@
   #PanelUI-quit:not([disabled]):hover:active {
     -moz-image-region: rect(0, 96px, 32px, 64px);
   }
+
+  #PanelUI-help[panel-multiview-anchor="true"] {
+    -moz-image-region: rect(0, 128px, 32px, 96px);
+    background-size: auto;
+  }
+
+  .subviewbutton[checked="true"] {
+    background-image: url("chrome://global/skin/menu/shared-menu-check@2x.png");
+  }
+
 }
 
 .panelUI-grid .toolbarbutton-1 {
@@ -61,22 +78,47 @@
   margin-bottom: 0;
 }
 
-#BMB_bookmarksPopup > menu,
-#BMB_bookmarksPopup > menuitem:not(.panel-subview-footer) {
-  padding-top: 5px;
-  padding-bottom: 5px;
+.subviewbutton > .toolbarbutton-text,
+.subviewbutton > .menu-iconic-text {
+  margin: 2px 0px;
+}
+
+.subviewbutton:-moz-any([image],[targetURI],.cui-withicon, .bookmark-item) > .toolbarbutton-text {
+  margin: 2px 6px;
+}
+
+.restoreallitem > .toolbarbutton-icon {
+  display: none;
+}
+
+.subviewbutton {
+  -moz-padding-start: 18px;
+}
+
+.subviewbutton[checked="true"] {
+  background-position: top 5px left 4px;
+}
+
+.subviewbutton:not(:-moz-any([image],[targetURI],.cui-withicon, .bookmark-item)) > .menu-iconic-left {
+  display: none;
+}
+
+menu.subviewbutton,
+menuitem.subviewbutton:not(.panel-subview-footer) {
+  padding-top: 2px;
+  padding-bottom: 2px;
 }
 
 /* Override OSX-specific toolkit styles for the bookmarks panel */
-#BMB_bookmarksPopup > menu > .menu-right {
+menu.subviewbutton > .menu-right {
   -moz-margin-end: 0;
 }
-#BMB_bookmarksPopup > menu > .menu-right > image {
+menu.subviewbutton > .menu-right > image {
   -moz-image-region: rect(0, 9px, 10px, 0);
 }
 
 @media (min-resolution: 2dppx) {
-  #BMB_bookmarksPopup > menu > .menu-right > image {
+  menu.subviewbutton > .menu-right > image {
     -moz-image-region: rect(0, 18px, 20px, 0);
   }
 }
@@ -88,4 +130,9 @@
 .PanelUI-subView menuseparator,
 .cui-widget-panelview menuseparator {
   padding: 0 !important;
+}
+
+toolbarpaletteitem:-moz-any([place="palette"], [place="panel"]) > toolbaritem[sdkstylewidget="true"] > .toolbarbutton-1 > .toolbarbutton-icon {
+  width: 32px;
+  height: 32px;
 }

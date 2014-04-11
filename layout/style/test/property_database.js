@@ -31,9 +31,13 @@ const CSS_TYPE_SHORTHAND_AND_LONGHAND = 2;
 //	 XXX Should have a third field for values whose computed value may or
 //	   may not be the same as for the property's initial value.
 //	 invalid_values: Things that are not values for the property and
-//	   should be rejected.
+//	   should be rejected, but which are balanced and should not absorb
+//	   what follows
 //	 quirks_values: Values that should be accepted in quirks mode only,
 //	   mapped to the values they are equivalent to.
+//	 unbalanced_values: Things that are not values for the property and
+//	   should be rejected, and which also contain unbalanced constructs
+//	   that should absorb what follows
 
 // Helper functions used to construct gCSSProperties.
 
@@ -318,13 +322,13 @@ var validGradientAndElementValues = [
 	"-moz-radial-gradient(left calc(100px + -25%), red, blue)",
 	"-moz-radial-gradient(calc(100px + -25px) top, red, blue)",
 	"-moz-radial-gradient(left calc(100px + -25px), red, blue)"
-]
+];
 var invalidGradientAndElementValues = [
 	"-moz-element(#a:1)",
 	"-moz-element(a#a)",
 	"-moz-element(#a a)",
 	"-moz-element(#a+a)",
-	"-moz-element(#a()",
+	"-moz-element(#a())",
 	/* no quirks mode colors */
 	"linear-gradient(red, ff00ff)",
 	/* no quirks mode colors */
@@ -555,7 +559,10 @@ var invalidGradientAndElementValues = [
 	"-moz-radial-gradient(30% 40% at top left, red, blue)",
 	"-moz-radial-gradient(50px 60px at 15% 20%, red, blue)",
 	"-moz-radial-gradient(7em 8em at 45px, red, blue)"
-]
+];
+var unbalancedGradientAndElementValues = [
+	"-moz-element(#a()",
+];
 
 var gCSSProperties = {
 	"animation": {
@@ -565,7 +572,7 @@ var gCSSProperties = {
 		subproperties: [ "animation-name", "animation-duration", "animation-timing-function", "animation-delay", "animation-direction", "animation-fill-mode", "animation-iteration-count" ],
 		initial_values: [ "none none 0s 0s ease normal 1.0", "none", "0s", "ease", "normal", "1.0" ],
 		other_values: [ "bounce 1s linear 2s", "bounce 1s 2s linear", "bounce linear 1s 2s", "linear bounce 1s 2s", "linear 1s bounce 2s", "linear 1s 2s bounce", "1s bounce linear 2s", "1s bounce 2s linear", "1s 2s bounce linear", "1s linear bounce 2s", "1s linear 2s bounce", "1s 2s linear bounce", "bounce linear 1s", "bounce 1s linear", "linear bounce 1s", "linear 1s bounce", "1s bounce linear", "1s linear bounce", "1s 2s bounce", "1s bounce 2s", "bounce 1s 2s", "1s 2s linear", "1s linear 2s", "linear 1s 2s", "bounce 1s", "1s bounce", "linear 1s", "1s linear", "1s 2s", "2s 1s", "bounce", "linear", "1s", "height", "2s", "ease-in-out", "2s ease-in", "opacity linear", "ease-out 2s", "2s color, 1s bounce, 500ms height linear, 1s opacity 4s cubic-bezier(0.0, 0.1, 1.0, 1.0)", "1s \\32bounce linear 2s", "1s -bounce linear 2s", "1s -\\32bounce linear 2s", "1s \\32 0bounce linear 2s", "1s -\\32 0bounce linear 2s", "1s \\2bounce linear 2s", "1s -\\2bounce linear 2s", "2s, 1s bounce", "1s bounce, 2s", "2s all, 1s bounce", "1s bounce, 2s all", "1s bounce, 2s none", "2s none, 1s bounce", "2s bounce, 1s all", "2s all, 1s bounce" ],
-		invalid_values: [  "2s inherit", "inherit 2s", "2s bounce, 1s inherit", "2s inherit, 1s bounce", "2s initial" ]
+		invalid_values: [  "2s inherit", "inherit 2s", "2s bounce, 1s inherit", "2s inherit, 1s bounce", "2s initial", "2s all,, 1s bounce", "2s all, , 1s bounce" ]
 	},
 	"animation-delay": {
 		domProp: "animationDelay",
@@ -758,7 +765,9 @@ var gCSSProperties = {
 		].concat(validGradientAndElementValues),
 		invalid_values: [
 			"url('border.png') url('border.png')",
-		].concat(invalidGradientAndElementValues)
+		].concat(invalidGradientAndElementValues),
+		unbalanced_values: [
+		].concat(unbalancedGradientAndElementValues)
 	},
 	"border-image-slice": {
 		domProp: "borderImageSlice",
@@ -1925,12 +1934,9 @@ var gCSSProperties = {
 		"url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAKElEQVR42u3NQQ0AAAgEoNP+nTWFDzcoQE1udQQCgUAgEAgEAsGTYAGjxAE/G/Q2tQAAAABJRU5ErkJggg==), url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAKElEQVR42u3NQQ0AAAgEoNP+nTWFDzcoQE1udQQCgUAgEAgEAsGTYAGjxAE/G/Q2tQAAAABJRU5ErkJggg==)",
 		].concat(validGradientAndElementValues),
 		invalid_values: [
-			"-moz-element(#a:1)",
-			"-moz-element(a#a)",
-			"-moz-element(#a a)",
-			"-moz-element(#a+a)",
-			"-moz-element(#a()",
-		].concat(invalidGradientAndElementValues)
+		].concat(invalidGradientAndElementValues),
+		unbalanced_values: [
+		].concat(unbalancedGradientAndElementValues)
 	},
 	"background-origin": {
 		domProp: "backgroundOrigin",
@@ -2357,7 +2363,8 @@ var gCSSProperties = {
 		type: CSS_TYPE_LONGHAND,
 		initial_values: [ "none" ],
 		other_values: [ "foo 1", "bar", "foo 3 bar baz 2", "\\32  1", "-\\32  1", "-c 1", "\\32 1", "-\\32 1", "\\2  1", "-\\2  1", "-c 1", "\\2 1", "-\\2 1", "-\\7f \\9e 1" ],
-		invalid_values: [ "none foo", "none foo 3", "foo none", "foo 3 none" ]
+		invalid_values: [ "none foo", "none foo 3", "foo none", "foo 3 none" ],
+		unbalanced_values: [ "foo 1 (" ]
 	},
 	"counter-reset": {
 		domProp: "counterReset",
@@ -3266,7 +3273,7 @@ var gCSSProperties = {
 		subproperties: [ "transition-property", "transition-duration", "transition-timing-function", "transition-delay" ],
 		initial_values: [ "all 0s ease 0s", "all", "0s", "0s 0s", "ease" ],
 		other_values: [ "width 1s linear 2s", "width 1s 2s linear", "width linear 1s 2s", "linear width 1s 2s", "linear 1s width 2s", "linear 1s 2s width", "1s width linear 2s", "1s width 2s linear", "1s 2s width linear", "1s linear width 2s", "1s linear 2s width", "1s 2s linear width", "width linear 1s", "width 1s linear", "linear width 1s", "linear 1s width", "1s width linear", "1s linear width", "1s 2s width", "1s width 2s", "width 1s 2s", "1s 2s linear", "1s linear 2s", "linear 1s 2s", "width 1s", "1s width", "linear 1s", "1s linear", "1s 2s", "2s 1s", "width", "linear", "1s", "height", "2s", "ease-in-out", "2s ease-in", "opacity linear", "ease-out 2s", "2s color, 1s width, 500ms height linear, 1s opacity 4s cubic-bezier(0.0, 0.1, 1.0, 1.0)", "1s \\32width linear 2s", "1s -width linear 2s", "1s -\\32width linear 2s", "1s \\32 0width linear 2s", "1s -\\32 0width linear 2s", "1s \\2width linear 2s", "1s -\\2width linear 2s", "2s, 1s width", "1s width, 2s", "2s all, 1s width", "1s width, 2s all", "2s all, 1s width", "2s width, 1s all" ],
-		invalid_values: [ "1s width, 2s none", "2s none, 1s width", "2s inherit", "inherit 2s", "2s width, 1s inherit", "2s inherit, 1s width", "2s initial" ]
+		invalid_values: [ "1s width, 2s none", "2s none, 1s width", "2s inherit", "inherit 2s", "2s width, 1s inherit", "2s inherit, 1s width", "2s initial", "1s width,,2s color", "1s width, ,2s color" ]
 	},
 	"transition-delay": {
 		domProp: "transitionDelay",
@@ -4792,6 +4799,456 @@ if (SpecialPowers.getBoolPref("layout.css.filters.enabled")) {
 
 if (SpecialPowers.getBoolPref("layout.css.grid.enabled")) {
 	gCSSProperties["display"].other_values.push("grid", "inline-grid");
+	gCSSProperties["grid-auto-flow"] = {
+		domProp: "gridAutoFlow",
+		inherited: false,
+		type: CSS_TYPE_LONGHAND,
+		initial_values: [ "none" ],
+		other_values: [
+			"column",
+			"row",
+			"column dense",
+			"row dense",
+			"dense column",
+			"dense row",
+		],
+		invalid_values: [
+			"",
+			"auto",
+			"10px",
+			"dense",
+			"none row",
+			"none dense",
+			"column row",
+			"dense row dense",
+		]
+	};
+
+	gCSSProperties["grid-auto-columns"] = {
+		domProp: "gridAutoColumns",
+		inherited: false,
+		type: CSS_TYPE_LONGHAND,
+		initial_values: [ "auto" ],
+		other_values: [
+			"40px",
+			"2em",
+			"2.5fr",
+			"12%",
+			"min-content",
+			"max-content",
+			"calc(20px + 10%)",
+			"minmax(20px, max-content)",
+			"m\\69nmax(20px, 4Fr)",
+			"MinMax(min-content, calc(20px + 10%))",
+		],
+		invalid_values: [
+			"",
+			"normal",
+			"40ms",
+			"-40px",
+			"-12%",
+			"-2em",
+			"-2.5fr",
+			"minmax()",
+			"minmax(20px)",
+			"mİnmax(20px, 100px)",
+			"minmax(20px, 100px, 200px)",
+			"maxmin(100px, 20px)",
+			"minmax(min-content, auto)",
+			"minmax(min-content, minmax(30px, max-content))",
+		]
+	};
+	gCSSProperties["grid-auto-rows"] = {
+		domProp: "gridAutoRows",
+		inherited: false,
+		type: CSS_TYPE_LONGHAND,
+		initial_values: gCSSProperties["grid-auto-columns"].initial_values,
+		other_values: gCSSProperties["grid-auto-columns"].other_values,
+		invalid_values: gCSSProperties["grid-auto-columns"].invalid_values
+	};
+
+	gCSSProperties["grid-template-columns"] = {
+		domProp: "gridTemplateColumns",
+		inherited: false,
+		type: CSS_TYPE_LONGHAND,
+		initial_values: [ "none" ],
+		other_values: [
+			"auto",
+			"40px",
+			"2.5fr",
+			"(normal) 40px () auto ( ) 12%",
+			"(foo) 40px min-content ( bar ) calc(20px + 10%) max-content",
+			"40px min-content calc(20px + 10%) max-content",
+			"m\\69nmax(20px, 4Fr)",
+			"40px MinMax(min-content, calc(20px + 10%)) max-content",
+			"40px 2em",
+			"() 40px (-foo) 2em (bar baz This\ is\ one\ ident)",
+			// TODO bug 978478: "(a) repeat(3, (b) 20px (c) 40px (d)) (e)",
+			"repeat(1, 20px)",
+			"repeat(1, (a) 20px)",
+			"(a) Repeat(4, (a) 20px () auto (b c)) (d)",
+			"(a) 2.5fr Repeat(4, (a) 20px () auto (b c)) (d)",
+			"(a) 2.5fr (z) Repeat(4, (a) 20px () auto (b c)) (d)",
+			"(a) 2.5fr (z) Repeat(4, (a) 20px () auto) (d)",
+			"(a) 2.5fr (z) Repeat(4, 20px (b c) auto (b c)) (d)",
+			"(a) 2.5fr (z) Repeat(4, 20px auto) (d)",
+
+			// See https://bugzilla.mozilla.org/show_bug.cgi?id=981300
+			"(none auto subgrid min-content max-content foo) 40px",
+
+			"subgrid",
+			"subgrid () (foo bar)",
+			"subgrid repeat(1, ())",
+			"subgrid Repeat(4, (a) (b c) () (d))",
+		],
+		invalid_values: [
+			"",
+			"normal",
+			"40ms",
+			"-40px",
+			"-12%",
+			"-2fr",
+			"(foo)",
+			"(inherit) 40px",
+			"(initial) 40px",
+			"(unset) 40px",
+			"(default) 40px",
+			"(6%) 40px",
+			"(5th) 40px",
+			"(foo() bar) 40px",
+			"(foo)) 40px",
+			"[foo] 40px",
+			"(foo) (bar) 40px",
+			"40px (foo) (bar)",
+			"minmax()",
+			"minmax(20px)",
+			"mİnmax(20px, 100px)",
+			"minmax(20px, 100px, 200px)",
+			"maxmin(100px, 20px)",
+			"minmax(min-content, auto)",
+			"minmax(min-content, minmax(30px, max-content))",
+			"repeat(0, 20px)",
+			"repeat(-3, 20px)",
+			"rêpeat(1, 20px)",
+			"repeat(1)",
+			"repeat(1, )",
+			"repeat(3px, 20px)",
+			"repeat(2.0, 20px)",
+			"repeat(2.5, 20px)",
+			"repeat(2, (foo))",
+			"repeat(2, foo)",
+			"subgrid (foo) 40px",
+			"subgrid (foo 40px)",
+			"(foo) subgrid",
+			"subgrid rêpeat(1, ())",
+			"subgrid repeat(0, ())",
+			"subgrid repeat(-3, ())",
+			"subgrid repeat(2.0, ())",
+			"subgrid repeat(2.5, ())",
+			"subgrid repeat(3px, ())",
+			"subgrid repeat(1)",
+			"subgrid repeat(1, )",
+			"subgrid repeat(2, (40px))",
+			"subgrid repeat(2, foo)",
+		],
+		unbalanced_values: [
+			"(foo] 40px",
+		]
+	};
+	gCSSProperties["grid-template-rows"] = {
+		domProp: "gridTemplateRows",
+		inherited: false,
+		type: CSS_TYPE_LONGHAND,
+		initial_values: gCSSProperties["grid-template-columns"].initial_values,
+		other_values: gCSSProperties["grid-template-columns"].other_values,
+		invalid_values: gCSSProperties["grid-template-columns"].invalid_values
+	};
+	gCSSProperties["grid-template-areas"] = {
+		domProp: "gridTemplateAreas",
+		inherited: false,
+		type: CSS_TYPE_LONGHAND,
+		initial_values: [ "none" ],
+		other_values: [
+			"''",
+			"'' ''",
+			"'1a-é_ .' \"b .\"",
+			"' Z\t\\aZ' 'Z Z'",
+			" '. . a b'  '..a b' ",
+		],
+		invalid_values: [
+			"'a b' 'a/b'",
+			"'a . a'",
+			"'. a a' 'a a a'",
+			"'a a .' 'a a a'",
+			"'a a' 'a .'",
+			"'a a'\n'..'\n'a a'",
+		]
+	};
+
+	gCSSProperties["grid-template"] = {
+		domProp: "gridTemplate",
+		inherited: false,
+		type: CSS_TYPE_TRUE_SHORTHAND,
+		subproperties: [
+			"grid-template-areas",
+			"grid-template-columns",
+			"grid-template-rows",
+		],
+		initial_values: [
+			"none",
+			"none / none",
+		],
+		other_values: [
+			"subgrid",
+			// <'grid-template-columns'> / <'grid-template-rows'>
+			"40px / 100px",
+			"(foo) 40px (bar) / (baz) 100px (fizz)",
+			" none/100px",
+			"40px/none",
+			"subgrid/40px 20px",
+			"subgrid (foo) () (bar baz) / 40px 20px",
+			"40px 20px/subgrid",
+			"40px 20px/subgrid  (foo) () repeat(3, (a) (b)) (bar baz)",
+			"subgrid/subgrid",
+			"subgrid (foo) () (bar baz)/subgrid (foo) () (bar baz)",
+			// [ <track-list> / ]? [ <line-names>? <string> <track-size>? <line-names>? ]+
+			"'fizz'",
+			"(bar) 'fizz'",
+			"(foo) 40px / 'fizz'",
+			"(foo) 40px / (bar) 'fizz'",
+			"(foo) 40px / 'fizz' 100px",
+			"(foo) 40px / (bar) 'fizz' 100px",
+			"(foo) 40px / (bar) 'fizz' 100px (buzz)",
+			"(foo) 40px / (bar) 'fizz' 100px (buzz) \n (a) '.' 200px (b)",
+		],
+		invalid_values: [
+			"subgrid ()",
+			"subgrid () / 'fizz'",
+			"subgrid / 'fizz'",
+			"(foo) (bar) 40px / 100px",
+			"40px / (fizz) (buzz) 100px",
+			"40px / (fizz) (buzz) 'foo'",
+			"none / 'foo'"
+		]
+	};
+
+	gCSSProperties["grid"] = {
+		domProp: "grid",
+		inherited: false,
+		type: CSS_TYPE_TRUE_SHORTHAND,
+		subproperties: [
+			"grid-template-areas",
+			"grid-template-columns",
+			"grid-template-rows",
+			"grid-auto-flow",
+			"grid-auto-columns",
+			"grid-auto-rows",
+		],
+		initial_values: [
+			"none",
+			"none / none",
+			"none auto",
+			"none auto / auto",
+		],
+		other_values: [
+			"row",
+			"none 40px",
+			"column dense auto",
+			"dense row minmax(min-content, 2fr)",
+			"row 40px / 100px",
+		].concat(
+			gCSSProperties["grid-template"].other_values,
+			gCSSProperties["grid-auto-flow"].other_values
+		),
+		invalid_values: [
+			"row column 40px",
+			"row -20px",
+			"row 200ms",
+			"row 40px 100px",
+		].concat(
+			gCSSProperties["grid-template"].invalid_values,
+			gCSSProperties["grid-auto-flow"].invalid_values
+		)
+	};
+
+	var gridLineOtherValues = [
+		"foo",
+		"2",
+		"2 foo",
+		"foo 2",
+		"-3",
+		"-3 bar",
+		"bar -3",
+		"span 2",
+		"2 span",
+		"span foo",
+		"foo span",
+		"span 2 foo",
+		"span foo 2",
+		"2 foo span",
+		"foo 2 span",
+	];
+	var gridLineInvalidValues = [
+		"",
+		"4th",
+		"span",
+		"inherit 2",
+		"2 inherit",
+		"20px",
+		"2 3",
+		"2.5",
+		"2.0",
+		"0",
+		"0 foo",
+		"span 0",
+		"2 foo 3",
+		"foo 2 foo",
+		"2 span foo",
+		"foo span 2",
+		"span -3",
+		"span -3 bar",
+		"span 2 span",
+		"span foo span",
+		"span 2 foo span",
+	];
+
+	gCSSProperties["grid-column-start"] = {
+		domProp: "gridColumnStart",
+		inherited: false,
+		type: CSS_TYPE_LONGHAND,
+		initial_values: [ "auto" ],
+		other_values: gridLineOtherValues,
+		invalid_values: gridLineInvalidValues
+	};
+	gCSSProperties["grid-column-end"] = {
+		domProp: "gridColumnEnd",
+		inherited: false,
+		type: CSS_TYPE_LONGHAND,
+		initial_values: [ "auto" ],
+		other_values: gridLineOtherValues,
+		invalid_values: gridLineInvalidValues
+	};
+	gCSSProperties["grid-row-start"] = {
+		domProp: "gridRowStart",
+		inherited: false,
+		type: CSS_TYPE_LONGHAND,
+		initial_values: [ "auto" ],
+		other_values: gridLineOtherValues,
+		invalid_values: gridLineInvalidValues
+	};
+	gCSSProperties["grid-row-end"] = {
+		domProp: "gridRowEnd",
+		inherited: false,
+		type: CSS_TYPE_LONGHAND,
+		initial_values: [ "auto" ],
+		other_values: gridLineOtherValues,
+		invalid_values: gridLineInvalidValues
+	};
+
+	var gridAutoPositionOtherValues = [];
+	gridLineOtherValues.concat([ "auto" ]).forEach(function(val) {
+		gridAutoPositionOtherValues.push(" foo / " + val);
+		gridAutoPositionOtherValues.push(val + "/2");
+	});
+	var gridAutoPositionInvalidValues = [
+		"foo",
+		"foo, bar",
+		"foo / bar / baz",
+	];
+	gridLineInvalidValues.forEach(function(val) {
+		gridAutoPositionInvalidValues.push("span 3 / " + val);
+		gridAutoPositionInvalidValues.push(val + " / foo");
+	});
+	gCSSProperties["grid-auto-position"] = {
+		domProp: "gridAutoPosition",
+		inherited: false,
+		type: CSS_TYPE_LONGHAND,
+		initial_values: [ "1 / 1" ],
+		other_values: gridAutoPositionOtherValues,
+		invalid_values: gridAutoPositionInvalidValues
+	};
+
+	// The grid-column and grid-row shorthands take values of the form
+	//   <grid-line> [ / <grid-line> ]?
+	// which is equivalent to:
+	//   <grid-line> | [ <grid-line> / <grid-line> ]
+	// which is equivalent to:
+	//   <grid-line> | <'grid-auto-position'>
+	var gridColumnRowOtherValues = [].concat(
+		gridLineOtherValues,
+		gridAutoPositionOtherValues);
+	var gridColumnRowInvalidValues = [].concat(
+		gridLineInvalidValues,
+		gridAutoPositionInvalidValues);
+	// A single <grid-line> is invalid for grid-auto-position,
+	// but not for grid-column or grid-row:
+	gridColumnRowInvalidValues.splice(
+		gridColumnRowInvalidValues.indexOf("foo"),
+		1);
+	gCSSProperties["grid-column"] = {
+		domProp: "gridColumn",
+		inherited: false,
+		type: CSS_TYPE_TRUE_SHORTHAND,
+		subproperties: [
+			"grid-column-start",
+			"grid-column-end"
+		],
+		initial_values: [ "auto", "auto / auto" ],
+		other_values: gridColumnRowOtherValues,
+		invalid_values: gridColumnRowInvalidValues
+	};
+	gCSSProperties["grid-row"] = {
+		domProp: "gridRow",
+		inherited: false,
+		type: CSS_TYPE_TRUE_SHORTHAND,
+		subproperties: [
+			"grid-row-start",
+			"grid-row-end"
+		],
+		initial_values: [ "auto", "auto / auto" ],
+		other_values: gridColumnRowOtherValues,
+		invalid_values: gridColumnRowInvalidValues
+	};
+
+	var gridAreaOtherValues = gridLineOtherValues.slice();
+	gridLineOtherValues.forEach(function(val) {
+		gridAreaOtherValues.push("foo / " + val);
+		gridAreaOtherValues.push(val + "/2/3");
+		gridAreaOtherValues.push("foo / bar / " + val + " / baz");
+	});
+	var gridAreaInvalidValues = [
+		"foo, bar",
+		"foo / bar / baz / fizz / buzz",
+		"default / foo / bar / baz",
+		"foo / initial / bar / baz",
+		"foo / bar / inherit / baz",
+		"foo / bar / baz / unset",
+	].concat(gridLineInvalidValues);
+	gridLineInvalidValues.forEach(function(val) {
+		gridAreaInvalidValues.push("foo / " + val);
+		gridAreaInvalidValues.push("foo / bar / " + val);
+		gridAreaInvalidValues.push("foo / 4 / bar / " + val);
+	});
+
+	gCSSProperties["grid-area"] = {
+		domProp: "gridArea",
+		inherited: false,
+		type: CSS_TYPE_TRUE_SHORTHAND,
+		subproperties: [
+			"grid-row-start",
+			"grid-column-start",
+			"grid-row-end",
+			"grid-column-end"
+		],
+		initial_values: [
+			"auto",
+			"auto / auto",
+			"auto / auto / auto",
+			"auto / auto / auto / auto"
+		],
+		other_values: gridAreaOtherValues,
+		invalid_values: gridAreaInvalidValues
+	};
 }
 
 if (SpecialPowers.getBoolPref("layout.css.image-orientation.enabled")) {

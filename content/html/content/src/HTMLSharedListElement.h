@@ -20,7 +20,7 @@ class HTMLSharedListElement MOZ_FINAL : public nsGenericHTMLElement,
                                         public nsIDOMHTMLUListElement
 {
 public:
-  HTMLSharedListElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+  HTMLSharedListElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
     : nsGenericHTMLElement(aNodeInfo)
   {
   }
@@ -77,8 +77,7 @@ public:
   }
 
 protected:
-  virtual JSObject* WrapNode(JSContext *aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext *aCx) MOZ_OVERRIDE;
 
 private:
   static void MapAttributesIntoRule(const nsMappedAttributes* aAttributes,

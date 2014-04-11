@@ -232,7 +232,7 @@ js::DestroyContext(JSContext *cx, DestroyContextMode mode)
         MOZ_CRASH();
 #endif
 
-#if (defined(JSGC_ROOT_ANALYSIS) || defined(JSGC_USE_EXACT_ROOTING)) && defined(DEBUG)
+#if defined(JSGC_USE_EXACT_ROOTING) && defined(DEBUG)
     for (int i = 0; i < THING_ROOT_LIMIT; ++i)
         JS_ASSERT(cx->thingGCRooters[i] == nullptr);
 #endif
@@ -333,13 +333,13 @@ PopulateReportBlame(JSContext *cx, JSErrorReport *report)
      * Walk stack until we find a frame that is associated with a non-builtin
      * rather than a builtin frame.
      */
-    NonBuiltinScriptFrameIter iter(cx);
+    NonBuiltinFrameIter iter(cx);
     if (iter.done())
         return;
 
-    report->filename = iter.script()->filename();
-    report->lineno = PCToLineNumber(iter.script(), iter.pc(), &report->column);
-    report->originPrincipals = iter.script()->originPrincipals();
+    report->filename = iter.scriptFilename();
+    report->lineno = iter.computeLine(&report->column);
+    report->originPrincipals = iter.originPrincipals();
 }
 
 /*
@@ -1001,7 +1001,7 @@ js_GetErrorMessage(void *userRef, const char *locale, const unsigned errorNumber
 }
 
 bool
-js_InvokeOperationCallback(JSContext *cx)
+js::InvokeInterruptCallback(JSContext *cx)
 {
     JS_ASSERT_REQUEST_DEPTH(cx);
 
@@ -1013,7 +1013,7 @@ js_InvokeOperationCallback(JSContext *cx)
     // which will be serviced at the next opportunity.
     rt->interrupt = false;
 
-    // IonMonkey sets its stack limit to UINTPTR_MAX to trigger operation
+    // IonMonkey sets its stack limit to UINTPTR_MAX to trigger interrupt
     // callbacks.
     rt->resetJitStackLimit();
 
@@ -1024,7 +1024,7 @@ js_InvokeOperationCallback(JSContext *cx)
     rt->interruptPar = false;
 #endif
 
-    // A worker thread may have set the callback after finishing an Ion
+    // A worker thread may have requested an interrupt after finishing an Ion
     // compilation.
     jit::AttachFinishedCompilations(cx);
 #endif
@@ -1032,7 +1032,7 @@ js_InvokeOperationCallback(JSContext *cx)
     // Important: Additional callbacks can occur inside the callback handler
     // if it re-enters the JS engine. The embedding must ensure that the
     // callback is disconnected before attempting such re-entry.
-    JSOperationCallback cb = cx->runtime()->operationCallback;
+    JSInterruptCallback cb = cx->runtime()->interruptCallback;
     if (!cb || cb(cx))
         return true;
 
@@ -1049,14 +1049,14 @@ js_InvokeOperationCallback(JSContext *cx)
 }
 
 bool
-js_HandleExecutionInterrupt(JSContext *cx)
+js::HandleExecutionInterrupt(JSContext *cx)
 {
     if (cx->runtime()->interrupt)
-        return js_InvokeOperationCallback(cx);
+        return InvokeInterruptCallback(cx);
     return true;
 }
 
-js::ThreadSafeContext::ThreadSafeContext(JSRuntime *rt, PerThreadData *pt, ContextKind kind)
+ThreadSafeContext::ThreadSafeContext(JSRuntime *rt, PerThreadData *pt, ContextKind kind)
   : ContextFriendFields(rt),
     contextKind_(kind),
     perThreadData(pt),
@@ -1075,6 +1075,20 @@ ThreadSafeContext::asForkJoinContext()
 {
     JS_ASSERT(isForkJoinContext());
     return reinterpret_cast<ForkJoinContext *>(this);
+}
+
+void
+ThreadSafeContext::recoverFromOutOfMemory()
+{
+    // If this is not a JSContext, there's nothing to do.
+    if (JSContext *maybecx = maybeJSContext()) {
+        if (maybecx->isExceptionPending()) {
+            MOZ_ASSERT(maybecx->isThrowingOutOfMemory());
+            maybecx->clearPendingException();
+        } else {
+            MOZ_ASSERT(maybecx->runtime()->hadOutOfMemory);
+        }
+    }
 }
 
 JSContext::JSContext(JSRuntime *rt)
@@ -1131,6 +1145,12 @@ JSContext::getPendingException(MutableHandleValue rval)
     return true;
 }
 
+bool
+JSContext::isThrowingOutOfMemory()
+{
+    return throwing && unwrappedException_ == StringValue(names().outOfMemory);
+}
+
 void
 JSContext::enterGenerator(JSGenerator *gen)
 {
@@ -1172,6 +1192,8 @@ JSContext::saveFrameChain()
 void
 JSContext::restoreFrameChain()
 {
+    JS_ASSERT(enterCompartmentDepth_ == 0); // We're about to clobber it, and it
+                                            // will be wrong forevermore.
     SavedFrameChain sfc = savedFrameChains_.popCopy();
     setCompartment(sfc.compartment);
     enterCompartmentDepth_ = sfc.enterCompartmentCount;
@@ -1350,7 +1372,7 @@ JS::AutoCheckRequestDepth::~AutoCheckRequestDepth()
 #endif
 
 #ifdef JS_CRASH_DIAGNOSTICS
-void CompartmentChecker::check(StackFrame *fp)
+void CompartmentChecker::check(InterpreterFrame *fp)
 {
     if (fp)
         check(fp->scopeChain());
@@ -1363,3 +1385,11 @@ void CompartmentChecker::check(AbstractFramePtr frame)
 }
 #endif
 
+void
+js::CrashAtUnhandlableOOM(const char *reason)
+{
+    char msgbuf[1024];
+    JS_snprintf(msgbuf, sizeof(msgbuf), "[unhandlable oom] %s", reason);
+    MOZ_ReportAssertionFailure(msgbuf, __FILE__, __LINE__);
+    MOZ_CRASH();
+}

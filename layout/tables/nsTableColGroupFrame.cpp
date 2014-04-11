@@ -341,14 +341,14 @@ nsTableColGroupFrame::RemoveFrame(ChildListID     aListID,
 }
 
 int
-nsTableColGroupFrame::GetSkipSides(const nsHTMLReflowState* aReflowState) const
+nsTableColGroupFrame::GetLogicalSkipSides(const nsHTMLReflowState* aReflowState) const
 {
   int skip = 0;
   if (nullptr != GetPrevInFlow()) {
-    skip |= 1 << NS_SIDE_TOP;
+    skip |= 1 << LOGICAL_SIDE_B_START;
   }
   if (nullptr != GetNextInFlow()) {
-    skip |= 1 << NS_SIDE_BOTTOM;
+    skip |= 1 << LOGICAL_SIDE_B_END;
   }
   return skip;
 }
@@ -375,7 +375,7 @@ nsresult nsTableColGroupFrame::Reflow(nsPresContext*          aPresContext,
   for (nsIFrame *kidFrame = mFrames.FirstChild(); kidFrame;
        kidFrame = kidFrame->GetNextSibling()) {
     // Give the child frame a chance to reflow, even though we know it'll have 0 size
-    nsHTMLReflowMetrics kidSize(aReflowState.GetWritingMode());
+    nsHTMLReflowMetrics kidSize(aReflowState);
     nsHTMLReflowState kidReflowState(aPresContext, aReflowState, kidFrame,
                                      nsSize(0,0));
 

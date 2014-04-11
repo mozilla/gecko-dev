@@ -9,7 +9,7 @@ const {Cc, Ci, Cu, Cr} = require("chrome");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
-let promise = require("sdk/core/promise");
+let {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 let EventEmitter = require("devtools/toolkit/event-emitter");
 
 Cu.import("resource:///modules/devtools/StyleEditorUI.jsm");
@@ -135,6 +135,8 @@ StyleEditorPanel.prototype = {
       this._target = null;
       this._toolbox = null;
       this._panelDoc = null;
+      this._debuggee.destroy();
+      this._debuggee = null;
 
       this.UI.destroy();
     }

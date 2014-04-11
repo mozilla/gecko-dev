@@ -11,7 +11,6 @@
 #include "nsIWebNavigation.h"
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
-#include "nsEventDispatcher.h"
 #include "nsIWebBrowserChrome2.h"
 #include "nsIEmbeddingSiteWindow.h"
 #include "nsIWebBrowserChromeFocus.h"
@@ -23,8 +22,6 @@
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsFrameMessageManager.h"
 #include "nsIWebProgressListener.h"
-#include "nsDOMEventTargetHelper.h"
-#include "nsIDialogCreator.h"
 #include "nsIPresShell.h"
 #include "nsIScriptObjectPrincipal.h"
 #include "nsWeakReference.h"
@@ -32,6 +29,8 @@
 #include "nsITooltipListener.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/TabContext.h"
+#include "mozilla/DOMEventTargetHelper.h"
+#include "mozilla/EventDispatcher.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/layers/CompositorTypes.h"
 
@@ -46,19 +45,19 @@ class RenderFrameChild;
 namespace dom {
 
 class TabChild;
-class PContentDialogChild;
 class ClonedMessageData;
+class TabChildBase;
 
-class TabChildGlobal : public nsDOMEventTargetHelper,
+class TabChildGlobal : public DOMEventTargetHelper,
                        public nsIContentFrameMessageManager,
                        public nsIScriptObjectPrincipal,
                        public nsIGlobalObject
 {
 public:
-  TabChildGlobal(TabChild* aTabChild);
+  TabChildGlobal(TabChildBase* aTabChild);
   void Init();
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(TabChildGlobal, nsDOMEventTargetHelper)
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(TabChildGlobal, DOMEventTargetHelper)
   NS_FORWARD_SAFE_NSIMESSAGELISTENERMANAGER(mMessageManager)
   NS_FORWARD_SAFE_NSIMESSAGESENDER(mMessageManager)
   NS_IMETHOD SendSyncMessage(const nsAString& aMessageName,
@@ -104,23 +103,23 @@ public:
                               bool aUseCapture)
   {
     // By default add listeners only for trusted events!
-    return nsDOMEventTargetHelper::AddEventListener(aType, aListener,
-                                                    aUseCapture, false, 2);
+    return DOMEventTargetHelper::AddEventListener(aType, aListener,
+                                                  aUseCapture, false, 2);
   }
-  using nsDOMEventTargetHelper::AddEventListener;
+  using DOMEventTargetHelper::AddEventListener;
   NS_IMETHOD AddEventListener(const nsAString& aType,
                               nsIDOMEventListener* aListener,
                               bool aUseCapture, bool aWantsUntrusted,
                               uint8_t optional_argc) MOZ_OVERRIDE
   {
-    return nsDOMEventTargetHelper::AddEventListener(aType, aListener,
-                                                    aUseCapture,
-                                                    aWantsUntrusted,
-                                                    optional_argc);
+    return DOMEventTargetHelper::AddEventListener(aType, aListener,
+                                                  aUseCapture,
+                                                  aWantsUntrusted,
+                                                  optional_argc);
   }
 
   nsresult
-  PreHandleEvent(nsEventChainPreVisitor& aVisitor)
+  PreHandleEvent(EventChainPreVisitor& aVisitor)
   {
     aVisitor.mForceContentDispatch = true;
     return NS_OK;
@@ -131,7 +130,7 @@ public:
   virtual JSObject* GetGlobalJSObject() MOZ_OVERRIDE;
 
   nsCOMPtr<nsIContentFrameMessageManager> mMessageManager;
-  TabChild* mTabChild;
+  TabChildBase* mTabChild;
 };
 
 class ContentListener MOZ_FINAL : public nsIDOMEventListener
@@ -144,8 +143,74 @@ protected:
   TabChild* mTabChild;
 };
 
+// This is base clase which helps to share Viewport and touch related functionality
+// between b2g/android FF/embedlite clients implementation.
+// It make sense to place in this class all helper functions, and functionality which could be shared between
+// Cross-process/Cross-thread implmentations.
+class TabChildBase : public nsFrameScriptExecutor,
+                     public ipc::MessageManagerCallback
+{
+public:
+    TabChildBase();
+
+    virtual nsIWebNavigation* WebNavigation() = 0;
+    virtual nsIWidget* WebWidget() = 0;
+    nsIPrincipal* GetPrincipal() { return mPrincipal; }
+    bool IsAsyncPanZoomEnabled();
+    // Recalculates the display state, including the CSS
+    // viewport. This should be called whenever we believe the
+    // viewport data on a document may have changed. If it didn't
+    // change, this function doesn't do anything.  However, it should
+    // not be called all the time as it is fairly expensive.
+    bool HandlePossibleViewportChange();
+    virtual bool DoUpdateZoomConstraints(const uint32_t& aPresShellId,
+                                         const mozilla::layers::FrameMetrics::ViewID& aViewId,
+                                         const bool& aIsRoot,
+                                         const mozilla::layers::ZoomConstraints& aConstraints) = 0;
+
+    nsEventStatus DispatchSynthesizedMouseEvent(uint32_t aMsg, uint64_t aTime,
+                                                const LayoutDevicePoint& aRefPoint,
+                                                nsIWidget* aWidget);
+
+protected:
+    CSSSize GetPageSize(nsCOMPtr<nsIDocument> aDocument, const CSSSize& aViewport);
+
+    // Get the DOMWindowUtils for the top-level window in this tab.
+    already_AddRefed<nsIDOMWindowUtils> GetDOMWindowUtils();
+    // Get the Document for the top-level window in this tab.
+    already_AddRefed<nsIDocument> GetDocument();
+
+    // Wrapper for nsIDOMWindowUtils.setCSSViewport(). This updates some state
+    // variables local to this class before setting it.
+    void SetCSSViewport(const CSSSize& aSize);
+
+    // Wraps up a JSON object as a structured clone and sends it to the browser
+    // chrome script.
+    //
+    // XXX/bug 780335: Do the work the browser chrome script does in C++ instead
+    // so we don't need things like this.
+    void DispatchMessageManagerMessage(const nsAString& aMessageName,
+                                       const nsAString& aJSONData);
+
+    nsEventStatus DispatchWidgetEvent(WidgetGUIEvent& event);
+
+    bool HasValidInnerSize();
+    void InitializeRootMetrics();
+
+    mozilla::layers::FrameMetrics ProcessUpdateFrame(const mozilla::layers::FrameMetrics& aFrameMetrics);
+
+    bool UpdateFrameHandler(const mozilla::layers::FrameMetrics& aFrameMetrics);
+
+protected:
+    float mOldViewportWidth;
+    bool mContentDocumentIsDisplayed;
+    nsRefPtr<TabChildGlobal> mTabChildGlobal;
+    ScreenIntSize mInnerSize;
+    mozilla::layers::FrameMetrics mLastRootMetrics;
+    mozilla::layout::ScrollingBehavior mScrolling;
+};
+
 class TabChild : public PBrowserChild,
-                 public nsFrameScriptExecutor,
                  public nsIWebBrowserChrome2,
                  public nsIEmbeddingSiteWindow,
                  public nsIWebBrowserChromeFocus,
@@ -154,12 +219,11 @@ class TabChild : public PBrowserChild,
                  public nsIDOMEventListener,
                  public nsIWebProgressListener,
                  public nsSupportsWeakReference,
-                 public nsIDialogCreator,
                  public nsITabChild,
                  public nsIObserver,
-                 public ipc::MessageManagerCallback,
                  public TabContext,
-                 public nsITooltipListener
+                 public nsITooltipListener,
+                 public TabChildBase
 {
     typedef mozilla::dom::ClonedMessageData ClonedMessageData;
     typedef mozilla::layout::RenderFrameChild RenderFrameChild;
@@ -190,7 +254,6 @@ public:
     NS_DECL_NSIWINDOWPROVIDER
     NS_DECL_NSIDOMEVENTLISTENER
     NS_DECL_NSIWEBPROGRESSLISTENER
-    NS_DECL_NSIDIALOGCREATOR
     NS_DECL_NSITABCHILD
     NS_DECL_NSIOBSERVER
     NS_DECL_NSITOOLTIPLISTENER
@@ -210,7 +273,10 @@ public:
                                     const mozilla::dom::StructuredCloneData& aData,
                                     JS::Handle<JSObject *> aCpows,
                                     nsIPrincipal* aPrincipal) MOZ_OVERRIDE;
-
+    virtual bool DoUpdateZoomConstraints(const uint32_t& aPresShellId,
+                                         const ViewID& aViewId,
+                                         const bool& aIsRoot,
+                                         const ZoomConstraints& aConstraints) MOZ_OVERRIDE;
     virtual bool RecvLoadURL(const nsCString& uri) MOZ_OVERRIDE;
     virtual bool RecvCacheFileDescriptor(const nsString& aPath,
                                          const FileDescriptor& aFileDescriptor)
@@ -222,13 +288,13 @@ public:
     virtual bool RecvUpdateFrame(const mozilla::layers::FrameMetrics& aFrameMetrics) MOZ_OVERRIDE;
     virtual bool RecvAcknowledgeScrollUpdate(const ViewID& aScrollId,
                                              const uint32_t& aScrollGeneration) MOZ_OVERRIDE;
-    virtual bool RecvHandleDoubleTap(const CSSIntPoint& aPoint,
+    virtual bool RecvHandleDoubleTap(const CSSPoint& aPoint,
                                      const mozilla::layers::ScrollableLayerGuid& aGuid) MOZ_OVERRIDE;
-    virtual bool RecvHandleSingleTap(const CSSIntPoint& aPoint,
+    virtual bool RecvHandleSingleTap(const CSSPoint& aPoint,
                                      const mozilla::layers::ScrollableLayerGuid& aGuid) MOZ_OVERRIDE;
-    virtual bool RecvHandleLongTap(const CSSIntPoint& aPoint,
+    virtual bool RecvHandleLongTap(const CSSPoint& aPoint,
                                    const mozilla::layers::ScrollableLayerGuid& aGuid) MOZ_OVERRIDE;
-    virtual bool RecvHandleLongTapUp(const CSSIntPoint& aPoint,
+    virtual bool RecvHandleLongTapUp(const CSSPoint& aPoint,
                                      const mozilla::layers::ScrollableLayerGuid& aGuid) MOZ_OVERRIDE;
     virtual bool RecvNotifyTransformBegin(const ViewID& aViewId) MOZ_OVERRIDE;
     virtual bool RecvNotifyTransformEnd(const ViewID& aViewId) MOZ_OVERRIDE;
@@ -242,7 +308,8 @@ public:
                                 const int32_t&  aModifiers,
                                 const bool&     aIgnoreRootScrollFrame) MOZ_OVERRIDE;
     virtual bool RecvRealMouseEvent(const mozilla::WidgetMouseEvent& event) MOZ_OVERRIDE;
-    virtual bool RecvRealKeyEvent(const mozilla::WidgetKeyboardEvent& event) MOZ_OVERRIDE;
+    virtual bool RecvRealKeyEvent(const mozilla::WidgetKeyboardEvent& event,
+                                  const MaybeNativeKeyBinding& aBindings) MOZ_OVERRIDE;
     virtual bool RecvMouseWheelEvent(const mozilla::WidgetWheelEvent& event) MOZ_OVERRIDE;
     virtual bool RecvRealTouchEvent(const WidgetTouchEvent& aEvent,
                                     const ScrollableLayerGuid& aGuid) MOZ_OVERRIDE;
@@ -282,22 +349,6 @@ public:
     AllocPColorPickerChild(const nsString& title, const nsString& initialColor) MOZ_OVERRIDE;
     virtual bool DeallocPColorPickerChild(PColorPickerChild* actor) MOZ_OVERRIDE;
 
-
-    virtual PContentDialogChild* AllocPContentDialogChild(const uint32_t&,
-                                                          const nsCString&,
-                                                          const nsCString&,
-                                                          const InfallibleTArray<int>&,
-                                                          const InfallibleTArray<nsString>&)
-                                                          MOZ_OVERRIDE;
-    virtual bool DeallocPContentDialogChild(PContentDialogChild* aDialog) MOZ_OVERRIDE;
-
-    static void ParamsToArrays(nsIDialogParamBlock* aParams,
-                               InfallibleTArray<int>& aIntParams,
-                               InfallibleTArray<nsString>& aStringParams);
-    static void ArraysToParams(const InfallibleTArray<int>& aIntParams,
-                               const InfallibleTArray<nsString>& aStringParams,
-                               nsIDialogParamBlock* aParams);
-
 #ifdef DEBUG
     virtual PContentPermissionRequestChild*
     SendPContentPermissionRequestConstructor(PContentPermissionRequestChild* aActor,
@@ -323,9 +374,8 @@ public:
     virtual bool
     DeallocPOfflineCacheUpdateChild(POfflineCacheUpdateChild* offlineCacheUpdate) MOZ_OVERRIDE;
 
-    nsIWebNavigation* WebNavigation() { return mWebNav; }
-
-    nsIPrincipal* GetPrincipal() { return mPrincipal; }
+    virtual nsIWebNavigation* WebNavigation() MOZ_OVERRIDE { return mWebNav; }
+    virtual nsIWidget* WebWidget() MOZ_OVERRIDE { return mWidget; }
 
     /** Return the DPI of the widget this TabChild draws to. */
     void GetDPI(float* aDPI);
@@ -337,7 +387,6 @@ public:
 
     void NotifyPainted();
 
-    bool IsAsyncPanZoomEnabled();
 
     /** Return a boolean indicating if the page has called preventDefault on
      *  the event.
@@ -395,8 +444,7 @@ protected:
     virtual bool DeallocPRenderFrameChild(PRenderFrameChild* aFrame) MOZ_OVERRIDE;
     virtual bool RecvDestroy() MOZ_OVERRIDE;
     virtual bool RecvSetUpdateHitRegion(const bool& aEnabled) MOZ_OVERRIDE;
-
-    nsEventStatus DispatchWidgetEvent(WidgetGUIEvent& event);
+    virtual bool RecvSetIsDocShellActive(const bool& aIsActive) MOZ_OVERRIDE;
 
     virtual PIndexedDBChild* AllocPIndexedDBChild(const nsCString& aGroup,
                                                   const nsCString& aASCIIOrigin,
@@ -417,8 +465,6 @@ private:
 
     nsresult Init();
 
-    void InitializeRootMetrics();
-    bool HasValidInnerSize();
 
     // Notify others that our TabContext has been updated.  (At the moment, this
     // sets the appropriate app-id and is-browser flags on our docshell.)
@@ -436,32 +482,9 @@ private:
     bool InitRenderingState();
     void DestroyWindow();
     void SetProcessNameToAppName();
-    bool ProcessUpdateFrame(const mozilla::layers::FrameMetrics& aFrameMetrics);
 
     // Call RecvShow(nsIntSize(0, 0)) and block future calls to RecvShow().
     void DoFakeShow();
-
-    // Wrapper for nsIDOMWindowUtils.setCSSViewport(). This updates some state
-    // variables local to this class before setting it.
-    void SetCSSViewport(const CSSSize& aSize);
-
-    // Recalculates the display state, including the CSS
-    // viewport. This should be called whenever we believe the
-    // viewport data on a document may have changed. If it didn't
-    // change, this function doesn't do anything.  However, it should
-    // not be called all the time as it is fairly expensive.
-    void HandlePossibleViewportChange();
-
-    // Wraps up a JSON object as a structured clone and sends it to the browser
-    // chrome script.
-    //
-    // XXX/bug 780335: Do the work the browser chrome script does in C++ instead
-    // so we don't need things like this.
-    void DispatchMessageManagerMessage(const nsAString& aMessageName,
-                                       const nsACString& aJSONData);
-
-    void DispatchSynthesizedMouseEvent(uint32_t aMsg, uint64_t aTime,
-                                       const LayoutDevicePoint& aRefPoint);
 
     // These methods are used for tracking synthetic mouse events
     // dispatched for compatibility.  On each touch event, we
@@ -481,11 +504,6 @@ private:
                               bool* aWindowIsNew,
                               nsIDOMWindow** aReturn);
 
-    // Get the DOMWindowUtils for the top-level window in this tab.
-    already_AddRefed<nsIDOMWindowUtils> GetDOMWindowUtils();
-    // Get the Document for the top-level window in this tab.
-    already_AddRefed<nsIDocument> GetDocument();
-
     class CachedFileDescriptorInfo;
     class CachedFileDescriptorCallbackRunnable;
 
@@ -493,13 +511,10 @@ private:
     nsCOMPtr<nsIWebNavigation> mWebNav;
     nsCOMPtr<nsIWidget> mWidget;
     nsCOMPtr<nsIURI> mLastURI;
-    FrameMetrics mLastRootMetrics;
     RenderFrameChild* mRemoteFrame;
     nsRefPtr<ContentChild> mManager;
-    nsRefPtr<TabChildGlobal> mTabChildGlobal;
     uint32_t mChromeFlags;
     nsIntRect mOuterRect;
-    ScreenIntSize mInnerSize;
     // When we're tracking a possible tap gesture, this is the "down"
     // point of the touchstart.
     LayoutDevicePoint mGestureDownPoint;
@@ -514,18 +529,17 @@ private:
     // At present only 1 of these is really expected.
     nsAutoTArray<nsAutoPtr<CachedFileDescriptorInfo>, 1>
         mCachedFileDescriptorInfos;
-    float mOldViewportWidth;
     nscolor mLastBackgroundColor;
-    ScrollingBehavior mScrolling;
     bool mDidFakeShow;
     bool mNotified;
-    bool mContentDocumentIsDisplayed;
     bool mTriedBrowserInit;
     ScreenOrientation mOrientation;
     bool mUpdateHitRegion;
     bool mContextMenuHandled;
     bool mWaitingTouchListeners;
     void FireSingleTapEvent(LayoutDevicePoint aPoint);
+
+    bool mIgnoreKeyPressEvent;
 
     DISALLOW_EVIL_CONSTRUCTORS(TabChild);
 };

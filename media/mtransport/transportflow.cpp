@@ -16,6 +16,8 @@ namespace mozilla {
 
 MOZ_MTLOG_MODULE("mtransport")
 
+NS_IMPL_ISUPPORTS0(TransportFlow)
+
 // There are some hacks here to allow destruction off of
 // the main thread.
 TransportFlow::~TransportFlow() {
@@ -197,6 +199,17 @@ TransportResult TransportFlow::SendPacket(const unsigned char *data,
     return TE_ERROR;
   }
   return top() ? top()->SendPacket(data, len) : TE_ERROR;
+}
+
+bool TransportFlow::Contains(TransportLayer *layer) const {
+  if (layers_) {
+    for (auto l = layers_->begin(); l != layers_->end(); ++l) {
+      if (*l == layer) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 void TransportFlow::EnsureSameThread(TransportLayer *layer)  {

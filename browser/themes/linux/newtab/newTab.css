@@ -49,14 +49,11 @@
 }
 
 #newtab-undo-close-button {
+  -moz-appearance: none;
   padding: 0;
   border: none;
-  list-style-image: url("moz-icon://stock/gtk-close?size=menu");
-  -moz-user-focus: normal;
-}
-
-#newtab-undo-close-button > .toolbarbutton-icon {
-  margin: -4px;
+  height: 16px;
+  width: 16px;
 }
 
 #newtab-undo-close-button > .toolbarbutton-text {
@@ -80,22 +77,10 @@
   background-position: -232px 0;
 }
 
-/* ROWS */
-.newtab-row {
-  margin-bottom: 20px;
-}
-
-.newtab-row:last-child {
-  margin-bottom: 0;
-}
-
 /* CELLS */
 .newtab-cell {
-  -moz-margin-end: 20px;
   background-color: rgba(255,255,255,.2);
-  border: 1px solid;
-  border-color: rgba(8,22,37,.12) rgba(8,22,37,.14) rgba(8,22,37,.16);
-  border-radius: 1px;
+  border: 1px solid #dee0e1;
   transition: border-color 100ms ease-out;
 }
 
@@ -104,11 +89,7 @@
   border-color: rgba(8,22,37,.15) rgba(8,22,37,.17) rgba(8,22,37,.19);
 }
 
-.newtab-cell:last-child {
-  -moz-margin-end: 0;
-}
-
-.newtab-cell:hover:not(:empty):not([dragged]) {
+.newtab-cell:hover:not(:empty):not([dragged]):not([ignorehover]) {
   border-color: rgba(8,22,37,.25) rgba(8,22,37,.27) rgba(8,22,37,.3);
 }
 
@@ -118,7 +99,7 @@
   transition-property: top, left, opacity, box-shadow, background-color;
 }
 
-.newtab-site:hover,
+.newtab-cell:not([ignorehover]) > .newtab-site:hover,
 .newtab-site[dragged] {
   box-shadow: 0 0 10px rgba(8,22,37,.3);
 }
@@ -136,12 +117,22 @@
   background-size: cover;
 }
 
+.newtab-site[type=affiliate] .newtab-thumbnail,
+.newtab-site[type=organic] .newtab-thumbnail,
+.newtab-site[type=sponsored] .newtab-thumbnail {
+  background-position: top center;
+  background-size: auto;
+}
+
 /* TITLES */
 .newtab-title {
-  padding: 0 8px;
-  background-color: rgba(248,249,251,.95);
-  color: #1f364c;
-  line-height: 24px;
+  color: #525c66;
+  font-family: sans-serif;
+  font-size: 13px;
+}
+
+.newtab-site[type=sponsored] .newtab-title {
+  -moz-padding-end: 24px;
 }
 
 /* CONTROLS */
@@ -183,4 +174,16 @@
 
 .newtab-control-block:active {
   background-position: -192px 0;
+}
+
+.newtab-control-sponsored {
+  background-position: -249px -1px;
+}
+
+.newtab-control-sponsored:hover {
+  background-position: -265px -1px;
+}
+
+.newtab-control-sponsored[panelShown] {
+  background-position: -281px -1px;
 }

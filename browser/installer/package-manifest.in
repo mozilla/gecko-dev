@@ -197,7 +197,6 @@
 @BINPATH@/components/dom_css.xpt
 @BINPATH@/components/dom_devicestorage.xpt
 @BINPATH@/components/dom_events.xpt
-@BINPATH@/components/dom_file.xpt
 @BINPATH@/components/dom_geolocation.xpt
 @BINPATH@/components/dom_media.xpt
 @BINPATH@/components/dom_network.xpt
@@ -310,6 +309,7 @@
 @BINPATH@/components/spellchecker.xpt
 @BINPATH@/components/storage.xpt
 @BINPATH@/components/toolkit_finalizationwitness.xpt
+@BINPATH@/components/toolkit_osfile.xpt
 @BINPATH@/components/toolkitprofile.xpt
 #ifdef MOZ_ENABLE_XREMOTE
 @BINPATH@/components/toolkitremote.xpt
@@ -368,6 +368,8 @@
 @BINPATH@/browser/components/BrowserPlaces.manifest
 @BINPATH@/browser/components/devtools-clhandler.manifest
 @BINPATH@/browser/components/devtools-clhandler.js
+@BINPATH@/browser/components/Experiments.manifest
+@BINPATH@/browser/components/ExperimentsService.js
 @BINPATH@/components/Downloads.manifest
 @BINPATH@/components/DownloadLegacy.js
 @BINPATH@/components/BrowserPageThumbs.manifest
@@ -543,7 +545,6 @@
 @BINPATH@/components/SystemMessageManager.manifest
 
 @BINPATH@/components/Activities.manifest
-@BINPATH@/components/ActivityOptions.js
 @BINPATH@/components/ActivityProxy.js
 @BINPATH@/components/ActivityRequestHandler.js
 @BINPATH@/components/ActivityWrapper.js
@@ -797,7 +798,7 @@ bin/libfreebl_32int64_3.so
 @BINPATH@/webapprt/defaults/preferences/prefs.js
 @BINPATH@/webapprt/modules/Startup.jsm
 @BINPATH@/webapprt/modules/WebappRT.jsm
-@BINPATH@/webapprt/modules/WebappsHandler.jsm
+@BINPATH@/webapprt/modules/WebappManager.jsm
 @BINPATH@/webapprt/modules/RemoteDebugger.jsm
 @BINPATH@/webapprt/modules/WebRTCHandler.jsm
 #endif

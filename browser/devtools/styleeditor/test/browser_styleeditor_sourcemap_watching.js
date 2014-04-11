@@ -71,26 +71,19 @@ function test()
 function openEditor(testcaseURI) {
   let deferred = promise.defer();
 
-  addTabAndOpenStyleEditor((panel) => {
-    info("style editor panel opened");
-
+  addTabAndOpenStyleEditors(3, panel => {
     let UI = panel.UI;
-    let count = 0;
 
-    UI.on("editor-added", (event, editor) => {
-      if (++count == 3) {
-        // wait for 3 editors - 1 for first style sheet, 1 for the
-        // generated style sheet, and 1 for original source after it
-        // loads and replaces the generated style sheet.
-        let editor = UI.editors[1];
+    // wait for 3 editors - 1 for first style sheet, 1 for the
+    // generated style sheet, and 1 for original source after it
+    // loads and replaces the generated style sheet.
+    let editor = UI.editors[1];
 
-        let link = getStylesheetNameLinkFor(editor);
-        link.click();
+    let link = getStylesheetNameLinkFor(editor);
+    link.click();
 
-        editor.getSourceEditor().then(deferred.resolve);
-      }
-    });
-  })
+    editor.getSourceEditor().then(deferred.resolve);
+  });
   content.location = testcaseURI;
 
   return deferred.promise;
@@ -151,7 +144,10 @@ function read(aSrcChromeURL)
   let input = channel.open();
   scriptableStream.init(input);
 
-  let data = scriptableStream.read(input.available());
+  let data = "";
+  while (input.available()) {
+    data = data.concat(scriptableStream.read(input.available()));
+  }
   scriptableStream.close();
   input.close();
 

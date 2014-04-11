@@ -15,6 +15,7 @@
 #include "jit/IonLinker.h"
 #include "jit/JitCompartment.h"
 #include "jit/RangeAnalysis.h"
+#include "vm/TraceLogging.h"
 
 #include "jit/shared/CodeGenerator-shared-inl.h"
 
@@ -48,8 +49,13 @@ CodeGeneratorX86Shared::generateEpilogue()
 {
     masm.bind(&returnLabel_);
 
-#if JS_TRACE_LOGGING
-    masm.tracelogStop();
+#ifdef JS_TRACE_LOGGING
+    if (!gen->compilingAsmJS() && gen->info().executionMode() == SequentialExecution) {
+        if (!emitTracelogStopEvent(TraceLogger::IonMonkey))
+            return false;
+        if (!emitTracelogScriptStop())
+            return false;
+    }
 #endif
 
     // Pop the stack we allocated at the start of the function.
@@ -450,7 +456,6 @@ CodeGeneratorX86Shared::visitOutOfLineBailout(OutOfLineBailout *ool)
     masm.jmp(&deoptLabel_);
     return true;
 }
-
 
 bool
 CodeGeneratorX86Shared::visitMinMaxD(LMinMaxD *ins)
@@ -2011,9 +2016,9 @@ JitRuntime::generateForkJoinGetSliceStub(JSContext *cx)
     masm.pop(cxReg);
     masm.ret();
 
-    // There's no more slices to give out, return -1.
+    // There's no more slices to give out, return a sentinel value.
     masm.bind(&noMoreWork);
-    masm.move32(Imm32(-1), output);
+    masm.move32(Imm32(ThreadPool::MAX_SLICE_ID), output);
     masm.pop(cxReg);
     masm.ret();
 

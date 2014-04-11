@@ -13,6 +13,7 @@
 #include "nsWrapperCache.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/TextTrack.h"
+#include "mozilla/Preferences.h"
 
 namespace mozilla {
 namespace dom {
@@ -28,8 +29,13 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(TextTrackRegion)
 
-  virtual JSObject* WrapObject(JSContext* aCx,
-                               JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  static bool RegionsEnabled(JSContext* cx, JSObject* obj)
+  {
+    return Preferences::GetBool("media.webvtt.enabled") &&
+           Preferences::GetBool("media.webvtt.regions.enabled");
+  }
+
+  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   nsISupports* GetParentObject() const
   {
@@ -42,21 +48,6 @@ public:
 
   static already_AddRefed<TextTrackRegion>
   Constructor(const GlobalObject& aGlobal, ErrorResult& aRv);
-
-  TextTrack* GetTrack() const
-  {
-    return mTrack;
-  }
-
-  void  GetId(nsAString& aId) const
-  {
-    aId = mId;
-  }
-
-  void SetId(const nsAString& aId)
-  {
-    mId = aId;
-  }
 
   double Lines() const
   {
@@ -145,10 +136,6 @@ public:
 
   /** end WebIDL Methods. */
 
-  void SetTextTrack(TextTrack* aTrack)
-  {
-    mTrack = aTrack;
-  }
 
   // Helper to aid copying of a given TextTrackRegion's width, lines,
   // anchor, viewport and scroll values.
@@ -160,16 +147,8 @@ public:
     return mScroll;
   }
 
-  const nsAString& Id() const
-  {
-    return mId;
-  }
-
-
 private:
   nsCOMPtr<nsISupports> mParent;
-  nsRefPtr<TextTrack> mTrack;
-  nsString mId;
   double mWidth;
   long mLines;
   double mRegionAnchorX;

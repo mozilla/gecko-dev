@@ -75,7 +75,6 @@
 #include "mozilla/css/Loader.h"
 #include "nsIScriptError.h"
 #include "nsIStyleSheetLinkingElement.h"
-#include "nsEventDispatcher.h"
 #include "nsIObserverService.h"
 #include "nsNodeUtils.h"
 #include "nsIDocShellTreeOwner.h"
@@ -87,6 +86,7 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/ProcessingInstruction.h"
 #include "mozilla/dom/XULDocumentBinding.h"
+#include "mozilla/EventDispatcher.h"
 #include "mozilla/Preferences.h"
 #include "nsTextNode.h"
 #include "nsJSUtils.h"
@@ -944,8 +944,8 @@ XULDocument::ExecuteOnBroadcastHandlerFor(Element* aBroadcaster,
 
             // Handle the DOM event
             nsEventStatus status = nsEventStatus_eIgnore;
-            nsEventDispatcher::Dispatch(child, aPresContext, &event, nullptr,
-                                        &status);
+            EventDispatcher::Dispatch(child, aPresContext, &event, nullptr,
+                                      &status);
         }
     }
 
@@ -1220,7 +1220,7 @@ XULDocument::GetElementsByAttribute(const nsAString& aAttribute,
                                     const nsAString& aValue,
                                     nsIDOMNodeList** aReturn)
 {
-    *aReturn = GetElementsByAttribute(aAttribute, aValue).get();
+    *aReturn = GetElementsByAttribute(aAttribute, aValue).take();
     return NS_OK;
 }
 
@@ -1249,7 +1249,7 @@ XULDocument::GetElementsByAttributeNS(const nsAString& aNamespaceURI,
 {
     ErrorResult rv;
     *aReturn = GetElementsByAttributeNS(aNamespaceURI, aAttribute,
-                                        aValue, rv).get();
+                                        aValue, rv).take();
     return rv.ErrorCode();
 }
 
@@ -1720,6 +1720,7 @@ XULDocument::AddElementToDocumentPre(Element* aElement)
     // elements from prototypes.
     nsIAtom* id = aElement->GetID();
     if (id) {
+        // FIXME: Shouldn't BindToTree take care of this?
         nsAutoScriptBlocker scriptBlocker;
         AddToIdTable(aElement, id);
     }
@@ -1853,6 +1854,7 @@ XULDocument::RemoveSubtreeFromDocument(nsIContent* aContent)
     RemoveElementFromRefMap(aElement);
     nsIAtom* id = aElement->GetID();
     if (id) {
+        // FIXME: Shouldn't UnbindFromTree take care of this?
         nsAutoScriptBlocker scriptBlocker;
         RemoveFromIdTable(aElement, id);
     }
@@ -2483,6 +2485,8 @@ XULDocument::PrepareToWalk()
         // Block onload until we've finished building the complete
         // document content model.
         BlockOnload();
+
+        nsContentSink::NotifyDocElementCreated(this);
     }
 
     // There'd better not be anything on the context stack at this
@@ -3677,8 +3681,7 @@ XULDocument::ExecuteScript(nsIScriptContext * aContext,
     JS::ExposeObjectToActiveJS(global);
     xpc_UnmarkGrayScript(aScriptObject);
     JSAutoCompartment ac(cx, global);
-    JS::Rooted<JS::Value> unused(cx);
-    if (!JS_ExecuteScript(cx, global, aScriptObject, unused.address()))
+    if (!JS_ExecuteScript(cx, global, aScriptObject))
         nsJSUtils::ReportPendingException(cx);
     return NS_OK;
 }
@@ -4776,14 +4779,14 @@ XULDocument::GetBoxObjectFor(nsIDOMElement* aElement, nsIBoxObject** aResult)
 {
     ErrorResult rv;
     nsCOMPtr<Element> el = do_QueryInterface(aElement);
-    *aResult = GetBoxObjectFor(el, rv).get();
+    *aResult = GetBoxObjectFor(el, rv).take();
     return rv.ErrorCode();
 }
 
 JSObject*
-XULDocument::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+XULDocument::WrapNode(JSContext *aCx)
 {
-  return XULDocumentBinding::Wrap(aCx, aScope, this);
+  return XULDocumentBinding::Wrap(aCx, this);
 }
 
 } // namespace dom

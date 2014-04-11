@@ -26,6 +26,7 @@ const modules = [
   "rest.js",
   "service.js",
   "stages/cluster.js",
+  "stages/declined.js",
   "stages/enginesync.js",
   "status.js",
   "userapi.js",
@@ -36,6 +37,7 @@ const testingModules = [
   "fakeservices.js",
   "rotaryengine.js",
   "utils.js",
+  "fxa_utils.js",
 ];
 
 function run_test() {

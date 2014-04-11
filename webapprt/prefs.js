@@ -49,10 +49,18 @@ pref("general.smoothScroll", true);
 // WebPayment
 pref("dom.mozPay.enabled", true);
 
+// System messages
+pref("dom.sysmsg.enabled", true);
+
+// Alarm API
+pref("dom.mozAlarms.enabled", true);
+
 // Disable slow script dialog for apps
 pref("dom.max_script_run_time", 0);
 pref("dom.max_chrome_script_run_time", 0);
 
+// The request URL of the GeoLocation backend
+pref("geo.wifi.uri", "https://location.services.mozilla.com/v1/geolocate?key=%MOZILLA_API_KEY%");
 
 #ifndef RELEASE_BUILD
 // Enable mozPay default provider

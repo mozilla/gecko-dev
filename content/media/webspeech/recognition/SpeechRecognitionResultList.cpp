@@ -34,14 +34,13 @@ SpeechRecognitionResultList::~SpeechRecognitionResultList()
 nsISupports*
 SpeechRecognitionResultList::GetParentObject() const
 {
-  return static_cast<nsDOMEventTargetHelper*>(mParent.get());
+  return static_cast<DOMEventTargetHelper*>(mParent.get());
 }
 
 JSObject*
-SpeechRecognitionResultList::WrapObject(JSContext* aCx,
-                                        JS::Handle<JSObject*> aScope)
+SpeechRecognitionResultList::WrapObject(JSContext* aCx)
 {
-  return SpeechRecognitionResultListBinding::Wrap(aCx, aScope, this);
+  return SpeechRecognitionResultListBinding::Wrap(aCx, this);
 }
 
 already_AddRefed<SpeechRecognitionResult>

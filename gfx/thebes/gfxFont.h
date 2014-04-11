@@ -235,7 +235,6 @@ public:
     NS_INLINE_DECL_REFCOUNTING(gfxFontEntry)
 
     gfxFontEntry(const nsAString& aName, bool aIsStandardFace = false);
-    virtual ~gfxFontEntry();
 
     // unique name for the face, *not* the family; not necessarily the
     // "real" or user-friendly name, may be an internal identifier
@@ -438,14 +437,16 @@ public:
     bool             mHasSpaceFeatures : 1;
     bool             mHasSpaceFeaturesKerning : 1;
     bool             mHasSpaceFeaturesNonKerning : 1;
-    bool             mHasSpaceFeaturesSubDefault : 1;
+    bool             mSkipDefaultFeatureSpaceCheck : 1;
     bool             mHasGraphiteTables : 1;
     bool             mCheckedForGraphiteTables : 1;
     bool             mHasCmapTable : 1;
     bool             mGrFaceInitialized : 1;
 
-    // bitvector of substitution space features per script
-    uint32_t         mHasSpaceFeaturesSub[(MOZ_NUM_SCRIPT_CODES + 31) / 32];
+    // bitvector of substitution space features per script, one each
+    // for default and non-default features
+    uint32_t         mDefaultSubSpaceFeatures[(MOZ_NUM_SCRIPT_CODES + 31) / 32];
+    uint32_t         mNonDefaultSubSpaceFeatures[(MOZ_NUM_SCRIPT_CODES + 31) / 32];
 
     uint16_t         mWeight;
     int16_t          mStretch;
@@ -468,6 +469,9 @@ protected:
     friend class gfxSingleFaceMacFontFamily;
 
     gfxFontEntry();
+
+    // Protected destructor, to discourage deletion outside of Release():
+    virtual ~gfxFontEntry();
 
     virtual gfxFont *CreateFontInstance(const gfxFontStyle *aFontStyle, bool aNeedsBold) {
         NS_NOTREACHED("oops, somebody didn't override CreateFontInstance");
@@ -675,10 +679,9 @@ public:
         mHasStyles(false),
         mIsSimpleFamily(false),
         mIsBadUnderlineFamily(false),
-        mFamilyCharacterMapInitialized(false)
+        mFamilyCharacterMapInitialized(false),
+        mSkipDefaultFeatureSpaceCheck(false)
         { }
-
-    virtual ~gfxFontFamily() { }
 
     const nsString& Name() { return mName; }
 
@@ -696,6 +699,7 @@ public:
             aFontEntry->mIgnoreGDEF = true;
         }
         aFontEntry->mFamilyName = Name();
+        aFontEntry->mSkipDefaultFeatureSpaceCheck = mSkipDefaultFeatureSpaceCheck;
         mAvailableFonts.AppendElement(aFontEntry);
     }
 
@@ -797,7 +801,16 @@ public:
         return false;
     }
 
+    void SetSkipSpaceFeatureCheck(bool aSkipCheck) {
+        mSkipDefaultFeatureSpaceCheck = aSkipCheck;
+    }
+
 protected:
+    // Protected destructor, to discourage deletion outside of Release():
+    virtual ~gfxFontFamily()
+    {
+    }
+
     // fills in an array with weights of faces that match style,
     // returns whether any matching entries found
     virtual bool FindWeightsForStyle(gfxFontEntry* aFontsForWeights[],
@@ -827,6 +840,7 @@ protected:
     bool mIsSimpleFamily : 1;
     bool mIsBadUnderlineFamily : 1;
     bool mFamilyCharacterMapInitialized : 1;
+    bool mSkipDefaultFeatureSpaceCheck : 1;
 
     enum {
         // for "simple" families, the faces are stored in mAvailableFonts
@@ -1182,6 +1196,8 @@ public:
         int32_t       mAppUnitsPerDevUnit;
     };
 
+protected:
+    // Protected destructor, to discourage deletion outside of Release():
     virtual ~gfxTextRunFactory() {}
 };
 
@@ -1303,6 +1319,11 @@ private:
     GlyphWidths             mContainedGlyphWidths;
     nsTHashtable<HashEntry> mTightGlyphExtents;
     int32_t                 mAppUnitsPerDevUnit;
+
+private:
+    // not implemented:
+    gfxGlyphExtents(const gfxGlyphExtents& aOther) MOZ_DELETE;
+    gfxGlyphExtents& operator=(const gfxGlyphExtents& aOther) MOZ_DELETE;
 };
 
 /**
@@ -1789,53 +1810,20 @@ public:
         return mFontEntry->TryGetSVGData(this);
     }
 
+    static void DestroySingletons() {
+        delete sScriptTagToCode;
+        delete sDefaultFeatures;
+    }
+
 protected:
     void AddGlyphChangeObserver(GlyphChangeObserver *aObserver);
     void RemoveGlyphChangeObserver(GlyphChangeObserver *aObserver);
 
-    bool HasSubstitutionRulesWithSpaceLookups(int32_t aRunScript) {
-        NS_ASSERTION(GetFontEntry()->mHasSpaceFeaturesInitialized,
-                     "need to initialize space lookup flags");
-        NS_ASSERTION(aRunScript < MOZ_NUM_SCRIPT_CODES, "weird script code");
-        if (aRunScript == MOZ_SCRIPT_INVALID ||
-            aRunScript >= MOZ_NUM_SCRIPT_CODES) {
-            return false;
-        }
-        uint32_t index = aRunScript >> 5;
-        uint32_t bit = aRunScript & 0x1f;
-        return (mFontEntry->mHasSpaceFeaturesSub[index] & (1 << bit)) != 0;
-    }
+    // whether font contains substitution lookups containing spaces
+    bool HasSubstitutionRulesWithSpaceLookups(int32_t aRunScript);
 
-    bool BypassShapedWordCache(int32_t aRunScript) {
-        // We record the presence of space-dependent features in the font entry
-        // so that subsequent instantiations for the same font face won't
-        // require us to re-check the tables; however, the actual check is done
-        // by gfxFont because not all font entry subclasses know how to create
-        // a harfbuzz face for introspection.
-        if (!mFontEntry->mHasSpaceFeaturesInitialized) {
-            CheckForFeaturesInvolvingSpace();
-        }
-
-        if (!mFontEntry->mHasSpaceFeatures) {
-            return false;
-        }
-
-        // if font has substitution rules or non-kerning positioning rules
-        // that involve spaces, bypass
-        if (HasSubstitutionRulesWithSpaceLookups(aRunScript) ||
-            mFontEntry->mHasSpaceFeaturesNonKerning ||
-            mFontEntry->mHasSpaceFeaturesSubDefault) {
-            return true;
-        }
-
-        // if kerning explicitly enabled/disabled via font-feature-settings or
-        // font-kerning and kerning rules use spaces, only bypass when enabled
-        if (mKerningSet && mFontEntry->mHasSpaceFeaturesKerning) {
-            return mKerningEnabled;
-        }
-
-        return false;
-    }
+    // do spaces participate in shaping rules? if so, can't used word cache
+    bool SpaceMayParticipateInShaping(int32_t aRunScript);
 
     // For 8-bit text, expand to 16-bit and then call the following method.
     bool ShapeText(gfxContext    *aContext,
@@ -1899,7 +1887,9 @@ protected:
     // font and the style. aFeatureOn set if resolved feature value is non-zero
     bool HasFeatureSet(uint32_t aFeature, bool& aFeatureOn);
 
+    // used when analyzing whether a font has space contextual lookups
     static nsDataHashtable<nsUint32HashKey, int32_t> *sScriptTagToCode;
+    static nsTHashtable<nsUint32HashKey>             *sDefaultFeatures;
 
     nsRefPtr<gfxFontEntry> mFontEntry;
 
@@ -2851,6 +2841,14 @@ public:
          */
         virtual void GetSpacing(uint32_t aStart, uint32_t aLength,
                                 Spacing *aSpacing) = 0;
+
+        // Returns a gfxContext that can be used to measure the hyphen glyph.
+        // Only called if the hyphen width is requested.
+        virtual already_AddRefed<gfxContext> GetContext() = 0;
+
+        // Return the appUnitsPerDevUnit value to be used when measuring.
+        // Only called if the hyphen width is requested.
+        virtual uint32_t GetAppUnitsPerDevUnit() = 0;
     };
 
     class ClusterIterator {
@@ -3450,7 +3448,7 @@ public:
      * needed to initialize the cached hyphen width; otherwise they are
      * ignored.
      */
-    gfxFloat GetHyphenWidth(gfxContext *aCtx, uint32_t aAppUnitsPerDevUnit);
+    gfxFloat GetHyphenWidth(gfxTextRun::PropertyProvider* aProvider);
 
     /**
      * Make a text run representing a single hyphen character.

@@ -4,13 +4,10 @@
 let cw;
 
 function test() {
+  requestLongerTimeout(2);
   waitForExplicitFinish();
 
   newWindowWithTabView(function(win) {
-    registerCleanupFunction(function() {
-      win.close();
-    });
-
     cw = win.TabView.getContentWindow();
 
     let groupItemOne = cw.GroupItems.groupItems[0];
@@ -22,11 +19,13 @@ function test() {
     let groupItemThree = createGroupItemWithBlankTabs(win, 300, 300, 40, 2);
     is(groupItemThree.getChildren().length, 2, "Group three has 2 tab items");
 
-    testMoreRecentlyUsedGroup(groupItemOne, groupItemTwo, function() {
-      testMoreRecentlyUsedGroup(groupItemOne, groupItemThree, function() {
-        testRemoveGroupAndCheckMoreRecentlyUsedGroup(groupItemOne, groupItemTwo);
+    waitForFocus(() => {
+      testMoreRecentlyUsedGroup(groupItemOne, groupItemTwo, function() {
+        testMoreRecentlyUsedGroup(groupItemOne, groupItemThree, function() {
+          testRemoveGroupAndCheckMoreRecentlyUsedGroup(groupItemOne, groupItemTwo);
+        });
       });
-    });
+    }, cw);
   });
 }
 
@@ -81,7 +80,10 @@ function testRemoveGroupAndCheckMoreRecentlyUsedGroup(groupItemOne, groupItemTwo
     is(groupItemTwo.getActiveTab(), tabItem, "The first item in the group two is still active after group one is closed");
     is(cw.GroupItems.getActiveGroupItem(), groupItemTwo, "The group two is still active after group one is closed");
 
-    finish();
+    promiseWindowClosed(cw.top).then(() => {
+      cw = null;
+      finish();
+    });
   });
   // close the tab item and the group item
   let closeButton = tabItemInGroupItemOne.container.getElementsByClassName("close");
@@ -89,4 +91,3 @@ function testRemoveGroupAndCheckMoreRecentlyUsedGroup(groupItemOne, groupItemTwo
   EventUtils.sendMouseEvent({ type: "mousedown" }, closeButton[0], cw);
   EventUtils.sendMouseEvent({ type: "mouseup" }, closeButton[0], cw);
 }
-

@@ -3,21 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 'use strict';
 
-module.metadata = {
-  engines: {
-    'Firefox': '*'
-  }
-};
-
 const { isTabOpen, activateTab, openTab,
         closeTab, getTabURL, getWindowHoldingTab } = require('sdk/tabs/utils');
 const windows = require('sdk/deprecated/window-utils');
 const { LoaderWithHookedConsole } = require('sdk/test/loader');
 const { setTimeout } = require('sdk/timers');
-const { is } = require('sdk/system/xul-app');
+const app = require("sdk/system/xul-app");
 const tabs = require('sdk/tabs');
 const isAustralis = "gCustomizeMode" in windows.activeBrowserWindow;
-const { set: setPref } = require("sdk/preferences/service");
+const { set: setPref, get: getPref } = require("sdk/preferences/service");
+const { PrefsTarget } = require("sdk/preferences/event-target");
 const { defer } = require('sdk/core/promise');
 
 const DEPRECATE_PREF = "devtools.errorconsole.deprecation_warnings";
@@ -44,20 +39,35 @@ function isChromeVisible(window) {
   return x !== 'true';
 }
 
-exports['test add-on page deprecation message'] = function(assert) {
+// Once Bug 903018 is resolved, just move the application testing to
+// module.metadata.engines
+if (app.is('Firefox')) {
+
+exports['test add-on page deprecation message'] = function(assert, done) {
   let { loader, messages } = LoaderWithHookedConsole(module);
-  loader.require('sdk/addon-page');
+
+  loader.require('sdk/preferences/event-target').PrefsTarget({
+    branchName: "devtools.errorconsole."
+  }).on("deprecation_warnings", function() {
+    if (!getPref(DEPRECATE_PREF, false)) {
+      return undefined;
+    }
+
+    loader.require('sdk/addon-page');
+
+    assert.equal(messages.length, 1, "only one error is dispatched");
+    assert.equal(messages[0].type, "error", "the console message is an error");
+
+    let msg = messages[0].msg;
+    assert.ok(msg.indexOf("DEPRECATED") === 0,
+              "The message is deprecation message");
+
+    loader.unload();
+    done();
+    return undefined;
+  });
+  setPref(DEPRECATE_PREF, false);
   setPref(DEPRECATE_PREF, true);
-
-  assert.equal(messages.length, 1, "only one error is dispatched");
-  assert.equal(messages[0].type, "error", "the console message is an error");
-
-  let msg = messages[0].msg;
-
-  assert.ok(msg.indexOf("DEPRECATED") === 0,
-            "The message is deprecation message");
-
-  loader.unload();
 };
 
 exports['test that add-on page has no chrome'] = function(assert, done) {
@@ -74,7 +84,7 @@ exports['test that add-on page has no chrome'] = function(assert, done) {
   setTimeout(function() {
     activateTab(tab);
 
-    assert.equal(isChromeVisible(window), is('Fennec') || isAustralis,
+    assert.equal(isChromeVisible(window), app.is('Fennec') || isAustralis,
       'chrome is not visible for addon page');
 
     closeTabPromise(tab).then(function() {
@@ -100,7 +110,7 @@ exports['test that add-on page with hash has no chrome'] = function(assert, done
   setTimeout(function() {
     activateTab(tab);
 
-    assert.equal(isChromeVisible(window), is('Fennec') || isAustralis,
+    assert.equal(isChromeVisible(window), app.is('Fennec') || isAustralis,
       'chrome is not visible for addon page');
 
     closeTabPromise(tab).then(function() {
@@ -126,7 +136,7 @@ exports['test that add-on page with querystring has no chrome'] = function(asser
   setTimeout(function() {
     activateTab(tab);
 
-    assert.equal(isChromeVisible(window), is('Fennec') || isAustralis,
+    assert.equal(isChromeVisible(window), app.is('Fennec') || isAustralis,
       'chrome is not visible for addon page');
 
     closeTabPromise(tab).then(function() {
@@ -152,7 +162,7 @@ exports['test that add-on page with hash and querystring has no chrome'] = funct
   setTimeout(function() {
     activateTab(tab);
 
-    assert.equal(isChromeVisible(window), is('Fennec') || isAustralis,
+    assert.equal(isChromeVisible(window), app.is('Fennec') || isAustralis,
       'chrome is not visible for addon page');
 
     closeTabPromise(tab).then(function() {
@@ -184,5 +194,9 @@ exports['test that malformed uri is not an addon-page'] = function(assert, done)
     }).then(null, assert.fail);
   });
 };
+
+} else {
+  exports['test unsupported'] = (assert) => assert.pass('This application is unsupported.');
+}
 
 require('sdk/test/runner').runTestsFromModule(module);

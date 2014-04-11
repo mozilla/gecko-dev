@@ -23,7 +23,6 @@ public:
   virtual ~URLSearchParamsObserver() {}
 
   virtual void URLSearchParamsUpdated() = 0;
-  virtual void URLSearchParamsNeedsUpdates() = 0;
 };
 
 class URLSearchParams MOZ_FINAL : public nsISupports,
@@ -36,11 +35,6 @@ public:
   URLSearchParams();
   ~URLSearchParams();
 
-  bool HasURLAssociated() const
-  {
-    return !!mObserver;
-  }
-
   // WebIDL methods
   nsISupports* GetParentObject() const
   {
@@ -48,7 +42,7 @@ public:
   }
 
   virtual JSObject*
-  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   static already_AddRefed<URLSearchParams>
   Constructor(const GlobalObject& aGlobal, const nsAString& aInit,
@@ -58,18 +52,11 @@ public:
   Constructor(const GlobalObject& aGlobal, URLSearchParams& aInit,
               ErrorResult& aRv);
 
-  void ParseInput(const nsACString& aInput);
+  void ParseInput(const nsACString& aInput,
+                  URLSearchParamsObserver* aObserver);
 
-  void CopyFromURLSearchParams(URLSearchParams& aSearchParams);
-
-  void SetObserver(URLSearchParamsObserver* aObserver);
-
-  void Invalidate();
-
-  bool IsValid() const
-  {
-    return mValid;
-  }
+  void AddObserver(URLSearchParamsObserver* aObserver);
+  void RemoveObserver(URLSearchParamsObserver* aObserver);
 
   void Serialize(nsAString& aValue) const;
 
@@ -87,7 +74,6 @@ public:
 
   void Stringify(nsString& aRetval)
   {
-    Validate();
     Serialize(aRetval);
   }
 
@@ -98,7 +84,7 @@ private:
 
   void DecodeString(const nsACString& aInput, nsACString& aOutput);
 
-  void NotifyObserver();
+  void NotifyObservers(URLSearchParamsObserver* aExceptObserver);
 
   static PLDHashOperator
   CopyEnumerator(const nsAString& aName, nsTArray<nsString>* aArray,
@@ -108,14 +94,9 @@ private:
   SerializeEnumerator(const nsAString& aName, nsTArray<nsString>* aArray,
                       void *userData);
 
-  void
-  Validate();
-
   nsClassHashtable<nsStringHashKey, nsTArray<nsString>> mSearchParams;
 
-  nsRefPtr<URLSearchParamsObserver> mObserver;
-
-  bool mValid;
+  nsTArray<nsRefPtr<URLSearchParamsObserver>> mObservers;
 };
 
 } // namespace dom

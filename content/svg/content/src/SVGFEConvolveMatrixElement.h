@@ -16,7 +16,7 @@
 #include "SVGAnimatedNumberList.h"
 
 nsresult NS_NewSVGFEConvolveMatrixElement(nsIContent **aResult,
-                                          already_AddRefed<nsINodeInfo> aNodeInfo);
+                                          already_AddRefed<nsINodeInfo>&& aNodeInfo);
 
 namespace mozilla {
 class DOMSVGAnimatedNumberList;
@@ -29,14 +29,13 @@ typedef nsSVGFE SVGFEConvolveMatrixElementBase;
 class SVGFEConvolveMatrixElement : public SVGFEConvolveMatrixElementBase
 {
   friend nsresult (::NS_NewSVGFEConvolveMatrixElement(nsIContent **aResult,
-                                                      already_AddRefed<nsINodeInfo> aNodeInfo));
+                                                      already_AddRefed<nsINodeInfo>&& aNodeInfo));
 protected:
-  SVGFEConvolveMatrixElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+  SVGFEConvolveMatrixElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
     : SVGFEConvolveMatrixElementBase(aNodeInfo)
   {
   }
-  virtual JSObject* WrapNode(JSContext* aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext* aCx) MOZ_OVERRIDE;
 
 public:
   virtual FilterPrimitiveDescription

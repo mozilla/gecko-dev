@@ -718,7 +718,7 @@ already_AddRefed<CSSValue>
 nsComputedDOMStyle::GetPropertyCSSValue(const nsAString& aPropertyName, ErrorResult& aRv)
 {
   nsCSSProperty prop = nsCSSProps::LookupProperty(aPropertyName,
-                                                  nsCSSProps::eEnabled);
+                                                  nsCSSProps::eEnabledForAllContent);
 
   bool needsLayoutFlush;
   nsComputedStyleMap::Entry::ComputeMethod getter;
@@ -2272,6 +2272,255 @@ nsComputedDOMStyle::DoGetBackgroundSize()
 }
 
 CSSValue*
+nsComputedDOMStyle::DoGetGridTemplateAreas()
+{
+  const css::GridTemplateAreasValue* areas =
+    StylePosition()->mGridTemplateAreas;
+  if (!areas) {
+    nsROCSSPrimitiveValue *val = new nsROCSSPrimitiveValue;
+    val->SetIdent(eCSSKeyword_none);
+    return val;
+  }
+
+  MOZ_ASSERT(!areas->mTemplates.IsEmpty(),
+             "Unexpected empty array in GridTemplateAreasValue");
+  nsDOMCSSValueList *valueList = GetROCSSValueList(false);
+  for (uint32_t i = 0; i < areas->mTemplates.Length(); i++) {
+    nsAutoString str;
+    nsStyleUtil::AppendEscapedCSSString(areas->mTemplates[i], str);
+    nsROCSSPrimitiveValue *val = new nsROCSSPrimitiveValue;
+    val->SetString(str);
+    valueList->AppendCSSValue(val);
+  }
+  return valueList;
+}
+
+// aLineNames must not be empty
+CSSValue*
+nsComputedDOMStyle::GetGridLineNames(const nsTArray<nsString>& aLineNames)
+{
+  nsROCSSPrimitiveValue *val = new nsROCSSPrimitiveValue;
+  nsAutoString lineNamesString;
+  uint32_t i_end = aLineNames.Length();
+  lineNamesString.AssignLiteral("(");
+  if (i_end > 0) {
+    for (uint32_t i = 0;;) {
+      nsStyleUtil::AppendEscapedCSSIdent(aLineNames[i], lineNamesString);
+      if (++i == i_end) {
+        break;
+      }
+      lineNamesString.AppendLiteral(" ");
+    }
+  }
+  lineNamesString.AppendLiteral(")");
+  val->SetString(lineNamesString);
+  return val;
+}
+
+CSSValue*
+nsComputedDOMStyle::GetGridTrackSize(const nsStyleCoord& aMinValue,
+                                     const nsStyleCoord& aMaxValue)
+{
+  // FIXME bug 978212: for grid-template-columns and grid-template-rows
+  // (not grid-auto-columns and grid-auto-rows), if we have frame,
+  // every <track-size> should be resolved into 'px' here,
+  // based on layout results.
+  if (aMinValue == aMaxValue) {
+    nsROCSSPrimitiveValue *val = new nsROCSSPrimitiveValue;
+    SetValueToCoord(val, aMinValue, true,
+                    nullptr, nsCSSProps::kGridTrackBreadthKTable);
+    return val;
+  }
+
+  nsROCSSPrimitiveValue *val = new nsROCSSPrimitiveValue;
+  nsAutoString argumentStr, minmaxStr;
+  minmaxStr.AppendLiteral("minmax(");
+
+  SetValueToCoord(val, aMinValue, true,
+                  nullptr, nsCSSProps::kGridTrackBreadthKTable);
+  val->GetCssText(argumentStr);
+  minmaxStr.Append(argumentStr);
+
+  minmaxStr.AppendLiteral(", ");
+
+  SetValueToCoord(val, aMaxValue, true,
+                  nullptr, nsCSSProps::kGridTrackBreadthKTable);
+  val->GetCssText(argumentStr);
+  minmaxStr.Append(argumentStr);
+
+  minmaxStr.Append(char16_t(')'));
+  val->SetString(minmaxStr);
+  return val;
+}
+
+CSSValue*
+nsComputedDOMStyle::GetGridTemplateColumnsRows(const nsStyleGridTemplate& aTrackList)
+{
+  if (aTrackList.mIsSubgrid) {
+    NS_ASSERTION(aTrackList.mMinTrackSizingFunctions.IsEmpty() &&
+                 aTrackList.mMaxTrackSizingFunctions.IsEmpty(),
+                 "Unexpected sizing functions with subgrid");
+    nsDOMCSSValueList* valueList = GetROCSSValueList(false);
+
+    nsROCSSPrimitiveValue* subgridKeyword = new nsROCSSPrimitiveValue;
+    subgridKeyword->SetIdent(eCSSKeyword_subgrid);
+    valueList->AppendCSSValue(subgridKeyword);
+
+    for (uint32_t i = 0; i < aTrackList.mLineNameLists.Length(); i++) {
+      valueList->AppendCSSValue(GetGridLineNames(aTrackList.mLineNameLists[i]));
+    }
+    return valueList;
+  }
+
+  uint32_t numSizes = aTrackList.mMinTrackSizingFunctions.Length();
+  MOZ_ASSERT(aTrackList.mMaxTrackSizingFunctions.Length() == numSizes,
+             "Different number of min and max track sizing functions");
+  // An empty <track-list> is represented as "none" in syntax.
+  if (numSizes == 0) {
+    nsROCSSPrimitiveValue* val = new nsROCSSPrimitiveValue;
+    val->SetIdent(eCSSKeyword_none);
+    return val;
+  }
+
+  nsDOMCSSValueList* valueList = GetROCSSValueList(false);
+  // Delimiting N tracks requires N+1 lines:
+  // one before each track, plus one at the very end.
+  MOZ_ASSERT(aTrackList.mLineNameLists.Length() == numSizes + 1,
+             "Unexpected number of line name lists");
+  for (uint32_t i = 0;; i++) {
+    const nsTArray<nsString>& lineNames = aTrackList.mLineNameLists[i];
+    if (!lineNames.IsEmpty()) {
+      valueList->AppendCSSValue(GetGridLineNames(lineNames));
+    }
+    if (i == numSizes) {
+      break;
+    }
+    valueList->AppendCSSValue(GetGridTrackSize(aTrackList.mMinTrackSizingFunctions[i],
+                                               aTrackList.mMaxTrackSizingFunctions[i]));
+  }
+
+  return valueList;
+}
+
+CSSValue*
+nsComputedDOMStyle::DoGetGridAutoFlow()
+{
+  nsAutoString str;
+  nsStyleUtil::AppendBitmaskCSSValue(eCSSProperty_grid_auto_flow,
+                                     StylePosition()->mGridAutoFlow,
+                                     NS_STYLE_GRID_AUTO_FLOW_NONE,
+                                     NS_STYLE_GRID_AUTO_FLOW_DENSE,
+                                     str);
+  nsROCSSPrimitiveValue* val = new nsROCSSPrimitiveValue;
+  val->SetString(str);
+  return val;
+}
+
+CSSValue*
+nsComputedDOMStyle::DoGetGridAutoColumns()
+{
+  return GetGridTrackSize(StylePosition()->mGridAutoColumnsMin,
+                          StylePosition()->mGridAutoColumnsMax);
+}
+
+CSSValue*
+nsComputedDOMStyle::DoGetGridAutoRows()
+{
+  return GetGridTrackSize(StylePosition()->mGridAutoRowsMin,
+                          StylePosition()->mGridAutoRowsMax);
+}
+
+CSSValue*
+nsComputedDOMStyle::DoGetGridTemplateColumns()
+{
+  return GetGridTemplateColumnsRows(StylePosition()->mGridTemplateColumns);
+}
+
+CSSValue*
+nsComputedDOMStyle::DoGetGridTemplateRows()
+{
+  return GetGridTemplateColumnsRows(StylePosition()->mGridTemplateRows);
+}
+
+CSSValue*
+nsComputedDOMStyle::GetGridLine(const nsStyleGridLine& aGridLine)
+{
+  if (aGridLine.IsAuto()) {
+    nsROCSSPrimitiveValue* val = new nsROCSSPrimitiveValue;
+    val->SetIdent(eCSSKeyword_auto);
+    return val;
+  }
+
+  nsDOMCSSValueList* valueList = GetROCSSValueList(false);
+
+  if (aGridLine.mHasSpan) {
+    nsROCSSPrimitiveValue* span = new nsROCSSPrimitiveValue;
+    span->SetIdent(eCSSKeyword_span);
+    valueList->AppendCSSValue(span);
+  }
+
+  if (aGridLine.mInteger != 0) {
+    nsROCSSPrimitiveValue* integer = new nsROCSSPrimitiveValue;
+    integer->SetNumber(aGridLine.mInteger);
+    valueList->AppendCSSValue(integer);
+  }
+
+  if (!aGridLine.mLineName.IsEmpty()) {
+    nsROCSSPrimitiveValue* lineName = new nsROCSSPrimitiveValue;
+    nsString escapedLineName;
+    nsStyleUtil::AppendEscapedCSSIdent(aGridLine.mLineName, escapedLineName);
+    lineName->SetString(escapedLineName);
+    valueList->AppendCSSValue(lineName);
+  }
+
+  NS_ASSERTION(valueList->Length() > 0,
+               "Should have appended at least one value");
+  return valueList;
+}
+
+CSSValue*
+nsComputedDOMStyle::DoGetGridAutoPosition()
+{
+  nsDOMCSSValueList* valueList = GetROCSSValueList(false);
+
+  valueList->AppendCSSValue(
+    GetGridLine(StylePosition()->mGridAutoPositionColumn));
+
+  nsROCSSPrimitiveValue* slash = new nsROCSSPrimitiveValue;
+  slash->SetString(NS_LITERAL_STRING("/"));
+  valueList->AppendCSSValue(slash);
+
+  valueList->AppendCSSValue(
+    GetGridLine(StylePosition()->mGridAutoPositionRow));
+
+  return valueList;
+}
+
+CSSValue*
+nsComputedDOMStyle::DoGetGridColumnStart()
+{
+  return GetGridLine(StylePosition()->mGridColumnStart);
+}
+
+CSSValue*
+nsComputedDOMStyle::DoGetGridColumnEnd()
+{
+  return GetGridLine(StylePosition()->mGridColumnEnd);
+}
+
+CSSValue*
+nsComputedDOMStyle::DoGetGridRowStart()
+{
+  return GetGridLine(StylePosition()->mGridRowStart);
+}
+
+CSSValue*
+nsComputedDOMStyle::DoGetGridRowEnd()
+{
+  return GetGridLine(StylePosition()->mGridRowEnd);
+}
+
+CSSValue*
 nsComputedDOMStyle::DoGetPaddingTop()
 {
   return GetPaddingWidthFor(NS_SIDE_TOP);
@@ -2899,8 +3148,6 @@ nsComputedDOMStyle::DoGetTextCombineHorizontal()
 CSSValue*
 nsComputedDOMStyle::DoGetTextDecoration()
 {
-  nsROCSSPrimitiveValue* val = new nsROCSSPrimitiveValue;
-
   const nsStyleTextReset* textReset = StyleTextReset();
 
   // If decoration style or color wasn't initial value, the author knew the
@@ -2921,6 +3168,7 @@ nsComputedDOMStyle::DoGetTextDecoration()
   // i.e., text-decoration was assumed as a longhand property.  In that case,
   // we should return computed value same as CSS 2.1 for backward compatibility.
 
+  nsROCSSPrimitiveValue* val = new nsROCSSPrimitiveValue;
   uint8_t line = textReset->mTextDecorationLine;
   // Clear the -moz-anchor-decoration bit and the OVERRIDE_ALL bits -- we
   // don't want these to appear in the computed style.
@@ -4190,7 +4438,7 @@ nsComputedDOMStyle::GetLineHeightCoord(nscoord& aCoord)
 
   // lie about font size inflation since we lie about font size (since
   // the inflation only applies to text)
-  aCoord = nsHTMLReflowState::CalcLineHeight(mStyleContextHolder,
+  aCoord = nsHTMLReflowState::CalcLineHeight(mContent, mStyleContextHolder,
                                              blockHeight, 1.0f);
 
   // CalcLineHeight uses font->mFont.size, but we want to use
@@ -4401,6 +4649,14 @@ nsComputedDOMStyle::SetValueToCoord(nsROCSSPrimitiveValue* aValue,
     case eStyleUnit_Turn:
       aValue->SetTurn(aCoord.GetAngleValue());
       break;
+
+    case eStyleUnit_FlexFraction: {
+      nsAutoString tmpStr;
+      nsStyleUtil::AppendCSSNumber(aCoord.GetFlexFractionValue(), tmpStr);
+      tmpStr.AppendLiteral("fr");
+      aValue->SetString(tmpStr);
+      break;
+    }
 
     default:
       NS_ERROR("Can't handle this unit");
@@ -5340,7 +5596,8 @@ nsComputedDOMStyle::DoGetCustomProperty(const nsAString& aPropertyName)
   const nsStyleVariables* variables = StyleVariables();
 
   nsString variableValue;
-  const nsAString& name = Substring(aPropertyName, 4);
+  const nsAString& name = Substring(aPropertyName,
+                                    CSS_CUSTOM_NAME_PREFIX_LENGTH);
   if (!variables->mVariables.Get(name, variableValue)) {
     return nullptr;
   }

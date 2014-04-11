@@ -153,51 +153,6 @@ class nsObjectHashtable : public nsHashtable {
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-// nsISupportsKey: Where keys are nsISupports objects that get refcounted.
-
-class nsISupportsKey : public nsHashKey {
-  protected:
-    nsISupports* mKey;
-
-  public:
-    nsISupportsKey(const nsISupportsKey& aKey) : mKey(aKey.mKey) {
-#ifdef DEBUG
-        mKeyType = SupportsKey;
-#endif
-        NS_IF_ADDREF(mKey);
-    }
-
-    nsISupportsKey(nsISupports* key) {
-#ifdef DEBUG
-        mKeyType = SupportsKey;
-#endif
-        mKey = key;
-        NS_IF_ADDREF(mKey);
-    }
-
-    ~nsISupportsKey(void) {
-        NS_IF_RELEASE(mKey);
-    }
-
-    uint32_t HashCode(void) const {
-        return NS_PTR_TO_INT32(mKey);
-    }
-
-    bool Equals(const nsHashKey *aKey) const {
-        NS_ASSERTION(aKey->GetKeyType() == SupportsKey, "mismatched key types");
-        return (mKey == ((nsISupportsKey *) aKey)->mKey);
-    }
-
-    nsHashKey *Clone() const {
-        return new nsISupportsKey(mKey);
-    }
-
-    nsISupportsKey(nsIObjectInputStream* aStream, nsresult *aResult);
-    nsresult Write(nsIObjectOutputStream* aStream) const;
-
-    nsISupports* GetValue() { return mKey; }
-};
-
 
 class nsPRUint32Key : public nsHashKey {
 protected:
@@ -253,40 +208,6 @@ class nsCStringKey : public nsHashKey {
 
   protected:
     char*       mStr;
-    uint32_t    mStrLen;
-    Ownership   mOwnership;
-};
-
-// for null-terminated unicode strings
-class nsStringKey : public nsHashKey {
-  public:
-
-    // NB: when serializing, NEVER_OWN keys are deserialized as OWN.
-    enum Ownership {
-        NEVER_OWN,  // very long lived, even clones don't need to copy it.
-        OWN_CLONE,  // as long lived as this key. But clones make a copy.
-        OWN         // to be free'd in key dtor. Clones make their own copy.
-    };
-
-    nsStringKey(const nsStringKey& aKey);
-    nsStringKey(const char16_t* str, int32_t strLen = -1, Ownership own = OWN_CLONE);
-    nsStringKey(const nsAFlatString& str);
-    nsStringKey(const nsAString& str);
-    ~nsStringKey(void);
-
-    uint32_t HashCode(void) const;
-    bool Equals(const nsHashKey* aKey) const;
-    nsHashKey* Clone() const;
-    nsStringKey(nsIObjectInputStream* aStream, nsresult *aResult);
-    nsresult Write(nsIObjectOutputStream* aStream) const;
-
-    // For when the owner of the hashtable wants to peek at the actual
-    // string in the key. No copy is made, so be careful.
-    const char16_t* GetString() const { return mStr; }
-    uint32_t GetStringLength() const { return mStrLen; }
-
-  protected:
-    char16_t*  mStr;
     uint32_t    mStrLen;
     Ownership   mOwnership;
 };

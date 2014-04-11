@@ -22,7 +22,7 @@ class HTMLFrameElement MOZ_FINAL : public nsGenericHTMLFrameElement,
 public:
   using nsGenericHTMLFrameElement::SwapFrameLoaders;
 
-  HTMLFrameElement(already_AddRefed<nsINodeInfo> aNodeInfo,
+  HTMLFrameElement(already_AddRefed<nsINodeInfo>& aNodeInfo,
                    FromParser aFromParser = NOT_FROM_PARSER);
   virtual ~HTMLFrameElement();
 
@@ -95,8 +95,7 @@ public:
   using nsGenericHTMLFrameElement::GetContentWindow;
 
 protected:
-  virtual JSObject* WrapNode(JSContext* aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext* aCx) MOZ_OVERRIDE;
 
 private:
   static void MapAttributesIntoRule(const nsMappedAttributes* aAttributes,

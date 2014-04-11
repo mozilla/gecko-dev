@@ -14,10 +14,10 @@
 #include "nsIOfflineStorage.h"
 
 #include "mozilla/Attributes.h"
+#include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/dom/IDBObjectStoreBinding.h"
 #include "mozilla/dom/IDBTransactionBinding.h"
 #include "mozilla/dom/quota/PersistenceType.h"
-#include "nsDOMEventTargetHelper.h"
 
 #include "mozilla/dom/indexedDB/FileManager.h"
 #include "mozilla/dom/indexedDB/IDBRequest.h"
@@ -27,6 +27,7 @@ class nsIScriptContext;
 class nsPIDOMWindow;
 
 namespace mozilla {
+class EventChainPostVisitor;
 namespace dom {
 class ContentParent;
 namespace quota {
@@ -53,6 +54,7 @@ class IDBDatabase : public IDBWrapperCache,
 {
   friend class AsyncConnectionHelper;
   friend class IndexedDatabaseManager;
+  friend class IndexedDBDatabaseParent;
   friend class IndexedDBDatabaseChild;
 
 public:
@@ -81,7 +83,8 @@ public:
   }
 
   // nsIDOMEventTarget
-  virtual nsresult PostHandleEvent(nsEventChainPostVisitor& aVisitor) MOZ_OVERRIDE;
+  virtual nsresult PostHandleEvent(
+                     EventChainPostVisitor& aVisitor) MOZ_OVERRIDE;
 
   DatabaseInfo* Info() const
   {
@@ -170,7 +173,7 @@ public:
 
   // nsWrapperCache
   virtual JSObject*
-  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   // WebIDL
   nsPIDOMWindow*
@@ -234,6 +237,7 @@ private:
   ~IDBDatabase();
 
   void OnUnlink();
+  void InvalidateInternal(bool aIsDead);
 
   // The factory must be kept alive when IndexedDB is used in multiple
   // processes. If it dies then the entire actor tree will be destroyed with it

@@ -167,8 +167,8 @@ protected:
   // audio queue. Returns true when there's more audio to decode,
   // false if the audio is finished, end of file has been reached,
   // or an un-recoverable read error has occured. The reader's monitor
-  // must be held during this call. This function will free the packet
-  // so the caller must not use the packet after calling.
+  // must be held during this call. The caller is responsible for freeing
+  // aPacket.
   bool DecodeAudioPacket(nestegg_packet* aPacket, int64_t aOffset);
 
   // Release context and set to null. Called when an error occurs during
@@ -229,15 +229,14 @@ private:
   // Picture region, as relative to the initial frame size.
   nsIntRect mPicture;
 
-  // Booleans to indicate if we have audio and/or video data
-  bool mHasVideo;
-  bool mHasAudio;
-
   // Codec ID of audio track
   int mAudioCodec;
   // Codec ID of video track
   int mVideoCodec;
 
+  // Booleans to indicate if we have audio and/or video data
+  bool mHasVideo;
+  bool mHasAudio;
 };
 
 } // namespace mozilla

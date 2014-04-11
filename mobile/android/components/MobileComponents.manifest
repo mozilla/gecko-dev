@@ -27,8 +27,6 @@ category xpcom-directory-providers browser-directory-provider @mozilla.org/brows
 # Sidebar.js
 component {22117140-9c6e-11d3-aaf1-00805f8a4905} Sidebar.js
 contract @mozilla.org/sidebar;1 {22117140-9c6e-11d3-aaf1-00805f8a4905}
-category JavaScript-global-property sidebar @mozilla.org/sidebar;1
-category JavaScript-global-property external @mozilla.org/sidebar;1
 category wakeup-request Sidebar @mozilla.org/sidebar;1,nsISidebarExternal,getService,Sidebar:AddSearchProvider
 
 # SessionStore.js
@@ -100,16 +98,22 @@ contract @mozilla.org/payment/ui-glue;1 {3c6c9575-f57e-427b-a8aa-57bc3cbff48f}
 component {18a4e042-7c7c-424b-a583-354e68553a7f} FilePicker.js
 contract @mozilla.org/filepicker;1 {18a4e042-7c7c-424b-a583-354e68553a7f}
 
+# TabSource.js
+component {5850c76e-b916-4218-b99a-31f004e0a7e7} TabSource.js
+contract @mozilla.org/tab-source-service;1 {5850c76e-b916-4218-b99a-31f004e0a7e7}
+
 # Snippets.js
 component {a78d7e59-b558-4321-a3d6-dffe2f1e76dd} Snippets.js
 contract @mozilla.org/snippets;1 {a78d7e59-b558-4321-a3d6-dffe2f1e76dd}
 category profile-after-change Snippets @mozilla.org/snippets;1
 category update-timer Snippets @mozilla.org/snippets;1,getService,snippets-update-timer,browser.snippets.updateInterval,86400
 
+#ifdef MOZ_ANDROID_SYNTHAPKS
 # WebappsUpdateTimer.js
 component {8f7002cb-e959-4f0a-a2e8-563232564385} WebappsUpdateTimer.js
-contract @mozilla.org/b2g/webapps-update-timer;1 {8f7002cb-e959-4f0a-a2e8-563232564385}
-category update-timer WebappsUpdateTimer @mozilla.org/b2g/webapps-update-timer;1,getService,background-update-timer,browser.webapps.updateInterval,86400
+contract @mozilla.org/webapps-update-timer;1 {8f7002cb-e959-4f0a-a2e8-563232564385}
+category update-timer WebappsUpdateTimer @mozilla.org/webapps-update-timer;1,getService,webapp-background-update-timer,browser.webapps.updateInterval,86400
+#endif
 
 # ColorPicker.js
 component {430b987f-bb9f-46a3-99a5-241749220b29} ColorPicker.js

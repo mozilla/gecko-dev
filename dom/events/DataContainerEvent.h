@@ -6,15 +6,15 @@
 #ifndef mozilla_dom_DataContainerEvent_h_
 #define mozilla_dom_DataContainerEvent_h_
 
-#include "nsIDOMDataContainerEvent.h"
-#include "nsDOMEvent.h"
-#include "nsInterfaceHashtable.h"
 #include "mozilla/dom/DataContainerEventBinding.h"
+#include "mozilla/dom/Event.h"
+#include "nsIDOMDataContainerEvent.h"
+#include "nsInterfaceHashtable.h"
 
 namespace mozilla {
 namespace dom {
 
-class DataContainerEvent : public nsDOMEvent,
+class DataContainerEvent : public Event,
                            public nsIDOMDataContainerEvent
 {
 public:
@@ -24,16 +24,16 @@ public:
 
   NS_DECL_ISUPPORTS_INHERITED
 
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(DataContainerEvent, nsDOMEvent)
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(DataContainerEvent, Event)
 
-  NS_FORWARD_TO_NSDOMEVENT
+  NS_FORWARD_TO_EVENT
 
   NS_DECL_NSIDOMDATACONTAINEREVENT
 
   virtual JSObject*
-  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope) MOZ_OVERRIDE
+  WrapObject(JSContext* aCx) MOZ_OVERRIDE
   {
-    return DataContainerEventBinding::Wrap(aCx, aScope, this);
+    return DataContainerEventBinding::Wrap(aCx, this);
   }
 
   already_AddRefed<nsIVariant> GetData(const nsAString& aKey)

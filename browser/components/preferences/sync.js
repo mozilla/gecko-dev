@@ -134,11 +134,14 @@ let gSyncPane = {
         // So we think we are logged in, so login problems are next.
         // (Although if the Sync identity manager is still initializing, we
         // ignore login errors and assume all will eventually be good.)
-        } else if (Weave.Service.identity.readyToAuthenticate &&
-                   Weave.Status.login != Weave.LOGIN_SUCCEEDED) {
+        // LOGIN_FAILED_LOGIN_REJECTED explicitly means "you must log back in".
+        // All other login failures are assumed to be transient and should go
+        // away by themselves, so aren't reflected here.
+        } else if (Weave.Status.login == Weave.LOGIN_FAILED_LOGIN_REJECTED) {
           fxaLoginStatus.selectedIndex = FXA_LOGIN_FAILED;
           enginesListDisabled = true;
-        // Else we must be golden!
+        // Else we must be golden (or in an error state we expect to magically
+        // resolve itself)
         } else {
           fxaLoginStatus.selectedIndex = FXA_LOGIN_VERIFIED;
           enginesListDisabled = false;
@@ -147,13 +150,21 @@ let gSyncPane = {
         document.getElementById("fxaEmailAddress2").textContent = data.email;
         document.getElementById("fxaEmailAddress3").textContent = data.email;
         document.getElementById("fxaSyncComputerName").value = Weave.Service.clientsEngine.localName;
-        let enginesList = document.getElementById("fxaSyncEnginesList")
-        enginesList.disabled = enginesListDisabled;
-        // *sigh* - disabling the <richlistbox> draws each item as if it is disabled,
-        // but doesn't disable the checkboxes.
-        for (let checkbox of enginesList.querySelectorAll("checkbox")) {
+        let engines = document.getElementById("fxaSyncEngines")
+        for (let checkbox of engines.querySelectorAll("checkbox")) {
           checkbox.disabled = enginesListDisabled;
         }
+
+        let checkbox = document.getElementById("fxa-pweng-chk");
+        let help = document.getElementById("fxa-pweng-help");
+        let allowPasswordsEngine = service.allowPasswordsEngine;
+
+        if (!allowPasswordsEngine) {
+          checkbox.checked = false;
+        }
+
+        checkbox.disabled = !allowPasswordsEngine;
+        help.hidden = allowPasswordsEngine;
       });
     // If fxAccountEnabled is false and we are in a "not configured" state,
     // then fxAccounts is probably fully disabled rather than just unconfigured,

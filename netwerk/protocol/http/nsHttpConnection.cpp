@@ -30,6 +30,7 @@
 #include "nsISupportsPriority.h"
 #include "nsHttpPipeline.h"
 #include <algorithm>
+#include "mozilla/ChaosMode.h"
 
 #ifdef DEBUG
 // defined by the socket transport service while active
@@ -1432,6 +1433,11 @@ nsHttpConnection::OnWriteSegment(char *buf,
         return NS_ERROR_FAILURE; // stop iterating
     }
 
+    if (ChaosMode::isActive() && ChaosMode::randomUint32LessThan(2)) {
+        // read 1...count bytes
+        count = ChaosMode::randomUint32LessThan(count) + 1;
+    }
+
     nsresult rv = mSocketIn->Read(buf, count, countWritten);
     if (NS_FAILED(rv))
         mSocketInCondition = rv;
@@ -1571,7 +1577,7 @@ nsHttpConnection::SetupProxyConnect()
 
     // CONNECT host:port HTTP/1.1
     nsHttpRequestHead request;
-    request.SetMethod(nsHttp::Connect);
+    request.SetMethod(NS_LITERAL_CSTRING("CONNECT"));
     request.SetVersion(gHttpHandler->HttpVersion());
     request.SetRequestURI(buf);
     request.SetHeader(nsHttp::User_Agent, gHttpHandler->UserAgent());

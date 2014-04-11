@@ -57,10 +57,10 @@ class PStorageParent;
 class ClonedMessageData;
 class MemoryReport;
 class TabContext;
+class PFileDescriptorSetParent;
 
 class ContentParent : public PContentParent
                     , public nsIObserver
-                    , public nsIThreadObserver
                     , public nsIDOMGeoPositionCallback
                     , public mozilla::dom::ipc::MessageManagerCallback
                     , public mozilla::LinkedListElement<ContentParent>
@@ -112,9 +112,10 @@ public:
     static void GetAll(nsTArray<ContentParent*>& aArray);
     static void GetAllEvenIfDead(nsTArray<ContentParent*>& aArray);
 
-    NS_DECL_THREADSAFE_ISUPPORTS
+    NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(ContentParent, nsIObserver)
+
+    NS_DECL_CYCLE_COLLECTING_ISUPPORTS
     NS_DECL_NSIOBSERVER
-    NS_DECL_NSITHREADOBSERVER
     NS_DECL_NSIDOMGEOPOSITIONCALLBACK
 
     /**
@@ -244,7 +245,6 @@ private:
     // if it's dead), this returns false.
     static already_AddRefed<ContentParent>
     MaybeTakePreallocatedAppProcess(const nsAString& aAppManifestURL,
-                                    ChildPrivileges aPrivs,
                                     hal::ProcessPriority aInitialPriority);
 
     static hal::ProcessPriority GetInitialProcessPriority(Element* aFrameElement);
@@ -259,7 +259,6 @@ private:
     ContentParent(mozIApplication* aApp,
                   bool aIsForBrowser,
                   bool aIsForPreallocated,
-                  ChildPrivileges aOSPrivileges = base::PRIVILEGES_DEFAULT,
                   hal::ProcessPriority aInitialPriority = hal::PROCESS_PRIORITY_FOREGROUND,
                   bool aIsNuwaProcess = false);
 
@@ -267,8 +266,7 @@ private:
     ContentParent(ContentParent* aTemplate,
                   const nsAString& aAppManifestURL,
                   base::ProcessHandle aPid,
-                  const nsTArray<ProtocolFdMapping>& aFds,
-                  ChildPrivileges aOSPrivileges = base::PRIVILEGES_DEFAULT);
+                  const nsTArray<ProtocolFdMapping>& aFds);
 #endif
 
     // The common initialization for the constructors.
@@ -296,10 +294,12 @@ private:
     bool SetPriorityAndCheckIsAlive(hal::ProcessPriority aPriority);
 
     // Transform a pre-allocated app process into a "real" app
-    // process, for the specified manifest URL.  If this returns false, the
-    // child process has died.
-    bool TransformPreallocatedIntoApp(const nsAString& aAppManifestURL,
-                                      ChildPrivileges aPrivs);
+    // process, for the specified manifest URL.
+    void TransformPreallocatedIntoApp(const nsAString& aAppManifestURL);
+
+    // Transform a pre-allocated app process into a browser process. If this
+    // returns false, the child process has died.
+    void TransformPreallocatedIntoBrowser();
 
     /**
      * Mark this ContentParent as dead for the purposes of Get*().
@@ -346,6 +346,12 @@ private:
     AllocPDeviceStorageRequestParent(const DeviceStorageParams&) MOZ_OVERRIDE;
     virtual bool DeallocPDeviceStorageRequestParent(PDeviceStorageRequestParent*) MOZ_OVERRIDE;
 
+    virtual PFileSystemRequestParent*
+    AllocPFileSystemRequestParent(const FileSystemParams&) MOZ_OVERRIDE;
+
+    virtual bool
+    DeallocPFileSystemRequestParent(PFileSystemRequestParent*) MOZ_OVERRIDE;
+
     virtual PBlobParent* AllocPBlobParent(const BlobConstructorParams& aParams) MOZ_OVERRIDE;
     virtual bool DeallocPBlobParent(PBlobParent*) MOZ_OVERRIDE;
 
@@ -359,7 +365,9 @@ private:
     virtual bool DeallocPIndexedDBParent(PIndexedDBParent* aActor) MOZ_OVERRIDE;
 
     virtual PMemoryReportRequestParent*
-    AllocPMemoryReportRequestParent(const uint32_t& generation) MOZ_OVERRIDE;
+    AllocPMemoryReportRequestParent(const uint32_t& generation,
+                                    const bool &minimizeMemoryUsage,
+                                    const nsString &aDMDDumpIdent) MOZ_OVERRIDE;
     virtual bool DeallocPMemoryReportRequestParent(PMemoryReportRequestParent* actor) MOZ_OVERRIDE;
 
     virtual PTestShellParent* AllocPTestShellParent() MOZ_OVERRIDE;
@@ -532,12 +540,17 @@ private:
     virtual bool
     RecvBackUpXResources(const FileDescriptor& aXSocketFd) MOZ_OVERRIDE;
 
+    virtual PFileDescriptorSetParent*
+    AllocPFileDescriptorSetParent(const mozilla::ipc::FileDescriptor&) MOZ_OVERRIDE;
+
+    virtual bool
+    DeallocPFileDescriptorSetParent(PFileDescriptorSetParent*) MOZ_OVERRIDE;
+
     // If you add strong pointers to cycle collected objects here, be sure to
     // release these objects in ShutDownProcess.  See the comment there for more
     // details.
 
     GeckoChildProcessHost* mSubprocess;
-    base::ChildPrivileges mOSPrivileges;
 
     uint64_t mChildID;
     int32_t mGeolocationWatchID;
@@ -583,7 +596,7 @@ private:
     nsRefPtr<nsConsoleService>  mConsoleService;
     nsConsoleService* GetConsoleService();
 
-    nsDataHashtable<nsUint64HashKey, nsCOMPtr<ParentIdleListener> > mIdleListeners;
+    nsDataHashtable<nsUint64HashKey, nsRefPtr<ParentIdleListener> > mIdleListeners;
 
 #ifdef MOZ_X11
     // Dup of child's X socket, used to scope its resources to this

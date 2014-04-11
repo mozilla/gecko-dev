@@ -4,18 +4,19 @@
 
 package org.mozilla.gecko.tests.helpers;
 
-import static org.mozilla.gecko.tests.helpers.AssertionHelper.*;
+import static org.mozilla.gecko.tests.helpers.AssertionHelper.fAssertNotNull;
+import static org.mozilla.gecko.tests.helpers.AssertionHelper.fAssertTrue;
+
+import java.util.regex.Pattern;
 
 import org.mozilla.gecko.Actions;
 import org.mozilla.gecko.Actions.EventExpecter;
-import org.mozilla.gecko.tests.components.ToolbarComponent;
 import org.mozilla.gecko.tests.UITestContext;
 import org.mozilla.gecko.tests.UITestContext.ComponentType;
+import org.mozilla.gecko.tests.components.ToolbarComponent;
 
 import com.jayway.android.robotium.solo.Condition;
 import com.jayway.android.robotium.solo.Solo;
-
-import java.util.regex.Pattern;
 
 /**
  * Provides functionality related to waiting on certain events to happen.
@@ -54,7 +55,7 @@ public final class WaitHelper {
      */
     public static void waitFor(String message, final Condition condition) {
         message = "Waiting for " + message + ".";
-        assertTrue(message, sSolo.waitForCondition(condition, DEFAULT_MAX_WAIT_MS));
+        fAssertTrue(message, sSolo.waitForCondition(condition, DEFAULT_MAX_WAIT_MS));
     }
 
     /**
@@ -63,7 +64,7 @@ public final class WaitHelper {
      */
     public static void waitFor(String message, final Condition condition, final int waitMillis) {
         message = "Waiting for " + message + " with timeout " + waitMillis + ".";
-        assertTrue(message, sSolo.waitForCondition(condition, waitMillis));
+        fAssertTrue(message, sSolo.waitForCondition(condition, waitMillis));
     }
 
     /**
@@ -71,7 +72,7 @@ public final class WaitHelper {
      * that will perform the action that will cause the page to load.
      */
     public static void waitForPageLoad(final Runnable initiatingAction) {
-        assertNotNull("initiatingAction is not null", initiatingAction);
+        fAssertNotNull("initiatingAction is not null", initiatingAction);
 
         // Some changes to the UI occur in response to the same event we listen to for when
         // the page has finished loading (e.g. a page title update). As such, we ensure this

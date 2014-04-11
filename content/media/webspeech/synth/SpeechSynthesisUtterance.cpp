@@ -19,18 +19,18 @@ namespace mozilla {
 namespace dom {
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED_1(SpeechSynthesisUtterance,
-                                     nsDOMEventTargetHelper, mVoice);
+                                     DOMEventTargetHelper, mVoice);
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(SpeechSynthesisUtterance)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
-NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetHelper)
+NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
-NS_IMPL_ADDREF_INHERITED(SpeechSynthesisUtterance, nsDOMEventTargetHelper)
-NS_IMPL_RELEASE_INHERITED(SpeechSynthesisUtterance, nsDOMEventTargetHelper)
+NS_IMPL_ADDREF_INHERITED(SpeechSynthesisUtterance, DOMEventTargetHelper)
+NS_IMPL_RELEASE_INHERITED(SpeechSynthesisUtterance, DOMEventTargetHelper)
 
 SpeechSynthesisUtterance::SpeechSynthesisUtterance(nsPIDOMWindow* aOwnerWindow,
                                                    const nsAString& text)
-  : nsDOMEventTargetHelper(aOwnerWindow)
+  : DOMEventTargetHelper(aOwnerWindow)
   , mText(text)
   , mVolume(1)
   , mRate(1)
@@ -44,10 +44,9 @@ SpeechSynthesisUtterance::SpeechSynthesisUtterance(nsPIDOMWindow* aOwnerWindow,
 SpeechSynthesisUtterance::~SpeechSynthesisUtterance() {}
 
 JSObject*
-SpeechSynthesisUtterance::WrapObject(JSContext* aCx,
-                                     JS::Handle<JSObject*> aScope)
+SpeechSynthesisUtterance::WrapObject(JSContext* aCx)
 {
-  return SpeechSynthesisUtteranceBinding::Wrap(aCx, aScope, this);
+  return SpeechSynthesisUtteranceBinding::Wrap(aCx, this);
 }
 
 nsISupports*

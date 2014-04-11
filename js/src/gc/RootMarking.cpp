@@ -62,7 +62,6 @@ MarkExactStackRoot(JSTracer *trc, Rooted<void*> *rooter, ThingRootKind kind)
       case THING_ROOT_JIT_CODE:    MarkJitCodeRoot(trc, (jit::JitCode **)addr, "exact-jitcode"); break;
       case THING_ROOT_VALUE:       MarkValueRoot(trc, (Value *)addr, "exact-value"); break;
       case THING_ROOT_ID:          MarkIdRoot(trc, (jsid *)addr, "exact-id"); break;
-      case THING_ROOT_PROPERTY_ID: MarkIdRoot(trc, &((js::PropertyId *)addr)->asId(), "exact-propertyid"); break;
       case THING_ROOT_BINDINGS:    ((Bindings *)addr)->trace(trc); break;
       case THING_ROOT_PROPERTY_DESCRIPTOR: ((JSPropertyDescriptor *)addr)->trace(trc); break;
       case THING_ROOT_CUSTOM: {
@@ -186,21 +185,6 @@ IsAddressableGCThing(JSRuntime *rt, uintptr_t w,
         *thingKindPtr = thingKind;
     return CGCT_VALID;
 }
-
-#ifdef JSGC_ROOT_ANALYSIS
-void *
-js::gc::GetAddressableGCThing(JSRuntime *rt, uintptr_t w)
-{
-    void *thing;
-    ArenaHeader *aheader;
-    AllocKind thingKind;
-    ConservativeGCTest status =
-        IsAddressableGCThing(rt, w, false, &thingKind, &aheader, &thing);
-    if (status != CGCT_VALID)
-        return nullptr;
-    return thing;
-}
-#endif
 
 /*
  * Returns CGCT_VALID and mark it if the w can be a  live GC thing and sets
@@ -330,7 +314,7 @@ MarkConservativeStackRoots(JSTracer *trc, bool useSavedRoots)
 
     uintptr_t *stackMin, *stackEnd;
 #if JS_STACK_GROWTH_DIRECTION > 0
-    stackMin = rt->nativeStackBase;
+    stackMin = reinterpret_cast<uintptr_t *>(rt->nativeStackBase);
     stackEnd = cgcd->nativeStackTop;
 #else
     stackMin = cgcd->nativeStackTop + 1;
@@ -795,7 +779,7 @@ js::gc::MarkRuntime(JSTracer *trc, bool useSavedRoots)
          * no need to do this for minor GCs.
          */
         for (CompartmentsIter c(rt, SkipAtoms); !c.done(); c.next())
-            c->mark(trc);
+            c->markRoots(trc);
 
         /*
          * The embedding can register additional roots here.

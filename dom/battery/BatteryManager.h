@@ -6,11 +6,10 @@
 #ifndef mozilla_dom_battery_BatteryManager_h
 #define mozilla_dom_battery_BatteryManager_h
 
-#include "nsDOMEventTargetHelper.h"
-#include "nsCycleCollectionParticipant.h"
-#include "mozilla/Observer.h"
 #include "Types.h"
-#include "nsDOMEventTargetHelper.h"
+#include "mozilla/DOMEventTargetHelper.h"
+#include "mozilla/Observer.h"
+#include "nsCycleCollectionParticipant.h"
 
 class nsPIDOMWindow;
 class nsIScriptContext;
@@ -24,7 +23,7 @@ class BatteryInformation;
 namespace dom {
 namespace battery {
 
-class BatteryManager : public nsDOMEventTargetHelper
+class BatteryManager : public DOMEventTargetHelper
                      , public BatteryObserver
 {
 public:
@@ -51,8 +50,7 @@ public:
      return GetOwner();
   }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
-                               JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   bool Charging() const
   {

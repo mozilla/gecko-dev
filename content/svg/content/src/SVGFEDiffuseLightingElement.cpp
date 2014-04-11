@@ -16,9 +16,9 @@ namespace mozilla {
 namespace dom {
 
 JSObject*
-SVGFEDiffuseLightingElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aScope)
+SVGFEDiffuseLightingElement::WrapNode(JSContext* aCx)
 {
-  return SVGFEDiffuseLightingElementBinding::Wrap(aCx, aScope, this);
+  return SVGFEDiffuseLightingElementBinding::Wrap(aCx, this);
 }
 
 //----------------------------------------------------------------------
@@ -68,7 +68,7 @@ SVGFEDiffuseLightingElement::GetPrimitiveDescription(nsSVGFilterInstance* aInsta
 {
   float diffuseConstant = mNumberAttributes[DIFFUSE_CONSTANT].GetAnimValue();
 
-  FilterPrimitiveDescription descr(FilterPrimitiveDescription::eDiffuseLighting);
+  FilterPrimitiveDescription descr(PrimitiveType::DiffuseLighting);
   descr.Attributes().Set(eDiffuseLightingDiffuseConstant, diffuseConstant);
   return AddLightingAttributes(descr, aInstance);
 }

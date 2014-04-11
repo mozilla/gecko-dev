@@ -6,34 +6,33 @@
 #ifndef mozilla_dom_BeforeUnloadEvent_h_
 #define mozilla_dom_BeforeUnloadEvent_h_
 
-#include "nsIDOMBeforeUnloadEvent.h"
-#include "nsDOMEvent.h"
 #include "mozilla/dom/BeforeUnloadEventBinding.h"
+#include "mozilla/dom/Event.h"
+#include "nsIDOMBeforeUnloadEvent.h"
 
 namespace mozilla {
 namespace dom {
 
-class BeforeUnloadEvent : public nsDOMEvent,
+class BeforeUnloadEvent : public Event,
                           public nsIDOMBeforeUnloadEvent
 {
 public:
   BeforeUnloadEvent(EventTarget* aOwner,
                     nsPresContext* aPresContext,
                     WidgetEvent* aEvent)
-    : nsDOMEvent(aOwner, aPresContext, aEvent)
+    : Event(aOwner, aPresContext, aEvent)
   {
   }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
-                               JS::Handle<JSObject*> aScope) MOZ_OVERRIDE
+  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE
   {
-    return BeforeUnloadEventBinding::Wrap(aCx, aScope, this);
+    return BeforeUnloadEventBinding::Wrap(aCx, this);
   }
 
   NS_DECL_ISUPPORTS_INHERITED
 
-  // Forward to nsDOMEvent
-  NS_FORWARD_TO_NSDOMEVENT
+  // Forward to Event
+  NS_FORWARD_TO_EVENT
 
   // nsIDOMBeforeUnloadEvent Interface
   NS_DECL_NSIDOMBEFOREUNLOADEVENT

@@ -6,8 +6,8 @@
 #include "mozilla/dom/UndoManager.h"
 #include "mozilla/dom/DOMTransactionBinding.h"
 
+#include "mozilla/dom/Event.h"
 #include "nsDOMClassInfoID.h"
-#include "nsDOMEvent.h"
 #include "nsIClassInfo.h"
 #include "nsIDOMDocument.h"
 #include "nsIXPCScriptable.h"
@@ -15,13 +15,13 @@
 #include "nsVariant.h"
 #include "nsINode.h"
 #include "nsIDOMDOMTransactionEvent.h"
-#include "nsEventDispatcher.h"
 #include "nsContentUtils.h"
 #include "jsapi.h"
 #include "nsIDocument.h"
 
-#include "mozilla/Preferences.h"
 #include "mozilla/ErrorResult.h"
+#include "mozilla/EventDispatcher.h"
+#include "mozilla/Preferences.h"
 
 // Includes for mutation observer.
 #include "nsIDOMHTMLElement.h"
@@ -1142,7 +1142,7 @@ UndoManager::DispatchTransactionEvent(JSContext* aCx, const nsAString& aType,
     return;
   }
 
-  nsRefPtr<nsDOMEvent> event = mHostNode->OwnerDoc()->CreateEvent(
+  nsRefPtr<Event> event = mHostNode->OwnerDoc()->CreateEvent(
     NS_LITERAL_STRING("domtransaction"), aRv);
   if (aRv.Failed()) {
     return;
@@ -1181,8 +1181,8 @@ UndoManager::DispatchTransactionEvent(JSContext* aCx, const nsAString& aType,
                                                     transactions))) {
     event->SetTrusted(true);
     event->SetTarget(mHostNode);
-    nsEventDispatcher::DispatchDOMEvent(mHostNode, nullptr, event,
-                                        nullptr, nullptr);
+    EventDispatcher::DispatchDOMEvent(mHostNode, nullptr, event,
+                                      nullptr, nullptr);
   }
 }
 

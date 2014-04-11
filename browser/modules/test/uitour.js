@@ -77,7 +77,7 @@ if (typeof Mozilla == 'undefined') {
 		_sendEvent('hideHighlight');
 	};
 
-	Mozilla.UITour.showInfo = function(target, title, text, icon, buttons) {
+	Mozilla.UITour.showInfo = function(target, title, text, icon, buttons, options) {
 		var buttonData = [];
 		if (Array.isArray(buttons)) {
 			for (var i = 0; i < buttons.length; i++) {
@@ -90,12 +90,20 @@ if (typeof Mozilla == 'undefined') {
 			}
 		}
 
+		var closeButtonCallbackID, targetCallbackID;
+		if (options && options.closeButtonCallback)
+			closeButtonCallbackID = _waitForCallback(options.closeButtonCallback);
+		if (options && options.targetCallback)
+			targetCallbackID = _waitForCallback(options.targetCallback);
+
 		_sendEvent('showInfo', {
 			target: target,
 			title: title,
 			text: text,
 			icon: icon,
-			buttons: buttonData
+			buttons: buttonData,
+			closeButtonCallbackID: closeButtonCallbackID,
+			targetCallbackID: targetCallbackID
 		});
 	};
 
@@ -160,10 +168,10 @@ if (typeof Mozilla == 'undefined') {
 		});
 	};
 
-	Mozilla.UITour.getSyncConfiguration = function(callback) {
+	Mozilla.UITour.getConfiguration = function(configName, callback) {
 		_sendEvent('getConfiguration', {
 			callbackID: _waitForCallback(callback),
-			configuration: "sync",
+			configuration: configName,
 		});
 	};
 })();

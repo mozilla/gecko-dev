@@ -97,17 +97,36 @@ static void MarkChildren(JSTracer *trc, jit::JitCode *code);
 
 /*** Object Marking ***/
 
-#ifdef DEBUG
+#if defined(DEBUG)
 template<typename T>
 static inline bool
 IsThingPoisoned(T *thing)
 {
-    const uint8_t pb = JS_FREE_PATTERN;
-    const uint32_t pw = pb | (pb << 8) | (pb << 16) | (pb << 24);
-    JS_STATIC_ASSERT(sizeof(T) >= sizeof(FreeSpan) + sizeof(uint32_t));
-    uint32_t *p =
-        reinterpret_cast<uint32_t *>(reinterpret_cast<FreeSpan *>(thing) + 1);
-    return *p == pw;
+    static_assert(sizeof(T) >= sizeof(FreeSpan) + sizeof(uint32_t),
+                  "Ensure it is well defined to look past any free span that "
+                  "may be embedded in the thing's header when freed.");
+    const uint8_t poisonBytes[] = {
+        JS_FRESH_NURSERY_PATTERN,
+        JS_SWEPT_NURSERY_PATTERN,
+        JS_ALLOCATED_NURSERY_PATTERN,
+        JS_FRESH_TENURED_PATTERN,
+        JS_SWEPT_TENURED_PATTERN,
+        JS_ALLOCATED_TENURED_PATTERN,
+        JS_SWEPT_CODE_PATTERN,
+        JS_SWEPT_FRAME_PATTERN
+    };
+    const int numPoisonBytes = sizeof(poisonBytes) / sizeof(poisonBytes[0]);
+    uint32_t *p = reinterpret_cast<uint32_t *>(reinterpret_cast<FreeSpan *>(thing) + 1);
+    // Note: all free patterns are odd to make the common, not-poisoned case a single test.
+    if ((*p & 1) == 0)
+        return false;
+    for (int i = 0; i < numPoisonBytes; ++i) {
+        const uint8_t pb = poisonBytes[i];
+        const uint32_t pw = pb | (pb << 8) | (pb << 16) | (pb << 24);
+        if (*p == pw)
+            return true;
+    }
+    return false;
 }
 #endif
 
@@ -358,17 +377,30 @@ IsAboutToBeFinalized(T **thingp)
      * We should return false for things that have been allocated during
      * incremental sweeping, but this possibility doesn't occur at the moment
      * because this function is only called at the very start of the sweeping a
-     * compartment group.  Rather than do the extra check, we just assert that
-     * it's not necessary.
+     * compartment group and during minor gc. Rather than do the extra check,
+     * we just assert that it's not necessary.
      */
-    JS_ASSERT(!(*thingp)->arenaHeader()->allocatedDuringIncremental);
+    JS_ASSERT_IF(!(*thingp)->runtimeFromAnyThread()->isHeapMinorCollecting(),
+                 !(*thingp)->arenaHeader()->allocatedDuringIncremental);
 
     return !(*thingp)->isMarked();
 }
 
+template <typename T>
+T *
+UpdateIfRelocated(JSRuntime *rt, T **thingp)
+{
+    JS_ASSERT(thingp);
+#ifdef JSGC_GENERATIONAL
+    if (*thingp && rt->isHeapMinorCollecting() && rt->gcNursery.isInside(*thingp))
+        rt->gcNursery.getForwardedPointer(thingp);
+#endif
+    return *thingp;
+}
+
 #define DeclMarkerImpl(base, type)                                                                \
 void                                                                                              \
-Mark##base(JSTracer *trc, BarrieredPtr<type> *thing, const char *name)                         \
+Mark##base(JSTracer *trc, BarrieredPtr<type> *thing, const char *name)                            \
 {                                                                                                 \
     Mark<type>(trc, thing, name);                                                                 \
 }                                                                                                 \
@@ -409,7 +441,7 @@ Is##base##Marked(type **thingp)                                                 
 }                                                                                                 \
                                                                                                   \
 bool                                                                                              \
-Is##base##Marked(BarrieredPtr<type> *thingp)                                                   \
+Is##base##Marked(BarrieredPtr<type> *thingp)                                                      \
 {                                                                                                 \
     return IsMarked<type>(thingp->unsafeGet());                                                   \
 }                                                                                                 \
@@ -421,10 +453,23 @@ Is##base##AboutToBeFinalized(type **thingp)                                     
 }                                                                                                 \
                                                                                                   \
 bool                                                                                              \
-Is##base##AboutToBeFinalized(BarrieredPtr<type> *thingp)                                       \
+Is##base##AboutToBeFinalized(BarrieredPtr<type> *thingp)                                          \
 {                                                                                                 \
     return IsAboutToBeFinalized<type>(thingp->unsafeGet());                                       \
+}                                                                                                 \
+                                                                                                  \
+type *                                                                                            \
+Update##base##IfRelocated(JSRuntime *rt, BarrieredPtr<type> *thingp)                              \
+{                                                                                                 \
+    return UpdateIfRelocated<type>(rt, thingp->unsafeGet());                                      \
+}                                                                                                 \
+                                                                                                  \
+type *                                                                                            \
+Update##base##IfRelocated(JSRuntime *rt, type **thingp)                                           \
+{                                                                                                 \
+    return UpdateIfRelocated<type>(rt, thingp);                                                   \
 }
+
 
 DeclMarkerImpl(BaseShape, BaseShape)
 DeclMarkerImpl(BaseShape, UnownedBaseShape)
@@ -1496,8 +1541,14 @@ GCMarker::processMarkStackTop(SliceBudget &budget)
         /* Call the trace hook if necessary. */
         const Class *clasp = type->clasp();
         if (clasp->trace) {
+            // Global objects all have the same trace hook. That hook is safe without barriers
+            // if the gloal has no custom trace hook of it's own, or has been moved to a different
+            // compartment, and so can't have one.
             JS_ASSERT_IF(runtime->gcMode() == JSGC_MODE_INCREMENTAL &&
-                         runtime->gcIncrementalEnabled,
+                         runtime->gcIncrementalEnabled &&
+                         !(clasp->trace == JS_GlobalObjectTraceHook &&
+                           (!obj->compartment()->options().getTrace() ||
+                            !obj->isOwnGlobal())),
                          clasp->flags & JSCLASS_IMPLEMENTS_BARRIERS);
             clasp->trace(this, obj);
         }

@@ -17,9 +17,9 @@ namespace mozilla {
 namespace dom {
 
 JSObject*
-SVGEllipseElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+SVGEllipseElement::WrapNode(JSContext *aCx)
 {
-  return SVGEllipseElementBinding::Wrap(aCx, aScope, this);
+  return SVGEllipseElementBinding::Wrap(aCx, this);
 }
 
 nsSVGElement::LengthInfo SVGEllipseElement::sLengthInfo[4] =
@@ -33,7 +33,7 @@ nsSVGElement::LengthInfo SVGEllipseElement::sLengthInfo[4] =
 //----------------------------------------------------------------------
 // Implementation
 
-SVGEllipseElement::SVGEllipseElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+SVGEllipseElement::SVGEllipseElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : SVGEllipseElementBase(aNodeInfo)
 {
 }

@@ -428,7 +428,7 @@ function BookmarksStore(name, engine) {
 
   // Explicitly nullify our references to our cached services so we don't leak
   Svc.Obs.add("places-shutdown", function() {
-    for each ([query, stmt] in Iterator(this._stmts)) {
+    for each (let [query, stmt] in Iterator(this._stmts)) {
       stmt.finalize();
     }
     this._stmts = {};
@@ -731,10 +731,10 @@ BookmarksStore.prototype = {
                          feedURI: Utils.makeURI(record.feedUri),
                          siteURI: siteURI,
                          guid: record.id};
-      PlacesUtils.livemarks.addLivemark(livemarkObj,
-        function (aStatus, aLivemark) {
-          spinningCb(null, [aStatus, aLivemark]);
-        });
+      PlacesUtils.livemarks.addLivemark(livemarkObj).then(
+        aLivemark => { spinningCb(null, [Components.results.NS_OK, aLivemark]) },
+        () => { spinningCb(null, [Components.results.NS_ERROR_UNEXPECTED, aLivemark]) }
+      );
 
       let [status, livemark] = spinningCb.wait();
       if (!Components.isSuccessCode(status)) {

@@ -368,7 +368,17 @@ private:
   {
     return (aMessage == WM_SYSCHAR || aMessage == WM_SYSDEADCHAR);
   }
+  bool MayBeSameCharMessage(const MSG& aCharMsg1, const MSG& aCharMsg2) const;
   bool IsFollowedByDeadCharMessage() const;
+
+  /**
+   * GetFollowingCharMessage() returns following char message of handling
+   * keydown event.  If the message is found, this method returns true.
+   * Otherwise, returns false.
+   *
+   * WARNING: Even if this returns true, aCharMsg may be WM_NULL or its
+   *          hwnd may be different window.
+   */
   bool GetFollowingCharMessage(MSG& aCharMsg) const;
 
   /**

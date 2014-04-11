@@ -396,8 +396,15 @@
       * the user, the user can read, write and execute).
       * - {bool} ignoreExisting If |false|, throw error if the directory
       * already exists. |true| by default
-      */
-     File.makeDir = function makeDir(path, options = {}) {
+      * - {string} from If specified, the call to |makeDir| creates all the
+      * ancestors of |path| that are descendants of |from|. Note that |from|
+      * and its existing descendants must be user-writeable and that |path|
+      * must be a descendant of |from|.
+      * Example:
+      *   makeDir(Path.join(profileDir, "foo", "bar"), { from: profileDir });
+      *  creates directories profileDir/foo, profileDir/foo/bar
+       */
+     File._makeDir = function makeDir(path, options = {}) {
        let omode = options.unixMode !== undefined ? options.unixMode : DEFAULT_UNIX_MODE_DIR;
        let result = UnixFile.mkdir(path, omode);
        if (result == -1) {
@@ -677,6 +684,11 @@
        File.remove(sourcePath);
      };
 
+     File.unixSymLink = function unixSymLink(sourcePath, destPath) {
+       throw_on_negative("symlink", UnixFile.symlink(sourcePath, destPath),
+           sourcePath);
+     };
+
      /**
       * Iterate on one directory.
       *
@@ -930,7 +942,43 @@
      File.read = exports.OS.Shared.AbstractFile.read;
      File.writeAtomic = exports.OS.Shared.AbstractFile.writeAtomic;
      File.openUnique = exports.OS.Shared.AbstractFile.openUnique;
-     File.removeDir = exports.OS.Shared.AbstractFile.removeDir;
+     File.makeDir = exports.OS.Shared.AbstractFile.makeDir;
+
+     /**
+      * Remove an existing directory and its contents.
+      *
+      * @param {string} path The name of the directory.
+      * @param {*=} options Additional options.
+      *   - {bool} ignoreAbsent If |false|, throw an error if the directory doesn't
+      *     exist. |true| by default.
+      *   - {boolean} ignorePermissions If |true|, remove the file even when lacking write
+      *     permission.
+      *
+      * @throws {OS.File.Error} In case of I/O error, in particular if |path| is
+      *         not a directory.
+      *
+      * Note: This function will remove a symlink even if it points a directory.
+      */
+     File.removeDir = function(path, options) {
+       let isSymLink;
+       try {
+         let info = File.stat(path, {unixNoFollowingLinks: true});
+         isSymLink = info.isSymLink;
+       } catch (e) {
+         if ((!("ignoreAbsent" in options) || options.ignoreAbsent) &&
+             ctypes.errno == Const.ENOENT) {
+           return;
+         }
+         throw e;
+       }
+       if (isSymLink) {
+         // A Unix symlink itself is not a directory even if it points
+         // a directory.
+         File.remove(path, options);
+         return;
+       }
+       exports.OS.Shared.AbstractFile.removeRecursive(path, options);
+     };
 
      /**
       * Get the current directory by getCurrentDirectory.

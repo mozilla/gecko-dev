@@ -7,19 +7,17 @@
 #include "Accessible-inl.h"
 #include "AccIterator.h"
 #include "DocAccessible-inl.h"
-#include "HTMLImageMapAccessible.h"
 #include "nsAccessibilityService.h"
 #include "nsAccUtils.h"
 #include "nsEventShell.h"
-#include "nsImageFrame.h"
 #include "Role.h"
 
-#include "nsEventStateManager.h"
 #include "nsFocusManager.h"
+#include "mozilla/EventStateManager.h"
 #include "mozilla/dom/Element.h"
 
-namespace dom = mozilla::dom;
-using namespace mozilla::a11y;
+namespace mozilla {
+namespace a11y {
 
 FocusManager::FocusManager()
 {
@@ -39,7 +37,7 @@ FocusManager::FocusedAccessible() const
   if (focusedNode) {
     DocAccessible* doc = 
       GetAccService()->GetDocAccessible(focusedNode->OwnerDoc());
-    return doc ? GetFocusableAccessibleFor(focusedNode, doc) : nullptr;
+    return doc ? doc->GetAccessibleEvenIfNotInMapOrContainer(focusedNode) : nullptr;
   }
 
   return nullptr;
@@ -63,7 +61,7 @@ FocusManager::IsFocused(const Accessible* aAccessible) const
       DocAccessible* doc = 
         GetAccService()->GetDocAccessible(focusedNode->OwnerDoc());
       return aAccessible ==
-        (doc ? GetFocusableAccessibleFor(focusedNode, doc) : nullptr);
+        (doc ? doc->GetAccessibleEvenIfNotInMapOrContainer(focusedNode) : nullptr);
     }
   }
   return false;
@@ -242,16 +240,19 @@ FocusManager::ProcessDOMFocus(nsINode* aTarget)
 
   DocAccessible* document =
     GetAccService()->GetDocAccessible(aTarget->OwnerDoc());
+  if (!document)
+    return;
 
-  Accessible* target = GetFocusableAccessibleFor(aTarget, document);
-  if (target && document) {
+  Accessible* target = document->GetAccessibleEvenIfNotInMapOrContainer(aTarget);
+  if (target) {
     // Check if still focused. Otherwise we can end up with storing the active
     // item for control that isn't focused anymore.
     nsINode* focusedNode = FocusedDOMNode();
     if (!focusedNode)
       return;
 
-    Accessible* DOMFocus = GetFocusableAccessibleFor(focusedNode, document);
+    Accessible* DOMFocus =
+      document->GetAccessibleEvenIfNotInMapOrContainer(focusedNode);
     if (target != DOMFocus)
       return;
 
@@ -283,7 +284,8 @@ FocusManager::ProcessFocusEvent(AccEvent* aEvent)
     if (!focusedNode)
       return;
 
-    Accessible* DOMFocus = GetFocusableAccessibleFor(focusedNode, document);
+    Accessible* DOMFocus =
+      document->GetAccessibleEvenIfNotInMapOrContainer(focusedNode);
     if (target != DOMFocus)
       return;
 
@@ -392,8 +394,9 @@ FocusManager::FocusedDOMNode() const
   // residing in chrome process because it means an element in content process
   // keeps the focus.
   if (focusedElm) {
-    if (nsEventStateManager::IsRemoteTarget(focusedElm))
+    if (EventStateManager::IsRemoteTarget(focusedElm)) {
       return nullptr;
+    }
     return focusedElm;
   }
 
@@ -409,27 +412,5 @@ FocusManager::FocusedDOMDocument() const
   return focusedNode ? focusedNode->OwnerDoc() : nullptr;
 }
 
-Accessible*
-FocusManager::GetFocusableAccessibleFor(nsINode* aNode,
-                                        DocAccessible* aDoc) const
-{
-  if (!aNode->IsContent() || !aNode->AsContent()->IsHTML(nsGkAtoms::area))
-    return aDoc->GetAccessibleOrContainer(aNode);
-
-  // XXX Bug 135040, incorrect when multiple images use the same map.
-  nsIFrame* frame = aNode->AsContent()->GetPrimaryFrame();
-  nsImageFrame* imageFrame = do_QueryFrame(frame);
-  if (imageFrame) {
-    Accessible* parent = aDoc->GetAccessible(imageFrame->GetContent());
-    if (parent) {
-      Accessible* area =
-        parent->AsImageMap()->GetChildAccessibleFor(aNode);
-      if (area)
-        return area;
-
-      return nullptr;
-    }
-  }
-
-  return aDoc->GetAccessibleOrContainer(aNode);
-}
+} // namespace a11y
+} // namespace mozilla

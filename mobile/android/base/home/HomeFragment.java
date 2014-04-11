@@ -21,6 +21,8 @@ import org.mozilla.gecko.util.UiAsyncTask;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.util.Log;
@@ -85,14 +87,19 @@ abstract class HomeFragment extends Fragment {
 
         menu.setHeaderTitle(info.getDisplayTitle());
 
+        // Hide ununsed menu items.
+        menu.findItem(R.id.top_sites_edit).setVisible(false);
+        menu.findItem(R.id.top_sites_pin).setVisible(false);
+        menu.findItem(R.id.top_sites_unpin).setVisible(false);
+
         // Hide the "Edit" menuitem if this item isn't a bookmark,
         // or if this is a reading list item.
         if (!info.hasBookmarkId() || info.isInReadingList()) {
             menu.findItem(R.id.home_edit_bookmark).setVisible(false);
         }
 
-        // Hide the "Remove" menuitem if this item doesn't have a bookmark or history ID.
-        if (!info.hasBookmarkId() && !info.hasHistoryId()) {
+        // Hide the "Remove" menuitem if this item not removable.
+        if (!info.canRemove()) {
             menu.findItem(R.id.home_remove).setVisible(false);
         }
 
@@ -151,7 +158,10 @@ abstract class HomeFragment extends Fragment {
                 flags |= Tabs.LOADURL_PRIVATE;
 
             final String url = (info.isInReadingList() ? ReaderModeUtils.getAboutReaderForUrl(info.url) : info.url);
-            Tabs.getInstance().loadUrl(url, flags);
+
+            // Some pinned site items have "user-entered" urls. URLs entered in the PinSiteDialog are wrapped in
+            // a special URI until we can get a valid URL. If the url is a user-entered url, decode the URL before loading it.
+            Tabs.getInstance().loadUrl(decodeUserEnteredUrl(url), flags);
             Toast.makeText(context, R.string.new_tab_opened, Toast.LENGTH_SHORT).show();
             return true;
         }
@@ -176,7 +186,12 @@ abstract class HomeFragment extends Fragment {
             }
 
             if (info.hasBookmarkId()) {
-                new RemoveBookmarkTask(context, info.bookmarkId, info.url, info.isInReadingList()).execute();
+                new RemoveBookmarkTask(context, info.bookmarkId).execute();
+                return true;
+            }
+
+            if (info.isInReadingList()) {
+                (new RemoveReadingListItemTask(context, info.readingListItemId, info.url)).execute();
                 return true;
             }
         }
@@ -194,6 +209,11 @@ abstract class HomeFragment extends Fragment {
         loadIfVisible();
     }
 
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+    }
+
     void setCanLoadHint(boolean canLoadHint) {
         if (mCanLoadHint == canLoadHint) {
             return;
@@ -207,52 +227,84 @@ abstract class HomeFragment extends Fragment {
         return mCanLoadHint;
     }
 
+    /**
+     * Given a url with a user-entered scheme, extract the
+     * scheme-specific component. For e.g, given "user-entered://www.google.com",
+     * this method returns "//www.google.com". If the passed url
+     * does not have a user-entered scheme, the same url will be returned.
+     *
+     * @param  url to be decoded
+     * @return url component entered by user
+     */
+    public static String decodeUserEnteredUrl(String url) {
+        Uri uri = Uri.parse(url);
+        if ("user-entered".equals(uri.getScheme())) {
+            return uri.getSchemeSpecificPart();
+        }
+        return url;
+    }
+
     protected abstract void load();
 
+    protected boolean canLoad() {
+        return (mCanLoadHint && isVisible() && getUserVisibleHint());
+    }
+
     protected void loadIfVisible() {
-        if (!mCanLoadHint || !isVisible() || !getUserVisibleHint()) {
+        if (!canLoad() || mIsLoaded) {
             return;
         }
 
-        if (!mIsLoaded) {
-            load();
-            mIsLoaded = true;
-        }
+        load();
+        mIsLoaded = true;
     }
 
     private static class RemoveBookmarkTask extends UiAsyncTask<Void, Void, Void> {
         private final Context mContext;
         private final int mId;
-        private final String mUrl;
-        private final boolean mInReadingList;
 
-        public RemoveBookmarkTask(Context context, int id, String url, boolean inReadingList) {
+        public RemoveBookmarkTask(Context context, int id) {
             super(ThreadUtils.getBackgroundHandler());
 
             mContext = context;
             mId = id;
-            mUrl = url;
-            mInReadingList = inReadingList;
         }
 
         @Override
         public Void doInBackground(Void... params) {
             ContentResolver cr = mContext.getContentResolver();
             BrowserDB.removeBookmark(cr, mId);
-            if (mInReadingList) {
-                GeckoEvent e = GeckoEvent.createBroadcastEvent("Reader:Remove", mUrl);
-                GeckoAppShell.sendEventToGecko(e);
-            }
             return null;
         }
 
         @Override
         public void onPostExecute(Void result) {
-            // The remove from reading list toast is handled in Reader:Removed,
-            // so handle only the bookmark removed toast here.
-            if (!mInReadingList) {
-                Toast.makeText(mContext, R.string.bookmark_removed, Toast.LENGTH_SHORT).show();
-            }
+            Toast.makeText(mContext, R.string.bookmark_removed, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+
+    private static class RemoveReadingListItemTask extends UiAsyncTask<Void, Void, Void> {
+        private final int mId;
+        private final String mUrl;
+        private final Context mContext;
+
+        public RemoveReadingListItemTask(Context context, int id, String url) {
+            super(ThreadUtils.getBackgroundHandler());
+            mId = id;
+            mUrl = url;
+            mContext = context;
+        }
+
+        @Override
+        public Void doInBackground(Void... params) {
+            ContentResolver cr = mContext.getContentResolver();
+            BrowserDB.removeReadingListItem(cr, mId);
+
+            GeckoEvent e = GeckoEvent.createBroadcastEvent("Reader:Remove", mUrl);
+            GeckoAppShell.sendEventToGecko(e);
+
+            return null;
         }
     }
 

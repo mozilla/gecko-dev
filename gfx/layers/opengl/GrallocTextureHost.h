@@ -30,7 +30,7 @@ public:
 
   virtual bool IsValid() const MOZ_OVERRIDE;
 
-  virtual void BindTexture(GLenum aTextureUnit) MOZ_OVERRIDE;
+  virtual void BindTexture(GLenum aTextureUnit, gfx::Filter aFilter) MOZ_OVERRIDE;
 
   virtual gfx::IntSize GetSize() const MOZ_OVERRIDE;
 
@@ -38,7 +38,7 @@ public:
 
   virtual GLenum GetTextureTarget() const MOZ_OVERRIDE;
 
-  virtual gfx::SurfaceFormat GetFormat() const MOZ_OVERRIDE;
+  virtual gfx::SurfaceFormat GetFormat() const MOZ_OVERRIDE { return mFormat; }
 
   virtual GLenum GetWrapMode() const MOZ_OVERRIDE
   {
@@ -62,16 +62,19 @@ public:
 
   GLuint GetGLTexture();
 
+  void Lock();
+
 protected:
   CompositorOGL* mCompositor;
   android::sp<android::GraphicBuffer> mGraphicBuffer;
   EGLImage mEGLImage;
+  GLuint mTexture;
   gfx::SurfaceFormat mFormat;
   bool mNeedsReset;
 };
 
 class GrallocTextureHostOGL : public TextureHost
-#if MOZ_WIDGET_GONK && ANDROID_VERSION >= 17
+#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
                             , public TextureHostOGL
 #endif
 {
@@ -107,7 +110,7 @@ public:
     return mTextureSource;
   }
 
-#if MOZ_WIDGET_GONK && ANDROID_VERSION >= 17
+#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
   virtual TextureHostOGL* AsHostOGL() MOZ_OVERRIDE
   {
     return this;

@@ -11,7 +11,6 @@
 #include "mozilla/dom/MozOtaStatusEvent.h"
 #include "mozilla/dom/USSDReceivedEvent.h"
 #include "mozilla/Preferences.h"
-#include "nsDOMEvent.h"
 #include "nsIDOMClassInfo.h"
 #include "nsIDOMDOMRequest.h"
 #include "nsIPermissionManager.h"
@@ -53,23 +52,23 @@ DOMCI_DATA(MozMobileConnection, MobileConnection)
 NS_IMPL_CYCLE_COLLECTION_CLASS(MobileConnection)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(MobileConnection,
-                                                  nsDOMEventTargetHelper)
+                                                  DOMEventTargetHelper)
   // Don't traverse mListener because it doesn't keep any reference to
   // MobileConnection but a raw pointer instead. Neither does mProvider because
   // it's an xpcom service and is only released at shutting down.
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(MobileConnection,
-                                                nsDOMEventTargetHelper)
+                                                DOMEventTargetHelper)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(MobileConnection)
   NS_INTERFACE_MAP_ENTRY(nsIDOMMozMobileConnection)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(MozMobileConnection)
-NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetHelper)
+NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
-NS_IMPL_ADDREF_INHERITED(MobileConnection, nsDOMEventTargetHelper)
-NS_IMPL_RELEASE_INHERITED(MobileConnection, nsDOMEventTargetHelper)
+NS_IMPL_ADDREF_INHERITED(MobileConnection, DOMEventTargetHelper)
+NS_IMPL_RELEASE_INHERITED(MobileConnection, DOMEventTargetHelper)
 
 NS_IMPL_EVENT_HANDLER(MobileConnection, voicechange)
 NS_IMPL_EVENT_HANDLER(MobileConnection, datachange)

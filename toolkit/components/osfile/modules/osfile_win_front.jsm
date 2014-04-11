@@ -35,16 +35,16 @@
 
      // Mutable thread-global data
      // In the Windows implementation, methods |read| and |write|
-     // require passing a pointer to an int32 to determine how many
+     // require passing a pointer to an uint32 to determine how many
      // bytes have been read/written. In C, this is a benigne operation,
      // but in js-ctypes, this has a cost. Rather than re-allocating a
-     // C int32 and a C int32* for each |read|/|write|, we take advantage
+     // C uint32 and a C uint32* for each |read|/|write|, we take advantage
      // of the fact that the state is thread-private -- hence that two
      // |read|/|write| operations cannot take place at the same time --
      // and we use the following global mutable values:
-     let gBytesRead = new ctypes.int32_t(-1);
+     let gBytesRead = new ctypes.uint32_t(0);
      let gBytesReadPtr = gBytesRead.address();
-     let gBytesWritten = new ctypes.int32_t(-1);
+     let gBytesWritten = new ctypes.uint32_t(0);
      let gBytesWrittenPtr = gBytesWritten.address();
 
      // Same story for GetFileInformationByHandle
@@ -176,9 +176,24 @@
        if (whence === undefined) {
          whence = Const.FILE_BEGIN;
        }
-       return throw_on_negative("setPosition",
-         WinFile.SetFilePointer(this.fd, pos, null, whence),
-         this._path);
+       let pos64 = ctypes.Int64(pos);
+       // Per MSDN, while |lDistanceToMove| (low) is declared as int32_t, when
+       // providing |lDistanceToMoveHigh| as well, it should countain the
+       // bottom 32 bits of the 64-bit integer. Hence the following |posLo|
+       // cast is OK.
+       let posLo = new ctypes.uint32_t(ctypes.Int64.lo(pos64));
+       posLo = ctypes.cast(posLo, ctypes.int32_t);
+       let posHi = new ctypes.int32_t(ctypes.Int64.hi(pos64));
+       let result = WinFile.SetFilePointer(
+         this.fd, posLo.value, posHi.address(), whence);
+       // INVALID_SET_FILE_POINTER might be still a valid result, as it
+       // represents the lower 32 bit of the int64 result. MSDN says to check
+       // both, INVALID_SET_FILE_POINTER and a non-zero winLastError.
+       if (result == Const.INVALID_SET_FILE_POINTER && ctypes.winLastError) {
+         throw new File.Error("setPosition", ctypes.winLastError, this._path);
+       }
+       pos64 = ctypes.Int64.join(posHi.value, result);
+       return Type.int64_t.project(pos64);
      };
 
      /**
@@ -433,7 +448,7 @@
      };
 
      /**
-      * Create a directory.
+      * Create a directory and, optionally, its parent directories.
       *
       * @param {string} path The name of the directory.
       * @param {*=} options Additional options. This
@@ -445,8 +460,15 @@
       * parent directory.
       * - {bool} ignoreExisting If |false|, throw an error if the directory
       * already exists. |true| by default
-      */
-     File.makeDir = function makeDir(path, options = {}) {
+      * - {string} from If specified, the call to |makeDir| creates all the
+      * ancestors of |path| that are descendants of |from|. Note that |from|
+      * and its existing descendants must be user-writeable and that |path|
+      * must be a descendant of |from|.
+      * Example:
+      *   makeDir(Path.join(profileDir, "foo", "bar"), { from: profileDir });
+      *  creates directories profileDir/foo, profileDir/foo/bar
+       */
+     File._makeDir = function makeDir(path, options = {}) {
        let security = options.winSecurity || null;
        let result = WinFile.CreateDirectory(path, security);
 
@@ -974,7 +996,40 @@
      File.read = exports.OS.Shared.AbstractFile.read;
      File.writeAtomic = exports.OS.Shared.AbstractFile.writeAtomic;
      File.openUnique = exports.OS.Shared.AbstractFile.openUnique;
-     File.removeDir = exports.OS.Shared.AbstractFile.removeDir;
+     File.makeDir = exports.OS.Shared.AbstractFile.makeDir;
+
+     /**
+      * Remove an existing directory and its contents.
+      *
+      * @param {string} path The name of the directory.
+      * @param {*=} options Additional options.
+      *   - {bool} ignoreAbsent If |false|, throw an error if the directory doesn't
+      *     exist. |true| by default.
+      *   - {boolean} ignorePermissions If |true|, remove the file even when lacking write
+      *     permission.
+      *
+      * @throws {OS.File.Error} In case of I/O error, in particular if |path| is
+      *         not a directory.
+      */
+     File.removeDir = function(path, options) {
+       // We can't use File.stat here because it will follow the symlink.
+       let attributes = WinFile.GetFileAttributes(path);
+       if (attributes == Const.INVALID_FILE_ATTRIBUTES) {
+         if ((!("ignoreAbsent" in options) || options.ignoreAbsent) &&
+             ctypes.winLastError == Const.ERROR_FILE_NOT_FOUND) {
+           return;
+         }
+         throw new File.Error("removeEmptyDir", ctypes.winLastError, path);
+       }
+       if (attributes & Const.FILE_ATTRIBUTE_REPARSE_POINT) {
+         // Unlike Unix symlinks, NTFS junctions or NTFS symlinks to
+         // directories are directories themselves. OS.File.remove()
+         // will not work for them.
+         OS.File.removeEmptyDir(path, options);
+         return;
+       }
+       exports.OS.Shared.AbstractFile.removeRecursive(path, options);
+     };
 
      /**
       * Get the current directory by getCurrentDirectory.

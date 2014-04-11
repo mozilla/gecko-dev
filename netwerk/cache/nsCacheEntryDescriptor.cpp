@@ -64,7 +64,7 @@ public:
     }
 
 private:
-    nsCOMPtr<nsCacheEntryDescriptor> mDescriptor;
+    nsRefPtr<nsCacheEntryDescriptor> mDescriptor;
     nsICacheListener                *mListener;
     nsCOMPtr<nsIThread>              mThread;
 };
@@ -655,7 +655,7 @@ nsCacheEntryDescriptor::VisitMetaData(nsICacheMetaDataVisitor * visitor)
  ******************************************************************************/
 
 NS_IMPL_ADDREF(nsCacheEntryDescriptor::nsInputStreamWrapper)
-NS_IMETHODIMP_(nsrefcnt)
+NS_IMETHODIMP_(MozExternalRefCountType)
 nsCacheEntryDescriptor::nsInputStreamWrapper::Release()
 {
     // Holding a reference to descriptor ensures that cache service won't go
@@ -847,7 +847,7 @@ nsInputStreamWrapper::IsNonBlocking(bool *result)
  ******************************************************************************/
 
 NS_IMPL_ADDREF(nsCacheEntryDescriptor::nsDecompressInputStreamWrapper)
-NS_IMETHODIMP_(nsrefcnt)
+NS_IMETHODIMP_(MozExternalRefCountType)
 nsCacheEntryDescriptor::nsDecompressInputStreamWrapper::Release()
 {
     // Holding a reference to descriptor ensures that cache service won't go
@@ -1037,7 +1037,7 @@ nsDecompressInputStreamWrapper::EndZstream()
  ******************************************************************************/
 
 NS_IMPL_ADDREF(nsCacheEntryDescriptor::nsOutputStreamWrapper)
-NS_IMETHODIMP_(nsrefcnt)
+NS_IMETHODIMP_(MozExternalRefCountType)
 nsCacheEntryDescriptor::nsOutputStreamWrapper::Release()
 {
     // Holding a reference to descriptor ensures that cache service won't go
@@ -1123,7 +1123,7 @@ nsOutputStreamWrapper::LazyInit()
     // If anything above failed, clean up internal state and get out of here
     // (see bug #654926)...
     if (NS_FAILED(rv)) {
-        nsCacheService::ReleaseObject_Locked(stream.forget().get());
+        nsCacheService::ReleaseObject_Locked(stream.forget().take());
         mDescriptor->mOutputWrapper = nullptr;
         nsCacheService::ReleaseObject_Locked(mDescriptor);
         mDescriptor = nullptr;
@@ -1267,7 +1267,7 @@ nsOutputStreamWrapper::IsNonBlocking(bool *result)
  ******************************************************************************/
 
 NS_IMPL_ADDREF(nsCacheEntryDescriptor::nsCompressOutputStreamWrapper)
-NS_IMETHODIMP_(nsrefcnt)
+NS_IMETHODIMP_(MozExternalRefCountType)
 nsCacheEntryDescriptor::nsCompressOutputStreamWrapper::Release()
 {
     // Holding a reference to descriptor ensures that cache service won't go

@@ -25,10 +25,6 @@
 
 class nsWrapperCache;
 
-// nsGlobalWindow implements nsWrapperCache, but doesn't always use it. Don't
-// try to use it without fixing that first.
-class nsGlobalWindow;
-
 namespace mozilla {
 namespace dom {
 
@@ -45,6 +41,12 @@ protected:
 // array buffer views.  Particularly useful so we can use IsBaseOf to detect
 // typed array/buffer/view template arguments.
 struct AllTypedArraysBase {
+};
+
+// Struct that serves as a base class for all owning unions.
+// Particularly useful so we can use IsBaseOf to detect owning union
+// template arguments.
+struct AllOwningUnionBase {
 };
 
 
@@ -437,12 +439,6 @@ GetWrapperCache(nsWrapperCache* cache)
 }
 
 inline nsWrapperCache*
-GetWrapperCache(nsGlobalWindow*)
-{
-  return nullptr;
-}
-
-inline nsWrapperCache*
 GetWrapperCache(void* p)
 {
   return nullptr;
@@ -461,22 +457,26 @@ struct ParentObject {
   template<class T>
   ParentObject(T* aObject) :
     mObject(aObject),
-    mWrapperCache(GetWrapperCache(aObject))
+    mWrapperCache(GetWrapperCache(aObject)),
+    mUseXBLScope(false)
   {}
 
   template<class T, template<typename> class SmartPtr>
   ParentObject(const SmartPtr<T>& aObject) :
     mObject(aObject.get()),
-    mWrapperCache(GetWrapperCache(aObject.get()))
+    mWrapperCache(GetWrapperCache(aObject.get())),
+    mUseXBLScope(false)
   {}
 
   ParentObject(nsISupports* aObject, nsWrapperCache* aCache) :
     mObject(aObject),
-    mWrapperCache(aCache)
+    mWrapperCache(aCache),
+    mUseXBLScope(false)
   {}
 
   nsISupports* const mObject;
   nsWrapperCache* const mWrapperCache;
+  bool mUseXBLScope;
 };
 
 } // namespace dom

@@ -4,9 +4,7 @@
 
 package org.mozilla.gecko.tests.helpers;
 
-import static org.mozilla.gecko.tests.helpers.AssertionHelper.*;
-
-import org.mozilla.gecko.tests.UITestContext;
+import static org.mozilla.gecko.tests.helpers.AssertionHelper.fFail;
 
 import java.lang.reflect.Field;
 
@@ -53,10 +51,10 @@ public final class FrameworkHelper {
         } catch (final NoSuchFieldException e) {
             // We expect a valid field name; if it's not valid,
             // the caller is doing something wrong and should be fixed.
-            fail("Argument field should be a valid field name: " + e.toString());
+            fFail("Argument field should be a valid field name: " + e.toString());
         } catch (final IllegalAccessException e) {
             // This should not happen. If it does, setAccessible above is not working.
-            fail("Field should be accessible: " + e.toString());
+            fFail("Field should be accessible: " + e.toString());
         }
         throw new IllegalStateException("Should not continue from previous failures");
     }
@@ -72,10 +70,10 @@ public final class FrameworkHelper {
         } catch (final NoSuchFieldException e) {
             // We expect a valid field name; if it's not valid,
             // the caller is doing something wrong and should be fixed.
-            fail("Argument field should be a valid field name: " + e.toString());
+            fFail("Argument field should be a valid field name: " + e.toString());
         } catch (final IllegalAccessException e) {
             // This should not happen. If it does, setAccessible above is not working.
-            fail("Field should be accessible: " + e.toString());
+            fFail("Field should be accessible: " + e.toString());
         }
         throw new IllegalStateException("Cannot continue from previous failures");
     }

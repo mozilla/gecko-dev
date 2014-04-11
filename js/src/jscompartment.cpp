@@ -53,12 +53,10 @@ JSCompartment::JSCompartment(Zone *zone, const JS::CompartmentOptions &options =
     objectMetadataCallback(nullptr),
     lastAnimationTime(0),
     regExps(runtime_),
-    typeReprs(runtime_),
     globalWriteBarriered(false),
     propertyTree(thisForCtor()),
     selfHostingScriptSource(nullptr),
     gcIncomingGrayPointers(nullptr),
-    gcLiveArrayBuffers(nullptr),
     gcWeakMapList(nullptr),
     debugModeBits(runtime_->debugMode ? DebugFromC : 0),
     rngState(0),
@@ -111,9 +109,6 @@ JSCompartment::init(JSContext *cx)
     if (!regExps.init(cx))
         return false;
 
-    if (!typeReprs.init())
-        return false;
-
     enumerators = NativeIterator::allocateSentinel(cx);
     if (!enumerators)
         return false;
@@ -130,9 +125,9 @@ JSRuntime::createJitRuntime(JSContext *cx)
     AutoLockForExclusiveAccess atomsLock(cx);
 
     // The runtime will only be created on its owning thread, but reads of a
-    // runtime's jitRuntime() can occur when another thread is triggering an
-    // operation callback.
-    AutoLockForOperationCallback lock(this);
+    // runtime's jitRuntime() can occur when another thread is requesting an
+    // interrupt.
+    AutoLockForInterrupt lock(this);
 
     JS_ASSERT(!jitRuntime_);
 
@@ -164,12 +159,11 @@ JSCompartment::ensureJitCompartmentExists(JSContext *cx)
     if (jitCompartment_)
         return true;
 
-    JitRuntime *jitRuntime = cx->runtime()->getJitRuntime(cx);
-    if (!jitRuntime)
+    if (!zone()->getJitZone(cx))
         return false;
 
     /* Set the compartment early, so linking works. */
-    jitCompartment_ = cx->new_<JitCompartment>(jitRuntime);
+    jitCompartment_ = cx->new_<JitCompartment>();
 
     if (!jitCompartment_)
         return false;
@@ -183,20 +177,6 @@ JSCompartment::ensureJitCompartmentExists(JSContext *cx)
     return true;
 }
 #endif
-
-static bool
-WrapForSameCompartment(JSContext *cx, MutableHandleObject obj, const JSWrapObjectCallbacks *cb)
-{
-    JS_ASSERT(cx->compartment() == obj->compartment());
-    if (!cb->sameCompartmentWrap)
-        return true;
-
-    RootedObject wrapped(cx, cb->sameCompartmentWrap(cx, obj));
-    if (!wrapped)
-        return false;
-    obj.set(wrapped);
-    return true;
-}
 
 #ifdef JSGC_GENERATIONAL
 
@@ -353,62 +333,65 @@ JSCompartment::wrap(JSContext *cx, MutableHandleObject obj, HandleObject existin
         return true;
     AutoDisableProxyCheck adpc(cx->runtime());
 
-    /*
-     * Wrappers should really be parented to the wrapped parent of the wrapped
-     * object, but in that case a wrapped global object would have a nullptr
-     * parent without being a proper global object (JSCLASS_IS_GLOBAL). Instead,
-     * we parent all wrappers to the global object in their home compartment.
-     * This loses us some transparency, and is generally very cheesy.
-     */
+    // Wrappers should really be parented to the wrapped parent of the wrapped
+    // object, but in that case a wrapped global object would have a nullptr
+    // parent without being a proper global object (JSCLASS_IS_GLOBAL). Instead,
+    // we parent all wrappers to the global object in their home compartment.
+    // This loses us some transparency, and is generally very cheesy.
     HandleObject global = cx->global();
     RootedObject objGlobal(cx, &obj->global());
     JS_ASSERT(global);
     JS_ASSERT(objGlobal);
 
+    const JSWrapObjectCallbacks *cb = cx->runtime()->wrapObjectCallbacks;
+
+    if (obj->compartment() == this) {
+        obj.set(GetOuterObject(cx, obj));
+        return true;
+    }
+
+    // If we have a cross-compartment wrapper, make sure that the cx isn't
+    // associated with the self-hosting global. We don't want to create
+    // wrappers for objects in other runtimes, which may be the case for the
+    // self-hosting global.
     JS_ASSERT(!cx->runtime()->isSelfHostingGlobal(global) &&
               !cx->runtime()->isSelfHostingGlobal(objGlobal));
 
-    const JSWrapObjectCallbacks *cb = cx->runtime()->wrapObjectCallbacks;
-
-    if (obj->compartment() == this)
-        return WrapForSameCompartment(cx, obj, cb);
-
-    /* Unwrap the object, but don't unwrap outer windows. */
+    // Unwrap the object, but don't unwrap outer windows.
     unsigned flags = 0;
     obj.set(UncheckedUnwrap(obj, /* stopAtOuter = */ true, &flags));
 
-    if (obj->compartment() == this)
-        return WrapForSameCompartment(cx, obj, cb);
+    if (obj->compartment() == this) {
+        MOZ_ASSERT(obj == GetOuterObject(cx, obj));
+        return true;
+    }
 
-    /* Translate StopIteration singleton. */
+    // Translate StopIteration singleton.
     if (obj->is<StopIterationObject>()) {
+        // StopIteration isn't a constructor, but it's stored in GlobalObject
+        // as one, out of laziness. Hence the GetBuiltinConstructor call here.
         RootedObject stopIteration(cx);
-        if (!js_GetClassObject(cx, JSProto_StopIteration, &stopIteration))
+        if (!GetBuiltinConstructor(cx, JSProto_StopIteration, &stopIteration))
             return false;
         obj.set(stopIteration);
         return true;
     }
 
-    /* Invoke the prewrap callback. We're a bit worried about infinite
-     * recursion here, so we do a check - see bug 809295. */
+    // Invoke the prewrap callback. We're a bit worried about infinite
+    // recursion here, so we do a check - see bug 809295.
     JS_CHECK_CHROME_RECURSION(cx, return false);
     if (cb->preWrap) {
         obj.set(cb->preWrap(cx, global, obj, flags));
         if (!obj)
             return false;
     }
+    MOZ_ASSERT(obj == GetOuterObject(cx, obj));
 
     if (obj->compartment() == this)
-        return WrapForSameCompartment(cx, obj, cb);
+        return true;
 
-#ifdef DEBUG
-    {
-        JSObject *outer = GetOuterObject(cx, obj);
-        JS_ASSERT(outer && outer == obj);
-    }
-#endif
 
-    /* If we already have a wrapper for this value, use it. */
+    // If we already have a wrapper for this value, use it.
     RootedValue key(cx, ObjectValue(*obj));
     if (WrapperMap::Ptr p = crossCompartmentWrappers.lookup(key)) {
         obj.set(&p->value().get().toObject());
@@ -420,7 +403,7 @@ JSCompartment::wrap(JSContext *cx, MutableHandleObject obj, HandleObject existin
     RootedObject proto(cx, TaggedProto::LazyProto);
     RootedObject existing(cx, existingArg);
     if (existing) {
-        /* Is it possible to reuse |existing|? */
+        // Is it possible to reuse |existing|?
         if (!existing->getTaggedProto().isLazy() ||
             // Note: don't use is<ObjectProxyObject>() here -- it also matches subclasses!
             existing->getClass() != &ProxyObject::uncallableClass_ ||
@@ -435,10 +418,8 @@ JSCompartment::wrap(JSContext *cx, MutableHandleObject obj, HandleObject existin
     if (!obj)
         return false;
 
-    /*
-     * We maintain the invariant that the key in the cross-compartment wrapper
-     * map is always directly wrapped by the value.
-     */
+    // We maintain the invariant that the key in the cross-compartment wrapper
+    // map is always directly wrapped by the value.
     JS_ASSERT(Wrapper::wrappedObject(obj) == &key.get().toObject());
 
     return putWrapper(cx, key, ObjectValue(*obj));
@@ -538,7 +519,14 @@ JSCompartment::markCrossCompartmentWrappers(JSTracer *trc)
 }
 
 void
-JSCompartment::mark(JSTracer *trc)
+JSCompartment::trace(JSTracer *trc)
+{
+    // At the moment, this is merely ceremonial, but any live-compartment-only tracing should go
+    // here.
+}
+
+void
+JSCompartment::markRoots(JSTracer *trc)
 {
     JS_ASSERT(!trc->runtime->isHeapMinorCollecting());
 
@@ -722,14 +710,17 @@ CreateLazyScriptsForCompartment(JSContext *cx)
     AutoObjectVector lazyFunctions(cx);
 
     // Find all live lazy scripts in the compartment, and via them all root
-    // lazy functions in the compartment: those which have not been compiled
-    // and which have a source object, indicating that their parent has been
-    // compiled.
+    // lazy functions in the compartment: those which have not been compiled,
+    // which have a source object, indicating that they have a parent, and
+    // which do not have an uncompiled enclosing script. The last condition is
+    // so that we don't compile lazy scripts whose enclosing scripts failed to
+    // compile, indicating that the lazy script did not escape the script.
     for (gc::CellIter i(cx->zone(), gc::FINALIZE_LAZY_SCRIPT); !i.done(); i.next()) {
         LazyScript *lazy = i.get<LazyScript>();
         JSFunction *fun = lazy->functionNonDelazifying();
         if (fun->compartment() == cx->compartment() &&
-            lazy->sourceObject() && !lazy->maybeScript())
+            lazy->sourceObject() && !lazy->maybeScript() &&
+            !lazy->hasUncompiledEnclosingScript())
         {
             MOZ_ASSERT(fun->isInterpretedLazy());
             MOZ_ASSERT(lazy == fun->lazyScriptOrNull());
@@ -912,28 +903,21 @@ JSCompartment::addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf,
                                       size_t *tiArrayTypeTables,
                                       size_t *tiObjectTypeTables,
                                       size_t *compartmentObject,
-                                      size_t *compartmentTables,
+                                      size_t *shapesCompartmentTables,
                                       size_t *crossCompartmentWrappersArg,
                                       size_t *regexpCompartment,
-                                      size_t *debuggeesSet,
-                                      size_t *baselineStubsOptimized)
+                                      size_t *debuggeesSet)
 {
     *compartmentObject += mallocSizeOf(this);
     types.addSizeOfExcludingThis(mallocSizeOf, tiAllocationSiteTables,
                                  tiArrayTypeTables, tiObjectTypeTables);
-    *compartmentTables += baseShapes.sizeOfExcludingThis(mallocSizeOf)
-                        + initialShapes.sizeOfExcludingThis(mallocSizeOf)
-                        + newTypeObjects.sizeOfExcludingThis(mallocSizeOf)
-                        + lazyTypeObjects.sizeOfExcludingThis(mallocSizeOf);
+    *shapesCompartmentTables += baseShapes.sizeOfExcludingThis(mallocSizeOf)
+                              + initialShapes.sizeOfExcludingThis(mallocSizeOf)
+                              + newTypeObjects.sizeOfExcludingThis(mallocSizeOf)
+                              + lazyTypeObjects.sizeOfExcludingThis(mallocSizeOf);
     *crossCompartmentWrappersArg += crossCompartmentWrappers.sizeOfExcludingThis(mallocSizeOf);
     *regexpCompartment += regExps.sizeOfExcludingThis(mallocSizeOf);
     *debuggeesSet += debuggees.sizeOfExcludingThis(mallocSizeOf);
-#ifdef JS_ION
-    if (jitCompartment()) {
-        *baselineStubsOptimized +=
-            jitCompartment()->optimizedStubSpace()->sizeOfExcludingThis(mallocSizeOf);
-    }
-#endif
 }
 
 void

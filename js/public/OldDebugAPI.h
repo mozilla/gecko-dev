@@ -23,7 +23,7 @@ class JSAtom;
 class JSFreeOp;
 
 namespace js {
-class StackFrame;
+class InterpreterFrame;
 class ScriptFrameIter;
 }
 
@@ -94,7 +94,7 @@ FormatStackDump(JSContext *cx, char *buf, bool showArgs, bool showLocals, bool s
 # ifdef JS_DEBUG
 JS_FRIEND_API(void) js_DumpValue(const JS::Value &val);
 JS_FRIEND_API(void) js_DumpId(jsid id);
-JS_FRIEND_API(void) js_DumpStackFrame(JSContext *cx, js::StackFrame *start = nullptr);
+JS_FRIEND_API(void) js_DumpInterpreterFrame(JSContext *cx, js::InterpreterFrame *start = nullptr);
 # endif
 
 JS_FRIEND_API(void)
@@ -199,12 +199,12 @@ JS_SetDebugMode(JSContext *cx, bool debug);
 
 /* Turn on single step mode. */
 extern JS_PUBLIC_API(bool)
-JS_SetSingleStepMode(JSContext *cx, JSScript *script, bool singleStep);
+JS_SetSingleStepMode(JSContext *cx, JS::HandleScript script, bool singleStep);
 
 /* The closure argument will be marked. */
 extern JS_PUBLIC_API(bool)
-JS_SetTrap(JSContext *cx, JSScript *script, jsbytecode *pc,
-           JSTrapHandler handler, JS::Value closure);
+JS_SetTrap(JSContext *cx, JS::HandleScript script, jsbytecode *pc,
+           JSTrapHandler handler, JS::HandleValue closure);
 
 extern JS_PUBLIC_API(void)
 JS_ClearTrap(JSContext *cx, JSScript *script, jsbytecode *pc,
@@ -225,8 +225,8 @@ JS_ClearInterrupt(JSRuntime *rt, JSInterruptHook *handlerp, void **closurep);
 /************************************************************************/
 
 extern JS_PUBLIC_API(bool)
-JS_SetWatchPoint(JSContext *cx, JSObject *obj, jsid id,
-                 JSWatchPointHandler handler, JSObject *closure);
+JS_SetWatchPoint(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
+                 JSWatchPointHandler handler, JS::HandleObject closure);
 
 extern JS_PUBLIC_API(bool)
 JS_ClearWatchPoint(JSContext *cx, JSObject *obj, jsid id,
@@ -272,7 +272,7 @@ extern JS_PUBLIC_API(void)
 JS_ReleaseFunctionLocalNameArray(JSContext *cx, void *mark);
 
 extern JS_PUBLIC_API(JSScript *)
-JS_GetFunctionScript(JSContext *cx, JSFunction *fun);
+JS_GetFunctionScript(JSContext *cx, JS::HandleFunction fun);
 
 extern JS_PUBLIC_API(JSNative)
 JS_GetFunctionNative(JSContext *cx, JSFunction *fun);
@@ -360,7 +360,7 @@ typedef struct JSPropertyDescArray {
 typedef struct JSScopeProperty JSScopeProperty;
 
 extern JS_PUBLIC_API(bool)
-JS_GetPropertyDescArray(JSContext *cx, JSObject *obj, JSPropertyDescArray *pda);
+JS_GetPropertyDescArray(JSContext *cx, JS::HandleObject obj, JSPropertyDescArray *pda);
 
 extern JS_PUBLIC_API(void)
 JS_PutPropertyDescArray(JSContext *cx, JSPropertyDescArray *pda);
@@ -529,10 +529,10 @@ JS_DefineProfilingFunctions(JSContext *cx, JSObject *obj);
 
 /* Defined in vm/Debugger.cpp. */
 extern JS_PUBLIC_API(bool)
-JS_DefineDebuggerObject(JSContext *cx, JSObject *obj);
+JS_DefineDebuggerObject(JSContext *cx, JS::HandleObject obj);
 
 extern JS_PUBLIC_API(void)
-JS_DumpPCCounts(JSContext *cx, JSScript *script);
+JS_DumpPCCounts(JSContext *cx, JS::HandleScript script);
 
 extern JS_PUBLIC_API(void)
 JS_DumpCompartmentPCCounts(JSContext *cx);

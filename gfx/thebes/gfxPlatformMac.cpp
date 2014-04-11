@@ -46,6 +46,12 @@ DisableFontActivation()
         mainBundleID = ::CFBundleGetIdentifier(mainBundle);
     }
 
+    // bug 969388 and bug 922590 - mainBundlID as null is sometimes problematic
+    if (!mainBundleID) {
+        NS_WARNING("missing bundle ID, packaging set up incorrectly");
+        return;
+    }
+
     // if possible, fetch CTFontManagerSetAutoActivationSetting
     void (*CTFontManagerSetAutoActivationSettingPtr)
             (CFStringRef, AutoActivationSetting);
@@ -331,13 +337,6 @@ gfxPlatformMac::GetCommonFallbackFonts(const uint32_t aCh,
     aFontList.AppendElement(kFontArialUnicodeMS);
 }
 
-
-int32_t 
-gfxPlatformMac::OSXVersion()
-{
-    return nsCocoaFeatures::OSXVersion();
-}
-
 uint32_t
 gfxPlatformMac::ReadAntiAliasingThreshold()
 {
@@ -361,27 +360,6 @@ gfxPlatformMac::ReadAntiAliasingThreshold()
     }
 
     return threshold;
-}
-
-already_AddRefed<gfxASurface>
-gfxPlatformMac::CreateThebesSurfaceAliasForDrawTarget_hack(mozilla::gfx::DrawTarget *aTarget)
-{
-  if (aTarget->GetType() == BackendType::COREGRAPHICS) {
-    CGContextRef cg = static_cast<CGContextRef>(aTarget->GetNativeSurface(NativeSurfaceType::CGCONTEXT));
-    unsigned char* data = (unsigned char*)CGBitmapContextGetData(cg);
-    size_t bpp = CGBitmapContextGetBitsPerPixel(cg);
-    size_t stride = CGBitmapContextGetBytesPerRow(cg);
-    gfxIntSize size(aTarget->GetSize().width, aTarget->GetSize().height);
-    nsRefPtr<gfxImageSurface> imageSurface = new gfxImageSurface(data, size, stride, bpp == 2
-                                                                                     ? gfxImageFormat::RGB16_565
-                                                                                     : gfxImageFormat::ARGB32);
-    // Here we should return a gfxQuartzImageSurface but quartz will assumes that image surfaces
-    // don't change which wont create a proper alias to the draw target, therefore we have to
-    // return a plain image surface.
-    return imageSurface.forget();
-  } else {
-    return GetThebesSurfaceForDrawTarget(aTarget);
-  }
 }
 
 already_AddRefed<gfxASurface>
@@ -417,7 +395,7 @@ bool
 gfxPlatformMac::UseAcceleratedCanvas()
 {
   // Lion or later is required
-  return OSXVersion() >= 0x1070 && Preferences::GetBool("gfx.canvas.azure.accelerated", false);
+  return nsCocoaFeatures::OnLionOrLater() && Preferences::GetBool("gfx.canvas.azure.accelerated", false);
 }
 
 bool

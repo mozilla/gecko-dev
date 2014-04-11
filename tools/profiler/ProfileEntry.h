@@ -15,6 +15,8 @@
 
 class ThreadProfile;
 
+#pragma pack(push, 1)
+
 class ProfileEntry
 {
 public:
@@ -58,6 +60,8 @@ private:
   char mTagName;
 };
 
+#pragma pack(pop)
+
 typedef void (*IterateTagsCallback)(const ProfileEntry& entry, const char* tagStringData);
 
 class ThreadProfile
@@ -93,6 +97,7 @@ public:
     return aGenID + 2 <= mGeneration;
   }
   void* GetStackTop() const { return mStackTop; }
+  void DuplicateLastSample();
 private:
   // Circular buffer 'Keep One Slot Open' implementation
   // for simplicity

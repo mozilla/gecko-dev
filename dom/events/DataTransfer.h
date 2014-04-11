@@ -19,13 +19,15 @@
 #include "nsDOMFile.h"
 #include "mozilla/Attributes.h"
 
-class nsEventStateManager;
 class nsINode;
 class nsITransferable;
 class nsISupportsArray;
 class nsILoadContext;
 
 namespace mozilla {
+
+class EventStateManager;
+
 namespace dom {
 
 class DOMStringList;
@@ -60,7 +62,7 @@ public:
 
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DataTransfer)
 
-  friend class ::nsEventStateManager;
+  friend class mozilla::EventStateManager;
 
 protected:
 
@@ -102,7 +104,7 @@ public:
   DataTransfer(nsISupports* aParent, uint32_t aEventType, bool aIsExternal,
                int32_t aClipboardType);
 
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope);
+  virtual JSObject* WrapObject(JSContext* aCx);
   nsISupports* GetParentObject()
   {
     return mParent;

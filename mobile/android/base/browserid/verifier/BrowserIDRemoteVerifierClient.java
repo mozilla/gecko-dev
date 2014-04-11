@@ -9,7 +9,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.GeneralSecurityException;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.mozilla.gecko.background.common.log.Logger;
@@ -34,6 +34,11 @@ public class BrowserIDRemoteVerifierClient implements BrowserIDVerifierClient {
     protected RemoteVerifierResourceDelegate(Resource resource, BrowserIDVerifierDelegate delegate) {
       super(resource);
       this.delegate = delegate;
+    }
+
+    @Override
+    public String getUserAgent() {
+      return null;
     }
 
     @Override
@@ -118,9 +123,9 @@ public class BrowserIDRemoteVerifierClient implements BrowserIDVerifierClient {
 
     r.delegate = new RemoteVerifierResourceDelegate(r, delegate);
 
-    List<NameValuePair> nvps = new ArrayList<NameValuePair>();
-    nvps.add(new BasicNameValuePair("audience", audience));
-    nvps.add(new BasicNameValuePair("assertion", assertion));
+    List<NameValuePair> nvps = Arrays.asList(new NameValuePair[] {
+        new BasicNameValuePair("audience", audience),
+        new BasicNameValuePair("assertion", assertion) });
 
     try {
       r.post(new UrlEncodedFormEntity(nvps, "UTF-8"));

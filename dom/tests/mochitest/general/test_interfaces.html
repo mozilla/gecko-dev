@@ -28,7 +28,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=766694
 // are what we intend. Each entry in the arrays below can either be a
 // simple string with the interface name, or an object with a 'name'
 // property giving the interface name as a string, and additional
-// properties which quality the exposure of that interface. For example:
+// properties which qualify the exposure of that interface. For example:
 //
 // [
 //   "AGlobalInterface",
@@ -164,17 +164,19 @@ var interfaceNamesInGlobalScope =
 // IMPORTANT: Do not change this list without review from a DOM peer!
     {name: "BoxObject", xbl: true},
 // IMPORTANT: Do not change this list without review from a DOM peer!
-    {name: "BrowserFeedWriter", desktop: true},
-// IMPORTANT: Do not change this list without review from a DOM peer!
     {name: "CallEvent", b2g: true, pref: "dom.telephony.enabled"},
 // IMPORTANT: Do not change this list without review from a DOM peer!
     {name: "CallGroupErrorEvent", b2g: true, pref: "dom.telephony.enabled"},
 // IMPORTANT: Do not change this list without review from a DOM peer!
-    "CameraCapabilities",
+    {name: "CameraCapabilities", b2g: true},
 // IMPORTANT: Do not change this list without review from a DOM peer!
-    "CameraControl",
+    {name: "CameraControl", b2g: true},
 // IMPORTANT: Do not change this list without review from a DOM peer!
-    "CameraManager",
+    {name: "CameraDetectedFace", b2g: true, pref: "camera.control.face_detection.enabled"},
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    {name: "CameraManager", b2g: true},
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    {name: "CameraPoint", b2g: true, pref: "camera.control.face_detection.enabled"},
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "CanvasGradient",
 // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -258,8 +260,6 @@ var interfaceNamesInGlobalScope =
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "DataChannel",
 // IMPORTANT: Do not change this list without review from a DOM peer!
-    "DataContainerEvent",
-// IMPORTANT: Do not change this list without review from a DOM peer!
     {name: "DataErrorEvent", b2g: true, pref: "dom.mobileconnection.enabled"},
 // IMPORTANT: Do not change this list without review from a DOM peer!
     {name: "DataStore", b2g: true},
@@ -308,9 +308,17 @@ var interfaceNamesInGlobalScope =
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "DOMParser",
 // IMPORTANT: Do not change this list without review from a DOM peer!
+    "DOMPoint",
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    "DOMPointReadOnly",
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    "DOMQuad",
+// IMPORTANT: Do not change this list without review from a DOM peer!
     "DOMRect",
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "DOMRectList",
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    "DOMRectReadOnly",
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "DOMRequest",
 // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -336,11 +344,11 @@ var interfaceNamesInGlobalScope =
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "Event",
 // IMPORTANT: Do not change this list without review from a DOM peer!
-    "EventListenerInfo",
-// IMPORTANT: Do not change this list without review from a DOM peer!
     "EventSource",
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "EventTarget",
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    {name: "External", b2g: false},
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "File",
 // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -556,6 +564,8 @@ var interfaceNamesInGlobalScope =
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "ImageData",
 // IMPORTANT: Do not change this list without review from a DOM peer!
+    "InputEvent",
+// IMPORTANT: Do not change this list without review from a DOM peer!
     {name: "InstallTrigger", b2g: false, xbl: false},
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "KeyEvent",
@@ -698,6 +708,8 @@ var interfaceNamesInGlobalScope =
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "Navigator",
 // IMPORTANT: Do not change this list without review from a DOM peer!
+    {name: "NetworkInformation", pref: "dom.netinfo.enabled"},
+// IMPORTANT: Do not change this list without review from a DOM peer!
     "Node",
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "NodeFilter",
@@ -705,8 +717,6 @@ var interfaceNamesInGlobalScope =
     "NodeIterator",
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "NodeList",
-// IMPORTANT: Do not change this list without review from a DOM peer!
-    "NotifyAudioAvailableEvent",
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "Notification",
 // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -730,6 +740,8 @@ var interfaceNamesInGlobalScope =
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "PannerNode",
 // IMPORTANT: Do not change this list without review from a DOM peer!
+    { name: "Path2D", pref: "canvas.path.enabled" },
+// IMPORTANT: Do not change this list without review from a DOM peer!
     "Performance",
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "PerformanceNavigation",
@@ -737,6 +749,8 @@ var interfaceNamesInGlobalScope =
     "PerformanceTiming",
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "PeriodicWave",
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    {name: "PermissionSettings", b2g: true, permission: "permissions"},
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "PhoneNumberService",
 // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -1118,9 +1132,7 @@ var interfaceNamesInGlobalScope =
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "VTTCue",
 // IMPORTANT: Do not change this list without review from a DOM peer!
-    "VTTRegion",
-// IMPORTANT: Do not change this list without review from a DOM peer!
-    "VTTRegionList",
+    {name: "VTTRegion", pref: "media.webvtt.regions.enabled"},
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "WaveShaperNode",
 // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -1218,11 +1230,11 @@ function createInterfaceMap(isXBLScope) {
 
   var interfaceMap = {};
 
-  function addInterfaces(interfaces, shouldExpect)
+  function addInterfaces(interfaces)
   {
     for (var entry of interfaces) {
       if (typeof(entry) === "string") {
-        interfaceMap[entry] = shouldExpect;
+        interfaceMap[entry] = true;
       } else if ((entry.nightly === !isNightly) ||
                  (entry.xbl === !isXBLScope) ||
                  (entry.desktop === !isDesktop) ||
@@ -1232,13 +1244,19 @@ function createInterfaceMap(isXBLScope) {
                  (entry.permission && !hasPermission(entry.permission))) {
         interfaceMap[entry.name] = false;
       } else {
-        interfaceMap[entry.name] = shouldExpect;
+        interfaceMap[entry.name] = true;
       }
     }
   }
 
-  addInterfaces(ecmaGlobals, true);
-  addInterfaces(interfaceNamesInGlobalScope, true);
+  addInterfaces(ecmaGlobals);
+  addInterfaces(interfaceNamesInGlobalScope);
+  if (isXBLScope) {
+    // We expose QueryInterface to XBL scopes. It's not an interface but we
+    // need to handle it because it's an own property of the global and the
+    // property name starts with an uppercase letter.
+    interfaceMap["QueryInterface"] = true;
+  }
 
   return interfaceMap;
 }

@@ -119,7 +119,7 @@ public:
 };
 
 Telephony::Telephony(nsPIDOMWindow* aOwner)
-  : nsDOMEventTargetHelper(aOwner), mActiveCall(nullptr), mEnumerated(false)
+  : DOMEventTargetHelper(aOwner), mActiveCall(nullptr), mEnumerated(false)
 {
   if (!gTelephonyList) {
     gTelephonyList = new TelephonyList();
@@ -159,9 +159,9 @@ Telephony::Shutdown()
 }
 
 JSObject*
-Telephony::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+Telephony::WrapObject(JSContext* aCx)
 {
-  return TelephonyBinding::Wrap(aCx, aScope, this);
+  return TelephonyBinding::Wrap(aCx, this);
 }
 
 // static
@@ -197,12 +197,6 @@ Telephony::Create(nsPIDOMWindow* aOwner, ErrorResult& aRv)
   telephony->mGroup = TelephonyCallGroup::Create(telephony);
 
   nsresult rv = ril->EnumerateCalls(telephony->mListener);
-  if (NS_FAILED(rv)) {
-    aRv.Throw(rv);
-    return nullptr;
-  }
-
-  rv = ril->RegisterListener(telephony->mListener);
   if (NS_FAILED(rv)) {
     aRv.Throw(rv);
     return nullptr;
@@ -387,14 +381,14 @@ Telephony::GetCallFromEverywhere(uint32_t aServiceId, uint32_t aCallIndex)
 NS_IMPL_CYCLE_COLLECTION_CLASS(Telephony)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(Telephony,
-                                                  nsDOMEventTargetHelper)
+                                                  DOMEventTargetHelper)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCalls)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCallsList)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mGroup)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(Telephony,
-                                                nsDOMEventTargetHelper)
+                                                DOMEventTargetHelper)
   tmp->Shutdown();
   tmp->mActiveCall = nullptr;
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mCalls)
@@ -403,10 +397,10 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(Telephony,
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(Telephony)
-NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetHelper)
+NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
-NS_IMPL_ADDREF_INHERITED(Telephony, nsDOMEventTargetHelper)
-NS_IMPL_RELEASE_INHERITED(Telephony, nsDOMEventTargetHelper)
+NS_IMPL_ADDREF_INHERITED(Telephony, DOMEventTargetHelper)
+NS_IMPL_RELEASE_INHERITED(Telephony, DOMEventTargetHelper)
 
 NS_IMPL_ISUPPORTS1(Telephony::Listener, nsITelephonyListener)
 NS_IMPL_ISUPPORTS1(Telephony::Callback, nsITelephonyCallback)
@@ -538,9 +532,6 @@ Telephony::CallStateChanged(uint32_t aServiceId, uint32_t aCallIndex,
                             bool aIsActive, bool aIsOutgoing, bool aIsEmergency,
                             bool aIsConference, bool aIsSwitchable, bool aIsMergeable)
 {
-  NS_ASSERTION(aCallIndex != kOutgoingPlaceholderCallIndex,
-               "This should never happen!");
-
   nsRefPtr<TelephonyCall> modifiedCall
       = GetCallFromEverywhere(aServiceId, aCallIndex);
 
@@ -634,6 +625,10 @@ Telephony::EnumerateCallStateComplete()
 
   if (NS_FAILED(NotifyCallsChanged(nullptr))) {
     NS_WARNING("Failed to notify calls changed!");
+  }
+
+  if (NS_FAILED(mProvider->RegisterListener(mListener))) {
+    NS_WARNING("Failed to register listener!");
   }
   return NS_OK;
 }

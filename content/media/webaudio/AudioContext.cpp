@@ -47,9 +47,10 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(AudioContext)
   if (!tmp->mIsStarted) {
     NS_IMPL_CYCLE_COLLECTION_UNLINK(mActiveNodes)
   }
-NS_IMPL_CYCLE_COLLECTION_UNLINK_END_INHERITED(nsDOMEventTargetHelper)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END_INHERITED(DOMEventTargetHelper)
 
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(AudioContext, nsDOMEventTargetHelper)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(AudioContext,
+                                                  DOMEventTargetHelper)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mDestination)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mListener)
   if (!tmp->mIsStarted) {
@@ -59,12 +60,10 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(AudioContext, nsDOMEventTarget
   }
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
-NS_IMPL_ADDREF_INHERITED(AudioContext, nsDOMEventTargetHelper)
-NS_IMPL_RELEASE_INHERITED(AudioContext, nsDOMEventTargetHelper)
+NS_IMPL_ADDREF_INHERITED(AudioContext, DOMEventTargetHelper)
+NS_IMPL_RELEASE_INHERITED(AudioContext, DOMEventTargetHelper)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(AudioContext)
-NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetHelper)
-
-static uint8_t gWebAudioOutputKey;
+NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 static float GetSampleRateForAudioContext(bool aIsOffline, float aSampleRate)
 {
@@ -81,7 +80,7 @@ AudioContext::AudioContext(nsPIDOMWindow* aWindow,
                            uint32_t aNumberOfChannels,
                            uint32_t aLength,
                            float aSampleRate)
-  : nsDOMEventTargetHelper(aWindow)
+  : DOMEventTargetHelper(aWindow)
   , mSampleRate(GetSampleRateForAudioContext(aIsOffline, aSampleRate))
   , mNumberOfChannels(aNumberOfChannels)
   , mNodeCount(0)
@@ -95,7 +94,6 @@ AudioContext::AudioContext(nsPIDOMWindow* aWindow,
   // bound to the window.
   mDestination = new AudioDestinationNode(this, aIsOffline, aNumberOfChannels,
                                           aLength, aSampleRate);
-  mDestination->Stream()->AddAudioOutput(&gWebAudioOutputKey);
   // We skip calling SetIsOnlyNodeForContext during mDestination's constructor,
   // because we can only call SetIsOnlyNodeForContext after mDestination has
   // been set up.
@@ -113,12 +111,12 @@ AudioContext::~AudioContext()
 }
 
 JSObject*
-AudioContext::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+AudioContext::WrapObject(JSContext* aCx)
 {
   if (mIsOffline) {
-    return OfflineAudioContextBinding::Wrap(aCx, aScope, this);
+    return OfflineAudioContextBinding::Wrap(aCx, this);
   } else {
-    return AudioContextBinding::Wrap(aCx, aScope, this);
+    return AudioContextBinding::Wrap(aCx, this);
   }
 }
 
@@ -463,7 +461,7 @@ AudioContext::DecodeAudioData(const ArrayBuffer& aBuffer,
                   aBuffer.Data(), aBuffer.Length(),
                   contentType);
 
-  nsCOMPtr<DecodeErrorCallback> failureCallback;
+  nsRefPtr<DecodeErrorCallback> failureCallback;
   if (aFailureCallback.WasPassed()) {
     failureCallback = &aFailureCallback.Value();
   }
@@ -473,7 +471,7 @@ AudioContext::DecodeAudioData(const ArrayBuffer& aBuffer,
   mDecoder.AsyncDecodeMedia(contentType.get(),
                             aBuffer.Data(), aBuffer.Length(), *job);
   // Transfer the ownership to mDecodeJobs
-  mDecodeJobs.AppendElement(job.forget());
+  mDecodeJobs.AppendElement(job);
 }
 
 void

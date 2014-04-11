@@ -105,7 +105,7 @@ load 375831.html
 load 376419.html
 load 377522.html
 load 379217-1.xhtml
-asserts(1-2) load 379217-2.xhtml # Bug 439204
+load 379217-2.xhtml
 load 379917-1.xhtml
 load 380012-1.html
 load 381152-1.html
@@ -125,7 +125,7 @@ load 385344-2.html
 load 385414-1.html
 load 385414-2.html
 load 385426-1.html
-skip-if(B2G) load 385526.html # Bug 891347
+skip-if(B2G) skip-if(Android&&AndroidVersion==10) load 385526.html # Bug 891347
 load 385681.html
 load 385885-1.xul
 load 386799-1.html
@@ -163,7 +163,7 @@ load 393956-4.html
 load 394237-1.html
 load 394820-1.html
 load 394818-1.html
-asserts-if(Android,1) load 394818-2.html
+load 394818-2.html
 load 395316-1.html
 load 395450-1.xhtml
 load 397007-1.html
@@ -233,7 +233,7 @@ load 413085-2.html
 load 413582-1.xhtml
 load 413582-2.html
 load 413712-1.xhtml
-asserts-if(Android,6) load 414061-1.html
+load 414061-1.html
 load 414180-1.xul
 load 414719-1.html
 load 415685-1.html
@@ -355,7 +355,7 @@ load 496742.html
 load 499138.html
 load 499862-1.html
 load 499857-1.html
-asserts-if(winWidget,3-4) load 499885-1.xhtml # bug 893509
+asserts-if(winWidget,0-3) load 499885-1.xhtml
 load 501535-1.html
 load 503961-1.xhtml
 load 503961-2.html
@@ -368,6 +368,8 @@ load 511482.html
 load 512724-1.html
 load 512725-1.html
 load 512749-1.html
+load 513110-1.html
+load 513110-2.xhtml
 load 513394-1.html
 load 514098-1.xhtml
 load 514800-1.html
@@ -446,7 +448,7 @@ load text-overflow-bug666751-2.html
 asserts(0-1) load text-overflow-bug670564.xhtml
 load text-overflow-bug671796.xhtml
 load 667025.html
-asserts-if(Android,8) load 673770.html # bug 569193 and bug 459597
+load 673770.html # bug 569193 and bug 459597
 load 679933-1.html
 load 682649-1.html
 load 683702-1.xhtml
@@ -520,6 +522,11 @@ load 893496-1.html
 load 893523.html
 test-pref(layout.css.sticky.enabled,true) load 914891.html
 test-pref(layout.css.sticky.enabled,true) load 915475.xhtml
+load 927558.html
 load 943509-1.html
 asserts(4-8) load 944909-1.html
 test-pref(layout.css.sticky.enabled,true) load 949932.html
+load 973701-1.xhtml
+load 973701-2.xhtml
+load 986899.html
+load outline-on-frameset.xhtml

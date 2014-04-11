@@ -19,6 +19,8 @@
 #include <ui/Fence.h>
 #endif
 
+#include "mozilla/layers/GrallocTextureClient.h"
+#include "mozilla/layers/TextureClient.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Types.h"
 #include "mozilla/Monitor.h"
@@ -42,6 +44,7 @@ PRLogModuleInfo *gOmxDecoderLog;
 using namespace MPAPI;
 using namespace mozilla;
 using namespace mozilla::gfx;
+using namespace mozilla::layers;
 
 namespace mozilla {
 
@@ -190,43 +193,6 @@ private:
   bool    mCompleted;
 };
 
-namespace layers {
-
-VideoGraphicBuffer::VideoGraphicBuffer(const android::wp<android::OmxDecoder> aOmxDecoder,
-                                       android::MediaBuffer *aBuffer,
-                                       SurfaceDescriptor& aDescriptor)
-  : GraphicBufferLocked(aDescriptor),
-    mMediaBuffer(aBuffer),
-    mOmxDecoder(aOmxDecoder)
-{
-  mMediaBuffer->add_ref();
-}
-
-VideoGraphicBuffer::~VideoGraphicBuffer()
-{
-  MOZ_ASSERT(!mMediaBuffer);
-}
-
-void
-VideoGraphicBuffer::Unlock()
-{
-  android::sp<android::OmxDecoder> omxDecoder = mOmxDecoder.promote();
-  if (omxDecoder.get()) {
-    // Post kNotifyPostReleaseVideoBuffer message to OmxDecoder via ALooper.
-    // The message is delivered to OmxDecoder on ALooper thread.
-    // MediaBuffer::release() could take a very long time.
-    // PostReleaseVideoBuffer() prevents long time locking.
-    omxDecoder->PostReleaseVideoBuffer(mMediaBuffer, mReleaseFenceHandle);
-  } else {
-    NS_WARNING("OmxDecoder is not present");
-    if (mMediaBuffer) {
-      mMediaBuffer->release();
-    }
-  }
-  mMediaBuffer = nullptr;
-}
-
-}
 }
 
 namespace android {
@@ -289,6 +255,8 @@ OmxDecoder::OmxDecoder(MediaResource *aResource,
                        AbstractMediaDecoder *aDecoder) :
   mDecoder(aDecoder),
   mResource(aResource),
+  mDisplayWidth(0),
+  mDisplayHeight(0),
   mVideoWidth(0),
   mVideoHeight(0),
   mVideoColorFormat(0),
@@ -394,6 +362,12 @@ bool OmxDecoder::Init(sp<MediaExtractor>& extractor) {
 
   if (audioTrackIndex != -1) {
     mAudioTrack = extractor->getTrack(audioTrackIndex);
+
+#ifdef MOZ_AUDIO_OFFLOAD
+    // mAudioTrack is be used by OMXCodec. For offloaded audio track, using same
+    // object gives undetermined behavior. So get a new track
+    mAudioOffloadTrack = extractor->getTrack(audioTrackIndex);
+#endif
   }
   return true;
 }
@@ -633,6 +607,16 @@ bool OmxDecoder::SetVideoFormat() {
     return false;
   }
 
+  if (!mVideoTrack.get() || !mVideoTrack->getFormat()->findInt32(kKeyDisplayWidth, &mDisplayWidth)) {
+    mDisplayWidth = mVideoWidth;
+    NS_WARNING("display width not available, assuming width");
+  }
+
+  if (!mVideoTrack.get() || !mVideoTrack->getFormat()->findInt32(kKeyDisplayHeight, &mDisplayHeight)) {
+    mDisplayHeight = mVideoHeight;
+    NS_WARNING("display height not available, assuming height");
+  }
+
   if (!mVideoSource->getFormat()->findInt32(kKeyStride, &mVideoStride)) {
     mVideoStride = mVideoWidth;
     NS_WARNING("stride not available, assuming width");
@@ -648,9 +632,9 @@ bool OmxDecoder::SetVideoFormat() {
     NS_WARNING("rotation not available, assuming 0");
   }
 
-  LOG(PR_LOG_DEBUG, "width: %d height: %d component: %s format: %d stride: %d sliceHeight: %d rotation: %d",
-      mVideoWidth, mVideoHeight, componentName, mVideoColorFormat,
-      mVideoStride, mVideoSliceHeight, mVideoRotation);
+  LOG(PR_LOG_DEBUG, "display width: %d display height %d width: %d height: %d component: %s format: %d stride: %d sliceHeight: %d rotation: %d",
+      mDisplayWidth, mDisplayHeight, mVideoWidth, mVideoHeight, componentName,
+      mVideoColorFormat, mVideoStride, mVideoSliceHeight, mVideoRotation);
 
   return true;
 }
@@ -825,20 +809,21 @@ bool OmxDecoder::ReadVideo(VideoFrame *aFrame, int64_t aTimeUs,
       unreadable = 0;
     }
 
-    mozilla::layers::SurfaceDescriptor *descriptor = nullptr;
+    RefPtr<mozilla::layers::TextureClient> textureClient;
     if ((mVideoBuffer->graphicBuffer().get())) {
-      descriptor = mNativeWindow->getSurfaceDescriptorFromBuffer(mVideoBuffer->graphicBuffer().get());
+      textureClient = mNativeWindow->getTextureClientFromBuffer(mVideoBuffer->graphicBuffer().get());
     }
 
-    if (descriptor) {
-      // Change the descriptor's size to video's size. There are cases that
-      // GraphicBuffer's size and actual video size is different.
-      // See Bug 850566.
-      mozilla::layers::SurfaceDescriptorGralloc newDescriptor = descriptor->get_SurfaceDescriptorGralloc();
-      newDescriptor.size() = IntSize(mVideoWidth, mVideoHeight);
+    if (textureClient) {
+      // Manually increment reference count to keep MediaBuffer alive
+      // during TextureClient is in use.
+      mVideoBuffer->add_ref();
+      GrallocTextureClientOGL* grallocClient = static_cast<GrallocTextureClientOGL*>(textureClient.get());
+      grallocClient->SetMediaBuffer(mVideoBuffer);
+      // Set recycle callback for TextureClient
+      textureClient->SetRecycleCallback(OmxDecoder::RecycleCallback, this);
 
-      mozilla::layers::SurfaceDescriptor descWrapper(newDescriptor);
-      aFrame->mGraphicBuffer = new mozilla::layers::VideoGraphicBuffer(this, mVideoBuffer, descWrapper);
+      aFrame->mGraphicBuffer = textureClient;
       aFrame->mRotation = mVideoRotation;
       aFrame->mTimeUs = timeUs;
       aFrame->mKeyFrame = keyFrame;
@@ -1017,8 +1002,9 @@ void OmxDecoder::onMessageReceived(const sp<AMessage> &msg)
 
     case kNotifyStatusChanged:
     {
-      mozilla::ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-      mDecoder->GetReentrantMonitor().NotifyAll();
+      // Our decode may have acquired the hardware resource that it needs
+      // to start. Notify the state machine to resume loading metadata.
+      mDecoder->NotifyWaitingForResourcesStatusChanged();
       break;
     }
 
@@ -1084,6 +1070,16 @@ void OmxDecoder::ReleaseAllPendingVideoBuffersLocked()
     buffer->release();
   }
   releasingVideoBuffers.clear();
+}
+
+/* static */ void
+OmxDecoder::RecycleCallback(TextureClient* aClient, void* aClosure)
+{
+  OmxDecoder* decoder = static_cast<OmxDecoder*>(aClosure);
+  GrallocTextureClientOGL* client = static_cast<GrallocTextureClientOGL*>(aClient);
+
+  aClient->ClearRecycleCallback();
+  decoder->PostReleaseVideoBuffer(client->GetMediaBuffer(), client->GetReleaseFenceHandle());
 }
 
 int64_t OmxDecoder::ProcessCachedData(int64_t aOffset, bool aWaitForCompletion)

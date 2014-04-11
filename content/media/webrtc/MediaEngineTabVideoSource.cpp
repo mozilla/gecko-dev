@@ -1,10 +1,17 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "MediaEngineTabVideoSource.h"
+
+#include "mozilla/gfx/2D.h"
+#include "mozilla/RefPtr.h"
 #include "nsGlobalWindow.h"
 #include "nsDOMWindowUtils.h"
 #include "nsIDOMClientRect.h"
 #include "nsIDocShell.h"
 #include "nsIPresShell.h"
 #include "nsPresContext.h"
-#include "gfxImageSurface.h"
 #include "gfxContext.h"
 #include "gfx2DGlue.h"
 #include "ImageContainer.h"
@@ -12,19 +19,18 @@
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIDOMDocument.h"
 #include "nsITabSource.h"
-#include "MediaEngineTabVideoSource.h"
 #include "VideoUtils.h"
 #include "nsServiceManagerUtils.h"
 #include "nsIPrefService.h"
+
 namespace mozilla {
 
 using namespace mozilla::gfx;
 
-NS_IMPL_ISUPPORTS1(MediaEngineTabVideoSource, MediaEngineVideoSource)
+NS_IMPL_ISUPPORTS2(MediaEngineTabVideoSource, nsIDOMEventListener, nsITimerCallback)
 
 MediaEngineTabVideoSource::MediaEngineTabVideoSource()
-  : mName(NS_LITERAL_STRING("share tab")), mUuid(NS_LITERAL_STRING("uuid")),
-  mMonitor("MediaEngineTabVideoSource")
+: mMonitor("MediaEngineTabVideoSource")
 {
 }
 
@@ -39,6 +45,7 @@ MediaEngineTabVideoSource::StartRunnable::Run()
     mVideoSource->mTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
     mVideoSource->mTimer->InitWithCallback(mVideoSource, mVideoSource->mTimePerFrame, nsITimer:: TYPE_REPEATING_SLACK);
   }
+  mVideoSource->mTabSource->NotifyStreamStart(mVideoSource->mWindow);
   return NS_OK;
 }
 
@@ -54,6 +61,7 @@ MediaEngineTabVideoSource::StopRunnable::Run()
     mVideoSource->mTimer->Cancel();
     mVideoSource->mTimer = nullptr;
   }
+  mVideoSource->mTabSource->NotifyStreamStop(mVideoSource->mWindow);
   return NS_OK;
 }
 
@@ -83,10 +91,11 @@ MediaEngineTabVideoSource::InitRunnable::Run()
   branch->GetIntPref("media.tabstreaming.time_per_frame", &mVideoSource->mTimePerFrame);
   mVideoSource->mData = (unsigned char*)malloc(mVideoSource->mBufW * mVideoSource->mBufH * 4);
 
-  nsCOMPtr<nsITabSource> tabSource = do_GetService(NS_TABSOURCESERVICE_CONTRACTID, &rv);
+  mVideoSource->mTabSource = do_GetService(NS_TABSOURCESERVICE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
+
   nsCOMPtr<nsIDOMWindow> win;
-  rv = tabSource->GetTabToStream(getter_AddRefs(win));
+  rv = mVideoSource->mTabSource->GetTabToStream(getter_AddRefs(win));
   NS_ENSURE_SUCCESS(rv, rv);
   if (!win)
     return NS_OK;
@@ -100,14 +109,13 @@ MediaEngineTabVideoSource::InitRunnable::Run()
 void
 MediaEngineTabVideoSource::GetName(nsAString_internal& aName)
 {
-  aName.Assign(mName);
-
+  aName.Assign(NS_LITERAL_STRING("&getUserMedia.videoDevice.tabShare;"));
 }
 
 void
 MediaEngineTabVideoSource::GetUUID(nsAString_internal& aUuid)
 {
-  aUuid.Assign(mUuid);
+  aUuid.Assign(NS_LITERAL_STRING("uuid"));
 }
 
 nsresult
@@ -156,12 +164,8 @@ NotifyPull(MediaStreamGraph*, SourceMediaStream* aSource, mozilla::TrackID aID, 
   TrackTicks delta = target - aLastEndTime;
   if (delta > 0) {
     // nullptr images are allowed
-    if (image) {
-      gfx::IntSize size = image->GetSize();
-      segment.AppendFrame(image.forget(), delta, size);
-    } else {
-      segment.AppendFrame(nullptr, delta, IntSize(0, 0));
-    }
+    gfx::IntSize size = image ? image->GetSize() : IntSize(0, 0);
+    segment.AppendFrame(image.forget().downcast<layers::Image>(), delta, size);
     // This can fail if either a) we haven't added the track yet, or b)
     // we've removed or finished the track.
     if (aSource->AppendToTrack(aID, &(segment))) {
@@ -242,13 +246,16 @@ MediaEngineTabVideoSource::Draw() {
   uint32_t stride = gfxASurface::FormatStrideForWidth(format, size.width);
 
   nsRefPtr<layers::ImageContainer> container = layers::LayerManager::CreateImageContainer();
-  nsRefPtr<gfxASurface> surf;
-  surf = new gfxImageSurface(static_cast<unsigned char*>(mData),
-                             ThebesIntSize(size), stride, format);
-  if (surf->CairoStatus() != 0) {
+  RefPtr<DrawTarget> dt =
+    Factory::CreateDrawTargetForData(BackendType::CAIRO,
+                                     mData.rwget(),
+                                     size,
+                                     stride,
+                                     SurfaceFormat::B8G8R8X8);
+  if (!dt) {
     return;
   }
-  nsRefPtr<gfxContext> context = new gfxContext(surf);
+  nsRefPtr<gfxContext> context = new gfxContext(dt);
   gfxPoint pt(0, 0);
   context->Translate(pt);
   context->Scale(scale * size.width / srcW, scale * size.height / srcH);
@@ -256,10 +263,14 @@ MediaEngineTabVideoSource::Draw() {
 
   NS_ENSURE_SUCCESS_VOID(rv);
 
+  RefPtr<SourceSurface> surface = dt->Snapshot();
+  if (!surface) {
+    return;
+  }
+
   layers::CairoImage::Data cairoData;
-  cairoData.mDeprecatedSurface = surf;
   cairoData.mSize = size;
-  cairoData.mSourceSurface = gfxPlatform::GetPlatform()->GetSourceSurfaceForSurface(nullptr, surf);
+  cairoData.mSourceSurface = surface;
 
   nsRefPtr<layers::CairoImage> image = new layers::CairoImage();
 

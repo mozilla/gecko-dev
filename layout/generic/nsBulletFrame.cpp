@@ -932,7 +932,7 @@ static const bool CJKIdeographicToText(int32_t aOrdinal, nsString& result,
         needZero = true;
       }
       if (unit10Kidx != 0) {
-        if (data.lang == KOREAN) {
+        if (data.lang == KOREAN && idx != NUM_BUF_SIZE) {
           buf[--idx] = ' ';
         }
         buf[--idx] = data.unit10K[unit10Kidx - 1];
@@ -1803,7 +1803,7 @@ nsBulletFrame::GetLoadGroup(nsPresContext *aPresContext, nsILoadGroup **aLoadGro
   if (!doc)
     return;
 
-  *aLoadGroup = doc->GetDocumentLoadGroup().get();  // already_AddRefed
+  *aLoadGroup = doc->GetDocumentLoadGroup().take();
 }
 
 union VoidPtrOrFloat {

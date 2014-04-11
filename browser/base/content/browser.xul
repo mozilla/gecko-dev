@@ -203,20 +203,22 @@
            align="start"
            orient="vertical"
            role="alert">
-      <hbox>
-        <vbox>
+     <vbox>
+      <hbox pack="end">
+        <toolbarbutton id="UITourTooltipClose" class="close-icon"
+                       tooltiptext="&uiTour.infoPanel.close;"/>
+      </hbox>
+      <hbox id="UITourTooltipBody">
+        <vbox id="UITourTooltipIconContainer">
           <image id="UITourTooltipIcon"/>
         </vbox>
         <vbox flex="1">
           <label id="UITourTooltipTitle" flex="1"/>
           <description id="UITourTooltipDescription" flex="1"/>
-          <hbox id="UITourTooltipButtons" flex="1" align="center"/>
-        </vbox>
-        <vbox align="start">
-          <toolbarbutton id="UITourTooltipClose" class="close-icon"
-                         tooltiptext="&uiTour.infoPanel.close;"/>
         </vbox>
       </hbox>
+      <hbox id="UITourTooltipButtons" flex="1" align="center"/>
+     </vbox>
     </panel>
     <!-- type="default" forces frames to be created so that the panel's size can be determined --> 
     <panel id="UITourHighlightContainer"
@@ -404,14 +406,9 @@
         <image class="sync-panel-icon"/>
         <vbox class="sync-panel-inner">
           <description id="sync-start-panel-title"
-                       value="&syncStartPanel.heading;"/>
-          <description id="sync-start-panel-subtitle">
-#ifdef XP_UNIX
-            &syncStartPanel.subTitleUnix;
-#else
-            &syncStartPanel.subTitle;
-#endif
-          </description>
+                       value="&syncStartPanel2.heading;"/>
+          <description id="sync-start-panel-subtitle"
+                       value="&syncStartPanel2.subTitle;"/>
         </vbox>
       </hbox>
     </panel>
@@ -475,6 +472,9 @@
       <vbox id="bookmarked-notification-anchor">
         <vbox id="bookmarked-notification"/>
       </vbox>
+      <vbox id="bookmarked-notification-dropmarker-anchor">
+        <image id="bookmarked-notification-dropmarker-icon"/>
+      </vbox>
     </hbox>
 
     <tooltip id="dynamic-shortcut-tooltip"
@@ -486,6 +486,11 @@
   <hbox id="titlebar-content">
     <spacer id="titlebar-spacer" flex="1"/>
     <hbox id="titlebar-buttonbox-container">
+#ifdef XP_WIN
+      <hbox id="private-browsing-indicator-titlebar">
+        <hbox class="private-browsing-indicator"/>
+      </hbox>
+#endif
       <hbox id="titlebar-buttonbox">
         <toolbarbutton class="titlebar-button" id="titlebar-min" oncommand="window.minimize();"/>
         <toolbarbutton class="titlebar-button" id="titlebar-max" oncommand="onTitlebarMaxClick();"/>
@@ -502,7 +507,7 @@
 <deck flex="1" id="tab-view-deck">
 <vbox flex="1" id="browser-panel">
 
-  <toolbox id="navigator-toolbox">
+  <toolbox id="navigator-toolbox" mode="icons">
     <!-- Menu -->
     <toolbar type="menubar" id="toolbar-menubar" class="chromeclass-menubar" customizable="true"
              defaultset="menubar-items"
@@ -542,7 +547,7 @@
              defaultset="tabbrowser-tabs,new-tab-button,alltabs-button,tabs-closebutton"
              collapsed="true">
 
-#ifdef XP_LINUX
+#if defined(MOZ_WIDGET_GTK) || defined(MOZ_WIDGET_QT)
       <hbox id="private-browsing-indicator"
             skipintoolbarset="true"/>
 #endif
@@ -598,7 +603,7 @@
                      tooltiptext="&closeTab.label;"/>
 
 #ifdef XP_WIN
-      <hbox id="private-browsing-indicator" skipintoolbarset="true" ordinal="1000"/>
+      <hbox class="private-browsing-indicator" skipintoolbarset="true" ordinal="1000"/>
 #endif
 #ifdef CAN_DRAW_IN_TITLEBAR
       <hbox class="titlebar-placeholder" type="caption-buttons"
@@ -631,6 +636,7 @@
              overflowable="true"
              overflowbutton="nav-bar-overflow-button"
              overflowtarget="widget-overflow-list"
+             overflowpanel="widget-overflow"
              context="toolbar-context-menu">
 
       <hbox id="nav-bar-customization-target" flex="1">
@@ -641,12 +647,14 @@
           <toolbarbutton id="back-button" class="toolbarbutton-1 chromeclass-toolbar-additional"
                          label="&backCmd.label;"
                          command="Browser:BackOrBackDuplicate"
+                         cui-areatype="toolbar"
                          onclick="checkForMiddleClick(this, event);"
                          tooltip="back-button-tooltip"
                          context="backForwardMenu"/>
           <toolbarbutton id="forward-button" class="toolbarbutton-1 chromeclass-toolbar-additional"
                          label="&forwardCmd.label;"
                          command="Browser:ForwardOrForwardDuplicate"
+                         cui-areatype="toolbar"
                          onclick="checkForMiddleClick(this, event);"
                          tooltip="forward-button-tooltip"
                          context="backForwardMenu"/>
@@ -695,6 +703,8 @@
                 <image id="webRTC-sharingMicrophone-notification-icon" class="notification-anchor-icon" role="button"/>
                 <image id="pointerLock-notification-icon" class="notification-anchor-icon" role="button"/>
                 <image id="servicesInstall-notification-icon" class="notification-anchor-icon" role="button"/>
+                <image id="translate-notification-icon" class="notification-anchor-icon" role="button"/>
+                <image id="translated-notification-icon" class="notification-anchor-icon" role="button"/>
               </box>
               <!-- Use onclick instead of normal popup= syntax since the popup
                    code fires onmousedown, and hence eats our favicon drag events.
@@ -776,7 +786,7 @@
                        cui-areatype="toolbar"
                        oncommand="BookmarkingUI.onCommand(event);">
           <menupopup id="BMB_bookmarksPopup"
-                     class="cui-widget-panel cui-widget-panelview cui-widget-panelWithFooter"
+                     class="cui-widget-panel cui-widget-panelview cui-widget-panelWithFooter PanelUI-subView"
                      placespopup="true"
                      context="placesContext"
                      openInTabs="children"
@@ -825,7 +835,8 @@
                          placespopup="true"
                          context="placesContext"
                          onpopupshowing="if (!this.parentNode._placesView)
-                                           new PlacesMenu(event, 'place:folder=TOOLBAR');">
+                                           new PlacesMenu(event, 'place:folder=TOOLBAR',
+                                                          PlacesUIUtils.getViewForNode(this.parentNode.parentNode).options);">
                 <menuitem id="BMB_viewBookmarksToolbar"
                           placesanonid="view-toolbar"
                           toolbarId="PersonalToolbar"
@@ -844,7 +855,8 @@
                          placespopup="true"
                          context="placesContext"
                          onpopupshowing="if (!this.parentNode._placesView)
-                                           new PlacesMenu(event, 'place:folder=UNFILED_BOOKMARKS');"/>
+                                           new PlacesMenu(event, 'place:folder=UNFILED_BOOKMARKS',
+                                                          PlacesUIUtils.getViewForNode(this.parentNode.parentNode).options);"/>
             </menu>
             <menuseparator/>
             <!-- Bookmarks menu items will go here -->
@@ -893,14 +905,17 @@
 
       <toolbarbutton id="nav-bar-overflow-button"
                      class="toolbarbutton-1 chromeclass-toolbar-additional overflow-button"
+                     cui-areatype="toolbar"
                      skipintoolbarset="true"
                      tooltiptext="&navbarOverflow.label;"/>
 
       <toolbaritem id="PanelUI-button"
                    class="chromeclass-toolbar-additional"
+                   cui-areatype="toolbar"
                    removable="false">
         <toolbarbutton id="PanelUI-menu-button"
                        class="toolbarbutton-1"
+                       cui-areatype="toolbar"
                        label="&brandShortName;"
                        tooltiptext="&appmenu.tooltip;"/>
       </toolbaritem>
@@ -912,6 +927,12 @@
                        oncommand="window.minimize();"/>
 
         <toolbarbutton id="restore-button"
+#ifdef XP_MACOSX
+# Prior to 10.7 there wasn't a native fullscreen button so we use #restore-button
+# to exit fullscreen and want it to behave like other toolbar buttons.
+                       class="toolbarbutton-1"
+                       cui-areatype="toolbar"
+#endif
                        tooltiptext="&fullScreenRestore.tooltip;"
                        oncommand="BrowserFullScreen();"/>
 
@@ -937,6 +958,7 @@
                    cui-areatype="toolbar"
                    removable="true">
         <toolbarbutton id="bookmarks-toolbar-placeholder"
+                       class="toolbarbutton-1"
                        mousethrough="never"
                        label="&bookmarksToolbarItem.label;"
                        oncommand="PlacesToolbarHelper.onPlaceholderCommand();"/>
@@ -948,7 +970,7 @@
               tooltip="bhTooltip"
               popupsinherittooltip="true">
           <hbox flex="1">
-            <hbox id="PlacesToolbarDropIndicatorHolder" align="center">
+            <hbox id="PlacesToolbarDropIndicatorHolder" align="center" collapsed="true">
               <image id="PlacesToolbarDropIndicator"
                      mousethrough="always"
                      collapsed="true"/>
@@ -1078,7 +1100,6 @@
                         command="Social:ToggleNotifications"
                         label="&social.toggleNotifications.label;"
                         accesskey="&social.toggleNotifications.accesskey;"/>
-              <menuitem class="social-toggle-menuitem" command="Social:Toggle"/>
               <menuseparator/>
               <menuseparator class="social-provider-menu" hidden="true"/>
               <menuitem class="social-addons-menuitem" command="Social:Addons"
@@ -1163,20 +1184,19 @@
   <svg:svg height="0">
 #include tab-shape.inc.svg
 
-#ifndef XP_UNIX
-    <svg:clipPath id="windows-keyhole-forward-clip-path" clipPathUnits="objectBoundingBox">
-      <svg:path d="M 0,0 C 0.16,0.11 0.28,0.29 0.28,0.5 0.28,0.71 0.16,0.89 0,1 L 1,1 1,0 0,0 z"/>
+#ifndef XP_MACOSX
+    <svg:clipPath id="keyhole-forward-clip-path" clipPathUnits="userSpaceOnUse">
+      <svg:path d="M 0,0 a 16 16 0 0 1 0,24 l 10000,0 l 0,-24 l -10000,0 z"/>
     </svg:clipPath>
-    <svg:clipPath id="windows-urlbar-back-button-clip-path" clipPathUnits="userSpaceOnUse">
-      <svg:path d="m 0,-5 l 0,7.8 c 2.5,3.2 4,6.2 4,10.2 c 0,4 -1.5,7 -4,10 l 0,22l10000,0 l 0,-50 l -10000,0 z"/>
+    <svg:clipPath id="urlbar-back-button-clip-path" clipPathUnits="userSpaceOnUse">
+      <svg:path d="M -1,1 a 16 16 0 0 1 0,24 l 10000,0 l 0,-24 l -10000,0 z"/>
     </svg:clipPath>
-#endif
-#ifdef XP_MACOSX
-    <svg:clipPath id="osx-keyhole-forward-clip-path" clipPathUnits="objectBoundingBox">
-      <svg:path d="M 0,0 C 0.15,0.12 0.25,0.3 0.25,0.5 0.25,0.7 0.15,0.88 0,1 L 1,1 1,0 0,0 z"/>
+#else
+    <svg:clipPath id="osx-keyhole-forward-clip-path" clipPathUnits="userSpaceOnUse">
+      <svg:path d="M 0,0 a 16 16 0 0 1 0,24 l 10000,0 l 0,-24 l -10000,0 z"/>
     </svg:clipPath>
     <svg:clipPath id="osx-urlbar-back-button-clip-path" clipPathUnits="userSpaceOnUse">
-      <svg:path d="m -3,-10 l -0.1,7.7 c 6.6,1.8 8.8,7.6 8.8,12.5 c 0,5 -1.9,11.5 -8.25,13.25 l 0.05,25.75 l 10000,0 l 0,-55 l -10000,-4.2 z"/>
+      <svg:path d="M -12,-5 a 16 16 0 0 1 0,34 l 10000,0 l 0,-34 l -10000,0 z"/>
     </svg:clipPath>
 #endif
   </svg:svg>

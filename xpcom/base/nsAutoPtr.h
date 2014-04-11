@@ -6,13 +6,7 @@
 #ifndef nsAutoPtr_h___
 #define nsAutoPtr_h___
 
-  // Wrapping includes can speed up compiles (see "Large Scale C++ Software Design")
-#ifndef nsCOMPtr_h___
-  // For |already_AddRefed|, |NSCAP_Zero|,
-  // |NSCAP_DONT_PROVIDE_NONCONST_OPEQ|,
-  // |NSCAP_FEATURE_INLINE_STARTASSIGNMENT|
 #include "nsCOMPtr.h"
-#endif
 
 #include "nsCycleCollectionNoteChild.h"
 #include "mozilla/MemoryReporting.h"
@@ -925,9 +919,16 @@ class nsRefPtr
         }
 
       template <typename I>
-      nsRefPtr( const already_AddRefed<I>& aSmartPtr )
-            : mRawPtr(aSmartPtr.mRawPtr)
-          // construct from |dont_AddRef(expr)|
+      nsRefPtr( already_AddRefed<I>& aSmartPtr )
+            : mRawPtr(aSmartPtr.take())
+          // construct from |already_AddRefed|
+        {
+        }
+
+      template <typename I>
+      nsRefPtr( already_AddRefed<I>&& aSmartPtr )
+            : mRawPtr(aSmartPtr.take())
+          // construct from |otherRefPtr.forget()|
         {
         }
 
@@ -959,10 +960,19 @@ class nsRefPtr
 
       template <typename I>
       nsRefPtr<T>&
-      operator=( const already_AddRefed<I>& rhs )
-          // assign from |dont_AddRef(expr)|
+      operator=( already_AddRefed<I>& rhs )
+          // assign from |already_AddRefed|
         {
-          assign_assuming_AddRef(rhs.mRawPtr);
+          assign_assuming_AddRef(rhs.take());
+          return *this;
+        }
+
+      template <typename I>
+      nsRefPtr<T>&
+      operator=( already_AddRefed<I>&& rhs )
+          // assign from |otherRefPtr.forget()|
+        {
+          assign_assuming_AddRef(rhs.take());
           return *this;
         }
 

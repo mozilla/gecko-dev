@@ -58,7 +58,6 @@ class nsIEditorObserver;
 class nsIInlineSpellChecker;
 class nsINode;
 class nsIPresShell;
-class nsIPrivateTextRangeList;
 class nsISelection;
 class nsISupports;
 class nsITransaction;
@@ -172,6 +171,7 @@ public:
   already_AddRefed<nsIDOMDocument> GetDOMDocument();
   already_AddRefed<nsIDocument> GetDocument();
   already_AddRefed<nsIPresShell> GetPresShell();
+  already_AddRefed<nsIWidget> GetWidget();
   void NotifyEditorObservers();
 
   /* ------------ nsIEditor methods -------------- */
@@ -771,7 +771,7 @@ public:
   // Get the focused content, if we're focused.  Returns null otherwise.
   virtual already_AddRefed<nsIContent> GetFocusedContent();
 
-  // Get the focused content for the argument of some nsIMEStateManager's
+  // Get the focused content for the argument of some IMEStateManager's
   // methods.
   virtual already_AddRefed<nsIContent> GetFocusedContentForIME();
 
@@ -833,7 +833,6 @@ protected:
 
   nsRefPtr<nsTransactionManager> mTxnMgr;
   nsCOMPtr<mozilla::dom::Element> mRootElement; // cached root node
-  nsCOMPtr<nsIPrivateTextRangeList> mIMETextRangeList; // IME special selection ranges
   nsCOMPtr<nsIDOMCharacterData>     mIMETextNode;      // current IME text node
   nsCOMPtr<mozilla::dom::EventTarget> mEventTarget; // The form field as an event receiver
   nsCOMPtr<nsIDOMEventListener> mEventListener;

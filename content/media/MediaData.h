@@ -101,7 +101,7 @@ public:
 };
 
 namespace layers {
-class GraphicBufferLocked;
+class TextureClient;
 class PlanarYCbCrImage;
 }
 
@@ -179,7 +179,7 @@ public:
                            int64_t aOffset,
                            int64_t aTime,
                            int64_t aDuration,
-                           layers::GraphicBufferLocked* aBuffer,
+                           layers::TextureClient* aBuffer,
                            bool aKeyframe,
                            int64_t aTimecode,
                            const IntRect& aPicture);
@@ -204,6 +204,12 @@ public:
   static VideoData* ShallowCopyUpdateDuration(VideoData* aOther,
                                               int64_t aDuration);
 
+  // Creates a new VideoData identical to aOther, but with a different
+  // specified timestamp. All data from aOther is copied into the new
+  // VideoData, as ShallowCopyUpdateDuration() does.
+  static VideoData* ShallowCopyUpdateTimestamp(VideoData* aOther,
+                                               int64_t aTimestamp);
+
   // Initialize PlanarYCbCrImage. Only When aCopyData is true,
   // video data is copied to PlanarYCbCrImage.
   static void SetVideoDataToImage(PlanarYCbCrImage* aVideoImage,
@@ -224,6 +230,8 @@ public:
   }
 
   ~VideoData();
+
+  size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const;
 
   // Dimensions at which to display the video frame. The picture region
   // will be scaled to this size. This is should be the picture region's

@@ -33,13 +33,13 @@ static const FloatRegisterSet NonVolatileFloatRegs =
                      (1 << FloatRegisters::d15));
 
 static void
-GenerateReturn(MacroAssembler &masm, int returnCode)
+GenerateReturn(MacroAssembler &masm, int returnCode, SPSProfiler *prof)
 {
     // Restore non-volatile floating point registers
     masm.transferMultipleByRuns(NonVolatileFloatRegs, IsLoad, StackPointer, IA);
 
-    // Get rid of the bogus r0 push.
-    masm.as_add(sp, sp, Imm8(4));
+    // Unwind the sps mark.
+    masm.spsUnmarkJit(prof, r8);
 
     // Set up return value
     masm.ma_mov(Imm32(returnCode), r0);
@@ -71,7 +71,7 @@ struct EnterJITStack
     double d14;
     double d15;
 
-    void *r0; // alignment.
+    size_t hasSPSMark;
 
     // non-volatile registers.
     void *r4;
@@ -99,7 +99,7 @@ struct EnterJITStack
 /*
  * This method generates a trampoline for a c++ function with the following
  * signature:
- *   void enter(void *code, int argc, Value *argv, StackFrame *fp, CalleeToken
+ *   void enter(void *code, int argc, Value *argv, InterpreterFrame *fp, CalleeToken
  *              calleeToken, JSObject *scopeChain, Value *vp)
  *   ...using standard EABI calling convention
  */
@@ -119,19 +119,24 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     // rather than the JIT'd code, because they are scanned by the conservative
     // scanner.
     masm.startDataTransferM(IsStore, sp, DB, WriteBack);
-    masm.transferReg(r0); // [sp,0]
-    masm.transferReg(r4); // [sp,4]
-    masm.transferReg(r5); // [sp,8]
-    masm.transferReg(r6); // [sp,12]
-    masm.transferReg(r7); // [sp,16]
-    masm.transferReg(r8); // [sp,20]
-    masm.transferReg(r9); // [sp,24]
-    masm.transferReg(r10); // [sp,28]
-    masm.transferReg(r11); // [sp,32]
+    masm.transferReg(r4); // [sp,0]
+    masm.transferReg(r5); // [sp,4]
+    masm.transferReg(r6); // [sp,8]
+    masm.transferReg(r7); // [sp,12]
+    masm.transferReg(r8); // [sp,16]
+    masm.transferReg(r9); // [sp,20]
+    masm.transferReg(r10); // [sp,24]
+    masm.transferReg(r11); // [sp,28]
     // The abi does not expect r12 (ip) to be preserved
-    masm.transferReg(lr);  // [sp,36]
-    // The 5th argument is located at [sp, 40]
+    masm.transferReg(lr);  // [sp,32]
+    // The 5th argument is located at [sp, 36]
     masm.finishDataTransfer();
+
+    // Push the EnterJIT sps mark.  "Frame pointer" = start of saved core regs.
+    masm.movePtr(sp, r8);
+    masm.spsMarkJit(&cx->runtime()->spsProfiler, r8, r9);
+
+    // Push the float registers.
     masm.transferMultipleByRuns(NonVolatileFloatRegs, IsStore, sp, DB);
 
     // Save stack pointer into r8
@@ -147,18 +152,6 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     // Load the number of actual arguments into r10.
     masm.loadPtr(slot_vp, r10);
     masm.unboxInt32(Address(r10, 0), r10);
-
-#if 0
-    // This is in case we want to go back to using frames that
-    // aren't 8 byte alinged
-    // there are r1 2-word arguments to the js code
-    // we want 2 word alignment, so this shouldn't matter.
-    // After the arguments have been pushed, we want to push an additional 3 words of
-    // data, so in all, we want to decrease sp by 4 if it is currently aligned to
-    // 8, and not touch it otherwise
-    aasm->as_sub(sp, sp, Imm8(4));
-    aasm->as_orr(sp, sp, Imm8(4));
-#endif
 
     // Subtract off the size of the arguments from the stack pointer, store elsewhere
     aasm->as_sub(r4, sp, O2RegImmShift(r1, LSL, 3)); //r4 = sp - argc*8
@@ -188,7 +181,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     }
 
     masm.ma_sub(r8, sp, r8);
-    masm.makeFrameDescriptor(r8, IonFrame_Entry);
+    masm.makeFrameDescriptor(r8, JitFrame_Entry);
 
     masm.startDataTransferM(IsStore, sp, IB, NoWriteBack);
                            // [sp]    = return address (written later)
@@ -265,7 +258,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
 
         // Enter exit frame.
         masm.addPtr(Imm32(BaselineFrame::Size() + BaselineFrame::FramePointerOffset), scratch);
-        masm.makeFrameDescriptor(scratch, IonFrame_BaselineJS);
+        masm.makeFrameDescriptor(scratch, JitFrame_BaselineJS);
         masm.push(scratch);
         masm.push(Imm32(0)); // Fake return address.
         masm.enterFakeExitFrame();
@@ -275,7 +268,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
 
         masm.setupUnalignedABICall(3, scratch);
         masm.passABIArg(r11); // BaselineFrame
-        masm.passABIArg(OsrFrameReg); // StackFrame
+        masm.passABIArg(OsrFrameReg); // InterpreterFrame
         masm.passABIArg(numStackValues);
         masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, jit::InitBaselineFrameForOsr));
 
@@ -336,7 +329,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     //                   JSReturnReg_Data, EDtrAddr(r5, EDtrOffImm(0)));
 
     // Restore non-volatile registers and return.
-    GenerateReturn(masm, true);
+    GenerateReturn(masm, true, &cx->runtime()->spsProfiler);
 
     Linker linker(masm);
     JitCode *code = linker.newCode<NoGC>(cx, JSC::OTHER_CODE);
@@ -463,7 +456,7 @@ JitRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void *
     masm.ma_lsl(Imm32(3), r6, r6);
 
     // Construct sizeDescriptor.
-    masm.makeFrameDescriptor(r6, IonFrame_Rectifier);
+    masm.makeFrameDescriptor(r6, JitFrame_Rectifier);
 
     // Construct IonJSFrameLayout.
     masm.ma_push(r0); // actual arguments.

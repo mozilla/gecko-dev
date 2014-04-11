@@ -4,11 +4,12 @@
 
 #include "PositionedEventTargeting.h"
 
+#include "mozilla/EventListenerManager.h"
+#include "mozilla/EventStates.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/Preferences.h"
 #include "nsLayoutUtils.h"
 #include "nsGkAtoms.h"
-#include "nsEventListenerManager.h"
 #include "nsPrintfCString.h"
 #include "mozilla/dom/Element.h"
 #include "nsRegion.h"
@@ -118,7 +119,7 @@ GetPrefsFor(nsEventStructType aEventStructType)
 static bool
 HasMouseListener(nsIContent* aContent)
 {
-  if (nsEventListenerManager* elm = aContent->GetExistingListenerManager()) {
+  if (EventListenerManager* elm = aContent->GetExistingListenerManager()) {
     return elm->HasListenersFor(nsGkAtoms::onclick) ||
            elm->HasListenersFor(nsGkAtoms::onmousedown) ||
            elm->HasListenersFor(nsGkAtoms::onmouseup);
@@ -133,7 +134,7 @@ static int32_t gTouchEventsEnabled = 0;
 static bool
 HasTouchListener(nsIContent* aContent)
 {
-  nsEventListenerManager* elm = aContent->GetExistingListenerManager();
+  EventListenerManager* elm = aContent->GetExistingListenerManager();
   if (!elm) {
     return false;
   }
@@ -222,10 +223,8 @@ static nscoord
 AppUnitsFromMM(nsIFrame* aFrame, uint32_t aMM, bool aVertical)
 {
   nsPresContext* pc = aFrame->PresContext();
-  nsIPresShell* presShell = pc->PresShell();
   float result = float(aMM) *
-    (pc->DeviceContext()->AppUnitsPerPhysicalInch() / MM_PER_INCH_FLOAT) *
-    (aVertical ? presShell->GetYResolution() : presShell->GetXResolution());
+    (pc->DeviceContext()->AppUnitsPerPhysicalInch() / MM_PER_INCH_FLOAT);
   return NSToCoordRound(result);
 }
 
@@ -341,7 +340,8 @@ GetClosest(nsIFrame* aRoot, const nsPoint& aPointRelativeToRootFrame,
     float distance = ComputeDistanceFromRegion(aPointRelativeToRootFrame, region);
     nsIContent* content = f->GetContent();
     if (content && content->IsElement() &&
-        content->AsElement()->State().HasState(nsEventStates(NS_EVENT_STATE_VISITED))) {
+        content->AsElement()->State().HasState(
+                                        EventStates(NS_EVENT_STATE_VISITED))) {
       distance *= aPrefs->mVisitedWeight / 100.0f;
     }
     if (distance < bestDistance) {

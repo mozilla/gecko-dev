@@ -6,10 +6,10 @@
 #include "mozilla/dom/HTMLMenuItemElement.h"
 
 #include "mozilla/BasicEvents.h"
+#include "mozilla/EventDispatcher.h"
 #include "mozilla/dom/HTMLMenuItemElementBinding.h"
 #include "nsAttrValueInlines.h"
 #include "nsContentUtils.h"
-#include "nsEventDispatcher.h"
 
 
 NS_IMPL_NS_NEW_HTML_ELEMENT_CHECK_PARSER(MenuItem)
@@ -156,7 +156,7 @@ protected:
 
 
 HTMLMenuItemElement::HTMLMenuItemElement(
-  already_AddRefed<nsINodeInfo> aNodeInfo, FromParser aFromParser)
+  already_AddRefed<nsINodeInfo>& aNodeInfo, FromParser aFromParser)
   : nsGenericHTMLElement(aNodeInfo),
     mType(kMenuItemDefaultType->value),
     mParserCreating(false),
@@ -180,9 +180,9 @@ nsresult
 HTMLMenuItemElement::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
 {
   *aResult = nullptr;
-  nsCOMPtr<nsINodeInfo> ni = aNodeInfo;
+  already_AddRefed<nsINodeInfo> ni = nsCOMPtr<nsINodeInfo>(aNodeInfo).forget();
   nsRefPtr<HTMLMenuItemElement> it =
-    new HTMLMenuItemElement(ni.forget(), NOT_FROM_PARSER);
+    new HTMLMenuItemElement(ni, NOT_FROM_PARSER);
   nsresult rv = const_cast<HTMLMenuItemElement*>(this)->CopyInnerTo(it);
   if (NS_SUCCEEDED(rv)) {
     switch (mType) {
@@ -251,7 +251,7 @@ HTMLMenuItemElement::SetChecked(bool aChecked)
 }
 
 nsresult
-HTMLMenuItemElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
+HTMLMenuItemElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
 {
   if (aVisitor.mEvent->message == NS_MOUSE_CLICK) {
 
@@ -286,7 +286,7 @@ HTMLMenuItemElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 }
 
 nsresult
-HTMLMenuItemElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
+HTMLMenuItemElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
 {
   // Check to see if the event was cancelled.
   if (aVisitor.mEvent->message == NS_MOUSE_CLICK &&
@@ -371,7 +371,9 @@ void
 HTMLMenuItemElement::GetText(nsAString& aText)
 {
   nsAutoString text;
-  nsContentUtils::GetNodeTextContent(this, false, text);
+  if (!nsContentUtils::GetNodeTextContent(this, false, text)) {
+    NS_RUNTIMEABORT("OOM");
+  }
 
   text.CompressWhitespace(true, true);
   aText = text;
@@ -483,9 +485,9 @@ HTMLMenuItemElement::InitChecked()
 }
 
 JSObject*
-HTMLMenuItemElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aScope)
+HTMLMenuItemElement::WrapNode(JSContext* aCx)
 {
-  return HTMLMenuItemElementBinding::Wrap(aCx, aScope, this);
+  return HTMLMenuItemElementBinding::Wrap(aCx, this);
 }
 
 } // namespace dom

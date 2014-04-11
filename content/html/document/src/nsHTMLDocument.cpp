@@ -61,7 +61,6 @@
 #include "mozilla/css/Loader.h"
 #include "nsIHttpChannel.h"
 #include "nsIFile.h"
-#include "nsEventListenerManager.h"
 #include "nsFrameSelection.h"
 #include "nsISelectionPrivate.h"//for toStringwithformat code
 
@@ -222,9 +221,9 @@ NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(nsHTMLDocument)
 NS_INTERFACE_TABLE_TAIL_INHERITING(nsDocument)
 
 JSObject*
-nsHTMLDocument::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aScope)
+nsHTMLDocument::WrapNode(JSContext* aCx)
 {
-  return HTMLDocumentBinding::Wrap(aCx, aScope, this);
+  return HTMLDocumentBinding::Wrap(aCx, this);
 }
 
 nsresult
@@ -1320,7 +1319,7 @@ nsHTMLDocument::Open(const nsAString& aContentTypeOrUrl,
   if (aOptionalArgCount > 2) {
     ErrorResult rv;
     *aReturn = Open(cx, aContentTypeOrUrl, aReplaceOrName, aFeatures,
-                    false, rv).get();
+                    false, rv).take();
     return rv.ErrorCode();
   }
 
@@ -1335,7 +1334,7 @@ nsHTMLDocument::Open(const nsAString& aContentTypeOrUrl,
     replace = aReplaceOrName;
   }
   ErrorResult rv;
-  *aReturn = Open(cx, type, replace, rv).get();
+  *aReturn = Open(cx, type, replace, rv).take();
   return rv.ErrorCode();
 }
 
@@ -1350,7 +1349,7 @@ nsHTMLDocument::Open(JSContext* /* unused */,
   NS_ASSERTION(nsContentUtils::CanCallerAccess(static_cast<nsIDOMHTMLDocument*>(this)),
                "XOW should have caught this!");
 
-  nsCOMPtr<nsIDOMWindow> window = GetWindow();
+  nsCOMPtr<nsIDOMWindow> window = GetInnerWindow();
   if (!window) {
     rv.Throw(NS_ERROR_DOM_INVALID_ACCESS_ERR);
     return nullptr;
@@ -1594,6 +1593,7 @@ nsHTMLDocument::Open(JSContext* cx,
     nsCOMPtr<nsIScriptGlobalObject> newScope(do_QueryReferent(mScopeObject));
     JS::Rooted<JSObject*> wrapper(cx, GetWrapper());
     if (oldScope && newScope != oldScope && wrapper) {
+      JSAutoCompartment ac(cx, wrapper);
       rv = mozilla::dom::ReparentWrapper(cx, wrapper);
       if (rv.Failed()) {
         return nullptr;
@@ -1910,7 +1910,7 @@ NS_IMETHODIMP
 nsHTMLDocument::GetElementsByName(const nsAString& aElementName,
                                   nsIDOMNodeList** aReturn)
 {
-  *aReturn = GetElementsByName(aElementName).get();
+  *aReturn = GetElementsByName(aElementName).take();
   return NS_OK;
 }
 
@@ -1970,7 +1970,8 @@ static void* CreateTokens(nsINode* aRootNode, const nsString* types)
       ++iter;
     } while (iter != end && !nsContentUtils::IsHTMLWhitespace(*iter));
 
-    tokens->AppendElement(do_GetAtom(Substring(start, iter)));
+    nsCOMPtr<nsIAtom> token = do_GetAtom(Substring(start, iter));
+    tokens->AppendElement(token);
 
     // skip whitespace
     while (iter != end && nsContentUtils::IsHTMLWhitespace(*iter)) {
@@ -1983,7 +1984,7 @@ static void* CreateTokens(nsINode* aRootNode, const nsString* types)
 NS_IMETHODIMP
 nsHTMLDocument::GetItems(const nsAString& types, nsIDOMNodeList** aReturn)
 {
-  *aReturn = GetItems(types).get();
+  *aReturn = GetItems(types).take();
   return NS_OK;
 }
 
@@ -2153,7 +2154,7 @@ NS_IMETHODIMP
 nsHTMLDocument::GetSelection(nsISelection** aReturn)
 {
   ErrorResult rv;
-  *aReturn = GetSelection(rv).get();
+  *aReturn = GetSelection(rv).take();
   return rv.ErrorCode();
 }
 
@@ -2256,15 +2257,11 @@ nsHTMLDocument::NamedGetter(JSContext* cx, const nsAString& aName, bool& aFound,
   }
 
   JS::Rooted<JS::Value> val(cx);
-  { // Scope for auto-compartment
-    JS::Rooted<JSObject*> wrapper(cx, GetWrapper());
-    JSAutoCompartment ac(cx, wrapper);
-    // XXXbz Should we call the (slightly misnamed, really) WrapNativeParent
-    // here?
-    if (!dom::WrapObject(cx, wrapper, supp, cache, nullptr, &val)) {
-      rv.Throw(NS_ERROR_OUT_OF_MEMORY);
-      return nullptr;
-    }
+  // XXXbz Should we call the (slightly misnamed, really) WrapNativeParent
+  // here?
+  if (!dom::WrapObject(cx, supp, cache, nullptr, &val)) {
+    rv.Throw(NS_ERROR_OUT_OF_MEMORY);
+    return nullptr;
   }
   aFound = true;
   return &val.toObject();

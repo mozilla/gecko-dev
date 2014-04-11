@@ -7,11 +7,8 @@
  *  http://dev.w3.org/html5/webvtt/#extension-of-the-texttrack-interface-for-region-support
  */
 
-[Constructor, Pref="media.webvtt.enabled"]
+[Constructor, Func="TextTrackRegion::RegionsEnabled"]
 interface VTTRegion {
-  readonly attribute TextTrack? track;
-           attribute DOMString id;
-
            [SetterThrows]
            attribute double width;
 

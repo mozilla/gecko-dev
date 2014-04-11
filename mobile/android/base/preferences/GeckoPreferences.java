@@ -17,14 +17,17 @@ import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoApplication;
 import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.GeckoProfile;
+import org.mozilla.gecko.GeckoSharedPrefs;
 import org.mozilla.gecko.PrefsHelper;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.background.announcements.AnnouncementsConstants;
 import org.mozilla.gecko.background.common.GlobalConstants;
 import org.mozilla.gecko.background.healthreport.HealthReportConstants;
+import org.mozilla.gecko.home.HomePanelPicker;
 import org.mozilla.gecko.util.GeckoEventListener;
 import org.mozilla.gecko.util.ThreadUtils;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.Fragment;
@@ -43,7 +46,6 @@ import android.preference.Preference.OnPreferenceChangeListener;
 import android.preference.Preference.OnPreferenceClickListener;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceGroup;
-import android.preference.PreferenceManager;
 import android.preference.PreferenceScreen;
 import android.preference.TwoStatePreference;
 import android.text.Editable;
@@ -73,28 +75,30 @@ public class GeckoPreferences
     private static boolean sIsCharEncodingEnabled = false;
     private boolean mInitialized = false;
     private int mPrefsRequestId = 0;
+    private PanelsPreferenceCategory mPanelsPreferenceCategory;
 
     // These match keys in resources/xml*/preferences*.xml
-    private static String PREFS_SEARCH_RESTORE_DEFAULTS = NON_PREF_PREFIX + "search.restore_defaults";
+    private static final String PREFS_SEARCH_RESTORE_DEFAULTS = NON_PREF_PREFIX + "search.restore_defaults";
+    private static final String PREFS_HOME_ADD_PANEL = NON_PREF_PREFIX + "home.add_panel";
+    private static final String PREFS_ANNOUNCEMENTS_ENABLED = NON_PREF_PREFIX + "privacy.announcements.enabled";
+    private static final String PREFS_DATA_REPORTING_PREFERENCES = NON_PREF_PREFIX + "datareporting.preferences";
+    private static final String PREFS_TELEMETRY_ENABLED = "toolkit.telemetry.enabled";
+    private static final String PREFS_CRASHREPORTER_ENABLED = "datareporting.crashreporter.submitEnabled";
+    private static final String PREFS_MENU_CHAR_ENCODING = "browser.menu.showCharacterEncoding";
+    private static final String PREFS_MP_ENABLED = "privacy.masterpassword.enabled";
+    private static final String PREFS_UPDATER_AUTODOWNLOAD = "app.update.autodownload";
+    private static final String PREFS_GEO_REPORTING = "app.geo.reportdata";
+    private static final String PREFS_GEO_LEARN_MORE = NON_PREF_PREFIX + "geo.learn_more";
+    private static final String PREFS_HEALTHREPORT_LINK = NON_PREF_PREFIX + "healthreport.link";
+    private static final String PREFS_DEVTOOLS_REMOTE_ENABLED = "devtools.debugger.remote-enabled";
+    private static final String PREFS_DISPLAY_REFLOW_ON_ZOOM = "browser.zoom.reflowOnZoom";
+    private static final String PREFS_SYNC = NON_PREF_PREFIX + "sync";
 
-    private static String PREFS_ANNOUNCEMENTS_ENABLED = NON_PREF_PREFIX + "privacy.announcements.enabled";
-    private static String PREFS_DATA_REPORTING_PREFERENCES = NON_PREF_PREFIX + "datareporting.preferences";
-    private static String PREFS_TELEMETRY_ENABLED = "datareporting.telemetry.enabled";
-    private static String PREFS_CRASHREPORTER_ENABLED = "datareporting.crashreporter.submitEnabled";
-    private static String PREFS_MENU_CHAR_ENCODING = "browser.menu.showCharacterEncoding";
-    private static String PREFS_MP_ENABLED = "privacy.masterpassword.enabled";
-    private static String PREFS_UPDATER_AUTODOWNLOAD = "app.update.autodownload";
-    private static String PREFS_GEO_REPORTING = "app.geo.reportdata";
-    private static String PREFS_HEALTHREPORT_LINK = NON_PREF_PREFIX + "healthreport.link";
-    private static String PREFS_DEVTOOLS_REMOTE_ENABLED = "devtools.debugger.remote-enabled";
-    private static String PREFS_DISPLAY_REFLOW_ON_ZOOM = "browser.zoom.reflowOnZoom";
-    private static String PREFS_SYNC = NON_PREF_PREFIX + "sync";
-
-    public static String PREFS_RESTORE_SESSION = NON_PREF_PREFIX + "restoreSession3";
+    public static final String PREFS_RESTORE_SESSION = NON_PREF_PREFIX + "restoreSession3";
 
     // These values are chosen to be distinct from other Activity constants.
-    private static int REQUEST_CODE_PREF_SCREEN = 5;
-    private static int RESULT_CODE_EXIT_SETTINGS = 6;
+    private static final int REQUEST_CODE_PREF_SCREEN = 5;
+    private static final int RESULT_CODE_EXIT_SETTINGS = 6;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -119,6 +123,9 @@ public class GeckoPreferences
         // Fragments because of an Android bug in ActionBar (described in bug 866352 and
         // fixed in bug 833625).
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
+            // Write prefs to our custom GeckoSharedPrefs file.
+            getPreferenceManager().setSharedPreferencesName(GeckoSharedPrefs.APP_PREFS_NAME);
+
             int res = 0;
             if (intentExtras != null && intentExtras.containsKey(INTENT_EXTRA_RESOURCES)) {
                 // Fetch resource id from intent.
@@ -265,10 +272,29 @@ public class GeckoPreferences
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (REQUEST_CODE_PREF_SCREEN == requestCode && RESULT_CODE_EXIT_SETTINGS == resultCode) {
-            // Pass this result up to the parent activity.
-            setResult(RESULT_CODE_EXIT_SETTINGS);
-            finish();
+        switch (requestCode) {
+          case REQUEST_CODE_PREF_SCREEN:
+              if (resultCode == RESULT_CODE_EXIT_SETTINGS) {
+                  // Pass this result up to the parent activity.
+                  setResult(RESULT_CODE_EXIT_SETTINGS);
+                  finish();
+              }
+              break;
+
+          case HomePanelPicker.REQUEST_CODE_ADD_PANEL:
+              switch (resultCode) {
+                  case Activity.RESULT_OK:
+                     // Panel installed, refresh panels list.
+                     mPanelsPreferenceCategory.refresh();
+                      break;
+                  case Activity.RESULT_CANCELED:
+                      // Dialog was cancelled, do nothing.
+                      break;
+                  default:
+                      Log.w(LOGTAG, "Unhandled ADD_PANEL result code " + requestCode);
+                      break;
+              }
+              break;
         }
     }
 
@@ -326,6 +352,8 @@ public class GeckoPreferences
                         i--;
                         continue;
                     }
+                } else if (pref instanceof PanelsPreferenceCategory) {
+                    mPanelsPreferenceCategory = (PanelsPreferenceCategory) pref;
                 }
                 setupPreferences((PreferenceGroup) pref, prefs);
             } else {
@@ -393,6 +421,15 @@ public class GeckoPreferences
                         @Override
                         public boolean onPreferenceClick(Preference preference) {
                             GeckoPreferences.this.restoreDefaultSearchEngines();
+                            return true;
+                        }
+                    });
+                } else if (PREFS_HOME_ADD_PANEL.equals(key)) {
+                    pref.setOnPreferenceClickListener(new OnPreferenceClickListener() {
+                        @Override
+                        public boolean onPreferenceClick(Preference preference) {
+                            Intent dialogIntent = new Intent(GeckoPreferences.this, HomePanelPicker.class);
+                            startActivityForResult(dialogIntent, HomePanelPicker.REQUEST_CODE_ADD_PANEL);
                             return true;
                         }
                     });
@@ -469,7 +506,7 @@ public class GeckoPreferences
                                            final boolean value) {
         final Intent intent = new Intent(action)
                 .putExtra("pref", pref)
-                .putExtra("branch", GeckoApp.PREFS_NAME)
+                .putExtra("branch", GeckoSharedPrefs.APP_PREFS_NAME)
                 .putExtra("enabled", value);
         broadcastAction(context, intent);
     }
@@ -544,7 +581,7 @@ public class GeckoPreferences
      * @return        the value of the preference, or the default.
      */
     public static boolean getBooleanPref(final Context context, final String name, boolean def) {
-        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        final SharedPreferences prefs = GeckoSharedPrefs.forApp(context);
         return prefs.getBoolean(name, def);
     }
 
@@ -603,7 +640,6 @@ public class GeckoPreferences
         inputtype |= InputType.TYPE_TEXT_VARIATION_PASSWORD | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
         input.setInputType(inputtype);
 
-        String hint = getResources().getString(aHintText);
         input.setHint(aHintText);
         return input;
     }

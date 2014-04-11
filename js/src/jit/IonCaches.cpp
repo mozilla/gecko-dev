@@ -6,7 +6,6 @@
 
 #include "jit/IonCaches.h"
 
-#include "mozilla/DebugOnly.h"
 #include "mozilla/TemplateLib.h"
 
 #include "jsproxy.h"
@@ -31,7 +30,6 @@
 using namespace js;
 using namespace js::jit;
 
-using mozilla::DebugOnly;
 using mozilla::tl::FloorLog2;
 
 void
@@ -618,11 +616,14 @@ IsCacheableGetPropCallNative(JSObject *obj, JSObject *holder, Shape *shape)
     if (!getter.isNative())
         return false;
 
-    // Check for a DOM method; those are OK with both inner and outer objects.
-    if (getter.jitInfo() && getter.jitInfo()->isDOMJitInfo())
+    // Check for a getter that has jitinfo and whose jitinfo says it's
+    // OK with both inner and outer objects.
+    if (getter.jitInfo() && !getter.jitInfo()->needsOuterizedThisObject())
         return true;
 
-    // For non-DOM methods, don't cache if obj has an outerObject hook.
+    // For getters that need an outerized this object, don't cache if
+    // obj has an outerObject hook, since our cache will pass obj
+    // itself without outerizing.
     return !obj->getClass()->ext.outerObject;
 }
 
@@ -1211,7 +1212,6 @@ GetPropertyIC::tryAttachNative(JSContext *cx, IonScript *ion, HandleObject obj,
     *emitted = true;
 
     MacroAssembler masm(cx, ion, script_, pc_);
-    SkipRoot skip(cx, &masm);
 
     RepatchStubAppender attacher(*this);
     const char *attachKind;
@@ -2993,7 +2993,6 @@ GetElementIC::attachGetProp(JSContext *cx, IonScript *ion, HandleObject obj,
 
     Label failures;
     MacroAssembler masm(cx, ion);
-    SkipRoot skip(cx, &masm);
 
     // Ensure the index is a string.
     ValueOperand val = index().reg().valueReg();

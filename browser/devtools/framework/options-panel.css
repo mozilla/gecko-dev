@@ -36,8 +36,13 @@
   padding: 2px;
 }
 
-.options-groupbox > * {
+.options-groupbox > *,
+.options-groupbox > .hidden-labels-box > checkbox {
   padding: 2px;
+}
+
+.options-groupbox > .hidden-labels-box {
+  padding: 0;
 }
 
 .options-citation-label {
@@ -45,11 +50,6 @@
   /* !important is required otherwise font-size will still be 1.4rem */
   font-style: italic;
   padding: 4px 0 0; /* To align it with the checkbox */
-}
-
-.options-citation-label + label {
-  padding: 3px 0 0 !important; /* To align it with the checkbox */
-  font-style: italic;
 }
 
 .hidden-labels-box:not(.visible) > label,

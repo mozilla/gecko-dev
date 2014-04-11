@@ -42,8 +42,52 @@
 12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678
  */
 
+/*
+ * SpiderMonkey bytecode categorization (as used in generated documentation):
+ *
+ * [Index]
+ *   [Statements]
+ *     Jumps
+ *     Switch Statement
+ *     For-In Statement
+ *     With Statement
+ *     Exception Handling
+ *     Function
+ *     Generator
+ *     Debugger
+ *   [Variables and Scopes]
+ *     Variables
+ *     Free Variables
+ *     Local Variables
+ *     Aliased Variables
+ *     Intrinsics
+ *     Block-local Scope
+ *     This
+ *     Arguments
+ *   [Operator]
+ *     Comparison Operators
+ *     Arithmetic Operators
+ *     Bitwise Logical Operators
+ *     Bitwise Shift Operators
+ *     Logical Operators
+ *     Special Operators
+ *     Stack Operations
+ *   [Literals]
+ *     Constants
+ *     Object
+ *     Array
+ *     RegExp
+ *   [Other]
+ */
+
 #define FOR_EACH_OPCODE(macro) \
     /* legend:  op      val   name          image       len use def  format */ \
+    /*
+     * No operation is performed.
+     *   Category: Other
+     *   Operands:
+     *   Stack: =>
+     */ \
     macro(JSOP_NOP,       0,  "nop",        NULL,         1,  0,  0, JOF_BYTE) \
     \
     /* Long-standing JavaScript bytecodes. */ \
@@ -287,11 +331,10 @@
     \
     /* Push a closure for a named or anonymous function expression. */ \
     macro(JSOP_LAMBDA,    130, "lambda",    NULL,         5,  0,  1, JOF_OBJECT) \
+    macro(JSOP_LAMBDA_ARROW, 131, "lambda_arrow", NULL,   5,  1,  1, JOF_OBJECT) \
     \
     /* Used for named function expression self-naming, if lightweight. */ \
-    macro(JSOP_CALLEE,    131, "callee",    NULL,         1,  0,  1, JOF_BYTE) \
-    \
-    macro(JSOP_UNUSED132, 132, "unused132", NULL,         1,  0,  0,  JOF_BYTE) \
+    macro(JSOP_CALLEE,    132, "callee",    NULL,         1,  0,  1, JOF_BYTE) \
     \
     /* Pick an element from the stack. */ \
     macro(JSOP_PICK,        133, "pick",      NULL,       2,  0,  0,  JOF_UINT8|JOF_TMPSLOT2) \
@@ -477,9 +520,12 @@
     macro(JSOP_IMPLICITTHIS,  226, "implicitthis", "",    5,  0,  1,  JOF_ATOM) \
     \
     /*
-     * This opcode is the target of the entry jump for some loop. The uint8 argument
-     * is the loop depth. This value starts at 1 and is just a hint: deeply
-     * nested loops all have the same value.
+     * This opcode is the target of the entry jump for some loop. The uint8
+     * argument is a bitfield. The lower 7 bits of the argument indicate the
+     * loop depth. This value starts at 1 and is just a hint: deeply nested
+     * loops all have the same value.  The upper bit is set if Ion should be
+     * able to OSR at this point, which is true unless there is non-loop state
+     * on the stack.
      */ \
     macro(JSOP_LOOPENTRY,     227, "loopentry",    NULL,  2,  0,  0,  JOF_UINT8)
 

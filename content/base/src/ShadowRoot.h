@@ -42,7 +42,7 @@ public:
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
 
-  ShadowRoot(nsIContent* aContent, already_AddRefed<nsINodeInfo> aNodeInfo,
+  ShadowRoot(nsIContent* aContent, already_AddRefed<nsINodeInfo>&& aNodeInfo,
              nsXBLPrototypeBinding* aProtoBinding);
   virtual ~ShadowRoot();
 
@@ -105,7 +105,7 @@ public:
   nsIContent* GetPoolHost() { return mPoolHost; }
   nsTArray<HTMLShadowElement*>& ShadowDescendants() { return mShadowDescendants; }
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   static bool IsPooledNode(nsIContent* aChild, nsIContent* aContainer,
                            nsIContent* aHost);

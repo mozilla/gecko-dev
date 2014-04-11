@@ -81,8 +81,8 @@ using mozilla::InjectCrashRunnable;
 #include <map>
 #include <vector>
 
+#include "mozilla/IOInterposer.h"
 #include "mozilla/mozalloc_oom.h"
-#include "mozilla/LateWriteChecks.h"
 #include "mozilla/WindowsDllBlocklist.h"
 
 #if defined(XP_MACOSX)
@@ -872,6 +872,7 @@ static bool FPEFilter(void* context, EXCEPTION_POINTERS* exinfo,
                       MDRawAssertionInfo* assertion)
 {
   if (!exinfo) {
+    mozilla::IOInterposer::Disable();
     FreeBreakpadVM();
     return true;
   }
@@ -889,6 +890,7 @@ static bool FPEFilter(void* context, EXCEPTION_POINTERS* exinfo,
     case STATUS_FLOAT_MULTIPLE_TRAPS:
       return false; // Don't write minidump, continue exception search
   }
+  mozilla::IOInterposer::Disable();
   FreeBreakpadVM();
   return true;
 }
@@ -913,7 +915,7 @@ static bool ShouldReport()
 
 namespace {
   bool Filter(void* context) {
-    mozilla::StopLateWriteChecks();
+    mozilla::IOInterposer::Disable();
     return true;
   }
 }
@@ -2471,7 +2473,7 @@ OOPInitialized()
 
 #ifdef XP_MACOSX
 static bool ChildFilter(void *context) {
-  mozilla::StopLateWriteChecks();
+  mozilla::IOInterposer::Disable();
   return true;
 }
 #endif

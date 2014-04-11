@@ -6,13 +6,16 @@
 
 #include "mozilla/dom/HTMLLinkElement.h"
 
+#include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/dom/HTMLLinkElementBinding.h"
+#include "mozilla/EventDispatcher.h"
+#include "mozilla/EventStates.h"
 #include "mozilla/MemoryReporting.h"
-#include "nsAsyncDOMEvent.h"
+#include "mozilla/dom/HTMLLinkElementBinding.h"
 #include "nsContentUtils.h"
 #include "nsGenericHTMLElement.h"
 #include "nsGkAtoms.h"
+#include "nsDOMTokenList.h"
 #include "nsIDocument.h"
 #include "nsIDOMEvent.h"
 #include "nsIDOMStyleSheet.h"
@@ -30,7 +33,7 @@ NS_IMPL_NS_NEW_HTML_ELEMENT(Link)
 namespace mozilla {
 namespace dom {
 
-HTMLLinkElement::HTMLLinkElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+HTMLLinkElement::HTMLLinkElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo)
   , Link(MOZ_THIS_IN_INITIALIZER_LIST())
 {
@@ -46,12 +49,14 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(HTMLLinkElement,
                                                   nsGenericHTMLElement)
   tmp->nsStyleLinkElement::Traverse(cb);
   tmp->Link::Traverse(cb);
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mRelList)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(HTMLLinkElement,
                                                 nsGenericHTMLElement)
   tmp->nsStyleLinkElement::Unlink();
   tmp->Link::Unlink();
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mRelList)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_ADDREF_INHERITED(HTMLLinkElement, Element)
@@ -223,11 +228,11 @@ HTMLLinkElement::CreateAndDispatchEvent(nsIDocument* aDoc,
                       strings, eIgnoreCase) != ATTR_VALUE_NO_MATCH)
     return;
 
-  nsRefPtr<nsAsyncDOMEvent> event = new nsAsyncDOMEvent(this, aEventName, true,
-                                                        true);
+  nsRefPtr<AsyncEventDispatcher> asyncDispatcher =
+    new AsyncEventDispatcher(this, aEventName, true, true);
   // Always run async in order to avoid running script when the content
   // sink isn't expecting it.
-  event->PostDOMEvent();
+  asyncDispatcher->PostDOMEvent();
 }
 
 nsresult
@@ -299,13 +304,13 @@ HTMLLinkElement::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
 }
 
 nsresult
-HTMLLinkElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
+HTMLLinkElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
 {
   return PreHandleEventForAnchors(aVisitor);
 }
 
 nsresult
-HTMLLinkElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
+HTMLLinkElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
 {
   return PostHandleEventForAnchors(aVisitor);
 }
@@ -323,6 +328,15 @@ HTMLLinkElement::GetLinkTarget(nsAString& aTarget)
   if (aTarget.IsEmpty()) {
     GetBaseTarget(aTarget);
   }
+}
+
+nsDOMTokenList* 
+HTMLLinkElement::RelList()
+{
+  if (!mRelList) {
+    mRelList = new nsDOMTokenList(this, nsGkAtoms::rel);
+  }
+  return mRelList;
 }
 
 already_AddRefed<nsIURI>
@@ -405,7 +419,7 @@ HTMLLinkElement::GetCORSMode() const
   return AttrValueToCORSMode(GetParsedAttr(nsGkAtoms::crossorigin)); 
 }
 
-nsEventStates
+EventStates
 HTMLLinkElement::IntrinsicState() const
 {
   return Link::LinkState() | nsGenericHTMLElement::IntrinsicState();
@@ -419,9 +433,9 @@ HTMLLinkElement::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
 }
 
 JSObject*
-HTMLLinkElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aScope)
+HTMLLinkElement::WrapNode(JSContext* aCx)
 {
-  return HTMLLinkElementBinding::Wrap(aCx, aScope, this);
+  return HTMLLinkElementBinding::Wrap(aCx, this);
 }
 
 } // namespace dom

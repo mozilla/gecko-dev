@@ -5,16 +5,16 @@
 #ifndef mozilla_dom_Icc_h
 #define mozilla_dom_Icc_h
 
-#include "nsDOMEventTargetHelper.h"
+#include "mozilla/DOMEventTargetHelper.h"
 #include "nsIIccProvider.h"
 
 namespace mozilla {
 namespace dom {
 
-class Icc MOZ_FINAL : public nsDOMEventTargetHelper
+class Icc MOZ_FINAL : public DOMEventTargetHelper
 {
 public:
-  NS_REALLY_FORWARD_NSIDOMEVENTTARGET(nsDOMEventTargetHelper)
+  NS_REALLY_FORWARD_NSIDOMEVENTTARGET(DOMEventTargetHelper)
 
   Icc(nsPIDOMWindow* aWindow, long aClientId, const nsAString& aIccId);
 
@@ -41,7 +41,7 @@ public:
 
   // WrapperCache
   virtual JSObject*
-  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   // MozIcc WebIDL
   already_AddRefed<nsIDOMMozIccInfo>

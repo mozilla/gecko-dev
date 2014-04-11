@@ -542,9 +542,10 @@ jsd_EnableSingleStepInterrupts(JSDContext* jsdc, JSDScript* jsdscript, bool enab
 {
     bool rv;
     AutoSafeJSContext cx;
-    JSAutoCompartment ac(cx, jsdscript->script);
+    JS::RootedScript script(cx, jsdscript->script);
+    JSAutoCompartment ac(cx, script);
     JSD_LOCK();
-    rv = JS_SetSingleStepMode(cx, jsdscript->script, enable);
+    rv = JS_SetSingleStepMode(cx, script, enable);
     JSD_UNLOCK();
     return rv;
 }
@@ -783,9 +784,9 @@ jsd_SetExecutionHook(JSDContext*           jsdc,
     {
         AutoSafeJSContext cx;
         JSAutoCompartment ac(cx, jsdscript->script);
-        rv = JS_SetTrap(cx, jsdscript->script, 
-                        (jsbytecode*)pc, jsd_TrapHandler,
-                        PRIVATE_TO_JSVAL(jsdhook));
+        JS::RootedScript script(cx, jsdscript->script);
+        JS::RootedValue hookValue(cx, PRIVATE_TO_JSVAL(jsdhook));
+        rv = JS_SetTrap(cx, script, (jsbytecode*)pc, jsd_TrapHandler, hookValue);
     }
 
     if ( ! rv ) {

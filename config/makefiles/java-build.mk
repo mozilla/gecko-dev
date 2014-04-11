@@ -33,20 +33,23 @@ classes.dex: $(JAVAFILES)
 	$(DX) --dex --output=$@ classes $(ANDROID_EXTRA_JARS)
 
 # R.java and $(ANDROID_APK_NAME).ap_ are both produced by aapt.  To
-# save an aapt invocation, we produce them both at the same time.
+# save an aapt invocation, we produce them both at the same time.  The
+# trailing semi-colon defines an empty recipe; defining no recipe at
+# all causes Make to treat the target differently, in a way that
+# defeats our dependencies.
 
-R.java: .aapt.deps
-$(ANDROID_APK_NAME).ap_: .aapt.deps
+R.java: .aapt.deps ;
+$(ANDROID_APK_NAME).ap_: .aapt.deps ;
 
 # This uses the fact that Android resource directories list all
 # resource files one subdirectory below the parent resource directory.
 android_res_files := $(wildcard $(addsuffix /*,$(wildcard $(addsuffix /*,$(android_res_dirs)))))
 
 .aapt.deps: $(android_manifest) $(android_res_files) $(wildcard $(ANDROID_ASSETS_DIR))
+	@$(TOUCH) $@
 	$(AAPT) package -f -M $< -I $(ANDROID_SDK)/android.jar $(_ANDROID_RES_FLAG) $(_ANDROID_ASSETS_FLAG) \
 		-J ${@D} \
 		-F $(ANDROID_APK_NAME).ap_
-	@$(TOUCH) $@
 
 $(ANDROID_APK_NAME)-unsigned-unaligned.apk: $(ANDROID_APK_NAME).ap_ classes.dex
 	cp $< $@
@@ -110,7 +113,7 @@ endef
 
 $(foreach jar,$(JAVA_JAR_TARGETS),\
   $(if $($(jar)_DEST),,$(error Missing $(jar)_DEST))\
-  $(if $($(jar)_JAVAFILES),,$(error Missing $(jar)_JAVAFILES))\
+  $(if $($(jar)_JAVAFILES) $($(jar)_PP_JAVAFILES),,$(error Must provide at least one of $(jar)_JAVAFILES and $(jar)_PP_JAVAFILES))\
   $(eval $(call java_jar_template,$($(jar)_DEST),$($(jar)_JAVAFILES) $($(jar)_PP_JAVAFILES),$($(jar)_EXTRA_JARS),$($(jar)_JAVAC_FLAGS)))\
 )
 endif #} JAVA_JAR_TARGETS

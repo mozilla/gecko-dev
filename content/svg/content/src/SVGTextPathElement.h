@@ -16,7 +16,7 @@ class nsIContent;
 class nsINodeInfo;
 
 nsresult NS_NewSVGTextPathElement(nsIContent **aResult,
-                                  already_AddRefed<nsINodeInfo> aNodeInfo);
+                                  already_AddRefed<nsINodeInfo>&& aNodeInfo);
 
 namespace mozilla {
 namespace dom {
@@ -38,10 +38,9 @@ friend class ::SVGTextFrame;
 
 protected:
   friend nsresult (::NS_NewSVGTextPathElement(nsIContent **aResult,
-                                              already_AddRefed<nsINodeInfo> aNodeInfo));
-  SVGTextPathElement(already_AddRefed<nsINodeInfo> aNodeInfo);
-  virtual JSObject* WrapNode(JSContext *cx,
-                             JS::Handle<JSObject*> scope) MOZ_OVERRIDE;
+                                              already_AddRefed<nsINodeInfo>&& aNodeInfo));
+  SVGTextPathElement(already_AddRefed<nsINodeInfo>& aNodeInfo);
+  virtual JSObject* WrapNode(JSContext *cx) MOZ_OVERRIDE;
 
 public:
   // nsIContent interface

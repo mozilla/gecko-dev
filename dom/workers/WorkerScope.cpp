@@ -7,6 +7,7 @@
 #include "WorkerScope.h"
 
 #include "jsapi.h"
+#include "mozilla/EventListenerManager.h"
 #include "mozilla/dom/FunctionBinding.h"
 #include "mozilla/dom/DedicatedWorkerGlobalScopeBinding.h"
 #include "mozilla/dom/SharedWorkerGlobalScopeBinding.h"
@@ -27,6 +28,7 @@
   UnwrapObject<prototypes::id::Interface##_workers,                           \
     mozilla::dom::Interface##Binding_workers::NativeType>(obj, value)
 
+using namespace mozilla;
 using namespace mozilla::dom;
 USING_WORKERS_NAMESPACE
 
@@ -48,31 +50,31 @@ WorkerGlobalScope::~WorkerGlobalScope()
 NS_IMPL_CYCLE_COLLECTION_CLASS(WorkerGlobalScope)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(WorkerGlobalScope,
-                                                  nsDOMEventTargetHelper)
+                                                  DOMEventTargetHelper)
   tmp->mWorkerPrivate->AssertIsOnWorkerThread();
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(WorkerGlobalScope,
-                                                nsDOMEventTargetHelper)
+                                                DOMEventTargetHelper)
   tmp->mWorkerPrivate->AssertIsOnWorkerThread();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(WorkerGlobalScope,
-                                               nsDOMEventTargetHelper)
+                                               DOMEventTargetHelper)
   tmp->mWorkerPrivate->AssertIsOnWorkerThread();
 
   tmp->mWorkerPrivate->TraceTimeouts(aCallbacks, aClosure);
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
-NS_IMPL_ADDREF_INHERITED(WorkerGlobalScope, nsDOMEventTargetHelper)
-NS_IMPL_RELEASE_INHERITED(WorkerGlobalScope, nsDOMEventTargetHelper)
+NS_IMPL_ADDREF_INHERITED(WorkerGlobalScope, DOMEventTargetHelper)
+NS_IMPL_RELEASE_INHERITED(WorkerGlobalScope, DOMEventTargetHelper)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(WorkerGlobalScope)
   NS_INTERFACE_MAP_ENTRY(nsIGlobalObject)
-NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetHelper)
+NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 JSObject*
-WorkerGlobalScope::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+WorkerGlobalScope::WrapObject(JSContext* aCx)
 {
   MOZ_CRASH("We should never get here!");
 }
@@ -142,7 +144,7 @@ WorkerGlobalScope::GetOnerror()
 {
   mWorkerPrivate->AssertIsOnWorkerThread();
 
-  nsEventListenerManager *elm = GetExistingListenerManager();
+  EventListenerManager* elm = GetExistingListenerManager();
   return elm ? elm->GetOnErrorEventHandler() : nullptr;
 }
 
@@ -151,7 +153,7 @@ WorkerGlobalScope::SetOnerror(OnErrorEventHandlerNonNull* aHandler)
 {
   mWorkerPrivate->AssertIsOnWorkerThread();
 
-  nsEventListenerManager *elm = GetOrCreateListenerManager();
+  EventListenerManager* elm = GetOrCreateListenerManager();
   if (elm) {
     elm->SetEventHandler(aHandler);
   }
@@ -298,8 +300,8 @@ DedicatedWorkerGlobalScope::WrapGlobalObject(JSContext* aCx)
   // We're wrapping the global, so the scope is undefined.
   JS::Rooted<JSObject*> scope(aCx);
 
-  return DedicatedWorkerGlobalScopeBinding_workers::Wrap(aCx, scope, this,
-                                                         this, options,
+  return DedicatedWorkerGlobalScopeBinding_workers::Wrap(aCx, this, this,
+                                                         options,
                                                          GetWorkerPrincipal());
 }
 
@@ -339,8 +341,7 @@ SharedWorkerGlobalScope::WrapGlobalObject(JSContext* aCx)
   // We're wrapping the global, so the scope is undefined.
   JS::Rooted<JSObject*> scope(aCx);
 
-  return SharedWorkerGlobalScopeBinding_workers::Wrap(aCx, scope, this, this,
-                                                      options,
+  return SharedWorkerGlobalScopeBinding_workers::Wrap(aCx, this, this, options,
                                                       GetWorkerPrincipal());
 }
 

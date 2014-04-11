@@ -28,6 +28,10 @@ function newUint8Worker() {
     index += offset;
   };
 
+  context.Buf.getReadAvailable = function() {
+    return buf.length - index;
+  };
+
   worker.debug = do_print;
 
   return worker;
@@ -1680,7 +1684,7 @@ add_test(function test_update_icc_contact() {
   let contactHelper = context.ICCContactHelper;
   let ril = context.RIL;
 
-  function do_test(aSimType, aContactType, aContact, aPin2, aFileType, aEnhancedPhoneBook) {
+  function do_test(aSimType, aContactType, aContact, aPin2, aFileType, aHaveIapIndex, aEnhancedPhoneBook) {
     ril.appType = aSimType;
     ril._isCdma = (aSimType === CARD_APPTYPE_RUIM);
     ril.iccInfoPrivate.cst = (aEnhancedPhoneBook) ? [0x0, 0x0C, 0x0, 0x0, 0x0]
@@ -1725,7 +1729,14 @@ add_test(function test_update_icc_contact() {
     recordHelper.readIAP = function(fileId, recordNumber, onsuccess, onerror) {
       do_check_eq(fileId, IAP_FILE_ID);
       do_check_eq(recordNumber, ADN_RECORD_ID);
-      onsuccess([EMAIL_RECORD_ID, ANR0_RECORD_ID]);
+      onsuccess((aHaveIapIndex) ? [EMAIL_RECORD_ID, ANR0_RECORD_ID]
+                                : [0xff, 0xff]);
+    };
+
+    recordHelper.updateIAP = function(fileId, recordNumber, iap, onsuccess, onerror) {
+      do_check_eq(fileId, IAP_FILE_ID);
+      do_check_eq(recordNumber, ADN_RECORD_ID);
+      onsuccess();
     };
 
     recordHelper.updateEmail = function(pbr, recordNumber, email, adnRecordId, onsuccess, onerror) {
@@ -1752,16 +1763,28 @@ add_test(function test_update_icc_contact() {
       onsuccess();
     };
 
+    recordHelper.findFreeRecordId = function(fileId, onsuccess, onerror) {
+      let recordId = 0;
+      if (fileId === EMAIL_FILE_ID) {
+        recordId = EMAIL_RECORD_ID;
+      } else if (fileId === ANR0_FILE_ID) {
+        recordId = ANR0_RECORD_ID;
+      }
+      onsuccess(recordId);
+    };
+
+    let isSuccess = false;
     let onsuccess = function onsuccess() {
       do_print("updateICCContact success");
+      isSuccess = true;
     };
 
     let onerror = function onerror(errorMsg) {
       do_print("updateICCContact failed: " + errorMsg);
-      do_check_true(false);
     };
 
     contactHelper.updateICCContact(aSimType, aContactType, aContact, aPin2, onsuccess, onerror);
+    do_check_true(isSuccess);
   }
 
   let contacts = [
@@ -1779,6 +1802,22 @@ add_test(function test_update_icc_contact() {
       recordId: ADN_RECORD_ID,
       alphaId:  "test2",
       number:   "123456",
+    },
+    // a contact with email but no anr.
+    {
+      pbrIndex: 0,
+      recordId: ADN_RECORD_ID,
+      alphaId:  "test3",
+      number:   "123456",
+      email:    "test@mail.com"
+    },
+    // a contact with anr but no email.
+    {
+      pbrIndex: 0,
+      recordId: ADN_RECORD_ID,
+      alphaId:  "test4",
+      number:   "123456",
+      anr:      ["+654321"]
     }];
 
   for (let i = 0; i < contacts.length; i++) {
@@ -1793,7 +1832,8 @@ add_test(function test_update_icc_contact() {
     // USIM
     do_print("Test update USIM adn contacts");
     do_test(CARD_APPTYPE_USIM, "adn", contact, null, ICC_USIM_TYPE1_TAG);
-    do_test(CARD_APPTYPE_USIM, "adn", contact, null, ICC_USIM_TYPE2_TAG);
+    do_test(CARD_APPTYPE_USIM, "adn", contact, null, ICC_USIM_TYPE2_TAG, true);
+    do_test(CARD_APPTYPE_USIM, "adn", contact, null, ICC_USIM_TYPE2_TAG, false);
 
     do_print("Test update USIM fdn contacts");
     do_test(CARD_APPTYPE_USIM, "fdn", contact, "1234");
@@ -1807,8 +1847,9 @@ add_test(function test_update_icc_contact() {
 
     // RUIM with enhanced phone book
     do_print("Test update RUIM adn contacts with enhanced phone book");
-    do_test(CARD_APPTYPE_RUIM, "adn", contact, null, ICC_USIM_TYPE1_TAG, true);
-    do_test(CARD_APPTYPE_RUIM, "adn", contact, null, ICC_USIM_TYPE2_TAG, true);
+    do_test(CARD_APPTYPE_RUIM, "adn", contact, null, ICC_USIM_TYPE1_TAG, null, true);
+    do_test(CARD_APPTYPE_RUIM, "adn", contact, null, ICC_USIM_TYPE2_TAG, true, true);
+    do_test(CARD_APPTYPE_RUIM, "adn", contact, null, ICC_USIM_TYPE2_TAG, false, true);
 
     do_print("Test update RUIM fdn contacts with enhanced phone book");
     do_test(CARD_APPTYPE_RUIM, "fdn", contact, "1234", null, true);
@@ -2098,6 +2139,34 @@ add_test(function test_error_message_update_icc_contact() {
 
   do_test({contactType: "adn", contact: {contactId: ICCID + "1"}},
           CONTACT_ERR_CANNOT_ACCESS_PHONEBOOK);
+
+  run_next_test();
+});
+
+add_test(function test_process_icc_io_error() {
+  let worker = newUint8Worker();
+  let context = worker.ContextPool._contexts[0];
+  let ioHelper = context.ICCIOHelper;
+
+  function do_test(errorCode, expectedErrorMsg) {
+    let called = false;
+    function errorCb(errorMsg) {
+      called = true;
+      do_check_eq(errorMsg, expectedErrorMsg);
+    }
+
+    ioHelper.processICCIOError({rilRequestError: errorCode,
+                                fileId: 0xffff,
+                                command: 0xff,
+                                sw1: 0xff,
+                                sw2: 0xff,
+                                onerror: errorCb});
+    do_check_true(called);
+  }
+
+  for (let i = 0; i < ERROR_REJECTED_BY_REMOTE + 1; i++) {
+    do_test(i, RIL_ERROR_TO_GECKO_ERROR[i]);
+  }
 
   run_next_test();
 });
@@ -2910,7 +2979,7 @@ add_test(function test_read_new_sms_on_sim() {
     do_check_eq("sms-received", postedMessage.rilMessageType);
     do_check_eq("+0123456789", postedMessage.SMSC);
     do_check_eq("+9876543210", postedMessage.sender);
-    do_check_eq("How are you?", postedMessage.fullBody);
+    do_check_eq("How are you?", postedMessage.body);
   }
 
   do_test();
@@ -3065,6 +3134,54 @@ add_test(function test_icc_io_get_response_for_linear_fixed_structure() {
     do_check_eq(options.recordSize, 0x1A);
     do_check_eq(options.totalRecords, 0x01);
   }
+
+  run_next_test();
+});
+
+/**
+ * Verify reading EF_ICCID.
+ */
+add_test(function test_handling_iccid() {
+  let worker = newUint8Worker();
+  let context = worker.ContextPool._contexts[0];
+  let record = context.ICCRecordHelper;
+  let helper = context.GsmPDUHelper;
+  let ril = context.RIL;
+  let buf = context.Buf;
+  let io = context.ICCIOHelper;
+
+  ril.reportStkServiceIsRunning = function fakeReportStkServiceIsRunning() {
+  };
+
+  function do_test(rawICCID, expectedICCID) {
+    io.loadTransparentEF = function fakeLoadTransparentEF(options) {
+      // Write data size
+      buf.writeInt32(rawICCID.length);
+
+      // Write data
+      for (let i = 0; i < rawICCID.length; i += 2) {
+        helper.writeHexOctet(parseInt(rawICCID.substr(i, 2), 16));
+      }
+
+      // Write string delimiter
+      buf.writeStringDelimiter(rawICCID.length);
+
+      if (options.callback) {
+        options.callback(options);
+      }
+    };
+
+    record.readICCID();
+
+    do_check_eq(ril.iccInfo.iccid, expectedICCID);
+  }
+
+  // Invalid char at high nibbile + low nibbile contains 0xF.
+  do_test("9868002E90909F001519", "89860020909");
+  // Invalid char at low nibbile.
+  do_test("986800E2909090001519", "8986002090909005191");
+  // Valid ICCID.
+  do_test("98101430121181157002", "89014103211118510720");
 
   run_next_test();
 });

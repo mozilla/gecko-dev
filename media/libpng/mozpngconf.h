@@ -6,14 +6,19 @@
 #define MOZPNGCONF_H
 #define PNGLCONF_H /* So we don't try to use libpng's pnglibconf.h */
 
+/* limit image dimensions (bug #251381, #591822, and #967656) */
+#ifndef MOZ_PNG_MAX_DIMENSION
+# define MOZ_PNG_MAX_DIMENSION 32767
+#endif
+
 #define PNG_API_RULE 0
 #define PNG_COST_SHIFT 3
 #define PNG_GAMMA_THRESHOLD_FIXED 5000
 #define PNG_MAX_GAMMA_8 11
 #define PNG_USER_CHUNK_CACHE_MAX 128
 #define PNG_USER_CHUNK_MALLOC_MAX 4000000L
-#define PNG_USER_HEIGHT_MAX 1000000
-#define PNG_USER_WIDTH_MAX 1000000
+#define PNG_USER_HEIGHT_MAX MOZ_PNG_MAX_DIMENSION
+#define PNG_USER_WIDTH_MAX MOZ_PNG_MAX_DIMENSION
 #define PNG_WEIGHT_SHIFT 8
 #define PNG_ZBUF_SIZE 8192
 #define PNG_IDAT_READ_SIZE PNG_ZBUF_SIZE
@@ -66,19 +71,25 @@
 #define PNG_READ_SCALE_16_TO_8_SUPPORTED
 #define PNG_READ_TRANSFORMS_SUPPORTED
 
-/* necessary for boot animation code */
+/* necessary for freetype color bitmap support (Android & B2G)
+   and boot animation code (Gonk) */
+#if defined(ANDROID) || defined(FT_CONFIG_OPTION_USE_PNG)
+#define PNG_READ_PACK_SUPPORTED
+#define PNG_READ_FILLER_SUPPORTED
+#define PNG_READ_STRIP_16_TO_8_SUPPORTED
+#define PNG_READ_USER_TRANSFORM_SUPPORTED
+#define PNG_SEQUENTIAL_READ_SUPPORTED
+#endif
+
+/* necessary for boot animation code (Gonk) */
 #ifdef MOZ_WIDGET_GONK
 #define PNG_UNKNOWN_CHUNKS_SUPPORTED
 #define PNG_SET_UNKNOWN_CHUNKS_SUPPORTED
 #define PNG_HANDLE_AS_UNKNOWN_SUPPORTED
 #define PNG_EASY_ACCESS_SUPPORTED
 #define PNG_READ_BGR_SUPPORTED
-#define PNG_READ_FILLER_SUPPORTED
 #define PNG_READ_GRAY_TO_RGB_SUPPORTED
-#define PNG_READ_STRIP_16_TO_8_SUPPORTED
 #define PNG_READ_STRIP_ALPHA_SUPPORTED
-#define PNG_READ_USER_TRANSFORM_SUPPORTED
-#define PNG_SEQUENTIAL_READ_SUPPORTED
 #endif
 
 #define PNG_WRITE_SUPPORTED
@@ -619,8 +630,12 @@
 /* libpng-1.6.x additions */
 #define png_app_error                             MOZ_PNG_app_err
 #define png_app_warning                           MOZ_PNG_app_warn
-#define png_benign_error                          MOZ_PNG_benign_err
-#define png_chunk_benign_error                    MOZ_PNG_chunk_benign_err
+#ifndef png_benign_error
+#  define png_benign_error                        MOZ_PNG_benign_err
+#endif
+#ifndef png_chunk_benign_error
+#  define png_chunk_benign_error                  MOZ_PNG_chunk_benign_err
+#endif
 #define png_chunk_report                          MOZ_PNG_chunk_report
 #define png_colorspace_set_ICC                    MOZ_PNG_cs_set_ICC
 #define png_colorspace_set_chromaticities         MOZ_PNG_cs_set_chromats
@@ -644,16 +659,25 @@
 #define png_realloc_array                         MOZ_PNG_realloc_array
 #define png_zstream_error                         MOZ_PNG_zstream_error
 
-#if defined(PR_LOGGING) && defined(PNG_WARNINGS_SUPPORTED)
-#define png_warning                     MOZ_PNG_warning
-#define png_error                       MOZ_PNG_error
-#define png_chunk_error                 MOZ_PNG_chunk_err
+#if defined(PR_LOGGING)
+#ifndef png_warning
+#  define png_warning                     MOZ_PNG_warning
+#endif
+#ifndef png_chunk_error
+#  define png_chunk_error                 MOZ_PNG_chunk_err
+#endif
+#ifndef png_chunk_warning
+#  define png_chunk_warning               MOZ_PNG_chunk_warn
+#endif
 #define png_fixed_error                 MOZ_PNG_fixed_err
 #define png_formatted_warning           MOZ_PNG_formatted_warning
-#define png_chunk_warning               MOZ_PNG_chunk_warn
 #define png_warning_parameter           MOZ_PNG_warn_param
 #define png_warning_parameter_signed    MOZ_PNG_warn_param_signed
 #define png_warning_parameter_unsigned  MOZ_PNG_warn_param_unsigned
+#endif
+
+#if defined(PNG_READ_PACK_SUPPORTED) || defined(PNG_WRITE_PACK_SUPPORTED)
+#define png_set_packing  MOZ_PNG_set_packing
 #endif
 
 #endif /* MOZPNGCONF_H */

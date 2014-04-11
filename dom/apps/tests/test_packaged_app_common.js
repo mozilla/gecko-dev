@@ -13,18 +13,31 @@ var PackagedTestHelper = (function PackagedTestHelper() {
   var gAppName = "appname";
   var gApp = null;
   var gInstallOrigin = "http://mochi.test:8888";
+  var timeoutID;
+
+  function timeoutError() {
+    ok(false, "Timeout! Probably waiting on a app installation event");
+    info("Finishing this test suite!");
+    finish();
+  }
 
   function debug(aMsg) {
     //dump("== PackageTestHelper debug == " + aMsg + "\n");
   }
 
   function next() {
+    if (timeoutID) {
+      clearTimeout(timeoutID);
+    }
     index += 1;
     if (index >= steps.length) {
       ok(false, "Shouldn't get here!");
       return;
     }
     try {
+      // There's nothing here that should take more than 30 seconds, even on
+      // heavy loads. So there's no need to stop further tests for five minutes.
+      timeoutID = setTimeout(timeoutError, 30000);
       steps[index]();
     } catch(ex) {
       ok(false, "Caught exception", ex);
@@ -36,6 +49,9 @@ var PackagedTestHelper = (function PackagedTestHelper() {
   }
 
   function finish() {
+    if (timeoutID) {
+      clearTimeout(timeoutID);
+    }
     SpecialPowers.setAllAppsLaunchable(launchableValue);
     SpecialPowers.removePermission("webapps-manage", document);
     SimpleTest.finish();
@@ -99,7 +115,6 @@ var PackagedTestHelper = (function PackagedTestHelper() {
       var aApp = evt.application;
       aApp.ondownloaderror = function(evt) {
         var error = aApp.downloadError.name;
-        ok(true, "Got downloaderror " + error);
         if (error == aExpectedError) {
           ok(true, "Got expected " + aExpectedError);
           var expected = {
@@ -181,6 +196,9 @@ var PackagedTestHelper = (function PackagedTestHelper() {
       is(aApp.readyToApplyDownload, aExpectedApp.readyToApplyDownload,
          "Check readyToApplyDownload");
     }
+    if (typeof aExpectedApp.origin !== "undefined") {
+      is(aApp.origin, aExpectedApp.origin, "Check origin");
+    }
     if (aLaunchable) {
       if (aUninstall) {
         checkUninstallApp(aApp);
@@ -219,6 +237,7 @@ var PackagedTestHelper = (function PackagedTestHelper() {
     checkAppState: checkAppState,
     checkAppDownloadError: checkAppDownloadError,
     get gSJSPath() { return gSJSPath; },
+    set gSJSPath(aValue) { gSJSPath = aValue },
     get gSJS() { return gSJS; },
     get gAppName() { return gAppName;},
     get gApp() { return gApp; },

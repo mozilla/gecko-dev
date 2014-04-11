@@ -30,9 +30,9 @@ namespace mozilla {
 namespace dom {
 
 JSObject*
-SVGPathElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+SVGPathElement::WrapNode(JSContext *aCx)
 {
-  return SVGPathElementBinding::Wrap(aCx, aScope, this);
+  return SVGPathElementBinding::Wrap(aCx, this);
 }
 
 nsSVGElement::NumberInfo SVGPathElement::sNumberInfo = 
@@ -41,7 +41,7 @@ nsSVGElement::NumberInfo SVGPathElement::sNumberInfo =
 //----------------------------------------------------------------------
 // Implementation
 
-SVGPathElement::SVGPathElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+SVGPathElement::SVGPathElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : SVGPathElementBase(aNodeInfo)
 {
 }
@@ -334,7 +334,7 @@ SVGPathElement::ConstructPath(gfxContext *aCtx)
   mD.GetAnimValue().ConstructPath(aCtx);
 }
 
-gfxFloat
+float
 SVGPathElement::GetPathLengthScale(PathLengthScaleForType aFor)
 {
   NS_ABORT_IF_FALSE(aFor == eForTextPath || aFor == eForStroking,

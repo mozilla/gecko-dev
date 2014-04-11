@@ -140,7 +140,6 @@ nsresult
 XPCWrappedNative::WrapNewGlobal(xpcObjectHelper &nativeHelper,
                                 nsIPrincipal *principal,
                                 bool initStandardClasses,
-                                bool fireOnNewGlobalHook,
                                 JS::CompartmentOptions& aOptions,
                                 XPCWrappedNative **wrappedGlobal)
 {
@@ -171,6 +170,7 @@ XPCWrappedNative::WrapNewGlobal(xpcObjectHelper &nativeHelper,
     MOZ_ASSERT(clasp->flags & JSCLASS_IS_GLOBAL);
 
     // Create the global.
+    aOptions.setTrace(XPCWrappedNative::Trace);
     RootedObject global(cx, xpc::CreateGlobalObject(cx, clasp, principal, aOptions));
     if (!global)
         return NS_ERROR_FAILURE;
@@ -194,7 +194,8 @@ XPCWrappedNative::WrapNewGlobal(xpcObjectHelper &nativeHelper,
 
     // Set up the prototype on the global.
     MOZ_ASSERT(proto->GetJSProtoObject());
-    bool success = JS_SplicePrototype(cx, global, proto->GetJSProtoObject());
+    RootedObject protoObj(cx, proto->GetJSProtoObject());
+    bool success = JS_SplicePrototype(cx, global, protoObj);
     if (!success)
         return NS_ERROR_FAILURE;
 
@@ -268,8 +269,6 @@ XPCWrappedNative::WrapNewGlobal(xpcObjectHelper &nativeHelper,
                                wrapper, wrappedGlobal);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    if (fireOnNewGlobalHook)
-        JS_FireOnNewGlobalObject(cx, global);
     return NS_OK;
 }
 
@@ -313,7 +312,7 @@ XPCWrappedNative::GetNewOrUsed(xpcObjectHelper& helper,
             MOZ_ASSERT(NS_FAILED(rv), "returning NS_OK on failure");
             return rv;
         }
-        *resultWrapper = wrapper.forget().get();
+        wrapper.forget(resultWrapper);
         return NS_OK;
     }
 
@@ -413,7 +412,7 @@ XPCWrappedNative::GetNewOrUsed(xpcObjectHelper& helper,
                 MOZ_ASSERT(NS_FAILED(rv), "returning NS_OK on failure");
                 return rv;
             }
-            *resultWrapper = wrapper.forget().get();
+            wrapper.forget(resultWrapper);
             return NS_OK;
         }
     } else {
@@ -533,7 +532,7 @@ FinishCreate(XPCWrappedNativeScope* Scope,
     }
 
     DEBUG_CheckClassInfoClaims(wrapper);
-    *resultWrapper = wrapper.forget().get();
+    wrapper.forget(resultWrapper);
     return NS_OK;
 }
 
@@ -586,7 +585,7 @@ XPCWrappedNative::GetUsedOnly(nsISupports* Object,
 }
 
 // This ctor is used if this object will have a proto.
-XPCWrappedNative::XPCWrappedNative(already_AddRefed<nsISupports> aIdentity,
+XPCWrappedNative::XPCWrappedNative(already_AddRefed<nsISupports>&& aIdentity,
                                    XPCWrappedNativeProto* aProto)
     : mMaybeProto(aProto),
       mSet(aProto->GetSet()),
@@ -594,7 +593,7 @@ XPCWrappedNative::XPCWrappedNative(already_AddRefed<nsISupports> aIdentity,
 {
     MOZ_ASSERT(NS_IsMainThread());
 
-    mIdentity = aIdentity.get();
+    mIdentity = aIdentity.take();
     mFlatJSObject.setFlags(FLAT_JS_OBJECT_VALID);
 
     MOZ_ASSERT(mMaybeProto, "bad ctor param");
@@ -602,7 +601,7 @@ XPCWrappedNative::XPCWrappedNative(already_AddRefed<nsISupports> aIdentity,
 }
 
 // This ctor is used if this object will NOT have a proto.
-XPCWrappedNative::XPCWrappedNative(already_AddRefed<nsISupports> aIdentity,
+XPCWrappedNative::XPCWrappedNative(already_AddRefed<nsISupports>&& aIdentity,
                                    XPCWrappedNativeScope* aScope,
                                    XPCNativeSet* aSet)
 
@@ -612,7 +611,7 @@ XPCWrappedNative::XPCWrappedNative(already_AddRefed<nsISupports> aIdentity,
 {
     MOZ_ASSERT(NS_IsMainThread());
 
-    mIdentity = aIdentity.get();
+    mIdentity = aIdentity.take();
     mFlatJSObject.setFlags(FLAT_JS_OBJECT_VALID);
 
     MOZ_ASSERT(aScope, "bad ctor param");
@@ -1093,9 +1092,12 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCWrappedNativeScope* aOldScope,
                                          HandleObject aNewParent,
                                          nsISupports* aCOMObj)
 {
+    // Check if we're near the stack limit before we get anywhere near the
+    // transplanting code.
     AutoJSContext cx;
-    XPCNativeInterface* iface = XPCNativeInterface::GetISupports();
+    JS_CHECK_RECURSION(cx, return NS_ERROR_FAILURE);
 
+    XPCNativeInterface* iface = XPCNativeInterface::GetISupports();
     if (!iface)
         return NS_ERROR_FAILURE;
 
@@ -1156,9 +1158,8 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCWrappedNativeScope* aOldScope,
         // ending up with two reflectors pointing to the same WN. Other than
         // that, the objects we create will just go away if we return early.
 
-        RootedObject newobj(cx, JS_CloneObject(cx, flat,
-                                               newProto->GetJSProtoObject(),
-                                               aNewParent));
+        RootedObject proto(cx, newProto->GetJSProtoObject());
+        RootedObject newobj(cx, JS_CloneObject(cx, flat, proto, aNewParent));
         if (!newobj)
             return NS_ERROR_FAILURE;
 
@@ -1322,6 +1323,7 @@ RescueOrphans(HandleObject obj)
                                           realParent, wn->GetIdentityObject());
     }
 
+    JSAutoCompartment ac(cx, obj);
     return ReparentWrapper(cx, obj);
 }
 

@@ -50,6 +50,7 @@ enum DOM4ErrorTypeCodeMap {
   TimeoutError               = nsIDOMDOMException::TIMEOUT_ERR,
   InvalidNodeTypeError       = nsIDOMDOMException::INVALID_NODE_TYPE_ERR,
   DataCloneError             = nsIDOMDOMException::DATA_CLONE_ERR,
+  InvalidPointerId           = nsIDOMDOMException::INVALID_POINTER_ERR,
   EncodingError              = 0,
 
   /* XXX Should be JavaScript native errors */
@@ -473,9 +474,9 @@ Exception::Initialize(const nsACString& aMessage, nsresult aResult,
 }
 
 JSObject*
-Exception::WrapObject(JSContext* cx, JS::Handle<JSObject*> scope)
+Exception::WrapObject(JSContext* cx)
 {
-  return ExceptionBinding::Wrap(cx, scope, this);
+  return ExceptionBinding::Wrap(cx, this);
 }
 
 void
@@ -663,9 +664,9 @@ DOMException::GetMessageMoz(nsString& retval)
 }
 
 JSObject*
-DOMException::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+DOMException::WrapObject(JSContext* aCx)
 {
-  return DOMExceptionBinding::Wrap(aCx, aScope, this);
+  return DOMExceptionBinding::Wrap(aCx, this);
 }
 
 /* static */already_AddRefed<DOMException>

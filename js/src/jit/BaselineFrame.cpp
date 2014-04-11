@@ -77,6 +77,13 @@ BaselineFrame::trace(JSTracer *trc, IonFrameIterator &frameIterator)
     JS_ASSERT(nlivefixed <= nfixed);
     JS_ASSERT(nlivefixed >= script->nfixedvars());
 
+    // NB: It is possible that numValueSlots() could be zero, even if nfixed is
+    // nonzero.  This is the case if the function has an early stack check.
+    if (numValueSlots() == 0)
+        return;
+
+    JS_ASSERT(nfixed <= numValueSlots());
+
     if (nfixed == nlivefixed) {
         // All locals are live.
         MarkLocals(this, trc, 0, numValueSlots());
@@ -144,7 +151,7 @@ BaselineFrame::initFunctionScopeObjects(JSContext *cx)
 }
 
 bool
-BaselineFrame::initForOsr(StackFrame *fp, uint32_t numStackValues)
+BaselineFrame::initForOsr(InterpreterFrame *fp, uint32_t numStackValues)
 {
     mozilla::PodZero(this);
 
@@ -171,8 +178,18 @@ BaselineFrame::initForOsr(StackFrame *fp, uint32_t numStackValues)
     if (fp->hasReturnValue())
         setReturnValue(fp->returnValue());
 
-    if (fp->hasPushedSPSFrame())
+    // If the interpreter pushed an SPS frame when it entered the function, the
+    // interpreter will pop it after the OSR trampoline returns.  In order for
+    // the Baseline frame to have its SPS flag set, it must have its own SPS
+    // frame, which the Baseline code will pop on return.  Note that the
+    // profiler may have been enabled or disabled after the function was entered
+    // but before OSR.
+    JSContext *cx = GetJSContextFromJitCode();
+    SPSProfiler *p = &(cx->runtime()->spsProfiler);
+    if (p->enabled()) {
+        p->enter(fp->script(), fp->maybeFun());
         flags_ |= BaselineFrame::HAS_PUSHED_SPS_FRAME;
+    }
 
     frameSize_ = BaselineFrame::FramePointerOffset +
         BaselineFrame::Size() +
@@ -183,10 +200,9 @@ BaselineFrame::initForOsr(StackFrame *fp, uint32_t numStackValues)
     for (uint32_t i = 0; i < numStackValues; i++)
         *valueSlot(i) = fp->slots()[i];
 
-    JSContext *cx = GetJSContextFromJitCode();
     if (cx->compartment()->debugMode()) {
-        // In debug mode, update any Debugger.Frame objects for the StackFrame to
-        // point to the BaselineFrame.
+        // In debug mode, update any Debugger.Frame objects for the
+        // InterpreterFrame to point to the BaselineFrame.
 
         // The caller pushed a fake return address. ScriptFrameIter, used by the
         // debugger, wants a valid return address, but it's okay to just pick one.

@@ -73,10 +73,12 @@
                           accesskey="&emailPageCmd.accesskey;"
                           command="Browser:SendLink"/>
                 <menuseparator/>
+#if !defined(MOZ_WIDGET_GTK) && !defined(MOZ_WIDGET_QT)
                 <menuitem id="menu_printSetup"
                           label="&printSetupCmd.label;"
                           accesskey="&printSetupCmd.accesskey;"
                           command="cmd_pageSetup"/>
+#endif
 #ifndef XP_MACOSX
                 <menuitem id="menu_printPreview"
                           label="&printPreviewCmd.label;"
@@ -444,7 +446,10 @@
                   accesskey="&toolsMenu.accesskey;">
               <menupopup id="menu_ToolsPopup"
 #ifdef MOZ_SERVICES_SYNC
-                         onpopupshowing="gSyncUI.updateUI();"
+# We have to use setTimeout() here to avoid a flickering menu bar when opening
+# the Tools menu, see bug 970769. This can be removed once we got rid of the
+# event loop spinning in Weave.Status._authManager.
+                         onpopupshowing="setTimeout(() => gSyncUI.updateUI());"
 #endif
                          >
               <menuitem id="menu_openDownloads"
@@ -469,6 +474,11 @@
                         accesskey="&syncSyncNowItem.accesskey;"
                         observes="sync-syncnow-state"
                         oncommand="gSyncUI.doSync(event);"/>
+              <menuitem id="sync-reauthitem"
+                        label="&syncReAuthItem.label;"
+                        accesskey="&syncReAuthItem.accesskey;"
+                        observes="sync-reauth-state"
+                        oncommand="gSyncUI.openSignInAgainPage();"/>
 #endif
               <menuseparator id="devToolsSeparator"/>
               <menu id="webDeveloperMenu"

@@ -105,6 +105,12 @@ KeyboardEvent::GetRepeat(bool* aIsRepeat)
   return NS_OK;
 }
 
+bool
+KeyboardEvent::IsComposing()
+{
+  return mEvent->AsKeyboardEvent()->mIsComposing;
+}
+
 NS_IMETHODIMP
 KeyboardEvent::GetModifierState(const nsAString& aKey,
                                 bool* aState)
@@ -236,5 +242,7 @@ NS_NewDOMKeyboardEvent(nsIDOMEvent** aInstancePtrResult,
                        WidgetKeyboardEvent* aEvent)
 {
   KeyboardEvent* it = new KeyboardEvent(aOwner, aPresContext, aEvent);
-  return CallQueryInterface(it, aInstancePtrResult);
+  NS_ADDREF(it);
+  *aInstancePtrResult = static_cast<Event*>(it);
+  return NS_OK;
 }

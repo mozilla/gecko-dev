@@ -13,17 +13,14 @@ const Ci = Components.interfaces;
 const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
-// Initialize DOMApplicationRegistry by importing Webapps.jsm.
-Cu.import("resource://gre/modules/Webapps.jsm");
 Cu.import("resource://gre/modules/AppsUtils.jsm");
 Cu.import("resource://gre/modules/PermissionsInstaller.jsm");
 Cu.import('resource://gre/modules/Payment.jsm');
+Cu.import('resource://gre/modules/AlarmService.jsm');
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/osfile.jsm");
 
-// Initialize window-independent handling of webapps- notifications.
-Cu.import("resource://webapprt/modules/WebappsHandler.jsm");
 Cu.import("resource://webapprt/modules/WebappRT.jsm");
 Cu.import("resource://webapprt/modules/WebRTCHandler.jsm");
 
@@ -47,7 +44,7 @@ function isFirstRunOrUpdate() {
 
 function writeFile(aPath, aData) {
   return Task.spawn(function() {
-    let data = TextEncoder().encode(aData);
+    let data = new TextEncoder().encode(aData);
     yield OS.File.writeAtomic(aPath, data, { tmpPath: aPath + ".tmp" });
   });
 }
@@ -93,6 +90,19 @@ this.startup = function(window) {
       });
     }
 
+    let appUpdated = false;
+    let updatePending = yield WebappRT.isUpdatePending();
+    if (updatePending) {
+      appUpdated = yield WebappRT.applyUpdate();
+    }
+
+    yield WebappRT.loadConfig();
+
+    // Initialize DOMApplicationRegistry by importing Webapps.jsm.
+    Cu.import("resource://gre/modules/Webapps.jsm");
+    // Initialize window-independent handling of webapps- notifications.
+    Cu.import("resource://webapprt/modules/WebappManager.jsm");
+
     // Wait for webapps registry loading.
     yield DOMApplicationRegistry.registryStarted;
 
@@ -100,8 +110,7 @@ this.startup = function(window) {
     if (manifestURL) {
       // On firstrun, set permissions to their default values.
       // When the webapp runtime is updated, update the permissions.
-      // TODO: Update the permissions when the application is updated.
-      if (isFirstRunOrUpdate(Services.prefs)) {
+      if (isFirstRunOrUpdate(Services.prefs) || appUpdated) {
         PermissionsInstaller.installPermissions(WebappRT.config.app, true);
         yield createBrandingFiles();
       }
@@ -135,5 +144,7 @@ this.startup = function(window) {
           documentElement.mozRequestFullScreen();
       }, true);
     }
-  }).then(null, Cu.reportError.bind(Cu));
+
+    WebappRT.startUpdateService();
+  });
 }

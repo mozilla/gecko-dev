@@ -23,8 +23,8 @@
  * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
- * 
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
  * ***** END LICENSE BLOCK ***** */
 
 #ifndef assembler_assembler_X86Assembler_h
@@ -440,6 +440,7 @@ public:
     };
 
     size_t size() const { return m_formatter.size(); }
+    size_t allocSize() const { return m_formatter.allocSize(); }
     unsigned char *buffer() const { return m_formatter.buffer(); }
     bool oom() const { return m_formatter.oom(); }
 
@@ -939,6 +940,13 @@ public:
         spew("subq       %s, %s",
              nameIReg(8,src), nameIReg(8,dst));
         m_formatter.oneByteOp64(OP_SUB_EvGv, src, dst);
+    }
+
+    void subq_rm(RegisterID src, int offset, RegisterID base)
+    {
+        spew("subq       %s, %s0x%x(%s)",
+             nameIReg(8,src), PRETTY_PRINT_OFFSET(offset), nameIReg(8,base));
+        m_formatter.oneByteOp64(OP_SUB_EvGv, src, base, offset);
     }
 
     void subq_mr(int offset, RegisterID base, RegisterID dst)
@@ -3867,6 +3875,7 @@ private:
         // Administrative methods:
 
         size_t size() const { return m_buffer.size(); }
+        size_t allocSize() const { return m_buffer.allocSize(); }
         unsigned char *buffer() const { return m_buffer.buffer(); }
         bool oom() const { return m_buffer.oom(); }
         bool isAligned(int alignment) const { return m_buffer.isAligned(alignment); }

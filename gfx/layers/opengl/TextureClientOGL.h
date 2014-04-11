@@ -12,7 +12,7 @@
 #include "mozilla/gfx/Point.h"          // for IntSize
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/LayersSurfaces.h"  // for SurfaceDescriptor
-#include "mozilla/layers/TextureClient.h"  // for DeprecatedTextureClient, etc
+#include "mozilla/layers/TextureClient.h"  // for TextureClient, etc
 
 namespace mozilla {
 namespace gfx {
@@ -46,6 +46,8 @@ public:
 
   virtual bool IsLocked() const MOZ_OVERRIDE { return mIsLocked; }
 
+  virtual bool HasInternalBuffer() const MOZ_OVERRIDE { return false; }
+
   void InitWith(gl::SharedTextureHandle aHandle,
                 gfx::IntSize aSize,
                 gl::SharedTextureShareType aShareType,
@@ -60,6 +62,16 @@ public:
     // the destruction sequence is race-free.
     MarkInvalid();
     return nullptr;
+  }
+
+  virtual gfx::SurfaceFormat GetFormat() const MOZ_OVERRIDE
+  {
+    return gfx::SurfaceFormat::UNKNOWN;
+  }
+
+  virtual bool AllocateForSurface(gfx::IntSize aSize, TextureAllocationFlags aFlags) MOZ_OVERRIDE
+  {
+    return false;
   }
 
 protected:
@@ -92,13 +104,26 @@ public:
 
   virtual TextureClientData* DropTextureData() MOZ_OVERRIDE { return nullptr; }
 
+  virtual bool HasInternalBuffer() const MOZ_OVERRIDE { return false; }
+
   void InitWith(gfx::SurfaceStream* aStream);
 
   virtual gfx::IntSize GetSize() const { return gfx::IntSize(); }
 
+  virtual gfx::SurfaceFormat GetFormat() const MOZ_OVERRIDE
+  {
+    return gfx::SurfaceFormat::UNKNOWN;
+  }
+
+  virtual bool AllocateForSurface(gfx::IntSize aSize, TextureAllocationFlags aFlags) MOZ_OVERRIDE
+  {
+    return false;
+  }
+
 protected:
-  gfx::SurfaceStream* mStream;
   bool mIsLocked;
+  RefPtr<gfx::SurfaceStream> mStream;
+  RefPtr<gl::GLContext> mGL;
 };
 
 } // namespace

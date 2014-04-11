@@ -19,7 +19,7 @@ class HTMLSourceElement MOZ_FINAL : public nsGenericHTMLElement,
                                     public nsIDOMHTMLSourceElement
 {
 public:
-  HTMLSourceElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  HTMLSourceElement(already_AddRefed<nsINodeInfo>& aNodeInfo);
   virtual ~HTMLSourceElement();
 
   // nsISupports
@@ -65,8 +65,7 @@ public:
   }
 
 protected:
-  virtual JSObject* WrapNode(JSContext* aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext* aCx) MOZ_OVERRIDE;
 
 protected:
   virtual void GetItemValueText(nsAString& text) MOZ_OVERRIDE;

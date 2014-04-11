@@ -99,6 +99,7 @@ class CodeGenerator : public CodeGeneratorSpecific
     bool visitRegExpReplace(LRegExpReplace *lir);
     bool visitStringReplace(LStringReplace *lir);
     bool visitLambda(LLambda *lir);
+    bool visitLambdaArrow(LLambdaArrow *lir);
     bool visitLambdaForSingleton(LLambdaForSingleton *lir);
     bool visitLambdaPar(LLambdaPar *lir);
     bool visitPointer(LPointer *lir);
@@ -140,6 +141,7 @@ class CodeGenerator : public CodeGeneratorSpecific
     bool visitOutOfLineNewObject(OutOfLineNewObject *ool);
     bool visitNewDeclEnvObject(LNewDeclEnvObject *lir);
     bool visitNewCallObject(LNewCallObject *lir);
+    bool visitNewSingletonCallObject(LNewSingletonCallObject *lir);
     bool visitNewCallObjectPar(LNewCallObjectPar *lir);
     bool visitNewStringObject(LNewStringObject *lir);
     bool visitNewPar(LNewPar *lir);
@@ -159,12 +161,14 @@ class CodeGenerator : public CodeGeneratorSpecific
     bool visitSetArgumentsObjectArg(LSetArgumentsObjectArg *lir);
     bool visitReturnFromCtor(LReturnFromCtor *lir);
     bool visitComputeThis(LComputeThis *lir);
+    bool visitLoadArrowThis(LLoadArrowThis *lir);
     bool visitArrayLength(LArrayLength *lir);
     bool visitSetArrayLength(LSetArrayLength *lir);
     bool visitTypedArrayLength(LTypedArrayLength *lir);
     bool visitTypedArrayElements(LTypedArrayElements *lir);
     bool visitNeuterCheck(LNeuterCheck *lir);
     bool visitTypedObjectElements(LTypedObjectElements *lir);
+    bool visitSetTypedObjectOffset(LSetTypedObjectOffset *lir);
     bool visitStringLength(LStringLength *lir);
     bool visitInitializedLength(LInitializedLength *lir);
     bool visitSetInitializedLength(LSetInitializedLength *lir);
@@ -271,7 +275,7 @@ class CodeGenerator : public CodeGeneratorSpecific
     bool visitInstanceOfO(LInstanceOfO *ins);
     bool visitInstanceOfV(LInstanceOfV *ins);
     bool visitCallInstanceOf(LCallInstanceOf *ins);
-    bool visitFunctionBoundary(LFunctionBoundary *lir);
+    bool visitProfilerStackOp(LProfilerStackOp *lir);
     bool visitGetDOMProperty(LGetDOMProperty *lir);
     bool visitGetDOMMember(LGetDOMMember *lir);
     bool visitSetDOMProperty(LSetDOMProperty *lir);
@@ -366,13 +370,13 @@ class CodeGenerator : public CodeGeneratorSpecific
 
     bool generateBranchV(const ValueOperand &value, Label *ifTrue, Label *ifFalse, FloatRegister fr);
 
-    bool emitAllocateGCThingPar(LInstruction *lir, const Register &objReg, const Register &cxReg,
-                                const Register &tempReg1, const Register &tempReg2,
+    bool emitAllocateGCThingPar(LInstruction *lir, Register objReg, Register cxReg,
+                                Register tempReg1, Register tempReg2,
                                 JSObject *templateObj);
 
     bool emitCallToUncompiledScriptPar(LInstruction *lir, Register calleeReg);
 
-    void emitLambdaInit(const Register &resultReg, const Register &scopeChainReg,
+    void emitLambdaInit(Register resultReg, Register scopeChainReg,
                         const LambdaFunctionInfo &info);
 
     bool emitFilterArgumentsOrEval(LInstruction *lir, Register string, Register temp1,
@@ -440,8 +444,10 @@ class CodeGenerator : public CodeGeneratorSpecific
     bool emitAssertRangeI(const Range *r, Register input);
     bool emitAssertRangeD(const Range *r, FloatRegister input, FloatRegister temp);
 
-#ifdef DEBUG
+    bool omitOverRecursedCheck() const;
+
     Vector<CodeOffsetLabel, 0, IonAllocPolicy> ionScriptLabels_;
+#ifdef DEBUG
     bool branchIfInvalidated(Register temp, Label *invalidated);
 
     bool emitDebugResultChecks(LInstruction *ins);

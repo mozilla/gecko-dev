@@ -71,7 +71,7 @@ public:
                                  const gfx::IntPoint& aSourcePoint) MOZ_OVERRIDE;
 
   virtual void SetRenderTarget(CompositingRenderTarget* aSurface) MOZ_OVERRIDE;
-  virtual CompositingRenderTarget* GetCurrentRenderTarget() MOZ_OVERRIDE
+  virtual CompositingRenderTarget* GetCurrentRenderTarget() const MOZ_OVERRIDE
   {
     return mCurrentRT;
   }
@@ -89,6 +89,8 @@ public:
     }
     // If the offset is 0, 0 that's okay.
   }
+
+  virtual void ClearRect(const gfx::Rect& aRect) MOZ_OVERRIDE;
 
   virtual void DrawQuad(const gfx::Rect &aRect,
                         const gfx::Rect &aClipRect,

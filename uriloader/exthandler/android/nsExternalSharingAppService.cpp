@@ -31,7 +31,8 @@ nsExternalSharingAppService::ShareWithDefault(const nsAString & data,
 {
   NS_NAMED_LITERAL_STRING(sendAction, "android.intent.action.SEND");
   const nsString emptyString = EmptyString();
-  return GeckoAppShell::OpenUriExternal(data, mime, emptyString,emptyString, sendAction, title) ? NS_OK : NS_ERROR_FAILURE;
+  return mozilla::widget::android::GeckoAppShell::OpenUriExternal(data,
+           mime, emptyString,emptyString, sendAction, title) ? NS_OK : NS_ERROR_FAILURE;
 }
 
 NS_IMETHODIMP
@@ -52,7 +53,7 @@ nsExternalSharingAppService::GetSharingApps(const nsAString & aMIMEType,
     static_cast<nsISharingHandlerApp**>(NS_Alloc(sizeof(nsISharingHandlerApp*)
                                                  * *aLen));
   for (uint32_t i = 0; i < *aLen; i++) {
-    rv = array->QueryElementAt(i, nsISharingHandlerApp::GetIID(),
+    rv = array->QueryElementAt(i, NS_GET_IID(nsISharingHandlerApp),
                                (void**)(*aHandlers + i));
     NS_ENSURE_SUCCESS(rv, rv);
   }

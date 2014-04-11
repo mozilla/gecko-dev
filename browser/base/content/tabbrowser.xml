@@ -424,7 +424,7 @@
 
                 newPrompt.clientTop; // style flush to assure binding is attached
 
-                let tab = self._getTabForContentWindow(browser.contentWindow);
+                let tab = self._getTabForBrowser(browser);
                 newPrompt.init(args, tab, onCloseCallback);
                 return newPrompt;
               },
@@ -991,16 +991,13 @@
             }
 
             var oldBrowser = this.mCurrentBrowser;
-            if (oldBrowser) {
-              oldBrowser.setAttribute("type", "content-targetable");
-              oldBrowser.docShellIsActive = false;
-            }
+            oldBrowser.setAttribute("type", "content-targetable");
+            oldBrowser.docShellIsActive = false;
 
-            var updatePageReport = false;
-            if (!oldBrowser ||
-                (oldBrowser.pageReport && !newBrowser.pageReport) ||
-                (!oldBrowser.pageReport && newBrowser.pageReport))
-              updatePageReport = true;
+            var updateBlockedPopups = false;
+            if ((oldBrowser.blockedPopups && !newBrowser.blockedPopups) ||
+                (!oldBrowser.blockedPopups && newBrowser.blockedPopups))
+              updateBlockedPopups = true;
 
             newBrowser.setAttribute("type", "content-primary");
             newBrowser.docShellIsActive =
@@ -1020,8 +1017,8 @@
 
             this._appendStatusPanel();
 
-            if (updatePageReport)
-              this.mCurrentBrowser.updatePageReport();
+            if (updateBlockedPopups)
+              this.mCurrentBrowser.updateBlockedPopups(false);
 
             // Update the URL bar.
             var loc = this.mCurrentBrowser.currentURI;
@@ -1103,6 +1100,22 @@
 
               this._tabAttrModified(oldTab);
               this._tabAttrModified(this.mCurrentTab);
+
+              if (oldBrowser != newBrowser &&
+                  oldBrowser.docShell &&
+                  oldBrowser.docShell.contentViewer.inPermitUnload) {
+                // Since the user is switching away from a tab that has
+                // a beforeunload prompt active, we remove the prompt.
+                // This prevents confusing user flows like the following:
+                //   1. User attempts to close Firefox
+                //   2. User switches tabs (ingoring a beforeunload prompt)
+                //   3. User returns to tab, presses "Leave page"
+                let promptBox = this.getTabModalPromptBox(oldBrowser);
+                let prompts = promptBox.listPrompts();
+                // NB: This code assumes that the beforeunload prompt
+                //     is the top-most prompt on the tab.
+                promptBox.removePrompt(prompts[prompts.length - 1]);
+              }
 
               // Adjust focus
               oldBrowser._urlbarFocused = (gURLBar && gURLBar.focused);
@@ -1260,6 +1273,7 @@
             var aFromExternal;
             var aRelatedToCurrent;
             var aDisableMCB;
+            var aSkipAnimation;
             if (arguments.length == 2 &&
                 typeof arguments[1] == "object" &&
                 !(arguments[1] instanceof Ci.nsIURI)) {
@@ -1272,6 +1286,7 @@
               aFromExternal         = params.fromExternal;
               aRelatedToCurrent     = params.relatedToCurrent;
               aDisableMCB           = params.disableMCB;
+              aSkipAnimation        = params.skipAnimation;
             }
 
             var bgLoad = (aLoadInBackground != null) ? aLoadInBackground :
@@ -1285,6 +1300,7 @@
                                   allowThirdPartyFixup: aAllowThirdPartyFixup,
                                   fromExternal: aFromExternal,
                                   relatedToCurrent: aRelatedToCurrent,
+                                  skipAnimation: aSkipAnimation,
                                   disableMCB: aDisableMCB});
             if (!bgLoad)
               this.selectedTab = tab;
@@ -1879,7 +1895,6 @@
         <body>
           <![CDATA[
             if (aTab.closing ||
-                aTab._pendingPermitUnload ||
                 this._windowIsClosing)
               return false;
 
@@ -1887,16 +1902,10 @@
 
             if (!aTabWillBeMoved) {
               let ds = browser.docShell;
-              if (ds && ds.contentViewer) {
-                // We need to block while calling permitUnload() because it
-                // processes the event queue and may lead to another removeTab()
-                // call before permitUnload() even returned.
-                aTab._pendingPermitUnload = true;
-                let permitUnload = ds.contentViewer.permitUnload();
-                delete aTab._pendingPermitUnload;
-
-                if (!permitUnload)
-                  return false;
+              if (ds &&
+                  ds.contentViewer &&
+                  !ds.contentViewer.permitUnload()) {
+                return false;
               }
             }
 
@@ -2033,9 +2042,6 @@
             // This has to happen before we remove the child so that the
             // XBL implementation of nsIObserver still works.
             browser.destroy();
-
-            if (browser == this.mCurrentBrowser)
-              this.mCurrentBrowser = null;
 
             var wasPinned = aTab.pinned;
 
@@ -2792,10 +2798,6 @@
         ]]></body>
       </method>
 
-      <property name="pageReport"
-                onget="return this.mCurrentBrowser.pageReport;"
-                readonly="true"/>
-
       <property name="currentURI"
                 onget="return this.mCurrentBrowser.currentURI;"
                 readonly="true"/>
@@ -2994,14 +2996,25 @@
                 tab.setAttribute("titlechanged", "true");
               break;
             }
+            case "DOMWindowClose": {
+              if (this.tabs.length == 1) {
+                window.close();
+                return;
+              }
+
+              let tab = this._getTabForBrowser(browser);
+              if (tab) {
+                this.removeTab(tab);
+              }
+              break;
+            }
             case "contextmenu": {
               gContextMenuContentData = { event: aMessage.objects.event,
                                           browser: browser };
               let popup = browser.ownerDocument.getElementById("contentAreaContextMenu");
-              popup.openPopup(browser, "overlap",
-                              gContextMenuContentData.event.clientX,
-                              gContextMenuContentData.event.clientY,
-                              true, false, null);
+              let event = gContextMenuContentData.event;
+              let pos = browser.mapScreenCoordinatesFromContent(event.screenX, event.screenY);
+              popup.openPopupAtScreen(pos.x, pos.y, true);
               break;
             }
             case "DOMWebNotificationClicked": {
@@ -3061,6 +3074,7 @@
             .useRemoteTabs;
           if (remote) {
             messageManager.addMessageListener("DOMTitleChanged", this);
+            messageManager.addMessageListener("DOMWindowClose", this);
             messageManager.addMessageListener("contextmenu", this);
           }
           messageManager.addMessageListener("DOMWebNotificationClicked", this);
@@ -3185,7 +3199,13 @@
 
           // We're about to open a modal dialog, make sure the opening
           // tab is brought to the front.
-          this.selectedTab = this._getTabForContentWindow(event.target.top);
+          // If this is a same-process modal dialog, then we're given its DOM
+          // window as the event's target. For remote dialogs, we're given the
+          // browser, but that's in the originalTarget.
+          // XXX Why originalTarget for the browser?
+          this.selectedTab = (event.target instanceof Window) ?
+                               this._getTabForContentWindow(event.target.top) :
+                               this._getTabForBrowser(event.originalTarget);
         ]]>
       </handler>
       <handler event="DOMTitleChanged">
@@ -3254,10 +3274,8 @@
       </method>
       <field name="_tabMarginLeft">null</field>
       <field name="_tabMarginRight">null</field>
-      <method name="_adjustElementStartAndEnd">
+      <method name="_calcTabMargins">
         <parameter name="aTab"/>
-        <parameter name="tabStart"/>
-        <parameter name="tabEnd"/>
         <body><![CDATA[
           if (this._tabMarginLeft === null || this._tabMarginRight === null) {
             let tabMiddle = document.getAnonymousElementByAttribute(aTab, "class", "tab-background-middle");
@@ -3265,6 +3283,14 @@
             this._tabMarginLeft = parseFloat(tabMiddleStyle.marginLeft);
             this._tabMarginRight = parseFloat(tabMiddleStyle.marginRight);
           }
+        ]]></body>
+      </method>
+      <method name="_adjustElementStartAndEnd">
+        <parameter name="aTab"/>
+        <parameter name="tabStart"/>
+        <parameter name="tabEnd"/>
+        <body><![CDATA[
+          this._calcTabMargins(aTab);
           if (this._tabMarginLeft < 0) {
             tabStart = tabStart + this._tabMarginLeft;
           }
@@ -3909,6 +3935,10 @@
 
           var scrollRect = this.mTabstrip.scrollClientRect;
           var tab = aTab.getBoundingClientRect();
+          this.mTabstrip._calcTabMargins(aTab);
+
+          // DOMRect left/right properties are immutable.
+          tab = {left: tab.left, right: tab.right};
 
           // Is the new tab already completely visible?
           if (scrollRect.left <= tab.left && tab.right <= scrollRect.right)
@@ -3917,6 +3947,15 @@
           if (this.mTabstrip.smoothScroll) {
             let selected = !this.selectedItem.pinned &&
                            this.selectedItem.getBoundingClientRect();
+            if (selected) {
+              selected = {left: selected.left, right: selected.right};
+              // Need to take in to account the width of the left/right margins on tabs.
+              selected.left = selected.left + this.mTabstrip._tabMarginLeft;
+              selected.right = selected.right - this.mTabstrip._tabMarginRight;
+            }
+
+            tab.left += this.mTabstrip._tabMarginLeft;
+            tab.right -= this.mTabstrip._tabMarginRight;
 
             // Can we make both the new tab and the selected tab completely visible?
             if (!selected ||
@@ -3996,6 +4035,10 @@
               // and vice versa.
               if (PrivateBrowsingUtils.isWindowPrivate(window) !=
                   PrivateBrowsingUtils.isWindowPrivate(sourceNode.ownerDocument.defaultView))
+                return dt.effectAllowed = "none";
+
+              if (window.gMultiProcessBrowser !=
+                  sourceNode.ownerDocument.defaultView.gMultiProcessBrowser)
                 return dt.effectAllowed = "none";
 
 #ifdef XP_MACOSX

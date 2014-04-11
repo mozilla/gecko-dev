@@ -12,16 +12,17 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.drawable.Drawable;
-import android.view.ActionProvider;
 import android.view.MenuItem;
 import android.view.MenuItem.OnMenuItemClickListener;
 import android.view.SubMenu;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.text.TextUtils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
-public class GeckoActionProvider extends ActionProvider {
+public class GeckoActionProvider {
     private static int MAX_HISTORY_SIZE = 2;
 
     /**
@@ -35,6 +36,8 @@ public class GeckoActionProvider extends ActionProvider {
 
     private final Context mContext;
 
+    public final static String DEFAULT_MIME_TYPE = "text/plain";
+
     public static final String DEFAULT_HISTORY_FILE_NAME = "history.xml";
 
     //  History file.
@@ -44,12 +47,39 @@ public class GeckoActionProvider extends ActionProvider {
 
     private final Callbacks mCallbacks = new Callbacks();
 
+    private static HashMap<String, GeckoActionProvider> mProviders = new HashMap<String, GeckoActionProvider>();
+
+    private static String getFilenameFromMimeType(String mimeType) {
+        String[] mime = mimeType.split("/");
+
+        // All text mimetypes use the default provider
+        if ("text".equals(mime[0])) {
+            return DEFAULT_HISTORY_FILE_NAME;
+        }
+
+        return "history-" + mime[0] + ".xml";
+    }
+
+    // Gets the action provider for a particular mimetype
+    public static GeckoActionProvider getForType(String mimeType, Context context) {
+        if (!mProviders.keySet().contains(mimeType)) {
+            GeckoActionProvider provider = new GeckoActionProvider(context);
+
+            // For empty types, we just return a default provider
+            if (TextUtils.isEmpty(mimeType)) {
+                return provider;
+            }
+
+            provider.setHistoryFileName(getFilenameFromMimeType(mimeType));
+            mProviders.put(mimeType, provider);
+        }
+        return mProviders.get(mimeType);
+    }
+
     public GeckoActionProvider(Context context) {
-        super(context);
         mContext = context;
     }
 
-    @Override
     public View onCreateActionView() {
         // Create the view and set its data model.
         ActivityChooserModel dataModel = ActivityChooserModel.get(mContext, mHistoryFileName);
@@ -81,12 +111,10 @@ public class GeckoActionProvider extends ActionProvider {
         return onCreateActionView();
     }
 
-    @Override
     public boolean hasSubMenu() {
         return true;
     }
 
-    @Override
     public void onPrepareSubMenu(SubMenu subMenu) {
         // Clear since the order of items may change.
         subMenu.clear();
@@ -141,6 +169,10 @@ public class GeckoActionProvider extends ActionProvider {
         return infos;
     }
 
+    public void chooseActivity(int position) {
+        mCallbacks.chooseActivity(position);
+    }
+
     /**
      * Listener for handling default activity / menu item clicks.
      */
@@ -168,7 +200,6 @@ public class GeckoActionProvider extends ActionProvider {
         @Override
         public void onClick(View view) {
             Integer index = (Integer) view.getTag();
-            ActivityChooserModel dataModel = ActivityChooserModel.get(mContext, mHistoryFileName);
             chooseActivity(index);
         }
     }

@@ -22,7 +22,7 @@ class HTMLOptionElement MOZ_FINAL : public nsGenericHTMLElement,
                                     public nsIDOMHTMLOptionElement
 {
 public:
-  HTMLOptionElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  HTMLOptionElement(already_AddRefed<nsINodeInfo>& aNodeInfo);
   virtual ~HTMLOptionElement();
 
   static already_AddRefed<HTMLOptionElement>
@@ -61,7 +61,7 @@ public:
                               bool aNullParent = true) MOZ_OVERRIDE;
 
   // nsIContent
-  virtual nsEventStates IntrinsicState() const MOZ_OVERRIDE;
+  virtual EventStates IntrinsicState() const MOZ_OVERRIDE;
 
   virtual nsresult Clone(nsINodeInfo* aNodeInfo, nsINode** aResult) const MOZ_OVERRIDE;
 
@@ -116,8 +116,7 @@ public:
   int32_t Index();
 
 protected:
-  virtual JSObject* WrapNode(JSContext* aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext* aCx) MOZ_OVERRIDE;
 
   /**
    * Get the select content element that contains this option, this

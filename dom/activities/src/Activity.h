@@ -7,6 +7,7 @@
 
 #include "DOMRequest.h"
 #include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/dom/MozActivityBinding.h"
 #include "nsIActivityProxy.h"
 #include "mozilla/Preferences.h"
 #include "nsPIDOMWindow.h"
@@ -20,12 +21,12 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(Activity, DOMRequest)
 
-  virtual JSObject* WrapObject(JSContext* aCx,
-                               JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   static already_AddRefed<Activity>
   Constructor(const GlobalObject& aOwner,
-              nsIDOMMozActivityOptions* aOptions,
+              JSContext* aCx,
+              const ActivityOptions& aOptions,
               ErrorResult& aRv)
   {
     nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aOwner.GetAsSupports());
@@ -35,7 +36,7 @@ public:
     }
 
     nsRefPtr<Activity> activity = new Activity(window);
-    aRv = activity->Initialize(window, aOptions);
+    aRv = activity->Initialize(window, aCx, aOptions);
     return activity.forget();
   }
 
@@ -43,7 +44,8 @@ public:
 
 protected:
   nsresult Initialize(nsPIDOMWindow* aWindow,
-                      nsIDOMMozActivityOptions* aOptions);
+                      JSContext* aCx,
+                      const ActivityOptions& aOptions);
 
   nsCOMPtr<nsIActivityProxy> mProxy;
 

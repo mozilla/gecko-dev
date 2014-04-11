@@ -6,13 +6,13 @@
 #ifndef SpeechRecognitionError_h__
 #define SpeechRecognitionError_h__
 
-#include "nsDOMEvent.h"
+#include "mozilla/dom/Event.h"
 #include "mozilla/dom/SpeechRecognitionErrorBinding.h"
 
 namespace mozilla {
 namespace dom {
 
-class SpeechRecognitionError : public nsDOMEvent
+class SpeechRecognitionError : public Event
 {
 public:
   SpeechRecognitionError(mozilla::dom::EventTarget* aOwner,
@@ -26,9 +26,9 @@ public:
               const SpeechRecognitionErrorInit& aParam,
               ErrorResult& aRv);
 
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope) MOZ_OVERRIDE
+  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE
   {
-    return mozilla::dom::SpeechRecognitionErrorBinding::Wrap(aCx, aScope, this);
+    return mozilla::dom::SpeechRecognitionErrorBinding::Wrap(aCx, this);
   }
 
   void

@@ -260,7 +260,15 @@ class IDLScope(IDLObject):
            isinstance(newObject, IDLExternalInterface) and \
            originalObject.identifier.name == newObject.identifier.name:
             return originalObject
-            
+
+        if (isinstance(originalObject, IDLExternalInterface) or
+            isinstance(newObject, IDLExternalInterface)):
+            raise WebIDLError(
+                "Name collision between "
+                "interface declarations for identifier '%s' at '%s' and '%s'"
+                % (identifier.name,
+                    originalObject.location, newObject.location), [])
+
         # We do the merging of overloads here as opposed to in IDLInterface
         # because we need to merge overloads of NamedConstructors and we need to
         # detect conflicts in those across interfaces. See also the comment in
@@ -1391,6 +1399,9 @@ class IDLType(IDLObject):
     def isObject(self):
         return self.tag() == IDLType.Tags.object
 
+    def isPromise(self):
+        return False
+
     def isComplete(self):
         return True
 
@@ -2030,6 +2041,10 @@ class IDLWrapperType(IDLType):
 
     def isEnum(self):
         return isinstance(self.inner, IDLEnum)
+
+    def isPromise(self):
+        return isinstance(self.inner, IDLInterface) and \
+               self.inner.identifier.name == "Promise"
 
     def isSerializable(self):
         if self.isInterface():
@@ -2929,16 +2944,8 @@ class IDLArgument(IDLObjectWithIdentifier):
         elif self.type.isAny():
             assert (self.defaultValue is None or
                     isinstance(self.defaultValue, IDLNullValue))
-            if (self.optional and not self.variadic and
-                not self.dictionaryMember and not self.defaultValue):
-                raise WebIDLError("Arguments of type 'any' are always optional "
-                                  "and shouldn't have the 'optional' keyword "
-                                  "unless they're being given a default value "
-                                  "of 'null'",
-                                  [self.location])
-            # 'any' values are always optional.
-            self.optional = True
-            if not self.defaultValue and not self.variadic:
+            # optional 'any' values always have a default value
+            if self.optional and not self.defaultValue and not self.variadic:
                 # Set the default value to undefined, for simplicity, so the
                 # codegen doesn't have to special-case this.
                 self.defaultValue = IDLUndefinedValue(self.location)
@@ -3241,6 +3248,8 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
                 self._overloads]
 
     def finish(self, scope):
+        overloadWithPromiseReturnType = None
+        overloadWithoutPromiseReturnType = None
         for overload in self._overloads:
             variadicArgument = None
 
@@ -3279,15 +3288,29 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
                     variadicArgument = argument
 
             returnType = overload.returnType
-            if returnType.isComplete():
-                continue
+            if not returnType.isComplete():
+                returnType = returnType.complete(scope)
+                assert not isinstance(returnType, IDLUnresolvedType)
+                assert not isinstance(returnType, IDLTypedefType)
+                assert not isinstance(returnType.name, IDLUnresolvedIdentifier)
+                overload.returnType = returnType
 
-            type = returnType.complete(scope)
+            if returnType.isPromise():
+                overloadWithPromiseReturnType = overload
+            else:
+                overloadWithoutPromiseReturnType = overload
 
-            assert not isinstance(type, IDLUnresolvedType)
-            assert not isinstance(type, IDLTypedefType)
-            assert not isinstance(type.name, IDLUnresolvedIdentifier)
-            overload.returnType = type
+        # Make sure either all our overloads return Promises or none do
+        if overloadWithPromiseReturnType and overloadWithoutPromiseReturnType:
+            raise WebIDLError("We have overloads with both Promise and "
+                              "non-Promise return types",
+                              [overloadWithPromiseReturnType.location,
+                               overloadWithoutPromiseReturnType.location])
+
+        if overloadWithPromiseReturnType and self._legacycaller:
+            raise WebIDLError("May not have a Promise return type for a "
+                              "legacycaller.",
+                              [overloadWithPromiseReturnType.location])
 
         # Now compute various information that will be used by the
         # WebIDL overload resolution algorithm.
@@ -3407,6 +3430,9 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
             raise WebIDLError("Unknown extended attribute %s on method" % identifier,
                               [attr.location])
         IDLInterfaceMember.handleExtendedAttribute(self, attr)
+
+    def returnsPromise(self):
+        return self._overloads[0].returnType.isPromise()
 
     def _getDependentObjects(self):
         deps = set()
@@ -4321,9 +4347,9 @@ class Parser(Tokenizer):
             raise WebIDLError("Mandatory arguments can't have a default value.",
                               [self.getLocation(p, 6)])
 
-        # We can't test t.isAny() here and force optional to true, since at this
-        # point t is not a fully resolved type yet (e.g. it might be a typedef).
-        # We'll handle the 'any' case in IDLArgument.complete.
+        # We can't test t.isAny() here and give it a default value as needed,
+        # since at this point t is not a fully resolved type yet (e.g. it might
+        # be a typedef).  We'll handle the 'any' case in IDLArgument.complete.
 
         if variadic:
             if optional:

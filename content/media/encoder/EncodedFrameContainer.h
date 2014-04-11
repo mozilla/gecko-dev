@@ -38,7 +38,7 @@ private:
 };
 
 // Represent one encoded frame
-class EncodedFrame
+class EncodedFrame MOZ_FINAL
 {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(EncodedFrame)
 public:
@@ -58,6 +58,8 @@ public:
     AVC_CSD,          // AVC codec specific data
     AAC_AUDIO_FRAME,
     AAC_CSD,          // AAC codec specific data
+    AMR_AUDIO_CSD,
+    AMR_AUDIO_FRAME,
     UNKNOWN           // FrameType not set
   };
   nsresult SwapInFrameData(nsTArray<uint8_t>& aData)
@@ -88,6 +90,11 @@ public:
   FrameType GetFrameType() const { return mFrameType; }
   void SetFrameType(FrameType aFrameType) { mFrameType = aFrameType; }
 private:
+  // Private destructor, to discourage deletion outside of Release():
+  ~EncodedFrame()
+  {
+  }
+
   // Encoded data
   nsTArray<uint8_t> mFrameData;
   uint64_t mTimeStamp;

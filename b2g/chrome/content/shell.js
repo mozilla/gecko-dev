@@ -23,9 +23,15 @@ Cu.import('resource://gre/modules/NetworkStatsService.jsm');
 // Identity
 Cu.import('resource://gre/modules/SignInToWebsite.jsm');
 SignInToWebsiteController.init();
+
+#ifdef MOZ_SERVICES_FXACCOUNTS
 Cu.import('resource://gre/modules/FxAccountsMgmtService.jsm');
+#endif
 
 Cu.import('resource://gre/modules/DownloadsAPI.jsm');
+
+XPCOMUtils.defineLazyModuleGetter(this, "SystemAppProxy",
+                                  "resource://gre/modules/SystemAppProxy.jsm");
 
 Cu.import('resource://gre/modules/Webapps.jsm');
 DOMApplicationRegistry.allAppsLaunchable = true;
@@ -199,7 +205,7 @@ var shell = {
 
         Services.obs.removeObserver(observer, topic);
       }
-    }, "network-interface-state-changed", false);
+    }, "network-connection-state-changed", false);
   },
 
   get contentBrowser() {
@@ -300,7 +306,11 @@ var shell = {
     systemAppFrame.setAttribute('src', "data:text/html;charset=utf-8,%3C!DOCTYPE html>%3Cbody style='background:black;");
     let container = document.getElementById('container');
 #ifdef MOZ_WIDGET_COCOA
-    container.removeChild(document.getElementById('placeholder'));
+    // See shell.html
+    let hotfix = document.getElementById('placeholder');
+    if (hotfix) {
+      container.removeChild(hotfix);
+    }
 #endif
     container.appendChild(systemAppFrame);
 
@@ -332,6 +342,8 @@ var shell = {
     window.addEventListener('sizemodechange', this);
     window.addEventListener('unload', this);
     this.contentBrowser.addEventListener('mozbrowserloadstart', this, true);
+
+    SystemAppProxy.registerFrame(this.contentBrowser);
 
     CustomEventManager.init();
     WebappsHelper.init();
@@ -560,18 +572,18 @@ var shell = {
     }
   },
 
-  sendEvent: function shell_sendEvent(content, type, details) {
-    let event = content.document.createEvent('CustomEvent');
+  // Send an event to a specific window, document or element.
+  sendEvent: function shell_sendEvent(target, type, details) {
+    let doc = target.document || target.ownerDocument || target;
+    let event = doc.createEvent('CustomEvent');
     event.initCustomEvent(type, true, true, details ? details : {});
-    content.dispatchEvent(event);
+    target.dispatchEvent(event);
   },
 
   sendCustomEvent: function shell_sendCustomEvent(type, details) {
-    let content = getContentWindow();
-    let event = content.document.createEvent('CustomEvent');
-    let payload = details ? Cu.cloneInto(details, content) : {};
-    event.initCustomEvent(type, true, true, payload);
-    content.dispatchEvent(event);
+    let target = getContentWindow();
+    let payload = details ? Cu.cloneInto(details, target) : {};
+    this.sendEvent(target, type, payload);
   },
 
   sendChromeEvent: function shell_sendChromeEvent(details) {
@@ -589,10 +601,9 @@ var shell = {
   },
 
   openAppForSystemMessage: function shell_openAppForSystemMessage(msg) {
-    let origin = Services.io.newURI(msg.manifest, null, null).prePath;
     let payload = {
-      url: msg.uri,
-      manifestURL: msg.manifest,
+      url: msg.pageURL,
+      manifestURL: msg.manifestURL,
       isActivity: (msg.type == 'activity'),
       onlyShowApp: msg.onlyShowApp,
       showApp: msg.showApp,
@@ -660,6 +671,7 @@ var shell = {
 
       Services.obs.notifyObservers(null, "browser-ui-startup-complete", "");
 
+      SystemAppProxy.setIsReady();
       if ('pendingChromeEvents' in shell) {
         shell.pendingChromeEvents.forEach((shell.sendChromeEvent).bind(shell));
       }
@@ -870,7 +882,7 @@ var AlertsHelper = {
     });
   },
 
-  showNotification: function alert_showNotification(imageUrl,
+  showNotification: function alert_showNotification(imageURL,
                                                     title,
                                                     text,
                                                     textClickable,
@@ -878,37 +890,37 @@ var AlertsHelper = {
                                                     uid,
                                                     bidi,
                                                     lang,
-                                                    manifestUrl) {
+                                                    manifestURL) {
     function send(appName, appIcon) {
       shell.sendChromeEvent({
         type: "desktop-notification",
         id: uid,
-        icon: imageUrl,
+        icon: imageURL,
         title: title,
         text: text,
         bidi: bidi,
         lang: lang,
         appName: appName,
         appIcon: appIcon,
-        manifestURL: manifestUrl
+        manifestURL: manifestURL
       });
     }
 
-    if (!manifestUrl || !manifestUrl.length) {
+    if (!manifestURL || !manifestURL.length) {
       send(null, null);
       return;
     }
 
     // If we have a manifest URL, get the icon and title from the manifest
     // to prevent spoofing.
-    let app = DOMApplicationRegistry.getAppByManifestURL(manifestUrl);
-    DOMApplicationRegistry.getManifestFor(manifestUrl).then((aManifest) => {
+    let app = DOMApplicationRegistry.getAppByManifestURL(manifestURL);
+    DOMApplicationRegistry.getManifestFor(manifestURL).then((aManifest) => {
       let helper = new ManifestHelper(aManifest, app.origin);
       send(helper.name, helper.iconURLForSize(128));
     });
   },
 
-  showAlertNotification: function alert_showAlertNotification(imageUrl,
+  showAlertNotification: function alert_showAlertNotification(imageURL,
                                                               title,
                                                               text,
                                                               textClickable,
@@ -923,7 +935,7 @@ var AlertsHelper = {
     }
 
     this.registerListener(name, cookie, alertListener);
-    this.showNotification(imageUrl, title, text, textClickable, cookie,
+    this.showNotification(imageURL, title, text, textClickable, cookie,
                           name, bidi, lang, null);
   },
 
@@ -1112,11 +1124,47 @@ let RemoteDebugger = {
       // Ask for remote connections.
       DebuggerServer.init(this.prompt.bind(this));
 
+      // /!\ Be careful when adding a new actor, especially global actors.
+      // Any new global actor will be exposed and returned by the root actor.
+
       // Add Firefox-specific actors, but prevent tab actors to be loaded in
       // the parent process, unless we enable certified apps debugging.
       let restrictPrivileges = Services.prefs.getBoolPref("devtools.debugger.forbid-certified-apps");
       DebuggerServer.addBrowserActors("navigator:browser", restrictPrivileges);
-      DebuggerServer.addActors('chrome://b2g/content/dbg-browser-actors.js');
+
+      /**
+       * Construct a root actor appropriate for use in a server running in B2G.
+       * The returned root actor respects the factories registered with
+       * DebuggerServer.addGlobalActor only if certified apps debugging is on,
+       * otherwise we used an explicit limited list of global actors
+       *
+       * * @param connection DebuggerServerConnection
+       *        The conection to the client.
+       */
+      DebuggerServer.createRootActor = function createRootActor(connection)
+      {
+        let { Promise: promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
+        let parameters = {
+          // We do not expose browser tab actors yet,
+          // but we still have to define tabList.getList(),
+          // otherwise, client won't be able to fetch global actors
+          // from listTabs request!
+          tabList: {
+            getList: function() {
+              return promise.resolve([]);
+            }
+          },
+          // Use an explicit global actor list to prevent exposing
+          // unexpected actors
+          globalActorFactories: restrictPrivileges ? {
+            webappsActor: DebuggerServer.globalActorFactories.webappsActor,
+            deviceActor: DebuggerServer.globalActorFactories.deviceActor,
+          } : DebuggerServer.globalActorFactories
+        };
+        let root = new DebuggerServer.RootActor(connection, parameters);
+        root.applicationType = "operating-system";
+        return root;
+      };
 
 #ifdef MOZ_WIDGET_GONK
       DebuggerServer.onConnectionChange = function(what) {

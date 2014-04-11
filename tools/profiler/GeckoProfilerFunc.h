@@ -35,6 +35,10 @@ void mozilla_sampler_start(int aEntries, double aInterval,
 
 void mozilla_sampler_stop();
 
+bool mozilla_sampler_is_paused();
+void mozilla_sampler_pause();
+void mozilla_sampler_resume();
+
 ProfilerBacktrace* mozilla_sampler_get_backtrace();
 void mozilla_sampler_free_backtrace(ProfilerBacktrace* aBacktrace);
 
@@ -72,6 +76,9 @@ void mozilla_sampler_unlock();
 // Register/unregister threads with the profiler
 bool mozilla_sampler_register_thread(const char* name, void* stackTop);
 void mozilla_sampler_unregister_thread();
+
+void mozilla_sampler_sleep_start();
+void mozilla_sampler_sleep_end();
 
 double mozilla_sampler_time();
 double mozilla_sampler_time(const mozilla::TimeStamp& aTime);

@@ -5,11 +5,8 @@
 "use strict";
 
 const { Cu } = require("chrome");
-
-const { reportException } =
-  Cu.import("resource://gre/modules/devtools/DevToolsUtils.jsm", {}).DevToolsUtils;
-
 const { DebuggerServer } = Cu.import("resource://gre/modules/devtools/dbg-server.jsm", {});
+const { DevToolsUtils } = Cu.import("resource://gre/modules/devtools/DevToolsUtils.jsm", {});
 
 Cu.import("resource://gre/modules/jsdebugger.jsm");
 addDebuggerToGlobal(this);
@@ -95,7 +92,13 @@ function TraceActor(aConn, aParentActor)
   this._buffer = [];
   this.onExitFrame = this.onExitFrame.bind(this);
 
-  this.global = aParentActor.window.wrappedJSObject;
+  // aParentActor.window might be an Xray for a window, but it might also be a
+  // double-wrapper for a Sandbox.  We want to unwrap the latter but not the
+  // former.
+  this.global = aParentActor.window;
+  if (!Cu.isXrayWrapper(this.global)) {
+      this.global = this.global.wrappedJSObject;
+  }
 }
 
 TraceActor.prototype = {
@@ -140,7 +143,7 @@ TraceActor.prototype = {
       this.dbg.addDebuggee(aGlobal);
     } catch (e) {
       // Ignore attempts to add the debugger's compartment as a debuggee.
-      reportException("TraceActor",
+      DevToolsUtils.reportException("TraceActor",
                       new Error("Ignoring request to add the debugger's "
                                 + "compartment as a debuggee"));
     }
@@ -609,7 +612,7 @@ function createValueSnapshot(aValue, aDetailed=false) {
         ? detailedObjectSnapshot(aValue)
         : objectSnapshot(aValue);
     default:
-      reportException("TraceActor",
+      DevToolsUtils.reportException("TraceActor",
                       new Error("Failed to provide a grip for: " + aValue));
       return null;
   }

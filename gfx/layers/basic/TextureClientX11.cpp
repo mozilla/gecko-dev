@@ -20,7 +20,8 @@ using namespace mozilla::layers;
 
 TextureClientX11::TextureClientX11(SurfaceFormat aFormat, TextureFlags aFlags)
   : TextureClient(aFlags),
-    mFormat(aFormat)
+    mFormat(aFormat),
+    mLocked(false)
 {
   MOZ_COUNT_CTOR(TextureClientX11);
 }
@@ -81,23 +82,13 @@ TextureClientX11::UpdateSurface(gfxASurface* aSurface)
 {
   MOZ_ASSERT(IsValid());
 
-  if (gfxPlatform::GetPlatform()->SupportsAzureContent()) {
-    RefPtr<DrawTarget> dt = GetAsDrawTarget();
-    if (!dt) {
-      return false;
-    }
-
-    RefPtr<SourceSurface> source = gfxPlatform::GetPlatform()->GetSourceSurfaceForSurface(dt, aSurface);
-    dt->CopySurface(source, IntRect(IntPoint(), GetSize()), IntPoint());
-  } else {
-    if (!mSurface) {
-      return false;
-    }
-
-    nsRefPtr<gfxContext> ctx = new gfxContext(mSurface.get());
-    ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
-    ctx->DrawSurface(aSurface, mSurface->GetSize());
+  RefPtr<DrawTarget> dt = GetAsDrawTarget();
+  if (!dt) {
+    return false;
   }
+
+  RefPtr<SourceSurface> source = gfxPlatform::GetPlatform()->GetSourceSurfaceForSurface(dt, aSurface);
+  dt->CopySurface(source, IntRect(IntPoint(), GetSize()), IntPoint());
 
   return true;
 }

@@ -1,24 +1,18 @@
 package org.mozilla.gecko.tests;
 
-import org.mozilla.gecko.*;
-import org.mozilla.gecko.db.BrowserContract;
-
-import android.content.ContentValues;
-import android.content.ContentResolver;
-import android.database.Cursor;
-import android.content.Context;
-import android.net.Uri;
 import java.io.File;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
+import org.mozilla.gecko.NSSBridge;
+import org.mozilla.gecko.db.BrowserContract;
+
+import android.content.ContentResolver;
+import android.content.ContentValues;
+import android.content.Context;
+import android.database.Cursor;
+import android.net.Uri;
 
 public class testPasswordEncrypt extends BaseTest {
-    @Override
-    protected int getTestType() {
-        return TEST_MOCHITEST;
-    }
-
     public void testPasswordEncrypt() {
         Context context = (Context)getActivity();
         ContentResolver cr = context.getContentResolver();
@@ -113,22 +107,7 @@ public class testPasswordEncrypt extends BaseTest {
             jsonPref.put("name", "privacy.masterpassword.enabled");
             jsonPref.put("type", "string");
             jsonPref.put("value", passwd);
-            mActions.sendGeckoEvent("Preferences:Set", jsonPref.toString());
-
-            // Wait for confirmation of the pref change before proceeding with the test.
-            final String[] prefNames = { "privacy.masterpassword.enabled" };
-            final int ourRequestId = 0x73577;
-            Actions.RepeatedEventExpecter eventExpecter = mActions.expectGeckoEvent("Preferences:Data");
-            mActions.sendPreferencesGetEvent(ourRequestId, prefNames);
-
-            JSONObject data = null;
-            int requestId = -1;
-
-            // Wait until we get the correct "Preferences:Data" event
-            while (requestId != ourRequestId) {
-                data = new JSONObject(eventExpecter.blockForEventData());
-                requestId = data.getInt("requestId");
-            }
+            setPreferenceAndWaitForChange(jsonPref);
         } catch (Exception ex) { 
             mAsserter.ok(false, "exception in toggleMasterPassword", ex.toString());
         }

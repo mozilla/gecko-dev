@@ -36,7 +36,7 @@ namespace android {
 namespace mozilla {
 
 namespace layers {
-  class GraphicBufferLocked;
+  class TextureClient;
   class ImageContainer;
 }
 
@@ -49,9 +49,10 @@ public:
   nsGonkCameraControl(uint32_t aCameraId);
 
   void OnAutoFocusComplete(bool aSuccess);
+  void OnFacesDetected(camera_frame_metadata_t* aMetaData);
   void OnTakePictureComplete(uint8_t* aData, uint32_t aLength);
   void OnTakePictureError();
-  void OnNewPreviewFrame(layers::GraphicBufferLocked* aBuffer);
+  void OnNewPreviewFrame(layers::TextureClient* aBuffer);
   void OnRecorderEvent(int msg, int ext1, int ext2);
   void OnError(CameraControlListener::CameraErrorContext aWhere,
                CameraControlListener::CameraError aError);
@@ -83,6 +84,7 @@ protected:
 
   using CameraControlImpl::OnNewPreviewFrame;
   using CameraControlImpl::OnAutoFocusComplete;
+  using CameraControlImpl::OnFacesDetected;
   using CameraControlImpl::OnTakePictureComplete;
   using CameraControlImpl::OnConfigurationChange;
   using CameraControlImpl::OnError;
@@ -104,6 +106,8 @@ protected:
   virtual nsresult StartPreviewImpl() MOZ_OVERRIDE;
   virtual nsresult StopPreviewImpl() MOZ_OVERRIDE;
   virtual nsresult AutoFocusImpl(bool aCancelExistingCall) MOZ_OVERRIDE;
+  virtual nsresult StartFaceDetectionImpl() MOZ_OVERRIDE;
+  virtual nsresult StopFaceDetectionImpl() MOZ_OVERRIDE;
   virtual nsresult TakePictureImpl() MOZ_OVERRIDE;
   virtual nsresult StartRecordingImpl(DeviceStorageFileDescriptor* aFileDescriptor,
                                       const StartRecordingOptions* aOptions = nullptr) MOZ_OVERRIDE;
@@ -113,10 +117,14 @@ protected:
   virtual already_AddRefed<RecorderProfileManager> GetRecorderProfileManagerImpl() MOZ_OVERRIDE;
   already_AddRefed<GonkRecorderProfileManager> GetGonkRecorderProfileManager();
 
-  nsresult SetupRecording(int aFd, int aRotation, int64_t aMaxFileSizeBytes, int64_t aMaxVideoLengthMs);
+  nsresult SetupRecording(int aFd, int aRotation, int64_t aMaxFileSizeBytes,
+                          int64_t aMaxVideoLengthMs);
+  nsresult SetupRecordingFlash(bool aAutoEnableLowLightTorch);
   nsresult SetupVideoMode(const nsAString& aProfile);
   nsresult SetPreviewSize(const Size& aSize);
+  nsresult SetVideoSize(const Size& aSize);
   nsresult PausePreview();
+  nsresult GetSupportedSize(const Size& aSize, const nsTArray<Size>& supportedSizes, Size& best);
 
   friend class SetPictureSize;
   friend class SetThumbnailSize;
@@ -135,6 +143,9 @@ protected:
   Size                      mLastRecorderSize;
   uint32_t                  mPreviewFps;
   bool                      mResumePreviewAfterTakingPicture;
+  bool                      mFlashSupported;
+  bool                      mLuminanceSupported;
+  bool                      mAutoFlashModeOverridden;
 
   Atomic<uint32_t>          mDeferConfigUpdate;
   GonkCameraParameters      mParams;
@@ -163,7 +174,9 @@ private:
 void OnTakePictureComplete(nsGonkCameraControl* gc, uint8_t* aData, uint32_t aLength);
 void OnTakePictureError(nsGonkCameraControl* gc);
 void OnAutoFocusComplete(nsGonkCameraControl* gc, bool aSuccess);
-void OnNewPreviewFrame(nsGonkCameraControl* gc, layers::GraphicBufferLocked* aBuffer);
+void OnAutoFocusMoving(nsGonkCameraControl* gc, bool aIsMoving);
+void OnFacesDetected(nsGonkCameraControl* gc, camera_frame_metadata_t* aMetaData);
+void OnNewPreviewFrame(nsGonkCameraControl* gc, layers::TextureClient* aBuffer);
 void OnShutter(nsGonkCameraControl* gc);
 void OnClosed(nsGonkCameraControl* gc);
 void OnError(nsGonkCameraControl* gc, CameraControlListener::CameraError aError,

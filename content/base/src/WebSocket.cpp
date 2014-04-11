@@ -10,6 +10,7 @@
 #include "jsapi.h"
 #include "jsfriendapi.h"
 #include "js/OldDebugAPI.h"
+#include "mozilla/DOMEventTargetHelper.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIDOMWindow.h"
 #include "nsIDocument.h"
@@ -17,7 +18,6 @@
 #include "nsIXPConnect.h"
 #include "nsContentUtils.h"
 #include "nsCxPusher.h"
-#include "nsEventDispatcher.h"
 #include "nsError.h"
 #include "nsIScriptObjectPrincipal.h"
 #include "nsIURL.h"
@@ -40,7 +40,6 @@
 #include "nsContentPolicyUtils.h"
 #include "nsDOMFile.h"
 #include "nsWrapperCacheInlines.h"
-#include "nsDOMEventTargetHelper.h"
 #include "nsIObserverService.h"
 #include "nsIWebSocketChannel.h"
 #include "GeneratedEvents.h"
@@ -442,7 +441,7 @@ WebSocket::GetInterface(const nsIID& aIID, void** aResult)
 ////////////////////////////////////////////////////////////////////////////////
 
 WebSocket::WebSocket(nsPIDOMWindow* aOwnerWindow)
-: nsDOMEventTargetHelper(aOwnerWindow),
+: DOMEventTargetHelper(aOwnerWindow),
   mKeepingAlive(false),
   mCheckMustKeepAlive(true),
   mOnCloseScheduled(false),
@@ -472,9 +471,9 @@ WebSocket::~WebSocket()
 }
 
 JSObject*
-WebSocket::WrapObject(JSContext* cx, JS::Handle<JSObject*> scope)
+WebSocket::WrapObject(JSContext* cx)
 {
-  return WebSocketBinding::Wrap(cx, scope, this);
+  return WebSocketBinding::Wrap(cx, this);
 }
 
 //---------------------------------------------------------------------------
@@ -596,18 +595,18 @@ NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_BEGIN(WebSocket)
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(WebSocket,
-                                               nsDOMEventTargetHelper)
+                                               DOMEventTargetHelper)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(WebSocket,
-                                                  nsDOMEventTargetHelper)
+                                                  DOMEventTargetHelper)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPrincipal)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mURI)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mChannel)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(WebSocket,
-                                                nsDOMEventTargetHelper)
+                                                DOMEventTargetHelper)
   tmp->Disconnect();
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mPrincipal)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mURI)
@@ -620,15 +619,15 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(WebSocket)
   NS_INTERFACE_MAP_ENTRY(nsIObserver)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
   NS_INTERFACE_MAP_ENTRY(nsIRequest)
-NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetHelper)
+NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
-NS_IMPL_ADDREF_INHERITED(WebSocket, nsDOMEventTargetHelper)
-NS_IMPL_RELEASE_INHERITED(WebSocket, nsDOMEventTargetHelper)
+NS_IMPL_ADDREF_INHERITED(WebSocket, DOMEventTargetHelper)
+NS_IMPL_RELEASE_INHERITED(WebSocket, DOMEventTargetHelper)
 
 void
 WebSocket::DisconnectFromOwner()
 {
-  nsDOMEventTargetHelper::DisconnectFromOwner();
+  DOMEventTargetHelper::DisconnectFromOwner();
   CloseConnection(nsIWebSocketChannel::CLOSE_GOING_AWAY);
   DontKeepAliveAnyMore();
 }
@@ -1412,7 +1411,7 @@ WebSocket::GetLoadGroup(nsILoadGroup** aLoadGroup)
     nsContentUtils::GetDocumentFromScriptContext(sc);
 
   if (doc) {
-    *aLoadGroup = doc->GetDocumentLoadGroup().get();  // already_AddRefed
+    *aLoadGroup = doc->GetDocumentLoadGroup().take();
   }
 
   return NS_OK;

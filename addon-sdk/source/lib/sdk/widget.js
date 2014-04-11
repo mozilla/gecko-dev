@@ -1,13 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
 "use strict";
 
 // The widget module currently supports only Firefox.
 // See: https://bugzilla.mozilla.org/show_bug.cgi?id=560716
 module.metadata = {
-  "stability": "stable",
+  "stability": "deprecated",
   "engines": {
     "Firefox": "*"
   }
@@ -39,6 +38,7 @@ const EVENTS = {
 // normal toolbarbuttons. If they're any wider than this margin, we'll
 // treat them as wide widgets instead, which fill up the width of the panel:
 const AUSTRALIS_PANEL_WIDE_WIDGET_CUTOFF = 70;
+const AUSTRALIS_PANEL_WIDE_CLASSNAME = "panel-wide-item";
 
 const { validateOptions } = require("./deprecated/api-utils");
 const panels = require("./panel");
@@ -54,6 +54,11 @@ const { setTimeout } = require("./timers");
 const unload = require("./system/unload");
 const { getNodeView } = require("./view/core");
 const prefs = require('./preferences/service');
+
+require("./util/deprecate").deprecateUsage(
+  "The widget module is deprecated.  " +
+  "Please consider using the sdk/ui module instead."
+);
 
 // Data types definition
 const valid = {
@@ -229,6 +234,8 @@ function saveInserted(widgetId) {
 function haveInserted(widgetId) {
   return prefs.has(INSERTION_PREF_ROOT + widgetId);
 }
+
+const isWide = node => node.classList.contains(AUSTRALIS_PANEL_WIDE_CLASSNAME);
 
 /**
  * Main Widget class: entry point of the widget API
@@ -444,28 +451,10 @@ const WidgetViewTrait = LightTrait.compose(EventEmitterTrait, LightTrait({
     // Special case for click events: if the widget doesn't have a click
     // handler, but it does have a panel, display the panel.
     if ("click" == type && !this._listeners("click").length && this.panel) {
-      // In Australis, widgets may be positioned in an overflow panel or the
-      // menu panel.
-      // In such cases clicking this widget will hide the overflow/menu panel,
-      // and the widget's panel will show instead.
-
-      let anchor = domNode;
-      let { CustomizableUI, window } = domNode.ownerDocument.defaultView;
-
-      if (CustomizableUI) {
-        ({anchor}) = CustomizableUI.getWidget(domNode.id).forWindow(window);
-
-        // if `anchor` is not the `domNode` itself, it means the widget is
-        // positioned in a panel, therefore we have to hide it before show
-        // the widget's panel in the same anchor
-        if (anchor !== domNode)
-          CustomizableUI.hidePanelForNode(domNode);
-      }
-
       // This kind of ugly workaround, instead we should implement
       // `getNodeView` for the `Widget` class itself, but that's kind of
       // hard without cleaning things up.
-      this.panel.show(null, getNodeView.implement({}, () => anchor));
+      this.panel.show(null, getNodeView.implement({}, () => domNode));
     }
   },
 
@@ -638,76 +627,21 @@ BrowserWindow.prototype = {
     let palette = toolbox.palette;
     palette.appendChild(node);
 
-    if (this.window.CustomizableUI) {
-      let placement = this.window.CustomizableUI.getPlacementOfWidget(node.id);
-      if (!placement) {
-        if (haveInserted(node.id)) {
-          return;
-        }
-        placement = {area: 'nav-bar', position: undefined};
-        saveInserted(node.id);
-      }
-      this.window.CustomizableUI.addWidgetToArea(node.id, placement.area, placement.position);
-      this.window.CustomizableUI.ensureWidgetPlacedInWindow(node.id, this.window);
-      return;
-    }
+    let { CustomizableUI } = this.window;
+    let { id } = node;
 
-    // Search for widget toolbar by reading toolbar's currentset attribute
-    let container = null;
-    let toolbars = this.doc.getElementsByTagName("toolbar");
-    let id = node.getAttribute("id");
-    for (let i = 0, l = toolbars.length; i < l; i++) {
-      let toolbar = toolbars[i];
-      if (toolbar.getAttribute("currentset").indexOf(id) == -1)
-        continue;
-      container = toolbar;
-    }
+    let placement = CustomizableUI.getPlacementOfWidget(id);
 
-    // if widget isn't in any toolbar, add it to the addon-bar
-    let needToPropagateCurrentset = false;
-    if (!container) {
-      if (haveInserted(node.id)) {
+    if (!placement) {
+      if (haveInserted(id) || isWide(node))
         return;
-      }
-      container = this.doc.getElementById("addon-bar");
-      saveInserted(node.id);
-      needToPropagateCurrentset = true;
-      // TODO: find a way to make the following code work when we use "cfx run":
-      // http://mxr.mozilla.org/mozilla-central/source/browser/base/content/browser.js#8586
-      // until then, force display of addon bar directly from sdk code
-      // https://bugzilla.mozilla.org/show_bug.cgi?id=627484
-      if (container.collapsed)
-        this.window.toggleAddonBar();
+
+      placement = {area: 'nav-bar', position: undefined};
+      saveInserted(id);
     }
 
-    // Now retrieve a reference to the next toolbar item
-    // by reading currentset attribute on the toolbar
-    let nextNode = null;
-    let currentSet = container.getAttribute("currentset");
-    let ids = (currentSet == "__empty") ? [] : currentSet.split(",");
-    let idx = ids.indexOf(id);
-    if (idx != -1) {
-      for (let i = idx; i < ids.length; i++) {
-        nextNode = this.doc.getElementById(ids[i]);
-        if (nextNode)
-          break;
-      }
-    }
-
-    // Finally insert our widget in the right toolbar and in the right position
-    container.insertItem(id, nextNode, null, false);
-
-    // Update DOM in order to save position: which toolbar, and which position
-    // in this toolbar. But only do this the first time we add it to the toolbar
-    // Otherwise, this code will collide with other instance of Widget module
-    // during Firefox startup. See bug 685929.
-    if (ids.indexOf(id) == -1) {
-      let set = container.currentSet;
-      container.setAttribute("currentset", set);
-      // Save DOM attribute in order to save position on new window opened
-      this.window.document.persist(container.id, "currentset");
-      browserManager.propagateCurrentset(container.id, set);
-    }
+    CustomizableUI.addWidgetToArea(id, placement.area, placement.position);
+    CustomizableUI.ensureWidgetPlacedInWindow(id, this.window);
   }
 }
 
@@ -774,10 +708,9 @@ WidgetChrome.prototype._createNode = function WC__createNode() {
 
   // For use in styling by the browser
   node.setAttribute("sdkstylewidget", "true");
-  // Mark wide widgets as such:
-  if (this.window.CustomizableUI &&
-      this._widget.width > AUSTRALIS_PANEL_WIDE_WIDGET_CUTOFF) {
-    node.classList.add("panel-wide-item");
+
+  if (this._widget.width > AUSTRALIS_PANEL_WIDE_WIDGET_CUTOFF) {
+    node.classList.add(AUSTRALIS_PANEL_WIDE_CLASSNAME);
   }
 
   // TODO move into a stylesheet, configurable by consumers.
@@ -795,8 +728,10 @@ WidgetChrome.prototype._createNode = function WC__createNode() {
 
 // Initial population of a widget's content.
 WidgetChrome.prototype.fill = function WC_fill() {
+  let { node, _doc: document } = this;
+
   // Create element
-  var iframe = this._doc.createElement("iframe");
+  let iframe = document.createElement("iframe");
   iframe.setAttribute("type", "content");
   iframe.setAttribute("transparent", "transparent");
   iframe.style.overflow = "hidden";
@@ -809,14 +744,23 @@ WidgetChrome.prototype.fill = function WC_fill() {
 
   // Do this early, because things like contentWindow are null
   // until the node is attached to a document.
-  this.node.appendChild(iframe);
+  node.appendChild(iframe);
 
-  var label = this._doc.createElement("label");
+  let label = document.createElement("label");
   label.setAttribute("value", this._widget.label);
   label.className = "toolbarbutton-text";
   label.setAttribute("crop", "right");
   label.setAttribute("flex", "1");
-  this.node.appendChild(label);
+  node.appendChild(label);
+
+  // This toolbarbutton is created to provide a more consistent user experience
+  // during customization, see:
+  // https://bugzilla.mozilla.org/show_bug.cgi?id=959640
+  let button = document.createElement("toolbarbutton");
+  button.setAttribute("label", this._widget.label);
+  button.setAttribute("crop", "right");
+  button.className = "toolbarbutton-1 chromeclass-toolbar-additional";
+  node.appendChild(button);
 
   // add event handlers
   this.addEventHandlers();

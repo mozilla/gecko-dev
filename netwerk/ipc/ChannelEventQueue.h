@@ -12,6 +12,8 @@
 #include <nsAutoPtr.h>
 
 class nsISupports;
+class nsIEventTarget;
+class nsIThread;
 
 namespace mozilla {
 namespace net {
@@ -33,7 +35,7 @@ class ChannelEvent
 
 class AutoEventEnqueuerBase;
 
-class ChannelEventQueue
+class ChannelEventQueue MOZ_FINAL
 {
   NS_INLINE_DECL_REFCOUNTING(ChannelEventQueue)
 
@@ -44,8 +46,6 @@ class ChannelEventQueue
     , mForced(false)
     , mFlushing(false)
     , mOwner(owner) {}
-
-  ~ChannelEventQueue() {}
 
   // Checks to determine if an IPDL-generated channel event can be processed
   // immediately, or needs to be queued using Enqueue().
@@ -71,7 +71,15 @@ class ChannelEventQueue
   // dispatched in a new event on the current thread.
   void Resume();
 
+  // Retargets delivery of events to the target thread specified.
+  nsresult RetargetDeliveryTo(nsIEventTarget* aTargetThread);
+
  private:
+  // Private destructor, to discourage deletion outside of Release():
+  ~ChannelEventQueue()
+  {
+  }
+
   inline void MaybeFlushQueue();
   void FlushQueue();
   inline void CompleteResume();
@@ -85,6 +93,9 @@ class ChannelEventQueue
 
   // Keep ptr to avoid refcount cycle: only grab ref during flushing.
   nsISupports *mOwner;
+
+  // Target thread for delivery of events.
+  nsCOMPtr<nsIThread> mTargetThread;
 
   friend class AutoEventEnqueuer;
 };

@@ -66,10 +66,22 @@ parent:
   // again, indefinitely.
   MarkOfflineCacheEntryAsForeign();
 
+  // Divert OnDataAvailable to the parent.
+  DivertOnDataAvailable(nsCString data,
+                        uint64_t  offset,
+                        uint32_t  count);
+
+  // Divert OnStopRequest to the parent.
+  DivertOnStopRequest(nsresult statusCode);
+
+  // Child has no more events/messages to divert to the parent.
+  DivertComplete();
+
   __delete__();
 
 child:
-  OnStartRequest(nsHttpResponseHead  responseHead,
+  OnStartRequest(nsresult            channelStatus,
+                 nsHttpResponseHead  responseHead,
                  bool                useResponseHead,
                  nsHttpHeaderArray   requestHeaders,
                  bool                isFromCache,
@@ -82,14 +94,15 @@ child:
 
   // Combines a single OnDataAvailable and its associated OnProgress &
   // OnStatus calls into one IPDL message
-  OnTransportAndData(nsresult  status,
+  OnTransportAndData(nsresult  channelStatus,
+                     nsresult  transportStatus,
                      uint64_t  progress,
                      uint64_t  progressMax,
                      nsCString data,
                      uint64_t  offset,
                      uint32_t  count);
 
-  OnStopRequest(nsresult statusCode);
+  OnStopRequest(nsresult channelStatus);
 
   OnProgress(uint64_t progress, uint64_t progressMax);
 
@@ -112,6 +125,13 @@ child:
   // Associte the child with an application ids
   AssociateApplicationCache(nsCString groupID,
                             nsCString clientID);
+
+  // Parent has been suspended for diversion; no more events to be enqueued.
+  FlushedForDiversion();
+
+  // Child should resume processing the ChannelEventQueue, i.e. diverting any
+  // OnDataAvailable and OnStopRequest messages in the queue back to the parent.
+  DivertMessages();
 
   // Tell child to delete channel (all IPDL deletes must be done from child to
   // avoid races: see bug 591708).

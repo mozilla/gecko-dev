@@ -11,8 +11,7 @@ Cu.import("resource:///modules/CustomizableUI.jsm", tmp);
 let {Promise, CustomizableUI} = tmp;
 
 let ChromeUtils = {};
-let scriptLoader = Cc["@mozilla.org/moz/jssubscript-loader;1"].getService(Ci.mozIJSSubScriptLoader);
-scriptLoader.loadSubScript("chrome://mochikit/content/tests/SimpleTest/ChromeUtils.js", ChromeUtils);
+Services.scriptloader.loadSubScript("chrome://mochikit/content/tests/SimpleTest/ChromeUtils.js", ChromeUtils);
 
 Services.prefs.setBoolPref("browser.uiCustomization.skipSourceNodeCheck", true);
 registerCleanupFunction(() => Services.prefs.clearUserPref("browser.uiCustomization.skipSourceNodeCheck"));
@@ -33,7 +32,7 @@ function createDummyXULButton(id, label) {
 
 let gAddedToolbars = new Set();
 
-function createToolbarWithPlacements(id, placements) {
+function createToolbarWithPlacements(id, placements = []) {
   gAddedToolbars.add(id);
   let tb = document.createElementNS(kNSXUL, "toolbar");
   tb.id = id;
@@ -46,13 +45,63 @@ function createToolbarWithPlacements(id, placements) {
   return tb;
 }
 
+function createOverflowableToolbarWithPlacements(id, placements) {
+  gAddedToolbars.add(id);
+
+  let tb = document.createElementNS(kNSXUL, "toolbar");
+  tb.id = id;
+  tb.setAttribute("customizationtarget", id + "-target");
+
+  let customizationtarget = document.createElementNS(kNSXUL, "hbox");
+  customizationtarget.id = id + "-target";
+  customizationtarget.setAttribute("flex", "1");
+  tb.appendChild(customizationtarget);
+
+  let overflowPanel = document.createElementNS(kNSXUL, "panel");
+  overflowPanel.id = id + "-overflow";
+  document.getElementById("mainPopupSet").appendChild(overflowPanel);
+
+  let overflowList = document.createElementNS(kNSXUL, "vbox");
+  overflowList.id = id + "-overflow-list";
+  overflowPanel.appendChild(overflowList);
+
+  let chevron = document.createElementNS(kNSXUL, "toolbarbutton");
+  chevron.id = id + "-chevron";
+  tb.appendChild(chevron);
+
+  CustomizableUI.registerArea(id, {
+    type: CustomizableUI.TYPE_TOOLBAR,
+    defaultPlacements: placements,
+    overflowable: true,
+  });
+
+  tb.setAttribute("customizable", "true");
+  tb.setAttribute("overflowable", "true");
+  tb.setAttribute("overflowpanel", overflowPanel.id);
+  tb.setAttribute("overflowtarget", overflowList.id);
+  tb.setAttribute("overflowbutton", chevron.id);
+
+  gNavToolbox.appendChild(tb);
+  return tb;
+}
+
 function removeCustomToolbars() {
   CustomizableUI.reset();
   for (let toolbarId of gAddedToolbars) {
     CustomizableUI.unregisterArea(toolbarId, true);
-    document.getElementById(toolbarId).remove();
+    let tb = document.getElementById(toolbarId);
+    if (tb.hasAttribute("overflowpanel")) {
+      let panel = document.getElementById(tb.getAttribute("overflowpanel"));
+      if (panel)
+        panel.remove();
+    }
+    tb.remove();
   }
   gAddedToolbars.clear();
+}
+
+function getToolboxCustomToolbarId(toolbarName) {
+  return "__customToolbar_" + toolbarName.replace(" ", "_");
 }
 
 function resetCustomization() {
@@ -379,36 +428,49 @@ function promiseTabHistoryNavigation(aDirection = -1, aConditionFn) {
   return deferred.promise;
 }
 
-function contextMenuShown(aContextMenu) {
-  let deferred = Promise.defer();
-  let win = aContextMenu.ownerDocument.defaultView;
-  let timeoutId = win.setTimeout(() => {
-    deferred.reject("Context menu (" + aContextMenu.id + ") did not show within 20 seconds.");
-  }, 20000);
-  function onPopupShown(e) {
-    aContextMenu.removeEventListener("popupshown", onPopupShown);
-    win.clearTimeout(timeoutId);
-    deferred.resolve();
-  };
-  aContextMenu.addEventListener("popupshown", onPopupShown);
-  return deferred.promise;
+function popupShown(aPopup) {
+  return promisePopupEvent(aPopup, "shown");
 }
 
-function contextMenuHidden(aContextMenu) {
-  let deferred = Promise.defer();
-  let win = aContextMenu.ownerDocument.defaultView;
-  let timeoutId = win.setTimeout(() => {
-    deferred.reject("Context menu (" + aContextMenu.id + ") did not hide within 20 seconds.");
-  }, 20000);
-  function onPopupHidden(e) {
-    win.clearTimeout(timeoutId);
-    aContextMenu.removeEventListener("popuphidden", onPopupHidden);
-    deferred.resolve();
-  };
-  aContextMenu.addEventListener("popuphidden", onPopupHidden);
-  return deferred.promise;
+function popupHidden(aPopup) {
+  return promisePopupEvent(aPopup, "hidden");
 }
 
+/**
+ * Returns a Promise that resolves when aPopup fires an event of type
+ * aEventType. Times out and rejects after 20 seconds.
+ *
+ * @param aPopup the popup to monitor for events.
+ * @param aEventSuffix the _suffix_ for the popup event type to watch for.
+ *
+ * Example usage:
+ *   let popupShownPromise = promisePopupEvent(somePopup, "shown");
+ *   // ... something that opens a popup
+ *   yield popupShownPromise;
+ *
+ *  let popupHiddenPromise = promisePopupEvent(somePopup, "hidden");
+ *  // ... something that hides a popup
+ *  yield popupHiddenPromise;
+ */
+function promisePopupEvent(aPopup, aEventSuffix) {
+  let deferred = Promise.defer();
+  let win = aPopup.ownerDocument.defaultView;
+  let eventType = "popup" + aEventSuffix;
+
+  let timeoutId = win.setTimeout(() => {
+    deferred.reject("Context menu (" + aPopup.id + ") did not fire "
+                    + eventType + " within 20 seconds.");
+  }, 20000);
+
+  function onPopupEvent(e) {
+    win.clearTimeout(timeoutId);
+    aPopup.removeEventListener(eventType, onPopupEvent);
+    deferred.resolve();
+  };
+
+  aPopup.addEventListener(eventType, onPopupEvent);
+  return deferred.promise;
+}
 
 // This is a simpler version of the context menu check that
 // exists in contextmenu_common.js.

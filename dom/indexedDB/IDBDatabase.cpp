@@ -8,7 +8,7 @@
 
 #include "IDBDatabase.h"
 
-#include "DictionaryHelpers.h"
+#include "mozilla/EventDispatcher.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/storage.h"
 #include "mozilla/dom/ContentParent.h"
@@ -44,6 +44,7 @@ using mozilla::dom::quota::AssertIsOnIOThread;
 using mozilla::dom::quota::Client;
 using mozilla::dom::quota::QuotaManager;
 using mozilla::ErrorResult;
+using namespace mozilla;
 using namespace mozilla::dom;
 
 namespace {
@@ -275,6 +276,14 @@ IDBDatabase::Invalidate()
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
+  InvalidateInternal(/* aIsDead */ false);
+}
+
+void
+IDBDatabase::InvalidateInternal(bool aIsDead)
+{
+  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+
   if (IsInvalidated()) {
     return;
   }
@@ -292,7 +301,13 @@ IDBDatabase::Invalidate()
     QuotaManager::CancelPromptsForWindow(owner);
   }
 
-  DatabaseInfo::Remove(mDatabaseId);
+  // We want to forcefully remove in the child when the parent has invalidated
+  // us in IPC mode because the database might no longer exist.
+  // We don't want to forcefully remove in the parent when a child dies since
+  // other child processes may be using the referenced DatabaseInfo.
+  if (!aIsDead) {
+    DatabaseInfo::Remove(mDatabaseId);
+  }
 
   // And let the child process know as well.
   if (mActorParent) {
@@ -331,9 +346,7 @@ IDBDatabase::CloseInternal(bool aIsDead)
       mDatabaseInfo.swap(previousInfo);
 
       if (!aIsDead) {
-        nsRefPtr<DatabaseInfo> clonedInfo = previousInfo->Clone();
-
-        clonedInfo.swap(mDatabaseInfo);
+        mDatabaseInfo = previousInfo->Clone();
       }
     }
 
@@ -482,9 +495,9 @@ NS_IMPL_ADDREF_INHERITED(IDBDatabase, IDBWrapperCache)
 NS_IMPL_RELEASE_INHERITED(IDBDatabase, IDBWrapperCache)
 
 JSObject*
-IDBDatabase::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+IDBDatabase::WrapObject(JSContext* aCx)
 {
-  return IDBDatabaseBinding::Wrap(aCx, aScope, this);
+  return IDBDatabaseBinding::Wrap(aCx, this);
 }
 
 uint64_t
@@ -776,7 +789,7 @@ IDBDatabase::Origin()
 }
 
 nsresult
-IDBDatabase::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
+IDBDatabase::PostHandleEvent(EventChainPostVisitor& aVisitor)
 {
   return IndexedDatabaseManager::FireWindowOnError(GetOwner(), aVisitor);
 }

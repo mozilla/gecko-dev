@@ -56,9 +56,9 @@ public:
 
   bool Equals(Touch* aTouch);
 
-  virtual JSObject* WrapObject(JSContext* aCx,
-                               JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
-  EventTarget* GetParentObject() { return mTarget; }
+  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+
+  EventTarget* GetParentObject();
 
   // WebIDL
   int32_t Identifier() const { return mIdentifier; }

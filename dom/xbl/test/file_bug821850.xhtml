@@ -59,6 +59,14 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=821850
           is(document.QueryInterface(Components.interfaces.nsIDOMDocument),
              document, "Should be able to QI the document");
 
+          // Make sure standard constructors work right in the presence of
+          // sandboxPrototype and Xray-resolved constructors.
+          is(window.Function, XPCNativeWrapper(window.wrappedJSObject.Function),
+             "window.Function comes from the window, not the global");
+          ok(Function != window.Function, "Function constructors are distinct");
+          is(Object.getPrototypeOf(Function.prototype), Object.getPrototypeOf({foo: 42}),
+             "Function constructor is local");
+
           // This gets invoked by an event handler.
           window.finish = function() {
             // Content messed with stuff. Make sure we still see the right thing.
@@ -224,10 +232,12 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=821850
       window.triggeredTrustedHandler = false;
       var untrustedEvent = new CustomEvent('testtrusted');
       ok(!untrustedEvent.isTrusted, "Created an untrusted event");
+      is(untrustedEvent.type, 'testtrusted', "Constructor should see type");
       bound.dispatchEvent(untrustedEvent);
       ok(!window.triggeredTrustedHandler, "untrusted events should not trigger trusted handler");
       var trustedEvent = new chromeWin.CustomEvent('testtrusted');
       ok(trustedEvent.isTrusted, "Created a trusted event");
+      is(trustedEvent.type, 'testtrusted', "Wrapped constructor should see type");
       SpecialPowers.wrap(bound).dispatchEvent(trustedEvent);
       ok(window.triggeredTrustedHandler, "trusted events should trigger trusted handler");
 

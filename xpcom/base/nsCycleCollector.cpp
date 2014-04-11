@@ -165,6 +165,7 @@
 #include "nsDeque.h"
 #include "nsCycleCollector.h"
 #include "nsThreadUtils.h"
+#include "nsXULAppAPI.h"
 #include "prenv.h"
 #include "nsPrintfCString.h"
 #include "nsTArray.h"
@@ -173,7 +174,7 @@
 #include "nsICycleCollectorListener.h"
 #include "nsIMemoryReporter.h"
 #include "nsIFile.h"
-#include "nsMemoryInfoDumper.h"
+#include "nsDumpUtils.h"
 #include "xpcpublic.h"
 #include "GeckoProfiler.h"
 #include "js/SliceBudget.h"
@@ -208,6 +209,12 @@ using namespace mozilla;
 // log either. The default value is "all". This must be used with either
 // MOZ_CC_LOG_ALL or MOZ_CC_LOG_SHUTDOWN for it to do anything.
 //
+// MOZ_CC_LOG_PROCESS: If set to "main", only automatically log main process
+// CCs. If set to "content", only automatically log tab CCs. If set to
+// "plugins", only automatically log plugin CCs. If set to "all", log
+// everything. The default value is "all". This must be used with either
+// MOZ_CC_LOG_ALL or MOZ_CC_LOG_SHUTDOWN for it to do anything.
+//
 // MOZ_CC_ALL_TRACES_AT_SHUTDOWN: If defined, any cycle collector
 // logging done at shutdown will be WantAllTraces, which disables
 // various cycle collector optimizations to give a fuller picture of
@@ -233,17 +240,37 @@ struct nsCycleCollectorParams
     nsCycleCollectorParams() :
         mLogAll      (PR_GetEnv("MOZ_CC_LOG_ALL") != nullptr),
         mLogShutdown (PR_GetEnv("MOZ_CC_LOG_SHUTDOWN") != nullptr),
-        mAllTracesAtShutdown (PR_GetEnv("MOZ_CC_ALL_TRACES_AT_SHUTDOWN") != nullptr),
-        mLogThisThread(true)
+        mAllTracesAtShutdown (PR_GetEnv("MOZ_CC_ALL_TRACES_AT_SHUTDOWN") != nullptr)
     {
         const char* logThreadEnv = PR_GetEnv("MOZ_CC_LOG_THREAD");
+        bool threadLogging = true;
         if (logThreadEnv && !!strcmp(logThreadEnv, "all")) {
             if (NS_IsMainThread()) {
-                mLogThisThread = !strcmp(logThreadEnv, "main");
+                threadLogging = !strcmp(logThreadEnv, "main");
             } else {
-                mLogThisThread = !strcmp(logThreadEnv, "worker");
+                threadLogging = !strcmp(logThreadEnv, "worker");
             }
         }
+
+        const char* logProcessEnv = PR_GetEnv("MOZ_CC_LOG_PROCESS");
+        bool processLogging = true;
+        if (logProcessEnv && !!strcmp(logProcessEnv, "all")) {
+            switch (XRE_GetProcessType()) {
+                case GeckoProcessType_Default:
+                    processLogging = !strcmp(logProcessEnv, "main");
+                    break;
+                case GeckoProcessType_Plugin:
+                    processLogging = !strcmp(logProcessEnv, "plugins");
+                    break;
+                case GeckoProcessType_Content:
+                    processLogging = !strcmp(logProcessEnv, "content");
+                    break;
+                default:
+                    processLogging = false;
+                    break;
+            }
+        }
+        mLogThisThread = threadLogging && processLogging;
     }
 
     bool LogThisCC(bool aIsShutdown)
@@ -1574,6 +1601,14 @@ public:
         // We don't support after-processing for weak map entries.
         return NS_OK;
     }
+    NS_IMETHOD NoteIncrementalRoot(uint64_t aAddress)
+    {
+        if (!mDisableLog) {
+            fprintf(mStream, "IncrementalRoot %p\n", (void*)aAddress);
+        }
+        // We don't support after-processing for incremental roots.
+        return NS_OK;
+    }
     NS_IMETHOD BeginResults()
     {
         if (!mDisableLog) {
@@ -1719,7 +1754,14 @@ private:
             NS_NewNativeLocalFile(nsCString(env), /* followLinks = */ true,
                                   &logFile);
         }
-        nsresult rv = nsMemoryInfoDumper::OpenTempFile(filename, &logFile);
+
+        // In Android case, this function will open a file named aFilename under
+        // specific folder (/data/local/tmp/memory-reports). Otherwise, it will
+        // open a file named aFilename under "NS_OS_TEMP_DIR".
+        nsresult rv = nsDumpUtils::OpenTempFile(
+                                     filename,
+                                     &logFile,
+                                     NS_LITERAL_CSTRING("memory-reports"));
         if (NS_FAILED(rv)) {
           NS_IF_RELEASE(logFile);
           return nullptr;
@@ -2255,6 +2297,7 @@ public:
     {
         MOZ_ASSERT(mValues.IsEmpty());
         MOZ_ASSERT(mObjects.IsEmpty());
+        MOZ_ASSERT(mTenuredObjects.IsEmpty());
     }
 
     void Destroy()
@@ -2262,6 +2305,7 @@ public:
         mReferenceToThis = nullptr;
         mValues.Clear();
         mObjects.Clear();
+        mTenuredObjects.Clear();
         mozilla::DropJSObjects(this);
         NS_RELEASE_THIS();
     }
@@ -2272,6 +2316,7 @@ public:
     JSPurpleBuffer*& mReferenceToThis;
     SegmentedArray<JS::Heap<JS::Value>> mValues;
     SegmentedArray<JS::Heap<JSObject*>> mObjects;
+    SegmentedArray<JS::TenuredHeap<JSObject*>> mTenuredObjects;
 };
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(JSPurpleBuffer)
@@ -2299,6 +2344,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(JSPurpleBuffer)
     NS_TRACE_SEGMENTED_ARRAY(mValues)
     NS_TRACE_SEGMENTED_ARRAY(mObjects)
+    NS_TRACE_SEGMENTED_ARRAY(mTenuredObjects)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(JSPurpleBuffer, AddRef)
@@ -2381,6 +2427,14 @@ public:
     {
         if (*aObject && xpc_GCThingIsGrayCCThing(*aObject)) {
             mCollector->GetJSPurpleBuffer()->mObjects.AppendElement(*aObject);
+        }
+    }
+
+    virtual void Trace(JS::TenuredHeap<JSObject*>* aObject, const char* aName,
+                       void* aClosure) const
+    {
+        if (*aObject && xpc_GCThingIsGrayCCThing(*aObject)) {
+            mCollector->GetJSPurpleBuffer()->mTenuredObjects.AppendElement(*aObject);
         }
     }
 
@@ -2695,8 +2749,9 @@ nsCycleCollector::ScanWeakMaps()
 class PurpleScanBlackVisitor
 {
 public:
-    PurpleScanBlackVisitor(GCGraph &aGraph, uint32_t &aCount, bool &aFailed)
-        : mGraph(aGraph), mCount(aCount), mFailed(aFailed)
+    PurpleScanBlackVisitor(GCGraph &aGraph, nsICycleCollectorListener *aListener,
+                           uint32_t &aCount, bool &aFailed)
+        : mGraph(aGraph), mListener(aListener), mCount(aCount), mFailed(aFailed)
     {
     }
 
@@ -2717,6 +2772,9 @@ public:
             return;
         }
         MOZ_ASSERT(pi->mParticipant, "No dead objects should be in the purple buffer.");
+        if (MOZ_UNLIKELY(mListener)) {
+            mListener->NoteIncrementalRoot((uint64_t)pi->mPointer);
+        }
         if (pi->mColor == black) {
             return;
         }
@@ -2725,6 +2783,7 @@ public:
 
 private:
     GCGraph &mGraph;
+    nsICycleCollectorListener *mListener;
     uint32_t &mCount;
     bool &mFailed;
 };
@@ -2747,7 +2806,7 @@ nsCycleCollector::ScanIncrementalRoots()
     // buffer here, so these objects will be suspected and freed in the next CC
     // if they are garbage.
     bool failed = false;
-    PurpleScanBlackVisitor purpleScanBlackVisitor(mGraph, mWhiteNodeCount, failed);
+    PurpleScanBlackVisitor purpleScanBlackVisitor(mGraph, mListener, mWhiteNodeCount, failed);
     mPurpleBuf.VisitEntries(purpleScanBlackVisitor);
     timeLog.Checkpoint("ScanIncrementalRoots::fix purple");
 
@@ -2764,10 +2823,20 @@ nsCycleCollector::ScanIncrementalRoots()
         while (!etor.IsDone()) {
             PtrInfo *pi = etor.GetNext();
 
-            if (pi->mRefCount != 0 || pi->mColor == black) {
+            // If the refcount is non-zero, pi can't have been a gray JS object.
+            if (pi->mRefCount != 0) {
                 continue;
             }
 
+            // As an optimization, if an object has already been determined to be live,
+            // don't consider it further.  We can't do this if there is a listener,
+            // because the listener wants to know the complete set of incremental roots.
+            if (pi->mColor == black && MOZ_LIKELY(!mListener)) {
+                continue;
+            }
+
+            // If the object is still marked gray by the GC, nothing could have gotten
+            // hold of it, so it isn't an incremental root.
             if (pi->mParticipant == jsParticipant) {
                 if (xpc_GCThingIsGrayCCThing(pi->mPointer)) {
                     continue;
@@ -2779,6 +2848,15 @@ nsCycleCollector::ScanIncrementalRoots()
                 }
             } else {
                 MOZ_ASSERT(false, "Non-JS thing with 0 refcount? Treating as live.");
+            }
+
+            // At this point, pi must be an incremental root.
+
+            // If there's a listener, tell it about this root. We don't bother with the
+            // optimization of skipping the Walk() if pi is black: it will just return
+            // without doing anything and there's no need to make this case faster.
+            if (MOZ_UNLIKELY(mListener)) {
+                mListener->NoteIncrementalRoot((uint64_t)pi->mPointer);
             }
 
             GraphWalker<ScanBlackVisitor>(ScanBlackVisitor(mWhiteNodeCount, failed)).Walk(pi);
@@ -3137,10 +3215,15 @@ nsCycleCollector::CleanupAfterCollection()
     uint32_t interval = (uint32_t) ((TimeStamp::Now() - mCollectionStart).ToMilliseconds());
 #ifdef COLLECT_TIME_DEBUG
     printf("cc: total cycle collector time was %ums\n", interval);
-    printf("cc: visited %u ref counted and %u GCed objects, freed %d ref counted and %d GCed objects.\n",
+    printf("cc: visited %u ref counted and %u GCed objects, freed %d ref counted and %d GCed objects",
            mResults.mVisitedRefCounted, mResults.mVisitedGCed,
            mResults.mFreedRefCounted, mResults.mFreedGCed);
-    printf("cc: \n");
+    uint32_t numVisited = mResults.mVisitedRefCounted + mResults.mVisitedGCed;
+    if (numVisited > 1000) {
+        uint32_t numFreed = mResults.mFreedRefCounted + mResults.mFreedGCed;
+        printf(" (%d%%)", 100 * numFreed / numVisited);
+    }
+    printf(".\ncc: \n");
 #endif
     CC_TELEMETRY( , interval);
     CC_TELEMETRY(_VISITED_REF_COUNTED, mResults.mVisitedRefCounted);
@@ -3163,7 +3246,7 @@ nsCycleCollector::ShutdownCollect()
             break;
         }
     }
-    NS_ASSERTION(i < NORMAL_SHUTDOWN_COLLECTIONS, "Extra shutdown CC");
+    NS_WARN_IF_FALSE(i < NORMAL_SHUTDOWN_COLLECTIONS, "Extra shutdown CC");
 }
 
 static void
@@ -3186,7 +3269,6 @@ nsCycleCollector::Collect(ccType aCCType,
     if (mActivelyCollecting || mFreeingSnowWhite) {
         return false;
     }
-    AutoRestore<bool> ar(mActivelyCollecting);
     mActivelyCollecting = true;
 
     bool startedIdle = (mIncrementalPhase == IdlePhase);
@@ -3226,6 +3308,10 @@ nsCycleCollector::Collect(ccType aCCType,
             break;
         }
     } while (!aBudget.checkOverBudget() && !finished);
+
+    // Clear mActivelyCollecting here to ensure that a recursive call to
+    // Collect() does something.
+    mActivelyCollecting = false;
 
     if (aCCType != SliceCC && !startedIdle) {
         // We were in the middle of an incremental CC (using its own listener).

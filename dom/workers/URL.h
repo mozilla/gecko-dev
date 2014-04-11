@@ -42,7 +42,7 @@ public:
   }
 
   JSObject*
-  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope);
+  WrapObject(JSContext* aCx);
 
   // Methods for WebIDL
 
@@ -104,9 +104,9 @@ public:
 
   void SetSearch(const nsAString& aSearch);
 
-  URLSearchParams* GetSearchParams();
+  URLSearchParams* SearchParams();
 
-  void SetSearchParams(URLSearchParams* aSearchParams);
+  void SetSearchParams(URLSearchParams& aSearchParams);
 
   void GetHash(nsString& aHost) const;
 
@@ -119,7 +119,6 @@ public:
 
   // IURLSearchParamsObserver
   void URLSearchParamsUpdated() MOZ_OVERRIDE;
-  void URLSearchParamsNeedsUpdates() MOZ_OVERRIDE;
 
 private:
   URLProxy* GetURLProxy() const
@@ -130,6 +129,8 @@ private:
   void CreateSearchParamsIfNeeded();
 
   void SetSearchInternal(const nsAString& aSearch);
+
+  void UpdateURLSearchParams();
 
   WorkerPrivate* mWorkerPrivate;
   nsRefPtr<URLProxy> mURLProxy;

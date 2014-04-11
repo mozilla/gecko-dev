@@ -24,7 +24,11 @@ class XBLChildrenElement : public nsXMLElement
 public:
   friend class mozilla::dom::ExplicitChildIterator;
   friend class nsAnonymousContentList;
-  XBLChildrenElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+  XBLChildrenElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
+    : nsXMLElement(aNodeInfo)
+  {
+  }
+  XBLChildrenElement(already_AddRefed<nsINodeInfo>&& aNodeInfo)
     : nsXMLElement(aNodeInfo)
   {
   }
@@ -165,7 +169,7 @@ public:
   virtual nsINode* GetParentObject() { return mParent; }
   virtual nsIContent* Item(uint32_t aIndex);
 
-  virtual JSObject* WrapObject(JSContext *cx, JS::Handle<JSObject*> scope) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext *cx) MOZ_OVERRIDE;
 
   bool IsListFor(nsIContent* aContent) {
     return mParent == aContent;

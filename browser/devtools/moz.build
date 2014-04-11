@@ -6,6 +6,7 @@
 
 DIRS += [
     'app-manager',
+    'canvasdebugger',
     'commandline',
     'debugger',
     'fontinspector',
@@ -23,6 +24,7 @@ DIRS += [
     'styleeditor',
     'styleinspector',
     'tilt',
+    'webaudioeditor',
     'webconsole',
 ]
 

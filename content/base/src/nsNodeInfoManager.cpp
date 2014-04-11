@@ -113,11 +113,9 @@ static PLHashAllocOps allocOps =
 nsNodeInfoManager::nsNodeInfoManager()
   : mDocument(nullptr),
     mNonDocumentNodeInfos(0),
-    mPrincipal(nullptr),
     mTextNodeInfo(nullptr),
     mCommentNodeInfo(nullptr),
-    mDocumentNodeInfo(nullptr),
-    mBindingManager(nullptr)
+    mDocumentNodeInfo(nullptr)
 {
   nsLayoutStatics::AddRef();
 
@@ -142,9 +140,9 @@ nsNodeInfoManager::~nsNodeInfoManager()
     PL_HashTableDestroy(mNodeInfoHash);
 
   // Note: mPrincipal may be null here if we never got inited correctly
-  NS_IF_RELEASE(mPrincipal);
+  mPrincipal = nullptr;
 
-  NS_IF_RELEASE(mBindingManager);
+  mBindingManager = nullptr;
 
 #ifdef PR_LOGGING
   if (gNodeInfoManagerLeakPRLog)
@@ -167,7 +165,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsNodeInfoManager)
   if (tmp->mNonDocumentNodeInfos) {
     NS_IMPL_CYCLE_COLLECTION_TRAVERSE_RAWPTR(mDocument)
   }
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_RAWPTR(mBindingManager)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mBindingManager)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(nsNodeInfoManager, AddRef)
@@ -180,15 +178,12 @@ nsNodeInfoManager::Init(nsIDocument *aDocument)
 
   NS_PRECONDITION(!mPrincipal,
                   "Being inited when we already have a principal?");
-  nsresult rv = CallCreateInstance("@mozilla.org/nullprincipal;1",
-                                   &mPrincipal);
+  nsresult rv;
+  mPrincipal = do_CreateInstance("@mozilla.org/nullprincipal;1", &rv);
   NS_ENSURE_TRUE(mPrincipal, rv);
 
   if (aDocument) {
     mBindingManager = new nsBindingManager(aDocument);
-    NS_ENSURE_TRUE(mBindingManager, NS_ERROR_OUT_OF_MEMORY);
-
-    NS_ADDREF(mBindingManager);
   }
 
   mDefaultPrincipal = mPrincipal;
@@ -390,14 +385,14 @@ nsNodeInfoManager::GetDocumentNodeInfo()
 void
 nsNodeInfoManager::SetDocumentPrincipal(nsIPrincipal *aPrincipal)
 {
-  NS_RELEASE(mPrincipal);
+  mPrincipal = nullptr;
   if (!aPrincipal) {
     aPrincipal = mDefaultPrincipal;
   }
 
   NS_ASSERTION(aPrincipal, "Must have principal by this point!");
-  
-  NS_ADDREF(mPrincipal = aPrincipal);
+
+  mPrincipal = aPrincipal;
 }
 
 void

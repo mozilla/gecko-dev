@@ -85,6 +85,7 @@ nsFirstLetterFrame::SetInitialChildList(ChildListID  aListID,
   for (nsFrameList::Enumerator e(aChildList); !e.AtEnd(); e.Next()) {
     NS_ASSERTION(e.get()->GetParent() == this, "Unexpected parent");
     restyleManager->ReparentStyleContext(e.get());
+    nsLayoutUtils::MarkDescendantsDirty(e.get());
   }
 
   mFrames.SetFrames(aChildList);
@@ -188,21 +189,10 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
     nsHTMLReflowState rs(aPresContext, aReflowState, kid, availSize);
     nsLineLayout ll(aPresContext, nullptr, &aReflowState, nullptr);
 
-    // For unicode-bidi: plaintext, we need to get the direction of the line
-    // from the resolved paragraph level of the child, not the block frame,
-    // because the block frame could be split by hard line breaks into
-    // multiple paragraphs with different base direction
-    uint8_t direction;
-    nsIFrame* containerFrame = ll.LineContainerFrame();
-    if (containerFrame->StyleTextReset()->mUnicodeBidi &
-        NS_STYLE_UNICODE_BIDI_PLAINTEXT) {
-      FramePropertyTable *propTable = aPresContext->PropertyTable();
-      direction = NS_PTR_TO_INT32(propTable->Get(kid, BaseLevelProperty())) & 1;
-    } else {
-      direction = containerFrame->StyleVisibility()->mDirection;
-    }
     ll.BeginLineReflow(bp.left, bp.top, availSize.width, NS_UNCONSTRAINEDSIZE,
-                       false, true, direction);
+                       false, true,
+                       ll.LineContainerFrame()->GetWritingMode(kid),
+                       aReflowState.AvailableWidth());
     rs.mLineLayout = &ll;
     ll.SetInFirstLetter(true);
     ll.SetFirstLetterStyleOK(true);
@@ -327,6 +317,7 @@ nsFirstLetterFrame::CreateContinuationForFloatingParent(nsPresContext* aPresCont
     nsRefPtr<nsStyleContext> newSC;
     newSC = presShell->StyleSet()->ResolveStyleForNonElement(parentSC);
     continuation->SetStyleContext(newSC);
+    nsLayoutUtils::MarkDescendantsDirty(continuation);
   }
 
   //XXX Bidi may not be involved but we have to use the list name
@@ -380,6 +371,7 @@ nsFirstLetterFrame::DrainOverflowFrames(nsPresContext* aPresContext)
                                               mStyleContext;
       sc = aPresContext->StyleSet()->ResolveStyleForNonElement(parentSC);
       kid->SetStyleContext(sc);
+      nsLayoutUtils::MarkDescendantsDirty(kid);
     }
   }
 }
@@ -391,7 +383,7 @@ nsFirstLetterFrame::GetBaseline() const
 }
 
 int
-nsFirstLetterFrame::GetSkipSides(const nsHTMLReflowState* aReflowState) const
+nsFirstLetterFrame::GetLogicalSkipSides(const nsHTMLReflowState* aReflowState) const
 {
   if (GetPrevContinuation()) {
     // We shouldn't get calls to GetSkipSides for later continuations since
@@ -399,10 +391,7 @@ nsFirstLetterFrame::GetSkipSides(const nsHTMLReflowState* aReflowState) const
     // properties that could trigger a call to GetSkipSides.  Then again,
     // it's not really an error to call GetSkipSides on any frame, so
     // that's why we handle it properly.
-    return 1 << NS_SIDE_LEFT |
-           1 << NS_SIDE_RIGHT |
-           1 << NS_SIDE_TOP |
-           1 << NS_SIDE_BOTTOM;
+    return LOGICAL_SIDES_ALL;
   }
   return 0;  // first continuation displays all sides
 }

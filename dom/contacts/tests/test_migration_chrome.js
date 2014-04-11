@@ -20,8 +20,13 @@ const {
   REVISION_STORE,
   DB_NAME,
   ContactService,
-  Promise
 } = imports;
+// |const| will not work because
+// it will make the Promise object immutable before assigning.
+// Using Object.defineProperty() instead.
+Object.defineProperty(this, "Promise", {
+  value: imports.Promise, writable: false, configurable: false
+});
 
 let DEBUG = false;
 function debug(str) {

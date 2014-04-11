@@ -1010,6 +1010,63 @@ jit::ApplyTypeInformation(MIRGenerator *mir, MIRGraph &graph)
 }
 
 bool
+jit::MakeMRegExpHoistable(MIRGraph &graph)
+{
+    for (ReversePostorderIterator block(graph.rpoBegin()); block != graph.rpoEnd(); block++) {
+        for (MDefinitionIterator iter(*block); iter; iter++) {
+            if (!iter->isRegExp())
+                continue;
+
+            MRegExp *regexp = iter->toRegExp();
+
+            // Test if MRegExp is hoistable by looking at all uses.
+            bool hoistable = true;
+            for (MUseIterator i = regexp->usesBegin(); i != regexp->usesEnd(); i++) {
+                // Ignore resume points. At this point all uses are listed.
+                // No DCE or GVN or something has happened.
+                if (i->consumer()->isResumePoint())
+                    continue;
+
+                JS_ASSERT(i->consumer()->isDefinition());
+
+                // All MRegExp* MIR's don't adjust the regexp.
+                MDefinition *use = i->consumer()->toDefinition();
+                if (use->isRegExpReplace())
+                    continue;
+                if (use->isRegExpExec())
+                    continue;
+                if (use->isRegExpTest())
+                    continue;
+
+                hoistable = false;
+                break;
+            }
+
+            if (!hoistable)
+                continue;
+
+            // Make MRegExp hoistable
+            regexp->setMovable();
+
+            // That would be incorrect for global/sticky, because lastIndex could be wrong.
+            // Therefore setting the lastIndex to 0. That is faster than a not movable regexp.
+            RegExpObject *source = regexp->source();
+            if (source->sticky() || source->global()) {
+                JS_ASSERT(regexp->mustClone());
+                MConstant *zero = MConstant::New(graph.alloc(), Int32Value(0));
+                regexp->block()->insertAfter(regexp, zero);
+
+                MStoreFixedSlot *lastIndex =
+                    MStoreFixedSlot::New(graph.alloc(), regexp, RegExpObject::lastIndexSlot(), zero);
+                regexp->block()->insertAfter(zero, lastIndex);
+            }
+        }
+    }
+
+    return true;
+}
+
+bool
 jit::RenumberBlocks(MIRGraph &graph)
 {
     size_t id = 0;
@@ -1647,42 +1704,31 @@ TryEliminateTypeBarrierFromTest(MTypeBarrier *barrier, bool filtersNull, bool fi
         input = inputUnbox->input();
     }
 
-    if (test->getOperand(0) == input && direction == TRUE_BRANCH) {
-        *eliminated = true;
-        if (inputUnbox)
-            inputUnbox->makeInfallible();
-        barrier->replaceAllUsesWith(barrier->input());
-        return;
-    }
+    MDefinition *subject = nullptr;
+    bool removeUndefined;
+    bool removeNull;
+    test->filtersUndefinedOrNull(direction == TRUE_BRANCH, &subject, &removeUndefined, &removeNull);
 
-    if (!test->getOperand(0)->isCompare())
+    // The Test doesn't filter undefined nor null.
+    if (!subject)
         return;
 
-    MCompare *compare = test->getOperand(0)->toCompare();
-    MCompare::CompareType compareType = compare->compareType();
-
-    if (compareType != MCompare::Compare_Undefined && compareType != MCompare::Compare_Null)
-        return;
-    if (compare->getOperand(0) != input)
+    // Make sure the subject equals the input to the TypeBarrier.
+    if (subject != input)
         return;
 
-    JSOp op = compare->jsop();
-    JS_ASSERT(op == JSOP_EQ || op == JSOP_STRICTEQ ||
-              op == JSOP_NE || op == JSOP_STRICTNE);
-
-    if ((direction == TRUE_BRANCH) != (op == JSOP_NE || op == JSOP_STRICTNE))
+    // When the TypeBarrier filters undefined, the test must at least also do,
+    // this, before the TypeBarrier can get removed.
+    if (!removeUndefined && filtersUndefined)
         return;
 
-    // A test 'if (x.f != null)' or 'if (x.f != undefined)' filters both null
-    // and undefined. If strict equality is used, only the specified rhs is
-    // tested for.
-    if (op == JSOP_STRICTEQ || op == JSOP_STRICTNE) {
-        if (compareType == MCompare::Compare_Undefined && !filtersUndefined)
-            return;
-        if (compareType == MCompare::Compare_Null && !filtersNull)
-            return;
-    }
+    // When the TypeBarrier filters null, the test must at least also do,
+    // this, before the TypeBarrier can get removed.
+    if (!removeNull && filtersNull)
+        return;
 
+    // Eliminate the TypeBarrier. The possible TypeBarrier unboxing is kept,
+    // but made infallible.
     *eliminated = true;
     if (inputUnbox)
         inputUnbox->makeInfallible();
@@ -2065,7 +2111,8 @@ AnalyzePoppedThis(JSContext *cx, types::TypeObject *type,
              block = rp->block(), rp = block->callerResumePoint())
         {
             JSScript *script = rp->block()->info().script();
-            types::AddClearDefiniteFunctionUsesInScript(cx, type, script, block->info().script());
+            if (!types::AddClearDefiniteFunctionUsesInScript(cx, type, script, block->info().script()))
+                return true;
             if (!callerResumePoints.append(rp))
                 return false;
         }
@@ -2188,6 +2235,11 @@ jit::AnalyzeNewScriptProperties(JSContext *cx, JSFunction *fun,
     const OptimizationInfo *optimizationInfo = js_IonOptimizations.get(Optimization_Normal);
 
     types::CompilerConstraintList *constraints = types::NewCompilerConstraintList(temp);
+    if (!constraints) {
+        js_ReportOutOfMemory(cx);
+        return false;
+    }
+
     BaselineInspector inspector(script);
     const JitCompileOptions options(cx);
 

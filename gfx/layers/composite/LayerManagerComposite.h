@@ -12,11 +12,13 @@
 #include "mozilla/Assertions.h"         // for MOZ_ASSERT, etc
 #include "mozilla/Attributes.h"         // for MOZ_OVERRIDE
 #include "mozilla/RefPtr.h"             // for RefPtr, TemporaryRef
+#include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/Point.h"          // for IntSize
 #include "mozilla/gfx/Rect.h"           // for Rect
 #include "mozilla/gfx/Types.h"          // for SurfaceFormat
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/LayersTypes.h"  // for LayersBackend, etc
+#include "mozilla/RefPtr.h"
 #include "nsAString.h"
 #include "nsAutoPtr.h"                  // for nsRefPtr
 #include "nsCOMPtr.h"                   // for already_AddRefed
@@ -61,10 +63,15 @@ class RefLayerComposite;
 class SurfaceDescriptor;
 class ThebesLayerComposite;
 class TiledLayerComposer;
+class TextRenderer;
 struct FPSState;
 
 class LayerManagerComposite : public LayerManager
 {
+  typedef mozilla::gfx::DrawTarget DrawTarget;
+  typedef mozilla::gfx::IntSize IntSize;
+  typedef mozilla::gfx::SurfaceFormat SurfaceFormat;
+
 public:
   LayerManagerComposite(Compositor* aCompositor);
   ~LayerManagerComposite();
@@ -146,8 +153,8 @@ public:
     MOZ_CRASH("Shouldn't be called for composited layer manager");
   }
 
-  virtual already_AddRefed<gfxASurface>
-    CreateOptimalMaskSurface(const gfx::IntSize &aSize) MOZ_OVERRIDE;
+  virtual TemporaryRef<DrawTarget>
+    CreateOptimalMaskDrawTarget(const IntSize &aSize) MOZ_OVERRIDE;
 
   virtual const char* Name() const MOZ_OVERRIDE { return ""; }
 
@@ -215,8 +222,6 @@ public:
     return mCompositor;
   }
 
-  bool PlatformDestroySharedSurface(SurfaceDescriptor* aSurface);
-
   /**
    * LayerManagerComposite provides sophisticated debug overlays
    * that can request a next frame.
@@ -226,6 +231,8 @@ public:
   { mDebugOverlayWantsNextFrame = aVal; }
 
   void NotifyShadowTreeTransaction();
+
+  TextRenderer* GetTextRenderer() { return mTextRenderer; }
 
 private:
   /** Region we're clipping our current drawing to. */
@@ -261,6 +268,11 @@ private:
   RefPtr<Compositor> mCompositor;
   nsAutoPtr<LayerProperties> mClonedLayerTreeProperties;
 
+  /** 
+   * Context target, nullptr when drawing directly to our swap chain.
+   */
+  RefPtr<gfx::DrawTarget> mTarget;
+
   gfx::Matrix mWorldMatrix;
   nsIntRegion mInvalidRegion;
   nsAutoPtr<FPSState> mFPS;
@@ -268,6 +280,9 @@ private:
   bool mInTransaction;
   bool mIsCompositorReady;
   bool mDebugOverlayWantsNextFrame;
+
+  RefPtr<TextRenderer> mTextRenderer;
+  bool mGeometryChanged;
 };
 
 /**

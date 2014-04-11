@@ -380,6 +380,8 @@ public:
 
   NS_IMETHOD GetInternalStream(nsIInputStream**) MOZ_OVERRIDE;
 
+  NS_IMETHOD_(bool) IsMemoryFile(void) MOZ_OVERRIDE;
+
 protected:
   // Create slice
   nsDOMMemoryFile(const nsDOMMemoryFile* aOther, uint64_t aStart,
@@ -398,7 +400,7 @@ protected:
   friend class DataOwnerAdapter;
   friend class nsDOMMemoryFileDataOwnerMemoryReporter;
 
-  class DataOwner : public mozilla::LinkedListElement<DataOwner> {
+  class DataOwner MOZ_FINAL : public mozilla::LinkedListElement<DataOwner> {
   public:
     NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DataOwner)
     DataOwner(void* aMemoryBuffer, uint64_t aLength)
@@ -414,6 +416,8 @@ protected:
       sDataOwners->insertBack(this);
     }
 
+  private:
+    // Private destructor, to discourage deletion outside of Release():
     ~DataOwner() {
       mozilla::StaticMutexAutoLock lock(sDataOwnerMutex);
 
@@ -426,6 +430,7 @@ protected:
       moz_free(mData);
     }
 
+  public:
     static void EnsureMemoryReporterRegistered();
 
     // sDataOwners and sMemoryReporterRegistered may only be accessed while
@@ -457,8 +462,7 @@ public:
 
   NS_DECL_NSIDOMFILELIST
 
-  virtual JSObject* WrapObject(JSContext *cx,
-                               JS::Handle<JSObject*> scope) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext *cx) MOZ_OVERRIDE;
 
   nsISupports* GetParentObject()
   {

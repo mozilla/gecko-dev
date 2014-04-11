@@ -14,7 +14,7 @@ namespace mozilla {
 namespace net {
 
 NS_IMPL_ADDREF(CacheFileInputStream)
-NS_IMETHODIMP_(nsrefcnt)
+NS_IMETHODIMP_(MozExternalRefCountType)
 CacheFileInputStream::Release()
 {
   NS_PRECONDITION(0 != mRefCnt, "dup release");
@@ -483,7 +483,7 @@ CacheFileInputStream::ReleaseChunk()
     mWaitingForUpdate = false;
   }
 
-  mFile->ReleaseOutsideLock(mChunk.forget().get());
+  mFile->ReleaseOutsideLock(mChunk.forget().take());
 }
 
 void
@@ -628,6 +628,18 @@ CacheFileInputStream::MaybeNotifyListener()
     MOZ_ASSERT(false, "SetEOF is currenty not implemented?!");
     NotifyListener();
   }
+}
+
+// Memory reporting
+
+size_t
+CacheFileInputStream::SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const
+{
+  // Everything the stream keeps a reference to is already reported somewhere else.
+  // mFile reports itself.
+  // mChunk reported as part of CacheFile.
+  // mCallback is usually CacheFile or a class that is reported elsewhere.
+  return mallocSizeOf(this);
 }
 
 } // net

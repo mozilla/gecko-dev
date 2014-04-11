@@ -30,7 +30,17 @@ namespace js {
 inline bool
 ComputeThis(JSContext *cx, AbstractFramePtr frame)
 {
-    JS_ASSERT_IF(frame.isStackFrame(), !frame.asStackFrame()->runningInJit());
+    JS_ASSERT_IF(frame.isInterpreterFrame(), !frame.asInterpreterFrame()->runningInJit());
+
+    if (frame.isFunctionFrame() && frame.fun()->isArrow()) {
+        /*
+         * Arrow functions store their (lexical) |this| value in an
+         * extended slot.
+         */
+        frame.thisValue() = frame.fun()->getExtendedSlot(0);
+        return true;
+    }
+
     if (frame.thisValue().isObject())
         return true;
     RootedValue thisv(cx, frame.thisValue());
@@ -108,7 +118,7 @@ GuardFunApplyArgumentsOptimization(JSContext *cx, AbstractFramePtr frame, Handle
  * problem to the value at |spindex| on the stack.
  */
 MOZ_ALWAYS_INLINE JSObject *
-ValuePropertyBearer(JSContext *cx, StackFrame *fp, HandleValue v, int spindex)
+ValuePropertyBearer(JSContext *cx, InterpreterFrame *fp, HandleValue v, int spindex)
 {
     if (v.isObject())
         return &v.toObject();
@@ -150,11 +160,6 @@ GetLengthProperty(const Value &lval, MutableHandleValue vp)
                 vp.setInt32(int32_t(length));
                 return true;
             }
-        }
-
-        if (obj->is<TypedArrayObject>()) {
-            vp.setInt32(obj->as<TypedArrayObject>().length());
-            return true;
         }
     }
 
@@ -348,19 +353,6 @@ GetObjectElementOperation(JSContext *cx, JSOp op, JSObject *objArg, bool wasObje
                 return false;
             objArg = obj;
             break;
-        }
-
-        if (ValueMightBeSpecial(rref)) {
-            RootedObject obj(cx, objArg);
-            Rooted<SpecialId> special(cx);
-            res.set(rref);
-            if (ValueIsSpecial(obj, res, &special, cx)) {
-                if (!JSObject::getSpecial(cx, obj, obj, special, res))
-                    return false;
-                objArg = obj;
-                break;
-            }
-            objArg = obj;
         }
 
         JSAtom *name = ToAtom<NoGC>(cx, rref);

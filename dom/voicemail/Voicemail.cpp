@@ -46,7 +46,7 @@ NS_IMPL_ISUPPORTS1(Voicemail::Listener, nsIVoicemailListener)
 
 Voicemail::Voicemail(nsPIDOMWindow* aWindow,
                      nsIVoicemailProvider* aProvider)
-  : nsDOMEventTargetHelper(aWindow)
+  : DOMEventTargetHelper(aWindow)
   , mProvider(aProvider)
 {
   mListener = new Listener(this);
@@ -64,9 +64,9 @@ Voicemail::~Voicemail()
 }
 
 JSObject*
-Voicemail::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+Voicemail::WrapObject(JSContext* aCx)
 {
-  return MozVoicemailBinding::Wrap(aCx, aScope, this);
+  return MozVoicemailBinding::Wrap(aCx, this);
 }
 
 bool

@@ -78,7 +78,11 @@ const EVENTS = {
   // Fired when charts have been displayed in the PerformanceStatisticsView.
   PLACEHOLDER_CHARTS_DISPLAYED: "NetMonitor:PlaceholderChartsDisplayed",
   PRIMED_CACHE_CHART_DISPLAYED: "NetMonitor:PrimedChartsDisplayed",
-  EMPTY_CACHE_CHART_DISPLAYED: "NetMonitor:EmptyChartsDisplayed"
+  EMPTY_CACHE_CHART_DISPLAYED: "NetMonitor:EmptyChartsDisplayed",
+
+  // Fired once the NetMonitorController establishes a connection to the debug
+  // target.
+  CONNECTED: "connected",
 };
 
 // Descriptions for what this frontend is currently doing.
@@ -113,6 +117,12 @@ const {Tooltip} = require("devtools/shared/widgets/Tooltip");
 XPCOMUtils.defineLazyModuleGetter(this, "Chart",
   "resource:///modules/devtools/Chart.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "Curl",
+  "resource:///modules/devtools/Curl.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "CurlUtils",
+  "resource:///modules/devtools/Curl.jsm");
+
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
   "resource://gre/modules/Task.jsm");
 
@@ -122,19 +132,16 @@ XPCOMUtils.defineLazyModuleGetter(this, "PluralForm",
 XPCOMUtils.defineLazyModuleGetter(this, "DevToolsUtils",
   "resource://gre/modules/devtools/DevToolsUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "devtools",
-  "resource://gre/modules/devtools/Loader.jsm");
+XPCOMUtils.defineLazyServiceGetter(this, "clipboardHelper",
+  "@mozilla.org/widget/clipboardhelper;1", "nsIClipboardHelper");
 
 Object.defineProperty(this, "NetworkHelper", {
   get: function() {
-    return devtools.require("devtools/toolkit/webconsole/network-helper");
+    return require("devtools/toolkit/webconsole/network-helper");
   },
   configurable: true,
   enumerable: true
 });
-
-XPCOMUtils.defineLazyServiceGetter(this, "clipboardHelper",
-  "@mozilla.org/widget/clipboardhelper;1", "nsIClipboardHelper");
 
 /**
  * Object defining the network monitor controller components.
@@ -184,7 +191,7 @@ let NetMonitorController = {
    * @return object
    *         A promise that is resolved when the monitor finishes connecting.
    */
-  connect: function() {
+  connect: Task.async(function*() {
     if (this._connection) {
       return this._connection;
     }
@@ -200,8 +207,9 @@ let NetMonitorController = {
       this._startMonitoringTab(client, form, deferred.resolve);
     }
 
-    return deferred.promise;
-  },
+    yield deferred.promise;
+    window.emit(EVENTS.CONNECTED);
+  }),
 
   /**
    * Disconnects the debugger client and removes event handlers as necessary.
@@ -362,6 +370,25 @@ let NetMonitorController = {
     return promise.reject(new Error("Invalid activity type"));
   },
 
+  /**
+   * Getter that tells if the server supports sending custom network requests.
+   * @type boolean
+   */
+  get supportsCustomRequest() {
+    return this.webConsoleClient &&
+           (this.webConsoleClient.traits.customNetworkRequest ||
+            !this._target.isApp);
+  },
+
+  /**
+   * Getter that tells if the server can do network performance statistics.
+   * @type boolean
+   */
+  get supportsPerfStats() {
+    return this.tabClient &&
+           (this.tabClient.traits.reconfigure || !this._target.isApp);
+  },
+
   _startup: null,
   _shutdown: null,
   _connection: null,
@@ -418,9 +445,10 @@ TargetEventsHandler.prototype = {
     switch (aType) {
       case "will-navigate": {
         // Reset UI.
-        NetMonitorView.RequestsMenu.reset();
-        NetMonitorView.Sidebar.toggle(false);
-
+        if (!Services.prefs.getBoolPref("devtools.webconsole.persistlog")) {
+          NetMonitorView.RequestsMenu.reset();
+          NetMonitorView.Sidebar.toggle(false);
+        }
         // Switch to the default network traffic inspector view.
         if (NetMonitorController.getCurrentActivity() == ACTIVITY_TYPE.NONE) {
           NetMonitorView.showNetworkInspectorView();
@@ -493,6 +521,11 @@ NetworkEventsHandler.prototype = {
    *        The message received from the server.
    */
   _onNetworkEvent: function(aType, aPacket) {
+    if (aPacket.from != this.webConsoleClient.actor) {
+      // Skip events from different console actors.
+      return;
+    }
+
     let { actor, startedDateTime, method, url, isXHR } = aPacket.eventActor;
     NetMonitorView.RequestsMenu.addRequest(actor, startedDateTime, method, url, isXHR);
     window.emit(EVENTS.NETWORK_EVENT);
@@ -508,6 +541,10 @@ NetworkEventsHandler.prototype = {
    */
   _onNetworkEventUpdate: function(aType, aPacket) {
     let actor = aPacket.from;
+    if (!NetMonitorView.RequestsMenu.getItemByValue(actor)) {
+      // Skip events from unknown actors.
+      return;
+    }
 
     switch (aPacket.updateType) {
       case "requestHeaders":

@@ -11,6 +11,7 @@
 #include "BluetoothCommon.h"
 #include "mozilla/ipc/RawDBusConnection.h"
 #include "BluetoothService.h"
+#include "nsIThread.h"
 
 class DBusMessage;
 
@@ -49,8 +50,6 @@ public:
   virtual nsresult StartInternal() MOZ_OVERRIDE;
 
   virtual nsresult StopInternal() MOZ_OVERRIDE;
-
-  virtual bool IsEnabledInternal() MOZ_OVERRIDE;
 
   virtual nsresult GetDefaultAdapterPathInternal(
                                              BluetoothReplyRunnable* aRunnable) MOZ_OVERRIDE;

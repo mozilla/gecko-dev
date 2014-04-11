@@ -39,9 +39,9 @@ using namespace mozilla;
 using namespace mozilla::dom;
 
 JSObject*
-nsRange::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+nsRange::WrapObject(JSContext* aCx)
 {
-  return RangeBinding::Wrap(aCx, aScope, this);
+  return RangeBinding::Wrap(aCx, this);
 }
 
 /******************************************************
@@ -302,16 +302,6 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(nsRange)
   NS_IMPL_CYCLE_COLLECTION_TRACE_PRESERVED_WRAPPER
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
-
-static void
-RangeHashTableDtor(void* aObject, nsIAtom* aPropertyName, void* aPropertyValue,
-                   void* aData)
-{
-  nsRange::RangeHashTable* ranges =
-    static_cast<nsRange::RangeHashTable*>(aPropertyValue);
-  delete ranges;
-}
-
 static void MarkDescendants(nsINode* aNode)
 {
   // Set NodeIsDescendantOfCommonAncestorForRangeInSelection on aNode's
@@ -366,7 +356,8 @@ nsRange::RegisterCommonAncestor(nsINode* aNode)
     static_cast<RangeHashTable*>(aNode->GetProperty(nsGkAtoms::range));
   if (!ranges) {
     ranges = new RangeHashTable;
-    aNode->SetProperty(nsGkAtoms::range, ranges, RangeHashTableDtor, true);
+    aNode->SetProperty(nsGkAtoms::range, ranges,
+                       nsINode::DeleteProperty<nsRange::RangeHashTable>, true);
   }
   ranges->PutEntry(this);
   aNode->SetCommonAncestorForRangeInSelection();
@@ -2177,7 +2168,7 @@ NS_IMETHODIMP
 nsRange::CloneContents(nsIDOMDocumentFragment** aReturn)
 {
   ErrorResult rv;
-  *aReturn = CloneContents(rv).get();
+  *aReturn = CloneContents(rv).take();
   return rv.ErrorCode();
 }
 
@@ -2400,7 +2391,7 @@ nsRange::CloneRange() const
 NS_IMETHODIMP
 nsRange::CloneRange(nsIDOMRange** aReturn)
 {
-  *aReturn = CloneRange().get();
+  *aReturn = CloneRange().take();
   return NS_OK;
 }
 
@@ -2877,7 +2868,7 @@ static void CollectClientRects(nsLayoutUtils::RectCallback* aCollector,
 NS_IMETHODIMP
 nsRange::GetBoundingClientRect(nsIDOMClientRect** aResult)
 {
-  *aResult = GetBoundingClientRect().get();
+  *aResult = GetBoundingClientRect().take();
   return NS_OK;
 }
 
@@ -2902,7 +2893,7 @@ nsRange::GetBoundingClientRect()
 NS_IMETHODIMP
 nsRange::GetClientRects(nsIDOMClientRectList** aResult)
 {
-  *aResult = GetClientRects().get();
+  *aResult = GetClientRects().take();
   return NS_OK;
 }
 

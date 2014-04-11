@@ -23,6 +23,8 @@ EXPORTS.mozilla.dom += [
     'ContentProcess.h',
     'CrashReporterChild.h',
     'CrashReporterParent.h',
+    'FileDescriptorSetChild.h',
+    'FileDescriptorSetParent.h',
     'FilePickerParent.h',
     'PermissionMessageUtils.h',
     'StructuredCloneUtils.h',
@@ -41,10 +43,11 @@ EXPORTS.mozilla += [
 UNIFIED_SOURCES += [
     'AppProcessChecker.cpp',
     'ColorPickerParent.cpp',
-    'ContentChild.cpp',
     'ContentParent.cpp',
     'ContentProcess.cpp',
     'CrashReporterParent.cpp',
+    'FileDescriptorSetChild.cpp',
+    'FileDescriptorSetParent.cpp',
     'FilePickerParent.cpp',
     'PermissionMessageUtils.cpp',
     'PreallocatedProcessManager.cpp',
@@ -57,10 +60,12 @@ UNIFIED_SOURCES += [
 ]
 
 # Blob.cpp cannot be compiled in unified mode because it triggers a fatal gcc warning.
+# ContentChild.cpp cannot be compiled in unified mode because it forces NSPR logging.
 # CrashReporterChild.cpp cannot be compiled in unified mode because of name clashes
 # in OS X headers.
 SOURCES += [
     'Blob.cpp',
+    'ContentChild.cpp',
     'CrashReporterChild.cpp',
 ]
 
@@ -71,11 +76,11 @@ IPDL_SOURCES += [
     'PBrowser.ipdl',
     'PColorPicker.ipdl',
     'PContent.ipdl',
-    'PContentDialog.ipdl',
     'PContentPermission.ipdlh',
     'PContentPermissionRequest.ipdl',
     'PCrashReporter.ipdl',
     'PDocumentRenderer.ipdl',
+    'PFileDescriptorSet.ipdl',
     'PFilePicker.ipdl',
     'PMemoryReportRequest.ipdl',
     'PTabContext.ipdlh',
@@ -98,7 +103,7 @@ LOCAL_INCLUDES += [
     '/dom/bluetooth',
     '/dom/bluetooth/ipc',
     '/dom/devicestorage',
-    '/dom/events',
+    '/dom/filesystem',
     '/dom/fmradio/ipc',
     '/dom/indexedDB',
     '/dom/indexedDB/ipc',
@@ -126,6 +131,9 @@ for var in ('MOZ_PERMISSIONS', 'MOZ_CHILD_PERMISSIONS'):
 
 if CONFIG['ENABLE_TESTS']:
     DEFINES['ENABLE_TESTS'] = 1
+    LOCAL_INCLUDES += [
+      'ipc/glue',
+    ]
 
 JAR_MANIFESTS += ['jar.mn']
 

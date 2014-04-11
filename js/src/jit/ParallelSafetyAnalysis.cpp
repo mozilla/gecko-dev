@@ -136,6 +136,7 @@ class ParallelSafetyVisitor : public MInstructionVisitor
     UNSAFE_OP(GetArgumentsObjectArg)
     UNSAFE_OP(SetArgumentsObjectArg)
     UNSAFE_OP(ComputeThis)
+    UNSAFE_OP(LoadArrowThis)
     CUSTOM_OP(Call)
     UNSAFE_OP(ApplyArgs)
     UNSAFE_OP(Bail)
@@ -183,7 +184,8 @@ class ParallelSafetyVisitor : public MInstructionVisitor
     CUSTOM_OP(NewArray)
     CUSTOM_OP(NewObject)
     CUSTOM_OP(NewCallObject)
-    UNSAFE_OP(NewDerivedTypedObject)
+    CUSTOM_OP(NewRunOnceCallObject)
+    CUSTOM_OP(NewDerivedTypedObject)
     UNSAFE_OP(InitElem)
     UNSAFE_OP(InitElemGetterSetter)
     UNSAFE_OP(MutateProto)
@@ -194,6 +196,7 @@ class ParallelSafetyVisitor : public MInstructionVisitor
     SAFE_OP(Nop)
     UNSAFE_OP(RegExp)
     CUSTOM_OP(Lambda)
+    UNSAFE_OP(LambdaArrow)
     UNSAFE_OP(ImplicitThis)
     SAFE_OP(Slots)
     SAFE_OP(Elements)
@@ -201,6 +204,7 @@ class ParallelSafetyVisitor : public MInstructionVisitor
     SAFE_OP(LoadSlot)
     WRITE_GUARDED_OP(StoreSlot, slots)
     SAFE_OP(FunctionEnvironment) // just a load of func env ptr
+    SAFE_OP(FilterTypeSet)
     SAFE_OP(TypeBarrier) // causes a bailout if the type is not found: a-ok with us
     SAFE_OP(MonitorTypes) // causes a bailout if the type is not found: a-ok with us
     UNSAFE_OP(PostWriteBarrier)
@@ -220,6 +224,7 @@ class ParallelSafetyVisitor : public MInstructionVisitor
     SAFE_OP(TypedArrayLength)
     SAFE_OP(TypedArrayElements)
     SAFE_OP(TypedObjectElements)
+    SAFE_OP(SetTypedObjectOffset)
     SAFE_OP(InitializedLength)
     WRITE_GUARDED_OP(SetInitializedLength, elements)
     SAFE_OP(Not)
@@ -287,7 +292,7 @@ class ParallelSafetyVisitor : public MInstructionVisitor
     UNSAFE_OP(RegExpReplace)
     UNSAFE_OP(StringReplace)
     UNSAFE_OP(CallInstanceOf)
-    UNSAFE_OP(FunctionBoundary)
+    UNSAFE_OP(ProfilerStackOp)
     UNSAFE_OP(GuardString)
     UNSAFE_OP(NewDeclEnvObject)
     UNSAFE_OP(In)
@@ -531,6 +536,13 @@ ParallelSafetyVisitor::visitNewCallObject(MNewCallObject *ins)
 }
 
 bool
+ParallelSafetyVisitor::visitNewRunOnceCallObject(MNewRunOnceCallObject *ins)
+{
+    replace(ins, MNewCallObjectPar::New(alloc(), ForkJoinContext(), ins));
+    return true;
+}
+
+bool
 ParallelSafetyVisitor::visitLambda(MLambda *ins)
 {
     if (ins->info().singletonType || ins->info().useNewTypeForClone) {
@@ -563,6 +575,20 @@ ParallelSafetyVisitor::visitNewArray(MNewArray *newInstruction)
     }
 
     return replaceWithNewPar(newInstruction, newInstruction->templateObject());
+}
+
+bool
+ParallelSafetyVisitor::visitNewDerivedTypedObject(MNewDerivedTypedObject *ins)
+{
+    // FIXME(Bug 984090) -- There should really be a parallel-safe
+    // version of NewDerivedTypedObject. However, until that is
+    // implemented, let's just ignore those with 0 uses, since they
+    // will be stripped out by DCE later.
+    if (ins->useCount() == 0)
+        return true;
+
+    SpewMIR(ins, "visitNewDerivedTypedObject");
+    return markUnsafe();
 }
 
 bool

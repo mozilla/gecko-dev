@@ -9,7 +9,7 @@
 #include "nsSVGFilters.h"
 
 nsresult NS_NewSVGFETileElement(nsIContent **aResult,
-                                already_AddRefed<nsINodeInfo> aNodeInfo);
+                                already_AddRefed<nsINodeInfo>&& aNodeInfo);
 
 namespace mozilla {
 namespace dom {
@@ -19,14 +19,13 @@ typedef nsSVGFE SVGFETileElementBase;
 class SVGFETileElement : public SVGFETileElementBase
 {
   friend nsresult (::NS_NewSVGFETileElement(nsIContent **aResult,
-                                            already_AddRefed<nsINodeInfo> aNodeInfo));
+                                            already_AddRefed<nsINodeInfo>&& aNodeInfo));
 protected:
-  SVGFETileElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+  SVGFETileElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
     : SVGFETileElementBase(aNodeInfo)
   {
   }
-  virtual JSObject* WrapNode(JSContext *cx,
-                             JS::Handle<JSObject*> scope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext *cx) MOZ_OVERRIDE;
 
 public:
   virtual bool SubregionIsUnionOfRegions() { return false; }

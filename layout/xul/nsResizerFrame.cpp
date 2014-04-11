@@ -21,7 +21,6 @@
 #include "nsIBaseWindow.h"
 #include "nsPIDOMWindow.h"
 #include "mozilla/MouseEvents.h"
-#include "nsEventDispatcher.h"
 #include "nsContentUtils.h"
 #include "nsMenuPopupFrame.h"
 #include "nsIScreenManager.h"
@@ -254,8 +253,8 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
 
           // convert the new rectangle into outer window coordinates
           nsIntPoint clientOffset = widget->GetClientOffset();
-          rect.x -= clientOffset.x; 
-          rect.y -= clientOffset.y; 
+          rect.x -= clientOffset.x;
+          rect.y -= clientOffset.y;
         }
 
         SizeInfo sizeInfo, originalSizeInfo;
@@ -272,6 +271,9 @@ nsResizerFrame::HandleEvent(nsPresContext* aPresContext,
             (oldRect.x != rect.x || oldRect.y != rect.y) &&
             (!menuPopupFrame->IsAnchored() ||
              menuPopupFrame->PopupLevel() != ePopupLevelParent)) {
+
+          rect.x = aPresContext->DevPixelsToIntCSSPixels(rect.x);
+          rect.y = aPresContext->DevPixelsToIntCSSPixels(rect.y);
           menuPopupFrame->MoveTo(rect.x, rect.y, true);
         }
       }
@@ -449,15 +451,6 @@ nsResizerFrame::ResizeContent(nsIContent* aContent, const Direction& aDirection,
 }
 
 /* static */ void
-nsResizerFrame::SizeInfoDtorFunc(void *aObject, nsIAtom *aPropertyName,
-                                 void *aPropertyValue, void *aData)
-{
-  nsResizerFrame::SizeInfo *propertyValue =
-    static_cast<nsResizerFrame::SizeInfo*>(aPropertyValue);
-  delete propertyValue;
-}
-
-/* static */ void
 nsResizerFrame::MaybePersistOriginalSize(nsIContent* aContent,
                                          const SizeInfo& aSizeInfo)
 {
@@ -469,7 +462,7 @@ nsResizerFrame::MaybePersistOriginalSize(nsIContent* aContent,
 
   nsAutoPtr<SizeInfo> sizeInfo(new SizeInfo(aSizeInfo));
   rv = aContent->SetProperty(nsGkAtoms::_moz_original_size, sizeInfo.get(),
-                             &SizeInfoDtorFunc);
+                             nsINode::DeleteProperty<nsResizerFrame::SizeInfo>);
   if (NS_SUCCEEDED(rv))
     sizeInfo.forget();
 }
