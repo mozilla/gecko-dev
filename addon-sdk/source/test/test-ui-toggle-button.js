@@ -15,6 +15,11 @@ const { data } = require('sdk/self');
 const { open, focus, close } = require('sdk/window/helpers');
 const { setTimeout } = require('sdk/timers');
 const { getMostRecentBrowserWindow } = require('sdk/window/utils');
+const { partial } = require('sdk/lang/functional');
+
+const openBrowserWindow = partial(open, null, {features: {toolbar: true}});
+const openPrivateBrowserWindow = partial(open, null,
+  {features: {toolbar: true, private: true}});
 
 function getWidget(buttonId, window = getMostRecentBrowserWindow()) {
   const { CustomizableUI } = Cu.import('resource:///modules/CustomizableUI.jsm', {});
@@ -293,6 +298,43 @@ exports['test button global state updated'] = function(assert) {
   loader.unload();
 }
 
+exports['test button global state set and get with state method'] = function(assert) {
+  let loader = Loader(module);
+  let { ToggleButton } = loader.require('sdk/ui');
+
+  let button = ToggleButton({
+    id: 'my-button-16',
+    label: 'my button',
+    icon: './icon.png'
+  });
+
+  // read the button's state
+  let state = button.state(button);
+
+  assert.equal(state.label, 'my button',
+    'label is correct');
+  assert.equal(state.icon, './icon.png',
+    'icon is correct');
+  assert.equal(state.disabled, false,
+    'disabled is correct');
+
+  // set the new button's state
+  button.state(button, {
+    label: 'New label',
+    icon: './new-icon.png',
+    disabled: true
+  });
+
+  assert.equal(button.label, 'New label',
+    'label is updated');
+  assert.equal(button.icon, './new-icon.png',
+    'icon is updated');
+  assert.equal(button.disabled, true,
+    'disabled is updated');
+
+  loader.unload();
+};
+
 exports['test button global state updated on multiple windows'] = function(assert, done) {
   let loader = Loader(module);
   let { ToggleButton } = loader.require('sdk/ui');
@@ -305,7 +347,7 @@ exports['test button global state updated on multiple windows'] = function(asser
 
   let nodes = [getWidget(button.id).node];
 
-  open(null, { features: { toolbar: true }}).then(window => {
+  openBrowserWindow().then(window => {
     nodes.push(getWidget(button.id, window).node);
 
     button.label = 'New label';
@@ -350,7 +392,7 @@ exports['test button window state'] = function(assert, done) {
   let mainWindow = browserWindows.activeWindow;
   let nodes = [getWidget(button.id).node];
 
-  open(null, { features: { toolbar: true }}).then(focus).then(window => {
+  openBrowserWindow().then(focus).then(window => {
     nodes.push(getWidget(button.id, window).node);
 
     let { activeWindow } = browserWindows;
@@ -586,7 +628,7 @@ exports['test button click'] = function(assert, done) {
   let mainWindow = browserWindows.activeWindow;
   let chromeWindow = getMostRecentBrowserWindow();
 
-  open(null, { features: { toolbar: true }}).then(focus).then(window => {
+  openBrowserWindow().then(focus).then(window => {
     button.state(mainWindow, { label: 'nothing' });
     button.state(mainWindow.tabs.activeTab, { label: 'foo'})
     button.state(browserWindows.activeWindow, { label: 'bar' });
@@ -737,7 +779,7 @@ exports['test button are not in private windows'] = function(assert, done) {
     icon: './icon.png'
   });
 
-  open(null, { features: { toolbar: true, private: true }}).then(window => {
+  openPrivateBrowserWindow().then(window => {
     assert.ok(isPrivate(window),
       'the new window is private');
 
@@ -887,7 +929,7 @@ exports['test button checked'] = function(assert, done) {
   let mainWindow = browserWindows.activeWindow;
   let chromeWindow = getMostRecentBrowserWindow();
 
-  open(null, { features: { toolbar: true }}).then(focus).then(window => {
+  openBrowserWindow().then(focus).then(window => {
     button.state(mainWindow, { label: 'nothing' });
     button.state(mainWindow.tabs.activeTab, { label: 'foo'})
     button.state(browserWindows.activeWindow, { label: 'bar' });
@@ -912,19 +954,172 @@ exports['test button checked'] = function(assert, done) {
   }).then(null, assert.fail);
 }
 
-// If the module doesn't support the app we're being run in, require() will
-// throw.  In that case, remove all tests above from exports, and add one dummy
-// test that passes.
-try {
-  require('sdk/ui/button/toggle');
-}
-catch (err) {
-  if (!/^Unsupported Application/.test(err.message))
-    throw err;
+exports['test button is checked on window level'] = function(assert, done) {
+  let loader = Loader(module);
+  let { ToggleButton } = loader.require('sdk/ui');
+  let { browserWindows } = loader.require('sdk/windows');
+  let tabs = loader.require('sdk/tabs');
 
-  module.exports = {
-    'test Unsupported Application': assert => assert.pass(err.message)
-  }
+  let button = ToggleButton({
+    id: 'my-button-20',
+    label: 'my button',
+    icon: './icon.png'
+  });
+
+  let mainWindow = browserWindows.activeWindow;
+  let mainTab = tabs.activeTab;
+
+  assert.equal(button.checked, false,
+    'global state, checked is `false`.');
+  assert.equal(button.state(mainTab).checked, false,
+    'tab state, checked is `false`.');
+  assert.equal(button.state(mainWindow).checked, false,
+    'window state, checked is `false`.');
+
+  button.click();
+
+  tabs.open({
+    url: 'about:blank',
+    onActivate: function onActivate(tab) {
+      tab.removeListener('activate', onActivate);
+
+      assert.notEqual(mainTab, tab,
+        'the current tab is not the same.');
+
+      assert.equal(button.checked, false,
+        'global state, checked is `false`.');
+      assert.equal(button.state(mainTab).checked, true,
+        'previous tab state, checked is `true`.');
+      assert.equal(button.state(tab).checked, true,
+        'current tab state, checked is `true`.');
+      assert.equal(button.state(mainWindow).checked, true,
+        'window state, checked is `true`.');
+
+      openBrowserWindow().then(focus).then(window => {
+        let { activeWindow } = browserWindows;
+        let { activeTab } = activeWindow.tabs;
+
+        assert.equal(button.checked, false,
+          'global state, checked is `false`.');
+        assert.equal(button.state(activeTab).checked, false,
+          'tab state, checked is `false`.');
+
+        assert.equal(button.state(activeWindow).checked, false,
+          'window state, checked is `false`.');
+
+        tab.close(()=> {
+          close(window).
+            then(loader.unload).
+            then(done, assert.fail);
+        })
+      }).
+      then(null, assert.fail);
+    }
+  });
+
+};
+
+exports['test button click do not messing up states'] = function(assert) {
+  let loader = Loader(module);
+  let { ToggleButton } = loader.require('sdk/ui');
+  let { browserWindows } = loader.require('sdk/windows');
+
+  let button = ToggleButton({
+    id: 'my-button-21',
+    label: 'my button',
+    icon: './icon.png'
+  });
+
+  let mainWindow = browserWindows.activeWindow;
+  let { activeTab } = mainWindow.tabs;
+
+  button.state(mainWindow, { icon: './new-icon.png' });
+  button.state(activeTab, { label: 'foo'})
+
+  assert.equal(button.state(mainWindow).label, 'my button',
+    'label property for window state, properly derived from global state');
+
+  assert.equal(button.state(activeTab).icon, './new-icon.png',
+    'icon property for tab state, properly derived from window state');
+
+  button.click();
+
+  button.label = 'bar';
+
+  assert.equal(button.state(mainWindow).label, 'bar',
+    'label property for window state, properly derived from global state');
+
+  button.state(mainWindow, null);
+
+  assert.equal(button.state(activeTab).icon, './icon.png',
+    'icon property for tab state, properly derived from window state');
+
+  loader.unload();
+}
+
+exports['test buttons can have anchored panels'] = function(assert, done) {
+  let loader = Loader(module);
+  let { ToggleButton } = loader.require('sdk/ui');
+  let { Panel } = loader.require('sdk/panel');
+  let { identify } = loader.require('sdk/ui/id');
+  let { getActiveView } = loader.require('sdk/view/core');
+
+  let b1 = ToggleButton({
+    id: 'my-button-22',
+    label: 'my button',
+    icon: './icon.png',
+    onChange: ({checked}) => checked && panel.show()
+  });
+
+  let b2 = ToggleButton({
+    id: 'my-button-23',
+    label: 'my button',
+    icon: './icon.png',
+    onChange: ({checked}) => checked && panel.show({position: b2})
+  });
+
+  let panel = Panel({
+    position: b1
+  });
+
+  let { document } = getMostRecentBrowserWindow();
+  let b1Node = document.getElementById(identify(b1));
+  let b2Node = document.getElementById(identify(b2));
+  let panelNode = getActiveView(panel);
+
+  panel.once('show', () => {
+    assert.ok(b1.state('window').checked,
+      'button is checked');
+
+    assert.equal(panelNode.getAttribute('type'), 'arrow',
+      'the panel is a arrow type');
+
+    assert.strictEqual(b1Node, panelNode.anchorNode,
+      'the panel is anchored properly to the button given in costructor');
+
+    panel.hide();
+
+    panel.once('show', () => {
+      assert.ok(b2.state('window').checked,
+        'button is checked');
+
+      assert.equal(panelNode.getAttribute('type'), 'arrow',
+        'the panel is a arrow type');
+
+      // test also that the button passed in `show` method, takes the precedence
+      // over the button set in panel's constructor.
+      assert.strictEqual(b2Node, panelNode.anchorNode,
+        'the panel is anchored properly to the button passed to show method');
+
+      loader.unload();
+
+      done();
+    });
+
+    b2.click();
+  });
+
+  b1.click();
 }
 
 require('sdk/test').run(exports);

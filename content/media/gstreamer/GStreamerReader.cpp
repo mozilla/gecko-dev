@@ -16,6 +16,7 @@
 #include "GStreamerFormatHelper.h"
 #include "VideoUtils.h"
 #include "mozilla/dom/TimeRanges.h"
+#include "mozilla/Endian.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/unused.h"
 #include "GStreamerLoader.h"
@@ -757,8 +758,11 @@ nsresult GStreamerReader::Seek(int64_t aTarget,
   LOG(PR_LOG_DEBUG, "%p About to seek to %" GST_TIME_FORMAT,
         mDecoder, GST_TIME_ARGS(seekPos));
 
-  if (!gst_element_seek_simple(mPlayBin, GST_FORMAT_TIME,
-    static_cast<GstSeekFlags>(GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_ACCURATE), seekPos)) {
+  int flags = GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_KEY_UNIT;
+  if (!gst_element_seek_simple(mPlayBin,
+                               GST_FORMAT_TIME,
+                               static_cast<GstSeekFlags>(flags),
+                               seekPos)) {
     LOG(PR_LOG_ERROR, "seek failed");
     return NS_ERROR_FAILURE;
   }
@@ -768,7 +772,7 @@ nsresult GStreamerReader::Seek(int64_t aTarget,
   gst_message_unref(message);
   LOG(PR_LOG_DEBUG, "seek completed");
 
-  return DecodeToTarget(aTarget);
+  return NS_OK;
 }
 
 nsresult GStreamerReader::GetBuffered(dom::TimeRanges* aBuffered,
@@ -994,6 +998,7 @@ void GStreamerReader::VideoPreroll()
   /* The first video buffer has reached the video sink. Get width and height */
   LOG(PR_LOG_DEBUG, "Video preroll");
   GstPad* sinkpad = gst_element_get_static_pad(GST_ELEMENT(mVideoAppSink), "sink");
+  int PARNumerator, PARDenominator;
 #if GST_VERSION_MAJOR >= 1
   GstCaps* caps = gst_pad_get_current_caps(sinkpad);
   memset (&mVideoInfo, 0, sizeof (mVideoInfo));
@@ -1001,15 +1006,34 @@ void GStreamerReader::VideoPreroll()
   mFormat = mVideoInfo.finfo->format;
   mPicture.width = mVideoInfo.width;
   mPicture.height = mVideoInfo.height;
+  PARNumerator = GST_VIDEO_INFO_PAR_N(&mVideoInfo);
+  PARDenominator = GST_VIDEO_INFO_PAR_D(&mVideoInfo);
 #else
   GstCaps* caps = gst_pad_get_negotiated_caps(sinkpad);
   gst_video_format_parse_caps(caps, &mFormat, &mPicture.width, &mPicture.height);
+  if (!gst_video_parse_caps_pixel_aspect_ratio(caps, &PARNumerator, &PARDenominator)) {
+    PARNumerator = 1;
+    PARDenominator = 1;
+  }
 #endif
-  GstStructure* structure = gst_caps_get_structure(caps, 0);
-  gst_structure_get_fraction(structure, "framerate", &fpsNum, &fpsDen);
   NS_ASSERTION(mPicture.width && mPicture.height, "invalid video resolution");
-  mInfo.mVideo.mDisplay = ThebesIntSize(mPicture.Size());
-  mInfo.mVideo.mHasVideo = true;
+
+  // Calculate display size according to pixel aspect ratio.
+  nsIntRect pictureRect(0, 0, mPicture.width, mPicture.height);
+  nsIntSize frameSize = nsIntSize(mPicture.width, mPicture.height);
+  nsIntSize displaySize = nsIntSize(mPicture.width, mPicture.height);
+  ScaleDisplayByAspectRatio(displaySize, float(PARNumerator) / float(PARDenominator));
+
+  // If video frame size is overflow, stop playing.
+  if (IsValidVideoRegion(frameSize, pictureRect, displaySize)) {
+    GstStructure* structure = gst_caps_get_structure(caps, 0);
+    gst_structure_get_fraction(structure, "framerate", &fpsNum, &fpsDen);
+    mInfo.mVideo.mDisplay = ThebesIntSize(displaySize.ToIntSize());
+    mInfo.mVideo.mHasVideo = true;
+  } else {
+    LOG(PR_LOG_DEBUG, "invalid video region");
+    Eos();
+  }
   gst_caps_unref(caps);
   gst_object_unref(sinkpad);
 }
@@ -1184,13 +1208,13 @@ GstCaps* GStreamerReader::BuildAudioSinkCaps()
   GstCaps* caps = gst_caps_from_string("audio/x-raw, channels={1,2}");
   const char* format;
 #ifdef MOZ_SAMPLE_TYPE_FLOAT32
-#ifdef IS_LITTLE_ENDIAN
+#if MOZ_LITTLE_ENDIAN
   format = "F32LE";
 #else
   format = "F32BE";
 #endif
 #else /* !MOZ_SAMPLE_TYPE_FLOAT32 */
-#ifdef IS_LITTLE_ENDIAN
+#if MOZ_LITTLE_ENDIAN
   format = "S16LE";
 #else
   format = "S16BE";

@@ -7,10 +7,10 @@
  * Implementation of HTML <label> elements.
  */
 #include "HTMLLabelElement.h"
-#include "mozilla/dom/HTMLLabelElementBinding.h"
-#include "nsEventDispatcher.h"
-#include "nsFocusManager.h"
+#include "mozilla/EventDispatcher.h"
 #include "mozilla/MouseEvents.h"
+#include "mozilla/dom/HTMLLabelElementBinding.h"
+#include "nsFocusManager.h"
 #include "nsIDOMMouseEvent.h"
 
 // construction, destruction
@@ -25,9 +25,9 @@ HTMLLabelElement::~HTMLLabelElement()
 }
 
 JSObject*
-HTMLLabelElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+HTMLLabelElement::WrapNode(JSContext *aCx)
 {
-  return HTMLLabelElementBinding::Wrap(aCx, aScope, this);
+  return HTMLLabelElementBinding::Wrap(aCx, this);
 }
 
 // nsISupports
@@ -101,18 +101,8 @@ EventTargetIn(WidgetEvent* aEvent, nsIContent* aChild, nsIContent* aStop)
   return false;
 }
 
-static void
-DestroyMouseDownPoint(void *    /*aObject*/,
-                      nsIAtom * /*aPropertyName*/,
-                      void *    aPropertyValue,
-                      void *    /*aData*/)
-{
-  LayoutDeviceIntPoint* pt = static_cast<LayoutDeviceIntPoint*>(aPropertyValue);
-  delete pt;
-}
-
 nsresult
-HTMLLabelElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
+HTMLLabelElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
 {
   WidgetMouseEvent* mouseEvent = aVisitor.mEvent->AsMouseEvent();
   if (mHandlingEvent ||
@@ -139,7 +129,7 @@ HTMLLabelElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
             new LayoutDeviceIntPoint(mouseEvent->refPoint);
           SetProperty(nsGkAtoms::labelMouseDownPtProperty,
                       static_cast<void*>(curPoint),
-                      DestroyMouseDownPoint);
+                      nsINode::DeleteProperty<LayoutDeviceIntPoint>);
         }
         break;
 
@@ -238,8 +228,8 @@ HTMLLabelElement::PerformAccesskey(bool aKeyCausesActivation,
     nsAutoPopupStatePusher popupStatePusher(aIsTrustedEvent ?
                                             openAllowed : openAbused);
 
-    nsEventDispatcher::Dispatch(static_cast<nsIContent*>(this), presContext,
-                                &event);
+    EventDispatcher::Dispatch(static_cast<nsIContent*>(this), presContext,
+                              &event);
   }
 }
 

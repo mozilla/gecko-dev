@@ -4,9 +4,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "WebGLBuffer.h"
-#include "WebGLContext.h"
+
 #include "GLContext.h"
 #include "mozilla/dom/WebGLRenderingContextBinding.h"
+#include "WebGLContext.h"
+#include "WebGLElementArrayCache.h"
 
 using namespace mozilla;
 
@@ -55,9 +57,25 @@ WebGLBuffer::ElementArrayCacheBufferSubData(size_t pos, const void* ptr, size_t 
         mCache->BufferSubData(pos, ptr, update_size_in_bytes);
 }
 
+size_t
+WebGLBuffer::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
+{
+    size_t sizeOfCache = mCache ? mCache->SizeOfIncludingThis(aMallocSizeOf) : 0;
+    return aMallocSizeOf(this) + sizeOfCache;
+}
+
+bool
+WebGLBuffer::Validate(GLenum type, uint32_t max_allowed,
+                      size_t first, size_t count,
+                      uint32_t* out_upperBound)
+{
+    return mCache->Validate(type, max_allowed, first, count, out_upperBound);
+}
+
+
 JSObject*
-WebGLBuffer::WrapObject(JSContext *cx, JS::Handle<JSObject*> scope) {
-    return dom::WebGLBufferBinding::Wrap(cx, scope, this);
+WebGLBuffer::WrapObject(JSContext *cx) {
+    return dom::WebGLBufferBinding::Wrap(cx, this);
 }
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_0(WebGLBuffer)

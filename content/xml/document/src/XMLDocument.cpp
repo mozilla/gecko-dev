@@ -33,7 +33,7 @@
 #include "mozilla/dom/Attr.h"
 #include "nsCExternalHandlerService.h"
 #include "nsMimeTypes.h"
-#include "nsEventListenerManager.h"
+#include "mozilla/EventListenerManager.h"
 #include "nsContentUtils.h"
 #include "nsThreadUtils.h"
 #include "nsJSUtils.h"
@@ -42,12 +42,12 @@
 #include "nsContentCreatorFunctions.h"
 #include "nsContentPolicyUtils.h"
 #include "nsIDOMUserDataHandler.h"
-#include "nsEventDispatcher.h"
 #include "nsNodeUtils.h"
 #include "nsIConsoleService.h"
 #include "nsIScriptError.h"
 #include "nsIHTMLDocument.h"
 #include "mozilla/BasicEvents.h"
+#include "mozilla/EventDispatcher.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/XMLDocumentBinding.h"
 
@@ -399,7 +399,7 @@ XMLDocument::Load(const nsAString& aUrl, ErrorResult& aRv)
   // be loaded.  Note that we need to hold a strong ref to |principal|
   // here, because ResetToURI will null out our node principal before
   // setting the new one.
-  nsRefPtr<nsEventListenerManager> elm(mListenerManager);
+  nsRefPtr<EventListenerManager> elm(mListenerManager);
   mListenerManager = nullptr;
 
   // When we are called from JS we can find the load group for the page,
@@ -571,8 +571,7 @@ XMLDocument::EndLoad()
     // document was loaded as pure data without any presentation
     // attached to it.
     WidgetEvent event(true, NS_LOAD);
-    nsEventDispatcher::Dispatch(static_cast<nsIDocument*>(this), nullptr,
-                                &event);
+    EventDispatcher::Dispatch(static_cast<nsIDocument*>(this), nullptr, &event);
   }
 }
 
@@ -601,9 +600,9 @@ XMLDocument::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
 }
 
 JSObject*
-XMLDocument::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+XMLDocument::WrapNode(JSContext *aCx)
 {
-  return XMLDocumentBinding::Wrap(aCx, aScope, this);
+  return XMLDocumentBinding::Wrap(aCx, this);
 }
 
 } // namespace dom

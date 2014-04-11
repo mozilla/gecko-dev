@@ -83,8 +83,6 @@ DOMCI_CLASS(MozMobileConnection)
 // @font-face in CSS
 DOMCI_CLASS(CSSFontFaceRule)
 
-DOMCI_CLASS(EventListenerInfo)
-
 DOMCI_CLASS(ContentFrameMessageManager)
 DOMCI_CLASS(ChromeMessageBroadcaster)
 DOMCI_CLASS(ChromeMessageSender)
@@ -97,8 +95,6 @@ DOMCI_CLASS(CSSPageRule)
 #ifdef MOZ_B2G_RIL
 DOMCI_CLASS(MozIccManager)
 #endif
-
-DOMCI_CLASS(LockedFile)
 
 DOMCI_CLASS(CSSFontFeatureValuesRule)
 

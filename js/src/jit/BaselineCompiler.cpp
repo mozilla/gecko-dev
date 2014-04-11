@@ -16,6 +16,7 @@
 # include "jit/PerfSpewer.h"
 #endif
 #include "jit/VMFunctions.h"
+#include "vm/TraceLogging.h"
 
 #include "jsscriptinlines.h"
 
@@ -74,7 +75,7 @@ BaselineCompiler::compile()
     IonSpew(IonSpew_Codegen, "# Emitting baseline code for script %s:%d",
             script->filename(), script->lineno());
 
-    if (cx->typeInferenceEnabled() && !script->ensureHasTypes(cx))
+    if (!script->ensureHasTypes(cx))
         return Method_Error;
 
     // Only need to analyze scripts which are marked |argumensHasVarBinding|, to
@@ -172,7 +173,7 @@ BaselineCompiler::compile()
     spsPushToggleOffset_.fixup(&masm);
 
     // Note: There is an extra entry in the bytecode type map for the search hint, see below.
-    size_t bytecodeTypeMapEntries = cx->typeInferenceEnabled() ? script->nTypeSets() + 1 : 0;
+    size_t bytecodeTypeMapEntries = script->nTypeSets() + 1;
 
     BaselineScript *baselineScript = BaselineScript::New(cx, prologueOffset_.offset(),
                                                          spsPushToggleOffset_.offset(),
@@ -229,25 +230,23 @@ BaselineCompiler::compile()
     if (cx->runtime()->spsProfiler.enabled())
         baselineScript->toggleSPS(true);
 
-    if (cx->typeInferenceEnabled()) {
-        uint32_t *bytecodeMap = baselineScript->bytecodeTypeMap();
+    uint32_t *bytecodeMap = baselineScript->bytecodeTypeMap();
 
-        uint32_t added = 0;
-        for (jsbytecode *pc = script->code(); pc < script->codeEnd(); pc += GetBytecodeLength(pc)) {
-            JSOp op = JSOp(*pc);
-            if (js_CodeSpec[op].format & JOF_TYPESET) {
-                bytecodeMap[added++] = script->pcToOffset(pc);
-                if (added == script->nTypeSets())
-                    break;
-            }
+    uint32_t added = 0;
+    for (jsbytecode *pc = script->code(); pc < script->codeEnd(); pc += GetBytecodeLength(pc)) {
+        JSOp op = JSOp(*pc);
+        if (js_CodeSpec[op].format & JOF_TYPESET) {
+            bytecodeMap[added++] = script->pcToOffset(pc);
+            if (added == script->nTypeSets())
+                break;
         }
-
-        JS_ASSERT(added == script->nTypeSets());
-
-        // The last entry in the last index found, and is used to avoid binary
-        // searches for the sought entry when queries are in linear order.
-        bytecodeMap[script->nTypeSets()] = 0;
     }
+
+    JS_ASSERT(added == script->nTypeSets());
+
+    // The last entry in the last index found, and is used to avoid binary
+    // searches for the sought entry when queries are in linear order.
+    bytecodeMap[script->nTypeSets()] = 0;
 
     if (script->compartment()->debugMode())
         baselineScript->setDebugMode();
@@ -338,17 +337,22 @@ BaselineCompiler::emitPrologue()
             masm.bind(&pushLoop);
             for (size_t i = 0; i < LOOP_UNROLL_FACTOR; i++)
                 masm.pushValue(R0);
-            masm.sub32(Imm32(LOOP_UNROLL_FACTOR), R1.scratchReg());
-            masm.j(Assembler::NonZero, &pushLoop);
+            masm.branchSub32(Assembler::NonZero,
+                             Imm32(LOOP_UNROLL_FACTOR), R1.scratchReg(), &pushLoop);
         }
     }
 
     if (needsEarlyStackCheck())
         masm.bind(&earlyStackCheckFailed);
 
-#if JS_TRACE_LOGGING
-    masm.tracelogStart(script.get());
-    masm.tracelogLog(TraceLogging::INFO_ENGINE_BASELINE);
+#ifdef JS_TRACE_LOGGING
+    TraceLogger *logger = TraceLoggerForMainThread(cx->runtime());
+    Register loggerReg = RegisterSet::Volatile().takeGeneral();
+    masm.Push(loggerReg);
+    masm.movePtr(ImmPtr(logger), loggerReg);
+    masm.tracelogStart(loggerReg, TraceLogCreateTextId(logger, script.get()));
+    masm.tracelogStart(loggerReg, TraceLogger::Baseline);
+    masm.Pop(loggerReg);
 #endif
 
     // Record the offset of the prologue, because Ion can bailout before
@@ -383,8 +387,16 @@ BaselineCompiler::emitEpilogue()
 {
     masm.bind(&return_);
 
-#if JS_TRACE_LOGGING
-    masm.tracelogStop();
+#ifdef JS_TRACE_LOGGING
+    TraceLogger *logger = TraceLoggerForMainThread(cx->runtime());
+    Register loggerReg = RegisterSet::Volatile().takeGeneral();
+    masm.Push(loggerReg);
+    masm.movePtr(ImmPtr(logger), loggerReg);
+    masm.tracelogStop(loggerReg, TraceLogger::Baseline);
+    // Stop the script. Using a stop without checking the textId, since we
+    // we didn't save the textId for the script.
+    masm.tracelogStop(loggerReg);
+    masm.Pop(loggerReg);
 #endif
 
     // Pop SPS frame if necessary
@@ -612,7 +624,7 @@ BaselineCompiler::emitInterruptCheck()
 }
 
 bool
-BaselineCompiler::emitUseCountIncrement()
+BaselineCompiler::emitUseCountIncrement(bool allowOsr)
 {
     // Emit no use count increments or bailouts if Ion is not
     // enabled, or if the script will never be Ion-compileable
@@ -632,6 +644,12 @@ BaselineCompiler::emitUseCountIncrement()
     // If this is a loop inside a catch or finally block, increment the use
     // count but don't attempt OSR (Ion only compiles the try block).
     if (analysis_.info(pc).loopEntryInCatchOrFinally) {
+        JS_ASSERT(JSOp(*pc) == JSOP_LOOPENTRY);
+        return true;
+    }
+
+    // OSR not possible at this loop entry.
+    if (!allowOsr) {
         JS_ASSERT(JSOp(*pc) == JSOP_LOOPENTRY);
         return true;
     }
@@ -1064,7 +1082,7 @@ bool
 BaselineCompiler::emit_JSOP_LOOPENTRY()
 {
     frame.syncStack(0);
-    return emitUseCountIncrement();
+    return emitUseCountIncrement(LoopEntryCanIonOsr(pc));
 }
 
 bool
@@ -1099,6 +1117,17 @@ BaselineCompiler::emit_JSOP_NULL()
 bool
 BaselineCompiler::emit_JSOP_THIS()
 {
+    if (function() && function()->isArrow()) {
+        // Arrow functions store their (lexical) |this| value in an
+        // extended slot.
+        frame.syncStack(0);
+        Register scratch = R0.scratchReg();
+        masm.loadPtr(frame.addressOfCallee(), scratch);
+        masm.loadValue(Address(scratch, FunctionExtended::offsetOfArrowThisSlot()), R0);
+        frame.push(R0);
+        return true;
+    }
+
     // Keep this value in R0
     frame.pushThis();
 
@@ -1262,6 +1291,33 @@ BaselineCompiler::emit_JSOP_LAMBDA()
     pushArg(ImmGCPtr(fun));
 
     if (!callVM(LambdaInfo))
+        return false;
+
+    // Box and push return value.
+    masm.tagValue(JSVAL_TYPE_OBJECT, ReturnReg, R0);
+    frame.push(R0);
+    return true;
+}
+
+typedef JSObject *(*LambdaArrowFn)(JSContext *, HandleFunction, HandleObject, HandleValue);
+static const VMFunction LambdaArrowInfo = FunctionInfo<LambdaArrowFn>(js::LambdaArrow);
+
+bool
+BaselineCompiler::emit_JSOP_LAMBDA_ARROW()
+{
+    // Keep pushed |this| in R0.
+    frame.popRegsAndSync(1);
+
+    RootedFunction fun(cx, script->getFunction(GET_UINT32_INDEX(pc)));
+
+    prepareVMCall();
+    masm.loadPtr(frame.addressOfScopeChain(), R1.scratchReg());
+
+    pushArg(R0);
+    pushArg(R1.scratchReg());
+    pushArg(ImmGCPtr(fun));
+
+    if (!callVM(LambdaArrowInfo))
         return false;
 
     // Box and push return value.
@@ -1725,6 +1781,24 @@ bool
 BaselineCompiler::emit_JSOP_ENDINIT()
 {
     return true;
+}
+
+typedef bool (*NewbornArrayPushFn)(JSContext *, HandleObject, const Value &);
+static const VMFunction NewbornArrayPushInfo = FunctionInfo<NewbornArrayPushFn>(NewbornArrayPush);
+
+bool
+BaselineCompiler::emit_JSOP_ARRAYPUSH()
+{
+    // Keep value in R0, object in R1.
+    frame.popRegsAndSync(2);
+    masm.unboxObject(R1, R1.scratchReg());
+
+    prepareVMCall();
+
+    pushArg(R0);
+    pushArg(R1.scratchReg());
+
+    return callVM(NewbornArrayPushInfo);
 }
 
 bool

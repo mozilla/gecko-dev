@@ -87,11 +87,7 @@
 #include "nsIDownloadHistory.h" // to mark downloads as visited
 #include "nsDocShellCID.h"
 
-#include "nsIDOMWindow.h"
-#include "nsIDocShell.h"
-
 #include "nsCRT.h"
-
 #include "nsLocalHandlerApp.h"
 
 #include "nsIRandomGenerator.h"
@@ -292,8 +288,11 @@ static bool GetFilenameAndExtensionFromChannel(nsIChannel* aChannel,
  * needs to be consistent throughout our codepaths. For platforms where
  * helper apps use the downloads directory, this should be kept in
  * sync with nsDownloadManager.cpp
+ *
+ * Optionally skip availability of the directory and storage.
  */
-static nsresult GetDownloadDirectory(nsIFile **_directory)
+static nsresult GetDownloadDirectory(nsIFile **_directory,
+                                     bool aSkipChecks = false)
 {
   nsCOMPtr<nsIFile> dir;
 #ifdef XP_MACOSX
@@ -308,6 +307,12 @@ static nsresult GetDownloadDirectory(nsIFile **_directory)
                                 NS_GET_IID(nsIFile),
                                 getter_AddRefs(dir));
         if (!dir) break;
+
+        // If we're not checking for availability we're done.
+        if (aSkipChecks) {
+          dir.forget(_directory);
+          return NS_OK;
+        }
 
         // We have the directory, and now we need to make sure it exists
         bool dirExists = false;
@@ -342,13 +347,35 @@ static nsresult GetDownloadDirectory(nsIFile **_directory)
   nsString storageName;
   nsDOMDeviceStorage::GetDefaultStorageName(NS_LITERAL_STRING("sdcard"),
                                             storageName);
-  NS_ENSURE_TRUE(!storageName.IsEmpty(), NS_ERROR_FAILURE);
 
   DeviceStorageFile dsf(NS_LITERAL_STRING("sdcard"),
                         storageName,
                         NS_LITERAL_STRING("downloads"));
-  NS_ENSURE_TRUE(dsf.mFile, NS_ERROR_FAILURE);
-  NS_ENSURE_TRUE(dsf.IsAvailable(), NS_ERROR_FAILURE);
+  NS_ENSURE_TRUE(dsf.mFile, NS_ERROR_FILE_ACCESS_DENIED);
+
+  // If we're not checking for availability we're done.
+  if (aSkipChecks) {
+    dsf.mFile.forget(_directory);
+    return NS_OK;
+  }
+
+  // Check device storage status before continuing.
+  nsString storageStatus;
+  dsf.GetStatus(storageStatus);
+
+  // If we get an "unavailable" status, it means the sd card is not present.
+  // We'll also catch internal errors by looking for an empty string and assume
+  // the SD card isn't present when this occurs.
+  if (storageStatus.EqualsLiteral("unavailable") ||
+      storageStatus.IsEmpty()) {
+    return NS_ERROR_FILE_NOT_FOUND;
+  }
+
+  // If we get a status other than 'available' here it means the card is busy
+  // because it's mounted via USB or it is being formatted.
+  if (!storageStatus.EqualsLiteral("available")) {
+    return NS_ERROR_FILE_ACCESS_DENIED;
+  }
 
   bool alreadyThere;
   nsresult rv = dsf.mFile->Exists(&alreadyThere);
@@ -366,11 +393,17 @@ static nsresult GetDownloadDirectory(nsIFile **_directory)
   char* downloadDir = getenv("DOWNLOADS_DIRECTORY");
   nsresult rv;
   if (downloadDir) {
-    nsCOMPtr<nsIFile> ldir; 
+    nsCOMPtr<nsIFile> ldir;
     rv = NS_NewNativeLocalFile(nsDependentCString(downloadDir),
                                true, getter_AddRefs(ldir));
     NS_ENSURE_SUCCESS(rv, rv);
     dir = do_QueryInterface(ldir);
+
+    // If we're not checking for availability we're done.
+    if (aSkipChecks) {
+      dir.forget(_directory);
+      return NS_OK;
+    }
   }
   else {
     return NS_ERROR_FAILURE;
@@ -1202,10 +1235,10 @@ NS_INTERFACE_MAP_BEGIN(nsExternalAppHandler)
    NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIStreamListener)
    NS_INTERFACE_MAP_ENTRY(nsIStreamListener)
    NS_INTERFACE_MAP_ENTRY(nsIRequestObserver)
-   NS_INTERFACE_MAP_ENTRY(nsIHelperAppLauncher)   
+   NS_INTERFACE_MAP_ENTRY(nsIHelperAppLauncher)
    NS_INTERFACE_MAP_ENTRY(nsICancelable)
    NS_INTERFACE_MAP_ENTRY(nsITimerCallback)
-   NS_INTERFACE_MAP_ENTRY(nsIBackgroundFileSaverObserver)   
+   NS_INTERFACE_MAP_ENTRY(nsIBackgroundFileSaverObserver)
 NS_INTERFACE_MAP_END_THREADSAFE
 
 nsExternalAppHandler::nsExternalAppHandler(nsIMIMEInfo * aMIMEInfo,
@@ -1238,8 +1271,8 @@ nsExternalAppHandler::nsExternalAppHandler(nsIMIMEInfo * aMIMEInfo,
   AppendUTF8toUTF16(aTempFileExtension, mTempFileExtension);
 
   // replace platform specific path separator and illegal characters to avoid any confusion
-  mSuggestedFileName.ReplaceChar(FILE_PATH_SEPARATOR FILE_ILLEGAL_CHARACTERS, '_');
-  mTempFileExtension.ReplaceChar(FILE_PATH_SEPARATOR FILE_ILLEGAL_CHARACTERS, '_');
+  mSuggestedFileName.ReplaceChar(KNOWN_PATH_SEPARATORS FILE_ILLEGAL_CHARACTERS, '_');
+  mTempFileExtension.ReplaceChar(KNOWN_PATH_SEPARATORS FILE_ILLEGAL_CHARACTERS, '_');
 
   // Remove unsafe bidi characters which might have spoofing implications (bug 511521).
   const char16_t unsafeBidiCharacters[] = {
@@ -1254,12 +1287,11 @@ nsExternalAppHandler::nsExternalAppHandler(nsIMIMEInfo * aMIMEInfo,
     char16_t(0x2066), // Left-to-Right Isolate
     char16_t(0x2067), // Right-to-Left Isolate
     char16_t(0x2068), // First Strong Isolate
-    char16_t(0x2069)  // Pop Directional Isolate
+    char16_t(0x2069), // Pop Directional Isolate
+    char16_t(0)
   };
-  for (uint32_t i = 0; i < ArrayLength(unsafeBidiCharacters); ++i) {
-    mSuggestedFileName.ReplaceChar(unsafeBidiCharacters[i], '_');
-    mTempFileExtension.ReplaceChar(unsafeBidiCharacters[i], '_');
-  }
+  mSuggestedFileName.ReplaceChar(unsafeBidiCharacters, '_');
+  mTempFileExtension.ReplaceChar(unsafeBidiCharacters, '_');
 
   // Make sure extension is correct.
   EnsureSuggestedFileName();
@@ -1270,6 +1302,15 @@ nsExternalAppHandler::nsExternalAppHandler(nsIMIMEInfo * aMIMEInfo,
 nsExternalAppHandler::~nsExternalAppHandler()
 {
   MOZ_ASSERT(!mSaver, "Saver should hold a reference to us until deleted");
+}
+
+void
+nsExternalAppHandler::DidDivertRequest(nsIRequest *request)
+{
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Content, "in child process");
+  // Remove our request from the child loadGroup
+  RetargetLoadNotifications(request);
+  MaybeCloseWindow();
 }
 
 NS_IMETHODIMP nsExternalAppHandler::SetWebProgressListener(nsIWebProgressListener2 * aWebProgressListener)
@@ -1428,13 +1469,13 @@ nsresult nsExternalAppHandler::SetUpTempFile(nsIChannel * aChannel)
 
   // Base64 characters are alphanumeric (a-zA-Z0-9) and '+' and '/', so we need
   // to replace illegal characters -- notably '/'
-  tempLeafName.ReplaceChar(FILE_PATH_SEPARATOR FILE_ILLEGAL_CHARACTERS, '_');
+  tempLeafName.ReplaceChar(KNOWN_PATH_SEPARATORS FILE_ILLEGAL_CHARACTERS, '_');
 
   // now append our extension.
   nsAutoCString ext;
   mMimeInfo->GetPrimaryExtension(ext);
   if (!ext.IsEmpty()) {
-    ext.ReplaceChar(FILE_PATH_SEPARATOR FILE_ILLEGAL_CHARACTERS, '_');
+    ext.ReplaceChar(KNOWN_PATH_SEPARATORS FILE_ILLEGAL_CHARACTERS, '_');
     if (ext.First() != '.')
       tempLeafName.Append('.');
     tempLeafName.Append(ext);
@@ -1613,12 +1654,25 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
 
   rv = SetUpTempFile(aChannel);
   if (NS_FAILED(rv)) {
+    nsresult transferError = rv;
+
+    rv = CreateFailedTransfer(aChannel && NS_UsePrivateBrowsing(aChannel));
+#ifdef PR_LOGGING
+    if (NS_FAILED(rv)) {
+      LOG(("Failed to create transfer to report failure."
+           "Will fallback to prompter!"));
+    }
+#endif
+
     mCanceled = true;
-    request->Cancel(rv);
+    request->Cancel(transferError);
+
     nsAutoString path;
     if (mTempFile)
       mTempFile->GetPath(path);
-    SendStatusChange(kWriteError, rv, request, path);
+
+    SendStatusChange(kWriteError, transferError, request, path);
+
     return NS_OK;
   }
 
@@ -1778,8 +1832,9 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
         if (type == kWriteError) {
           // Attempt to write without sufficient permissions.
 #if defined(ANDROID)
-          // On Android, assume the SD card is missing or read-only
-          msgId.AssignLiteral("accessErrorSD");
+          // On Android (and Gonk), this means the SD card is present but
+          // unavailable (read-only).
+          msgId.AssignLiteral("SDAccessErrorCardReadOnly");
 #else
           msgId.AssignLiteral("accessError");
 #endif
@@ -1798,6 +1853,14 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
           msgId.AssignLiteral("helperAppNotFound");
           break;
         }
+#if defined(ANDROID)
+        else if (type == kWriteError) {
+          // On Android (and Gonk), this means the SD card is missing (not in
+          // SD slot).
+          msgId.AssignLiteral("SDAccessErrorCardMissing");
+          break;
+        }
+#endif
         // fall through
 
     default:
@@ -1817,8 +1880,8 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
         break;
     }
     PR_LOG(nsExternalHelperAppService::mLog, PR_LOG_ERROR,
-        ("Error: %s, type=%i, listener=0x%p, rv=0x%08X\n",
-         NS_LossyConvertUTF16toASCII(msgId).get(), type, mDialogProgressListener.get(), rv));
+        ("Error: %s, type=%i, listener=0x%p, transfer=0x%p, rv=0x%08X\n",
+         NS_LossyConvertUTF16toASCII(msgId).get(), type, mDialogProgressListener.get(), mTransfer.get(), rv));
     PR_LOG(nsExternalHelperAppService::mLog, PR_LOG_ERROR,
         ("       path='%s'\n", NS_ConvertUTF16toUTF8(path).get()));
 
@@ -1844,16 +1907,55 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
               else
               if (XRE_GetProcessType() == GeckoProcessType_Default) {
                 // We don't have a listener.  Simply show the alert ourselves.
-                nsCOMPtr<nsIPrompt> prompter(do_GetInterface(mWindowContext));
+                nsresult qiRv;
+                nsCOMPtr<nsIPrompt> prompter(do_GetInterface(mWindowContext, &qiRv));
                 nsXPIDLString title;
                 bundle->FormatStringFromName(MOZ_UTF16("title"),
                                              strings,
                                              1,
                                              getter_Copies(title));
-                if (prompter)
+
+                PR_LOG(nsExternalHelperAppService::mLog, PR_LOG_DEBUG,
+                       ("mWindowContext=0x%p, prompter=0x%p, qi rv=0x%08X, title='%s', msg='%s'",
+                       mWindowContext.get(),
+                       prompter.get(),
+                       qiRv,
+                       NS_ConvertUTF16toUTF8(title).get(),
+                       NS_ConvertUTF16toUTF8(msgText).get()));
+
+                // If we didn't have a prompter we will try and get a window
+                // instead, get it's docshell and use it to alert the user.
+                if (!prompter)
                 {
-                  prompter->Alert(title, msgText);
+                  nsCOMPtr<nsPIDOMWindow> window(do_GetInterface(mWindowContext));
+                  if (!window || !window->GetDocShell())
+                  {
+                    return;
+                  }
+
+                  prompter = do_GetInterface(window->GetDocShell(), &qiRv);
+
+                  PR_LOG(nsExternalHelperAppService::mLog, PR_LOG_DEBUG,
+                         ("No prompter from mWindowContext, using DocShell, " \
+                          "window=0x%p, docShell=0x%p, " \
+                          "prompter=0x%p, qi rv=0x%08X",
+                          window.get(),
+                          window->GetDocShell(),
+                          prompter.get(),
+                          qiRv));
+
+                  // If we still don't have a prompter, there's nothing else we
+                  // can do so just return.
+                  if (!prompter)
+                  {
+                    PR_LOG(nsExternalHelperAppService::mLog, PR_LOG_ERROR,
+                           ("No prompter from DocShell, no way to alert user"));
+                    return;
+                  }
                 }
+
+                // We should always have a prompter at this point.
+                prompter->Alert(title, msgText);
               }
             }
         }
@@ -1904,6 +2006,10 @@ nsExternalAppHandler::OnDataAvailable(nsIRequest *request, nsISupports * aCtxt,
 NS_IMETHODIMP nsExternalAppHandler::OnStopRequest(nsIRequest *request, nsISupports *aCtxt,
                                                   nsresult aStatus)
 {
+  LOG(("nsExternalAppHandler::OnStopRequest\n"
+       "  mCanceled=%d, mTransfer=0x%p, aStatus=0x%08X\n",
+       mCanceled, mTransfer.get(), aStatus));
+
   mStopRequestIssued = true;
 
   // Cancel if the request did not complete successfully.
@@ -1936,6 +2042,10 @@ NS_IMETHODIMP
 nsExternalAppHandler::OnSaveComplete(nsIBackgroundFileSaver *aSaver,
                                      nsresult aStatus)
 {
+  LOG(("nsExternalAppHandler::OnSaveComplete\n"
+       "  aSaver=0x%p, aStatus=0x%08X, mCanceled=%d, mTransfer=0x%p\n",
+       aSaver, aStatus, mCanceled, mTransfer.get()));
+
   if (!mCanceled) {
     // Save the hash
     (void)mSaver->GetSha256Hash(mHash);
@@ -1947,6 +2057,18 @@ nsExternalAppHandler::OnSaveComplete(nsIBackgroundFileSaver *aSaver,
     if (NS_FAILED(aStatus)) {
       nsAutoString path;
       mTempFile->GetPath(path);
+
+      // It may happen when e10s is enabled that there will be no transfer
+      // object available to communicate status as expected by the system.
+      // Let's try and create a temporary transfer object to take care of this
+      // for us, we'll fall back to using the prompt service if we absolutely
+      // have to.
+      if (!mTransfer) {
+        nsCOMPtr<nsIChannel> channel = do_QueryInterface(mRequest);
+        // We don't care if this fails.
+        CreateFailedTransfer(channel && NS_UsePrivateBrowsing(channel));
+      }
+
       SendStatusChange(kWriteError, aStatus, nullptr, path);
       if (!mCanceled)
         Cancel(aStatus);
@@ -2012,6 +2134,8 @@ NS_IMETHODIMP nsExternalAppHandler::GetSuggestedFileName(nsAString& aSuggestedFi
 
 nsresult nsExternalAppHandler::CreateTransfer()
 {
+  LOG(("nsExternalAppHandler::CreateTransfer"));
+
   MOZ_ASSERT(NS_IsMainThread(), "Must create transfer on main thread");
   // We are back from the helper app dialog (where the user chooses to save or
   // open), but we aren't done processing the load. in this case, throw up a
@@ -2088,6 +2212,39 @@ nsresult nsExternalAppHandler::CreateTransfer()
   }
 
   return rv;
+}
+
+nsresult nsExternalAppHandler::CreateFailedTransfer(bool aIsPrivateBrowsing)
+{
+  nsresult rv;
+  nsCOMPtr<nsITransfer> transfer =
+    do_CreateInstance(NS_TRANSFER_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // If we don't have a download directory we're kinda screwed but it's OK
+  // we'll still report the error via the prompter.
+  nsCOMPtr<nsIFile> pseudoFile;
+  rv = GetDownloadDirectory(getter_AddRefs(pseudoFile), true);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // Append the default suggested filename. If the user restarts the transfer
+  // we will re-trigger a filename check anyway to ensure that it is unique.
+  rv = pseudoFile->Append(mSuggestedFileName);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIURI> pseudoTarget;
+  rv = NS_NewFileURI(getter_AddRefs(pseudoTarget), pseudoFile);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = transfer->Init(mSourceUrl, pseudoTarget, EmptyString(),
+                      mMimeInfo, mTimeDownloadStarted, nullptr, this,
+                      aIsPrivateBrowsing);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // Our failed transfer is ready.
+  mTransfer = transfer.forget();
+
+  return NS_OK;
 }
 
 nsresult nsExternalAppHandler::SaveDestinationAvailable(nsIFile * aFile)
@@ -2468,7 +2625,7 @@ NS_IMETHODIMP nsExternalHelperAppService::GetFromTypeAndExtension(const nsACStri
 
   // (1) Ask the OS for a mime info
   bool found;
-  *_retval = GetMIMEInfoFromOS(typeToUse, aFileExt, &found).get();
+  *_retval = GetMIMEInfoFromOS(typeToUse, aFileExt, &found).take();
   LOG(("OS gave back 0x%p - found: %i\n", *_retval, found));
   // If we got no mimeinfo, something went wrong. Probably lack of memory.
   if (!*_retval)

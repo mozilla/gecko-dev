@@ -190,10 +190,22 @@ public:
 
   virtual NS_HIDDEN_(bool) IsRunningTimeout() = 0;
 
+  // Audio API
+  bool GetAudioMuted() const;
+  void SetAudioMuted(bool aMuted);
+
+  float GetAudioVolume() const;
+  nsresult SetAudioVolume(float aVolume);
+
+  float GetAudioGlobalVolume();
+
 protected:
   // Lazily instantiate an about:blank document if necessary, and if
   // we have what it takes to do so.
   void MaybeCreateDoc();
+
+  float GetAudioGlobalVolumeInternal(float aVolume);
+  void RefreshMediaElements();
 
 public:
   // Internal getter/setter for the frame element, this version of the
@@ -459,12 +471,6 @@ public:
    * changes window state in a context trusted for write.
    */
   virtual nsresult SetFullScreenInternal(bool aIsFullScreen, bool aRequireTrust) = 0;
-
-  /**
-   * Call this to indicate that some node (this window, its document,
-   * or content in that document) has a "MozAudioAvailable" event listener.
-   */
-  virtual void SetHasAudioAvailableEventListeners() = 0;
 
   /**
    * Call this to check whether some node (this window, its document,
@@ -767,6 +773,9 @@ protected:
   // is false.  Too bad we have so many different concepts of
   // "active".  Only used on outer windows.
   bool                   mIsBackground;
+
+  bool                   mAudioMuted;
+  float                  mAudioVolume;
 
   // And these are the references between inner and outer windows.
   nsPIDOMWindow         *mInnerWindow;

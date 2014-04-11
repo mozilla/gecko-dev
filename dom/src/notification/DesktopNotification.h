@@ -16,11 +16,11 @@
 #include "nsIDOMWindow.h"
 #include "nsIScriptObjectPrincipal.h"
 
-#include "nsDOMEventTargetHelper.h"
 #include "nsIDOMEvent.h"
 #include "nsIDocument.h"
 
 #include "mozilla/Attributes.h"
+#include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/ErrorResult.h"
 #include "nsWrapperCache.h"
 
@@ -69,8 +69,7 @@ public:
     return mOwner;
   }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
-                               JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   already_AddRefed<DesktopNotification>
   CreateNotification(const nsAString& title,
@@ -84,7 +83,7 @@ private:
 
 class DesktopNotificationRequest;
 
-class DesktopNotification MOZ_FINAL : public nsDOMEventTargetHelper
+class DesktopNotification MOZ_FINAL : public DOMEventTargetHelper
 {
   friend class DesktopNotificationRequest;
 
@@ -122,8 +121,7 @@ public:
     return GetOwner();
   }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
-                               JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   void Show(ErrorResult& aRv);
 

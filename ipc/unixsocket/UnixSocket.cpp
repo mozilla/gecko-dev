@@ -5,7 +5,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "UnixSocket.h"
-#include "mozilla/ipc/UnixSocketWatcher.h"
 #include "nsTArray.h"
 #include "nsXULAppAPI.h"
 #include <fcntl.h>
@@ -65,8 +64,7 @@ public:
     MOZ_ASSERT(!NS_IsMainThread());
     MOZ_ASSERT(!mShuttingDownOnIOThread);
 
-    RemoveWatchers(READ_WATCHER|WRITE_WATCHER);
-
+    Close(); // will also remove fd from I/O loop
     mShuttingDownOnIOThread = true;
   }
 
@@ -119,7 +117,8 @@ public:
    */
   RefPtr<UnixSocketConsumer> mConsumer;
 
-  void OnAccepted(int aFd) MOZ_OVERRIDE;
+  void OnAccepted(int aFd, const sockaddr_any* aAddr,
+                  socklen_t aAddrLen) MOZ_OVERRIDE;
   void OnConnected() MOZ_OVERRIDE;
   void OnError(const char* aFunction, int aErrno) MOZ_OVERRIDE;
   void OnListening() MOZ_OVERRIDE;
@@ -553,10 +552,17 @@ UnixSocketImpl::SetSocketFlags(int aFd)
 }
 
 void
-UnixSocketImpl::OnAccepted(int aFd)
+UnixSocketImpl::OnAccepted(int aFd,
+                           const sockaddr_any* aAddr,
+                           socklen_t aAddrLen)
 {
   MOZ_ASSERT(MessageLoopForIO::current() == GetIOLoop());
   MOZ_ASSERT(GetConnectionStatus() == SOCKET_IS_LISTENING);
+  MOZ_ASSERT(aAddr);
+  MOZ_ASSERT(aAddrLen <= sizeof(mAddr));
+
+  memcpy (&mAddr, aAddr, aAddrLen);
+  mAddrSize = aAddrLen;
 
   if (!mConnector->SetUp(aFd)) {
     NS_WARNING("Could not set up socket!");
@@ -636,7 +642,7 @@ void
 UnixSocketImpl::OnSocketCanReceiveWithoutBlocking()
 {
   MOZ_ASSERT(MessageLoopForIO::current() == GetIOLoop());
-  MOZ_ASSERT(GetConnectionStatus() == SOCKET_IS_CONNECTED);
+  MOZ_ASSERT(GetConnectionStatus() == SOCKET_IS_CONNECTED); // see bug 990984
 
   // Read all of the incoming data.
   while (true) {
@@ -684,7 +690,7 @@ void
 UnixSocketImpl::OnSocketCanSendWithoutBlocking()
 {
   MOZ_ASSERT(MessageLoopForIO::current() == GetIOLoop());
-  MOZ_ASSERT(GetConnectionStatus() == SOCKET_IS_CONNECTED);
+  MOZ_ASSERT(GetConnectionStatus() == SOCKET_IS_CONNECTED); // see bug 990984
 
   // Try to write the bytes of mCurrentRilRawData.  If all were written, continue.
   //
@@ -732,6 +738,8 @@ UnixSocketConsumer::UnixSocketConsumer() : mImpl(nullptr)
 
 UnixSocketConsumer::~UnixSocketConsumer()
 {
+  MOZ_ASSERT(mConnectionStatus == SOCKET_DISCONNECTED);
+  MOZ_ASSERT(!mImpl);
 }
 
 bool

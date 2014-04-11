@@ -210,21 +210,44 @@ class VideoFrameContainer;
 class MediaDecoderStateMachine;
 class MediaDecoderOwner;
 
-// The size to use for audio data frames in MozAudioAvailable events.
-// This value is per channel, and is chosen to give ~43 fps of events,
-// for example, 44100 with 2 channels, 2*1024 = 2048.
-static const uint32_t FRAMEBUFFER_LENGTH_PER_CHANNEL = 1024;
-
-// The total size of the framebuffer used for MozAudioAvailable events
-// has to be within the following range.
-static const uint32_t FRAMEBUFFER_LENGTH_MIN = 512;
-static const uint32_t FRAMEBUFFER_LENGTH_MAX = 16384;
-
 // GetCurrentTime is defined in winbase.h as zero argument macro forwarding to
 // GetTickCount() and conflicts with MediaDecoder::GetCurrentTime implementation.
 #ifdef GetCurrentTime
 #undef GetCurrentTime
 #endif
+
+// Stores the seek target; the time to seek to, and whether an Accurate,
+// or "Fast" (nearest keyframe) seek was requested.
+struct SeekTarget {
+  enum Type {
+    Invalid,
+    PrevSyncPoint,
+    Accurate
+  };
+  SeekTarget()
+    : mTime(-1.0)
+    , mType(SeekTarget::Invalid)
+  {
+  }
+  SeekTarget(int64_t aTimeUsecs, Type aType)
+    : mTime(aTimeUsecs)
+    , mType(aType)
+  {
+  }
+  bool IsValid() const {
+    return mType != SeekTarget::Invalid;
+  }
+  void Reset() {
+    mTime = -1;
+    mType = SeekTarget::Invalid;
+  }
+  // Seek target time in microseconds.
+  int64_t mTime;
+  // Whether we should seek "Fast", or "Accurate".
+  // "Fast" seeks to the seek point preceeding mTime, whereas
+  // "Accurate" seeks as close as possible to mTime.
+  Type mType;
+};
 
 class MediaDecoder : public nsIObserver,
                      public AbstractMediaDecoder
@@ -310,7 +333,9 @@ public:
   virtual double GetCurrentTime();
 
   // Seek to the time position in (seconds) from the start of the video.
-  virtual nsresult Seek(double aTime);
+  // If aDoFastSeek is true, we'll seek to the sync point/keyframe preceeding
+  // the seek target.
+  virtual nsresult Seek(double aTime, SeekTarget::Type aSeekType);
 
   // Enables decoders to supply an enclosing byte range for a seek offset.
   // E.g. used by ChannelMediaResource to download a whole cluster for
@@ -341,8 +366,15 @@ public:
   // of our audio.
   virtual void SetAudioCaptured(bool aCaptured);
 
-  void SetPlaybackRate(double aPlaybackRate);
+  virtual void NotifyWaitingForResourcesStatusChanged() MOZ_OVERRIDE;
+
+  virtual void SetPlaybackRate(double aPlaybackRate);
   void SetPreservesPitch(bool aPreservesPitch);
+
+  // Directs the decoder to not preroll extra samples until the media is
+  // played. This reduces the memory overhead of media elements that may
+  // not be played. Note that seeking also doesn't cause us start prerolling.
+  void SetMinimizePrerollUntilPlaybackStarts();
 
   // All MediaStream-related data is protected by mReentrantMonitor.
   // We have at most one DecodedStreamData per MediaDecoder. Its stream
@@ -617,12 +649,6 @@ public:
   // Returns a weak reference to the media decoder owner.
   MediaDecoderOwner* GetMediaOwner() const;
 
-  // Returns the current size of the framebuffer used in
-  // MozAudioAvailable events.
-  uint32_t GetFrameBufferLength() { return mFrameBufferLength; }
-
-  void AudioAvailable(float* aFrameBuffer, uint32_t aFrameBufferLength, float aTime);
-
   // Called by the state machine to notify the decoder that the duration
   // has changed.
   void DurationChanged();
@@ -644,7 +670,7 @@ public:
 
   // Returns the size, in bytes, of the heap memory used by the currently
   // queued decoded video and audio data.
-  virtual int64_t VideoQueueMemoryInUse();
+  size_t SizeOfVideoQueue();
   size_t SizeOfAudioQueue();
 
   VideoFrameContainer* GetVideoFrameContainer() MOZ_FINAL MOZ_OVERRIDE
@@ -652,10 +678,6 @@ public:
     return mVideoFrameContainer;
   }
   layers::ImageContainer* GetImageContainer() MOZ_OVERRIDE;
-
-  // Sets the length of the framebuffer used in MozAudioAvailable events.
-  // The new size must be between 512 and 16384.
-  virtual nsresult RequestFrameBufferLength(uint32_t aLength);
 
   // Return the current state. Can be called on any thread. If called from
   // a non-main thread, the decoder monitor must be held.
@@ -738,7 +760,7 @@ public:
   // Change to a new play state. This updates the mState variable and
   // notifies any thread blocking on this object's monitor of the
   // change. Call on the main thread only.
-  void ChangeState(PlayState aState);
+  virtual void ChangeState(PlayState aState);
 
   // Called by |ChangeState|, to update the state machine.
   // Call on the main thread only and the lock must be obtained.
@@ -750,7 +772,11 @@ public:
 
   // Called when the metadata from the media file has been loaded by the
   // state machine. Call on the main thread only.
-  void MetadataLoaded(int aChannels, int aRate, bool aHasAudio, bool aHasVideo, MetadataTags* aTags);
+  virtual void MetadataLoaded(int aChannels,
+                              int aRate,
+                              bool aHasAudio,
+                              bool aHasVideo,
+                              MetadataTags* aTags);
 
   // Called when the first frame has been loaded.
   // Call on the main thread only.
@@ -783,7 +809,7 @@ public:
 
   // Calls mElement->UpdateReadyStateForData, telling it whether we have
   // data for the next frame and if we're buffering. Main thread only.
-  void UpdateReadyStateForData();
+  virtual void UpdateReadyStateForData();
 
   // Find the end of the cached data starting at the current decoder
   // position.
@@ -799,11 +825,6 @@ public:
   // Drop reference to state machine.  Only called during shutdown dance.
   virtual void ReleaseStateMachine();
 
-  // Called when a "MozAudioAvailable" event listener is added. This enables
-  // the decoder to only dispatch "MozAudioAvailable" events when a
-  // handler exists, reducing overhead. Called on the main thread.
-  virtual void NotifyAudioAvailableListener();
-
   // Notifies the element that decoding has failed.
   virtual void DecodeError();
 
@@ -811,6 +832,13 @@ public:
   void UpdateSameOriginStatus(bool aSameOrigin);
 
   MediaDecoderOwner* GetOwner() MOZ_OVERRIDE;
+
+  // Returns true if we're logically playing, that is, if the Play() has
+  // been called and Pause() has not or we have not yet reached the end
+  // of media. This is irrespective of the seeking state; if the owner
+  // calls Play() and then Seek(), we still count as logically playing.
+  // The decoder monitor must be held.
+  bool IsLogicallyPlaying();
 
 #ifdef MOZ_RAW
   static bool IsRawEnabled();
@@ -893,7 +921,6 @@ public:
 
     FrameStatistics() :
         mReentrantMonitor("MediaDecoder::FrameStats"),
-        mTotalFrameDelay(0.0),
         mParsedFrames(0),
         mDecodedFrames(0),
         mPresentedFrames(0) {}
@@ -920,11 +947,6 @@ public:
       return mPresentedFrames;
     }
 
-    double GetTotalFrameDelay() {
-      ReentrantMonitorAutoEnter mon(mReentrantMonitor);
-      return mTotalFrameDelay;
-    }
-
     // Increments the parsed and decoded frame counters by the passed in counts.
     // Can be called on any thread.
     void NotifyDecodedFrames(uint32_t aParsed, uint32_t aDecoded) {
@@ -942,21 +964,10 @@ public:
       ++mPresentedFrames;
     }
 
-    // Tracks the sum of display delay.
-    // Can be called on any thread.
-    void NotifyFrameDelay(double aFrameDelay) {
-      ReentrantMonitorAutoEnter mon(mReentrantMonitor);
-      mTotalFrameDelay += aFrameDelay;
-    }
-
   private:
 
     // ReentrantMonitor to protect access of playback statistics.
     ReentrantMonitor mReentrantMonitor;
-
-    // Sum of displayed frame delays.
-    // Access protected by mReentrantMonitor.
-    double mTotalFrameDelay;
 
     // Number of frames parsed and demuxed from media.
     // Access protected by mReentrantMonitor.
@@ -1040,7 +1051,7 @@ protected:
   // is synchronised on a monitor. The lifetime of this object is
   // after mPlayState is LOADING and before mPlayState is SHUTDOWN. It
   // is safe to access it during this period.
-  nsCOMPtr<MediaDecoderStateMachine> mDecoderStateMachine;
+  nsRefPtr<MediaDecoderStateMachine> mDecoderStateMachine;
 
   // Media data resource.
   nsRefPtr<MediaResource> mResource;
@@ -1119,9 +1130,9 @@ protected:
   // This can only be changed on the main thread while holding the decoder
   // monitor. Thus, it can be safely read while holding the decoder monitor
   // OR on the main thread.
-  // If the value is negative then no seek has been requested. When a seek is
-  // started this is reset to negative.
-  double mRequestedSeekTime;
+  // If the SeekTarget's IsValid() accessor returns false, then no seek has
+  // been requested. When a seek is started this is reset to invalid.
+  SeekTarget mRequestedSeekTarget;
 
   // True when we have fully loaded the resource and reported that
   // to the element (i.e. reached NETWORK_LOADED state).
@@ -1179,9 +1190,6 @@ protected:
   // time of the last decoded video frame).
   MediaChannelStatistics mPlaybackStatistics;
 
-  // The framebuffer size to use for audioavailable events.
-  uint32_t mFrameBufferLength;
-
   // True when our media stream has been pinned. We pin the stream
   // while seeking.
   bool mPinnedForSeek;
@@ -1198,6 +1206,12 @@ protected:
   // Be assigned from media element during the initialization and pass to
   // AudioStream Class.
   dom::AudioChannelType mAudioChannelType;
+
+  // True if the decoder has been directed to minimize its preroll before
+  // playback starts. After the first time playback starts, we don't attempt
+  // to minimize preroll, as we assume the user is likely to keep playing,
+  // or play the media again.
+  bool mMinimizePreroll;
 };
 
 } // namespace mozilla

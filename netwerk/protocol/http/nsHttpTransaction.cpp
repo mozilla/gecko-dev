@@ -36,9 +36,8 @@
 #include <algorithm>
 
 #ifdef MOZ_WIDGET_GONK
-#include "nsINetworkStatsServiceProxy.h"
+#include "NetStatistics.h"
 #endif
-
 
 //-----------------------------------------------------------------------------
 
@@ -54,6 +53,8 @@ static NS_DEFINE_CID(kMultiplexInputStream, NS_MULTIPLEXINPUTSTREAM_CID);
 // Place a limit on how much non-compliant HTTP can be skipped while
 // looking for a response header
 #define MAX_INVALID_RESPONSE_BODY_SIZE (1024 * 128)
+
+using namespace mozilla::net;
 
 namespace mozilla {
 namespace net {
@@ -244,7 +245,7 @@ nsHttpTransaction::Init(uint32_t caps,
 #ifdef MOZ_WIDGET_GONK
     if (mAppId != NECKO_NO_APP_ID) {
         nsCOMPtr<nsINetworkInterface> activeNetwork;
-        NS_GetActiveNetworkInterface(activeNetwork);
+        GetActiveNetworkInterface(activeNetwork);
         mActiveNetwork =
             new nsMainThreadPtrHolder<nsINetworkInterface>(activeNetwork);
     }
@@ -274,8 +275,9 @@ nsHttpTransaction::Init(uint32_t caps,
     mConsumerTarget = target;
     mCaps = caps;
 
-    if (requestHead->Method() == nsHttp::Head)
+    if (requestHead->IsHead()) {
         mNoContent = true;
+    }
 
     // Make sure that there is "Content-Length: 0" header in the requestHead
     // in case of POST and PUT methods when there is no requestBody and
@@ -289,7 +291,7 @@ nsHttpTransaction::Init(uint32_t caps,
     //   For compatibility with HTTP/1.0 applications, HTTP/1.1 requests
     //   containing a message-body MUST include a valid Content-Length header
     //   field unless the server is known to be HTTP/1.1 compliant.
-    if ((requestHead->Method() == nsHttp::Post || requestHead->Method() == nsHttp::Put) &&
+    if ((requestHead->IsPost() || requestHead->IsPut()) &&
         !requestBody && !requestHead->PeekHeader(nsHttp::Transfer_Encoding)) {
         requestHead->SetHeader(nsHttp::Content_Length, NS_LITERAL_CSTRING("0"));
     }
@@ -732,58 +734,6 @@ nsHttpTransaction::WriteSegments(nsAHttpSegmentWriter *writer,
     return rv;
 }
 
-//-----------------------------------------------------------------------------
-// nsHttpTransaction save network statistics event
-//-----------------------------------------------------------------------------
-
-#ifdef MOZ_WIDGET_GONK
-namespace {
-class SaveNetworkStatsEvent : public nsRunnable {
-public:
-    SaveNetworkStatsEvent(uint32_t aAppId,
-                          nsMainThreadPtrHandle<nsINetworkInterface> &aActiveNetwork,
-                          uint64_t aCountRecv,
-                          uint64_t aCountSent)
-        : mAppId(aAppId),
-          mActiveNetwork(aActiveNetwork),
-          mCountRecv(aCountRecv),
-          mCountSent(aCountSent)
-    {
-        MOZ_ASSERT(mAppId != NECKO_NO_APP_ID);
-        MOZ_ASSERT(mActiveNetwork);
-    }
-
-    NS_IMETHOD Run()
-    {
-        MOZ_ASSERT(NS_IsMainThread());
-
-        nsresult rv;
-        nsCOMPtr<nsINetworkStatsServiceProxy> mNetworkStatsServiceProxy =
-            do_GetService("@mozilla.org/networkstatsServiceProxy;1", &rv);
-        if (NS_FAILED(rv)) {
-            return rv;
-        }
-
-        // save the network stats through NetworkStatsServiceProxy
-        mNetworkStatsServiceProxy->SaveAppStats(mAppId,
-                                                mActiveNetwork,
-                                                PR_Now() / 1000,
-                                                mCountRecv,
-                                                mCountSent,
-                                                false,
-                                                nullptr);
-
-        return NS_OK;
-    }
-private:
-    uint32_t mAppId;
-    nsMainThreadPtrHandle<nsINetworkInterface> mActiveNetwork;
-    uint64_t mCountRecv;
-    uint64_t mCountSent;
-};
-};
-#endif
-
 nsresult
 nsHttpTransaction::SaveNetworkStats(bool enforce)
 {
@@ -810,7 +760,7 @@ nsHttpTransaction::SaveNetworkStats(bool enforce)
     // the event is then dispathed to the main thread.
     nsRefPtr<nsRunnable> event =
         new SaveNetworkStatsEvent(mAppId, mActiveNetwork,
-                                  mCountRecv, mCountSent);
+                                  mCountRecv, mCountSent, false);
     NS_DispatchToMainThread(event);
 
     // Reset the counters after saving.
@@ -1314,7 +1264,7 @@ nsHttpTransaction::ParseHead(char *buf,
             char *p = LocateHttpStart(buf, std::min<uint32_t>(count, 11), true);
             if (!p) {
                 // Treat any 0.9 style response of a put as a failure.
-                if (mRequestHead->Method() == nsHttp::Put)
+                if (mRequestHead->IsPut())
                     return NS_ERROR_ABORT;
 
                 mResponseHead->ParseStatusLine("");
@@ -1497,7 +1447,7 @@ nsHttpTransaction::HandleContentStart()
 
     // The verifier only initializes itself once (from the first iteration of
     // a transaction that gets far enough to have response headers)
-    if (mRequestHead->Method() == nsHttp::Get)
+    if (mRequestHead->IsGet())
         mRestartInProgressVerifier.Set(mContentLength, mResponseHead);
 
     return NS_OK;
@@ -1840,7 +1790,7 @@ nsHttpTransaction::CancelPacing(nsresult reason)
 
 NS_IMPL_ADDREF(nsHttpTransaction)
 
-NS_IMETHODIMP_(nsrefcnt)
+NS_IMETHODIMP_(MozExternalRefCountType)
 nsHttpTransaction::Release()
 {
     nsrefcnt count;

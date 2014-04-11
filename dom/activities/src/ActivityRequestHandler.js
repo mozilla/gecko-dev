@@ -4,7 +4,6 @@
 
 "use strict";
 
-const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
@@ -25,28 +24,28 @@ function debug(aMsg) {
 
 function ActivityRequestHandler() {
   debug("ActivityRequestHandler");
-  this.wrappedJSObject = this;
 
   // When a system message of type 'activity' is emitted, it forces the
   // creation of an ActivityWrapper which in turns replace the default
-  // system message callback. The newly created wrapper then create a
-  // nsIDOMActivityRequestHandler object and fills up the properties of
-  // this object as well as the properties of the nsIDOMActivityOptions
-  // object contains by the request handler.
-  this._id = null;
-  this._options = Cc["@mozilla.org/dom/activities/options;1"]
-                    .createInstance(Ci.nsIDOMMozActivityOptions);
+  // system message callback. The newly created wrapper then create an
+  // ActivityRequestHandler object.
 }
 
 ActivityRequestHandler.prototype = {
-  __exposedProps__: {
-                      source: "r",
-                      postResult: "r",
-                      postError: "r"
-                    },
+  init: function arh_init(aWindow) {
+    this._window = aWindow;
+  },
+
+  __init: function arh___init(aId, aOptions) {
+    this._id = aId;
+    this._options = aOptions;
+  },
 
   get source() {
-    return this._options;
+    // We need to clone this object because the this._options.data has
+    // the type any in WebIDL which will cause the binding layer to pass
+    // the value which is a COW unmodified to content.
+    return Cu.cloneInto(this._options, this._window);
   },
 
   postResult: function arh_postResult(aResult) {
@@ -68,16 +67,8 @@ ActivityRequestHandler.prototype = {
   classID: Components.ID("{9326952a-dbe3-4d81-a51f-d9c160d96d6b}"),
 
   QueryInterface: XPCOMUtils.generateQI([
-    Ci.nsIDOMMozActivityRequestHandler
-  ]),
-
-  classInfo: XPCOMUtils.generateCI({
-    classID: Components.ID("{9326952a-dbe3-4d81-a51f-d9c160d96d6b}"),
-    contractID: "@mozilla.org/dom/activities/request-handler;1",
-    interfaces: [Ci.nsIDOMMozActivityRequestHandler],
-    flags: Ci.nsIClassInfo.DOM_OBJECT,
-    classDescription: "Activity Request Handler"
-  })
+    Ci.nsIDOMGlobalPropertyInitializer
+  ])
 }
 
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory([ActivityRequestHandler]);

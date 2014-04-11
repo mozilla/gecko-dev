@@ -122,7 +122,7 @@ public:
   NS_IMETHOD              GetScreenBounds(nsIntRect &aRect);
   NS_IMETHOD              GetClientBounds(nsIntRect &aRect);
   virtual nsIntPoint      GetClientOffset();
-  NS_IMETHOD              SetBackgroundColor(const nscolor &aColor);
+  void                    SetBackgroundColor(const nscolor &aColor);
   NS_IMETHOD              SetCursor(imgIContainer* aCursor,
                                     uint32_t aHotspotX, uint32_t aHotspotY);
   NS_IMETHOD              SetCursor(nsCursor aCursor);
@@ -195,6 +195,8 @@ public:
   void                    SetDrawsInTitlebar(bool aState);
   mozilla::TemporaryRef<mozilla::gfx::DrawTarget> StartRemoteDrawing() MOZ_OVERRIDE;
   virtual void            EndRemoteDrawing() MOZ_OVERRIDE;
+
+  virtual void            UpdateThemeGeometries(const nsTArray<ThemeGeometry>& aThemeGeometries) MOZ_OVERRIDE;
 
   /**
    * Event helpers

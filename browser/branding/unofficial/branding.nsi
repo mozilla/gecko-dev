@@ -10,8 +10,8 @@
 # instead of BrandFullName and typically should not be modified.
 !define BrandFullNameInternal "Mozilla Developer Preview"
 !define CompanyName           "mozilla.org"
-!define URLInfoAbout          "http://www.mozilla.org"
-!define URLUpdateInfo         "http://www.mozilla.org/projects/firefox"
+!define URLInfoAbout          "https://www.mozilla.org"
+!define HelpLink              "https://support.mozilla.org"
 
 !define URLStubDownload "http://download.mozilla.org/?os=win&lang=${AB_CD}&product=firefox-latest"
 !define URLManualDownload "https://www.mozilla.org/${AB_CD}/firefox/installer-help/?channel=release&installer_lang=${AB_CD}"
@@ -37,9 +37,8 @@
 !define FOOTER_CONTROL_TEXT_COLOR_FADED 0x999999
 !define FOOTER_BKGRD_COLOR 0xFFFFFF
 !define INTRO_BLURB_TEXT_COLOR 0xFFFFFF
-!define OPTIONS_TEXT_COLOR_NORMAL 0xFFFFFF
-!define OPTIONS_TEXT_COLOR_FADED 0xA1AAB3
-!define OPTIONS_BKGRD_COLOR 0x0F1B26
 !define INSTALL_BLURB_TEXT_COLOR 0xFFFFFF
 !define INSTALL_PROGRESS_TEXT_COLOR_NORMAL 0xFFFFFF
-!define INSTALL_PROGRESS_TEXT_COLOR_FADED 0xA1AAB3
+!define COMMON_TEXT_COLOR_NORMAL 0xFFFFFF
+!define COMMON_TEXT_COLOR_FADED 0xA1AAB3
+!define COMMON_BKGRD_COLOR 0x0F1B26

@@ -29,6 +29,10 @@ class nsIRadioVisitor;
 class nsTextEditorState;
 
 namespace mozilla {
+
+class EventChainPostVisitor;
+class EventChainPreVisitor;
+
 namespace dom {
 
 class Date;
@@ -97,7 +101,7 @@ public:
   using nsIConstraintValidation::Validity;
   using nsGenericHTMLFormElementWithState::GetForm;
 
-  HTMLInputElement(already_AddRefed<nsINodeInfo> aNodeInfo,
+  HTMLInputElement(already_AddRefed<nsINodeInfo>& aNodeInfo,
                    mozilla::dom::FromParser aFromParser);
   virtual ~HTMLInputElement();
 
@@ -148,9 +152,10 @@ public:
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const MOZ_OVERRIDE;
   virtual nsMapRuleToAttributesFunc GetAttributeMappingFunction() const MOZ_OVERRIDE;
 
-  virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
-  virtual nsresult PostHandleEvent(nsEventChainPostVisitor& aVisitor) MOZ_OVERRIDE;
-  void PostHandleEventForRangeThumb(nsEventChainPostVisitor& aVisitor);
+  virtual nsresult PreHandleEvent(EventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
+  virtual nsresult PostHandleEvent(
+                     EventChainPostVisitor& aVisitor) MOZ_OVERRIDE;
+  void PostHandleEventForRangeThumb(EventChainPostVisitor& aVisitor);
   void StartRangeThumbDrag(WidgetGUIEvent* aEvent);
   void FinishRangeThumbDrag(WidgetGUIEvent* aEvent = nullptr);
   void CancelRangeThumbDrag(bool aIsForUserEvent = true);
@@ -164,12 +169,13 @@ public:
 
   virtual void DoneCreatingElement() MOZ_OVERRIDE;
 
-  virtual nsEventStates IntrinsicState() const MOZ_OVERRIDE;
+  virtual EventStates IntrinsicState() const MOZ_OVERRIDE;
 
   // Element
 private:
-  virtual void AddStates(nsEventStates aStates);
-  virtual void RemoveStates(nsEventStates aStates);
+  virtual void AddStates(EventStates aStates);
+  virtual void RemoveStates(EventStates aStates);
+
 public:
 
   // nsITextControlElement
@@ -256,7 +262,7 @@ public:
   bool     HasPatternMismatch() const;
   bool     IsRangeOverflow() const;
   bool     IsRangeUnderflow() const;
-  bool     HasStepMismatch() const;
+  bool     HasStepMismatch(bool aUseZeroIfValueNaN = false) const;
   bool     HasBadInput() const;
   void     UpdateTooLongValidityState();
   void     UpdateValueMissingValidityState();
@@ -729,8 +735,7 @@ public:
   static Decimal StringToDecimal(const nsAString& aValue);
 
 protected:
-  virtual JSObject* WrapNode(JSContext* aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext* aCx) MOZ_OVERRIDE;
 
   // Pull IsSingleLineTextControl into our scope, otherwise it'd be hidden
   // by the nsITextControlElement version.
@@ -891,7 +896,7 @@ protected:
    * Determine whether the editor needs to be initialized explicitly for
    * a particular event.
    */
-  bool NeedToInitializeEditorForEvent(nsEventChainPreVisitor& aVisitor) const;
+  bool NeedToInitializeEditorForEvent(EventChainPreVisitor& aVisitor) const;
 
   /**
    * Get the value mode of the element, depending of the type.
@@ -1179,7 +1184,7 @@ protected:
    * this function checks if it is needed, and if so, open the corresponding
    * picker (color picker or file picker).
    */
-  nsresult MaybeInitPickers(nsEventChainPostVisitor& aVisitor);
+  nsresult MaybeInitPickers(EventChainPostVisitor& aVisitor);
 
   enum FilePickerType {
     FILE_PICKER_FILE,

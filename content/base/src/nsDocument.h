@@ -61,6 +61,8 @@
 #include "nsISecurityEventSink.h"
 #include "nsIChannelEventSink.h"
 #include "imgIRequest.h"
+#include "mozilla/EventListenerManager.h"
+#include "mozilla/EventStates.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/DOMImplementation.h"
 #include "nsIDOMTouchEvent.h"
@@ -76,7 +78,6 @@
 #define XML_DECLARATION_BITS_STANDALONE_YES       (1 << 3)
 
 
-class nsEventListenerManager;
 class nsDOMStyleSheetList;
 class nsDOMStyleSheetSetList;
 class nsIOutputStream;
@@ -98,6 +99,7 @@ class nsPointerLockPermissionRequest;
 class nsISecurityConsoleMessage;
 
 namespace mozilla {
+class EventChainPreVisitor;
 namespace dom {
 class UndoManager;
 class LifecycleCallbacks;
@@ -263,11 +265,11 @@ public:
   KeyType GetKey() const { return const_cast<KeyType>(this); }
   bool KeyEquals(const KeyTypePointer aKey) const
   {
-    MOZ_ASSERT(mNamespaceID != kNameSpaceID_None,
+    MOZ_ASSERT(mNamespaceID != kNameSpaceID_Unknown,
                "This equals method is not transitive, nor symmetric. "
-               "A key with a namespace of kNamespaceID_None should "
+               "A key with a namespace of kNamespaceID_Unknown should "
                "not be stored in a hashtable.");
-    return (kNameSpaceID_None == aKey->mNamespaceID ||
+    return (kNameSpaceID_Unknown == aKey->mNamespaceID ||
             mNamespaceID == aKey->mNamespaceID) &&
            aKey->mAtom == mAtom;
   }
@@ -313,7 +315,7 @@ private:
   // The this value to use for invocation of the callback.
   nsRefPtr<mozilla::dom::Element> mThisObject;
   nsRefPtr<mozilla::dom::CallbackFunction> mCallback;
-  // The type of callback (eCreated, eEnteredView, etc.)
+  // The type of callback (eCreated, eAttached, etc.)
   nsIDocument::ElementCallbackType mType;
   // Arguments to be passed to the callback,
   // used by the attribute changed callback.
@@ -382,6 +384,35 @@ struct CustomElementDefinition
 
   // The document custom element order.
   uint32_t mDocOrder;
+};
+
+class Registry : public nsISupports
+{
+public:
+  friend class ::nsDocument;
+
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(Registry)
+
+  Registry();
+  virtual ~Registry();
+
+protected:
+  typedef nsClassHashtable<mozilla::dom::CustomElementHashKey,
+                           mozilla::dom::CustomElementDefinition>
+    DefinitionMap;
+  typedef nsClassHashtable<mozilla::dom::CustomElementHashKey,
+                           nsTArray<nsRefPtr<mozilla::dom::Element>>>
+    CandidateMap;
+
+  // Hashtable for custom element definitions in web components.
+  // Custom prototypes are in the document's compartment.
+  DefinitionMap mCustomDefinitions;
+
+  // The "upgrade candidates map" from the web components spec. Maps from a
+  // namespace id and local name to a list of elements to upgrade if that
+  // element is registered as a custom element.
+  CandidateMap mCandidatesMap;
 };
 
 } // namespace dom
@@ -666,6 +697,10 @@ public:
 
   virtual void SetDocumentURI(nsIURI* aURI) MOZ_OVERRIDE;
 
+  virtual void SetChromeXHRDocURI(nsIURI* aURI) MOZ_OVERRIDE;
+
+  virtual void SetChromeXHRDocBaseURI(nsIURI* aURI) MOZ_OVERRIDE;
+
   /**
    * Set the principal responsible for this document.
    */
@@ -812,8 +847,10 @@ public:
   virtual void SetReadyStateInternal(ReadyState rs) MOZ_OVERRIDE;
 
   virtual void ContentStateChanged(nsIContent* aContent,
-                                   nsEventStates aStateMask) MOZ_OVERRIDE;
-  virtual void DocumentStatesChanged(nsEventStates aStateMask) MOZ_OVERRIDE;
+                                   mozilla::EventStates aStateMask)
+                                     MOZ_OVERRIDE;
+  virtual void DocumentStatesChanged(
+                 mozilla::EventStates aStateMask) MOZ_OVERRIDE;
 
   virtual void StyleRuleChanged(nsIStyleSheet* aStyleSheet,
                                 nsIStyleRule* aOldStyleRule,
@@ -902,9 +939,12 @@ public:
   NS_DECL_NSIDOMDOCUMENTXBL
 
   // nsIDOMEventTarget
-  virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
-  virtual nsEventListenerManager* GetOrCreateListenerManager() MOZ_OVERRIDE;
-  virtual nsEventListenerManager* GetExistingListenerManager() const MOZ_OVERRIDE;
+  virtual nsresult PreHandleEvent(
+                     mozilla::EventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
+  virtual mozilla::EventListenerManager*
+    GetOrCreateListenerManager() MOZ_OVERRIDE;
+  virtual mozilla::EventListenerManager*
+    GetExistingListenerManager() const MOZ_OVERRIDE;
 
   // nsIScriptObjectPrincipal
   virtual nsIPrincipal* GetPrincipal() MOZ_OVERRIDE;
@@ -1033,7 +1073,7 @@ public:
 
   virtual nsISupports* GetCurrentContentSink() MOZ_OVERRIDE;
 
-  virtual nsEventStates GetDocumentState() MOZ_OVERRIDE;
+  virtual mozilla::EventStates GetDocumentState() MOZ_OVERRIDE;
 
   virtual void RegisterHostObjectUri(const nsACString& aUri) MOZ_OVERRIDE;
   virtual void UnregisterHostObjectUri(const nsACString& aUri) MOZ_OVERRIDE;
@@ -1073,13 +1113,6 @@ public:
   virtual nsresult SetNavigationTiming(nsDOMNavigationTiming* aTiming) MOZ_OVERRIDE;
 
   virtual Element* FindImageMap(const nsAString& aNormalizedMapName) MOZ_OVERRIDE;
-
-  virtual void NotifyAudioAvailableListener() MOZ_OVERRIDE;
-
-  bool HasAudioAvailableListeners() MOZ_OVERRIDE
-  {
-    return mHasAudioAvailableListener;
-  }
 
   virtual Element* GetFullScreenElement() MOZ_OVERRIDE;
   virtual void AsyncRequestFullScreen(Element* aElement) MOZ_OVERRIDE;
@@ -1206,6 +1239,7 @@ public:
                                                     const nsAString& aQualifiedName,
                                                     const nsAString& aTypeExtension,
                                                     mozilla::ErrorResult& rv) MOZ_OVERRIDE;
+  virtual void UseRegistryFromDocument(nsIDocument* aDocument) MOZ_OVERRIDE;
 
 protected:
   friend class nsNodeUtils;
@@ -1367,33 +1401,6 @@ protected:
   nsWeakPtr mFullscreenRoot;
 
 private:
-  struct Registry
-  {
-    NS_INLINE_DECL_REFCOUNTING(Registry)
-
-    typedef nsClassHashtable<mozilla::dom::CustomElementHashKey,
-                             mozilla::dom::CustomElementDefinition>
-      DefinitionMap;
-    typedef nsClassHashtable<mozilla::dom::CustomElementHashKey,
-                             nsTArray<nsRefPtr<mozilla::dom::Element>>>
-      CandidateMap;
-
-    // Hashtable for custom element definitions in web components.
-    // Custom prototypes are in the document's compartment.
-    DefinitionMap mCustomDefinitions;
-
-    // The "upgrade candidates map" from the web components spec. Maps from a
-    // namespace id and local name to a list of elements to upgrade if that
-    // element is registered as a custom element.
-    CandidateMap mCandidatesMap;
-
-    void Clear()
-    {
-      mCustomDefinitions.Clear();
-      mCandidatesMap.Clear();
-    }
-  };
-
   // Array representing the processing stack in the custom elements
   // specification. The processing stack is conceptually a stack of
   // element queues. Each queue is represented by a sequence of
@@ -1417,10 +1424,12 @@ public:
                                     uint32_t aNamespaceID,
                                     mozilla::ErrorResult& rv);
 
-  // The "registry" from the web components spec.
-  nsRefPtr<Registry> mRegistry;
+  static bool IsRegisterElementEnabled(JSContext* aCx, JSObject* aObject);
 
-  nsRefPtr<nsEventListenerManager> mListenerManager;
+  // The "registry" from the web components spec.
+  nsRefPtr<mozilla::dom::Registry> mRegistry;
+
+  nsRefPtr<mozilla::EventListenerManager> mListenerManager;
   nsCOMPtr<nsIDOMStyleSheetList> mDOMStyleSheets;
   nsRefPtr<nsDOMStyleSheetSetList> mStyleSheetSetList;
   nsRefPtr<nsScriptLoader> mScriptLoader;
@@ -1461,10 +1470,6 @@ public:
 
   // Whether we currently require our images to animate
   bool mAnimatingImages:1;
-
-  // Whether some node in this document has a listener for the
-  // "mozaudioavailable" event.
-  bool mHasAudioAvailableListener:1;
 
   // Whether we're currently under a FlushPendingNotifications call to
   // our presshell.  This is used to handle flush reentry correctly.
@@ -1525,8 +1530,8 @@ public:
 
   nsCOMPtr<nsIContent> mFirstBaseNodeWithHref;
 
-  nsEventStates mDocumentState;
-  nsEventStates mGotDocumentState;
+  mozilla::EventStates mDocumentState;
+  mozilla::EventStates mGotDocumentState;
 
   nsRefPtr<nsDOMNavigationTiming> mTiming;
 private:

@@ -12,15 +12,15 @@ namespace mozilla {
 namespace dom {
 
 JSObject*
-SVGAnimateTransformElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+SVGAnimateTransformElement::WrapNode(JSContext *aCx)
 {
-  return SVGAnimateTransformElementBinding::Wrap(aCx, aScope, this);
+  return SVGAnimateTransformElementBinding::Wrap(aCx, this);
 }
 
 //----------------------------------------------------------------------
 // Implementation
 
-SVGAnimateTransformElement::SVGAnimateTransformElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+SVGAnimateTransformElement::SVGAnimateTransformElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : SVGAnimationElement(aNodeInfo)
 {
 }

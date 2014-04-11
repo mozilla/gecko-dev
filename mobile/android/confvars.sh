@@ -5,7 +5,7 @@
 MOZ_APP_BASENAME=Fennec
 MOZ_APP_VENDOR=Mozilla
 
-MOZ_APP_VERSION=30.0a1
+MOZ_APP_VERSION=31.0a1
 MOZ_APP_UA_NAME=Firefox
 
 MOZ_BRANDING_DIRECTORY=mobile/android/branding/unofficial
@@ -57,6 +57,9 @@ MOZ_PAY=1
 
 # Enable UI for healthreporter
 MOZ_SERVICES_HEALTHREPORT=1
+
+# Enable FirefoxAccounts
+MOZ_SERVICES_FXACCOUNTS=1
 
 # Wifi-AP/cell tower data reporting is enabled on non-release builds.
 if test ! "$RELEASE_BUILD"; then

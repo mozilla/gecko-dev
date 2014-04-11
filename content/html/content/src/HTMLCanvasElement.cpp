@@ -18,7 +18,6 @@
 #include "mozilla/gfx/Rect.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Telemetry.h"
-#include "nsAsyncDOMEvent.h"
 #include "nsAttrValueInlines.h"
 #include "nsContentUtils.h"
 #include "nsDisplayList.h"
@@ -73,9 +72,9 @@ HTMLCanvasPrintState::~HTMLCanvasPrintState()
 }
 
 /* virtual */ JSObject*
-HTMLCanvasPrintState::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+HTMLCanvasPrintState::WrapObject(JSContext* aCx)
 {
-  return MozCanvasPrintStateBinding::Wrap(aCx, aScope, this);
+  return MozCanvasPrintStateBinding::Wrap(aCx, this);
 }
 
 nsISupports*
@@ -113,7 +112,7 @@ HTMLCanvasPrintState::NotifyDone()
 
 // ---------------------------------------------------------------------------
 
-HTMLCanvasElement::HTMLCanvasElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+HTMLCanvasElement::HTMLCanvasElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo),
     mWriteOnly(false)
 {
@@ -140,9 +139,9 @@ NS_INTERFACE_TABLE_TAIL_INHERITING(nsGenericHTMLElement)
 NS_IMPL_ELEMENT_CLONE(HTMLCanvasElement)
 
 /* virtual */ JSObject*
-HTMLCanvasElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aScope)
+HTMLCanvasElement::WrapNode(JSContext* aCx)
 {
-  return HTMLCanvasElementBinding::Wrap(aCx, aScope, this);
+  return HTMLCanvasElementBinding::Wrap(aCx, this);
 }
 
 nsIntSize
@@ -673,7 +672,8 @@ HTMLCanvasElement::GetContext(const nsAString& aContextId,
                               nsISupports** aContext)
 {
   ErrorResult rv;
-  *aContext = GetContext(nullptr, aContextId, JS::NullHandleValue, rv).get();
+  *aContext =
+    GetContext(nullptr, aContextId, JS::NullHandleValue, rv).take();
   return rv.ErrorCode();
 }
 
@@ -780,7 +780,7 @@ HTMLCanvasElement::UpdateContext(JSContext* aCx, JS::Handle<JS::Value> aNewConte
 
   nsIntSize sz = GetWidthHeight();
 
-  nsresult rv = mCurrentContext->SetIsOpaque(GetIsOpaque());
+  nsresult rv = mCurrentContext->SetIsOpaque(HasAttr(kNameSpaceID_None, nsGkAtoms::moz_opaque));
   if (NS_FAILED(rv)) {
     mCurrentContext = nullptr;
     mCurrentContextId.Truncate();
@@ -902,6 +902,10 @@ HTMLCanvasElement::GetContextAtIndex(int32_t index)
 bool
 HTMLCanvasElement::GetIsOpaque()
 {
+  if (mCurrentContext) {
+    return mCurrentContext->GetIsOpaque();
+  }
+
   return HasAttr(kNameSpaceID_None, nsGkAtoms::moz_opaque);
 }
 

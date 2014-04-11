@@ -188,23 +188,22 @@ FilteringWrapper<Base, Policy>::enter(JSContext *cx, HandleObject wrapper,
     return true;
 }
 
-// NB: don't need SOW here because the resulting wrapper would be identical to
-// NNXOW.
-#define SCSOW FilteringWrapper<SameCompartmentSecurityWrapper, Opaque>
 #define XOW FilteringWrapper<SecurityXrayXPCWN, CrossOriginAccessiblePropertiesOnly>
 #define DXOW   FilteringWrapper<SecurityXrayDOM, CrossOriginAccessiblePropertiesOnly>
 #define NNXOW FilteringWrapper<CrossCompartmentSecurityWrapper, Opaque>
+#define NNXOWC FilteringWrapper<CrossCompartmentSecurityWrapper, OpaqueWithCall>
 #define GO FilteringWrapper<CrossCompartmentSecurityWrapper, GentlyOpaque>
-template<> SCSOW SCSOW::singleton(0);
 template<> XOW XOW::singleton(0);
 template<> DXOW DXOW::singleton(0);
 template<> NNXOW NNXOW::singleton(0);
+template<> NNXOWC NNXOWC::singleton(0);
 
 template<> GO GO::singleton(0);
 
 template class XOW;
 template class DXOW;
 template class NNXOW;
+template class NNXOWC;
 template class ChromeObjectWrapperBase;
 template class GO;
 }

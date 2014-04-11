@@ -34,16 +34,16 @@ public:
   // GeckoContentController interface
   virtual void RequestContentRepaint(const FrameMetrics& aFrameMetrics);
   virtual void AcknowledgeScrollUpdate(const FrameMetrics::ViewID& aScrollId, const uint32_t& aScrollGeneration);
-  virtual void HandleDoubleTap(const mozilla::CSSIntPoint& aPoint,
+  virtual void HandleDoubleTap(const mozilla::CSSPoint& aPoint,
                                int32_t aModifiers,
                                const mozilla::layers::ScrollableLayerGuid& aGuid);
-  virtual void HandleSingleTap(const mozilla::CSSIntPoint& aPoint,
+  virtual void HandleSingleTap(const mozilla::CSSPoint& aPoint,
                                int32_t aModifiers,
                                const mozilla::layers::ScrollableLayerGuid& aGuid);
-  virtual void HandleLongTap(const mozilla::CSSIntPoint& aPoint,
+  virtual void HandleLongTap(const mozilla::CSSPoint& aPoint,
                              int32_t aModifiers,
                              const mozilla::layers::ScrollableLayerGuid& aGuid);
-  virtual void HandleLongTapUp(const mozilla::CSSIntPoint& aPoint,
+  virtual void HandleLongTapUp(const mozilla::CSSPoint& aPoint,
                                int32_t aModifiers,
                                const mozilla::layers::ScrollableLayerGuid& aGuid);
   virtual void SendAsyncScrollDOMEvent(bool aIsRoot, const mozilla::CSSRect &aContentRect, const mozilla::CSSSize &aScrollableSize);
@@ -60,9 +60,6 @@ public:
   void ContentReceivedTouch(const ScrollableLayerGuid& aGuid, bool aPreventDefault);
   nsEventStatus ReceiveInputEvent(mozilla::WidgetInputEvent* aEvent,
                                   ScrollableLayerGuid* aOutTargetGuid);
-  nsEventStatus ReceiveInputEvent(mozilla::WidgetInputEvent* aInEvent,
-                                  ScrollableLayerGuid* aOutTargetGuid,
-                                  mozilla::WidgetInputEvent* aOutEvent);
 
 public:
   // todo: make this a member variable as prep for multiple views

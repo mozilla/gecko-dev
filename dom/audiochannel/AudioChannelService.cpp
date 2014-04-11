@@ -18,6 +18,7 @@
 #include "nsThreadUtils.h"
 #include "nsHashPropertyBag.h"
 #include "nsComponentManagerUtils.h"
+#include "nsPIDOMWindow.h"
 #include "nsServiceManagerUtils.h"
 
 #ifdef MOZ_WIDGET_GONK
@@ -27,6 +28,8 @@
 #include "SpeakerManagerService.h"
 #define NS_AUDIOMANAGER_CONTRACTID "@mozilla.org/telephony/audiomanager;1"
 #endif
+
+#include "mozilla/Preferences.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -112,6 +115,18 @@ AudioChannelService::RegisterAudioChannelAgent(AudioChannelAgent* aAgent,
                                 aWithVideo);
   mAgents.Put(aAgent, data);
   RegisterType(aType, CONTENT_PROCESS_ID_MAIN, aWithVideo);
+
+  // If this is the first agent for this window, we must notify the observers.
+  uint32_t count = CountWindow(aAgent->Window());
+  if (count == 1) {
+    nsCOMPtr<nsIObserverService> observerService =
+      services::GetObserverService();
+    if (observerService) {
+      observerService->NotifyObservers(ToSupports(aAgent->Window()),
+                                       "media-playback",
+                                       NS_LITERAL_STRING("active").get());
+    }
+  }
 }
 
 void
@@ -180,6 +195,18 @@ AudioChannelService::UnregisterAudioChannelAgent(AudioChannelAgent* aAgent)
     mSpeakerManager[i]->SetAudioChannelActive(active);
   }
 #endif
+
+  // If this is the last agent for this window, we must notify the observers.
+  uint32_t count = CountWindow(aAgent->Window());
+  if (count == 0) {
+    nsCOMPtr<nsIObserverService> observerService =
+      services::GetObserverService();
+    if (observerService) {
+      observerService->NotifyObservers(ToSupports(aAgent->Window()),
+                                       "media-playback",
+                                       NS_LITERAL_STRING("inactive").get());
+    }
+  }
 }
 
 void
@@ -779,4 +806,128 @@ AudioChannelService::GetInternalType(AudioChannelType aType,
   }
 
   MOZ_CRASH("unexpected audio channel type");
+}
+
+struct RefreshAgentsVolumeData
+{
+  RefreshAgentsVolumeData(nsPIDOMWindow* aWindow)
+    : mWindow(aWindow)
+  {}
+
+  nsPIDOMWindow* mWindow;
+  nsTArray<nsRefPtr<AudioChannelAgent>> mAgents;
+};
+
+PLDHashOperator
+AudioChannelService::RefreshAgentsVolumeEnumerator(AudioChannelAgent* aAgent,
+                                                   AudioChannelAgentData* aUnused,
+                                                   void* aPtr)
+{
+  MOZ_ASSERT(aAgent);
+  RefreshAgentsVolumeData* data = static_cast<RefreshAgentsVolumeData*>(aPtr);
+  MOZ_ASSERT(data);
+
+  nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aAgent->Window());
+  if (window && !window->IsInnerWindow()) {
+    window = window->GetCurrentInnerWindow();
+  }
+
+  if (window == data->mWindow) {
+    data->mAgents.AppendElement(aAgent);
+  }
+
+  return PL_DHASH_NEXT;
+}
+void
+AudioChannelService::RefreshAgentsVolume(nsPIDOMWindow* aWindow)
+{
+  RefreshAgentsVolumeData data(aWindow);
+  mAgents.EnumerateRead(RefreshAgentsVolumeEnumerator, &data);
+
+  for (uint32_t i = 0; i < data.mAgents.Length(); ++i) {
+    data.mAgents[i]->WindowVolumeChanged();
+  }
+}
+
+struct CountWindowData
+{
+  CountWindowData(nsIDOMWindow* aWindow)
+    : mWindow(aWindow)
+    , mCount(0)
+  {}
+
+  nsIDOMWindow* mWindow;
+  uint32_t mCount;
+};
+
+PLDHashOperator
+AudioChannelService::CountWindowEnumerator(AudioChannelAgent* aAgent,
+                                           AudioChannelAgentData* aUnused,
+                                           void* aPtr)
+{
+  CountWindowData* data = static_cast<CountWindowData*>(aPtr);
+  MOZ_ASSERT(aAgent);
+
+  if (aAgent->Window() == data->mWindow) {
+    ++data->mCount;
+  }
+
+  return PL_DHASH_NEXT;
+}
+
+uint32_t
+AudioChannelService::CountWindow(nsIDOMWindow* aWindow)
+{
+  CountWindowData data(aWindow);
+  mAgents.EnumerateRead(CountWindowEnumerator, &data);
+  return data.mCount;
+}
+
+// Mappings from 'mozaudiochannel' attribute strings to an enumeration.
+static const struct AudioChannelTable
+{
+  const char* string;
+  AudioChannel value;
+} kMozAudioChannelAttributeTable[] = {
+  { "normal",             AudioChannel::Normal },
+  { "content",            AudioChannel::Content },
+  { "notification",       AudioChannel::Notification },
+  { "alarm",              AudioChannel::Alarm },
+  { "telephony",          AudioChannel::Telephony },
+  { "ringer",             AudioChannel::Ringer },
+  { "publicnotification", AudioChannel::Publicnotification },
+  { nullptr }
+};
+
+/* static */ AudioChannel
+AudioChannelService::GetDefaultAudioChannel()
+{
+  nsString audioChannel = Preferences::GetString("media.defaultAudioChannel");
+  if (audioChannel.IsEmpty()) {
+    return AudioChannel::Normal;
+  }
+
+  for (uint32_t i = 0; kMozAudioChannelAttributeTable[i].string; ++i) {
+    if (audioChannel.EqualsASCII(kMozAudioChannelAttributeTable[i].string)) {
+      return kMozAudioChannelAttributeTable[i].value;
+    }
+  }
+
+  return AudioChannel::Normal;
+}
+
+/* static */ void
+AudioChannelService::GetDefaultAudioChannelString(nsString& aString)
+{
+  aString.AssignASCII("normal");
+
+  nsString audioChannel = Preferences::GetString("media.defaultAudioChannel");
+  if (!audioChannel.IsEmpty()) {
+    for (uint32_t i = 0; kMozAudioChannelAttributeTable[i].string; ++i) {
+      if (audioChannel.EqualsASCII(kMozAudioChannelAttributeTable[i].string)) {
+        aString = audioChannel;
+        break;
+      }
+    }
+  }
 }

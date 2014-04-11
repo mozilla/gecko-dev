@@ -56,6 +56,7 @@ NS_IMPL_CYCLE_COLLECTING_ADDREF(DataTransfer)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(DataTransfer)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DataTransfer)
+  NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
   NS_INTERFACE_MAP_ENTRY(mozilla::dom::DataTransfer)
   NS_INTERFACE_MAP_ENTRY(nsIDOMDataTransfer)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIDOMDataTransfer)
@@ -168,9 +169,9 @@ DataTransfer::Constructor(const GlobalObject& aGlobal,
 }
 
 JSObject*
-DataTransfer::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+DataTransfer::WrapObject(JSContext* aCx)
 {
-  return DataTransferBinding::Wrap(aCx, aScope, this);
+  return DataTransferBinding::Wrap(aCx, this);
 }
 
 NS_IMETHODIMP
@@ -351,7 +352,8 @@ DataTransfer::Types()
 NS_IMETHODIMP
 DataTransfer::GetTypes(nsISupports** aTypes)
 {
-  *aTypes = Types().get();
+  nsRefPtr<DOMStringList> types = Types();
+  types.forget(aTypes);
 
   return NS_OK;
 }
@@ -551,7 +553,8 @@ NS_IMETHODIMP
 DataTransfer::MozTypesAt(uint32_t aIndex, nsISupports** aTypes)
 {
   ErrorResult rv;
-  *aTypes = MozTypesAt(aIndex, rv).get();
+  nsRefPtr<DOMStringList> types = MozTypesAt(aIndex, rv);
+  types.forget(aTypes);
   return rv.ErrorCode();
 }
 
@@ -654,8 +657,7 @@ DataTransfer::MozGetDataAt(JSContext* aCx, const nsAString& aFormat,
   }
 
   JS::Rooted<JS::Value> result(aCx);
-  JS::Rooted<JSObject*> scope(aCx, GetWrapper());
-  if (!VariantToJsval(aCx, scope, data, &result)) {
+  if (!VariantToJsval(aCx, data, &result)) {
     aRv = NS_ERROR_FAILURE;
     return JS::UndefinedValue();
   }

@@ -84,6 +84,10 @@ const { properties, propertyNames } = getCSSKeywords();
 function CSSCompleter(options = {}) {
   this.walker = options.walker;
   this.maxEntries = options.maxEntries || 15;
+
+  // Array containing the [line, ch, scopeStack] for the locations where the
+  // CSS state is "null"
+  this.nullStates = [];
 }
 
 CSSCompleter.prototype = {
@@ -122,12 +126,14 @@ CSSCompleter.prototype = {
         if ("media".startsWith(this.completing)) {
           return Promise.resolve([{
             label: "media",
-            preLabel: this.completing
+            preLabel: this.completing,
+            text: "media"
           }]);
         } else if ("keyframes".startsWith(this.completing)) {
           return Promise.resolve([{
-            label: "keyrames",
-            preLabel: this.completing
+            label: "keyframes",
+            preLabel: this.completing,
+            text: "keyframes"
           }]);
         }
     }
@@ -150,6 +156,30 @@ CSSCompleter.prototype = {
   resolveState: function(source, {line, ch}) {
     // Function to return the last element of an array
     let peek = arr => arr[arr.length - 1];
+    // _state can be one of CSS_STATES;
+    let _state = CSS_STATES.null;
+    let selector = "";
+    let selectorState = SELECTOR_STATES.null;
+    let propertyName = null;
+    let scopeStack = [];
+    let selectors = [];
+
+    // Fetch the closest null state line, ch from cached null state locations
+    let matchedStateIndex = this.findNearestNullState(line);
+    if (matchedStateIndex > -1) {
+      let state = this.nullStates[matchedStateIndex];
+      line -= state[0];
+      if (line == 0)
+        ch -= state[1];
+      source = source.split("\n").slice(state[0]);
+      source[0] = source[0].slice(state[1]);
+      source = source.join("\n");
+      scopeStack = [...state[2]];
+      this.nullStates.length = matchedStateIndex + 1;
+    }
+    else {
+      this.nullStates = [];
+    }
     let tokens = cssTokenizer(source, {loc:true});
     let tokIndex = tokens.length - 1;
     if (tokens[tokIndex].loc.end.line < line ||
@@ -163,16 +193,10 @@ CSSCompleter.prototype = {
     // Since last token is EOF, the cursor token is last - 1
     tokIndex--;
 
-    // _state can be one of CSS_STATES;
-    let _state = CSS_STATES.null;
     let cursor = 0;
     // This will maintain a stack of paired elements like { & }, @m & }, : & ; etc
-    let scopeStack = [];
     let token = null;
-    let propertyName = null;
-    let selector = "";
-    let selectorBeforeNot = "";
-    let selectorState = SELECTOR_STATES.null;
+    let selectorBeforeNot = null;
     while (cursor <= tokIndex && (token = tokens[cursor++])) {
       switch (_state) {
         case CSS_STATES.property:
@@ -195,6 +219,7 @@ CSSCompleter.prototype = {
                   _state = CSS_STATES.frame;
                 } else {
                   selector = "";
+                  selectors = [];
                   _state = CSS_STATES.null;
                 }
               }
@@ -223,6 +248,7 @@ CSSCompleter.prototype = {
                   _state = CSS_STATES.frame;
                 } else {
                   selector = "";
+                  selectors = [];
                   _state = CSS_STATES.null;
                 }
               }
@@ -236,6 +262,8 @@ CSSCompleter.prototype = {
           if (token.tokenType == "{") {
             scopeStack.push("{");
             _state = CSS_STATES.property;
+            selectors.push(selector);
+            selector = "";
             break;
           }
           switch(selectorState) {
@@ -265,6 +293,7 @@ CSSCompleter.prototype = {
                     selector += token.value;
                   } else if (token.value == ",") {
                     selectorState = SELECTOR_STATES.null;
+                    selectors.push(selector);
                     selector = "";
                   }
                   break;
@@ -278,10 +307,14 @@ CSSCompleter.prototype = {
                   token = tokens[cursor++];
                   switch(token.tokenType) {
                     case "FUNCTION":
+                      if (token.value == "not") {
+                        selectorBeforeNot = selector;
+                        selector = "";
+                        scopeStack.push("(");
+                      } else {
+                        selector += token.value + "(";
+                      }
                       selectorState = SELECTOR_STATES.null;
-                      selectorBeforeNot = selector;
-                      selector = "";
-                      scopeStack.push("(");
                       break;
 
                     case "IDENT":
@@ -300,8 +333,11 @@ CSSCompleter.prototype = {
                   if (peek(scopeStack) == "(") {
                     scopeStack.pop();
                     selector = selectorBeforeNot + "not(" + selector + ")";
-                    selectorState = SELECTOR_STATES.null;
+                    selectorBeforeNot = null;
+                  } else {
+                    selector += ")";
                   }
+                  selectorState = SELECTOR_STATES.null;
                   break;
 
                 case "WHITESPACE":
@@ -344,6 +380,7 @@ CSSCompleter.prototype = {
                     selector += token.value;
                   } else if (token.value == ",") {
                     selectorState = SELECTOR_STATES.null;
+                    selectors.push(selector);
                     selector = "";
                   }
                   break;
@@ -357,10 +394,14 @@ CSSCompleter.prototype = {
                   token = tokens[cursor++];
                   switch(token.tokenType) {
                     case "FUNCTION":
+                      if (token.value == "not") {
+                        selectorBeforeNot = selector;
+                        selector = "";
+                        scopeStack.push("(");
+                      } else {
+                        selector += token.value + "(";
+                      }
                       selectorState = SELECTOR_STATES.null;
-                      selectorBeforeNot = selector;
-                      selector = "";
-                      scopeStack.push("(");
                       break;
 
                     case "IDENT":
@@ -379,8 +420,11 @@ CSSCompleter.prototype = {
                   if (peek(scopeStack) == "(") {
                     scopeStack.pop();
                     selector = selectorBeforeNot + "not(" + selector + ")";
-                    selectorState = SELECTOR_STATES.null;
+                    selectorBeforeNot = null;
+                  } else {
+                    selector += ")";
                   }
+                  selectorState = SELECTOR_STATES.null;
                   break;
 
                 case "WHITESPACE":
@@ -397,6 +441,7 @@ CSSCompleter.prototype = {
                     selector += token.value;
                   } else if (token.value == ",") {
                     selectorState = SELECTOR_STATES.null;
+                    selectors.push(selector);
                     selector = "";
                   }
                   break;
@@ -410,10 +455,14 @@ CSSCompleter.prototype = {
                   token = tokens[cursor++];
                   switch(token.tokenType) {
                     case "FUNCTION":
+                      if (token.value == "not") {
+                        selectorBeforeNot = selector;
+                        selector = "";
+                        scopeStack.push("(");
+                      } else {
+                        selector += token.value + "(";
+                      }
                       selectorState = SELECTOR_STATES.null;
-                      selectorBeforeNot = selector;
-                      selector = "";
-                      scopeStack.push("(");
                       break;
 
                     case "IDENT":
@@ -537,10 +586,14 @@ CSSCompleter.prototype = {
               token = tokens[cursor++];
               switch(token.tokenType) {
                 case "FUNCTION":
+                  if (token.value == "not") {
+                    selectorBeforeNot = selector;
+                    selector = "";
+                    scopeStack.push("(");
+                  } else {
+                    selector += token.value + "(";
+                  }
                   selectorState = SELECTOR_STATES.null;
-                  selectorBeforeNot = selector;
-                  selector = "";
-                  scopeStack.push("(");
                   break;
 
                 case "IDENT":
@@ -601,10 +654,33 @@ CSSCompleter.prototype = {
           }
           break;
       }
+      if (_state == CSS_STATES.null) {
+        if (this.nullStates.length == 0) {
+          this.nullStates.push([token.loc.end.line, token.loc.end.column,
+                                [...scopeStack]]);
+          continue;
+        }
+        let tokenLine = token.loc.end.line;
+        let tokenCh = token.loc.end.column;
+        if (tokenLine == 0)
+          continue;
+        if (matchedStateIndex > -1)
+          tokenLine += this.nullStates[matchedStateIndex][0];
+        this.nullStates.push([tokenLine, tokenCh, [...scopeStack]]);
+      }
     }
     this.state = _state;
-    if (!token)
-      return _state;
+    this.propertyName = _state == CSS_STATES.value ? propertyName : null;
+    this.selectorState = _state == CSS_STATES.selector ? selectorState : null;
+    this.selectorBeforeNot = selectorBeforeNot == null ? null: selectorBeforeNot;
+    if (token) {
+      selector = selector.slice(0, selector.length + token.loc.end.column - ch);
+      this.selector = selector;
+    }
+    else {
+      this.selector = "";
+    }
+    this.selectors = selectors;
 
     if (token && token.tokenType != "WHITESPACE") {
       this.completing = ((token.value || token.repr || token.tokenType) + "")
@@ -613,15 +689,16 @@ CSSCompleter.prototype = {
     } else {
       this.completing = "";
     }
+    // Special case the situation when the user just entered ":" after typing a
+    // property name.
+    if (this.completing == ":" && _state == CSS_STATES.value)
+      this.completing = "";
+
     // Special check for !important; case.
-    if (tokens[cursor - 2] && tokens[cursor - 2].value == "!" &&
+    if (token && tokens[cursor - 2] && tokens[cursor - 2].value == "!" &&
         this.completing == "important".slice(0, this.completing.length)) {
       this.completing = "!" + this.completing;
     }
-    this.propertyName = _state == CSS_STATES.value ? propertyName : null;
-    selector = selector.slice(0, selector.length + token.loc.end.column - ch);
-    this.selector = _state == CSS_STATES.selector ? selector : null;
-    this.selectorState = _state == CSS_STATES.selector ? selectorState : null;
     return _state;
   },
 
@@ -710,6 +787,7 @@ CSSCompleter.prototype = {
       completion.push({
         label: value[0],
         preLabel: query,
+        text: value[0],
         score: value[1]
       });
       if (completion.length > this.maxEntries - 1)
@@ -725,14 +803,19 @@ CSSCompleter.prototype = {
    */
   completeProperties: function(startProp) {
     let finalList = [];
+    if (!startProp)
+      return Promise.resolve(finalList);
+
     let length = propertyNames.length;
     let i = 0, count = 0;
     for (; i < length && count < this.maxEntries; i++) {
       if (propertyNames[i].startsWith(startProp)) {
         count++;
+        let propName = propertyNames[i];
         finalList.push({
           preLabel: startProp,
-          label: propertyNames[i]
+          label: propName,
+          text: propName + ": "
         });
       } else if (propertyNames[i] > startProp) {
         // We have crossed all possible matches alphabetically.
@@ -752,14 +835,21 @@ CSSCompleter.prototype = {
   completeValues: function(propName, startValue) {
     let finalList = [];
     let list = ["!important;", ...(properties[propName] || [])];
+    // If there is no character being completed, we are showing an initial list
+    // of possible values. Skipping '!important' in this case.
+    if (!startValue)
+      list.splice(0, 1);
+
     let length = list.length;
     let i = 0, count = 0;
     for (; i < length && count < this.maxEntries; i++) {
       if (list[i].startsWith(startValue)) {
         count++;
+        let value = list[i];
         finalList.push({
           preLabel: startValue,
-          label: list[i]
+          label: value,
+          text: value
         });
       } else if (list[i] > startValue) {
         // We have crossed all possible matches alphabetically.
@@ -768,6 +858,301 @@ CSSCompleter.prototype = {
     }
     return Promise.resolve(finalList);
   },
+
+  /**
+   * A biased binary search in a sorted array where the middle element is
+   * calculated based on the values at the lower and the upper index in each
+   * iteration.
+   *
+   * This method returns the index of the closest null state from the passed
+   * `line` argument. Once we have the closest null state, we can start applying
+   * the state machine logic from that location instead of the absolute starting
+   * of the CSS source. This speeds up the tokenizing and the state machine a
+   * lot while using autocompletion at high line numbers in a CSS source.
+   */
+  findNearestNullState: function(line) {
+    let arr = this.nullStates;
+    let high = arr.length - 1;
+    let low = 0;
+    let target = 0;
+
+    if (high < 0)
+      return -1;
+    if (arr[high][0] <= line)
+      return high;
+    if (arr[low][0] > line)
+      return -1;
+
+    while (high > low) {
+      if (arr[low][0] <= line && arr[low [0]+ 1] > line)
+        return low;
+      if (arr[high][0] > line && arr[high - 1][0] <= line)
+        return high - 1;
+
+      target = (((line - arr[low][0]) / (arr[high][0] - arr[low][0])) *
+                (high - low)) | 0;
+
+      if (arr[target][0] <= line && arr[target + 1][0] > line) {
+        return target;
+      } else if (line > arr[target][0]) {
+        low = target + 1;
+        high--;
+      } else {
+        high = target - 1;
+        low++;
+      }
+    }
+
+    return -1;
+  },
+
+  /**
+   * Invalidates the state cache for and above the line.
+   */
+  invalidateCache: function(line) {
+    this.nullStates.length = this.findNearestNullState(line) + 1;
+  },
+
+  /**
+   * Get the state information about a token surrounding the {line, ch} position
+   *
+   * @param {string} source
+   *        The complete source of the CSS file. Unlike resolve state method,
+   *        this method requires the full source.
+   * @param {object} caret
+   *        The line, ch position of the caret.
+   *
+   * @returns {object}
+   *          An object containing the state of token covered by the caret.
+   *          The object has following properties when the the state is
+   *          "selector", "value" or "property", null otherwise:
+   *           - state {string} one of CSS_STATES - "selector", "value" etc.
+   *           - selector {string} The selector at the caret when `state` is
+   *                      selector. OR
+   *           - selectors {[string]} Array of selector strings in case when
+   *                       `state` is "value" or "property"
+   *           - propertyName {string} The property name at the current caret or
+   *                          the property name corresponding to the value at
+   *                          the caret.
+   *           - value {string} The css value at the current caret.
+   *           - loc {object} An object containing the starting and the ending
+   *                 caret position of the whole selector, value or property.
+   *                  - { start: {line, ch}, end: {line, ch}}
+   */
+  getInfoAt: function(source, caret) {
+    // Limits the input source till the {line, ch} caret position
+    function limit(source, {line, ch}) {
+      line++;
+      let list = source.split("\n");
+      if (list.length < line)
+        return source;
+      if (line == 1)
+        return list[0].slice(0, ch);
+      return [...list.slice(0, line - 1), list[line - 1].slice(0, ch)].join("\n");
+    }
+
+    // Get the state at the given line, ch
+    let state = this.resolveState(limit(source, caret), caret);
+    let propertyName = this.propertyName;
+    let {line, ch} = caret;
+    let sourceArray = source.split("\n");
+    let limitedSource = limit(source, caret);
+
+    /**
+     * Method to traverse forwards from the caret location to figure out the
+     * ending point of a selector or css value.
+     *
+     * @param {function} check
+     *        A method which takes the current state as an input and determines
+     *        whether the state changed or not.
+     */
+    let traverseForward = check => {
+      let location;
+      // Backward loop to determine the beginning location of the selector.
+      do {
+        let lineText = sourceArray[line];
+        if (line == caret.line)
+          lineText = lineText.substring(caret.ch);
+
+        let tokens = cssTokenizer(lineText, {loc: true});
+        let found = false;
+        let ech = line == caret.line ? caret.ch : 0;
+        for (let i = 0; i < tokens.length; i++) {
+          let token = tokens[i];
+          // If the line is completely spaces, handle it differently
+          if (lineText.trim() == "") {
+            limitedSource += lineText;
+          } else {
+            limitedSource += sourceArray[line]
+                              .substring(ech + token.loc.start.column,
+                                         ech + token.loc.end.column);
+          }
+
+          // Whitespace cannot change state.
+          if (token.tokenType == "WHITESPACE")
+            continue;
+
+          let state = this.resolveState(limitedSource, {
+            line: line,
+            ch: token.loc.end.column + ech
+          });
+          if (check(state)) {
+            if (tokens[i - 1] && tokens[i - 1].tokenType == "WHITESPACE")
+              token = tokens[i - 1];
+            location = {
+              line: line,
+              ch: token.loc.start.column + ech
+            };
+            found = true;
+            break;
+          }
+        }
+        limitedSource += "\n";
+        if (found)
+          break;
+      } while (line++ < sourceArray.length);
+      return location;
+    };
+
+    /**
+     * Method to traverse backwards from the caret location to figure out the
+     * starting point of a selector or css value.
+     *
+     * @param {function} check
+     *        A method which takes the current state as an input and determines
+     *        whether the state changed or not.
+     * @param {boolean} isValue
+     *        true if the traversal is being done for a css value state.
+     */
+    let traverseBackwards = (check, isValue) => {
+      let location;
+      // Backward loop to determine the beginning location of the selector.
+      do {
+        let lineText = sourceArray[line];
+        if (line == caret.line)
+          lineText = lineText.substring(0, caret.ch);
+
+        let tokens = cssTokenizer(lineText, {loc: true});
+        let found = false;
+        let ech = 0;
+        for (let i = tokens.length - 2; i >= 0; i--) {
+          let token = tokens[i];
+          // If the line is completely spaces, handle it differently
+          if (lineText.trim() == "") {
+            limitedSource = limitedSource.slice(0, -1 * lineText.length);
+          } else {
+            let length = token.loc.end.column - token.loc.start.column;
+            limitedSource = limitedSource.slice(0, -1 * length);
+          }
+
+          // Whitespace cannot change state.
+          if (token.tokenType == "WHITESPACE")
+            continue;
+
+          let state = this.resolveState(limitedSource, {
+            line: line,
+            ch: token.loc.start.column
+          });
+          if (check(state)) {
+            if (tokens[i + 1] && tokens[i + 1].tokenType == "WHITESPACE")
+              token = tokens[i + 1];
+            location = {
+              line: line,
+              ch: isValue ? token.loc.end.column: token.loc.start.column
+            };
+            found = true;
+            break;
+          }
+        }
+        limitedSource = limitedSource.slice(0, -1);
+        if (found)
+          break;
+      } while (line-- >= 0);
+      return location;
+    };
+
+    if (state == CSS_STATES.selector) {
+      // For selector state, the ending and starting point of the selector is
+      // either when the state changes or the selector becomes empty and a
+      // single selector can span multiple lines.
+      // Backward loop to determine the beginning location of the selector.
+      let start = traverseBackwards(state => {
+        return (state != CSS_STATES.selector ||
+               (this.selector == "" && this.selectorBeforeNot == null));
+      });
+
+      line = caret.line;
+      limitedSource = limit(source, caret);
+      // Forward loop to determine the ending location of the selector.
+      let end = traverseForward(state => {
+        return (state != CSS_STATES.selector ||
+               (this.selector == "" && this.selectorBeforeNot == null));
+      });
+
+      // Since we have start and end positions, figure out the whole selector.
+      let selector = source.split("\n").slice(start.line, end.line + 1);
+      selector[selector.length - 1] =
+        selector[selector.length - 1].substring(0, end.ch);
+      selector[0] = selector[0].substring(start.ch);
+      selector = selector.join("\n");
+      return {
+        state: state,
+        selector: selector,
+        loc: {
+          start: start,
+          end: end
+        }
+      };
+    }
+    else if (state == CSS_STATES.property) {
+      // A property can only be a single word and thus very easy to calculate.
+      let tokens = cssTokenizer(sourceArray[line], {loc: true});
+      for (let token of tokens) {
+        if (token.loc.start.column <= ch && token.loc.end.column >= ch) {
+          return {
+            state: state,
+            propertyName: token.value,
+            selectors: this.selectors,
+            loc: {
+              start: {
+                line: line,
+                ch: token.loc.start.column
+              },
+              end: {
+                line: line,
+                ch: token.loc.end.column
+              }
+            }
+          };
+        }
+      }
+    }
+    else if (state == CSS_STATES.value) {
+      // CSS value can be multiline too, so we go forward and backwards to
+      // determine the bounds of the value at caret
+      let start = traverseBackwards(state => state != CSS_STATES.value, true);
+
+      line = caret.line;
+      limitedSource = limit(source, caret);
+      let end = traverseForward(state => state != CSS_STATES.value);
+
+      let value = source.split("\n").slice(start.line, end.line + 1);
+      value[value.length - 1] = value[value.length - 1].substring(0, end.ch);
+      value[0] = value[0].substring(start.ch);
+      value = value.join("\n");
+      return {
+        state: state,
+        propertyName: propertyName,
+        selectors: this.selectors,
+        value: value,
+        loc: {
+          start: start,
+          end: end
+        }
+      };
+    }
+    return null;
+  }
 }
 
 /**

@@ -12,11 +12,9 @@
    * According to our conventions, they should be |NS_xxx|.
    */
 
-#ifndef nsAString_h___
 #include "nsAString.h"
-#endif
 
-template<class E> class nsTArray;
+#include "nsTArrayForwardDeclare.h"
 
 inline size_t Distance( const nsReadingIterator<char16_t>& start, const nsReadingIterator<char16_t>& end )
   {

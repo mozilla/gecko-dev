@@ -10,7 +10,6 @@
 #include "SmsMessage.h"
 #include "SmsFilter.h"
 #include "SmsSegmentInfo.h"
-#include "DictionaryHelpers.h"
 #include "nsJSUtils.h"
 #include "nsCxPusher.h"
 #include "mozilla/dom/MobileMessageManagerBinding.h"
@@ -166,7 +165,7 @@ NS_IMETHODIMP
 SmsIPCService::Send(uint32_t aServiceId,
                     const nsAString& aNumber,
                     const nsAString& aMessage,
-                    const bool aSilent,
+                    bool aSilent,
                     nsIMobileMessageCallback* aRequest)
 {
   return SendRequest(SendMessageRequest(SendSmsMessageRequest(aServiceId,

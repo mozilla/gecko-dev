@@ -4,6 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "nsBindingManager.h"
+
 #include "nsCOMPtr.h"
 #include "nsXBLService.h"
 #include "nsIInputStream.h"
@@ -41,7 +43,6 @@
 #include "nsTHashtable.h"
 
 #include "nsIScriptContext.h"
-#include "nsBindingManager.h"
 #include "xpcpublic.h"
 #include "jswrapper.h"
 #include "nsCxPusher.h"
@@ -51,137 +52,6 @@
 
 using namespace mozilla;
 using namespace mozilla::dom;
-
-//
-// Generic pldhash table stuff for mapping one nsISupports to another
-//
-// These values are never null - a null value implies that this
-// whole key should be removed (See SetOrRemoveObject)
-class ObjectEntry : public PLDHashEntryHdr
-{
-public:
-
-  // note that these are allocated within the PLDHashTable, but we
-  // want to keep track of them anyway
-  ObjectEntry() { MOZ_COUNT_CTOR(ObjectEntry); }
-  ~ObjectEntry() { MOZ_COUNT_DTOR(ObjectEntry); }
-  
-  nsISupports* GetValue() { return mValue; }
-  nsISupports* GetKey() { return mKey; }
-  void SetValue(nsISupports* aValue) { mValue = aValue; }
-  void SetKey(nsISupports* aKey) { mKey = aKey; }
-  
-private:
-  nsCOMPtr<nsISupports> mKey;
-  nsCOMPtr<nsISupports> mValue;
-};
-
-static void
-ClearObjectEntry(PLDHashTable* table, PLDHashEntryHdr *entry)
-{
-  ObjectEntry* objEntry = static_cast<ObjectEntry*>(entry);
-  objEntry->~ObjectEntry();
-}
-
-static bool
-InitObjectEntry(PLDHashTable* table, PLDHashEntryHdr* entry, const void* key)
-{
-  new (entry) ObjectEntry;
-  return true;
-}
-  
-
-
-static const PLDHashTableOps ObjectTableOps = {
-  PL_DHashAllocTable,
-  PL_DHashFreeTable,
-  PL_DHashVoidPtrKeyStub,
-  PL_DHashMatchEntryStub,
-  PL_DHashMoveEntryStub,
-  ClearObjectEntry,
-  PL_DHashFinalizeStub,
-  InitObjectEntry
-};
-
-// helper routine for adding a new entry
-static nsresult
-AddObjectEntry(PLDHashTable& table, nsISupports* aKey, nsISupports* aValue)
-{
-  NS_ASSERTION(aKey, "key must be non-null");
-  if (!aKey) return NS_ERROR_INVALID_ARG;
-  
-  ObjectEntry *entry =
-    static_cast<ObjectEntry*>
-               (PL_DHashTableOperate(&table, aKey, PL_DHASH_ADD));
-
-  if (!entry)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  // only add the key if the entry is new
-  if (!entry->GetKey())
-    entry->SetKey(aKey);
-
-  // now attach the new entry - note that entry->mValue could possibly
-  // have a value already, this will release that.
-  entry->SetValue(aValue);
-  
-  return NS_OK;
-}
-
-// helper routine for looking up an existing entry. Note that the
-// return result is NOT addreffed
-static nsISupports*
-LookupObject(PLDHashTable& table, nsIContent* aKey)
-{
-  if (aKey && aKey->HasFlag(NODE_MAY_BE_IN_BINDING_MNGR)) {
-    ObjectEntry *entry =
-      static_cast<ObjectEntry*>
-                 (PL_DHashTableOperate(&table, aKey, PL_DHASH_LOOKUP));
-
-    if (PL_DHASH_ENTRY_IS_BUSY(entry))
-      return entry->GetValue();
-  }
-
-  return nullptr;
-}
-
-inline void
-RemoveObjectEntry(PLDHashTable& table, nsISupports* aKey)
-{
-  PL_DHashTableOperate(&table, aKey, PL_DHASH_REMOVE);
-}
-
-static nsresult
-SetOrRemoveObject(PLDHashTable& table, nsIContent* aKey, nsISupports* aValue)
-{
-  if (aValue) {
-    // lazily create the table, but only when adding elements
-    if (!table.ops) {
-      PL_DHashTableInit(&table, &ObjectTableOps, nullptr,
-                        sizeof(ObjectEntry), 16);
-    }
-    aKey->SetFlags(NODE_MAY_BE_IN_BINDING_MNGR);
-    return AddObjectEntry(table, aKey, aValue);
-  }
-
-  // no value, so remove the key from the table
-  if (table.ops) {
-    ObjectEntry* entry =
-      static_cast<ObjectEntry*>
-        (PL_DHashTableOperate(&table, aKey, PL_DHASH_LOOKUP));
-    if (entry && PL_DHASH_ENTRY_IS_BUSY(entry)) {
-      // Keep key and value alive while removing the entry.
-      nsCOMPtr<nsISupports> key = entry->GetKey();
-      nsCOMPtr<nsISupports> value = entry->GetValue();
-      RemoveObjectEntry(table, aKey);
-    }
-  }
-  return NS_OK;
-}
-
-// Implementation /////////////////////////////////////////////////////////////////
-
-// Static member variable initialization
 
 // Implement our nsISupports methods
 
@@ -199,9 +69,10 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsBindingManager)
   if (tmp->mLoadingDocTable)
     tmp->mLoadingDocTable->Clear();
 
-  if (tmp->mWrapperTable.ops)
-    PL_DHashTableFinish(&(tmp->mWrapperTable));
-  tmp->mWrapperTable.ops = nullptr;
+  if (tmp->mWrapperTable) {
+    tmp->mWrapperTable->Clear();
+    tmp->mWrapperTable = nullptr;
+  }
 
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mAttachedStack)
 
@@ -216,7 +87,7 @@ DocumentInfoHashtableTraverser(nsIURI* key,
                                nsXBLDocumentInfo* di,
                                void* userArg)
 {
-  nsCycleCollectionTraversalCallback *cb = 
+  nsCycleCollectionTraversalCallback *cb =
     static_cast<nsCycleCollectionTraversalCallback*>(userArg);
   NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(*cb, "mDocumentTable value");
   cb->NoteXPCOMChild(di);
@@ -228,7 +99,7 @@ LoadingDocHashtableTraverser(nsIURI* key,
                              nsIStreamListener* sl,
                              void* userArg)
 {
-  nsCycleCollectionTraversalCallback *cb = 
+  nsCycleCollectionTraversalCallback *cb =
     static_cast<nsCycleCollectionTraversalCallback*>(userArg);
   NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(*cb, "mLoadingDocTable value");
   cb->NoteXPCOMChild(sl);
@@ -261,15 +132,11 @@ nsBindingManager::nsBindingManager(nsIDocument* aDocument)
     mAttachedStackSizeOnOutermost(0),
     mDocument(aDocument)
 {
-  mWrapperTable.ops = nullptr;
 }
 
 nsBindingManager::~nsBindingManager(void)
 {
   mDestroyed = true;
-
-  if (mWrapperTable.ops)
-    PL_DHashTableFinish(&mWrapperTable);
 }
 
 nsXBLBinding*
@@ -301,12 +168,16 @@ nsBindingManager::RemoveBoundContent(nsIContent* aContent)
 
 nsIXPConnectWrappedJS*
 nsBindingManager::GetWrappedJS(nsIContent* aContent)
-{ 
-  if (mWrapperTable.ops) {
-    return static_cast<nsIXPConnectWrappedJS*>(LookupObject(mWrapperTable, aContent));
+{
+  if (!mWrapperTable) {
+    return nullptr;
   }
 
-  return nullptr;
+  if (!aContent || !aContent->HasFlag(NODE_MAY_BE_IN_BINDING_MNGR)) {
+    return nullptr;
+  }
+
+  return mWrapperTable->GetWeak(aContent);
 }
 
 nsresult
@@ -316,7 +187,27 @@ nsBindingManager::SetWrappedJS(nsIContent* aContent, nsIXPConnectWrappedJS* aWra
     return NS_OK;
   }
 
-  return SetOrRemoveObject(mWrapperTable, aContent, aWrappedJS);
+  if (aWrappedJS) {
+    // lazily create the table, but only when adding elements
+    if (!mWrapperTable) {
+      mWrapperTable = new WrapperHashtable();
+    }
+    aContent->SetFlags(NODE_MAY_BE_IN_BINDING_MNGR);
+
+    NS_ASSERTION(aContent, "key must be non-null");
+    if (!aContent) return NS_ERROR_INVALID_ARG;
+
+    mWrapperTable->Put(aContent, aWrappedJS);
+
+    return NS_OK;
+  }
+
+  // no value, so remove the key from the table
+  if (mWrapperTable) {
+    mWrapperTable->Remove(aContent);
+  }
+
+  return NS_OK;
 }
 
 void
@@ -391,7 +282,7 @@ nsBindingManager::ClearBinding(nsIContent* aContent)
   // currentdoc too?  What's the one that should be passed to
   // ChangeDocument?
   nsCOMPtr<nsIDocument> doc = aContent->OwnerDoc();
-  
+
   // Finally remove the binding...
   // XXXbz this doesn't remove the implementation!  Should fix!  Until
   // then we need the explicit UnhookEventHandlers here.
@@ -399,7 +290,7 @@ nsBindingManager::ClearBinding(nsIContent* aContent)
   binding->ChangeDocument(doc, nullptr);
   aContent->SetXBLBinding(nullptr, this);
   binding->MarkForDeath();
-  
+
   // ...and recreate its frames. We need to do this since the frames may have
   // been removed and style may have changed due to the removal of the
   // anonymous children.
@@ -416,7 +307,7 @@ nsBindingManager::LoadBindingDocument(nsIDocument* aBoundDoc,
                                       nsIPrincipal* aOriginPrincipal)
 {
   NS_PRECONDITION(aURL, "Must have a URI to load!");
-  
+
   // First we need to load our binding.
   nsXBLService* xblService = nsXBLService::GetInstance();
   if (!xblService)
@@ -482,7 +373,7 @@ nsBindingManager::DoProcessAttachedQueue()
 
     NS_ASSERTION(mAttachedStack.Length() == 0,
                "Shouldn't have pending bindings!");
-  
+
     mProcessAttachedQueueEvent = nullptr;
   } else {
     // Someone's doing event processing from inside a constructor.
@@ -525,7 +416,7 @@ nsBindingManager::ProcessAttachedQueue(uint32_t aSkipSize)
   }
 
   NS_ASSERTION(mAttachedStack.Length() == aSkipSize, "How did we get here?");
-  
+
   mAttachedStack.Compact();
 }
 
@@ -569,7 +460,7 @@ nsresult
 nsBindingManager::PutXBLDocumentInfo(nsXBLDocumentInfo* aDocumentInfo)
 {
   NS_PRECONDITION(aDocumentInfo, "Must have a non-null documentinfo!");
-  
+
   if (!mDocumentTable) {
     mDocumentTable = new nsRefPtrHashtable<nsURIHashKey,nsXBLDocumentInfo>(16);
   }
@@ -600,7 +491,7 @@ nsresult
 nsBindingManager::PutLoadingDocListener(nsIURI* aURL, nsIStreamListener* aListener)
 {
   NS_PRECONDITION(aListener, "Must have a non-null listener!");
-  
+
   if (!mLoadingDocTable) {
     mLoadingDocTable = new nsInterfaceHashtable<nsURIHashKey,nsIStreamListener>(16);
   }
@@ -653,12 +544,12 @@ nsBindingManager::FlushSkinBindings()
 
 // Used below to protect from recurring in QI calls through XPConnect.
 struct AntiRecursionData {
-  nsIContent* element; 
-  REFNSIID iid; 
+  nsIContent* element;
+  REFNSIID iid;
   AntiRecursionData* next;
 
-  AntiRecursionData(nsIContent* aElement, 
-                    REFNSIID aIID, 
+  AntiRecursionData(nsIContent* aElement,
+                    REFNSIID aIID,
                     AntiRecursionData* aNext)
     : element(aElement), iid(aIID), next(aNext) {}
 };
@@ -676,19 +567,19 @@ nsBindingManager::GetBindingImplementation(nsIContent* aContent, REFNSIID aIID,
       nsCOMPtr<nsIXPConnectWrappedJS> wrappedJS = GetWrappedJS(aContent);
 
       if (wrappedJS) {
-        // Protect from recurring in QI calls through XPConnect. 
+        // Protect from recurring in QI calls through XPConnect.
         // This can happen when a second binding is being resolved.
         // At that point a wrappedJS exists, but it doesn't yet know about
-        // the iid we are asking for. So, without this protection, 
+        // the iid we are asking for. So, without this protection,
         // AggregatedQueryInterface would end up recurring back into itself
-        // through this code. 
+        // through this code.
         //
-        // With this protection, when we detect the recursion we return 
-        // NS_NOINTERFACE in the inner call. The outer call will then fall 
+        // With this protection, when we detect the recursion we return
+        // NS_NOINTERFACE in the inner call. The outer call will then fall
         // through (see below) and build a new chained wrappedJS for the iid.
         //
         // We're careful to not assume that only one direct nesting can occur
-        // because there is a call into JS in the middle and we can't assume 
+        // because there is a call into JS in the middle and we can't assume
         // that this code won't be reached by some more complex nesting path.
         //
         // NOTE: We *assume* this is single threaded, so we can use a
@@ -707,12 +598,12 @@ nsBindingManager::GetBindingImplementation(nsIContent* aContent, REFNSIID aIID,
         list = &item;
 
         nsresult rv = wrappedJS->AggregatedQueryInterface(aIID, aResult);
-        
+
         list = item.next;
-        
+
         if (*aResult)
           return rv;
-        
+
         // No result was found, so this must be another XBL interface.
         // Fall through to create a new wrapper.
       }
@@ -745,9 +636,10 @@ nsBindingManager::GetBindingImplementation(nsIContent* aContent, REFNSIID aIID,
       // binding, some of which may not be exposed on the prototype of
       // untrusted content.
       //
-      // If there's no separate XBL scope, we'll end up with the global of the
-      // reflector, and this will all be a no-op.
-      JS::Rooted<JSObject*> xblScope(cx, xpc::GetXBLScope(cx, jsobj));
+      // If there's no separate XBL scope, or if the reflector itself lives in
+      // the XBL scope, we'll end up with the global of the reflector, and this
+      // will all be a no-op.
+      JS::Rooted<JSObject*> xblScope(cx, xpc::GetXBLScopeOrGlobal(cx, jsobj));
       JSAutoCompartment ac(cx, xblScope);
       bool ok = JS_WrapObject(cx, &jsobj);
       NS_ENSURE_TRUE(ok, NS_ERROR_OUT_OF_MEMORY);
@@ -768,7 +660,7 @@ nsBindingManager::GetBindingImplementation(nsIContent* aContent, REFNSIID aIID,
       return rv;
     }
   }
-  
+
   *aResult = nullptr;
   return NS_NOINTERFACE;
 }
@@ -779,13 +671,13 @@ nsBindingManager::WalkRules(nsIStyleRuleProcessor::EnumFunc aFunc,
                             bool* aCutOffInheritance)
 {
   *aCutOffInheritance = false;
-  
+
   NS_ASSERTION(aData->mElement, "How did that happen?");
 
   // Walk the binding scope chain, starting with the binding attached to our
   // content, up till we run out of scopes or we get cut off.
   nsIContent *content = aData->mElement;
-  
+
   do {
     nsXBLBinding *binding = content->GetXBLBinding();
     if (binding) {
@@ -848,7 +740,7 @@ static PLDHashOperator
 EnumWalkAllRules(nsPtrHashKey<nsIStyleRuleProcessor> *aKey, void* aClosure)
 {
   nsIStyleRuleProcessor *ruleProcessor = aKey->GetKey();
-    
+
   WalkAllRulesData *data = static_cast<WalkAllRulesData*>(aClosure);
 
   (*(data->mFunc))(ruleProcessor, data->mData);
@@ -882,7 +774,7 @@ static PLDHashOperator
 EnumMediumFeaturesChanged(nsPtrHashKey<nsIStyleRuleProcessor> *aKey, void* aClosure)
 {
   nsIStyleRuleProcessor *ruleProcessor = aKey->GetKey();
-    
+
   MediumFeaturesChangedData *data =
     static_cast<MediumFeaturesChangedData*>(aClosure);
 
@@ -1134,9 +1026,8 @@ nsBindingManager::Traverse(nsIContent *aContent,
     cb.NoteXPCOMChild(aContent);
   }
 
-  nsISupports *value;
-  if (mWrapperTable.ops &&
-      (value = LookupObject(mWrapperTable, aContent))) {
+  nsIXPConnectWrappedJS *value = GetWrappedJS(aContent);
+  if (value) {
     NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "[via binding manager] mWrapperTable key");
     cb.NoteXPCOMChild(aContent);
     NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "[via binding manager] mWrapperTable value");
@@ -1234,7 +1125,7 @@ nsBindingManager::FindNestedInsertionPoint(nsIContent* aContainer,
     if (!binding) {
       break;
     }
-  
+
     XBLChildrenElement* point = binding->FindInsertionPointFor(aChild);
     if (!point) {
       return nullptr;

@@ -6,6 +6,7 @@
 #include "Accessible-inl.h"
 #include "AccIterator.h"
 #include "DocAccessible-inl.h"
+#include "HTMLImageMapAccessible.h"
 #include "nsAccCache.h"
 #include "nsAccessiblePivot.h"
 #include "nsAccUtils.h"
@@ -27,9 +28,9 @@
 #include "nsPIDOMWindow.h"
 #include "nsIDOMXULPopupElement.h"
 #include "nsIEditingSession.h"
-#include "nsEventStateManager.h"
 #include "nsIFrame.h"
 #include "nsIInterfaceRequestorUtils.h"
+#include "nsImageFrame.h"
 #include "nsIPersistentProperties2.h"
 #include "nsIPresShell.h"
 #include "nsIServiceManager.h"
@@ -42,6 +43,7 @@
 #include "nsNameSpaceManager.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/EventStates.h"
 #include "mozilla/dom/DocumentType.h"
 #include "mozilla/dom/Element.h"
 
@@ -1064,17 +1066,10 @@ DocAccessible::ARIAAttributeChanged(Accessible* aAccessible, nsIAtom* aAttribute
                      aAccessible);
 
   nsIContent* elm = aAccessible->GetContent();
-  if (!elm->HasAttr(kNameSpaceID_None, nsGkAtoms::role)) {
-    // We don't care about these other ARIA attribute changes unless there is
-    // an ARIA role set for the element
-    // XXX: we should check the role map to see if the changed property is
-    // relevant for that particular role.
-    return;
-  }
 
-  // The following ARIA attributes only take affect when dynamic content role is present
   if (aAttribute == nsGkAtoms::aria_checked ||
-      aAttribute == nsGkAtoms::aria_pressed) {
+      (aAccessible->IsButton() &&
+       aAttribute == nsGkAtoms::aria_pressed)) {
     const uint64_t kState = (aAttribute == nsGkAtoms::aria_checked) ?
                             states::CHECKED : states::PRESSED;
     nsRefPtr<AccEvent> event = new AccStateChangeEvent(aAccessible, kState);
@@ -1144,7 +1139,7 @@ DocAccessible::ContentAppended(nsIDocument* aDocument,
 void
 DocAccessible::ContentStateChanged(nsIDocument* aDocument,
                                    nsIContent* aContent,
-                                   nsEventStates aStateMask)
+                                   EventStates aStateMask)
 {
   Accessible* accessible = GetAccessible(aContent);
   if (!accessible)
@@ -1183,7 +1178,7 @@ DocAccessible::ContentStateChanged(nsIDocument* aDocument,
 
 void
 DocAccessible::DocumentStatesChanged(nsIDocument* aDocument,
-                                     nsEventStates aStateMask)
+                                     EventStates aStateMask)
 {
 }
 
@@ -1433,6 +1428,30 @@ DocAccessible::ProcessInvalidationList()
   }
 
   mInvalidationList.Clear();
+}
+
+Accessible*
+DocAccessible::GetAccessibleEvenIfNotInMap(nsINode* aNode) const
+{
+if (!aNode->IsContent() || !aNode->AsContent()->IsHTML(nsGkAtoms::area))
+    return GetAccessible(aNode);
+
+  // XXX Bug 135040, incorrect when multiple images use the same map.
+  nsIFrame* frame = aNode->AsContent()->GetPrimaryFrame();
+  nsImageFrame* imageFrame = do_QueryFrame(frame);
+  if (imageFrame) {
+    Accessible* parent = GetAccessible(imageFrame->GetContent());
+    if (parent) {
+      Accessible* area =
+        parent->AsImageMap()->GetChildAccessibleFor(aNode);
+      if (area)
+        return area;
+
+      return nullptr;
+    }
+  }
+
+  return GetAccessible(aNode);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

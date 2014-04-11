@@ -56,8 +56,7 @@
 #include "nsIDOMElement.h"
 #include "nsITheme.h"
 #include "nsTransform2D.h"
-#include "nsEventStateManager.h"
-#include "nsEventDispatcher.h"
+#include "mozilla/EventStateManager.h"
 #include "nsIDOMEvent.h"
 #include "nsDisplayList.h"
 #include "mozilla/Preferences.h"
@@ -919,7 +918,7 @@ nsBoxFrame::DoLayout(nsBoxLayoutState& aState)
                                   nsSize(mRect.width, NS_UNCONSTRAINEDSIZE));
 
     // Set up a |desiredSize| to pass into ReflowAbsoluteFrames
-    nsHTMLReflowMetrics desiredSize(reflowState.GetWritingMode());
+    nsHTMLReflowMetrics desiredSize(reflowState);
     desiredSize.Width() = mRect.width;
     desiredSize.Height() = mRect.height;
 
@@ -1888,7 +1887,7 @@ nsBoxFrame::RegUnregAccessKey(bool aDoReg)
 
   // With a valid PresContext we can get the ESM 
   // and register the access key
-  nsEventStateManager *esm = PresContext()->EventStateManager();
+  EventStateManager* esm = PresContext()->EventStateManager();
 
   uint32_t key = accessKey.First();
   if (aDoReg)

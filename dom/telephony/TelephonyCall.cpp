@@ -46,7 +46,7 @@ TelephonyCall::Create(Telephony* aTelephony, uint32_t aServiceId,
 }
 
 TelephonyCall::TelephonyCall(nsPIDOMWindow* aOwner)
-  : nsDOMEventTargetHelper(aOwner),
+  : DOMEventTargetHelper(aOwner),
     mCallIndex(kOutgoingPlaceholderCallIndex),
     mCallState(nsITelephonyProvider::CALL_STATE_UNKNOWN),
     mLive(false)
@@ -58,9 +58,9 @@ TelephonyCall::~TelephonyCall()
 }
 
 JSObject*
-TelephonyCall::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+TelephonyCall::WrapObject(JSContext* aCx)
 {
-  return TelephonyCallBinding::Wrap(aCx, aScope, this);
+  return TelephonyCallBinding::Wrap(aCx, this);
 }
 
 void
@@ -109,19 +109,19 @@ TelephonyCall::ChangeStateInternal(uint16_t aCallState, bool aFireEvents)
 
   if (aCallState == nsITelephonyProvider::CALL_STATE_DISCONNECTED) {
     NS_ASSERTION(mLive, "Should be live!");
+    mLive = false;
     if (mGroup) {
       mGroup->RemoveCall(this);
     } else {
       mTelephony->RemoveCall(this);
     }
-    mLive = false;
   } else if (!mLive) {
+    mLive = true;
     if (mGroup) {
       mGroup->AddCall(this);
     } else {
       mTelephony->AddCall(this);
     }
-    mLive = true;
   }
 
   if (aFireEvents) {
@@ -181,16 +181,16 @@ TelephonyCall::ChangeGroup(TelephonyCallGroup* aGroup)
 }
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED_3(TelephonyCall,
-                                     nsDOMEventTargetHelper,
+                                     DOMEventTargetHelper,
                                      mTelephony,
                                      mError,
                                      mGroup);
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(TelephonyCall)
-NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetHelper)
+NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
-NS_IMPL_ADDREF_INHERITED(TelephonyCall, nsDOMEventTargetHelper)
-NS_IMPL_RELEASE_INHERITED(TelephonyCall, nsDOMEventTargetHelper)
+NS_IMPL_ADDREF_INHERITED(TelephonyCall, DOMEventTargetHelper)
+NS_IMPL_RELEASE_INHERITED(TelephonyCall, DOMEventTargetHelper)
 
 // TelephonyCall WebIDL
 

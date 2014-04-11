@@ -37,11 +37,6 @@ public:
     AssertIsOnMainThread();
   }
 
-  ~URLProxy()
-  {
-     MOZ_ASSERT(!mURL);
-  }
-
   mozilla::dom::URL* URL()
   {
     return mURL;
@@ -59,6 +54,12 @@ public:
   }
 
 private:
+  // Private destructor, to discourage deletion outside of Release():
+  ~URLProxy()
+  {
+     MOZ_ASSERT(!mURL);
+  }
+
   nsRefPtr<mozilla::dom::URL> mURL;
 };
 
@@ -587,9 +588,9 @@ URL::~URL()
 }
 
 JSObject*
-URL::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+URL::WrapObject(JSContext* aCx)
 {
-  return URLBinding_workers::Wrap(aCx, aScope, this);
+  return URLBinding_workers::Wrap(aCx, this);
 }
 
 void
@@ -615,9 +616,7 @@ URL::SetHref(const nsAString& aHref, ErrorResult& aRv)
     JS_ReportPendingException(mWorkerPrivate->GetJSContext());
   }
 
-  if (mSearchParams) {
-    mSearchParams->Invalidate();
-  }
+  UpdateURLSearchParams();
 }
 
 void
@@ -823,10 +822,7 @@ void
 URL::SetSearch(const nsAString& aSearch)
 {
   SetSearchInternal(aSearch);
-
-  if (mSearchParams) {
-    mSearchParams->Invalidate();
-  }
+  UpdateURLSearchParams();
 }
 
 void
@@ -843,29 +839,21 @@ URL::SetSearchInternal(const nsAString& aSearch)
 }
 
 mozilla::dom::URLSearchParams*
-URL::GetSearchParams()
+URL::SearchParams()
 {
   CreateSearchParamsIfNeeded();
   return mSearchParams;
 }
 
 void
-URL::SetSearchParams(URLSearchParams* aSearchParams)
+URL::SetSearchParams(URLSearchParams& aSearchParams)
 {
-  if (!aSearchParams) {
-    return;
+  if (mSearchParams) {
+    mSearchParams->RemoveObserver(this);
   }
 
-  if (!aSearchParams->HasURLAssociated()) {
-    MOZ_ASSERT(aSearchParams->IsValid());
-
-    mSearchParams = aSearchParams;
-    mSearchParams->SetObserver(this);
-  } else {
-    CreateSearchParamsIfNeeded();
-    mSearchParams->CopyFromURLSearchParams(*aSearchParams);
-  }
-
+  mSearchParams = &aSearchParams;
+  mSearchParams->AddObserver(this);
 
   nsString search;
   mSearchParams->Serialize(search);
@@ -951,7 +939,7 @@ URL::RevokeObjectURL(const GlobalObject& aGlobal, const nsAString& aUrl)
 void
 URL::URLSearchParamsUpdated()
 {
-  MOZ_ASSERT(mSearchParams && mSearchParams->IsValid());
+  MOZ_ASSERT(mSearchParams);
 
   nsString search;
   mSearchParams->Serialize(search);
@@ -959,13 +947,13 @@ URL::URLSearchParamsUpdated()
 }
 
 void
-URL::URLSearchParamsNeedsUpdates()
+URL::UpdateURLSearchParams()
 {
-  MOZ_ASSERT(mSearchParams);
-
-  nsString search;
-  GetSearch(search);
-  mSearchParams->ParseInput(NS_ConvertUTF16toUTF8(Substring(search, 1)));
+  if (mSearchParams) {
+    nsString search;
+    GetSearch(search);
+    mSearchParams->ParseInput(NS_ConvertUTF16toUTF8(Substring(search, 1)), this);
+  }
 }
 
 void
@@ -973,8 +961,8 @@ URL::CreateSearchParamsIfNeeded()
 {
   if (!mSearchParams) {
     mSearchParams = new URLSearchParams();
-    mSearchParams->SetObserver(this);
-    mSearchParams->Invalidate();
+    mSearchParams->AddObserver(this);
+    UpdateURLSearchParams();
   }
 }
 

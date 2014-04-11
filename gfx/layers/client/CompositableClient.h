@@ -22,7 +22,6 @@ namespace mozilla {
 namespace layers {
 
 class CompositableClient;
-class DeprecatedTextureClient;
 class TextureClient;
 class BufferTextureClient;
 class ImageBridgeChild;
@@ -73,7 +72,7 @@ class CompositableClient : public AtomicRefCounted<CompositableClient>
 {
 public:
   MOZ_DECLARE_REFCOUNTED_TYPENAME(CompositableClient)
-  CompositableClient(CompositableForwarder* aForwarder);
+  CompositableClient(CompositableForwarder* aForwarder, TextureFlags aFlags = 0);
 
   virtual ~CompositableClient();
 
@@ -81,19 +80,16 @@ public:
 
   LayersBackend GetCompositorBackendType() const;
 
-  TemporaryRef<DeprecatedTextureClient>
-  CreateDeprecatedTextureClient(DeprecatedTextureClientType aDeprecatedTextureClientType,
-                                gfxContentType aContentType = gfxContentType::SENTINEL);
-
-  virtual TemporaryRef<BufferTextureClient>
+  TemporaryRef<BufferTextureClient>
   CreateBufferTextureClient(gfx::SurfaceFormat aFormat,
-                            TextureFlags aFlags = TEXTURE_FLAGS_DEFAULT);
+                            TextureFlags aFlags = TEXTURE_FLAGS_DEFAULT,
+                            gfx::BackendType aMoz2dBackend = gfx::BackendType::NONE);
 
-  // If we return a non-null TextureClient, then AsTextureClientDrawTarget will
-  // always be non-null.
   TemporaryRef<TextureClient>
   CreateTextureClientForDrawing(gfx::SurfaceFormat aFormat,
-                                TextureFlags aTextureFlags);
+                                TextureFlags aTextureFlags,
+                                gfx::BackendType aMoz2dBackend,
+                                const gfx::IntSize& aSizeHint);
 
   virtual void SetDescriptorFromReply(TextureIdentifier aTextureId,
                                       const SurfaceDescriptor& aDescriptor)
@@ -143,9 +139,18 @@ public:
    */
   virtual void OnDetach() {}
 
+  /**
+   * Clear any resources that are not immediately necessary. This may be called
+   * in low-memory conditions.
+   */
+  virtual void ClearCachedResources() {}
+
 protected:
   CompositableChild* mCompositableChild;
   CompositableForwarder* mForwarder;
+  // Some layers may want to enforce some flags to all their textures
+  // (like disallowing tiling)
+  TextureFlags mTextureFlags;
 
   friend class CompositableChild;
 };

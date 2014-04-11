@@ -12,6 +12,7 @@ XPIDL_SOURCES += [
     'nsIApplicationCacheService.idl',
     'nsIArrayBufferInputStream.idl',
     'nsIAsyncStreamCopier.idl',
+    'nsIAsyncStreamCopier2.idl',
     'nsIAsyncVerifyRedirectCallback.idl',
     'nsIAuthInformation.idl',
     'nsIAuthModule.idl',
@@ -36,6 +37,7 @@ XPIDL_SOURCES += [
     'nsICryptoHMAC.idl',
     'nsIDashboard.idl',
     'nsIDashboardEventNotifier.idl',
+    'nsIDivertableChannel.idl',
     'nsIDownloader.idl',
     'nsIEncodedChannel.idl',
     'nsIExternalProtocolHandler.idl',
@@ -139,6 +141,11 @@ EXPORTS += [
     'nsStreamListenerWrapper.h',
     'nsURIHashKey.h',
 ]
+
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
+    EXPORTS += [
+        'NetStatistics.h',
+    ]
 
 FAIL_ON_WARNINGS = True
 

@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+"use strict";
+
 
 /**
  * This class mimics a state machine and handles a list of commands by
@@ -73,7 +75,8 @@ CommandChain.prototype = {
         var step = self._commands[self._current];
         self._current++;
 
-        info("Run step: " + step[0]);  // Label
+        self.currentStepLabel = step[0];
+        info("Run step: " + self.currentStepLabel);
         step[1](self._framework);      // Execute step
       }
       else if (typeof(self.onFinished) === 'function') {
@@ -336,12 +339,22 @@ function isNetworkReady() {
                         .getService(SpecialPowers.Ci.nsINetworkInterfaceListService);
     var itfList = listService.getDataInterfaceList(
           SpecialPowers.Ci.nsINetworkInterfaceListService.LIST_NOT_INCLUDE_MMS_INTERFACES |
-          SpecialPowers.Ci.nsINetworkInterfaceListService.LIST_NOT_INCLUDE_SUPL_INTERFACES);
+          SpecialPowers.Ci.nsINetworkInterfaceListService.LIST_NOT_INCLUDE_SUPL_INTERFACES |
+          SpecialPowers.Ci.nsINetworkInterfaceListService.LIST_NOT_INCLUDE_IMS_INTERFACES |
+          SpecialPowers.Ci.nsINetworkInterfaceListService.LIST_NOT_INCLUDE_DUN_INTERFACES);
     var num = itfList.getNumberOfInterface();
     for (var i = 0; i < num; i++) {
-      if (itfList.getInterface(i).ip) {
-        info("Network interface is ready with address: " + itfList.getInterface(i).ip);
-        return true;
+      var ips = {};
+      var prefixLengths = {};
+      var length = itfList.getInterface(i).getAddresses(ips, prefixLengths);
+
+      for (var j = 0; j < length; j++) {
+        var ip = ips.value[j];
+        // skip IPv6 address
+        if (ip.indexOf(":") < 0) {
+          info("Network interface is ready with address: " + ip);
+          return true;
+        }
       }
     }
     // ip address is not available
@@ -495,7 +508,22 @@ PeerConnectionTest.prototype.close = function PCT_close(onSuccess) {
  * Executes the next command.
  */
 PeerConnectionTest.prototype.next = function PCT_next() {
+  if (this._stepTimeout) {
+    clearTimeout(this._stepTimeout);
+    this._stepTimeout = null;
+  }
   this.chain.executeNext();
+};
+
+/**
+ * Set a timeout for the current step.
+ * @param {long] ms the number of milliseconds to allow for this step
+ */
+PeerConnectionTest.prototype.setStepTimeout = function(ms) {
+  this._stepTimeout = setTimeout(function() {
+    ok(false, "Step timed out: " + this.chain.currentStepLabel);
+    this.next();
+  }.bind(this), ms);
 };
 
 /**
@@ -558,7 +586,7 @@ function PCT_setLocalDescription(peer, desc, onSuccess) {
   }
 
   peer.onsignalingstatechange = function () {
-    info(peer + ": 'onsignalingstatechange' event registered for async check");
+    info(peer + ": 'onsignalingstatechange' event registered, signalingState: " + peer.signalingState);
 
     eventFired = true;
     check_next_test();
@@ -619,7 +647,7 @@ function PCT_setRemoteDescription(peer, desc, onSuccess) {
   }
 
   peer.onsignalingstatechange = function () {
-    info(peer + ": 'onsignalingstatechange' event registered for async check");
+    info(peer + ": 'onsignalingstatechange' event registered, signalingState: " + peer.signalingState);
 
     eventFired = true;
     check_next_test();
@@ -792,9 +820,9 @@ DataChannelTest.prototype = Object.create(PeerConnectionTest.prototype, {
      */
     value : function DCT_send(data, onSuccess, options) {
       options = options || { };
-      source = options.sourceChannel ||
+      var source = options.sourceChannel ||
                this.pcLocal.dataChannels[this.pcLocal.dataChannels.length - 1];
-      target = options.targetChannel ||
+      var target = options.targetChannel ||
                this.pcRemote.dataChannels[this.pcRemote.dataChannels.length - 1];
 
       // Register event handler for the target channel
@@ -1058,6 +1086,7 @@ DataChannelWrapper.prototype = {
 function PeerConnectionWrapper(label, configuration) {
   this.configuration = configuration;
   this.label = label;
+  this.whenCreated = Date.now();
 
   this.constraints = [ ];
   this.offerConstraints = {};
@@ -1077,24 +1106,19 @@ function PeerConnectionWrapper(label, configuration) {
   // This enables tests to validate that the next ice state is the one they expect to happen
   this.next_ice_state = ""; // in most cases, the next state will be "checking", but in some tests "closed"
   // This allows test to register their own callbacks for ICE connection state changes
-  this.ice_connection_callbacks = [ ];
+  this.ice_connection_callbacks = {};
 
   this._pc.oniceconnectionstatechange = function() {
-      ok(self._pc.iceConnectionState != undefined, "iceConnectionState should not be undefined");
-      info(self + ": oniceconnectionstatechange fired, new state is: " + self._pc.iceConnectionState);
-      if (Object.keys(self.ice_connection_callbacks).length >= 1) {
-        var it = Iterator(self.ice_connection_callbacks);
-        var name = "";
-        var callback = "";
-        for ([name, callback] in it) {
-          callback();
-        }
-      }
-      if (self.next_ice_state != "") {
-        is(self._pc.iceConnectionState, self.next_ice_state, "iceConnectionState changed to '" +
-           self.next_ice_state + "'");
-        self.next_ice_state = "";
-      }
+    ok(self._pc.iceConnectionState !== undefined, "iceConnectionState should not be undefined");
+    info(self + ": oniceconnectionstatechange fired, new state is: " + self._pc.iceConnectionState);
+    Object.keys(self.ice_connection_callbacks).forEach(function(name) {
+      self.ice_connection_callbacks[name]();
+    });
+    if (self.next_ice_state !== "") {
+      is(self._pc.iceConnectionState, self.next_ice_state, "iceConnectionState changed to '" +
+         self.next_ice_state + "'");
+      self.next_ice_state = "";
+    }
   };
   this.ondatachannel = unexpectedEventAndFinish(this, 'ondatachannel');
   this.onsignalingstatechange = unexpectedEventAndFinish(this, 'onsignalingstatechange');
@@ -1131,7 +1155,7 @@ function PeerConnectionWrapper(label, configuration) {
 
     self.ondatachannel(new DataChannelWrapper(event.channel, self));
     self.ondatachannel = unexpectedEventAndFinish(self, 'ondatachannel');
-  }
+  };
 
   /**
    * Callback for native peer connection 'onsignalingstatechange' events. If no
@@ -1146,7 +1170,7 @@ function PeerConnectionWrapper(label, configuration) {
 
     self.onsignalingstatechange();
     self.onsignalingstatechange = unexpectedEventAndFinish(self, 'onsignalingstatechange');
-  }
+  };
 }
 
 PeerConnectionWrapper.prototype = {
@@ -1271,7 +1295,7 @@ PeerConnectionWrapper.prototype = {
           self.attachMedia(stream, type, 'local');
 
           _getAllUserMedia(constraintsList, index + 1);
-        }, unexpectedCallbackAndFinish());
+        }, generateErrorCallback());
       } else {
         onSuccess();
       }
@@ -1300,7 +1324,7 @@ PeerConnectionWrapper.prototype = {
     if (onCreation) {
       wrapper.onopen = function () {
         onCreation(wrapper);
-      }
+      };
     }
 
     this.dataChannels.push(wrapper);
@@ -1320,7 +1344,7 @@ PeerConnectionWrapper.prototype = {
       info("Got offer: " + JSON.stringify(offer));
       self._last_offer = offer;
       onSuccess(offer);
-    }, unexpectedCallbackAndFinish(), this.offerConstraints);
+    }, generateErrorCallback(), this.offerConstraints);
   },
 
   /**
@@ -1336,7 +1360,7 @@ PeerConnectionWrapper.prototype = {
       info(self + ": Got answer: " + JSON.stringify(answer));
       self._last_answer = answer;
       onSuccess(answer);
-    }, unexpectedCallbackAndFinish());
+    }, generateErrorCallback());
   },
 
   /**
@@ -1352,7 +1376,7 @@ PeerConnectionWrapper.prototype = {
     this._pc.setLocalDescription(desc, function () {
       info(self + ": Successfully set the local description");
       onSuccess();
-    }, unexpectedCallbackAndFinish());
+    }, generateErrorCallback());
   },
 
   /**
@@ -1367,7 +1391,7 @@ PeerConnectionWrapper.prototype = {
   setLocalDescriptionAndFail : function PCW_setLocalDescriptionAndFail(desc, onFailure) {
     var self = this;
     this._pc.setLocalDescription(desc,
-      unexpectedCallbackAndFinish("setLocalDescription should have failed."),
+      generateErrorCallback("setLocalDescription should have failed."),
       function (err) {
         info(self + ": As expected, failed to set the local description");
         onFailure(err);
@@ -1387,7 +1411,7 @@ PeerConnectionWrapper.prototype = {
     this._pc.setRemoteDescription(desc, function () {
       info(self + ": Successfully set remote description");
       onSuccess();
-    }, unexpectedCallbackAndFinish());
+    }, generateErrorCallback());
   },
 
   /**
@@ -1402,7 +1426,7 @@ PeerConnectionWrapper.prototype = {
   setRemoteDescriptionAndFail : function PCW_setRemoteDescriptionAndFail(desc, onFailure) {
     var self = this;
     this._pc.setRemoteDescription(desc,
-      unexpectedCallbackAndFinish("setRemoteDescription should have failed."),
+      generateErrorCallback("setRemoteDescription should have failed."),
       function (err) {
         info(self + ": As expected, failed to set the remote description");
         onFailure(err);
@@ -1423,7 +1447,7 @@ PeerConnectionWrapper.prototype = {
     this._pc.addIceCandidate(candidate, function () {
       info(self + ": Successfully added an ICE candidate");
       onSuccess();
-    }, unexpectedCallbackAndFinish());
+    }, generateErrorCallback());
   },
 
   /**
@@ -1439,7 +1463,7 @@ PeerConnectionWrapper.prototype = {
     var self = this;
 
     this._pc.addIceCandidate(candidate,
-      unexpectedCallbackAndFinish("addIceCandidate should have failed."),
+      generateErrorCallback("addIceCandidate should have failed."),
       function (err) {
         info(self + ": As expected, failed to add an ICE candidate");
         onFailure(err);
@@ -1449,7 +1473,7 @@ PeerConnectionWrapper.prototype = {
   /**
    * Returns if the ICE the connection state is "connected".
    *
-   * @returns {boolean} True is the connection state is "connected", otherwise false.
+   * @returns {boolean} True if the connection state is "connected", otherwise false.
    */
   isIceConnected : function PCW_isIceConnected() {
     info("iceConnectionState: " + this.iceConnectionState);
@@ -1459,7 +1483,7 @@ PeerConnectionWrapper.prototype = {
   /**
    * Returns if the ICE the connection state is "checking".
    *
-   * @returns {boolean} True is the connection state is "checking", otherwise false.
+   * @returns {boolean} True if the connection state is "checking", otherwise false.
    */
   isIceChecking : function PCW_isIceChecking() {
     return this.iceConnectionState === "checking";
@@ -1468,10 +1492,21 @@ PeerConnectionWrapper.prototype = {
   /**
    * Returns if the ICE the connection state is "new".
    *
-   * @returns {boolean} True is the connection state is "new", otherwise false.
+   * @returns {boolean} True if the connection state is "new", otherwise false.
    */
   isIceNew : function PCW_isIceNew() {
     return this.iceConnectionState === "new";
+  },
+
+  /**
+   * Checks if the ICE connection state still waits for a connection to get
+   * established.
+   *
+   * @returns {boolean} True if the connection state is "checking" or "new",
+   *  otherwise false.
+   */
+  isIceConnectionPending : function PCW_isIceConnectionPending() {
+    return (this.isIceChecking() || this.isIceNew());
   },
 
   /**
@@ -1492,15 +1527,15 @@ PeerConnectionWrapper.prototype = {
 
     function iceConnectedChanged () {
       if (self.isIceConnected()) {
-        delete self.ice_connection_callbacks["waitForIceConnected"];
+        delete self.ice_connection_callbacks.waitForIceConnected;
         mySuccess();
-      } else if (! (self.isIceChecking() || self.isIceNew())) {
-        delete self.ice_connection_callbacks["waitForIceConnected"];
+      } else if (! self.isIceConnectionPending()) {
+        delete self.ice_connection_callbacks.waitForIceConnected;
         myFailure();
       }
-    };
+    }
 
-    self.ice_connection_callbacks["waitForIceConnected"] = (function() {iceConnectedChanged()});
+    self.ice_connection_callbacks.waitForIceConnected = iceConnectedChanged;
   },
 
   /**
@@ -1554,7 +1589,7 @@ PeerConnectionWrapper.prototype = {
       info(self + ": Got stats: " + JSON.stringify(stats));
       self._last_stats = stats;
       onSuccess(stats);
-    }, unexpectedCallbackAndFinish());
+    }, generateErrorCallback());
   },
 
   /**
@@ -1575,16 +1610,81 @@ PeerConnectionWrapper.prototype = {
       return n;
     }
 
+    const isWinXP = navigator.userAgent.indexOf("Windows NT 5.1") != -1;
+
     // Use spec way of enumerating stats
     var counters = {};
     for (var key in stats) {
       if (stats.hasOwnProperty(key)) {
         var res = stats[key];
+        // validate stats
+        ok(res.id == key, "Coherent stats id");
+        var nowish = Date.now() + 1000;        // TODO: clock drift observed
+        var minimum = this.whenCreated - 1000; // on Windows XP (Bug 979649)
+        if (isWinXP) {
+          todo(false, "Can't reliably test rtcp timestamps on WinXP (Bug 979649)");
+        } else {
+          ok(res.timestamp >= minimum,
+             "Valid " + (res.isRemote? "rtcp" : "rtp") + " timestamp " +
+                 res.timestamp + " >= " + minimum + " (" +
+                 (res.timestamp - minimum) + " ms)");
+          ok(res.timestamp <= nowish,
+             "Valid " + (res.isRemote? "rtcp" : "rtp") + " timestamp " +
+                 res.timestamp + " <= " + nowish + " (" +
+                 (res.timestamp - nowish) + " ms)");
+        }
         if (!res.isRemote) {
           counters[res.type] = toNum(counters[res.type]) + 1;
+
+          switch (res.type) {
+            case "inboundrtp":
+            case "outboundrtp": {
+              // ssrc is a 32 bit number returned as a string by spec
+              ok(res.ssrc.length > 0, "Ssrc has length");
+              ok(res.ssrc.length < 11, "Ssrc not lengthy");
+              ok(!/[^0-9]/.test(res.ssrc), "Ssrc numeric");
+              ok(parseInt(res.ssrc) < Math.pow(2,32), "Ssrc within limits");
+
+              if (res.type == "outboundrtp") {
+                ok(res.packetsSent !== undefined, "Rtp packetsSent");
+                // minimum fragment is 8 (from RFC 791)
+                ok(res.bytesSent >= res.packetsSent * 8, "Rtp bytesSent");
+              } else {
+                ok(res.packetsReceived !== undefined, "Rtp packetsReceived");
+                ok(res.bytesReceived >= res.packetsReceived * 8, "Rtp bytesReceived");
+              }
+              if (res.remoteId) {
+                var rem = stats[res.remoteId];
+                ok(rem.isRemote, "Remote is rtcp");
+                ok(rem.remoteId == res.id, "Remote backlink match");
+                if(res.type == "outboundrtp") {
+                  ok(rem.type == "inboundrtp", "Rtcp is inbound");
+                  ok(rem.packetsReceived !== undefined, "Rtcp packetsReceived");
+                  ok(rem.packetsReceived <= res.packetsSent, "No more than sent");
+                  ok(rem.packetsLost !== undefined, "Rtcp packetsLost");
+                  ok(rem.bytesReceived >= rem.packetsReceived * 8, "Rtcp bytesReceived");
+                  ok(rem.bytesReceived <= res.bytesSent, "No more than sent bytes");
+                  ok(rem.jitter !== undefined, "Rtcp jitter");
+                  ok(rem.mozRtt !== undefined, "Rtcp rtt");
+                  ok(rem.mozRtt >= 0, "Rtcp rtt " + rem.mozRtt + " >= 0");
+                  ok(rem.mozRtt < 60000, "Rtcp rtt " + rem.mozRtt + " < 1 min");
+                } else {
+                  ok(rem.type == "outboundrtp", "Rtcp is outbound");
+                  ok(rem.packetsSent !== undefined, "Rtcp packetsSent");
+                  // We may have received more than outdated Rtcp packetsSent
+                  ok(rem.bytesSent >= rem.packetsSent * 8, "Rtcp bytesSent");
+                }
+                ok(rem.ssrc == res.ssrc, "Remote ssrc match");
+              } else {
+                info("No rtcp info received yet");
+              }
+            }
+            break;
+          }
         }
       }
     }
+
     // Use MapClass way of enumerating stats
     var counters2 = {};
     stats.forEach(function(res) {
@@ -1599,12 +1699,12 @@ PeerConnectionWrapper.prototype = {
 
     // TODO(Bug 957145): Restore stronger inboundrtp test once Bug 948249 is fixed
     //is(toNum(counters["inboundrtp"]), nin, "Have " + nin + " inboundrtp stat(s)");
-    ok(toNum(counters["inboundrtp"]) >= nin, "Have at least " + nin + " inboundrtp stat(s) *");
+    ok(toNum(counters.inboundrtp) >= nin, "Have at least " + nin + " inboundrtp stat(s) *");
 
-    is(toNum(counters["outboundrtp"]), nout, "Have " + nout + " outboundrtp stat(s)");
+    is(toNum(counters.outboundrtp), nout, "Have " + nout + " outboundrtp stat(s)");
 
-    var numLocalCandidates  = toNum(counters["localcandidate"]);
-    var numRemoteCandidates = toNum(counters["remotecandidate"]);
+    var numLocalCandidates  = toNum(counters.localcandidate);
+    var numRemoteCandidates = toNum(counters.remotecandidate);
     // If there are no tracks, there will be no stats either.
     if (nin + nout > 0) {
       ok(numLocalCandidates, "Have localcandidate stat(s)");
@@ -1645,7 +1745,7 @@ PeerConnectionWrapper.prototype = {
       };
 
       this.dataChannels.push(targetChannel);
-    }
+    };
   },
 
   /**

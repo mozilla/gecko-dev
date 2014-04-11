@@ -256,32 +256,9 @@ nsDOMFileBase::Slice(int64_t aStart, int64_t aEnd,
   
   // Create the new file
   *aBlob = CreateSlice((uint64_t)aStart, (uint64_t)(aEnd - aStart),
-                       aContentType).get();
+                       aContentType).take();
 
   return *aBlob ? NS_OK : NS_ERROR_UNEXPECTED;
-}
-
-NS_IMETHODIMP
-nsDOMFileBase::MozSlice(int64_t aStart, int64_t aEnd,
-                        const nsAString& aContentType, 
-                        JSContext* aCx,
-                        uint8_t optional_argc,
-                        nsIDOMBlob **aBlob)
-{
-  MOZ_ASSERT(NS_IsMainThread());
-
-  nsIScriptGlobalObject* sgo = nsJSUtils::GetDynamicScriptGlobal(aCx);
-  if (sgo) {
-    nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(sgo);
-    if (window) {
-      nsCOMPtr<nsIDocument> document = window->GetExtantDoc();
-      if (document) {
-        document->WarnOnceAbout(nsIDocument::eMozSlice);
-      }
-    }
-  }
-
-  return Slice(aStart, aEnd, aContentType, optional_argc, aBlob);
 }
 
 NS_IMETHODIMP
@@ -441,6 +418,12 @@ nsDOMFileBase::SetMutable(bool aMutable)
 
   mImmutable = !aMutable;
   return rv;
+}
+
+NS_IMETHODIMP_(bool)
+nsDOMFileBase::IsMemoryFile(void)
+{
+  return false;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -636,6 +619,12 @@ nsDOMMemoryFile::GetInternalStream(nsIInputStream **aStream)
   return DataOwnerAdapter::Create(mDataOwner, mStart, mLength, aStream);
 }
 
+NS_IMETHODIMP_(bool)
+nsDOMMemoryFile::IsMemoryFile(void)
+{
+  return true;
+}
+
 /* static */ StaticMutex
 nsDOMMemoryFile::DataOwner::sDataOwnerMutex;
 
@@ -752,9 +741,9 @@ NS_IMPL_CYCLE_COLLECTING_ADDREF(nsDOMFileList)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsDOMFileList)
 
 JSObject*
-nsDOMFileList::WrapObject(JSContext *cx, JS::Handle<JSObject*> scope)
+nsDOMFileList::WrapObject(JSContext *cx)
 {
-  return FileListBinding::Wrap(cx, scope, this);
+  return FileListBinding::Wrap(cx, this);
 }
 
 NS_IMETHODIMP
@@ -808,7 +797,7 @@ nsDOMTemporaryFileBlob::CreateSlice(uint64_t aStart, uint64_t aLength,
 NS_IMETHODIMP
 nsDOMTemporaryFileBlob::GetInternalStream(nsIInputStream **aStream)
 {
-  nsCOMPtr<nsTemporaryFileInputStream> stream =
+  nsCOMPtr<nsIInputStream> stream =
     new nsTemporaryFileInputStream(mFileDescOwner, mStartPos, mStartPos + mLength);
   stream.forget(aStream);
   return NS_OK;

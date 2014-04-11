@@ -76,12 +76,8 @@ public:
    * (which might prevent any displacement from happening). If overscroll
    * ocurred, its amount is written to |aOverscrollAmountOut|.
    * The adjusted displacement is returned.
-   *
-   * aScrollingDisabled is used to indicate that no scrolling should happen
-   * in this axis. This is used to implement overflow: hidden;
    */
-  float AdjustDisplacement(float aDisplacement, float& aOverscrollAmountOut,
-                           bool aScrollingDisabled);
+  float AdjustDisplacement(float aDisplacement, float& aOverscrollAmountOut);
 
   /**
    * Gets the distance between the starting position of the touch supplied in
@@ -131,6 +127,16 @@ public:
    * Gets the raw velocity of this axis at this moment.
    */
   float GetVelocity();
+
+  /**
+   * Sets the raw velocity of this axis at this moment.
+   * Intended to be called only when the axis "takes over" a velocity from
+   * another APZC, in which case there are no touch points available to call
+   * UpdateWithTouchAtDevicePoint. In other circumstances,
+   * UpdateWithTouchAtDevicePoint should be used and the velocity calculated
+   * there.
+   */
+  void SetVelocity(float aVelocity);
 
   /**
    * Gets the overscroll state of the axis given an additional displacement.

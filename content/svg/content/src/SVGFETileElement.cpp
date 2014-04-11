@@ -6,7 +6,6 @@
 #include "mozilla/dom/SVGFETileElement.h"
 #include "mozilla/dom/SVGFETileElementBinding.h"
 #include "nsSVGFilterInstance.h"
-#include "gfxUtils.h"
 
 NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(FETile)
 
@@ -16,9 +15,9 @@ namespace mozilla {
 namespace dom {
 
 JSObject*
-SVGFETileElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+SVGFETileElement::WrapNode(JSContext *aCx)
 {
-  return SVGFETileElementBinding::Wrap(aCx, aScope, this);
+  return SVGFETileElementBinding::Wrap(aCx, this);
 }
 
 nsSVGElement::StringInfo SVGFETileElement::sStringInfo[2] =
@@ -54,7 +53,7 @@ SVGFETileElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
                                           const nsTArray<bool>& aInputsAreTainted,
                                           nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {
-  return FilterPrimitiveDescription(FilterPrimitiveDescription::eTile);
+  return FilterPrimitiveDescription(PrimitiveType::Tile);
 }
 
 bool

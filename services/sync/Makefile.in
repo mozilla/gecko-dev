@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 # Definitions used by constants.js.
-weave_version := 1.32.0
+weave_version := 1.33.0
 weave_id      := {340c2bbc-ce74-4362-90b5-7c26312808ef}
 
 # Preprocess files.
@@ -51,6 +51,7 @@ sync_engine_modules := \
 
 sync_stage_modules := \
   cluster.js \
+  declined.js \
   enginesync.js \
   $(NULL)
 
@@ -58,6 +59,7 @@ sync_testing_modules := \
   fakeservices.js \
   rotaryengine.js \
   utils.js \
+  fxa_utils.js \
   $(NULL)
 
 PREF_JS_EXPORTS := $(srcdir)/services-sync.js

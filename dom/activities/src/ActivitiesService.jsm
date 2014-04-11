@@ -11,7 +11,9 @@ const Ci = Components.interfaces;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/IndexedDBHelper.jsm");
-Cu.import("resource://gre/modules/ActivitiesServiceFilter.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "ActivitiesServiceFilter",
+  "resource://gre/modules/ActivitiesServiceFilter.jsm");
 
 XPCOMUtils.defineLazyServiceGetter(this, "ppmm",
                                    "@mozilla.org/parentprocessmessagemanager;1",
@@ -221,7 +223,7 @@ let Activities = {
         if (aChoice === -1) {
           Activities.callers[aMsg.id].mm.sendAsyncMessage("Activity:FireError", {
             "id": aMsg.id,
-            "error": "USER_ABORT"
+            "error": "ActivityCanceled"
           });
           delete Activities.callers[aMsg.id];
           return;
@@ -357,7 +359,7 @@ let Activities = {
           if (this.callers[id].childMM == mm) {
             this.callers[id].mm.sendAsyncMessage("Activity:FireError", {
               "id": id,
-              "error": "USER_ABORT"
+              "error": "ActivityCanceled"
             });
             delete this.callers[id];
             break;

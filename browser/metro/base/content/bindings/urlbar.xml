@@ -284,8 +284,15 @@
             Elements.urlbarState.setAttribute("editing", true);
             this._lastKnownGoodURL = this.value;
 
-            if (!this.focused)
+            if (!this.focused) {
               this.focus();
+              // If we force focus, ensure we're visible.
+              if (ContextUI.displayNavbar()) {
+                // If we forced visibility, ensure we're positioned above keyboard.
+                // (Previous "blur" may have forced us down behind it.)
+                ContentAreaObserver.updateAppBarPosition();
+              }
+            }
 
             this._clearFormatting();
             this.select();
@@ -734,6 +741,21 @@
               item.setAttribute("label", label);
               item.setAttribute("value", value);
               item.setAttribute("iconURI", iconURI);
+              let xpFaviconURI = Services.io.newURI(iconURI.replace("moz-anno:favicon:",""), null, null);
+              Task.spawn(function() {
+                let colorInfo = yield ColorUtils.getForegroundAndBackgroundIconColors(xpFaviconURI);
+                if ( !(colorInfo && colorInfo.background && colorInfo.foreground) 
+                     || (item.getAttribute("iconURI") != iconURI) ) {
+                  return;
+                }
+                let { background, foreground } = colorInfo;
+                item.style.color = foreground; //color text
+                item.setAttribute("customColor", background);
+                // when bound, use the setter to propogate the color change through the tile
+                if ('color' in item) {
+                  item.color = background;
+                }
+              }).then(null, err => Components.utils.reportError(err));
             }
 
             this._results.arrangeItems();

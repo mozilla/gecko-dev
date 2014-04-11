@@ -15,6 +15,9 @@
 #include "AudioChannelCommon.h"
 #include "AudioChannelAgent.h"
 #include "nsClassHashtable.h"
+#include "mozilla/dom/AudioChannelBinding.h"
+
+class nsPIDOMWindow;
 
 namespace mozilla {
 namespace dom {
@@ -85,6 +88,8 @@ public:
 
   bool AnyAudioChannelIsActive();
 
+  void RefreshAgentsVolume(nsPIDOMWindow* aWindow);
+
 #ifdef MOZ_WIDGET_GONK
   void RegisterSpeakerManager(SpeakerManagerService* aSpeakerManager)
   {
@@ -98,6 +103,10 @@ public:
     mSpeakerManager.RemoveElement(aSpeakerManager);
   }
 #endif
+
+  static AudioChannel GetDefaultAudioChannel();
+  static void GetDefaultAudioChannelString(nsString& aString);
+
 protected:
   void Notify();
 
@@ -178,6 +187,19 @@ protected:
   static PLDHashOperator
   NotifyEnumerator(AudioChannelAgent* aAgent,
                    AudioChannelAgentData* aData, void *aUnused);
+
+  static PLDHashOperator
+  RefreshAgentsVolumeEnumerator(AudioChannelAgent* aAgent,
+                                AudioChannelAgentData* aUnused,
+                                void *aPtr);
+
+  static PLDHashOperator
+  CountWindowEnumerator(AudioChannelAgent* aAgent,
+                        AudioChannelAgentData* aUnused,
+                        void *aPtr);
+
+  // This returns the number of agents from this aWindow.
+  uint32_t CountWindow(nsIDOMWindow* aWindow);
 
   nsClassHashtable< nsPtrHashKey<AudioChannelAgent>, AudioChannelAgentData > mAgents;
 #ifdef MOZ_WIDGET_GONK

@@ -15,12 +15,12 @@
 #include "Logging.h"
 #endif
 
+#include "mozilla/EventListenerManager.h"
+#include "mozilla/dom/Event.h" // for nsIDOMEvent::InternalDOMEvent()
 #include "nsCURILoader.h"
 #include "nsDocShellLoadTypes.h"
-#include "nsDOMEvent.h"
 #include "nsIChannel.h"
 #include "nsIDOMDocument.h"
-#include "nsEventListenerManager.h"
 #include "nsIDOMWindow.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsIWebNavigation.h"
@@ -271,11 +271,6 @@ DocManager::HandleEvent(nsIDOMEvent* aEvent)
       logging::DocDestroy("received 'pagehide' event", document);
 #endif
 
-    // Ignore 'pagehide' on temporary documents since we ignore them entirely in
-    // accessibility.
-    if (document->IsInitialDocument())
-      return NS_OK;
-
     // Shutdown this one and sub document accessibles.
 
     // We're allowed to not remove listeners when accessible document is
@@ -329,9 +324,9 @@ DocManager::AddListeners(nsIDocument* aDocument,
 {
   nsPIDOMWindow* window = aDocument->GetWindow();
   EventTarget* target = window->GetChromeEventHandler();
-  nsEventListenerManager* elm = target->GetOrCreateListenerManager();
+  EventListenerManager* elm = target->GetOrCreateListenerManager();
   elm->AddEventListenerByType(this, NS_LITERAL_STRING("pagehide"),
-                              dom::TrustedEventsAtCapture());
+                              TrustedEventsAtCapture());
 
 #ifdef A11Y_LOG
   if (logging::IsEnabled(logging::eDocCreate))
@@ -340,7 +335,7 @@ DocManager::AddListeners(nsIDocument* aDocument,
 
   if (aAddDOMContentLoadedListener) {
     elm->AddEventListenerByType(this, NS_LITERAL_STRING("DOMContentLoaded"),
-                                dom::TrustedEventsAtCapture());
+                                TrustedEventsAtCapture());
 #ifdef A11Y_LOG
     if (logging::IsEnabled(logging::eDocCreate))
       logging::Text("added 'DOMContentLoaded' listener");
@@ -359,21 +354,19 @@ DocManager::RemoveListeners(nsIDocument* aDocument)
   if (!target)
     return;
 
-  nsEventListenerManager* elm = target->GetOrCreateListenerManager();
+  EventListenerManager* elm = target->GetOrCreateListenerManager();
   elm->RemoveEventListenerByType(this, NS_LITERAL_STRING("pagehide"),
-                                 dom::TrustedEventsAtCapture());
+                                 TrustedEventsAtCapture());
 
   elm->RemoveEventListenerByType(this, NS_LITERAL_STRING("DOMContentLoaded"),
-                                 dom::TrustedEventsAtCapture());
+                                 TrustedEventsAtCapture());
 }
 
 DocAccessible*
 DocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
 {
-  // Ignore temporary, hiding, resource documents and documents without
-  // docshell.
-  if (aDocument->IsInitialDocument() ||
-      !aDocument->IsVisibleConsideringAncestors() ||
+  // Ignore hiding, resource documents and documents without docshell.
+  if (!aDocument->IsVisibleConsideringAncestors() ||
       aDocument->IsResourceDoc() || !aDocument->IsActive())
     return nullptr;
 

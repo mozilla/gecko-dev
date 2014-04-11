@@ -10,6 +10,7 @@ Cu.import("resource://services-sync/service.js");
 Cu.import("resource://services-sync/status.js");
 Cu.import("resource://services-sync/util.js");
 Cu.import("resource://testing-common/services/sync/utils.js");
+Cu.import("resource://gre/modules/FileUtils.jsm");
 
 const FAKE_SERVER_URL = "http://dummy:9000/";
 const logsdir = FileUtils.getDir("ProfD", ["weave", "logs"], true);
@@ -54,6 +55,8 @@ function run_test() {
   Log.repository.getLogger("Sync.Service").level = Log.Level.Trace;
   Log.repository.getLogger("Sync.SyncScheduler").level = Log.Level.Trace;
   Log.repository.getLogger("Sync.ErrorHandler").level = Log.Level.Trace;
+
+  ensureLegacyIdentityManager();
 
   run_next_test();
 }
@@ -126,13 +129,14 @@ function sync_httpd_setup() {
 }
 
 function setUp(server) {
-  let deferred = Promise.defer();
-  configureIdentity({username: "johndoe"}).then(() => {
-    deferred.resolve(generateAndUploadKeys());
-  });
-  Service.serverURL  = server.baseURI + "/";
-  Service.clusterURL = server.baseURI + "/";
-  return deferred.promise;
+  return configureIdentity({username: "johndoe"}).then(
+    () => {
+      Service.serverURL  = server.baseURI + "/";
+      Service.clusterURL = server.baseURI + "/";
+    }
+  ).then(
+    () => generateAndUploadKeys()
+  );
 }
 
 function generateAndUploadKeys() {

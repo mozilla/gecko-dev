@@ -15,9 +15,9 @@ namespace mozilla {
 namespace dom {
 
 JSObject*
-SVGFEMergeElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+SVGFEMergeElement::WrapNode(JSContext *aCx)
 {
-  return SVGFEMergeElementBinding::Wrap(aCx, aScope, this);
+  return SVGFEMergeElementBinding::Wrap(aCx, this);
 }
 
 nsSVGElement::StringInfo SVGFEMergeElement::sStringInfo[1] =
@@ -33,7 +33,7 @@ SVGFEMergeElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
                                            const nsTArray<bool>& aInputsAreTainted,
                                            nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {
-  return FilterPrimitiveDescription(FilterPrimitiveDescription::eMerge);
+  return FilterPrimitiveDescription(PrimitiveType::Merge);
 }
 
 void

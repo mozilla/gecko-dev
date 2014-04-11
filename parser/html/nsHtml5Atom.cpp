@@ -4,6 +4,7 @@
 
 #include "nsHtml5Atom.h"
 #include "nsAutoPtr.h"
+#include "mozilla/unused.h"
 
 nsHtml5Atom::nsHtml5Atom(const nsAString& aString)
 {
@@ -24,7 +25,7 @@ nsHtml5Atom::nsHtml5Atom(const nsAString& aString)
   NS_ASSERTION(Equals(aString), "correct data");
 
   // Take ownership of buffer
-  buf.forget();
+  mozilla::unused << buf.forget();
 }
 
 nsHtml5Atom::~nsHtml5Atom()
@@ -32,14 +33,14 @@ nsHtml5Atom::~nsHtml5Atom()
   nsStringBuffer::FromData(mString)->Release();
 }
 
-NS_IMETHODIMP_(nsrefcnt)
+NS_IMETHODIMP_(MozExternalRefCountType)
 nsHtml5Atom::AddRef()
 {
   NS_NOTREACHED("Attempt to AddRef an nsHtml5Atom.");
   return 2;
 }
 
-NS_IMETHODIMP_(nsrefcnt)
+NS_IMETHODIMP_(MozExternalRefCountType)
 nsHtml5Atom::Release()
 {
   NS_NOTREACHED("Attempt to Release an nsHtml5Atom.");

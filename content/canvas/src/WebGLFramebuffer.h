@@ -14,6 +14,7 @@
 
 namespace mozilla {
 
+class WebGLFramebufferAttachable;
 class WebGLTexture;
 class WebGLRenderbuffer;
 namespace gl {
@@ -41,9 +42,11 @@ public:
         GLenum mAttachmentPoint;
         GLenum mTexImageTarget;
         GLint mTexImageLevel;
+        mutable bool mNeedsFinalize;
 
         Attachment(GLenum aAttachmentPoint = LOCAL_GL_COLOR_ATTACHMENT0)
             : mAttachmentPoint(aAttachmentPoint)
+            , mNeedsFinalize(false)
         {}
 
         bool IsDefined() const {
@@ -53,12 +56,11 @@ public:
         bool IsDeleteRequested() const;
 
         bool HasAlpha() const;
+        bool IsReadableFloat() const;
 
         void SetTexImage(WebGLTexture* tex, GLenum target, GLint level);
-        void SetRenderbuffer(WebGLRenderbuffer* rb) {
-            mTexturePtr = nullptr;
-            mRenderbufferPtr = rb;
-        }
+        void SetRenderbuffer(WebGLRenderbuffer* rb);
+
         const WebGLTexture* Texture() const {
             return mTexturePtr;
         }
@@ -91,7 +93,7 @@ public:
         bool HasImage() const;
         bool IsComplete() const;
 
-        void FinalizeAttachment(GLenum attachmentLoc) const;
+        void FinalizeAttachment(gl::GLContext* gl, GLenum attachmentLoc) const;
     };
 
     void Delete();
@@ -113,6 +115,7 @@ public:
 
 private:
     const WebGLRectangleObject& GetAnyRectObject() const;
+    Attachment* GetAttachmentOrNull(GLenum attachment);
 
 public:
     bool HasDefinedAttachments() const;
@@ -160,20 +163,28 @@ public:
 
     void FinalizeAttachments() const;
 
-    virtual JSObject* WrapObject(JSContext* cx,
-                                 JS::Handle<JSObject*> scope) MOZ_OVERRIDE;
+    virtual JSObject* WrapObject(JSContext* cx) MOZ_OVERRIDE;
 
     NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(WebGLFramebuffer)
     NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(WebGLFramebuffer)
+
+    // mask mirrors glClear.
+    bool HasCompletePlanes(GLbitfield mask);
 
     bool CheckAndInitializeAttachments();
 
     bool CheckColorAttachmentNumber(GLenum attachment, const char* functionName) const;
 
+    void EnsureColorAttachments(size_t colorAttachmentId);
+
+    Attachment* AttachmentFor(GLenum attachment);
+    void NotifyAttachableChanged() const;
+
+private:
+    mutable GLenum mStatus;
+
     GLuint mGLName;
     bool mHasEverBeenBound;
-
-    void EnsureColorAttachments(size_t colorAttachmentId);
 
     // we only store pointers to attached renderbuffers, not to attached textures, because
     // we will only need to initialize renderbuffers. Textures are already initialized.

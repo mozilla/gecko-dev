@@ -948,9 +948,10 @@ PK11_LoadSlotList(PK11SlotInfo *slot, PK11PreSlotInfo *psi, int count)
  * returns: SECSuccess if nothing to do or add/delete is successful
  */
 SECStatus
-PK11_UpdateSlotAttribute(PK11SlotInfo *slot, PK11DefaultArrayEntry *entry,
-                        PRBool add)  
-                        /* add: PR_TRUE if want to turn on */
+PK11_UpdateSlotAttribute(PK11SlotInfo *slot,
+                         const PK11DefaultArrayEntry *entry,
+                         PRBool add)
+                         /* add: PR_TRUE if want to turn on */
 {
     SECStatus result = SECSuccess;
     PK11SlotList *slotList = PK11_GetSlotList(entry->mechanism);
@@ -1500,6 +1501,12 @@ PK11_GetDisabledReason(PK11SlotInfo *slot)
 /* returns PR_TRUE if successfully disable the slot */
 /* returns PR_FALSE otherwise */
 PRBool PK11_UserDisableSlot(PK11SlotInfo *slot) {
+
+    /* Prevent users from disabling the internal module. */
+    if (slot->isInternal) {
+	PORT_SetError(SEC_ERROR_INVALID_ARGS);
+	return PR_FALSE;
+    }
 
     slot->defaultFlags |= PK11_DISABLE_FLAG;
     slot->disabled = PR_TRUE;

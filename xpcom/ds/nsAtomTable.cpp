@@ -10,6 +10,7 @@
 #include "mozilla/HashFunctions.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/DebugOnly.h"
+#include "mozilla/unused.h"
 
 #include "nsAtomTable.h"
 #include "nsStaticAtom.h"
@@ -122,8 +123,8 @@ public:
   {}
 
   ~PermanentAtomImpl();
-  NS_IMETHOD_(nsrefcnt) AddRef();
-  NS_IMETHOD_(nsrefcnt) Release();
+  NS_IMETHOD_(MozExternalRefCountType) AddRef();
+  NS_IMETHOD_(MozExternalRefCountType) Release();
 
   virtual bool IsPermanent();
 
@@ -344,7 +345,7 @@ AtomImpl::AtomImpl(const nsAString& aString, uint32_t aHash)
   NS_ASSERTION(Equals(aString), "correct data");
 
   // Take ownership of buffer
-  buf.forget();
+  mozilla::unused << buf.forget();
 }
 
 AtomImpl::AtomImpl(nsStringBuffer* aStringBuffer, uint32_t aLength,
@@ -392,13 +393,13 @@ PermanentAtomImpl::~PermanentAtomImpl()
   mRefCnt = REFCNT_PERMANENT_SENTINEL;
 }
 
-NS_IMETHODIMP_(nsrefcnt) PermanentAtomImpl::AddRef()
+NS_IMETHODIMP_(MozExternalRefCountType) PermanentAtomImpl::AddRef()
 {
   MOZ_ASSERT(NS_IsMainThread(), "wrong thread");
   return 2;
 }
 
-NS_IMETHODIMP_(nsrefcnt) PermanentAtomImpl::Release()
+NS_IMETHODIMP_(MozExternalRefCountType) PermanentAtomImpl::Release()
 {
   MOZ_ASSERT(NS_IsMainThread(), "wrong thread");
   return 1;

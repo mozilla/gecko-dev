@@ -5,6 +5,7 @@
 
 #include "mozilla/dom/SVGFEImageElement.h"
 
+#include "mozilla/EventStates.h"
 #include "mozilla/dom/SVGFEImageElementBinding.h"
 #include "mozilla/dom/SVGFilterElement.h"
 #include "nsContentUtils.h"
@@ -22,9 +23,9 @@ namespace mozilla {
 namespace dom {
 
 JSObject*
-SVGFEImageElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+SVGFEImageElement::WrapNode(JSContext *aCx)
 {
-  return SVGFEImageElementBinding::Wrap(aCx, aScope, this);
+  return SVGFEImageElementBinding::Wrap(aCx, this);
 }
 
 nsSVGElement::StringInfo SVGFEImageElement::sStringInfo[2] =
@@ -44,7 +45,7 @@ NS_IMPL_ISUPPORTS_INHERITED6(SVGFEImageElement, SVGFEImageElementBase,
 //----------------------------------------------------------------------
 // Implementation
 
-SVGFEImageElement::SVGFEImageElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+SVGFEImageElement::SVGFEImageElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : SVGFEImageElementBase(aNodeInfo)
 {
   // We start out broken
@@ -169,7 +170,7 @@ SVGFEImageElement::UnbindFromTree(bool aDeep, bool aNullParent)
   SVGFEImageElementBase::UnbindFromTree(aDeep, aNullParent);
 }
 
-nsEventStates
+EventStates
 SVGFEImageElement::IntrinsicState() const
 {
   return SVGFEImageElementBase::IntrinsicState() |
@@ -198,7 +199,7 @@ SVGFEImageElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
 {
   nsIFrame* frame = GetPrimaryFrame();
   if (!frame) {
-    return FilterPrimitiveDescription(FilterPrimitiveDescription::eNone);
+    return FilterPrimitiveDescription(PrimitiveType::Empty);
   }
 
   nsCOMPtr<imgIRequest> currentRequest;
@@ -218,7 +219,7 @@ SVGFEImageElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
   }
 
   if (!currentFrame) {
-    return FilterPrimitiveDescription(FilterPrimitiveDescription::eNone);
+    return FilterPrimitiveDescription(PrimitiveType::Empty);
   }
 
   gfxPlatform* platform = gfxPlatform::GetPlatform();
@@ -239,7 +240,7 @@ SVGFEImageElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
 
   Filter filter = ToFilter(nsLayoutUtils::GetGraphicsFilterForFrame(frame));
 
-  FilterPrimitiveDescription descr(FilterPrimitiveDescription::eImage);
+  FilterPrimitiveDescription descr(PrimitiveType::Image);
   descr.Attributes().Set(eImageFilter, (uint32_t)filter);
   descr.Attributes().Set(eImageTransform, TM);
 

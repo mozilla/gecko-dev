@@ -40,7 +40,7 @@ add_task(function test_corrupt_file() {
   ps.setIntPref("browser.places.smartBookmarksVersion", -1);
 
   // Import bookmarks from the corrupt file.
-  yield BookmarkHTMLUtils.importFromFile(do_get_file("bookmarks.corrupt.html"),
+  yield BookmarkHTMLUtils.importFromFile(OS.Path.join(do_get_cwd().path, "bookmarks.corrupt.html"),
                                          true);
 
   // Check that bookmarks that are not corrupt have been imported.
@@ -57,10 +57,9 @@ add_task(function test_corrupt_database() {
   stmt.execute();
   stmt.finalize();
 
-  let bookmarksFile = Services.dirsvc.get("ProfD", Ci.nsILocalFile);
-  bookmarksFile.append("bookmarks.exported.html");
-  if (bookmarksFile.exists())
-    bookmarksFile.remove(false);
+  let bookmarksFile = OS.Path.join(OS.Constants.Path.profileDir, "bookmarks.exported.html");
+  if ((yield OS.File.exists(bookmarksFile)))
+    yield OS.File.remove(bookmarksFile);
   yield BookmarkHTMLUtils.exportToFile(bookmarksFile);
 
   // Import again and check for correctness.
@@ -155,19 +154,11 @@ function database_check() {
     // title
     do_check_eq("Latest Headlines", livemark.title);
 
-    let deferGetLivemark = Promise.defer();
-    PlacesUtils.livemarks.getLivemark(
-      { id: livemark.itemId },
-      function (aStatus, aLivemark) {
-        do_check_true(Components.isSuccessCode(aStatus));
-        do_check_eq("http://en-us.fxfeeds.mozilla.com/en-US/firefox/livebookmarks/",
-                    aLivemark.siteURI.spec);
-        do_check_eq("http://en-us.fxfeeds.mozilla.com/en-US/firefox/headlines.xml",
-                    aLivemark.feedURI.spec);
-        deferGetLivemark.resolve();
-      }
-    );
-    yield deferGetLivemark.promise;
+    let foundLivemark = yield PlacesUtils.livemarks.getLivemark({ id: livemark.itemId });
+    do_check_eq("http://en-us.fxfeeds.mozilla.com/en-US/firefox/livebookmarks/",
+                foundLivemark.siteURI.spec);
+    do_check_eq("http://en-us.fxfeeds.mozilla.com/en-US/firefox/headlines.xml",
+                foundLivemark.feedURI.spec);
 
     // cleanup
     toolbar.containerOpen = false;

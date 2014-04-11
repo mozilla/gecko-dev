@@ -15,9 +15,9 @@ namespace mozilla {
 namespace dom {
 
 JSObject*
-SVGFEMorphologyElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aScope)
+SVGFEMorphologyElement::WrapNode(JSContext* aCx)
 {
-  return SVGFEMorphologyElementBinding::Wrap(aCx, aScope, this);
+  return SVGFEMorphologyElementBinding::Wrap(aCx, this);
 }
 
 nsSVGElement::NumberPairInfo SVGFEMorphologyElement::sNumberPairInfo[1] =
@@ -119,7 +119,7 @@ SVGFEMorphologyElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
 {
   int32_t rx, ry;
   GetRXY(&rx, &ry, *aInstance);
-  FilterPrimitiveDescription descr(FilterPrimitiveDescription::eMorphology);
+  FilterPrimitiveDescription descr(PrimitiveType::Morphology);
   descr.Attributes().Set(eMorphologyRadii, Size(rx, ry));
   descr.Attributes().Set(eMorphologyOperator,
                          (uint32_t)mEnumAttributes[OPERATOR].GetAnimValue());

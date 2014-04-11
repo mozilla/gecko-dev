@@ -18,9 +18,9 @@ HTMLFrameSetElement::~HTMLFrameSetElement()
 }
 
 JSObject*
-HTMLFrameSetElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+HTMLFrameSetElement::WrapNode(JSContext *aCx)
 {
-  return HTMLFrameSetElementBinding::Wrap(aCx, aScope, this);
+  return HTMLFrameSetElementBinding::Wrap(aCx, this);
 }
 
 NS_IMPL_ISUPPORTS_INHERITED1(HTMLFrameSetElement, nsGenericHTMLElement,
@@ -373,7 +373,7 @@ HTMLFrameSetElement::IsEventAttributeName(nsIAtom *aName)
   WINDOW_EVENT_HELPER(name_, EventHandlerNonNull)
 #define BEFOREUNLOAD_EVENT(name_, id_, type_, struct_)                         \
   WINDOW_EVENT_HELPER(name_, OnBeforeUnloadEventHandlerNonNull)
-#include "nsEventNameList.h" // IWYU pragma: keep
+#include "mozilla/EventNameList.h" // IWYU pragma: keep
 #undef BEFOREUNLOAD_EVENT
 #undef WINDOW_EVENT
 #undef WINDOW_EVENT_HELPER

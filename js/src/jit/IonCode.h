@@ -14,6 +14,7 @@
 #include "jsinfer.h"
 #include "jstypes.h"
 
+#include "assembler/jit/ExecutableAllocator.h"
 #include "gc/Heap.h"
 #include "jit/IonOptimizationLevels.h"
 #include "jit/IonTypes.h"
@@ -37,13 +38,15 @@ class JitCode : public gc::BarrieredCell<JitCode>
   protected:
     uint8_t *code_;
     JSC::ExecutablePool *pool_;
-    uint32_t bufferSize_;             // Total buffer size.
+    uint32_t bufferSize_;             // Total buffer size. Does not include headerSize_.
     uint32_t insnSize_;               // Instruction stream size.
     uint32_t dataSize_;               // Size of the read-only data area.
     uint32_t jumpRelocTableBytes_;    // Size of the jump relocation table.
     uint32_t dataRelocTableBytes_;    // Size of the data relocation table.
     uint32_t preBarrierTableBytes_;   // Size of the prebarrier table.
-    bool invalidated_;                // Whether the code object has been invalidated.
+    uint8_t headerSize_ : 5;          // Number of bytes allocated before codeStart.
+    uint8_t kind_ : 3;                // JSC::CodeKind, for the memory reporters.
+    bool invalidated_ : 1;            // Whether the code object has been invalidated.
                                       // This is necessary to prevent GC tracing.
 
 #if JS_BITS_PER_WORD == 32
@@ -55,7 +58,8 @@ class JitCode : public gc::BarrieredCell<JitCode>
       : code_(nullptr),
         pool_(nullptr)
     { }
-    JitCode(uint8_t *code, uint32_t bufferSize, JSC::ExecutablePool *pool)
+    JitCode(uint8_t *code, uint32_t bufferSize, uint32_t headerSize, JSC::ExecutablePool *pool,
+            JSC::CodeKind kind)
       : code_(code),
         pool_(pool),
         bufferSize_(bufferSize),
@@ -64,8 +68,13 @@ class JitCode : public gc::BarrieredCell<JitCode>
         jumpRelocTableBytes_(0),
         dataRelocTableBytes_(0),
         preBarrierTableBytes_(0),
+        headerSize_(headerSize),
+        kind_(kind),
         invalidated_(false)
-    { }
+    {
+        MOZ_ASSERT(JSC::CodeKind(kind_) == kind);
+        MOZ_ASSERT(headerSize_ == headerSize);
+    }
 
     uint32_t dataOffset() const {
         return insnSize_;
@@ -126,13 +135,15 @@ class JitCode : public gc::BarrieredCell<JitCode>
     // object can be allocated, nullptr is returned. On failure, |pool| is
     // automatically released, so the code may be freed.
     template <AllowGC allowGC>
-    static JitCode *New(JSContext *cx, uint8_t *code, uint32_t bufferSize, JSC::ExecutablePool *pool);
+    static JitCode *New(JSContext *cx, uint8_t *code, uint32_t bufferSize, uint32_t headerSize,
+                        JSC::ExecutablePool *pool, JSC::CodeKind kind);
 
   public:
     static inline ThingRootKind rootKind() { return THING_ROOT_JIT_CODE; }
 };
 
 class SnapshotWriter;
+class RecoverWriter;
 class SafepointWriter;
 class SafepointIndex;
 class OsiIndex;
@@ -190,11 +201,16 @@ struct IonScript
     // we should add call targets to the worklist.
     mozilla::Atomic<bool, mozilla::Relaxed> hasUncompiledCallTarget_;
 
+    // Flag set when this script is used as an entry script to parallel
+    // execution. If this is true, then the parent JSScript must be in its
+    // JitCompartment's parallel entry script set.
+    bool isParallelEntryScript_;
+
     // Flag set if IonScript was compiled with SPS profiling enabled.
     bool hasSPSInstrumentation_;
 
     // Flag for if this script is getting recompiled.
-    bool recompiling_;
+    uint32_t recompiling_;
 
     // Any kind of data needed by the runtime, these can be either cache
     // information or profiling info.
@@ -232,7 +248,12 @@ struct IonScript
 
     // Offset from the start of the code buffer to its snapshot buffer.
     uint32_t snapshots_;
-    uint32_t snapshotsSize_;
+    uint32_t snapshotsListSize_;
+    uint32_t snapshotsRVATableSize_;
+
+    // List of instructions needed to recover stack frames.
+    uint32_t recovers_;
+    uint32_t recoversSize_;
 
     // Constant table for constants stored in snapshots.
     uint32_t constantTable_;
@@ -250,6 +271,13 @@ struct IonScript
 
     // Number of references from invalidation records.
     uint32_t refcount_;
+
+    // If this is a parallel script, the number of major GC collections it has
+    // been idle, otherwise 0.
+    //
+    // JSScripts with parallel IonScripts are preserved across GC if the
+    // parallel age is < MAX_PARALLEL_AGE.
+    uint32_t parallelAge_;
 
     // Identifier of the compilation which produced this code.
     types::RecompileInfo recompileInfo_;
@@ -327,9 +355,11 @@ struct IonScript
 
     static IonScript *New(JSContext *cx, types::RecompileInfo recompileInfo,
                           uint32_t frameLocals, uint32_t frameSize,
-                          size_t snapshotsSize, size_t snapshotEntries,
-                          size_t constants, size_t safepointIndexEntries, size_t osiIndexEntries,
-                          size_t cacheEntries, size_t runtimeSize, size_t safepointsSize,
+                          size_t snapshotsListSize, size_t snapshotsRVATableSize,
+                          size_t recoversSize, size_t bailoutEntries,
+                          size_t constants, size_t safepointIndexEntries,
+                          size_t osiIndexEntries, size_t cacheEntries,
+                          size_t runtimeSize, size_t safepointsSize,
                           size_t callTargetEntries, size_t backedgeEntries,
                           OptimizationLevel optimizationLevel);
     static void Trace(JSTracer *trc, IonScript *script);
@@ -346,6 +376,9 @@ struct IonScript
     }
     static inline size_t offsetOfRefcount() {
         return offsetof(IonScript, refcount_);
+    }
+    static inline size_t offsetOfRecompiling() {
+        return offsetof(IonScript, recompiling_);
     }
 
   public:
@@ -421,6 +454,12 @@ struct IonScript
     bool hasUncompiledCallTarget() const {
         return hasUncompiledCallTarget_;
     }
+    void setIsParallelEntryScript() {
+        isParallelEntryScript_ = true;
+    }
+    bool isParallelEntryScript() const {
+        return isParallelEntryScript_;
+    }
     void setHasSPSInstrumentation() {
         hasSPSInstrumentation_ = true;
     }
@@ -433,8 +472,17 @@ struct IonScript
     const uint8_t *snapshots() const {
         return reinterpret_cast<const uint8_t *>(this) + snapshots_;
     }
-    size_t snapshotsSize() const {
-        return snapshotsSize_;
+    size_t snapshotsListSize() const {
+        return snapshotsListSize_;
+    }
+    size_t snapshotsRVATableSize() const {
+        return snapshotsRVATableSize_;
+    }
+    const uint8_t *recovers() const {
+        return reinterpret_cast<const uint8_t *>(this) + recovers_;
+    }
+    size_t recoversSize() const {
+        return recoversSize_;
     }
     const uint8_t *safepoints() const {
         return reinterpret_cast<const uint8_t *>(this) + safepointsStart_;
@@ -496,6 +544,7 @@ struct IonScript
     void destroyCaches();
     void unlinkFromRuntime(FreeOp *fop);
     void copySnapshots(const SnapshotWriter *writer);
+    void copyRecovers(const RecoverWriter *writer);
     void copyBailoutTable(const SnapshotOffset *table);
     void copyConstants(const Value *vp);
     void copySafepointIndices(const SafepointIndex *firstSafepointIndex, MacroAssembler &masm);
@@ -548,6 +597,20 @@ struct IonScript
 
     void clearRecompiling() {
         recompiling_ = false;
+    }
+
+    static const uint32_t MAX_PARALLEL_AGE = 5;
+
+    void resetParallelAge() {
+        MOZ_ASSERT(isParallelEntryScript());
+        parallelAge_ = 0;
+    }
+    uint32_t parallelAge() const {
+        return parallelAge_;
+    }
+    uint32_t increaseParallelAge() {
+        MOZ_ASSERT(isParallelEntryScript());
+        return ++parallelAge_;
     }
 
     static void writeBarrierPre(Zone *zone, IonScript *ionScript);

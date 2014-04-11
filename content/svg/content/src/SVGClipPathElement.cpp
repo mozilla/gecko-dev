@@ -15,9 +15,9 @@ namespace mozilla {
 namespace dom {
 
 JSObject*
-SVGClipPathElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+SVGClipPathElement::WrapNode(JSContext *aCx)
 {
-  return SVGClipPathElementBinding::Wrap(aCx, aScope, this);
+  return SVGClipPathElementBinding::Wrap(aCx, this);
 }
 
 nsSVGElement::EnumInfo SVGClipPathElement::sEnumInfo[1] =
@@ -31,7 +31,7 @@ nsSVGElement::EnumInfo SVGClipPathElement::sEnumInfo[1] =
 //----------------------------------------------------------------------
 // Implementation
 
-SVGClipPathElement::SVGClipPathElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+SVGClipPathElement::SVGClipPathElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : SVGClipPathElementBase(aNodeInfo)
 {
 }

@@ -1020,6 +1020,9 @@ gfxFT2FontList::AddFaceToList(const nsCString& aEntryName, uint32_t aIndex,
         if (!family) {
             family = new FT2FontFamily(name);
             mFontFamilies.Put(name, family);
+            if (mSkipSpaceLookupCheckFamilies.Contains(name)) {
+                family->SetSkipSpaceFeatureCheck(true);
+            }
             if (mBadUnderlineFamilyNames.Contains(name)) {
                 family->SetBadUnderlineFamily();
             }
@@ -1275,14 +1278,13 @@ gfxFT2FontList::FindFontsInDir(const nsCString& aDir, FontNameCache *aFNC)
 
     struct dirent *ent = nullptr;
     while ((ent = readdir(d)) != nullptr) {
-        int namelen = strlen(ent->d_name);
-        if (namelen <= 4) {
-            // cannot be a usable font filename
+        const char *ext = strrchr(ent->d_name, '.');
+        if (!ext) {
             continue;
         }
-        const char *ext = ent->d_name + namelen - 4;
         if (strcasecmp(ext, ".ttf") == 0 ||
             strcasecmp(ext, ".otf") == 0 ||
+            strcasecmp(ext, ".woff") == 0 ||
             strcasecmp(ext, ".ttc") == 0) {
             bool isStdFont = false;
             for (unsigned int i = 0;
@@ -1292,7 +1294,7 @@ gfxFT2FontList::FindFontsInDir(const nsCString& aDir, FontNameCache *aFNC)
 
             nsCString s(aDir);
             s.Append('/');
-            s.Append(ent->d_name, namelen);
+            s.Append(ent->d_name);
 
             // Add the face(s) from this file to our font list;
             // note that if we have cached info for this file in fnc,
@@ -1318,6 +1320,9 @@ gfxFT2FontList::AppendFaceFromFontListEntry(const FontListEntry& aFLE,
         if (!family) {
             family = new FT2FontFamily(name);
             mFontFamilies.Put(name, family);
+            if (mSkipSpaceLookupCheckFamilies.Contains(name)) {
+                family->SetSkipSpaceFeatureCheck(true);
+            }
             if (mBadUnderlineFamilyNames.Contains(name)) {
                 family->SetBadUnderlineFamily();
             }
@@ -1348,12 +1353,28 @@ gfxFT2FontList::GetFontList(InfallibleTArray<FontListEntry>* retValue)
     mFontFamilies.Enumerate(AddFamilyToFontList, retValue);
 }
 
+static void
+LoadSkipSpaceLookupCheck(nsTHashtable<nsStringHashKey>& aSkipSpaceLookupCheck)
+{
+    nsAutoTArray<nsString, 5> skiplist;
+    gfxFontUtils::GetPrefsFontList(
+        "font.whitelist.skip_default_features_space_check",
+        skiplist);
+    uint32_t numFonts = skiplist.Length();
+    for (uint32_t i = 0; i < numFonts; i++) {
+        ToLowerCase(skiplist[i]);
+        aSkipSpaceLookupCheck.PutEntry(skiplist[i]);
+    }
+}
+
 nsresult
 gfxFT2FontList::InitFontList()
 {
     // reset font lists
     gfxPlatformFontList::InitFontList();
     
+    LoadSkipSpaceLookupCheck(mSkipSpaceLookupCheckFamilies);
+
     FindFonts();
 
     return NS_OK;
@@ -1365,7 +1386,7 @@ struct FullFontNameSearch {
     { }
 
     nsString     mFullName;
-    gfxFontEntry *mFontEntry;
+    FT2FontEntry *mFontEntry;
 };
 
 // callback called for each family name, based on the assumption that the 
@@ -1379,17 +1400,22 @@ FindFullName(nsStringHashKey::KeyType aKey,
 
     // does the family name match up to the length of the family name?
     const nsString& family = aFontFamily->Name();
-    
+
     nsString fullNameFamily;
     data->mFullName.Left(fullNameFamily, family.Length());
 
     // if so, iterate over faces in this family to see if there is a match
-    if (family.Equals(fullNameFamily)) {
+    if (family.Equals(fullNameFamily, nsCaseInsensitiveStringComparator())) {
         nsTArray<nsRefPtr<gfxFontEntry> >& fontList = aFontFamily->GetFontList();
         int index, len = fontList.Length();
         for (index = 0; index < len; index++) {
-            if (fontList[index]->Name().Equals(data->mFullName)) {
-                data->mFontEntry = fontList[index];
+            gfxFontEntry* fe = fontList[index];
+            if (!fe) {
+                continue;
+            }
+            if (fe->Name().Equals(data->mFullName,
+                                  nsCaseInsensitiveStringComparator())) {
+                data->mFontEntry = static_cast<FT2FontEntry*>(fe);
                 return PL_DHASH_STOP;
             }
         }
@@ -1407,7 +1433,32 @@ gfxFT2FontList::LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
 
     mFontFamilies.Enumerate(FindFullName, &data);
 
-    return data.mFontEntry;
+    if (!data.mFontEntry) {
+        return nullptr;
+    }
+
+    // Clone the font entry so that we can then set its style descriptors
+    // from the proxy rather than the actual font.
+
+    // Ensure existence of mFTFace in the original entry
+    data.mFontEntry->CairoFontFace();
+    if (!data.mFontEntry->mFTFace) {
+        return nullptr;
+    }
+
+    FT2FontEntry* fe =
+        FT2FontEntry::CreateFontEntry(data.mFontEntry->mFTFace,
+                                      data.mFontEntry->mFilename.get(),
+                                      data.mFontEntry->mFTFontIndex,
+                                      data.mFontEntry->Name(), nullptr);
+    if (fe) {
+        fe->mItalic = aProxyEntry->mItalic;
+        fe->mWeight = aProxyEntry->mWeight;
+        fe->mStretch = aProxyEntry->mStretch;
+        fe->mIsUserFont = fe->mIsLocalUserFont = true;
+    }
+
+    return fe;
 }
 
 gfxFontFamily*

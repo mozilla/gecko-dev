@@ -22,7 +22,7 @@
  * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "yarr/YarrJIT.h"
@@ -617,7 +617,7 @@ class YarrGenerator : private MacroAssembler {
         m_backtrackingState.append(op.m_jumps);
     }
 
-    void generateAssertionBOL(size_t opIndex)
+    bool generateAssertionBOL(size_t opIndex)
     {
         YarrOp& op = m_ops[opIndex];
         PatternTerm* term = op.m_term;
@@ -641,13 +641,14 @@ class YarrGenerator : private MacroAssembler {
             else
                 op.m_jumps.append(branch32(NotEqual, index, Imm32(m_checked)));
         }
+        return true;
     }
     void backtrackAssertionBOL(size_t opIndex)
     {
         backtrackTermDefault(opIndex);
     }
 
-    void generateAssertionEOL(size_t opIndex)
+    bool generateAssertionEOL(size_t opIndex)
     {
         YarrOp& op = m_ops[opIndex];
         PatternTerm* term = op.m_term;
@@ -671,6 +672,7 @@ class YarrGenerator : private MacroAssembler {
             else
                 op.m_jumps.append(jump());
         }
+        return true;
     }
     void backtrackAssertionEOL(size_t opIndex)
     {
@@ -692,7 +694,7 @@ class YarrGenerator : private MacroAssembler {
         matchCharacterClass(character, nextIsWordChar, m_pattern.wordcharCharacterClass());
     }
 
-    void generateAssertionWordBoundary(size_t opIndex)
+    bool generateAssertionWordBoundary(size_t opIndex)
     {
         YarrOp& op = m_ops[opIndex];
         PatternTerm* term = op.m_term;
@@ -736,19 +738,20 @@ class YarrGenerator : private MacroAssembler {
 
         nonWordCharThenWordChar.link(this);
         wordCharThenNonWordChar.link(this);
+        return true;
     }
     void backtrackAssertionWordBoundary(size_t opIndex)
     {
         backtrackTermDefault(opIndex);
     }
 
-    void generatePatternCharacterOnce(size_t opIndex)
+    bool generatePatternCharacterOnce(size_t opIndex)
     {
         YarrOp& op = m_ops[opIndex];
 
         if (op.m_isDeadCode)
-            return;
-        
+            return true;
+
         // m_ops always ends with a OpBodyAlternativeEnd or OpMatchFailed
         // node, so there must always be at least one more node.
         ASSERT(opIndex + 1 < m_ops.size());
@@ -760,7 +763,7 @@ class YarrGenerator : private MacroAssembler {
         if ((ch > 0xff) && (m_charSize == Char8)) {
             // Have a 16 bit pattern character and an 8 bit string - short circuit
             op.m_jumps.append(jump());
-            return;
+            return true;
         }
 
         const RegisterID character = regT0;
@@ -787,7 +790,7 @@ class YarrGenerator : private MacroAssembler {
 
         for (numberCharacters = 1; numberCharacters < maxCharactersAtOnce && nextOp->m_op == OpTerm; ++numberCharacters, nextOp = &m_ops[opIndex + numberCharacters]) {
             PatternTerm* nextTerm = nextOp->m_term;
-            
+
             if (nextTerm->type != PatternTerm::TypePatternCharacter
                 || nextTerm->quantityType != QuantifierFixedCount
                 || nextTerm->quantityCount != 1
@@ -807,7 +810,7 @@ class YarrGenerator : private MacroAssembler {
             if ((currentCharacter > 0xff) && (m_charSize == Char8)) {
                 // Have a 16 bit pattern character and an 8 bit string - short circuit
                 op.m_jumps.append(jump());
-                return;
+                return true;
             }
 
             // For case-insesitive compares, non-ascii characters that have different
@@ -817,14 +820,14 @@ class YarrGenerator : private MacroAssembler {
             allCharacters |= (currentCharacter << shiftAmount);
 
             if ((m_pattern.m_ignoreCase) && (isASCIIAlpha(currentCharacter)))
-                ignoreCaseMask |= 32 << shiftAmount;                    
+                ignoreCaseMask |= 32 << shiftAmount;
         }
 
         if (m_charSize == Char8) {
             switch (numberCharacters) {
             case 1:
                 op.m_jumps.append(jumpIfCharNotEquals(ch, startTermPosition - m_checked, character));
-                return;
+                return true;
             case 2: {
                 BaseIndex address(input, index, TimesOne, (startTermPosition - m_checked) * sizeof(LChar));
                 load16Unaligned(address, character);
@@ -837,7 +840,7 @@ class YarrGenerator : private MacroAssembler {
                     or32(Imm32(ignoreCaseMask), character);
                 op.m_jumps.append(branch32(NotEqual, character, Imm32((allCharacters & 0xffff) | ignoreCaseMask)));
                 op.m_jumps.append(jumpIfCharNotEquals(allCharacters >> 16, startTermPosition + 2 - m_checked, character));
-                return;
+                return true;
             }
             case 4: {
                 BaseIndex address(input, index, TimesOne, (startTermPosition - m_checked) * sizeof(LChar));
@@ -849,7 +852,7 @@ class YarrGenerator : private MacroAssembler {
             switch (numberCharacters) {
             case 1:
                 op.m_jumps.append(jumpIfCharNotEquals(ch, term->inputPosition - m_checked, character));
-                return;
+                return true;
             case 2:
                 BaseIndex address(input, index, TimesTwo, (term->inputPosition - m_checked) * sizeof(UChar));
                 load32WithUnalignedHalfWords(address, character);
@@ -860,14 +863,14 @@ class YarrGenerator : private MacroAssembler {
         if (ignoreCaseMask)
             or32(Imm32(ignoreCaseMask), character);
         op.m_jumps.append(branch32(NotEqual, character, Imm32(allCharacters | ignoreCaseMask)));
-        return;
+        return true;
     }
     void backtrackPatternCharacterOnce(size_t opIndex)
     {
         backtrackTermDefault(opIndex);
     }
 
-    void generatePatternCharacterFixed(size_t opIndex)
+    bool generatePatternCharacterFixed(size_t opIndex)
     {
         YarrOp& op = m_ops[opIndex];
         PatternTerm* term = op.m_term;
@@ -898,13 +901,15 @@ class YarrGenerator : private MacroAssembler {
         op.m_jumps.append(branch32(NotEqual, character, Imm32(ch)));
         add32(TrustedImm32(1), countRegister);
         branch32(NotEqual, countRegister, index).linkTo(loop, this);
+
+        return true;
     }
     void backtrackPatternCharacterFixed(size_t opIndex)
     {
         backtrackTermDefault(opIndex);
     }
 
-    void generatePatternCharacterGreedy(size_t opIndex)
+    bool generatePatternCharacterGreedy(size_t opIndex)
     {
         YarrOp& op = m_ops[opIndex];
         PatternTerm* term = op.m_term;
@@ -934,6 +939,7 @@ class YarrGenerator : private MacroAssembler {
         op.m_reentry = label();
 
         storeToFrame(countRegister, term->frameLocation);
+        return true;
     }
     void backtrackPatternCharacterGreedy(size_t opIndex)
     {
@@ -951,7 +957,7 @@ class YarrGenerator : private MacroAssembler {
         jump(op.m_reentry);
     }
 
-    void generatePatternCharacterNonGreedy(size_t opIndex)
+    bool generatePatternCharacterNonGreedy(size_t opIndex)
     {
         YarrOp& op = m_ops[opIndex];
         PatternTerm* term = op.m_term;
@@ -961,6 +967,7 @@ class YarrGenerator : private MacroAssembler {
         move(TrustedImm32(0), countRegister);
         op.m_reentry = label();
         storeToFrame(countRegister, term->frameLocation);
+        return true;
     }
     void backtrackPatternCharacterNonGreedy(size_t opIndex)
     {
@@ -994,7 +1001,7 @@ class YarrGenerator : private MacroAssembler {
         m_backtrackingState.fallthrough();
     }
 
-    void generateCharacterClassOnce(size_t opIndex)
+    bool generateCharacterClassOnce(size_t opIndex)
     {
         YarrOp& op = m_ops[opIndex];
         PatternTerm* term = op.m_term;
@@ -1011,13 +1018,14 @@ class YarrGenerator : private MacroAssembler {
             op.m_jumps.append(jump());
             matchDest.link(this);
         }
+        return true;
     }
     void backtrackCharacterClassOnce(size_t opIndex)
     {
         backtrackTermDefault(opIndex);
     }
 
-    void generateCharacterClassFixed(size_t opIndex)
+    bool generateCharacterClassFixed(size_t opIndex)
     {
         YarrOp& op = m_ops[opIndex];
         PatternTerm* term = op.m_term;
@@ -1045,13 +1053,14 @@ class YarrGenerator : private MacroAssembler {
 
         add32(TrustedImm32(1), countRegister);
         branch32(NotEqual, countRegister, index).linkTo(loop, this);
+        return true;
     }
     void backtrackCharacterClassFixed(size_t opIndex)
     {
         backtrackTermDefault(opIndex);
     }
 
-    void generateCharacterClassGreedy(size_t opIndex)
+    bool generateCharacterClassGreedy(size_t opIndex)
     {
         YarrOp& op = m_ops[opIndex];
         PatternTerm* term = op.m_term;
@@ -1088,6 +1097,7 @@ class YarrGenerator : private MacroAssembler {
         op.m_reentry = label();
 
         storeToFrame(countRegister, term->frameLocation);
+        return true;
     }
     void backtrackCharacterClassGreedy(size_t opIndex)
     {
@@ -1105,7 +1115,7 @@ class YarrGenerator : private MacroAssembler {
         jump(op.m_reentry);
     }
 
-    void generateCharacterClassNonGreedy(size_t opIndex)
+    bool generateCharacterClassNonGreedy(size_t opIndex)
     {
         YarrOp& op = m_ops[opIndex];
         PatternTerm* term = op.m_term;
@@ -1115,6 +1125,7 @@ class YarrGenerator : private MacroAssembler {
         move(TrustedImm32(0), countRegister);
         op.m_reentry = label();
         storeToFrame(countRegister, term->frameLocation);
+        return true;
     }
     void backtrackCharacterClassNonGreedy(size_t opIndex)
     {
@@ -1154,7 +1165,7 @@ class YarrGenerator : private MacroAssembler {
         m_backtrackingState.fallthrough();
     }
 
-    void generateDotStarEnclosure(size_t opIndex)
+    bool generateDotStarEnclosure(size_t opIndex)
     {
         YarrOp& op = m_ops[opIndex];
         PatternTerm* term = op.m_term;
@@ -1192,7 +1203,7 @@ class YarrGenerator : private MacroAssembler {
 
         move(index, matchPos);
 
-        Label findEOLLoop(this);        
+        Label findEOLLoop(this);
         foundEndingNewLine.append(branch32(Equal, matchPos, length));
         if (m_charSize == Char8)
             load8(BaseIndex(input, matchPos, TimesOne, 0), character);
@@ -1208,17 +1219,18 @@ class YarrGenerator : private MacroAssembler {
             op.m_jumps.append(branch32(NotEqual, matchPos, length));
 
         move(matchPos, index);
+        return true;
     }
 
     void backtrackDotStarEnclosure(size_t opIndex)
     {
         backtrackTermDefault(opIndex);
     }
-    
+
     // Code generation/backtracking for simple terms
     // (pattern characters, character classes, and assertions).
     // These methods farm out work to the set of functions above.
-    void generateTerm(size_t opIndex)
+    bool generateTerm(size_t opIndex)
     {
         YarrOp& op = m_ops[opIndex];
         PatternTerm* term = op.m_term;
@@ -1228,16 +1240,14 @@ class YarrGenerator : private MacroAssembler {
             switch (term->quantityType) {
             case QuantifierFixedCount:
                 if (term->quantityCount == 1)
-                    generatePatternCharacterOnce(opIndex);
+                    return generatePatternCharacterOnce(opIndex);
                 else
-                    generatePatternCharacterFixed(opIndex);
+                    return generatePatternCharacterFixed(opIndex);
                 break;
             case QuantifierGreedy:
-                generatePatternCharacterGreedy(opIndex);
-                break;
+                return generatePatternCharacterGreedy(opIndex);
             case QuantifierNonGreedy:
-                generatePatternCharacterNonGreedy(opIndex);
-                break;
+                return generatePatternCharacterNonGreedy(opIndex);
             }
             break;
 
@@ -1245,44 +1255,40 @@ class YarrGenerator : private MacroAssembler {
             switch (term->quantityType) {
             case QuantifierFixedCount:
                 if (term->quantityCount == 1)
-                    generateCharacterClassOnce(opIndex);
+                    return generateCharacterClassOnce(opIndex);
                 else
-                    generateCharacterClassFixed(opIndex);
+                    return generateCharacterClassFixed(opIndex);
                 break;
             case QuantifierGreedy:
-                generateCharacterClassGreedy(opIndex);
-                break;
+                return generateCharacterClassGreedy(opIndex);
             case QuantifierNonGreedy:
-                generateCharacterClassNonGreedy(opIndex);
-                break;
+                return generateCharacterClassNonGreedy(opIndex);
             }
             break;
 
         case PatternTerm::TypeAssertionBOL:
-            generateAssertionBOL(opIndex);
-            break;
+            return generateAssertionBOL(opIndex);
 
         case PatternTerm::TypeAssertionEOL:
-            generateAssertionEOL(opIndex);
-            break;
+            return generateAssertionEOL(opIndex);
 
         case PatternTerm::TypeAssertionWordBoundary:
-            generateAssertionWordBoundary(opIndex);
-            break;
+            return generateAssertionWordBoundary(opIndex);
 
         case PatternTerm::TypeForwardReference:
-            break;
+            return true;
 
         case PatternTerm::TypeParenthesesSubpattern:
         case PatternTerm::TypeParentheticalAssertion:
             ASSERT_NOT_REACHED();
+            return false;
         case PatternTerm::TypeBackReference:
-            m_shouldFallBack = true;
-            break;
+            return false;
         case PatternTerm::TypeDotStarEnclosure:
-            generateDotStarEnclosure(opIndex);
-            break;
+            return generateDotStarEnclosure(opIndex);
         }
+
+        return false;
     }
     void backtrackTerm(size_t opIndex)
     {
@@ -1353,7 +1359,7 @@ class YarrGenerator : private MacroAssembler {
         }
     }
 
-    void generate()
+    bool generate()
     {
         // Forwards generate the matching code.
         ASSERT(m_ops.size());
@@ -1364,7 +1370,8 @@ class YarrGenerator : private MacroAssembler {
             switch (op.m_op) {
 
             case OpTerm:
-                generateTerm(opIndex);
+                if (!generateTerm(opIndex))
+                    return false;
                 break;
 
             // OpBodyAlternativeBegin/Next/End
@@ -1399,7 +1406,9 @@ class YarrGenerator : private MacroAssembler {
                 // set as appropriate to this alternative.
                 op.m_reentry = label();
 
-                m_checked += alternative->m_minimumSize;
+                if (alternative->m_minimumSize > INT_MAX)
+                    return false;
+                m_checked = alternative->m_minimumSize;
                 break;
             }
             case OpBodyAlternativeNext:
@@ -1408,7 +1417,7 @@ class YarrGenerator : private MacroAssembler {
                 PatternAlternative* alternative = op.m_alternative;
 
                 // If we get here, the prior alternative matched - return success.
-                
+
                 // Adjust the stack pointer to remove the pattern's frame.
 #if !WTF_CPU_SPARC
                 removeCallFrame();
@@ -1416,7 +1425,7 @@ class YarrGenerator : private MacroAssembler {
 
                 // Load appropriate values into the return register and the first output
                 // slot, and return. In the case of pattern with a fixed size, we will
-                // not have yet set the value in the first 
+                // not have yet set the value in the first
                 ASSERT(index != returnRegister);
                 if (m_pattern.m_body->m_hasFixedSize) {
                     move(index, returnRegister);
@@ -1583,7 +1592,7 @@ class YarrGenerator : private MacroAssembler {
             // OpParenthesesSubpatternOnceBegin/End
             //
             // These nodes support (optionally) capturing subpatterns, that have a
-            // quantity count of 1 (this covers fixed once, and ?/?? quantifiers). 
+            // quantity count of 1 (this covers fixed once, and ?/?? quantifiers).
             case OpParenthesesSubpatternOnceBegin: {
                 PatternTerm* term = op.m_term;
                 unsigned parenthesesFrameLocation = term->frameLocation;
@@ -1723,7 +1732,7 @@ class YarrGenerator : private MacroAssembler {
                 unsigned parenthesesFrameLocation = term->frameLocation;
                 storeToFrame(index, parenthesesFrameLocation);
 
-                // Check 
+                // Check
                 op.m_checkAdjust = m_checked - term->inputPosition;
                 if (op.m_checkAdjust)
                     sub32(Imm32(op.m_checkAdjust), index);
@@ -1766,6 +1775,8 @@ class YarrGenerator : private MacroAssembler {
 
             ++opIndex;
         } while (opIndex < m_ops.size());
+
+        return true;
     }
 
     void backtrack()
@@ -1900,7 +1911,7 @@ class YarrGenerator : private MacroAssembler {
                 // Generate code to handle input check failures from alternatives except the last.
                 // prevOp is the alternative we're handling a bail out from (initially Begin), and
                 // nextOp is the alternative we will be attempting to reenter into.
-                // 
+                //
                 // We will link input check failures from the forwards matching path back to the code
                 // that can handle them.
                 YarrOp* prevOp = beginOp;
@@ -2519,7 +2530,7 @@ class YarrGenerator : private MacroAssembler {
                 lastOp.m_alternative = alternative;
                 lastOp.m_nextOp = thisOpIndex;
                 thisOp.m_previousOp = lastOpIndex;
-                
+
                 ++currentAlternativeIndex;
             } while (currentAlternativeIndex < alternatives.size() && alternatives[currentAlternativeIndex]->onceThrough());
 
@@ -2555,7 +2566,7 @@ class YarrGenerator : private MacroAssembler {
             lastOp.m_alternative = alternative;
             lastOp.m_nextOp = thisOpIndex;
             thisOp.m_previousOp = lastOpIndex;
-            
+
             ++currentAlternativeIndex;
         } while (currentAlternativeIndex < alternatives.size());
         YarrOp& lastOp = m_ops.last();
@@ -2684,7 +2695,10 @@ public:
             return;
         }
 
-        generate();
+        if (!generate()) {
+            jitObject.setFallBack(true);
+            return;
+        }
         backtrack();
 
         // Link & finalize the code.

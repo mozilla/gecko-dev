@@ -463,6 +463,18 @@ class BaseMarionetteOptions(OptionParser):
                         dest='shuffle',
                         default=False,
                         help='run tests in a random order')
+        self.add_option('--total-chunks',
+                        dest='total_chunks',
+                        type=int,
+                        help='how many chunks to split the tests up into')
+        self.add_option('--this-chunk',
+                        dest='this_chunk',
+                        type=int,
+                        help='which chunk to run')
+        self.add_option('--sources',
+                        dest='sources',
+                        action='store',
+                        help='path to sources.xml (Firefox OS only)')
 
     def parse_args(self, args=None, values=None):
         options, tests = OptionParser.parse_args(self, args, values)
@@ -478,6 +490,10 @@ class BaseMarionetteOptions(OptionParser):
 
         if not options.emulator and not options.address and not options.bin:
             print 'must specify --binary, --emulator or --address'
+            sys.exit(1)
+
+        if options.emulator and options.bin:
+            print 'can\'t specify both --emulator and --binary'
             sys.exit(1)
 
         if not options.es_servers:
@@ -500,6 +516,18 @@ class BaseMarionetteOptions(OptionParser):
             raise ValueError('Invalid emulator resolution format. '
                              'Should be like "480x800".')
 
+        if options.total_chunks is not None and options.this_chunk is None:
+            self.error('You must specify which chunk to run.')
+
+        if options.this_chunk is not None and options.total_chunks is None:
+            self.error('You must specify how many chunks to split the tests into.')
+
+        if options.total_chunks is not None:
+            if not 1 <= options.total_chunks:
+                self.error('Total chunks must be greater than 1.')
+            if not 1 <= options.this_chunk <= options.total_chunks:
+                self.error('Chunk to run must be between 1 and %s.' % options.total_chunks)
+
         for handler in self.verify_usage_handlers:
             handler(options, tests)
 
@@ -517,7 +545,7 @@ class BaseMarionetteTestRunner(object):
                  logcat_dir=None, xml_output=None, repeat=0, gecko_path=None,
                  testvars=None, tree=None, type=None, device_serial=None,
                  symbols_path=None, timeout=None, es_servers=None, shuffle=False,
-                 sdcard=None, **kwargs):
+                 sdcard=None, this_chunk=1, total_chunks=1, sources=None, **kwargs):
         self.address = address
         self.emulator = emulator
         self.emulatorBinary = emulatorBinary
@@ -534,7 +562,6 @@ class BaseMarionetteTestRunner(object):
         self.logger = logger
         self.noWindow = noWindow
         self.httpd = None
-        self.baseurl = None
         self.marionette = None
         self.logcat_dir = logcat_dir
         self.xml_output = xml_output
@@ -553,6 +580,9 @@ class BaseMarionetteTestRunner(object):
         self.es_servers = es_servers
         self.shuffle = shuffle
         self.sdcard = sdcard
+        self.sources = sources
+        self.this_chunk = this_chunk
+        self.total_chunks = total_chunks
         self.mixin_run_tests = []
         self.manifest_skipped_tests = []
         self.tests = []
@@ -620,75 +650,71 @@ class BaseMarionetteTestRunner(object):
         self.todo = 0
         self.failures = []
 
-    def start_httpd(self):
-        host = moznetwork.get_ip()
+    def start_httpd(self, need_external_ip):
+        host = "127.0.0.1"
+        if need_external_ip:
+            host = moznetwork.get_ip()
         self.httpd = MozHttpd(host=host,
                               port=0,
                               docroot=os.path.join(os.path.dirname(os.path.dirname(__file__)), 'www'))
         self.httpd.start()
-        self.baseurl = 'http://%s:%d/' % (host, self.httpd.httpd.server_port)
-        self.logger.info('running webserver on %s' % self.baseurl)
+        self.marionette.baseurl = 'http://%s:%d/' % (host, self.httpd.httpd.server_port)
+        self.logger.info('running webserver on %s' % self.marionette.baseurl)
+
+
+    def _build_kwargs(self):
+        kwargs = {
+            'device_serial': self.device_serial,
+            'symbols_path': self.symbols_path,
+            'timeout': self.timeout,
+        }
+        if self.bin:
+            kwargs.update({
+                'host': 'localhost',
+                'port': 2828,
+                'app': self.app,
+                'app_args': self.app_args,
+                'bin': self.bin,
+                'profile': self.profile,
+            })
+
+        if self.emulator:
+            kwargs.update({
+                'homedir': self.homedir,
+                'logcat_dir': self.logcat_dir,
+                'gecko_path': self.gecko_path,
+            })
+
+        if self.address:
+            host, port = self.address.split(':')
+            kwargs.update({
+                'host': host,
+                'port': int(port),
+            })
+            if self.emulator:
+                kwargs['connectToRunningEmulator'] = True
+
+            if not self.bin:
+                try:
+                    #establish a socket connection so we can vertify the data come back
+                    connection = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+                    connection.connect((host,int(port)))
+                    connection.close()
+                except Exception, e:
+                    raise Exception("Connection attempt to %s:%s failed with error: %s" %(host,port,e))
+        elif self.emulator:
+            kwargs.update({
+                'emulator': self.emulator,
+                'emulatorBinary': self.emulatorBinary,
+                'emulatorImg': self.emulatorImg,
+                'emulator_res': self.emulator_res,
+                'noWindow': self.noWindow,
+                'sdcard': self.sdcard,
+            })
+        return kwargs
 
     def start_marionette(self):
-        assert(self.baseurl is not None)
-        if self.bin:
-            if self.address:
-                host, port = self.address.split(':')
-            else:
-                host = 'localhost'
-                port = 2828
-            self.marionette = Marionette(host=host,
-                                         port=int(port),
-                                         app=self.app,
-                                         app_args=self.app_args,
-                                         bin=self.bin,
-                                         profile=self.profile,
-                                         baseurl=self.baseurl,
-                                         timeout=self.timeout,
-                                         device_serial=self.device_serial)
-        elif self.address:
-            host, port = self.address.split(':')
-            try:
-                #establish a socket connection so we can vertify the data come back
-                connection = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-                connection.connect((host,int(port)))
-                connection.close()
-            except Exception, e:
-                raise Exception("Could not connect to given marionette host:port: %s" % e)
-            if self.emulator:
-                self.marionette = Marionette.getMarionetteOrExit(
-                                             host=host, port=int(port),
-                                             connectToRunningEmulator=True,
-                                             homedir=self.homedir,
-                                             baseurl=self.baseurl,
-                                             logcat_dir=self.logcat_dir,
-                                             gecko_path=self.gecko_path,
-                                             symbols_path=self.symbols_path,
-                                             timeout=self.timeout,
-                                             device_serial=self.device_serial)
-            else:
-                self.marionette = Marionette(host=host,
-                                             port=int(port),
-                                             baseurl=self.baseurl,
-                                             timeout=self.timeout,
-                                             device_serial=self.device_serial)
-        elif self.emulator:
-            self.marionette = Marionette.getMarionetteOrExit(
-                                         emulator=self.emulator,
-                                         emulatorBinary=self.emulatorBinary,
-                                         emulatorImg=self.emulatorImg,
-                                         emulator_res=self.emulator_res,
-                                         homedir=self.homedir,
-                                         baseurl=self.baseurl,
-                                         noWindow=self.noWindow,
-                                         logcat_dir=self.logcat_dir,
-                                         gecko_path=self.gecko_path,
-                                         symbols_path=self.symbols_path,
-                                         timeout=self.timeout,
-                                         sdcard=self.sdcard,
-                                         device_serial=self.device_serial)
-        else:
-            raise Exception("must specify binary, address or emulator")
+        self.marionette = Marionette(**self._build_kwargs())
 
     def post_to_autolog(self, elapsedtime):
         self.logger.info('posting results to autolog')
@@ -738,10 +764,7 @@ class BaseMarionetteTestRunner(object):
         self.reset_test_stats()
         starttime = datetime.utcnow()
 
-        if not self.httpd:
-            print "starting httpd"
-            self.start_httpd()
-
+        need_external_ip = True
         if not self.marionette:
             self.start_marionette()
             if self.emulator:
@@ -749,6 +772,14 @@ class BaseMarionetteTestRunner(object):
             # Retrieve capabilities for later use
             if not self._capabilities:
                 self.capabilities
+            # if we're working against a desktop version, we usually don't need
+            # an external ip
+            if self._capabilities['device'] == "desktop":
+                need_external_ip = False
+
+        if not self.httpd:
+            print "starting httpd"
+            self.start_httpd(need_external_ip)
 
         for test in tests:
             self.add_test(test)
@@ -951,6 +982,20 @@ class BaseMarionetteTestRunner(object):
                 break
 
     def run_test_sets(self):
+        if self.total_chunks > len(self.tests):
+            raise ValueError('Total number of chunks must be between 1 and %d.' % len(self.tests))
+        if self.total_chunks > 1:
+            chunks = [[] for i in range(self.total_chunks)]
+            for i, test in enumerate(self.tests):
+                target_chunk = i % self.total_chunks
+                chunks[target_chunk].append(test)
+
+            self.logger.info('Running chunk %d of %d (%d tests selected from a '
+                             'total of %d)' % (self.this_chunk, self.total_chunks,
+                                               len(chunks[self.this_chunk - 1]),
+                                               len(self.tests)))
+            self.tests = chunks[self.this_chunk - 1]
+
         oop_tests = [x for x in self.tests if x.get('oop')]
         self.run_test_set(oop_tests)
 

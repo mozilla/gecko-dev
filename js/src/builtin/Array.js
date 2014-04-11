@@ -595,7 +595,7 @@ function ArrayMapPar(func, mode) {
       break parallel;
 
     var slicesInfo = ComputeSlicesInfo(length);
-    ForkJoin(mapThread, ShrinkLeftmost(slicesInfo), ForkJoinMode(mode));
+    ForkJoin(mapThread, 0, slicesInfo.count, ForkJoinMode(mode));
     return buffer;
   }
 
@@ -605,17 +605,16 @@ function ArrayMapPar(func, mode) {
     UnsafePutElements(buffer, i, func(self[i], i, self));
   return buffer;
 
-  function mapThread(_, warmup) {
+  function mapThread(workerId, sliceStart, sliceEnd) {
+    var sliceShift = slicesInfo.shift;
     var sliceId;
-    while (GET_SLICE(slicesInfo, sliceId)) {
-      var indexStart = SLICE_START(slicesInfo, sliceId);
-      var indexEnd = SLICE_END(slicesInfo, indexStart, length);
+    while (GET_SLICE(sliceStart, sliceEnd, sliceId)) {
+      var indexStart = SLICE_START_INDEX(sliceShift, sliceId);
+      var indexEnd = SLICE_END_INDEX(sliceShift, indexStart, length);
       for (var i = indexStart; i < indexEnd; i++)
         UnsafePutElements(buffer, i, func(self[i], i, self));
-      MARK_SLICE_DONE(slicesInfo, sliceId);
-      if (warmup)
-        return;
     }
+    return sliceId;
   }
 
   return undefined;
@@ -642,10 +641,10 @@ function ArrayReducePar(func, mode) {
       break parallel;
 
     var slicesInfo = ComputeSlicesInfo(length);
-    var numSlices = SLICE_COUNT(slicesInfo);
+    var numSlices = slicesInfo.count;
     var subreductions = NewDenseArray(numSlices);
 
-    ForkJoin(reduceThread, ShrinkLeftmost(slicesInfo), ForkJoinMode(mode));
+    ForkJoin(reduceThread, 0, numSlices, ForkJoinMode(mode));
 
     var accumulator = subreductions[0];
     for (var i = 1; i < numSlices; i++)
@@ -660,19 +659,18 @@ function ArrayReducePar(func, mode) {
     accumulator = func(accumulator, self[i]);
   return accumulator;
 
-  function reduceThread(_, warmup) {
+  function reduceThread(workerId, sliceStart, sliceEnd) {
+    var sliceShift = slicesInfo.shift;
     var sliceId;
-    while (GET_SLICE(slicesInfo, sliceId)) {
-      var indexStart = SLICE_START(slicesInfo, sliceId);
-      var indexEnd = SLICE_END(slicesInfo, indexStart, length);
+    while (GET_SLICE(sliceStart, sliceEnd, sliceId)) {
+      var indexStart = SLICE_START_INDEX(sliceShift, sliceId);
+      var indexEnd = SLICE_END_INDEX(sliceShift, indexStart, length);
       var accumulator = self[indexStart];
       for (var i = indexStart + 1; i < indexEnd; i++)
         accumulator = func(accumulator, self[i]);
       UnsafePutElements(subreductions, sliceId, accumulator);
-      MARK_SLICE_DONE(slicesInfo, sliceId);
-      if (warmup)
-        return;
     }
+    return sliceId;
   }
 
   return undefined;
@@ -702,10 +700,10 @@ function ArrayScanPar(func, mode) {
       break parallel;
 
     var slicesInfo = ComputeSlicesInfo(length);
-    var numSlices = SLICE_COUNT(slicesInfo);
+    var numSlices = slicesInfo.count;
 
     // Scan slices individually (see comment on phase1()).
-    ForkJoin(phase1, ShrinkLeftmost(slicesInfo), ForkJoinMode(mode));
+    ForkJoin(phase1, 0, numSlices, ForkJoinMode(mode));
 
     // Compute intermediates array (see comment on phase2()).
     var intermediates = [];
@@ -716,14 +714,12 @@ function ArrayScanPar(func, mode) {
       ARRAY_PUSH(intermediates, accumulator);
     }
 
-    // Clear the slices' statuses in between phases.
-    SlicesInfoClearStatuses(slicesInfo);
-
-    // There is no work to be done for slice 0, so mark it as done.
-    MARK_SLICE_DONE(slicesInfo, 0);
-
     // Complete each slice using intermediates array (see comment on phase2()).
-    ForkJoin(phase2, ShrinkLeftmost(slicesInfo), ForkJoinMode(mode));
+    //
+    // We start from slice 1 instead of 0 since there is no work to be done
+    // for slice 0.
+    if (numSlices > 1)
+      ForkJoin(phase2, 1, numSlices, ForkJoinMode(mode));
     return buffer;
   }
 
@@ -757,23 +753,23 @@ function ArrayScanPar(func, mode) {
    *
    * Read on in phase2 to see what we do next!
    */
-  function phase1(_, warmup) {
+  function phase1(workerId, sliceStart, sliceEnd) {
+    var sliceShift = slicesInfo.shift;
     var sliceId;
-    while (GET_SLICE(slicesInfo, sliceId)) {
-      var indexStart = SLICE_START(slicesInfo, sliceId);
-      var indexEnd = SLICE_END(slicesInfo, indexStart, length);
+    while (GET_SLICE(sliceStart, sliceEnd, sliceId)) {
+      var indexStart = SLICE_START_INDEX(sliceShift, sliceId);
+      var indexEnd = SLICE_END_INDEX(sliceShift, indexStart, length);
       scan(self[indexStart], indexStart, indexEnd);
-      MARK_SLICE_DONE(slicesInfo, sliceId);
-      if (warmup)
-        return;
     }
+    return sliceId;
   }
 
   /**
    * Computes the index of the final element computed by the slice |sliceId|.
    */
   function finalElement(sliceId) {
-    return SLICE_END(slicesInfo, SLICE_START(slicesInfo, sliceId), length) - 1;
+    var sliceShift = slicesInfo.shift;
+    return SLICE_END_INDEX(sliceShift, SLICE_START_INDEX(sliceShift, sliceId), length) - 1;
   }
 
   /**
@@ -809,20 +805,17 @@ function ArrayScanPar(func, mode) {
    * result is [(A+B+C)+D, (A+B+C)+(D+E), (A+B+C)+(D+E+F)]. Again I
    * am using parentheses to clarify how these results were reduced.
    */
-  function phase2(_, warmup) {
+  function phase2(workerId, sliceStart, sliceEnd) {
+    var sliceShift = slicesInfo.shift;
     var sliceId;
-    while (GET_SLICE(slicesInfo, sliceId)) {
-      var indexPos = SLICE_START(slicesInfo, sliceId);
-      var indexEnd = SLICE_END(slicesInfo, indexPos, length);
-
+    while (GET_SLICE(sliceStart, sliceEnd, sliceId)) {
+      var indexPos = SLICE_START_INDEX(sliceShift, sliceId);
+      var indexEnd = SLICE_END_INDEX(sliceShift, indexPos, length);
       var intermediate = intermediates[sliceId - 1];
       for (; indexPos < indexEnd; indexPos++)
         UnsafePutElements(buffer, indexPos, func(intermediate, buffer[indexPos]));
-
-      MARK_SLICE_DONE(slicesInfo, sliceId);
-      if (warmup)
-        return;
     }
+    return sliceId;
   }
 
   return undefined;
@@ -890,6 +883,13 @@ function ArrayScatterPar(targets, defaultValue, conflictFunc, length, mode) {
     return buffer;
   }
 
+  function collide(elem1, elem2) {
+    if (conflictFunc === undefined)
+      ThrowError(JSMSG_PAR_ARRAY_SCATTER_CONFLICT);
+
+    return conflictFunc(elem1, elem2);
+  }
+
   function checkTarget(i, t) {
     if (TO_INT32(t) !== t)
       ThrowError(JSMSG_PAR_ARRAY_SCATTER_BAD_TARGET, i);
@@ -922,23 +922,18 @@ function ArrayFilterPar(func, mode) {
 
     var slicesInfo = ComputeSlicesInfo(length);
 
-    // Step 1. Compute which items from each slice of the result
-    // buffer should be preserved. When we're done, we have an array
-    // |survivors| containing a bitset for each chunk, indicating
-    // which members of the chunk survived. We also keep an array
-    // |counts| containing the total number of items that are being
-    // preserved from within one slice.
-    //
-    // FIXME(bug 844890): Use typed arrays here.
-    var numSlices = SLICE_COUNT(slicesInfo);
+    // Step 1. Compute which items from each slice of the result buffer should
+    // be preserved. When we're done, we have a uint8 array |survivors|
+    // containing 0 or 1 for each source element, indicating which members of
+    // the chunk survived. We also keep an array |counts| containing the total
+    // number of items that are being preserved from within one slice.
+    var numSlices = slicesInfo.count;
     var counts = NewDenseArray(numSlices);
     for (var i = 0; i < numSlices; i++)
       UnsafePutElements(counts, i, 0);
-    var survivors = NewDenseArray(computeNum32BitChunks(length));
-    ForkJoin(findSurvivorsThread, ShrinkLeftmost(slicesInfo), ForkJoinMode(mode));
 
-    // Clear the slices' statuses in between phases.
-    SlicesInfoClearStatuses(slicesInfo);
+    var survivors = new Uint8Array(length);
+    ForkJoin(findSurvivorsThread, 0, numSlices, ForkJoinMode(mode));
 
     // Step 2. Compress the slices into one contiguous set.
     var count = 0;
@@ -946,7 +941,7 @@ function ArrayFilterPar(func, mode) {
       count += counts[i];
     var buffer = NewDenseArray(count);
     if (count > 0)
-      ForkJoin(copySurvivorsThread, ShrinkLeftmost(slicesInfo), ForkJoinMode(mode));
+      ForkJoin(copySurvivorsThread, 0, numSlices, ForkJoinMode(mode));
 
     return buffer;
   }
@@ -962,96 +957,58 @@ function ArrayFilterPar(func, mode) {
   return buffer;
 
   /**
-   * Determine the number of 32-bit chunks for use with the survivors bitset.
+   * As described above, our goal is to determine which items we will preserve
+   * from a given slice, storing "to-keep" bits into 32-bit chunks.
    */
-  function computeNum32BitChunks(length) {
-    var chunks = length >>> 5;
-    if (chunks << 5 === length)
-      return chunks;
-    return chunks + 1;
+  function findSurvivorsThread(workerId, sliceStart, sliceEnd) {
+    var sliceShift = slicesInfo.shift;
+    var sliceId;
+    while (GET_SLICE(sliceStart, sliceEnd, sliceId)) {
+      var count = 0;
+      var indexStart = SLICE_START_INDEX(sliceShift, sliceId);
+      var indexEnd = SLICE_END_INDEX(sliceShift, indexStart, length);
+      for (var indexPos = indexStart; indexPos < indexEnd; indexPos++) {
+        var keep = !!func(self[indexPos], indexPos, self);
+        UnsafePutElements(survivors, indexPos, keep);
+        count += keep;
+      }
+      UnsafePutElements(counts, sliceId, count);
+    }
+    return sliceId;
   }
 
   /**
-   * As described above, our goal is to determine which items we
-   * will preserve from a given slice. We do this one chunk at a
-   * time. When we finish a chunk, we record our current count and
-   * the next chunk sliceId, lest we should bail.
+   * Copies the survivors from this slice into the correct position. Note
+   * that this is an idempotent operation that does not invoke user
+   * code. Therefore, we don't expect bailouts and make an effort to proceed
+   * chunk by chunk or avoid duplicating work.
    */
-  function findSurvivorsThread(_, warmup) {
+  function copySurvivorsThread(workerId, sliceStart, sliceEnd) {
+    var sliceShift = slicesInfo.shift;
     var sliceId;
-    while (GET_SLICE(slicesInfo, sliceId)) {
-      var count = 0;
-      var indexStart = SLICE_START(slicesInfo, sliceId);
-      var indexEnd = SLICE_END(slicesInfo, indexStart, length);
-      var chunkStart = computeNum32BitChunks(indexStart);
-      var chunkEnd = computeNum32BitChunks(indexEnd);
-      for (var chunkPos = chunkStart; chunkPos < chunkEnd; chunkPos++, indexStart += 32) {
-        var chunkBits = 0;
-        for (var bit = 0, indexPos = indexStart; bit < 32 && indexPos < indexEnd; bit++, indexPos++) {
-          var keep = !!func(self[indexPos], indexPos, self);
-          chunkBits |= keep << bit;
-          count += keep;
-        }
-        UnsafePutElements(survivors, chunkPos, chunkBits);
-      }
-      UnsafePutElements(counts, sliceId, count);
-
-      MARK_SLICE_DONE(slicesInfo, sliceId);
-      if (warmup)
-        return;
-    }
-  }
-
-  function copySurvivorsThread(_, warmup) {
-    var sliceId;
-    while (GET_SLICE(slicesInfo, sliceId)) {
-      // Copies the survivors from this slice into the correct position.
-      // Note that this is an idempotent operation that does not invoke
-      // user code. Therefore, we don't expect bailouts and make an
-      // effort to proceed chunk by chunk or avoid duplicating work.
-
+    while (GET_SLICE(sliceStart, sliceEnd, sliceId)) {
       // Total up the items preserved by previous slices.
       var total = 0;
       for (var i = 0; i < sliceId + 1; i++)
         total += counts[i];
 
-      // Compute the final index we expect to write.
+      // Are we done?
       var count = total - counts[sliceId];
-      if (count === total) {
-        MARK_SLICE_DONE(slicesInfo, sliceId);
+      if (count === total)
         continue;
-      }
 
-      // Iterate over the chunks assigned to us. Read the bitset for
-      // each chunk. Copy values where a 1 appears until we have
-      // written all the values that we expect to. We can just iterate
-      // from 0...CHUNK_SIZE without fear of a truncated final chunk
-      // because we are already checking for when count==total.
-      var indexStart = SLICE_START(slicesInfo, sliceId);
-      var indexEnd = SLICE_END(slicesInfo, indexStart, length);
-      var chunkStart = computeNum32BitChunks(indexStart);
-      var chunkEnd = computeNum32BitChunks(indexEnd);
-      for (var chunkPos = chunkStart; chunkPos < chunkEnd; chunkPos++, indexStart += 32) {
-        var chunkBits = survivors[chunkPos];
-        if (!chunkBits)
-          continue;
-
-        for (var i = 0; i < 32; i++) {
-          if (chunkBits & (1 << i)) {
-            UnsafePutElements(buffer, count++, self[indexStart + i]);
-            if (count === total)
-              break;
-          }
+      var indexStart = SLICE_START_INDEX(sliceShift, sliceId);
+      var indexEnd = SLICE_END_INDEX(sliceShift, indexStart, length);
+      for (var indexPos = indexStart; indexPos < indexEnd; indexPos++) {
+        if (survivors[indexPos]) {
+          UnsafePutElements(buffer, count++, self[indexPos]);
+          if (count == total)
+            break;
         }
-
-        if (count == total)
-          break;
       }
-
-      MARK_SLICE_DONE(slicesInfo, sliceId);
-      if (warmup)
-        return;
     }
+
+    return sliceId;
   }
 
   return undefined;
@@ -1094,7 +1051,7 @@ function ArrayStaticBuildPar(length, func, mode) {
       break parallel;
 
     var slicesInfo = ComputeSlicesInfo(length);
-    ForkJoin(constructThread, ShrinkLeftmost(slicesInfo), ForkJoinMode(mode));
+    ForkJoin(constructThread, 0, slicesInfo.count, ForkJoinMode(mode));
     return buffer;
   }
 
@@ -1104,17 +1061,16 @@ function ArrayStaticBuildPar(length, func, mode) {
     UnsafePutElements(buffer, i, func(i));
   return buffer;
 
-  function constructThread(_, warmup) {
+  function constructThread(workerId, sliceStart, sliceEnd) {
+    var sliceShift = slicesInfo.shift;
     var sliceId;
-    while (GET_SLICE(slicesInfo, sliceId)) {
-      var indexStart = SLICE_START(slicesInfo, sliceId);
-      var indexEnd = SLICE_END(slicesInfo, indexStart, length);
+    while (GET_SLICE(sliceStart, sliceEnd, sliceId)) {
+      var indexStart = SLICE_START_INDEX(sliceShift, sliceId);
+      var indexEnd = SLICE_END_INDEX(sliceShift, indexStart, length);
       for (var i = indexStart; i < indexEnd; i++)
         UnsafePutElements(buffer, i, func(i));
-      MARK_SLICE_DONE(slicesInfo, sliceId);
-      if (warmup)
-        return;
     }
+    return sliceId;
   }
 
   return undefined;

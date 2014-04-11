@@ -181,15 +181,22 @@
   overflow: hidden;
 }
 
-.category:-moz-locale-dir(ltr) {
-  border-top-left-radius: 5px;
-  border-bottom-left-radius: 5px;
-}
+%ifdef WINDOWS_AERO
+@media (-moz-os-version: windows-vista),
+       (-moz-os-version: windows-win7) {
+%endif
+  .category:-moz-locale-dir(ltr) {
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+  }
 
-.category:-moz-locale-dir(rtl) {
-  border-top-right-radius: 5px;
-  border-bottom-right-radius: 5px;
+  .category:-moz-locale-dir(rtl) {
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+  }
+%ifdef WINDOWS_AERO
 }
+%endif
 
 .category[disabled] {
   border-top: 0;
@@ -270,6 +277,9 @@
 }
 #category-dictionary > .category-icon {
   list-style-image: url("chrome://mozapps/skin/extensions/category-dictionaries.png");
+}
+#category-experiment > .category-icon {
+  list-style-image: url("chrome://mozapps/skin/extensions/category-experiments.png");
 }
 #category-availableUpdates > .category-icon {
   list-style-image: url("chrome://mozapps/skin/extensions/category-available.png");
@@ -483,6 +493,10 @@
 
 .addon-view[type="dictionary"] .icon {
   list-style-image: url("chrome://mozapps/skin/extensions/dictionaryGeneric.png");
+}
+
+.addon-view[type="experiment"] .icon {
+  list-style-image: url("chrome://mozapps/skin/extensions/experimentGeneric.png");
 }
 
 .name-container {

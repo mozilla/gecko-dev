@@ -18,9 +18,9 @@ namespace mozilla {
 namespace dom {
 
 JSObject*
-SVGSwitchElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+SVGSwitchElement::WrapNode(JSContext *aCx)
 {
-  return SVGSwitchElementBinding::Wrap(aCx, aScope, this);
+  return SVGSwitchElementBinding::Wrap(aCx, this);
 }
 
 //----------------------------------------------------------------------
@@ -38,7 +38,7 @@ NS_INTERFACE_MAP_END_INHERITING(SVGSwitchElementBase)
 //----------------------------------------------------------------------
 // Implementation
 
-SVGSwitchElement::SVGSwitchElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+SVGSwitchElement::SVGSwitchElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : SVGSwitchElementBase(aNodeInfo)
 {
 }

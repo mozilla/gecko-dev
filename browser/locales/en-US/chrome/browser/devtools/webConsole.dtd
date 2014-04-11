@@ -53,7 +53,7 @@
   -  for editing commands in text inputs. -->
 <!ENTITY btnPageNet.accesskeyMacOSX "t">
 <!ENTITY btnPageCSS.label   "CSS">
-<!ENTITY btnPageCSS.tooltip "Log CSS parsing errors">
+<!ENTITY btnPageCSS.tooltip "Log CSS errors and warnings">
 <!ENTITY btnPageCSS.accesskey "C">
 <!ENTITY btnPageJS.label    "JS">
 <!ENTITY btnPageJS.tooltip  "Log JavaScript exceptions">
@@ -73,6 +73,7 @@
 <!ENTITY btnConsoleInfo         "Info">
 <!ENTITY btnConsoleWarnings     "Warnings">
 <!ENTITY btnConsoleLog          "Log">
+<!ENTITY btnConsoleReflows      "Reflows">
 
 <!ENTITY filterOutput.placeholder "Filter output">
 <!ENTITY btnClear.label        "Clear">

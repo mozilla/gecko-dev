@@ -10,29 +10,22 @@ module.metadata = {
   }
 };
 
-// Because Firefox Holly, we still need to check if `CustomizableUI` is
-// available. Once Australis will officially land, we can safely remove it.
-// See Bug 959142
-try {
-  require('chrome').Cu.import('resource:///modules/CustomizableUI.jsm', {});
-}
-catch (e) {
-  throw Error('Unsupported Application: The module ' + module.id +
-              ' does not support this application.');
-}
-
 const { Class } = require('../../core/heritage');
 const { merge } = require('../../util/object');
 const { Disposable } = require('../../core/disposable');
 const { on, off, emit, setListeners } = require('../../event/core');
 const { EventTarget } = require('../../event/target');
+const { getNodeView } = require('../../view/core');
 
 const view = require('./view');
 const { toggleButtonContract, toggleStateContract } = require('./contract');
-const { properties, render, state, register, unregister } = require('../state');
+const { properties, render, state, register, unregister,
+  setStateFor, getStateFor, getDerivedStateFor } = require('../state');
 const { events: stateEvents } = require('../state/events');
 const { events: viewEvents } = require('./view/events');
 const events = require('../../event/utils');
+
+const { getActiveTab } = require('../../tabs/utils');
 
 const { id: addonID } = require('../../self');
 const { identify } = require('../id');
@@ -87,6 +80,10 @@ exports.ToggleButton = ToggleButton;
 
 identify.define(ToggleButton, ({id}) => toWidgetId(id));
 
+getNodeView.define(ToggleButton, button =>
+  view.nodeFor(toWidgetId(button.id))
+);
+
 let toggleButtonStateEvents = events.filter(stateEvents,
   e => e.target instanceof ToggleButton);
 
@@ -105,13 +102,15 @@ on(toggleButtonStateEvents, 'data', ({target, window, state}) => {
   view.setChecked(id, window, state.checked);
 });
 
-on(clickEvents, 'data', ({target: id, window}) => {
+on(clickEvents, 'data', ({target: id, window, checked }) => {
   let button = buttons.get(id);
-  let state = button.state('tab');
+  let windowState = getStateFor(button, window);
 
-  state = merge({}, state, { checked: !state.checked });
+  let newWindowState = merge({}, windowState, { checked: checked });
 
-  button.state('tab', state);
+  setStateFor(button, window, newWindowState);
+
+  let state = getDerivedStateFor(button, getActiveTab(window));
 
   emit(button, 'click', state);
 

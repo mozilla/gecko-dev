@@ -11,8 +11,10 @@
 #include "gfxWindowsPlatform.h"
 #include "SurfaceStream.h"
 #include "SharedSurfaceANGLE.h"
+#include "SharedSurfaceGL.h"
 #include "gfxContext.h"
 #include "GLContext.h"
+#include "gfxPrefs.h"
 
 using namespace mozilla::gl;
 using namespace mozilla::gfx;
@@ -28,7 +30,6 @@ CanvasLayerD3D10::CanvasLayerD3D10(LayerManagerD3D10 *aManager)
   , mHasAlpha(true)
 {
     mImplData = static_cast<LayerD3D10*>(this);
-    mForceReadback = Preferences::GetBool("webgl.force-layers-readback", false);
 }
 
 CanvasLayerD3D10::~CanvasLayerD3D10()
@@ -52,7 +53,7 @@ CanvasLayerD3D10::Initialize(const Data& aData)
                                           screen->PreserveBuffer());
 
     SurfaceFactory_GL* factory = nullptr;
-    if (!mForceReadback) {
+    if (!gfxPrefs::WebGLForceLayersReadback()) {
       if (mGLContext->IsANGLE()) {
         factory = SurfaceFactory_ANGLEShareHandle::Create(mGLContext,
                                                           device(),
@@ -78,8 +79,8 @@ CanvasLayerD3D10::Initialize(const Data& aData)
       mBounds.SetRect(0, 0, aData.mSize.width, aData.mSize.height);
       device()->CreateShaderResourceView(mTexture, nullptr, getter_AddRefs(mSRView));
       return;
-    } 
-    
+    }
+
     // XXX we should store mDrawTarget and use it directly in UpdateSurface,
     // bypassing Thebes
     mSurface = mDrawTarget->Snapshot();
@@ -118,7 +119,7 @@ CanvasLayerD3D10::UpdateSurface()
   }
 
   if (mGLContext) {
-    SharedSurface* surf = mGLContext->RequestFrame();
+    SharedSurface_GL* surf = mGLContext->RequestFrame();
     if (!surf)
         return;
 
@@ -144,9 +145,10 @@ CanvasLayerD3D10::UpdateSurface()
         DataSourceSurface* frameData = shareSurf->GetData();
         // Scope for DrawTarget, so it's destroyed before Unmap.
         {
+          IntSize boundsSize(mBounds.width, mBounds.height);
           RefPtr<DrawTarget> mapDt = Factory::CreateDrawTargetForData(BackendType::CAIRO,
                                                                       (uint8_t*)map.pData,
-                                                                      frameData->GetSize(),
+                                                                      boundsSize,
                                                                       map.RowPitch,
                                                                       SurfaceFormat::B8G8R8A8);
 

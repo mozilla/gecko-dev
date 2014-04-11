@@ -12,7 +12,7 @@
 #include "nsSVGString.h"
 
 nsresult NS_NewSVGFEDropShadowElement(nsIContent **aResult,
-                                      already_AddRefed<nsINodeInfo> aNodeInfo);
+                                      already_AddRefed<nsINodeInfo>&& aNodeInfo);
 
 namespace mozilla {
 namespace dom {
@@ -22,14 +22,13 @@ typedef nsSVGFE SVGFEDropShadowElementBase;
 class SVGFEDropShadowElement : public SVGFEDropShadowElementBase
 {
   friend nsresult (::NS_NewSVGFEDropShadowElement(nsIContent **aResult,
-                                                  already_AddRefed<nsINodeInfo> aNodeInfo));
+                                                  already_AddRefed<nsINodeInfo>&& aNodeInfo));
 protected:
-  SVGFEDropShadowElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+  SVGFEDropShadowElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
     : SVGFEDropShadowElementBase(aNodeInfo)
   {
   }
-  virtual JSObject* WrapNode(JSContext* aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext* aCx) MOZ_OVERRIDE;
 
 public:
   virtual FilterPrimitiveDescription

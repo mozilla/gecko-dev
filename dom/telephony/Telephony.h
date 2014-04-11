@@ -24,7 +24,7 @@ namespace dom {
 
 class OwningTelephonyCallOrTelephonyCallGroup;
 
-class Telephony MOZ_FINAL : public nsDOMEventTargetHelper
+class Telephony MOZ_FINAL : public DOMEventTargetHelper
 {
   /**
    * Class Telephony doesn't actually inherit nsITelephonyListener.
@@ -55,9 +55,9 @@ class Telephony MOZ_FINAL : public nsDOMEventTargetHelper
 public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSITELEPHONYLISTENER
-  NS_REALLY_FORWARD_NSIDOMEVENTTARGET(nsDOMEventTargetHelper)
+  NS_REALLY_FORWARD_NSIDOMEVENTTARGET(DOMEventTargetHelper)
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(Telephony,
-                                           nsDOMEventTargetHelper)
+                                           DOMEventTargetHelper)
 
   nsPIDOMWindow*
   GetParentObject() const
@@ -67,7 +67,7 @@ public:
 
   // WrapperCache
   virtual JSObject*
-  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   // WebIDL
   already_AddRefed<Promise>

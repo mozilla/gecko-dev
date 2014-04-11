@@ -22,11 +22,14 @@ public:
     MOZ_COUNT_CTOR(CameraControlListener);
   }
 
+protected:
+  // Protected destructor, to discourage deletion outside of Release():
   virtual ~CameraControlListener()
   {
     MOZ_COUNT_DTOR(CameraControlListener);
   }
 
+public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CameraControlListener);
 
   enum HardwareState
@@ -75,13 +78,17 @@ public:
   virtual void OnConfigurationChange(const CameraListenerConfiguration& aConfiguration) { }
 
   virtual void OnAutoFocusComplete(bool aAutoFocusSucceeded) { }
+  virtual void OnAutoFocusMoving(bool aIsMoving) { }
   virtual void OnTakePictureComplete(uint8_t* aData, uint32_t aLength, const nsAString& aMimeType) { }
+  virtual void OnFacesDetected(const nsTArray<ICameraControl::Face>& aFaces) { }
 
   enum CameraErrorContext
   {
     kInStartCamera,
     kInStopCamera,
     kInAutoFocus,
+    kInStartFaceDetection,
+    kInStopFaceDetection,
     kInTakePicture,
     kInStartRecording,
     kInStopRecording,

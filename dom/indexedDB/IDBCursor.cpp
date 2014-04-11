@@ -10,7 +10,6 @@
 
 #include "mozilla/storage.h"
 #include "nsComponentManagerUtils.h"
-#include "nsEventDispatcher.h"
 #include "nsJSUtils.h"
 #include "nsThreadUtils.h"
 
@@ -547,18 +546,18 @@ NS_IMPL_CYCLE_COLLECTING_ADDREF(IDBCursor)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(IDBCursor)
 
 JSObject*
-IDBCursor::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+IDBCursor::WrapObject(JSContext* aCx)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
   switch (mType) {
     case OBJECTSTORE:
     case INDEXOBJECT:
-      return IDBCursorWithValueBinding::Wrap(aCx, aScope, this);
+      return IDBCursorWithValueBinding::Wrap(aCx, this);
 
     case OBJECTSTOREKEY:
     case INDEXKEY:
-      return IDBCursorBinding::Wrap(aCx, aScope, this);
+      return IDBCursorBinding::Wrap(aCx, this);
 
     default:
       MOZ_ASSUME_UNREACHABLE("Bad type!");

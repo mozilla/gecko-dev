@@ -7,14 +7,14 @@
 #ifndef AudioProcessingEvent_h_
 #define AudioProcessingEvent_h_
 
-#include "nsDOMEvent.h"
 #include "AudioBuffer.h"
 #include "ScriptProcessorNode.h"
+#include "mozilla/dom/Event.h"
 
 namespace mozilla {
 namespace dom {
 
-class AudioProcessingEvent : public nsDOMEvent
+class AudioProcessingEvent : public Event
 {
 public:
   AudioProcessingEvent(ScriptProcessorNode* aOwner,
@@ -22,11 +22,10 @@ public:
                        WidgetEvent* aEvent);
 
   NS_DECL_ISUPPORTS_INHERITED
-  NS_FORWARD_TO_NSDOMEVENT
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(AudioProcessingEvent, nsDOMEvent)
+  NS_FORWARD_TO_EVENT
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(AudioProcessingEvent, Event)
 
-  virtual JSObject* WrapObject(JSContext* aCx,
-                               JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   void InitEvent(AudioBuffer* aInputBuffer,
                  uint32_t aNumberOfInputChannels,

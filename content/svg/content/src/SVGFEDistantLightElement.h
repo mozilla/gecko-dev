@@ -10,7 +10,7 @@
 #include "nsSVGNumber2.h"
 
 nsresult NS_NewSVGFEDistantLightElement(nsIContent **aResult,
-                                        already_AddRefed<nsINodeInfo> aNodeInfo);
+                                        already_AddRefed<nsINodeInfo>&& aNodeInfo);
 
 namespace mozilla {
 namespace dom {
@@ -20,14 +20,13 @@ typedef SVGFELightElement SVGFEDistantLightElementBase;
 class SVGFEDistantLightElement : public SVGFEDistantLightElementBase
 {
   friend nsresult (::NS_NewSVGFEDistantLightElement(nsIContent **aResult,
-                                                    already_AddRefed<nsINodeInfo> aNodeInfo));
+                                                    already_AddRefed<nsINodeInfo>&& aNodeInfo));
 protected:
-  SVGFEDistantLightElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+  SVGFEDistantLightElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
     : SVGFEDistantLightElementBase(aNodeInfo)
   {
   }
-  virtual JSObject* WrapNode(JSContext* aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext* aCx) MOZ_OVERRIDE;
 
 public:
   virtual AttributeMap ComputeLightAttributes(nsSVGFilterInstance* aInstance) MOZ_OVERRIDE;

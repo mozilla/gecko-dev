@@ -58,8 +58,6 @@ GonkCameraParameters::Parameters::GetTextKey(uint32_t aKey)
       return KEY_FOCUS_DISTANCES;
     case CAMERA_PARAM_EXPOSURECOMPENSATION:
       return KEY_EXPOSURE_COMPENSATION;
-    case CAMERA_PARAM_PICTURESIZE:
-      return KEY_PICTURE_SIZE;
     case CAMERA_PARAM_THUMBNAILQUALITY:
       return KEY_JPEG_THUMBNAIL_QUALITY;
     case CAMERA_PARAM_PICTURE_SIZE:
@@ -77,6 +75,12 @@ GonkCameraParameters::Parameters::GetTextKey(uint32_t aKey)
       return "exif-datetime";
     case CAMERA_PARAM_VIDEOSIZE:
       return KEY_VIDEO_SIZE;
+    case CAMERA_PARAM_ISOMODE:
+      // Not every platform defines KEY_ISO_MODE;
+      // for those that don't, we use the raw string key.
+      return "iso";
+    case CAMERA_PARAM_LUMINANCE:
+      return "luminance-condition";
 
     case CAMERA_PARAM_SUPPORTED_PREVIEWSIZES:
       return KEY_SUPPORTED_PREVIEW_SIZES;
@@ -110,8 +114,14 @@ GonkCameraParameters::Parameters::GetTextKey(uint32_t aKey)
       return KEY_ZOOM_SUPPORTED;
     case CAMERA_PARAM_SUPPORTED_ZOOMRATIOS:
       return KEY_ZOOM_RATIOS;
+    case CAMERA_PARAM_SUPPORTED_MAXDETECTEDFACES:
+      return KEY_MAX_NUM_DETECTED_FACES_HW;
     case CAMERA_PARAM_SUPPORTED_JPEG_THUMBNAIL_SIZES:
       return KEY_SUPPORTED_JPEG_THUMBNAIL_SIZES;
+    case CAMERA_PARAM_SUPPORTED_ISOMODES:
+      // Not every platform defines KEY_SUPPORTED_ISO_MODES;
+      // for those that don't, we use the raw string key.
+      return "iso-values";
     default:
       DOM_CAMERA_LOGE("Unhandled camera parameter value %u\n", aKey);
       return nullptr;
@@ -138,6 +148,43 @@ GonkCameraParameters::~GonkCameraParameters()
   }
 }
 
+nsresult
+GonkCameraParameters::MapIsoToGonk(const nsAString& aIso, nsACString& aIsoOut)
+{
+  if (aIso.EqualsASCII("hjr")) {
+    aIsoOut = "ISO_HJR";
+  } else if (aIso.EqualsASCII("auto")) {
+    aIsoOut = "auto";
+  } else {
+    nsAutoCString v = NS_LossyConvertUTF16toASCII(aIso);
+    unsigned int iso;
+    if (sscanf(v.get(), "%u", &iso) != 1) {
+      return NS_ERROR_FAILURE;
+    }
+    aIsoOut = nsPrintfCString("ISO%u", iso);
+  }
+
+  return NS_OK;
+}
+
+nsresult
+GonkCameraParameters::MapIsoFromGonk(const char* aIso, nsAString& aIsoOut)
+{
+  if (strcmp(aIso, "ISO_HJR") == 0) {
+    aIsoOut.AssignASCII("hjr");
+  } else if (strcmp(aIso, "auto") == 0) {
+    aIsoOut.AssignASCII("auto");
+  } else {
+    unsigned int iso;
+    if (sscanf(aIso, "ISO%u", &iso) != 1) {
+      return NS_ERROR_FAILURE;
+    }
+    aIsoOut.AppendInt(iso);
+  }
+
+  return NS_OK;
+}
+
 // Any members that need to be initialized on the first parameter pull
 // need to get handled in here.
 nsresult
@@ -147,15 +194,46 @@ GonkCameraParameters::Initialize()
 
   rv = GetImpl(CAMERA_PARAM_SUPPORTED_MINEXPOSURECOMPENSATION, mExposureCompensationMin);
   if (NS_FAILED(rv)) {
-    return rv;
+    NS_WARNING("Failed to initialize minimum exposure compensation");
+    mExposureCompensationMin = 0;
   }
   rv = GetImpl(CAMERA_PARAM_SUPPORTED_EXPOSURECOMPENSATIONSTEP, mExposureCompensationStep);
   if (NS_FAILED(rv)) {
-    return rv;
+    NS_WARNING("Failed to initialize exposure compensation step size");
+    mExposureCompensationStep = 0;
   }
+
   rv = GetListAsArray(CAMERA_PARAM_SUPPORTED_ZOOMRATIOS, mZoomRatios);
   if (NS_FAILED(rv)) {
-    return rv;
+    // zoom is not supported
+    mZoomRatios.Clear();
+  }
+  for (uint32_t i = 1; i < mZoomRatios.Length(); ++i) {
+    // Make sure the camera gave us a properly sorted zoom ratio list!
+    if (mZoomRatios[i] < mZoomRatios[i - 1]) {
+      NS_WARNING("Zoom ratios list is out of order, discarding");
+      DOM_CAMERA_LOGE("zoom[%d]=%fx < zoom[%d]=%fx is out of order\n",
+        i, mZoomRatios[i] / 100.0, i - 1, mZoomRatios[i - 1] / 100.0);
+      mZoomRatios.Clear();
+      break;
+    }
+  }
+  if (mZoomRatios.Length() == 0) {
+    // Always report that we support at least 1.0x zoom.
+    *mZoomRatios.AppendElement() = 100;
+  }
+
+  // The return code from GetListAsArray() doesn't matter. If it fails,
+  // the isoModes array will be empty, and the subsequent loop won't
+  // execute.
+  nsTArray<nsCString> isoModes;
+  GetListAsArray(CAMERA_PARAM_SUPPORTED_ISOMODES, isoModes);
+  for (uint32_t i = 0; i < isoModes.Length(); ++i) {
+    nsString v;
+    rv = MapIsoFromGonk(isoModes[i].get(), v);
+    if (NS_SUCCEEDED(rv)) {
+      *mIsoModes.AppendElement() = v;
+    }
   }
 
   mInitialized = true;
@@ -166,6 +244,15 @@ GonkCameraParameters::Initialize()
 nsresult
 GonkCameraParameters::SetTranslated(uint32_t aKey, const nsAString& aValue)
 {
+  if (aKey == CAMERA_PARAM_ISOMODE) {
+    nsAutoCString v;
+    nsresult rv = MapIsoToGonk(aValue, v);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+    return SetImpl(aKey, v.get());
+  }
+
   return SetImpl(aKey, NS_ConvertUTF16toUTF8(aValue).get());
 }
 
@@ -177,8 +264,14 @@ GonkCameraParameters::GetTranslated(uint32_t aKey, nsAString& aValue)
   if (NS_FAILED(rv)) {
     return rv;
   }
-  aValue.AssignASCII(val);
-  return NS_OK;
+  if (aKey == CAMERA_PARAM_ISOMODE) {
+    rv = MapIsoFromGonk(val, aValue);
+  } else if(val) {
+    aValue.AssignASCII(val);
+  } else {
+    aValue.Truncate(0);
+  }
+  return rv;
 }
 
 // Handle ICameraControl::Sizes
@@ -353,32 +446,47 @@ GonkCameraParameters::SetTranslated(uint32_t aKey, const ICameraControl::Positio
 nsresult
 GonkCameraParameters::SetTranslated(uint32_t aKey, const int64_t& aValue)
 {
-  if (aKey == CAMERA_PARAM_PICTURE_DATETIME) {
-    // Add the non-GPS timestamp.  The EXIF date/time field is formatted as
-    // "YYYY:MM:DD HH:MM:SS", without room for a time-zone; as such, the time
-    // is meant to be stored as a local time.  Since we are given seconds from
-    // Epoch GMT, we use localtime_r() to handle the conversion.
-    time_t time = aValue;
-    if (time != aValue) {
-      DOM_CAMERA_LOGE("picture date/time '%llu' is too far in the future\n", aValue);
-      return NS_ERROR_INVALID_ARG;
-    }
+  switch (aKey) {
+    case CAMERA_PARAM_PICTURE_DATETIME:
+      {
+        // Add the non-GPS timestamp.  The EXIF date/time field is formatted as
+        // "YYYY:MM:DD HH:MM:SS", without room for a time-zone; as such, the time
+        // is meant to be stored as a local time.  Since we are given seconds from
+        // Epoch GMT, we use localtime_r() to handle the conversion.
+        time_t time = aValue;
+        if (time != aValue) {
+          DOM_CAMERA_LOGE("picture date/time '%llu' is too far in the future\n", aValue);
+          return NS_ERROR_INVALID_ARG;
+        }
 
-    struct tm t;
-    if (!localtime_r(&time, &t)) {
-      DOM_CAMERA_LOGE("picture date/time couldn't be converted to local time: (%d) %s\n", errno, strerror(errno));
-      return NS_ERROR_FAILURE;
-    }
+        struct tm t;
+        if (!localtime_r(&time, &t)) {
+          DOM_CAMERA_LOGE("picture date/time couldn't be converted to local time: (%d) %s\n", errno, strerror(errno));
+          return NS_ERROR_FAILURE;
+        }
 
-    char dateTime[20];
-    if (!strftime(dateTime, sizeof(dateTime), "%Y:%m:%d %T", &t)) {
-      DOM_CAMERA_LOGE("picture date/time couldn't be converted to string\n");
-      return NS_ERROR_FAILURE;
-    }
+        char dateTime[20];
+        if (!strftime(dateTime, sizeof(dateTime), "%Y:%m:%d %T", &t)) {
+          DOM_CAMERA_LOGE("picture date/time couldn't be converted to string\n");
+          return NS_ERROR_FAILURE;
+        }
 
-    DOM_CAMERA_LOGI("setting picture date/time to %s\n", dateTime);
+        DOM_CAMERA_LOGI("setting picture date/time to %s\n", dateTime);
 
-    return SetImpl(CAMERA_PARAM_PICTURE_DATETIME, dateTime);
+        return SetImpl(CAMERA_PARAM_PICTURE_DATETIME, dateTime);
+      }
+
+    case CAMERA_PARAM_ISOMODE:
+      {
+        if (aValue > INT32_MAX) {
+          DOM_CAMERA_LOGW("Can't set ISO mode = %lld, too big\n", aValue);
+          return NS_ERROR_INVALID_ARG;
+        }
+
+        nsString s;
+        s.AppendInt(aValue);
+        return SetTranslated(CAMERA_PARAM_ISOMODE, s);
+      }
   }
 
   // You can't actually pass 64-bit parameters to Gonk. :(
@@ -410,6 +518,11 @@ GonkCameraParameters::SetTranslated(uint32_t aKey, const double& aValue)
 
   switch (aKey) {
     case CAMERA_PARAM_EXPOSURECOMPENSATION:
+      if (mExposureCompensationStep == 0) {
+        DOM_CAMERA_LOGE("Exposure compensation not supported, can't set %f\n", aValue);
+        return NS_ERROR_NOT_AVAILABLE;
+      }
+
       /**
        * Convert from real value to a Gonk index, round
        * to the nearest step; index is 1-based.
@@ -428,28 +541,33 @@ GonkCameraParameters::SetTranslated(uint32_t aKey, const double& aValue)
          */
         value = aValue * 100.0;
 
-        // mZoomRatios is sorted, so we can binary search it
-        unsigned int bottom = 0;
-        unsigned int top = mZoomRatios.Length() - 1;
-        unsigned int middle;
+        if (value <= mZoomRatios[0]) {
+          index = 0;
+        } else if (value >= mZoomRatios.LastElement()) {
+          index = mZoomRatios.Length() - 1;
+        } else {
+          // mZoomRatios is sorted, so we can binary search it
+          int bottom = 0;
+          int top = mZoomRatios.Length() - 1;
 
-        while (bottom != top) {
-          middle = (top + bottom) / 2;
-          if (value == mZoomRatios[middle]) {
-            // exact match
-            break;
-          }
-          if (value > mZoomRatios[middle] && value < mZoomRatios[middle + 1]) {
-            // the specified zoom value lies in this interval
-            break;
-          }
-          if (value > mZoomRatios[middle]) {
-            bottom = middle + 1;
-          } else {
-            top = middle - 1;
+          while (top >= bottom) {
+            index = (top + bottom) / 2;
+            if (value == mZoomRatios[index]) {
+              // exact match
+              break;
+            }
+            if (value > mZoomRatios[index] && value < mZoomRatios[index + 1]) {
+              // the specified zoom value lies in this interval
+              break;
+            }
+            if (value > mZoomRatios[index]) {
+              bottom = index + 1;
+            } else {
+              top = index - 1;
+            }
           }
         }
-        index = middle;
+        DOM_CAMERA_LOGI("Zoom = %fx --> index = %d\n", aValue, index);
       }
       return SetImpl(CAMERA_PARAM_ZOOM, index);
   }
@@ -468,12 +586,13 @@ GonkCameraParameters::GetTranslated(uint32_t aKey, double& aValue)
 
   switch (aKey) {
     case CAMERA_PARAM_ZOOM:
-      rv = GetImpl(CAMERA_PARAM_ZOOM, index);
-      if (NS_SUCCEEDED(rv)) {
+      rv = GetImpl(aKey, index);
+      if (NS_SUCCEEDED(rv) && index >= 0) {
         val = mZoomRatios[index] / 100.0;
       } else {
         // return 1x when zooming is not supported
         val = 1.0;
+        rv = NS_OK;
       }
       break;
 
@@ -589,6 +708,17 @@ ParseItem(const char* aStart, const char* aEnd, nsAString* aItem)
 }
 
 nsresult
+ParseItem(const char* aStart, const char* aEnd, nsACString* aItem)
+{
+  if (aEnd) {
+    aItem->AssignASCII(aStart, aEnd - aStart);
+  } else {
+    aItem->AssignASCII(aStart);
+  }
+  return NS_OK;
+}
+
+nsresult
 ParseItem(const char* aStart, const char* aEnd, double* aItem)
 {
   if (sscanf(aStart, "%lf", aItem) == 1) {
@@ -616,16 +746,19 @@ GonkCameraParameters::GetListAsArray(uint32_t aKey, nsTArray<T>& aArray)
   if (NS_FAILED(rv)) {
     return rv;
   }
-  if (!p) {
-    DOM_CAMERA_LOGW("Camera parameter %d not available (value is null)\n", aKey);
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-  if (*p == '\0') {
-    DOM_CAMERA_LOGW("Camera parameter %d not available (value is empty string)\n", aKey);
-    return NS_ERROR_NOT_AVAILABLE;
-  }
 
   aArray.Clear();
+
+  // If there is no value available, just return the empty array.
+  if (!p) {
+    DOM_CAMERA_LOGI("Camera parameter %d not available (value is null)\n", aKey);
+    return NS_OK;
+  }
+  if (*p == '\0') {
+    DOM_CAMERA_LOGI("Camera parameter %d not available (value is empty string)\n", aKey);
+    return NS_OK;
+  }
+
   const char* comma;
 
   while (p) {
@@ -654,6 +787,11 @@ GonkCameraParameters::GetListAsArray(uint32_t aKey, nsTArray<T>& aArray)
 nsresult
 GonkCameraParameters::GetTranslated(uint32_t aKey, nsTArray<nsString>& aValues)
 {
+  if (aKey == CAMERA_PARAM_SUPPORTED_ISOMODES) {
+    aValues = mIsoModes;
+    return NS_OK;
+  }
+
   return GetListAsArray(aKey, aValues);
 }
 
@@ -662,7 +800,7 @@ GonkCameraParameters::GetTranslated(uint32_t aKey, nsTArray<double>& aValues)
 {
   if (aKey == CAMERA_PARAM_SUPPORTED_ZOOMRATIOS) {
     aValues.Clear();
-    for (int i = 0; i < mZoomRatios.Length(); ++i) {
+    for (uint32_t i = 0; i < mZoomRatios.Length(); ++i) {
       *aValues.AppendElement() = mZoomRatios[i] / 100.0;
     }
     return NS_OK;

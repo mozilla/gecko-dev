@@ -5,6 +5,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+include protocol PHttpChannel;
+include protocol PFTPChannel;
 include URIParams;
 include InputStreamParams;
 
@@ -31,7 +33,7 @@ struct HttpChannelOpenArgs
   OptionalURIParams           apiRedirectTo;
   uint32_t                    loadFlags;
   RequestHeaderTuples         requestHeaders;
-  nsHttpAtom                  requestMethod;
+  nsCString                   requestMethod;
   OptionalInputStreamParams   uploadStream;
   bool                        uploadStreamHasHeaders;
   uint16_t                    priority;
@@ -44,6 +46,7 @@ struct HttpChannelOpenArgs
   bool                        chooseApplicationCache;
   nsCString                   appCacheClientID;
   bool                        allowSpdy;
+  OptionalFileDescriptorSet   fds;
 };
 
 struct HttpChannelConnectArgs
@@ -78,6 +81,12 @@ union FTPChannelCreationArgs
 {
   FTPChannelOpenArgs;      // For AsyncOpen: the common case.
   FTPChannelConnectArgs;   // Used for redirected-to channels
+};
+
+union ChannelDiverterArgs
+{
+  PHttpChannel;
+  PFTPChannel;
 };
 
 } // namespace ipc

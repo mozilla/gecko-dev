@@ -17,7 +17,7 @@ NS_IMPL_NS_NEW_HTML_ELEMENT_CHECK_PARSER(IFrame)
 namespace mozilla {
 namespace dom {
 
-HTMLIFrameElement::HTMLIFrameElement(already_AddRefed<nsINodeInfo> aNodeInfo,
+HTMLIFrameElement::HTMLIFrameElement(already_AddRefed<nsINodeInfo>& aNodeInfo,
                                      FromParser aFromParser)
   : nsGenericHTMLFrameElement(aNodeInfo, aFromParser)
 {
@@ -247,9 +247,9 @@ HTMLIFrameElement::GetSandboxFlags()
 }
 
 JSObject*
-HTMLIFrameElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aScope)
+HTMLIFrameElement::WrapNode(JSContext* aCx)
 {
-  return HTMLIFrameElementBinding::Wrap(aCx, aScope, this);
+  return HTMLIFrameElementBinding::Wrap(aCx, this);
 }
 
 } // namespace dom

@@ -23,11 +23,11 @@ public:
 
   VideoPlaybackQuality(HTMLMediaElement* aElement, DOMHighResTimeStamp aCreationTime,
                        uint64_t aTotalFrames, uint64_t aDroppedFrames,
-                       uint64_t aCorruptedFrames, double aTotalFrameDelay);
+                       uint64_t aCorruptedFrames);
 
   HTMLMediaElement* GetParentObject() const;
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   DOMHighResTimeStamp CreationTime() const
   {
@@ -49,18 +49,12 @@ public:
     return mCorruptedFrames;
   }
 
-  double TotalFrameDelay()
-  {
-    return mTotalFrameDelay;
-  }
-
 private:
   nsRefPtr<HTMLMediaElement> mElement;
   DOMHighResTimeStamp mCreationTime;
   uint64_t mTotalFrames;
   uint64_t mDroppedFrames;
   uint64_t mCorruptedFrames;
-  double mTotalFrameDelay;
 };
 
 } // namespace dom

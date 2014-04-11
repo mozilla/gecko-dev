@@ -1,11 +1,9 @@
 package org.mozilla.gecko.tests;
 
-import android.os.Build;
-
-import org.json.JSONArray;
 import org.json.JSONObject;
+import org.mozilla.gecko.PaintedSurface;
 
-import org.mozilla.gecko.*;
+import android.os.Build;
 
 /**
  * Tests that Flash is working
@@ -13,11 +11,6 @@ import org.mozilla.gecko.*;
  * - verifies it rendered properly
  */
 public class testAdobeFlash extends PixelTest {
-    @Override
-    protected int getTestType() {
-        return TEST_MOCHITEST;
-    }
-
     public void testLoad() {
         // This test only works on ICS and higher
         if (Build.VERSION.SDK_INT < 15) {
@@ -31,23 +24,7 @@ public class testAdobeFlash extends PixelTest {
             jsonPref.put("name", "plugin.enable");
             jsonPref.put("type", "string");
             jsonPref.put("value", "1");
-            mActions.sendGeckoEvent("Preferences:Set", jsonPref.toString());
-
-            // Wait for confirmation of the pref change before proceeding with the test.
-            final String[] prefNames = { "plugin.default.state" };
-            final int ourRequestId = 0x7358;
-            Actions.RepeatedEventExpecter eventExpecter = mActions.expectGeckoEvent("Preferences:Data");
-            mActions.sendPreferencesGetEvent(ourRequestId, prefNames);
-
-            JSONObject data = null;
-            int requestId = -1;
-
-            // Wait until we get the correct "Preferences:Data" event
-            while (requestId != ourRequestId) {
-                data = new JSONObject(eventExpecter.blockForEventData());
-                requestId = data.getInt("requestId");
-            }
-            eventExpecter.unregisterListener();
+            setPreferenceAndWaitForChange(jsonPref);
         } catch (Exception ex) {
             mAsserter.ok(false, "exception in testAdobeFlash", ex.toString());
         }

@@ -6,12 +6,16 @@ const isOSX = (Services.appinfo.OS === "Darwin");
 
 let originalWindowWidth;
 registerCleanupFunction(function() {
+  overflowPanel.removeAttribute("animate");
   window.resizeTo(originalWindowWidth, window.outerHeight);
 });
 
 // Right-click on an item within the overflow panel should
 // show a context menu with options to move it.
 add_task(function() {
+
+  overflowPanel.setAttribute("animate", "false");
+
   originalWindowWidth = window.outerWidth;
   let navbar = document.getElementById(CustomizableUI.AREA_NAVBAR);
   ok(!navbar.hasAttribute("overflowing"), "Should start with a non-overflowing toolbar.");
@@ -27,10 +31,10 @@ add_task(function() {
   yield shownPanelPromise;
 
   let contextMenu = document.getElementById("toolbar-context-menu");
-  let shownContextPromise = contextMenuShown(contextMenu);
+  let shownContextPromise = popupShown(contextMenu);
   let homeButton = document.getElementById("home-button");
   ok(homeButton, "home-button was found");
-  ok(homeButton.classList.contains("overflowedItem"), "Home button is overflowing");
+  is(homeButton.getAttribute("overflowedItem"), "true", "Home button is overflowing");
   EventUtils.synthesizeMouse(homeButton, 2, 2, {type: "contextmenu", button: 2});
   yield shownContextPromise;
 
@@ -51,7 +55,7 @@ add_task(function() {
   );
   checkContextMenu(contextMenu, expectedEntries);
 
-  let hiddenContextPromise = contextMenuHidden(contextMenu);
+  let hiddenContextPromise = popupHidden(contextMenu);
   let hiddenPromise = promisePanelElementHidden(window, overflowPanel);
   let moveToPanel = contextMenu.querySelector(".customize-context-moveToPanel");
   if (moveToPanel) {
@@ -74,5 +78,5 @@ add_task(function() {
   ok(homeButtonPlacement, "Home button should still have a placement");
   is(homeButtonPlacement && homeButtonPlacement.area, "nav-bar", "Home button should be back in the navbar now");
 
-  ok(homeButton.classList.contains("overflowedItem"), "Home button should still be overflowed");
+  is(homeButton.getAttribute("overflowedItem"), "true", "Home button should still be overflowed");
 });

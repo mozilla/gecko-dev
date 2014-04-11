@@ -13,9 +13,9 @@ namespace mozilla {
 namespace dom {
 
 JSObject*
-SVGViewElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+SVGViewElement::WrapNode(JSContext *aCx)
 {
-  return SVGViewElementBinding::Wrap(aCx, aScope, this);
+  return SVGViewElementBinding::Wrap(aCx, this);
 }
 
 nsSVGElement::StringListInfo SVGViewElement::sStringListInfo[1] =
@@ -40,7 +40,7 @@ nsSVGElement::EnumInfo SVGViewElement::sEnumInfo[1] =
 //----------------------------------------------------------------------
 // Implementation
 
-SVGViewElement::SVGViewElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+SVGViewElement::SVGViewElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : SVGViewElementBase(aNodeInfo)
 {
 }

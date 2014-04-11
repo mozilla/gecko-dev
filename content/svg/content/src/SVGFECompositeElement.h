@@ -11,7 +11,7 @@
 #include "nsSVGNumber2.h"
 
 nsresult NS_NewSVGFECompositeElement(nsIContent **aResult,
-                                     already_AddRefed<nsINodeInfo> aNodeInfo);
+                                     already_AddRefed<nsINodeInfo>&& aNodeInfo);
 
 namespace mozilla {
 namespace dom {
@@ -21,14 +21,13 @@ typedef nsSVGFE SVGFECompositeElementBase;
 class SVGFECompositeElement : public SVGFECompositeElementBase
 {
   friend nsresult (::NS_NewSVGFECompositeElement(nsIContent **aResult,
-                                                 already_AddRefed<nsINodeInfo> aNodeInfo));
+                                                 already_AddRefed<nsINodeInfo>&& aNodeInfo));
 protected:
-  SVGFECompositeElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+  SVGFECompositeElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
     : SVGFECompositeElementBase(aNodeInfo)
   {
   }
-  virtual JSObject* WrapNode(JSContext* aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext* aCx) MOZ_OVERRIDE;
 
 public:
   virtual FilterPrimitiveDescription

@@ -64,7 +64,7 @@ public:
     already_AddRefed<nsINode> PreviousNode(ErrorResult& aResult);
     already_AddRefed<nsINode> NextNode(ErrorResult& aResult);
 
-    JSObject* WrapObject(JSContext *cx, JS::Handle<JSObject*> scope);
+    JSObject* WrapObject(JSContext *cx);
 
 private:
     nsCOMPtr<nsINode> mCurrentNode;
@@ -98,7 +98,7 @@ private:
         if (rv.Failed()) {
             return rv.ErrorCode();
         }
-        *aRetval = node ? node.forget().get()->AsDOMNode() : nullptr;
+        *aRetval = node ? node.forget().take()->AsDOMNode() : nullptr;
         return NS_OK;
     }
 };

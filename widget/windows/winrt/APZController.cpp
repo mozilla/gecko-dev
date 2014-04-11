@@ -103,7 +103,7 @@ public:
 
     nsCOMPtr<nsIDocument> subDocument;
     nsCOMPtr<nsIContent> targetContent;
-    if (!GetDOMTargets(mFrameMetrics.mScrollId,
+    if (!GetDOMTargets(mFrameMetrics.GetScrollId(),
                        subDocument, targetContent)) {
       return NS_OK;
     }
@@ -131,12 +131,12 @@ public:
         APZCCallbackHelper::UpdateRootFrame(utils, mFrameMetrics);
 
 #ifdef DEBUG_CONTROLLER
-        WinUtils::Log("APZController: %I64d mDisplayPort: %0.2f %0.2f %0.2f %0.2f",
-          mFrameMetrics.mScrollId,
-          mFrameMetrics.mDisplayPort.x,
-          mFrameMetrics.mDisplayPort.y,
-          mFrameMetrics.mDisplayPort.width,
-          mFrameMetrics.mDisplayPort.height);
+        WinUtils::Log("APZController: %I64d mDisplayPortMargins: %0.2f %0.2f %0.2f %0.2f",
+          mFrameMetrics.GetScrollId(),
+          mFrameMetrics.GetDisplayPortMargins().left,
+          mFrameMetrics.GetDisplayPortMargins().top,
+          mFrameMetrics.GetDisplayPortMargins().right,
+          mFrameMetrics.GetDisplayPortMargins().bottom);
 #endif
       }
     }
@@ -193,22 +193,6 @@ APZController::ReceiveInputEvent(WidgetInputEvent* aEvent,
   return sAPZC->ReceiveInputEvent(*aEvent->AsInputEvent(), aOutTargetGuid);
 }
 
-nsEventStatus
-APZController::ReceiveInputEvent(WidgetInputEvent* aInEvent,
-                                 ScrollableLayerGuid* aOutTargetGuid,
-                                 WidgetInputEvent* aOutEvent)
-{
-  MOZ_ASSERT(aInEvent);
-  MOZ_ASSERT(aOutEvent);
-
-  if (!sAPZC) {
-    return nsEventStatus_eIgnore;
-  }
-  return sAPZC->ReceiveInputEvent(*aInEvent->AsInputEvent(),
-                                  aOutTargetGuid,
-                                  aOutEvent);
-}
-
 // APZC sends us this request when we need to update the display port on
 // the scrollable frame the apzc is managing.
 void
@@ -221,7 +205,7 @@ APZController::RequestContentRepaint(const FrameMetrics& aFrameMetrics)
 
 #ifdef DEBUG_CONTROLLER
   WinUtils::Log("APZController::RequestContentRepaint scrollid=%I64d",
-    aFrameMetrics.mScrollId);
+    aFrameMetrics.GetScrollId());
 #endif
   nsCOMPtr<nsIRunnable> r1 = new RequestContentRepaintEvent(aFrameMetrics,
                                                             mWidgetListener);
@@ -244,28 +228,28 @@ APZController::AcknowledgeScrollUpdate(const FrameMetrics::ViewID& aScrollId,
 }
 
 void
-APZController::HandleDoubleTap(const CSSIntPoint& aPoint,
+APZController::HandleDoubleTap(const CSSPoint& aPoint,
                                int32_t aModifiers,
                                const ScrollableLayerGuid& aGuid)
 {
 }
 
 void
-APZController::HandleSingleTap(const CSSIntPoint& aPoint,
+APZController::HandleSingleTap(const CSSPoint& aPoint,
                                int32_t aModifiers,
                                const ScrollableLayerGuid& aGuid)
 {
 }
 
 void
-APZController::HandleLongTap(const CSSIntPoint& aPoint,
+APZController::HandleLongTap(const CSSPoint& aPoint,
                              int32_t aModifiers,
                              const ScrollableLayerGuid& aGuid)
 {
 }
 
 void
-APZController::HandleLongTapUp(const CSSIntPoint& aPoint,
+APZController::HandleLongTapUp(const CSSPoint& aPoint,
                                int32_t aModifiers,
                                const ScrollableLayerGuid& aGuid)
 {

@@ -23,7 +23,7 @@ class HTMLStyleElement MOZ_FINAL : public nsGenericHTMLElement,
                                    public nsStubMutationObserver
 {
 public:
-  HTMLStyleElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  HTMLStyleElement(already_AddRefed<nsINodeInfo>& aNodeInfo);
   virtual ~HTMLStyleElement();
 
   // nsISupports
@@ -84,8 +84,7 @@ public:
     SetHTMLBoolAttr(nsGkAtoms::scoped, aScoped, aError);
   }
 
-  virtual JSObject* WrapNode(JSContext *aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext *aCx) MOZ_OVERRIDE;
 
 protected:
   already_AddRefed<nsIURI> GetStyleSheetURL(bool* aIsInline) MOZ_OVERRIDE;

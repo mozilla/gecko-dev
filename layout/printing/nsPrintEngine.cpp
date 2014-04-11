@@ -9,6 +9,7 @@
 #include "nsReadableUtils.h"
 #include "nsCRT.h"
 
+#include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/Selection.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsPIDOMWindow.h"
@@ -19,7 +20,6 @@
 #include "nsError.h"
 
 #include "nsView.h"
-#include "nsAsyncDOMEvent.h"
 #include <algorithm>
 
 // Print Options
@@ -362,12 +362,10 @@ nsPrintEngine::GetSeqFrameAndCountPagesInternal(nsPrintObject*  aPO,
 
   // Finds the SimplePageSequencer frame
   nsIPageSequenceFrame* seqFrame = aPO->mPresShell->GetPageSequenceFrame();
-  if (seqFrame) {
-    aSeqFrame = do_QueryFrame(seqFrame);
-  } else {
-    aSeqFrame = nullptr;
+  aSeqFrame = do_QueryFrame(seqFrame);
+  if (!aSeqFrame) {
+    return NS_ERROR_FAILURE;
   }
-  if (aSeqFrame == nullptr) return NS_ERROR_FAILURE;
 
   // first count the total number of pages
   aCount = 0;
@@ -1858,7 +1856,7 @@ nsPrintEngine::FirePrintPreviewUpdateEvent()
   // listener bound to this event and therefore no need to dispatch it.
   if (mIsDoingPrintPreview && !mIsDoingPrinting) {
     nsCOMPtr<nsIContentViewer> cv = do_QueryInterface(mDocViewerPrint);
-    (new nsAsyncDOMEvent(
+    (new AsyncEventDispatcher(
        cv->GetDocument(), NS_LITERAL_STRING("printPreviewUpdate"), true, true)
     )->RunDOMEventWhenSafe();
   }

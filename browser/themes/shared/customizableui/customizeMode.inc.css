@@ -4,10 +4,12 @@
 
 /* Customization mode */
 
-#main-window:-moz-any([customize-entering],[customize-entered]) #content-deck {
-  margin: 0 2em 2em;
+#main-window:-moz-any([customize-entering],[customize-entered]) #browser-bottombox {
+  margin-bottom: 2em;
 }
 
+#main-window:-moz-any([customize-entering],[customize-entered]) #content-deck,
+#main-window:-moz-any([customize-entering],[customize-entered]) #browser-bottombox,
 #main-window:-moz-any([customize-entering],[customize-entered]) #navigator-toolbox {
   margin-left: 2em;
   margin-right: 2em;
@@ -17,13 +19,13 @@
   pointer-events: none;
 }
 
-#main-window[customize-entered] .customization-target:not(#PanelUI-contents)::before,
+#main-window[customize-entered] .customization-target:not(:-moz-any(#PanelUI-contents, #TabsToolbar, #toolbar-menubar))::before,
 #PanelUI-contents > .panel-customization-placeholder {
   -moz-outline-radius: 2.5px;
   outline: 1px dashed transparent;
 }
 
-#main-window[customize-entered] .customization-target:not(#PanelUI-contents)::before {
+#main-window[customize-entered] .customization-target:not(:-moz-any(#PanelUI-contents, #TabsToolbar, #toolbar-menubar))::before {
   /* Prevent jumping of tabs when switching a window between inactive and active (bug 853415). */
   -moz-box-ordinal-group: 0;
   content: "";
@@ -45,22 +47,27 @@
 }
 
 /* The parents of the outline pseudo-elements need to be positioned so that the outline is positioned relative to it. */
-#main-window[customize-entered] .customization-target:not(#PanelUI-contents):hover,
-#main-window[customize-entered] .customization-target[customizing-dragovertarget]:not(#PanelUI-contents),
+#main-window[customize-entered] .customization-target:not(:-moz-any(#PanelUI-contents, #TabsToolbar, #toolbar-menubar)):hover,
+#main-window[customize-entered] .customization-target[customizing-dragovertarget]:not(:-moz-any(#PanelUI-contents, #TabsToolbar, #toolbar-menubar)),
 #main-window[customize-entered] #nav-bar-customization-target.customization-target {
   position: relative;
 }
 
 /* Most target outlines are shown on hover and drag over but the panel menu uses
    placeholders instead. */
-#main-window[customize-entered] .customization-target:not(#PanelUI-contents):hover::before,
-#main-window[customize-entered] .customization-target[customizing-dragovertarget]:not(#PanelUI-contents)::before,
+#main-window[customize-entered] .customization-target:not(:-moz-any(#PanelUI-contents, #TabsToolbar, #toolbar-menubar)):hover::before,
+#main-window[customize-entered] .customization-target[customizing-dragovertarget]:not(:-moz-any(#PanelUI-contents, #TabsToolbar, #toolbar-menubar))::before,
 /* nav-bar and panel outlines are always shown */
-#main-window[customize-entered] #nav-bar-customization-target.customization-target::before {
+#nav-bar[showoutline=true] > #nav-bar-customization-target.customization-target::before {
   outline-color: rgb(102,102,102);
 }
 
-#main-window[customize-entered] .panel-customization-placeholder {
+#nav-bar[showoutline=true] > #nav-bar-customization-target.customization-target::before {
+  transition: outline-color 250ms linear;
+}
+
+#PanelUI-contents[showoutline=true] > .panel-customization-placeholder {
+  transition: outline-color 250ms linear;
   outline-color: #bbb;
 }
 
@@ -69,7 +76,7 @@
   outline-offset: -5px;
 }
 
-#main-window[customize-entered] .customization-target:not(#PanelUI-contents) {
+#main-window[customizing] .customization-target:not(#PanelUI-contents) {
   min-width: 100px;
   padding-left: 10px;
   padding-right: 10px;
@@ -98,8 +105,12 @@
   background-image: linear-gradient(to bottom, #3e86ce, #3878ba);
 }
 
+#main-window:-moz-any([customize-entering],[customize-entered]) #browser-bottombox,
 #customization-footer {
   background-color: rgb(236,236,236);
+}
+
+#customization-footer {
   border-top: 1px solid rgb(221,221,221);
   padding: 15px;
 }
@@ -171,6 +182,15 @@ toolbarpaletteitem[place="panel"] {
   transition: transform .3s ease-in-out;
 }
 
+#customization-palette {
+  transition: opacity .3s ease-in-out;
+  opacity: 0;
+}
+
+#customization-palette[showing="true"] {
+  opacity: 1;
+}
+
 toolbarpaletteitem[notransition].panel-customization-placeholder,
 toolbarpaletteitem[notransition][place="toolbar"],
 toolbarpaletteitem[notransition][place="palette"],
@@ -219,7 +239,7 @@ toolbarpaletteitem[place="toolbar"] {
   max-width: 24px;
   min-width: 24px;
   max-height: 24px;
-  height: 24px;
+  min-height: 24px;
   padding: 4px;
 }
 
@@ -239,6 +259,7 @@ toolbarpaletteitem[place="toolbar"] {
 
 #wrapper-personal-bookmarks:not([place="toolbar"]) > #personal-bookmarks {
   -moz-box-pack: center;
+  min-height: 48px;
 }
 
 #customization-palette > toolbarpaletteitem > label {
@@ -246,3 +267,5 @@ toolbarpaletteitem[place="toolbar"] {
   margin-left: 0;
   margin-right: 0;
 }
+
+%include customizeTip.inc.css

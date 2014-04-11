@@ -13,12 +13,15 @@ import org.mozilla.gecko.background.fxa.FxAccountClient;
 import org.mozilla.gecko.background.fxa.FxAccountClient10.RequestDelegate;
 import org.mozilla.gecko.background.fxa.FxAccountClient20;
 import org.mozilla.gecko.background.fxa.FxAccountClientException.FxAccountClientRemoteException;
+import org.mozilla.gecko.fxa.FirefoxAccounts;
 import org.mozilla.gecko.fxa.authenticator.AndroidFxAccount;
 import org.mozilla.gecko.fxa.login.Engaged;
 import org.mozilla.gecko.fxa.login.State;
-import org.mozilla.gecko.fxa.login.State.StateLabel;
+import org.mozilla.gecko.fxa.login.State.Action;
+import org.mozilla.gecko.fxa.sync.FxAccountSyncStatusHelper;
 import org.mozilla.gecko.sync.setup.activities.ActivityUtils;
 
+import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
 import android.view.View;
@@ -39,6 +42,8 @@ public class FxAccountConfirmAccountActivity extends FxAccountAbstractActivity i
 
   // Set in onResume.
   protected AndroidFxAccount fxAccount;
+
+  protected final SyncStatusDelegate syncStatusDelegate = new SyncStatusDelegate();
 
   public FxAccountConfirmAccountActivity() {
     super(CANNOT_RESUME_WHEN_NO_ACCOUNTS_EXIST);
@@ -63,6 +68,8 @@ public class FxAccountConfirmAccountActivity extends FxAccountAbstractActivity i
       @Override
       public void onClick(View v) {
         ActivityUtils.openURLInFennec(v.getContext(), null);
+        setResult(Activity.RESULT_OK);
+        finish();
       }
     });
   }
@@ -77,11 +84,68 @@ public class FxAccountConfirmAccountActivity extends FxAccountAbstractActivity i
       finish();
       return;
     }
-    State state = fxAccount.getState();
-    if (state.getStateLabel() != StateLabel.Engaged) {
-      Logger.warn(LOG_TAG, "Cannot confirm Firefox Account in state: " + state.getStateLabel());
+
+    FxAccountSyncStatusHelper.getInstance().startObserving(syncStatusDelegate);
+
+    refresh();
+
+    fxAccount.requestSync(FirefoxAccounts.NOW);
+  }
+
+  @Override
+  public void onPause() {
+    super.onPause();
+    FxAccountSyncStatusHelper.getInstance().stopObserving(syncStatusDelegate);
+
+    if (fxAccount != null) {
+      fxAccount.requestSync(FirefoxAccounts.SOON);
+    }
+  }
+
+  protected class SyncStatusDelegate implements FxAccountSyncStatusHelper.Delegate {
+    protected final Runnable refreshRunnable = new Runnable() {
+      @Override
+      public void run() {
+        refresh();
+      }
+    };
+
+    @Override
+    public AndroidFxAccount getAccount() {
+      return fxAccount;
+    }
+
+    @Override
+    public void handleSyncStarted() {
+      Logger.info(LOG_TAG, "Got sync started message; ignoring.");
+    }
+
+    @Override
+    public void handleSyncFinished() {
+      if (fxAccount == null) {
+        return;
+      }
+      Logger.info(LOG_TAG, "Got sync finished message; refreshing.");
+      runOnUiThread(refreshRunnable);
+    }
+  }
+
+  protected void refresh() {
+    final State state = fxAccount.getState();
+    final Action neededAction = state.getNeededAction();
+    switch (neededAction) {
+    case NeedsVerification:
+      // This is what we're here to handle.
+      break;
+    case NeedsPassword:
+    case NeedsUpgrade:
+    case None:
+    default:
+      // We're not in the right place!  Redirect to status.
+      Logger.warn(LOG_TAG, "No need to verifiy Firefox Account that needs action " + neededAction.toString() +
+          " (in state " + state.getStateLabel() + ").");
       setResult(RESULT_CANCELED);
-      finish();
+      this.redirectToActivity(FxAccountStatusActivity.class);
       return;
     }
 

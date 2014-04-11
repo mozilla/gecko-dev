@@ -9,6 +9,7 @@ import os
 import stat
 import platform
 import urllib2
+import errno
 
 from mach.decorators import (
     CommandArgument,
@@ -301,13 +302,7 @@ class ReviewboardToolsProvider(MachCommandBase):
             args = ['help']
 
         self._activate_virtualenv()
-        # We install RBTools from source control because the currently released
-        # version doesn't have patches that make Mercurial usable in many
-        # scenarios.
-        commit = '416a728292dff3f279e5d695f48a29749b51b77a'
-        self.virtualenv_manager.install_pip_package(
-            'git+https://github.com/reviewboard/rbtools.git@%s#egg=RBTools' %
-            commit)
+        self.virtualenv_manager.install_pip_package('RBTools==0.6')
 
         from rbtools.commands.main import main
 
@@ -361,9 +356,17 @@ class FormatProvider(MachCommandBase):
                                   "--exclude", "listfile:.clang-format-ignore"], stdout=PIPE)
         else:
             git_process = Popen(["git", "diff", "-U0", "HEAD^"], stdout=PIPE)
-            diff_process = Popen(["filterdiff", "--include=*.h", "--include=*.cpp",
-                                  "--exclude-from-file=.clang-format-ignore"],
-                                 stdin=git_process.stdout, stdout=PIPE)
+            try:
+                diff_process = Popen(["filterdiff", "--include=*.h", "--include=*.cpp",
+                                      "--exclude-from-file=.clang-format-ignore"],
+                                     stdin=git_process.stdout, stdout=PIPE)
+            except OSError as e:
+                if e.errno == errno.ENOENT:
+                    print("Can't find filterdiff. Please install patchutils.")
+                else:
+                    print("OSError {0}: {1}".format(e.code, e.reason))
+                return 1
+
 
         args = [sys.executable, clang_format_diff, "-p1"]
         if not show:

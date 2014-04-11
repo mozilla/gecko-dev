@@ -9,6 +9,7 @@
 #include "nsContentUtils.h"
 #include "mozilla/dom/CameraManagerBinding.h"
 #include "mozilla/dom/CameraCapabilitiesBinding.h"
+#include "Navigator.h"
 #include "CameraCommon.h"
 #include "ICameraControl.h"
 #include "CameraRecorderProfiles.h"
@@ -42,6 +43,13 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(CameraCapabilities)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
+/* static */
+bool
+CameraCapabilities::HasSupport(JSContext* aCx, JSObject* aGlobal)
+{
+  return Navigator::HasCameraSupport(aCx, aGlobal);
+}
+
 CameraCapabilities::CameraCapabilities(nsPIDOMWindow* aWindow)
   : mRecorderProfiles(JS::UndefinedValue())
   , mWindow(aWindow)
@@ -61,9 +69,9 @@ CameraCapabilities::~CameraCapabilities()
 }
 
 JSObject*
-CameraCapabilities::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+CameraCapabilities::WrapObject(JSContext* aCx)
 {
-  return CameraCapabilitiesBinding::Wrap(aCx, aScope, this);
+  return CameraCapabilitiesBinding::Wrap(aCx, this);
 }
 
 #define LOG_IF_ERROR(rv, param)                               \
@@ -134,6 +142,9 @@ CameraCapabilities::Populate(ICameraControl* aCameraControl)
   rv = aCameraControl->Get(CAMERA_PARAM_SUPPORTED_FOCUSMODES, mFocusModes);
   LOG_IF_ERROR(rv, CAMERA_PARAM_SUPPORTED_FOCUSMODES);
 
+  rv = aCameraControl->Get(CAMERA_PARAM_SUPPORTED_ISOMODES, mIsoModes);
+  LOG_IF_ERROR(rv, CAMERA_PARAM_SUPPORTED_ISOMODES);
+
   rv = aCameraControl->Get(CAMERA_PARAM_SUPPORTED_ZOOMRATIOS, mZoomRatios);
   LOG_IF_ERROR(rv, CAMERA_PARAM_SUPPORTED_ZOOMRATIOS);
 
@@ -145,6 +156,11 @@ CameraCapabilities::Populate(ICameraControl* aCameraControl)
   rv = aCameraControl->Get(CAMERA_PARAM_SUPPORTED_MAXMETERINGAREAS, areas);
   LOG_IF_ERROR(rv, CAMERA_PARAM_SUPPORTED_MAXMETERINGAREAS);
   mMaxMeteringAreas = areas < 0 ? 0 : areas;
+
+  int32_t faces;
+  rv = aCameraControl->Get(CAMERA_PARAM_SUPPORTED_MAXDETECTEDFACES, faces);
+  LOG_IF_ERROR(rv, CAMERA_PARAM_SUPPORTED_MAXDETECTEDFACES);
+  mMaxDetectedFaces = faces < 0 ? 0 : faces;
 
   rv = aCameraControl->Get(CAMERA_PARAM_SUPPORTED_MINEXPOSURECOMPENSATION, mMinExposureCompensation);
   LOG_IF_ERROR(rv, CAMERA_PARAM_SUPPORTED_MINEXPOSURECOMPENSATION);
@@ -254,6 +270,12 @@ CameraCapabilities::MaxMeteringAreas() const
   return mMaxMeteringAreas;
 }
 
+uint32_t
+CameraCapabilities::MaxDetectedFaces() const
+{
+  return mMaxDetectedFaces;
+}
+
 double
 CameraCapabilities::MinExposureCompensation() const
 {
@@ -276,6 +298,12 @@ JS::Value
 CameraCapabilities::RecorderProfiles(JSContext* aCx) const
 {
   return mRecorderProfiles;
+}
+
+void
+CameraCapabilities::GetIsoModes(nsTArray<nsString>& retval) const
+{
+  retval = mIsoModes;
 }
 
 } // namespace dom

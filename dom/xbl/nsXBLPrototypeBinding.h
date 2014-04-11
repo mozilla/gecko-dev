@@ -31,7 +31,7 @@ class nsXBLProtoImplField;
 // Instances of this class are owned by the nsXBLDocumentInfo object returned
 // by XBLDocumentInfo().  Consumers who want to refcount things should refcount
 // that.
-class nsXBLPrototypeBinding
+class nsXBLPrototypeBinding MOZ_FINAL
 {
 public:
   nsIContent* GetBindingElement() const { return mBinding; }
@@ -90,7 +90,6 @@ public:
   }
 
   nsresult InitClass(const nsCString& aClassName, JSContext * aContext,
-                     JS::Handle<JSObject*> aGlobal,
                      JS::Handle<JSObject*> aScriptObject,
                      JS::MutableHandle<JSObject*> aClassObject,
                      bool* aNew);
@@ -284,7 +283,7 @@ protected:
   bool mKeyHandlersRegistered;
   bool mChromeOnlyContent;
 
-  nsXBLPrototypeResources* mResources; // If we have any resources, this will be non-null.
+  nsAutoPtr<nsXBLPrototypeResources> mResources; // If we have any resources, this will be non-null.
 
   nsXBLDocumentInfo* mXBLDocInfoWeak; // A pointer back to our doc info.  Weak, since it owns us.
 

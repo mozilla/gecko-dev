@@ -13,54 +13,6 @@
 using namespace js;
 using namespace js::jit;
 
-#if 0
-// no clue what these asserts should be.
-JS_STATIC_ASSERT(sizeof(BailoutStack) ==
-                 sizeof(uintptr_t) +
-                 sizeof(double) * 8 +
-                 sizeof(uintptr_t) * 8 +
-                 sizeof(uintptr_t));
-
-JS_STATIC_ASSERT(sizeof(ExtendedBailoutStack) ==
-                 sizeof(BailoutStack) +
-                 sizeof(uintptr_t));
-
-#endif
-#if 0
-BailoutEnvironment::BailoutEnvironment(JitCompartment *ion, void **sp)
-  : sp_(sp)
-{
-    bailout_ = reinterpret_cast<ExtendedBailoutStack *>(sp);
-
-    if (bailout_->frameClass() != FrameSizeClass::None()) {
-        frameSize_ = bailout_->frameSize();
-        frame_ = &sp_[sizeof(BailoutStack) / sizeof(void *)];
-
-        // Compute the bailout ID.
-        JitCode *code = ion->getBailoutTable(bailout_->frameClass());
-        uintptr_t tableOffset = bailout_->tableOffset();
-        uintptr_t tableStart = reinterpret_cast<uintptr_t>(code->raw());
-
-        JS_ASSERT(tableOffset >= tableStart &&
-                  tableOffset < tableStart + code->instructionsSize());
-        JS_ASSERT((tableOffset - tableStart) % BAILOUT_TABLE_ENTRY_SIZE == 0);
-
-        bailoutId_ = ((tableOffset - tableStart) / BAILOUT_TABLE_ENTRY_SIZE) - 1;
-        JS_ASSERT(bailoutId_ < BAILOUT_TABLE_SIZE);
-    } else {
-        frameSize_ = bailout_->frameSize();
-        frame_ = &sp_[sizeof(ExtendedBailoutStack) / sizeof(void *)];
-    }
-}
-
-IonFramePrefix *
-BailoutEnvironment::top() const
-{
-    return (IonFramePrefix *)&frame_[frameSize_ / sizeof(void *)];
-}
-
-#endif
-
 namespace js {
 namespace jit {
 
@@ -125,7 +77,7 @@ IonBailoutIterator::IonBailoutIterator(const JitActivationIterator &activations,
     uint8_t *fp = sp + bailout->frameSize();
 
     current_ = fp;
-    type_ = IonFrame_OptimizedJS;
+    type_ = JitFrame_IonJS;
     topFrameSize_ = current_ - sp;
     topIonScript_ = script()->ionScript();
 
@@ -161,7 +113,7 @@ IonBailoutIterator::IonBailoutIterator(const JitActivationIterator &activations,
     const OsiIndex *osiIndex = topIonScript_->getOsiIndex(returnAddressToFp_);
 
     current_ = (uint8_t*) bailout->fp();
-    type_ = IonFrame_OptimizedJS;
+    type_ = JitFrame_IonJS;
     topFrameSize_ = current_ - bailout->sp();
     snapshotOffset_ = osiIndex->snapshotOffset();
 }

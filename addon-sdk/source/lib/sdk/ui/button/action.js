@@ -10,29 +10,22 @@ module.metadata = {
   }
 };
 
-// Because Firefox Holly, we still need to check if `CustomizableUI` is
-// available. Once Australis will officially land, we can safely remove it.
-// See Bug 959142
-try {
-  require('chrome').Cu.import('resource:///modules/CustomizableUI.jsm', {});
-}
-catch (e) {
-  throw Error('Unsupported Application: The module ' + module.id +
-              ' does not support this application.');
-}
-
 const { Class } = require('../../core/heritage');
 const { merge } = require('../../util/object');
 const { Disposable } = require('../../core/disposable');
 const { on, off, emit, setListeners } = require('../../event/core');
 const { EventTarget } = require('../../event/target');
+const { getNodeView } = require('../../view/core');
 
 const view = require('./view');
 const { buttonContract, stateContract } = require('./contract');
-const { properties, render, state, register, unregister } = require('../state');
+const { properties, render, state, register, unregister,
+        getDerivedStateFor } = require('../state');
 const { events: stateEvents } = require('../state/events');
 const { events: viewEvents } = require('./view/events');
 const events = require('../../event/utils');
+
+const { getActiveTab } = require('../../tabs/utils');
 
 const { id: addonID } = require('../../self');
 const { identify } = require('../id');
@@ -86,6 +79,10 @@ exports.ActionButton = ActionButton;
 
 identify.define(ActionButton, ({id}) => toWidgetId(id));
 
+getNodeView.define(ActionButton, button =>
+  view.nodeFor(toWidgetId(button.id))
+);
+
 let actionButtonStateEvents = events.filter(stateEvents,
   e => e.target instanceof ActionButton);
 
@@ -97,7 +94,7 @@ let updateEvents = events.filter(actionButtonViewEvents, e => e.type === 'update
 
 on(clickEvents, 'data', ({target: id, window}) => {
   let button = buttons.get(id);
-  let state = button.state('tab');
+  let state = getDerivedStateFor(button, getActiveTab(window));
 
   emit(button, 'click', state);
 });

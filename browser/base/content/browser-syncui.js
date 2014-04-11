@@ -7,7 +7,6 @@ let gSyncUI = {
   DEFAULT_EOL_URL: "https://www.mozilla.org/firefox/?utm_source=synceol",
 
   _obs: ["weave:service:sync:start",
-         "weave:service:sync:delayed",
          "weave:service:quota:remaining",
          "weave:service:setup-complete",
          "weave:service:login:start",
@@ -85,21 +84,50 @@ let gSyncUI = {
     Services.obs.removeObserver(this, "weave:notification:added");
   },
 
-  _wasDelayed: false,
-
   _needsSetup: function SUI__needsSetup() {
+    // We want to treat "account needs verification" as "needs setup". So
+    // "reach in" to Weave.Status._authManager to check whether we the signed-in
+    // user is verified.
+    // Referencing Weave.Status spins a nested event loop to initialize the
+    // authManager, so this should always return a value directly.
+    // This only applies to fxAccounts-based Sync.
+    if (Weave.Status._authManager._signedInUser) {
+      // If we have a signed in user already, and that user is not verified,
+      // revert to the "needs setup" state.
+      if (!Weave.Status._authManager._signedInUser.verified) {
+        return true;
+      }
+    }
+
     let firstSync = "";
     try {
       firstSync = Services.prefs.getCharPref("services.sync.firstSync");
     } catch (e) { }
+
     return Weave.Status.checkSetup() == Weave.CLIENT_NOT_CONFIGURED ||
            firstSync == "notReady";
   },
 
+  _loginFailed: function () {
+    return Weave.Status.login == Weave.LOGIN_FAILED_LOGIN_REJECTED;
+  },
+
   updateUI: function SUI_updateUI() {
     let needsSetup = this._needsSetup();
-    document.getElementById("sync-setup-state").hidden = !needsSetup;
-    document.getElementById("sync-syncnow-state").hidden = needsSetup;
+    let loginFailed = this._loginFailed();
+
+    // Start off with a clean slate
+    document.getElementById("sync-reauth-state").hidden = true;
+    document.getElementById("sync-setup-state").hidden = true;
+    document.getElementById("sync-syncnow-state").hidden = true;
+
+    if (loginFailed) {
+      document.getElementById("sync-reauth-state").hidden = false;
+    } else if (needsSetup) {
+      document.getElementById("sync-setup-state").hidden = false;
+    } else {
+      document.getElementById("sync-syncnow-state").hidden = false;
+    }
 
     if (!gBrowser)
       return;
@@ -130,21 +158,6 @@ let gSyncUI = {
         return;
       button.setAttribute("status", "active");
     });
-  },
-
-  onSyncDelay: function SUI_onSyncDelay() {
-    // basically, we want to just inform users that stuff is going to take a while
-    let title = this._stringBundle.GetStringFromName("error.sync.no_node_found.title");
-    let description = this._stringBundle.GetStringFromName("error.sync.no_node_found");
-    let buttons = [new Weave.NotificationButton(
-      this._stringBundle.GetStringFromName("error.sync.serverStatusButton.label"),
-      this._stringBundle.GetStringFromName("error.sync.serverStatusButton.accesskey"),
-      function() { gSyncUI.openServerStatus(); return true; }
-    )];
-    let notification = new Weave.Notification(
-      title, description, null, Weave.Notifications.PRIORITY_INFO, buttons);
-    Weave.Notifications.replaceTitle(notification);
-    this._wasDelayed = true;
   },
 
   onLoginFinish: function SUI_onLoginFinish() {
@@ -338,6 +351,9 @@ let gSyncUI = {
     openPreferences("paneSync");
   },
 
+  openSignInAgainPage: function () {
+    switchToTabHavingURI("about:accounts?action=reauth", true);
+  },
 
   // Helpers
   _updateLastSyncTime: function SUI__updateLastSyncTime() {
@@ -376,12 +392,6 @@ let gSyncUI = {
 
     // Clear out sync failures on a successful sync
     this.clearError(title);
-
-    if (this._wasDelayed && Weave.Status.sync != Weave.NO_SYNC_NODE_FOUND) {
-      title = this._stringBundle.GetStringFromName("error.sync.no_node_found.title");
-      this.clearError(title);
-      this._wasDelayed = false;
-    }
   },
 
   onSyncError: function SUI_onSyncError() {
@@ -453,12 +463,6 @@ let gSyncUI = {
       new Weave.Notification(title, description, null, priority, buttons);
     Weave.Notifications.replaceTitle(notification);
 
-    if (this._wasDelayed && Weave.Status.sync != Weave.NO_SYNC_NODE_FOUND) {
-      title = this._stringBundle.GetStringFromName("error.sync.no_node_found.title");
-      Weave.Notifications.removeAll(title);
-      this._wasDelayed = false;
-    }
-
     this.updateUI();
   },
 
@@ -484,9 +488,6 @@ let gSyncUI = {
         break;
       case "weave:ui:sync:error":
         this.onSyncError();
-        break;
-      case "weave:service:sync:delayed":
-        this.onSyncDelay();
         break;
       case "weave:service:quota:remaining":
         this.onQuotaNotice();

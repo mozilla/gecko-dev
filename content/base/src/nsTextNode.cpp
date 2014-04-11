@@ -16,6 +16,7 @@
 #include "nsIDocument.h"
 #include "nsThreadUtils.h"
 #include "nsStubMutationObserver.h"
+#include "mozilla/IntegerPrintfMacros.h"
 #ifdef DEBUG
 #include "nsRange.h"
 #endif
@@ -32,7 +33,7 @@ class nsAttributeTextNode MOZ_FINAL : public nsTextNode,
 public:
   NS_DECL_ISUPPORTS_INHERITED
   
-  nsAttributeTextNode(already_AddRefed<nsINodeInfo> aNodeInfo,
+  nsAttributeTextNode(already_AddRefed<nsINodeInfo>& aNodeInfo,
                       int32_t aNameSpaceID,
                       nsIAtom* aAttrName) :
     nsTextNode(aNodeInfo),
@@ -60,8 +61,9 @@ public:
   virtual nsGenericDOMDataNode *CloneDataNode(nsINodeInfo *aNodeInfo,
                                               bool aCloneText) const
   {
-    nsCOMPtr<nsINodeInfo> ni = aNodeInfo;
-    nsAttributeTextNode *it = new nsAttributeTextNode(ni.forget(),
+    already_AddRefed<nsINodeInfo> ni =
+      nsCOMPtr<nsINodeInfo>(aNodeInfo).forget();
+    nsAttributeTextNode *it = new nsAttributeTextNode(ni,
                                                       mNameSpaceID,
                                                       mAttrName);
     if (it && aCloneText) {
@@ -98,9 +100,9 @@ NS_IMPL_ISUPPORTS_INHERITED3(nsTextNode, nsGenericDOMDataNode, nsIDOMNode,
                              nsIDOMText, nsIDOMCharacterData)
 
 JSObject*
-nsTextNode::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+nsTextNode::WrapNode(JSContext *aCx)
 {
-  return TextBinding::Wrap(aCx, aScope, this);
+  return TextBinding::Wrap(aCx, this);
 }
 
 bool
@@ -112,9 +114,9 @@ nsTextNode::IsNodeOfType(uint32_t aFlags) const
 nsGenericDOMDataNode*
 nsTextNode::CloneDataNode(nsINodeInfo *aNodeInfo, bool aCloneText) const
 {
-  nsCOMPtr<nsINodeInfo> ni = aNodeInfo;
-  nsTextNode *it = new nsTextNode(ni.forget());
-  if (it && aCloneText) {
+  already_AddRefed<nsINodeInfo> ni = nsCOMPtr<nsINodeInfo>(aNodeInfo).forget();
+  nsTextNode *it = new nsTextNode(ni);
+  if (aCloneText) {
     it->mText = mText;
   }
 
@@ -168,7 +170,7 @@ nsTextNode::List(FILE* out, int32_t aIndent) const
     fprintf(out, " ranges:%d", ranges ? ranges->Count() : 0);
   }
   fprintf(out, " primaryframe=%p", static_cast<void*>(GetPrimaryFrame()));
-  fprintf(out, " refcount=%d<", mRefCnt.get());
+  fprintf(out, " refcount=%" PRIuPTR "<", mRefCnt.get());
 
   nsAutoString tmp;
   ToCString(tmp, 0, mText.GetLength());
@@ -206,12 +208,9 @@ NS_NewAttributeContent(nsNodeInfoManager *aNodeInfoManager,
   
   *aResult = nullptr;
 
-  nsCOMPtr<nsINodeInfo> ni = aNodeInfoManager->GetTextNodeInfo();
-  if (!ni) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
+  already_AddRefed<nsINodeInfo> ni = aNodeInfoManager->GetTextNodeInfo();
 
-  nsAttributeTextNode* textNode = new nsAttributeTextNode(ni.forget(),
+  nsAttributeTextNode* textNode = new nsAttributeTextNode(ni,
                                                           aNameSpaceID,
                                                           aAttrName);
   if (!textNode) {

@@ -12,11 +12,11 @@
 #include "nsPIDOMWindow.h"
 
 #include "mozilla/CondVar.h"
+#include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsDataHashtable.h"
-#include "nsDOMEventTargetHelper.h"
 #include "nsHashKeys.h"
 #include "nsRefPtrHashtable.h"
 #include "nsString.h"
@@ -112,7 +112,7 @@ public:
 };
 
 template <class Derived>
-class WorkerPrivateParent : public nsDOMEventTargetHelper
+class WorkerPrivateParent : public DOMEventTargetHelper
 {
   class SynchronizeAndResumeRunnable;
 
@@ -285,11 +285,11 @@ private:
 
 public:
   virtual JSObject*
-  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(WorkerPrivateParent,
-                                                         nsDOMEventTargetHelper)
+                                                         DOMEventTargetHelper)
 
   void
   ClearSelfRef()
@@ -806,7 +806,7 @@ public:
   DoRunLoop(JSContext* aCx);
 
   bool
-  OperationCallback(JSContext* aCx);
+  InterruptCallback(JSContext* aCx);
 
   nsresult
   IsOnCurrentThread(bool* aIsOnCurrentThread);
@@ -920,8 +920,13 @@ public:
   void
   UpdateJSWorkerMemoryParameterInternal(JSContext* aCx, JSGCParamKey key, uint32_t aValue);
 
+  enum WorkerRanOrNot {
+    WorkerNeverRan = 0,
+    WorkerRan
+  };
+
   void
-  ScheduleDeletion();
+  ScheduleDeletion(WorkerRanOrNot aRanOrNot);
 
   bool
   BlockAndCollectRuntimeStats(JS::RuntimeStats* aRtStats);
@@ -1052,7 +1057,7 @@ private:
                 LoadInfo& aLoadInfo);
 
   void
-  ClearMainEventQueue();
+  ClearMainEventQueue(WorkerRanOrNot aRanOrNot);
 
   bool
   MayContinueRunning()

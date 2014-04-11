@@ -14,6 +14,7 @@ import org.mozilla.gecko.background.fxa.FxAccountClient20.LoginResponse;
 import org.mozilla.gecko.background.fxa.FxAccountClientException.FxAccountClientRemoteException;
 import org.mozilla.gecko.background.fxa.FxAccountUtils;
 import org.mozilla.gecko.background.fxa.PasswordStretcher;
+import org.mozilla.gecko.background.fxa.QuickPasswordStretcher;
 import org.mozilla.gecko.fxa.FxAccountConstants;
 import org.mozilla.gecko.fxa.activities.FxAccountSetupTask.ProgressDisplay;
 import org.mozilla.gecko.fxa.authenticator.AndroidFxAccount;
@@ -26,8 +27,9 @@ import org.mozilla.gecko.sync.setup.activities.ActivityUtils;
 import android.accounts.AccountManager;
 import android.content.Intent;
 import android.text.Editable;
-import android.text.InputType;
 import android.text.TextWatcher;
+import android.text.method.PasswordTransformationMethod;
+import android.text.method.SingleLineTransformationMethod;
 import android.util.Patterns;
 import android.view.KeyEvent;
 import android.view.View;
@@ -64,21 +66,24 @@ abstract public class FxAccountAbstractSetupActivity extends FxAccountAbstractAc
       @SuppressWarnings("deprecation")
       @Override
       public void onClick(View v) {
-        boolean isShown = 0 == (passwordEdit.getInputType() & InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        boolean isShown = passwordEdit.getTransformationMethod() instanceof SingleLineTransformationMethod;
+
         // Changing input type loses position in edit text; let's try to maintain it.
         int start = passwordEdit.getSelectionStart();
         int stop = passwordEdit.getSelectionEnd();
-        passwordEdit.setInputType(passwordEdit.getInputType() ^ InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        passwordEdit.setSelection(start, stop);
+
         if (isShown) {
+          passwordEdit.setTransformationMethod(PasswordTransformationMethod.getInstance());
           showPasswordButton.setText(R.string.fxaccount_password_show);
           showPasswordButton.setBackgroundDrawable(getResources().getDrawable(R.drawable.fxaccount_password_button_show_background));
           showPasswordButton.setTextColor(getResources().getColor(R.color.fxaccount_password_show_textcolor));
         } else {
+          passwordEdit.setTransformationMethod(SingleLineTransformationMethod.getInstance());
           showPasswordButton.setText(R.string.fxaccount_password_hide);
           showPasswordButton.setBackgroundDrawable(getResources().getDrawable(R.drawable.fxaccount_password_button_hide_background));
           showPasswordButton.setTextColor(getResources().getColor(R.color.fxaccount_password_hide_textcolor));
         }
+        passwordEdit.setSelection(start, stop);
       }
     });
   }
@@ -297,5 +302,14 @@ abstract public class FxAccountAbstractSetupActivity extends FxAccountAbstractAc
       startActivity(successIntent);
       finish();
     }
+  }
+
+  /**
+   * Factory function that produces a new PasswordStretcher instance.
+   *
+   * @return PasswordStretcher instance.
+   */
+  protected PasswordStretcher makePasswordStretcher(String password) {
+    return new QuickPasswordStretcher(password);
   }
 }

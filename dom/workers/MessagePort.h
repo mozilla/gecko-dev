@@ -8,12 +8,16 @@
 
 #include "Workers.h"
 
-#include "nsDOMEventTargetHelper.h"
+#include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/MessagePort.h"
 
 class nsIDOMEvent;
 class nsPIDOMWindow;
+
+namespace mozilla {
+class EventChainPreVisitor;
+} // namespace mozilla
 
 BEGIN_WORKERS_NAMESPACE
 
@@ -58,7 +62,7 @@ public:
   QueueEvent(nsIDOMEvent* aEvent);
 
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(MessagePort, nsDOMEventTargetHelper)
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(MessagePort, DOMEventTargetHelper)
 
   virtual EventHandlerNonNull*
   GetOnmessage() MOZ_OVERRIDE;
@@ -76,10 +80,10 @@ public:
   }
 
   virtual JSObject*
-  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   virtual nsresult
-  PreHandleEvent(nsEventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
+  PreHandleEvent(EventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
 
 #ifdef DEBUG
   void

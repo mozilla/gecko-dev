@@ -15,9 +15,9 @@ namespace mozilla {
 namespace dom {
 
 JSObject*
-SVGFEOffsetElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aScope)
+SVGFEOffsetElement::WrapNode(JSContext* aCx)
 {
-  return SVGFEOffsetElementBinding::Wrap(aCx, aScope, this);
+  return SVGFEOffsetElementBinding::Wrap(aCx, this);
 }
 
 nsSVGElement::NumberInfo SVGFEOffsetElement::sNumberInfo[2] =
@@ -65,7 +65,7 @@ SVGFEOffsetElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
                                             const nsTArray<bool>& aInputsAreTainted,
                                             nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {
-  FilterPrimitiveDescription descr(FilterPrimitiveDescription::eOffset);
+  FilterPrimitiveDescription descr(PrimitiveType::Offset);
   IntPoint offset(int32_t(aInstance->GetPrimitiveNumber(
                             SVGContentUtils::X, &mNumberAttributes[DX])),
                   int32_t(aInstance->GetPrimitiveNumber(

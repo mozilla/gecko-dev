@@ -32,6 +32,7 @@ if CONFIG['MOZ_WEBGL']:
         'WebGLContext.cpp',
         'WebGLContextAsyncQueries.cpp',
         'WebGLContextBuffers.cpp',
+        'WebGLContextDraw.cpp',
         'WebGLContextExtensions.cpp',
         'WebGLContextFramebufferOperations.cpp',
         'WebGLContextGL.cpp',
@@ -44,7 +45,10 @@ if CONFIG['MOZ_WEBGL']:
         'WebGLContextVertices.cpp',
         'WebGLElementArrayCache.cpp',
         'WebGLExtensionBase.cpp',
+        'WebGLExtensionColorBufferFloat.cpp',
+        'WebGLExtensionColorBufferHalfFloat.cpp',
         'WebGLExtensionCompressedTextureATC.cpp',
+        'WebGLExtensionCompressedTextureETC1.cpp',
         'WebGLExtensionCompressedTexturePVRTC.cpp',
         'WebGLExtensionCompressedTextureS3TC.cpp',
         'WebGLExtensionDebugRendererInfo.cpp',
@@ -64,6 +68,7 @@ if CONFIG['MOZ_WEBGL']:
         'WebGLExtensionTextureHalfFloatLinear.cpp',
         'WebGLExtensionVertexArray.cpp',
         'WebGLFramebuffer.cpp',
+        'WebGLFramebufferAttachable.cpp',
         'WebGLObjectModel.cpp',
         'WebGLProgram.cpp',
         'WebGLQuery.cpp',
@@ -93,6 +98,7 @@ FINAL_LIBRARY = 'gklayout'
 LOCAL_INCLUDES += [
     '/content/base/src',
     '/content/html/content/src',
+    '/content/svg/content/src',
     '/content/xul/content/src',
     '/dom/base',
     '/image/src',
@@ -101,4 +107,3 @@ LOCAL_INCLUDES += [
     '/layout/style',
     '/layout/xul',
 ]
-

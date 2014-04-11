@@ -31,6 +31,7 @@
 #include "mozilla/ipc/UnixSocket.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPtr.h"
+#include "mozilla/unused.h"
 
 using namespace mozilla;
 using namespace mozilla::ipc;
@@ -55,7 +56,6 @@ static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sGetDeviceRunnableArray;
 static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sSetPropertyRunnableArray;
 static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sUnbondingRunnableArray;
 static nsTArray<int> sRequestedDeviceCountArray;
-static StaticAutoPtr<Monitor> sToggleBtMonitor;
 
 /**
  *  Classes only used in this file
@@ -246,9 +246,11 @@ AdapterStateChangeCallback(bt_state_t aStatus)
 
   sIsBtEnabled = (aStatus == BT_STATE_ON);
 
-  {
-    MonitorAutoLock lock(*sToggleBtMonitor);
-    lock.Notify();
+  nsRefPtr<nsRunnable> runnable =
+    new BluetoothService::ToggleBtAck(sIsBtEnabled);
+  if (NS_FAILED(NS_DispatchToMainThread(runnable))) {
+    BT_WARNING("Failed to dispatch to main thread!");
+    return;
   }
 
   if (sIsBtEnabled &&
@@ -665,19 +667,21 @@ EnsureBluetoothHalLoad()
 static nsresult
 StartStopGonkBluetooth(bool aShouldEnable)
 {
-  MOZ_ASSERT(!NS_IsMainThread());
+  MOZ_ASSERT(NS_IsMainThread());
   NS_ENSURE_TRUE(sBtInterface, NS_ERROR_FAILURE);
 
   if (sIsBtEnabled == aShouldEnable) {
     // Keep current enable status
+    nsRefPtr<nsRunnable> runnable =
+      new BluetoothService::ToggleBtAck(sIsBtEnabled);
+    if (NS_FAILED(NS_DispatchToMainThread(runnable))) {
+      BT_WARNING("Failed to dispatch to main thread!");
+    }
     return NS_OK;
   }
 
   int ret = aShouldEnable ? sBtInterface->enable() : sBtInterface->disable();
   NS_ENSURE_TRUE(ret == BT_STATUS_SUCCESS, NS_ERROR_FAILURE);
-
-  MonitorAutoLock lock(*sToggleBtMonitor);
-  lock.Wait();
 
   return NS_OK;
 }
@@ -716,8 +720,6 @@ ReplyStatusError(BluetoothReplyRunnable* aBluetoothReplyRunnable,
  */
 BluetoothServiceBluedroid::BluetoothServiceBluedroid()
 {
-  sToggleBtMonitor = new Monitor("BluetoothService.sToggleBtMonitor");
-
   if (!EnsureBluetoothHalLoad()) {
     BT_LOGR("Error! Failed to load bluedroid library.");
     return;
@@ -731,16 +733,20 @@ BluetoothServiceBluedroid::BluetoothServiceBluedroid()
 
 BluetoothServiceBluedroid::~BluetoothServiceBluedroid()
 {
-  sToggleBtMonitor = nullptr;
 }
 
 nsresult
 BluetoothServiceBluedroid::StartInternal()
 {
-  MOZ_ASSERT(!NS_IsMainThread());
+  MOZ_ASSERT(NS_IsMainThread());
 
   nsresult ret = StartStopGonkBluetooth(true);
   if (NS_FAILED(ret)) {
+    nsRefPtr<nsRunnable> runnable =
+      new BluetoothService::ToggleBtAck(false);
+    if (NS_FAILED(NS_DispatchToMainThread(runnable))) {
+      BT_WARNING("Failed to dispatch to main thread!");
+    }
     BT_LOGR("Error");
   }
 
@@ -750,22 +756,19 @@ BluetoothServiceBluedroid::StartInternal()
 nsresult
 BluetoothServiceBluedroid::StopInternal()
 {
-  MOZ_ASSERT(!NS_IsMainThread());
+  MOZ_ASSERT(NS_IsMainThread());
 
   nsresult ret = StartStopGonkBluetooth(false);
   if (NS_FAILED(ret)) {
+    nsRefPtr<nsRunnable> runnable =
+      new BluetoothService::ToggleBtAck(true);
+    if (NS_FAILED(NS_DispatchToMainThread(runnable))) {
+      BT_WARNING("Failed to dispatch to main thread!");
+    }
     BT_LOGR("Error");
   }
 
   return ret;
-}
-
-bool
-BluetoothServiceBluedroid::IsEnabledInternal()
-{
-  MOZ_ASSERT(!NS_IsMainThread());
-
-  return sIsBtEnabled;
 }
 
 nsresult
@@ -799,7 +802,7 @@ BluetoothServiceBluedroid::GetDefaultAdapterPathInternal(
   nsAutoString replyError;
   DispatchBluetoothReply(runnable.get(), v, replyError);
 
-  runnable.forget();
+  unused << runnable.forget(); // picked up in DispatchBluetoothReply
 
   return NS_OK;
 }
@@ -1160,7 +1163,7 @@ NextBluetoothProfileController()
   sControllerArray.RemoveElementAt(0);
   // Re-check if the task array is empty, if it's not, the next task will begin.
   NS_ENSURE_FALSE_VOID(sControllerArray.IsEmpty());
-  sControllerArray[0]->Start();
+  sControllerArray[0]->StartSession();
 }
 
 static void
@@ -1183,7 +1186,7 @@ ConnectDisconnect(bool aConnect, const nsAString& aDeviceAddress,
    * first one is completed. See NextBluetoothProfileController() for details.
    */
   if (sControllerArray.Length() == 1) {
-    sControllerArray[0]->Start();
+    sControllerArray[0]->StartSession();
   }
 }
 

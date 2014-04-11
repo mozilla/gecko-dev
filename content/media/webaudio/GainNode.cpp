@@ -58,10 +58,10 @@ public:
     }
   }
 
-  virtual void ProduceAudioBlock(AudioNodeStream* aStream,
-                                 const AudioChunk& aInput,
-                                 AudioChunk* aOutput,
-                                 bool* aFinished)
+  virtual void ProcessBlock(AudioNodeStream* aStream,
+                            const AudioChunk& aInput,
+                            AudioChunk* aOutput,
+                            bool* aFinished)
   {
     MOZ_ASSERT(mSource == aStream, "Invalid source stream");
 
@@ -120,9 +120,9 @@ GainNode::GainNode(AudioContext* aContext)
 }
 
 JSObject*
-GainNode::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+GainNode::WrapObject(JSContext* aCx)
 {
-  return GainNodeBinding::Wrap(aCx, aScope, this);
+  return GainNodeBinding::Wrap(aCx, this);
 }
 
 void

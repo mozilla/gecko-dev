@@ -14,10 +14,12 @@
 #include "mozilla/IHistory.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/URLSearchParams.h"
-#include "nsEventStates.h"
 #include "nsIContent.h"
 
 namespace mozilla {
+
+class EventStates;
+
 namespace dom {
 
 class Element;
@@ -42,7 +44,7 @@ public:
    *         NS_EVENT_STATE_UNVISTED if this link is not visited, or 0 if this
    *         link is not actually a link.
    */
-  nsEventStates LinkState() const;
+  EventStates LinkState() const;
 
   /**
    * @return the URI this link is for, if available.
@@ -62,7 +64,7 @@ public:
   void SetHostname(const nsAString &aHostname);
   void SetPathname(const nsAString &aPathname);
   void SetSearch(const nsAString &aSearch);
-  void SetSearchParams(mozilla::dom::URLSearchParams* aSearchParams);
+  void SetSearchParams(mozilla::dom::URLSearchParams& aSearchParams);
   void SetPort(const nsAString &aPort);
   void SetHash(const nsAString &aHash);
   void GetOrigin(nsAString &aOrigin);
@@ -73,7 +75,7 @@ public:
   void GetHostname(nsAString &_hostname);
   void GetPathname(nsAString &_pathname);
   void GetSearch(nsAString &_search);
-  URLSearchParams* GetSearchParams();
+  URLSearchParams* SearchParams();
   void GetPort(nsAString &_port);
   void GetHash(nsAString &_hash);
 
@@ -114,7 +116,6 @@ public:
 
   // URLSearchParamsObserver
   void URLSearchParamsUpdated() MOZ_OVERRIDE;
-  void URLSearchParamsNeedsUpdates() MOZ_OVERRIDE;
 
 protected:
   virtual ~Link();
@@ -133,6 +134,8 @@ protected:
 
   nsIURI* GetCachedURI() const { return mCachedURI; }
   bool HasCachedURI() const { return !!mCachedURI; }
+
+  void UpdateURLSearchParams();
 
   // CC methods
   void Unlink();

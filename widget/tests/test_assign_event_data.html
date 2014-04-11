@@ -48,6 +48,7 @@
 <script class="testbody" type="application/javascript">
 
 SimpleTest.waitForExplicitFinish();
+SimpleTest.expectAssertions(0, 32);
 
 const kIsMac = (navigator.platform.indexOf("Mac") == 0);
 const kIsWin = (navigator.platform.indexOf("Win") == 0);
@@ -168,6 +169,76 @@ const kTests = [
     },
     todoMismatch: [],
   },
+  { description: "WidgetKeyboardEvent (keyup during composition)",
+    targetID: "input-text", eventType: "keyup",
+    dispatchEvent: function () {
+      document.getElementById(this.targetID).value = "";
+      document.getElementById(this.targetID).focus();
+      synthesizeKey("a", { type: "keydown" });
+      synthesizeComposition({ type: "compositionstart" });
+      synthesizeComposition({ type: "compositionupdate", data: "\u306D" });
+      synthesizeText({ "composition":
+        { "string": "\u306D",
+          "clauses":
+          [
+            { "length": 1, "attr": COMPOSITION_ATTR_RAWINPUT }
+          ]
+        },
+        "caret": { "start": 1, "length": 0 }
+      });
+      synthesizeKey("a", { type: "keyup" });
+      synthesizeComposition({ type: "compositionupdate", data: "\u306D" });
+      synthesizeText({ "composition":
+        { "string": "\u306D",
+          "clauses":
+          [
+            { "length": 0, "attr": 0 }
+          ]
+        },
+        "caret": { "start": 1, "length": 0 }
+      });
+      synthesizeComposition({ type: "compositionend", data: "\u732B" });
+    },
+    canRun: function () {
+      return true;
+    },
+    todoMismatch: [ ],
+  },
+  { description: "WidgetKeyboardEvent (keydown during composition)",
+    targetID: "input-text", eventType: "keydown",
+    dispatchEvent: function () {
+      document.getElementById(this.targetID).value = "";
+      document.getElementById(this.targetID).focus();
+      synthesizeComposition({ type: "compositionstart" });
+      synthesizeComposition({ type: "compositionupdate", data: "\u306D" });
+      synthesizeText({ "composition":
+        { "string": "\u306D",
+          "clauses":
+          [
+            { "length": 1, "attr": COMPOSITION_ATTR_RAWINPUT }
+          ]
+        },
+        "caret": { "start": 1, "length": 0 }
+      });
+      synthesizeKey("VK_RETURN", { type: "keydown" });
+      synthesizeComposition({ type: "compositionupdate", data: "\u306D" });
+      synthesizeText({ "composition":
+        { "string": "\u306D",
+          "clauses":
+          [
+            { "length": 0, "attr": 0 }
+          ]
+        },
+        "caret": { "start": 1, "length": 0 }
+      });
+      synthesizeComposition({ type: "compositionend", data: "\u732B" });
+      synthesizeKey("VK_RETURN", { type: "keyup" });
+    },
+    canRun: function () {
+      return true;
+    },
+    todoMismatch: [ ],
+  },
   { description: "WidgetMouseEvent (mousedown of left button without modifier)",
     targetID: "button", eventType: "mousedown",
     dispatchEvent: function () {
@@ -245,6 +316,60 @@ const kTests = [
       document.getElementById(this.targetID).focus();
       synthesizeComposition({ type: "compositionstart" });
       synthesizeComposition({ type: "compositionupdate", data: "\u30E9\u30FC\u30E1\u30F3" });
+      synthesizeText({ "composition":
+        { "string": "\u30E9\u30FC\u30E1\u30F3",
+          "clauses":
+          [
+            { "length": 0, "attr": 0 }
+          ]
+        },
+        "caret": { "start": 4, "length": 0 }
+      });
+      synthesizeComposition({ type: "compositionend", data: "\u30E9\u30FC\u30E1\u30F3" });
+    },
+    canRun: function () {
+      return true;
+    },
+    todoMismatch: [ ],
+  },
+  { description: "InternalEditorInputEvent (input at key input)",
+    targetID: "input-text", eventType: "input",
+    dispatchEvent: function () {
+      document.getElementById(this.targetID).value = "";
+      document.getElementById(this.targetID).focus();
+      synthesizeNativeKey(KEYBOARD_LAYOUT_EN_US, kIsWin ? WIN_VK_B : MAC_VK_ANSI_B,
+                          { shiftKey: true }, "B", "B");
+    },
+    canRun: function () {
+      return (kIsMac || kIsWin);
+    },
+    todoMismatch: [],
+  },
+  { description: "InternalEditorInputEvent (input at composing)",
+    targetID: "input-text", eventType: "input",
+    dispatchEvent: function () {
+      document.getElementById(this.targetID).value = "";
+      document.getElementById(this.targetID).focus();
+      synthesizeComposition({ type: "compositionstart" });
+      synthesizeComposition({ type: "compositionupdate", data: "\u30E9\u30FC\u30E1\u30F3" });
+      synthesizeText({ "composition":
+        { "string": "\u30E9\u30FC\u30E1\u30F3",
+          "clauses":
+          [
+            { "length": 4, "attr": COMPOSITION_ATTR_RAWINPUT }
+          ]
+        },
+        "caret": { "start": 4, "length": 0 }
+      });
+    },
+    canRun: function () {
+      return true;
+    },
+    todoMismatch: [ ],
+  },
+  { description: "InternalEditorInputEvent (input at committing)",
+    targetID: "input-text", eventType: "input",
+    dispatchEvent: function () {
       synthesizeText({ "composition":
         { "string": "\u30E9\u30FC\u30E1\u30F3",
           "clauses":

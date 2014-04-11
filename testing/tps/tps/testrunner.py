@@ -11,11 +11,13 @@ import tempfile
 import time
 import traceback
 
+from mozhttpd import MozHttpd
+import mozinfo
 from mozprofile import Profile
 
-from tps.firefoxrunner import TPSFirefoxRunner
-from tps.phase import TPSTestPhase
-from tps.mozhttpd import MozHttpd
+from .firefoxrunner import TPSFirefoxRunner
+from .phase import TPSTestPhase
+
 
 class TempFile(object):
     """Class for temporary files that delete themselves when garbage-collected.
@@ -41,72 +43,103 @@ class TempFile(object):
 
     __del__ = cleanup
 
+
 class TPSTestRunner(object):
 
-    default_env = { 'MOZ_CRASHREPORTER_DISABLE': '1',
-                    'GNOME_DISABLE_CRASH_DIALOG': '1',
-                    'XRE_NO_WINDOWS_CRASH_DIALOG': '1',
-                    'MOZ_NO_REMOTE': '1',
-                    'XPCOM_DEBUG_BREAK': 'warn',
-                  }
-    default_preferences = { 'app.update.enabled' : False,
-                            'extensions.getAddons.get.url': 'http://127.0.0.1:4567/en-US/firefox/api/%API_VERSION%/search/guid:%IDS%',
-                            'extensions.update.enabled'    : False,
-                            'extensions.update.notifyUser' : False,
-                            'browser.shell.checkDefaultBrowser' : False,
-                            'browser.tabs.warnOnClose' : False,
-                            'browser.warnOnQuit': False,
-                            'browser.sessionstore.resume_from_crash': False,
-                            'services.sync.addons.ignoreRepositoryChecking': True,
-                            'services.sync.firstSync': 'notReady',
-                            'services.sync.lastversion': '1.0',
-                            'services.sync.log.rootLogger': 'Trace',
-                            'services.sync.log.logger.engine.addons': 'Trace',
-                            'services.sync.log.logger.service.main': 'Trace',
-                            'services.sync.log.logger.engine.bookmarks': 'Trace',
-                            'services.sync.log.appender.console': 'Trace',
-                            'services.sync.log.appender.debugLog.enabled': True,
-                            'toolkit.startup.max_resumed_crashes': -1,
-                            'browser.dom.window.dump.enabled': True,
-                            # Allow installing extensions dropped into the profile folder
-                            'extensions.autoDisableScopes': 10,
-                            # Don't open a dialog to show available add-on updates
-                            'extensions.update.notifyUser' : False,
-                          }
+    default_env = {
+        'MOZ_CRASHREPORTER_DISABLE': '1',
+        'GNOME_DISABLE_CRASH_DIALOG': '1',
+        'XRE_NO_WINDOWS_CRASH_DIALOG': '1',
+        'MOZ_NO_REMOTE': '1',
+        'XPCOM_DEBUG_BREAK': 'warn',
+    }
+
+    default_preferences = {
+        'app.update.enabled': False,
+        'browser.dom.window.dump.enabled': True,
+        'browser.sessionstore.resume_from_crash': False,
+        'browser.shell.checkDefaultBrowser': False,
+        'browser.tabs.warnOnClose': False,
+        'browser.warnOnQuit': False,
+        # Allow installing extensions dropped into the profile folder
+        'extensions.autoDisableScopes': 10,
+        'extensions.getAddons.get.url': 'http://127.0.0.1:4567/addons/api/%IDS%.xml',
+        'extensions.update.enabled': False,
+        # Don't open a dialog to show available add-on updates
+        'extensions.update.notifyUser': False,
+        'services.sync.addons.ignoreRepositoryChecking': True,
+        'services.sync.firstSync': 'notReady',
+        'services.sync.lastversion': '1.0',
+        'toolkit.startup.max_resumed_crashes': -1,
+    }
+
+    debug_preferences = {
+        'services.sync.log.appender.console': 'Trace',
+        'services.sync.log.appender.dump': 'Trace',
+        'services.sync.log.appender.file.level': 'Trace',
+        'services.sync.log.appender.file.logOnSuccess': True,
+        'services.sync.log.rootLogger': 'Trace',
+        'services.sync.log.logger.addonutils': 'Trace',
+        'services.sync.log.logger.declined': 'Trace',
+        'services.sync.log.logger.service.main': 'Trace',
+        'services.sync.log.logger.status': 'Trace',
+        'services.sync.log.logger.authenticator': 'Trace',
+        'services.sync.log.logger.network.resources': 'Trace',
+        'services.sync.log.logger.service.jpakeclient': 'Trace',
+        'services.sync.log.logger.engine.bookmarks': 'Trace',
+        'services.sync.log.logger.engine.clients': 'Trace',
+        'services.sync.log.logger.engine.forms': 'Trace',
+        'services.sync.log.logger.engine.history': 'Trace',
+        'services.sync.log.logger.engine.passwords': 'Trace',
+        'services.sync.log.logger.engine.prefs': 'Trace',
+        'services.sync.log.logger.engine.tabs': 'Trace',
+        'services.sync.log.logger.engine.addons': 'Trace',
+        'services.sync.log.logger.engine.apps': 'Trace',
+        'services.sync.log.logger.identity': 'Trace',
+        'services.sync.log.logger.userapi': 'Trace',
+    }
+
     syncVerRe = re.compile(
-        r"Sync version: (?P<syncversion>.*)\n")
+        r'Sync version: (?P<syncversion>.*)\n')
     ffVerRe = re.compile(
-        r"Firefox version: (?P<ffver>.*)\n")
-    ffDateRe = re.compile(
-        r"Firefox builddate: (?P<ffdate>.*)\n")
+        r'Firefox version: (?P<ffver>.*)\n')
+    ffBuildIDRe = re.compile(
+        r'Firefox buildid: (?P<ffbuildid>.*)\n')
 
     def __init__(self, extensionDir,
-                 testfile="sync.test",
-                 binary=None, config=None, rlock=None, mobile=False,
-                 logfile="tps.log", resultfile="tps_result.json",
-                 ignore_unused_engines=False):
-        self.extensions = []
-        self.testfile = testfile
-        self.logfile = os.path.abspath(logfile)
-        self.resultfile = resultfile
+                 binary=None,
+                 config=None,
+                 debug=False,
+                 ignore_unused_engines=False,
+                 logfile='tps.log',
+                 mobile=False,
+                 rlock=None,
+                 resultfile='tps_result.json',
+                 testfile=None):
         self.binary = binary
-        self.ignore_unused_engines = ignore_unused_engines
         self.config = config if config else {}
-        self.repo = None
-        self.changeset = None
+        self.debug = debug
+        self.extensions = []
+        self.ignore_unused_engines = ignore_unused_engines
+        self.logfile = os.path.abspath(logfile)
+        self.mobile = mobile
+        self.rlock = rlock
+        self.resultfile = resultfile
+        self.testfile = testfile
+
+        self.addonversion = None
         self.branch = None
+        self.changeset = None
+        self.errorlogs = {}
+        self.extensionDir = extensionDir
+        self.firefoxRunner = None
+        self.nightly = False
         self.numfailed = 0
         self.numpassed = 0
-        self.nightly = False
-        self.rlock = rlock
-        self.mobile = mobile
-        self.tpsxpi = None
-        self.firefoxRunner = None
-        self.extensionDir = extensionDir
-        self.productversion = None
-        self.addonversion = None
         self.postdata = {}
-        self.errorlogs = {}
+        self.productversion = None
+        self.repo = None
+        self.tpsxpi = None
 
     @property
     def mobile(self):
@@ -167,13 +200,7 @@ class TPSTestRunner(object):
 
     def run_single_test(self, testdir, testname):
         testpath = os.path.join(testdir, testname)
-        self.log("Running test %s\n" % testname)
-
-        # Create a random account suffix that is used when creating test
-        # accounts on a staging server.
-        account_suffix = {"account-suffix": ''.join([str(random.randint(0,9))
-                                                     for i in range(1,6)])}
-        self.config['account'].update(account_suffix)
+        self.log("Running test %s\n" % testname, True)
 
         # Read and parse the test file, merge it with the contents of the config
         # file, and write the combined output to a temporary file.
@@ -183,7 +210,7 @@ class TPSTestRunner(object):
         try:
             test = json.loads(testcontent)
         except:
-            test = json.loads(testcontent[testcontent.find("{"):testcontent.find("}") + 1])
+            test = json.loads(testcontent[testcontent.find('{'):testcontent.find('}') + 1])
 
         testcontent += 'var config = %s;\n' % json.dumps(self.config, indent=2)
         testcontent += 'var seconds_since_epoch = %d;\n' % int(time.time())
@@ -223,9 +250,9 @@ class TPSTestRunner(object):
             phase.run()
 
             # if a failure occurred, dump the entire sync log into the test log
-            if phase.status != "PASS":
+            if phase.status != 'PASS':
                 for profile in profiles:
-                    self.log("\nDumping sync log for profile %s\n" %  profiles[profile].profile)
+                    self.log('\nDumping sync log for profile %s\n' %  profiles[profile].profile)
                     for root, dirs, files in os.walk(os.path.join(profiles[profile].profile, 'weave', 'logs')):
                         for f in files:
                             weavelog = os.path.join(profiles[profile].profile, 'weave', 'logs', f)
@@ -247,11 +274,11 @@ class TPSTestRunner(object):
         f = open(self.logfile)
         logdata = f.read()
         match = self.syncVerRe.search(logdata)
-        sync_version = match.group("syncversion") if match else 'unknown'
+        sync_version = match.group('syncversion') if match else 'unknown'
         match = self.ffVerRe.search(logdata)
-        firefox_version = match.group("ffver") if match else 'unknown'
-        match = self.ffDateRe.search(logdata)
-        firefox_builddate = match.group("ffdate") if match else 'unknown'
+        firefox_version = match.group('ffver') if match else 'unknown'
+        match = self.ffBuildIDRe.search(logdata)
+        firefox_buildid = match.group('ffbuildid') if match else 'unknown'
         f.close()
         if phase.status == 'PASS':
             logdata = ''
@@ -281,19 +308,19 @@ class TPSTestRunner(object):
             tmplogfile.close()
             self.errorlogs[testname] = tmplogfile
 
-        resultdata = ({ "productversion": { "version": firefox_version,
-                                            "buildid": firefox_builddate,
-                                            "builddate": firefox_builddate[0:8],
-                                            "product": "Firefox",
-                                            "repository": apprepo,
-                                            "changeset": appchangeset,
+        resultdata = ({ 'productversion': { 'version': firefox_version,
+                                            'buildid': firefox_buildid,
+                                            'builddate': firefox_buildid[0:8],
+                                            'product': 'Firefox',
+                                            'repository': apprepo,
+                                            'changeset': appchangeset,
                                           },
-                        "addonversion": { "version": sync_version,
-                                          "product": "Firefox Sync" },
-                        "name": testname,
-                        "message": result[1],
-                        "state": result[0],
-                        "logdata": logdata
+                        'addonversion': { 'version': sync_version,
+                                          'product': 'Firefox Sync' },
+                        'name': testname,
+                        'message': result[1],
+                        'state': result[0],
+                        'logdata': logdata
                       })
 
         self.log(logstr, True)
@@ -304,17 +331,30 @@ class TPSTestRunner(object):
 
         return resultdata
 
+    def update_preferences(self):
+        self.preferences = self.default_preferences.copy()
+
+        if self.mobile:
+            self.preferences.update({'services.sync.client.type' : 'mobile'})
+
+        # Set a dummy username to force the correct authentication type. For the
+        # old sync, the username is not allowed to contain a '@'.
+        dummy = {'fx_account': 'dummy@somewhere', 'sync_account': 'dummy'}
+        auth_type = self.config.get('auth_type', 'fx_account')
+        self.preferences.update({'services.sync.username': dummy[auth_type]})
+
+        if self.debug:
+            self.preferences.update(self.debug_preferences)
+
     def run_tests(self):
         # delete the logfile if it already exists
         if os.access(self.logfile, os.F_OK):
             os.remove(self.logfile)
 
         # Make a copy of the default env variables and preferences, and update
-        # them for mobile settings if needed.
+        # them for custom settings
         self.env = self.default_env.copy()
-        self.preferences = self.default_preferences.copy()
-        if self.mobile:
-            self.preferences.update({'services.sync.client.type' : 'mobile'})
+        self.update_preferences()
 
         # Acquire a lock to make sure no other threads are running tests
         # at the same time.
@@ -367,22 +407,13 @@ class TPSTestRunner(object):
 
     def run_test_group(self):
         self.results = []
-        self.extensions = []
-
-        # set the OS we're running on
-        os_string = platform.uname()[2] + " " + platform.uname()[3]
-        if os_string.find("Darwin") > -1:
-            os_string = "Mac OS X " + platform.mac_ver()[0]
-        if platform.uname()[0].find("Linux") > -1:
-            os_string = "Linux " + platform.uname()[5]
-        if platform.uname()[0].find("Win") > -1:
-            os_string = "Windows " + platform.uname()[3]
 
         # reset number of passed/failed tests
         self.numpassed = 0
         self.numfailed = 0
 
         # build our tps.xpi extension
+        self.extensions = []
         self.extensions.append(os.path.join(self.extensionDir, 'tps'))
         self.extensions.append(os.path.join(self.extensionDir, "mozmill"))
 
@@ -422,7 +453,7 @@ class TPSTestRunner(object):
 
         # generate the postdata we'll use to post the results to the db
         self.postdata = { 'tests': self.results,
-                          'os':os_string,
+                          'os': '%s %sbit' % (mozinfo.version, mozinfo.bits),
                           'testtype': 'crossweave',
                           'productversion': self.productversion,
                           'addonversion': self.addonversion,

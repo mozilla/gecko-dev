@@ -11,7 +11,7 @@
 #include "nsSVGString.h"
 
 nsresult NS_NewSVGFEOffsetElement(nsIContent **aResult,
-                                  already_AddRefed<nsINodeInfo> aNodeInfo);
+                                  already_AddRefed<nsINodeInfo>&& aNodeInfo);
 
 namespace mozilla {
 namespace dom {
@@ -21,14 +21,13 @@ typedef nsSVGFE SVGFEOffsetElementBase;
 class SVGFEOffsetElement : public SVGFEOffsetElementBase
 {
   friend nsresult (::NS_NewSVGFEOffsetElement(nsIContent **aResult,
-                                              already_AddRefed<nsINodeInfo> aNodeInfo));
+                                              already_AddRefed<nsINodeInfo>&& aNodeInfo));
 protected:
-  SVGFEOffsetElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+  SVGFEOffsetElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
     : SVGFEOffsetElementBase(aNodeInfo)
   {
   }
-  virtual JSObject* WrapNode(JSContext* aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext* aCx) MOZ_OVERRIDE;
 
 public:
   virtual FilterPrimitiveDescription

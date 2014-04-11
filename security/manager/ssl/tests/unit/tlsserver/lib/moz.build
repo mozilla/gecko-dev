@@ -9,4 +9,9 @@ UNIFIED_SOURCES += [
     'TLSServer.cpp',
 ]
 
+LOCAL_INCLUDES += [
+    '../../../../../../pkix/include',
+    '../../../../../../pkix/test/lib',
+]
+
 LIBRARY_NAME = 'tlsserver'

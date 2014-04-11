@@ -70,7 +70,7 @@
 #include "certdb.h"
 #include "secmod.h"
 #include "ScopedNSSTypes.h"
-#include "insanity/pkixtypes.h"
+#include "pkix/pkixtypes.h"
 
 #include "ssl.h" // For SSL_ClearSessionCache
 
@@ -167,11 +167,11 @@ typedef struct nsKeyPairInfoStr {
 //to the nsCryptoRunnable event.
 class nsCryptoRunArgs : public nsISupports {
 public:
-  nsCryptoRunArgs();
+  nsCryptoRunArgs(JSContext *aCx);
   virtual ~nsCryptoRunArgs();
   nsCOMPtr<nsISupports> m_kungFuDeathGrip;
   JSContext *m_cx;
-  JSObject  *m_scope;
+  JS::PersistentRooted<JSObject*> m_scope;
   nsCOMPtr<nsIPrincipal> m_principals;
   nsXPIDLCString m_jsCallback;
   NS_DECL_ISUPPORTS
@@ -1042,7 +1042,7 @@ nsSetEscrowAuthority(CRMFCertRequest *certReq, nsKeyPairInfo *keyInfo,
       CRMF_CertRequestIsControlPresent(certReq, crmfPKIArchiveOptionsControl)){
     return NS_ERROR_FAILURE;
   }
-  insanity::pkix::ScopedCERTCertificate cert(wrappingCert->GetCert());
+  mozilla::pkix::ScopedCERTCertificate cert(wrappingCert->GetCert());
   if (!cert)
     return NS_ERROR_FAILURE;
 
@@ -1838,7 +1838,7 @@ nsCreateReqFromKeyPairs(nsKeyPairInfo *keyids, int32_t numRequests,
   return retString;
 loser:
   nsFreeCertReqMessages(certReqMsgs,numRequests);
-  return nullptr;;
+  return nullptr;
 }
 
 static nsISupports *
@@ -1942,7 +1942,7 @@ nsCrypto::GenerateCRMFRequest(JSContext* aContext,
       aRv.Throw(NS_ERROR_FAILURE);
       return nullptr;
     }
-    insanity::pkix::ScopedCERTCertificate cert(
+    mozilla::pkix::ScopedCERTCertificate cert(
       CERT_NewTempCertificate(CERT_GetDefaultCertDB(),
                               &certDer, nullptr, false, true));
     if (!cert) {
@@ -2024,6 +2024,7 @@ nsCrypto::GenerateCRMFRequest(JSContext* aContext,
   }
   CRMFObject* newObject = new CRMFObject();
   newObject->SetCRMFRequest(encodedRequest);
+  PORT_Free(encodedRequest);
   nsFreeKeyPairInfo(keyids, numRequests);
 
   // Post an event on the UI queue so that the JS gets called after
@@ -2054,9 +2055,8 @@ nsCrypto::GenerateCRMFRequest(JSContext* aContext,
     return nullptr;
   }
 
-  nsCryptoRunArgs *args = new nsCryptoRunArgs();
+  nsCryptoRunArgs *args = new nsCryptoRunArgs(aContext);
 
-  args->m_cx         = aContext;
   args->m_kungFuDeathGrip = GetISupportsFromContext(aContext);
   args->m_scope      = JS_GetParent(script_obj);
   if (!aJsCallback.IsVoid()) {
@@ -2169,11 +2169,9 @@ nsP12Runnable::Run()
   return NS_OK;
 }
 
-nsCryptoRunArgs::nsCryptoRunArgs() 
-{
-}
-nsCryptoRunArgs::~nsCryptoRunArgs() {}
+nsCryptoRunArgs::nsCryptoRunArgs(JSContext *cx) : m_cx(cx), m_scope(cx) {}
 
+nsCryptoRunArgs::~nsCryptoRunArgs() {}
 
 nsCryptoRunnable::nsCryptoRunnable(nsCryptoRunArgs *args)
 {
@@ -2181,18 +2179,11 @@ nsCryptoRunnable::nsCryptoRunnable(nsCryptoRunArgs *args)
   NS_ASSERTION(args,"Passed nullptr to nsCryptoRunnable constructor.");
   m_args = args;
   NS_IF_ADDREF(m_args);
-  JS_AddNamedObjectRoot(args->m_cx, &args->m_scope,"nsCryptoRunnable::mScope");
 }
 
 nsCryptoRunnable::~nsCryptoRunnable()
 {
   nsNSSShutDownPreventionLock locker;
-
-  {
-    JSAutoRequest ar(m_args->m_cx);
-    JS_RemoveObjectRoot(m_args->m_cx, &m_args->m_scope);
-  }
-
   NS_IF_RELEASE(m_args);
 }
 
@@ -2204,14 +2195,12 @@ nsCryptoRunnable::Run()
   nsNSSShutDownPreventionLock locker;
   AutoPushJSContext cx(m_args->m_cx);
   JSAutoRequest ar(cx);
-  JSAutoCompartment ac(cx, m_args->m_scope);
+  JS::Rooted<JSObject*> scope(cx, m_args->m_scope);
+  JSAutoCompartment ac(cx, scope);
 
   bool ok =
-    JS_EvaluateScriptForPrincipals(cx, m_args->m_scope,
-                                   nsJSPrincipals::get(m_args->m_principals),
-                                   m_args->m_jsCallback, 
-                                   strlen(m_args->m_jsCallback),
-                                   nullptr, 0, nullptr);
+    JS_EvaluateScript(cx, scope, m_args->m_jsCallback,
+                      strlen(m_args->m_jsCallback), nullptr, 0);
   return ok ? NS_OK : NS_ERROR_FAILURE;
 }
 
@@ -2223,7 +2212,7 @@ nsCertAlreadyExists(SECItem *derCert)
   CERTCertDBHandle *handle = CERT_GetDefaultCertDB();
   bool retVal = false;
 
-  insanity::pkix::ScopedCERTCertificate cert(
+  mozilla::pkix::ScopedCERTCertificate cert(
     CERT_FindCertByDERCert(handle, derCert));
   if (cert) {
     if (cert->isperm && !cert->nickname && !cert->emailAddr) {
@@ -2385,7 +2374,7 @@ nsCrypto::ImportUserCertificates(const nsAString& aNickname,
 
   //Import the root chain into the cert db.
  {
-  insanity::pkix::ScopedCERTCertList
+  mozilla::pkix::ScopedCERTCertList
     caPubs(CMMF_CertRepContentGetCAPubs(certRepContent));
   if (caPubs) {
     int32_t numCAs = nsCertListCount(caPubs.get());
@@ -2859,10 +2848,9 @@ CRMFObject::~CRMFObject()
 }
 
 JSObject*
-CRMFObject::WrapObject(JSContext *aCx, JS::Handle<JSObject*> aScope,
-                       bool* aTookOwnership)
+CRMFObject::WrapObject(JSContext *aCx, bool* aTookOwnership)
 {
-  return CRMFObjectBinding::Wrap(aCx, aScope, this, aTookOwnership);
+  return CRMFObjectBinding::Wrap(aCx, this, aTookOwnership);
 }
 
 void

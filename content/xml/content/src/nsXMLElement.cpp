@@ -12,7 +12,7 @@ using namespace mozilla::dom;
 
 nsresult
 NS_NewXMLElement(Element** aInstancePtrResult,
-                 already_AddRefed<nsINodeInfo> aNodeInfo)
+                 already_AddRefed<nsINodeInfo>&& aNodeInfo)
 {
   nsXMLElement* it = new nsXMLElement(aNodeInfo);
   NS_ADDREF(*aInstancePtrResult = it);
@@ -23,9 +23,9 @@ NS_IMPL_ISUPPORTS_INHERITED2(nsXMLElement, Element,
                              nsIDOMNode, nsIDOMElement)
 
 JSObject*
-nsXMLElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+nsXMLElement::WrapNode(JSContext *aCx)
 {
-  return ElementBinding::Wrap(aCx, aScope, this);
+  return ElementBinding::Wrap(aCx, this);
 }
 
 NS_IMPL_ELEMENT_CLONE(nsXMLElement)
@@ -84,7 +84,7 @@ nsXMLElement::NodeInfoChanged(nsINodeInfo* aOldNodeInfo)
     const nsAttrValue* attrVal =
       mAttrsAndChildren.GetAttr(aOldNodeInfo->GetIDAttributeAtom());
     if (attrVal) {
-      doc->RemoveFromIdTable(this, attrVal->GetAtomValue());
+      RemoveFromIdTable(attrVal->GetAtomValue());
     }
   }
   
@@ -104,7 +104,7 @@ nsXMLElement::NodeInfoChanged(nsINodeInfo* aOldNodeInfo)
       NS_ASSERTION(attrVal->Type() == nsAttrValue::eAtom,
                    "Should be atom by now");
       if (doc) {
-        doc->AddToIdTable(this, attrVal->GetAtomValue());
+        AddToIdTable(attrVal->GetAtomValue());
       }
     }
   }
@@ -132,29 +132,4 @@ nsXMLElement::ParseAttribute(int32_t aNamespaceID,
   }
 
   return false;
-}
-
-nsresult
-nsXMLElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
-                         nsIContent* aBindingParent,
-                         bool aCompileEventHandlers)
-{
-  nsresult rv = Element::BindToTree(aDocument, aParent,
-                                    aBindingParent,
-                                    aCompileEventHandlers);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (aDocument && HasID() && !GetBindingParent()) {
-    aDocument->AddToIdTable(this, DoGetID());
-  }
-
-  return NS_OK;
-}
-
-void
-nsXMLElement::UnbindFromTree(bool aDeep, bool aNullParent)
-{
-  RemoveFromIdTable();
-
-  return Element::UnbindFromTree(aDeep, aNullParent);
 }

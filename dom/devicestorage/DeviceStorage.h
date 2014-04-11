@@ -11,7 +11,7 @@
 #include "nsIFile.h"
 #include "nsIPrincipal.h"
 #include "nsIObserver.h"
-#include "nsDOMEventTargetHelper.h"
+#include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/dom/DOMRequest.h"
@@ -27,10 +27,13 @@ class DeviceStorageFile;
 class nsIInputStream;
 
 namespace mozilla {
+class EventListenerManager;
 namespace dom {
 class DeviceStorageEnumerationParameters;
 class DOMCursor;
 class DOMRequest;
+class Promise;
+class DeviceStorageFileSystem;
 } // namespace dom
 namespace ipc {
 class FileDescriptor;
@@ -101,6 +104,8 @@ public:
   void GetStatus(nsAString& aStatus);
   void GetStorageStatus(nsAString& aStatus);
   void DoFormat(nsAString& aStatus);
+  void DoMount(nsAString& aStatus);
+  void DoUnmount(nsAString& aStatus);
   static void GetRootDirectoryForType(const nsAString& aStorageType,
                                       const nsAString& aStorageName,
                                       nsIFile** aFile);
@@ -146,7 +151,7 @@ class FileUpdateDispatcher MOZ_FINAL
 };
 
 class nsDOMDeviceStorage MOZ_FINAL
-  : public nsDOMEventTargetHelper
+  : public mozilla::DOMEventTargetHelper
   , public nsIDOMDeviceStorage
   , public nsIObserver
 {
@@ -155,6 +160,8 @@ class nsDOMDeviceStorage MOZ_FINAL
     EnumerationParameters;
   typedef mozilla::dom::DOMCursor DOMCursor;
   typedef mozilla::dom::DOMRequest DOMRequest;
+  typedef mozilla::dom::Promise Promise;
+  typedef mozilla::dom::DeviceStorageFileSystem DeviceStorageFileSystem;
 public:
   typedef nsTArray<nsString> VolumeNameArray;
 
@@ -164,10 +171,10 @@ public:
   NS_DECL_NSIOBSERVER
   NS_DECL_NSIDOMEVENTTARGET
 
-  virtual nsEventListenerManager*
-  GetExistingListenerManager() const MOZ_OVERRIDE;
-  virtual nsEventListenerManager*
-  GetOrCreateListenerManager() MOZ_OVERRIDE;
+  virtual mozilla::EventListenerManager*
+    GetExistingListenerManager() const MOZ_OVERRIDE;
+  virtual mozilla::EventListenerManager*
+    GetOrCreateListenerManager() MOZ_OVERRIDE;
 
   virtual void
   AddEventListener(const nsAString& aType,
@@ -202,7 +209,7 @@ public:
     return GetOwner();
   }
   virtual JSObject*
-  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   IMPL_EVENT_HANDLER(change)
 
@@ -246,10 +253,15 @@ public:
   already_AddRefed<DOMRequest> Available(ErrorResult& aRv);
   already_AddRefed<DOMRequest> Format(ErrorResult& aRv);
   already_AddRefed<DOMRequest> StorageStatus(ErrorResult& aRv);
+  already_AddRefed<DOMRequest> Mount(ErrorResult& aRv);
+  already_AddRefed<DOMRequest> Unmount(ErrorResult& aRv);
 
   bool Default();
 
   // Uses XPCOM GetStorageName
+
+  already_AddRefed<Promise>
+  GetRoot();
 
   static void
   CreateDeviceStorageFor(nsPIDOMWindow* aWin,
@@ -328,6 +340,8 @@ private:
       DEVICE_STORAGE_TYPE_SHARED,
       DEVICE_STORAGE_TYPE_EXTERNAL
   };
+
+  nsRefPtr<DeviceStorageFileSystem> mFileSystem;
 };
 
 #endif

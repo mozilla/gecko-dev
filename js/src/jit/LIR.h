@@ -876,6 +876,45 @@ class LCallInstructionHelper : public LInstructionHelper<Defs, Operands, Temps>
     }
 };
 
+class LRecoverInfo : public TempObject
+{
+  public:
+    typedef Vector<MResumePoint *, 2, IonAllocPolicy> Instructions;
+
+  private:
+    // List of instructions needed to recover the stack frames.
+    // Outer frames are stored before inner frames.
+    Instructions instructions_;
+
+    // Cached offset where this resume point is encoded.
+    RecoverOffset recoverOffset_;
+
+    LRecoverInfo(TempAllocator &alloc);
+    bool init(MResumePoint *mir);
+
+  public:
+    static LRecoverInfo *New(MIRGenerator *gen, MResumePoint *mir);
+
+    // Resume point of the inner most function.
+    MResumePoint *mir() const {
+        return instructions_.back();
+    }
+    RecoverOffset recoverOffset() const {
+        return recoverOffset_;
+    }
+    void setRecoverOffset(RecoverOffset offset) {
+        JS_ASSERT(recoverOffset_ == INVALID_RECOVER_OFFSET);
+        recoverOffset_ = offset;
+    }
+
+    MResumePoint **begin() {
+        return instructions_.begin();
+    }
+    MResumePoint **end() {
+        return instructions_.end();
+    }
+};
+
 // An LSnapshot is the reflection of an MResumePoint in LIR. Unlike MResumePoints,
 // they cannot be shared, as they are filled in by the register allocator in
 // order to capture the precise low-level stack state in between an
@@ -886,16 +925,16 @@ class LSnapshot : public TempObject
   private:
     uint32_t numSlots_;
     LAllocation *slots_;
-    MResumePoint *mir_;
+    LRecoverInfo *recoverInfo_;
     SnapshotOffset snapshotOffset_;
     BailoutId bailoutId_;
     BailoutKind bailoutKind_;
 
-    LSnapshot(MResumePoint *mir, BailoutKind kind);
+    LSnapshot(LRecoverInfo *recover, BailoutKind kind);
     bool init(MIRGenerator *gen);
 
   public:
-    static LSnapshot *New(MIRGenerator *gen, MResumePoint *snapshot, BailoutKind kind);
+    static LSnapshot *New(MIRGenerator *gen, LRecoverInfo *recover, BailoutKind kind);
 
     size_t numEntries() const {
         return numSlots_;
@@ -923,8 +962,11 @@ class LSnapshot : public TempObject
         JS_ASSERT(i < numSlots_);
         slots_[i] = alloc;
     }
+    LRecoverInfo *recoverInfo() const {
+        return recoverInfo_;
+    }
     MResumePoint *mir() const {
-        return mir_;
+        return recoverInfo()->mir();
     }
     SnapshotOffset snapshotOffset() const {
         return snapshotOffset_;
@@ -987,9 +1029,9 @@ class LSafepoint : public TempObject
     GeneralRegisterSet gcRegs_;
 
 #ifdef CHECK_OSIPOINT_REGISTERS
-    // Temp regs of the current instruction. This set is never written to the
-    // safepoint; it's only used by assertions during compilation.
-    RegisterSet tempRegs_;
+    // Clobbered regs of the current instruction. This set is never written to
+    // the safepoint; it's only used by assertions during compilation.
+    RegisterSet clobberedRegs_;
 #endif
 
     // Offset to a position in the safepoint stream, or
@@ -1052,12 +1094,12 @@ class LSafepoint : public TempObject
         return liveRegs_;
     }
 #ifdef CHECK_OSIPOINT_REGISTERS
-    void addTempRegister(AnyRegister reg) {
-        tempRegs_.addUnchecked(reg);
+    void addClobberedRegister(AnyRegister reg) {
+        clobberedRegs_.addUnchecked(reg);
         assertInvariants();
     }
-    const RegisterSet &tempRegs() const {
-        return tempRegs_;
+    const RegisterSet &clobberedRegs() const {
+        return clobberedRegs_;
     }
 #endif
     void addGcRegister(Register reg) {
@@ -1369,8 +1411,22 @@ public:
 
 class LIRGraph
 {
+    struct ValueHasher
+    {
+        typedef Value Lookup;
+        static HashNumber hash(const Value &v) {
+            return HashNumber(v.asRawBits());
+        }
+        static bool match(const Value &lhs, const Value &rhs) {
+            return lhs == rhs;
+        }
+    };
+
+
     Vector<LBlock *, 16, IonAllocPolicy> blocks_;
     Vector<Value, 0, IonAllocPolicy> constantPool_;
+    typedef HashMap<Value, uint32_t, ValueHasher, IonAllocPolicy> ConstantPoolMap;
+    ConstantPoolMap constantPoolMap_;
     Vector<LInstruction *, 0, IonAllocPolicy> safepoints_;
     Vector<LInstruction *, 0, IonAllocPolicy> nonCallSafepoints_;
     uint32_t numVirtualRegisters_;
@@ -1392,6 +1448,9 @@ class LIRGraph
   public:
     LIRGraph(MIRGraph *mir);
 
+    bool init() {
+        return constantPoolMap_.init();
+    }
     MIRGraph &mir() const {
         return mir_;
     }
@@ -1460,9 +1519,6 @@ class LIRGraph
     Value *constantPool() {
         return &constantPool_[0];
     }
-    const Value &getConstant(size_t index) const {
-        return constantPool_[index];
-    }
     void setEntrySnapshot(LSnapshot *snapshot) {
         JS_ASSERT(!entrySnapshot_);
         JS_ASSERT(snapshot->bailoutKind() == Bailout_Normal);
@@ -1524,21 +1580,6 @@ LAllocation::toRegister() const
         visitor->setInstruction(this);                                      \
         return visitor->visit##opcode(this);                                \
     }
-
-#if defined(JS_NUNBOX32)
-# define BOX_OUTPUT_ACCESSORS()                                             \
-    const LDefinition *outputType() {                                       \
-        return getDef(TYPE_INDEX);                                          \
-    }                                                                       \
-    const LDefinition *outputPayload() {                                    \
-        return getDef(PAYLOAD_INDEX);                                       \
-    }
-#elif defined(JS_PUNBOX64)
-# define BOX_OUTPUT_ACCESSORS()                                             \
-    const LDefinition *outputValue() {                                      \
-        return getDef(0);                                                   \
-    }
-#endif
 
 #include "jit/LIR-Common.h"
 #if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)

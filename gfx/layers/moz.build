@@ -105,7 +105,10 @@ EXPORTS.mozilla.layers += [
     'client/CompositableClient.h',
     'client/ContentClient.h',
     'client/ImageClient.h',
+    'client/SimpleTextureClientPool.h',
+    'client/SimpleTiledContentClient.h',
     'client/TextureClient.h',
+    'client/TextureClientPool.h',
     'client/TiledContentClient.h',
     'composite/APZCTreeManager.h',
     'composite/AsyncCompositionManager.h',
@@ -199,6 +202,7 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
         'opengl/GrallocTextureClient.cpp',
         'opengl/GrallocTextureHost.cpp',
     ]
+    LOCAL_INCLUDES += ['/widget/gonk']
     SOURCES += [
         'ipc/ShadowLayerUtilsGralloc.cpp',
     ]
@@ -233,7 +237,10 @@ UNIFIED_SOURCES += [
     'client/CompositableClient.cpp',
     'client/ContentClient.cpp',
     'client/ImageClient.cpp',
+    'client/SimpleTextureClientPool.cpp',
+    'client/SimpleTiledContentClient.cpp',
     'client/TextureClient.cpp',
+    'client/TextureClientPool.cpp',
     'client/TiledContentClient.cpp',
     'composite/APZCTreeManager.cpp',
     'composite/AsyncCompositionManager.cpp',
@@ -245,6 +252,7 @@ UNIFIED_SOURCES += [
     'composite/ImageHost.cpp',
     'composite/ImageLayerComposite.cpp',
     'composite/LayerManagerComposite.cpp',
+    'composite/TextRenderer.cpp',
     'composite/TextureHost.cpp',
     'composite/ThebesLayerComposite.cpp',
     'composite/TiledContentHost.cpp',
@@ -328,10 +336,6 @@ include('/ipc/chromium/chromium-config.mozbuild')
 
 FINAL_LIBRARY = 'thebes'
 
-LOCAL_INCLUDES += [
-    '/dom/events',
-]
-
 if CONFIG['MOZ_DEBUG']:
     DEFINES['D3D_DEBUG_INFO'] = True
 
@@ -340,4 +344,13 @@ if CONFIG['MOZ_ENABLE_D3D10_LAYER']:
 
 GENERATED_FILES = [
     'PremultiplyTables.h',
+]
+
+CXXFLAGS += [
+    '-I%s/%s' % (CONFIG['ANDROID_SOURCE'], d) for d in [
+        'frameworks/base/include/media/stagefright',
+        'frameworks/base/include/media/stagefright/openmax',
+        'frameworks/av/include/media/stagefright',
+        'frameworks/native/include/media/openmax',
+    ]
 ]

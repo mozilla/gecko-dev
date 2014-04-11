@@ -58,6 +58,7 @@ pref("apz.min_skate_speed", "10.0");
 // 0 = free, 1 = standard, 2 = sticky
 pref("apz.axis_lock_mode", 2);
 pref("apz.cross_slide.enabled", true);
+pref("apz.subframe.enabled", true);
 
 // Enable Microsoft TSF support by default for imes.
 pref("intl.tsf.enable", true);
@@ -112,28 +113,28 @@ pref("toolkit.zoomManager.zoomValues", "1");
 // Device pixel to CSS px ratio, in percent. Set to -1 to calculate based on display density.
 pref("browser.viewport.scaleRatio", -1);
 
-/* use long press to display a context menu */
+// use long press to display a context menu
 pref("ui.click_hold_context_menus", false);
 
-/* offline cache prefs */
+// offline cache prefs
 pref("browser.offline-apps.notify", true);
 
-/* protocol warning prefs */
+// protocol warning prefs
 pref("network.protocol-handler.warn-external.tel", false);
 pref("network.protocol-handler.warn-external.mailto", false);
 pref("network.protocol-handler.warn-external.vnd.youtube", false);
 pref("network.protocol-handler.warn-external.ms-windows-store", false);
 pref("network.protocol-handler.external.ms-windows-store", true);
 
+/* startui prefs */
 // display the overlay nav buttons
 pref("browser.display.overlaynavbuttons", true);
-
-/* history max results display */
-pref("browser.display.history.maxresults", 100);
-
-/* max items per section of the startui */
-pref("browser.display.startUI.maxresults", 16);
-
+// max number of top site tiles to display in the startui
+pref("browser.display.startUI.topsites.maxresults", 8);
+// max items for the bookmarks compartment in the startui
+pref("browser.display.startUI.bookmarks.maxresults", 16);
+// max items for the history compartment in the startui
+pref("browser.display.startUI.history.maxresults", 16);
 // Number of times to display firstrun instructions on new tab page
 pref("browser.firstrun.count", 3);
 // Has the content first run been dismissed
@@ -145,7 +146,7 @@ pref("browser.firstrun-content.dismissed", false);
 // 2 and other values, nothing
 pref("browser.backspace_action", 0);
 
-/* session history */
+// session history
 pref("browser.sessionhistory.max_entries", 50);
 
 // On startup, don't automatically restore tabs
@@ -551,7 +552,7 @@ pref("services.sync.prefs.sync.signon.rememberSignons", true);
 #endif
 
 // threshold where a tap becomes a drag, in 1/240" reference pixels
-// The names of the preferences are to be in sync with nsEventStateManager.cpp
+// The names of the preferences are to be in sync with EventStateManager.cpp
 pref("ui.dragThresholdX", 50);
 pref("ui.dragThresholdY", 50);
 
@@ -641,13 +642,6 @@ pref("browser.safebrowsing.malware.reportURL", "https://safebrowsing.google.com/
 pref("browser.firstrun.show.localepicker", false);
 
 // True if you always want dump() to work
-//
-// On Android, you also need to do the following for the output
-// to show up in logcat:
-//
-// $ adb shell stop
-// $ adb shell setprop log.redirect-stdio true
-// $ adb shell start
 pref("javascript.options.showInConsole", true);
 pref("browser.dom.window.dump.enabled", true);
 

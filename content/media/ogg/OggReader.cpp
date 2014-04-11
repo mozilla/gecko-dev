@@ -1315,9 +1315,9 @@ nsresult OggReader::SeekInUnbuffered(int64_t aTarget,
 }
 
 nsresult OggReader::Seek(int64_t aTarget,
-                           int64_t aStartTime,
-                           int64_t aEndTime,
-                           int64_t aCurrentTime)
+                         int64_t aStartTime,
+                         int64_t aEndTime,
+                         int64_t aCurrentTime)
 {
   NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
   if (mIsChained)
@@ -1379,10 +1379,29 @@ nsresult OggReader::Seek(int64_t aTarget,
     }
   }
 
-  // The decode position must now be either close to the seek target, or
-  // we've seeked to before the keyframe before the seek target. Decode
-  // forward to the seek target frame.
-  return DecodeToTarget(aTarget);
+  if (HasVideo()) {
+    // Decode forwards until we find the next keyframe. This is required,
+    // as although the seek should finish on a page containing a keyframe,
+    // there may be non-keyframes in the page before the keyframe.
+    // When doing fastSeek we display the first frame after the seek, so
+    // we need to advance the decode to the keyframe otherwise we'll get
+    // visual artifacts in the first frame output after the seek.
+    bool skip = true;
+    while (DecodeVideoFrame(skip, 0) && skip) {
+      ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+      if (mDecoder->IsShutdown()) {
+        return NS_ERROR_FAILURE;
+      }
+    }
+
+#ifdef DEBUG
+    const VideoData* v = mVideoQueue.PeekFront();
+    if (!v || !v->mKeyframe) {
+      NS_WARNING("Ogg seek didn't end up before a key frame!");
+    }
+#endif
+  }
+  return NS_OK;
 }
 
 // Reads a page from the media resource.

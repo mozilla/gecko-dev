@@ -26,8 +26,6 @@ class DocAccessible;
 class Notification
 {
 public:
-  virtual ~Notification() { }
-
   NS_INLINE_DECL_REFCOUNTING(Notification)
 
   /**
@@ -37,6 +35,11 @@ public:
 
 protected:
   Notification() { }
+
+  /**
+   * Protected destructor, to discourage deletion outside of Release():
+   */
+  virtual ~Notification() { }
 
 private:
   Notification(const Notification&);
@@ -89,8 +92,8 @@ public:
   NotificationController(DocAccessible* aDocument, nsIPresShell* aPresShell);
   virtual ~NotificationController();
 
-  NS_IMETHOD_(nsrefcnt) AddRef(void);
-  NS_IMETHOD_(nsrefcnt) Release(void);
+  NS_IMETHOD_(MozExternalRefCountType) AddRef(void);
+  NS_IMETHOD_(MozExternalRefCountType) Release(void);
 
   NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(NotificationController)
 

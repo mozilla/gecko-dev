@@ -11,12 +11,12 @@
 #include "js/RootingAPI.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/dom/MediaSourceBinding.h"
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionNoteChild.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsDOMEventTargetHelper.h"
 #include "nsID.h"
 #include "nsISupports.h"
 #include "nscore.h"
@@ -41,7 +41,7 @@ template <typename T> class Optional;
   { 0x3839d699, 0x22c5, 0x439f, \
   { 0x94, 0xca, 0x0e, 0x0b, 0x26, 0xf9, 0xca, 0xbf } }
 
-class MediaSource MOZ_FINAL : public nsDOMEventTargetHelper
+class MediaSource MOZ_FINAL : public DOMEventTargetHelper
 {
 public:
   /** WebIDL Methods. */
@@ -60,17 +60,16 @@ public:
   void RemoveSourceBuffer(SourceBuffer& aSourceBuffer, ErrorResult& aRv);
 
   void EndOfStream(const Optional<MediaSourceEndOfStreamError>& aError, ErrorResult& aRv);
-  static bool IsTypeSupported(const GlobalObject& aGlobal,
-                              const nsAString& aType);
+  static bool IsTypeSupported(const GlobalObject&, const nsAString& aType);
   /** End WebIDL Methods. */
 
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(MediaSource, nsDOMEventTargetHelper)
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(MediaSource, DOMEventTargetHelper)
   NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_DOM_MEDIASOURCE_IMPLEMENTATION_IID)
 
   nsPIDOMWindow* GetParentObject() const;
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   // Attach this MediaSource to Decoder aDecoder.  Returns false if already attached.
   bool Attach(MediaSourceDecoder* aDecoder);
@@ -98,9 +97,6 @@ private:
   void QueueAsyncSimpleEvent(const char* aName);
 
   void DurationChange(double aNewDuration, ErrorResult& aRv);
-  void EndOfStreamInternal(const Optional<MediaSourceEndOfStreamError>& aError, ErrorResult& aRv);
-
-  static bool IsTypeSupportedInternal(const nsAString& aType, ErrorResult& aRv);
 
   double mDuration;
 

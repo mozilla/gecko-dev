@@ -5,7 +5,6 @@
 
 #include "nsXULTooltipListener.h"
 
-#include "nsDOMEvent.h"
 #include "nsIDOMMouseEvent.h"
 #include "nsIDOMXULDocument.h"
 #include "nsIDOMXULElement.h"
@@ -26,10 +25,10 @@
 #endif
 #include "nsIRootBox.h"
 #include "nsIBoxObject.h"
-#include "nsEventDispatcher.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/Event.h" // for nsIDOMEvent::InternalDOMEvent()
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -523,7 +522,7 @@ nsXULTooltipListener::HideTooltip()
   if (currentTooltip) {
     nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
     if (pm)
-      pm->HidePopup(currentTooltip, false, false, false);
+      pm->HidePopup(currentTooltip, false, false, false, false);
   }
 #endif
 

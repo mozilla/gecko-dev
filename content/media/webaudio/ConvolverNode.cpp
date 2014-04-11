@@ -101,10 +101,10 @@ public:
                                   mNormalize, mSampleRate);
   }
 
-  virtual void ProduceAudioBlock(AudioNodeStream* aStream,
-                                 const AudioChunk& aInput,
-                                 AudioChunk* aOutput,
-                                 bool* aFinished)
+  virtual void ProcessBlock(AudioNodeStream* aStream,
+                            const AudioChunk& aInput,
+                            AudioChunk* aOutput,
+                            bool* aFinished)
   {
     if (!mReverb) {
       *aOutput = aInput;
@@ -176,9 +176,9 @@ ConvolverNode::ConvolverNode(AudioContext* aContext)
 }
 
 JSObject*
-ConvolverNode::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+ConvolverNode::WrapObject(JSContext* aCx)
 {
-  return ConvolverNodeBinding::Wrap(aCx, aScope, this);
+  return ConvolverNodeBinding::Wrap(aCx, this);
 }
 
 void

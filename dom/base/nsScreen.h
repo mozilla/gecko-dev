@@ -7,17 +7,17 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/ScreenOrientation.h"
+#include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/HalScreenConfiguration.h"
 #include "nsIDOMScreen.h"
 #include "nsCOMPtr.h"
-#include "nsDOMEventTargetHelper.h"
 #include "nsRect.h"
 
 class nsDeviceContext;
 
 // Script "screen" object
-class nsScreen : public nsDOMEventTargetHelper
+class nsScreen : public mozilla::DOMEventTargetHelper
                , public nsIDOMScreen
                , public mozilla::hal::ScreenConfigurationObserver
 {
@@ -27,7 +27,7 @@ public:
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIDOMSCREEN
-  NS_REALLY_FORWARD_NSIDOMEVENTTARGET(nsDOMEventTargetHelper)
+  NS_REALLY_FORWARD_NSIDOMEVENTTARGET(mozilla::DOMEventTargetHelper)
 
   nsPIDOMWindow* GetParentObject() const
   {
@@ -122,8 +122,7 @@ public:
   bool MozLockOrientation(const mozilla::dom::Sequence<nsString>& aOrientations, ErrorResult& aRv);
   void MozUnlockOrientation();
 
-  virtual JSObject* WrapObject(JSContext* aCx,
-                               JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   void Notify(const mozilla::hal::ScreenConfiguration& aConfiguration);
 

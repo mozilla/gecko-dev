@@ -23,6 +23,7 @@
 #include "nsStyleSet.h"
 #include "nsCSSStyleSheet.h"
 #include "nsIFrame.h"
+#include "nsIWritablePropertyBag2.h"
 #include "nsSubDocumentFrame.h"
 
 #include "nsILinkHandler.h"
@@ -110,11 +111,11 @@ static const char sPrintOptionsContractID[] =
 #include "nsIDOMEventListener.h"
 #include "nsISelectionController.h"
 
+#include "mozilla/EventDispatcher.h"
 #include "nsISHEntry.h"
 #include "nsISHistory.h"
 #include "nsISHistoryInternal.h"
 #include "nsIWebNavigation.h"
-#include "nsEventDispatcher.h"
 #include "nsXMLHttpRequest.h"
 
 //paint forcing
@@ -683,7 +684,7 @@ nsDocumentViewer::InitPresentationStuff(bool aDoInitialReflow)
   mViewManager->SetWindowDimensions(width, height);
   mPresContext->SetTextZoom(mTextZoom);
   mPresContext->SetFullZoom(mPageZoom);
-  mPresContext->SetMinFontSize(mMinFontSize);
+  mPresContext->SetBaseMinFontSize(mMinFontSize);
 
   p2a = mPresContext->AppUnitsPerDevPixel();  // zoom may have changed it
   width = p2a * mBounds.width;
@@ -999,8 +1000,7 @@ nsDocumentViewer::LoadComplete(nsresult aStatus)
                           "content-document-loaded",
                           nullptr);
 
-      nsEventDispatcher::Dispatch(window, mPresContext, &event, nullptr,
-                                  &status);
+      EventDispatcher::Dispatch(window, mPresContext, &event, nullptr, &status);
       if (timing) {
         timing->NotifyLoadEventEnd();
       }
@@ -1141,8 +1141,8 @@ nsDocumentViewer::PermitUnloadInternal(bool aCallerClosesWindow,
     utils->DisableDialogs();
 
     mInPermitUnload = true;
-    nsEventDispatcher::DispatchDOMEvent(window, nullptr, event, mPresContext,
-                                        nullptr);
+    EventDispatcher::DispatchDOMEvent(window, nullptr, event, mPresContext,
+                                      nullptr);
     mInPermitUnload = false;
     if (dialogsWereEnabled) {
       utils->EnableDialogs();
@@ -1159,6 +1159,14 @@ nsDocumentViewer::PermitUnloadInternal(bool aCallerClosesWindow,
     nsCOMPtr<nsIPrompt> prompt = do_GetInterface(docShell);
 
     if (prompt) {
+      nsCOMPtr<nsIWritablePropertyBag2> promptBag = do_QueryInterface(prompt);
+      if (promptBag) {
+        bool isTabModalPromptAllowed;
+        GetIsTabModalPromptAllowed(&isTabModalPromptAllowed);
+        promptBag->SetPropertyAsBool(NS_LITERAL_STRING("allowTabModal"),
+                                     isTabModalPromptAllowed);
+      }
+
       nsXPIDLString title, message, stayLabel, leaveLabel;
       rv  = nsContentUtils::GetLocalizedString(nsContentUtils::eDOM_PROPERTIES,
                                                "OnBeforeUnloadTitle",
@@ -1201,7 +1209,19 @@ nsDocumentViewer::PermitUnloadInternal(bool aCallerClosesWindow,
                              leaveLabel, stayLabel, nullptr, nullptr,
                              &dummy, &buttonPressed);
       mInPermitUnloadPrompt = false;
-      NS_ENSURE_SUCCESS(rv, rv);
+
+      // If the prompt aborted, we tell our consumer that it is not allowed
+      // to unload the page. One reason that prompts abort is that the user
+      // performed some action that caused the page to unload while our prompt
+      // was active. In those cases we don't want our consumer to also unload
+      // the page.
+      //
+      // XXX: Are there other cases where prompts can abort? Is it ok to
+      //      prevent unloading the page in those cases?
+      if (NS_FAILED(rv)) {
+        *aPermitUnload = false;
+        return NS_OK;
+      }
 
       // Button 0 == leave, button 1 == stay
       *aPermitUnload = (buttonPressed == 0);
@@ -1245,6 +1265,13 @@ NS_IMETHODIMP
 nsDocumentViewer::GetBeforeUnloadFiring(bool* aInEvent)
 {
   *aInEvent = mInPermitUnload;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDocumentViewer::GetInPermitUnload(bool* aInEvent)
+{
+  *aInEvent = mInPermitUnloadPrompt;
   return NS_OK;
 }
 
@@ -1323,7 +1350,7 @@ nsDocumentViewer::PageHide(bool aIsUnload)
     // here.
     nsAutoPopupStatePusher popupStatePusher(openAbused, true);
 
-    nsEventDispatcher::Dispatch(window, mPresContext, &event, nullptr, &status);
+    EventDispatcher::Dispatch(window, mPresContext, &event, nullptr, &status);
   }
 
 #ifdef MOZ_XUL
@@ -2805,7 +2832,7 @@ SetExtResourceMinFontSize(nsIDocument* aDocument, void* aClosure)
   if (shell) {
     nsPresContext* ctxt = shell->GetPresContext();
     if (ctxt) {
-      ctxt->SetMinFontSize(NS_PTR_TO_INT32(aClosure));
+      ctxt->SetBaseMinFontSize(NS_PTR_TO_INT32(aClosure));
     }
   }
 
@@ -2897,7 +2924,7 @@ nsDocumentViewer::SetMinFontSize(int32_t aMinFontSize)
   // Now change our own min font
   nsPresContext* pc = GetPresContext();
   if (pc && aMinFontSize != mPresContext->MinFontSize(nullptr)) {
-    pc->SetMinFontSize(aMinFontSize);
+    pc->SetBaseMinFontSize(aMinFontSize);
   }
 
   // And do the external resources
@@ -2912,7 +2939,7 @@ nsDocumentViewer::GetMinFontSize(int32_t* aMinFontSize)
 {
   NS_ENSURE_ARG_POINTER(aMinFontSize);
   nsPresContext* pc = GetPresContext();
-  *aMinFontSize = pc ? pc->MinFontSize(nullptr) : 0;
+  *aMinFontSize = pc ? pc->BaseMinFontSize() : 0;
   return NS_OK;
 }
 
@@ -4050,8 +4077,7 @@ nsDocumentViewer::ShouldAttachToTopLevel()
 #if defined(XP_WIN) || defined(MOZ_WIDGET_GTK)
   // On windows, in the parent process we also attach, but just to
   // chrome items
-  nsWindowType winType;
-  mParentWidget->GetWindowType(winType);
+  nsWindowType winType = mParentWidget->WindowType();
   if ((winType == eWindowType_toplevel ||
        winType == eWindowType_dialog ||
        winType == eWindowType_invisible) &&
@@ -4315,7 +4341,7 @@ nsDocumentViewer::GetHistoryEntry(nsISHEntry **aHistoryEntry)
 NS_IMETHODIMP
 nsDocumentViewer::GetIsTabModalPromptAllowed(bool *aAllowed)
 {
-  *aAllowed = !(mInPermitUnload || mHidden);
+  *aAllowed = !mHidden;
   return NS_OK;
 }
 

@@ -16,12 +16,14 @@
 #include "nsPresContext.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/EventForwards.h"
+#include "mozilla/TextRange.h"
 
-class nsDispatchingCallback;
 class nsIEditor;
-class nsIMEStateManager;
 
 namespace mozilla {
+
+class EventDispatchingCallback;
+class IMEStateManager;
 
 /**
  * TextComposition represents a text composition.  This class stores the
@@ -31,7 +33,7 @@ namespace mozilla {
 
 class TextComposition MOZ_FINAL
 {
-  friend class ::nsIMEStateManager;
+  friend class IMEStateManager;
 
   NS_INLINE_DECL_REFCOUNTING(TextComposition)
 
@@ -39,11 +41,6 @@ public:
   TextComposition(nsPresContext* aPresContext,
                   nsINode* aNode,
                   WidgetGUIEvent* aEvent);
-
-  ~TextComposition()
-  {
-    // WARNING: mPresContext may be destroying, so, be careful if you touch it.
-  }
 
   bool Destroyed() const { return !mPresContext; }
   nsPresContext* GetPresContext() const { return mPresContext; }
@@ -57,6 +54,12 @@ public:
   // Note that mString and mLastData are different between dispatcing
   // compositionupdate and text event handled by focused editor.
   const nsString& String() const { return mString; }
+  // Returns the clauses and/or caret range of the composition string.
+  // This is modified at a call of EditorWillHandleTextEvent().
+  // This may return null if there is no clauses and caret.
+  // XXX We should return |const TextRangeArray*| here, but it causes compile
+  //     error due to inaccessible Release() method.
+  TextRangeArray* GetRanges() const { return mRanges; }
   // Returns true if the composition is started with synthesized event which
   // came from nsDOMWindowUtils.
   bool IsSynthesizedForTests() const { return mIsSynthesizedForTests; }
@@ -64,7 +67,7 @@ public:
   bool MatchesNativeContext(nsIWidget* aWidget) const;
 
   /**
-   * This is called when nsIMEStateManager stops managing the instance.
+   * This is called when IMEStateManager stops managing the instance.
    */
   void Destroy();
 
@@ -136,12 +139,22 @@ public:
   };
 
 private:
+  // Private destructor, to discourage deletion outside of Release():
+  ~TextComposition()
+  {
+    // WARNING: mPresContext may be destroying, so, be careful if you touch it.
+  }
+
   // This class holds nsPresContext weak.  This instance shouldn't block
   // destroying it.  When the presContext is being destroyed, it's notified to
-  // nsIMEStateManager::OnDestroyPresContext(), and then, it destroy
+  // IMEStateManager::OnDestroyPresContext(), and then, it destroy
   // this instance.
   nsPresContext* mPresContext;
   nsCOMPtr<nsINode> mNode;
+
+  // This is the clause and caret range information which is managed by
+  // the focused editor.  This may be null if there is no clauses or caret.
+  nsRefPtr<TextRangeArray> mRanges;
 
   // mNativeContext stores a opaque pointer.  This works as the "ID" for this
   // composition.  Don't access the instance, it may not be available.
@@ -207,7 +220,7 @@ private:
    */
   void DispatchEvent(WidgetGUIEvent* aEvent,
                      nsEventStatus* aStatus,
-                     nsDispatchingCallback* aCallBack);
+                     EventDispatchingCallback* aCallBack);
 
   /**
    * Calculate composition offset then notify composition update to widget
@@ -241,7 +254,7 @@ private:
    * DispatchCompositionEventRunnable() dispatches a composition or text event
    * to the content.  Be aware, if you use this method, nsPresShellEventCB
    * isn't used.  That means that nsIFrame::HandleEvent() is never called.
-   * WARNING: The instance which is managed by nsIMEStateManager may be
+   * WARNING: The instance which is managed by IMEStateManager may be
    *          destroyed by this method call.
    *
    * @param aEventMessage       Must be one of composition event or text event.
@@ -259,7 +272,7 @@ private:
  * Managing with array is enough because only one composition is typically
  * there.  Even if user switches native IME context, it's very rare that
  * second or more composition is started.
- * It's assumed that this is used by nsIMEStateManager for storing all active
+ * It's assumed that this is used by IMEStateManager for storing all active
  * compositions in the process.  If the instance is it, each TextComposition
  * in the array can be destroyed by calling some methods of itself.
  */

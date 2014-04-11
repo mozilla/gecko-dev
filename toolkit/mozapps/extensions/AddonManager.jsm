@@ -605,18 +605,29 @@ var AddonManagerInternal = {
       try {
         defaultProvidersEnabled = Services.prefs.getBoolPref(PREF_DEFAULT_PROVIDERS_ENABLED);
       } catch (e) {}
+      AddonManagerPrivate.recordSimpleMeasure("default_providers", defaultProvidersEnabled);
 
       // Ensure all default providers have had a chance to register themselves
       if (defaultProvidersEnabled) {
-        DEFAULT_PROVIDERS.forEach(function(url) {
+        for (let url of DEFAULT_PROVIDERS) {
           try {
-            Components.utils.import(url, {});
+            let scope = {};
+            Components.utils.import(url, scope);
+            // Sanity check - make sure the provider exports a symbol that
+            // has a 'startup' method
+            let syms = Object.keys(scope);
+            if ((syms.length < 1) ||
+                (typeof scope[syms[0]].startup != "function")) {
+              logger.warn("Provider " + url + " has no startup()");
+              AddonManagerPrivate.recordException("AMI", "provider " + url, "no startup()");
+            }
+            logger.debug("Loaded provider scope for " + url + ": " + Object.keys(scope).toSource());
           }
           catch (e) {
             AddonManagerPrivate.recordException("AMI", "provider " + url + " load failed", e);
             logger.error("Exception loading default provider \"" + url + "\"", e);
           }
-        });
+        };
       }
 
       // Load any providers registered in the category manager
@@ -772,6 +783,7 @@ var AddonManagerInternal = {
           provider[aMethod].apply(provider, aArgs);
       }
       catch (e) {
+        AddonManagerPrivate.recordException("AMI", "provider " + aMethod, e);
         logger.error("Exception calling provider " + aMethod, e);
       }
     }
@@ -1074,34 +1086,30 @@ var AddonManagerInternal = {
         // are up to date before checking for addon updates.
         AddonRepository.backgroundUpdateCheck(
                      ids, function BUC_backgroundUpdateCheckCallback() {
-          AddonManagerInternal.updateAddonRepositoryData(
-                                    function BUC_updateAddonCallback() {
+          pendingUpdates += aAddons.length;
+          aAddons.forEach(function BUC_forEachCallback(aAddon) {
+            if (aAddon.id == hotfixID) {
+              notifyComplete();
+              return;
+            }
 
-            pendingUpdates += aAddons.length;
-            aAddons.forEach(function BUC_forEachCallback(aAddon) {
-              if (aAddon.id == hotfixID) {
-                notifyComplete();
-                return;
-              }
+            // Check all add-ons for updates so that any compatibility updates will
+            // be applied
+            aAddon.findUpdates({
+              onUpdateAvailable: function BUC_onUpdateAvailable(aAddon, aInstall) {
+                // Start installing updates when the add-on can be updated and
+                // background updates should be applied.
+                if (aAddon.permissions & AddonManager.PERM_CAN_UPGRADE &&
+                    AddonManager.shouldAutoUpdate(aAddon)) {
+                  aInstall.install();
+                }
+              },
 
-              // Check all add-ons for updates so that any compatibility updates will
-              // be applied
-              aAddon.findUpdates({
-                onUpdateAvailable: function BUC_onUpdateAvailable(aAddon, aInstall) {
-                  // Start installing updates when the add-on can be updated and
-                  // background updates should be applied.
-                  if (aAddon.permissions & AddonManager.PERM_CAN_UPGRADE &&
-                      AddonManager.shouldAutoUpdate(aAddon)) {
-                    aInstall.install();
-                  }
-                },
-
-                onUpdateFinished: notifyComplete
-              }, AddonManager.UPDATE_WHEN_PERIODIC_UPDATE);
-            });
-
-            notifyComplete();
+              onUpdateFinished: notifyComplete
+            }, AddonManager.UPDATE_WHEN_PERIODIC_UPDATE);
           });
+
+          notifyComplete();
         });
       });
     }
@@ -1425,6 +1433,8 @@ var AddonManagerInternal = {
       },
       noMoreObjects: function updateAddonRepositoryData_noMoreObjects(aCaller) {
         safeCall(aCallback);
+        // only tests should care about this
+        Services.obs.notifyObservers(null, "TEST:addon-repository-data-updated", null);
       }
     });
   },
@@ -2319,7 +2329,25 @@ this.AddonManagerPrivate = {
     return {
       done: () => this.recordSimpleMeasure(aName, Date.now() - startTime)
     };
-  }
+  },
+
+  /**
+   * Helper to call update listeners when no update is available.
+   *
+   * This can be used as an implementation for Addon.findUpdates() when
+   * no update mechanism is available.
+   */
+  callNoUpdateListeners: function (addon, listener, reason, appVersion, platformVersion) {
+    if ("onNoCompatibilityUpdateAvailable" in listener) {
+      safeCall(listener.onNoCompatibilityUpdateAvailable.bind(listener), addon);
+    }
+    if ("onNoUpdateAvailable" in listener) {
+      safeCall(listener.onNoUpdateAvailable.bind(listener), addon);
+    }
+    if ("onUpdateFinished" in listener) {
+      safeCall(listener.onUpdateFinished.bind(listener), addon);
+    }
+  },
 };
 
 /**

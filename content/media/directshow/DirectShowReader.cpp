@@ -84,6 +84,11 @@ ParseMP3Headers(MP3FrameParser *aParser, MediaResource *aResource)
                                     MAX_READ_SIZE, &bytesRead);
     NS_ENSURE_SUCCESS(rv, rv);
 
+    if (!bytesRead) {
+      // End of stream.
+      return NS_ERROR_FAILURE;
+    }
+
     aParser->Parse(buffer, bytesRead, offset);
     offset += bytesRead;
   }
@@ -385,22 +390,7 @@ DirectShowReader::Seek(int64_t aTargetUs,
   hr = mControl->Run();
   NS_ENSURE_TRUE(SUCCEEDED(hr), NS_ERROR_FAILURE);
 
-  return DecodeToTarget(aTargetUs);
-}
-
-void
-DirectShowReader::OnDecodeThreadStart()
-{
-  MOZ_ASSERT(mDecoder->OnDecodeThread(), "Should be on decode thread.");
-  HRESULT hr = CoInitializeEx(0, COINIT_MULTITHREADED);
-  NS_ENSURE_TRUE_VOID(SUCCEEDED(hr));
-}
-
-void
-DirectShowReader::OnDecodeThreadFinish()
-{
-  NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
-  CoUninitialize();
+  return NS_OK;
 }
 
 void

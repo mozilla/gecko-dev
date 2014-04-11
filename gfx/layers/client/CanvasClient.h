@@ -50,7 +50,7 @@ public:
                                                        TextureFlags aFlags);
 
   CanvasClient(CompositableForwarder* aFwd, TextureFlags aFlags)
-    : CompositableClient(aFwd)
+    : CompositableClient(aFwd, aFlags)
   {
     mTextureInfo.mTextureFlags = aFlags;
   }
@@ -95,10 +95,6 @@ public:
     return CompositableClient::AddTextureClient(aTexture);
   }
 
-  virtual TemporaryRef<BufferTextureClient>
-  CreateBufferTextureClient(gfx::SurfaceFormat aFormat,
-                            TextureFlags aFlags = TEXTURE_FLAGS_DEFAULT) MOZ_OVERRIDE;
-
   virtual void OnDetach() MOZ_OVERRIDE
   {
     mBuffer = nullptr;
@@ -134,56 +130,6 @@ public:
 
 private:
   RefPtr<TextureClient> mBuffer;
-};
-
-class DeprecatedCanvasClient2D : public CanvasClient
-{
-public:
-  DeprecatedCanvasClient2D(CompositableForwarder* aLayerForwarder,
-                           TextureFlags aFlags);
-
-  TextureInfo GetTextureInfo() const MOZ_OVERRIDE
-  {
-    return mTextureInfo;
-  }
-
-  virtual void Update(gfx::IntSize aSize, ClientCanvasLayer* aLayer);
-  virtual void Updated() MOZ_OVERRIDE;
-
-  virtual void SetDescriptorFromReply(TextureIdentifier aTextureId,
-                                      const SurfaceDescriptor& aDescriptor) MOZ_OVERRIDE
-  {
-    mDeprecatedTextureClient->SetDescriptorFromReply(aDescriptor);
-  }
-
-private:
-  RefPtr<DeprecatedTextureClient> mDeprecatedTextureClient;
-};
-
-// Used for GL canvases where we don't need to do any readback, i.e., with a
-// GL backend.
-class DeprecatedCanvasClientSurfaceStream : public CanvasClient
-{
-public:
-  DeprecatedCanvasClientSurfaceStream(CompositableForwarder* aFwd,
-                                      TextureFlags aFlags);
-
-  TextureInfo GetTextureInfo() const MOZ_OVERRIDE
-  {
-    return mTextureInfo;
-  }
-
-  virtual void Update(gfx::IntSize aSize, ClientCanvasLayer* aLayer);
-  virtual void Updated() MOZ_OVERRIDE;
-
-  virtual void SetDescriptorFromReply(TextureIdentifier aTextureId,
-                                      const SurfaceDescriptor& aDescriptor) MOZ_OVERRIDE
-  {
-    mDeprecatedTextureClient->SetDescriptorFromReply(aDescriptor);
-  }
-
-private:
-  RefPtr<DeprecatedTextureClient> mDeprecatedTextureClient;
 };
 
 }

@@ -71,9 +71,9 @@ NS_INTERFACE_MAP_END
 // DOMSVGTransformList methods:
 
 JSObject*
-DOMSVGTransformList::WrapObject(JSContext *cx, JS::Handle<JSObject*> scope)
+DOMSVGTransformList::WrapObject(JSContext *cx)
 {
-  return mozilla::dom::SVGTransformListBinding::Wrap(cx, scope, this);
+  return mozilla::dom::SVGTransformListBinding::Wrap(cx, this);
 }
 
 //----------------------------------------------------------------------
@@ -342,7 +342,7 @@ DOMSVGTransformList::RemoveItem(uint32_t index, ErrorResult& error)
 already_AddRefed<SVGTransform>
 DOMSVGTransformList::CreateSVGTransformFromMatrix(dom::SVGMatrix& matrix)
 {
-  nsRefPtr<SVGTransform> result = new SVGTransform(matrix.Matrix());
+  nsRefPtr<SVGTransform> result = new SVGTransform(matrix.GetMatrix());
   return result.forget();
 }
 

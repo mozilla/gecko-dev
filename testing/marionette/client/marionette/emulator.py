@@ -225,6 +225,10 @@ class Emulator(object):
             self._get_telnet_response()
         return self._get_telnet_response(command)
 
+    def _run_shell(self, args):
+        args.insert(0, 'shell')
+        return self._run_adb(args).split('\r\n')
+
     def close(self):
         if self.is_running and self._emulator_launched:
             self.proc.kill()
@@ -344,7 +348,7 @@ waitFor(
         while online - original_online == set([]):
             time.sleep(1)
             if datetime.datetime.now() - now > datetime.timedelta(seconds=60):
-                raise Exception('timed out waiting for emulator to start')
+                raise TimeoutException('timed out waiting for emulator to start')
             online, offline = self._get_adb_devices()
         self.port = int(list(online - original_online)[0])
         self._emulator_launched = True

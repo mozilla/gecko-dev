@@ -14,6 +14,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -24,7 +25,6 @@ import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.Distribution;
 import org.mozilla.gecko.Distribution.DistributionDescriptor;
 import org.mozilla.gecko.EventDispatcher;
-import org.mozilla.gecko.GeckoApp;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.background.healthreport.EnvironmentBuilder;
@@ -90,6 +90,7 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
     private volatile HealthReportDatabaseStorage storage;
     private final ProfileInformationCache profileCache;
     private final EventDispatcher dispatcher;
+    private final SharedPreferences prefs;
 
     // We track previousSession to avoid order-of-initialization confusion. We
     // accept it in the constructor, and process it after init.
@@ -114,19 +115,12 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
     }
 
     /**
-     * Persist the opaque identifier for the current Firefox Health Report environment.
-     * This changes in certain circumstances; be sure to use the current value when recording data.
-     */
-    private void setHealthEnvironment(final int env) {
-        this.env = env;
-    }
-
-    /**
      * This constructor does IO. Run it on a background thread.
      *
      * appLocale can be null, which indicates that it will be provided later.
      */
     public BrowserHealthRecorder(final Context context,
+                                 final SharedPreferences appPrefs,
                                  final String profilePath,
                                  final EventDispatcher dispatcher,
                                  final String osLocale,
@@ -160,6 +154,8 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
         } catch (Exception e) {
             Log.e(LOG_TAG, "Exception initializing.", e);
         }
+
+        this.prefs = appPrefs;
     }
 
     public boolean isEnabled() {
@@ -194,6 +190,9 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
     }
 
     private void unregisterEventListeners() {
+        if (state != State.INITIALIZED) {
+            return;
+        }
         this.dispatcher.unregisterEventListener(EVENT_SNAPSHOT, this);
         this.dispatcher.unregisterEventListener(EVENT_ADDONS_CHANGE, this);
         this.dispatcher.unregisterEventListener(EVENT_ADDONS_UNINSTALLING, this);
@@ -543,8 +542,7 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
             return;
         }
 
-        final SharedPreferences prefs = GeckoApp.getAppSharedPreferences();
-        final SharedPreferences.Editor editor = prefs.edit();
+        final SharedPreferences.Editor editor = this.prefs.edit();
 
         recordSessionEnd(sessionEndReason, editor, prev);
 
@@ -789,9 +787,9 @@ public class BrowserHealthRecorder implements HealthRecorder, GeckoEventListener
             new MeasurementFields() {
                 @Override
                 public Iterable<FieldSpec> getFields() {
-                    ArrayList<FieldSpec> out = new ArrayList<FieldSpec>(2);
-                    out.add(new FieldSpec("normal", Field.TYPE_JSON_DISCRETE));
-                    out.add(new FieldSpec("abnormal", Field.TYPE_JSON_DISCRETE));
+                    List<FieldSpec> out = Arrays.asList(
+                        new FieldSpec("normal", Field.TYPE_JSON_DISCRETE),
+                        new FieldSpec("abnormal", Field.TYPE_JSON_DISCRETE));
                     return out;
                 }
         });

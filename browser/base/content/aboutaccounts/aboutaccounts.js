@@ -9,8 +9,16 @@ const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/FxAccounts.jsm");
 
+let fxAccountsCommon = {};
+Cu.import("resource://gre/modules/FxAccountsCommon.js", fxAccountsCommon);
+
 const PREF_LAST_FXA_USER = "identity.fxaccounts.lastSignedInUserHash";
 const PREF_SYNC_SHOW_CUSTOMIZATION = "services.sync.ui.showCustomizationDialog";
+
+const OBSERVER_TOPICS = [
+  fxAccountsCommon.ONVERIFIED_NOTIFICATION,
+  fxAccountsCommon.ONLOGOUT_NOTIFICATION,
+];
 
 function log(msg) {
   //dump("FXA: " + msg + "\n");
@@ -73,6 +81,15 @@ function promptForRelink(acctName) {
   return pressed == 0; // 0 is the "continue" button
 }
 
+// If the last fxa account used for sync isn't this account, we display
+// a modal dialog checking they really really want to do this...
+// (This is sync-specific, so ideally would be in sync's identity module,
+// but it's a little more seamless to do here, and sync is currently the
+// only fxa consumer, so...
+function shouldAllowRelink(acctName) {
+  return !needRelinkWarning(acctName) || promptForRelink(acctName);
+}
+
 let wrapper = {
   iframe: null,
 
@@ -92,7 +109,7 @@ let wrapper = {
     iframe.addEventListener("load", this);
 
     try {
-      iframe.src = url || fxAccounts.getAccountsURI();
+      iframe.src = url || fxAccounts.getAccountsSignUpURI();
     } catch (e) {
       error("Couldn't init Firefox Account wrapper: " + e.message);
     }
@@ -124,20 +141,20 @@ let wrapper = {
       delete accountData.customizeSync;
     }
 
-    // If the last fxa account used for sync isn't this account, we display
-    // a modal dialog checking they really really want to do this...
-    // (This is sync-specific, so ideally would be in sync's identity module,
-    // but it's a little more seamless to do here, and sync is currently the
-    // only fxa consumer, so...
+    // We need to confirm a relink - see shouldAllowRelink for more
     let newAccountEmail = accountData.email;
-    if (needRelinkWarning(newAccountEmail) && !promptForRelink(newAccountEmail)) {
+    // The hosted code may have already checked for the relink situation
+    // by sending the can_link_account command. If it did, then
+    // it will indicate we don't need to ask twice.
+    if (!accountData.verifiedCanLinkAccount && !shouldAllowRelink(newAccountEmail)) {
       // we need to tell the page we successfully received the message, but
       // then bail without telling fxAccounts
       this.injectData("message", { status: "login" });
-      // and reload the page or else it remains in a "signed in" state.
-      window.location.reload();
+      // and re-init the page by navigating to about:accounts
+      window.location = "about:accounts";
       return;
     }
+    delete accountData.verifiedCanLinkAccount;
 
     // Remember who it was so we can log out next time.
     setPreviousAccountNameHash(newAccountEmail);
@@ -150,6 +167,11 @@ let wrapper = {
     xps.whenLoaded().then(() => {
       return fxAccounts.setSignedInUser(accountData);
     }).then(() => {
+      // If the user data is verified, we want it to immediately look like
+      // they are signed in without waiting for messages to bounce around.
+      if (accountData.verified) {
+        showManage();
+      }
       this.injectData("message", { status: "login" });
       // until we sort out a better UX, just leave the jelly page in place.
       // If the account email is not yet verified, it will tell the user to
@@ -160,6 +182,12 @@ let wrapper = {
       // EMAIL", but it won't then say "syncing started".
     }, (err) => this.injectData("message", { status: "error", error: err })
     );
+  },
+
+  onCanLinkAccount: function(accountData) {
+    // We need to confirm a relink - see shouldAllowRelink for more
+    let ok = shouldAllowRelink(accountData.email);
+    this.injectData("message", { status: "can_link_account", data: { ok: ok } });
   },
 
   /**
@@ -195,6 +223,9 @@ let wrapper = {
       case "login":
         this.onLogin(data);
         break;
+      case "can_link_account":
+        this.onCanLinkAccount(data);
+        break;
       case "session_status":
         this.onSessionStatus(data);
         break;
@@ -210,7 +241,7 @@ let wrapper = {
   injectData: function (type, content) {
     let authUrl;
     try {
-      authUrl = fxAccounts.getAccountsURI();
+      authUrl = fxAccounts.getAccountsSignUpURI();
     } catch (e) {
       error("Couldn't inject data: " + e.message);
       return;
@@ -249,23 +280,41 @@ function openPrefs() {
 }
 
 function init() {
-  if (window.location.href.contains("action=signin")) {
-    show("remote");
-    wrapper.init(fxAccounts.getAccountsSignInURI());
-  } else if (window.location.href.contains("action=signup")) {
-    show("remote");
-    wrapper.init();
-  } else if (window.location.href.contains("action=reauth")) {
-    fxAccounts.promiseAccountsForceSigninURI().then(url => {
-      show("remote");
-      wrapper.init(url);
-    });
-  } else {
-    // Check if we have a local account
-    fxAccounts.getSignedInUser().then(user => {
+  fxAccounts.getSignedInUser().then(user => {
+    // tests in particular might cause the window to start closing before
+    // getSignedInUser has returned.
+    if (window.closed) {
+      return;
+    }
+    if (window.location.href.contains("action=signin")) {
       if (user) {
-        show("stage");
-        show("manage");
+        // asking to sign-in when already signed in just shows manage.
+        showManage();
+      } else {
+        show("remote");
+        wrapper.init(fxAccounts.getAccountsSignInURI());
+      }
+    } else if (window.location.href.contains("action=signup")) {
+      if (user) {
+        // asking to sign-up when already signed in just shows manage.
+        showManage();
+      } else {
+        show("remote");
+        wrapper.init();
+      }
+    } else if (window.location.href.contains("action=reauth")) {
+      // ideally we would only show this when we know the user is in a
+      // "must reauthenticate" state - but we don't.
+      // As the email address will be included in the URL returned from
+      // promiseAccountsForceSigninURI, just always show it.
+      fxAccounts.promiseAccountsForceSigninURI().then(url => {
+        show("remote");
+        wrapper.init(url);
+      });
+    } else {
+      // No action specified
+      if (user) {
+        showManage();
         let sb = Services.strings.createBundle("chrome://browser/locale/syncSetup.properties");
         document.title = sb.GetStringFromName("manage.pageTitle");
       } else {
@@ -274,8 +323,8 @@ function init() {
         // load the remote frame in the background
         wrapper.init();
       }
-    });
-  }
+    }
+  });
 }
 
 function show(id) {
@@ -285,7 +334,38 @@ function hide(id) {
   document.getElementById(id).style.display = 'none';
 }
 
+function showManage() {
+  show("stage");
+  show("manage");
+  hide("remote");
+  hide("intro");
+}
+
 document.addEventListener("DOMContentLoaded", function onload() {
   document.removeEventListener("DOMContentLoaded", onload, true);
   init();
 }, true);
+
+function initObservers() {
+  function observe(subject, topic, data) {
+    log("about:accounts observed " + topic);
+    if (topic == fxAccountsCommon.ONLOGOUT_NOTIFICATION) {
+      // All about:account windows get changed to action=signin on logout.
+      window.location = "about:accounts?action=signin";
+      return;
+    }
+    // must be onverified - just about:accounts is loaded.
+    window.location = "about:accounts";
+  }
+
+  for (let topic of OBSERVER_TOPICS) {
+    Services.obs.addObserver(observe, topic, false);
+  }
+  window.addEventListener("unload", function(event) {
+    log("about:accounts unloading")
+    for (let topic of OBSERVER_TOPICS) {
+      Services.obs.removeObserver(observe, topic);
+    }
+  });
+}
+initObservers();

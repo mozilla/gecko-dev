@@ -872,8 +872,8 @@ nsWindow::moveEvent(QMoveEvent* aEvent)
         return nsEventStatus_eIgnore;
     }
 
-    bool moved = mWidgetListener->WindowMoved(this, aEvent->pos().x(), aEvent->pos().y());
-    return moved ? nsEventStatus_eConsumeNoDefault : nsEventStatus_eIgnore;
+    NotifyWindowMoved(aEvent->pos().x(), aEvent->pos().y());
+    return nsEventStatus_eConsumeNoDefault;
 }
 
 nsEventStatus
@@ -1786,18 +1786,6 @@ nsWindow::GetScreenBounds(nsIntRect &aRect)
          mBounds.width, mBounds.height,
          aRect.width, aRect.height));
     return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWindow::SetForegroundColor(const nscolor &aColor)
-{
-    return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-nsWindow::SetBackgroundColor(const nscolor &aColor)
-{
-    return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP

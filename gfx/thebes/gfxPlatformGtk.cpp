@@ -49,7 +49,9 @@ using namespace mozilla::unicode;
 
 gfxFontconfigUtils *gfxPlatformGtk::sFontconfigUtils = nullptr;
 
+#if (MOZ_WIDGET_GTK == 2)
 static cairo_user_data_key_t cairo_gdk_drawable_key;
+#endif
 
 #ifdef MOZ_X11
     bool gfxPlatformGtk::sUseXRender = true;
@@ -75,14 +77,6 @@ gfxPlatformGtk::~gfxPlatformGtk()
     sFontconfigUtils = nullptr;
 
     gfxPangoFontGroup::Shutdown();
-
-#if 0
-    // It would be nice to do this (although it might need to be after
-    // the cairo shutdown that happens in ~gfxPlatform).  It even looks
-    // idempotent.  But it has fatal assertions that fire if stuff is
-    // leaked, and we hit them.
-    FcFini();
-#endif
 }
 
 already_AddRefed<gfxASurface>

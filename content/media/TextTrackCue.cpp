@@ -5,23 +5,25 @@
 
 #include "mozilla/dom/HTMLTrackElement.h"
 #include "mozilla/dom/TextTrackCue.h"
+#include "mozilla/dom/TextTrackRegion.h"
 #include "nsComponentManagerUtils.h"
 #include "mozilla/ClearOnShutdown.h"
 
 namespace mozilla {
 namespace dom {
 
-NS_IMPL_CYCLE_COLLECTION_INHERITED_4(TextTrackCue,
-                                     nsDOMEventTargetHelper,
+NS_IMPL_CYCLE_COLLECTION_INHERITED_5(TextTrackCue,
+                                     DOMEventTargetHelper,
                                      mDocument,
                                      mTrack,
                                      mTrackElement,
-                                     mDisplayState)
+                                     mDisplayState,
+                                     mRegion)
 
-NS_IMPL_ADDREF_INHERITED(TextTrackCue, nsDOMEventTargetHelper)
-NS_IMPL_RELEASE_INHERITED(TextTrackCue, nsDOMEventTargetHelper)
+NS_IMPL_ADDREF_INHERITED(TextTrackCue, DOMEventTargetHelper)
+NS_IMPL_RELEASE_INHERITED(TextTrackCue, DOMEventTargetHelper)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(TextTrackCue)
-NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetHelper)
+NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 StaticRefPtr<nsIWebVTTParserWrapper> TextTrackCue::sParserWrapper;
 
@@ -41,40 +43,40 @@ TextTrackCue::SetDefaultCueSettings()
   mVertical = DirectionSetting::_empty;
 }
 
-TextTrackCue::TextTrackCue(nsISupports* aGlobal,
+TextTrackCue::TextTrackCue(nsPIDOMWindow* aOwnerWindow,
                            double aStartTime,
                            double aEndTime,
                            const nsAString& aText,
                            ErrorResult& aRv)
-  : mText(aText)
+  : DOMEventTargetHelper(aOwnerWindow)
+  , mText(aText)
   , mStartTime(aStartTime)
   , mEndTime(aEndTime)
   , mReset(false)
 {
   SetDefaultCueSettings();
-  MOZ_ASSERT(aGlobal);
-  SetIsDOMBinding();
-  if (NS_FAILED(StashDocument(aGlobal))) {
+  MOZ_ASSERT(aOwnerWindow);
+  if (NS_FAILED(StashDocument())) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
   }
 }
 
-TextTrackCue::TextTrackCue(nsISupports* aGlobal,
+TextTrackCue::TextTrackCue(nsPIDOMWindow* aOwnerWindow,
                            double aStartTime,
                            double aEndTime,
                            const nsAString& aText,
                            HTMLTrackElement* aTrackElement,
                            ErrorResult& aRv)
-  : mText(aText)
+  : DOMEventTargetHelper(aOwnerWindow)
+  , mText(aText)
   , mStartTime(aStartTime)
   , mEndTime(aEndTime)
   , mTrackElement(aTrackElement)
   , mReset(false)
 {
   SetDefaultCueSettings();
-  MOZ_ASSERT(aGlobal);
-  SetIsDOMBinding();
-  if (NS_FAILED(StashDocument(aGlobal))) {
+  MOZ_ASSERT(aOwnerWindow);
+  if (NS_FAILED(StashDocument())) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
   }
 }
@@ -83,9 +85,9 @@ TextTrackCue::TextTrackCue(nsISupports* aGlobal,
  *  keep getting it from our window.
  */
 nsresult
-TextTrackCue::StashDocument(nsISupports* aGlobal)
+TextTrackCue::StashDocument()
 {
-  nsCOMPtr<nsPIDOMWindow> window(do_QueryInterface(aGlobal));
+  nsPIDOMWindow* window = GetOwner();
   if (!window) {
     return NS_ERROR_NO_INTERFACE;
   }
@@ -141,17 +143,26 @@ TextTrackCue::SetTrackElement(HTMLTrackElement* aTrackElement)
 }
 
 JSObject*
-TextTrackCue::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+TextTrackCue::WrapObject(JSContext* aCx)
 {
-  return VTTCueBinding::Wrap(aCx, aScope, this);
+  return VTTCueBinding::Wrap(aCx, this);
+}
+
+TextTrackRegion*
+TextTrackCue::GetRegion()
+{
+  return mRegion;
 }
 
 void
-TextTrackCue::CueChanged()
+TextTrackCue::SetRegion(TextTrackRegion* aRegion)
 {
-  if (mTrack) {
-    mTrack->CueChanged(*this);
+  if (mRegion == aRegion) {
+    return;
   }
+  mRegion = aRegion;
+  mReset = true;
 }
+
 } // namespace dom
 } // namespace mozilla

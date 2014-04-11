@@ -1860,7 +1860,8 @@ DoMatchLocal(JSContext *cx, CallArgs args, RegExpStatics *res, Handle<JSLinearSt
         return true;
     }
 
-    res->updateFromMatchPairs(cx, input, matches);
+    if (!res->updateFromMatchPairs(cx, input, matches))
+        return false;
 
     RootedValue rval(cx);
     if (!CreateRegExpMatchResult(cx, input, matches, &rval))
@@ -1902,7 +1903,7 @@ DoMatchGlobal(JSContext *cx, CallArgs args, RegExpStatics *res, Handle<JSLinearS
     // fail.  The key is that script can't distinguish these failure modes from
     // one where, in spec terms, we fail immediately after step 8a.  That *in
     // reality* we might have done extra matching work, or created a partial
-    // results array to return, or hit the operation limit, is irrelevant.  The
+    // results array to return, or hit an interrupt, is irrelevant.  The
     // script can't tell we did any of those things but didn't update
     // .lastIndex.  Thus we can optimize steps 8b onward however we want,
     // including eliminating intermediate .lastIndex sets, as long as we don't
@@ -1927,7 +1928,7 @@ DoMatchGlobal(JSContext *cx, CallArgs args, RegExpStatics *res, Handle<JSLinearS
     const jschar *chars = input->chars();
     RegExpShared &re = g.regExp();
     for (size_t searchIndex = 0; searchIndex <= charsLen; ) {
-        if (!JS_CHECK_OPERATION_LIMIT(cx))
+        if (!CheckForInterrupt(cx))
             return false;
 
         // Steps 8f(i-ii), minus "lastIndex" updates (see above).
@@ -2117,7 +2118,6 @@ struct ReplaceData
 {
     ReplaceData(JSContext *cx)
       : str(cx), g(cx), lambda(cx), elembase(cx), repstr(cx),
-        dollarRoot(cx, &dollar), dollarEndRoot(cx, &dollarEnd),
         fig(cx, NullValue()), sb(cx)
     {}
 
@@ -2147,8 +2147,6 @@ struct ReplaceData
     Rooted<JSLinearString*> repstr; /* replacement string */
     const jschar       *dollar;        /* null or pointer to first $ in repstr */
     const jschar       *dollarEnd;     /* limit pointer for js_strchr_limit */
-    SkipRoot           dollarRoot;     /* XXX prevent dollar from being relocated */
-    SkipRoot           dollarEndRoot;  /* ditto */
     int                leftIndex;      /* left context index in str->chars */
     JSSubString        dollarStr;      /* for "$$" InterpretDollar result */
     bool               calledBack;     /* record whether callback has been called */
@@ -2175,7 +2173,9 @@ DoMatchForReplaceLocal(JSContext *cx, RegExpStatics *res, Handle<JSLinearString*
     if (status == RegExpRunStatus_Success_NotFound)
         return true;
 
-    res->updateFromMatchPairs(cx, linearStr, matches);
+    if (!res->updateFromMatchPairs(cx, linearStr, matches))
+        return false;
+
     return ReplaceRegExp(cx, res, rdata);
 }
 
@@ -2186,7 +2186,7 @@ DoMatchForReplaceGlobal(JSContext *cx, RegExpStatics *res, Handle<JSLinearString
     size_t charsLen = linearStr->length();
     ScopedMatchPairs matches(&cx->tempLifoAlloc());
     for (size_t count = 0, i = 0; i <= charsLen; ++count) {
-        if (!JS_CHECK_OPERATION_LIMIT(cx))
+        if (!CheckForInterrupt(cx))
             return false;
 
         RegExpRunStatus status = re.execute(cx, linearStr->chars(), charsLen, &i, matches);
@@ -2196,7 +2196,8 @@ DoMatchForReplaceGlobal(JSContext *cx, RegExpStatics *res, Handle<JSLinearString
         if (status == RegExpRunStatus_Success_NotFound)
             break;
 
-        res->updateFromMatchPairs(cx, linearStr, matches);
+        if (!res->updateFromMatchPairs(cx, linearStr, matches))
+            return false;
 
         if (!ReplaceRegExp(cx, res, rdata))
             return false;
@@ -2626,13 +2627,13 @@ struct StringRange
     { }
 };
 
-static inline JSShortString *
+static inline JSFatInlineString *
 FlattenSubstrings(JSContext *cx, const jschar *chars,
                   const StringRange *ranges, size_t rangesLen, size_t outputLen)
 {
-    JS_ASSERT(JSShortString::lengthFits(outputLen));
+    JS_ASSERT(JSFatInlineString::lengthFits(outputLen));
 
-    JSShortString *str = js_NewGCShortString<CanGC>(cx);
+    JSFatInlineString *str = js_NewGCFatInlineString<CanGC>(cx);
     if (!str)
         return nullptr;
     jschar *buf = str->init(outputLen);
@@ -2668,21 +2669,21 @@ AppendSubstrings(JSContext *cx, Handle<JSFlatString*> flatStr,
     RootedString part(cx, nullptr);
     while (i < rangesLen) {
 
-        /* Find maximum range that fits in JSShortString */
+        /* Find maximum range that fits in JSFatInlineString */
         size_t substrLen = 0;
         size_t end = i;
         for (; end < rangesLen; end++) {
-            if (substrLen + ranges[end].length > JSShortString::MAX_SHORT_LENGTH)
+            if (substrLen + ranges[end].length > JSFatInlineString::MAX_FAT_INLINE_LENGTH)
                 break;
             substrLen += ranges[end].length;
         }
 
         if (i == end) {
-            /* Not even one range fits JSShortString, use DependentString */
+            /* Not even one range fits JSFatInlineString, use DependentString */
             const StringRange &sr = ranges[i++];
             part = js_NewDependentString(cx, flatStr, sr.start, sr.length);
         } else {
-            /* Copy the ranges (linearly) into a JSShortString */
+            /* Copy the ranges (linearly) into a JSFatInlineString */
             part = FlattenSubstrings(cx, chars, ranges + i, end - i, substrLen);
             i = end;
         }
@@ -2716,7 +2717,7 @@ StrReplaceRegexpRemove(JSContext *cx, HandleString str, RegExpShared &re, Mutabl
 
     /* Accumulate StringRanges for unmatched substrings. */
     while (startIndex <= charsLen) {
-        if (!JS_CHECK_OPERATION_LIMIT(cx))
+        if (!CheckForInterrupt(cx))
             return false;
 
         RegExpRunStatus status =
@@ -3209,7 +3210,7 @@ SplitHelper(JSContext *cx, Handle<JSLinearString*> str, uint32_t limit, const Ma
                         return nullptr;
                 } else {
                     /* Only string entries have been accounted for so far. */
-                    AddTypeProperty(cx, type, nullptr, UndefinedValue());
+                    AddTypePropertyId(cx, type, JSID_VOID, UndefinedValue());
                     if (!splits.append(UndefinedValue()))
                         return nullptr;
                 }
@@ -3293,7 +3294,8 @@ class SplitRegExpMatcher
             return true;
         }
 
-        res->updateFromMatchPairs(cx, str, matches);
+        if (!res->updateFromMatchPairs(cx, str, matches))
+            return false;
 
         JSSubString sep;
         res->getLastMatch(&sep);
@@ -3344,7 +3346,7 @@ js::str_split(JSContext *cx, unsigned argc, Value *vp)
     RootedTypeObject type(cx, GetTypeCallerInitObject(cx, JSProto_Array));
     if (!type)
         return false;
-    AddTypeProperty(cx, type, nullptr, Type::StringType());
+    AddTypePropertyId(cx, type, JSID_VOID, Type::StringType());
 
     /* Step 5: Use the second argument as the split limit, if given. */
     uint32_t limit;
@@ -3939,7 +3941,7 @@ js_InitStringClass(JSContext *cx, HandleObject obj)
         return nullptr;
     }
 
-    if (!DefineConstructorAndPrototype(cx, global, JSProto_String, ctor, proto))
+    if (!GlobalObject::initBuiltinConstructor(cx, global, JSProto_String, ctor, proto))
         return nullptr;
 
     /*
@@ -4000,8 +4002,8 @@ template <AllowGC allowGC>
 JSFlatString *
 js_NewStringCopyN(ExclusiveContext *cx, const jschar *s, size_t n)
 {
-    if (JSShortString::lengthFits(n))
-        return NewShortString<allowGC>(cx, TwoByteChars(s, n));
+    if (JSFatInlineString::lengthFits(n))
+        return NewFatInlineString<allowGC>(cx, TwoByteChars(s, n));
 
     jschar *news = cx->pod_malloc<jschar>(n + 1);
     if (!news)
@@ -4024,8 +4026,8 @@ template <AllowGC allowGC>
 JSFlatString *
 js_NewStringCopyN(ThreadSafeContext *cx, const char *s, size_t n)
 {
-    if (JSShortString::lengthFits(n))
-        return NewShortString<allowGC>(cx, JS::Latin1Chars(s, n));
+    if (JSFatInlineString::lengthFits(n))
+        return NewFatInlineString<allowGC>(cx, JS::Latin1Chars(s, n));
 
     jschar *chars = InflateString(cx, s, &n);
     if (!chars)
@@ -4047,8 +4049,8 @@ JSFlatString *
 js_NewStringCopyZ(ExclusiveContext *cx, const jschar *s)
 {
     size_t n = js_strlen(s);
-    if (JSShortString::lengthFits(n))
-        return NewShortString<allowGC>(cx, TwoByteChars(s, n));
+    if (JSFatInlineString::lengthFits(n))
+        return NewFatInlineString<allowGC>(cx, TwoByteChars(s, n));
 
     size_t m = (n + 1) * sizeof(jschar);
     jschar *news = (jschar *) cx->malloc_(m);

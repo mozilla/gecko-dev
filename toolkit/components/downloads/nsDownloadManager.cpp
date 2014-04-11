@@ -2339,6 +2339,22 @@ nsDownloadManager::OnTitleChanged(nsIURI *aURI,
 }
 
 NS_IMETHODIMP
+nsDownloadManager::OnFrecencyChanged(nsIURI* aURI,
+                                     int32_t aNewFrecency,
+                                     const nsACString& aGUID,
+                                     bool aHidden,
+                                     PRTime aLastVisitDate)
+{
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDownloadManager::OnManyFrecenciesChanged()
+{
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsDownloadManager::OnDeleteURI(nsIURI *aURI,
                                const nsACString& aGUID,
                                uint16_t aReason)
@@ -2806,7 +2822,7 @@ nsDownload::SetState(DownloadState aState)
         if (mimeInfo)
           mimeInfo->GetMIMEType(contentType);
 
-        GeckoAppShell::ScanMedia(path, NS_ConvertUTF8toUTF16(contentType));
+        mozilla::widget::android::GeckoAppShell::ScanMedia(path, NS_ConvertUTF8toUTF16(contentType));
 #endif
       }
 
@@ -3202,12 +3218,17 @@ nsDownload::GetTargetFile(nsIFile **aTargetFile)
   nsresult rv;
 
   nsCOMPtr<nsIFileURL> fileURL = do_QueryInterface(mTarget, &rv);
-  if (NS_FAILED(rv)) return rv;
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
 
   nsCOMPtr<nsIFile> file;
   rv = fileURL->GetFile(getter_AddRefs(file));
-  if (NS_SUCCEEDED(rv))
-    rv = CallQueryInterface(file, aTargetFile);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  file.forget(aTargetFile);
   return rv;
 }
 

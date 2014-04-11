@@ -17,6 +17,7 @@
 #include "nsISupportsImpl.h"            // for MOZ_COUNT_CTOR, etc
 #include "nsRegion.h"
 #include <vector>
+#include "mozilla/WidgetUtils.h"
 
 /**
  * Different elements of a web pages are rendered into separate "layers" before
@@ -120,6 +121,7 @@ struct Effect;
 struct EffectChain;
 class Image;
 class ISurfaceAllocator;
+class Layer;
 class NewTextureSource;
 class DataTextureSource;
 class CompositingRenderTarget;
@@ -130,6 +132,23 @@ enum SurfaceInitMode
 {
   INIT_MODE_NONE,
   INIT_MODE_CLEAR
+};
+
+/**
+ * A base class for a platform-dependent helper for use by TextureHost.
+ */
+class CompositorBackendSpecificData : public RefCounted<CompositorBackendSpecificData>
+{
+public:
+  MOZ_DECLARE_REFCOUNTED_TYPENAME(CompositorBackendSpecificData)
+  CompositorBackendSpecificData()
+  {
+    MOZ_COUNT_CTOR(CompositorBackendSpecificData);
+  }
+  virtual ~CompositorBackendSpecificData()
+  {
+    MOZ_COUNT_DTOR(CompositorBackendSpecificData);
+  }
 };
 
 /**
@@ -184,6 +203,7 @@ public:
     : mCompositorID(0)
     , mDiagnosticTypes(DIAGNOSTIC_NONE)
     , mParent(aParent)
+    , mScreenRotation(ROTATION_0)
   {
     MOZ_COUNT_CTOR(Compositor);
   }
@@ -271,7 +291,7 @@ public:
    * Returns the current target for rendering. Will return null if we are
    * rendering to the screen.
    */
-  virtual CompositingRenderTarget* GetCurrentRenderTarget() = 0;
+  virtual CompositingRenderTarget* GetCurrentRenderTarget() const = 0;
 
   /**
    * Mostly the compositor will pull the size from a widget and this method will
@@ -305,9 +325,9 @@ public:
   { /* Should turn into pure virtual once implemented in D3D */ }
 
   /*
-   * Clear aRect on FrameBuffer.
+   * Clear aRect on current render target.
    */
-  virtual void clearFBRect(const gfx::Rect* aRect) { }
+  virtual void ClearRect(const gfx::Rect& aRect) { }
 
   /**
    * Start a new frame.
@@ -339,6 +359,8 @@ public:
    * Flush the current frame to the screen and tidy up.
    */
   virtual void EndFrame() = 0;
+
+  virtual void SetFBAcquireFence(Layer* aLayer) {}
 
   /**
    * Post-rendering stuff if the rendering is done outside of this Compositor
@@ -375,16 +397,22 @@ public:
     mDiagnosticTypes = aDiagnostics;
   }
 
+  DiagnosticTypes GetDiagnosticTypes() const
+  {
+    return mDiagnosticTypes;
+  }
+
   void DrawDiagnostics(DiagnosticFlags aFlags,
                        const gfx::Rect& visibleRect,
                        const gfx::Rect& aClipRect,
-                       const gfx::Matrix4x4& transform);
+                       const gfx::Matrix4x4& transform,
+                       uint32_t aFlashCounter = DIAGNOSTIC_FLASH_COUNTER_MAX);
 
   void DrawDiagnostics(DiagnosticFlags aFlags,
                        const nsIntRegion& visibleRegion,
                        const gfx::Rect& aClipRect,
-                       const gfx::Matrix4x4& transform);
-
+                       const gfx::Matrix4x4& transform,
+                       uint32_t aFlashCounter = DIAGNOSTIC_FLASH_COUNTER_MAX);
 
 #ifdef MOZ_DUMP_PAINTING
   virtual const char* Name() const = 0;
@@ -459,11 +487,32 @@ public:
     return fillRatio;
   }
 
+  virtual CompositorBackendSpecificData* GetCompositorBackendSpecificData() {
+    return nullptr;
+  }
+
+  ScreenRotation GetScreenRotation() const {
+    return mScreenRotation;
+  }
+
+  void SetScreenRotation(ScreenRotation aRotation) {
+    mScreenRotation = aRotation;
+  }
+
+  // On b2g the clip rect is in the coordinate space of the physical screen
+  // independently of its rotation, while the coordinate space of the layers,
+  // on the other hand, depends on the screen orientation.
+  // This only applies to b2g as with other platforms, orientation is handled
+  // at the OS level rather than in Gecko.
+  // In addition, the clip rect needs to be offset by the rendering origin.
+  // This becomes important if intermediate surfaces are used.
+  gfx::Rect ClipRectInLayersCoordinates(gfx::Rect aClip) const;
 protected:
   void DrawDiagnosticsInternal(DiagnosticFlags aFlags,
                                const gfx::Rect& aVisibleRect,
                                const gfx::Rect& aClipRect,
-                               const gfx::Matrix4x4& transform);
+                               const gfx::Matrix4x4& transform,
+                               uint32_t aFlashCounter);
 
   bool ShouldDrawDiagnostics(DiagnosticFlags);
 
@@ -483,6 +532,8 @@ protected:
    */
   size_t mPixelsPerFrame;
   size_t mPixelsFilled;
+
+  ScreenRotation mScreenRotation;
 
 private:
   static LayersBackend sBackend;

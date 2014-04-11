@@ -300,7 +300,7 @@ Http2Stream::ParseHttpRequestHeaders(const char *buf,
                     mOrigin, hashkey);
 
   // check the push cache for GET
-  if (mTransaction->RequestHead()->Method() == nsHttp::Get) {
+  if (mTransaction->RequestHead()->IsGet()) {
     // from :scheme, :authority, :path
     nsILoadGroupConnectionInfo *loadGroupCI = mTransaction->LoadGroupConnectionInfo();
     SpdyPushCache *cache = nullptr;
@@ -314,6 +314,10 @@ Http2Stream::ParseHttpRequestHeaders(const char *buf,
     if (cache)
       pushedStream = cache->RemovePushedStreamHttp2(hashkey);
 
+    LOG3(("Pushed Stream Lookup "
+          "session=%p key=%s loadgroupci=%p cache=%p hit=%p\n",
+          mSession, hashkey.get(), loadGroupCI, cache, pushedStream));
+
     if (pushedStream) {
       LOG3(("Pushed Stream Match located id=0x%X key=%s\n",
             pushedStream->StreamID(), hashkey.get()));
@@ -321,6 +325,13 @@ Http2Stream::ParseHttpRequestHeaders(const char *buf,
       mPushSource = pushedStream;
       SetSentFin(true);
       AdjustPushedPriority();
+
+      // This stream has been activated (and thus counts against the concurrency
+      // limit intentionally), but will not be registered via
+      // RegisterStreamID (below) because of the push match.
+      // Release that semaphore count immediately (instead of waiting for
+      // cleanup stream) so we can initiate more pull streams.
+      mSession->MaybeDecrementConcurrent(this);
 
       // There is probably pushed data buffered so trigger a read manually
       // as we can't rely on future network events to do it
@@ -356,7 +367,7 @@ Http2Stream::ParseHttpRequestHeaders(const char *buf,
 
   nsCString compressedData;
   mSession->Compressor()->EncodeHeaderBlock(mFlatHttpRequestHeaders,
-                                            nsCString(mTransaction->RequestHead()->Method().get()),
+                                            mTransaction->RequestHead()->Method(),
                                             mTransaction->RequestHead()->RequestURI(),
                                             hostHeader,
                                             NS_LITERAL_CSTRING("https"),
@@ -366,17 +377,17 @@ Http2Stream::ParseHttpRequestHeaders(const char *buf,
   // to wait for a data packet to put it on.
   uint8_t firstFrameFlags =  Http2Session::kFlag_PRIORITY;
 
-  if (mTransaction->RequestHead()->Method() == nsHttp::Get ||
-      mTransaction->RequestHead()->Method() == nsHttp::Connect ||
-      mTransaction->RequestHead()->Method() == nsHttp::Head) {
+  if (mTransaction->RequestHead()->IsGet() ||
+      mTransaction->RequestHead()->IsConnect() ||
+      mTransaction->RequestHead()->IsHead()) {
     // for GET, CONNECT, and HEAD place the fin bit right on the
     // header packet
 
     SetSentFin(true);
     firstFrameFlags |= Http2Session::kFlag_END_STREAM;
-  } else if (mTransaction->RequestHead()->Method() == nsHttp::Post ||
-             mTransaction->RequestHead()->Method() == nsHttp::Put ||
-             mTransaction->RequestHead()->Method() == nsHttp::Options) {
+  } else if (mTransaction->RequestHead()->IsPost() ||
+             mTransaction->RequestHead()->IsPut() ||
+             mTransaction->RequestHead()->IsOptions()) {
     // place fin in a data frame even for 0 length messages for iterop
   } else if (!mRequestBodyLenRemaining) {
     // for other HTTP extension methods, rely on the content-length
@@ -886,9 +897,6 @@ Http2Stream::Close(nsresult reason)
 bool
 Http2Stream::AllowFlowControlledWrite()
 {
-  if (!mSession->ServerUsesFlowControl())
-    return true;
-
   return (mSession->ServerSessionWindow() > 0) && (mServerReceiveWindow > 0);
 }
 
@@ -1019,13 +1027,11 @@ Http2Stream::OnReadSegment(const char *buf,
     if (dataLength > Http2Session::kMaxFrameData)
       dataLength = Http2Session::kMaxFrameData;
 
-    if (mSession->ServerUsesFlowControl()) {
-      if (dataLength > mSession->ServerSessionWindow())
-        dataLength = static_cast<uint32_t>(mSession->ServerSessionWindow());
+    if (dataLength > mSession->ServerSessionWindow())
+      dataLength = static_cast<uint32_t>(mSession->ServerSessionWindow());
 
-      if (dataLength > mServerReceiveWindow)
-        dataLength = static_cast<uint32_t>(mServerReceiveWindow);
-    }
+    if (dataLength > mServerReceiveWindow)
+      dataLength = static_cast<uint32_t>(mServerReceiveWindow);
 
     LOG3(("Http2Stream this=%p id 0x%X send calculation "
           "avail=%d chunksize=%d stream window=%d session window=%d "
@@ -1033,10 +1039,8 @@ Http2Stream::OnReadSegment(const char *buf,
           count, mChunkSize, mServerReceiveWindow, mSession->ServerSessionWindow(),
           Http2Session::kMaxFrameData, dataLength));
 
-    if (mSession->ServerUsesFlowControl()) {
-      mSession->DecrementServerSessionWindow(dataLength);
-      mServerReceiveWindow -= dataLength;
-    }
+    mSession->DecrementServerSessionWindow(dataLength);
+    mServerReceiveWindow -= dataLength;
 
     LOG3(("Http2Stream %p id %x request len remaining %d, "
           "count avail %d, chunk used %d",

@@ -159,7 +159,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 {
     friend class Breakpoint;
     friend class mozilla::LinkedListElement<Debugger>;
-    friend bool (::JS_DefineDebuggerObject)(JSContext *cx, JSObject *obj);
+    friend bool (::JS_DefineDebuggerObject)(JSContext *cx, JS::HandleObject obj);
 
   public:
     enum Hook {
@@ -170,7 +170,6 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
         OnNewGlobalObject,
         HookCount
     };
-
     enum {
         JSSLOT_DEBUG_PROTO_START,
         JSSLOT_DEBUG_FRAME_PROTO = JSSLOT_DEBUG_PROTO_START,
@@ -178,12 +177,13 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
         JSSLOT_DEBUG_OBJECT_PROTO,
         JSSLOT_DEBUG_SCRIPT_PROTO,
         JSSLOT_DEBUG_SOURCE_PROTO,
+        JSSLOT_DEBUG_MEMORY_PROTO,
         JSSLOT_DEBUG_PROTO_STOP,
         JSSLOT_DEBUG_HOOK_START = JSSLOT_DEBUG_PROTO_STOP,
         JSSLOT_DEBUG_HOOK_STOP = JSSLOT_DEBUG_HOOK_START + HookCount,
-        JSSLOT_DEBUG_COUNT = JSSLOT_DEBUG_HOOK_STOP
+        JSSLOT_DEBUG_MEMORY_INSTANCE = JSSLOT_DEBUG_HOOK_STOP,
+        JSSLOT_DEBUG_COUNT
     };
-
   private:
     HeapPtrObject object;               /* The Debugger object. Strong reference. */
     GlobalObjectSet debuggees;          /* Debuggee globals. Cross-compartment weak references. */
@@ -321,6 +321,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     static bool setOnNewGlobalObject(JSContext *cx, unsigned argc, Value *vp);
     static bool getUncaughtExceptionHook(JSContext *cx, unsigned argc, Value *vp);
     static bool setUncaughtExceptionHook(JSContext *cx, unsigned argc, Value *vp);
+    static bool getMemory(JSContext *cx, unsigned argc, Value *vp);
     static bool addDebuggee(JSContext *cx, unsigned argc, Value *vp);
     static bool addAllGlobalsAsDebuggees(JSContext *cx, unsigned argc, Value *vp);
     static bool removeDebuggee(JSContext *cx, unsigned argc, Value *vp);
@@ -369,6 +370,13 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
      * or deserialized.
      */
     void fireNewScript(JSContext *cx, HandleScript script);
+
+    /*
+     * Gets a Debugger.Frame object. If maybeIter is non-null, we eagerly copy
+     * its data if we need to make a new Debugger.Frame.
+     */
+    bool getScriptFrameWithIter(JSContext *cx, AbstractFramePtr frame,
+                                const ScriptFrameIter *maybeIter, MutableHandleValue vp);
 
     inline Breakpoint *firstBreakpoint() const;
 
@@ -419,7 +427,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     static inline void onNewGlobalObject(JSContext *cx, Handle<GlobalObject *> global);
     static JSTrapStatus onTrap(JSContext *cx, MutableHandleValue vp);
     static JSTrapStatus onSingleStep(JSContext *cx, MutableHandleValue vp);
-    static bool handleBaselineOsr(JSContext *cx, StackFrame *from, jit::BaselineFrame *to);
+    static bool handleBaselineOsr(JSContext *cx, InterpreterFrame *from, jit::BaselineFrame *to);
 
     /************************************* Functions for use by Debugger.cpp. */
 
@@ -483,7 +491,9 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
      * Use this if you have already access to a frame pointer without having
      * to incur the cost of walking the stack.
      */
-    bool getScriptFrame(JSContext *cx, AbstractFramePtr frame, MutableHandleValue vp);
+    bool getScriptFrame(JSContext *cx, AbstractFramePtr frame, MutableHandleValue vp) {
+        return getScriptFrameWithIter(cx, frame, nullptr, vp);
+    }
 
     /*
      * Store the Debugger.Frame object for iter in *vp. Eagerly copies a
@@ -494,11 +504,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
      * paid.
      */
     bool getScriptFrame(JSContext *cx, const ScriptFrameIter &iter, MutableHandleValue vp) {
-        AbstractFramePtr data = iter.copyDataAsAbstractFramePtr();
-        if (!data || !getScriptFrame(cx, iter.abstractFramePtr(), vp))
-            return false;
-        vp.toObject().setPrivate(data.raw());
-        return true;
+        return getScriptFrameWithIter(cx, iter.abstractFramePtr(), &iter, vp);
     }
 
     /*

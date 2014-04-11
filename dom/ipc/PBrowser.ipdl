@@ -8,7 +8,6 @@
 include protocol PBlob;
 include protocol PColorPicker;
 include protocol PContent;
-include protocol PContentDialog;
 include protocol PDocumentRenderer;
 include protocol PContentPermissionRequest;
 include protocol PFilePicker;
@@ -48,18 +47,31 @@ using class mozilla::WidgetTouchEvent from "ipc/nsGUIEventIPC.h";
 using struct mozilla::dom::RemoteDOMEvent from "mozilla/dom/TabMessageUtils.h";
 using mozilla::dom::ScreenOrientation from "mozilla/dom/ScreenOrientation.h";
 using struct mozilla::layers::TextureFactoryIdentifier from "mozilla/layers/CompositorTypes.h";
-using mozilla::CSSIntPoint from "Units.h";
+using mozilla::CSSPoint from "Units.h";
 using mozilla::CSSToScreenScale from "Units.h";
+using mozilla::CommandInt from "mozilla/EventForwards.h";
 
 namespace mozilla {
 namespace dom {
+
+struct NativeKeyBinding
+{
+  CommandInt[] singleLineCommands;
+  CommandInt[] multiLineCommands;
+  CommandInt[] richTextCommands;
+};
+
+union MaybeNativeKeyBinding
+{
+  NativeKeyBinding;
+  void_t;
+};
 
 intr protocol PBrowser
 {
     manager PContent;
 
     manages PColorPicker;
-    manages PContentDialog;
     manages PDocumentRenderer;
     manages PContentPermissionRequest;
     manages PFilePicker;
@@ -196,6 +208,8 @@ parent:
                     int32_t cause,
                     int32_t focusChange);
 
+    sync IsParentWindowMainWidgetVisible() returns (bool visible);
+
     /**
      * Gets the DPI of the screen corresponding to this browser.
      */
@@ -247,9 +261,6 @@ parent:
      *       provided.
      */
     PContentPermissionRequest(PermissionRequest[] aRequests, Principal aPrincipal);
-
-    PContentDialog(uint32_t aType, nsCString aName, nsCString aFeatures,
-                   int32_t[] aIntParams, nsString[] aStringParams);
 
     PFilePicker(nsString aTitle, int16_t aMode);
 
@@ -339,6 +350,8 @@ parent:
 
     __delete__();
 
+    ReplyKeyEvent(WidgetKeyboardEvent event);
+
 child:
     /**
      * Notify the remote browser that it has been Show()n on this
@@ -357,7 +370,7 @@ child:
 
     UpdateDimensions(nsRect rect, nsIntSize size, ScreenOrientation orientation) compress;
 
-    UpdateFrame(FrameMetrics frame) compress;
+    UpdateFrame(FrameMetrics frame);
 
     /**
      * Acknowledge the receipt of a scroll offset update from the content
@@ -371,21 +384,21 @@ child:
      * the scroll offset. This message is expected to round-trip back to
      * ZoomToRect() with a rect indicating where we should zoom to.
      */
-    HandleDoubleTap(CSSIntPoint point, ScrollableLayerGuid aGuid);
+    HandleDoubleTap(CSSPoint point, ScrollableLayerGuid aGuid);
 
     /**
      * Requests handling of a single tap. |point| is in CSS pixels, relative to
      * the scroll offset. This message is expected to send a "mousedown" and
      * "mouseup" series of events at this point.
      */
-    HandleSingleTap(CSSIntPoint point, ScrollableLayerGuid aGuid);
+    HandleSingleTap(CSSPoint point, ScrollableLayerGuid aGuid);
 
     /**
      * Requests handling of a long tap. |point| is in CSS pixels, relative to
      * the scroll offset. This message is expected to send a "contextmenu"
      * events at this point.
      */
-    HandleLongTap(CSSIntPoint point, ScrollableLayerGuid aGuid);
+    HandleLongTap(CSSPoint point, ScrollableLayerGuid aGuid);
 
     /**
      * Requests handling of releasing a long tap. |aPoint| is in CSS pixels,
@@ -394,7 +407,7 @@ child:
      * this message is expected to generate a "mousedown" and "mouseup"
      * series of events
      */
-    HandleLongTapUp(CSSIntPoint point, ScrollableLayerGuid aGuid);
+    HandleLongTapUp(CSSPoint point, ScrollableLayerGuid aGuid);
 
     /**
      * Notifies the child that the parent has begun or finished transforming
@@ -422,7 +435,7 @@ child:
                bool aIgnoreRootScrollFrame);
 
     RealMouseEvent(WidgetMouseEvent event);
-    RealKeyEvent(WidgetKeyboardEvent event);
+    RealKeyEvent(WidgetKeyboardEvent event, MaybeNativeKeyBinding keyBinding);
     MouseWheelEvent(WidgetWheelEvent event);
     RealTouchEvent(WidgetTouchEvent aEvent, ScrollableLayerGuid aGuid);
     // We use a separate message for touchmove events only to apply
@@ -483,6 +496,11 @@ child:
      * to the parent.
      */
     SetUpdateHitRegion(bool aEnabled);
+
+    /**
+     * Tell the child to update its docShell's active state.
+     */
+    SetIsDocShellActive(bool aIsActive);
 
 /*
  * FIXME: write protocol!

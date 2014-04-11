@@ -16,7 +16,7 @@
 #include "nsHTMLDocument.h"
 #include "nsICSSDeclaration.h"
 #include "nsSVGElement.h"
-#include "nsDOMEvent.h"
+#include "mozilla/dom/Event.h"
 #include "mozilla/dom/UIEvent.h"
 #include "mozilla/dom/MouseEvent.h"
 #include "mozilla/dom/EventTargetBinding.h"
@@ -57,9 +57,10 @@ NEW_BINDING(nsIDocument, Document);
 NEW_BINDING(nsDocument, Document);
 NEW_BINDING(nsHTMLDocument, HTMLDocument);
 NEW_BINDING(nsSVGElement, SVGElement);
-NEW_BINDING(nsDOMEvent, Event);
+NEW_BINDING(mozilla::dom::Event, Event);
 NEW_BINDING(mozilla::dom::UIEvent, UIEvent);
 NEW_BINDING(mozilla::dom::MouseEvent, MouseEvent);
+NEW_BINDING(nsGlobalWindow, Window);
 
 #define DEFINE_UNWRAP_CAST(_interface, _base, _bit)                           \
 template <>                                                                   \

@@ -9,6 +9,7 @@
 #include "nsIScriptContext.h"
 
 #include "mozilla/ContentEvents.h"
+#include "mozilla/EventDispatcher.h"
 #include "mozilla/dom/ErrorEventBinding.h"
 #include "mozilla/dom/IDBOpenDBRequestBinding.h"
 #include "mozilla/dom/UnionTypes.h"
@@ -17,7 +18,6 @@
 #include "nsDOMJSUtils.h"
 #include "nsContentUtils.h"
 #include "nsCxPusher.h"
-#include "nsEventDispatcher.h"
 #include "nsJSUtils.h"
 #include "nsPIDOMWindow.h"
 #include "nsString.h"
@@ -321,9 +321,9 @@ IDBRequest::ReadyState() const
 }
 
 JSObject*
-IDBRequest::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+IDBRequest::WrapObject(JSContext* aCx)
 {
-  return IDBRequestBinding::Wrap(aCx, aScope, this);
+  return IDBRequestBinding::Wrap(aCx, this);
 }
 
 JS::Value
@@ -356,7 +356,7 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(IDBRequest)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(IDBRequest, IDBWrapperCache)
   // Don't need NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS because
-  // nsDOMEventTargetHelper does it for us.
+  // DOMEventTargetHelper does it for us.
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSourceAsObjectStore)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSourceAsIndex)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSourceAsCursor)
@@ -375,7 +375,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(IDBRequest, IDBWrapperCache)
   // Don't need NS_IMPL_CYCLE_COLLECTION_TRACE_PRESERVED_WRAPPER because
-  // nsDOMEventTargetHelper does it for us.
+  // DOMEventTargetHelper does it for us.
   NS_IMPL_CYCLE_COLLECTION_TRACE_JSVAL_MEMBER_CALLBACK(mResultVal)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
@@ -386,7 +386,7 @@ NS_IMPL_ADDREF_INHERITED(IDBRequest, IDBWrapperCache)
 NS_IMPL_RELEASE_INHERITED(IDBRequest, IDBWrapperCache)
 
 nsresult
-IDBRequest::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
+IDBRequest::PreHandleEvent(EventChainPreVisitor& aVisitor)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
@@ -457,13 +457,13 @@ NS_IMPL_ADDREF_INHERITED(IDBOpenDBRequest, IDBRequest)
 NS_IMPL_RELEASE_INHERITED(IDBOpenDBRequest, IDBRequest)
 
 nsresult
-IDBOpenDBRequest::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
+IDBOpenDBRequest::PostHandleEvent(EventChainPostVisitor& aVisitor)
 {
   return IndexedDatabaseManager::FireWindowOnError(GetOwner(), aVisitor);
 }
 
 JSObject*
-IDBOpenDBRequest::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+IDBOpenDBRequest::WrapObject(JSContext* aCx)
 {
-  return IDBOpenDBRequestBinding::Wrap(aCx, aScope, this);
+  return IDBOpenDBRequestBinding::Wrap(aCx, this);
 }

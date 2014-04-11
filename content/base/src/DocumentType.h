@@ -29,7 +29,7 @@ class DocumentTypeForward : public nsGenericDOMDataNode,
                             public nsIDOMDocumentType
 {
 public:
-  DocumentTypeForward(already_AddRefed<nsINodeInfo> aNodeInfo)
+  DocumentTypeForward(already_AddRefed<nsINodeInfo>& aNodeInfo)
     : nsGenericDOMDataNode(aNodeInfo)
   {
   }
@@ -41,7 +41,7 @@ public:
 class DocumentType MOZ_FINAL : public DocumentTypeForward
 {
 public:
-  DocumentType(already_AddRefed<nsINodeInfo> aNodeInfo,
+  DocumentType(already_AddRefed<nsINodeInfo>& aNodeInfo,
                const nsAString& aPublicId,
                const nsAString& aSystemId,
                const nsAString& aInternalSubset);
@@ -77,8 +77,7 @@ public:
   virtual nsIDOMNode* AsDOMNode() MOZ_OVERRIDE { return this; }
 
 protected:
-  virtual JSObject* WrapNode(JSContext *cx,
-                             JS::Handle<JSObject*> scope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext *cx) MOZ_OVERRIDE;
 
   nsString mPublicId;
   nsString mSystemId;

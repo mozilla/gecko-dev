@@ -21,22 +21,36 @@ let Prefs = new ViewHelpers.Prefs("devtools.debugger", {
   chromeDebuggingPort: ["Int", "chrome-debugging-port"]
 });
 
-// Initiate the connection
-let transport = debuggerSocketConnect(
-  Prefs.chromeDebuggingHost,
-  Prefs.chromeDebuggingPort
-);
-let client = new DebuggerClient(transport);
-client.connect(() => {
-  client.listTabs(openToolbox);
-});
+let gToolbox, gClient;
 
-let gToolbox;
+function connect() {
+  window.removeEventListener("load", connect);
+  // Initiate the connection
+  let transport = debuggerSocketConnect(
+    Prefs.chromeDebuggingHost,
+    Prefs.chromeDebuggingPort
+  );
+  gClient = new DebuggerClient(transport);
+  gClient.connect(() => {
+    let addonID = getParameterByName("addonID");
+
+    if (addonID) {
+      gClient.listAddons(({addons}) => {
+        let addonActor = addons.filter(addon => addon.id === addonID).pop();
+        openToolbox({ addonActor: addonActor.actor, title: addonActor.name });
+      });
+    } else {
+      gClient.listTabs(openToolbox);
+    }
+  });
+}
+
+window.addEventListener("load", connect);
 
 function openToolbox(form) {
   let options = {
     form: form,
-    client: client,
+    client: gClient,
     chrome: true
   };
   devtools.TargetFactory.forRemoteTab(options).then(target => {
@@ -100,4 +114,11 @@ function quitApp() {
   if (shouldProceed) {
     Services.startup.quit(Ci.nsIAppStartup.eForceQuit);
   }
+}
+
+function getParameterByName (name) {
+  let name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
+  let regex = new RegExp("[\\?&]" + name + "=([^&#]*)");
+  let results = regex.exec(window.location.search);
+  return results == null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
 }

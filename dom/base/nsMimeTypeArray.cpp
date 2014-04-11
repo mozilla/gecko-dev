@@ -41,9 +41,9 @@ nsMimeTypeArray::~nsMimeTypeArray()
 }
 
 JSObject*
-nsMimeTypeArray::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+nsMimeTypeArray::WrapObject(JSContext* aCx)
 {
-  return MimeTypeArrayBinding::Wrap(aCx, aScope, this);
+  return MimeTypeArrayBinding::Wrap(aCx, this);
 }
 
 void
@@ -111,9 +111,12 @@ nsMimeTypeArray::NamedGetter(const nsAString& aName, bool &aFound)
 
   EnsurePluginMimeTypes();
 
-  nsMimeType* mimeType = FindMimeType(mMimeTypes, aName);
+  nsString lowerName(aName);
+  ToLowerCase(lowerName);
+
+  nsMimeType* mimeType = FindMimeType(mMimeTypes, lowerName);
   if (!mimeType) {
-    mimeType = FindMimeType(mHiddenMimeTypes, aName);
+    mimeType = FindMimeType(mHiddenMimeTypes, lowerName);
   }
 
   if (mimeType) {
@@ -128,8 +131,8 @@ nsMimeTypeArray::NamedGetter(const nsAString& aName, bool &aFound)
   }
 
   nsCOMPtr<nsIMIMEInfo> mimeInfo;
-  mimeSrv->GetFromTypeAndExtension(NS_ConvertUTF16toUTF8(aName), EmptyCString(),
-                                   getter_AddRefs(mimeInfo));
+  mimeSrv->GetFromTypeAndExtension(NS_ConvertUTF16toUTF8(lowerName),
+                                   EmptyCString(), getter_AddRefs(mimeInfo));
   if (!mimeInfo) {
     return nullptr;
   }
@@ -164,7 +167,7 @@ nsMimeTypeArray::NamedGetter(const nsAString& aName, bool &aFound)
 
   // We don't want navigator.mimeTypes enumeration to expose MIME types with
   // application handlers, so add them to the list of hidden MIME types.
-  nsMimeType *mt = new nsMimeType(mWindow, aName);
+  nsMimeType *mt = new nsMimeType(mWindow, lowerName);
   mHiddenMimeTypes.AppendElement(mt);
 
   return mt;
@@ -248,9 +251,9 @@ nsMimeType::GetParentObject() const
 }
 
 JSObject*
-nsMimeType::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+nsMimeType::WrapObject(JSContext* aCx)
 {
-  return MimeTypeBinding::Wrap(aCx, aScope, this);
+  return MimeTypeBinding::Wrap(aCx, this);
 }
 
 void

@@ -14,13 +14,14 @@
 #include "nsIDOMHTMLLabelElement.h"
 
 namespace mozilla {
+class EventChainPostVisitor;
 namespace dom {
 
 class HTMLLabelElement MOZ_FINAL : public nsGenericHTMLFormElement,
                                    public nsIDOMHTMLLabelElement
 {
 public:
-  HTMLLabelElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+  HTMLLabelElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
     : nsGenericHTMLFormElement(aNodeInfo),
       mHandlingEvent(false)
   {
@@ -60,15 +61,15 @@ public:
   virtual bool IsDisabled() const MOZ_OVERRIDE { return false; }
 
   // nsIContent
-  virtual nsresult PostHandleEvent(nsEventChainPostVisitor& aVisitor) MOZ_OVERRIDE;
+  virtual nsresult PostHandleEvent(
+                     EventChainPostVisitor& aVisitor) MOZ_OVERRIDE;
   virtual void PerformAccesskey(bool aKeyCausesActivation,
                                 bool aIsTrustedEvent) MOZ_OVERRIDE;
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const MOZ_OVERRIDE;
 
   nsGenericHTMLElement* GetLabeledElement() const;
 protected:
-  virtual JSObject* WrapNode(JSContext *aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext *aCx) MOZ_OVERRIDE;
 
   nsGenericHTMLElement* GetFirstLabelableDescendant() const;
 

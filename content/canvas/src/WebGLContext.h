@@ -122,15 +122,16 @@ class WebGLContext :
     public nsWrapperCache
 {
     friend class WebGLContextUserData;
-    friend class WebGLMemoryPressureObserver;
-    friend class WebGLMemoryTracker;
-    friend class WebGLExtensionLoseContext;
-    friend class WebGLExtensionCompressedTextureS3TC;
     friend class WebGLExtensionCompressedTextureATC;
+    friend class WebGLExtensionCompressedTextureETC1;
     friend class WebGLExtensionCompressedTexturePVRTC;
+    friend class WebGLExtensionCompressedTextureS3TC;
     friend class WebGLExtensionDepthTexture;
     friend class WebGLExtensionDrawBuffers;
+    friend class WebGLExtensionLoseContext;
     friend class WebGLExtensionVertexArray;
+    friend class WebGLMemoryPressureObserver;
+    friend class WebGLMemoryTracker;
 
     enum {
         UNPACK_FLIP_Y_WEBGL = 0x9240,
@@ -151,8 +152,7 @@ public:
     NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(WebGLContext,
                                                            nsIDOMWebGLRenderingContext)
 
-    virtual JSObject* WrapObject(JSContext *cx,
-                                 JS::Handle<JSObject*> scope) = 0;
+    virtual JSObject* WrapObject(JSContext *cx) = 0;
 
     NS_DECL_NSIDOMWEBGLRENDERINGCONTEXT
 
@@ -177,6 +177,7 @@ public:
     mozilla::TemporaryRef<mozilla::gfx::SourceSurface> GetSurfaceSnapshot() MOZ_OVERRIDE;
 
     NS_IMETHOD SetIsOpaque(bool b) MOZ_OVERRIDE { return NS_OK; };
+    bool GetIsOpaque() MOZ_OVERRIDE { return false; }
     NS_IMETHOD SetContextOptions(JSContext* aCx,
                                  JS::Handle<JS::Value> aOptions) MOZ_OVERRIDE;
 
@@ -243,10 +244,6 @@ public:
 
     // Calls ForceClearFramebufferWithDefaultValues() for the Context's 'screen'.
     void ClearScreen();
-
-    // checks for GL errors, clears any pending GL error, stores the current GL error in currentGLError (if not nullptr),
-    // and copies it into mWebGLError if it doesn't already have an error set
-    void UpdateWebGLErrorAndClearGLError(GLenum *currentGLError = nullptr);
 
     bool MinCapabilityMode() const { return mMinCapability; }
 
@@ -789,7 +786,8 @@ private:
 
     bool DrawArrays_check(GLint first, GLsizei count, GLsizei primcount, const char* info);
     bool DrawElements_check(GLsizei count, GLenum type, WebGLintptr byteOffset,
-                            GLsizei primcount, const char* info);
+                            GLsizei primcount, const char* info,
+                            GLuint* out_upperBound = nullptr);
     bool DrawInstanced_check(const char* info);
     void Draw_cleanup();
 
@@ -817,7 +815,6 @@ protected:
     WebGLVertexAttrib0Status WhatDoesVertexAttrib0Need();
     bool DoFakeVertexAttrib0(GLuint vertexCount);
     void UndoFakeVertexAttrib0();
-    void InvalidateFakeVertexAttrib0();
 
     static CheckedUint32 GetImageSize(GLsizei height,
                                       GLsizei width,
@@ -852,7 +849,12 @@ protected:
     void DeleteWebGLObjectsArray(nsTArray<WebGLObjectType>& array);
 
     GLuint mActiveTexture;
+
+    // glGetError sources:
+    bool mEmitContextLostErrorOnce;
     GLenum mWebGLError;
+    GLenum mUnderlyingGLError;
+    GLenum GetAndFlushUnderlyingGLErrors();
 
     // whether shader validation is supported
     bool mShaderValidation;
@@ -895,6 +897,7 @@ protected:
     // -------------------------------------------------------------------------
     // WebGL extensions (implemented in WebGLContextExtensions.cpp)
     enum WebGLExtensionID {
+        EXT_color_buffer_half_float,
         EXT_frag_depth,
         EXT_sRGB,
         EXT_texture_filter_anisotropic,
@@ -905,7 +908,9 @@ protected:
         OES_texture_half_float,
         OES_texture_half_float_linear,
         OES_vertex_array_object,
+        WEBGL_color_buffer_float,
         WEBGL_compressed_texture_atc,
+        WEBGL_compressed_texture_etc1,
         WEBGL_compressed_texture_pvrtc,
         WEBGL_compressed_texture_s3tc,
         WEBGL_debug_renderer_info,
@@ -932,7 +937,6 @@ protected:
     static const char* GetExtensionString(WebGLExtensionID ext);
 
     nsTArray<GLenum> mCompressedTextureFormats;
-
 
     // -------------------------------------------------------------------------
     // WebGL 2 specifics (implemented in WebGL2Context.cpp)
@@ -1203,8 +1207,6 @@ protected:
     JS::Value WebGLObjectAsJSValue(JSContext *cx, const WebGLObjectType *, ErrorResult& rv) const;
     template <typename WebGLObjectType>
     JSObject* WebGLObjectAsJSObject(JSContext *cx, const WebGLObjectType *, ErrorResult& rv) const;
-
-    void ReattachTextureToAnyFramebufferToWorkAroundBugs(WebGLTexture *tex, GLint level);
 
 #ifdef XP_MACOSX
     // see bug 713305. This RAII helper guarantees that we're on the discrete GPU, during its lifetime

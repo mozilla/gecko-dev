@@ -15,6 +15,7 @@
 
 #include "vm/Interpreter.h"
 #include "vm/ScopeObject.h"
+#include "vm/TypedArrayObject.h"
 
 #include "jsatominlines.h"
 #include "jscntxtinlines.h"
@@ -131,6 +132,8 @@ Shape::search(ExclusiveContext *cx, Shape *start, jsid id, Shape ***pspp, bool a
             if (Shape::hashify(cx, start)) {
                 Shape **spp = start->table().search(id, adding);
                 return SHAPE_FETCH(spp);
+            } else {
+                cx->recoverFromOutOfMemory();
             }
         }
         /*
@@ -187,8 +190,7 @@ inline
 AutoRooterGetterSetter::Inner::Inner(ThreadSafeContext *cx, uint8_t attrs,
                                      PropertyOp *pgetter_, StrictPropertyOp *psetter_)
   : CustomAutoRooter(cx), attrs(attrs),
-    pgetter(pgetter_), psetter(psetter_),
-    getterRoot(cx, pgetter_), setterRoot(cx, psetter_)
+    pgetter(pgetter_), psetter(psetter_)
 {
     JS_ASSERT_IF(attrs & JSPROP_GETTER, !IsPoisonedPtr(*pgetter));
     JS_ASSERT_IF(attrs & JSPROP_SETTER, !IsPoisonedPtr(*psetter));
@@ -202,6 +204,20 @@ AutoRooterGetterSetter::AutoRooterGetterSetter(ThreadSafeContext *cx, uint8_t at
     if (attrs & (JSPROP_GETTER | JSPROP_SETTER))
         inner.construct(cx, attrs, pgetter, psetter);
     MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+}
+
+static inline uint8_t
+GetShapeAttributes(JSObject *obj, Shape *shape)
+{
+    JS_ASSERT(obj->isNative());
+
+    if (IsImplicitDenseOrTypedArrayElement(shape)) {
+        if (obj->is<TypedArrayObject>())
+            return JSPROP_ENUMERATE | JSPROP_PERMANENT;
+        return JSPROP_ENUMERATE;
+    }
+
+    return shape->attributes();
 }
 
 } /* namespace js */

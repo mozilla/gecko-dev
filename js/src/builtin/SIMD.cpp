@@ -137,7 +137,7 @@ class Float32x4Defn {
 } // namespace js
 
 const JSFunctionSpec js::Float32x4Defn::TypeDescriptorMethods[] = {
-    JS_SELF_HOSTED_FN("toSource", "DescrToSourceMethod", 0, 0),
+    JS_SELF_HOSTED_FN("toSource", "DescrToSource", 0, 0),
     JS_SELF_HOSTED_FN("array", "ArrayShorthand", 1, 0),
     JS_SELF_HOSTED_FN("equivalent", "TypeDescrEquivalent", 1, 0),
     JS_FS_END
@@ -158,7 +158,7 @@ const JSFunctionSpec js::Float32x4Defn::TypedObjectMethods[] = {
 };
 
 const JSFunctionSpec js::Int32x4Defn::TypeDescriptorMethods[] = {
-    JS_SELF_HOSTED_FN("toSource", "DescrToSourceMethod", 0, 0),
+    JS_SELF_HOSTED_FN("toSource", "DescrToSource", 0, 0),
     JS_SELF_HOSTED_FN("array", "ArrayShorthand", 1, 0),
     JS_SELF_HOSTED_FN("equivalent", "TypeDescrEquivalent", 1, 0),
     JS_FS_END,
@@ -180,17 +180,31 @@ const JSFunctionSpec js::Int32x4Defn::TypedObjectMethods[] = {
 
 template<typename T>
 static JSObject *
-CreateX4Class(JSContext *cx, Handle<GlobalObject*> global)
+CreateX4Class(JSContext *cx,
+              Handle<GlobalObject*> global,
+              HandlePropertyName stringRepr)
 {
+    const X4TypeDescr::Type type = T::type;
+
     RootedObject funcProto(cx, global->getOrCreateFunctionPrototype(cx));
     if (!funcProto)
         return nullptr;
 
-    // Create type representation.
+    // Create type constructor itself and initialize its reserved slots.
 
-    RootedObject typeReprObj(cx);
-    typeReprObj = X4TypeRepresentation::Create(cx, T::type);
-    if (!typeReprObj)
+    Rooted<X4TypeDescr*> x4(cx);
+    x4 = NewObjectWithProto<X4TypeDescr>(cx, funcProto, global, TenuredObject);
+    if (!x4)
+        return nullptr;
+
+    x4->initReservedSlot(JS_DESCR_SLOT_KIND, Int32Value(TypeDescr::X4));
+    x4->initReservedSlot(JS_DESCR_SLOT_STRING_REPR, StringValue(stringRepr));
+    x4->initReservedSlot(JS_DESCR_SLOT_ALIGNMENT, Int32Value(X4TypeDescr::size(type)));
+    x4->initReservedSlot(JS_DESCR_SLOT_SIZE, Int32Value(X4TypeDescr::alignment(type)));
+    x4->initReservedSlot(JS_DESCR_SLOT_OPAQUE, BooleanValue(false));
+    x4->initReservedSlot(JS_DESCR_SLOT_TYPE, Int32Value(T::type));
+
+    if (!CreateUserSizeAndAlignmentProperties(cx, x4))
         return nullptr;
 
     // Create prototype property, which inherits from Object.prototype.
@@ -198,19 +212,12 @@ CreateX4Class(JSContext *cx, Handle<GlobalObject*> global)
     RootedObject objProto(cx, global->getOrCreateObjectPrototype(cx));
     if (!objProto)
         return nullptr;
-    RootedObject proto(cx);
-    proto = NewObjectWithProto<JSObject>(cx, objProto, global, SingletonObject);
+    Rooted<TypedProto*> proto(cx);
+    proto = NewObjectWithProto<TypedProto>(cx, objProto, nullptr, TenuredObject);
     if (!proto)
         return nullptr;
-
-    // Create type constructor itself and initialize its reserved slots.
-
-    Rooted<X4TypeDescr*> x4(cx);
-    x4 = NewObjectWithProto<X4TypeDescr>(cx, funcProto, global, TenuredObject);
-    if (!x4 || !InitializeCommonTypeDescriptorProperties(cx, x4, typeReprObj))
-        return nullptr;
-    x4->initReservedSlot(JS_DESCR_SLOT_TYPE_REPR, ObjectValue(*typeReprObj));
-    x4->initReservedSlot(JS_DESCR_SLOT_TYPE, Int32Value(T::type));
+    proto->initTypeDescrSlot(*x4);
+    x4->initReservedSlot(JS_DESCR_SLOT_TYPROTO, ObjectValue(*proto));
 
     // Link constructor to prototype and install properties.
 
@@ -309,7 +316,9 @@ SIMDObject::initClass(JSContext *cx, Handle<GlobalObject *> global)
 
     // float32x4
 
-    RootedObject float32x4Object(cx, CreateX4Class<Float32x4Defn>(cx, global));
+    RootedObject float32x4Object(cx);
+    float32x4Object = CreateX4Class<Float32x4Defn>(cx, global,
+                                                   cx->names().float32x4);
     if (!float32x4Object)
         return nullptr;
 
@@ -324,7 +333,9 @@ SIMDObject::initClass(JSContext *cx, Handle<GlobalObject *> global)
 
     // int32x4
 
-    RootedObject int32x4Object(cx, CreateX4Class<Int32x4Defn>(cx, global));
+    RootedObject int32x4Object(cx);
+    int32x4Object = CreateX4Class<Int32x4Defn>(cx, global,
+                                               cx->names().int32x4);
     if (!int32x4Object)
         return nullptr;
 
@@ -526,7 +537,7 @@ Func(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    if (argc == 1) {
+    if (args.length() == 1) {
         if((!args[0].isObject() || !ObjectIsVector<V>(args[0].toObject()))) {
             JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_TYPED_ARRAY_BAD_ARGS);
             return false;
@@ -545,7 +556,7 @@ Func(JSContext *cx, unsigned argc, Value *vp)
         args.rval().setObject(*obj);
         return true;
 
-    } else if (argc == 2) {
+    } else if (args.length() == 2) {
         if((!args[0].isObject() || !ObjectIsVector<V>(args[0].toObject())) ||
            (!args[1].isObject() || !ObjectIsVector<V>(args[1].toObject())))
         {
@@ -582,7 +593,7 @@ FuncWith(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    if ((argc != 2) ||
+    if ((args.length() != 2) ||
         (!args[0].isObject() || !ObjectIsVector<V>(args[0].toObject())) ||
         (!args[1].isNumber() && !args[1].isBoolean()))
     {
@@ -618,7 +629,7 @@ FuncShuffle(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    if(argc == 2){
+    if (args.length() == 2) {
         if ((!args[0].isObject() || !ObjectIsVector<V>(args[0].toObject())) ||
             (!args[1].isNumber()))
         {
@@ -641,7 +652,7 @@ FuncShuffle(JSContext *cx, unsigned argc, Value *vp)
 
         args.rval().setObject(*obj);
         return true;
-    } else if (argc == 3){
+    } else if (args.length() == 3) {
         if ((!args[0].isObject() || !ObjectIsVector<V>(args[0].toObject())) ||
             (!args[1].isObject() || !ObjectIsVector<V>(args[1].toObject())) ||
             (!args[2].isNumber()))
@@ -683,7 +694,7 @@ FuncConvert(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    if ((argc != 1) ||
+    if ((args.length() != 1) ||
        (!args[0].isObject() || !ObjectIsVector<V>(args[0].toObject())))
     {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_TYPED_ARRAY_BAD_ARGS);
@@ -710,7 +721,7 @@ FuncConvertBits(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    if ((argc != 1) ||
+    if ((args.length() != 1) ||
        (!args[0].isObject() || !ObjectIsVector<V>(args[0].toObject())))
     {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_TYPED_ARRAY_BAD_ARGS);
@@ -734,7 +745,7 @@ FuncZero(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    if (argc != 0) {
+    if (args.length() != 0) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_TYPED_ARRAY_BAD_ARGS);
         return false;
     }
@@ -756,7 +767,7 @@ FuncSplat(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    if ((argc != 1) || (!args[0].isNumber())) {
+    if ((args.length() != 1) || (!args[0].isNumber())) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_TYPED_ARRAY_BAD_ARGS);
         return false;
     }
@@ -780,7 +791,7 @@ Int32x4Bool(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    if ((argc != 4) ||
+    if ((args.length() != 4) ||
         (!args[0].isBoolean()) || !args[1].isBoolean() ||
         (!args[2].isBoolean()) || !args[3].isBoolean())
     {
@@ -804,7 +815,7 @@ Float32x4Clamp(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    if ((argc != 3) ||
+    if ((args.length() != 3) ||
         (!args[0].isObject() || !ObjectIsVector<Float32x4>(args[0].toObject())) ||
         (!args[1].isObject() || !ObjectIsVector<Float32x4>(args[1].toObject())) ||
         (!args[2].isObject() || !ObjectIsVector<Float32x4>(args[2].toObject())))
@@ -841,7 +852,7 @@ Int32x4Select(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
-    if ((argc != 3) ||
+    if ((args.length() != 3) ||
         (!args[0].isObject() || !ObjectIsVector<Int32x4>(args[0].toObject())) ||
         (!args[1].isObject() || !ObjectIsVector<Float32x4>(args[1].toObject())) ||
         (!args[2].isObject() || !ObjectIsVector<Float32x4>(args[2].toObject())))
@@ -874,63 +885,36 @@ Int32x4Select(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
+#define DEFINE_SIMD_FLOAT32X4_FUNCTION(Name, Func, Operands, Flags, MIRId)     \
+bool                                                                           \
+js::simd_float32x4_##Name(JSContext *cx, unsigned argc, Value *vp)             \
+{                                                                              \
+    return Func(cx, argc, vp);                                                 \
+}
+FLOAT32X4_FUNCTION_LIST(DEFINE_SIMD_FLOAT32X4_FUNCTION)
+#undef DEFINE_SIMD_FLOAT32x4_FUNCTION
+
+#define DEFINE_SIMD_INT32X4_FUNCTION(Name, Func, Operands, Flags, MIRId)       \
+bool                                                                           \
+js::simd_int32x4_##Name(JSContext *cx, unsigned argc, Value *vp)               \
+{                                                                              \
+    return Func(cx, argc, vp);                                                 \
+}
+INT32X4_FUNCTION_LIST(DEFINE_SIMD_INT32X4_FUNCTION)
+#undef DEFINE_SIMD_INT32X4_FUNCTION
+
 const JSFunctionSpec js::Float32x4Methods[] = {
-        JS_FN("abs", (Func<Float32x4, Abs<float, Float32x4>, Float32x4>), 1, 0),
-        JS_FN("neg", (Func<Float32x4, Neg<float, Float32x4>, Float32x4>), 1, 0),
-        JS_FN("reciprocal", (Func<Float32x4, Rec<float, Float32x4>, Float32x4>), 1, 0),
-        JS_FN("reciprocalSqrt", (Func<Float32x4, RecSqrt<float, Float32x4>, Float32x4>), 1, 0),
-        JS_FN("sqrt", (Func<Float32x4, Sqrt<float, Float32x4>, Float32x4>), 1, 0),
-        JS_FN("add", (Func<Float32x4, Add<float, Float32x4>, Float32x4>), 2, 0),
-        JS_FN("sub", (Func<Float32x4, Sub<float, Float32x4>, Float32x4>), 2, 0),
-        JS_FN("div", (Func<Float32x4, Div<float, Float32x4>, Float32x4>), 2, 0),
-        JS_FN("mul", (Func<Float32x4, Mul<float, Float32x4>, Float32x4>), 2, 0),
-        JS_FN("max", (Func<Float32x4, Maximum<float, Float32x4>, Float32x4>), 2, 0),
-        JS_FN("min", (Func<Float32x4, Minimum<float, Float32x4>, Float32x4>), 2, 0),
-        JS_FN("lessThan", (Func<Float32x4, LessThan<float, Int32x4>, Int32x4>), 2, 0),
-        JS_FN("lessThanOrEqual", (Func<Float32x4, LessThanOrEqual<float, Int32x4>, Int32x4>), 2, 0),
-        JS_FN("greaterThan", (Func<Float32x4, GreaterThan<float, Int32x4>, Int32x4>), 2, 0),
-        JS_FN("greaterThanOrEqual", (Func<Float32x4, GreaterThanOrEqual<float, Int32x4>, Int32x4>), 2, 0),
-        JS_FN("equal", (Func<Float32x4, Equal<float, Int32x4>, Int32x4>), 2, 0),
-        JS_FN("notEqual", (Func<Float32x4, NotEqual<float, Int32x4>, Int32x4>), 2, 0),
-        JS_FN("withX", (FuncWith<Float32x4, WithX<float, Float32x4>, Float32x4>), 2, 0),
-        JS_FN("withY", (FuncWith<Float32x4, WithY<float, Float32x4>, Float32x4>), 2, 0),
-        JS_FN("withZ", (FuncWith<Float32x4, WithZ<float, Float32x4>, Float32x4>), 2, 0),
-        JS_FN("withW", (FuncWith<Float32x4, WithW<float, Float32x4>, Float32x4>), 2, 0),
-        JS_FN("shuffle", (FuncShuffle<Float32x4, Shuffle<float, Float32x4>, Float32x4>), 2, 0),
-        JS_FN("shuffleMix", (FuncShuffle<Float32x4, Shuffle<float, Float32x4>, Float32x4>), 3, 0),
-        JS_FN("scale", (FuncWith<Float32x4, Scale<float, Float32x4>, Float32x4>), 2, 0),
-        JS_FN("clamp", Float32x4Clamp, 3, 0),
-        JS_FN("toInt32x4", (FuncConvert<Float32x4, Int32x4>), 1, 0),
-        JS_FN("bitsToInt32x4", (FuncConvertBits<Float32x4, Int32x4>), 1, 0),
-        JS_FN("zero", (FuncZero<Float32x4>), 0, 0),
-        JS_FN("splat", (FuncSplat<Float32x4>), 0, 0),
+#define SIMD_FLOAT32X4_FUNCTION_ITEM(Name, Func, Operands, Flags, MIRId)       \
+        JS_FN(#Name, js::simd_float32x4_##Name, Operands, Flags),
+        FLOAT32X4_FUNCTION_LIST(SIMD_FLOAT32X4_FUNCTION_ITEM)
+#undef SIMD_FLOAT32x4_FUNCTION_ITEM
         JS_FS_END
 };
 
 const JSFunctionSpec js::Int32x4Methods[] = {
-        JS_FN("not", (Func<Int32x4, Not<int32_t, Int32x4>, Int32x4>), 1, 0),
-        JS_FN("neg", (Func<Int32x4, Neg<int32_t, Int32x4>, Int32x4>), 1, 0),
-        JS_FN("add", (Func<Int32x4, Add<int32_t, Int32x4>, Int32x4>), 2, 0),
-        JS_FN("sub", (Func<Int32x4, Sub<int32_t, Int32x4>, Int32x4>), 2, 0),
-        JS_FN("mul", (Func<Int32x4, Mul<int32_t, Int32x4>, Int32x4>), 2, 0),
-        JS_FN("xor", (Func<Int32x4, Xor<int32_t, Int32x4>, Int32x4>), 2, 0),
-        JS_FN("and", (Func<Int32x4, And<int32_t, Int32x4>, Int32x4>), 2, 0),
-        JS_FN("or", (Func<Int32x4, Or<int32_t, Int32x4>, Int32x4>), 2, 0),
-        JS_FN("withX", (FuncWith<Int32x4, WithX<int32_t, Int32x4>, Int32x4>), 2, 0),
-        JS_FN("withY", (FuncWith<Int32x4, WithY<int32_t, Int32x4>, Int32x4>), 2, 0),
-        JS_FN("withZ", (FuncWith<Int32x4, WithZ<int32_t, Int32x4>, Int32x4>), 2, 0),
-        JS_FN("withW", (FuncWith<Int32x4, WithW<int32_t, Int32x4>, Int32x4>), 2, 0),
-        JS_FN("withFlagX", (FuncWith<Int32x4, WithFlagX<int32_t, Int32x4>, Int32x4>), 2, 0),
-        JS_FN("withFlagY", (FuncWith<Int32x4, WithFlagY<int32_t, Int32x4>, Int32x4>), 2, 0),
-        JS_FN("withFlagZ", (FuncWith<Int32x4, WithFlagZ<int32_t, Int32x4>, Int32x4>), 2, 0),
-        JS_FN("withFlagW", (FuncWith<Int32x4, WithFlagW<int32_t, Int32x4>, Int32x4>), 2, 0),
-        JS_FN("shuffle", (FuncShuffle<Int32x4, Shuffle<int32_t, Int32x4>, Int32x4>), 2, 0),
-        JS_FN("shuffleMix", (FuncShuffle<Int32x4, Shuffle<int32_t, Int32x4>, Int32x4>), 3, 0),
-        JS_FN("toFloat32x4", (FuncConvert<Int32x4, Float32x4>), 1, 0),
-        JS_FN("bitsToFloat32x4", (FuncConvertBits<Int32x4, Float32x4>), 1, 0),
-        JS_FN("zero", (FuncZero<Int32x4>), 0, 0),
-        JS_FN("splat", (FuncSplat<Int32x4>), 0, 0),
-        JS_FN("select", Int32x4Select, 3, 0),
-        JS_FN("bool", Int32x4Bool, 4, 0),
+#define SIMD_INT32X4_FUNCTION_ITEM(Name, Func, Operands, Flags, MIRId)         \
+        JS_FN(#Name, js::simd_int32x4_##Name, Operands, Flags),
+        INT32X4_FUNCTION_LIST(SIMD_INT32X4_FUNCTION_ITEM)
+#undef SIMD_INT32X4_FUNCTION_ITEM
         JS_FS_END
 };

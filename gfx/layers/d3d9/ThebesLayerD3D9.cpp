@@ -9,8 +9,6 @@
 // typedefs conflicts.
 #include "mozilla/ArrayUtils.h"
 
-#include "ipc/AutoOpenSurface.h"
-
 #include "ThebesLayerD3D9.h"
 #include "gfxPlatform.h"
 
@@ -52,7 +50,6 @@ void
 ThebesLayerD3D9::InvalidateRegion(const nsIntRegion &aRegion)
 {
   mInvalidRegion.Or(mInvalidRegion, aRegion);
-  mInvalidRegion.SimplifyOutward(10);
   mValidRegion.Sub(mValidRegion, mInvalidRegion);
 }
 

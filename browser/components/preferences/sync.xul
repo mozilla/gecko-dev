@@ -186,7 +186,7 @@
         </vbox>
 
         <vbox id="noFxaAccount">
-          <label value="&welcome.description;"/>
+          <label>&welcome.description;</label>
           <label class="text-link"
                  onclick="gSyncPane.signUp(); return false;"
                  value="&welcome.createAccount.label;"/>
@@ -259,42 +259,40 @@
 
           <groupbox id="syncOptions">
             <caption label="&syncBrand.shortName.label;"/>
-            <vbox>
-              <richlistbox id="fxaSyncEnginesList"
-                           orient="vertical"
-                           onselect="if (this.selectedCount) this.clearSelection();">
-                <richlistitem>
-                  <checkbox label="&engine.addons.label;"
-                            accesskey="&engine.addons.accesskey;"
-                            preference="engine.addons"/>
-                </richlistitem>
-                <richlistitem>
-                  <checkbox label="&engine.bookmarks.label;"
-                            accesskey="&engine.bookmarks.accesskey;"
-                            preference="engine.bookmarks"/>
-                </richlistitem>
-                <richlistitem>
-                  <checkbox label="&engine.passwords.label;"
+            <hbox id="fxaSyncEngines">
+              <vbox>
+                <checkbox label="&engine.tabs.label;"
+                          accesskey="&engine.tabs.accesskey;"
+                          preference="engine.tabs"/>
+                <checkbox label="&engine.bookmarks.label;"
+                          accesskey="&engine.bookmarks.accesskey;"
+                          preference="engine.bookmarks"/>
+                <hbox>
+                  <checkbox id="fxa-pweng-chk"
+                            label="&engine.passwords.label;"
                             accesskey="&engine.passwords.accesskey;"
                             preference="engine.passwords"/>
-                </richlistitem>
-                <richlistitem>
-                  <checkbox label="&engine.prefs.label;"
-                            accesskey="&engine.prefs.accesskey;"
-                            preference="engine.prefs"/>
-                </richlistitem>
-                <richlistitem>
-                  <checkbox label="&engine.history.label;"
-                            accesskey="&engine.history.accesskey;"
-                            preference="engine.history"/>
-                </richlistitem>
-                <richlistitem>
-                  <checkbox label="&engine.tabs.label;"
-                            accesskey="&engine.tabs.accesskey;"
-                            preference="engine.tabs"/>
-                </richlistitem>
-              </richlistbox>
-            </vbox>
+
+                  <vbox id="fxa-pweng-help">
+                    <spacer flex="1"/>
+                    <hbox id="fxa-pweng-help-link">
+                      <image onclick="gSyncUtils.openMPInfoPage(event);" />
+                    </hbox>
+                    <spacer flex="1"/>
+                  </vbox>
+                </hbox>
+                <checkbox label="&engine.history.label;"
+                          accesskey="&engine.history.accesskey;"
+                          preference="engine.history"/>
+                <checkbox label="&engine.addons.label;"
+                          accesskey="&engine.addons.accesskey;"
+                          preference="engine.addons"/>
+                <checkbox label="&engine.prefs.label;"
+                          accesskey="&engine.prefs.accesskey;"
+                          preference="engine.prefs"/>
+              </vbox>
+              <spacer/>
+            </hbox>
           </groupbox>
           <hbox align="center">
             <label value="&syncDeviceName.label;"

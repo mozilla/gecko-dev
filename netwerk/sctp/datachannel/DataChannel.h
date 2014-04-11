@@ -192,6 +192,8 @@ public:
 
   void ReadBlob(already_AddRefed<DataChannelConnection> aThis, uint16_t aStream, nsIInputStream* aBlob);
 
+  void GetStreamIds(std::vector<uint16_t>* aStreamList);
+
 protected:
   friend class DataChannelOnMessageAvailable;
   // Avoid cycles with PeerConnectionImpl
@@ -223,7 +225,7 @@ private:
 
   void DeliverQueuedData(uint16_t stream);
 
-  already_AddRefed<DataChannel> OpenFinish(already_AddRefed<DataChannel> channel) NS_WARN_UNUSED_RESULT;
+  already_AddRefed<DataChannel> OpenFinish(already_AddRefed<DataChannel>&& aChannel);
 
   void StartDefer();
   bool SendDeferredMessages();

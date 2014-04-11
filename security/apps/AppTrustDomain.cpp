@@ -10,7 +10,7 @@
 
 #include "AppTrustDomain.h"
 #include "certdb.h"
-#include "insanity/pkix.h"
+#include "pkix/pkix.h"
 #include "mozilla/ArrayUtils.h"
 #include "nsIX509CertDB.h"
 #include "prerror.h"
@@ -23,7 +23,7 @@
 #include "marketplace-dev-reviewers.inc"
 #include "xpcshell.inc"
 
-using namespace insanity::pkix;
+using namespace mozilla::pkix;
 
 #ifdef PR_LOGGING
 extern PRLogModuleInfo* gPIPNSSLog;
@@ -88,7 +88,7 @@ AppTrustDomain::SetTrustedRoot(AppTrustedRoot trustedRoot)
 SECStatus
 AppTrustDomain::FindPotentialIssuers(const SECItem* encodedIssuerName,
                                      PRTime time,
-                             /*out*/ insanity::pkix::ScopedCERTCertList& results)
+                             /*out*/ mozilla::pkix::ScopedCERTCertList& results)
 {
   MOZ_ASSERT(mTrustedRoot);
   if (!mTrustedRoot) {
@@ -98,15 +98,6 @@ AppTrustDomain::FindPotentialIssuers(const SECItem* encodedIssuerName,
 
   results = CERT_CreateSubjectCertList(nullptr, CERT_GetDefaultCertDB(),
                                        encodedIssuerName, time, true);
-  if (!results) {
-    // NSS sometimes returns this unhelpful error code upon failing to find any
-    // candidate certificates.
-    if (PR_GetError() == SEC_ERROR_BAD_DATABASE) {
-      PR_SetError(SEC_ERROR_UNKNOWN_ISSUER, 0);
-    }
-    return SECFailure;
-  }
-
   return SECSuccess;
 }
 
@@ -177,7 +168,7 @@ SECStatus
 AppTrustDomain::VerifySignedData(const CERTSignedData* signedData,
                                   const CERTCertificate* cert)
 {
-  return ::insanity::pkix::VerifySignedData(signedData, cert, mPinArg);
+  return ::mozilla::pkix::VerifySignedData(signedData, cert, mPinArg);
 }
 
 SECStatus

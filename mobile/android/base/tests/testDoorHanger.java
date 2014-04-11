@@ -1,13 +1,9 @@
 package org.mozilla.gecko.tests;
 
-import org.mozilla.gecko.*;
-
-import android.app.Activity;
-import android.content.SharedPreferences;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.mozilla.gecko.Actions;
 
 /* This test will test if doorhangers are displayed and dismissed
    The test will test:
@@ -17,12 +13,6 @@ import org.json.JSONObject;
    * Password Manager doorhangers - Remember and Not Now options dismiss the doorhanger
 */
 public class testDoorHanger extends BaseTest {
-
-    @Override
-    protected int getTestType() {
-        return TEST_MOCHITEST;
-    }
-
     public void testDoorHanger() {
         String GEO_URL = getAbsoluteUrl("/robocop/robocop_geolocation.html");
         String BLANK_URL = getAbsoluteUrl("/robocop/robocop_blank_01.html");
@@ -77,14 +67,12 @@ public class testDoorHanger extends BaseTest {
 
 
         boolean offlineAllowedByDefault = true;
+        // Save offline-allow-by-default preferences first
+        final String[] prefNames = { "offline-apps.allow_by_default" };
+        final int ourRequestId = 0x7357;
+        final Actions.RepeatedEventExpecter eventExpecter = mActions.expectGeckoEvent("Preferences:Data");
+        mActions.sendPreferencesGetEvent(ourRequestId, prefNames);
         try {
-            // Save offline-allow-by-default preferences first
-            final String[] prefNames = { "offline-apps.allow_by_default" };
-            final int ourRequestId = 0x7357;
-
-            Actions.RepeatedEventExpecter eventExpecter = mActions.expectGeckoEvent("Preferences:Data");
-            mActions.sendPreferencesGetEvent(ourRequestId, prefNames);
-
             JSONObject data = null;
             int requestId = -1;
 
@@ -106,7 +94,7 @@ public class testDoorHanger extends BaseTest {
             jsonPref.put("name", "offline-apps.allow_by_default");
             jsonPref.put("type", "bool");
             jsonPref.put("value", false);
-            mActions.sendGeckoEvent("Preferences:Set", jsonPref.toString());
+            setPreferenceAndWaitForChange(jsonPref);
         } catch (JSONException e) {
             mAsserter.ok(false, "exception getting preference", e.toString());
         }
@@ -134,9 +122,9 @@ public class testDoorHanger extends BaseTest {
             // Revert offline setting
             JSONObject jsonPref = new JSONObject();
             jsonPref.put("name", "offline-apps.allow_by_default");
-            jsonPref.put("type", "boolean");
+            jsonPref.put("type", "bool");
             jsonPref.put("value", offlineAllowedByDefault);
-            mActions.sendGeckoEvent("Preferences:Set", jsonPref.toString());
+            setPreferenceAndWaitForChange(jsonPref);
         } catch (JSONException e) {
             mAsserter.ok(false, "exception setting preference", e.toString());
         }

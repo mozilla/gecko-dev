@@ -13,6 +13,7 @@
 #include "jit/IonSpewer.h"
 #include "jit/JitCompartment.h"
 #include "jit/Snapshots.h"
+#include "vm/TraceLogging.h"
 
 #include "jit/IonFrameIterator-inl.h"
 #include "vm/Stack-inl.h"
@@ -37,8 +38,13 @@ using namespace js::jit;
 // bailed out frame.
 
 SnapshotIterator::SnapshotIterator(const IonBailoutIterator &iter)
-  : SnapshotReader(iter.ionScript()->snapshots() + iter.snapshotOffset(),
-                   iter.ionScript()->snapshots() + iter.ionScript()->snapshotsSize()),
+  : snapshot_(iter.ionScript()->snapshots(),
+              iter.snapshotOffset(),
+              iter.ionScript()->snapshotsRVATableSize(),
+              iter.ionScript()->snapshotsListSize()),
+    recover_(snapshot_,
+             iter.ionScript()->recovers(),
+             iter.ionScript()->recoversSize()),
     fp_(iter.jsFrame()),
     machine_(iter.machineState()),
     ionScript_(iter.ionScript())
@@ -48,7 +54,7 @@ SnapshotIterator::SnapshotIterator(const IonBailoutIterator &iter)
 void
 IonBailoutIterator::dump() const
 {
-    if (type_ == IonFrame_OptimizedJS) {
+    if (type_ == JitFrame_IonJS) {
         InlineFrameIterator frames(GetJSContextFromJitCode(), this);
         for (;;) {
             frames.dump();
@@ -72,6 +78,9 @@ jit::Bailout(BailoutStack *sp, BaselineBailoutInfo **bailoutInfo)
     JitActivationIterator jitActivations(cx->runtime());
     IonBailoutIterator iter(jitActivations, sp);
     JitActivation *activation = jitActivations.activation()->asJit();
+
+    TraceLogger *logger = TraceLoggerForMainThread(cx->runtime());
+    TraceLogTimestamp(logger, TraceLogger::Bailout);
 
     IonSpew(IonSpew_Bailouts, "Took bailout! Snapshot offset: %d", iter.snapshotOffset());
 
@@ -103,6 +112,9 @@ jit::InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut,
     JitActivationIterator jitActivations(cx->runtime());
     IonBailoutIterator iter(jitActivations, sp);
     JitActivation *activation = jitActivations.activation()->asJit();
+
+    TraceLogger *logger = TraceLoggerForMainThread(cx->runtime());
+    TraceLogTimestamp(logger, TraceLogger::Invalidation);
 
     IonSpew(IonSpew_Bailouts, "Took invalidation bailout! Snapshot offset: %d", iter.snapshotOffset());
 
@@ -148,7 +160,7 @@ IonBailoutIterator::IonBailoutIterator(const JitActivationIterator &activations,
     const OsiIndex *osiIndex = frame.osiIndex();
 
     current_ = (uint8_t *) frame.fp();
-    type_ = IonFrame_OptimizedJS;
+    type_ = JitFrame_IonJS;
     topFrameSize_ = frame.frameSize();
     snapshotOffset_ = osiIndex->snapshotOffset();
 }

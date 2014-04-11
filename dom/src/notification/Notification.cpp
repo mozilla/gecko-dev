@@ -10,7 +10,6 @@
 #include "mozilla/Preferences.h"
 #include "TabChild.h"
 #include "nsContentUtils.h"
-#include "nsDOMEvent.h"
 #include "nsIAlertsService.h"
 #include "nsIAppsService.h"
 #include "nsIContentPermissionPrompt.h"
@@ -74,8 +73,7 @@ public:
                                                                        aTitle,
                                                                        options);
     JSAutoCompartment ac(aCx, mGlobal);
-    JS::Rooted<JSObject*> scope(aCx, mGlobal);
-    JS::Rooted<JSObject*> element(aCx, notification->WrapObject(aCx, scope));
+    JS::Rooted<JSObject*> element(aCx, notification->WrapObject(aCx));
     NS_ENSURE_TRUE(element, NS_ERROR_FAILURE);
 
     if (!JS_DefineElement(aCx, mNotifications, mCount++,
@@ -420,7 +418,7 @@ Notification::Notification(const nsAString& aID, const nsAString& aTitle, const 
                            NotificationDirection aDir, const nsAString& aLang,
                            const nsAString& aTag, const nsAString& aIconUrl,
 			   nsPIDOMWindow* aWindow)
-  : nsDOMEventTargetHelper(aWindow),
+  : DOMEventTargetHelper(aWindow),
     mID(aID), mTitle(aTitle), mBody(aBody), mDir(aDir), mLang(aLang),
     mTag(aTag), mIconUrl(aIconUrl), mIsClosed(false)
 {
@@ -580,11 +578,12 @@ Notification::ShowInternal()
         ops.mTextClickable = true;
         ops.mManifestURL = manifestUrl;
         ops.mId = alertName;
+        ops.mDbId = mID;
         ops.mDir = DirectionToString(mDir);
         ops.mLang = mLang;
         ops.mTag = mTag;
 
-        if (!ops.ToObject(cx, JS::NullPtr(), &val)) {
+        if (!ops.ToObject(cx, &val)) {
           NS_WARNING("Converting dict to object failed!");
           return;
         }
@@ -737,9 +736,9 @@ Notification::Get(const GlobalObject& aGlobal,
 }
 
 JSObject*
-Notification::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+Notification::WrapObject(JSContext* aCx)
 {
-  return mozilla::dom::NotificationBinding::Wrap(aCx, aScope, this);
+  return mozilla::dom::NotificationBinding::Wrap(aCx, this);
 }
 
 void

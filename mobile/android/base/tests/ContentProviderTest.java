@@ -1,23 +1,8 @@
-package org.mozilla.gecko.tests;
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import android.content.ContentProvider;
-import android.content.ContentValues;
-import android.content.Context;
-import android.content.ContentProviderResult;
-import android.content.ContentProviderOperation;
-import android.content.OperationApplicationException;
-import android.content.res.AssetManager;
-import android.content.res.Resources;
-import android.content.pm.ApplicationInfo;
-import android.content.SharedPreferences;
-import android.database.Cursor;
-import android.database.ContentObserver;
-import android.os.Build;
-import android.net.Uri;
-import android.test.IsolatedContext;
-import android.test.RenamingDelegatingContext;
-import android.test.mock.MockContentResolver;
-import android.test.mock.MockContext;
+package org.mozilla.gecko.tests;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -26,6 +11,25 @@ import java.util.concurrent.Callable;
 
 import org.mozilla.gecko.db.BrowserContract;
 import org.mozilla.gecko.db.BrowserProvider;
+
+import android.content.ContentProvider;
+import android.content.ContentProviderOperation;
+import android.content.ContentProviderResult;
+import android.content.ContentValues;
+import android.content.Context;
+import android.content.OperationApplicationException;
+import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
+import android.content.res.AssetManager;
+import android.content.res.Resources;
+import android.database.ContentObserver;
+import android.database.Cursor;
+import android.net.Uri;
+import android.os.Build;
+import android.test.IsolatedContext;
+import android.test.RenamingDelegatingContext;
+import android.test.mock.MockContentResolver;
+import android.test.mock.MockContext;
 
 /*
  * ContentProviderTest provides the infrastructure to run content provider
@@ -93,7 +97,7 @@ abstract class ContentProviderTest extends BaseTest {
         }
     }
 
-    private class DelegatingTestContentProvider extends ContentProvider {
+    protected class DelegatingTestContentProvider extends ContentProvider {
         ContentProvider mTargetProvider;
 
         public DelegatingTestContentProvider(ContentProvider targetProvider) {
@@ -153,6 +157,10 @@ abstract class ContentProviderTest extends BaseTest {
         public int bulkInsert(Uri uri, ContentValues[] values) {
             return mTargetProvider.bulkInsert(appendTestParam(uri), values);
         }
+
+        public ContentProvider getTargetProvider() {
+            return mTargetProvider;
+        }
     }
 
     /*
@@ -204,7 +212,7 @@ abstract class ContentProviderTest extends BaseTest {
         mResolver.addProvider(mProviderAuthority, mProvider);
     }
 
-    public Uri appendUriParam(Uri uri, String param, String value) throws Exception {
+    public static Uri appendUriParam(Uri uri, String param, String value) {
         return uri.buildUpon().appendQueryParameter(param, value).build();
     }
 

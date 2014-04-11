@@ -55,6 +55,8 @@ const TextureFlags TEXTURE_ON_WHITE           = 1 << 13;
 const TextureFlags TEXTURE_ON_BLACK           = 1 << 14;
 // A texture host that supports tiling
 const TextureFlags TEXTURE_TILE               = 1 << 15;
+// A texture should be recycled when no longer in used
+const TextureFlags TEXTURE_RECYCLE            = 1 << 16;
 // Texture contents should be initialized
 // from the previous texture.
 const TextureFlags TEXTURE_COPY_PREVIOUS      = 1 << 24;
@@ -102,6 +104,9 @@ const DiagnosticTypes DIAGNOSTIC_NONE             = 0;
 const DiagnosticTypes DIAGNOSTIC_TILE_BORDERS     = 1 << 0;
 const DiagnosticTypes DIAGNOSTIC_LAYER_BORDERS    = 1 << 1;
 const DiagnosticTypes DIAGNOSTIC_BIGIMAGE_BORDERS = 1 << 2;
+const DiagnosticTypes DIAGNOSTIC_FLASH_BORDERS    = 1 << 3;
+
+#define DIAGNOSTIC_FLASH_COUNTER_MAX 100
 
 /**
  * Information about the object that is being diagnosed.
@@ -133,24 +138,6 @@ enum EffectTypes
 };
 
 /**
- * The kind of memory held by the texture client/host pair. This will
- * determine how the texture client is drawn into and how the memory
- * is shared between client and host.
- */
-enum DeprecatedTextureClientType
-{
-  TEXTURE_CONTENT,            // dynamically drawn content
-  TEXTURE_SHMEM,              // shared memory
-  TEXTURE_YCBCR,              // Deprecated YCbCr texture
-  TEXTURE_SHARED_GL,          // GLContext::SharedTextureHandle
-  TEXTURE_SHARED_GL_EXTERNAL, // GLContext::SharedTextureHandle, the ownership of
-                              // the SurfaceDescriptor passed to the texture
-                              // remains with whoever passed it.
-  TEXTURE_STREAM_GL,          // WebGL streaming buffer
-  TEXTURE_FALLBACK            // A fallback path appropriate for the platform
-};
-
-/**
  * How the Compositable should manage textures.
  */
 enum CompositableType
@@ -160,11 +147,11 @@ enum CompositableType
   BUFFER_IMAGE_SINGLE,    // image/canvas with a single texture, single buffered
   BUFFER_IMAGE_BUFFERED,  // canvas, double buffered
   BUFFER_BRIDGE,          // image bridge protocol
-  BUFFER_CONTENT,         // thebes layer interface, single buffering
-  BUFFER_CONTENT_DIRECT,  // thebes layer interface, double buffering
   BUFFER_CONTENT_INC,     // thebes layer interface, only sends incremental
                           // updates to a texture on the compositor side.
+  // somewhere in the middle
   BUFFER_TILED,           // tiled thebes layer
+  BUFFER_SIMPLE_TILED,
   // the new compositable types
   COMPOSITABLE_IMAGE,     // image with single buffering
   COMPOSITABLE_CONTENT_SINGLE,  // thebes layer interface, single buffering

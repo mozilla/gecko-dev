@@ -12,7 +12,7 @@ NS_IMPL_NS_NEW_HTML_ELEMENT(Mod)
 namespace mozilla {
 namespace dom {
 
-HTMLModElement::HTMLModElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+HTMLModElement::HTMLModElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo)
 {
 }
@@ -24,9 +24,9 @@ HTMLModElement::~HTMLModElement()
 NS_IMPL_ELEMENT_CLONE(HTMLModElement)
 
 JSObject*
-HTMLModElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aScope)
+HTMLModElement::WrapNode(JSContext* aCx)
 {
-  return HTMLModElementBinding::Wrap(aCx, aScope, this);
+  return HTMLModElementBinding::Wrap(aCx, this);
 }
 
 } // namespace dom

@@ -65,7 +65,7 @@ NS_IMPL_ADDREF_INHERITED(ShadowRoot, DocumentFragment)
 NS_IMPL_RELEASE_INHERITED(ShadowRoot, DocumentFragment)
 
 ShadowRoot::ShadowRoot(nsIContent* aContent,
-                       already_AddRefed<nsINodeInfo> aNodeInfo,
+                       already_AddRefed<nsINodeInfo>&& aNodeInfo,
                        nsXBLPrototypeBinding* aProtoBinding)
   : DocumentFragment(aNodeInfo), mPoolHost(aContent),
     mProtoBinding(aProtoBinding), mShadowElement(nullptr),
@@ -97,9 +97,9 @@ ShadowRoot::~ShadowRoot()
 }
 
 JSObject*
-ShadowRoot::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+ShadowRoot::WrapObject(JSContext* aCx)
 {
-  return mozilla::dom::ShadowRootBinding::Wrap(aCx, aScope, this);
+  return mozilla::dom::ShadowRootBinding::Wrap(aCx, this);
 }
 
 ShadowRoot*

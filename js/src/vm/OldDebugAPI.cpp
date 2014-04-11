@@ -70,7 +70,7 @@ IsTopFrameConstructing(JSContext *cx, AbstractFramePtr frame)
 JSTrapStatus
 js::ScriptDebugPrologue(JSContext *cx, AbstractFramePtr frame, jsbytecode *pc)
 {
-    JS_ASSERT_IF(frame.isStackFrame(), frame.asStackFrame() == cx->interpreterFrame());
+    JS_ASSERT_IF(frame.isInterpreterFrame(), frame.asInterpreterFrame() == cx->interpreterFrame());
 
     if (!frame.script()->selfHosted()) {
         JSAbstractFramePtr jsframe(frame.raw(), pc);
@@ -108,7 +108,7 @@ js::ScriptDebugPrologue(JSContext *cx, AbstractFramePtr frame, jsbytecode *pc)
 bool
 js::ScriptDebugEpilogue(JSContext *cx, AbstractFramePtr frame, jsbytecode *pc, bool okArg)
 {
-    JS_ASSERT_IF(frame.isStackFrame(), frame.asStackFrame() == cx->interpreterFrame());
+    JS_ASSERT_IF(frame.isInterpreterFrame(), frame.asInterpreterFrame() == cx->interpreterFrame());
 
     bool ok = okArg;
 
@@ -211,9 +211,8 @@ CheckDebugMode(JSContext *cx)
 }
 
 JS_PUBLIC_API(bool)
-JS_SetSingleStepMode(JSContext *cx, JSScript *scriptArg, bool singleStep)
+JS_SetSingleStepMode(JSContext *cx, HandleScript script, bool singleStep)
 {
-    RootedScript script(cx, scriptArg);
     assertSameCompartment(cx, script);
 
     if (!CheckDebugMode(cx))
@@ -223,10 +222,9 @@ JS_SetSingleStepMode(JSContext *cx, JSScript *scriptArg, bool singleStep)
 }
 
 JS_PUBLIC_API(bool)
-JS_SetTrap(JSContext *cx, JSScript *scriptArg, jsbytecode *pc, JSTrapHandler handler, jsval closureArg)
+JS_SetTrap(JSContext *cx, HandleScript script, jsbytecode *pc, JSTrapHandler handler,
+           HandleValue closure)
 {
-    RootedScript script(cx, scriptArg);
-    RootedValue closure(cx, closureArg);
     assertSameCompartment(cx, script, closure);
 
     if (!CheckDebugMode(cx))
@@ -294,13 +292,11 @@ JS_ClearInterrupt(JSRuntime *rt, JSInterruptHook *hoop, void **closurep)
 /************************************************************************/
 
 JS_PUBLIC_API(bool)
-JS_SetWatchPoint(JSContext *cx, JSObject *obj_, jsid id_,
-                 JSWatchPointHandler handler, JSObject *closure_)
+JS_SetWatchPoint(JSContext *cx, HandleObject origobj, HandleId id,
+                 JSWatchPointHandler handler, HandleObject closure)
 {
-    assertSameCompartment(cx, obj_);
+    assertSameCompartment(cx, origobj);
 
-    RootedId id(cx, id_);
-    RootedObject origobj(cx, obj_), closure(cx, closure_);
     RootedObject obj(cx, GetInnerObject(cx, origobj));
     if (!obj)
         return false;
@@ -318,7 +314,7 @@ JS_SetWatchPoint(JSContext *cx, JSObject *obj_, jsid id_,
             return false;
     }
 
-    if (!obj->isNative()) {
+    if (!obj->isNative() || obj->is<TypedArrayObject>()) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_CANT_WATCH,
                              obj->getClass()->name);
         return false;
@@ -496,14 +492,13 @@ JS_ReleaseFunctionLocalNameArray(JSContext *cx, void *mem)
 }
 
 JS_PUBLIC_API(JSScript *)
-JS_GetFunctionScript(JSContext *cx, JSFunction *fun)
+JS_GetFunctionScript(JSContext *cx, HandleFunction fun)
 {
     if (fun->isNative())
         return nullptr;
     if (fun->isInterpretedLazy()) {
-        RootedFunction rootedFun(cx, fun);
-        AutoCompartment funCompartment(cx, rootedFun);
-        JSScript *script = rootedFun->getOrCreateScript(cx);
+        AutoCompartment funCompartment(cx, fun);
+        JSScript *script = fun->getOrCreateScript(cx);
         if (!script)
             MOZ_CRASH();
         return script;
@@ -659,10 +654,8 @@ GetPropertyDesc(JSContext *cx, JSObject *obj_, HandleShape shape, JSPropertyDesc
 }
 
 JS_PUBLIC_API(bool)
-JS_GetPropertyDescArray(JSContext *cx, JSObject *obj_, JSPropertyDescArray *pda)
+JS_GetPropertyDescArray(JSContext *cx, JS::HandleObject obj, JSPropertyDescArray *pda)
 {
-    RootedObject obj(cx, obj_);
-
     assertSameCompartment(cx, obj);
     uint32_t i = 0;
     JSPropertyDesc *pd = nullptr;
@@ -825,9 +818,8 @@ JS_GetGlobalDebugHooks(JSRuntime *rt)
 /************************************************************************/
 
 extern JS_PUBLIC_API(void)
-JS_DumpPCCounts(JSContext *cx, JSScript *scriptArg)
+JS_DumpPCCounts(JSContext *cx, HandleScript script)
 {
-    Rooted<JSScript*> script(cx, scriptArg);
     JS_ASSERT(script->hasScriptCounts());
 
     Sprinter sprinter(cx);
@@ -844,7 +836,7 @@ JS_PUBLIC_API(void)
 JS_DumpCompartmentPCCounts(JSContext *cx)
 {
     for (CellIter i(cx->zone(), gc::FINALIZE_SCRIPT); !i.done(); i.next()) {
-        JSScript *script = i.get<JSScript>();
+        RootedScript script(cx, i.get<JSScript>());
         if (script->compartment() != cx->compartment())
             continue;
 
@@ -900,8 +892,17 @@ CallContextDebugHandler(JSContext *cx, JSScript *script, jsbytecode *bc, Value *
 JS_FRIEND_API(bool)
 js_CallContextDebugHandler(JSContext *cx)
 {
-    NonBuiltinScriptFrameIter iter(cx);
-    JS_ASSERT(!iter.done());
+    NonBuiltinFrameIter iter(cx);
+
+    // If there is no script to debug, then abort execution even if the user
+    // clicks 'Debug' in the slow-script dialog.
+    if (!iter.hasScript())
+        return false;
+
+    // Even if script was running during the operation callback, it's possible
+    // it was a builtin which 'iter' will have skipped over.
+    if (iter.done())
+        return false;
 
     RootedValue rval(cx);
     RootedScript script(cx, iter.script());
@@ -939,7 +940,10 @@ JS::DescribeStack(JSContext *cx, unsigned maxFrames)
 {
     Vector<FrameDescription> frames(cx);
 
-    for (NonBuiltinScriptFrameIter i(cx); !i.done(); ++i) {
+    NonBuiltinScriptFrameIter i(cx, ScriptFrameIter::ALL_CONTEXTS,
+                                ScriptFrameIter::GO_THROUGH_SAVED,
+                                cx->compartment()->principals);
+    for ( ; !i.done(); ++i) {
         if (!frames.append(i))
             return nullptr;
         if (frames.length() == maxFrames)
@@ -983,7 +987,7 @@ class AutoPropertyDescArray
             JS_PutPropertyDescArray(cx_, &descArray_);
     }
 
-    void fetch(JSObject *obj) {
+    void fetch(JS::HandleObject obj) {
         JS_ASSERT(!descArray_.array);
         if (!JS_GetPropertyDescArray(cx_, obj, &descArray_))
             descArray_.array = nullptr;
@@ -1047,8 +1051,10 @@ FormatFrame(JSContext *cx, const NonBuiltinScriptFrameIter &iter, char *buf, int
     AutoPropertyDescArray thisProps(cx);
     if (iter.computeThis(cx)) {
         thisVal = iter.thisv();
-        if (showThisProps && !thisVal.isPrimitive())
-            thisProps.fetch(&thisVal.toObject());
+        if (showThisProps && !thisVal.isPrimitive()) {
+            RootedObject thisObj(cx, &thisVal.toObject());
+            thisProps.fetch(thisObj);
+        }
     }
 
     // print the frame number and function name
@@ -1298,9 +1304,6 @@ JSAbstractFramePtr::evaluateUCInStackFrame(JSContext *cx,
                                            const char *filename, unsigned lineno,
                                            MutableHandleValue rval)
 {
-    /* Protect inlined chars from root analysis poisoning. */
-    SkipRoot skipChars(cx, &chars);
-
     if (!CheckDebugMode(cx))
         return false;
 

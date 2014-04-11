@@ -268,6 +268,9 @@ PlacesViewBase.prototype = {
       aPopup._emptyMenuitem = document.createElement("menuitem");
       aPopup._emptyMenuitem.setAttribute("label", label);
       aPopup._emptyMenuitem.setAttribute("disabled", true);
+      aPopup._emptyMenuitem.className = "bookmark-item";
+      if (typeof this.options.extraClasses.entry == "string")
+        aPopup._emptyMenuitem.classList.add(this.options.extraClasses.entry);
     }
 
     if (aEmpty) {
@@ -317,21 +320,17 @@ PlacesViewBase.prototype = {
             element.setAttribute("hostContainer", "true");
         }
         else if (itemId != -1) {
-          PlacesUtils.livemarks.getLivemark(
-            { id: itemId },
-            function (aStatus, aLivemark) {
-              if (Components.isSuccessCode(aStatus)) {
-                element.setAttribute("livemark", "true");
+          PlacesUtils.livemarks.getLivemark({ id: itemId })
+            .then(aLivemark => {
+              element.setAttribute("livemark", "true");
 #ifdef XP_MACOSX
-                // OS X native menubar doesn't track list-style-images since
-                // it doesn't have a frame (bug 733415).  Thus enforce updating.
-                element.setAttribute("image", "");
-                element.removeAttribute("image");
+              // OS X native menubar doesn't track list-style-images since
+              // it doesn't have a frame (bug 733415).  Thus enforce updating.
+              element.setAttribute("image", "");
+              element.removeAttribute("image");
 #endif
-                this.controller.cacheLivemarkInfo(aPlacesNode, aLivemark);
-              }
-            }.bind(this)
-          );
+              this.controller.cacheLivemarkInfo(aPlacesNode, aLivemark);
+            }, () => undefined);
         }
 
         let popup = document.createElement("menupopup");
@@ -343,6 +342,9 @@ PlacesViewBase.prototype = {
 
         element.appendChild(popup);
         element.className = "menu-iconic bookmark-item";
+        if (typeof this.options.extraClasses.entry == "string") {
+          element.classList.add(this.options.extraClasses.entry);
+        }
 
         this._domNodes.set(aPlacesNode, popup);
       }
@@ -369,11 +371,8 @@ PlacesViewBase.prototype = {
     let before = aBefore || aPopup._endMarker;
 
     if (element.localName == "menuitem" || element.localName == "menu") {
-      let extraClasses = this.options.extraClasses;
-      if (aPopup == this._rootElt && typeof extraClasses.mainLevel == "string") {
-        element.classList.add(extraClasses.mainLevel);
-      } else if (typeof extraClasses.secondaryLevel == "string")
-        element.classList.add(extraClasses.secondaryLevel);
+      if (typeof this.options.extraClasses.entry == "string")
+        element.classList.add(this.options.extraClasses.entry);
     }
 
     aPopup.insertBefore(element, before);
@@ -395,6 +394,9 @@ PlacesViewBase.prototype = {
       // Add "Open (Feed Name)" menuitem.
       aPopup._siteURIMenuitem = document.createElement("menuitem");
       aPopup._siteURIMenuitem.className = "openlivemarksite-menuitem";
+      if (typeof this.options.extraClasses.entry == "string") {
+        aPopup._siteURIMenuitem.classList.add(this.options.extraClasses.entry);
+      }
       aPopup._siteURIMenuitem.setAttribute("targetURI", siteUrl);
       aPopup._siteURIMenuitem.setAttribute("oncommand",
         "openUILink(this.getAttribute('targetURI'), event);");
@@ -430,6 +432,9 @@ PlacesViewBase.prototype = {
       // Create the status menuitem and cache it in the popup object.
       statusMenuitem = document.createElement("menuitem");
       statusMenuitem.className = "livemarkstatus-menuitem";
+      if (typeof this.options.extraClasses.entry == "string") {
+        statusMenuitem.classList.add(this.options.extraClasses.entry);
+      }
       statusMenuitem.setAttribute("disabled", true);
       aPopup._statusMenuitem = statusMenuitem;
     }
@@ -509,16 +514,12 @@ PlacesViewBase.prototype = {
 #endif
       }
 
-      PlacesUtils.livemarks.getLivemark(
-        { id: aPlacesNode.itemId },
-        function (aStatus, aLivemark) {
-          if (Components.isSuccessCode(aStatus)) {
-            // Controller will use this to build the meta data for the node.
-            this.controller.cacheLivemarkInfo(aPlacesNode, aLivemark);
-            this.invalidateContainer(aPlacesNode);
-          }
-        }.bind(this)
-      );
+      PlacesUtils.livemarks.getLivemark({ id: aPlacesNode.itemId })
+        .then(aLivemark => {
+          // Controller will use this to build the meta data for the node.
+          this.controller.cacheLivemarkInfo(aPlacesNode, aLivemark);
+          this.invalidateContainer(aPlacesNode);
+        }, () => undefined);
     }
   },
 
@@ -647,26 +648,23 @@ PlacesViewBase.prototype = {
           return;
         }
 
-        PlacesUtils.livemarks.getLivemark({ id: aPlacesNode.itemId },
-          function (aStatus, aLivemark) {
-            if (Components.isSuccessCode(aStatus)) {
-              let shouldInvalidate =
-                !this.controller.hasCachedLivemarkInfo(aPlacesNode);
-              this.controller.cacheLivemarkInfo(aPlacesNode, aLivemark);
-              if (aNewState == Ci.nsINavHistoryContainerResultNode.STATE_OPENED) {
-                aLivemark.registerForUpdates(aPlacesNode, this);
-                // Prioritize the current livemark.
-                aLivemark.reload();
-                PlacesUtils.livemarks.reloadLivemarks();
-                if (shouldInvalidate)
-                  this.invalidateContainer(aPlacesNode);
-              }
-              else {
-                aLivemark.unregisterForUpdates(aPlacesNode);
-              }
+        PlacesUtils.livemarks.getLivemark({ id: aPlacesNode.itemId })
+          .then(aLivemark => {
+            let shouldInvalidate =
+              !this.controller.hasCachedLivemarkInfo(aPlacesNode);
+            this.controller.cacheLivemarkInfo(aPlacesNode, aLivemark);
+            if (aNewState == Ci.nsINavHistoryContainerResultNode.STATE_OPENED) {
+              aLivemark.registerForUpdates(aPlacesNode, this);
+              // Prioritize the current livemark.
+              aLivemark.reload();
+              PlacesUtils.livemarks.reloadLivemarks();
+              if (shouldInvalidate)
+                this.invalidateContainer(aPlacesNode);
             }
-          }.bind(this)
-        );
+            else {
+              aLivemark.unregisterForUpdates(aPlacesNode);
+            }
+          }, () => undefined);
       }
     }
   },
@@ -678,10 +676,10 @@ PlacesViewBase.prototype = {
     if (aPopup._startMarker.nextSibling == aPopup._endMarker)
       this._setLivemarkStatusMenuItem(aPopup, Ci.mozILivemark.STATUS_LOADING);
 
-    PlacesUtils.livemarks.getLivemark({ id: aPopup._placesNode.itemId },
-      function (aStatus, aLivemark) {
+    PlacesUtils.livemarks.getLivemark({ id: aPopup._placesNode.itemId })
+      .then(aLivemark => {
         let placesNode = aPopup._placesNode;
-        if (!Components.isSuccessCode(aStatus) || !placesNode.containerOpen)
+        if (!placesNode.containerOpen)
           return;
 
         if (aLivemark.status != Ci.mozILivemark.STATUS_LOADING)
@@ -698,8 +696,7 @@ PlacesViewBase.prototype = {
           else
             this._getDOMNodeForPlacesNode(child).removeAttribute("visited");
         }
-      }.bind(this)
-    );
+      }, Components.utils.reportError);
   },
 
   invalidateContainer: function PVB_invalidateContainer(aPlacesNode) {
@@ -776,6 +773,12 @@ PlacesViewBase.prototype = {
     }
 
     if (!hasMultipleURIs) {
+      aPopup.setAttribute("singleitempopup", "true");
+    } else {
+      aPopup.removeAttribute("singleitempopup");
+    }
+
+    if (!hasMultipleURIs) {
       // We don't have to show any option.
       if (aPopup._endOptOpenAllInTabs) {
         aPopup.removeChild(aPopup._endOptOpenAllInTabs);
@@ -794,6 +797,12 @@ PlacesViewBase.prototype = {
       // Add the "Open All in Tabs" menuitem.
       aPopup._endOptOpenAllInTabs = document.createElement("menuitem");
       aPopup._endOptOpenAllInTabs.className = "openintabs-menuitem";
+
+      if (typeof this.options.extraClasses.entry == "string")
+        aPopup._endOptOpenAllInTabs.classList.add(this.options.extraClasses.entry);
+      if (typeof this.options.extraClasses.footer == "string")
+        aPopup._endOptOpenAllInTabs.classList.add(this.options.extraClasses.footer);
+
       aPopup._endOptOpenAllInTabs.setAttribute("oncommand",
         "PlacesUIUtils.openContainerNodeInTabs(this.parentNode._placesNode, event, " +
                                                "PlacesUIUtils.getViewForNode(this));");
@@ -951,6 +960,10 @@ PlacesToolbar.prototype = {
     this._removeEventListeners(window, ["resize", "unload"], false);
     this._removeEventListeners(gBrowser.tabContainer, ["TabOpen", "TabClose"], false);
 
+    if (this._chevron._placesView) {
+      this._chevron._placesView.uninit();
+    }
+
     PlacesViewBase.prototype.uninit.apply(this, arguments);
   },
 
@@ -1008,15 +1021,11 @@ PlacesToolbar.prototype = {
             button.setAttribute("tagContainer", "true");
         }
         else if (PlacesUtils.nodeIsFolder(aChild)) {
-          PlacesUtils.livemarks.getLivemark(
-            { id: aChild.itemId },
-            function (aStatus, aLivemark) {
-              if (Components.isSuccessCode(aStatus)) {
-                button.setAttribute("livemark", "true");
-                this.controller.cacheLivemarkInfo(aChild, aLivemark);
-              }
-            }.bind(this)
-          );
+          PlacesUtils.livemarks.getLivemark({ id: aChild.itemId })
+            .then(aLivemark => {
+              button.setAttribute("livemark", "true");
+              this.controller.cacheLivemarkInfo(aChild, aLivemark);
+            }, () => undefined);
         }
 
         let popup = document.createElement("menupopup");
@@ -1268,15 +1277,11 @@ PlacesToolbar.prototype = {
       if (aAnno == PlacesUtils.LMANNO_FEEDURI) {
         elt.setAttribute("livemark", true);
 
-        PlacesUtils.livemarks.getLivemark(
-          { id: aPlacesNode.itemId },
-          function (aStatus, aLivemark) {
-            if (Components.isSuccessCode(aStatus)) {
-              this.controller.cacheLivemarkInfo(aPlacesNode, aLivemark);
-              this.invalidateContainer(aPlacesNode);
-            }
-          }.bind(this)
-        );
+        PlacesUtils.livemarks.getLivemark({ id: aPlacesNode.itemId })
+          .then(aLivemark => {
+            this.controller.cacheLivemarkInfo(aPlacesNode, aLivemark);
+            this.invalidateContainer(aPlacesNode);
+          }, Components.utils.reportError);
       }
     }
     else {
@@ -1575,6 +1580,7 @@ PlacesToolbar.prototype = {
       // Dragging over a normal toolbarbutton,
       // show indicator bar and move it to the appropriate drop point.
       let ind = this._dropIndicator;
+      ind.parentNode.collapsed = false;
       let halfInd = ind.clientWidth / 2;
       let translateX;
       if (this.isRTL) {
@@ -1821,10 +1827,9 @@ PlacesPanelMenuView.prototype = {
     }
     else {
       button = document.createElement("toolbarbutton");
-      let className = "bookmark-item";
-      if (typeof this.options.extraClasses.mainLevel == "string")
-        className += " " + this.options.extraClasses.mainLevel;
-      button.className = className;
+      button.className = "bookmark-item";
+      if (typeof this.options.extraClasses.entry == "string")
+        button.classList.add(this.options.extraClasses.entry);
       button.setAttribute("label", aChild.title);
       let icon = aChild.icon;
       if (icon)
@@ -1839,15 +1844,11 @@ PlacesPanelMenuView.prototype = {
             button.setAttribute("tagContainer", "true");
         }
         else if (PlacesUtils.nodeIsFolder(aChild)) {
-          PlacesUtils.livemarks.getLivemark(
-            { id: aChild.itemId },
-            function (aStatus, aLivemark) {
-              if (Components.isSuccessCode(aStatus)) {
-                button.setAttribute("livemark", "true");
-                this.controller.cacheLivemarkInfo(aChild, aLivemark);
-              }
-            }.bind(this)
-          );
+          PlacesUtils.livemarks.getLivemark({ id: aChild.itemId })
+            .then(aLivemark => {
+              button.setAttribute("livemark", "true");
+              this.controller.cacheLivemarkInfo(aChild, aLivemark);
+            }, () => undefined);
         }
       }
       else if (PlacesUtils.nodeIsURI(aChild)) {
@@ -1911,15 +1912,11 @@ PlacesPanelMenuView.prototype = {
     if (aAnno == PlacesUtils.LMANNO_FEEDURI) {
       elt.setAttribute("livemark", true);
 
-      PlacesUtils.livemarks.getLivemark(
-        { id: aPlacesNode.itemId },
-        function (aStatus, aLivemark) {
-          if (Components.isSuccessCode(aStatus)) {
-            this.controller.cacheLivemarkInfo(aPlacesNode, aLivemark);
-            this.invalidateContainer(aPlacesNode);
-          }
-        }.bind(this)
-      );
+      PlacesUtils.livemarks.getLivemark({ id: aPlacesNode.itemId })
+        .then(aLivemark => {
+          this.controller.cacheLivemarkInfo(aPlacesNode, aLivemark);
+          this.invalidateContainer(aPlacesNode);
+        }, Components.utils.reportError);
     }
   },
 

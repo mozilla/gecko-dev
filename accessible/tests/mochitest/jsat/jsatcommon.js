@@ -1,5 +1,10 @@
 // A common module to run tests on the AccessFu module
 
+'use strict';
+
+/*global isDeeply, getMainChromeWindow, SimpleTest, SpecialPowers, Logger,
+  AccessFu, Utils, addMessageListener, currentTabDocument, currentBrowser*/
+
 /**
   * A global variable holding an array of test functions.
   */
@@ -93,16 +98,11 @@ var AccessFuTest = {
     // Disable the console service logging.
     Logger.test = false;
     Logger.logLevel = Logger.INFO;
-    AccessFu.doneCallback = function doneCallback() {
-      // This is being called once AccessFu has been shut down.
-      // Detach AccessFu from everything it attached itself to.
+    // Finish through idle callback to let AccessFu._disable complete.
+    SimpleTest.executeSoon(function () {
       AccessFu.detach();
-      // and finish the test run.
       SimpleTest.finish();
-    };
-    // Tear down accessibility and make AccessFu stop.
-    SpecialPowers.setIntPref("accessibility.accessfu.notify_output", 0);
-    SpecialPowers.setIntPref("accessibility.accessfu.activate", 0);
+    });
   },
 
   nextTest: function AccessFuTest_nextTest() {
@@ -122,12 +122,12 @@ var AccessFuTest = {
   runTests: function AccessFuTest_runTests() {
     if (gTestFuncs.length === 0) {
       ok(false, "No tests specified!");
-      simpleTest.finish();
+      SimpleTest.finish();
       return;
     }
 
     // Create an Iterator for gTestFuncs array.
-    gIterator = Iterator(gTestFuncs);
+    gIterator = Iterator(gTestFuncs); // jshint ignore:line
 
     // Start AccessFu and put it in stand-by.
     Components.utils.import("resource://gre/modules/accessibility/AccessFu.jsm");
@@ -138,21 +138,21 @@ var AccessFuTest = {
       // Enable logging to the console service.
       Logger.test = true;
       Logger.logLevel = Logger.DEBUG;
-      // This is being called once accessibility has been turned on.
+    };
 
+    SpecialPowers.pushPrefEnv({
+      'set': [['accessibility.accessfu.notify_output', 1],
+              ['dom.mozSettings.enabled', true]]
+    }, function () {
       if (AccessFuTest._waitForExplicitFinish) {
         // Run all test functions asynchronously.
         AccessFuTest.nextTest();
       } else {
         // Run all test functions synchronously.
-        [testFunc() for (testFunc of gTestFuncs)];
+        [testFunc() for (testFunc of gTestFuncs)]; // jshint ignore:line
         AccessFuTest.finish();
       }
-    };
-
-    // Invoke the whole thing.
-    SpecialPowers.setIntPref("accessibility.accessfu.activate", 1);
-    SpecialPowers.setIntPref("accessibility.accessfu.notify_output", 1);
+    });
   }
 };
 
@@ -164,6 +164,7 @@ AccessFuContentTest.prototype = {
   currentPair: null,
 
   start: function(aFinishedCallback) {
+    Logger.logLevel = Logger.DEBUG;
     this.finishedCallback = aFinishedCallback;
     var self = this;
 
@@ -172,6 +173,11 @@ AccessFuContentTest.prototype = {
     this.setupMessageManager(this.mms[0], function () {
       // Get child message managers and set them up
       var frames = currentTabDocument().querySelectorAll('iframe');
+      if (frames.length === 0) {
+        self.pump();
+        return;
+      }
+
       var toSetup = 0;
       for (var i = 0; i < frames.length; i++ ) {
         var mm = Utils.getMessageManager(frames[i]);
@@ -189,6 +195,16 @@ AccessFuContentTest.prototype = {
     });
   },
 
+  finish: function() {
+    Logger.logLevel = Logger.INFO;
+    for (var mm of this.mms) {
+        mm.sendAsyncMessage('AccessFu:Stop');
+      }
+    if (this.finishedCallback) {
+      this.finishedCallback();
+    }
+  },
+
   setupMessageManager:  function (aMessageManager, aCallback) {
     function contentScript() {
       addMessageListener('AccessFuTest:Focus', function (aMessage) {
@@ -204,9 +220,13 @@ AccessFuContentTest.prototype = {
     }
 
     aMessageManager.addMessageListener('AccessFu:Present', this);
-    aMessageManager.addMessageListener('AccessFu:Ready', function (aMessage) {
+    aMessageManager.addMessageListener('AccessFu:CursorCleared', this);
+    aMessageManager.addMessageListener('AccessFu:Ready', function () {
       aMessageManager.addMessageListener('AccessFu:ContentStarted', aCallback);
-      aMessageManager.sendAsyncMessage('AccessFu:Start', { buildApp: 'browser' });
+      aMessageManager.sendAsyncMessage('AccessFu:Start',
+        { buildApp: 'browser',
+          androidSdkVersion: Utils.AndroidSdkVersion,
+          logLevel: 'DEBUG' });
     });
 
     aMessageManager.loadFrameScript(
@@ -221,15 +241,16 @@ AccessFuContentTest.prototype = {
     if (this.currentPair) {
       if (this.currentPair[0] instanceof Function) {
         this.currentPair[0](this.mms[0]);
-      } else {
+      } else if (this.currentPair[0]) {
         this.mms[0].sendAsyncMessage(this.currentPair[0].name,
-                                     this.currentPair[0].json);
+         this.currentPair[0].json);
       }
-    } else if (this.finishedCallback) {
-      for (var mm of this.mms) {
-	mm.sendAsyncMessage('AccessFu:Stop');
-      }
-      this.finishedCallback();
+
+      if (!this.currentPair[1]) {
+       this.pump();
+     }
+    } else {
+      this.finish();
     }
   },
 
@@ -238,24 +259,62 @@ AccessFuContentTest.prototype = {
       return;
     }
 
-    var expected = this.currentPair[1];
+    var expected = this.currentPair[1] || {};
 
-    if (expected) {
-      if (expected.speak !== undefined) {
-        var speech = this.extractUtterance(aMessage.json);
-        if (!speech) {
-          // Probably a visual highlight adjustment after a scroll.
-          return;
-        }
-        var checkFunc = SimpleTest[expected.speak_checkFunc] || is;
-        checkFunc(speech, expected.speak);
-      }
+    // |expected| can simply be a name of a message, no more further testing.
+    if (aMessage.name === expected) {
+      ok(true, 'Received ' + expected);
+      this.pump();
+      return;
     }
 
-    this.pump();
+    var speech = this.extractUtterance(aMessage.json);
+    var android = this.extractAndroid(aMessage.json, expected.android);
+    if ((speech && expected.speak) || (android && expected.android)) {
+      if (expected.speak) {
+        (SimpleTest[expected.speak_checkFunc] || is)(speech, expected.speak,
+          '"' + speech + '" spoken');
+      }
+
+      if (expected.android) {
+        var checkFunc = SimpleTest[expected.android_checkFunc] || ok;
+        checkFunc.apply(SimpleTest,
+          this.lazyCompare(android, expected.android));
+      }
+
+      this.pump();
+    }
+
+  },
+
+  lazyCompare: function lazyCompare(aReceived, aExpected) {
+    var matches = true;
+    var delta = [];
+    for (var attr in aExpected) {
+      var expected = aExpected[attr];
+      var received = aReceived !== undefined ? aReceived[attr] : null;
+      if (typeof expected === 'object') {
+        var [childMatches, childDelta] = this.lazyCompare(received, expected);
+        if (!childMatches) {
+          delta.push(attr + ' [ ' + childDelta + ' ]');
+          matches = false;
+        }
+      } else {
+        if (received !== expected) {
+          delta.push(
+            attr + ' [ expected ' + expected + ' got ' + received + ' ]');
+          matches = false;
+        }
+      }
+    }
+    return [matches, delta.join(' ')];
   },
 
   extractUtterance: function(aData) {
+    if (!aData) {
+      return null;
+    }
+
     for (var output of aData) {
       if (output && output.type === 'Speech') {
         for (var action of output.details.actions) {
@@ -267,5 +326,171 @@ AccessFuContentTest.prototype = {
     }
 
     return null;
+  },
+
+  extractAndroid: function(aData, aExpectedEvents) {
+    for (var output of aData) {
+      if (output && output.type === 'Android') {
+        for (var i in output.details) {
+          // Only extract if event types match expected event types.
+          var exp = aExpectedEvents ? aExpectedEvents[i] : null;
+          if (!exp || (output.details[i].eventType !== exp.eventType)) {
+            return null;
+          }
+        }
+        return output.details;
+      }
+    }
+
+    return null;
   }
+};
+
+// Common content messages
+
+var ContentMessages = {
+  simpleMoveFirst: {
+    name: 'AccessFu:MoveCursor',
+    json: {
+      action: 'moveFirst',
+      rule: 'Simple',
+      inputType: 'gesture',
+      origin: 'top'
+    }
+  },
+
+  simpleMoveLast: {
+    name: 'AccessFu:MoveCursor',
+    json: {
+      action: 'moveLast',
+      rule: 'Simple',
+      inputType: 'gesture',
+      origin: 'top'
+    }
+  },
+
+  simpleMoveNext: {
+    name: 'AccessFu:MoveCursor',
+    json: {
+      action: 'moveNext',
+      rule: 'Simple',
+      inputType: 'gesture',
+      origin: 'top'
+    }
+  },
+
+  simpleMovePrevious: {
+    name: 'AccessFu:MoveCursor',
+    json: {
+      action: 'movePrevious',
+      rule: 'Simple',
+      inputType: 'gesture',
+      origin: 'top'
+    }
+  },
+
+  clearCursor: {
+    name: 'AccessFu:ClearCursor',
+    json: {
+      origin: 'top'
+    }
+  },
+
+  adjustRangeUp: {
+    name: 'AccessFu:AdjustRange',
+    json: {
+      origin: 'top',
+      direction: 'backward'
+    }
+  },
+
+  adjustRangeDown: {
+    name: 'AccessFu:AdjustRange',
+    json: {
+      origin: 'top',
+      direction: 'forward'
+    }
+  },
+
+  focusSelector: function focusSelector(aSelector, aBlur) {
+    return {
+      name: 'AccessFuTest:Focus',
+      json: {
+        selector: aSelector,
+        blur: aBlur
+      }
+    };
+  },
+
+  activateCurrent: function activateCurrent(aOffset) {
+    return {
+      name: 'AccessFu:Activate',
+      json: {
+        origin: 'top',
+        offset: aOffset
+      }
+    };
+  },
+
+  moveNextBy: function moveNextBy(aGranularity) {
+    return {
+      name: 'AccessFu:MoveByGranularity',
+      json: {
+        direction: 'Next',
+        granularity: this._granularityMap[aGranularity]
+      }
+    };
+  },
+
+  movePreviousBy: function movePreviousBy(aGranularity) {
+    return {
+      name: 'AccessFu:MoveByGranularity',
+      json: {
+        direction: 'Previous',
+        granularity: this._granularityMap[aGranularity]
+      }
+    };
+  },
+
+  moveCaretNextBy: function moveCaretNextBy(aGranularity) {
+    return {
+      name: 'AccessFu:MoveCaret',
+      json: {
+        direction: 'Next',
+        granularity: this._granularityMap[aGranularity]
+      }
+    };
+  },
+
+  moveCaretPreviousBy: function moveCaretPreviousBy(aGranularity) {
+    return {
+      name: 'AccessFu:MoveCaret',
+      json: {
+        direction: 'Previous',
+        granularity: this._granularityMap[aGranularity]
+      }
+    };
+  },
+
+  _granularityMap: {
+    'character': 1, // MOVEMENT_GRANULARITY_CHARACTER
+    'word': 2, // MOVEMENT_GRANULARITY_WORD
+    'paragraph': 8 // MOVEMENT_GRANULARITY_PARAGRAPH
+  }
+};
+
+var AndroidEvent = {
+  VIEW_CLICKED: 0x01,
+  VIEW_LONG_CLICKED: 0x02,
+  VIEW_SELECTED: 0x04,
+  VIEW_FOCUSED: 0x08,
+  VIEW_TEXT_CHANGED: 0x10,
+  WINDOW_STATE_CHANGED: 0x20,
+  VIEW_HOVER_ENTER: 0x80,
+  VIEW_HOVER_EXIT: 0x100,
+  VIEW_SCROLLED: 0x1000,
+  VIEW_TEXT_SELECTION_CHANGED: 0x2000,
+  ANNOUNCEMENT: 0x4000,
+  VIEW_ACCESSIBILITY_FOCUSED: 0x8000,
+  VIEW_TEXT_TRAVERSED_AT_MOVEMENT_GRANULARITY: 0x20000
 };

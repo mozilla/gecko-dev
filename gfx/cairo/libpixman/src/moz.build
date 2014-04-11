@@ -60,11 +60,10 @@ SOURCES += [
 
 MSVC_ENABLE_PGO = True
 
-FINAL_LIBRARY = 'xul'
+FINAL_LIBRARY = 'gkmedias'
 LOCAL_INCLUDES += [
     '../../cairo/src',
 ]
-
 
 if CONFIG['MOZ_USE_PTHREADS']:
     DEFINES['HAVE_PTHREAD_SETSPECIFIC'] = True
@@ -111,15 +110,26 @@ elif 'arm' in CONFIG['OS_TEST']:
 if use_mmx:
     DEFINES['USE_MMX'] = True
     SOURCES += ['pixman-mmx.c']
+    SOURCES['pixman-mmx.c'].flags += CONFIG['MMX_FLAGS']
+    if CONFIG['GNU_CC']:
+        SOURCES['pixman-mmx.c'].flags += [
+            '-Winline',
+            '--param inline-unit-growth=10000',
+            '--param large-function-growth=10000',
+        ]
 
 if use_sse2:
     DEFINES['USE_SSE'] = True
     DEFINES['USE_SSE2'] = True
     SOURCES += ['pixman-sse2.c']
+    SOURCES['pixman-sse2.c'].flags += CONFIG['SSE_FLAGS'] + CONFIG['SSE2_FLAGS']
+    if CONFIG['GNU_CC']:
+        SOURCES['pixman-sse2.c'].flags += ['-Winline']
 
 if use_vmx:
     DEFINES['USE_VMX'] = True
     SOURCES += ['pixman-vmx.c']
+    SOURCES['pixman-vmx.c'].flags += ['-maltivec']
 
 if use_arm_simd_gcc:
     DEFINES['USE_ARM_SIMD'] = True
@@ -128,3 +138,17 @@ if use_arm_simd_gcc:
 if use_arm_neon_gcc:
     DEFINES['USE_ARM_NEON'] = True
     SOURCES += ['pixman-arm-neon.c']
+    SOURCES['pixman-arm-neon.c'].flags += ['-mfpu=neon']
+
+# Suppress warnings in third-party code.
+if CONFIG['GNU_CC']:
+    CFLAGS += [
+        '-Wno-address',
+        '-Wno-sign-compare'
+    ]
+    if CONFIG['CLANG_CXX']:
+        CFLAGS += [
+            '-Wno-incompatible-pointer-types',
+            '-Wno-tautological-compare',
+            '-Wno-tautological-constant-out-of-range-compare',
+        ]

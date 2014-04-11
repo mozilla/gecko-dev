@@ -6,6 +6,8 @@
 #include "mozilla/dom/SVGAElement.h"
 
 #include "mozilla/Attributes.h"
+#include "mozilla/EventDispatcher.h"
+#include "mozilla/EventStates.h"
 #include "mozilla/dom/SVGAElementBinding.h"
 #include "nsCOMPtr.h"
 #include "nsContentUtils.h"
@@ -19,9 +21,9 @@ namespace mozilla {
 namespace dom {
 
 JSObject*
-SVGAElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+SVGAElement::WrapNode(JSContext *aCx)
 {
-  return SVGAElementBinding::Wrap(aCx, aScope, this);
+  return SVGAElementBinding::Wrap(aCx, this);
 }
 
 nsSVGElement::StringInfo SVGAElement::sStringInfo[2] =
@@ -60,7 +62,7 @@ NS_IMPL_RELEASE_INHERITED(SVGAElement, SVGAElementBase)
 //----------------------------------------------------------------------
 // Implementation
 
-SVGAElement::SVGAElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+SVGAElement::SVGAElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : SVGAElementBase(aNodeInfo)
   , Link(MOZ_THIS_IN_INITIALIZER_LIST())
 {
@@ -76,7 +78,7 @@ SVGAElement::Href()
 // nsINode methods
 
 nsresult
-SVGAElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
+SVGAElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
 {
   nsresult rv = Element::PreHandleEvent(aVisitor);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -85,7 +87,7 @@ SVGAElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 }
 
 nsresult
-SVGAElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
+SVGAElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
 {
   return PostHandleEventForLinks(aVisitor);
 }
@@ -267,7 +269,7 @@ SVGAElement::GetLinkTarget(nsAString& aTarget)
   }
 }
 
-nsEventStates
+EventStates
 SVGAElement::IntrinsicState() const
 {
   return Link::LinkState() | SVGAElementBase::IntrinsicState();

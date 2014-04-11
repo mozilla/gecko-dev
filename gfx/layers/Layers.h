@@ -63,6 +63,7 @@ class GLContext;
 
 namespace gfx {
 class DrawTarget;
+class SurfaceStream;
 }
 
 namespace css {
@@ -164,6 +165,11 @@ static void LayerManagerUserDataDestroy(void *data)
 class LayerManager {
   NS_INLINE_DECL_REFCOUNTING(LayerManager)
 
+protected:
+  typedef mozilla::gfx::DrawTarget DrawTarget;
+  typedef mozilla::gfx::IntSize IntSize;
+  typedef mozilla::gfx::SurfaceFormat SurfaceFormat;
+
 public:
   LayerManager()
     : mDestroyed(false)
@@ -173,7 +179,6 @@ public:
   {
     InitLog();
   }
-  virtual ~LayerManager() {}
 
   /**
    * Release layers and resources held by this layer manager, and mark
@@ -420,21 +425,28 @@ public:
   virtual LayersBackend GetBackendType() = 0;
 
   /**
-   * Creates a surface which is optimized for inter-operating with this layer
-   * manager.
+   * Type of layers backend that will be used to composite this layer tree.
+   * When compositing is done remotely, then this returns the layers type
+   * of the compositor.
    */
-  virtual already_AddRefed<gfxASurface>
-    CreateOptimalSurface(const gfx::IntSize &aSize,
-                         gfxImageFormat imageFormat);
+  virtual LayersBackend GetCompositorBackendType() { return GetBackendType(); }
 
   /**
-   * Creates a surface for alpha masks which is optimized for inter-operating
-   * with this layer manager. In contrast to CreateOptimalSurface, this surface
-   * is optimised for drawing alpha only and we assume that drawing the mask
-   * is fairly simple.
+   * Creates a DrawTarget which is optimized for inter-operating with this
+   * layer manager.
    */
-  virtual already_AddRefed<gfxASurface>
-    CreateOptimalMaskSurface(const gfx::IntSize &aSize);
+  virtual TemporaryRef<DrawTarget>
+    CreateOptimalDrawTarget(const IntSize &aSize,
+                            SurfaceFormat imageFormat);
+
+  /**
+   * Creates a DrawTarget for alpha masks which is optimized for inter-
+   * operating with this layer manager. In contrast to CreateOptimalDrawTarget,
+   * this surface is optimised for drawing alpha only and we assume that
+   * drawing the mask is fairly simple.
+   */
+  virtual TemporaryRef<DrawTarget>
+    CreateOptimalMaskDrawTarget(const IntSize &aSize);
 
   /**
    * Creates a DrawTarget for use with canvas which is optimized for
@@ -595,11 +607,21 @@ public:
 
   bool IsInTransaction() const { return mInTransaction; }
 
+  virtual void SetRegionToClear(const nsIntRegion& aRegion)
+  {
+    mRegionToClear = aRegion;
+  }
+
 protected:
   nsRefPtr<Layer> mRoot;
   gfx::UserData mUserData;
   bool mDestroyed;
   bool mSnapEffectiveTransforms;
+
+  nsIntRegion mRegionToClear;
+
+  // Protected destructor, to discourage deletion outside of Release():
+  virtual ~LayerManager() {}
 
   // Print interesting information about this into aTo.  Internally
   // used to implement Dump*() and Log*().
@@ -657,8 +679,6 @@ public:
     TYPE_SHADOW,
     TYPE_THEBES
   };
-
-  virtual ~Layer();
 
   /**
    * Returns the LayerManager this Layer belongs to. Note that the layer
@@ -942,16 +962,20 @@ public:
   }
 
   // Call AddAnimation to add a new animation to this layer from layout code.
-  // Caller must add segments to the returned animation.
-  // aStart represents the time at the *end* of the delay.
-  Animation* AddAnimation(mozilla::TimeStamp aStart, mozilla::TimeDuration aDuration,
-                          float aIterations, int aDirection,
-                          nsCSSProperty aProperty, const AnimationData& aData);
+  // Caller must fill in all the properties of the returned animation.
+  Animation* AddAnimation();
   // ClearAnimations clears animations on this layer.
   void ClearAnimations();
   // This is only called when the layer tree is updated. Do not call this from
   // layout code.  To add an animation to this layer, use AddAnimation.
   void SetAnimations(const AnimationArray& aAnimations);
+
+  // These are a parallel to AddAnimation and clearAnimations, except
+  // they add pending animations that apply only when the next
+  // transaction is begun.  (See also
+  // SetBaseTransformForNextTransaction.)
+  Animation* AddAnimationForNextTransaction();
+  void ClearAnimationsForNextTransaction();
 
   /**
    * CONSTRUCTION PHASE ONLY
@@ -1296,6 +1320,13 @@ public:
    */
   void LogSelf(const char* aPrefix="");
 
+  // Print interesting information about this into aTo.  Internally
+  // used to implement Dump*() and Log*().  If subclasses have
+  // additional interesting properties, they should override this with
+  // an implementation that first calls the base implementation then
+  // appends additional info to aTo.
+  virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
+
   static bool IsLogEnabled() { return LayerManager::IsLogEnabled(); }
 
   /**
@@ -1330,6 +1361,7 @@ public:
 
   virtual LayerRenderState GetRenderState() { return LayerRenderState(); }
 
+
   void Mutated()
   {
     mManager->Mutated(this);
@@ -1338,12 +1370,8 @@ public:
 protected:
   Layer(LayerManager* aManager, void* aImplData);
 
-  // Print interesting information about this into aTo.  Internally
-  // used to implement Dump*() and Log*().  If subclasses have
-  // additional interesting properties, they should override this with
-  // an implementation that first calls the base implementation then
-  // appends additional info to aTo.
-  virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
+  // Protected destructor, to discourage deletion outside of Release():
+  virtual ~Layer();
 
   /**
    * We can snap layer transforms for two reasons:
@@ -1413,6 +1441,8 @@ protected:
   float mPostYScale;
   gfx::Matrix4x4 mEffectiveTransform;
   AnimationArray mAnimations;
+  // See mPendingTransform above.
+  nsAutoPtr<AnimationArray> mPendingAnimations;
   InfallibleTArray<AnimData> mAnimationData;
   float mOpacity;
   gfx::CompositionOp mMixBlendMode;
@@ -1790,6 +1820,8 @@ public:
     Data()
       : mDrawTarget(nullptr)
       , mGLContext(nullptr)
+      , mStream(nullptr)
+      , mTexID(0)
       , mSize(0,0)
       , mIsGLAlphaPremult(false)
     { }
@@ -1797,6 +1829,12 @@ public:
     // One of these two must be specified for Canvas2D, but never both
     mozilla::gfx::DrawTarget *mDrawTarget; // a DrawTarget for the canvas contents
     mozilla::gl::GLContext* mGLContext; // or this, for GL.
+
+    // Canvas/SkiaGL uses this
+    mozilla::gfx::SurfaceStream* mStream;
+
+    // ID of the texture backing the canvas layer (defaults to 0)
+    uint32_t mTexID;
 
     // The size of the canvas content
     nsIntSize mSize;

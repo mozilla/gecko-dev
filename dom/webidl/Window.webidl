@@ -16,6 +16,7 @@
  */
 
 interface ApplicationCache;
+interface IID;
 interface MozFrameRequestCallback;
 interface nsIBrowserDOMWindow;
 interface nsIMessageBroadcaster;
@@ -30,7 +31,7 @@ typedef any Transferable;
    CrossOriginReadable] readonly attribute WindowProxy window;
   [Replaceable, Throws,
    CrossOriginReadable] readonly attribute WindowProxy self;
-  //[Unforgeable] readonly attribute Document? document;
+  [Unforgeable, StoreInSlot, Pure, Func="nsGlobalWindow::WindowOnWebIDL"] readonly attribute Document? document;
   [Throws] attribute DOMString name; 
   [PutForwards=href, Unforgeable, Throws,
    CrossOriginReadable, CrossOriginWritable] readonly attribute Location? location;
@@ -65,7 +66,9 @@ typedef any Transferable;
 
   // the user agent
   [Throws] readonly attribute Navigator navigator; 
-  //(Not implemented)readonly attribute External external;
+#ifdef HAVE_SIDEBAR
+  [Replaceable, Throws] readonly attribute External external;
+#endif
   [Throws] readonly attribute ApplicationCache applicationCache;
 
   // user prompts
@@ -74,7 +77,7 @@ typedef any Transferable;
   [Throws] DOMString? prompt(optional DOMString message = "", optional DOMString default = "");
   [Throws] void print();
   //[Throws] any showModalDialog(DOMString url, optional any argument);
-  [Throws] any showModalDialog(DOMString url, any argument, optional DOMString options = "");
+  [Throws] any showModalDialog(DOMString url, optional any argument, optional DOMString options = "");
 
   [Throws, CrossOriginCallable] void postMessage(any message, DOMString targetOrigin, optional sequence<Transferable> transfer);
 
@@ -223,6 +226,14 @@ interface SpeechSynthesisGetter {
 Window implements SpeechSynthesisGetter;
 #endif
 
+// http://www.whatwg.org/specs/web-apps/current-work/
+[NoInterfaceObject]
+interface WindowModal {
+  [Throws, Func="nsGlobalWindow::IsModalContentWindow"] readonly attribute any dialogArguments;
+  [Throws, Func="nsGlobalWindow::IsModalContentWindow"] attribute any returnValue;
+};
+Window implements WindowModal;
+
 // Mozilla-specific stuff
 partial interface Window {
   //[NewObject, Throws] CSSStyleDeclaration getDefaultComputedStyle(Element elt, optional DOMString pseudoElt = "");
@@ -302,6 +313,9 @@ partial interface Window {
    */
   [Throws] readonly attribute unsigned long long mozPaintCount;
 
+  [Pure]
+           attribute EventHandler onwheel;
+
            attribute EventHandler ondevicemotion;
            attribute EventHandler ondeviceorientation;
            attribute EventHandler ondeviceproximity;
@@ -336,6 +350,8 @@ partial interface Window {
   [Replaceable, Throws] readonly attribute object? content;
 
   [ChromeOnly, Throws] readonly attribute object? __content;
+
+  [Throws, ChromeOnly] any getInterface(IID iid);
 };
 
 Window implements TouchEventHandlers;
@@ -348,8 +364,16 @@ partial interface Window {
   readonly attribute Console console;
 };
 
+#ifdef HAVE_SIDEBAR
+// Mozilla extension
+partial interface Window {
+  [Replaceable, Throws]
+  readonly attribute (External or WindowProxy) sidebar;
+};
+#endif
 
-[ChromeOnly] interface ChromeWindow {
+[Func="IsChromeOrXBL"]
+interface ChromeWindow {
   [Func="nsGlobalWindow::IsChromeWindow"]
   const unsigned short STATE_MAXIMIZED = 1;
   [Func="nsGlobalWindow::IsChromeWindow"]

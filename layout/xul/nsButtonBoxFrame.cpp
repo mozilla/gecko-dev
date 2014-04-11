@@ -11,11 +11,12 @@
 #include "nsNameSpaceManager.h"
 #include "nsPresContext.h"
 #include "nsIPresShell.h"
-#include "nsEventStateManager.h"
 #include "nsIDOMElement.h"
 #include "nsDisplayList.h"
 #include "nsContentUtils.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/EventStateManager.h"
+#include "mozilla/EventStates.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/TextEvents.h"
 
@@ -62,7 +63,7 @@ nsButtonBoxFrame::HandleEvent(nsPresContext* aPresContext,
         break;
       }
       if (NS_VK_SPACE == keyEvent->keyCode) {
-        nsEventStateManager* esm = aPresContext->EventStateManager();
+        EventStateManager* esm = aPresContext->EventStateManager();
         // :hover:active state
         esm->SetContentState(mContent, NS_EVENT_STATE_HOVER);
         esm->SetContentState(mContent, NS_EVENT_STATE_ACTIVE);
@@ -96,11 +97,11 @@ nsButtonBoxFrame::HandleEvent(nsPresContext* aPresContext,
       if (NS_VK_SPACE == keyEvent->keyCode) {
         // only activate on keyup if we're already in the :hover:active state
         NS_ASSERTION(mContent->IsElement(), "How do we have a non-element?");
-        nsEventStates buttonState = mContent->AsElement()->State();
+        EventStates buttonState = mContent->AsElement()->State();
         if (buttonState.HasAllStates(NS_EVENT_STATE_ACTIVE |
                                      NS_EVENT_STATE_HOVER)) {
           // return to normal state
-          nsEventStateManager *esm = aPresContext->EventStateManager();
+          EventStateManager* esm = aPresContext->EventStateManager();
           esm->SetContentState(nullptr, NS_EVENT_STATE_ACTIVE);
           esm->SetContentState(nullptr, NS_EVENT_STATE_HOVER);
           MouseClicked(aPresContext, aEvent);

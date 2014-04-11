@@ -239,10 +239,10 @@ public:
     mSource = aSource;
   }
 
-  virtual void ProduceAudioBlock(AudioNodeStream* aStream,
-                                 const AudioChunk& aInput,
-                                 AudioChunk* aOutput,
-                                 bool* aFinished) MOZ_OVERRIDE
+  virtual void ProcessBlock(AudioNodeStream* aStream,
+                            const AudioChunk& aInput,
+                            AudioChunk* aOutput,
+                            bool* aFinished) MOZ_OVERRIDE
   {
     MutexAutoLock lock(NodeMutex());
 
@@ -451,9 +451,9 @@ ScriptProcessorNode::~ScriptProcessorNode()
 }
 
 JSObject*
-ScriptProcessorNode::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+ScriptProcessorNode::WrapObject(JSContext* aCx)
 {
-  return ScriptProcessorNodeBinding::Wrap(aCx, aScope, this);
+  return ScriptProcessorNodeBinding::Wrap(aCx, this);
 }
 
 }

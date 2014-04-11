@@ -13,9 +13,12 @@
 #include "mozilla/dom/BindingDeclarations.h"
 #include "nsCycleCollectionParticipant.h"
 #include "mozilla/dom/PromiseBinding.h"
+#include "mozilla/dom/ToJSValue.h"
 #include "nsWrapperCache.h"
 #include "nsAutoPtr.h"
 #include "js/TypeDecls.h"
+
+#include "mozilla/dom/workers/bindings/WorkerFeature.h"
 
 class nsIGlobalObject;
 
@@ -27,6 +30,23 @@ class PromiseCallback;
 class PromiseInit;
 class PromiseNativeHandler;
 
+class Promise;
+class PromiseReportRejectFeature : public workers::WorkerFeature
+{
+  // The Promise that owns this feature.
+  Promise* mPromise;
+
+public:
+  PromiseReportRejectFeature(Promise* aPromise)
+    : mPromise(aPromise)
+  {
+    MOZ_ASSERT(mPromise);
+  }
+
+  virtual bool
+  Notify(JSContext* aCx, workers::Status aStatus) MOZ_OVERRIDE;
+};
+
 class Promise MOZ_FINAL : public nsISupports,
                           public nsWrapperCache
 {
@@ -34,6 +54,7 @@ class Promise MOZ_FINAL : public nsISupports,
   friend class PromiseResolverMixin;
   friend class PromiseResolverTask;
   friend class PromiseTask;
+  friend class PromiseReportRejectFeature;
   friend class RejectPromiseCallback;
   friend class ResolvePromiseCallback;
   friend class WorkerPromiseResolverTask;
@@ -58,7 +79,7 @@ public:
 
   // Helpers for using Promise from C++.
   // Most DOM objects are handled already.  To add a new type T, such as ints,
-  // or dictionaries, add an ArgumentToJSVal overload below.
+  // or dictionaries, add a ToJSValue overload in ToJSValue.h.
   template <typename T>
   void MaybeResolve(T& aArg) {
     MaybeSomething(aArg, &Promise::MaybeResolve);
@@ -77,7 +98,7 @@ public:
   }
 
   virtual JSObject*
-  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   static already_AddRefed<Promise>
   Constructor(const GlobalObject& aGlobal, PromiseInit& aInit,
@@ -100,17 +121,16 @@ public:
          JS::Handle<JS::Value> aValue, ErrorResult& aRv);
 
   already_AddRefed<Promise>
-  Then(AnyCallback* aResolveCallback, AnyCallback* aRejectCallback);
+  Then(JSContext* aCx, AnyCallback* aResolveCallback,
+       AnyCallback* aRejectCallback);
 
   already_AddRefed<Promise>
-  Catch(AnyCallback* aRejectCallback);
+  Catch(JSContext* aCx, AnyCallback* aRejectCallback);
 
-  // FIXME(nsm): Bug 956197
   static already_AddRefed<Promise>
   All(const GlobalObject& aGlobal, JSContext* aCx,
       const Sequence<JS::Value>& aIterable, ErrorResult& aRv);
 
-  // FIXME(nsm): Bug 956197
   static already_AddRefed<Promise>
   Race(const GlobalObject& aGlobal, JSContext* aCx,
        const Sequence<JS::Value>& aIterable, ErrorResult& aRv);
@@ -156,7 +176,14 @@ private:
 
   // If we have been rejected and our mResult is a JS exception,
   // report it to the error console.
+  // Use MaybeReportRejectedOnce() for actual calls.
   void MaybeReportRejected();
+
+  void MaybeReportRejectedOnce() {
+    MaybeReportRejected();
+    RemoveFeature();
+    mResult = JS::UndefinedValue();
+  }
 
   void MaybeResolveInternal(JSContext* aCx,
                             JS::Handle<JS::Value> aValue,
@@ -176,41 +203,6 @@ private:
   // Helper methods for using Promises from C++
   JSObject* GetOrCreateWrapper(JSContext* aCx);
 
-  // If ArgumentToJSValue returns false, it must set an exception on the
-  // JSContext.
-
-  // Accept strings.
-  bool
-  ArgumentToJSValue(const nsAString& aArgument,
-                    JSContext* aCx,
-                    JSObject* aScope,
-                    JS::MutableHandle<JS::Value> aValue);
-
-  // Accept objects that inherit from nsWrapperCache and nsISupports (e.g. most
-  // DOM objects).
-  template <class T>
-  typename EnableIf<IsBaseOf<nsWrapperCache, T>::value &&
-                    IsBaseOf<nsISupports, T>::value, bool>::Type
-  ArgumentToJSValue(T& aArgument,
-                    JSContext* aCx,
-                    JSObject* aScope,
-                    JS::MutableHandle<JS::Value> aValue)
-  {
-    JS::Rooted<JSObject*> scope(aCx, aScope);
-
-    return WrapNewBindingObject(aCx, scope, aArgument, aValue);
-  }
-
-  template <template <typename> class SmartPtr, typename T>
-  bool
-  ArgumentToJSValue(const SmartPtr<T>& aArgument,
-                    JSContext* aCx,
-                    JSObject* aScope,
-                    JS::MutableHandle<JS::Value> aValue)
-  {
-    return ArgumentToJSValue(*aArgument.get(), aCx, aScope, aValue);
-  }
-
   template <typename T>
   void MaybeSomething(T& aArgument, MaybeFunc aFunc) {
     ThreadsafeAutoJSContext cx;
@@ -223,7 +215,7 @@ private:
 
     JSAutoCompartment ac(cx, wrapper);
     JS::Rooted<JS::Value> val(cx);
-    if (!ArgumentToJSValue(aArgument, cx, wrapper, &val)) {
+    if (!ToJSValue(cx, aArgument, &val)) {
       HandleException(cx);
       return;
     }
@@ -252,6 +244,8 @@ private:
 
   void HandleException(JSContext* aCx);
 
+  void RemoveFeature();
+
   nsRefPtr<nsIGlobalObject> mGlobal;
 
   nsTArray<nsRefPtr<PromiseCallback> > mResolveCallbacks;
@@ -263,6 +257,12 @@ private:
   bool mHadRejectCallback;
 
   bool mResolvePending;
+
+  // If a rejected promise on a worker has no reject callbacks attached, it
+  // needs to know when the worker is shutting down, to report the error on the
+  // console before the worker's context is deleted. This feature is used for
+  // that purpose.
+  nsAutoPtr<PromiseReportRejectFeature> mFeature;
 };
 
 } // namespace dom

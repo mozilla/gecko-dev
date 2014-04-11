@@ -15,6 +15,10 @@
 # include <sys/mman.h>
 #endif
 
+#ifdef MOZ_VALGRIND
+# include <valgrind/memcheck.h>
+#endif
+
 #include "mozilla/Atomics.h"
 #include "jit/AsmJS.h"
 
@@ -22,8 +26,6 @@ using namespace js;
 
 using mozilla::IsNaN;
 using mozilla::PodCopy;
-
-#define SHAREDARRAYBUFFER_RESERVED_SLOTS 15
 
 /*
  * SharedArrayRawBuffer
@@ -81,26 +83,28 @@ SharedArrayRawBuffer::New(uint32_t length)
     if (!p)
         return nullptr;
 
-    if (!MarkValidRegion(p, AsmJSPageSize + length)) {
+    size_t validLength = AsmJSPageSize + length;
+    if (!MarkValidRegion(p, validLength)) {
         UnmapMemory(p, AsmJSMappedSize);
         return nullptr;
     }
-
-    uint8_t *buffer = reinterpret_cast<uint8_t*>(p) + AsmJSPageSize;
-    uint8_t *base = buffer - sizeof(SharedArrayRawBuffer);
-    return new (base) SharedArrayRawBuffer(buffer, length);
+#   if defined(MOZ_VALGRIND) && defined(VALGRIND_DISABLE_ADDR_ERROR_REPORTING_IN_RANGE)
+    // Tell Valgrind/Memcheck to not report accesses in the inaccessible region.
+    VALGRIND_DISABLE_ADDR_ERROR_REPORTING_IN_RANGE((unsigned char*)p + validLength,
+                                                   AsmJSMappedSize-validLength);
+#   endif
 #else
-    uint32_t allocSize = sizeof(SharedArrayRawBuffer) + length;
+    uint32_t allocSize = length + AsmJSPageSize;
     if (allocSize <= length)
         return nullptr;
 
-    void *base = MapMemory(allocSize, true);
-    if (!base)
+    void *p = MapMemory(allocSize, true);
+    if (!p)
         return nullptr;
-
-    uint8_t *buffer = reinterpret_cast<uint8_t*>(base) + sizeof(SharedArrayRawBuffer);
-    return new (base) SharedArrayRawBuffer(buffer, length);
 #endif
+    uint8_t *buffer = reinterpret_cast<uint8_t*>(p) + AsmJSPageSize;
+    uint8_t *base = buffer - sizeof(SharedArrayRawBuffer);
+    return new (base) SharedArrayRawBuffer(buffer, length);
 }
 
 void
@@ -118,13 +122,20 @@ SharedArrayRawBuffer::dropReference()
 
     // If this was the final reference, release the buffer.
     if (refcount == 0) {
-#ifdef JS_CPU_X64
         uint8_t *p = this->dataPointer() - AsmJSPageSize;
         JS_ASSERT(uintptr_t(p) % AsmJSPageSize == 0);
+#ifdef JS_CPU_X64
         UnmapMemory(p, AsmJSMappedSize);
+#       if defined(MOZ_VALGRIND) \
+           && defined(VALGRIND_ENABLE_ADDR_ERROR_REPORTING_IN_RANGE)
+        // Tell Valgrind/Memcheck to recommence reporting accesses in the
+        // previously-inaccessible region.
+        if (AsmJSMappedSize > 0) {
+            VALGRIND_ENABLE_ADDR_ERROR_REPORTING_IN_RANGE(p, AsmJSMappedSize);
+        }
+#       endif
 #else
-        uint8_t *p = (uint8_t *)this;
-        UnmapMemory(p, this->length);
+        UnmapMemory(p, this->length + AsmJSPageSize);
 #endif
     }
 }
@@ -158,7 +169,7 @@ SharedArrayBufferObject::class_constructor(JSContext *cx, unsigned argc, Value *
 {
     int32_t length = 0;
     CallArgs args = CallArgsFromVp(argc, vp);
-    if (argc > 0 && !ToInt32(cx, args[0], &length))
+    if (args.length() > 0 && !ToInt32(cx, args[0], &length))
         return false;
 
     if (length < 0) {
@@ -184,53 +195,26 @@ SharedArrayBufferObject::New(JSContext *cx, uint32_t length)
         return nullptr;
     }
 
-    RootedObject obj(cx, NewBuiltinClassInstance(cx, &class_));
-    if (!obj)
-        return nullptr;
-
-    JS_ASSERT(obj->getClass() == &class_);
-
-    Rooted<js::Shape*> empty(cx);
-    empty = EmptyShape::getInitialShape(cx, &class_, obj->getProto(), obj->getParent(),
-                                        obj->getMetadata(), gc::FINALIZE_OBJECT16_BACKGROUND);
-    if (!empty)
-        return nullptr;
-    obj->setLastPropertyInfallible(empty);
-
-    obj->setFixedElements();
-    obj->as<SharedArrayBufferObject>().initElementsHeader(obj->getElementsHeader(), length);
-    obj->getElementsHeader()->setIsSharedArrayBuffer();
-
     SharedArrayRawBuffer *buffer = SharedArrayRawBuffer::New(length);
     if (!buffer)
         return nullptr;
-    obj->as<SharedArrayBufferObject>().acceptRawBuffer(buffer);
 
-    return obj;
+    return New(cx, buffer);
 }
 
 JSObject *
 SharedArrayBufferObject::New(JSContext *cx, SharedArrayRawBuffer *buffer)
 {
-    RootedObject obj(cx, NewBuiltinClassInstance(cx, &class_));
+    Rooted<SharedArrayBufferObject*> obj(cx, NewBuiltinClassInstance<SharedArrayBufferObject>(cx));
     if (!obj)
         return nullptr;
 
     JS_ASSERT(obj->getClass() == &class_);
 
-    Rooted<js::Shape*> empty(cx);
-    empty = EmptyShape::getInitialShape(cx, &class_, obj->getProto(), obj->getParent(),
-                                        obj->getMetadata(), gc::FINALIZE_OBJECT16_BACKGROUND);
-    if (!empty)
-        return nullptr;
-    obj->setLastPropertyInfallible(empty);
+    obj->initialize(buffer->byteLength(), nullptr, DoesntOwnData);
 
-    obj->setFixedElements();
-    obj->as<SharedArrayBufferObject>().initElementsHeader(obj->getElementsHeader(),
-                                                          buffer->byteLength());
-    obj->getElementsHeader()->setIsSharedArrayBuffer();
-
-    obj->as<SharedArrayBufferObject>().acceptRawBuffer(buffer);
+    obj->acceptRawBuffer(buffer);
+    obj->setIsSharedArrayBuffer();
 
     return obj;
 }
@@ -288,8 +272,6 @@ SharedArrayBufferObject::Finalize(FreeOp *fop, JSObject *obj)
 
 const Class SharedArrayBufferObject::protoClass = {
     "SharedArrayBufferPrototype",
-    JSCLASS_HAS_PRIVATE |
-    JSCLASS_HAS_RESERVED_SLOTS(SHAREDARRAYBUFFER_RESERVED_SLOTS) |
     JSCLASS_HAS_CACHED_PROTO(JSProto_SharedArrayBuffer),
     JS_PropertyStub,         /* addProperty */
     JS_DeletePropertyStub,   /* delProperty */
@@ -302,10 +284,8 @@ const Class SharedArrayBufferObject::protoClass = {
 
 const Class SharedArrayBufferObject::class_ = {
     "SharedArrayBuffer",
-    JSCLASS_HAS_PRIVATE |
     JSCLASS_IMPLEMENTS_BARRIERS |
-    Class::NON_NATIVE |
-    JSCLASS_HAS_RESERVED_SLOTS(SHAREDARRAYBUFFER_RESERVED_SLOTS) |
+    JSCLASS_HAS_RESERVED_SLOTS(SharedArrayBufferObject::RESERVED_SLOTS) |
     JSCLASS_HAS_CACHED_PROTO(JSProto_SharedArrayBuffer),
     JS_PropertyStub,         /* addProperty */
     JS_DeletePropertyStub,   /* delProperty */
@@ -320,34 +300,7 @@ const Class SharedArrayBufferObject::class_ = {
     nullptr,        /* construct   */
     ArrayBufferObject::obj_trace,
     JS_NULL_CLASS_SPEC,
-    JS_NULL_CLASS_EXT,
-    {
-        ArrayBufferObject::obj_lookupGeneric,
-        ArrayBufferObject::obj_lookupProperty,
-        ArrayBufferObject::obj_lookupElement,
-        ArrayBufferObject::obj_lookupSpecial,
-        ArrayBufferObject::obj_defineGeneric,
-        ArrayBufferObject::obj_defineProperty,
-        ArrayBufferObject::obj_defineElement,
-        ArrayBufferObject::obj_defineSpecial,
-        ArrayBufferObject::obj_getGeneric,
-        ArrayBufferObject::obj_getProperty,
-        ArrayBufferObject::obj_getElement,
-        ArrayBufferObject::obj_getSpecial,
-        ArrayBufferObject::obj_setGeneric,
-        ArrayBufferObject::obj_setProperty,
-        ArrayBufferObject::obj_setElement,
-        ArrayBufferObject::obj_setSpecial,
-        ArrayBufferObject::obj_getGenericAttributes,
-        ArrayBufferObject::obj_setGenericAttributes,
-        ArrayBufferObject::obj_deleteProperty,
-        ArrayBufferObject::obj_deleteElement,
-        ArrayBufferObject::obj_deleteSpecial,
-        nullptr, nullptr, /* watch/unwatch */
-        nullptr,          /* slice */
-        ArrayBufferObject::obj_enumerate,
-        nullptr,          /* thisObject      */
-    }
+    JS_NULL_CLASS_EXT
 };
 
 JSObject *
@@ -381,7 +334,7 @@ js_InitSharedArrayBufferClass(JSContext *cx, HandleObject obj)
         return nullptr;
     }
 
-    if (!DefineConstructorAndPrototype(cx, global, JSProto_SharedArrayBuffer, ctor, proto))
+    if (!GlobalObject::initBuiltinConstructor(cx, global, JSProto_SharedArrayBuffer, ctor, proto))
         return nullptr;
     return proto;
 }

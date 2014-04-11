@@ -17,7 +17,7 @@ NS_IMPL_NS_NEW_HTML_ELEMENT(Title)
 namespace mozilla {
 namespace dom {
 
-HTMLTitleElement::HTMLTitleElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+HTMLTitleElement::HTMLTitleElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo)
 {
   AddMutationObserver(this);
@@ -33,16 +33,18 @@ NS_IMPL_ISUPPORTS_INHERITED2(HTMLTitleElement, nsGenericHTMLElement,
 NS_IMPL_ELEMENT_CLONE(HTMLTitleElement)
 
 JSObject*
-HTMLTitleElement::WrapNode(JSContext* cx, JS::Handle<JSObject*> scope)
+HTMLTitleElement::WrapNode(JSContext* cx)
 {
-  return HTMLTitleElementBinding::Wrap(cx, scope, this);
+  return HTMLTitleElementBinding::Wrap(cx, this);
 }
 
 
 NS_IMETHODIMP 
 HTMLTitleElement::GetText(nsAString& aTitle)
 {
-  nsContentUtils::GetNodeTextContent(this, false, aTitle);
+  if (!nsContentUtils::GetNodeTextContent(this, false, aTitle)) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
   return NS_OK;
 }
 

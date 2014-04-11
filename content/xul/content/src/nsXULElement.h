@@ -12,7 +12,7 @@
 #ifndef nsXULElement_h__
 #define nsXULElement_h__
 
-// XXX because nsEventListenerManager has broken includes
+#include "js/Tracer.h"
 #include "mozilla/Attributes.h"
 #include "nsIDOMEvent.h"
 #include "nsIServiceManager.h"
@@ -22,7 +22,6 @@
 #include "nsIDOMElement.h"
 #include "nsIDOMXULElement.h"
 #include "nsIDOMXULMultSelectCntrlEl.h"
-#include "nsEventListenerManager.h"
 #include "nsIRDFCompositeDataSource.h"
 #include "nsIRDFResource.h"
 #include "nsIURI.h"
@@ -45,10 +44,13 @@ class nsXULPrototypeDocument;
 
 class nsIObjectInputStream;
 class nsIObjectOutputStream;
+class nsIOffThreadScriptReceiver;
 class nsXULPrototypeNode;
 typedef nsTArray<nsRefPtr<nsXULPrototypeNode> > nsPrototypeArray;
 
 namespace mozilla {
+class EventChainPreVisitor;
+class EventListenerManager;
 namespace css {
 class StyleRule;
 }
@@ -373,7 +375,8 @@ public:
                                                        mozilla::dom::Element)
 
     // nsINode
-    virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
+    virtual nsresult PreHandleEvent(
+                       mozilla::EventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
 
     // nsIContent
     virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
@@ -425,7 +428,7 @@ public:
     NS_DECL_NSIDOMXULELEMENT
 
     virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const MOZ_OVERRIDE;
-    virtual nsEventStates IntrinsicState() const MOZ_OVERRIDE;
+    virtual mozilla::EventStates IntrinsicState() const MOZ_OVERRIDE;
 
     nsresult GetFrameLoader(nsIFrameLoader** aFrameLoader);
     nsresult SwapFrameLoaders(nsIFrameLoaderOwner* aOtherOwner);
@@ -595,11 +598,11 @@ public:
     void SwapFrameLoaders(nsXULElement& aOtherOwner, mozilla::ErrorResult& rv);
 
     // For XUL, the parent is the parent element, if any
-    nsINode* GetParentObject() const
+    mozilla::dom::ParentObject GetParentObject() const
     {
         Element* parent = GetParentElement();
         if (parent) {
-            return parent;
+          return GetParentObjectInternal(parent);
         }
         return nsStyledElement::GetParentObject();
     }
@@ -661,8 +664,9 @@ protected:
                                   const nsAString& aValue,
                                   nsAttrValue& aResult) MOZ_OVERRIDE;
 
-    virtual nsEventListenerManager*
-      GetEventListenerManagerForAttr(nsIAtom* aAttrName, bool* aDefer) MOZ_OVERRIDE;
+    virtual mozilla::EventListenerManager*
+      GetEventListenerManagerForAttr(nsIAtom* aAttrName,
+                                     bool* aDefer) MOZ_OVERRIDE;
   
     /**
      * Add a listener for the specified attribute, if appropriate.
@@ -713,8 +717,7 @@ protected:
             !HasAttr(kNameSpaceID_None, nsGkAtoms::readonly);
     }
 
-    virtual JSObject* WrapNode(JSContext *aCx,
-                               JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+    virtual JSObject* WrapNode(JSContext *aCx) MOZ_OVERRIDE;
 
     void MaybeUpdatePrivateLifetime();
 };

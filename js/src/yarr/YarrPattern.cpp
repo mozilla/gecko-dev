@@ -23,7 +23,7 @@
  * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "yarr/YarrPattern.h"
@@ -54,7 +54,7 @@ public:
         : m_isCaseInsensitive(isCaseInsensitive)
     {
     }
-    
+
     void reset()
     {
         m_matches.clear();
@@ -122,7 +122,7 @@ public:
             char asciiLo = lo;
             char asciiHi = std::min(hi, (UChar)0x7f);
             addSortedRange(m_ranges, lo, asciiHi);
-            
+
             if (m_isCaseInsensitive) {
                 if ((asciiLo <= 'Z') && (asciiHi >= 'A'))
                     addSortedRange(m_ranges, std::max(asciiLo, 'A')+('a'-'A'), std::min(asciiHi, 'Z')+('a'-'A'));
@@ -135,7 +135,7 @@ public:
 
         lo = std::max(lo, (UChar)0x80);
         addSortedRange(m_rangesUnicode, lo, hi);
-        
+
         if (!m_isCaseInsensitive)
             return;
 
@@ -187,7 +187,7 @@ public:
 
     CharacterClass* charClass()
     {
-        CharacterClass* characterClass = js_new<CharacterClass>();
+        CharacterClass* characterClass = newOrCrash<CharacterClass>();
 
         characterClass->m_matches.swap(m_matches);
         characterClass->m_ranges.swap(m_ranges);
@@ -217,7 +217,7 @@ private:
                 range -= (index+1);
             }
         }
-        
+
         if (pos == matches.size())
             matches.append(ch);
         else
@@ -227,7 +227,7 @@ private:
     void addSortedRange(Vector<CharacterRange>& ranges, UChar lo, UChar hi)
     {
         unsigned end = ranges.size();
-        
+
         // Simple linear scan - I doubt there are that many ranges anyway...
         // feel free to fix this with something faster (eg binary chop).
         for (unsigned i = 0; i < end; ++i) {
@@ -260,7 +260,7 @@ private:
                     } else
                         break;
                 }
-                
+
                 return;
             }
         }
@@ -281,10 +281,11 @@ class YarrPatternConstructor {
 public:
     YarrPatternConstructor(YarrPattern& pattern)
         : m_pattern(pattern)
+        , m_stackBase(nullptr)
         , m_characterClassConstructor(pattern.m_ignoreCase)
         , m_invertParentheticalAssertion(false)
     {
-        m_pattern.m_body = js_new<PatternDisjunction>();
+        m_pattern.m_body = newOrCrash<PatternDisjunction>();
         m_alternative = m_pattern.m_body->addNewAlternative();
         m_pattern.m_disjunctions.append(m_pattern.m_body);
     }
@@ -298,11 +299,11 @@ public:
         m_pattern.reset();
         m_characterClassConstructor.reset();
 
-        m_pattern.m_body = js_new<PatternDisjunction>();
+        m_pattern.m_body = newOrCrash<PatternDisjunction>();
         m_alternative = m_pattern.m_body->addNewAlternative();
         m_pattern.m_disjunctions.append(m_pattern.m_body);
     }
-    
+
     void assertionBOL()
     {
         if (!m_alternative->m_terms.size() & !m_invertParentheticalAssertion) {
@@ -383,15 +384,15 @@ public:
         case DigitClassID:
             m_characterClassConstructor.append(invert ? m_pattern.nondigitsCharacterClass() : m_pattern.digitsCharacterClass());
             break;
-        
+
         case SpaceClassID:
             m_characterClassConstructor.append(invert ? m_pattern.nonspacesCharacterClass() : m_pattern.spacesCharacterClass());
             break;
-        
+
         case WordClassID:
             m_characterClassConstructor.append(invert ? m_pattern.nonwordcharCharacterClass() : m_pattern.wordcharCharacterClass());
             break;
-        
+
         default:
             ASSERT_NOT_REACHED();
         }
@@ -410,7 +411,7 @@ public:
         if (capture)
             m_pattern.m_numSubpatterns++;
 
-        PatternDisjunction* parenthesesDisjunction = js_new<PatternDisjunction>(m_alternative);
+        PatternDisjunction* parenthesesDisjunction = newOrCrash<PatternDisjunction>(m_alternative);
         m_pattern.m_disjunctions.append(parenthesesDisjunction);
         m_alternative->m_terms.append(PatternTerm(PatternTerm::TypeParenthesesSubpattern, subpatternId, parenthesesDisjunction, capture, false));
         m_alternative = parenthesesDisjunction->addNewAlternative();
@@ -418,7 +419,7 @@ public:
 
     void atomParentheticalAssertionBegin(bool invert = false)
     {
-        PatternDisjunction* parenthesesDisjunction = js_new<PatternDisjunction>(m_alternative);
+        PatternDisjunction* parenthesesDisjunction = newOrCrash<PatternDisjunction>(m_alternative);
         m_pattern.m_disjunctions.append(parenthesesDisjunction);
         m_alternative->m_terms.append(PatternTerm(PatternTerm::TypeParentheticalAssertion, m_pattern.m_numSubpatterns + 1, parenthesesDisjunction, false, invert));
         m_alternative = parenthesesDisjunction->addNewAlternative();
@@ -469,7 +470,7 @@ public:
         PatternAlternative* currentAlternative = m_alternative;
         ASSERT(currentAlternative);
 
-        // Note to self: if we waited until the AST was baked, we could also remove forwards refs 
+        // Note to self: if we waited until the AST was baked, we could also remove forwards refs
         while ((currentAlternative = currentAlternative->m_parent->m_parent)) {
             PatternTerm& term = currentAlternative->lastTerm();
             ASSERT((term.type == PatternTerm::TypeParenthesesSubpattern) || (term.type == PatternTerm::TypeParentheticalAssertion));
@@ -483,7 +484,7 @@ public:
         m_alternative->m_terms.append(PatternTerm(subpatternId));
     }
 
-    // deep copy the argument disjunction.  If filterStartsWithBOL is true, 
+    // deep copy the argument disjunction.  If filterStartsWithBOL is true,
     // skip alternatives with m_startsWithBOL set true.
     PatternDisjunction* copyDisjunction(PatternDisjunction* disjunction, bool filterStartsWithBOL = false)
     {
@@ -492,7 +493,7 @@ public:
             PatternAlternative* alternative = disjunction->m_alternatives[alt];
             if (!filterStartsWithBOL || !alternative->m_startsWithBOL) {
                 if (!newDisjunction) {
-                    newDisjunction = js_new<PatternDisjunction>();
+                    newDisjunction = newOrCrash<PatternDisjunction>();
                     newDisjunction->m_parent = disjunction->m_parent;
                 }
                 PatternAlternative* newAlternative = newDisjunction->addNewAlternative();
@@ -506,17 +507,17 @@ public:
             m_pattern.m_disjunctions.append(newDisjunction);
         return newDisjunction;
     }
-    
+
     PatternTerm copyTerm(PatternTerm& term, bool filterStartsWithBOL = false)
     {
         if ((term.type != PatternTerm::TypeParenthesesSubpattern) && (term.type != PatternTerm::TypeParentheticalAssertion))
             return PatternTerm(term);
-        
+
         PatternTerm termCopy = term;
         termCopy.parentheses.disjunction = copyDisjunction(termCopy.parentheses.disjunction, filterStartsWithBOL);
         return termCopy;
     }
-    
+
     void quantifyAtom(unsigned min, unsigned max, bool greedy)
     {
         ASSERT(min <= max);
@@ -573,6 +574,14 @@ public:
     ErrorCode setupAlternativeOffsets(PatternAlternative* alternative, unsigned currentCallFrameSize, unsigned initialInputPosition,
                                       unsigned *callFrameSizeOut)
     {
+        /*
+         * Attempt detection of over-recursion:
+         * "1MB should be enough stack for anyone."
+         */
+        uint8_t stackDummy_;
+        if (m_stackBase - &stackDummy_ > 1024*1024)
+            return PatternTooLarge;
+
         alternative->m_hasFixedSize = true;
         Checked<unsigned> currentInputPosition = initialInputPosition;
 
@@ -685,7 +694,7 @@ public:
         ASSERT(minimumInputSize != UINT_MAX);
         if (minimumInputSize == UINT_MAX)
             return PatternTooLarge;
-        
+
         ASSERT(minimumInputSize != UINT_MAX);
         ASSERT(maximumCallFrameSize >= initialCallFrameSize);
 
@@ -738,10 +747,10 @@ public:
         // m_startsWithBOL and rolling those up to containing alternatives.
         // At this point, this is only valid for non-multiline expressions.
         PatternDisjunction* disjunction = m_pattern.m_body;
-        
+
         if (!m_pattern.m_containsBOL || m_pattern.m_multiline)
             return;
-        
+
         PatternDisjunction* loopDisjunction = copyDisjunction(disjunction, true);
 
         // Set alternatives in disjunction to "onceThrough"
@@ -752,7 +761,7 @@ public:
             // Move alternatives from loopDisjunction to disjunction
             for (unsigned alt = 0; alt < loopDisjunction->m_alternatives.size(); ++alt)
                 disjunction->m_alternatives.append(loopDisjunction->m_alternatives[alt]);
-                
+
             loopDisjunction->m_alternatives.clear();
         }
     }
@@ -782,10 +791,10 @@ public:
         return false;
     }
 
-    // This optimization identifies alternatives in the form of 
-    // [^].*[?]<expression>.*[$] for expressions that don't have any 
-    // capturing terms. The alternative is changed to <expression> 
-    // followed by processing of the dot stars to find and adjust the 
+    // This optimization identifies alternatives in the form of
+    // [^].*[?]<expression>.*[$] for expressions that don't have any
+    // capturing terms. The alternative is changed to <expression>
+    // followed by processing of the dot stars to find and adjust the
     // beginning and the end of the match.
     void optimizeDotStarWrappedExpressions()
     {
@@ -805,23 +814,23 @@ public:
                 startsWithBOL = true;
                 ++termIndex;
             }
-            
+
             PatternTerm& firstNonAnchorTerm = terms[termIndex];
             if ((firstNonAnchorTerm.type != PatternTerm::TypeCharacterClass) || (firstNonAnchorTerm.characterClass != m_pattern.newlineCharacterClass()) || !((firstNonAnchorTerm.quantityType == QuantifierGreedy) || (firstNonAnchorTerm.quantityType == QuantifierNonGreedy)))
                 return;
-            
+
             firstExpressionTerm = termIndex + 1;
-            
+
             termIndex = terms.size() - 1;
             if (terms[termIndex].type == PatternTerm::TypeAssertionEOL) {
                 endsWithEOL = true;
                 --termIndex;
             }
-            
+
             PatternTerm& lastNonAnchorTerm = terms[termIndex];
             if ((lastNonAnchorTerm.type != PatternTerm::TypeCharacterClass) || (lastNonAnchorTerm.characterClass != m_pattern.newlineCharacterClass()) || (lastNonAnchorTerm.quantityType != QuantifierGreedy))
                 return;
-            
+
             lastExpressionTerm = termIndex - 1;
 
             if (firstExpressionTerm > lastExpressionTerm)
@@ -835,14 +844,19 @@ public:
                     terms.remove(termIndex - 1);
 
                 terms.append(PatternTerm(startsWithBOL, endsWithEOL));
-                
+
                 m_pattern.m_containsBOL = false;
             }
         }
     }
 
+    void setStackBase(uint8_t *stackBase) {
+        m_stackBase = stackBase;
+    }
+
 private:
     YarrPattern& m_pattern;
+    uint8_t * m_stackBase;
     PatternAlternative* m_alternative;
     CharacterClassConstructor m_characterClassConstructor;
     bool m_invertCharacterClass;
@@ -855,7 +869,7 @@ ErrorCode YarrPattern::compile(const String& patternString)
 
     if (ErrorCode error = parse(constructor, patternString))
         return error;
-    
+
     // If the pattern contains illegal backreferences reset & reparse.
     // Quoting Netscape's "What's new in JavaScript 1.2",
     //      "Note: if the number of left parentheses is less than the number specified
@@ -873,10 +887,13 @@ ErrorCode YarrPattern::compile(const String& patternString)
         ASSERT(numSubpatterns == m_numSubpatterns);
     }
 
+    uint8_t stackDummy_;
+    constructor.setStackBase(&stackDummy_);
+
     constructor.checkForTerminalParentheses();
     constructor.optimizeDotStarWrappedExpressions();
     constructor.optimizeBOL();
-        
+
     if (ErrorCode error = constructor.setupOffsets())
         return error;
 

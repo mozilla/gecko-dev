@@ -164,16 +164,13 @@ Load(JSContext *cx,
         Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
         JS::CompileOptions options(cx);
         options.setUTF8(true)
-               .setFileAndLine(filename.ptr(), 1)
-               .setPrincipals(Environment(global)->GetPrincipal());
-        JS::RootedObject rootedObj(cx, obj);
-        JSScript *script = JS::Compile(cx, rootedObj, options, file);
+               .setFileAndLine(filename.ptr(), 1);
+        JS::Rooted<JSScript*> script(cx, JS::Compile(cx, obj, options, file));
         fclose(file);
         if (!script)
             return false;
 
-        JS::Rooted<JS::Value> result(cx);
-        if (!JS_ExecuteScript(cx, obj, script, result.address())) {
+        if (!JS_ExecuteScript(cx, obj, script)) {
             return false;
         }
     }
@@ -186,18 +183,20 @@ Version(JSContext *cx,
         unsigned argc,
         JS::Value *vp)
 {
-    JS::Value *argv = JS_ARGV(cx, vp);
-    JS_SET_RVAL(cx, vp, INT_TO_JSVAL(JS_GetVersion(cx)));
-    if (argc > 0 && JSVAL_IS_INT(argv[0]))
+    JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+    args.rval().setInt32(JS_GetVersion(cx));
+    if (args.get(0).isInt32())
         JS_SetVersionForCompartment(js::GetContextCompartment(cx),
-                                    JSVersion(JSVAL_TO_INT(argv[0])));
+                                    JSVersion(args[0].toInt32()));
     return true;
 }
 
 static bool
 BuildDate(JSContext *cx, unsigned argc, JS::Value *vp)
 {
+    JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
     fprintf(stdout, "built on %s at %s\n", __DATE__, __TIME__);
+    args.rval().setUndefined();
     return true;
 }
 
@@ -238,12 +237,14 @@ GC(JSContext *cx,
    unsigned argc,
    JS::Value *vp)
 {
+    JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
     JSRuntime *rt = JS_GetRuntime(cx);
     JS_GC(rt);
 #ifdef JS_GCMETER
     js_DumpGCStats(rt, stdout);
 #endif
-    JS_SET_RVAL(cx, vp, JSVAL_VOID);
+    args.rval().setUndefined();
     return true;
 }
 
@@ -299,7 +300,6 @@ XPCShellEnvironment::ProcessFile(JSContext *cx,
 {
     XPCShellEnvironment* env = this;
 
-    JSScript *script;
     JS::Rooted<JS::Value> result(cx);
     int lineno, startline;
     bool ok, hitEOF;
@@ -333,11 +333,10 @@ XPCShellEnvironment::ProcessFile(JSContext *cx,
 
         JS::CompileOptions options(cx);
         options.setUTF8(true)
-               .setFileAndLine(filename, 1)
-               .setPrincipals(env->GetPrincipal());
-        JSScript* script = JS::Compile(cx, obj, options, file);
+               .setFileAndLine(filename, 1);
+        JS::Rooted<JSScript*> script(cx, JS::Compile(cx, obj, options, file));
         if (script)
-            (void)JS_ExecuteScript(cx, obj, script, result.address());
+            (void)JS_ExecuteScript(cx, obj, script, &result);
 
         return;
     }
@@ -371,13 +370,13 @@ XPCShellEnvironment::ProcessFile(JSContext *cx,
         /* Clear any pending exception from previous failed compiles.  */
         JS_ClearPendingException(cx);
         JS::CompileOptions options(cx);
-        options.setFileAndLine("typein", startline)
-               .setPrincipals(env->GetPrincipal());
-        script = JS_CompileScript(cx, obj, buffer, strlen(buffer), options);
+        options.setFileAndLine("typein", startline);
+        JS::Rooted<JSScript*> script(cx,
+                                     JS_CompileScript(cx, obj, buffer, strlen(buffer), options));
         if (script) {
             JSErrorReporter older;
 
-            ok = JS_ExecuteScript(cx, obj, script, result.address());
+            ok = JS_ExecuteScript(cx, obj, script, &result);
             if (ok && result != JSVAL_VOID) {
                 /* Suppress error reports from JS::ToString(). */
                 older = JS_SetErrorReporter(cx, nullptr);
@@ -398,13 +397,13 @@ XPCShellEnvironment::ProcessFile(JSContext *cx,
     fprintf(stdout, "\n");
 }
 
-NS_IMETHODIMP_(nsrefcnt)
+NS_IMETHODIMP_(MozExternalRefCountType)
 XPCShellDirProvider::AddRef()
 {
     return 2;
 }
 
-NS_IMETHODIMP_(nsrefcnt)
+NS_IMETHODIMP_(MozExternalRefCountType)
 XPCShellDirProvider::Release()
 {
     return 1;
@@ -580,10 +579,9 @@ XPCShellEnvironment::EvaluateString(const nsString& aString,
   JSAutoCompartment ac(cx, global);
 
   JS::CompileOptions options(cx);
-  options.setFileAndLine("typein", 0)
-         .setPrincipals(GetPrincipal());
-  JSScript* script = JS_CompileUCScript(cx, global, aString.get(),
-                                        aString.Length(), options);
+  options.setFileAndLine("typein", 0);
+  JS::Rooted<JSScript*> script(cx, JS_CompileUCScript(cx, global, aString.get(),
+                                                      aString.Length(), options));
   if (!script) {
      return false;
   }
@@ -593,7 +591,7 @@ XPCShellEnvironment::EvaluateString(const nsString& aString,
   }
 
   JS::Rooted<JS::Value> result(cx);
-  bool ok = JS_ExecuteScript(cx, global, script, result.address());
+  bool ok = JS_ExecuteScript(cx, global, script, &result);
   if (ok && result != JSVAL_VOID) {
       JSErrorReporter old = JS_SetErrorReporter(cx, nullptr);
       JSString* str = JS::ToString(cx, result);

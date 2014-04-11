@@ -15,9 +15,9 @@ namespace mozilla {
 namespace dom {
 
 JSObject*
-SVGFEBlendElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+SVGFEBlendElement::WrapNode(JSContext *aCx)
 {
-  return SVGFEBlendElementBinding::Wrap(aCx, aScope, this);
+  return SVGFEBlendElementBinding::Wrap(aCx, this);
 }
 
 nsSVGEnumMapping SVGFEBlendElement::sModeMap[] = {
@@ -77,7 +77,7 @@ SVGFEBlendElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
                                            nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {
   uint32_t mode = mEnumAttributes[MODE].GetAnimValue();
-  FilterPrimitiveDescription descr(FilterPrimitiveDescription::eBlend);
+  FilterPrimitiveDescription descr(PrimitiveType::Blend);
   descr.Attributes().Set(eBlendBlendmode, mode);
   return descr;
 }

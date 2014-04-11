@@ -10,6 +10,9 @@ let Ci = Components.interfaces;
 let CC = Components.Constructor;
 
 Cu.import("resource://gre/modules/osfile.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+
+let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 
 let promise;
 
@@ -116,11 +119,9 @@ function WebappsActor(aConnection) {
   Cu.import("resource://gre/modules/Webapps.jsm");
   Cu.import("resource://gre/modules/AppsUtils.jsm");
   Cu.import("resource://gre/modules/FileUtils.jsm");
-  Cu.import('resource://gre/modules/Services.jsm');
-  promise = Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js").Promise;
 
   // Keep reference of already created app actors.
-  // key: app frame message manager, value: ContentTabActor's grip() value
+  // key: app frame message manager, value: ContentActor's grip() value
   this._appActorsMap = new Map();
 
   this.conn = aConnection;
@@ -179,7 +180,7 @@ WebappsActor.prototype = {
         reg.broadcastMessage("Webapps:UpdateState", {
           app: aApp,
           manifest: manifest,
-          id: aApp.id
+          manifestURL: aApp.manifestURL
         });
         reg.broadcastMessage("Webapps:FireEvent", {
           eventType: ["downloadsuccess", "downloadapplied"],
@@ -789,73 +790,6 @@ WebappsActor.prototype = {
     });
   },
 
-  _connectToApp: function (aFrame) {
-    let deferred = Promise.defer();
-
-    let mm = aFrame.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader.messageManager;
-    mm.loadFrameScript("resource://gre/modules/devtools/server/child.js", false);
-
-    let childTransport, prefix;
-
-    let onActorCreated = makeInfallible(function (msg) {
-      mm.removeMessageListener("debug:actor", onActorCreated);
-
-      dump("***** Got debug:actor\n");
-      let { actor, appId } = msg.json;
-      prefix = msg.json.prefix;
-
-      // Pipe Debugger message from/to parent/child via the message manager
-      childTransport = new ChildDebuggerTransport(mm, prefix);
-      childTransport.hooks = {
-        onPacket: this.conn.send.bind(this.conn),
-        onClosed: function () {}
-      };
-      childTransport.ready();
-
-      this.conn.setForwarding(prefix, childTransport);
-
-      debug("establishing forwarding for app with prefix " + prefix);
-
-      this._appActorsMap.set(mm, actor);
-
-      deferred.resolve(actor);
-    }).bind(this);
-    mm.addMessageListener("debug:actor", onActorCreated);
-
-    let onMessageManagerDisconnect = makeInfallible(function (subject, topic, data) {
-      if (subject == mm) {
-        Services.obs.removeObserver(onMessageManagerDisconnect, topic);
-        if (childTransport) {
-          // If we have a child transport, the actor has already
-          // been created. We need to stop using this message manager.
-          childTransport.close();
-          this.conn.cancelForwarding(prefix);
-        } else {
-          // Otherwise, the app has been closed before the actor
-          // had a chance to be created, so we are not able to create
-          // the actor.
-          deferred.resolve(null);
-        }
-        let actor = this._appActorsMap.get(mm);
-        if (actor) {
-          // The ContentAppActor within the child process doesn't necessary
-          // have to time to uninitialize itself when the app is closed/killed.
-          // So ensure telling the client that the related actor is detached.
-          this.conn.send({ from: actor.actor,
-                           type: "tabDetached" });
-          this._appActorsMap.delete(mm);
-        }
-      }
-    }).bind(this);
-    Services.obs.addObserver(onMessageManagerDisconnect,
-                             "message-manager-disconnect", false);
-
-    let prefixStart = this.conn.prefix + "child";
-    mm.sendAsyncMessage("debug:connect", { prefix: prefixStart });
-
-    return deferred.promise;
-  },
-
   getAppActor: function ({ manifestURL }) {
     debug("getAppActor\n");
 
@@ -884,13 +818,21 @@ WebappsActor.prototype = {
 
       // Only create a new actor, if we haven't already
       // instanciated one for this connection.
+      let map = this._appActorsMap;
       let mm = appFrame.QueryInterface(Ci.nsIFrameLoaderOwner)
                        .frameLoader
                        .messageManager;
-      let actor = this._appActorsMap.get(mm);
+      let actor = map.get(mm);
       if (!actor) {
-        return this._connectToApp(appFrame)
-                   .then(function (actor) ({ actor: actor }));
+        let onConnect = actor => {
+          map.set(mm, actor);
+          return { actor: actor };
+        };
+        let onDisconnect = mm => {
+          map.delete(mm);
+        };
+        return DebuggerServer.connectToChild(this.conn, appFrame, onDisconnect)
+                             .then(onConnect);
       }
 
       return { actor: actor };
@@ -988,24 +930,18 @@ WebappsActor.prototype = {
  * The request types this actor can handle.
  */
 WebappsActor.prototype.requestTypes = {
-  "install": WebappsActor.prototype.install
+  "install": WebappsActor.prototype.install,
+  "uploadPackage": WebappsActor.prototype.uploadPackage,
+  "getAll": WebappsActor.prototype.getAll,
+  "getApp": WebappsActor.prototype.getApp,
+  "launch": WebappsActor.prototype.launch,
+  "close": WebappsActor.prototype.close,
+  "uninstall": WebappsActor.prototype.uninstall,
+  "listRunningApps": WebappsActor.prototype.listRunningApps,
+  "getAppActor": WebappsActor.prototype.getAppActor,
+  "watchApps": WebappsActor.prototype.watchApps,
+  "unwatchApps": WebappsActor.prototype.unwatchApps,
+  "getIconAsDataURL": WebappsActor.prototype.getIconAsDataURL
 };
-
-// Until we implement unix domain socket, we only enable app install
-// only on production devices
-if (Services.prefs.getBoolPref("devtools.debugger.enable-content-actors")) {
-  let requestTypes = WebappsActor.prototype.requestTypes;
-  requestTypes.uploadPackage = WebappsActor.prototype.uploadPackage;
-  requestTypes.getAll = WebappsActor.prototype.getAll;
-  requestTypes.getApp = WebappsActor.prototype.getApp;
-  requestTypes.launch = WebappsActor.prototype.launch;
-  requestTypes.close  = WebappsActor.prototype.close;
-  requestTypes.uninstall = WebappsActor.prototype.uninstall;
-  requestTypes.listRunningApps = WebappsActor.prototype.listRunningApps;
-  requestTypes.getAppActor = WebappsActor.prototype.getAppActor;
-  requestTypes.watchApps = WebappsActor.prototype.watchApps;
-  requestTypes.unwatchApps = WebappsActor.prototype.unwatchApps;
-  requestTypes.getIconAsDataURL = WebappsActor.prototype.getIconAsDataURL;
-}
 
 DebuggerServer.addGlobalActor(WebappsActor, "webappsActor");

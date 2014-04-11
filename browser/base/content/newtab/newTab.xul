@@ -17,6 +17,14 @@
             xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
             title="&newtab.pageTitle;">
 
+  <xul:panel id="sponsored-panel" orient="vertical" type="arrow">
+    <xul:description>&newtab.panel.message;</xul:description>
+    <xul:label class="text-link"
+               href="https://support.mozilla.org/kb/how-do-sponsored-tiles-work"
+               onclick="this.parentNode.hidePopup();"
+               value="&newtab.panel.link.text;" />
+  </xul:panel>
+
   <div id="newtab-scrollbox">
 
     <div id="newtab-vertical-margin">
@@ -31,10 +39,12 @@
                       label="&newtab.undo.restoreButton;"
                       class="newtab-undo-button" />
           <xul:toolbarbutton id="newtab-undo-close-button" tabindex="-1"
-                             class="close-icon"
+                             class="close-icon tabbable"
                              tooltiptext="&newtab.undo.closeTooltip;" />
         </div>
       </div>
+
+      <xul:spacer flex="1"/>
 
       <div id="newtab-horizontal-margin">
         <div class="newtab-side-margin"/>
@@ -45,7 +55,7 @@
         <div class="newtab-side-margin"/>
       </div>
 
-      <div id="newtab-margin-bottom"/>
+      <xul:spacer flex="1"/>
     </div>
     <input id="newtab-toggle" type="button"/>
   </div>

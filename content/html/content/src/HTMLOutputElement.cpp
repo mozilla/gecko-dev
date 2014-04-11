@@ -6,11 +6,11 @@
 #include "mozilla/dom/HTMLOutputElement.h"
 
 #include "mozAutoDocUpdate.h"
+#include "mozilla/EventStates.h"
 #include "mozilla/dom/HTMLFormElement.h"
 #include "mozilla/dom/HTMLOutputElementBinding.h"
 #include "nsContentUtils.h"
 #include "nsDOMSettableTokenList.h"
-#include "nsEventStates.h"
 #include "nsFormSubmission.h"
 
 NS_IMPL_NS_NEW_HTML_ELEMENT(Output)
@@ -18,7 +18,7 @@ NS_IMPL_NS_NEW_HTML_ELEMENT(Output)
 namespace mozilla {
 namespace dom {
 
-HTMLOutputElement::HTMLOutputElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+HTMLOutputElement::HTMLOutputElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : nsGenericHTMLFormElement(aNodeInfo)
   , mValueModeFlag(eModeDefault)
 {
@@ -30,9 +30,6 @@ HTMLOutputElement::HTMLOutputElement(already_AddRefed<nsINodeInfo> aNodeInfo)
 
 HTMLOutputElement::~HTMLOutputElement()
 {
-  if (mTokenList) {
-    mTokenList->DropReference();
-  }
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(HTMLOutputElement)
@@ -40,10 +37,7 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(HTMLOutputElement)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(HTMLOutputElement,
                                                 nsGenericHTMLFormElement)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mValidity)
-  if (tmp->mTokenList) {
-    tmp->mTokenList->DropReference();
-    NS_IMPL_CYCLE_COLLECTION_UNLINK(mTokenList)
-  }
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mTokenList)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(HTMLOutputElement,
                                                   nsGenericHTMLFormElement)
@@ -99,10 +93,10 @@ HTMLOutputElement::ParseAttribute(int32_t aNamespaceID, nsIAtom* aAttribute,
                                                   aValue, aResult);
 }
 
-nsEventStates
+EventStates
 HTMLOutputElement::IntrinsicState() const
 {
-  nsEventStates states = nsGenericHTMLFormElement::IntrinsicState();
+  EventStates states = nsGenericHTMLFormElement::IntrinsicState();
 
   // We don't have to call IsCandidateForConstraintValidation()
   // because <output> can't be barred from constraint validation.
@@ -144,7 +138,9 @@ HTMLOutputElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 void
 HTMLOutputElement::GetValue(nsAString& aValue)
 {
-  nsContentUtils::GetNodeTextContent(this, true, aValue);
+  if (!nsContentUtils::GetNodeTextContent(this, true, aValue)) {
+    NS_RUNTIMEABORT("OOM");
+  }
 }
 
 void
@@ -175,7 +171,9 @@ HTMLOutputElement::HtmlFor()
 void HTMLOutputElement::DescendantsChanged()
 {
   if (mValueModeFlag == eModeDefault) {
-    nsContentUtils::GetNodeTextContent(this, true, mDefaultValue);
+    if (!nsContentUtils::GetNodeTextContent(this, true, mDefaultValue)) {
+      NS_RUNTIMEABORT("OOM");
+    }
   }
 }
 
@@ -214,9 +212,9 @@ void HTMLOutputElement::ContentRemoved(nsIDocument* aDocument,
 }
 
 JSObject*
-HTMLOutputElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aScope)
+HTMLOutputElement::WrapNode(JSContext* aCx)
 {
-  return HTMLOutputElementBinding::Wrap(aCx, aScope, this);
+  return HTMLOutputElementBinding::Wrap(aCx, this);
 }
 
 } // namespace dom

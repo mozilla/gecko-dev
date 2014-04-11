@@ -17,7 +17,7 @@ NS_IMPL_NS_NEW_HTML_ELEMENT(BR)
 namespace mozilla {
 namespace dom {
 
-HTMLBRElement::HTMLBRElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+HTMLBRElement::HTMLBRElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo)
 {
 }
@@ -37,8 +37,8 @@ NS_IMPL_STRING_ATTR(HTMLBRElement, Clear, clear)
 static const nsAttrValue::EnumTable kClearTable[] = {
   { "left", NS_STYLE_CLEAR_LEFT },
   { "right", NS_STYLE_CLEAR_RIGHT },
-  { "all", NS_STYLE_CLEAR_LEFT_AND_RIGHT },
-  { "both", NS_STYLE_CLEAR_LEFT_AND_RIGHT },
+  { "all", NS_STYLE_CLEAR_BOTH },
+  { "both", NS_STYLE_CLEAR_BOTH },
   { 0 }
 };
 
@@ -95,9 +95,9 @@ HTMLBRElement::GetAttributeMappingFunction() const
 }
 
 JSObject*
-HTMLBRElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+HTMLBRElement::WrapNode(JSContext *aCx)
 {
-  return HTMLBRElementBinding::Wrap(aCx, aScope, this);
+  return HTMLBRElementBinding::Wrap(aCx, this);
 }
 
 } // namespace dom

@@ -8,9 +8,7 @@
 
 #include <string.h>
 
-#ifndef nscore_h___
 #include "nscore.h"
-#endif
 
 #define NSID_LENGTH 39
 
@@ -123,8 +121,7 @@ typedef nsID nsIID;
   struct COMTypeInfo                                                    \
   {                                                                     \
     static const nsIID kIID NS_HIDDEN;                                  \
-  };                                                                    \
-  static const nsIID& GetIID() {return COMTypeInfo<int>::kIID;}
+  };
 
 #define NS_DEFINE_STATIC_IID_ACCESSOR(the_interface, the_iid)           \
   template <class Dummy>                                                \
@@ -137,7 +134,7 @@ typedef nsID nsIID;
 #define NS_DEFINE_STATIC_CID_ACCESSOR(the_cid) \
   static const nsID& GetCID() {static const nsID cid = the_cid; return cid;}
 
-#define NS_GET_IID(T) (::T::COMTypeInfo<int>::kIID)
+#define NS_GET_IID(T) (T::COMTypeInfo<int>::kIID)
 #define NS_GET_TEMPLATE_IID(T) (T::template COMTypeInfo<int>::kIID)
 
 #endif

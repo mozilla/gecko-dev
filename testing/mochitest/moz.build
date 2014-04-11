@@ -5,11 +5,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 DIRS += [
-    'MochiKit',
-    'static',
-    'dynamic',
+    'manifests',
     'tests',
-    'chrome',
     'ssltunnel',
 ]
 
@@ -19,3 +16,12 @@ if CONFIG['MOZ_BUILD_APP'] == 'mobile/android':
 XPI_NAME = 'mochijar'
 
 JAR_MANIFESTS += ['jar.mn']
+
+MOCHITEST_MANIFESTS += [
+    'dynamic/mochitest.ini',
+    'MochiKit/mochitest.ini',
+    'static/mochitest.ini',
+    'tests/MochiKit-1.4.2/MochiKit/mochitest.ini',
+    'tests/MochiKit-1.4.2/tests/mochitest.ini',
+]
+MOCHITEST_CHROME_MANIFESTS += ['chrome/chrome.ini']

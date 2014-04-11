@@ -51,7 +51,7 @@ public:
   // interface nsIDOMDocumentFragment
   NS_DECL_NSIDOMDOCUMENTFRAGMENT
 
-  DocumentFragment(already_AddRefed<nsINodeInfo> aNodeInfo)
+  DocumentFragment(already_AddRefed<nsINodeInfo>& aNodeInfo)
     : FragmentOrElement(aNodeInfo), mHost(nullptr)
   {
     Init();
@@ -71,8 +71,7 @@ public:
   {
   }
 
-  virtual JSObject* WrapNode(JSContext *aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext *aCx) MOZ_OVERRIDE;
 
   // nsIContent
   nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,

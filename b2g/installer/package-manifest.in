@@ -174,7 +174,6 @@
 @BINPATH@/components/dom_css.xpt
 @BINPATH@/components/dom_devicestorage.xpt
 @BINPATH@/components/dom_events.xpt
-@BINPATH@/components/dom_file.xpt
 @BINPATH@/components/dom_geolocation.xpt
 @BINPATH@/components/dom_media.xpt
 @BINPATH@/components/dom_network.xpt
@@ -297,6 +296,7 @@
 @BINPATH@/components/storage.xpt
 @BINPATH@/components/telemetry.xpt
 @BINPATH@/components/toolkit_finalizationwitness.xpt
+@BINPATH@/components/toolkit_osfile.xpt
 @BINPATH@/components/toolkitprofile.xpt
 #ifdef MOZ_ENABLE_XREMOTE
 @BINPATH@/components/toolkitremote.xpt
@@ -375,6 +375,8 @@
 @BINPATH@/components/nsLoginInfo.js
 @BINPATH@/components/nsLoginManager.js
 @BINPATH@/components/nsLoginManagerPrompter.js
+@BINPATH@/components/NetworkGeolocationProvider.manifest
+@BINPATH@/components/NetworkGeolocationProvider.js
 #ifdef MOZ_WEBRTC
 @BINPATH@/components/PeerConnection.js
 @BINPATH@/components/PeerConnection.manifest
@@ -540,7 +542,6 @@
 @BINPATH@/components/SystemMessageManager.manifest
 
 @BINPATH@/components/Activities.manifest
-@BINPATH@/components/ActivityOptions.js
 @BINPATH@/components/ActivityProxy.js
 @BINPATH@/components/ActivityRequestHandler.js
 @BINPATH@/components/ActivityWrapper.js
@@ -756,7 +757,7 @@ bin/components/@DLL_PREFIX@nkgnomevfs@DLL_SUFFIX@
 @BINPATH@/chrome/chrome.manifest
 @BINPATH@/components/B2GComponents.manifest
 @BINPATH@/@DLL_PREFIX@omxplugin@DLL_SUFFIX@
-#ifdef ENABLE_MARIONETTE
+#if defined(ENABLE_MARIONETTE) || !defined(MOZ_WIDGET_GONK)
 @BINPATH@/chrome/marionette@JAREXT@
 @BINPATH@/chrome/marionette.manifest
 @BINPATH@/components/MarionetteComponents.manifest
@@ -780,15 +781,21 @@ bin/components/@DLL_PREFIX@nkgnomevfs@DLL_SUFFIX@
 @BINPATH@/components/TelProtocolHandler.js
 @BINPATH@/components/B2GAboutRedirector.js
 @BINPATH@/components/FilePicker.js
-@BINPATH@/components/FxAccountsUIGlue.js
 @BINPATH@/components/HelperAppDialog.js
 @BINPATH@/components/DownloadsUI.js
+
+#ifndef MOZ_WIDGET_GONK
+@BINPATH@/components/SimulatorScreen.js
+#endif
+
+#ifdef MOZ_SERVICES_FXACCOUNTS
+@BINPATH@/components/FxAccountsUIGlue.js
+@BINPATH@/components/services_fxaccounts.xpt
+#endif
 
 @BINPATH@/components/DataStore.manifest
 @BINPATH@/components/DataStoreService.js
 @BINPATH@/components/dom_datastore.xpt
-
-@BINPATH@/components/services_fxaccounts.xpt
 
 #ifdef MOZ_WEBSPEECH
 @BINPATH@/components/dom_webspeechsynth.xpt

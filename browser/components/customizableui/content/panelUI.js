@@ -47,6 +47,9 @@ const PanelUI = {
 
     this.menuButton.addEventListener("mousedown", this);
     this.menuButton.addEventListener("keypress", this);
+    this._overlayScrollListenerBoundFn = this._overlayScrollListener.bind(this);
+    window.matchMedia("(-moz-overlay-scrollbars)").addListener(this._overlayScrollListenerBoundFn);
+    CustomizableUI.addListener(this);
     this._initialized = true;
   },
 
@@ -67,16 +70,15 @@ const PanelUI = {
   },
 
   uninit: function() {
-    if (!this._eventListenersAdded) {
-      return;
-    }
-
     for (let event of this.kEvents) {
       this.panel.removeEventListener(event, this);
     }
     this.helpView.removeEventListener("ViewShowing", this._onHelpViewShow);
     this.menuButton.removeEventListener("mousedown", this);
     this.menuButton.removeEventListener("keypress", this);
+    window.matchMedia("(-moz-overlay-scrollbars)").removeListener(this._overlayScrollListenerBoundFn);
+    CustomizableUI.removeListener(this);
+    this._overlayScrollListenerBoundFn = null;
   },
 
   /**
@@ -121,16 +123,23 @@ const PanelUI = {
    */
   show: function(aEvent) {
     let deferred = Promise.defer();
-    if (this.panel.state == "open" ||
-        document.documentElement.hasAttribute("customizing")) {
-      deferred.resolve();
-      return deferred.promise;
-    }
 
     this.ensureReady().then(() => {
+      if (this.panel.state == "open" ||
+          document.documentElement.hasAttribute("customizing")) {
+        deferred.resolve();
+        return;
+      }
+
       let editControlPlacement = CustomizableUI.getPlacementOfWidget("edit-controls");
       if (editControlPlacement && editControlPlacement.area == CustomizableUI.AREA_PANEL) {
         updateEditUIVisibility();
+      }
+
+      let personalBookmarksPlacement = CustomizableUI.getPlacementOfWidget("personal-bookmarks");
+      if (personalBookmarksPlacement &&
+          personalBookmarksPlacement.area == CustomizableUI.AREA_PANEL) {
+        PlacesToolbarHelper.customizeChange();
       }
 
       let anchor;
@@ -147,6 +156,10 @@ const PanelUI = {
 
       this.panel.addEventListener("popupshown", function onPopupShown() {
         this.removeEventListener("popupshown", onPopupShown);
+        // As an optimization for the customize mode transition, we preload
+        // about:customizing in the background once the menu panel is first
+        // shown.
+        gCustomizationTabPreloader.ensurePreloading();
         deferred.resolve();
       });
     });
@@ -168,6 +181,7 @@ const PanelUI = {
   handleEvent: function(aEvent) {
     switch (aEvent.type) {
       case "popupshowing":
+        this._adjustLabelsForAutoHyphens();
         // Fall through
       case "popupshown":
         // Fall through
@@ -316,6 +330,7 @@ const PanelUI = {
                                  viewNode.querySelector(".panel-subview-footer"));
 
       let multiView = document.createElement("panelmultiview");
+      multiView.setAttribute("nosubviews", "true");
       tempPanel.appendChild(multiView);
       multiView.setAttribute("mainViewIsSubView", "true");
       multiView.setMainView(viewNode);
@@ -354,6 +369,26 @@ const PanelUI = {
                       "browser");
   },
 
+  onWidgetAfterDOMChange: function(aNode, aNextNode, aContainer, aWasRemoval) {
+    if (aContainer != this.contents) {
+      return;
+    }
+    if (aWasRemoval) {
+      aNode.removeAttribute("auto-hyphens");
+    }
+  },
+
+  onWidgetBeforeDOMChange: function(aNode, aNextNode, aContainer, aIsRemoval) {
+    if (aContainer != this.contents) {
+      return;
+    }
+    if (!aIsRemoval &&
+        (this.panel.state == "open" ||
+         document.documentElement.hasAttribute("customizing"))) {
+      this._adjustLabelsForAutoHyphens(aNode);
+    }
+  },
+
   /** 
    * Signal that we're about to make a lot of changes to the contents of the
    * panels all at once. For performance, we ignore the mutations.
@@ -371,6 +406,22 @@ const PanelUI = {
   endBatchUpdate: function(aReason) {
     this._ensureEventListenersAdded();
     this.multiView.ignoreMutations = false;
+  },
+
+  _adjustLabelsForAutoHyphens: function(aNode) {
+    let toolbarButtons = aNode ? [aNode] :
+                                 this.contents.querySelectorAll(".toolbarbutton-1");
+    for (let node of toolbarButtons) {
+      let label = node.getAttribute("label");
+      if (!label) {
+        continue;
+      }
+      if (label.contains("\u00ad")) {
+        node.setAttribute("auto-hyphens", "off");
+      } else {
+        node.removeAttribute("auto-hyphens");
+      }
+    }
   },
 
   /**
@@ -432,6 +483,12 @@ const PanelUI = {
     quitButton.setAttribute("tooltiptext", tooltipString);
 #endif
   },
+
+  _overlayScrollListenerBoundFn: null,
+  _overlayScrollListener: function(aMQL) {
+    ScrollbarSampler.resetSystemScrollbarWidth();
+    this._scrollWidth = null;
+  },
 };
 
 /**
@@ -439,6 +496,7 @@ const PanelUI = {
  * @return  the selected locale or "en-US" if none is selected
  */
 function getLocale() {
+  const PREF_SELECTED_LOCALE = "general.useragent.locale";
   try {
     let locale = Services.prefs.getComplexValue(PREF_SELECTED_LOCALE,
                                                 Ci.nsIPrefLocalizedString);

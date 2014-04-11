@@ -7,6 +7,7 @@
 this.EXPORTED_SYMBOLS = [
   "btoa", // It comes from a module import.
   "encryptPayload",
+  "ensureLegacyIdentityManager",
   "setBasicCredentials",
   "makeIdentityConfig",
   "configureFxAccountIdentity",
@@ -47,6 +48,17 @@ this.waitForZeroTimer = function waitForZeroTimer(callback) {
     callback();
   }
   CommonUtils.namedTimer(wait, 150, {}, "timer");
+}
+
+/**
+  * Ensure Sync is configured with the "legacy" identity provider.
+  */
+this.ensureLegacyIdentityManager = function() {
+  let ns = {};
+  Cu.import("resource://services-sync/service.js", ns);
+
+  Status.__authManager = ns.Service.identity = new IdentityManager();
+  ns.Service._clusterManager = ns.Service.identity.createClusterManager(ns.Service);
 }
 
 this.setBasicCredentials =
@@ -114,20 +126,23 @@ this.makeIdentityConfig = function(overrides) {
 // config (or the default config if not specified).
 this.configureFxAccountIdentity = function(authService,
                                            config = makeIdentityConfig()) {
-  let MockInternal = {
-    signedInUser: {
-      version: DATA_FORMAT_VERSION,
-      accountData: config.fxaccount.user
-    },
-    getCertificate: function(data, keyPair, mustBeValidUntil) {
-      this.cert = {
-        validUntil: Date.now() + CERT_LIFETIME,
-        cert: "certificate",
-      };
-      return Promise.resolve(this.cert.cert);
-    },
-  };
+  let MockInternal = {};
   let fxa = new FxAccounts(MockInternal);
+
+  // until we get better test infrastructure for bid_identity, we set the
+  // signedin user's "email" to the username, simply as many tests rely on this.
+  config.fxaccount.user.email = config.username;
+  fxa.internal.currentAccountState.signedInUser = {
+    version: DATA_FORMAT_VERSION,
+    accountData: config.fxaccount.user
+  };
+  fxa.internal.currentAccountState.getCertificate = function(data, keyPair, mustBeValidUntil) {
+    this.cert = {
+      validUntil: fxa.internal.now() + CERT_LIFETIME,
+      cert: "certificate",
+    };
+    return Promise.resolve(this.cert.cert);
+  };
 
   let mockTSC = { // TokenServerClient
     getTokenFromBrowserIDAssertion: function(uri, assertion, cb) {
@@ -139,6 +154,7 @@ this.configureFxAccountIdentity = function(authService,
   authService._tokenServerClient = mockTSC;
   // Set the "account" of the browserId manager to be the "email" of the
   // logged in user of the mockFXA service.
+  authService._signedInUser = fxa.internal.currentAccountState.signedInUser.accountData;
   authService._account = config.fxaccount.user.email;
 }
 
@@ -166,7 +182,7 @@ this.SyncTestingInfrastructure = function (server, username, password, syncKey) 
   let ns = {};
   Cu.import("resource://services-sync/service.js", ns);
 
-  let auth = ns.Service.identity;
+  ensureLegacyIdentityManager();
   let config = makeIdentityConfig();
   // XXX - hacks for the sync identity provider.
   if (username)
@@ -229,7 +245,7 @@ this.add_identity_test = function(test, testFunction) {
   test.add_task(function() {
     note("sync");
     let oldIdentity = Status._authManager;
-    Status.__authManager = ns.Service.identity = new IdentityManager();
+    ensureLegacyIdentityManager();
     yield testFunction();
     Status.__authManager = ns.Service.identity = oldIdentity;
   });

@@ -312,6 +312,8 @@ WeakMap_set_impl(JSContext *cx, CallArgs args)
     ObjectValueMap *map = thisObj->as<WeakMapObject>().getMap();
     if (!map) {
         map = cx->new_<ObjectValueMap>(cx, thisObj.get());
+        if (!map)
+            return false;
         if (!map->init()) {
             js_delete(map);
             JS_ReportOutOfMemory(cx);
@@ -350,12 +352,12 @@ WeakMap_set(JSContext *cx, unsigned argc, Value *vp)
 }
 
 JS_FRIEND_API(bool)
-JS_NondeterministicGetWeakMapKeys(JSContext *cx, JSObject *objArg, JSObject **ret)
+JS_NondeterministicGetWeakMapKeys(JSContext *cx, HandleObject objArg, MutableHandleObject ret)
 {
     RootedObject obj(cx, objArg);
     obj = UncheckedUnwrap(obj);
     if (!obj || !obj->is<WeakMapObject>()) {
-        *ret = nullptr;
+        ret.set(nullptr);
         return true;
     }
     RootedObject arr(cx, NewDenseEmptyArray(cx));
@@ -373,7 +375,7 @@ JS_NondeterministicGetWeakMapKeys(JSContext *cx, JSObject *objArg, JSObject **re
                 return false;
         }
     }
-    *ret = arr;
+    ret.set(arr);
     return true;
 }
 
@@ -402,11 +404,12 @@ WeakMap_finalize(FreeOp *fop, JSObject *obj)
 static bool
 WeakMap_construct(JSContext *cx, unsigned argc, Value *vp)
 {
+    CallArgs args = CallArgsFromVp(argc, vp);
     JSObject *obj = NewBuiltinClassInstance(cx, &WeakMapObject::class_);
     if (!obj)
         return false;
 
-    vp->setObject(*obj);
+    args.rval().setObject(*obj);
     return true;
 }
 
@@ -459,7 +462,7 @@ js_InitWeakMapClass(JSContext *cx, HandleObject obj)
     if (!DefinePropertiesAndBrand(cx, weakMapProto, nullptr, weak_map_methods))
         return nullptr;
 
-    if (!DefineConstructorAndPrototype(cx, global, JSProto_WeakMap, ctor, weakMapProto))
+    if (!GlobalObject::initBuiltinConstructor(cx, global, JSProto_WeakMap, ctor, weakMapProto))
         return nullptr;
     return weakMapProto;
 }

@@ -60,6 +60,13 @@ function run_test() {
     Services.prefs.clearUserPref("browser.safebrowsing.malware.enabled");
   });
 
+  // Set download_block_table explicitly.
+  Services.prefs.setCharPref("urlclassifier.downloadBlockTable",
+                             "goog-badbinurl-shavar");
+  do_register_cleanup(function() {
+    Services.prefs.clearUserPref("urlclassifier.downloadBlockTable");
+  });
+
   gHttpServ = new HttpServer();
   gHttpServ.registerDirectory("/", do_get_cwd());
   gHttpServ.registerPathHandler("/download", function(request, response) {
@@ -134,8 +141,10 @@ add_test(function test_local_list() {
     .getService(Ci.nsIUrlClassifierStreamUpdater);
   streamUpdater.updateUrl = "http://localhost:4444/downloads";
 
-  // Load up some update chunks for the safebrowsing server to serve. This
-  // particular chunk contains the hash of whitelisted.com/.
+  // Load up some update chunks for the safebrowsing server to serve.
+  // This chunk contains the hash of whitelisted.com/.
+  registerTableUpdate("goog-badbinurl-shavar", "data/block_digest.chunk");
+  // This chunk contains the hash of blocklisted.com/.
   registerTableUpdate("goog-downloadwhite-digest256", "data/digest.chunk");
 
   // Download some updates, and don't continue until the downloads are done.
@@ -151,22 +160,61 @@ add_test(function test_local_list() {
     do_throw("We didn't download or update correctly: " + aEvent);
   }
   streamUpdater.downloadUpdates(
-    "goog-downloadwhite-digest256",
-    "goog-downloadwhite-digest256;\n",
+    "goog-downloadwhite-digest256,goog-badbinurl-shavar",
+    "goog-downloadwhite-digest256,goog-badbinurl-shavar;\n",
     updateSuccess, handleError, handleError);
 });
 
-// After being whitelisted, we shouldn't throw.
-add_test(function test_local_whitelist() {
+add_test(function test_unlisted() {
+  Services.prefs.setCharPref("browser.safebrowsing.appRepURL",
+                             "http://localhost:4444/download");
+  gAppRep.queryReputation({
+    sourceURI: createURI("http://example.com"),
+    fileSize: 12,
+  }, function onComplete(aShouldBlock, aStatus) {
+    do_check_eq(Cr.NS_OK, aStatus);
+    do_check_false(aShouldBlock);
+    run_next_test();
+  });
+});
+
+add_test(function test_local_blacklist() {
+  Services.prefs.setCharPref("browser.safebrowsing.appRepURL",
+                             "http://localhost:4444/download");
+  gAppRep.queryReputation({
+    sourceURI: createURI("http://blocklisted.com"),
+    fileSize: 12,
+  }, function onComplete(aShouldBlock, aStatus) {
+    do_check_eq(Cr.NS_OK, aStatus);
+    do_check_true(aShouldBlock);
+    run_next_test();
+  });
+});
+
+add_test(function test_referer_blacklist() {
+  Services.prefs.setCharPref("browser.safebrowsing.appRepURL",
+                             "http://localhost:4444/download");
+  gAppRep.queryReputation({
+    sourceURI: createURI("http://example.com"),
+    referrerURI: createURI("http://blocklisted.com"),
+    fileSize: 12,
+  }, function onComplete(aShouldBlock, aStatus) {
+    do_check_eq(Cr.NS_OK, aStatus);
+    do_check_true(aShouldBlock);
+    run_next_test();
+  });
+});
+
+add_test(function test_blocklist_trumps_allowlist() {
   Services.prefs.setCharPref("browser.safebrowsing.appRepURL",
                              "http://localhost:4444/download");
   gAppRep.queryReputation({
     sourceURI: createURI("http://whitelisted.com"),
+    referrerURI: createURI("http://blocklisted.com"),
     fileSize: 12,
   }, function onComplete(aShouldBlock, aStatus) {
-    // We would get garbage if this query made it to the remote server.
     do_check_eq(Cr.NS_OK, aStatus);
-    do_check_false(aShouldBlock);
+    do_check_true(aShouldBlock);
     run_next_test();
   });
 });

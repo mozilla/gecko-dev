@@ -6,14 +6,18 @@
 
 /* General utilities used throughout devtools. */
 
-let Cu = Components.utils;
-let { Promise: promise } = Components.utils.import("resource://gre/modules/commonjs/sdk/core/promise.js", {});
-let { Services } = Components.utils.import("resource://gre/modules/Services.jsm", {});
+// hasChrome is provided as a global by the loader. It is true if we are running
+// on the main thread, and false if we are running on a worker thread.
+if (hasChrome) {
+  var { Ci, Cu } = require("chrome");
+  var Services = require("Services");
+  var setTimeout = Cu.import("resource://gre/modules/Timer.jsm", {}).setTimeout;
+}
 
 /**
  * Turn the error |aError| into a string, without fail.
  */
-this.safeErrorString = function safeErrorString(aError) {
+exports.safeErrorString = function safeErrorString(aError) {
   try {
     let errorString = aError.toString();
     if (typeof errorString == "string") {
@@ -28,6 +32,8 @@ this.safeErrorString = function safeErrorString(aError) {
         }
       } catch (ee) { }
 
+      // Append additional line and column number information to the output,
+      // since it might not be part of the stringified error.
       if (typeof aError.lineNumber == "number" && typeof aError.columnNumber == "number") {
         errorString += "Line: " + aError.lineNumber + ", column: " + aError.columnNumber;
       }
@@ -42,18 +48,18 @@ this.safeErrorString = function safeErrorString(aError) {
 /**
  * Report that |aWho| threw an exception, |aException|.
  */
-this.reportException = function reportException(aWho, aException) {
-  let msg = aWho + " threw an exception: " + safeErrorString(aException);
+exports.reportException = function reportException(aWho, aException) {
+  let msg = aWho + " threw an exception: " + exports.safeErrorString(aException);
 
   dump(msg + "\n");
 
-  if (Components.utils.reportError) {
+  if (Cu.reportError) {
     /*
      * Note that the xpcshell test harness registers an observer for
      * console messages, so when we're running tests, this will cause
      * the test to quit.
      */
-    Components.utils.reportError(msg);
+    Cu.reportError(msg);
   }
 }
 
@@ -71,7 +77,7 @@ this.reportException = function reportException(aWho, aException) {
  * (SpiderMonkey does generate good names for anonymous functions, but we
  * don't have a way to get at them from JavaScript at the moment.)
  */
-this.makeInfallible = function makeInfallible(aHandler, aName) {
+exports.makeInfallible = function makeInfallible(aHandler, aName) {
   if (!aName)
     aName = aHandler.name;
 
@@ -83,7 +89,7 @@ this.makeInfallible = function makeInfallible(aHandler, aName) {
       if (aName) {
         who += " " + aName;
       }
-      reportException(who, ex);
+      exports.reportException(who, ex);
     }
   }
 }
@@ -98,7 +104,7 @@ this.makeInfallible = function makeInfallible(aHandler, aName) {
  * @returns Array
  *          The combined array, in the form [a1, b1, a2, b2, ...]
  */
-this.zip = function zip(a, b) {
+exports.zip = function zip(a, b) {
   if (!b) {
     return a;
   }
@@ -114,10 +120,39 @@ this.zip = function zip(a, b) {
   return pairs;
 };
 
-const executeSoon = aFn => {
+/**
+ * Waits for the next tick in the event loop to execute a callback.
+ */
+exports.executeSoon = function executeSoon(aFn) {
   Services.tm.mainThread.dispatch({
-    run: this.makeInfallible(aFn)
-  }, Components.interfaces.nsIThread.DISPATCH_NORMAL);
+    run: exports.makeInfallible(aFn)
+  }, Ci.nsIThread.DISPATCH_NORMAL);
+};
+
+/**
+ * Waits for the next tick in the event loop.
+ *
+ * @return Promise
+ *         A promise that is resolved after the next tick in the event loop.
+ */
+exports.waitForTick = function waitForTick() {
+  let deferred = promise.defer();
+  exports.executeSoon(deferred.resolve);
+  return deferred.promise;
+};
+
+/**
+ * Waits for the specified amount of time to pass.
+ *
+ * @param number aDelay
+ *        The amount of time to wait, in milliseconds.
+ * @return Promise
+ *         A promise that is resolved after the specified amount of time passes.
+ */
+exports.waitForTime = function waitForTime(aDelay) {
+  let deferred = promise.defer();
+  setTimeout(deferred.resolve, aDelay);
+  return deferred.promise;
 };
 
 /**
@@ -128,16 +163,19 @@ const executeSoon = aFn => {
  * @param Array aArray
  *        The array being iterated over.
  * @param Function aFn
- *        The function called on each item in the array.
+ *        The function called on each item in the array. If a promise is
+ *        returned by this function, iterating over the array will be paused
+ *        until the respective promise is resolved.
  * @returns Promise
  *          A promise that is resolved once the whole array has been iterated
- *          over.
+ *          over, and all promises returned by the aFn callback are resolved.
  */
-this.yieldingEach = function yieldingEach(aArray, aFn) {
+exports.yieldingEach = function yieldingEach(aArray, aFn) {
   const deferred = promise.defer();
 
   let i = 0;
   let len = aArray.length;
+  let outstanding = [deferred.promise];
 
   (function loop() {
     const start = Date.now();
@@ -148,12 +186,12 @@ this.yieldingEach = function yieldingEach(aArray, aFn) {
       // aren't including time spent in non-JS here, but this is Good
       // Enough(tm).
       if (Date.now() - start > 16) {
-        executeSoon(loop);
+        exports.executeSoon(loop);
         return;
       }
 
       try {
-        aFn(aArray[i++]);
+        outstanding.push(aFn(aArray[i], i++));
       } catch (e) {
         deferred.reject(e);
         return;
@@ -163,9 +201,8 @@ this.yieldingEach = function yieldingEach(aArray, aFn) {
     deferred.resolve();
   }());
 
-  return deferred.promise;
+  return promise.all(outstanding);
 }
-
 
 /**
  * Like XPCOMUtils.defineLazyGetter, but with a |this| sensitive getter that
@@ -180,7 +217,7 @@ this.yieldingEach = function yieldingEach(aArray, aFn) {
  *        The callback that will be called to determine the value. Will be
  *        called with the |this| value of the current instance.
  */
-this.defineLazyPrototypeGetter =
+exports.defineLazyPrototypeGetter =
 function defineLazyPrototypeGetter(aObject, aKey, aCallback) {
   Object.defineProperty(aObject, aKey, {
     configurable: true,
@@ -208,7 +245,7 @@ function defineLazyPrototypeGetter(aObject, aKey, aCallback) {
  *        The key to look for.
  * @return Any
  */
-this.getProperty = function getProperty(aObj, aKey) {
+exports.getProperty = function getProperty(aObj, aKey) {
   let root = aObj;
   try {
     do {
@@ -218,13 +255,13 @@ this.getProperty = function getProperty(aObj, aKey) {
           return desc.value;
         }
         // Call the getter if it's safe.
-        return hasSafeGetter(desc) ? desc.get.call(root).return : undefined;
+        return exports.hasSafeGetter(desc) ? desc.get.call(root).return : undefined;
       }
       aObj = aObj.proto;
     } while (aObj);
   } catch (e) {
     // If anything goes wrong report the error and return undefined.
-    reportException("getProperty", e);
+    exports.reportException("getProperty", e);
   }
   return undefined;
 };
@@ -237,7 +274,7 @@ this.getProperty = function getProperty(aObj, aKey) {
  * @return Boolean
  *         Whether a safe getter was found.
  */
-this.hasSafeGetter = function hasSafeGetter(aDesc) {
+exports.hasSafeGetter = function hasSafeGetter(aDesc) {
   let fn = aDesc.get;
   return fn && fn.callable && fn.class == "Function" && fn.script === undefined;
 };
@@ -254,9 +291,9 @@ this.hasSafeGetter = function hasSafeGetter(aDesc) {
  * @return Boolean
  *         True if it is safe to read properties from aObj, or false otherwise.
  */
-this.isSafeJSObject = function isSafeJSObject(aObj) {
+exports.isSafeJSObject = function isSafeJSObject(aObj) {
   if (Cu.getGlobalForObject(aObj) ==
-      Cu.getGlobalForObject(isSafeJSObject)) {
+      Cu.getGlobalForObject(exports.isSafeJSObject)) {
     return true; // aObj is not a cross-compartment wrapper.
   }
 
@@ -267,4 +304,3 @@ this.isSafeJSObject = function isSafeJSObject(aObj) {
 
   return Cu.isXrayWrapper(aObj);
 };
-

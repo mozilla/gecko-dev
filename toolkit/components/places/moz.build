@@ -60,16 +60,18 @@ if CONFIG['MOZ_PLACES']:
     ]
 
     EXTRA_JS_MODULES = [
+        'BookmarkHTMLUtils.jsm',
         'BookmarkJSONUtils.jsm',
         'ClusterLib.js',
         'ColorAnalyzer_worker.js',
         'ColorConversion.js',
         'PlacesBackups.jsm',
         'PlacesDBUtils.jsm',
+        'PlacesTransactions.jsm',
+        'PriorityUrlProvider.jsm'
     ]
 
     EXTRA_PP_JS_MODULES += [
-        'BookmarkHTMLUtils.jsm',
         'PlacesUtils.jsm',
     ]
 

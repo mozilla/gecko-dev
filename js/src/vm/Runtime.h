@@ -56,6 +56,9 @@ namespace js {
 class PerThreadData;
 class ThreadSafeContext;
 class AutoKeepAtoms;
+#ifdef JS_TRACE_LOGGING
+class TraceLogger;
+#endif
 
 /* Thread Local Storage slot for storing the runtime for a thread. */
 extern mozilla::ThreadLocal<PerThreadData*> TlsPerThreadData;
@@ -140,18 +143,6 @@ struct ConservativeGCData
      * nativeStackTop unless the latter is nullptr.
      */
     uintptr_t           *nativeStackTop;
-
-#if defined(JSGC_ROOT_ANALYSIS) && (JS_STACK_GROWTH_DIRECTION < 0)
-    /*
-     * Record old contents of the native stack from the last time there was a
-     * scan, to reduce the overhead involved in repeatedly rescanning the
-     * native stack during root analysis. oldStackData stores words in reverse
-     * order starting at oldStackEnd.
-     */
-    uintptr_t           *oldStackMin, *oldStackEnd;
-    uintptr_t           *oldStackData;
-    size_t              oldStackCapacity; // in sizeof(uintptr_t)
-#endif
 
     union {
         jmp_buf         jmpbuf;
@@ -484,7 +475,7 @@ AtomStateOffsetToName(const JSAtomState &atomState, size_t offset)
 enum RuntimeLock {
     ExclusiveAccessLock,
     WorkerThreadStateLock,
-    OperationCallbackLock,
+    InterruptLock,
     GCLock
 };
 
@@ -550,13 +541,17 @@ class PerThreadData : public PerThreadDataFriendFields
 
     inline void setJitStackLimit(uintptr_t limit);
 
+#ifdef JS_TRACE_LOGGING
+    TraceLogger         *traceLogger;
+#endif
+
     /*
      * asm.js maintains a stack of AsmJSModule activations (see AsmJS.h). This
-     * stack is used by JSRuntime::triggerOperationCallback to stop long-
-     * running asm.js without requiring dynamic polling operations in the
-     * generated code. Since triggerOperationCallback may run on a separate
-     * thread than the JSRuntime's owner thread all reads/writes must be
-     * synchronized (by rt->operationCallbackLock).
+     * stack is used by JSRuntime::requestInterrupt to stop long-running asm.js
+     * without requiring dynamic polling operations in the generated
+     * code. Since requestInterrupt may run on a separate thread than the
+     * JSRuntime's owner thread all reads/writes must be synchronized (by
+     * rt->interruptLock).
      */
   private:
     friend class js::Activation;
@@ -573,7 +568,7 @@ class PerThreadData : public PerThreadDataFriendFields
      */
     js::Activation *activation_;
 
-    /* See AsmJSActivation comment. Protected by rt->operationCallbackLock. */
+    /* See AsmJSActivation comment. Protected by rt->interruptLock. */
     js::AsmJSActivation *asmJSActivationStack_;
 
 #ifdef JS_ARM_SIMULATOR
@@ -690,7 +685,7 @@ struct JSRuntime : public JS::shadow::Runtime,
     JSRuntime *parentRuntime;
 
     /*
-     * If true, we've been asked to call the operation callback as soon as
+     * If true, we've been asked to call the interrupt callback as soon as
      * possible.
      */
     mozilla::Atomic<bool, mozilla::Relaxed> interrupt;
@@ -707,8 +702,7 @@ struct JSRuntime : public JS::shadow::Runtime,
     /* Set when handling a signal for a thread associated with this runtime. */
     bool handlingSignal;
 
-    /* Branch callback */
-    JSOperationCallback operationCallback;
+    JSInterruptCallback interruptCallback;
 
 #ifdef DEBUG
     void assertCanLock(js::RuntimeLock which);
@@ -718,48 +712,48 @@ struct JSRuntime : public JS::shadow::Runtime,
 
   private:
     /*
-     * Lock taken when triggering the operation callback from another thread.
+     * Lock taken when triggering an interrupt from another thread.
      * Protects all data that is touched in this process.
      */
 #ifdef JS_THREADSAFE
-    PRLock *operationCallbackLock;
-    PRThread *operationCallbackOwner;
+    PRLock *interruptLock;
+    PRThread *interruptLockOwner;
 #else
-    bool operationCallbackLockTaken;
+    bool interruptLockTaken;
 #endif // JS_THREADSAFE
   public:
 
-    class AutoLockForOperationCallback {
+    class AutoLockForInterrupt {
         JSRuntime *rt;
       public:
-        AutoLockForOperationCallback(JSRuntime *rt MOZ_GUARD_OBJECT_NOTIFIER_PARAM) : rt(rt) {
+        AutoLockForInterrupt(JSRuntime *rt MOZ_GUARD_OBJECT_NOTIFIER_PARAM) : rt(rt) {
             MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-            rt->assertCanLock(js::OperationCallbackLock);
+            rt->assertCanLock(js::InterruptLock);
 #ifdef JS_THREADSAFE
-            PR_Lock(rt->operationCallbackLock);
-            rt->operationCallbackOwner = PR_GetCurrentThread();
+            PR_Lock(rt->interruptLock);
+            rt->interruptLockOwner = PR_GetCurrentThread();
 #else
-            rt->operationCallbackLockTaken = true;
+            rt->interruptLockTaken = true;
 #endif // JS_THREADSAFE
         }
-        ~AutoLockForOperationCallback() {
-            JS_ASSERT(rt->currentThreadOwnsOperationCallbackLock());
+        ~AutoLockForInterrupt() {
+            JS_ASSERT(rt->currentThreadOwnsInterruptLock());
 #ifdef JS_THREADSAFE
-            rt->operationCallbackOwner = nullptr;
-            PR_Unlock(rt->operationCallbackLock);
+            rt->interruptLockOwner = nullptr;
+            PR_Unlock(rt->interruptLock);
 #else
-            rt->operationCallbackLockTaken = false;
+            rt->interruptLockTaken = false;
 #endif // JS_THREADSAFE
         }
 
         MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
     };
 
-    bool currentThreadOwnsOperationCallbackLock() {
+    bool currentThreadOwnsInterruptLock() {
 #if defined(JS_THREADSAFE)
-        return operationCallbackOwner == PR_GetCurrentThread();
+        return interruptLockOwner == PR_GetCurrentThread();
 #else
-        return operationCallbackLockTaken;
+        return interruptLockTaken;
 #endif
     }
 
@@ -964,6 +958,16 @@ struct JSRuntime : public JS::shadow::Runtime,
 # ifdef DEBUG
     unsigned            checkRequestDepth;
 # endif
+#endif
+
+#ifdef DEBUG
+    /*
+     * To help embedders enforce their invariants, we allow them to specify in
+     * advance which JSContext should be passed to JSAPI calls. If this is set
+     * to a non-null value, the assertSameCompartment machinery does double-
+     * duty (in debug builds) to verify that it matches the cx being used.
+     */
+    JSContext          *activeContext;
 #endif
 
     /* Garbage collector state, used by jsgc.c. */
@@ -1680,16 +1684,16 @@ struct JSRuntime : public JS::shadow::Runtime,
     JS_FRIEND_API(void *) onOutOfMemory(void *p, size_t nbytes);
     JS_FRIEND_API(void *) onOutOfMemory(void *p, size_t nbytes, JSContext *cx);
 
-    // Ways in which the operation callback on the runtime can be triggered,
+    // Ways in which the interrupt callback on the runtime can be triggered,
     // varying based on which thread is triggering the callback.
-    enum OperationCallbackTrigger {
-        TriggerCallbackMainThread,
-        TriggerCallbackAnyThread,
-        TriggerCallbackAnyThreadDontStopIon,
-        TriggerCallbackAnyThreadForkJoin
+    enum InterruptMode {
+        RequestInterruptMainThread,
+        RequestInterruptAnyThread,
+        RequestInterruptAnyThreadDontStopIon,
+        RequestInterruptAnyThreadForkJoin
     };
 
-    void triggerOperationCallback(OperationCallbackTrigger trigger);
+    void requestInterrupt(InterruptMode mode);
 
     void addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf, JS::RuntimeSizes *runtime);
 
@@ -1936,7 +1940,7 @@ class MOZ_STACK_CLASS AutoKeepAtoms
 inline void
 PerThreadData::setJitStackLimit(uintptr_t limit)
 {
-    JS_ASSERT(runtime_->currentThreadOwnsOperationCallbackLock());
+    JS_ASSERT(runtime_->currentThreadOwnsInterruptLock());
     jitStackLimit = limit;
 }
 

@@ -20,6 +20,7 @@
 #include <hardware/gps.h> // for GpsInterface
 #include "nsCOMPtr.h"
 #include "nsIGeolocationProvider.h"
+#include "nsIObserver.h"
 #ifdef MOZ_B2G_RIL
 #include "nsIRadioInterfaceLayer.h"
 #include "nsISettingsService.h"
@@ -34,16 +35,16 @@ class nsIThread;
 "@mozilla.org/gonk-gps-geolocation-provider;1"
 
 class GonkGPSGeolocationProvider : public nsIGeolocationProvider
+                                 , public nsIObserver
 #ifdef MOZ_B2G_RIL
-                                 , public nsIRILDataCallback
                                  , public nsISettingsServiceCallback
 #endif
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIGEOLOCATIONPROVIDER
+  NS_DECL_NSIOBSERVER
 #ifdef MOZ_B2G_RIL
-  NS_DECL_NSIRILDATACALLBACK
   NS_DECL_NSISETTINGSSERVICECALLBACK
 #endif
 
@@ -55,7 +56,7 @@ private:
   GonkGPSGeolocationProvider();
   GonkGPSGeolocationProvider(const GonkGPSGeolocationProvider &);
   GonkGPSGeolocationProvider & operator = (const GonkGPSGeolocationProvider &);
-  ~GonkGPSGeolocationProvider();
+  virtual ~GonkGPSGeolocationProvider();
 
   static void LocationCallback(GpsLocation* location);
   static void StatusCallback(GpsStatus* status);
@@ -81,6 +82,7 @@ private:
   void Init();
   void StartGPS();
   void ShutdownGPS();
+  void InjectLocation(double latitude, double longitude, float accuracy);
 #ifdef MOZ_B2G_RIL
   void SetupAGPS();
   int32_t GetDataConnectionState();
@@ -113,7 +115,21 @@ private:
   nsCOMPtr<nsIRadioInterface> mRadioInterface;
 #endif
   nsCOMPtr<nsIGeolocationUpdate> mLocationCallback;
+  PRTime mLastGPSDerivedLocationTime;
   nsCOMPtr<nsIThread> mInitThread;
+  nsCOMPtr<nsIGeolocationProvider> mNetworkLocationProvider;
+
+  class NetworkLocationUpdate : public nsIGeolocationUpdate
+  {
+    public:
+      NS_DECL_ISUPPORTS
+      NS_DECL_NSIGEOLOCATIONUPDATE
+
+      NetworkLocationUpdate() {}
+
+    private:
+      virtual ~NetworkLocationUpdate() {}
+  };
 };
 
 #endif /* GonkGPSGeolocationProvider_h */

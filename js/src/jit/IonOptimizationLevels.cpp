@@ -54,6 +54,7 @@ OptimizationInfo::initAsmjsOptimizationInfo()
     level_ = Optimization_AsmJS;
     edgeCaseAnalysis_ = false;
     eliminateRedundantChecks_ = false;
+    registerAllocator_ = RegisterAllocator_Backtracking;
 }
 
 uint32_t
@@ -86,7 +87,7 @@ OptimizationInfo::usesBeforeCompile(JSScript *script, jsbytecode *pc) const
     // It's more efficient to enter outer loops, rather than inner loops, via OSR.
     // To accomplish this, we use a slightly higher threshold for inner loops.
     // Note that the loop depth is always > 0 so we will prefer non-OSR over OSR.
-    uint32_t loopDepth = GET_UINT8(pc);
+    uint32_t loopDepth = LoopEntryDepthHint(pc);
     JS_ASSERT(loopDepth > 0);
     return minUses + loopDepth * 100;
 }

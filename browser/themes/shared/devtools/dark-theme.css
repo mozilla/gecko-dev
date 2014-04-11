@@ -7,13 +7,13 @@
  * https://bugzilla.mozilla.org/show_bug.cgi?id=715472#c17
  */
 .theme-body {
-  background: #131c26;
-  color: #8fa1b2;
+  background: #14171a;
+  color: #a9bacb;
 }
 
 .theme-sidebar {
-  background: #131c26;
-  color: #8fa1b2;
+  background: #181d20;
+  color: #a9bacb;
 }
 
 ::-moz-selection {
@@ -21,44 +21,13 @@
   color: #f5f7fa;
 }
 
-.theme-twisty {
-  cursor: pointer;
-  width: 14px;
-  height: 14px;
-  background-repeat: no-repeat;
-  background-image: url("chrome://browser/skin/devtools/controls.png");
-  background-position: -28px -14px;
-}
-
-.theme-twisty:-moz-focusring {
-  outline-style: none;
-}
-
-.theme-twisty[open] {
-  background-position: -42px -14px;
-}
-
-.theme-checkbox {
-  display: inline-block;
-  border: 0;
-  width: 14px;
-  height: 14px;
-  padding: 0;
-  outline: none;
-  background-image: url("chrome://browser/skin/devtools/controls.png");
-  background-position: -28px 0;
-}
-
-.theme-checkbox[checked] {
-  background-position: -42px 0;
+.theme-bg-darker {
+  background-color: rgba(0,0,0,0.5);
 }
 
 .theme-selected {
-  background: #26394D;
-}
-
-.theme-bg-darker {
-  background-color: rgba(0,0,0,0.5);
+  background-color: #1d4f73;
+  color: #f5f7fa; /* Light foreground text */
 }
 
 .theme-bg-contrast,
@@ -190,7 +159,7 @@
 .cm-s-mozilla .cm-variable-3,
 .cm-s-mozilla .cm-operator,
 .cm-s-mozilla .cm-special { /* theme-body color */
-  color: #8fa1b2;
+  color: #a9bacb;
 }
 
 .cm-s-mozilla .CodeMirror-lines .CodeMirror-cursor {
@@ -254,6 +223,46 @@ div.CodeMirror span.eval-text {
   min-height: 1.4em;
 }
 
+/* Twisty and checkbox controls */
+.theme-twisty, .theme-checkbox {
+  width: 14px;
+  height: 14px;
+  background-repeat: no-repeat;
+  background-image: url("chrome://browser/skin/devtools/controls.png");
+  background-size: 56px 28px;
+}
+
+.theme-twisty {
+  cursor: pointer;
+  background-position: -28px -14px;
+}
+
+.theme-twisty:-moz-focusring {
+  outline-style: none;
+}
+
+.theme-twisty[open] {
+  background-position: -42px -14px;
+}
+
+.theme-checkbox {
+  display: inline-block;
+  border: 0;
+  padding: 0;
+  outline: none;
+  background-position: -28px 0;
+}
+
+.theme-checkbox[checked] {
+  background-position: -42px 0;
+}
+
+@media (min-resolution: 2dppx) {
+  .theme-twisty, .theme-checkbox {
+    background-image: url("chrome://browser/skin/devtools/controls@2x.png");
+  }
+}
+
 /* XUL panel styling (see browser/devtools/shared/widgets/Tooltip.js) */
 
 .theme-tooltip-panel .panel-arrowcontent {
@@ -303,6 +312,10 @@ div.CodeMirror span.eval-text {
   border-bottom: 1px solid #434850;
 }
 
+.theme-tooltip-panel .devtools-tooltip-font-previewer-text {
+  color: white;
+}
+
 .theme-tooltip-panel .devtools-tooltip-simple-text:last-child {
   border-bottom: 0;
 }
@@ -313,10 +326,7 @@ div.CodeMirror span.eval-text {
 
 .devtools-side-splitter {
   -moz-border-end: 1px solid black;
-}
-
-.devtools-responsive-container > .devtools-side-splitter {
-  border-top: 1px solid black;
+  border-color: black; /* Needed for responsive container at low width. */
 }
 
 .devtools-textinput,

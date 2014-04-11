@@ -77,7 +77,7 @@ public abstract class ServerSyncStage extends AbstractSessionManagingSyncStage i
     // We can be disabled by the server's meta/global record, or malformed in the server's meta/global record,
     // or by the user manually in Sync Settings.
     // We catch the subclasses of MetaGlobalException to trigger various resets and wipes in execute().
-    boolean enabledInMetaGlobal = session.engineIsEnabled(this.getEngineName(), engineSettings);
+    boolean enabledInMetaGlobal = session.isEngineRemotelyEnabled(this.getEngineName(), engineSettings);
 
     // Check for manual changes to engines by the user.
     checkAndUpdateUserSelectedEngines(enabledInMetaGlobal);
@@ -89,10 +89,7 @@ public abstract class ServerSyncStage extends AbstractSessionManagingSyncStage i
     }
 
     // We can also be disabled just for this sync.
-    if (session.config.stagesToSync == null) {
-      return true;
-    }
-    boolean enabledThisSync = session.config.stagesToSync.contains(this.getEngineName()); // For ServerSyncStage, stage name == engine name.
+    boolean enabledThisSync = session.isEngineLocallyEnabled(this.getEngineName()); // For ServerSyncStage, stage name == engine name.
     if (!enabledThisSync) {
       Logger.debug(LOG_TAG, "Stage " + this.getEngineName() + " disabled just for this sync.");
     }
@@ -148,7 +145,8 @@ public abstract class ServerSyncStage extends AbstractSessionManagingSyncStage i
     String collection = getCollection();
     return new Server11Repository(collection,
                                   session.config.storageURL(),
-                                  session.getAuthHeaderProvider());
+                                  session.getAuthHeaderProvider(),
+                                  session.config.infoCollections);
   }
 
   /**
@@ -515,7 +513,9 @@ public abstract class ServerSyncStage extends AbstractSessionManagingSyncStage i
       if (!isEnabled) {
         // Engine has been disabled; update meta/global with engine removal for upload.
         session.removeEngineFromMetaGlobal(name);
+        session.config.declinedEngineNames.add(name);
       } else {
+        session.config.declinedEngineNames.remove(name);
         // Add engine with new syncID to meta/global for upload.
         String newSyncID = Utils.generateGuid();
         session.recordForMetaGlobalUpdate(name, new EngineSettings(newSyncID, this.getStorageVersion()));

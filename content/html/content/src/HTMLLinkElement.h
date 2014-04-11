@@ -13,6 +13,8 @@
 #include "nsStyleLinkElement.h"
 
 namespace mozilla {
+class EventChainPostVisitor;
+class EventChainPreVisitor;
 namespace dom {
 
 class HTMLLinkElement MOZ_FINAL : public nsGenericHTMLElement,
@@ -21,7 +23,7 @@ class HTMLLinkElement MOZ_FINAL : public nsGenericHTMLElement,
                                   public Link
 {
 public:
-  HTMLLinkElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  HTMLLinkElement(already_AddRefed<nsINodeInfo>& aNodeInfo);
   virtual ~HTMLLinkElement();
 
   // nsISupports
@@ -41,13 +43,13 @@ public:
   void LinkRemoved();
 
   // nsIDOMEventTarget
-  virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
-  virtual nsresult PostHandleEvent(nsEventChainPostVisitor& aVisitor) MOZ_OVERRIDE;
+  virtual nsresult PreHandleEvent(EventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
+  virtual nsresult PostHandleEvent(
+                     EventChainPostVisitor& aVisitor) MOZ_OVERRIDE;
 
   // nsINode
   virtual nsresult Clone(nsINodeInfo* aNodeInfo, nsINode** aResult) const MOZ_OVERRIDE;
-  virtual JSObject* WrapNode(JSContext* aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext* aCx) MOZ_OVERRIDE;
 
   // nsIContent
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
@@ -74,7 +76,7 @@ public:
                               const nsAString& aValue,
                               nsAttrValue& aResult) MOZ_OVERRIDE;
   virtual void GetLinkTarget(nsAString& aTarget) MOZ_OVERRIDE;
-  virtual nsEventStates IntrinsicState() const MOZ_OVERRIDE;
+  virtual EventStates IntrinsicState() const MOZ_OVERRIDE;
 
   void CreateAndDispatchEvent(nsIDocument* aDoc, const nsAString& aEventName);
 
@@ -96,6 +98,7 @@ public:
   {
     SetHTMLAttr(nsGkAtoms::rel, aRel, aRv);
   }
+  nsDOMTokenList* RelList();
   // XPCOM GetMedia is fine.
   void SetMedia(const nsAString& aMedia, ErrorResult& aRv)
   {
@@ -140,6 +143,7 @@ protected:
   // nsGenericHTMLElement
   virtual void GetItemValueText(nsAString& text) MOZ_OVERRIDE;
   virtual void SetItemValueText(const nsAString& text) MOZ_OVERRIDE;
+  nsRefPtr<nsDOMTokenList > mRelList;
 };
 
 } // namespace dom

@@ -1465,7 +1465,7 @@ void nsPluginInstanceOwner::RemovePluginView()
   if (!mInstance || !mJavaView)
     return;
 
-  GeckoAppShell::RemovePluginView((jobject)mJavaView, mFullScreen);
+  mozilla::widget::android::GeckoAppShell::RemovePluginView((jobject)mJavaView, mFullScreen);
   AndroidBridge::GetJNIEnv()->DeleteGlobalRef((jobject)mJavaView);
   mJavaView = nullptr;
 
@@ -1682,7 +1682,8 @@ nsPluginInstanceOwner::ProcessMouseDown(nsIDOMEvent* aMouseEvent)
   return NS_OK;
 }
 
-nsresult nsPluginInstanceOwner::DispatchMouseToPlugin(nsIDOMEvent* aMouseEvent)
+nsresult nsPluginInstanceOwner::DispatchMouseToPlugin(nsIDOMEvent* aMouseEvent,
+                                                      bool aAllowPropagate)
 {
 #if !defined(XP_MACOSX)
   if (!mPluginWindow || (mPluginWindow->type == NPWindowTypeWindow))
@@ -1699,7 +1700,9 @@ nsresult nsPluginInstanceOwner::DispatchMouseToPlugin(nsIDOMEvent* aMouseEvent)
     nsEventStatus rv = ProcessEvent(*mouseEvent);
     if (nsEventStatus_eConsumeNoDefault == rv) {
       aMouseEvent->PreventDefault();
-      aMouseEvent->StopPropagation();
+      if (!aAllowPropagate) {
+        aMouseEvent->StopPropagation();
+      }
     }
     if (mouseEvent->message == NS_MOUSE_BUTTON_UP) {
       mLastMouseDownButtonType = -1;
@@ -1741,8 +1744,10 @@ nsPluginInstanceOwner::HandleEvent(nsIDOMEvent* aEvent)
     }
     return DispatchMouseToPlugin(aEvent);
   }
-  if (eventType.EqualsLiteral("mousemove") ||
-      eventType.EqualsLiteral("click") ||
+  if (eventType.EqualsLiteral("mousemove")) {
+    return DispatchMouseToPlugin(aEvent, true);
+  }
+  if (eventType.EqualsLiteral("click") ||
       eventType.EqualsLiteral("dblclick") ||
       eventType.EqualsLiteral("mouseover") ||
       eventType.EqualsLiteral("mouseout")) {
@@ -1892,7 +1897,7 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
 #ifdef XP_WIN
   // this code supports windowless plugins
   NPEvent *pPluginEvent = (NPEvent*)anEvent.pluginEvent;
-  // we can get synthetic events from the nsEventStateManager... these
+  // we can get synthetic events from the EventStateManager... these
   // have no pluginEvent
   NPEvent pluginEvent;
   if (anEvent.eventStructType == NS_MOUSE_EVENT) {

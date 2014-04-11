@@ -4,10 +4,7 @@
 
 package org.mozilla.gecko.tests.helpers;
 
-import static org.mozilla.gecko.tests.helpers.AssertionHelper.*;
-
-import org.mozilla.gecko.tests.UITestContext;
-
+import static org.mozilla.gecko.tests.helpers.AssertionHelper.fAssertEquals;
 import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.ExtractedTextRequest;
 import android.view.inputmethod.InputConnection;
@@ -32,7 +29,7 @@ public final class TextInputHelper {
     public static void assertText(final String message,
                                   final InputConnection ic,
                                   final String text) {
-        assertEquals(message, text, getText(ic));
+        fAssertEquals(message, text, getText(ic));
     }
 
     public static void assertSelection(final String message,
@@ -40,8 +37,8 @@ public final class TextInputHelper {
                                        final int start,
                                        final int end) {
         ExtractedText extract = getExtractedText(ic);
-        assertEquals(message, start, extract.selectionStart);
-        assertEquals(message, end, extract.selectionEnd);
+        fAssertEquals(message, start, extract.selectionStart);
+        fAssertEquals(message, end, extract.selectionEnd);
     }
 
     public static void assertSelectionAt(final String message,
@@ -56,9 +53,9 @@ public final class TextInputHelper {
                                               final int start,
                                               final int end) {
         ExtractedText extract = getExtractedText(ic);
-        assertEquals(message, text, extract.text);
-        assertEquals(message, start, extract.selectionStart);
-        assertEquals(message, end, extract.selectionEnd);
+        fAssertEquals(message, text, extract.text);
+        fAssertEquals(message, start, extract.selectionStart);
+        fAssertEquals(message, end, extract.selectionEnd);
     }
 
     public static void assertTextAndSelectionAt(final String message,

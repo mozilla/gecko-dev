@@ -52,10 +52,10 @@ NS_INTERFACE_MAP_BEGIN(MobileMessageManager)
   NS_INTERFACE_MAP_ENTRY(nsIDOMMozMobileMessageManager)
   NS_INTERFACE_MAP_ENTRY(nsIObserver)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(MozMobileMessageManager)
-NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetHelper)
+NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
-NS_IMPL_ADDREF_INHERITED(MobileMessageManager, nsDOMEventTargetHelper)
-NS_IMPL_RELEASE_INHERITED(MobileMessageManager, nsDOMEventTargetHelper)
+NS_IMPL_ADDREF_INHERITED(MobileMessageManager, DOMEventTargetHelper)
+NS_IMPL_RELEASE_INHERITED(MobileMessageManager, DOMEventTargetHelper)
 
 NS_IMPL_EVENT_HANDLER(MobileMessageManager, received)
 NS_IMPL_EVENT_HANDLER(MobileMessageManager, retrieving)
@@ -148,9 +148,9 @@ MobileMessageManager::Send(JSContext* aCx, JS::Handle<JSObject*> aGlobal,
                                  false, msgCallback);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  JS::Rooted<JSObject*> global(aCx, aGlobal);
+  js::AssertSameCompartment(aCx, aGlobal);
   JS::Rooted<JS::Value> rval(aCx);
-  rv = nsContentUtils::WrapNative(aCx, global,
+  rv = nsContentUtils::WrapNative(aCx,
                                   static_cast<nsIDOMDOMRequest*>(request.get()),
                                   &rval);
   if (NS_FAILED(rv)) {
@@ -195,7 +195,7 @@ MobileMessageManager::Send(JS::Handle<JS::Value> aNumber,
   rv = smsService->GetSmsDefaultServiceId(&serviceId);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (aArgc == 3) {
+  if (aArgc == 1) {
     JS::Rooted<JS::Value> param(aCx, aSendParams);
     RootedDictionary<SmsSendParameters> sendParams(aCx);
     if (!sendParams.Init(aCx, param)) {
@@ -265,7 +265,7 @@ MobileMessageManager::SendMMS(JS::Handle<JS::Value> aParams,
   nsresult rv = mmsService->GetMmsDefaultServiceId(&serviceId);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (aArgc == 2) {
+  if (aArgc == 1) {
     JS::Rooted<JS::Value> param(aCx, aSendParams);
     RootedDictionary<MmsSendParameters> sendParams(aCx);
     if (!sendParams.Init(aCx, param)) {

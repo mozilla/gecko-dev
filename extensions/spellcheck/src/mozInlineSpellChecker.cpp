@@ -58,13 +58,13 @@
 #include "nsThreadUtils.h"
 #include "nsUnicharUtils.h"
 #include "nsIContent.h"
-#include "nsEventListenerManager.h"
 #include "nsRange.h"
 #include "nsContentUtils.h"
 #include "nsEditor.h"
 #include "mozilla/Services.h"
 #include "nsIObserverService.h"
 #include "nsITextControlElement.h"
+#include "prtime.h" 
 
 using namespace mozilla::dom;
 
@@ -1182,7 +1182,7 @@ mozInlineSpellChecker::MakeSpellCheckRange(
     rv = range->SetEndAfter(aEndNode);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  *aRange = static_cast<nsRange*>(range.forget().get());
+  *aRange = static_cast<nsRange*>(range.forget().take());
   return NS_OK;
 }
 

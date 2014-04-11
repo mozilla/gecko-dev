@@ -25,7 +25,7 @@ extern PRLogModuleInfo* GetDataChannelLog();
 #include "nsIDOMFile.h"
 #include "nsIDOMDataChannel.h"
 #include "nsIDOMMessageEvent.h"
-#include "nsDOMEventTargetHelper.h"
+#include "mozilla/DOMEventTargetHelper.h"
 
 #include "nsError.h"
 #include "nsAutoPtr.h"
@@ -58,32 +58,32 @@ nsDOMDataChannel::~nsDOMDataChannel()
 }
 
 /* virtual */ JSObject*
-nsDOMDataChannel::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+nsDOMDataChannel::WrapObject(JSContext* aCx)
 {
-  return DataChannelBinding::Wrap(aCx, aScope, this);
+  return DataChannelBinding::Wrap(aCx, this);
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsDOMDataChannel)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsDOMDataChannel,
-                                                  nsDOMEventTargetHelper)
+                                                  DOMEventTargetHelper)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsDOMDataChannel,
-                                                nsDOMEventTargetHelper)
+                                                DOMEventTargetHelper)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
-NS_IMPL_ADDREF_INHERITED(nsDOMDataChannel, nsDOMEventTargetHelper)
-NS_IMPL_RELEASE_INHERITED(nsDOMDataChannel, nsDOMEventTargetHelper)
+NS_IMPL_ADDREF_INHERITED(nsDOMDataChannel, DOMEventTargetHelper)
+NS_IMPL_RELEASE_INHERITED(nsDOMDataChannel, DOMEventTargetHelper)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(nsDOMDataChannel)
   NS_INTERFACE_MAP_ENTRY(nsIDOMDataChannel)
-NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetHelper)
+NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
-nsDOMDataChannel::nsDOMDataChannel(already_AddRefed<mozilla::DataChannel> aDataChannel,
+nsDOMDataChannel::nsDOMDataChannel(already_AddRefed<mozilla::DataChannel>& aDataChannel,
                                    nsPIDOMWindow* aWindow)
-  : nsDOMEventTargetHelper(aWindow && aWindow->IsOuterWindow() ?
-                             aWindow->GetCurrentInnerWindow() : aWindow)
+  : DOMEventTargetHelper(aWindow && aWindow->IsOuterWindow() ?
+                           aWindow->GetCurrentInnerWindow() : aWindow)
   , mDataChannel(aDataChannel)
   , mBinaryType(DC_BINARY_TYPE_BLOB)
 {
@@ -490,7 +490,7 @@ nsDOMDataChannel::AppReady()
 
 /* static */
 nsresult
-NS_NewDOMDataChannel(already_AddRefed<mozilla::DataChannel> aDataChannel,
+NS_NewDOMDataChannel(already_AddRefed<mozilla::DataChannel>&& aDataChannel,
                      nsPIDOMWindow* aWindow,
                      nsIDOMDataChannel** aDomDataChannel)
 {

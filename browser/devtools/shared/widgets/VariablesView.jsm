@@ -52,7 +52,7 @@ Object.defineProperty(this, "NetworkHelper", {
   enumerable: true
 });
 
-this.EXPORTED_SYMBOLS = ["VariablesView"];
+this.EXPORTED_SYMBOLS = ["VariablesView", "escapeHTML"];
 
 /**
  * Debugger localization strings.
@@ -1830,7 +1830,8 @@ Scope.prototype = {
    * The click listener for this scope's title.
    */
   _onClick: function(e) {
-    if (e.button != 0 ||
+    if (this.editing ||
+        e.button != 0 ||
         e.target == this._editNode ||
         e.target == this._deleteNode ||
         e.target == this._addPropertyNode) {
@@ -2081,6 +2082,7 @@ Scope.prototype = {
   new: null,
   preventDisableOnChange: false,
   preventDescriptorModifiers: false,
+  editing: false,
   editableNameTooltip: "",
   editableValueTooltip: "",
   editButtonTooltip: "",
@@ -2492,15 +2494,11 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
 
     let valueLabel = this._valueLabel = document.createElement("label");
     valueLabel.className = "plain value";
+    valueLabel.setAttribute("flex", "1");
     valueLabel.setAttribute("crop", "center");
-
-    let spacer = this._spacer = document.createElement("spacer");
-    spacer.setAttribute("optional-visibility", "");
-    spacer.setAttribute("flex", "1");
 
     this._title.appendChild(separatorLabel);
     this._title.appendChild(valueLabel);
-    this._title.appendChild(spacer);
 
     if (VariablesView.isPrimitive(descriptor)) {
       this.hideArrow();
@@ -3423,7 +3421,24 @@ VariablesView.stringifiers.byObjectClass = {
 
     return "Date " + new Date(preview.timestamp).toISOString();
   },
+
+  String: function({displayString}) {
+    if (displayString === undefined) {
+      return null;
+    }
+    return VariablesView.getString(displayString);
+  },
+
+  Number: function({preview}) {
+    if (preview === undefined) {
+      return null;
+    }
+    return VariablesView.getString(preview.value);
+  },
 }; // VariablesView.stringifiers.byObjectClass
+
+VariablesView.stringifiers.byObjectClass.Boolean =
+  VariablesView.stringifiers.byObjectClass.Number;
 
 VariablesView.stringifiers.byObjectKind = {
   ArrayLike: function(aGrip, {concise}) {
@@ -3848,6 +3863,7 @@ Editable.prototype = {
     let input = this._input = this._variable.document.createElement("textbox");
     input.className = "plain " + this.className;
     input.setAttribute("value", initialString);
+    input.setAttribute("flex", "1");
 
     // Replace the specified label with a textbox input element.
     label.parentNode.replaceChild(input, label);
@@ -3872,6 +3888,7 @@ Editable.prototype = {
     this._variable.collapse();
     this._variable.hideArrow();
     this._variable.locked = true;
+    this._variable.editing = true;
   },
 
   /**
@@ -3889,6 +3906,7 @@ Editable.prototype = {
     this._variable.locked = false;
     this._variable.twisty = this._prevExpandable;
     this._variable.expanded = this._prevExpanded;
+    this._variable.editing = false;
     this._onCleanup && this._onCleanup();
   },
 

@@ -29,7 +29,16 @@ class CompartmentChecker
   public:
     explicit CompartmentChecker(ExclusiveContext *cx)
       : compartment(cx->compartment())
-    {}
+    {
+#ifdef DEBUG
+        // In debug builds, make sure the embedder passed the cx it claimed it
+        // was going to use.
+        JSContext *activeContext = nullptr;
+        if (cx->isJSContext())
+            activeContext = cx->asJSContext()->runtime()->activeContext;
+        JS_ASSERT_IF(activeContext, cx == activeContext);
+#endif
+    }
 
     /*
      * Set a breakpoint here (break js::CompartmentChecker::fail) to debug
@@ -133,7 +142,7 @@ class CompartmentChecker
             check(script->compartment());
     }
 
-    void check(StackFrame *fp);
+    void check(InterpreterFrame *fp);
     void check(AbstractFramePtr frame);
 };
 #endif /* JS_CRASH_DIAGNOSTICS */
@@ -368,7 +377,9 @@ JSContext::setPendingException(js::Value v)
     JS_ASSERT(!IsPoisonedValue(v));
     this->throwing = true;
     this->unwrappedException_ = v;
-    js::assertSameCompartment(this, v);
+    // We don't use assertSameCompartment here to allow
+    // js::SetPendingExceptionCrossContext to work.
+    JS_ASSERT_IF(v.isObject(), v.toObject().compartment() == compartment());
 }
 
 inline void
@@ -462,11 +473,14 @@ JSContext::currentScript(jsbytecode **ppc,
             return nullptr;
         return script;
     }
+
+    if (act->isAsmJS())
+        return nullptr;
 #endif
 
     JS_ASSERT(act->isInterpreter());
 
-    js::StackFrame *fp = act->asInterpreter()->current();
+    js::InterpreterFrame *fp = act->asInterpreter()->current();
     JS_ASSERT(!fp->runningInJit());
 
     JSScript *script = fp->script();

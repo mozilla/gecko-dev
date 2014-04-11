@@ -3,23 +3,24 @@
 ///////////////////////////////////////////////////////////////////////////
 // Getters and setters for various slots.
 
-// Type repr slots
-
-#define REPR_KIND(obj)   \
-    TO_INT32(UnsafeGetReservedSlot(obj, JS_TYPEREPR_SLOT_KIND))
-
 // Type object slots
 
-#define DESCR_TYPE_REPR(obj) \
-    UnsafeGetReservedSlot(obj, JS_DESCR_SLOT_TYPE_REPR)
 #define DESCR_KIND(obj) \
-    REPR_KIND(DESCR_TYPE_REPR(obj))
+    UnsafeGetReservedSlot(obj, JS_DESCR_SLOT_KIND)
+#define DESCR_STRING_REPR(obj) \
+    UnsafeGetReservedSlot(obj, JS_DESCR_SLOT_STRING_REPR)
+#define DESCR_ALIGNMENT(obj) \
+    UnsafeGetReservedSlot(obj, JS_DESCR_SLOT_ALIGNMENT)
 #define DESCR_SIZE(obj) \
     UnsafeGetReservedSlot(obj, JS_DESCR_SLOT_SIZE)
-#define DESCR_SIZED_ARRAY_LENGTH(obj) \
-    TO_INT32(UnsafeGetReservedSlot(obj, JS_DESCR_SLOT_SIZED_ARRAY_LENGTH))
+#define DESCR_OPAQUE(obj) \
+    UnsafeGetReservedSlot(obj, JS_DESCR_SLOT_OPAQUE)
 #define DESCR_TYPE(obj)   \
     UnsafeGetReservedSlot(obj, JS_DESCR_SLOT_TYPE)
+#define DESCR_ARRAY_ELEMENT_TYPE(obj) \
+    UnsafeGetReservedSlot(obj, JS_DESCR_SLOT_ARRAY_ELEM_TYPE)
+#define DESCR_SIZED_ARRAY_LENGTH(obj) \
+    TO_INT32(UnsafeGetReservedSlot(obj, JS_DESCR_SLOT_SIZED_ARRAY_LENGTH))
 #define DESCR_STRUCT_FIELD_NAMES(obj) \
     UnsafeGetReservedSlot(obj, JS_DESCR_SLOT_STRUCT_FIELD_NAMES)
 #define DESCR_STRUCT_FIELD_TYPES(obj) \
@@ -43,276 +44,6 @@
 #define HAS_PROPERTY(obj, prop) \
     callFunction(std_Object_hasOwnProperty, obj, prop)
 
-function TYPEDOBJ_TYPE_REPR(obj) {
-  // Eventually this will be a slot on typed objects
-  return DESCR_TYPE_REPR(TYPEDOBJ_TYPE_DESCR(obj));
-}
-
-///////////////////////////////////////////////////////////////////////////
-// DescrToSource
-//
-// Converts a type descriptor to a descriptive string
-
-// toSource() for type descriptors.
-//
-// Warning: user exposed!
-function DescrToSourceMethod() {
-  if (!IsObject(this) || !ObjectIsTypeDescr(this))
-    ThrowError(JSMSG_INCOMPATIBLE_PROTO, "Type", "toSource", "value");
-
-  return DescrToSource(this);
-}
-
-function DescrToSource(descr) {
-  assert(IsObject(descr) && ObjectIsTypeDescr(descr),
-         "DescrToSource: not type descr");
-
-  switch (DESCR_KIND(descr)) {
-  case JS_TYPEREPR_SCALAR_KIND:
-    switch (DESCR_TYPE(descr)) {
-    case JS_SCALARTYPEREPR_INT8: return "int8";
-    case JS_SCALARTYPEREPR_UINT8: return "uint8";
-    case JS_SCALARTYPEREPR_UINT8_CLAMPED: return "uint8Clamped";
-    case JS_SCALARTYPEREPR_INT16: return "int16";
-    case JS_SCALARTYPEREPR_UINT16: return "uint16";
-    case JS_SCALARTYPEREPR_INT32: return "int32";
-    case JS_SCALARTYPEREPR_UINT32: return "uint32";
-    case JS_SCALARTYPEREPR_FLOAT32: return "float32";
-    case JS_SCALARTYPEREPR_FLOAT64: return "float64";
-    }
-    assert(false, "Unhandled type: " + DESCR_TYPE(descr));
-    return undefined;
-
-  case JS_TYPEREPR_REFERENCE_KIND:
-    switch (DESCR_TYPE(descr)) {
-    case JS_REFERENCETYPEREPR_ANY: return "any";
-    case JS_REFERENCETYPEREPR_OBJECT: return "Object";
-    case JS_REFERENCETYPEREPR_STRING: return "string";
-    }
-    assert(false, "Unhandled type: " + DESCR_TYPE(descr));
-    return undefined;
-
-  case JS_TYPEREPR_X4_KIND:
-    switch (DESCR_TYPE(descr)) {
-    case JS_X4TYPEREPR_FLOAT32: return "float32x4";
-    case JS_X4TYPEREPR_INT32: return "int32x4";
-    }
-    assert(false, "Unhandled type: " + DESCR_TYPE(descr));
-    return undefined;
-
-  case JS_TYPEREPR_STRUCT_KIND:
-    var result = "new StructType({";
-    var fieldNames = DESCR_STRUCT_FIELD_NAMES(descr);
-    var fieldTypes = DESCR_STRUCT_FIELD_TYPES(descr);
-    for (var i = 0; i < fieldNames.length; i++) {
-      if (i != 0)
-        result += ", ";
-
-      result += fieldNames[i];
-      result += ": ";
-      result += DescrToSource(fieldTypes[i]);
-    }
-    result += "})";
-    return result;
-
-  case JS_TYPEREPR_UNSIZED_ARRAY_KIND:
-    return "new ArrayType(" + DescrToSource(descr.elementType) + ")";
-
-  case JS_TYPEREPR_SIZED_ARRAY_KIND:
-    var result = ".array";
-    var sep = "(";
-    while (DESCR_KIND(descr) == JS_TYPEREPR_SIZED_ARRAY_KIND) {
-      result += sep + DESCR_SIZED_ARRAY_LENGTH(descr);
-      descr = descr.elementType;
-      sep = ", ";
-    }
-    return DescrToSource(descr) + result + ")";
-  }
-
-  assert(false, "Unhandled kind: " + DESCR_KIND(descr));
-  return undefined;
-}
-
-///////////////////////////////////////////////////////////////////////////
-// TypedObjectPointer
-//
-// TypedObjectPointers are internal structs used to represent a
-// pointer into typed object memory. They pull together:
-// - descr: the type descriptor
-// - typedObj: the typed object that contains the allocated block of memory
-// - offset: an offset into that typed object
-//
-// They are basically equivalent to a typed object, except that they
-// offer lots of internal unsafe methods and are not native objects.
-// These should never escape into user code; ideally ion would stack
-// allocate them.
-//
-// Most `TypedObjectPointers` methods are written in a "chaining"
-// style, meaning that they return `this`. This is true even though
-// they mutate the receiver in place, because it makes for prettier
-// code.
-
-function TypedObjectPointer(descr, typedObj, offset) {
-  assert(IsObject(descr) && ObjectIsTypeDescr(descr), "Not descr");
-  assert(IsObject(typedObj) && ObjectIsTypedObject(typedObj), "Not typedObj");
-  assert(TO_INT32(offset) === offset, "offset not int");
-
-  this.descr = descr;
-  this.typedObj = typedObj;
-  this.offset = offset;
-}
-
-MakeConstructible(TypedObjectPointer, {});
-
-TypedObjectPointer.fromTypedObject = function(typed) {
-  return new TypedObjectPointer(TYPEDOBJ_TYPE_DESCR(typed), typed, 0);
-}
-
-#ifdef DEBUG
-TypedObjectPointer.prototype.toString = function() {
-  return "Ptr(" + DescrToSource(this.descr) + " @ " + this.offset + ")";
-};
-#endif
-
-TypedObjectPointer.prototype.copy = function() {
-  return new TypedObjectPointer(this.descr, this.typedObj, this.offset);
-};
-
-TypedObjectPointer.prototype.reset = function(inPtr) {
-  this.descr = inPtr.descr;
-  this.typedObj = inPtr.typedObj;
-  this.offset = inPtr.offset;
-  return this;
-};
-
-TypedObjectPointer.prototype.bump = function(size) {
-  assert(TO_INT32(this.offset) === this.offset, "current offset not int");
-  assert(TO_INT32(size) === size, "size not int");
-  this.offset += size;
-}
-
-TypedObjectPointer.prototype.kind = function() {
-  return DESCR_KIND(this.descr);
-}
-
-// Extract the length. This does a switch on kind, so it's
-// best if we can avoid it.
-TypedObjectPointer.prototype.length = function() {
-  switch (this.kind()) {
-  case JS_TYPEREPR_SIZED_ARRAY_KIND:
-    return DESCR_SIZED_ARRAY_LENGTH(this.descr);
-
-  case JS_TYPEREPR_UNSIZED_ARRAY_KIND:
-    return this.typedObj.length;
-  }
-  assert(false, "Invalid kind for length");
-  return false;
-}
-
-///////////////////////////////////////////////////////////////////////////
-// Moving the pointer
-//
-// The methods in this section adjust `this` in place to point at
-// subelements or subproperties.
-
-// Adjusts `this` in place so that it points at the property
-// `propName`.  Throws if there is no such property. Returns `this`.
-TypedObjectPointer.prototype.moveTo = function(propName) {
-  switch (this.kind()) {
-  case JS_TYPEREPR_SCALAR_KIND:
-  case JS_TYPEREPR_REFERENCE_KIND:
-  case JS_TYPEREPR_X4_KIND:
-    break;
-
-  case JS_TYPEREPR_SIZED_ARRAY_KIND:
-    return this.moveToArray(propName, DESCR_SIZED_ARRAY_LENGTH(this.descr));
-
-  case JS_TYPEREPR_UNSIZED_ARRAY_KIND:
-    return this.moveToArray(propName, this.typedObj.length);
-
-  case JS_TYPEREPR_STRUCT_KIND:
-    if (HAS_PROPERTY(this.descr.fieldTypes, propName))
-      return this.moveToField(propName);
-    break;
-  }
-
-  ThrowError(JSMSG_TYPEDOBJECT_NO_SUCH_PROP, propName);
-  return undefined;
-};
-
-TypedObjectPointer.prototype.moveToArray = function(propName, length) {
-  // For an array, property must be an element. Note that we take
-  // the length as an argument rather than loading it from the descriptor.
-  // This is because this same helper is used for *unsized arrays*, where
-  // the length is drawn from the typedObj, and *sized arrays*, where the
-  // length is drawn from the type.
-  var index = TO_INT32(propName);
-  if (index === propName && index >= 0 && index < length)
-    return this.moveToElem(index);
-
-  ThrowError(JSMSG_TYPEDOBJECT_NO_SUCH_PROP, propName);
-  return undefined;
-}
-
-// Adjust `this` in place to point at the element `index`.  `this`
-// must be a array type and `index` must be within bounds. Returns
-// `this`.
-TypedObjectPointer.prototype.moveToElem = function(index) {
-  assert(this.kind() == JS_TYPEREPR_SIZED_ARRAY_KIND ||
-         this.kind() == JS_TYPEREPR_UNSIZED_ARRAY_KIND,
-         "moveToElem invoked on non-array");
-  assert(TO_INT32(index) === index,
-         "moveToElem invoked with non-integer index");
-  assert(index >= 0 && index < this.length(),
-         "moveToElem invoked with negative index: " + index);
-
-  var elementDescr = this.descr.elementType;
-  this.descr = elementDescr;
-  var elementSize = DESCR_SIZE(elementDescr);
-
-  // Note: we do not allow construction of arrays where the offset
-  // of an element cannot be represented by an int32.
-  this.offset += std_Math_imul(index, elementSize);
-
-  return this;
-};
-
-TypedObjectPointer.prototype.moveToField = function(propName) {
-  var fieldNames = DESCR_STRUCT_FIELD_NAMES(this.descr);
-  var index = fieldNames.indexOf(propName);
-  if (index != -1)
-    return this.moveToFieldIndex(index);
-
-  ThrowError(JSMSG_TYPEDOBJECT_NO_SUCH_PROP, propName);
-  return undefined;
-}
-
-// Adjust `this` to point at the field `propName`.  `this` must be a
-// struct type and `propName` must be a valid field name. Returns
-// `this`.
-TypedObjectPointer.prototype.moveToFieldIndex = function(index) {
-  assert(this.kind() == JS_TYPEREPR_STRUCT_KIND,
-         "moveToFieldIndex invoked on non-struct");
-  assert(index >= 0 && index < DESCR_STRUCT_FIELD_NAMES(this.descr).length,
-         "moveToFieldIndex invoked with invalid field index " + index);
-
-  var fieldDescr = DESCR_STRUCT_FIELD_TYPES(this.descr)[index];
-  var fieldOffset = TO_INT32(DESCR_STRUCT_FIELD_OFFSETS(this.descr)[index]);
-
-  assert(IsObject(fieldDescr) && ObjectIsTypeDescr(fieldDescr),
-         "bad field descr");
-  assert(TO_INT32(fieldOffset) === fieldOffset,
-         "bad field offset");
-  assert(fieldOffset >= 0 &&
-         (fieldOffset + DESCR_SIZE(fieldDescr)) <= DESCR_SIZE(this.descr),
-         "out of bounds field offset");
-
-  this.descr = fieldDescr;
-  this.offset += fieldOffset;
-
-  return this;
-}
-
 ///////////////////////////////////////////////////////////////////////////
 // Getting values
 //
@@ -324,118 +55,121 @@ TypedObjectPointer.prototype.moveToFieldIndex = function(index) {
 // returns a new object pointing at the value. If the value is
 // a scalar, it will return a JS number, but otherwise the reified
 // result will be a typedObj of the same class as the ptr's typedObj.
-TypedObjectPointer.prototype.get = function() {
-  assert(TypedObjectIsAttached(this.typedObj), "get() called with unattached typedObj");
+function TypedObjectGet(descr, typedObj, offset) {
+  assert(IsObject(descr) && ObjectIsTypeDescr(descr),
+         "get() called with bad type descr");
+  assert(TypedObjectIsAttached(typedObj),
+         "get() called with unattached typedObj");
 
-  switch (this.kind()) {
+  switch (DESCR_KIND(descr)) {
   case JS_TYPEREPR_SCALAR_KIND:
-    return this.getScalar();
+    return TypedObjectGetScalar(descr, typedObj, offset);
 
   case JS_TYPEREPR_REFERENCE_KIND:
-    return this.getReference();
+    return TypedObjectGetReference(descr, typedObj, offset);
 
   case JS_TYPEREPR_X4_KIND:
-    return this.getX4();
+    return TypedObjectGetX4(descr, typedObj, offset);
 
   case JS_TYPEREPR_SIZED_ARRAY_KIND:
   case JS_TYPEREPR_STRUCT_KIND:
-    return this.getDerived();
+    return TypedObjectGetDerived(descr, typedObj, offset);
 
   case JS_TYPEREPR_UNSIZED_ARRAY_KIND:
-    assert(false, "Unhandled repr kind: " + this.kind());
+    assert(false, "Unhandled repr kind: " + DESCR_KIND(descr));
   }
 
-  assert(false, "Unhandled kind: " + this.kind());
+  assert(false, "Unhandled kind: " + DESCR_KIND(descr));
   return undefined;
 }
 
-TypedObjectPointer.prototype.getDerived = function() {
-  assert(!TypeDescrIsSimpleType(this.descr),
+function TypedObjectGetDerived(descr, typedObj, offset) {
+  assert(!TypeDescrIsSimpleType(descr),
          "getDerived() used with simple type");
-  return NewDerivedTypedObject(this.descr, this.typedObj, this.offset);
+  return NewDerivedTypedObject(descr, typedObj, offset);
 }
 
-TypedObjectPointer.prototype.getDerivedIf = function(cond) {
-  return (cond ? this.getDerived() : undefined);
+function TypedObjectGetDerivedIf(descr, typedObj, offset, cond) {
+  return (cond ? TypedObjectGetDerived(descr, typedObj, offset) : undefined);
 }
 
-TypedObjectPointer.prototype.getOpaque = function() {
-  assert(!TypeDescrIsSimpleType(this.descr),
+function TypedObjectGetOpaque(descr, typedObj, offset) {
+  assert(!TypeDescrIsSimpleType(descr),
          "getDerived() used with simple type");
-  var typedObj = NewOpaqueTypedObject(this.descr);
-  AttachTypedObject(typedObj, this.typedObj, this.offset);
-  return typedObj;
+  var opaqueTypedObj = NewOpaqueTypedObject(descr);
+  AttachTypedObject(opaqueTypedObj, typedObj, offset);
+  return opaqueTypedObj;
 }
 
-TypedObjectPointer.prototype.getOpaqueIf = function(cond) {
-  return (cond ? this.getOpaque() : undefined);
+function TypedObjectGetOpaqueIf(descr, typedObj, offset, cond) {
+  return (cond ? TypedObjectGetOpaque(descr, typedObj, offset) : undefined);
 }
 
-TypedObjectPointer.prototype.getScalar = function() {
-  var type = DESCR_TYPE(this.descr);
+function TypedObjectGetScalar(descr, typedObj, offset) {
+  var type = DESCR_TYPE(descr);
   switch (type) {
   case JS_SCALARTYPEREPR_INT8:
-    return Load_int8(this.typedObj, this.offset);
+    return Load_int8(typedObj, offset);
 
   case JS_SCALARTYPEREPR_UINT8:
   case JS_SCALARTYPEREPR_UINT8_CLAMPED:
-    return Load_uint8(this.typedObj, this.offset);
+    return Load_uint8(typedObj, offset);
 
   case JS_SCALARTYPEREPR_INT16:
-    return Load_int16(this.typedObj, this.offset);
+    return Load_int16(typedObj, offset);
 
   case JS_SCALARTYPEREPR_UINT16:
-    return Load_uint16(this.typedObj, this.offset);
+    return Load_uint16(typedObj, offset);
 
   case JS_SCALARTYPEREPR_INT32:
-    return Load_int32(this.typedObj, this.offset);
+    return Load_int32(typedObj, offset);
 
   case JS_SCALARTYPEREPR_UINT32:
-    return Load_uint32(this.typedObj, this.offset);
+    return Load_uint32(typedObj, offset);
 
   case JS_SCALARTYPEREPR_FLOAT32:
-    return Load_float32(this.typedObj, this.offset);
+    return Load_float32(typedObj, offset);
 
   case JS_SCALARTYPEREPR_FLOAT64:
-    return Load_float64(this.typedObj, this.offset);
+    return Load_float64(typedObj, offset);
   }
 
   assert(false, "Unhandled scalar type: " + type);
   return undefined;
 }
 
-TypedObjectPointer.prototype.getReference = function() {
-  var type = DESCR_TYPE(this.descr);
+function TypedObjectGetReference(descr, typedObj, offset) {
+  var type = DESCR_TYPE(descr);
   switch (type) {
   case JS_REFERENCETYPEREPR_ANY:
-    return Load_Any(this.typedObj, this.offset);
+    return Load_Any(typedObj, offset);
 
   case JS_REFERENCETYPEREPR_OBJECT:
-    return Load_Object(this.typedObj, this.offset);
+    return Load_Object(typedObj, offset);
 
   case JS_REFERENCETYPEREPR_STRING:
-    return Load_string(this.typedObj, this.offset);
+    return Load_string(typedObj, offset);
   }
 
   assert(false, "Unhandled scalar type: " + type);
   return undefined;
 }
 
-TypedObjectPointer.prototype.getX4 = function() {
-  var type = DESCR_TYPE(this.descr);
+function TypedObjectGetX4(descr, typedObj, offset) {
+  var type = DESCR_TYPE(descr);
   switch (type) {
   case JS_X4TYPEREPR_FLOAT32:
-    var x = Load_float32(this.typedObj, this.offset + 0);
-    var y = Load_float32(this.typedObj, this.offset + 4);
-    var z = Load_float32(this.typedObj, this.offset + 8);
-    var w = Load_float32(this.typedObj, this.offset + 12);
+    var x = Load_float32(typedObj, offset + 0);
+    var y = Load_float32(typedObj, offset + 4);
+    var z = Load_float32(typedObj, offset + 8);
+    var w = Load_float32(typedObj, offset + 12);
     return GetFloat32x4TypeDescr()(x, y, z, w);
 
   case JS_X4TYPEREPR_INT32:
-    var x = Load_int32(this.typedObj, this.offset + 0);
-    var y = Load_int32(this.typedObj, this.offset + 4);
-    var z = Load_int32(this.typedObj, this.offset + 8);
-    var w = Load_int32(this.typedObj, this.offset + 12);
+    var x = Load_int32(typedObj, offset + 0);
+    var y = Load_int32(typedObj, offset + 4);
+    var z = Load_int32(typedObj, offset + 8);
+    var w = Load_int32(typedObj, offset + 12);
     return GetInt32x4TypeDescr()(x, y, z, w);
   }
 
@@ -448,52 +182,48 @@ TypedObjectPointer.prototype.getX4 = function() {
 //
 // The methods in this section modify the data pointed at by `this`.
 
-// Convenience function
-function SetTypedObjectValue(descr, typedObj, offset, fromValue) {
-  new TypedObjectPointer(descr, typedObj, offset).set(fromValue);
-}
-
-// Assigns `fromValue` to the memory pointed at by `this`, adapting it
-// to `typeRepr` as needed. This is the most general entry point and
-// works for any type.
-TypedObjectPointer.prototype.set = function(fromValue) {
-  assert(TypedObjectIsAttached(this.typedObj), "set() called with unattached typedObj");
+// Writes `fromValue` into the `typedObj` at offset `offset`, adapting
+// it to `descr` as needed. This is the most general entry point
+// and works for any type.
+function TypedObjectSet(descr, typedObj, offset, fromValue) {
+  assert(TypedObjectIsAttached(typedObj), "set() called with unattached typedObj");
 
   // Fast path: `fromValue` is a typed object with same type
   // representation as the destination. In that case, we can just do a
   // memcpy.
   if (IsObject(fromValue) && ObjectIsTypedObject(fromValue)) {
-    var typeRepr = DESCR_TYPE_REPR(this.descr);
-    if (!typeRepr.variable && TYPEDOBJ_TYPE_REPR(fromValue) === typeRepr) {
+    if (!descr.variable && DescrsEquiv(descr, TYPEDOBJ_TYPE_DESCR(fromValue))) {
       if (!TypedObjectIsAttached(fromValue))
         ThrowError(JSMSG_TYPEDOBJECT_HANDLE_UNATTACHED);
 
-      var size = DESCR_SIZE(this.descr);
-      Memcpy(this.typedObj, this.offset, fromValue, 0, size);
+      var size = DESCR_SIZE(descr);
+      Memcpy(typedObj, offset, fromValue, 0, size);
       return;
     }
   }
 
-  switch (this.kind()) {
+  switch (DESCR_KIND(descr)) {
   case JS_TYPEREPR_SCALAR_KIND:
-    this.setScalar(fromValue);
+    TypedObjectSetScalar(descr, typedObj, offset, fromValue);
     return;
 
   case JS_TYPEREPR_REFERENCE_KIND:
-    this.setReference(fromValue);
+    TypedObjectSetReference(descr, typedObj, offset, fromValue);
     return;
 
   case JS_TYPEREPR_X4_KIND:
-    this.setX4(fromValue);
+    TypedObjectSetX4(descr, typedObj, offset, fromValue);
     return;
 
   case JS_TYPEREPR_SIZED_ARRAY_KIND:
-    if (this.setArray(fromValue, DESCR_SIZED_ARRAY_LENGTH(this.descr)))
+    var length = DESCR_SIZED_ARRAY_LENGTH(descr);
+    if (TypedObjectSetArray(descr, length, typedObj, offset, fromValue))
       return;
     break;
 
   case JS_TYPEREPR_UNSIZED_ARRAY_KIND:
-    if (this.setArray(fromValue, this.typedObj.length))
+    var length = typedObj.length;
+    if (TypedObjectSetArray(descr, length, typedObj, offset, fromValue))
       return;
     break;
 
@@ -502,21 +232,25 @@ TypedObjectPointer.prototype.set = function(fromValue) {
       break;
 
     // Adapt each field.
-    var tempPtr = this.copy();
-    var fieldNames = DESCR_STRUCT_FIELD_NAMES(this.descr);
+    var fieldNames = DESCR_STRUCT_FIELD_NAMES(descr);
+    var fieldDescrs = DESCR_STRUCT_FIELD_TYPES(descr);
+    var fieldOffsets = DESCR_STRUCT_FIELD_OFFSETS(descr);
     for (var i = 0; i < fieldNames.length; i++) {
       var fieldName = fieldNames[i];
-      tempPtr.reset(this).moveToFieldIndex(i).set(fromValue[fieldName]);
+      var fieldDescr = fieldDescrs[i];
+      var fieldOffset = fieldOffsets[i];
+      var fieldValue = fromValue[fieldName];
+      TypedObjectSet(fieldDescr, typedObj, offset + fieldOffset, fieldValue);
     }
     return;
   }
 
   ThrowError(JSMSG_CANT_CONVERT_TO,
              typeof(fromValue),
-             DescrToSource(this.descr));
+             DESCR_STRING_REPR(descr));
 }
 
-TypedObjectPointer.prototype.setArray = function(fromValue, length) {
+function TypedObjectSetArray(descr, length, typedObj, offset, fromValue) {
   if (!IsObject(fromValue))
     return false;
 
@@ -526,75 +260,74 @@ TypedObjectPointer.prototype.setArray = function(fromValue, length) {
 
   // Adapt each element.
   if (length > 0) {
-    var tempPtr = this.copy().moveToElem(0);
-    var size = DESCR_SIZE(tempPtr.descr);
+    var elemDescr = DESCR_ARRAY_ELEMENT_TYPE(descr);
+    var elemSize = DESCR_SIZE(elemDescr);
+    var elemOffset = offset;
     for (var i = 0; i < length; i++) {
-      tempPtr.set(fromValue[i]);
-      tempPtr.offset += size;
+      TypedObjectSet(elemDescr, typedObj, elemOffset, fromValue[i]);
+      elemOffset += elemSize;
     }
   }
-
   return true;
 }
 
 // Sets `fromValue` to `this` assuming that `this` is a scalar type.
-TypedObjectPointer.prototype.setScalar = function(fromValue) {
-  assert(this.kind() == JS_TYPEREPR_SCALAR_KIND,
-         "setScalar called with non-scalar");
-
-  var type = DESCR_TYPE(this.descr);
+function TypedObjectSetScalar(descr, typedObj, offset, fromValue) {
+  assert(DESCR_KIND(descr) === JS_TYPEREPR_SCALAR_KIND,
+         "Expected scalar type descriptor");
+  var type = DESCR_TYPE(descr);
   switch (type) {
   case JS_SCALARTYPEREPR_INT8:
-    return Store_int8(this.typedObj, this.offset,
+    return Store_int8(typedObj, offset,
                      TO_INT32(fromValue) & 0xFF);
 
   case JS_SCALARTYPEREPR_UINT8:
-    return Store_uint8(this.typedObj, this.offset,
+    return Store_uint8(typedObj, offset,
                       TO_UINT32(fromValue) & 0xFF);
 
   case JS_SCALARTYPEREPR_UINT8_CLAMPED:
     var v = ClampToUint8(+fromValue);
-    return Store_int8(this.typedObj, this.offset, v);
+    return Store_int8(typedObj, offset, v);
 
   case JS_SCALARTYPEREPR_INT16:
-    return Store_int16(this.typedObj, this.offset,
+    return Store_int16(typedObj, offset,
                       TO_INT32(fromValue) & 0xFFFF);
 
   case JS_SCALARTYPEREPR_UINT16:
-    return Store_uint16(this.typedObj, this.offset,
+    return Store_uint16(typedObj, offset,
                        TO_UINT32(fromValue) & 0xFFFF);
 
   case JS_SCALARTYPEREPR_INT32:
-    return Store_int32(this.typedObj, this.offset,
+    return Store_int32(typedObj, offset,
                       TO_INT32(fromValue));
 
   case JS_SCALARTYPEREPR_UINT32:
-    return Store_uint32(this.typedObj, this.offset,
+    return Store_uint32(typedObj, offset,
                        TO_UINT32(fromValue));
 
   case JS_SCALARTYPEREPR_FLOAT32:
-    return Store_float32(this.typedObj, this.offset, +fromValue);
+    return Store_float32(typedObj, offset, +fromValue);
 
   case JS_SCALARTYPEREPR_FLOAT64:
-    return Store_float64(this.typedObj, this.offset, +fromValue);
+    return Store_float64(typedObj, offset, +fromValue);
   }
 
   assert(false, "Unhandled scalar type: " + type);
   return undefined;
 }
 
-TypedObjectPointer.prototype.setReference = function(fromValue) {
-  var type = DESCR_TYPE(this.descr);
+function TypedObjectSetReference(descr, typedObj, offset, fromValue) {
+  var type = DESCR_TYPE(descr);
   switch (type) {
   case JS_REFERENCETYPEREPR_ANY:
-    return Store_Any(this.typedObj, this.offset, fromValue);
+    return Store_Any(typedObj, offset, fromValue);
 
   case JS_REFERENCETYPEREPR_OBJECT:
     var value = (fromValue === null ? fromValue : ToObject(fromValue));
-    return Store_Object(this.typedObj, this.offset, value);
+    return Store_Object(typedObj, offset, value);
 
   case JS_REFERENCETYPEREPR_STRING:
-    return Store_string(this.typedObj, this.offset, ToString(fromValue));
+    return Store_string(typedObj, offset, ToString(fromValue));
   }
 
   assert(false, "Unhandled scalar type: " + type);
@@ -602,14 +335,14 @@ TypedObjectPointer.prototype.setReference = function(fromValue) {
 }
 
 // Sets `fromValue` to `this` assuming that `this` is a scalar type.
-TypedObjectPointer.prototype.setX4 = function(fromValue) {
+function TypedObjectSetX4(descr, typedObj, offset, fromValue) {
   // It is only permitted to set a float32x4/int32x4 value from another
   // float32x4/int32x4; in that case, the "fast path" that uses memcopy will
   // have already matched. So if we get to this point, we're supposed
   // to "adapt" fromValue, but there are no legal adaptions.
   ThrowError(JSMSG_CANT_CONVERT_TO,
              typeof(fromValue),
-             DescrToSource(this.descr));
+             DESCR_STRING_REPR(descr));
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -631,8 +364,7 @@ function ConvertAndCopyTo(destDescr,
   if (!TypedObjectIsAttached(destTypedObj))
     ThrowError(JSMSG_TYPEDOBJECT_HANDLE_UNATTACHED);
 
-  var ptr = new TypedObjectPointer(destDescr, destTypedObj, destOffset);
-  ptr.set(fromValue);
+  TypedObjectSet(destDescr, destTypedObj, destOffset, fromValue);
 }
 
 // Wrapper for use from C++ code.
@@ -647,9 +379,7 @@ function Reify(sourceDescr,
   if (!TypedObjectIsAttached(sourceTypedObj))
     ThrowError(JSMSG_TYPEDOBJECT_HANDLE_UNATTACHED);
 
-  var ptr = new TypedObjectPointer(sourceDescr, sourceTypedObj, sourceOffset);
-
-  return ptr.get();
+  return TypedObjectGet(sourceDescr, sourceTypedObj, sourceOffset);
 }
 
 function FillTypedArrayWithValue(destArray, fromValue) {
@@ -662,15 +392,14 @@ function FillTypedArrayWithValue(destArray, fromValue) {
     return;
 
   // Use convert and copy to to produce the first element:
-  var ptr = TypedObjectPointer.fromTypedObject(destArray);
-  ptr.moveToElem(0);
-  ptr.set(fromValue);
+  var elemDescr = DESCR_ARRAY_ELEMENT_TYPE(descr);
+  TypedObjectSet(elemDescr, destArray, 0, fromValue);
 
   // Stamp out the remaining copies:
-  var elementSize = DESCR_SIZE(ptr.descr);
-  var totalSize = length * elementSize;
-  for (var offset = elementSize; offset < totalSize; offset += elementSize)
-    Memcpy(destArray, offset, destArray, 0, elementSize);
+  var elemSize = DESCR_SIZE(elemDescr);
+  var totalSize = length * elemSize;
+  for (var offset = elemSize; offset < totalSize; offset += elemSize)
+    Memcpy(destArray, offset, destArray, 0, elemSize);
 }
 
 // Warning: user exposed!
@@ -679,7 +408,7 @@ function TypeDescrEquivalent(otherDescr) {
     ThrowError(JSMSG_TYPEDOBJECT_BAD_ARGS);
   if (!IsObject(otherDescr) || !ObjectIsTypeDescr(otherDescr))
     ThrowError(JSMSG_TYPEDOBJECT_BAD_ARGS);
-  return DESCR_TYPE_REPR(this) === DESCR_TYPE_REPR(otherDescr);
+  return DescrsEquiv(this, otherDescr);
 }
 
 // TypedArray.redimension(newArrayType)
@@ -747,7 +476,7 @@ function TypedArrayRedimension(newArrayType) {
   }
 
   // Check that the element types are equivalent.
-  if (DESCR_TYPE_REPR(oldElementType) !== DESCR_TYPE_REPR(newElementType)) {
+  if (!DescrsEquiv(oldElementType, newElementType)) {
     ThrowError(JSMSG_TYPEDOBJECT_BAD_ARGS);
   }
 
@@ -778,16 +507,40 @@ function X4ToSource() {
   if (!IsObject(this) || !ObjectIsTypedObject(this))
     ThrowError(JSMSG_INCOMPATIBLE_PROTO, "X4", "toSource", typeof this);
 
-  if (DESCR_KIND(this) != JS_TYPEREPR_X4_KIND)
+  var descr = TYPEDOBJ_TYPE_DESCR(this);
+
+  if (DESCR_KIND(descr) != JS_TYPEREPR_X4_KIND)
     ThrowError(JSMSG_INCOMPATIBLE_PROTO, "X4", "toSource", typeof this);
 
-  var descr = TYPEDOBJ_TYPE_DESCR(this);
   var type = DESCR_TYPE(descr);
   return X4ProtoString(type)+"("+this.x+", "+this.y+", "+this.z+", "+this.w+")";
 }
 
 ///////////////////////////////////////////////////////////////////////////
 // Miscellaneous
+
+function DescrsEquiv(descr1, descr2) {
+  assert(IsObject(descr1) && ObjectIsTypeDescr(descr1), "descr1 not descr");
+  assert(IsObject(descr2) && ObjectIsTypeDescr(descr2), "descr2 not descr");
+
+  // Potential optimization: these two strings are guaranteed to be
+  // atoms, and hence this string comparison can just be a pointer
+  // comparison.  However, I don't think ion knows that. If this ever
+  // becomes a bottleneck, we can add a intrinsic at some point that
+  // is treated specially by Ion.  (Bug 976688)
+
+  return DESCR_STRING_REPR(descr1) === DESCR_STRING_REPR(descr2);
+}
+
+// toSource() for type descriptors.
+//
+// Warning: user exposed!
+function DescrToSource() {
+  if (!IsObject(this) || !ObjectIsTypeDescr(this))
+    ThrowError(JSMSG_INCOMPATIBLE_PROTO, "Type", "toSource", "value");
+
+  return DESCR_STRING_REPR(this);
+}
 
 // Warning: user exposed!
 function ArrayShorthand(...dims) {
@@ -849,11 +602,6 @@ function TypeOfTypedObject(obj) {
     case "undefined": return T.Any;
     default: return T.Any;
   }
-}
-
-function ObjectIsTypedObject(obj) {
-  assert(IsObject(obj), "ObjectIsTypedObject invoked with non-object")
-  return ObjectIsTransparentTypedObject(obj) || ObjectIsOpaqueTypedObject(obj);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -945,18 +693,21 @@ function TypedArrayMap(a, b) {
 
 // Warning: user exposed!
 function TypedArrayMapPar(a, b) {
+  // Arguments: [depth], func
+
+  // Defer to the sequential variant for error cases or
+  // when not working with typed objects.
   if (!IsObject(this) || !ObjectIsTypedObject(this))
-    return ThrowError(JSMSG_TYPEDOBJECT_BAD_ARGS);
+    return callFunction(TypedArrayMap, this, a, b);
   var thisType = TYPEDOBJ_TYPE_DESCR(this);
   if (!TypeDescrIsArrayType(thisType))
-    return ThrowError(JSMSG_TYPEDOBJECT_BAD_ARGS);
+    return callFunction(TypedArrayMap, this, a, b);
 
-  // Arguments: [depth], func
-  if (typeof a === "number" && typeof b === "function")
+  if (typeof a === "number" && IsCallable(b))
     return MapTypedParImpl(this, a, thisType, b);
-  else if (typeof a === "function")
+  else if (IsCallable(a))
     return MapTypedParImpl(this, 1, thisType, a);
-  return ThrowError(JSMSG_TYPEDOBJECT_BAD_ARGS);
+  return callFunction(TypedArrayMap, this, a, b);
 }
 
 // Warning: user exposed!
@@ -1017,6 +768,20 @@ function TypedObjectArrayTypeBuildPar(a,b,c) {
 
 // Warning: user exposed!
 function TypedObjectArrayTypeFromPar(a,b,c) {
+  // Arguments: arrayLike, [depth], func
+
+  // Use the sequential version for error cases or when arrayLike is
+  // not a typed object.
+  if (!IsObject(this) || !ObjectIsTypeDescr(this) || !TypeDescrIsArrayType(this))
+    return callFunction(TypedObjectArrayTypeFrom, this, a, b, c);
+  if (!IsObject(a) || !ObjectIsTypedObject(a))
+    return callFunction(TypedObjectArrayTypeFrom, this, a, b, c);
+
+  // Detect whether an explicit depth is supplied.
+  if (typeof b === "number" && IsCallable(c))
+    return MapTypedParImpl(a, b, this, c);
+  if (IsCallable(b))
+    return MapTypedParImpl(a, 1, this, b);
   return callFunction(TypedObjectArrayTypeFrom, this, a, b, c);
 }
 
@@ -1050,67 +815,6 @@ function GET_BIT(data, index) {
   return (data[word] & mask) != 0;
 }
 
-function TypeDescrIsUnsizedArrayType(t) {
-  assert(IsObject(t) && ObjectIsTypeDescr(t),
-         "TypeDescrIsArrayType called on non-type-object");
-  return DESCR_KIND(t) === JS_TYPEREPR_UNSIZED_ARRAY_KIND;
-}
-
-function TypeDescrIsArrayType(t) {
-  assert(IsObject(t) && ObjectIsTypeDescr(t), "TypeDescrIsArrayType called on non-type-object");
-
-  var kind = DESCR_KIND(t);
-  switch (kind) {
-  case JS_TYPEREPR_SIZED_ARRAY_KIND:
-  case JS_TYPEREPR_UNSIZED_ARRAY_KIND:
-    return true;
-  case JS_TYPEREPR_SCALAR_KIND:
-  case JS_TYPEREPR_REFERENCE_KIND:
-  case JS_TYPEREPR_X4_KIND:
-  case JS_TYPEREPR_STRUCT_KIND:
-    return false;
-  default:
-    return ThrowError(JSMSG_TYPEDOBJECT_BAD_ARGS);
-  }
-}
-
-function TypeDescrIsSizedArrayType(t) {
-  assert(IsObject(t) && ObjectIsTypeDescr(t), "TypeDescrIsSizedArrayType called on non-type-object");
-
-  var kind = DESCR_KIND(t);
-  switch (kind) {
-  case JS_TYPEREPR_SIZED_ARRAY_KIND:
-    return true;
-  case JS_TYPEREPR_UNSIZED_ARRAY_KIND:
-  case JS_TYPEREPR_SCALAR_KIND:
-  case JS_TYPEREPR_REFERENCE_KIND:
-  case JS_TYPEREPR_X4_KIND:
-  case JS_TYPEREPR_STRUCT_KIND:
-    return false;
-  default:
-    return ThrowError(JSMSG_TYPEDOBJECT_BAD_ARGS);
-  }
-}
-
-function TypeDescrIsSimpleType(t) {
-  assert(IsObject(t) && ObjectIsTypeDescr(t),
-         "TypeDescrIsSimpleType called on non-type-object");
-
-  var kind = DESCR_KIND(t);
-  switch (kind) {
-  case JS_TYPEREPR_SCALAR_KIND:
-  case JS_TYPEREPR_REFERENCE_KIND:
-  case JS_TYPEREPR_X4_KIND:
-    return true;
-  case JS_TYPEREPR_SIZED_ARRAY_KIND:
-  case JS_TYPEREPR_UNSIZED_ARRAY_KIND:
-  case JS_TYPEREPR_STRUCT_KIND:
-    return false;
-  default:
-    return ThrowError(JSMSG_TYPEDOBJECT_BAD_ARGS);
-  }
-}
-
 // Bug 956914: make performance-tuned variants tailored to 1, 2, and 3 dimensions.
 function BuildTypedSeqImpl(arrayType, len, depth, func) {
   assert(IsObject(arrayType) && ObjectIsTypeDescr(arrayType), "Build called on non-type-object");
@@ -1137,21 +841,22 @@ function BuildTypedSeqImpl(arrayType, len, depth, func) {
 
   var grainTypeIsComplex = !TypeDescrIsSimpleType(grainType);
   var size = DESCR_SIZE(grainType);
-  var outPointer = new TypedObjectPointer(grainType, result, 0);
+  var outOffset = 0;
   for (i = 0; i < totalLength; i++) {
     // Position out-pointer to point at &result[...indices], if appropriate.
-    var userOutPointer = outPointer.getOpaqueIf(grainTypeIsComplex);
+    var userOutPointer = TypedObjectGetOpaqueIf(grainType, result, outOffset,
+                                                grainTypeIsComplex);
 
     // Invoke func(...indices, userOutPointer) and store the result
     callFunction(std_Array_push, indices, userOutPointer);
     var r = callFunction(std_Function_apply, func, undefined, indices);
     callFunction(std_Array_pop, indices);
     if (r !== undefined)
-      outPointer.set(r); // result[...indices] = r;
+      TypedObjectSet(grainType, result, outOffset, r); // result[...indices] = r;
 
     // Increment indices.
     IncrementIterationSpace(indices, iterationSpace);
-    outPointer.bump(size);
+    outOffset += size;
   }
 
   return result;
@@ -1228,7 +933,7 @@ function MapUntypedSeqImpl(inArray, outputType, maybeFunc) {
 
   var outUnitSize = DESCR_SIZE(outGrainType);
   var outGrainTypeIsComplex = !TypeDescrIsSimpleType(outGrainType);
-  var outPointer = new TypedObjectPointer(outGrainType, result, 0);
+  var outOffset = 0;
 
   // Core of map computation starts here (comparable to
   // DoMapTypedSeqDepth1 and DoMapTypedSeqDepthN below).
@@ -1241,17 +946,18 @@ function MapUntypedSeqImpl(inArray, outputType, maybeFunc) {
       var element = inArray[i];
 
       // Create out pointer to point at &array[...indices] for result array.
-      var out = outPointer.getOpaqueIf(outGrainTypeIsComplex);
+      var out = TypedObjectGetOpaqueIf(outGrainType, result, outOffset,
+                                       outGrainTypeIsComplex);
 
       // Invoke: var r = func(element, ...indices, collection, out);
       var r = func(element, i, inArray, out);
 
       if (r !== undefined)
-        outPointer.set(r); // result[i] = r
+        TypedObjectSet(outGrainType, result, outOffset, r); // result[i] = r
     }
 
     // Update offset and (implicitly) increment indices.
-    outPointer.bump(outUnitSize);
+    outOffset += outUnitSize;
   }
 
   return result;
@@ -1285,11 +991,13 @@ function MapTypedSeqImpl(inArray, depth, outputType, func) {
   var inGrainTypeIsComplex = !TypeDescrIsSimpleType(inGrainType);
   var outGrainTypeIsComplex = !TypeDescrIsSimpleType(outGrainType);
 
-  var inPointer = new TypedObjectPointer(inGrainType, inArray, 0);
-  var outPointer = new TypedObjectPointer(outGrainType, result, 0);
+  var inOffset = 0;
+  var outOffset = 0;
 
-  var inUnitSize = DESCR_SIZE(inGrainType);
-  var outUnitSize = DESCR_SIZE(outGrainType);
+  var isDepth1Simple = depth == 1 && !(inGrainTypeIsComplex || outGrainTypeIsComplex);
+
+  var inUnitSize = isDepth1Simple ? 0 : DESCR_SIZE(inGrainType);
+  var outUnitSize = isDepth1Simple ? 0 : DESCR_SIZE(outGrainType);
 
   // Bug 956914: add additional variants for depth = 2, 3, etc.
 
@@ -1298,17 +1006,28 @@ function MapTypedSeqImpl(inArray, depth, outputType, func) {
       // In this loop, since depth is 1, "indices" denotes singleton array [i].
 
       // Prepare input element/handle and out pointer
-      var element = inPointer.get();
-      var out = outPointer.getOpaqueIf(outGrainTypeIsComplex);
+      var element = TypedObjectGet(inGrainType, inArray, inOffset);
+      var out = TypedObjectGetOpaqueIf(outGrainType, result, outOffset,
+                                       outGrainTypeIsComplex);
 
       // Invoke: var r = func(element, ...indices, collection, out);
       var r = func(element, i, inArray, out);
       if (r !== undefined)
-        outPointer.set(r); // result[i] = r
+        TypedObjectSet(outGrainType, result, outOffset, r); // result[i] = r
 
       // Update offsets and (implicitly) increment indices.
-      inPointer.bump(inUnitSize);
-      outPointer.bump(outUnitSize);
+      inOffset += inUnitSize;
+      outOffset += outUnitSize;
+    }
+
+    return result;
+  }
+
+  function DoMapTypedSeqDepth1Simple(inArray, totalLength, func, result) {
+    for (var i = 0; i < totalLength; i++) {
+      var r = func(inArray[i], i, inArray, undefined);
+      if (r !== undefined)
+        result[i] = r;
     }
 
     return result;
@@ -1319,8 +1038,9 @@ function MapTypedSeqImpl(inArray, depth, outputType, func) {
 
     for (var i = 0; i < totalLength; i++) {
       // Prepare input element and out pointer
-      var element = inPointer.get();
-      var out = outPointer.getOpaqueIf(outGrainTypeIsComplex);
+      var element = TypedObjectGet(inGrainType, inArray, inOffset);
+      var out = TypedObjectGetOpaqueIf(outGrainType, result, outOffset,
+                                       outGrainTypeIsComplex);
 
       // Invoke: var r = func(element, ...indices, collection, out);
       var args = [element];
@@ -1328,23 +1048,24 @@ function MapTypedSeqImpl(inArray, depth, outputType, func) {
       callFunction(std_Array_push, args, inArray, out);
       var r = callFunction(std_Function_apply, func, void 0, args);
       if (r !== undefined)
-        outPointer.set(r); // result[...indices] = r
+        TypedObjectSet(outGrainType, result, outOffset, r); // result[...indices] = r
 
       // Update offsets and explicitly increment indices.
-      inPointer.bump(inUnitSize);
-      outPointer.bump(outUnitSize);
+      inOffset += inUnitSize;
+      outOffset += outUnitSize;
       IncrementIterationSpace(indices, iterationSpace);
     }
 
     return result;
   }
 
-  if  (depth == 1) {
-    return DoMapTypedSeqDepth1();
-  } else {
-    return DoMapTypedSeqDepthN();
-  }
+  if (isDepth1Simple)
+    return DoMapTypedSeqDepth1Simple(inArray, totalLength, func, result);
 
+  if (depth == 1)
+    return DoMapTypedSeqDepth1();
+
+  return DoMapTypedSeqDepthN();
 }
 
 // Implements |map| and |from| methods for typed |inArray|.
@@ -1355,6 +1076,10 @@ function MapTypedParImpl(inArray, depth, outputType, func) {
          "Map/From called on non-object or untyped input array.");
   assert(TypeDescrIsArrayType(outputType),
          "Map/From called on non array-type outputType");
+  assert(typeof depth === "number",
+         "Map/From called with non-numeric depth");
+  assert(IsCallable(func),
+         "Map/From called on something not callable");
 
   var inArrayType = TypeOfTypedObject(inArray);
 
@@ -1438,6 +1163,8 @@ function MapTypedParImplDepth1(inArray, inArrayType, outArrayType, func) {
   const mode = undefined;
 
   const outArray = new outArrayType(length);
+  if (length === 0)
+    return outArray;
 
   const outGrainTypeIsTransparent = ObjectIsTransparentTypedObject(outArray);
 
@@ -1447,10 +1174,10 @@ function MapTypedParImplDepth1(inArray, inArrayType, outArrayType, func) {
   assert(numWorkers > 0, "Should have at least the main thread");
   const pointers = [];
   for (var i = 0; i < numWorkers; i++) {
-    const inPointer = new TypedObjectPointer(inGrainType, inArray, 0);
-    const inTypedObject = inPointer.getDerivedIf(inGrainTypeIsComplex);
-    const outPointer = new TypedObjectPointer(outGrainType, outArray, 0);
-    const outTypedObject = outPointer.getOpaqueIf(outGrainTypeIsComplex);
+    const inTypedObject = TypedObjectGetDerivedIf(inGrainType, inArray, 0,
+                                                  inGrainTypeIsComplex);
+    const outTypedObject = TypedObjectGetOpaqueIf(outGrainType, outArray, 0,
+                                                  outGrainTypeIsComplex);
     ARRAY_PUSH(pointers, ({ inTypedObject: inTypedObject,
                             outTypedObject: outTypedObject }));
   }
@@ -1460,23 +1187,26 @@ function MapTypedParImplDepth1(inArray, inArrayType, outArrayType, func) {
   // relative to its owner (which is often but not always 0).
   const inBaseOffset = TYPEDOBJ_BYTEOFFSET(inArray);
 
-  ForkJoin(mapThread, ShrinkLeftmost(slicesInfo), ForkJoinMode(mode));
+  ForkJoin(mapThread, 0, slicesInfo.count, ForkJoinMode(mode));
   return outArray;
 
-  function mapThread(workerId, warmup) {
+  function mapThread(workerId, sliceStart, sliceEnd) {
     assert(TO_INT32(workerId) === workerId,
            "workerId not int: " + workerId);
-    assert(workerId >= 0 && workerId < pointers.length,
-          "workerId too large: " + workerId + " >= " + pointers.length);
-    assert(!!pointers[workerId],
+    assert(workerId < pointers.length,
+           "workerId too large: " + workerId + " >= " + pointers.length);
+
+    var pointerIndex = InParallelSection() ? workerId : 0;
+    assert(!!pointers[pointerIndex],
           "no pointer data for workerId: " + workerId);
 
+    const { inTypedObject, outTypedObject } = pointers[pointerIndex];
+    const sliceShift = slicesInfo.shift;
     var sliceId;
-    const { inTypedObject, outTypedObject } = pointers[workerId];
 
-    while (GET_SLICE(slicesInfo, sliceId)) {
-      const indexStart = SLICE_START(slicesInfo, sliceId);
-      const indexEnd = SLICE_END(slicesInfo, indexStart, length);
+    while (GET_SLICE(sliceStart, sliceEnd, sliceId)) {
+      const indexStart = SLICE_START_INDEX(sliceShift, sliceId);
+      const indexEnd = SLICE_END_INDEX(sliceShift, indexStart, length);
 
       var inOffset = inBaseOffset + std_Math_imul(inGrainTypeSize, indexStart);
       var outOffset = std_Math_imul(outGrainTypeSize, indexStart);
@@ -1508,16 +1238,20 @@ function MapTypedParImplDepth1(inArray, inArrayType, outArrayType, func) {
           if (outGrainTypeIsComplex)
             SetTypedObjectValue(outGrainType, outArray, outOffset, r);
           else
-            outArray[i] = r;
+            UnsafePutElements(outArray, i, r);
         }
         inOffset += inGrainTypeSize;
         outOffset += outGrainTypeSize;
-      }
 
-      MARK_SLICE_DONE(slicesInfo, sliceId);
-      if (warmup)
-        return;
+        // A transparent result type cannot contain references, and
+        // hence there is no way for a pointer to a thread-local object
+        // to escape.
+        if (outGrainTypeIsTransparent)
+          ClearThreadLocalArenas();
+      }
     }
+
+    return sliceId;
   }
 
   return undefined;
@@ -1607,13 +1341,14 @@ function FilterTypedSeqImpl(array, func) {
   var flags = new Uint8Array(NUM_BYTES(array.length));
   var count = 0;
   var size = DESCR_SIZE(elementType);
-  var inPointer = new TypedObjectPointer(elementType, array, 0);
+  var inOffset = 0;
   for (var i = 0; i < array.length; i++) {
-    if (func(inPointer.get(), i, array)) {
+    var v = TypedObjectGet(elementType, array, inOffset);
+    if (func(v, i, array)) {
       SET_BIT(flags, i);
       count++;
     }
-    inPointer.bump(size);
+    inOffset += size;
   }
 
   var resultType = (arrayType.variable ? arrayType : arrayType.unsized);

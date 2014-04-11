@@ -5,7 +5,7 @@
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
-  "resource://gre/modules/commonjs/sdk/core/promise.js");
+  "resource://gre/modules/Promise.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
   "resource://gre/modules/Task.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
@@ -74,6 +74,8 @@ function runSocialTestWithProvider(manifest, callback, finishcallback) {
 
   // Check that none of the provider's content ends up in history.
   function finishCleanUp() {
+    ok(!SocialSidebar.provider, "no provider in sidebar");
+    SessionStore.setWindowValue(window, "socialSidebar", "");
     for (let i = 0; i < manifests.length; i++) {
       let m = manifests[i];
       for (let what of ['sidebarURL', 'workerURL', 'iconURL']) {
@@ -118,9 +120,6 @@ function runSocialTestWithProvider(manifest, callback, finishcallback) {
     });
   }
   function finishSocialTest(cleanup) {
-    // disable social before removing the providers to avoid providers
-    // being activated immediately before we get around to removing it.
-    Services.prefs.clearUserPref("social.enabled");
     removeAddedProviders(cleanup);
   }
 
@@ -141,13 +140,14 @@ function runSocialTestWithProvider(manifest, callback, finishcallback) {
       // If we've added all the providers we need, call the callback to start
       // the tests (and give it a callback it can call to finish them)
       if (providersAdded == manifests.length) {
-        // Set the UI's provider (which enables the feature)
-        Social.provider = firstProvider;
-
         registerCleanupFunction(function () {
           finishSocialTest(true);
         });
-        callback(finishSocialTest);
+        waitForCondition(function() provider.enabled,
+                         function() {
+          info("provider has been enabled");
+          callback(finishSocialTest);
+        }, "providers added and enabled");
       }
     });
   });
@@ -204,10 +204,10 @@ function checkSocialUI(win) {
   let SocialService = Cu.import("resource://gre/modules/SocialService.jsm", {}).SocialService;
   win = win || window;
   let doc = win.document;
-  let provider = Social.provider;
   let enabled = win.SocialUI.enabled;
   let active = Social.providers.length > 0 && !win.SocialUI._chromeless &&
                !PrivateBrowsingUtils.isWindowPrivate(win);
+  let sidebarEnabled = win.SocialSidebar.provider ? enabled : false;
 
   // if we have enabled providers, we should also have instances of those
   // providers
@@ -236,54 +236,48 @@ function checkSocialUI(win) {
   function isbool(a, b, msg) {
     _is(!!a, !!b, msg);
   }
-  isbool(win.SocialSidebar.canShow, enabled, "social sidebar active?");
-  if (enabled)
-    isbool(win.SocialSidebar.opened, enabled, "social sidebar open?");
+  isbool(win.SocialSidebar.canShow, sidebarEnabled, "social sidebar active?");
   isbool(win.SocialChatBar.isAvailable, enabled, "chatbar available?");
   isbool(!win.SocialChatBar.chatbar.hidden, enabled, "chatbar visible?");
 
-  // the menus should always have the provider name
-  if (provider) {
-    let contextMenus = [
-      {
-        type: "link",
-        id: "context-marklinkMenu",
-        label: "social.marklinkMenu.label"
-      },
-      {
-        type: "page",
-        id: "context-markpageMenu",
-        label: "social.markpageMenu.label"
-      }
-    ];
-
-    for (let c of contextMenus) {
-      let leMenu = document.getElementById(c.id);
-      let parent, menus;
-      let markProviders = SocialMarks.getProviders();
-      if (markProviders.length > SocialMarks.MENU_LIMIT) {
-        // menus should be in a submenu, not in the top level of the context menu
-        parent = leMenu.firstChild;
-        menus = document.getElementsByClassName("context-mark" + c.type);
-        _is(menus.length, 0, "menu's are not in main context menu\n");
-        menus = parent.childNodes;
-        _is(menus.length, markProviders.length, c.id + " menu exists for each mark provider");
-      } else {
-        // menus should be in the top level of the context menu, not in a submenu
-        parent = leMenu.parentNode;
-        menus = document.getElementsByClassName("context-mark" + c.type);
-        _is(menus.length, markProviders.length, c.id + " menu exists for each mark provider");
-        menus = leMenu.firstChild.childNodes;
-        _is(menus.length, 0, "menu's are not in context submenu\n");
-      }
-      for (let m of menus)
-        _is(m.parentNode, parent, "menu has correct parent");
+  let contextMenus = [
+    {
+      type: "link",
+      id: "context-marklinkMenu",
+      label: "social.marklinkMenu.label"
+    },
+    {
+      type: "page",
+      id: "context-markpageMenu",
+      label: "social.markpageMenu.label"
     }
+  ];
+
+  for (let c of contextMenus) {
+    let leMenu = document.getElementById(c.id);
+    let parent, menus;
+    let markProviders = SocialMarks.getProviders();
+    if (markProviders.length > SocialMarks.MENU_LIMIT) {
+      // menus should be in a submenu, not in the top level of the context menu
+      parent = leMenu.firstChild;
+      menus = document.getElementsByClassName("context-mark" + c.type);
+      _is(menus.length, 0, "menu's are not in main context menu\n");
+      menus = parent.childNodes;
+      _is(menus.length, markProviders.length, c.id + " menu exists for each mark provider");
+    } else {
+      // menus should be in the top level of the context menu, not in a submenu
+      parent = leMenu.parentNode;
+      menus = document.getElementsByClassName("context-mark" + c.type);
+      _is(menus.length, markProviders.length, c.id + " menu exists for each mark provider");
+      menus = leMenu.firstChild.childNodes;
+      _is(menus.length, 0, "menu's are not in context submenu\n");
+    }
+    for (let m of menus)
+      _is(m.parentNode, parent, "menu has correct parent");
   }
 
   // and for good measure, check all the social commands.
-  isbool(!doc.getElementById("Social:Toggle").hidden, active, "Social:Toggle visible?");
-  isbool(!doc.getElementById("Social:ToggleSidebar").hidden, enabled, "Social:ToggleSidebar visible?");
+  isbool(!doc.getElementById("Social:ToggleSidebar").hidden, sidebarEnabled, "Social:ToggleSidebar visible?");
   isbool(!doc.getElementById("Social:ToggleNotifications").hidden, enabled, "Social:ToggleNotifications visible?");
   isbool(!doc.getElementById("Social:FocusChat").hidden, enabled, "Social:FocusChat visible?");
   isbool(doc.getElementById("Social:FocusChat").getAttribute("disabled"), enabled ? "false" : "true", "Social:FocusChat disabled?");
@@ -325,7 +319,7 @@ function resetBlocklist(aCallback) {
   // XXX - this has "forked" from the head.js helpers in our parent directory :(
   // But let's reuse their blockNoPlugins.xml.  Later, we should arrange to
   // use their head.js helpers directly
-  let noBlockedURL = "http://example.com/browser/browser/base/content/test/general/blockNoPlugins.xml";
+  let noBlockedURL = "http://example.com/browser/browser/base/content/test/plugins/blockNoPlugins.xml";
   setAndUpdateBlocklist(noBlockedURL, function() {
     Services.prefs.setCharPref("extensions.blocklist.url", _originalTestBlocklistURL);
     if (aCallback)
@@ -451,7 +445,7 @@ function get3ChatsForCollapsing(mode, cb) {
 
 function makeChat(mode, uniqueid, cb) {
   info("making a chat window '" + uniqueid +"'");
-  let provider = Social.provider;
+  let provider = SocialSidebar.provider;
   const chatUrl = provider.origin + "/browser/browser/base/content/test/social/social_chat.html";
   let isOpened = window.SocialChatBar.openChat(provider, chatUrl + "?id=" + uniqueid, function(chat) {
     info("chat window has opened");

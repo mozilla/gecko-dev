@@ -17,9 +17,9 @@ namespace mozilla {
 namespace dom {
 
 JSObject*
-SVGPatternElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+SVGPatternElement::WrapNode(JSContext *aCx)
 {
-  return SVGPatternElementBinding::Wrap(aCx, aScope, this);
+  return SVGPatternElementBinding::Wrap(aCx, this);
 }
 
 //--------------------- Patterns ------------------------
@@ -52,7 +52,7 @@ nsSVGElement::StringInfo SVGPatternElement::sStringInfo[1] =
 //----------------------------------------------------------------------
 // Implementation
 
-SVGPatternElement::SVGPatternElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+SVGPatternElement::SVGPatternElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : SVGPatternElementBase(aNodeInfo)
 {
 }

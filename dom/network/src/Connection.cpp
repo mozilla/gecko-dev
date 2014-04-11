@@ -6,36 +6,30 @@
 #include <limits>
 #include "mozilla/Hal.h"
 #include "mozilla/dom/network/Connection.h"
-#include "mozilla/dom/MozConnectionBinding.h"
 #include "nsIDOMClassInfo.h"
 #include "mozilla/Preferences.h"
-#include "nsDOMEvent.h"
 #include "Constants.h"
 
 /**
  * We have to use macros here because our leak analysis tool things we are
  * leaking strings when we have |static const nsString|. Sad :(
  */
-#define CHANGE_EVENT_NAME NS_LITERAL_STRING("change")
+#define CHANGE_EVENT_NAME NS_LITERAL_STRING("typechange")
 
 namespace mozilla {
 namespace dom {
 namespace network {
 
-const char* Connection::sMeteredPrefName     = "dom.network.metered";
-const bool  Connection::sMeteredDefaultValue = false;
-
-NS_IMPL_QUERY_INTERFACE_INHERITED1(Connection, nsDOMEventTargetHelper,
+NS_IMPL_QUERY_INTERFACE_INHERITED1(Connection, DOMEventTargetHelper,
                                    nsINetworkProperties)
 
 // Don't use |Connection| alone, since that confuses nsTraceRefcnt since
 // we're not the only class with that name.
-NS_IMPL_ADDREF_INHERITED(dom::network::Connection, nsDOMEventTargetHelper)
-NS_IMPL_RELEASE_INHERITED(dom::network::Connection, nsDOMEventTargetHelper)
+NS_IMPL_ADDREF_INHERITED(dom::network::Connection, DOMEventTargetHelper)
+NS_IMPL_RELEASE_INHERITED(dom::network::Connection, DOMEventTargetHelper)
 
 Connection::Connection()
-  : mCanBeMetered(kDefaultCanBeMetered)
-  , mBandwidth(kDefaultBandwidth)
+  : mType(static_cast<ConnectionType>(kDefaultType))
   , mIsWifi(kDefaultIsWifi)
   , mDHCPGateway(kDefaultDHCPGateway)
 {
@@ -61,26 +55,6 @@ Connection::Shutdown()
   hal::UnregisterNetworkObserver(this);
 }
 
-double
-Connection::Bandwidth() const
-{
-  if (mBandwidth == kDefaultBandwidth) {
-    return std::numeric_limits<double>::infinity();
-  }
-
-  return mBandwidth;
-}
-
-bool
-Connection::Metered() const
-{
-  if (!mCanBeMetered) {
-    return false;
-  }
-
-  return Preferences::GetBool(sMeteredPrefName, sMeteredDefaultValue);
-}
-
 NS_IMETHODIMP
 Connection::GetIsWifi(bool *aIsWifi)
 {
@@ -98,8 +72,7 @@ Connection::GetDhcpGateway(uint32_t *aGW)
 void
 Connection::UpdateFromNetworkInfo(const hal::NetworkInformation& aNetworkInfo)
 {
-  mBandwidth = aNetworkInfo.bandwidth();
-  mCanBeMetered = aNetworkInfo.canBeMetered();
+  mType = static_cast<ConnectionType>(aNetworkInfo.type());
   mIsWifi = aNetworkInfo.isWifi();
   mDHCPGateway = aNetworkInfo.dhcpGateway();
 }
@@ -107,13 +80,11 @@ Connection::UpdateFromNetworkInfo(const hal::NetworkInformation& aNetworkInfo)
 void
 Connection::Notify(const hal::NetworkInformation& aNetworkInfo)
 {
-  double previousBandwidth = mBandwidth;
-  bool previousCanBeMetered = mCanBeMetered;
+  ConnectionType previousType = mType;
 
   UpdateFromNetworkInfo(aNetworkInfo);
 
-  if (previousBandwidth == mBandwidth &&
-      previousCanBeMetered == mCanBeMetered) {
+  if (previousType == mType) {
     return;
   }
 
@@ -121,9 +92,9 @@ Connection::Notify(const hal::NetworkInformation& aNetworkInfo)
 }
 
 JSObject*
-Connection::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+Connection::WrapObject(JSContext* aCx)
 {
-  return MozConnectionBinding::Wrap(aCx, aScope, this);
+  return NetworkInformationBinding::Wrap(aCx, this);
 }
 
 } // namespace network

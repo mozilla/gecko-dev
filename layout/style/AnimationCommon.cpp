@@ -23,7 +23,7 @@
 #include "nsStyleChangeList.h"
 
 
-using namespace mozilla::layers;
+using mozilla::layers::Layer;
 
 namespace mozilla {
 namespace css {
@@ -191,28 +191,6 @@ CommonAnimationManager::ReparentBeforeAndAfter(dom::Element* aElement,
   }
 }
 
-// Ensure that the next repaint rebuilds the layer tree for aFrame. That
-// means that changes to animations on aFrame's layer are propagated to
-// the compositor, which is needed for correct behaviour of new
-// transitions.
-static void
-ForceLayerRerendering(nsIFrame* aFrame, CommonElementAnimationData* aData)
-{
-  if (aData->HasAnimationOfProperty(eCSSProperty_opacity)) {
-    if (Layer* layer = FrameLayerBuilder::GetDedicatedLayer(
-          aFrame, nsDisplayItem::TYPE_OPACITY)) {
-      layer->RemoveUserData(nsIFrame::LayerIsPrerenderedDataKey());
-    }
-  }
-
-  if (aData->HasAnimationOfProperty(eCSSProperty_transform)) {
-    if (Layer* layer = FrameLayerBuilder::GetDedicatedLayer(
-          aFrame, nsDisplayItem::TYPE_TRANSFORM)) {
-      layer->RemoveUserData(nsIFrame::LayerIsPrerenderedDataKey());
-    }
-  }
-}
-
 nsStyleContext*
 CommonAnimationManager::UpdateThrottledStyle(dom::Element* aElement,
                                              nsStyleContext* aParentStyle,
@@ -254,9 +232,6 @@ CommonAnimationManager::UpdateThrottledStyle(dom::Element* aElement,
 
       mPresContext->AnimationManager()->EnsureStyleRuleFor(ea);
       curRule.mRule = ea->mStyleRule;
-
-      // FIXME: maybe not needed anymore:
-      ForceLayerRerendering(primaryFrame, ea);
     } else if (curRule.mLevel == nsStyleSet::eTransitionSheet) {
       ElementTransitions *et =
         mPresContext->TransitionManager()->GetElementTransitions(
@@ -268,9 +243,6 @@ CommonAnimationManager::UpdateThrottledStyle(dom::Element* aElement,
 
       et->EnsureStyleRuleFor(mPresContext->RefreshDriver()->MostRecentRefresh());
       curRule.mRule = et->mStyleRule;
-
-      // FIXME: maybe not needed anymore:
-      ForceLayerRerendering(primaryFrame, et);
     } else {
       curRule.mRule = ruleNode->GetRule();
     }
@@ -388,16 +360,46 @@ ComputedTimingFunction::GetValue(double aPortion) const
   }
 }
 
+} /* end sub-namespace css */
+
+bool
+StyleAnimation::IsRunningAt(TimeStamp aTime) const
+{
+  if (IsPaused() || mIterationDuration.ToMilliseconds() <= 0.0 ||
+      mStartTime.IsNull()) {
+    return false;
+  }
+
+  double iterationsElapsed = ElapsedDurationAt(aTime) / mIterationDuration;
+  return 0.0 <= iterationsElapsed && iterationsElapsed < mIterationCount;
+}
+
+bool
+StyleAnimation::HasAnimationOfProperty(nsCSSProperty aProperty) const
+{
+  for (uint32_t propIdx = 0, propEnd = mProperties.Length();
+       propIdx != propEnd; ++propIdx) {
+    if (aProperty == mProperties[propIdx].mProperty) {
+      return true;
+    }
+  }
+  return false;
+}
+
+namespace css {
+
 bool
 CommonElementAnimationData::CanAnimatePropertyOnCompositor(const dom::Element *aElement,
                                                            nsCSSProperty aProperty,
                                                            CanAnimateFlags aFlags)
 {
   bool shouldLog = nsLayoutUtils::IsAnimationLoggingEnabled();
-  if (shouldLog && !gfxPlatform::OffMainThreadCompositingEnabled()) {
-    nsCString message;
-    message.AppendLiteral("Performance warning: Compositor disabled");
-    LogAsyncAnimationFailure(message);
+  if (!gfxPlatform::OffMainThreadCompositingEnabled()) {
+    if (shouldLog) {
+      nsCString message;
+      message.AppendLiteral("Performance warning: Compositor disabled");
+      LogAsyncAnimationFailure(message);
+    }
     return false;
   }
 

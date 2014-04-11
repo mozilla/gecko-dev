@@ -13,7 +13,9 @@ include protocol PCompositor;
 include protocol PCrashReporter;
 include protocol PExternalHelperApp;
 include protocol PDeviceStorageRequest;
+include protocol PFileDescriptorSet;
 include protocol PFMRadio;
+include protocol PFileSystemRequest;
 include protocol PHal;
 include protocol PImageBridge;
 include protocol PIndexedDB;
@@ -93,6 +95,18 @@ struct DeviceStorageFormatParams
   nsString storageName;
 };
 
+struct DeviceStorageMountParams
+{
+  nsString type;
+  nsString storageName;
+};
+
+struct DeviceStorageUnmountParams
+{
+  nsString type;
+  nsString storageName;
+};
+
 struct DeviceStorageAddParams
 {
   nsString type;
@@ -143,6 +157,8 @@ union DeviceStorageParams
   DeviceStorageAvailableParams;
   DeviceStorageStatusParams;
   DeviceStorageFormatParams;
+  DeviceStorageMountParams;
+  DeviceStorageUnmountParams;
 };
 
 struct FMRadioRequestEnableParams
@@ -179,6 +195,39 @@ union FMRadioRequestParams
   FMRadioRequestCancelSeekParams;
 };
 
+struct FileSystemCreateDirectoryParams
+{
+  nsString filesystem;
+  nsString realPath;
+};
+
+struct FileSystemGetFileOrDirectoryParams
+{
+  nsString filesystem;
+  nsString realPath;
+};
+
+union FileSystemPathOrFileValue
+{
+  nsString;
+  PBlob;
+};
+
+struct FileSystemRemoveParams
+{
+  nsString filesystem;
+  nsString directory;
+  FileSystemPathOrFileValue target;
+  bool recursive;
+};
+
+union FileSystemParams
+{
+  FileSystemCreateDirectoryParams;
+  FileSystemGetFileOrDirectoryParams;
+  FileSystemRemoveParams;
+};
+
 union PrefValue {
   nsCString;
   int32_t;
@@ -208,7 +257,9 @@ intr protocol PContent
     manages PBrowser;
     manages PCrashReporter;
     manages PDeviceStorageRequest;
+    manages PFileSystemRequest;
     manages PExternalHelperApp;
+    manages PFileDescriptorSet;
     manages PFMRadio;
     manages PHal;
     manages PIndexedDB;
@@ -251,15 +302,17 @@ both:
 
     async PJavaScript();
 
+    PFileDescriptorSet(FileDescriptor fd);
+
 child:
     /**
-     * Update OS process privileges to |privs|.  Can usually only be
-     * performed zero or one times.  The child will abnormally exit if
-     * the privilege update fails.
+     * Enable system-level sandboxing features, if available.  Can
+     * usually only be performed zero or one times.  The child may
+     * abnormally exit if this fails; the details are OS-specific.
      */
-    async SetProcessPrivileges(ChildPrivileges privs);
+    async SetProcessSandbox();
 
-    PMemoryReportRequest(uint32_t generation);
+    PMemoryReportRequest(uint32_t generation, bool minimizeMemoryUsage, nsString DMDDumpIdent);
 
     /**
      * Notify the AudioChannelService in the child processes.
@@ -269,19 +322,10 @@ child:
     async SpeakerManagerNotify();
 
     /**
-     * Do a memory info dump to a file in our temp directory.
-     *
-     * For documentation on the args, see
-     * MemoryInfoDumper::dumpMemoryInfoToTempDir.
-     */
-    async DumpMemoryInfoToTempDir(nsString identifier,
-                                  bool minimizeMemoryUsage,
-                                  bool dumpChildProcesses);
-    /**
      * Dump this process's GC and CC logs.
      *
-     * For documentation on the args, see
-     * MemoryInfoDumper::dumpGCAndCCLogsToFile.
+     * For documentation on the args, see dumpGCAndCCLogsToFile in
+     * nsIMemoryInfoDumper.idl
      */
     async DumpGCAndCCLogsToFile(nsString identifier,
                                 bool dumpAllTraces,
@@ -365,6 +409,8 @@ parent:
         returns (bool isOffline);
 
     PDeviceStorageRequest(DeviceStorageParams params);
+
+    PFileSystemRequest(FileSystemParams params);
 
     sync PCrashReporter(NativeThreadId tid, uint32_t processType);
 

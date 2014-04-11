@@ -39,11 +39,8 @@ JS_STATIC_ASSERT(offsetof(JSRuntime, mainThread) ==
 PerThreadDataFriendFields::PerThreadDataFriendFields()
 {
     PodArrayZero(nativeStackLimit);
-#if defined(JSGC_ROOT_ANALYSIS) || defined(JSGC_USE_EXACT_ROOTING)
+#if defined(JSGC_USE_EXACT_ROOTING)
     PodArrayZero(thingGCRooters);
-#endif
-#if defined(DEBUG) && defined(JS_GC_ZEAL) && defined(JSGC_ROOT_ANALYSIS) && !defined(JS_THREADSAFE)
-    skipGCRooters = nullptr;
 #endif
 }
 
@@ -80,7 +77,7 @@ JS_SetIsWorkerRuntime(JSRuntime *rt)
 }
 
 JS_FRIEND_API(JSObject *)
-JS_FindCompilationScope(JSContext *cx, JSObject *objArg)
+JS_FindCompilationScope(JSContext *cx, HandleObject objArg)
 {
     RootedObject obj(cx, objArg);
 
@@ -109,10 +106,8 @@ JS_GetObjectFunction(JSObject *obj)
 }
 
 JS_FRIEND_API(bool)
-JS_SplicePrototype(JSContext *cx, JSObject *objArg, JSObject *protoArg)
+JS_SplicePrototype(JSContext *cx, HandleObject obj, HandleObject proto)
 {
-    RootedObject obj(cx, objArg);
-    RootedObject proto(cx, protoArg);
     /*
      * Change the prototype of an object which hasn't been used anywhere
      * and does not share its type with another object. Unlike JS_SetPrototype,
@@ -133,10 +128,9 @@ JS_SplicePrototype(JSContext *cx, JSObject *objArg, JSObject *protoArg)
 }
 
 JS_FRIEND_API(JSObject *)
-JS_NewObjectWithUniqueType(JSContext *cx, const JSClass *clasp, JSObject *protoArg, JSObject *parentArg)
+JS_NewObjectWithUniqueType(JSContext *cx, const JSClass *clasp, HandleObject proto,
+                           HandleObject parent)
 {
-    RootedObject proto(cx, protoArg);
-    RootedObject parent(cx, parentArg);
     /*
      * Create our object with a null proto and then splice in the correct proto
      * after we setSingletonType, so that we don't pollute the default
@@ -288,9 +282,8 @@ DefineHelpProperty(JSContext *cx, HandleObject obj, const char *prop, const char
 }
 
 JS_FRIEND_API(bool)
-JS_DefineFunctionsWithHelp(JSContext *cx, JSObject *objArg, const JSFunctionSpecWithHelp *fs)
+JS_DefineFunctionsWithHelp(JSContext *cx, HandleObject obj, const JSFunctionSpecWithHelp *fs)
 {
-    RootedObject obj(cx, objArg);
     JS_ASSERT(!cx->runtime()->isAtomsCompartment(cx->compartment()));
 
     CHECK_REQUEST(cx);
@@ -394,6 +387,12 @@ js::GetGlobalForObjectCrossCompartment(JSObject *obj)
 }
 
 JS_FRIEND_API(void)
+js::SetPendingExceptionCrossContext(JSContext *cx, JS::HandleValue v)
+{
+    cx->setPendingException(v);
+}
+
+JS_FRIEND_API(void)
 js::AssertSameCompartment(JSContext *cx, JSObject *obj)
 {
     assertSameCompartment(cx, obj);
@@ -410,6 +409,8 @@ js::AssertSameCompartment(JSObject *objA, JSObject *objB)
 JS_FRIEND_API(JSObject *)
 js::DefaultObjectForContextOrNull(JSContext *cx)
 {
+    if (cx->options().noDefaultCompartmentObject())
+        return nullptr;
     return cx->maybeDefaultCompartmentObject();
 }
 
@@ -682,11 +683,9 @@ JS_SetAccumulateTelemetryCallback(JSRuntime *rt, JSAccumulateTelemetryDataCallba
 }
 
 JS_FRIEND_API(JSObject *)
-JS_CloneObject(JSContext *cx, JSObject *obj_, JSObject *proto_, JSObject *parent_)
+JS_CloneObject(JSContext *cx, HandleObject obj, HandleObject protoArg, HandleObject parent)
 {
-    RootedObject obj(cx, obj_);
-    Rooted<js::TaggedProto> proto(cx, proto_);
-    RootedObject parent(cx, parent_);
+    Rooted<js::TaggedProto> proto(cx, protoArg.get());
     return CloneObject(cx, obj, proto, parent);
 }
 
@@ -932,7 +931,7 @@ JS::DisableIncrementalGC(JSRuntime *rt)
 
 JS::AutoDisableGenerationalGC::AutoDisableGenerationalGC(JSRuntime *rt)
   : runtime(rt)
-#ifdef JS_GC_ZEAL
+#if defined(JSGC_GENERATIONAL) && defined(JS_GC_ZEAL)
   , restartVerifier(rt->gcVerifyPostData)
 #endif
 {
@@ -1149,6 +1148,14 @@ js::SetDefaultJSContextCallback(JSRuntime *rt, DefaultJSContextCallback cb)
 {
     rt->defaultJSContextCallback = cb;
 }
+
+#ifdef DEBUG
+JS_FRIEND_API(void)
+js::Debug_SetActiveJSContext(JSRuntime *rt, JSContext *cx)
+{
+    rt->activeContext = cx;
+}
+#endif
 
 JS_FRIEND_API(void)
 js::SetCTypesActivityCallback(JSRuntime *rt, CTypesActivityCallback cb)

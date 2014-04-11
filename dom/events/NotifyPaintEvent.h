@@ -7,20 +7,19 @@
 #define mozilla_dom_NotifyPaintEvent_h_
 
 #include "mozilla/Attributes.h"
-#include "nsIDOMNotifyPaintEvent.h"
-#include "nsDOMEvent.h"
-#include "nsPresContext.h"
+#include "mozilla/dom/Event.h"
 #include "mozilla/dom/NotifyPaintEventBinding.h"
-
-class nsPaintRequestList;
+#include "nsIDOMNotifyPaintEvent.h"
+#include "nsPresContext.h"
 
 namespace mozilla {
 namespace dom {
 
 class DOMRect;
 class DOMRectList;
+class PaintRequestList;
 
-class NotifyPaintEvent : public nsDOMEvent,
+class NotifyPaintEvent : public Event,
                          public nsIDOMNotifyPaintEvent
 {
 
@@ -36,25 +35,24 @@ public:
   NS_DECL_NSIDOMNOTIFYPAINTEVENT
 
   // Forward to base class
-  NS_FORWARD_TO_NSDOMEVENT_NO_SERIALIZATION_NO_DUPLICATION
+  NS_FORWARD_TO_EVENT_NO_SERIALIZATION_NO_DUPLICATION
   NS_IMETHOD DuplicatePrivateData() MOZ_OVERRIDE
   {
-    return nsDOMEvent::DuplicatePrivateData();
+    return Event::DuplicatePrivateData();
   }
   NS_IMETHOD_(void) Serialize(IPC::Message* aMsg, bool aSerializeInterfaceType) MOZ_OVERRIDE;
   NS_IMETHOD_(bool) Deserialize(const IPC::Message* aMsg, void** aIter) MOZ_OVERRIDE;
 
-  virtual JSObject* WrapObject(JSContext* aCx,
-                               JS::Handle<JSObject*> aScope) MOZ_OVERRIDE
+  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE
   {
-    return NotifyPaintEventBinding::Wrap(aCx, aScope, this);
+    return NotifyPaintEventBinding::Wrap(aCx, this);
   }
 
   already_AddRefed<DOMRectList> ClientRects();
 
   already_AddRefed<DOMRect> BoundingClientRect();
 
-  already_AddRefed<nsPaintRequestList> PaintRequests();
+  already_AddRefed<PaintRequestList> PaintRequests();
 private:
   nsRegion GetRegion();
 

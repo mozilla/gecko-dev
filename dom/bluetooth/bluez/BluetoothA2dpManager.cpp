@@ -46,6 +46,12 @@ BluetoothA2dpManager::Observe(nsISupports* aSubject,
 
 BluetoothA2dpManager::BluetoothA2dpManager()
 {
+  Reset();
+}
+
+void
+BluetoothA2dpManager::Reset()
+{
   ResetA2dp();
   ResetAvrcp();
 }
@@ -153,12 +159,12 @@ BluetoothA2dpManager::Connect(const nsAString& aDeviceAddress,
 
   BluetoothService* bs = BluetoothService::Get();
   if (!bs || sInShutdown) {
-    aController->OnConnect(NS_LITERAL_STRING(ERR_NO_AVAILABLE_RESOURCE));
+    aController->NotifyCompletion(NS_LITERAL_STRING(ERR_NO_AVAILABLE_RESOURCE));
     return;
   }
 
   if (mA2dpConnected) {
-    aController->OnConnect(NS_LITERAL_STRING(ERR_ALREADY_CONNECTED));
+    aController->NotifyCompletion(NS_LITERAL_STRING(ERR_ALREADY_CONNECTED));
     return;
   }
 
@@ -167,7 +173,7 @@ BluetoothA2dpManager::Connect(const nsAString& aDeviceAddress,
 
   if (NS_FAILED(bs->SendSinkMessage(aDeviceAddress,
                                     NS_LITERAL_STRING("Connect")))) {
-    aController->OnConnect(NS_LITERAL_STRING(ERR_NO_AVAILABLE_RESOURCE));
+    aController->NotifyCompletion(NS_LITERAL_STRING(ERR_NO_AVAILABLE_RESOURCE));
     return;
   }
 }
@@ -178,14 +184,14 @@ BluetoothA2dpManager::Disconnect(BluetoothProfileController* aController)
   BluetoothService* bs = BluetoothService::Get();
   if (!bs) {
     if (aController) {
-      aController->OnDisconnect(NS_LITERAL_STRING(ERR_NO_AVAILABLE_RESOURCE));
+      aController->NotifyCompletion(NS_LITERAL_STRING(ERR_NO_AVAILABLE_RESOURCE));
     }
     return;
   }
 
   if (!mA2dpConnected) {
     if (aController) {
-      aController->OnDisconnect(NS_LITERAL_STRING(ERR_ALREADY_DISCONNECTED));
+      aController->NotifyCompletion(NS_LITERAL_STRING(ERR_ALREADY_DISCONNECTED));
     }
     return;
   }
@@ -197,7 +203,7 @@ BluetoothA2dpManager::Disconnect(BluetoothProfileController* aController)
 
   if (NS_FAILED(bs->SendSinkMessage(mDeviceAddress,
                                     NS_LITERAL_STRING("Disconnect")))) {
-    aController->OnDisconnect(NS_LITERAL_STRING(ERR_NO_AVAILABLE_RESOURCE));
+    aController->NotifyCompletion(NS_LITERAL_STRING(ERR_NO_AVAILABLE_RESOURCE));
     return;
   }
 }
@@ -214,7 +220,7 @@ BluetoothA2dpManager::OnConnect(const nsAString& aErrorStr)
   NS_ENSURE_TRUE_VOID(mController);
 
   nsRefPtr<BluetoothProfileController> controller = mController.forget();
-  controller->OnConnect(aErrorStr);
+  controller->NotifyCompletion(aErrorStr);
 }
 
 void
@@ -229,7 +235,9 @@ BluetoothA2dpManager::OnDisconnect(const nsAString& aErrorStr)
   NS_ENSURE_TRUE_VOID(mController);
 
   nsRefPtr<BluetoothProfileController> controller = mController.forget();
-  controller->OnDisconnect(aErrorStr);
+  controller->NotifyCompletion(aErrorStr);
+
+  Reset();
 }
 
 /* HandleSinkPropertyChanged update sink state in A2dp
@@ -287,6 +295,15 @@ BluetoothA2dpManager::HandleSinkPropertyChanged(const BluetoothSignal& aSignal)
   NS_ENSURE_TRUE_VOID((newState != SinkState::SINK_UNKNOWN) &&
                       (newState != mSinkState));
 
+  /**
+   * Reject 'connected' state change if bluetooth is already disabled.
+   * Sink state would be reset to 'disconnected' when bluetooth is disabled.
+   *
+   * See bug 984284 for more information about the edge case.
+   */
+  NS_ENSURE_FALSE_VOID(newState == SinkState::SINK_CONNECTED &&
+                       mSinkState == SinkState::SINK_DISCONNECTED);
+
   SinkState prevState = mSinkState;
   mSinkState = newState;
 
@@ -304,7 +321,7 @@ BluetoothA2dpManager::HandleSinkPropertyChanged(const BluetoothSignal& aSignal)
       if (prevState == SinkState::SINK_PLAYING) {
         break;
       }
-      
+
       // case 3: Successfully connected
       MOZ_ASSERT(prevState == SinkState::SINK_CONNECTING);
 
@@ -317,13 +334,13 @@ BluetoothA2dpManager::HandleSinkPropertyChanged(const BluetoothSignal& aSignal)
     case SinkState::SINK_DISCONNECTED:
       // case 2: Connection attempt failed
       if (prevState == SinkState::SINK_CONNECTING) {
-        OnConnect(NS_LITERAL_STRING("A2dpConnectionError"));
+        OnConnect(NS_LITERAL_STRING(ERR_CONNECTION_FAILED));
         break;
       }
 
       // case 6: Disconnected from the remote device
       MOZ_ASSERT(prevState == SinkState::SINK_CONNECTED ||
-                 prevState == SinkState::SINK_PLAYING) ;
+                 prevState == SinkState::SINK_PLAYING);
 
       mA2dpConnected = false;
       NotifyConnectionStatusChanged();

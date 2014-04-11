@@ -22,6 +22,7 @@ XPIDL_SOURCES += [
     'nsIMutable.idl',
     'nsIProgrammingLanguage.idl',
     'nsISecurityConsoleMessage.idl',
+    'nsIStatusReporter.idl',
     'nsISupports.idl',
     'nsIUUIDGenerator.idl',
     'nsIVersionComparator.idl',
@@ -96,6 +97,7 @@ UNIFIED_SOURCES += [
     'nsConsoleMessage.cpp',
     'nsConsoleService.cpp',
     'nsCycleCollector.cpp',
+    'nsDumpUtils.cpp',
     'nsErrorService.cpp',
     'nsGZFileWriter.cpp',
     'nsInterfaceRequestorAgg.cpp',
@@ -104,6 +106,7 @@ UNIFIED_SOURCES += [
     'nsMemoryReporterManager.cpp',
     'nsMessageLoop.cpp',
     'nsSecurityConsoleMessage.cpp',
+    'nsStatusReporterManager.cpp',
     'nsSystemInfo.cpp',
     'nsTraceRefcnt.cpp',
     'nsUUIDGenerator.cpp',
@@ -154,3 +157,7 @@ LOCAL_INCLUDES += [
 
 if CONFIG['MOZ_OPTIMIZE']:
     DEFINES['MOZ_OPTIMIZE'] = True
+
+if CONFIG['GNU_CC'] and CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
+    # Work around bug 986928
+    CXXFLAGS += ['-Wno-error=format']

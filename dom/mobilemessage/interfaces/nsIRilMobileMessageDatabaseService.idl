@@ -25,7 +25,16 @@ interface nsIRilMobileMessageDatabaseRecordCallback : nsISupports
   void notify(in nsresult aRv, in jsval aMessageRecord, in nsISupports aDomMessage);
 };
 
-[scriptable, uuid(a92eba51-e619-4f70-98c5-175a33590582)]
+[scriptable, function, uuid(1b0ff03c-a2bc-11e3-a443-838d034c9805)]
+interface nsIRilMobileMessageDatabaseConcatenationCallback : nsISupports
+{
+  /**
+   * |aCompleteMessage|: jsval: the completely concatenated message. Noted, this value might be null.
+   */
+  void notify(in nsresult aRv, in jsval aCompleteMessage);
+};
+
+[scriptable, uuid(0b437a5c-a2bc-11e3-bd1b-dbb173eb35f8)]
 interface nsIRilMobileMessageDatabaseService : nsIMobileMessageDatabaseService
 {
   /**
@@ -119,4 +128,19 @@ interface nsIRilMobileMessageDatabaseService : nsIMobileMessageDatabaseService
    */
   void getMessageRecordByTransactionId(in DOMString aTransactionId,
                                        in nsIRilMobileMessageDatabaseRecordCallback aCallback);
+
+  /**
+   * |aCrError| nsresult: the NS_ERROR defined in Components.results.
+   *
+   * @returns the error code defined in nsIMobileMessageCallback
+   */
+  jsval translateCrErrorToMessageCallbackError(in nsresult aCrError);
+
+  /**
+   * |aSmsSegment| jsval: Decoded Single SMS PDU.
+   * |aCallback| nsIRilMobileMessageDatabaseConcatenationCallback: a callback which
+   *   takes result flag, and complete mesage as parameters.
+   */
+  void saveSmsSegment(in jsval aSmsSegment,
+                      in nsIRilMobileMessageDatabaseConcatenationCallback aCallback);
 };

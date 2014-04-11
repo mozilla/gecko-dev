@@ -8,11 +8,12 @@
 
 #include "nscore.h"
 #include <windows.h>
+#include "nsCOMPtr.h"
 #include "nsString.h"
 #include "nsTArray.h"
+#include "nsIWidget.h"
 #include "mozilla/EventForwards.h"
 
-class nsIWidget;
 class nsWindow;
 struct nsIntRect;
 
@@ -141,6 +142,8 @@ public:
   static void CommitComposition(nsWindow* aWindow, bool aForce = false);
   static void CancelComposition(nsWindow* aWindow, bool aForce = false);
   static void OnUpdateComposition(nsWindow* aWindow);
+
+  static nsIMEUpdatePreference GetIMEUpdatePreference();
 
 protected:
   static void EnsureHandlerInstance();
@@ -285,7 +288,7 @@ protected:
   bool GetTargetClauseRange(uint32_t *aOffset, uint32_t *aLength = nullptr);
   void DispatchTextEvent(nsWindow* aWindow, const nsIMEContext &aIMEContext,
                          bool aCheckAttr = true);
-  void SetTextRangeList(nsTArray<mozilla::TextRange>& aTextRangeList);
+  already_AddRefed<mozilla::TextRangeArray> CreateTextRangeArray();
 
   nsresult EnsureClauseArray(int32_t aCount);
   nsresult EnsureAttributeArray(int32_t aCount);

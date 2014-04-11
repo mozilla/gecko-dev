@@ -35,11 +35,16 @@ public:
         retval = mName;
     }
 
-    JSObject* WrapObject(JSContext *cx, JS::Handle<JSObject*> scope);
+    JSObject* WrapObject(JSContext *cx);
 
    NS_INLINE_DECL_REFCOUNTING(WebGLActiveInfo)
 
-protected:
+private:
+    // Private destructor, to discourage deletion outside of Release():
+    ~WebGLActiveInfo()
+    {
+    }
+
     GLint mSize;
     GLenum mType;
     nsString mName;

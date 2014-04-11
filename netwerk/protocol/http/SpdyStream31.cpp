@@ -295,7 +295,7 @@ SpdyStream31::ParseHttpRequestHeaders(const char *buf,
                     mOrigin, hashkey);
 
   // check the push cache for GET
-  if (mTransaction->RequestHead()->Method() == nsHttp::Get) {
+  if (mTransaction->RequestHead()->IsGet()) {
     // from :scheme, :host, :path
     nsILoadGroupConnectionInfo *loadGroupCI = mTransaction->LoadGroupConnectionInfo();
     SpdyPushCache *cache = nullptr;
@@ -315,6 +315,12 @@ SpdyStream31::ParseHttpRequestHeaders(const char *buf,
       pushedStream->SetConsumerStream(this);
       mPushSource = pushedStream;
       mSentFinOnData = 1;
+
+      // This stream has been activated (and thus counts against the concurrency
+      // limit intentionally), but will not be registered via
+      // RegisterStreamID (below) because of the push match. Therefore the
+      // concurrency sempahore needs to be balanced.
+      mSession->DecrementConcurrent(this);
 
       // There is probably pushed data buffered so trigger a read manually
       // as we can't rely on future network events to do it
@@ -490,18 +496,18 @@ SpdyStream31::ParseHttpRequestHeaders(const char *buf,
   // Determine whether to put the fin bit on the syn stream frame or whether
   // to wait for a data packet to put it on.
 
-  if (mTransaction->RequestHead()->Method() == nsHttp::Get ||
-      mTransaction->RequestHead()->Method() == nsHttp::Connect ||
-      mTransaction->RequestHead()->Method() == nsHttp::Head) {
+  if (mTransaction->RequestHead()->IsGet() ||
+      mTransaction->RequestHead()->IsConnect() ||
+      mTransaction->RequestHead()->IsHead()) {
     // for GET, CONNECT, and HEAD place the fin bit right on the
     // syn stream packet
 
     mSentFinOnData = 1;
     mTxInlineFrame[4] = SpdySession31::kFlag_Data_FIN;
   }
-  else if (mTransaction->RequestHead()->Method() == nsHttp::Post ||
-           mTransaction->RequestHead()->Method() == nsHttp::Put ||
-           mTransaction->RequestHead()->Method() == nsHttp::Options) {
+  else if (mTransaction->RequestHead()->IsPost() ||
+           mTransaction->RequestHead()->IsPut() ||
+           mTransaction->RequestHead()->IsOptions()) {
     // place fin in a data frame even for 0 length messages, I've seen
     // the google gateway be unhappy with fin-on-syn for 0 length POST
   }
@@ -1002,20 +1008,6 @@ const unsigned char SpdyStream31::kDictionary[] = {
   0x31, 0x2c, 0x75, 0x74, 0x66, 0x2d, 0x2c, 0x2a,   // 1 - u t f - - -
   0x2c, 0x65, 0x6e, 0x71, 0x3d, 0x30, 0x2e          // - e n q - 0 -
 };
-
-// use for zlib data types
-void *
-SpdyStream31::zlib_allocator(void *opaque, uInt items, uInt size)
-{
-  return moz_xmalloc(items * size);
-}
-
-// use for zlib data types
-void
-SpdyStream31::zlib_destructor(void *opaque, void *addr)
-{
-  moz_free(addr);
-}
 
 // This can be called N times.. 1 for syn_reply and 0->N for headers
 nsresult

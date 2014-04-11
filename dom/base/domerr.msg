@@ -30,6 +30,7 @@ DOM4_MSG_DEF(QuotaExceededError, "The quota has been exceeded.", NS_ERROR_DOM_QU
 DOM4_MSG_DEF(TimeoutError, "The operation timed out.", NS_ERROR_DOM_TIMEOUT_ERR)
 DOM4_MSG_DEF(InvalidNodeTypeError, "The supplied node is incorrect or has an incorrect ancestor for this operation.", NS_ERROR_DOM_INVALID_NODE_TYPE_ERR)
 DOM4_MSG_DEF(DataCloneError, "The object could not be cloned.", NS_ERROR_DOM_DATA_CLONE_ERR)
+DOM4_MSG_DEF(InvalidPointerId, "Invalid pointer id.", NS_ERROR_DOM_INVALID_POINTER_ERR)
 
 /* XXX Should be JavaScript native TypeError */
 DOM4_MSG_DEF(TypeError, "The method parameter is missing or invalid.", NS_ERROR_TYPE_ERR)
@@ -68,6 +69,14 @@ DOM4_MSG_DEF(QuotaExceededError, "The current transaction exceeded its quota lim
 /* A Non-standard IndexedDB error */
 
 DOM_MSG_DEF(NS_ERROR_DOM_INDEXEDDB_RECOVERABLE_ERR, "The operation failed because the database was prevented from taking an action. The operation might be able to succeed if the application performs some recovery steps and retries the entire transaction. For example, there was not enough remaining storage space, or the storage quota was reached and the user declined to give more space to the database.")
+
+/* FileSystem DOM errors. */
+DOM4_MSG_DEF(InvalidAccessError, "Invalid file system path.", NS_ERROR_DOM_FILESYSTEM_INVALID_PATH_ERR)
+DOM4_MSG_DEF(InvalidModificationError, "Failed to modify the file.", NS_ERROR_DOM_FILESYSTEM_INVALID_MODIFICATION_ERR)
+DOM4_MSG_DEF(NoModificationAllowedError, "Modifications are not allowed for this file", NS_ERROR_DOM_FILESYSTEM_NO_MODIFICATION_ALLOWED_ERR)
+DOM4_MSG_DEF(AbortError, "File already exists.", NS_ERROR_DOM_FILESYSTEM_PATH_EXISTS_ERR)
+DOM4_MSG_DEF(TypeMismatchError, "The type of the file is incompatible with the expected type.", NS_ERROR_DOM_FILESYSTEM_TYPE_MISMATCH_ERR)
+DOM4_MSG_DEF(UnknownError, "The operation failed for reasons unrelated to the file system itself and not covered by any other error code.", NS_ERROR_DOM_FILESYSTEM_UNKNOWN_ERR)
 
 /* DOM error codes defined by us */
 
@@ -119,5 +128,6 @@ DOM4_MSG_DEF(ReadOnlyError, "A mutation operation was attempted in a READ_ONLY l
 
 DOM4_MSG_DEF(InvalidStateError, "A mutation operation was attempted on a file storage that did not allow mutations.", NS_ERROR_DOM_FILEHANDLE_NOT_ALLOWED_ERR)
 DOM4_MSG_DEF(AbortError, "A request was aborted, for example through a call to LockedFile.abort.", NS_ERROR_DOM_FILEHANDLE_ABORT_ERR)
+DOM4_MSG_DEF(QuotaExceededError, "The current locked file exceeded its quota limitations.", NS_ERROR_DOM_FILEHANDLE_QUOTA_ERR)
 
 DOM_MSG_DEF(NS_ERROR_DOM_JS_EXCEPTION, "A callback threw an exception")

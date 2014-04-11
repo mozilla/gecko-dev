@@ -4,16 +4,14 @@
 
 package org.mozilla.gecko.tests.helpers;
 
-import static org.mozilla.gecko.tests.helpers.AssertionHelper.*;
+import static org.mozilla.gecko.tests.helpers.AssertionHelper.fAssertNotNull;
 
-import org.mozilla.gecko.tests.components.AppMenuComponent;
-import org.mozilla.gecko.tests.components.ToolbarComponent;
 import org.mozilla.gecko.tests.UITestContext;
 import org.mozilla.gecko.tests.UITestContext.ComponentType;
+import org.mozilla.gecko.tests.components.AppMenuComponent;
+import org.mozilla.gecko.tests.components.ToolbarComponent;
 
 import com.jayway.android.robotium.solo.Solo;
-
-import android.text.TextUtils;
 
 /**
  * Provides helper functionality for navigating around the Firefox UI. These functions will often
@@ -35,7 +33,7 @@ final public class NavigationHelper {
     }
 
     public static void enterAndLoadUrl(String url) {
-        assertNotNull("url is not null", url);
+        fAssertNotNull("url is not null", url);
 
         url = adjustUrl(url);
         sToolbar.enterEditingMode()
@@ -47,7 +45,7 @@ final public class NavigationHelper {
      * Returns a new URL with the docshell HTTP server host prefix.
      */
     private static String adjustUrl(final String url) {
-        assertNotNull("url is not null", url);
+        fAssertNotNull("url is not null", url);
 
         if (url.startsWith("about:") || url.startsWith("chrome:")) {
             return url;

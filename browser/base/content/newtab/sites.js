@@ -60,7 +60,7 @@ Site.prototype = {
   },
 
   /**
-   * Unpins the site.
+   * Unpins the site and calls the given callback when done.
    */
   unpin: function Site_unpin() {
     if (this.isPinned()) {
@@ -79,7 +79,8 @@ Site.prototype = {
   },
 
   /**
-   * Blocks the site (removes it from the grid).
+   * Blocks the site (removes it from the grid) and calls the given callback
+   * when done.
    */
   block: function Site_block() {
     if (!gBlockedLinks.isBlocked(this._link)) {
@@ -127,6 +128,7 @@ Site.prototype = {
     link.setAttribute("title", tooltip);
     link.setAttribute("href", url);
     this._querySelector(".newtab-title").textContent = title;
+    this.node.setAttribute("type", this.link.type);
 
     if (this.isPinned())
       this._updateAttributes(true);
@@ -142,17 +144,21 @@ Site.prototype = {
    * existing thumbnail and the page allows background captures.
    */
   captureIfMissing: function Site_captureIfMissing() {
-    if (gPage.allowBackgroundCaptures)
+    if (gPage.allowBackgroundCaptures && !this.link.imageURI) {
       BackgroundPageThumbs.captureIfMissing(this.url);
+    }
   },
 
   /**
    * Refreshes the thumbnail for the site.
    */
   refreshThumbnail: function Site_refreshThumbnail() {
-    let thumbnailURL = PageThumbs.getThumbnailURL(this.url);
     let thumbnail = this._querySelector(".newtab-thumbnail");
-    thumbnail.style.backgroundImage = "url(" + thumbnailURL + ")";
+    if (this.link.bgColor) {
+      thumbnail.style.backgroundColor = this.link.bgColor;
+    }
+    let uri = this.link.imageURI || PageThumbs.getThumbnailURL(this.url);
+    thumbnail.style.backgroundImage = "url(" + uri + ")";
   },
 
   /**
@@ -164,6 +170,15 @@ Site.prototype = {
     this._node.addEventListener("dragend", this, false);
     this._node.addEventListener("mouseover", this, false);
     this._node.addEventListener("click", this, false);
+
+    // Specially treat the sponsored icon to prevent regular hover effects
+    let sponsored = this._querySelector(".newtab-control-sponsored");
+    sponsored.addEventListener("mouseover", () => {
+      this.cell.node.setAttribute("ignorehover", "true");
+    });
+    sponsored.addEventListener("mouseout", () => {
+      this.cell.node.removeAttribute("ignorehover");
+    });
   },
 
   /**
@@ -188,6 +203,13 @@ Site.prototype = {
     }
     Services.telemetry.getHistogramById("NEWTAB_PAGE_SITE_CLICKED")
                       .add(aIndex);
+
+    // Specially count clicks on directory tiles
+    let typeIndex = DirectoryLinksProvider.linkTypes.indexOf(this.link.type);
+    if (typeIndex != -1) {
+      Services.telemetry.getHistogramById("NEWTAB_PAGE_DIRECTORY_TYPE_CLICKED")
+                        .add(typeIndex);
+    }
   },
 
   /**
@@ -204,6 +226,8 @@ Site.prototype = {
     aEvent.preventDefault();
     if (aEvent.target.classList.contains("newtab-control-block"))
       this.block();
+    else if (target.classList.contains("newtab-control-sponsored"))
+      gPage.showSponsoredPanel(target);
     else if (this.isPinned())
       this.unpin();
     else

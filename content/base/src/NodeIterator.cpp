@@ -198,7 +198,7 @@ NS_IMETHODIMP NodeIterator::GetFilter(nsIDOMNodeFilter **aFilter)
 {
     NS_ENSURE_ARG_POINTER(aFilter);
 
-    *aFilter = mFilter.ToXPCOMCallback().get();
+    *aFilter = mFilter.ToXPCOMCallback().take();
 
     return NS_OK;
 }
@@ -289,9 +289,9 @@ void NodeIterator::ContentRemoved(nsIDocument *aDocument,
 }
 
 JSObject*
-NodeIterator::WrapObject(JSContext *cx, JS::Handle<JSObject*> scope)
+NodeIterator::WrapObject(JSContext *cx)
 {
-    return NodeIteratorBinding::Wrap(cx, scope, this);
+    return NodeIteratorBinding::Wrap(cx, this);
 }
 
 } // namespace dom

@@ -13,7 +13,6 @@
 #include "nsIDOMNSEditableElement.h"
 #include "nsCOMPtr.h"
 #include "nsGenericHTMLElement.h"
-#include "nsEventStates.h"
 #include "nsStubMutationObserver.h"
 #include "nsIConstraintValidation.h"
 #include "mozilla/dom/HTMLFormElement.h"
@@ -29,6 +28,11 @@ class nsPresContext;
 class nsPresState;
 
 namespace mozilla {
+
+class EventChainPostVisitor;
+class EventChainPreVisitor;
+class EventStates;
+
 namespace dom {
 
 class HTMLTextAreaElement MOZ_FINAL : public nsGenericHTMLFormElementWithState,
@@ -41,7 +45,7 @@ class HTMLTextAreaElement MOZ_FINAL : public nsGenericHTMLFormElementWithState,
 public:
   using nsIConstraintValidation::GetValidationMessage;
 
-  HTMLTextAreaElement(already_AddRefed<nsINodeInfo> aNodeInfo,
+  HTMLTextAreaElement(already_AddRefed<nsINodeInfo>& aNodeInfo,
                       FromParser aFromParser = NOT_FROM_PARSER);
 
   // nsISupports
@@ -69,7 +73,7 @@ public:
 
   virtual void FieldSetDisabledChanged(bool aNotify) MOZ_OVERRIDE;
 
-  virtual nsEventStates IntrinsicState() const MOZ_OVERRIDE;
+  virtual EventStates IntrinsicState() const MOZ_OVERRIDE;
 
   // nsITextControlElemet
   NS_IMETHOD SetValueChanged(bool aValueChanged) MOZ_OVERRIDE;
@@ -113,8 +117,9 @@ public:
                                               int32_t aModType) const MOZ_OVERRIDE;
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const MOZ_OVERRIDE;
 
-  virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
-  virtual nsresult PostHandleEvent(nsEventChainPostVisitor& aVisitor) MOZ_OVERRIDE;
+  virtual nsresult PreHandleEvent(EventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
+  virtual nsresult PostHandleEvent(
+                     EventChainPostVisitor& aVisitor) MOZ_OVERRIDE;
 
   virtual bool IsHTMLFocusable(bool aWithMouse, bool *aIsFocusable, int32_t *aTabIndex) MOZ_OVERRIDE;
 
@@ -273,8 +278,7 @@ protected:
   // get rid of the compiler warning
   using nsGenericHTMLFormElementWithState::IsSingleLineTextControl;
 
-  virtual JSObject* WrapNode(JSContext *aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext *aCx) MOZ_OVERRIDE;
 
   nsCOMPtr<nsIControllers> mControllers;
   /** Whether or not the value has changed since its default value was given. */

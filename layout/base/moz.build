@@ -56,9 +56,11 @@ EXPORTS += [
     'ScrollbarStyles.h',
     'StackArena.h',
     'Units.h',
+    'UnitTransforms.h',
 ]
 
 EXPORTS.mozilla += [
+    'GeometryUtils.h',
     'PaintTracker.h',
 ]
 
@@ -68,6 +70,7 @@ UNIFIED_SOURCES += [
     'DisplayListClipState.cpp',
     'FrameLayerBuilder.cpp',
     'FramePropertyTable.cpp',
+    'GeometryUtils.cpp',
     'MaskLayerImageCache.cpp',
     'nsCaret.cpp',
     'nsCounterManager.cpp',
@@ -127,9 +130,7 @@ LOCAL_INCLUDES += [
     '../xul/tree/',
     '/docshell/base',
     '/dom/base',
-    '/dom/events',
     '/dom/xbl',
-    '/xpcom/ds',
 ]
 
 FINAL_LIBRARY = 'gklayout'

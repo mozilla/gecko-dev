@@ -284,6 +284,14 @@ FRAME_STATE_BIT(Box, 60, NS_FRAME_MOUSE_THROUGH_ALWAYS)
 FRAME_STATE_BIT(Box, 61, NS_FRAME_MOUSE_THROUGH_NEVER)
 
 
+// == Frame state bits that apply to flex container frames ====================
+
+FRAME_STATE_GROUP(FlexContainer, nsFlexContainerFrame)
+
+// Set for a flex container whose children have been reordered due to 'order'.
+// (Means that we have to be more thorough about checking them for sortedness.)
+FRAME_STATE_BIT(FlexContainer, 20, NS_STATE_FLEX_CHILDREN_REORDERED)
+
 // == Frame state bits that apply to SVG frames ===============================
 
 FRAME_STATE_GROUP(SVG, nsISVGChildFrame)
@@ -499,15 +507,15 @@ FRAME_STATE_BIT(Image, 21, IMAGE_GOTINITIALREFLOW)
 
 FRAME_STATE_GROUP(Inline, nsInlineFrame)
 
-/**  In Bidi left (or right) margin/padding/border should be applied to left
- *  (or right) most frame (or a continuation frame).
- *  This state value shows if this frame is left (or right) most continuation
+/**  In Bidi inline start (or end) margin/padding/border should be applied to
+ *  first (or last) frame (or a continuation frame).
+ *  This state value shows if this frame is first (or last) continuation
  *  or not.
  */
 
 FRAME_STATE_BIT(Inline, 21, NS_INLINE_FRAME_BIDI_VISUAL_STATE_IS_SET)
-FRAME_STATE_BIT(Inline, 22, NS_INLINE_FRAME_BIDI_VISUAL_IS_LEFT_MOST)
-FRAME_STATE_BIT(Inline, 23, NS_INLINE_FRAME_BIDI_VISUAL_IS_RIGHT_MOST)
+FRAME_STATE_BIT(Inline, 22, NS_INLINE_FRAME_BIDI_VISUAL_IS_FIRST)
+FRAME_STATE_BIT(Inline, 23, NS_INLINE_FRAME_BIDI_VISUAL_IS_LAST)
 
 
 // == Frame state bits that apply to placeholder frames =======================

@@ -7,11 +7,12 @@
 
 #include "jsapi.h"
 #include "mozilla/ContentEvents.h"
+#include "mozilla/EventDispatcher.h"
+#include "mozilla/EventStateManager.h"
+#include "mozilla/EventStates.h"
 #include "mozilla/dom/HTMLFormControlsCollection.h"
 #include "mozilla/dom/HTMLFormElementBinding.h"
 #include "nsIHTMLDocument.h"
-#include "nsEventStateManager.h"
-#include "nsEventStates.h"
 #include "nsGkAtoms.h"
 #include "nsStyleConsts.h"
 #include "nsPresContext.h"
@@ -47,8 +48,6 @@
 
 #include "nsLayoutUtils.h"
 
-#include "nsEventDispatcher.h"
-
 #include "mozAutoDocUpdate.h"
 #include "nsIHTMLCollection.h"
 
@@ -62,7 +61,7 @@
 
 // construction, destruction
 nsGenericHTMLElement*
-NS_NewHTMLFormElement(already_AddRefed<nsINodeInfo> aNodeInfo,
+NS_NewHTMLFormElement(already_AddRefed<nsINodeInfo>&& aNodeInfo,
                       mozilla::dom::FromParser aFromParser)
 {
   mozilla::dom::HTMLFormElement* it = new mozilla::dom::HTMLFormElement(aNodeInfo);
@@ -94,7 +93,7 @@ static const nsAttrValue::EnumTable* kFormDefaultAutocomplete = &kFormAutocomple
 bool HTMLFormElement::gFirstFormSubmitted = false;
 bool HTMLFormElement::gPasswordManagerInitialized = false;
 
-HTMLFormElement::HTMLFormElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+HTMLFormElement::HTMLFormElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo),
     mSelectedRadioButtons(4),
     mRequiredRadioButtonCounts(4),
@@ -289,8 +288,7 @@ NS_IMETHODIMP
 HTMLFormElement::Reset()
 {
   InternalFormEvent event(true, NS_FORM_RESET);
-  nsEventDispatcher::Dispatch(static_cast<nsIContent*>(this), nullptr,
-                              &event);
+  EventDispatcher::Dispatch(static_cast<nsIContent*>(this), nullptr, &event);
   return NS_OK;
 }
 
@@ -482,7 +480,7 @@ HTMLFormElement::UnbindFromTree(bool aDeep, bool aNullParent)
 }
 
 nsresult
-HTMLFormElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
+HTMLFormElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
 {
   aVisitor.mWantsWillHandleEvent = true;
   if (aVisitor.mEvent->originalTarget == static_cast<nsIContent*>(this)) {
@@ -511,7 +509,7 @@ HTMLFormElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
 }
 
 nsresult
-HTMLFormElement::WillHandleEvent(nsEventChainPostVisitor& aVisitor)
+HTMLFormElement::WillHandleEvent(EventChainPostVisitor& aVisitor)
 {
   // If this is the bubble stage and there is a nested form below us which
   // received a submit event we do *not* want to handle the submit event
@@ -526,7 +524,7 @@ HTMLFormElement::WillHandleEvent(nsEventChainPostVisitor& aVisitor)
 }
 
 nsresult
-HTMLFormElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
+HTMLFormElement::PostHandleEvent(EventChainPostVisitor& aVisitor)
 {
   if (aVisitor.mEvent->originalTarget == static_cast<nsIContent*>(this)) {
     uint32_t msg = aVisitor.mEvent->message;
@@ -660,7 +658,7 @@ HTMLFormElement::DoSubmit(WidgetEvent* aEvent)
     mSubmitPopupState = openAbused;
   }
 
-  mSubmitInitiatedFromUserInput = nsEventStateManager::IsHandlingUserInput();
+  mSubmitInitiatedFromUserInput = EventStateManager::IsHandlingUserInput();
 
   if(mDeferSubmission) { 
     // we are in an event handler, JS submitted so we have to
@@ -1056,14 +1054,14 @@ void
 HTMLFormElement::PostPasswordEvent()
 {
   // Don't fire another add event if we have a pending add event.
-  if (mFormPasswordEvent.get()) {
+  if (mFormPasswordEventDispatcher.get()) {
     return;
   }
 
-  nsRefPtr<FormPasswordEvent> event =
-    new FormPasswordEvent(this, NS_LITERAL_STRING("DOMFormHasPassword"));
-  mFormPasswordEvent = event;
-  event->PostDOMEvent();
+  mFormPasswordEventDispatcher =
+    new FormPasswordEventDispatcher(this,
+                                    NS_LITERAL_STRING("DOMFormHasPassword"));
+  mFormPasswordEventDispatcher->PostDOMEvent();
 }
 
 // This function return true if the element, once appended, is the last one in
@@ -2196,10 +2194,10 @@ HTMLFormElement::SetValueMissingState(const nsAString& aName, bool aValue)
   mValueMissingRadioGroups.Put(aName, aValue);
 }
 
-nsEventStates
+EventStates
 HTMLFormElement::IntrinsicState() const
 {
-  nsEventStates state = nsGenericHTMLElement::IntrinsicState();
+  EventStates state = nsGenericHTMLElement::IntrinsicState();
 
   if (mInvalidElementsCount) {
     state |= NS_EVENT_STATE_INVALID;
@@ -2368,9 +2366,9 @@ HTMLFormElement::AddToPastNamesMap(const nsAString& aName,
 }
  
 JSObject*
-HTMLFormElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aScope)
+HTMLFormElement::WrapNode(JSContext* aCx)
 {
-  return HTMLFormElementBinding::Wrap(aCx, aScope, this);
+  return HTMLFormElementBinding::Wrap(aCx, this);
 }
 
 } // namespace dom

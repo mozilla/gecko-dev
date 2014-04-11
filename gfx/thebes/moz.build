@@ -67,7 +67,6 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
         'gfxFT2Fonts.cpp',
         'gfxFT2Utils.cpp',
         'gfxPDFSurface.cpp',
-        'nsUnicodeRange.cpp',
     ]
 elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
     EXPORTS += [
@@ -83,7 +82,6 @@ elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
         'gfxFT2Fonts.cpp',
         'gfxFT2Utils.cpp',
         'gfxPDFSurface.cpp',
-        'nsUnicodeRange.cpp',
     ]
 elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
     EXPORTS += [
@@ -99,7 +97,6 @@ elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
         'gfxQuartzImageSurface.cpp',
         'gfxQuartzNativeDrawing.cpp',
         'gfxQuartzSurface.cpp',
-        'nsUnicodeRange.cpp',
     ]
 elif CONFIG['MOZ_WIDGET_GTK']:
     EXPORTS += [
@@ -120,7 +117,6 @@ elif CONFIG['MOZ_WIDGET_GTK']:
         'gfxPDFSurface.cpp',
         'gfxPlatformGtk.cpp',
         'gfxPSSurface.cpp',
-        'nsUnicodeRange.cpp',
     ]
 
     if CONFIG['MOZ_X11']:
@@ -150,7 +146,6 @@ elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'qt':
         'gfxPDFSurface.cpp',
         'gfxQPainterSurface.cpp',
         'gfxQtPlatform.cpp',
-        'nsUnicodeRange.cpp',
     ]
 
     if CONFIG['MOZ_X11']:
@@ -184,7 +179,6 @@ elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
         'gfxWindowsNativeDrawing.cpp',
         'gfxWindowsPlatform.cpp',
         'gfxWindowsSurface.cpp',
-        'nsUnicodeRange.cpp',
     ]
     if CONFIG['MOZ_ENABLE_DWRITE_FONT']:
         # gfxDWriteFontList.cpp forces NSPR logging, so it cannot be built in unified mode.
@@ -199,9 +193,10 @@ elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
 
 # Are we targeting x86 or x64?  If so, build gfxAlphaRecoverySSE2.cpp.
 if CONFIG['INTEL_ARCHITECTURE']:
-    SOURCES += [
-        'gfxAlphaRecoverySSE2.cpp',
-    ]
+    SOURCES += ['gfxAlphaRecoverySSE2.cpp']
+    # The file uses SSE2 intrinsics, so it needs special compile flags on some
+    # compilers.
+    SOURCES['gfxAlphaRecoverySSE2.cpp'].flags += CONFIG['SSE2_FLAGS']
 
 SOURCES += [
     # Includes mac system header conflicting with point/size,
@@ -225,6 +220,7 @@ SOURCES += [
 ]
 
 UNIFIED_SOURCES += [
+    'CJKCompatSVS.cpp',
     'gfx3DMatrix.cpp',
     'gfxAlphaRecovery.cpp',
     'gfxBaseSharedMemorySurface.cpp',
@@ -251,6 +247,7 @@ UNIFIED_SOURCES += [
     'gfxTeeSurface.cpp',
     'gfxUtils.cpp',
     'nsSurfaceTexture.cpp',
+    'nsUnicodeRange.cpp',
 ]
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':

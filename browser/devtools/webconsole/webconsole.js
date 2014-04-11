@@ -401,6 +401,11 @@ WebConsoleFrame.prototype = {
    */
   setSaveRequestAndResponseBodies:
   function WCF_setSaveRequestAndResponseBodies(aValue) {
+    if (!this.webConsoleClient) {
+      // Don't continue if the webconsole disconnected.
+      return promise.resolve(null);
+    }
+
     let deferred = promise.defer();
     let newValue = !!aValue;
     let toSet = {
@@ -843,6 +848,16 @@ WebConsoleFrame.prototype = {
         // main part of the button. Go through all the severities and toggle
         // their associated filters.
         this._setMenuState(target, state);
+
+        // CSS reflow logging can decrease web page performance.
+        // Make sure the option is always unchecked when the CSS filter button is selected.
+        // See bug 971798.
+        if (target.getAttribute("category") == "css" && state) {
+          let csslogMenuItem = target.querySelector("menuitem[prefKey=csslog]");
+          csslogMenuItem.setAttribute("checked", false);
+          this.setFilterState("csslog", false);
+        }
+
         break;
       }
 
@@ -2140,13 +2155,8 @@ WebConsoleFrame.prototype = {
     }
     else {
       this._outputTimerInitialized = false;
-      if (this._flushCallback) {
-        try {
-          this._flushCallback();
-        }
-        catch (ex) {
-          console.error(ex);
-        }
+      if (this._flushCallback && this._flushCallback() === false) {
+        this._flushCallback = null;
       }
     }
 
@@ -2367,6 +2377,10 @@ WebConsoleFrame.prototype = {
    */
   removeOutputMessage: function WCF_removeOutputMessage(aNode)
   {
+    if (aNode._messageObject) {
+      aNode._messageObject.destroy();
+    }
+
     if (aNode._objectActors) {
       for (let actor of aNode._objectActors) {
         this._releaseObject(actor);
@@ -3204,10 +3218,10 @@ JSTerm.prototype = {
         if (oldFlushCallback) {
           oldFlushCallback();
           this.hud._flushCallback = oldFlushCallback;
+          return true;
         }
-        else {
-          this.hud._flushCallback = null;
-        }
+
+        return false;
       };
     }
 
@@ -3475,6 +3489,7 @@ JSTerm.prototype = {
 
     this._sidebarDestroy();
     this.inputNode.focus();
+    aEvent.stopPropagation();
   },
 
   /**
@@ -3908,10 +3923,12 @@ JSTerm.prototype = {
         if (this.autocompletePopup.isOpen) {
           this.clearCompletion();
           aEvent.preventDefault();
+          aEvent.stopPropagation();
         }
         else if (this.sidebar) {
           this._sidebarDestroy();
           aEvent.preventDefault();
+          aEvent.stopPropagation();
         }
         break;
 
@@ -4558,11 +4575,13 @@ var Utils = {
    */
   categoryForScriptError: function Utils_categoryForScriptError(aScriptError)
   {
-    switch (aScriptError.category) {
-      case "CSS Parser":
-      case "CSS Loader":
-        return CATEGORY_CSS;
+    let category = aScriptError.category;
 
+    if (/^(?:CSS|Layout)\b/.test(category)) {
+      return CATEGORY_CSS;
+    }
+
+    switch (category) {
       case "Mixed Content Blocker":
       case "Mixed Content Message":
       case "CSP":

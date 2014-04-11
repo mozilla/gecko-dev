@@ -18,7 +18,7 @@ class HTMLBRElement MOZ_FINAL : public nsGenericHTMLElement,
                                 public nsIDOMHTMLBRElement
 {
 public:
-  HTMLBRElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  HTMLBRElement(already_AddRefed<nsINodeInfo>& aNodeInfo);
   virtual ~HTMLBRElement();
 
   // nsISupports
@@ -44,8 +44,7 @@ public:
     return SetHTMLAttr(nsGkAtoms::clear, aClear, aError);
   }
 
-  virtual JSObject* WrapNode(JSContext *aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext *aCx) MOZ_OVERRIDE;
 
 private:
   static void MapAttributesIntoRule(const nsMappedAttributes* aAttributes,

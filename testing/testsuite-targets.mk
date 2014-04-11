@@ -20,7 +20,7 @@ include $(topsrcdir)/build/binary-location.mk
 SYMBOLS_PATH := --symbols-path=$(DIST)/crashreporter-symbols
 
 # Usage: |make [TEST_PATH=...] [EXTRA_TEST_ARGS=...] mochitest*|.
-MOCHITESTS := mochitest-plain mochitest-chrome mochitest-a11y mochitest-ipcplugins
+MOCHITESTS := mochitest-plain mochitest-chrome mochitest-devtools mochitest-a11y mochitest-ipcplugins
 mochitest:: $(MOCHITESTS)
 
 ifndef TEST_PACKAGE_NAME
@@ -143,6 +143,10 @@ mochitest-1 mochitest-2 mochitest-3 mochitest-4 mochitest-5: mochitest-%:
 
 mochitest-chrome:
 	$(RUN_MOCHITEST) --chrome
+	$(CHECK_TEST_ERROR)
+
+mochitest-devtools:
+	$(RUN_MOCHITEST) --subsuite=devtools
 	$(CHECK_TEST_ERROR)
 
 mochitest-a11y:
@@ -493,7 +497,7 @@ STRIP_CPP_TESTS := 1
 endif
 endif
 
-stage-cppunittests:
+stage-cppunittests: make-stage-dir
 	$(NSINSTALL) -D $(PKG_STAGE)/cppunittests
 ifdef STRIP_CPP_TESTS
 	$(foreach bin,$(CPP_UNIT_TEST_BINS),$(OBJCOPY) $(or $(STRIP_FLAGS),--strip-unneeded) $(bin) $(bin:$(DIST)/%=$(PKG_STAGE)/%);)
@@ -508,7 +512,7 @@ endif
 	$(NSINSTALL) $(topsrcdir)/startupcache/test/TestStartupCacheTelemetry.js $(PKG_STAGE)/cppunittests
 	$(NSINSTALL) $(topsrcdir)/startupcache/test/TestStartupCacheTelemetry.manifest $(PKG_STAGE)/cppunittests
 
-stage-jittest:
+stage-jittest: make-stage-dir
 	$(NSINSTALL) -D $(PKG_STAGE)/jit-test/tests
 	cp -RL $(topsrcdir)/js/src/jsapi.h $(PKG_STAGE)/jit-test
 	cp -RL $(topsrcdir)/js/src/jit-test $(PKG_STAGE)/jit-test/jit-test
@@ -516,7 +520,7 @@ stage-jittest:
 	cp -RL $(topsrcdir)/js/src/tests/js1_8_5 $(PKG_STAGE)/jit-test/tests/js1_8_5
 	cp -RL $(topsrcdir)/js/src/tests/lib $(PKG_STAGE)/jit-test/tests/lib
 
-stage-steeplechase:
+stage-steeplechase: make-stage-dir
 	$(NSINSTALL) -D $(PKG_STAGE)/steeplechase/
 	cp -RL $(DEPTH)/_tests/steeplechase $(PKG_STAGE)/steeplechase/tests
 	cp -RL $(DIST)/xpi-stage/specialpowers $(PKG_STAGE)/steeplechase
@@ -538,6 +542,7 @@ stage-mozbase: make-stage-dir
   mochitest \
   mochitest-plain \
   mochitest-chrome \
+  mochitest-devtools \
   mochitest-a11y \
   mochitest-ipcplugins \
   reftest \

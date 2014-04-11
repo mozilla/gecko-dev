@@ -51,9 +51,6 @@ fuzzy(1,6400) == feGaussianBlur-1.svg feGaussianBlur-1-ref.svg
 # no tests for feTurbulence
 
 == filter-clipped-rect-01.svg pass.svg
-== filter-filterRes-high-01.svg pass.svg
-== filter-filterRes-high-02.svg pass.svg
-random-if(d2d) == filter-filterRes-low-01.svg pass.svg
 == filter-inner-svg-01.svg pass.svg
 == filter-inner-svg-02.svg pass.svg
 == filter-inner-svg-03.svg pass.svg
@@ -85,8 +82,6 @@ fuzzy(1,10000) == feConvolveMatrix-bias-01.svg feConvolveMatrix-bias-01-ref.svg
 fuzzy(2,500) == feDisplacementMap-colour-01.svg feDisplacementMap-colour-01-ref.svg
 skip-if(B2G) == feDisplacementMap-scale-01.svg pass.svg
 
-skip-if(B2G) fuzzy-if(cocoaWidget,4,184) == feDistantLight-filterRes-01.svg feDistantLight-filterRes-01-ref.svg
-
 == feDropShadow-01.svg feDropShadow-01-ref.svg
 
 == feGaussianBlur-alpha-01.svg feGaussianBlur-alpha-01-ref.svg
@@ -102,5 +97,13 @@ skip-if(B2G) fuzzy-if(cocoaWidget,4,184) == feDistantLight-filterRes-01.svg feDi
 
 fuzzy(1,119) == feDiffuseLighting-1.svg feDiffuseLighting-1-ref.svg
 
-skip-if(d2d) == feSpecularLighting-1.svg feSpecularLighting-1-ref.svg
+fuzzy(2,2659) skip-if(d2d) == feSpecularLighting-1.svg feSpecularLighting-1-ref.svg
 
+== fePointLight-zoomed-page.svg fePointLight-zoomed-page-ref.svg
+
+== feTurbulence-offset.svg feTurbulence-offset-ref.svg
+
+pref(layout.css.filters.enabled,true) == multiple-svg-filters.svg multiple-svg-filters-ref.svg
+pref(layout.css.filters.enabled,true) == multiple-svg-filters-long-chain.svg multiple-svg-filters-ref.svg
+pref(layout.css.filters.enabled,true) == multiple-svg-filters-second-uses-SourceGraphic.svg multiple-svg-filters-ref.svg
+pref(layout.css.filters.enabled,true) == multiple-svg-filters-with-multiple-primitives.svg multiple-svg-filters-ref.svg

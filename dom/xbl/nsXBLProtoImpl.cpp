@@ -80,7 +80,7 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
   // not be the same compartment as globalObject.
   JS::Rooted<JSObject*> globalObject(cx,
     GetGlobalForObjectCrossCompartment(targetClassObject));
-  JS::Rooted<JSObject*> scopeObject(cx, xpc::GetXBLScope(cx, globalObject));
+  JS::Rooted<JSObject*> scopeObject(cx, xpc::GetXBLScopeOrGlobal(cx, globalObject));
   NS_ENSURE_TRUE(scopeObject, NS_ERROR_OUT_OF_MEMORY);
   JSAutoCompartment ac(cx, scopeObject);
 
@@ -178,7 +178,7 @@ nsXBLProtoImpl::InitTargetObjects(nsXBLPrototypeBinding* aBinding,
   bool defineOnGlobal = dom::XULElementBinding::ConstructorEnabled(cx, global);
   dom::XULElementBinding::GetConstructorObject(cx, global, defineOnGlobal);
 
-  rv = nsContentUtils::WrapNative(cx, global, aBoundElement, &v,
+  rv = nsContentUtils::WrapNative(cx, aBoundElement, &v,
                                   /* aAllowWrapping = */ false);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -188,7 +188,7 @@ nsXBLProtoImpl::InitTargetObjects(nsXBLPrototypeBinding* aBinding,
   // concrete base class.  We need to alter the object so that our concrete class is interposed
   // between the object and its base class.  We become the new base class of the object, and the
   // object's old base class becomes the new class' base class.
-  rv = aBinding->InitClass(mClassName, cx, global, value, aTargetClassObject, aTargetIsNew);
+  rv = aBinding->InitClass(mClassName, cx, value, aTargetClassObject, aTargetIsNew);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -211,7 +211,7 @@ nsXBLProtoImpl::CompilePrototypeMembers(nsXBLPrototypeBinding* aBinding)
 
   JS::Rooted<JSObject*> classObject(cx);
   bool classObjectIsNew = false;
-  nsresult rv = aBinding->InitClass(mClassName, cx, compilationGlobal, compilationGlobal,
+  nsresult rv = aBinding->InitClass(mClassName, cx, compilationGlobal,
                                     &classObject, &classObjectIsNew);
   if (NS_FAILED(rv))
     return rv;
@@ -239,7 +239,7 @@ bool
 nsXBLProtoImpl::LookupMember(JSContext* aCx, nsString& aName,
                              JS::Handle<jsid> aNameAsId,
                              JS::MutableHandle<JSPropertyDescriptor> aDesc,
-                             JSObject* aClassObject)
+                             JS::Handle<JSObject*> aClassObject)
 {
   for (nsXBLProtoImplMember* m = mMembers; m; m = m->GetNext()) {
     if (aName.Equals(m->GetName())) {
@@ -341,7 +341,7 @@ nsXBLProtoImpl::Read(nsIObjectInputStream* aStream,
 
   JS::Rooted<JSObject*> classObject(cx);
   bool classObjectIsNew = false;
-  nsresult rv = aBinding->InitClass(mClassName, cx, global, global, &classObject,
+  nsresult rv = aBinding->InitClass(mClassName, cx, global, &classObject,
                                     &classObjectIsNew);
   NS_ENSURE_SUCCESS(rv, rv);
   MOZ_ASSERT(classObject);

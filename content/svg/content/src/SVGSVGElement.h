@@ -18,7 +18,7 @@
 #include "mozilla/Attributes.h"
 
 nsresult NS_NewSVGSVGElement(nsIContent **aResult,
-                             already_AddRefed<nsINodeInfo> aNodeInfo,
+                             already_AddRefed<nsINodeInfo>&& aNodeInfo,
                              mozilla::dom::FromParser aFromParser);
 
 class nsIDOMSVGNumber;
@@ -28,9 +28,10 @@ class nsSVGInnerSVGFrame;
 class nsSVGImageFrame;
 
 namespace mozilla {
-class DOMSVGAnimatedPreserveAspectRatio;
-class SVGFragmentIdentifier;
 class AutoSVGRenderingState;
+class DOMSVGAnimatedPreserveAspectRatio;
+class EventChainPreVisitor;
+class SVGFragmentIdentifier;
 
 namespace dom {
 class SVGAngle;
@@ -89,13 +90,12 @@ class SVGSVGElement MOZ_FINAL : public SVGSVGElementBase
   friend class mozilla::SVGFragmentIdentifier;
   friend class mozilla::AutoSVGRenderingState;
 
-  SVGSVGElement(already_AddRefed<nsINodeInfo> aNodeInfo,
+  SVGSVGElement(already_AddRefed<nsINodeInfo>& aNodeInfo,
                 FromParser aFromParser);
-  virtual JSObject* WrapNode(JSContext *aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext *aCx) MOZ_OVERRIDE;
 
   friend nsresult (::NS_NewSVGSVGElement(nsIContent **aResult,
-                                         already_AddRefed<nsINodeInfo> aNodeInfo,
+                                         already_AddRefed<nsINodeInfo>&& aNodeInfo,
                                          mozilla::dom::FromParser aFromParser));
 
 public:
@@ -127,7 +127,7 @@ public:
 
   // nsIContent interface
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const MOZ_OVERRIDE;
-  virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
+  virtual nsresult PreHandleEvent(EventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
 
   virtual bool IsEventAttributeName(nsIAtom* aName) MOZ_OVERRIDE;
 

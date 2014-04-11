@@ -12,15 +12,15 @@ namespace mozilla {
 namespace dom {
 
 JSObject*
-SVGTextElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+SVGTextElement::WrapNode(JSContext *aCx)
 {
-  return SVGTextElementBinding::Wrap(aCx, aScope, this);
+  return SVGTextElementBinding::Wrap(aCx, this);
 }
 
 //----------------------------------------------------------------------
 // Implementation
 
-SVGTextElement::SVGTextElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+SVGTextElement::SVGTextElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : SVGTextElementBase(aNodeInfo)
 {
 }

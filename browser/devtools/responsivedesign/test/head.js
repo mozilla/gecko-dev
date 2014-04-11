@@ -10,6 +10,11 @@ let TargetFactory = devtools.TargetFactory;
 let testDir = gTestPath.substr(0, gTestPath.lastIndexOf("/"));
 Services.scriptloader.loadSubScript(testDir + "../../../commandline/test/helpers.js", this);
 
+gDevTools.testing = true;
+SimpleTest.registerCleanupFunction(() => {
+  gDevTools.testing = false;
+});
+
 function openInspector(callback)
 {
   let target = TargetFactory.forTab(gBrowser.selectedTab);
@@ -18,23 +23,19 @@ function openInspector(callback)
   });
 }
 
-function openComputedView(callback)
+function openView(name, callback)
 {
   openInspector(inspector => {
-    inspector.sidebar.once("computedview-ready", () => {
-      inspector.sidebar.select("computedview");
-      let ruleView = inspector.sidebar.getWindowForTab("computedview").computedview.view;
-      callback(inspector, ruleView);
-    })
-  });
-}
-function openRuleView(callback)
-{
-  openInspector(inspector => {
-    inspector.sidebar.once("ruleview-ready", () => {
-      inspector.sidebar.select("ruleview");
-      let ruleView = inspector.sidebar.getWindowForTab("ruleview").ruleview.view;
-      callback(inspector, ruleView);
-    })
+    function onReady() {
+      inspector.sidebar.select(name);
+      let { view } = inspector.sidebar.getWindowForTab(name)[name];
+      callback(inspector, view);
+    }
+
+    if (inspector.sidebar.getTab(name)) {
+      onReady();
+    } else {
+      inspector.sidebar.once(name + "-ready", onReady);
+    }
   });
 }

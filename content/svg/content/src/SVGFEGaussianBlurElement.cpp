@@ -16,9 +16,9 @@ namespace mozilla {
 namespace dom {
 
 JSObject*
-SVGFEGaussianBlurElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aScope)
+SVGFEGaussianBlurElement::WrapNode(JSContext* aCx)
 {
-  return SVGFEGaussianBlurElementBinding::Wrap(aCx, aScope, this);
+  return SVGFEGaussianBlurElementBinding::Wrap(aCx, this);
 }
 
 nsSVGElement::NumberPairInfo SVGFEGaussianBlurElement::sNumberPairInfo[1] =
@@ -76,10 +76,10 @@ SVGFEGaussianBlurElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance
                                              &mNumberPairAttributes[STD_DEV],
                                              nsSVGNumberPair::eSecond);
   if (stdX < 0 || stdY < 0) {
-    return FilterPrimitiveDescription(FilterPrimitiveDescription::eNone);
+    return FilterPrimitiveDescription(PrimitiveType::Empty);
   }
 
-  FilterPrimitiveDescription descr(FilterPrimitiveDescription::eGaussianBlur);
+  FilterPrimitiveDescription descr(PrimitiveType::GaussianBlur);
   descr.Attributes().Set(eGaussianBlurStdDeviation, Size(stdX, stdY));
   return descr;
 }

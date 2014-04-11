@@ -4,9 +4,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/SVGFEFloodElement.h"
+
+#include "FilterSupport.h"
 #include "mozilla/dom/SVGFEFloodElementBinding.h"
-#include "gfxContext.h"
-#include "gfxColor.h"
+#include "nsColor.h"
 #include "nsIFrame.h"
 
 NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(FEFlood)
@@ -17,9 +18,9 @@ namespace mozilla {
 namespace dom {
 
 JSObject*
-SVGFEFloodElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+SVGFEFloodElement::WrapNode(JSContext *aCx)
 {
-  return SVGFEFloodElementBinding::Wrap(aCx, aScope, this);
+  return SVGFEFloodElementBinding::Wrap(aCx, this);
 }
 
 nsSVGElement::StringInfo SVGFEFloodElement::sStringInfo[1] =
@@ -38,7 +39,7 @@ SVGFEFloodElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
                                            const nsTArray<bool>& aInputsAreTainted,
                                            nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {
-  FilterPrimitiveDescription descr(FilterPrimitiveDescription::eFlood);
+  FilterPrimitiveDescription descr(PrimitiveType::Flood);
   nsIFrame* frame = GetPrimaryFrame();
   if (frame) {
     nsStyleContext* style = frame->StyleContext();

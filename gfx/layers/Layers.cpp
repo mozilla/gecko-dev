@@ -112,18 +112,18 @@ LayerManager::GetScrollableLayers(nsTArray<Layer*>& aArray)
   }
 }
 
-already_AddRefed<gfxASurface>
-LayerManager::CreateOptimalSurface(const gfx::IntSize &aSize,
-                                   gfxImageFormat aFormat)
+TemporaryRef<DrawTarget>
+LayerManager::CreateOptimalDrawTarget(const gfx::IntSize &aSize,
+                                      SurfaceFormat aFormat)
 {
-  return gfxPlatform::GetPlatform()->
-    CreateOffscreenSurface(aSize, gfxASurface::ContentFromFormat(aFormat));
+  return gfxPlatform::GetPlatform()->CreateOffscreenContentDrawTarget(aSize,
+                                                                      aFormat);
 }
 
-already_AddRefed<gfxASurface>
-LayerManager::CreateOptimalMaskSurface(const gfx::IntSize &aSize)
+TemporaryRef<DrawTarget>
+LayerManager::CreateOptimalMaskDrawTarget(const gfx::IntSize &aSize)
 {
-  return CreateOptimalSurface(aSize, gfxImageFormat::A8);
+  return CreateOptimalDrawTarget(aSize, SurfaceFormat::A8);
 }
 
 TemporaryRef<DrawTarget>
@@ -186,18 +186,13 @@ Layer::~Layer()
 {}
 
 Animation*
-Layer::AddAnimation(TimeStamp aStart, TimeDuration aDuration, float aIterations,
-                    int aDirection, nsCSSProperty aProperty, const AnimationData& aData)
+Layer::AddAnimation()
 {
   MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) AddAnimation", this));
 
+  MOZ_ASSERT(!mPendingAnimations, "should have called ClearAnimations first");
+
   Animation* anim = mAnimations.AppendElement();
-  anim->startTime() = aStart;
-  anim->duration() = aDuration;
-  anim->numIterations() = aIterations;
-  anim->direction() = aDirection;
-  anim->property() = aProperty;
-  anim->data() = aData;
 
   Mutated();
   return anim;
@@ -206,6 +201,8 @@ Layer::AddAnimation(TimeStamp aStart, TimeDuration aDuration, float aIterations,
 void
 Layer::ClearAnimations()
 {
+  mPendingAnimations = nullptr;
+
   if (mAnimations.IsEmpty() && mAnimationData.IsEmpty()) {
     return;
   }
@@ -214,6 +211,28 @@ Layer::ClearAnimations()
   mAnimations.Clear();
   mAnimationData.Clear();
   Mutated();
+}
+
+Animation*
+Layer::AddAnimationForNextTransaction()
+{
+  MOZ_ASSERT(mPendingAnimations,
+             "should have called ClearAnimationsForNextTransaction first");
+
+  Animation* anim = mPendingAnimations->AppendElement();
+
+  return anim;
+}
+
+void
+Layer::ClearAnimationsForNextTransaction()
+{
+  // Ensure we have a non-null mPendingAnimations to mark a future clear.
+  if (!mPendingAnimations) {
+    mPendingAnimations = new AnimationArray;
+  }
+
+  mPendingAnimations->Clear();
 }
 
 static nsCSSValueSharedList*
@@ -481,16 +500,16 @@ Layer::SnapTransformTranslation(const Matrix4x4& aTransform,
       !matrix2D.HasNonTranslation() &&
       matrix2D.HasNonIntegerTranslation()) {
     IntPoint snappedTranslation = RoundedToInt(matrix2D.GetTranslation());
-    Matrix snappedMatrix = Matrix().Translate(snappedTranslation.x,
-                                              snappedTranslation.y);
+    Matrix snappedMatrix = Matrix::Translation(snappedTranslation.x,
+                                               snappedTranslation.y);
     result = Matrix4x4::From2D(snappedMatrix);
     if (aResidualTransform) {
       // set aResidualTransform so that aResidual * snappedMatrix == matrix2D.
       // (I.e., appying snappedMatrix after aResidualTransform gives the
       // ideal transform.)
       *aResidualTransform =
-        Matrix().Translate(matrix2D._31 - snappedTranslation.x,
-                           matrix2D._32 - snappedTranslation.y);
+        Matrix::Translation(matrix2D._31 - snappedTranslation.x,
+                            matrix2D._32 - snappedTranslation.y);
     }
   } else {
     result = aTransform;
@@ -648,6 +667,13 @@ Layer::ApplyPendingUpdatesForThisTransaction()
     Mutated();
   }
   mPendingTransform = nullptr;
+
+  if (mPendingAnimations) {
+    MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) PendingUpdatesForThisTransaction", this));
+    mPendingAnimations->SwapElements(mAnimations);
+    mPendingAnimations = nullptr;
+    Mutated();
+  }
 }
 
 const float

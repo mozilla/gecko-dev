@@ -22,11 +22,7 @@ const brandBundle = Services.strings.createBundle(
 const MAX_BAR_HEIGHT = 18;
 const MAX_BAR_CHARS = 25;
 const PREF_TELEMETRY_SERVER_OWNER = "toolkit.telemetry.server_owner";
-#ifdef MOZ_TELEMETRY_ON_BY_DEFAULT
-const PREF_TELEMETRY_ENABLED = "toolkit.telemetry.enabledPreRelease";
-#else
 const PREF_TELEMETRY_ENABLED = "toolkit.telemetry.enabled";
-#endif
 const PREF_DEBUG_SLOW_SQL = "toolkit.telemetry.debugSlowSql";
 const PREF_SYMBOL_SERVER_URI = "profiler.symbolicationUrl";
 const DEFAULT_SYMBOL_SERVER_URI = "http://symbolapi.mozilla.org";
@@ -378,7 +374,7 @@ function SymbolicationRequest_fetchSymbols() {
                  "version" : 3};
   let requestJSON = JSON.stringify(request);
 
-  this.symbolRequest = XMLHttpRequest();
+  this.symbolRequest = new XMLHttpRequest();
   this.symbolRequest.open("POST", symbolServerURI, true);
   this.symbolRequest.setRequestHeader("Content-type", "application/json");
   this.symbolRequest.setRequestHeader("Content-length",
@@ -772,7 +768,8 @@ let KeyValueTable = {
    */
   renderBody: function KeyValueTable_renderBody(aTable, aMeasurements) {
     for (let [key, value] of Iterator(aMeasurements)) {
-      if (typeof value == "object") {
+      // use .valueOf() to unbox Number, String, etc. objects
+      if ((typeof value == "object") && (typeof value.valueOf() == "object")) {
         value = RenderObject(value);
       }
 

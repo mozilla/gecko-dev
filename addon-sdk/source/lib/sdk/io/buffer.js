@@ -44,7 +44,7 @@ function Buffer(subject, encoding /*, bufferLength */) {
     case 'number':
       // Create typed array of the given size if number.
       try {
-        let buffer = Uint8Array(subject > 0 ? Math.floor(subject) : 0);
+        let buffer = new Uint8Array(subject > 0 ? Math.floor(subject) : 0);
         return buffer;
       } catch (e) {
         if (/size and count too large/.test(e.message) ||
@@ -58,19 +58,19 @@ function Buffer(subject, encoding /*, bufferLength */) {
       // If string encode it and use buffer for the returned Uint8Array
       // to create a local patched version that acts like node buffer.
       encoding = encoding || 'utf8';
-      return Uint8Array(TextEncoder(encoding).encode(subject).buffer);
+      return new Uint8Array(new TextEncoder(encoding).encode(subject).buffer);
     case 'object':
       // This form of the constructor uses the form of
-      // Uint8Array(buffer, offset, length);
+      // new Uint8Array(buffer, offset, length);
       // So we can instantiate a typed array within the constructor
       // to inherit the appropriate properties, where both the
       // `subject` and newly instantiated buffer share the same underlying
       // data structure.
       if (arguments.length === 3)
-        return Uint8Array(subject, encoding, arguments[2]);
+        return new Uint8Array(subject, encoding, arguments[2]);
       // If array or alike just make a copy with a local patched prototype.
       else
-        return Uint8Array(subject);
+        return new Uint8Array(subject);
     default:
       throw new TypeError('must start with number, buffer, array or string');
   }
@@ -84,7 +84,7 @@ Buffer.isBuffer = value => value instanceof Buffer
 Buffer.isEncoding = function (encoding) {
   if (!encoding) return false;
   try {
-    TextDecoder(encoding);
+    new TextDecoder(encoding);
   } catch(e) {
     return false;
   }
@@ -95,7 +95,7 @@ Buffer.isEncoding = function (encoding) {
 // This is not the same as String.prototype.length since that returns the
 // number of characters in a string.
 Buffer.byteLength = (value, encoding = 'utf8') =>
-  TextEncoder(encoding).encode(value).byteLength
+  new TextEncoder(encoding).encode(value).byteLength
 
 // Direct copy of the nodejs's buffer implementation:
 // https://github.com/joyent/node/blob/b255f4c10a80343f9ce1cee56d0288361429e214/lib/buffer.js#L146-L177
@@ -146,7 +146,7 @@ Object.defineProperties(Buffer.prototype, {
     get: function () {
       let view = views.get(this, undefined);
       if (view) return view;
-      view = DataView(this.buffer);
+      view = new DataView(this.buffer);
       views.set(this, view);
       return view;
     }
@@ -156,7 +156,7 @@ Object.defineProperties(Buffer.prototype, {
       encoding = !!encoding ? (encoding + '').toLowerCase() : 'utf8';
       start = Math.max(0, ~~start);
       end = Math.min(this.length, end === void(0) ? this.length : ~~end);
-      return TextDecoder(encoding).decode(this.subarray(start, end));
+      return new TextDecoder(encoding).decode(this.subarray(start, end));
     }
   },
   toJSON: {
@@ -229,7 +229,7 @@ Object.defineProperties(Buffer.prototype, {
       if (end < start)
         end = start;
 
-      // This instantiation uses the Uint8Array(buffer, offset, length) version
+      // This instantiation uses the new Uint8Array(buffer, offset, length) version
       // of construction to share the same underling data structure
       let buffer = new Buffer(this.buffer, start, end - start);
 
@@ -262,7 +262,7 @@ Object.defineProperties(Buffer.prototype, {
       if (length == null || length + offset > this.length)
         length = this.length - offset;
 
-      let buffer = TextEncoder(encoding).encode(string);
+      let buffer = new TextEncoder(encoding).encode(string);
       let result = Math.min(buffer.length, length);
       if (buffer.length !== length)
         buffer = buffer.subarray(0, length);

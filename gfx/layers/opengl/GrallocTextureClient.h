@@ -13,10 +13,13 @@
 #include "mozilla/layers/ShadowLayerUtilsGralloc.h"
 #include <ui/GraphicBuffer.h>
 
+
+namespace android {
+class MediaBuffer;
+};
+
 namespace mozilla {
 namespace layers {
-
-class GraphicBufferLocked;
 
 /**
  * A TextureClient implementation based on android::GraphicBuffer (also referred to
@@ -36,12 +39,11 @@ class GrallocTextureClientOGL : public BufferTextureClient
 public:
   GrallocTextureClientOGL(GrallocBufferActor* aActor,
                           gfx::IntSize aSize,
-                          TextureFlags aFlags = TEXTURE_FLAGS_DEFAULT);
-  GrallocTextureClientOGL(CompositableClient* aCompositable,
-                          gfx::SurfaceFormat aFormat,
+                          gfx::BackendType aMoz2dBackend,
                           TextureFlags aFlags = TEXTURE_FLAGS_DEFAULT);
   GrallocTextureClientOGL(ISurfaceAllocator* aAllocator,
                           gfx::SurfaceFormat aFormat,
+                          gfx::BackendType aMoz2dBackend,
                           TextureFlags aFlags = TEXTURE_FLAGS_DEFAULT);
 
   ~GrallocTextureClientOGL();
@@ -51,6 +53,8 @@ public:
   virtual void Unlock() MOZ_OVERRIDE;
 
   virtual bool ImplementsLocking() const MOZ_OVERRIDE { return true; }
+
+  virtual bool HasInternalBuffer() const MOZ_OVERRIDE { return false; }
 
   virtual bool IsAllocated() const MOZ_OVERRIDE;
 
@@ -62,10 +66,7 @@ public:
 
   virtual void SetReleaseFenceHandle(FenceHandle aReleaseFenceHandle) MOZ_OVERRIDE;
 
-  const FenceHandle& GetReleaseFenceHandle() const
-  {
-    return mReleaseFenceHandle;
-  }
+  virtual void WaitReleaseFence() MOZ_OVERRIDE;
 
   void InitWith(GrallocBufferActor* aActor, gfx::IntSize aSize);
 
@@ -104,21 +105,28 @@ public:
 
   virtual size_t GetBufferSize() const MOZ_OVERRIDE;
 
-  void SetGraphicBufferLocked(GraphicBufferLocked* aBufferLocked);
+  /**
+   * Hold android::MediaBuffer.
+   * MediaBuffer needs to be add refed to keep MediaBuffer alive
+   * during TextureClient is in use.
+   */
+  void SetMediaBuffer(android::MediaBuffer* aMediaBuffer)
+  {
+    mMediaBuffer = aMediaBuffer;
+  }
+
+  android::MediaBuffer* GetMediaBuffer()
+  {
+    return mMediaBuffer;
+  }
 
 protected:
-  ISurfaceAllocator* GetAllocator();
-
   /**
    * Unfortunately, until bug 879681 is fixed we need to use a GrallocBufferActor.
    */
   GrallocBufferActor* mGrallocActor;
 
-  RefPtr<GraphicBufferLocked> mBufferLocked;
-
   android::sp<android::GraphicBuffer> mGraphicBuffer;
-
-  RefPtr<ISurfaceAllocator> mAllocator;
 
   /**
    * Points to a mapped gralloc buffer between calls to lock and unlock.
@@ -134,6 +142,8 @@ protected:
    * Extra size member is necessary. See Bug 850566.
    */
   gfx::IntSize mSize;
+
+  android::MediaBuffer* mMediaBuffer;
 };
 
 } // namespace layers

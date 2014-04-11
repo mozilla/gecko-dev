@@ -47,6 +47,23 @@ typedef hwc_layer_list_t HwcList;
 typedef hwc_layer_t HwcLayer;
 #endif
 
+/*
+ * HwcComposer2D provides a way for gecko to render frames
+ * using hwcomposer.h in the AOSP HAL.
+ *
+ * hwcomposer.h defines an interface for display composition
+ * using dedicated hardware. This hardware is usually faster
+ * or more power efficient than the GPU. However, in exchange
+ * for better performance, generality has to be sacrificed:
+ * no 3d transforms, no intermediate surfaces, no special shader effects,
+ * and loss of other goodies depending on the platform.
+ *
+ * In general, when hwc is enabled gecko tries to compose
+ * its frames using HwcComposer2D first. Then if HwcComposer2D is
+ * unable to compose a frame then it falls back to compose it
+ * using the GPU with OpenGL.
+ *
+ */
 class HwcComposer2D : public mozilla::layers::Composer2D {
 public:
     HwcComposer2D();
@@ -61,7 +78,8 @@ public:
     // Returns TRUE if the container has been succesfully rendered
     // Returns FALSE if the container cannot be fully rendered
     // by this composer so nothing was rendered at all
-    bool TryRender(layers::Layer* aRoot, const gfx::Matrix& aGLWorldTransform) MOZ_OVERRIDE;
+    bool TryRender(layers::Layer* aRoot, const gfx::Matrix& aGLWorldTransform,
+                   bool aGeometryChanged) MOZ_OVERRIDE;
 
     bool Render(EGLDisplay dpy, EGLSurface sur);
 
@@ -74,6 +92,7 @@ private:
     bool PrepareLayerList(layers::Layer* aContainer, const nsIntRect& aClip,
           const gfxMatrix& aParentTransform, const gfxMatrix& aGLWorldTransform);
     void setCrop(HwcLayer* layer, hwc_rect_t srcCrop);
+    void setHwcGeometry(bool aGeometryChanged);
 
     HwcDevice*              mHwc;
     HwcList*                mList;

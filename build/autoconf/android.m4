@@ -270,18 +270,21 @@ case "$target" in
         fi
 
         # Get the api level from "$android_sdk"/source.properties.
-        android_api_level=`$AWK -F = changequote(<<, >>)'<<$>>1 == "AndroidVersion.ApiLevel" {print <<$>>2}'changequote([, ]) "$android_sdk"/source.properties`
+        ANDROID_TARGET_SDK=`$AWK -F = changequote(<<, >>)'<<$>>1 == "AndroidVersion.ApiLevel" {print <<$>>2}'changequote([, ]) "$android_sdk"/source.properties`
 
-        if test -z "$android_api_level" ; then
+        if test -z "$ANDROID_TARGET_SDK" ; then
             AC_MSG_ERROR([Unexpected error: no AndroidVersion.ApiLevel field has been found in source.properties.])
         fi
 
-        if ! test "$android_api_level" -eq "$android_api_level" ; then
-            AC_MSG_ERROR([Unexpected error: the found android api value isn't a number! (found $android_api_level)])
+	AC_DEFINE_UNQUOTED(ANDROID_TARGET_SDK,$ANDROID_TARGET_SDK)
+	AC_SUBST(ANDROID_TARGET_SDK)
+
+        if ! test "$ANDROID_TARGET_SDK" -eq "$ANDROID_TARGET_SDK" ; then
+            AC_MSG_ERROR([Unexpected error: the found android api value isn't a number! (found $ANDROID_TARGET_SDK)])
         fi
 
-        if test $android_api_level -lt $1 ; then
-            AC_MSG_ERROR([The given Android SDK provides API level $android_api_level ($1 or higher required).])
+        if test $ANDROID_TARGET_SDK -lt $1 ; then
+            AC_MSG_ERROR([The given Android SDK provides API level $ANDROID_TARGET_SDK ($1 or higher required).])
         fi
     fi
 
@@ -293,7 +296,7 @@ case "$target" in
     # The build tools got moved around to different directories in
     # SDK Tools r22.  Try to locate them.
     android_build_tools=""
-    for suffix in android-4.4 android-4.3 android-4.2.2 19.0.0 18.1.0 18.0.1 18.0.0 17.0.0; do
+    for suffix in android-4.4 android-4.3 android-4.2.2 19.0.3 19.0.2 19.0.0 18.1.0 18.0.1 18.0.0 17.0.0; do
         tools_directory="$android_sdk_root/build-tools/$suffix"
         if test -d "$tools_directory" ; then
             android_build_tools="$tools_directory"

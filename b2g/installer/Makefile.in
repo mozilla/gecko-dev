@@ -37,6 +37,13 @@ MOZ_PACKAGER_MINIFY=1
 
 include $(topsrcdir)/toolkit/mozapps/installer/packager.mk
 
+# Note that JS_BINARY can be defined in packager.mk, so this test must come after
+# including that file. MOZ_PACKAGER_MINIFY_JS is used in packager.mk, but since
+# recipe evaluation is deferred, we can set it here after the inclusion.
+ifneq (,$(JS_BINARY))
+MOZ_PACKAGER_MINIFY_JS=1
+endif
+
 ifeq (bundle, $(MOZ_FS_LAYOUT))
 BINPATH = $(_BINPATH)
 DEFINES += -DAPPNAME=$(_APPNAME)
@@ -71,4 +78,16 @@ ifdef MOZ_CHROME_MULTILOCALE
 endif
 
 GARBAGE += $(MOZ_PKG_MANIFEST)
+endif
+
+ifdef FXOS_SIMULATOR
+.PHONY: simulator
+simulator: make-package
+	@echo 'Building simulator addon...'
+	$(PYTHON) $(topsrcdir)/b2g/simulator/build_xpi.py $(MOZ_PKG_PLATFORM)
+
+default:: simulator
+
+# Ensure copying Simulator xpi to ftp
+UPLOAD_EXTRA_FILES += fxos-simulator-*-*.xpi
 endif

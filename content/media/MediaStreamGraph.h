@@ -89,9 +89,11 @@ class MediaStreamGraph;
  * attached to a stream that has already finished, we'll call NotifyFinished.
  */
 class MediaStreamListener {
-public:
+protected:
+  // Protected destructor, to discourage deletion outside of Release():
   virtual ~MediaStreamListener() {}
 
+public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaStreamListener)
 
   enum Consumption {
@@ -291,6 +293,9 @@ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaStream)
 
   MediaStream(DOMMediaStream* aWrapper);
+
+protected:
+  // Protected destructor, to discourage deletion outside of Release():
   virtual ~MediaStream()
   {
     MOZ_COUNT_DTOR(MediaStream);
@@ -299,6 +304,7 @@ public:
                  "All main thread listeners should have been removed");
   }
 
+public:
   /**
    * Returns the graph that owns this stream.
    */
@@ -810,7 +816,8 @@ protected:
  * the Destroy message is processed on the graph manager thread we disconnect
  * the port and drop the graph's reference, destroying the object.
  */
-class MediaInputPort {
+class MediaInputPort MOZ_FINAL {
+private:
   // Do not call this constructor directly. Instead call aDest->AllocateInputPort.
   MediaInputPort(MediaStream* aSource, ProcessedMediaStream* aDest,
                  uint32_t aFlags, uint16_t aInputNumber,
@@ -823,6 +830,12 @@ class MediaInputPort {
     , mGraph(nullptr)
   {
     MOZ_COUNT_CTOR(MediaInputPort);
+  }
+
+  // Private destructor, to discourage deletion outside of Release():
+  ~MediaInputPort()
+  {
+    MOZ_COUNT_DTOR(MediaInputPort);
   }
 
 public:
@@ -841,10 +854,6 @@ public:
     // stream.
     FLAG_BLOCK_OUTPUT = 0x02
   };
-  ~MediaInputPort()
-  {
-    MOZ_COUNT_DTOR(MediaInputPort);
-  }
 
   // Called on graph manager thread
   // Do not call these from outside MediaStreamGraph.cpp!
@@ -886,7 +895,7 @@ public:
    */
   void SetGraphImpl(MediaStreamGraphImpl* aGraph);
 
-protected:
+private:
   friend class MediaStreamGraphImpl;
   friend class MediaStream;
   friend class ProcessedMediaStream;
@@ -906,7 +915,7 @@ protected:
 /**
  * This stream processes zero or more input streams in parallel to produce
  * its output. The details of how the output is produced are handled by
- * subclasses overriding the ProduceOutput method.
+ * subclasses overriding the ProcessInput method.
  */
 class ProcessedMediaStream : public MediaStream {
 public:
@@ -962,7 +971,7 @@ public:
    * This will be called on streams that have finished. Most stream types should
    * just return immediately if IsFinishedOnGraphThread(), but some may wish to
    * update internal state (see AudioNodeStream).
-   * ProduceOutput is allowed to call FinishOnGraphThread only if ALLOW_FINISH
+   * ProcessInput is allowed to call FinishOnGraphThread only if ALLOW_FINISH
    * is in aFlags. (This flag will be set when aTo >= mStateComputedTime, i.e.
    * when we've producing the last block of data we need to produce.) Otherwise
    * we can get into a situation where we've determined the stream should not
@@ -972,7 +981,7 @@ public:
   enum {
     ALLOW_FINISH = 0x01
   };
-  virtual void ProduceOutput(GraphTime aFrom, GraphTime aTo, uint32_t aFlags) = 0;
+  virtual void ProcessInput(GraphTime aFrom, GraphTime aTo, uint32_t aFlags) = 0;
   void SetAutofinishImpl(bool aAutofinish) { mAutofinish = aAutofinish; }
 
   /**
@@ -1065,7 +1074,7 @@ public:
    * Dispatches a runnable that will run on the main thread after all
    * main-thread stream state has been next updated.
    * Should only be called during MediaStreamListener callbacks or during
-   * ProcessedMediaStream::ProduceOutput().
+   * ProcessedMediaStream::ProcessInput().
    */
   void DispatchToMainThreadAfterStreamStateUpdate(already_AddRefed<nsIRunnable> aRunnable)
   {

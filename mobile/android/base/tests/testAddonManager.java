@@ -1,17 +1,11 @@
 package org.mozilla.gecko.tests;
 
-import org.mozilla.gecko.*;
+import org.json.JSONObject;
+import org.mozilla.gecko.Actions;
+
 import android.util.DisplayMetrics;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 public class testAddonManager extends PixelTest  {
-    @Override
-    protected int getTestType() {
-        return TEST_MOCHITEST;
-    }
-
     /* This test will check the behavior of the Addons Manager:
     First the test will open the Addons Manager from the Menu and then close it
     Then the test will open the Addons Manager by visiting about:addons
@@ -55,23 +49,7 @@ public class testAddonManager extends PixelTest  {
             jsonPref.put("name", "extensions.getAddons.browseAddons");
             jsonPref.put("type", "string");
             jsonPref.put("value", getAbsoluteUrl("/robocop/robocop_blank_01.html"));
-            mActions.sendGeckoEvent("Preferences:Set", jsonPref.toString());
-
-            // Wait for confirmation of the pref change before proceeding with the test.
-            final String[] prefNames = { "extensions.getAddons.browseAddons" };
-            final int ourRequestId = 0x7357;
-            Actions.RepeatedEventExpecter eventExpecter = mActions.expectGeckoEvent("Preferences:Data");
-            mActions.sendPreferencesGetEvent(ourRequestId, prefNames);
-
-            JSONObject data = null;
-            int requestId = -1;
-
-            // Wait until we get the correct "Preferences:Data" event
-            while (requestId != ourRequestId) {
-                data = new JSONObject(eventExpecter.blockForEventData());
-                requestId = data.getInt("requestId");
-            }
-            eventExpecter.unregisterListener();
+            setPreferenceAndWaitForChange(jsonPref);
 
         } catch (Exception ex) { 
             mAsserter.ok(false, "exception in testAddonManager", ex.toString());

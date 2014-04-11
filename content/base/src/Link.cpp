@@ -6,9 +6,9 @@
 
 #include "Link.h"
 
+#include "mozilla/EventStates.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/Element.h"
-#include "nsEventStates.h"
 #include "nsIURL.h"
 #include "nsISizeOf.h"
 
@@ -66,7 +66,7 @@ Link::SetLinkState(nsLinkState aState)
   mElement->UpdateState(true);
 }
 
-nsEventStates
+EventStates
 Link::LinkState() const
 {
   // We are a constant method, but we are just lazily doing things and have to
@@ -108,7 +108,7 @@ Link::LinkState() const
     return NS_EVENT_STATE_UNVISITED;
   }
 
-  return nsEventStates();
+  return EventStates();
 }
 
 nsIURI*
@@ -217,9 +217,7 @@ void
 Link::SetSearch(const nsAString& aSearch)
 {
   SetSearchInternal(aSearch);
-  if (mSearchParams) {
-    mSearchParams->Invalidate();
-  }
+  UpdateURLSearchParams();
 }
 
 void
@@ -487,9 +485,7 @@ Link::ResetLinkState(bool aNotify, bool aHasHref)
 
   // If we've cached the URI, reset always invalidates it.
   mCachedURI = nullptr;
-  if (mSearchParams) {
-    mSearchParams->Invalidate();
-  }
+  UpdateURLSearchParams();
 
   // Update our state back to the default.
   mLinkState = defaultState;
@@ -508,7 +504,7 @@ Link::ResetLinkState(bool aNotify, bool aHasHref)
     if (mLinkState == eLinkState_Unvisited) {
       mElement->UpdateLinkState(NS_EVENT_STATE_UNVISITED);
     } else {
-      mElement->UpdateLinkState(nsEventStates());
+      mElement->UpdateLinkState(EventStates());
     }
   }
 }
@@ -576,28 +572,21 @@ Link::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
 }
 
 URLSearchParams*
-Link::GetSearchParams()
+Link::SearchParams()
 {
   CreateSearchParamsIfNeeded();
   return mSearchParams;
 }
 
 void
-Link::SetSearchParams(URLSearchParams* aSearchParams)
+Link::SetSearchParams(URLSearchParams& aSearchParams)
 {
-  if (!aSearchParams) {
-    return;
+  if (mSearchParams) {
+    mSearchParams->RemoveObserver(this);
   }
 
-  if (!aSearchParams->HasURLAssociated()) {
-    MOZ_ASSERT(aSearchParams->IsValid());
-
-    mSearchParams = aSearchParams;
-    mSearchParams->SetObserver(this);
-  } else {
-    CreateSearchParamsIfNeeded();
-    mSearchParams->CopyFromURLSearchParams(*aSearchParams);
-  }
+  mSearchParams = &aSearchParams;
+  mSearchParams->AddObserver(this);
 
   nsAutoString search;
   mSearchParams->Serialize(search);
@@ -607,7 +596,7 @@ Link::SetSearchParams(URLSearchParams* aSearchParams)
 void
 Link::URLSearchParamsUpdated()
 {
-  MOZ_ASSERT(mSearchParams && mSearchParams->IsValid());
+  MOZ_ASSERT(mSearchParams);
 
   nsString search;
   mSearchParams->Serialize(search);
@@ -615,9 +604,11 @@ Link::URLSearchParamsUpdated()
 }
 
 void
-Link::URLSearchParamsNeedsUpdates()
+Link::UpdateURLSearchParams()
 {
-  MOZ_ASSERT(mSearchParams);
+  if (!mSearchParams) {
+    return;
+  }
 
   nsAutoCString search;
   nsCOMPtr<nsIURI> uri(GetURI());
@@ -629,7 +620,7 @@ Link::URLSearchParamsNeedsUpdates()
     }
   }
 
-  mSearchParams->ParseInput(search);
+  mSearchParams->ParseInput(search, this);
 }
 
 void
@@ -637,15 +628,18 @@ Link::CreateSearchParamsIfNeeded()
 {
   if (!mSearchParams) {
     mSearchParams = new URLSearchParams();
-    mSearchParams->SetObserver(this);
-    mSearchParams->Invalidate();
+    mSearchParams->AddObserver(this);
+    UpdateURLSearchParams();
   }
 }
 
 void
 Link::Unlink()
 {
-  mSearchParams = nullptr;
+  if (mSearchParams) {
+    mSearchParams->RemoveObserver(this);
+    mSearchParams = nullptr;
+  }
 }
 
 void

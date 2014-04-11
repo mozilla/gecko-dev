@@ -57,6 +57,21 @@ static bool CheckMessageContent(nsIUDPMessage *aMessage, uint32_t aExpectedConte
   const char* buffer = data.get();
   uint32_t len = data.Length();
 
+  FallibleTArray<uint8_t>& rawData = aMessage->GetDataAsTArray();
+  uint32_t rawLen = rawData.Length();
+
+  if (len != rawLen) {
+    fail("Raw data length(%d) do not matches String data length(%d).", rawLen, len);
+    return false;
+  }
+
+  for (uint32_t i = 0; i < len; i++) {
+    if (buffer[i] != rawData[i]) {
+      fail("Raw data(%s) do not matches String data(%s)", rawData.Elements() ,buffer);
+      return false;
+    }
+  }
+
   uint32_t input = 0;
   for (uint32_t i = 0; i < len; i++) {
     input += buffer[i] << (8 * i);
@@ -213,7 +228,7 @@ main(int32_t argc, char *argv[])
   NS_ENSURE_SUCCESS(rv, -1);
 
   // Create UDPServerListener to process UDP packets
-  nsCOMPtr<UDPServerListener> serverListener = new UDPServerListener();
+  nsRefPtr<UDPServerListener> serverListener = new UDPServerListener();
 
   // Bind server socket to 127.0.0.1
   rv = server->Init(0, true);
@@ -223,7 +238,7 @@ main(int32_t argc, char *argv[])
   server->AsyncListen(serverListener);
 
   // Bind clinet on arbitrary port
-  nsCOMPtr<UDPClientListener> clientListener = new UDPClientListener();
+  nsRefPtr<UDPClientListener> clientListener = new UDPClientListener();
   client->Init(0, true);
   client->AsyncListen(clientListener);
 

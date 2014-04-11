@@ -37,6 +37,7 @@ XPIDL_MODULE = 'docshell'
 EXPORTS += [
     'nsDocShellLoadTypes.h',
     'nsILinkHandler.h',
+    'nsIScrollObserver.h',
     'nsIWebShellServices.h',
     'SerializedLoadContext.h',
 ]
@@ -80,7 +81,6 @@ LOCAL_INCLUDES += [
     '/layout/generic',
     '/layout/xul',
     '/netwerk/protocol/viewsource',
-    '/xpcom/ds',
 ]
 
 if CONFIG['MOZ_TOOLKIT_SEARCH']:

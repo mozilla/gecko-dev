@@ -62,6 +62,11 @@ TEST_SUITES = {
         'mach_command': 'jetpack-test',
         'kwargs': {},
     },
+    'jittest': {
+        'aliases': ('Jit', 'jit'),
+        'mach_command': 'jittest',
+        'kwargs': {'test_file': None},
+    },
     'mochitest-a11y': {
         'mach_command': 'mochitest-a11y',
         'kwargs': {'test_file': None},
@@ -73,6 +78,11 @@ TEST_SUITES = {
     },
     'mochitest-chrome': {
         'mach_command': 'mochitest-chrome',
+        'kwargs': {'test_file': None},
+    },
+    'mochitest-devtools': {
+        'aliases': ('dt', 'DT', 'Dt'),
+        'mach_command': 'mochitest-browser --subsuite=devtools',
         'kwargs': {'test_file': None},
     },
     'mochitest-ipcplugins': {
@@ -204,3 +214,24 @@ class MachCommands(MachCommandBase):
             result = False
 
         return 0 if result else 1
+
+@CommandProvider
+class JittestCommand(MachCommandBase):
+    @Command('jittest', category='testing', description='Run jit-test tests.')
+    @CommandArgument('--valgrind', action='store_true', help='Run jit-test suite with valgrind flag')
+
+    def run_jittest(self, **params):
+        import subprocess
+        import sys
+
+        if sys.platform.startswith('win'):
+            js = os.path.join(self.bindir, 'js.exe')
+        else:
+            js = os.path.join(self.bindir, 'js')
+        cmd = [os.path.join(self.topsrcdir, 'js', 'src', 'jit-test', 'jit_test.py'),
+              js, '--no-slow', '--no-progress', '--tinderbox', '--tbpl']
+
+        if params['valgrind']:
+            cmd.append('--valgrind')
+
+        return subprocess.call(cmd)

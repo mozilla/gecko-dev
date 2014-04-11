@@ -139,8 +139,7 @@ mozJSSubScriptLoader::ReadScript(nsIURI *uri, JSContext *cx, JSObject *targetObj
     JSErrorReporter er = JS_SetErrorReporter(cx, xpc::SystemErrorReporter);
 
     JS::CompileOptions options(cx);
-    options.setPrincipals(nsJSPrincipals::get(principal))
-           .setFileAndLine(uriStr, 1);
+    options.setFileAndLine(uriStr, 1);
     if (!charset.IsVoid()) {
         nsString script;
         rv = nsScriptLoader::ConvertToUTF16(nullptr, reinterpret_cast<const uint8_t*>(buf.get()), len,
@@ -348,9 +347,10 @@ mozJSSubScriptLoader::DoLoadSubScriptWithOptions(const nsAString &url,
 
     bool ok = false;
     if (function) {
-        ok = JS_CallFunction(cx, targetObj, function, JS::EmptyValueArray, retval);
+        ok = JS_CallFunction(cx, targetObj, function, JS::HandleValueArray::empty(),
+                             retval);
     } else {
-        ok = JS_ExecuteScriptVersion(cx, targetObj, script, retval.address(), version);
+        ok = JS_ExecuteScriptVersion(cx, targetObj, script, retval, version);
     }
 
     if (ok) {

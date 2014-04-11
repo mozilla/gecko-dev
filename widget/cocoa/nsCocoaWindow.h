@@ -344,6 +344,11 @@ public:
       }
       return mInputContext;
     }
+    NS_IMETHOD_(bool) ExecuteNativeKeyBinding(
+                        NativeKeyBindingsType aType,
+                        const mozilla::WidgetKeyboardEvent& aEvent,
+                        DoCommandCallback aCallback,
+                        void* aCallbackData) MOZ_OVERRIDE;
 
     void SetPopupWindowLevel();
 
@@ -399,6 +404,7 @@ protected:
   bool                 mIsAnimationSuppressed;
 
   bool                 mInReportMoveEvent; // true if in a call to ReportMoveEvent().
+  bool                 mInResize; // true if in a call to DoResize().
 
   int32_t              mNumModalDescendents;
   InputContext         mInputContext;

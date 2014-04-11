@@ -46,6 +46,24 @@ XPCOMUtils.defineLazyServiceGetter(Services, "settings",
                                    "@mozilla.org/settingsService;1",
                                    "nsISettingsService");
 
+XPCOMUtils.defineLazyServiceGetter(Services, 'env',
+                                   '@mozilla.org/process/environment;1',
+                                   'nsIEnvironment');
+
+function useSettings() {
+  // When we're running in the real phone, then we can use settings.
+  // But when we're running as part of xpcshell, there is no settings database
+  // and trying to use settings in this scenario causes lots of weird
+  // assertions at shutdown time.
+  if (typeof useSettings.result === "undefined") {
+    useSettings.result = !Services.env.get("XPCSHELL_TEST_PROFILE_DIR");
+  }
+  return useSettings.result;
+}
+
+XPCOMUtils.defineLazyModuleGetter(this, "SystemAppProxy",
+                                  "resource://gre/modules/SystemAppProxy.jsm");
+
 function UpdateCheckListener(updatePrompt) {
   this._updatePrompt = updatePrompt;
 }
@@ -118,7 +136,6 @@ UpdatePrompt.prototype = {
   _applyPromptTimer: null,
   _waitingForIdle: false,
   _updateCheckListner: null,
-  _pendingEvents: [],
 
   get applyPromptTimeout() {
     return Services.prefs.getIntPref(PREF_APPLY_PROMPT_TIMEOUT);
@@ -128,14 +145,8 @@ UpdatePrompt.prototype = {
     return Services.prefs.getIntPref(PREF_APPLY_IDLE_TIMEOUT);
   },
 
-  handleContentStart: function UP_handleContentStart(shell) {
-    let content = shell.contentBrowser.contentWindow;
-    content.addEventListener("mozContentEvent", this);
-
-    for (let i = 0; i < this._pendingEvents.length; i++) {
-      shell.sendChromeEvent(this._pendingEvents[i]);
-    }
-    this._pendingEvents.length = 0;
+  handleContentStart: function UP_handleContentStart() {
+    SystemAppProxy.addEventListener("mozContentEvent", this);
   },
 
   // nsIUpdatePrompt
@@ -183,8 +194,10 @@ UpdatePrompt.prototype = {
 
   showUpdateHistory: function UP_showUpdateHistory(aParent) { },
   showUpdateInstalled: function UP_showUpdateInstalled() {
-    let lock = Services.settings.createLock();
-    lock.set("deviceinfo.last_updated", Date.now(), null, null);
+    if (useSettings()) {
+      let lock = Services.settings.createLock();
+      lock.set("deviceinfo.last_updated", Date.now(), null, null);
+    }
   },
 
   // Custom functions
@@ -200,10 +213,12 @@ UpdatePrompt.prototype = {
   },
 
   setUpdateStatus: function UP_setUpdateStatus(aStatus) {
-    log("Setting gecko.updateStatus: " + aStatus);
+     if (useSettings()) {
+       log("Setting gecko.updateStatus: " + aStatus);
 
-    let lock = Services.settings.createLock();
-    lock.set("gecko.updateStatus", aStatus, null);
+       let lock = Services.settings.createLock();
+       lock.set("gecko.updateStatus", aStatus, null);
+     }
   },
 
   showApplyPrompt: function UP_showApplyPrompt(aUpdate) {
@@ -271,15 +286,12 @@ UpdatePrompt.prototype = {
     let detail = aDetail || {};
     detail.type = aType;
 
-    let browser = Services.wm.getMostRecentWindow("navigator:browser");
-    if (!browser) {
-      this._pendingEvents.push(detail);
+    let sent = SystemAppProxy.dispatchEvent(detail);
+    if (!sent) {
       log("Warning: Couldn't send update event " + aType +
           ": no content browser. Will send again when content becomes available.");
       return false;
     }
-
-    browser.shell.sendChromeEvent(detail);
     return true;
   },
 
@@ -379,20 +391,22 @@ UpdatePrompt.prototype = {
 #endif
     }
 
-    // Save current os version in deviceinfo.previous_os
-    let lock = Services.settings.createLock({
-      handle: callbackAfterSet,
-      handleAbort: function(error) {
-        log("Abort callback when trying to set previous_os: " + error);
-        callbackAfterSet();
-      }
-    });
-    lock.get("deviceinfo.os", {
-      handle: function(name, value) {
-        log("Set previous_os to: " + value);
-        lock.set("deviceinfo.previous_os", value, null, null);
-      }
-    });
+    if (useSettings()) {
+      // Save current os version in deviceinfo.previous_os
+      let lock = Services.settings.createLock({
+        handle: callbackAfterSet,
+        handleAbort: function(error) {
+          log("Abort callback when trying to set previous_os: " + error);
+          callbackAfterSet();
+        }
+      });
+      lock.get("deviceinfo.os", {
+        handle: function(name, value) {
+          log("Set previous_os to: " + value);
+          lock.set("deviceinfo.previous_os", value, null, null);
+        }
+      });
+    }
   },
 
   forceUpdateCheck: function UP_forceUpdateCheck() {

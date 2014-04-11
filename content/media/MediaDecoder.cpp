@@ -59,6 +59,8 @@ class MediaMemoryTracker : public nsIMemoryReporter
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIMEMORYREPORTER
 
+  MOZ_DEFINE_MALLOC_SIZE_OF(MallocSizeOf);
+
   MediaMemoryTracker();
   virtual ~MediaMemoryTracker();
   void InitMemoryReporter();
@@ -122,7 +124,7 @@ void MediaDecoder::SetDormantIfNecessary(bool aDormant)
     DestroyDecodedStream();
     mDecoderStateMachine->SetDormant(true);
 
-    mRequestedSeekTime = mCurrentTime;
+    mRequestedSeekTarget = SeekTarget(mCurrentTime, SeekTarget::Accurate);
     if (mPlayState == PLAY_STATE_PLAYING){
       mNextState = PLAY_STATE_PLAYING;
     } else {
@@ -418,16 +420,15 @@ MediaDecoder::MediaDecoder() :
   mIsExitingDormant(false),
   mPlayState(PLAY_STATE_PAUSED),
   mNextState(PLAY_STATE_PAUSED),
-  mRequestedSeekTime(-1.0),
   mCalledResourceLoaded(false),
   mIgnoreProgressData(false),
   mInfiniteStream(false),
   mOwner(nullptr),
-  mFrameBufferLength(0),
   mPinnedForSeek(false),
   mShuttingDown(false),
   mPausedForPlaybackRateNull(false),
-  mAudioChannelType(AUDIO_CHANNEL_NORMAL)
+  mAudioChannelType(AUDIO_CHANNEL_NORMAL),
+  mMinimizePreroll(false)
 {
   MOZ_COUNT_CTOR(MediaDecoder);
   MOZ_ASSERT(NS_IsMainThread());
@@ -550,10 +551,8 @@ nsresult MediaDecoder::InitializeStateMachine(MediaDecoder* aCloneDonor)
     mDecoderStateMachine->SetAudioCaptured(mInitialAudioCaptured);
     SetPlaybackRate(mInitialPlaybackRate);
     mDecoderStateMachine->SetPreservesPitch(mInitialPreservesPitch);
-
-    if (mFrameBufferLength > 0) {
-      // The valid mFrameBufferLength value was specified earlier
-      mDecoderStateMachine->SetFrameBufferLength(mFrameBufferLength);
+    if (mMinimizePreroll) {
+      mDecoderStateMachine->SetMinimizePrerollUntilPlaybackStarts();
     }
   }
 
@@ -562,18 +561,10 @@ nsresult MediaDecoder::InitializeStateMachine(MediaDecoder* aCloneDonor)
   return ScheduleStateMachineThread();
 }
 
-nsresult MediaDecoder::RequestFrameBufferLength(uint32_t aLength)
+void MediaDecoder::SetMinimizePrerollUntilPlaybackStarts()
 {
-  if (aLength < FRAMEBUFFER_LENGTH_MIN || aLength > FRAMEBUFFER_LENGTH_MAX) {
-    return NS_ERROR_DOM_INDEX_SIZE_ERR;
-  }
-  mFrameBufferLength = aLength;
-
-  ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
-  if (mDecoderStateMachine) {
-      mDecoderStateMachine->SetFrameBufferLength(aLength);
-  }
-  return NS_OK;
+  MOZ_ASSERT(NS_IsMainThread());
+  mMinimizePreroll = true;
 }
 
 nsresult MediaDecoder::ScheduleStateMachineThread()
@@ -603,99 +594,27 @@ nsresult MediaDecoder::Play()
     return NS_OK;
   }
   if (mPlayState == PLAY_STATE_ENDED)
-    return Seek(0);
+    return Seek(0, SeekTarget::PrevSyncPoint);
 
   ChangeState(PLAY_STATE_PLAYING);
   return NS_OK;
 }
 
-/**
- * Returns true if aValue is inside a range of aRanges, and put the range
- * index in aIntervalIndex if it is not null.
- * If aValue is not inside a range, false is returned, and aIntervalIndex, if
- * not null, is set to the index of the range which ends immediately before aValue
- * (and can be -1 if aValue is before aRanges.Start(0)).
- */
-static bool
-IsInRanges(dom::TimeRanges& aRanges, double aValue, int32_t& aIntervalIndex)
-{
-  uint32_t length;
-  aRanges.GetLength(&length);
-  for (uint32_t i = 0; i < length; i++) {
-    double start, end;
-    aRanges.Start(i, &start);
-    if (start > aValue) {
-      aIntervalIndex = i - 1;
-      return false;
-    }
-    aRanges.End(i, &end);
-    if (aValue <= end) {
-      aIntervalIndex = i;
-      return true;
-    }
-  }
-  aIntervalIndex = length - 1;
-  return false;
-}
-
-nsresult MediaDecoder::Seek(double aTime)
+nsresult MediaDecoder::Seek(double aTime, SeekTarget::Type aSeekType)
 {
   MOZ_ASSERT(NS_IsMainThread());
   ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
 
   NS_ABORT_IF_FALSE(aTime >= 0.0, "Cannot seek to a negative value.");
 
-  dom::TimeRanges seekable;
-  nsresult res;
-  uint32_t length = 0;
-  res = GetSeekable(&seekable);
-  NS_ENSURE_SUCCESS(res, NS_OK);
+  int64_t timeUsecs = 0;
+  nsresult rv = SecondsToUsecs(aTime, timeUsecs);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  seekable.GetLength(&length);
-  if (!length) {
-    return NS_OK;
-  }
-
-  // If the position we want to seek to is not in a seekable range, we seek
-  // to the closest position in the seekable ranges instead. If two positions
-  // are equally close, we seek to the closest position from the currentTime.
-  // See seeking spec, point 7 :
-  // http://www.whatwg.org/specs/web-apps/current-work/multipage/the-video-element.html#seeking
-  int32_t range = 0;
-  if (!IsInRanges(seekable, aTime, range)) {
-    if (range != -1) {
-      // |range + 1| can't be negative, because the only possible negative value
-      // for |range| is -1.
-      if (uint32_t(range + 1) < length) {
-        double leftBound, rightBound;
-        res = seekable.End(range, &leftBound);
-        NS_ENSURE_SUCCESS(res, NS_OK);
-        res = seekable.Start(range + 1, &rightBound);
-        NS_ENSURE_SUCCESS(res, NS_OK);
-        double distanceLeft = Abs(leftBound - aTime);
-        double distanceRight = Abs(rightBound - aTime);
-        if (distanceLeft == distanceRight) {
-          distanceLeft = Abs(leftBound - mCurrentTime);
-          distanceRight = Abs(rightBound - mCurrentTime);
-        }
-        aTime = (distanceLeft < distanceRight) ? leftBound : rightBound;
-      } else {
-        // Seek target is after the end last range in seekable data.
-        // Clamp the seek target to the end of the last seekable range.
-        res = seekable.End(length - 1, &aTime);
-        NS_ENSURE_SUCCESS(res, NS_OK);
-      }
-    } else {
-      // aTime is before the first range in |seekable|, the closest point we can
-      // seek to is the start of the first range.
-      seekable.Start(0, &aTime);
-    }
-  }
-
-  mRequestedSeekTime = aTime;
+  mRequestedSeekTarget = SeekTarget(timeUsecs, aSeekType);
   mCurrentTime = aTime;
 
-  // If we are already in the seeking state, then setting mRequestedSeekTime
+  // If we are already in the seeking state, then setting mRequestedSeekTarget
   // above will result in the new seek occurring when the current seek
   // completes.
   if ((mPlayState != PLAY_STATE_LOADING || !mIsDormant) && mPlayState != PLAY_STATE_SEEKING) {
@@ -711,6 +630,13 @@ nsresult MediaDecoder::Seek(double aTime)
   return ScheduleStateMachineThread();
 }
 
+bool MediaDecoder::IsLogicallyPlaying()
+{
+  GetReentrantMonitor().AssertCurrentThreadIn();
+  return mPlayState == PLAY_STATE_PLAYING ||
+         mNextState == PLAY_STATE_PLAYING;
+}
+
 double MediaDecoder::GetCurrentTime()
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -721,21 +647,6 @@ already_AddRefed<nsIPrincipal> MediaDecoder::GetCurrentPrincipal()
 {
   MOZ_ASSERT(NS_IsMainThread());
   return mResource ? mResource->GetCurrentPrincipal() : nullptr;
-}
-
-void MediaDecoder::AudioAvailable(float* aFrameBuffer,
-                                      uint32_t aFrameBufferLength,
-                                      float aTime)
-{
-  // Auto manage the frame buffer's memory. If we return due to an error
-  // here, this ensures we free the memory. Otherwise, we pass off ownership
-  // to HTMLMediaElement::NotifyAudioAvailable().
-  nsAutoArrayPtr<float> frameBuffer(aFrameBuffer);
-  MOZ_ASSERT(NS_IsMainThread());
-  if (mShuttingDown || !mOwner) {
-    return;
-  }
-  mOwner->NotifyAudioAvailable(frameBuffer.forget(), aFrameBufferLength, aTime);
 }
 
 void MediaDecoder::QueueMetadata(int64_t aPublishTime,
@@ -753,7 +664,6 @@ void MediaDecoder::QueueMetadata(int64_t aPublishTime,
 bool
 MediaDecoder::IsDataCachedToEndOfResource()
 {
-  NS_ASSERTION(!mShuttingDown, "Don't call during shutdown!");
   ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
   return (mResource &&
           mResource->IsDataCachedToEndOfResource(mDecoderPosition));
@@ -814,7 +724,7 @@ void MediaDecoder::MetadataLoaded(int aChannels, int aRate, bool aHasAudio, bool
   // state if we're still set to the original
   // loading state.
   if (mPlayState == PLAY_STATE_LOADING) {
-    if (mRequestedSeekTime >= 0.0) {
+    if (mRequestedSeekTarget.IsValid()) {
       ChangeState(PLAY_STATE_SEEKING);
     }
     else {
@@ -1141,7 +1051,7 @@ void MediaDecoder::SeekingStopped()
 
     // An additional seek was requested while the current seek was
     // in operation.
-    if (mRequestedSeekTime >= 0.0) {
+    if (mRequestedSeekTarget.IsValid()) {
       ChangeState(PLAY_STATE_SEEKING);
       seekWasAborted = true;
     } else {
@@ -1149,6 +1059,8 @@ void MediaDecoder::SeekingStopped()
       ChangeState(mNextState);
     }
   }
+
+  PlaybackPositionChanged();
 
   if (mOwner) {
     UpdateReadyStateForData();
@@ -1174,7 +1086,7 @@ void MediaDecoder::SeekingStoppedAtEnd()
 
     // An additional seek was requested while the current seek was
     // in operation.
-    if (mRequestedSeekTime >= 0.0) {
+    if (mRequestedSeekTarget.IsValid()) {
       ChangeState(PLAY_STATE_SEEKING);
       seekWasAborted = true;
     } else {
@@ -1183,6 +1095,8 @@ void MediaDecoder::SeekingStoppedAtEnd()
       ChangeState(PLAY_STATE_ENDED);
     }
   }
+
+  PlaybackPositionChanged();
 
   if (mOwner) {
     UpdateReadyStateForData();
@@ -1252,8 +1166,8 @@ void MediaDecoder::ApplyStateToStateMachine(PlayState aState)
         mDecoderStateMachine->Play();
         break;
       case PLAY_STATE_SEEKING:
-        mDecoderStateMachine->Seek(mRequestedSeekTime);
-        mRequestedSeekTime = -1.0;
+        mDecoderStateMachine->Seek(mRequestedSeekTarget);
+        mRequestedSeekTarget.Reset();
         break;
       default:
         /* No action needed */
@@ -1313,6 +1227,8 @@ void MediaDecoder::DurationChanged()
   mDuration = mDecoderStateMachine ? mDecoderStateMachine->GetDuration() : -1;
   // Duration has changed so we should recompute playback rate
   UpdatePlaybackRate();
+
+  SetInfinite(mDuration == -1);
 
   if (mOwner && oldDuration != mDuration && !IsInfinite()) {
     DECODER_LOG(PR_LOG_DEBUG, ("%p duration changed to %lld", this, mDuration));
@@ -1485,15 +1401,6 @@ bool MediaDecoder::OnStateMachineThread() const
   return mDecoderStateMachine->OnStateMachineThread();
 }
 
-void MediaDecoder::NotifyAudioAvailableListener()
-{
-  MOZ_ASSERT(NS_IsMainThread());
-  if (mDecoderStateMachine) {
-    ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
-    mDecoderStateMachine->NotifyAudioAvailableListener();
-  }
-}
-
 void MediaDecoder::SetPlaybackRate(double aPlaybackRate)
 {
   if (aPlaybackRate == 0) {
@@ -1562,9 +1469,9 @@ nsresult MediaDecoder::GetBuffered(dom::TimeRanges* aBuffered) {
   return NS_ERROR_FAILURE;
 }
 
-int64_t MediaDecoder::VideoQueueMemoryInUse() {
+size_t MediaDecoder::SizeOfVideoQueue() {
   if (mDecoderStateMachine) {
-    return mDecoderStateMachine->VideoQueueMemoryInUse();
+    return mDecoderStateMachine->SizeOfVideoQueue();
   }
   return 0;
 }
@@ -1590,6 +1497,15 @@ void MediaDecoder::UpdatePlaybackPosition(int64_t aTime)
 // Provide access to the state machine object
 MediaDecoderStateMachine* MediaDecoder::GetStateMachine() const {
   return mDecoderStateMachine;
+}
+
+void
+MediaDecoder::NotifyWaitingForResourcesStatusChanged()
+{
+  ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
+  if (mDecoderStateMachine) {
+    mDecoderStateMachine->NotifyWaitingForResourcesStatusChanged();
+  }
 }
 
 bool MediaDecoder::IsShutdown() const {
@@ -1821,10 +1737,16 @@ MediaMemoryTracker::CollectReports(nsIHandleReportCallback* aHandleReport,
                                    nsISupports* aData)
 {
   int64_t video = 0, audio = 0;
+  size_t resources = 0;
   DecodersArray& decoders = Decoders();
   for (size_t i = 0; i < decoders.Length(); ++i) {
-    video += decoders[i]->VideoQueueMemoryInUse();
-    audio += decoders[i]->SizeOfAudioQueue();
+    MediaDecoder* decoder = decoders[i];
+    video += decoder->SizeOfVideoQueue();
+    audio += decoder->SizeOfAudioQueue();
+
+    if (decoder->GetResource()) {
+      resources += decoder->GetResource()->SizeOfIncludingThis(MallocSizeOf);
+    }
   }
 
 #define REPORT(_path, _amount, _desc)                                         \
@@ -1836,11 +1758,15 @@ MediaMemoryTracker::CollectReports(nsIHandleReportCallback* aHandleReport,
       NS_ENSURE_SUCCESS(rv, rv);                                              \
   } while (0)
 
-  REPORT("explicit/media/decoded-video", video,
+  REPORT("explicit/media/decoded/video", video,
          "Memory used by decoded video frames.");
 
-  REPORT("explicit/media/decoded-audio", audio,
+  REPORT("explicit/media/decoded/audio", audio,
          "Memory used by decoded audio chunks.");
+
+  REPORT("explicit/media/resources", resources,
+         "Memory used by media resources including streaming buffers, caches, "
+         "etc.");
 
   return NS_OK;
 }

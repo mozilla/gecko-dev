@@ -24,7 +24,6 @@ function addDirToZip(writer, dir, basePath) {
     let file = files.getNext().QueryInterface(Ci.nsIFile);
 
     if (file.isHidden() ||
-        file.isSymlink() ||
         file.isSpecial() ||
         file.equals(writer.file))
     {
@@ -259,7 +258,7 @@ function reloadApp(client, webappsActor, manifestURL) {
                   webappsActor,
                   manifestURL).
     then((target) => {
-      // Request the ContentAppActor to reload the app
+      // Request the ContentActor to reload the app
       let request = {
         to: target.form.actor,
         type: "reload",

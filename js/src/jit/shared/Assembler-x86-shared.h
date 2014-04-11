@@ -948,6 +948,18 @@ class AssemblerX86Shared
             MOZ_ASSUME_UNREACHABLE("unexpected operand kind");
         }
     }
+    void subl(const Register &src, const Operand &dest) {
+        switch (dest.kind()) {
+          case Operand::REG:
+            masm.subl_rr(src.code(), dest.reg());
+            break;
+          case Operand::MEM_REG_DISP:
+            masm.subl_rm(src.code(), dest.disp(), dest.base());
+            break;
+          default:
+            MOZ_ASSUME_UNREACHABLE("unexpected operand kind");
+        }
+    }
     void orl(const Register &reg, const Register &dest) {
         masm.orl_rr(reg.code(), dest.code());
     }
@@ -1344,7 +1356,7 @@ class AssemblerX86Shared
     void pcmpeqw(const FloatRegister &lhs, const FloatRegister &rhs) {
         JS_ASSERT(HasSSE2());
         masm.pcmpeqw_rr(rhs.code(), lhs.code());
-    }    
+    }
     void movd(const Register &src, const FloatRegister &dest) {
         JS_ASSERT(HasSSE2());
         masm.movd_rr(src.code(), dest.code());

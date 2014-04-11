@@ -486,6 +486,7 @@
   ERROR(NS_ERROR_DOM_ENCODING_NOT_SUPPORTED_ERR,   FAILURE(28)),
   ERROR(NS_ERROR_DOM_ENCODING_NOT_UTF_ERR,         FAILURE(29)),
   ERROR(NS_ERROR_DOM_ENCODING_DECODE_ERR,          FAILURE(30)),
+  ERROR(NS_ERROR_DOM_INVALID_POINTER_ERR,          FAILURE(31)),
   /* DOM error codes defined by us */
   ERROR(NS_ERROR_DOM_SECMAN_ERR,                   FAILURE(1001)),
   ERROR(NS_ERROR_DOM_WRONG_TYPE_ERR,               FAILURE(1002)),
@@ -809,6 +810,7 @@
   ERROR(NS_ERROR_DOM_FILEHANDLE_LOCKEDFILE_INACTIVE_ERR,  FAILURE(3)),
   ERROR(NS_ERROR_DOM_FILEHANDLE_ABORT_ERR,                FAILURE(4)),
   ERROR(NS_ERROR_DOM_FILEHANDLE_READ_ONLY_ERR,            FAILURE(5)),
+  ERROR(NS_ERROR_DOM_FILEHANDLE_QUOTA_ERR,                FAILURE(6)),
 #undef MODULE
 
   /* ======================================================================= */
@@ -823,6 +825,18 @@
   ERROR(NS_ERROR_SIGNED_JAR_ENTRY_TOO_LARGE,              FAILURE(6)),
   ERROR(NS_ERROR_SIGNED_JAR_ENTRY_INVALID,                FAILURE(7)),
   ERROR(NS_ERROR_SIGNED_JAR_MANIFEST_INVALID,             FAILURE(8)),
+#undef MODULE
+
+  /* ======================================================================= */
+  /* 36: NS_ERROR_MODULE_DOM_FILESYSTEM */
+  /* ======================================================================= */
+#define MODULE NS_ERROR_MODULE_DOM_FILESYSTEM
+  ERROR(NS_ERROR_DOM_FILESYSTEM_INVALID_PATH_ERR,          FAILURE(1)),
+  ERROR(NS_ERROR_DOM_FILESYSTEM_INVALID_MODIFICATION_ERR,  FAILURE(2)),
+  ERROR(NS_ERROR_DOM_FILESYSTEM_NO_MODIFICATION_ALLOWED_ERR, FAILURE(3)),
+  ERROR(NS_ERROR_DOM_FILESYSTEM_PATH_EXISTS_ERR,           FAILURE(4)),
+  ERROR(NS_ERROR_DOM_FILESYSTEM_TYPE_MISMATCH_ERR,         FAILURE(5)),
+  ERROR(NS_ERROR_DOM_FILESYSTEM_UNKNOWN_ERR,               FAILURE(6)),
 #undef MODULE
 
   /* ======================================================================= */

@@ -157,6 +157,8 @@ WebMReader::WebMReader(AbstractMediaDecoder* aDecoder)
   mAudioTrack(0),
   mAudioStartUsec(-1),
   mAudioFrames(0),
+  mAudioCodec(-1),
+  mVideoCodec(-1),
   mHasVideo(false),
   mHasAudio(false)
 {
@@ -603,7 +605,6 @@ bool WebMReader::DecodeAudioPacket(nestegg_packet* aPacket, int64_t aOffset)
         CheckedInt64 time = total_duration + tstamp_usecs;
         if (!time.isValid()) {
           NS_WARNING("Int overflow adding total_duration and tstamp_usecs");
-          nestegg_free_packet(aPacket);
           return false;
         };
 
@@ -731,7 +732,6 @@ bool WebMReader::DecodeAudioPacket(nestegg_packet* aPacket, int64_t aOffset)
       CheckedInt64 time = startTime - mCodecDelay;
       if (!time.isValid()) {
         NS_WARNING("Int overflow shifting tstamp by codec delay");
-        nestegg_free_packet(aPacket);
         return false;
       };
       AudioQueue().Push(new AudioData(mDecoder->GetResource()->Tell(),
@@ -865,22 +865,20 @@ bool WebMReader::DecodeVideoFrame(bool &aKeyframeSkip,
   // end of the resource, use the file's duration as the end time of this
   // video frame.
   uint64_t next_tstamp = 0;
-  {
-    nsAutoRef<NesteggPacketHolder> next_holder(NextPacket(VIDEO));
-    if (next_holder) {
-      r = nestegg_packet_tstamp(next_holder->mPacket, &next_tstamp);
-      if (r == -1) {
-        return false;
-      }
-      PushVideoPacket(next_holder.disown());
-    } else {
-      ReentrantMonitorAutoEnter decoderMon(mDecoder->GetReentrantMonitor());
-      int64_t endTime = mDecoder->GetEndMediaTime();
-      if (endTime == -1) {
-        return false;
-      }
-      next_tstamp = endTime * NS_PER_USEC;
+  nsAutoRef<NesteggPacketHolder> next_holder(NextPacket(VIDEO));
+  if (next_holder) {
+    r = nestegg_packet_tstamp(next_holder->mPacket, &next_tstamp);
+    if (r == -1) {
+      return false;
     }
+    PushVideoPacket(next_holder.disown());
+  } else {
+    ReentrantMonitorAutoEnter decoderMon(mDecoder->GetReentrantMonitor());
+    int64_t endTime = mDecoder->GetEndMediaTime();
+    if (endTime == -1) {
+      return false;
+    }
+    next_tstamp = endTime * NS_PER_USEC;
   }
 
   int64_t tstamp_usecs = tstamp / NS_PER_USEC;
@@ -1008,7 +1006,7 @@ nsresult WebMReader::Seek(int64_t aTarget, int64_t aStartTime, int64_t aEndTime,
   if (r != 0) {
     return NS_ERROR_FAILURE;
   }
-  return DecodeToTarget(aTarget);
+  return NS_OK;
 }
 
 nsresult WebMReader::GetBuffered(dom::TimeRanges* aBuffered, int64_t aStartTime)

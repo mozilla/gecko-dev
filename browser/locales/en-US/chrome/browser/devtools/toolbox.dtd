@@ -57,11 +57,11 @@
   -  options panel and is used for settings that trigger page reload. -->
 <!ENTITY options.context.triggersPageRefresh  "* Current session only, reloads the page">
 
-<!-- LOCALIZATION NOTE (options.enableChrome.label3): This is the label for the
+<!-- LOCALIZATION NOTE (options.enableChrome.label4): This is the label for the
   -  checkbox that toggles chrome debugging, i.e. devtools.chrome.enabled
   -  boolean preference in about:config, in the options panel. -->
-<!ENTITY options.enableChrome.label3    "Enable chrome debugging">
-<!ENTITY options.enableChrome.tooltip   "Turning this option on will allow you to use various developer tools in browser context">
+<!ENTITY options.enableChrome.label4    "Enable chrome and addon debugging">
+<!ENTITY options.enableChrome.tooltip2  "Turning this option on will allow you to use various developer tools in browser context and debug addons from the Add-On Manager">
 
 <!-- LOCALIZATION NOTE (options.enableRemote.label3): This is the label for the
   -  checkbox that toggles remote debugging, i.e. devtools.debugger.remote-enabled
@@ -92,6 +92,11 @@
   -  installed by add-ons. -->
 <!ENTITY options.selectAdditionalTools.label  "Developer Tools installed by add-ons">
 
+<!-- LOCALIZATION NOTE (options.selectEnabledToolboxButtons.label): This is the label for
+  -  the heading of group of checkboxes corresponding to the default developer
+  -  tool buttons. -->
+<!ENTITY options.selectEnabledToolboxButtons.label     "Available Toolbox Buttons">
+
 <!-- LOCALIZATION NOTE (options.toolNotSupported.label): This is the label for
   -  the explanation of the * marker on a tool which is currently not supported
   -  for the target of the toolbox. -->
@@ -107,13 +112,6 @@
 <!-- LOCALIZATION NOTE (options.webconsole.label): This is the label for the
   -  heading of the group of Web Console preferences in the options panel. -->
 <!ENTITY options.webconsole.label            "Web Console">
-
-<!-- LOCALIZATION NOTE (options.enablePersistentLogging.label): This is the
-  -  label for the checkbox that toggles persistent logs in the Web Console,
-  -  i.e. devtools.webconsole.persistlog a boolean preference in about:config,
-  -  in the options panel. -->
-<!ENTITY options.enablePersistentLogging.label    "Enable persistent logs">
-<!ENTITY options.enablePersistentLogging.tooltip  "If you enable this option the Web Console will not clear the output each time you navigate to a new page">
 
 <!-- LOCALIZATION NOTE (options.timestampMessages.label): This is the
    - label for the checkbox that toggles timestamps in the Web Console -->
@@ -139,6 +137,18 @@
   -  heading of the group of JavaScript Profiler preferences in the options
   -  panel. -->
 <!ENTITY options.profiler.label            "JavaScript Profiler">
+
+<!-- LOCALICATION NOTE (options.commonprefs): This is the label for the heading
+      of all preferences that affect both the Web Console and the Network
+      Monitor -->
+<!ENTITY options.commonPrefs.label           "Common Preferences">
+
+<!-- LOCALIZATION NOTE (options.enablePersistentLogging.label): This is the
+  -  label for the checkbox that toggles persistent logs in the Web Console and
+  -  network monitor,  i.e. devtools.webconsole.persistlog a boolean preference in
+  -  about:config, in the options panel. -->
+<!ENTITY options.enablePersistentLogging.label    "Enable persistent logs">
+<!ENTITY options.enablePersistentLogging.tooltip  "If you enable this option the Web Console and Network Monitor will not clear the output each time you navigate to a new page">
 
 <!-- LOCALIZATION NOTE (options.showPlatformData.label): This is the
   -  label for the checkbox that toggles the display of the platform data in the,

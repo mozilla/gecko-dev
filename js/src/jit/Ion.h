@@ -160,8 +160,8 @@ static inline bool
 IsIonEnabled(JSContext *cx)
 {
     return cx->runtime()->options().ion() &&
-        cx->runtime()->options().baseline() &&
-        cx->typeInferenceEnabled();
+           cx->runtime()->options().baseline() &&
+           cx->runtime()->jitSupportsFloatingPoint;
 }
 
 inline bool
@@ -186,7 +186,7 @@ size_t SizeOfIonData(JSScript *script, mozilla::MallocSizeOf mallocSizeOf);
 void DestroyIonScripts(FreeOp *fop, JSScript *script);
 void TraceIonScripts(JSTracer* trc, JSScript *script);
 
-void TriggerOperationCallbackForIonCode(JSRuntime *rt, JSRuntime::OperationCallbackTrigger trigger);
+void RequestInterruptForIonCode(JSRuntime *rt, JSRuntime::InterruptMode mode);
 
 } // namespace jit
 } // namespace js

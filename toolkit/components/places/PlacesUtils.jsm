@@ -42,7 +42,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
-                                  "resource://gre/modules/commonjs/sdk/core/promise.js");
+                                  "resource://gre/modules/Promise.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "Deprecated",
                                   "resource://gre/modules/Deprecated.jsm");
@@ -76,12 +76,6 @@ function QI_node(aNode, aIID) {
   }
   return result;
 }
-function asVisit(aNode) {
-  Deprecated.warning(
-    "asVisit is deprecated and will be removed in a future version",
-    "https://bugzilla.mozilla.org/show_bug.cgi?id=561450");
-  return aNode;
-};
 function asContainer(aNode) QI_node(aNode, Ci.nsINavHistoryContainerResultNode);
 function asQuery(aNode) QI_node(aNode, Ci.nsINavHistoryQueryResultNode);
 
@@ -119,7 +113,6 @@ this.PlacesUtils = {
   TOPIC_BOOKMARKS_RESTORE_SUCCESS: "bookmarks-restore-success",
   TOPIC_BOOKMARKS_RESTORE_FAILED: "bookmarks-restore-failed",
 
-  asVisit: function(aNode) asVisit(aNode),
   asContainer: function(aNode) asContainer(aNode),
   asQuery: function(aNode) asQuery(aNode),
 
@@ -189,33 +182,11 @@ this.PlacesUtils = {
   },
 
   /**
-   * Determines whether or not a ResultNode is a visit item.
-   * @param   aNode
-   *          A result node
-   * @returns true if the node is a visit item, false otherwise
-   */
-  nodeIsVisit: function PU_nodeIsVisit(aNode) {
-    Deprecated.warning(
-      "nodeIsVisit is deprecated ans will be removed in a future version",
-      "https://bugzilla.mozilla.org/show_bug.cgi?id=561450");
-    return this.nodeIsURI(aNode) && aNode.parent &&
-           this.nodeIsQuery(aNode.parent) &&
-           asQuery(aNode.parent).queryOptions.resultType ==
-             Ci.nsINavHistoryQueryOptions.RESULTS_AS_VISIT;
-  },
-
-  /**
    * Determines whether or not a ResultNode is a URL item.
    * @param   aNode
    *          A result node
    * @returns true if the node is a URL item, false otherwise
    */
-  get uriTypes() {
-    Deprecated.warning(
-      "uriTypes is deprecated ans will be removed in a future version",
-      "https://bugzilla.mozilla.org/show_bug.cgi?id=561450");
-    return [Ci.nsINavHistoryResultNode.RESULT_TYPE_URI];
-  },
   nodeIsURI: function PU_nodeIsURI(aNode) {
     return aNode.type == Ci.nsINavHistoryResultNode.RESULT_TYPE_URI;
   },
@@ -507,11 +478,9 @@ this.PlacesUtils = {
    *          Used instead of the node's URI if provided.
    *          This is useful for wrapping a container as TYPE_X_MOZ_URL,
    *          TYPE_HTML or TYPE_UNICODE.
-   * @param   aForceCopy
-   *          Does a full copy, resolving folder shortcuts.
-   * @returns A string serialization of the node
+   * @return  A string serialization of the node
    */
-  wrapNode: function PU_wrapNode(aNode, aType, aOverrideURI, aForceCopy) {
+  wrapNode: function PU_wrapNode(aNode, aType, aOverrideURI) {
     // when wrapping a node, we want all the items, even if the original
     // query options are excluding them.
     // this can happen when copying from the left hand pane of the bookmarks
@@ -519,9 +488,9 @@ this.PlacesUtils = {
     // @return [node, shouldClose]
     function convertNode(cNode) {
       if (PlacesUtils.nodeIsFolder(cNode) &&
+          cNode.type != Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER_SHORTCUT &&
           asQuery(cNode).queryOptions.excludeItems) {
-        let concreteId = PlacesUtils.getConcreteItemId(cNode);
-        return [PlacesUtils.getFolderContents(concreteId, false, true).root, true];
+        return [PlacesUtils.getFolderContents(cNode.itemId, false, true).root, true];
       }
 
       // If we didn't create our own query, do not alter the node's open state.
@@ -559,7 +528,7 @@ this.PlacesUtils = {
         };
 
         let [node, shouldClose] = convertNode(aNode);
-        this._serializeNodeAsJSONToOutputStream(node, writer, true, aForceCopy);
+        this._serializeNodeAsJSONToOutputStream(node, writer);
         if (shouldClose)
           node.containerOpen = false;
 
@@ -1129,155 +1098,6 @@ this.PlacesUtils = {
   },
 
   /**
-   * Takes a JSON-serialized node and inserts it into the db.
-   *
-   * @param   aData
-   *          The unwrapped data blob of dropped or pasted data.
-   * @param   aContainer
-   *          The container the data was dropped or pasted into
-   * @param   aIndex
-   *          The index within the container the item was dropped or pasted at
-   * @returns an array containing of maps of old folder ids to new folder ids,
-   *          and an array of saved search ids that need to be fixed up.
-   *          eg: [[[oldFolder1, newFolder1]], [search1]]
-   */
-  importJSONNode: function PU_importJSONNode(aData, aContainer, aIndex, aGrandParentId) {
-    Deprecated.warning(
-      "importJSONNode is deprecated and will be removed in a future version",
-      "https://bugzilla.mozilla.org/show_bug.cgi?id=855842");
-
-    var folderIdMap = [];
-    var searchIds = [];
-    var id = -1;
-    switch (aData.type) {
-      case this.TYPE_X_MOZ_PLACE_CONTAINER:
-        if (aContainer == PlacesUtils.tagsFolderId) {
-          // node is a tag
-          if (aData.children) {
-            aData.children.forEach(function(aChild) {
-              try {
-                this.tagging.tagURI(this._uri(aChild.uri), [aData.title]);
-              } catch (ex) {
-                // invalid tag child, skip it
-              }
-            }, this);
-            return [folderIdMap, searchIds];
-          }
-        }
-        else if (aData.livemark && aData.annos) {
-          // node is a livemark
-          var feedURI = null;
-          var siteURI = null;
-          aData.annos = aData.annos.filter(function(aAnno) {
-            switch (aAnno.name) {
-              case this.LMANNO_FEEDURI:
-                feedURI = this._uri(aAnno.value);
-                return false;
-              case this.LMANNO_SITEURI:
-                siteURI = this._uri(aAnno.value);
-                return false;
-              default:
-                return true;
-            }
-          }, this);
-
-          if (feedURI) {
-            this.livemarks.addLivemark(
-              { title: aData.title
-              , feedURI: feedURI
-              , parentId: aContainer
-              , index: aIndex
-              , lastModified: aData.lastModified
-              , siteURI: siteURI
-              },
-              (function(aStatus, aLivemark) {
-                if (Components.isSuccessCode(aStatus)) {
-                  let id = aLivemark.id;
-                  if (aData.dateAdded)
-                    this.bookmarks.setItemDateAdded(id, aData.dateAdded);
-                  if (aData.annos && aData.annos.length)
-                    this.setAnnotationsForItem(id, aData.annos);
-                }
-              }).bind(this)
-            );
-          }
-        }
-        else {
-          id = this.bookmarks.createFolder(aContainer, aData.title, aIndex);
-          folderIdMap[aData.id] = id;
-          // process children
-          if (aData.children) {
-            aData.children.forEach(function(aChild, aIndex) {
-              var [folders, searches] = this.importJSONNode(aChild, id, aIndex, aContainer);
-              for (var i = 0; i < folders.length; i++) {
-                if (folders[i])
-                  folderIdMap[i] = folders[i];
-              }
-              searchIds = searchIds.concat(searches);
-            }, this);
-          }
-        }
-        break;
-      case this.TYPE_X_MOZ_PLACE:
-        id = this.bookmarks.insertBookmark(aContainer, this._uri(aData.uri),
-                                           aIndex, aData.title);
-        if (aData.keyword)
-          this.bookmarks.setKeywordForBookmark(id, aData.keyword);
-        if (aData.tags) {
-          var tags = aData.tags.split(", ");
-          if (tags.length)
-            this.tagging.tagURI(this._uri(aData.uri), tags);
-        }
-        if (aData.charset) {
-            this.setCharsetForURI(this._uri(aData.uri), aData.charset);
-        }
-        if (aData.uri.substr(0, 6) == "place:")
-          searchIds.push(id);
-        if (aData.icon) {
-          try {
-            // Create a fake faviconURI to use (FIXME: bug 523932)
-            let faviconURI = this._uri("fake-favicon-uri:" + aData.uri);
-            this.favicons.replaceFaviconDataFromDataURL(faviconURI, aData.icon, 0);
-            this.favicons.setAndFetchFaviconForPage(this._uri(aData.uri), faviconURI, false,
-              this.favicons.FAVICON_LOAD_NON_PRIVATE);
-          } catch (ex) {
-            Components.utils.reportError("Failed to import favicon data:"  + ex);
-          }
-        }
-        if (aData.iconUri) {
-          try {
-            this.favicons.setAndFetchFaviconForPage(this._uri(aData.uri),
-                                                    this._uri(aData.iconUri),
-                                                    false,
-                                                    this.favicons.FAVICON_LOAD_NON_PRIVATE);
-          } catch (ex) {
-            Components.utils.reportError("Failed to import favicon URI:"  + ex);
-          }
-        }
-        break;
-      case this.TYPE_X_MOZ_PLACE_SEPARATOR:
-        id = this.bookmarks.insertSeparator(aContainer, aIndex);
-        break;
-      default:
-        // Unknown node type
-    }
-
-    // set generic properties, valid for all nodes
-    if (id != -1 &&
-        aContainer != PlacesUtils.tagsFolderId &&
-        aGrandParentId != PlacesUtils.tagsFolderId) {
-      if (aData.dateAdded)
-        this.bookmarks.setItemDateAdded(id, aData.dateAdded);
-      if (aData.lastModified)
-        this.bookmarks.setItemLastModified(id, aData.lastModified);
-      if (aData.annos && aData.annos.length)
-        this.setAnnotationsForItem(id, aData.annos);
-    }
-
-    return [folderIdMap, searchIds];
-  },
-
-  /**
    * Serializes the given node (and all its descendents) as JSON
    * and writes the serialization to the given output stream.
    * 
@@ -1287,25 +1107,17 @@ this.PlacesUtils = {
    *          An nsIOutputStream. NOTE: it only uses the write(str, len)
    *          method of nsIOutputStream. The caller is responsible for
    *          closing the stream.
-   * @param   aIsUICommand
-   *          Boolean - If true, modifies serialization so that each node self-contained.
-   *          For Example, tags are serialized inline with each bookmark.
-   * @param   aResolveShortcuts
-   *          Converts folder shortcuts into actual folders. 
-   * @param   aExcludeItems
-   *          An array of item ids that should not be written to the backup.
    */
-  _serializeNodeAsJSONToOutputStream:
-  function PU__serializeNodeAsJSONToOutputStream(aNode, aStream, aIsUICommand,
-                                                aResolveShortcuts,
-                                                aExcludeItems) {
+  _serializeNodeAsJSONToOutputStream: function (aNode, aStream) {
     function addGenericProperties(aPlacesNode, aJSNode) {
       aJSNode.title = aPlacesNode.title;
       aJSNode.id = aPlacesNode.itemId;
       if (aJSNode.id != -1) {
         var parent = aPlacesNode.parent;
-        if (parent)
+        if (parent) {
           aJSNode.parent = parent.itemId;
+          aJSNode.parentReadOnly = PlacesUtils.nodeIsReadOnly(parent);
+        }
         var dateAdded = aPlacesNode.dateAdded;
         if (dateAdded)
           aJSNode.dateAdded = dateAdded;
@@ -1323,10 +1135,6 @@ this.PlacesUtils = {
             //anno.value = unescape(encodeURIComponent(anno.value));
             if (anno.name == PlacesUtils.LMANNO_FEEDURI)
               aJSNode.livemark = 1;
-            if (anno.name == PlacesUtils.READ_ONLY_ANNO && aResolveShortcuts) {
-              // When copying a read-only node, remove the read-only annotation.
-              return false;
-            }
             return true;
           });
         } catch(ex) {}
@@ -1346,9 +1154,8 @@ this.PlacesUtils = {
           aJSNode.keyword = keyword;
       }
 
-      var tags = aIsUICommand ? aPlacesNode.tags : null;
-      if (tags)
-        aJSNode.tags = tags;
+      if (aPlacesNode.tags)
+        aJSNode.tags = aPlacesNode.tags;
 
       // last character-set
       var uri = PlacesUtils._uri(aPlacesNode.uri);
@@ -1368,12 +1175,11 @@ this.PlacesUtils = {
       if (concreteId != -1) {
         // This is a bookmark or a tag container.
         if (PlacesUtils.nodeIsQuery(aPlacesNode) ||
-            (concreteId != aPlacesNode.itemId && !aResolveShortcuts)) {
+            concreteId != aPlacesNode.itemId) {
           aJSNode.type = PlacesUtils.TYPE_X_MOZ_PLACE;
           aJSNode.uri = aPlacesNode.uri;
           // folder shortcut
-          if (aIsUICommand)
-            aJSNode.concreteId = concreteId;
+          aJSNode.concreteId = concreteId;
         }
         else { // Bookmark folder or a shortcut we should convert to folder.
           aJSNode.type = PlacesUtils.TYPE_X_MOZ_PLACE_CONTAINER;
@@ -1414,8 +1220,6 @@ this.PlacesUtils = {
         var cc = aSourceNode.childCount;
         for (var i = 0; i < cc; ++i) {
           var childNode = aSourceNode.getChild(i);
-          if (aExcludeItems && aExcludeItems.indexOf(childNode.itemId) != -1)
-            continue;
           appendConvertedNode(aSourceNode.getChild(i), i, children);
         }
         if (!wasOpen)
@@ -1439,6 +1243,8 @@ this.PlacesUtils = {
 
       var parent = bNode.parent;
       var grandParent = parent ? parent.parent : null;
+      if (grandParent)
+        node.grandParentId = grandParent.itemId;
 
       if (PlacesUtils.nodeIsURI(bNode)) {
         // Tag root accept only folder nodes
@@ -1492,89 +1298,6 @@ this.PlacesUtils = {
   },
 
   /**
-   * Serializes the given node (and all its descendents) as JSON
-   * and writes the serialization to the given output stream.
-   *
-   * @param   aNode
-   *          An nsINavHistoryResultNode
-   * @param   aStream
-   *          An nsIOutputStream. NOTE: it only uses the write(str, len)
-   *          method of nsIOutputStream. The caller is responsible for
-   *          closing the stream.
-   * @param   aIsUICommand
-   *          Boolean - If true, modifies serialization so that each node self-contained.
-   *          For Example, tags are serialized inline with each bookmark.
-   * @param   aResolveShortcuts
-   *          Converts folder shortcuts into actual folders.
-   * @param   aExcludeItems
-   *          An array of item ids that should not be written to the backup.
-   */
-  serializeNodeAsJSONToOutputStream:
-  function PU_serializeNodeAsJSONToOutputStream(aNode, aStream, aIsUICommand,
-                                                aResolveShortcuts,
-                                                aExcludeItems) {
-    Deprecated.warning(
-      "serializeNodeAsJSONToOutputStream is deprecated and will be removed in a future version",
-      "https://bugzilla.mozilla.org/show_bug.cgi?id=854761");
-
-    this._serializeNodeAsJSONToOutputStream(aNode, aStream, aIsUICommand,
-                                            aResolveShortcuts, aExcludeItems);
-  },
-
-  /**
-   * Restores bookmarks and tags from a JSON file.
-   * WARNING: This method *removes* any bookmarks in the collection before
-   * restoring from the file.
-   *
-   * @param aFile
-   *        nsIFile of bookmarks in JSON format to be restored.
-   */
-  restoreBookmarksFromJSONFile:
-  function PU_restoreBookmarksFromJSONFile(aFile) {
-    Deprecated.warning(
-      "restoreBookmarksFromJSONFile is deprecated and will be removed in a future version",
-      "https://bugzilla.mozilla.org/show_bug.cgi?id=854388");
-
-    BookmarkJSONUtils.importFromFile(aFile, true);
-  },
-
-  /**
-   * Serializes bookmarks using JSON, and writes to the supplied file.
-   *
-   * @see backups.saveBookmarksToJSONFile(aFile)
-   */
-  backupBookmarksToFile: function PU_backupBookmarksToFile(aFile) {
-    Deprecated.warning(
-      "backupBookmarksToFile is deprecated and will be removed in a future version",
-      "https://bugzilla.mozilla.org/show_bug.cgi?id=852041");
-    return PlacesBackups.saveBookmarksToJSONFile(aFile);
-  },
-
-  /**
-   * Creates a dated backup in <profile>/bookmarkbackups.
-   * Stores the bookmarks using JSON.
-   *
-   * @see backups.create(aMaxBackups, aForceBackup)
-   */
-  archiveBookmarksFile:
-  function PU_archiveBookmarksFile(aMaxBackups, aForceBackup) {
-    Deprecated.warning(
-      "archiveBookmarksFile is deprecated and will be removed in a future version",
-      "https://bugzilla.mozilla.org/show_bug.cgi?id=857429");
-    return PlacesBackups.create(aMaxBackups, aForceBackup);
-  },
-
-  /**
-   * Helper to create and manage backups.
-   */
-  get backups() {
-    Deprecated.warning(
-      "PlacesUtils.backups is deprecated and will be removed in a future version",
-      "https://bugzilla.mozilla.org/show_bug.cgi?id=857429");
-    return PlacesBackups;
-  },
-
-  /**
    * Given a uri returns list of itemIds associated to it.
    *
    * @param aURI
@@ -1583,15 +1306,13 @@ this.PlacesUtils = {
    *        Function to be called when done.
    *        The function will receive an array of itemIds associated to aURI and
    *        aURI itself.
-   * @param aScope
-   *        Scope for the callback.
    *
    * @return A object with a .cancel() method allowing to cancel the request.
    *
    * @note Children of live bookmarks folders are excluded. The callback function is
    *       not invoked if the request is cancelled or hits an error.
    */
-  asyncGetBookmarkIds: function PU_asyncGetBookmarkIds(aURI, aCallback, aScope)
+  asyncGetBookmarkIds: function PU_asyncGetBookmarkIds(aURI, aCallback)
   {
     if (!this._asyncGetBookmarksStmt) {
       let db = this.history.DBConnection;
@@ -1613,6 +1334,7 @@ this.PlacesUtils = {
     // will cause a REASON_CANCELED.  Thus we wrap the statement.
     let stmt = new AsyncStatementCancelWrapper(this._asyncGetBookmarksStmt);
     return stmt.executeAsync({
+      _callback: aCallback,
       _itemIds: [],
       handleResult: function(aResultSet) {
         for (let row; (row = aResultSet.getNextRow());) {
@@ -1622,7 +1344,7 @@ this.PlacesUtils = {
       handleCompletion: function(aReason)
       {
         if (aReason == Ci.mozIStorageStatementCallback.REASON_FINISHED) {
-          aCallback.apply(aScope, [this._itemIds, aURI]);
+          this._callback(this._itemIds, aURI);
         }
       }
     });
@@ -1776,7 +1498,55 @@ this.PlacesUtils = {
     });
 
     return deferred.promise;
-  }
+  },
+
+  /**
+   * Gets favicon data for a given page url.
+   *
+   * @param aPageUrl url of the page to look favicon for.
+   * @resolves to an object representing a favicon entry, having the following
+   *           properties: { uri, dataLen, data, mimeType }
+   * @rejects JavaScript exception if the given url has no associated favicon.
+   */
+  promiseFaviconData: function (aPageUrl) {
+    let deferred = Promise.defer();
+    PlacesUtils.favicons.getFaviconDataForPage(NetUtil.newURI(aPageUrl),
+      function (aURI, aDataLen, aData, aMimeType) {
+        if (aURI) {
+          deferred.resolve({ uri: aURI,
+                             dataLen: aDataLen,
+                             data: aData,
+                             mimeType: aMimeType });
+        } else {
+          deferred.reject();
+        }
+      });
+    return deferred.promise;
+  },
+
+  /**
+   * Get the unique id for an item (a bookmark, a folder or a separator) given
+   * its item id.
+   *
+   * @param aItemId
+   *        an item id
+   * @return {Promise}
+   * @resolves to the GUID.
+   * @rejects if aItemId is invalid.
+   */
+  promiseItemGUID: function (aItemId) GUIDHelper.getItemGUID(aItemId),
+
+  /**
+   * Get the item id for an item (a bookmark, a folder or a separator) given
+   * its unique id.
+   *
+   * @param aGUID
+   *        an item GUID
+   * @retrun {Promise}
+   * @resolves to the GUID.
+   * @rejects if there's no item for the given GUID.
+   */
+  promiseItemId: function (aGUID) GUIDHelper.getItemId(aGUID)
 };
 
 /**
@@ -1893,6 +1663,138 @@ XPCOMUtils.defineLazyServiceGetter(this, "focusManager",
                                    "@mozilla.org/focus-manager;1",
                                    "nsIFocusManager");
 
+// Sometime soon, likely as part of the transition to mozIAsyncBookmarks,
+// itemIds will be deprecated in favour of GUIDs, which play much better
+// with multiple undo/redo operations.  Because these GUIDs are already stored,
+// and because we don't want to revise the transactions API once more when this
+// happens, transactions are set to work with GUIDs exclusively, in the sense
+// that they may never expose itemIds, nor do they accept them as input.
+// More importantly, transactions which add or remove items guarantee to
+// restore the guids on undo/redo, so that the following transactions that may
+// done or undo can assume the items they're interested in are stil accessible
+// through the same GUID.
+// The current bookmarks API, however, doesn't expose the necessary means for
+// working with GUIDs.  So, until it does, this helper object accesses the
+// Places database directly in order to switch between GUIDs and itemIds, and
+// "restore" GUIDs on items re-created items.
+const REASON_FINISHED = Ci.mozIStorageStatementCallback.REASON_FINISHED;
+let GUIDHelper = {
+  // Cache for guid<->itemId paris.
+  GUIDsForIds: new Map(),
+  idsForGUIDs: new Map(),
+
+  getItemId: function (aGUID) {
+    if (this.idsForGUIDs.has(aGUID))
+      return Promise.resolve(this.idsForGUIDs.get(aGUID));
+
+    let deferred = Promise.defer();
+    let itemId = -1;
+
+    this._getIDStatement.params.guid = aGUID;
+    this._getIDStatement.executeAsync({
+      handleResult: function (aResultSet) {
+        let row = aResultSet.getNextRow();
+        if (row)
+          itemId = row.getResultByIndex(0);
+      },
+      handleCompletion: aReason => {
+        if (aReason == REASON_FINISHED && itemId != -1) {
+          this.ensureObservingRemovedItems();
+          this.idsForGUIDs.set(aGUID, itemId);
+
+          deferred.resolve(itemId);
+        }
+        else if (itemId != -1) {
+          deferred.reject("no item found for the given guid");
+        }
+        else {
+          deferred.reject("SQLite Error: " + aReason);
+        }
+      }
+    });
+
+    return deferred.promise;
+  },
+
+  getItemGUID: function (aItemId) {
+    if (this.GUIDsForIds.has(aItemId))
+      return Promise.resolve(this.GUIDsForIds.get(aItemId));
+
+    let deferred = Promise.defer();
+    let guid = "";
+
+    this._getGUIDStatement.params.id = aItemId;
+    this._getGUIDStatement.executeAsync({
+      handleResult: function (aResultSet) {
+        let row = aResultSet.getNextRow();
+        if (row) {
+          guid = row.getResultByIndex(1);
+        }
+      },
+      handleCompletion: aReason => {
+        if (aReason == REASON_FINISHED && guid) {
+          this.ensureObservingRemovedItems();
+          this.GUIDsForIds.set(aItemId, guid);
+
+          deferred.resolve(guid);
+        }
+        else if (!guid) {
+          deferred.reject("no item found for the given itemId");
+        }
+        else {
+          deferred.reject("SQLite Error: " + aReason);
+        }
+      }
+    });
+
+    return deferred.promise;
+  },
+
+  ensureObservingRemovedItems: function () {
+    if (!("observer" in this)) {
+      /**
+       * This observers serves two purposes:
+       * (1) Invalidate cached id<->guid paris on when items are removed.
+       * (2) Cache GUIDs given us free of charge by onItemAdded/onItemRemoved.
+      *      So, for exmaple, when the NewBookmark needs the new GUID, we already
+      *      have it cached.
+      */
+      this.observer = {
+        onItemAdded: (aItemId, aParentId, aIndex, aItemType, aURI, aTitle,
+                      aDateAdded, aGUID, aParentGUID) => {
+          this.GUIDsForIds.set(aItemId, aGUID);
+          this.GUIDsForIds.set(aParentId, aParentGUID);
+        },
+        onItemRemoved:
+        (aItemId, aParentId, aIndex, aItemTyep, aURI, aGUID, aParentGUID) => {
+          this.GUIDsForIds.delete(aItemId);
+          this.idsForGUIDs.delete(aGUID);
+          this.GUIDsForIds.set(aParentId, aParentGUID);
+        },
+
+        QueryInterface: XPCOMUtils.generateQI(Ci.nsINavBookmarkObserver),
+        __noSuchMethod__: () => {}, // Catch all all onItem* methods.
+      };
+      PlacesUtils.bookmarks.addObserver(this.observer, false);
+      PlacesUtils.registerShutdownFunction(() => {
+        PlacesUtils.bookmarks.removeObserver(this.observer);
+      });
+    }
+  }
+};
+XPCOMUtils.defineLazyGetter(GUIDHelper, "_getIDStatement", () => {
+  let s = PlacesUtils.history.DBConnection.createAsyncStatement(
+    "SELECT b.id, b.guid from moz_bookmarks b WHERE b.guid = :guid");
+  PlacesUtils.registerShutdownFunction( () => s.finalize() );
+  return s;
+});
+XPCOMUtils.defineLazyGetter(GUIDHelper, "_getGUIDStatement", () => {
+  let s = PlacesUtils.history.DBConnection.createAsyncStatement(
+    "SELECT b.id, b.guid from moz_bookmarks b WHERE b.id = :id");
+  PlacesUtils.registerShutdownFunction( () => s.finalize() );
+  return s;
+});
+
 ////////////////////////////////////////////////////////////////////////////////
 //// Transactions handlers.
 
@@ -1936,15 +1838,15 @@ TransactionItemCache.prototype = {
   postData: null,
   itemType: null,
   set uri(v)
-    this._uri = (v instanceof Ci.nsIURI ? NetUtil.newURI(v.spec) : null),
+    this._uri = (v instanceof Ci.nsIURI ? v.clone() : null),
   get uri()
     this._uri || null,
   set feedURI(v)
-    this._feedURI = (v instanceof Ci.nsIURI ? NetUtil.newURI(v.spec) : null),
+    this._feedURI = (v instanceof Ci.nsIURI ? v.clone() : null),
   get feedURI()
     this._feedURI || null,
   set siteURI(v)
-    this._siteURI = (v instanceof Ci.nsIURI ? NetUtil.newURI(v.spec) : null),
+    this._siteURI = (v instanceof Ci.nsIURI ? v.clone() : null),
   get siteURI()
     this._siteURI || null,
   set index(v)
@@ -2292,29 +2194,23 @@ PlacesCreateLivemarkTransaction.prototype = {
       , parentId: this.item.parentId
       , index: this.item.index
       , siteURI: this.item.siteURI
-      },
-      (function(aStatus, aLivemark) {
-        if (Components.isSuccessCode(aStatus)) {
-          this.item.id = aLivemark.id;
-          if (this.item.annotations && this.item.annotations.length > 0) {
-            PlacesUtils.setAnnotationsForItem(this.item.id,
-                                              this.item.annotations);
-          }
+      }).then(aLivemark => {
+        this.item.id = aLivemark.id;
+        if (this.item.annotations && this.item.annotations.length > 0) {
+          PlacesUtils.setAnnotationsForItem(this.item.id,
+                                            this.item.annotations);
         }
-      }).bind(this)
-    );
+      }, Cu.reportError);
   },
 
   undoTransaction: function CLTXN_undoTransaction()
   {
     // The getLivemark callback is expected to receive a failure status but it
     // is used just to serialize, so doesn't matter.
-    PlacesUtils.livemarks.getLivemark(
-      { id: this.item.id },
-      (function (aStatus, aLivemark) {
+    PlacesUtils.livemarks.getLivemark({ id: this.item.id })
+      .then(null, () => {
         PlacesUtils.bookmarks.removeItem(this.item.id);
-      }).bind(this)
-    );
+      });
   }
 };
 
@@ -2352,17 +2248,12 @@ PlacesRemoveLivemarkTransaction.prototype = {
 
   doTransaction: function RLTXN_doTransaction()
   {
-    PlacesUtils.livemarks.getLivemark(
-      { id: this.item.id },
-      (function (aStatus, aLivemark) {
-        if (Components.isSuccessCode(aStatus)) {
-          this.item.feedURI = aLivemark.feedURI;
-          this.item.siteURI = aLivemark.siteURI;
-
-          PlacesUtils.bookmarks.removeItem(this.item.id);
-        }
-      }).bind(this)
-    );
+    PlacesUtils.livemarks.getLivemark({ id: this.item.id })
+      .then(aLivemark => {
+        this.item.feedURI = aLivemark.feedURI;
+        this.item.siteURI = aLivemark.siteURI;
+        PlacesUtils.bookmarks.removeItem(this.item.id);
+      }, Cu.reportError);
   },
 
   undoTransaction: function RLTXN_undoTransaction()
@@ -2371,26 +2262,21 @@ PlacesRemoveLivemarkTransaction.prototype = {
     // feedURI and siteURI of the livemark.
     // The getLivemark callback is expected to receive a failure status but it
     // is used just to serialize, so doesn't matter.
-    PlacesUtils.livemarks.getLivemark(
-      { id: this.item.id },
-      (function () {
-        let addLivemarkCallback = (function(aStatus, aLivemark) {
-          if (Components.isSuccessCode(aStatus)) {
-            let itemId = aLivemark.id;
-            PlacesUtils.bookmarks.setItemDateAdded(itemId, this.item.dateAdded);
-            PlacesUtils.setAnnotationsForItem(itemId, this.item.annotations);
-          }
-        }).bind(this);
+    PlacesUtils.livemarks.getLivemark({ id: this.item.id })
+      .then(null, () => {
         PlacesUtils.livemarks.addLivemark({ parentId: this.item.parentId
                                           , title: this.item.title
                                           , siteURI: this.item.siteURI
                                           , feedURI: this.item.feedURI
                                           , index: this.item.index
                                           , lastModified: this.item.lastModified
-                                          },
-                                          addLivemarkCallback);
-      }).bind(this)
-    );
+                                          }).then(
+          aLivemark => {
+            let itemId = aLivemark.id;
+            PlacesUtils.bookmarks.setItemDateAdded(itemId, this.item.dateAdded);
+            PlacesUtils.setAnnotationsForItem(itemId, this.item.annotations);
+          }, Cu.reportError);
+      });
   }
 };
 

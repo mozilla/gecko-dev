@@ -19,8 +19,11 @@
 #include "VectorImage.h"
 #include "Image.h"
 #include "nsMediaFragmentURIParser.h"
+#include "nsContentUtils.h"
+#include "nsIScriptSecurityManager.h"
 
 #include "ImageFactory.h"
+#include "gfxPrefs.h"
 
 namespace mozilla {
 namespace image {
@@ -29,14 +32,18 @@ namespace image {
 static bool gInitializedPrefCaches = false;
 static bool gDecodeOnDraw = false;
 static bool gDiscardable = false;
+static bool gEnableMozSampleSize = false;
 
 /*static*/ void
 ImageFactory::Initialize()
 {
   MOZ_ASSERT(NS_IsMainThread());
   if (!gInitializedPrefCaches) {
+    // Initialize the graphics preferences
+    gfxPrefs::GetSingleton();
     Preferences::AddBoolVarCache(&gDiscardable, "image.mem.discardable");
     Preferences::AddBoolVarCache(&gDecodeOnDraw, "image.mem.decodeondraw");
+    Preferences::AddBoolVarCache(&gEnableMozSampleSize, "image.mozsamplesize.enabled");
     gInitializedPrefCaches = true;
   }
 }
@@ -79,6 +86,28 @@ ComputeImageFlags(ImageURL* uri, bool isMultiPart)
     imageFlags |= Image::INIT_FLAG_MULTIPART;
 
   return imageFlags;
+}
+
+/* static */ bool
+ImageFactory::CanRetargetOnDataAvailable(ImageURL* aURI, bool aIsMultiPart)
+{
+  // We can't retarget OnDataAvailable safely in cases where we aren't storing
+  // source data (and thus need to sync decode in ODA) because allocating frames
+  // off-main-thread is currently not possible and we don't have a workaround in
+  // place yet. (See bug 967985.) For now, we detect those cases and refuse to
+  // retarget. When the problem is fixed, this function can be removed.
+
+  if (aIsMultiPart) {
+    return false;
+  }
+
+  uint32_t imageFlags = ComputeImageFlags(aURI, aIsMultiPart);
+  if (!(imageFlags & Image::INIT_FLAG_DISCARDABLE) &&
+      !(imageFlags & Image::INIT_FLAG_DECODE_ON_DRAW)) {
+    return false;
+  }
+
+  return true;
 }
 
 /* static */ already_AddRefed<Image>
@@ -210,6 +239,22 @@ ImageFactory::CreateRasterImage(nsIRequest* aRequest,
   mozilla::net::nsMediaFragmentURIParser parser(ref);
   if (parser.HasResolution()) {
     newImage->SetRequestedResolution(parser.GetResolution());
+  }
+
+  if (parser.HasSampleSize()) {
+      /* Get our principal */
+      nsCOMPtr<nsIChannel> chan(do_QueryInterface(aRequest));
+      nsCOMPtr<nsIPrincipal> principal;
+      if (chan) {
+        nsContentUtils::GetSecurityManager()->GetChannelPrincipal(chan,
+                                                                  getter_AddRefs(principal));
+      }
+
+      if ((principal &&
+           principal->GetAppStatus() == nsIPrincipal::APP_STATUS_CERTIFIED) ||
+          gEnableMozSampleSize) {
+        newImage->SetRequestedSampleSize(parser.GetSampleSize());
+      }
   }
 
   return newImage.forget();

@@ -23,25 +23,13 @@ struct ElementDependentRuleProcessorData;
  * Per-Element data                                                          *
  *****************************************************************************/
 
-struct ElementPropertyTransition
+struct ElementPropertyTransition : public mozilla::StyleAnimation
 {
-  ElementPropertyTransition() 
-    : mIsRunningOnCompositor(false)
-  {}
-
-  nsCSSProperty mProperty;
-  nsStyleAnimation::Value mStartValue, mEndValue;
-  mozilla::TimeStamp mStartTime; // actual start plus transition delay
-
-  // data from the relevant nsTransition
-  mozilla::TimeDuration mDuration;
-  mozilla::css::ComputedTimingFunction mTimingFunction;
-
   // This is the start value to be used for a check for whether a
-  // transition is being reversed.  Normally the same as mStartValue,
-  // except when this transition started as the reversal of another
-  // in-progress transition.  Needed so we can handle two reverses in a
-  // row.
+  // transition is being reversed.  Normally the same as
+  // mProperties[0].mSegments[0].mFromValue, except when this transition
+  // started as the reversal of another in-progress transition.
+  // Needed so we can handle two reverses in a row.
   nsStyleAnimation::Value mStartForReversingTest;
   // Likewise, the portion (in value space) of the "full" reversed
   // transition that we're actually covering.  For example, if a :hover
@@ -53,10 +41,6 @@ struct ElementPropertyTransition
   // in again when the transition is back to 2px, the mReversePortion
   // for the third transition (from 0px/2px to 10px) will be 0.8.
   double mReversePortion;
-  // true when the transition is running on the compositor. In particular,
-  // mIsRunningOnCompositor will be false if the transition has a delay and we
-  // are not yet at mStartTime, so there is no animation on the layer.
-  bool mIsRunningOnCompositor;
 
   // Compute the portion of the *value* space that we should be through
   // at the given time.  (The input to the transition timing function
@@ -65,6 +49,8 @@ struct ElementPropertyTransition
 
   bool IsRemovedSentinel() const
   {
+    // Note that mozilla::StyleAnimation::IsRunningAt depends on removed
+    // sentinels being represented by a null mStartTime.
     return mStartTime.IsNull();
   }
 
@@ -73,8 +59,6 @@ struct ElementPropertyTransition
     // assign the null time stamp
     mStartTime = mozilla::TimeStamp();
   }
-
-  bool IsRunningAt(mozilla::TimeStamp aTime) const;
 };
 
 struct ElementTransitions MOZ_FINAL
@@ -87,6 +71,20 @@ struct ElementTransitions MOZ_FINAL
   void EnsureStyleRuleFor(mozilla::TimeStamp aRefreshTime);
 
   virtual bool HasAnimationOfProperty(nsCSSProperty aProperty) const MOZ_OVERRIDE;
+
+  // If aFlags contains CanAnimate_AllowPartial, returns whether the
+  // state of this element's transitions at the current refresh driver
+  // time contains transition data that can be done on the compositor
+  // thread.  (This is useful for determining whether a layer should be
+  // active, or whether to send data to the layer.)
+  // If aFlags does not contain CanAnimate_AllowPartial, returns whether
+  // the state of this element's transitions at the current refresh driver
+  // time can be fully represented by data sent to the compositor.
+  // (This is useful for determining whether throttle the transition
+  // (suppress main-thread style updates).)
+  // Note that when CanPerformOnCompositorThread returns true, it also,
+  // as a side-effect, notifies the ActiveLayerTracker.  FIXME:  This
+  // should probably move to the relevant callers.
   virtual bool CanPerformOnCompositorThread(CanAnimateFlags aFlags) const MOZ_OVERRIDE;
 
   // Either zero or one for each CSS property:

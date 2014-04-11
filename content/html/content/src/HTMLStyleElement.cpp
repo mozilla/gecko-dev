@@ -20,7 +20,7 @@ NS_IMPL_NS_NEW_HTML_ELEMENT(Style)
 namespace mozilla {
 namespace dom {
 
-HTMLStyleElement::HTMLStyleElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+HTMLStyleElement::HTMLStyleElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo)
 {
   AddMutationObserver(this);
@@ -204,7 +204,9 @@ HTMLStyleElement::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
 NS_IMETHODIMP
 HTMLStyleElement::GetInnerHTML(nsAString& aInnerHTML)
 {
-  nsContentUtils::GetNodeTextContent(this, false, aInnerHTML);
+  if (!nsContentUtils::GetNodeTextContent(this, false, aInnerHTML)) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
   return NS_OK;
 }
 
@@ -267,9 +269,9 @@ HTMLStyleElement::GetStyleSheetInfo(nsAString& aTitle,
 }
 
 JSObject*
-HTMLStyleElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+HTMLStyleElement::WrapNode(JSContext *aCx)
 {
-  return HTMLStyleElementBinding::Wrap(aCx, aScope, this);
+  return HTMLStyleElementBinding::Wrap(aCx, this);
 }
 
 } // namespace dom

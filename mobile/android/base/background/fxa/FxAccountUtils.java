@@ -12,12 +12,16 @@ import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 
+import org.mozilla.gecko.background.common.log.Logger;
+import org.mozilla.gecko.background.nativecode.NativeCrypto;
 import org.mozilla.gecko.sync.Utils;
 import org.mozilla.gecko.sync.crypto.HKDF;
 import org.mozilla.gecko.sync.crypto.KeyBundle;
 import org.mozilla.gecko.sync.crypto.PBKDF2;
 
 public class FxAccountUtils {
+  private static final String LOG_TAG = FxAccountUtils.class.getSimpleName();
+
   public static final int SALT_LENGTH_BYTES = 32;
   public static final int SALT_LENGTH_HEX = 2 * SALT_LENGTH_BYTES;
 
@@ -106,7 +110,16 @@ public class FxAccountUtils {
    */
   public static byte[] generateQuickStretchedPW(byte[] emailUTF8, byte[] passwordUTF8) throws GeneralSecurityException, UnsupportedEncodingException {
     byte[] S = FxAccountUtils.KWE("quickStretch", emailUTF8);
-    return PBKDF2.pbkdf2SHA256(passwordUTF8, S, NUMBER_OF_QUICK_STRETCH_ROUNDS, 32);
+    try {
+      return NativeCrypto.pbkdf2SHA256(passwordUTF8, S, NUMBER_OF_QUICK_STRETCH_ROUNDS, 32);
+    } catch (final LinkageError e) {
+      // This will throw UnsatisifiedLinkError (missing mozglue) the first time it is called, and
+      // ClassNotDefFoundError, for the uninitialized NativeCrypto class, each subsequent time this
+      // is called; LinkageError is their common ancestor.
+      Logger.warn(LOG_TAG, "Got throwable stretching password using native pbkdf2SHA256 " +
+          "implementation; ignoring and using Java implementation.", e);
+      return PBKDF2.pbkdf2SHA256(passwordUTF8, S, NUMBER_OF_QUICK_STRETCH_ROUNDS, 32);
+    }
   }
 
   /**

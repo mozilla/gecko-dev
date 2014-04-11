@@ -97,6 +97,7 @@ function ContentSecurityPolicy() {
   csp._MAPPINGS[cp.TYPE_MEDIA]             = cspr_sd_new.MEDIA_SRC;
   csp._MAPPINGS[cp.TYPE_FONT]              = cspr_sd_new.FONT_SRC;
   csp._MAPPINGS[cp.TYPE_XSLT]              = cspr_sd_new.SCRIPT_SRC;
+  csp._MAPPINGS[cp.TYPE_BEACON]            = cspr_sd_new.CONNECT_SRC;
 
   /* Our original CSP implementation's mappings for XHR and websocket
    * These should be changed to be = cspr_sd.CONNECT_SRC when we remove
@@ -207,9 +208,6 @@ ContentSecurityPolicy.prototype = {
   },
 
   getAllowsNonce: function(aNonce, aContentType, shouldReportViolation) {
-    if (!CSPPrefObserver.experimentalEnabled)
-      return false;
-
     if (!(aContentType == Ci.nsIContentPolicy.TYPE_SCRIPT ||
           aContentType == Ci.nsIContentPolicy.TYPE_STYLESHEET)) {
       CSPdebug("Nonce check requested for an invalid content type (not script or style): " + aContentType);
@@ -222,7 +220,9 @@ ContentSecurityPolicy.prototype = {
 
     shouldReportViolation.value = this._policies.some(function(policy, i) {
       // Don't report a violation if the policy didn't use nonce-source
-      return policy._directives[directive]._hasNonceSource && !policyAllowsNonce[i];
+      return policy._directives.hasOwnProperty(directive) &&
+             policy._directives[directive]._hasNonceSource &&
+             !policyAllowsNonce[i];
     });
 
     // allow it to execute?  (Do all the policies allow it to execute)?
@@ -232,9 +232,6 @@ ContentSecurityPolicy.prototype = {
   },
 
   getAllowsHash: function(aContent, aContentType, shouldReportViolation) {
-    if (!CSPPrefObserver.experimentalEnabled)
-      return false;
-
     if (!(aContentType == Ci.nsIContentPolicy.TYPE_SCRIPT ||
           aContentType == Ci.nsIContentPolicy.TYPE_STYLESHEET)) {
       CSPdebug("Hash check requested for an invalid content type (not script or style): " + aContentType);
@@ -247,7 +244,9 @@ ContentSecurityPolicy.prototype = {
 
     shouldReportViolation.value = this._policies.some(function(policy, i) {
       // Don't report a violation if the policy didn't use hash-source
-      return policy._directives[directive]._hasHashSource && !policyAllowsHash[i];
+      return policy._directives.hasOwnProperty(directive) &&
+             policy._directives[directive]._hasHashSource &&
+             !policyAllowsHash[i];
     });
 
     // allow it to execute?  (Do all the policies allow it to execute)?

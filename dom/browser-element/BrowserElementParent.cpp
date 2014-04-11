@@ -6,15 +6,15 @@
 
 // TabParent.h transitively includes <windows.h>, which does
 //   #define CreateEvent CreateEventW
-// That messes up our call to nsEventDispatcher::CreateEvent below.
+// That messes up our call to EventDispatcher::CreateEvent below.
 
 #ifdef CreateEvent
 #undef CreateEvent
 #endif
 
 #include "BrowserElementParent.h"
+#include "mozilla/EventDispatcher.h"
 #include "mozilla/dom/HTMLIFrameElement.h"
-#include "nsEventDispatcher.h"
 #include "nsIDOMCustomEvent.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsVariant.h"
@@ -58,6 +58,15 @@ CreateIframe(Element* aOpenerFrameElement, const nsAString& aName, bool aRemote)
                                mozapp, /* aNotify = */ false);
   }
 
+  // Copy the opener frame's parentApp attribute to the popup frame.
+  if (aOpenerFrameElement->HasAttr(kNameSpaceID_None, nsGkAtoms::parentapp)) {
+    nsAutoString parentApp;
+    aOpenerFrameElement->GetAttr(kNameSpaceID_None, nsGkAtoms::parentapp,
+                                 parentApp);
+    popupFrameElement->SetAttr(kNameSpaceID_None, nsGkAtoms::parentapp,
+                               parentApp, /* aNotify = */ false);
+  }
+
   // Copy the window name onto the iframe.
   popupFrameElement->SetAttr(kNameSpaceID_None, nsGkAtoms::name,
                              aName, /* aNotify = */ false);
@@ -84,9 +93,9 @@ DispatchCustomDOMEvent(Element* aFrameElement, const nsAString& aEventName,
   }
 
   nsCOMPtr<nsIDOMEvent> domEvent;
-  nsEventDispatcher::CreateEvent(aFrameElement, presContext, nullptr,
-                                 NS_LITERAL_STRING("customevent"),
-                                 getter_AddRefs(domEvent));
+  EventDispatcher::CreateEvent(aFrameElement, presContext, nullptr,
+                               NS_LITERAL_STRING("customevent"),
+                               getter_AddRefs(domEvent));
   NS_ENSURE_TRUE(domEvent, false);
 
   nsCOMPtr<nsIDOMCustomEvent> customEvent = do_QueryInterface(domEvent);
@@ -105,8 +114,9 @@ DispatchCustomDOMEvent(Element* aFrameElement, const nsAString& aEventName,
   customEvent->SetTrusted(true);
   // Dispatch the event.
   *aStatus = nsEventStatus_eConsumeNoDefault;
-  nsresult rv = nsEventDispatcher::DispatchDOMEvent(aFrameElement, nullptr,
-                                                    domEvent, presContext, aStatus);
+  nsresult rv =
+    EventDispatcher::DispatchDOMEvent(aFrameElement, nullptr,
+                                      domEvent, presContext, aStatus);
   return NS_SUCCEEDED(rv);
 }
 
@@ -150,7 +160,7 @@ BrowserElementParent::DispatchOpenWindowEvent(Element* aOpenerFrameElement,
 
   JS::Rooted<JSObject*> global(cx, sgo->GetGlobalJSObject());
   JSAutoCompartment ac(cx, global);
-  if (!detail.ToObject(cx, global, &val)) {
+  if (!detail.ToObject(cx, &val)) {
     MOZ_CRASH("Failed to convert dictionary to JS::Value due to OOM.");
     return BrowserElementParent::OPEN_WINDOW_IGNORED;
   }
@@ -322,9 +332,7 @@ NS_IMETHODIMP DispatchAsyncScrollEventRunnable::Run()
   JSAutoCompartment ac(cx, globalJSObject);
   JS::Rooted<JS::Value> val(cx);
 
-  // We can get away with a null global here because
-  // AsyncScrollEventDetail only contains numeric values.
-  if (!detail.ToObject(cx, JS::NullPtr(), &val)) {
+  if (!detail.ToObject(cx, &val)) {
     MOZ_CRASH("Failed to convert dictionary to JS::Value due to OOM.");
     return NS_ERROR_FAILURE;
   }

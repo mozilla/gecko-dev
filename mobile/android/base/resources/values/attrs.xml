@@ -74,6 +74,10 @@
         <attr name="state_more" format="boolean"/>
     </declare-styleable>
 
+    <declare-styleable name="TabThumbnailWrapper">
+        <attr name="state_recording" format="boolean"/>
+    </declare-styleable>
+
     <declare-styleable name="FlowLayout">
         <attr name="spacing" format="dimension"/>
     </declare-styleable>
@@ -234,6 +238,10 @@
 
     <declare-styleable name="TabMenuStrip">
         <attr name="strip" format="reference"/>
+    </declare-styleable>
+
+    <declare-styleable name="EllipsisTextView">
+        <attr name="ellipsizeAtLine" format="integer"/>
     </declare-styleable>
 
 </resources>

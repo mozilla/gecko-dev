@@ -33,6 +33,13 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(CameraCapabilities)
 
+  // Because this header's filename doesn't match its C++ or DOM-facing
+  // classname, we can't rely on the [Func="..."] WebIDL tag to implicitly
+  // include the right header for us; instead we must explicitly include a
+  // HasSupport() method in each header. We can get rid of these with the
+  // Great Renaming proposed in bug 983177.
+  static bool HasSupport(JSContext* aCx, JSObject* aGlobal);
+
   CameraCapabilities(nsPIDOMWindow* aWindow);
   ~CameraCapabilities();
 
@@ -40,7 +47,7 @@ public:
 
   nsPIDOMWindow* GetParentObject() const { return mWindow; }
 
-  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   void GetPreviewSizes(nsTArray<CameraSize>& aRetVal) const;
   void GetPictureSizes(nsTArray<CameraSize>& aRetVal) const;
@@ -55,10 +62,12 @@ public:
   void GetZoomRatios(nsTArray<double>& aRetVal) const;
   uint32_t MaxFocusAreas() const;
   uint32_t MaxMeteringAreas() const;
+  uint32_t MaxDetectedFaces() const;
   double MinExposureCompensation() const;
   double MaxExposureCompensation() const;
   double ExposureCompensationStep() const;
   JS::Value RecorderProfiles(JSContext* cx) const;
+  void GetIsoModes(nsTArray<nsString>& aRetVal) const;
 
 protected:
   nsresult TranslateToDictionary(ICameraControl* aCameraControl,
@@ -75,11 +84,13 @@ protected:
   nsTArray<nsString> mEffects;
   nsTArray<nsString> mFlashModes;
   nsTArray<nsString> mFocusModes;
+  nsTArray<nsString> mIsoModes;
 
   nsTArray<double> mZoomRatios;
 
   uint32_t mMaxFocusAreas;
   uint32_t mMaxMeteringAreas;
+  uint32_t mMaxDetectedFaces;
 
   double mMinExposureCompensation;
   double mMaxExposureCompensation;

@@ -7,12 +7,12 @@
 
 #include "nsPIDOMWindow.h"
 
+#include "mozilla/EventDispatcher.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/dom/SharedWorkerBinding.h"
 #include "nsContentUtils.h"
-#include "nsDOMEvent.h"
-#include "nsEventDispatcher.h"
 #include "nsIClassInfoImpl.h"
+#include "nsIDOMEvent.h"
 
 #include "MessagePort.h"
 #include "RuntimeService.h"
@@ -20,12 +20,13 @@
 
 using mozilla::dom::Optional;
 using mozilla::dom::Sequence;
+using namespace mozilla;
 
 USING_WORKERS_NAMESPACE
 
 SharedWorker::SharedWorker(nsPIDOMWindow* aWindow,
                            WorkerPrivate* aWorkerPrivate)
-: nsDOMEventTargetHelper(aWindow), mWorkerPrivate(aWorkerPrivate),
+: DOMEventTargetHelper(aWindow), mWorkerPrivate(aWorkerPrivate),
   mSuspended(false)
 {
   AssertIsOnMainThread();
@@ -168,37 +169,37 @@ SharedWorker::NoteDeadWorker(JSContext* aCx)
   mWorkerPrivate = nullptr;
 }
 
-NS_IMPL_ADDREF_INHERITED(SharedWorker, nsDOMEventTargetHelper)
-NS_IMPL_RELEASE_INHERITED(SharedWorker, nsDOMEventTargetHelper)
+NS_IMPL_ADDREF_INHERITED(SharedWorker, DOMEventTargetHelper)
+NS_IMPL_RELEASE_INHERITED(SharedWorker, DOMEventTargetHelper)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(SharedWorker)
-NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetHelper)
+NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(SharedWorker)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(SharedWorker,
-                                                  nsDOMEventTargetHelper)
+                                                  DOMEventTargetHelper)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mMessagePort)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSuspendedEvents)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(SharedWorker,
-                                                nsDOMEventTargetHelper)
+                                                DOMEventTargetHelper)
   tmp->Close();
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mMessagePort)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mSuspendedEvents)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 JSObject*
-SharedWorker::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+SharedWorker::WrapObject(JSContext* aCx)
 {
   AssertIsOnMainThread();
 
-  return SharedWorkerBinding::Wrap(aCx, aScope, this);
+  return SharedWorkerBinding::Wrap(aCx, this);
 }
 
 nsresult
-SharedWorker::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
+SharedWorker::PreHandleEvent(EventChainPreVisitor& aVisitor)
 {
   AssertIsOnMainThread();
 
@@ -212,5 +213,5 @@ SharedWorker::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
     return NS_OK;
   }
 
-  return nsDOMEventTargetHelper::PreHandleEvent(aVisitor);
+  return DOMEventTargetHelper::PreHandleEvent(aVisitor);
 }

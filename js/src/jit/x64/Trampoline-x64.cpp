@@ -81,6 +81,9 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     masm.movdqa(xmm15, Operand(rsp, 16 * 9));
 #endif
 
+    // Push the EnterJIT sps mark.
+    masm.spsMarkJit(&cx->runtime()->spsProfiler, rbp, rbx);
+
     // Save arguments passed in registers needed after function call.
     masm.push(result);
 
@@ -139,7 +142,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     masm.subq(rsp, r14);
 
     // Create a frame descriptor.
-    masm.makeFrameDescriptor(r14, IonFrame_Entry);
+    masm.makeFrameDescriptor(r14, JitFrame_Entry);
     masm.push(r14);
 
     CodeLabel returnLabel;
@@ -201,7 +204,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
 
         // Enter exit frame.
         masm.addPtr(Imm32(BaselineFrame::Size() + BaselineFrame::FramePointerOffset), valuesSize);
-        masm.makeFrameDescriptor(valuesSize, IonFrame_BaselineJS);
+        masm.makeFrameDescriptor(valuesSize, JitFrame_BaselineJS);
         masm.push(valuesSize);
         masm.push(Imm32(0)); // Fake return address.
         masm.enterFakeExitFrame();
@@ -213,7 +216,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
 
         masm.setupUnalignedABICall(3, scratch);
         masm.passABIArg(framePtr); // BaselineFrame
-        masm.passABIArg(OsrFrameReg); // StackFrame
+        masm.passABIArg(OsrFrameReg); // InterpreterFrame
         masm.passABIArg(numStackValues);
         masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, jit::InitBaselineFrameForOsr));
 
@@ -262,6 +265,9 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     *****************************************************************/
     masm.pop(r12); // vp
     masm.storeValue(JSReturnOperand, Operand(r12, 0));
+
+    // Unwind the sps mark.
+    masm.spsUnmarkJit(&cx->runtime()->spsProfiler, rbx);
 
     // Restore non-volatile registers.
 #if defined(_WIN64)
@@ -401,7 +407,7 @@ JitRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void *
 
     // Construct descriptor.
     masm.subq(rsp, r9);
-    masm.makeFrameDescriptor(r9, IonFrame_Rectifier);
+    masm.makeFrameDescriptor(r9, JitFrame_Rectifier);
 
     // Construct IonJSFrameLayout.
     masm.push(rdx); // numActualArgs

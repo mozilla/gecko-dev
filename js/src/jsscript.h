@@ -349,28 +349,41 @@ class SourceDataCache
                     const jschar *,
                     DefaultHasher<ScriptSource *>,
                     SystemAllocPolicy> Map;
-    Map *map_;
-    size_t numSuppressPurges_;
 
   public:
-    SourceDataCache() : map_(nullptr), numSuppressPurges_(0) {}
-
-    class AutoSuppressPurge
+    // Hold an entry in the source data cache and prevent it from being purged on GC.
+    class AutoHoldEntry
     {
-        SourceDataCache &cache_;
-        mozilla::DebugOnly<size_t> oldValue_;
+        SourceDataCache *cache_;
+        ScriptSource *source_;
+        const jschar *charsToFree_;
       public:
-        explicit AutoSuppressPurge(JSContext *cx);
-        ~AutoSuppressPurge();
-        SourceDataCache &cache() const { return cache_; }
+        explicit AutoHoldEntry();
+        ~AutoHoldEntry();
+      private:
+        void holdEntry(SourceDataCache *cache, ScriptSource *source);
+        void deferDelete(const jschar *chars);
+        ScriptSource *source() const { return source_; }
+        friend class SourceDataCache;
     };
 
-    const jschar *lookup(ScriptSource *ss, const AutoSuppressPurge &asp);
-    bool put(ScriptSource *ss, const jschar *chars, const AutoSuppressPurge &asp);
+  private:
+    Map *map_;
+    AutoHoldEntry *holder_;
+
+  public:
+    SourceDataCache() : map_(nullptr), holder_(nullptr) {}
+
+    const jschar *lookup(ScriptSource *ss, AutoHoldEntry &asp);
+    bool put(ScriptSource *ss, const jschar *chars, AutoHoldEntry &asp);
 
     void purge();
 
     size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf);
+
+  private:
+    void holdEntry(AutoHoldEntry &holder, ScriptSource *ss);
+    void releaseEntry(AutoHoldEntry &holder);
 };
 
 class ScriptSource
@@ -484,7 +497,7 @@ class ScriptSource
         JS_ASSERT(hasSourceData());
         return argumentsNotIncluded_;
     }
-    const jschar *chars(JSContext *cx, const SourceDataCache::AutoSuppressPurge &asp);
+    const jschar *chars(JSContext *cx, SourceDataCache::AutoHoldEntry &asp);
     JSFlatString *substring(JSContext *cx, uint32_t start, uint32_t stop);
     void addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf,
                                 JS::ScriptSourceInfo *info) const;
@@ -826,6 +839,9 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     // Script has been reused for a clone.
     bool hasBeenCloned_:1;
 
+    // Script has been inlined at least once, and can't be relazified.
+    bool hasBeenInlined_:1;
+
     // Script came from eval(), and is still active.
     bool isActiveEval_:1;
 
@@ -1015,10 +1031,12 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     }
     bool hasRunOnce() const { return hasRunOnce_; }
     bool hasBeenCloned() const { return hasBeenCloned_; }
+    bool hasBeenInlined() const { return hasBeenInlined_; }
 
     void setTreatAsRunOnce() { treatAsRunOnce_ = true; }
     void setHasRunOnce() { hasRunOnce_ = true; }
     void setHasBeenCloned() { hasBeenCloned_ = true; }
+    void setHasBeenInlined() { hasBeenInlined_ = true; }
 
     bool isActiveEval() const { return isActiveEval_; }
     bool isCachedEval() const { return isCachedEval_; }
@@ -1233,7 +1251,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
 
     bool isRelazifiable() const {
         return (selfHosted() || lazyScript) &&
-               !isGenerator() && !hasBaselineScript() && !hasAnyIonScript();
+               !isGenerator() && !hasBaselineScript() && !hasAnyIonScript() && !hasBeenInlined();
     }
     void setLazyScript(js::LazyScript *lazy) {
         lazyScript = lazy;
@@ -1825,6 +1843,7 @@ class LazyScript : public gc::BarrieredCell<LazyScript>
         return column_;
     }
 
+    bool hasUncompiledEnclosingScript() const;
     uint32_t staticLevel(JSContext *cx) const;
 
     void markChildren(JSTracer *trc);
@@ -1968,10 +1987,10 @@ enum LineOption {
 };
 
 extern void
-CurrentScriptFileLineOrigin(JSContext *cx, JSScript **script,
-                            const char **file, unsigned *linenop,
-                            uint32_t *pcOffset, JSPrincipals **origin,
-                            LineOption opt = NOT_CALLED_FROM_JSOP_EVAL);
+DescribeScriptedCallerForCompilation(JSContext *cx, JSScript **maybeScript,
+                                     const char **file, unsigned *linenop,
+                                     uint32_t *pcOffset, JSPrincipals **origin,
+                                     LineOption opt = NOT_CALLED_FROM_JSOP_EVAL);
 
 bool
 CloneFunctionScript(JSContext *cx, HandleFunction original, HandleFunction clone,

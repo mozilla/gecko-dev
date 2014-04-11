@@ -16,6 +16,7 @@
 struct nsRect;
 struct nsIntRect;
 struct nsIntSize;
+class nsIntRegion;
 struct nsFont;
 struct nsIntMargin;
 class nsPresContext;
@@ -29,8 +30,8 @@ class nsIWidget;
 // IID for the nsITheme interface
 // {b0f3efe9-0bd4-4f6b-8daa-0ec7f6006822}
  #define NS_ITHEME_IID     \
-{ 0x3ca584e6, 0xdcd6, 0x485b, \
-  { 0x88, 0x8c, 0xe3, 0x47, 0x3d, 0xe4, 0xd9, 0x58 } }
+{ 0x4440b5c7, 0xd8bd, 0x4d9c, \
+  { 0x9c, 0x3e, 0xa5, 0xe6, 0x26, 0x81, 0x10, 0xa0 } }
 // {D930E29B-6909-44e5-AB4B-AF10D6923705}
 #define NS_THEMERENDERER_CID \
 { 0x9020805b, 0x14a3, 0x4125, \

@@ -168,11 +168,16 @@ DataSourceSurfaceD2D::DataSourceSurfaceD2D(SourceSurfaceD2D* aSourceSurface)
   }
 
   renderTarget->BeginDraw();
+  renderTarget->Clear(D2D1::ColorF(0, 0.0f));
   renderTarget->DrawBitmap(aSourceSurface->mBitmap,
                            D2D1::RectF(0, 0,
                                        Float(mSize.width),
                                        Float(mSize.height)));
-  renderTarget->EndDraw();
+  hr = renderTarget->EndDraw();
+  if (FAILED(hr)) {
+    gfxWarning() << "Failed to draw bitmap. Code: " << hr;
+    return;
+  }
 
   desc.CPUAccessFlags = D3D10_CPU_ACCESS_READ | D3D10_CPU_ACCESS_WRITE;
   desc.Usage = D3D10_USAGE_STAGING;
@@ -260,6 +265,7 @@ DataSourceSurfaceD2D::Map(MapType aMapType, MappedSurface *aMappedSurface)
 
   aMappedSurface->mData = (uint8_t*)map.pData;
   aMappedSurface->mStride = map.RowPitch;
+  mIsMapped = true;
 
   return true;
 }
@@ -269,6 +275,7 @@ DataSourceSurfaceD2D::Unmap()
 {
   MOZ_ASSERT(mIsMapped);
 
+  mIsMapped = false;
   mTexture->Unmap(0);
 }
 

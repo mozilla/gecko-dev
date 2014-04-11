@@ -8,7 +8,6 @@
 
 %define glassActiveBorderColor rgb(37, 44, 51)
 %define glassInactiveBorderColor rgb(102, 102, 102)
-%define nestedButtons #zoom-out-button, #zoom-in-button, #cut-button, #copy-button, #paste-button
 
 %include downloads/indicator-aero.css
 
@@ -22,37 +21,7 @@
   }
 }
 
-@media (-moz-windows-default-theme) and (-moz-os-version: windows-vista),
-       (-moz-windows-default-theme) and (-moz-os-version: windows-win7) {
-  #navigator-toolbox > toolbar:not(:-moz-lwtheme),
-  #browser-bottombox:not(:-moz-lwtheme),
-  .browserContainer > findbar {
-    background-color: @customToolbarColor@;
-  }
-
-  .tab-background-middle[selected=true]:not(:-moz-lwtheme) {
-    background-color: @customToolbarColor@;
-  }
-
-  #navigator-toolbox:not(:-moz-lwtheme)::after {
-    background-color: #aabccf;
-  }
-
-  #urlbar:not(:-moz-lwtheme),
-  .searchbar-textbox:not(:-moz-lwtheme) {
-    border-color: hsla(210,54%,20%,.25) hsla(210,54%,20%,.27) hsla(210,54%,20%,.3);
-  }
-
-  #urlbar:not(:-moz-lwtheme):not([focused]):hover,
-  .searchbar-textbox:not(:-moz-lwtheme):not([focused]):hover {
-    border-color: hsla(210,54%,20%,.35) hsla(210,54%,20%,.37) hsla(210,54%,20%,.4);
-  }
-
-  #urlbar:not(:-moz-lwtheme)[focused],
-  .searchbar-textbox:not(:-moz-lwtheme)[focused] {
-    border-color: hsla(206,100%,60%,.65) hsla(206,100%,55%,.65) hsla(206,100%,50%,.65);
-  }
-
+@media (-moz-windows-default-theme) {
   .sidebar-header,
   #sidebar-header {
     -moz-appearance: none;
@@ -84,6 +53,18 @@
     -moz-margin-end: -3px;
   }
 
+  #urlbar:not(:-moz-lwtheme),
+  .searchbar-textbox:not(:-moz-lwtheme) {
+    border-color: hsla(210,54%,20%,.25) hsla(210,54%,20%,.27) hsla(210,54%,20%,.3);
+    box-shadow: 0 1px 0 hsla(0,0%,0%,.01) inset,
+                0 1px 0 hsla(0,0%,100%,.1);
+  }
+
+  #urlbar:not(:-moz-lwtheme)[focused],
+  .searchbar-textbox:not(:-moz-lwtheme)[focused] {
+    border-color: Highlight;
+  }
+
   .menu-accel,
   .menu-iconic-accel {
     color: graytext;
@@ -93,7 +74,33 @@
   chatbar > chatbox {
     border-color: #A9B7C9;
   }
-  
+
+  @media (-moz-os-version: windows-vista),
+         (-moz-os-version: windows-win7) {
+    #navigator-toolbox > toolbar:not(:-moz-lwtheme),
+    #browser-bottombox:not(:-moz-lwtheme),
+    .browserContainer > findbar {
+      background-color: @customToolbarColor@;
+    }
+
+    .tab-background-middle[selected=true]:not(:-moz-lwtheme) {
+      background-color: @customToolbarColor@;
+    }
+
+    #navigator-toolbox:not(:-moz-lwtheme)::after {
+      background-color: #aabccf;
+    }
+
+    #urlbar:not(:-moz-lwtheme):not([focused]):hover,
+    .searchbar-textbox:not(:-moz-lwtheme):not([focused]):hover {
+      border-color: hsla(210,54%,20%,.35) hsla(210,54%,20%,.37) hsla(210,54%,20%,.4);
+    }
+
+    #urlbar:not(:-moz-lwtheme)[focused],
+    .searchbar-textbox:not(:-moz-lwtheme)[focused] {
+      border-color: hsla(206,100%,60%,.65) hsla(206,100%,55%,.65) hsla(206,100%,50%,.65);
+    }
+  }
 }
 
 @media (-moz-windows-compositor) {
@@ -136,6 +143,32 @@
     border-left-style: none !important;
     border-right-style: none !important;
   }
+
+  #main-window[darkwindowframe="true"] #toolbar-menubar:not(:-moz-lwtheme):not(:-moz-window-inactive),
+  #main-window[darkwindowframe="true"] #TabsToolbar:not(:-moz-lwtheme):not(:-moz-window-inactive) {
+    color: white;
+  }
+
+  #main-window[darkwindowframe="true"] :-moz-any(#toolbar-menubar, #TabsToolbar) :-moz-any(@primaryToolbarButtons@):not(:-moz-lwtheme):not(:-moz-window-inactive),
+  #main-window[darkwindowframe="true"] :-moz-any(#toolbar-menubar, #TabsToolbar) #bookmarks-menu-button:not(:-moz-lwtheme) > .toolbarbutton-menubutton-dropmarker > .dropmarker-icon:not(:-moz-window-inactive) {
+    list-style-image: url(chrome://browser/skin/Toolbar-inverted.png);
+  }
+
+  #main-window[darkwindowframe="true"] .tabs-newtab-button:not(:-moz-lwtheme):not(:-moz-window-inactive),
+  #main-window[darkwindowframe="true"] :-moz-any(#toolbar-menubar, #TabsToolbar) > #new-tab-button:not(:-moz-lwtheme):not(:-moz-window-inactive),
+  #main-window[darkwindowframe="true"] :-moz-any(#toolbar-menubar, #TabsToolbar) > toolbarpaletteitem > #new-tab-button:not(:-moz-lwtheme):not(:-moz-window-inactive) {
+    list-style-image: url(chrome://browser/skin/tabbrowser/newtab-inverted.png);
+  }
+
+  #main-window[darkwindowframe="true"] .tab-close-button:not(:-moz-any(:hover, [selected="true"], :-moz-lwtheme, :-moz-window-inactive)) {
+    -moz-image-region: rect(0, 64px, 16px, 48px);
+  }
+
+  #main-window[darkwindowframe="true"] :-moz-any(#toolbar-menubar, #TabsToolbar) > #sync-button[status="active"]:not(:-moz-lwtheme),
+  #main-window[darkwindowframe="true"] :-moz-any(#toolbar-menubar, #TabsToolbar) > toolbarpaletteitem > #sync-button[status="active"]:not(:-moz-lwtheme) {
+    list-style-image: url("chrome://browser/skin/syncProgress-toolbar-inverted.png");
+  }
+
 
   #toolbar-menubar:not(:-moz-lwtheme) {
     text-shadow: 0 0 .5em white, 0 0 .5em white, 0 1px 0 rgba(255,255,255,.4);
@@ -196,6 +229,7 @@
 
   #main-menubar:not(:-moz-lwtheme):not(:-moz-window-inactive) {
     background-color: rgba(255,255,255,.5);
+    color: black;
   }
 
   @media (-moz-os-version: windows-vista),
@@ -243,6 +277,11 @@
     list-style-image: url("chrome://browser/skin/Toolbar-inverted.png");
   }
 
+  #toolbar-menubar > #sync-button[status="active"]:not(:-moz-lwtheme),
+  #toolbar-menubar > toolbarpaletteitem > #sync-button[status="active"]:not(:-moz-lwtheme) {
+    list-style-image: url("chrome://browser/skin/syncProgress-toolbar-inverted.png");
+  }
+
   /* Glass Fog */
 
   #TabsToolbar:not(:-moz-lwtheme) {
@@ -250,7 +289,13 @@
     position: relative;
   }
 
-  #TabsToolbar:not(:-moz-lwtheme)::before {
+  #TabsToolbar:not(:-moz-lwtheme)::after {
+    /* Because we use placeholders for window controls etc. in the tabstrip,
+     * and position those with ordinal attributes, and because our layout code
+     * expects :before/:after nodes to come first/last in the frame list,
+     * we have to reorder this element to come last, hence the
+     * ordinal group value (see bug 853415). */
+    -moz-box-ordinal-group: 1001;
     box-shadow: 0 0 30px 30px rgba(174,189,204,0.85);
     content: "";
     display: -moz-box;
@@ -313,6 +358,17 @@
   }
 }
 
+/* Win8 and beyond. */
+@media not all and (-moz-os-version: windows-vista) {
+  @media not all and (-moz-os-version: windows-win7) {
+    /* Introducing an additional hover state for the Bookmark button */
+    #nav-bar .toolbarbutton-1[buttonover] > .toolbarbutton-menubutton-button:hover > .toolbarbutton-icon {
+      background-color: hsla(210,4%,10%,.08);
+      border-color: hsla(210,4%,10%,.1);
+    }
+  }
+}
+
 /* ::::: fullscreen window controls ::::: */
 
 #window-controls {
@@ -340,4 +396,39 @@
 #restore-button:-moz-locale-dir(rtl),
 #close-button:-moz-locale-dir(rtl) {
   transform: scaleX(-1);
+}
+
+/* ::::: private browsing indicator ::::: */
+
+@media (-moz-os-version: windows-vista),
+       (-moz-os-version: windows-win7) {
+  #TabsToolbar > .private-browsing-indicator {
+    background-image: url("chrome://browser/skin/privatebrowsing-mask-tabstrip-XPVista7.png");
+  }
+
+  #private-browsing-indicator-titlebar > .private-browsing-indicator {
+    background-image: url("chrome://browser/skin/privatebrowsing-mask-titlebar-XPVista7.png");
+  }
+}
+
+@media (-moz-windows-glass) {
+  #main-window[sizemode="normal"] > #titlebar > #titlebar-content > #titlebar-buttonbox-container > #private-browsing-indicator-titlebar > .private-browsing-indicator {
+    top: 1px;
+  }
+  #main-window[sizemode="maximized"] > #titlebar > #titlebar-content > #titlebar-buttonbox-container > #private-browsing-indicator-titlebar > .private-browsing-indicator {
+    top: -1px;
+  }
+}
+
+/**
+ * This next block targets Aero Basic, which has different positioning for the
+ * window caption buttons, and therefore needs to be special-cased.
+ */
+@media (-moz-windows-default-theme) {
+  @media not all and (-moz-windows-compositor) {
+    #main-window[sizemode="normal"] > #titlebar > #titlebar-content > #titlebar-buttonbox-container > #private-browsing-indicator-titlebar > .private-browsing-indicator {
+      background-image: url("chrome://browser/skin/privatebrowsing-mask-titlebar-XPVista7-tall.png");
+      height: 28px;
+    }
+  }
 }

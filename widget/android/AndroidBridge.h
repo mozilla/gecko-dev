@@ -48,8 +48,6 @@ class Thread;
 
 typedef void* EGLSurface;
 
-using namespace mozilla::widget::android;
-
 namespace mozilla {
 
 namespace hal {
@@ -181,7 +179,7 @@ public:
         jthrowable e = aEnv->ExceptionOccurred();
         MOZ_ASSERT(e);
         aEnv->ExceptionClear();
-        GeckoAppShell::HandleUncaughtException(nullptr, e);
+        mozilla::widget::android::GeckoAppShell::HandleUncaughtException(nullptr, e);
         // Should be dead by now...
         MOZ_CRASH("Failed to handle uncaught exception");
     }
@@ -202,10 +200,10 @@ public:
     void ContentDocumentChanged();
     bool IsContentDocumentDisplayed();
 
-    bool ProgressiveUpdateCallback(bool aHasPendingNewThebesContent, const LayerRect& aDisplayPort, float aDisplayResolution, bool aDrawingCritical, ScreenRect& aCompositionBounds, CSSToScreenScale& aZoom);
+    bool ProgressiveUpdateCallback(bool aHasPendingNewThebesContent, const LayerRect& aDisplayPort, float aDisplayResolution, bool aDrawingCritical, mozilla::ParentLayerRect& aCompositionBounds, mozilla::CSSToParentLayerScale& aZoom);
 
     void SetLayerClient(JNIEnv* env, jobject jobj);
-    GeckoLayerClient* GetLayerClient() { return mLayerClient; }
+    mozilla::widget::android::GeckoLayerClient* GetLayerClient() { return mLayerClient; }
 
     bool GetHandlersForURL(const nsAString& aURL,
                            nsIMutableArray* handlersArray = nullptr,
@@ -281,8 +279,8 @@ public:
 
     bool LockWindow(void *window, unsigned char **bits, int *width, int *height, int *format, int *stride);
     bool UnlockWindow(void *window);
-    
-    void HandleGeckoMessage(const nsAString& message);
+
+    void HandleGeckoMessage(JSContext* cx, JS::HandleObject message);
 
     bool InitCamera(const nsCString& contentType, uint32_t camera, uint32_t *width, uint32_t *height, uint32_t *fps);
 
@@ -356,7 +354,7 @@ protected:
     JNIEnv *mJNIEnv;
     pthread_t mThread;
 
-    GeckoLayerClient *mLayerClient;
+    mozilla::widget::android::GeckoLayerClient *mLayerClient;
 
     // the android.telephony.SmsMessage class
     jclass mAndroidSmsMessageClass;
@@ -397,7 +395,7 @@ protected:
     jclass jLayerView;
 
     jfieldID jEGLSurfacePointerField;
-    GLController *mGLControllerObj;
+    mozilla::widget::android::GLController *mGLControllerObj;
 
     // some convinient types to have around
     jclass jStringClass;
@@ -421,28 +419,28 @@ protected:
     void (* Region_set)(void* region, void* rect);
 
 private:
-    NativePanZoomController* mNativePanZoomController;
+    mozilla::widget::android::NativePanZoomController* mNativePanZoomController;
     // This will always be accessed from one thread (the APZC "controller"
     // thread, which is the Java UI thread), so we don't need to do locking
     // to touch it
     nsTArray<DelayedTask*> mDelayedTaskQueue;
 
 public:
-    NativePanZoomController* SetNativePanZoomController(jobject obj);
+    mozilla::widget::android::NativePanZoomController* SetNativePanZoomController(jobject obj);
     // GeckoContentController methods
     void RequestContentRepaint(const mozilla::layers::FrameMetrics& aFrameMetrics) MOZ_OVERRIDE;
     void AcknowledgeScrollUpdate(const mozilla::layers::FrameMetrics::ViewID& aScrollId,
                                  const uint32_t& aScrollGeneration) MOZ_OVERRIDE;
-    void HandleDoubleTap(const CSSIntPoint& aPoint,
+    void HandleDoubleTap(const CSSPoint& aPoint,
                          int32_t aModifiers,
                          const mozilla::layers::ScrollableLayerGuid& aGuid) MOZ_OVERRIDE;
-    void HandleSingleTap(const CSSIntPoint& aPoint,
+    void HandleSingleTap(const CSSPoint& aPoint,
                          int32_t aModifiers,
                          const mozilla::layers::ScrollableLayerGuid& aGuid) MOZ_OVERRIDE;
-    void HandleLongTap(const CSSIntPoint& aPoint,
+    void HandleLongTap(const CSSPoint& aPoint,
                        int32_t aModifiers,
                        const mozilla::layers::ScrollableLayerGuid& aGuid) MOZ_OVERRIDE;
-    void HandleLongTapUp(const CSSIntPoint& aPoint,
+    void HandleLongTapUp(const CSSPoint& aPoint,
                          int32_t aModifiers,
                          const mozilla::layers::ScrollableLayerGuid& aGuid) MOZ_OVERRIDE;
     void SendAsyncScrollDOMEvent(bool aIsRoot,
@@ -488,29 +486,27 @@ private:
 
 class AutoLocalJNIFrame {
 public:
-    AutoLocalJNIFrame(int nEntries = 128)
-        : mEntries(nEntries), mHasFrameBeenPushed(false)
+    AutoLocalJNIFrame(int nEntries = 15)
+        : mEntries(nEntries)
+        , mJNIEnv(AndroidBridge::GetJNIEnv())
+        , mHasFrameBeenPushed(false)
     {
-        mJNIEnv = AndroidBridge::GetJNIEnv();
+        MOZ_ASSERT(mJNIEnv);
         Push();
     }
 
-    AutoLocalJNIFrame(JNIEnv* aJNIEnv, int nEntries = 128)
-        : mEntries(nEntries), mHasFrameBeenPushed(false)
+    AutoLocalJNIFrame(JNIEnv* aJNIEnv, int nEntries = 15)
+        : mEntries(nEntries)
+        , mJNIEnv(aJNIEnv ? aJNIEnv : AndroidBridge::GetJNIEnv())
+        , mHasFrameBeenPushed(false)
     {
-        mJNIEnv = aJNIEnv ? aJNIEnv : AndroidBridge::GetJNIEnv();
-
+        MOZ_ASSERT(mJNIEnv);
         Push();
     }
 
-    // Note! Calling Purge makes all previous local refs created in
-    // the AutoLocalJNIFrame's scope INVALID; be sure that you locked down
-    // any local refs that you need to keep around in global refs!
-    void Purge() {
-        if (mJNIEnv) {
-            if (mHasFrameBeenPushed)
-                mJNIEnv->PopLocalFrame(nullptr);
-            Push();
+    ~AutoLocalJNIFrame() {
+        if (mHasFrameBeenPushed) {
+            Pop();
         }
     }
 
@@ -520,42 +516,43 @@ public:
 
     bool CheckForException() {
         if (mJNIEnv->ExceptionCheck()) {
-            mJNIEnv->ExceptionDescribe();
-            mJNIEnv->ExceptionClear();
+            AndroidBridge::HandleUncaughtException(mJNIEnv);
             return true;
         }
-
         return false;
     }
 
-    ~AutoLocalJNIFrame() {
-        if (!mJNIEnv)
-            return;
+    // Note! Calling Purge makes all previous local refs created in
+    // the AutoLocalJNIFrame's scope INVALID; be sure that you locked down
+    // any local refs that you need to keep around in global refs!
+    void Purge() {
+        Pop();
+        Push();
+    }
 
-        CheckForException();
-
-        if (mHasFrameBeenPushed)
-            mJNIEnv->PopLocalFrame(nullptr);
+    template <typename ReturnType = jobject>
+    ReturnType Pop(ReturnType aResult = nullptr) {
+        MOZ_ASSERT(mHasFrameBeenPushed);
+        mHasFrameBeenPushed = false;
+        return static_cast<ReturnType>(
+            mJNIEnv->PopLocalFrame(static_cast<jobject>(aResult)));
     }
 
 private:
     void Push() {
-        if (!mJNIEnv)
-            return;
-
+        MOZ_ASSERT(!mHasFrameBeenPushed);
         // Make sure there is enough space to store a local ref to the
         // exception.  I am not completely sure this is needed, but does
         // not hurt.
-        jint ret = mJNIEnv->PushLocalFrame(mEntries + 1);
-        NS_ABORT_IF_FALSE(ret == 0, "Failed to push local JNI frame");
-        if (ret < 0)
+        if (mJNIEnv->PushLocalFrame(mEntries + 1) != 0) {
             CheckForException();
-        else
-            mHasFrameBeenPushed = true;
+            return;
+        }
+        mHasFrameBeenPushed = true;
     }
 
-    int mEntries;
-    JNIEnv* mJNIEnv;
+    const int mEntries;
+    JNIEnv* const mJNIEnv;
     bool mHasFrameBeenPushed;
 };
 

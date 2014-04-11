@@ -172,7 +172,6 @@ LOCAL_INCLUDES += [
     '/content/media/',
     '/content/xul/content/src',
     '/dom/base',
-    '/dom/events',
     '/dom/xbl',
     '/editor/libeditor/base',
     '/editor/libeditor/text',
@@ -183,6 +182,5 @@ LOCAL_INCLUDES += [
     '/layout/tables',
     '/layout/xul',
     '/netwerk/base/src',
-    '/xpcom/ds',
 ]
 

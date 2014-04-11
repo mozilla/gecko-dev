@@ -7,6 +7,7 @@
 #include "GStreamerFormatHelper.h"
 #include "VideoUtils.h"
 #include "mozilla/dom/TimeRanges.h"
+#include "mozilla/Endian.h"
 #include "mozilla/Preferences.h"
 
 using namespace mozilla;
@@ -45,8 +46,8 @@ GstFlowReturn GStreamerReader::AllocateVideoBufferFull(GstPad* aPad,
   if (container == nullptr) {
     return GST_FLOW_ERROR;
   }
-  PlanarYCbCrImage* img = reinterpret_cast<PlanarYCbCrImage*>(container->CreateImage(ImageFormat::PLANAR_YCBCR).get());
-  nsRefPtr<PlanarYCbCrImage> image = dont_AddRef(img);
+  nsRefPtr<PlanarYCbCrImage> image =
+    container->CreateImage(ImageFormat::PLANAR_YCBCR).downcast<PlanarYCbCrImage>();
 
   /* prepare a GstBuffer pointing to the underlying PlanarYCbCrImage buffer */
   GstBuffer* buf = GST_BUFFER(gst_moz_video_buffer_new());
@@ -162,7 +163,7 @@ void GStreamerReader::CopyIntoImageBuffer(GstBuffer* aBuffer,
 GstCaps* GStreamerReader::BuildAudioSinkCaps()
 {
   GstCaps* caps;
-#ifdef IS_LITTLE_ENDIAN
+#if MOZ_LITTLE_ENDIAN
   int endianness = 1234;
 #else
   int endianness = 4321;

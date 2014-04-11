@@ -38,7 +38,7 @@ struct EnterJitData
     {}
 
     uint8_t *jitcode;
-    StackFrame *osrFrame;
+    InterpreterFrame *osrFrame;
 
     void *calleeToken;
 
@@ -53,7 +53,7 @@ struct EnterJitData
     bool constructing;
 };
 
-typedef void (*EnterJitCode)(void *code, unsigned argc, Value *argv, StackFrame *fp,
+typedef void (*EnterJitCode)(void *code, unsigned argc, Value *argv, InterpreterFrame *fp,
                              CalleeToken calleeToken, JSObject *scopeChain,
                              size_t numStackValues, Value *vp);
 
@@ -148,9 +148,9 @@ class JitRuntime
 
     // Executable allocator used for allocating the main code in an IonScript.
     // All accesses on this allocator must be protected by the runtime's
-    // operation callback lock, as the executable memory may be protected()
-    // when triggering a callback to force a fault in the Ion code and avoid
-    // the neeed for explicit interrupt checks.
+    // interrupt lock, as the executable memory may be protected() when
+    // requesting an interrupt to force a fault in the Ion code and avoid the
+    // need for explicit interrupt checks.
     JSC::ExecutableAllocator *ionAlloc_;
 
     // Shared post-exception-handler tail
@@ -245,13 +245,17 @@ class JitRuntime
             flusher_ = fl;
     }
 
+    JSC::ExecutableAllocator *execAlloc() const {
+        return execAlloc_;
+    }
+
     JSC::ExecutableAllocator *getIonAlloc(JSContext *cx) {
-        JS_ASSERT(cx->runtime()->currentThreadOwnsOperationCallbackLock());
+        JS_ASSERT(cx->runtime()->currentThreadOwnsInterruptLock());
         return ionAlloc_ ? ionAlloc_ : createIonAlloc(cx);
     }
 
     JSC::ExecutableAllocator *ionAlloc(JSRuntime *rt) {
-        JS_ASSERT(rt->currentThreadOwnsOperationCallbackLock());
+        JS_ASSERT(rt->currentThreadOwnsInterruptLock());
         return ionAlloc_;
     }
 
@@ -332,12 +336,20 @@ class JitRuntime
     }
 };
 
+class JitZone
+{
+    // Allocated space for optimized baseline stubs.
+    OptimizedICStubSpace optimizedStubSpace_;
+
+  public:
+    OptimizedICStubSpace *optimizedStubSpace() {
+        return &optimizedStubSpace_;
+    }
+};
+
 class JitCompartment
 {
     friend class JitActivation;
-
-    // Ion state for the compartment's runtime.
-    JitRuntime *rt;
 
     // Map ICStub keys to ICStub shared code objects.
     typedef WeakValueCache<uint32_t, ReadBarriered<JitCode> > ICStubCodeMap;
@@ -349,15 +361,18 @@ class JitCompartment
     void *baselineGetPropReturnAddr_;
     void *baselineSetPropReturnAddr_;
 
-    // Allocated space for optimized baseline stubs.
-    OptimizedICStubSpace optimizedStubSpace_;
-
     // Stub to concatenate two strings inline. Note that it can't be
     // stored in JitRuntime because masm.newGCString bakes in zone-specific
     // pointers. This has to be a weak pointer to avoid keeping the whole
     // compartment alive.
     ReadBarriered<JitCode> stringConcatStub_;
     ReadBarriered<JitCode> parallelStringConcatStub_;
+
+    // Set of JSScripts invoked by ForkJoin (i.e. the entry script). These
+    // scripts are marked if their respective parallel IonScripts' age is less
+    // than a certain amount. See IonScript::parallelAge_.
+    typedef HashSet<EncapsulatedPtrScript> ScriptSet;
+    ScriptSet *activeParallelEntryScripts_;
 
     JitCode *generateStringConcatStub(JSContext *cx, ExecutionMode mode);
 
@@ -401,12 +416,14 @@ class JitCompartment
         return baselineSetPropReturnAddr_;
     }
 
+    bool notifyOfActiveParallelEntryScript(JSContext *cx, HandleScript script);
+
     void toggleBaselineStubBarriers(bool enabled);
 
     JSC::ExecutableAllocator *createIonAlloc();
 
   public:
-    JitCompartment(JitRuntime *rt);
+    JitCompartment();
     ~JitCompartment();
 
     bool initialize(JSContext *cx);
@@ -417,10 +434,6 @@ class JitCompartment
     void mark(JSTracer *trc, JSCompartment *compartment);
     void sweep(FreeOp *fop);
 
-    JSC::ExecutableAllocator *execAlloc() {
-        return rt->execAlloc_;
-    }
-
     JitCode *stringConcatStub(ExecutionMode mode) const {
         switch (mode) {
           case SequentialExecution: return stringConcatStub_;
@@ -428,16 +441,20 @@ class JitCompartment
           default:                  MOZ_ASSUME_UNREACHABLE("No such execution mode");
         }
     }
-
-    OptimizedICStubSpace *optimizedStubSpace() {
-        return &optimizedStubSpace_;
-    }
 };
 
 // Called from JSCompartment::discardJitCode().
 void InvalidateAll(FreeOp *fop, JS::Zone *zone);
+template <ExecutionMode mode>
 void FinishInvalidation(FreeOp *fop, JSScript *script);
-void FinishDiscardJitCode(FreeOp *fop, JSCompartment *comp);
+
+inline bool
+ShouldPreserveParallelJITCode(JSRuntime *rt, JSScript *script, bool increase = false)
+{
+    IonScript *parallelIon = script->parallelIonScript();
+    uint32_t age = increase ? parallelIon->increaseParallelAge() : parallelIon->parallelAge();
+    return age < jit::IonScript::MAX_PARALLEL_AGE && !rt->gcShouldCleanUpEverything;
+}
 
 // On windows systems, really large frames need to be incrementally touched.
 // The following constant defines the minimum increment of the touch.

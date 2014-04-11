@@ -419,6 +419,10 @@ nsCSSRendering::PaintBorder(nsPresContext* aPresContext,
   }
 
   nsStyleBorder newStyleBorder(*styleBorder);
+  // We could do something fancy to avoid the TrackImage/UntrackImage
+  // work, but it doesn't seem worth it.  (We need to call TrackImage
+  // since we're not going through nsRuleNode::ComputeBorderData.)
+  newStyleBorder.TrackImage(aPresContext);
 
   NS_FOR_CSS_SIDES(side) {
     newStyleBorder.SetBorderColor(side,
@@ -428,6 +432,11 @@ nsCSSRendering::PaintBorder(nsPresContext* aPresContext,
   PaintBorderWithStyleBorder(aPresContext, aRenderingContext, aForFrame,
                              aDirtyRect, aBorderArea, newStyleBorder,
                              aStyleContext, aSkipSides);
+
+  // We could do something fancy to avoid the TrackImage/UntrackImage
+  // work, but it doesn't seem worth it.  (We need to call UntrackImage
+  // since we're not going through nsStyleBorder::Destroy.)
+  newStyleBorder.UntrackImage(aPresContext);
 }
 
 void
@@ -1695,12 +1704,6 @@ nsCSSRendering::DetermineBackgroundColor(nsPresContext* aPresContext,
                                          bool& aDrawBackgroundImage,
                                          bool& aDrawBackgroundColor)
 {
-  if (aFrame->IsThemed()) {
-    aDrawBackgroundColor = false;
-    aDrawBackgroundImage = false;
-    return NS_RGBA(0,0,0,0);
-  }
-
   aDrawBackgroundImage = true;
   aDrawBackgroundColor = true;
 

@@ -17,7 +17,12 @@ static const JSClass global_class = {
     JS_StrictPropertyStub,
     JS_EnumerateStub,
     JS_ResolveStub,
-    JS_ConvertStub
+    JS_ConvertStub,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    JS_GlobalObjectTraceHook
 };
 
 static JSObject *trusted_glob = nullptr;
@@ -35,7 +40,7 @@ CallTrusted(JSContext *cx, unsigned argc, jsval *vp)
     {
         JSAutoCompartment ac(cx, trusted_glob);
         JS::RootedValue funVal(cx, JS::ObjectValue(*trusted_fun));
-        ok = JS_CallFunctionValue(cx, JS::NullPtr(), funVal, JS::EmptyValueArray, args.rval());
+        ok = JS_CallFunctionValue(cx, JS::NullPtr(), funVal, JS::HandleValueArray::empty(), args.rval());
     }
     JS_RestoreFrameChain(cx);
     return ok;
@@ -65,8 +70,7 @@ BEGIN_TEST(testChromeBuffer)
             const char *bytes = "return x ? 1 + trusted(x-1) : 0";
             JS::HandleObject global = JS::HandleObject::fromMarkedLocation(&trusted_glob);
             JS::CompileOptions options(cx);
-            options.setFileAndLine("", 0)
-                   .setPrincipals(&system_principals);
+            options.setFileAndLine("", 0);
             CHECK(fun = JS_CompileFunction(cx, global, "trusted", 1, &paramName,
                                            bytes, strlen(bytes), options));
             trusted_fun = JS_GetFunctionObject(fun);
@@ -112,8 +116,7 @@ BEGIN_TEST(testChromeBuffer)
                                 "}                                      ";
             JS::HandleObject global = JS::HandleObject::fromMarkedLocation(&trusted_glob);
             JS::CompileOptions options(cx);
-            options.setFileAndLine("", 0)
-                   .setPrincipals(&system_principals);
+            options.setFileAndLine("", 0);
             CHECK(fun = JS_CompileFunction(cx, global, "trusted", 1, &paramName,
                                            bytes, strlen(bytes), options));
             trusted_fun = JS_GetFunctionObject(fun);
@@ -150,8 +153,7 @@ BEGIN_TEST(testChromeBuffer)
             const char *bytes = "return 42";
             JS::HandleObject global = JS::HandleObject::fromMarkedLocation(&trusted_glob);
             JS::CompileOptions options(cx);
-            options.setFileAndLine("", 0)
-                   .setPrincipals(&system_principals);
+            options.setFileAndLine("", 0);
             CHECK(fun = JS_CompileFunction(cx, global, "trusted", 0, nullptr,
                                            bytes, strlen(bytes), options));
             trusted_fun = JS_GetFunctionObject(fun);

@@ -9,7 +9,7 @@ const { 'classes': Cc, 'interfaces': Ci, 'utils': Cu, 'results': Cr } = Componen
 let { NetUtil } = Cu.import("resource://gre/modules/NetUtil.jsm", {});
 let { FileUtils } = Cu.import("resource://gre/modules/FileUtils.jsm", {});
 let { Services } = Cu.import("resource://gre/modules/Services.jsm", {});
-let { Promise } = Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js", {});
+let { Promise } = Cu.import("resource://gre/modules/Promise.jsm", {});
 let { HttpServer } = Cu.import("resource://testing-common/httpd.js", {});
 let { ctypes } = Cu.import("resource://gre/modules/ctypes.jsm");
 
@@ -22,6 +22,8 @@ const SEC_ERROR_BASE = Ci.nsINSSErrorsService.NSS_SEC_ERROR_BASE;
 const SSL_ERROR_BASE = Ci.nsINSSErrorsService.NSS_SSL_ERROR_BASE;
 
 // Sort in numerical order
+const SEC_ERROR_INVALID_ARGS                            = SEC_ERROR_BASE +   5; // -8187
+const SEC_ERROR_BAD_DER                                 = SEC_ERROR_BASE +   9;
 const SEC_ERROR_EXPIRED_CERTIFICATE                     = SEC_ERROR_BASE +  11;
 const SEC_ERROR_REVOKED_CERTIFICATE                     = SEC_ERROR_BASE +  12; // -8180
 const SEC_ERROR_UNKNOWN_ISSUER                          = SEC_ERROR_BASE +  13;
@@ -29,9 +31,12 @@ const SEC_ERROR_BAD_DATABASE                            = SEC_ERROR_BASE +  18;
 const SEC_ERROR_UNTRUSTED_ISSUER                        = SEC_ERROR_BASE +  20; // -8172
 const SEC_ERROR_UNTRUSTED_CERT                          = SEC_ERROR_BASE +  21; // -8171
 const SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE              = SEC_ERROR_BASE +  30; // -8162
+const SEC_ERROR_EXTENSION_VALUE_INVALID                 = SEC_ERROR_BASE +  34; // -8158
 const SEC_ERROR_EXTENSION_NOT_FOUND                     = SEC_ERROR_BASE +  35; // -8157
 const SEC_ERROR_CA_CERT_INVALID                         = SEC_ERROR_BASE +  36;
-const SEC_ERROR_INADEQUATE_KEY_USAGE                    = SEC_ERROR_BASE +  90; // -8102  
+const SEC_ERROR_UNKNOWN_CRITICAL_EXTENSION              = SEC_ERROR_BASE +  41;
+const SEC_ERROR_INADEQUATE_KEY_USAGE                    = SEC_ERROR_BASE +  90; // -8102
+const SEC_ERROR_INADEQUATE_CERT_TYPE                    = SEC_ERROR_BASE +  91; // -8101
 const SEC_ERROR_CERT_NOT_IN_NAME_SPACE                  = SEC_ERROR_BASE + 112; // -8080
 const SEC_ERROR_OCSP_MALFORMED_REQUEST                  = SEC_ERROR_BASE + 120;
 const SEC_ERROR_OCSP_SERVER_ERROR                       = SEC_ERROR_BASE + 121;
@@ -44,6 +49,7 @@ const SEC_ERROR_OCSP_UNAUTHORIZED_RESPONSE              = SEC_ERROR_BASE + 130;
 const SEC_ERROR_OCSP_OLD_RESPONSE                       = SEC_ERROR_BASE + 132;
 const SEC_ERROR_OCSP_INVALID_SIGNING_CERT               = SEC_ERROR_BASE + 144;
 const SEC_ERROR_POLICY_VALIDATION_FAILED                = SEC_ERROR_BASE + 160; // -8032
+const SEC_ERROR_OCSP_BAD_SIGNATURE                      = SEC_ERROR_BASE + 157;
 const SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED       = SEC_ERROR_BASE + 176;
 
 const SSL_ERROR_BAD_CERT_DOMAIN                         = SSL_ERROR_BASE +  12;
@@ -95,6 +101,19 @@ function getXPCOMStatusFromNSS(statusNSS) {
   return nssErrorsService.getXPCOMFromNSSError(statusNSS);
 }
 
+function checkCertErrorGeneric(certdb, cert, expectedError, usage) {
+  let hasEVPolicy = {};
+  let verifiedChain = {};
+  let error = certdb.verifyCertNow(cert, usage, NO_FLAGS, verifiedChain,
+                                   hasEVPolicy);
+  // expected error == -1 is a special marker for any error is OK
+  if (expectedError != -1 ) {
+    do_check_eq(error, expectedError);
+  } else {
+    do_check_neq (error, 0);
+  }
+}
+
 function _getLibraryFunctionWithNoArguments(functionName, libraryName) {
   // Open the NSS library. copied from services/crypto/modules/WeaveCrypto.js
   let path = ctypes.libraryName(libraryName);
@@ -117,11 +136,9 @@ function _getLibraryFunctionWithNoArguments(functionName, libraryName) {
 }
 
 function clearOCSPCache() {
-  let CERT_ClearOCSPCache =
-    _getLibraryFunctionWithNoArguments("CERT_ClearOCSPCache", "nss3");
-  if (CERT_ClearOCSPCache() != 0) {
-    throw "Failed to clear OCSP cache";
-  }
+  let certdb = Cc["@mozilla.org/security/x509certdb;1"]
+                 .getService(Ci.nsIX509CertDB);
+  certdb.clearOCSPCache();
 }
 
 function clearSessionCache() {

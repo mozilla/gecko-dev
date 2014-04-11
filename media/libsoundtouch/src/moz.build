@@ -16,6 +16,9 @@ UNIFIED_SOURCES += [
     'cpu_detect_x86.cpp',
     'FIFOSampleBuffer.cpp',
     'FIRFilter.cpp',
+    'InterpolateCubic.cpp',
+    'InterpolateLinear.cpp',
+    'InterpolateShannon.cpp',
     'RateTransposer.cpp',
     'SoundTouch.cpp',
     'TDStretch.cpp',
@@ -23,13 +26,11 @@ UNIFIED_SOURCES += [
 
 if CONFIG['INTEL_ARCHITECTURE']:
     if CONFIG['MOZ_SAMPLE_TYPE_FLOAT32']:
-        UNIFIED_SOURCES += [
-            'sse_optimized.cpp',
-        ]
+        SOURCES += ['sse_optimized.cpp']
+        SOURCES['sse_optimized.cpp'].flags += CONFIG['SSE2_FLAGS']
     else:
-        UNIFIED_SOURCES += [
-            'mmx_optimized.cpp',
-        ]
+        SOURCES += ['mmx_optimized.cpp']
+        SOURCES['mmx_optimized.cpp'].flags += CONFIG['MMX_FLAGS']
 
 MSVC_ENABLE_PGO = True
 if CONFIG['GKMEDIAS_SHARED_LIBRARY']:
@@ -39,3 +40,5 @@ FINAL_LIBRARY = 'gkmedias'
 
 # Use abort() instead of exception in SoundTouch.
 DEFINES['ST_NO_EXCEPTION_HANDLING'] = 1
+
+DEFINES['BUILDING_SOUNDTOUCH'] = True

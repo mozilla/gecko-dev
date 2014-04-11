@@ -13,7 +13,6 @@
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/ipc/Blob.h"
 #include "mozilla/storage.h"
-#include "nsEventDispatcher.h"
 #include "nsThreadUtils.h"
 #include "xpcpublic.h"
 
@@ -822,9 +821,9 @@ NS_IMPL_CYCLE_COLLECTING_ADDREF(IDBIndex)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(IDBIndex)
 
 JSObject*
-IDBIndex::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+IDBIndex::WrapObject(JSContext* aCx)
 {
-  return IDBIndexBinding::Wrap(aCx, aScope, this);
+  return IDBIndexBinding::Wrap(aCx, this);
 }
 
 JS::Value

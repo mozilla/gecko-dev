@@ -55,8 +55,8 @@ using safe_browsing::ClientDownloadRequest_CertificateChain;
 #define PREF_SB_APP_REP_URL "browser.safebrowsing.appRepURL"
 #define PREF_SB_MALWARE_ENABLED "browser.safebrowsing.malware.enabled"
 #define PREF_GENERAL_LOCALE "general.useragent.locale"
-#define PREF_DOWNLOAD_BLOCK_TABLE "urlclassifier.download_block_table"
-#define PREF_DOWNLOAD_ALLOW_TABLE "urlclassifier.download_allow_table"
+#define PREF_DOWNLOAD_BLOCK_TABLE "urlclassifier.downloadBlockTable"
+#define PREF_DOWNLOAD_ALLOW_TABLE "urlclassifier.downloadAllowTable"
 
 // NSPR_LOG_MODULES=ApplicationReputation:5
 #if defined(PR_LOGGING)
@@ -113,6 +113,8 @@ private:
   // An array of strings created from certificate information used to whitelist
   // the downloaded file.
   nsTArray<nsCString> mAllowlistSpecs;
+  // The source URI of the download, the referrer and possibly any redirects.
+  nsTArray<nsCString> mAnylistSpecs;
 
   // When we started this query
   TimeStamp mStartTime;
@@ -199,7 +201,7 @@ public:
   // Look up the given URI in the safebrowsing DBs, optionally on both the allow
   // list and the blocklist. If there is a match, call
   // PendingLookup::OnComplete. Otherwise, call PendingLookup::LookupNext.
-  nsresult LookupSpec(const nsACString& aSpec, bool aAllowListOnly);
+  nsresult LookupSpec(const nsACString& aSpec, bool aAllowlistOnly);
 private:
   // The download appeared on the allowlist, blocklist, or no list (and thus
   // could trigger a remote query.
@@ -210,7 +212,7 @@ private:
   };
 
   nsCString mSpec;
-  bool mAllowListOnly;
+  bool mAllowlistOnly;
   nsRefPtr<PendingLookup> mPendingLookup;
   nsresult LookupSpecInternal(const nsACString& aSpec);
 };
@@ -219,7 +221,7 @@ NS_IMPL_ISUPPORTS1(PendingDBLookup,
                    nsIUrlClassifierCallback)
 
 PendingDBLookup::PendingDBLookup(PendingLookup* aPendingLookup) :
-  mAllowListOnly(false),
+  mAllowlistOnly(false),
   mPendingLookup(aPendingLookup)
 {
   LOG(("Created pending DB lookup [this = %p]", this));
@@ -233,11 +235,11 @@ PendingDBLookup::~PendingDBLookup()
 
 nsresult
 PendingDBLookup::LookupSpec(const nsACString& aSpec,
-                            bool aAllowListOnly)
+                            bool aAllowlistOnly)
 {
   LOG(("Checking principal %s", aSpec.Data()));
   mSpec = aSpec;
-  mAllowListOnly = aAllowListOnly;
+  mAllowlistOnly = aAllowlistOnly;
   nsresult rv = LookupSpecInternal(aSpec);
   if (NS_FAILED(rv)) {
     LOG(("Error in LookupSpecInternal"));
@@ -253,12 +255,12 @@ PendingDBLookup::LookupSpecInternal(const nsACString& aSpec)
 {
   nsresult rv;
 
-  nsCOMPtr<nsIURI> uri = nullptr;
+  nsCOMPtr<nsIURI> uri;
   nsCOMPtr<nsIIOService> ios = do_GetService(NS_IOSERVICE_CONTRACTID, &rv);
   rv = ios->NewURI(aSpec, nullptr, nullptr, getter_AddRefs(uri));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIPrincipal> principal = nullptr;
+  nsCOMPtr<nsIPrincipal> principal;
   nsCOMPtr<nsIScriptSecurityManager> secMan =
     do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -271,7 +273,19 @@ PendingDBLookup::LookupSpecInternal(const nsACString& aSpec)
   LOG(("Checking DB service for principal %s [this = %p]", mSpec.get(), this));
   nsCOMPtr<nsIUrlClassifierDBService> dbService =
     do_GetService(NS_URLCLASSIFIERDBSERVICE_CONTRACTID, &rv);
-  return dbService->Lookup(principal, this);
+  nsAutoCString tables;
+  nsAutoCString allowlist;
+  Preferences::GetCString(PREF_DOWNLOAD_ALLOW_TABLE, &allowlist);
+  if (!allowlist.IsEmpty()) {
+    tables.Append(allowlist);
+  }
+  nsAutoCString blocklist;
+  Preferences::GetCString(PREF_DOWNLOAD_BLOCK_TABLE, &blocklist);
+  if (!mAllowlistOnly && !blocklist.IsEmpty()) {
+    tables.Append(",");
+    tables.Append(blocklist);
+  }
+  return dbService->Lookup(principal, tables, this);
 }
 
 NS_IMETHODIMP
@@ -280,21 +294,21 @@ PendingDBLookup::HandleEvent(const nsACString& tables)
   // HandleEvent is guaranteed to call either:
   // 1) PendingLookup::OnComplete if the URL can be classified locally, or
   // 2) PendingLookup::LookupNext if the URL can be cannot classified locally.
-  // Allow listing trumps block listing.
+  // Blocklisting trumps allowlisting.
+  nsAutoCString blockList;
+  Preferences::GetCString(PREF_DOWNLOAD_BLOCK_TABLE, &blockList);
+  if (!mAllowlistOnly && FindInReadable(tables, blockList)) {
+    Accumulate(mozilla::Telemetry::APPLICATION_REPUTATION_LOCAL, BLOCK_LIST);
+    LOG(("Found principal %s on blocklist [this = %p]", mSpec.get(), this));
+    return mPendingLookup->OnComplete(true, NS_OK);
+  }
+
   nsAutoCString allowList;
   Preferences::GetCString(PREF_DOWNLOAD_ALLOW_TABLE, &allowList);
   if (FindInReadable(tables, allowList)) {
     Accumulate(mozilla::Telemetry::APPLICATION_REPUTATION_LOCAL, ALLOW_LIST);
     LOG(("Found principal %s on allowlist [this = %p]", mSpec.get(), this));
     return mPendingLookup->OnComplete(false, NS_OK);
-  }
-
-  nsAutoCString blockList;
-  Preferences::GetCString(PREF_DOWNLOAD_BLOCK_TABLE, &blockList);
-  if (!mAllowListOnly && FindInReadable(tables, blockList)) {
-    Accumulate(mozilla::Telemetry::APPLICATION_REPUTATION_LOCAL, BLOCK_LIST);
-    LOG(("Found principal %s on blocklist [this = %p]", mSpec.get(), this));
-    return mPendingLookup->OnComplete(true, NS_OK);
   }
 
   LOG(("Didn't find principal %s on any list [this = %p]", mSpec.get(), this));
@@ -324,18 +338,26 @@ PendingLookup::LookupNext()
 {
   // We must call LookupNext or SendRemoteQuery upon return.
   // Look up all of the URLs that could whitelist this download.
-  int index = mAllowlistSpecs.Length() - 1;
+  // Blacklist first.
+  int index = mAnylistSpecs.Length() - 1;
+  nsCString spec;
+  bool allowlistOnly = false;
   if (index >= 0) {
-    nsCString spec = mAllowlistSpecs[index];
-    mAllowlistSpecs.RemoveElementAt(index);
-    nsRefPtr<PendingDBLookup> lookup(new PendingDBLookup(this));
-    bool allowListOnly = true;
-    if (index == 0) {
-      // The last URI is the target URI, which may be used for blacklisting as
-      // well as whitelisting.
-      allowListOnly = false;
+    // Check the source URI and referrer.
+    spec = mAnylistSpecs[index];
+    mAnylistSpecs.RemoveElementAt(index);
+  } else {
+    // Check the allowlists next.
+    index = mAllowlistSpecs.Length() - 1;
+    if (index >= 0) {
+      allowlistOnly = true;
+      spec = mAllowlistSpecs[index];
+      mAllowlistSpecs.RemoveElementAt(index);
     }
-    return lookup->LookupSpec(spec, allowListOnly);
+  }
+  if (index >= 0) {
+    nsRefPtr<PendingDBLookup> lookup(new PendingDBLookup(this));
+    return lookup->LookupSpec(spec, allowlistOnly);
   }
   // There are no more URIs to check against local list, so send the remote
   // query if we can.
@@ -452,7 +474,7 @@ PendingLookup::GenerateWhitelistStringsForChain(
   nsCOMPtr<nsIX509CertDB> certDB = do_GetService(NS_X509CERTDB_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIX509Cert> signer = nullptr;
+  nsCOMPtr<nsIX509Cert> signer;
   rv = certDB->ConstructX509(
     const_cast<char *>(aChain.element(0).certificate().data()),
     aChain.element(0).certificate().size(), getter_AddRefs(signer));
@@ -460,7 +482,7 @@ PendingLookup::GenerateWhitelistStringsForChain(
 
   for (int i = 1; i < aChain.element_size(); ++i) {
     // Get the issuer.
-    nsCOMPtr<nsIX509Cert> issuer = nullptr;
+    nsCOMPtr<nsIX509Cert> issuer;
     rv = certDB->ConstructX509(
       const_cast<char *>(aChain.element(i).certificate().data()),
       aChain.element(i).certificate().size(), getter_AddRefs(issuer));
@@ -499,18 +521,27 @@ nsresult
 PendingLookup::DoLookupInternal()
 {
   // We want to check the target URI against the local lists.
-  nsCOMPtr<nsIURI> uri = nullptr;
+  nsCOMPtr<nsIURI> uri;
   nsresult rv = mQuery->GetSourceURI(getter_AddRefs(uri));
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCString spec;
   rv = uri->GetSpec(spec);
   NS_ENSURE_SUCCESS(rv, rv);
-  mAllowlistSpecs.AppendElement(spec);
+  mAnylistSpecs.AppendElement(spec);
+
+  nsCOMPtr<nsIURI> referrer = nullptr;
+  rv = mQuery->GetReferrerURI(getter_AddRefs(referrer));
+  if (referrer) {
+    nsCString spec;
+    rv = referrer->GetSpec(spec);
+    NS_ENSURE_SUCCESS(rv, rv);
+    mAnylistSpecs.AppendElement(spec);
+  }
 
   // Extract the signature and parse certificates so we can use it to check
   // whitelists.
-  nsCOMPtr<nsIArray> sigArray = nullptr;
+  nsCOMPtr<nsIArray> sigArray;
   rv = mQuery->GetSignatureInfo(getter_AddRefs(sigArray));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -555,7 +586,7 @@ PendingLookup::ParseCertificates(
   // Binaries may be signed by multiple chains of certificates. If there are no
   // chains, the binary is unsigned (or we were unable to extract signature
   // information on a non-Windows platform)
-  nsCOMPtr<nsISimpleEnumerator> chains = nullptr;
+  nsCOMPtr<nsISimpleEnumerator> chains;
   nsresult rv = aSigArray->Enumerate(getter_AddRefs(chains));
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -564,13 +595,16 @@ PendingLookup::ParseCertificates(
   NS_ENSURE_SUCCESS(rv, rv);
 
   while (hasMoreChains) {
-    nsCOMPtr<nsIX509CertList> certList = nullptr;
-    rv = chains->GetNext(getter_AddRefs(certList));
+    nsCOMPtr<nsISupports> supports;
+    rv = chains->GetNext(getter_AddRefs(supports));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<nsIX509CertList> certList = do_QueryInterface(supports, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
 
     safe_browsing::ClientDownloadRequest_CertificateChain* certChain =
       aSignatureInfo->add_certificate_chain();
-    nsCOMPtr<nsISimpleEnumerator> chainElt = nullptr;
+    nsCOMPtr<nsISimpleEnumerator> chainElt;
     rv = certList->GetEnumerator(getter_AddRefs(chainElt));
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -578,8 +612,11 @@ PendingLookup::ParseCertificates(
     bool hasMoreCerts = false;
     rv = chainElt->HasMoreElements(&hasMoreCerts);
     while (hasMoreCerts) {
-      nsCOMPtr<nsIX509Cert> cert = nullptr;
-      rv = chainElt->GetNext(getter_AddRefs(cert));
+      nsCOMPtr<nsISupports> supports;
+      rv = chainElt->GetNext(getter_AddRefs(supports));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      nsCOMPtr<nsIX509Cert> cert = do_QueryInterface(supports, &rv);
       NS_ENSURE_SUCCESS(rv, rv);
 
       uint8_t* data = nullptr;
@@ -622,7 +659,7 @@ PendingLookup::SendRemoteQueryInternal()
   // We did not find a local result, so fire off the query to the application
   // reputation service.
   safe_browsing::ClientDownloadRequest req;
-  nsCOMPtr<nsIURI> uri = nullptr;
+  nsCOMPtr<nsIURI> uri;
   nsresult rv;
   rv = mQuery->GetSourceURI(getter_AddRefs(uri));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -677,7 +714,7 @@ PendingLookup::SendRemoteQueryInternal()
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Set up the channel to transmit the request to the service.
-  nsCOMPtr<nsIChannel> channel = nullptr;
+  nsCOMPtr<nsIChannel> channel;
   nsCString serviceUrl;
   NS_ENSURE_SUCCESS(Preferences::GetCString(PREF_SB_APP_REP_URL, &serviceUrl),
                     NS_ERROR_NOT_AVAILABLE);
@@ -870,7 +907,7 @@ nsresult ApplicationReputationService::QueryReputationInternal(
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  nsCOMPtr<nsIURI> uri = nullptr;
+  nsCOMPtr<nsIURI> uri;
   rv = aQuery->GetSourceURI(getter_AddRefs(uri));
   NS_ENSURE_SUCCESS(rv, rv);
   // Bail if the URI hasn't been set.

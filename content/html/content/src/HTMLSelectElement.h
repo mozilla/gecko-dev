@@ -25,6 +25,10 @@ class nsISelectControlFrame;
 class nsPresState;
 
 namespace mozilla {
+
+class EventChainPostVisitor;
+class EventChainPreVisitor;
+
 namespace dom {
 
 class HTMLSelectElement;
@@ -72,6 +76,8 @@ private:
   nsCheapSet<nsStringHashKey> mValues;
   nsCheapSet<nsUint32HashKey> mIndices;
 };
+
+NS_DEFINE_STATIC_IID_ACCESSOR(SelectState, NS_SELECT_STATE_IID)
 
 class MOZ_STACK_CLASS SafeOptionListMutation
 {
@@ -130,7 +136,7 @@ public:
 
   using nsIConstraintValidation::GetValidationMessage;
 
-  HTMLSelectElement(already_AddRefed<nsINodeInfo> aNodeInfo,
+  HTMLSelectElement(already_AddRefed<nsINodeInfo>& aNodeInfo,
                     FromParser aFromParser = NOT_FROM_PARSER);
   virtual ~HTMLSelectElement();
 
@@ -255,12 +261,12 @@ public:
 
 
   // nsINode
-  virtual JSObject* WrapNode(JSContext* aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext* aCx) MOZ_OVERRIDE;
 
   // nsIContent
-  virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
-  virtual nsresult PostHandleEvent(nsEventChainPostVisitor& aVisitor) MOZ_OVERRIDE;
+  virtual nsresult PreHandleEvent(EventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
+  virtual nsresult PostHandleEvent(
+                     EventChainPostVisitor& aVisitor) MOZ_OVERRIDE;
 
   virtual bool IsHTMLFocusable(bool aWithMouse, bool* aIsFocusable, int32_t* aTabIndex) MOZ_OVERRIDE;
   virtual nsresult InsertChildAt(nsIContent* aKid, uint32_t aIndex,
@@ -277,7 +283,7 @@ public:
 
   virtual void FieldSetDisabledChanged(bool aNotify) MOZ_OVERRIDE;
 
-  nsEventStates IntrinsicState() const MOZ_OVERRIDE;
+  EventStates IntrinsicState() const MOZ_OVERRIDE;
 
   /**
    * To be called when stuff is added under a child of the select--but *before*

@@ -11,6 +11,8 @@ import org.mozilla.gecko.GeckoAppShell;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
+import android.util.Log;
 
 public class Allocator {
 
@@ -18,6 +20,13 @@ public class Allocator {
 
     private static final String PREFIX_ORIGIN = "webapp-origin-";
     private static final String PREFIX_PACKAGE_NAME = "webapp-package-name-";
+
+    // These prefixes are for prefs used by the old shortcut-based runtime.
+    // We define them here so maybeMigrateOldPrefs can migrate them to their
+    // new equivalents if this app was originally installed as a shortcut.
+    // Maybe we can remove this code in the future!
+    private static final String PREFIX_OLD_APP = "app";
+    private static final String PREFIX_OLD_ICON = "icon";
 
     // The number of Webapp# and WEBAPP# activities/apps/intents
     private final static int MAX_WEB_APPS = 100;
@@ -53,6 +62,27 @@ public class Allocator {
         return PREFIX_ORIGIN + i;
     }
 
+    private static String oldAppKey(int index) {
+        return PREFIX_OLD_APP + index;
+    }
+
+    private static String oldIconKey(int index) {
+        return PREFIX_OLD_ICON + index;
+    }
+
+    private static void save(Editor editor) {
+        // Use SharedPreferences.Editor.apply() where available and commit()
+        // where it isn't.  We could also use a background thread with commit(),
+        // but our callers might expect the changes we make to be available
+        // immediately, so we instead take the commit() performance hit
+        // on the small percentage of extant devices that don't support apply().
+        if (android.os.Build.VERSION.SDK_INT > 8) {
+            editor.apply();
+        } else {
+            editor.commit();
+        }
+    }
+
     public ArrayList<String> getInstalledPackageNames() {
         ArrayList<String> installedPackages = new ArrayList<String>();
 
@@ -82,11 +112,11 @@ public class Allocator {
     }
 
     public synchronized void putPackageName(final int index, final String packageName) {
-        mPrefs.edit().putString(appKey(index), packageName).apply();
+        save(mPrefs.edit().putString(appKey(index), packageName));
     }
 
     public void updateColor(int index, int color) {
-        mPrefs.edit().putInt(iconKey(index), color).apply();
+        save(mPrefs.edit().putInt(iconKey(index), color));
     }
 
     public synchronized int getIndexForApp(String packageName) {
@@ -120,15 +150,11 @@ public class Allocator {
     }
 
     public synchronized void releaseIndex(final int index) {
-        mPrefs.edit()
-              .remove(appKey(index))
-              .remove(iconKey(index))
-              .remove(originKey(index))
-              .apply();
+        save(mPrefs.edit().remove(appKey(index)).remove(iconKey(index)).remove(originKey(index)));
     }
 
     public void putOrigin(int index, String origin) {
-        mPrefs.edit().putString(originKey(index), origin).apply();
+        save(mPrefs.edit().putString(originKey(index), origin));
     }
 
     public String getOrigin(int index) {
@@ -137,5 +163,28 @@ public class Allocator {
 
     public int getColor(int index) {
         return mPrefs.getInt(iconKey(index), -1);
+    }
+
+    /**
+     * Migrate old prefs to their new equivalents if this app was originally
+     * installed by the shortcut-based implementation.
+     */
+    public void maybeMigrateOldPrefs(int index) {
+        if (!mPrefs.contains(oldAppKey(index))) {
+            return;
+        }
+
+        Log.i(LOGTAG, "migrating old prefs");
+
+        // The old appKey pref stored the origin, while the new appKey pref
+        // stores the packageName, so we migrate oldAppKey to the origin pref.
+        putOrigin(index, mPrefs.getString(oldAppKey(index), null));
+
+        // The old iconKey pref actually stored the splash screen background
+        // color, so we migrate oldIconKey to the color pref.
+        updateColor(index, mPrefs.getInt(oldIconKey(index), -1));
+
+        // Remove the old prefs so we don't migrate them the next time around.
+        save(mPrefs.edit().remove(oldAppKey(index)).remove(oldIconKey(index)));
     }
 }

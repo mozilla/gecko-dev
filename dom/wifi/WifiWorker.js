@@ -111,11 +111,17 @@ var WifiManager = (function() {
       schedScanRecovery: libcutils.property_get("ro.moz.wifi.sched_scan_recover") === "false" ? false : true,
       driverDelay: libcutils.property_get("ro.moz.wifi.driverDelay"),
       p2pSupported: libcutils.property_get("ro.moz.wifi.p2p_supported") === "1",
+      eapSimSupported: libcutils.property_get("ro.moz.wifi.eapsim_supported") === "1",
       ifname: libcutils.property_get("wifi.interface")
     };
   }
 
-  let {sdkVersion, unloadDriverEnabled, schedScanRecovery, driverDelay, p2pSupported, ifname} = getStartupPrefs();
+  let {sdkVersion, unloadDriverEnabled, schedScanRecovery,
+       driverDelay, p2pSupported, eapSimSupported, ifname} = getStartupPrefs();
+
+  let capabilities = {
+    eapSim: eapSimSupported
+  };
 
   let wifiListener = {
     onWaitEvent: function(event, iface) {
@@ -143,6 +149,7 @@ var WifiManager = (function() {
   }
 
   manager.ifname = ifname;
+  manager.connectToSupplicant = false;
   // Emulator build runs to here.
   // The debug() should only be used after WifiManager.
   if (!ifname) {
@@ -551,17 +558,18 @@ var WifiManager = (function() {
       // Tell the event worker to start waiting for events.
       retryTimer = null;
       connectTries = 0;
+      manager.connectToSupplicant = true;
       didConnectSupplicant(function(){});
       return;
     }
-    if (connectTries++ < 3) {
-      // Try again in 5 seconds.
+    if (connectTries++ < 5) {
+      // Try again in 1 seconds.
       if (!retryTimer)
         retryTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
 
       retryTimer.initWithCallback(function(timer) {
         wifiCommand.connectToSupplicant(connectCallback);
-      }, 5000, Ci.nsITimer.TYPE_ONE_SHOT);
+      }, 1000, Ci.nsITimer.TYPE_ONE_SHOT);
       return;
     }
 
@@ -741,6 +749,9 @@ var WifiManager = (function() {
       if (manager.state !== "DISABLING" && manager.state !== "UNINITIALIZED") {
         notify("supplicantlost", { success: true });
       }
+      wifiCommand.closeSupplicantConnection(function() {
+        manager.connectToSupplicant = false;
+      });
       return false;
     }
     if (eventData.indexOf("CTRL-EVENT-DISCONNECTED") === 0) {
@@ -894,12 +905,10 @@ var WifiManager = (function() {
         WifiNetworkInterface.registered = true;
       }
       WifiNetworkInterface.state = Ci.nsINetworkInterface.NETWORK_STATE_DISCONNECTED;
-      WifiNetworkInterface.ip = null;
-      WifiNetworkInterface.netmask = null;
-      WifiNetworkInterface.broadcast = null;
-      WifiNetworkInterface.gateway = null;
-      WifiNetworkInterface.dns1 = null;
-      WifiNetworkInterface.dns2 = null;
+      WifiNetworkInterface.ips = [];
+      WifiNetworkInterface.prefixLengths = [];
+      WifiNetworkInterface.gateways = [];
+      WifiNetworkInterface.dnses = [];
       Services.obs.notifyObservers(WifiNetworkInterface,
                                    kNetworkInterfaceStateChangedTopic,
                                    null);
@@ -916,8 +925,8 @@ var WifiManager = (function() {
           gNetworkService.setWifiOperationMode(manager.ifname,
                                                WIFI_FIRMWARE_STATION,
                                                function (status) {
-            function doStartSupplicant() {
-              cancelWaitForDriverReadyTimer();
+
+            function startSupplicantInternal() {
               wifiCommand.startSupplicant(function (status) {
                 if (status < 0) {
                   unloadDriver(WIFI_FIRMWARE_STATION, function() {
@@ -933,6 +942,19 @@ var WifiManager = (function() {
                 });
               });
             }
+
+            function doStartSupplicant() {
+              cancelWaitForDriverReadyTimer();
+
+              if (!manager.connectToSupplicant) {
+                startSupplicantInternal();
+                return;
+              }
+              wifiCommand.closeSupplicantConnection(function () {
+                manager.connectToSupplicant = false;
+                startSupplicantInternal();
+              });
+            }
             // Driver startup on certain platforms takes longer than it takes for us
             // to return from loadDriver, so wait 2 seconds before starting
             // the supplicant to give it a chance to start.
@@ -945,19 +967,17 @@ var WifiManager = (function() {
         });
       });
     } else {
+      manager.state = "DISABLING";
       // Note these following calls ignore errors. If we fail to kill the
       // supplicant gracefully, then we need to continue telling it to die
       // until it does.
       let doDisableWifi = function() {
-        manager.state = "DISABLING";
         wifiCommand.terminateSupplicant(function (ok) {
           manager.connectionDropped(function () {
             wifiCommand.stopSupplicant(function (status) {
-              wifiCommand.closeSupplicantConnection(function () {
-                manager.state = "UNINITIALIZED";
-                netUtil.disableInterface(manager.ifname, function (ok) {
-                  unloadDriver(WIFI_FIRMWARE_STATION, callback);
-                });
+              manager.state = "UNINITIALIZED";
+              netUtil.disableInterface(manager.ifname, function (ok) {
+                unloadDriver(WIFI_FIRMWARE_STATION, callback);
               });
             });
           });
@@ -1296,7 +1316,7 @@ var WifiManager = (function() {
   manager.enableP2p = function(callback) {
     p2pManager.setEnabled(true, {
       onSupplicantConnected: function() {
-        wifiService.waitForEvent(WifiP2pManager.INTERFACE_NAME);
+        waitForEvent(WifiP2pManager.INTERFACE_NAME);
       },
 
       onEnabled: function(success) {
@@ -1304,6 +1324,10 @@ var WifiManager = (function() {
       }
     });
   };
+
+  manager.getCapabilities = function() {
+    return capabilities;
+  }
 
   return manager;
 })();
@@ -1519,20 +1543,38 @@ let WifiNetworkInterface = {
 
   name: null,
 
-  ip: null,
+  ips: [],
 
-  prefixLength: 0,
+  prefixLengths: [],
 
-  broadcast: null,
+  dnses: [],
 
-  dns1: null,
-
-  dns2: null,
+  gateways: [],
 
   httpProxyHost: null,
 
   httpProxyPort: null,
 
+  getAddresses: function (ips, prefixLengths) {
+    ips.value = this.ips.slice();
+    prefixLengths.value = this.prefixLengths.slice();
+
+    return this.ips.length;
+  },
+
+  getGateways: function (count) {
+    if (count) {
+      count.value = this.gateways.length;
+    }
+    return this.gateways.slice();
+  },
+
+  getDnses: function (count) {
+    if (count) {
+      count.value = this.dnses.length;
+    }
+    return this.dnses.slice();
+  }
 };
 
 function WifiScanResult() {}
@@ -1751,7 +1793,7 @@ function WifiWorker() {
     });
 
     try {
-      self._allowWpaEap = Services.prefs.getBoolPref("b2g.wifi.allow_unsafe_wpa_eap");
+      self._allowWpaEap = WifiManager.getCapabilities().eapSim;
     } catch (e) {
       self._allowWpaEap = false;
     }
@@ -1884,11 +1926,13 @@ function WifiWorker() {
       case "DISCONNECTED":
         // wpa_supplicant may give us a "DISCONNECTED" event even if
         // we are already in "DISCONNECTED" state.
-        if (this.prevState === "INITIALIZING" ||
-          this.prevState === "DISCONNECTED" ||
-          this.prevState === "INTERFACE_DISABLED" ||
-          this.prevState === "INACTIVE" ||
-          this.prevState === "UNINITIALIZED") {
+        if ((WifiNetworkInterface.state ===
+             Ci.nsINetworkInterface.NETWORK_STATE_DISCONNECTED) &&
+             (this.prevState === "INITIALIZING" ||
+              this.prevState === "DISCONNECTED" ||
+              this.prevState === "INTERFACE_DISABLED" ||
+              this.prevState === "INACTIVE" ||
+              this.prevState === "UNINITIALIZED")) {
           return;
         }
 
@@ -1931,12 +1975,10 @@ function WifiWorker() {
 
         WifiNetworkInterface.state =
           Ci.nsINetworkInterface.NETWORK_STATE_DISCONNECTED;
-        WifiNetworkInterface.ip = null;
-        WifiNetworkInterface.prefixLength = 0;
-        WifiNetworkInterface.broadcast = null;
-        WifiNetworkInterface.gateway = null;
-        WifiNetworkInterface.dns1 = null;
-        WifiNetworkInterface.dns2 = null;
+        WifiNetworkInterface.ips = [];
+        WifiNetworkInterface.prefixLengths = [];
+        WifiNetworkInterface.gateways = [];
+        WifiNetworkInterface.dnses = [];
         Services.obs.notifyObservers(WifiNetworkInterface,
                                      kNetworkInterfaceStateChangedTopic,
                                      null);
@@ -1961,21 +2003,29 @@ function WifiWorker() {
   };
 
   WifiManager.onnetworkconnected = function() {
-    if (!this.info) {
+    if (!this.info || !this.info.ipaddr_str) {
       debug("Network information is invalid.");
       return;
     }
 
     let maskLength =
       netHelpers.getMaskLength(netHelpers.stringToIP(this.info.mask_str));
+    if (!maskLength) {
+      maskLength = 32; // max prefix for IPv4.
+    }
     WifiNetworkInterface.state =
       Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED;
-    WifiNetworkInterface.ip = this.info.ipaddr_str;
-    WifiNetworkInterface.prefixLength = maskLength;
-    WifiNetworkInterface.broadcast = this.info.broadcast_str;
-    WifiNetworkInterface.gateway = this.info.gateway_str;
-    WifiNetworkInterface.dns1 = this.info.dns1_str;
-    WifiNetworkInterface.dns2 = this.info.dns2_str;
+    WifiNetworkInterface.ips = [this.info.ipaddr_str];
+    WifiNetworkInterface.prefixLengths = [maskLength];
+    WifiNetworkInterface.gateways = [this.info.gateway_str];
+    if (typeof this.info.dns1_str == "string" &&
+        this.info.dns1_str.length) {
+      WifiNetworkInterface.dnses.push(this.info.dns1_str);
+    }
+    if (typeof this.info.dns2_str == "string" &&
+        this.info.dns2_str.length) {
+      WifiNetworkInterface.dnses.push(this.info.dns2_str);
+    }
     Services.obs.notifyObservers(WifiNetworkInterface,
                                  kNetworkInterfaceStateChangedTopic,
                                  null);
@@ -2029,7 +2079,7 @@ function WifiWorker() {
               flags = match[4];
 
           // Skip ad-hoc networks which aren't supported (bug 811635).
-          if (flags.indexOf("[IBSS]") >= 0)
+          if (flags && flags.indexOf("[IBSS]") >= 0)
             continue;
 
           // If this is the first time that we've seen this SSID in the scan
@@ -2304,8 +2354,10 @@ WifiWorker.prototype = {
       // Convert between netId-based and ssid-based indexing.
       for (let net in networks) {
         let network = networks[net];
+        delete networks[net];
+
         if (!network.ssid) {
-          delete networks[net]; // TODO support these?
+          WifiManager.removeNetwork(network.netId, function() {});
           continue;
         }
 
@@ -2313,8 +2365,11 @@ WifiWorker.prototype = {
           this._highestPriority = network.priority;
 
         let networkKey = getNetworkKey(network);
+        // Accept latest config of same network(same SSID and same security).
+        if (networks[networkKey]) {
+          WifiManager.removeNetwork(networks[networkKey].netId, function() {});
+        }
         networks[networkKey] = network;
-        delete networks[net];
       }
 
       this.configuredNetworks = networks;
@@ -2400,8 +2455,31 @@ WifiWorker.prototype = {
   },
 
   _sendMessage: function(message, success, data, msg) {
-    msg.manager.sendAsyncMessage(message + (success ? ":OK" : ":NO"),
-                                 { data: data, rid: msg.rid, mid: msg.mid });
+    try {
+      msg.manager.sendAsyncMessage(message + (success ? ":OK" : ":NO"),
+                                   { data: data, rid: msg.rid, mid: msg.mid });
+    } catch (e) {
+      debug("sendAsyncMessage error : " + e);
+    }
+    this._splicePendingRequest(msg);
+  },
+
+  _domRequest: [],
+
+  _splicePendingRequest: function(msg) {
+    for (let i = 0; i < this._domRequest.length; i++) {
+      if (this._domRequest[i].msg === msg) {
+        this._domRequest.splice(i, 1);
+        return;
+      }
+    }
+  },
+
+  _clearPendingRequest: function() {
+    if (this._domRequest.length === 0) return;
+    this._domRequest.forEach((function(req) {
+      this._sendMessage(req.name + ":Return", false, "Wifi is disabled", req.msg);
+    }).bind(this));
   },
 
   receiveMessage: function MessageManager_receiveMessage(aMessage) {
@@ -2425,12 +2503,21 @@ WifiWorker.prototype = {
       if ((i = this._domManagers.indexOf(msg.manager)) != -1) {
         this._domManagers.splice(i, 1);
       }
-
+      for (i = this._domRequest.length - 1; i >= 0; i--) {
+        if (this._domRequest[i].msg.manager === msg.manager) {
+          this._domRequest.splice(i, 1);
+        }
+      }
       return;
     }
 
     if (!aMessage.target.assertPermission("wifi-manage")) {
       return;
+    }
+
+    // We are interested in DOMRequests only.
+    if (aMessage.name != "WifiManager:getState") {
+      this._domRequest.push({name: aMessage.name, msg:msg});
     }
 
     switch (aMessage.name) {
@@ -2523,7 +2610,7 @@ WifiWorker.prototype = {
 
           if (count++ >= 3) {
             timer = null;
-            this.wantScanResults.splice(this.wantScanResults.indexOf(waitForScanCallback), 1);
+            self.wantScanResults.splice(self.wantScanResults.indexOf(waitForScanCallback), 1);
             callback.onfailure();
             return;
           }
@@ -2612,6 +2699,11 @@ WifiWorker.prototype = {
   },
 
   setWifiEnabled: function(enabled, callback) {
+    // Reply error to pending requests.
+    if (!enabled) {
+      this._clearPendingRequest();
+    }
+
     WifiManager.setWifiEnabled(enabled, callback);
   },
 

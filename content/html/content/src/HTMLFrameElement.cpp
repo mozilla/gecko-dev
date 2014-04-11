@@ -13,7 +13,7 @@ NS_IMPL_NS_NEW_HTML_ELEMENT_CHECK_PARSER(Frame)
 namespace mozilla {
 namespace dom {
 
-HTMLFrameElement::HTMLFrameElement(already_AddRefed<nsINodeInfo> aNodeInfo,
+HTMLFrameElement::HTMLFrameElement(already_AddRefed<nsINodeInfo>& aNodeInfo,
                                    FromParser aFromParser)
   : nsGenericHTMLFrameElement(aNodeInfo, aFromParser)
 {
@@ -81,9 +81,9 @@ HTMLFrameElement::ParseAttribute(int32_t aNamespaceID,
 }
 
 JSObject*
-HTMLFrameElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aScope)
+HTMLFrameElement::WrapNode(JSContext* aCx)
 {
-  return HTMLFrameElementBinding::Wrap(aCx, aScope, this);
+  return HTMLFrameElementBinding::Wrap(aCx, this);
 }
 
 } // namespace mozilla

@@ -65,9 +65,6 @@ const int OMX_TI_COLOR_FormatYUV420PackedSemiPlanar = 0x7F000100;
 class OmxDecoder {
   PluginHost *mPluginHost;
   Decoder *mDecoder;
-#ifndef MOZ_WIDGET_GONK
-  OMXClient mClient;
-#endif
   sp<MediaSource> mVideoTrack;
   sp<MediaSource> mVideoSource;
   sp<MediaSource> mAudioTrack;
@@ -143,6 +140,39 @@ public:
   bool ReadAudio(AudioFrame *aFrame, int64_t aSeekTimeUs);
 };
 
+#if !defined(MOZ_WIDGET_GONK)
+static class OmxClientInstance {
+public:
+  OmxClientInstance()
+    : mClient(new OMXClient())
+    , mStatus(mClient->connect())
+  {
+  }
+
+  status_t IsValid()
+  {
+    return mStatus == OK;
+  }
+
+  OMXClient *get()
+  {
+    return mClient;
+  }
+
+  ~OmxClientInstance()
+  {
+    if (mStatus == OK) {
+      mClient->disconnect();
+    }
+    delete mClient;
+  }
+
+private:
+  OMXClient *mClient;
+  status_t mStatus;
+} sClientInstance;
+#endif
+
 OmxDecoder::OmxDecoder(PluginHost *aPluginHost, Decoder *aDecoder) :
   mPluginHost(aPluginHost),
   mDecoder(aDecoder),
@@ -183,9 +213,6 @@ OmxDecoder::~OmxDecoder()
   if (mColorConverter) {
     delete mColorConverter;
   }
-#endif
-#ifndef MOZ_WIDGET_GONK
-  mClient.disconnect();
 #endif
 }
 
@@ -277,7 +304,7 @@ enum ColorFormatSupport {
 static ColorFormatSupport
 IsColorFormatSupported(OMX_COLOR_FORMATTYPE aColorFormat)
 {
-  switch (aColorFormat) {
+  switch (static_cast<int>(aColorFormat)) {
     case OMX_COLOR_FormatCbYCrY:
     case OMX_COLOR_FormatYUV420Planar:
     case OMX_COLOR_FormatYUV420SemiPlanar:
@@ -346,7 +373,7 @@ FindPreferredDecoderAndColorFormat(const sp<IOMX>& aOmx,
 
       if (supported) {
         strncpy(aDecoderName, caps.mComponentName.string(), aDecoderLen);
-        *aColorFormat = (OMX_COLOR_FORMATTYPE)color;
+        *aColorFormat = color;
         found = true;
       }
 
@@ -429,7 +456,18 @@ static sp<MediaSource> CreateVideoSource(PluginHost* aPluginHost,
                           nullptr, flags);
 }
 
-bool OmxDecoder::Init() {
+bool OmxDecoder::Init()
+{
+#if defined(MOZ_WIDGET_ANDROID)
+  // OMXClient::connect() always returns OK and aborts fatally if
+  // it can't connect. We may need to implement the connect functionality
+  // ourselves if this proves to be an issue.
+  if (!sClientInstance.IsValid()) {
+    LOG("OMXClient failed to connect");
+    return false;
+  }
+#endif
+
   //register sniffers, if they are not registered in this process.
   DataSource::RegisterDefaultSniffers();
 
@@ -475,13 +513,7 @@ bool OmxDecoder::Init() {
 #ifdef MOZ_WIDGET_GONK
   sp<IOMX> omx = GetOMX();
 #else
-  // OMXClient::connect() always returns OK and abort's fatally if
-  // it can't connect. We may need to implement the connect functionality
-  // ourselves if this proves to be an issue.
-  if (mClient.connect() != OK) {
-    LOG("OMXClient failed to connect");
-  }
-  sp<IOMX> omx = mClient.interface();
+  sp<IOMX> omx = sClientInstance.get()->interface();
 #endif
 
   sp<MediaSource> videoTrack;
@@ -727,7 +759,7 @@ void OmxDecoder::ToVideoFrame_YUV420SemiPlanar(VideoFrame *aFrame, int64_t aTime
   // to see if the video size patches the raw width and height. If so we can
   // use those figures instead.
 
-  if (aSize == mVideoWidth * mVideoHeight * 3 / 2) {
+  if (static_cast<int>(aSize) == mVideoWidth * mVideoHeight * 3 / 2) {
     videoStride = mVideoWidth;
     videoSliceHeight = mVideoHeight;
   }

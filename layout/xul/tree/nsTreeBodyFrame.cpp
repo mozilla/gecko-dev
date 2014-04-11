@@ -3,8 +3,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/ContentEvents.h"
 #include "mozilla/DebugOnly.h"
+#include "mozilla/EventDispatcher.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/Likely.h"
@@ -23,8 +25,7 @@
 #include "nsIContent.h"
 #include "nsStyleContext.h"
 #include "nsIBoxObject.h"
-#include "nsAsyncDOMEvent.h"
-#include "nsIDOMDataContainerEvent.h"
+#include "nsIDOMCustomEvent.h"
 #include "nsIDOMMouseEvent.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMNodeList.h"
@@ -54,7 +55,6 @@
 #include "nsContentUtils.h"
 #include "nsLayoutUtils.h"
 #include "nsIScrollableFrame.h"
-#include "nsEventDispatcher.h"
 #include "nsDisplayList.h"
 #include "nsTreeBoxObject.h"
 #include "nsRenderingContext.h"
@@ -64,6 +64,7 @@
 
 #ifdef ACCESSIBILITY
 #include "nsAccessibilityService.h"
+#include "nsIWritablePropertyBag2.h"
 #endif
 #ifdef IBMBIDI
 #include "nsBidiUtils.h"
@@ -930,7 +931,7 @@ nsTreeBodyFrame::CheckOverflow(const ScrollParts& aParts)
       mVerticalOverflow ? NS_SCROLLPORT_OVERFLOW : NS_SCROLLPORT_UNDERFLOW,
       nullptr);
     event.orient = InternalScrollPortEvent::vertical;
-    nsEventDispatcher::Dispatch(content, presContext, &event);
+    EventDispatcher::Dispatch(content, presContext, &event);
   }
 
   if (horizontalOverflowChanged) {
@@ -938,7 +939,7 @@ nsTreeBodyFrame::CheckOverflow(const ScrollParts& aParts)
       mHorizontalOverflow ? NS_SCROLLPORT_OVERFLOW : NS_SCROLLPORT_UNDERFLOW,
       nullptr);
     event.orient = InternalScrollPortEvent::horizontal;
-    nsEventDispatcher::Dispatch(content, presContext, &event);
+    EventDispatcher::Dispatch(content, presContext, &event);
   }
 
   // The synchronous event dispatch above can trigger reflow notifications.
@@ -4473,7 +4474,7 @@ nsTreeBodyFrame::FireScrollEvent()
   WidgetGUIEvent event(true, NS_SCROLL_EVENT, nullptr);
   // scroll events fired at elements don't bubble
   event.mFlags.mBubbles = false;
-  nsEventDispatcher::Dispatch(GetContent(), PresContext(), &event);
+  EventDispatcher::Dispatch(GetContent(), PresContext(), &event);
 }
 
 void
@@ -4533,40 +4534,38 @@ nsTreeBodyFrame::FireRowCountChangedEvent(int32_t aIndex, int32_t aCount)
     return;
 
   nsCOMPtr<nsIDOMEvent> event;
-  domDoc->CreateEvent(NS_LITERAL_STRING("datacontainerevents"),
+  domDoc->CreateEvent(NS_LITERAL_STRING("customevent"),
                       getter_AddRefs(event));
 
-  nsCOMPtr<nsIDOMDataContainerEvent> treeEvent(do_QueryInterface(event));
+  nsCOMPtr<nsIDOMCustomEvent> treeEvent(do_QueryInterface(event));
   if (!treeEvent)
     return;
 
-  event->InitEvent(NS_LITERAL_STRING("TreeRowCountChanged"), true, false);
+  nsCOMPtr<nsIWritablePropertyBag2> propBag(
+    do_CreateInstance("@mozilla.org/hash-property-bag;1"));
+  if (!propBag)
+    return;
 
   // Set 'index' data - the row index rows are changed from.
-  nsCOMPtr<nsIWritableVariant> indexVariant(
-    do_CreateInstance("@mozilla.org/variant;1"));
-  if (!indexVariant)
-    return;
-
-  indexVariant->SetAsInt32(aIndex);
-  treeEvent->SetData(NS_LITERAL_STRING("index"), indexVariant);
+  propBag->SetPropertyAsInt32(NS_LITERAL_STRING("index"), aIndex);
 
   // Set 'count' data - the number of changed rows.
-  nsCOMPtr<nsIWritableVariant> countVariant(
+  propBag->SetPropertyAsInt32(NS_LITERAL_STRING("count"), aCount);
+
+  nsCOMPtr<nsIWritableVariant> detailVariant(
     do_CreateInstance("@mozilla.org/variant;1"));
-  if (!countVariant)
+  if (!detailVariant)
     return;
 
-  countVariant->SetAsInt32(aCount);
-  treeEvent->SetData(NS_LITERAL_STRING("count"), countVariant);
+  detailVariant->SetAsISupports(propBag);
+  treeEvent->InitCustomEvent(NS_LITERAL_STRING("TreeRowCountChanged"),
+                             true, false, detailVariant);
 
   event->SetTrusted(true);
 
-  nsRefPtr<nsAsyncDOMEvent> plevent = new nsAsyncDOMEvent(content, event);
-  if (!plevent)
-    return;
-
-  plevent->PostDOMEvent();
+  nsRefPtr<AsyncEventDispatcher> asyncDispatcher =
+    new AsyncEventDispatcher(content, event);
+  asyncDispatcher->PostDOMEvent();
 }
 
 void
@@ -4583,70 +4582,62 @@ nsTreeBodyFrame::FireInvalidateEvent(int32_t aStartRowIdx, int32_t aEndRowIdx,
     return;
 
   nsCOMPtr<nsIDOMEvent> event;
-  domDoc->CreateEvent(NS_LITERAL_STRING("datacontainerevents"),
+  domDoc->CreateEvent(NS_LITERAL_STRING("customevent"),
                       getter_AddRefs(event));
 
-  nsCOMPtr<nsIDOMDataContainerEvent> treeEvent(do_QueryInterface(event));
+  nsCOMPtr<nsIDOMCustomEvent> treeEvent(do_QueryInterface(event));
   if (!treeEvent)
     return;
 
-  event->InitEvent(NS_LITERAL_STRING("TreeInvalidated"), true, false);
+  nsCOMPtr<nsIWritablePropertyBag2> propBag(
+    do_CreateInstance("@mozilla.org/hash-property-bag;1"));
+  if (!propBag)
+    return;
 
   if (aStartRowIdx != -1 && aEndRowIdx != -1) {
     // Set 'startrow' data - the start index of invalidated rows.
-    nsCOMPtr<nsIWritableVariant> startRowVariant(
-      do_CreateInstance("@mozilla.org/variant;1"));
-    if (!startRowVariant)
-      return;
-
-    startRowVariant->SetAsInt32(aStartRowIdx);
-    treeEvent->SetData(NS_LITERAL_STRING("startrow"), startRowVariant);
+    propBag->SetPropertyAsInt32(NS_LITERAL_STRING("startrow"),
+                                aStartRowIdx);
 
     // Set 'endrow' data - the end index of invalidated rows.
-    nsCOMPtr<nsIWritableVariant> endRowVariant(
-      do_CreateInstance("@mozilla.org/variant;1"));
-    if (!endRowVariant)
-      return;
-
-    endRowVariant->SetAsInt32(aEndRowIdx);
-    treeEvent->SetData(NS_LITERAL_STRING("endrow"), endRowVariant);
+    propBag->SetPropertyAsInt32(NS_LITERAL_STRING("endrow"),
+                                aEndRowIdx);
   }
 
   if (aStartCol && aEndCol) {
     // Set 'startcolumn' data - the start index of invalidated rows.
-    nsCOMPtr<nsIWritableVariant> startColVariant(
-      do_CreateInstance("@mozilla.org/variant;1"));
-    if (!startColVariant)
-      return;
-
     int32_t startColIdx = 0;
     nsresult rv = aStartCol->GetIndex(&startColIdx);
     if (NS_FAILED(rv))
       return;
 
-    startColVariant->SetAsInt32(startColIdx);
-    treeEvent->SetData(NS_LITERAL_STRING("startcolumn"), startColVariant);
+    propBag->SetPropertyAsInt32(NS_LITERAL_STRING("startcolumn"),
+                                startColIdx);
 
     // Set 'endcolumn' data - the start index of invalidated rows.
-    nsCOMPtr<nsIWritableVariant> endColVariant(
-      do_CreateInstance("@mozilla.org/variant;1"));
-    if (!endColVariant)
-      return;
-
     int32_t endColIdx = 0;
     rv = aEndCol->GetIndex(&endColIdx);
     if (NS_FAILED(rv))
       return;
 
-    endColVariant->SetAsInt32(endColIdx);
-    treeEvent->SetData(NS_LITERAL_STRING("endcolumn"), endColVariant);
+    propBag->SetPropertyAsInt32(NS_LITERAL_STRING("endcolumn"),
+                                endColIdx);
   }
+
+  nsCOMPtr<nsIWritableVariant> detailVariant(
+    do_CreateInstance("@mozilla.org/variant;1"));
+  if (!detailVariant)
+    return;
+
+  detailVariant->SetAsISupports(propBag);
+  treeEvent->InitCustomEvent(NS_LITERAL_STRING("TreeInvalidated"),
+                             true, false, detailVariant);
 
   event->SetTrusted(true);
 
-  nsRefPtr<nsAsyncDOMEvent> plevent = new nsAsyncDOMEvent(content, event);
-  if (plevent)
-    plevent->PostDOMEvent();
+  nsRefPtr<AsyncEventDispatcher> asyncDispatcher =
+    new AsyncEventDispatcher(content, event);
+  asyncDispatcher->PostDOMEvent();
 }
 #endif
 

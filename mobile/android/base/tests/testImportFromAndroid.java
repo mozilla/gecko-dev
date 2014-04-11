@@ -1,14 +1,16 @@
 package org.mozilla.gecko.tests;
 
-import org.mozilla.gecko.*;
-import android.app.Activity;
-import android.provider.Browser;
-import android.content.ContentValues;
+import java.util.ArrayList;
+
+import org.mozilla.gecko.Actions;
+import org.mozilla.gecko.AppConstants;
+import org.mozilla.gecko.GeckoProfile;
+
 import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
-import java.util.ArrayList;
-import java.util.Arrays;
+import android.provider.Browser;
 
 /**
   * This test covers the Import from Android feature
@@ -22,11 +24,6 @@ public class testImportFromAndroid extends AboutHomeTest {
     private static final int MAX_WAIT_TIMEOUT = 15000;
     ArrayList<String> androidData = new ArrayList<String>();
     ArrayList<String> firefoxHistory = new ArrayList<String>();
-
-    @Override
-    protected int getTestType() {
-        return TEST_MOCHITEST;
-    }
 
     public void testImportFromAndroid() {
         ArrayList<String> firefoxBookmarks = new ArrayList<String>();
@@ -116,7 +113,7 @@ public class testImportFromAndroid extends AboutHomeTest {
 
         // Add a few history items in Firefox Mobile
         ContentResolver resolver = getActivity().getContentResolver();
-        Uri uri = Uri.parse("content://" + TestConstants.ANDROID_PACKAGE_NAME + ".db.browser/history");
+        Uri uri = Uri.parse("content://" + AppConstants.ANDROID_PACKAGE_NAME + ".db.browser/history");
         uri = uri.buildUpon().appendQueryParameter("profile", GeckoProfile.DEFAULT_PROFILE)
                              .appendQueryParameter("sync", "true").build();
         for (String url:androidData) {

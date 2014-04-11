@@ -14,8 +14,8 @@
 using namespace mozilla;
 
 JSObject*
-WebGLTexture::WrapObject(JSContext *cx, JS::Handle<JSObject*> scope) {
-    return dom::WebGLTextureBinding::Wrap(cx, scope, this);
+WebGLTexture::WrapObject(JSContext *cx) {
+    return dom::WebGLTextureBinding::Wrap(cx, this);
 }
 
 WebGLTexture::WebGLTexture(WebGLContext *context)
@@ -49,8 +49,8 @@ int64_t
 WebGLTexture::ImageInfo::MemoryUsage() const {
     if (mImageDataStatus == WebGLImageDataStatus::NoImageData)
         return 0;
-    int64_t texelSizeInBits = WebGLContext::GetBitsPerTexel(mInternalFormat, mType);
-    return int64_t(mWidth) * int64_t(mHeight) * texelSizeInBits / 8;
+    int64_t bitsPerTexel = WebGLContext::GetBitsPerTexel(mInternalFormat, mType);
+    return int64_t(mWidth) * int64_t(mHeight) * bitsPerTexel/8;
 }
 
 int64_t
@@ -125,7 +125,7 @@ WebGLTexture::Bind(GLenum aTarget) {
         // thanks to the WebKit people for finding this out: GL_TEXTURE_WRAP_R is not
         // present in GLES 2, but is present in GL and it seems as if for cube maps
         // we need to set it to GL_CLAMP_TO_EDGE to get the expected GLES behavior.
-        if (mTarget == LOCAL_GL_TEXTURE_CUBE_MAP && !mContext->gl->IsGLES2())
+        if (mTarget == LOCAL_GL_TEXTURE_CUBE_MAP && !mContext->gl->IsGLES())
             mContext->gl->fTexParameteri(mTarget, LOCAL_GL_TEXTURE_WRAP_R, LOCAL_GL_CLAMP_TO_EDGE);
     }
 
@@ -146,6 +146,9 @@ WebGLTexture::SetImageInfo(GLenum aTarget, GLint aLevel,
 
     if (aLevel > 0)
         SetCustomMipmap();
+
+    // Invalidate framebuffer status cache
+    NotifyFBsStatusChanged();
 
     SetFakeBlackStatus(WebGLTextureFakeBlackStatus::Unknown);
 }
@@ -451,13 +454,12 @@ WebGLTexture::DoDeferredImageInitialization(GLenum imageTarget, GLint level)
     void *zeros = calloc(1, checked_byteLength.value());
 
     GLenum format = WebGLTexelConversions::GLFormatForTexelFormat(texelformat);
-    mContext->UpdateWebGLErrorAndClearGLError();
+    mContext->GetAndFlushUnderlyingGLErrors();
     mContext->gl->fTexImage2D(imageTarget, level, imageInfo.mInternalFormat,
                               imageInfo.mWidth, imageInfo.mHeight,
                               0, format, imageInfo.mType,
                               zeros);
-    GLenum error = LOCAL_GL_NO_ERROR;
-    mContext->UpdateWebGLErrorAndClearGLError(&error);
+    GLenum error = mContext->GetAndFlushUnderlyingGLErrors();
 
     free(zeros);
     SetImageDataStatus(imageTarget, level, WebGLImageDataStatus::InitializedImageData);

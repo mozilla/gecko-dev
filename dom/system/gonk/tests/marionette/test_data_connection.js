@@ -59,7 +59,7 @@ function setEmulatorAPN() {
     [{"carrier":"T-Mobile US",
       "apn":"epc.tmobile.com",
       "mmsc":"http://mms.msg.eng.t-mobile.com/mms/wapenc",
-      "types":["default","supl","mms","ims"]}]
+      "types":["default","supl","mms","ims","dun"]}]
   ];
 
   return setSetting(APN_KEY, apn);
@@ -68,7 +68,7 @@ function setEmulatorAPN() {
 function waitNetworkConnected(networkType) {
   log("wait network " + networkType + " connected");
 
-  let interfaceStateChangeTopic = "network-interface-state-changed";
+  let interfaceStateChangeTopic = "network-connection-state-changed";
   let obs = Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService);
   let deferred = Promise.defer();
 
@@ -90,7 +90,7 @@ function waitNetworkConnected(networkType) {
 function waitNetworkDisconnected(networkType) {
   log("wait network " + networkType + " disconnected");
 
-  let interfaceStateChangeTopic = "network-interface-state-changed";
+  let interfaceStateChangeTopic = "network-connection-state-changed";
   let obs = Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService);
   let deferred = Promise.defer();
 
@@ -155,7 +155,8 @@ function testNonDefaultDataConnection() {
     let typeMapping = {
       "mms": Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_MMS,
       "supl": Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_SUPL,
-      "ims": Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_IMS
+      "ims": Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_IMS,
+      "dun": Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE_DUN
     };
     let networkType = typeMapping[type];
 
@@ -176,6 +177,7 @@ function testNonDefaultDataConnection() {
     .then(() => doTestNonDefaultDataConnection("mms"))
     .then(() => doTestNonDefaultDataConnection("supl"))
     .then(() => doTestNonDefaultDataConnection("ims"))
+    .then(() => doTestNonDefaultDataConnection("dun"))
     // Restore APN settings
     .then(() => setSetting(APN_KEY, currentApn))
     .then(null, () => {

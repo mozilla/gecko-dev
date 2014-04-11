@@ -22,7 +22,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/IndexedDBHelper.jsm");
 Cu.import("resource://gre/modules/Timer.jsm");
 Cu.import("resource://gre/modules/Preferences.jsm");
-Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js");
+Cu.import("resource://gre/modules/Promise.jsm");
 Cu.importGlobalProperties(["indexedDB"]);
 
 XPCOMUtils.defineLazyModuleGetter(this, "AlarmService",
@@ -1291,8 +1291,7 @@ this.PushService = {
     this._retryFailCount = 0;
 
     // Openning an available UDP port.
-    // _listenForUDPWakeup will return the opened port number
-    this._udpPort = this._listenForUDPWakeup();
+    this._listenForUDPWakeup();
 
     let data = {
       messageType: "hello",
@@ -1306,7 +1305,7 @@ this.PushService = {
       // Hostport is apparently a thing.
       data["wakeup_hostport"] = {
         ip: networkState.ip,
-        port: this._udpPort
+        port: this._udpServer && this._udpServer.port
       };
 
       data["mobilenetwork"] = {
@@ -1439,7 +1438,7 @@ this.PushService = {
                         .createInstance(Ci.nsIUDPSocket);
     this._udpServer.init(-1, false);
     this._udpServer.asyncListen(this);
-    debug("listenForUDPWakeup listening on " + this._udpPort);
+    debug("listenForUDPWakeup listening on " + this._udpServer.port);
 
     return this._udpServer.port;
   },
@@ -1449,7 +1448,7 @@ this.PushService = {
    * reconnect the WebSocket and get the actual data.
    */
   onPacketReceived: function(aServ, aMessage) {
-    debug("Recv UDP datagram on port: " + this._udpPort);
+    debug("Recv UDP datagram on port: " + this._udpServer.port);
     this._beginWSSetup();
   },
 
@@ -1461,7 +1460,7 @@ this.PushService = {
    */
   onStopListening: function(aServ, aStatus) {
     debug("UDP Server socket was shutdown. Status: " + aStatus);
-    this._udpPort = undefined;
+    this._udpServer = undefined;
     this._beginWSSetup();
   },
 

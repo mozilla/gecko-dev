@@ -211,6 +211,19 @@ ShaderModeForEffectType(EffectTypes aEffectType, gfx::SurfaceFormat aFormat)
 }
 
 void
+CompositorD3D9::ClearRect(const gfx::Rect& aRect)
+{
+  D3DRECT rect;
+  rect.x1 = aRect.X();
+  rect.y1 = aRect.Y();
+  rect.x2 = aRect.XMost();
+  rect.y2 = aRect.YMost();
+
+  device()->Clear(1, &rect, D3DCLEAR_TARGET,
+                  0x00000000, 0, 0);
+}
+
+void
 CompositorD3D9::DrawQuad(const gfx::Rect &aRect,
                          const gfx::Rect &aClipRect,
                          const EffectChain &aEffectChain,
@@ -420,9 +433,9 @@ CompositorD3D9::DrawQuad(const gfx::Rect &aRect,
                                            1);
 
       SetSamplerForFilter(effectComponentAlpha->mFilter);
-      SetMask(aEffectChain, maskTexture);
 
       maskTexture = mDeviceManager->SetShaderMode(DeviceManagerD3D9::COMPONENTLAYERPASS1, maskType);
+      SetMask(aEffectChain, maskTexture);
       d3d9Device->SetTexture(0, sourceOnBlack->GetD3D9Texture());
       d3d9Device->SetTexture(1, sourceOnWhite->GetD3D9Texture());
       d3d9Device->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ZERO);
@@ -430,6 +443,7 @@ CompositorD3D9::DrawQuad(const gfx::Rect &aRect,
       d3d9Device->DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
 
       maskTexture = mDeviceManager->SetShaderMode(DeviceManagerD3D9::COMPONENTLAYERPASS2, maskType);
+      SetMask(aEffectChain, maskTexture);
       d3d9Device->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
       d3d9Device->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ONE);
       d3d9Device->DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);

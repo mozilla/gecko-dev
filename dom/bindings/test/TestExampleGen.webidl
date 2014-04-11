@@ -12,8 +12,7 @@
  NamedConstructor=Example,
  NamedConstructor=Example(DOMString str),
  NamedConstructor=Example2(DictForConstructor dict, any any1, object obj1,
-                           object? obj2, sequence<Dict> seq,
-                           optional any any2 = null,
+                           object? obj2, sequence<Dict> seq, optional any any2,
                            optional object obj3, optional object? obj4)
  ]
 interface TestExampleInterface {
@@ -322,6 +321,7 @@ interface TestExampleInterface {
   // Any types
   void passAny(any arg);
   void passVariadicAny(any... arg);
+  void passOptionalAny(optional any arg);
   void passAnyDefaultNull(optional any arg = null);
   void passSequenceOfAny(sequence<any> arg);
   void passNullableSequenceOfAny(sequence<any>? arg);
@@ -368,6 +368,7 @@ interface TestExampleInterface {
   void passUnion12(optional (EventInit or long) arg = 5);
   void passUnion13(optional (object or long?) arg = null);
   void passUnion14(optional (object or long?) arg = 5);
+  void passUnionWithCallback((EventHandler or long) arg);
 #endif
   void passUnionWithNullable((object? or long) arg);
   void passNullableUnion((object or long)? arg);
@@ -414,6 +415,7 @@ interface TestExampleInterface {
   void passNullableUnionWithDefaultValue12(optional (unrestricted float or DOMString)? arg = null);
 
   void passSequenceOfUnions(sequence<(CanvasPattern or CanvasGradient)> arg);
+  void passSequenceOfUnions2(sequence<(object or long)> arg);
   void passVariadicUnion((CanvasPattern or CanvasGradient)... arg);
 
   void passSequenceOfNullableUnions(sequence<(CanvasPattern or CanvasGradient)?> arg);

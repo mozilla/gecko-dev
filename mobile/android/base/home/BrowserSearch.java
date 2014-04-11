@@ -83,7 +83,7 @@ public class BrowserSearch extends HomeFragment
     private static final int ANIMATION_DURATION = 250;
 
     // Holds the current search term to use in the query
-    private String mSearchTerm;
+    private volatile String mSearchTerm;
 
     // Adapter for the list of search results
     private SearchAdapter mAdapter;
@@ -568,7 +568,7 @@ public class BrowserSearch extends HomeFragment
         mSuggestionsOptInPrompt = ((ViewStub) mView.findViewById(R.id.suggestions_opt_in_prompt)).inflate();
 
         TextView promptText = (TextView) mSuggestionsOptInPrompt.findViewById(R.id.suggestions_prompt_title);
-        promptText.setText(getResources().getString(R.string.suggestions_prompt, mSearchEngines.get(0).name));
+        promptText.setText(getResources().getString(R.string.suggestions_prompt));
 
         final View yesButton = mSuggestionsOptInPrompt.findViewById(R.id.suggestions_prompt_yes);
         final View noButton = mSuggestionsOptInPrompt.findViewById(R.id.suggestions_prompt_no);
@@ -689,26 +689,39 @@ public class BrowserSearch extends HomeFragment
         GeckoAppShell.unregisterEventListener(eventName, this);
     }
 
+    private void restartSearchLoader() {
+        SearchLoader.restart(getLoaderManager(), LOADER_ID_SEARCH, mCursorLoaderCallbacks, mSearchTerm);
+    }
+
+    private void initSearchLoader() {
+        SearchLoader.init(getLoaderManager(), LOADER_ID_SEARCH, mCursorLoaderCallbacks, mSearchTerm);
+    }
+
     public void filter(String searchTerm, AutocompleteHandler handler) {
         if (TextUtils.isEmpty(searchTerm)) {
             return;
         }
 
-        if (TextUtils.equals(mSearchTerm, searchTerm)) {
-            return;
-        }
+        final boolean isNewFilter = !TextUtils.equals(mSearchTerm, searchTerm);
 
         mSearchTerm = searchTerm;
         mAutocompleteHandler = handler;
 
         if (isVisible()) {
-            // The adapter depends on the search term to determine its number
-            // of items. Make it we notify the view about it.
-            mAdapter.notifyDataSetChanged();
+            if (isNewFilter) {
+                // The adapter depends on the search term to determine its number
+                // of items. Make it we notify the view about it.
+                mAdapter.notifyDataSetChanged();
 
-            // Restart loaders with the new search term
-            SearchLoader.restart(getLoaderManager(), LOADER_ID_SEARCH, mCursorLoaderCallbacks, mSearchTerm);
-            filterSuggestions();
+                // Restart loaders with the new search term
+                restartSearchLoader();
+                filterSuggestions();
+            } else {
+                // The search term hasn't changed, simply reuse any existing
+                // loader for the current search term. This will ensure autocompletion
+                // is consistently triggered (see bug 933739).
+                initSearchLoader();
+            }
         }
     }
 

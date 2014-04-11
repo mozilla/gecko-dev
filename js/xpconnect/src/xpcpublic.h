@@ -24,6 +24,7 @@
 #include "nsStringBuffer.h"
 #include "mozilla/dom/BindingDeclarations.h"
 
+class nsGlobalWindow;
 class nsIPrincipal;
 class nsScriptNameSpaceManager;
 class nsIGlobalObject;
@@ -70,6 +71,9 @@ private:
 JSObject *
 TransplantObject(JSContext *cx, JS::HandleObject origobj, JS::HandleObject target);
 
+bool IsXBLScope(JSCompartment *compartment);
+bool IsInXBLScope(JSObject *obj);
+
 // Return a raw XBL scope object corresponding to contentScope, which must
 // be an object whose global is a DOM window.
 //
@@ -79,8 +83,19 @@ TransplantObject(JSContext *cx, JS::HandleObject origobj, JS::HandleObject targe
 // Also note that XBL scopes are lazily created, so the return-value should be
 // null-checked unless the caller can ensure that the scope must already
 // exist.
+//
+// This function asserts if |contentScope| is itself in an XBL scope to catch
+// sloppy consumers. Conversely, GetXBLScopeOrGlobal will handle objects that
+// are in XBL scope (by just returning the global).
 JSObject *
 GetXBLScope(JSContext *cx, JSObject *contentScope);
+
+inline JSObject *
+GetXBLScopeOrGlobal(JSContext *cx, JSObject *obj) {
+    if (IsInXBLScope(obj))
+        return js::GetGlobalForObjectCrossCompartment(obj);
+    return GetXBLScope(cx, obj);
+}
 
 // Returns whether XBL scopes have been explicitly disabled for code running
 // in this compartment. See the comment around mAllowXBLScope.
@@ -102,6 +117,15 @@ IsReflector(JSObject *obj);
 
 bool
 IsXrayWrapper(JSObject *obj);
+
+// If this function was created for a given XrayWrapper, returns the global of
+// the Xrayed object. Otherwise, returns the global of the function.
+//
+// To emphasize the obvious: the return value here is not necessarily same-
+// compartment with the argument.
+JSObject *
+XrayAwareCalleeGlobal(JSObject *fun);
+
 } /* namespace xpc */
 
 namespace JS {
@@ -120,13 +144,12 @@ struct RuntimeStats;
 #define XPCONNECT_GLOBAL_FLAGS XPCONNECT_GLOBAL_FLAGS_WITH_EXTRA_SLOTS(0)
 
 inline JSObject*
-xpc_FastGetCachedWrapper(nsWrapperCache *cache, JSObject *scope, JS::MutableHandleValue vp)
+xpc_FastGetCachedWrapper(JSContext *cx, nsWrapperCache *cache, JS::MutableHandleValue vp)
 {
     if (cache) {
         JSObject* wrapper = cache->GetWrapper();
         if (wrapper &&
-            js::GetObjectCompartment(wrapper) == js::GetObjectCompartment(scope) &&
-            !(cache->IsDOMBinding() && cache->HasSystemOnlyWrapper()))
+            js::GetObjectCompartment(wrapper) == js::GetContextCompartment(cx))
         {
             vp.setObject(*wrapper);
             return wrapper;
@@ -173,7 +196,7 @@ xpc_UnmarkSkippableJSHolders();
 
 // No JS can be on the stack when this is called. Probably only useful from
 // xpcshell.
-NS_EXPORT_(void)
+void
 xpc_ActivateDebugMode();
 
 // readable string conversions, static methods and members only
@@ -259,8 +282,8 @@ private:
 namespace xpc {
 
 // If these functions return false, then an exception will be set on cx.
-NS_EXPORT_(bool) Base64Encode(JSContext *cx, JS::HandleValue val, JS::MutableHandleValue out);
-NS_EXPORT_(bool) Base64Decode(JSContext *cx, JS::HandleValue val, JS::MutableHandleValue out);
+bool Base64Encode(JSContext *cx, JS::HandleValue val, JS::MutableHandleValue out);
+bool Base64Decode(JSContext *cx, JS::HandleValue val, JS::MutableHandleValue out);
 
 /**
  * Convert an nsString to jsval, returning true on success.
@@ -335,9 +358,6 @@ bool StringToJsval(JSContext* cx, mozilla::dom::DOMString& str,
 }
 
 nsIPrincipal *GetCompartmentPrincipal(JSCompartment *compartment);
-
-bool IsXBLScope(JSCompartment *compartment);
-bool IsInXBLScope(JSObject *obj);
 
 void SetLocationForGlobal(JSObject *global, const nsACString& location);
 void SetLocationForGlobal(JSObject *global, nsIURI *locationURI);
@@ -416,6 +436,20 @@ nsIGlobalObject *
 GetJunkScopeGlobal();
 
 /**
+ * If |aObj| is a window, returns the associated nsGlobalWindow.
+ * Otherwise, returns null.
+ */
+nsGlobalWindow*
+WindowOrNull(JSObject *aObj);
+
+/*
+ * Returns the dummy global associated with the SafeJSContext. Callers MUST
+ * consult with the XPConnect module owner before using this function.
+ */
+JSObject *
+GetSafeJSContextGlobal();
+
+/**
  * If |aObj| has a window for a global, returns the associated nsGlobalWindow.
  * Otherwise, returns null.
  */
@@ -427,15 +461,7 @@ WindowGlobalOrNull(JSObject *aObj);
 void
 SystemErrorReporter(JSContext *cx, const char *message, JSErrorReport *rep);
 
-// We have a separate version that's exported with external linkage for use by
-// xpcshell, since external linkage on windows changes the signature to make it
-// incompatible with the JSErrorReporter type, causing JS_SetErrorReporter calls
-// to fail to compile.
-NS_EXPORT_(void)
-SystemErrorReporterExternal(JSContext *cx, const char *message,
-                            JSErrorReport *rep);
-
-NS_EXPORT_(void)
+void
 SimulateActivityCallback(bool aActive);
 
 void

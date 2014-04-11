@@ -23,11 +23,12 @@ const DEBUG = false;
 const DISABLE_MMS_GROUPING_FOR_RECEIVING = true;
 
 
-const DB_VERSION = 21;
+const DB_VERSION = 22;
 const MESSAGE_STORE_NAME = "sms";
 const THREAD_STORE_NAME = "thread";
 const PARTICIPANT_STORE_NAME = "participant";
 const MOST_RECENT_STORE_NAME = "most-recent";
+const SMS_SEGMENT_STORE_NAME = "sms-segment";
 
 const DELIVERY_SENDING = "sending";
 const DELIVERY_SENT = "sent";
@@ -92,6 +93,13 @@ MobileMessageDB.prototype = {
    * Last sms/mms object store key value in the database.
    */
   lastMessageId: 0,
+
+  /**
+   * An optional hook to check if device storage is full.
+   *
+   * @return true if full.
+   */
+  isDiskFull: null,
 
   /**
    * Prepare the database. This may include opening the database and upgrading
@@ -233,12 +241,17 @@ MobileMessageDB.prototype = {
             self.upgradeSchema20(event.target.transaction, next);
             break;
           case 21:
+            if (DEBUG) debug("Upgrade to version 22. Add sms-segment store.");
+            self.upgradeSchema21(db, event.target.transaction, next);
+            break;
+          case 22:
             // This will need to be moved for each new version
             if (DEBUG) debug("Upgrade finished.");
             break;
           default:
             event.target.transaction.abort();
-            callback("Old database version: " + event.oldVersion, null);
+            if (DEBUG) debug("unexpected db version: " + event.oldVersion);
+            callback(Cr.NS_ERROR_FAILURE, null);
             break;
         }
       }
@@ -247,10 +260,12 @@ MobileMessageDB.prototype = {
     };
     request.onerror = function(event) {
       //TODO look at event.target.Code and change error constant accordingly
-      callback("Error opening database!", null);
+      if (DEBUG) debug("Error opening database!");
+      callback(Cr.NS_ERROR_FAILURE, null);
     };
     request.onblocked = function(event) {
-      callback("Opening database request is blocked.", null);
+      if (DEBUG) debug("Opening database request is blocked.");
+      callback(Cr.NS_ERROR_FAILURE, null);
     };
   },
 
@@ -270,7 +285,13 @@ MobileMessageDB.prototype = {
       storeNames = [MESSAGE_STORE_NAME];
     }
     if (DEBUG) debug("Opening transaction for object stores: " + storeNames);
+    let self = this;
     this.ensureDB(function(error, db) {
+      if (!error &&
+          txn_type === READ_WRITE &&
+          self.isDiskFull && self.isDiskFull()) {
+        error = Cr.NS_ERROR_FILE_NO_DEVICE_SPACE;
+      }
       if (error) {
         if (DEBUG) debug("Could not open database: " + error);
         callback(error);
@@ -1328,6 +1349,65 @@ MobileMessageDB.prototype = {
     };
   },
 
+  /**
+   * Add smsSegmentStore to store uncomplete SMS segments.
+   */
+  upgradeSchema21: function(db, transaction, next) {
+    /**
+     * This smsSegmentStore is used to store uncomplete SMS segments.
+     * Each entry looks like this:
+     *
+     * {
+     *   [Common fields in SMS segment]
+     *   messageType: <Number>,
+     *   teleservice: <Number>,
+     *   SMSC: <String>,
+     *   sentTimestamp: <Number>,
+     *   timestamp: <Number>,
+     *   sender: <String>,
+     *   pid: <Number>,
+     *   encoding: <Number>,
+     *   messageClass: <String>,
+     *   iccId: <String>,
+     *
+     *   [Concatenation Info]
+     *   segmentRef: <Number>,
+     *   segmentSeq: <Number>,
+     *   segmentMaxSeq: <Number>,
+     *
+     *   [Application Port Info]
+     *   originatorPort: <Number>,
+     *   destinationPort: <Number>,
+     *
+     *   [MWI status]
+     *   mwiPresent: <Boolean>,
+     *   mwiDiscard: <Boolean>,
+     *   mwiMsgCount: <Number>,
+     *   mwiActive: <Boolean>,
+     *
+     *   [CDMA Cellbroadcast related fields]
+     *   serviceCategory: <Number>,
+     *   language: <String>,
+     *
+     *   [Message Body]
+     *   data: <Uint8Array>, (available if it's 8bit encoding)
+     *   body: <String>, (normal text body)
+     *
+     *   [Handy fields created by DB for concatenation]
+     *   id: <Number>, keypath of this objectStore.
+     *   hash: <String>, Use to identify the segments to the same SMS.
+     *   receivedSegments: <Number>,
+     *   segments: []
+     * }
+     *
+     */
+    let smsSegmentStore = db.createObjectStore(SMS_SEGMENT_STORE_NAME,
+                                               { keyPath: "id",
+                                                 autoIncrement: true });
+    smsSegmentStore.createIndex("hash", "hash", { unique: true });
+    next();
+  },
+
   matchParsedPhoneNumbers: function(addr1, parsedAddr1, addr2, parsedAddr2) {
     if ((parsedAddr1.internationalNumber &&
          parsedAddr1.internationalNumber === parsedAddr2.internationalNumber) ||
@@ -1645,8 +1725,7 @@ MobileMessageDB.prototype = {
       };
 
       if (aError) {
-        // TODO bug 832140 check event.target.errorCode
-        notifyResult(Cr.NS_ERROR_FAILURE, null);
+        notifyResult(aError, null);
         return;
       }
 
@@ -1678,8 +1757,7 @@ MobileMessageDB.prototype = {
       };
 
       if (error) {
-        // TODO bug 832140 check event.target.errorCode
-        notifyResult(Cr.NS_ERROR_FAILURE, null);
+        notifyResult(error, null);
         return;
       }
 
@@ -2323,7 +2401,7 @@ MobileMessageDB.prototype = {
     this.newTxn(READ_ONLY, function(error, txn, messageStore) {
       if (error) {
         if (DEBUG) debug(error);
-        aCallback.notify(Ci.nsIMobileMessageCallback.INTERNAL_ERROR, null, null);
+        aCallback.notify(error, null, null);
         return;
       }
       let request = messageStore.index("transactionId").get(aTransactionId);
@@ -2333,13 +2411,12 @@ MobileMessageDB.prototype = {
         let messageRecord = request.result;
         if (!messageRecord) {
           if (DEBUG) debug("Transaction ID " + aTransactionId + " not found");
-          aCallback.notify(Ci.nsIMobileMessageCallback.NOT_FOUND_ERROR, null, null);
+          aCallback.notify(Cr.NS_ERROR_FILE_NOT_FOUND, null, null);
           return;
         }
         // In this case, we don't need a dom message. Just pass null to the
         // third argument.
-        aCallback.notify(Ci.nsIMobileMessageCallback.SUCCESS_NO_ERROR,
-                         messageRecord, null);
+        aCallback.notify(Cr.NS_OK, messageRecord, null);
       };
 
       txn.onerror = function onerror(event) {
@@ -2348,7 +2425,7 @@ MobileMessageDB.prototype = {
             debug("Caught error on transaction", event.target.errorCode);
           }
         }
-        aCallback.notify(Ci.nsIMobileMessageCallback.INTERNAL_ERROR, null, null);
+        aCallback.notify(Cr.NS_ERROR_FAILURE, null, null);
       };
     });
   },
@@ -2359,7 +2436,7 @@ MobileMessageDB.prototype = {
     this.newTxn(READ_ONLY, function(error, txn, messageStore) {
       if (error) {
         if (DEBUG) debug(error);
-        aCallback.notify(Ci.nsIMobileMessageCallback.INTERNAL_ERROR, null, null);
+        aCallback.notify(error, null, null);
         return;
       }
       let request = messageStore.mozGetAll(aMessageId);
@@ -2368,13 +2445,13 @@ MobileMessageDB.prototype = {
         if (DEBUG) debug("Transaction " + txn + " completed.");
         if (request.result.length > 1) {
           if (DEBUG) debug("Got too many results for id " + aMessageId);
-          aCallback.notify(Ci.nsIMobileMessageCallback.UNKNOWN_ERROR, null, null);
+          aCallback.notify(Cr.NS_ERROR_UNEXPECTED, null, null);
           return;
         }
         let messageRecord = request.result[0];
         if (!messageRecord) {
           if (DEBUG) debug("Message ID " + aMessageId + " not found");
-          aCallback.notify(Ci.nsIMobileMessageCallback.NOT_FOUND_ERROR, null, null);
+          aCallback.notify(Cr.NS_ERROR_FILE_NOT_FOUND, null, null);
           return;
         }
         if (messageRecord.id != aMessageId) {
@@ -2382,12 +2459,11 @@ MobileMessageDB.prototype = {
             debug("Requested message ID (" + aMessageId + ") is " +
                   "different from the one we got");
           }
-          aCallback.notify(Ci.nsIMobileMessageCallback.UNKNOWN_ERROR, null, null);
+          aCallback.notify(Cr.NS_ERROR_UNEXPECTED, null, null);
           return;
         }
         let domMessage = self.createDomMessageFromRecord(messageRecord);
-        aCallback.notify(Ci.nsIMobileMessageCallback.SUCCESS_NO_ERROR,
-                         messageRecord, domMessage);
+        aCallback.notify(Cr.NS_OK, messageRecord, domMessage);
       };
 
       txn.onerror = function onerror(event) {
@@ -2396,9 +2472,146 @@ MobileMessageDB.prototype = {
             debug("Caught error on transaction", event.target.errorCode);
           }
         }
-        aCallback.notify(Ci.nsIMobileMessageCallback.INTERNAL_ERROR, null, null);
+        aCallback.notify(Cr.NS_ERROR_FAILURE, null, null);
       };
     });
+  },
+
+  translateCrErrorToMessageCallbackError: function(aCrError) {
+    switch(aCrError) {
+      case Cr.NS_OK:
+        return Ci.nsIMobileMessageCallback.SUCCESS_NO_ERROR;
+      case Cr.NS_ERROR_UNEXPECTED:
+        return Ci.nsIMobileMessageCallback.UNKNOWN_ERROR;
+      case Cr.NS_ERROR_FILE_NOT_FOUND:
+        return Ci.nsIMobileMessageCallback.NOT_FOUND_ERROR;
+      case Cr.NS_ERROR_FILE_NO_DEVICE_SPACE:
+        return Ci.nsIMobileMessageCallback.STORAGE_FULL_ERROR;
+      default:
+        return Ci.nsIMobileMessageCallback.INTERNAL_ERROR;
+    }
+  },
+
+  saveSmsSegment: function(aSmsSegment, aCallback) {
+    let completeMessage = null;
+    this.newTxn(READ_WRITE, function(error, txn, segmentStore) {
+      if (error) {
+        if (DEBUG) debug(error);
+        aCallback.notify(error, null);
+        return;
+      }
+
+      txn.oncomplete = function oncomplete(event) {
+        if (DEBUG) debug("Transaction " + txn + " completed.");
+        if (completeMessage) {
+          // Rebuild full body
+          if (completeMessage.encoding == RIL.PDU_DCS_MSG_CODING_8BITS_ALPHABET) {
+            // Uint8Array doesn't have `concat`, so
+            // we have to merge all segements by hand.
+            let fullDataLen = 0;
+            for (let i = 1; i <= completeMessage.segmentMaxSeq; i++) {
+              fullDataLen += completeMessage.segments[i].length;
+            }
+
+            completeMessage.fullData = new Uint8Array(fullDataLen);
+            for (let d = 0, i = 1; i <= completeMessage.segmentMaxSeq; i++) {
+              let data = completeMessage.segments[i];
+              for (let j = 0; j < data.length; j++) {
+                completeMessage.fullData[d++] = data[j];
+              }
+            }
+          } else {
+            completeMessage.fullBody = completeMessage.segments.join("");
+          }
+
+          // Remove handy fields after completing the concatenation.
+          delete completeMessage.id;
+          delete completeMessage.hash;
+          delete completeMessage.receivedSegments;
+          delete completeMessage.segments;
+        }
+        aCallback.notify(Cr.NS_OK, completeMessage);
+      };
+
+      txn.onabort = function onerror(event) {
+        if (DEBUG) debug("Caught error on transaction", event.target.errorCode);
+        aCallback.notify(Cr.NS_ERROR_FAILURE, null, null);
+      };
+
+      aSmsSegment.hash = aSmsSegment.sender + ":" +
+                         aSmsSegment.segmentRef + ":" +
+                         aSmsSegment.segmentMaxSeq + ":" +
+                         aSmsSegment.iccId;
+      let seq = aSmsSegment.segmentSeq;
+      if (DEBUG) {
+        debug("Saving SMS Segment: " + aSmsSegment.hash + ", seq: " + seq);
+      }
+      let getRequest = segmentStore.index("hash").get(aSmsSegment.hash);
+      getRequest.onsuccess = function(event) {
+        let segmentRecord = event.target.result;
+        if (!segmentRecord) {
+          if (DEBUG) {
+            debug("Not found! Create a new record to store the segments.");
+          }
+          aSmsSegment.receivedSegments = 1;
+          aSmsSegment.segments = [];
+          if (aSmsSegment.encoding == RIL.PDU_DCS_MSG_CODING_8BITS_ALPHABET) {
+            aSmsSegment.segments[seq] = aSmsSegment.data;
+          } else {
+            aSmsSegment.segments[seq] = aSmsSegment.body;
+          }
+
+          segmentStore.add(aSmsSegment);
+
+          return;
+        }
+
+        if (DEBUG) {
+          debug("Append SMS Segment into existed message object: " + segmentRecord.id);
+        }
+
+        if (segmentRecord.segments[seq]) {
+          if (DEBUG) debug("Got duplicated segment no. " + seq);
+          return;
+        }
+
+        segmentRecord.timestamp = aSmsSegment.timestamp;
+
+        if (segmentRecord.encoding == RIL.PDU_DCS_MSG_CODING_8BITS_ALPHABET) {
+          segmentRecord.segments[seq] = aSmsSegment.data;
+        } else {
+          segmentRecord.segments[seq] = aSmsSegment.body;
+        }
+        segmentRecord.receivedSegments++;
+
+        // The port information is only available in 1st segment for CDMA WAP Push.
+        // If the segments of a WAP Push are not received in sequence
+        // (e.g., SMS with seq == 1 is not the 1st segment received by the device),
+        // we have to retrieve the port information from 1st segment and
+        // save it into the segmentRecord.
+        if (aSmsSegment.teleservice === RIL.PDU_CDMA_MSG_TELESERIVCIE_ID_WAP
+            && seq === 1) {
+          if (aSmsSegment.originatorPort) {
+            segmentRecord.originatorPort = aSmsSegment.originatorPort;
+          }
+
+          if (aSmsSegment.destinationPort) {
+            segmentRecord.destinationPort = aSmsSegment.destinationPort;
+          }
+        }
+
+        if (segmentRecord.receivedSegments < segmentRecord.segmentMaxSeq) {
+          if (DEBUG) debug("Message is incomplete.");
+          segmentStore.put(segmentRecord);
+          return;
+        }
+
+        completeMessage = segmentRecord;
+
+        // Delete Record in DB
+        segmentStore.delete(segmentRecord.id);
+      };
+    }, [SMS_SEGMENT_STORE_NAME]);
   },
 
   /**
@@ -2407,13 +2620,15 @@ MobileMessageDB.prototype = {
 
   getMessage: function(aMessageId, aRequest) {
     if (DEBUG) debug("Retrieving message with ID " + aMessageId);
+    let self = this;
     let notifyCallback = {
       notify: function(aRv, aMessageRecord, aDomMessage) {
-        if (Ci.nsIMobileMessageCallback.SUCCESS_NO_ERROR == aRv) {
+        if (Cr.NS_OK == aRv) {
           aRequest.notifyMessageGot(aDomMessage);
           return;
         }
-        aRequest.notifyGetMessageFailed(aRv, null);
+        aRequest.notifyGetMessageFailed(
+          self.translateCrErrorToMessageCallbackError(aRv), null);
       }
     };
     this.getMessageRecordById(aMessageId, notifyCallback);
@@ -2426,7 +2641,8 @@ MobileMessageDB.prototype = {
     this.newTxn(READ_WRITE, function(error, txn, stores) {
       if (error) {
         if (DEBUG) debug("deleteMessage: failed to open transaction");
-        aRequest.notifyDeleteMessageFailed(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
+        aRequest.notifyDeleteMessageFailed(
+          self.translateCrErrorToMessageCallbackError(error));
         return;
       }
       txn.onerror = function onerror(event) {
@@ -2502,10 +2718,12 @@ MobileMessageDB.prototype = {
 
   markMessageRead: function(messageId, value, aSendReadReport, aRequest) {
     if (DEBUG) debug("Setting message " + messageId + " read to " + value);
+    let self = this;
     this.newTxn(READ_WRITE, function(error, txn, stores) {
       if (error) {
         if (DEBUG) debug(error);
-        aRequest.notifyMarkMessageReadFailed(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
+        aRequest.notifyMarkMessageReadFailed(
+          self.translateCrErrorToMessageCallbackError(error));
         return;
       }
 
@@ -2597,7 +2815,6 @@ MobileMessageDB.prototype = {
     this.newTxn(READ_ONLY, function(error, txn, threadStore) {
       let collector = cursor.collector;
       if (error) {
-        if (DEBUG) debug(error);
         collector.collect(null, COLLECT_ID_ERROR, COLLECT_TIMESTAMP_UNUSED);
         return;
       }

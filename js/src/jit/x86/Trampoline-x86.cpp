@@ -61,6 +61,12 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     masm.push(ebx);
     masm.push(esi);
     masm.push(edi);
+
+    // Push the EnterJIT sps mark.
+    masm.spsMarkJit(&cx->runtime()->spsProfiler, ebp, ebx);
+
+    // Keep track of the stack which has to be unwound after returning from the
+    // compiled function.
     masm.movl(esp, esi);
 
     // eax <- 8*argc, eax is now the offset betwen argv and the last
@@ -77,7 +83,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     //   +4 for pushing the return address
     masm.movl(esp, ecx);
     masm.subl(eax, ecx);
-    masm.subl(Imm32(12), ecx);
+    masm.subl(Imm32(4 * 3), ecx);
 
     // ecx = ecx & 15, holds alignment.
     masm.andl(Imm32(15), ecx);
@@ -123,7 +129,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     // Push the callee token.
     masm.push(Operand(ebp, ARG_CALLEETOKEN));
 
-    // Load the StackFrame address into the OsrFrameReg.
+    // Load the InterpreterFrame address into the OsrFrameReg.
     // This address is also used for setting the constructing bit on all paths.
     masm.loadPtr(Address(ebp, ARG_STACKFRAME), OsrFrameReg);
 
@@ -132,7 +138,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     *****************************************************************/
     // Create a frame descriptor.
     masm.subl(esp, esi);
-    masm.makeFrameDescriptor(esi, IonFrame_Entry);
+    masm.makeFrameDescriptor(esi, JitFrame_Entry);
     masm.push(esi);
 
     CodeLabel returnLabel;
@@ -193,7 +199,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
 
         // Enter exit frame.
         masm.addPtr(Imm32(BaselineFrame::Size() + BaselineFrame::FramePointerOffset), scratch);
-        masm.makeFrameDescriptor(scratch, IonFrame_BaselineJS);
+        masm.makeFrameDescriptor(scratch, JitFrame_BaselineJS);
         masm.push(scratch);
         masm.push(Imm32(0)); // Fake return address.
         masm.enterFakeExitFrame();
@@ -203,7 +209,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
 
         masm.setupUnalignedABICall(3, scratch);
         masm.passABIArg(framePtr); // BaselineFrame
-        masm.passABIArg(OsrFrameReg); // StackFrame
+        masm.passABIArg(OsrFrameReg); // InterpreterFrame
         masm.passABIArg(numStackValues);
         masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, jit::InitBaselineFrameForOsr));
 
@@ -253,18 +259,22 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
 
     // |ebp| could have been clobbered by the inner function.
     // Grab the address for the Value result from the argument stack.
-    //  +18 ... arguments ...
-    //  +14 <return>
-    //  +10 ebp <- original %ebp pointing here.
-    //  +8  ebx
-    //  +4  esi
-    //  +0  edi
-    masm.loadPtr(Address(esp, ARG_RESULT + 3 * sizeof(void *)), eax);
+    //  +24 ... arguments ...
+    //  +20 <return>
+    //  +16 ebp <- original %ebp pointing here.
+    //  +12 ebx
+    //  +8  esi
+    //  +4  edi
+    //  +0  hasSPSFrame
+    masm.loadPtr(Address(esp, ARG_RESULT + 4 * sizeof(void *)), eax);
     masm.storeValue(JSReturnOperand, Operand(eax, 0));
 
     /**************************************************************
         Return stack and registers to correct state
     **************************************************************/
+    // Unwind the sps mark.
+    masm.spsUnmarkJit(&cx->runtime()->spsProfiler, ebx);
+
     // Restore non-volatile registers
     masm.pop(edi);
     masm.pop(esi);
@@ -401,7 +411,7 @@ JitRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void *
     // Construct descriptor, accounting for pushed frame pointer above
     masm.lea(Operand(FramePointer, sizeof(void*)), ebx);
     masm.subl(esp, ebx);
-    masm.makeFrameDescriptor(ebx, IonFrame_Rectifier);
+    masm.makeFrameDescriptor(ebx, JitFrame_Rectifier);
 
     // Construct IonJSFrameLayout.
     masm.push(edx); // number of actual arguments

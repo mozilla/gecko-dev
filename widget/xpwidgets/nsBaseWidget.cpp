@@ -19,6 +19,7 @@
 #include "nsISimpleEnumerator.h"
 #include "nsIContent.h"
 #include "nsIDocument.h"
+#include "nsIPresShell.h"
 #include "nsIServiceManager.h"
 #include "mozilla/Preferences.h"
 #include "BasicLayers.h"
@@ -28,7 +29,6 @@
 #include "nsIXULWindow.h"
 #include "nsIBaseWindow.h"
 #include "nsXULPopupManager.h"
-#include "nsEventStateManager.h"
 #include "nsIWidgetListener.h"
 #include "nsIGfxInfo.h"
 #include "npapi.h"
@@ -36,12 +36,14 @@
 #include "prdtoa.h"
 #include "prenv.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/unused.h"
 #include "nsContentUtils.h"
 #include "gfxPrefs.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/MouseEvents.h"
 #include "GLConsts.h"
 #include "LayerScope.h"
+#include "mozilla/unused.h"
 
 #ifdef ACCESSIBILITY
 #include "nsAccessibilityService.h"
@@ -109,7 +111,6 @@ nsBaseWidget::nsBaseWidget()
 , mAttachedWidgetListener(nullptr)
 , mContext(nullptr)
 , mCursor(eCursor_standard)
-, mWindowType(eWindowType_child)
 , mBorderStyle(eBorderStyle_none)
 , mUseLayersAcceleration(false)
 , mForceLayersAcceleration(false)
@@ -119,7 +120,6 @@ nsBaseWidget::nsBaseWidget()
 , mBounds(0,0,0,0)
 , mOriginalBounds(nullptr)
 , mClipRectCount(0)
-, mZIndex(0)
 , mSizeMode(nsSizeMode_Normal)
 , mPopupLevel(ePopupLevelTop)
 , mPopupType(ePopupTypeAny)
@@ -189,8 +189,8 @@ void nsBaseWidget::DestroyCompositor()
                                    mCompositorChild));
     // The DestroyCompositor task we just added to the MessageLoop will handle
     // releasing mCompositorParent and mCompositorChild.
-    mCompositorParent.forget();
-    mCompositorChild.forget();
+    unused << mCompositorParent.forget();
+    unused << mCompositorChild.forget();
   }
 }
 
@@ -530,7 +530,7 @@ void nsBaseWidget::RemoveChild(nsIWidget* aChild)
 // Sets widget's position within its parent's child list.
 //
 //-------------------------------------------------------------------------
-NS_IMETHODIMP nsBaseWidget::SetZIndex(int32_t aZIndex)
+void nsBaseWidget::SetZIndex(int32_t aZIndex)
 {
   // Hold a ref to ourselves just in case, since we're going to remove
   // from our parent.
@@ -545,25 +545,23 @@ NS_IMETHODIMP nsBaseWidget::SetZIndex(int32_t aZIndex)
     // Scope sib outside the for loop so we can check it afterward
     nsIWidget* sib = parent->GetFirstChild();
     for ( ; sib; sib = sib->GetNextSibling()) {
-      int32_t childZIndex;
-      if (NS_SUCCEEDED(sib->GetZIndex(&childZIndex))) {
-        if (aZIndex < childZIndex) {
-          // Insert ourselves before sib
-          nsIWidget* prev = sib->GetPrevSibling();
-          mNextSibling = sib;
-          mPrevSibling = prev;
-          sib->SetPrevSibling(this);
-          if (prev) {
-            prev->SetNextSibling(this);
-          } else {
-            NS_ASSERTION(sib == parent->mFirstChild, "Broken child list");
-            // We've taken ownership of sib, so it's safe to have parent let
-            // go of it
-            parent->mFirstChild = this;
-          }
-          PlaceBehind(eZPlacementBelow, sib, false);
-          break;
+      int32_t childZIndex = GetZIndex();
+      if (aZIndex < childZIndex) {
+        // Insert ourselves before sib
+        nsIWidget* prev = sib->GetPrevSibling();
+        mNextSibling = sib;
+        mPrevSibling = prev;
+        sib->SetPrevSibling(this);
+        if (prev) {
+          prev->SetNextSibling(this);
+        } else {
+          NS_ASSERTION(sib == parent->mFirstChild, "Broken child list");
+          // We've taken ownership of sib, so it's safe to have parent let
+          // go of it
+          parent->mFirstChild = this;
         }
+        PlaceBehind(eZPlacementBelow, sib, false);
+        break;
       }
     }
     // were we added to the list?
@@ -571,18 +569,6 @@ NS_IMETHODIMP nsBaseWidget::SetZIndex(int32_t aZIndex)
       parent->AddChild(this);
     }
   }
-  return NS_OK;
-}
-
-//-------------------------------------------------------------------------
-//
-// Gets widget's position within its parent's child list.
-//
-//-------------------------------------------------------------------------
-NS_IMETHODIMP nsBaseWidget::GetZIndex(int32_t* aZIndex)
-{
-  *aZIndex = mZIndex;
-  return NS_OK;
 }
 
 //-------------------------------------------------------------------------
@@ -617,48 +603,6 @@ NS_IMETHODIMP nsBaseWidget::SetSizeMode(int32_t aMode)
 
 //-------------------------------------------------------------------------
 //
-// Get the foreground color
-//
-//-------------------------------------------------------------------------
-nscolor nsBaseWidget::GetForegroundColor(void)
-{
-  return mForeground;
-}
-
-//-------------------------------------------------------------------------
-//
-// Set the foreground color
-//
-//-------------------------------------------------------------------------
-NS_METHOD nsBaseWidget::SetForegroundColor(const nscolor &aColor)
-{
-  mForeground = aColor;
-  return NS_OK;
-}
-
-//-------------------------------------------------------------------------
-//
-// Get the background color
-//
-//-------------------------------------------------------------------------
-nscolor nsBaseWidget::GetBackgroundColor(void)
-{
-  return mBackground;
-}
-
-//-------------------------------------------------------------------------
-//
-// Set the background color
-//
-//-------------------------------------------------------------------------
-NS_METHOD nsBaseWidget::SetBackgroundColor(const nscolor &aColor)
-{
-  mBackground = aColor;
-  return NS_OK;
-}
-
-//-------------------------------------------------------------------------
-//
 // Get this component cursor
 //
 //-------------------------------------------------------------------------
@@ -677,17 +621,6 @@ NS_IMETHODIMP nsBaseWidget::SetCursor(imgIContainer* aCursor,
                                       uint32_t aHotspotX, uint32_t aHotspotY)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-//-------------------------------------------------------------------------
-//
-// Get the window type for this widget
-//
-//-------------------------------------------------------------------------
-NS_IMETHODIMP nsBaseWidget::GetWindowType(nsWindowType& aWindowType)
-{
-  aWindowType = mWindowType;
-  return NS_OK;
 }
 
 //-------------------------------------------------------------------------
@@ -972,7 +905,7 @@ void nsBaseWidget::CreateCompositor(int aWidth, int aHeight)
   mCompositorChild->Open(parentChannel, childMessageLoop, ipc::ChildSide);
 
   TextureFactoryIdentifier textureFactoryIdentifier;
-  PLayerTransactionChild* shadowManager;
+  PLayerTransactionChild* shadowManager = nullptr;
   nsTArray<LayersBackend> backendHints;
   GetPreferredCompositorBackends(backendHints);
 
@@ -1472,6 +1405,18 @@ nsBaseWidget::NotifySizeMoveDone()
 }
 
 void
+nsBaseWidget::NotifyWindowMoved(int32_t aX, int32_t aY)
+{
+  if (mWidgetListener) {
+    mWidgetListener->WindowMoved(this, aX, aY);
+  }
+
+  if (GetIMEUpdatePreference().WantPositionChanged()) {
+    NotifyIME(IMENotification(IMEMessage::NOTIFY_IME_OF_POSITION_CHANGE));
+  }
+}
+
+void
 nsBaseWidget::NotifySysColorChanged()
 {
   if (!mWidgetListener || mWidgetListener->GetXULWindow())
@@ -1668,10 +1613,10 @@ case _value: eventName.AssignLiteral(_name) ; break
     _ASSIGN_eventName(NS_DRAGDROP_ENTER,"NS_DND_ENTER");
     _ASSIGN_eventName(NS_DRAGDROP_EXIT,"NS_DND_EXIT");
     _ASSIGN_eventName(NS_DRAGDROP_OVER,"NS_DND_OVER");
+    _ASSIGN_eventName(NS_EDITOR_INPUT,"NS_EDITOR_INPUT");
     _ASSIGN_eventName(NS_FOCUS_CONTENT,"NS_FOCUS_CONTENT");
     _ASSIGN_eventName(NS_FORM_SELECTED,"NS_FORM_SELECTED");
     _ASSIGN_eventName(NS_FORM_CHANGE,"NS_FORM_CHANGE");
-    _ASSIGN_eventName(NS_FORM_INPUT,"NS_FORM_INPUT");
     _ASSIGN_eventName(NS_FORM_RESET,"NS_FORM_RESET");
     _ASSIGN_eventName(NS_FORM_SUBMIT,"NS_FORM_SUBMIT");
     _ASSIGN_eventName(NS_IMAGE_ABORT,"NS_IMAGE_ABORT");

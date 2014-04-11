@@ -19,7 +19,6 @@
 #include "nsComponentManagerUtils.h"
 #include "nsContentUtils.h"
 #include "nsCxPusher.h"
-#include "nsEventDispatcher.h"
 #include "nsJSUtils.h"
 #include "nsThreadUtils.h"
 
@@ -428,13 +427,12 @@ public:
   class StateDataAutoRooter : private JS::CustomAutoRooter
   {
     XMLHttpRequest::StateData* mStateData;
-    js::SkipRoot mSkip;
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 
   public:
     explicit StateDataAutoRooter(JSContext* aCx, XMLHttpRequest::StateData* aData
                                  MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-    : CustomAutoRooter(aCx), mStateData(aData), mSkip(aCx, mStateData)
+    : CustomAutoRooter(aCx), mStateData(aData)
     {
       MOZ_GUARD_OBJECT_NOTIFIER_INIT;
     }
@@ -1563,9 +1561,9 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(XMLHttpRequest,
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 JSObject*
-XMLHttpRequest::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+XMLHttpRequest::WrapObject(JSContext* aCx)
 {
-  return XMLHttpRequestBinding_workers::Wrap(aCx, aScope, this);
+  return XMLHttpRequestBinding_workers::Wrap(aCx, this);
 }
 
 // static

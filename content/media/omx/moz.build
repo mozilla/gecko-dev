@@ -5,6 +5,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 EXPORTS += [
+    'AudioOffloadPlayerBase.h',
     'MediaOmxDecoder.h',
     'MediaOmxReader.h',
 ]
@@ -15,6 +16,17 @@ SOURCES += [
     'OMXCodecProxy.cpp',
     'OmxDecoder.cpp',
 ]
+
+if CONFIG['MOZ_AUDIO_OFFLOAD']:
+    EXPORTS += [
+        'AudioOffloadPlayer.h',
+        'AudioOutput.h',
+        'AudioSink.h',
+    ]
+    SOURCES += [
+        'AudioOffloadPlayer.cpp',
+        'AudioOutput.cpp',
+    ]
 
 if CONFIG['MOZ_OMX_ENCODER']:
     EXPORTS += [
@@ -43,5 +55,21 @@ LOCAL_INCLUDES += [
     '/content/html/content/src',
     '/ipc/chromium/src',
     'mediaresourcemanager',
+]
+
+CXXFLAGS += [
+    '-I%s/%s' % (CONFIG['ANDROID_SOURCE'], d) for d in [
+        'dalvik/libnativehelper/include/nativehelper',
+        'frameworks/av/include/media',
+        'frameworks/base/include',
+        'frameworks/base/include/binder',
+        'frameworks/base/include/utils',
+        'frameworks/base/include/media',
+        'frameworks/base/include/media/stagefright/openmax',
+        'frameworks/base/media/libstagefright/include',
+        'frameworks/native/opengl/include',
+        'frameworks/native/include',
+        'hardware/libhardware/include/',
+    ]
 ]
 

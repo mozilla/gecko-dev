@@ -37,7 +37,7 @@
 #include <stdio.h> // for FILE definition
 #include "nsChangeHint.h"
 #include "nsRefPtrHashtable.h"
-#include "nsEventStates.h"
+#include "nsClassHashtable.h"
 #include "nsPresArena.h"
 #include "nsIImageLoadingContent.h"
 #include "nsMargin.h"
@@ -95,6 +95,7 @@ struct nsArenaMemoryStats;
 typedef short SelectionType;
 
 namespace mozilla {
+class EventStates;
 class Selection;
 
 namespace dom {
@@ -148,11 +149,11 @@ typedef struct CapturingContentInfo {
 
 #undef NOISY_INTERRUPTIBLE_REFLOW
 
-enum nsRectVisibility { 
-  nsRectVisibility_kVisible, 
-  nsRectVisibility_kAboveViewport, 
-  nsRectVisibility_kBelowViewport, 
-  nsRectVisibility_kLeftOfViewport, 
+enum nsRectVisibility {
+  nsRectVisibility_kVisible,
+  nsRectVisibility_kAboveViewport,
+  nsRectVisibility_kBelowViewport,
+  nsRectVisibility_kLeftOfViewport,
   nsRectVisibility_kRightOfViewport
 };
 
@@ -168,17 +169,11 @@ enum nsRectVisibility {
  * frame.
  */
 
-// hack to make egcs / gcc 2.95.2 happy
-class nsIPresShell_base : public nsISupports
+class nsIPresShell : public nsISupports
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_IPRESSHELL_IID)
-};
 
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIPresShell_base, NS_IPRESSHELL_IID)
-
-class nsIPresShell : public nsIPresShell_base
-{
 protected:
   typedef mozilla::layers::LayerManager LayerManager;
   typedef mozilla::gfx::SourceSurface SourceSurface;
@@ -542,7 +537,7 @@ public:
   /**
    * Determine if it is safe to flush all pending notifications
    * @param aIsSafeToFlush true if it is safe, false otherwise.
-   * 
+   *
    */
   virtual NS_HIDDEN_(bool) IsSafeToFlush() const = 0;
 
@@ -688,7 +683,7 @@ public:
   /**
    * Scrolls the view of the document so that the given area of a frame
    * is visible, if possible. Layout is not flushed before scrolling.
-   * 
+   *
    * @param aRect relative to aFrame
    * @param aVertical see ScrollContentIntoView and ScrollAxis
    * @param aHorizontal see ScrollContentIntoView and ScrollAxis
@@ -711,18 +706,18 @@ public:
                                        uint32_t      aFlags) = 0;
 
   /**
-   * Determine if a rectangle specified in the frame's coordinate system 
+   * Determine if a rectangle specified in the frame's coordinate system
    * intersects the viewport "enough" to be considered visible.
    * @param aFrame frame that aRect coordinates are specified relative to
-   * @param aRect rectangle in twips to test for visibility 
+   * @param aRect rectangle in twips to test for visibility
    * @param aMinTwips is the minimum distance in from the edge of the viewport
    *                  that an object must be to be counted visible
    * @return nsRectVisibility_kVisible if the rect is visible
    *         nsRectVisibility_kAboveViewport
-   *         nsRectVisibility_kBelowViewport 
-   *         nsRectVisibility_kLeftOfViewport 
+   *         nsRectVisibility_kBelowViewport
+   *         nsRectVisibility_kLeftOfViewport
    *         nsRectVisibility_kRightOfViewport rectangle is outside the viewport
-   *         in the specified direction 
+   *         in the specified direction
    */
   virtual nsRectVisibility GetRectVisibility(nsIFrame *aFrame,
                                              const nsRect &aRect,
@@ -774,7 +769,7 @@ public:
    */
   NS_IMETHOD SetSelectionFlags(int16_t aInEnable) = 0;
 
-  /** 
+  /**
     * Gets the current state of non text selection effects
     * @return   current state of non text selection,
     *           as set by SetDisplayNonTextSelection
@@ -822,7 +817,7 @@ public:
                                                      mozilla::WidgetEvent* aEvent) = 0;
 
   /**
-   * Get and set the history state for the current document 
+   * Get and set the history state for the current document
    */
 
   virtual NS_HIDDEN_(nsresult) CaptureHistoryState(nsILayoutHistoryState** aLayoutHistoryState) = 0;
@@ -903,7 +898,7 @@ public:
    */
   virtual void ContentStateChanged(nsIDocument* aDocument,
                                    nsIContent* aContent,
-                                   nsEventStates aStateMask) = 0;
+                                   mozilla::EventStates aStateMask) = 0;
 
   /**
    * See if reflow verification is enabled. To enable reflow verification add
@@ -1169,6 +1164,32 @@ public:
   static nsRefPtrHashtable<nsUint32HashKey, mozilla::dom::Touch>* gCaptureTouchList;
   static bool gPreventMouseEvents;
 
+  // Keeps a map between pointerId and element that currently capturing pointer
+  // with such pointerId. If pointerId is absent in this map then nobody is
+  // capturing it.
+  static nsRefPtrHashtable<nsUint32HashKey, nsIContent>* gPointerCaptureList;
+
+  struct PointerInfo
+  {
+    bool      mActiveState;
+    uint16_t  mPointerType;
+    PointerInfo(bool aActiveState, uint16_t aPointerType) :
+      mActiveState(aActiveState), mPointerType(aPointerType) {}
+  };
+  // Keeps information about pointers such as pointerId, activeState, pointerType
+  static nsClassHashtable<nsUint32HashKey, PointerInfo>* gActivePointersIds;
+
+  static void DispatchGotOrLostPointerCaptureEvent(bool aIsGotCapture,
+                                                    uint32_t aPointerId,
+                                                    nsIContent* aCaptureTarget);
+  static void SetPointerCapturingContent(uint32_t aPointerId, nsIContent* aContent);
+  static void ReleasePointerCapturingContent(uint32_t aPointerId, nsIContent* aContent);
+  static nsIContent* GetPointerCapturingContent(uint32_t aPointerId);
+
+  // GetPointerInfo returns true if pointer with aPointerId is situated in device, false otherwise.
+  // aActiveState is additional information, which shows state of pointer like button state for mouse.
+  static bool GetPointerInfo(uint32_t aPointerId, bool& aActiveState);
+
   /**
    * When capturing content is set, it traps all mouse events and retargets
    * them at this content node. If capturing is not allowed
@@ -1323,7 +1344,7 @@ public:
   virtual void DidPaintWindow() = 0;
 
   /**
-   * Ensures that the refresh driver is running, and schedules a view 
+   * Ensures that the refresh driver is running, and schedules a view
    * manager flush on the next tick.
    *
    * @param aType PAINT_DELAYED_COMPRESS : Schedule a paint to be executed after a delay, and
@@ -1639,11 +1660,13 @@ protected:
   // The maximum width of a line box. Text on a single line that exceeds this
   // width will be wrapped. A value of 0 indicates that no limit is enforced.
   nscoord mMaxLineBoxWidth;
-  
+
   // If a document belongs to an invisible DocShell, this flag must be set
   // to true, so we can avoid any paint calls for widget related to this
   // presshell.
   bool mIsNeverPainting;
 };
+
+NS_DEFINE_STATIC_IID_ACCESSOR(nsIPresShell, NS_IPRESSHELL_IID)
 
 #endif /* nsIPresShell_h___ */

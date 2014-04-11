@@ -25,12 +25,12 @@
 #include "nsJSUtils.h"
 #include "nsTArray.h"
 #include "nsITimer.h"
-#include "nsDOMEventTargetHelper.h"
 #include "nsIPrincipal.h"
 #include "nsIScriptObjectPrincipal.h"
 #include "nsISizeOfEventTarget.h"
 
 #include "mozilla/Assertions.h"
+#include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/TypedArray.h"
 #include "mozilla/dom/XMLHttpRequestBinding.h"
@@ -62,7 +62,6 @@ namespace mozilla {
 // or it can be reset explicitly at any point by calling reset().
 class ArrayBufferBuilder
 {
-  void* mRawContents;
   uint8_t* mDataPtr;
   uint32_t mCapacity;
   uint32_t mLength;
@@ -97,12 +96,12 @@ protected:
 
 } // namespace mozilla
 
-class nsXHREventTarget : public nsDOMEventTargetHelper,
+class nsXHREventTarget : public mozilla::DOMEventTargetHelper,
                          public nsIXMLHttpRequestEventTarget
 {
 protected:
-  nsXHREventTarget(nsDOMEventTargetHelper* aOwner)
-    : nsDOMEventTargetHelper(aOwner)
+  nsXHREventTarget(mozilla::DOMEventTargetHelper* aOwner)
+    : mozilla::DOMEventTargetHelper(aOwner)
   {
   }
 
@@ -119,9 +118,9 @@ public:
   virtual ~nsXHREventTarget() {}
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsXHREventTarget,
-                                           nsDOMEventTargetHelper)
+                                           mozilla::DOMEventTargetHelper)
   NS_DECL_NSIXMLHTTPREQUESTEVENTTARGET
-  NS_REALLY_FORWARD_NSIDOMEVENTTARGET(nsDOMEventTargetHelper)
+  NS_REALLY_FORWARD_NSIDOMEVENTTARGET(mozilla::DOMEventTargetHelper)
 
   IMPL_EVENT_HANDLER(loadstart)
   IMPL_EVENT_HANDLER(progress)
@@ -138,7 +137,7 @@ class nsXMLHttpRequestUpload MOZ_FINAL : public nsXHREventTarget,
                                          public nsIXMLHttpRequestUpload
 {
 public:
-  nsXMLHttpRequestUpload(nsDOMEventTargetHelper* aOwner)
+  nsXMLHttpRequestUpload(mozilla::DOMEventTargetHelper* aOwner)
     : nsXHREventTarget(aOwner)
   {
   }
@@ -148,8 +147,7 @@ public:
   NS_REALLY_FORWARD_NSIDOMEVENTTARGET(nsXHREventTarget)
   NS_DECL_NSIXMLHTTPREQUESTUPLOAD
 
-  virtual JSObject* WrapObject(JSContext *cx,
-                               JS::Handle<JSObject*> scope) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext *cx) MOZ_OVERRIDE;
   nsISupports* GetParentObject()
   {
     return GetOwner();
@@ -183,10 +181,9 @@ public:
   nsXMLHttpRequest();
   virtual ~nsXMLHttpRequest();
 
-  virtual JSObject* WrapObject(JSContext *cx,
-                               JS::Handle<JSObject*> scope) MOZ_OVERRIDE
+  virtual JSObject* WrapObject(JSContext *cx) MOZ_OVERRIDE
   {
-    return mozilla::dom::XMLHttpRequestBinding::Wrap(cx, scope, this);
+    return mozilla::dom::XMLHttpRequestBinding::Wrap(cx, this);
   }
   nsISupports* GetParentObject()
   {
@@ -506,7 +503,7 @@ public:
   // This creates a trusted readystatechange event, which is not cancelable and
   // doesn't bubble.
   nsresult CreateReadystatechangeEvent(nsIDOMEvent** aDOMEvent);
-  void DispatchProgressEvent(nsDOMEventTargetHelper* aTarget,
+  void DispatchProgressEvent(mozilla::DOMEventTargetHelper* aTarget,
                              const nsAString& aType,
                              bool aLengthComputable,
                              uint64_t aLoaded, uint64_t aTotal);

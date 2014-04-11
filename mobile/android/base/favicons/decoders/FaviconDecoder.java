@@ -89,14 +89,20 @@ public class FaviconDecoder {
         LoadFaviconResult result;
         if (isDecodableByAndroid(buffer, offset)) {
             result = new LoadFaviconResult();
-            result.mOffset = offset;
-            result.mLength = length;
-            result.mIsICO = false;
+            result.offset = offset;
+            result.length = length;
+            result.isICO = false;
+
+            Bitmap decodedImage = BitmapUtils.decodeByteArray(buffer, offset, length);
+            if (decodedImage == null) {
+                // What we got wasn't decodable after all. Probably corrupted image, or we got a muffled OOM.
+                return null;
+            }
 
             // We assume here that decodeByteArray doesn't hold on to the entire supplied
             // buffer -- worst case, each of our buffers will be twice the necessary size.
-            result.mBitmapsDecoded = new SingleBitmapIterator(BitmapUtils.decodeByteArray(buffer, offset, length));
-            result.mFaviconBytes = buffer;
+            result.bitmapsDecoded = new SingleBitmapIterator(decodedImage);
+            result.faviconBytes = buffer;
 
             return result;
         }
@@ -193,10 +199,10 @@ public class FaviconDecoder {
      * Iterator to hold a single bitmap.
      */
     static class SingleBitmapIterator implements Iterator<Bitmap> {
-        private Bitmap mBitmap;
+        private Bitmap bitmap;
 
         public SingleBitmapIterator(Bitmap b) {
-            mBitmap = b;
+            bitmap = b;
         }
 
         /**
@@ -207,22 +213,22 @@ public class FaviconDecoder {
          * @return The bitmap carried by this SingleBitmapIterator.
          */
         public Bitmap peek() {
-            return mBitmap;
+            return bitmap;
         }
 
         @Override
         public boolean hasNext() {
-            return mBitmap != null;
+            return bitmap != null;
         }
 
         @Override
         public Bitmap next() {
-            if (mBitmap == null) {
+            if (bitmap == null) {
                 throw new NoSuchElementException("Element already returned from SingleBitmapIterator.");
             }
 
-            Bitmap ret = mBitmap;
-            mBitmap = null;
+            Bitmap ret = bitmap;
+            bitmap = null;
             return ret;
         }
 

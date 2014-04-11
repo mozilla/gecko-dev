@@ -19,7 +19,7 @@ class HTMLTableSectionElement;
 class HTMLTableRowElement MOZ_FINAL : public nsGenericHTMLElement
 {
 public:
-  HTMLTableRowElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+  HTMLTableRowElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
     : nsGenericHTMLElement(aNodeInfo)
   {
     SetHasWeirdParserInsertionMode();
@@ -91,8 +91,7 @@ public:
                                                      nsGenericHTMLElement)
 
 protected:
-  virtual JSObject* WrapNode(JSContext *aCx,
-                             JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapNode(JSContext *aCx) MOZ_OVERRIDE;
 
   HTMLTableSectionElement* GetSection() const;
   HTMLTableElement* GetTable() const;

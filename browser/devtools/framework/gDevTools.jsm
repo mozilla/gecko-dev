@@ -11,10 +11,8 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/devtools/event-emitter.js");
-let promise = Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js").Promise;
 Cu.import("resource://gre/modules/devtools/Loader.jsm");
-
-var ProfilerController = devtools.require("devtools/profiler/controller");
+XPCOMUtils.defineLazyModuleGetter(this, "promise", "resource://gre/modules/Promise.jsm", "Promise");
 
 const FORBIDDEN_IDS = new Set(["toolbox", ""]);
 const MAX_ORDINAL = 99;
@@ -32,6 +30,8 @@ this.DevTools = function DevTools() {
   this.destroy = this.destroy.bind(this);
   this._teardown = this._teardown.bind(this);
 
+  this._testing = false;
+
   EventEmitter.decorate(this);
 
   Services.obs.addObserver(this._teardown, "devtools-unloaded", false);
@@ -39,6 +39,29 @@ this.DevTools = function DevTools() {
 }
 
 DevTools.prototype = {
+  /**
+   * When the testing flag is set we take appropriate action to prevent race
+   * conditions in our testing environment. This means setting
+   * dom.send_after_paint_to_content to false to prevent infinite MozAfterPaint
+   * loops and not autohiding the highlighter.
+   */
+  get testing() {
+    return this._testing;
+  },
+
+  set testing(state) {
+    this._testing = state;
+
+    if (state) {
+      // dom.send_after_paint_to_content is set to true (non-default) in
+      // testing/profiles/prefs_general.js so lets set it to the same as it is
+      // in a default browser profile for the duration of the test.
+      Services.prefs.setBoolPref("dom.send_after_paint_to_content", false);
+    } else {
+      Services.prefs.setBoolPref("dom.send_after_paint_to_content", true);
+    }
+  },
+
   /**
    * Register a new developer tool.
    *
@@ -294,7 +317,7 @@ DevTools.prototype = {
   closeToolbox: function DT_closeToolbox(target) {
     let toolbox = this._toolboxes.get(target);
     if (toolbox == null) {
-      return;
+      return promise.reject(null);
     }
     return toolbox.destroy();
   },
@@ -779,6 +802,8 @@ let gDevToolsBrowser = {
    * Connects to the SPS profiler when the developer tools are open.
    */
   _connectToProfiler: function DT_connectToProfiler() {
+    let ProfilerController = devtools.require("devtools/profiler/controller");
+
     for (let win of gDevToolsBrowser._trackedBrowserWindows) {
       if (devtools.TargetFactory.isKnownTab(win.gBrowser.selectedTab)) {
         let target = devtools.TargetFactory.forTab(win.gBrowser.selectedTab);

@@ -33,41 +33,38 @@
 <script type="application/javascript" src="chrome://global/content/globalOverlay.js"/>
 <script type="application/javascript" src="chrome://browser/content/devtools/scratchpad.js"/>
 
-
-<script type="application/javascript">
-  function goUpdateSourceEditorMenuItems() {
-    goUpdateGlobalEditMenuItems();
-    let commands = ['cmd_undo', 'cmd_redo', 'cmd_delete', 'cmd_findAgain'];
-    commands.forEach(goUpdateCommand);
-  }
-</script>
-
 <commandset id="editMenuCommands"/>
 
 <commandset id="sourceEditorCommands">
-  <command id="cmd_gotoLine" oncommand="goDoCommand('cmd_gotoLine')"/>
+  <command id="cmd_gotoLine" oncommand=";"/>
 </commandset>
 
 <commandset id="sp-commandset">
-  <command id="sp-cmd-newWindow" oncommand="Scratchpad.openScratchpad();"/>
-  <command id="sp-cmd-openFile" oncommand="Scratchpad.openFile();"/>
-  <command id="sp-cmd-clearRecentFiles" oncommand="Scratchpad.clearRecentFiles();"/>
-  <command id="sp-cmd-save" oncommand="Scratchpad.saveFile();"/>
-  <command id="sp-cmd-saveas" oncommand="Scratchpad.saveFileAs();"/>
-  <command id="sp-cmd-revert" oncommand="Scratchpad.promptRevert();" disabled="true"/>
-  <command id="sp-cmd-close" oncommand="Scratchpad.close();"/>
-  <command id="sp-cmd-run" oncommand="Scratchpad.run();"/>
-  <command id="sp-cmd-inspect" oncommand="Scratchpad.inspect();"/>
-  <command id="sp-cmd-display" oncommand="Scratchpad.display();"/>
-  <command id="sp-cmd-pprint" oncommand="Scratchpad.prettyPrint();"/>
-  <command id="sp-cmd-contentContext" oncommand="Scratchpad.setContentContext();"/>
-  <command id="sp-cmd-browserContext" oncommand="Scratchpad.setBrowserContext();" disabled="true"/>
-  <command id="sp-cmd-reloadAndRun" oncommand="Scratchpad.reloadAndRun();"/>
-  <command id="sp-cmd-evalFunction" oncommand="Scratchpad.evalTopLevelFunction();"/>
-  <command id="sp-cmd-errorConsole" oncommand="Scratchpad.openErrorConsole();" disabled="true"/>
-  <command id="sp-cmd-webConsole" oncommand="Scratchpad.openWebConsole();"/>
-  <command id="sp-cmd-documentationLink" oncommand="Scratchpad.openDocumentationPage();"/>
-  <command id="sp-cmd-hideSidebar" oncommand="Scratchpad.sidebar.hide();"/>
+  <command id="sp-cmd-newWindow" oncommand=";"/>
+  <command id="sp-cmd-openFile" oncommand=";"/>
+  <command id="sp-cmd-clearRecentFiles" oncommand=";"/>
+  <command id="sp-cmd-save" oncommand=";"/>
+  <command id="sp-cmd-saveas" oncommand=";"/>
+  <command id="sp-cmd-revert" oncommand=";" disabled="true"/>
+  <command id="sp-cmd-close" oncommand=";"/>
+  <command id="sp-cmd-line-numbers" oncommand=";"/>
+  <command id="sp-cmd-wrap-text" oncommand=";"/>
+  <command id="sp-cmd-highlight-trailing-space" oncommand=";"/>
+  <command id="sp-cmd-larger-font" oncommand=";"/>
+  <command id="sp-cmd-smaller-font" oncommand=";"/>
+  <command id="sp-cmd-normal-font" oncommand=";"/>
+  <command id="sp-cmd-run" oncommand=";"/>
+  <command id="sp-cmd-inspect" oncommand=";"/>
+  <command id="sp-cmd-display" oncommand=";"/>
+  <command id="sp-cmd-pprint" oncommand=";"/>
+  <command id="sp-cmd-contentContext" oncommand=";"/>
+  <command id="sp-cmd-browserContext" oncommand=";" disabled="true"/>
+  <command id="sp-cmd-reloadAndRun" oncommand=";"/>
+  <command id="sp-cmd-evalFunction" oncommand=";"/>
+  <command id="sp-cmd-errorConsole" oncommand=";" disabled="true"/>
+  <command id="sp-cmd-webConsole" oncommand=";"/>
+  <command id="sp-cmd-documentationLink" oncommand=";"/>
+  <command id="sp-cmd-hideSidebar" oncommand=";"/>
 </commandset>
 
 <keyset id="editMenuKeys"/>
@@ -88,6 +85,18 @@
   <key id="sp-key-close"
        key="&closeCmd.key;"
        command="sp-cmd-close"
+       modifiers="accel"/>
+  <key id="sp-key-larger-font"
+       key="&largerFont.commandkey;"
+       command="sp-cmd-larger-font"
+       modifiers="accel"/>
+  <key id="sp-key-smaller-font"
+       key="&smallerFont.commandkey;"
+       command="sp-cmd-smaller-font"
+       modifiers="accel"/>
+  <key id="sp-key-normal-size-font"
+       key="&normalSize.commandkey;"
+       command="sp-cmd-normal-font"
        modifiers="accel"/>
   <key id="sp-key-run"
        key="&run.key;"
@@ -123,6 +132,11 @@
   <key id="key_openHelp"
        keycode="VK_F1"
        command="sp-cmd-documentationLink"/>
+  <key id="key_gotoLine"
+       key="&gotoLineCmd.key;"
+       command="key_gotoLine"
+       modifiers="accel"/>
+
 </keyset>
 
 <menubar id="sp-menubar">
@@ -172,8 +186,7 @@
 
   <menu id="sp-edit-menu" label="&editMenu.label;"
         accesskey="&editMenu.accesskey;">
-    <menupopup id="sp-menu_editpopup"
-               onpopupshowing="goUpdateSourceEditorMenuItems()">
+    <menupopup id="sp-menu_editpopup">
       <menuitem id="menu_undo"/>
       <menuitem id="menu_redo"/>
       <menuseparator/>
@@ -196,6 +209,43 @@
           accesskey="&pprint.accesskey;"
           key="sp-key-pprint"
           command="sp-cmd-pprint"/>
+    </menupopup>
+  </menu>
+
+  <menu id="sp-view-menu" label="&viewMenu.label;" accesskey="&viewMenu.accesskey;">
+    <menupopup id="sp-menu-viewpopup">
+      <menuitem id="sp-menu-line-numbers"
+                label="&lineNumbers.label;"
+                accesskey="&lineNumbers.accesskey;"
+                type="checkbox"
+                checked="true"
+                command="sp-cmd-line-numbers"/>
+      <menuitem id="sp-menu-word-wrap"
+                label="&wordWrap.label;"
+                accesskey="&wordWrap.accesskey;"
+                type="checkbox"
+                command="sp-cmd-wrap-text"/>
+      <menuitem id="sp-menu-highlight-trailing-space"
+                label="&highlightTrailingSpace.label;"
+                accesskey="&highlightTrailingSpace.accesskey;"
+                type="checkbox"
+                command="sp-cmd-highlight-trailing-space"/>
+      <menuseparator/>
+      <menuitem id="sp-menu-larger-font"
+                label="&largerFont.label;"
+                key="sp-key-larger-font"
+                accesskey="&largerFont.accesskey;"
+                command="sp-cmd-larger-font"/>
+      <menuitem id="sp-menu-smaller-font"
+                label="&smallerFont.label;"
+                key="sp-key-smaller-font"
+                accesskey="&smallerFont.accesskey;"
+                command="sp-cmd-smaller-font"/>
+      <menuitem id="sp-menu-normal-size-font"
+                label="&normalSize.label;"
+                key="sp-menu-normal-font"
+                accesskey="&normalSize.accesskey;"
+                command="sp-cmd-normal-font"/>
     </menupopup>
   </menu>
 
@@ -305,8 +355,7 @@
 
 
 <popupset id="scratchpad-popups">
-  <menupopup id="scratchpad-text-popup"
-             onpopupshowing="goUpdateSourceEditorMenuItems()">
+  <menupopup id="scratchpad-text-popup">
     <menuitem id="cMenu_cut"/>
     <menuitem id="cMenu_copy"/>
     <menuitem id="cMenu_paste"/>

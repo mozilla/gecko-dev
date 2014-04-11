@@ -59,7 +59,7 @@ input {
   color: -moz-FieldText;
   font: -moz-field;
   text-rendering: optimizeLegibility;
-  line-height: normal !important;
+  line-height: normal;
   text-align: start;
   text-transform: none;
   word-spacing: normal;
@@ -69,6 +69,7 @@ input {
   text-indent: 0;
   -moz-user-select: text;
   text-shadow: none;
+  overflow-clip-box: content-box;
 }
 
 input > .anonymous-div,
@@ -86,9 +87,8 @@ input::-moz-placeholder {
 
   /* Make sure that the location bar's alignment in RTL mode changes according
      to the input box direction if the user switches the text direction using
-     cmd_switchTextDirection (which applies a dir attribute to the input box's
-     anonymous div). */
-  input.uri-element-right-align:-moz-locale-dir(rtl) > .anonymous-div[dir=ltr] {
+     cmd_switchTextDirection (which applies a dir attribute to the <input>). */
+  input.uri-element-right-align[dir=ltr]:-moz-locale-dir(rtl) {
     text-align: left !important;
   }
 }
@@ -210,6 +210,7 @@ select {
   /* No text-decoration reaching inside, by default */
   display: inline-block;
   page-break-inside: avoid;
+  overflow-clip-box: padding-box !important; /* bug 992447 */
 }
 
 /* Need the "select[size][multiple]" selector to override the settings on
@@ -281,6 +282,7 @@ select:empty {
   /* Make sure to size correctly if the combobox has a non-auto height. */
   height: 100% ! important;
   box-sizing: border-box ! important;
+  line-height: -moz-block-height;
 }
 
 option {
@@ -380,11 +382,6 @@ optgroup:disabled {
   background-color: transparent;
 }
 
-input[type="text"],
-input[type="password"] {
-  overflow-clip-box: content-box;
-}
-
 /* hidden inputs */
 input[type="hidden"] {
   -moz-appearance: none;
@@ -422,6 +419,7 @@ input[type="file"] {
   display: inline-block;
   white-space: nowrap;
   overflow: hidden;
+  overflow-clip-box: padding-box;
   color: inherit;
 
   /* Revert rules which apply on all inputs. */
@@ -577,6 +575,7 @@ input[type="submit"] {
   white-space: pre;
   text-align: center;
   text-shadow: none;
+  overflow-clip-box: padding-box;
 }
 
 input[type="color"]:-moz-system-metric(color-picker-available) {

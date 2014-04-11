@@ -559,6 +559,9 @@ SECStatus PK11_ImportEncryptedPrivateKeyInfoAndReturnKey(PK11SlotInfo *slot,
 		SECItem *nickname, SECItem *publicValue, PRBool isPerm,
 		PRBool isPrivate, KeyType type, 
 		unsigned int usage, SECKEYPrivateKey** privk, void *wincx);
+SECItem *PK11_ExportDERPrivateKeyInfo(SECKEYPrivateKey *pk, void *wincx);
+SECKEYPrivateKeyInfo *PK11_ExportPrivKeyInfo(
+		SECKEYPrivateKey *pk, void *wincx);
 SECKEYPrivateKeyInfo *PK11_ExportPrivateKeyInfo(
 		CERTCertificate *cert, void *wincx);
 SECKEYEncryptedPrivateKeyInfo *PK11_ExportEncryptedPrivKeyInfo(
@@ -772,7 +775,8 @@ PK11_GetPBECryptoMechanism(SECAlgorithmID *algid,
  **********************************************************************/
 PK11DefaultArrayEntry *PK11_GetDefaultArray(int *size);
 SECStatus PK11_UpdateSlotAttribute(PK11SlotInfo *slot,
-				   PK11DefaultArrayEntry *entry, PRBool add);
+				   const PK11DefaultArrayEntry *entry,
+				   PRBool add);
 
 /**********************************************************************
  * Functions to look at PKCS #11 dependent data

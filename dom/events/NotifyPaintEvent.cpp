@@ -7,9 +7,9 @@
 #include "ipc/IPCMessageUtils.h"
 #include "mozilla/dom/DOMRect.h"
 #include "mozilla/dom/NotifyPaintEvent.h"
+#include "mozilla/dom/PaintRequest.h"
 #include "mozilla/GfxMessageUtils.h"
 #include "nsContentUtils.h"
-#include "nsPaintRequest.h"
 
 namespace mozilla {
 namespace dom {
@@ -19,7 +19,7 @@ NotifyPaintEvent::NotifyPaintEvent(EventTarget* aOwner,
                                    WidgetEvent* aEvent,
                                    uint32_t aEventType,
                                    nsInvalidateRequestList* aInvalidateRequests)
-: nsDOMEvent(aOwner, aPresContext, aEvent)
+  : Event(aOwner, aPresContext, aEvent)
 {
   if (mEvent) {
     mEvent->message = aEventType;
@@ -31,10 +31,10 @@ NotifyPaintEvent::NotifyPaintEvent(EventTarget* aOwner,
 
 NS_INTERFACE_MAP_BEGIN(NotifyPaintEvent)
   NS_INTERFACE_MAP_ENTRY(nsIDOMNotifyPaintEvent)
-NS_INTERFACE_MAP_END_INHERITING(nsDOMEvent)
+NS_INTERFACE_MAP_END_INHERITING(Event)
 
-NS_IMPL_ADDREF_INHERITED(NotifyPaintEvent, nsDOMEvent)
-NS_IMPL_RELEASE_INHERITED(NotifyPaintEvent, nsDOMEvent)
+NS_IMPL_ADDREF_INHERITED(NotifyPaintEvent, Event)
+NS_IMPL_RELEASE_INHERITED(NotifyPaintEvent, Event)
 
 nsRegion
 NotifyPaintEvent::GetRegion()
@@ -53,7 +53,7 @@ NotifyPaintEvent::GetRegion()
 NS_IMETHODIMP
 NotifyPaintEvent::GetBoundingClientRect(nsIDOMClientRect** aResult)
 {
-  *aResult = BoundingClientRect().get();
+  *aResult = BoundingClientRect().take();
   return NS_OK;
 }
 
@@ -72,7 +72,7 @@ NotifyPaintEvent::BoundingClientRect()
 NS_IMETHODIMP
 NotifyPaintEvent::GetClientRects(nsIDOMClientRectList** aResult)
 {
-  *aResult = ClientRects().get();
+  *aResult = ClientRects().take();
   return NS_OK;
 }
 
@@ -97,20 +97,20 @@ NotifyPaintEvent::ClientRects()
 NS_IMETHODIMP
 NotifyPaintEvent::GetPaintRequests(nsISupports** aResult)
 {
-  nsRefPtr<nsPaintRequestList> requests = PaintRequests();
+  nsRefPtr<PaintRequestList> requests = PaintRequests();
   requests.forget(aResult);
   return NS_OK;
 }
 
-already_AddRefed<nsPaintRequestList>
+already_AddRefed<PaintRequestList>
 NotifyPaintEvent::PaintRequests()
 {
-  nsDOMEvent* parent = this;
-  nsRefPtr<nsPaintRequestList> requests = new nsPaintRequestList(parent);
+  Event* parent = this;
+  nsRefPtr<PaintRequestList> requests = new PaintRequestList(parent);
 
   if (nsContentUtils::IsCallerChrome()) {
     for (uint32_t i = 0; i < mInvalidateRequests.Length(); ++i) {
-      nsRefPtr<nsPaintRequest> r = new nsPaintRequest(parent);
+      nsRefPtr<PaintRequest> r = new PaintRequest(parent);
       r->SetRequest(mInvalidateRequests[i]);
       requests->Append(r);
     }
@@ -127,7 +127,7 @@ NotifyPaintEvent::Serialize(IPC::Message* aMsg,
     IPC::WriteParam(aMsg, NS_LITERAL_STRING("notifypaintevent"));
   }
 
-  nsDOMEvent::Serialize(aMsg, false);
+  Event::Serialize(aMsg, false);
 
   uint32_t length = mInvalidateRequests.Length();
   IPC::WriteParam(aMsg, length);
@@ -140,7 +140,7 @@ NotifyPaintEvent::Serialize(IPC::Message* aMsg,
 NS_IMETHODIMP_(bool)
 NotifyPaintEvent::Deserialize(const IPC::Message* aMsg, void** aIter)
 {
-  NS_ENSURE_TRUE(nsDOMEvent::Deserialize(aMsg, aIter), false);
+  NS_ENSURE_TRUE(Event::Deserialize(aMsg, aIter), false);
 
   uint32_t length = 0;
   NS_ENSURE_TRUE(IPC::ReadParam(aMsg, aIter, &length), false);
@@ -171,5 +171,7 @@ NS_NewDOMNotifyPaintEvent(nsIDOMEvent** aInstancePtrResult,
 {
   NotifyPaintEvent* it = new NotifyPaintEvent(aOwner, aPresContext, aEvent,
                                               aEventType, aInvalidateRequests);
-  return CallQueryInterface(it, aInstancePtrResult);
+  NS_ADDREF(it);
+  *aInstancePtrResult = static_cast<Event*>(it);
+  return NS_OK;
 }

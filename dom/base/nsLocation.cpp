@@ -30,6 +30,7 @@
 #include "nsContentUtils.h"
 #include "mozilla/Likely.h"
 #include "nsCycleCollectionParticipant.h"
+#include "nsNullPrincipal.h"
 #include "ScriptSettings.h"
 
 static nsresult
@@ -145,7 +146,18 @@ nsLocation::CheckURL(nsIURI* aURI, nsIDocShellLoadInfo** aLoadInfo)
       sourceURI = docCurrentURI;
     }
     else {
-      sourceURI = principalURI;
+      // Use principalURI as long as it is not an nsNullPrincipalURI.
+      // We could add a method such as GetReferrerURI to principals to make this
+      // cleaner, but given that we need to start using Source Browsing Context
+      // for referrer (see Bug 960639) this may be wasted effort at this stage.
+      if (principalURI) {
+        bool isNullPrincipalScheme;
+        rv = principalURI->SchemeIs(NS_NULLPRINCIPAL_SCHEME,
+                                    &isNullPrincipalScheme);
+        if (NS_SUCCEEDED(rv) && !isNullPrincipalScheme) {
+          sourceURI = principalURI;
+        }
+      }
     }
 
     owner = do_QueryInterface(ssm->GetCxSubjectPrincipal(cx));
@@ -896,7 +908,7 @@ nsLocation::GetSourceBaseURL(JSContext* cx, nsIURI** sourceURL)
   NS_ENSURE_TRUE(window, NS_ERROR_UNEXPECTED);
   nsIDocument* doc = window->GetDoc();
   NS_ENSURE_TRUE(doc, NS_OK);
-  *sourceURL = doc->GetBaseURI().get();
+  *sourceURL = doc->GetBaseURI().take();
   return NS_OK;
 }
 

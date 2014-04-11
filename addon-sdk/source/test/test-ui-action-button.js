@@ -15,6 +15,11 @@ const { data } = require('sdk/self');
 const { open, focus, close } = require('sdk/window/helpers');
 const { setTimeout } = require('sdk/timers');
 const { getMostRecentBrowserWindow } = require('sdk/window/utils');
+const { partial } = require('sdk/lang/functional');
+
+const openBrowserWindow = partial(open, null, {features: {toolbar: true}});
+const openPrivateBrowserWindow = partial(open, null,
+  {features: {toolbar: true, private: true}});
 
 function getWidget(buttonId, window = getMostRecentBrowserWindow()) {
   const { CustomizableUI } = Cu.import('resource:///modules/CustomizableUI.jsm', {});
@@ -283,6 +288,43 @@ exports['test button global state updated'] = function(assert) {
   loader.unload();
 }
 
+exports['test button global state set and get with state method'] = function(assert) {
+  let loader = Loader(module);
+  let { ActionButton } = loader.require('sdk/ui');
+
+  let button = ActionButton({
+    id: 'my-button-16',
+    label: 'my button',
+    icon: './icon.png'
+  });
+
+  // read the button's state
+  let state = button.state(button);
+
+  assert.equal(state.label, 'my button',
+    'label is correct');
+  assert.equal(state.icon, './icon.png',
+    'icon is correct');
+  assert.equal(state.disabled, false,
+    'disabled is correct');
+
+  // set the new button's state
+  button.state(button, {
+    label: 'New label',
+    icon: './new-icon.png',
+    disabled: true
+  });
+
+  assert.equal(button.label, 'New label',
+    'label is updated');
+  assert.equal(button.icon, './new-icon.png',
+    'icon is updated');
+  assert.equal(button.disabled, true,
+    'disabled is updated');
+
+  loader.unload();
+}
+
 exports['test button global state updated on multiple windows'] = function(assert, done) {
   let loader = Loader(module);
   let { ActionButton } = loader.require('sdk/ui');
@@ -295,7 +337,7 @@ exports['test button global state updated on multiple windows'] = function(asser
 
   let nodes = [getWidget(button.id).node];
 
-  open(null, { features: { toolbar: true }}).then(window => {
+  openBrowserWindow().then(window => {
     nodes.push(getWidget(button.id, window).node);
 
     button.label = 'New label';
@@ -340,7 +382,7 @@ exports['test button window state'] = function(assert, done) {
   let mainWindow = browserWindows.activeWindow;
   let nodes = [getWidget(button.id).node];
 
-  open(null, { features: { toolbar: true }}).then(focus).then(window => {
+  openBrowserWindow().then(focus).then(window => {
     nodes.push(getWidget(button.id, window).node);
 
     let { activeWindow } = browserWindows;
@@ -576,7 +618,7 @@ exports['test button click'] = function(assert, done) {
   let mainWindow = browserWindows.activeWindow;
   let chromeWindow = getMostRecentBrowserWindow();
 
-  open(null, { features: { toolbar: true }}).then(focus).then(window => {
+  openBrowserWindow().then(focus).then(window => {
     button.state(mainWindow, { label: 'nothing' });
     button.state(mainWindow.tabs.activeTab, { label: 'foo'})
     button.state(browserWindows.activeWindow, { label: 'bar' });
@@ -728,7 +770,7 @@ exports['test button are not in private windows'] = function(assert, done) {
     icon: './icon.png'
   });
 
-  open(null, { features: { toolbar: true, private: true }}).then(window => {
+  openPrivateBrowserWindow().then(window => {
     assert.ok(isPrivate(window),
       'the new window is private');
 
@@ -853,20 +895,5 @@ exports['test button after destroy'] = function(assert) {
 
   loader.unload();
 };
-
-// If the module doesn't support the app we're being run in, require() will
-// throw.  In that case, remove all tests above from exports, and add one dummy
-// test that passes.
-try {
-  require('sdk/ui/button/action');
-}
-catch (err) {
-  if (!/^Unsupported Application/.test(err.message))
-    throw err;
-
-  module.exports = {
-    'test Unsupported Application': assert => assert.pass(err.message)
-  }
-}
 
 require('sdk/test').run(exports);

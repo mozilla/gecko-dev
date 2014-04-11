@@ -117,7 +117,7 @@ MapAllocToTraceKind(AllocKind kind)
         JSTRACE_SHAPE,      /* FINALIZE_SHAPE */
         JSTRACE_BASE_SHAPE, /* FINALIZE_BASE_SHAPE */
         JSTRACE_TYPE_OBJECT,/* FINALIZE_TYPE_OBJECT */
-        JSTRACE_STRING,     /* FINALIZE_SHORT_STRING */
+        JSTRACE_STRING,     /* FINALIZE_FAT_INLINE_STRING */
         JSTRACE_STRING,     /* FINALIZE_STRING */
         JSTRACE_STRING,     /* FINALIZE_EXTERNAL_STRING */
         JSTRACE_JITCODE,    /* FINALIZE_JITCODE */
@@ -157,7 +157,7 @@ template <> struct MapTypeToFinalizeKind<LazyScript>        { static const Alloc
 template <> struct MapTypeToFinalizeKind<Shape>             { static const AllocKind kind = FINALIZE_SHAPE; };
 template <> struct MapTypeToFinalizeKind<BaseShape>         { static const AllocKind kind = FINALIZE_BASE_SHAPE; };
 template <> struct MapTypeToFinalizeKind<types::TypeObject> { static const AllocKind kind = FINALIZE_TYPE_OBJECT; };
-template <> struct MapTypeToFinalizeKind<JSShortString>     { static const AllocKind kind = FINALIZE_SHORT_STRING; };
+template <> struct MapTypeToFinalizeKind<JSFatInlineString> { static const AllocKind kind = FINALIZE_FAT_INLINE_STRING; };
 template <> struct MapTypeToFinalizeKind<JSString>          { static const AllocKind kind = FINALIZE_STRING; };
 template <> struct MapTypeToFinalizeKind<JSExternalString>  { static const AllocKind kind = FINALIZE_EXTERNAL_STRING; };
 template <> struct MapTypeToFinalizeKind<jit::JitCode>      { static const AllocKind kind = FINALIZE_JITCODE; };
@@ -185,7 +185,7 @@ IsNurseryAllocable(AllocKind kind)
         false,     /* FINALIZE_SHAPE */
         false,     /* FINALIZE_BASE_SHAPE */
         false,     /* FINALIZE_TYPE_OBJECT */
-        false,     /* FINALIZE_SHORT_STRING */
+        false,     /* FINALIZE_FAT_INLINE_STRING */
         false,     /* FINALIZE_STRING */
         false,     /* FINALIZE_EXTERNAL_STRING */
         false,     /* FINALIZE_JITCODE */
@@ -217,7 +217,7 @@ IsBackgroundFinalized(AllocKind kind)
         true,      /* FINALIZE_SHAPE */
         true,      /* FINALIZE_BASE_SHAPE */
         true,      /* FINALIZE_TYPE_OBJECT */
-        true,      /* FINALIZE_SHORT_STRING */
+        true,      /* FINALIZE_FAT_INLINE_STRING */
         true,      /* FINALIZE_STRING */
         false,     /* FINALIZE_EXTERNAL_STRING */
         false,     /* FINALIZE_JITCODE */
@@ -513,13 +513,16 @@ class ArenaLists
      * run the finalizers over unitialized bytes from free things.
      */
     void purge() {
-        for (size_t i = 0; i != FINALIZE_LIMIT; ++i) {
-            FreeSpan *headSpan = &freeLists[i];
-            if (!headSpan->isEmpty()) {
-                ArenaHeader *aheader = headSpan->arenaHeader();
-                aheader->setFirstFreeSpan(headSpan);
-                headSpan->initAsEmpty();
-            }
+        for (size_t i = 0; i != FINALIZE_LIMIT; ++i)
+            purge(AllocKind(i));
+    }
+
+    void purge(AllocKind i) {
+        FreeSpan *headSpan = &freeLists[i];
+        if (!headSpan->isEmpty()) {
+            ArenaHeader *aheader = headSpan->arenaHeader();
+            aheader->setFirstFreeSpan(headSpan);
+            headSpan->initAsEmpty();
         }
     }
 
@@ -622,8 +625,11 @@ class ArenaLists
     bool foregroundFinalize(FreeOp *fop, AllocKind thingKind, SliceBudget &sliceBudget);
     static void backgroundFinalize(FreeOp *fop, ArenaHeader *listHead, bool onBackgroundThread);
 
+    void wipeDuringParallelExecution(JSRuntime *rt);
+
   private:
     inline void finalizeNow(FreeOp *fop, AllocKind thingKind);
+    inline void forceFinalizeNow(FreeOp *fop, AllocKind thingKind);
     inline void queueForForegroundSweep(FreeOp *fop, AllocKind thingKind);
     inline void queueForBackgroundSweep(FreeOp *fop, AllocKind thingKind);
 
@@ -697,10 +703,10 @@ js_FinishGC(JSRuntime *rt);
 
 namespace js {
 
-class StackFrame;
+class InterpreterFrame;
 
 extern void
-MarkCompartmentActive(js::StackFrame *fp);
+MarkCompartmentActive(js::InterpreterFrame *fp);
 
 extern void
 TraceRuntime(JSTracer *trc);

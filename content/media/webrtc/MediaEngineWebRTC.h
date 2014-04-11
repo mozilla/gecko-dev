@@ -26,7 +26,8 @@
 #include "AudioSegment.h"
 #include "StreamBuffer.h"
 #include "MediaStreamGraph.h"
-#include "LoadMonitor.h"
+
+#include "MediaEngineWrapper.h"
 
 // WebRTC library includes follow
 
@@ -70,14 +71,13 @@ class GetCameraNameRunnable;
  *
  * MediaThread:
  *   mState, mImage, mWidth, mHeight, mCapability, mPrefs, mDeviceName, mUniqueId, mInitDone,
- *   mSources, mImageContainer, mSources, mState, mImage, mLastCapture
+ *   mImageContainer, mSources, mState, mImage
  *
  * MainThread:
- *   mCaptureIndex, mWindowId,
- *   mNativeCameraControl, mPreviewStream, mState, mLastCapture, mWidth, mHeight
+ *   mCaptureIndex, mLastCapture, mState,  mWidth, mHeight,
  *
  * Where mWidth, mHeight, mImage are protected by mMonitor
- *       mState, mLastCapture is protected by mCallbackMonitor
+ *       mState is protected by mCallbackMonitor
  * Other variable is accessed only from single thread
  */
 class MediaEngineWebRTCVideoSource : public MediaEngineVideoSource
@@ -308,10 +308,10 @@ private:
   void Shutdown();
 
   webrtc::VoiceEngine* mVoiceEngine;
-  webrtc::VoEBase* mVoEBase;
-  webrtc::VoEExternalMedia* mVoERender;
-  webrtc::VoENetwork*  mVoENetwork;
-  webrtc::VoEAudioProcessing *mVoEProcessing;
+  ScopedCustomReleasePtr<webrtc::VoEBase> mVoEBase;
+  ScopedCustomReleasePtr<webrtc::VoEExternalMedia> mVoERender;
+  ScopedCustomReleasePtr<webrtc::VoENetwork> mVoENetwork;
+  ScopedCustomReleasePtr<webrtc::VoEAudioProcessing> mVoEProcessing;
 
   // mMonitor protects mSources[] access/changes, and transitions of mState
   // from kStarted to kStopped (which are combined with EndTrack()).
@@ -369,8 +369,6 @@ private:
   // Maps UUID to MediaEngineSource (one set for audio, one for video).
   nsRefPtrHashtable<nsStringHashKey, MediaEngineWebRTCVideoSource > mVideoSources;
   nsRefPtrHashtable<nsStringHashKey, MediaEngineWebRTCAudioSource > mAudioSources;
-
-  nsRefPtr<LoadMonitor> mLoadMonitor;
 };
 
 }

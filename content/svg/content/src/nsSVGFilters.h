@@ -14,7 +14,6 @@
 #include "nsSVGNumber2.h"
 #include "nsSVGNumberPair.h"
 #include "FilterSupport.h"
-#include "gfxASurface.h"
 
 class nsSVGFilterInstance;
 class nsSVGFilterResource;
@@ -51,22 +50,23 @@ protected:
   typedef mozilla::gfx::ColorSpace ColorSpace;
   typedef mozilla::gfx::FilterPrimitiveDescription FilterPrimitiveDescription;
 
-  nsSVGFE(already_AddRefed<nsINodeInfo> aNodeInfo) : nsSVGFEBase(aNodeInfo) {}
+  nsSVGFE(already_AddRefed<nsINodeInfo>& aNodeInfo)
+    : nsSVGFEBase(aNodeInfo) {}
 
 public:
   typedef mozilla::gfx::AttributeMap AttributeMap;
 
   ColorSpace
   GetInputColorSpace(int32_t aInputIndex, ColorSpace aUnchangedInputColorSpace) {
-    return OperatesOnSRGB(aInputIndex, aUnchangedInputColorSpace == mozilla::gfx::SRGB) ?
-             mozilla::gfx::SRGB : mozilla::gfx::LINEAR_RGB;
+    return OperatesOnSRGB(aInputIndex, aUnchangedInputColorSpace == ColorSpace::SRGB) ?
+             ColorSpace::SRGB : ColorSpace::LinearRGB;
   }
 
   // This is only called for filter primitives without inputs. For primitives
   // with inputs, the output color model is the same as of the first input.
   ColorSpace
   GetOutputColorSpace() {
-    return ProducesSRGB() ? mozilla::gfx::SRGB : mozilla::gfx::LINEAR_RGB;
+    return ProducesSRGB() ? ColorSpace::SRGB : ColorSpace::LinearRGB;
   }
 
   // See http://www.w3.org/TR/SVG/filters.html#FilterPrimitiveSubRegion
@@ -147,12 +147,14 @@ protected:
   static LengthInfo sLengthInfo[4];
 };
 
+NS_DEFINE_STATIC_IID_ACCESSOR(nsSVGFE, NS_SVG_FE_CID)
+
 typedef nsSVGElement SVGFEUnstyledElementBase;
 
 class SVGFEUnstyledElement : public SVGFEUnstyledElementBase
 {
 protected:
-  SVGFEUnstyledElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+  SVGFEUnstyledElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
     : SVGFEUnstyledElementBase(aNodeInfo) {}
 
 public:
@@ -171,7 +173,7 @@ typedef nsSVGFE nsSVGFELightingElementBase;
 class nsSVGFELightingElement : public nsSVGFELightingElementBase
 {
 protected:
-  nsSVGFELightingElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+  nsSVGFELightingElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
     : nsSVGFELightingElementBase(aNodeInfo) {}
 
 public:
@@ -221,7 +223,7 @@ typedef SVGFEUnstyledElement SVGFELightElementBase;
 class SVGFELightElement : public SVGFELightElementBase
 {
 protected:
-  SVGFELightElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+  SVGFELightElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
     : SVGFELightElementBase(aNodeInfo) {}
 
 public:

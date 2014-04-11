@@ -35,6 +35,7 @@
 #include "nsIObserverService.h"
 #include "nsIObserver.h"
 #include "mozilla/Services.h"
+#include "nsProxyRelease.h"
 #include "nsThread.h"
 #include "nsThreadUtils.h"
 #include "nsAutoPtr.h"
@@ -220,8 +221,7 @@ DataChannelConnection::~DataChannelConnection()
     ASSERT_WEBRTC(NS_IsMainThread());
     if (mTransportFlow) {
       ASSERT_WEBRTC(mSTS);
-      RUN_ON_THREAD(mSTS, WrapRunnableNM(ReleaseTransportFlow, mTransportFlow.forget()),
-                    NS_DISPATCH_NORMAL);
+      NS_ProxyRelease(mSTS, mTransportFlow);
     }
 
     if (mInternalIOThread) {
@@ -401,6 +401,10 @@ DataChannelConnection::Init(unsigned short aPort, uint16_t aNumStreams, bool aUs
     if (usrsctp_setsockopt(mMasterSocket, IPPROTO_SCTP, SCTP_REUSE_PORT,
                            (const void *)&on, (socklen_t)sizeof(on)) < 0) {
       LOG(("Couldn't set SCTP_REUSE_PORT on SCTP socket"));
+    }
+    if (usrsctp_setsockopt(mMasterSocket, IPPROTO_SCTP, SCTP_NODELAY,
+                           (const void *)&on, (socklen_t)sizeof(on)) < 0) {
+      LOG(("Couldn't set SCTP_NODELAY on SCTP socket"));
     }
   }
 
@@ -1987,7 +1991,7 @@ DataChannelConnection::Open(const nsACString& label, const nsACString& protocol,
 
 // Separate routine so we can also call it to finish up from pending opens
 already_AddRefed<DataChannel>
-DataChannelConnection::OpenFinish(already_AddRefed<DataChannel> aChannel)
+DataChannelConnection::OpenFinish(already_AddRefed<DataChannel>&& aChannel)
 {
   nsRefPtr<DataChannel> channel(aChannel); // takes the reference passed in
   // Normally 1 reference if called from ::Open(), or 2 if called from
@@ -2334,22 +2338,32 @@ DataChannelConnection::ReadBlob(already_AddRefed<DataChannelConnection> aThis,
   // be deferred until buffer space is available.
   nsCString temp;
   uint64_t len;
-  aBlob->Available(&len);
-  nsresult rv = NS_ReadInputStreamToString(aBlob, temp, len);
-  if (NS_FAILED(rv)) {
+  nsCOMPtr<nsIThread> mainThread;
+  NS_GetMainThread(getter_AddRefs(mainThread));
+
+  if (NS_FAILED(aBlob->Available(&len)) ||
+      NS_FAILED(NS_ReadInputStreamToString(aBlob, temp, len))) {
     // Bug 966602:  Doesn't return an error to the caller via onerror.
-    // Let aThis (aka this) be released when we exit out of paranoia
-    // instead of calling Release()
-    nsRefPtr<DataChannelConnection> self(aThis);
+    // We must release DataChannelConnection on MainThread to avoid issues (bug 876167)
+    NS_ProxyRelease(mainThread, aThis.take());
     return;
   }
   aBlob->Close();
-  nsCOMPtr<nsIThread> mainThread;
-  NS_GetMainThread(getter_AddRefs(mainThread));
   RUN_ON_THREAD(mainThread, WrapRunnable(nsRefPtr<DataChannelConnection>(aThis),
                                &DataChannelConnection::SendBinaryMsg,
                                aStream, temp),
                 NS_DISPATCH_NORMAL);
+}
+
+void
+DataChannelConnection::GetStreamIds(std::vector<uint16_t>* aStreamList)
+{
+  ASSERT_WEBRTC(NS_IsMainThread());
+  for (uint32_t i = 0; i < mStreams.Length(); ++i) {
+    if (mStreams[i]) {
+      aStreamList->push_back(mStreams[i]->mStream);
+    }
+  }
 }
 
 int32_t

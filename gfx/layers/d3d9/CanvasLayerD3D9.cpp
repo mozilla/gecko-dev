@@ -4,7 +4,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
-#include "ipc/AutoOpenSurface.h"
 #include "mozilla/layers/PLayerTransaction.h"
 
 #include "gfxImageSurface.h"
@@ -81,7 +80,7 @@ CanvasLayerD3D9::UpdateSurface()
   RefPtr<SourceSurface> surface;
 
   if (mGLContext) {
-    SharedSurface* surf = mGLContext->RequestFrame();
+    SharedSurface_GL* surf = mGLContext->RequestFrame();
     if (!surf)
         return;
 
@@ -99,9 +98,10 @@ CanvasLayerD3D9::UpdateSurface()
   }
 
   D3DLOCKED_RECT rect = textureLock.GetLockRect();
+  IntSize boundsSize(mBounds.width, mBounds.height);
   RefPtr<DrawTarget> rectDt = Factory::CreateDrawTargetForData(BackendType::CAIRO,
                                                                (uint8_t*)rect.pBits,
-                                                               surface->GetSize(),
+                                                               boundsSize,
                                                                rect.Pitch,
                                                                SurfaceFormat::B8G8R8A8);
 
@@ -131,7 +131,7 @@ CanvasLayerD3D9::RenderLayer()
     return;
 
   /*
-   * We flip the Y axis here, note we can only do this because we are in 
+   * We flip the Y axis here, note we can only do this because we are in
    * CULL_NONE mode!
    */
 

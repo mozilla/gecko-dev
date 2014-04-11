@@ -317,9 +317,11 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_STYLE_CLEAR_NONE                     0
 #define NS_STYLE_CLEAR_LEFT                     1
 #define NS_STYLE_CLEAR_RIGHT                    2
-#define NS_STYLE_CLEAR_LEFT_AND_RIGHT           3
+#define NS_STYLE_CLEAR_BOTH                     3
 #define NS_STYLE_CLEAR_LINE                     4
-#define NS_STYLE_CLEAR_LAST_VALUE NS_STYLE_CLEAR_LINE
+// @note NS_STYLE_CLEAR_LINE can be added to one of the other values in layout
+// so it needs to use a bit value that none of the other values can have.
+#define NS_STYLE_CLEAR_MAX (NS_STYLE_CLEAR_LINE | NS_STYLE_CLEAR_BOTH)
 
 // See nsStyleContent
 #define NS_STYLE_CONTENT_OPEN_QUOTE             0
@@ -536,6 +538,20 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_STYLE_FONT_PULL_DOWN_MENU            14
 #define NS_STYLE_FONT_LIST                      15
 #define NS_STYLE_FONT_FIELD                     16
+
+// grid-auto-flow keywords
+#define NS_STYLE_GRID_AUTO_FLOW_NONE            (1 << 0)
+#define NS_STYLE_GRID_AUTO_FLOW_COLUMN          (1 << 1)
+#define NS_STYLE_GRID_AUTO_FLOW_ROW             (1 << 2)
+#define NS_STYLE_GRID_AUTO_FLOW_DENSE           (1 << 3)
+
+// 'subgrid' keyword in grid-template-{columns,rows}
+#define NS_STYLE_GRID_TEMPLATE_SUBGRID          0
+
+// CSS Grid <track-breadth> keywords
+// Should not overlap with NS_STYLE_GRID_TEMPLATE_SUBGRID
+#define NS_STYLE_GRID_TRACK_BREADTH_MAX_CONTENT 1
+#define NS_STYLE_GRID_TRACK_BREADTH_MIN_CONTENT 2
 
 // defaults per MathML spec
 #define NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER 0.71f

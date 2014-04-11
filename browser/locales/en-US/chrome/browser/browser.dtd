@@ -98,9 +98,8 @@ These should match what Safari and other Apple applications use on OS X Lion. --
 
 <!ENTITY fxaSignIn.label "Sign in to &syncBrand.shortName.label;">
 <!ENTITY fxaSignInError.label "Reconnect to &syncBrand.shortName.label;">
-<!ENTITY syncStartPanel.heading "&brandShortName; is now syncing">
-<!ENTITY syncStartPanel.subTitle "You can manage &syncBrand.shortName.label; in Options.">
-<!ENTITY syncStartPanel.subTitleUnix "You can manage &syncBrand.shortName.label; in Preferences.">
+<!ENTITY syncStartPanel2.heading "&syncBrand.shortName.label; enabled">
+<!ENTITY syncStartPanel2.subTitle "&brandShortName; will begin syncing momentarily.">
 <!ENTITY syncErrorPanel.heading "Cannot connect to &syncBrand.shortName.label;">
 <!ENTITY syncErrorPanel.subTitle "Please sign in to resume syncing.">
 <!ENTITY syncErrorPanel.signInButton.label "Sign In">
@@ -660,6 +659,8 @@ just addresses the organization to follow, e.g. "This site is run by " -->
 <!ENTITY syncSetup.accesskey          "Y">
 <!ENTITY syncSyncNowItem.label        "Sync Now">
 <!ENTITY syncSyncNowItem.accesskey    "S">
+<!ENTITY syncReAuthItem.label         "Reconnect to &syncBrand.shortName.label;…">
+<!ENTITY syncReAuthItem.accesskey     "R">
 <!ENTITY syncToolbarButton.label      "Sync">
 
 <!ENTITY socialToolbar.title        "Social Toolbar Button">
@@ -685,7 +686,6 @@ just addresses the organization to follow, e.g. "This site is run by " -->
 
 
 <!ENTITY customizeMode.tabTitle "Customize &brandShortName;">
-<!ENTITY customizeMode.menuAndToolbars.label "Menu and toolbars">
 <!ENTITY customizeMode.menuAndToolbars.header2 "Additional Tools and Features">
 <!ENTITY customizeMode.menuAndToolbars.empty "Want more tools?">
 <!ENTITY customizeMode.menuAndToolbars.emptyLink "Choose from thousands of add-ons">

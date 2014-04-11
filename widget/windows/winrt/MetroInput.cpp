@@ -13,12 +13,13 @@
 #include "InputData.h"
 #include "UIABridgePrivate.h"
 #include "MetroAppShell.h"
+#include "mozilla/EventStateManager.h"
+#include "mozilla/EventStates.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/TouchEvents.h"
 #include "mozilla/Preferences.h"  // for Preferences
 #include "WinUtils.h"
 #include "nsIPresShell.h"
-#include "nsEventStateManager.h"
 
 // System headers (alphabetical)
 #include <windows.ui.core.h> // ABI::Window::UI::Core namespace
@@ -807,6 +808,7 @@ MetroInput::InitGeckoMouseEventFromPointerPoint(
   aPointerPoint->get_PointerDevice(device.GetAddressOf());
   device->get_PointerDeviceType(&deviceType);
   aPointerPoint->get_Properties(props.GetAddressOf());
+  aPointerPoint->get_PointerId(&aEvent->pointerId);
   props->get_Pressure(&pressure);
   props->get_XTilt(&tiltX);
   props->get_YTilt(&tiltY);
@@ -1128,7 +1130,7 @@ MetroInput::DeliverNextQueuedEventIgnoreStatus()
   }
   nsCOMPtr<nsIPresShell> presShell = mWidget->GetPresShell();
   if (presShell) {
-    nsEventStateManager* esm = presShell->GetPresContext()->EventStateManager();
+    EventStateManager* esm = presShell->GetPresContext()->EventStateManager();
     if (esm) {
       esm->SetContentState(nullptr, NS_EVENT_STATE_HOVER);
     }
@@ -1228,7 +1230,7 @@ MetroInput::HandleFirstTouchStartEvent(WidgetTouchEvent* aEvent)
 
   WidgetTouchEvent transformedEvent(*aEvent);
   DUMP_TOUCH_IDS("APZC(1)", aEvent);
-  mWidget->ApzReceiveInputEvent(aEvent, &mTargetAPZCGuid, &transformedEvent);
+  mWidget->ApzReceiveInputEvent(&transformedEvent, &mTargetAPZCGuid);
 
   if (gTouchActionPropertyEnabled) {
     nsTArray<TouchBehaviorFlags> touchBehaviors;
@@ -1281,7 +1283,7 @@ MetroInput::HandleFirstTouchMoveEvent(WidgetTouchEvent* aEvent)
 
   WidgetTouchEvent transformedEvent(*aEvent);
   DUMP_TOUCH_IDS("APZC(2)", aEvent);
-  apzcStatus = mWidget->ApzReceiveInputEvent(aEvent, &mTargetAPZCGuid, &transformedEvent);
+  apzcStatus = mWidget->ApzReceiveInputEvent(&transformedEvent, &mTargetAPZCGuid);
 
   // We need to dispatch here only touch event, not pointer one.
   // That's because according to the spec pointer events doesn't imply pointermove event

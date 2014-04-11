@@ -74,6 +74,12 @@ Presenter.prototype = {
   selectionChanged: function selectionChanged(aObject) {},
 
   /**
+   * Value has changed.
+   * @param {nsIAccessible} aAccessible the object whose value has changed.
+   */
+  valueChanged: function valueChanged(aAccessible) {},
+
+  /**
    * The tab, or the tab's document state has changed.
    * @param {nsIAccessible} aDocObj the tab document accessible that has had its
    *    state changed, or null if the tab has no associated document yet.
@@ -472,6 +478,19 @@ SpeechPresenter.prototype = {
     };
   },
 
+  valueChanged: function SpeechPresenter_valueChanged(aAccessible) {
+    return {
+      type: this.type,
+      details: {
+        actions: [
+          { method: 'speak',
+            data: aAccessible.value,
+            options: { enqueue: false } }
+        ]
+      }
+    }
+  },
+
   actionInvoked: function SpeechPresenter_actionInvoked(aObject, aActionName) {
     let actions = [];
     if (aActionName === 'click') {
@@ -499,6 +518,17 @@ SpeechPresenter.prototype = {
         }]
       }
     };
+  },
+
+  announce: function SpeechPresenter_announce(aAnnouncement) {
+    return {
+      type: this.type,
+      details: {
+        actions: [{
+          method: 'speak', data: aAnnouncement, options: { enqueue: false }
+        }]
+      }
+    };
   }
 };
 
@@ -513,10 +543,10 @@ HapticPresenter.prototype = {
 
   type: 'Haptic',
 
-  PIVOT_CHANGE_PATTHERN: [20],
+  PIVOT_CHANGE_PATTERN: [40],
 
   pivotChanged: function HapticPresenter_pivotChanged(aContext, aReason) {
-    return { type: this.type, details: { pattern: this.PIVOT_CHANGE_PATTHERN } };
+    return { type: this.type, details: { pattern: this.PIVOT_CHANGE_PATTERN } };
   }
 };
 
@@ -558,15 +588,13 @@ BraillePresenter.prototype = {
 this.Presentation = {
   get presenters() {
     delete this.presenters;
-    this.presenters = [new VisualPresenter()];
-
-    if (Utils.MozBuildApp == 'mobile/android') {
-      this.presenters.push(new AndroidPresenter());
-    } else {
-      this.presenters.push(new SpeechPresenter());
-      this.presenters.push(new HapticPresenter());
-    }
-
+    let presenterMap = {
+      'mobile/android': [VisualPresenter, AndroidPresenter],
+      'b2g': [VisualPresenter, SpeechPresenter, HapticPresenter],
+      'browser': [VisualPresenter, SpeechPresenter, HapticPresenter,
+                  AndroidPresenter]
+    };
+    this.presenters = [new P() for (P of presenterMap[Utils.MozBuildApp])];
     return this.presenters;
   },
 
@@ -596,6 +624,10 @@ this.Presentation = {
     return [p.textSelectionChanged(aText, aStart, aEnd,
                                    aOldStart, aOldEnd, aIsFromUser)
               for each (p in this.presenters)];
+  },
+
+  valueChanged: function valueChanged(aAccessible) {
+    return [ p.valueChanged(aAccessible) for (p of this.presenters) ];
   },
 
   tabStateChanged: function Presentation_tabStateChanged(aDocObj, aPageState) {

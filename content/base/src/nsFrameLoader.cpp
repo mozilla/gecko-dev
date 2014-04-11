@@ -45,7 +45,6 @@
 #include "nsIScrollableFrame.h"
 #include "nsSubDocumentFrame.h"
 #include "nsError.h"
-#include "nsEventDispatcher.h"
 #include "nsISHistory.h"
 #include "nsISHistoryInternal.h"
 #include "nsIDOMHTMLDocument.h"
@@ -54,10 +53,10 @@
 #include "nsIMozBrowserFrame.h"
 #include "nsIPermissionManager.h"
 #include "nsISHistory.h"
+#include "nsNullPrincipal.h"
 
 #include "nsLayoutUtils.h"
 #include "nsView.h"
-#include "nsAsyncDOMEvent.h"
 
 #include "nsIURI.h"
 #include "nsIURL.h"
@@ -76,6 +75,7 @@
 #include "AppProcessChecker.h"
 #include "ContentParent.h"
 #include "TabParent.h"
+#include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/GuardObjects.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/unused.h"
@@ -272,7 +272,6 @@ nsFrameLoader::nsFrameLoader(Element* aOwner, bool aNetworkCreated)
   , mInShow(false)
   , mHideCalled(false)
   , mNetworkCreated(aNetworkCreated)
-  , mDelayRemoteDialogs(false)
   , mRemoteBrowserShown(false)
   , mRemoteFrame(false)
   , mClipSubdocument(true)
@@ -376,12 +375,14 @@ nsFrameLoader::LoadFrame()
 void
 nsFrameLoader::FireErrorEvent()
 {
-  if (mOwnerContent) {
-    nsRefPtr<nsAsyncDOMEvent> event =
-      new nsLoadBlockingAsyncDOMEvent(mOwnerContent, NS_LITERAL_STRING("error"),
-                                      false, false);
-    event->PostDOMEvent();
+  if (!mOwnerContent) {
+    return;
   }
+  nsRefPtr<AsyncEventDispatcher > loadBlockingAsyncDispatcher =
+    new LoadBlockingAsyncEventDispatcher(mOwnerContent,
+                                         NS_LITERAL_STRING("error"),
+                                         false, false);
+  loadBlockingAsyncDispatcher->PostDOMEvent();
 }
 
 NS_IMETHODIMP
@@ -535,7 +536,17 @@ nsFrameLoader::ReallyStartLoadingInternal()
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  loadInfo->SetReferrer(referrer);
+  // Use referrer as long as it is not an nsNullPrincipalURI.
+  // We could add a method such as GetReferrerURI to principals to make this
+  // cleaner, but given that we need to start using Source Browsing Context for
+  // referrer (see Bug 960639) this may be wasted effort at this stage.
+  if (referrer) {
+    bool isNullPrincipalScheme;
+    rv = referrer->SchemeIs(NS_NULLPRINCIPAL_SCHEME, &isNullPrincipalScheme);
+    if (NS_SUCCEEDED(rv) && !isNullPrincipalScheme) {
+      loadInfo->SetReferrer(referrer);
+    }
+  }
 
   // Default flags:
   int32_t flags = nsIWebNavigation::LOAD_FLAGS_NONE;
@@ -2003,16 +2014,14 @@ nsFrameLoader::SetClampScrollPosition(bool aClamp)
   // When turning clamping on, make sure the current position is clamped.
   if (aClamp) {
     nsIFrame* frame = GetPrimaryFrameOfOwningContent();
-    if (frame) {
-      nsSubDocumentFrame* subdocFrame = do_QueryFrame(frame);
-      if (subdocFrame) {
-        nsIFrame* subdocRootFrame = subdocFrame->GetSubdocumentRootFrame();
-        if (subdocRootFrame) {
-          nsIScrollableFrame* subdocRootScrollFrame = subdocRootFrame->PresContext()->PresShell()->
-            GetRootScrollFrameAsScrollable();
-          if (subdocRootScrollFrame) {
-            subdocRootScrollFrame->ScrollTo(subdocRootScrollFrame->GetScrollPosition(), nsIScrollableFrame::INSTANT);
-          }
+    nsSubDocumentFrame* subdocFrame = do_QueryFrame(frame);
+    if (subdocFrame) {
+      nsIFrame* subdocRootFrame = subdocFrame->GetSubdocumentRootFrame();
+      if (subdocRootFrame) {
+        nsIScrollableFrame* subdocRootScrollFrame = subdocRootFrame->PresContext()->PresShell()->
+          GetRootScrollFrameAsScrollable();
+        if (subdocRootScrollFrame) {
+          subdocRootScrollFrame->ScrollTo(subdocRootScrollFrame->GetScrollPosition(), nsIScrollableFrame::INSTANT);
         }
       }
     }
@@ -2099,6 +2108,8 @@ nsFrameLoader::TryRemoteBrowser()
   } else if (OwnerIsBrowserFrame()) {
     // The |else| above is unnecessary; OwnerIsBrowserFrame() implies !ownApp.
     rv = context.SetTabContextForBrowserFrame(containingApp, scrollingBehavior);
+  } else {
+    rv = context.SetTabContextForNormalFrame(scrollingBehavior);
   }
   NS_ENSURE_TRUE(rv, false);
 
@@ -2196,26 +2207,6 @@ nsFrameLoader::SendCrossProcessKeyEvent(const nsAString& aType,
   return NS_ERROR_FAILURE;
 }
 
-NS_IMETHODIMP
-nsFrameLoader::GetDelayRemoteDialogs(bool* aRetVal)
-{
-  *aRetVal = mDelayRemoteDialogs;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsFrameLoader::SetDelayRemoteDialogs(bool aDelay)
-{
-  if (mRemoteBrowser && mDelayRemoteDialogs && !aDelay) {
-    nsRefPtr<nsIRunnable> ev =
-      NS_NewRunnableMethod(mRemoteBrowser,
-                           &mozilla::dom::TabParent::HandleDelayedDialogs);
-    NS_DispatchToCurrentThread(ev);
-  }
-  mDelayRemoteDialogs = aDelay;
-  return NS_OK;
-}
-
 nsresult
 nsFrameLoader::CreateStaticClone(nsIFrameLoader* aDest)
 {
@@ -2254,7 +2245,8 @@ nsFrameLoader::DoLoadFrameScript(const nsAString& aURL, bool aRunInGlobalScope)
   return true;
 }
 
-class nsAsyncMessageToChild : public nsRunnable
+class nsAsyncMessageToChild : public nsSameProcessAsyncMessageBase,
+                              public nsRunnable
 {
 public:
   nsAsyncMessageToChild(JSContext* aCx,
@@ -2263,23 +2255,9 @@ public:
                         const StructuredCloneData& aData,
                         JS::Handle<JSObject *> aCpows,
                         nsIPrincipal* aPrincipal)
-    : mRuntime(js::GetRuntime(aCx)), mFrameLoader(aFrameLoader)
-    , mMessage(aMessage), mCpows(aCpows), mPrincipal(aPrincipal)
+    : nsSameProcessAsyncMessageBase(aCx, aMessage, aData, aCpows, aPrincipal)
+    , mFrameLoader(aFrameLoader)
   {
-    if (aData.mDataLength && !mData.copy(aData.mData, aData.mDataLength)) {
-      NS_RUNTIMEABORT("OOM");
-    }
-    if (mCpows && !js_AddObjectRoot(mRuntime, &mCpows)) {
-      NS_RUNTIMEABORT("OOM");
-    }
-    mClosure = aData.mClosure;
-  }
-
-  ~nsAsyncMessageToChild()
-  {
-    if (mCpows) {
-      JS_RemoveObjectRootRT(mRuntime, &mCpows);
-    }
   }
 
   NS_IMETHOD Run()
@@ -2288,26 +2266,12 @@ public:
       static_cast<nsInProcessTabChildGlobal*>(mFrameLoader->mChildMessageManager.get());
     if (tabChild && tabChild->GetInnerManager()) {
       nsCOMPtr<nsIXPConnectJSObjectHolder> kungFuDeathGrip(tabChild->GetGlobal());
-      StructuredCloneData data;
-      data.mData = mData.data();
-      data.mDataLength = mData.nbytes();
-      data.mClosure = mClosure;
-
-      SameProcessCpowHolder cpows(mRuntime, JS::Handle<JSObject *>::fromMarkedLocation(&mCpows));
-
-      nsRefPtr<nsFrameMessageManager> mm = tabChild->GetInnerManager();
-      mm->ReceiveMessage(static_cast<EventTarget*>(tabChild), mMessage,
-                         false, &data, &cpows, mPrincipal, nullptr);
+      ReceiveMessage(static_cast<EventTarget*>(tabChild),
+                     tabChild->GetInnerManager());
     }
     return NS_OK;
   }
-  JSRuntime* mRuntime;
   nsRefPtr<nsFrameLoader> mFrameLoader;
-  nsString mMessage;
-  JSAutoStructuredCloneBuffer mData;
-  StructuredCloneClosure mClosure;
-  JSObject* mCpows;
-  nsCOMPtr<nsIPrincipal> mPrincipal;
 };
 
 bool

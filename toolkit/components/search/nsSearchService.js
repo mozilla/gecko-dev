@@ -9,7 +9,7 @@ const Cu = Components.utils;
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/commonjs/sdk/core/promise.js");
+Components.utils.import("resource://gre/modules/Promise.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "AsyncShutdown",
   "resource://gre/modules/AsyncShutdown.jsm");
@@ -861,12 +861,14 @@ function ParamSubstitution(aParamValue, aSearchTerms, aEngine) {
  *        The URL to which search queries should be sent. For GET requests,
  *        must contain the string "{searchTerms}", to indicate where the user
  *        entered search terms should be inserted.
+ * @param aResultDomain
+ *        The root domain for this URL.  Defaults to the template's host.
  *
  * @see http://opensearch.a9.com/spec/1.1/querysyntax/#urltag
  *
  * @throws NS_ERROR_NOT_IMPLEMENTED if aType is unsupported.
  */
-function EngineURL(aType, aMethod, aTemplate) {
+function EngineURL(aType, aMethod, aTemplate, aResultDomain) {
   if (!aType || !aMethod || !aTemplate)
     FAIL("missing type, method or template for EngineURL!");
 
@@ -897,6 +899,14 @@ function EngineURL(aType, aMethod, aTemplate) {
       break;
     default:
       FAIL("new EngineURL: template uses invalid scheme!", Cr.NS_ERROR_FAILURE);
+  }
+
+  // If no resultDomain was specified in the engine definition file, use the
+  // host from the template.
+  this.resultDomain = aResultDomain || templateURI.host;
+  // We never want to return a "www." prefix, so eventually strip it.
+  if (this.resultDomain.startsWith("www.")) {
+    this.resultDomain = this.resultDomain.substr(4);
   }
 }
 EngineURL.prototype = {
@@ -1018,7 +1028,8 @@ EngineURL.prototype = {
   _serializeToJSON: function SRCH_EURL__serializeToJSON() {
     var json = {
       template: this.template,
-      rels: this.rels
+      rels: this.rels,
+      resultDomain: this.resultDomain
     };
 
     if (this.type != URLTYPE_SEARCH_HTML)
@@ -1049,6 +1060,8 @@ EngineURL.prototype = {
     url.setAttribute("template", this.template);
     if (this.rels.length)
       url.setAttribute("rel", this.rels.join(" "));
+    if (this.resultDomain)
+      url.setAttribute("resultDomain", this.resultDomain);
 
     for (var i = 0; i < this.params.length; ++i) {
       var param = aDoc.createElementNS(OPENSEARCH_NS_11, "Param");
@@ -1150,7 +1163,7 @@ Engine.prototype = {
   _type: null,
   // The name of the charset used to submit the search terms.
   _queryCharset: null,
-  // A URL string pointing to the engine's search form.
+  // The engine's raw SearchForm value (URL string pointing to a search form).
   __searchForm: null,
   get _searchForm() {
     return this.__searchForm;
@@ -1351,10 +1364,11 @@ Engine.prototype = {
    * if no matching URL is found.
    *
    * @param aType string to match the EngineURL's type attribute
+   * @param aRel [optional] only return URLs that with this rel value
    */
-  _getURLOfType: function SRCH_ENG__getURLOfType(aType) {
+  _getURLOfType: function SRCH_ENG__getURLOfType(aType, aRel) {
     for (var i = 0; i < this._urls.length; ++i) {
-      if (this._urls[i].type == aType)
+      if (this._urls[i].type == aType && (!aRel || this._urls[i]._hasRelation(aRel)))
         return this._urls[i];
     }
 
@@ -1522,11 +1536,11 @@ Engine.prototype = {
       if (engineToUpdate._isInAppDir) {
         let oldUpdateURL = engineToUpdate._updateURL;
         let newUpdateURL = aEngine._updateURL;
-        let oldSelfURL = engineToUpdate._getURLOfType(URLTYPE_OPENSEARCH);
-        if (oldSelfURL && oldSelfURL._hasRelation("self")) {
+        let oldSelfURL = engineToUpdate._getURLOfType(URLTYPE_OPENSEARCH, "self");
+        if (oldSelfURL) {
           oldUpdateURL = oldSelfURL.template;
-          let newSelfURL = aEngine._getURLOfType(URLTYPE_OPENSEARCH);
-          if (!newSelfURL || !newSelfURL._hasRelation("self")) {
+          let newSelfURL = aEngine._getURLOfType(URLTYPE_OPENSEARCH, "self");
+          if (!newSelfURL) {
             LOG("_onLoad: updateURL missing in updated engine for " +
                 aEngine.name + " aborted");
             onError();
@@ -1745,7 +1759,7 @@ Engine.prototype = {
                 "Can't call _initFromMetaData on a readonly engine!",
                 Cr.NS_ERROR_FAILURE);
 
-    this._urls.push(new EngineURL("text/html", aMethod, aTemplate));
+    this._urls.push(new EngineURL(URLTYPE_SEARCH_HTML, aMethod, aTemplate));
 
     this._name = aName;
     this.alias = aAlias;
@@ -1770,9 +1784,10 @@ Engine.prototype = {
     // specified
     var method   = aElement.getAttribute("method") || "GET";
     var template = aElement.getAttribute("template");
+    var resultDomain = aElement.getAttribute("resultdomain");
 
     try {
-      var url = new EngineURL(type, method, template);
+      var url = new EngineURL(type, method, template, resultDomain);
     } catch (ex) {
       FAIL("_parseURL: failed to add " + template + " as a URL",
            Cr.NS_ERROR_FAILURE);
@@ -2226,11 +2241,11 @@ Engine.prototype = {
         } else if (name != "")
           template += "&" + name + "=" + value;
       }
-      url = new EngineURL("text/html", method, template);
+      url = new EngineURL(URLTYPE_SEARCH_HTML, method, template);
 
     } else if (method == "POST") {
       // Create the URL object and just add the parameters directly
-      url = new EngineURL("text/html", method, template);
+      url = new EngineURL(URLTYPE_SEARCH_HTML, method, template);
       for (var i = 0; i < inputs.length; i++) {
         var name  = inputs[i][0];
         var value = inputs[i][1];
@@ -2271,7 +2286,8 @@ Engine.prototype = {
     for (let i = 0; i < aJson._urls.length; ++i) {
       let url = aJson._urls[i];
       let engineURL = new EngineURL(url.type || URLTYPE_SEARCH_HTML,
-                                    url.method || "GET", url.template);
+                                    url.method || "GET", url.template,
+                                    url.resultDomain);
       engineURL._initWithJSON(url, this);
       this._urls.push(engineURL);
     }
@@ -2608,9 +2624,8 @@ Engine.prototype = {
 
   get _hasUpdates() {
     // Whether or not the engine has an update URL
-    let selfURL = this._getURLOfType(URLTYPE_OPENSEARCH);
-    return !!(this._updateURL || this._iconUpdateURL || (selfURL &&
-              selfURL._hasRelation("self")));
+    let selfURL = this._getURLOfType(URLTYPE_OPENSEARCH, "self");
+    return !!(this._updateURL || this._iconUpdateURL || selfURL);
   },
 
   get name() {
@@ -2622,8 +2637,19 @@ Engine.prototype = {
   },
 
   get searchForm() {
+    // First look for a <Url rel="searchform">
+    var searchFormURL = this._getURLOfType(URLTYPE_SEARCH_HTML, "searchform");
+    if (searchFormURL) {
+      let submission = searchFormURL.getSubmission("", this);
+
+      // If the rel=searchform URL is not type="get" (i.e. has postData),
+      // ignore it, since we can only return a URL.
+      if (!submission.postData)
+        return submission.uri.spec;
+    }
+
     if (!this._searchForm) {
-      // No searchForm specified in the engine definition file, use the prePath
+      // No SearchForm specified in the engine definition file, use the prePath
       // (e.g. https://foo.com for https://foo.com/search.php?q=bar).
       var htmlUrl = this._getURLOfType(URLTYPE_SEARCH_HTML);
       ENSURE_WARN(htmlUrl, "Engine has no HTML URL!", Cr.NS_ERROR_UNEXPECTED);
@@ -2717,6 +2743,25 @@ Engine.prototype = {
   // from nsISearchEngine
   supportsResponseType: function SRCH_ENG_supportsResponseType(type) {
     return (this._getURLOfType(type) != null);
+  },
+
+  // from nsISearchEngine
+  getResultDomain: function SRCH_ENG_getResultDomain(aResponseType) {
+#ifdef ANDROID
+    if (!aResponseType) {
+      aResponseType = this._defaultMobileResponseType;
+    }
+#endif
+    if (!aResponseType) {
+      aResponseType = URLTYPE_SEARCH_HTML;
+    }
+
+    LOG("getResultDomain: responseType: \"" + aResponseType + "\"");
+
+    let url = this._getURLOfType(aResponseType);
+    if (url)
+      return url.resultDomain;
+    return "";
   },
 
   // nsISupports

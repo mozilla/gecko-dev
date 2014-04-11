@@ -150,6 +150,7 @@ FMRadio::Init(nsPIDOMWindow *aWindow)
   NS_ENSURE_TRUE_VOID(audioChannelAgent);
 
   audioChannelAgent->InitWithWeakCallback(
+    GetOwner(),
     nsIAudioChannelAgent::AUDIO_AGENT_CHANNEL_CONTENT,
     this);
 
@@ -183,9 +184,9 @@ FMRadio::Shutdown()
 }
 
 JSObject*
-FMRadio::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+FMRadio::WrapObject(JSContext* aCx)
 {
-  return FMRadioBinding::Wrap(aCx, aScope, this);
+  return FMRadioBinding::Wrap(aCx, this);
 }
 
 void
@@ -388,6 +389,12 @@ FMRadio::CanPlayChanged(int32_t aCanPlay)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+FMRadio::WindowVolumeChanged()
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
 void
 FMRadio::SetCanPlay(bool aCanPlay)
 {
@@ -398,10 +405,10 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(FMRadio)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
   NS_INTERFACE_MAP_ENTRY(nsIAudioChannelAgentCallback)
   NS_INTERFACE_MAP_ENTRY(nsIDOMEventListener)
-NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetHelper)
+NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
-NS_IMPL_ADDREF_INHERITED(FMRadio, nsDOMEventTargetHelper)
-NS_IMPL_RELEASE_INHERITED(FMRadio, nsDOMEventTargetHelper)
+NS_IMPL_ADDREF_INHERITED(FMRadio, DOMEventTargetHelper)
+NS_IMPL_RELEASE_INHERITED(FMRadio, DOMEventTargetHelper)
 
 END_FMRADIO_NAMESPACE
 

@@ -498,7 +498,7 @@ NS_INTERFACE_MAP_END
 
 // This is identical to what NS_IMPL_RELEASE provides, but with the
 // extra |1 == count| case.
-NS_IMETHODIMP_(nsrefcnt) Connection::Release(void)
+NS_IMETHODIMP_(MozExternalRefCountType) Connection::Release(void)
 {
   NS_PRECONDITION(0 != mRefCnt, "dup release");
   nsrefcnt count = --mRefCnt;
@@ -1385,6 +1385,31 @@ Connection::ExecuteAsync(mozIStorageBaseStatement **aStatements,
 
   // Dispatch to the background
   return AsyncExecuteStatements::execute(stmts, this, aCallback, _handle);
+}
+
+NS_IMETHODIMP
+Connection::ExecuteSimpleSQLAsync(const nsACString &aSQLStatement,
+                                  mozIStorageStatementCallback *aCallback,
+                                  mozIStoragePendingStatement **_handle)
+{
+  if (!NS_IsMainThread()) {
+    return NS_ERROR_NOT_SAME_THREAD;
+  }
+
+  nsCOMPtr<mozIStorageAsyncStatement> stmt;
+  nsresult rv = CreateAsyncStatement(aSQLStatement, getter_AddRefs(stmt));
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  nsCOMPtr<mozIStoragePendingStatement> pendingStatement;
+  rv = stmt->ExecuteAsync(aCallback, getter_AddRefs(pendingStatement));
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  NS_ADDREF(*_handle = pendingStatement);
+  return rv;
 }
 
 NS_IMETHODIMP

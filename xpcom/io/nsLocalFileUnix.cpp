@@ -382,7 +382,7 @@ nsLocalFile::OpenNSPRFileDesc(int32_t flags, int32_t mode, PRFileDesc **_retval)
         PR_Delete(mPath.get());
     }
 
-#if defined(LINUX) && !defined(ANDROID)
+#if defined(HAVE_POSIX_FADVISE)
     if (flags & OS_READAHEAD) {
         posix_fadvise(PR_FileDesc2NativeHandle(*_retval), 0, 0,
                       POSIX_FADV_SEQUENTIAL);
@@ -673,9 +673,11 @@ nsLocalFile::CopyDirectoryTo(nsIFile *newParent)
 
     bool hasMore = false;
     while (dirIterator->HasMoreElements(&hasMore), hasMore) {
+        nsCOMPtr<nsISupports> supports;
         nsCOMPtr<nsIFile> entry;
-        rv = dirIterator->GetNext((nsISupports**)getter_AddRefs(entry));
-        if (NS_FAILED(rv)) 
+        rv = dirIterator->GetNext(getter_AddRefs(supports));
+        entry = do_QueryInterface(supports);
+        if (NS_FAILED(rv) || !entry)
             continue;
         if (NS_FAILED(rv = entry->IsSymlink(&isSymlink)))
             return rv;
@@ -1368,9 +1370,12 @@ nsLocalFile::GetParent(nsIFile **aParent)
     // make buffer whole again
     *slashp = c;
 
-    if (NS_SUCCEEDED(rv) && localFile)
-        rv = CallQueryInterface(localFile, aParent);
-    return rv;
+    if (NS_FAILED(rv)) {
+        return rv;
+    }
+
+    localFile.forget(aParent);
+    return NS_OK;
 }
 
 /*
@@ -1893,7 +1898,8 @@ nsLocalFile::Launch()
         rv = mimeService->GetTypeFromFile(this, type);
 
     nsAutoCString fileUri = NS_LITERAL_CSTRING("file://") + mPath;
-    return GeckoAppShell::OpenUriExternal(NS_ConvertUTF8toUTF16(fileUri), NS_ConvertUTF8toUTF16(type)) ? NS_OK : NS_ERROR_FAILURE;
+    return mozilla::widget::android::GeckoAppShell::OpenUriExternal(NS_ConvertUTF8toUTF16(fileUri),
+      NS_ConvertUTF8toUTF16(type)) ? NS_OK : NS_ERROR_FAILURE;
 #elif defined(MOZ_WIDGET_COCOA)
     CFURLRef url;
     if (NS_SUCCEEDED(GetCFURL(&url))) {

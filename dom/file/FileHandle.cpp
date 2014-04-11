@@ -55,14 +55,14 @@ private:
 
 } // anonymous namespace
 
-NS_IMPL_CYCLE_COLLECTION_INHERITED_1(FileHandle, nsDOMEventTargetHelper,
+NS_IMPL_CYCLE_COLLECTION_INHERITED_1(FileHandle, DOMEventTargetHelper,
                                      mFileStorage)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(FileHandle)
-NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetHelper)
+NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
-NS_IMPL_ADDREF_INHERITED(FileHandle, nsDOMEventTargetHelper)
-NS_IMPL_RELEASE_INHERITED(FileHandle, nsDOMEventTargetHelper)
+NS_IMPL_ADDREF_INHERITED(FileHandle, DOMEventTargetHelper)
+NS_IMPL_RELEASE_INHERITED(FileHandle, DOMEventTargetHelper)
 
 // static
 already_AddRefed<FileHandle>
@@ -123,12 +123,12 @@ FileHandle::CreateFileObject(LockedFile* aLockedFile, uint32_t aFileSize)
 
 // virtual
 JSObject*
-FileHandle::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+FileHandle::WrapObject(JSContext* aCx)
 {
-  return FileHandleBinding::Wrap(aCx, aScope, this);
+  return FileHandleBinding::Wrap(aCx, this);
 }
 
-already_AddRefed<nsIDOMLockedFile>
+already_AddRefed<LockedFile>
 FileHandle::Open(FileMode aMode, ErrorResult& aError)
 {
   MOZ_ASSERT(NS_IsMainThread());
@@ -164,7 +164,8 @@ FileHandle::GetFile(ErrorResult& aError)
     return nullptr;
   }
 
-  nsRefPtr<FileRequest> request = FileRequest::Create(GetOwner(), lockedFile);
+  nsRefPtr<FileRequest> request =
+    FileRequest::Create(GetOwner(), lockedFile, /* aWrapAsDOMRequest */ true);
 
   nsRefPtr<MetadataParameters> params = new MetadataParameters(true, false);
 
@@ -187,10 +188,8 @@ GetFileHelper::GetSuccessResult(JSContext* aCx,
   nsCOMPtr<nsIDOMFile> domFile =
     mFileHandle->CreateFileObject(mLockedFile, mParams->Size());
 
-  JS::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
   nsresult rv =
-    nsContentUtils::WrapNative(aCx, global, domFile,
-                               &NS_GET_IID(nsIDOMFile), aVal);
+    nsContentUtils::WrapNative(aCx, domFile, &NS_GET_IID(nsIDOMFile), aVal);
   NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_FILEHANDLE_UNKNOWN_ERR);
   return NS_OK;
 }

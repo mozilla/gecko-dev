@@ -23,6 +23,9 @@ let gPage = {
     let button = document.getElementById("newtab-toggle");
     button.addEventListener("click", this, false);
 
+    // Initialize sponsored panel
+    this._sponsoredPanel = document.getElementById("sponsored-panel");
+
     // Check if the new tab feature is enabled.
     let enabled = gAllPages.enabled;
     if (enabled)
@@ -36,7 +39,11 @@ let gPage = {
    * thumbnail service.
    */
   get allowBackgroundCaptures() {
-    return document.documentElement.getAttribute("allow-background-captures") ==
+    // The preloader is bypassed altogether for private browsing windows, and
+    // therefore allow-background-captures will not be set.  In that case, the
+    // page is not preloaded and so it's visible, so allow background captures.
+    return inPrivateBrowsingMode() ||
+           document.documentElement.getAttribute("allow-background-captures") ==
            "true";
   },
 
@@ -65,12 +72,30 @@ let gPage = {
 
   /**
    * Updates the whole page and the grid when the storage has changed.
+   * @param aOnlyIfHidden If true, the page is updated only if it's hidden in
+   *                      the preloader.
    */
-  update: function Page_update() {
+  update: function Page_update(aOnlyIfHidden=false) {
+    let skipUpdate = aOnlyIfHidden && this.allowBackgroundCaptures;
     // The grid might not be ready yet as we initialize it asynchronously.
-    if (gGrid.ready) {
+    if (gGrid.ready && !skipUpdate) {
       gGrid.refresh();
     }
+  },
+
+  /**
+   * Shows sponsored panel
+   */
+  showSponsoredPanel: function Page_showSponsoredPanel(aTarget) {
+    if (this._sponsoredPanel.state == "closed") {
+      let self = this;
+      this._sponsoredPanel.addEventListener("popuphidden", function onPopupHidden(aEvent) {
+        self._sponsoredPanel.removeEventListener("popuphidden", onPopupHidden, false);
+        aTarget.removeAttribute("panelShown");
+      });
+    }
+    aTarget.setAttribute("panelShown", "true");
+    this._sponsoredPanel.openPopup(aTarget);
   },
 
   /**
@@ -87,10 +112,28 @@ let gPage = {
       if (this.allowBackgroundCaptures) {
         Services.telemetry.getHistogramById("NEWTAB_PAGE_SHOWN").add(true);
 
+        // Initialize type counting with the types we want to count
+        let directoryCount = {};
+        for (let type of DirectoryLinksProvider.linkTypes) {
+          directoryCount[type] = 0;
+        }
+
         for (let site of gGrid.sites) {
           if (site) {
             site.captureIfMissing();
+            let {type} = site.link;
+            if (type in directoryCount) {
+              directoryCount[type]++;
+            }
           }
+        }
+
+        // Record how many directory sites were shown, but place counts over the
+        // default 9 in the same bucket
+        for (let [type, count] of Iterator(directoryCount)) {
+          let shownId = "NEWTAB_PAGE_DIRECTORY_" + type.toUpperCase() + "_SHOWN";
+          let shownCount = Math.min(10, count);
+          Services.telemetry.getHistogramById(shownId).add(shownCount);
         }
       }
     });

@@ -27,7 +27,7 @@ class MOZ_STACK_CLASS AutoCxPusher
 public:
   AutoCxPusher(JSContext *aCx, bool aAllowNull = false);
   // XPCShell uses an nsCxPusher, which contains an AutoCxPusher.
-  NS_EXPORT ~AutoCxPusher();
+  ~AutoCxPusher();
 
   nsIScriptContext* GetScriptContext() { return mScx; }
 
@@ -63,14 +63,6 @@ private:
 class MOZ_STACK_CLASS nsCxPusher
 {
 public:
-  // This destructor doesn't actually do anything, but it implicitly depends on
-  // the Maybe<AutoCxPusher> destructor, which in turn depends on the
-  // ~AutoCxPusher destructor. If we stick with the default destructor, the
-  // caller needs to be able to link against the AutoCxPusher destructor, which
-  // isn't possible with externally-linked consumers like xpcshell. Hoist this
-  // work into nsCxPusher.cpp and use NS_EXPORT to make it all work right.
-  NS_EXPORT ~nsCxPusher();
-
   // Returns false if something erroneous happened.
   bool Push(mozilla::dom::EventTarget *aCurrentTarget);
   // If nothing has been pushed to stack, this works like Push.
@@ -78,12 +70,12 @@ public:
   bool RePush(mozilla::dom::EventTarget *aCurrentTarget);
   // If a null JSContext is passed to Push(), that will cause no
   // push to happen and false to be returned.
-  NS_EXPORT_(void) Push(JSContext *cx);
+  void Push(JSContext *cx);
   // Explicitly push a null JSContext on the the stack
   void PushNull();
 
   // Pop() will be a no-op if Push() or PushNull() fail
-  NS_EXPORT_(void) Pop();
+  void Pop();
 
   nsIScriptContext* GetCurrentScriptContext() {
     return mPusher.empty() ? nullptr : mPusher.ref().GetScriptContext();
@@ -108,7 +100,6 @@ public:
 protected:
   AutoJSContext(bool aSafe MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
 
-private:
   // We need this Init() method because we can't use delegating constructor for
   // the moment. It is a C++11 feature and we do not require C++11 to be
   // supported to be able to compile Gecko.
@@ -142,6 +133,8 @@ private:
 class MOZ_STACK_CLASS AutoSafeJSContext : public AutoJSContext {
 public:
   AutoSafeJSContext(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM);
+private:
+  JSAutoCompartment mAc;
 };
 
 /**
@@ -181,6 +174,16 @@ public:
   AutoPushJSContext(JSContext* aCx);
   operator JSContext*() { return mCx; }
 };
+
+/**
+ * AutoPushJSContextForErrorReporting has been defined for work being carried
+ * out for bug 951991.  It is to be used where an AutoPushJSContext is only
+ * being used to make sure errors are reported using the error reporter for the
+ * appropriate DOM Window and we don't want to replace it with AutoEntryScript.
+ * This will make it easy to find these cases once the JSContext is no longer
+ * required for error reporting.
+ */
+typedef AutoPushJSContext AutoPushJSContextForErrorReporting;
 
 } // namespace mozilla
 

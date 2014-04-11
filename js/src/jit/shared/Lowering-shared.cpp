@@ -56,20 +56,34 @@ LIRGeneratorShared::lowerTypedPhiInput(MPhi *phi, uint32_t inputPosition, LBlock
     lir->setOperand(inputPosition, LUse(operand->virtualRegister(), LUse::ANY));
 }
 
+LRecoverInfo *
+LIRGeneratorShared::getRecoverInfo(MResumePoint *rp)
+{
+    if (cachedRecoverInfo_ && cachedRecoverInfo_->mir() == rp)
+        return cachedRecoverInfo_;
+
+    LRecoverInfo *recoverInfo = LRecoverInfo::New(gen, rp);
+    if (!recoverInfo)
+        return nullptr;
+
+    cachedRecoverInfo_ = recoverInfo;
+    return recoverInfo;
+}
+
 #ifdef JS_NUNBOX32
 LSnapshot *
 LIRGeneratorShared::buildSnapshot(LInstruction *ins, MResumePoint *rp, BailoutKind kind)
 {
-    LSnapshot *snapshot = LSnapshot::New(gen, rp, kind);
+    LRecoverInfo *recover = getRecoverInfo(rp);
+    if (!recover)
+        return nullptr;
+
+    LSnapshot *snapshot = LSnapshot::New(gen, recover, kind);
     if (!snapshot)
         return nullptr;
 
-    FlattenedMResumePointIter iter(rp);
-    if (!iter.init())
-        return nullptr;
-
     size_t i = 0;
-    for (MResumePoint **it = iter.begin(), **end = iter.end(); it != end; ++it) {
+    for (MResumePoint **it = recover->begin(), **end = recover->end(); it != end; ++it) {
         MResumePoint *mir = *it;
         for (size_t j = 0, e = mir->numOperands(); j < e; ++i, ++j) {
             MDefinition *ins = mir->getOperand(j);
@@ -114,16 +128,16 @@ LIRGeneratorShared::buildSnapshot(LInstruction *ins, MResumePoint *rp, BailoutKi
 LSnapshot *
 LIRGeneratorShared::buildSnapshot(LInstruction *ins, MResumePoint *rp, BailoutKind kind)
 {
-    LSnapshot *snapshot = LSnapshot::New(gen, rp, kind);
+    LRecoverInfo *recover = getRecoverInfo(rp);
+    if (!recover)
+        return nullptr;
+
+    LSnapshot *snapshot = LSnapshot::New(gen, recover, kind);
     if (!snapshot)
         return nullptr;
 
-    FlattenedMResumePointIter iter(rp);
-    if (!iter.init())
-        return nullptr;
-
     size_t i = 0;
-    for (MResumePoint **it = iter.begin(), **end = iter.end(); it != end; ++it) {
+    for (MResumePoint **it = recover->begin(), **end = recover->end(); it != end; ++it) {
         MResumePoint *mir = *it;
         for (size_t j = 0, e = mir->numOperands(); j < e; ++i, ++j) {
             MDefinition *def = mir->getOperand(j);

@@ -39,7 +39,9 @@ let appName = Services.appinfo.name;
 this.dumpn = function dumpn(str) {
   logger.trace(str);
 }
-loader.loadSubScript("resource://gre/modules/devtools/DevToolsUtils.js");
+let { devtools } = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
+let DevToolsUtils = devtools.require("devtools/toolkit/DevToolsUtils.js");
+this.DevToolsUtils = DevToolsUtils;
 loader.loadSubScript("resource://gre/modules/devtools/server/transport.js");
 
 let bypassOffline = false;
@@ -134,6 +136,7 @@ function MarionetteServerConnection(aPrefix, aTransport, aServer)
   this.command_id = null;
   this.mainFrame = null; //topmost chrome frame
   this.curFrame = null; // chrome iframe that currently has focus
+  this.mainContentFrameId = null;
   this.importedScripts = FileUtils.getFile('TmpD', ['marionetteChromeScripts']);
   this.importedScriptHashes = {"chrome" : [], "content": []};
   this.currentFrameElement = null;
@@ -1300,6 +1303,7 @@ MarionetteServerConnection.prototype = {
     let curWindow = this.getCurrentWindow();
     let checkLoad = function() {
       let errorRegex = /about:.+(error)|(blocked)\?/;
+      let curWindow = this.getCurrentWindow();
       if (curWindow.document.readyState == "complete") {
         this.sendOk(command_id);
         return;
@@ -1322,12 +1326,13 @@ MarionetteServerConnection.prototype = {
         return;
       }
       if (aRequest.parameters.element != undefined) {
-        if (this.curBrowser.elementManager.seenItems[aRequest.parameters.element] != undefined) {
+        if (this.curBrowser.elementManager.seenItems[aRequest.parameters.element]) {
           let wantedFrame = this.curBrowser.elementManager.getKnownElement(aRequest.parameters.element, curWindow); //HTMLIFrameElement
-          let numFrames = curWindow.frames.length;
+          let frames = curWindow.document.getElementsByTagName("iframe");
+          let numFrames = frames.length;
           for (let i = 0; i < numFrames; i++) {
-            if (curWindow.frames[i].frameElement == wantedFrame) {
-              curWindow = curWindow.frames[i];
+            if (XPCNativeWrapper(frames[i]) == XPCNativeWrapper(wantedFrame)) {
+              curWindow = frames[i].contentWindow;
               this.curFrame = curWindow;
               if (aRequest.parameters.focus) {
                 this.curFrame.focus();
@@ -1341,30 +1346,32 @@ MarionetteServerConnection.prototype = {
     switch(typeof(aRequest.parameters.id)) {
       case "string" :
         let foundById = null;
-        let numFrames = curWindow.frames.length;
+        let frames = curWindow.document.getElementsByTagName("iframe");
+        let numFrames = frames.length;
         for (let i = 0; i < numFrames; i++) {
           //give precedence to name
-          let frame = curWindow.frames[i];
-          let frameElement = frame.frameElement;
-          if (frame.name == aRequest.parameters.id) {
+          let frame = frames[i];
+          if (frame.getAttribute("name") == aRequest.parameters.id) {
             foundFrame = i;
+            curWindow = frame.contentWindow;
             break;
-          } else if ((foundById == null) && (frameElement.id == aRequest.parameters.id)) {
+          } else if ((foundById == null) && (frame.id == aRequest.parameters.id)) {
             foundById = i;
           }
         }
         if ((foundFrame == null) && (foundById != null)) {
           foundFrame = foundById;
+          curWindow = frames[foundById].contentWindow;
         }
         break;
       case "number":
         if (curWindow.frames[aRequest.parameters.id] != undefined) {
           foundFrame = aRequest.parameters.id;
+          curWindow = curWindow.frames[foundFrame].frameElement.contentWindow;
         }
         break;
       }
       if (foundFrame != null) {
-        curWindow = curWindow.frames[foundFrame];
         this.curFrame = curWindow;
         if (aRequest.parameters.focus) {
           this.curFrame.focus();
@@ -2126,6 +2133,17 @@ MarionetteServerConnection.prototype = {
     this._emu_cb_id += 1;
   },
 
+  runEmulatorShell: function runEmulatorShell(args, callback) {
+    if (callback) {
+      if (!this._emu_cbs) {
+        this._emu_cbs = {};
+      }
+      this._emu_cbs[this._emu_cb_id] = callback;
+    }
+    this.sendToClient({emulator_shell: args, id: this._emu_cb_id}, -1);
+    this._emu_cb_id += 1;
+  },
+
   emulatorCmdResult: function emulatorCmdResult(message) {
     if (this.context != "chrome") {
       this.sendAsync("emulatorCmdResult", message, -1);
@@ -2323,6 +2341,7 @@ MarionetteServerConnection.prototype = {
         }
         break;
       case "Marionette:runEmulatorCmd":
+      case "Marionette:runEmulatorShell":
         this.sendToClient(message.json, -1);
         break;
       case "Marionette:switchToFrame":
@@ -2379,10 +2398,17 @@ MarionetteServerConnection.prototype = {
           // browserType remains undefined.
         }
         let reg = {};
+        // this will be sent to tell the content process if it is the main content
+        let mainContent = (this.curBrowser.mainContentId == null);
         if (!browserType || browserType != "content") {
           //curBrowser holds all the registered frames in knownFrames
           reg.id = this.curBrowser.register(this.generateFrameId(message.json.value),
                                             listenerWindow);
+        }
+        // set to true if we updated mainContentId
+        mainContent = ((mainContent == true) && (this.curBrowser.mainContentId != null));
+        if (mainContent) {
+          this.mainContentFrameId = this.curBrowser.curFrameId;
         }
         this.curBrowser.elementManager.seenItems[reg.id] = Cu.getWeakReference(listenerWindow);
         if (nullPrevious && (this.curBrowser.curFrameId != null)) {
@@ -2396,7 +2422,13 @@ MarionetteServerConnection.prototype = {
             this.newSessionCommandId = null;
           }
         }
-        return reg;
+        return [reg, mainContent];
+      case "Marionette:emitTouchEvent":
+        let globalMessageManager = Cc["@mozilla.org/globalmessagemanager;1"]
+                             .getService(Ci.nsIMessageBroadcaster);
+        globalMessageManager.broadcastAsyncMessage(
+          "MarionetteMainListener:emitTouchEvent", message.json);
+        return;
     }
   }
 };

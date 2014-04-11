@@ -62,16 +62,6 @@ JSObject::deleteElement(JSContext *cx, js::HandleObject obj, uint32_t index, boo
 }
 
 /* static */ inline bool
-JSObject::deleteSpecial(JSContext *cx, js::HandleObject obj, js::HandleSpecialId sid,
-                        bool *succeeded)
-{
-    JS::RootedId id(cx, SPECIALID_TO_JSID(sid));
-    js::types::MarkTypePropertyNonData(cx, obj, id);
-    js::DeleteSpecialOp op = obj->getOps()->deleteSpecial;
-    return (op ? op : js::baseops::DeleteSpecial)(cx, obj, sid, succeeded);
-}
-
-/* static */ inline bool
 JSObject::watch(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
                 JS::HandleObject callable)
 {
@@ -353,16 +343,21 @@ JSObject::ensureDenseElementsPreservePackedFlag(js::ThreadSafeContext *cx, uint3
     return ensureDenseElementsNoPackedCheck(cx, index, extra);
 }
 
+inline js::Value
+JSObject::getDenseOrTypedArrayElement(uint32_t idx)
+{
+    if (is<js::TypedArrayObject>())
+        return as<js::TypedArrayObject>().getElement(idx);
+    return getDenseElement(idx);
+}
+
 /* static */ inline bool
 JSObject::setSingletonType(js::ExclusiveContext *cx, js::HandleObject obj)
 {
-    if (!cx->typeInferenceEnabled())
-        return true;
-
     JS_ASSERT_IF(cx->isJSContext(),
                  !IsInsideNursery(cx->asJSContext()->runtime(), obj.get()));
 
-    js::types::TypeObject *type = cx->getLazyType(obj->getClass(), obj->getTaggedProto());
+    js::types::TypeObject *type = cx->getSingletonType(obj->getClass(), obj->getTaggedProto());
     if (!type)
         return false;
 
@@ -438,7 +433,16 @@ JSObject::setProto(JSContext *cx, JS::HandleObject obj, JS::HandleObject proto, 
     }
 
     /*
-     * Explicityly disallow mutating the [[Prototype]] of Location objects
+     * Disallow mutating the [[Prototype]] on Typed Objects, per the spec.
+     */
+    if (obj->is<js::TypedObject>()) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_SETPROTOTYPEOF_FAIL,
+                             "incompatible TypedObject");
+        return false;
+    }
+
+    /*
+     * Explicitly disallow mutating the [[Prototype]] of Location objects
      * for flash-related security reasons.
      */
     if (!strcmp(obj->getClass()->name, "Location")) {
@@ -471,7 +475,8 @@ JSObject::setProto(JSContext *cx, JS::HandleObject obj, JS::HandleObject proto, 
     return SetClassAndProto(cx, obj, obj->getClass(), proto, succeeded);
 }
 
-inline bool JSObject::isVarObj()
+inline bool
+JSObject::isVarObj()
 {
     if (is<js::DebugScopeObject>())
         return as<js::DebugScopeObject>().scope().isVarObj();
@@ -491,7 +496,8 @@ JSObject::create(js::ExclusiveContext *cx, js::gc::AllocKind kind, js::gc::Initi
     JS_ASSERT(shape && type);
     JS_ASSERT(type->clasp() == shape->getObjectClass());
     JS_ASSERT(type->clasp() != &js::ArrayObject::class_);
-    JS_ASSERT(js::gc::GetGCKindSlots(kind, type->clasp()) == shape->numFixedSlots());
+    JS_ASSERT_IF(!ClassCanHaveFixedData(type->clasp()),
+                 js::gc::GetGCKindSlots(kind, type->clasp()) == shape->numFixedSlots());
     JS_ASSERT_IF(type->clasp()->flags & JSCLASS_BACKGROUND_FINALIZE, IsBackgroundFinalized(kind));
     JS_ASSERT_IF(type->clasp()->finalize, heap == js::gc::TenuredHeap);
     JS_ASSERT_IF(extantSlots, dynamicSlotsCount(shape->numFixedSlots(), shape->slotSpan(),
@@ -521,7 +527,7 @@ JSObject::create(js::ExclusiveContext *cx, js::gc::AllocKind kind, js::gc::Initi
         obj->privateRef(shape->numFixedSlots()) = nullptr;
 
     size_t span = shape->slotSpan();
-    if (span && clasp != &js::ArrayBufferObject::class_)
+    if (span)
         obj->initializeSlotRange(0, span);
 
     return obj;
@@ -567,12 +573,10 @@ JSObject::finish(js::FreeOp *fop)
 {
     if (hasDynamicSlots())
         fop->free_(slots);
+
     if (hasDynamicElements()) {
         js::ObjectElements *elements = getElementsHeader();
-        if (MOZ_UNLIKELY(elements->isAsmJSArrayBuffer()))
-            js::ArrayBufferObject::releaseAsmJSArrayBuffer(fop, this);
-        else
-            fop->free_(elements);
+        fop->free_(elements);
     }
 }
 
@@ -644,6 +648,12 @@ JSObject::global() const
         obj = parent;
 #endif
     return *compartment()->maybeGlobal();
+}
+
+inline bool
+JSObject::isOwnGlobal() const
+{
+    return &global() == this;
 }
 
 namespace js {
@@ -782,7 +792,7 @@ class AutoPropDescArrayRooter : private AutoGCRooter
 {
   public:
     AutoPropDescArrayRooter(JSContext *cx)
-      : AutoGCRooter(cx, DESCRIPTORS), descriptors(cx), skip(cx, &descriptors)
+      : AutoGCRooter(cx, DESCRIPTORS), descriptors(cx)
     { }
 
     PropDesc *append() {
@@ -804,7 +814,6 @@ class AutoPropDescArrayRooter : private AutoGCRooter
 
   private:
     PropDescArray descriptors;
-    SkipRoot skip;
 };
 
 /*
@@ -844,10 +853,17 @@ GetClassProtoKey(const js::Class *clasp)
 inline bool
 FindProto(ExclusiveContext *cx, const js::Class *clasp, MutableHandleObject proto)
 {
-    if (!js_FindClassPrototype(cx, proto, clasp))
+    if (!FindClassPrototype(cx, proto, clasp))
         return false;
-    if (!proto && !js_GetClassPrototype(cx, JSProto_Object, proto))
-        return false;
+
+    if (!proto) {
+        // We're looking for the prototype of a class that is currently being
+        // resolved; the global object's resolve hook is on the
+        // stack. js::FindClassPrototype detects this goofy case and returns
+        // true with proto null. Fall back on Object.prototype.
+        JS_ASSERT(JSCLASS_CACHED_PROTO_KEY(clasp) == JSProto_Null);
+        return GetBuiltinPrototype(cx, JSProto_Object, proto);
+    }
     return true;
 }
 
@@ -928,6 +944,17 @@ NewBuiltinClassInstance(ExclusiveContext *cx, NewObjectKind newKind = GenericObj
     return &obj->as<T>();
 }
 
+template<typename T>
+inline T *
+NewBuiltinClassInstance(ExclusiveContext *cx, gc::AllocKind allocKind, NewObjectKind newKind = GenericObject)
+{
+    JSObject *obj = NewBuiltinClassInstance(cx, &T::class_, allocKind, newKind);
+    if (!obj)
+        return nullptr;
+
+    return &obj->as<T>();
+}
+
 // Used to optimize calls to (new Object())
 bool
 NewObjectScriptedCall(JSContext *cx, MutableHandleObject obj);
@@ -996,33 +1023,6 @@ GuessArrayGCKind(size_t numSlots)
 }
 
 inline bool
-DefineConstructorAndPrototype(JSContext *cx, Handle<GlobalObject*> global,
-                              JSProtoKey key, HandleObject ctor, HandleObject proto)
-{
-    JS_ASSERT(!global->nativeEmpty()); /* reserved slots already allocated */
-    JS_ASSERT(ctor);
-    JS_ASSERT(proto);
-
-    RootedId id(cx, NameToId(ClassName(key, cx)));
-    JS_ASSERT(!global->nativeLookup(cx, id));
-
-    /* Set these first in case AddTypePropertyId looks for this class. */
-    global->setConstructor(key, ObjectValue(*ctor));
-    global->setPrototype(key, ObjectValue(*proto));
-    global->setConstructorPropertySlot(key, ObjectValue(*ctor));
-
-    if (!global->addDataProperty(cx, id, GlobalObject::constructorPropertySlot(key), 0)) {
-        global->setConstructor(key, UndefinedValue());
-        global->setPrototype(key, UndefinedValue());
-        global->setConstructorPropertySlot(key, UndefinedValue());
-        return false;
-    }
-
-    types::AddTypePropertyId(cx, global, id, ObjectValue(*ctor));
-    return true;
-}
-
-inline bool
 ObjectClassIs(HandleObject obj, ESClassValue classValue, JSContext *cx)
 {
     if (MOZ_UNLIKELY(obj->is<ProxyObject>()))
@@ -1049,28 +1049,6 @@ IsObjectWithClass(const Value &v, ESClassValue classValue, JSContext *cx)
     RootedObject obj(cx, &v.toObject());
     return ObjectClassIs(obj, classValue, cx);
 }
-
-static MOZ_ALWAYS_INLINE bool
-ValueMightBeSpecial(const Value &propval)
-{
-    return propval.isObject();
-}
-
-static MOZ_ALWAYS_INLINE bool
-ValueIsSpecial(JSObject *obj, MutableHandleValue propval, MutableHandle<SpecialId> sidp,
-               JSContext *cx)
-{
-    return false;
-}
-
-JSObject *
-DefineConstructorAndPrototype(JSContext *cx, HandleObject obj, JSProtoKey key, HandleAtom atom,
-                              JSObject *protoProto, const Class *clasp,
-                              Native constructor, unsigned nargs,
-                              const JSPropertySpec *ps, const JSFunctionSpec *fs,
-                              const JSPropertySpec *static_ps, const JSFunctionSpec *static_fs,
-                              JSObject **ctorp = nullptr,
-                              gc::AllocKind ctorKind = JSFunction::FinalizeKind);
 
 static MOZ_ALWAYS_INLINE bool
 NewObjectMetadata(ExclusiveContext *cxArg, JSObject **pmetadata)

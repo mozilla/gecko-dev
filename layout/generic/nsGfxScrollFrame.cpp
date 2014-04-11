@@ -30,11 +30,11 @@
 #include "nsAutoPtr.h"
 #include "nsPresState.h"
 #include "nsIHTMLDocument.h"
-#include "nsEventDispatcher.h"
 #include "nsContentUtils.h"
 #include "nsLayoutUtils.h"
 #include "nsBidiUtils.h"
 #include "mozilla/ContentEvents.h"
+#include "mozilla/EventDispatcher.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/dom/Element.h"
@@ -52,6 +52,7 @@
 #include "nsIScrollPositionListener.h"
 #include "StickyScrollContainer.h"
 #include "nsIFrameInlines.h"
+#include "gfxPrefs.h"
 #include <algorithm>
 #include <cstdlib> // for std::abs(int/long)
 #include <cmath> // for std::abs(float/double)
@@ -1249,10 +1250,13 @@ public:
     , mCallee(nullptr)
   {}
 
+private:
+  // Private destructor, to discourage deletion outside of Release():
   ~AsyncScroll() {
     RemoveObserver();
   }
 
+public:
   nsPoint PositionAt(TimeStamp aTime);
   nsSize VelocityAt(TimeStamp aTime); // In nscoords per second
 
@@ -1542,6 +1546,14 @@ public:
 
 static ScrollFrameActivityTracker *gScrollFrameActivityTracker = nullptr;
 
+// There are situations when a scroll frame is destroyed and then re-created
+// for the same content element. In this case we want to increment the scroll
+// generation between the old and new scrollframes. If the new one knew about
+// the old one then it could steal the old generation counter and increment it
+// but it doesn't have that reference so instead we use a static global to
+// ensure the new one gets a fresh value.
+static uint32_t sScrollGenerationCounter = 0;
+
 ScrollFrameHelper::ScrollFrameHelper(nsContainerFrame* aOuter,
                                              bool aIsRoot)
   : mHScrollbarBox(nullptr)
@@ -1552,7 +1564,7 @@ ScrollFrameHelper::ScrollFrameHelper(nsContainerFrame* aOuter,
   , mOuter(aOuter)
   , mAsyncScroll(nullptr)
   , mOriginOfLastScroll(nsGkAtoms::other)
-  , mScrollGeneration(0)
+  , mScrollGeneration(++sScrollGenerationCounter)
   , mDestination(0, 0)
   , mScrollPosAtLastPaint(0, 0)
   , mRestorePos(-1, -1)
@@ -2068,7 +2080,7 @@ ScrollFrameHelper::ScrollToImpl(nsPoint aPt, const nsRect& aRange, nsIAtom* aOri
   // Update frame position for scrolling
   mScrolledFrame->SetPosition(mScrollPort.TopLeft() - pt);
   mOriginOfLastScroll = aOrigin;
-  mScrollGeneration++;
+  mScrollGeneration = ++sScrollGenerationCounter;
 
   // We pass in the amount to move visually
   ScrollVisual(oldScrollFramePos);
@@ -2085,21 +2097,50 @@ ScrollFrameHelper::ScrollToImpl(nsPoint aPt, const nsRect& aRange, nsIAtom* aOri
   for (uint32_t i = 0; i < mListeners.Length(); i++) {
     mListeners[i]->ScrollPositionDidChange(pt.x, pt.y);
   }
+
+  nsCOMPtr<nsIDocShell> docShell = presContext->GetDocShell();
+  if (docShell) {
+    docShell->NotifyScrollObservers();
+  }
+}
+
+static int32_t
+MaxZIndexInList(nsDisplayList* aList, nsDisplayListBuilder* aBuilder)
+{
+  int32_t maxZIndex = 0;
+  for (nsDisplayItem* item = aList->GetBottom(); item; item = item->GetAbove()) {
+    maxZIndex = std::max(maxZIndex, item->ZIndex());
+  }
+  return maxZIndex;
 }
 
 static void
-AppendToTop(nsDisplayListBuilder* aBuilder, nsDisplayList* aDest,
+AppendToTop(nsDisplayListBuilder* aBuilder, const nsDisplayListSet& aLists,
             nsDisplayList* aSource, nsIFrame* aSourceFrame, bool aOwnLayer,
-            uint32_t aFlags, mozilla::layers::FrameMetrics::ViewID aScrollTargetId)
+            uint32_t aFlags, mozilla::layers::FrameMetrics::ViewID aScrollTargetId,
+            bool aPositioned)
 {
   if (aSource->IsEmpty())
     return;
-  if (aOwnLayer) {
-    aDest->AppendNewToTop(
-        new (aBuilder) nsDisplayOwnLayer(aBuilder, aSourceFrame, aSource,
-                                         aFlags, aScrollTargetId));
+
+  nsDisplayWrapList* newItem = aOwnLayer?
+    new (aBuilder) nsDisplayOwnLayer(aBuilder, aSourceFrame, aSource,
+                                     aFlags, aScrollTargetId) :
+    new (aBuilder) nsDisplayWrapList(aBuilder, aSourceFrame, aSource);
+
+  if (aPositioned) {
+    // We want overlay scrollbars to always be on top of the scrolled content,
+    // but we don't want them to unnecessarily cover overlapping elements from
+    // outside our scroll frame.
+    nsDisplayList* positionedDescendants = aLists.PositionedDescendants();
+    if (!positionedDescendants->IsEmpty()) {
+      newItem->SetOverrideZIndex(MaxZIndexInList(positionedDescendants, aBuilder));
+      positionedDescendants->AppendNewToTop(newItem);
+    } else {
+      aLists.Outlines()->AppendNewToTop(newItem);
+    }
   } else {
-    aDest->AppendToTop(aSource);
+    aLists.BorderBackground()->AppendNewToTop(newItem);
   }
 }
 
@@ -2158,14 +2199,6 @@ ScrollFrameHelper::AppendScrollPartsTo(nsDisplayListBuilder*   aBuilder,
       aBuilder, scrollParts[i], aDirtyRect, partList,
       nsIFrame::DISPLAY_CHILD_FORCE_STACKING_CONTEXT);
 
-    // Don't append textarea resizers to the positioned descendants because
-    // we don't want them to float on top of overlapping elements.
-    bool appendToPositioned = aPositioned &&
-                              !(scrollParts[i] == mResizerBox && !mIsRoot);
-
-    nsDisplayList* dest = appendToPositioned ?
-      aLists.PositionedDescendants() : aLists.BorderBackground();
-
     uint32_t flags = 0;
     if (scrollParts[i] == mVScrollbarBox) {
       flags |= nsDisplayOwnLayer::VERTICAL_SCROLLBAR;
@@ -2176,9 +2209,9 @@ ScrollFrameHelper::AppendScrollPartsTo(nsDisplayListBuilder*   aBuilder,
 
     // DISPLAY_CHILD_FORCE_STACKING_CONTEXT put everything into
     // partList.PositionedDescendants().
-    ::AppendToTop(aBuilder, dest,
+    ::AppendToTop(aBuilder, aLists,
                   partList.PositionedDescendants(), scrollParts[i],
-                  aCreateLayer, flags, scrollTargetId);
+                  aCreateLayer, flags, scrollTargetId, aPositioned);
   }
 }
 
@@ -2438,10 +2471,21 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   nsRect dirtyRect = aDirtyRect.Intersect(mScrollPort);
 
   // Override the dirty rectangle if the displayport has been set.
-  nsRect displayPort;
   bool usingDisplayport =
-    nsLayoutUtils::GetDisplayPort(mOuter->GetContent(), &displayPort) &&
+    nsLayoutUtils::GetDisplayPort(mOuter->GetContent()) &&
     !aBuilder->IsForEventDelivery();
+
+  // don't set the display port base rect for root scroll frames,
+  // nsLayoutUtils::PaintFrame or nsSubDocumentFrame::BuildDisplayList
+  // does that for root scroll frames before it expands the dirty rect
+  // to the display port.
+  if (usingDisplayport && !mIsRoot) {
+    nsLayoutUtils::SetDisplayPortBase(mOuter->GetContent(), dirtyRect);
+  }
+
+  // now that we have an updated base rect we can get the display port
+  nsRect displayPort;
+  nsLayoutUtils::GetDisplayPort(mOuter->GetContent(), &displayPort);
   if (usingDisplayport && DisplayportExceedsMaxTextureSize(mOuter->PresContext(), displayPort)) {
     usingDisplayport = false;
   }
@@ -2546,10 +2590,10 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     bool wantLayerV = isVScrollable && (mVScrollbarBox || isFocused);
     bool wantLayerH = isHScrollable && (mHScrollbarBox || isFocused);
     // TODO Turn this on for inprocess OMTC on all platforms
-    bool wantSubAPZC = (XRE_GetProcessType() == GeckoProcessType_Content);
-#ifdef XP_WIN
-    if (XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Metro) {
-      wantSubAPZC = true;
+    bool wantSubAPZC = gfxPrefs::APZSubframeEnabled();
+#ifdef MOZ_WIDGET_GONK
+    if (XRE_GetProcessType() != GeckoProcessType_Content) {
+      wantSubAPZC = false;
     }
 #endif
     shouldBuildLayer =
@@ -2596,8 +2640,6 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       aBuilder, mScrolledFrame, mOuter);
     scrolledContent.BorderBackground()->AppendNewToBottom(layerItem);
   }
-  scrolledContent.MoveTo(aLists);
-
   // Now display overlay scrollbars and the resizer, if we have one.
 #ifdef MOZ_WIDGET_GONK
   // TODO: only layerize the overlay scrollbars if this scrollframe can be
@@ -2605,8 +2647,9 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   // that's where we want the layerized scrollbars
   createLayersForScrollbars = true;
 #endif
-  AppendScrollPartsTo(aBuilder, aDirtyRect, aLists, createLayersForScrollbars,
-                      true);
+  AppendScrollPartsTo(aBuilder, aDirtyRect, scrolledContent,
+                      createLayersForScrollbars, true);
+  scrolledContent.MoveTo(aLists);
 }
 
 bool
@@ -3036,8 +3079,8 @@ ScrollFrameHelper::FireScrollPortEvent()
                                                      mVerticalOverflow) ?
     NS_SCROLLPORT_OVERFLOW : NS_SCROLLPORT_UNDERFLOW, nullptr);
   event.orient = orient;
-  return nsEventDispatcher::Dispatch(mOuter->GetContent(),
-                                     mOuter->PresContext(), &event);
+  return EventDispatcher::Dispatch(mOuter->GetContent(),
+                                   mOuter->PresContext(), &event);
 }
 
 void
@@ -3381,13 +3424,13 @@ ScrollFrameHelper::FireScrollEvent()
   if (mIsRoot) {
     nsIDocument* doc = content->GetCurrentDoc();
     if (doc) {
-      nsEventDispatcher::Dispatch(doc, prescontext, &event, nullptr,  &status);
+      EventDispatcher::Dispatch(doc, prescontext, &event, nullptr,  &status);
     }
   } else {
     // scroll events fired at elements don't bubble (although scroll events
     // fired at documents do, to the window)
     event.mFlags.mBubbles = false;
-    nsEventDispatcher::Dispatch(content, prescontext, &event, nullptr, &status);
+    EventDispatcher::Dispatch(content, prescontext, &event, nullptr, &status);
   }
 }
 
@@ -4005,6 +4048,7 @@ ScrollFrameHelper::UpdateOverflow()
     mSkippedScrollbarLayout = true;
     return false;  // reflowing will update overflow
   }
+  PostOverflowEvent();
   return mOuter->nsContainerFrame::UpdateOverflow();
 }
 
@@ -4468,7 +4512,7 @@ ScrollFrameHelper::FireScrolledAreaEvent()
 
   nsIDocument *doc = content->GetCurrentDoc();
   if (doc) {
-    nsEventDispatcher::Dispatch(doc, prescontext, &event, nullptr);
+    EventDispatcher::Dispatch(doc, prescontext, &event, nullptr);
   }
 }
 

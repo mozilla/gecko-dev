@@ -60,7 +60,6 @@ public:
     NS_ASSERTION(ClientManager()->InConstruction(),
                  "Can only set properties in construction phase");
     mInvalidRegion.Or(mInvalidRegion, aRegion);
-    mInvalidRegion.SimplifyOutward(10);
     mValidRegion.Sub(mValidRegion, mInvalidRegion);
   }
 
@@ -100,14 +99,6 @@ public:
   }
 
 protected:
-  void
-  PaintBuffer(gfxContext* aContext,
-              const nsIntRegion& aRegionToDraw,
-              const nsIntRegion& aExtendedRegionToDraw,
-              const nsIntRegion& aRegionToInvalidate,
-              bool aDidSelfCopy,
-              DrawRegionClip aClip);
-
   void PaintThebes();
   
   void DestroyBackBuffer()

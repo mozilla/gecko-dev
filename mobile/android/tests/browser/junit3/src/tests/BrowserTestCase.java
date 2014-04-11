@@ -12,23 +12,34 @@ import android.test.ActivityInstrumentationTestCase2;
 /**
  * BrowserTestCase provides helper methods for testing.
  */
+@SuppressWarnings("unchecked")
 public class BrowserTestCase extends ActivityInstrumentationTestCase2<Activity> {
+    @SuppressWarnings("unused")
     private static String LOG_TAG = "BrowserTestCase";
 
-    private static final String LAUNCHER_ACTIVITY = AppConstants.ANDROID_PACKAGE_NAME + ".App";
+    /**
+     * The Java Class instance that launches the browser.
+     * <p>
+     * This should always agree with {@link AppConstants#BROWSER_INTENT_CLASS_NAME}.
+     */
+    public static final Class<? extends Activity> BROWSER_INTENT_CLASS;
 
-    private final static Class<Activity> sLauncherActivityClass;
-
+    // Use reflection here so we don't have to either (a) preprocess this
+    // file, or (b) get access to Robocop's TestConstants class from these
+    // instrumentation tests.
     static {
+        Class<? extends Activity> cl;
         try {
-            sLauncherActivityClass = (Class<Activity>) Class.forName(LAUNCHER_ACTIVITY);
+            cl = (Class<? extends Activity>) Class.forName(AppConstants.BROWSER_INTENT_CLASS_NAME);
         } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
+            // Oh well.
+            cl = Activity.class;
         }
+        BROWSER_INTENT_CLASS = cl;
     }
 
     public BrowserTestCase() {
-        super(sLauncherActivityClass);
+        super((Class<Activity>) BROWSER_INTENT_CLASS);
     }
 
     public Context getApplicationContext() {

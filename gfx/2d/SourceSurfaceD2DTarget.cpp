@@ -75,6 +75,15 @@ SourceSurfaceD2DTarget::GetDataSurface()
   return dataSurf;
 }
 
+void*
+SourceSurfaceD2DTarget::GetNativeSurface(NativeSurfaceType aType)
+{
+  if (aType == NativeSurfaceType::D3D10_TEXTURE) {
+    return static_cast<void*>(mTexture.get());
+  }
+  return nullptr;
+}
+
 ID3D10ShaderResourceView*
 SourceSurfaceD2DTarget::GetSRView()
 {
@@ -273,6 +282,7 @@ DataSourceSurfaceD2DTarget::Map(MapType aMapType, MappedSurface *aMappedSurface)
 
   aMappedSurface->mData = (uint8_t*)map.pData;
   aMappedSurface->mStride = map.RowPitch;
+  mIsMapped = true;
 
   return true;
 }
@@ -282,6 +292,7 @@ DataSourceSurfaceD2DTarget::Unmap()
 {
   MOZ_ASSERT(mIsMapped);
 
+  mIsMapped = false;
   mTexture->Unmap(0);
 }
 

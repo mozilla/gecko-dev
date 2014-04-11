@@ -13,6 +13,9 @@
 
 #include "FileCommon.h"
 
+namespace mozilla {
+class EventChainPreVisitor;
+} // namespace mozilla
 
 BEGIN_FILE_NAMESPACE
 
@@ -23,8 +26,7 @@ BEGIN_FILE_NAMESPACE
 class ArchiveRequest : public mozilla::dom::DOMRequest
 {
 public:
-  virtual JSObject* WrapObject(JSContext* aCx,
-                               JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   ArchiveReader* Reader() const;
 
@@ -36,7 +38,7 @@ public:
                  ArchiveReader* aReader);
 
   // nsIDOMEventTarget
-  virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
+  virtual nsresult PreHandleEvent(EventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
 
 public:
   // This is called by the DOMArchiveRequestEvent

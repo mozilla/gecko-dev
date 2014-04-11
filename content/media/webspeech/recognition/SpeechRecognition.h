@@ -8,8 +8,8 @@
 #define mozilla_dom_SpeechRecognition_h
 
 #include "mozilla/Attributes.h"
+#include "mozilla/DOMEventTargetHelper.h"
 #include "nsCOMPtr.h"
-#include "nsDOMEventTargetHelper.h"
 #include "nsString.h"
 #include "nsWrapperCache.h"
 #include "nsTArray.h"
@@ -53,7 +53,7 @@ PRLogModuleInfo* GetSpeechRecognitionLog();
 #define SR_LOG(...)
 #endif
 
-class SpeechRecognition MOZ_FINAL : public nsDOMEventTargetHelper,
+class SpeechRecognition MOZ_FINAL : public DOMEventTargetHelper,
                                     public nsIObserver,
                                     public SupportsWeakPtr<SpeechRecognition>
 {
@@ -68,8 +68,7 @@ public:
 
   nsISupports* GetParentObject() const;
 
-  virtual JSObject* WrapObject(JSContext* aCx,
-                               JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   static already_AddRefed<SpeechRecognition>
   Constructor(const GlobalObject& aGlobal, ErrorResult& aRv);
@@ -130,8 +129,8 @@ public:
 
   void DispatchError(EventType aErrorType, SpeechRecognitionErrorCode aErrorCode, const nsAString& aMessage);
   uint32_t FillSamplesBuffer(const int16_t* aSamples, uint32_t aSampleCount);
-  uint32_t SplitSamplesBuffer(const int16_t* aSamplesBuffer, uint32_t aSampleCount, nsTArray<already_AddRefed<SharedBuffer> >& aResult);
-  AudioSegment* CreateAudioSegment(nsTArray<already_AddRefed<SharedBuffer> >& aChunks);
+  uint32_t SplitSamplesBuffer(const int16_t* aSamplesBuffer, uint32_t aSampleCount, nsTArray<nsRefPtr<SharedBuffer>>& aResult);
+  AudioSegment* CreateAudioSegment(nsTArray<nsRefPtr<SharedBuffer>>& aChunks);
   void FeedAudioData(already_AddRefed<SharedBuffer> aSamples, uint32_t aDuration, MediaStreamListener* aProvider);
 
   static struct TestConfig
@@ -293,7 +292,7 @@ private:
 inline nsISupports*
 ToSupports(dom::SpeechRecognition* aRec)
 {
-  return ToSupports(static_cast<nsDOMEventTargetHelper*>(aRec));
+  return ToSupports(static_cast<DOMEventTargetHelper*>(aRec));
 }
 } // namespace mozilla
 

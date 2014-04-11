@@ -21,9 +21,6 @@ function f() {
 SimpleTest.waitForExplicitFinish();
 setTestPluginEnabledState(SpecialPowers.Ci.nsIPluginTag.STATE_ENABLED);
 
-// When the document is torn down or <svg> is removed, we hit bug 621618
-SimpleTest.expectAssertions(1);
-
 var frameLoadCount = 0;
 function frameLoaded() {
   frameLoadCount++;
@@ -33,19 +30,20 @@ function frameLoaded() {
   } else if (frameLoadCount == 2) {
     isnot(SpecialPowers.wrap(window.frame1).location.href.indexOf('chrome://'),
           0, 'plugin shouldnt be able to cause navigation to chrome URLs');
-
-    // Make sure we trigger bug 621618 before the test finishes so the assertion
-    // is attributed to this test.
-    document.body.removeChild(document.querySelector("svg"));
-    SimpleTest.executeSoon(function() { SimpleTest.finish(); });
+    SimpleTest.finish();
   }
 }
 </script>
 
+<!-- Note that <svg:use> ends up creating an anonymous subtree, which means that the plugin
+     reflector gets hoisted into the XBL scope, and isn't accessible to content. We pass
+     the 'donttouchelement' parameter to the plugin to prevent it from trying to define the
+     'pluginFoundElement' property on the plugin reflector, since doing so would throw a
+     security exception. -->
 <svg>
   <symbol id="a">
     <foreignObject>
-      <object bugmode="813906" frame="frame1"></object>
+      <object bugmode="813906" frame="frame1"><param name="donttouchelement"></param></object>
     </foreignObject>
   </symbol>
   <use />

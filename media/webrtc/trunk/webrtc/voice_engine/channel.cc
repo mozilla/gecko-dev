@@ -1003,6 +1003,7 @@ Channel::Channel(int32_t channelId,
     least_required_delay_ms_(0),
     _previousTimestamp(0),
     _recPacketDelayMs(20),
+    _current_sync_offset(0),
     _RxVadDetection(false),
     _rxApmIsEnabled(false),
     _rxAgcIsEnabled(false),
@@ -2195,11 +2196,12 @@ int32_t Channel::ReceivedRTPPacket(const int8_t* data, int32_t length) {
       rtp_payload_registry_->GetPayloadTypeFrequency(header.payloadType);
   if (header.payload_type_frequency < 0)
     return -1;
+  // MUST call before IncomingPacket() or will always return false
+  bool in_order = IsPacketInOrder(header);
   rtp_receive_statistics_->IncomingPacket(header, length,
-                                          IsPacketRetransmitted(header));
+      IsPacketRetransmitted(header, in_order));
   rtp_payload_registry_->SetIncomingPayloadType(header);
-  return ReceivePacket(received_packet, length, header,
-                       IsPacketInOrder(header)) ? 0 : -1;
+  return ReceivePacket(received_packet, length, header, in_order) ? 0 : -1;
 }
 
 bool Channel::ReceivePacket(const uint8_t* packet,
@@ -2259,7 +2261,8 @@ bool Channel::IsPacketInOrder(const RTPHeader& header) const {
   return statistician->IsPacketInOrder(header.sequenceNumber);
 }
 
-bool Channel::IsPacketRetransmitted(const RTPHeader& header) const {
+bool Channel::IsPacketRetransmitted(const RTPHeader& header,
+                                    bool in_order) const {
   // Retransmissions are handled separately if RTX is enabled.
   if (rtp_payload_registry_->RtxEnabled())
     return false;
@@ -2270,7 +2273,7 @@ bool Channel::IsPacketRetransmitted(const RTPHeader& header) const {
   // Check if this is a retransmission.
   uint16_t min_rtt = 0;
   _rtpRtcpModule->RTT(rtp_receiver_->SSRC(), NULL, NULL, &min_rtt, NULL);
-  return !IsPacketInOrder(header) &&
+  return !in_order &&
       statistician->IsRetransmitOfOldPacket(header, min_rtt);
 }
 
@@ -3794,107 +3797,81 @@ Channel::GetRemoteRTCP_CNAME(char cName[256])
 }
 
 int
-Channel::GetRemoteRTCPData(
-    unsigned int& NTPHigh,
-    unsigned int& NTPLow,
-    unsigned int& timestamp,
-    unsigned int& playoutTimestamp,
-    unsigned int& sendPacketCount,
-    unsigned int& sendOctetCount,
-    unsigned int* jitter,
-    unsigned short* fractionLost,
-    unsigned int* cumulativeLost)
+Channel::GetRemoteRTCPReceiverInfo(
+    uint32_t& NTPHigh,
+    uint32_t& NTPLow,
+    uint32_t& receivedPacketCount,
+    uint64_t& receivedOctetCount,
+    uint32_t& jitter,
+    uint16_t& fractionLost,
+    uint32_t& cumulativeLost,
+    int32_t& rttMs)
 {
-    // --- Information from sender info in received Sender Reports
+  // Get all RTCP receiver report blocks that have been received on this
+  // channel. If we receive RTP packets from a remote source we know the
+  // remote SSRC and use the report block from him.
+  // Otherwise use the first report block.
+  std::vector<RTCPReportBlock> remote_stats;
+  if (_rtpRtcpModule->RemoteRTCPStat(&remote_stats) != 0 ||
+      remote_stats.empty()) {
+    WEBRTC_TRACE(kTraceWarning, kTraceVoice,
+                  VoEId(_instanceId, _channelId),
+                  "GetRemoteRTCPReceiverInfo() failed to measure statistics due"
+                  " to lack of received RTP and/or RTCP packets");
+    return -1;
+  }
 
-    RTCPSenderInfo senderInfo;
-    if (_rtpRtcpModule->RemoteRTCPStat(&senderInfo) != 0)
-    {
-        _engineStatisticsPtr->SetLastError(
-            VE_RTP_RTCP_MODULE_ERROR, kTraceError,
-            "GetRemoteRTCPData() failed to retrieve sender info for remote "
-            "side");
-        return -1;
-    }
+  uint32_t remoteSSRC = rtp_receiver_->SSRC();
+  std::vector<RTCPReportBlock>::const_iterator it = remote_stats.begin();
+  for (; it != remote_stats.end(); ++it) {
+    if (it->remoteSSRC == remoteSSRC)
+      break;
+  }
 
-    NTPHigh = senderInfo.NTPseconds;
-    NTPLow = senderInfo.NTPfraction;
-    timestamp = senderInfo.RTPtimeStamp;
-    sendPacketCount = senderInfo.sendPacketCount;
-    sendOctetCount = senderInfo.sendOctetCount;
+  if (it == remote_stats.end()) {
+    // If we have not received any RTCP packets from this SSRC it probably
+    // means that we have not received any RTP packets.
+    // Use the first received report block instead.
+    it = remote_stats.begin();
+    remoteSSRC = it->remoteSSRC;
+  }
 
-    WEBRTC_TRACE(kTraceStateInfo, kTraceVoice,
+  if (_rtpRtcpModule->GetReportBlockInfo(remoteSSRC,
+                                         &NTPHigh,
+                                         &NTPLow,
+                                         &receivedPacketCount,
+                                         &receivedOctetCount) != 0) {
+    WEBRTC_TRACE(kTraceWarning, kTraceVoice,
                  VoEId(_instanceId, _channelId),
-                 "GetRemoteRTCPData() => NTPHigh=%lu, NTPLow=%lu, "
-                 "timestamp=%lu",
-                 NTPHigh, NTPLow, timestamp);
+                 "GetRemoteRTCPReceiverInfo() failed to retrieve RTT from "
+                 "the RTP/RTCP module");
+    NTPHigh = 0;
+    NTPLow = 0;
+    receivedPacketCount = 0;
+    receivedOctetCount = 0;
+  }
 
-    // --- Locally derived information
+  jitter = it->jitter;
+  fractionLost = it->fractionLost;
+  cumulativeLost = it->cumulativeLost;
+  WEBRTC_TRACE(kTraceStateInfo, kTraceVoice,
+               VoEId(_instanceId, _channelId),
+               "GetRemoteRTCPReceiverInfo() => jitter = %lu, "
+               "fractionLost = %lu, cumulativeLost = %lu",
+               jitter, fractionLost, cumulativeLost);
 
-    // This value is updated on each incoming RTCP packet (0 when no packet
-    // has been received)
-    playoutTimestamp = playout_timestamp_rtcp_;
-
-    WEBRTC_TRACE(kTraceStateInfo, kTraceVoice,
+  uint16_t dummy;
+  uint16_t rtt = 0;
+  if (_rtpRtcpModule->RTT(remoteSSRC, &rtt, &dummy, &dummy, &dummy)
+      != 0)
+  {
+    WEBRTC_TRACE(kTraceWarning, kTraceVoice,
                  VoEId(_instanceId, _channelId),
-                 "GetRemoteRTCPData() => playoutTimestamp=%lu",
-                 playout_timestamp_rtcp_);
-
-    if (NULL != jitter || NULL != fractionLost || NULL != cumulativeLost)
-    {
-        // Get all RTCP receiver report blocks that have been received on this
-        // channel. If we receive RTP packets from a remote source we know the
-        // remote SSRC and use the report block from him.
-        // Otherwise use the first report block.
-        std::vector<RTCPReportBlock> remote_stats;
-        if (_rtpRtcpModule->RemoteRTCPStat(&remote_stats) != 0 ||
-            remote_stats.empty()) {
-          WEBRTC_TRACE(kTraceWarning, kTraceVoice,
-                       VoEId(_instanceId, _channelId),
-                       "GetRemoteRTCPData() failed to measure statistics due"
-                       " to lack of received RTP and/or RTCP packets");
-          return -1;
-        }
-
-        uint32_t remoteSSRC = rtp_receiver_->SSRC();
-        std::vector<RTCPReportBlock>::const_iterator it = remote_stats.begin();
-        for (; it != remote_stats.end(); ++it) {
-          if (it->remoteSSRC == remoteSSRC)
-            break;
-        }
-
-        if (it == remote_stats.end()) {
-          // If we have not received any RTCP packets from this SSRC it probably
-          // means that we have not received any RTP packets.
-          // Use the first received report block instead.
-          it = remote_stats.begin();
-          remoteSSRC = it->remoteSSRC;
-        }
-
-        if (jitter) {
-          *jitter = it->jitter;
-          WEBRTC_TRACE(kTraceStateInfo, kTraceVoice,
-                       VoEId(_instanceId, _channelId),
-                       "GetRemoteRTCPData() => jitter = %lu", *jitter);
-        }
-
-        if (fractionLost) {
-          *fractionLost = it->fractionLost;
-          WEBRTC_TRACE(kTraceStateInfo, kTraceVoice,
-                       VoEId(_instanceId, _channelId),
-                       "GetRemoteRTCPData() => fractionLost = %lu",
-                       *fractionLost);
-        }
-
-        if (cumulativeLost) {
-          *cumulativeLost = it->cumulativeLost;
-          WEBRTC_TRACE(kTraceStateInfo, kTraceVoice,
-                       VoEId(_instanceId, _channelId),
-                       "GetRemoteRTCPData() => cumulativeLost = %lu",
-                       *cumulativeLost);
-        }
-    }
-    return 0;
+                 "GetRTPStatistics() failed to retrieve RTT from "
+                 "the RTP/RTCP module");
+  }
+  rttMs = rtt;
+  return 0;
 }
 
 int
@@ -4718,7 +4695,8 @@ Channel::GetNetworkStatistics(NetworkStatistics& stats)
 }
 
 bool Channel::GetDelayEstimate(int* jitter_buffer_delay_ms,
-                               int* playout_buffer_delay_ms) const {
+                               int* playout_buffer_delay_ms,
+                               int* avsync_offset_ms) const {
   if (_average_jitter_buffer_delay_us == 0) {
     WEBRTC_TRACE(kTraceInfo, kTraceVoice, VoEId(_instanceId,_channelId),
                  "Channel::GetDelayEstimate() no valid estimate.");
@@ -4727,6 +4705,7 @@ bool Channel::GetDelayEstimate(int* jitter_buffer_delay_ms,
   *jitter_buffer_delay_ms = (_average_jitter_buffer_delay_us + 500) / 1000 +
       _recPacketDelayMs;
   *playout_buffer_delay_ms = playout_delay_ms_;
+  *avsync_offset_ms = _current_sync_offset;
   WEBRTC_TRACE(kTraceInfo, kTraceVoice, VoEId(_instanceId,_channelId),
                "Channel::GetDelayEstimate()");
   return true;

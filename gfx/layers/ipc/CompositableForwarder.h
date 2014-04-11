@@ -27,8 +27,7 @@ class TextureFactoryIdentifier;
 class SurfaceDescriptor;
 class SurfaceDescriptorTiles;
 class ThebesBufferData;
-class DeprecatedTextureClient;
-class BasicTiledLayerBuffer;
+class ClientTiledLayerBuffer;
 class PTextureChild;
 
 /**
@@ -43,13 +42,10 @@ class PTextureChild;
  */
 class CompositableForwarder : public ISurfaceAllocator
 {
-  friend class AutoOpenSurface;
-  friend class DeprecatedTextureClientShmem;
 public:
 
   CompositableForwarder()
     : mSerial(++sSerialCounter)
-    , mMultiProcess(false)
   {}
 
   /**
@@ -57,26 +53,6 @@ public:
    * transactions.
    */
   virtual void Connect(CompositableClient* aCompositable) = 0;
-
-  /**
-   * When using the Thebes layer pattern of swapping or updating
-   * TextureClient/Host pairs without sending SurfaceDescriptors,
-   * use these messages to assign the single or double buffer
-   * (TextureClient/Host pairs) to the CompositableHost.
-   * We expect the textures to already have been created.
-   * With these messages, the ownership of the SurfaceDescriptor(s)
-   * moves to the compositor.
-   */
-  virtual void CreatedSingleBuffer(CompositableClient* aCompositable,
-                                   const SurfaceDescriptor& aDescriptor,
-                                   const TextureInfo& aTextureInfo,
-                                   const SurfaceDescriptor* aDescriptorOnWhite = nullptr) = 0;
-  virtual void CreatedDoubleBuffer(CompositableClient* aCompositable,
-                                   const SurfaceDescriptor& aFrontDescriptor,
-                                   const SurfaceDescriptor& aBackDescriptor,
-                                   const TextureInfo& aTextureInfo,
-                                   const SurfaceDescriptor* aFrontDescriptorOnWhite = nullptr,
-                                   const SurfaceDescriptor* aBackDescriptorOnWhite = nullptr) = 0;
 
   /**
    * Notify the CompositableHost that it should create host-side-only
@@ -87,33 +63,16 @@ public:
                                         const nsIntRect& aBufferRect) = 0;
 
   /**
-   * Tell the compositor that a Compositable is killing its buffer(s),
-   * that is TextureClient/Hosts.
+   * Tell the CompositableHost on the compositor side what TiledLayerBuffer to
+   * use for the next composition.
    */
-  virtual void DestroyThebesBuffer(CompositableClient* aCompositable) = 0;
-
-  virtual void PaintedTiledLayerBuffer(CompositableClient* aCompositable,
-                                       const SurfaceDescriptorTiles& aTiledDescriptor) = 0;
+  virtual void UseTiledLayerBuffer(CompositableClient* aCompositable,
+                                   const SurfaceDescriptorTiles& aTiledDescriptor) = 0;
 
   /**
    * Create a TextureChild/Parent pair as as well as the TextureHost on the parent side.
    */
   virtual PTextureChild* CreateTexture(const SurfaceDescriptor& aSharedData, TextureFlags aFlags) = 0;
-
-  /**
-   * Communicate to the compositor that the texture identified by aCompositable
-   * and aTextureId has been updated to aImage.
-   */
-  virtual void UpdateTexture(CompositableClient* aCompositable,
-                             TextureIdentifier aTextureId,
-                             SurfaceDescriptor* aDescriptor) = 0;
-
-  /**
-   * Same as UpdateTexture, but performs an asynchronous layer transaction (if possible)
-   */
-  virtual void UpdateTextureNoSwap(CompositableClient* aCompositable,
-                                   TextureIdentifier aTextureId,
-                                   SurfaceDescriptor* aDescriptor) = 0;
 
   /**
    * Communicate to the compositor that aRegion in the texture identified by
@@ -145,16 +104,6 @@ public:
    */
   virtual void UpdatePictureRect(CompositableClient* aCompositable,
                                  const nsIntRect& aRect) = 0;
-
-  /**
-   * The specified layer is destroying its buffers.
-   * |aBackBufferToDestroy| is deallocated when this transaction is
-   * posted to the parent.  During the parent-side transaction, the
-   * shadow is told to destroy its front buffer.  This can happen when
-   * a new front/back buffer pair have been created because of a layer
-   * resize, e.g.
-   */
-  virtual void DestroyedThebesBuffer(const SurfaceDescriptor& aBackBufferToDestroy) = 0;
 
   /**
    * Tell the CompositableHost on the compositor side to remove the texture.
@@ -210,10 +159,10 @@ public:
 
   void IdentifyTextureHost(const TextureFactoryIdentifier& aIdentifier);
 
-  /**
-   * Returns the maximum texture size supported by the compositor.
-   */
-  virtual int32_t GetMaxTextureSize() const { return mTextureFactoryIdentifier.mMaxTextureSize; }
+  virtual int32_t GetMaxTextureSize() const MOZ_OVERRIDE
+  {
+    return mTextureFactoryIdentifier.mMaxTextureSize;
+  }
 
   bool IsOnCompositorSide() const MOZ_OVERRIDE { return false; }
 
@@ -222,7 +171,7 @@ public:
    * We only don't allow changing the backend type at runtime so this value can
    * be queried once and will not change until Gecko is restarted.
    */
-  LayersBackend GetCompositorBackendType() const
+  virtual LayersBackend GetCompositorBackendType() const MOZ_OVERRIDE
   {
     return mTextureFactoryIdentifier.mParentBackend;
   }
@@ -237,11 +186,6 @@ public:
     return mTextureFactoryIdentifier.mSupportsPartialUploads;
   }
 
-  bool ForwardsToDifferentProcess() const
-  {
-    return mMultiProcess;
-  }
-
   const TextureFactoryIdentifier& GetTextureFactoryIdentifier() const
   {
     return mTextureFactoryIdentifier;
@@ -254,7 +198,6 @@ protected:
   nsTArray<RefPtr<TextureClient> > mTexturesToRemove;
   const int32_t mSerial;
   static mozilla::Atomic<int32_t> sSerialCounter;
-  bool mMultiProcess;
 };
 
 } // namespace

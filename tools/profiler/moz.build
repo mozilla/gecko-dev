@@ -5,7 +5,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 if CONFIG['MOZ_ENABLE_PROFILER_SPS']:
-    FAIL_ON_WARNINGS = not CONFIG['_MSC_VER']
+    FAIL_ON_WARNINGS = True
 
     XPIDL_MODULE = 'profiler'
     XPIDL_SOURCES += [
@@ -24,10 +24,8 @@ if CONFIG['MOZ_ENABLE_PROFILER_SPS']:
     ]
     UNIFIED_SOURCES += [
         'BreakpadSampler.cpp',
-        'IOInterposer.cpp',
         'JSCustomObjectBuilder.cpp',
         'JSObjectBuilder.cpp',
-        'NSPRInterposer.cpp',
         'nsProfiler.cpp',
         'nsProfilerFactory.cpp',
         'platform.cpp',
@@ -88,10 +86,6 @@ if CONFIG['MOZ_ENABLE_PROFILER_SPS']:
 
 EXPORTS += [
     'GeckoProfiler.h',
-]
-
-EXPORTS.mozilla += [
-    'IOInterposer.h',
 ]
 
 XPCSHELL_TESTS_MANIFESTS += ['tests/xpcshell.ini']

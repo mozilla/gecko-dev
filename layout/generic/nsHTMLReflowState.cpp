@@ -28,6 +28,7 @@
 #include "StickyScrollContainer.h"
 #include "nsIFrameInlines.h"
 #include <algorithm>
+#include "mozilla/dom/HTMLInputElement.h"
 
 #ifdef DEBUG
 #undef NOISY_VERTICAL_ALIGN
@@ -37,6 +38,7 @@
 
 using namespace mozilla;
 using namespace mozilla::css;
+using namespace mozilla::dom;
 using namespace mozilla::layout;
 
 enum eNormalLineHeightControl {
@@ -2468,12 +2470,13 @@ nsHTMLReflowState::CalcLineHeight() const
     nsLayoutUtils::IsNonWrapperBlock(frame) ? ComputedHeight() :
     (mCBReflowState ? mCBReflowState->ComputedHeight() : NS_AUTOHEIGHT);
 
-  return CalcLineHeight(frame->StyleContext(), blockHeight,
+  return CalcLineHeight(frame->GetContent(), frame->StyleContext(), blockHeight,
                         nsLayoutUtils::FontSizeInflationFor(frame));
 }
 
 /* static */ nscoord
-nsHTMLReflowState::CalcLineHeight(nsStyleContext* aStyleContext,
+nsHTMLReflowState::CalcLineHeight(nsIContent* aContent,
+                                  nsStyleContext* aStyleContext,
                                   nscoord aBlockHeight,
                                   float aFontSizeInflation)
 {
@@ -2483,6 +2486,17 @@ nsHTMLReflowState::CalcLineHeight(nsStyleContext* aStyleContext,
     ComputeLineHeight(aStyleContext, aBlockHeight, aFontSizeInflation);
 
   NS_ASSERTION(lineHeight >= 0, "ComputeLineHeight screwed up");
+
+  HTMLInputElement* input = HTMLInputElement::FromContentOrNull(aContent);
+  if (input && input->IsSingleLineTextControl()) {
+    // For Web-compatibility, single-line text input elements cannot
+    // have a line-height smaller than one.
+    nscoord lineHeightOne =
+      aFontSizeInflation * aStyleContext->StyleFont()->mFont.size;
+    if (lineHeight < lineHeightOne) {
+      lineHeight = lineHeightOne;
+    }
+  }
 
   return lineHeight;
 }

@@ -24,7 +24,7 @@ public:
   using Element::GetText;
   using Element::SetText;
 
-  HTMLTitleElement(already_AddRefed<nsINodeInfo> aNodeInfo);
+  HTMLTitleElement(already_AddRefed<nsINodeInfo>& aNodeInfo);
   virtual ~HTMLTitleElement();
 
   // nsISupports
@@ -59,7 +59,7 @@ public:
 
 protected:
 
-  virtual JSObject* WrapNode(JSContext* cx, JS::Handle<JSObject*> scope)
+  virtual JSObject* WrapNode(JSContext* cx)
     MOZ_OVERRIDE MOZ_FINAL;
 
 private:

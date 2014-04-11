@@ -82,6 +82,27 @@ struct frontend::StmtInfoBCE : public StmtInfoBase
     }
 };
 
+
+namespace {
+
+struct LoopStmtInfo : public StmtInfoBCE
+{
+    int32_t         stackDepth;     // Stack depth when this loop was pushed.
+    uint32_t        loopDepth;      // Loop depth.
+
+    // Can we OSR into Ion from here?  True unless there is non-loop state on the stack.
+    bool            canIonOsr;
+
+    LoopStmtInfo(ExclusiveContext *cx) : StmtInfoBCE(cx) {}
+
+    static LoopStmtInfo* fromStmtInfo(StmtInfoBCE *stmt) {
+        JS_ASSERT(stmt->isLoop());
+        return static_cast<LoopStmtInfo*>(stmt);
+    }
+};
+
+} // anonymous namespace
+
 BytecodeEmitter::BytecodeEmitter(BytecodeEmitter *parent,
                                  Parser<FullParseHandler> *parser, SharedContext *sc,
                                  HandleScript script, bool insideEval, HandleScript evalCaller,
@@ -440,23 +461,11 @@ EmitLoopEntry(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *nextpn)
             return false;
     }
 
-    /*
-     * Calculate loop depth. Note that this value is just a hint, so
-     * give up for deeply nested loops.
-     */
-    uint32_t loopDepth = 0;
-    StmtInfoBCE *stmt = bce->topStmt;
-    while (stmt) {
-        if (stmt->isLoop()) {
-            loopDepth++;
-            if (loopDepth >= 5)
-                break;
-        }
-        stmt = stmt->down;
-    }
+    LoopStmtInfo *loop = LoopStmtInfo::fromStmtInfo(bce->topStmt);
+    JS_ASSERT(loop->loopDepth > 0);
 
-    JS_ASSERT(loopDepth > 0);
-    return Emit2(cx, bce, JSOP_LOOPENTRY, uint8_t(loopDepth)) >= 0;
+    uint8_t loopDepthAndFlags = PackLoopEntryDepthHintAndFlags(loop->loopDepth, loop->canIonOsr);
+    return Emit2(cx, bce, JSOP_LOOPENTRY, loopDepthAndFlags) >= 0;
 }
 
 /*
@@ -661,10 +670,49 @@ BackPatch(ExclusiveContext *cx, BytecodeEmitter *bce, ptrdiff_t last, jsbytecode
     ((stmt)->update = (top), (stmt)->breaks = (stmt)->continues = (-1))
 
 static void
-PushStatementBCE(BytecodeEmitter *bce, StmtInfoBCE *stmt, StmtType type, ptrdiff_t top)
+PushStatementInner(BytecodeEmitter *bce, StmtInfoBCE *stmt, StmtType type, ptrdiff_t top)
 {
     SET_STATEMENT_TOP(stmt, top);
     PushStatement(bce, stmt, type);
+}
+
+static void
+PushStatementBCE(BytecodeEmitter *bce, StmtInfoBCE *stmt, StmtType type, ptrdiff_t top)
+{
+    PushStatementInner(bce, stmt, type, top);
+    JS_ASSERT(!stmt->isLoop());
+}
+
+static void
+PushLoopStatement(BytecodeEmitter *bce, LoopStmtInfo *stmt, StmtType type, ptrdiff_t top)
+{
+    PushStatementInner(bce, stmt, type, top);
+    JS_ASSERT(stmt->isLoop());
+
+    LoopStmtInfo *downLoop = nullptr;
+    for (StmtInfoBCE *outer = stmt->down; outer; outer = outer->down) {
+        if (outer->isLoop()) {
+            downLoop = LoopStmtInfo::fromStmtInfo(outer);
+            break;
+        }
+    }
+
+    stmt->stackDepth = bce->stackDepth;
+    stmt->loopDepth = downLoop ? downLoop->loopDepth + 1 : 1;
+
+    int loopSlots;
+    if (type == STMT_FOR_OF_LOOP)
+        loopSlots = 2;
+    else if (type == STMT_FOR_IN_LOOP)
+        loopSlots = 1;
+    else
+        loopSlots = 0;
+
+    if (downLoop)
+        stmt->canIonOsr = (downLoop->canIonOsr &&
+                           stmt->stackDepth == downLoop->stackDepth + loopSlots);
+    else
+        stmt->canIonOsr = stmt->stackDepth == loopSlots;
 }
 
 /*
@@ -4409,8 +4457,8 @@ EmitForOf(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t t
             return false;
     }
 
-    StmtInfoBCE stmtInfo(cx);
-    PushStatementBCE(bce, &stmtInfo, STMT_FOR_OF_LOOP, top);
+    LoopStmtInfo stmtInfo(cx);
+    PushLoopStatement(bce, &stmtInfo, STMT_FOR_OF_LOOP, top);
 
     // Jump down to the loop condition to minimize overhead assuming at least
     // one iteration, as the other loop forms do.  Annotate so IonMonkey can
@@ -4549,8 +4597,8 @@ EmitForIn(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t t
             return false;
     }
 
-    StmtInfoBCE stmtInfo(cx);
-    PushStatementBCE(bce, &stmtInfo, STMT_FOR_IN_LOOP, top);
+    LoopStmtInfo stmtInfo(cx);
+    PushLoopStatement(bce, &stmtInfo, STMT_FOR_IN_LOOP, top);
 
     /* Annotate so IonMonkey can find the loop-closing jump. */
     int noteIndex = NewSrcNote(cx, bce, SRC_FOR_IN);
@@ -4635,8 +4683,8 @@ EmitForIn(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t t
 static bool
 EmitNormalFor(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top)
 {
-    StmtInfoBCE stmtInfo(cx);
-    PushStatementBCE(bce, &stmtInfo, STMT_FOR_LOOP, top);
+    LoopStmtInfo stmtInfo(cx);
+    PushLoopStatement(bce, &stmtInfo, STMT_FOR_LOOP, top);
 
     ParseNode *forHead = pn->pn_left;
     ParseNode *forBody = pn->pn_right;
@@ -4822,7 +4870,6 @@ EmitFunc(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
      */
     if (fun->isInterpreted()) {
         bool singleton =
-            cx->typeInferenceEnabled() &&
             bce->script->compileAndGo() &&
             fun->isInterpreted() &&
             (bce->checkSingletonContext() ||
@@ -4850,8 +4897,7 @@ EmitFunc(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             // Inherit most things (principals, version, etc) from the parent.
             Rooted<JSScript*> parent(cx, bce->script);
             CompileOptions options(cx, bce->parser->options());
-            options.setPrincipals(parent->principals())
-                   .setOriginPrincipals(parent->originPrincipals())
+            options.setOriginPrincipals(parent->originPrincipals())
                    .setCompileAndGo(parent->compileAndGo())
                    .setSelfHostingMode(parent->selfHosted())
                    .setNoScriptRval(false)
@@ -4891,8 +4937,13 @@ EmitFunc(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     unsigned index = bce->objectList.add(pn->pn_funbox);
 
     /* Non-hoisted functions simply emit their respective op. */
-    if (!pn->functionIsHoisted())
+    if (!pn->functionIsHoisted()) {
+        /* JSOP_LAMBDA_ARROW is always preceded by JSOP_THIS. */
+        MOZ_ASSERT(fun->isArrow() == (pn->getOp() == JSOP_LAMBDA_ARROW));
+        if (fun->isArrow() && Emit1(cx, bce, JSOP_THIS) < 0)
+            return false;
         return EmitIndex32(cx, pn->getOp(), index, bce);
+    }
 
     /*
      * For a script we emit the code as we parse. Thus the bytecode for
@@ -4953,8 +5004,8 @@ EmitDo(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     if (top < 0)
         return false;
 
-    StmtInfoBCE stmtInfo(cx);
-    PushStatementBCE(bce, &stmtInfo, STMT_DO_LOOP, top);
+    LoopStmtInfo stmtInfo(cx);
+    PushLoopStatement(bce, &stmtInfo, STMT_DO_LOOP, top);
 
     if (!EmitLoopEntry(cx, bce, nullptr))
         return false;
@@ -5011,8 +5062,8 @@ EmitWhile(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t t
      *  . . .
      *  N    N*(ifeq-fail; goto); ifeq-pass  goto; N*ifne-pass; ifne-fail
      */
-    StmtInfoBCE stmtInfo(cx);
-    PushStatementBCE(bce, &stmtInfo, STMT_WHILE_LOOP, top);
+    LoopStmtInfo stmtInfo(cx);
+    PushLoopStatement(bce, &stmtInfo, STMT_WHILE_LOOP, top);
 
     ptrdiff_t noteIndex = NewSrcNote(cx, bce, SRC_WHILE);
     if (noteIndex < 0)
@@ -6715,46 +6766,11 @@ SetSrcNoteOffset(ExclusiveContext *cx, BytecodeEmitter *bce, unsigned index, uns
 }
 
 /*
- * Finish taking source notes in cx's notePool, copying final notes to the new
- * stable store allocated by the caller and passed in via notes. Return false
- * on malloc failure, which means this function reported an error.
- *
- * Use this to compute the number of jssrcnotes to allocate and pass in via
- * notes. This method knows a lot about details of FinishTakingSrcNotes, so
- * DON'T CHANGE js::frontend::FinishTakingSrcNotes WITHOUT CHECKING WHETHER
- * THIS METHOD NEEDS CORRESPONDING CHANGES!
- */
-ptrdiff_t
-BytecodeEmitter::countFinalSourceNotes()
-{
-    ptrdiff_t diff = prologOffset() - prolog.lastNoteOffset;
-    ptrdiff_t cnt = prolog.notes.length() + main.notes.length() + 1;
-    if (prolog.notes.length() && prolog.currentLine != firstLine) {
-        if (diff > SN_DELTA_MASK)
-            cnt += JS_HOWMANY(diff - SN_DELTA_MASK, SN_XDELTA_MASK);
-        cnt += LengthOfSetLine(firstLine);
-    } else if (diff > 0) {
-        if (main.notes.length()) {
-            jssrcnote *sn = main.notes.begin();
-            diff -= SN_IS_XDELTA(sn)
-                    ? SN_XDELTA_MASK - (*sn & SN_XDELTA_MASK)
-                    : SN_DELTA_MASK - (*sn & SN_DELTA_MASK);
-        }
-        if (diff > 0)
-            cnt += JS_HOWMANY(diff, SN_XDELTA_MASK);
-    }
-    return cnt;
-}
-
-/*
- * Fill in the storage at notes with prolog and main srcnotes; the space at
- * notes was allocated using the BytecodeEmitter::countFinalSourceNotes()
- * method from BytecodeEmitter.h. SO DON'T CHANGE THIS FUNCTION WITHOUT AT
- * LEAST CHECKING WHETHER BytecodeEmitter::countFinalSourceNotes() NEEDS
- * CORRESPONDING CHANGES!
+ * Finish taking source notes in cx's notePool.
+ * If successful, the final source note count is stored in the out outparam.
  */
 bool
-frontend::FinishTakingSrcNotes(ExclusiveContext *cx, BytecodeEmitter *bce, jssrcnote *notes)
+frontend::FinishTakingSrcNotes(ExclusiveContext *cx, BytecodeEmitter *bce, uint32_t *out)
 {
     JS_ASSERT(bce->current == &bce->main);
 
@@ -6763,7 +6779,6 @@ frontend::FinishTakingSrcNotes(ExclusiveContext *cx, BytecodeEmitter *bce, jssrc
         bce->switchToProlog();
         if (NewSrcNote2(cx, bce, SRC_SETLINE, (ptrdiff_t)bce->firstLine) < 0)
             return false;
-        prologCount = bce->prolog.notes.length();
         bce->switchToMain();
     } else {
         /*
@@ -6795,14 +6810,24 @@ frontend::FinishTakingSrcNotes(ExclusiveContext *cx, BytecodeEmitter *bce, jssrc
         }
     }
 
+    // The prolog count might have changed, so we can't reuse prologCount.
+    // The + 1 is to account for the final SN_MAKE_TERMINATOR that is appended
+    // when the notes are copied to their final destination by CopySrcNotes.
+    *out = bce->prolog.notes.length() + bce->main.notes.length() + 1;
+    return true;
+}
+
+void
+frontend::CopySrcNotes(BytecodeEmitter *bce, jssrcnote *destination, uint32_t nsrcnotes)
+{
+    unsigned prologCount = bce->prolog.notes.length();
     unsigned mainCount = bce->main.notes.length();
     unsigned totalCount = prologCount + mainCount;
+    MOZ_ASSERT(totalCount == nsrcnotes - 1);
     if (prologCount)
-        PodCopy(notes, bce->prolog.notes.begin(), prologCount);
-    PodCopy(notes + prologCount, bce->main.notes.begin(), mainCount);
-    SN_MAKE_TERMINATOR(&notes[totalCount]);
-
-    return true;
+        PodCopy(destination, bce->prolog.notes.begin(), prologCount);
+    PodCopy(destination + prologCount, bce->main.notes.begin(), mainCount);
+    SN_MAKE_TERMINATOR(&destination[totalCount]);
 }
 
 void

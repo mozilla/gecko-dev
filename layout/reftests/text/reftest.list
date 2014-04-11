@@ -109,7 +109,7 @@ HTTP(..) == variation-selector-unsupported-1.html variation-selector-unsupported
 == wordbreak-1.html wordbreak-1-ref.html
 == wordbreak-2.html wordbreak-2-ref.html
 == wordbreak-3.html wordbreak-3-ref.html
-skip-if(Android&&AndroidVersion==17) == wordbreak-4a.html wordbreak-4a-ref.html
+skip-if((Android&&(AndroidVersion==10||AndroidVersion==17))||(B2G&&browserIsRemote)) == wordbreak-4a.html wordbreak-4a-ref.html
 == wordbreak-4b.html wordbreak-4b-ref.html
 == wordbreak-5.html wordbreak-5-ref.html
 == wordbreak-6.html wordbreak-6-ref.html
@@ -135,6 +135,7 @@ skip-if(B2G) == wordwrap-09.html wordwrap-09-ref.html
 random-if(cocoaWidget) HTTP(..) == zwnj-01.xhtml zwnj-01-ref.xhtml
 HTTP(..) == zwnj-02.xhtml zwnj-02-ref.xhtml # HTTP(..) for ../filters.svg
 != zwnj-01.html zwnj-01-notref.html
+== initial-zwj-1.html initial-zwj-1-ref.html
 == cgj-01.html cgj-01-ref.html
 == 444656.html 444656-ref.html
 == 449555-1.html 449555-1-ref.html
@@ -145,8 +146,7 @@ fails-if(!winWidget&&!gtk2Widget) skip-if(B2G) HTTP(..) == 475092-pos.html 47509
 # Test for bug 484954
 == rgba-text.html rgba-text-ref.html
 # Test for bug 575695, 'kern' table support
-# Random on Windows because behavior depends on Uniscribe version(?)
-random-if(winWidget) HTTP(..) != kerning-01.html kerning-01-notref.html
+HTTP(..) != kerning-01.html kerning-01-notref.html
 # Test for bug 577380, support for AAT layout (on OS X only)
 random-if(!cocoaWidget) == 577380.html 577380-ref.html
 # Test for OpenType Arabic shaping support
@@ -270,6 +270,7 @@ pref(gfx.font_rendering.graphite.enabled,true) HTTP(..) == glyph-decomposition-g
 == auto-hyphenation-nb-1.html auto-hyphenation-nb-1-ref.html
 == auto-hyphenation-nl-1.html auto-hyphenation-nl-1-ref.html
 == auto-hyphenation-nn-1.html auto-hyphenation-nn-1-ref.html
+== auto-hyphenation-pl-1.html auto-hyphenation-pl-1-ref.html
 == auto-hyphenation-pt-1.html auto-hyphenation-pt-1-ref.html
 == auto-hyphenation-ru-1.html auto-hyphenation-ru-1-ref.html
 == auto-hyphenation-sh-1.html auto-hyphenation-sh-1-ref.html
@@ -295,3 +296,6 @@ pref(layout.css.text-align-true-value.enabled,true) == text-align-true.html text
 != control-chars-02.html control-chars-02-notref.html
 == control-chars-03a.html control-chars-03-ref.html
 == control-chars-03b.html control-chars-03-ref.html
+
+# font fallback for <space> when not supported in the primary font family - bug 970891
+HTTP(..) == space-font-1.html space-font-1-ref.html

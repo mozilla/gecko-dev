@@ -221,9 +221,6 @@ public:
   // Input handling
   nsEventStatus ApzReceiveInputEvent(mozilla::WidgetInputEvent* aEvent,
                                      ScrollableLayerGuid* aOutTargetGuid);
-  nsEventStatus ApzReceiveInputEvent(mozilla::WidgetInputEvent* aInEvent,
-                                     ScrollableLayerGuid* aOutTargetGuid,
-                                     mozilla::WidgetInputEvent* aOutEvent);
 
 protected:
   friend class FrameworkView;
@@ -259,7 +256,7 @@ protected:
   Microsoft::WRL::ComPtr<FrameworkView> mView;
   nsTransparencyMode mTransparencyMode;
   nsIntRegion mInvalidatedRegion;
-  nsCOMPtr<nsIdleService> mIdleService;
+  nsCOMPtr<nsIIdleServiceInternal> mIdleService;
   HWND mWnd;
   static HWND sICoreHwnd;
   WNDPROC mMetroWndProc;

@@ -16,9 +16,16 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyServiceGetter(this, "ppmm",
   "@mozilla.org/parentprocessmessagemanager;1", "nsIMessageBroadcaster");
 
+XPCOMUtils.defineLazyModuleGetter(this, "SystemAppProxy",
+                                  "resource://gre/modules/SystemAppProxy.jsm");
+
 this.Keyboard = {
   _formMM: null,     // The current web page message manager.
   _keyboardMM: null, // The keyboard app message manager.
+  _systemMessageName: [
+    'SetValue', 'RemoveFocus', 'SetSelectedOption', 'SetSelectedOptions'
+  ],
+
   _messageNames: [
     'SetValue', 'RemoveFocus', 'SetSelectedOption', 'SetSelectedOptions',
     'SetSelectionRange', 'ReplaceSurroundingText', 'ShowInputMethodPicker',
@@ -56,8 +63,13 @@ this.Keyboard = {
     Services.obs.addObserver(this, 'remote-browser-shown', false);
     Services.obs.addObserver(this, 'oop-frameloader-crashed', false);
 
-    for (let name of this._messageNames)
+    for (let name of this._messageNames) {
       ppmm.addMessageListener('Keyboard:' + name, this);
+    }
+
+    for (let name of this._systemMessageName) {
+      ppmm.addMessageListener('System:' + name, this);
+    }
   },
 
   observe: function keyboardObserve(subject, topic, data) {
@@ -85,7 +97,9 @@ this.Keyboard = {
     mm.addMessageListener('Forms:GetText:Result:OK', this);
     mm.addMessageListener('Forms:GetText:Result:Error', this);
     mm.addMessageListener('Forms:SetSelectionRange:Result:OK', this);
+    mm.addMessageListener('Forms:SetSelectionRange:Result:Error', this);
     mm.addMessageListener('Forms:ReplaceSurroundingText:Result:OK', this);
+    mm.addMessageListener('Forms:ReplaceSurroundingText:Result:Error', this);
     mm.addMessageListener('Forms:SendKey:Result:OK', this);
     mm.addMessageListener('Forms:SendKey:Result:Error', this);
     mm.addMessageListener('Forms:SequenceError', this);
@@ -95,12 +109,13 @@ this.Keyboard = {
   },
 
   receiveMessage: function keyboardReceiveMessage(msg) {
-    // If we get a 'Keyboard:XXX' message, check that the sender has the
-    // input permission.
+    // If we get a 'Keyboard:XXX'/'System:XXX' message, check that the sender
+    // has the required permission.
     let mm;
     let isKeyboardRegistration = msg.name == "Keyboard:Register" ||
                                  msg.name == "Keyboard:Unregister";
-    if (msg.name.indexOf("Keyboard:") != -1) {
+    if (msg.name.indexOf("Keyboard:") === 0 ||
+        msg.name.indexOf("System:") === 0) {
       if (!this.formMM && !isKeyboardRegistration) {
         return;
       }
@@ -123,10 +138,13 @@ this.Keyboard = {
         testing = Services.prefs.getBoolPref("dom.mozInputMethod.testing");
       } catch (e) {
       }
+
+      let perm = (msg.name.indexOf("Keyboard:") === 0) ? "input"
+                                                       : "input-manage";
       if (!isKeyboardRegistration && !testing &&
-          !mm.assertPermission("input")) {
+          !mm.assertPermission(perm)) {
         dump("Keyboard message " + msg.name +
-        " from a content process with no 'input' privileges.");
+        " from a content process with no '" + perm + "' privileges.");
         return;
       }
     }
@@ -146,20 +164,26 @@ this.Keyboard = {
       case 'Forms:GetContext:Result:OK':
       case 'Forms:SetComposition:Result:OK':
       case 'Forms:EndComposition:Result:OK':
+      case 'Forms:SetSelectionRange:Result:Error':
+      case 'Forms:ReplaceSurroundingText:Result:Error':
         let name = msg.name.replace(/^Forms/, 'Keyboard');
         this.forwardEvent(name, msg);
         break;
 
       case 'Keyboard:SetValue':
+      case 'System:SetValue':
         this.setValue(msg);
         break;
       case 'Keyboard:RemoveFocus':
+      case 'System:RemoveFocus':
         this.removeFocus();
         break;
       case 'Keyboard:SetSelectedOption':
+      case 'System:SetSelectedOption':
         this.setSelectedOption(msg);
         break;
       case 'Keyboard:SetSelectedOptions':
+      case 'System:SetSelectedOptions':
         this.setSelectedOption(msg);
         break;
       case 'Keyboard:SetSelectionRange':
@@ -210,7 +234,7 @@ this.Keyboard = {
 
     // Chrome event, used also to render value selectors; that's why we need
     // the info about choices / min / max here as well...
-    this.sendChromeEvent({
+    SystemAppProxy.dispatchEvent({
       type: 'inputmethod-contextchange',
       inputType: msg.data.type,
       value: msg.data.value,
@@ -245,13 +269,13 @@ this.Keyboard = {
   },
 
   showInputMethodPicker: function keyboardShowInputMethodPicker() {
-    this.sendChromeEvent({
+    SystemAppProxy.dispatchEvent({
       type: "inputmethod-showall"
     });
   },
 
   switchToNextInputMethod: function keyboardSwitchToNextInputMethod() {
-    this.sendChromeEvent({
+    SystemAppProxy.dispatchEvent({
       type: "inputmethod-next"
     });
   },
@@ -291,13 +315,6 @@ this.Keyboard = {
     this._layouts = layouts;
 
     this.sendToKeyboard('Keyboard:LayoutsChange', layouts);
-  },
-
-  sendChromeEvent: function(event) {
-    let browser = Services.wm.getMostRecentWindow("navigator:browser");
-    if (browser && browser.shell) {
-      browser.shell.sendChromeEvent(event);;
-    }
   }
 };
 

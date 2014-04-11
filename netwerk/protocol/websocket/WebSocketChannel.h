@@ -21,7 +21,7 @@
 
 #ifdef MOZ_WIDGET_GONK
 #include "nsINetworkManager.h"
-#include "nsProxyRelease.h" // for nsMainThreadPtrHandle
+#include "nsProxyRelease.h"
 #endif
 
 #include "nsCOMPtr.h"
@@ -179,6 +179,9 @@ private:
   // then to IP address (unless we're leaving DNS resolution to a proxy server)
   nsCString                       mAddress;
   int32_t                         mPort;          // WS server port
+
+  // Used for off main thread access to the URI string.
+  nsCString                       mHost;
 
   nsCOMPtr<nsISocketTransport>    mTransport;
   nsCOMPtr<nsIAsyncInputStream>   mSocketIn;

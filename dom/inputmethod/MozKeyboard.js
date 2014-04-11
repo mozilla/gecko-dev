@@ -245,17 +245,7 @@ MozInputMethodManager.prototype = {
 
   classID: Components.ID("{7e9d7280-ef86-11e2-b778-0800200c9a66}"),
 
-  QueryInterface: XPCOMUtils.generateQI([
-    Ci.nsIInputMethodManager
-  ]),
-
-  classInfo: XPCOMUtils.generateCI({
-    "classID": Components.ID("{7e9d7280-ef86-11e2-b778-0800200c9a66}"),
-    "contractID": "@mozilla.org/b2g-imm;1",
-    "interfaces": [Ci.nsIInputMethodManager],
-    "flags": Ci.nsIClassInfo.DOM_OBJECT,
-    "classDescription": "B2G Input Method Manager"
-  }),
+  QueryInterface: XPCOMUtils.generateQI([]),
 
   showAll: function() {
     if (!WindowMap.isActive(this._window)) {
@@ -297,22 +287,15 @@ MozInputMethod.prototype = {
   _inputcontext: null,
   _layouts: {},
   _window: null,
+  _isSystem: false,
 
   classID: Components.ID("{4607330d-e7d2-40a4-9eb8-43967eae0142}"),
 
   QueryInterface: XPCOMUtils.generateQI([
-    Ci.nsIInputMethod,
     Ci.nsIDOMGlobalPropertyInitializer,
-    Ci.nsIObserver
+    Ci.nsIObserver,
+    Ci.nsISupportsWeakReference
   ]),
-
-  classInfo: XPCOMUtils.generateCI({
-    "classID": Components.ID("{4607330d-e7d2-40a4-9eb8-43967eae0142}"),
-    "contractID": "@mozilla.org/b2g-inputmethod;1",
-    "interfaces": [Ci.nsIInputMethod],
-    "flags": Ci.nsIClassInfo.DOM_OBJECT,
-    "classDescription": "B2G Input Method"
-  }),
 
   init: function mozInputMethodInit(win) {
     this._window = win;
@@ -321,20 +304,27 @@ MozInputMethod.prototype = {
                             .getInterface(Ci.nsIDOMWindowUtils)
                             .currentInnerWindowID;
 
+    let principal = win.document.nodePrincipal;
+    let perm = Services.perms.testExactPermissionFromPrincipal(principal,
+                                                               "input-manage");
+    if (perm === Ci.nsIPermissionManager.ALLOW_ACTION) {
+      this._isSystem = true;
+    }
+
     Services.obs.addObserver(this, "inner-window-destroyed", false);
-    cpmm.addMessageListener('Keyboard:FocusChange', this);
-    cpmm.addMessageListener('Keyboard:SelectionChange', this);
-    cpmm.addMessageListener('Keyboard:GetContext:Result:OK', this);
-    cpmm.addMessageListener('Keyboard:LayoutsChange', this);
+    cpmm.addWeakMessageListener('Keyboard:FocusChange', this);
+    cpmm.addWeakMessageListener('Keyboard:SelectionChange', this);
+    cpmm.addWeakMessageListener('Keyboard:GetContext:Result:OK', this);
+    cpmm.addWeakMessageListener('Keyboard:LayoutsChange', this);
   },
 
   uninit: function mozInputMethodUninit() {
     this.setActive(false);
     Services.obs.removeObserver(this, "inner-window-destroyed");
-    cpmm.removeMessageListener('Keyboard:FocusChange', this);
-    cpmm.removeMessageListener('Keyboard:SelectionChange', this);
-    cpmm.removeMessageListener('Keyboard:GetContext:Result:OK', this);
-    cpmm.removeMessageListener('Keyboard:LayoutsChange', this);
+    cpmm.removeWeakMessageListener('Keyboard:FocusChange', this);
+    cpmm.removeWeakMessageListener('Keyboard:SelectionChange', this);
+    cpmm.removeWeakMessageListener('Keyboard:GetContext:Result:OK', this);
+    cpmm.removeWeakMessageListener('Keyboard:LayoutsChange', this);
 
     this._window = null;
     this._mgmt = null;
@@ -438,6 +428,39 @@ MozInputMethod.prototype = {
         this.setInputContext(null);
       }
     }
+  },
+
+  setValue: function(value) {
+    this._ensureIsSystem();
+    cpmm.sendAsyncMessage('System:SetValue', {
+      'value': value
+    });
+  },
+
+  setSelectedOption: function(index) {
+    this._ensureIsSystem();
+    cpmm.sendAsyncMessage('System:SetSelectedOption', {
+      'index': index
+    });
+  },
+
+  setSelectedOptions: function(indexes) {
+    this._ensureIsSystem();
+    cpmm.sendAsyncMessage('System:SetSelectedOptions', {
+      'indexes': indexes
+    });
+  },
+
+  removeFocus: function() {
+    this._ensureIsSystem();
+    cpmm.sendAsyncMessage('System:RemoveFocus', {});
+  },
+
+  _ensureIsSystem: function() {
+    if (!this._isSystem) {
+      throw new this._window.DOMError("Security",
+                                      "Should have 'input-manage' permssion.");
+    }
   }
 };
 
@@ -473,18 +496,9 @@ MozInputContext.prototype = {
   classID: Components.ID("{1e38633d-d08b-4867-9944-afa5c648adb6}"),
 
   QueryInterface: XPCOMUtils.generateQI([
-    Ci.nsIB2GInputContext,
     Ci.nsIObserver,
     Ci.nsISupportsWeakReference
   ]),
-
-  classInfo: XPCOMUtils.generateCI({
-    "classID": Components.ID("{1e38633d-d08b-4867-9944-afa5c648adb6}"),
-    "contractID": "@mozilla.org/b2g-inputcontext;1",
-    "interfaces": [Ci.nsIB2GInputContext],
-    "flags": Ci.nsIClassInfo.DOM_OBJECT,
-    "classDescription": "B2G Input Context"
-  }),
 
   init: function ic_init(win) {
     this._window = win;
@@ -703,7 +717,7 @@ MozInputContext.prototype = {
     return this.replaceSurroundingText(null, offset, length);
   },
 
-  sendKey: function ic_sendKey(keyCode, charCode, modifiers) {
+  sendKey: function ic_sendKey(keyCode, charCode, modifiers, repeat) {
     let self = this;
     return this._sendPromise(function(resolverId) {
       cpmm.sendAsyncMessage('Keyboard:SendKey', {
@@ -711,7 +725,8 @@ MozInputContext.prototype = {
         requestId: resolverId,
         keyCode: keyCode,
         charCode: charCode,
-        modifiers: modifiers
+        modifiers: modifiers,
+        repeat: repeat
       });
     });
   },

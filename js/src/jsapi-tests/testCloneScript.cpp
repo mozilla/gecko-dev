@@ -107,8 +107,7 @@ BEGIN_TEST(test_cloneScriptWithPrincipals)
     {
         JSAutoCompartment a(cx, A);
         JS::CompileOptions options(cx);
-        options.setFileAndLine(__FILE__, 1)
-               .setPrincipals(principalsA);
+        options.setFileAndLine(__FILE__, 1);
         JS::RootedFunction fun(cx, JS_CompileFunction(cx, A, "f",
                 mozilla::ArrayLength(argnames), argnames, source,
                 strlen(source), options));
@@ -127,7 +126,7 @@ BEGIN_TEST(test_cloneScriptWithPrincipals)
         JS::RootedObject cloned(cx);
         CHECK(cloned = JS_CloneFunctionObject(cx, obj, B));
 
-        JSFunction *fun;
+        JS::RootedFunction fun(cx);
         JS::RootedValue clonedValue(cx, JS::ObjectValue(*cloned));
         CHECK(fun = JS_ValueToFunction(cx, clonedValue));
 

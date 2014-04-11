@@ -77,6 +77,10 @@ static nsresult pref_InitInitialObjects(void);
 static nsresult pref_LoadPrefsInDirList(const char *listId);
 static nsresult ReadExtensionPrefs(nsIFile *aFile);
 
+static const char kTelemetryPref[] = "toolkit.telemetry.enabled";
+static const char kOldTelemetryPref[] = "toolkit.telemetry.enabledPreRelease";
+static const char kChannelPref[] = "app.update.channel";
+
 Preferences* Preferences::sPreferences = nullptr;
 nsIPrefBranch* Preferences::sRootBranch = nullptr;
 nsIPrefBranch* Preferences::sDefaultRootBranch = nullptr;
@@ -402,6 +406,10 @@ Preferences::GetInstanceForService()
 bool
 Preferences::InitStaticMembers()
 {
+#ifndef MOZ_B2G
+  MOZ_ASSERT(NS_IsMainThread());
+#endif
+
   if (!sShutdown && !sPreferences) {
     nsCOMPtr<nsIPrefService> prefService =
       do_GetService(NS_PREFSERVICE_CONTRACTID);
@@ -585,6 +593,12 @@ Preferences::ReadUserPrefs(nsIFile *aFile)
     // Ignore all errors related to it, so we retain 'rv' value :-|
     (void) UseUserPrefFile();
 
+    // Migrate the old prerelease telemetry pref
+    if (!Preferences::GetBool(kOldTelemetryPref, true)) {
+      Preferences::SetBool(kTelemetryPref, false);
+      Preferences::ClearUser(kOldTelemetryPref);
+    }
+
     NotifyServiceObservers(NS_PREFSERVICE_READ_TOPIC_ID);
   } else {
     rv = ReadAndOwnUserPrefFile(aFile);
@@ -716,7 +730,9 @@ Preferences::GetBranch(const char *aPrefRoot, nsIPrefBranch **_retval)
     rv = CallQueryInterface(prefBranch, _retval);
   } else {
     // special case caching the default root
-    rv = CallQueryInterface(sRootBranch, _retval);
+    nsCOMPtr<nsIPrefBranch> root(sRootBranch);
+    root.forget(_retval);
+    rv = NS_OK;
   }
   return rv;
 }
@@ -725,15 +741,18 @@ NS_IMETHODIMP
 Preferences::GetDefaultBranch(const char *aPrefRoot, nsIPrefBranch **_retval)
 {
   if (!aPrefRoot || !aPrefRoot[0]) {
-    return CallQueryInterface(sDefaultRootBranch, _retval);
+    nsCOMPtr<nsIPrefBranch> root(sDefaultRootBranch);
+    root.forget(_retval);
+    return NS_OK;
   }
 
   // TODO: - cache this stuff and allow consumers to share branches (hold weak references I think)
-  nsPrefBranch* prefBranch = new nsPrefBranch(aPrefRoot, true);
+  nsRefPtr<nsPrefBranch> prefBranch = new nsPrefBranch(aPrefRoot, true);
   if (!prefBranch)
     return NS_ERROR_OUT_OF_MEMORY;
 
-  return CallQueryInterface(prefBranch, _retval);
+  prefBranch.forget(_retval);
+  return NS_OK;
 }
 
 
@@ -1045,7 +1064,9 @@ pref_LoadPrefsInDir(nsIFile* aDir, char const *const *aSpecialFiles, uint32_t aS
   while (hasMoreElements && NS_SUCCEEDED(rv)) {
     nsAutoCString leafName;
 
-    rv = dirIterator->GetNext(getter_AddRefs(prefFile));
+    nsCOMPtr<nsISupports> supports;
+    rv = dirIterator->GetNext(getter_AddRefs(supports));
+    prefFile = do_QueryInterface(supports);
     if (NS_FAILED(rv)) {
       break;
     }
@@ -1286,6 +1307,23 @@ static nsresult pref_InitInitialObjects()
 
   rv = pref_LoadPrefsInDirList(NS_APP_PREFS_DEFAULTS_DIR_LIST);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  // Set up the correct default for toolkit.telemetry.enabled.
+  // If this build has MOZ_TELEMETRY_ON_BY_DEFAULT *or* we're on the beta
+  // channel, telemetry is on by default, otherwise not. This is necessary
+  // so that beta users who are testing final release builds don't flipflop
+  // defaults.
+  if (Preferences::GetDefaultType(kTelemetryPref) == PREF_INVALID) {
+    bool prerelease = false;
+#ifdef MOZ_TELEMETRY_ON_BY_DEFAULT
+    prerelease = true;
+#else
+    if (Preferences::GetDefaultCString(kChannelPref).EqualsLiteral("beta")) {
+      prerelease = true;
+    }
+#endif
+    PREF_SetBoolPref(kTelemetryPref, prerelease, true);
+  }
 
   NS_CreateServicesFromCategory(NS_PREFSERVICE_APPDEFAULTS_TOPIC_ID,
                                 nullptr, NS_PREFSERVICE_APPDEFAULTS_TOPIC_ID);

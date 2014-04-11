@@ -126,24 +126,13 @@ function wrapPrivileged(obj) {
       // The arguments may or may not be wrappers. Unwrap them if necessary.
       var unwrappedArgs = Array.prototype.slice.call(arguments).map(unwrapIfWrapped);
 
-      // Constructors are tricky, because we can't easily call apply on them.
-      // As a workaround, we create a wrapper constructor with the same
-      // |prototype| property. ES semantics dictate that the return value from
-      // |new| is the return value of the |new|-ed function i.f.f. the returned
-      // value is an object. We can thus mimic the behavior of |new|-ing the
-      // underlying constructor just be passing along its return value in our
-      // constructor.
-      var FakeConstructor = function() {
-        try {
-          return doApply(obj, this, unwrappedArgs);
-        } catch (e) {
-          // Wrap exceptions and re-throw them.
-          throw wrapIfUnwrapped(e);
-        }
-      };
-      FakeConstructor.prototype = obj.prototype;
-
-      return wrapPrivileged(new FakeConstructor());
+      // We want to invoke "obj" as a constructor, but using unwrappedArgs as
+      // the arguments.  Make sure to wrap and re-throw exceptions!
+      try {
+        return wrapPrivileged(new obj(...unwrappedArgs));
+      } catch (e) {
+        throw wrapIfUnwrapped(e);
+      }
     };
 
     return Proxy.createFunction(handler, callTrap, constructTrap);
@@ -543,6 +532,7 @@ SpecialPowersAPI.prototype = {
       destroy: () => {
         listeners = [];
         this._removeMessageListener("SPChromeScriptMessage", chromeScript);
+        this._removeMessageListener("SPChromeScriptAssert", chromeScript);
       },
 
       receiveMessage: (aMessage) => {
@@ -553,11 +543,59 @@ SpecialPowersAPI.prototype = {
         if (messageId != id)
           return;
 
-        listeners.filter(o => (o.name == name))
-                 .forEach(o => o.listener(this.wrap(message)));
+        if (aMessage.name == "SPChromeScriptMessage") {
+          listeners.filter(o => (o.name == name))
+                   .forEach(o => o.listener(this.wrap(message)));
+        } else if (aMessage.name == "SPChromeScriptAssert") {
+          assert(aMessage.json);
+        }
       }
     };
     this._addMessageListener("SPChromeScriptMessage", chromeScript);
+    this._addMessageListener("SPChromeScriptAssert", chromeScript);
+
+    let assert = json => {
+      // An assertion has been done in a mochitest chrome script
+      let {url, err, message, stack} = json;
+
+      // Try to fetch a test runner from the mochitest
+      // in order to properly log these assertions and notify
+      // all usefull log observers
+      let window = this.window.get();
+      let parentRunner, repr = function (o) o;
+      if (window) {
+        window = window.wrappedJSObject;
+        parentRunner = window.TestRunner;
+        if (window.repr) {
+          repr = window.repr;
+        }
+      }
+
+      // Craft a mochitest-like report string
+      var resultString = err ? "TEST-UNEXPECTED-FAIL" : "TEST-PASS";
+      var diagnostic =
+        message ? message :
+                  ("assertion @ " + stack.filename + ":" + stack.lineNumber);
+      if (err) {
+        diagnostic +=
+          " - got " + repr(err.actual) +
+          ", expected " + repr(err.expected) +
+          " (operator " + err.operator + ")";
+      }
+      var msg = [resultString, url, diagnostic].join(" | ");
+      if (parentRunner) {
+        if (err) {
+          parentRunner.addFailedTest(url);
+          parentRunner.error(msg);
+        } else {
+          parentRunner.log(msg);
+        }
+      } else {
+        // When we are running only a single mochitest, there is no test runner
+        dump(msg + "\n");
+      }
+    };
+
     return this.wrap(chromeScript);
   },
 

@@ -11,8 +11,8 @@
 #include "js/Id.h"          // must come before js/RootingAPI.h
 #include "js/Value.h"       // must come before js/RootingAPI.h
 #include "js/RootingAPI.h"
+#include "js/Tracer.h"
 
-struct JSTracer;
 class XPCWrappedNativeScope;
 
 #define NS_WRAPPERCACHE_IID \
@@ -121,25 +121,11 @@ public:
     return HasWrapperFlag(WRAPPER_IS_DOM_BINDING);
   }
 
-  void SetHasSystemOnlyWrapper()
-  {
-    MOZ_ASSERT(GetWrapperPreserveColor(),
-               "This flag should be set after wrapper creation.");
-    MOZ_ASSERT(IsDOMBinding(),
-               "This flag should only be set for DOM bindings.");
-    SetWrapperFlags(WRAPPER_HAS_SOW);
-  }
-
-  bool HasSystemOnlyWrapper() const
-  {
-    return HasWrapperFlag(WRAPPER_HAS_SOW);
-  }
-
   /**
    * Wrap the object corresponding to this wrapper cache. If non-null is
    * returned, the object has already been stored in the wrapper cache.
    */
-  virtual JSObject* WrapObject(JSContext* cx, JS::Handle<JSObject*> scope)
+  virtual JSObject* WrapObject(JSContext* cx)
   {
     MOZ_ASSERT(!IsDOMBinding(), "Someone forgot to override WrapObject");
     return nullptr;
@@ -236,6 +222,21 @@ public:
 
   void ReleaseWrapper(void* aScriptObjectHolder);
 
+protected:
+  void TraceWrapper(JSTracer* aTrc, const char* name)
+  {
+    if (mWrapper) {
+      JS_CallHeapObjectTracer(aTrc, &mWrapper, name);
+    }
+  }
+
+  void PoisonWrapper()
+  {
+    if (mWrapper) {
+      mWrapper.setToCrashOnTouch();
+    }
+  }
+
 private:
   JSObject *GetWrapperJSObject() const
   {
@@ -300,21 +301,13 @@ private:
    */
   enum { WRAPPER_IS_DOM_BINDING = 1 << 1 };
 
-  /**
-   * If this bit is set then the wrapper for the native object is a DOM binding
-   * (regular JS object or proxy) that has a system only wrapper for same-origin
-   * access.
-   */
-  enum { WRAPPER_HAS_SOW = 1 << 2 };
-
-  enum { kWrapperFlagsMask = (WRAPPER_BIT_PRESERVED | WRAPPER_IS_DOM_BINDING |
-                              WRAPPER_HAS_SOW) };
+  enum { kWrapperFlagsMask = (WRAPPER_BIT_PRESERVED | WRAPPER_IS_DOM_BINDING) };
 
   JS::Heap<JSObject*> mWrapper;
   uint32_t            mFlags;
 };
 
-enum { WRAPPER_CACHE_FLAGS_BITS_USED = 3 };
+enum { WRAPPER_CACHE_FLAGS_BITS_USED = 2 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsWrapperCache, NS_WRAPPERCACHE_IID)
 

@@ -13,7 +13,7 @@ module.metadata = {
 };
 
 const { deprecateFunction } = require("../util/deprecate");
-const { setImmediate, setTimeout } = require("../timers");
+const { setImmediate, setTimeout, clearTimeout } = require("../timers");
 
 const arity = f => f.arity || f.length;
 
@@ -328,3 +328,73 @@ exports.is = is;
 
 const isnt = complement(is);
 exports.isnt = isnt;
+
+/**
+ * From underscore's `_.debounce`
+ * http://underscorejs.org
+ * (c) 2009-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Underscore may be freely distributed under the MIT license.
+ */
+const debounce = function debounce (fn, wait) {
+  let timeout, args, context, timestamp, result;
+
+  let later = function () {
+    let last = Date.now() - timestamp;
+    if (last < wait) {
+      timeout = setTimeout(later, wait - last);
+    } else {
+      timeout = null;
+      result = fn.apply(context, args);
+      context = args = null;
+    }
+  };
+
+  return function (...aArgs) {
+    context = this;
+    args = aArgs;
+    timestamp  = Date.now();
+    if (!timeout) {
+      timeout = setTimeout(later, wait);
+    }
+
+    return result;
+  };
+};
+exports.debounce = debounce;
+
+/**
+ * From underscore's `_.throttle`
+ * http://underscorejs.org
+ * (c) 2009-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Underscore may be freely distributed under the MIT license.
+ */
+const throttle = function throttle (func, wait, options) {
+  let context, args, result;
+  let timeout = null;
+  let previous = 0;
+  options || (options = {});
+  let later = function() {
+    previous = options.leading === false ? 0 : Date.now();
+    timeout = null;
+    result = func.apply(context, args);
+    context = args = null;
+  };
+  return function() {
+    let now = Date.now();
+    if (!previous && options.leading === false) previous = now;
+    let remaining = wait - (now - previous);
+    context = this;
+    args = arguments;
+    if (remaining <= 0) {
+      clearTimeout(timeout);
+      timeout = null;
+      previous = now;
+      result = func.apply(context, args);
+      context = args = null;
+    } else if (!timeout && options.trailing !== false) {
+      timeout = setTimeout(later, remaining);
+    }
+    return result;
+  };
+};
+exports.throttle = throttle;

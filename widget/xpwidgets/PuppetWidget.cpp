@@ -14,13 +14,13 @@
 #endif
 #include "mozilla/dom/TabChild.h"
 #include "mozilla/Hal.h"
+#include "mozilla/IMEStateManager.h"
 #include "mozilla/layers/CompositorChild.h"
 #include "mozilla/layers/PLayerTransactionChild.h"
+#include "mozilla/TextComposition.h"
 #include "mozilla/TextEvents.h"
 #include "PuppetWidget.h"
 #include "nsIWidgetListener.h"
-#include "nsIMEStateManager.h"
-#include "TextComposition.h"
 
 using namespace mozilla::dom;
 using namespace mozilla::hal;
@@ -81,6 +81,10 @@ PuppetWidget::PuppetWidget(TabChild* aTabChild)
   , mDefaultScale(-1)
 {
   MOZ_COUNT_CTOR(PuppetWidget);
+
+  mSingleLineCommands.SetCapacity(4);
+  mMultiLineCommands.SetCapacity(4);
+  mRichTextCommands.SetCapacity(4);
 }
 
 PuppetWidget::~PuppetWidget()
@@ -308,6 +312,36 @@ PuppetWidget::DispatchEvent(WidgetGUIEvent* event, nsEventStatus& aStatus)
   return NS_OK;
 }
 
+
+NS_IMETHODIMP_(bool)
+PuppetWidget::ExecuteNativeKeyBinding(NativeKeyBindingsType aType,
+                                      const mozilla::WidgetKeyboardEvent& aEvent,
+                                      DoCommandCallback aCallback,
+                                      void* aCallbackData)
+{
+  nsTArray<mozilla::CommandInt>& commands = mSingleLineCommands;
+  switch (aType) {
+    case nsIWidget::NativeKeyBindingsForSingleLineEditor:
+      commands = mSingleLineCommands;
+      break;
+    case nsIWidget::NativeKeyBindingsForMultiLineEditor:
+      commands = mMultiLineCommands;
+      break;
+    case nsIWidget::NativeKeyBindingsForRichTextEditor:
+      commands = mRichTextCommands;
+      break;
+  }
+
+  if (commands.IsEmpty()) {
+    return false;
+  }
+
+  for (uint32_t i = 0; i < commands.Length(); i++) {
+    aCallback(static_cast<mozilla::Command>(commands[i]), aCallbackData);
+  }
+  return true;
+}
+
 LayerManager*
 PuppetWidget::GetLayerManager(PLayerTransactionChild* aShadowManager,
                               LayersBackend aBackendHint,
@@ -493,7 +527,7 @@ PuppetWidget::NotifyIMEOfUpdateComposition()
   NS_ENSURE_TRUE(mTabChild, NS_ERROR_FAILURE);
 
   nsRefPtr<TextComposition> textComposition =
-    nsIMEStateManager::GetTextCompositionFor(this);
+    IMEStateManager::GetTextCompositionFor(this);
   NS_ENSURE_TRUE(textComposition, NS_ERROR_FAILURE);
 
   nsEventStatus status;

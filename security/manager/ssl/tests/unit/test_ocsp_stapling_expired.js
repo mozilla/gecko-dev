@@ -62,11 +62,11 @@ function run_test() {
   run_next_test();
 }
 
-function add_tests_in_mode(useInsanity)
+function add_tests_in_mode(useMozillaPKIX)
 {
   add_test(function () {
-    Services.prefs.setBoolPref("security.use_insanity_verification",
-                               useInsanity);
+    Services.prefs.setBoolPref("security.use_mozillapkix_verification",
+                               useMozillaPKIX);
     run_next_test();
   });
 
@@ -110,7 +110,7 @@ function check_ocsp_stapling_telemetry() {
   do_check_eq(histogram.counts[0], 2 * 0); // histogram bucket 0 is unused
   do_check_eq(histogram.counts[1], 2 * 0); // 0 connections with a good response
   do_check_eq(histogram.counts[2], 2 * 0); // 0 connections with no stapled resp.
-  do_check_eq(histogram.counts[3], 2 * 9); // 8 connections with an expired response
+  do_check_eq(histogram.counts[3], 2 * 9); // 9 connections with an expired response
   do_check_eq(histogram.counts[4], 2 * 0); // 0 connections with bad responses
   run_next_test();
 }

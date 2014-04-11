@@ -78,7 +78,7 @@ WebVTTListener::LoadResource()
   rv = mParserWrapper->Watch(this);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  mElement->mTrack->SetReadyState(HTMLTrackElement::READY_STATE_LOADING);
+  mElement->SetReadyState(TextTrackReadyState::Loading);
   return NS_OK;
 }
 
@@ -106,13 +106,15 @@ WebVTTListener::OnStopRequest(nsIRequest* aRequest,
                               nsISupports* aContext,
                               nsresult aStatus)
 {
-  if (mElement->ReadyState() != HTMLTrackElement::READY_STATE_ERROR) {
-    TextTrack* track = mElement->Track();
-    track->SetReadyState(HTMLTrackElement::READY_STATE_LOADED);
+  if (NS_FAILED(aStatus)) {
+    mElement->SetReadyState(TextTrackReadyState::FailedToLoad);
   }
   // Attempt to parse any final data the parser might still have.
   mParserWrapper->Flush();
-  return NS_OK;
+  if (mElement->ReadyState() != TextTrackReadyState::FailedToLoad) {
+    mElement->SetReadyState(TextTrackReadyState::Loaded);
+  }
+  return aStatus;
 }
 
 NS_METHOD
@@ -175,16 +177,18 @@ WebVTTListener::OnCue(JS::Handle<JS::Value> aCue, JSContext* aCx)
 NS_IMETHODIMP
 WebVTTListener::OnRegion(JS::Handle<JS::Value> aRegion, JSContext* aCx)
 {
-  if (!aRegion.isObject()) {
-    return NS_ERROR_FAILURE;
+  // Nothing for this callback to do.
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+WebVTTListener::OnParsingError(int32_t errorCode, JSContext* cx)
+{
+  // We only care about files that have a bad WebVTT file signature right now
+  // as that means the file failed to load.
+  if (errorCode == ErrorCodes::BadSignature) {
+    mElement->SetReadyState(TextTrackReadyState::FailedToLoad);
   }
-
-  TextTrackRegion* region;
-  nsresult rv = UNWRAP_OBJECT(VTTRegion, &aRegion.toObject(), region);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  mElement->mTrack->AddRegion(*region);
-
   return NS_OK;
 }
 

@@ -124,7 +124,7 @@ const EXCEPTION_NAMES = {
    } else if (exn.constructor.name in EXCEPTION_NAMES) {
      LOG("Sending back exception", exn.constructor.name);
      post({fail: {exn: exn.constructor.name, message: exn.message,
-                  fileName: exn.fileName, lineNumber: exn.lineNumber},
+                  fileName: exn.moduleName || exn.fileName, lineNumber: exn.lineNumber},
            id: id, durationMs: durationMs});
    } else {
      // Other exceptions do not, and should be propagated through DOM's
@@ -272,39 +272,30 @@ const EXCEPTION_NAMES = {
    GET_DEBUG: function() {
      return SharedAll.Config.DEBUG;
    },
-   Meta_getUnclosedResources: function() {
-     // Return information about both opened files and opened
-     // directory iterators.
-     return {
+   /**
+    * Execute shutdown sequence, returning data on leaked file descriptors.
+    *
+    * @param {bool} If |true|, kill the worker if this would not cause
+    * leaks.
+    */
+   Meta_shutdown: function(kill) {
+     let result = {
        openedFiles: OpenedFiles.listOpenedResources(),
-       openedDirectoryIterators: OpenedDirectoryIterators.listOpenedResources()
+       openedDirectoryIterators: OpenedDirectoryIterators.listOpenedResources(),
+       killed: false // Placeholder
      };
-   },
-   Meta_reset: function() {
-     // Attempt to stop the worker. This fails if at least one
-     // resource is still open. Returns the list of files and
-     // directory iterators that cannot be closed safely (or undefined
-     // if there are no such files/directory iterators).
-     let openedFiles = OpenedFiles.listOpenedResources();
-     let openedDirectoryIterators =
-       OpenedDirectoryIterators.listOpenedResources();
-     let canShutdown = openedFiles.length == 0
-                         && openedDirectoryIterators.length == 0;
-     if (canShutdown) {
-       // Succeed. Shutdown the thread, nothing to return
-       return new Meta(null, {shutdown: true});
-     } else {
-       // Fail. Don't shutdown the thread, return info on resources
-       return {
-         openedFiles: openedFiles,
-         openedDirectoryIterators: openedDirectoryIterators
-       };
-     }
+
+     // Is it safe to kill the worker?
+     let safe = result.openedFiles.length == 0
+           && result.openedDirectoryIterators.length == 0;
+     result.killed = safe && kill;
+
+     return new Meta(result, {shutdown: result.killed});
    },
    // Functions of OS.File
-   stat: function stat(path) {
+   stat: function stat(path, options) {
      return exports.OS.File.Info.toMsg(
-       exports.OS.File.stat(Type.path.fromMsg(path)));
+       exports.OS.File.stat(Type.path.fromMsg(path), options));
    },
    setDates: function setDates(path, accessDate, modificationDate) {
      return exports.OS.File.setDates(Type.path.fromMsg(path), accessDate,
@@ -362,6 +353,9 @@ const EXCEPTION_NAMES = {
    },
    read: function read(path, bytes, options) {
      let data = File.read(Type.path.fromMsg(path), bytes, options);
+     if (typeof data == "string") {
+       return data;
+     }
      return new Meta({
          buffer: data.buffer,
          byteOffset: data.byteOffset,
@@ -504,6 +498,12 @@ const EXCEPTION_NAMES = {
        });
    }
   };
+  if (!SharedAll.Constants.Win) {
+    Agent.unixSymLink = function unixSymLink(sourcePath, destPath) {
+      return File.unixSymLink(Type.path.fromMsg(sourcePath),
+        Type.path.fromMsg(destPath));
+    };
+  }
 
   timeStamps.loaded = Date.now();
 })(this);

@@ -13,7 +13,7 @@
 #include "nsIMutationObserver.h"
 #include "nsIDocument.h"
 #include "nsIDOMUserDataHandler.h"
-#include "nsEventListenerManager.h"
+#include "mozilla/EventListenerManager.h"
 #include "nsIXPConnect.h"
 #include "pldhash.h"
 #include "nsIDOMAttr.h"
@@ -34,6 +34,7 @@
 #include "mozilla/dom/HTMLTemplateElement.h"
 #include "mozilla/dom/ShadowRoot.h"
 
+using namespace mozilla;
 using namespace mozilla::dom;
 using mozilla::AutoJSContext;
 
@@ -236,7 +237,7 @@ nsNodeUtils::LastRelease(nsINode* aNode)
       aNode->HasFlag(NODE_HAS_LISTENERMANAGER)) {
 #ifdef DEBUG
     if (nsContentUtils::IsInitialized()) {
-      nsEventListenerManager* manager =
+      EventListenerManager* manager =
         nsContentUtils::GetExistingListenerManagerForNode(aNode);
       if (!manager) {
         NS_ERROR("Huh, our bit says we have a listener manager list, "
@@ -488,14 +489,11 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, bool aClone, bool aDeep,
 
       nsPIDOMWindow* window = newDoc->GetInnerWindow();
       if (window) {
-        nsEventListenerManager* elm = aNode->GetExistingListenerManager();
+        EventListenerManager* elm = aNode->GetExistingListenerManager();
         if (elm) {
           window->SetMutationListeners(elm->MutationListenerBits());
           if (elm->MayHavePaintEventListener()) {
             window->SetHasPaintEventListeners();
-          }
-          if (elm->MayHaveAudioAvailableEventListener()) {
-            window->SetHasAudioAvailableEventListeners();
           }
           if (elm->MayHaveTouchEventListener()) {
             window->SetHasTouchEventListeners();
@@ -535,6 +533,7 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, bool aClone, bool aDeep,
       JS::Rooted<JSObject*> wrapper(cx);
       if ((wrapper = aNode->GetWrapper())) {
         if (IsDOMObject(wrapper)) {
+          JSAutoCompartment ac(cx, wrapper);
           rv = ReparentWrapper(cx, wrapper);
         } else {
           nsIXPConnect *xpc = nsContentUtils::XPConnect();

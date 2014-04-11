@@ -14,9 +14,9 @@ namespace mozilla {
 namespace dom {
 
 JSObject*
-SVGStyleElement::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aScope)
+SVGStyleElement::WrapNode(JSContext *aCx)
 {
-  return SVGStyleElementBinding::Wrap(aCx, aScope, this);
+  return SVGStyleElementBinding::Wrap(aCx, this);
 }
 
 //----------------------------------------------------------------------
@@ -46,7 +46,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 //----------------------------------------------------------------------
 // Implementation
 
-SVGStyleElement::SVGStyleElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+SVGStyleElement::SVGStyleElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : SVGStyleElementBase(aNodeInfo)
 {
   AddMutationObserver(this);

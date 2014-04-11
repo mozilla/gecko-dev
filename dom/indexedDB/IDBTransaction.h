@@ -30,6 +30,10 @@
 class nsIThread;
 class nsPIDOMWindow;
 
+namespace mozilla {
+class EventChainPreVisitor;
+} // namespace mozilla
+
 BEGIN_INDEXEDDB_NAMESPACE
 
 class AsyncConnectionHelper;
@@ -45,8 +49,8 @@ class UpdateRefcountFunction;
 class IDBTransactionListener
 {
 public:
-  NS_IMETHOD_(nsrefcnt) AddRef() = 0;
-  NS_IMETHOD_(nsrefcnt) Release() = 0;
+  NS_IMETHOD_(MozExternalRefCountType) AddRef() = 0;
+  NS_IMETHOD_(MozExternalRefCountType) Release() = 0;
 
   // Called just before dispatching the final events on the transaction.
   virtual nsresult NotifyTransactionPreComplete(IDBTransaction* aTransaction) = 0;
@@ -98,7 +102,7 @@ public:
   }
 
   // nsIDOMEventTarget
-  virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
+  virtual nsresult PreHandleEvent(EventChainPreVisitor& aVisitor) MOZ_OVERRIDE;
 
   void OnNewRequest();
   void OnRequestFinished();
@@ -218,7 +222,7 @@ public:
 
   // nsWrapperCache
   virtual JSObject*
-  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope) MOZ_OVERRIDE;
+  WrapObject(JSContext* aCx) MOZ_OVERRIDE;
 
   // WebIDL
   nsPIDOMWindow*

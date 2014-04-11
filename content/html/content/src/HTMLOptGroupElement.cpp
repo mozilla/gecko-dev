@@ -3,6 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "mozilla/EventDispatcher.h"
+#include "mozilla/EventStates.h"
 #include "mozilla/dom/HTMLOptGroupElement.h"
 #include "mozilla/dom/HTMLOptGroupElementBinding.h"
 #include "mozilla/dom/HTMLSelectElement.h" // SafeOptionListMutation
@@ -10,9 +12,6 @@
 #include "nsStyleConsts.h"
 #include "nsIFrame.h"
 #include "nsIFormControlFrame.h"
-#include "nsEventStates.h"
-
-#include "nsEventDispatcher.h"
 
 NS_IMPL_NS_NEW_HTML_ELEMENT(OptGroup)
 
@@ -25,7 +24,7 @@ namespace dom {
 
 
 
-HTMLOptGroupElement::HTMLOptGroupElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+HTMLOptGroupElement::HTMLOptGroupElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo)
 {
   // We start off enabled
@@ -48,7 +47,7 @@ NS_IMPL_STRING_ATTR(HTMLOptGroupElement, Label, label)
 
 
 nsresult
-HTMLOptGroupElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
+HTMLOptGroupElement::PreHandleEvent(EventChainPreVisitor& aVisitor)
 {
   aVisitor.mCanHandle = false;
   // Do not process any DOM events if the element is disabled
@@ -126,10 +125,10 @@ HTMLOptGroupElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
                                             aNotify);
 }
 
-nsEventStates
+EventStates
 HTMLOptGroupElement::IntrinsicState() const
 {
-  nsEventStates state = nsGenericHTMLElement::IntrinsicState();
+  EventStates state = nsGenericHTMLElement::IntrinsicState();
 
   if (HasAttr(kNameSpaceID_None, nsGkAtoms::disabled)) {
     state |= NS_EVENT_STATE_DISABLED;
@@ -143,9 +142,9 @@ HTMLOptGroupElement::IntrinsicState() const
 }
 
 JSObject*
-HTMLOptGroupElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aScope)
+HTMLOptGroupElement::WrapNode(JSContext* aCx)
 {
-  return HTMLOptGroupElementBinding::Wrap(aCx, aScope, this);
+  return HTMLOptGroupElementBinding::Wrap(aCx, this);
 }
 
 } // namespace dom

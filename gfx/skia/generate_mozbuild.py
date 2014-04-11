@@ -17,10 +17,15 @@ if not CONFIG['INTEL_ARCHITECTURE'] and CONFIG['CPU_ARCH'] == 'arm' and CONFIG['
     SOURCES += [
         'trunk/src/opts/memset.arm.S',
     ]
+    if CONFIG['BUILD_ARM_NEON']:
+        SOURCES += [
+            'trunk/src/opts/memset16_neon.S',
+            'trunk/src/opts/memset32_neon.S',
+        ]
 
 MSVC_ENABLE_PGO = True
 
-FINAL_LIBRARY = 'xul'
+FINAL_LIBRARY = 'gkmedias'
 LOCAL_INCLUDES += [
     'trunk/include/config',
     'trunk/include/core',
@@ -60,15 +65,43 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] in ('android', 'gtk2', 'gtk3', 'qt', 'gonk', 'co
 if CONFIG['INTEL_ARCHITECTURE'] and CONFIG['HAVE_TOOLCHAIN_SUPPORT_MSSSE3']:
     DEFINES['SK_BUILD_SSSE3'] = 1
 
+if CONFIG['MOZ_WIDGET_TOOLKIT'] in ('android', 'gonk'):
+    DEFINES['SK_FONTHOST_CAIRO_STANDALONE'] = 0
+
 if (CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android') or \
    (CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa') or \
    (CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk') or \
-   CONFIG['MOZ_WIDGET_QT'] or \
+   (CONFIG['MOZ_WIDGET_TOOLKIT'] == 'qt') or \
    CONFIG['MOZ_WIDGET_GTK']:
     DEFINES['SK_FONTHOST_DOES_NOT_USE_FONTMGR'] = 1
 
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
+    DEFINES['SKIA_DLL'] = 1
+    DEFINES['GR_DLL'] = 1
+
+if CONFIG['INTEL_ARCHITECTURE'] and CONFIG['GNU_CC']:
+    SOURCES['trunk/src/opts/SkBitmapFilter_opts_SSE2.cpp'].flags += CONFIG['SSE2_FLAGS']
+    SOURCES['trunk/src/opts/SkBitmapProcState_opts_SSE2.cpp'].flags += CONFIG['SSE2_FLAGS']
+    SOURCES['trunk/src/opts/SkBitmapProcState_opts_SSSE3.cpp'].flags += ['-mssse3']
+    SOURCES['trunk/src/opts/SkBlitRect_opts_SSE2.cpp'].flags += CONFIG['SSE2_FLAGS']
+    SOURCES['trunk/src/opts/SkBlitRow_opts_SSE2.cpp'].flags += CONFIG['SSE2_FLAGS']
+    SOURCES['trunk/src/opts/SkBlurImage_opts_SSE2.cpp'].flags += CONFIG['SSE2_FLAGS']
+    SOURCES['trunk/src/opts/SkMorphology_opts_SSE2.cpp'].flags += CONFIG['SSE2_FLAGS']
+    SOURCES['trunk/src/opts/SkUtils_opts_SSE2.cpp'].flags += CONFIG['SSE2_FLAGS']
+elif CONFIG['CPU_ARCH'] == 'arm' and CONFIG['GNU_CC'] and CONFIG['BUILD_ARM_NEON']:
+    DEFINES['__ARM_HAVE_OPTIONAL_NEON_SUPPORT'] = 1
+    DEFINES['USE_ANDROID_NDK_CPU_FEATURES'] = 0
+
 DEFINES['SKIA_IMPLEMENTATION'] = 1
 DEFINES['GR_IMPLEMENTATION'] = 1
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += [
+        '-Wno-overloaded-virtual',
+        '-Wno-unused-function',
+    ]
+    if not CONFIG['CLANG_CXX']:
+        CXXFLAGS += ['-Wno-logical-op']
 """
 
 import json
@@ -128,7 +161,6 @@ def generate_separated_sources(platform_sources):
     'SkCity',
     'GrGLCreateNativeInterface',
     'fontconfig',
-    '_neon',
     'SkThreadUtils_pthread_',
     'SkImage_Codec',
     'SkBitmapChecksummer',
@@ -142,7 +174,8 @@ def generate_separated_sources(platform_sources):
     'SkBitmapHasher',
     'SkWGL',
     'SkImages',
-    'SkDiscardableMemory_ashmem'
+    'SkDiscardableMemory_ashmem',
+    'SkMemory_malloc'
   ]
 
   def isblacklisted(value):
@@ -158,6 +191,7 @@ def generate_separated_sources(platform_sources):
       'trunk/src/gpu/gl/GrGLCreateNativeInterface_none.cpp',
       'trunk/src/ports/SkDiscardableMemory_none.cpp',
       'trunk/src/ports/SkImageDecoder_empty.cpp',
+      'trunk/src/ports/SkMemory_mozalloc.cpp',
       # 'trunk/src/images/SkImages.cpp',
       # 'trunk/src/images/SkImageRef.cpp',
       # 'trunk/src/images/SkImageRef_GlobalPool.cpp',
@@ -167,6 +201,7 @@ def generate_separated_sources(platform_sources):
     },
     'android': {
       # 'trunk/src/ports/SkDebug_android.cpp',
+      'trunk/src/ports/SkFontHost_android_old.cpp',
       'trunk/src/ports/SkFontHost_cairo.cpp',
       # 'trunk/src/ports/SkFontHost_FreeType.cpp',
       # 'trunk/src/ports/SkFontHost_FreeType_common.cpp',
@@ -185,6 +220,10 @@ def generate_separated_sources(platform_sources):
     },
     'arm': {
       'trunk/src/opts/SkUtils_opts_arm.cpp',
+      'trunk/src/core/SkUtilsArm.cpp',
+    },
+    'neon': {
+      'trunk/src/opts/SkBitmapProcState_arm_neon.cpp',
     },
     'none': {
       'trunk/src/opts/SkUtils_opts_none.cpp',
@@ -203,7 +242,11 @@ def generate_separated_sources(platform_sources):
         separated['intel'].add(value)
         continue
 
-      if value.find('_arm') > 0 or value.find('_neon') > 0:
+      if value.find('_neon') > 0:
+        separated['neon'].add(value)
+        continue
+
+      if value.find('_arm') > 0:
         separated['arm'].add(value)
         continue
 
@@ -232,6 +275,22 @@ def uniq(seq):
   seen_add = seen.add
   return [ x for x in seq if x not in seen and not seen_add(x)]
 
+def write_cflags(f, values, subsearch, cflag, indent):
+  def write_indent(indent):
+    for _ in range(indent):
+        f.write(' ')
+
+  val_list = uniq(sorted(map(lambda val: val.replace('../', 'trunk/'), values), key=lambda x: x.lower()))
+
+  if len(val_list) == 0:
+    return
+
+  for val in val_list:
+    if val.find(subsearch) > 0:
+      write_indent(indent)
+      f.write("SOURCES[\'" + val + "\'].flags += [\'" + cflag + "\']\n")
+
+
 def write_list(f, name, values, indent):
   def write_indent(indent):
     for _ in range(indent):
@@ -248,7 +307,7 @@ def write_list(f, name, values, indent):
     write_indent(indent + 4)
     f.write('\'' + val + '\',\n')
 
-  write_indent(4)
+  write_indent(indent)
   f.write(']\n')
 
 def write_mozbuild(includes, sources):
@@ -270,7 +329,7 @@ def write_mozbuild(includes, sources):
   f.write("if CONFIG['MOZ_WIDGET_GTK']:\n")
   write_list(f, 'SOURCES', sources['linux'], 4)
 
-  f.write("if CONFIG['MOZ_WIDGET_QT']:\n")
+  f.write("if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'qt':\n")
   write_list(f, 'SOURCES', sources['linux'], 4)
 
   f.write("if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':\n")
@@ -282,6 +341,10 @@ def write_mozbuild(includes, sources):
 
   f.write("elif CONFIG['CPU_ARCH'] == 'arm' and CONFIG['GNU_CC']:\n")
   write_list(f, 'SOURCES', sources['arm'], 4)
+
+  f.write("    if CONFIG['BUILD_ARM_NEON']:\n")
+  write_list(f, 'SOURCES', sources['neon'], 8)
+  write_cflags(f, sources['neon'], 'neon', '-mfpu=neon', 8)
 
   f.write("else:\n")
   write_list(f, 'SOURCES', sources['none'], 4)

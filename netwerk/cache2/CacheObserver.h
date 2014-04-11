@@ -6,6 +6,8 @@
 #define CacheObserver__h__
 
 #include "nsIObserver.h"
+#include "nsIFile.h"
+#include "nsCOMPtr.h"
 #include "nsWeakReference.h"
 #include <algorithm>
 
@@ -30,8 +32,9 @@ class CacheObserver : public nsIObserver
     { return sUseDiskCache; }
   static bool const UseMemoryCache()
     { return sUseMemoryCache; }
-  static uint32_t const MemoryLimit() // <0.5MB,1024MB>, result in bytes.
-    { return std::max(512U, std::min(1048576U, sMemoryLimit)) << 10; }
+  static uint32_t const MetadataMemoryLimit() // result in bytes.
+    { return sMetadataMemoryLimit << 10; }
+  static uint32_t const MemoryCacheCapacity(); // result in bytes.
   static uint32_t const DiskCacheCapacity() // result in bytes.
     { return sDiskCacheCapacity << 10; }
   static uint32_t const MaxMemoryEntrySize() // result in bytes.
@@ -44,6 +47,9 @@ class CacheObserver : public nsIObserver
     { return sHalfLifeHours * 60 * 60; }
   static int32_t const HalfLifeExperiment()
     { return sHalfLifeExperiment; }
+  static bool const ClearCacheOnShutdown()
+    { return sSanitizeOnShutdown && sClearCacheOnShutdown; }
+  static void ParentDirOverride(nsIFile ** aDir);
 
   static bool const EntryIsTooBig(int64_t aSize, bool aUsingDisk);
 
@@ -54,15 +60,22 @@ private:
   void SchduleAutoDelete();
 
   static uint32_t sUseNewCache;
-  static bool sUseDiskCache;
   static bool sUseMemoryCache;
-  static uint32_t sMemoryLimit;
+  static bool sUseDiskCache;
+  static uint32_t sMetadataMemoryLimit;
+  static int32_t sMemoryCacheCapacity;
+  static int32_t sAutoMemoryCacheCapacity;
   static uint32_t sDiskCacheCapacity;
   static uint32_t sMaxMemoryEntrySize;
   static uint32_t sMaxDiskEntrySize;
   static uint32_t sCompressionLevel;
   static uint32_t sHalfLifeHours;
   static int32_t sHalfLifeExperiment;
+  static bool sSanitizeOnShutdown;
+  static bool sClearCacheOnShutdown;
+
+  // Non static properties, accessible via sSelf
+  nsCOMPtr<nsIFile> mCacheParentDirectoryOverride;
 };
 
 } // net

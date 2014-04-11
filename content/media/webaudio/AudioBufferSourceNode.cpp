@@ -423,10 +423,10 @@ public:
     UpdateResampler(outRate, aChannels);
   }
 
-  virtual void ProduceAudioBlock(AudioNodeStream* aStream,
-                                 const AudioChunk& aInput,
-                                 AudioChunk* aOutput,
-                                 bool* aFinished)
+  virtual void ProcessBlock(AudioNodeStream* aStream,
+                            const AudioChunk& aInput,
+                            AudioChunk* aOutput,
+                            bool* aFinished)
   {
     if (!mBuffer || !mBufferEnd) {
       aOutput->SetNull(WEBAUDIO_BLOCK_SIZE);
@@ -535,9 +535,9 @@ AudioBufferSourceNode::~AudioBufferSourceNode()
 }
 
 JSObject*
-AudioBufferSourceNode::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+AudioBufferSourceNode::WrapObject(JSContext* aCx)
 {
-  return AudioBufferSourceNodeBinding::Wrap(aCx, aScope, this);
+  return AudioBufferSourceNodeBinding::Wrap(aCx, this);
 }
 
 void

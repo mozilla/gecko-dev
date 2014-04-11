@@ -5,10 +5,18 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 DIRS += ['locales']
+SPHINX_TREES['fennec'] = 'docs'
 
 include('android-services.mozbuild')
 
 thirdparty_source_dir = TOPSRCDIR + '/mobile/android/thirdparty/'
+
+resjar = add_java_jar('gecko-R')
+resjar.sources = []
+resjar.generated_sources += [
+    'org/mozilla/gecko/R.java',
+]
+resjar.javac_flags += ['-Xlint:all']
 
 mgjar = add_java_jar('gecko-mozglue')
 mgjar.sources += [
@@ -41,6 +49,8 @@ gujar.sources += [
     'util/ActivityResultHandler.java',
     'util/ActivityResultHandlerMap.java',
     'util/Clipboard.java',
+    'util/EventCallback.java',
+    'util/FileUtils.java',
     'util/FloatUtils.java',
     'util/GamepadUtils.java',
     'util/GeckoBackgroundThread.java',
@@ -51,6 +61,9 @@ gujar.sources += [
     'util/INISection.java',
     'util/JSONUtils.java',
     'util/MenuUtils.java',
+    'util/NativeEventListener.java',
+    'util/NativeJSContainer.java',
+    'util/NativeJSObject.java',
     'util/NonEvictingLruCache.java',
     'util/ProxySelector.java',
     'util/StringUtils.java',
@@ -80,6 +93,7 @@ if CONFIG['MOZ_WEBRTC']:
         audio_root + 'WebRTCAudioDevice.java',
     ]
     wrjar.extra_jars = [
+        'gecko-R.jar',
         'gecko-browser.jar',
         'gecko-util.jar',
         'gecko-mozglue.jar',
@@ -107,6 +121,8 @@ gbjar.sources += [
     'ContextGetter.java',
     'CustomEditText.java',
     'DataReportingNotification.java',
+    'db/AbstractPerProfileDatabaseProvider.java',
+    'db/AbstractTransactionalProvider.java',
     'db/BrowserContract.java',
     'db/BrowserDatabaseHelper.java',
     'db/BrowserDB.java',
@@ -116,12 +132,15 @@ gbjar.sources += [
     'db/HomeProvider.java',
     'db/LocalBrowserDB.java',
     'db/PasswordsProvider.java',
+    'db/PerProfileDatabaseProvider.java',
     'db/PerProfileDatabases.java',
+    'db/ReadingListProvider.java',
+    'db/SharedBrowserDatabaseProvider.java',
     'db/SQLiteBridgeContentProvider.java',
     'db/TabsProvider.java',
-    'db/TransactionalProvider.java',
     'Distribution.java',
     'DoorHangerPopup.java',
+    'DynamicToolbar.java',
     'EditBookmarkDialog.java',
     'EventDispatcher.java',
     'favicons/cache/FaviconCache.java',
@@ -154,7 +173,10 @@ gbjar.sources += [
     'GeckoMessageReceiver.java',
     'GeckoNetworkManager.java',
     'GeckoProfile.java',
+    'GeckoProfileDirectories.java',
+    'GeckoProfilesProvider.java',
     'GeckoScreenOrientation.java',
+    'GeckoSharedPrefs.java',
     'GeckoSmsManager.java',
     'GeckoThread.java',
     'GeckoUpdateReceiver.java',
@@ -230,18 +252,23 @@ gbjar.sources += [
     'home/HomeListView.java',
     'home/HomePager.java',
     'home/HomePagerTabStrip.java',
+    'home/HomePanelPicker.java',
     'home/LastTabsPanel.java',
     'home/MostRecentPanel.java',
     'home/MultiTypeCursorAdapter.java',
+    'home/PanelAuthCache.java',
+    'home/PanelAuthLayout.java',
+    'home/PanelBackItemView.java',
     'home/PanelGridView.java',
     'home/PanelItemView.java',
     'home/PanelLayout.java',
     'home/PanelListView.java',
     'home/PanelManager.java',
     'home/PanelViewAdapter.java',
-    'home/PanelViewUrlHandler.java',
+    'home/PanelViewItemHandler.java',
     'home/PinSiteDialog.java',
     'home/ReadingListPanel.java',
+    'home/ReadingListRow.java',
     'home/SearchEngine.java',
     'home/SearchEngineRow.java',
     'home/SearchLoader.java',
@@ -326,6 +353,7 @@ gbjar.sources += [
     'TabsPanel.java',
     'TabsTray.java',
     'Telemetry.java',
+    'TelemetryContract.java',
     'TextSelection.java',
     'TextSelectionHandle.java',
     'ThumbnailHelper.java',
@@ -353,6 +381,7 @@ gbjar.sources += [
     'webapp/EventListener.java',
     'webapp/InstallHelper.java',
     'webapp/InstallListener.java',
+    'webapp/TaskKiller.java',
     'webapp/UninstallListener.java',
     'webapp/WebappImpl.java',
     'WebappAllocator.java',
@@ -368,6 +397,7 @@ gbjar.sources += [
     'widget/DateTimePicker.java',
     'widget/Divider.java',
     'widget/DoorHanger.java',
+    'widget/EllipsisTextView.java',
     'widget/FaviconView.java',
     'widget/FlowLayout.java',
     'widget/GeckoActionProvider.java',
@@ -376,6 +406,7 @@ gbjar.sources += [
     'widget/IconTabWidget.java',
     'widget/SquaredImageView.java',
     'widget/TabRow.java',
+    'widget/TabThumbnailWrapper.java',
     'widget/ThumbnailView.java',
     'widget/TwoWayView.java',
     'ZoomConstraints.java',
@@ -395,15 +426,14 @@ gbjar.generated_sources += [ android_package_dir + f for f in [
 ] ]
 gbjar.generated_sources += [
     'org/mozilla/gecko/AppConstants.java',
-    'org/mozilla/gecko/R.java',
     'org/mozilla/gecko/SysInfo.java',
-    'org/mozilla/gecko/widget/GeckoEditText.java',
-    'org/mozilla/gecko/widget/GeckoImageButton.java',
-    'org/mozilla/gecko/widget/GeckoImageView.java',
-    'org/mozilla/gecko/widget/GeckoLinearLayout.java',
-    'org/mozilla/gecko/widget/GeckoRelativeLayout.java',
-    'org/mozilla/gecko/widget/GeckoTextSwitcher.java',
-    'org/mozilla/gecko/widget/GeckoTextView.java',
+    'org/mozilla/gecko/widget/ThemedEditText.java',
+    'org/mozilla/gecko/widget/ThemedImageButton.java',
+    'org/mozilla/gecko/widget/ThemedImageView.java',
+    'org/mozilla/gecko/widget/ThemedLinearLayout.java',
+    'org/mozilla/gecko/widget/ThemedRelativeLayout.java',
+    'org/mozilla/gecko/widget/ThemedTextSwitcher.java',
+    'org/mozilla/gecko/widget/ThemedTextView.java',
 ]
 if CONFIG['MOZ_CRASHREPORTER']:
     gbjar.sources += [ 'CrashReporter.java' ]
@@ -412,6 +442,7 @@ if CONFIG['MOZ_CRASHREPORTER']:
 gbjar.sources += sync_java_files
 gbjar.generated_sources += sync_generated_java_files
 gbjar.extra_jars = [
+    'gecko-R.jar',
     'gecko-mozglue.jar',
     'gecko-util.jar',
     'squareup-picasso.jar',

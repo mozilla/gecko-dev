@@ -40,26 +40,22 @@ function run_test() {
   run_next_test();
 }
 
-function add_tests_in_mode(useInsanity)
+function add_tests_in_mode(useMozillaPKIX)
 {
   add_test(function () {
-    Services.prefs.setBoolPref("security.use_insanity_verification",
-                               useInsanity);
+    Services.prefs.setBoolPref("security.use_mozillapkix_verification",
+                               useMozillaPKIX);
     run_next_test();
   });
 
   add_connection_test("ocsp-stapling-none.example.com",
-                      getXPCOMStatusFromNSS(SEC_ERROR_OCSP_INVALID_SIGNING_CERT));
-  // bug 964493 - using a cached OCSP response with a bad signature would cause
-  // the verification library to return a failure error code without calling
-  // PORT_SetError with the specific error, violating the expectations
-  // of the error handling code.
+                      getXPCOMStatusFromNSS(SEC_ERROR_OCSP_BAD_SIGNATURE));
   add_connection_test("ocsp-stapling-none.example.com",
-                      getXPCOMStatusFromNSS(SEC_ERROR_OCSP_INVALID_SIGNING_CERT));
+                      getXPCOMStatusFromNSS(SEC_ERROR_OCSP_BAD_SIGNATURE));
   add_test(function () {
-    // XXX(bug 915932): special case for insanity::pkix due to the temporary
-    // lack of an OCSP cache.
-    do_check_eq(gOCSPRequestCount, useInsanity ? 2 : 1);
+    // TODO(bug 977865): mozilla::pkix keeps requesting responses from
+    // failing responders
+    do_check_eq(gOCSPRequestCount, useMozillaPKIX ? 2 : 1);
     gOCSPRequestCount = 0;
     run_next_test();
   });

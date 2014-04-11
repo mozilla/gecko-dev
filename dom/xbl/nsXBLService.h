@@ -14,8 +14,9 @@
 #include "nsWeakReference.h"
 #include "js/Class.h"           // nsXBLJSClass derives from JSClass
 #include "nsTArray.h"
+#include "nsDataHashtable.h"
+#include "nsHashKeys.h"
 
-class nsCStringKey;
 class nsXBLBinding;
 class nsXBLDocumentInfo;
 class nsXBLJSClass;
@@ -24,7 +25,6 @@ class nsIDocument;
 class nsString;
 class nsIURI;
 class nsIPrincipal;
-class nsHashtable;
 
 namespace mozilla {
 namespace dom {
@@ -32,8 +32,8 @@ class EventTarget;
 }
 }
 
-class nsXBLService : public nsIObserver,
-                     public nsSupportsWeakReference
+class nsXBLService MOZ_FINAL : public nsIObserver,
+                               public nsSupportsWeakReference
 {
   NS_DECL_ISUPPORTS
 
@@ -84,10 +84,10 @@ protected:
 
   // Release any memory that we can
   nsresult FlushMemory();
-  
+
   // This method synchronously loads and parses an XBL file.
   nsresult FetchBindingDocument(nsIContent* aBoundElement, nsIDocument* aBoundDocument,
-                                nsIURI* aDocumentURI, nsIURI* aBindingURI, 
+                                nsIURI* aDocumentURI, nsIURI* aBindingURI,
                                 bool aForceSyncLoad, nsIDocument** aResult);
 
   /**
@@ -123,7 +123,8 @@ protected:
 public:
   static bool gDisableChromeCache;
 
-  static nsHashtable* gClassTable;           // A table of nsXBLJSClass objects.
+  typedef nsDataHashtable<nsCStringHashKey, nsXBLJSClass*> ClassTable;
+  static ClassTable* gClassTable;           // A table of nsXBLJSClass objects.
 
   static mozilla::LinkedList<nsXBLJSClass>* gClassLRUList;
                                              // LRU list of cached classes.
@@ -135,7 +136,6 @@ public:
 
   // Look up the class by key in gClassTable.
   static nsXBLJSClass *getClass(const nsCString &key);
-  static nsXBLJSClass *getClass(nsCStringKey *key);
 };
 
 class nsXBLJSClass : public mozilla::LinkedListElement<nsXBLJSClass>
@@ -161,6 +161,8 @@ public:
   nsrefcnt AddRef() { return Hold(); }
   nsrefcnt Release() { return Drop(); }
 
+  static bool IsXBLJSClass(const JSClass* aClass);
+
   // Downcast from a pointer to const JSClass to a pointer to non-const
   // nsXBLJSClass.
   //
@@ -173,6 +175,7 @@ public:
   static nsXBLJSClass*
   fromJSClass(const JSClass* c)
   {
+    MOZ_ASSERT(IsXBLJSClass(c));
     nsXBLJSClass* x = const_cast<nsXBLJSClass*>(static_cast<const nsXBLJSClass*>(c));
     MOZ_ASSERT(nsXBLService::getClass(x->mKey) == x);
     return x;

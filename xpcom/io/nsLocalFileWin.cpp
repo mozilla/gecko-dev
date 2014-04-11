@@ -592,7 +592,7 @@ struct PRFilePrivate {
 
 // copied from nsprpub/pr/src/{io/prfile.c | md/windows/w95io.c} : 
 // PR_Open and _PR_MD_OPEN
-static nsresult
+nsresult
 OpenFile(const nsAFlatString &name, int osflags, int mode,
          PRFileDesc **fd)
 {
@@ -2684,10 +2684,12 @@ nsLocalFile::GetParent(nsIFile * *aParent)
     nsCOMPtr<nsIFile> localFile;
     nsresult rv = NS_NewLocalFile(parentPath, mFollowSymlinks, getter_AddRefs(localFile));
 
-    if (NS_SUCCEEDED(rv) && localFile) {
-        return CallQueryInterface(localFile, aParent);
+    if (NS_FAILED(rv)) {
+        return rv;
     }
-    return rv;
+
+    localFile.forget(aParent);
+    return NS_OK;
 }
 
 NS_IMETHODIMP

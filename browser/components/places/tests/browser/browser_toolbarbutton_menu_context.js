@@ -17,6 +17,7 @@ add_task(function testPopup() {
 
 function* checkPopupContextMenu() {
   let dropmarker = document.getAnonymousElementByAttribute(bookmarksMenuButton, "anonid", "dropmarker");
+  BMB_menuPopup.setAttribute("style", "transition: none;");
   let popupShownPromise = onPopupEvent(BMB_menuPopup, "shown");
   EventUtils.synthesizeMouseAtCenter(dropmarker, {});
   info("Waiting for bookmarks menu to be shown.");
@@ -28,11 +29,12 @@ function* checkPopupContextMenu() {
   ok(!newBookmarkItem.hasAttribute("disabled"), "New bookmark item shouldn't be disabled");
   let contextMenuHiddenPromise = onPopupEvent(contextMenu, "hidden");
   contextMenu.hidePopup();
+  BMB_menuPopup.removeAttribute("style");
   info("Waiting for context menu on bookmarks menu to be hidden.");
   yield contextMenuHiddenPromise;
   let popupHiddenPromise = onPopupEvent(BMB_menuPopup, "hidden");
   // Can't use synthesizeMouseAtCenter because the dropdown panel is in the way
-  EventUtils.synthesizeMouse(dropmarker, 2, 2, {});
+  EventUtils.synthesizeKey("VK_ESCAPE", {});
   info("Waiting for bookmarks menu to be hidden.");
   yield popupHiddenPromise;
 }

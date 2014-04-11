@@ -8,6 +8,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/BasicEvents.h"
 #include "mozilla/DebugOnly.h"
+#include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/Likely.h"
 #include "mozilla/Poison.h"
 #include "nsIWidget.h"
@@ -288,8 +289,7 @@ void nsView::DoResetWidgetBounds(bool aMoveOnly,
   nsIntRect newBounds;
   nsRefPtr<nsDeviceContext> dx = mViewManager->GetDeviceContext();
 
-  nsWindowType type;
-  widget->GetWindowType(type);
+  nsWindowType type = widget->WindowType();
 
   nsIntRect curBounds;
   widget->GetClientBounds(curBounds);
@@ -515,9 +515,7 @@ static void UpdateNativeWidgetZIndexes(nsView* aView, int32_t aZIndex)
 {
   if (aView->HasWidget()) {
     nsIWidget* widget = aView->GetWidget();
-    int32_t curZ;
-    widget->GetZIndex(&curZ);
-    if (curZ != aZIndex) {
+    if (widget->GetZIndex() != aZIndex) {
       widget->SetZIndex(aZIndex);
     }
   } else {
@@ -579,7 +577,7 @@ nsresult nsView::CreateWidget(nsWidgetInitData *aWidgetInitData,
   // XXX: using aForceUseIWidgetParent=true to preserve previous
   // semantics.  It's not clear that it's actually needed.
   mWindow = parentWidget->CreateChild(trect, dx, aWidgetInitData,
-                                      true).get();
+                                      true).take();
   if (!mWindow) {
     return NS_ERROR_FAILURE;
   }
@@ -608,7 +606,7 @@ nsresult nsView::CreateWidgetForParent(nsIWidget* aParentWidget,
   nsRefPtr<nsDeviceContext> dx = mViewManager->GetDeviceContext();
 
   mWindow =
-    aParentWidget->CreateChild(trect, dx, aWidgetInitData).get();
+    aParentWidget->CreateChild(trect, dx, aWidgetInitData).take();
   if (!mWindow) {
     return NS_ERROR_FAILURE;
   }
@@ -640,7 +638,7 @@ nsresult nsView::CreateWidgetForPopup(nsWidgetInitData *aWidgetInitData,
     // XXX: using aForceUseIWidgetParent=true to preserve previous
     // semantics.  It's not clear that it's actually needed.
     mWindow = aParentWidget->CreateChild(trect, dx, aWidgetInitData,
-                                         true).get();
+                                         true).take();
   }
   else {
     nsIWidget* nearestParent = GetParent() ? GetParent()->GetNearestWidget(nullptr)
@@ -652,7 +650,7 @@ nsresult nsView::CreateWidgetForPopup(nsWidgetInitData *aWidgetInitData,
     }
 
     mWindow =
-      nearestParent->CreateChild(trect, dx, aWidgetInitData).get();
+      nearestParent->CreateChild(trect, dx, aWidgetInitData).take();
   }
   if (!mWindow) {
     return NS_ERROR_FAILURE;
@@ -714,9 +712,7 @@ nsresult nsView::AttachToTopLevelWidget(nsIWidget* aWidget)
   mWidgetIsTopLevel = true;
 
   // Refresh the view bounds
-  nsWindowType type;
-  mWindow->GetWindowType(type);
-  CalcWidgetBounds(type);
+  CalcWidgetBounds(mWindow->WindowType());
 
   return NS_OK;
 }
@@ -791,9 +787,8 @@ void nsView::List(FILE* out, int32_t aIndent) const
     nsRect nonclientBounds = rect.ToAppUnits(p2a);
     nsrefcnt widgetRefCnt = mWindow->AddRef() - 1;
     mWindow->Release();
-    int32_t Z;
-    mWindow->GetZIndex(&Z);
-    fprintf(out, "(widget=%p[%d] z=%d pos={%d,%d,%d,%d}) ",
+    int32_t Z = mWindow->GetZIndex();
+    fprintf(out, "(widget=%p[%" PRIuPTR "] z=%d pos={%d,%d,%d,%d}) ",
             (void*)mWindow, widgetRefCnt, Z,
             nonclientBounds.x, nonclientBounds.y,
             windowBounds.width, windowBounds.height);
@@ -965,9 +960,7 @@ nsView::ConvertFromParentCoords(nsPoint aPt) const
 static bool
 IsPopupWidget(nsIWidget* aWidget)
 {
-  nsWindowType type;
-  aWidget->GetWindowType(type);
-  return (type == eWindowType_popup);
+  return (aWidget->WindowType() == eWindowType_popup);
 }
 
 nsIPresShell*
@@ -1002,6 +995,15 @@ nsView::WindowResized(nsIWidget* aWidget, int32_t aWidth, int32_t aHeight)
     int32_t p2a = devContext->AppUnitsPerDevPixel();
     mViewManager->SetWindowDimensions(NSIntPixelsToAppUnits(aWidth, p2a),
                                       NSIntPixelsToAppUnits(aHeight, p2a));
+
+    nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
+    if (pm) {
+      nsIPresShell* presShell = mViewManager->GetPresShell();
+      if (presShell && presShell->GetDocument()) {
+        pm->AdjustPopupsOnWindowChange(presShell);
+      }
+    }
+
     return true;
   }
   else if (IsPopupWidget(aWidget)) {
@@ -1022,7 +1024,7 @@ nsView::RequestWindowClose(nsIWidget* aWidget)
       mFrame->GetType() == nsGkAtoms::menuPopupFrame) {
     nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
     if (pm) {
-      pm->HidePopup(mFrame->GetContent(), false, true, false);
+      pm->HidePopup(mFrame->GetContent(), false, true, false, false);
       return true;
     }
   }

@@ -9,7 +9,7 @@
 != rotatex-perspective-1b.html rotatex-1-ref.html
 # -moz-perspective should only apply to child elements
 == rotatex-perspective-1c.html rotatex-1-ref.html
-fails-if(Android&&AndroidVersion!=17) == rotatex-perspective-3a.html rotatex-perspective-3-ref.html # bug 755543
+== rotatex-perspective-3a.html rotatex-perspective-3-ref.html
 == scalez-1a.html scalez-1-ref.html
 == preserve3d-1a.html preserve3d-1-ref.html
 == preserve3d-1b.html about:blank
@@ -51,3 +51,5 @@ random-if(Android&&!browserIsRemote) == perspective-origin-2a.html perspective-o
 == rotatex-transformorigin-1a.html rotatex-transformorigin-1-ref.html
 == overflow-hidden-1a.html overflow-hidden-1-ref.html
 == transform-style-flat-1a.html transform-style-flat-1-ref.html
+pref(layout.css.will-change.enabled,true) == willchange-containing-block.html?willchange willchange-containing-block.html?ref
+pref(layout.css.will-change.enabled,true) != willchange-containing-block.html?willchange willchange-containing-block.html?noblock

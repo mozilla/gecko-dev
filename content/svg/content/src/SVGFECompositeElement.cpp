@@ -5,7 +5,6 @@
 
 #include "mozilla/dom/SVGFECompositeElement.h"
 #include "mozilla/dom/SVGFECompositeElementBinding.h"
-#include "gfxContext.h"
 
 NS_IMPL_NS_NEW_NAMESPACED_SVG_ELEMENT(FEComposite)
 
@@ -15,9 +14,9 @@ namespace mozilla {
 namespace dom {
 
 JSObject*
-SVGFECompositeElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aScope)
+SVGFECompositeElement::WrapNode(JSContext* aCx)
 {
-  return SVGFECompositeElementBinding::Wrap(aCx, aScope, this);
+  return SVGFECompositeElementBinding::Wrap(aCx, this);
 }
 
 nsSVGElement::NumberInfo SVGFECompositeElement::sNumberInfo[4] =
@@ -115,7 +114,7 @@ SVGFECompositeElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
                                                const nsTArray<bool>& aInputsAreTainted,
                                                nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {
-  FilterPrimitiveDescription descr(FilterPrimitiveDescription::eComposite);
+  FilterPrimitiveDescription descr(PrimitiveType::Composite);
   uint32_t op = mEnumAttributes[OPERATOR].GetAnimValue();
   descr.Attributes().Set(eCompositeOperator, op);
 

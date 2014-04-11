@@ -69,6 +69,17 @@ public:
     MOZ_COUNT_DTOR(RtspTrackBuffer);
     mRingBuffer = nullptr;
   };
+
+  size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const {
+    // including this
+    size_t size = aMallocSizeOf(this);
+
+    // excluding this
+    size += mRingBuffer.SizeOfExcludingThis(aMallocSizeOf);
+
+    return size;
+  }
+
   void Start() {
     MonitorAutoLock monitor(mMonitor);
     mIsStarted = true;
@@ -369,6 +380,26 @@ RtspMediaResource::~RtspMediaResource()
   }
 }
 
+size_t
+RtspMediaResource::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const
+{
+  size_t size = BaseMediaResource::SizeOfExcludingThis(aMallocSizeOf);
+  size += mTrackBuffer.SizeOfExcludingThis(aMallocSizeOf);
+
+  // Include the size of each track buffer.
+  for (size_t i = 0; i < mTrackBuffer.Length(); i++) {
+    size += mTrackBuffer[i]->SizeOfIncludingThis(aMallocSizeOf);
+  }
+
+  // Could add in the future:
+  // - mMediaStreamController
+
+  return size;
+}
+
+//----------------------------------------------------------------------------
+// RtspMediaResource::Listener
+//----------------------------------------------------------------------------
 NS_IMPL_ISUPPORTS2(RtspMediaResource::Listener,
                    nsIInterfaceRequestor, nsIStreamingProtocolListener);
 
@@ -405,6 +436,15 @@ nsresult
 RtspMediaResource::Listener::GetInterface(const nsIID & aIID, void **aResult)
 {
   return QueryInterface(aIID, aResult);
+}
+
+void
+RtspMediaResource::Listener::Revoke()
+{
+  NS_ASSERTION(NS_IsMainThread(), "Don't call on non-main thread");
+  if (mResource) {
+    mResource = nullptr;
+  }
 }
 
 nsresult
@@ -567,25 +607,27 @@ RtspMediaResource::OnDisconnected(uint8_t aTrackIdx, nsresult aReason)
     mTrackBuffer[i]->Reset();
   }
 
-  // If mDecoder is null pointer, it means this OnDisconnected event is
-  // triggered when media element was destroyed and mDecoder was already
-  // shutdown.
-  if (!mDecoder) {
-    return NS_OK;
+  if (mDecoder) {
+    if (aReason == NS_ERROR_NOT_INITIALIZED ||
+        aReason == NS_ERROR_CONNECTION_REFUSED ||
+        aReason == NS_ERROR_NOT_CONNECTED ||
+        aReason == NS_ERROR_NET_TIMEOUT) {
+      // Report error code to Decoder.
+      RTSPMLOG("Error in OnDisconnected 0x%x", aReason);
+      mDecoder->NetworkError();
+    } else {
+      // Resetting the decoder and media element when the connection
+      // between RTSP client and server goes down.
+      mDecoder->ResetConnectionState();
+    }
   }
 
-  if (aReason == NS_ERROR_NOT_INITIALIZED ||
-      aReason == NS_ERROR_CONNECTION_REFUSED ||
-      aReason == NS_ERROR_NOT_CONNECTED ||
-      aReason == NS_ERROR_NET_TIMEOUT) {
-    RTSPMLOG("Error in OnDisconnected 0x%x", aReason);
-    mDecoder->NetworkError();
-    return NS_OK;
+  if (mListener) {
+    // Note: Listener's Revoke() kills its reference to us, which means it would
+    // release |this| object. So, ensure it is called in the end of this method.
+    mListener->Revoke();
   }
 
-  // Resetting the decoder and media element when the connection
-  // between Rtsp client and server goes down.
-  mDecoder->ResetConnectionState();
   return NS_OK;
 }
 

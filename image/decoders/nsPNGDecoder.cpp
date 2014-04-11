@@ -46,8 +46,10 @@ GetPNGDecoderAccountingLog()
 }
 #endif
 
-/* limit image dimensions (bug #251381) */
-#define MOZ_PNG_MAX_DIMENSION 1000000L
+/* limit image dimensions (bug #251381, #591822, and #967656) */
+#ifndef MOZ_PNG_MAX_DIMENSION
+#  define MOZ_PNG_MAX_DIMENSION 32767
+#endif
 
 // For size decodes
 #define WIDTH_OFFSET 16

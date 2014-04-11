@@ -296,6 +296,18 @@
     "n_buckets": 50,
     "description": "Time spent sweeping slowest compartment SCC (ms)"
   },
+  "GEOLOCATION_ACCURACY": {
+    "expires_in_version": "never",
+    "kind": "linear",
+    "high": "18000",
+    "n_buckets": 200,  
+    "description": "Location accuracy"
+  },
+  "GEOLOCATION_ERROR": {
+    "expires_in_version": "never",
+    "kind": "flag",
+    "description": "Has seen location error"
+  },
   "TELEMETRY_PING": {
     "expires_in_version": "never",
     "kind": "exponential",
@@ -1209,6 +1221,12 @@
     "n_buckets": 200,
     "extended_statistics_ok": true,
     "description": "ms elapsed time of OCSP etc.. that failed"
+  },
+  "CERT_VALIDATION_LIBRARY": {
+    "expires_in_version": "never",
+    "kind": "enumerated",
+    "n_values": 4,
+    "description": "Which certificate validation library is in use? (1=classic, 2=libpkix, 3=mozilla::pkix)"
   },
   "SSL_KEY_EXCHANGE_ALGORITHM_FULL": {
     "expires_in_version": "never",
@@ -2223,6 +2241,34 @@
       "kind": "boolean",
       "description": "Whether or not we actually try the cleanup method when we think about it"
   },
+  "SEER_LOAD_COUNT_IS_ZERO": {
+      "expires_in_version": "never",
+      "kind": "linear",
+      "high": "100",
+      "n_buckets": 50,
+      "description": "Number of times load count is zero"
+  },
+  "SEER_LOAD_COUNT_OVERFLOWS": {
+      "expires_in_version": "never",
+      "kind": "linear",
+      "high": "100",
+      "n_buckets": 50,
+      "description": "Number of times load count overflowed"
+  },
+  "SEER_STARTUP_COUNT_IS_ZERO": {
+      "expires_in_version": "never",
+      "kind": "linear",
+      "high": "100",
+      "n_buckets": 50,
+      "description": "Number of times startup count is zero"
+  },
+  "SEER_STARTUP_COUNT_OVERFLOWS": {
+      "expires_in_version": "never",
+      "kind": "linear",
+      "high": "100",
+      "n_buckets": 50,
+      "description": "Number of times startup count overflowed"
+  },
   "FIND_PLUGINS": {
     "expires_in_version": "never",
     "kind": "exponential",
@@ -2836,6 +2882,24 @@
     "extended_statistics_ok": true,
     "description": "PLACES: Time to convert and write the backup"
   },
+  "PLACES_EXPORT_TOHTML_MS": {
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "low": 50,
+    "high": 2000,
+    "n_buckets": 10,
+    "extended_statistics_ok": true,
+    "description": "PLACES: Time to convert and write bookmarks.html"
+  },
+  "PLACES_BACKUPS_HASHING_MS": {
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "low": 50,
+    "high": 2000,
+    "n_buckets": 10,
+    "extended_statistics_ok": true,
+    "description": "PLACES: Time to calculate the md5 hash for a backup"
+  },
   "FENNEC_FAVICONS_COUNT": {
     "expires_in_version": "never",
     "kind": "exponential",
@@ -3230,6 +3294,11 @@
     "n_buckets": 20,
     "extended_statistics_ok": true,
     "description": "Firefox: Time taken to load a page (ms)"
+  },
+  "FX_TOTAL_TOP_VISITS": {
+    "expires_in_version": "never",
+    "kind": "boolean",
+    "description": "Count the number of times a new top page was starting to load"
   },
   "FX_THUMBNAILS_CAPTURE_TIME_MS": {
     "expires_in_version": "never",
@@ -4017,6 +4086,30 @@
     "n_values": 10,
     "description": "Track click count on about:newtab tiles per index (0-8). For non-default row or column configurations all clicks into the '9' bucket."
   },
+  "NEWTAB_PAGE_DIRECTORY_AFFILIATE_SHOWN": {
+    "expires_in_version": "35",
+    "kind": "enumerated",
+    "n_values": 11,
+    "description": "Number of affiliate directory links shown on about:newtab. For non-default row or column configurations, extra links fall into the '10' bucket."
+  },
+  "NEWTAB_PAGE_DIRECTORY_ORGANIC_SHOWN": {
+    "expires_in_version": "35",
+    "kind": "enumerated",
+    "n_values": 11,
+    "description": "Number of organic directory links shown on about:newtab. For non-default row or column configurations, extra links fall into the '10' bucket."
+  },
+  "NEWTAB_PAGE_DIRECTORY_SPONSORED_SHOWN": {
+    "expires_in_version": "35",
+    "kind": "enumerated",
+    "n_values": 11,
+    "description": "Number of sponsored directory links shown on about:newtab. For non-default row or column configurations, extra links fall into the '10' bucket."
+  },
+  "NEWTAB_PAGE_DIRECTORY_TYPE_CLICKED": {
+    "expires_in_version": "35",
+    "kind": "enumerated",
+    "n_values": 3,
+    "description": "Track click count on about:newtab directory links per type (sponsored, affiliate, organic)."
+  },
   "PANORAMA_INITIALIZATION_TIME_MS": {
     "expires_in_version": "never",
     "kind": "exponential",
@@ -4245,13 +4338,13 @@
     "extended_statistics_ok": true,
     "description": "Time spent on a successful cert  verification in classic mode (ms)"
   },
-  "SSL_SUCCESFUL_CERT_VALIDATION_TIME_INSANITY" : {
+  "SSL_SUCCESFUL_CERT_VALIDATION_TIME_MOZILLAPKIX" : {
     "expires_in_version": "never",
     "kind": "exponential",
     "high": "60000",
     "n_buckets": 50,
     "extended_statistics_ok": true,
-    "description": "Time spent on a successful cert verification in insanity mode (ms)"
+    "description": "Time spent on a successful cert verification in mozilla::pkix mode (ms)"
   },
   "SSL_INITIAL_FAILED_CERT_VALIDATION_TIME_LIBPKIX" : {
     "expires_in_version": "never",
@@ -4269,13 +4362,13 @@
     "extended_statistics_ok": true,
     "description": "Time spent on an initially failed cert  verification in classic mode (ms)"
   },
-  "SSL_INITIAL_FAILED_CERT_VALIDATION_TIME_INSANITY" : {
+  "SSL_INITIAL_FAILED_CERT_VALIDATION_TIME_MOZILLAPKIX" : {
     "expires_in_version": "never",
     "kind": "exponential",
     "high": "60000",
     "n_buckets": 50,
     "extended_statistics_ok": true,
-    "description": "Time spent on an initially failed cert verification in insanity mode (ms)"
+    "description": "Time spent on an initially failed cert verification in mozilla::pkix mode (ms)"
   },
   "HEALTHREPORT_DB_OPEN_FIRSTRUN_MS": {
     "expires_in_version": "never",
@@ -4892,6 +4985,20 @@
     "n_buckets": "1000",
     "description": "The time (in milliseconds) that it took a 'detach' request to go round trip."
   },
+  "DEVTOOLS_DEBUGGER_RDP_LOCAL_ADDONDETACH_MS": {
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": "10000",
+    "n_buckets": "1000",
+    "description": "The time (in milliseconds) that it took a 'detach' request to go round trip."
+  },
+  "DEVTOOLS_DEBUGGER_RDP_REMOTE_ADDONDETACH_MS": {
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": "10000",
+    "n_buckets": "1000",
+    "description": "The time (in milliseconds) that it took a 'detach' request to go round trip."
+  },
   "DEVTOOLS_DEBUGGER_RDP_LOCAL_TABDETACH_MS": {
     "expires_in_version": "never",
     "kind": "exponential",
@@ -4952,6 +5059,20 @@
     "expires_in_version": "never",
     "kind": "boolean",
     "description": "The number of failed ICE Connections (0) vs. number of successful ICE connections (1)."
+  },
+  "WEBRTC_AVSYNC_WHEN_AUDIO_LAGS_VIDEO_MS": {
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": 60000,
+    "n_buckets": 1000,
+    "description": "The delay (in milliseconds) when audio is behind video. Zero delay is counted. Measured every second of a call."
+  },
+  "WEBRTC_AVSYNC_WHEN_VIDEO_LAGS_AUDIO_MS": {
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": 60000,
+    "n_buckets": 1000,
+    "description": "The delay (in milliseconds) when video is behind audio. Zero delay is not counted. Measured every second of a call."
   },
   "WEBRTC_CALL_DURATION": {
     "expires_in_version": "never",

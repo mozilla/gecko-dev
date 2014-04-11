@@ -23,6 +23,11 @@ let cache = Cc["@mozilla.org/netwerk/cache-storage-service;1"]
 let testDir = gTestPath.substr(0, gTestPath.lastIndexOf("/"));
 Services.scriptloader.loadSubScript(testDir + "../../../commandline/test/helpers.js", this);
 
+gDevTools.testing = true;
+SimpleTest.registerCleanupFunction(() => {
+  gDevTools.testing = false;
+});
+
 function cleanup()
 {
   gPanelWindow = null;
@@ -31,11 +36,32 @@ function cleanup()
   }
 }
 
-function addTabAndOpenStyleEditor(callback) {
+function addTabAndOpenStyleEditors(count, callback) {
+  let currentCount = 0;
+  let panel;
+  addTabAndCheckOnStyleEditorAdded(p => panel = p, function () {
+    currentCount++;
+    info(currentCount + " of " + count + " editors opened");
+    if (currentCount == count) {
+      callback(panel);
+    }
+  });
+}
+
+function addTabAndCheckOnStyleEditorAdded(callbackOnce, callbackOnAdded) {
   gBrowser.selectedTab = gBrowser.addTab();
   gBrowser.selectedBrowser.addEventListener("load", function onLoad() {
     gBrowser.selectedBrowser.removeEventListener("load", onLoad, true);
-    openStyleEditorInWindow(window, callback);
+    openStyleEditorInWindow(window, function (panel) {
+      // Execute the individual callback with the panel argument.
+      callbackOnce(panel);
+      // Report editors that already opened while loading.
+      for (let editor of panel.UI.editors) {
+        callbackOnAdded(editor);
+      }
+      // Report new editors added afterwards.
+      panel.UI.on("editor-added", (event, editor) => callbackOnAdded(editor));
+    });
   }, true);
 }
 

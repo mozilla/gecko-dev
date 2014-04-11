@@ -205,7 +205,7 @@ class RunState
 
     JSScript *script() const { return script_; }
 
-    virtual StackFrame *pushInterpreterFrame(JSContext *cx) = 0;
+    virtual InterpreterFrame *pushInterpreterFrame(JSContext *cx) = 0;
     virtual void setReturnValue(Value v) = 0;
 
   private:
@@ -242,7 +242,7 @@ class ExecuteState : public RunState
     JSObject *scopeChain() const { return scopeChain_; }
     ExecuteType type() const { return type_; }
 
-    virtual StackFrame *pushInterpreterFrame(JSContext *cx);
+    virtual InterpreterFrame *pushInterpreterFrame(JSContext *cx);
 
     virtual void setReturnValue(Value v) {
         if (result_)
@@ -271,7 +271,7 @@ class InvokeState : public RunState
     bool constructing() const { return InitialFrameFlagsAreConstructing(initial_); }
     CallArgs &args() const { return args_; }
 
-    virtual StackFrame *pushInterpreterFrame(JSContext *cx);
+    virtual InterpreterFrame *pushInterpreterFrame(JSContext *cx);
 
     virtual void setReturnValue(Value v) {
         args_.rval().set(v);
@@ -290,7 +290,7 @@ class GeneratorState : public RunState
     GeneratorState(JSContext *cx, JSGenerator *gen, JSGeneratorState futureState);
     ~GeneratorState();
 
-    virtual StackFrame *pushInterpreterFrame(JSContext *cx);
+    virtual InterpreterFrame *pushInterpreterFrame(JSContext *cx);
     virtual void setReturnValue(Value) { }
 
     JSGenerator *gen() const { return gen_; }
@@ -328,14 +328,14 @@ UnwindScope(JSContext *cx, ScopeIter &si, jsbytecode *pc);
  * just preserving the basic engine stack invariants.
  */
 extern void
-UnwindForUncatchableException(JSContext *cx, const FrameRegs &regs);
+UnwindForUncatchableException(JSContext *cx, const InterpreterRegs &regs);
 
 extern bool
 OnUnknownMethod(JSContext *cx, HandleObject obj, Value idval, MutableHandleValue vp);
 
 class TryNoteIter
 {
-    const FrameRegs &regs;
+    const InterpreterRegs &regs;
     RootedScript script; /* TryNotIter is always stack allocated. */
     uint32_t pcOffset;
     JSTryNote *tn, *tnEnd;
@@ -343,7 +343,7 @@ class TryNoteIter
     void settle();
 
   public:
-    explicit TryNoteIter(JSContext *cx, const FrameRegs &regs);
+    explicit TryNoteIter(JSContext *cx, const InterpreterRegs &regs);
     bool done() const;
     void operator++();
     JSTryNote *operator*() const { return tn; }
@@ -369,6 +369,9 @@ GetScopeNameForTypeOf(JSContext *cx, HandleObject obj, HandlePropertyName name,
 
 JSObject *
 Lambda(JSContext *cx, HandleFunction fun, HandleObject parent);
+
+JSObject *
+LambdaArrow(JSContext *cx, HandleFunction fun, HandleObject parent, HandleValue thisv);
 
 bool
 GetElement(JSContext *cx, MutableHandleValue lref, HandleValue rref, MutableHandleValue res);

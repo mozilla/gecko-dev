@@ -14,7 +14,7 @@ NS_IMPL_NS_NEW_HTML_ELEMENT(Time)
 namespace mozilla {
 namespace dom {
 
-HTMLTimeElement::HTMLTimeElement(already_AddRefed<nsINodeInfo> aNodeInfo)
+HTMLTimeElement::HTMLTimeElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : nsGenericHTMLElement(aNodeInfo)
 {
 }
@@ -26,9 +26,9 @@ HTMLTimeElement::~HTMLTimeElement()
 NS_IMPL_ELEMENT_CLONE(HTMLTimeElement)
 
 JSObject*
-HTMLTimeElement::WrapNode(JSContext* cx, JS::Handle<JSObject*> scope)
+HTMLTimeElement::WrapNode(JSContext* cx)
 {
-  return HTMLTimeElementBinding::Wrap(cx, scope, this);
+  return HTMLTimeElementBinding::Wrap(cx, this);
 }
 
 void

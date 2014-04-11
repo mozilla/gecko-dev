@@ -31,6 +31,7 @@
 #include "nsRect.h"                     // for nsIntRect
 #include "nsRegion.h"                   // for nsIntRegion
 #include "nsTArray.h"                   // for nsAutoTArray
+#include "TextRenderer.h"               // for TextRenderer
 #include <vector>
 
 namespace mozilla {
@@ -118,6 +119,32 @@ static gfx::Point GetScrollData(Layer* aLayer) {
 
   gfx::Point origin;
   return origin;
+}
+
+static void DrawLayerInfo(const nsIntRect& aClipRect,
+                          LayerManagerComposite* aManager,
+                          Layer* aLayer)
+{
+
+  if (aLayer->GetType() == Layer::LayerType::TYPE_CONTAINER) {
+    // XXX - should figure out a way to render this, but for now this
+    // is hard to do, since it will often get superimposed over the first
+    // child of the layer, which is bad.
+    return;
+  }
+
+  nsAutoCString layerInfo;
+  aLayer->PrintInfo(layerInfo, "");
+
+  nsIntRegion visibleRegion = aLayer->GetVisibleRegion();
+
+  uint32_t maxWidth = std::min<uint32_t>(visibleRegion.GetBounds().width, 500);
+
+  nsIntPoint topLeft = visibleRegion.GetBounds().TopLeft();
+  aManager->GetTextRenderer()->RenderText(layerInfo.get(), gfx::IntPoint(topLeft.x, topLeft.y),
+                                          aLayer->GetEffectiveTransform(), 16,
+                                          maxWidth);
+
 }
 
 static LayerVelocityUserData* GetVelocityData(Layer* aLayer) {
@@ -311,6 +338,14 @@ ContainerRender(ContainerT* aContainer,
       continue;
     }
 
+    nsIntRect clipRect = layerToRender->GetLayer()->
+        CalculateScissorRect(aClipRect, &aManager->GetWorldTransform());
+    if (clipRect.IsEmpty()) {
+      continue;
+    }
+
+    nsIntRegion savedVisibleRegion;
+    bool restoreVisibleRegion = false;
     if (i + 1 < children.Length() &&
         layerToRender->GetLayer()->GetEffectiveTransform().IsIdentity()) {
       LayerComposite* nextLayer = static_cast<LayerComposite*>(children.ElementAt(i + 1)->ImplData());
@@ -319,19 +354,15 @@ ContainerRender(ContainerT* aContainer,
         nextLayerOpaqueRect = GetOpaqueRect(nextLayer->GetLayer());
       }
       if (!nextLayerOpaqueRect.IsEmpty()) {
+        savedVisibleRegion = layerToRender->GetShadowVisibleRegion();
         nsIntRegion visibleRegion;
-        visibleRegion.Sub(layerToRender->GetShadowVisibleRegion(), nextLayerOpaqueRect);
-        layerToRender->SetShadowVisibleRegion(visibleRegion);
+        visibleRegion.Sub(savedVisibleRegion, nextLayerOpaqueRect);
         if (visibleRegion.IsEmpty()) {
           continue;
         }
+        layerToRender->SetShadowVisibleRegion(visibleRegion);
+        restoreVisibleRegion = true;
       }
-    }
-
-    nsIntRect clipRect = layerToRender->GetLayer()->
-        CalculateScissorRect(aClipRect, &aManager->GetWorldTransform());
-    if (clipRect.IsEmpty()) {
-      continue;
     }
 
     if (layerToRender->HasLayerBeenComposited()) {
@@ -342,15 +373,24 @@ ContainerRender(ContainerT* aContainer,
       if (!clearRect.IsEmpty()) {
         // Clear layer's visible rect on FrameBuffer with transparent pixels
         gfx::Rect fbRect(clearRect.x, clearRect.y, clearRect.width, clearRect.height);
-        compositor->clearFBRect(&fbRect);
+        compositor->ClearRect(fbRect);
         layerToRender->SetClearRect(nsIntRect(0, 0, 0, 0));
       }
     } else {
       layerToRender->RenderLayer(clipRect);
     }
 
+    if (restoreVisibleRegion) {
+      // Restore the region in case it's not covered by opaque content next time
+      layerToRender->SetShadowVisibleRegion(savedVisibleRegion);
+    }
+
     if (gfxPrefs::LayersScrollGraph()) {
       DrawVelGraph(clipRect, aManager, layerToRender->GetLayer());
+    }
+
+    if (gfxPrefs::DrawLayerInfo()) {
+      DrawLayerInfo(clipRect, aManager, layerToRender->GetLayer());
     }
     // invariant: our GL context should be current here, I don't think we can
     // assert it though
@@ -366,7 +406,7 @@ ContainerRender(ContainerT* aContainer,
 #endif
 
     compositor->SetRenderTarget(previousTarget);
-    EffectChain effectChain;
+    EffectChain effectChain(aContainer);
     LayerManagerComposite::AutoAddMaskEffect autoMaskEffect(aContainer->GetMaskLayer(),
                                                             effectChain,
                                                             !aContainer->GetTransform().CanDraw2D());
@@ -381,7 +421,7 @@ ContainerRender(ContainerT* aContainer,
 
   if (aContainer->GetFrameMetrics().IsScrollable()) {
     const FrameMetrics& frame = aContainer->GetFrameMetrics();
-    LayerRect layerBounds = ScreenRect(frame.mCompositionBounds) * ScreenToLayerScale(1.0);
+    LayerRect layerBounds = ParentLayerRect(frame.mCompositionBounds) * ParentLayerToLayerScale(1.0);
     gfx::Rect rect(layerBounds.x, layerBounds.y, layerBounds.width, layerBounds.height);
     gfx::Rect clipRect(aClipRect.x, aClipRect.y, aClipRect.width, aClipRect.height);
     aManager->GetCompositor()->DrawDiagnostics(DIAGNOSTIC_CONTAINER,

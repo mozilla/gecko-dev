@@ -91,6 +91,9 @@ struct nsMargin;
 struct CharacterDataChangeInfo;
 
 namespace mozilla {
+
+class EventStates;
+
 namespace layers {
 class Layer;
 }
@@ -439,6 +442,19 @@ public:
    * removal and destruction.
    */
   void Destroy() { DestroyFrom(this); }
+ 
+  /** Flags for PeekOffsetCharacter, PeekOffsetNoAmount, PeekOffsetWord return values.
+    */
+  enum FrameSearchResult {
+    // Peek found a appropriate offset within frame.
+    FOUND = 0x00,
+    // try next frame for offset.
+    CONTINUE = 0x1,
+    // offset not found because the frame was empty of text.
+    CONTINUE_EMPTY = 0x2 | CONTINUE,
+    // offset not found because the frame didn't contain any text that could be selected.
+    CONTINUE_UNSELECTABLE = 0x4 | CONTINUE,
+  };
 
 protected:
   /**
@@ -673,6 +689,15 @@ public:
   }
 
   /**
+   * Get the writing mode of this frame, but if it is styled with
+   * unicode-bidi: plaintext, reset the direction to the resolved paragraph
+   * level of the given subframe (typically the first frame on the line),
+   * not this frame's writing mode, because the container frame could be split
+   * by hard line breaks into multiple paragraphs with different base direction.
+   */
+  mozilla::WritingMode GetWritingMode(nsIFrame* aSubFrame) const;
+
+  /**
    * Bounding rect of the frame. The values are in app units, and the origin is
    * relative to the upper-left of the geometric parent. The size includes the
    * content area, borders, and padding.
@@ -687,13 +712,50 @@ public:
     return nsRect(nsPoint(0, 0), mRect.Size());
   }
   /**
-   * Rect and position in logical coordinates in the frame's writing mode
+   * Dimensions and position in logical coordinates in the frame's writing mode
+   *  or another writing mode
    */
   mozilla::LogicalRect GetLogicalRect(nscoord aContainerWidth) const {
-    return mozilla::LogicalRect(GetWritingMode(), GetRect(), aContainerWidth);
+    return GetLogicalRect(GetWritingMode(), aContainerWidth);
   }
   mozilla::LogicalPoint GetLogicalPosition(nscoord aContainerWidth) const {
-    return GetLogicalRect(aContainerWidth).Origin(GetWritingMode());
+    return GetLogicalPosition(GetWritingMode(), aContainerWidth);
+  }
+  mozilla::LogicalSize GetLogicalSize() const {
+    return GetLogicalSize(GetWritingMode());
+  }
+  mozilla::LogicalRect GetLogicalRect(mozilla::WritingMode aWritingMode,
+                                      nscoord aContainerWidth) const {
+    return mozilla::LogicalRect(aWritingMode, GetRect(), aContainerWidth);
+  }
+  mozilla::LogicalPoint GetLogicalPosition(mozilla::WritingMode aWritingMode,
+                                           nscoord aContainerWidth) const {
+    return GetLogicalRect(aWritingMode, aContainerWidth).Origin(aWritingMode);
+  }
+  mozilla::LogicalSize GetLogicalSize(mozilla::WritingMode aWritingMode) const {
+    return mozilla::LogicalSize(aWritingMode, GetSize());
+  }
+  nscoord IStart(nscoord aContainerWidth) const {
+    return IStart(GetWritingMode(), aContainerWidth);
+  }
+  nscoord IStart(mozilla::WritingMode aWritingMode,
+                 nscoord aContainerWidth) const {
+    return GetLogicalPosition(aWritingMode, aContainerWidth).I(aWritingMode);
+  }
+  nscoord BStart(nscoord aContainerWidth) const {
+    return BStart(GetWritingMode(), aContainerWidth);
+  }
+  nscoord BStart(mozilla::WritingMode aWritingMode,
+                 nscoord aContainerWidth) const {
+    return GetLogicalPosition(aWritingMode, aContainerWidth).B(aWritingMode);
+  }
+  nscoord ISize() const { return ISize(GetWritingMode()); }
+  nscoord ISize(mozilla::WritingMode aWritingMode) const {
+    return GetLogicalSize(aWritingMode).ISize(aWritingMode);
+  }
+  nscoord BSize() const { return BSize(GetWritingMode()); }
+  nscoord BSize(mozilla::WritingMode aWritingMode) const {
+    return GetLogicalSize(aWritingMode).BSize(aWritingMode);
   }
 
   /**
@@ -715,17 +777,16 @@ public:
   /**
    * Set this frame's rect from a logical rect in its own writing direction
    */
-  void SetRectFromLogicalRect(const mozilla::LogicalRect& aRect,
-                              nscoord aContainerWidth) {
-    SetRectFromLogicalRect(GetWritingMode(), aRect, aContainerWidth);
+  void SetRect(const mozilla::LogicalRect& aRect, nscoord aContainerWidth) {
+    SetRect(GetWritingMode(), aRect, aContainerWidth);
   }
   /**
    * Set this frame's rect from a logical rect in a different writing direction
    * (GetPhysicalRect will assert if the writing mode doesn't match)
    */
-  void SetRectFromLogicalRect(mozilla::WritingMode aWritingMode,
-                              const mozilla::LogicalRect& aRect,
-                              nscoord aContainerWidth) {
+  void SetRect(mozilla::WritingMode aWritingMode,
+               const mozilla::LogicalRect& aRect,
+               nscoord aContainerWidth) {
     SetRect(aRect.GetPhysicalRect(aWritingMode, aContainerWidth));
   }
   void SetSize(const nsSize& aSize) {
@@ -889,6 +950,8 @@ public:
    */
   void ApplySkipSides(nsMargin& aMargin,
                       const nsHTMLReflowState* aReflowState = nullptr) const;
+  void ApplyLogicalSkipSides(mozilla::LogicalMargin& aMargin,
+                             const nsHTMLReflowState* aReflowState = nullptr) const;
 
   /**
    * Like the frame's rect (see |GetRect|), which is the border rect,
@@ -1136,8 +1199,25 @@ public:
    * an SVG viewBox attribute).
    */
   bool IsTransformed() const;
-  
-  bool HasOpacity() const;
+
+  /**
+   * Returns true if the frame is translucent for the purposes of creating a
+   * stacking context.
+   */
+  bool HasOpacity() const
+  {
+    return HasOpacityInternal(1.0f);
+  }
+  /**
+   * Returns true if the frame is translucent for display purposes.
+   */
+  bool HasVisualOpacity() const
+  {
+    // Treat an opacity value of 0.99 and above as opaque.  This is an
+    // optimization aimed at Web content which use opacity:0.99 as a hint for
+    // creating a stacking context only.
+    return HasOpacityInternal(0.99f);
+  }
 
    /**
    * Return true if this frame might be using a transform getter.
@@ -1319,12 +1399,18 @@ public:
   /**
    * Checks if the current frame-state includes all of the listed bits
    */
-  bool HasAllStateBits(nsFrameState aBits) { return (mState & aBits) == aBits; }
+  bool HasAllStateBits(nsFrameState aBits) const
+  {
+    return (mState & aBits) == aBits;
+  }
   
   /**
    * Checks if the current frame-state includes any of the listed bits
    */
-  bool HasAnyStateBits(nsFrameState aBits) { return mState & aBits; }
+  bool HasAnyStateBits(nsFrameState aBits) const
+  {
+    return mState & aBits;
+  }
 
   /**
    * This call is invoked on the primary frame for a character data content
@@ -1353,7 +1439,7 @@ public:
    *
    * @param aStates the changed states
    */
-  virtual void ContentStatesChanged(nsEventStates aStates) { }
+  virtual void ContentStatesChanged(mozilla::EventStates aStates);
 
   /**
    * Return how your frame can be split.
@@ -2089,8 +2175,11 @@ public:
    * Try to update this frame's transform without invalidating any
    * content.  Return true iff successful.  If unsuccessful, the
    * caller is responsible for scheduling an invalidating paint.
+   *
+   * If the result is true, aLayerResult will be filled in with the
+   * transform layer for the frame.
    */
-  bool TryUpdateTransformOnly();
+  bool TryUpdateTransformOnly(Layer** aLayerResult);
 
   /**
    * Checks if a frame has had InvalidateFrame() called on it since the
@@ -2219,6 +2308,15 @@ public:
   nsOverflowAreas GetOverflowAreas() const;
 
   /**
+   * Same as GetOverflowAreas, except in this frame's coordinate
+   * system (before transforms are applied).
+   *
+   * @return the overflow areas relative to this frame, before any CSS transforms have
+   * been applied, i.e. in this frame's coordinate system
+   */
+  nsOverflowAreas GetOverflowAreasRelativeToSelf() const;
+
+  /**
    * Same as GetScrollableOverflowRect, except relative to the parent
    * frame.
    *
@@ -2226,6 +2324,15 @@ public:
    * coordinate system
    */
   nsRect GetScrollableOverflowRectRelativeToParent() const;
+
+  /**
+   * Same as GetScrollableOverflowRect, except in this frame's coordinate
+   * system (before transforms are applied).
+   *
+   * @return the rect relative to this frame, before any CSS transforms have
+   * been applied, i.e. in this frame's coordinate system
+   */
+  nsRect GetScrollableOverflowRectRelativeToSelf() const;
 
   /**
    * Like GetVisualOverflowRect, except in this frame's
@@ -2283,7 +2390,19 @@ public:
    *       passed in, indicating that it should be used to determine if sides
    *       should be skipped during reflow.
    */
-  virtual int GetSkipSides(const nsHTMLReflowState* aReflowState = nullptr) const { return 0; }
+#define LOGICAL_SIDE_B_START 1
+#define LOGICAL_SIDE_I_START 2
+#define LOGICAL_SIDE_B_END   4
+#define LOGICAL_SIDE_I_END   8
+#define LOGICAL_SIDES_I_BOTH (LOGICAL_SIDE_I_START | LOGICAL_SIDE_I_END)
+#define LOGICAL_SIDES_B_BOTH (LOGICAL_SIDE_B_START | LOGICAL_SIDE_B_END)
+#define LOGICAL_SIDES_ALL (LOGICAL_SIDE_I_START | LOGICAL_SIDE_I_END | \
+                           LOGICAL_SIDE_B_START | LOGICAL_SIDE_B_END)
+  int GetSkipSides(const nsHTMLReflowState* aReflowState = nullptr) const;
+  virtual int
+  GetLogicalSkipSides(const nsHTMLReflowState* aReflowState = nullptr) const {
+    return 0;
+  }
 
   /**
    * @returns true if this frame is selected.
@@ -2697,7 +2816,8 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
    * incremented during empty transactions.
    */  
   void AddPaintedPresShell(nsIPresShell* shell) { 
-    PaintedPresShellList()->AppendElement(do_GetWeakReference(shell)); 
+    nsWeakPtr weakShell = do_GetWeakReference(shell);
+    PaintedPresShellList()->AppendElement(weakShell);
   }
   
   /**
@@ -2937,11 +3057,12 @@ protected:
    * @param  aForward [in] Are we moving forward (or backward) in content order.
    * @param  aOffset [in/out] At what offset into the frame to start looking.
    *         on output - what offset was reached (whether or not we found a place to stop).
-   * @return true: An appropriate offset was found within this frame,
+   * @return STOP: An appropriate offset was found within this frame,
    *         and is given by aOffset.
-   *         false: Not found within this frame, need to try the next frame.
+   *         CONTINUE: Not found within this frame, need to try the next frame.
+   *         see enum FrameSearchResult for more details.
    */
-  virtual bool PeekOffsetNoAmount(bool aForward, int32_t* aOffset) = 0;
+  virtual FrameSearchResult PeekOffsetNoAmount(bool aForward, int32_t* aOffset) = 0;
   
   /**
    * Search the frame for the next character
@@ -2951,11 +3072,12 @@ protected:
    * @param  aRespectClusters [in] Whether to restrict result to valid cursor locations
    *         (between grapheme clusters) - default TRUE maintains "normal" behavior,
    *         FALSE is used for selection by "code unit" (instead of "character")
-   * @return true: An appropriate offset was found within this frame,
+   * @return STOP: An appropriate offset was found within this frame,
    *         and is given by aOffset.
-   *         false: Not found within this frame, need to try the next frame.
+   *         CONTINUE: Not found within this frame, need to try the next frame.
+   *         see enum FrameSearchResult for more details.
    */
-  virtual bool PeekOffsetCharacter(bool aForward, int32_t* aOffset,
+  virtual FrameSearchResult PeekOffsetCharacter(bool aForward, int32_t* aOffset,
                                      bool aRespectClusters = true) = 0;
   
   /**
@@ -3009,7 +3131,7 @@ protected:
       mAtStart = false;
     }
   };
-  virtual bool PeekOffsetWord(bool aForward, bool aWordSelectEatSpace, bool aIsKeyboardSelect,
+  virtual FrameSearchResult PeekOffsetWord(bool aForward, bool aWordSelectEatSpace, bool aIsKeyboardSelect,
                                 int32_t* aOffset, PeekWordState* aState) = 0;
 
   /**
@@ -3049,6 +3171,8 @@ private:
 
   template<bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
   static nsIFrame* MergeSort(nsIFrame *aSource);
+
+  bool HasOpacityInternal(float aThreshold) const;
 
 #ifdef DEBUG_FRAME_DUMP
 public:

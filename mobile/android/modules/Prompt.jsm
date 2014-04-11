@@ -1,4 +1,5 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: js; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict"
@@ -36,7 +37,7 @@ function Prompt(aOptions) {
   if ("hint" in aOptions && aOptions.hint != null)
     this.msg.hint = aOptions.hint;
 
-  let idService = Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator); 
+  let idService = Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator);
 }
 
 Prompt.prototype = {
@@ -148,20 +149,22 @@ Prompt.prototype = {
     });
   },
 
+  addTabs: function(aOptions) {
+    return this._addInput({
+      type: "tabs",
+      items: aOptions.items,
+      id: aOptions.id
+    });
+  },
+
   show: function(callback) {
     this.callback = callback;
     log("Sending message");
-    Services.obs.addObserver(this, "Prompt:Return", false);
     this._innerShow();
   },
 
   _innerShow: function() {
-    sendMessageToJava(this.msg, (aData) => {
-      log("observe " + aData);
-      let data = JSON.parse(aData);
-
-      Services.obs.removeObserver(this, "Prompt:Return", false);
-
+    sendMessageToJava(this.msg, (data) => {
       if (this.callback)
         this.callback(data);
     });
@@ -175,6 +178,9 @@ Prompt.prototype = {
       let obj = { id: item.id };
 
       obj.label = item.label;
+
+      if (item.icon)
+        obj.icon = item.icon;
 
       if (item.disabled)
         obj.disabled = true;
@@ -194,6 +200,12 @@ Prompt.prototype = {
 
       if (item.child)
         obj.inGroup = true;
+
+      if (item.showAsActions)
+        obj.showAsActions = item.showAsActions;
+
+      if (item.icon)
+        obj.icon = item.icon;
 
       this.msg.listitems.push(obj);
 
