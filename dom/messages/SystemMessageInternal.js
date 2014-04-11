@@ -390,9 +390,7 @@ SystemMessageInternal.prototype = {
         debug("Got child-process-shutdown from " + aMessage.target);
         for (let manifest in this._listeners) {
           // See if any processes in this manifest have this target.
-          if (this._removeTargetFromListener(aMessage.target, manifest, true, null)) {
-            break;
-          }
+          this._removeTargetFromListener(aMessage.target, manifest, true, null);
         }
         break;
       }
