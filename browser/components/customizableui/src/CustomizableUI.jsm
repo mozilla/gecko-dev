@@ -245,6 +245,18 @@ let CustomizableUIInternal = {
     }, true);
   },
 
+  get _builtinToolbars() {
+    return new Set([
+      CustomizableUI.AREA_NAVBAR,
+      CustomizableUI.AREA_BOOKMARKS,
+      CustomizableUI.AREA_TABSTRIP,
+      CustomizableUI.AREA_ADDONBAR,
+#ifndef XP_MACOSX
+      CustomizableUI.AREA_MENUBAR,
+#endif
+    ]);
+  },
+
   _defineBuiltInWidgets: function() {
     //XXXunf Need to figure out how to auto-add new builtin widgets in new
     //       app versions to already customized areas.
@@ -1845,12 +1857,17 @@ let CustomizableUIInternal = {
 
     // Look through previously saved state to see if we're restoring a widget.
     let seenAreas = new Set();
+    let widgetMightNeedAutoAdding = true;
     for (let [area, placements] of gPlacements) {
       seenAreas.add(area);
+      let areaIsRegistered = gAreas.has(area);
       let index = gPlacements.get(area).indexOf(widget.id);
       if (index != -1) {
-        widget.currentArea = area;
-        widget.currentPosition = index;
+        widgetMightNeedAutoAdding = false;
+        if (areaIsRegistered) {
+          widget.currentArea = area;
+          widget.currentPosition = index;
+        }
         break;
       }
     }
@@ -1858,16 +1875,20 @@ let CustomizableUIInternal = {
     // Also look at saved state data directly in areas that haven't yet been
     // restored. Can't rely on this for restored areas, as they may have
     // changed.
-    if (!widget.currentArea && gSavedState) {
+    if (widgetMightNeedAutoAdding && gSavedState) {
       for (let area of Object.keys(gSavedState.placements)) {
         if (seenAreas.has(area)) {
           continue;
         }
 
+        let areaIsRegistered = gAreas.has(area);
         let index = gSavedState.placements[area].indexOf(widget.id);
         if (index != -1) {
-          widget.currentArea = area;
-          widget.currentPosition = index;
+          widgetMightNeedAutoAdding = false;
+          if (areaIsRegistered) {
+            widget.currentArea = area;
+            widget.currentPosition = index;
+          }
           break;
         }
       }
@@ -1879,7 +1900,7 @@ let CustomizableUIInternal = {
     if (widget.currentArea) {
       this.notifyListeners("onWidgetAdded", widget.id, widget.currentArea,
                            widget.currentPosition);
-    } else {
+    } else if (widgetMightNeedAutoAdding) {
       let autoAdd = true;
       try {
         autoAdd = Services.prefs.getBoolPref(kPrefCustomizationAutoAdd);
@@ -3294,7 +3315,15 @@ this.CustomizableUI = {
       node = node.parentNode;
     }
     return place;
-  }
+  },
+
+  /**
+   * Check if a toolbar is builtin or not.
+   * @param aToolbarId the ID of the toolbar you want to check
+   */
+  isBuiltinToolbar: function(aToolbarId) {
+    return CustomizableUIInternal._builtinToolbars.has(aToolbarId);
+  },
 };
 Object.freeze(this.CustomizableUI);
 Object.freeze(this.CustomizableUI.windows);

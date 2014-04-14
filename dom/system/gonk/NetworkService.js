@@ -34,7 +34,13 @@ const WIFI_CTRL_INTERFACE = "wl0.1";
 
 const MANUAL_PROXY_CONFIGURATION = 1;
 
-const DEBUG = false;
+let DEBUG = false;
+
+// Read debug setting from pref.
+try {
+  let debugPref = Services.prefs.getBoolPref("network.debugging.enabled");
+  DEBUG = DEBUG || debugPref;
+} catch (e) {}
 
 function netdResponseType(code) {
   return Math.floor(code / 100) * 100;
@@ -64,7 +70,6 @@ function NetworkService() {
         self.handleWorkerMessage(event);
       }
     };
-    this.worker = gNetworkWorker;
     gNetworkWorker.start(networkListener);
   }
   // Callbacks to invoke when a reply arrives from the net_worker.
@@ -80,13 +85,7 @@ NetworkService.prototype = {
                                     contractID: NETWORKSERVICE_CONTRACTID,
                                     classDescription: "Network Service",
                                     interfaces: [Ci.nsINetworkService]}),
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsINetworkService,
-                                         Ci.nsISupportsWeakReference,
-                                         Ci.nsIWorkerHolder]),
-
-  // nsIWorkerHolder
-
-  worker: null,
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsINetworkService]),
 
   // Helpers
 
@@ -551,6 +550,10 @@ NetworkService.prototype = {
         debug("NetworkService shutdown");
         this.shutdown = true;
         Services.obs.removeObserver(this, "xpcom-shutdown");
+        if (gNetworkWorker) {
+          gNetworkWorker.shutdown();
+          gNetworkWorker = null;
+        }
         break;
     }
   },
