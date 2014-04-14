@@ -2393,24 +2393,6 @@ JS_GetConstructor(JSContext *cx, HandleObject proto)
     return &cval.toObject();
 }
 
-JS_PUBLIC_API(bool)
-JS_GetObjectId(JSContext *cx, HandleObject obj, MutableHandleId idp)
-{
-    AssertHeapIsIdle(cx);
-    assertSameCompartment(cx, obj);
-
-#ifdef JSGC_GENERATIONAL
-    // Ensure that the object is tenured before returning it.
-    if (IsInsideNursery(cx->runtime(), obj)) {
-        MinorGC(cx, JS::gcreason::EVICT_NURSERY);
-        MOZ_ASSERT(!IsInsideNursery(cx->runtime(), obj));
-    }
-#endif
-
-    idp.set(OBJECT_TO_JSID(obj));
-    return true;
-}
-
 namespace {
 
 class AutoCompartmentRooter : private JS::CustomAutoRooter
@@ -4537,12 +4519,12 @@ JS::CanCompileOffThread(JSContext *cx, const ReadOnlyCompileOptions &options, si
 }
 
 JS_PUBLIC_API(bool)
-JS::CompileOffThread(JSContext *cx, Handle<JSObject*> obj, const ReadOnlyCompileOptions &options,
+JS::CompileOffThread(JSContext *cx, const ReadOnlyCompileOptions &options,
                      const jschar *chars, size_t length,
                      OffThreadCompileCallback callback, void *callbackData)
 {
     JS_ASSERT(CanCompileOffThread(cx, options, length));
-    return StartOffThreadParseScript(cx, options, chars, length, obj, callback, callbackData);
+    return StartOffThreadParseScript(cx, options, chars, length, callback, callbackData);
 }
 
 JS_PUBLIC_API(JSScript *)
@@ -4744,27 +4726,8 @@ ExecuteScript(JSContext *cx, HandleObject obj, HandleScript scriptArg, jsval *rv
     JS_ASSERT(!cx->runtime()->isAtomsCompartment(cx->compartment()));
     AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
-    assertSameCompartment(cx, obj);
-    if (cx->compartment() != obj->compartment())
-        *(volatile int *) 0 = 0xf0;
+    assertSameCompartment(cx, obj, scriptArg);
     AutoLastFrameCheck lfc(cx);
-
-    /*
-     * Mozilla caches pre-compiled scripts (e.g., in the XUL prototype cache)
-     * and runs them against multiple globals. With a compartment per global,
-     * this requires cloning the pre-compiled script into each new global.
-     * Since each script gets run once, there is no point in trying to cache
-     * this clone. Ideally, this would be handled at some pinch point in
-     * mozilla, but there doesn't seem to be one, so we handle it here.
-     */
-    if (script->compartment() != obj->compartment()) {
-        script = CloneScript(cx, NullPtr(), NullPtr(), script);
-        if (!script.get())
-            return false;
-    } else {
-        script = scriptArg;
-    }
-
     return Execute(cx, script, *obj, rval);
 }
 
@@ -4778,6 +4741,20 @@ MOZ_NEVER_INLINE JS_PUBLIC_API(bool)
 JS_ExecuteScript(JSContext *cx, HandleObject obj, HandleScript scriptArg)
 {
     return ExecuteScript(cx, obj, scriptArg, nullptr);
+}
+
+JS_PUBLIC_API(bool)
+JS::CloneAndExecuteScript(JSContext *cx, HandleObject obj, HandleScript scriptArg)
+{
+    CHECK_REQUEST(cx);
+    assertSameCompartment(cx, obj);
+    RootedScript script(cx, scriptArg);
+    if (script->compartment() != cx->compartment()) {
+        script = CloneScript(cx, NullPtr(), NullPtr(), script);
+        if (!script)
+            return false;
+    }
+    return ExecuteScript(cx, obj, script, nullptr);
 }
 
 JS_PUBLIC_API(bool)

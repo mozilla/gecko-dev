@@ -132,7 +132,12 @@ MediaEngineDefaultVideoSource::Start(SourceMediaStream* aStream, TrackID aID)
   mTrackID = aID;
 
   // Start timer for subsequent frames
+#if defined(MOZ_WIDGET_GONK) && defined(DEBUG)
+// B2G emulator debug is very, very slow and has problems dealing with realtime audio inputs
+  mTimer->InitWithCallback(this, (1000 / mOpts.mFPS)*10, nsITimer::TYPE_REPEATING_SLACK);
+#else
   mTimer->InitWithCallback(this, 1000 / mOpts.mFPS, nsITimer::TYPE_REPEATING_SLACK);
+#endif
   mState = kStarted;
 
   return NS_OK;
@@ -278,10 +283,9 @@ MediaEngineDefaultVideoSource::NotifyPull(MediaStreamGraph* aGraph,
 }
 
 // generate 1k sine wave per second
-class SineWaveGenerator : public RefCounted<SineWaveGenerator>
+class SineWaveGenerator
 {
 public:
-  MOZ_DECLARE_REFCOUNTED_TYPENAME(SineWaveGenerator)
   static const int bytesPerSample = 2;
   static const int millisecondsPerSecond = 1000;
   static const int frequency = 1000;
@@ -297,6 +301,7 @@ public:
     }
   }
 
+  // NOTE: only safely called from a single thread (MSG callback)
   void generate(int16_t* aBuffer, int16_t aLengthInSamples) {
     int16_t remaining = aLengthInSamples;
 
@@ -400,8 +405,14 @@ MediaEngineDefaultAudioSource::Start(SourceMediaStream* aStream, TrackID aID)
   mTrackID = aID;
 
   // 1 Audio frame per 10ms
+#if defined(MOZ_WIDGET_GONK) && defined(DEBUG)
+// B2G emulator debug is very, very slow and has problems dealing with realtime audio inputs
+  mTimer->InitWithCallback(this, MediaEngine::DEFAULT_AUDIO_TIMER_MS*10,
+                           nsITimer::TYPE_REPEATING_PRECISE);
+#else
   mTimer->InitWithCallback(this, MediaEngine::DEFAULT_AUDIO_TIMER_MS,
                            nsITimer::TYPE_REPEATING_PRECISE);
+#endif
   mState = kStarted;
 
   return NS_OK;

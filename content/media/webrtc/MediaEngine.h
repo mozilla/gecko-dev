@@ -36,11 +36,10 @@ enum {
   kAudioTrack = 2
 };
 
-class MediaEngine : public RefCounted<MediaEngine>
+class MediaEngine
 {
 public:
-  MOZ_DECLARE_REFCOUNTED_TYPENAME(MediaEngine)
-  virtual ~MediaEngine() {}
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaEngine)
 
   static const int DEFAULT_VIDEO_FPS = 30;
   static const int DEFAULT_VIDEO_MIN_FPS = 10;
@@ -55,6 +54,9 @@ public:
   /* Populate an array of audio sources in the nsTArray. Also include devices
    * that are currently unavailable. */
   virtual void EnumerateAudioDevices(nsTArray<nsRefPtr<MediaEngineAudioSource> >*) = 0;
+
+protected:
+  virtual ~MediaEngine() {}
 };
 
 /**
@@ -101,7 +103,8 @@ public:
   /* Change device configuration.  */
   virtual nsresult Config(bool aEchoOn, uint32_t aEcho,
                           bool aAgcOn, uint32_t aAGC,
-                          bool aNoiseOn, uint32_t aNoise) = 0;
+                          bool aNoiseOn, uint32_t aNoise,
+                          int32_t aPlayoutDelay) = 0;
 
   /* Returns true if a source represents a fake capture device and
    * false otherwise

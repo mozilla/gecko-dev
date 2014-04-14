@@ -4,6 +4,7 @@
 * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "BasicCompositor.h"
+#include "BasicLayersImpl.h"            // for FillRectWithMask
 #include "TextureHostBasic.h"
 #include "mozilla/layers/Effects.h"
 #include "mozilla/layers/YCbCrImageDataSerializer.h"
@@ -136,7 +137,7 @@ DrawSurfaceWithTextureCoords(DrawTarget *aDest,
                              gfx::Filter aFilter,
                              float aOpacity,
                              SourceSurface *aMask,
-                             const Matrix& aMaskTransform)
+                             const Matrix* aMaskTransform)
 {
   // Convert aTextureCoords into aSource's coordinate space
   gfxRect sourceRect(aTextureCoords.x * aSource->GetSize().width,
@@ -155,22 +156,8 @@ DrawSurfaceWithTextureCoords(DrawTarget *aDest,
   gfx::Rect unitRect(0, 0, 1, 1);
   ExtendMode mode = unitRect.Contains(aTextureCoords) ? ExtendMode::CLAMP : ExtendMode::REPEAT;
 
-  if (aMask) {
-    aDest->PushClipRect(aDestRect);
-    Matrix maskTransformInverse = aMaskTransform;
-    maskTransformInverse.Invert();
-    Matrix dtTransform = aDest->GetTransform();
-    aDest->SetTransform(aMaskTransform);
-    Matrix patternMatrix = maskTransformInverse * dtTransform * matrix;
-    aDest->MaskSurface(SurfacePattern(aSource, mode, patternMatrix, aFilter),
-                       aMask, Point(), DrawOptions(aOpacity));
-    aDest->SetTransform(dtTransform);
-    aDest->PopClip();
-  } else {
-    aDest->FillRect(aDestRect,
-                    SurfacePattern(aSource, mode, matrix, aFilter),
-                    DrawOptions(aOpacity));
-  }
+  FillRectWithMask(aDest, aDestRect, aSource, aFilter, DrawOptions(aOpacity),
+                   mode, aMask, aMaskTransform, &matrix);
 }
 
 static pixman_transform
@@ -310,6 +297,7 @@ BasicCompositor::DrawQuad(const gfx::Rect& aRect,
     MOZ_ASSERT(effectMask->mMaskTransform.Is2D(), "How did we end up with a 3D transform here?!");
     MOZ_ASSERT(!effectMask->mIs3D);
     maskTransform = effectMask->mMaskTransform.As2D();
+    maskTransform.Translate(-offset.x, -offset.y);
   }
 
   switch (aEffectChain.mPrimaryEffect->mType) {
@@ -317,9 +305,8 @@ BasicCompositor::DrawQuad(const gfx::Rect& aRect,
       EffectSolidColor* effectSolidColor =
         static_cast<EffectSolidColor*>(aEffectChain.mPrimaryEffect.get());
 
-      dest->FillRect(aRect,
-                     ColorPattern(effectSolidColor->mColor),
-                     DrawOptions(aOpacity));
+      FillRectWithMask(dest, aRect, effectSolidColor->mColor,
+                       DrawOptions(aOpacity), sourceMask, &maskTransform);
       break;
     }
     case EFFECT_RGB: {
@@ -331,7 +318,7 @@ BasicCompositor::DrawQuad(const gfx::Rect& aRect,
                                    source->GetSurface(),
                                    texturedEffect->mTextureCoords,
                                    texturedEffect->mFilter,
-                                   aOpacity, sourceMask, maskTransform);
+                                   aOpacity, sourceMask, &maskTransform);
       break;
     }
     case EFFECT_YCBCR: {
@@ -349,7 +336,7 @@ BasicCompositor::DrawQuad(const gfx::Rect& aRect,
                                    sourceSurf,
                                    effectRenderTarget->mTextureCoords,
                                    effectRenderTarget->mFilter,
-                                   aOpacity, sourceMask, maskTransform);
+                                   aOpacity, sourceMask, &maskTransform);
       break;
     }
     case EFFECT_COMPONENT_ALPHA: {

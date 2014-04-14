@@ -887,8 +887,8 @@ void
 js::FillSelfHostingCompileOptions(CompileOptions &options)
 {
     /*
-     * In self-hosting mode, scripts emit JSOP_CALLINTRINSIC instead of
-     * JSOP_NAME or JSOP_GNAME to access unbound variables. JSOP_CALLINTRINSIC
+     * In self-hosting mode, scripts emit JSOP_GETINTRINSIC instead of
+     * JSOP_NAME or JSOP_GNAME to access unbound variables. JSOP_GETINTRINSIC
      * does a name lookup in a special object, whose properties are filled in
      * lazily upon first access for a given global.
      *
@@ -907,9 +907,9 @@ js::FillSelfHostingCompileOptions(CompileOptions &options)
     options.setSourcePolicy(CompileOptions::NO_SOURCE);
     options.setVersion(JSVERSION_LATEST);
     options.werrorOption = true;
+    options.strictOption = true;
 
 #ifdef DEBUG
-    options.strictOption = true;
     options.extraWarningsOption = true;
 #endif
 }

@@ -327,8 +327,10 @@ public class LayerView extends FrameLayout implements Tabs.OnTabsChangedListener
         }
     }
 
-    @RobocopTarget
-    public GeckoLayerClient getLayerClient() { return mLayerClient; }
+    // Don't expose GeckoLayerClient to things outside this package; only expose it as an Object
+    GeckoLayerClient getLayerClient() { return mLayerClient; }
+    public Object getLayerClientObject() { return mLayerClient; }
+
     public PanZoomController getPanZoomController() { return mPanZoomController; }
     public LayerMarginsAnimator getLayerMarginsAnimator() { return mMarginsAnimator; }
 
@@ -643,6 +645,21 @@ public class LayerView extends FrameLayout implements Tabs.OnTabsChangedListener
         }
     }
 
+    @RobocopTarget
+    public void addDrawListener(DrawListener listener) {
+        mLayerClient.addDrawListener(listener);
+    }
+
+    @RobocopTarget
+    public void removeDrawListener(DrawListener listener) {
+        mLayerClient.removeDrawListener(listener);
+    }
+
+    @RobocopTarget
+    public static interface DrawListener {
+        public void drawFinished();
+    }
+
     @Override
     public void setOverScrollMode(int overscrollMode) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
@@ -685,5 +702,16 @@ public class LayerView extends FrameLayout implements Tabs.OnTabsChangedListener
             setZoomConstraints(tab.getZoomConstraints());
             setIsRTL(tab.getIsRTL());
         }
+    }
+
+    // Public hooks for listening to metrics changing
+
+    public interface OnMetricsChangedListener {
+        public void onMetricsChanged(ImmutableViewportMetrics viewport);
+        public void onPanZoomStopped();
+    }
+
+    public void setOnMetricsChangedListener(OnMetricsChangedListener listener) {
+        mLayerClient.setOnMetricsChangedListener(listener);
     }
 }

@@ -7,6 +7,7 @@ package org.mozilla.gecko.gfx;
 
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoEvent;
+import org.mozilla.gecko.gfx.LayerView.DrawListener;
 import org.mozilla.gecko.Tab;
 import org.mozilla.gecko.Tabs;
 import org.mozilla.gecko.ZoomConstraints;
@@ -22,7 +23,10 @@ import android.os.SystemClock;
 import android.util.DisplayMetrics;
 import android.util.Log;
 
-public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
+import java.util.ArrayList;
+import java.util.List;
+
+class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
 {
     private static final String LOGTAG = "GeckoLayerClient";
 
@@ -55,7 +59,7 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
      */
     private ImmutableViewportMetrics mFrameMetrics;
 
-    private DrawListener mDrawListener;
+    private List<DrawListener> mDrawListeners;
 
     /* Used as temporaries by syncViewportInfo */
     private final ViewTransform mCurrentViewTransform;
@@ -82,7 +86,7 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
      *    that because mViewportMetrics might get reassigned in between reading the different
      *    fields. */
     private volatile ImmutableViewportMetrics mViewportMetrics;
-    private OnMetricsChangedListener mViewportChangeListener;
+    private LayerView.OnMetricsChangedListener mViewportChangeListener;
 
     private ZoomConstraints mZoomConstraints;
 
@@ -131,6 +135,7 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
 
         mFrameMetrics = mViewportMetrics;
 
+        mDrawListeners = new ArrayList<DrawListener>();
         mPanZoomController = PanZoomController.Factory.create(this, view, eventDispatcher);
         mMarginsAnimator = new LayerMarginsAnimator(this, view);
         mView = view;
@@ -169,6 +174,7 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
     public void destroy() {
         mPanZoomController.destroy();
         mMarginsAnimator.destroy();
+        mDrawListeners.clear();
     }
 
     /**
@@ -696,9 +702,10 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
             }
         }
 
-        if (layersUpdated && mDrawListener != null) {
-            /* Used by robocop for testing purposes */
-            mDrawListener.drawFinished();
+        if (layersUpdated) {
+            for (DrawListener listener : mDrawListeners) {
+                listener.drawFinished();
+            }
         }
 
         return mCurrentViewTransform;
@@ -907,11 +914,6 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
         }
     }
 
-    public interface OnMetricsChangedListener {
-        public void onMetricsChanged(ImmutableViewportMetrics viewport);
-        public void onPanZoomStopped();
-    }
-
     /** Implementation of PanZoomTarget */
     @Override
     public void forceRedraw(DisplayPortMetrics displayPort) {
@@ -986,19 +988,15 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
         return layerPoint;
     }
 
-    public void setOnMetricsChangedListener(OnMetricsChangedListener listener) {
+    void setOnMetricsChangedListener(LayerView.OnMetricsChangedListener listener) {
         mViewportChangeListener = listener;
     }
 
-    /** Used by robocop for testing purposes. Not for production use! */
-    @RobocopTarget
-    public void setDrawListener(DrawListener listener) {
-        mDrawListener = listener;
+    public void addDrawListener(DrawListener listener) {
+        mDrawListeners.add(listener);
     }
 
-    /** Used by robocop for testing purposes. Not for production use! */
-    @RobocopTarget
-    public static interface DrawListener {
-        public void drawFinished();
+    public void removeDrawListener(DrawListener listener) {
+        mDrawListeners.remove(listener);
     }
 }
