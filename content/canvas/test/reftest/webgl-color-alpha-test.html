@@ -85,7 +85,7 @@ function runTest() {
   else
     renderBackup(canvas, value, alpha);
 
-  rAF(testComplete);
+  waitForComposite(testComplete);
 }
 
 function testComplete() {
