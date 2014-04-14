@@ -1140,12 +1140,12 @@ DrawTargetCairo::CreateSimilarDrawTarget(const IntSize &aSize, SurfaceFormat aFo
 }
 
 bool
-DrawTargetCairo::InitAlreadyReferenced(cairo_surface_t* aSurface, const IntSize& aSize)
+DrawTargetCairo::InitAlreadyReferenced(cairo_surface_t* aSurface, const IntSize& aSize, SurfaceFormat* aFormat)
 {
   mContext = cairo_create(aSurface);
   mSurface = aSurface;
   mSize = aSize;
-  mFormat = CairoContentToGfxFormat(cairo_surface_get_content(aSurface));
+  mFormat = aFormat ? *aFormat : CairoContentToGfxFormat(cairo_surface_get_content(aSurface));
 
   if (mFormat == FORMAT_B8G8R8A8 ||
       mFormat == FORMAT_R8G8B8A8) {
@@ -1201,10 +1201,10 @@ DrawTargetCairo::CreateShadowDrawTarget(const IntSize &aSize, SurfaceFormat aFor
 }
 
 bool
-DrawTargetCairo::Init(cairo_surface_t* aSurface, const IntSize& aSize)
+DrawTargetCairo::Init(cairo_surface_t* aSurface, const IntSize& aSize, SurfaceFormat* aFormat)
 {
   cairo_surface_reference(aSurface);
-  return InitAlreadyReferenced(aSurface, aSize);
+  return InitAlreadyReferenced(aSurface, aSize, aFormat);
 }
 
 bool
