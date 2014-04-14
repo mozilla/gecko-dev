@@ -1498,7 +1498,7 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
 
   bool isDefault = mFrameMetrics.IsDefault();
   mFrameMetrics.mMayHaveTouchListeners = aLayerMetrics.mMayHaveTouchListeners;
-  APZC_LOG_FM(aLayerMetrics, "%p got a NotifyLayersUpdated with aIsFirstPaint=%d", this, aIsFirstPaint);
+  APZC_LOG_FM(aLayerMetrics, "%p got a NotifyLayersUpdated with aIsFirstPaint=%d isDefault=%d", this, aIsFirstPaint, isDefault);
 
   LogRendertraceRect("page", "brown", aLayerMetrics.mScrollableRect);
   LogRendertraceRect("painted displayport", "green",
@@ -1529,6 +1529,16 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
 
     mFrameMetrics = aLayerMetrics;
     mLastDispatchedPaintMetrics = aLayerMetrics;
+
+    if (!aLayerMetrics.mDisplayPort.IsEmpty()) {
+      CSSRect visible = CSSRect(aLayerMetrics.mScrollOffset, CSSSize(aLayerMetrics.CalculateCompositedRectInCssPixels().Size()));
+      CSSRect painted = aLayerMetrics.mDisplayPort + aLayerMetrics.mScrollOffset;
+      if (!painted.Contains(visible)) {
+        APZC_LOG("Triggering repaint because painted (%f %f %f %f) doesn't contain visible (%f %f %f %f) with pre-existing displayport",
+            painted.x, painted.y, painted.width, painted.height, visible.x, visible.y, visible.width, visible.height);
+        needContentRepaint = true;
+      }
+    }
   } else {
     // If we're not taking the aLayerMetrics wholesale we still need to pull
     // in some things into our local mFrameMetrics because these things are
