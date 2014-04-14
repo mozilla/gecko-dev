@@ -830,6 +830,8 @@ nsHostResolver::IssueLookup(nsHostRecord *rec)
 nsresult
 nsHostResolver::ConditionallyRefreshRecord(nsHostRecord *rec, const char *host)
 {
+    MutexAutoLock lock(rec->addr_info_lock);
+
     if ((((TimeStamp::NowLoRes() > rec->expiration) &&
         rec->mBlacklistedItems.Length()) ||
         rec->negative) && !rec->resolving) {

@@ -147,7 +147,7 @@ enum SocketConnectionStatus {
   SOCKET_CONNECTED = 3
 };
 
-class UnixSocketConsumer : public RefCounted<UnixSocketConsumer>
+class UnixSocketConsumer : public AtomicRefCounted<UnixSocketConsumer>
 {
 public:
   UnixSocketConsumer();
