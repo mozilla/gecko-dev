@@ -337,58 +337,36 @@ NS_InitXPCOM(nsIServiceManager* *result,
     return NS_InitXPCOM2(result, binDirectory, nullptr);
 }
 
-class ICUReporter MOZ_FINAL : public MemoryUniReporter
+class ICUReporter MOZ_FINAL : public MemoryUniReporter,
+                              public CountingAllocatorBase<ICUReporter>
 {
 public:
     ICUReporter()
       : MemoryUniReporter("explicit/icu", KIND_HEAP, UNITS_BYTES,
 "Memory used by ICU, a Unicode and globalization support library.")
     {
-#ifdef DEBUG
-        // There must be only one instance of this class, due to |sAmount|
-        // being static.
-        static bool hasRun = false;
-        MOZ_ASSERT(!hasRun);
-        hasRun = true;
-#endif
-        sAmount = 0;
     }
 
     static void* Alloc(const void*, size_t size)
     {
-        void* p = malloc(size);
-        sAmount += MallocSizeOfOnAlloc(p);
-        return p;
+        return CountingMalloc(size);
     }
 
     static void* Realloc(const void*, void* p, size_t size)
     {
-        sAmount -= MallocSizeOfOnFree(p);
-        void *pnew = realloc(p, size);
-        if (pnew) {
-            sAmount += MallocSizeOfOnAlloc(pnew);
-        } else {
-            // realloc failed;  undo the decrement from above
-            sAmount += MallocSizeOfOnAlloc(p);
-        }
-        return pnew;
+        return CountingRealloc(p, size);
     }
 
     static void Free(const void*, void* p)
     {
-        sAmount -= MallocSizeOfOnFree(p);
-        free(p);
+        return CountingFree(p);
     }
 
 private:
-    // |sAmount| can be (implicitly) accessed by multiple JSRuntimes, so it
-    // must be thread-safe.
-    static Atomic<size_t> sAmount;
-
-    int64_t Amount() MOZ_OVERRIDE { return sAmount; }
+    int64_t Amount() MOZ_OVERRIDE { return MemoryAllocated(); }
 };
 
-/* static */ Atomic<size_t> ICUReporter::sAmount;
+/* static */ template<> Atomic<size_t> CountingAllocatorBase<ICUReporter>::sAmount(0);
 
 EXPORT_XPCOM_API(nsresult)
 NS_InitXPCOM2(nsIServiceManager* *result,
