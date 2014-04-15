@@ -38,7 +38,7 @@ public:
     FreetypeReporter()
       : MemoryUniReporter("explicit/freetype", KIND_HEAP, UNITS_BYTES,
                           "Memory used by Freetype.")
-    NS_DECL_ISUPPORTS
+    {}
 
     static void* Malloc(FT_Memory, long size)
     {
