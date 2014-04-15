@@ -428,22 +428,19 @@ ContentParent::GetNewOrUsed(bool aForBrowserElement)
             p->KillHard();
             p = nullptr;
         }
-    }
-
-    // Failed in using the preallocated process: fork from the chrome process.
-    if (!p) {
+    } else {
+      // Failed in using the preallocated process: fork from the chrome process.
 #ifdef MOZ_NUWA_PROCESS
         if (Preferences::GetBool("dom.ipc.processPrelaunch.enabled", false)) {
             // Wait until the Nuwa process forks a new process.
             return nullptr;
         }
-#else
+#endif
         p = new ContentParent(/* app = */ nullptr,
                               aForBrowserElement,
                               /* isForPreallocated = */ false,
                               base::PRIVILEGES_DEFAULT,
                               PROCESS_PRIORITY_FOREGROUND);
-#endif
     }
 
     p->Init();
