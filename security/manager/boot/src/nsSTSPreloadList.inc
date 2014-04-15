@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1407578764573000);
+const PRTime gPreloadListExpirationTime = INT64_C(1408183603234000);
 
 class nsSTSPreload
 {
@@ -20,6 +20,7 @@ class nsSTSPreload
 static const nsSTSPreload kSTSPreloadList[] = {
   { "accounts.google.com", true },
   { "aclu.org", false },
+  { "activiti.alfresco.com", false },
   { "aladdinschools.appspot.com", false },
   { "alpha.irccloud.com", false },
   { "api.intercom.io", false },
@@ -37,6 +38,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "blog.torproject.org", false },
   { "blueseed.co", false },
   { "boxcryptor.com", true },
+  { "braintreepayments.com", false },
   { "bugzilla.mozilla.org", true },
   { "business.lookout.com", false },
   { "carezone.com", false },
@@ -59,10 +61,13 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "dist.torproject.org", false },
   { "dm.lookout.com", false },
   { "dm.mylookout.com", false },
+  { "docs.python.org", true },
+  { "donmez.ws", false },
   { "download.jitsi.org", false },
   { "ebanking.indovinabank.com.vn", false },
   { "ecosystem.atlassian.net", true },
   { "eff.org", true },
+  { "encircleapp.com", true },
   { "entropia.de", false },
   { "epoxate.com", false },
   { "errors.zenpayroll.com", false },
@@ -88,6 +93,8 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "inertianetworks.com", true },
   { "intercom.io", false },
   { "itriskltd.com", true },
+  { "keeperapp.com", true },
+  { "keepersecurity.com", true },
   { "keyerror.com", true },
   { "kinsights.com", false },
   { "lastpass.com", false },
@@ -124,6 +131,8 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "mylookout.com", false },
   { "neg9.org", false },
   { "neilwynne.com", false },
+  { "onedrive.com", true },
+  { "onedrive.live.com", false },
   { "oplop.appspot.com", true },
   { "opsmate.com", false },
   { "p.linode.com", false },
@@ -140,6 +149,8 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "plus.google.com", false },
   { "plus.sandbox.google.com", false },
   { "publications.qld.gov.au", false },
+  { "pypi.python.org", true },
+  { "python.org", false },
   { "riseup.net", true },
   { "roddis.net", false },
   { "romab.com", true },
@@ -188,6 +199,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "www.mylookout.com", false },
   { "www.noisebridge.net", false },
   { "www.opsmate.com", true },
+  { "www.python.org", true },
   { "www.simbolo.co.uk", false },
   { "www.simple.com", false },
   { "www.therapynotes.com", false },
