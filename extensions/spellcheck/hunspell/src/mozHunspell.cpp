@@ -96,15 +96,7 @@ NS_IMPL_CYCLE_COLLECTION_3(mozHunspell,
                            mEncoder,
                            mDecoder)
 
-int64_t mozHunspell::sAmount = 0;
-
-// WARNING: hunspell_alloc_hooks.h uses these two functions.
-void HunspellReportMemoryAllocation(void* ptr) {
-  mozHunspell::OnAlloc(ptr);
-}
-void HunspellReportMemoryDeallocation(void* ptr) {
-  mozHunspell::OnFree(ptr);
-}
+template<> mozilla::Atomic<size_t> mozilla::CountingAllocatorBase<HunspellAllocator>::sAmount(0);
 
 mozHunspell::mozHunspell()
   : MemoryUniReporter("explicit/spell-check", KIND_HEAP, UNITS_BYTES,
@@ -112,8 +104,8 @@ mozHunspell::mozHunspell()
     mHunspell(nullptr)
 {
 #ifdef DEBUG
-  // There must be only one instance of this class, due to |sAmount|
-  // being static.
+  // There must be only one instance of this class: it reports memory based on
+  // a single static count in HunspellAllocator.
   static bool hasRun = false;
   MOZ_ASSERT(!hasRun);
   hasRun = true;

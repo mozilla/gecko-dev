@@ -73,6 +73,7 @@
 #include "nsInterfaceHashtable.h"
 #include "nsWeakReference.h"
 #include "nsCycleCollectionParticipant.h"
+#include "mozHunspellAllocator.h"
 
 #define MOZ_HUNSPELL_CONTRACTID "@mozilla.org/spellchecker/engine;1"
 #define MOZ_HUNSPELL_CID         \
@@ -101,10 +102,7 @@ public:
   // helper method for converting a word to the charset of the dictionary
   nsresult ConvertCharset(const PRUnichar* aStr, char ** aDst);
 
-  static void OnAlloc(void* ptr) { sAmount += MallocSizeOfOnAlloc(ptr); }
-  static void OnFree (void* ptr) { sAmount -= MallocSizeOfOnFree (ptr); }
-
-  int64_t Amount() MOZ_OVERRIDE { return sAmount; }
+  int64_t Amount() MOZ_OVERRIDE { return HunspellAllocator::MemoryAllocated(); }
 
 protected:
 
@@ -122,8 +120,6 @@ protected:
   nsCOMArray<nsIFile> mDynamicDirectories;
 
   Hunspell  *mHunspell;
-
-  static int64_t sAmount;
 };
 
 #endif

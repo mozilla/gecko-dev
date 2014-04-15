@@ -32,55 +32,35 @@ using namespace mozilla::gfx;
 static FT_Library gPlatformFTLibrary = nullptr;
 
 class FreetypeReporter MOZ_FINAL : public MemoryUniReporter
+                                   public CountingAllocatorBase<FreetypeReporter>
 {
 public:
     FreetypeReporter()
       : MemoryUniReporter("explicit/freetype", KIND_HEAP, UNITS_BYTES,
                           "Memory used by Freetype.")
+    NS_DECL_ISUPPORTS
+
+    static void* Malloc(FT_Memory, long size)
     {
-#ifdef DEBUG
-        // There must be only one instance of this class, due to |sAmount|
-        // being static.
-        static bool hasRun = false;
-        MOZ_ASSERT(!hasRun);
-        hasRun = true;
-#endif
+        return CountingMalloc(size);
     }
 
-    static void* CountingAlloc(FT_Memory, long size)
+    static void Free(FT_Memory, void* p)
     {
-        void *p = malloc(size);
-        sAmount += MallocSizeOfOnAlloc(p);
-        return p;
-    }
-
-    static void CountingFree(FT_Memory, void* p)
-    {
-        sAmount -= MallocSizeOfOnFree(p);
-        free(p);
+        return CountingFree(p);
     }
 
     static void*
-    CountingRealloc(FT_Memory, long cur_size, long new_size, void* p)
+    Realloc(FT_Memory, long cur_size, long new_size, void* p)
     {
-        sAmount -= MallocSizeOfOnFree(p);
-        void *pnew = realloc(p, new_size);
-        if (pnew) {
-            sAmount += MallocSizeOfOnAlloc(pnew);
-        } else {
-            // realloc failed;  undo the decrement from above
-            sAmount += MallocSizeOfOnAlloc(p);
-        }
-        return pnew;
+        return CountingRealloc(p, new_size);
     }
 
 private:
-    int64_t Amount() MOZ_OVERRIDE { return sAmount; }
-
-    static int64_t sAmount;
+    int64_t Amount() MOZ_OVERRIDE { return MemoryAllocated(); }
 };
 
-int64_t FreetypeReporter::sAmount = 0;
+template<> Atomic<size_t> CountingAllocatorBase<FreetypeReporter>::sAmount(0);
 
 static FT_MemoryRec_ sFreetypeMemoryRecord;
 
@@ -88,9 +68,9 @@ gfxAndroidPlatform::gfxAndroidPlatform()
 {
     // A custom allocator.  It counts allocations, enabling memory reporting.
     sFreetypeMemoryRecord.user    = nullptr;
-    sFreetypeMemoryRecord.alloc   = FreetypeReporter::CountingAlloc;
-    sFreetypeMemoryRecord.free    = FreetypeReporter::CountingFree;
-    sFreetypeMemoryRecord.realloc = FreetypeReporter::CountingRealloc;
+    sFreetypeMemoryRecord.alloc   = FreetypeReporter::Malloc;
+    sFreetypeMemoryRecord.free    = FreetypeReporter::Free;
+    sFreetypeMemoryRecord.realloc = FreetypeReporter::Realloc;
 
     // These two calls are equivalent to FT_Init_FreeType(), but allow us to
     // provide a custom memory allocator.
