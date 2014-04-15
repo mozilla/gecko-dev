@@ -71,7 +71,7 @@ CountingRealloc(FT_Memory memory, long cur_size, long new_size, void* p)
     void *pnew = realloc(p, new_size);
     if (pnew) {
         sFreetypeMemoryUsed += FreetypeMallocSizeOfOnAlloc(pnew);
-    } else {
+    } else if (new_size != 0) {
         // realloc failed;  undo the decrement from above
         sFreetypeMemoryUsed += FreetypeMallocSizeOfOnAlloc(p);
     }

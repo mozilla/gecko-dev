@@ -84,7 +84,7 @@ inline void* hunspell_realloc(void* ptr, size_t size)
   void* result = moz_realloc(ptr, size);
   if (result) {
     HunspellReportMemoryAllocation(result);
-  } else {
+  } else if (size != 0) {
     // realloc failed;  undo the HunspellReportMemoryDeallocation from above
     HunspellReportMemoryAllocation(ptr);
   }
