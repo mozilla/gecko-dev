@@ -1484,7 +1484,7 @@ RilObject.prototype = {
 
   sendDialRequest: function sendDialRequest(options) {
     let Buf = this.context.Buf;
-    Buf.newParcel(options.request);
+    Buf.newParcel(options.request, options);
     Buf.writeString(options.number);
     Buf.writeInt32(options.clirMode || 0);
     Buf.writeInt32(options.uusInfo || 0);
