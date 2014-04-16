@@ -206,16 +206,6 @@ SystemMessageManager.prototype = {
       return;
     }
 
-    if (aMessage.name == "SystemMessageManager:Message") {
-      // Send an acknowledgement to parent to clean up the pending message,
-      // so a re-launched app won't handle it again, which is redundant.
-      cpmm.sendAsyncMessage("SystemMessageManager:Message:Return:OK",
-                            { type: msg.type,
-                              manifest: this._manifest,
-                              uri: this._uri,
-                              msgID: msg.msgID });
-    }
-
     let messages = (aMessage.name == "SystemMessageManager:Message")
                    ? [msg.msg]
                    : msg.msgQueue;
@@ -223,6 +213,17 @@ SystemMessageManager.prototype = {
     // We only dispatch messages when a handler is registered.
     let dispatcher = this._dispatchers[msg.type];
     if (dispatcher) {
+      if (aMessage.name == "SystemMessageManager:Message") {
+        // Send an acknowledgement to parent to clean up the pending message
+        // before we dispatch the message to apps, so a re-launched app won't
+        // handle it again, which is redundant.
+        cpmm.sendAsyncMessage("SystemMessageManager:Message:Return:OK",
+                              { type: msg.type,
+                                manifest: this._manifest,
+                                uri: this._uri,
+                                msgID: msg.msgID });
+      }
+
       messages.forEach(function(aMsg) {
         this._dispatchMessage(msg.type, dispatcher, aMsg);
       }, this);
