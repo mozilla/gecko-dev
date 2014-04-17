@@ -91,6 +91,9 @@ class OutOfLineUpdateCache :
 bool
 CodeGeneratorShared::addCache(LInstruction *lir, size_t cacheIndex)
 {
+    if (cacheIndex == SIZE_MAX)
+        return false;
+
     IonCache *cache = static_cast<IonCache *>(getCache(cacheIndex));
     MInstruction *mir = lir->mirRaw()->toInstruction();
     if (mir->resumePoint())
