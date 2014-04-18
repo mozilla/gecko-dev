@@ -141,3 +141,6 @@ user_pref("media.webaudio.legacy.AudioParam", true);
 user_pref("media.webaudio.legacy.BiquadFilterNode", true);
 user_pref("media.webaudio.legacy.PannerNode", true);
 user_pref("media.webaudio.legacy.OscillatorNode", true);
+
+// We want to collect telemetry, but we don't want to send in the results.
+user_pref('toolkit.telemetry.server', 'https://%(server)s/telemetry-dummy/');

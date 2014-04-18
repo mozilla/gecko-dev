@@ -71,6 +71,10 @@ class RefTest(object):
       prefsFile.write('user_pref("reftest.filter", %s);\n' % self.makeJSString(options.filter))
     prefsFile.write('user_pref("reftest.focusFilterMode", %s);\n' % self.makeJSString(options.focusFilterMode))
 
+    # Ensure that telemetry is disabled, so we don't connect to the telemetry
+    # server in the middle of the tests.
+    prefs['toolkit.telemetry.enabled'] = False
+
     for v in options.extraPrefs:
       thispref = v.split("=")
       if len(thispref) < 2:
