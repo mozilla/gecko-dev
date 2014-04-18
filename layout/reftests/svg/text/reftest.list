@@ -108,7 +108,7 @@ HTTP(../..) == simple-transform-rotate.svg simple-transform-rotate-ref.svg
 == display-none-4.svg simple.svg
 
 == simple-multiline.svg simple-multiline-ref.svg
-== simple-multiline-number.svg simple-multiline-number-ref.svg
+skip-if(B2G) == simple-multiline-number.svg simple-multiline-number-ref.svg # bug 818968
 == simple-multiline-pc.svg simple-multiline-pc-ref.svg
 == simple-multiline-anchor-end.svg simple-multiline-anchor-end-ref.svg
 

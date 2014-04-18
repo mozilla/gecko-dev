@@ -77,7 +77,7 @@ fuzzy-if(d2d&&layersGPUAccelerated,24,14) == flexbox-dyn-insertAroundSpan-2.xhtm
 
 == flexbox-dyn-insertAroundText-1.xhtml flexbox-dyn-insertAroundText-1-ref.xhtml
 == flexbox-dyn-insertAroundText-2.xhtml flexbox-dyn-insertAroundText-2-ref.xhtml
-== flexbox-dyn-insertAroundText-3.xhtml flexbox-dyn-insertAroundText-3-ref.xhtml
+skip-if(B2G) == flexbox-dyn-insertAroundText-3.xhtml flexbox-dyn-insertAroundText-3-ref.xhtml # bug 818968
 
 # Variant of one of the above tests, to regression-test an invalidation issue
 == flexbox-dyn-insertEmptySpan-1.xhtml flexbox-dyn-insertEmptySpan-1-ref.xhtml
@@ -99,7 +99,7 @@ fuzzy-if(d2d&&layersGPUAccelerated,24,14) == flexbox-dyn-insertAroundSpan-2.xhtm
 fails == flexbox-minSize-vert-1.xhtml  flexbox-minSize-vert-1-ref.xhtml # bug 852367
 
 # Tests for the order in which we paint flex items
-fails == flexbox-paint-ordering-3.html  flexbox-paint-ordering-3-ref.html # bug 874718
+skip-if(B2G) fails == flexbox-paint-ordering-3.html  flexbox-paint-ordering-3-ref.html # bug 874718, bug 818968
 
 # Tests for handling of absolutely/fixed/relatively-positioned flex items.
 == flexbox-position-absolute-1.xhtml  flexbox-position-absolute-1-ref.xhtml

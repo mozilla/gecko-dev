@@ -113,24 +113,11 @@ public:
 #endif
   }
 
-  static void OnAlloc(void* ptr) { sAmount += MallocSizeOfOnAlloc(ptr); }
-  static void OnFree (void* ptr) { sAmount -= MallocSizeOfOnFree (ptr); }
-
 private:
-  int64_t Amount() MOZ_OVERRIDE { return sAmount; }
-
-  static int64_t sAmount;
+  int64_t Amount() MOZ_OVERRIDE { return HunspellAllocator::MemoryAllocated(); }
 };
 
-int64_t SpellCheckReporter::sAmount = 0;
-
-// WARNING: hunspell_alloc_hooks.h uses these two functions.
-void HunspellReportMemoryAllocation(void* ptr) {
-  SpellCheckReporter::OnAlloc(ptr);
-}
-void HunspellReportMemoryDeallocation(void* ptr) {
-  SpellCheckReporter::OnFree(ptr);
-}
+template<> mozilla::Atomic<size_t> mozilla::CountingAllocatorBase<HunspellAllocator>::sAmount(0);
 
 nsresult
 mozHunspell::Init()
