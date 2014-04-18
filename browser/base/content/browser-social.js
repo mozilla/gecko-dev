@@ -188,7 +188,7 @@ SocialUI = {
     if (e.target instanceof HTMLDocument) {
       // version 0 support
       targetDoc = e.target;
-      node = targetDoc.documentElement
+      node = targetDoc.documentElement;
     } else {
       targetDoc = e.target.ownerDocument;
       node = e.target;

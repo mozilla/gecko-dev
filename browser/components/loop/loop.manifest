@@ -1,0 +1,3 @@
+component {324562fa-325e-449c-a433-2b1e6a3fb145} LoopService.js
+contract @mozilla.org/browser/loopservice;1 {324562fa-325e-449c-a433-2b1e6a3fb145}
+category profile-after-change LoopService @mozilla.org/browser/loopservice;1

@@ -166,7 +166,7 @@ function activateOneProvider(manifest, finishActivation, aCallback) {
   });
 }
 
-let gTestDomains = ["https://example.com", "https://test1.example.com", "https://test2.example.com"];
+let gTestDomains = ["https://example.com", "https://test1.example.com", "https://test2.example.com", "chrome://mochitests/content"];
 let gProviders = [
   {
     name: "provider 1",
@@ -188,6 +188,12 @@ let gProviders = [
     sidebarURL: "https://test2.example.com/browser/browser/base/content/test/social/social_sidebar.html?provider2",
     workerURL: "https://test2.example.com/browser/browser/base/content/test/social/social_worker.js#no-profile,no-recommend",
     iconURL: "chrome://branding/content/about-logo.png"
+  },
+  {
+    name: "provider 4",
+    origin: "chrome://mochitests/content/browser/browser/base/content/test/social/",
+    sidebarURL: "chrome://mochitests/content/browser/browser/base/content/test/social/social_sidebar.html?provider2",
+    iconURL: "chrome://branding/content/about-logo.png"
   }
 ];
 
@@ -202,6 +208,19 @@ var tests = {
     // At this stage none of our providers exist, so we expect failure.
     Services.prefs.setBoolPref("social.remote-install.enabled", false);
     activateProvider(gTestDomains[0], function() {
+      is(SocialUI.enabled, false, "SocialUI is not enabled");
+      let panel = document.getElementById("servicesInstall-notification");
+      ok(panel.hidden, "activation panel still hidden");
+      checkSocialUI();
+      Services.prefs.clearUserPref("social.remote-install.enabled");
+      next();
+    });
+  },
+
+  testActivationChrome: function(next) {
+    // At this stage none of our providers exist, so we expect failure.
+    Services.prefs.setBoolPref("social.remote-install.enabled", false);
+    activateProvider(gTestDomains[3], function() {
       is(SocialUI.enabled, false, "SocialUI is not enabled");
       let panel = document.getElementById("servicesInstall-notification");
       ok(panel.hidden, "activation panel still hidden");

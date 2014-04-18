@@ -1398,7 +1398,7 @@ pref("network.online",                      true); //online/offline
 #ifdef RELEASE_BUILD
 pref("network.cookie.cookieBehavior",       0); // 0-Accept, 1-dontAcceptForeign, 2-dontUse, 3-limitForeign
 #else
-pref("network.cookie.cookieBehavior",       3); // 0-Accept, 1-dontAcceptForeign, 2-dontUse, 3-limitForeign
+pref("network.cookie.cookieBehavior",       0); // 0-Accept, 1-dontAcceptForeign, 2-dontUse, 3-limitForeign
 #endif
 #ifdef ANDROID
 pref("network.cookie.cookieBehavior",       0); // Keep the old default of accepting all cookies
