@@ -51,6 +51,7 @@
 
 #include "mozilla/CORSMode.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/unused.h"
 
 #ifdef PR_LOGGING
 static PRLogModuleInfo* gCspPRLog;
@@ -811,11 +812,10 @@ NotifyOffThreadScriptLoadCompletedRunnable::Run()
 static void
 OffThreadScriptLoaderCallback(void *aToken, void *aCallbackData)
 {
-  NotifyOffThreadScriptLoadCompletedRunnable* aRunnable =
-    static_cast<NotifyOffThreadScriptLoadCompletedRunnable*>(aCallbackData);
+  nsRefPtr<NotifyOffThreadScriptLoadCompletedRunnable> aRunnable =
+    dont_AddRef(static_cast<NotifyOffThreadScriptLoadCompletedRunnable*>(aCallbackData));
   aRunnable->SetToken(aToken);
   NS_DispatchToMainThread(aRunnable);
-  NS_RELEASE(aRunnable);
 }
 
 nsresult
@@ -845,11 +845,8 @@ nsScriptLoader::AttemptAsyncScriptParse(nsScriptLoadRequest* aRequest)
     return NS_ERROR_FAILURE;
   }
 
-  NotifyOffThreadScriptLoadCompletedRunnable* runnable =
+  nsRefPtr<NotifyOffThreadScriptLoadCompletedRunnable> runnable =
     new NotifyOffThreadScriptLoadCompletedRunnable(aRequest, this);
-
-  // This reference will be consumed by OffThreadScriptLoaderCallback.
-  NS_ADDREF(runnable);
 
   if (!JS::CompileOffThread(cx, global, options,
                             aRequest->mScriptText.get(), aRequest->mScriptText.Length(),
@@ -860,6 +857,7 @@ nsScriptLoader::AttemptAsyncScriptParse(nsScriptLoadRequest* aRequest)
 
   mDocument->BlockOnload();
 
+  unused << runnable.forget();
   return NS_OK;
 }
 
