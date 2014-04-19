@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include "mozilla/StandardInteger.h"
-const PRTime gPreloadListExpirationTime = INT64_C(1408183539445000);
+const PRTime gPreloadListExpirationTime = INT64_C(1408788322005000);
 
 class nsSTSPreload
 {
@@ -21,6 +21,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "accounts.google.com", true },
   { "aclu.org", false },
   { "activiti.alfresco.com", false },
+  { "adsfund.org", true },
   { "aladdinschools.appspot.com", false },
   { "alpha.irccloud.com", false },
   { "api.intercom.io", false },
@@ -44,6 +45,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "carezone.com", false },
   { "check.torproject.org", false },
   { "chromiumcodereview.appspot.com", false },
+  { "cloudcert.org", true },
   { "cloudns.com.au", true },
   { "cloudsecurityalliance.org", true },
   { "codereview.appspot.com", false },
@@ -137,6 +139,12 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "opsmate.com", false },
   { "p.linode.com", false },
   { "packagist.org", false },
+  { "passport.yandex.by", false },
+  { "passport.yandex.com", false },
+  { "passport.yandex.com.tr", false },
+  { "passport.yandex.kz", false },
+  { "passport.yandex.ru", false },
+  { "passport.yandex.ua", false },
   { "passwd.io", true },
   { "passwordbox.com", false },
   { "paste.linode.com", false },
@@ -149,6 +157,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "plus.google.com", false },
   { "plus.sandbox.google.com", false },
   { "publications.qld.gov.au", false },
+  { "pult.co", true },
   { "pypi.python.org", true },
   { "python.org", false },
   { "riseup.net", true },
@@ -157,6 +166,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "roundcube.mayfirst.org", false },
   { "sandbox.mydigipass.com", false },
   { "securityheaders.com", true },
+  { "seifried.org", true },
   { "semenkovich.com", true },
   { "shodan.io", true },
   { "silentcircle.com", false },
@@ -174,6 +184,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "torproject.org", false },
   { "twitter.com", false },
   { "ubertt.org", true },
+  { "vmoagents.com", false },
   { "webmail.gigahost.dk", false },
   { "webmail.onlime.ch", false },
   { "wiki.python.org", true },
