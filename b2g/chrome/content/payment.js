@@ -257,21 +257,20 @@ let PaymentProvider = {
 
 #ifdef MOZ_B2G_RIL
   // Bug 938993. Support Multi-SIM for Payments.
-  get iccInfo() {
-    delete this.iccInfo;
-    return this.iccInfo = iccProvider.getIccInfo(this._settings.dataServiceId);
+  get _iccInfo() {
+    return iccProvider.getIccInfo(this._settings.dataServiceId);
   },
 
   get iccIds() {
-    return [this.iccInfo.iccid];
+    return this._iccInfo ? [this._iccInfo.iccid] : null;
   },
 
   get mcc() {
-    return [this.iccInfo.mcc];
+    return this._iccInfo ? [this._iccInfo.mcc] : null;
   },
 
   get mnc() {
-    return [this.iccInfo.mnc];
+    return this._iccInfo ? [this._iccInfo.mnc] : null;
   },
 
   _silentNumbers: null,
