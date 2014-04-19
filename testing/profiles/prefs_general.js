@@ -152,3 +152,12 @@ user_pref("browser.pagethumbnails.capturing_disabled", true);
 // Indicate that the download panel has been shown once so that whichever
 // download test runs first doesn't show the popup inconsistently.
 user_pref("browser.download.panel.shown", true);
+
+// Don't connect to Yahoo! for RSS feed tests.
+// en-US only uses .types.0.uri, but set all of them just to be sure.
+user_pref('browser.contentHandlers.types.0.uri', 'http://test1.example.org/rss?url=%%s')
+user_pref('browser.contentHandlers.types.1.uri', 'http://test1.example.org/rss?url=%%s')
+user_pref('browser.contentHandlers.types.2.uri', 'http://test1.example.org/rss?url=%%s')
+user_pref('browser.contentHandlers.types.3.uri', 'http://test1.example.org/rss?url=%%s')
+user_pref('browser.contentHandlers.types.4.uri', 'http://test1.example.org/rss?url=%%s')
+user_pref('browser.contentHandlers.types.5.uri', 'http://test1.example.org/rss?url=%%s')
