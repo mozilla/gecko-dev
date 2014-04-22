@@ -459,6 +459,16 @@ CreateGlobalObject(JSContext *cx, const JSClass *clasp, nsIPrincipal *principal,
     }
 #endif
 
+    if (ShouldDiscardSystemSource()) {
+        bool isSystem = nsContentUtils::IsSystemPrincipal(principal);
+        if (!isSystem) {
+            short status = principal->GetAppStatus();
+            isSystem = status == nsIPrincipal::APP_STATUS_PRIVILEGED ||
+                       status == nsIPrincipal::APP_STATUS_CERTIFIED;
+        }
+        JS::CompartmentOptionsRef(aGlobal).setDiscardSource(isSystem);
+    }
+
     if (clasp->flags & JSCLASS_DOM_GLOBAL) {
         AllocateProtoAndIfaceCache(global);
     }
