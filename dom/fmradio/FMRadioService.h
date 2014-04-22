@@ -142,7 +142,7 @@ class FMRadioService MOZ_FINAL : public IFMRadioService
                                , public hal::FMRadioObserver
                                , public nsIObserver
 {
-  friend class ReadRilSettingTask;
+  friend class ReadAirplaneModeSettingTask;
   friend class SetFrequencyRunnable;
 
 public:
@@ -198,8 +198,8 @@ private:
 
   FMRadioState mState;
 
-  bool mHasReadRilSetting;
-  bool mRilDisabled;
+  bool mHasReadAirplaneModeSetting;
+  bool mAirplaneModeEnabled;
 
   double mUpperBoundInKHz;
   double mLowerBoundInKHz;

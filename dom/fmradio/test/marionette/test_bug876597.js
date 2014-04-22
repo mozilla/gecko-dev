@@ -9,7 +9,7 @@ SpecialPowers.addPermission("settings-write", true, document);
 
 let FMRadio = window.navigator.mozFMRadio;
 let mozSettings = window.navigator.mozSettings;
-let KEY = "ril.radio.disabled";
+let KEY = "airplaneMode.enabled";
 
 function verifyInitialState() {
   log("Verifying initial state.");
@@ -17,10 +17,10 @@ function verifyInitialState() {
   is(FMRadio.enabled, false);
   ok(mozSettings);
 
-  checkRilSettings();
+  checkAirplaneModeSettings();
 }
 
-function checkRilSettings() {
+function checkAirplaneModeSettings() {
   log("Checking airplane mode settings");
   let req = mozSettings.createLock().get(KEY);
   req.onsuccess = function(event) {
