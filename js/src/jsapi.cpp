@@ -2521,6 +2521,12 @@ JS::CompartmentOptionsRef(JSCompartment *compartment)
 }
 
 JS::CompartmentOptions &
+JS::CompartmentOptionsRef(JSObject *obj)
+{
+    return obj->compartment()->options();
+}
+
+JS::CompartmentOptions &
 JS::CompartmentOptionsRef(JSContext *cx)
 {
     return cx->compartment()->options();
@@ -4367,7 +4373,7 @@ JS::ReadOnlyCompileOptions::copyPODOptions(const ReadOnlyCompileOptions &rhs)
     extraWarningsOption = rhs.extraWarningsOption;
     werrorOption = rhs.werrorOption;
     asmJSOption = rhs.asmJSOption;
-    sourcePolicy = rhs.sourcePolicy;
+    sourceIsLazy = rhs.sourceIsLazy;
 }
 
 JSPrincipals *

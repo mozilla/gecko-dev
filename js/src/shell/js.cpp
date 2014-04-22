@@ -871,7 +871,7 @@ Evaluate(JSContext *cx, unsigned argc, jsval *vp)
     bool catchTermination = false;
     bool saveFrameChain = false;
     RootedObject callerGlobal(cx, cx->global());
-    CompileOptions::SourcePolicy sourcePolicy = CompileOptions::SAVE_SOURCE;
+    bool sourceIsLazy = false;
 
     global = JS_GetGlobalForObject(cx, &args.callee());
     if (!global)
@@ -972,27 +972,10 @@ Evaluate(JSContext *cx, unsigned argc, jsval *vp)
         if (!v.isUndefined())
             saveFrameChain = ToBoolean(v);
 
-        if (!JS_GetProperty(cx, opts, "sourcePolicy", &v))
+        if (!JS_GetProperty(cx, opts, "sourceIsLazy", &v))
             return false;
-        if (!v.isUndefined()) {
-            JSString *s = ToString(cx, v);
-            if (!s)
-                return false;
-            char *policy = JS_EncodeStringToUTF8(cx, s);
-            if (!policy)
-                return false;
-            if (strcmp(policy, "NO_SOURCE") == 0) {
-                sourcePolicy = CompileOptions::NO_SOURCE;
-            } else if (strcmp(policy, "LAZY_SOURCE") == 0) {
-                sourcePolicy = CompileOptions::LAZY_SOURCE;
-            } else if (strcmp(policy, "SAVE_SOURCE") == 0) {
-                sourcePolicy = CompileOptions::SAVE_SOURCE;
-            } else {
-                JS_ReportError(cx, "bad 'sourcePolicy' option passed to 'evaluate': '%s'",
-                               policy);
-                return false;
-            }
-        }
+        if (v.isBoolean())
+            sourceIsLazy = v.toBoolean();
     }
 
     RootedString code(cx, args[0].toString());
@@ -1025,7 +1008,7 @@ Evaluate(JSContext *cx, unsigned argc, jsval *vp)
             options.setFileAndLine(fileName, lineNumber)
                    .setElement(element)
                    .setElementProperty(elementProperty)
-                   .setSourcePolicy(sourcePolicy)
+                   .setSourceIsLazy(sourceIsLazy)
                    .setCompileAndGo(compileAndGo);
 
             script = JS::Compile(cx, global, options, codeChars, codeLength);
@@ -3395,7 +3378,7 @@ OffThreadCompileScript(JSContext *cx, unsigned argc, jsval *vp)
     CompileOptions options(cx);
     options.setFileAndLine("<string>", 1)
            .setCompileAndGo(true)
-           .setSourcePolicy(CompileOptions::SAVE_SOURCE);
+           .setSourceIsLazy(false);
 
     // We assume the caller wants caching if at all possible, ignoring
     // heuristics that make sense for a real browser.
@@ -4112,10 +4095,9 @@ static const JSFunctionSpecWithHelp shell_functions[] = {
 "         provide that as the code's source map URL. If omitted, attach no\n"
 "         source map URL to the code (although the code may provide one itself,\n"
 "         via a //#sourceMappingURL comment).\n"
-"      sourcePolicy: if present, the value converted to a string must be either\n"
-"         'NO_SOURCE', 'LAZY_SOURCE', or 'SAVE_SOURCE'; use the given source\n"
-"         retention policy for this compilation.\n"),
-
+"      sourceIsLazy: if present and true, indicates that, after compilation, \n"
+          "script source should not be cached by the JS engine and should be \n"
+          "lazily loaded from the embedding as-needed.\n"),
     JS_FN_HELP("run", Run, 1, 0,
 "run('foo.js')",
 "  Run the file named by the first argument, returning the number of\n"

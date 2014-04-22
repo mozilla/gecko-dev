@@ -2586,6 +2586,7 @@ class JS_PUBLIC_API(CompartmentOptions)
     explicit CompartmentOptions()
       : version_(JSVERSION_UNKNOWN)
       , invisibleToDebugger_(false)
+      , discardSource_(false)
     {
         zone_.spec = JS::FreshZone;
     }
@@ -2619,6 +2620,14 @@ class JS_PUBLIC_API(CompartmentOptions)
     bool asmJS(JSContext *cx) const;
     Override &asmJSOverride() { return asmJSOverride_; }
 
+    // For certain globals, we know enough about the code that will run in them
+    // that we can discard script source entirely.
+    bool discardSource() const { return discardSource_; }
+    CompartmentOptions &setDiscardSource(bool flag) {
+        discardSource_ = flag;
+        return *this;
+    }
+
     void *zonePointer() const {
         JS_ASSERT(uintptr_t(zone_.pointer) > uintptr_t(JS::SystemZone));
         return zone_.pointer;
@@ -2634,6 +2643,7 @@ class JS_PUBLIC_API(CompartmentOptions)
     Override typeInferenceOverride_;
     Override ionOverride_;
     Override asmJSOverride_;
+    bool discardSource_;
     union {
         ZoneSpecifier spec;
         void *pointer; // js::Zone* is not exposed in the API.
@@ -2642,6 +2652,9 @@ class JS_PUBLIC_API(CompartmentOptions)
 
 JS_PUBLIC_API(CompartmentOptions &)
 CompartmentOptionsRef(JSCompartment *compartment);
+
+JS_PUBLIC_API(CompartmentOptions &)
+CompartmentOptionsRef(JSObject *obj);
 
 JS_PUBLIC_API(CompartmentOptions &)
 CompartmentOptionsRef(JSContext *cx);
@@ -3437,7 +3450,7 @@ class JS_PUBLIC_API(ReadOnlyCompileOptions)
         werrorOption(false),
         asmJSOption(false),
         forceAsync(false),
-        sourcePolicy(SAVE_SOURCE)
+        sourceIsLazy(false)
     { }
 
     // Set all POD options (those not requiring reference counts, copies,
@@ -3470,11 +3483,7 @@ class JS_PUBLIC_API(ReadOnlyCompileOptions)
     bool werrorOption;
     bool asmJSOption;
     bool forceAsync;
-    enum SourcePolicy {
-        NO_SOURCE,
-        LAZY_SOURCE,
-        SAVE_SOURCE
-    } sourcePolicy;
+    bool sourceIsLazy;
 
   private:
     static JSObject * const nullObjectPtr;
@@ -3545,7 +3554,7 @@ class JS_PUBLIC_API(OwningCompileOptions) : public ReadOnlyCompileOptions
     OwningCompileOptions &setNoScriptRval(bool nsr) { noScriptRval = nsr; return *this; }
     OwningCompileOptions &setSelfHostingMode(bool shm) { selfHostingMode = shm; return *this; }
     OwningCompileOptions &setCanLazilyParse(bool clp) { canLazilyParse = clp; return *this; }
-    OwningCompileOptions &setSourcePolicy(SourcePolicy sp) { sourcePolicy = sp; return *this; }
+    OwningCompileOptions &setSourceIsLazy(bool l) { sourceIsLazy = l; return *this; }
 };
 
 /*
@@ -3601,7 +3610,7 @@ class MOZ_STACK_CLASS JS_PUBLIC_API(CompileOptions) : public ReadOnlyCompileOpti
     CompileOptions &setNoScriptRval(bool nsr) { noScriptRval = nsr; return *this; }
     CompileOptions &setSelfHostingMode(bool shm) { selfHostingMode = shm; return *this; }
     CompileOptions &setCanLazilyParse(bool clp) { canLazilyParse = clp; return *this; }
-    CompileOptions &setSourcePolicy(SourcePolicy sp) { sourcePolicy = sp; return *this; }
+    CompileOptions &setSourceIsLazy(bool l) { sourceIsLazy = l; return *this; }
 };
 
 extern JS_PUBLIC_API(JSScript *)
