@@ -744,6 +744,8 @@ nsJSContext::JSOptionChangedCallback(const char *pref, void *data)
   nsCOMPtr<nsIDOMWindow> contentWindow(do_QueryInterface(global));
   nsCOMPtr<nsIDOMChromeWindow> chromeWindow(do_QueryInterface(global));
 
+  xpc::SetDiscardSystemSource(Preferences::GetBool(JS_OPTIONS_DOT_STR "discardSystemSource"));
+
   bool useTypeInference = Preferences::GetBool((chromeWindow || !contentWindow) ?
                                                js_typeinfer_chrome_str :
                                                js_typeinfer_content_str);

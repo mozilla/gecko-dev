@@ -38,6 +38,7 @@
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/WindowBinding.h"
+#include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
 #include "AccessCheck.h"
 #include "nsGlobalWindow.h"
@@ -80,11 +81,13 @@ const char* const XPCJSRuntime::mStrings[] = {
 
 /***************************************************************************/
 
-struct CX_AND_XPCRT_Data
-{
-    JSContext* cx;
-    XPCJSRuntime* rt;
-};
+static mozilla::Atomic<bool> sDiscardSystemSource(false);
+
+bool
+xpc::ShouldDiscardSystemSource() { return sDiscardSystemSource; }
+
+void
+xpc::SetDiscardSystemSource(bool discard) { sDiscardSystemSource = discard; }
 
 static void * const UNMARK_ONLY = nullptr;
 static void * const UNMARK_AND_SWEEP = (void *)1;
