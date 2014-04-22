@@ -435,11 +435,11 @@ RecordDonatedNode(JSCompartment *c);
 
 // This function may be used off-main-thread, in which case it is benignly
 // racey.
-bool
+uint32_t
 ShouldDiscardSystemSource();
 
 void
-SetDiscardSystemSource(bool discard);
+SetDiscardSystemSource(uint32_t discard);
 
 } // namespace xpc
 

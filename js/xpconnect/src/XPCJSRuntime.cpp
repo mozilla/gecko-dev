@@ -81,13 +81,13 @@ const char* const XPCJSRuntime::mStrings[] = {
 
 /***************************************************************************/
 
-static mozilla::Atomic<bool> sDiscardSystemSource(false);
+static mozilla::Atomic<uint32_t> sDiscardSystemSource(0);
 
-bool
+uint32_t
 xpc::ShouldDiscardSystemSource() { return sDiscardSystemSource; }
 
 void
-xpc::SetDiscardSystemSource(bool discard) { sDiscardSystemSource = discard; }
+xpc::SetDiscardSystemSource(uint32_t discard) { sDiscardSystemSource = discard; }
 
 static void * const UNMARK_ONLY = nullptr;
 static void * const UNMARK_AND_SWEEP = (void *)1;

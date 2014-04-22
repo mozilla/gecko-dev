@@ -466,7 +466,7 @@ CreateGlobalObject(JSContext *cx, const JSClass *clasp, nsIPrincipal *principal,
             isSystem = status == nsIPrincipal::APP_STATUS_PRIVILEGED ||
                        status == nsIPrincipal::APP_STATUS_CERTIFIED;
         }
-        JS::CompartmentOptionsRef(aGlobal).setDiscardSource(isSystem);
+        JS::CompartmentOptionsRef(global).setDiscardSource(isSystem);
     }
 
     if (clasp->flags & JSCLASS_DOM_GLOBAL) {
