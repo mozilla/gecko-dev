@@ -1157,7 +1157,24 @@ AgentEventFilter(DBusConnection *conn, DBusMessage *msg, void *data)
     dbus_connection_send(conn, reply, nullptr);
     dbus_message_unref(reply);
 
-    // Do not send an notification to upper layer, too annoying.
+    // Do not send a notification to upper layer, too annoying.
+    return DBUS_HANDLER_RESULT_HANDLED;
+  } else if (dbus_message_is_method_call(msg, DBUS_AGENT_IFACE, "RequestPairingConsent")) {
+    // Directly reply RequestPairingConsent here
+    DBusMessage *reply;
+    reply = dbus_message_new_method_return(msg);
+
+    if (!reply) {
+      BT_WARNING("%s: Memory can't be allocated for the message.", __FUNCTION__);
+      dbus_message_unref(msg);
+      errorStr.AssignLiteral("Memory can't be allocated for the message.");
+
+      goto handle_error;
+    }
+
+    dbus_connection_send(conn, reply, nullptr);
+    dbus_message_unref(reply);
+    // Do not send a notification to upper layer
     return DBUS_HANDLER_RESULT_HANDLED;
   } else {
 #ifdef DEBUG
