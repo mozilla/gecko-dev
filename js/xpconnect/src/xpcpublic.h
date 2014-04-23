@@ -405,6 +405,14 @@ nsIGlobalObject *
 GetJunkScopeGlobal();
 
 /**
+ * Shared compilation scope for XUL prototype documents and XBL
+ * precompilation. This compartment has a null principal. No code may run, and
+ * it is invisible to the debugger.
+ */
+JSObject *
+GetCompilationScope();
+
+/**
  * If |aObj| has a window for a global, returns the associated nsGlobalWindow.
  * Otherwise, returns null.
  */

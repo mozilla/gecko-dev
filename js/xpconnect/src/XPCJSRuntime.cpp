@@ -585,6 +585,14 @@ GetJunkScopeGlobal()
     return GetNativeForGlobal(junkScope);
 }
 
+JSObject *
+GetCompilationScope()
+{
+    XPCJSRuntime *self = nsXPConnect::GetRuntimeInstance();
+    NS_ENSURE_TRUE(self, nullptr);
+    return self->GetCompilationScope();
+}
+
 nsGlobalWindow*
 WindowGlobalOrNull(JSObject *aObj)
 {
@@ -2971,6 +2979,7 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
    mObjectHolderRoots(nullptr),
    mWatchdogManager(new WatchdogManager(this)),
    mJunkScope(nullptr),
+   mCompilationScope(nullptr),
    mAsyncSnowWhiteFreer(new AsyncFreeSnowWhite())
 {
     DOM_InitInterfaces();
@@ -3401,7 +3410,7 @@ XPCJSRuntime::GetJunkScope()
     if (!mJunkScope) {
         AutoSafeJSContext cx;
         SandboxOptions options;
-        options.sandboxName.AssignASCII("XPConnect Junk Compartment");
+        options.sandboxName.AssignLiteral("XPConnect Junk Compartment");
         RootedValue v(cx);
         nsresult rv = CreateSandboxObject(cx, &v, nsContentUtils::GetSystemPrincipal(), options);
         NS_ENSURE_SUCCESS(rv, nullptr);
@@ -3412,13 +3421,39 @@ XPCJSRuntime::GetJunkScope()
     return mJunkScope;
 }
 
-void
-XPCJSRuntime::DeleteJunkScope()
+JSObject *
+XPCJSRuntime::GetCompilationScope()
 {
-    if(!mJunkScope)
+    if (!mCompilationScope) {
+        AutoSafeJSContext cx;
+        SandboxOptions options;
+        options.sandboxName.AssignLiteral("XPConnect Compilation Compartment");
+        options.invisibleToDebugger = true;
+        RootedValue v(cx);
+        nsresult rv = CreateSandboxObject(cx, &v, /* principal = */ nullptr, options);
+        NS_ENSURE_SUCCESS(rv, nullptr);
+
+        mCompilationScope = js::UncheckedUnwrap(&v.toObject());
+        JS_AddNamedObjectRoot(cx, &mCompilationScope, "XPConnect Compilation Compartment");
+    }
+    return mCompilationScope;
+}
+
+
+void
+XPCJSRuntime::DeleteSingletonScopes()
+{
+    if(!mJunkScope && !mCompilationScope)
         return;
 
     AutoSafeJSContext cx;
-    JS_RemoveObjectRoot(cx, &mJunkScope);
-    mJunkScope = nullptr;
+    if (mJunkScope) {
+        JS_RemoveObjectRoot(cx, &mJunkScope);
+        mJunkScope = nullptr;
+    }
+
+    if (mCompilationScope) {
+        JS_RemoveObjectRoot(cx, &mCompilationScope);
+        mCompilationScope = nullptr;
+    }
 }
