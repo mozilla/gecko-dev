@@ -947,7 +947,7 @@ nsXBLPrototypeBinding::Read(nsIObjectInputStream* aStream,
   }
 
   AutoSafeJSContext cx;
-  JS::Rooted<JSObject*> compilationGlobal(cx, aDocInfo->GetCompilationGlobal());
+  JS::Rooted<JSObject*> compilationGlobal(cx, xpc::GetCompilationScope());
   NS_ENSURE_TRUE(compilationGlobal, NS_ERROR_UNEXPECTED);
   JSAutoCompartment ac(cx, compilationGlobal);
 
@@ -1083,7 +1083,7 @@ nsXBLPrototypeBinding::Write(nsIObjectOutputStream* aStream)
   // computed on demand.
 
   AutoSafeJSContext cx;
-  JS::Rooted<JSObject*> compilationGlobal(cx, mXBLDocInfoWeak->GetCompilationGlobal());
+  JS::Rooted<JSObject*> compilationGlobal(cx, xpc::GetCompilationScope());
   NS_ENSURE_TRUE(compilationGlobal, NS_ERROR_UNEXPECTED);
   JSAutoCompartment ac(cx, compilationGlobal);
 
