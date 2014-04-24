@@ -274,6 +274,7 @@ TabChild::TabChild(ContentChild* aManager, const TabContext& aContext, uint32_t 
   , mChromeFlags(aChromeFlags)
   , mOuterRect(0, 0, 0, 0)
   , mInnerSize(0, 0)
+  , mHasValidInnerSize(false)
   , mActivePointerId(-1)
   , mTapHoldTimer(nullptr)
   , mAppPackageFileDescriptorRecved(false)
@@ -336,7 +337,7 @@ TabChild::InitializeRootMetrics()
 bool
 TabChild::HasValidInnerSize()
 {
-  return (mInnerSize.width != 0) && (mInnerSize.height != 0);
+  return mHasValidInnerSize;
 }
 
 NS_IMETHODIMP
@@ -1422,6 +1423,9 @@ TabChild::RecvUpdateDimensions(const nsRect& rect, const nsIntSize& size, const 
 
     bool initialSizing = !HasValidInnerSize()
                       && (size.width != 0 && size.height != 0);
+    if (initialSizing) {
+      mHasValidInnerSize = true;
+    }
 
     mOrientation = orientation;
     mInnerSize = ScreenIntSize::FromUnknownSize(

@@ -481,6 +481,7 @@ private:
     uint32_t mChromeFlags;
     nsIntRect mOuterRect;
     ScreenIntSize mInnerSize;
+    bool mHasValidInnerSize;
     // When we're tracking a possible tap gesture, this is the "down"
     // point of the touchstart.
     LayoutDevicePoint mGestureDownPoint;
