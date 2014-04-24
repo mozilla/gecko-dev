@@ -573,6 +573,7 @@ GENERATED_EVENTS_WEBIDL_FILES = [
     'ErrorEvent.webidl',
     'IccChangeEvent.webidl',
     'MediaStreamEvent.webidl',
+    'MozClirModeEvent.webidl',
     'MozContactChangeEvent.webidl',
     'MozInterAppMessageEvent.webidl',
     'MozStkCommandEvent.webidl',
