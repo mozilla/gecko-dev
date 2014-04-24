@@ -161,8 +161,8 @@ class ArrayBufferObject : public JSObject
         return !isNeutered();
     }
 
-    static bool stealContents(JSContext *cx, JSObject *obj, void **contents,
-                              uint8_t **data);
+    static bool stealContents(JSContext *cx, JSObject *obj, NeuterDataDisposition changeData,
+                              void **contents, uint8_t **data);
 
     static void setElementsHeader(js::ObjectElements *header, uint32_t bytes) {
         header->flags = 0;

@@ -594,8 +594,8 @@ ArrayBufferObject::createDataViewForThis(JSContext *cx, unsigned argc, Value *vp
 }
 
 bool
-ArrayBufferObject::stealContents(JSContext *cx, JSObject *obj, void **contents,
-                                 uint8_t **data)
+ArrayBufferObject::stealContents(JSContext *cx, JSObject *obj, NeuterDataDisposition changeData,
+                                 void **contents, uint8_t **data)
 {
     MOZ_ASSERT(cx);
 
@@ -632,7 +632,7 @@ ArrayBufferObject::stealContents(JSContext *cx, JSObject *obj, void **contents,
 
     // If the ArrayBuffer's elements are transferrable, transfer ownership
     // directly.  Otherwise we have to copy the data into new elements.
-    bool stolen = buffer.hasStealableContents();
+    bool stolen = buffer.hasStealableContents() && changeData == ChangeData;
     if (stolen) {
         newHeader = AllocateArrayBufferContents(cx, byteLen, NULL);
         if (!newHeader)
@@ -4015,6 +4015,24 @@ JS_GetArrayBufferData(JSObject *obj)
     return buffer.dataPointer();
 }
 
+JS_FRIEND_API(bool)
+js::NeuterArrayBuffer(JSContext *cx, HandleObject obj,
+                      NeuterDataDisposition changeData)
+{
+    if (!obj->is<ArrayBufferObject>()) {
+        JS_ReportError(cx, "ArrayBuffer object required");
+        return false;
+    }
+
+    void *contents;
+    uint8_t *data;
+    if (!ArrayBufferObject::stealContents(cx, obj, changeData, &contents, &data))
+        return false;
+
+    JS_free(cx, contents);
+    return true;
+}
+
 JS_FRIEND_API(JSObject *)
 JS_NewArrayBuffer(JSContext *cx, uint32_t nbytes)
 {
@@ -4074,7 +4092,7 @@ JS_StealArrayBufferContents(JSContext *cx, JSObject *obj, void **contents,
         return false;
     }
 
-    if (!ArrayBufferObject::stealContents(cx, obj, contents, data))
+    if (!ArrayBufferObject::stealContents(cx, obj, ChangeData, contents, data))
         return false;
 
     return true;
