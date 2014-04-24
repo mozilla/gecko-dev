@@ -5,6 +5,7 @@
 #include "mozilla/dom/network/MobileConnection.h"
 
 #include "GeneratedEvents.h"
+#include "mozilla/dom/MozClirModeEvent.h"
 #include "mozilla/Preferences.h"
 #include "nsDOMEvent.h"
 #include "nsIDOMCFStateChangeEvent.h"
@@ -80,6 +81,7 @@ NS_IMPL_EVENT_HANDLER(MobileConnection, emergencycbmodechange)
 NS_IMPL_EVENT_HANDLER(MobileConnection, otastatuschange)
 NS_IMPL_EVENT_HANDLER(MobileConnection, iccchange)
 NS_IMPL_EVENT_HANDLER(MobileConnection, radiostatechange)
+NS_IMPL_EVENT_HANDLER(MobileConnection, clirmodechange)
 
 MobileConnection::MobileConnection(uint32_t aClientId)
 : mClientId(aClientId)
@@ -735,4 +737,22 @@ MobileConnection::NotifyRadioStateChanged()
   }
 
   return DispatchTrustedEvent(NS_LITERAL_STRING("radiostatechange"));
+}
+
+NS_IMETHODIMP
+MobileConnection::NotifyClirModeChanged(uint32_t aMode)
+{
+  if (!CheckPermission("mobileconnection")) {
+    return NS_OK;
+  }
+
+  MozClirModeEventInit init;
+  init.mBubbles = false;
+  init.mCancelable = false;
+  init.mMode = aMode;
+
+  nsRefPtr<MozClirModeEvent> event =
+    MozClirModeEvent::Constructor(this, NS_LITERAL_STRING("clirmodechange"), init);
+
+  return DispatchTrustedEvent(event);
 }
