@@ -274,6 +274,15 @@ MessageChannel::Clear()
         mChannelErrorTask->Cancel();
         mChannelErrorTask = nullptr;
     }
+
+    // Free up any memory used by pending messages.
+    mPending.clear();
+    mPendingUrgentRequest = nullptr;
+    mPendingRPCCall = nullptr;
+    mOutOfTurnReplies.clear();
+    while (!mDeferred.empty()) {
+        mDeferred.pop();
+    }
 }
 
 bool
