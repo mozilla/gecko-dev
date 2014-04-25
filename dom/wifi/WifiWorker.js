@@ -916,6 +916,10 @@ var WifiManager = (function() {
               }
               wifiCommand.closeSupplicantConnection(function () {
                 manager.connectToSupplicant = false;
+                // closeSupplicantConnection() will trigger onsupplicantlost
+                // and set manager.state to "UNINITIALIZED", we have to
+                // restore it here.
+                manager.state = "INITIALIZING";
                 startSupplicantInternal();
               });
             }
