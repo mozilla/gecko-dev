@@ -26,11 +26,11 @@
     "b2g_manifest_branch": "v1.4",
     "b2g_manifest_intree": true,
     "additional_source_tarballs": ["backup-leo.tar.xz"],
-    "gecko_l10n_root": "https://hg.mozilla.org/releases/l10n/mozilla-aurora",
+    "gecko_l10n_root": "https://hg.mozilla.org/releases/l10n/mozilla-beta",
     "gaia": {
         "l10n": {
             "vcs": "hgtool",
-            "root": "https://hg.mozilla.org/gaia-l10n"
+            "root": "https://hg.mozilla.org/releases/gaia-l10n/v1_4"
         }
     }
 }
