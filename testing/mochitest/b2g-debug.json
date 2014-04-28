@@ -297,6 +297,7 @@
 
     "dom/imptests/editing/conformancetest/test_runtest.html":"takes too long",
 
+    "dom/media/tests/mochitest/test_dataChannel_basicAudio.html":"Bug 962984",
     "dom/media/tests/mochitest/test_dataChannel_basicAudio.html":"Bug 962984, test fail on b2g debug build",
     "dom/media/tests/mochitest/test_dataChannel_basicAudioVideo.html":"Bug 960442, video support for WebRTC is disabled on b2g",
     "dom/media/tests/mochitest/test_dataChannel_basicAudioVideoCombined.html":"Bug 960442, video support for WebRTC is disabled on b2g",
