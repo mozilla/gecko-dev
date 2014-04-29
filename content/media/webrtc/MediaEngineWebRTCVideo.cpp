@@ -503,6 +503,7 @@ MediaEngineWebRTCVideoSource::Shutdown()
 void
 MediaEngineWebRTCVideoSource::AllocImpl() {
   MOZ_ASSERT(NS_IsMainThread());
+  ReentrantMonitorAutoEnter sync(mCallbackMonitor);
 
   mCameraControl = ICameraControl::Create(mCaptureIndex);
   if (mCameraControl) {
