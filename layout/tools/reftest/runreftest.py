@@ -73,7 +73,7 @@ class RefTest(object):
 
     # Ensure that telemetry is disabled, so we don't connect to the telemetry
     # server in the middle of the tests.
-    prefs['toolkit.telemetry.enabled'] = False
+    prefsFile.write('user_pref("toolkit.telemetry.enabled", false);\n')
 
     for v in options.extraPrefs:
       thispref = v.split("=")
