@@ -3594,23 +3594,13 @@ RilObject.prototype = {
         delete newCalls[currentCall.callIndex];
       }
 
+      // Call is no longer reported by the radio. Remove from our map and send
+      // disconnected state change.
       if (!newCall) {
-        // Call is no longer reported by the radio. Remove from our map and
-        // send disconnected state change.
-
         if (this.currentConference.participants[currentCall.callIndex]) {
           conferenceChanged = true;
-          currentCall.isConference = false;
-          delete this.currentConference.participants[currentCall.callIndex];
-          delete this.currentCalls[currentCall.callIndex];
-          // We don't query the fail cause here as it triggers another asynchrouns
-          // request that leads to a problem of updating all conferece participants
-          // in one task.
-          this._handleDisconnectedCall(currentCall);
-        } else {
-          delete this.currentCalls[currentCall.callIndex];
-          this.getFailCauseCode(currentCall);
         }
+        this._removeVoiceCall(currentCall);
         continue;
       }
 
@@ -3754,6 +3744,26 @@ RilObject.prototype = {
     }
     this._handleChangedCallState(newCall);
     this.currentCalls[newCall.callIndex] = newCall;
+  },
+
+  _removeVoiceCall: function(removedCall, failCause) {
+    if (this.currentConference.participants[removedCall.callIndex]) {
+      removedCall.isConference = false;
+      delete this.currentConference.participants[removedCall.callIndex];
+      delete this.currentCalls[removedCall.callIndex];
+      // We don't query the fail cause here as it triggers another asynchrouns
+      // request that leads to a problem of updating all conferece participants
+      // in one task.
+      this._handleDisconnectedCall(removedCall);
+    } else {
+      delete this.currentCalls[removedCall.callIndex];
+      if (failCause) {
+        removedCall.failCause = failCause;
+        this._handleDisconnectedCall(removedCall);
+      } else {
+        this.getFailCauseCode(removedCall);
+      }
+    }
   },
 
   _ensureConference: function _ensureConference() {
