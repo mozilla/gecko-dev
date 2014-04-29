@@ -22,7 +22,8 @@
         "VARIANT": "user",
         "MOZILLA_OFFICIAL": "1",
         "JS_BINARY": "{workdir}/js",
-        "GAIA_MEMORY_PROFILE": "low"
+        "GAIA_MEMORY_PROFILE": "low",
+        "MOZILLA_MLS_KEY_FILE": "{workdir}/mls.key"
     },
     "b2g_manifest": "tarako.xml",
     "b2g_manifest_branch": "v1.3t",
