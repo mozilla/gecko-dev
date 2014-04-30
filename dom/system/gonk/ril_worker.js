@@ -5255,8 +5255,7 @@ RilObject.prototype[REQUEST_GET_CURRENT_CALLS] = function REQUEST_GET_CURRENT_CA
 RilObject.prototype[REQUEST_DIAL] = function REQUEST_DIAL(length, options) {
   // We already return a successful response before. Don't respond it again!
   if (options.rilRequestError) {
-    options.callIndex = -1;
-    this._removePendingOutgoingCall(GECKO_CALL_ERROR_UNSPECIFIED);
+    this._removePendingOutgoingCall();
     this._hasHangUpPendingOutgoingCall = false;
   }
 };
