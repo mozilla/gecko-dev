@@ -109,6 +109,12 @@ const IDB = {
   update: function(project) {
     let deferred = promise.defer();
 
+    // Clone object to make it storable by IndexedDB.
+    // Projects are proxified objects (for the template
+    // mechanismn in the first version of the App Manager).
+    // This will change in the future.
+    project = JSON.parse(JSON.stringify(project));
+
     var transaction = IDB._db.transaction(["projects"], "readwrite");
     var objectStore = transaction.objectStore("projects");
     var request = objectStore.put(project);
@@ -161,6 +167,10 @@ const AppProjects = {
     if (!file.exists()) {
       return promise.reject("path doesn't exist");
     }
+    let existingProject = this.get(folder.path);
+    if (existingProject) {
+      return Promise.reject("Already added");
+    }
     let project = {
       type: "packaged",
       location: folder.path,
@@ -181,6 +191,10 @@ const AppProjects = {
   },
 
   addHosted: function(manifestURL) {
+    let existingProject = this.get(manifestURL);
+    if (existingProject) {
+      return Promise.reject("Already added");
+    }
     let project = {
       type: "hosted",
       location: manifestURL
@@ -193,11 +207,7 @@ const AppProjects = {
   },
 
   update: function (project) {
-    return IDB.update({
-      type: project.type,
-      location: project.location,
-      packagedAppOrigin: project.packagedAppOrigin
-    }).then(() => project);
+    return IDB.update(project);
   },
 
   remove: function(location) {

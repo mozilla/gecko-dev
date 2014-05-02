@@ -29,6 +29,9 @@ DIRS += [
     'webconsole',
 ]
 
+if CONFIG['MOZ_FXIDE']:
+    DIRS += ['fxide']
+
 EXTRA_COMPONENTS += [
     'devtools-clhandler.js',
     'devtools-clhandler.manifest',

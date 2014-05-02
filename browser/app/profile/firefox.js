@@ -1215,6 +1215,13 @@ pref("devtools.appmanager.enabled", true);
 pref("devtools.appmanager.lastTab", "help");
 pref("devtools.appmanager.manifestEditor.enabled", true);
 
+// Enable fxide
+#ifdef MOZ_FXIDE
+pref("devtools.fxide.enabled", true);
+#else
+pref("devtools.fxide.enabled", false);
+#endif
+
 // Toolbox preferences
 pref("devtools.toolbox.footer.height", 250);
 pref("devtools.toolbox.sidebar.width", 500);
