@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include "mozilla/StandardInteger.h"
-const PRTime gPreloadListExpirationTime = INT64_C(1408788322005000);
+const PRTime gPreloadListExpirationTime = INT64_C(1409997954029000);
 
 class nsSTSPreload
 {
@@ -26,6 +26,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "alpha.irccloud.com", false },
   { "api.intercom.io", false },
   { "api.xero.com", false },
+  { "app.manilla.com", true },
   { "app.recurly.com", false },
   { "app.yinxiang.com", false },
   { "appseccalifornia.org", true },
@@ -60,6 +61,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "data.qld.gov.au", false },
   { "davidlyness.com", true },
   { "developer.mydigipass.com", false },
+  { "dillonkorman.com", true },
   { "dist.torproject.org", false },
   { "dm.lookout.com", false },
   { "dm.mylookout.com", false },
@@ -88,6 +90,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "gocardless.com", true },
   { "grc.com", false },
   { "grepular.com", true },
+  { "harvestapp.com", true },
   { "haste.ch", true },
   { "heha.co", true },
   { "howrandom.org", true },
@@ -123,6 +126,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "mattmccutchen.net", true },
   { "mbp.banking.co.at", false },
   { "mediacru.sh", true },
+  { "medium.com", true },
   { "mega.co.nz", false },
   { "members.mayfirst.org", false },
   { "members.nearlyfreespeech.net", false },
@@ -166,7 +170,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "roundcube.mayfirst.org", false },
   { "sandbox.mydigipass.com", false },
   { "securityheaders.com", true },
-  { "seifried.org", true },
   { "semenkovich.com", true },
   { "shodan.io", true },
   { "silentcircle.com", false },
@@ -196,7 +199,9 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "www.braintreepayments.com", false },
   { "www.calyxinstitute.org", false },
   { "www.cyveillance.com", true },
+  { "www.dropcam.com", false },
   { "www.entropia.de", false },
+  { "www.eternalgoth.co.uk", true },
   { "www.evernote.com", false },
   { "www.getcloak.com", false },
   { "www.gov.uk", false },
