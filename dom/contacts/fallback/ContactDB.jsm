@@ -954,7 +954,7 @@ ContactDB.prototype = {
     if (DEBUG) debug("invalidate cache");
     this.newTxn("readwrite", SAVED_GETALL_STORE_NAME, function (txn, store) {
       store.clear();
-    }, aErrorCb);
+    }, null, aErrorCb);
   },
 
   incrementRevision: function CDB_incrementRevision(txn) {
@@ -1025,9 +1025,11 @@ ContactDB.prototype = {
           contactsArray.push(aContacts[i]);
         }
 
+        let contactIdsArray = contactsArray.map(function(el) el.id);
+
         // save contact ids in cache
         this.newTxn("readwrite", SAVED_GETALL_STORE_NAME, function(txn, store) {
-          store.put(contactsArray.map(function(el) el.id), aQuery);
+          store.put(contactIdsArray, aQuery);
         }, null, aFailureCb);
 
         // send full contacts
