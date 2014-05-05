@@ -94,7 +94,7 @@
   <project name="platform/system/netd" path="system/netd" revision="3d298fde142bee3fc4f07f63f16f2d8ce42339c0"/>
   <project name="platform/system/vold" path="system/vold" revision="919829940468066a32f403980b43f6ebfee5d314"/>
   <!-- sprd things -->
-  <project name="kernel/common" path="kernel" remote="sprd-aosp" revision="23fe6b64017ad072f7b3886b7ed6d4e653bdcb32"/>
+  <project name="kernel/common" path="kernel" remote="sprd-aosp" revision="2c8ccc9f0a4d1b3a6f2cf0ad10eccdea6c574bed"/>
   <project name="u-boot" path="u-boot" remote="sprd-aosp" revision="37c1ba6741cdad6b5712eb8608c894ff6629a73c"/>
   <project name="device/sprd" path="device/sprd" remote="sprd-aosp" revision="d96b0eba98316b3cc1020bc9dee91ce0af4a791c"/>
   <project name="vendor/sprd/proprietories" path="vendor/sprd/proprietories" remote="sprd-aosp" revision="70b4f1563adcc2734970652e77cb121d01c4c1ea"/>
