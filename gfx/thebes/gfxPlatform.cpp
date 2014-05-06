@@ -7,6 +7,7 @@
 #define FORCE_PR_LOG /* Allow logging in the release build */
 #endif
 
+#include "mozilla/layers/AsyncTransactionTracker.h" // for AsyncTransactionTracker
 #include "mozilla/layers/CompositorChild.h"
 #include "mozilla/layers/CompositorParent.h"
 #include "mozilla/layers/ImageBridgeChild.h"
@@ -343,6 +344,8 @@ gfxPlatform::Init()
 
     gGfxPlatformPrefsLock = new Mutex("gfxPlatform::gGfxPlatformPrefsLock");
 
+    AsyncTransactionTracker::Initialize();
+
     /* Initialize the GfxInfo service.
      * Note: we can't call functions on GfxInfo that depend
      * on gPlatform until after it has been initialized
@@ -508,6 +511,8 @@ gfxPlatform::Shutdown()
     ImageBridgeChild::ShutDown();
 
     CompositorParent::ShutDown();
+
+    AsyncTransactionTracker::Finalize();
 
     delete gGfxPlatformPrefsLock;
 

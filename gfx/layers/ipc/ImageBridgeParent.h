@@ -38,6 +38,7 @@ class ImageBridgeParent : public PImageBridgeParent,
 public:
   typedef InfallibleTArray<CompositableOperation> EditArray;
   typedef InfallibleTArray<EditReply> EditReplyArray;
+  typedef InfallibleTArray<AsyncChildMessageData> AsyncChildMessageArray;
 
   ImageBridgeParent(MessageLoop* aLoop, Transport* aTransport);
   ~ImageBridgeParent();
@@ -56,6 +57,11 @@ public:
   virtual bool
   DeallocPGrallocBufferParent(PGrallocBufferParent* actor) MOZ_OVERRIDE;
 
+  // CompositableParentManager
+  virtual void SendFenceHandle(AsyncTransactionTracker* aTracker,
+                               PTextureParent* aTexture,
+                               const FenceHandle& aFence) MOZ_OVERRIDE;
+
   // PImageBridge
   virtual bool RecvUpdate(const EditArray& aEdits, EditReplyArray* aReply) MOZ_OVERRIDE;
   virtual bool RecvUpdateNoSwap(const EditArray& aEdits) MOZ_OVERRIDE;
@@ -69,6 +75,9 @@ public:
   virtual PTextureParent* AllocPTextureParent(const SurfaceDescriptor& aSharedData,
                                               const TextureFlags& aFlags) MOZ_OVERRIDE;
   virtual bool DeallocPTextureParent(PTextureParent* actor) MOZ_OVERRIDE;
+
+  virtual bool
+  RecvChildAsyncMessages(const InfallibleTArray<AsyncChildMessageData>& aMessages) MOZ_OVERRIDE;
 
   bool RecvStop() MOZ_OVERRIDE;
 

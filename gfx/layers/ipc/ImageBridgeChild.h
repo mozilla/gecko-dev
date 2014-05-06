@@ -200,6 +200,9 @@ public:
   virtual bool
   DeallocPTextureChild(PTextureChild* actor) MOZ_OVERRIDE;
 
+  virtual bool
+  RecvParentAsyncMessage(const mozilla::layers::AsyncParentMessageData& aMessage) MOZ_OVERRIDE;
+
   /**
    * Allocate a gralloc SurfaceDescriptor remotely.
    */
@@ -382,6 +385,8 @@ public:
                                        TextureFlags aFlags) MOZ_OVERRIDE;
 
   virtual bool IsSameProcess() const MOZ_OVERRIDE;
+
+  void SendPendingAsyncMessge();
 
 protected:
   ImageBridgeChild();

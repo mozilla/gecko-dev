@@ -193,6 +193,16 @@ public:
     mTexturesToRemove.Clear();
   }
 
+  virtual void HoldTransactionsToRespond(uint64_t aTransactionId)
+  {
+    mTransactionsToRespond.push_back(aTransactionId);
+  }
+
+  virtual void ClearTransactionsToRespond()
+  {
+    mTransactionsToRespond.clear();
+  }
+
   /**
    * Tell the CompositableHost on the compositor side what texture to use for
    * the next composition.
@@ -250,6 +260,7 @@ public:
 protected:
   TextureFactoryIdentifier mTextureFactoryIdentifier;
   nsTArray<RefPtr<TextureClient> > mTexturesToRemove;
+  std::vector<uint64_t> mTransactionsToRespond;
   const int32_t mSerial;
   static mozilla::Atomic<int32_t> sSerialCounter;
 };
