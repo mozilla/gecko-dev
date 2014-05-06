@@ -173,7 +173,7 @@
 #define GIO_MODULE
 #endif
 
-#if defined(MOZ_SYNTH_PICO)
+#if defined(MOZ_SYNTH_PICO) and defined(MOZ_WEBRTC)
 #define SYNTH_PICO_MODULE MODULE(synthpico)
 #else
 #define SYNTH_PICO_MODULE
