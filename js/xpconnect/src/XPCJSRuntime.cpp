@@ -3136,6 +3136,8 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
     if (!JS_GetGlobalDebugHooks(runtime)->debuggerHandler)
         xpc_InstallJSDebuggerKeywordHandler(runtime);
 #endif
+
+    SetDiscardSystemSource(Preferences::GetBool("javascript.options.discardSystemSource"));
 }
 
 // static
