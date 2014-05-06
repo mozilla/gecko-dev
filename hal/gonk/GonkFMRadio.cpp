@@ -27,6 +27,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#define V4L2_CID_PRIVATE_FM_AUDIO (V4L2_CID_BASE + 10)
+
 namespace mozilla {
 namespace hal_impl {
 
@@ -339,6 +341,30 @@ DisableFMRadio()
   info.operation() = hal::FM_RADIO_OPERATION_DISABLE;
   info.status() = hal::FM_RADIO_OPERATION_STATUS_SUCCESS;
   hal::NotifyFMRadioStatus(info);
+}
+
+void
+EnableFMAudio()
+{
+  if (!sRadioEnabled)
+    return;
+
+  int rc = setControl(V4L2_CID_PRIVATE_FM_AUDIO, 1);
+  if (rc < 0) {
+    HAL_LOG(("Unable to enable audio of FMRadio"));
+  }
+}
+
+void
+DisableFMAudio()
+{
+  if (!sRadioEnabled)
+    return;
+
+  int rc = setControl(V4L2_CID_PRIVATE_FM_AUDIO, 0);
+  if (rc < 0) {
+    HAL_LOG(("Unable to disable audio of FMRadio"));
+  }
 }
 
 void

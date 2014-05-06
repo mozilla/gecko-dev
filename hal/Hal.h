@@ -522,6 +522,10 @@ void EnableFMRadio(const hal::FMRadioSettings& aInfo);
  */
 void DisableFMRadio();
 
+void EnableFMAudio();
+
+void DisableFMAudio();
+
 /**
  * Seek to an available FM radio station.
  *

@@ -375,6 +375,18 @@ DisableFMRadio()
 }
 
 void
+EnableFMAudio()
+{
+  NS_RUNTIMEABORT("FM radio cannot be called from sandboxed contexts.");
+}
+
+void
+DisableFMAudio()
+{
+  NS_RUNTIMEABORT("FM radio cannot be called from sandboxed contexts.");
+}
+
+void
 FMRadioSeek(const hal::FMRadioSeekDirection& aDirection)
 {
   NS_RUNTIMEABORT("FM radio cannot be called from sandboxed contexts.");

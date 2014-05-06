@@ -18,6 +18,14 @@ DisableFMRadio()
 {}
 
 void
+EnableFMAudio()
+{}
+
+void
+DisableFMAudio()
+{}
+
+void
 FMRadioSeek(const hal::FMRadioSeekDirection& aDirection)
 {}
 

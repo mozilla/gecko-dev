@@ -1027,6 +1027,18 @@ DisableFMRadio() {
 }
 
 void
+EnableFMAudio() {
+  AssertMainThread();
+  PROXY_IF_SANDBOXED(EnableFMAudio());
+}
+
+void
+DisableFMAudio() {
+  AssertMainThread();
+  PROXY_IF_SANDBOXED(DisableFMAudio());
+}
+
+void
 FMRadioSeek(const FMRadioSeekDirection& aDirection) {
   AssertMainThread();
   PROXY_IF_SANDBOXED(FMRadioSeek(aDirection));

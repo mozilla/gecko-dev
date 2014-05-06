@@ -307,6 +307,15 @@ FMRadioService::EnableAudio(bool aAudioEnabled)
   audioManager->GetFmRadioAudioEnabled(&audioEnabled);
   if (audioEnabled != aAudioEnabled) {
     audioManager->SetFmRadioAudioEnabled(aAudioEnabled);
+    /**
+     * Due to special hardware design of Tarako, we need to change audio route
+     * in GonkFMRadio when FM audio enabled/disabled.
+    */
+    if (aAudioEnabled) {
+      EnableFMAudio();
+    } else {
+      DisableFMAudio();
+    }
   }
 }
 
