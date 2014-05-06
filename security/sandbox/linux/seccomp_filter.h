@@ -73,14 +73,6 @@
 #define SECCOMP_WHITELIST_ARCH_LAST
 #endif
 
-/* System calls used by the profiler */
-#ifdef MOZ_PROFILING
-#define SECCOMP_WHITELIST_PROFILING \
-  ALLOW_SYSCALL(tgkill),
-#else
-#define SECCOMP_WHITELIST_PROFILING
-#endif
-
 /* Architecture-specific syscalls that should eventually be removed */
 #if defined(__arm__)
 #define SECCOMP_WHITELIST_ARCH_TOREMOVE \
@@ -283,7 +275,9 @@
   ALLOW_SYSCALL(sched_get_priority_min), \
   ALLOW_SYSCALL(sched_get_priority_max), \
   ALLOW_SYSCALL(setpriority), \
-  SECCOMP_WHITELIST_PROFILING \
+  /* Used by profiler.  Also used for raise(), which causes problems */ \
+  /* with Android KitKat abort(); see bug 1004832. */ \
+  ALLOW_SYSCALL(tgkill), \
   SECCOMP_WHITELIST_B2G_LOW \
   /* Always last and always OK calls */ \
   SECCOMP_WHITELIST_ARCH_LAST \
