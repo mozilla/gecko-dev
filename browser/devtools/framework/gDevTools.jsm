@@ -522,7 +522,17 @@ let gDevToolsBrowser = {
    * Open the App Manager
    */
   openAppManager: function(gBrowser) {
-    gBrowser.selectedTab = gBrowser.addTab("about:app-manager");
+    if (Services.prefs.getBoolPref("devtools.fxide.enabled")) {
+      let win = Services.wm.getMostRecentWindow("devtools:fxide");
+      if (win) {
+        win.focus();
+      } else {
+        let ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].getService(Ci.nsIWindowWatcher);
+        ww.openWindow(null, "chrome://fxide/content/", "fxide", "chrome,centerscreen,resizable", null);
+      }
+    } else {
+      gBrowser.selectedTab = gBrowser.addTab("about:app-manager");
+    }
   },
 
   /**

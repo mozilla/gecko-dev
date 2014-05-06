@@ -1,0 +1,11 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+fxide.jar:
+% skin fxide classic/1.0 %skin/
+  skin/fxide.css            (../shared/fxide.css)
+  skin/icons.png            (../shared/icons.png)
+  skin/lense.css            (../shared/lense.css)
+  skin/newapp.css           (../shared/newapp.css)
+  skin/throbber.svg         (../shared/throbber.svg)

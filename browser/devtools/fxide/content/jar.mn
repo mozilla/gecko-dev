@@ -1,0 +1,12 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+fxide.jar:
+%  content fxide %content/
+    content/fxide.xul                 (fxide.xul)
+    content/fxide.js                  (fxide.js)
+    content/newapp.xul                (newapp.xul)
+    content/newapp.js                 (newapp.js)
+    content/lense.xhtml               (lense.xhtml)
+    content/lense.js                  (lense.js)
