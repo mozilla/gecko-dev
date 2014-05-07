@@ -228,8 +228,6 @@ public:
   imgStatusTrackerObserver(imgStatusTracker* aTracker)
   : mTracker(aTracker) {}
 
-  virtual ~imgStatusTrackerObserver() {}
-
   void SetTracker(imgStatusTracker* aTracker) {
     mTracker = aTracker;
   }
@@ -316,6 +314,9 @@ public:
     LOG_SCOPE(GetImgLog(), "imgStatusTrackerObserver::OnError");
     mTracker->RecordError();
   }
+
+protected:
+  virtual ~imgStatusTrackerObserver() {}
 
 private:
   imgStatusTracker* mTracker;
