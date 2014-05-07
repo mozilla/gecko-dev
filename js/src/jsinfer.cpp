@@ -3903,17 +3903,6 @@ TypeObject::sweep(FreeOp *fop)
 }
 
 void
-TypeCompartment::clearTables()
-{
-    if (allocationSiteTable && allocationSiteTable->initialized())
-        allocationSiteTable->clear();
-    if (arrayTypeTable && arrayTypeTable->initialized())
-        arrayTypeTable->clear();
-    if (objectTypeTable && objectTypeTable->initialized())
-        objectTypeTable->clear();
-}
-
-+void
 TypeCompartment::sweep(FreeOp *fop)
 {
     /*
