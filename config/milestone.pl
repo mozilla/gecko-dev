@@ -72,9 +72,10 @@ if (@TEMPLATE_FILE) {
     }
   }
 } elsif(defined($opt_uaversion)) {
-  # Only expose the major milestone in the UA string, hide the patch level
-  # (bugs 572659 and 870868).
-  my $uaversion = Moz::Milestone::getMilestoneMajor($milestone) . ".0";
+  my $uaversion = Moz::Milestone::getMilestoneMajor($milestone) . "." .
+                   Moz::Milestone::getMilestoneMinor($milestone);
+  # strip off trailing pre-release indicators
+  $uaversion =~ s/[a-z]+\d*$//;
   print "$uaversion\n";
 } elsif(defined($opt_symbolversion)) {
   # Only expose major milestone and alpha version. Used for symbol versioning
