@@ -94,9 +94,9 @@
   <project name="platform/system/netd" path="system/netd" revision="3d298fde142bee3fc4f07f63f16f2d8ce42339c0"/>
   <project name="platform/system/vold" path="system/vold" revision="919829940468066a32f403980b43f6ebfee5d314"/>
   <!-- sprd things -->
-  <project name="kernel/common" path="kernel" remote="sprd-aosp" revision="a100634b412d0bd950fc9e537d7b512938ae6252"/>
+  <project name="kernel/common" path="kernel" remote="sprd-aosp" revision="601a3aa72978482d90836120acfef4a840d0014d"/>
   <project name="u-boot" path="u-boot" remote="sprd-aosp" revision="f622abe55d61181554ae2b9d2fe2a728b1583828"/>
-  <project name="device/sprd" path="device/sprd" remote="sprd-aosp" revision="3eb742cfa8633675447e95de6a54da9a991171e3"/>
+  <project name="device/sprd" path="device/sprd" remote="sprd-aosp" revision="340442ea982577526e8fec24b18654ea10a1ea16"/>
   <project name="vendor/sprd/proprietories" path="vendor/sprd/proprietories" remote="sprd-aosp" revision="70b4f1563adcc2734970652e77cb121d01c4c1ea"/>
   <project name="orangutan" path="orangutan" remote="sprd-b2g" revision="b3bdf5bc26b745de75c2f37548f250f63242a313"/>
 </manifest>
