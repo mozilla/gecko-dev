@@ -422,7 +422,6 @@ package-tests: \
   stage-marionette \
   stage-cppunittests \
   stage-jittest \
-  stage-steeplechase \
   $(NULL)
 else
 # This staging area has been built for us by universal/flight.mk
@@ -582,6 +581,5 @@ stage-mozbase: make-stage-dir
   stage-tps \
   stage-modules \
   stage-marionette \
-  stage-steeplechase \
   $(NULL)
 

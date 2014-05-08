@@ -100,9 +100,6 @@ var ecmaGlobals =
 var legacyMozPrefixedInterfaces =
   [
     "mozContact",
-    "mozRTCIceCandidate",
-    "mozRTCPeerConnection",
-    "mozRTCSessionDescription",
   ];
 // IMPORTANT: Do not change the list above without review from a DOM peer,
 //            except to remove items from it!
@@ -185,7 +182,6 @@ var interfaceNamesInGlobalScope =
     "CSSValue",
     "CSSValueList",
     "CustomEvent",
-    "DataChannel",
     "DataContainerEvent",
     {name: "DataErrorEvent", b2g: true, pref: "dom.mobileconnection.enabled"},
     {name: "DataStore", b2g: true},
@@ -350,7 +346,6 @@ var interfaceNamesInGlobalScope =
     "MediaStream",
     "MediaStreamAudioDestinationNode",
     "MediaStreamAudioSourceNode",
-    {name: "MediaStreamEvent", pref: "media.peerconnection.enabled"},
     "MediaStreamTrack",
     "MessageEvent",
     "MessagePort",
@@ -386,9 +381,6 @@ var interfaceNamesInGlobalScope =
     {name: "MozNFCTag", b2g: true},
     {name: "MozOtaStatusEvent", b2g: true, pref: "dom.mobileconnection.enabled"},
     "MozPowerManager",
-    {name: "mozRTCIceCandidate", pref: "media.peerconnection.enabled"},
-    {name: "mozRTCPeerConnection", pref: "media.peerconnection.enabled"},
-    {name: "mozRTCSessionDescription", pref: "media.peerconnection.enabled"},
     "MozSettingsEvent",
     "MozSmsEvent",
     "MozSmsFilter",
@@ -440,9 +432,6 @@ var interfaceNamesInGlobalScope =
     "RecordErrorEvent",
     "Rect",
     "RGBColor",
-    {name: "RTCDataChannelEvent", pref: "media.peerconnection.enabled"},
-    {name: "RTCPeerConnectionIceEvent", pref: "media.peerconnection.enabled"},
-    {name: "RTCStatsReport", pref: "media.peerconnection.enabled"},
     "Screen",
     "ScriptProcessorNode",
     "ScrollAreaEvent",
