@@ -6,7 +6,7 @@
 // Tests that code completion works properly.
 
 function test() {
-  addTab("about:credits");
+  addTab("about:config");
   browser.addEventListener("load", function onLoad() {
     browser.removeEventListener("load", onLoad, true);
     openConsole(null, testChrome);
