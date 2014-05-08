@@ -33,10 +33,10 @@ struct nsIntRect;
  * loaded data fire before the call returns. If FLAG_SYNC_DECODE is not passed,
  * all, some, or none of the notifications may fire before the call returns.
  */
-class imgDecoderObserver : public mozilla::RefCounted<imgDecoderObserver>
+class imgDecoderObserver
 {
 public:
-  virtual ~imgDecoderObserver() = 0;
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(imgDecoderObserver);
 
   /**
    * Load notification.
@@ -125,6 +125,9 @@ public:
    * Called when an image is realized to be in error state.
    */
   virtual void OnError() = 0;
+
+protected:
+  virtual ~imgDecoderObserver() = 0;
 };
 
 // We must define a destructor because derived classes call our destructor from
