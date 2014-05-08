@@ -13,7 +13,7 @@
   <remote fetch="https://git.mozilla.org/external/sprd-b2g" name="sprd-b2g"/>
   <default remote="sprd-aosp" revision="refs/tags/android-4.0.4_r2.1" sync-j="4"/>
   <!-- Gonk specific things and forks -->
-  <project name="platform_build" path="build" remote="b2g" revision="4e0d6364bef160fc5fccec81356ff49082ee06e9">
+  <project name="platform_build" path="build" remote="b2g" revision="cce40fddacca0549c940bd58b89a1a1433eac72b">
     <copyfile dest="Makefile" src="core/root.mk"/>
   </project>
   <project name="fake-dalvik" path="dalvik" remote="b2g" revision="5de4d379bb3c2f5f217bd8bebef95840f0de0f6a"/>
