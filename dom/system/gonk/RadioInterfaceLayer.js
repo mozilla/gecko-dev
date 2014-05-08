@@ -2245,8 +2245,7 @@ RadioInterface.prototype = {
         gMessageManager.sendVoicemailMessage("RIL:VoicemailNotification",
                                              this.clientId, message.mwi);
         break;
-      case "USSDReceived":
-        if (DEBUG) this.debug("USSDReceived " + JSON.stringify(message));
+      case "ussdreceived":
         this.handleUSSDReceived(message);
         break;
       case "stkcommand":
@@ -3329,8 +3328,10 @@ RadioInterface.prototype = {
   },
 
   handleUSSDReceived: function(ussd) {
-    if (DEBUG) this.debug("handleUSSDReceived " + JSON.stringify(ussd));
-    gSystemMessenger.broadcastMessage("ussd-received", ussd);
+    gSystemMessenger.broadcastMessage("ussd-received",
+                                      {message: ussd.message,
+                                       sessionEnded: ussd.sessionEnded,
+                                       serviceId: this.clientId});
     gMessageManager.sendMobileConnectionMessage("RIL:USSDReceived",
                                                 this.clientId, ussd);
   },
