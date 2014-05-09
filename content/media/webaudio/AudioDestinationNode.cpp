@@ -241,6 +241,7 @@ NS_IMPL_RELEASE_INHERITED(AudioDestinationNode, AudioNode)
 
 AudioDestinationNode::AudioDestinationNode(AudioContext* aContext,
                                            bool aIsOffline,
+                                           AudioChannel aChannel,
                                            uint32_t aNumberOfChannels,
                                            uint32_t aLength,
                                            float aSampleRate)
@@ -264,6 +265,12 @@ AudioDestinationNode::AudioDestinationNode(AudioContext* aContext,
                             static_cast<AudioNodeEngine*>(new DestinationNodeEngine(this));
 
   mStream = graph->CreateAudioNodeStream(engine, MediaStreamGraph::EXTERNAL_STREAM);
+  mStream->SetAudioChannelType(aChannel);
+
+  if (aChannel != AudioChannel::Normal) {
+    ErrorResult rv;
+    SetMozAudioChannelType(aChannel, rv);
+  }
 
   if (!aIsOffline && UseAudioChannelService()) {
     nsCOMPtr<nsIDOMEventTarget> target = do_QueryInterface(GetOwner());

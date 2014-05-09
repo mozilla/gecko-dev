@@ -16,6 +16,7 @@
 #include "VideoFrameContainer.h"
 #include "VideoSegment.h"
 #include "MainThreadUtils.h"
+#include "mozilla/dom/AudioChannelBinding.h"
 
 class nsIRunnable;
 
@@ -490,6 +491,8 @@ public:
     return true;
   }
 
+  void SetAudioChannelType(dom::AudioChannel aType) { mAudioChannelType = aType; }
+
 protected:
   virtual void AdvanceTimeVaryingValuesToCurrentTime(GraphTime aCurrentTime, GraphTime aBlockedTime)
   {
@@ -607,6 +610,8 @@ protected:
 
   // Our media stream graph
   MediaStreamGraphImpl* mGraph;
+
+  dom::AudioChannel mAudioChannelType;
 };
 
 /**
