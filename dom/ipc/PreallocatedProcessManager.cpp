@@ -54,6 +54,7 @@ public:
   void DelayedNuwaFork();
   void PublishSpareProcess(ContentParent* aContent);
   void MaybeForgetSpare(ContentParent* aContent);
+  bool IsNuwaReady();
   void OnNuwaReady();
   bool PreallocatedProcessReady();
   already_AddRefed<ContentParent> GetSpareProcess();
@@ -347,6 +348,12 @@ PreallocatedProcessManagerImpl::MaybeForgetSpare(ContentParent* aContent)
   }
 }
 
+bool
+PreallocatedProcessManagerImpl::IsNuwaReady()
+{
+  return mIsNuwaReady;
+}
+
 void
 PreallocatedProcessManagerImpl::OnNuwaReady()
 {
@@ -506,6 +513,12 @@ PreallocatedProcessManager::MaybeForgetSpare(ContentParent* aContent)
 PreallocatedProcessManager::OnNuwaReady()
 {
   GetPPMImpl()->OnNuwaReady();
+}
+
+/* static */ bool
+PreallocatedProcessManager::IsNuwaReady()
+{
+  return GetPPMImpl()->IsNuwaReady();
 }
 
 /*static */ bool
