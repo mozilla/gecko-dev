@@ -141,5 +141,5 @@
   <project name="platform/system/bluetooth" path="system/bluetooth" revision="e1eb226fa3ad3874ea7b63c56a9dc7012d7ff3c2"/>
   <project name="platform/system/core" path="system/core" revision="bbf7212289fc8311e43f9d11e10788e310d36a08"/>
   <project name="platform/system/qcom" path="system/qcom" revision="1cdab258b15258b7f9657da70e6f06ebd5a2fc25"/>
-  <project name="platform/vendor/qcom/msm8610" path="device/qcom/msm8610" revision="b3001d5f1686f89995b7bf70963cf69c8faebd83"/>
+  <project name="platform/vendor/qcom/msm8610" path="device/qcom/msm8610" revision="4ae5df252123591d5b941191790e7abed1bce5a4"/>
 </manifest>
