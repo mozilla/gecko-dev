@@ -976,6 +976,9 @@ EraseLayerState(uint64_t aId)
 CompositorParent::DeallocateLayerTreeId(uint64_t aId)
 {
   MOZ_ASSERT(NS_IsMainThread());
+  // Here main thread notifies compositor to remove an element from
+  // sIndirectLayerTrees. This removed element might be queried soon.
+  // Checking the elements of sIndirectLayerTrees exist or not before using.
   CompositorLoop()->PostTask(FROM_HERE,
                              NewRunnableFunction(&EraseLayerState, aId));
 }
@@ -1192,9 +1195,15 @@ CrossProcessCompositorParent::AllocPLayerTransactionParent(const nsTArray<Layers
 {
   MOZ_ASSERT(aId != 0);
 
-  if (sIndirectLayerTrees[aId].mLayerManager) {
-    sIndirectLayerTrees[aId].mCrossProcessParent = this;
-    LayerManagerComposite* lm = sIndirectLayerTrees[aId].mLayerManager;
+  CompositorParent::LayerTreeState* state = nullptr;
+  LayerTreeMap::iterator itr = sIndirectLayerTrees.find(aId);
+  if (sIndirectLayerTrees.end() != itr) {
+    state = &itr->second;
+  }
+
+  if (state && state->mLayerManager) {
+    state->mCrossProcessParent = this;
+    LayerManagerComposite* lm = state->mLayerManager;
     *aTextureFactoryIdentifier = lm->GetCompositor()->GetTextureFactoryIdentifier();
     *aSuccess = true;
     LayerTransactionParent* p = new LayerTransactionParent(lm, this, aId);
@@ -1223,7 +1232,13 @@ CrossProcessCompositorParent::DeallocPLayerTransactionParent(PLayerTransactionPa
 bool
 CrossProcessCompositorParent::RecvNotifyChildCreated(const uint64_t& child)
 {
-  sIndirectLayerTrees[child].mParent->NotifyChildCreated(child);
+  const CompositorParent::LayerTreeState* state = CompositorParent::GetIndirectShadowTree(child);
+  if (!state) {
+    return false;
+  }
+
+  MOZ_ASSERT(state->mParent);
+  state->mParent->NotifyChildCreated(child);
   return true;
 }
 
@@ -1237,9 +1252,12 @@ CrossProcessCompositorParent::ShadowLayersUpdated(
   uint64_t id = aLayerTree->GetId();
 
   MOZ_ASSERT(id != 0);
-  MOZ_ASSERT(sIndirectLayerTrees[id].mParent);
-
-  sIndirectLayerTrees[id].mParent->ScheduleRotationOnCompositorThread(aTargetConfig, aIsFirstPaint);
+  const CompositorParent::LayerTreeState* state = CompositorParent::GetIndirectShadowTree(id);
+  if (!state) {
+    return;
+  }
+  MOZ_ASSERT(state->mParent);
+  state->mParent->ScheduleRotationOnCompositorThread(aTargetConfig, aIsFirstPaint);
 
   Layer* shadowRoot = aLayerTree->GetRoot();
   if (shadowRoot) {
@@ -1247,7 +1265,7 @@ CrossProcessCompositorParent::ShadowLayersUpdated(
   }
   UpdateIndirectTree(id, shadowRoot, aTargetConfig);
 
-  sIndirectLayerTrees[id].mParent->NotifyShadowTreeTransaction(id, aIsFirstPaint, aScheduleComposite);
+  state->mParent->NotifyShadowTreeTransaction(id, aIsFirstPaint, aScheduleComposite);
 }
 
 void
@@ -1262,7 +1280,13 @@ AsyncCompositionManager*
 CrossProcessCompositorParent::GetCompositionManager(LayerTransactionParent* aLayerTree)
 {
   uint64_t id = aLayerTree->GetId();
-  return sIndirectLayerTrees[id].mParent->GetCompositionManager(aLayerTree);
+  const CompositorParent::LayerTreeState* state = CompositorParent::GetIndirectShadowTree(id);
+  if (!state) {
+    return nullptr;
+  }
+
+  MOZ_ASSERT(state->mParent);
+  return state->mParent->GetCompositionManager(aLayerTree);
 }
 
 void
