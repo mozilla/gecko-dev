@@ -744,15 +744,32 @@ Editor.prototype = {
     let div = doc.createElement("div");
     let inp = doc.createElement("input");
     let txt = doc.createTextNode(L10N.GetStringFromName("gotoLineCmd.promptTitle"));
-
+    // Match @Scratchpad/N:LINE[:COLUMN], (LINE[:COLUMN]) anywhere,
+    // or LINE[:COLUMN] just at begin of text selection.
+    let reLineSpec = /(?:@Scratchpad\/\d+:|\(|^)(\d+):?(\d+)?/g;
     inp.type = "text";
     inp.style.width = "10em";
     inp.style.MozMarginStart = "1em";
+    let cm = editors.get(this);
+    let sel = cm.listSelections().length === 1 ? cm.getSelection() : undefined;
+    if (sel) {
+      // Try matching reLineSpec in an active text selection,
+      // e.g. inserted by running or pretty-printing code with errors.
+      let lineSpec = reLineSpec.exec(sel);
+      if (lineSpec) {
+        let [ match, line, column ] = lineSpec;
+        inp.value = column ? line+":"+column : line;
+      }
+    }
 
     div.appendChild(txt);
     div.appendChild(inp);
 
-    this.openDialog(div, (line) => this.setCursor({ line: line - 1, ch: 0 }));
+    this.openDialog(div, (line) => {
+      // Handle LINE:COLUMN as well as LINE
+      let [ match, line, column ] = line.match(/(\d+):?(\d+)?/);
+      this.setCursor({ line: (line - 1 || 0), ch: (column - 1 || 0) });
+    });
   },
 
   /**
