@@ -699,6 +699,19 @@ Telephony::NotifyError(uint32_t aServiceId,
                        int32_t aCallIndex,
                        const nsAString& aError)
 {
+  // Special handler for dial failure.
+  if (aCallIndex == -1) {
+    nsRefPtr<TelephonyCall> call = GetOutgoingCall();
+
+    // The function could be called on all telephony objects. However the
+    // OutgoingCall only exists in one telephony object which dial it out. Thus,
+    // for other telpehony objects, it is not an error to get a null result.
+    if (call) {
+      call->NotifyError(aError);
+    }
+    return NS_OK;
+  }
+
   if (mCalls.IsEmpty()) {
     NS_ERROR("No existing call!");
     return NS_ERROR_UNEXPECTED;
