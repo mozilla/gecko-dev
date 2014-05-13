@@ -199,14 +199,18 @@ NetworkManager.prototype = {
               gNetworkService.removeHostRoutes(network.name);
               gNetworkService.addHostRoute(network);
             }
-            // Add extra host route. For example, mms proxy or mmsc.
-            this.setExtraHostRoute(network);
 #endif
             // Remove pre-created default route and let setAndConfigureActive()
             // to set default route only on preferred network
             gNetworkService.removeDefaultRoute(network.name);
             this.setAndConfigureActive();
 #ifdef MOZ_B2G_RIL
+            // Resolve and add extra host route. For example, mms proxy or mmsc.
+            // IMPORTANT: The offline state of DNSService will be set implicitly in
+            //            setAndConfigureActive() by modifying Services.io.offline.
+            //            Always setExtraHostRoute() after setAndConfigureActive().
+            this.setExtraHostRoute(network);
+
             // Update data connection when Wifi connected/disconnected
             if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_WIFI) {
               for (let i = 0; i < this.mRil.numRadioInterfaces; i++) {
@@ -587,7 +591,9 @@ NetworkManager.prototype = {
           retval.push(hostnameIps.getNextAddrAsString());
           debug("Found IP at: " + JSON.stringify(retval));
         }
-      } catch (e) {}
+      } catch (e) {
+        debug("Failed to resolve '" + hostname + "', exception: " + e);
+      }
     }
 
     return retval;
