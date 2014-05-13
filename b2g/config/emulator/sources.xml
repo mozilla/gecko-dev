@@ -101,7 +101,7 @@
   <project name="device_generic_goldfish" path="device/generic/goldfish" remote="b2g" revision="5be0a9c4b3c6c004786917fdb5bee248960d045b"/>
   <project name="platform/prebuilts/gcc/linux-x86/host/i686-linux-glibc2.7-4.6" path="prebuilts/gcc/linux-x86/host/i686-linux-glibc2.7-4.6" revision="d2685281e2e54ca14d1df304867aa82c37b27162"/>
   <project name="platform/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.7-4.6" path="prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.7-4.6" revision="627f9b20fc518937b93747a7ff1ed4f5ed46e06f"/>
-  <project name="platform/prebuilts/tools" path="prebuilts/tools" revision="f19ba22ba6973804628781606bc072d18f3f79c2"/>
+  <project name="platform/prebuilts/tools" path="prebuilts/tools" revision="acba00cdb4596c6dcb61ed06f14cf4ec89623539"/>
   <project name="platform_prebuilts_qemu-kernel" path="prebuilts/qemu-kernel" remote="b2g" revision="83dbccadb19d0d3c07828c2bb0e5c2be12c0f980"/>
   <project name="android-sdk" path="sdk" remote="b2g" revision="5701d3cb45c2e848cc57003cda2e1141288ecae4"/>
 </manifest>
