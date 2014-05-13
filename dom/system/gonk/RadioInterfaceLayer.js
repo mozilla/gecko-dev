@@ -2137,6 +2137,10 @@ RadioInterface.prototype = {
   handleUnsolicitedWorkerMessage: function(message) {
     let connHandler = gDataConnectionManager.getConnectionHandler(this.clientId);
     switch (message.rilMessageType) {
+      case "callError":
+        gTelephonyProvider.notifyCallError(this.clientId, message.callIndex,
+                                           message.errorMsg);
+        break;
       case "callRing":
         gTelephonyProvider.notifyCallRing();
         break;

@@ -1495,6 +1495,10 @@ RilObject.prototype = {
   },
 
   sendDialRequest: function(options) {
+    // Always suceed.
+    options.success = true;
+    this.sendChromeMessage(options);
+
     let Buf = this.context.Buf;
     Buf.newParcel(options.request, options);
     Buf.writeString(options.number);
@@ -5263,16 +5267,17 @@ RilObject.prototype[REQUEST_GET_CURRENT_CALLS] = function REQUEST_GET_CURRENT_CA
   this._processCalls(calls);
 };
 RilObject.prototype[REQUEST_DIAL] = function REQUEST_DIAL(length, options) {
-  options.success = (options.rilRequestError === 0);
-  if (options.success) {
-    this.sendChromeMessage(options);
-  } else {
-    this.getFailCauseCode((function(options, failCause) {
-      options.errorMsg = failCause;
-      this.sendChromeMessage(options);
-    }).bind(this, options));
+  if (options.rilRequestError) {
+    this.getFailCauseCode((function(failCause) {
+      this.sendChromeMessage({
+        rilMessageType: "callError",
+        callIndex: -1,
+        errorMsg: failCause
+      });
+    }).bind(this));
   }
 };
+RilObject.prototype[REQUEST_DIAL_EMERGENCY_CALL] = RilObject.prototype[REQUEST_DIAL];
 RilObject.prototype[REQUEST_GET_IMSI] = function REQUEST_GET_IMSI(length, options) {
   if (options.rilRequestError) {
     return;
