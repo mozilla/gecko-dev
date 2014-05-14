@@ -114,7 +114,8 @@ protected:
   virtual already_AddRefed<RecorderProfileManager> GetRecorderProfileManagerImpl() MOZ_OVERRIDE;
   already_AddRefed<GonkRecorderProfileManager> GetGonkRecorderProfileManager();
 
-  nsresult SetupRecording(int aFd, int aRotation, int64_t aMaxFileSizeBytes, int64_t aMaxVideoLengthMs);
+  nsresult SetupRecording(int aFd, int aRotation, uint64_t aMaxFileSizeBytes,
+                          uint64_t aMaxVideoLengthMs);
   nsresult SetupVideoMode(const nsAString& aProfile);
   nsresult SetPreviewSize(const Size& aSize);
   nsresult SetVideoSize(const Size& aSize);
