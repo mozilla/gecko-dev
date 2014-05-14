@@ -26,6 +26,7 @@ namespace layers {
 class LayerTransactionChild : public PLayerTransactionChild
                             , public AtomicRefCounted<LayerTransactionChild>
 {
+  typedef InfallibleTArray<AsyncParentMessageData> AsyncParentMessageArray;
 public:
   MOZ_DECLARE_REFCOUNTED_TYPENAME(LayerTransactionChild)
   /**
@@ -70,7 +71,7 @@ protected:
   virtual bool DeallocPTextureChild(PTextureChild* actor) MOZ_OVERRIDE;
 
   virtual bool
-  RecvParentAsyncMessage(const mozilla::layers::AsyncParentMessageData& aMessage) MOZ_OVERRIDE;
+  RecvParentAsyncMessage(const InfallibleTArray<AsyncParentMessageData>& aMessages) MOZ_OVERRIDE;
 
   virtual void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
 

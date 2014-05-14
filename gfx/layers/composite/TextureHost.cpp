@@ -10,7 +10,6 @@
 #include "gfxImageSurface.h"            // for gfxImageSurface
 #include "mozilla/gfx/2D.h"             // for DataSourceSurface, Factory
 #include "mozilla/ipc/Shmem.h"          // for Shmem
-#include "mozilla/layers/AsyncTransactionTracker.h" // for AsyncTransactionTracker
 #include "mozilla/layers/CompositableTransactionParent.h" // for CompositableParentManager
 #include "mozilla/layers/Compositor.h"  // for Compositor
 #include "mozilla/layers/ISurfaceAllocator.h"  // for ISurfaceAllocator
@@ -38,36 +37,6 @@ struct nsIntPoint;
 
 namespace mozilla {
 namespace layers {
-
-#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
-// FenceDeliveryTracker puts off releasing a Fence until a transaction complete.
-class FenceDeliveryTracker : public AsyncTransactionTracker {
-public:
-  FenceDeliveryTracker(const android::sp<android::Fence>& aFence)
-    : mFence(aFence)
-  {
-    MOZ_COUNT_CTOR(FenceDeliveryTracker);
-  }
-
-  ~FenceDeliveryTracker()
-  {
-    MOZ_COUNT_DTOR(FenceDeliveryTracker);
-  }
-
-  virtual void Complete() MOZ_OVERRIDE
-  {
-    mFence = nullptr;
-  }
-
-  virtual void Cancel() MOZ_OVERRIDE
-  {
-    mFence = nullptr;
-  }
-
-private:
-  android::sp<android::Fence> mFence;
-};
-#endif
 
 /**
  * TextureParent is the host-side IPDL glue between TextureClient and TextureHost.

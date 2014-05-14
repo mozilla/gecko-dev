@@ -217,7 +217,7 @@ LayerTransactionParent::RecvUpdate(const InfallibleTArray<Edit>& cset,
   }
 
   // Clear fence handles used in previsou transaction.
-  ClearPrevFenceHandles();
+  DeprecatedClearPrevFenceHandles();
 
   EditReplyVector replyv;
 
@@ -827,9 +827,17 @@ LayerTransactionParent::SendFenceHandle(AsyncTransactionTracker* aTracker,
                                         const FenceHandle& aFence)
 {
   HoldUntilComplete(aTracker);
-  mozilla::unused << SendParentAsyncMessage(OpDeliverFence(aTracker->GetId(),
+  InfallibleTArray<AsyncParentMessageData> messages;
+  messages.AppendElement(OpDeliverFence(aTracker->GetId(),
                                         aTexture, nullptr,
                                         aFence));
+  mozilla::unused << SendParentAsyncMessage(messages);
+}
+
+void
+LayerTransactionParent::SendAsyncMessage(const InfallibleTArray<AsyncParentMessageData>& aMessage)
+{
+  mozilla::unused << SendParentAsyncMessage(aMessage);
 }
 
 } // namespace layers
