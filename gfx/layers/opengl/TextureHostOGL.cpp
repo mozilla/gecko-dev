@@ -156,6 +156,7 @@ WrapMode(gl::GLContext *aGl, bool aAllowRepeat)
 
 CompositableDataGonkOGL::CompositableDataGonkOGL()
  : mTexture(0)
+ , mBoundEGLImage(EGL_NO_IMAGE)
 {
 }
 CompositableDataGonkOGL::~CompositableDataGonkOGL()
@@ -198,6 +199,25 @@ CompositableDataGonkOGL::DeleteTextureIfPresent()
       gl()->fDeleteTextures(1, &mTexture);
     }
     mTexture = 0;
+    mBoundEGLImage = EGL_NO_IMAGE;
+  }
+}
+
+void
+CompositableDataGonkOGL::BindEGLImage(GLuint aTarget, EGLImage aImage)
+{
+  if (mBoundEGLImage != aImage) {
+    gl()->fEGLImageTargetTexture2D(aTarget, aImage);
+    mBoundEGLImage = aImage;
+  }
+}
+
+void
+CompositableDataGonkOGL::ClearBoundEGLImage(EGLImage aImage)
+{
+  if (mBoundEGLImage == aImage) {
+    DeleteTextureIfPresent();
+    mBoundEGLImage = EGL_NO_IMAGE;
   }
 }
 
