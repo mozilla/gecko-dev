@@ -409,7 +409,8 @@ ShadowLayerForwarder::AllocGrallocBuffer(const gfx::IntSize& aSize,
                                          uint32_t aUsage,
                                          MaybeMagicGrallocBufferHandle* aHandle)
 {
-  if (!mShadowManager->IPCOpen()) {
+  if (!HasShadowManager() ||
+      !mShadowManager->IPCOpen()) {
     return nullptr;
   }
   return mShadowManager->SendPGrallocBufferConstructor(aSize, aFormat, aUsage, aHandle);
