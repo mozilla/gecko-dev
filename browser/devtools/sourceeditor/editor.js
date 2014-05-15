@@ -767,8 +767,10 @@ Editor.prototype = {
 
     this.openDialog(div, (line) => {
       // Handle LINE:COLUMN as well as LINE
-      let [ match, line, column ] = line.match(/(\d+):?(\d+)?/);
-      this.setCursor({ line: (line - 1 || 0), ch: (column - 1 || 0) });
+      let [ match, line, column ] = line.match(/^(\d+)?:?(\d+)?/);
+      this.setCursor({
+          line: line > 0 ? line - 1 : 0,
+          ch: column > 0 ? column - 1 : 0 });
     });
   },
 
