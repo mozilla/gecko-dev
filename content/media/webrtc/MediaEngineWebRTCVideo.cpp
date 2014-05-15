@@ -240,7 +240,7 @@ MediaEngineWebRTCVideoSource::Allocate(const MediaEnginePrefs &aPrefs)
   ReentrantMonitorAutoEnter sync(mCallbackMonitor);
   if (mState == kReleased && mInitDone) {
     ChooseCapability(aPrefs);
-    NS_DispatchToMainThread(WrapRunnable(this,
+    NS_DispatchToMainThread(WrapRunnable(nsRefPtr<MediaEngineWebRTCVideoSource>(this),
                                          &MediaEngineWebRTCVideoSource::AllocImpl));
     mCallbackMonitor.Wait();
     if (mState != kAllocated) {
@@ -284,7 +284,7 @@ MediaEngineWebRTCVideoSource::Deallocate()
 #ifdef MOZ_B2G_CAMERA
     // We do not register success callback here
 
-    NS_DispatchToMainThread(WrapRunnable(this,
+    NS_DispatchToMainThread(WrapRunnable(nsRefPtr<MediaEngineWebRTCVideoSource>(this),
                                          &MediaEngineWebRTCVideoSource::DeallocImpl));
     mCallbackMonitor.Wait();
     if (mState != kReleased) {
@@ -344,7 +344,7 @@ MediaEngineWebRTCVideoSource::Start(SourceMediaStream* aStream, TrackID aID)
   mImageContainer = layers::LayerManager::CreateImageContainer();
 
 #ifdef MOZ_B2G_CAMERA
-  NS_DispatchToMainThread(WrapRunnable(this,
+  NS_DispatchToMainThread(WrapRunnable(nsRefPtr<MediaEngineWebRTCVideoSource>(this),
                                        &MediaEngineWebRTCVideoSource::StartImpl,
                                        mCapability));
   mCallbackMonitor.Wait();
@@ -398,7 +398,7 @@ MediaEngineWebRTCVideoSource::Stop(SourceMediaStream *aSource, TrackID aID)
     mImage = nullptr;
   }
 #ifdef MOZ_B2G_CAMERA
-  NS_DispatchToMainThread(WrapRunnable(this,
+  NS_DispatchToMainThread(WrapRunnable(nsRefPtr<MediaEngineWebRTCVideoSource>(this),
                                        &MediaEngineWebRTCVideoSource::StopImpl));
 #else
   mViERender->StopRender(mCaptureIndex);
@@ -614,24 +614,35 @@ MediaEngineWebRTCVideoSource::OnHardwareStateChange(HardwareState aState)
       mCallbackMonitor.Notify();
     }
   } else {
-    mCameraControl->Get(CAMERA_PARAM_SENSORANGLE, mCameraAngle);
-    MOZ_ASSERT(mCameraAngle == 0 || mCameraAngle == 90 || mCameraAngle == 180 ||
-               mCameraAngle == 270);
-    hal::ScreenConfiguration aConfig;
-    hal::GetCurrentScreenConfiguration(&aConfig);
-
-    nsCString deviceName;
-    ICameraControl::GetCameraName(mCaptureIndex, deviceName);
-    if (deviceName.EqualsASCII("back")) {
-      mBackCamera = true;
-    }
-
-    mRotation = GetRotateAmount(aConfig.orientation(), mCameraAngle, mBackCamera);
-    LOG(("*** Initial orientation: %d (Camera %d Back %d MountAngle: %d)",
-         mRotation, mCaptureIndex, mBackCamera, mCameraAngle));
+    // Can't read this except on MainThread (ugh)
+    NS_DispatchToMainThread(WrapRunnable(nsRefPtr<MediaEngineWebRTCVideoSource>(this),
+                                         &MediaEngineWebRTCVideoSource::GetRotation));
     mState = kStarted;
     mCallbackMonitor.Notify();
   }
+}
+
+void
+MediaEngineWebRTCVideoSource::GetRotation()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MonitorAutoLock enter(mMonitor);
+
+  mCameraControl->Get(CAMERA_PARAM_SENSORANGLE, mCameraAngle);
+  MOZ_ASSERT(mCameraAngle == 0 || mCameraAngle == 90 || mCameraAngle == 180 ||
+             mCameraAngle == 270);
+  hal::ScreenConfiguration aConfig;
+  hal::GetCurrentScreenConfiguration(&aConfig);
+
+  nsCString deviceName;
+  ICameraControl::GetCameraName(mCaptureIndex, deviceName);
+  if (deviceName.EqualsASCII("back")) {
+    mBackCamera = true;
+  }
+
+  mRotation = GetRotateAmount(aConfig.orientation(), mCameraAngle, mBackCamera);
+  LOG(("*** Initial orientation: %d (Camera %d Back %d MountAngle: %d)",
+       mRotation, mCaptureIndex, mBackCamera, mCameraAngle));
 }
 
 void
