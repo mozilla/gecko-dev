@@ -85,6 +85,20 @@ CompositableClient::GetAsyncID() const
   return 0; // zero is always an invalid async ID
 }
 
+/* static */ void
+CompositableClient::TransactionCompleteted(PCompositableChild* aActor, uint64_t aTransactionId)
+{
+  CompositableChild* child = static_cast<CompositableChild*>(aActor);
+  child->TransactionCompleteted(aTransactionId);
+}
+
+/* static */ void
+CompositableClient::HoldUntilComplete(PCompositableChild* aActor, AsyncTransactionTracker* aTracker)
+{
+  CompositableChild* child = static_cast<CompositableChild*>(aActor);
+  child->HoldUntilComplete(aTracker);
+}
+
 
 void
 CompositableChild::Destroy()

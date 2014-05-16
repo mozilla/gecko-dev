@@ -256,6 +256,21 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
       }
       break;
     }
+    case CompositableOperation::TOpRemoveTextureAsync: {
+      const OpRemoveTextureAsync& op = aEdit.get_OpRemoveTextureAsync();
+      CompositableHost* compositable = AsCompositable(op);
+      RefPtr<TextureHost> tex = TextureHost::AsTextureHost(op.textureParent());
+
+      MOZ_ASSERT(tex.get());
+      compositable->RemoveTextureHost(tex);
+      // send FenceHandle if present.
+      TextureHost::SendFenceHandleIfPresent(op.textureParent());
+
+      ReplyRemoveTexture(OpReplyRemoveTexture(op.transactionId(),
+                                              op.compositableParent(), nullptr,
+                                              tex->GetIPDLActor(), nullptr));
+      break;
+    }
     case CompositableOperation::TOpUseTexture: {
       const OpUseTexture& op = aEdit.get_OpUseTexture();
       CompositableHost* compositable = AsCompositable(op);

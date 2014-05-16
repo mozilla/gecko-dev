@@ -53,6 +53,9 @@ public:
             const TextureFlags& aFlags);
 
   void CompositorRecycle();
+
+  void SendFenceHandleIfPresent();
+
   virtual bool RecvClientRecycle() MOZ_OVERRIDE;
 
   virtual bool RecvRemoveTexture() MOZ_OVERRIDE;
@@ -170,6 +173,14 @@ DeprecatedTextureHost::CreateDeprecatedTextureHost(SurfaceDescriptorType aDescri
     default:
       MOZ_CRASH("Couldn't create texture host");
   }
+}
+
+// static
+void
+TextureHost::SendFenceHandleIfPresent(PTextureParent* actor)
+{
+  TextureParent* parent = static_cast<TextureParent*>(actor);
+  parent->SendFenceHandleIfPresent();
 }
 
 // implemented in TextureHostOGL.cpp
@@ -764,7 +775,19 @@ void
 TextureParent::CompositorRecycle()
 {
   mTextureHost->ClearRecycleCallback();
+  SendFenceHandleIfPresent();
 
+  if (mTextureHost->GetFlags() & TEXTURE_RECYCLE) {
+    mozilla::unused << SendCompositorRecycle();
+    // Don't forget to prepare for the next reycle
+    // if TextureClient request it.
+    mWaitForClientRecycle = mTextureHost;
+  }
+}
+
+void
+TextureParent::SendFenceHandleIfPresent()
+{
 #if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
   if (mTextureHost) {
     TextureHostOGL* hostOGL = mTextureHost->AsHostOGL();
@@ -779,13 +802,6 @@ TextureParent::CompositorRecycle()
     }
   }
 #endif
-
-  if (mTextureHost->GetFlags() & TEXTURE_RECYCLE) {
-    mozilla::unused << SendCompositorRecycle();
-    // Don't forget to prepare for the next reycle
-    // if TextureClient request it.
-    mWaitForClientRecycle = mTextureHost;
-  }
 }
 
 bool

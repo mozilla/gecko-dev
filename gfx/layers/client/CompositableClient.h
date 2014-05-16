@@ -12,6 +12,7 @@
 #include "mozilla/Assertions.h"         // for MOZ_CRASH
 #include "mozilla/RefPtr.h"             // for TemporaryRef, RefCounted
 #include "mozilla/gfx/Types.h"          // for SurfaceFormat
+#include "mozilla/layers/AsyncTransactionTracker.h" // for AsyncTransactionTracker
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/LayersTypes.h"  // for LayersBackend
 #include "mozilla/layers/PCompositableChild.h"  // for PCompositableChild
@@ -150,6 +151,10 @@ public:
    */
   virtual void ClearCachedResources() {}
 
+  static void TransactionCompleteted(PCompositableChild* aActor, uint64_t aTransactionId);
+
+  static void HoldUntilComplete(PCompositableChild* aActor, AsyncTransactionTracker* aTracker);
+
 protected:
   CompositableChild* mCompositableChild;
   CompositableForwarder* mForwarder;
@@ -167,6 +172,7 @@ protected:
  * CompositableChild is owned by a CompositableClient.
  */
 class CompositableChild : public PCompositableChild
+                        , public AsyncTransactionTrackersHolder
 {
 public:
   CompositableChild()
@@ -174,7 +180,7 @@ public:
   {
     MOZ_COUNT_CTOR(CompositableChild);
   }
-  ~CompositableChild()
+  virtual ~CompositableChild()
   {
     MOZ_COUNT_DTOR(CompositableChild);
   }
@@ -192,6 +198,7 @@ public:
   }
 
   virtual void ActorDestroy(ActorDestroyReason) MOZ_OVERRIDE {
+    DestroyAsyncTransactionTrackersHolder();
     if (mCompositableClient) {
       mCompositableClient->mCompositableChild = nullptr;
     }
