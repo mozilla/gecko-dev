@@ -47,13 +47,13 @@ function runTests(sw)
     sp.editor.jumpToLine();
     let lineInput = editorDoc.querySelector("input");
     let inputLine = lineInput.value;
-    todo_is(errorLine, inputLine, "jumpToLine input field is set from editor selection");
+    is(errorLine, inputLine, "jumpToLine input field is set from editor selection");
     lineInput.dispatchEvent(enter);
     // CodeMirror lines and columns are 0-based, Scratchpad UI and error
     // stack are 1-based.
     let cursor = sp.editor.getCursor();
-    todo_is(inputLine, cursor.line + 1, "jumpToLine goto error location (line)");
-    todo_is(1, cursor.ch + 1, "jumpToLine goto error location (column)");
+    is(inputLine, cursor.line + 1, "jumpToLine goto error location (line)");
+    is(1, cursor.ch + 1, "jumpToLine goto error location (column)");
     delete error;
     // sp.editor.destroy();
     sw.close();

@@ -30,7 +30,7 @@ function runTests(sw)
   }).then(null, error => {
     // CodeMirror lines and columns are 0-based, Scratchpad UI and error
     // stack are 1-based.
-    todo_is(/Invalid regexp flag \(3:10\)/.test(error), true, "prettyPrint expects error in editor text:\n" + error);
+    is(/Invalid regexp flag \(3:10\)/.test(error), true, "prettyPrint expects error in editor text:\n" + error);
     let [ , errorLine, errorColumn ] = error.match(/\((\d+):(\d+)\)/);
     let editorDoc = sp.editor.container.contentDocument;
     let enter = editorDoc.createEvent("KeyboardEvent");
@@ -49,14 +49,14 @@ function runTests(sw)
     let lineInput = editorDoc.querySelector("input");
     let errorLocation = lineInput.value;
     let [ inputLine, inputColumn ] = errorLocation.split(":");
-    todo_is(errorLine, inputLine, "jumpToLine input field is set from editor selection (line)");
-    todo_is(errorColumn, inputColumn, "jumpToLine input field is set from editor selection (column)");
+    is(errorLine, inputLine, "jumpToLine input field is set from editor selection (line)");
+    is(errorColumn, inputColumn, "jumpToLine input field is set from editor selection (column)");
     lineInput.dispatchEvent(enter);
     // CodeMirror lines and columns are 0-based, Scratchpad UI and error
     // stack are 1-based.
     let cursor = sp.editor.getCursor();
-    todo_is(inputLine, cursor.line + 1, "jumpToLine goto error location (line)");
-    todo_is(inputColumn, cursor.ch + 1, "jumpToLine goto error location (column)");
+    is(inputLine, cursor.line + 1, "jumpToLine goto error location (line)");
+    is(inputColumn, cursor.ch + 1, "jumpToLine goto error location (column)");
     sw.close();
     finish();
   });

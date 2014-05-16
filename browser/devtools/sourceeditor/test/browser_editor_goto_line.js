@@ -5,12 +5,6 @@
 
 "use strict";
 
-// Could be useful for other tests as well, move to head.js?
-function todo_ch(exp, act, label) {
-  todo_is(exp.line, act.line, label + " (line)");
-  todo_is(exp.ch, act.ch, label + " (ch)");
-}
-
 function lineInputToCursor(line) {
   let [ line, column ] = line.split(":");
   return {
@@ -38,12 +32,7 @@ function testJumpToLine (ed, line, cursor) {
   lineInput.dispatchEvent(enter);
   // CodeMirror lines and columns are 0-based, Scratchpad UI is 1-based.
   let cursor = cursor || lineInputToCursor(line);
-  if (/:/.test(line)) {
-    todo_ch(ed.getCursor(), cursor, "jumpToLine " + line + " expects cursor " + cursor.toSource());
-  }
-  else {
-    ch(ed.getCursor(), cursor, "jumpToLine " + line + " expects cursor " + cursor.toSource());
-  }
+  ch(ed.getCursor(), cursor, "jumpToLine " + line + " expects cursor " + cursor.toSource());
 }
 
 function test() {
