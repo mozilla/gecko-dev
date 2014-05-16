@@ -394,8 +394,6 @@ BluetoothHfpManager::Init()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  NS_ENSURE_TRUE(InitHfpInterface(), false);
-
   nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
   NS_ENSURE_TRUE(obs, false);
 
@@ -425,11 +423,12 @@ BluetoothHfpManager::Init()
   return true;
 }
 
-bool
+// static
+void
 BluetoothHfpManager::InitHfpInterface()
 {
   const bt_interface_t* btInf = GetBluetoothInterface();
-  NS_ENSURE_TRUE(btInf, false);
+  NS_ENSURE_TRUE_VOID(btInf);
 
   if (sBluetoothHfpInterface) {
     sBluetoothHfpInterface->cleanup();
@@ -438,13 +437,11 @@ BluetoothHfpManager::InitHfpInterface()
 
   bthf_interface_t *interface = (bthf_interface_t *)
     btInf->get_profile_interface(BT_PROFILE_HANDSFREE_ID);
-  NS_ENSURE_TRUE(interface, false);
+  NS_ENSURE_TRUE_VOID(interface);
 
-  NS_ENSURE_TRUE(BT_STATUS_SUCCESS ==
-    interface->init(&sBluetoothHfpCallbacks), false);
+  NS_ENSURE_TRUE_VOID(BT_STATUS_SUCCESS ==
+    interface->init(&sBluetoothHfpCallbacks));
   sBluetoothHfpInterface = interface;
-
-  return true;
 }
 
 BluetoothHfpManager::~BluetoothHfpManager()
@@ -463,9 +460,9 @@ BluetoothHfpManager::~BluetoothHfpManager()
   }
 
   hal::UnregisterBatteryObserver(this);
-  DeinitHfpInterface();
 }
 
+// static
 void
 BluetoothHfpManager::DeinitHfpInterface()
 {
@@ -1039,13 +1036,14 @@ BluetoothHfpManager::UpdatePhoneCIND(uint32_t aCallIndex)
 void
 BluetoothHfpManager::UpdateDeviceCIND()
 {
-  NS_ENSURE_TRUE_VOID(sBluetoothHfpInterface);
-  NS_ENSURE_TRUE_VOID(BT_STATUS_SUCCESS ==
-    sBluetoothHfpInterface->device_status_notification(
-      (bthf_network_state_t) mService,
-      (bthf_service_type_t) mRoam,
-      mSignal,
-      mBattChg));
+  if (sBluetoothHfpInterface) {
+    NS_ENSURE_TRUE_VOID(BT_STATUS_SUCCESS ==
+      sBluetoothHfpInterface->device_status_notification(
+        (bthf_network_state_t) mService,
+        (bthf_service_type_t) mRoam,
+        mSignal,
+        mBattChg));
+  }
 }
 
 uint32_t

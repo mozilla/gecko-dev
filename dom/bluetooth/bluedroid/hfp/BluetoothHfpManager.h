@@ -83,6 +83,8 @@ public:
   }
 
   static BluetoothHfpManager* Get();
+  static void InitHfpInterface();
+  static void DeinitHfpInterface();
   virtual ~BluetoothHfpManager();
 
   bool ConnectSco();
@@ -134,8 +136,6 @@ private:
 
   BluetoothHfpManager();
   bool Init();
-  bool InitHfpInterface();
-  void DeinitHfpInterface();
 
   void HandleShutdown();
   void HandleVolumeChanged(const nsAString& aData);
