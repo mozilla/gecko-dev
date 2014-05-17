@@ -10,15 +10,18 @@ function test()
   gBrowser.selectedTab = gBrowser.addTab();
   gBrowser.selectedBrowser.addEventListener("load", function onLoad() {
     gBrowser.selectedBrowser.removeEventListener("load", onLoad, true);
-    openScratchpad(runTests);
+    openScratchpad(runTests, { noFocus: true });
   }, true);
 
   content.location = "data:text/html;charset=utf8,test Scratchpad pretty print.";
 }
 
-function runTests(sw)
+function runTests(sw, sp)
 {
-  const sp = sw.Scratchpad;
+  // info(JSON.stringify(sw, function (key, value) { return (key && value === sw) ? "cyclic object value" : value; }));
+  // info(JSON.stringify(sp, function (key, value) { return (key && value === sp) ? "cyclic object value" : value; }));
+  // info(sp.window.document.title);
+  // const sp = sw.Scratchpad;
   sp.setText([
     "// line 1",
     "// line 2",
@@ -26,8 +29,16 @@ function runTests(sw)
     "// line 4",
     "// line 5",
     ""].join("\n"));
-  sp.prettyPrint().then(() => {
-  }).then(null, error => {
+  info("\nsw.window.location.href\n" + sw.window.location.href);
+  info("\nsp.editor.container.contentDocument.location.href\n" + sp.editor.container.contentDocument.location.href);
+  // info("\nsp.editor.container.contentDocument.location\n" + Object.getOwnPropertyNames(sp.editor.container.contentDocument.location));
+  // info("\nsw.window\n" + Object.getOwnPropertyNames(sw.window));
+  sp.prettyPrint().then(aFulfill => {
+    info("kept first promise:" + aFulfill);
+    ok(false, "Expecting Invalid regexp flag (3:10)");
+    finishTest(sw);
+  }, error => {
+    info("broke first promise:" + error);
     // CodeMirror lines and columns are 0-based, Scratchpad UI and error
     // stack are 1-based.
     is(/Invalid regexp flag \(3:10\)/.test(error), true, "prettyPrint expects error in editor text:\n" + error);
@@ -60,4 +71,12 @@ function runTests(sw)
     sw.close();
     finish();
   });
+}
+
+function finishTest(sw)
+{
+  // calling info on some object: Workaround to eliminate
+  // 0:24.00 TEST-UNEXPECTED-FAIL | chrome://mochitests/content/browser/browser/devtools/scratchpad/test/browser_scratchpad_pprint_error_goto_line.js | leaked until shutdown [nsGlobalWindow #21 inner chrome://browser/content/devtools/scratchpad.xul about:blank]
+  // 0:24.00 TEST-UNEXPECTED-FAIL | chrome://mochitests/content/browser/browser/devtools/scratchpad/test/browser_scratchpad_pprint_error_goto_line.js | leaked until shutdown [nsGlobalWindow #20 outer  about:blank]
+  finish();
 }
