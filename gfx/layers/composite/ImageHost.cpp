@@ -31,6 +31,7 @@ ImageHost::ImageHost(const TextureInfo& aTextureInfo)
   : CompositableHost(aTextureInfo)
   , mFrontBuffer(nullptr)
   , mHasPictureRect(false)
+  , mLocked(false)
 {}
 
 ImageHost::~ImageHost() {}
@@ -81,18 +82,16 @@ ImageHost::Composite(EffectChain& aEffectChain,
   mFrontBuffer->SetCompositor(GetCompositor());
   mFrontBuffer->SetCompositableBackendSpecificData(GetCompositableBackendSpecificData());
 
-  AutoLockTextureHost autoLock(mFrontBuffer);
+  AutoLockCompositableHost autoLock(this);
   if (autoLock.Failed()) {
     NS_WARNING("failed to lock front buffer");
     return;
   }
-  RefPtr<NewTextureSource> source = mFrontBuffer->GetTextureSources();
+  RefPtr<NewTextureSource> source = GetTextureSource();
   if (!source) {
     return;
   }
-  RefPtr<TexturedEffect> effect = CreateTexturedEffect(mFrontBuffer->GetFormat(),
-                                                       source,
-                                                       aFilter);
+  RefPtr<TexturedEffect> effect = GenEffect(aFilter);
   if (!effect) {
     return;
   }
@@ -239,6 +238,42 @@ ImageHost::GetAsSurface()
   return mFrontBuffer->GetAsSurface();
 }
 #endif
+
+bool
+ImageHost::Lock()
+{
+  MOZ_ASSERT(!mLocked);
+  if (!mFrontBuffer->Lock()) {
+    return false;
+  }
+  mLocked = true;
+  return true;
+}
+
+void
+ImageHost::Unlock()
+{
+  MOZ_ASSERT(mLocked);
+  mFrontBuffer->Unlock();
+  mLocked = false;
+}
+
+TemporaryRef<NewTextureSource>
+ImageHost::GetTextureSource()
+{
+  MOZ_ASSERT(mLocked);
+  return mFrontBuffer->GetTextureSources();
+}
+
+TemporaryRef<TexturedEffect>
+ImageHost::GenEffect(const gfx::Filter& aFilter)
+{
+  RefPtr<NewTextureSource> source = GetTextureSource();
+  if (!source) {
+    return nullptr;
+  }
+  return CreateTexturedEffect(mFrontBuffer->GetFormat(), source, aFilter);
+}
 
 }
 }

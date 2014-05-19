@@ -52,6 +52,8 @@ public:
 
   virtual void CleanupResources() MOZ_OVERRIDE;
 
+  virtual gfx::Filter GetEffectFilter() MOZ_OVERRIDE;
+
   CompositableHost* GetCompositableHost() MOZ_OVERRIDE;
 
   virtual LayerComposite* AsLayerComposite() MOZ_OVERRIDE { return this; }
