@@ -74,7 +74,7 @@ class LayerManagerComposite : public LayerManager
 public:
   LayerManagerComposite(Compositor* aCompositor);
   ~LayerManagerComposite();
-  
+
   virtual void Destroy() MOZ_OVERRIDE;
 
   /**
@@ -267,7 +267,7 @@ private:
   RefPtr<Compositor> mCompositor;
   nsAutoPtr<LayerProperties> mClonedLayerTreeProperties;
 
-  /** 
+  /**
    * Context target, nullptr when drawing directly to our swap chain.
    */
   RefPtr<gfx::DrawTarget> mTarget;
@@ -340,6 +340,8 @@ public:
   virtual void DestroyFrontBuffer() { }
 
   void AddBlendModeEffect(EffectChain& aEffectChain);
+
+  virtual void GenEffectChain(EffectChain& aEffect, CompositableHost* aHost) { }
 
   /**
    * The following methods are

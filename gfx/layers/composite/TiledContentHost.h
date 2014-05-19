@@ -246,7 +246,7 @@ public:
     mLowPrecisionTiledBuffer.SetReleaseFence(aReleaseFence);
   }
 #endif
-
+  virtual TemporaryRef<TexturedEffect> GenEffect(const gfx::Filter& aFilter) MOZ_OVERRIDE;
 private:
 
   void RenderLayerBuffer(TiledLayerBufferComposite& aLayerBuffer,

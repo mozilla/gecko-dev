@@ -513,6 +513,11 @@ TiledContentHost::Dump(FILE* aFile,
   }
 }
 #endif
+TemporaryRef<TexturedEffect>
+TiledContentHost::GenEffect(const gfx::Filter& aFilter)
+{
+  return nullptr;
+}
 
 } // namespace
 } // namespace

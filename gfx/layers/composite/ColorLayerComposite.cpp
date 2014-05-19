@@ -50,5 +50,17 @@ ColorLayerComposite::RenderLayer(const nsIntRect& aClipRect)
                                transform);
 }
 
+void
+ColorLayerComposite::GenEffectChain(EffectChain& aEffect,
+                                    CompositableHost* aHost)
+{
+  aEffect.mLayerRef = this;
+  gfxRGBA color = GetColor();
+  aEffect.mPrimaryEffect = new EffectSolidColor(gfx::Color(color.r,
+                                                           color.g,
+                                                           color.b,
+                                                           color.a));
+}
+
 } /* layers */
 } /* mozilla */
