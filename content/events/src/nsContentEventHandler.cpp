@@ -44,11 +44,8 @@ nsContentEventHandler::nsContentEventHandler(
 }
 
 nsresult
-nsContentEventHandler::InitCommon()
+nsContentEventHandler::InitBasic()
 {
-  if (mSelection)
-    return NS_OK;
-
   NS_ENSURE_TRUE(mPresShell, NS_ERROR_NOT_AVAILABLE);
 
   // If text frame which has overflowing selection underline is dirty,
@@ -58,11 +55,24 @@ nsContentEventHandler::InitCommon()
   // Flushing notifications can cause mPresShell to be destroyed (bug 577963).
   NS_ENSURE_TRUE(!mPresShell->IsDestroying(), NS_ERROR_FAILURE);
 
+  return NS_OK;
+}
+
+nsresult
+nsContentEventHandler::InitCommon()
+{
+  if (mSelection) {
+    return NS_OK;
+  }
+
+  nsresult rv = InitBasic();
+  NS_ENSURE_SUCCESS(rv, rv);
+
   nsCopySupport::GetSelectionForCopy(mPresShell->GetDocument(),
                                      getter_AddRefs(mSelection));
 
   nsCOMPtr<nsIDOMRange> firstRange;
-  nsresult rv = mSelection->GetRangeAt(0, getter_AddRefs(firstRange));
+  rv = mSelection->GetRangeAt(0, getter_AddRefs(firstRange));
   // This shell doesn't support selection.
   if (NS_FAILED(rv))
     return NS_ERROR_NOT_AVAILABLE;
@@ -860,10 +870,13 @@ nsContentEventHandler::OnQueryCharacterAtPoint(nsQueryContentEvent* aEvent)
 nsresult
 nsContentEventHandler::OnQueryDOMWidgetHittest(nsQueryContentEvent* aEvent)
 {
-  nsresult rv = Init(aEvent);
+  NS_ASSERTION(aEvent, "aEvent must not be null");
+
+  nsresult rv = InitBasic();
   if (NS_FAILED(rv))
     return rv;
 
+  aEvent->mSucceeded = false;
   aEvent->mReply.mWidgetIsHit = false;
 
   NS_ENSURE_TRUE(aEvent->widget, NS_ERROR_FAILURE);
