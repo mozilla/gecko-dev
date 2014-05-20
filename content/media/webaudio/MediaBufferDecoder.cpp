@@ -450,10 +450,8 @@ WebAudioDecodeJob::AllocateBuffer()
   }
 
   // Now create the AudioBuffer
-  ErrorResult rv;
-  mOutput = AudioBuffer::Create(mContext, mChannelBuffers.Length(),
-                                mWriteIndex, mContext->SampleRate(), cx, rv);
-  if (rv.Failed()) {
+  mOutput = new AudioBuffer(mContext, mWriteIndex, mContext->SampleRate());
+  if (!mOutput->InitializeBuffers(mChannelBuffers.Length(), cx)) {
     return false;
   }
 
