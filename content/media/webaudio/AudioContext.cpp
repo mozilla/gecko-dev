@@ -157,8 +157,8 @@ AudioContext::Constructor(const GlobalObject& aGlobal,
   if (aNumberOfChannels == 0 ||
       aNumberOfChannels > WebAudioUtils::MaxChannelCount ||
       aLength == 0 ||
-      aSampleRate < WebAudioUtils::MinSampleRate ||
-      aSampleRate > WebAudioUtils::MaxSampleRate) {
+      aSampleRate <= 1.0f ||
+      aSampleRate >= TRACK_RATE_MAX) {
     // The DOM binding protects us against infinity and NaN
     aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
     return nullptr;
@@ -186,8 +186,24 @@ AudioContext::CreateBuffer(JSContext* aJSContext, uint32_t aNumberOfChannels,
                            uint32_t aLength, float aSampleRate,
                            ErrorResult& aRv)
 {
-  return AudioBuffer::Create(this, aNumberOfChannels, aLength,
-                             aSampleRate, aJSContext, aRv);
+  if (aSampleRate < 8000 || aSampleRate > 96000 || !aLength) {
+    aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+    return nullptr;
+  }
+
+  if (aLength > INT32_MAX) {
+    aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
+    return nullptr;
+  }
+
+  nsRefPtr<AudioBuffer> buffer =
+    new AudioBuffer(this, int32_t(aLength), aSampleRate);
+  if (!buffer->InitializeBuffers(aNumberOfChannels, aJSContext)) {
+    aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
+    return nullptr;
+  }
+
+  return buffer.forget();
 }
 
 already_AddRefed<AudioBuffer>
