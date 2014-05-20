@@ -29,6 +29,7 @@ nsSMILAnimationController::nsSMILAnimationController(nsIDocument* aDoc)
     mResampleNeeded(false),
     mDeferredStartSampling(false),
     mRunningSample(false),
+    mRegisteredWithRefreshDriver(false),
     mDocument(aDoc)
 {
   NS_ABORT_IF_FALSE(aDoc, "need a non-null document");
@@ -52,6 +53,8 @@ nsSMILAnimationController::~nsSMILAnimationController()
   NS_ASSERTION(mAnimationElementTable.Count() == 0,
                "Animation controller shouldn't be tracking any animation"
                " elements when it dies");
+  NS_ASSERTION(!mRegisteredWithRefreshDriver,
+               "Leaving stale entry in refresh driver's observer list");
 }
 
 void
@@ -263,6 +266,8 @@ nsSMILAnimationController::StartSampling(nsRefreshDriver* aRefreshDriver)
   NS_ASSERTION(!mDeferredStartSampling,
                "Started sampling but the deferred start flag is still set");
   if (aRefreshDriver) {
+    MOZ_ASSERT(!mRegisteredWithRefreshDriver,
+               "Redundantly registering with refresh driver");
     NS_ABORT_IF_FALSE(!GetRefreshDriver() ||
                       aRefreshDriver == GetRefreshDriver(),
                       "Starting sampling with wrong refresh driver");
@@ -270,19 +275,21 @@ nsSMILAnimationController::StartSampling(nsRefreshDriver* aRefreshDriver)
     // or else it will confuse our "average time between samples" calculations.
     mCurrentSampleTime = mozilla::TimeStamp::Now();
     aRefreshDriver->AddRefreshObserver(this, Flush_Style);
+    mRegisteredWithRefreshDriver = true;
   }
 }
 
 void
 nsSMILAnimationController::StopSampling(nsRefreshDriver* aRefreshDriver)
 {
-  if (aRefreshDriver) {
+  if (aRefreshDriver && mRegisteredWithRefreshDriver) {
     // NOTE: The document might already have been detached from its PresContext
-    // (and RefreshDriver), which would make GetRefreshDriverForDoc return null.
+    // (and RefreshDriver), which would make GetRefreshDriver() return null.
     NS_ABORT_IF_FALSE(!GetRefreshDriver() ||
                       aRefreshDriver == GetRefreshDriver(),
                       "Stopping sampling with wrong refresh driver");
     aRefreshDriver->RemoveRefreshObserver(this, Flush_Style);
+    mRegisteredWithRefreshDriver = false;
   }
 }
 
