@@ -13,9 +13,12 @@
 [PrefControlled]
 interface AudioProcessingEvent : Event {
 
-    readonly attribute double playbackTime;
-    readonly attribute AudioBuffer inputBuffer;
-    readonly attribute AudioBuffer outputBuffer;
+  readonly attribute double playbackTime;
+
+  [Throws]
+  readonly attribute AudioBuffer inputBuffer;
+  [Throws]
+  readonly attribute AudioBuffer outputBuffer;
 
 };
 
