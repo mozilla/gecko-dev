@@ -37,6 +37,25 @@
 #include "jit/AsmJS.h"
 #include "vm/Runtime.h"
 
+extern "C" {
+
+int64_t
+__aeabi_idivmod(int x, int y)
+{
+    uint32_t lo = uint32_t(x / y);
+    uint32_t hi = uint32_t(x % y);
+    return (int64_t(hi) << 32) | lo;
+}
+
+int64_t
+__aeabi_uidivmod(int x, int y)
+{
+    uint32_t lo = uint32_t(x) / uint32_t(y);
+    uint32_t hi = uint32_t(x) % uint32_t(y);
+    return (int64_t(hi) << 32) | lo;
+}
+}
+
 namespace js {
 namespace jit {
 
@@ -1087,6 +1106,7 @@ Simulator::setLastDebuggerInput(char *input)
 void
 Simulator::FlushICache(void *start_addr, size_t size)
 {
+    IonSpewCont(IonSpew_CacheFlush, "[%p %zx]", start_addr, size);
     if (!Simulator::ICacheCheckingEnabled)
         return;
     SimulatorRuntime *srt = Simulator::Current()->srt_;
@@ -4270,23 +4290,4 @@ JSRuntime::setSimulatorRuntime(js::jit::SimulatorRuntime *srt)
 {
     MOZ_ASSERT(!simulatorRuntime_);
     simulatorRuntime_ = srt;
-}
-
-extern "C" {
-
-int64_t
-__aeabi_idivmod(int x, int y)
-{
-    uint32_t lo = uint32_t(x / y);
-    uint32_t hi = uint32_t(x % y);
-    return (int64_t(hi) << 32) | lo;
-}
-
-int64_t
-__aeabi_uidivmod(int x, int y)
-{
-    uint32_t lo = uint32_t(x) / uint32_t(y);
-    uint32_t hi = uint32_t(x) % uint32_t(y);
-    return (int64_t(hi) << 32) | lo;
-}
 }
