@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1410602794642000);
+const PRTime gPreloadListExpirationTime = INT64_C(1411207530685000);
 
 class nsSTSPreload
 {
@@ -118,7 +118,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "luneta.nearbuysystems.com", false },
   { "mail.de", true },
   { "mailbox.org", false },
-  { "makeyourlaws.org", false },
+  { "makeyourlaws.org", true },
   { "manage.zenpayroll.com", false },
   { "manager.linode.com", false },
   { "matteomarescotti.name", true },
@@ -130,6 +130,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "members.mayfirst.org", false },
   { "members.nearlyfreespeech.net", false },
   { "mnsure.org", true },
+  { "mobile.usaa.com", false },
   { "mudcrab.us", true },
   { "my.onlime.ch", false },
   { "my.xero.com", false },
@@ -180,6 +181,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "stocktrade.de", false },
   { "stripe.com", true },
   { "strongest-privacy.com", true },
+  { "subrosa.io", true },
   { "support.mayfirst.org", false },
   { "surkatty.org", true },
   { "tent.io", true },
@@ -194,6 +196,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "wiz.biz", true },
   { "writeapp.me", false },
   { "www.aclu.org", false },
+  { "www.airbnb.com", true },
   { "www.apollo-auto.com", true },
   { "www.banking.co.at", false },
   { "www.braintreepayments.com", false },
@@ -210,7 +213,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "www.irccloud.com", false },
   { "www.linode.com", false },
   { "www.lookout.com", false },
-  { "www.makeyourlaws.org", false },
+  { "www.makeyourlaws.org", true },
   { "www.mydigipass.com", false },
   { "www.mylookout.com", false },
   { "www.noisebridge.net", false },
@@ -221,6 +224,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "www.therapynotes.com", false },
   { "www.torproject.org", false },
   { "www.twitter.com", false },
+  { "www.usaa.com", false },
   { "www.zenpayroll.com", false },
   { "zenpayroll.com", false },
 };
