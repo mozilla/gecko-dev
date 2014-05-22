@@ -750,16 +750,13 @@ Editor.prototype = {
     let div = doc.createElement("div");
     let inp = doc.createElement("input");
     let txt = doc.createTextNode(L10N.GetStringFromName("gotoLineCmd.promptTitle"));
-    // Match @Scratchpad/N:LINE[:COLUMN], (LINE[:COLUMN]) anywhere,
-    // or LINE[:COLUMN] just at begin of text selection.
-    let reLineSpec = /(?:@Scratchpad\/\d+:|\(|^)(\d+):?(\d+)?/g;
     inp.type = "text";
     inp.style.width = "10em";
     inp.style.MozMarginStart = "1em";
     let cm = editors.get(this);
-    let sel = cm.listSelections().length === 1 ? cm.getSelection() : undefined;
+    let sel = !this.hasMultipleSelections() ? cm.getSelection() : undefined;
     if (sel) {
-      // Try matching reLineSpec in an active text selection,
+      // Try matching RE_SCRATCHPAD_ERROR in an active text selection,
       // e.g. inserted by running or pretty-printing code with errors.
       let match = sel.match(RE_SCRATCHPAD_ERROR);
       if (match) {
@@ -773,7 +770,7 @@ Editor.prototype = {
 
     this.openDialog(div, (line) => {
       // Handle LINE:COLUMN as well as LINE
-      let [ match, line, column ] = line.match(/^(\d+)?:?(\d+)?/);
+      let [ match, line, column ] = line.match(RE_JUMP_TO_LINE);
       this.setCursor({
           line: line > 0 ? line - 1 : 0,
           ch: column > 0 ? column - 1 : 0 });

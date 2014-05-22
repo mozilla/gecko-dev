@@ -5,34 +5,14 @@
 
 "use strict";
 
-function lineInputToCursor(line) {
-  let [ line, column ] = line.split(":");
-  return {
-    line: line > 0 ? line - 1 : 0,
-    ch: column > 0 ? column - 1 : 0 };
-}
-
-function testJumpToLine (ed, line, cursor) {
+function testJumpToLine (ed, inputLine, expectCursor) {
   ed.jumpToLine();
   let editorDoc = ed.container.contentDocument;
   let lineInput = editorDoc.querySelector("input");
-  let enter = editorDoc.createEvent("KeyboardEvent");
-  enter.initKeyEvent(
-    /* typeArg */ "keydown",
-    !!"canBubbleArg",
-    !!"cancelableArg",
-    /* viewArg */ null,
-    !"ctrlKeyArg",
-    !"altKeyArg",
-    !"shiftKeyArg",
-    !"metaKeyArg",
-    /* keyCodeArg */ KeyEvent.DOM_VK_RETURN,
-    0);
-  lineInput.value = line;
-  lineInput.dispatchEvent(enter);
+  lineInput.value = inputLine;
+  EventUtils.synthesizeKey("VK_RETURN", { }, editorDoc.defaultView);
   // CodeMirror lines and columns are 0-based, Scratchpad UI is 1-based.
-  let cursor = cursor || lineInputToCursor(line);
-  ch(ed.getCursor(), cursor, "jumpToLine " + line + " expects cursor " + cursor.toSource());
+  ch(ed.getCursor(), expectCursor, "jumpToLine " + inputLine + " expects cursor " + expectCursor.toSource());
 }
 
 function test() {
@@ -47,59 +27,102 @@ function test() {
       ""];
     ed.setText(textLines.join("\n"));
     waitForFocus(function () {
-      let tailpipe =
-        [
-          "",
-          ":",
-          " ",
-          " : ",
-          "a:b",
-          "LINE:COLUMN",
-          "-1",
-          ":-1",
-          "-1:-1",
-          "0",
-          ":0",
-          "0:0",
-        ];
-      tailpipe.forEach(function (line) {
-        testJumpToLine(ed, line);
-      });
-      textLines.map(function (line, index, object) {
+      let testVectors = [
+        // Various useless inputs go to line 0, column 0 or do nothing.
+        ["",
+         {line:0, ch:0}],
+        [":",
+         {line:0, ch:0}],
+        [" ",
+         {line:0, ch:0}],
+        [" : ",
+         {line:0, ch:0}],
+        ["a:b",
+         {line:0, ch:0}],
+        ["LINE:COLUMN",
+         {line:0, ch:0}],
+        ["-1",
+         {line:0, ch:0}],
+        [":-1",
+         {line:0, ch:0}],
+        ["-1:-1",
+         {line:0, ch:0}],
+        ["0",
+         {line:0, ch:0}],
+        [":0",
+         {line:0, ch:0}],
+        ["0:0",
+         {line:0, ch:0}],
+        // Starting here expect data needs to get updated for length changes to
+        // "textLines" above.
+        // Just jump to line
+        ["1",
+         {line:0, ch:0}],
+        // Jump to second character in line
+        ["1:2",
+         {line:0, ch:1}],
+        // Jump to last character on line
+        ["1:9",
+         {line:0, ch:8}],
+        // Jump just after last character on line (end of line)
+        ["1:10",
+         {line:0, ch:9}],
+        // Jump one character past end of line (gets clamped to end of line)
+        ["1:11",
+         {line:0, ch:9}],
+        ["2",
+         {line:1, ch:0}],
+        ["2:2",
+         {line:1, ch:1}],
+        ["2:10",
+         {line:1, ch:9}],
+        ["2:11",
+         {line:1, ch:10}],
+        ["2:12",
+         {line:1, ch:10}],
+        ["3",
+         {line:2, ch:0}],
+        ["3:2",
+         {line:2, ch:1}],
+        ["3:11",
+         {line:2, ch:10}],
+        ["3:12",
+         {line:2, ch:11}],
+        ["3:13",
+         {line:2, ch:11}],
+        ["4",
+         {line:3, ch:0}],
+        ["4:2",
+         {line:3, ch:1}],
+        ["4:12",
+         {line:3, ch:11}],
+        ["4:13",
+         {line:3, ch:12}],
+        ["4:14",
+         {line:3, ch:12}],
+        ["5",
+         {line:4, ch:0}],
+        ["5:2",
+         {line:4, ch:1}],
+        ["5:13",
+         {line:4, ch:12}],
+        ["5:14",
+         {line:4, ch:13}],
+        ["5:15",
+         {line:4, ch:13}],
         // One line beyond last newline in editor text:
-        if ((object.length - index) == 1) {
-          // Just jump to line
-          testJumpToLine(ed, index + 1 + "", {
-            line: index,
-            ch: 0});
-          // Jump to second character in line
-          testJumpToLine(ed, (index + 1) + ":2", {
-            line: index,
-            ch: 0});
-          // Two line beyond last newline in editor text (gets clamped):
-          // Just jump to line
-          testJumpToLine(ed, index + 2 + "", {
-            line: index,
-            ch: 0});
-          // Jump to second character in line
-          testJumpToLine(ed, (index + 2) + ":2", {
-            line: index,
-            ch: 0});
-        }
-        else {
-          // Just jump to line
-          testJumpToLine(ed, index + 1 + "");
-          // Jump to second character in line
-          testJumpToLine(ed, (index + 1) + ":2");
-          // Jump to last character on line
-          testJumpToLine(ed, (index + 1) + ":" + line.length);
-          // Jump just after last character on line (end of line)
-          testJumpToLine(ed, (index + 1) + ":" + (line.length + 1));
-          // Jump one character past end of line (gets clamped to end of line)
-          testJumpToLine(ed, (index + 1) + ":" + (line.length + 2), {
-            line: index,
-            ch: line.length});
-        }
+        ["6",
+         {line:5, ch:0}],
+        ["6:2",
+         {line:5, ch:0}],
+        // Two line beyond last newline in editor text (gets clamped):
+        ["7",
+         {line:5, ch:0}],
+        ["7:2",
+         {line:5, ch:0}]
+      ];
+      testVectors.forEach(function (vector) {
+        testJumpToLine(ed, vector[0], vector[1]);
       });
       teardown(ed, win);
     });
