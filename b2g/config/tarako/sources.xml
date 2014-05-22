@@ -88,7 +88,7 @@
   <project name="platform/ndk" path="ndk" revision="ffbb37a4985ca4aa9ae11f5593e79efcabce5515"/>
   <project name="platform/prebuilt" path="prebuilt" revision="807791bf550d32568dbedce60a5ee6d1955b1acc"/>
   <project name="platform/system/bluetooth" path="system/bluetooth" revision="242522cc9ecb7e0705551b9e3a444b8b727397a9"/>
-  <project name="platform/system/core" path="system/core" revision="655177eececcac9f8cb06febbfd3b251fcafc323"/>
+  <project name="platform/system/core" path="system/core" revision="2d5b7dea58f0fca92c99bac2277233c7514d39a7"/>
   <project name="platform/system/extras" path="system/extras" revision="0205c49fedf29620165c6b4e6db3d13739c93396"/>
   <project name="platform/system/media" path="system/media" revision="882f981bb9c0fca7e585f31d07638d407b2885ed"/>
   <project name="platform/system/netd" path="system/netd" revision="3d298fde142bee3fc4f07f63f16f2d8ce42339c0"/>
