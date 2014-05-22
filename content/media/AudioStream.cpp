@@ -175,6 +175,12 @@ AudioStream::~AudioStream()
   }
 }
 
+nsresult AudioStream::EnsureTimeStretcherInitialized()
+{
+  MonitorAutoLock mon(mMonitor);
+  return EnsureTimeStretcherInitializedUnlocked();
+}
+
 nsresult AudioStream::EnsureTimeStretcherInitializedUnlocked()
 {
   mMonitor.AssertCurrentThreadOwns();
@@ -196,19 +202,15 @@ nsresult AudioStream::SetPlaybackRate(double aPlaybackRate)
   NS_ASSERTION(aPlaybackRate > 0.0,
                "Can't handle negative or null playbackrate in the AudioStream.");
   // Avoid instantiating the resampler if we are not changing the playback rate.
-  // GetPreservesPitch/SetPreservesPitch don't need locking before calling
   if (aPlaybackRate == mAudioClock.GetPlaybackRate()) {
     return NS_OK;
   }
 
-  // MUST lock since the rate transposer is used from the cubeb callback,
-  // and rate changes can cause the buffer to be reallocated
-  MonitorAutoLock mon(mMonitor);
-  if (EnsureTimeStretcherInitializedUnlocked() != NS_OK) {
+  if (EnsureTimeStretcherInitialized() != NS_OK) {
     return NS_ERROR_FAILURE;
   }
 
-  mAudioClock.SetPlaybackRateUnlocked(aPlaybackRate);
+  mAudioClock.SetPlaybackRate(aPlaybackRate);
   mOutRate = mInRate / aPlaybackRate;
 
   if (mAudioClock.GetPreservesPitch()) {
@@ -228,10 +230,7 @@ nsresult AudioStream::SetPreservesPitch(bool aPreservesPitch)
     return NS_OK;
   }
 
-  // MUST lock since the rate transposer is used from the cubeb callback,
-  // and rate changes can cause the buffer to be reallocated
-  MonitorAutoLock mon(mMonitor);
-  if (EnsureTimeStretcherInitializedUnlocked() != NS_OK) {
+  if (EnsureTimeStretcherInitialized() != NS_OK) {
     return NS_ERROR_FAILURE;
   }
 
@@ -604,8 +603,7 @@ AudioStream::Resume()
 int64_t
 AudioStream::GetPosition()
 {
-  MonitorAutoLock mon(mMonitor);
-  return mAudioClock.GetPositionUnlocked();
+  return mAudioClock.GetPosition();
 }
 
 // This function is miscompiled by PGO with MSVC 2010.  See bug 768333.
@@ -895,10 +893,9 @@ void AudioClock::UpdateWritePosition(uint32_t aCount)
   mWritten += aCount;
 }
 
-uint64_t AudioClock::GetPositionUnlocked()
+uint64_t AudioClock::GetPosition()
 {
-  // GetPositionInFramesUnlocked() asserts it owns the monitor
-  int64_t position = mAudioStream->GetPositionInFramesUnlocked();
+  int64_t position = mAudioStream->GetPositionInFramesInternal();
   int64_t diffOffset;
   NS_ASSERTION(position < 0 || (mInRate != 0 && mOutRate != 0), "AudioClock not initialized.");
   if (position >= 0) {
@@ -930,16 +927,15 @@ uint64_t AudioClock::GetPositionUnlocked()
 
 uint64_t AudioClock::GetPositionInFrames()
 {
-  return (GetPositionUnlocked() * mOutRate) / USECS_PER_S;
+  return (GetPosition() * mOutRate) / USECS_PER_S;
 }
 
-void AudioClock::SetPlaybackRateUnlocked(double aPlaybackRate)
+void AudioClock::SetPlaybackRate(double aPlaybackRate)
 {
-  // GetPositionInFramesUnlocked() asserts it owns the monitor
-  int64_t position = mAudioStream->GetPositionInFramesUnlocked();
+  int64_t position = mAudioStream->GetPositionInFramesInternal();
   if (position > mPlaybackRateChangeOffset) {
     mOldBasePosition = mBasePosition;
-    mBasePosition = GetPositionUnlocked();
+    mBasePosition = GetPosition();
     mOldBaseOffset = mPlaybackRateChangeOffset;
     mBaseOffset = position;
     mPlaybackRateChangeOffset = mWritten;
@@ -949,7 +945,7 @@ void AudioClock::SetPlaybackRateUnlocked(double aPlaybackRate)
     // The playbackRate has been changed before the end of the latency
     // compensation phase. We don't update the mOld* variable. That way, the
     // last playbackRate set is taken into account.
-    mBasePosition = GetPositionUnlocked();
+    mBasePosition = GetPosition();
     mBaseOffset = position;
     mPlaybackRateChangeOffset = mWritten;
     mOutRate = static_cast<int>(mInRate / aPlaybackRate);
