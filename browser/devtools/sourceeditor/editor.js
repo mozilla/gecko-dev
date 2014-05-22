@@ -21,6 +21,11 @@ const XUL_NS      = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.x
 // while shifting to a line which was initially out of view.
 const MAX_VERTICAL_OFFSET = 3;
 
+// Match @Scratchpad/N:LINE[:COLUMN], (LINE[:COLUMN]) anywhere,
+// or LINE[:COLUMN] just at begin of text selection.
+const RE_SCRATCHPAD_ERROR = /(?:@Scratchpad\/\d+:|\(|^)(\d+):?(\d+)?/;
+const RE_JUMP_TO_LINE = /^(\d+)?:?(\d+)?/;
+
 const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 const events  = require("devtools/toolkit/event-emitter");
 
@@ -756,10 +761,10 @@ Editor.prototype = {
     if (sel) {
       // Try matching reLineSpec in an active text selection,
       // e.g. inserted by running or pretty-printing code with errors.
-      let lineSpec = reLineSpec.exec(sel);
-      if (lineSpec) {
-        let [ match, line, column ] = lineSpec;
-        inp.value = column ? line+":"+column : line;
+      let match = sel.match(RE_SCRATCHPAD_ERROR);
+      if (match) {
+        let [ , line, column ] = match;
+        inp.value = column ? line + ":" + column : line;
       }
     }
 

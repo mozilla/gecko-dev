@@ -54,8 +54,10 @@ function openScratchpad(aReadyCallback, aOptions = {})
         aScratchpad.removeObserver(this);
 
         if (aOptions.noFocus) {
+            info(JSON.stringify(aOptions, null, 2));
           aReadyCallback(win, aScratchpad);
         } else {
+            info(JSON.stringify(aOptions, null, 2));
           waitForFocus(aReadyCallback.bind(null, win, aScratchpad), win);
         }
       }
