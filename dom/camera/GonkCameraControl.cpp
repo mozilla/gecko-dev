@@ -927,6 +927,11 @@ nsGonkCameraControl::StopRecordingImpl()
   mRecorder = nullptr;
   OnRecorderStateChange(CameraControlListener::kRecorderStopped);
 
+  // clear the recording hint once stopped because some drivers will solely
+  // check this flag to determine the mode, despite its actual internal state,
+  // thus causing problems when taking pictures
+  SetAndPush(CAMERA_PARAM_RECORDINGHINT, false);
+
   // notify DeviceStorage that the new video file is closed and ready
   return NS_DispatchToMainThread(new RecordingComplete(mVideoFile), NS_DISPATCH_NORMAL);
 }
