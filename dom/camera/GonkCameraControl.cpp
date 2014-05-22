@@ -384,9 +384,17 @@ nsGonkCameraControl::Set(uint32_t aKey, const nsAString& aValue)
     return rv;
   }
 
-  if (aKey == CAMERA_PARAM_PICTURE_FILEFORMAT) {
-    // Picture format -- need to keep it for the TakePicture() callback.
-    mFileFormat = aValue;
+  switch (aKey) {
+    case CAMERA_PARAM_PICTURE_FILEFORMAT:
+      // Picture format -- need to keep it for the TakePicture() callback.
+      mFileFormat = aValue;
+      break;
+
+    case CAMERA_PARAM_SCENEMODE:
+      // Reset disabling normal pictures in HDR mode in conjunction with setting
+      // scene mode because some drivers require they be changed together.
+      mParams.Set(CAMERA_PARAM_SCENEMODE_HDR_RETURNNORMALPICTURE, false);
+      break;
   }
 
   return PushParameters();
