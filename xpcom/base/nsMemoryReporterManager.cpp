@@ -697,7 +697,8 @@ private:
     {
         jemalloc_stats_t stats;
         jemalloc_stats(&stats);
-        return stats.waste;
+        // NB: We just count bin_unused as waste.
+        return stats.waste + stats.bin_unused;
     }
 };
 
