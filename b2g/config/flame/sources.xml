@@ -21,7 +21,7 @@
   <project name="gaia" path="gaia" remote="mozillaorg" revision="8f4201a44676eb70926a3d2645d94bf92fcd6718"/>
   <project name="gonk-misc" path="gonk-misc" remote="b2g" revision="84243c42db7ec29161cf4ab8ccd8f25fa4e6dafc"/>
   <project name="moztt" path="external/moztt" remote="b2g" revision="7beaabe1187b688ef560607912577c614a038533"/>
-  <project name="apitrace" path="external/apitrace" remote="apitrace" revision="8f3a51b20a2a7d1310e4342c32c87bf31b87be97"/>
+  <project name="apitrace" path="external/apitrace" remote="apitrace" revision="0e72547039e7633712fada41ef744c60aa7e7ebb"/>
   <project name="valgrind" path="external/valgrind" remote="b2g" revision="daa61633c32b9606f58799a3186395fd2bbb8d8c"/>
   <project name="vex" path="external/VEX" remote="b2g" revision="47f031c320888fe9f3e656602588565b52d43010"/>
   <!-- Stock Android things -->
