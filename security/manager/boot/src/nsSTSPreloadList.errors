@@ -1,11 +1,14 @@
 admin.google.com: did not receive HSTS header
+adsfund.org: could not connect to host
 airbnb.com: did not receive HSTS header
 alpha.irccloud.com: could not connect to host
 anycoin.me: did not receive HSTS header
+api.lookout.com: could not connect to host
 api.mega.co.nz: could not connect to host
 api.recurly.com: did not receive HSTS header
 api.simple.com: did not receive HSTS header
 apis.google.com: did not receive HSTS header
+app.lookout.com: could not connect to host
 appengine.google.com: did not receive HSTS header
 bassh.net: did not receive HSTS header
 bcrook.com: max-age too low: 86400
@@ -28,6 +31,7 @@ crate.io: did not receive HSTS header
 crowdcurity.com: did not receive HSTS header
 crypto.is: did not receive HSTS header
 csawctf.poly.edu: did not receive HSTS header
+discovery.lookout.com: did not receive HSTS header
 dl.google.com: did not receive HSTS header
 docs.google.com: did not receive HSTS header
 donmez.ws: could not connect to host
@@ -58,6 +62,7 @@ iop.intuit.com: max-age too low: 86400
 irccloud.com: did not receive HSTS header
 jitsi.org: did not receive HSTS header
 jottit.com: did not receive HSTS header
+keymaster.lookout.com: did not receive HSTS header
 kiwiirc.com: max-age too low: 5256000
 ledgerscope.net: did not receive HSTS header
 liberty.lavabit.com: could not connect to host
@@ -65,6 +70,8 @@ lifeguard.aecom.com: did not receive HSTS header
 lists.mayfirst.org: did not receive HSTS header
 mail.google.com: did not receive HSTS header
 market.android.com: did not receive HSTS header
+mobilethreat.net: could not connect to host
+mobilethreatnetwork.net: could not connect to host
 my.alfresco.com: did not receive HSTS header
 mydigipass.com: did not receive HSTS header
 mykolab.com: did not receive HSTS header
@@ -86,6 +93,7 @@ sah3.net: could not connect to host
 saturngames.co.uk: did not receive HSTS header
 script.google.com: did not receive HSTS header
 security.google.com: did not receive HSTS header
+semenkovich.com: did not receive HSTS header
 serverdensity.io: did not receive HSTS header
 shops.neonisi.com: could not connect to host
 silentcircle.org: could not connect to host
