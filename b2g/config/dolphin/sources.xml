@@ -113,7 +113,7 @@
   <project name="platform/prebuilts/qemu-kernel" path="prebuilts/qemu-kernel" revision="21a68e06a104be3f98d776a5bb34ec98643c5bc9"/>
   <project name="platform/prebuilts/sdk" path="prebuilts/sdk" revision="cfcef469537869947abb9aa1d656774cc2678d4c"/>
   <project name="platform/prebuilts/tools" path="prebuilts/tools" revision="5a48c04c4bb5f079bc757e29864a42427378e051"/>
-  <project name="platform/system/extras" path="system/extras" revision="2ad126037cbb9cfbfa46e86b9d9a6b8413b28fcc"/>
+  <project name="platform/system/extras" path="system/extras" revision="10e78a05252b3de785f88c2d0b9ea8a428009c50"/>
   <project name="platform/system/media" path="system/media" revision="7ff72c2ea2496fa50b5e8a915e56e901c3ccd240"/>
   <project name="platform/system/netd" path="system/netd" revision="3ae56364946d4a5bf5a5f83f12f9a45a30398e33"/>
   <project name="platform/system/security" path="system/security" revision="ee8068b9e7bfb2770635062fc9c2035be2142bd8"/>
