@@ -1,3 +1,4 @@
+/* -*- Mode: js; tab-width: 2; indent-tabs-mode: nil; js-indent-level: 2; fill-column: 80 -*- */
 /* vim:set ts=2 sw=2 sts=2 et tw=80:
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,6 +20,11 @@ const XUL_NS      = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.x
 // Maximum allowed margin (in number of lines) from top or bottom of the editor
 // while shifting to a line which was initially out of view.
 const MAX_VERTICAL_OFFSET = 3;
+
+// Match @Scratchpad/N:LINE[:COLUMN], (LINE[:COLUMN]) anywhere,
+// or LINE[:COLUMN] just at begin of text selection.
+const RE_SCRATCHPAD_ERROR = /(?:@Scratchpad\/\d+:|\(|^)(\d+):?(\d+)?/;
+const RE_JUMP_TO_LINE = /^(\d+)?:?(\d+)?/;
 
 const {Promise: promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
 const events  = require("devtools/toolkit/event-emitter");
@@ -744,15 +750,31 @@ Editor.prototype = {
     let div = doc.createElement("div");
     let inp = doc.createElement("input");
     let txt = doc.createTextNode(L10N.GetStringFromName("gotoLineCmd.promptTitle"));
-
     inp.type = "text";
     inp.style.width = "10em";
     inp.style.MozMarginStart = "1em";
+    let cm = editors.get(this);
+    let sel = !this.hasMultipleSelections() ? cm.getSelection() : undefined;
+    if (sel) {
+      // Try matching RE_SCRATCHPAD_ERROR in an active text selection,
+      // e.g. inserted by running or pretty-printing code with errors.
+      let match = sel.match(RE_SCRATCHPAD_ERROR);
+      if (match) {
+        let [ , line, column ] = match;
+        inp.value = column ? line + ":" + column : line;
+      }
+    }
 
     div.appendChild(txt);
     div.appendChild(inp);
 
-    this.openDialog(div, (line) => this.setCursor({ line: line - 1, ch: 0 }));
+    this.openDialog(div, (line) => {
+      // Handle LINE:COLUMN as well as LINE
+      let [ match, line, column ] = line.match(RE_JUMP_TO_LINE);
+      this.setCursor({
+          line: line > 0 ? line - 1 : 0,
+          ch: column > 0 ? column - 1 : 0 });
+    });
   },
 
   /**
