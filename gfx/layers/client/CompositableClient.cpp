@@ -99,6 +99,12 @@ CompositableClient::HoldUntilComplete(PCompositableChild* aActor, AsyncTransacti
   child->HoldUntilComplete(aTracker);
 }
 
+/* static */ uint64_t
+CompositableClient::GetTrackersHolderId(PCompositableChild* aActor)
+{
+  CompositableChild* child = static_cast<CompositableChild*>(aActor);
+  return child->GetId();
+}
 
 void
 CompositableChild::Destroy()

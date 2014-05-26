@@ -16,6 +16,7 @@
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/LayersTypes.h"  // for LayersBackend
 #include "mozilla/layers/PCompositableChild.h"  // for PCompositableChild
+#include "mozilla/layers/TextureClient.h"  // for TextureClient
 #include "nsISupportsImpl.h"            // for MOZ_COUNT_CTOR, etc
 #include "gfxASurface.h"                // for gfxContentType
 
@@ -24,13 +25,59 @@ namespace layers {
 
 class CompositableClient;
 class DeprecatedTextureClient;
-class TextureClient;
 class BufferTextureClient;
 class ImageBridgeChild;
 class CompositableForwarder;
 class CompositableChild;
 class SurfaceDescriptor;
 class TextureClientData;
+
+/**
+ * Handle RemoveTextureFromCompositableAsync() transaction.
+ */
+class RemoveTextureFromCompositableTracker : public AsyncTransactionTracker {
+public:
+  RemoveTextureFromCompositableTracker(CompositableClient* aCompositableClient)
+    : mCompositableClient(aCompositableClient)
+  {
+    MOZ_COUNT_CTOR(RemoveTextureFromCompositableTracker);
+  }
+
+  ~RemoveTextureFromCompositableTracker()
+  {
+    MOZ_COUNT_DTOR(RemoveTextureFromCompositableTracker);
+  }
+
+  virtual void Complete() MOZ_OVERRIDE
+  {
+    // The TextureClient's recycling is postponed until the transaction
+    // complete.
+    mTextureClient = nullptr;
+    mCompositableClient = nullptr;
+  }
+
+  virtual void Cancel() MOZ_OVERRIDE
+  {
+    mTextureClient = nullptr;
+    mCompositableClient = nullptr;
+  }
+
+  virtual void SetTextureClient(TextureClient* aTextureClient) MOZ_OVERRIDE
+  {
+    mTextureClient = aTextureClient;
+  }
+
+  virtual void SetReleaseFenceHandle(FenceHandle& aReleaseFenceHandle) MOZ_OVERRIDE
+  {
+    if (mTextureClient) {
+      mTextureClient->SetReleaseFenceHandle(aReleaseFenceHandle);
+    }
+  }
+
+private:
+  RefPtr<CompositableClient> mCompositableClient;
+  RefPtr<TextureClient> mTextureClient;
+};
 
 /**
  * CompositableClient manages the texture-specific logic for composite layers,
@@ -154,6 +201,8 @@ public:
   static void TransactionCompleteted(PCompositableChild* aActor, uint64_t aTransactionId);
 
   static void HoldUntilComplete(PCompositableChild* aActor, AsyncTransactionTracker* aTracker);
+
+  static uint64_t GetTrackersHolderId(PCompositableChild* aActor);
 
 protected:
   CompositableChild* mCompositableChild;

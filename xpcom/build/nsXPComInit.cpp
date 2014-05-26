@@ -14,6 +14,8 @@
 #include "nsXPCOMPrivate.h"
 #include "nsXPCOMCIDInternal.h"
 
+#include "mozilla/layers/AsyncTransactionTracker.h"
+
 #include "prlink.h"
 
 #include "nsCycleCollector.h"
@@ -830,6 +832,8 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
     }
 
     nsCycleCollector_shutdown();
+
+    layers::AsyncTransactionTrackersHolder::Finalize();
 
     PROFILER_MARKER("Shutdown xpcom");
     // If we are doing any shutdown checks, poison writes.
