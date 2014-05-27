@@ -198,7 +198,13 @@ CopyableCanvasLayer::DeprecatedUpdateSurface(gfxASurface* aDestSurface,
     RefPtr<DataSourceSurface> readDSurf;
     nsRefPtr<gfxASurface> resultSurf;
 
-    SharedSurface_GL* sharedSurf = mGLContext->RequestFrame();
+    SharedSurface_GL* sharedSurf = nullptr;
+    if (mStream) {
+      sharedSurf = SharedSurface_GL::Cast(mStream->SwapConsumer());
+    } else {
+      sharedSurf = mGLContext->RequestFrame();
+    }
+
     if (!sharedSurf) {
       NS_WARNING("Null frame received.");
       return;
