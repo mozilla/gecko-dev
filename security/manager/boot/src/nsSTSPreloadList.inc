@@ -8,7 +8,7 @@
 /*****************************************************************************/
 
 #include <stdint.h>
-const PRTime gPreloadListExpirationTime = INT64_C(1411207530685000);
+const PRTime gPreloadListExpirationTime = INT64_C(1411812381535000);
 
 class nsSTSPreload
 {
@@ -59,6 +59,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "cyphertite.com", true },
   { "data.qld.gov.au", false },
   { "davidlyness.com", true },
+  { "detectify.com", false },
   { "developer.mydigipass.com", false },
   { "dillonkorman.com", true },
   { "dist.torproject.org", false },
@@ -87,6 +88,7 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "getcloak.com", false },
   { "getlantern.org", false },
   { "go.xero.com", false },
+  { "gocardless.com", true },
   { "grc.com", false },
   { "grepular.com", true },
   { "harvestapp.com", true },
@@ -171,7 +173,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "sandbox.mydigipass.com", false },
   { "securityheaders.com", true },
   { "seifried.org", true },
-  { "semenkovich.com", true },
   { "shodan.io", true },
   { "silentcircle.com", false },
   { "simbolo.co.uk", false },
@@ -190,8 +191,22 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "twitter.com", false },
   { "ubertt.org", true },
   { "vmoagents.com", false },
+  { "w-spotlight.appspot.com", true },
+  { "webfilings-eu-mirror.appspot.com", true },
+  { "webfilings-eu.appspot.com", true },
+  { "webfilings-mirror-hrd.appspot.com", true },
+  { "webfilings.appspot.com", true },
   { "webmail.gigahost.dk", false },
   { "webmail.onlime.ch", false },
+  { "wf-bigsky-master.appspot.com", true },
+  { "wf-demo-eu.appspot.com", true },
+  { "wf-demo-hrd.appspot.com", true },
+  { "wf-dogfood-hrd.appspot.com", true },
+  { "wf-pentest.appspot.com", true },
+  { "wf-staging-hr.appspot.com", true },
+  { "wf-training-hrd.appspot.com", true },
+  { "wf-training-master.appspot.com", true },
+  { "wf-trial-hrd.appspot.com", true },
   { "wiki.python.org", true },
   { "wiz.biz", true },
   { "writeapp.me", false },
@@ -226,5 +241,6 @@ static const nsSTSPreload kSTSPreloadList[] = {
   { "www.twitter.com", false },
   { "www.usaa.com", false },
   { "www.zenpayroll.com", false },
+  { "xbrlsuccess.appspot.com", true },
   { "zenpayroll.com", false },
 };
