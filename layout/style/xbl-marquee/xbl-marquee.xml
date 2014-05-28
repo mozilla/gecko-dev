@@ -264,7 +264,7 @@
                   //
                   // NB: Make sure to wrap the constructor in parentheses to
                   // deal with the weird precedence of |new| in JS.
-                  this["_on" + aName] = new (XPCNativeWrapper.unwrap(window).Function)("event", aValue);
+                  this["_on" + aName] = function(e) { window.setTimeout((new (XPCNativeWrapper.unwrap(window).Function)("event", aValue)).bind(this, e), 0); };
                 }
                 catch(e) {
                   return false;
