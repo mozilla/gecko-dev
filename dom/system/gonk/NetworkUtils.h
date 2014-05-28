@@ -291,6 +291,7 @@ private:
   static CommandFunc sWifiEnableChain[];
   static CommandFunc sWifiDisableChain[];
   static CommandFunc sWifiFailChain[];
+  static CommandFunc sWifiRetryChain[];
   static CommandFunc sWifiOperationModeChain[];
   static CommandFunc sUSBEnableChain[];
   static CommandFunc sUSBDisableChain[];
@@ -316,6 +317,7 @@ private:
   static void createUpStream(PARAMS);
   static void startSoftAP(PARAMS);
   static void stopSoftAP(PARAMS);
+  static void clearWifiTetherParms(PARAMS);
   static void getRxBytes(PARAMS);
   static void getTxBytes(PARAMS);
   static void enableAlarm(PARAMS);
