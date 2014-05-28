@@ -722,7 +722,7 @@ WebGLContext::ColorMask(WebGLboolean r, WebGLboolean g, WebGLboolean b, WebGLboo
     gl->fColorMask(r, g, b, a);
 }
 
-void
+bool
 WebGLContext::CopyTexSubImage2D_base(WebGLenum target,
                                      WebGLint level,
                                      WebGLenum internalformat,
@@ -741,15 +741,17 @@ WebGLContext::CopyTexSubImage2D_base(WebGLenum target,
     const char *info = sub ? "copyTexSubImage2D" : "copyTexImage2D";
 
     if (!ValidateLevelWidthHeightForTarget(target, level, width, height, info)) {
-        return;
+        return false;
     }
 
     MakeContextCurrent();
 
     WebGLTexture *tex = activeBoundTextureForTarget(target);
 
-    if (!tex)
-        return ErrorInvalidOperation("%s: no texture is bound to this target");
+    if (!tex) {
+        ErrorInvalidOperation("%s: no texture is bound to this target");
+        return false;
+    }
 
     if (CanvasUtils::CheckSaneSubrectSize(x, y, width, height, framebufferWidth, framebufferHeight)) {
         if (sub)
@@ -766,13 +768,15 @@ WebGLContext::CopyTexSubImage2D_base(WebGLenum target,
 
         uint32_t texelSize = 0;
         if (!ValidateTexFormatAndType(internalformat, LOCAL_GL_UNSIGNED_BYTE, -1, &texelSize, info))
-            return;
+            return false;
 
         CheckedUint32 checked_neededByteLength = 
             GetImageSize(height, width, texelSize, mPixelStoreUnpackAlignment);
 
-        if (!checked_neededByteLength.isValid())
-            return ErrorInvalidOperation("%s: integer overflow computing the needed buffer size", info);
+        if (!checked_neededByteLength.isValid()) {
+            ErrorInvalidOperation("%s: integer overflow computing the needed buffer size", info);
+            return false;
+        }
 
         uint32_t bytesNeeded = checked_neededByteLength.value();
 
@@ -782,8 +786,10 @@ WebGLContext::CopyTexSubImage2D_base(WebGLenum target,
         // contents of a texture allocated with nullptr data.
         // Hopefully calloc will just mmap zero pages here.
         void *tempZeroData = calloc(1, bytesNeeded);
-        if (!tempZeroData)
-            return ErrorOutOfMemory("%s: could not allocate %d bytes (for zero fill)", info, bytesNeeded);
+        if (!tempZeroData) {
+            ErrorOutOfMemory("%s: could not allocate %d bytes (for zero fill)", info, bytesNeeded);
+            return false;
+        }
 
         // now initialize the texture as black
 
@@ -820,6 +826,8 @@ WebGLContext::CopyTexSubImage2D_base(WebGLenum target,
 
     if (!sub)
         ReattachTextureToAnyFramebufferToWorkAroundBugs(tex, level);
+
+    return true;
 }
 
 void
@@ -917,15 +925,19 @@ WebGLContext::CopyTexImage2D(WebGLenum target,
 
     if (sizeMayChange) {
         UpdateWebGLErrorAndClearGLError();
-        CopyTexSubImage2D_base(target, level, internalformat, 0, 0, x, y, width, height, false);
+    }
+
+    bool ok = CopyTexSubImage2D_base(target, level, internalformat, 0, 0, x, y, width, height, false);
+    if (!ok)
+        return;
+
+    if (sizeMayChange) {
         GLenum error = LOCAL_GL_NO_ERROR;
         UpdateWebGLErrorAndClearGLError(&error);
         if (error) {
             GenerateWarning("copyTexImage2D generated error %s", ErrorName(error));
             return;
         }          
-    } else {
-        CopyTexSubImage2D_base(target, level, internalformat, 0, 0, x, y, width, height, false);
     }
     
     tex->SetImageInfo(target, level, width, height, internalformat, type);
@@ -1007,7 +1019,7 @@ WebGLContext::CopyTexSubImage2D(WebGLenum target,
         if (!mBoundFramebuffer->CheckAndInitializeRenderbuffers())
             return ErrorInvalidFramebufferOperation("copyTexSubImage2D: incomplete framebuffer");
 
-    return CopyTexSubImage2D_base(target, level, format, xoffset, yoffset, x, y, width, height, true);
+    CopyTexSubImage2D_base(target, level, format, xoffset, yoffset, x, y, width, height, true);
 }
 
 
@@ -3405,8 +3417,10 @@ WebGLContext::ReadPixels(WebGLint x, WebGLint y, WebGLsizei width,
     // Now that the errors are out of the way, on to actually reading
 
     // If we won't be reading any pixels anyways, just skip the actual reading
-    if (width == 0 || height == 0)
-        return DummyFramebufferOperation("readPixels");
+    if (width == 0 || height == 0) {
+        DummyFramebufferOperation("readPixels");
+        return;
+    }
 
     if (CanvasUtils::CheckSaneSubrectSize(x, y, width, height, framebufferWidth, framebufferHeight)) {
         // the easy case: we're not reading out-of-range pixels
@@ -3428,7 +3442,8 @@ WebGLContext::ReadPixels(WebGLint x, WebGLint y, WebGLsizei width,
             || y+height <= 0)
         {
             // we are completely outside of range, can exit now with buffer filled with zeros
-            return DummyFramebufferOperation("readPixels");
+            DummyFramebufferOperation("readPixels");
+            return;
         }
 
         // compute the parameters of the subrect we're actually going to call glReadPixels on
@@ -4574,6 +4589,7 @@ WebGLContext::CompressedTexImage2D(WebGLenum target, WebGLint level, WebGLenum i
         return;
     }
 
+    MakeContextCurrent();
     gl->fCompressedTexImage2D(target, level, internalformat, width, height, border, byteLength, view.Data());
     tex->SetImageInfo(target, level, width, height, internalformat, LOCAL_GL_UNSIGNED_BYTE);
 

@@ -1367,14 +1367,16 @@ WebGLContext::PresentScreenBuffer()
     return true;
 }
 
-void
+bool
 WebGLContext::DummyFramebufferOperation(const char *info)
 {
     WebGLenum status = CheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER);
-    if (status == LOCAL_GL_FRAMEBUFFER_COMPLETE)
-        return;
-    else
-        return ErrorInvalidFramebufferOperation("%s: incomplete framebuffer", info);
+    if (status == LOCAL_GL_FRAMEBUFFER_COMPLETE) {
+        return true;
+    } else {
+        ErrorInvalidFramebufferOperation("%s: incomplete framebuffer", info);
+        return false;
+    }
 }
 
 // We use this timer for many things. Here are the things that it is activated for:
