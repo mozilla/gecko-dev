@@ -449,11 +449,6 @@ GrallocTextureHostOGL::SetCompositableBackendSpecificData(CompositableBackendSpe
   if (mTextureSource) {
     mTextureSource->SetCompositableBackendSpecificData(aBackendData);
   }
-  // Register this object to CompositableBackendSpecificData
-  // as current TextureHost.
-  if (aBackendData) {
-    aBackendData->SetCurrentReleaseFenceTexture(this);
-  }
 }
 
 } // namepsace layers
