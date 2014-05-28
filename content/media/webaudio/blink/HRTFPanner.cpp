@@ -31,7 +31,7 @@
 
 using namespace std;
 using namespace mozilla;
-using mozilla::dom::WebAudioUtils;
+using namespace mozilla::dom; // for WebAudioUtils
 
 namespace WebCore {
 
