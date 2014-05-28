@@ -995,7 +995,8 @@ RadioInterfaceLayer.prototype = {
 
     for (let clientId = 0; clientId < this.numRadioInterfaces; clientId++) {
       let radioInterface = this.radioInterfaces[clientId];
-      if (radioInterface.rilContext.iccInfo.iccid == iccId) {
+      if (radioInterface.rilContext.iccInfo &&
+          radioInterface.rilContext.iccInfo.iccid == iccId) {
         return clientId;
       }
     }
