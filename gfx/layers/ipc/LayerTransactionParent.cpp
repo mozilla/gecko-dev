@@ -151,12 +151,10 @@ ShadowChild(const OpRaiseToTopChild& op)
 // LayerTransactionParent
 LayerTransactionParent::LayerTransactionParent(LayerManagerComposite* aManager,
                                                ShadowLayersManager* aLayersManager,
-                                               uint64_t aId,
-                                               ProcessId aOtherProcess)
+                                               uint64_t aId)
   : mLayerManager(aManager)
   , mShadowLayersManager(aLayersManager)
   , mId(aId)
-  , mChildProcessId(aOtherProcess)
   , mDestroyed(false)
   , mIPCOpen(false)
 {
@@ -217,6 +215,9 @@ LayerTransactionParent::RecvUpdate(const InfallibleTArray<Edit>& cset,
       !targetConfig.naturalBounds().IsEmpty()) {
     mLayerManager->GetCompositor()->SetScreenRotation(targetConfig.rotation());
   }
+
+  // Clear fence handles used in previsou transaction.
+  DeprecatedClearPrevFenceHandles();
 
   EditReplyVector replyv;
 

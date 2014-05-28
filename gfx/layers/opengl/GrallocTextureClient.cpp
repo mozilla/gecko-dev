@@ -6,7 +6,6 @@
 #ifdef MOZ_WIDGET_GONK
 
 #include "mozilla/gfx/2D.h"
-#include "mozilla/layers/AsyncTransactionTracker.h" // for AsyncTransactionTracker
 #include "mozilla/layers/GrallocTextureClient.h"
 #include "mozilla/layers/CompositableForwarder.h"
 #include "mozilla/layers/ISurfaceAllocator.h"
@@ -195,19 +194,8 @@ GrallocTextureClientOGL::SetReleaseFenceHandle(FenceHandle aReleaseFenceHandle)
 }
 
 void
-GrallocTextureClientOGL::SetRemoveFromCompositableTracker(AsyncTransactionTracker* aTracker)
+GrallocTextureClientOGL::WaitReleaseFence()
 {
-  mRemoveFromCompositableTracker = aTracker;
-}
-
-void
-GrallocTextureClientOGL::WaitForBufferOwnership()
-{
-  if (mRemoveFromCompositableTracker) {
-    mRemoveFromCompositableTracker->WaitComplete();
-    mRemoveFromCompositableTracker = nullptr;
-  }
-
 #if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
    if (mReleaseFenceHandle.IsValid()) {
      android::sp<Fence> fence = mReleaseFenceHandle.mFence;
@@ -235,7 +223,7 @@ GrallocTextureClientOGL::Lock(OpenMode aMode)
     return true;
   }
 
-  WaitForBufferOwnership();
+  WaitReleaseFence();
 
   uint32_t usage = 0;
   if (aMode & OPEN_READ) {
