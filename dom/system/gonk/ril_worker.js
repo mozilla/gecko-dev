@@ -1563,20 +1563,30 @@ RilObject.prototype = {
       return;
     }
 
-    let Buf = this.context.Buf;
-    switch (call.state) {
-      case CALL_STATE_ACTIVE:
-      case CALL_STATE_DIALING:
-      case CALL_STATE_ALERTING:
-        Buf.newParcel(REQUEST_HANGUP);
-        Buf.writeInt32(1);
-        Buf.writeInt32(options.callIndex);
-        Buf.sendParcel();
-        break;
-      case CALL_STATE_HOLDING:
-        Buf.simpleRequest(REQUEST_HANGUP_WAITING_OR_BACKGROUND);
-        break;
+    let callIndex = call.callIndex;
+    if (callIndex === OUTGOING_PLACEHOLDER_CALL_INDEX) {
+      this._removeVoiceCall(call, GECKO_CALL_ERROR_NORMAL_CALL_CLEARING);
+      return;
     }
+
+    if (call.state === CALL_STATE_HOLDING) {
+      this.sendHangUpBackgroundRequest(callIndex);
+    } else {
+      this.sendHangUpRequest(callIndex);
+    }
+  },
+
+  sendHangUpRequest: function(callIndex) {
+    let Buf = this.context.Buf;
+    Buf.newParcel(REQUEST_HANGUP);
+    Buf.writeInt32(1);
+    Buf.writeInt32(callIndex);
+    Buf.sendParcel();
+  },
+
+  sendHangUpBackgroundRequest: function(callIndex) {
+    let Buf = this.context.Buf;
+    Buf.simpleRequest(REQUEST_HANGUP_WAITING_OR_BACKGROUND);
   },
 
   /**
@@ -3878,7 +3888,7 @@ RilObject.prototype = {
     if (pendingOutgoingCall) {
       // We don't get a successful call for pendingOutgoingCall.
       if (!newCalls || Object.keys(newCalls).length === 0) {
-        this.context.debug("Disconnect pending outgoing call");
+        if (DEBUG) this.context.debug("No result for pending outgoing call.");
         pendingOutgoingCall.failCause = GECKO_CALL_ERROR_UNSPECIFIED;
         this._handleDisconnectedCall(pendingOutgoingCall);
       }
@@ -3892,7 +3902,15 @@ RilObject.prototype = {
         if (newCall.isMpty) {
           conferenceChanged = true;
         }
-        this._addNewVoiceCall(newCall);
+        if (!pendingOutgoingCall &&
+            (newCall.state === CALL_STATE_DIALING ||
+             newCall.state === CALL_STATE_ALERTING)) {
+          // Receive a new outgoing call which is already hung up by user.
+          if (DEBUG) this.context.debug("Hang up pending outgoing call");
+          this.sendHangUpRequest(newCall.callIndex);
+        } else {
+          this._addNewVoiceCall(newCall);
+        }
       }
     }
 
@@ -5352,7 +5370,7 @@ RilObject.prototype[REQUEST_DIAL] = function REQUEST_DIAL(length, options) {
     }).bind(this));
   } else {
     // Create a pending outgoing call.
-    this.context.debug("Create a pending outgoing call.");
+    if (DEBUG) this.context.debug("Create a pending outgoing call.");
     this._addNewVoiceCall({
       number: options.number,
       state: CALL_STATE_DIALING,
