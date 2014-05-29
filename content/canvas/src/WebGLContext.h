@@ -204,7 +204,7 @@ public:
     const char *ErrorName(GLenum error);
     bool IsTextureFormatCompressed(GLenum format);
 
-    void DummyFramebufferOperation(const char *info);
+    bool DummyFramebufferOperation(const char *info);
 
     WebGLTexture *activeBoundTextureForTarget(GLenum target) const {
         return target == LOCAL_GL_TEXTURE_2D ? mBound2DTextures[mActiveTexture]
@@ -1010,7 +1010,7 @@ protected:
                                                     gfxImageSurface **imageOut,
                                                     WebGLTexelFormat *format);
 
-    void CopyTexSubImage2D_base(GLenum target,
+    bool CopyTexSubImage2D_base(GLenum target,
                                 GLint level,
                                 GLenum internalformat,
                                 GLint xoffset,
