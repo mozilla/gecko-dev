@@ -97,13 +97,16 @@ protected:
   virtual bool DeallocPWebSocketParent(PWebSocketParent*);
   virtual PTCPSocketParent* AllocPTCPSocketParent();
 
-  virtual PRemoteOpenFileParent* AllocPRemoteOpenFileParent(const URIParams& aFileURI,
-                                                            const OptionalURIParams& aAppURI)
-                                                            MOZ_OVERRIDE;
-  virtual bool RecvPRemoteOpenFileConstructor(PRemoteOpenFileParent* aActor,
-                                              const URIParams& aFileURI,
-                                              const OptionalURIParams& aAppURI)
-                                              MOZ_OVERRIDE;
+  virtual PRemoteOpenFileParent*
+    AllocPRemoteOpenFileParent(const SerializedLoadContext& aSerialized,
+                               const URIParams& aFileURI,
+                               const OptionalURIParams& aAppURI) MOZ_OVERRIDE;
+  virtual bool
+    RecvPRemoteOpenFileConstructor(PRemoteOpenFileParent* aActor,
+                                   const SerializedLoadContext& aSerialized,
+                                   const URIParams& aFileURI,
+                                   const OptionalURIParams& aAppURI)
+                                   MOZ_OVERRIDE;
   virtual bool DeallocPRemoteOpenFileParent(PRemoteOpenFileParent* aActor)
                                             MOZ_OVERRIDE;
 
