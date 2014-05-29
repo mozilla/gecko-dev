@@ -1,4 +1,3 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -64,6 +63,10 @@ typedef js::HashMap<nsJSObjWrapperKey,
                     JSObjWrapperHasher,
                     js::SystemAllocPolicy> JSObjWrapperTable;
 static JSObjWrapperTable sJSObjWrappers;
+
+// Whether it's safe to iterate sJSObjWrappers.  Set to true when sJSObjWrappers
+// has been initialized and is not currently being enumerated.
+static bool sJSObjWrappersAccessible = false;
 
 // Hash of NPObject wrappers that wrap NPObjects as JSObjects.
 static PLDHashTable sNPObjWrappers;
@@ -257,12 +260,13 @@ OnWrapperDestroyed()
   NS_ASSERTION(sWrapperCount, "Whaaa, unbalanced created/destroyed calls!");
 
   if (--sWrapperCount == 0) {
-    if (sJSObjWrappers.initialized()) {
+    if (sJSObjWrappersAccessible) {
       MOZ_ASSERT(sJSObjWrappers.count() == 0);
 
       // No more wrappers, and our hash was initialized. Finish the
       // hash to prevent leaking it.
       sJSObjWrappers.finish();
+      sJSObjWrappersAccessible = false;
     }
 
     if (sNPObjWrappers.ops) {
@@ -496,7 +500,7 @@ ReportExceptionIfPending(JSContext *cx)
 }
 
 nsJSObjWrapper::nsJSObjWrapper(NPP npp)
-  : mNpp(npp)
+  : mJSObj(GetJSContext(npp)), mNpp(npp)
 {
   MOZ_COUNT_CTOR(nsJSObjWrapper);
   OnWrapperCreated();
@@ -510,15 +514,6 @@ nsJSObjWrapper::~nsJSObjWrapper()
   NP_Invalidate(this);
 
   OnWrapperDestroyed();
-}
-
-void
-nsJSObjWrapper::ClearJSObject() {
-  // Unroot the object's JSObject
-  JS_RemoveObjectRootRT(sJSRuntime, &mJSObj);
-
-  // Forget our reference to the JSObject.
-  mJSObj = nullptr;
 }
 
 // static
@@ -547,12 +542,16 @@ nsJSObjWrapper::NP_Invalidate(NPObject *npobj)
 
   if (jsnpobj && jsnpobj->mJSObj) {
 
-    // Remove the wrapper from the hash
-    MOZ_ASSERT(sJSObjWrappers.initialized());
-    nsJSObjWrapperKey key(jsnpobj->mJSObj, jsnpobj->mNpp);
-    sJSObjWrappers.remove(key);
+    if (sJSObjWrappersAccessible) {
+      // Remove the wrapper from the hash
+      nsJSObjWrapperKey key(jsnpobj->mJSObj, jsnpobj->mNpp);
+      JSObjWrapperTable::Ptr ptr = sJSObjWrappers.lookup(key);
+      MOZ_ASSERT(ptr.found());
+      sJSObjWrappers.remove(ptr);
+    }
 
-    jsnpobj->ClearJSObject();
+    // Forget our reference to the JSObject.
+    jsnpobj->mJSObj = nullptr;
   }
 }
 
@@ -933,6 +932,7 @@ nsJSObjWrapper::NP_Construct(NPObject *npobj, const NPVariant *args,
 static void
 JSObjWrapperKeyMarkCallback(JSTracer *trc, JSObject *obj, void *data) {
   NPP npp = static_cast<NPP>(data);
+  MOZ_ASSERT(sJSObjWrappersAccessible);
   if (!sJSObjWrappers.initialized())
     return;
 
@@ -1001,7 +1001,9 @@ nsJSObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, JS::Handle<JSObject*> obj)
 
       return nullptr;
     }
+    sJSObjWrappersAccessible = true;
   }
+  MOZ_ASSERT(sJSObjWrappersAccessible);
 
   JSObjWrapperTable::Ptr p = sJSObjWrappers.lookupForAdd(nsJSObjWrapperKey(obj, npp));
   if (p) {
@@ -1027,19 +1029,6 @@ nsJSObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, JS::Handle<JSObject*> obj)
   if (!sJSObjWrappers.putNew(key, wrapper)) {
     // Out of memory, free the wrapper we created.
     _releaseobject(wrapper);
-    return nullptr;
-  }
-
-  NS_ASSERTION(wrapper->mNpp == npp, "nsJSObjWrapper::mNpp not initialized!");
-
-  // Root the JSObject, its lifetime is now tied to that of the
-  // NPObject.
-  if (!::JS_AddNamedObjectRoot(cx, &wrapper->mJSObj, "nsJSObjWrapper::mJSObject")) {
-    NS_ERROR("Failed to root JSObject!");
-
-    sJSObjWrappers.remove(key);
-    _releaseobject(wrapper);
-
     return nullptr;
   }
 
@@ -1858,16 +1847,26 @@ NPObjWrapperPluginDestroyedCallback(PLDHashTable *table, PLDHashEntryHdr *hdr,
 void
 nsJSNPRuntime::OnPluginDestroy(NPP npp)
 {
-  if (sJSObjWrappers.initialized()) {
+  if (sJSObjWrappersAccessible) {
+
+    // Prevent modification of sJSObjWrappers table if we go reentrant.
+    sJSObjWrappersAccessible = false;
+
     for (JSObjWrapperTable::Enum e(sJSObjWrappers); !e.empty(); e.popFront()) {
       nsJSObjWrapper *npobj = e.front().value();
       MOZ_ASSERT(npobj->_class == &nsJSObjWrapper::sJSObjWrapperNPClass);
       if (npobj->mNpp == npp) {
-        npobj->ClearJSObject();
+        if (npobj->_class && npobj->_class->invalidate) {
+          npobj->_class->invalidate(npobj);
+        }
+
         _releaseobject(npobj);
+
         e.removeFront();
       }
     }
+
+    sJSObjWrappersAccessible = true;
   }
 
   // Use the safe JSContext here as we're not always able to find the
