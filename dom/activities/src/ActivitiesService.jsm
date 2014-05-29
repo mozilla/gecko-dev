@@ -201,16 +201,16 @@ let Activities = {
   startActivity: function activities_startActivity(aMsg) {
     debug("StartActivity: " + JSON.stringify(aMsg));
 
+    let self = this;
     let successCb = function successCb(aResults) {
       debug(JSON.stringify(aResults));
 
       // We have no matching activity registered, let's fire an error.
       if (aResults.options.length === 0) {
-        Activities.callers[aMsg.id].mm.sendAsyncMessage("Activity:FireError", {
+        self.trySendAndCleanup(aMsg.id, "Activity:FireError", {
           "id": aMsg.id,
           "error": "NO_PROVIDER"
         });
-        delete Activities.callers[aMsg.id];
         return;
       }
 
@@ -219,11 +219,10 @@ let Activities = {
 
         // The user has cancelled the choice, fire an error.
         if (aChoice === -1) {
-          Activities.callers[aMsg.id].mm.sendAsyncMessage("Activity:FireError", {
+          self.trySendAndCleanup(aMsg.id, "Activity:FireError", {
             "id": aMsg.id,
             "error": "ActivityCanceled"
           });
-          delete Activities.callers[aMsg.id];
           return;
         }
 
@@ -231,7 +230,7 @@ let Activities = {
                       .getService(Ci.nsISystemMessagesInternal);
         if (!sysmm) {
           // System message is not present, what should we do?
-          delete Activities.callers[aMsg.id];
+          delete self.callers[aMsg.id];
           return;
         }
 
@@ -245,18 +244,17 @@ let Activities = {
           Services.io.newURI(result.description.href, null, null),
           Services.io.newURI(result.manifest, null, null),
           {
-            "manifestURL": Activities.callers[aMsg.id].manifestURL,
-            "pageURL": Activities.callers[aMsg.id].pageURL
+            "manifestURL": self.callers[aMsg.id].manifestURL,
+            "pageURL": self.callers[aMsg.id].pageURL
           });
 
         if (!result.description.returnValue) {
-          Activities.callers[aMsg.id].mm.sendAsyncMessage("Activity:FireSuccess", {
+          // No need to notify observers, since we don't want the caller
+          // to be raised on the foreground that quick.
+          self.trySendAndCleanup(aMsg.id, "Activity:FireSuccess", {
             "id": aMsg.id,
             "result": null
           });
-          // No need to notify observers, since we don't want the caller
-          // to be raised on the foreground that quick.
-          delete Activities.callers[aMsg.id];
         }
       };
 
@@ -276,6 +274,14 @@ let Activities = {
     };
 
     this.db.find(aMsg, successCb, errorCb, matchFunc);
+  },
+
+  trySendAndCleanup: function activities_trySendAndCleanup(aId, aName, aPayload) {
+    try {
+      this.callers[aId].mm.sendAsyncMessage(aName, aPayload);
+    } finally {
+      delete this.callers[aId];
+    }
   },
 
   receiveMessage: function activities_receiveMessage(aMessage) {
@@ -311,12 +317,10 @@ let Activities = {
         break;
 
       case "Activity:PostResult":
-        caller.mm.sendAsyncMessage("Activity:FireSuccess", msg);
-        delete this.callers[msg.id];
+        this.trySendAndCleanup(msg.id, "Activity:FireSuccess", msg);
         break;
       case "Activity:PostError":
-        caller.mm.sendAsyncMessage("Activity:FireError", msg);
-        delete this.callers[msg.id];
+        this.trySendAndCleanup(msg.id, "Activity:FireError", msg);
         break;
 
       case "Activities:Register":
@@ -355,11 +359,10 @@ let Activities = {
       case "child-process-shutdown":
         for (let id in this.callers) {
           if (this.callers[id].childMM == mm) {
-            this.callers[id].mm.sendAsyncMessage("Activity:FireError", {
+            this.trySendAndCleanup(id, "Activity:FireError", {
               "id": id,
               "error": "ActivityCanceled"
             });
-            delete this.callers[id];
             break;
           }
         }
