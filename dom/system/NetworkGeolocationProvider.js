@@ -12,14 +12,18 @@ const POSITION_UNAVAILABLE = Ci.nsIDOMGeoPositionError.POSITION_UNAVAILABLE;
 
 let gLoggingEnabled = false;
 
-// if we don't see any wifi responses in 5 seconds, send the request.
-let gTimeToWaitBeforeSending = 5000; //ms
+// Poll every 6 seconds. Note that this value must be slightly longer
+// than the wifi scanning interval, to maximize the likelihood that
+// we'll have wifi results when we send our position request. If this
+// value is 5000, then we often report cell-only locations and ignore
+// the wifi data.
+// XXX This is horrible, brittle hack, but it seems to work on the Tarako.
+let gTimeToWaitBeforeSending = 6000; //ms
 
 let gWifiScanningEnabled = true;
 let gWifiResults;
 
 let gCellScanningEnabled = false;
-let gCellResults;
 
 function LOG(aMsg) {
   if (gLoggingEnabled) {
@@ -28,6 +32,148 @@ function LOG(aMsg) {
     dump(aMsg);
   }
 }
+
+function CachedLocation(loc, cellInfo, wifiList) {
+  this.location = loc;
+  this.cellInfo = cellInfo;
+  this.wifiList = wifiList;
+}
+
+CachedLocation.prototype = {
+  isGeoip: function() {
+    return !this.cellInfo && !this.wifiList;
+  },
+  isCellAndWifi: function() {
+    return this.cellInfo && this.wifiList;
+  },
+  isCellOnly: function() {
+    return this.cellInfo && !this.wifiList;
+  },
+  isWifiOnly: function() {
+    return this.wifiList && !this.cellInfo;
+  },
+  // if 50% of the SSIDS match
+  isWifiApproxEqual: function(wifiList) {
+    if (!this.wifiList) {
+      return false;
+    }
+
+    // if either list is a 50% subset of the other, they are equal
+    let myLen = this.wifiList.length;
+    let otherLen = wifiList.length;
+
+    let largerList = this.wifiList;
+    let smallerList = wifiList;
+    if (myLen < otherLen) {
+      largerList = wifiList;
+      smallerList = this.wifiList;
+    }
+
+    let wifiHash = {};
+    for (let i = 0; i < largerList.length; i++) {
+      wifiHash[largerList[i].macAddress] = 1;
+    }
+
+    let common = 0;
+    for (let i = 0; i < smallerList.length; i++) {
+      if (smallerList[i].macAddress in wifiHash) {
+        common++;
+      }
+    }
+    let kPercentMatch = 0.5;
+    return common >= (largerList.length * kPercentMatch);
+  },
+  // if fields match
+  isCellApproxEqual: function(cellInfo) {
+    if (!this.cellInfo) {
+      return false;
+    }
+
+    let len1 = this.cellInfo.length;
+    let len2 = cellInfo.length;
+
+    if (len1 != len2) {
+      LOG("cell not equal len");
+      return false;
+    }
+
+    // Use only these values for equality
+    // (the JSON will contain additional values in future)
+    function makeCellHashKey(cell) {
+      return "" + cell.radio + ":" + cell.mobileCountryCode + ":" +
+             cell.mobileNetworkCode + ":" + cell.locationAreaCode + ":" +
+             cell.cellId;
+    }
+
+    let cellHash = {};
+    for (let i = 0; i < len1; i++) {
+      cellHash[makeCellHashKey(this.cellInfo[i])] = 1;
+    }
+
+    for (let i = 0; i < len2; i++) {
+      if (!(makeCellHashKey(cellInfo[i]) in cellHash)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+};
+
+let gCachedLocation = null;
+
+// This function serves two purposes:
+// 1) do we have a cached location
+// 2) is the cached location better than what newCell and newWifiList will obtain
+// If the cached location exists, and we know it to have greater accuracy
+// by the nature of its origin (wifi/cell/geoip), use the cached location.
+// 
+// If there is more source info than the cachedLocation had, return false
+// In other cases, MLS is known to produce better/worse accuracy based on the 
+// inputs, so base the decision on that.
+function isCachedLocationMoreAccurateThanServerRequest(newCell, newWifiList)
+{
+  if (!gCachedLocation) {
+    return false;
+  }
+
+  // if new request has both cell and wifi, and old is just cell,
+  if (gCachedLocation.isCellOnly() && newCell && newWifiList) {
+    return false;
+  }
+
+  // if new is geoip request
+  if (!newCell && !newWifiList) {
+    return true;
+  }
+
+  let hasEqualCells = false;
+  if (newCell) {
+    hasEqualCells = gCachedLocation.isCellApproxEqual(newCell);
+  }
+
+  let hasEqualWifis = false;
+  if (newWifiList) {
+    hasEqualWifis = gCachedLocation.isWifiApproxEqual(newWifiList);
+  }
+
+  if (gCachedLocation.isCellOnly()) {
+    if (hasEqualCells) {
+      return true;
+    }
+  } else if (gCachedLocation.isWifiOnly() && hasEqualWifis) {
+    return true;
+  } else if (gCachedLocation.isCellAndWifi()) {
+    if ((hasEqualCells && hasEqualWifis) ||
+         (!newWifiList && hasEqualCells) ||
+          (!newCell && hasEqualWifis))
+    {
+      return true;
+    }
+  }
+
+  return false;
+};
 
 function WifiGeoCoordsObject(lat, lon, acc, alt, altacc) {
   this.latitude = lat;
@@ -115,6 +261,11 @@ WifiGeoPositionProvider.prototype = {
       return;
     }
 
+    // Without clearing this, we could endup using the cache almost indefinitely
+    // TODO: add logic for cache lifespan, for now just be safe and clear it
+    gCachedLocation = null;
+    gWifiResults = null;
+
     if (this.timeoutTimer) {
       this.timeoutTimer.cancel();
       this.timeoutTimer = null;
@@ -185,14 +336,34 @@ WifiGeoPositionProvider.prototype = {
       }
       return result;
     } catch (e) {
-      gCellResults = null;
+      return null;
     }
   },
 
   notify: function (timeoutTimer) {
+    let cellResults = null;
+    if (gCellScanningEnabled) {
+      cellResults = this.updateMobileInfo();
+    }
+
+    let data = {};
+    if (cellResults) {
+      data.cellTowers = cellResults;
+    }
+    if (gWifiResults) {
+      data.wifiAccessPoints = gWifiResults;
+    }
+
+    let useCached = isCachedLocationMoreAccurateThanServerRequest(data.cellTowers,
+                                                                  data.wifiAccessPoints);
+    if (useCached) {
+      this.listener.update(gCachedLocation.location);
+      return;
+    }
+
+    // From here on, do a network request for location //
     let url = Services.urlFormatter.formatURLPref("geo.wifi.uri");
     let listener = this.listener;
-    LOG("Sending request: " + url + "\n");
 
     let xhr = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"]
                         .createInstance(Ci.nsIXMLHttpRequest);
@@ -200,9 +371,10 @@ WifiGeoPositionProvider.prototype = {
     try {
       xhr.open("POST", url, true);
     } catch (e) {
-        listener.notifyError(POSITION_UNAVAILABLE);
+      listener.notifyError(POSITION_UNAVAILABLE);
       return;
     }
+
     xhr.setRequestHeader("Content-Type", "application/json; charset=UTF-8");
     xhr.responseType = "json";
     xhr.mozBackgroundRequest = true;
@@ -223,23 +395,12 @@ WifiGeoPositionProvider.prototype = {
                                                   xhr.response.accuracy);
 
       listener.update(newLocation);
+      gCachedLocation = new CachedLocation(newLocation, data.cellTowers, data.wifiAccessPoints);
     };
 
-    if (gCellScanningEnabled) {
-      this.updateMobileInfo();
-    }
-
-    let data = {};
-    if (gWifiResults) {
-      data.wifiAccessPoints = gWifiResults;
-    }
-    if (gCellResults) {
-      data.cellTowers = gCellResults;
-    }
-    data = JSON.stringify(data);
-    gCellResults = null;
-    LOG("sending " + data);
-    xhr.send(data);
+    jsonData = JSON.stringify(data);
+    LOG("sending " + jsonData);
+    xhr.send(jsonData);
   },
 };
 
