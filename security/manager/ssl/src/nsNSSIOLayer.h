@@ -111,6 +111,30 @@ public:
     mSSLVersionUsed = version;
   }
 
+  inline bool GetBypassAuthentication()
+  {
+    bool result;
+    mozilla::DebugOnly<nsresult> rv = GetBypassAuthentication(&result);
+    MOZ_ASSERT(NS_SUCCEEDED(rv));
+    return result;
+  }
+
+  inline bool GetInsecure()
+  {
+    bool result;
+    mozilla::DebugOnly<nsresult> rv = GetInsecure(&result);
+    MOZ_ASSERT(NS_SUCCEEDED(rv));
+    return result;
+  }
+
+  inline int32_t GetAuthenticationPort()
+  {
+    int32_t result;
+    mozilla::DebugOnly<nsresult> rv = GetAuthenticationPort(&result);
+    MOZ_ASSERT(NS_SUCCEEDED(rv));
+    return result;
+  }
+
 private:
   PRFileDesc* mFd;
 
@@ -134,6 +158,7 @@ private:
   bool      mJoined;
   bool      mSentClientCert;
   bool      mNotedTimeUntilReady;
+  bool      mFailedVerification;
 
   // mKEA* are used in false start and http/2 detetermination
   // Values are from nsISSLSocketControl
@@ -141,6 +166,8 @@ private:
   int16_t mKEAExpected;
   uint32_t mKEAKeyBits;
   int16_t mSSLVersionUsed;
+  bool    mBypassAuthentication;
+  bool    mInsecure;
 
   uint32_t mProviderFlags;
   mozilla::TimeStamp mSocketCreationTimestamp;

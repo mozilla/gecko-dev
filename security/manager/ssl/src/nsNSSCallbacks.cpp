@@ -1190,8 +1190,11 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
     siteSupportsSafeRenego = false;
   }
 
-  if (siteSupportsSafeRenego ||
-      !ioLayerHelpers.treatUnsafeNegotiationAsBroken()) {
+  if (infoObject->GetBypassAuthentication() ||
+      infoObject->GetInsecure()) {
+    infoObject->SetSecurityState(nsIWebProgressListener::STATE_IS_INSECURE);
+  } else if (siteSupportsSafeRenego ||
+             !ioLayerHelpers.treatUnsafeNegotiationAsBroken()) {
     infoObject->SetSecurityState(nsIWebProgressListener::STATE_IS_SECURE |
                                  nsIWebProgressListener::STATE_SECURE_HIGH);
   } else {

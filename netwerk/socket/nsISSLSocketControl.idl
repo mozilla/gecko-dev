@@ -14,7 +14,7 @@ class nsCString;
 %}
 [ref] native nsCStringTArrayRef(nsTArray<nsCString>);
 
-[scriptable, builtinclass, uuid(ec72446c-8241-457f-ba75-83d214392289)]
+[scriptable, builtinclass, uuid(f160ec31-01f3-47f2-b542-0e12a647b07f)]
 interface nsISSLSocketControl : nsISupports {
     attribute nsIInterfaceRequestor     notificationCallbacks;
 
@@ -52,6 +52,11 @@ interface nsISSLSocketControl : nsISupports {
       in ACString hostname,
       in long port);
 
+    /* Determine if a potential SSL connection to hostname could use the
+     * socket associated with this object instead of making a new one.
+     */
+    boolean joinableConnection(in ACString hostname);
+
     /* The Key Exchange Algorithm is used when determining whether or
        not to do false start and whether or not HTTP/2 can be used.
 
@@ -82,5 +87,11 @@ interface nsISSLSocketControl : nsISupports {
     const short SSL_VERSION_UNKNOWN = -1;
 
     [infallible] readonly attribute short SSLVersionUsed;
+
+    attribute ACString authenticationName;
+    [infallible] attribute long     authenticationPort;
+    [infallible] attribute boolean bypassAuthentication;
+    [infallible] attribute boolean insecure;
+    [infallible] readonly attribute boolean failedVerification;
 };
 
