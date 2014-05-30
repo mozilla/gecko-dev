@@ -57,6 +57,13 @@ extern bool gBluetoothDebugFlag;
 #define BT_WARNING(msg, ...) printf("%s: " msg, __FUNCTION__, ##__VA_ARGS__))
 #endif
 
+/**
+ * Wrap literal name and value into a BluetoothNamedValue
+  * and append it to the array.
+   */
+#define BT_APPEND_NAMED_VALUE(array, name, value)                    \
+  array.AppendElement(BluetoothNamedValue(NS_LITERAL_STRING(name), value))
+
 #define BEGIN_BLUETOOTH_NAMESPACE \
   namespace mozilla { namespace dom { namespace bluetooth {
 #define END_BLUETOOTH_NAMESPACE \
