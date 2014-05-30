@@ -297,6 +297,10 @@ class ArrayBufferViewObject : public JSObject
     void neuter();
 
     static void trace(JSTracer *trc, JSObject *obj);
+
+    uint8_t * dataPointer() {
+        return static_cast<uint8_t*>(getPrivate());
+    }
 };
 
 /*
@@ -316,6 +320,9 @@ class TypedArrayObject : public ArrayBufferViewObject
     static const size_t TYPE_SLOT      = ArrayBufferViewObject::NUM_SLOTS + 1;
     static const size_t RESERVED_SLOTS = ArrayBufferViewObject::NUM_SLOTS + 2;
     static const size_t DATA_SLOT      = 7; // private slot, based on alloc kind
+
+    static_assert(js::detail::TypedArrayLengthSlot == LENGTH_SLOT,
+                  "bad inlined constant in jsfriendapi.h");
 
   public:
     static const Class classes[ScalarTypeRepresentation::TYPE_MAX];
@@ -365,6 +372,7 @@ class TypedArrayObject : public ArrayBufferViewObject
         return getFixedSlot(TYPE_SLOT).toInt32();
     }
     void *viewData() const {
+        // Keep synced with js::Get<Type>ArrayLengthAndData in jsfriendapi.h!
         return static_cast<void*>(getPrivate(DATA_SLOT));
     }
 
@@ -461,6 +469,10 @@ class DataViewObject : public ArrayBufferViewObject
         return v.isObject() && v.toObject().hasClass(&class_);
     }
 
+    template <typename NativeType>
+    static uint8_t *
+    getDataPointer(JSContext *cx, Handle<DataViewObject*> obj, uint32_t offset);
+
     template<Value ValueGetter(DataViewObject *view)>
     static bool
     getterImpl(JSContext *cx, CallArgs args);
@@ -506,10 +518,6 @@ class DataViewObject : public ArrayBufferViewObject
 
     static Value bufferValue(DataViewObject *view) {
         return view->hasBuffer() ? ObjectValue(view->arrayBuffer()) : UndefinedValue();
-    }
-
-    void *dataPointer() const {
-        return getPrivate();
     }
 
     static bool class_constructor(JSContext *cx, unsigned argc, Value *vp);
@@ -571,8 +579,6 @@ class DataViewObject : public ArrayBufferViewObject
 
     static JSObject *initClass(JSContext *cx);
     static void neuter(JSObject *view);
-    static bool getDataPointer(JSContext *cx, Handle<DataViewObject*> obj,
-                               CallArgs args, size_t typeSize, uint8_t **data);
     template<typename NativeType>
     static bool read(JSContext *cx, Handle<DataViewObject*> obj,
                      CallArgs &args, NativeType *val, const char *method);
