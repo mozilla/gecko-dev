@@ -74,6 +74,9 @@ class RefTest(object):
     # Ensure that telemetry is disabled, so we don't connect to the telemetry
     # server in the middle of the tests.
     prefsFile.write('user_pref("toolkit.telemetry.enabled", false);\n')
+    # Likewise for safebrowsing.
+    prefsFile.write('user_pref("browser.safebrowsing.enabled", false);\n')
+    prefsFile.write('user_pref("browser.safebrowsing.malware.enabled", false);\n')
 
     for v in options.extraPrefs:
       thispref = v.split("=")
