@@ -237,7 +237,7 @@ WifiGeoPositionProvider.prototype = {
       data.cellTowers = gCellResults;
     }
     data = JSON.stringify(data);
-    gWifiResults = gCellResults = null;
+    gCellResults = null;
     LOG("sending " + data);
     xhr.send(data);
   },
