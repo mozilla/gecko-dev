@@ -105,7 +105,7 @@
   <project name="platform/frameworks/opt/emoji" path="frameworks/opt/emoji" revision="dbbe673145107e99883f62bafd70c5f43f11065c"/>
   <project name="platform/frameworks/wilhelm" path="frameworks/wilhelm" revision="f0c3b4edf597c40aae4ea311575f39c8bcf203df"/>
   <project name="platform/hardware/libhardware" path="hardware/libhardware" revision="fbeca55f4695dd07c0291213403533b8fbca4885"/>
-  <project name="platform/hardware/libhardware_legacy" path="hardware/libhardware_legacy" revision="8c2bf60734a0284e6f010244d6a2cff46126e709"/>
+  <project name="platform/hardware/libhardware_legacy" path="hardware/libhardware_legacy" revision="b3b6edd18e0447cd1e1da763c6b67161b687d67a"/>
   <project name="platform/libcore" path="libcore" revision="e195beab082c09217318fc19250caeaf4c1bd800"/>
   <project name="platform/libnativehelper" path="libnativehelper" revision="feeb36c2bd4adfe285f98f5de92e0f3771b2c115"/>
   <project name="platform/ndk" path="ndk" revision="e58ef003be4306bb53a8c11331146f39e4eab31f"/>
