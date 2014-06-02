@@ -1,7 +1,7 @@
 import os
 from setuptools import setup, find_packages
 
-version = '0.1'
+version = '0.7.1.1'
 
 # get documentation from the README
 try:
@@ -14,7 +14,7 @@ except (OSError, IOError):
 with open('requirements.txt') as f:
     deps = f.read().splitlines()
 
-setup(name='marionette_client-mozilla-b2g28_v1_3',
+setup(name='marionette_client',
       version=version,
       description="Marionette test automation client",
       long_description=description,
