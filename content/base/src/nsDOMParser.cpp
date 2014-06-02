@@ -137,6 +137,8 @@ already_AddRefed<nsIDocument>
 nsDOMParser::ParseFromBuffer(const Uint8Array& aBuf, uint32_t aBufLen,
                              SupportedType aType, ErrorResult& rv)
 {
+  aBuf.ComputeLengthAndData();
+
   if (aBufLen > aBuf.Length()) {
     rv.Throw(NS_ERROR_XPC_NOT_ENOUGH_ELEMENTS_IN_ARRAY);
     return nullptr;

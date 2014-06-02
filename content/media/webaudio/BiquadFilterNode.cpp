@@ -247,6 +247,10 @@ BiquadFilterNode::GetFrequencyResponse(const Float32Array& aFrequencyHz,
                                        Float32Array& aMagResponse,
                                        Float32Array& aPhaseResponse)
 {
+  aFrequencyHz.ComputeLengthAndData();
+  aMagResponse.ComputeLengthAndData();
+  aPhaseResponse.ComputeLengthAndData();
+
   uint32_t length = std::min(std::min(aFrequencyHz.Length(), aMagResponse.Length()),
                              aPhaseResponse.Length());
   if (!length) {

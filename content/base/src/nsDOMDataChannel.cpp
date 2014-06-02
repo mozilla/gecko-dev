@@ -292,7 +292,10 @@ nsDOMDataChannel::Send(ArrayBuffer& aData, ErrorResult& aRv)
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
 
-  MOZ_ASSERT(sizeof(*aData.Data()) == 1);
+  aData.ComputeLengthAndData();
+
+  static_assert(sizeof(*aData.Data()) == 1, "byte-sized data required");
+
   uint32_t len = aData.Length();
   char* data = reinterpret_cast<char*>(aData.Data());
 
@@ -305,7 +308,10 @@ nsDOMDataChannel::Send(ArrayBufferView& aData, ErrorResult& aRv)
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
 
-  MOZ_ASSERT(sizeof(*aData.Data()) == 1);
+  aData.ComputeLengthAndData();
+
+  static_assert(sizeof(*aData.Data()) == 1, "byte-sized data required");
+
   uint32_t len = aData.Length();
   char* data = reinterpret_cast<char*>(aData.Data());
 

@@ -169,18 +169,20 @@ AudioContext::CreateBuffer(JSContext* aJSContext, ArrayBuffer& aBuffer,
     return nullptr;
   }
 
+  aBuffer.ComputeLengthAndData();
+
+  uint32_t len = aBuffer.Length();
+  uint8_t* data = aBuffer.Data();
+
   // Sniff the content of the media.
   // Failed type sniffing will be handled by SyncDecodeMedia.
   nsAutoCString contentType;
-  NS_SniffContent(NS_DATA_SNIFFER_CATEGORY, nullptr,
-                  aBuffer.Data(), aBuffer.Length(),
-                  contentType);
+  NS_SniffContent(NS_DATA_SNIFFER_CATEGORY, nullptr, data, len, contentType);
 
   nsRefPtr<WebAudioDecodeJob> job =
     new WebAudioDecodeJob(contentType, this, aBuffer);
 
-  if (mDecoder.SyncDecodeMedia(contentType.get(),
-                               aBuffer.Data(), aBuffer.Length(), *job) &&
+  if (mDecoder.SyncDecodeMedia(contentType.get(), data, len, *job) &&
       job->mOutput) {
     nsRefPtr<AudioBuffer> buffer = job->mOutput.forget();
     if (aMixToMono) {
@@ -342,6 +344,9 @@ AudioContext::CreatePeriodicWave(const Float32Array& aRealData,
                                  const Float32Array& aImagData,
                                  ErrorResult& aRv)
 {
+  aRealData.ComputeLengthAndData();
+  aImagData.ComputeLengthAndData();
+
   if (aRealData.Length() != aImagData.Length() ||
       aRealData.Length() == 0 ||
       aRealData.Length() > 4096) {
@@ -369,6 +374,8 @@ AudioContext::DecodeAudioData(const ArrayBuffer& aBuffer,
                               DecodeSuccessCallback& aSuccessCallback,
                               const Optional<OwningNonNull<DecodeErrorCallback> >& aFailureCallback)
 {
+  aBuffer.ComputeLengthAndData();
+
   // Sniff the content of the media.
   // Failed type sniffing will be handled by AsyncDecodeMedia.
   nsAutoCString contentType;

@@ -49,6 +49,7 @@ public:
          const TextDecodeOptionsWorkers& aOptions,
          nsAString& aOutDecodedString,
          ErrorResult& aRv) {
+    aView.ComputeLengthAndData();
     TextDecoderBase::Decode(reinterpret_cast<char*>(aView.Data()),
                             aView.Length(), aOptions.mStream,
                             aOutDecodedString, aRv);

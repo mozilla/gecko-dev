@@ -125,6 +125,8 @@ WaveShaperNode::SetCurve(const Float32Array* aCurve)
   if (aCurve) {
     mCurve = aCurve->Obj();
 
+    aCurve->ComputeLengthAndData();
+
     curve.SetLength(aCurve->Length());
     PodCopy(curve.Elements(), aCurve->Data(), aCurve->Length());
   } else {

@@ -129,6 +129,7 @@ inline void *
 TypedArray::viewData(JSObject *obj)
 {
     JS_ASSERT(obj->isTypedArray());
+    // Keep synced with js::Get<Type>ArrayLengthAndData in jsfriendapi.h!
     return (void *)obj->getPrivate(DATA_SLOT);
 }
 
@@ -221,6 +222,13 @@ DataViewObject::create(JSContext *cx, uint32_t byteOffset, uint32_t byteLength,
 
     RootedObject proto(cx, protoArg);
     RootedObject obj(cx);
+
+    // This is overflow-safe: 2 * INT32_MAX is still a valid uint32_t.
+    if (byteOffset + byteLength > arrayBuffer->byteLength()) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_ARG_INDEX_OUT_OF_RANGE, "1");
+        return nullptr;
+
+    }
 
     NewObjectKind newKind = DataViewNewObjectKind(cx, byteLength, proto);
     obj = NewBuiltinClassInstance(cx, &class_, newKind);

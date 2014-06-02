@@ -211,14 +211,16 @@ class AliasSet {
         FixedSlot         = 1 << 3, // A member of obj->fixedSlots().
         TypedArrayElement = 1 << 4, // A typed array element.
         DOMProperty       = 1 << 5, // A DOM property
-        Last              = DOMProperty,
+        TypedArrayLength  = 1 << 6, // A typed array's length
+        Last              = TypedArrayLength,
         Any               = Last | (Last - 1),
 
-        NumCategories     = 6,
+        NumCategories     = 7,
 
         // Indicates load or store.
         Store_            = 1 << 31
     };
+
     AliasSet(uint32_t flags)
       : flags_(flags)
     {
@@ -4340,9 +4342,7 @@ class MTypedArrayLength
         return congruentIfOperandsEqual(ins);
     }
     AliasSet getAliasSet() const {
-        // The typed array |length| property is immutable, so there is no
-        // implicit dependency.
-        return AliasSet::None();
+        return AliasSet::Load(AliasSet::TypedArrayLength);
     }
 };
 

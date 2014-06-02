@@ -431,6 +431,8 @@ WebGLContext::BufferData(WebGLenum target, ArrayBuffer *data, WebGLenum usage)
     MakeContextCurrent();
     InvalidateCachedMinInUseAttribArrayLength();
 
+    data->ComputeLengthAndData();
+
     GLenum error = CheckedBufferData(target, data->Length(), data->Data(), usage);
 
     if (error) {
@@ -468,6 +470,8 @@ WebGLContext::BufferData(WebGLenum target, ArrayBufferView& data, WebGLenum usag
 
     InvalidateCachedMinInUseAttribArrayLength();
     MakeContextCurrent();
+
+    data.ComputeLengthAndData();
 
     GLenum error = CheckedBufferData(target, data.Length(), data.Data(), usage);
     if (error) {
@@ -509,6 +513,8 @@ WebGLContext::BufferSubData(GLenum target, WebGLsizeiptr byteOffset,
     if (!boundBuffer)
         return ErrorInvalidOperation("bufferData: no buffer bound!");
 
+    data->ComputeLengthAndData();
+
     CheckedUint32 checked_neededByteLength = CheckedUint32(byteOffset) + data->Length();
     if (!checked_neededByteLength.isValid())
         return ErrorInvalidValue("bufferSubData: integer overflow computing the needed byte length");
@@ -546,6 +552,8 @@ WebGLContext::BufferSubData(WebGLenum target, WebGLsizeiptr byteOffset,
 
     if (!boundBuffer)
         return ErrorInvalidOperation("bufferSubData: no buffer bound!");
+
+    data.ComputeLengthAndData();
 
     CheckedUint32 checked_neededByteLength = CheckedUint32(byteOffset) + data.Length();
     if (!checked_neededByteLength.isValid())
@@ -3382,7 +3390,11 @@ WebGLContext::ReadPixels(WebGLint x, WebGLint y, WebGLsizei width,
     if (!checked_neededByteLength.isValid())
         return ErrorInvalidOperation("readPixels: integer overflow computing the needed buffer size");
 
-    uint32_t dataByteLen = JS_GetTypedArrayByteLength(pixels->Obj());
+    // Compute length and data.  Don't reenter after this point, lest the
+    // precomputed go out of sync with the instant length/data.
+    pixels->ComputeLengthAndData();
+
+    uint32_t dataByteLen = pixels->Length();
     if (checked_neededByteLength.value() > dataByteLen)
         return ErrorInvalidOperation("readPixels: buffer too small");
 
@@ -4584,6 +4596,8 @@ WebGLContext::CompressedTexImage2D(WebGLenum target, WebGLint level, WebGLenum i
         return;
     }
 
+    view.ComputeLengthAndData();
+
     uint32_t byteLength = view.Length();
     if (!ValidateCompressedTextureSize(target, level, internalformat, width, height, byteLength, "compressedTexImage2D")) {
         return;
@@ -4632,6 +4646,8 @@ WebGLContext::CompressedTexSubImage2D(WebGLenum target, WebGLint level, WebGLint
     if (!ValidateLevelWidthHeightForTarget(target, level, width, height, "compressedTexSubImage2D")) {
         return;
     }
+
+    view.ComputeLengthAndData();
 
     uint32_t byteLength = view.Length();
     if (!ValidateCompressedTextureSize(target, level, format, width, height, byteLength, "compressedTexSubImage2D")) {
@@ -5135,10 +5151,23 @@ WebGLContext::TexImage2D(WebGLenum target, WebGLint level,
     if (!IsContextStable())
         return;
 
+    void* data;
+    uint32_t length;
+    int jsArrayType;
+    if (!pixels) {
+        data = nullptr;
+        length = 0;
+        jsArrayType = -1;
+    } else {
+        pixels->ComputeLengthAndData();
+
+        data = pixels->Data();
+        length = pixels->Length();
+        jsArrayType = int(JS_GetArrayBufferViewType(pixels->Obj()));
+    }
+
     return TexImage2D_base(target, level, internalformat, width, height, 0, border, format, type,
-                           pixels ? pixels->Data() : 0,
-                           pixels ? pixels->Length() : 0,
-                           pixels ? (int)JS_GetArrayBufferViewType(pixels->Obj()) : -1,
+                           data, length, jsArrayType,
                            WebGLTexelConversions::Auto, false);
 }
 
@@ -5156,6 +5185,8 @@ WebGLContext::TexImage2D(WebGLenum target, WebGLint level,
     }
     
     Uint8ClampedArray arr(pixels->GetDataObject());
+    arr.ComputeLengthAndData();
+
     return TexImage2D_base(target, level, internalformat, pixels->Width(),
                            pixels->Height(), 4*pixels->Width(), 0,
                            format, type, arr.Data(), arr.Length(), -1,
@@ -5289,6 +5320,8 @@ WebGLContext::TexSubImage2D(WebGLenum target, WebGLint level,
     if (!pixels)
         return ErrorInvalidValue("texSubImage2D: pixels must not be null!");
 
+    pixels->ComputeLengthAndData();
+
     return TexSubImage2D_base(target, level, xoffset, yoffset,
                               width, height, 0, format, type,
                               pixels->Data(), pixels->Length(),
@@ -5309,6 +5342,8 @@ WebGLContext::TexSubImage2D(WebGLenum target, WebGLint level,
         return ErrorInvalidValue("texSubImage2D: pixels must not be null!");
 
     Uint8ClampedArray arr(pixels->GetDataObject());
+    arr.ComputeLengthAndData();
+
     return TexSubImage2D_base(target, level, xoffset, yoffset,
                               pixels->Width(), pixels->Height(),
                               4*pixels->Width(), format, type,

@@ -7,6 +7,8 @@
 #ifndef jsfriendapi_h
 #define jsfriendapi_h
 
+#include "mozilla/Casting.h"
+
 #include "jsclass.h"
 #include "jspubtd.h"
 #include "jsprvtd.h"
@@ -1289,6 +1291,93 @@ extern JS_FRIEND_API(JSBool)
 JS_IsFloat64Array(JSObject *obj);
 
 /*
+ * Test for specific typed array types (ArrayBufferView subtypes) and return
+ * the unwrapped object if so, else nullptr.  Never throws.
+ */
+
+namespace js {
+
+extern JS_FRIEND_API(JSObject *)
+UnwrapInt8Array(JSObject *obj);
+extern JS_FRIEND_API(JSObject *)
+UnwrapUint8Array(JSObject *obj);
+extern JS_FRIEND_API(JSObject *)
+UnwrapUint8ClampedArray(JSObject *obj);
+extern JS_FRIEND_API(JSObject *)
+UnwrapInt16Array(JSObject *obj);
+extern JS_FRIEND_API(JSObject *)
+UnwrapUint16Array(JSObject *obj);
+extern JS_FRIEND_API(JSObject *)
+UnwrapInt32Array(JSObject *obj);
+extern JS_FRIEND_API(JSObject *)
+UnwrapUint32Array(JSObject *obj);
+extern JS_FRIEND_API(JSObject *)
+UnwrapFloat32Array(JSObject *obj);
+extern JS_FRIEND_API(JSObject *)
+UnwrapFloat64Array(JSObject *obj);
+
+extern JS_FRIEND_API(JSObject *)
+UnwrapArrayBuffer(JSObject *obj);
+
+extern JS_FRIEND_API(JSObject *)
+UnwrapArrayBufferView(JSObject *obj);
+
+namespace detail {
+
+extern JS_FRIEND_DATA(const Class* const) Int8ArrayClassPtr;
+extern JS_FRIEND_DATA(const Class* const) Uint8ArrayClassPtr;
+extern JS_FRIEND_DATA(const Class* const) Uint8ClampedArrayClassPtr;
+extern JS_FRIEND_DATA(const Class* const) Int16ArrayClassPtr;
+extern JS_FRIEND_DATA(const Class* const) Uint16ArrayClassPtr;
+extern JS_FRIEND_DATA(const Class* const) Int32ArrayClassPtr;
+extern JS_FRIEND_DATA(const Class* const) Uint32ArrayClassPtr;
+extern JS_FRIEND_DATA(const Class* const) Float32ArrayClassPtr;
+extern JS_FRIEND_DATA(const Class* const) Float64ArrayClassPtr;
+
+const size_t TypedArrayLengthSlot = 5;
+
+} // namespace detail
+
+/*
+ * Test for specific typed array types (ArrayBufferView subtypes) and return
+ * the unwrapped object if so, else nullptr.  Never throws.
+ */
+
+#define JS_DEFINE_DATA_AND_LENGTH_ACCESSOR(Type, type) \
+inline void \
+Get ## Type ## ArrayLengthAndData(JSObject *obj, uint32_t *length, type **data) \
+{ \
+    JS_ASSERT(GetObjectClass(obj) == detail::Type ## ArrayClassPtr); \
+    const JS::Value &slot = GetReservedSlot(obj, detail::TypedArrayLengthSlot); \
+    *length = mozilla::SafeCast<uint32_t>(slot.toInt32()); \
+    *data = static_cast<type*>(GetObjectPrivate(obj)); \
+}
+
+JS_DEFINE_DATA_AND_LENGTH_ACCESSOR(Int8, int8_t)
+JS_DEFINE_DATA_AND_LENGTH_ACCESSOR(Uint8, uint8_t)
+JS_DEFINE_DATA_AND_LENGTH_ACCESSOR(Uint8Clamped, uint8_t)
+JS_DEFINE_DATA_AND_LENGTH_ACCESSOR(Int16, int16_t)
+JS_DEFINE_DATA_AND_LENGTH_ACCESSOR(Uint16, uint16_t)
+JS_DEFINE_DATA_AND_LENGTH_ACCESSOR(Int32, int32_t)
+JS_DEFINE_DATA_AND_LENGTH_ACCESSOR(Uint32, uint32_t)
+JS_DEFINE_DATA_AND_LENGTH_ACCESSOR(Float32, float)
+JS_DEFINE_DATA_AND_LENGTH_ACCESSOR(Float64, double)
+
+#undef JS_DEFINE_DATA_AND_LENGTH_ACCESSOR
+
+// This one isn't inlined because it's rather tricky (by dint of having to deal
+// with a dozen-plus classes and varying slot layouts.
+extern JS_FRIEND_API(void)
+GetArrayBufferViewLengthAndData(JSObject *obj, uint32_t *length, uint8_t **data);
+
+// This one isn't inlined because there are a bunch of different ArrayBuffer
+// classes that would have to be individually handled here.
+extern JS_FRIEND_API(void)
+GetArrayBufferLengthAndData(JSObject *obj, uint32_t *length, uint8_t **data);
+
+} // namespace js
+
+/*
  * Unwrap Typed arrays all at once. Return NULL without throwing if the object
  * cannot be viewed as the correct typed array, or the typed array object on
  * success, filling both outparameters.
@@ -1445,6 +1534,28 @@ JS_GetArrayBufferViewData(JSObject *obj);
  */
 extern JS_FRIEND_API(JSObject *)
 JS_GetArrayBufferViewBuffer(JSObject *obj);
+
+typedef enum {
+    ChangeData,
+    KeepData
+} NeuterDataDisposition;
+
+namespace js {
+
+/*
+ * Set an ArrayBuffer's length to 0 and neuter all of its views.
+ *
+ * The |changeData| argument is a hint to inform internal behavior with respect
+ * to the internal pointer to the ArrayBuffer's data after being neutered.
+ * There is no guarantee it will be respected.  But if it is respected, the
+ * ArrayBuffer's internal data pointer will, or will not, have changed
+ * accordingly.
+ */
+extern JS_FRIEND_API(bool)
+NeuterArrayBuffer(JSContext *cx, JS::HandleObject obj,
+                  NeuterDataDisposition changeData);
+
+} /* namespace js */
 
 /*
  * Check whether obj supports JS_GetDataView* APIs.

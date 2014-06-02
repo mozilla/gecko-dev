@@ -999,6 +999,49 @@ js::IsAsmJSFunction(JSContext *cx, unsigned argc, Value *vp)
 }
 #endif
 
+static JSBool
+Neuter(JSContext *cx, unsigned argc, jsval *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    if (args.length() != 2) {
+        JS_ReportError(cx, "wrong number of arguments to neuter()");
+        return false;
+    }
+
+    RootedObject obj(cx);
+    if (!JS_ValueToObject(cx, args[0], obj.address()))
+        return false;
+
+    if (!obj) {
+        JS_ReportError(cx, "neuter must be passed an object");
+        return false;
+    }
+
+    NeuterDataDisposition changeData;
+    RootedValue v(cx, args[1]);
+    RootedString str(cx, ToString<CanGC>(cx, v));
+    if (!str)
+        return false;
+    JSAutoByteString dataDisposition(cx, str);
+    if (!dataDisposition)
+        return false;
+    if (strcmp(dataDisposition.ptr(), "same-data") == 0) {
+        changeData = KeepData;
+    } else if (strcmp(dataDisposition.ptr(), "change-data") == 0) {
+        changeData = ChangeData;
+    } else {
+        JS_ReportError(cx, "unknown parameter 2 to neuter()");
+        return false;
+    }
+
+    if (!js::NeuterArrayBuffer(cx, obj, changeData))
+        return false;
+
+    args.rval().setUndefined();
+    return true;
+}
+
 static JSFunctionSpecWithHelp TestingFunctions[] = {
     JS_FN_HELP("gc", ::GC, 0, 0,
 "gc([obj] | 'compartment')",
@@ -1176,6 +1219,13 @@ static JSFunctionSpecWithHelp TestingFunctions[] = {
     JS_FN_HELP("getObjectMetadata", GetObjectMetadata, 1, 0,
 "getObjectMetadata(obj)",
 "  Get the metadata for an object."),
+
+    JS_FN_HELP("neuter", Neuter, 1, 0,
+"neuter(buffer, \"change-data\"|\"same-data\")",
+"  Neuter the given ArrayBuffer object as if it had been transferred to a\n"
+"  WebWorker. \"change-data\" will update the internal data pointer.\n"
+"  \"same-data\" will leave it set to its original value, to mimic eg\n"
+"  asm.js ArrayBuffer neutering."),
 
     JS_FS_HELP_END
 };

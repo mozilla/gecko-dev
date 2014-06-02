@@ -150,6 +150,8 @@ AnalyserNode::GetFloatFrequencyData(Float32Array& aArray)
     return;
   }
 
+  aArray.ComputeLengthAndData();
+
   float* buffer = aArray.Data();
   uint32_t length = std::min(aArray.Length(), mOutputBuffer.Length());
 
@@ -168,6 +170,8 @@ AnalyserNode::GetByteFrequencyData(Uint8Array& aArray)
 
   const double rangeScaleFactor = 1.0 / (mMaxDecibels - mMinDecibels);
 
+  aArray.ComputeLengthAndData();
+
   unsigned char* buffer = aArray.Data();
   uint32_t length = std::min(aArray.Length(), mOutputBuffer.Length());
 
@@ -183,6 +187,8 @@ AnalyserNode::GetByteFrequencyData(Uint8Array& aArray)
 void
 AnalyserNode::GetByteTimeDomainData(Uint8Array& aArray)
 {
+  aArray.ComputeLengthAndData();
+
   unsigned char* buffer = aArray.Data();
   uint32_t length = std::min(aArray.Length(), mBuffer.Length());
 
