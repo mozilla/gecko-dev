@@ -136,6 +136,6 @@
   <project name="u-boot" path="u-boot" revision="91278dd53e4c56df35ba14b1f54d632322f05150"/>
   <project name="vendor/sprd/gps" path="vendor/sprd/gps" revision="3b61042bbffaddf5cc0c85be7539f4745daaa49e"/>
   <project name="vendor/sprd/open-source" path="vendor/sprd/open-source" revision="526f3914c79842d65800e78d9a23d704f313dedb"/>
-  <project name="vendor/sprd/partner" path="vendor/sprd/partner" revision="1384896e80af0fd2e7e3387aaeea58cf81ad67b0"/>
+  <project name="vendor/sprd/partner" path="vendor/sprd/partner" revision="8649c7145972251af11b0639997edfecabfc7c2e"/>
   <project name="vendor/sprd/proprietories" path="vendor/sprd/proprietories" revision="877fd0c2b5c91bcecbd6e746b66e4803d489e454"/>
 </manifest>
