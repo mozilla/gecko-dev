@@ -254,6 +254,7 @@
   SECCOMP_WHITELIST_B2G_MED \
   ALLOW_SYSCALL(gettid), \
   ALLOW_SYSCALL(getrusage), \
+  ALLOW_SYSCALL(times), \
   ALLOW_SYSCALL(madvise), \
   ALLOW_SYSCALL(dup), \
   ALLOW_SYSCALL(nanosleep), \
