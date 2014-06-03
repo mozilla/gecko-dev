@@ -127,7 +127,7 @@
   <!-- dolphin specific things -->
   <project name="device/sprd" path="device/sprd" revision="57719a88d87bd02eef804d5512339a4a825aa2f9"/>
   <project groups="pdk" name="platform/external/wpa_supplicant_8" path="external/wpa_supplicant_8" revision="6a1dc33cb48a5d7c00cf705fb1a66ec81d5aac07"/>
-  <project groups="pdk" name="platform/frameworks/av" path="frameworks/av" revision="f3e67c5fbaab8291e8a0dfec46c69b25bfe9c3ec"/>
+  <project groups="pdk" name="platform/frameworks/av" path="frameworks/av" revision="499e1bb73658ff9fc1d98b2bf3f54ad6c2a4d4a2"/>
   <project name="platform/hardware/akm" path="hardware/akm" revision="6d3be412647b0eab0adff8a2768736cf4eb68039"/>
   <project groups="invensense" name="platform/hardware/invensense" path="hardware/invensense" revision="e6d9ab28b4f4e7684f6c07874ee819c9ea0002a2"/>
   <project groups="pdk" name="platform/hardware/ril" path="hardware/ril" revision="865ce3b4a2ba0b3a31421ca671f4d6c5595f8690"/>
