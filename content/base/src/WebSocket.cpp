@@ -1223,7 +1223,7 @@ WebSocket::Send(ArrayBuffer& aData,
 
   aData.ComputeLengthAndData();
 
-  static_assert(sizeof(*aData.Data()) == 1, "byte-sized data required");
+  MOZ_STATIC_ASSERT(sizeof(*aData.Data()) == 1, "byte-sized data required");
 
   uint32_t len = aData.Length();
   char* data = reinterpret_cast<char*>(aData.Data());
@@ -1240,7 +1240,7 @@ WebSocket::Send(ArrayBufferView& aData,
 
   aData.ComputeLengthAndData();
 
-  static_assert(sizeof(*aData.Data()) == 1, "byte-sized data required");
+  MOZ_STATIC_ASSERT(sizeof(*aData.Data()) == 1, "byte-sized data required");
 
   uint32_t len = aData.Length();
   char* data = reinterpret_cast<char*>(aData.Data());
