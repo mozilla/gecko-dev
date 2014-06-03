@@ -421,6 +421,9 @@ public:
   // to forget about the shmem _without_ releasing it.
   virtual void OnActorDestroy() {}
 
+  // Forget buffer actor. Used only for hacky fix for bug 966446. 
+  virtual void ForgetBufferActor() {}
+
   virtual const char *Name() { return "TextureHost"; }
   virtual void PrintInfo(nsACString& aTo, const char* aPrefix);
 
