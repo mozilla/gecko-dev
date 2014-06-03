@@ -219,23 +219,17 @@ nsXBLProtoImpl::CompilePrototypeMembers(nsXBLPrototypeBinding* aBinding)
   NS_ENSURE_TRUE(compilationGlobal, NS_ERROR_UNEXPECTED);
   JSAutoCompartment ac(cx, compilationGlobal);
 
-  JS::Rooted<JSObject*> classObject(cx);
-  bool classObjectIsNew = false;
-  nsresult rv = aBinding->InitClass(mClassName, cx, compilationGlobal, compilationGlobal,
-                                    &classObject, &classObjectIsNew);
-  if (NS_FAILED(rv))
-    return rv;
-
-  MOZ_ASSERT(classObjectIsNew);
-  MOZ_ASSERT(classObject);
-  mClassObject = classObject;
+  mClassObject = JS_NewObjectWithGivenProto(cx, nullptr, nullptr, compilationGlobal);
+  if (!mClassObject)
+    return NS_ERROR_OUT_OF_MEMORY;
 
   // Now that we have a class object installed, we walk our member list and compile each of our
   // properties and methods in turn.
+  JS::Rooted<JSObject*> rootedClassObject(cx, mClassObject);
   for (nsXBLProtoImplMember* curr = mMembers;
        curr;
        curr = curr->GetNext()) {
-    nsresult rv = curr->CompileMember(mClassName, classObject);
+    nsresult rv = curr->CompileMember(mClassName, rootedClassObject);
     if (NS_FAILED(rv)) {
       DestroyMembers();
       return rv;
