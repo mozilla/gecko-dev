@@ -24,12 +24,12 @@ template<typename T,
          void GetLengthAndData(JSObject*, uint32_t*, T**)>
 struct TypedArray_base {
   TypedArray_base(JSObject* obj)
-    : mObj(obj),
+    : mObj(NULL),
       mData(NULL),
       mLength(0),
       mComputed(false)
   {
-    MOZ_ASSERT(obj != NULL);
+    Init(obj);
   }
 
 private:
