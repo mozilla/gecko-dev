@@ -103,7 +103,7 @@
   <project name="platform/frameworks/base" path="frameworks/base" revision="2d12cb68a6c680e1ef50c6fbd19f782f67aec9de"/>
   <project name="platform/frameworks/native" path="frameworks/native" revision="b6018ccb81af66e0523a4bfdc45f0bd2ab472b55"/>
   <project name="platform/frameworks/opt/emoji" path="frameworks/opt/emoji" revision="dbbe673145107e99883f62bafd70c5f43f11065c"/>
-  <project name="platform/frameworks/wilhelm" path="frameworks/wilhelm" revision="f0c3b4edf597c40aae4ea311575f39c8bcf203df"/>
+  <project name="platform/frameworks/wilhelm" path="frameworks/wilhelm" revision="aac6c4bb59a6577c97cbda68699829b507b7490d"/>
   <project name="platform/hardware/libhardware" path="hardware/libhardware" revision="fbeca55f4695dd07c0291213403533b8fbca4885"/>
   <project name="platform/hardware/libhardware_legacy" path="hardware/libhardware_legacy" revision="b3b6edd18e0447cd1e1da763c6b67161b687d67a"/>
   <project name="platform/libcore" path="libcore" revision="e195beab082c09217318fc19250caeaf4c1bd800"/>
