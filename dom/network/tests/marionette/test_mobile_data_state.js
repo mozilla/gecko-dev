@@ -126,16 +126,12 @@ taskHelper.push(function testDataStateUpdate() {
       relSignalStrength: null,
       cell: null
     }},
-    // Test state becomes to "roaming"
-    // Set emulator's data state to "roaming" won't change the operator's
-    // long_name/short_name/mcc/mnc, so that the |data.roaming| will still
-    // report false. Please see bug 787967.
     {state: "roaming",
      expect: {
       state: "registered",
       connected: false,
       emergencyCallsOnly: false,
-      roaming: false,
+      roaming: true,
       signalStrength: -99,
       relSignalStrength: 44,
       cell: {

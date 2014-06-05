@@ -1768,9 +1768,6 @@ RadioInterface.prototype = {
     let voice = this.rilContext.voice;
     let data = this.rilContext.data;
 
-    this.checkRoamingBetweenOperators(voice);
-    this.checkRoamingBetweenOperators(data);
-
     if (voiceMessage || operatorMessage || signalMessage) {
       gMessageManager.sendMobileConnectionMessage("RIL:VoiceInfoChanged",
                                                   this.clientId, voice);
@@ -1783,35 +1780,6 @@ RadioInterface.prototype = {
     if (selectionMessage) {
       this.updateNetworkSelectionMode(selectionMessage);
     }
-  },
-
-  /**
-    * Fix the roaming. RIL can report roaming in some case it is not
-    * really the case. See bug 787967
-    *
-    * @param registration  The voiceMessage or dataMessage from which the
-    *                      roaming state will be changed (maybe, if needed).
-    */
-  checkRoamingBetweenOperators: function checkRoamingBetweenOperators(registration) {
-    let iccInfo = this.rilContext.iccInfo;
-    let operator = registration.network;
-    let state = registration.state;
-
-    if (!iccInfo || !operator ||
-        state != RIL.GECKO_MOBILE_CONNECTION_STATE_REGISTERED) {
-      return;
-    }
-
-    let spn = iccInfo.spn && iccInfo.spn.toLowerCase();
-    let longName = operator.longName && operator.longName.toLowerCase();
-    let shortName = operator.shortName && operator.shortName.toLowerCase();
-
-    let equalsLongName = longName && (spn == longName);
-    let equalsShortName = shortName && (spn == shortName);
-    let equalsMcc = iccInfo.mcc == operator.mcc;
-
-    registration.roaming = registration.roaming &&
-                           !(equalsMcc && (equalsLongName || equalsShortName));
   },
 
   /**
@@ -2754,8 +2722,6 @@ RadioInterface.prototype = {
       let data = this.rilContext.data;
       let voiceRoaming = voice.roaming;
       let dataRoaming = data.roaming;
-      this.checkRoamingBetweenOperators(voice);
-      this.checkRoamingBetweenOperators(data);
       if (voiceRoaming != voice.roaming) {
         gMessageManager.sendMobileConnectionMessage("RIL:VoiceInfoChanged",
                                                     this.clientId, voice);

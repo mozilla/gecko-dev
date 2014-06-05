@@ -145,14 +145,6 @@ function testOperatorPLMNList() {
   });
 }
 
-// See bug 797972 - B2G RIL: False roaming situation
-//
-// Steps to test:
-// 1. set roaming operator names
-// 2. set emulator roaming
-// 3. wait for onvoicechange event and test passing conditions
-// 4. set emulator roaming back to false
-// 5. wait for onvoicechange event again and callback
 function doTestRoamingCheck(longName, shortName, callback) {
   log("Testing roaming check '" + longName + "', '" + shortName + "':");
 
@@ -172,7 +164,7 @@ function doTestRoamingCheck(longName, shortName, callback) {
       waitForVoiceChange(function () {
         is(network.longName, longName, "network.longName");
         is(network.shortName, shortName, "network.shortName");
-        is(voice.roaming, false, "voice.roaming");
+        is(voice.roaming, true, "voice.roaming");
 
         resetRoaming();
       });
