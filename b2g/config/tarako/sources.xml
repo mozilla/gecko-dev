@@ -92,7 +92,7 @@
   <project name="platform/system/extras" path="system/extras" revision="0205c49fedf29620165c6b4e6db3d13739c93396"/>
   <project name="platform/system/media" path="system/media" revision="882f981bb9c0fca7e585f31d07638d407b2885ed"/>
   <project name="platform/system/netd" path="system/netd" revision="3d298fde142bee3fc4f07f63f16f2d8ce42339c0"/>
-  <project name="platform/system/vold" path="system/vold" revision="919829940468066a32f403980b43f6ebfee5d314"/>
+  <project name="platform/system/vold" path="system/vold" revision="dfa8014a99240c2c47fc4506373f0dfe3643fb88"/>
   <!-- sprd things -->
   <project name="kernel/common" path="kernel" remote="sprd-aosp" revision="57c2843d09ed192fcff4d20e237eb023135c1d6c"/>
   <project name="u-boot" path="u-boot" remote="sprd-aosp" revision="4abd266bec37da758b933c395e84529cfd6a2852"/>
