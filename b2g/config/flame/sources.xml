@@ -20,7 +20,7 @@
   <project name="gaia" path="gaia" remote="mozillaorg" revision="e8493dbd6002d516aa236d67fc74ff31fdd1fca5"/>
   <project name="gonk-misc" path="gonk-misc" remote="b2g" revision="e1dbe8086e0c4663a4e8a45e1b4f6048f455a925"/>
   <project name="moztt" path="external/moztt" remote="b2g" revision="7beaabe1187b688ef560607912577c614a038533"/>
-  <project name="apitrace" path="external/apitrace" remote="apitrace" revision="89812422efe8df364ddf364b4740030496181277"/>
+  <project name="apitrace" path="external/apitrace" remote="apitrace" revision="6a68dde81fcbe3c6bbd45bafdeb94c3f269bdc20"/>
   <project name="valgrind" path="external/valgrind" remote="b2g" revision="daa61633c32b9606f58799a3186395fd2bbb8d8c"/>
   <project name="vex" path="external/VEX" remote="b2g" revision="47f031c320888fe9f3e656602588565b52d43010"/>
   <!-- Stock Android things -->
@@ -119,7 +119,7 @@
   <project name="device/generic/armv7-a-neon" path="device/generic/armv7-a-neon" revision="e8a318f7690092e639ba88891606f4183e846d3f"/>
   <project name="device/qcom/common" path="device/qcom/common" revision="34ed8345250bb97262d70a052217a92e83444ede"/>
   <project name="device-flame" path="device/t2m/flame" remote="b2g" revision="fcadcb3e4db366ca3d0973ae9f1a36125109dff4"/>
-  <project name="kernel/msm" path="kernel" revision="e3895712aa9ddb955f0fdac880aa553556e64c41"/>
+  <project name="kernel/msm" path="kernel" revision="ccfff630163ca9a0530701fa93b501c34042d06c"/>
   <project name="platform/bootable/recovery" path="bootable/recovery" revision="f2914eacee9120680a41463708bb6ee8291749fc"/>
   <project name="platform/external/bluetooth/bluedroid" path="external/bluetooth/bluedroid" revision="81c4a859d75d413ad688067829d21b7ba9205f81"/>
   <project name="platform/external/bluetooth/bluez" path="external/bluetooth/bluez" revision="f0689ac1914cdbc59e53bdc9edd9013dc157c299"/>
