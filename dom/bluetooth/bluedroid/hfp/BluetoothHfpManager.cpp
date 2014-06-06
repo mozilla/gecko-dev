@@ -1153,6 +1153,13 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
                                             const bool aIsConference,
                                             bool aSend)
 {
+  // aCallIndex can be UINT32_MAX for the pending outgoing call state update.
+  // aCallIndex will be updated again after real call state changes. See Bug
+  // 990467.
+  if (aCallIndex == UINT32_MAX) {
+    return;
+  }
+
   // Update call state only
   while (aCallIndex >= mCurrentCallArray.Length()) {
     Call call;
