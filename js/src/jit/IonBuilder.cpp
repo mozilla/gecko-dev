@@ -6594,55 +6594,6 @@ IonBuilder::getElemTryTypedStatic(bool *emitted, MDefinition *obj, MDefinition *
     if (!ElementAccessIsTypedArray(obj, index, &arrayType))
         return true;
 
-    if (!LIRGenerator::allowStaticTypedArrayAccesses())
-        return true;
-
-    if (ElementAccessHasExtraIndexedProperty(cx, obj))
-        return true;
-
-    if (!obj->resultTypeSet())
-        return true;
-
-    JSObject *tarrObj = obj->resultTypeSet()->getSingleton();
-    if (!tarrObj)
-        return true;
-
-    TypedArrayObject *tarr = &tarrObj->as<TypedArrayObject>();
-    ArrayBufferView::ViewType viewType = JS_GetArrayBufferViewType(tarr);
-
-    // LoadTypedArrayElementStatic currently treats uint32 arrays as int32.
-    if (viewType == ArrayBufferView::TYPE_UINT32)
-        return true;
-
-    MDefinition *ptr = convertShiftToMaskForStaticTypedArray(index, viewType);
-    if (!ptr)
-        return true;
-
-    // Emit LoadTypedArrayElementStatic.
-
-    obj->setFoldedUnchecked();
-    index->setFoldedUnchecked();
-
-    MLoadTypedArrayElementStatic *load = MLoadTypedArrayElementStatic::New(tarr, ptr);
-    current->add(load);
-    current->push(load);
-
-    // The load is infallible if an undefined result will be coerced to the
-    // appropriate numeric type if the read is out of bounds. The truncation
-    // analysis picks up some of these cases, but is incomplete with respect
-    // to others. For now, sniff the bytecode for simple patterns following
-    // the load which guarantee a truncation or numeric conversion.
-    if (viewType == ArrayBufferView::TYPE_FLOAT32 || viewType == ArrayBufferView::TYPE_FLOAT64) {
-        jsbytecode *next = pc + JSOP_GETELEM_LENGTH;
-        if (*next == JSOP_POS)
-            load->setInfallible();
-    } else {
-        jsbytecode *next = pc + JSOP_GETELEM_LENGTH;
-        if (*next == JSOP_ZERO && *(next + JSOP_ZERO_LENGTH) == JSOP_BITOR)
-            load->setInfallible();
-    }
-
-    *emitted = true;
     return true;
 }
 
@@ -6935,29 +6886,12 @@ IonBuilder::jsop_getelem_dense(MDefinition *obj, MDefinition *index)
 MInstruction *
 IonBuilder::getTypedArrayLength(MDefinition *obj)
 {
-    if (obj->isConstant() && obj->toConstant()->value().isObject()) {
-        TypedArrayObject *tarr = &obj->toConstant()->value().toObject().as<TypedArrayObject>();
-        int32_t length = (int32_t) tarr->length();
-        obj->setFoldedUnchecked();
-        return MConstant::New(Int32Value(length));
-    }
     return MTypedArrayLength::New(obj);
 }
 
 MInstruction *
 IonBuilder::getTypedArrayElements(MDefinition *obj)
 {
-    if (obj->isConstant() && obj->toConstant()->value().isObject()) {
-        TypedArrayObject *tarr = &obj->toConstant()->value().toObject().as<TypedArrayObject>();
-        void *data = tarr->viewData();
-
-        // The 'data' pointer can change in rare circumstances
-        // (ArrayBufferObject::changeContents).
-        types::HeapTypeSet::WatchObjectStateChange(cx, tarr->getType(cx));
-
-        obj->setFoldedUnchecked();
-        return MConstantElements::New(data);
-    }
     return MTypedArrayElements::New(obj);
 }
 
@@ -7152,44 +7086,6 @@ IonBuilder::setElemTryTypedStatic(bool *emitted, MDefinition *object,
     if (!ElementAccessIsTypedArray(object, index, &arrayType))
         return true;
 
-    if (!LIRGenerator::allowStaticTypedArrayAccesses())
-        return true;
-
-    if (ElementAccessHasExtraIndexedProperty(cx, object))
-        return true;
-
-    if (!object->resultTypeSet())
-        return true;
-    JSObject *tarrObj = object->resultTypeSet()->getSingleton();
-    if (!tarrObj)
-        return true;
-
-    TypedArrayObject *tarr = &tarrObj->as<TypedArrayObject>();
-    ArrayBufferView::ViewType viewType = JS_GetArrayBufferViewType(tarr);
-
-    MDefinition *ptr = convertShiftToMaskForStaticTypedArray(index, viewType);
-    if (!ptr)
-        return true;
-
-    // Emit StoreTypedArrayElementStatic.
-    object->setFoldedUnchecked();
-    index->setFoldedUnchecked();
-
-    // Clamp value to [0, 255] for Uint8ClampedArray.
-    MDefinition *toWrite = value;
-    if (viewType == ArrayBufferView::TYPE_UINT8_CLAMPED) {
-        toWrite = MClampToUint8::New(value);
-        current->add(toWrite->toInstruction());
-    }
-
-    MInstruction *store = MStoreTypedArrayElementStatic::New(tarr, ptr, toWrite);
-    current->add(store);
-    current->push(value);
-
-    if (!resumeAfter(store))
-        return false;
-
-    *emitted = true;
     return true;
 }
 
