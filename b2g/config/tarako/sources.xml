@@ -26,7 +26,7 @@
   <!-- Stock Android things -->
   <project name="platform/abi/cpp" path="abi/cpp" revision="dd924f92906085b831bf1cbbc7484d3c043d613c"/>
   <project name="platform/bionic" path="bionic" revision="a52eea29b0b49d144816d0ccbd91e69d4050d3c9"/>
-  <project name="platform/bootable/recovery" path="bootable/recovery" revision="425f8b5fadf5889834c5acd27d23c9e0b2129c28"/>
+  <project name="platform/bootable/recovery" path="bootable/recovery" revision="3f5f1f4f035936f948df5bc0caa298d2ba42d3db"/>
   <project name="device/common" path="device/common" revision="42b808b7e93d0619286ae8e59110b176b7732389"/>
   <project name="platform_external_apriori" path="external/apriori" remote="b2g" revision="11816ad0406744f963537b23d68ed9c2afb412bd"/>
   <project name="platform/external/bluetooth/bluez" path="external/bluetooth/bluez" revision="937cae332e9f06cd5decef927fe052c5513efc1c"/>
