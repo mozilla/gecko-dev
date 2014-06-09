@@ -77,6 +77,9 @@ class RefTest(object):
     # Likewise for safebrowsing.
     prefsFile.write('user_pref("browser.safebrowsing.enabled", false);\n')
     prefsFile.write('user_pref("browser.safebrowsing.malware.enabled", false);\n')
+    # And for snippets.
+    prefsFile.write('user_pref("browser.snippets.enabled", false);\n')
+    prefsFile.write('user_pref("browser.snippets.syncPromo.enabled", false);\n')
 
     for v in options.extraPrefs:
       thispref = v.split("=")
