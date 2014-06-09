@@ -194,6 +194,8 @@ public:
    */
   virtual void ClearCachedResources() {}
 
+  virtual void UseTexture(TextureClient* aTexture);
+
   static void TransactionCompleteted(PCompositableChild* aActor, uint64_t aTransactionId);
 
   static void HoldUntilComplete(PCompositableChild* aActor, AsyncTransactionTracker* aTracker);

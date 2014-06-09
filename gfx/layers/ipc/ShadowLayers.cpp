@@ -449,6 +449,17 @@ ShadowLayerForwarder::UseComponentAlphaTextures(CompositableClient* aCompositabl
 }
 
 void
+ShadowLayerForwarder::SendFenceHandle(AsyncTransactionTracker* aTracker,
+                                        PTextureChild* aTexture,
+                                        const FenceHandle& aFence)
+{
+  if (!HasShadowManager() || !mShadowManager->IPCOpen()) {
+    return;
+  }
+  mShadowManager->SendFenceHandle(aTracker, aTexture, aFence);
+}
+
+void
 ShadowLayerForwarder::RemoveTextureFromCompositable(CompositableClient* aCompositable,
                                                     TextureClient* aTexture)
 {

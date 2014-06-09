@@ -332,11 +332,24 @@ public:
    */
   void ForceRemove();
 
-  virtual void SetReleaseFenceHandle(FenceHandle aReleaseFenceHandle) {}
+  virtual void SetReleaseFenceHandle(FenceHandle aReleaseFenceHandle)
+  {
+    mReleaseFenceHandle = aReleaseFenceHandle;
+  }
 
   const FenceHandle& GetReleaseFenceHandle() const
   {
     return mReleaseFenceHandle;
+  }
+
+  virtual void SetAcquireFenceHandle(FenceHandle aAcquireFenceHandle)
+  {
+    mAcquireFenceHandle = aAcquireFenceHandle;
+  }
+
+  const FenceHandle& GetAcquireFenceHandle() const
+  {
+    return mAcquireFenceHandle;
   }
 
   /**
@@ -388,6 +401,7 @@ protected:
   bool mShared;
   bool mValid;
   FenceHandle mReleaseFenceHandle;
+  FenceHandle mAcquireFenceHandle;
 
   friend class TextureChild;
 };
