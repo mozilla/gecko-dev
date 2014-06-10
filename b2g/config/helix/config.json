@@ -10,6 +10,12 @@
         "{objdir}/dist/b2g-*.tar.gz",
         "{workdir}/sources.xml"
     ],
+    "public_upload_files": [
+        "{objdir}/dist/b2g-*.crashreporter-symbols.zip",
+        "{objdir}/dist/b2g-*.tar.gz",
+        "{workdir}/sources.xml",
+        "{objdir}/dist/b2g-update/*.mar"
+    ],
     "zip_files": [
         ["{workdir}/out/target/product/helix/*.img", "out/target/product/helix/"],
         "{workdir}/flash.sh",
@@ -20,7 +26,8 @@
     "env": {
         "VARIANT": "user",
         "MOZILLA_OFFICIAL": "1",
-        "ANDROIDFS_DIR": "{workdir}/helix-ics"
+        "ANDROIDFS_DIR": "{workdir}/helix-ics",
+        "B2G_UPDATE_CHANNEL": "nightly-b2g30"
     },
     "b2g_manifest": "helix.xml",
     "b2g_manifest_branch": "v1.4",
