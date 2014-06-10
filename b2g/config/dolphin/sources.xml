@@ -137,5 +137,5 @@
   <project name="vendor/sprd/gps" path="vendor/sprd/gps" revision="4bd4e60645aeca7b20b37b3b37118bcc4fee7a3a"/>
   <project name="vendor/sprd/open-source" path="vendor/sprd/open-source" revision="d5b3721053a692aba72bf8934798596aab1785e0"/>
   <project name="vendor/sprd/partner" path="vendor/sprd/partner" revision="8649c7145972251af11b0639997edfecabfc7c2e"/>
-  <project name="vendor/sprd/proprietories" path="vendor/sprd/proprietories" revision="8af258ab80a707c1c29eac96eff9372368f58ce9"/>
+  <project name="vendor/sprd/proprietories" path="vendor/sprd/proprietories" revision="006005720899f556804ae1624ee7d942aac5269e"/>
 </manifest>
