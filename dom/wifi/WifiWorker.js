@@ -877,13 +877,23 @@ var WifiManager = (function() {
   // Initial state.
   manager.state = "UNINITIALIZED";
   manager.tetheringState = "UNINITIALIZED";
-  manager.enabled = false;
   manager.supplicantStarted = false;
   manager.connectionInfo = { ssid: null, bssid: null, id: -1 };
   manager.authenticationFailuresCount = 0;
   manager.loopDetectionCount = 0;
   manager.dhcpFailuresCount = 0;
   manager.stopSupplicantCallback = null;
+
+  manager.__defineGetter__("enabled", function() {
+    switch (manager.state) {
+      case "UNINITIALIZED":
+      case "INITIALIZING":
+      case "DISABLING":
+        return false;
+      default:
+        return true;
+    }
+  });
 
   var waitForTerminateEventTimer = null;
   function cancelWaitForTerminateEventTimer() {
@@ -1828,7 +1838,10 @@ function WifiWorker() {
 
   WifiManager.onsupplicantconnection = function() {
     debug("Connected to supplicant");
-    WifiManager.enabled = true;
+    // Give it a state other than UNINITIALIZED, INITIALIZING or DISABLING
+    // defined in getter function of WifiManager.enabled. It implies that
+    // we are ready to accept dom request from applications.
+    WifiManager.state = "DISCONNECTED";
     self._reloadConfiguredNetworks(function(ok) {
       // Prime this.networks.
       if (!ok)
@@ -1861,7 +1874,7 @@ function WifiWorker() {
   };
 
   WifiManager.onsupplicantlost = function() {
-    WifiManager.enabled = WifiManager.supplicantStarted = false;
+    WifiManager.supplicantStarted = false;
     WifiManager.state = "UNINITIALIZED";
     debug("Supplicant died!");
 
@@ -2989,6 +3002,12 @@ WifiWorker.prototype = {
     const message = "WifiManager:wps:Return";
     let self = this;
     let detail = msg.data;
+
+    if (!WifiManager.enabled) {
+      this._sendMessage(message, false, "Wifi is disabled", msg);
+      return;
+    }
+
     if (detail.method === "pbc") {
       WifiManager.wpsPbc(function(ok) {
         if (ok)
@@ -3022,6 +3041,11 @@ WifiWorker.prototype = {
     let enabled = msg.data;
     let mode = enabled ? "AUTO" : "ACTIVE";
 
+    if (!WifiManager.enabled) {
+      this._sendMessage(message, false, "Wifi is disabled", msg);
+      return;
+    }
+
     // Some wifi drivers may not implement this command. Set power mode
     // even if suspend optimization command failed.
     WifiManager.setSuspendOptimizations(enabled, function(ok) {
@@ -3040,6 +3064,11 @@ WifiWorker.prototype = {
     let self = this;
     let network = msg.data.network;
     let info = msg.data.info;
+
+    if (!WifiManager.enabled) {
+      this._sendMessage(message, false, "Wifi is disabled", msg);
+      return;
+    }
 
     WifiManager.configureHttpProxy(network, info, function(ok) {
       if (ok) {
@@ -3062,6 +3091,11 @@ WifiWorker.prototype = {
     let self = this;
     let network = msg.data.network;
     let info = msg.data.info;
+
+    if (!WifiManager.enabled) {
+      this._sendMessage(message, false, "Wifi is disabled", msg);
+      return;
+    }
 
     // To compatiable with DHCP returned info structure, do translation here
     info.ipaddr_str = info.ipaddr;
