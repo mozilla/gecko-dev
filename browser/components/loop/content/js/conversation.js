@@ -8,7 +8,8 @@ var loop = loop || {};
 loop.conversation = (function(OT, mozL10n) {
   "use strict";
 
-  var sharedViews = loop.shared.views;
+  var sharedViews = loop.shared.views,
+      ReactConversationView = sharedViews.ReactConversationView;
 
   /**
    * App router.
@@ -163,10 +164,10 @@ loop.conversation = (function(OT, mozL10n) {
         return;
       }
 
-      this.loadView(
-        new loop.shared.views.ConversationView({
-          sdk: OT,
-          model: this._conversation
+      /*jshint newcap:false*/
+      this.loadReactComponent(ReactConversationView({
+        sdk: OT,
+        model: this._conversation
       }));
     },
 

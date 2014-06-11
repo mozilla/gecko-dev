@@ -3,9 +3,21 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /* global loop, sinon */
+/* jshint newcap:false */
 
 var expect = chai.expect;
 var l10n = document.webL10n || document.mozL10n;
+var TestUtils = React.addons.TestUtils;
+
+// React test utils for Loop
+// XXX this is ugly, should be cleaned up, expanded and moved to its own module.
+function stubComponent(ComponentClass, specObject) {
+  if (!TestUtils.isCompositeComponent(ComponentClass)) {
+    throw Error("stubComponent() expects a valid React component constructor.");
+  }
+  var stubbedSpec = _.extend({}, ComponentClass.originalSpec, specObject);
+  return React.createClass(stubbedSpec);
+}
 
 describe("loop.shared.views", function() {
   "use strict";
@@ -40,7 +52,7 @@ describe("loop.shared.views", function() {
     });
   });
 
-  describe("ConversationView", function() {
+  describe("ReactConversationView", function() {
     var fakeSDK, fakeSessionData, fakeSession, fakePublisher, model;
 
     beforeEach(function() {
@@ -70,29 +82,29 @@ describe("loop.shared.views", function() {
       });
     });
 
-    describe("#initialize", function() {
-      it("should require a sdk object", function() {
-        expect(function() {
-          new sharedViews.ConversationView();
-        }).to.Throw(Error, /sdk/);
-      });
-
-      it("should start a session", function() {
+    describe("#componentDidMount", function() {
+      it("should start a session when mounted", function() {
         sandbox.stub(model, "startSession");
 
-        new sharedViews.ConversationView({sdk: fakeSDK, model: model});
+        TestUtils.renderIntoDocument(
+          sharedViews.ReactConversationView({sdk: fakeSDK, model: model}));
 
         sinon.assert.calledOnce(model.startSession);
       });
     });
 
     describe("constructed", function() {
+      var view;
+
+      beforeEach(function() {
+        view = TestUtils.renderIntoDocument(sharedViews.ReactConversationView({
+          sdk: fakeSDK,
+          model: model
+        }));
+      });
+
       describe("#hangup", function() {
         it("should disconnect the session", function() {
-          var view = new sharedViews.ConversationView({
-            sdk: fakeSDK,
-            model: model
-          });
           sandbox.stub(model, "endSession");
           view.publish();
 
@@ -103,15 +115,6 @@ describe("loop.shared.views", function() {
       });
 
       describe("#publish", function() {
-        var view;
-
-        beforeEach(function() {
-          view = new sharedViews.ConversationView({
-            sdk: fakeSDK,
-            model: model
-          });
-        });
-
         it("should publish local stream", function() {
           view.publish();
 
@@ -131,13 +134,7 @@ describe("loop.shared.views", function() {
       });
 
       describe("#unpublish", function() {
-        var view;
-
         beforeEach(function() {
-          view = new sharedViews.ConversationView({
-            sdk: fakeSDK,
-            model: model
-          });
           view.publish();
         });
 
@@ -156,52 +153,57 @@ describe("loop.shared.views", function() {
             sinon.assert.calledWith(fakePublisher.off, "accessDenied");
           });
       });
+    });
 
-      describe("Model events", function() {
-        var view;
+    describe("Model events", function() {
+      var stubbedView;
 
-        beforeEach(function() {
-          sandbox.stub(sharedViews.ConversationView.prototype, "publish");
-          sandbox.stub(sharedViews.ConversationView.prototype, "unpublish");
-          view = new sharedViews.ConversationView({sdk: fakeSDK, model: model});
+      beforeEach(function() {
+        var StubView = stubComponent(sharedViews.ReactConversationView, {
+          publish: sandbox.stub(),
+          unpublish: sandbox.stub()
         });
-
-        it("should publish local stream on session:connected", function() {
-          model.trigger("session:connected");
-
-          sinon.assert.calledOnce(view.publish);
-        });
-
-        it("should publish remote streams on session:stream-created",
-          function() {
-            var s1 = {connection: {connectionId: 42}};
-            var s2 = {connection: {connectionId: 43}};
-
-            model.trigger("session:stream-created", {streams: [s1, s2]});
-
-            sinon.assert.calledOnce(fakeSession.subscribe);
-            sinon.assert.calledWith(fakeSession.subscribe, s2);
-          });
-
-        it("should unpublish local stream on session:ended", function() {
-          model.trigger("session:ended");
-
-          sinon.assert.calledOnce(view.unpublish);
-        });
-
-        it("should unpublish local stream on session:peer-hungup", function() {
-          model.trigger("session:peer-hungup");
-
-          sinon.assert.calledOnce(view.unpublish);
-        });
-
-        it("should unpublish local stream on session:network-disconnected",
-          function() {
-            model.trigger("session:network-disconnected");
-
-            sinon.assert.calledOnce(view.unpublish);
-          });
+        stubbedView = TestUtils.renderIntoDocument(StubView({
+          sdk: fakeSDK,
+          model: model
+        }));
       });
+
+      it("should publish local stream on session:connected", function() {
+        model.trigger("session:connected");
+
+        sinon.assert.called(stubbedView.publish.__reactBoundMethod);
+      });
+
+      it("should publish remote streams on session:stream-created",
+        function() {
+          var s1 = {connection: {connectionId: 42}};
+          var s2 = {connection: {connectionId: 43}};
+
+          model.trigger("session:stream-created", {streams: [s1, s2]});
+
+          sinon.assert.calledOnce(fakeSession.subscribe);
+          sinon.assert.calledWith(fakeSession.subscribe, s2);
+        });
+
+      it("should unpublish local stream on session:ended", function() {
+        model.trigger("session:ended");
+
+        sinon.assert.calledOnce(stubbedView.unpublish.__reactBoundMethod);
+      });
+
+      it("should unpublish local stream on session:peer-hungup", function() {
+        model.trigger("session:peer-hungup");
+
+        sinon.assert.calledOnce(stubbedView.unpublish.__reactBoundMethod);
+      });
+
+      it("should unpublish local stream on session:network-disconnected",
+        function() {
+          model.trigger("session:network-disconnected");
+
+          sinon.assert.calledOnce(stubbedView.unpublish.__reactBoundMethod);
+        });
     });
   });
 

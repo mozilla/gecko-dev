@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* global loop:true */
+/*global loop:true, React */
 
 var loop = loop || {};
 loop.shared = loop.shared || {};
@@ -89,24 +89,27 @@ loop.shared.views = (function(_, OT, l10n) {
   });
 
   /**
-   * Conversation view.
+   * Translation mixin: translates component DOM node after it mounted.
+   *
+   * @type {Object}
    */
-  var ConversationView = BaseView.extend({
-    className: "conversation",
+  var ReactL10nMixin = {
+    componentDidMount: function() {
+      l10n.translate(this.getDOMNode());
+    }
+  };
 
-    template: _.template([
-      '<nav class="controls">',
-      '  <button class="btn stop" data-l10n-id="stop"></button>',
-      '</nav>',
-      '<div class="media nested">',
-      // Both these wrappers are required by the SDK; this is fragile and
-      // will break if a future version of the SDK updates this generated DOM,
-      // especially as the SDK seems to actually move wrapped contents into
-      // their own generated stuff.
-      '  <div class="remote"><div class="incoming"></div></div>',
-      '  <div class="local"><div class="outgoing"></div></div>',
-      '</div>'
-    ].join("")),
+
+  var ReactConversationView = React.createClass({
+    mixins: [ReactL10nMixin, Backbone.Events],
+
+    // XXX required when not using JSX
+    displayName: 'ReactConversationView',
+
+    propTypes: {
+      sdk: React.PropTypes.object.isRequired,
+      model: React.PropTypes.object.isRequired
+    },
 
     // height set to "auto" to fix video layout on Google Chrome
     // @see https://bugzilla.mozilla.org/show_bug.cgi?id=991122
@@ -116,26 +119,22 @@ loop.shared.views = (function(_, OT, l10n) {
       style: { "bugDisplayMode": "off" }
     },
 
-    events: {
-      'click .btn.stop': 'hangup'
+    componentWillMount: function() {
+      this.listenTo(this.props.model, "session:connected", this.publish);
+      this.listenTo(this.props.model, "session:stream-created",
+                                      this._streamCreated);
+      this.listenTo(this.props.model, ["session:peer-hungup",
+                                       "session:network-disconnected",
+                                       "session:ended"].join(" "),
+                                      this.unpublish);
     },
 
-    /**
-     * Establishes webrtc communication using OT sdk.
-     */
-    initialize: function(options) {
-      options = options || {};
-      if (!options.sdk) {
-        throw new Error("missing required sdk");
-      }
-      this.sdk = options.sdk;
+    componentWillUnmount: function() {
+      this.stopListening();
+    },
 
-      this.listenTo(this.model, "session:connected", this.publish);
-      this.listenTo(this.model, "session:stream-created", this._streamCreated);
-      this.listenTo(this.model, ["session:peer-hungup",
-                                 "session:network-disconnected",
-                                 "session:ended"].join(" "), this.unpublish);
-      this.model.startSession();
+    componentDidMount: function() {
+      this.props.model.startSession();
     },
 
     /**
@@ -149,13 +148,14 @@ loop.shared.views = (function(_, OT, l10n) {
      * @param  {StreamEvent} event
      */
     _streamCreated: function(event) {
-      var incoming = this.$(".incoming").get(0);
+      var incoming = this.getDOMNode().querySelector(".incoming");
       event.streams.forEach(function(stream) {
         if (stream.connection.connectionId !==
-            this.model.session.connection.connectionId) {
-          this.model.session.subscribe(stream, incoming, this.videoStyles);
+            this.props.model.session.connection.connectionId) {
+          this.props.model.session.subscribe(stream, incoming,
+            this.videoStyles);
         }
-      }.bind(this));
+      }, this);
     },
 
     /**
@@ -166,7 +166,7 @@ loop.shared.views = (function(_, OT, l10n) {
     hangup: function(event) {
       event.preventDefault();
       this.unpublish();
-      this.model.endSession();
+      this.props.model.endSession();
     },
 
     /**
@@ -177,9 +177,9 @@ loop.shared.views = (function(_, OT, l10n) {
      * @param  {SessionConnectEvent} event
      */
     publish: function(event) {
-      var outgoing = this.$(".outgoing").get(0);
+      var outgoing = this.getDOMNode().querySelector(".outgoing");
 
-      this.publisher = this.sdk.initPublisher(outgoing, this.videoStyles);
+      this.publisher = this.props.sdk.initPublisher(outgoing, this.videoStyles);
 
       // Suppress OT GuM custom dialog, see bug 1018875
       function preventOpeningAccessDialog(event) {
@@ -188,7 +188,7 @@ loop.shared.views = (function(_, OT, l10n) {
       this.publisher.on("accessDialogOpened", preventOpeningAccessDialog);
       this.publisher.on("accessDenied", preventOpeningAccessDialog);
 
-      this.model.session.publish(this.publisher);
+      this.props.model.session.publish(this.publisher);
     },
 
     /**
@@ -199,17 +199,25 @@ loop.shared.views = (function(_, OT, l10n) {
       this.publisher.off("accessDialogOpened");
       this.publisher.off("accessDenied");
 
-      this.model.session.unpublish(this.publisher);
+      this.props.model.session.unpublish(this.publisher);
     },
 
-    /**
-     * Renders this view.
-     *
-     * @return {ConversationView}
-     */
     render: function() {
-      this.$el.html(this.template(this.model.toJSON()));
-      return this;
+      return (
+        React.DOM.div({className: "conversation"},
+          React.DOM.nav({className: "controls"},
+            React.DOM.button({className: "btn stop", "data-l10n-id": "stop",
+              onClick: this.hangup
+            })
+          ),
+          React.DOM.div({className: "media nested"},
+            React.DOM.div({className: "remote"},
+              React.DOM.div({className: "incoming"})),
+            React.DOM.div({className: "local"},
+              React.DOM.div({className: "outgoing"}))
+          )
+        )
+      );
     }
   });
 
@@ -377,9 +385,9 @@ loop.shared.views = (function(_, OT, l10n) {
   return {
     L10nView: L10nView,
     BaseView: BaseView,
-    ConversationView: ConversationView,
     NotificationListView: NotificationListView,
     NotificationView: NotificationView,
+    ReactConversationView: ReactConversationView,
     UnsupportedBrowserView: UnsupportedBrowserView,
     UnsupportedDeviceView: UnsupportedDeviceView
   };

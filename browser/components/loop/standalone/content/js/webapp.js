@@ -1,3 +1,4 @@
+/** @jsx React.DOM */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -13,7 +14,8 @@ loop.webapp = (function($, _, OT) {
 
   var sharedModels = loop.shared.models,
       sharedViews = loop.shared.views,
-      baseServerUrl = loop.config.serverUrl;
+      baseServerUrl = loop.config.serverUrl,
+      ReactConversationView = sharedViews.ReactConversationView;
 
   /**
    * App router.
@@ -178,13 +180,15 @@ loop.webapp = (function($, _, OT) {
     /**
      * Loads conversation establishment view.
      *
+     * @param {String} loopToken Loop token.
      */
     loadConversation: function(loopToken) {
       if (!this._conversation.isSessionReady()) {
         // User has loaded this url directly, actually setup the call.
         return this.navigate("call/" + loopToken, {trigger: true});
       }
-      this.loadView(new sharedViews.ConversationView({
+      /*jshint newcap:false*/
+      this.loadReactComponent(ReactConversationView({
         sdk: OT,
         model: this._conversation
       }));
