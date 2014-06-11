@@ -35,27 +35,6 @@ ContentHostBase::~ContentHostBase()
 {
 }
 
-struct AutoLockContentHost
-{
-  AutoLockContentHost(ContentHostBase* aHost)
-    : mHost(aHost)
-  {
-    mSucceeded = mHost->Lock();
-  }
-
-  ~AutoLockContentHost()
-  {
-    if (mSucceeded) {
-      mHost->Unlock();
-    }
-  }
-
-  bool Failed() { return !mSucceeded; }
-
-  ContentHostBase* mHost;
-  bool mSucceeded;
-};
-
 void
 ContentHostBase::Composite(EffectChain& aEffectChain,
                            float aOpacity,
@@ -67,7 +46,7 @@ ContentHostBase::Composite(EffectChain& aEffectChain,
 {
   NS_ASSERTION(aVisibleRegion, "Requires a visible region");
 
-  AutoLockContentHost lock(this);
+  AutoLockCompositableHost lock(this);
   if (lock.Failed()) {
     return;
   }
@@ -287,6 +266,22 @@ ContentHostTexture::Dump(FILE* aFile,
   fprintf(aFile, "</ul>");
 }
 #endif
+
+TemporaryRef<TexturedEffect>
+ContentHostBase::GenEffect(const gfx::Filter& aFilter)
+{
+  RefPtr<NewTextureSource> source = GetTextureSource();
+  RefPtr<NewTextureSource> sourceOnWhite = GetTextureSourceOnWhite();
+  if (!source) {
+    return nullptr;
+  }
+  RefPtr<TexturedEffect> effect =
+    CreateTexturedEffect(source, sourceOnWhite, aFilter);
+  if (!effect) {
+    return nullptr;
+  }
+  return effect;
+}
 
 static inline void
 AddWrappedRegion(const nsIntRegion& aInput, nsIntRegion& aOutput,

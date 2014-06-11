@@ -193,6 +193,17 @@ ThebesLayerComposite::GetEffectiveResolution()
   return CSSToScreenScale(1.0);
 }
 
+void
+ThebesLayerComposite::GenEffectChain(EffectChain& aEffect,
+                                     CompositableHost* aHost)
+{
+  // Add layerRef
+  aEffect.mLayerRef = this;
+
+  // Add primary effect, should be locked first
+  aEffect.mPrimaryEffect = aHost->GenEffect(gfx::Filter::LINEAR);
+}
+
 nsACString&
 ThebesLayerComposite::PrintInfo(nsACString& aTo, const char* aPrefix)
 {

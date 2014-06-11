@@ -161,6 +161,17 @@ ImageLayerComposite::CleanupResources()
   mImageHost = nullptr;
 }
 
+void
+ImageLayerComposite::GenEffectChain(EffectChain& aEffect,
+                                    CompositableHost* aHost)
+{
+  // Add layerRef
+  aEffect.mLayerRef = this;
+
+  // Add primary effect, if the buffer in aHost is locked.
+  aEffect.mPrimaryEffect = aHost->GenEffect(gfx::ToFilter(mFilter));
+}
+
 nsACString&
 ImageLayerComposite::PrintInfo(nsACString& aTo, const char* aPrefix)
 {

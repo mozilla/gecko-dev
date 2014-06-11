@@ -132,6 +132,28 @@ CanvasLayerComposite::CleanupResources()
   mImageHost = nullptr;
 }
 
+void
+CanvasLayerComposite::GenEffectChain(EffectChain& aEffect,
+                                     CompositableHost* aHost)
+{
+  // Add layerRef
+  aEffect.mLayerRef = this;
+
+  // Add primary effect
+  GraphicsFilter filter = mFilter;
+#ifdef ANDROID
+  // Bug 691354
+  // Using the LINEAR filter we get unexplained artifacts.
+  // Use NEAREST when no scaling is required.
+  Matrix matrix;
+  bool is2D = GetEffectiveTransform().Is2D(&matrix);
+  if (is2D && !ThebesMatrix(matrix).HasNonTranslationOrFlip()) {
+    filter = GraphicsFilter::FILTER_NEAREST;
+  }
+#endif
+  aEffect.mPrimaryEffect = aHost->GenEffect(gfx::ToFilter(filter));
+}
+
 nsACString&
 CanvasLayerComposite::PrintInfo(nsACString& aTo, const char* aPrefix)
 {

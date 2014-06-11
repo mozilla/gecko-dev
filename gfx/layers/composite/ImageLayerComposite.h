@@ -49,6 +49,8 @@ public:
 
   virtual void CleanupResources() MOZ_OVERRIDE;
 
+  virtual void GenEffectChain(EffectChain& aEffect, CompositableHost* aHost) MOZ_OVERRIDE;
+
   CompositableHost* GetCompositableHost() MOZ_OVERRIDE;
 
   virtual LayerComposite* AsLayerComposite() MOZ_OVERRIDE { return this; }
