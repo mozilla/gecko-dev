@@ -159,6 +159,9 @@ user_pref("browser.download.panel.shown", true);
 // Disable first-tun tab
 user_pref("browser.firstrun.count", 0);
 
+// Disable useragent updates.
+user_pref("general.useragent.updates.enabled", false);
+
 // Don't connect to Yahoo! for RSS feed tests.
 // en-US only uses .types.0.uri, but set all of them just to be sure.
 user_pref('browser.contentHandlers.types.0.uri', 'http://test1.example.org/rss?url=%%s')
