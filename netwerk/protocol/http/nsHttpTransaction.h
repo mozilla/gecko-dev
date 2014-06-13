@@ -196,7 +196,7 @@ private:
     uint64_t                        mRequestSize;
 
     nsAHttpConnection              *mConnection;      // hard ref
-    nsHttpConnectionInfo           *mConnInfo;        // hard ref
+    nsRefPtr<nsHttpConnectionInfo>  mConnInfo;
     nsHttpRequestHead              *mRequestHead;     // weak ref
     nsHttpResponseHead             *mResponseHead;    // hard ref
 
@@ -257,6 +257,7 @@ private:
     bool                            mDispatchedAsBlocking;
     bool                            mResponseTimeoutEnabled;
     bool                            mDontRouteViaWildCard;
+    bool                            mForceRestart;
 
     // mClosed           := transaction has been explicitly closed
     // mTransactionDone  := transaction ran to completion or was interrupted

@@ -16,6 +16,7 @@
 #include "mozilla/ReentrantMonitor.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Attributes.h"
+#include "AlternateServices.h"
 
 #include "nsIObserver.h"
 #include "nsITimer.h"
@@ -25,11 +26,13 @@ class nsIHttpUpgradeListener;
 namespace mozilla {
 namespace net {
 class EventTokenBucket;
+class NullHttpTransaction;
 struct HttpRetParams;
 
 //-----------------------------------------------------------------------------
 
 class nsHttpConnectionMgr : public nsIObserver
+                          , public AltSvcCache
 {
 public:
     NS_DECL_THREADSAFE_ISUPPORTS
@@ -107,7 +110,8 @@ public:
     // real transaction for this connectionInfo.
     nsresult SpeculativeConnect(nsHttpConnectionInfo *,
                                 nsIInterfaceRequestor *,
-                                uint32_t caps = 0);
+                                uint32_t caps = 0,
+                                NullHttpTransaction * = nullptr);
 
     // called when a connection is done processing a transaction.  if the
     // connection can be reused then it will be added to the idle list, else
@@ -439,6 +443,8 @@ private:
 
         bool IsSpeculative() { return mSpeculative; }
         void SetSpeculative(bool val) { mSpeculative = val; }
+        bool Allow1918() { return mAllow1918; }
+        void SetAllow1918(bool val) { mAllow1918 = val; }
 
         bool HasConnected() { return mHasConnected; }
 
@@ -459,6 +465,8 @@ private:
         // match up - but it prevents a speculative connection from opening
         // more connections that are needed.)
         bool                           mSpeculative;
+
+        bool                           mAllow1918;
 
         TimeStamp             mPrimarySynStarted;
         TimeStamp             mBackupSynStarted;
@@ -530,7 +538,7 @@ private:
     void     ClosePersistentConnections(nsConnectionEntry *ent);
     void     ReportProxyTelemetry(nsConnectionEntry *ent);
     nsresult CreateTransport(nsConnectionEntry *, nsAHttpTransaction *,
-                             uint32_t, bool);
+                             uint32_t, bool, bool);
     void     AddActiveConn(nsHttpConnection *, nsConnectionEntry *);
     void     DecrementActiveConnCount(nsHttpConnection *);
     void     StartedConnect();

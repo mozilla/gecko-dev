@@ -66,6 +66,7 @@
 #include "nsPerformance.h"
 #include "CacheObserver.h"
 #include "mozilla/Telemetry.h"
+#include "AlternateServices.h"
 
 namespace mozilla { namespace net {
 
@@ -278,11 +279,11 @@ nsHttpChannel::Connect()
     // data (it is read-only).
     // if the connection is not using SSL and either the exact host matches or
     // a superdomain wants to force HTTPS, do it.
-    bool usingSSL = false;
-    rv = mURI->SchemeIs("https", &usingSSL);
+    bool isHttps = false;
+    rv = mURI->SchemeIs("https", &isHttps);
     NS_ENSURE_SUCCESS(rv,rv);
 
-    if (mAllowSTS && !usingSSL) {
+    if (mAllowSTS && !isHttps) {
         // enforce Strict-Transport-Security
         nsISiteSecurityService* sss = gHttpHandler->GetSSService();
         NS_ENSURE_TRUE(sss, NS_ERROR_OUT_OF_MEMORY);
@@ -326,7 +327,7 @@ nsHttpChannel::Connect()
     }
 
     // open a cache entry for this channel...
-    rv = OpenCacheEntry(usingSSL);
+    rv = OpenCacheEntry(isHttps);
 
     // do not continue if asyncOpenCacheEntry is in progress
     if (mCacheEntriesToWaitFor) {
@@ -1200,6 +1201,173 @@ nsHttpChannel::ProcessSSLInformation()
     }
 }
 
+void
+nsHttpChannel::ProcessAltService()
+{
+    if (!gHttpHandler->AllowAltSvc()) {
+        return;
+    }
+
+    // todo centralize this parsing code somewhere sane beyond poc
+    nsAutoCString scheme;
+    mURI->GetScheme(scheme);
+    bool isHttp = scheme.Equals(NS_LITERAL_CSTRING("http"));
+    if (!isHttp && !scheme.Equals(NS_LITERAL_CSTRING("https"))) {
+        return;
+    }
+
+    if (isHttp && !gHttpHandler->AllowAltSvcOE()) {
+        return;
+    }
+
+    const char *altSvc;
+    if (!(altSvc = mResponseHead->PeekHeader(nsHttp::Alternate_Service))) {
+        return;
+    }
+
+    SpdyInformation *spdyInfo = gHttpHandler->SpdyInfo();
+
+    nsRefPtr<AltSvcMapping> mapping;
+
+    // Alt-Svc     = 1#( alternate *( OWS ";" OWS parameter ) )
+    // alternate   = protocol-id "=" port
+    // protocol-id = <ALPN protocol identifier>
+    // Alt-Svc: h2=8000; ma=60
+
+    nsCString buf(altSvc);
+    nsAutoCString npnToken;
+    char *header = buf.BeginWriting();
+    while (header) {
+        char *eof = strchr (header, ',');
+        if (!eof) {
+            eof = strchr (header, '\0');
+        }
+        do {
+            uint32_t maxage = 86400;
+
+            char *id;
+            for (id = header; (id < eof) && ((*id ==' ') || (*id == '\t')); id++);
+            if (id == eof) {
+                break;
+            }
+            char *eq = id;
+            for (eq = id; (eq < eof) && (*eq != '='); eq++);
+
+            char *port = eq + 1;
+            if (port >= eof) {
+                break;
+            }
+            bool validId = false;
+            uint32_t idLen;
+            // XXX - factor this out to share w/Http2
+            for (uint32_t i = 0; i < spdyInfo->kCount && !validId; ++i) {
+                idLen = spdyInfo->VersionString[i].Length();
+                uint32_t tokenLen = static_cast<uint32_t>(eq - id);
+                if (tokenLen != idLen) {
+                    continue;
+                }
+
+                if (!spdyInfo->VersionString[i].EqualsASCII(id, idLen)) {
+                    continue;
+                }
+
+                if (!spdyInfo->ProtocolEnabled(i)) {
+                    continue;
+                }
+
+                validId = true;
+            }
+            if (!validId) {
+                break;
+            }
+            npnToken.AssignASCII(id, idLen);
+            char *endport;
+            for (endport = port;
+                 (endport < eof) && (*endport != ';') && (*endport != ' ') && (*endport != '\t');
+                 endport++);
+            char t = *endport;
+            *endport = '\0';
+            int32_t portno = atoi(port);
+            *endport = t;
+            if (portno < 1) {
+                break;
+            }
+
+            // ma and pr attributes?
+            char oldEof = *eof;
+            *eof = '\0';
+            char *arg, *semi;
+            for (arg = endport + 1; arg < eof; arg = semi + 1) {
+                semi = strchr(arg, ';');
+                if (!semi) {
+                    semi = eof;
+                }
+                char *eq = strchr(arg, '=');
+                if (!eq || ((eq + 1) >= semi)) {
+                    continue;
+                }
+                int32_t val = atoi (eq + 1);
+                if (val < 1) {
+                    continue;
+                }
+                for (; (arg < eq) && ((*arg == ' ') || (*arg == '\t')); arg++);
+                if ((eq - arg) < 2) {
+                    continue;
+                }
+
+                bool ma = (tolower (arg[0]) == 'm') && (tolower (arg[1]) == 'a') &&
+                    ((arg[2] == '=') || (arg[2] == ' ') || (arg[2] == '\t'));
+
+                if (ma) {
+                    maxage = val;
+                }
+            }
+
+            *eof = oldEof;
+
+            nsAutoCString originHost;
+            int32_t originPort = 80;
+            mURI->GetPort(&originPort);
+            if (NS_FAILED(mURI->GetHost(originHost))) {
+                break;
+            }
+
+            uint32_t now = NowInSeconds(), currentAge = 0;
+            mResponseHead->ComputeCurrentAge(now, mRequestTime, &currentAge);
+            maxage -= currentAge;
+            if (maxage < 1) {
+                break;
+            }
+
+            nsAutoCString hostname; // Always empty in the header form
+            mapping =
+                new AltSvcMapping(scheme,
+                                  originHost, originPort,
+                                  mUsername, mPrivateBrowsing,
+                                  NowInSeconds() + maxage,
+                                  hostname, portno, npnToken);
+        } while (0);
+        header = *eof ? eof + 1 : nullptr;
+    }
+
+    if (!mapping)
+        return;
+
+    nsCOMPtr<nsIInterfaceRequestor> callbacks;
+    NS_NewNotificationCallbacksAggregation(mCallbacks, mLoadGroup,
+                                           getter_AddRefs(callbacks));
+    if (!callbacks)
+        return;
+
+    nsCOMPtr<nsProxyInfo> proxyInfo;
+    if (mProxyInfo)
+        proxyInfo = do_QueryInterface(mProxyInfo);
+
+    gHttpHandler->
+        UpdateAltServiceMapping(mapping, proxyInfo, callbacks,
+                                mCaps & (NS_HTTP_ALLOW_RSA_FALSESTART | NS_HTTP_DISALLOW_SPDY));
+}
+
 nsresult
 nsHttpChannel::ProcessResponse()
 {
@@ -1251,6 +1419,10 @@ nsHttpChannel::ProcessResponse()
         mAuthProvider->Disconnect(NS_ERROR_ABORT);
         mAuthProvider = nullptr;
         LOG(("  continuation state has been reset"));
+    }
+
+    if (httpStatus < 500) {
+        ProcessAltService();
     }
 
     bool successfulReval = false;
@@ -2496,7 +2668,7 @@ IsSubRangeRequest(nsHttpRequestHead &aRequestHead)
 }
 
 nsresult
-nsHttpChannel::OpenCacheEntry(bool usingSSL)
+nsHttpChannel::OpenCacheEntry(bool isHttps)
 {
     MOZ_EVENT_TRACER_EXEC(this, "net::http::OpenCacheEntry");
 
@@ -2815,8 +2987,8 @@ nsHttpChannel::OnCacheEntryCheck(nsICacheEntry* entry, nsIApplicationCache* appC
         }
     }
 
-    bool usingSSL = false;
-    rv = mURI->SchemeIs("https", &usingSSL);
+    bool isHttps = false;
+    rv = mURI->SchemeIs("https", &isHttps);
     NS_ENSURE_SUCCESS(rv,rv);
 
     bool doValidation = false;
@@ -2846,7 +3018,7 @@ nsHttpChannel::OnCacheEntryCheck(nsICacheEntry* entry, nsIApplicationCache* appC
         // if no-store or if no-cache and ssl, validate cached response (see
         // bug 112564 for an explanation of this logic)
         if (mCachedResponseHead->NoStore() ||
-           (mCachedResponseHead->NoCache() && usingSSL)) {
+           (mCachedResponseHead->NoCache() && isHttps)) {
             LOG(("Validating based on (no-store || (no-cache && ssl)) logic\n"));
             doValidation = true;
         }
@@ -3400,11 +3572,11 @@ nsHttpChannel::OpenCacheInputStream(nsICacheEntry* cacheEntry, bool startBufferi
 {
     nsresult rv;
 
-    bool usingSSL = false;
-    rv = mURI->SchemeIs("https", &usingSSL);
+    bool isHttps = false;
+    rv = mURI->SchemeIs("https", &isHttps);
     NS_ENSURE_SUCCESS(rv,rv);
 
-    if (usingSSL) {
+    if (isHttps) {
         rv = cacheEntry->GetSecurityInfo(
                                       getter_AddRefs(mCachedSecurityInfo));
         if (NS_FAILED(rv)) {
@@ -3752,9 +3924,11 @@ nsHttpChannel::UpdateInhibitPersistentCachingFlag()
         mLoadFlags |= INHIBIT_PERSISTENT_CACHING;
 
     // Only cache SSL content on disk if the pref is set
+    bool isHttps;
     if (!gHttpHandler->IsPersistentHttpsCachingEnabled() &&
-        mConnectionInfo->EndToEndSSL())
+        NS_SUCCEEDED(mURI->SchemeIs("https", &isHttps)) && isHttps) {
         mLoadFlags |= INHIBIT_PERSISTENT_CACHING;
+    }
 }
 
 nsresult
@@ -4516,16 +4690,15 @@ nsHttpChannel::BeginConnect()
     // Construct connection info object
     nsAutoCString host;
     int32_t port = -1;
-    nsAutoCString username;
-    bool usingSSL = false;
+    bool isHttps = false;
 
-    rv = mURI->SchemeIs("https", &usingSSL);
+    rv = mURI->SchemeIs("https", &isHttps);
     if (NS_SUCCEEDED(rv))
         rv = mURI->GetAsciiHost(host);
     if (NS_SUCCEEDED(rv))
         rv = mURI->GetPort(&port);
     if (NS_SUCCEEDED(rv))
-        mURI->GetUsername(username);
+        mURI->GetUsername(mUsername);
     if (NS_SUCCEEDED(rv))
         rv = mURI->GetAsciiSpec(mSpec);
     if (NS_FAILED(rv))
@@ -4541,9 +4714,46 @@ nsHttpChannel::BeginConnect()
     if (mProxyInfo)
         proxyInfo = do_QueryInterface(mProxyInfo);
 
-    mConnectionInfo = new nsHttpConnectionInfo(host, port, username, proxyInfo, usingSSL);
-    mRequestHead.SetHTTPS(usingSSL);
+    mRequestHead.SetHTTPS(isHttps);
 
+    nsRefPtr<AltSvcMapping> mapping;
+    nsAutoCString scheme;
+    mURI->GetScheme(scheme);
+    if ((scheme.Equals(NS_LITERAL_CSTRING("http")) ||
+         scheme.Equals(NS_LITERAL_CSTRING("https"))) &&
+        (mapping = gHttpHandler->GetAltServiceMapping(scheme,
+                                                      host, port,
+                                                      mPrivateBrowsing))) {
+        LOG(("nsHttpChannel %p Alt Service Mapping Found %s://%s::%d\n", this,
+             scheme.get(), mapping->AlternateHost().get(),
+             mapping->AlternatePort()));
+        mRequestHead.SetHeader(nsHttp::Alternate_Service_Used, NS_LITERAL_CSTRING("1"));
+
+        nsCOMPtr<nsIConsoleService> consoleService =
+            do_GetService(NS_CONSOLESERVICE_CONTRACTID);
+        if (consoleService) {
+            nsAutoString message(NS_LITERAL_STRING("Alternate Service Mapping found: "));
+            AppendASCIItoUTF16(scheme.get(), message);
+            message.Append(NS_LITERAL_STRING("://"));
+            AppendASCIItoUTF16(host.get(), message);
+            message.Append(NS_LITERAL_STRING(":"));
+            message.AppendInt(port);
+            message.Append(NS_LITERAL_STRING(" to "));
+            AppendASCIItoUTF16(scheme.get(), message);
+            message.Append(NS_LITERAL_STRING("://"));
+            AppendASCIItoUTF16(mapping->AlternateHost().get(), message);
+            message.Append(NS_LITERAL_STRING(":"));
+            message.AppendInt(mapping->AlternatePort());
+            consoleService->LogStringMessage(message.get());
+        }
+
+        LOG3(("USING CONN INFO FROM ALTSVC MAPPING"));
+        mapping->GetConnectionInfo(getter_AddRefs(mConnectionInfo), proxyInfo);
+    } else {
+        LOG3(("USING DEFAULT CONN INFO"));
+        mConnectionInfo = new nsHttpConnectionInfo(host, port, nsDependentCString(""), mUsername, proxyInfo, isHttps);
+    }
+    
     mAuthProvider =
         do_CreateInstance("@mozilla.org/network/http-channel-auth-provider;1",
                           &rv);
@@ -4817,8 +5027,10 @@ nsHttpChannel::GetResponseEnd(TimeStamp* _retval) {
 NS_IMETHODIMP
 nsHttpChannel::GetIsSSL(bool *aIsSSL)
 {
-    *aIsSSL = mConnectionInfo->EndToEndSSL();
-    return NS_OK;
+    // this attribute is really misnamed - it wants to know if
+    // https:// is being used. SSL might be used to cover http://
+    // in some circumstances (proxies, http/2, etc..)
+    return mURI->SchemeIs("https", aIsSSL);
 }
 
 NS_IMETHODIMP

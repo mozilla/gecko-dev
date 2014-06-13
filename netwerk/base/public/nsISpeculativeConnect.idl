@@ -35,7 +35,7 @@ interface nsISpeculativeConnect : nsISupports
  * inline) to determine whether or not to actually make a speculative
  * connection.
  */
-[builtinclass, uuid(2b6d6fb6-ab28-4f4c-af84-bfdbb7866d72)]
+[builtinclass, uuid(f6a0d1e5-369f-4abc-81ae-d370d36e4006)]
 interface nsISpeculativeConnectionOverrider : nsISupports
 {
     /**
@@ -57,4 +57,9 @@ interface nsISpeculativeConnectionOverrider : nsISupports
      * connection.
      */
     [infallible] readonly attribute boolean ignoreIdle;
+
+    /**
+     * by default speculative connections are not made to RFC 1918 addresses
+     */
+    [infallible] readonly attribute boolean allow1918;
 };

@@ -478,19 +478,43 @@ nsHttpConnection::SetupNPNList(nsISSLSocketControl *ssl, uint32_t caps)
 {
     nsTArray<nsCString> protocolArray;
 
-    // The first protocol is used as the fallback if none of the
-    // protocols supported overlap with the server's list.
-    // In the case of overlap, matching priority is driven by
-    // the order of the server's advertisement.
-    protocolArray.AppendElement(NS_LITERAL_CSTRING("http/1.1"));
+    nsCString npnToken = mConnInfo->GetNPNToken();
+    if (npnToken.IsEmpty()) {
+        // The first protocol is used as the fallback if none of the
+        // protocols supported overlap with the server's list.
+        // In the case of overlap, matching priority is driven by
+        // the order of the server's advertisement.
+        protocolArray.AppendElement(NS_LITERAL_CSTRING("http/1.1"));
 
-    if (gHttpHandler->IsSpdyEnabled() &&
-        !(caps & NS_HTTP_DISALLOW_SPDY)) {
-        LOG(("nsHttpConnection::SetupSSL Allow SPDY NPN selection"));
-        for (uint32_t index = 0; index < SpdyInformation::kCount; ++index) {
-            if (gHttpHandler->SpdyInfo()->ProtocolEnabled(index))
-                protocolArray.AppendElement(
-                    gHttpHandler->SpdyInfo()->VersionString[index]);
+        if (gHttpHandler->IsSpdyEnabled() &&
+            !(caps & NS_HTTP_DISALLOW_SPDY)) {
+            LOG(("nsHttpConnection::SetupSSL Allow SPDY NPN selection"));
+            for (uint32_t index = 0; index < SpdyInformation::kCount; ++index) {
+                if (gHttpHandler->SpdyInfo()->ProtocolEnabled(index))
+                    protocolArray.AppendElement(
+                        gHttpHandler->SpdyInfo()->VersionString[index]);
+            }
+        }
+    } else {
+        LOG(("nsHttpConnection::SetupSSL limiting NPN selection to %s",
+             npnToken.get()));
+        protocolArray.AppendElement(npnToken);
+    }
+
+    nsCString authHost = mConnInfo->GetAuthenticationHost();
+    int32_t   authPort = mConnInfo->GetAuthenticationPort();
+
+    if (!authHost.IsEmpty()) {
+        ssl->SetAuthenticationName(authHost);
+        ssl->SetAuthenticationPort(authPort);
+    }
+
+    if (mConnInfo->GetRelaxed()) { // http:// over tls
+        ssl->SetInsecure(true); // No Lock Icon
+        if (authHost.IsEmpty() || authHost.Equals(mConnInfo->GetHost())) {
+            LOG(("nsHttpConnection::SetupSSL %p TLS-Relaxed "
+                 "with Same Host Auth Bypass", this));
+            ssl->SetBypassAuthentication(true);
         }
     }
 
@@ -1380,6 +1404,12 @@ nsHttpConnection::EndIdleMonitoring()
         if (mSocketIn)
             mSocketIn->AsyncWait(nullptr, 0, 0, nullptr);
     }
+}
+
+uint32_t
+nsHttpConnection::Version()
+{
+    return mUsingSpdyVersion  ? mUsingSpdyVersion : mLastHttpResponseVersion;
 }
 
 //-----------------------------------------------------------------------------

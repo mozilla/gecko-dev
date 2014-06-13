@@ -402,6 +402,13 @@ Predictor::GetParallelSpeculativeConnectLimit(
   return NS_OK;
 }
 
+NS_IMETHODIMP
+Predictor::GetAllow1918(bool *allow1918)
+{
+  *allow1918 = false;
+  return NS_OK;
+}
+
 // Predictor::nsIInterfaceRequestor
 
 NS_IMETHODIMP

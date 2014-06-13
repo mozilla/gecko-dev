@@ -1113,6 +1113,9 @@ pref("network.http.spdy.send-buffer-size", 131072);
 pref("network.http.spdy.allow-push", true);
 pref("network.http.spdy.push-allowance", 131072);
 
+pref("network.http.altsvc.enabled", true);
+pref("network.http.altsvc.oe", true);
+
 pref("network.http.diagnostics", false);
 
 pref("network.http.pacing.requests.enabled", true);

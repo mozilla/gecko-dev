@@ -192,6 +192,9 @@ public:
     void    SetupSecondaryTLS();
     void    SetInSpdyTunnel(bool arg);
 
+    // override of nsAHttpConnection
+    virtual uint32_t Version();
+
 private:
     // Value (set in mTCPKeepaliveConfig) indicates which set of prefs to use.
     enum TCPKeepaliveConfig {

@@ -30,6 +30,7 @@ namespace net {
         SPDY_VERSION_3 = 3,
         SPDY_VERSION_31 = 4,
 
+        HTTP_VERSION_2_0 = 20,
         // leave room for official versions. telem goes to 48
         // 24 was a internal spdy/3.1
         // 25 was spdy/4a2
@@ -190,6 +191,7 @@ PRTimeToSeconds(PRTime t_usec)
 
 #define HTTP_LWS " \t"
 #define HTTP_HEADER_VALUE_SEPS HTTP_LWS ","
+#define HTTP_HEADER_FIELD_SEPS HTTP_LWS "="
 
 void EnsureBuffer(nsAutoArrayPtr<char> &buf, uint32_t newSize,
                   uint32_t preserve, uint32_t &objSize);
