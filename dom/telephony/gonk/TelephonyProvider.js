@@ -41,6 +41,15 @@ const DIAL_ERROR_OTHER_CONNECTION_IN_USE = "OtherConnectionInUse";
 // Should match the value we set in dom/telephony/TelephonyCommon.h
 const OUTGOING_PLACEHOLDER_CALL_INDEX = 0xffffffff;
 
+const AUDIO_STATE_NO_CALL  = 0;
+const AUDIO_STATE_INCOMING = 1;
+const AUDIO_STATE_IN_CALL  = 2;
+const AUDIO_STATE_NAME = [
+  "PHONE_STATE_NORMAL",
+  "PHONE_STATE_RINGTONE",
+  "PHONE_STATE_IN_CALL"
+];
+
 let DEBUG;
 function debug(s) {
   dump("TelephonyProvider: " + s + "\n");
@@ -92,36 +101,15 @@ XPCOMUtils.defineLazyGetter(this, "gPhoneNumberUtils", function() {
   return ns.PhoneNumberUtils;
 });
 
-function SingleCall(options){
-  this.clientId = options.clientId;
-  this.callIndex = options.callIndex;
-  this.state = options.state;
-  this.number = options.number;
-  this.isOutgoing = options.isOutgoing;
-  this.isEmergency = options.isEmergency;
-  this.isConference = options.isConference;
-}
-SingleCall.prototype = {
-  clientId: null,
-  callIndex: null,
-  state: null,
-  number: null,
-  isOutgoing: false,
-  isEmergency: false,
-  isConference: false
-};
-
-function ConferenceCall(state){
-  this.state = state;
-}
-ConferenceCall.prototype = {
-  state: null
-};
-
 function TelephonyProvider() {
   this._numClients = gRadioInterfaceLayer.numRadioInterfaces;
   this._listeners = [];
   this._currentCalls = {};
+
+  // _isActiveCall[clientId][callIndex] shows the active status of the call.
+  this._isActiveCall = {};
+  this._numActiveCall = 0;
+
   this._updateDebugFlag();
   this.defaultServiceId = this._getDefaultServiceId();
 
@@ -132,6 +120,7 @@ function TelephonyProvider() {
 
   for (let i = 0; i < this._numClients; ++i) {
     this._enumerateCallsForClient(i);
+    this._isActiveCall[i] = {};
   }
 }
 TelephonyProvider.prototype = {
@@ -202,103 +191,86 @@ TelephonyProvider.prototype = {
     }
   },
 
-  _matchActiveSingleCall: function(aCall) {
-    return this._activeCall &&
-           this._activeCall instanceof SingleCall &&
-           this._activeCall.clientId === aCall.clientId &&
-           this._activeCall.callIndex === aCall.callIndex;
-  },
-
   /**
    * Track the active call and update the audio system as its state changes.
    */
-  _activeCall: null,
-  _updateCallAudioState: function(aCall, aConferenceState) {
-    if (aConferenceState === nsITelephonyProvider.CALL_STATE_CONNECTED) {
-      this._activeCall = new ConferenceCall(aConferenceState);
-      gAudioManager.phoneState = nsIAudioManager.PHONE_STATE_IN_CALL;
-      if (this.speakerEnabled) {
-        gAudioManager.setForceForUse(nsIAudioManager.USE_COMMUNICATION,
-                                     nsIAudioManager.FORCE_SPEAKER);
-      }
-      if (DEBUG) {
-        debug("Active call, put audio system into PHONE_STATE_IN_CALL: " +
-              gAudioManager.phoneState);
-      }
-      return;
-    }
-
-    if (aConferenceState === nsITelephonyProvider.CALL_STATE_UNKNOWN ||
-        aConferenceState === nsITelephonyProvider.CALL_STATE_HELD) {
-      if (this._activeCall instanceof ConferenceCall) {
-        this._activeCall = null;
-        gAudioManager.phoneState = nsIAudioManager.PHONE_STATE_NORMAL;
-        if (DEBUG) {
-          debug("No active call, put audio system into PHONE_STATE_NORMAL: " +
-                gAudioManager.phoneState);
-        }
-      }
-      return;
-    }
-
-    if (!aCall) {
-      return;
-    }
-
-    if (aCall.isConference) {
-      if (this._matchActiveSingleCall(aCall)) {
-        this._activeCall = null;
-      }
-      return;
-    }
+  _updateActiveCall: function(aCall) {
+    let active = false;
+    let incoming = false;
 
     switch (aCall.state) {
       case nsITelephonyProvider.CALL_STATE_DIALING: // Fall through...
       case nsITelephonyProvider.CALL_STATE_ALERTING:
       case nsITelephonyProvider.CALL_STATE_CONNECTED:
-        aCall.isActive = true;
-        this._activeCall = new SingleCall(aCall);
+        active = true;
+        break;
+      case nsITelephonyProvider.CALL_STATE_INCOMING:
+        incoming = true;
+        break;
+      case nsITelephonyProvider.CALL_STATE_HELD: // Fall through...
+      case nsITelephonyProvider.CALL_STATE_DISCONNECTED:
+        break;
+    }
+
+    aCall.isActive = this._isActiveState(aCall.state);
+
+    // Ignore audio control on placeholder.
+    if (aCall.callIndex == OUTGOING_PLACEHOLDER_CALL_INDEX) {
+      return;
+    }
+
+    // Update active count and info.
+    let oldActive = this._isActiveCall[aCall.clientId][aCall.callIndex];
+    if (!oldActive && active) {
+      this._numActiveCall++;
+    } else if (oldActive && !active) {
+      this._numActiveCall--;
+    }
+    this._isActiveCall[aCall.clientId][aCall.callIndex] = active;
+
+    if (incoming && !this._numActiveCall) {
+      // Change the phone state into RINGTONE only when there's no active call.
+      this._updateCallAudioState(AUDIO_STATE_INCOMING);
+    } else if (this._numActiveCall) {
+      this._updateCallAudioState(AUDIO_STATE_IN_CALL);
+    } else {
+      this._updateCallAudioState(AUDIO_STATE_NO_CALL);
+    }
+  },
+
+  _updateCallAudioState: function(aAudioState) {
+    switch (aAudioState) {
+      case AUDIO_STATE_NO_CALL:
+        gAudioManager.phoneState = nsIAudioManager.PHONE_STATE_NORMAL;
+        break;
+
+      case AUDIO_STATE_INCOMING:
+        gAudioManager.phoneState = nsIAudioManager.PHONE_STATE_RINGTONE;
+        break;
+
+      case AUDIO_STATE_IN_CALL:
         gAudioManager.phoneState = nsIAudioManager.PHONE_STATE_IN_CALL;
         if (this.speakerEnabled) {
           gAudioManager.setForceForUse(nsIAudioManager.USE_COMMUNICATION,
                                        nsIAudioManager.FORCE_SPEAKER);
         }
-        if (DEBUG) {
-          debug("Active call, put audio system into PHONE_STATE_IN_CALL: " +
-                gAudioManager.phoneState);
-        }
         break;
+    }
 
-      case nsITelephonyProvider.CALL_STATE_INCOMING:
-        aCall.isActive = false;
-        if (!this._activeCall) {
-          // We can change the phone state into RINGTONE only when there's
-          // no active call.
-          gAudioManager.phoneState = nsIAudioManager.PHONE_STATE_RINGTONE;
-          if (DEBUG) {
-            debug("Incoming call, put audio system into PHONE_STATE_RINGTONE: " +
-                  gAudioManager.phoneState);
-          }
-        }
-        break;
+    if (DEBUG) {
+      debug("Put audio system into " + AUDIO_STATE_NAME[aAudioState] + ": " +
+            gAudioManager.phoneState);
+    }
+  },
 
-      case nsITelephonyProvider.CALL_STATE_HELD: // Fall through...
-      case nsITelephonyProvider.CALL_STATE_DISCONNECTED:
-        aCall.isActive = false;
-        if (this._matchActiveSingleCall(aCall)) {
-          // Previously active call is not active now.
-          this._activeCall = null;
-        }
-
-        if (!this._activeCall) {
-          // No active call. Disable the audio.
-          gAudioManager.phoneState = nsIAudioManager.PHONE_STATE_NORMAL;
-          if (DEBUG) {
-            debug("No active call, put audio system into PHONE_STATE_NORMAL: " +
-                  gAudioManager.phoneState);
-          }
-        }
-        break;
+  _isActiveState: function(aState) {
+    switch (aState) {
+      case nsITelephonyProvider.CALL_STATE_CONNECTED:
+      case nsITelephonyProvider.CALL_STATE_DIALING:
+      case nsITelephonyProvider.CALL_STATE_ALERTING:
+        return true;
+      default:
+        return false;
     }
   },
 
@@ -366,7 +338,7 @@ TelephonyProvider.prototype = {
       for (let call of response.calls) {
         call.clientId = aClientId;
         call.state = this._convertRILCallState(call.state);
-        call.isActive = this._matchActiveSingleCall(call);
+        call.isActive = this._isActiveState(call.state);
         call.isSwitchable = true;
         call.isMergeable = true;
 
@@ -676,7 +648,7 @@ TelephonyProvider.prototype = {
     }
     gAudioManager.microphoneMuted = aMuted;
 
-    if (!this._activeCall) {
+    if (!this._numActiveCall) {
       gAudioManager.phoneState = nsIAudioManager.PHONE_STATE_NORMAL;
     }
   },
@@ -694,7 +666,7 @@ TelephonyProvider.prototype = {
                            nsIAudioManager.FORCE_NONE;
     gAudioManager.setForceForUse(nsIAudioManager.USE_COMMUNICATION, force);
 
-    if (!this._activeCall) {
+    if (!this._numActiveCall) {
       gAudioManager.phoneState = nsIAudioManager.PHONE_STATE_NORMAL;
     }
   },
@@ -709,6 +681,7 @@ TelephonyProvider.prototype = {
   notifyCallDisconnected: function(aClientId, aCall) {
     if (DEBUG) debug("handleCallDisconnected: " + JSON.stringify(aCall));
 
+    aCall.clientId = aClientId;
     aCall.state = nsITelephonyProvider.CALL_STATE_DISCONNECTED;
     let duration = ("started" in aCall && typeof aCall.started == "number") ?
       new Date().getTime() - aCall.started : 0;
@@ -721,8 +694,7 @@ TelephonyProvider.prototype = {
     };
     gSystemMessenger.broadcastMessage("telephony-call-ended", data);
 
-    aCall.clientId = aClientId;
-    this._updateCallAudioState(aCall, null);
+    this._updateActiveCall(aCall);
 
     let manualConfStateChange = false;
     let childId = this._currentCalls[aClientId][aCall.callIndex].childId;
@@ -808,7 +780,7 @@ TelephonyProvider.prototype = {
     }
 
     aCall.clientId = aClientId;
-    this._updateCallAudioState(aCall, null);
+    this._updateActiveCall(aCall);
 
     let call = this._currentCalls[aClientId][aCall.callIndex];
     if (call) {
@@ -872,8 +844,6 @@ TelephonyProvider.prototype = {
   notifyConferenceCallStateChanged: function(aState) {
     if (DEBUG) debug("handleConferenceCallStateChanged: " + aState);
     aState = this._convertRILCallState(aState);
-    this._updateCallAudioState(null, aState);
-
     this._notifyAllListeners("conferenceCallStateChanged", [aState]);
   },
 
