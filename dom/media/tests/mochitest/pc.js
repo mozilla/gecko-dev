@@ -369,12 +369,12 @@ function getNetworkUtils() {
      *
      * @param aCallback callback after data connection is ready.
      */
-    prepareNetwork: function(aCallback) {
+    prepareNetwork: function(onSuccess) {
       script.addMessageListener('network-ready', function (message) {
         info("Network interface is ready");
-        aCallback();
+        onSuccess();
       });
-      info("Setup network interface");
+      info("Setting up network interface");
       script.sendAsyncMessage("prepare-network", true);
     },
     /**
@@ -382,17 +382,59 @@ function getNetworkUtils() {
      *
      * @param aCallback callback after data connection is closed.
      */
-    tearDownNetwork: function(aCallback) {
-      script.addMessageListener('network-disabled', function (message) {
-        ok(true, 'network-disabled');
-        script.destroy();
-        aCallback();
-      });
-      script.sendAsyncMessage("network-cleanup", true);
+    tearDownNetwork: function(onSuccess, onFailure) {
+      if (isNetworkReady()) {
+        script.addMessageListener('network-disabled', function (message) {
+          info("Network interface torn down");
+          script.destroy();
+          onSuccess();
+        });
+        info("Tearing down network interface");
+        script.sendAsyncMessage("network-cleanup", true);
+      } else {
+        info("No network to tear down");
+        onFailure();
+      }
     }
   };
 
   return utils;
+}
+
+/**
+ * Setup network on Gonk if needed and execute test once network is up
+ *
+ */
+function startNetworkAndTest(onSuccess) {
+  if (!isNetworkReady()) {
+    SimpleTest.waitForExplicitFinish();
+    var utils = getNetworkUtils();
+    // Trigger network setup to obtain IP address before creating any PeerConnection.
+    utils.prepareNetwork(onSuccess);
+  } else {
+    onSuccess();
+  }
+}
+
+/**
+ * A wrapper around SimpleTest.finish() to handle B2G network teardown
+ */
+function networkTestFinished() {
+  if ("nsINetworkInterfaceListService" in SpecialPowers.Ci) {
+    var utils = getNetworkUtils();
+    utils.tearDownNetwork(SimpleTest.finish, SimpleTest.finish);
+  } else {
+    SimpleTest.finish();
+  }
+}
+
+/**
+ * A wrapper around runTest() which handles B2G network setup and teardown
+ */
+function runNetworkTest(testFunction) {
+  startNetworkAndTest(function() {
+    runTest(testFunction);
+  });
 }
 
 /**
@@ -420,27 +462,6 @@ function PeerConnectionTest(options) {
   options.is_local = "is_local" in options ? options.is_local : true;
   options.is_remote = "is_remote" in options ? options.is_remote : true;
 
-  var netTeardownCommand = null;
-  if (!isNetworkReady()) {
-    var utils = getNetworkUtils();
-    // Trigger network setup to obtain IP address before creating any PeerConnection.
-    utils.prepareNetwork(function() {
-      ok(isNetworkReady(),'setup network connection successfully');
-    });
-
-    netTeardownCommand = [
-      [
-        'TEARDOWN_NETWORK',
-        function(test) {
-          utils.tearDownNetwork(function() {
-            info('teardown network connection');
-            test.next();
-          });
-        }
-      ]
-    ];
-  }
-
   if (options.is_local)
     this.pcLocal = new PeerConnectionWrapper('pcLocal', options.config_pc1);
   else
@@ -460,11 +481,6 @@ function PeerConnectionTest(options) {
   }
   if (!options.is_remote) {
     this.chain.filterOut(/^PC_REMOTE/);
-  }
-
-  // Insert network teardown after testcase execution.
-  if (netTeardownCommand) {
-    this.chain.append(netTeardownCommand);
   }
 
   var self = this;
@@ -560,7 +576,7 @@ function PCT_setLocalDescription(peer, desc, onSuccess) {
   }
 
   peer.onsignalingstatechange = function () {
-    info(peer + ": 'onsignalingstatechange' event registered for async check");
+    info(peer + ": 'onsignalingstatechange' event registered, signalingState: " + peer.signalingState);
 
     eventFired = true;
     check_next_test();
@@ -621,7 +637,7 @@ function PCT_setRemoteDescription(peer, desc, onSuccess) {
   }
 
   peer.onsignalingstatechange = function () {
-    info(peer + ": 'onsignalingstatechange' event registered for async check");
+    info(peer + ": 'onsignalingstatechange' event registered, signalingState: " + peer.signalingState);
 
     eventFired = true;
     check_next_test();
@@ -647,7 +663,7 @@ PeerConnectionTest.prototype.teardown = function PCT_teardown() {
   this.close(function () {
     info("Test finished");
     if (window.SimpleTest)
-      SimpleTest.finish();
+      networkTestFinished();
     else
       finish();
   });

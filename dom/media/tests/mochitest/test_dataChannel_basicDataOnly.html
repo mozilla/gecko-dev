@@ -16,7 +16,7 @@
   });
 
   var test;
-  runTest(function () {
+  runNetworkTest(function () {
     test = new DataChannelTest();
 
     // TODO: Add back once bug 873049 has been fixed
@@ -24,7 +24,7 @@
     test.chain.remove("PC_REMOTE_CHECK_MEDIA_STREAMS");
 
     test.run();
-  }, true);
+  });
 
 </script>
 </pre>
