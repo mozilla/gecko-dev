@@ -77,6 +77,12 @@ class RefTest(object):
     # Ensure that telemetry is disabled, so we don't connect to the telemetry
     # server in the middle of the tests.
     prefs['toolkit.telemetry.enabled'] = False
+    # Likewise for safebrowsing.
+    prefs['browser.safebrowsing.enabled'] = False
+    prefs['browser.safebrowsing.malware.enabled'] = False
+    # And for snippets.
+    prefs['browser.snippets.enabled'] = False
+    prefs['browser.snippets.syncPromo.enabled'] = False
 
     for v in options.extraPrefs:
       thispref = v.split('=')

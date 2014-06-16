@@ -9,13 +9,14 @@ api.recurly.com: did not receive HSTS header
 apis.google.com: did not receive HSTS header
 app.lookout.com: could not connect to host
 appengine.google.com: did not receive HSTS header
-appseccalifornia.org: could not connect to host
+appseccalifornia.org: did not receive HSTS header
 bassh.net: did not receive HSTS header
 bcrook.com: max-age too low: 86400
 betnet.fr: could not connect to host
 bigshinylock.minazo.net: could not connect to host
 blacklane.com: did not receive HSTS header
 braintreegateway.com: did not receive HSTS header
+braintreepayments.com: did not receive HSTS header
 browserid.org: did not receive HSTS header
 business.medbank.com.mt: did not receive HSTS header
 calyxinstitute.org: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-b28_13-l64-hsts-000000000000/getHSTSPreloadList.js :: processStsHeader :: line 124"  data: no]
@@ -90,7 +91,7 @@ play.google.com: did not receive HSTS header
 prodpad.com: did not receive HSTS header
 profiles.google.com: did not receive HSTS header
 rapidresearch.me: did not receive HSTS header
-riseup.net: could not connect to host
+riseup.net: did not receive HSTS header
 sah3.net: could not connect to host
 saturngames.co.uk: did not receive HSTS header
 script.google.com: did not receive HSTS header
@@ -109,7 +110,6 @@ spreadsheets.google.com: did not receive HSTS header
 square.com: did not receive HSTS header
 ssl.google-analytics.com: did not receive HSTS header
 ssl.panoramio.com: did not receive HSTS header
-stage.wepay.com: max-age too low: 2592000
 static.wepay.com: did not receive HSTS header
 sunshinepress.org: could not connect to host
 surfeasy.com: did not receive HSTS header
@@ -118,7 +118,6 @@ talkgadget.google.com: did not receive HSTS header
 translate.googleapis.com: did not receive HSTS header
 uprotect.it: could not connect to host
 wallet.google.com: did not receive HSTS header
-waveapps.com: no error
 webmail.mayfirst.org: did not receive HSTS header
 whonix.org: did not receive HSTS header
 www.calyxinstitute.org: [Exception... "Component returned failure code: 0x80004005 (NS_ERROR_FAILURE) [nsISiteSecurityService.processHeader]"  nsresult: "0x80004005 (NS_ERROR_FAILURE)"  location: "JS frame :: /builds/slave/m-b28_13-l64-hsts-000000000000/getHSTSPreloadList.js :: processStsHeader :: line 124"  data: no]
