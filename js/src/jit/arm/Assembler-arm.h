@@ -954,6 +954,15 @@ class VFPImm {
     }
 };
 
+inline void
+AssemblerCrashAtUnhandlableOOM(const char *reason)
+{
+    char msgbuf[1024];
+    JS_snprintf(msgbuf, sizeof(msgbuf), "[unhandlable oom] %s", reason);
+    MOZ_ReportAssertionFailure(msgbuf, __FILE__, __LINE__);
+    MOZ_CRASH();
+}
+
 // A BOffImm is an immediate that is used for branches. Namely, it is the offset that will
 // be encoded in the branch instruction. This is the only sane way of constructing a branch.
 class BOffImm
@@ -973,7 +982,7 @@ class BOffImm
     {
         JS_ASSERT((offset & 0x3) == 0);
         if (!isInRange(offset))
-            CrashAtUnhandlableOOM("BOffImm");
+            AssemblerCrashAtUnhandlableOOM("BOffImm");
     }
     static bool isInRange(int offset)
     {
