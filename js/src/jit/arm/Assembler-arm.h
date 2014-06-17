@@ -18,6 +18,8 @@
 #include "jit/shared/Assembler-shared.h"
 #include "jit/shared/IonAssemblerBufferWithConstantPools.h"
 
+#include "jsprf.h"
+
 namespace js {
 namespace jit {
 
