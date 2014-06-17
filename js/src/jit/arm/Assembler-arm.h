@@ -11,14 +11,14 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/MathAlgorithms.h"
 
+#include "jsprf.h"
+
 #include "assembler/assembler/AssemblerBufferWithConstantPool.h"
 #include "jit/arm/Architecture-arm.h"
 #include "jit/CompactBuffer.h"
 #include "jit/IonCode.h"
 #include "jit/shared/Assembler-shared.h"
 #include "jit/shared/IonAssemblerBufferWithConstantPools.h"
-
-#include "jsprf.h"
 
 namespace js {
 namespace jit {
