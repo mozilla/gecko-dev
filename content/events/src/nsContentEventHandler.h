@@ -66,7 +66,7 @@ protected:
   nsresult Init(nsQueryContentEvent* aEvent);
   nsresult Init(nsSelectionEvent* aEvent);
 
-  // InitCommon() is called from each Init().
+  nsresult InitBasic();
   nsresult InitCommon();
 
 public:
